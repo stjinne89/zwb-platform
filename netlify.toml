@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Netlify auto-detects Next.js and applies @netlify/plugin-nextjs.
+# Server routes, middleware en API-routes worden als functions gedraaid.

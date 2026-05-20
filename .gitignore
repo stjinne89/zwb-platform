@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (.env.local has credentials; .env.local.example is the safe template)
 .env*
+!.env.local.example
+
+# scratch / one-off downloads (csv imports, dumps, etc.)
+/.tmp/
 
 # vercel
 .vercel

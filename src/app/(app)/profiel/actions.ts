@@ -1,0 +1,55 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+
+const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
+
+function optionalNumber(v: FormDataEntryValue | null): number | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function optionalString(v: FormDataEntryValue | null): string | null {
+  const s = String(v ?? "").trim();
+  return s ? s : null;
+}
+
+export async function updateProfile(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const display_name = String(formData.get("display_name") ?? "").trim();
+  if (!display_name) return { ok: false as const, error: "Naam is verplicht." };
+
+  const zrlRaw = optionalString(formData.get("zrl_category"));
+  const zrl_category =
+    zrlRaw && (ZRL_CATS as readonly string[]).includes(zrlRaw) ? zrlRaw : null;
+
+  const ftp = optionalNumber(formData.get("ftp_watts"));
+  const weight = optionalNumber(formData.get("weight_kg"));
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      display_name,
+      region: optionalString(formData.get("region")),
+      zwift_id: optionalString(formData.get("zwift_id")),
+      strava_id: optionalString(formData.get("strava_id")),
+      zrl_category,
+      ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
+      weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
+      bio: optionalString(formData.get("bio")),
+    })
+    .eq("id", user.id);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/profiel");
+  return { ok: true as const };
+}

@@ -1,0 +1,10 @@
+{
+  "name": "ZWB Cycling Platform",
+  "short_name": "ZWB",
+  "description": "Hub voor ZWB Cycling Community — events, training, teams en chat.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#1f3a47",
+  "theme_color": "#1f3a47",
+  "lang": "nl"
+}
