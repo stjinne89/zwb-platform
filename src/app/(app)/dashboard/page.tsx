@@ -64,10 +64,11 @@ export default async function DashboardPage() {
         .order("start_at", { ascending: true })
         .limit(5),
       supabase
-        .from("announcements")
-        .select("id, title, body_md, pinned, created_at, profiles(display_name)")
+        .from("media_items")
+        .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
+        .in("kind", ["mededeling", "nieuwsbrief"])
         .order("pinned", { ascending: false })
-        .order("created_at", { ascending: false })
+        .order("published_at", { ascending: false })
         .limit(3),
       supabase
         .from("team_results")
@@ -156,7 +157,7 @@ export default async function DashboardPage() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Mededelingen</h2>
             <Link
-              href="/community"
+              href="/media"
               className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               Alles
@@ -182,13 +183,13 @@ export default async function DashboardPage() {
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {author} ·{" "}
-                    {new Date(a.created_at).toLocaleString("nl-NL", {
+                    {new Date(a.published_at).toLocaleString("nl-NL", {
                       dateStyle: "medium",
                       timeStyle: "short",
                     })}
                   </p>
                   <div className="mt-2">
-                    <Markdown source={a.body_md} />
+                    <Markdown source={a.body_md ?? ""} />
                   </div>
                 </li>
               );
