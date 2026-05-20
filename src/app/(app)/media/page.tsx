@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
+import { detectSpotify, detectYouTube } from "@/lib/embed";
 import { AddMediaForm } from "./_components/add-form";
 import { MediaItemActions } from "./_components/item-actions";
 
@@ -139,15 +140,56 @@ export default async function MediaPage({
                       {item.title}
                     </h2>
 
-                    {item.cover_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.cover_url}
-                        alt=""
-                        referrerPolicy="no-referrer"
-                        className="mt-3 max-h-48 w-auto rounded-md border object-cover"
-                      />
-                    )}
+                    {(() => {
+                      const spotify = item.spotify_url ? detectSpotify(item.spotify_url) : null;
+                      const youtube = item.youtube_url ? detectYouTube(item.youtube_url) : null;
+                      const hasEmbed = spotify || youtube;
+
+                      return (
+                        <>
+                          {/* Spotify embed (podcast/show/episode) */}
+                          {spotify && (
+                            <div className="mt-3 overflow-hidden rounded-xl border">
+                              <iframe
+                                src={spotify.embedUrl}
+                                width="100%"
+                                height={spotify.type === "show" ? 352 : 232}
+                                loading="lazy"
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                title={`Spotify ${spotify.type}: ${item.title}`}
+                                className="block"
+                              />
+                            </div>
+                          )}
+
+                          {/* YouTube embed */}
+                          {youtube && (
+                            <div className="mt-3 aspect-video overflow-hidden rounded-xl border">
+                              <iframe
+                                src={youtube.embedUrl}
+                                width="100%"
+                                height="100%"
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                                title={`YouTube: ${item.title}`}
+                                className="block h-full w-full"
+                              />
+                            </div>
+                          )}
+
+                          {/* Cover alleen tonen als er geen embed is */}
+                          {!hasEmbed && item.cover_url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.cover_url}
+                              alt=""
+                              referrerPolicy="no-referrer"
+                              className="mt-3 max-h-48 w-auto rounded-md border object-cover"
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
 
                     {item.body_md && (
                       <div className="mt-3">
@@ -155,7 +197,7 @@ export default async function MediaPage({
                       </div>
                     )}
 
-                    {/* Platform buttons */}
+                    {/* Platform buttons — voor links naar andere apps */}
                     {PLATFORM_BUTTONS.some((b) => item[b.key]) && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {PLATFORM_BUTTONS.map((b) => {
