@@ -6,7 +6,7 @@ import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { detectSpotify, detectYouTube } from "@/lib/embed";
 import { AddMediaForm } from "./_components/add-form";
 import { MediaItemActions } from "./_components/item-actions";
-import { SyncYouTubeButton } from "./_components/sync-button";
+import { SyncPodcastButton, SyncYouTubeButton } from "./_components/sync-button";
 
 type SearchParams = Promise<{ kind?: string }>;
 
@@ -46,6 +46,8 @@ export default async function MediaPage({
   const { kind } = await searchParams;
   const activeKind =
     kind && MEDIA_KINDS.some((k) => k.value === kind) ? kind : null;
+
+  const defaultRssUrl = process.env.PODCAST_RSS_URL ?? "";
 
   const supabase = await createClient();
   const {
@@ -232,15 +234,20 @@ export default async function MediaPage({
 
       {isAdmin && (
         <div className="space-y-4 border-t pt-6">
-          <div className="rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4">
-            <h3 className="text-sm font-medium">Automatische import</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Haal alle video&apos;s van het ZWB YouTube-kanaal in één keer
-              op. Re-syncs zijn idempotent — bestaande items worden alleen
-              bijgewerkt.
-            </p>
-            <div className="mt-3">
-              <SyncYouTubeButton />
+          <div className="space-y-4 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4">
+            <div>
+              <h3 className="text-sm font-medium">Automatische import</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Re-syncs zijn idempotent — bestaande items worden alleen
+                bijgewerkt.
+              </p>
+            </div>
+            <SyncYouTubeButton />
+            <div className="border-t pt-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Podcast (RSS-feed)
+              </p>
+              <SyncPodcastButton defaultRssUrl={defaultRssUrl} />
             </div>
           </div>
           <AddMediaForm />

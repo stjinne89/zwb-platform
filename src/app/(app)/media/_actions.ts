@@ -8,6 +8,7 @@ import {
   resolveUploadsPlaylistId,
   type YouTubeVideo,
 } from "@/lib/youtube";
+import { fetchRssFeed } from "@/lib/rss";
 
 const KINDS = MEDIA_KINDS.map((k) => k.value);
 
@@ -163,6 +164,107 @@ export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
   return {
     ok: true as const,
     total: videos.length,
+    inserted,
+    updated,
+  };
+}
+
+export async function syncPodcastRss(rssUrl?: string) {
+  const url = (rssUrl ?? process.env.PODCAST_RSS_URL ?? "").trim();
+  if (!url) {
+    return {
+      ok: false as const,
+      error:
+        "Geen RSS-URL opgegeven. Plak de feed-URL in het veld, of zet PODCAST_RSS_URL in env.",
+    };
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    return { ok: false as const, error: "RSS-URL moet beginnen met http:// of https://" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (!me?.is_admin)
+    return { ok: false as const, error: "Alleen admins kunnen syncen." };
+
+  let feed;
+  try {
+    feed = await fetchRssFeed(url);
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Onbekende RSS-fout.",
+    };
+  }
+
+  if (feed.episodes.length === 0) {
+    return {
+      ok: false as const,
+      error: "Geen episodes gevonden in deze feed. Controleer of het wel een podcast-RSS is.",
+    };
+  }
+
+  let inserted = 0;
+  let updated = 0;
+
+  for (const ep of feed.episodes) {
+    const body = ep.description.slice(0, 1000);
+    const cover = ep.imageUrl ?? feed.imageUrl;
+    const webUrl = ep.webUrl ?? ep.audioUrl;
+
+    const { data: existing } = await supabase
+      .from("media_items")
+      .select("id")
+      .eq("source", "rss")
+      .eq("external_id", ep.guid)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase
+        .from("media_items")
+        .update({
+          title: ep.title,
+          body_md: body || null,
+          web_url: webUrl,
+          rss_url: url,
+          cover_url: cover,
+          published_at: ep.pubDate,
+        })
+        .eq("id", existing.id);
+      if (!error) updated++;
+    } else {
+      const { error } = await supabase.from("media_items").insert({
+        kind: "podcast",
+        title: ep.title,
+        body_md: body || null,
+        web_url: webUrl,
+        rss_url: url,
+        cover_url: cover,
+        published_at: ep.pubDate,
+        source: "rss",
+        external_id: ep.guid,
+        author_id: user.id,
+      });
+      if (!error) inserted++;
+    }
+  }
+
+  revalidatePath("/media");
+  revalidatePath("/dashboard");
+
+  return {
+    ok: true as const,
+    feedTitle: feed.title,
+    total: feed.episodes.length,
     inserted,
     updated,
   };
