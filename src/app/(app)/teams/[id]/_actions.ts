@@ -78,3 +78,30 @@ export async function deleteResult(teamId: string, resultId: string) {
   revalidatePath(`/teams/${teamId}`);
   return { ok: true as const };
 }
+
+export async function toggleGraveyard(teamId: string, isGraveyard: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (!me?.is_admin)
+    return { ok: false as const, error: "Alleen admins kunnen dit wijzigen." };
+
+  const { error } = await supabase
+    .from("teams")
+    .update({ is_graveyard: isGraveyard })
+    .eq("id", teamId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath("/teams");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}

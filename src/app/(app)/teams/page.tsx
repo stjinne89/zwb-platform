@@ -29,6 +29,7 @@ type TeamRow = {
   type: string;
   division: string | null;
   description: string | null;
+  is_graveyard: boolean;
   team_members: unknown;
 };
 
@@ -62,6 +63,7 @@ type TeamCard = {
   type: string;
   division: string | null;
   description: string | null;
+  isGraveyard: boolean;
   memberCount: number;
   claimedRosterCount: number;
   pendingRosterCount: number;
@@ -144,6 +146,7 @@ function buildCards(
       type: team.type,
       division: team.division,
       description: team.description,
+      isGraveyard: team.is_graveyard ?? false,
       memberCount: relationCount(team.team_members),
       claimedRosterCount,
       pendingRosterCount,
@@ -166,6 +169,7 @@ function buildCards(
         type: "zrl",
         division: null,
         description: "Herkend uit de bestaande ledenlijst.",
+        isGraveyard: false,
         memberCount: 0,
         claimedRosterCount,
         pendingRosterCount,
@@ -193,7 +197,8 @@ export default async function TeamsPage() {
   ] = await Promise.all([
     supabase
       .from("teams")
-      .select("id, name, type, division, description, team_members(count)")
+      .select("id, name, type, division, description, is_graveyard, team_members(count)")
+      .order("is_graveyard")
       .order("name"),
     user
       ? supabase.from("profiles").select("is_admin").eq("id", user.id).single()
@@ -219,7 +224,8 @@ export default async function TeamsPage() {
     );
     const fallbackTeamsResult = await supabase
       .from("teams")
-      .select("id, name, type, division, description")
+      .select("id, name, type, division, description, is_graveyard")
+      .order("is_graveyard")
       .order("name");
     teamsData = ((fallbackTeamsResult.data ?? []) as Omit<TeamRow, "team_members">[])
       .map((team) => ({ ...team, team_members: [] }));
@@ -433,19 +439,37 @@ function TeamOverviewCard({
     Math.max(card.memberCount, card.claimedRosterCount) + card.pendingRosterCount;
 
   return (
-    <article className="flex h-full flex-col justify-between rounded-md border bg-card p-4">
+    <article
+      className={`flex h-full flex-col justify-between rounded-md border bg-card p-4 ${
+        card.isGraveyard ? "opacity-75" : ""
+      }`}
+    >
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-medium">{card.name}</p>
+            <p className="font-medium">
+              {card.isGraveyard && (
+                <span className="mr-1.5" title="Graveyard team" aria-label="graveyard">
+                  🪦
+                </span>
+              )}
+              {card.name}
+            </p>
             {card.description && (
               <p className="mt-1 text-sm text-muted-foreground">{card.description}</p>
             )}
           </div>
-          <span className="w-fit rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-            {TYPE_LABELS[card.type] ?? card.type}
-            {card.division ? ` · ${card.division}` : ""}
-          </span>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="w-fit rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+              {TYPE_LABELS[card.type] ?? card.type}
+              {card.division ? ` · ${card.division}` : ""}
+            </span>
+            {card.isGraveyard && (
+              <span className="w-fit rounded-full bg-foreground/10 px-2 py-0.5 text-xs uppercase tracking-wide text-muted-foreground">
+                Graveyard
+              </span>
+            )}
+          </div>
         </div>
 
         <dl className="grid gap-3 sm:grid-cols-3">

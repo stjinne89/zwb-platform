@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
+import { GraveyardToggle } from "./_components/graveyard-toggle";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -31,7 +32,7 @@ export default async function TeamDetailPage({
 
   const { data: team } = await supabase
     .from("teams")
-    .select("id, name, type, division, description, captain_id")
+    .select("id, name, type, division, description, captain_id, is_graveyard")
     .eq("id", id)
     .single();
 
@@ -103,13 +104,34 @@ export default async function TeamDetailPage({
       </Link>
 
       <header className="space-y-2">
-        <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-          {TYPE_LABELS[team.type] ?? team.type}
-          {team.division ? ` · ${team.division}` : ""}
-        </span>
-        <h1 className="text-3xl font-semibold tracking-tight">{team.name}</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+            {TYPE_LABELS[team.type] ?? team.type}
+            {team.division ? ` · ${team.division}` : ""}
+          </span>
+          {team.is_graveyard && (
+            <span className="inline-block rounded-full bg-foreground/10 px-2 py-0.5 text-xs uppercase tracking-wide text-muted-foreground">
+              🪦 Graveyard
+            </span>
+          )}
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {team.is_graveyard && <span className="mr-2">🪦</span>}
+          {team.name}
+        </h1>
         {team.description && (
           <p className="text-muted-foreground">{team.description}</p>
+        )}
+        {team.is_graveyard && (
+          <p className="rounded-md border border-foreground/15 bg-muted p-3 text-sm text-muted-foreground">
+            Dit team staat in de WTRL-graveyard — niet meer actief in de huidige
+            competitie-rondes. Resultaten uit het verleden blijven zichtbaar.
+          </p>
+        )}
+        {isAdmin && (
+          <div className="pt-2">
+            <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
+          </div>
         )}
       </header>
 

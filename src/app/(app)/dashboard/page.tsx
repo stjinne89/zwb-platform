@@ -52,31 +52,41 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: upcoming }, { data: announcements }, { data: standingRows }] =
-    await Promise.all([
-      user
-        ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
-        : Promise.resolve({ data: null }),
-      supabase
-        .from("events")
-        .select("id, title, type, start_at, location")
-        .gte("start_at", new Date().toISOString())
-        .order("start_at", { ascending: true })
-        .limit(5),
-      supabase
-        .from("media_items")
-        .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
-        .in("kind", ["mededeling", "nieuwsbrief"])
-        .order("pinned", { ascending: false })
-        .order("published_at", { ascending: false })
-        .limit(3),
-      supabase
-        .from("team_results")
-        .select("id, team_id, competition, round_label, round_at, position, points, total_teams, created_at, source_url, teams(id, name, type, division)")
-        .not("position", "is", null)
-        .order("round_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: profile },
+    { data: upcoming },
+    { data: announcements },
+    { data: standingRows },
+    { data: graveyardTeams },
+  ] = await Promise.all([
+    user
+      ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("events")
+      .select("id, title, type, start_at, location")
+      .gte("start_at", new Date().toISOString())
+      .order("start_at", { ascending: true })
+      .limit(5),
+    supabase
+      .from("media_items")
+      .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
+      .in("kind", ["mededeling", "nieuwsbrief"])
+      .order("pinned", { ascending: false })
+      .order("published_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("team_results")
+      .select("id, team_id, competition, round_label, round_at, position, points, total_teams, created_at, source_url, teams(id, name, type, division)")
+      .not("position", "is", null)
+      .order("round_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("teams")
+      .select("id, name, type, division")
+      .eq("is_graveyard", true)
+      .order("name"),
+  ]);
 
   const standings = latestStandings((standingRows ?? []) as unknown as TeamStanding[]);
   const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
@@ -145,6 +155,50 @@ export default async function DashboardPage() {
                       </span>
                     )}
                   </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {graveyardTeams && graveyardTeams.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-semibold">
+                <span aria-hidden>🪦</span>
+                In de graveyard
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Teams die niet meer actief meedoen aan de huidige rondes.
+              </p>
+            </div>
+            <Link
+              href="/teams"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Alle teams
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {graveyardTeams.map((t) => (
+              <li key={t.id}>
+                <Link
+                  href={`/teams/${t.id}`}
+                  className="flex items-center justify-between gap-2 rounded-md border bg-card p-3 text-sm transition hover:border-foreground/30"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="mr-1.5" aria-hidden>
+                      🪦
+                    </span>
+                    {t.name}
+                  </span>
+                  <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
+                    {t.type}
+                    {t.division ? ` · ${t.division}` : ""}
+                  </span>
                 </Link>
               </li>
             ))}
