@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
+import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -292,6 +293,7 @@ export default async function TeamsPage() {
         {isAdmin && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
             <SyncResultsButton />
+            <SyncGraveyardButton />
             <Link href="/teams/nieuw">
               <Button>
                 <Plus data-icon="inline-start" />
