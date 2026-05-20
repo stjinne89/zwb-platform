@@ -6,6 +6,7 @@ import {
   addGroup,
   deleteAnnouncement,
   deleteGroup,
+  fetchInvitePreview,
   togglePin,
 } from "../_actions";
 import { Button } from "@/components/ui/button";
@@ -27,17 +28,49 @@ const CATEGORIES = [
   { value: "overig", label: "Overig" },
 ];
 
-export function NewGroupForm() {
+type TeamOption = { id: string; name: string; type: string; division: string | null };
+
+export function NewGroupForm({ teams }: { teams: TeamOption[] }) {
   const [pending, startTransition] = useTransition();
+  const [fetching, startFetch] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [iconUrl, setIconUrl] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  function fetchPreview() {
+    setError(null);
+    if (!inviteUrl.trim()) {
+      setError("Plak eerst een invite-URL.");
+      return;
+    }
+    startFetch(async () => {
+      const res = await fetchInvitePreview(inviteUrl);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setName(res.name);
+      if (res.description) setDescription(res.description);
+      setIconUrl(res.iconUrl);
+    });
+  }
 
   function submit(fd: FormData) {
     setError(null);
     startTransition(async () => {
       const res = await addGroup(fd);
-      if (!res.ok) setError(res.error);
-      else formRef.current?.reset();
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      formRef.current?.reset();
+      setInviteUrl("");
+      setName("");
+      setDescription("");
+      setIconUrl(null);
     });
   }
 
@@ -48,14 +81,62 @@ export function NewGroupForm() {
       className="space-y-3 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4"
     >
       <h3 className="text-sm font-medium">Nieuwe WhatsApp-groep</h3>
+
+      <div>
+        <label className={LABEL}>Invite-URL</label>
+        <div className="flex gap-2">
+          <input
+            name="invite_url"
+            type="url"
+            required
+            placeholder="https://chat.whatsapp.com/AbCdEf123…"
+            value={inviteUrl}
+            onChange={(e) => setInviteUrl(e.target.value)}
+            className={FIELD}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={fetching || !inviteUrl.trim()}
+            onClick={fetchPreview}
+          >
+            {fetching ? "Ophalen…" : "Ophalen"}
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Plak de invite-link en klik &quot;Ophalen&quot; om naam + omschrijving
+          automatisch in te vullen.
+        </p>
+      </div>
+
+      {iconUrl && (
+        <div className="flex items-center gap-3 rounded-md border bg-card p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={iconUrl}
+            alt=""
+            className="h-10 w-10 rounded-full border"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-xs text-muted-foreground">Groep-icoon</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={LABEL}>Naam</label>
-          <input name="name" required className={FIELD} />
+          <input
+            name="name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={FIELD}
+          />
         </div>
         <div>
           <label className={LABEL}>Categorie</label>
-          <select name="category" className={FIELD}>
+          <select name="category" className={FIELD} defaultValue="algemeen">
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
@@ -64,21 +145,30 @@ export function NewGroupForm() {
           </select>
         </div>
       </div>
+
       <div>
-        <label className={LABEL}>Invite-URL (https://chat.whatsapp.com/…)</label>
+        <label className={LABEL}>Korte omschrijving</label>
         <input
-          name="invite_url"
-          type="url"
-          required
-          placeholder="https://chat.whatsapp.com/AbCdEf123…"
+          name="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           className={FIELD}
         />
       </div>
-      <div>
-        <label className={LABEL}>Korte omschrijving</label>
-        <input name="description" className={FIELD} />
-      </div>
+
       <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Koppel aan team (optioneel)</label>
+          <select name="team_id" defaultValue="none" className={FIELD}>
+            <option value="none">— geen koppeling —</option>
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+                {t.division ? ` (${t.division})` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className={LABEL}>Volgorde (lager = eerder)</label>
           <input
@@ -89,6 +179,7 @@ export function NewGroupForm() {
           />
         </div>
       </div>
+
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Toevoegen…" : "Groep toevoegen"}

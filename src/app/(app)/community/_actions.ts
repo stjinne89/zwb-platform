@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { fetchWhatsAppGroupInfo, isValidInviteUrl } from "@/lib/whatsapp";
 
 const CATEGORIES = [
   "algemeen",
@@ -15,6 +16,30 @@ const CATEGORIES = [
   "overig",
 ];
 
+export async function fetchInvitePreview(inviteUrl: string) {
+  const url = inviteUrl.trim();
+  if (!isValidInviteUrl(url)) {
+    return {
+      ok: false as const,
+      error: "Invite-URL moet eruitzien als https://chat.whatsapp.com/AbCdEf…",
+    };
+  }
+  const info = await fetchWhatsAppGroupInfo(url);
+  if (!info.name) {
+    return {
+      ok: false as const,
+      error:
+        "Kon de groepsnaam niet ophalen. Controleer of de invite-URL nog geldig is en de groep 'shareable via link' aan heeft.",
+    };
+  }
+  return {
+    ok: true as const,
+    name: info.name,
+    iconUrl: info.iconUrl,
+    description: info.description,
+  };
+}
+
 export async function addGroup(formData: FormData) {
   const supabase = await createClient();
   const name = String(formData.get("name") ?? "").trim();
@@ -24,9 +49,11 @@ export async function addGroup(formData: FormData) {
   const invite_url = String(formData.get("invite_url") ?? "").trim();
   const display_order_raw = String(formData.get("display_order") ?? "").trim();
   const display_order = display_order_raw ? Number(display_order_raw) : 0;
+  const teamIdRaw = String(formData.get("team_id") ?? "").trim();
+  const team_id = teamIdRaw && teamIdRaw !== "none" ? teamIdRaw : null;
 
   if (!name) return { ok: false as const, error: "Naam is verplicht." };
-  if (!/^https:\/\/chat\.whatsapp\.com\//i.test(invite_url)) {
+  if (!isValidInviteUrl(invite_url)) {
     return {
       ok: false as const,
       error: "Invite-URL moet beginnen met https://chat.whatsapp.com/",
@@ -38,10 +65,12 @@ export async function addGroup(formData: FormData) {
     description,
     category,
     invite_url,
+    team_id,
     display_order: Number.isFinite(display_order) ? display_order : 0,
   });
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/community");
+  if (team_id) revalidatePath(`/teams/${team_id}`);
   return { ok: true as const };
 }
 

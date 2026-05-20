@@ -27,10 +27,10 @@ export default async function CommunityPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: groups }, { data: announcements }, { data: me }] = await Promise.all([
+  const [{ data: groups }, { data: announcements }, { data: me }, { data: teams }] = await Promise.all([
     supabase
       .from("whatsapp_groups")
-      .select("id, name, description, category, invite_url, display_order")
+      .select("id, name, description, category, invite_url, display_order, team_id, teams(name, division)")
       .order("display_order")
       .order("name"),
     supabase
@@ -40,9 +40,19 @@ export default async function CommunityPage() {
       .order("created_at", { ascending: false })
       .limit(20),
     supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+    supabase
+      .from("teams")
+      .select("id, name, type, division")
+      .order("name"),
   ]);
 
   const isAdmin = me?.is_admin ?? false;
+  const teamOptions = (teams ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    type: t.type,
+    division: t.division,
+  }));
 
   return (
     <div className="space-y-10">
@@ -125,42 +135,52 @@ export default async function CommunityPage() {
           </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
-            {groups.map((g) => (
-              <li key={g.id} className="relative">
-                <a
-                  href={g.invite_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-lg border bg-card p-4 transition hover:border-foreground/30"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium">{g.name}</p>
-                    {g.category && (
-                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                        {CATEGORY_LABELS[g.category] ?? g.category}
-                      </span>
+            {groups.map((g) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const team = (g.teams as any) as { name: string; division: string | null } | null;
+              return (
+                <li key={g.id} className="relative">
+                  <a
+                    href={g.invite_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-lg border bg-card p-4 transition hover:border-foreground/30"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{g.name}</p>
+                      {g.category && (
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+                          {CATEGORY_LABELS[g.category] ?? g.category}
+                        </span>
+                      )}
+                    </div>
+                    {team && (
+                      <p className="mt-1 text-xs font-medium text-primary">
+                        Team: {team.name}
+                        {team.division ? ` (${team.division})` : ""}
+                      </p>
                     )}
-                  </div>
-                  {g.description && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {g.description}
+                    {g.description && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {g.description}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-green-600 dark:text-green-400">
+                      Open in WhatsApp →
                     </p>
+                  </a>
+                  {isAdmin && (
+                    <div className="absolute right-2 top-2">
+                      <DeleteGroupButton id={g.id} />
+                    </div>
                   )}
-                  <p className="mt-2 text-xs text-green-600 dark:text-green-400">
-                    Open in WhatsApp →
-                  </p>
-                </a>
-                {isAdmin && (
-                  <div className="absolute right-2 top-2">
-                    <DeleteGroupButton id={g.id} />
-                  </div>
-                )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
 
-        {isAdmin && <NewGroupForm />}
+        {isAdmin && <NewGroupForm teams={teamOptions} />}
       </section>
     </div>
   );
