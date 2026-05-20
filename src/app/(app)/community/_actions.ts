@@ -40,6 +40,14 @@ export async function fetchInvitePreview(inviteUrl: string) {
   };
 }
 
+// Parse de "scope"-waarde uit het form: "team:<uuid>" / "event:<uuid>" / "none".
+function parseScope(raw: string): { team_id: string | null; event_id: string | null } {
+  const v = raw.trim();
+  if (v.startsWith("team:")) return { team_id: v.slice(5), event_id: null };
+  if (v.startsWith("event:")) return { team_id: null, event_id: v.slice(6) };
+  return { team_id: null, event_id: null };
+}
+
 export async function addGroup(formData: FormData) {
   const supabase = await createClient();
   const name = String(formData.get("name") ?? "").trim();
@@ -49,8 +57,7 @@ export async function addGroup(formData: FormData) {
   const invite_url = String(formData.get("invite_url") ?? "").trim();
   const display_order_raw = String(formData.get("display_order") ?? "").trim();
   const display_order = display_order_raw ? Number(display_order_raw) : 0;
-  const teamIdRaw = String(formData.get("team_id") ?? "").trim();
-  const team_id = teamIdRaw && teamIdRaw !== "none" ? teamIdRaw : null;
+  const { team_id, event_id } = parseScope(String(formData.get("scope") ?? "none"));
 
   if (!name) return { ok: false as const, error: "Naam is verplicht." };
   if (!isValidInviteUrl(invite_url)) {
@@ -66,11 +73,13 @@ export async function addGroup(formData: FormData) {
     category,
     invite_url,
     team_id,
+    event_id,
     display_order: Number.isFinite(display_order) ? display_order : 0,
   });
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/community");
   if (team_id) revalidatePath(`/teams/${team_id}`);
+  if (event_id) revalidatePath(`/events/${event_id}`);
   return { ok: true as const };
 }
 

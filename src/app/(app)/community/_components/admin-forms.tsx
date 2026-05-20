@@ -29,8 +29,15 @@ const CATEGORIES = [
 ];
 
 type TeamOption = { id: string; name: string; type: string; division: string | null };
+type EventOption = { id: string; title: string; start_at: string; type: string };
 
-export function NewGroupForm({ teams }: { teams: TeamOption[] }) {
+export function NewGroupForm({
+  teams,
+  events,
+}: {
+  teams: TeamOption[];
+  events: EventOption[];
+}) {
   const [pending, startTransition] = useTransition();
   const [fetching, startFetch] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -158,15 +165,32 @@ export function NewGroupForm({ teams }: { teams: TeamOption[] }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={LABEL}>Koppel aan team (optioneel)</label>
-          <select name="team_id" defaultValue="none" className={FIELD}>
+          <label className={LABEL}>Koppel aan team / event (optioneel)</label>
+          <select name="scope" defaultValue="none" className={FIELD}>
             <option value="none">— geen koppeling —</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-                {t.division ? ` (${t.division})` : ""}
-              </option>
-            ))}
+            {teams.length > 0 && (
+              <optgroup label="Teams">
+                {teams.map((t) => (
+                  <option key={t.id} value={`team:${t.id}`}>
+                    {t.name}
+                    {t.division ? ` (${t.division})` : ""}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {events.length > 0 && (
+              <optgroup label="Events">
+                {events.map((e) => (
+                  <option key={e.id} value={`event:${e.id}`}>
+                    {new Date(e.start_at).toLocaleDateString("nl-NL", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    })}{" "}
+                    — {e.title}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
         <div>

@@ -27,10 +27,18 @@ export default async function CommunityPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: groups }, { data: announcements }, { data: me }, { data: teams }] = await Promise.all([
+  const [
+    { data: groups },
+    { data: announcements },
+    { data: me },
+    { data: teams },
+    { data: events },
+  ] = await Promise.all([
     supabase
       .from("whatsapp_groups")
-      .select("id, name, description, category, invite_url, display_order, team_id, teams(name, division)")
+      .select(
+        "id, name, description, category, invite_url, display_order, team_id, event_id, teams(name, division), events(title, start_at)",
+      )
       .order("display_order")
       .order("name"),
     supabase
@@ -44,6 +52,11 @@ export default async function CommunityPage() {
       .from("teams")
       .select("id, name, type, division")
       .order("name"),
+    supabase
+      .from("events")
+      .select("id, title, start_at, type")
+      .order("start_at", { ascending: false })
+      .limit(50),
   ]);
 
   const isAdmin = me?.is_admin ?? false;
@@ -52,6 +65,12 @@ export default async function CommunityPage() {
     name: t.name,
     type: t.type,
     division: t.division,
+  }));
+  const eventOptions = (events ?? []).map((e) => ({
+    id: e.id,
+    title: e.title,
+    start_at: e.start_at,
+    type: e.type,
   }));
 
   return (
@@ -138,6 +157,8 @@ export default async function CommunityPage() {
             {groups.map((g) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const team = (g.teams as any) as { name: string; division: string | null } | null;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const event = (g.events as any) as { title: string; start_at: string } | null;
               return (
                 <li key={g.id} className="relative">
                   <a
@@ -160,6 +181,16 @@ export default async function CommunityPage() {
                         {team.division ? ` (${team.division})` : ""}
                       </p>
                     )}
+                    {event && (
+                      <p className="mt-1 text-xs font-medium text-primary">
+                        Event:{" "}
+                        {new Date(event.start_at).toLocaleDateString("nl-NL", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}{" "}
+                        — {event.title}
+                      </p>
+                    )}
                     {g.description && (
                       <p className="mt-1 text-sm text-muted-foreground">
                         {g.description}
@@ -180,7 +211,7 @@ export default async function CommunityPage() {
           </ul>
         )}
 
-        {isAdmin && <NewGroupForm teams={teamOptions} />}
+        {isAdmin && <NewGroupForm teams={teamOptions} events={eventOptions} />}
       </section>
     </div>
   );
