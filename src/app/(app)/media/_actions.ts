@@ -80,6 +80,18 @@ export async function deleteMediaItem(id: string) {
 }
 
 export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
+  try {
+    return await syncYouTubeChannelInner(handle);
+  } catch (err) {
+    console.error("[syncYouTubeChannel] uncaught error:", err);
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Onbekende fout bij YouTube-sync.",
+    };
+  }
+}
+
+async function syncYouTubeChannelInner(handle: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return {
@@ -116,11 +128,11 @@ export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
 
   let inserted = 0;
   let updated = 0;
+  const insertErrors: string[] = [];
 
   for (const v of videos) {
     const youtube_url = `https://www.youtube.com/watch?v=${v.videoId}`;
-    // Body: korte beschrijving (max 600 tekens om de UI niet vol te zetten).
-    const body = v.description.trim().slice(0, 600);
+    const body = (v.description ?? "").trim().slice(0, 600);
 
     // Idempotent upsert op (source, external_id).
     const { data: existing } = await supabase
@@ -141,7 +153,8 @@ export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
           published_at: v.publishedAt,
         })
         .eq("id", existing.id);
-      if (!error) updated++;
+      if (error) insertErrors.push(`update ${v.videoId}: ${error.message}`);
+      else updated++;
     } else {
       const { error } = await supabase.from("media_items").insert({
         kind: "video",
@@ -154,12 +167,24 @@ export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
         external_id: v.videoId,
         author_id: user.id,
       });
-      if (!error) inserted++;
+      if (error) insertErrors.push(`insert ${v.videoId}: ${error.message}`);
+      else inserted++;
     }
   }
 
   revalidatePath("/media");
   revalidatePath("/dashboard");
+
+  // Als geen enkele insert/update lukte, geef de eerste fout terug zodat
+  // de admin het kan zien.
+  if (videos.length > 0 && inserted === 0 && updated === 0) {
+    return {
+      ok: false as const,
+      error:
+        insertErrors[0] ??
+        "Geen video's geïmporteerd. Mogelijk ontbreekt migratie 0016.",
+    };
+  }
 
   return {
     ok: true as const,
