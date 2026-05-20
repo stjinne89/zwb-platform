@@ -2,27 +2,34 @@
 
 import { Suspense, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { sendMagicLink, signInWithPassword } from "./actions";
+import { sendMagicLink, signInWithPassword, signUp } from "./actions";
 import { Button } from "@/components/ui/button";
 import { ZwbLogo } from "@/components/zwb-logo";
+
+type Mode = "login" | "register";
 
 type Status =
   | { kind: "idle" }
   | { kind: "magic-sent" }
+  | { kind: "confirm-sent" }
   | { kind: "error"; msg: string };
+
+const FIELD =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      <AuthScreen />
     </Suspense>
   );
 }
 
-function LoginForm() {
+function AuthScreen() {
   const params = useSearchParams();
   const initialError = params.get("error");
 
+  const [mode, setMode] = useState<Mode>("login");
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<Status>(
     initialError ? { kind: "error", msg: initialError } : { kind: "idle" },
@@ -36,6 +43,20 @@ function LoginForm() {
       // redirect() short-circuits — only error path returns here.
       if (res && !res.ok)
         setStatus({ kind: "error", msg: res.error ?? "Onbekende fout." });
+    });
+  }
+
+  function handleRegister(formData: FormData) {
+    setStatus({ kind: "idle" });
+    startTransition(async () => {
+      const res = await signUp(formData);
+      // redirect() short-circuits on direct login (geen e-mail-bevestiging).
+      if (!res) return;
+      if (!res.ok) {
+        setStatus({ kind: "error", msg: res.error ?? "Onbekende fout." });
+      } else if (res.needsConfirmation) {
+        setStatus({ kind: "confirm-sent" });
+      }
     });
   }
 
@@ -62,56 +83,97 @@ function LoginForm() {
       <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-sm">
         <div className="space-y-3">
           <ZwbLogo className="h-16 w-auto text-foreground" />
-          <p className="text-sm text-muted-foreground">Log in om verder te gaan.</p>
+          <p className="text-sm text-muted-foreground">
+            {mode === "login"
+              ? "Log in om verder te gaan."
+              : "Maak een ZWB-account aan."}
+          </p>
         </div>
 
-        <form action={handlePassword} className="space-y-3">
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            placeholder="E-mailadres"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <input
-            type="password"
-            name="password"
-            required
-            autoComplete="current-password"
-            placeholder="Wachtwoord"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <Button type="submit" disabled={pending} className="w-full">
-            {pending ? "Bezig…" : "Inloggen"}
-          </Button>
-        </form>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">of</span>
-          </div>
+        {/* Mode toggle */}
+        <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("login");
+              setStatus({ kind: "idle" });
+            }}
+            className={`rounded px-3 py-1.5 transition ${
+              mode === "login"
+                ? "bg-background shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Inloggen
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("register");
+              setStatus({ kind: "idle" });
+            }}
+            className={`rounded px-3 py-1.5 transition ${
+              mode === "register"
+                ? "bg-background shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Registreren
+          </button>
         </div>
 
-        {status.kind === "magic-sent" ? (
+        {/* Confirmation message */}
+        {status.kind === "confirm-sent" ? (
+          <div className="space-y-2 rounded-md bg-green-50 px-3 py-3 text-sm text-green-900 dark:bg-green-950 dark:text-green-100">
+            <p className="font-medium">Bijna klaar! ✉️</p>
+            <p>
+              Check je inbox en klik op de bevestigingslink om je account te
+              activeren. Daarna kun je inloggen.
+            </p>
+          </div>
+        ) : mode === "login" ? (
+          <LoginForm
+            email={email}
+            setEmail={setEmail}
+            pending={pending}
+            onSubmit={handlePassword}
+          />
+        ) : (
+          <RegisterForm
+            email={email}
+            setEmail={setEmail}
+            pending={pending}
+            onSubmit={handleRegister}
+          />
+        )}
+
+        {/* Magic link — only on login mode */}
+        {mode === "login" && status.kind !== "magic-sent" && status.kind !== "confirm-sent" && (
+          <>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">of</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={handleMagic}
+              className="w-full"
+            >
+              Stuur magic link
+            </Button>
+          </>
+        )}
+
+        {status.kind === "magic-sent" && (
           <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-900 dark:bg-green-950 dark:text-green-100">
             Check je inbox — de magic link is verzonden.
           </p>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending}
-            onClick={handleMagic}
-            className="w-full"
-          >
-            Stuur magic link
-          </Button>
         )}
 
         {status.kind === "error" && (
@@ -119,5 +181,94 @@ function LoginForm() {
         )}
       </div>
     </main>
+  );
+}
+
+function LoginForm({
+  email,
+  setEmail,
+  pending,
+  onSubmit,
+}: {
+  email: string;
+  setEmail: (v: string) => void;
+  pending: boolean;
+  onSubmit: (fd: FormData) => void;
+}) {
+  return (
+    <form action={onSubmit} className="space-y-3">
+      <input
+        type="email"
+        name="email"
+        required
+        autoComplete="email"
+        placeholder="E-mailadres"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className={FIELD}
+      />
+      <input
+        type="password"
+        name="password"
+        required
+        autoComplete="current-password"
+        placeholder="Wachtwoord"
+        className={FIELD}
+      />
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? "Bezig…" : "Inloggen"}
+      </Button>
+    </form>
+  );
+}
+
+function RegisterForm({
+  email,
+  setEmail,
+  pending,
+  onSubmit,
+}: {
+  email: string;
+  setEmail: (v: string) => void;
+  pending: boolean;
+  onSubmit: (fd: FormData) => void;
+}) {
+  return (
+    <form action={onSubmit} className="space-y-3">
+      <input
+        type="text"
+        name="display_name"
+        required
+        autoComplete="name"
+        placeholder="Je naam (bv. Stijn Martens)"
+        className={FIELD}
+      />
+      <input
+        type="email"
+        name="email"
+        required
+        autoComplete="email"
+        placeholder="E-mailadres"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className={FIELD}
+      />
+      <input
+        type="password"
+        name="password"
+        required
+        minLength={8}
+        autoComplete="new-password"
+        placeholder="Wachtwoord (min. 8 tekens)"
+        className={FIELD}
+      />
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? "Bezig…" : "Account aanmaken"}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        Door te registreren ga je akkoord met deelname aan de ZWB Cycling
+        Community. Je profiel is zichtbaar voor andere leden.
+      </p>
+    </form>
   );
 }
