@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -42,6 +43,7 @@ export default async function TeamDetailPage({
     { data: me },
     { data: allProfiles },
     { data: rosterPending },
+    { data: waGroups },
   ] = await Promise.all([
     supabase
       .from("team_members")
@@ -62,6 +64,12 @@ export default async function TeamDetailPage({
       .select("id, name, pace_category, zwift_id")
       .eq("team_id", id)
       .is("claimed_by", null)
+      .order("name"),
+    supabase
+      .from("whatsapp_groups")
+      .select("id, name, invite_url, description")
+      .eq("team_id", id)
+      .order("display_order")
       .order("name"),
   ]);
 
@@ -104,6 +112,12 @@ export default async function TeamDetailPage({
           <p className="text-muted-foreground">{team.description}</p>
         )}
       </header>
+
+      <WhatsAppGroupBlock
+        scope="team"
+        groups={waGroups ?? []}
+        canManage={canManage}
+      />
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

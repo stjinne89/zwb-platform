@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { GpxMap } from "./_components/gpx-map";
 import { RsvpButtons } from "./_components/rsvp-buttons";
 
@@ -37,10 +38,25 @@ export default async function EventDetailPage({
 
   if (!event) notFound();
 
-  const { data: rsvps } = await supabase
-    .from("event_rsvps")
-    .select("status, profile_id, profiles(display_name)")
-    .eq("event_id", id);
+  const [{ data: rsvps }, { data: me }, { data: waGroups }] = await Promise.all([
+    supabase
+      .from("event_rsvps")
+      .select("status, profile_id, profiles(display_name)")
+      .eq("event_id", id),
+    user
+      ? supabase.from("profiles").select("is_admin").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("whatsapp_groups")
+      .select("id, name, invite_url, description")
+      .eq("event_id", id)
+      .order("display_order")
+      .order("name"),
+  ]);
+
+  const isAdmin = me?.is_admin ?? false;
+  const isCreator = user?.id === event.created_by;
+  const canManage = isAdmin || isCreator;
 
   const myRsvp = rsvps?.find((r) => r.profile_id === user?.id)?.status as
     | RsvpStatus
@@ -86,6 +102,12 @@ export default async function EventDetailPage({
           {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
         </p>
       </header>
+
+      <WhatsAppGroupBlock
+        scope="event"
+        groups={waGroups ?? []}
+        canManage={canManage}
+      />
 
       {event.description && (
         <section className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-sm">
