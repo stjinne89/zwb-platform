@@ -6,7 +6,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "./_components/logout-button";
 
 const NAV = [
-  { href: "/dashboard", label: "Home" },
   { href: "/kalender", label: "Kalender" },
   { href: "/teams", label: "Teams" },
   { href: "/achievements", label: "Achievements" },

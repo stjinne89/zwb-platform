@@ -48,9 +48,15 @@ function latestStandings(results: TeamStanding[]): TeamStandingWithTeam[] {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const [{ data: upcoming }, { data: announcements }, { data: standingRows }] =
+  const [{ data: profile }, { data: upcoming }, { data: announcements }, { data: standingRows }] =
     await Promise.all([
+      user
+        ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+        : Promise.resolve({ data: null }),
       supabase
         .from("events")
         .select("id, title, type, start_at, location")
@@ -72,14 +78,16 @@ export default async function DashboardPage() {
     ]);
 
   const standings = latestStandings((standingRows ?? []) as unknown as TeamStanding[]);
+  const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
+    .trim()
+    .split(/\s+/)[0];
 
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight">ZWB Cycling Community App</h1>
-        <p className="mt-1 text-muted-foreground">
-        Welkom op het platform van de ZWB Cycling Community.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {firstName ? `Hoi ${firstName},` : "Welkom"} welkom op het platform van de ZWB Cycling Community.
+        </h1>
       </section>
 
       {standings.length > 0 && (
