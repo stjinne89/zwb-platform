@@ -8,6 +8,9 @@ const PUBLIC_PATHS = [
   "/api/achievements/finalize",
 ];
 
+// Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.
+const PENDING_OK_PATHS = ["/wachten"];
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -38,6 +41,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPendingOk = PENDING_OK_PATHS.some((p) => pathname.startsWith(p));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -49,6 +53,36 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
+  }
+
+  // Approval-gate: ingelogde gebruikers die nog niet goedgekeurd zijn
+  // mogen alleen op /wachten (en publieke paden).
+  if (user && !isPublic && !isPendingOk) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_approved")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile && !profile.is_approved) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/wachten";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Goedgekeurde users die /wachten bezoeken → dashboard.
+  if (user && isPendingOk) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_approved")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.is_approved) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

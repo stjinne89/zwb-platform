@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { ApproveButton } from "./_components/approve-button";
 import { ClaimButton } from "./_components/claim-button";
 
 type Profile = {
@@ -9,6 +10,8 @@ type Profile = {
   region: string | null;
   zwift_id: string | null;
   zrl_category: string | null;
+  is_approved: boolean;
+  created_at: string;
 };
 
 type RosterEntry = {
@@ -61,7 +64,7 @@ export default async function LedenPage() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, region, zwift_id, zrl_category")
+      .select("id, display_name, region, zwift_id, zrl_category, is_approved, created_at")
       .order("display_name"),
     supabase
       .from("roster_entries")
@@ -69,7 +72,7 @@ export default async function LedenPage() {
       .order("name"),
     supabase
       .from("profiles")
-      .select("display_name")
+      .select("display_name, is_admin")
       .eq("id", user.id)
       .single(),
     supabase
@@ -80,7 +83,10 @@ export default async function LedenPage() {
   ]);
 
   const myName = me?.display_name ?? "";
-  const profileList: Profile[] = profiles ?? [];
+  const isAdmin = me?.is_admin ?? false;
+  const allProfiles: Profile[] = profiles ?? [];
+  const pendingProfiles = allProfiles.filter((p) => !p.is_approved);
+  const profileList = allProfiles.filter((p) => p.is_approved);
   const rosterList: RosterEntry[] = roster ?? [];
   const awardsByProfile = new Map<string, AwardRow[]>();
   for (const award of ((awards ?? []) as unknown as AwardRow[])) {
@@ -103,6 +109,39 @@ export default async function LedenPage() {
           Geregistreerde leden en bekende ZWB&apos;ers die nog niet ingelogd zijn.
         </p>
       </header>
+
+      {isAdmin && pendingProfiles.length > 0 && (
+        <section className="space-y-3 rounded-2xl border-2 border-accent bg-card p-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-foreground">
+              Wachten op goedkeuring ({pendingProfiles.length})
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Nieuwe registraties die jouw goedkeuring nodig hebben.
+            </p>
+          </div>
+          <ul className="divide-y">
+            {pendingProfiles.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between gap-3 py-2 text-sm"
+              >
+                <div>
+                  <p className="font-medium">{p.display_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Geregistreerd{" "}
+                    {new Date(p.created_at).toLocaleString("nl-NL", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                </div>
+                <ApproveButton profileId={p.id} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {suggested.length > 0 && (
         <section className="space-y-3 rounded-2xl border border-foreground/20 bg-card p-4">

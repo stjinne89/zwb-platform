@@ -30,3 +30,32 @@ export async function unclaimRosterEntry(entryId: string) {
   revalidatePath("/leden");
   return { ok: true as const };
 }
+
+export async function approveUser(profileId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (!me?.is_admin)
+    return { ok: false as const, error: "Alleen admins kunnen goedkeuren." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      is_approved: true,
+      approved_at: new Date().toISOString(),
+      approved_by: user.id,
+    })
+    .eq("id", profileId);
+
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/leden");
+  return { ok: true as const };
+}
