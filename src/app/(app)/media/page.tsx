@@ -125,21 +125,26 @@ export default async function MediaPage({
                   item.pinned ? "border-foreground/40" : ""
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {item.pinned && <span className="text-foreground/60">📌</span>}
-                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                        {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
-                      </span>
-                      <p className="text-xs text-muted-foreground">
-                        {author ?? "Bestuur"} ·{" "}
-                        {new Date(item.published_at).toLocaleDateString("nl-NL", {
-                          dateStyle: "medium",
-                        })}
-                      </p>
-                    </div>
-                    <h2 className="mt-2 text-lg font-semibold tracking-tight">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {item.pinned && <span className="text-foreground/60">📌</span>}
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+                      {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      {author ?? "Bestuur"} ·{" "}
+                      {new Date(item.published_at).toLocaleDateString("nl-NL", {
+                        dateStyle: "medium",
+                      })}
+                    </p>
+                    {isAdmin && (
+                      <div className="ml-auto">
+                        <MediaItemActions id={item.id} pinned={item.pinned} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold tracking-tight">
                       {item.title}
                     </h2>
 
@@ -183,26 +188,36 @@ export default async function MediaPage({
                             </div>
                           )}
 
-                          {/* Google Drive / Docs / Sheets / Slides embed — responsive heights */}
+                          {/* Google Drive / Docs / Sheets / Slides embed — viewport-based op mobile */}
                           {drive && (
-                            <div
-                              className={`mt-3 overflow-hidden rounded-xl border ${
-                                drive.type === "slide"
-                                  ? "aspect-video"
-                                  : drive.type === "doc"
-                                    ? "h-[420px] sm:h-[560px] md:h-[720px]"
-                                    : drive.type === "sheet"
-                                      ? "h-[340px] sm:h-[440px] md:h-[520px]"
-                                      : "h-[380px] sm:h-[520px] md:h-[640px]"
-                              }`}
-                            >
-                              <iframe
-                                src={drive.embedUrl}
-                                loading="lazy"
-                                allow="autoplay"
-                                title={`Drive: ${item.title}`}
-                                className="block h-full w-full"
-                              />
+                            <div className="mt-3 space-y-2">
+                              <div
+                                className={`overflow-hidden rounded-xl border ${
+                                  drive.type === "slide"
+                                    ? "aspect-video"
+                                    : drive.type === "doc"
+                                      ? "h-[75vh] sm:h-[600px] md:h-[720px]"
+                                      : drive.type === "sheet"
+                                        ? "h-[60vh] sm:h-[480px] md:h-[560px]"
+                                        : "h-[75vh] sm:h-[560px] md:h-[680px]"
+                                }`}
+                              >
+                                <iframe
+                                  src={drive.embedUrl}
+                                  loading="lazy"
+                                  allow="autoplay"
+                                  title={`Drive: ${item.title}`}
+                                  className="block h-full w-full"
+                                />
+                              </div>
+                              <a
+                                href={drive.openUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                              >
+                                ↗ Open volledig in nieuw tabblad
+                              </a>
                             </div>
                           )}
 
@@ -248,9 +263,6 @@ export default async function MediaPage({
                       </div>
                     )}
                   </div>
-                  {isAdmin && (
-                    <MediaItemActions id={item.id} pinned={item.pinned} />
-                  )}
                 </div>
               </li>
             );
