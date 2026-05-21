@@ -69,6 +69,18 @@ export function AddMediaForm() {
       </div>
 
       <div>
+        <label className={LABEL}>
+          Publicatiedatum (optioneel — leeg = nu)
+        </label>
+        <input type="datetime-local" name="published_at" className={FIELD} />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Gebruik de oorspronkelijke datum van de inhoud (bv. de
+          creatie-datum van een Drive-document of de uitzenddatum van
+          een aflevering).
+        </p>
+      </div>
+
+      <div>
         <label className={LABEL}>Tekst / beschrijving (markdown, optioneel)</label>
         <textarea name="body_md" rows={kind === "mededeling" ? 4 : 2} className={`${FIELD} font-mono`} />
       </div>

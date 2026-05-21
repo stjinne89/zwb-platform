@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
-import { detectSpotify, detectYouTube } from "@/lib/embed";
+import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
 import { AddMediaForm } from "./_components/add-form";
 import { MediaItemActions } from "./_components/item-actions";
 import { SyncPodcastButton, SyncYouTubeButton } from "./_components/sync-button";
@@ -146,7 +146,8 @@ export default async function MediaPage({
                     {(() => {
                       const spotify = item.spotify_url ? detectSpotify(item.spotify_url) : null;
                       const youtube = item.youtube_url ? detectYouTube(item.youtube_url) : null;
-                      const hasEmbed = spotify || youtube;
+                      const drive = item.web_url ? detectGoogleDrive(item.web_url) : null;
+                      const hasEmbed = spotify || youtube || drive;
 
                       return (
                         <>
@@ -176,6 +177,21 @@ export default async function MediaPage({
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                                 title={`YouTube: ${item.title}`}
                                 className="block h-full w-full"
+                              />
+                            </div>
+                          )}
+
+                          {/* Google Drive / Docs / Sheets / Slides embed */}
+                          {drive && (
+                            <div className="mt-3 overflow-hidden rounded-xl border">
+                              <iframe
+                                src={drive.embedUrl}
+                                width="100%"
+                                height={drive.defaultHeight}
+                                loading="lazy"
+                                allow="autoplay"
+                                title={`Drive: ${item.title}`}
+                                className="block"
                               />
                             </div>
                           )}

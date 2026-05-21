@@ -71,10 +71,9 @@ export default async function DashboardPage() {
     supabase
       .from("media_items")
       .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
-      .in("kind", ["mededeling", "nieuwsbrief"])
-      .order("pinned", { ascending: false })
+      .eq("pinned", true)
       .order("published_at", { ascending: false })
-      .limit(3),
+      .limit(5),
     supabase
       .from("team_results")
       .select("id, team_id, competition, round_label, round_at, position, points, total_teams, created_at, source_url, teams(id, name, type, division)")

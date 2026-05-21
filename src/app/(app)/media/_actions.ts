@@ -32,10 +32,22 @@ export async function addMediaItem(formData: FormData) {
   const kind = String(formData.get("kind") ?? "");
   const body_md = String(formData.get("body_md") ?? "").trim() || null;
   const pinned = formData.get("pinned") === "on";
+  const publishedAtRaw = String(formData.get("published_at") ?? "").trim();
 
   if (!title) return { ok: false as const, error: "Titel is verplicht." };
   if (!KINDS.includes(kind as (typeof KINDS)[number])) {
     return { ok: false as const, error: "Ongeldige soort." };
+  }
+
+  // Wanneer de admin een publicatiedatum invult, gebruiken we die i.p.v.
+  // de placeholder NOW(). Anders laten we de DB default doen.
+  let published_at: string | undefined;
+  if (publishedAtRaw) {
+    const parsed = new Date(publishedAtRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return { ok: false as const, error: "Ongeldige publicatiedatum." };
+    }
+    published_at = parsed.toISOString();
   }
 
   const { error } = await supabase.from("media_items").insert({
@@ -50,6 +62,7 @@ export async function addMediaItem(formData: FormData) {
     cover_url: optionalUrl(formData.get("cover_url")),
     pinned,
     author_id: user.id,
+    ...(published_at ? { published_at } : {}),
   });
 
   if (error) return { ok: false as const, error: error.message };
