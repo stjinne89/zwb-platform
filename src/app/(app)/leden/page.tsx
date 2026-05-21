@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
 import { ClaimButton } from "./_components/claim-button";
+import { RoleEditor } from "./_components/role-editor";
 
 type Profile = {
   id: string;
@@ -11,6 +13,8 @@ type Profile = {
   zwift_id: string | null;
   zrl_category: string | null;
   is_approved: boolean;
+  is_admin: boolean;
+  community_roles: string[] | null;
   created_at: string;
 };
 
@@ -64,7 +68,9 @@ export default async function LedenPage() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, region, zwift_id, zrl_category, is_approved, created_at")
+      .select(
+        "id, display_name, region, zwift_id, zrl_category, is_approved, is_admin, community_roles, created_at",
+      )
       .order("display_name"),
     supabase
       .from("roster_entries")
@@ -128,6 +134,13 @@ export default async function LedenPage() {
               >
                 <div>
                   <p className="font-medium">{p.display_name}</p>
+                  <div className="mt-1">
+                    <CommunityRoleBadges
+                      roles={p.community_roles}
+                      isAdmin={p.is_admin}
+                      compact
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Geregistreerd{" "}
                     {new Date(p.created_at).toLocaleString("nl-NL", {
@@ -192,7 +205,7 @@ export default async function LedenPage() {
             {profileList.map((p) => (
               <li
                 key={p.id}
-                className="flex items-center justify-between py-2 text-sm"
+                className="flex items-start justify-between gap-3 py-2 text-sm"
               >
                 <div className="min-w-0">
                   <p>
@@ -208,13 +221,25 @@ export default async function LedenPage() {
                       </span>
                     )}
                   </p>
+                  <div className="mt-1">
+                    <CommunityRoleBadges
+                      roles={p.community_roles}
+                      isAdmin={p.is_admin}
+                      compact
+                    />
+                  </div>
                   <MemberBadges awards={awardsByProfile.get(p.id) ?? []} />
                 </div>
-                {p.zwift_id && (
-                  <span className="text-xs text-muted-foreground">
-                    Zwift {p.zwift_id}
-                  </span>
-                )}
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  {p.zwift_id && (
+                    <span className="text-xs text-muted-foreground">
+                      Zwift {p.zwift_id}
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <RoleEditor profileId={p.id} roles={p.community_roles} />
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -226,7 +251,9 @@ export default async function LedenPage() {
           Nog niet geregistreerd ({otherUnclaimed.length})
         </h2>
         {otherUnclaimed.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Alle bekende leden zijn geregistreerd 🎉</p>
+          <p className="text-sm text-muted-foreground">
+            Alle bekende leden zijn geregistreerd.
+          </p>
         ) : (
           <ul className="divide-y">
             {otherUnclaimed.map((r) => (

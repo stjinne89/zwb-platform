@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  COMMUNITY_ROLES,
+  normalizeCommunityRoles,
+} from "@/lib/community-roles";
 
 export async function claimRosterEntry(entryId: string) {
   const supabase = await createClient();
@@ -57,5 +61,38 @@ export async function approveUser(profileId: string) {
 
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/leden");
+  return { ok: true as const };
+}
+
+export async function updateMemberRoles(profileId: string, roles: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (!me?.is_admin) {
+    return { ok: false as const, error: "Alleen admins kunnen rollen wijzigen." };
+  }
+
+  const validRoles = roles.filter((role) =>
+    (COMMUNITY_ROLES as readonly string[]).includes(role),
+  );
+  const community_roles = normalizeCommunityRoles(validRoles);
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ community_roles })
+    .eq("id", profileId);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/leden");
+  revalidatePath("/profiel");
   return { ok: true as const };
 }

@@ -22,7 +22,7 @@ export function ApproveButton({ profileId }: { profileId: string }) {
           });
         }}
       >
-        {pending ? "Bezig…" : "Goedkeuren"}
+        {pending ? "Bezig..." : "Goedkeuren"}
       </Button>
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>

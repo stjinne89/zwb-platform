@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { ProfileForm } from "./_components/profile-form";
 
@@ -32,7 +33,7 @@ export default async function ProfielPage() {
     supabase
       .from("profiles")
       .select(
-        "display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin",
+        "display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin, community_roles",
       )
       .eq("id", user.id)
       .single(),
@@ -69,6 +70,22 @@ export default async function ProfielPage() {
           bio: profile?.bio ?? "",
         }}
       />
+
+      <section className="rounded-lg border bg-card p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Communityrollen
+        </h2>
+        <div className="mt-3">
+          <CommunityRoleBadges
+            roles={profile?.community_roles}
+            isAdmin={profile?.is_admin ?? false}
+          />
+        </div>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Deze rollen worden beheerd door admins en vormen straks de basis voor
+          fijnmazige rechten.
+        </p>
+      </section>
 
       <section className="rounded-lg border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

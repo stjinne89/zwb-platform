@@ -77,7 +77,7 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
           <textarea
             name="bio"
             rows={3}
-            placeholder="Korte intro, doelen, favoriete koers…"
+            placeholder="Korte intro, doelen, favoriete koers..."
             defaultValue={initial.bio}
             className={FIELD}
           />
@@ -96,7 +96,7 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               defaultValue={initial.zrl_category}
               className={FIELD}
             >
-              <option value="">—</option>
+              <option value="">-</option>
               {["A", "B", "C", "D", "E"].map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -158,10 +158,12 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Opslaan…" : "Opslaan"}
+          {pending ? "Opslaan..." : "Opslaan"}
         </Button>
         {status.kind === "saved" && (
-          <span className="text-sm text-green-600 dark:text-green-400">Opgeslagen ✓</span>
+          <span className="text-sm text-green-600 dark:text-green-400">
+            Opgeslagen
+          </span>
         )}
         {status.kind === "error" && (
           <span className="text-sm text-destructive">{status.msg}</span>
