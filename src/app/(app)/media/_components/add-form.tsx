@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { addMediaItem } from "../_actions";
+import { useRouter } from "next/navigation";
+import { addMediaItem, updateMediaItem } from "../_actions";
 import { Button } from "@/components/ui/button";
 import { MEDIA_KINDS, type MediaKind } from "@/lib/media-kinds";
 
@@ -10,22 +11,55 @@ const FIELD =
 const LABEL =
   "mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground";
 
-export function AddMediaForm() {
+export type MediaInitial = {
+  id: string;
+  kind: MediaKind;
+  title: string;
+  body_md: string | null;
+  apple_url: string | null;
+  spotify_url: string | null;
+  rss_url: string | null;
+  youtube_url: string | null;
+  web_url: string | null;
+  cover_url: string | null;
+  pinned: boolean;
+  published_at: string | null;
+};
+
+// Converteer een ISO-datetime naar de "YYYY-MM-DDTHH:MM" vorm die
+// een <input type="datetime-local"> verwacht. In local timezone.
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function MediaForm({ initial }: { initial?: MediaInitial }) {
+  const isEdit = !!initial;
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [kind, setKind] = useState<MediaKind>("mededeling");
+  const [kind, setKind] = useState<MediaKind>(initial?.kind ?? "mededeling");
   const formRef = useRef<HTMLFormElement>(null);
 
   function submit(fd: FormData) {
     setError(null);
     startTransition(async () => {
-      const res = await addMediaItem(fd);
+      const res = isEdit
+        ? await updateMediaItem(initial.id, fd)
+        : await addMediaItem(fd);
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      formRef.current?.reset();
-      setKind("mededeling");
+      if (isEdit) {
+        router.push("/media");
+      } else {
+        formRef.current?.reset();
+        setKind("mededeling");
+      }
     });
   }
 
@@ -38,9 +72,15 @@ export function AddMediaForm() {
     <form
       ref={formRef}
       action={submit}
-      className="space-y-4 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4"
+      className={
+        isEdit
+          ? "space-y-4 rounded-2xl border bg-card p-6"
+          : "space-y-4 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4"
+      }
     >
-      <h3 className="text-sm font-medium">Nieuw media-item</h3>
+      <h3 className="text-sm font-medium">
+        {isEdit ? "Media-item bewerken" : "Nieuw media-item"}
+      </h3>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -59,20 +99,31 @@ export function AddMediaForm() {
           </select>
         </div>
         <label className="flex items-end gap-2 text-sm">
-          <input type="checkbox" name="pinned" /> Vastpinnen bovenaan
+          <input type="checkbox" name="pinned" defaultChecked={initial?.pinned} />{" "}
+          Vastpinnen bovenaan
         </label>
       </div>
 
       <div>
         <label className={LABEL}>Titel</label>
-        <input name="title" required className={FIELD} />
+        <input
+          name="title"
+          required
+          defaultValue={initial?.title ?? ""}
+          className={FIELD}
+        />
       </div>
 
       <div>
         <label className={LABEL}>
-          Publicatiedatum (optioneel — leeg = nu)
+          Publicatiedatum {isEdit ? "" : "(optioneel — leeg = nu)"}
         </label>
-        <input type="datetime-local" name="published_at" className={FIELD} />
+        <input
+          type="datetime-local"
+          name="published_at"
+          defaultValue={isoToLocalInput(initial?.published_at ?? null)}
+          className={FIELD}
+        />
         <p className="mt-1 text-xs text-muted-foreground">
           Gebruik de oorspronkelijke datum van de inhoud (bv. de
           creatie-datum van een Drive-document of de uitzenddatum van
@@ -82,7 +133,12 @@ export function AddMediaForm() {
 
       <div>
         <label className={LABEL}>Tekst / beschrijving (markdown, optioneel)</label>
-        <textarea name="body_md" rows={kind === "mededeling" ? 4 : 2} className={`${FIELD} font-mono`} />
+        <textarea
+          name="body_md"
+          rows={kind === "mededeling" ? 4 : 2}
+          defaultValue={initial?.body_md ?? ""}
+          className={`${FIELD} font-mono`}
+        />
       </div>
 
       {showPodcastFields && (
@@ -97,6 +153,7 @@ export function AddMediaForm() {
               <input
                 name="apple_url"
                 type="url"
+                defaultValue={initial?.apple_url ?? ""}
                 placeholder="https://podcasts.apple.com/…"
                 className={FIELD}
               />
@@ -106,6 +163,7 @@ export function AddMediaForm() {
               <input
                 name="spotify_url"
                 type="url"
+                defaultValue={initial?.spotify_url ?? ""}
                 placeholder="https://open.spotify.com/…"
                 className={FIELD}
               />
@@ -115,6 +173,7 @@ export function AddMediaForm() {
               <input
                 name="rss_url"
                 type="url"
+                defaultValue={initial?.rss_url ?? ""}
                 placeholder="https://feeds.example.com/…"
                 className={FIELD}
               />
@@ -124,6 +183,7 @@ export function AddMediaForm() {
               <input
                 name="web_url"
                 type="url"
+                defaultValue={initial?.web_url ?? ""}
                 placeholder="https://…"
                 className={FIELD}
               />
@@ -138,6 +198,7 @@ export function AddMediaForm() {
           <input
             name="youtube_url"
             type="url"
+            defaultValue={initial?.youtube_url ?? ""}
             placeholder="https://www.youtube.com/watch?v=…"
             className={FIELD}
           />
@@ -150,6 +211,7 @@ export function AddMediaForm() {
           <input
             name="web_url"
             type="url"
+            defaultValue={initial?.web_url ?? ""}
             placeholder="https://…"
             className={FIELD}
           />
@@ -162,6 +224,7 @@ export function AddMediaForm() {
           <input
             name="cover_url"
             type="url"
+            defaultValue={initial?.cover_url ?? ""}
             placeholder="https://…/cover.jpg"
             className={FIELD}
           />
@@ -169,9 +232,27 @@ export function AddMediaForm() {
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Plaatsen…" : "Plaatsen"}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? (isEdit ? "Opslaan…" : "Plaatsen…") : isEdit ? "Opslaan" : "Plaatsen"}
+        </Button>
+        {isEdit && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={pending}
+            onClick={() => router.push("/media")}
+          >
+            Annuleer
+          </Button>
+        )}
+      </div>
     </form>
   );
+}
+
+// Backwards-compatible export voor /media page.
+export function AddMediaForm() {
+  return <MediaForm />;
 }

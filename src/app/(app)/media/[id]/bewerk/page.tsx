@@ -1,0 +1,78 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { MediaForm, type MediaInitial } from "../../_components/add-form";
+import type { MediaKind } from "@/lib/media-kinds";
+
+export default async function EditMediaPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (!me?.is_admin) {
+    return (
+      <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+        Alleen admins kunnen media-items bewerken.
+      </div>
+    );
+  }
+
+  const { data: item } = await supabase
+    .from("media_items")
+    .select(
+      "id, kind, title, body_md, apple_url, spotify_url, rss_url, youtube_url, web_url, cover_url, pinned, published_at",
+    )
+    .eq("id", id)
+    .single();
+
+  if (!item) notFound();
+
+  const initial: MediaInitial = {
+    id: item.id,
+    kind: item.kind as MediaKind,
+    title: item.title,
+    body_md: item.body_md,
+    apple_url: item.apple_url,
+    spotify_url: item.spotify_url,
+    rss_url: item.rss_url,
+    youtube_url: item.youtube_url,
+    web_url: item.web_url,
+    cover_url: item.cover_url,
+    pinned: item.pinned,
+    published_at: item.published_at,
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <Link
+        href="/media"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Media
+      </Link>
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Media-item bewerken
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Pas titel, datum, inhoud, links of soort aan. Wijzigingen worden
+          direct zichtbaar voor alle leden.
+        </p>
+      </header>
+      <MediaForm initial={initial} />
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { deleteMediaItem, togglePinMedia } from "../_actions";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,11 @@ export function MediaItemActions({
       >
         {pinned ? "Loskoppelen" : "Pin"}
       </Button>
+      <Link href={`/media/${id}/bewerk`}>
+        <Button type="button" size="sm" variant="ghost" disabled={pending}>
+          Bewerk
+        </Button>
+      </Link>
       <Button
         type="button"
         size="sm"

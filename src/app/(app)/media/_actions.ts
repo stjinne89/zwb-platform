@@ -71,6 +71,65 @@ export async function addMediaItem(formData: FormData) {
   return { ok: true as const };
 }
 
+export async function updateMediaItem(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+  if (!me?.is_admin)
+    return { ok: false as const, error: "Alleen admins kunnen bewerken." };
+
+  const title = String(formData.get("title") ?? "").trim();
+  const kind = String(formData.get("kind") ?? "");
+  const body_md = String(formData.get("body_md") ?? "").trim() || null;
+  const pinned = formData.get("pinned") === "on";
+  const publishedAtRaw = String(formData.get("published_at") ?? "").trim();
+
+  if (!title) return { ok: false as const, error: "Titel is verplicht." };
+  if (!KINDS.includes(kind as (typeof KINDS)[number])) {
+    return { ok: false as const, error: "Ongeldige soort." };
+  }
+
+  let published_at: string | undefined;
+  if (publishedAtRaw) {
+    const parsed = new Date(publishedAtRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return { ok: false as const, error: "Ongeldige publicatiedatum." };
+    }
+    published_at = parsed.toISOString();
+  }
+
+  const { error } = await supabase
+    .from("media_items")
+    .update({
+      kind,
+      title,
+      body_md,
+      apple_url: optionalUrl(formData.get("apple_url")),
+      spotify_url: optionalUrl(formData.get("spotify_url")),
+      rss_url: optionalUrl(formData.get("rss_url")),
+      youtube_url: optionalUrl(formData.get("youtube_url")),
+      web_url: optionalUrl(formData.get("web_url")),
+      cover_url: optionalUrl(formData.get("cover_url")),
+      pinned,
+      ...(published_at ? { published_at } : {}),
+    })
+    .eq("id", id);
+
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/media");
+  revalidatePath("/dashboard");
+  revalidatePath(`/media/${id}/bewerk`);
+  return { ok: true as const };
+}
+
 export async function togglePinMedia(id: string, pinned: boolean) {
   const supabase = await createClient();
   const { error } = await supabase
