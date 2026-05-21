@@ -1,0 +1,7 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ZWB Cycling Community">
+  <rect width="512" height="512" fill="#1f3a47"/>
+  <!-- Three leaning parallelograms — Z W B in ZWB brand colors -->
+  <polygon points="93,160 193,160 168,352 68,352" fill="#b89968"/>
+  <polygon points="219,160 319,160 294,352 194,352" fill="#5e7c82"/>
+  <polygon points="345,160 445,160 420,352 320,352" fill="#0a0a0a"/>
+</svg>
