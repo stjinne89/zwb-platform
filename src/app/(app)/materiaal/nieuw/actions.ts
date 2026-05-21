@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/slugify";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, POST_KINDS } from "@/lib/categories";
 
 export async function createPost(formData: FormData) {
   const supabase = await createClient();
@@ -14,14 +14,18 @@ export async function createPost(formData: FormData) {
 
   const title = String(formData.get("title") ?? "").trim();
   const category = String(formData.get("category") ?? "");
+  const kind = String(formData.get("kind") ?? "aanbod");
   const body_md = String(formData.get("body_md") ?? "").trim();
   const excerpt = String(formData.get("excerpt") ?? "").trim() || null;
+  const price = String(formData.get("price") ?? "").trim() || null;
   const tagsRaw = String(formData.get("tags") ?? "").trim();
 
   if (!title) return { ok: false as const, error: "Titel is verplicht." };
   if (!CATEGORIES.some((c) => c.value === category))
     return { ok: false as const, error: "Ongeldige categorie." };
-  if (!body_md) return { ok: false as const, error: "Inhoud is verplicht." };
+  if (!POST_KINDS.some((k) => k.value === kind))
+    return { ok: false as const, error: "Ongeldig type (aanbod/vraag)." };
+  if (!body_md) return { ok: false as const, error: "Beschrijving is verplicht." };
 
   const tags = tagsRaw
     ? tagsRaw
@@ -48,8 +52,10 @@ export async function createPost(formData: FormData) {
     slug,
     title,
     category,
+    kind,
     body_md,
     excerpt,
+    price,
     tags,
     author_id: user.id,
   });

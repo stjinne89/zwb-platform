@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Markdown } from "@/components/markdown";
-import { CATEGORY_LABELS } from "@/lib/categories";
+import { CATEGORY_LABELS, POST_KIND_LABELS } from "@/lib/categories";
 import { LikeButton } from "./_components/like-button";
 import { CommentForm } from "./_components/comment-form";
 import { DeleteCommentButton, DeletePostButton } from "./_components/delete-buttons";
@@ -22,7 +22,7 @@ export default async function PostDetailPage({
   const { data: post } = await supabase
     .from("posts")
     .select(
-      "id, slug, title, category, body_md, tags, created_at, updated_at, author_id, profiles(display_name)",
+      "id, slug, title, category, kind, price, body_md, tags, created_at, updated_at, author_id, profiles(display_name)",
     )
     .eq("slug", slug)
     .single();
@@ -53,16 +53,39 @@ export default async function PostDetailPage({
   return (
     <article className="mx-auto max-w-3xl space-y-6">
       <Link
-        href={`/materiaal?cat=${post.category}`}
+        href="/materiaal"
         className="text-sm text-muted-foreground hover:text-foreground"
       >
-        ← {CATEGORY_LABELS[post.category] ?? post.category}
+        ← Vraag en Aanbod
       </Link>
 
-      <header className="space-y-2">
-        <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-          {CATEGORY_LABELS[post.category] ?? post.category}
-        </span>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {(() => {
+            const postKind = (post.kind ?? "aanbod") as string;
+            const isVraag = postKind === "vraag";
+            return (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${
+                  isVraag
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-primary text-primary-foreground"
+                }`}
+              >
+                {isVraag ? "🔍" : "💰"}{" "}
+                {POST_KIND_LABELS[postKind] ?? postKind}
+              </span>
+            );
+          })()}
+          <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+            {CATEGORY_LABELS[post.category] ?? post.category}
+          </span>
+          {post.price && (
+            <span className="ml-auto text-lg font-semibold tabular-nums">
+              {post.price}
+            </span>
+          )}
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight">{post.title}</h1>
         <p className="text-sm text-muted-foreground">
           {authorName} ·{" "}
