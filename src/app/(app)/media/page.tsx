@@ -153,26 +153,28 @@ export default async function MediaPage({
                         <>
                           {/* Spotify embed (podcast/show/episode) */}
                           {spotify && (
-                            <div className="mt-3 overflow-hidden rounded-xl border">
+                            <div
+                              className={`mt-3 overflow-hidden rounded-xl border ${
+                                spotify.type === "show"
+                                  ? "h-[232px] sm:h-[352px]"
+                                  : "h-[200px] sm:h-[232px]"
+                              }`}
+                            >
                               <iframe
                                 src={spotify.embedUrl}
-                                width="100%"
-                                height={spotify.type === "show" ? 352 : 232}
                                 loading="lazy"
                                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                 title={`Spotify ${spotify.type}: ${item.title}`}
-                                className="block"
+                                className="block h-full w-full"
                               />
                             </div>
                           )}
 
-                          {/* YouTube embed */}
+                          {/* YouTube embed — aspect-video schaalt mee */}
                           {youtube && (
                             <div className="mt-3 aspect-video overflow-hidden rounded-xl border">
                               <iframe
                                 src={youtube.embedUrl}
-                                width="100%"
-                                height="100%"
                                 loading="lazy"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                                 title={`YouTube: ${item.title}`}
@@ -181,17 +183,25 @@ export default async function MediaPage({
                             </div>
                           )}
 
-                          {/* Google Drive / Docs / Sheets / Slides embed */}
+                          {/* Google Drive / Docs / Sheets / Slides embed — responsive heights */}
                           {drive && (
-                            <div className="mt-3 overflow-hidden rounded-xl border">
+                            <div
+                              className={`mt-3 overflow-hidden rounded-xl border ${
+                                drive.type === "slide"
+                                  ? "aspect-video"
+                                  : drive.type === "doc"
+                                    ? "h-[420px] sm:h-[560px] md:h-[720px]"
+                                    : drive.type === "sheet"
+                                      ? "h-[340px] sm:h-[440px] md:h-[520px]"
+                                      : "h-[380px] sm:h-[520px] md:h-[640px]"
+                              }`}
+                            >
                               <iframe
                                 src={drive.embedUrl}
-                                width="100%"
-                                height={drive.defaultHeight}
                                 loading="lazy"
                                 allow="autoplay"
                                 title={`Drive: ${item.title}`}
-                                className="block"
+                                className="block h-full w-full"
                               />
                             </div>
                           )}
