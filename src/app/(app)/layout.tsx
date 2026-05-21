@@ -37,8 +37,8 @@ export default async function AppLayout({
   const displayName = profile?.display_name ?? user.email ?? "";
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="relative border-b bg-card/40 backdrop-blur">
+    <div className="app-shell flex min-h-screen flex-col">
+      <header className="relative border-b-2 border-accent/80 bg-card/85 shadow-sm shadow-primary/5 backdrop-blur">
         <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 md:gap-6">
           <Link
             href="/dashboard"
@@ -54,7 +54,7 @@ export default async function AppLayout({
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-primary"
                 >
                   {item.label}
                 </Link>
@@ -69,7 +69,7 @@ export default async function AppLayout({
           <div className="flex items-center gap-2">
             <Link
               href="/profiel"
-              className="hidden text-sm text-muted-foreground hover:text-foreground md:inline"
+              className="hidden text-sm text-muted-foreground hover:text-primary md:inline"
             >
               {displayName}
             </Link>
