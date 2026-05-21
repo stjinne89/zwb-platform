@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/slugify";
-import { CATEGORIES, POST_KINDS } from "@/lib/categories";
+import {
+  POST_KINDS,
+  categoriesForKind,
+  hasPriceField,
+  type PostKind,
+} from "@/lib/categories";
 
 export async function createPost(formData: FormData) {
   const supabase = await createClient();
@@ -21,10 +26,11 @@ export async function createPost(formData: FormData) {
   const tagsRaw = String(formData.get("tags") ?? "").trim();
 
   if (!title) return { ok: false as const, error: "Titel is verplicht." };
-  if (!CATEGORIES.some((c) => c.value === category))
-    return { ok: false as const, error: "Ongeldige categorie." };
   if (!POST_KINDS.some((k) => k.value === kind))
-    return { ok: false as const, error: "Ongeldig type (aanbod/vraag)." };
+    return { ok: false as const, error: "Ongeldig type." };
+  const postKind = kind as PostKind;
+  if (!categoriesForKind(postKind).some((c) => c.value === category))
+    return { ok: false as const, error: "Ongeldige categorie." };
   if (!body_md) return { ok: false as const, error: "Beschrijving is verplicht." };
 
   const tags = tagsRaw
@@ -55,7 +61,7 @@ export async function createPost(formData: FormData) {
     kind,
     body_md,
     excerpt,
-    price,
+    price: hasPriceField(postKind) ? price : null,
     tags,
     author_id: user.id,
   });

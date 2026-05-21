@@ -2,10 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Markdown } from "@/components/markdown";
-import { CATEGORY_LABELS, POST_KIND_LABELS } from "@/lib/categories";
+import { PostKindBadge, PostStatusBadge } from "@/components/post-kind-badge";
+import {
+  CATEGORY_LABELS,
+  hasPriceField,
+  type PostKind,
+  type PostStatus,
+} from "@/lib/categories";
 import { LikeButton } from "./_components/like-button";
 import { CommentForm } from "./_components/comment-form";
 import { DeleteCommentButton, DeletePostButton } from "./_components/delete-buttons";
+import { StatusSelect } from "./_components/status-select";
 
 export default async function PostDetailPage({
   params,
@@ -22,7 +29,7 @@ export default async function PostDetailPage({
   const { data: post } = await supabase
     .from("posts")
     .select(
-      "id, slug, title, category, kind, price, body_md, tags, created_at, updated_at, author_id, profiles(display_name)",
+      "id, slug, title, category, kind, status, price, body_md, tags, created_at, updated_at, author_id, profiles(display_name)",
     )
     .eq("slug", slug)
     .single();
@@ -45,7 +52,9 @@ export default async function PostDetailPage({
   const likeCount = likes?.length ?? 0;
   const isAdmin = me?.is_admin ?? false;
   const isAuthor = user?.id === post.author_id;
-  const canDelete = isAdmin || isAuthor;
+  const canManage = isAdmin || isAuthor;
+  const postKind = (post.kind ?? "aanbod") as PostKind;
+  const showPrice = hasPriceField(postKind) && post.price;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const authorName = (post.profiles as any)?.display_name ?? "Onbekend";
@@ -56,31 +65,17 @@ export default async function PostDetailPage({
         href="/materiaal"
         className="text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Vraag en Aanbod
+        Terug naar Vraag en Aanbod
       </Link>
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          {(() => {
-            const postKind = (post.kind ?? "aanbod") as string;
-            const isVraag = postKind === "vraag";
-            return (
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${
-                  isVraag
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-primary text-primary-foreground"
-                }`}
-              >
-                {isVraag ? "🔍" : "💰"}{" "}
-                {POST_KIND_LABELS[postKind] ?? postKind}
-              </span>
-            );
-          })()}
+          <PostKindBadge kind={postKind} />
+          <PostStatusBadge status={post.status} />
           <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
             {CATEGORY_LABELS[post.category] ?? post.category}
           </span>
-          {post.price && (
+          {showPrice && (
             <span className="ml-auto text-lg font-semibold tabular-nums">
               {post.price}
             </span>
@@ -88,7 +83,7 @@ export default async function PostDetailPage({
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">{post.title}</h1>
         <p className="text-sm text-muted-foreground">
-          {authorName} ·{" "}
+          {authorName} -{" "}
           {new Date(post.created_at).toLocaleDateString("nl-NL", {
             dateStyle: "long",
           })}
@@ -109,14 +104,23 @@ export default async function PostDetailPage({
 
       <Markdown source={post.body_md} />
 
-      <div className="flex items-center justify-between border-t pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <LikeButton
           postId={post.id}
           slug={post.slug}
           initialLiked={liked}
           initialCount={likeCount}
         />
-        {canDelete && <DeletePostButton postId={post.id} />}
+        <div className="flex items-center gap-3">
+          {canManage && (
+            <StatusSelect
+              postId={post.id}
+              slug={post.slug}
+              initialStatus={(post.status ?? "open") as PostStatus}
+            />
+          )}
+          {canManage && <DeletePostButton postId={post.id} />}
+        </div>
       </div>
 
       <section className="space-y-4 border-t pt-6">
@@ -125,7 +129,9 @@ export default async function PostDetailPage({
         </h2>
 
         {!comments || comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nog geen reacties.</p>
+          <p className="text-sm text-muted-foreground">
+            Nog geen reacties. Deel je antwoord, tip of interesse.
+          </p>
         ) : (
           <ul className="space-y-3">
             {comments.map((c) => {
@@ -137,7 +143,7 @@ export default async function PostDetailPage({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted-foreground">
-                        {name} ·{" "}
+                        {name} -{" "}
                         {new Date(c.created_at).toLocaleString("nl-NL", {
                           dateStyle: "short",
                           timeStyle: "short",

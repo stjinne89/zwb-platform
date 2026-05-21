@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { POST_STATUSES, type PostStatus } from "@/lib/categories";
 
 export async function toggleLike(postId: string, slug: string) {
   const supabase = await createClient();
@@ -68,4 +69,25 @@ export async function deletePost(postId: string) {
   const { error } = await supabase.from("posts").delete().eq("id", postId);
   if (error) return { ok: false as const, error: error.message };
   redirect("/materiaal");
+}
+
+export async function updatePostStatus(
+  postId: string,
+  slug: string,
+  status: PostStatus,
+) {
+  if (!POST_STATUSES.some((s) => s.value === status)) {
+    return { ok: false as const, error: "Ongeldige status." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("posts")
+    .update({ status })
+    .eq("id", postId);
+
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath(`/materiaal/${slug}`);
+  revalidatePath("/materiaal");
+  return { ok: true as const };
 }

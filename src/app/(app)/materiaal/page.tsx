@@ -1,16 +1,27 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { PostKindBadge, PostStatusBadge } from "@/components/post-kind-badge";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
   POST_KINDS,
-  POST_KIND_LABELS,
+  hasPriceField,
   type Category,
   type PostKind,
 } from "@/lib/categories";
 
 type SearchParams = Promise<{ cat?: string; kind?: string }>;
+
+function paramValue<T>(
+  overrides: Record<string, string | null | undefined>,
+  key: string,
+  fallback: T | null,
+) {
+  return Object.prototype.hasOwnProperty.call(overrides, key)
+    ? overrides[key]
+    : fallback;
+}
 
 export default async function MarketplacePage({
   searchParams,
@@ -27,7 +38,7 @@ export default async function MarketplacePage({
   let query = supabase
     .from("posts")
     .select(
-      "id, slug, title, category, kind, price, excerpt, tags, created_at, profiles(display_name), post_likes(count), post_comments(count)",
+      "id, slug, title, category, kind, status, price, excerpt, tags, created_at, profiles(display_name), post_likes(count), post_comments(count)",
     )
     .order("created_at", { ascending: false });
   if (activeCat) query = query.eq("category", activeCat);
@@ -37,10 +48,10 @@ export default async function MarketplacePage({
 
   function chipUrl(overrides: { cat?: string | null; kind?: string | null }) {
     const params = new URLSearchParams();
-    const c = overrides.cat ?? activeCat ?? null;
-    const k = overrides.kind ?? activeKind ?? null;
-    if (c) params.set("cat", c);
-    if (k) params.set("kind", k);
+    const c = paramValue(overrides, "cat", activeCat);
+    const k = paramValue(overrides, "kind", activeKind);
+    if (c) params.set("cat", String(c));
+    if (k) params.set("kind", String(k));
     const qs = params.toString();
     return qs ? `/materiaal?${qs}` : "/materiaal";
   }
@@ -52,18 +63,16 @@ export default async function MarketplacePage({
           <h1 className="text-3xl font-semibold tracking-tight">
             Vraag en Aanbod
           </h1>
-          <p className="mt-1 text-muted-foreground">
-            Te koop, te ruil of gezocht — een marktplaats voor en door
-            ZWB&apos;ers.
+          <p className="mt-1 max-w-2xl text-muted-foreground">
+            Te koop, gezocht, vragen en tips van leden voor leden.
           </p>
         </div>
         <Link href="/materiaal/nieuw">
-          <Button>Nieuw item plaatsen</Button>
+          <Button>Nieuw bericht plaatsen</Button>
         </Link>
       </header>
 
-      {/* Type filter — Alles / Aanbod / Vraag */}
-      <nav className="flex flex-wrap gap-2">
+      <nav className="flex flex-wrap gap-2" aria-label="Berichttype">
         <Link
           href={chipUrl({ kind: null })}
           className={`rounded-full border px-3 py-1 text-xs ${
@@ -82,13 +91,12 @@ export default async function MarketplacePage({
                 : "hover:bg-secondary"
             }`}
           >
-            {k.icon} {k.label}
+            {k.label}
           </Link>
         ))}
       </nav>
 
-      {/* Categorie filter */}
-      <nav className="flex flex-wrap gap-2">
+      <nav className="flex flex-wrap gap-2" aria-label="Categorie">
         <Link
           href={chipUrl({ cat: null })}
           className={`rounded-full border px-3 py-1 text-xs ${
@@ -97,7 +105,7 @@ export default async function MarketplacePage({
               : "hover:bg-secondary"
           }`}
         >
-          Alle categorieën
+          Alle categorieen
         </Link>
         {CATEGORIES.map((c) => (
           <Link
@@ -117,8 +125,8 @@ export default async function MarketplacePage({
       {!posts || posts.length === 0 ? (
         <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
           {activeCat || activeKind
-            ? "Geen items in deze selectie."
-            : "Nog geen items geplaatst. Wees de eerste!"}
+            ? "Geen berichten in deze selectie."
+            : "Nog geen berichten geplaatst. Stel de eerste vraag, deel een tip of bied iets aan."}
         </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
@@ -129,8 +137,8 @@ export default async function MarketplacePage({
             const comments = (p.post_comments as any)?.[0]?.count ?? 0;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const author = (p.profiles as any)?.display_name ?? "Onbekend";
-            const postKind = (p.kind ?? "aanbod") as string;
-            const isVraag = postKind === "vraag";
+            const postKind = (p.kind ?? "aanbod") as PostKind;
+            const showPrice = hasPriceField(postKind) && p.price;
             return (
               <li key={p.id}>
                 <Link
@@ -138,19 +146,12 @@ export default async function MarketplacePage({
                   className="block h-full rounded-lg border bg-card p-4 transition hover:border-foreground/30"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${
-                        isVraag
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-primary text-primary-foreground"
-                      }`}
-                    >
-                      {isVraag ? "🔍" : "💰"} {POST_KIND_LABELS[postKind] ?? postKind}
-                    </span>
+                    <PostKindBadge kind={postKind} />
+                    <PostStatusBadge status={p.status} />
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
                       {CATEGORY_LABELS[p.category] ?? p.category}
                     </span>
-                    {p.price && (
+                    {showPrice && (
                       <span className="ml-auto font-semibold tabular-nums">
                         {p.price}
                       </span>
@@ -163,12 +164,12 @@ export default async function MarketplacePage({
                     </p>
                   )}
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {author} ·{" "}
+                    {author} -{" "}
                     {new Date(p.created_at).toLocaleDateString("nl-NL", {
                       dateStyle: "medium",
                     })}
-                    {likes > 0 ? ` · ♥ ${likes}` : ""}
-                    {comments > 0 ? ` · 💬 ${comments}` : ""}
+                    {likes > 0 ? ` - ${likes} likes` : ""}
+                    {comments > 0 ? ` - ${comments} reacties` : ""}
                   </p>
                   {p.tags && p.tags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
