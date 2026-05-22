@@ -313,7 +313,19 @@ export async function syncStravaActivitiesForUser(
     upserted += 1;
   }
 
-  return { ok: true as const, upserted };
+  // Evaluate milestone-badges (best-effort, errors zijn niet kritiek).
+  let milestoneAwards = 0;
+  try {
+    const { evaluateMilestonesForUser } = await import(
+      "@/lib/achievements/milestone-evaluators"
+    );
+    const result = await evaluateMilestonesForUser(supabase, profileId);
+    milestoneAwards = result.awarded;
+  } catch {
+    // negeer; sync zelf is geslaagd
+  }
+
+  return { ok: true as const, upserted, milestoneAwards };
 }
 
 export function athleteName(token: StravaTokenResponse) {
