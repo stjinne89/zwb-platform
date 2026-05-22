@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
+import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
 import { StravaSection } from "./_components/strava-section";
 
@@ -29,7 +30,13 @@ export default async function ProfielPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: awards }, { data: stravaConn }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: awards },
+    { data: stravaConn },
+    { data: milestoneBadges },
+    { data: milestoneAwards },
+  ] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -43,15 +50,32 @@ export default async function ProfielPage() {
         "id, period_start, value, metadata, achievement_badges(title, description, icon, color)",
       )
       .eq("profile_id", user.id)
+      .eq("award_scope", "weekly")
       .order("period_start", { ascending: false }),
     supabase
       .from("strava_connections")
       .select("athlete_name, updated_at")
       .eq("profile_id", user.id)
       .maybeSingle(),
+    supabase
+      .from("achievement_badges")
+      .select(
+        "id, title, description, icon, color, achievement_code, tier, visual_hint, trigger_source, trigger_config, sort_order",
+      )
+      .eq("kind", "milestone")
+      .order("sort_order"),
+    supabase
+      .from("achievement_awards")
+      .select("badge_id")
+      .eq("profile_id", user.id)
+      .eq("award_scope", "milestone"),
   ]);
 
   const awardList = (awards ?? []) as unknown as AwardRow[];
+  const milestones = (milestoneBadges ?? []) as unknown as MilestoneBadgeRow[];
+  const earnedMilestoneIds = new Set(
+    (milestoneAwards ?? []).map((a) => a.badge_id),
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -94,9 +118,13 @@ export default async function ProfielPage() {
         </p>
       </section>
 
+      {milestones.length > 0 && (
+        <BadgeVault badges={milestones} earnedIds={earnedMilestoneIds} />
+      )}
+
       <section className="rounded-lg border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Behaalde badges
+          Behaalde weekbadges
         </h2>
         {awardList.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">

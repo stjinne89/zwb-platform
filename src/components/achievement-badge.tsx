@@ -2,7 +2,17 @@ import { HeartHandshake, Mountain, RefreshCw, Route, type LucideIcon } from "luc
 import { cn } from "@/lib/utils";
 
 type BadgeIcon = "mountain" | "route" | "heart" | "refresh" | string | null | undefined;
-type BadgeColor = "gold" | "petrol" | "sage" | "steel" | string | null | undefined;
+type BadgeColor =
+  | "gold"
+  | "petrol"
+  | "sage"
+  | "steel"
+  | "bronze"
+  | "silver"
+  | "platinum"
+  | string
+  | null
+  | undefined;
 type BadgeSize = "sm" | "md" | "lg";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -30,6 +40,7 @@ export function AchievementBadge({
   size = "md",
   count,
   compact,
+  locked,
 }: {
   title: string;
   icon?: BadgeIcon;
@@ -38,6 +49,11 @@ export function AchievementBadge({
   count?: number;
   /** Backwards-compat met oude compact-prop → mapped naar size="sm". */
   compact?: boolean;
+  /**
+   * Locked-state: medaille wordt sterk gedimd weergegeven om "nog niet
+   * behaald" aan te duiden. Gebruikt voor de Badge-kast op /profiel.
+   */
+  locked?: boolean;
 }) {
   const effectiveSize: BadgeSize = compact ? "sm" : size;
   const px = SIZE_PX[effectiveSize];
@@ -53,10 +69,13 @@ export function AchievementBadge({
 
   return (
     <div
-      className="relative inline-block leading-none"
+      className={cn(
+        "relative inline-block leading-none transition-all",
+        locked && "opacity-40 grayscale",
+      )}
       style={{ width: px, height: px }}
-      title={title}
-      aria-label={title}
+      title={locked ? `${title} - nog niet behaald` : title}
+      aria-label={locked ? `${title} (nog niet behaald)` : title}
       role="img"
     >
       <svg
@@ -138,11 +157,17 @@ export function AchievementBadge({
   );
 }
 
-/** Per ondersteunde kleur een net andere goudtint voor de buitenring. */
+/** Per ondersteunde kleur een net andere ring-tint voor de buitenring. */
 function ringAccent(color: BadgeColor) {
   switch (color) {
+    case "bronze":
+      return { light: "#e0a878", mid: "#b06d3a", dark: "#5d3517" };
+    case "silver":
+      return { light: "#e8e8ec", mid: "#a8a8b2", dark: "#5a5a64" };
     case "gold":
       return { light: "#f3d68a", mid: "#d4a84e", dark: "#8a6429" };
+    case "platinum":
+      return { light: "#dde6ec", mid: "#a8b8c4", dark: "#5d6c76" };
     case "petrol":
       return { light: "#d2c389", mid: "#a08550", dark: "#604725" };
     case "sage":
