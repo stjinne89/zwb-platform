@@ -17,7 +17,15 @@ type Activity = {
   trainer: boolean;
   commute: boolean;
   sport_type: string | null;
-  raw: { start_date_local?: string } | null;
+  raw: {
+    start_date_local?: string;
+    achievement_count?: number;
+    pr_count?: number;
+    athlete_count?: number;
+    name?: string;
+    sport_type?: string;
+    type?: string;
+  } | null;
 };
 
 type BadgeRow = {
@@ -67,6 +75,26 @@ function avgSpeedKmh(a: Activity): number {
   return (a.distance_m / a.moving_time_seconds) * 3.6;
 }
 
+function thresholdKmToMeters(badge: BadgeRow): number | null {
+  const t = badge.trigger_config?.threshold;
+  if (!t?.value) return null;
+  const unit = (t.unit ?? "km").toLowerCase();
+  return unit === "mi" ? t.value * 1609.344 : t.value * 1000;
+}
+
+function endLocalDate(a: Activity): string {
+  const local = a.raw?.start_date_local ?? a.start_date;
+  return new Date(new Date(local).getTime() + (a.moving_time_seconds ?? 0) * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function endLocalHour(a: Activity): number {
+  const local = a.raw?.start_date_local ?? a.start_date;
+  return new Date(new Date(local).getTime() + (a.moving_time_seconds ?? 0) * 1000)
+    .getUTCHours();
+}
+
 function isOutdoor(a: Activity): boolean {
   return !a.trainer;
 }
@@ -74,6 +102,40 @@ function isOutdoor(a: Activity): boolean {
 function isGravel(a: Activity): boolean {
   const t = (a.sport_type ?? "").toLowerCase();
   return t.includes("gravel");
+}
+
+function isOffroad(a: Activity): boolean {
+  const t = `${a.sport_type ?? ""} ${a.raw?.sport_type ?? ""} ${a.raw?.type ?? ""}`
+    .toLowerCase();
+  return t.includes("gravel") || t.includes("mountain") || t.includes("mtb");
+}
+
+function rawName(a: Activity): string {
+  return `${a.raw?.name ?? ""}`.toLowerCase();
+}
+
+function athleteCount(a: Activity): number {
+  const count = Number(a.raw?.athlete_count ?? 1);
+  return Number.isFinite(count) && count > 0 ? count : 1;
+}
+
+function activityAchievements(a: Activity): number {
+  const count = Number(a.raw?.achievement_count ?? a.raw?.pr_count ?? 0);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
+function parseLeadingNumber(raw: string): number | null {
+  const m = raw.match(/(\d+(?:[.,]\d+)?)/);
+  return m ? parseFloat(m[1].replace(",", ".")) : null;
+}
+
+function monthEnd(month: string): string {
+  const [year, monthNr] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, monthNr, 0)).toISOString().slice(0, 10);
+}
+
+function isDarkHour(hour: number) {
+  return hour < 6 || hour >= 20;
 }
 
 function isoWeek(dateStr: string): string {
@@ -129,6 +191,63 @@ function bestSingleByDistance(
     if (!best || a.distance_m > best.distance_m) best = a;
   }
   return best;
+}
+
+function bestSingleByElevation(
+  acts: Activity[],
+  minElevationMeters: number,
+  predicate: (a: Activity) => boolean = isOutdoor,
+): Activity | null {
+  let best: Activity | null = null;
+  for (const a of acts) {
+    if (!predicate(a)) continue;
+    const elevation = a.total_elevation_gain_m ?? 0;
+    if (elevation < minElevationMeters) continue;
+    if (!best || elevation > best.total_elevation_gain_m) best = a;
+  }
+  return best;
+}
+
+function singleDistanceResult(
+  badge: BadgeRow,
+  acts: Activity[],
+  note: string,
+  predicate: (a: Activity) => boolean = isOutdoor,
+  unit = "km",
+): TierResult | null {
+  const thresholdM = thresholdKmToMeters(badge);
+  if (!thresholdM) return null;
+  const best = bestSingleByDistance(acts, thresholdM, predicate);
+  if (!best) return null;
+  const date = localDate(best);
+  return {
+    value: Math.round(best.distance_m / 100) / 10,
+    displayUnit: unit,
+    periodStart: date,
+    periodEnd: date,
+    note,
+  };
+}
+
+function singleElevationResult(
+  badge: BadgeRow,
+  acts: Activity[],
+  note: string,
+  predicate: (a: Activity) => boolean = isOutdoor,
+  unit = "hm",
+): TierResult | null {
+  const t = badge.trigger_config?.threshold;
+  if (!t?.value) return null;
+  const best = bestSingleByElevation(acts, t.value, predicate);
+  if (!best) return null;
+  const date = localDate(best);
+  return {
+    value: Math.round(best.total_elevation_gain_m),
+    displayUnit: unit,
+    periodStart: date,
+    periodEnd: date,
+    note,
+  };
 }
 
 const EVALUATORS: Evaluator[] = [
@@ -201,6 +320,30 @@ const EVALUATORS: Evaluator[] = [
         periodStart: date,
         periodEnd: date,
         note: "Langste rit",
+      };
+    },
+  },
+
+  // A004 First Group Ride - Strava athlete_count proxy.
+  {
+    code: "A004",
+    check: (acts, badge) => {
+      const t = badge.trigger_config?.threshold;
+      if (!t?.value) return null;
+      let best: Activity | null = null;
+      for (const a of acts) {
+        if (!isOutdoor(a)) continue;
+        if (athleteCount(a) < t.value) continue;
+        if (!best || athleteCount(a) > athleteCount(best)) best = a;
+      }
+      if (!best) return null;
+      const date = localDate(best);
+      return {
+        value: athleteCount(best),
+        displayUnit: "renners",
+        periodStart: date,
+        periodEnd: date,
+        note: "Grootste Strava-groepsrit",
       };
     },
   },
@@ -298,6 +441,169 @@ const EVALUATORS: Evaluator[] = [
     },
   },
 
+  // A009 Weekend Warrior - best Saturday/Sunday distance total.
+  {
+    code: "A009",
+    check: (acts, badge) => {
+      const thresholdM = thresholdKmToMeters(badge);
+      if (!thresholdM) return null;
+      const weekends = new Map<string, { distance: number; first: string; last: string }>();
+      for (const a of acts) {
+        if (!isOutdoor(a)) continue;
+        const date = localDate(a);
+        const d = new Date(`${date}T12:00:00Z`);
+        const day = d.getUTCDay();
+        if (day !== 6 && day !== 0) continue;
+        if (day === 0) d.setUTCDate(d.getUTCDate() - 1);
+        const key = d.toISOString().slice(0, 10);
+        const current = weekends.get(key) ?? {
+          distance: 0,
+          first: key,
+          last: new Date(d.getTime() + 86400_000).toISOString().slice(0, 10),
+        };
+        current.distance += a.distance_m ?? 0;
+        weekends.set(key, current);
+      }
+      let best: { distance: number; first: string; last: string } | null = null;
+      for (const weekend of weekends.values()) {
+        if (weekend.distance < thresholdM) continue;
+        if (!best || weekend.distance > best.distance) best = weekend;
+      }
+      if (!best) return null;
+      return {
+        value: Math.round(best.distance / 1000),
+        displayUnit: "km weekend",
+        periodStart: best.first,
+        periodEnd: best.last,
+        note: "Beste weekendtotaal",
+      };
+    },
+  },
+
+  // A012 Mountain Goat - max climbing in one outdoor ride.
+  {
+    code: "A012",
+    check: (acts, badge) =>
+      singleElevationResult(badge, acts, "Max hoogtemeters in een rit"),
+  },
+
+  // A017 Everesting Prep - max climbing in one outdoor ride.
+  {
+    code: "A017",
+    check: (acts, badge) =>
+      singleElevationResult(badge, acts, "Everesting-prep hoogte"),
+  },
+
+  // A018 Everesting - quarter/half/full/10K based on single-ride elevation.
+  {
+    code: "A018",
+    check: (acts, badge) => {
+      const raw = badge.trigger_config?.threshold?.raw?.toLowerCase() ?? "";
+      const threshold = raw.includes("quarter")
+        ? 2212
+        : raw.includes("half")
+          ? 4424
+          : raw.includes("10k")
+            ? 10000
+            : raw.includes("full")
+              ? 8848
+              : null;
+      if (!threshold) return null;
+      return singleElevationResult(
+        { ...badge, trigger_config: { threshold: { value: threshold } } },
+        acts,
+        "Everesting-hoogte in een rit",
+      );
+    },
+  },
+
+  // A020 Alpine Epic - long ride with enough climbing to feel mountainous.
+  {
+    code: "A020",
+    check: (acts, badge) => {
+      const thresholdM = thresholdKmToMeters(badge);
+      if (!thresholdM) return null;
+      const best = bestSingleByDistance(
+        acts,
+        thresholdM,
+        (a) => isOutdoor(a) && (a.total_elevation_gain_m ?? 0) >= 1500,
+      );
+      if (!best) return null;
+      const date = localDate(best);
+      return {
+        value: Math.round(best.distance_m / 100) / 10,
+        displayUnit: "km bergen",
+        periodStart: date,
+        periodEnd: date,
+        note: "Lange bergachtige rit",
+      };
+    },
+  },
+
+  // A021 Flatlander - long ride with low elevation density.
+  {
+    code: "A021",
+    check: (acts, badge) => {
+      const thresholdM = thresholdKmToMeters(badge);
+      if (!thresholdM) return null;
+      const best = bestSingleByDistance(
+        acts,
+        thresholdM,
+        (a) => {
+          if (!isOutdoor(a)) return false;
+          const km = (a.distance_m ?? 0) / 1000;
+          return km > 0 && (a.total_elevation_gain_m ?? 0) / km <= 4;
+        },
+      );
+      if (!best) return null;
+      const date = localDate(best);
+      return {
+        value: Math.round(best.distance_m / 100) / 10,
+        displayUnit: "km vlak",
+        periodStart: date,
+        periodEnd: date,
+        note: "Lange vlakke rit",
+      };
+    },
+  },
+
+  // A026 Night Ride - dark start/finish and long night ride proxies.
+  {
+    code: "A026",
+    check: (acts, badge) => {
+      const raw = badge.trigger_config?.threshold?.raw?.toLowerCase() ?? "";
+      let best: Activity | null = null;
+      for (const a of acts) {
+        if (!isOutdoor(a)) continue;
+        const startDark = isDarkHour(localHour(a));
+        const finishDark = isDarkHour(endLocalHour(a));
+        const longNight = (a.distance_m ?? 0) >= 100_000 && (startDark || finishDark);
+        const allNight = startDark && (a.moving_time_seconds ?? 0) >= 6 * 3600;
+        const matches = raw.includes("start")
+          ? startDark
+          : raw.includes("finish")
+            ? finishDark
+            : raw.includes("100")
+              ? longNight
+              : raw.includes("hele")
+                ? allNight
+                : false;
+        if (!matches) continue;
+        if (!best || (a.moving_time_seconds ?? 0) > (best.moving_time_seconds ?? 0)) {
+          best = a;
+        }
+      }
+      if (!best) return null;
+      return {
+        value: Math.round((best.moving_time_seconds / 3600) * 10) / 10,
+        displayUnit: "uur donker",
+        periodStart: localDate(best),
+        periodEnd: endLocalDate(best),
+        note: "Rit in het donker",
+      };
+    },
+  },
+
   // ── A027 Sunrise Rider — start vóór 7:00 lokaal ─────────────────────
   {
     code: "A027",
@@ -383,6 +689,28 @@ const EVALUATORS: Evaluator[] = [
         periodStart: date,
         periodEnd: date,
         note: "Ultra-distance",
+      };
+    },
+  },
+
+  // A031 Segment PR - sum Strava achievement_count/pr_count.
+  {
+    code: "A031",
+    check: (acts, badge) => {
+      const required = parseLeadingNumber(badge.trigger_config?.threshold?.raw ?? "");
+      if (!required) return null;
+      const total = acts.reduce((sum, a) => sum + activityAchievements(a), 0);
+      if (total < required) return null;
+      const dates = acts
+        .filter((a) => activityAchievements(a) > 0)
+        .map(localDate)
+        .sort();
+      return {
+        value: total,
+        displayUnit: "PRs",
+        periodStart: dates[0] ?? localDate(acts[0]),
+        periodEnd: dates[dates.length - 1] ?? localDate(acts[acts.length - 1]),
+        note: "Strava activity achievements",
       };
     },
   },
@@ -637,6 +965,76 @@ const EVALUATORS: Evaluator[] = [
     },
   },
 
+  // A046 Winter Warrior - active winter months, plus Festive 500 proxy.
+  {
+    code: "A046",
+    check: (acts, badge) => {
+      const raw = badge.trigger_config?.threshold?.raw?.toLowerCase() ?? "";
+      const winterActs = acts.filter((a) => {
+        if (!isOutdoor(a)) return false;
+        const month = Number(localDate(a).slice(5, 7));
+        return month === 12 || month === 1 || month === 2;
+      });
+      if (raw.includes("festive")) {
+        const perYear = new Map<string, number>();
+        for (const a of acts.filter(isOutdoor)) {
+          const d = localDate(a);
+          const monthDay = d.slice(5, 10);
+          if (monthDay < "12-24" && monthDay > "01-01") continue;
+          const year = monthDay >= "12-24" ? d.slice(0, 4) : String(Number(d.slice(0, 4)) - 1);
+          perYear.set(year, (perYear.get(year) ?? 0) + (a.distance_m ?? 0));
+        }
+        let bestYear: string | null = null;
+        let best = 0;
+        for (const [year, distance] of perYear) {
+          if (distance > best) {
+            best = distance;
+            bestYear = year;
+          }
+        }
+        if (!bestYear || best < 500_000) return null;
+        return {
+          value: Math.round(best / 1000),
+          displayUnit: "km festive",
+          periodStart: `${bestYear}-12-24`,
+          periodEnd: `${Number(bestYear) + 1}-01-01`,
+          note: "Festive 500 periode",
+        };
+      }
+
+      const months = Array.from(new Set(winterActs.map((a) => localDate(a).slice(0, 7)))).sort();
+      const required = raw.includes("hele") ? 3 : parseLeadingNumber(raw) ?? 1;
+      if (months.length < required) return null;
+      return {
+        value: months.length,
+        displayUnit: "wintermaanden",
+        periodStart: `${months[0]}-01`,
+        periodEnd: monthEnd(months[months.length - 1]),
+        note: "Actieve wintermaanden",
+      };
+    },
+  },
+
+  // A051 Group Ride Hero - count outdoor rides with Strava athlete_count > 1.
+  {
+    code: "A051",
+    check: (acts, badge) => {
+      const required = parseLeadingNumber(badge.trigger_config?.threshold?.raw ?? "");
+      if (!required) return null;
+      const groupRides = acts
+        .filter((a) => isOutdoor(a) && athleteCount(a) > 1)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date));
+      if (groupRides.length < required) return null;
+      return {
+        value: groupRides.length,
+        displayUnit: "groepsritten",
+        periodStart: localDate(groupRides[0]),
+        periodEnd: localDate(groupRides[groupRides.length - 1]),
+        note: "Strava athlete_count > 1",
+      };
+    },
+  },
+
   // ── A057 Kudos Magnet — kudos op één rit ────────────────────────────
   {
     code: "A057",
@@ -679,6 +1077,19 @@ const EVALUATORS: Evaluator[] = [
         note: "Langste gravel-rit",
       };
     },
+  },
+
+  // A075 Offroad Century - gravel/MTB single-ride distance.
+  {
+    code: "A075",
+    check: (acts, badge) =>
+      singleDistanceResult(
+        badge,
+        acts,
+        "Langste offroad-rit",
+        isOffroad,
+        "km offroad",
+      ),
   },
 
   // ── A081 Indoor Starter — trainer-tijd in één sessie ────────────────
@@ -731,6 +1142,85 @@ const EVALUATORS: Evaluator[] = [
         note: "Langste indoor-rit",
       };
     },
+  },
+
+  // A085 RoboPacer - trainer rides with pacer/robopacer in the title.
+  {
+    code: "A085",
+    check: (acts, badge) => {
+      const t = badge.trigger_config?.threshold;
+      if (!t?.value) return null;
+      const thresholdSec = t.value * 3600;
+      let best: Activity | null = null;
+      for (const a of acts) {
+        if (!a.trainer) continue;
+        const name = rawName(a);
+        if (!name.includes("pacer") && !name.includes("robopacer")) continue;
+        const s = a.moving_time_seconds ?? 0;
+        if (s < thresholdSec) continue;
+        if (!best || s > best.moving_time_seconds) best = a;
+      }
+      if (!best) return null;
+      const date = localDate(best);
+      return {
+        value: Math.round((best.moving_time_seconds / 3600) * 10) / 10,
+        displayUnit: "uur pacer",
+        periodStart: date,
+        periodEnd: date,
+        note: "RoboPacer-sessie",
+      };
+    },
+  },
+
+  // A088 Ride Ons - Strava kudos on trainer rides as Ride On proxy.
+  {
+    code: "A088",
+    check: (acts, badge) => {
+      const required = parseLeadingNumber(badge.trigger_config?.threshold?.raw ?? "");
+      if (!required) return null;
+      const indoor = acts.filter((a) => a.trainer);
+      const total = indoor.reduce((sum, a) => sum + (a.kudos_count ?? 0), 0);
+      if (total < required) return null;
+      const dates = indoor.filter((a) => (a.kudos_count ?? 0) > 0).map(localDate).sort();
+      return {
+        value: total,
+        displayUnit: "ride ons",
+        periodStart: dates[0] ?? localDate(indoor[0]),
+        periodEnd: dates[dates.length - 1] ?? localDate(indoor[indoor.length - 1]),
+        note: "Ontvangen kudos op indoorritten",
+      };
+    },
+  },
+
+  // A090 Virtual Everesting - trainer elevation thresholds.
+  {
+    code: "A090",
+    check: (acts, badge) => {
+      const raw = badge.trigger_config?.threshold?.raw?.toLowerCase() ?? "";
+      const threshold = raw.includes("quarter")
+        ? 2212
+        : raw.includes("half")
+          ? 4424
+          : raw.includes("10k")
+            ? 10000
+            : raw.includes("full")
+              ? 8848
+              : null;
+      if (!threshold) return null;
+      return singleElevationResult(
+        { ...badge, trigger_config: { threshold: { value: threshold } } },
+        acts,
+        "Virtuele everesting-hoogte",
+        (a) => a.trainer,
+      );
+    },
+  },
+
+  // A096 Super Randonneur - single ultra-distance ride proxy.
+  {
+    code: "A096",
+    check: (acts, badge) =>
+      singleDistanceResult(badge, acts, "Randonneur-afstand in een rit"),
   },
 ];
 
