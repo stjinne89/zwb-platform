@@ -70,12 +70,14 @@ export function MobileMenu({
 
       {open && (
         <>
+          {/* Backdrop — stevig contrast in beide themes */}
           <div
-            className="fixed inset-0 top-14 z-40 bg-black/30 md:hidden"
+            className="fixed inset-0 top-14 z-40 bg-zwb-petrol-dark/70 md:hidden dark:bg-black/70"
             onClick={close}
             aria-hidden
           />
-          <div className="absolute inset-x-0 top-full z-50 border-b bg-card/95 shadow-lg backdrop-blur md:hidden">
+          {/* Panel — fully opaque card-bg + sterke schaduw zodat het uit het scherm "tilt" */}
+          <div className="absolute inset-x-0 top-full z-50 border-b bg-card shadow-2xl md:hidden">
             <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
               {items.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -84,10 +86,10 @@ export function MobileMenu({
                     key={item.href}
                     href={item.href}
                     onClick={close}
-                    className={`rounded-md px-3 py-2 text-sm transition ${
+                    className={`rounded-md px-3 py-2.5 text-sm transition ${
                       active
-                        ? "bg-muted font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-primary font-medium text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
                     }`}
                   >
                     {item.label}
@@ -98,7 +100,7 @@ export function MobileMenu({
               <Link
                 href="/profiel"
                 onClick={close}
-                className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-md px-3 py-2.5 text-sm text-foreground hover:bg-muted"
               >
                 {displayName}
               </Link>
