@@ -5,6 +5,7 @@ import { updateProfile } from "../actions";
 import { Button } from "@/components/ui/button";
 
 type Initial = {
+  id: string;
   display_name: string;
   region: string;
   zwift_id: string;
@@ -13,12 +14,27 @@ type Initial = {
   ftp_watts: string;
   weight_kg: string;
   bio: string;
+  public_profile_enabled: boolean;
+  profile_visibility: Record<string, boolean>;
 };
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 const LABEL = "mb-1 block text-sm font-medium";
+
+const VISIBILITY_FIELDS = [
+  { key: "avatar", label: "Profielfoto" },
+  { key: "region", label: "Regio" },
+  { key: "zwift_id", label: "Zwift-ID" },
+  { key: "strava_id", label: "Strava-vermelding" },
+  { key: "zrl_category", label: "ZRL-categorie" },
+  { key: "ftp_watts", label: "FTP" },
+  { key: "weight_kg", label: "Gewicht" },
+  { key: "bio", label: "Bio" },
+  { key: "roles", label: "Communityrollen" },
+  { key: "badges", label: "Badges" },
+] as const;
 
 export function ProfileForm({ email, initial }: { email: string; initial: Initial }) {
   const [pending, startTransition] = useTransition();
@@ -153,6 +169,52 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               className={FIELD}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Zichtbaarheid
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Kies wat andere leden en, als je dat aanzet, bezoekers van je
+            publieke profiel mogen zien.
+          </p>
+        </div>
+
+        <label className="flex items-start gap-3 rounded-lg border bg-background p-3">
+          <input
+            type="checkbox"
+            name="public_profile_enabled"
+            defaultChecked={initial.public_profile_enabled}
+            className="mt-1 size-4 accent-primary"
+          />
+          <span>
+            <span className="block text-sm font-medium">
+              Publieke profielpagina inschakelen
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              Deelbaar buiten login via /profielen/{initial.id}
+            </span>
+          </span>
+        </label>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {VISIBILITY_FIELDS.map((field) => (
+            <label
+              key={field.key}
+              className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                name={`visible_${field.key}`}
+                defaultChecked={initial.profile_visibility[field.key] ?? true}
+                className="size-4 accent-primary"
+              />
+              <span>{field.label}</span>
+            </label>
+          ))}
         </div>
       </section>
 

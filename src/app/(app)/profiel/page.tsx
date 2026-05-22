@@ -18,6 +18,19 @@ type AwardRow = {
     | null;
 };
 
+const DEFAULT_VISIBILITY = {
+  avatar: true,
+  region: true,
+  zwift_id: true,
+  strava_id: true,
+  zrl_category: true,
+  ftp_watts: true,
+  weight_kg: true,
+  bio: true,
+  roles: true,
+  badges: true,
+};
+
 function awardBadge(row: AwardRow) {
   return Array.isArray(row.achievement_badges)
     ? row.achievement_badges[0]
@@ -42,7 +55,7 @@ export default async function ProfielPage() {
     supabase
       .from("profiles")
       .select(
-        "display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin, community_roles, avatar_url",
+        "id, display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
       )
       .eq("id", user.id)
       .single(),
@@ -102,6 +115,7 @@ export default async function ProfielPage() {
       <ProfileForm
         email={user.email ?? ""}
         initial={{
+          id: profile?.id ?? user.id,
           display_name: profile?.display_name ?? "",
           region: profile?.region ?? "",
           zwift_id: profile?.zwift_id ?? "",
@@ -110,6 +124,12 @@ export default async function ProfielPage() {
           ftp_watts: profile?.ftp_watts?.toString() ?? "",
           weight_kg: profile?.weight_kg?.toString() ?? "",
           bio: profile?.bio ?? "",
+          public_profile_enabled: profile?.public_profile_enabled ?? false,
+          profile_visibility: {
+            ...DEFAULT_VISIBILITY,
+            ...((profile?.profile_visibility as Record<string, boolean> | null) ??
+              {}),
+          },
         }}
       />
 
@@ -139,7 +159,7 @@ export default async function ProfielPage() {
         ) : (
           (() => {
             // Groepeer awards per badge-titel zodat dezelfde badge met een
-            // multiplier (2×, 3× …) wordt getoond i.p.v. één kaart per week.
+            // multiplier (2x, 3x, ...) wordt getoond i.p.v. een kaart per week.
             const grouped = new Map<
               string,
               {
@@ -166,7 +186,7 @@ export default async function ProfielPage() {
                 {Array.from(grouped.values()).map(({ badge, count, latest }) => (
                   <li
                     key={badge.title}
-                    title={`${badge.title} — laatst behaald in week van ${new Date(latest.period_start).toLocaleDateString("nl-NL", { dateStyle: "medium" })}`}
+                    title={`${badge.title} - laatst behaald in week van ${new Date(latest.period_start).toLocaleDateString("nl-NL", { dateStyle: "medium" })}`}
                   >
                     <AchievementBadge
                       title={badge.title}

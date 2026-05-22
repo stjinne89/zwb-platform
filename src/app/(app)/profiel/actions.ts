@@ -4,6 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
+const VISIBILITY_FIELDS = [
+  "avatar",
+  "region",
+  "zwift_id",
+  "strava_id",
+  "zrl_category",
+  "ftp_watts",
+  "weight_kg",
+  "bio",
+  "roles",
+  "badges",
+] as const;
 
 function optionalNumber(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -33,6 +45,12 @@ export async function updateProfile(formData: FormData) {
 
   const ftp = optionalNumber(formData.get("ftp_watts"));
   const weight = optionalNumber(formData.get("weight_kg"));
+  const profile_visibility = Object.fromEntries(
+    VISIBILITY_FIELDS.map((field) => [
+      field,
+      formData.get(`visible_${field}`) === "on",
+    ]),
+  );
 
   const { error } = await supabase
     .from("profiles")
@@ -45,11 +63,16 @@ export async function updateProfile(formData: FormData) {
       ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
       weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
       bio: optionalString(formData.get("bio")),
+      public_profile_enabled: formData.get("public_profile_enabled") === "on",
+      profile_visibility,
     })
     .eq("id", user.id);
 
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/profiel");
+  revalidatePath("/leden");
+  revalidatePath(`/leden/${user.id}`);
+  revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };
 }

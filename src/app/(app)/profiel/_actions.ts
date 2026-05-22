@@ -37,6 +37,8 @@ export async function refreshMyStravaProfile() {
     const { avatarUrl } = await refreshStravaAthleteInfo(supabase, user.id, at);
     revalidatePath("/profiel");
     revalidatePath("/leden");
+    revalidatePath(`/leden/${user.id}`);
+    revalidatePath(`/profielen/${user.id}`);
     return { ok: true as const, avatarUrl };
   } catch (err) {
     return {

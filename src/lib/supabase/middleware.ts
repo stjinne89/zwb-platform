@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = [
   "/login",
   "/auth",
+  "/profielen",
   "/api/team-results/sync",
   "/api/achievements/finalize",
 ];
