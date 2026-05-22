@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { disconnectStrava } from "../../achievements/_actions";
+import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ export function StravaSection({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   return (
     <section className="rounded-lg border bg-card p-6">
@@ -53,15 +55,38 @@ export function StravaSection({
             </Link>
             .
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               size="sm"
               variant="outline"
               disabled={pending}
               onClick={() => {
+                setError(null);
+                setMessage(null);
+                startTransition(async () => {
+                  const res = await refreshMyStravaProfile();
+                  if (!res.ok) setError(res.error);
+                  else
+                    setMessage(
+                      res.avatarUrl
+                        ? "Profielfoto bijgewerkt vanuit Strava."
+                        : "Strava heeft geen profielfoto voor jou — initials blijven zichtbaar.",
+                    );
+                });
+              }}
+            >
+              {pending ? "Verversen…" : "Vernieuw foto"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={pending}
+              onClick={() => {
                 if (!confirm("Strava ontkoppelen? Je gesyncte ritten blijven bewaard.")) return;
                 setError(null);
+                setMessage(null);
                 startTransition(async () => {
                   const res = await disconnectStrava();
                   if (!res.ok) setError(res.error);
@@ -71,6 +96,7 @@ export function StravaSection({
               {pending ? "Ontkoppelen…" : "Ontkoppel Strava"}
             </Button>
           </div>
+          {message && <p className="text-sm text-muted-foreground">{message}</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       ) : (

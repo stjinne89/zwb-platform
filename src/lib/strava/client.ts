@@ -16,7 +16,7 @@ type StravaTokenResponse = {
   };
 };
 
-type StravaConnection = {
+export type StravaConnection = {
   profile_id: string;
   strava_athlete_id: number;
   access_token: string;
@@ -162,7 +162,7 @@ export function currentAchievementWeek() {
   return dateOnly(weekStartDate());
 }
 
-async function accessTokenFor(
+export async function accessTokenFor(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   connection: StravaConnection,
@@ -185,6 +185,67 @@ async function accessTokenFor(
   return refreshed.access_token;
 }
 
+/**
+ * Haal de actuele athlete-info op (foto, naam, FTP, etc.) en update
+ * profiles.avatar_url als de gebruiker een echte Strava-foto heeft en
+ * er nog geen handmatige avatar staat.
+ */
+export async function refreshStravaAthleteInfo(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+  accessToken: string,
+): Promise<{ avatarUrl: string | null }> {
+  try {
+    const res = await fetch("https://www.strava.com/api/v3/athlete", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { avatarUrl: null };
+    const athlete = (await res.json()) as {
+      username?: string | null;
+      profile?: string | null;
+      profile_medium?: string | null;
+    };
+
+    const avatar = pickAthleteAvatarUrl({ athlete });
+
+    // strava_connections.athlete_username updaten zodat /profiel-header
+    // de handle kan tonen na een sync zonder reconnect.
+    if (athlete.username) {
+      await supabase
+        .from("strava_connections")
+        .update({ athlete_username: athlete.username })
+        .eq("profile_id", profileId);
+    }
+
+    if (!avatar) return { avatarUrl: null };
+
+    // Overschrijf alleen als er nog geen avatar is OF de bestaande is van
+    // Strava's CDN (zodat een handmatige upload niet wordt vervangen).
+    const { data: current } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", profileId)
+      .single();
+    const existing = current?.avatar_url as string | null | undefined;
+    const isStravaCdn =
+      !existing ||
+      /strava|cloudfront\.net\/(avatar|pictures)/i.test(existing);
+    if (isStravaCdn) {
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: avatar })
+        .eq("id", profileId);
+    }
+
+    return { avatarUrl: avatar };
+  } catch {
+    return { avatarUrl: null };
+  }
+}
+
 export async function syncStravaActivitiesForUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -202,6 +263,9 @@ export async function syncStravaActivitiesForUser(
   }
 
   const accessToken = await accessTokenFor(supabase, connection as StravaConnection);
+
+  // Best-effort: refresh avatar + username (faalt stil als API onbereikbaar).
+  await refreshStravaAthleteInfo(supabase, profileId, accessToken);
   const after = Math.floor(weekStartDate(new Date(Date.now() - 21 * 86400_000)).getTime() / 1000);
   const url = new URL("https://www.strava.com/api/v3/athlete/activities");
   url.searchParams.set("after", String(after));
