@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
-import { formatBadgeValue } from "@/lib/achievements/awards";
 import { ProfileForm } from "./_components/profile-form";
 import { StravaSection } from "./_components/strava-section";
 
