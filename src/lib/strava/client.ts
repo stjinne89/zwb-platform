@@ -35,11 +35,20 @@ type StravaActivity = {
 };
 
 function stravaEnv() {
-  const clientId = process.env.STRAVA_CLIENT_ID;
-  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
+  // .trim() vangt onzichtbare whitespace/newlines vanuit .env af.
+  const clientId = process.env.STRAVA_CLIENT_ID?.trim();
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET?.trim();
 
   if (!clientId || !clientSecret) {
     throw new Error("STRAVA_CLIENT_ID en STRAVA_CLIENT_SECRET zijn nodig.");
+  }
+
+  // Strava client_id is altijd een numerieke string (meestal 5-6 cijfers).
+  // Als die test faalt is er bijna zeker iets misgegaan met copy-paste.
+  if (!/^\d+$/.test(clientId)) {
+    throw new Error(
+      `STRAVA_CLIENT_ID ziet er ongebruikelijk uit ("${clientId.slice(0, 20)}…"). Het hoort een puur numerieke string te zijn (5-6 cijfers). Controleer https://www.strava.com/settings/api → het bovenste veld "Client ID".`,
+    );
   }
 
   return { clientId, clientSecret };
@@ -60,6 +69,11 @@ async function postToken(values: Record<string, string>) {
 
   if (!res.ok) {
     const text = await res.text();
+    if (res.status === 401 && /Application/i.test(text) && /invalid/i.test(text)) {
+      throw new Error(
+        `Strava: STRAVA_CLIENT_ID/SECRET worden afgewezen. Check 3 dingen op https://www.strava.com/settings/api: (1) client_id is het bovenste veld en numeriek; (2) client_secret is met "Show" zichtbaar te maken; (3) "Authorization Callback Domain" matcht (alleen hostname, geen pad/https). Daarna .env.local + Netlify env opnieuw zetten en herstarten/redeployen.`,
+      );
+    }
     throw new Error(`Strava token request faalde (${res.status}): ${text.slice(0, 160)}`);
   }
 
