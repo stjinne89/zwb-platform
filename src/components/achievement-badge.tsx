@@ -1,49 +1,154 @@
-import { HeartHandshake, Mountain, RefreshCw, Route } from "lucide-react";
+import { HeartHandshake, Mountain, RefreshCw, Route, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type BadgeIcon = "mountain" | "route" | "heart" | "refresh" | string | null;
-type BadgeColor = "gold" | "petrol" | "sage" | "steel" | string | null;
+type BadgeIcon = "mountain" | "route" | "heart" | "refresh" | string | null | undefined;
+type BadgeColor = "gold" | "petrol" | "sage" | "steel" | string | null | undefined;
+type BadgeSize = "sm" | "md" | "lg";
 
-const iconMap = {
+const iconMap: Record<string, LucideIcon> = {
   mountain: Mountain,
   route: Route,
   heart: HeartHandshake,
   refresh: RefreshCw,
 };
 
-const colorMap = {
-  gold: "border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-400/50 dark:bg-amber-400/20 dark:text-amber-100",
-  petrol:
-    "border-cyan-800/20 bg-cyan-950 text-white dark:border-cyan-300/30 dark:bg-cyan-300/15 dark:text-cyan-100",
-  sage: "border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-400/40 dark:bg-emerald-400/15 dark:text-emerald-100",
-  steel:
-    "border-slate-300 bg-slate-100 text-slate-900 dark:border-slate-400/30 dark:bg-slate-300/15 dark:text-slate-100",
+const SIZE_PX: Record<BadgeSize, number> = {
+  sm: 28,
+  md: 44,
+  lg: 64,
 };
 
+/**
+ * ZWB achievement-medaille: gouden ring, petrol-kern, drie chevrons subtiel
+ * bovenaan, achievement-icoon centraal, glimm-highlight links-boven.
+ * Krijgt z'n betekenis via title (hover/tap).
+ */
 export function AchievementBadge({
   title,
   icon,
   color,
-  compact = false,
+  size = "md",
+  count,
+  compact,
 }: {
   title: string;
   icon?: BadgeIcon;
   color?: BadgeColor;
+  size?: BadgeSize;
+  count?: number;
+  /** Backwards-compat met oude compact-prop → mapped naar size="sm". */
   compact?: boolean;
 }) {
-  const Icon = iconMap[(icon ?? "refresh") as keyof typeof iconMap] ?? RefreshCw;
+  const effectiveSize: BadgeSize = compact ? "sm" : size;
+  const px = SIZE_PX[effectiveSize];
+  const IconComp = iconMap[(icon ?? "refresh") as keyof typeof iconMap] ?? RefreshCw;
+
+  // Onique key voor SVG-id zodat meerdere medailles op één pagina niet
+  // hun gradients delen (zou clipping breken in sommige browsers).
+  const uid = `${(icon ?? "refresh")}-${color ?? "default"}-${effectiveSize}`;
+
+  // Accent-tint van de buitenring: per kleur een net andere goud-shade
+  // zodat verschillende badge-types subtiel te onderscheiden zijn.
+  const accent = ringAccent(color);
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md border font-medium",
-        colorMap[(color ?? "steel") as keyof typeof colorMap] ?? colorMap.steel,
-        compact ? "px-1.5 py-0.5 text-[0.7rem]" : "px-2 py-1 text-xs",
-      )}
+    <div
+      className="relative inline-block leading-none"
+      style={{ width: px, height: px }}
       title={title}
+      aria-label={title}
+      role="img"
     >
-      <Icon className={compact ? "size-3" : "size-3.5"} />
-      <span className="truncate">{title}</span>
-    </span>
+      <svg
+        viewBox="0 0 100 100"
+        className="block h-full w-full drop-shadow-sm"
+        aria-hidden
+      >
+        <defs>
+          {/* Buitenring met goudgradient */}
+          <linearGradient id={`gold-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={accent.light} />
+            <stop offset="45%" stopColor={accent.mid} />
+            <stop offset="100%" stopColor={accent.dark} />
+          </linearGradient>
+          {/* Binnen-petrol */}
+          <radialGradient id={`center-${uid}`} cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stopColor="#2d5564" />
+            <stop offset="100%" stopColor="#0f2a32" />
+          </radialGradient>
+          {/* Glimm-highlight links-boven */}
+          <radialGradient id={`shine-${uid}`} cx="32%" cy="28%" r="42%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
+            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
+          {/* Subtiele schaduw onderaan */}
+          <radialGradient id={`shadow-${uid}`} cx="50%" cy="80%" r="40%">
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* Buitenring (goud) */}
+        <circle cx="50" cy="50" r="48" fill={`url(#gold-${uid})`} />
+        {/* Smalle donkere binnenrand voor diepte */}
+        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(0,0,0,0.25)" strokeWidth="1" />
+        {/* Petrol kern */}
+        <circle cx="50" cy="50" r="41" fill={`url(#center-${uid})`} />
+        {/* Schaduw onderaan voor diepte */}
+        <circle cx="50" cy="50" r="41" fill={`url(#shadow-${uid})`} />
+
+        {/* ZWB-chevrons subtiel bovenin */}
+        <g transform="translate(30, 17) scale(0.20)" opacity="0.7">
+          <polygon points="20,10 65,10 50,65 5,65" fill={accent.light} />
+          <polygon points="75,10 120,10 105,65 60,65" fill="#7e9aa1" />
+          <polygon points="130,10 175,10 160,65 115,65" fill="#0e1a1f" />
+        </g>
+
+        {/* Glimm-highlight */}
+        <circle cx="50" cy="50" r="48" fill={`url(#shine-${uid})`} pointerEvents="none" />
+      </svg>
+
+      {/* Achievement-icoon centraal (Lucide-component over de SVG heen). */}
+      <span
+        className="pointer-events-none absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2"
+        style={{ color: accent.light }}
+      >
+        <IconComp
+          style={{ width: px * 0.4, height: px * 0.4 }}
+          strokeWidth={2.4}
+          absoluteStrokeWidth
+        />
+      </span>
+
+      {/* Multiplier-bubble (alleen tonen als >1). */}
+      {count !== undefined && count > 1 && (
+        <span
+          className={cn(
+            "absolute -right-1 -top-1 inline-flex items-center justify-center rounded-full bg-primary font-bold leading-none text-primary-foreground shadow-sm tabular-nums",
+            effectiveSize === "sm"
+              ? "h-4 min-w-4 px-1 text-[0.6rem]"
+              : "h-5 min-w-5 px-1.5 text-[0.65rem]",
+          )}
+        >
+          {count}×
+        </span>
+      )}
+    </div>
   );
+}
+
+/** Per ondersteunde kleur een net andere goudtint voor de buitenring. */
+function ringAccent(color: BadgeColor) {
+  switch (color) {
+    case "gold":
+      return { light: "#f3d68a", mid: "#d4a84e", dark: "#8a6429" };
+    case "petrol":
+      return { light: "#d2c389", mid: "#a08550", dark: "#604725" };
+    case "sage":
+      return { light: "#dccfa1", mid: "#b09975", dark: "#6f5c3d" };
+    case "steel":
+    default:
+      return { light: "#e8d599", mid: "#b89968", dark: "#7c5e30" };
+  }
 }

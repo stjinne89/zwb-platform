@@ -128,23 +128,19 @@ export default async function ProfielPage() {
               }
             }
             return (
-              <ul className="mt-4 flex flex-wrap gap-2">
+              <ul className="mt-4 flex flex-wrap gap-3">
                 {Array.from(grouped.values()).map(({ badge, count, latest }) => (
                   <li
                     key={badge.title}
-                    className="relative"
                     title={`${badge.title} — laatst behaald in week van ${new Date(latest.period_start).toLocaleDateString("nl-NL", { dateStyle: "medium" })}`}
                   >
                     <AchievementBadge
                       title={badge.title}
                       icon={badge.icon}
                       color={badge.color}
+                      size="lg"
+                      count={count}
                     />
-                    {count > 1 && (
-                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-bold leading-none text-primary-foreground tabular-nums">
-                        {count}×
-                      </span>
-                    )}
                   </li>
                 ))}
               </ul>
