@@ -4,6 +4,7 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { ProfileForm } from "./_components/profile-form";
+import { StravaSection } from "./_components/strava-section";
 
 type AwardRow = {
   id: string;
@@ -29,7 +30,7 @@ export default async function ProfielPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: awards }] = await Promise.all([
+  const [{ data: profile }, { data: awards }, { data: stravaConn }] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -44,6 +45,11 @@ export default async function ProfielPage() {
       )
       .eq("profile_id", user.id)
       .order("period_start", { ascending: false }),
+    supabase
+      .from("strava_connections")
+      .select("athlete_name, updated_at")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
   ]);
 
   const awardList = (awards ?? []) as unknown as AwardRow[];
@@ -70,6 +76,8 @@ export default async function ProfielPage() {
           bio: profile?.bio ?? "",
         }}
       />
+
+      <StravaSection connection={stravaConn ?? null} />
 
       <section className="rounded-lg border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
