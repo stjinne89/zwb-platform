@@ -8,6 +8,7 @@ import { MobileMenu } from "./_components/mobile-menu";
 
 const NAV = [
   { href: "/kalender", label: "Kalender" },
+  { href: "/samen-fietsen", label: "Samen fietsen" },
   { href: "/teams", label: "Teams" },
   { href: "/achievements", label: "Achievements" },
   { href: "/leden", label: "Leden" },
