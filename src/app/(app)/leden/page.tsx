@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { AchievementBadge } from "@/components/achievement-badge";
@@ -13,6 +14,7 @@ type Profile = {
   region: string | null;
   zwift_id: string | null;
   zrl_category: string | null;
+  avatar_url: string | null;
   is_approved: boolean;
   is_admin: boolean;
   community_roles: string[] | null;
@@ -71,7 +73,7 @@ export default async function LedenPage() {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, zrl_category, is_approved, is_admin, community_roles, created_at",
+        "id, display_name, region, zwift_id, zrl_category, avatar_url, is_approved, is_admin, community_roles, created_at",
       )
       .order("display_name"),
     supabase
@@ -211,28 +213,40 @@ export default async function LedenPage() {
                 key={p.id}
                 className="flex items-start justify-between gap-3 py-2 text-sm"
               >
-                <div className="min-w-0">
-                  <p>
-                    {p.display_name}
-                    {p.zrl_category && (
-                      <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                        {p.zrl_category}
-                      </span>
-                    )}
-                    {p.region && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {p.region}
-                      </span>
-                    )}
-                  </p>
-                  <div className="mt-1">
-                    <CommunityRoleBadges
-                      roles={p.community_roles}
-                      isAdmin={p.is_admin}
-                      compact
-                    />
+                <div className="flex min-w-0 gap-3">
+                  <MemberAvatar
+                    profileId={p.id}
+                    name={p.display_name}
+                    avatarUrl={p.avatar_url}
+                  />
+                  <div className="min-w-0">
+                    <p>
+                      <Link
+                        href={`/leden/${p.id}`}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
+                        {p.display_name}
+                      </Link>
+                      {p.zrl_category && (
+                        <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                          {p.zrl_category}
+                        </span>
+                      )}
+                      {p.region && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {p.region}
+                        </span>
+                      )}
+                    </p>
+                    <div className="mt-1">
+                      <CommunityRoleBadges
+                        roles={p.community_roles}
+                        isAdmin={p.is_admin}
+                        compact
+                      />
+                    </div>
+                    <MemberBadges awards={awardsByProfile.get(p.id) ?? []} />
                   </div>
-                  <MemberBadges awards={awardsByProfile.get(p.id) ?? []} />
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   {p.zwift_id && (
@@ -273,6 +287,49 @@ export default async function LedenPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function initials(name: string): string {
+  const parts = name
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "??";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function MemberAvatar({
+  profileId,
+  name,
+  avatarUrl,
+}: {
+  profileId: string;
+  name: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <Link
+      href={`/leden/${profileId}`}
+      className="mt-0.5 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zwb-petrol text-xs font-semibold text-white"
+      aria-label={`Bekijk profiel van ${name}`}
+    >
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt=""
+          width={40}
+          height={40}
+          className="size-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        initials(name)
+      )}
+    </Link>
   );
 }
 

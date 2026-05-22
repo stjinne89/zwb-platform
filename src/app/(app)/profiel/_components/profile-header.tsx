@@ -88,7 +88,9 @@ export function ProfileHeader({
                 </>
               )}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{email}</p>
+            {email && (
+              <p className="mt-0.5 text-xs text-muted-foreground">{email}</p>
+            )}
           </div>
 
           {/* Badge-counter */}
