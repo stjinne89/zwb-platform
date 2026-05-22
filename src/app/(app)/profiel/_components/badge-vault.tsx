@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AchievementBadge } from "@/components/achievement-badge";
 
 const TIER_ORDER = ["bronze", "silver", "gold", "platinum"] as const;
@@ -39,10 +39,30 @@ function requirementFor(badge: MilestoneBadgeRow) {
   );
 }
 
-function sourceLabel(source: MilestoneBadgeRow["trigger_source"]) {
-  if (source === "auto") return "Automatisch via Strava";
-  if (source === "manual") return "Handmatig door beheer";
-  return "Toekomstige bron";
+function visualIconFor(badge: MilestoneBadgeRow) {
+  const visual = `${badge.trigger_config?.visual ?? ""} ${badge.visual_hint ?? ""} ${badge.title}`
+    .toLowerCase();
+
+  if (/berg|alpe|col|klim|haarspeld|alpen|dolom|everest|ventoux|stelvio|limburg|ardennen/.test(visual)) return "mountain";
+  if (/groep|peloton|team|renners|kopwerk|helper|captain|no drop/.test(visual)) return "users";
+  if (/kudo|hart|hand|help|mentor|cheer/.test(visual)) return "heart";
+  if (/snel|sprint|power|watt|vermogen|ftp|grafiek|pacing/.test(visual)) return "zap";
+  if (/klok|tijd|duur|nacht|maan|avond|zonsondergang/.test(visual)) return "moon";
+  if (/zonsopkomst|horizon/.test(visual)) return "sunrise";
+  if (/wind|storm/.test(visual)) return "wind";
+  if (/regen|weer|nat/.test(visual)) return "rain";
+  if (/winter|kou|sneeuw/.test(visual)) return "snow";
+  if (/kaart|route|komoot|tegel|cluster|square|provincie|land|border|explorer|weg/.test(visual)) return "map";
+  if (/foto|camera/.test(visual)) return "camera";
+  if (/koffie/.test(visual)) return "coffee";
+  if (/monteur|band|ketting|pech/.test(visual)) return "wrench";
+  if (/trofee|kroon|win|podium|kom|qom|legend/.test(visual)) return "crown";
+  if (/gravel|modder|bos|zand|offroad|strand/.test(visual)) return "navigation";
+  if (/zwift|indoor|binnen|trainer|workout|robo/.test(visual)) return "dumbbell";
+  if (/pont|water|zee|brug|dijk/.test(visual)) return "waves";
+  if (/brevet|startnummer|finish|medaille/.test(visual)) return "medal";
+  if (/kalender|week|maand|jaar|streak/.test(visual)) return "calendar";
+  return badge.icon ?? "route";
 }
 
 export function BadgeVault({
@@ -52,7 +72,6 @@ export function BadgeVault({
   badges: MilestoneBadgeRow[];
   earnedIds: string[];
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const earnedSet = useMemo(() => new Set(earnedIds), [earnedIds]);
   const { byCode, codeOrder } = useMemo(() => {
     const grouped = new Map<string, MilestoneBadgeRow[]>();
@@ -105,9 +124,6 @@ export function BadgeVault({
             first?.title.split(" - ")[0] ??
             code;
           const earnedInGroup = tiers.filter((tier) => earnedSet.has(tier.id)).length;
-          const selected = tiers.find((tier) => tier.id === selectedId) ?? first;
-          const selectedEarned = earnedSet.has(selected.id);
-
           return (
             <li
               key={code}
@@ -126,25 +142,16 @@ export function BadgeVault({
                 {tiers.map((badge) => {
                   const earned = earnedSet.has(badge.id);
                   const requirement = requirementFor(badge);
-                  const isSelected = selected.id === badge.id;
 
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={badge.id}
-                      className={[
-                        "flex min-w-0 flex-col items-center gap-1 rounded-md border p-2 text-center transition",
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-transparent hover:border-foreground/20 hover:bg-card",
-                      ].join(" ")}
+                      className="flex min-w-0 flex-col items-center gap-1 rounded-md border border-transparent p-2 text-center"
                       title={`${badge.title} - ${requirement}${earned ? " (behaald)" : " (nog niet)"}`}
-                      aria-pressed={isSelected}
-                      onClick={() => setSelectedId(badge.id)}
                     >
                       <AchievementBadge
                         title={badge.title}
-                        icon={badge.icon}
+                        icon={visualIconFor(badge)}
                         color={badge.tier}
                         size="md"
                         locked={!earned}
@@ -155,43 +162,9 @@ export function BadgeVault({
                       <span className="line-clamp-2 min-h-[2rem] text-[0.68rem] leading-tight text-foreground">
                         {requirement}
                       </span>
-                    </button>
+                    </div>
                   );
                 })}
-              </div>
-
-              <div className="mt-3 rounded-md border bg-card p-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold">{selected.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {selectedEarned ? "Behaald" : "Nog niet behaald"} -{" "}
-                      {sourceLabel(selected.trigger_source)}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                    {TIER_LABEL[selected.tier]}
-                  </span>
-                </div>
-
-                <dl className="mt-3 grid gap-2 text-sm">
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Eis
-                    </dt>
-                    <dd>{requirementFor(selected)}</dd>
-                  </div>
-                  {(selected.trigger_config?.visual || selected.visual_hint) && (
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Beeldtaal
-                      </dt>
-                      <dd className="text-muted-foreground">
-                        {selected.trigger_config?.visual ?? selected.visual_hint}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
               </div>
 
               {first?.trigger_source === "manual" && (
