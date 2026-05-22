@@ -123,7 +123,7 @@ function ranking(scores: AthleteScore[], key: keyof AthleteScore) {
   return [...scores]
     .filter((score) => Number(score[key]) > 0)
     .sort((a, b) => Number(b[key]) - Number(a[key]))
-    .slice(0, 5);
+    .slice(0, 10);
 }
 
 function formatKm(meters: number) {

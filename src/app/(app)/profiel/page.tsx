@@ -104,30 +104,53 @@ export default async function ProfielPage() {
             Nog geen vastgelegde weekbadges.
           </p>
         ) : (
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {awardList.map((award) => {
+          (() => {
+            // Groepeer awards per badge-titel zodat dezelfde badge met een
+            // multiplier (2×, 3× …) wordt getoond i.p.v. één kaart per week.
+            const grouped = new Map<
+              string,
+              {
+                badge: NonNullable<ReturnType<typeof awardBadge>>;
+                count: number;
+                latest: AwardRow;
+              }
+            >();
+            for (const award of awardList) {
               const badge = awardBadge(award);
-              if (!badge) return null;
-              return (
-                <li key={award.id} className="rounded-md border bg-background p-3">
-                  <AchievementBadge
-                    title={badge.title}
-                    icon={badge.icon}
-                    color={badge.color}
-                  />
-                  <p className="mt-2 text-sm font-medium">
-                    {formatBadgeValue(award.value, award.metadata?.unit)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Week van{" "}
-                    {new Date(award.period_start).toLocaleDateString("nl-NL", {
-                      dateStyle: "medium",
-                    })}
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
+              if (!badge) continue;
+              const existing = grouped.get(badge.title);
+              if (existing) {
+                existing.count += 1;
+                if (award.period_start > existing.latest.period_start) {
+                  existing.latest = award;
+                }
+              } else {
+                grouped.set(badge.title, { badge, count: 1, latest: award });
+              }
+            }
+            return (
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {Array.from(grouped.values()).map(({ badge, count, latest }) => (
+                  <li
+                    key={badge.title}
+                    className="relative"
+                    title={`${badge.title} — laatst behaald in week van ${new Date(latest.period_start).toLocaleDateString("nl-NL", { dateStyle: "medium" })}`}
+                  >
+                    <AchievementBadge
+                      title={badge.title}
+                      icon={badge.icon}
+                      color={badge.color}
+                    />
+                    {count > 1 && (
+                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-bold leading-none text-primary-foreground tabular-nums">
+                        {count}×
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            );
+          })()
         )}
       </section>
     </div>
