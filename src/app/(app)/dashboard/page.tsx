@@ -1,7 +1,43 @@
 import Link from "next/link";
-import { ArrowRight, Medal, Pin, Trophy } from "lucide-react";
+import { ArrowRight, Bike, HeartHandshake, Medal, Mountain, Pin, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Markdown } from "@/components/markdown";
+
+// Sport-types die we als "ride" beschouwen voor de club-feed.
+const CYCLING_SPORTS = [
+  "Ride",
+  "VirtualRide",
+  "MountainBikeRide",
+  "EBikeRide",
+  "GravelRide",
+  "EMountainBikeRide",
+  "Velomobile",
+  "Handcycle",
+];
+
+type ClubActivityRow = {
+  id: number;
+  profile_id: string;
+  name: string | null;
+  sport_type: string | null;
+  start_date: string;
+  distance_m: number | string;
+  total_elevation_gain_m: number | string;
+  kudos_count: number;
+  moving_time_seconds: number;
+  trainer: boolean;
+  profiles: { display_name: string | null } | { display_name: string | null }[] | null;
+};
+
+function activityProfile(row: ClubActivityRow): string {
+  const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  return p?.display_name ?? "ZWB'er";
+}
+
+function toNumber(value: number | string | null | undefined): number {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
 
 type TeamRef = {
   id: string;
@@ -52,12 +88,16 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const since7 = new Date();
+  since7.setDate(since7.getDate() - 7);
+
   const [
     { data: profile },
     { data: upcoming },
     { data: announcements },
     { data: standingRows },
     { data: graveyardTeams },
+    { data: clubActivities },
   ] = await Promise.all([
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
@@ -85,6 +125,15 @@ export default async function DashboardPage() {
       .select("id, name, type, division")
       .eq("is_graveyard", true)
       .order("name"),
+    supabase
+      .from("strava_activities")
+      .select(
+        "id, profile_id, name, sport_type, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds, trainer, profiles(display_name)",
+      )
+      .gte("start_date", since7.toISOString())
+      .in("sport_type", CYCLING_SPORTS)
+      .order("start_date", { ascending: false })
+      .limit(15),
   ]);
 
   const standings = latestStandings((standingRows ?? []) as unknown as TeamStanding[]);
@@ -247,6 +296,78 @@ export default async function DashboardPage() {
                 </li>
               );
             })}
+          </ul>
+        </section>
+      )}
+
+      {clubActivities && clubActivities.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-semibold">
+                <Bike className="size-5 text-primary" />
+                Laatste club-ritten
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Recente Strava-ritten van leden — afgelopen 7 dagen.
+              </p>
+            </div>
+            <Link
+              href="/achievements"
+              className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Achievements
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+          <ul className="divide-y rounded-lg border bg-card">
+            {(clubActivities as ClubActivityRow[]).map((a) => (
+              <li
+                key={a.id}
+                className="grid gap-2 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="truncate">
+                    <span className="font-medium">{activityProfile(a)}</span>{" "}
+                    <span className="text-muted-foreground">·</span>{" "}
+                    <span className="text-muted-foreground">
+                      {a.name ?? "Activiteit"}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {new Date(a.start_date).toLocaleDateString("nl-NL", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {a.trainer ? " · 🏠 trainer" : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-sm tabular-nums text-muted-foreground sm:justify-end">
+                  <span className="inline-flex items-center gap-1">
+                    <Bike className="size-3.5" />
+                    {(toNumber(a.distance_m) / 1000).toLocaleString("nl-NL", {
+                      maximumFractionDigits: 1,
+                    })}{" "}
+                    km
+                  </span>
+                  {toNumber(a.total_elevation_gain_m) > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <Mountain className="size-3.5" />
+                      {Math.round(toNumber(a.total_elevation_gain_m)).toLocaleString("nl-NL")}m
+                    </span>
+                  )}
+                  {a.kudos_count > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <HeartHandshake className="size-3.5" />
+                      {a.kudos_count}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
           </ul>
         </section>
       )}
