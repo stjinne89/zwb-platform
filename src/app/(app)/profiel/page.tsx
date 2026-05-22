@@ -122,7 +122,10 @@ export default async function ProfielPage() {
       <StravaSection connection={stravaConn ?? null} />
 
       {milestones.length > 0 && (
-        <BadgeVault badges={milestones} earnedIds={earnedMilestoneIds} />
+        <BadgeVault
+          badges={milestones}
+          earnedIds={Array.from(earnedMilestoneIds)}
+        />
       )}
 
       <section className="rounded-lg border bg-card p-6">

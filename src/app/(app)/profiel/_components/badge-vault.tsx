@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { AchievementBadge } from "@/components/achievement-badge";
 
 const TIER_ORDER = ["bronze", "silver", "gold", "platinum"] as const;
@@ -20,29 +23,59 @@ export type MilestoneBadgeRow = {
   tier: Tier;
   visual_hint: string | null;
   trigger_source: "auto" | "manual" | "future";
-  trigger_config: { achievement?: string; visual?: string } | null;
+  trigger_config: {
+    achievement?: string;
+    visual?: string;
+    threshold?: { raw?: string; value?: number; unit?: string };
+  } | null;
   sort_order: number;
 };
+
+function requirementFor(badge: MilestoneBadgeRow) {
+  return (
+    badge.trigger_config?.threshold?.raw ??
+    badge.description ??
+    "Geen threshold vastgelegd"
+  );
+}
+
+function sourceLabel(source: MilestoneBadgeRow["trigger_source"]) {
+  if (source === "auto") return "Automatisch via Strava";
+  if (source === "manual") return "Handmatig door beheer";
+  return "Toekomstige bron";
+}
 
 export function BadgeVault({
   badges,
   earnedIds,
 }: {
   badges: MilestoneBadgeRow[];
-  earnedIds: Set<string>;
+  earnedIds: string[];
 }) {
-  // Groepeer per achievement_code, behoud sort_order
-  const byCode = new Map<string, MilestoneBadgeRow[]>();
-  const codeOrder: string[] = [];
-  for (const b of badges) {
-    if (!byCode.has(b.achievement_code)) codeOrder.push(b.achievement_code);
-    const arr = byCode.get(b.achievement_code) ?? [];
-    arr.push(b);
-    byCode.set(b.achievement_code, arr);
-  }
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const earnedSet = useMemo(() => new Set(earnedIds), [earnedIds]);
+  const { byCode, codeOrder } = useMemo(() => {
+    const grouped = new Map<string, MilestoneBadgeRow[]>();
+    const order: string[] = [];
+
+    for (const badge of badges) {
+      if (!grouped.has(badge.achievement_code)) order.push(badge.achievement_code);
+      const current = grouped.get(badge.achievement_code) ?? [];
+      current.push(badge);
+      grouped.set(badge.achievement_code, current);
+    }
+
+    for (const tiers of grouped.values()) {
+      tiers.sort(
+        (a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
+      );
+    }
+
+    return { byCode: grouped, codeOrder: order };
+  }, [badges]);
 
   const totalAchievements = codeOrder.length;
-  const totalEarned = badges.filter((b) => earnedIds.has(b.id)).length;
+  const totalEarned = badges.filter((badge) => earnedSet.has(badge.id)).length;
   const totalBadges = badges.length;
 
   return (
@@ -53,8 +86,8 @@ export function BadgeVault({
             Badge-kast
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            {totalAchievements} achievements × 4 tiers. Verdiende badges
-            glimmen, nog niet behaalde zijn vergrendeld.
+            {totalAchievements} achievements x 4 tiers. Klik een badge om de
+            exacte eis uit de achievementlijst te bekijken.
           </p>
         </div>
         <p className="text-sm tabular-nums">
@@ -66,17 +99,14 @@ export function BadgeVault({
       <ul className="grid gap-3 sm:grid-cols-2">
         {codeOrder.map((code) => {
           const tiers = byCode.get(code) ?? [];
-          // Sorteer op tier-volgorde
-          tiers.sort(
-            (a, b) =>
-              TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
-          );
           const first = tiers[0];
           const achievementName =
             first?.trigger_config?.achievement ??
             first?.title.split(" - ")[0] ??
             code;
-          const earnedInGroup = tiers.filter((t) => earnedIds.has(t.id)).length;
+          const earnedInGroup = tiers.filter((tier) => earnedSet.has(tier.id)).length;
+          const selected = tiers.find((tier) => tier.id === selectedId) ?? first;
+          const selectedEarned = earnedSet.has(selected.id);
 
           return (
             <li
@@ -91,41 +121,86 @@ export function BadgeVault({
                   {earnedInGroup}/4
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                {tiers.map((b) => {
-                  const earned = earnedIds.has(b.id);
+
+              <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
+                {tiers.map((badge) => {
+                  const earned = earnedSet.has(badge.id);
+                  const requirement = requirementFor(badge);
+                  const isSelected = selected.id === badge.id;
+
                   return (
-                    <div
-                      key={b.id}
-                      className="flex flex-col items-center gap-1"
-                      title={`${b.title} — ${b.description ?? ""}${earned ? " (behaald)" : " (nog niet)"}`}
+                    <button
+                      type="button"
+                      key={badge.id}
+                      className={[
+                        "flex min-w-0 flex-col items-center gap-1 rounded-md border p-2 text-center transition",
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-transparent hover:border-foreground/20 hover:bg-card",
+                      ].join(" ")}
+                      title={`${badge.title} - ${requirement}${earned ? " (behaald)" : " (nog niet)"}`}
+                      aria-pressed={isSelected}
+                      onClick={() => setSelectedId(badge.id)}
                     >
                       <AchievementBadge
-                        title={b.title}
-                        icon={b.icon}
-                        color={b.tier}
+                        title={badge.title}
+                        icon={badge.icon}
+                        color={badge.tier}
                         size="md"
                         locked={!earned}
                       />
                       <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
-                        {TIER_LABEL[b.tier]}
+                        {TIER_LABEL[badge.tier]}
                       </span>
-                    </div>
+                      <span className="line-clamp-2 min-h-[2rem] text-[0.68rem] leading-tight text-foreground">
+                        {requirement}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
-              {first?.description && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {first.trigger_config?.visual ?? first.visual_hint ?? ""}
-                </p>
-              )}
+
+              <div className="mt-3 rounded-md border bg-card p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">{selected.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {selectedEarned ? "Behaald" : "Nog niet behaald"} -{" "}
+                      {sourceLabel(selected.trigger_source)}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                    {TIER_LABEL[selected.tier]}
+                  </span>
+                </div>
+
+                <dl className="mt-3 grid gap-2 text-sm">
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Eis
+                    </dt>
+                    <dd>{requirementFor(selected)}</dd>
+                  </div>
+                  {(selected.trigger_config?.visual || selected.visual_hint) && (
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Beeldtaal
+                      </dt>
+                      <dd className="text-muted-foreground">
+                        {selected.trigger_config?.visual ?? selected.visual_hint}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+
               {first?.trigger_source === "manual" && (
-                <p className="mt-1 text-[0.65rem] uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                  Handmatige toekenning door admin
+                <p className="mt-2 text-[0.65rem] uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  Deze achievement vraagt handmatige toekenning door beheer.
                 </p>
               )}
               {first?.trigger_source === "future" && (
-                <p className="mt-1 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+                <p className="mt-2 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
                   Toekomstige bron
                 </p>
               )}
