@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
-import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
+import { ProfileHeader } from "./_components/profile-header";
 import { StravaSection } from "./_components/strava-section";
 
 type AwardRow = {
@@ -34,13 +34,14 @@ export default async function ProfielPage() {
     { data: profile },
     { data: awards },
     { data: stravaConn },
+    { data: stravaUser },
     { data: milestoneBadges },
     { data: milestoneAwards },
   ] = await Promise.all([
     supabase
       .from("profiles")
       .select(
-        "display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin, community_roles",
+        "display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin, community_roles, avatar_url",
       )
       .eq("id", user.id)
       .single(),
@@ -55,6 +56,11 @@ export default async function ProfielPage() {
     supabase
       .from("strava_connections")
       .select("athlete_name, updated_at")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("strava_connections")
+      .select("athlete_username")
       .eq("profile_id", user.id)
       .maybeSingle(),
     supabase
@@ -79,12 +85,18 @@ export default async function ProfielPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Profiel</h1>
-        <p className="mt-1 text-muted-foreground">
-          Deze gegevens zijn zichtbaar voor andere ZWB-leden.
-        </p>
-      </header>
+      <ProfileHeader
+        displayName={profile?.display_name ?? ""}
+        email={user.email ?? ""}
+        region={profile?.region ?? null}
+        avatarUrl={(profile as { avatar_url?: string | null })?.avatar_url ?? null}
+        stravaUsername={stravaUser?.athlete_username ?? null}
+        stravaConnected={Boolean(stravaConn)}
+        communityRoles={profile?.community_roles}
+        isAdmin={profile?.is_admin ?? false}
+        earnedCount={earnedMilestoneIds.size}
+        totalCount={milestones.length}
+      />
 
       <ProfileForm
         email={user.email ?? ""}
@@ -101,22 +113,6 @@ export default async function ProfielPage() {
       />
 
       <StravaSection connection={stravaConn ?? null} />
-
-      <section className="rounded-lg border bg-card p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Communityrollen
-        </h2>
-        <div className="mt-3">
-          <CommunityRoleBadges
-            roles={profile?.community_roles}
-            isAdmin={profile?.is_admin ?? false}
-          />
-        </div>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Deze rollen worden beheerd door admins en vormen straks de basis voor
-          fijnmazige rechten.
-        </p>
-      </section>
 
       {milestones.length > 0 && (
         <BadgeVault badges={milestones} earnedIds={earnedMilestoneIds} />

@@ -8,6 +8,11 @@ type StravaTokenResponse = {
     username?: string | null;
     firstname?: string | null;
     lastname?: string | null;
+    // Strava's DetailedAthlete bevat ook profielfotos:
+    // - profile: large (1024px)
+    // - profile_medium: medium (~256px), ideaal voor avatar
+    profile?: string | null;
+    profile_medium?: string | null;
   };
 };
 
@@ -89,6 +94,22 @@ export function stravaAuthorizeUrl(redirectUri: string, state: string) {
   url.searchParams.set("approval_prompt", "auto");
   url.searchParams.set("scope", "read,activity:read_all");
   url.searchParams.set("state", state);
+  return url;
+}
+
+/**
+ * Strava's standaard ei-avatar wordt door /athlete teruggegeven als een
+ * gebruiker geen foto heeft. We slaan die niet op — dan toont onze app
+ * de initials-fallback.
+ */
+const STRAVA_DEFAULT_AVATAR_PATTERN = /avatar\/athlete\/(large|medium|small)\.(png|gif|jpg|jpeg)/i;
+
+export function pickAthleteAvatarUrl(
+  token: Pick<StravaTokenResponse, "athlete">,
+): string | null {
+  const url = token.athlete?.profile_medium ?? token.athlete?.profile ?? null;
+  if (!url) return null;
+  if (STRAVA_DEFAULT_AVATAR_PATTERN.test(url)) return null;
   return url;
 }
 

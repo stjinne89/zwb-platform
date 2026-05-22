@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { athleteName, exchangeStravaCode } from "@/lib/strava/client";
+import {
+  athleteName,
+  exchangeStravaCode,
+  pickAthleteAvatarUrl,
+} from "@/lib/strava/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -53,10 +57,29 @@ export async function GET(request: NextRequest) {
 
     if (upsertError) throw new Error(upsertError.message);
 
-    await supabase
-      .from("profiles")
-      .update({ strava_id: String(athleteId) })
-      .eq("id", user.id);
+    // Update profiel-velden vanuit Strava: athlete-id altijd, avatar alleen
+    // als de gebruiker een echte foto heeft (Strava's default-egg slaan
+    // we niet op) én er nog geen avatar-url stond.
+    const avatarFromStrava = pickAthleteAvatarUrl(token);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profileUpdate: Record<string, any> = { strava_id: String(athleteId) };
+    if (avatarFromStrava) {
+      // Lees huidige avatar — overschrijf alleen als hij leeg is of zelf
+      // afkomstig is van Strava (cdn-domein), zodat een handmatige upload
+      // niet wordt vervangen door Strava's foto.
+      const { data: current } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single();
+      const existing = current?.avatar_url as string | null | undefined;
+      const isStravaCdn =
+        !existing || /strava|cloudfront\.net\/avatar/i.test(existing);
+      if (isStravaCdn) {
+        profileUpdate.avatar_url = avatarFromStrava;
+      }
+    }
+    await supabase.from("profiles").update(profileUpdate).eq("id", user.id);
 
     const response = NextResponse.redirect(
       new URL("/achievements?strava_connected=1", request.url),
