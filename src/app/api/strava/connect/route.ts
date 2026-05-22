@@ -13,7 +13,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const state = randomUUID();
-    const redirectUri = new URL("/api/strava/callback", request.url).toString();
+    // Op Netlify routet de request via een interne URL, waardoor request.url
+    // niet altijd het publieke domein bevat. Gebruik NEXT_PUBLIC_SITE_URL als
+    // bron-of-truth zodat de redirect_uri overeenkomt met het Strava callback-
+    // domain. Fallback naar request.url voor lokaal development.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    const base = siteUrl && /^https?:\/\//i.test(siteUrl) ? siteUrl : request.url;
+    const redirectUri = new URL("/api/strava/callback", base).toString();
     const response = NextResponse.redirect(stravaAuthorizeUrl(redirectUri, state));
 
     response.cookies.set("strava_oauth_state", state, {

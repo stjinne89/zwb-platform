@@ -102,6 +102,14 @@ export async function exchangeStravaCode(code: string) {
   });
 }
 
+// Helper voor connect-route: bepaal de publieke base-URL voor redirect_uri.
+// Netlify routet via interne URLs waardoor request.url niet betrouwbaar is.
+export function publicBaseUrl(requestUrl: string): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (siteUrl && /^https?:\/\//i.test(siteUrl)) return siteUrl;
+  return requestUrl;
+}
+
 async function refreshStravaToken(refreshToken: string) {
   const { clientId, clientSecret } = stravaEnv();
   return await postToken({
