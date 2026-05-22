@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
+import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
 
 export async function syncMyStravaActivities(
@@ -59,6 +61,54 @@ export async function disconnectStrava() {
   revalidatePath("/achievements");
   revalidatePath("/profiel");
   return { ok: true as const };
+}
+
+export async function recomputeMyMilestoneBadges() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: activity } = await supabase
+    .from("strava_activities")
+    .select("id")
+    .eq("profile_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!activity) {
+    return {
+      ok: false as const,
+      error: "Nog geen Strava-ritten gevonden. Sync eerst je activiteiten.",
+    };
+  }
+
+  try {
+    const result = await evaluateMilestonesForUser(
+      createAdminClient(),
+      user.id,
+    );
+    revalidatePath("/achievements");
+    revalidatePath("/dashboard");
+    revalidatePath("/leden");
+    revalidatePath("/profiel");
+    return {
+      ok: true as const,
+      awarded: result.awarded,
+      skipped: result.skipped,
+      errors: result.errors,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Milestonebadges herberekenen faalde.",
+    };
+  }
 }
 
 export async function finalizeAchievementAwards() {

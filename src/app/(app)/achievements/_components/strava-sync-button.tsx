@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { syncMyStravaActivities } from "../_actions";
+import {
+  recomputeMyMilestoneBadges,
+  syncMyStravaActivities,
+} from "../_actions";
 
 type State =
   | { kind: "idle" }
@@ -32,6 +35,7 @@ export function StravaSyncButton() {
     let totalSeen = 0;
     let totalNonCycling = 0;
     let milestoneAwards = 0;
+    let milestoneErrors: string[] = [];
     let isFirstSync = false;
     let startPage: number | undefined = undefined;
     let afterTs: number | undefined = undefined;
@@ -57,7 +61,10 @@ export function StravaSyncButton() {
         totalNonCycling += res.nonCyclingSkipped;
         isFirstSync = res.isFirstSync;
         // Bij done-chunk komt milestoneAwards binnen.
-        if (res.done) milestoneAwards = res.milestoneAwards;
+        if (res.done) {
+          milestoneAwards = res.milestoneAwards;
+          milestoneErrors = res.milestoneErrors ?? [];
+        }
 
         // Live progress in de UI.
         if (!res.done) {
@@ -83,6 +90,9 @@ export function StravaSyncButton() {
           `${milestoneAwards} nieuwe badge${milestoneAwards === 1 ? "" : "s"}`,
         );
       }
+      if (milestoneErrors.length > 0) {
+        parts.push(`badgecheck: ${milestoneErrors[0]}`);
+      }
       if (totalNonCycling > 0) {
         parts.push(`${totalNonCycling} niet-fiets overgeslagen`);
       }
@@ -100,6 +110,33 @@ export function StravaSyncButton() {
         kind: "error",
         message:
           err instanceof Error ? err.message : "Sync faalde onverwacht.",
+      });
+    }
+  }
+
+  async function runBadgeRecompute() {
+    setState({
+      kind: "running",
+      message: "Bestaande ritten opnieuw op badges beoordelen...",
+    });
+
+    try {
+      const res = await recomputeMyMilestoneBadges();
+      if (!res.ok) {
+        setState({ kind: "error", message: res.error });
+        return;
+      }
+
+      const parts = [
+        `${res.awarded} nieuwe badge${res.awarded === 1 ? "" : "s"}`,
+      ];
+      if (res.errors.length > 0) parts.push(`waarschuwing: ${res.errors[0]}`);
+      setState({ kind: "success", message: parts.join(" · ") + "." });
+    } catch (err) {
+      setState({
+        kind: "error",
+        message:
+          err instanceof Error ? err.message : "Badgecheck faalde onverwacht.",
       });
     }
   }
@@ -136,6 +173,16 @@ export function StravaSyncButton() {
         >
           <History data-icon="inline-start" />
           Sync hele historie
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={isRunning}
+          onClick={runBadgeRecompute}
+        >
+          <RefreshCw data-icon="inline-start" />
+          Badges herberekenen
         </Button>
       </div>
       {state.kind !== "idle" && (

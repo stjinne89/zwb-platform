@@ -424,15 +424,25 @@ export async function syncStravaActivitiesForUser(
   // Milestone-evaluators: alleen op de laatste chunk, anders draaien we
   // 'm onnodig 10x op een halve dataset.
   let milestoneAwards = 0;
+  let milestoneErrors: string[] = [];
   if (done) {
     try {
       const { evaluateMilestonesForUser } = await import(
         "@/lib/achievements/milestone-evaluators"
       );
-      const result = await evaluateMilestonesForUser(supabase, profileId);
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const result = await evaluateMilestonesForUser(
+        createAdminClient(),
+        profileId,
+      );
       milestoneAwards = result.awarded;
-    } catch {
-      // negeer; sync zelf is geslaagd
+      milestoneErrors = result.errors;
+    } catch (err) {
+      milestoneErrors = [
+        err instanceof Error
+          ? err.message
+          : "Milestonebadges beoordelen faalde.",
+      ];
     }
   }
 
@@ -440,6 +450,7 @@ export async function syncStravaActivitiesForUser(
     ok: true as const,
     upserted,
     milestoneAwards,
+    milestoneErrors,
     pagesScanned,
     totalSeen,
     nonCyclingSkipped,
