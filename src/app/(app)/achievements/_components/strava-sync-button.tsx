@@ -86,6 +86,9 @@ export function StravaSyncButton() {
       if (totalNonCycling > 0) {
         parts.push(`${totalNonCycling} niet-fiets overgeslagen`);
       }
+      if (totalSeen > totalUpserted + totalNonCycling) {
+        parts.push(`${totalSeen} Strava-activiteiten bekeken`);
+      }
       if (fullBackfill) {
         parts.push("(volledige 5-jaar historie)");
       } else if (isFirstSync) {

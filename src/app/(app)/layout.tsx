@@ -19,7 +19,18 @@ const NAV = [
   { href: "/community", label: "Community" },
 ];
 
-const ADMIN_NAV = [{ href: "/beheer/rechten", label: "Beheer" }];
+const ADMIN_NAV = [
+  {
+    href: "/beheer/rechten",
+    label: "Rechten",
+    permission: "roles.manage_permissions" as const,
+  },
+  {
+    href: "/beheer/achievements",
+    label: "Badgebeheer",
+    permission: "achievements.finalize" as const,
+  },
+];
 
 export default async function AppLayout({
   children,
@@ -38,9 +49,8 @@ export default async function AppLayout({
   ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";
-  const navItems = access.has("roles.manage_permissions")
-    ? [...NAV, ...ADMIN_NAV]
-    : NAV;
+  const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
+  const navItems = adminItems.length > 0 ? [...NAV, ...adminItems] : NAV;
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
