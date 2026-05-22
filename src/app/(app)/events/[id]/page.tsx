@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ExternalEventLink } from "@/components/external-event-link";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
+import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
+import { fetchWindForecast } from "@/lib/weather";
 import { GpxMap } from "./_components/gpx-map";
+import { ElevationProfile } from "./_components/elevation-profile";
+import { WindSummary } from "./_components/wind-summary";
 import { RsvpButtons } from "./_components/rsvp-buttons";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -31,7 +36,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, gpx_path, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, created_by",
     )
     .eq("id", id)
     .single();
@@ -78,6 +83,36 @@ export default async function EventDetailPage({
     gpxUrl = data?.signedUrl ?? null;
   }
 
+  // Wind-forecast wordt server-side opgehaald — alleen als we lat/lon
+  // én een toekomstig start-tijdstip hebben binnen 16 dagen.
+  const windForecast =
+    event.start_lat && event.start_lon
+      ? await fetchWindForecast(
+          Number(event.start_lat),
+          Number(event.start_lon),
+          new Date(event.start_at),
+        )
+      : null;
+
+  // Initial bearing voor headwind-classificatie: fetch GPX server-side
+  // (cached via next.revalidate=3600) en pak de eerste twee trkpt-punten.
+  let rideBearing: number | null = null;
+  if (gpxUrl) {
+    try {
+      const gpxRes = await fetch(gpxUrl, {
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (gpxRes.ok) {
+        const xml = await gpxRes.text();
+        const pair = firstTwoTrkptFromGpx(xml);
+        if (pair) rideBearing = gpxBearing(pair[0], pair[1]);
+      }
+    } catch {
+      // negeer — wind wordt dan zonder richting-classificatie getoond
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Link
@@ -101,6 +136,11 @@ export default async function EventDetailPage({
           {event.distance_km ? ` · ${event.distance_km} km` : ""}
           {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
         </p>
+        {event.external_url && (
+          <div className="pt-1">
+            <ExternalEventLink url={event.external_url} />
+          </div>
+        )}
       </header>
 
       <WhatsAppGroupBlock
@@ -115,7 +155,16 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {gpxUrl && <GpxMap gpxUrl={gpxUrl} />}
+      {gpxUrl && (
+        <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+          <GpxMap gpxUrl={gpxUrl} />
+          <ElevationProfile gpxUrl={gpxUrl} />
+        </div>
+      )}
+
+      {windForecast && (
+        <WindSummary forecast={windForecast} rideBearing={rideBearing} />
+      )}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

@@ -12,6 +12,21 @@ export type GpxSummary = {
 
 const R = 6371; // earth radius km
 
+/**
+ * Berekent de initial bearing (graden, 0-360) tussen twee punten —
+ * gebruikt voor "waar rijd je naartoe?" t.o.v. windrichting.
+ */
+export function gpxBearing(a: GpxPoint, b: GpxPoint): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const φ1 = toRad(a.lat);
+  const φ2 = toRad(b.lat);
+  const Δλ = toRad(b.lon - a.lon);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
 function haversine(a: GpxPoint, b: GpxPoint): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
@@ -22,6 +37,29 @@ function haversine(a: GpxPoint, b: GpxPoint): number {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * Server-safe: haal de eerste twee trkpt-punten uit GPX XML via regex,
+ * zonder DOMParser. Voor het berekenen van een initial bearing zonder
+ * de hele GPX te parsen (parseGpx() vereist DOMParser → alleen browser).
+ */
+export function firstTwoTrkptFromGpx(xml: string): [GpxPoint, GpxPoint] | null {
+  const re = /<trkpt\s+([^>]+)/g;
+  const points: GpxPoint[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const attrs = m[1];
+    const latMatch = attrs.match(/lat="([^"]+)"/);
+    const lonMatch = attrs.match(/lon="([^"]+)"/);
+    if (!latMatch || !lonMatch) continue;
+    const lat = parseFloat(latMatch[1]);
+    const lon = parseFloat(lonMatch[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    points.push({ lat, lon });
+    if (points.length >= 2) break;
+  }
+  return points.length >= 2 ? [points[0], points[1]] : null;
 }
 
 export function parseGpx(xmlText: string): GpxSummary {

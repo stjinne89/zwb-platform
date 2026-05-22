@@ -15,6 +15,7 @@ type EventInput = {
   start_lat?: number | null;
   start_lon?: number | null;
   description?: string | null;
+  external_url?: string | null;
 };
 
 const TYPES = ["outdoor", "zrl", "ladder", "flamme_rouge", "social", "training"];
@@ -29,6 +30,12 @@ export async function createEvent(input: EventInput) {
   if (!input.title.trim()) return { ok: false as const, error: "Titel is verplicht." };
   if (!TYPES.includes(input.type)) return { ok: false as const, error: "Ongeldig type." };
   if (!input.start_at) return { ok: false as const, error: "Startdatum is verplicht." };
+  if (input.external_url && !/^https?:\/\//i.test(input.external_url)) {
+    return {
+      ok: false as const,
+      error: "Externe link moet beginnen met https:// of http://",
+    };
+  }
 
   const { data, error } = await supabase
     .from("events")
@@ -44,6 +51,7 @@ export async function createEvent(input: EventInput) {
       start_lat: input.start_lat ?? null,
       start_lon: input.start_lon ?? null,
       description: input.description || null,
+      external_url: input.external_url?.trim() || null,
       created_by: user.id,
     })
     .select("id")

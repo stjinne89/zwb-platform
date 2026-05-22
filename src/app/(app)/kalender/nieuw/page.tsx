@@ -75,6 +75,7 @@ export default function NewEventPage() {
           : null,
         location: String(formData.get("location") ?? "") || null,
         description: String(formData.get("description") ?? "") || null,
+        external_url: String(formData.get("external_url") ?? "") || null,
         gpx_path,
         distance_km: gpx?.distance_km ?? null,
         elevation_m: gpx?.elevation_m ?? null,
@@ -146,6 +147,22 @@ export default function NewEventPage() {
             className={FIELD_CLASS}
             placeholder="Tempo, koffie-stop, kit, regels…"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Externe link (optioneel)
+          </label>
+          <input
+            type="url"
+            name="external_url"
+            placeholder="https://www.strava.com/routes/… of Komoot, RideWithGPS, Garmin"
+            className={FIELD_CLASS}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Strava-route, Komoot tour, RideWithGPS — wordt op de event-pagina
+            getoond als &quot;Open op X&quot;-knop met platform-icoon.
+          </p>
         </div>
 
         <div>
