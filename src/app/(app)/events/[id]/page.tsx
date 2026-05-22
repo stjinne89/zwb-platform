@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
 import { ExternalEventLink } from "@/components/external-event-link";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
@@ -123,9 +125,19 @@ export default async function EventDetailPage({
       </Link>
 
       <header className="space-y-2">
-        <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-          {TYPE_LABELS[event.type] ?? event.type}
-        </span>
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+            {TYPE_LABELS[event.type] ?? event.type}
+          </span>
+          {canManage && (
+            <Link href={`/events/${event.id}/bewerk`}>
+              <Button type="button" size="sm" variant="outline">
+                <Pencil className="size-3.5" />
+                Bewerk
+              </Button>
+            </Link>
+          )}
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-muted-foreground">
           {new Date(event.start_at).toLocaleString("nl-NL", {
