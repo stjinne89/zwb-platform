@@ -20,10 +20,11 @@ export function MobileMenu({
   const pathname = usePathname();
   const close = () => setOpen(false);
 
-  // SSR-safe portal: pas mounten als de DOM beschikbaar is.
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // SSR-safe portal: pas mounten als de DOM beschikbaar is. Dit is de
+  // standaardpattern voor createPortal — setState in effect is hier
+  // intentioneel om hydration-mismatch te voorkomen.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
 
   // Body-scroll lock terwijl het menu open is.
   useEffect(() => {
