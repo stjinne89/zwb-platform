@@ -28,9 +28,17 @@ export function StravaSyncButton() {
               setState({ kind: "error", message: res.error });
               return;
             }
+            const parts: string[] = [];
+            parts.push(`${res.upserted} ritten gesynchroniseerd`);
+            if (res.milestoneAwards > 0) {
+              parts.push(`${res.milestoneAwards} nieuwe badge${res.milestoneAwards === 1 ? "" : "s"}`);
+            }
+            if (res.isFirstSync) {
+              parts.push("(eerste sync, hele historie)");
+            }
             setState({
               kind: "success",
-              message: `${res.upserted} Strava-activiteiten bijgewerkt.`,
+              message: parts.join(" · ") + ".",
             });
           });
         }}

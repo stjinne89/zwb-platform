@@ -266,51 +266,102 @@ export async function syncStravaActivitiesForUser(
 
   // Best-effort: refresh avatar + username (faalt stil als API onbereikbaar).
   await refreshStravaAthleteInfo(supabase, profileId, accessToken);
-  const after = Math.floor(weekStartDate(new Date(Date.now() - 21 * 86400_000)).getTime() / 1000);
-  const url = new URL("https://www.strava.com/api/v3/athlete/activities");
-  url.searchParams.set("after", String(after));
-  url.searchParams.set("per_page", "100");
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store",
-  });
+  // Smart since-datum: bij eerste sync 5 jaar terug, daarna alleen vanaf
+  // laatste activity (minus 1 dag buffer voor late uploads / edits).
+  const { data: mostRecent } = await supabase
+    .from("strava_activities")
+    .select("start_date")
+    .eq("profile_id", profileId)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Strava activiteiten ophalen faalde (${res.status}): ${text.slice(0, 160)}`);
-  }
+  const isFirstSync = !mostRecent?.start_date;
+  const since = isFirstSync
+    ? new Date(Date.now() - 5 * 365 * 86400_000)
+    : new Date(new Date(mostRecent!.start_date).getTime() - 86400_000);
+  const after = Math.floor(since.getTime() / 1000);
 
-  const activities = ((await res.json()) as StravaActivity[]).filter(isCyclingActivity);
+  // Paginate through alle activities tot Strava niks meer teruggeeft.
+  const PER_PAGE = 100;
+  const MAX_PAGES = 100; // safety cap = 10000 activities
+  const PAGE_DELAY_MS = 200;
+
   let upserted = 0;
+  let totalSeen = 0;
+  let pagesScanned = 0;
+  let nonCyclingSkipped = 0;
 
-  for (const activity of activities) {
-    if (!activity.id || !activity.start_date) continue;
-    const startDate = new Date(activity.start_date);
-    const row = {
-      id: activity.id,
-      profile_id: profileId,
-      strava_athlete_id: Number((connection as StravaConnection).strava_athlete_id),
-      name: activity.name ?? "Strava activiteit",
-      sport_type: activity.sport_type ?? activity.type ?? null,
-      start_date: startDate.toISOString(),
-      achievement_week: dateOnly(weekStartDate(startDate)),
-      distance_m: activity.distance ?? 0,
-      total_elevation_gain_m: activity.total_elevation_gain ?? 0,
-      kudos_count: activity.kudos_count ?? 0,
-      moving_time_seconds: activity.moving_time ?? 0,
-      elapsed_time_seconds: activity.elapsed_time ?? 0,
-      trainer: Boolean(activity.trainer),
-      commute: Boolean(activity.commute),
-      raw: activity,
-      synced_at: new Date().toISOString(),
-    };
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const url = new URL("https://www.strava.com/api/v3/athlete/activities");
+    url.searchParams.set("after", String(after));
+    url.searchParams.set("per_page", String(PER_PAGE));
+    url.searchParams.set("page", String(page));
 
-    const { error: upsertError } = await supabase
-      .from("strava_activities")
-      .upsert(row, { onConflict: "id" });
-    if (upsertError) throw new Error(upsertError.message);
-    upserted += 1;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+
+    if (res.status === 429) {
+      // Rate-limited: wacht en probeer dezelfde pagina opnieuw
+      await new Promise((r) => setTimeout(r, 60_000));
+      page--;
+      continue;
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Strava activiteiten ophalen faalde (${res.status}): ${text.slice(0, 160)}`,
+      );
+    }
+
+    const rawBatch = (await res.json()) as StravaActivity[];
+    pagesScanned++;
+    totalSeen += rawBatch.length;
+
+    if (rawBatch.length === 0) break; // einde historie
+
+    const cycling = rawBatch.filter(isCyclingActivity);
+    nonCyclingSkipped += rawBatch.length - cycling.length;
+
+    for (const activity of cycling) {
+      if (!activity.id || !activity.start_date) continue;
+      const startDate = new Date(activity.start_date);
+      const row = {
+        id: activity.id,
+        profile_id: profileId,
+        strava_athlete_id: Number(
+          (connection as StravaConnection).strava_athlete_id,
+        ),
+        name: activity.name ?? "Strava activiteit",
+        sport_type: activity.sport_type ?? activity.type ?? null,
+        start_date: startDate.toISOString(),
+        achievement_week: dateOnly(weekStartDate(startDate)),
+        distance_m: activity.distance ?? 0,
+        total_elevation_gain_m: activity.total_elevation_gain ?? 0,
+        kudos_count: activity.kudos_count ?? 0,
+        moving_time_seconds: activity.moving_time ?? 0,
+        elapsed_time_seconds: activity.elapsed_time ?? 0,
+        trainer: Boolean(activity.trainer),
+        commute: Boolean(activity.commute),
+        raw: activity,
+        synced_at: new Date().toISOString(),
+      };
+
+      const { error: upsertError } = await supabase
+        .from("strava_activities")
+        .upsert(row, { onConflict: "id" });
+      if (upsertError) throw new Error(upsertError.message);
+      upserted += 1;
+    }
+
+    if (rawBatch.length < PER_PAGE) break; // laatste pagina
+
+    // Kleine pauze tussen pages — beleefd zijn voor Strava's rate limit.
+    await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
   }
 
   // Evaluate milestone-badges (best-effort, errors zijn niet kritiek).
@@ -325,7 +376,15 @@ export async function syncStravaActivitiesForUser(
     // negeer; sync zelf is geslaagd
   }
 
-  return { ok: true as const, upserted, milestoneAwards };
+  return {
+    ok: true as const,
+    upserted,
+    milestoneAwards,
+    pagesScanned,
+    totalSeen,
+    nonCyclingSkipped,
+    isFirstSync,
+  };
 }
 
 export function athleteName(token: StravaTokenResponse) {
