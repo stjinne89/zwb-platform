@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
@@ -15,8 +16,14 @@ export function MobileMenu({
   displayName: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const close = () => setOpen(false);
+
+  // SSR-safe portal: pas mounten als de DOM beschikbaar is.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Body-scroll lock terwijl het menu open is.
   useEffect(() => {
@@ -68,49 +75,55 @@ export function MobileMenu({
         )}
       </button>
 
-      {open && (
-        <>
-          {/* Backdrop — stevig contrast in beide themes */}
-          <div
-            className="fixed inset-0 top-14 z-40 bg-zwb-petrol-dark/70 md:hidden dark:bg-black/70"
-            onClick={close}
-            aria-hidden
-          />
-          {/* Panel — fully opaque card-bg + sterke schaduw zodat het uit het scherm "tilt" */}
-          <div className="absolute inset-x-0 top-full z-50 border-b bg-card shadow-2xl md:hidden">
-            <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
-              {items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={close}
-                    className={`rounded-md px-3 py-2.5 text-sm transition ${
-                      active
-                        ? "bg-primary font-medium text-primary-foreground"
-                        : "text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-              <div className="my-2 border-t" />
-              <Link
-                href="/profiel"
+      {/* Portal naar document.body om alle stacking contexts (van bv. de
+          header met backdrop-blur) te omzeilen. */}
+      {mounted && open
+        ? createPortal(
+            <div className="md:hidden">
+              {/* Backdrop — dekt de hele viewport onder de header */}
+              <div
+                className="fixed inset-x-0 bottom-0 top-14 z-[9998] bg-zwb-petrol-dark/80 dark:bg-black/80"
                 onClick={close}
-                className="rounded-md px-3 py-2.5 text-sm text-foreground hover:bg-muted"
-              >
-                {displayName}
-              </Link>
-              <div className="px-3 py-2">
-                <LogoutButton />
+                aria-hidden
+              />
+              {/* Panel — fully opaque card-bg, scrollable als de lijst lang is */}
+              <div className="fixed inset-x-0 top-14 z-[9999] max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b bg-card shadow-2xl">
+                <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+                  {items.map((item) => {
+                    const active =
+                      pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={close}
+                        className={`rounded-md px-3 py-2.5 text-sm transition ${
+                          active
+                            ? "bg-primary font-medium text-primary-foreground"
+                            : "text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                  <div className="my-2 border-t" />
+                  <Link
+                    href="/profiel"
+                    onClick={close}
+                    className="rounded-md px-3 py-2.5 text-sm text-foreground hover:bg-muted"
+                  >
+                    {displayName}
+                  </Link>
+                  <div className="px-3 py-2">
+                    <LogoutButton />
+                  </div>
+                </nav>
               </div>
-            </nav>
-          </div>
-        </>
-      )}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
