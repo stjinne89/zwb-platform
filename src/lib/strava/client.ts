@@ -246,11 +246,21 @@ export async function refreshStravaAthleteInfo(
   }
 }
 
+export type SyncChunkOptions = {
+  fullBackfill?: boolean;
+  /** Voor resumable sync: vanaf welke Strava-pagina (1-based). Default 1. */
+  startPage?: number;
+  /** Unix-seconds; als gezet wordt deze gebruikt i.p.v. de smart-since-check. */
+  afterTs?: number;
+  /** Max aantal pagina's per server-invocation. Default 5 → ~5-8s wall clock. */
+  chunkPages?: number;
+};
+
 export async function syncStravaActivitiesForUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   profileId: string,
-  options: { fullBackfill?: boolean } = {},
+  options: SyncChunkOptions = {},
 ) {
   const { data: connection, error } = await supabase
     .from("strava_connections")
@@ -265,18 +275,29 @@ export async function syncStravaActivitiesForUser(
 
   const accessToken = await accessTokenFor(supabase, connection as StravaConnection);
 
-  // Best-effort: refresh avatar + username (faalt stil als API onbereikbaar).
-  await refreshStravaAthleteInfo(supabase, profileId, accessToken);
+  const startPage = Math.max(1, options.startPage ?? 1);
+  const chunkPages = Math.max(1, options.chunkPages ?? 5);
+
+  // Avatar refresh: alleen op de eerste chunk (page 1) zodat we 'm niet
+  // bij elke vervolg-call opnieuw doen.
+  if (startPage === 1) {
+    await refreshStravaAthleteInfo(supabase, profileId, accessToken);
+  }
 
   // Smart since-datum: bij eerste sync 5 jaar terug, daarna alleen vanaf
   // laatste activity (minus 1 dag buffer voor late uploads / edits).
   // Met fullBackfill=true overrulen we de DB-check zodat retroactieve
   // milestone-detectie mogelijk wordt zonder de DB te wissen.
+  // afterTs override: client geeft 'm mee op vervolg-chunks zodat we niet
+  // opnieuw rekenen (en daarmee per ongeluk de cursor verzetten).
   let isFirstSync = false;
-  let since: Date;
-  if (options.fullBackfill) {
+  let after: number;
+  if (typeof options.afterTs === "number") {
+    after = options.afterTs;
+    isFirstSync = Boolean(options.fullBackfill);
+  } else if (options.fullBackfill) {
     isFirstSync = true;
-    since = new Date(Date.now() - 5 * 365 * 86400_000);
+    after = Math.floor((Date.now() - 5 * 365 * 86400_000) / 1000);
   } else {
     const { data: mostRecent } = await supabase
       .from("strava_activities")
@@ -287,23 +308,26 @@ export async function syncStravaActivitiesForUser(
       .maybeSingle();
 
     isFirstSync = !mostRecent?.start_date;
-    since = isFirstSync
+    const since = isFirstSync
       ? new Date(Date.now() - 5 * 365 * 86400_000)
       : new Date(new Date(mostRecent!.start_date).getTime() - 86400_000);
+    after = Math.floor(since.getTime() / 1000);
   }
-  const after = Math.floor(since.getTime() / 1000);
 
-  // Paginate through alle activities tot Strava niks meer teruggeeft.
+  // Paginate door deze chunk. Per page upsert in 1 batch i.p.v. 100 calls.
   const PER_PAGE = 100;
-  const MAX_PAGES = 100; // safety cap = 10000 activities
   const PAGE_DELAY_MS = 200;
 
   let upserted = 0;
   let totalSeen = 0;
   let pagesScanned = 0;
   let nonCyclingSkipped = 0;
+  let nextPage: number | null = null;
+  let doneInThisChunk = false;
+  let lastPageProcessed = startPage - 1;
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
+  for (let i = 0; i < chunkPages; i++) {
+    const page = startPage + i;
     const url = new URL("https://www.strava.com/api/v3/athlete/activities");
     url.searchParams.set("after", String(after));
     url.searchParams.set("per_page", String(PER_PAGE));
@@ -315,10 +339,10 @@ export async function syncStravaActivitiesForUser(
     });
 
     if (res.status === 429) {
-      // Rate-limited: wacht en probeer dezelfde pagina opnieuw
-      await new Promise((r) => setTimeout(r, 60_000));
-      page--;
-      continue;
+      // Rate-limited binnen deze chunk: geef cursor terug zodat de client
+      // 'm na ~60s opnieuw probeert. We blokkeren niet de hele function.
+      nextPage = page;
+      break;
     }
 
     if (!res.ok) {
@@ -330,60 +354,86 @@ export async function syncStravaActivitiesForUser(
 
     const rawBatch = (await res.json()) as StravaActivity[];
     pagesScanned++;
+    lastPageProcessed = page;
     totalSeen += rawBatch.length;
 
-    if (rawBatch.length === 0) break; // einde historie
+    if (rawBatch.length === 0) {
+      doneInThisChunk = true;
+      break; // einde historie
+    }
 
     const cycling = rawBatch.filter(isCyclingActivity);
     nonCyclingSkipped += rawBatch.length - cycling.length;
 
-    for (const activity of cycling) {
-      if (!activity.id || !activity.start_date) continue;
-      const startDate = new Date(activity.start_date);
-      const row = {
-        id: activity.id,
-        profile_id: profileId,
-        strava_athlete_id: Number(
-          (connection as StravaConnection).strava_athlete_id,
-        ),
-        name: activity.name ?? "Strava activiteit",
-        sport_type: activity.sport_type ?? activity.type ?? null,
-        start_date: startDate.toISOString(),
-        achievement_week: dateOnly(weekStartDate(startDate)),
-        distance_m: activity.distance ?? 0,
-        total_elevation_gain_m: activity.total_elevation_gain ?? 0,
-        kudos_count: activity.kudos_count ?? 0,
-        moving_time_seconds: activity.moving_time ?? 0,
-        elapsed_time_seconds: activity.elapsed_time ?? 0,
-        trainer: Boolean(activity.trainer),
-        commute: Boolean(activity.commute),
-        raw: activity,
-        synced_at: new Date().toISOString(),
-      };
+    if (cycling.length > 0) {
+      const rows = cycling
+        .filter((a) => a.id && a.start_date)
+        .map((activity) => {
+          const startDate = new Date(activity.start_date!);
+          return {
+            id: activity.id,
+            profile_id: profileId,
+            strava_athlete_id: Number(
+              (connection as StravaConnection).strava_athlete_id,
+            ),
+            name: activity.name ?? "Strava activiteit",
+            sport_type: activity.sport_type ?? activity.type ?? null,
+            start_date: startDate.toISOString(),
+            achievement_week: dateOnly(weekStartDate(startDate)),
+            distance_m: activity.distance ?? 0,
+            total_elevation_gain_m: activity.total_elevation_gain ?? 0,
+            kudos_count: activity.kudos_count ?? 0,
+            moving_time_seconds: activity.moving_time ?? 0,
+            elapsed_time_seconds: activity.elapsed_time ?? 0,
+            trainer: Boolean(activity.trainer),
+            commute: Boolean(activity.commute),
+            raw: activity,
+            synced_at: new Date().toISOString(),
+          };
+        });
 
-      const { error: upsertError } = await supabase
-        .from("strava_activities")
-        .upsert(row, { onConflict: "id" });
-      if (upsertError) throw new Error(upsertError.message);
-      upserted += 1;
+      // Batch upsert: 1 supabase-call i.p.v. 100. Stuk sneller.
+      if (rows.length > 0) {
+        const { error: upsertError } = await supabase
+          .from("strava_activities")
+          .upsert(rows, { onConflict: "id" });
+        if (upsertError) throw new Error(upsertError.message);
+        upserted += rows.length;
+      }
     }
 
-    if (rawBatch.length < PER_PAGE) break; // laatste pagina
+    if (rawBatch.length < PER_PAGE) {
+      doneInThisChunk = true;
+      break; // laatste pagina
+    }
 
     // Kleine pauze tussen pages — beleefd zijn voor Strava's rate limit.
-    await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+    if (i < chunkPages - 1) {
+      await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+    }
   }
 
-  // Evaluate milestone-badges (best-effort, errors zijn niet kritiek).
+  if (!doneInThisChunk && nextPage === null) {
+    // We hebben deze chunk voltooid maar nog niet het einde gezien → client
+    // moet vanaf de volgende pagina verder gaan.
+    nextPage = lastPageProcessed + 1;
+  }
+
+  const done = nextPage === null;
+
+  // Milestone-evaluators: alleen op de laatste chunk, anders draaien we
+  // 'm onnodig 10x op een halve dataset.
   let milestoneAwards = 0;
-  try {
-    const { evaluateMilestonesForUser } = await import(
-      "@/lib/achievements/milestone-evaluators"
-    );
-    const result = await evaluateMilestonesForUser(supabase, profileId);
-    milestoneAwards = result.awarded;
-  } catch {
-    // negeer; sync zelf is geslaagd
+  if (done) {
+    try {
+      const { evaluateMilestonesForUser } = await import(
+        "@/lib/achievements/milestone-evaluators"
+      );
+      const result = await evaluateMilestonesForUser(supabase, profileId);
+      milestoneAwards = result.awarded;
+    } catch {
+      // negeer; sync zelf is geslaagd
+    }
   }
 
   return {
@@ -394,6 +444,9 @@ export async function syncStravaActivitiesForUser(
     totalSeen,
     nonCyclingSkipped,
     isFirstSync,
+    nextPage,
+    afterTs: after,
+    done,
   };
 }
 

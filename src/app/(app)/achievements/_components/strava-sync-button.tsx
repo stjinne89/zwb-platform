@@ -1,39 +1,104 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { syncMyStravaActivities } from "../_actions";
 
 type State =
   | { kind: "idle" }
+  | { kind: "running"; message: string }
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
 
-export function StravaSyncButton() {
-  const [pending, startTransition] = useTransition();
-  const [state, setState] = useState<State>({ kind: "idle" });
+// Veiligheidsplafond op het aantal chunks dat we durven aan elkaar te
+// rijgen. 40 chunks × 5 pages × 100 = 20.000 ritten is ruim voor 5 jaar
+// extreem actieve rider.
+const MAX_CHUNKS = 40;
 
-  function runSync(fullBackfill: boolean) {
-    setState({ kind: "idle" });
-    startTransition(async () => {
-      const res = await syncMyStravaActivities({ fullBackfill });
-      if (!res.ok) {
-        setState({ kind: "error", message: res.error });
-        return;
+export function StravaSyncButton() {
+  const [state, setState] = useState<State>({ kind: "idle" });
+  const isRunning = state.kind === "running";
+
+  async function runSync(fullBackfill: boolean) {
+    setState({
+      kind: "running",
+      message: fullBackfill
+        ? "Volledige historie ophalen…"
+        : "Synchroniseren…",
+    });
+
+    let totalUpserted = 0;
+    let totalSeen = 0;
+    let totalNonCycling = 0;
+    let milestoneAwards = 0;
+    let isFirstSync = false;
+    let startPage: number | undefined = undefined;
+    let afterTs: number | undefined = undefined;
+
+    try {
+      for (let chunk = 0; chunk < MAX_CHUNKS; chunk++) {
+        const res = await syncMyStravaActivities({
+          fullBackfill,
+          startPage,
+          afterTs,
+          // Bij chunked-mode geven we expliciet 5 pages per server-call,
+          // ruim binnen de 10s Netlify-timeout.
+          chunkPages: 5,
+        });
+
+        if (!res.ok) {
+          setState({ kind: "error", message: res.error });
+          return;
+        }
+
+        totalUpserted += res.upserted;
+        totalSeen += res.totalSeen;
+        totalNonCycling += res.nonCyclingSkipped;
+        isFirstSync = res.isFirstSync;
+        // Bij done-chunk komt milestoneAwards binnen.
+        if (res.done) milestoneAwards = res.milestoneAwards;
+
+        // Live progress in de UI.
+        if (!res.done) {
+          setState({
+            kind: "running",
+            message: `Bezig… ${totalUpserted} ritten verwerkt (pagina ${res.nextPage}). Niet wegklikken.`,
+          });
+          startPage = res.nextPage ?? undefined;
+          afterTs = res.afterTs;
+        } else {
+          break;
+        }
+
+        // Korte pauze tussen chunks zodat we niet meteen weer een nieuwe
+        // serverless-invocation triggeren (en Strava niet boos wordt).
+        await new Promise((r) => setTimeout(r, 250));
       }
+
       const parts: string[] = [];
-      parts.push(`${res.upserted} ritten gesynchroniseerd`);
-      if (res.milestoneAwards > 0) {
-        parts.push(`${res.milestoneAwards} nieuwe badge${res.milestoneAwards === 1 ? "" : "s"}`);
+      parts.push(`${totalUpserted} ritten gesynchroniseerd`);
+      if (milestoneAwards > 0) {
+        parts.push(
+          `${milestoneAwards} nieuwe badge${milestoneAwards === 1 ? "" : "s"}`,
+        );
+      }
+      if (totalNonCycling > 0) {
+        parts.push(`${totalNonCycling} niet-fiets overgeslagen`);
       }
       if (fullBackfill) {
         parts.push("(volledige 5-jaar historie)");
-      } else if (res.isFirstSync) {
+      } else if (isFirstSync) {
         parts.push("(eerste sync)");
       }
       setState({ kind: "success", message: parts.join(" · ") + "." });
-    });
+    } catch (err) {
+      setState({
+        kind: "error",
+        message:
+          err instanceof Error ? err.message : "Sync faalde onverwacht.",
+      });
+    }
   }
 
   return (
@@ -42,12 +107,12 @@ export function StravaSyncButton() {
         <Button
           type="button"
           variant="outline"
-          disabled={pending}
+          disabled={isRunning}
           onClick={() => runSync(false)}
         >
           <RefreshCw
             data-icon="inline-start"
-            className={pending ? "animate-spin" : undefined}
+            className={isRunning ? "animate-spin" : undefined}
           />
           Strava syncen
         </Button>
@@ -55,11 +120,11 @@ export function StravaSyncButton() {
           type="button"
           variant="ghost"
           size="sm"
-          disabled={pending}
+          disabled={isRunning}
           onClick={() => {
             if (
               !confirm(
-                "Volledige 5-jaar historie ophalen? Kan ~30 seconden duren bij actieve riders. Bestaande ritten worden netjes upsert (geen duplicaten).",
+                "Volledige 5-jaar historie ophalen? Kan ~30-90 seconden duren bij actieve riders. We doen het nu in kleine stukjes zodat de browser-pagina niet onderuit gaat. Bestaande ritten worden netjes upsert (geen duplicaten).",
               )
             )
               return;
@@ -73,9 +138,9 @@ export function StravaSyncButton() {
       {state.kind !== "idle" && (
         <p
           className={
-            state.kind === "success"
-              ? "text-xs text-muted-foreground"
-              : "text-xs text-destructive"
+            state.kind === "error"
+              ? "text-xs text-destructive"
+              : "text-xs text-muted-foreground"
           }
         >
           {state.message}

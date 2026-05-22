@@ -7,7 +7,12 @@ import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
 
 export async function syncMyStravaActivities(
-  options: { fullBackfill?: boolean } = {},
+  options: {
+    fullBackfill?: boolean;
+    startPage?: number;
+    afterTs?: number;
+    chunkPages?: number;
+  } = {},
 ) {
   const supabase = await createClient();
   const {
@@ -20,11 +25,15 @@ export async function syncMyStravaActivities(
     const result = await syncStravaActivitiesForUser(supabase, user.id, options);
     if (!result.ok) return result;
 
-    await awardCompletedAchievementWeeks(supabase).catch(() => null);
-    revalidatePath("/achievements");
-    revalidatePath("/dashboard");
-    revalidatePath("/leden");
-    revalidatePath("/profiel");
+    // Weekly awards + revalidate alleen wanneer we klaar zijn met de
+    // volledige sync (anders draaien we dit 10x voor één UI-update).
+    if (result.done) {
+      await awardCompletedAchievementWeeks(supabase).catch(() => null);
+      revalidatePath("/achievements");
+      revalidatePath("/dashboard");
+      revalidatePath("/leden");
+      revalidatePath("/profiel");
+    }
     return result;
   } catch (err) {
     return {
