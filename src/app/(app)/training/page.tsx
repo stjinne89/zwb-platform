@@ -1,16 +1,32 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, Calendar, Mountain, TrendingUp } from "lucide-react";
+import { Activity, Calendar, ExternalLink, Mountain, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
-  fetchIntervalsActivities,
   fetchIntervalsEvents,
   fetchIntervalsWellness,
-  type IntervalsActivity,
   type IntervalsEvent,
   type IntervalsWellness,
 } from "@/lib/intervals/client";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
+
+type StravaActivityRow = {
+  id: number;
+  name: string | null;
+  sport_type: string | null;
+  start_date: string;
+  distance_m: number | string;
+  total_elevation_gain_m: number | string;
+  kudos_count: number;
+  moving_time_seconds: number;
+  trainer: boolean;
+};
+
+function toNum(v: number | string | null | undefined): number {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -92,19 +108,40 @@ export default async function TrainingPage() {
   }
 
   let wellness: IntervalsWellness[] = [];
-  let activities: IntervalsActivity[] = [];
   let events: IntervalsEvent[] = [];
   let fetchError: string | null = null;
 
   try {
-    [wellness, activities, events] = await Promise.all([
+    [wellness, events] = await Promise.all([
       fetchIntervalsWellness(conn.api_key, conn.athlete_id!, 90),
-      fetchIntervalsActivities(conn.api_key, conn.athlete_id!, 14),
       fetchIntervalsEvents(conn.api_key, conn.athlete_id!, 14),
     ]);
   } catch (err) {
     fetchError = err instanceof Error ? err.message : "Onbekende fout.";
   }
+
+  // Activity-data komt uit onze eigen Strava-sync (rijker dan wat intervals.icu
+  // automatisch heeft als je daar geen Strava-koppeling hebt staan).
+  const since14 = new Date();
+  since14.setDate(since14.getDate() - 14);
+  const [{ data: stravaConn }, { data: stravaRows }] = await Promise.all([
+    supabase
+      .from("strava_connections")
+      .select("athlete_name")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("strava_activities")
+      .select(
+        "id, name, sport_type, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds, trainer",
+      )
+      .eq("profile_id", user.id)
+      .gte("start_date", since14.toISOString())
+      .order("start_date", { ascending: false })
+      .limit(40),
+  ]);
+
+  const stravaActivities: StravaActivityRow[] = (stravaRows ?? []) as StravaActivityRow[];
 
   const wellnessSorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
   const latest = wellnessSorted[wellnessSorted.length - 1];
@@ -112,23 +149,20 @@ export default async function TrainingPage() {
   const eftpLatest = [...wellnessSorted].reverse().find((w) => w.eftp)?.eftp;
   const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
 
-  const recentActivities = [...activities]
-    .sort((a, b) => (b.start_date_local ?? "").localeCompare(a.start_date_local ?? ""))
-    .slice(0, 7);
+  const recentActivities = stravaActivities.slice(0, 7);
 
   const upcomingEvents = [...events]
     .filter((e) => e.start_date_local >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
     .slice(0, 5);
 
-  const total14 = activities.reduce(
+  const total14 = stravaActivities.reduce(
     (acc, a) => ({
-      distance: acc.distance + (a.distance ?? 0),
-      elevation: acc.elevation + (a.total_elevation_gain ?? 0),
-      time: acc.time + (a.moving_time ?? 0),
-      tss: acc.tss + (a.icu_training_load ?? 0),
+      distance: acc.distance + toNum(a.distance_m),
+      elevation: acc.elevation + toNum(a.total_elevation_gain_m),
+      time: acc.time + (a.moving_time_seconds ?? 0),
     }),
-    { distance: 0, elevation: 0, time: 0, tss: 0 },
+    { distance: 0, elevation: 0, time: 0 },
   );
 
   return (
@@ -180,9 +214,13 @@ export default async function TrainingPage() {
         />
         <MetricCard
           icon={Calendar}
-          label="14 dagen TSS"
-          value={formatNumber(Math.round(total14.tss), 0)}
-          hint={`${formatKm(total14.distance)} · ${formatHours(total14.time)} · ${formatMeters(total14.elevation)}`}
+          label="14 dagen totaal"
+          value={formatKm(total14.distance)}
+          hint={
+            stravaActivities.length > 0
+              ? `${stravaActivities.length} ritten · ${formatHours(total14.time)} · ${formatMeters(total14.elevation)}`
+              : "Nog geen Strava-ritten in de laatste 14 dagen"
+          }
         />
       </section>
 
@@ -233,17 +271,45 @@ export default async function TrainingPage() {
 
       <section className="rounded-md border bg-card">
         <div className="border-b p-4">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <Activity className="size-4 text-primary" />
-            Laatste activiteiten
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            7 meest recente trainingen uit intervals.icu.
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Activity className="size-4 text-primary" />
+                Laatste activiteiten
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {stravaConn
+                  ? `7 meest recente ritten uit jouw Strava (${stravaConn.athlete_name ?? "Strava"}).`
+                  : "Koppel Strava op je profielpagina om je recente ritten hier te zien."}
+              </p>
+            </div>
+            {!stravaConn && (
+              <Link
+                href="/profiel"
+                className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                Naar profiel
+                <ExternalLink className="size-3" />
+              </Link>
+            )}
+          </div>
         </div>
-        {recentActivities.length === 0 ? (
+        {!stravaConn ? (
           <p className="p-4 text-sm text-muted-foreground">
-            Nog geen activiteiten in de laatste 14 dagen.
+            Strava is niet gekoppeld. Zonder Strava-koppeling toont deze sectie
+            geen recente ritten. Koppel via{" "}
+            <Link href="/profiel" className="font-medium text-primary hover:underline">
+              je profiel
+            </Link>
+            .
+          </p>
+        ) : recentActivities.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">
+            Geen Strava-ritten in de laatste 14 dagen. Synchroniseer via{" "}
+            <Link href="/achievements" className="font-medium text-primary hover:underline">
+              Achievements
+            </Link>{" "}
+            als je recente ritten verwacht.
           </p>
         ) : (
           <ul className="divide-y">
@@ -253,23 +319,24 @@ export default async function TrainingPage() {
                 className="grid gap-2 p-4 sm:grid-cols-[120px_1fr_auto] sm:items-center"
               >
                 <span className="text-sm text-muted-foreground">
-                  {a.start_date_local
-                    ? new Date(a.start_date_local).toLocaleDateString("nl-NL", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      })
-                    : "—"}
+                  {new Date(a.start_date).toLocaleDateString("nl-NL", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-medium">{a.name ?? "Activiteit"}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatKm(a.distance)} · {formatHours(a.moving_time)}
-                    {a.total_elevation_gain ? ` · ${formatMeters(a.total_elevation_gain)}` : ""}
+                    {formatKm(toNum(a.distance_m))} · {formatHours(a.moving_time_seconds)}
+                    {toNum(a.total_elevation_gain_m) > 0
+                      ? ` · ${formatMeters(toNum(a.total_elevation_gain_m))}`
+                      : ""}
+                    {a.trainer ? " · 🏠 trainer" : ""}
                   </p>
                 </div>
                 <span className="text-sm tabular-nums text-muted-foreground sm:text-right">
-                  {a.icu_training_load ? `${Math.round(a.icu_training_load)} TSS` : "—"}
+                  {a.kudos_count > 0 ? `${a.kudos_count} ♥` : "—"}
                 </span>
               </li>
             ))}
