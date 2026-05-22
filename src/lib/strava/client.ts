@@ -250,6 +250,7 @@ export async function syncStravaActivitiesForUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   profileId: string,
+  options: { fullBackfill?: boolean } = {},
 ) {
   const { data: connection, error } = await supabase
     .from("strava_connections")
@@ -269,18 +270,27 @@ export async function syncStravaActivitiesForUser(
 
   // Smart since-datum: bij eerste sync 5 jaar terug, daarna alleen vanaf
   // laatste activity (minus 1 dag buffer voor late uploads / edits).
-  const { data: mostRecent } = await supabase
-    .from("strava_activities")
-    .select("start_date")
-    .eq("profile_id", profileId)
-    .order("start_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Met fullBackfill=true overrulen we de DB-check zodat retroactieve
+  // milestone-detectie mogelijk wordt zonder de DB te wissen.
+  let isFirstSync = false;
+  let since: Date;
+  if (options.fullBackfill) {
+    isFirstSync = true;
+    since = new Date(Date.now() - 5 * 365 * 86400_000);
+  } else {
+    const { data: mostRecent } = await supabase
+      .from("strava_activities")
+      .select("start_date")
+      .eq("profile_id", profileId)
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  const isFirstSync = !mostRecent?.start_date;
-  const since = isFirstSync
-    ? new Date(Date.now() - 5 * 365 * 86400_000)
-    : new Date(new Date(mostRecent!.start_date).getTime() - 86400_000);
+    isFirstSync = !mostRecent?.start_date;
+    since = isFirstSync
+      ? new Date(Date.now() - 5 * 365 * 86400_000)
+      : new Date(new Date(mostRecent!.start_date).getTime() - 86400_000);
+  }
   const after = Math.floor(since.getTime() / 1000);
 
   // Paginate through alle activities tot Strava niks meer teruggeeft.

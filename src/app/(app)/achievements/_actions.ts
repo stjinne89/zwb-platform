@@ -6,7 +6,9 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
 
-export async function syncMyStravaActivities() {
+export async function syncMyStravaActivities(
+  options: { fullBackfill?: boolean } = {},
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,7 +17,7 @@ export async function syncMyStravaActivities() {
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
   try {
-    const result = await syncStravaActivitiesForUser(supabase, user.id);
+    const result = await syncStravaActivitiesForUser(supabase, user.id, options);
     if (!result.ok) return result;
 
     await awardCompletedAchievementWeeks(supabase).catch(() => null);
