@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { MEDIA_KINDS } from "@/lib/media-kinds";
 import {
   listChannelVideos,
@@ -23,10 +24,11 @@ function optionalUrl(v: FormDataEntryValue | null): string | null {
 
 export async function addMediaItem(formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te beheren." };
+  }
 
   const title = String(formData.get("title") ?? "").trim();
   const kind = String(formData.get("kind") ?? "");
@@ -61,7 +63,7 @@ export async function addMediaItem(formData: FormData) {
     web_url: optionalUrl(formData.get("web_url")),
     cover_url: optionalUrl(formData.get("cover_url")),
     pinned,
-    author_id: user.id,
+    author_id: access.user.id,
     ...(published_at ? { published_at } : {}),
   });
 
@@ -73,18 +75,11 @@ export async function addMediaItem(formData: FormData) {
 
 export async function updateMediaItem(id: string, formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin)
-    return { ok: false as const, error: "Alleen admins kunnen bewerken." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te beheren." };
+  }
 
   const title = String(formData.get("title") ?? "").trim();
   const kind = String(formData.get("kind") ?? "");
@@ -132,6 +127,12 @@ export async function updateMediaItem(id: string, formData: FormData) {
 
 export async function togglePinMedia(id: string, pinned: boolean) {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te beheren." };
+  }
+
   const { error } = await supabase
     .from("media_items")
     .update({ pinned })
@@ -144,6 +145,12 @@ export async function togglePinMedia(id: string, pinned: boolean) {
 
 export async function deleteMediaItem(id: string) {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te beheren." };
+  }
+
   const { error } = await supabase.from("media_items").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/media");
@@ -174,18 +181,11 @@ async function syncYouTubeChannelInner(handle: string) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin)
-    return { ok: false as const, error: "Alleen admins kunnen YouTube syncen." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te syncen." };
+  }
 
   let videos: YouTubeVideo[];
   try {
@@ -237,7 +237,7 @@ async function syncYouTubeChannelInner(handle: string) {
         published_at: v.publishedAt,
         source: "youtube",
         external_id: v.videoId,
-        author_id: user.id,
+        author_id: access.user.id,
       });
       if (error) insertErrors.push(`insert ${v.videoId}: ${error.message}`);
       else inserted++;
@@ -280,18 +280,11 @@ export async function syncPodcastRss(rssUrl?: string) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin)
-    return { ok: false as const, error: "Alleen admins kunnen syncen." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te syncen." };
+  }
 
   let feed;
   try {
@@ -349,7 +342,7 @@ export async function syncPodcastRss(rssUrl?: string) {
         published_at: ep.pubDate,
         source: "rss",
         external_id: ep.guid,
-        author_id: user.id,
+        author_id: access.user.id,
       });
       if (!error) inserted++;
     }

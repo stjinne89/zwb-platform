@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 
 type EventInput = {
   title: string;
@@ -34,10 +35,11 @@ function validate(input: EventInput) {
 
 export async function createEvent(input: EventInput) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("events.create")) {
+    return { ok: false as const, error: "Geen recht om events aan te maken." };
+  }
 
   const err = validate(input);
   if (err) return { ok: false as const, error: err };
@@ -57,7 +59,7 @@ export async function createEvent(input: EventInput) {
       start_lon: input.start_lon ?? null,
       description: input.description || null,
       external_url: input.external_url?.trim() || null,
-      created_by: user.id,
+      created_by: access.user.id,
     })
     .select("id")
     .single();
@@ -69,23 +71,21 @@ export async function createEvent(input: EventInput) {
 
 export async function updateEvent(id: string, input: EventInput) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
 
   const err = validate(input);
   if (err) return { ok: false as const, error: err };
 
-  // Permissie-check: alleen creator of admin mag bewerken.
-  const [{ data: event }, { data: me }] = await Promise.all([
-    supabase.from("events").select("created_by").eq("id", id).single(),
-    supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
-  ]);
+  // Permissie-check: alleen creator of iemand met beheerrecht mag bewerken.
+  const { data: event } = await supabase
+    .from("events")
+    .select("created_by")
+    .eq("id", id)
+    .single();
   if (!event) return { ok: false as const, error: "Event bestaat niet." };
-  const isCreator = event.created_by === user.id;
-  const isAdmin = me?.is_admin ?? false;
-  if (!isCreator && !isAdmin) {
+  const isCreator = event.created_by === access.user.id;
+  if (!isCreator && !access.has("events.manage_all")) {
     return { ok: false as const, error: "Geen toegang om dit event te bewerken." };
   }
 

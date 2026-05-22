@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { MediaForm, type MediaInitial } from "../../_components/add-form";
 import type { MediaKind } from "@/lib/media-kinds";
 
@@ -17,15 +18,11 @@ export default async function EditMediaPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin) {
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.has("media.manage")) {
     return (
       <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-        Alleen admins kunnen media-items bewerken.
+        Je hebt geen recht om media-items te bewerken.
       </div>
     );
   }

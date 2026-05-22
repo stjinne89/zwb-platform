@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DeleteGroupButton, NewGroupForm } from "./_components/admin-forms";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -21,7 +22,7 @@ export default async function CommunityPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: groups }, { data: me }, { data: teams }, { data: events }] =
+  const [{ data: groups }, access, { data: teams }, { data: events }] =
     await Promise.all([
       supabase
         .from("whatsapp_groups")
@@ -30,7 +31,7 @@ export default async function CommunityPage() {
         )
         .order("display_order")
         .order("name"),
-      supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+      getCurrentUserAccess(supabase),
       supabase
         .from("teams")
         .select("id, name, type, division")
@@ -42,7 +43,7 @@ export default async function CommunityPage() {
         .limit(50),
     ]);
 
-  const isAdmin = me?.is_admin ?? false;
+  const canManageCommunity = access.has("community.manage");
   const teamOptions = (teams ?? []).map((t) => ({
     id: t.id,
     name: t.name,
@@ -125,7 +126,7 @@ export default async function CommunityPage() {
                       Open in WhatsApp →
                     </p>
                   </a>
-                  {isAdmin && (
+                  {canManageCommunity && (
                     <div className="absolute right-2 top-2">
                       <DeleteGroupButton id={g.id} />
                     </div>
@@ -136,7 +137,9 @@ export default async function CommunityPage() {
           </ul>
         )}
 
-        {isAdmin && <NewGroupForm teams={teamOptions} events={eventOptions} />}
+        {canManageCommunity && (
+          <NewGroupForm teams={teamOptions} events={eventOptions} />
+        )}
       </section>
     </div>
   );

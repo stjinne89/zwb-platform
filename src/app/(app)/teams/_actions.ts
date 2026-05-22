@@ -2,26 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncTeamResults } from "@/lib/team-results/sync";
 import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
 
 export async function syncResultsNow() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const access = await getCurrentUserAccess(supabase);
 
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me, error } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (error) return { ok: false as const, error: error.message };
-  if (!me?.is_admin) {
-    return { ok: false as const, error: "Alleen admins kunnen resultaten syncen." };
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("teams.sync_sources")) {
+    return { ok: false as const, error: "Geen recht om teambronnen te syncen." };
   }
 
   try {
@@ -49,18 +40,11 @@ export async function syncLadderGraveyard() {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin)
-    return { ok: false as const, error: "Alleen admins kunnen syncen." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("teams.sync_sources")) {
+    return { ok: false as const, error: "Geen recht om teambronnen te syncen." };
+  }
 
   let result;
   try {

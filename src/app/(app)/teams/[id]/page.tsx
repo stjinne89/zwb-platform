@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
@@ -41,7 +42,7 @@ export default async function TeamDetailPage({
   const [
     { data: members },
     { data: results },
-    { data: me },
+    access,
     { data: allProfiles },
     { data: rosterPending },
     { data: waGroups },
@@ -56,9 +57,7 @@ export default async function TeamDetailPage({
       .eq("team_id", id)
       .order("round_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
-    user
-      ? supabase.from("profiles").select("is_admin").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
+    getCurrentUserAccess(supabase),
     supabase.from("profiles").select("id, display_name").order("display_name"),
     supabase
       .from("roster_entries")
@@ -74,13 +73,14 @@ export default async function TeamDetailPage({
       .order("name"),
   ]);
 
-  const isAdmin = me?.is_admin ?? false;
+  const canManageRoster = access.has("teams.manage_roster");
+  const canManageResults = access.has("teams.manage_results");
   const isCaptain = !!members?.find(
     (m) =>
       m.profile_id === user?.id &&
       (m.role === "captain" || m.role === "co-captain"),
   );
-  const canManage = isAdmin || isCaptain;
+  const canManage = canManageRoster || canManageResults || isCaptain;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flatMembers = (members ?? []).map((m: any) => ({
@@ -128,7 +128,7 @@ export default async function TeamDetailPage({
             competitie-rondes. Resultaten uit het verleden blijven zichtbaar.
           </p>
         )}
-        {isAdmin && (
+        {canManageRoster && (
           <div className="pt-2">
             <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
           </div>
@@ -250,7 +250,7 @@ export default async function TeamDetailPage({
                     {r.notes ? ` · ${r.notes}` : ""}
                   </p>
                 </div>
-                {canManage && (
+                {(canManageResults || isCaptain) && (
                   <DeleteResultButton teamId={team.id} resultId={r.id} />
                 )}
               </li>

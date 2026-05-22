@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
@@ -65,6 +66,7 @@ export default async function LedenPage() {
     { data: roster },
     { data: me },
     { data: awards },
+    access,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -78,7 +80,7 @@ export default async function LedenPage() {
       .order("name"),
     supabase
       .from("profiles")
-      .select("display_name, is_admin")
+      .select("display_name")
       .eq("id", user.id)
       .single(),
     supabase
@@ -86,10 +88,12 @@ export default async function LedenPage() {
       .select("id, profile_id, achievement_badges(title, icon, color)")
       .order("awarded_at", { ascending: false })
       .limit(120),
+    getCurrentUserAccess(supabase),
   ]);
 
   const myName = me?.display_name ?? "";
-  const isAdmin = me?.is_admin ?? false;
+  const canApproveMembers = access.has("members.approve");
+  const canManageRoles = access.has("members.manage_roles");
   const allProfiles: Profile[] = profiles ?? [];
   const pendingProfiles = allProfiles.filter((p) => !p.is_approved);
   const profileList = allProfiles.filter((p) => p.is_approved);
@@ -116,7 +120,7 @@ export default async function LedenPage() {
         </p>
       </header>
 
-      {isAdmin && pendingProfiles.length > 0 && (
+      {canApproveMembers && pendingProfiles.length > 0 && (
         <section className="space-y-3 rounded-2xl border-2 border-accent bg-card p-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-foreground">
@@ -236,7 +240,7 @@ export default async function LedenPage() {
                       Zwift {p.zwift_id}
                     </span>
                   )}
-                  {isAdmin && (
+                  {canManageRoles && (
                     <RoleEditor profileId={p.id} roles={p.community_roles} />
                   )}
                 </div>

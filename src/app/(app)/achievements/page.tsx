@@ -11,6 +11,7 @@ import {
   Route,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AchievementBadge } from "@/components/achievement-badge";
@@ -235,7 +236,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
 
   const week = currentAchievementWeek();
 
-  const [{ data: connection }, { data: activityRows }, { data: awardRows }, { data: me }] =
+  const [{ data: connection }, { data: activityRows }, { data: awardRows }, access] =
     await Promise.all([
       supabase
         .from("strava_connections")
@@ -256,11 +257,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
         )
         .order("period_start", { ascending: false })
         .limit(12),
-      supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user?.id)
-        .maybeSingle(),
+      getCurrentUserAccess(supabase),
     ]);
 
   const rows = (activityRows ?? []) as unknown as ActivityRow[];
@@ -303,7 +300,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
               Gekoppeld als {connection.athlete_name ?? "Strava-atleet"}.
             </p>
           )}
-          {me?.is_admin && <FinalizeAwardsButton />}
+          {access.has("achievements.finalize") && <FinalizeAwardsButton />}
         </div>
       </header>
 

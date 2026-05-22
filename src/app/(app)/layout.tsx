@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { ZwbMark } from "@/components/zwb-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "./_components/logout-button";
@@ -18,6 +19,8 @@ const NAV = [
   { href: "/community", label: "Community" },
 ];
 
+const ADMIN_NAV = [{ href: "/beheer/rechten", label: "Beheer" }];
+
 export default async function AppLayout({
   children,
 }: {
@@ -29,13 +32,15 @@ export default async function AppLayout({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, is_admin")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, access] = await Promise.all([
+    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+    getCurrentUserAccess(supabase),
+  ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";
+  const navItems = access.has("roles.manage_permissions")
+    ? [...NAV, ...ADMIN_NAV]
+    : NAV;
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -51,7 +56,7 @@ export default async function AppLayout({
 
           {/* Desktop navigation */}
           <ul className="hidden flex-1 gap-4 text-sm md:flex">
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
@@ -78,7 +83,7 @@ export default async function AppLayout({
             <div className="hidden md:block">
               <LogoutButton />
             </div>
-            <MobileMenu items={NAV} displayName={displayName} />
+            <MobileMenu items={navItems} displayName={displayName} />
           </div>
         </nav>
       </header>

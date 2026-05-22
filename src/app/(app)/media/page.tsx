@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
@@ -55,7 +56,7 @@ export default async function MediaPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: rawItems }, { data: me }] = await Promise.all([
+  const [{ data: rawItems }, access] = await Promise.all([
     (async () => {
       let q = supabase
         .from("media_items")
@@ -67,11 +68,11 @@ export default async function MediaPage({
       if (activeKind) q = q.eq("kind", activeKind);
       return q;
     })(),
-    supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+    getCurrentUserAccess(supabase),
   ]);
 
   const items = (rawItems ?? []) as unknown as MediaItem[];
-  const isAdmin = me?.is_admin ?? false;
+  const canManageMedia = access.has("media.manage");
 
   return (
     <div className="space-y-6">
@@ -137,7 +138,7 @@ export default async function MediaPage({
                         dateStyle: "medium",
                       })}
                     </p>
-                    {isAdmin && (
+                    {canManageMedia && (
                       <div className="ml-auto">
                         <MediaItemActions id={item.id} pinned={item.pinned} />
                       </div>
@@ -270,7 +271,7 @@ export default async function MediaPage({
         </ul>
       )}
 
-      {isAdmin && (
+      {canManageMedia && (
         <div className="space-y-4 border-t pt-6">
           <div className="space-y-4 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4">
             <div>

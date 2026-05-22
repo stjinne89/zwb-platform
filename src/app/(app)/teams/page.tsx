@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
 import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
@@ -186,13 +187,10 @@ function buildCards(
 
 export default async function TeamsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const [
     teamsResult,
-    meResult,
+    access,
     resultsResult,
     rosterWithTeamIdResult,
   ] = await Promise.all([
@@ -201,9 +199,7 @@ export default async function TeamsPage() {
       .select("id, name, type, division, description, is_graveyard, team_members(count)")
       .order("is_graveyard")
       .order("name"),
-    user
-      ? supabase.from("profiles").select("is_admin").eq("id", user.id).single()
-      : Promise.resolve({ data: null, error: null }),
+    getCurrentUserAccess(supabase),
     supabase
       .from("team_results")
       .select("id, team_id, competition, round_label, round_at, position, points, total_teams, created_at")
@@ -248,10 +244,11 @@ export default async function TeamsPage() {
     rosterError = fallbackRosterResult.error;
   }
 
-  const isAdmin = meResult.data?.is_admin ?? false;
+  const canCreateTeams = access.has("teams.create");
+  const canSyncTeams = access.has("teams.sync_sources");
+  const canSeeDebug = access.hasAny(["teams.create", "teams.sync_sources"]);
   const errors = [
     teamsError,
-    meResult.error,
     resultsResult.error,
     rosterError,
   ]
@@ -290,16 +287,22 @@ export default async function TeamsPage() {
             bestaande ledenlijst herkend zijn.
           </p>
         </div>
-        {isAdmin && (
+        {(canCreateTeams || canSyncTeams) && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-            <SyncResultsButton />
-            <SyncGraveyardButton />
-            <Link href="/teams/nieuw">
-              <Button>
-                <Plus data-icon="inline-start" />
-                Nieuw team
-              </Button>
-            </Link>
+            {canSyncTeams && (
+              <>
+                <SyncResultsButton />
+                <SyncGraveyardButton />
+              </>
+            )}
+            {canCreateTeams && (
+              <Link href="/teams/nieuw">
+                <Button>
+                  <Plus data-icon="inline-start" />
+                  Nieuw team
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       </header>
@@ -314,7 +317,7 @@ export default async function TeamsPage() {
                 De pagina toont de beschikbare data en gebruikt waar mogelijk de
                 ledenlijst als fallback.
               </p>
-              {isAdmin && (
+              {canSeeDebug && (
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   {warnings.map((warning) => (
                     <li key={warning}>{warning}</li>
@@ -364,7 +367,7 @@ export default async function TeamsPage() {
               title="Actieve teams"
               description="Teams die als echt teamrecord bestaan en door kunnen klikken naar de detailpagina."
               cards={activeCards}
-              isAdmin={isAdmin}
+              isAdmin={canCreateTeams}
             />
           )}
 
@@ -373,7 +376,7 @@ export default async function TeamsPage() {
               title="Uit roster herkend"
               description="Teams die al in de ledenlijst staan, maar nog geen gekoppeld teamrecord hebben."
               cards={rosterCards}
-              isAdmin={isAdmin}
+              isAdmin={canCreateTeams}
             />
           )}
         </div>

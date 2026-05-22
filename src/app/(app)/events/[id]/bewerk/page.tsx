@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EventForm, type EventInitial } from "../../../kalender/nieuw/_form";
 
 export default async function EditEventPage({
@@ -16,7 +17,7 @@ export default async function EditEventPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: event }, { data: me }] = await Promise.all([
+  const [{ data: event }, access] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -24,21 +25,16 @@ export default async function EditEventPage({
       )
       .eq("id", id)
       .single(),
-    supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single(),
+    getCurrentUserAccess(supabase),
   ]);
 
   if (!event) notFound();
 
   const isCreator = event.created_by === user.id;
-  const isAdmin = me?.is_admin ?? false;
-  if (!isCreator && !isAdmin) {
+  if (!isCreator && !access.has("events.manage_all")) {
     return (
       <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-        Alleen de aanmaker of een admin kan dit event bewerken.
+        Alleen de aanmaker of iemand met eventbeheerrecht kan dit event bewerken.
       </div>
     );
   }
@@ -63,7 +59,7 @@ export default async function EditEventPage({
         href={`/events/${event.id}`}
         className="text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Terug naar event
+        Terug naar event
       </Link>
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Event bewerken</h1>

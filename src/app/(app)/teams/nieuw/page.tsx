@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { NewTeamForm } from "./_form";
 
 export default async function NewTeamPage() {
@@ -9,16 +10,12 @@ export default async function NewTeamPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
+  const access = await getCurrentUserAccess(supabase);
 
-  if (!me?.is_admin) {
+  if (!access.has("teams.create")) {
     return (
       <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-        Alleen admins kunnen teams aanmaken.
+        Je hebt geen recht om teams aan te maken.
       </div>
     );
   }

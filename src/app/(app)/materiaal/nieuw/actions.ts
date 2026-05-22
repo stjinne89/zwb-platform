@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { slugify } from "@/lib/slugify";
 import {
   POST_KINDS,
@@ -12,10 +13,11 @@ import {
 
 export async function createPost(formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("content.create_posts")) {
+    return { ok: false as const, error: "Geen recht om posts te plaatsen." };
+  }
 
   const title = String(formData.get("title") ?? "").trim();
   const category = String(formData.get("category") ?? "");
@@ -63,7 +65,7 @@ export async function createPost(formData: FormData) {
     excerpt,
     price: hasPriceField(postKind) ? price : null,
     tags,
-    author_id: user.id,
+    author_id: access.user.id,
   });
 
   if (error) return { ok: false as const, error: error.message };

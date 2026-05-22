@@ -2,22 +2,17 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 
 const TYPES = ["zrl", "ladder", "social", "outdoor"];
 
 export async function createTeam(formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin) return { ok: false as const, error: "Alleen admins kunnen teams aanmaken." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("teams.create")) {
+    return { ok: false as const, error: "Geen recht om teams aan te maken." };
+  }
 
   const name = String(formData.get("name") ?? "").trim();
   const type = String(formData.get("type") ?? "");

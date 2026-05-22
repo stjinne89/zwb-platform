@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { fetchWhatsAppGroupInfo, isValidInviteUrl } from "@/lib/whatsapp";
 
 const CATEGORIES = [
@@ -50,6 +51,12 @@ function parseScope(raw: string): { team_id: string | null; event_id: string | n
 
 export async function addGroup(formData: FormData) {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om community te beheren." };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const categoryRaw = String(formData.get("category") ?? "").trim();
@@ -85,6 +92,12 @@ export async function addGroup(formData: FormData) {
 
 export async function deleteGroup(id: string) {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om community te beheren." };
+  }
+
   const { error } = await supabase.from("whatsapp_groups").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/community");
@@ -93,10 +106,11 @@ export async function deleteGroup(id: string) {
 
 export async function addAnnouncement(formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om community te beheren." };
+  }
 
   const title = String(formData.get("title") ?? "").trim();
   const body_md = String(formData.get("body_md") ?? "").trim();
@@ -109,7 +123,7 @@ export async function addAnnouncement(formData: FormData) {
     title,
     body_md,
     pinned,
-    author_id: user.id,
+    author_id: access.user.id,
   });
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/community");
@@ -119,6 +133,12 @@ export async function addAnnouncement(formData: FormData) {
 
 export async function togglePin(id: string, pinned: boolean) {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om community te beheren." };
+  }
+
   const { error } = await supabase
     .from("announcements")
     .update({ pinned })
@@ -131,6 +151,12 @@ export async function togglePin(id: string, pinned: boolean) {
 
 export async function deleteAnnouncement(id: string) {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om community te beheren." };
+  }
+
   const { error } = await supabase.from("announcements").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/community");

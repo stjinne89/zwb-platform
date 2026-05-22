@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { ExternalEventLink } from "@/components/external-event-link";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
@@ -45,14 +46,12 @@ export default async function EventDetailPage({
 
   if (!event) notFound();
 
-  const [{ data: rsvps }, { data: me }, { data: waGroups }] = await Promise.all([
+  const [{ data: rsvps }, access, { data: waGroups }] = await Promise.all([
     supabase
       .from("event_rsvps")
       .select("status, profile_id, profiles(display_name)")
       .eq("event_id", id),
-    user
-      ? supabase.from("profiles").select("is_admin").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
+    getCurrentUserAccess(supabase),
     supabase
       .from("whatsapp_groups")
       .select("id, name, invite_url, description")
@@ -61,9 +60,8 @@ export default async function EventDetailPage({
       .order("name"),
   ]);
 
-  const isAdmin = me?.is_admin ?? false;
   const isCreator = user?.id === event.created_by;
-  const canManage = isAdmin || isCreator;
+  const canManage = access.has("events.manage_all") || isCreator;
 
   const myRsvp = rsvps?.find((r) => r.profile_id === user?.id)?.status as
     | RsvpStatus

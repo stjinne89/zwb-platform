@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Markdown } from "@/components/markdown";
 import { PostKindBadge, PostStatusBadge } from "@/components/post-kind-badge";
 import {
@@ -36,23 +37,21 @@ export default async function PostDetailPage({
 
   if (!post) notFound();
 
-  const [{ data: likes }, { data: comments }, { data: me }] = await Promise.all([
+  const [{ data: likes }, { data: comments }, access] = await Promise.all([
     supabase.from("post_likes").select("profile_id").eq("post_id", post.id),
     supabase
       .from("post_comments")
       .select("id, body, created_at, author_id, profiles(display_name)")
       .eq("post_id", post.id)
       .order("created_at"),
-    user
-      ? supabase.from("profiles").select("is_admin").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
+    getCurrentUserAccess(supabase),
   ]);
 
   const liked = !!(likes ?? []).find((l) => l.profile_id === user?.id);
   const likeCount = likes?.length ?? 0;
-  const isAdmin = me?.is_admin ?? false;
+  const canModerate = access.has("content.moderate_posts");
   const isAuthor = user?.id === post.author_id;
-  const canManage = isAdmin || isAuthor;
+  const canManage = canModerate || isAuthor;
   const postKind = (post.kind ?? "aanbod") as PostKind;
   const showPrice = hasPriceField(postKind) && post.price;
 
@@ -151,7 +150,7 @@ export default async function PostDetailPage({
                       </p>
                       <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
                     </div>
-                    {(own || isAdmin) && (
+                    {(own || canModerate) && (
                       <DeleteCommentButton commentId={c.id} slug={post.slug} />
                     )}
                   </div>

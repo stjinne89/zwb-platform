@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
   COMMUNITY_ROLES,
   normalizeCommunityRoles,
@@ -37,25 +38,18 @@ export async function unclaimRosterEntry(entryId: string) {
 
 export async function approveUser(profileId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin)
-    return { ok: false as const, error: "Alleen admins kunnen goedkeuren." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("members.approve")) {
+    return { ok: false as const, error: "Geen recht om leden goed te keuren." };
+  }
 
   const { error } = await supabase
     .from("profiles")
     .update({
       is_approved: true,
       approved_at: new Date().toISOString(),
-      approved_by: user.id,
+      approved_by: access.user.id,
     })
     .eq("id", profileId);
 
@@ -66,18 +60,10 @@ export async function approveUser(profileId: string) {
 
 export async function updateMemberRoles(profileId: string, roles: string[]) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-  if (!me?.is_admin) {
-    return { ok: false as const, error: "Alleen admins kunnen rollen wijzigen." };
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("members.manage_roles")) {
+    return { ok: false as const, error: "Geen recht om rollen te wijzigen." };
   }
 
   const validRoles = roles.filter((role) =>
