@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { AvatarUpload } from "./_components/avatar-upload";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
@@ -110,6 +111,12 @@ export default async function ProfielPage() {
           weight_kg: profile?.weight_kg?.toString() ?? "",
           bio: profile?.bio ?? "",
         }}
+      />
+
+      <AvatarUpload
+        currentAvatarUrl={
+          (profile as { avatar_url?: string | null })?.avatar_url ?? null
+        }
       />
 
       <StravaSection connection={stravaConn ?? null} />
