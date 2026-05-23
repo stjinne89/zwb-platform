@@ -275,3 +275,34 @@ export async function deleteBenefit(id: string) {
   revalidateSponsorPaths();
   return { ok: true as const };
 }
+
+/**
+ * Ruimt voordelen op die meer dan 7 dagen verlopen zijn.
+ *
+ * Flow: een voordeel met valid_until in het verleden wordt eerst nog 7
+ * dagen "vervaagd" op de pagina getoond (grijs + niet-klikbaar) zodat
+ * leden zien dat het bestond — daarna pas verwijderd. Veilig om
+ * meerdere keren te draaien (idempotent). Geen permission-check
+ * omdat dit als best-effort vanuit de publieke page-render draait;
+ * service-role-client doet de eigenlijke delete.
+ */
+export async function pruneExpiredBenefits(): Promise<{
+  ok: boolean;
+  deleted: number;
+}> {
+  try {
+    const admin = createAdminClient();
+    const cutoff = new Date(Date.now() - 7 * 86400_000)
+      .toISOString()
+      .slice(0, 10);
+    const { data, error } = await admin
+      .from("member_benefits")
+      .delete()
+      .lt("valid_until", cutoff)
+      .select("id");
+    if (error) return { ok: false, deleted: 0 };
+    return { ok: true, deleted: data?.length ?? 0 };
+  } catch {
+    return { ok: false, deleted: 0 };
+  }
+}

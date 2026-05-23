@@ -14,6 +14,8 @@ export type BenefitCardData = {
   redeem_url: string | null;
   valid_from: string | null;
   valid_until: string | null;
+  /** True wanneer valid_until in het verleden ligt — wordt grijs + niet-klikbaar getoond, binnen 7 dagen automatisch verwijderd. */
+  expired?: boolean;
   sponsor: {
     name: string;
     slug: string;
@@ -36,8 +38,10 @@ function formatDate(value: string | null): string | null {
 
 export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
   const [copied, setCopied] = useState(false);
+  const expired = Boolean(benefit.expired);
 
   async function copyCode() {
+    if (expired) return;
     if (!benefit.discount_code) return;
     try {
       await navigator.clipboard.writeText(benefit.discount_code);
@@ -52,7 +56,12 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
   const validUntil = formatDate(benefit.valid_until);
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+    <div
+      className={`flex flex-col gap-3 rounded-lg border bg-card p-4 ${
+        expired ? "opacity-50 grayscale" : ""
+      }`}
+      aria-disabled={expired}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{benefit.title}</h3>
@@ -91,6 +100,7 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
             variant="ghost"
             size="sm"
             onClick={copyCode}
+            disabled={expired}
             aria-label="Code kopiëren"
           >
             {copied ? (
@@ -106,6 +116,12 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
         </div>
       )}
 
+      {expired && (
+        <p className="rounded-md bg-muted px-2 py-1 text-center text-xs font-medium text-muted-foreground">
+          Verlopen — verdwijnt binnenkort
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         {(validFrom || validUntil) && (
           <span>
@@ -116,16 +132,24 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
                 : `Geldig vanaf ${validFrom}`}
           </span>
         )}
-        {benefit.redeem_url && (
-          <Link
-            href={benefit.redeem_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-medium hover:bg-accent"
-          >
-            Verzilver <ExternalLink className="size-3" />
-          </Link>
-        )}
+        {benefit.redeem_url &&
+          (expired ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-medium text-muted-foreground"
+              aria-disabled
+            >
+              Verzilver <ExternalLink className="size-3" />
+            </span>
+          ) : (
+            <Link
+              href={benefit.redeem_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-medium hover:bg-accent"
+            >
+              Verzilver <ExternalLink className="size-3" />
+            </Link>
+          ))}
       </div>
     </div>
   );

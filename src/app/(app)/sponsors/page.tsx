@@ -11,6 +11,7 @@ import {
   BenefitAdmin,
   type BenefitAdminRow,
 } from "./_components/benefit-admin";
+import { pruneExpiredBenefits } from "./_actions";
 
 type SponsorRow = SponsorAdminRow;
 
@@ -64,6 +65,12 @@ export default async function SponsorsPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
 
+  // Best-effort opschoning: voordelen die >7 dagen verlopen zijn worden
+  // hier opgeruimd. Idempotent + goedkoop (1 DELETE-statement).
+  await pruneExpiredBenefits().catch(() => null);
+
+  const today = new Date().toISOString().slice(0, 10);
+
   // Sponsors zijn publiek leesbaar (RLS); admins zien ook inactieve.
   const { data: sponsorRows } = await supabase
     .from("sponsors")
@@ -108,6 +115,9 @@ export default async function SponsorsPage() {
     redeem_url: b.redeem_url,
     valid_from: b.valid_from,
     valid_until: b.valid_until,
+    // Voordelen waarvan valid_until in het verleden ligt tonen we nog
+    // ~7 dagen grijs/niet-klikbaar (auto-delete via pruneExpiredBenefits).
+    expired: Boolean(b.valid_until && b.valid_until < today),
     sponsor: (() => {
       const s = singleSponsor(b.sponsors);
       return s ? { name: s.name, slug: s.slug, logo_url: s.logo_url } : null;
