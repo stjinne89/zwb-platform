@@ -17,6 +17,7 @@ import {
 } from "./_components/event-live-ticker";
 import { WindSummary } from "./_components/wind-summary";
 import { RsvpButtons } from "./_components/rsvp-buttons";
+import { ShareLiveButton } from "./_components/share-live-button";
 
 const TYPE_LABELS: Record<string, string> = {
   outdoor: "Outdoor rit",
@@ -196,14 +197,19 @@ export default async function EventDetailPage({
           <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
             {TYPE_LABELS[event.type] ?? event.type}
           </span>
-          {canManage && (
-            <Link href={`/events/${event.id}/bewerk`}>
-              <Button type="button" size="sm" variant="outline">
-                <Pencil className="size-3.5" />
-                Bewerk
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {eventIsToday && event.gpx_path && (
+              <ShareLiveButton eventId={event.id} />
+            )}
+            {canManage && (
+              <Link href={`/events/${event.id}/bewerk`}>
+                <Button type="button" size="sm" variant="outline">
+                  <Pencil className="size-3.5" />
+                  Bewerk
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-muted-foreground">

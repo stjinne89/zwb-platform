@@ -5,6 +5,8 @@ const PUBLIC_PATHS = [
   "/login",
   "/auth",
   "/profielen",
+  "/live",
+  "/api/live",
   "/api/team-results/sync",
   "/api/achievements/finalize",
 ];

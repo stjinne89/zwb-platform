@@ -230,18 +230,27 @@ function latestMarkers(
 
 export function EventLiveTicker({
   gpxUrl,
-  sessions,
+  sessions: initialSessions,
   initialPositions,
+  pollUrl,
 }: {
   gpxUrl: string;
   sessions: EventLiveSession[];
   initialPositions: EventLivePosition[];
+  /**
+   * Als gezet wordt deze URL elke 10s gepolled voor een verse
+   * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
+   * subscription. Bedoeld voor de publieke /live/[id]-pagina waar
+   * anon-clients geen RLS-leesrechten hebben.
+   */
+  pollUrl?: string;
 }) {
+  const [sessions, setSessions] = useState(initialSessions);
   const [points, setPoints] = useState<GpxPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [markers, setMarkers] = useState(() =>
-    latestMarkers(sessions, initialPositions),
+    latestMarkers(initialSessions, initialPositions),
   );
 
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
@@ -272,6 +281,33 @@ export function EventLiveTicker({
   }, []);
 
   useEffect(() => {
+    // Polling-mode (publiek): elke 10s een verse snapshot ophalen.
+    if (pollUrl) {
+      let cancelled = false;
+      async function fetchSnapshot() {
+        try {
+          const res = await fetch(pollUrl!, { cache: "no-store" });
+          if (!res.ok) return;
+          const data = (await res.json()) as {
+            sessions: EventLiveSession[];
+            positions: EventLivePosition[];
+          };
+          if (cancelled) return;
+          setSessions(data.sessions);
+          setMarkers(latestMarkers(data.sessions, data.positions));
+          setNow(Date.now());
+        } catch {
+          // stilzwijgend; volgende poll probeert opnieuw
+        }
+      }
+      const id = setInterval(fetchSnapshot, 10_000);
+      return () => {
+        cancelled = true;
+        clearInterval(id);
+      };
+    }
+
+    // Realtime-mode (members): subscribe op postgres_changes.
     const supabase = createClient();
     const channel = supabase
       .channel("event-live-ticker")
@@ -320,7 +356,7 @@ export function EventLiveTicker({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeIds, sessionById]);
+  }, [pollUrl, activeIds, sessionById]);
 
   if (error) {
     return (
