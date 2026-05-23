@@ -4,40 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { ZwbMark } from "@/components/zwb-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LogoutButton } from "./_components/logout-button";
+import { DesktopNav } from "./_components/desktop-nav";
+import { AvatarMenu } from "./_components/avatar-menu";
 import { MobileMenu } from "./_components/mobile-menu";
-
-const NAV = [
-  { href: "/kalender", label: "Kalender" },
-  { href: "/samen-fietsen", label: "Samen fietsen" },
-  { href: "/teams", label: "Teams" },
-  { href: "/achievements", label: "Achievements" },
-  { href: "/leden", label: "Leden" },
-  { href: "/training", label: "Training" },
-  { href: "/materiaal", label: "Vraag en Aanbod" },
-  { href: "/media", label: "Media" },
-  { href: "/community", label: "Community" },
-  { href: "/polls", label: "Polls" },
-  { href: "/sponsors", label: "Sponsors" },
-];
-
-const ADMIN_NAV = [
-  {
-    href: "/beheer/rechten",
-    label: "Rechten",
-    permission: "roles.manage_permissions" as const,
-  },
-  {
-    href: "/beheer/achievements",
-    label: "Badgebeheer",
-    permission: "achievements.finalize" as const,
-  },
-  {
-    href: "/beheer/notificaties",
-    label: "Notificaties",
-    permission: "community.manage" as const,
-  },
-];
+import { ADMIN_NAV } from "./_components/nav-config";
 
 export default async function AppLayout({
   children,
@@ -57,7 +27,6 @@ export default async function AppLayout({
 
   const displayName = profile?.display_name ?? user.email ?? "";
   const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
-  const navItems = adminItems.length > 0 ? [...NAV, ...adminItems] : NAV;
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -71,36 +40,17 @@ export default async function AppLayout({
             <ZwbMark className="h-7 w-auto" />
           </Link>
 
-          {/* Desktop navigation */}
-          <ul className="hidden flex-1 gap-4 text-sm md:flex">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {/* Desktop nav (5 top-level slots, sommige met dropdown) */}
+          <DesktopNav />
 
-          {/* Spacer for mobile (pushes right items to the right) */}
+          {/* Spacer voor mobiel zodat right-side rechts uitlijnt */}
           <div className="flex-1 md:hidden" />
 
-          {/* Right side */}
+          {/* Right side: avatar-dropdown + theme + mobile-hamburger */}
           <div className="flex items-center gap-2">
-            <Link
-              href="/profiel"
-              className="hidden text-sm text-muted-foreground hover:text-primary md:inline"
-            >
-              {displayName}
-            </Link>
+            <AvatarMenu displayName={displayName} adminItems={adminItems} />
             <ThemeToggle />
-            <div className="hidden md:block">
-              <LogoutButton />
-            </div>
-            <MobileMenu items={navItems} displayName={displayName} />
+            <MobileMenu displayName={displayName} adminItems={adminItems} />
           </div>
         </nav>
       </header>

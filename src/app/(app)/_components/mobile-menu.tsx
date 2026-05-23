@@ -5,24 +5,27 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
-
-type NavItem = { href: string; label: string };
+import {
+  AVATAR_NAV,
+  NAV_GROUPS,
+  isActiveHref,
+  type AdminNavItem,
+  type NavLeaf,
+} from "./nav-config";
 
 export function MobileMenu({
-  items,
   displayName,
+  adminItems,
 }: {
-  items: NavItem[];
   displayName: string;
+  adminItems: AdminNavItem[];
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const close = () => setOpen(false);
 
-  // SSR-safe portal: pas mounten als de DOM beschikbaar is. Dit is de
-  // standaardpattern voor createPortal — setState in effect is hier
-  // intentioneel om hydration-mismatch te voorkomen.
+  // SSR-safe portal: pas mounten als de DOM beschikbaar is.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
@@ -35,6 +38,31 @@ export function MobileMenu({
       document.body.style.overflow = original;
     };
   }, [open]);
+
+  function Item({ item }: { item: NavLeaf }) {
+    const active = isActiveHref(pathname, item.href);
+    return (
+      <Link
+        href={item.href}
+        onClick={close}
+        className={`block rounded-md px-3 py-2.5 text-sm transition ${
+          active
+            ? "bg-primary font-medium text-primary-foreground"
+            : "text-foreground hover:bg-muted"
+        }`}
+      >
+        {item.label}
+      </Link>
+    );
+  }
+
+  function SectionHeader({ label }: { label: string }) {
+    return (
+      <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+    );
+  }
 
   return (
     <>
@@ -81,41 +109,52 @@ export function MobileMenu({
       {mounted && open
         ? createPortal(
             <div className="md:hidden">
-              {/* Backdrop — dekt de hele viewport onder de header */}
+              {/* Backdrop */}
               <div
                 className="fixed inset-x-0 bottom-0 top-14 z-[9998] bg-zwb-petrol-dark/80 dark:bg-black/80"
                 onClick={close}
                 aria-hidden
               />
-              {/* Panel — fully opaque card-bg, scrollable als de lijst lang is */}
+              {/* Panel */}
               <div className="fixed inset-x-0 top-14 z-[9999] max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b bg-card shadow-2xl">
-                <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
-                  {items.map((item) => {
-                    const active =
-                      pathname === item.href || pathname.startsWith(`${item.href}/`);
+                <nav className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-3">
+                  {NAV_GROUPS.map((node) => {
+                    if (node.type === "link") {
+                      return <Item key={node.href} item={node} />;
+                    }
                     return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={close}
-                        className={`rounded-md px-3 py-2.5 text-sm transition ${
-                          active
-                            ? "bg-primary font-medium text-primary-foreground"
-                            : "text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
+                      <div key={node.label} className="flex flex-col gap-0.5">
+                        <SectionHeader label={node.label} />
+                        {node.items.map((item) => (
+                          <Item key={item.href} item={item} />
+                        ))}
+                      </div>
                     );
                   })}
+
                   <div className="my-2 border-t" />
-                  <Link
-                    href="/profiel"
-                    onClick={close}
-                    className="rounded-md px-3 py-2.5 text-sm text-foreground hover:bg-muted"
-                  >
-                    {displayName}
-                  </Link>
+
+                  <SectionHeader label={displayName} />
+                  {AVATAR_NAV.map((item) => (
+                    <Item key={item.href} item={item} />
+                  ))}
+
+                  {adminItems.length > 0 && (
+                    <>
+                      <SectionHeader label="Beheer" />
+                      {adminItems.map((item) => (
+                        <Item
+                          key={item.href}
+                          item={{
+                            type: "link",
+                            href: item.href,
+                            label: item.label,
+                          }}
+                        />
+                      ))}
+                    </>
+                  )}
+
                   <div className="px-3 py-2">
                     <LogoutButton />
                   </div>
