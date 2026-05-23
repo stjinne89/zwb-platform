@@ -18,6 +18,11 @@ import {
 import { WindSummary } from "./_components/wind-summary";
 import { RsvpButtons } from "./_components/rsvp-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
+import { EventPhotoUploader } from "./_components/photo-uploader";
+import {
+  EventPhotoGallery,
+  type EventPhotoData,
+} from "./_components/photo-gallery";
 
 const TYPE_LABELS: Record<string, string> = {
   outdoor: "Outdoor rit",
@@ -72,22 +77,51 @@ export default async function EventDetailPage({
 
   if (!event) notFound();
 
-  const [{ data: rsvps }, access, { data: waGroups }] = await Promise.all([
-    supabase
-      .from("event_rsvps")
-      .select("status, profile_id, profiles(display_name)")
-      .eq("event_id", id),
-    getCurrentUserAccess(supabase),
-    supabase
-      .from("whatsapp_groups")
-      .select("id, name, invite_url, description")
-      .eq("event_id", id)
-      .order("display_order")
-      .order("name"),
-  ]);
+  const [{ data: rsvps }, access, { data: waGroups }, { data: photoRows }] =
+    await Promise.all([
+      supabase
+        .from("event_rsvps")
+        .select("status, profile_id, profiles(display_name)")
+        .eq("event_id", id),
+      getCurrentUserAccess(supabase),
+      supabase
+        .from("whatsapp_groups")
+        .select("id, name, invite_url, description")
+        .eq("event_id", id)
+        .order("display_order")
+        .order("name"),
+      supabase
+        .from("event_photos")
+        .select(
+          "id, storage_path, width, height, caption, taken_at, profile_id, profiles(display_name)",
+        )
+        .eq("event_id", id)
+        .order("taken_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false }),
+    ]);
 
   const isCreator = user?.id === event.created_by;
   const canManage = access.has("events.manage_all") || isCreator;
+
+  // Map photo rows → public URLs voor de gallery.
+  const photoData: EventPhotoData[] = (photoRows ?? []).map((row) => {
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("event-photos").getPublicUrl(row.storage_path);
+    return {
+      id: row.id,
+      url: publicUrl,
+      storagePath: row.storage_path,
+      width: row.width ?? null,
+      height: row.height ?? null,
+      caption: row.caption ?? null,
+      takenAt: row.taken_at ?? null,
+      uploaderId: row.profile_id,
+      uploaderName:
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((row.profiles as any)?.display_name as string) ?? "Onbekend",
+    };
+  });
 
   const myRsvp = rsvps?.find((r) => r.profile_id === user?.id)?.status as
     | RsvpStatus
@@ -283,6 +317,21 @@ export default async function EventDetailPage({
             )}
           </div>
         ))}
+      </section>
+
+      <section className="space-y-3 rounded-lg border bg-card p-4">
+        <header className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Foto&apos;s ({photoData.length})
+          </h2>
+          {user && <EventPhotoUploader eventId={event.id} />}
+        </header>
+        <EventPhotoGallery
+          eventId={event.id}
+          photos={photoData}
+          currentUserId={user?.id ?? null}
+          isAdmin={access.isAdmin}
+        />
       </section>
     </div>
   );
