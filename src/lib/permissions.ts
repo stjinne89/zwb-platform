@@ -97,6 +97,13 @@ export const COMMUNITY_PERMISSIONS = [
     description: "Kan live sessies opschonen of beheren.",
     category: "Samen fietsen",
   },
+  {
+    id: "sponsors.manage",
+    label: "Sponsors & ledenvoordeel beheren",
+    description:
+      "Kan sponsors toevoegen of bewerken en kortingscodes / ledenvoordeel beheren.",
+    category: "Sponsors",
+  },
 ] as const;
 
 export type CommunityPermission = (typeof COMMUNITY_PERMISSIONS)[number]["id"];
@@ -131,6 +138,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "achievements.finalize",
     "live.start",
     "live.manage",
+    "sponsors.manage",
   ],
   paying_member: ["events.create", "content.create_posts", "live.start"],
   community_member: ["content.create_posts", "live.start"],
