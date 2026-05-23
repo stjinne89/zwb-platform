@@ -14,6 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Zorgt dat relatieve OG-images (zoals /icon-512.png op /live/[id])
+  // door scrapers als WhatsApp/Discord als absolute URLs kunnen worden
+  // opgehaald. Fallback naar de Netlify-deploy als de env-var ontbreekt.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://zwb-platform.netlify.app",
+  ),
   title: "ZWB Cycling Platform",
   description: "Hub voor ZWB Cycling Community — events, training, teams en chat.",
   applicationName: "ZWB",

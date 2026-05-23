@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { EventLiveTicker } from "@/app/(app)/events/[id]/_components/event-live-ticker";
+import { WindSummary } from "@/app/(app)/events/[id]/_components/wind-summary";
 import { fetchEventLiveSnapshot } from "@/lib/live/event-snapshot";
+import { fetchWindForecast } from "@/lib/weather";
+import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { ZwbMark } from "@/components/zwb-logo";
 
 type PageProps = {
@@ -9,6 +13,75 @@ type PageProps = {
 };
 
 export const dynamic = "force-dynamic";
+
+function formatStartLabel(start: Date): string {
+  return new Intl.DateTimeFormat("nl-NL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Amsterdam",
+  }).format(start);
+}
+
+function formatDateOnly(start: Date): string {
+  return new Intl.DateTimeFormat("nl-NL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Amsterdam",
+  }).format(start);
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { eventId } = await params;
+  const snapshot = await fetchEventLiveSnapshot(eventId);
+  if (!snapshot.event) {
+    return {
+      title: "ZWB Live",
+      description: "Live volgen van ZWB Cycling-ritten.",
+    };
+  }
+  const event = snapshot.event;
+  const startLabel = formatStartLabel(new Date(event.start_at));
+  const locationSuffix = event.location ? ` vanaf ${event.location}` : "";
+  const description = `Volg ${event.title} live op ${startLabel}${locationSuffix}.`;
+  const title = `ZWB live: ${event.title}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "ZWB Cycling",
+      locale: "nl_NL",
+      images: [
+        {
+          url: "/icon-512.png",
+          width: 512,
+          height: 512,
+          alt: "ZWB Cycling",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: ["/icon-512.png"],
+    },
+    robots: {
+      // Niet indexeren — dit is een share-link, geen publieke landing.
+      index: false,
+      follow: false,
+    },
+  };
+}
 
 export default async function PublicLiveTickerPage({ params }: PageProps) {
   const { eventId } = await params;
@@ -19,14 +92,36 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
   const { event, sessions, positions } = snapshot;
 
   const startDate = new Date(event.start_at);
-  const startLabel = new Intl.DateTimeFormat("nl-NL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Amsterdam",
-  }).format(startDate);
+  const startLabel = formatStartLabel(startDate);
+
+  // Weer + headwind: alleen als we lat/lon hebben én de rit binnen het
+  // 16-daags forecast-venster valt (Open-Meteo).
+  const windForecast =
+    event.start_lat != null && event.start_lon != null
+      ? await fetchWindForecast(
+          event.start_lat,
+          event.start_lon,
+          startDate,
+        ).catch(() => null)
+      : null;
+
+  // Initial bearing voor windrichting-classificatie: GPX server-fetchen.
+  let rideBearing: number | null = null;
+  if (event.gpxUrl) {
+    try {
+      const gpxRes = await fetch(event.gpxUrl, {
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (gpxRes.ok) {
+        const xml = await gpxRes.text();
+        const pair = firstTwoTrkptFromGpx(xml);
+        if (pair) rideBearing = gpxBearing(pair[0], pair[1]);
+      }
+    } catch {
+      // negeer — wind wordt dan zonder richting-classificatie getoond
+    }
+  }
 
   return (
     <div className="mx-auto min-h-screen max-w-5xl space-y-6 px-4 py-6">
@@ -63,6 +158,10 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
         )}
       </section>
 
+      {windForecast && (
+        <WindSummary forecast={windForecast} rideBearing={rideBearing} />
+      )}
+
       {!event.gpxUrl ? (
         <section className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
           Voor deze rit is geen route (GPX) geüpload, dus we kunnen geen
@@ -70,17 +169,9 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
         </section>
       ) : !event.isToday ? (
         <section className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-          De liveticker is alleen actief op de dag van de rit zelf.
-          Kom terug op{" "}
-          <strong>
-            {new Intl.DateTimeFormat("nl-NL", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              timeZone: "Europe/Amsterdam",
-            }).format(startDate)}
-          </strong>{" "}
-          om mee te kijken.
+          De liveticker is alleen actief op de dag van de rit zelf. Kom
+          terug op <strong>{formatDateOnly(startDate)}</strong> om mee te
+          kijken.
         </section>
       ) : (
         <EventLiveTicker

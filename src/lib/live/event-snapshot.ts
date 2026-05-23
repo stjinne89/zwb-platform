@@ -5,6 +5,7 @@
 // Gebruikt de service-role admin-client zodat anon-bezoekers de data
 // kunnen zien zonder RLS-policy-uitbreiding.
 
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   EventLiveSession,
@@ -31,6 +32,8 @@ export type PublicEventInfo = {
   title: string;
   start_at: string;
   location: string | null;
+  start_lat: number | null;
+  start_lon: number | null;
   gpxUrl: string | null;
   isToday: boolean;
 };
@@ -41,14 +44,22 @@ export type EventLiveSnapshot = {
   positions: EventLivePosition[];
 };
 
-export async function fetchEventLiveSnapshot(
+// React.cache() dedupliceert binnen één request: generateMetadata + page
+// triggeren samen nu maar 1 keer de DB-queries.
+export const fetchEventLiveSnapshot = cache(
+  async (eventId: string): Promise<EventLiveSnapshot> => {
+    return _fetchEventLiveSnapshot(eventId);
+  },
+);
+
+async function _fetchEventLiveSnapshot(
   eventId: string,
 ): Promise<EventLiveSnapshot> {
   const admin = createAdminClient();
 
   const { data: event } = await admin
     .from("events")
-    .select("id, title, start_at, location, gpx_path")
+    .select("id, title, start_at, location, start_lat, start_lon, gpx_path")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -73,6 +84,8 @@ export async function fetchEventLiveSnapshot(
     title: event.title,
     start_at: event.start_at,
     location: event.location,
+    start_lat: event.start_lat != null ? Number(event.start_lat) : null,
+    start_lon: event.start_lon != null ? Number(event.start_lon) : null,
     gpxUrl,
     isToday,
   };
