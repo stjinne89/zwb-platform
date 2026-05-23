@@ -32,6 +32,11 @@ const ADMIN_NAV = [
     label: "Badgebeheer",
     permission: "achievements.finalize" as const,
   },
+  {
+    href: "/beheer/notificaties",
+    label: "Notificaties",
+    permission: "community.manage" as const,
+  },
 ];
 
 export default async function AppLayout({

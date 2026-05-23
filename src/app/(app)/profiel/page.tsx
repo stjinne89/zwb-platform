@@ -5,6 +5,7 @@ import { AvatarUpload } from "./_components/avatar-upload";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
+import { PushToggle } from "./_components/push-toggle";
 import { StravaSection } from "./_components/strava-section";
 
 type AwardRow = {
@@ -51,6 +52,8 @@ export default async function ProfielPage() {
     { data: stravaUser },
     { data: milestoneBadges },
     { data: milestoneAwards },
+    { data: pushPrefs },
+    { data: pushSubs },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -89,6 +92,18 @@ export default async function ProfielPage() {
       .select("badge_id")
       .eq("profile_id", user.id)
       .eq("award_scope", "milestone"),
+    supabase
+      .from("notification_preferences")
+      .select(
+        "on_new_event, on_live_started, on_new_badge, on_admin_broadcast",
+      )
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("push_subscriptions")
+      .select("id")
+      .eq("profile_id", user.id)
+      .limit(1),
   ]);
 
   const awardList = (awards ?? []) as unknown as AwardRow[];
@@ -140,6 +155,17 @@ export default async function ProfielPage() {
       />
 
       <StravaSection connection={stravaConn ?? null} />
+
+      <PushToggle
+        vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+        initialPreferences={{
+          on_new_event: pushPrefs?.on_new_event ?? true,
+          on_live_started: pushPrefs?.on_live_started ?? true,
+          on_new_badge: pushPrefs?.on_new_badge ?? false,
+          on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
+        }}
+        hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
+      />
 
       {milestones.length > 0 && (
         <BadgeVault

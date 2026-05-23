@@ -66,6 +66,30 @@ export async function createEvent(input: EventInput) {
 
   if (error) return { ok: false as const, error: error.message };
 
+  // Best-effort push-notificatie naar opt-in leden. Faalt stil als de
+  // VAPID-keys nog niet zijn ingesteld op de server.
+  try {
+    const { sendNotificationToMembers } = await import("@/lib/push/send");
+    const startLabel = new Date(input.start_at).toLocaleDateString("nl-NL", {
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    await sendNotificationToMembers(
+      "on_new_event",
+      {
+        title: "Nieuw event op de kalender",
+        body: `${input.title.trim()} — ${startLabel}`,
+        url: `/events/${data.id}`,
+        tag: `event-${data.id}`,
+      },
+      { excludeProfileId: access.user.id },
+    );
+  } catch {
+    // nooit blokkerend voor event-aanmaak
+  }
+
   redirect(`/events/${data.id}`);
 }
 
