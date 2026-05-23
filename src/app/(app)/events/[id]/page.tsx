@@ -10,6 +10,11 @@ import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchWindForecast } from "@/lib/weather";
 import { GpxMap } from "./_components/gpx-map";
 import { ElevationProfile } from "./_components/elevation-profile";
+import {
+  EventLiveTicker,
+  type EventLivePosition,
+  type EventLiveSession,
+} from "./_components/event-live-ticker";
 import { WindSummary } from "./_components/wind-summary";
 import { RsvpButtons } from "./_components/rsvp-buttons";
 
@@ -23,6 +28,26 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 type RsvpStatus = "yes" | "maybe" | "no";
+const STALE_AFTER_MIN = 15;
+
+function amsterdamDateKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function isAmsterdamToday(value: string) {
+  return amsterdamDateKey(new Date(value)) === amsterdamDateKey(new Date());
+}
+
+async function getActiveCutoffIso() {
+  return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
+}
 
 export default async function EventDetailPage({
   params,
@@ -74,6 +99,14 @@ export default async function EventDetailPage({
       (r as any).profiles?.display_name ?? "Onbekend";
     grouped[r.status as RsvpStatus]?.push(name);
   }
+  const eventIsToday = isAmsterdamToday(event.start_at);
+  const liveParticipantIds = Array.from(
+    new Set(
+      (rsvps ?? [])
+        .filter((r) => r.status === "yes" || r.status === "maybe")
+        .map((r) => r.profile_id),
+    ),
+  );
 
   let gpxUrl: string | null = null;
   if (event.gpx_path) {
@@ -81,6 +114,42 @@ export default async function EventDetailPage({
       .from("event-gpx")
       .createSignedUrl(event.gpx_path, 3600);
     gpxUrl = data?.signedUrl ?? null;
+  }
+
+  let eventLiveSessions: EventLiveSession[] = [];
+  let eventLivePositions: EventLivePosition[] = [];
+  if (eventIsToday && liveParticipantIds.length > 0) {
+    const cutoff = await getActiveCutoffIso();
+    const { data: sessionRows } = await supabase
+      .from("live_sessions")
+      .select(
+        "id, profile_id, started_at, last_seen_at, profiles(display_name)",
+      )
+      .in("profile_id", liveParticipantIds)
+      .eq("mode", "outdoor")
+      .is("ended_at", null)
+      .gte("last_seen_at", cutoff)
+      .order("started_at", { ascending: false });
+
+    eventLiveSessions = (sessionRows ?? []).map((s) => ({
+      id: s.id,
+      profileId: s.profile_id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+      startedAt: s.started_at,
+      lastSeenAt: s.last_seen_at,
+    }));
+
+    const sessionIds = eventLiveSessions.map((s) => s.id);
+    if (sessionIds.length > 0) {
+      const { data: positionRows } = await supabase
+        .from("live_positions")
+        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at")
+        .in("session_id", sessionIds)
+        .order("recorded_at", { ascending: false })
+        .limit(Math.max(500, sessionIds.length * 80));
+      eventLivePositions = (positionRows ?? []) as unknown as EventLivePosition[];
+    }
   }
 
   // Wind-forecast wordt server-side opgehaald — alleen als we lat/lon
@@ -165,12 +234,19 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {gpxUrl && (
-        <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-          <GpxMap gpxUrl={gpxUrl} />
-          <ElevationProfile gpxUrl={gpxUrl} />
-        </div>
-      )}
+      {gpxUrl &&
+        (eventIsToday ? (
+          <EventLiveTicker
+            gpxUrl={gpxUrl}
+            sessions={eventLiveSessions}
+            initialPositions={eventLivePositions}
+          />
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+            <GpxMap gpxUrl={gpxUrl} />
+            <ElevationProfile gpxUrl={gpxUrl} />
+          </div>
+        ))}
 
       {windForecast && (
         <WindSummary forecast={windForecast} rideBearing={rideBearing} />
