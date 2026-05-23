@@ -17,6 +17,7 @@ const NAV = [
   { href: "/materiaal", label: "Vraag en Aanbod" },
   { href: "/media", label: "Media" },
   { href: "/community", label: "Community" },
+  { href: "/polls", label: "Polls" },
   { href: "/sponsors", label: "Sponsors" },
 ];
 

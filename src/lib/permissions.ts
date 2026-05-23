@@ -104,6 +104,12 @@ export const COMMUNITY_PERMISSIONS = [
       "Kan sponsors toevoegen of bewerken en kortingscodes / ledenvoordeel beheren.",
     category: "Sponsors",
   },
+  {
+    id: "polls.manage",
+    label: "Polls aanmaken & sluiten",
+    description: "Kan polls aanmaken, sluiten en verwijderen.",
+    category: "Community",
+  },
 ] as const;
 
 export type CommunityPermission = (typeof COMMUNITY_PERMISSIONS)[number]["id"];
@@ -124,8 +130,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "teams.manage_results",
     "content.create_posts",
     "live.start",
+    "polls.manage",
   ],
-  event_organizer: ["events.create", "content.create_posts", "live.start"],
+  event_organizer: [
+    "events.create",
+    "content.create_posts",
+    "live.start",
+    "polls.manage",
+  ],
   community_manager: [
     "events.create",
     "events.manage_all",
@@ -139,6 +151,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "live.start",
     "live.manage",
     "sponsors.manage",
+    "polls.manage",
   ],
   paying_member: ["events.create", "content.create_posts", "live.start"],
   community_member: ["content.create_posts", "live.start"],
