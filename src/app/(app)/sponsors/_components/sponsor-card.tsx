@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 
 export type SponsorCardData = {
@@ -70,11 +69,6 @@ export function SponsorCard({ sponsor }: { sponsor: SponsorCardData }) {
           <div className="prose prose-sm dark:prose-invert mt-1 text-center text-xs text-muted-foreground">
             <Markdown source={sponsor.description_md} />
           </div>
-        )}
-        {sponsor.website_url && (
-          <p className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground">
-            Bekijk site <ExternalLink className="size-3" />
-          </p>
         )}
       </div>
     </div>
