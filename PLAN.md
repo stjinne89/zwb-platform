@@ -4,7 +4,8 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
-> Laatst bijgewerkt: 2026-05-23 (sponsor-zone + ledenvoordeel afgerond)
+> Laatst bijgewerkt: 2026-05-23 (foto-galerij + polls + push-notificaties
+> afgerond — fase 3 inhoudelijk klaar op een paar kleinere punten na)
 
 ---
 
@@ -55,11 +56,11 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 
 | # | Onderdeel | Status |
 |---|---|:---:|
-| 12 | Foto-galerij per event | 🔜 volgende iteratie |
+| 12 | Foto-galerij per event | ✅ |
 | 13 | Achievements & badges (400 badges, 38 auto-evaluators) | ✅✅✅ |
 | 14 | Club-stats dashboard | 🟡 deels (weekranking + recente ritten) |
-| 15 | Polls | 🔜 volgende iteratie |
-| 16 | Push-notificaties (PWA Web Push) | 🔜 volgende iteratie |
+| 15 | Polls | ✅ |
+| 16 | Push-notificaties (PWA Web Push) | ✅ infra · ⏳ VAPID-keys setup |
 | 17 | Sponsor-zone + ledenvoordeel (samengevoegd) | ✅ |
 | 18 | Contributie/merch via Mollie iDEAL | ⏸️ on-hold |
 
@@ -136,21 +137,24 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - Nav-item toegevoegd. Logo's nog leeg → initialen-fallback tot
      admin uploadt via "Sponsor toevoegen / bewerken" UI.
 
-2. **🚧 NU — Migratie 0030 uitrollen + logo's uploaden**
-   - User draait `supabase db push` (of plakt migratie in Dashboard
-     SQL editor) om de schema-wijziging + seed live te krijgen.
-   - Admin upload de logo's via de upload-knop bij elke sponsor.
+2. **🚧 NU — Migraties uitrollen + VAPID-keys setup**
+   - User draait `supabase db push` of plakt `0030-0034` in Dashboard
+     SQL editor om alle schema-wijzigingen live te krijgen.
+   - Logo's uploaden via /sponsors admin-paneel (1× per sponsor).
+   - Push-keys genereren: `npx web-push generate-vapid-keys` en de
+     drie env vars in Netlify zetten (zie `.env.local.example`).
 
-3. **🔜 Volgende iteratie**
-   - **Foto-galerij per event** — upload via Supabase Storage,
-     auto-resize, optioneel geo-tag. Koppelen aan event-liveticker
-     (rit-verslag met foto's achteraf).
-   - **Polls** — kleine bouw, hoge engagement. RSVP-achtig UI per
-     vraag, mogelijk gekoppeld aan event (datum/locatie-keuze) of
-     vrijstaand op /community.
-   - **Push-notificaties** (Web Push API) — fundament staat in PWA,
-     opt-in per user, gebruik voor event-reminders + chat-meldingen
-     (eventueel later) + nieuwe badges.
+3. **✅ AFGEROND iteratie 3 (commits `fe7c906`, `406fa79`, `f745f43`)**
+   - **Foto-galerij per event** (12) — upload via Supabase Storage
+     (bucket `event-photos`), client-side resize naar 1920px, multi-
+     file met progress, grid + lightbox modal. Migratie `0032`.
+   - **Polls** (15) — /polls met scope-bewust schema (free/event/team),
+     single + multi-select, sluitings-tijd, admin-CRUD via
+     `polls.manage`-permission. Migratie `0033`.
+   - **Push-notificaties** (16) — VAPID-based web push: opt-in toggle
+     op /profiel, per-trigger preferences, send-helper met auto-prune,
+     trigger op nieuw event + admin-broadcast pagina op /beheer/
+     notificaties. Migratie `0034`.
 
 3. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
