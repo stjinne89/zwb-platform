@@ -4,7 +4,7 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
-> Laatst bijgewerkt: 2026-05-23
+> Laatst bijgewerkt: 2026-05-23 (sponsor-zone + ledenvoordeel afgerond)
 
 ---
 
@@ -60,7 +60,7 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 | 14 | Club-stats dashboard | 🟡 deels (weekranking + recente ritten) |
 | 15 | Polls | 🔜 volgende iteratie |
 | 16 | Push-notificaties (PWA Web Push) | 🔜 volgende iteratie |
-| 17 | Sponsor-zone + ledenvoordeel (samengevoegd) | 🚧 NU |
+| 17 | Sponsor-zone + ledenvoordeel (samengevoegd) | ✅ |
 | 18 | Contributie/merch via Mollie iDEAL | ⏸️ on-hold |
 
 ### Fase 4 — Native
@@ -124,24 +124,24 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Roadmap forward (afgesproken volgorde)
 
-1. **🚧 NU — Sponsor-zone + ledenvoordeel (samengevoegd)** — punt 17
-   - Sponsors-showcase (publiek) + ledenvoordeel-blok (leden-only)
-   - Open keuzes (worden bij start van implementatie geverifieerd):
-     - Pagina-structuur: één `/sponsors`-pagina met twee secties vs. twee aparte routes
-     - Sponsor-tiering: tiered (hoofd/co/partner/vriend) vs. vlak
-     - Voordeel-koppeling: alleen sponsor-gekoppeld vs. ook losse aanbiedingen
-     - Logo-opslag: Supabase Storage bucket vs. externe URL
-   - Suggesties (default): één pagina + tiers + gekoppeld-met-optioneel-los + Storage bucket
-   - Data-model schets:
-     ```
-     sponsors(id, name, slug, logo_url, website_url, description_md,
-              tier, display_order, active, timestamps)
-     member_benefits(id, sponsor_id (nullable), title, description_md,
-                     discount_code, redeem_url, valid_from, valid_until,
-                     active, display_order, timestamps)
-     ```
+1. **✅ AFGEROND — Sponsor-zone + ledenvoordeel (commit `687f6ec`)** — punt 17
+   - Migratie `0030_sponsors.sql`: `sponsor_tier` enum + `sponsors` +
+     `member_benefits` tabellen + RLS (publieke sponsors, leden-only
+     voordelen) + Storage bucket `sponsors` + permission
+     `sponsors.manage` aan board + community_manager
+   - Seed met 8 sponsors van zwbcycling.nl (Hoofd: Haga Rubbers, Sub:
+     RSC, Team: SPOTR/JeKa/Kalas/NexReply/A-Lourens, Web: KP Design)
+   - `/sponsors`-pagina: tier-grouped showcase + gated ledenvoordeel-
+     blok + worden-sponsor CTA + admin-paneel met logo-upload + CRUD
+   - Nav-item toegevoegd. Logo's nog leeg → initialen-fallback tot
+     admin uploadt via "Sponsor toevoegen / bewerken" UI.
 
-2. **🔜 Volgende iteratie**
+2. **🚧 NU — Migratie 0030 uitrollen + logo's uploaden**
+   - User draait `supabase db push` (of plakt migratie in Dashboard
+     SQL editor) om de schema-wijziging + seed live te krijgen.
+   - Admin upload de logo's via de upload-knop bij elke sponsor.
+
+3. **🔜 Volgende iteratie**
    - **Foto-galerij per event** — upload via Supabase Storage,
      auto-resize, optioneel geo-tag. Koppelen aan event-liveticker
      (rit-verslag met foto's achteraf).
