@@ -13,6 +13,39 @@ import {
   type NavLeaf,
 } from "./nav-config";
 
+function MobileMenuItem({
+  item,
+  pathname,
+  close,
+}: {
+  item: NavLeaf;
+  pathname: string;
+  close: () => void;
+}) {
+  const active = isActiveHref(pathname, item.href);
+  return (
+    <Link
+      href={item.href}
+      onClick={close}
+      className={`block rounded-md px-3 py-2.5 text-sm transition ${
+        active
+          ? "bg-primary font-medium text-primary-foreground"
+          : "text-foreground hover:bg-muted"
+      }`}
+    >
+      {item.label}
+    </Link>
+  );
+}
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {label}
+    </p>
+  );
+}
+
 export function MobileMenu({
   displayName,
   adminItems,
@@ -38,31 +71,6 @@ export function MobileMenu({
       document.body.style.overflow = original;
     };
   }, [open]);
-
-  function Item({ item }: { item: NavLeaf }) {
-    const active = isActiveHref(pathname, item.href);
-    return (
-      <Link
-        href={item.href}
-        onClick={close}
-        className={`block rounded-md px-3 py-2.5 text-sm transition ${
-          active
-            ? "bg-primary font-medium text-primary-foreground"
-            : "text-foreground hover:bg-muted"
-        }`}
-      >
-        {item.label}
-      </Link>
-    );
-  }
-
-  function SectionHeader({ label }: { label: string }) {
-    return (
-      <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-    );
-  }
 
   return (
     <>
@@ -120,13 +128,25 @@ export function MobileMenu({
                 <nav className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-3">
                   {NAV_GROUPS.map((node) => {
                     if (node.type === "link") {
-                      return <Item key={node.href} item={node} />;
+                      return (
+                        <MobileMenuItem
+                          key={node.href}
+                          item={node}
+                          pathname={pathname}
+                          close={close}
+                        />
+                      );
                     }
                     return (
                       <div key={node.label} className="flex flex-col gap-0.5">
                         <SectionHeader label={node.label} />
                         {node.items.map((item) => (
-                          <Item key={item.href} item={item} />
+                          <MobileMenuItem
+                            key={item.href}
+                            item={item}
+                            pathname={pathname}
+                            close={close}
+                          />
                         ))}
                       </div>
                     );
@@ -136,15 +156,22 @@ export function MobileMenu({
 
                   <SectionHeader label={displayName} />
                   {AVATAR_NAV.map((item) => (
-                    <Item key={item.href} item={item} />
+                    <MobileMenuItem
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                      close={close}
+                    />
                   ))}
 
                   {adminItems.length > 0 && (
                     <>
                       <SectionHeader label="Beheer" />
                       {adminItems.map((item) => (
-                        <Item
+                        <MobileMenuItem
                           key={item.href}
+                          pathname={pathname}
+                          close={close}
                           item={{
                             type: "link",
                             href: item.href,
