@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,39 +31,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return buffer;
 }
 
-function subscribeToPushSupport() {
-  return () => undefined;
-}
-
-function getPushSupportSnapshot() {
-  return (
-    typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
-  );
-}
-
-function getServerPushSupportSnapshot() {
-  return false;
-}
-
-function currentNotificationPermission(): NotificationPermission | null {
-  return typeof window !== "undefined" && "Notification" in window
-    ? Notification.permission
-    : null;
-}
-
 export function PushToggle({
   vapidPublicKey,
   initialPreferences,
   hasSubscriptionInDb,
 }: Props) {
-  const supported = useSyncExternalStore(
-    subscribeToPushSupport,
-    getPushSupportSnapshot,
-    getServerPushSupportSnapshot,
-  );
+  const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | null>(
     null,
   );
@@ -73,7 +46,17 @@ export function PushToggle({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const effectivePermission = permission ?? currentNotificationPermission();
+  // Browser-only capability check. Keeping the initial server/client render
+  // identical avoids hydration text mismatches in production.
+  useEffect(() => {
+    const ok =
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupported(ok);
+    if (ok) setPermission(Notification.permission);
+  }, []);
 
   async function enable() {
     if (!vapidPublicKey) {
@@ -221,7 +204,7 @@ export function PushToggle({
             Notificaties aanzetten op dit apparaat
           </Button>
         )}
-        {effectivePermission === "denied" && (
+        {permission === "denied" && (
           <span className="text-xs text-destructive">
             Permission geblokkeerd — pas dit aan in browser-instellingen.
           </span>
