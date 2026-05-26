@@ -112,7 +112,7 @@ async function _fetchEventLiveSnapshot(
   const cutoff = getActiveCutoffIso();
   const { data: sessionRows } = await admin
     .from("live_sessions")
-    .select("id, profile_id, started_at, last_seen_at, profiles(display_name)")
+    .select("id, profile_id, source, started_at, last_seen_at, profiles(display_name)")
     .in("profile_id", participantIds)
     .eq("mode", "outdoor")
     .is("ended_at", null)
@@ -125,6 +125,7 @@ async function _fetchEventLiveSnapshot(
     profileName:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+    source: (s.source ?? "manual") as EventLiveSession["source"],
     startedAt: s.started_at,
     lastSeenAt: s.last_seen_at,
   }));

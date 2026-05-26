@@ -35,6 +35,7 @@ export type EventLiveSession = {
   id: string;
   profileId: string;
   profileName: string;
+  source: "manual" | "owntracks" | "external";
   startedAt: string;
   lastSeenAt: string;
 };
@@ -53,6 +54,7 @@ type Marker = {
   sessionId: string;
   profileId: string;
   name: string;
+  source: "manual" | "owntracks" | "external";
   lat: number;
   lng: number;
   altitude: number | null;
@@ -216,6 +218,7 @@ function latestMarkers(
       sessionId: p.session_id,
       profileId: p.profile_id,
       name: session.profileName,
+      source: session.source,
       lat: Number(p.lat),
       lng: Number(p.lng),
       altitude: toNumber(p.altitude),
@@ -324,6 +327,7 @@ export function EventLiveTicker({
               sessionId: row.session_id,
               profileId: row.profile_id,
               name: session.profileName,
+              source: session.source,
               lat: Number(row.lat),
               lng: Number(row.lng),
               altitude: toNumber(row.altitude),
@@ -405,7 +409,7 @@ export function EventLiveTicker({
         </div>
         <div className="rounded-md border bg-background px-3 py-2 text-sm tabular-nums">
           <strong>{riders.length}</strong>{" "}
-          <span className="text-muted-foreground">live</span>
+              <span className="text-muted-foreground">live</span>
         </div>
       </div>
 
@@ -469,6 +473,9 @@ function RiderPopup({
   return (
     <div className="min-w-44 space-y-2 text-sm">
       <p className="font-semibold">{rider.name}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {rider.source === "owntracks" ? "OwnTracks live" : "ZWB live"}
+      </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         <dt className="text-muted-foreground">Afstand</dt>
         <dd>
@@ -514,6 +521,9 @@ function RiderList({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-medium">{rider.name}</p>
+                <p className="mt-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                  {rider.source === "owntracks" ? "OwnTracks live" : "ZWB live"}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Laatste update{" "}
                   {new Date(rider.recordedAt).toLocaleTimeString("nl-NL", {

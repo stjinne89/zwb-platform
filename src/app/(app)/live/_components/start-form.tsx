@@ -6,7 +6,7 @@ import { startSession } from "../_actions";
 import { Button } from "@/components/ui/button";
 
 const MODES = [
-  { value: "outdoor", label: "Outdoor (telefoon-GPS)" },
+  { value: "outdoor", label: "Outdoor met externe LiveTrack-link" },
   { value: "zwift", label: "Zwift" },
   { value: "mywhoosh", label: "MyWhoosh" },
   { value: "wahoo_indoor", label: "Wahoo Systm / RGT" },
@@ -45,6 +45,10 @@ export function StartLiveForm({ onStarted }: { onStarted?: () => void }) {
   return (
     <form action={submit} className="space-y-3 rounded-2xl border bg-card p-4">
       <h3 className="text-sm font-semibold">Start live-sessie</h3>
+      <p className="text-xs text-muted-foreground">
+        Echte outdoor GPS-posities lopen via OwnTracks. Dit formulier is voor
+        indoor status of een Garmin/Wahoo LiveTrack-doorlink.
+      </p>
 
       <div>
         <label className={LABEL}>Mode</label>
@@ -76,7 +80,7 @@ export function StartLiveForm({ onStarted }: { onStarted?: () => void }) {
         />
         <p className="mt-1 text-xs text-muted-foreground">
           {isOutdoor
-            ? "Korte beschrijving van je rit; verschijnt naast je positie."
+            ? "Korte beschrijving van je rit; verschijnt naast je LiveTrack-link."
             : "Welke wereld/route rijd je? Zo kunnen anderen joinen."}
         </p>
       </div>
@@ -90,15 +94,16 @@ export function StartLiveForm({ onStarted }: { onStarted?: () => void }) {
           className={FIELD}
         />
         <p className="mt-1 text-xs text-muted-foreground">
-          Garmin/Wahoo share-link. Andere leden krijgen een &quot;Open LiveTrack&quot;-knop bij je sessie.
+          Garmin/Wahoo share-link. Voor outdoor is deze link verplicht als je
+          geen OwnTracks gebruikt.
         </p>
       </div>
 
       {isOutdoor && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200">
-          <strong>Tip:</strong> houd de ZWB-app open + scherm aan tijdens je rit
-          (telefoon in stuurhouder). GPS stopt zodra de app naar achtergrond gaat.
-          Verwacht ~5-10% batterijgebruik per uur.
+          <strong>Tip:</strong> wil je echt als bolletje op de ZWB-kaart
+          verschijnen, koppel dan OwnTracks hierboven. Een externe LiveTrack-link
+          opent Garmin of Wahoo, maar levert geen GPS-punten aan ZWB.
         </div>
       )}
 

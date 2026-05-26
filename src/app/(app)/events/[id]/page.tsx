@@ -158,7 +158,7 @@ export default async function EventDetailPage({
     const { data: sessionRows } = await supabase
       .from("live_sessions")
       .select(
-        "id, profile_id, started_at, last_seen_at, profiles(display_name)",
+        "id, profile_id, source, started_at, last_seen_at, profiles(display_name)",
       )
       .in("profile_id", liveParticipantIds)
       .eq("mode", "outdoor")
@@ -171,6 +171,7 @@ export default async function EventDetailPage({
       profileId: s.profile_id,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
+      source: (s.source ?? "manual") as EventLiveSession["source"],
       startedAt: s.started_at,
       lastSeenAt: s.last_seen_at,
     }));
