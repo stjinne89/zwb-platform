@@ -42,6 +42,14 @@ function recordedAtFromPayload(payload: OwnTracksPayload) {
   return date.toISOString();
 }
 
+function ownTracksAccepted() {
+  return NextResponse.json([], {
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 async function readPayload(request: NextRequest): Promise<OwnTracksPayload> {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (payload._type && payload._type !== "location") {
-    return NextResponse.json({ ok: true, ignored: true });
+    return ownTracksAccepted();
   }
 
   const lat = toNumber(payload.lat);
@@ -168,11 +176,7 @@ export async function POST(request: NextRequest) {
     .update({ last_seen_at: nowIso })
     .eq("id", tokenRow.id);
 
-  return NextResponse.json({
-    ok: true,
-    sessionId,
-    recorded_at,
-  });
+  return ownTracksAccepted();
 }
 
 export async function GET() {
