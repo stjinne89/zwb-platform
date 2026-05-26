@@ -4,7 +4,7 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
-> Laatst bijgewerkt: 2026-05-23 (foto-galerij + polls + push-notificaties
+> Laatst bijgewerkt: 2026-05-23 (nav-clustering met dropdown-menus
 > afgerond — fase 3 inhoudelijk klaar op een paar kleinere punten na)
 
 ---
@@ -120,49 +120,84 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - Publieke ledenprofielen met opt-in + per-veld privacy (`profile_visibility`)
 - Roster-claim flow met auto-join op team
 - Role-permissions systeem
+- Publieke liveticker (`/live/[eventId]`) deelbaar buiten login
+- Nav-clustering met 5 top-level slots + dropdown-menus (desktop) en
+  section-headers (mobiel)
 
 ---
 
-## Roadmap forward (afgesproken volgorde)
+## Roadmap forward (chronologisch)
 
-1. **✅ AFGEROND — Sponsor-zone + ledenvoordeel (commit `687f6ec`)** — punt 17
+1. **✅ Sponsor-zone + ledenvoordeel** (commit `687f6ec`) — punt 17
    - Migratie `0030_sponsors.sql`: `sponsor_tier` enum + `sponsors` +
      `member_benefits` tabellen + RLS (publieke sponsors, leden-only
      voordelen) + Storage bucket `sponsors` + permission
      `sponsors.manage` aan board + community_manager
    - Seed met 8 sponsors van zwbcycling.nl (Hoofd: Haga Rubbers, Sub:
-     RSC, Team: SPOTR/JeKa/Kalas/NexReply/A-Lourens, Web: KP Design)
+     RSC, Team: SPOTR/JeKa/Kalas/NexReply/A-Lourens, Web: KP Design);
+     logo-URLs geseed in migratie `0031` (NexReply uitgezonderd =
+     base64-inline op de bron).
    - `/sponsors`-pagina: tier-grouped showcase + gated ledenvoordeel-
-     blok + worden-sponsor CTA + admin-paneel met logo-upload + CRUD
-   - Nav-item toegevoegd. Logo's nog leeg → initialen-fallback tot
-     admin uploadt via "Sponsor toevoegen / bewerken" UI.
+     blok + worden-sponsor CTA + admin-paneel met logo-upload + CRUD.
+   - Verlopen voordelen: 7 dagen grijs + niet-klikbaar, daarna auto-
+     delete via `pruneExpiredBenefits()` op page-load.
 
-2. **🚧 NU — Migraties uitrollen + VAPID-keys setup**
-   - User draait `supabase db push` of plakt `0030-0034` in Dashboard
-     SQL editor om alle schema-wijzigingen live te krijgen.
-   - Logo's uploaden via /sponsors admin-paneel (1× per sponsor).
-   - Push-keys genereren: `npx web-push generate-vapid-keys` en de
-     drie env vars in Netlify zetten (zie `.env.local.example`).
+2. **✅ Publieke liveticker** (commit `c946258`, `29c806f`)
+   - `/live/[eventId]` outside `(app)`-group, via admin-client server-
+     side zodat anon-bezoekers de event-data + sessies + posities zien
+     zonder RLS-uitbreiding.
+   - `/api/live/event/[eventId]`: JSON polling-endpoint (10s).
+   - `EventLiveTicker` accepteert optionele `pollUrl`-prop → polling
+     i.p.v. Realtime-subscription (geen duplicatie van renderlogic).
+   - Share-knop op event-detail naast Bewerk (mobiel: native
+     navigator.share, anders clipboard).
+   - OG metadata + weer-blok (Open-Meteo) op de publieke pagina.
 
-3. **✅ AFGEROND iteratie 3 (commits `fe7c906`, `406fa79`, `f745f43`)**
+3. **✅ Iteratie engagement** (commits `fe7c906`, `406fa79`, `f745f43`)
    - **Foto-galerij per event** (12) — upload via Supabase Storage
      (bucket `event-photos`), client-side resize naar 1920px, multi-
      file met progress, grid + lightbox modal. Migratie `0032`.
-   - **Polls** (15) — /polls met scope-bewust schema (free/event/team),
+   - **Polls** (15) — `/polls` met scope-bewust schema (free/event/team),
      single + multi-select, sluitings-tijd, admin-CRUD via
      `polls.manage`-permission. Migratie `0033`.
    - **Push-notificaties** (16) — VAPID-based web push: opt-in toggle
-     op /profiel, per-trigger preferences, send-helper met auto-prune,
-     trigger op nieuw event + admin-broadcast pagina op /beheer/
-     notificaties. Migratie `0034`.
+     op `/profiel`, per-trigger preferences, send-helper met auto-
+     prune, trigger op nieuw event + admin-broadcast pagina op
+     `/beheer/notificaties`. Migratie `0034`.
 
-3. **⏸️ On-hold (bewust uitgesteld)**
+4. **✅ Nav-clustering** (commit `d46b93e`)
+   - 11 platte nav-items + 3 admin gegroepeerd in **5 top-level slots**:
+     Kalender · Samen fietsen · **Club ▾** · **Community ▾** · Sponsors.
+   - Club ▾ = Teams, Leden, Achievements.
+   - Community ▾ = Community, Polls, Vraag en Aanbod, Media.
+   - Rechts: avatar-naam wordt dropdown met Profiel, Training,
+     Beheer-sectie (alleen als perms), Logout.
+   - Mobiel: section-headers per cluster i.p.v. geneste dropdowns.
+   - Gedeelde `nav-config.ts` als discriminated union (link | group)
+     gebruikt door zowel `DesktopNav` als `MobileMenu`.
+   - shadcn/ui `dropdown-menu` toegevoegd (base-ui-versie met
+     `render`-prop i.p.v. `asChild`).
+
+5. **🚧 NU — Migraties uitrollen + VAPID-keys setup**
+   - `supabase db push` of plak `0030-0034` in Dashboard SQL-editor
+     om alle schema-wijzigingen live te krijgen.
+   - Logo's uploaden via /sponsors admin-paneel waar nog initialen-
+     fallback staat (alleen NexReply na de logo-seed).
+   - Push-keys genereren: `npx web-push generate-vapid-keys` en de
+     drie env vars in Netlify zetten (zie `.env.local.example`).
+
+6. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
    - **Mollie iDEAL contributie/merch** — niet door bestuur gevraagd.
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
+   - **Cron-based event-reminders** (24h/2h voor start) — vereist
+     Netlify Scheduled Functions opzet, helper bestaat al.
+   - **on_live_started + on_new_badge push-triggers** — preference-
+     toggles staan er, alleen de send-calls moeten nog gehangen
+     worden in `samen-fietsen/_actions` + `milestone-evaluators.ts`.
 
 ---
 
