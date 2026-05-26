@@ -96,6 +96,12 @@ De overige ~62 codes blijven `manual` (admin kent toe) of `future`
 
 ## Sub-plan: ZWB Live "Samen fietsen"
 
+Update 2026-05-26: spoor A is omgebouwd van PWA foreground-GPS naar
+OwnTracks background tracking. De browser-geolocation/wake-lock route is
+verwijderd; echte outdoor posities komen nu binnen via
+`/api/live/owntracks` met persoonlijke tokens. De kalender toont live
+indicators op eventrijen en linkt direct naar `/live/[eventId]`.
+
 | Spoor | Beschrijving | Status |
 |---|---|:---:|
 | A | Outdoor GPS-tracker via PWA (geolocation + wake-lock + Realtime) | ✅ |
@@ -121,6 +127,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - Roster-claim flow met auto-join op team
 - Role-permissions systeem
 - Publieke liveticker (`/live/[eventId]`) deelbaar buiten login
+- OwnTracks background live tracking (`/api/live/owntracks`) met tokenbeheer
+  op `/live`
+- Live-indicator op `/kalender`-rijen met directe knop naar `/live/[eventId]`
 - Nav-clustering met 5 top-level slots + dropdown-menus (desktop) en
   section-headers (mobiel)
 
@@ -152,6 +161,12 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - Share-knop op event-detail naast Bewerk (mobiel: native
      navigator.share, anders clipboard).
    - OG metadata + weer-blok (Open-Meteo) op de publieke pagina.
+   - **OwnTracks background tracking** (commit `60397c7`):
+     `0035_owntracks_live_tracking.sql`, tokenbeheer op `/live`,
+     `/api/live/owntracks`, `live_sessions.source`, en verwijdering van
+     browser-geolocation/wake-lock tracking.
+   - **Kalender live hub**: eventrijen tonen "Live nu" + knop naar de
+     publieke liveticker wanneer RSVP-deelnemers actief tracken.
 
 3. **✅ Iteratie engagement** (commits `fe7c906`, `406fa79`, `f745f43`)
    - **Foto-galerij per event** (12) — upload via Supabase Storage
@@ -181,6 +196,11 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 5. **🚧 NU — Migraties uitrollen + VAPID-keys setup**
    - `supabase db push` of plak `0030-0034` in Dashboard SQL-editor
      om alle schema-wijzigingen live te krijgen.
+   - Update 2026-05-26: migratie `0035` hoort nu bij deze set. Controleer
+     na deploy dat `live_tracker_tokens` en `live_sessions.source` bestaan.
+   - OwnTracks praktijktest: token maken op `/live`, URL in OwnTracks
+     plakken, testlocatie laten posten, en controleren op `/kalender`,
+     `/events/[id]` en `/live/[eventId]`.
    - Logo's uploaden via /sponsors admin-paneel waar nog initialen-
      fallback staat (alleen NexReply na de logo-seed).
    - Push-keys genereren: `npx web-push generate-vapid-keys` en de
