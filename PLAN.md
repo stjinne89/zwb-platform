@@ -7,9 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-27 (operationele setup afgerond:
-> event-reminders cron actief op cron-job.org, NexReply logo
-> geüpload, alle migraties + env vars in productie. Fase 3 is dicht.)
+> Laatst bijgewerkt: 2026-05-27 (col-detector live: 6 col-badges
+> A013/A014/A015/A016/A019/A095 nu auto via Strava polyline-matching
+> tegen curated ~40-cols database; commit `5bd0018`)
 
 ---
 
@@ -88,12 +88,19 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 | 5 | Admin manual badge-beheer + "Badges herberekenen"-knop | ✅ |
 | 6 | /leden upgrade + publieke profielen + per-veld privacy | ✅ |
 
-Auto-evaluated codes (38):
-`A001 A002 A003 A004 A005 A006 A007 A008 A009 A012 A017 A018 A020 A021
-A026 A027 A028 A029 A030 A031 A038 A039 A041 A042 A043 A044 A045 A046
-A051 A057 A071 A075 A081 A084 A085 A088 A090 A096`
+Auto-evaluated codes (44):
+`A001 A002 A003 A004 A005 A006 A007 A008 A009 A012 A013 A014 A015 A016
+A017 A018 A019 A020 A021 A026 A027 A028 A029 A030 A031 A038 A039 A041
+A042 A043 A044 A045 A046 A051 A057 A071 A075 A081 A084 A085 A088 A090
+A095 A096`
 
-De overige ~62 codes blijven `manual` (admin kent toe) of `future`
+De col-badges A013 (Alpe d'Huez), A014 (Ventoux), A015 (Marmotte),
+A016 (Dolomiti), A019 (Col Collector), A095 (Stelvio) zijn nu auto
+via de col-detector op Strava polyline-data (migraties 0040 + 0041,
+commit `5bd0018`). ~40 cols in de `cols`-tabel; matches landen in
+`profile_climbed_cols`.
+
+De overige ~56 codes blijven `manual` (admin kent toe) of `future`
 (wachten op power-data / komoot-koppeling / etc).
 
 ---
