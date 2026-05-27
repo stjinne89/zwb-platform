@@ -4,9 +4,9 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
-> Laatst bijgewerkt: 2026-05-27 (event-reminders cron + club-stats
-> dashboard-widget + race-mate quick wins op /leden en event-detail
-> + Live spoor B/C definitief geskipt)
+> Laatst bijgewerkt: 2026-05-27 (operationele setup afgerond:
+> event-reminders cron actief op cron-job.org, NexReply logo
+> geüpload, alle migraties + env vars in productie. Fase 3 is dicht.)
 
 ---
 
@@ -216,40 +216,24 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      ZWB blijft bron van waarheid.
    - Push-trigger `on_training_plan` toegevoegd voor schema/coach-updates.
 
-6. **🚧 NU — Migraties uitrollen + env setup**
-   - `supabase db push` of plak `0030-0034` in Dashboard SQL-editor
-     om alle schema-wijzigingen live te krijgen.
-   - Update 2026-05-26: migratie `0035` hoort nu bij deze set. Controleer
-     na deploy dat `live_tracker_tokens` en `live_sessions.source` bestaan.
-   - Update 2026-05-27: migratie `0037` hoort nu bij deze set. Controleer
-     na deploy dat `training_coach_assignments`, `training_goals`,
-     `training_plans`, `training_workouts` en `training_ai_generations`
-     bestaan.
-   - OwnTracks praktijktest: token maken op `/live`, URL in OwnTracks
-     plakken, testlocatie laten posten, en controleren op `/kalender`,
-     `/events/[id]` en `/live/[eventId]`.
-   - Logo's uploaden via /sponsors admin-paneel waar nog initialen-
-     fallback staat (alleen NexReply na de logo-seed).
-   - Push-keys genereren: `npx web-push generate-vapid-keys` en de
-     drie env vars in Netlify zetten (zie `.env.local.example`).
-   - OpenAI env zetten voor training-AI: `OPENAI_API_KEY` en optioneel
-     `OPENAI_TRAINING_MODEL` (default in code: `gpt-4.1-mini`).
-
-7. **✅ Afronden fase-3 push + stats + race-mate** (commit volgt)
+6. **✅ Afronden fase-3 push + stats + race-mate** (commits `0f64399`, `3aaff2c`)
    - **Event-reminders cron** (`0038_event_reminders.sql` + `/api/events/reminders`):
      24u + 2u voor start een push-notificatie naar RSVP yes/maybe leden
      die `on_event_reminder=true` hebben. Bearer-auth via
      `EVENT_REMINDER_SECRET`, dedupe via `event_reminder_sends`-log.
-     Extern aanroepen elke 15 min (cron-job.org, zoals andere cron-routes).
+     **Live op cron-job.org**, draait elke 15 min.
    - **Club-stats dashboard-widget** (`_components/club-stats.tsx`):
      huidige maand km/hm/uren + delta vs vorige maand + top 3 rider +
      12-weken sparkline. Geen migratie nodig, leest `strava_activities`.
    - **Race-mate quick wins**: interactieve filter-bar op `/leden`
      (regio-dropdown + ZRL-chips A-E met multi-select), ZRL-categorie-
      badge naast namen in RSVP-lijst op event-detail.
-   - **Live spoor B/C geskipt** — PLAN.md bijgewerkt.
+   - **Live spoor B/C geskipt** — alleen Spoor A (OwnTracks) actief.
+   - **Middleware-fix**: `/api/events/reminders` toegevoegd aan
+     `PUBLIC_PATHS` zodat de externe cron niet naar /login redirected.
+   - **NexReply logo** geüpload via /sponsors admin-paneel.
 
-8. **⏸️ On-hold (bewust uitgesteld)**
+7. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
@@ -257,13 +241,16 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
 
-9. **Open todo's**
-   - **iOS PWA push-praktijktest**: iPhone → Safari → "Zet op beginscherm"
-     → open vanaf icon → `/profiel` notificaties aan → maak event of doe
-     broadcast → controleer dat notificatie binnenkomt.
-   - **cron-job.org-job** voor `/api/events/reminders` (POST, Bearer,
-     elke 15 min).
-   - **NexReply logo** uploaden via /sponsors admin.
+8. **Open punten**
+   - **iOS PWA push-praktijktest** — niemand in ontwikkelteam heeft
+     iPhone. Push werkt op desktop + Android getest; iOS-flow (PWA
+     beginscherm-installatie + opt-in) moet door een iOS-eigenaar
+     gevalideerd worden zodra er een ZWB'er beschikbaar is. Code
+     ondersteunt iOS 16.4+ via Web Push API.
+   - **OwnTracks praktijktest op een echte rit** (token werkt; veld-
+     validatie staat nog te gebeuren).
+   - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval.
+   - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval.
 
 ---
 
@@ -309,8 +296,30 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Bekende open dingen
 
-- Strava 1→100+ athleten cap aanvragen — eerder ingediend, wachten op approval
-- intervals.icu OAuth app-registratie — ingediend, wachten op approval
-- Training coach-cockpit praktijktest na migratie `0037`: trainerrol geven,
-  doel aanmaken, trainer toegang geven, AI-concept maken en publiceren naar
-  intervals.icu
+- **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval (extern).
+- **intervals.icu OAuth app-registratie** — ingediend, wachten op approval (extern).
+- **iOS PWA push** werkt theoretisch (iOS 16.4+) maar moet door een iOS-
+  eigenaar in de praktijk gevalideerd worden.
+- **Training coach-cockpit praktijktest**: trainerrol geven, doel aanmaken,
+  trainer toegang geven, AI-concept maken en publiceren naar intervals.icu.
+- **OwnTracks praktijktest** op een echte buitenrit (token + push naar
+  `/api/live/owntracks` is getest, eind-tot-eind veld-validatie nog niet).
+
+---
+
+## Mogelijke volgende richtingen (geen actieve toezegging)
+
+Fase 3 is dicht — wat hierna logisch zou kunnen komen, afhankelijk van
+waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
+
+- **Rider-profile aggregaat** op `/leden/[id]` — jaaroverzicht per lid
+  (km/hm/uren-totalen + maand-trend) zoals op `/dashboard` maar persoonlijk.
+- **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
+  per regio) als de dashboard-widget honger wekt.
+- **Foto-galerij × liveticker** — foto's automatisch koppelen aan event
+  na `eventIsToday`, zodat ritverslagen met foto's gestructureerd ontstaan.
+- **WhatsApp bulk-import via OG metadata** — open punt uit eerdere fase.
+- **Sponsor-bannercarousel** op `/dashboard` of `/login`, of subtiel in
+  de footer — voor extra zichtbaarheid van sponsors.
+- **E2E chat** — alleen bij expliciete vraag van bestuur.
+- **Mollie iDEAL** — alleen bij expliciete vraag van bestuur.
