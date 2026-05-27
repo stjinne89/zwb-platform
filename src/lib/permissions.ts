@@ -110,6 +110,36 @@ export const COMMUNITY_PERMISSIONS = [
     description: "Kan polls aanmaken, sluiten en verwijderen.",
     category: "Community",
   },
+  {
+    id: "training.view_assigned",
+    label: "Toegewezen trainingsdata bekijken",
+    description: "Kan trainingsdata zien van leden die trainer-toegang gaven.",
+    category: "Training",
+  },
+  {
+    id: "training.manage_assignments",
+    label: "Trainerkoppelingen beheren",
+    description: "Kan trainer-toegang beheren en intrekken.",
+    category: "Training",
+  },
+  {
+    id: "training.create_plans",
+    label: "Trainingsschema's maken",
+    description: "Kan schema's en workouts maken voor toegewezen leden.",
+    category: "Training",
+  },
+  {
+    id: "training.publish_plans",
+    label: "Trainingsschema's publiceren",
+    description: "Kan goedgekeurde schema's naar ZWB en intervals.icu publiceren.",
+    category: "Training",
+  },
+  {
+    id: "training.ai_generate",
+    label: "AI trainingsconcepten maken",
+    description: "Kan AI gebruiken voor concept-trainingsschema's.",
+    category: "Training",
+  },
 ] as const;
 
 export type CommunityPermission = (typeof COMMUNITY_PERMISSIONS)[number]["id"];
@@ -152,6 +182,18 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "live.manage",
     "sponsors.manage",
     "polls.manage",
+    "training.view_assigned",
+    "training.manage_assignments",
+    "training.create_plans",
+    "training.publish_plans",
+    "training.ai_generate",
+  ],
+  trainer: [
+    "training.view_assigned",
+    "training.create_plans",
+    "training.publish_plans",
+    "training.ai_generate",
+    "content.create_posts",
   ],
   paying_member: ["events.create", "content.create_posts", "live.start"],
   community_member: ["content.create_posts", "live.start"],

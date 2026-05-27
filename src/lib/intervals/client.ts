@@ -77,6 +77,17 @@ export type IntervalsEvent = {
   moving_time?: number;
 };
 
+export type IntervalsWorkoutInput = {
+  id?: string | null;
+  startDateLocal: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  trainingLoad?: number | null;
+  durationMinutes?: number | null;
+  workoutDoc?: Record<string, unknown> | null;
+};
+
 /** Haalt athlete-info voor de eigenaar van de API-key. */
 export async function fetchIntervalsAthlete(apiKey: string): Promise<IntervalsAthlete> {
   // "0" is een magic value: betekent "de athlete bij wie deze API-key hoort"
@@ -132,4 +143,43 @@ export async function fetchIntervalsEvents(
     apiKey,
     `/api/v1/athlete/${athleteId}/events?oldest=${oldest}&newest=${newest}`,
   );
+}
+
+/** Maakt of wijzigt een gepland workout-event in intervals.icu. */
+export async function upsertIntervalsWorkoutEvent(
+  apiKey: string,
+  athleteId: string,
+  workout: IntervalsWorkoutInput,
+): Promise<IntervalsEvent> {
+  const payload = {
+    start_date_local: workout.startDateLocal,
+    name: workout.name,
+    description: workout.description ?? undefined,
+    category: workout.category ?? "WORKOUT",
+    icu_training_load: workout.trainingLoad ?? undefined,
+    moving_time: workout.durationMinutes ? workout.durationMinutes * 60 : undefined,
+    workout_doc: workout.workoutDoc ?? undefined,
+  };
+  const path = workout.id
+    ? `/api/v1/athlete/${athleteId}/events/${workout.id}`
+    : `/api/v1/athlete/${athleteId}/events`;
+  const res = await fetch(`${BASE}${path}`, {
+    method: workout.id ? "PUT" : "POST",
+    headers: {
+      Authorization: authHeader(apiKey),
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error("intervals.icu API-key wordt afgewezen.");
+    }
+    const text = await res.text();
+    throw new Error(`intervals.icu ${res.status}: ${text.slice(0, 160)}`);
+  }
+  return (await res.json()) as IntervalsEvent;
 }

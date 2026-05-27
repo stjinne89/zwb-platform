@@ -15,6 +15,7 @@ type Props = {
     on_new_event: boolean;
     on_live_started: boolean;
     on_new_badge: boolean;
+    on_training_plan: boolean;
     on_admin_broadcast: boolean;
   };
   hasSubscriptionInDb: boolean;
@@ -238,6 +239,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_new_badge}
           />
           Ik haal een nieuwe badge
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_training_plan"
+            defaultChecked={initialPreferences.on_training_plan}
+          />
+          Trainingsschema of coach-update
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

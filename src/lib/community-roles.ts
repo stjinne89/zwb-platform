@@ -3,6 +3,7 @@ export const COMMUNITY_ROLES = [
   "team_captain",
   "event_organizer",
   "community_manager",
+  "trainer",
   "paying_member",
   "community_member",
 ] as const;
@@ -40,6 +41,12 @@ export const COMMUNITY_ROLE_META: Record<CommunityRole, CommunityRoleMeta> = {
     shortLabel: "Beheer",
     description: "Beheert content, leden en community-inrichting.",
     className: "border-secondary/70 bg-secondary text-secondary-foreground",
+  },
+  trainer: {
+    label: "Trainer",
+    shortLabel: "Trainer",
+    description: "Kan trainingsdata van toegewezen leden bekijken en schema's begeleiden.",
+    className: "border-zwb-petrol/25 bg-zwb-petrol/10 text-zwb-petrol dark:text-zwb-sage",
   },
   paying_member: {
     label: "Betalend lid",

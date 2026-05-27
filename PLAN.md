@@ -4,8 +4,8 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
-> Laatst bijgewerkt: 2026-05-23 (nav-clustering met dropdown-menus
-> afgerond — fase 3 inhoudelijk klaar op een paar kleinere punten na)
+> Laatst bijgewerkt: 2026-05-27 (training coach-cockpit v1 toegevoegd:
+> trainerrol, expliciete opt-in, AI-conceptschema's en intervals-publicatie)
 
 ---
 
@@ -46,7 +46,7 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 
 | # | Onderdeel | Status |
 |---|---|:---:|
-| 7 | intervals.icu koppeling + dagelijkse sync | ✅ |
+| 7 | intervals.icu koppeling + coach-cockpit | ✅ |
 | 8 | Strava OAuth + 5-jaars backfill (chunked, paginated) | ✅ |
 | 9 | WTRL ZRL scraper | ✅ |
 | 10 | Ladder scraper (ladder.cycleracing.club) | ✅ |
@@ -132,6 +132,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - Live-indicator op `/kalender`-rijen met directe knop naar `/live/[eventId]`
 - Nav-clustering met 5 top-level slots + dropdown-menus (desktop) en
   section-headers (mobiel)
+- Training coach-cockpit op `/training`: trainerrol, expliciete opt-in per
+  trainer, doelen/intake, AI-conceptschema's, trainer-review en publicatie
+  naar intervals.icu. Migratie `0037`.
 
 ---
 
@@ -193,11 +196,30 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - shadcn/ui `dropdown-menu` toegevoegd (base-ui-versie met
      `render`-prop i.p.v. `asChild`).
 
-5. **🚧 NU — Migraties uitrollen + VAPID-keys setup**
+5. **✅ Training coach-cockpit** (commit `0d219e6`)
+   - Nieuwe communityrol **Trainer** + trainingsrechten:
+     `training.view_assigned`, `training.manage_assignments`,
+     `training.create_plans`, `training.publish_plans`,
+     `training.ai_generate`.
+   - Migratie `0037_training_coach_cockpit.sql`: trainer-opt-ins,
+     trainingsdoelen, schema's, workouts en AI-generation audit trail.
+   - `/training` heeft nu lid-view + trainer-view. Leden geven expliciet
+     toegang per trainer; trainers zien alleen toegewezen leden.
+   - AI maakt alleen conceptschema's via OpenAI Responses API
+     (`OPENAI_API_KEY`, optioneel `OPENAI_TRAINING_MODEL`).
+   - Goedgekeurde schema's kunnen naar intervals.icu worden gepubliceerd;
+     ZWB blijft bron van waarheid.
+   - Push-trigger `on_training_plan` toegevoegd voor schema/coach-updates.
+
+6. **🚧 NU — Migraties uitrollen + env setup**
    - `supabase db push` of plak `0030-0034` in Dashboard SQL-editor
      om alle schema-wijzigingen live te krijgen.
    - Update 2026-05-26: migratie `0035` hoort nu bij deze set. Controleer
      na deploy dat `live_tracker_tokens` en `live_sessions.source` bestaan.
+   - Update 2026-05-27: migratie `0037` hoort nu bij deze set. Controleer
+     na deploy dat `training_coach_assignments`, `training_goals`,
+     `training_plans`, `training_workouts` en `training_ai_generations`
+     bestaan.
    - OwnTracks praktijktest: token maken op `/live`, URL in OwnTracks
      plakken, testlocatie laten posten, en controleren op `/kalender`,
      `/events/[id]` en `/live/[eventId]`.
@@ -205,8 +227,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      fallback staat (alleen NexReply na de logo-seed).
    - Push-keys genereren: `npx web-push generate-vapid-keys` en de
      drie env vars in Netlify zetten (zie `.env.local.example`).
+   - OpenAI env zetten voor training-AI: `OPENAI_API_KEY` en optioneel
+     `OPENAI_TRAINING_MODEL` (default in code: `gpt-4.1-mini`).
 
-6. **⏸️ On-hold (bewust uitgesteld)**
+7. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
@@ -265,5 +289,6 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 - Strava 1→100+ athleten cap aanvragen — eerder ingediend, wachten op approval
 - intervals.icu OAuth app-registratie — ingediend, wachten op approval
-- Live cleanup cron via Netlify Scheduled Functions — helper bestaat,
-  scheduling niet wired
+- Training coach-cockpit praktijktest na migratie `0037`: trainerrol geven,
+  doel aanmaken, trainer toegang geven, AI-concept maken en publiceren naar
+  intervals.icu

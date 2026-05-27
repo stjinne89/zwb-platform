@@ -25,6 +25,7 @@ export type NotificationTrigger =
   | "on_new_event"
   | "on_live_started"
   | "on_new_badge"
+  | "on_training_plan"
   | "on_admin_broadcast";
 
 let vapidConfigured = false;
