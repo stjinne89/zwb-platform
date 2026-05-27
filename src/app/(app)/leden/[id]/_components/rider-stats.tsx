@@ -5,7 +5,18 @@
 // staat — consistent met de badge-sectie. Geen migratie nodig, leest uit
 // bestaande strava_activities.
 
-import { Bike, Mountain, Clock, Trophy, Calendar, PieChart } from "lucide-react";
+import {
+  Bike,
+  Mountain,
+  Clock,
+  Trophy,
+  Calendar,
+  PieChart,
+  Gauge,
+  Heart,
+  Sparkles,
+  Sunrise,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 const CYCLING_SPORTS = [
@@ -27,8 +38,18 @@ type ActivityRow = {
   total_elevation_gain_m: number | string | null;
   moving_time_seconds: number | string | null;
   kudos_count: number | null;
+  trainer: boolean | null;
   name: string | null;
 };
+
+const INDOOR_SPORTS = new Set(["VirtualRide"]);
+const OUTDOOR_SPORTS = new Set([
+  "Ride",
+  "EBikeRide",
+  "GravelRide",
+  "MountainBikeRide",
+  "EMountainBikeRide",
+]);
 
 type Totals = { km: number; hm: number; uren: number; count: number };
 
@@ -134,7 +155,7 @@ export async function RiderStats({
   const { data: rows } = await supabase
     .from("strava_activities")
     .select(
-      "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, name",
+      "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name",
     )
     .eq("profile_id", profileId)
     .in("sport_type", CYCLING_SPORTS)
@@ -164,20 +185,33 @@ export async function RiderStats({
   const monthsKm = new Array<number>(monthsBack).fill(0);
   const firstMonthStart = new Date(now.getUTCFullYear(), now.getUTCMonth() - (monthsBack - 1), 1);
 
-  // ── Best-ever
+  // ── Persoonlijke records (over hele historie)
   let bestDistance: ActivityRow | null = null;
   let bestElevation: ActivityRow | null = null;
-  let bestKudos: ActivityRow | null = null;
+  let bestDuration: ActivityRow | null = null;
+  let bestKudosSingle: ActivityRow | null = null;
+  let fastestRide: ActivityRow | null = null; // outdoor, ≥20km
+  let longestIndoor: ActivityRow | null = null; // VirtualRide of trainer=true
+  let firstRide: ActivityRow | null = null;
+  let totalKudos = 0;
+  let totalLifetimeKm = 0;
 
   // ── Discipline-breakdown over laatste 12 maanden
   const disciplineKm = new Map<string, number>();
+
+  // ── Best-month-ever (alle tijden, qua km)
+  const kmByMonth = new Map<string, number>();
 
   for (const a of activities) {
     const date = new Date(a.start_date);
     if (Number.isNaN(date.getTime())) continue;
     const km = Number(a.distance_m ?? 0) / 1000;
     const hm = Number(a.total_elevation_gain_m ?? 0);
-    const uren = Number(a.moving_time_seconds ?? 0) / 3600;
+    const sec = Number(a.moving_time_seconds ?? 0);
+    const uren = sec / 3600;
+
+    totalLifetimeKm += km;
+    totalKudos += a.kudos_count ?? 0;
 
     if (date >= yearStart) {
       currentYear.km += km;
@@ -202,10 +236,47 @@ export async function RiderStats({
       disciplineKm.set(disc, (disciplineKm.get(disc) ?? 0) + km);
     }
 
-    if (!bestDistance || km > Number(bestDistance.distance_m ?? 0) / 1000) bestDistance = a;
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    kmByMonth.set(monthKey, (kmByMonth.get(monthKey) ?? 0) + km);
+
+    // PR's
+    if (!bestDistance || km > Number(bestDistance.distance_m ?? 0) / 1000)
+      bestDistance = a;
     if (!bestElevation || hm > Number(bestElevation.total_elevation_gain_m ?? 0))
       bestElevation = a;
-    if (!bestKudos || (a.kudos_count ?? 0) > (bestKudos.kudos_count ?? 0)) bestKudos = a;
+    if (!bestDuration || sec > Number(bestDuration.moving_time_seconds ?? 0))
+      bestDuration = a;
+    if (!bestKudosSingle || (a.kudos_count ?? 0) > (bestKudosSingle.kudos_count ?? 0))
+      bestKudosSingle = a;
+
+    const isOutdoor =
+      OUTDOOR_SPORTS.has(a.sport_type ?? "") && !a.trainer;
+    if (isOutdoor && km >= 20 && sec > 0) {
+      const speed = (km / sec) * 3600; // km/h
+      const bestSpeed = fastestRide
+        ? (Number(fastestRide.distance_m ?? 0) / 1000) /
+            (Number(fastestRide.moving_time_seconds ?? 1) / 3600)
+        : 0;
+      if (speed > bestSpeed) fastestRide = a;
+    }
+
+    const isIndoor =
+      INDOOR_SPORTS.has(a.sport_type ?? "") || Boolean(a.trainer);
+    if (isIndoor && sec > 0) {
+      if (!longestIndoor || sec > Number(longestIndoor.moving_time_seconds ?? 0))
+        longestIndoor = a;
+    }
+
+    if (!firstRide || date < new Date(firstRide.start_date)) firstRide = a;
+  }
+
+  let bestMonthKey: string | null = null;
+  let bestMonthKm = 0;
+  for (const [key, km] of kmByMonth) {
+    if (km > bestMonthKm) {
+      bestMonthKm = km;
+      bestMonthKey = key;
+    }
   }
 
   const kmDelta =
@@ -320,9 +391,10 @@ export async function RiderStats({
           <Trophy className="size-3.5 text-primary" />
           Persoonlijke records (ooit)
         </h3>
-        <ul className="space-y-1 text-sm">
+        <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
           {bestDistance && (
             <BestRow
+              icon={<Bike className="size-3.5" />}
               label="Langste rit"
               value={`${Math.round(Number(bestDistance.distance_m ?? 0) / 100) / 10} km`}
               activity={bestDistance}
@@ -330,22 +402,111 @@ export async function RiderStats({
           )}
           {bestElevation && (
             <BestRow
+              icon={<Mountain className="size-3.5" />}
               label="Meeste hoogtemeters"
               value={`${Math.round(Number(bestElevation.total_elevation_gain_m ?? 0))} hm`}
               activity={bestElevation}
             />
           )}
-          {bestKudos && (bestKudos.kudos_count ?? 0) > 0 && (
+          {bestDuration && Number(bestDuration.moving_time_seconds ?? 0) > 0 && (
             <BestRow
-              label="Meeste kudos"
-              value={`${bestKudos.kudos_count} kudos`}
-              activity={bestKudos}
+              icon={<Clock className="size-3.5" />}
+              label="Langste rit (tijd)"
+              value={formatHoursMinutes(Number(bestDuration.moving_time_seconds ?? 0))}
+              activity={bestDuration}
+            />
+          )}
+          {fastestRide && (
+            <BestRow
+              icon={<Gauge className="size-3.5" />}
+              label="Snelste rit (≥20 km)"
+              value={`${formatSpeed(fastestRide)} km/u`}
+              activity={fastestRide}
+            />
+          )}
+          {longestIndoor && (
+            <BestRow
+              icon={<Sparkles className="size-3.5" />}
+              label="Langste indoor-sessie"
+              value={formatHoursMinutes(Number(longestIndoor.moving_time_seconds ?? 0))}
+              activity={longestIndoor}
+            />
+          )}
+          {bestKudosSingle && (bestKudosSingle.kudos_count ?? 0) > 0 && (
+            <BestRow
+              icon={<Heart className="size-3.5" />}
+              label="Meeste kudos op 1 rit"
+              value={`${bestKudosSingle.kudos_count} kudos`}
+              activity={bestKudosSingle}
             />
           )}
         </ul>
       </div>
+
+      {/* Lifetime / cumulatief */}
+      <div>
+        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <Sunrise className="size-3.5 text-primary" />
+          Alles bij elkaar
+        </h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {firstRide && (
+            <Stat
+              icon={<Calendar className="size-4" />}
+              label="Op de fiets sinds"
+              value={new Date(firstRide.start_date).toLocaleDateString("nl-NL", {
+                month: "short",
+                year: "numeric",
+              })}
+            />
+          )}
+          <Stat
+            icon={<Bike className="size-4" />}
+            label="Lifetime km"
+            value={Math.round(totalLifetimeKm).toLocaleString("nl-NL")}
+            sub={`${activities.length} ritten`}
+          />
+          {totalKudos > 0 && (
+            <Stat
+              icon={<Heart className="size-4" />}
+              label="Kudos ontvangen"
+              value={totalKudos.toLocaleString("nl-NL")}
+            />
+          )}
+          {bestMonthKey && bestMonthKm > 0 && (
+            <Stat
+              icon={<Trophy className="size-4" />}
+              label="Beste maand ooit"
+              value={`${Math.round(bestMonthKm).toLocaleString("nl-NL")} km`}
+              sub={formatMonthLabel(bestMonthKey)}
+            />
+          )}
+        </div>
+      </div>
     </section>
   );
+}
+
+function formatHoursMinutes(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  if (h === 0) return `${m} min`;
+  return `${h}u${String(m).padStart(2, "0")}`;
+}
+
+function formatSpeed(activity: ActivityRow): string {
+  const km = Number(activity.distance_m ?? 0) / 1000;
+  const hours = Number(activity.moving_time_seconds ?? 0) / 3600;
+  if (hours <= 0) return "—";
+  return (km / hours).toFixed(1);
+}
+
+function formatMonthLabel(yearMonth: string): string {
+  const [y, m] = yearMonth.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("nl-NL", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function Stat({
@@ -372,10 +533,12 @@ function Stat({
 }
 
 function BestRow({
+  icon,
   label,
   value,
   activity,
 }: {
+  icon?: React.ReactNode;
   label: string;
   value: string;
   activity: ActivityRow;
@@ -386,14 +549,15 @@ function BestRow({
     year: "numeric",
   });
   return (
-    <li className="flex items-baseline justify-between gap-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right">
-        <span className="font-medium tabular-nums">{value}</span>
-        <span className="ml-2 text-xs text-muted-foreground">
-          {activity.name ? `${activity.name} · ` : ""}
-          {date}
-        </span>
+    <li className="flex flex-col gap-0.5 rounded-md border bg-background p-2.5">
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon}
+        {label}
+      </span>
+      <span className="font-semibold tabular-nums">{value}</span>
+      <span className="truncate text-xs text-muted-foreground">
+        {activity.name ? `${activity.name} · ` : ""}
+        {date}
       </span>
     </li>
   );

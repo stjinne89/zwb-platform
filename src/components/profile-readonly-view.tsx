@@ -58,6 +58,7 @@ export function ProfileReadonlyView({
   weeklyAwards,
   publicUrl,
   publicLabel = "Publiek profiel",
+  extraBeforeBadges,
 }: {
   profile: ReadonlyProfile;
   milestones: MilestoneBadgeRow[];
@@ -65,6 +66,8 @@ export function ProfileReadonlyView({
   weeklyAwards: WeeklyAwardView[];
   publicUrl?: string | null;
   publicLabel?: string;
+  /** Optionele sectie tussen profile-info en de badge-kast in (bv. RiderStats). */
+  extraBeforeBadges?: React.ReactNode;
 }) {
   const infoTiles = [
     { label: "ZRL-categorie", value: profile.zrl_category },
@@ -129,6 +132,8 @@ export function ProfileReadonlyView({
           <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{profile.bio}</p>
         </section>
       )}
+
+      {extraBeforeBadges}
 
       {milestones.length > 0 && (
         <BadgeVault badges={milestones} earnedIds={earnedMilestoneIds} />

@@ -116,14 +116,15 @@ export default async function LidProfielPage({ params }: PageProps) {
         publicUrl={
           profileRow.public_profile_enabled ? `/profielen/${profileRow.id}` : null
         }
+        extraBeforeBadges={
+          showBadges ? (
+            <RiderStats
+              profileId={profileRow.id}
+              displayName={profileRow.display_name ?? "Dit lid"}
+            />
+          ) : null
+        }
       />
-
-      {showBadges && (
-        <RiderStats
-          profileId={profileRow.id}
-          displayName={profileRow.display_name ?? "Dit lid"}
-        />
-      )}
     </div>
   );
 }
