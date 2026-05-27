@@ -125,7 +125,10 @@ type ClimbedRow = {
   col_slug: string;
   first_activity_id: number;
   first_climbed_at: string;
+  last_activity_id: number;
+  last_climbed_at: string;
   times_climbed: number;
+  updated_at: string;
 };
 
 /**
@@ -152,39 +155,59 @@ export async function syncClimbedColsForUser(
   }));
   if (cols.length === 0) return { scanned: 0, newCols: 0 };
 
-  let query = supabase
+  // Voor de detector willen we ALLE activities van het profiel scannen,
+  // niet alleen een subset — anders kunnen we times_climbed niet correct
+  // berekenen (oudere ritten zouden uit de telling vallen). De
+  // activityIds-parameter wordt nu genegeerd; behouden in API voor
+  // toekomstige incrementele variant.
+  void activityIds;
+
+  const { data: activities } = await supabase
     .from("strava_activities")
     .select("id, start_date, raw")
     .eq("profile_id", profileId);
-  if (activityIds && activityIds.length > 0) {
-    query = query.in("id", activityIds);
-  }
-  const { data: activities } = await query;
   const acts = (activities ?? []) as StoredActivity[];
 
-  // Bouw nieuwe climbed-cols-map (slug → eerste activity die 'm matchte)
-  const newClimbed = new Map<
-    string,
-    { activityId: number; climbedAt: string }
-  >();
-  // Sorteer oudste eerst zodat "first_climbed" klopt
+  // Bouw per-col aggregaat: first/last activity + total count over hele
+  // historie. Sorteer oudest eerst zodat first/last natuurlijk volgen.
   const sorted = [...acts].sort((a, b) =>
     a.start_date.localeCompare(b.start_date),
   );
+
+  type Aggregate = {
+    firstActivityId: number;
+    firstClimbedAt: string;
+    lastActivityId: number;
+    lastClimbedAt: string;
+    count: number;
+  };
+  const agg = new Map<string, Aggregate>();
+
   for (const act of sorted) {
     const slugs = detectColsInActivity(act, cols);
     for (const slug of slugs) {
-      if (!newClimbed.has(slug)) {
-        newClimbed.set(slug, { activityId: act.id, climbedAt: act.start_date });
+      const cur = agg.get(slug);
+      if (!cur) {
+        agg.set(slug, {
+          firstActivityId: act.id,
+          firstClimbedAt: act.start_date,
+          lastActivityId: act.id,
+          lastClimbedAt: act.start_date,
+          count: 1,
+        });
+      } else {
+        cur.count += 1;
+        cur.lastActivityId = act.id;
+        cur.lastClimbedAt = act.start_date;
       }
     }
   }
 
-  if (newClimbed.size === 0) {
+  if (agg.size === 0) {
     return { scanned: acts.length, newCols: 0 };
   }
 
-  // Welke had hij/zij al? Voor diff-counter.
+  // Diff-counter: hoeveel cols zijn er nieuw bijgekomen?
   const { data: existingRows } = await supabase
     .from("profile_climbed_cols")
     .select("col_slug")
@@ -193,27 +216,31 @@ export async function syncClimbedColsForUser(
     ((existingRows ?? []) as { col_slug: string }[]).map((r) => r.col_slug),
   );
 
-  const rowsToUpsert: ClimbedRow[] = Array.from(newClimbed.entries()).map(
+  const now = new Date().toISOString();
+  const rowsToUpsert: ClimbedRow[] = Array.from(agg.entries()).map(
     ([slug, info]) => ({
       profile_id: profileId,
       col_slug: slug,
-      first_activity_id: info.activityId,
-      first_climbed_at: info.climbedAt,
-      times_climbed: 1,
+      first_activity_id: info.firstActivityId,
+      first_climbed_at: info.firstClimbedAt,
+      last_activity_id: info.lastActivityId,
+      last_climbed_at: info.lastClimbedAt,
+      times_climbed: info.count,
+      updated_at: now,
     }),
   );
 
-  // Upsert: bestaande rijen behouden hun first_activity_id (PK-conflict =
-  // we doen niets), nieuwe komen erbij. times_climbed-bijwerking volgt
-  // in een latere iteratie als we het echt willen tellen.
+  // Echte upsert — bij conflict op (profile_id, col_slug) update we de
+  // last_* + times_climbed met de actuele waarde. first_* blijft staan
+  // (we sturen wel mee, maar bestaand record wint via on_conflict).
   const { error } = await supabase
     .from("profile_climbed_cols")
-    .upsert(rowsToUpsert, { onConflict: "profile_id,col_slug", ignoreDuplicates: true });
+    .upsert(rowsToUpsert, { onConflict: "profile_id,col_slug" });
   if (error) {
     return { scanned: acts.length, newCols: 0 };
   }
 
-  const newCount = Array.from(newClimbed.keys()).filter(
+  const newCount = Array.from(agg.keys()).filter(
     (slug) => !existing.has(slug),
   ).length;
 

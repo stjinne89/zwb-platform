@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/app-ui";
@@ -173,6 +174,26 @@ export default async function ProfielPage() {
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
       </div>
+
+      <section className="rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Cols-collectie
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Welke iconische cols heb je geklommen? Automatisch gedetecteerd
+              uit Strava-ritten.
+            </p>
+          </div>
+          <Link
+            href="/profiel/cols"
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Mijn cols bekijken →
+          </Link>
+        </div>
+      </section>
 
       {milestones.length > 0 && (
         <BadgeVault
