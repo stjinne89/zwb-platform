@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { LiveMap } from "./_components/live-map";
 import {
   OwnTracksPanel,
@@ -86,28 +87,17 @@ export default async function LivePage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight">
-            <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-destructive" />
-            Samen fietsen
-          </h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
-            Zie welke ZWB&apos;ers nu rijden. Outdoor riders verschijnen via
-            OwnTracks op de kaart, externe LiveTrack-links openen bij Garmin of
-            Wahoo, en indoor riders delen waar je kunt joinen.
-          </p>
-        </div>
-        {mySession && <StopLiveButton sessionId={mySession.id} />}
-      </header>
+      <PageHeader
+        eyebrow="Live"
+        title="Samen fietsen"
+        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href="/hulp#owntracks" />}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <div className="space-y-3">
           <LiveMap outdoorSessions={outdoorSessions} initialPositions={positionRows ?? []} />
           {outdoorSessions.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Geen outdoor riders actief.
-            </p>
+            <EmptyState>Geen outdoor riders actief.</EmptyState>
           )}
         </div>
 
@@ -115,12 +105,9 @@ export default async function LivePage() {
           <section className="rounded-md border bg-card">
             <div className="border-b p-4">
               <h2 className="font-semibold">Actieve riders ({sessions.length})</h2>
-              <p className="text-xs text-muted-foreground">
-                Sessies verdwijnen na {STALE_AFTER_MIN} minuten inactiviteit.
-              </p>
             </div>
             {sessions.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground">Niemand is nu live.</p>
+              <p className="p-4 text-sm text-muted-foreground">Niemand is live.</p>
             ) : (
               <ul className="divide-y">
                 {sessions.map((s) => (
@@ -189,8 +176,8 @@ export default async function LivePage() {
                 <p className="font-medium">Je bent live als {MODE_LABELS[mySession.mode]}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {mySession.mode === "outdoor"
-                    ? "Outdoor GPS komt binnen via OwnTracks of een externe LiveTrack-link."
-                    : "Status zichtbaar voor alle ZWB-leden."}
+                    ? "GPS via OwnTracks of LiveTrack-link."
+                    : "Zichtbaar voor ZWB-leden."}
                 </p>
                 <a
                   href="#stop-live"

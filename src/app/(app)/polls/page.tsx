@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { PollCard, type PollCardData } from "./_components/poll-card";
 import { CreatePollForm } from "./_components/create-poll-form";
 
@@ -116,24 +117,13 @@ export default async function PollsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Polls</h1>
-          <p className="text-sm text-muted-foreground">
-            Stem mee over rides, kit-design, locaties of wat dan ook -
-            jouw stem helpt het bestuur kiezen.
-          </p>
-        </div>
-        {canManage && <CreatePollForm />}
-      </header>
+      <PageHeader
+        title="Polls"
+        actions={canManage && <CreatePollForm />}
+      />
 
       {pollData.length === 0 && (
-        <p className="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-          Nog geen polls.{" "}
-          {canManage
-            ? "Maak er eentje aan via 'Nieuwe poll'."
-            : "Het bestuur kan er eentje toevoegen wanneer er iets te kiezen valt."}
-        </p>
+        <EmptyState>Geen polls.</EmptyState>
       )}
 
       {activePolls.length > 0 && (

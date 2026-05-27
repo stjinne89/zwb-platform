@@ -1,7 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Markdown } from "@/components/markdown";
-
 export type SponsorCardData = {
   id: string;
   name: string;
@@ -41,9 +39,11 @@ export function SponsorCard({ sponsor }: { sponsor: SponsorCardData }) {
   const sizeClass = TIER_SIZES[sponsor.tier];
   const textClass = TIER_TEXT[sponsor.tier];
 
+  const showFallbackName = !sponsor.logo_url;
+
   const inner = (
     <div
-      className={`group flex h-full flex-col items-center justify-center gap-3 rounded-lg border bg-card p-4 transition hover:border-foreground/40 hover:shadow-md ${sizeClass}`}
+      className={`group flex h-full flex-col items-center justify-center rounded-lg border bg-card p-4 transition hover:border-foreground/40 hover:shadow-md ${sizeClass}`}
     >
       <div className="flex flex-1 items-center justify-center">
         {sponsor.logo_url ? (
@@ -63,14 +63,11 @@ export function SponsorCard({ sponsor }: { sponsor: SponsorCardData }) {
           </div>
         )}
       </div>
-      <div className="text-center">
-        <p className={`font-semibold ${textClass}`}>{sponsor.name}</p>
-        {sponsor.description_md && (
-          <div className="prose prose-sm dark:prose-invert mt-1 text-center text-xs text-muted-foreground">
-            <Markdown source={sponsor.description_md} />
-          </div>
-        )}
-      </div>
+      {showFallbackName && (
+        <p className={`mt-3 text-center font-semibold ${textClass}`}>
+          {sponsor.name}
+        </p>
+      )}
     </div>
   );
 

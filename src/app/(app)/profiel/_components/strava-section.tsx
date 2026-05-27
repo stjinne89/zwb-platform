@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { disconnectStrava } from "../../achievements/_actions";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { HelpLink } from "@/components/app-ui";
 import { cn } from "@/lib/utils";
 
 export function StravaSection({
@@ -18,16 +20,17 @@ export function StravaSection({
 
   return (
     <section className="rounded-lg border bg-card p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Strava-koppeling
-      </h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Strava
+        </h2>
+        <HelpLink href="/hulp#badges" />
+      </div>
 
       {connection ? (
         <div className="mt-3 space-y-3">
           <div className="flex items-start gap-2">
-            <span className="mt-0.5 text-lg" aria-hidden>
-              ✅
-            </span>
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
             <div className="min-w-0">
               <p className="text-sm">
                 Gekoppeld als{" "}
@@ -44,9 +47,7 @@ export function StravaSection({
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            Je fietsritten worden meegenomen in de wekelijkse achievement-badges
-            (kilometervreter, klimmer, kudo-magneet, meest actief). Sync je
-            laatste ritten via{" "}
+            Ritten tellen mee voor badges. Sync via{" "}
             <Link
               href="/achievements"
               className="font-medium text-primary hover:underline"
@@ -102,10 +103,7 @@ export function StravaSection({
       ) : (
         <div className="mt-3 space-y-3">
           <p className="text-sm text-muted-foreground">
-            Koppel je Strava zodat je fietsritten meetellen voor de wekelijkse
-            ZWB-achievement-badges: kilometervreter, klimmer van de week,
-            kudo-magneet en meest actief. We lezen alleen je activiteiten —
-            niks meer.
+            Nodig voor ritten, badges en trainingsdata.
           </p>
           <Link
             href="/api/strava/connect"

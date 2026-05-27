@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { AvatarUpload } from "./_components/avatar-upload";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
@@ -154,20 +155,24 @@ export default async function ProfielPage() {
         }
       />
 
-      <StravaSection connection={stravaConn ?? null} />
+      <div id="strava" className="scroll-mt-20">
+        <StravaSection connection={stravaConn ?? null} />
+      </div>
 
-      <PushToggle
-        vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
-        initialPreferences={{
-          on_new_event: pushPrefs?.on_new_event ?? true,
-          on_live_started: pushPrefs?.on_live_started ?? true,
-          on_new_badge: pushPrefs?.on_new_badge ?? false,
-          on_training_plan: pushPrefs?.on_training_plan ?? true,
-          on_event_reminder: pushPrefs?.on_event_reminder ?? true,
-          on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
-        }}
-        hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
-      />
+      <div id="meldingen" className="scroll-mt-20">
+        <PushToggle
+          vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+          initialPreferences={{
+            on_new_event: pushPrefs?.on_new_event ?? true,
+            on_live_started: pushPrefs?.on_live_started ?? true,
+            on_new_badge: pushPrefs?.on_new_badge ?? false,
+            on_training_plan: pushPrefs?.on_training_plan ?? true,
+            on_event_reminder: pushPrefs?.on_event_reminder ?? true,
+            on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
+          }}
+          hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
+        />
+      </div>
 
       {milestones.length > 0 && (
         <BadgeVault
@@ -181,9 +186,7 @@ export default async function ProfielPage() {
           Behaalde weekbadges
         </h2>
         {awardList.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Nog geen vastgelegde weekbadges.
-          </p>
+          <EmptyState className="mt-3">Geen vastgelegde weekbadges.</EmptyState>
         ) : (
           (() => {
             // Groepeer awards per badge-titel zodat dezelfde badge met een

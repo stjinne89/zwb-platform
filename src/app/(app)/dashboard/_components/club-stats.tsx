@@ -58,7 +58,7 @@ function displayName(rel: ActivityRow["profiles"]): string {
 }
 
 function formatDelta(delta: number): string {
-  if (!isFinite(delta)) return "—";
+  if (!isFinite(delta)) return "-";
   const sign = delta >= 0 ? "+" : "";
   return `${sign}${Math.round(delta)}%`;
 }
@@ -125,7 +125,7 @@ export async function ClubStats() {
 
   const totalsByMonth = new Map<string, Totals>();
   const kmByProfileCurrentMonth = new Map<string, { km: number; name: string }>();
-  const kmByWeek = new Map<string, number>(); // ISO-week-start → km
+  const kmByWeek = new Map<string, number>();
 
   for (const a of activities) {
     const date = new Date(a.start_date);
@@ -186,13 +186,9 @@ export async function ClubStats() {
             <TrendingUp className="size-5 text-primary" />
             Club deze maand ({monthLabel})
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Optelsom van alle ZWB-leden hun gefietste kilometers.
-          </p>
         </div>
         <div className="text-right">
           <Sparkline values={sparkValues} />
-          <p className="mt-0.5 text-xs text-muted-foreground">12 weken trend</p>
         </div>
       </header>
 
@@ -220,7 +216,7 @@ export async function ClubStats() {
         <div className="mt-4 rounded-lg border bg-card p-4">
           <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             <Trophy className="size-4 text-primary" />
-            Rider of the month — top 3
+            Rider of the month - top 3
           </h3>
           <ol className="space-y-1 text-sm">
             {top3.map((rider, idx) => (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -74,20 +75,17 @@ export default async function KalenderPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Kalender</h1>
-          <p className="mt-1 text-muted-foreground">Alle ZWB-events op een plek.</p>
-        </div>
-        <Link href="/kalender/nieuw">
-          <Button>Nieuw event</Button>
-        </Link>
-      </header>
+      <PageHeader
+        title="Kalender"
+        actions={
+          <Link href="/kalender/nieuw">
+            <Button>Nieuw event</Button>
+          </Link>
+        }
+      />
 
       {!events || events.length === 0 ? (
-        <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-          Nog geen events. Maak het eerste aan!
-        </p>
+        <EmptyState>Geen events.</EmptyState>
       ) : (
         <ul className="space-y-2">
           {events.map((event) => {

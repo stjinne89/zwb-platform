@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { CircleHelp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { ZwbMark } from "@/components/zwb-logo";
@@ -30,8 +31,8 @@ export default async function AppLayout({
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
-      <header className="relative border-b-2 border-accent/80 bg-card/85 shadow-sm shadow-primary/5 backdrop-blur">
-        <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 md:gap-6">
+      <header className="relative border-b border-border/80 bg-background/88 backdrop-blur">
+        <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2.5 md:gap-6">
           <Link
             href="/dashboard"
             className="flex shrink-0 items-center"
@@ -48,13 +49,20 @@ export default async function AppLayout({
 
           {/* Right side: avatar-dropdown + theme + mobile-hamburger */}
           <div className="flex items-center gap-2">
+            <Link
+              href="/hulp"
+              className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary md:inline-flex"
+              aria-label="Hulp"
+            >
+              <CircleHelp className="size-4" />
+            </Link>
             <AvatarMenu displayName={displayName} adminItems={adminItems} />
             <ThemeToggle />
             <MobileMenu displayName={displayName} adminItems={adminItems} />
           </div>
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
     </div>
   );
 }

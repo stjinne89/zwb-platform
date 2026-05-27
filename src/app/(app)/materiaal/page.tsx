@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { PostKindBadge, PostStatusBadge } from "@/components/post-kind-badge";
 import {
@@ -58,19 +59,14 @@ export default async function MarketplacePage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Vraag en Aanbod
-          </h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
-            Te koop, gezocht, vragen en tips van leden voor leden.
-          </p>
-        </div>
-        <Link href="/materiaal/nieuw">
-          <Button>Nieuw bericht plaatsen</Button>
-        </Link>
-      </header>
+      <PageHeader
+        title="Vraag en Aanbod"
+        actions={
+          <Link href="/materiaal/nieuw">
+            <Button>Nieuw bericht</Button>
+          </Link>
+        }
+      />
 
       <nav className="flex flex-wrap gap-2" aria-label="Berichttype">
         <Link
@@ -123,11 +119,9 @@ export default async function MarketplacePage({
       </nav>
 
       {!posts || posts.length === 0 ? (
-        <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-          {activeCat || activeKind
-            ? "Geen berichten in deze selectie."
-            : "Nog geen berichten geplaatst. Stel de eerste vraag, deel een tip of bied iets aan."}
-        </p>
+        <EmptyState>
+          {activeCat || activeKind ? "Geen berichten in deze selectie." : "Geen berichten."}
+        </EmptyState>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {posts.map((p) => {

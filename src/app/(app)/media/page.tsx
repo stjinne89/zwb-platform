@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
@@ -14,13 +16,12 @@ type SearchParams = Promise<{ kind?: string }>;
 const PLATFORM_BUTTONS: Array<{
   key: "apple_url" | "spotify_url" | "rss_url" | "youtube_url" | "web_url";
   label: string;
-  emoji: string;
 }> = [
-  { key: "apple_url", label: "Apple Podcasts", emoji: "🍎" },
-  { key: "spotify_url", label: "Spotify", emoji: "🟢" },
-  { key: "youtube_url", label: "YouTube", emoji: "📺" },
-  { key: "rss_url", label: "RSS-feed", emoji: "📡" },
-  { key: "web_url", label: "Web", emoji: "🌐" },
+  { key: "apple_url", label: "Apple Podcasts" },
+  { key: "spotify_url", label: "Spotify" },
+  { key: "youtube_url", label: "YouTube" },
+  { key: "rss_url", label: "RSS-feed" },
+  { key: "web_url", label: "Web" },
 ];
 
 type MediaItem = {
@@ -76,12 +77,7 @@ export default async function MediaPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Media</h1>
-        <p className="mt-1 text-muted-foreground">
-          Mededelingen, nieuwsbrieven, podcasts en video&apos;s van ZWB.
-        </p>
-      </header>
+      <PageHeader title="Media" />
 
       <nav className="flex flex-wrap gap-2">
         <Link
@@ -108,11 +104,9 @@ export default async function MediaPage({
       </nav>
 
       {items.length === 0 ? (
-        <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-          {activeKind
-            ? `Nog geen items in ${MEDIA_KIND_LABELS[activeKind]}.`
-            : "Nog niks geplaatst."}
-        </p>
+        <EmptyState>
+          {activeKind ? `Geen items in ${MEDIA_KIND_LABELS[activeKind]}.` : "Geen media."}
+        </EmptyState>
       ) : (
         <ul className="space-y-3">
           {items.map((item) => {
@@ -128,7 +122,7 @@ export default async function MediaPage({
               >
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    {item.pinned && <span className="text-foreground/60">📌</span>}
+                    {item.pinned && <Pin className="size-4 text-foreground/60" />}
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
                       {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
                     </span>
@@ -256,7 +250,6 @@ export default async function MediaPage({
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 bg-background px-3 py-1 text-xs font-medium transition hover:border-foreground/50 hover:bg-secondary"
                             >
-                              <span aria-hidden>{b.emoji}</span>
                               {b.label}
                             </a>
                           );

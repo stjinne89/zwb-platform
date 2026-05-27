@@ -8,13 +8,17 @@ import {
   ClipboardList,
   ExternalLink,
   Mountain,
+  Plus,
   Send,
   ShieldCheck,
   TrendingUp,
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { Button } from "@/components/ui/button";
 import {
   fetchIntervalsEvents,
   fetchIntervalsWellness,
@@ -361,6 +365,7 @@ export const revalidate = 0;
 
 export default async function TrainingPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const access = await getCurrentUserAccess(supabase);
   const user = access.user;
   if (!user) redirect("/login");
@@ -404,10 +409,11 @@ export default async function TrainingPage() {
       .gte("start_date", since14.toISOString())
       .order("start_date", { ascending: false })
       .limit(40),
-    supabase
+    admin
       .from("profiles")
       .select("id, display_name, community_roles")
       .contains("community_roles", ["trainer"])
+      .eq("is_approved", true)
       .order("display_name"),
     supabase
       .from("training_coach_assignments")
@@ -531,17 +537,16 @@ export default async function TrainingPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">ZWB Training</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Coach-cockpit</h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Persoonlijke trainingsdata, doelen en schema&apos;s. AI maakt alleen concepten;
-            een trainer keurt altijd goed voordat iets wordt gepubliceerd.
-          </p>
-        </div>
-        {conn ? <DisconnectIntervalsButton /> : null}
-      </header>
+      <PageHeader
+        eyebrow="ZWB Training"
+        title="Coach-cockpit"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <HelpLink href="/hulp#training" />
+            {conn ? <DisconnectIntervalsButton /> : null}
+          </div>
+        }
+      />
 
       {fetchError && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -554,8 +559,7 @@ export default async function TrainingPage() {
           <div className="rounded-lg border bg-card p-5">
             <h2 className="font-semibold">Koppel intervals.icu</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Voor coachschema&apos;s gebruiken we intervals.icu als trainingskalender.
-              Zonder koppeling kun je wel doelen invullen, maar publiceren lukt nog niet.
+              Nodig voor publicatie naar je trainingskalender.
             </p>
           </div>
           <ConnectIntervalsForm />
@@ -606,12 +610,9 @@ export default async function TrainingPage() {
             <ShieldCheck className="size-5 text-primary" />
             Trainer-toegang
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Jij bepaalt welke trainer jouw trainingsdata en doelen mag zien.
-          </p>
           <div className="mt-4 space-y-2">
             {assignments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nog geen trainer gekoppeld.</p>
+              <EmptyState>Geen trainer gekoppeld.</EmptyState>
             ) : (
               assignments.map((assignment) => (
                 <div
@@ -631,7 +632,7 @@ export default async function TrainingPage() {
               ))
             )}
           </div>
-          {selectableTrainers.length > 0 && (
+          {selectableTrainers.length > 0 ? (
             <form action={formAction(grantTrainerAccess)} className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
               <select name="trainer_id" className="rounded-md border bg-background px-3 py-2 text-sm">
                 {selectableTrainers.map((trainer) => (
@@ -640,11 +641,16 @@ export default async function TrainingPage() {
                   </option>
                 ))}
               </select>
-              <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-                Toegang geven
-              </button>
+              <Button>
+                <Plus className="size-4" />
+                Trainer aanwijzen
+              </Button>
             </form>
-          )}
+          ) : assignments.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Geen trainers beschikbaar.
+            </p>
+          ) : null}
         </div>
 
         <form action={formAction(createTrainingGoal)} className="rounded-lg border bg-card p-5">
@@ -727,7 +733,7 @@ export default async function TrainingPage() {
             <h2 className="font-semibold">Mijn doelen</h2>
           </div>
           {goals.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">Nog geen trainingsdoelen.</p>
+            <p className="p-4 text-sm text-muted-foreground">Geen trainingsdoelen.</p>
           ) : (
             <ul className="divide-y">
               {goals.map((goal) => (
@@ -752,7 +758,7 @@ export default async function TrainingPage() {
             </p>
           </div>
           {upcomingEvents.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">Geen geplande intervals-workouts in de komende 14 dagen.</p>
+            <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>
           ) : (
             <ul className="divide-y">
               {upcomingEvents.map((event) => (
@@ -780,7 +786,7 @@ export default async function TrainingPage() {
           <h2 className="font-semibold">Mijn ZWB-schema&apos;s</h2>
         </div>
         {plans.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">Nog geen ZWB-trainingsschema&apos;s.</p>
+          <EmptyState>Geen ZWB-trainingsschema&apos;s.</EmptyState>
         ) : (
           <div className="divide-y">
             {plans.map((plan) => (
@@ -812,9 +818,7 @@ export default async function TrainingPage() {
             </h2>
           </header>
           {coachAssignments.length === 0 ? (
-            <p className="rounded-lg border bg-card p-5 text-sm text-muted-foreground">
-              Nog geen leden hebben jou trainer-toegang gegeven.
-            </p>
+            <EmptyState>Geen toegewezen leden.</EmptyState>
           ) : (
             <div className="space-y-4">
               {coachAssignments.map((assignment) => {

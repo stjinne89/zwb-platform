@@ -177,10 +177,6 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Zichtbaarheid
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Kies wat andere leden en, als je dat aanzet, bezoekers van je
-            publieke profiel mogen zien.
-          </p>
         </div>
 
         <label className="flex items-start gap-3 rounded-lg border bg-background p-3">
@@ -193,9 +189,6 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
           <span>
             <span className="block text-sm font-medium">
               Publieke profielpagina inschakelen
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              Deelbaar buiten login via /profielen/{initial.id}
             </span>
           </span>
         </label>

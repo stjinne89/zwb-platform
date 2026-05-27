@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
 import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
@@ -279,15 +280,10 @@ export default async function TeamsPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Teams</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
-            ZRL- en Ladder-teams van ZWB, inclusief teams die al uit de
-            bestaande ledenlijst herkend zijn.
-          </p>
-        </div>
-        {(canCreateTeams || canSyncTeams) && (
+      <PageHeader
+        title="Teams"
+        actions={
+          (canCreateTeams || canSyncTeams) && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
             {canSyncTeams && (
               <>
@@ -304,8 +300,9 @@ export default async function TeamsPage() {
               </Link>
             )}
           </div>
-        )}
-      </header>
+          )
+        }
+      />
 
       {(errors.length > 0 || warnings.length > 0) && (
         <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
@@ -356,16 +353,12 @@ export default async function TeamsPage() {
       </section>
 
       {allCards.length === 0 ? (
-        <section className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
-          Er zijn nog geen teams aangemaakt en er staan ook geen teamnamen in de
-          ledenlijst.
-        </section>
+        <EmptyState>Geen teams of rosterteams gevonden.</EmptyState>
       ) : (
         <div className="space-y-8">
           {activeCards.length > 0 && (
             <TeamSection
               title="Actieve teams"
-              description="Teams die als echt teamrecord bestaan en door kunnen klikken naar de detailpagina."
               cards={activeCards}
               isAdmin={canCreateTeams}
             />
@@ -374,7 +367,6 @@ export default async function TeamsPage() {
           {rosterCards.length > 0 && (
             <TeamSection
               title="Uit roster herkend"
-              description="Teams die al in de ledenlijst staan, maar nog geen gekoppeld teamrecord hebben."
               cards={rosterCards}
               isAdmin={canCreateTeams}
             />
@@ -407,12 +399,10 @@ function MetricCard({
 
 function TeamSection({
   title,
-  description,
   cards,
   isAdmin,
 }: {
   title: string;
-  description: string;
   cards: TeamCard[];
   isAdmin: boolean;
 }) {
@@ -420,7 +410,6 @@ function TeamSection({
     <section className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       <ul className="grid gap-3 lg:grid-cols-2">
         {cards.map((card) => (

@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
 import { ClaimButton } from "./_components/claim-button";
-import { RoleEditor } from "./_components/role-editor";
 import {
   MemberList,
   type MemberAwardBadge,
@@ -119,12 +118,7 @@ export default async function LedenPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Leden</h1>
-        <p className="mt-1 text-muted-foreground">
-          Geregistreerde leden en bekende ZWB&apos;ers die nog niet ingelogd zijn.
-        </p>
-      </header>
+      <PageHeader title="Leden" />
 
       {canApproveMembers && pendingProfiles.length > 0 && (
         <section className="space-y-3 rounded-2xl border-2 border-accent bg-card p-4">
@@ -132,9 +126,6 @@ export default async function LedenPage() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-foreground">
               Wachten op goedkeuring ({pendingProfiles.length})
             </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Nieuwe registraties die jouw goedkeuring nodig hebben.
-            </p>
           </div>
           <ul className="divide-y">
             {pendingProfiles.map((p) => (
@@ -252,9 +243,7 @@ export default async function LedenPage() {
           Nog niet geregistreerd ({otherUnclaimed.length})
         </h2>
         {otherUnclaimed.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Alle bekende leden zijn geregistreerd.
-          </p>
+          <EmptyState>Alle bekende leden zijn geregistreerd.</EmptyState>
         ) : (
           <ul className="divide-y">
             {otherUnclaimed.map((r) => (

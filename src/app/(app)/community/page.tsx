@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { DeleteGroupButton, NewGroupForm } from "./_components/admin-forms";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -59,25 +60,15 @@ export default async function CommunityPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Community</h1>
-        <p className="mt-1 text-muted-foreground">
-          Links naar onze WhatsApp-groepen — voor algemene chat, teams en events.
-        </p>
-      </header>
+      <PageHeader title="Community" />
 
       <section className="space-y-3">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-semibold">WhatsApp-groepen</h2>
-          <p className="text-xs text-muted-foreground">
-            Klik op een groep om in WhatsApp te openen
-          </p>
         </div>
 
         {!groups || groups.length === 0 ? (
-          <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-            Nog geen groepen toegevoegd.
-          </p>
+          <EmptyState>Geen groepen toegevoegd.</EmptyState>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {groups.map((g) => {

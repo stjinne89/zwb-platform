@@ -14,6 +14,7 @@ import {
   Vote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
@@ -333,39 +334,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-1">
-        <p className="text-sm text-muted-foreground">
-          {firstName ? `Hoi ${firstName}, welkom terug.` : "Welkom terug."}
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Home app van ZWB Cycling Community
-        </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Alles wat vandaag handig is: clubnieuws, komende ritten, teamstanden,
-          training en de nieuwste badges van leden.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow={firstName ? `Hoi ${firstName}` : "Welkom"}
+        title="Home app van ZWB Cycling Community"
+      />
 
       {mediaItems.length > 0 && (
         <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 text-xl font-semibold">
-                <Newspaper className="size-5 text-primary" />
-                Nieuws, mededelingen en media
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                De laatste updates vanuit ZWB.
-              </p>
-            </div>
-            <Link
-              href="/media"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              Alles
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
+          <SectionHeader
+            icon={Newspaper}
+            title="Nieuws, mededelingen en media"
+            action={<InlineMoreLink href="/media">Alles</InlineMoreLink>}
+          />
 
           <ul className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
             {mediaItems.map((item, index) => {
@@ -413,9 +393,6 @@ export default async function DashboardPage() {
                 <Vote className="size-5 text-primary" />
                 Polls
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Snelle keuzes waar leden nu over mee kunnen stemmen.
-              </p>
             </div>
             <Link
               href="/polls"
@@ -426,9 +403,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {polls.length === 0 ? (
-            <p className="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">
-              Geen open polls op dit moment.
-            </p>
+            <EmptyState>Geen open polls.</EmptyState>
           ) : (
             <ul className="space-y-3">
               {polls.map((poll) => {
@@ -458,9 +433,6 @@ export default async function DashboardPage() {
                 <Gift className="size-5 text-primary" />
                 Ledenvoordeel
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Compact overzicht van actuele kortingen en acties.
-              </p>
             </div>
             <Link
               href="/sponsors"
@@ -471,9 +443,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {benefits.length === 0 ? (
-            <p className="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">
-              Geen actief ledenvoordeel op dit moment.
-            </p>
+            <EmptyState>Geen actief ledenvoordeel.</EmptyState>
           ) : (
             <ul className="space-y-2">
               {benefits.map((benefit) => (
@@ -507,28 +477,13 @@ export default async function DashboardPage() {
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-semibold">
-              <CalendarDays className="size-5 text-primary" />
-              Aankomende events
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Wat er als eerste op de kalender staat.
-            </p>
-          </div>
-          <Link
-            href="/kalender"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Hele kalender
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
+        <SectionHeader
+          icon={CalendarDays}
+          title="Aankomende events"
+          action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
+        />
         {!upcoming || upcoming.length === 0 ? (
-          <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-            Nog geen events ingepland.
-          </p>
+          <EmptyState>Geen events ingepland.</EmptyState>
         ) : (
           <ul className="divide-y rounded-lg border bg-card">
             {upcoming.map((event) => (
@@ -559,24 +514,11 @@ export default async function DashboardPage() {
 
       {standings.length > 0 && (
         <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 text-xl font-semibold">
-                <Trophy className="size-5 text-primary" />
-                Teams en scorebord
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Actuele plek in de competitie per team.
-              </p>
-            </div>
-            <Link
-              href="/teams"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              Alle teams
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
+          <SectionHeader
+            icon={Trophy}
+            title="Teams en scorebord"
+            action={<InlineMoreLink href="/teams">Teams</InlineMoreLink>}
+          />
           <ul className="divide-y rounded-lg border bg-card">
             {standings.map((standing) => (
               <li key={standing.id}>
@@ -621,28 +563,13 @@ export default async function DashboardPage() {
       <ClubStats />
 
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-semibold">
-              <Bike className="size-5 text-primary" />
-              Training en clubactiviteit
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Recente Strava-ritten van leden in de afgelopen 7 dagen.
-            </p>
-          </div>
-          <Link
-            href="/training"
-            className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Training
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
+        <SectionHeader
+          icon={Bike}
+          title="Training en clubactiviteit"
+          action={<InlineMoreLink href="/training">Training</InlineMoreLink>}
+        />
         {activities.length === 0 ? (
-          <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-            Nog geen recente clubritten gevonden.
-          </p>
+          <EmptyState>Geen recente clubritten.</EmptyState>
         ) : (
           <ul className="divide-y rounded-lg border bg-card">
             {activities.map((activity) => (
@@ -694,28 +621,13 @@ export default async function DashboardPage() {
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-semibold">
-              <BadgeCheck className="size-5 text-primary" />
-              Nieuwste badges
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Laatst behaalde badges van clubleden.
-            </p>
-          </div>
-          <Link
-            href="/achievements"
-            className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Achievements
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
+        <SectionHeader
+          icon={BadgeCheck}
+          title="Nieuwste badges"
+          action={<InlineMoreLink href="/achievements">Achievements</InlineMoreLink>}
+        />
         {awards.length === 0 ? (
-          <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-            Nog geen vastgelegde badges.
-          </p>
+          <EmptyState>Geen vastgelegde badges.</EmptyState>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {awards.map((award) => {

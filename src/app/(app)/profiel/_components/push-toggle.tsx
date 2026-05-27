@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HelpLink } from "@/components/app-ui";
 import {
   deletePushSubscription,
   savePushSubscription,
@@ -156,8 +157,7 @@ export function PushToggle({
           Notificaties
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Deze browser ondersteunt geen push-notificaties. Op iOS werkt
-          het alleen via de geïnstalleerde PWA (iOS 16.4+).
+          Push werkt niet in deze browser.
         </p>
       </section>
     );
@@ -165,14 +165,11 @@ export function PushToggle({
 
   return (
     <section className="space-y-4 rounded-lg border bg-card p-6">
-      <header>
+      <header className="flex items-start justify-between gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Notificaties
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Ontvang een melding wanneer er iets nieuws is binnen ZWB —
-          per apparaat instelbaar.
-        </p>
+        <HelpLink href="/hulp#privacy" />
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -208,7 +205,7 @@ export function PushToggle({
         )}
         {permission === "denied" && (
           <span className="text-xs text-destructive">
-            Permission geblokkeerd — pas dit aan in browser-instellingen.
+            Geblokkeerd in browser-instellingen.
           </span>
         )}
       </div>

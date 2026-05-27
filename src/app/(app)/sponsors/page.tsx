@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EmptyState, PageHeader, SectionHeader } from "@/components/app-ui";
 import { SponsorCard, type SponsorCardData } from "./_components/sponsor-card";
 import { BenefitCard, type BenefitCardData } from "./_components/benefit-card";
 import {
@@ -126,23 +127,13 @@ export default async function SponsorsPage() {
 
   return (
     <div className="space-y-10">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Sponsors & ledenvoordeel
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          ZWB Cycling rijdt dankzij onze sponsors en partners. Hieronder
-          de bedrijven die ons mogelijk maken. Ben je lid? Scroll naar
-          beneden voor exclusieve <strong>ledenvoordelen</strong> en
-          kortingscodes.
-        </p>
-      </header>
+      <PageHeader
+        title="Sponsors & ledenvoordeel"
+      />
 
       {/* Sponsor showcase per tier */}
       {grouped.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nog geen sponsors zichtbaar.
-        </p>
+        <EmptyState>Geen sponsors zichtbaar.</EmptyState>
       ) : (
         <div className="space-y-8">
           {grouped.map(({ tier, sponsors: list }) => (
@@ -173,15 +164,7 @@ export default async function SponsorsPage() {
 
       {/* Ledenvoordeel: alleen voor ingelogde leden */}
       <section className="space-y-3">
-        <header>
-          <h2 className="text-xl font-semibold tracking-tight">
-            Ledenvoordeel
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Kortingscodes en aanbiedingen voor ZWB-leden, ingebracht via
-            sponsors of door bestuur toegevoegd.
-          </p>
-        </header>
+        <SectionHeader title="Ledenvoordeel" />
 
         {!access.user ? (
           <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
@@ -196,10 +179,7 @@ export default async function SponsorsPage() {
             </Link>
           </div>
         ) : benefitCards.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Op dit moment zijn er geen actieve ledenvoordelen. Hou deze
-            pagina in de gaten; er komen nieuwe aanbiedingen aan.
-          </p>
+          <EmptyState>Geen actieve ledenvoordelen.</EmptyState>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {benefitCards.map((b) => (
@@ -212,11 +192,6 @@ export default async function SponsorsPage() {
       {/* Worden-sponsor CTA */}
       <section className="rounded-lg border bg-muted/30 p-6 text-center">
         <h2 className="text-lg font-semibold">Zelf ook ZWB-sponsor worden?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          We staan open voor sponsoring in allerlei vormen: hoofdsponsor,
-          team-sponsor, materiaal- of dienstverlening, of als vriend van
-          ZWB.
-        </p>
         <a
           href="mailto:info@zwbcycling.nl"
           className="mt-3 inline-block rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"

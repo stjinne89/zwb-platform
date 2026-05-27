@@ -49,6 +49,7 @@ export const NAV_GROUPS: NavNode[] = [
 export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
   { type: "link", href: "/training", label: "Training" },
+  { type: "link", href: "/hulp", label: "Hulp" },
 ];
 
 // Admin-items met bijbehorende permission. Filteren gebeurt in de

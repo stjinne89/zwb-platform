@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { currentAchievementWeek } from "@/lib/strava/client";
@@ -179,13 +180,11 @@ function MetricCard({
 
 function Leaderboard({
   title,
-  description,
   rows,
   value,
   icon: Icon,
 }: {
   title: string;
-  description: string;
   rows: AthleteScore[];
   value: (score: AthleteScore) => string;
   icon: LucideIcon;
@@ -198,13 +197,10 @@ function Leaderboard({
             <Icon className="size-4 text-primary" />
             {title}
           </h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
       {rows.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">
-          Nog geen meetbare activiteiten deze week.
-        </p>
+        <p className="p-4 text-sm text-muted-foreground">Geen meetbare activiteiten.</p>
       ) : (
         <ol className="divide-y">
           {rows.map((row, index) => (
@@ -276,14 +272,11 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Achievements</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
-            Wekelijkse ZWB-badges op basis van gesyncte Strava-ritten.
-          </p>
-        </div>
+      <PageHeader
+        title="Achievements"
+        actions={
         <div className="flex flex-col gap-2 sm:items-end">
+          <HelpLink href="/hulp#badges" />
           {connection ? (
             <StravaSyncButton />
           ) : (
@@ -302,7 +295,8 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
           )}
           {access.has("achievements.finalize") && <FinalizeAwardsButton />}
         </div>
-      </header>
+        }
+      />
 
       {stravaError && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -347,28 +341,24 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
       <section className="grid gap-4 lg:grid-cols-2">
         <Leaderboard
           title={metricLabel.elevation}
-          description="Meeste hoogtemeters in de huidige week."
           rows={elevationRows}
           value={(score) => formatMeters(score.elevationM)}
           icon={Mountain}
         />
         <Leaderboard
           title={metricLabel.distance}
-          description="Meeste kilometers in de huidige week."
           rows={distanceRows}
           value={(score) => formatKm(score.distanceM)}
           icon={Route}
         />
         <Leaderboard
           title={metricLabel.kudos}
-          description="Meeste ontvangen kudos op gesyncte ritten."
           rows={kudosRows}
           value={(score) => `${score.kudos} kudos`}
           icon={HeartHandshake}
         />
         <Leaderboard
           title={metricLabel.consistency}
-          description="Meeste gesyncte fietsritten deze week."
           rows={consistencyRows}
           value={(score) => `${score.activities} ritten`}
           icon={RefreshCw}
@@ -378,14 +368,9 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
       <section className="rounded-md border bg-card">
         <div className="border-b p-4">
           <h2 className="font-semibold">Hall of fame</h2>
-          <p className="text-sm text-muted-foreground">
-            Vastgelegde weekbadges blijven zichtbaar in ledenlijst en profiel.
-          </p>
         </div>
         {awards.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">
-            Nog geen afgeronde weekbadges vastgelegd.
-          </p>
+          <EmptyState>Geen afgeronde weekbadges.</EmptyState>
         ) : (
           <ul className="divide-y">
             {awards.map((award) => {
@@ -429,10 +414,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
           <div>
             <h2 className="font-semibold">Kudomaster</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Strava geeft wel kudoers per activiteit terug, maar geen complete lijst
-              van kudos die een atleet zelf aan anderen heeft gegeven. Deze badge staat
-              klaar als we daar later een betrouwbare bron of club-feed workflow voor
-              toevoegen.
+              Klaar voor zodra we betrouwbare kudo-brondata hebben.
             </p>
           </div>
         </div>

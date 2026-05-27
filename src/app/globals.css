@@ -87,7 +87,7 @@
   --chart-3: oklch(0.63 0.101 77);
   --chart-4: oklch(0.58 0.039 177);
   --chart-5: oklch(0.49 0.039 205);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0.008 103);
   --sidebar-foreground: oklch(0.22 0.034 215);
   --sidebar-primary: oklch(0.34 0.071 209);
@@ -139,6 +139,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-rendering: geometricPrecision;
   }
   html:not(.dark) body {
     background-image:
@@ -161,6 +162,33 @@
   .app-shell {
     isolation: isolate;
     position: relative;
+  }
+
+  .jersey-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .jersey-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .jersey-panel::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0.75;
+    background:
+      linear-gradient(132deg, transparent 0 58%, rgb(0 70 83 / 0.08) 58% 72%, transparent 72%),
+      linear-gradient(28deg, transparent 0 70%, rgb(184 135 61 / 0.12) 70% 74%, transparent 74%);
+  }
+
+  html.dark .jersey-panel::before {
+    background:
+      linear-gradient(132deg, transparent 0 58%, rgb(31 96 104 / 0.16) 58% 72%, transparent 72%),
+      linear-gradient(28deg, transparent 0 70%, rgb(184 135 61 / 0.16) 70% 74%, transparent 74%);
   }
 
   .app-shell > header,
