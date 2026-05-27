@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Check, Copy, RotateCw, ShieldOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   createOwnTracksToken,
   revokeOwnTracksTokens,
@@ -15,6 +16,11 @@ export type OwnTracksTokenStatus = {
   revoked_at: string | null;
   created_at: string;
 };
+
+const OWNTRACKS_APP_STORE_URL =
+  "https://apps.apple.com/us/app/owntracks/id692424691";
+const OWNTRACKS_PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=org.owntracks.android";
 
 export function OwnTracksPanel({
   tokenStatus,
@@ -48,7 +54,7 @@ export function OwnTracksPanel({
     startTransition(async () => {
       const res = await revokeOwnTracksTokens();
       if (!res.ok) {
-        setError(res.error ?? "Koppeling intrekken mislukt.");
+        setError(res.error ?? "Koppeling stoppen mislukt.");
         return;
       }
       setRawToken(null);
@@ -117,7 +123,7 @@ export function OwnTracksPanel({
       <div className="flex flex-wrap gap-2">
         <Button type="button" onClick={createToken} disabled={pending}>
           <RotateCw className="size-4" />
-          {active ? "Token vernieuwen" : "Nieuwe OwnTracks-koppeling maken"}
+          {active ? "Nieuwe koppellink maken" : "OwnTracks koppelen"}
         </Button>
         {active && (
           <Button
@@ -127,7 +133,7 @@ export function OwnTracksPanel({
             disabled={pending}
           >
             <ShieldOff className="size-4" />
-            Koppeling intrekken
+            Koppeling stoppen
           </Button>
         )}
       </div>
@@ -136,8 +142,8 @@ export function OwnTracksPanel({
         <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
           <p className="text-sm font-medium">Kopieer deze URL nu naar OwnTracks</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            De token wordt maar één keer getoond. Maak een nieuwe token als je
-            deze kwijtraakt.
+            Deze persoonlijke koppellink wordt maar een keer getoond. Maak een
+            nieuwe koppellink als je hem kwijtraakt.
           </p>
           <div className="mt-3 flex gap-2">
             <input
@@ -155,8 +161,25 @@ export function OwnTracksPanel({
 
       <ol className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
         <li className="rounded-md border bg-background p-3">
-          <strong className="text-foreground">1.</strong> Installeer OwnTracks
-          uit de App Store of Play Store.
+          <strong className="text-foreground">1.</strong> Installeer OwnTracks.
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a
+              href={OWNTRACKS_APP_STORE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              App Store
+            </a>
+            <a
+              href={OWNTRACKS_PLAY_STORE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Play Store
+            </a>
+          </div>
         </li>
         <li className="rounded-md border bg-background p-3">
           <strong className="text-foreground">2.</strong> Kies HTTP mode en plak
