@@ -8,6 +8,7 @@ import {
 } from "@/components/profile-readonly-view";
 import { createClient } from "@/lib/supabase/server";
 import { type MilestoneBadgeRow } from "../../profiel/_components/badge-vault";
+import { RiderStats } from "./_components/rider-stats";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -116,6 +117,13 @@ export default async function LidProfielPage({ params }: PageProps) {
           profileRow.public_profile_enabled ? `/profielen/${profileRow.id}` : null
         }
       />
+
+      {showBadges && (
+        <RiderStats
+          profileId={profileRow.id}
+          displayName={profileRow.display_name ?? "Dit lid"}
+        />
+      )}
     </div>
   );
 }
