@@ -472,7 +472,7 @@ export default async function TrainingPage() {
     ((trainerRows ?? []) as ProfileRow[]).map((trainer) => [trainer.id, trainer]),
   );
   const selectableTrainers = ((trainerRows ?? []) as ProfileRow[]).filter(
-    (trainer) => trainer.id !== user.id && !trainerIds.includes(trainer.id),
+    (trainer) => !trainerIds.includes(trainer.id),
   );
   const goals = (myGoals ?? []) as GoalRow[];
   const plans = (myPlans ?? []) as PlanRow[];
@@ -620,7 +620,9 @@ export default async function TrainingPage() {
                   className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-3"
                 >
                   <span className="text-sm font-medium">
-                    {trainerMap.get(assignment.trainer_id)?.display_name ?? "Trainer"}
+                    {assignment.trainer_id === user.id
+                      ? "Ikzelf"
+                      : trainerMap.get(assignment.trainer_id)?.display_name ?? "Trainer"}
                   </span>
                   <form action={formAction(revokeTrainerAccess)}>
                     <input type="hidden" name="assignment_id" value={assignment.id} />
@@ -637,7 +639,9 @@ export default async function TrainingPage() {
               <select name="trainer_id" className="rounded-md border bg-background px-3 py-2 text-sm">
                 {selectableTrainers.map((trainer) => (
                   <option key={trainer.id} value={trainer.id}>
-                    {trainer.display_name ?? "Trainer"}
+                    {trainer.id === user.id
+                      ? `${trainer.display_name ?? "Ik"} (ikzelf)`
+                      : trainer.display_name ?? "Trainer"}
                   </option>
                 ))}
               </select>

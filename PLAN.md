@@ -148,6 +148,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   strakkere app-shell met subtiele jersey-vlakken, sponsorcards zonder
   dubbele namen bij logo's, en een expliciete knop "Trainer aanwijzen"
   in `/training`.
+- Self-coaching in training: leden met rol `Trainer` kunnen zichzelf als
+  trainer aanwijzen; migratie `0039` verwijdert de oude database-check
+  `athlete_id <> trainer_id`.
 
 ---
 
@@ -253,6 +256,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      blijft data-first.
    - Training: leden kunnen expliciet een trainer aanwijzen; trainerlijst
      laadt via server-adminclient zodat RLS de keuze niet stil verbergt.
+   - Self-coaching toegestaan voor leden met rol `Trainer` via migratie
+     `0039_allow_self_training_coach.sql`.
 
 8. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
