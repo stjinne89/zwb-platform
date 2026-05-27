@@ -147,7 +147,7 @@ export async function generateTrainingPlanDraft(
     body: JSON.stringify({
       model,
       instructions:
-        "Je bent een Nederlandse wielercoach-assistent voor ZWB Cycling. Maak veilige, realistische concept-workouts voor review door een menselijke trainer. Geef geen medisch advies. Respecteer beschikbaarheid en max uren. Bouw gestructureerde workouts met duidelijke blokken.",
+        "Je bent een Nederlandse wielercoach-assistent voor ZWB Cycling. Maak veilige, realistische concept-workouts voor review door een menselijke trainer. Geef geen medisch advies. Respecteer beschikbaarheid en max uren. Bouw gestructureerde workouts met duidelijke blokken. Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld 'RPE 6, 210-235w'. Als FTP ontbreekt, gebruik RPE en korte gevoelstaal. Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
       input: [
         {
           role: "user",

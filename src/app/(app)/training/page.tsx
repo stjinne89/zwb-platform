@@ -109,6 +109,10 @@ type WorkoutRow = {
   publish_error: string | null;
 };
 
+type TrainingPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
 const GOAL_LABELS: Record<string, string> = {
   zrl: "ZRL",
   ladder: "Ladder",
@@ -160,6 +164,10 @@ function formatNumber(n?: number, digits = 0) {
 
 function formAction(action: (formData: FormData) => Promise<unknown>) {
   return action as unknown as (formData: FormData) => Promise<void>;
+}
+
+function paramString(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function dateValue(value: string) {
@@ -241,12 +249,71 @@ function PlanBadge({ status }: { status: string }) {
   );
 }
 
+function percentRangeForIntensity(intensity: string): [number, number] | null {
+  const ranges: Record<string, [number, number]> = {
+    recovery: [45, 60],
+    endurance: [60, 75],
+    tempo: [76, 90],
+    threshold: [91, 105],
+    vo2max: [106, 120],
+    anaerobic: [121, 150],
+    race: [85, 115],
+    rest: [0, 0],
+  };
+  return ranges[intensity] ?? null;
+}
+
+function percentRangeForRpe(rpe: number): [number, number] | null {
+  if (rpe <= 1) return [0, 45];
+  if (rpe <= 3) return [45, 60];
+  if (rpe === 4) return [60, 70];
+  if (rpe === 5) return [70, 80];
+  if (rpe === 6) return [80, 90];
+  if (rpe === 7) return [90, 100];
+  if (rpe === 8) return [100, 110];
+  if (rpe === 9) return [110, 125];
+  return [125, 150];
+}
+
+function rpeFromText(text: string) {
+  const match = text.match(/\brpe\s*([1-9]|10)\b/i);
+  return match ? Number(match[1]) : null;
+}
+
+function wattRangeLabel(ftpWatts: number | null | undefined, range: [number, number] | null) {
+  if (!ftpWatts || !range) return null;
+  const [low, high] = range;
+  if (low === 0 && high === 0) return "Rust";
+  return `${Math.round((ftpWatts * low) / 100)}-${Math.round((ftpWatts * high) / 100)}w`;
+}
+
+function targetHint({
+  ftpWatts,
+  intensity,
+  target,
+  notes,
+}: {
+  ftpWatts?: number | null;
+  intensity: string;
+  target?: string;
+  notes?: string;
+}) {
+  const text = `${target ?? ""} ${notes ?? ""}`;
+  const rpe = rpeFromText(text);
+  const range = rpe ? percentRangeForRpe(rpe) : percentRangeForIntensity(intensity);
+  const watts = wattRangeLabel(ftpWatts, range);
+  if (!watts || /(\d+\s*-\s*\d+\s*w|\d+\s*w)/i.test(target ?? "")) return null;
+  return rpe ? `RPE ${rpe}: ${watts}` : watts;
+}
+
 function WorkoutList({
   workouts,
   editable,
+  ftpWatts,
 }: {
   workouts: WorkoutRow[];
   editable: boolean;
+  ftpWatts?: number | null;
 }) {
   if (workouts.length === 0) {
     return <p className="p-4 text-sm text-muted-foreground">Nog geen workouts in dit schema.</p>;
@@ -344,11 +411,20 @@ function WorkoutList({
           )}
           {workout.structure_json && workout.structure_json.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {workout.structure_json.slice(0, 5).map((step, idx) => (
-                <span key={idx} className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                  {step.label ?? "Blok"} {step.durationMinutes ? `${step.durationMinutes}m` : ""} {step.target ?? ""}
-                </span>
-              ))}
+              {workout.structure_json.slice(0, 5).map((step, idx) => {
+                const hint = targetHint({
+                  ftpWatts,
+                  intensity: workout.intensity,
+                  target: step.target,
+                  notes: step.notes,
+                });
+                return (
+                  <span key={idx} className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {step.label ?? "Blok"} {step.durationMinutes ? `${step.durationMinutes}m` : ""} {step.target ?? ""}
+                    {hint ? ` - ${hint}` : ""}
+                  </span>
+                );
+              })}
             </div>
           )}
         </li>
@@ -357,10 +433,295 @@ function WorkoutList({
   );
 }
 
+type CoachLoadMetric = {
+  ctl?: number;
+  tsb?: number;
+  eftp?: number;
+  error?: string;
+};
+
+function CoachWorkspace({
+  assignments,
+  profiles,
+  goals,
+  activities,
+  plans,
+  workoutsByPlan,
+  workoutsByProfile,
+  intervalEvents,
+  loadMetrics,
+  selectedAthleteId,
+  canUseAi,
+  canGenerateAi,
+  canPublish,
+  nowMs,
+}: {
+  assignments: AssignmentRow[];
+  profiles: Map<string, ProfileRow>;
+  goals: Map<string, GoalRow[]>;
+  activities: Map<string, StravaActivityRow[]>;
+  plans: Map<string, PlanRow[]>;
+  workoutsByPlan: Map<string, WorkoutRow[]>;
+  workoutsByProfile: Map<string, WorkoutRow[]>;
+  intervalEvents: Map<string, IntervalsEvent[]>;
+  loadMetrics: Map<string, CoachLoadMetric>;
+  selectedAthleteId?: string;
+  canUseAi: boolean;
+  canGenerateAi: boolean;
+  canPublish: boolean;
+  nowMs: number;
+}) {
+  if (assignments.length === 0) {
+    return <EmptyState>Geen toegewezen leden.</EmptyState>;
+  }
+
+  const selected =
+    assignments.find((assignment) => assignment.athlete_id === selectedAthleteId) ?? assignments[0];
+  const athlete = profiles.get(selected.athlete_id);
+  const athleteGoals = goals.get(selected.athlete_id) ?? [];
+  const athleteActivities = activities.get(selected.athlete_id) ?? [];
+  const athletePlans = plans.get(selected.athlete_id) ?? [];
+  const athleteWorkouts = workoutsByProfile.get(selected.athlete_id) ?? [];
+  const athleteEvents = intervalEvents.get(selected.athlete_id) ?? [];
+  const metric = loadMetrics.get(selected.athlete_id);
+  const totals = loadSummary(athleteActivities);
+  const recentZwbWorkouts = athleteWorkouts
+    .filter((workout) => new Date(workout.scheduled_at).getTime() < nowMs)
+    .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at))
+    .slice(0, 4);
+  const upcomingZwbWorkouts = athleteWorkouts
+    .filter((workout) => new Date(workout.scheduled_at).getTime() >= nowMs)
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+    .slice(0, 5);
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[340px_1fr]">
+      <aside className="rounded-lg border bg-card">
+        <div className="border-b p-4">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Users className="size-5 text-primary" />
+            Renners
+          </h2>
+        </div>
+        <div className="divide-y">
+          {assignments.map((assignment) => {
+            const rowProfile = profiles.get(assignment.athlete_id);
+            const rowMetric = loadMetrics.get(assignment.athlete_id);
+            const rowActivities = activities.get(assignment.athlete_id) ?? [];
+            const rowTotals = loadSummary(rowActivities);
+            const active = assignment.athlete_id === selected.athlete_id;
+            return (
+              <Link
+                key={assignment.id}
+                href={`/training?tab=trainer&athlete=${assignment.athlete_id}`}
+                className={`block p-4 transition hover:bg-muted/50 ${active ? "bg-primary/10" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{rowProfile?.display_name ?? "ZWB-lid"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      FTP {rowProfile?.ftp_watts ?? "-"}w - {formatKm(rowTotals.distance)}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {rowProfile?.zrl_category ?? "-"}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <span className="rounded-md bg-background px-2 py-1">
+                    CTL <strong>{formatNumber(rowMetric?.ctl, 1)}</strong>
+                  </span>
+                  <span className="rounded-md bg-background px-2 py-1">
+                    TSB <strong>{formatNumber(rowMetric?.tsb, 1)}</strong>
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </aside>
+
+      <div className="space-y-4">
+        <section className="rounded-lg border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Trainer-overzicht</p>
+              <h2 className="text-2xl font-semibold">{athlete?.display_name ?? "ZWB-lid"}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                FTP {athlete?.ftp_watts ?? "-"}w - {athlete?.zrl_category ? `ZRL ${athlete.zrl_category}` : "Geen ZRL-categorie"}
+              </p>
+            </div>
+            <Link
+              href={`/leden/${selected.athlete_id}`}
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Profiel <ExternalLink className="size-3" />
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
+            <MetricCard icon={Activity} label="TSB" value={formatNumber(metric?.tsb, 1)} />
+            <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
+            <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
+          </div>
+          {metric?.error ? (
+            <p className="mt-3 text-xs text-muted-foreground">Intervals: {metric.error}</p>
+          ) : null}
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-lg border bg-card">
+            <div className="border-b p-4">
+              <h3 className="font-semibold">Doelen</h3>
+            </div>
+            {athleteGoals.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">Geen actieve intake.</p>
+            ) : (
+              <div className="divide-y">
+                {athleteGoals.map((goal) => (
+                  <div key={goal.id} className="p-4">
+                    <p className="font-medium">{goal.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
+                      {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL")}` : ""}
+                      {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
+                    </p>
+                    <form action={formAction(generateAiDraft)} className="mt-3">
+                      <input type="hidden" name="athlete_id" value={selected.athlete_id} />
+                      <input type="hidden" name="goal_id" value={goal.id} />
+                      <button
+                        disabled={!canUseAi || !canGenerateAi}
+                        className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Bot className="size-4" />
+                        AI-concept maken
+                      </button>
+                    </form>
+                    {!canUseAi ? (
+                      <p className="mt-2 text-xs text-muted-foreground">OPENAI_API_KEY ontbreekt.</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-card">
+            <div className="border-b p-4">
+              <h3 className="font-semibold">Afgelopen uitvoering</h3>
+            </div>
+            {athleteActivities.length === 0 && recentZwbWorkouts.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">Geen recente uitvoering.</p>
+            ) : (
+              <ul className="divide-y">
+                {athleteActivities.slice(0, 5).map((activity) => (
+                  <li key={activity.id} className="grid gap-2 p-4 sm:grid-cols-[90px_1fr_auto] sm:items-center">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(activity.start_date).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}
+                    </span>
+                    <p className="truncate text-sm font-medium">{activity.name ?? "Rit"}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {formatKm(toNum(activity.distance_m))} - {formatHours(activity.moving_time_seconds)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-lg border bg-card">
+          <div className="border-b p-4">
+            <h3 className="font-semibold">Komende workouts</h3>
+          </div>
+          {upcomingZwbWorkouts.length === 0 && athleteEvents.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Geen komende workouts.</p>
+          ) : (
+            <ul className="divide-y">
+              {upcomingZwbWorkouts.map((workout) => (
+                <li key={workout.id} className="grid gap-2 p-4 sm:grid-cols-[110px_1fr_auto] sm:items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(workout.scheduled_at).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })}
+                  </span>
+                  <p className="truncate text-sm font-medium">{workout.title}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
+                  </span>
+                </li>
+              ))}
+              {athleteEvents.map((event) => (
+                <li key={String(event.id)} className="grid gap-2 p-4 sm:grid-cols-[110px_1fr_auto] sm:items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(event.start_date_local).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })}
+                  </span>
+                  <p className="truncate text-sm font-medium">{event.name ?? "Intervals workout"}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {event.icu_training_load ? `${Math.round(event.icu_training_load)} TSS` : "intervals.icu"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="font-semibold">Schema&apos;s maken en beheren</h3>
+          {athletePlans.length === 0 ? (
+            <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">Nog geen schema&apos;s voor dit lid.</p>
+          ) : (
+            athletePlans.map((plan) => (
+              <div key={plan.id} className="rounded-lg border bg-card">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4">
+                  <div>
+                    <p className="font-medium">{plan.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(plan.start_date).toLocaleDateString("nl-NL")} - {new Date(plan.end_date).toLocaleDateString("nl-NL")}
+                    </p>
+                  </div>
+                  <PlanBadge status={plan.status} />
+                </div>
+                <div className="flex flex-wrap gap-2 border-b p-3">
+                  <form action={formAction(setPlanStatus)}>
+                    <input type="hidden" name="plan_id" value={plan.id} />
+                    <input type="hidden" name="status" value="review" />
+                    <button className="rounded-md border px-3 py-1 text-xs hover:bg-accent">Naar review</button>
+                  </form>
+                  <form action={formAction(setPlanStatus)}>
+                    <input type="hidden" name="plan_id" value={plan.id} />
+                    <input type="hidden" name="status" value="approved" />
+                    <button className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs hover:bg-accent">
+                      <CheckCircle2 className="size-3" />
+                      Goedkeuren
+                    </button>
+                  </form>
+                  <form action={formAction(publishTrainingPlan)}>
+                    <input type="hidden" name="plan_id" value={plan.id} />
+                    <button
+                      disabled={!canPublish}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                    >
+                      <Send className="size-3" />
+                      Publiceren
+                    </button>
+                  </form>
+                </div>
+                <WorkoutList workouts={workoutsByPlan.get(plan.id) ?? []} editable ftpWatts={athlete?.ftp_watts} />
+              </div>
+            ))
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function TrainingPage() {
+export default async function TrainingPage({ searchParams }: TrainingPageProps) {
+  const params = (await searchParams) ?? {};
+  const requestedTab = paramString(params.tab);
+  const requestedAthleteId = paramString(params.athlete);
   const supabase = await createClient();
   const admin = createAdminClient();
   const access = await getCurrentUserAccess(supabase);
@@ -482,6 +843,7 @@ export default async function TrainingPage() {
   let coachActivities = new Map<string, StravaActivityRow[]>();
   let coachPlans = new Map<string, PlanRow[]>();
   let coachWorkouts = new Map<string, WorkoutRow[]>();
+  let coachWorkoutsByProfile = new Map<string, WorkoutRow[]>();
 
   if (canCoach) {
     const { data: assignmentRows } = await supabase
@@ -528,8 +890,56 @@ export default async function TrainingPage() {
       coachGoals = byProfile((goalRows ?? []) as GoalRow[]);
       coachActivities = byProfile((activityRows ?? []) as StravaActivityRow[]);
       coachPlans = byProfile((planRows ?? []) as PlanRow[]);
-      coachWorkouts = byPlan((workoutRows ?? []) as WorkoutRow[]);
+      const workouts = (workoutRows ?? []) as WorkoutRow[];
+      coachWorkouts = byPlan(workouts);
+      coachWorkoutsByProfile = byProfile(workouts);
     }
+  }
+
+  const activeTab = canCoach && requestedTab === "trainer" ? "trainer" : "member";
+  const coachLoadMetrics = new Map<string, CoachLoadMetric>();
+  const coachIntervalEvents = new Map<string, IntervalsEvent[]>();
+
+  if (activeTab === "trainer" && coachAssignments.length > 0) {
+    const athleteIds = coachAssignments.map((assignment) => assignment.athlete_id);
+    const { data: coachConnections } = await admin
+      .from("intervals_connections")
+      .select("profile_id, athlete_id, api_key")
+      .in("profile_id", athleteIds);
+
+    await Promise.all(
+      ((coachConnections ?? []) as Array<{ profile_id: string; athlete_id: string; api_key: string }>).map(
+        async (connection) => {
+          try {
+            const [rows, upcoming] = await Promise.all([
+              fetchIntervalsWellness(connection.api_key, connection.athlete_id, 30),
+              fetchIntervalsEvents(connection.api_key, connection.athlete_id, 14),
+            ]);
+            const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
+            const latestRow = sorted[sorted.length - 1];
+            coachLoadMetrics.set(connection.profile_id, {
+              ctl: latestRow?.ctl,
+              tsb:
+                latestRow?.ctl !== undefined && latestRow?.atl !== undefined
+                  ? latestRow.ctl - latestRow.atl
+                  : undefined,
+              eftp: [...sorted].reverse().find((row) => row.eftp)?.eftp,
+            });
+            coachIntervalEvents.set(
+              connection.profile_id,
+              upcoming
+                .filter((event) => event.start_date_local >= new Date().toISOString().slice(0, 10))
+                .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
+                .slice(0, 5),
+            );
+          } catch (err) {
+            coachLoadMetrics.set(connection.profile_id, {
+              error: err instanceof Error ? err.message : "Kon intervals.icu niet laden.",
+            });
+          }
+        },
+      ),
+    );
   }
 
   return (
@@ -551,6 +961,33 @@ export default async function TrainingPage() {
         </p>
       )}
 
+      {canCoach && (
+        <nav className="flex w-fit rounded-lg border bg-card p-1 text-sm">
+          <Link
+            href="/training"
+            className={`rounded-md px-3 py-1.5 font-medium ${
+              activeTab === "member"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Mijn training
+          </Link>
+          <Link
+            href="/training?tab=trainer"
+            className={`rounded-md px-3 py-1.5 font-medium ${
+              activeTab === "trainer"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Trainer
+          </Link>
+        </nav>
+      )}
+
+      {activeTab === "member" ? (
+        <>
       {!conn && (
         <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
           <div className="rounded-lg border bg-card p-5">
@@ -774,141 +1211,33 @@ export default async function TrainingPage() {
                   <PlanBadge status={plan.status} />
                 </div>
                 {plan.summary && <p className="px-4 pb-3 text-sm text-muted-foreground whitespace-pre-line">{plan.summary}</p>}
-                <WorkoutList workouts={myWorkoutsByPlan.get(plan.id) ?? []} editable={false} />
+                <WorkoutList workouts={myWorkoutsByPlan.get(plan.id) ?? []} editable={false} ftpWatts={myProfile?.ftp_watts} />
               </article>
             ))}
           </div>
         )}
       </section>
+        </>
+      ) : null}
 
-      {canCoach && (
-        <section className="space-y-4 border-t pt-8">
-          <header>
-            <p className="text-sm text-muted-foreground">Trainer-view</p>
-            <h2 className="flex items-center gap-2 text-2xl font-semibold">
-              <Users className="size-6 text-primary" />
-              Toegewezen leden
-            </h2>
-          </header>
-          {coachAssignments.length === 0 ? (
-            <EmptyState>Geen toegewezen leden.</EmptyState>
-          ) : (
-            <div className="space-y-4">
-              {coachAssignments.map((assignment) => {
-                const athlete = coachProfiles.get(assignment.athlete_id);
-                const athleteGoals = coachGoals.get(assignment.athlete_id) ?? [];
-                const athleteActivities = coachActivities.get(assignment.athlete_id) ?? [];
-                const athletePlans = coachPlans.get(assignment.athlete_id) ?? [];
-                const totals = loadSummary(athleteActivities);
-                return (
-                  <article key={assignment.id} className="rounded-lg border bg-card">
-                    <div className="border-b p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-lg font-semibold">{athlete?.display_name ?? "ZWB-lid"}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {athlete?.zrl_category ? `ZRL ${athlete.zrl_category} - ` : ""}
-                            FTP {athlete?.ftp_watts ?? "-"}w - 28 dagen: {athleteActivities.length} ritten,
-                            {" "}{formatKm(totals.distance)}, {formatHours(totals.time)}
-                          </p>
-                        </div>
-                        <Link
-                          href={`/leden/${assignment.athlete_id}`}
-                          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                        >
-                          Profiel <ExternalLink className="size-3" />
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 p-4 xl:grid-cols-[360px_1fr]">
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Doelen</h4>
-                        {athleteGoals.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">Geen actieve intake gevonden.</p>
-                        ) : (
-                          athleteGoals.map((goal) => (
-                            <div key={goal.id} className="rounded-md bg-muted/40 p-3">
-                              <p className="font-medium">{goal.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
-                                {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL")}` : ""}
-                              </p>
-                              <form action={formAction(generateAiDraft)} className="mt-3">
-                                <input type="hidden" name="athlete_id" value={assignment.athlete_id} />
-                                <input type="hidden" name="goal_id" value={goal.id} />
-                                <button
-                                  disabled={!canUseAi || !access.has("training.ai_generate")}
-                                  className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  <Bot className="size-4" />
-                                  AI-concept maken
-                                </button>
-                              </form>
-                              {!canUseAi && (
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                  OPENAI_API_KEY ontbreekt nog in de omgeving.
-                                </p>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Schema&apos;s</h4>
-                        {athletePlans.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">Nog geen schema&apos;s voor dit lid.</p>
-                        ) : (
-                          athletePlans.map((plan) => (
-                            <div key={plan.id} className="rounded-md border">
-                              <div className="flex flex-wrap items-start justify-between gap-3 border-b p-3">
-                                <div>
-                                  <p className="font-medium">{plan.title}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(plan.start_date).toLocaleDateString("nl-NL")} - {new Date(plan.end_date).toLocaleDateString("nl-NL")}
-                                  </p>
-                                </div>
-                                <PlanBadge status={plan.status} />
-                              </div>
-                              <div className="flex flex-wrap gap-2 border-b p-3">
-                                <form action={formAction(setPlanStatus)}>
-                                  <input type="hidden" name="plan_id" value={plan.id} />
-                                  <input type="hidden" name="status" value="review" />
-                                  <button className="rounded-md border px-3 py-1 text-xs hover:bg-accent">
-                                    Naar review
-                                  </button>
-                                </form>
-                                <form action={formAction(setPlanStatus)}>
-                                  <input type="hidden" name="plan_id" value={plan.id} />
-                                  <input type="hidden" name="status" value="approved" />
-                                  <button className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs hover:bg-accent">
-                                    <CheckCircle2 className="size-3" />
-                                    Goedkeuren
-                                  </button>
-                                </form>
-                                <form action={formAction(publishTrainingPlan)}>
-                                  <input type="hidden" name="plan_id" value={plan.id} />
-                                  <button
-                                    disabled={!access.has("training.publish_plans")}
-                                    className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                                  >
-                                    <Send className="size-3" />
-                                    Publiceren
-                                  </button>
-                                </form>
-                              </div>
-                              <WorkoutList workouts={coachWorkouts.get(plan.id) ?? []} editable />
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+      {activeTab === "trainer" && (
+        <section className="space-y-4">
+          <CoachWorkspace
+            assignments={coachAssignments}
+            profiles={coachProfiles}
+            goals={coachGoals}
+            activities={coachActivities}
+            plans={coachPlans}
+            workoutsByPlan={coachWorkouts}
+            workoutsByProfile={coachWorkoutsByProfile}
+            intervalEvents={coachIntervalEvents}
+            loadMetrics={coachLoadMetrics}
+            selectedAthleteId={requestedAthleteId}
+            canUseAi={canUseAi}
+            canGenerateAi={access.has("training.ai_generate")}
+            canPublish={access.has("training.publish_plans")}
+            nowMs={now.getTime()}
+          />
         </section>
       )}
     </div>
