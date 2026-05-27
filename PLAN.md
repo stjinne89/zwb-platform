@@ -4,6 +4,9 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
+> Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
+> app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
+> en trainer-aanwijzing in `/training`.
 > Laatst bijgewerkt: 2026-05-27 (operationele setup afgerond:
 > event-reminders cron actief op cron-job.org, NexReply logo
 > geüpload, alle migraties + env vars in productie. Fase 3 is dicht.)
@@ -140,6 +143,11 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - Training coach-cockpit op `/training`: trainerrol, expliciete opt-in per
   trainer, doelen/intake, AI-conceptschema's, trainer-review en publicatie
   naar intervals.icu. Migratie `0037`.
+- UI-polish ronde (commit `7485b65`): compactere member-facing copy,
+  overbodige uitleg naar `/hulp`, nieuwe gedeelde app-UI helpers,
+  strakkere app-shell met subtiele jersey-vlakken, sponsorcards zonder
+  dubbele namen bij logo's, en een expliciete knop "Trainer aanwijzen"
+  in `/training`.
 
 ---
 
@@ -233,7 +241,20 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      `PUBLIC_PATHS` zodat de externe cron niet naar /login redirected.
    - **NexReply logo** geüpload via /sponsors admin-paneel.
 
-7. **⏸️ On-hold (bewust uitgesteld)**
+7. **✅ UI-polish + hulp-hub** (commit `7485b65`)
+   - Nieuwe `/hulp` beginnerhub voor profiel, Strava, events, OwnTracks,
+     training, teams, badges, community en privacy.
+   - App-brede member-facing copy pass: page headers korter, lege states
+     compacter en overbodige uitleg verplaatst naar `/hulp`.
+   - Gedeelde compacte UI helpers in `src/components/app-ui.tsx`.
+   - Sponsorpagina: sponsorcards met logo tonen geen dubbele sponsornaam
+     of beschrijving meer; fallback-naam blijft alleen zonder logo.
+   - Dashboard: intro-subtekst en clubstats-uitleg verwijderd; clubstats
+     blijft data-first.
+   - Training: leden kunnen expliciet een trainer aanwijzen; trainerlijst
+     laadt via server-adminclient zodat RLS de keuze niet stil verbergt.
+
+8. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
@@ -241,7 +262,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
 
-8. **Open punten**
+9. **Open punten**
    - **iOS PWA push-praktijktest** — niemand in ontwikkelteam heeft
      iPhone. Push werkt op desktop + Android getest; iOS-flow (PWA
      beginscherm-installatie + opt-in) moet door een iOS-eigenaar
