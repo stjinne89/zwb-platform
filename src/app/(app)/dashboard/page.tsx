@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
+import { ClubStats } from "./_components/club-stats";
 
 const CYCLING_SPORTS = [
   "Ride",
@@ -616,6 +617,8 @@ export default async function DashboardPage() {
           </ul>
         </section>
       )}
+
+      <ClubStats />
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">

@@ -2,11 +2,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { AchievementBadge } from "@/components/achievement-badge";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
 import { ClaimButton } from "./_components/claim-button";
 import { RoleEditor } from "./_components/role-editor";
+import {
+  MemberList,
+  type MemberAwardBadge,
+  type MemberListProfile,
+} from "./_components/member-list";
 
 type Profile = {
   id: string;
@@ -200,69 +204,48 @@ export default async function LedenPage() {
         </section>
       )}
 
-      <section className="space-y-3 rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Geregistreerd ({profileList.length})
-        </h2>
-        {profileList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nog niemand.</p>
-        ) : (
-          <ul className="divide-y">
-            {profileList.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-start justify-between gap-3 py-2 text-sm"
-              >
-                <div className="flex min-w-0 gap-3">
-                  <MemberAvatar
-                    profileId={p.id}
-                    name={p.display_name}
-                    avatarUrl={p.avatar_url}
-                  />
-                  <div className="min-w-0">
-                    <p>
-                      <Link
-                        href={`/leden/${p.id}`}
-                        className="font-medium hover:text-primary hover:underline"
-                      >
-                        {p.display_name}
-                      </Link>
-                      {p.zrl_category && (
-                        <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                          {p.zrl_category}
-                        </span>
-                      )}
-                      {p.region && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {p.region}
-                        </span>
-                      )}
-                    </p>
-                    <div className="mt-1">
-                      <CommunityRoleBadges
-                        roles={p.community_roles}
-                        isAdmin={p.is_admin}
-                        compact
-                      />
-                    </div>
-                    <MemberBadges awards={awardsByProfile.get(p.id) ?? []} />
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  {p.zwift_id && (
-                    <span className="text-xs text-muted-foreground">
-                      Zwift {p.zwift_id}
-                    </span>
-                  )}
-                  {canManageRoles && (
-                    <RoleEditor profileId={p.id} roles={p.community_roles} />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {(() => {
+        const regions = Array.from(
+          new Set(
+            profileList
+              .map((p) => p.region)
+              .filter((r): r is string => Boolean(r)),
+          ),
+        ).sort((a, b) => a.localeCompare(b, "nl"));
+
+        const memberData: MemberListProfile[] = profileList.map((p) => ({
+          id: p.id,
+          display_name: p.display_name,
+          region: p.region,
+          zwift_id: p.zwift_id,
+          zrl_category: p.zrl_category,
+          avatar_url: p.avatar_url,
+          is_admin: p.is_admin,
+          community_roles: p.community_roles,
+          awards: (awardsByProfile.get(p.id) ?? [])
+            .map((a) => {
+              const badge = Array.isArray(a.achievement_badges)
+                ? a.achievement_badges[0]
+                : a.achievement_badges;
+              if (!badge) return null;
+              return {
+                id: a.id,
+                title: badge.title,
+                icon: badge.icon,
+                color: badge.color,
+              } satisfies MemberAwardBadge;
+            })
+            .filter((x): x is MemberAwardBadge => x !== null),
+        }));
+
+        return (
+          <MemberList
+            profiles={memberData}
+            regions={regions}
+            canManageRoles={canManageRoles}
+          />
+        );
+      })()}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -286,73 +269,6 @@ export default async function LedenPage() {
           </ul>
         )}
       </section>
-    </div>
-  );
-}
-
-function initials(name: string): string {
-  const parts = name
-    .replace(/\([^)]*\)|\[[^\]]*\]/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (parts.length === 0) return "??";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function MemberAvatar({
-  profileId,
-  name,
-  avatarUrl,
-}: {
-  profileId: string;
-  name: string;
-  avatarUrl: string | null;
-}) {
-  return (
-    <Link
-      href={`/leden/${profileId}`}
-      className="mt-0.5 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zwb-petrol text-xs font-semibold text-white"
-      aria-label={`Bekijk profiel van ${name}`}
-    >
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatarUrl}
-          alt=""
-          width={40}
-          height={40}
-          className="size-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        initials(name)
-      )}
-    </Link>
-  );
-}
-
-function MemberBadges({ awards }: { awards: AwardRow[] }) {
-  if (awards.length === 0) return null;
-
-  return (
-    <div className="mt-1 flex flex-wrap gap-1">
-      {awards.map((award) => {
-        const badge = Array.isArray(award.achievement_badges)
-          ? award.achievement_badges[0]
-          : award.achievement_badges;
-        if (!badge) return null;
-        return (
-          <AchievementBadge
-            key={award.id}
-            title={badge.title}
-            icon={badge.icon}
-            color={badge.color}
-            compact
-          />
-        );
-      })}
     </div>
   );
 }

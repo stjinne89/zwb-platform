@@ -4,8 +4,9 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
-> Laatst bijgewerkt: 2026-05-27 (training coach-cockpit v1 toegevoegd:
-> trainerrol, expliciete opt-in, AI-conceptschema's en intervals-publicatie)
+> Laatst bijgewerkt: 2026-05-27 (event-reminders cron + club-stats
+> dashboard-widget + race-mate quick wins op /leden en event-detail
+> + Live spoor B/C definitief geskipt)
 
 ---
 
@@ -50,7 +51,7 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 | 8 | Strava OAuth + 5-jaars backfill (chunked, paginated) | ✅ |
 | 9 | WTRL ZRL scraper | ✅ |
 | 10 | Ladder scraper (ladder.cycleracing.club) | ✅ |
-| 11 | Race-mate finder | 🟡 deels via /leden filters |
+| 11 | Race-mate finder (filter-bar /leden + ZRL-cat naast RSVPs) | ✅ quick wins |
 
 ### Fase 3 — Engagement
 
@@ -58,9 +59,9 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 |---|---|:---:|
 | 12 | Foto-galerij per event | ✅ |
 | 13 | Achievements & badges (400 badges, 38 auto-evaluators) | ✅✅✅ |
-| 14 | Club-stats dashboard | 🟡 deels (weekranking + recente ritten) |
+| 14 | Club-stats dashboard (maand-totalen + top 3 + 12w-sparkline) | ✅ |
 | 15 | Polls | ✅ |
-| 16 | Push-notificaties (PWA Web Push) | ✅ infra · ⏳ VAPID-keys setup |
+| 16 | Push-notificaties (incl. event-reminders 24u/2u via cron) | ✅ |
 | 17 | Sponsor-zone + ledenvoordeel (samengevoegd) | ✅ |
 | 18 | Contributie/merch via Mollie iDEAL | ⏸️ on-hold |
 
@@ -104,10 +105,14 @@ indicators op eventrijen en linkt direct naar `/live/[eventId]`.
 
 | Spoor | Beschrijving | Status |
 |---|---|:---:|
-| A | Outdoor GPS-tracker via PWA (geolocation + wake-lock + Realtime) | ✅ |
-| B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | ❓ check |
-| C | Indoor status-board (handmatige "Ik fiets nu"-toggle) | ❓ check |
-| Bonus | Event liveticker op event-pagina's | ✅ |
+| A | Outdoor GPS-tracker via OwnTracks background tracking | ✅ |
+| B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | ⏸️ skip |
+| C | Indoor status-board (handmatige "Ik fiets nu"-toggle) | ⏸️ skip |
+| Bonus | Event liveticker op event-pagina's + publiek deelbaar | ✅ |
+
+Spoor B en C zijn **bewust geskipt**: OwnTracks dekt outdoor af, en het
+indoor status-board is een grote bouw met onzekere adoptie. Heroverwegen
+als bestuur of leden er expliciet om vragen.
 
 Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 (niet alleen op detail-pagina) — kalender als hub voor live-volgen.
@@ -230,18 +235,35 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - OpenAI env zetten voor training-AI: `OPENAI_API_KEY` en optioneel
      `OPENAI_TRAINING_MODEL` (default in code: `gpt-4.1-mini`).
 
-7. **⏸️ On-hold (bewust uitgesteld)**
+7. **✅ Afronden fase-3 push + stats + race-mate** (commit volgt)
+   - **Event-reminders cron** (`0038_event_reminders.sql` + `/api/events/reminders`):
+     24u + 2u voor start een push-notificatie naar RSVP yes/maybe leden
+     die `on_event_reminder=true` hebben. Bearer-auth via
+     `EVENT_REMINDER_SECRET`, dedupe via `event_reminder_sends`-log.
+     Extern aanroepen elke 15 min (cron-job.org, zoals andere cron-routes).
+   - **Club-stats dashboard-widget** (`_components/club-stats.tsx`):
+     huidige maand km/hm/uren + delta vs vorige maand + top 3 rider +
+     12-weken sparkline. Geen migratie nodig, leest `strava_activities`.
+   - **Race-mate quick wins**: interactieve filter-bar op `/leden`
+     (regio-dropdown + ZRL-chips A-E met multi-select), ZRL-categorie-
+     badge naast namen in RSVP-lijst op event-detail.
+   - **Live spoor B/C geskipt** — PLAN.md bijgewerkt.
+
+8. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
    - **Mollie iDEAL contributie/merch** — niet door bestuur gevraagd.
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
-   - **Cron-based event-reminders** (24h/2h voor start) — vereist
-     Netlify Scheduled Functions opzet, helper bestaat al.
-   - **on_live_started + on_new_badge push-triggers** — preference-
-     toggles staan er, alleen de send-calls moeten nog gehangen
-     worden in `samen-fietsen/_actions` + `milestone-evaluators.ts`.
+
+9. **Open todo's**
+   - **iOS PWA push-praktijktest**: iPhone → Safari → "Zet op beginscherm"
+     → open vanaf icon → `/profiel` notificaties aan → maak event of doe
+     broadcast → controleer dat notificatie binnenkomt.
+   - **cron-job.org-job** voor `/api/events/reminders` (POST, Bearer,
+     elke 15 min).
+   - **NexReply logo** uploaden via /sponsors admin.
 
 ---
 

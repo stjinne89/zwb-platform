@@ -95,7 +95,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_admin_broadcast",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -163,6 +163,7 @@ export default async function ProfielPage() {
           on_live_started: pushPrefs?.on_live_started ?? true,
           on_new_badge: pushPrefs?.on_new_badge ?? false,
           on_training_plan: pushPrefs?.on_training_plan ?? true,
+          on_event_reminder: pushPrefs?.on_event_reminder ?? true,
           on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
         }}
         hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}

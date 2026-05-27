@@ -81,7 +81,9 @@ export default async function EventDetailPage({
     await Promise.all([
       supabase
         .from("event_rsvps")
-        .select("status, profile_id, profiles(display_name)")
+        .select(
+          "status, profile_id, profiles(display_name, zrl_category, strava_id)",
+        )
         .eq("event_id", id),
       getCurrentUserAccess(supabase),
       supabase
@@ -127,12 +129,24 @@ export default async function EventDetailPage({
     | RsvpStatus
     | undefined;
 
-  const grouped: Record<RsvpStatus, string[]> = { yes: [], maybe: [], no: [] };
+  type RsvpEntry = {
+    name: string;
+    zrl: string | null;
+    strava: string | null;
+  };
+  const grouped: Record<RsvpStatus, RsvpEntry[]> = {
+    yes: [],
+    maybe: [],
+    no: [],
+  };
   for (const r of rsvps ?? []) {
-    const name =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (r as any).profiles?.display_name ?? "Onbekend";
-    grouped[r.status as RsvpStatus]?.push(name);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profile = (r as any).profiles ?? null;
+    grouped[r.status as RsvpStatus]?.push({
+      name: profile?.display_name ?? "Onbekend",
+      zrl: profile?.zrl_category ?? null,
+      strava: profile?.strava_id ?? null,
+    });
   }
   const eventIsToday = isAmsterdamToday(event.start_at);
   const liveParticipantIds = Array.from(
@@ -311,8 +325,21 @@ export default async function EventDetailPage({
               <p className="text-sm text-muted-foreground">—</p>
             ) : (
               <ul className="space-y-1 text-sm">
-                {grouped[s].map((name, i) => (
-                  <li key={i}>{name}</li>
+                {grouped[s].map((entry, i) => (
+                  <li
+                    key={i}
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    <span>{entry.name}</span>
+                    {entry.zrl && (
+                      <span
+                        className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
+                        title={`ZRL-categorie ${entry.zrl}`}
+                      >
+                        {entry.zrl}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ul>
             )}

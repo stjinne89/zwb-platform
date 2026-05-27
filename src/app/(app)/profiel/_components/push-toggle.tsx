@@ -16,6 +16,7 @@ type Props = {
     on_live_started: boolean;
     on_new_badge: boolean;
     on_training_plan: boolean;
+    on_event_reminder: boolean;
     on_admin_broadcast: boolean;
   };
   hasSubscriptionInDb: boolean;
@@ -247,6 +248,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_training_plan}
           />
           Trainingsschema of coach-update
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_event_reminder"
+            defaultChecked={initialPreferences.on_event_reminder}
+          />
+          Herinnering 24u en 2u voor een event (als ik ja/misschien zeg)
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
