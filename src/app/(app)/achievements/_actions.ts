@@ -86,10 +86,18 @@ export async function recomputeMyMilestoneBadges() {
   }
 
   try {
-    const result = await evaluateMilestonesForUser(
-      createAdminClient(),
-      user.id,
-    );
+    const admin = createAdminClient();
+
+    // Eerst col-detector draaien (full scan, geen activityIds-filter)
+    // zodat A013-A019/A095 over actuele climbed-cols beschikken.
+    try {
+      const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
+      await syncClimbedColsForUser(admin, user.id);
+    } catch {
+      // niet kritiek; evaluators draaien sowieso
+    }
+
+    const result = await evaluateMilestonesForUser(admin, user.id);
     revalidatePath("/achievements");
     revalidatePath("/dashboard");
     revalidatePath("/leden");

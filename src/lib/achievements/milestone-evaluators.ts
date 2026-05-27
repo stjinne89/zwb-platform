@@ -48,10 +48,20 @@ type TierResult = {
   note: string;
 };
 
+type EvaluatorContext = {
+  /** Set van col-slugs die deze rider heeft beklommen. Gebruikt door
+   *  A013-A019, A095. Andere evaluators kunnen 'm negeren. */
+  climbedCols: Set<string>;
+};
+
 type Evaluator = {
   code: string;
   /** Returns null als deze tier niet behaald is. */
-  check: (acts: Activity[], badge: BadgeRow) => TierResult | null;
+  check: (
+    acts: Activity[],
+    badge: BadgeRow,
+    ctx: EvaluatorContext,
+  ) => TierResult | null;
 };
 
 // ──────────────────────────────────────────────────────────────────────
@@ -1223,6 +1233,121 @@ const EVALUATORS: Evaluator[] = [
     check: (acts, badge) =>
       singleDistanceResult(badge, acts, "Randonneur-afstand in een rit"),
   },
+
+  // ── Col-detector-evaluators (A013-A019, A095) ─────────────────────────
+  // Gebruiken ctx.climbedCols (gepopuleerd uit profile_climbed_cols).
+  // Datum-bepaling: voor singleshot-cols gebruiken we today (we kennen
+  // de exacte rit-datum niet via deze evaluator-shape; alternatief is
+  // join met profile_climbed_cols.first_climbed_at, maar te complex).
+
+  // A013 Alpe Finisher — alpe-d-huez geklommen
+  {
+    code: "A013",
+    check: (_acts, _badge, ctx) => {
+      if (!ctx.climbedCols.has("alpe-d-huez")) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        value: 1,
+        displayUnit: "× Alpe d'Huez",
+        periodStart: today,
+        periodEnd: today,
+        note: "Alpe d'Huez beklommen",
+      };
+    },
+  },
+
+  // A014 Ventoux Finisher — mont-ventoux geklommen
+  {
+    code: "A014",
+    check: (_acts, _badge, ctx) => {
+      if (!ctx.climbedCols.has("mont-ventoux")) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        value: 1,
+        displayUnit: "× Mont Ventoux",
+        periodStart: today,
+        periodEnd: today,
+        note: "Mont Ventoux beklommen",
+      };
+    },
+  },
+
+  // A015 Marmotte Finisher — alle 5 Marmotte-cols geklommen
+  {
+    code: "A015",
+    check: (_acts, _badge, ctx) => {
+      const MARMOTTE = [
+        "col-du-glandon",
+        "col-du-telegraphe",
+        "col-du-galibier",
+        "col-de-la-croix-de-fer",
+        "alpe-d-huez",
+      ];
+      const done = MARMOTTE.filter((slug) => ctx.climbedCols.has(slug));
+      if (done.length < MARMOTTE.length) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        value: MARMOTTE.length,
+        displayUnit: "Marmotte-cols",
+        periodStart: today,
+        periodEnd: today,
+        note: "Alle 5 Marmotte-cols beklommen",
+      };
+    },
+  },
+
+  // A016 Dolomiti Rider — minstens 1 col uit de Dolomieten
+  {
+    code: "A016",
+    check: (_acts, _badge, ctx) => {
+      const DOLOMITI = ["passo-pordoi", "passo-falzarego"];
+      const done = DOLOMITI.filter((slug) => ctx.climbedCols.has(slug));
+      if (done.length === 0) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        value: done.length,
+        displayUnit: "Dolomieten-cols",
+        periodStart: today,
+        periodEnd: today,
+        note: `${done.length} Dolomieten-col(s) beklommen`,
+      };
+    },
+  },
+
+  // A019 Col Collector — aantal unieke cols (tier-thresholds in badge)
+  {
+    code: "A019",
+    check: (_acts, badge, ctx) => {
+      const t = badge.trigger_config?.threshold;
+      if (!t?.value) return null;
+      const count = ctx.climbedCols.size;
+      if (count < t.value) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        value: count,
+        displayUnit: "cols",
+        periodStart: today,
+        periodEnd: today,
+        note: `${count} unieke cols beklommen`,
+      };
+    },
+  },
+
+  // A095 Stelvio Finisher — passo-dello-stelvio geklommen
+  {
+    code: "A095",
+    check: (_acts, _badge, ctx) => {
+      if (!ctx.climbedCols.has("passo-dello-stelvio")) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        value: 1,
+        displayUnit: "× Stelvio",
+        periodStart: today,
+        periodEnd: today,
+        note: "Passo dello Stelvio beklommen",
+      };
+    },
+  },
 ];
 
 // ──────────────────────────────────────────────────────────────────────
@@ -1265,6 +1390,18 @@ export async function evaluateMilestonesForUser(
     ((existingAwards ?? []) as { badge_id: string }[]).map((a) => a.badge_id),
   );
 
+  // Climbed-cols context voor A013-A019, A095. Lege Set als er nog niets
+  // gescand is — evaluators returnen dan gewoon null.
+  const { data: climbedRows } = await supabase
+    .from("profile_climbed_cols")
+    .select("col_slug")
+    .eq("profile_id", profileId);
+  const ctx: EvaluatorContext = {
+    climbedCols: new Set(
+      ((climbedRows ?? []) as { col_slug: string }[]).map((r) => r.col_slug),
+    ),
+  };
+
   const evaluatorByCode = new Map(EVALUATORS.map((e) => [e.code, e] as const));
 
   const toInsert: Array<{
@@ -1291,7 +1428,7 @@ export async function evaluateMilestonesForUser(
 
     let result: TierResult | null = null;
     try {
-      result = evaluator.check(acts, badge);
+      result = evaluator.check(acts, badge, ctx);
     } catch (err) {
       errors.push(
         `${badge.id} (${badge.achievement_code}): ${

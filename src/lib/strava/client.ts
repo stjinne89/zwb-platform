@@ -422,19 +422,28 @@ export async function syncStravaActivitiesForUser(
   const done = nextPage === null;
 
   // Milestone-evaluators: alleen op de laatste chunk, anders draaien we
-  // 'm onnodig 10x op een halve dataset.
+  // 'm onnodig 10x op een halve dataset. Vóór de evaluators draaien we
+  // de col-detector zodat A013-A019/A095 over de meest actuele set
+  // climbed-cols beschikken.
   let milestoneAwards = 0;
   let milestoneErrors: string[] = [];
   if (done) {
     try {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const admin = createAdminClient();
+
+      // Col-detector — best-effort, faalt stil als polyline-data ontbreekt.
+      try {
+        const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
+        await syncClimbedColsForUser(admin, profileId);
+      } catch {
+        // niet kritiek voor de sync-flow
+      }
+
       const { evaluateMilestonesForUser } = await import(
         "@/lib/achievements/milestone-evaluators"
       );
-      const { createAdminClient } = await import("@/lib/supabase/admin");
-      const result = await evaluateMilestonesForUser(
-        createAdminClient(),
-        profileId,
-      );
+      const result = await evaluateMilestonesForUser(admin, profileId);
       milestoneAwards = result.awarded;
       milestoneErrors = result.errors;
     } catch (err) {
