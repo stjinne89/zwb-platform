@@ -8,7 +8,6 @@ import {
   ClipboardList,
   ExternalLink,
   Mountain,
-  Plus,
   Send,
   ShieldCheck,
   TrendingUp,
@@ -18,7 +17,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
-import { Button } from "@/components/ui/button";
 import {
   fetchIntervalsEvents,
   fetchIntervalsWellness,
@@ -28,14 +26,13 @@ import {
 import {
   createTrainingGoal,
   generateAiDraft,
-  grantTrainerAccess,
   publishTrainingPlan,
-  revokeTrainerAccess,
   setPlanStatus,
   updateWorkout,
 } from "./_actions";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
+import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 
 type ProfileRow = {
   id: string;
@@ -610,51 +607,23 @@ export default async function TrainingPage() {
             <ShieldCheck className="size-5 text-primary" />
             Trainer-toegang
           </h2>
-          <div className="mt-4 space-y-2">
-            {assignments.length === 0 ? (
-              <EmptyState>Geen trainer gekoppeld.</EmptyState>
-            ) : (
-              assignments.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-3"
-                >
-                  <span className="text-sm font-medium">
-                    {assignment.trainer_id === user.id
-                      ? "Ikzelf"
-                      : trainerMap.get(assignment.trainer_id)?.display_name ?? "Trainer"}
-                  </span>
-                  <form action={formAction(revokeTrainerAccess)}>
-                    <input type="hidden" name="assignment_id" value={assignment.id} />
-                    <button className="rounded-md border px-3 py-1 text-xs hover:bg-accent">
-                      Intrekken
-                    </button>
-                  </form>
-                </div>
-              ))
-            )}
-          </div>
-          {selectableTrainers.length > 0 ? (
-            <form action={formAction(grantTrainerAccess)} className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
-              <select name="trainer_id" className="rounded-md border bg-background px-3 py-2 text-sm">
-                {selectableTrainers.map((trainer) => (
-                  <option key={trainer.id} value={trainer.id}>
-                    {trainer.id === user.id
-                      ? `${trainer.display_name ?? "Ik"} (ikzelf)`
-                      : trainer.display_name ?? "Trainer"}
-                  </option>
-                ))}
-              </select>
-              <Button>
-                <Plus className="size-4" />
-                Trainer aanwijzen
-              </Button>
-            </form>
-          ) : assignments.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Geen trainers beschikbaar.
-            </p>
-          ) : null}
+          <TrainerAccessPanel
+            assignments={assignments.map((assignment) => ({
+              id: assignment.id,
+              trainerId: assignment.trainer_id,
+              trainerName:
+                assignment.trainer_id === user.id
+                  ? "Ikzelf"
+                  : trainerMap.get(assignment.trainer_id)?.display_name ?? "Trainer",
+            }))}
+            trainers={selectableTrainers.map((trainer) => ({
+              id: trainer.id,
+              label:
+                trainer.id === user.id
+                  ? `${trainer.display_name ?? "Ik"} (ikzelf)`
+                  : trainer.display_name ?? "Trainer",
+            }))}
+          />
         </div>
 
         <form action={formAction(createTrainingGoal)} className="rounded-lg border bg-card p-5">

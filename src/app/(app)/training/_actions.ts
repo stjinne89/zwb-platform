@@ -24,6 +24,12 @@ const WORKOUT_INTENSITIES = [
   "rest",
 ];
 
+type TrainingActionState = {
+  ok: boolean;
+  error?: string;
+  message?: string;
+} | null;
+
 function optionalString(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
   return text || null;
@@ -224,6 +230,14 @@ export async function grantTrainerAccess(formData: FormData) {
   }
 }
 
+export async function grantTrainerAccessState(
+  _prevState: TrainingActionState,
+  formData: FormData,
+): Promise<TrainingActionState> {
+  const result = await grantTrainerAccess(formData);
+  return result.ok ? { ok: true, message: "Trainer gekoppeld." } : result;
+}
+
 export async function revokeTrainerAccess(formData: FormData) {
   try {
     const { user, access } = await currentUser();
@@ -255,6 +269,14 @@ export async function revokeTrainerAccess(formData: FormData) {
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Koppeling intrekken faalde." };
   }
+}
+
+export async function revokeTrainerAccessState(
+  _prevState: TrainingActionState,
+  formData: FormData,
+): Promise<TrainingActionState> {
+  const result = await revokeTrainerAccess(formData);
+  return result.ok ? { ok: true, message: "Koppeling ingetrokken." } : result;
 }
 
 export async function generateAiDraft(formData: FormData) {
