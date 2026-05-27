@@ -27,6 +27,13 @@ function revalidatePollPaths() {
   revalidatePath("/dashboard");
 }
 
+function pollSchemaError(message: string | undefined) {
+  if (!message) return null;
+  return /schema cache|public\.polls|poll_options|poll_votes/i.test(message)
+    ? "Polls zijn nog niet ingericht in de database. Draai migratie 0036_ensure_polls_schema.sql en probeer opnieuw."
+    : null;
+}
+
 export async function createPoll(formData: FormData) {
   const guard = await requirePollAdmin();
   if (!guard.ok) return guard;
@@ -68,7 +75,7 @@ export async function createPoll(formData: FormData) {
   if (pollErr || !poll) {
     return {
       ok: false as const,
-      error: pollErr?.message ?? "Poll aanmaken faalde.",
+      error: pollSchemaError(pollErr?.message) ?? pollErr?.message ?? "Poll aanmaken faalde.",
     };
   }
 
@@ -81,7 +88,10 @@ export async function createPoll(formData: FormData) {
   if (optErr) {
     // rollback
     await admin.from("polls").delete().eq("id", poll.id);
-    return { ok: false as const, error: optErr.message };
+    return {
+      ok: false as const,
+      error: pollSchemaError(optErr.message) ?? optErr.message,
+    };
   }
 
   revalidatePollPaths();

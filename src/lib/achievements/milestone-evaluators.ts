@@ -6,6 +6,8 @@
 // 'milestone' nog leeg is. We doen 1 SELECT voor alle bestaande awards
 // + 1 batched INSERT, geen N+1.
 
+import { sendNotificationToMembers } from "@/lib/push/send";
+
 type Activity = {
   id: number;
   distance_m: number;
@@ -30,6 +32,7 @@ type Activity = {
 
 type BadgeRow = {
   id: string;
+  title: string;
   achievement_code: string;
   tier: "bronze" | "silver" | "gold" | "platinum";
   trigger_config: {
@@ -168,10 +171,8 @@ function parseTimeCap(raw: string): number | null {
 }
 
 function parseCountTimes(raw: string): number | null {
-  // "5x 100 km" / "5× 100 km" / "3x" / "10x" / "25x".
-  // The migration seed has been edited through different tools, so accept the
-  // mojibake variant too to avoid over-awarding tiered count badges.
-  const m = raw.match(/(\d+)\s*(?:x|×|Ã—)/i);
+  // Accept x, the multiplication sign, and older mojibake variants from seeds.
+  const m = raw.match(/(\d+)\s*(?:x|\u00d7|\u00c3\u0097)/i);
   return m ? parseInt(m[1], 10) : null;
 }
 
@@ -1242,7 +1243,7 @@ export async function evaluateMilestonesForUser(
   ] = await Promise.all([
     supabase
       .from("achievement_badges")
-      .select("id, achievement_code, tier, trigger_config")
+      .select("id, title, achievement_code, tier, trigger_config")
       .eq("kind", "milestone")
       .in("achievement_code", codes),
     supabase
@@ -1323,6 +1324,19 @@ export async function evaluateMilestonesForUser(
       errors.push(`bulk insert: ${error.message}`);
     } else {
       awarded = toInsert.length;
+      await sendNotificationToMembers(
+        "on_new_badge",
+        {
+          title: "Nieuwe ZWB-achievements",
+          body:
+            awarded === 1
+              ? "Je hebt een nieuwe achievement-badge behaald."
+              : `Je hebt ${awarded} nieuwe achievement-badges behaald.`,
+          url: "/profiel",
+          tag: `milestones-${profileId}-${new Date().toISOString().slice(0, 10)}`,
+        },
+        { profileIds: [profileId] },
+      ).catch(() => null);
     }
   }
 

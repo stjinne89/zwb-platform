@@ -120,7 +120,7 @@ export default async function PollsPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Polls</h1>
           <p className="text-sm text-muted-foreground">
-            Stem mee over rides, kit-design, locaties of wat dan ook —
+            Stem mee over rides, kit-design, locaties of wat dan ook -
             jouw stem helpt het bestuur kiezen.
           </p>
         </div>

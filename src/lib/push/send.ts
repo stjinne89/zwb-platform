@@ -1,7 +1,7 @@
 // Web Push send-helper.
 //
-// Verstuurt notificaties naar één of meerdere profiles op basis van
-// hun opt-in preferences. Faalt stil per device — een 410/404 betekent
+// Verstuurt notificaties naar een of meerdere profiles op basis van
+// hun opt-in preferences. Faalt stil per device; een 410/404 betekent
 // dat de subscription verlopen is en wordt opgeruimd.
 //
 // VAPID-keys (genereer eenmalig met `npx web-push generate-vapid-keys`):
@@ -59,12 +59,12 @@ type SubscriptionRow = {
 export async function sendNotificationToMembers(
   trigger: NotificationTrigger,
   payload: PushPayload,
-  options: { excludeProfileId?: string } = {},
+  options: { excludeProfileId?: string; profileIds?: string[] } = {},
 ): Promise<{ sent: number; pruned: number; skipped: boolean }> {
   if (!ensureVapid()) {
-    // Geen keys geconfigureerd → no-op, log enkel.
+    // Geen keys geconfigureerd: no-op, log enkel.
     console.warn(
-      "[push] VAPID env vars ontbreken — notificatie niet verzonden.",
+      "[push] VAPID env vars ontbreken; notificatie niet verzonden.",
     );
     return { sent: 0, pruned: 0, skipped: true };
   }
@@ -78,9 +78,14 @@ export async function sendNotificationToMembers(
     .eq(trigger, true);
 
   let profileIds = (prefsRows ?? []).map((r) => r.profile_id as string);
+  if (options.profileIds) {
+    const allowed = new Set(options.profileIds);
+    profileIds = profileIds.filter((id) => allowed.has(id));
+  }
   if (options.excludeProfileId) {
     profileIds = profileIds.filter((id) => id !== options.excludeProfileId);
   }
+  profileIds = Array.from(new Set(profileIds));
   if (profileIds.length === 0) {
     return { sent: 0, pruned: 0, skipped: false };
   }
@@ -116,7 +121,7 @@ export async function sendNotificationToMembers(
           toPruneIds.push(s.id);
           pruned++;
         }
-        // andere errors: silent — we gaan niet de hele batch faillen
+        // Andere errors: silent; we gaan niet de hele batch faillen.
       }
     }),
   );
@@ -129,7 +134,7 @@ export async function sendNotificationToMembers(
   }
 
   // last_used_at bijwerken voor wat er gelukt is is nice-to-have maar
-  // niet kritiek — sla over voor performance.
+  // niet kritiek; sla over voor performance.
 
   return { sent, pruned, skipped: false };
 }

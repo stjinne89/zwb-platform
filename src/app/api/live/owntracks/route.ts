@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendNotificationToMembers } from "@/lib/push/send";
 
 type OwnTracksPayload = {
   _type?: string;
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
 
   const { data: tokenRow, error: tokenError } = await admin
     .from("live_tracker_tokens")
-    .select("id, profile_id, enabled, revoked_at, profiles(is_approved)")
+    .select("id, profile_id, enabled, revoked_at, profiles(is_approved, display_name)")
     .eq("provider", "owntracks")
     .eq("token_hash", hashToken(rawToken))
     .maybeSingle();
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   let sessionId = existingSession?.id as string | undefined;
+  let createdSession = false;
   if (sessionId) {
     await admin
       .from("live_sessions")
@@ -155,6 +157,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: sessionError.message }, { status: 500 });
     }
     sessionId = newSession.id;
+    createdSession = true;
   }
 
   const recorded_at = recordedAtFromPayload(payload);
@@ -175,6 +178,24 @@ export async function POST(request: NextRequest) {
     .from("live_tracker_tokens")
     .update({ last_seen_at: nowIso })
     .eq("id", tokenRow.id);
+
+  if (createdSession) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profile = (tokenRow as any).profiles;
+    const displayName = Array.isArray(profile)
+      ? profile[0]?.display_name
+      : profile?.display_name;
+    await sendNotificationToMembers(
+      "on_live_started",
+      {
+        title: "ZWB'er is live",
+        body: `${displayName ?? "Een ZWB'er"} is live met OwnTracks.`,
+        url: "/live",
+        tag: `live-${sessionId}`,
+      },
+      { excludeProfileId: tokenRow.profile_id },
+    ).catch(() => null);
+  }
 
   return ownTracksAccepted();
 }

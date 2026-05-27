@@ -14,7 +14,7 @@ export type BenefitCardData = {
   redeem_url: string | null;
   valid_from: string | null;
   valid_until: string | null;
-  /** True wanneer valid_until in het verleden ligt — wordt grijs + niet-klikbaar getoond, binnen 7 dagen automatisch verwijderd. */
+  /** True wanneer valid_until in het verleden ligt; wordt grijs + niet-klikbaar getoond, binnen 7 dagen automatisch verwijderd. */
   expired?: boolean;
   sponsor: {
     name: string;
@@ -101,7 +101,7 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
             size="sm"
             onClick={copyCode}
             disabled={expired}
-            aria-label="Code kopiëren"
+            aria-label="Code kopieren"
           >
             {copied ? (
               <>
@@ -118,7 +118,7 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
 
       {expired && (
         <p className="rounded-md bg-muted px-2 py-1 text-center text-xs font-medium text-muted-foreground">
-          Verlopen — verdwijnt binnenkort
+          Verlopen - verdwijnt binnenkort
         </p>
       )}
 
@@ -126,7 +126,7 @@ export function BenefitCard({ benefit }: { benefit: BenefitCardData }) {
         {(validFrom || validUntil) && (
           <span>
             {validFrom && validUntil
-              ? `Geldig ${validFrom} — ${validUntil}`
+              ? `Geldig ${validFrom} - ${validUntil}`
               : validUntil
                 ? `Geldig t/m ${validUntil}`
                 : `Geldig vanaf ${validFrom}`}

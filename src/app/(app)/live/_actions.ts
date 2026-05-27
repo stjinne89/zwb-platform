@@ -3,6 +3,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendNotificationToMembers } from "@/lib/push/send";
 
 const MODES = [
   "outdoor",
@@ -65,6 +66,17 @@ export async function startSession(input: StartInput) {
     .single();
 
   if (error) return { ok: false as const, error: error.message };
+
+  await sendNotificationToMembers(
+    "on_live_started",
+    {
+      title: "ZWB live",
+      body: "Er is een live rit of status gestart. Kijk mee bij Samen fietsen.",
+      url: "/live",
+      tag: `live-${data.id}`,
+    },
+    { excludeProfileId: user.id },
+  ).catch(() => null);
 
   revalidatePath("/live");
   revalidatePath("/samen-fietsen");

@@ -80,7 +80,7 @@ export async function createEvent(input: EventInput) {
       "on_new_event",
       {
         title: "Nieuw event op de kalender",
-        body: `${input.title.trim()} — ${startLabel}`,
+        body: `${input.title.trim()} - ${startLabel}`,
         url: `/events/${data.id}`,
         tag: `event-${data.id}`,
       },

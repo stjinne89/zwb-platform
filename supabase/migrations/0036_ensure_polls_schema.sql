@@ -1,16 +1,10 @@
--- Polls — leichtgewicht stemmingen op /community of gekoppeld aan een
--- event/team. Bedoeld voor "wanneer fietsen we", "welk kit-design",
--- "doen we DBR mee dit jaar", etc.
---
--- Scope-conventie:
---   scope = 'free'  → losse poll, op /polls of /community zichtbaar
---   scope = 'event' → poll hoort bij een event (scope_id = events.id)
---   scope = 'team'  → poll hoort bij een team (scope_id = teams.id)
---
--- Sluitings-tijd is optioneel. Closed-polls tonen alleen de uitslag.
+-- Repair/idempotent poll schema.
+-- 0033 originally contained an invalid partial index with a subquery, which can
+-- roll back the whole migration. This file safely creates the poll tables for
+-- environments where that happened.
 
 create table if not exists public.polls (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key default uuid_generate_v4(),
   scope text not null check (scope in ('free', 'event', 'team')) default 'free',
   scope_id uuid,
   question text not null,
@@ -30,7 +24,7 @@ create index if not exists polls_active_recent_idx
   on public.polls (active, created_at desc);
 
 create table if not exists public.poll_options (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key default uuid_generate_v4(),
   poll_id uuid not null references public.polls(id) on delete cascade,
   label text not null,
   display_order int not null default 100,
@@ -41,25 +35,18 @@ create index if not exists poll_options_poll_order_idx
   on public.poll_options (poll_id, display_order);
 
 create table if not exists public.poll_votes (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key default uuid_generate_v4(),
   poll_id uuid not null references public.polls(id) on delete cascade,
   option_id uuid not null references public.poll_options(id) on delete cascade,
   profile_id uuid not null references public.profiles(id) on delete cascade,
   created_at timestamptz not null default now()
 );
 
--- Lookup-index voor stemmen per poll/profiel. Single-select wordt in de
--- server-action afgedwongen door eerst bestaande stemmen te verwijderen.
 create index if not exists poll_votes_poll_profile_idx
   on public.poll_votes (poll_id, profile_id);
 
--- Multi-select uniqueness: één stem per (poll, option, profile).
 create unique index if not exists poll_votes_multi_unique
   on public.poll_votes (poll_id, option_id, profile_id);
-
--- ──────────────────────────────────────────────────────────────────────
--- RLS — leden lezen alles, eigen votes beheerbaar
--- ──────────────────────────────────────────────────────────────────────
 
 alter table public.polls enable row level security;
 alter table public.poll_options enable row level security;
@@ -73,10 +60,6 @@ create policy "polls_members_read" on public.polls
       where p.id = auth.uid() and p.is_approved
     )
   );
-
--- Polls aanmaken: writes lopen via server-action (admin/board), maar
--- we hebben ook geen aanleiding om hier 't dicht te timmeren als de
--- creator-rij is gevuld; voor nu: alleen via service-role.
 
 drop policy if exists "poll_options_members_read" on public.poll_options;
 create policy "poll_options_members_read" on public.poll_options
@@ -122,10 +105,6 @@ create policy "poll_votes_own_delete" on public.poll_votes
     )
   );
 
--- ──────────────────────────────────────────────────────────────────────
--- updated_at-trigger
--- ──────────────────────────────────────────────────────────────────────
-
 create or replace function public.set_updated_at_polls()
 returns trigger language plpgsql as $$
 begin
@@ -137,11 +116,6 @@ drop trigger if exists polls_updated_at on public.polls;
 create trigger polls_updated_at
   before update on public.polls
   for each row execute function public.set_updated_at_polls();
-
--- ──────────────────────────────────────────────────────────────────────
--- Permission 'polls.manage' toevoegen (alleen aanmaken/sluiten — voting
--- is een algemene member-actie en gebeurt via eigen-row RLS).
--- ──────────────────────────────────────────────────────────────────────
 
 alter table public.community_role_permissions
   drop constraint if exists community_role_permissions_allowed;

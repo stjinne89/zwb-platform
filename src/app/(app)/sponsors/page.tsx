@@ -171,7 +171,7 @@ export default async function SponsorsPage() {
         </div>
       )}
 
-      {/* Ledenvoordeel — alleen voor ingelogde leden */}
+      {/* Ledenvoordeel: alleen voor ingelogde leden */}
       <section className="space-y-3">
         <header>
           <h2 className="text-xl font-semibold tracking-tight">
@@ -198,7 +198,7 @@ export default async function SponsorsPage() {
         ) : benefitCards.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Op dit moment zijn er geen actieve ledenvoordelen. Hou deze
-            pagina in de gaten — er komen nieuwe aanbiedingen aan.
+            pagina in de gaten; er komen nieuwe aanbiedingen aan.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

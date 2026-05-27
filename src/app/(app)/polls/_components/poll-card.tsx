@@ -141,10 +141,10 @@ export function PollCard({
         <div>
           <h3 className="font-semibold">{poll.question}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {poll.createdByName ?? "Onbekend"} ·{" "}
+            {poll.createdByName ?? "Onbekend"} -{" "}
             {poll.totalVotes} {poll.totalVotes === 1 ? "stem" : "stemmen"}
-            {poll.multiSelect && " · meerdere keuzes toegestaan"}
-            {closesLabel && ` · sluit ${closesLabel}`}
+            {poll.multiSelect && " - meerdere keuzes toegestaan"}
+            {closesLabel && ` - sluit ${closesLabel}`}
             {closed && (
               <span className="ml-1 rounded bg-muted px-1.5 text-xs">
                 gesloten
@@ -248,7 +248,7 @@ export function PollCard({
                     )}
                   </span>
                   <span className="text-sm tabular-nums text-muted-foreground">
-                    {option.voteCount} · {pct}%
+                    {option.voteCount} - {pct}%
                   </span>
                 </div>
               </button>

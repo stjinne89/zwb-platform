@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, Copy, RotateCw, ShieldOff } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Apple, Check, Copy, RotateCw, ShieldOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   createOwnTracksToken,
   revokeOwnTracksTokens,
@@ -167,17 +166,44 @@ export function OwnTracksPanel({
               href={OWNTRACKS_APP_STORE_URL}
               target="_blank"
               rel="noreferrer"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              className="inline-flex h-[42px] w-[142px] items-center gap-2 rounded-[7px] bg-black px-3 text-white shadow-sm ring-1 ring-white/20 transition hover:bg-zinc-900"
+              aria-label="Download OwnTracks in de App Store"
             >
-              App Store
+              <Apple className="size-[21px] shrink-0" aria-hidden />
+              <span className="min-w-0 leading-none">
+                <span className="block text-[0.52rem] font-medium tracking-wide">
+                  Download in de
+                </span>
+                <span className="block text-[1.05rem] font-semibold tracking-tight">
+                  App Store
+                </span>
+              </span>
             </a>
             <a
               href={OWNTRACKS_PLAY_STORE_URL}
               target="_blank"
               rel="noreferrer"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              className="inline-flex h-[42px] w-[142px] items-center gap-2 rounded-[7px] bg-black px-3 text-white shadow-sm ring-1 ring-white/20 transition hover:bg-zinc-900"
+              aria-label="Download OwnTracks in de Play Store"
             >
-              Play Store
+              <svg
+                viewBox="0 0 28 31"
+                className="size-[22px] shrink-0"
+                aria-hidden
+              >
+                <path d="M2.1 1.4 16 15.4 2.1 29.6A2.2 2.2 0 0 1 1 27.7V3.3c0-.8.4-1.5 1.1-1.9Z" fill="#00A0FF" />
+                <path d="m16 15.4 3.9 3.9L4.6 30.2a2.2 2.2 0 0 1-2.5-.6L16 15.4Z" fill="#00D56A" />
+                <path d="m16 15.4-14-14c.7-.5 1.7-.5 2.5 0l15.4 10.1-3.9 3.9Z" fill="#FFCE00" />
+                <path d="m19.9 11.5 5.2 3.4c1.2.8 1.2 2.5 0 3.3l-5.2 3.4-3.9-4 3.9-4.1Z" fill="#FF3D3D" />
+              </svg>
+              <span className="min-w-0 leading-none">
+                <span className="block text-[0.52rem] font-medium uppercase tracking-wide">
+                  Ontdek het op
+                </span>
+                <span className="block text-[1.02rem] font-semibold tracking-tight">
+                  Google Play
+                </span>
+              </span>
             </a>
           </div>
         </li>

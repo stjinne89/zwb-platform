@@ -1,4 +1,5 @@
 import { currentAchievementWeek } from "@/lib/strava/client";
+import { sendNotificationToMembers } from "@/lib/push/send";
 
 export type BadgeDefinition = {
   id: string;
@@ -170,10 +171,55 @@ export async function awardCompletedAchievementWeeks(
 
   if (awards.length === 0) return { awarded: 0 };
 
+  const { data: existingRows } = await supabase
+    .from("achievement_awards")
+    .select("badge_id, profile_id, period_start")
+    .in("badge_id", BADGES.map((badge) => badge.id));
+  const existing = new Set(
+    ((existingRows ?? []) as Array<{
+      badge_id: string;
+      profile_id: string;
+      period_start: string;
+    }>).map((award) => `${award.badge_id}:${award.profile_id}:${award.period_start}`),
+  );
+  const newAwards = awards.filter(
+    (award) =>
+      !existing.has(`${award.badge_id}:${award.profile_id}:${award.period_start}`),
+  );
+
   const { error: upsertError } = await supabase
     .from("achievement_awards")
     .upsert(awards, { onConflict: "badge_id,profile_id,period_start" });
 
   if (upsertError) throw new Error(upsertError.message);
+
+  const newAwardsByProfile = new Map<string, typeof newAwards>();
+  for (const award of newAwards) {
+    const list = newAwardsByProfile.get(award.profile_id) ?? [];
+    list.push(award);
+    newAwardsByProfile.set(award.profile_id, list);
+  }
+
+  await Promise.all(
+    Array.from(newAwardsByProfile.entries()).map(async ([profileId, profileAwards]) => {
+      const firstAward = profileAwards[0];
+      const badge = firstAward ? BADGES.find((b) => b.id === firstAward.badge_id) : null;
+      const body =
+        profileAwards.length === 1 && badge && firstAward
+          ? `${badge.title}: ${formatBadgeValue(firstAward.value, badge.unit)}`
+          : `Je hebt ${profileAwards.length} nieuwe weekbadges behaald.`;
+
+      await sendNotificationToMembers(
+        "on_new_badge",
+        {
+          title: "Nieuwe ZWB-badge behaald",
+          body,
+          url: "/profiel",
+          tag: `weekbadges-${profileId}-${currentWeek}`,
+        },
+        { profileIds: [profileId] },
+      ).catch(() => null);
+    }),
+  );
   return { awarded: awards.length };
 }
