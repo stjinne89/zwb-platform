@@ -1354,6 +1354,35 @@ const EVALUATORS: Evaluator[] = [
 // Hoofdroutine: batched select + insert
 // ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Haal ALLE strava_activities van een profiel op, gepagineerd via
+ * .range(). Supabase capt selects standaard op 1000 rijen — zonder
+ * paginatie missen riders met >1000 ritten hun recentste activiteiten
+ * in de milestone-evaluatie.
+ */
+async function fetchAllActivitiesForEval(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+): Promise<Activity[]> {
+  const PAGE = 500;
+  const all: Activity[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("strava_activities")
+      .select(
+        "id, distance_m, total_elevation_gain_m, moving_time_seconds, elapsed_time_seconds, kudos_count, start_date, trainer, commute, sport_type, raw",
+      )
+      .eq("profile_id", profileId)
+      .order("start_date", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as Activity[]));
+    if (data.length < PAGE) break;
+  }
+  return all;
+}
+
 export async function evaluateMilestonesForUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -1361,22 +1390,13 @@ export async function evaluateMilestonesForUser(
 ): Promise<{ awarded: number; skipped: number; errors: string[] }> {
   const codes = EVALUATORS.map((e) => e.code);
 
-  const [
-    { data: badges },
-    { data: activities },
-    { data: existingAwards },
-  ] = await Promise.all([
+  const [{ data: badges }, acts, { data: existingAwards }] = await Promise.all([
     supabase
       .from("achievement_badges")
       .select("id, title, achievement_code, tier, trigger_config")
       .eq("kind", "milestone")
       .in("achievement_code", codes),
-    supabase
-      .from("strava_activities")
-      .select(
-        "id, distance_m, total_elevation_gain_m, moving_time_seconds, elapsed_time_seconds, kudos_count, start_date, trainer, commute, sport_type, raw",
-      )
-      .eq("profile_id", profileId),
+    fetchAllActivitiesForEval(supabase, profileId),
     supabase
       .from("achievement_awards")
       .select("badge_id")
@@ -1385,7 +1405,6 @@ export async function evaluateMilestonesForUser(
   ]);
 
   const badgeRows = (badges ?? []) as BadgeRow[];
-  const acts = (activities ?? []) as Activity[];
   const alreadyAwarded = new Set<string>(
     ((existingAwards ?? []) as { badge_id: string }[]).map((a) => a.badge_id),
   );

@@ -170,6 +170,33 @@ type ClimbedRow = {
 };
 
 /**
+ * Haal ALLE strava_activities (id, start_date, raw) van een profiel op,
+ * gepagineerd via .range(). Supabase capt selects standaard op 1000
+ * rijen — zonder paginatie missen we recente ritten bij riders met
+ * >1000 activities.
+ */
+async function fetchAllActivities(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+): Promise<StoredActivity[]> {
+  const PAGE = 500; // raw-JSON is groot, dus kleinere pagina's
+  const all: StoredActivity[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("strava_activities")
+      .select("id, start_date, raw")
+      .eq("profile_id", profileId)
+      .order("start_date", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as StoredActivity[]));
+    if (data.length < PAGE) break;
+  }
+  return all;
+}
+
+/**
  * Scan alle (of een subset) activities van een profiel en upsert
  * profile_climbed_cols. Schrijft via de meegegeven supabase-client
  * (admin-client voor RLS-bypass tijdens sync/recompute).
@@ -200,11 +227,8 @@ export async function syncClimbedColsForUser(
   // toekomstige incrementele variant.
   void activityIds;
 
-  const { data: activities } = await supabase
-    .from("strava_activities")
-    .select("id, start_date, raw")
-    .eq("profile_id", profileId);
-  const acts = (activities ?? []) as StoredActivity[];
+  // Gepagineerd ophalen — Supabase capt standaard op 1000 rijen.
+  const acts = await fetchAllActivities(supabase, profileId);
 
   // Bouw per-col aggregaat: first/last activity + total count over hele
   // historie. Sorteer oudest eerst zodat first/last natuurlijk volgen.
