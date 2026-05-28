@@ -10,7 +10,12 @@ import {
   type YouTubeVideo,
 } from "@/lib/youtube";
 import { fetchRssFeed } from "@/lib/rss";
-import { fetchInstagramMedia, instagramCoverUrl, ZWB_INSTAGRAM_URL } from "@/lib/instagram";
+import {
+  fetchInstagramMedia,
+  instagramCoverUrl,
+  resolveInstagramUserId,
+  ZWB_INSTAGRAM_URL,
+} from "@/lib/instagram";
 
 const KINDS = MEDIA_KINDS.map((k) => k.value);
 
@@ -363,12 +368,12 @@ export async function syncPodcastRss(rssUrl?: string) {
 
 export async function syncInstagramFeed() {
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN?.trim();
-  const userId = process.env.INSTAGRAM_USER_ID?.trim();
-  if (!accessToken || !userId) {
+  let userId = process.env.INSTAGRAM_USER_ID?.trim();
+  if (!accessToken) {
     return {
       ok: false as const,
       error:
-        "INSTAGRAM_ACCESS_TOKEN en INSTAGRAM_USER_ID ontbreken in de server-env. Gebruik de officiële Meta Instagram API voor @zwb_cycling.",
+        "INSTAGRAM_ACCESS_TOKEN ontbreekt in de server-env. Maak een long-lived token via de officiële Meta Instagram API voor @zwb_cycling en zet die in Netlify env.",
     };
   }
 
@@ -381,6 +386,7 @@ export async function syncInstagramFeed() {
 
   let posts;
   try {
+    userId = userId || (await resolveInstagramUserId(accessToken));
     posts = await fetchInstagramMedia({ accessToken, userId, limit: 12 });
   } catch (err) {
     return {
