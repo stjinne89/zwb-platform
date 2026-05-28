@@ -7,9 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-27 (col-detector live: 6 col-badges
-> A013/A014/A015/A016/A019/A095 nu auto via Strava polyline-matching
-> tegen curated ~40-cols database; commit `5bd0018`)
+> Laatst bijgewerkt: 2026-05-27 (col-detector volledig: echte cols +
+> Watopia/Zwift via zelf-kalibratie, coördinaat-audit afgerond,
+> /profiel/cols met VeloViewer-links + ZWB-leaderboards)
 
 ---
 
@@ -88,20 +88,42 @@ chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 | 5 | Admin manual badge-beheer + "Badges herberekenen"-knop | ✅ |
 | 6 | /leden upgrade + publieke profielen + per-veld privacy | ✅ |
 
-Auto-evaluated codes (44):
+Auto-evaluated codes (46):
 `A001 A002 A003 A004 A005 A006 A007 A008 A009 A012 A013 A014 A015 A016
 A017 A018 A019 A020 A021 A026 A027 A028 A029 A030 A031 A038 A039 A041
-A042 A043 A044 A045 A046 A051 A057 A071 A075 A081 A084 A085 A088 A090
-A095 A096`
+A042 A043 A044 A045 A046 A051 A057 A071 A075 A081 A083 A084 A085 A088
+A090 A095 A096`
 
-De col-badges A013 (Alpe d'Huez), A014 (Ventoux), A015 (Marmotte),
-A016 (Dolomiti), A019 (Col Collector), A095 (Stelvio) zijn nu auto
-via de col-detector op Strava polyline-data (migraties 0040 + 0041,
-commit `5bd0018`). ~40 cols in de `cols`-tabel; matches landen in
-`profile_climbed_cols`.
-
-De overige ~56 codes blijven `manual` (admin kent toe) of `future`
+De overige ~54 codes blijven `manual` (admin kent toe) of `future`
 (wachten op power-data / komoot-koppeling / etc).
+
+### Sub-feature: Col-detector (echt + virtueel)
+
+Auto-award van col-badges door Strava `summary_polyline` te matchen tegen
+een curated col-database (`cols` + `profile_climbed_cols`, migraties
+`0040`-`0050`).
+
+- **Detectie**: `src/lib/cols/detector.ts` — polyline decode (@mapbox/
+  polyline) + **punt-tot-lijnsegment-afstand** (cruciaal: Strava's
+  summary_polyline is gedecimeerd, dus punt-afstand miste toppen) +
+  bbox-prefilter. Leest gepagineerd (Supabase 1000-rij-cap omzeild).
+- **Echte cols (~40)**: TdF/Giro/Vuelta-klassiekers + Belgische Ardennen
+  + Limburgse heuvels. Coördinaten geverifieerd tegen Wikipedia/
+  latitude.to/OpenStreetMap (migraties `0047`, `0050` — veel seed-waarden
+  zaten 1-7 km mis).
+- **Watopia/Zwift (10)**: zelf-kalibrerend — `zwift-data` npm levert per
+  klim de Strava-segment-ID, `src/lib/cols/watopia.ts` haalt de
+  `end_latlng` (= KOM-top) op via de Strava segment-API (migratie `0048`).
+  Draait in sync + recompute. `virtual`-flag scheidt ze van echte cols
+  (A019 telt alleen echt).
+- **Badges auto**: A013 Alpe Finisher, A014 Ventoux, A015 Marmotte (alle
+  5 cols), A016 Dolomiti, A019 Col Collector, A095 Stelvio (echt) +
+  A083 Alpe du Zwift (bronze/platinum), A090 Virtual Everesting (virtueel,
+  migratie `0049`). Tijd-gebaseerde tiers (A083 silver/gold) en A082
+  (routes) blijven manual.
+- **/profiel/cols**: geklommen + nog-te-doen grid, times_climbed +
+  eerste/laatste datum, ZWB-leaderboard per col, directe VeloViewer-links
+  (`strava_segment_id`, migratie `0044`).
 
 ---
 
@@ -147,6 +169,11 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - Live-indicator op `/kalender`-rijen met directe knop naar `/live/[eventId]`
 - Nav-clustering met 5 top-level slots + dropdown-menus (desktop) en
   section-headers (mobiel)
+- RiderStats op `/leden/[id]`: jaar-overzicht + 12-maand-heatmap +
+  discipline-verdeling + persoonlijke records + lifetime-aggregaten
+- Col-detector + `/profiel/cols`-collectie (echte + Watopia/Zwift-cols,
+  VeloViewer-links, ZWB-leaderboard per col)
+- Event-reminders cron (24u/2u) via cron-job.org
 - Training coach-cockpit op `/training`: trainerrol, expliciete opt-in per
   trainer, doelen/intake, AI-conceptschema's, trainer-review en publicatie
   naar intervals.icu. Migratie `0037`.
