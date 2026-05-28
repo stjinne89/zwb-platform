@@ -18,6 +18,7 @@ import {
 import { WindSummary } from "./_components/wind-summary";
 import { RsvpButtons } from "./_components/rsvp-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
+import { RefreshResultsButton } from "./_components/refresh-results-button";
 import { EventPhotoUploader } from "./_components/photo-uploader";
 import {
   EventPhotoGallery,
@@ -70,37 +71,48 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, results_url, last_results_scrape_at, results_scrape_error, created_by",
     )
     .eq("id", id)
     .single();
 
   if (!event) notFound();
 
-  const [{ data: rsvps }, access, { data: waGroups }, { data: photoRows }] =
-    await Promise.all([
-      supabase
-        .from("event_rsvps")
-        .select(
-          "status, profile_id, profiles(display_name, zrl_category, strava_id)",
-        )
-        .eq("event_id", id),
-      getCurrentUserAccess(supabase),
-      supabase
-        .from("whatsapp_groups")
-        .select("id, name, invite_url, description")
-        .eq("event_id", id)
-        .order("display_order")
-        .order("name"),
-      supabase
-        .from("event_photos")
-        .select(
-          "id, storage_path, width, height, caption, taken_at, profile_id, profiles(display_name)",
-        )
-        .eq("event_id", id)
-        .order("taken_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: rsvps },
+    access,
+    { data: waGroups },
+    { data: photoRows },
+    { data: resultRows },
+  ] = await Promise.all([
+    supabase
+      .from("event_rsvps")
+      .select(
+        "status, profile_id, profiles(display_name, zrl_category, strava_id)",
+      )
+      .eq("event_id", id),
+    getCurrentUserAccess(supabase),
+    supabase
+      .from("whatsapp_groups")
+      .select("id, name, invite_url, description")
+      .eq("event_id", id)
+      .order("display_order")
+      .order("name"),
+    supabase
+      .from("event_photos")
+      .select(
+        "id, storage_path, width, height, caption, taken_at, profile_id, profiles(display_name)",
+      )
+      .eq("event_id", id)
+      .order("taken_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("event_results")
+      .select(
+        "id, profile_id, scraped_name, position, time_text, time_seconds, matched_via",
+      )
+      .eq("event_id", id),
+  ]);
 
   const isCreator = user?.id === event.created_by;
   const canManage = access.has("events.manage_all") || isCreator;
@@ -124,6 +136,37 @@ export default async function EventDetailPage({
         ((row.profiles as any)?.display_name as string) ?? "Onbekend",
     };
   });
+
+  // ZWB-uitslagen: sorteer op positie (nulls onderaan), dan tijd, dan naam.
+  type EventResult = {
+    id: string;
+    profileId: string | null;
+    scrapedName: string;
+    position: number | null;
+    timeText: string | null;
+    timeSeconds: number | null;
+    matchedVia: string;
+  };
+  const results: EventResult[] = (resultRows ?? [])
+    .map((r) => ({
+      id: r.id,
+      profileId: r.profile_id,
+      scrapedName: r.scraped_name,
+      position: r.position,
+      timeText: r.time_text,
+      timeSeconds: r.time_seconds,
+      matchedVia: r.matched_via,
+    }))
+    .sort((a, b) => {
+      if (a.position != null && b.position != null)
+        return a.position - b.position;
+      if (a.position != null) return -1;
+      if (b.position != null) return 1;
+      if (a.timeSeconds != null && b.timeSeconds != null)
+        return a.timeSeconds - b.timeSeconds;
+      return a.scrapedName.localeCompare(b.scrapedName);
+    });
+  const lastScrapeAt = event.last_results_scrape_at as string | null;
 
   const myRsvp = rsvps?.find((r) => r.profile_id === user?.id)?.status as
     | RsvpStatus
@@ -346,6 +389,91 @@ export default async function EventDetailPage({
           </div>
         ))}
       </section>
+
+      {(event.results_url || results.length > 0 || canManage) && (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <header className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Uitslag — ZWB&apos;ers{" "}
+              {results.length > 0 && (
+                <span className="text-muted-foreground">({results.length})</span>
+              )}
+            </h2>
+            {canManage && event.results_url && (
+              <RefreshResultsButton eventId={event.id} />
+            )}
+          </header>
+
+          {event.results_scrape_error && canManage && (
+            <p className="text-xs text-destructive">
+              {event.results_scrape_error}
+            </p>
+          )}
+
+          {results.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {event.results_url
+                ? "Nog geen uitslag opgehaald."
+                : canManage
+                  ? "Voeg een uitslag-URL toe via Bewerk om ZWB-uitslagen op te halen."
+                  : "Nog geen uitslag beschikbaar."}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-1.5 pr-3 font-medium">#</th>
+                    <th className="py-1.5 pr-3 font-medium">Naam</th>
+                    <th className="py-1.5 font-medium">Tijd</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r) => (
+                    <tr key={r.id} className="border-b last:border-0">
+                      <td className="py-1.5 pr-3 tabular-nums text-muted-foreground">
+                        {r.position ?? "—"}
+                      </td>
+                      <td className="py-1.5 pr-3">
+                        <span className="inline-flex flex-wrap items-center gap-1.5">
+                          {r.profileId ? (
+                            <Link
+                              href={`/leden/${r.profileId}`}
+                              className="font-medium hover:underline"
+                            >
+                              {r.scrapedName}
+                            </Link>
+                          ) : (
+                            <span>{r.scrapedName}</span>
+                          )}
+                          {r.matchedVia === "zwb_mention" && (
+                            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                              ZWB
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="py-1.5 tabular-nums">
+                        {r.timeText ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {lastScrapeAt && results.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Laatst opgehaald:{" "}
+              {new Date(lastScrapeAt).toLocaleString("nl-NL", {
+                dateStyle: "short",
+                timeStyle: "short",
+              })}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <header className="flex flex-wrap items-center justify-between gap-2">

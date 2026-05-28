@@ -21,7 +21,7 @@ export default async function EditEventPage({
     supabase
       .from("events")
       .select(
-        "id, title, type, start_at, end_at, location, description, external_url, gpx_path, distance_km, elevation_m, created_by",
+        "id, title, type, start_at, end_at, location, description, external_url, results_url, gpx_path, distance_km, elevation_m, created_by",
       )
       .eq("id", id)
       .single(),
@@ -48,6 +48,7 @@ export default async function EditEventPage({
     location: event.location,
     description: event.description,
     external_url: event.external_url,
+    results_url: event.results_url,
     gpx_path: event.gpx_path,
     distance_km: event.distance_km,
     elevation_m: event.elevation_m,

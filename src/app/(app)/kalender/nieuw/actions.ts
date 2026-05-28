@@ -19,6 +19,7 @@ type EventInput = {
   start_lon?: number | null;
   description?: string | null;
   external_url?: string | null;
+  results_url?: string | null;
 };
 
 const TYPES = ["outdoor", "zrl", "ladder", "flamme_rouge", "social", "training"];
@@ -29,6 +30,9 @@ function validate(input: EventInput) {
   if (!input.start_at) return "Startdatum is verplicht.";
   if (input.external_url && !/^https?:\/\//i.test(input.external_url)) {
     return "Externe link moet beginnen met https:// of http://";
+  }
+  if (input.results_url && !/^https?:\/\//i.test(input.results_url)) {
+    return "Uitslag-URL moet beginnen met https:// of http://";
   }
   return null;
 }
@@ -59,6 +63,7 @@ export async function createEvent(input: EventInput) {
       start_lon: input.start_lon ?? null,
       description: input.description || null,
       external_url: input.external_url?.trim() || null,
+      results_url: input.results_url?.trim() || null,
       created_by: access.user.id,
     })
     .select("id")
@@ -123,6 +128,7 @@ export async function updateEvent(id: string, input: EventInput) {
     location: input.location || null,
     description: input.description || null,
     external_url: input.external_url?.trim() || null,
+    results_url: input.results_url?.trim() || null,
   };
   // GPX-velden alleen overschrijven als ze expliciet zijn meegegeven
   // (undefined = behoud bestaande waarde). De form geeft null door om te

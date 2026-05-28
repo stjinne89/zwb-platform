@@ -29,6 +29,7 @@ export type EventInitial = {
   location: string | null;
   description: string | null;
   external_url: string | null;
+  results_url: string | null;
   gpx_path: string | null;
   distance_km: number | string | null;
   elevation_m: number | string | null;
@@ -126,6 +127,7 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
         location: String(formData.get("location") ?? "") || null,
         description: String(formData.get("description") ?? "") || null,
         external_url: String(formData.get("external_url") ?? "") || null,
+        results_url: String(formData.get("results_url") ?? "") || null,
         gpx_path,
         distance_km,
         elevation_m,
@@ -227,6 +229,24 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
         <p className="mt-1 text-xs text-muted-foreground">
           Strava-route, Komoot tour, RideWithGPS — wordt op de event-pagina
           getoond als &quot;Open op X&quot;-knop met platform-icoon.
+        </p>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Uitslag-URL (optioneel)
+        </label>
+        <input
+          type="url"
+          name="results_url"
+          placeholder="https://… (Ultratiming, ACN Timing, datasport, uitslagenpagina)"
+          defaultValue={initial?.results_url ?? ""}
+          className={FIELD_CLASS}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Link naar de uitslag op de timing-site. Een admin kan dan op de
+          event-pagina &quot;Uitslag ophalen&quot; klikken — we tonen alleen de
+          ZWB&apos;ers met hun klassering en tijd.
         </p>
       </div>
 
