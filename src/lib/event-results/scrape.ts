@@ -26,7 +26,8 @@ export type ScrapeOutcome = {
 
 type MemberCandidate = {
   profileId: string | null;
-  tokens: string[]; // genormaliseerde naam-tokens (≥2 tekens)
+  tokens: string[]; // volledige naam-tokens (≥2 tekens)
+  initials: string[]; // losse initialen (1 teken), bv. de "C" in "Casper C"
   norm: string; // volledige genormaliseerde naam
   via: MatchedVia;
 };
@@ -108,80 +109,72 @@ function secondsToClock(totalSeconds: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
+// Bouwt een kandidaat uit een naam. Splitst in volledige tokens (≥2 tekens) en
+// losse initialen (1 teken). Geweigerd (null) als er geen voornaam + minstens
+// één extra naamdeel is — een losse "Stijn" matcht anders een hele uitslag.
+function toCandidate(
+  name: string,
+  profileId: string | null,
+  via: MatchedVia,
+): MemberCandidate | null {
+  const parts = normalize(name)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  const tokens = parts.filter((p) => p.length >= 2);
+  const initials = parts.filter((p) => p.length === 1);
+  // Minstens één volledige naam, en in totaal ≥2 naamdelen (voor- + achternaam
+  // óf voornaam + initiaal zoals "Casper C").
+  if (tokens.length < 1) return null;
+  if (tokens.length + initials.length < 2) return null;
+  return { profileId, tokens, initials, norm: normalize(name), via };
+}
+
 async function buildMemberCandidates(
   supabase: SupabaseClient,
 ): Promise<MemberCandidate[]> {
   const candidates: MemberCandidate[] = [];
+  const push = (name: string, id: string | null, via: MatchedVia) => {
+    const cand = toCandidate((name ?? "").trim(), id, via);
+    if (cand) candidates.push(cand);
+  };
 
   // 1. Goedgekeurde leden met hun display_name.
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, display_name")
     .eq("is_approved", true);
-
-  for (const p of profiles ?? []) {
-    const name = (p.display_name ?? "").trim();
-    if (!name) continue;
-    const tokens = nameTokens(name);
-    // ≥2 tokens vereist (voor- én achternaam). Een losse voornaam als "Stijn"
-    // matcht anders élke gelijknamige deelnemer in een uitslag van duizenden.
-    if (tokens.length < 2) continue;
-    candidates.push({
-      profileId: p.id,
-      tokens,
-      norm: normalize(name),
-      via: "member_name",
-    });
-  }
+  for (const p of profiles ?? []) push(p.display_name ?? "", p.id, "member_name");
 
   // 2. Strava athlete_name (echte voor+achternaam — beste bron voor gran fondos).
   const { data: stravaConns } = await supabase
     .from("strava_connections")
     .select("profile_id, athlete_name");
-
-  for (const c of stravaConns ?? []) {
-    const name = (c.athlete_name ?? "").trim();
-    if (!name) continue;
-    const tokens = nameTokens(name);
-    if (tokens.length < 2) continue;
-    candidates.push({
-      profileId: c.profile_id,
-      tokens,
-      norm: normalize(name),
-      via: "strava_name",
-    });
-  }
+  for (const c of stravaConns ?? [])
+    push(c.athlete_name ?? "", c.profile_id, "strava_name");
 
   // 3. Roster-namen (gekoppeld lid waar bekend).
   const { data: roster } = await supabase
     .from("roster_entries")
     .select("name, claimed_by");
-
-  for (const r of roster ?? []) {
-    const name = (r.name ?? "").trim();
-    if (!name) continue;
-    const tokens = nameTokens(name);
-    if (tokens.length < 2) continue;
-    candidates.push({
-      profileId: r.claimed_by ?? null,
-      tokens,
-      norm: normalize(name),
-      via: "roster",
-    });
-  }
+  for (const r of roster ?? []) push(r.name ?? "", r.claimed_by ?? null, "roster");
 
   return candidates;
 }
 
-// Strikt: ALLE naam-tokens van een lid (≥2, voor- én achternaam) moeten in de
-// rij voorkomen. Kandidaten met <2 tokens worden al bij het bouwen geweerd,
-// dus een losse voornaam kan nooit een hele uitslag platwalsen.
+// Strikt: ALLE volledige naam-tokens van een lid moeten in de rij voorkomen.
+// Bij een initiaal (bv. "Casper C") moet de rij óók een ander woord bevatten
+// dat met die letter begint (de achternaam) — zo matcht "Casper C" wél
+// "CARBAAT Casper", maar niet elke willekeurige Casper.
 function matchCandidate(
-  _rowNorm: string,
+  rowTokens: string[],
   rowTokenSet: Set<string>,
   cand: MemberCandidate,
 ): boolean {
-  return cand.tokens.every((t) => rowTokenSet.has(t));
+  if (!cand.tokens.every((t) => rowTokenSet.has(t))) return false;
+  if (cand.initials.length === 0) return true;
+  return cand.initials.every((init) =>
+    rowTokens.some((t) => t[0] === init && !cand.tokens.includes(t)),
+  );
 }
 
 function rankVia(via: MatchedVia): number {
@@ -239,12 +232,12 @@ function matchRows(
     const matchText = row.matchText.trim();
     if (!matchText && !row.knownName) continue;
 
-    const rowNorm = normalize(matchText);
-    const rowTokenSet = new Set(nameTokens(matchText));
+    const rowTokens = nameTokens(matchText);
+    const rowTokenSet = new Set(rowTokens);
 
     let best: MemberCandidate | null = null;
     for (const cand of candidates) {
-      if (matchCandidate(rowNorm, rowTokenSet, cand)) {
+      if (matchCandidate(rowTokens, rowTokenSet, cand)) {
         if (
           !best ||
           rankVia(cand.via) > rankVia(best.via) ||
