@@ -12,8 +12,6 @@
 
 import polyline from "@mapbox/polyline";
 
-const EARTH_R = 6371000; // meters
-
 type LatLng = [number, number];
 
 export type ColRecord = {
@@ -28,7 +26,10 @@ type StoredActivity = {
   start_date: string;
   raw:
     | {
-        map?: { summary_polyline?: string | null } | null;
+        map?: {
+          summary_polyline?: string | null;
+          polyline?: string | null;
+        } | null;
       }
     | null;
 };
@@ -37,17 +38,38 @@ function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-function haversineMeters(a: LatLng, b: LatLng): number {
-  const [lat1, lon1] = a;
-  const [lat2, lon2] = b;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const aa =
-    sinDLat * sinDLat +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * sinDLon * sinDLon;
-  return 2 * EARTH_R * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+/**
+ * Minimale afstand (meters) van een summit-punt tot het lijnsegment a→b,
+ * via equirectangulaire projectie met de summit als oorsprong. Voor de
+ * korte afstanden op col-schaal (<10km) is dat ruim nauwkeurig genoeg.
+ *
+ * Cruciaal: Strava's summary_polyline is sterk gedecimeerd (punten staan
+ * vaak honderden meters uit elkaar). Afstand tot losse punten meten mist
+ * dan de top als die tússen twee punten valt. Segment-afstand vangt dat.
+ */
+function pointToSegmentMeters(p: LatLng, a: LatLng, b: LatLng): number {
+  const mPerDegLat = 111320;
+  const mPerDegLon = 111320 * Math.cos(toRad(p[0]));
+
+  // Projecteer naar lokaal vlak (meters) met p als oorsprong (0,0).
+  const ax = (a[1] - p[1]) * mPerDegLon;
+  const ay = (a[0] - p[0]) * mPerDegLat;
+  const bx = (b[1] - p[1]) * mPerDegLon;
+  const by = (b[0] - p[0]) * mPerDegLat;
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) {
+    // a en b vallen samen → punt-afstand
+    return Math.sqrt(ax * ax + ay * ay);
+  }
+  // Projecteer oorsprong op het segment, clamp t op [0,1].
+  let t = -(ax * dx + ay * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx;
+  const cy = ay + t * dy;
+  return Math.sqrt(cx * cx + cy * cy);
 }
 
 type Bbox = { minLat: number; maxLat: number; minLon: number; maxLon: number };
@@ -92,7 +114,11 @@ export function detectColsInActivity(
   activity: StoredActivity,
   cols: ColRecord[],
 ): string[] {
-  const enc = activity.raw?.map?.summary_polyline;
+  // Voorkeur voor de gedetailleerde polyline (indien aanwezig), anders
+  // de summary. De summary is gedecimeerd maar wordt door de segment-
+  // afstandscheck goed afgevangen.
+  const enc =
+    activity.raw?.map?.polyline || activity.raw?.map?.summary_polyline;
   if (!enc) return [];
 
   let points: LatLng[];
@@ -105,16 +131,28 @@ export function detectColsInActivity(
 
   const bbox = bboxOf(points);
   if (!bbox) return [];
-  // Marge ~1.5km voor detection radius (worst case 500m + sampling-slack)
-  const expanded = expandBbox(bbox, 0.015);
+  // Marge ~3km zodat ook de grootste detection-radii (tot ~1500m) plus
+  // sampling-slack binnen de prefilter vallen.
+  const expanded = expandBbox(bbox, 0.03);
 
   const hits: string[] = [];
   for (const col of cols) {
     if (!bboxContains(expanded, col.summit_lat, col.summit_lon)) continue;
     const summit: LatLng = [col.summit_lat, col.summit_lon];
-    const passed = points.some(
-      (p) => haversineMeters(p, summit) <= col.detection_radius_m,
-    );
+    const radius = col.detection_radius_m;
+
+    // Check elk lijnsegment van de polyline (niet alleen de vertices).
+    let passed = false;
+    for (let i = 1; i < points.length; i++) {
+      if (pointToSegmentMeters(summit, points[i - 1], points[i]) <= radius) {
+        passed = true;
+        break;
+      }
+    }
+    // Edge: polyline met 1 punt → val terug op punt-afstand.
+    if (!passed && points.length === 1) {
+      passed = pointToSegmentMeters(summit, points[0], points[0]) <= radius;
+    }
     if (passed) hits.push(col.slug);
   }
   return hits;

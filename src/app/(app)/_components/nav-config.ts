@@ -48,6 +48,7 @@ export const NAV_GROUPS: NavNode[] = [
 // Items voor de avatar-dropdown (en mobiel onderaan).
 export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
+  { type: "link", href: "/profiel/cols", label: "Mijn cols" },
   { type: "link", href: "/training", label: "Training" },
   { type: "link", href: "/hulp", label: "Hulp" },
 ];
