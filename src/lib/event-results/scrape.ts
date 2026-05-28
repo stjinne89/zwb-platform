@@ -21,6 +21,7 @@ export type ScrapeOutcome = {
   ok: boolean;
   results: ScrapedResult[];
   error?: string;
+  provider?: string;
 };
 
 type MemberCandidate = {
@@ -30,7 +31,19 @@ type MemberCandidate = {
   via: MatchedVia;
 };
 
-const FETCH_TIMEOUT_MS = 15000;
+// Eén uitslag-rij in genormaliseerde vorm. Generieke HTML-scraping vult alleen
+// `cells` + `matchText`; de ChronoRace-adapter kent kolommen exact en vult ook
+// `knownName/Position/Time`.
+type RawRow = {
+  cells: string[];
+  matchText: string;
+  knownName?: string | null;
+  knownPosition?: number | null;
+  knownTimeText?: string | null;
+  knownTimeSeconds?: number | null;
+};
+
+const FETCH_TIMEOUT_MS = 20000;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -84,6 +97,15 @@ function extractPosition(cells: string[]): number | null {
     }
   }
   return null;
+}
+
+function secondsToClock(totalSeconds: number): string {
+  const s = Math.round(totalSeconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
 async function buildMemberCandidates(
@@ -159,128 +181,11 @@ function matchCandidate(
   if (cand.tokens.length >= 2) {
     return cand.tokens.every((t) => rowTokenSet.has(t));
   }
-  // Eén token (mononiem): alleen exacte gelijkheid van de hele rij telt mee
-  // is te streng; vereis dat het token een los woord in de rij is.
+  // Eén token (mononiem): vereis dat het token een los woord in de rij is
+  // én dat de hele genormaliseerde naam erin voorkomt.
   return rowTokenSet.has(cand.tokens[0]) && cand.norm.length >= 4
     ? rowNorm.includes(cand.norm)
     : false;
-}
-
-export async function scrapeEventResults(
-  supabase: SupabaseClient,
-  _eventId: string,
-  resultsUrl: string,
-): Promise<ScrapeOutcome> {
-  let html: string;
-  try {
-    const res = await fetch(resultsUrl, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "text/html,application/xhtml+xml",
-        "Accept-Language": "nl,en;q=0.8",
-      },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      redirect: "follow",
-    });
-    if (!res.ok) {
-      return {
-        ok: false,
-        results: [],
-        error: `Uitslag-pagina gaf status ${res.status}.`,
-      };
-    }
-    html = await res.text();
-  } catch (err) {
-    return {
-      ok: false,
-      results: [],
-      error:
-        err instanceof Error && err.name === "TimeoutError"
-          ? "Time-out bij ophalen van de uitslag-pagina."
-          : "Kon de uitslag-pagina niet ophalen.",
-    };
-  }
-
-  const $ = cheerio.load(html);
-  // Verwijder script/style zodat we geen JS-tekst meematchen.
-  $("script, style, noscript").remove();
-
-  const rows = $("tr");
-  if (rows.length === 0) {
-    return {
-      ok: false,
-      results: [],
-      error:
-        "Geen tabel-rijen gevonden. Waarschijnlijk een JavaScript-uitslagensite " +
-        "(bv. Sporthive of MyLaps Speedhive) die niet server-side te scrapen is.",
-    };
-  }
-
-  const candidates = await buildMemberCandidates(supabase);
-
-  const out: ScrapedResult[] = [];
-  const seen = new Set<string>();
-
-  rows.each((_, el) => {
-    const cells = $(el)
-      .find("td, th")
-      .map((__, c) => $(c).text().replace(/\s+/g, " ").trim())
-      .get();
-    const rowText = cells.join(" ").replace(/\s+/g, " ").trim();
-    if (!rowText) return;
-
-    const rowNorm = normalize(rowText);
-    const rowTokenSet = new Set(nameTokens(rowText));
-
-    // Beste kandidaat-match (prioriteit: strava_name > member_name > roster).
-    let best: MemberCandidate | null = null;
-    for (const cand of candidates) {
-      if (matchCandidate(rowNorm, rowTokenSet, cand)) {
-        if (
-          !best ||
-          rankVia(cand.via) > rankVia(best.via) ||
-          (cand.profileId && !best.profileId)
-        ) {
-          best = cand;
-        }
-      }
-    }
-
-    let matchedVia: MatchedVia | null = null;
-    let profileId: string | null = null;
-    let scrapedName = rowText;
-
-    if (best) {
-      matchedVia = best.via;
-      profileId = best.profileId;
-      // Naam: gebruik de cel die de meeste naam-tokens bevat als die er is.
-      scrapedName = pickNameCell(cells, best.tokens) ?? rowText;
-    } else if (ZWB_MENTION.test(rowText)) {
-      matchedVia = "zwb_mention";
-      profileId = null;
-      scrapedName = pickLongestTextCell(cells) ?? rowText;
-    }
-
-    if (!matchedVia) return;
-
-    const dedupeKey = profileId ?? `name:${normalize(scrapedName)}`;
-    if (seen.has(dedupeKey)) return;
-    seen.add(dedupeKey);
-
-    const { timeText, timeSeconds } = extractTime(rowText);
-    const position = extractPosition(cells);
-
-    out.push({
-      scrapedName: scrapedName.slice(0, 200),
-      position,
-      timeText,
-      timeSeconds,
-      matchedVia,
-      profileId,
-    });
-  });
-
-  return { ok: true, results: out };
 }
 
 function rankVia(via: MatchedVia): number {
@@ -322,4 +227,401 @@ function pickLongestTextCell(cells: string[]): string | null {
     if (!best || t.length > best.length) best = t;
   }
   return best;
+}
+
+// Gedeelde matching-stap: filtert rijen tot ZWB'ers (+ zwb-vermeldingen) en
+// bouwt ScrapedResult-records. Gebruikt `known*`-velden wanneer de adapter de
+// kolommen exact kent; valt anders terug op heuristische extractie.
+function matchRows(
+  candidates: MemberCandidate[],
+  rows: RawRow[],
+): ScrapedResult[] {
+  const out: ScrapedResult[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    const matchText = row.matchText.trim();
+    if (!matchText && !row.knownName) continue;
+
+    const rowNorm = normalize(matchText);
+    const rowTokenSet = new Set(nameTokens(matchText));
+
+    let best: MemberCandidate | null = null;
+    for (const cand of candidates) {
+      if (matchCandidate(rowNorm, rowTokenSet, cand)) {
+        if (
+          !best ||
+          rankVia(cand.via) > rankVia(best.via) ||
+          (cand.profileId && !best.profileId)
+        ) {
+          best = cand;
+        }
+      }
+    }
+
+    let matchedVia: MatchedVia | null = null;
+    let profileId: string | null = null;
+    let scrapedName = row.knownName ?? matchText;
+
+    if (best) {
+      matchedVia = best.via;
+      profileId = best.profileId;
+      if (!row.knownName) {
+        scrapedName = pickNameCell(row.cells, best.tokens) ?? matchText;
+      }
+    } else if (ZWB_MENTION.test(matchText)) {
+      matchedVia = "zwb_mention";
+      profileId = null;
+      if (!row.knownName) {
+        scrapedName = pickLongestTextCell(row.cells) ?? matchText;
+      }
+    }
+
+    if (!matchedVia) continue;
+
+    const dedupeKey = profileId ?? `name:${normalize(scrapedName)}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    let position = row.knownPosition ?? null;
+    let timeText = row.knownTimeText ?? null;
+    let timeSeconds = row.knownTimeSeconds ?? null;
+    if (position == null && timeText == null) {
+      const t = extractTime(matchText);
+      timeText = t.timeText;
+      timeSeconds = t.timeSeconds;
+      position = extractPosition(row.cells);
+    }
+
+    out.push({
+      scrapedName: (scrapedName || matchText).slice(0, 200),
+      position,
+      timeText,
+      timeSeconds,
+      matchedVia,
+      profileId,
+    });
+  }
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// ChronoRace-adapter (ACN Timing, chronorace.be en vele sportives die op het
+// ChronoRace-platform draaien). De SPA laadt uitslagen via een JSON-API:
+//   {base}/results/table/search/{db}/{table}?srch={q}
+// Eén brede zoekterm geeft de hele tabel terug; we matchen daarna lokaal.
+// ---------------------------------------------------------------------------
+
+const CHRONO_API_BASE = "https://prod.chronorace.be/api";
+const CHRONO_SEARCH_LETTERS = ["e", "a", "i", "o", "n", "r", "s"];
+const CHRONO_MAX_ROWS = 50000;
+
+function parseChronoUrl(
+  resultsUrl: string,
+): { db: string; table: string } | null {
+  let u: URL;
+  try {
+    u = new URL(resultsUrl);
+  } catch {
+    return null;
+  }
+  // Hash-route: #/events/{id}/ctx/{db}/.../home/{key}
+  const hash = u.hash.replace(/^#\/?/, "");
+  const segs = hash.split("/").filter(Boolean);
+  const ctxIdx = segs.indexOf("ctx");
+  const homeIdx = segs.indexOf("home");
+  if (
+    ctxIdx >= 0 &&
+    homeIdx >= 0 &&
+    segs[ctxIdx + 1] &&
+    segs[homeIdx + 1]
+  ) {
+    return {
+      db: decodeURIComponent(segs[ctxIdx + 1]),
+      table: decodeURIComponent(segs[homeIdx + 1]),
+    };
+  }
+  return null;
+}
+
+function isChronoRaceUrl(resultsUrl: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(resultsUrl);
+  } catch {
+    return false;
+  }
+  const host = u.hostname.toLowerCase();
+  if (host.includes("acn-timing.com") || host.includes("chronorace.be")) {
+    return true;
+  }
+  return u.hash.includes("/ctx/") && u.hash.includes("/home/");
+}
+
+type ChronoColumn = { Name?: string; DisplayName?: string; Type?: string };
+
+function findChronoColumnIndex(
+  columns: ChronoColumn[],
+  keywords: string[],
+): number {
+  // Match op DisplayName (zonder '#') of Name, in volgorde van voorkeur.
+  for (const kw of keywords) {
+    for (let i = 0; i < columns.length; i++) {
+      const dn = (columns[i].DisplayName ?? "").replace(/[#]/g, "").toLowerCase();
+      const nm = (columns[i].Name ?? "").toLowerCase();
+      if (dn === kw || nm.includes(kw)) return i;
+    }
+  }
+  return -1;
+}
+
+function chronoCellTime(
+  value: unknown,
+): { text: string | null; seconds: number | null } {
+  if (value == null || value === "") return { text: null, seconds: null };
+  if (typeof value === "number") {
+    if (value <= 0) return { text: null, seconds: null };
+    // Grote getallen zijn milliseconden; kleinere seconden.
+    const seconds = value >= 100000 ? value / 1000 : value;
+    return { text: secondsToClock(seconds), seconds: Math.round(seconds) };
+  }
+  const str = String(value).trim();
+  if (!str || /^0+([:.]0+)*$/.test(str)) return { text: null, seconds: null };
+  const t = extractTime(str);
+  return { text: t.timeText ?? str, seconds: t.timeSeconds };
+}
+
+async function chronoFetchTable(
+  db: string,
+  table: string,
+): Promise<
+  | { ok: true; columns: ChronoColumn[]; rows: unknown[][] }
+  | { ok: false; error: string }
+> {
+  const byKey = new Map<string, unknown[]>();
+  let columns: ChronoColumn[] = [];
+  let total = Infinity;
+
+  for (const letter of CHRONO_SEARCH_LETTERS) {
+    const url =
+      `${CHRONO_API_BASE}/results/table/search/` +
+      `${encodeURIComponent(db)}/${encodeURIComponent(table)}?srch=${letter}`;
+    let json: {
+      Count?: number;
+      TableDefinition?: { Columns?: ChronoColumn[] };
+      Groups?: { SlaveRows?: unknown[][] }[];
+    };
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": USER_AGENT,
+          Accept: "application/json",
+          Referer: "https://www.acn-timing.com/",
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        if (byKey.size > 0) break; // we hebben al data van een eerdere letter
+        return {
+          ok: false,
+          error: `ChronoRace-API gaf status ${res.status}. Controleer de uitslag-URL.`,
+        };
+      }
+      json = await res.json();
+    } catch {
+      if (byKey.size > 0) break;
+      return {
+        ok: false,
+        error: "Kon de ChronoRace-uitslag niet ophalen (time-out of netwerk).",
+      };
+    }
+
+    if (json.TableDefinition?.Columns && columns.length === 0) {
+      columns = json.TableDefinition.Columns;
+    }
+    if (typeof json.Count === "number") total = json.Count;
+
+    const nameIdxLocal = findChronoColumnIndex(columns, [
+      "name",
+      "nom",
+      "naam",
+    ]);
+    const bibIdxLocal = findChronoColumnIndex(columns, ["nr", "dos", "bib"]);
+
+    for (const g of json.Groups ?? []) {
+      for (const r of g.SlaveRows ?? []) {
+        if (!Array.isArray(r)) continue;
+        const key =
+          (bibIdxLocal >= 0 && r[bibIdxLocal] != null
+            ? `b:${String(r[bibIdxLocal])}`
+            : "") ||
+          (nameIdxLocal >= 0 ? `n:${String(r[nameIdxLocal])}` : "") ||
+          `i:${byKey.size}`;
+        if (!byKey.has(key)) byKey.set(key, r);
+        if (byKey.size >= CHRONO_MAX_ROWS) break;
+      }
+    }
+
+    // Klaar zodra we alle rijen binnen hebben (of het maximum raken).
+    if (byKey.size >= total || byKey.size >= CHRONO_MAX_ROWS) break;
+  }
+
+  if (columns.length === 0) {
+    return {
+      ok: false,
+      error:
+        "ChronoRace-uitslag leeg of niet gevonden. Open het juiste " +
+        "uitslagen-tabblad op de timing-site en kopieer díe URL.",
+    };
+  }
+
+  return { ok: true, columns, rows: [...byKey.values()] as unknown[][] };
+}
+
+async function scrapeChronoRace(
+  candidates: MemberCandidate[],
+  db: string,
+  table: string,
+): Promise<ScrapeOutcome> {
+  const fetched = await chronoFetchTable(db, table);
+  if (!fetched.ok) {
+    return { ok: false, results: [], error: fetched.error, provider: "chronorace" };
+  }
+
+  const { columns, rows } = fetched;
+  const nameIdx = findChronoColumnIndex(columns, ["name", "nom", "naam"]);
+  const posIdx = findChronoColumnIndex(columns, [
+    "pos",
+    "plaats",
+    "place",
+    "plc",
+    "overall",
+  ]);
+  const timeIdx = findChronoColumnIndex(columns, [
+    "temps",
+    "tijd",
+    "time",
+    "chip",
+    "net",
+    "gun",
+    "total",
+    "finish",
+    "result",
+  ]);
+
+  const rawRows: RawRow[] = rows.map((r) => {
+    const cells = r.map((c) => (c == null ? "" : String(c)));
+    const name = nameIdx >= 0 ? cells[nameIdx] : "";
+    let position: number | null = null;
+    if (posIdx >= 0) {
+      const m = cells[posIdx].match(/(\d{1,5})/);
+      if (m) position = Number(m[1]);
+    }
+    const time = timeIdx >= 0 ? chronoCellTime(r[timeIdx]) : { text: null, seconds: null };
+    return {
+      cells,
+      matchText: name,
+      knownName: name || null,
+      knownPosition: position,
+      knownTimeText: time.text,
+      knownTimeSeconds: time.seconds,
+    };
+  });
+
+  const results = matchRows(candidates, rawRows);
+  return { ok: true, results, provider: "chronorace" };
+}
+
+// ---------------------------------------------------------------------------
+// Generieke HTML-tabel-adapter (Ultratiming, datasport, vele kleinere sites).
+// ---------------------------------------------------------------------------
+
+async function scrapeGenericHtml(
+  candidates: MemberCandidate[],
+  resultsUrl: string,
+): Promise<ScrapeOutcome> {
+  let html: string;
+  try {
+    const res = await fetch(resultsUrl, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "nl,en;q=0.8",
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: "follow",
+    });
+    if (!res.ok) {
+      return {
+        ok: false,
+        results: [],
+        error: `Uitslag-pagina gaf status ${res.status}.`,
+      };
+    }
+    html = await res.text();
+  } catch (err) {
+    return {
+      ok: false,
+      results: [],
+      error:
+        err instanceof Error && err.name === "TimeoutError"
+          ? "Time-out bij ophalen van de uitslag-pagina."
+          : "Kon de uitslag-pagina niet ophalen.",
+    };
+  }
+
+  const $ = cheerio.load(html);
+  $("script, style, noscript").remove();
+
+  const trs = $("tr");
+  if (trs.length === 0) {
+    return {
+      ok: false,
+      results: [],
+      error:
+        "Geen tabel-rijen gevonden. Waarschijnlijk een JavaScript-uitslagensite " +
+        "(bv. Sporthive of MyLaps Speedhive) die niet server-side te scrapen is.",
+    };
+  }
+
+  const rawRows: RawRow[] = [];
+  trs.each((_, el) => {
+    const cells = $(el)
+      .find("td, th")
+      .map((__, c) => $(c).text().replace(/\s+/g, " ").trim())
+      .get();
+    const rowText = cells.join(" ").replace(/\s+/g, " ").trim();
+    if (!rowText) return;
+    rawRows.push({ cells, matchText: rowText });
+  });
+
+  const results = matchRows(candidates, rawRows);
+  return { ok: true, results, provider: "html" };
+}
+
+export async function scrapeEventResults(
+  supabase: SupabaseClient,
+  _eventId: string,
+  resultsUrl: string,
+): Promise<ScrapeOutcome> {
+  const candidates = await buildMemberCandidates(supabase);
+
+  if (isChronoRaceUrl(resultsUrl)) {
+    const parsed = parseChronoUrl(resultsUrl);
+    if (parsed) {
+      return scrapeChronoRace(candidates, parsed.db, parsed.table);
+    }
+    return {
+      ok: false,
+      results: [],
+      provider: "chronorace",
+      error:
+        "ChronoRace/ACN-link herkend, maar kon de uitslag-tabel niet bepalen. " +
+        "Open op de timing-site het tabblad met de uitslag en kopieer díe URL " +
+        "(met /ctx/… en /home/… erin).",
+    };
+  }
+
+  return scrapeGenericHtml(candidates, resultsUrl);
 }
