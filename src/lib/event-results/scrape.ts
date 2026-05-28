@@ -487,16 +487,20 @@ async function scrapeChronoRace(
     "plc",
     "overall",
   ]);
+  // Voorkeur voor NETTO tijd (chip/net/total — bv. Marmotte "Total" = tijd
+  // zonder geneutraliseerde afdalingen) boven BRUTO (temps/gun/bruto).
   const timeIdx = findChronoColumnIndex(columns, [
-    "temps",
+    "netto",
+    "net",
+    "chip",
+    "total",
     "tijd",
     "time",
-    "chip",
-    "net",
-    "gun",
-    "total",
     "finish",
     "result",
+    "temps",
+    "gun",
+    "bruto",
   ]);
 
   const rawRows: RawRow[] = rows.map((r) => {
