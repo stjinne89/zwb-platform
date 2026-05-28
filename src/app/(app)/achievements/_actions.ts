@@ -159,87 +159,106 @@ export async function diagnoseWatopia(): Promise<
   const admin = createAdminClient();
   const lines: string[] = [];
 
-  // 1. Watopia-cols in de DB?
-  const { data: watopiaCols } = await admin
-    .from("cols")
-    .select("slug, summit_lat, summit_lon, strava_segment_id")
-    .eq("virtual", true);
-  const wc = (watopiaCols ?? []) as Array<{
-    slug: string;
-    summit_lat: number | null;
-    summit_lon: number | null;
-    strava_segment_id: number | null;
-  }>;
-  lines.push(`Watopia-cols in DB: ${wc.length} (migratie 0048 ${wc.length > 0 ? "OK" : "NIET uitgerold!"})`);
-  const calibrated = wc.filter((c) => c.summit_lat != null);
-  lines.push(`Gekalibreerd (coords ingevuld): ${calibrated.length}/${wc.length}`);
-
-  // 2. Kalibratie proberen met Strava-token
+  // 1. Kalibratie eerst (met Strava-token), dan pas rapporteren.
   const { data: conn } = await supabase
     .from("strava_connections")
     .select("profile_id, strava_athlete_id, access_token, refresh_token, expires_at")
     .eq("profile_id", user.id)
     .maybeSingle();
-  if (!conn) {
-    lines.push("Geen Strava-koppeling — kan niet kalibreren.");
-  } else if (wc.length > 0 && calibrated.length < wc.length) {
+  if (conn) {
     try {
       const { accessTokenFor } = await import("@/lib/strava/client");
       const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const token = await accessTokenFor(supabase, conn as any);
       const res = await calibrateWatopiaCols(admin, token);
-      lines.push(`Kalibratie nu uitgevoerd: ${res.calibrated} nieuwe coords opgehaald.`);
+      lines.push(`Kalibratie: ${res.calibrated} coords opgehaald deze ronde.`);
     } catch (err) {
       lines.push(
         `Kalibratie faalde: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+  } else {
+    lines.push("Geen Strava-koppeling — kan niet kalibreren.");
   }
 
-  // 3. VirtualRides + polyline-aanwezigheid
+  // 2. Watopia-cols NA kalibratie ophalen.
+  const { data: watopiaCols } = await admin
+    .from("cols")
+    .select("slug, summit_lat, summit_lon, detection_radius_m")
+    .eq("virtual", true);
+  const wc = (watopiaCols ?? []) as Array<{
+    slug: string;
+    summit_lat: number | null;
+    summit_lon: number | null;
+    detection_radius_m: number;
+  }>;
+  const calibrated = wc.filter((c) => c.summit_lat != null);
+  lines.push(`Watopia-cols: ${wc.length}, gekalibreerd: ${calibrated.length}`);
+  const alpe = calibrated.find((c) => c.slug === "zwift-alpe-du-zwift");
+  if (alpe) {
+    lines.push(
+      `Alpe-coord: lat ${Number(alpe.summit_lat).toFixed(3)}, lon ${Number(alpe.summit_lon).toFixed(3)}`,
+    );
+  }
+
+  // 3. VirtualRides: polyline + overall bbox.
   const { data: vRides } = await admin
     .from("strava_activities")
     .select("id, raw")
     .eq("profile_id", user.id)
     .eq("sport_type", "VirtualRide")
-    .order("start_date", { ascending: false })
-    .limit(50);
+    .limit(200);
   const rides = (vRides ?? []) as Array<{
     id: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     raw: any;
   }>;
-  const withPolyline = rides.filter(
-    (r) => r.raw?.map?.summary_polyline || r.raw?.map?.polyline,
-  );
-  lines.push(
-    `VirtualRides (laatste 50): ${rides.length}, met polyline: ${withPolyline.length}`,
-  );
-
-  // 4. Bbox van een sample-polyline vs gekalibreerde Alpe-coords
-  if (withPolyline.length > 0) {
+  const polyline = (await import("@mapbox/polyline")).default;
+  let minLat = 999,
+    maxLat = -999,
+    minLon = 999,
+    maxLon = -999,
+    withPoly = 0;
+  for (const r of rides) {
+    const enc = r.raw?.map?.polyline || r.raw?.map?.summary_polyline;
+    if (!enc) continue;
+    withPoly++;
     try {
-      const polyline = (await import("@mapbox/polyline")).default;
-      const enc =
-        withPolyline[0].raw.map.polyline ||
-        withPolyline[0].raw.map.summary_polyline;
       const pts = polyline.decode(enc) as [number, number][];
-      if (pts.length > 0) {
-        const lats = pts.map((p) => p[0]);
-        const lons = pts.map((p) => p[1]);
-        lines.push(
-          `Sample-rit polyline bbox: lat ${Math.min(...lats).toFixed(3)}..${Math.max(...lats).toFixed(3)}, lon ${Math.min(...lons).toFixed(3)}..${Math.max(...lons).toFixed(3)} (${pts.length} punten)`,
-        );
+      for (const [la, lo] of pts) {
+        if (la < minLat) minLat = la;
+        if (la > maxLat) maxLat = la;
+        if (lo < minLon) minLon = lo;
+        if (lo > maxLon) maxLon = lo;
       }
     } catch {
-      lines.push("Kon sample-polyline niet decoderen.");
+      // skip
     }
   }
-  const alpe = calibrated.find((c) => c.slug === "zwift-alpe-du-zwift");
-  if (alpe) {
+  lines.push(`VirtualRides: ${rides.length}, met polyline: ${withPoly}`);
+  if (withPoly > 0) {
     lines.push(
-      `Alpe du Zwift gekalibreerd op: lat ${alpe.summit_lat}, lon ${alpe.summit_lon}`,
+      `Alle VirtualRides bbox: lat ${minLat.toFixed(2)}..${maxLat.toFixed(2)}, lon ${minLon.toFixed(2)}..${maxLon.toFixed(2)}`,
+    );
+  }
+
+  // 4. Detector draaien + tellen hoeveel virtuele cols matchen.
+  try {
+    const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
+    await syncClimbedColsForUser(admin, user.id);
+    const { data: climbed } = await admin
+      .from("profile_climbed_cols")
+      .select("col_slug")
+      .eq("profile_id", user.id);
+    const slugs = new Set(
+      ((climbed ?? []) as { col_slug: string }[]).map((r) => r.col_slug),
+    );
+    const virtualMatched = wc.filter((c) => slugs.has(c.slug)).length;
+    lines.push(`Watopia-cols gedetecteerd na scan: ${virtualMatched}`);
+  } catch (err) {
+    lines.push(
+      `Detector faalde: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 
