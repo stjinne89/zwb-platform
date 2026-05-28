@@ -212,7 +212,9 @@ export async function syncClimbedColsForUser(
 ): Promise<{ scanned: number; newCols: number }> {
   const { data: colsRows } = await supabase
     .from("cols")
-    .select("slug, summit_lat, summit_lon, detection_radius_m");
+    .select("slug, summit_lat, summit_lon, detection_radius_m")
+    .not("summit_lat", "is", null)
+    .not("summit_lon", "is", null);
   const cols = ((colsRows ?? []) as ColRecord[]).map((c) => ({
     ...c,
     summit_lat: Number(c.summit_lat),

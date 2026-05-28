@@ -432,6 +432,15 @@ export async function syncStravaActivitiesForUser(
       const { createAdminClient } = await import("@/lib/supabase/admin");
       const admin = createAdminClient();
 
+      // Watopia-kalibratie — haalt eenmalig de virtuele summit-coords op
+      // via de Strava segment-API (we hebben de accessToken hier).
+      try {
+        const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
+        await calibrateWatopiaCols(admin, accessToken);
+      } catch {
+        // niet kritiek
+      }
+
       // Col-detector — best-effort, faalt stil als polyline-data ontbreekt.
       try {
         const { syncClimbedColsForUser } = await import("@/lib/cols/detector");

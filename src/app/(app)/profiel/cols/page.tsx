@@ -56,6 +56,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   CH: "🇨🇭",
   AT: "🇦🇹",
   DE: "🇩🇪",
+  ZW: "🎮", // Watopia / Zwift
 };
 
 function categoryBadge(cat: string | null): { label: string; cls: string } {

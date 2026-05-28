@@ -49,9 +49,14 @@ type TierResult = {
 };
 
 type EvaluatorContext = {
-  /** Set van col-slugs die deze rider heeft beklommen. Gebruikt door
-   *  A013-A019, A095. Andere evaluators kunnen 'm negeren. */
+  /** Set van alle col-slugs die deze rider heeft beklommen (echt + virtueel). */
   climbedCols: Set<string>;
+  /** Alleen echte (niet-virtuele) cols — voor A019 Col Collector. */
+  realClimbedCols: Set<string>;
+  /** Alleen virtuele (Watopia) cols — voor A082/A083. */
+  virtualClimbedCols: Set<string>;
+  /** col_slug → times_climbed (voor A083 platinum 25×). */
+  colTimes: Map<string, number>;
 };
 
 type Evaluator = {
@@ -1314,13 +1319,13 @@ const EVALUATORS: Evaluator[] = [
     },
   },
 
-  // A019 Col Collector — aantal unieke cols (tier-thresholds in badge)
+  // A019 Col Collector — aantal unieke ECHTE cols (geen Watopia)
   {
     code: "A019",
     check: (_acts, badge, ctx) => {
       const t = badge.trigger_config?.threshold;
       if (!t?.value) return null;
-      const count = ctx.climbedCols.size;
+      const count = ctx.realClimbedCols.size;
       if (count < t.value) return null;
       const today = new Date().toISOString().slice(0, 10);
       return {
@@ -1329,6 +1334,81 @@ const EVALUATORS: Evaluator[] = [
         periodStart: today,
         periodEnd: today,
         note: `${count} unieke cols beklommen`,
+      };
+    },
+  },
+
+  // A083 Alpe du Zwift — bronze (finish) + platinum (25×) auto.
+  // Silver/gold zijn tijd-gebaseerd (sub 75/60 min) → niet detecteerbaar
+  // zonder segment-effort-tijden, dus die tiers returnen null.
+  {
+    code: "A083",
+    check: (_acts, badge, ctx) => {
+      const raw = (badge.trigger_config?.threshold?.raw ?? "").toLowerCase();
+      const climbed = ctx.virtualClimbedCols.has("zwift-alpe-du-zwift");
+      if (!climbed) return null;
+      const times = ctx.colTimes.get("zwift-alpe-du-zwift") ?? 0;
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (raw.includes("finish")) {
+        return {
+          value: times,
+          displayUnit: "× Alpe du Zwift",
+          periodStart: today,
+          periodEnd: today,
+          note: "Alpe du Zwift voltooid",
+        };
+      }
+      // "25× Alpe" → platinum
+      const timesNeeded = parseCountTimes(raw);
+      if (timesNeeded !== null) {
+        if (times < timesNeeded) return null;
+        return {
+          value: times,
+          displayUnit: "× Alpe du Zwift",
+          periodStart: today,
+          periodEnd: today,
+          note: `${times}× Alpe du Zwift`,
+        };
+      }
+      // "sub 75" / "sub 60" → tijd-gebaseerd, niet auto-detecteerbaar
+      return null;
+    },
+  },
+
+  // A090 Virtual Everesting — hoogtemeters in één virtuele rit
+  // (VirtualRide). Quarter 2212 / Half 4424 / Full 8848 / 10K 10000.
+  {
+    code: "A090",
+    check: (acts, badge) => {
+      const raw = (badge.trigger_config?.threshold?.raw ?? "").toLowerCase();
+      const threshold = raw.includes("quarter")
+        ? 2212
+        : raw.includes("half")
+          ? 4424
+          : raw.includes("10k")
+            ? 10000
+            : raw.includes("full")
+              ? 8848
+              : null;
+      if (!threshold) return null;
+      let best: Activity | null = null;
+      for (const a of acts) {
+        const isVirtual =
+          (a.sport_type ?? "") === "VirtualRide" || Boolean(a.trainer);
+        if (!isVirtual) continue;
+        const hm = a.total_elevation_gain_m ?? 0;
+        if (hm < threshold) continue;
+        if (!best || hm > best.total_elevation_gain_m) best = a;
+      }
+      if (!best) return null;
+      const date = localDate(best);
+      return {
+        value: Math.round(best.total_elevation_gain_m),
+        displayUnit: "hm virtueel",
+        periodStart: date,
+        periodEnd: date,
+        note: "Virtual Everesting-hoogte in één rit",
       };
     },
   },
@@ -1409,16 +1489,37 @@ export async function evaluateMilestonesForUser(
     ((existingAwards ?? []) as { badge_id: string }[]).map((a) => a.badge_id),
   );
 
-  // Climbed-cols context voor A013-A019, A095. Lege Set als er nog niets
-  // gescand is — evaluators returnen dan gewoon null.
-  const { data: climbedRows } = await supabase
-    .from("profile_climbed_cols")
-    .select("col_slug")
-    .eq("profile_id", profileId);
+  // Climbed-cols context voor A013-A019, A082, A083, A095. Lege sets als er
+  // nog niets gescand is — evaluators returnen dan gewoon null.
+  const [{ data: climbedRows }, { data: virtualColRows }] = await Promise.all([
+    supabase
+      .from("profile_climbed_cols")
+      .select("col_slug, times_climbed")
+      .eq("profile_id", profileId),
+    supabase.from("cols").select("slug").eq("virtual", true),
+  ]);
+
+  const virtualSlugs = new Set(
+    ((virtualColRows ?? []) as { slug: string }[]).map((r) => r.slug),
+  );
+  const climbedCols = new Set<string>();
+  const realClimbedCols = new Set<string>();
+  const virtualClimbedCols = new Set<string>();
+  const colTimes = new Map<string, number>();
+  for (const row of (climbedRows ?? []) as {
+    col_slug: string;
+    times_climbed: number | null;
+  }[]) {
+    climbedCols.add(row.col_slug);
+    colTimes.set(row.col_slug, row.times_climbed ?? 1);
+    if (virtualSlugs.has(row.col_slug)) virtualClimbedCols.add(row.col_slug);
+    else realClimbedCols.add(row.col_slug);
+  }
   const ctx: EvaluatorContext = {
-    climbedCols: new Set(
-      ((climbedRows ?? []) as { col_slug: string }[]).map((r) => r.col_slug),
-    ),
+    climbedCols,
+    realClimbedCols,
+    virtualClimbedCols,
+    colTimes,
   };
 
   const evaluatorByCode = new Map(EVALUATORS.map((e) => [e.code, e] as const));
