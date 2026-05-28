@@ -986,8 +986,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const now = new Date();
   const since14 = new Date(now);
   since14.setDate(since14.getDate() - 14);
-  const since14Workouts = new Date(now);
-  since14Workouts.setDate(since14Workouts.getDate() - 14);
   const since21Workouts = new Date(now);
   since21Workouts.setDate(since21Workouts.getDate() - 21);
   const since28 = new Date(now);
@@ -1049,8 +1047,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       .from("training_workouts")
       .select("*")
       .eq("profile_id", user.id)
-      .gte("scheduled_at", since14Workouts.toISOString())
-      .order("scheduled_at", { ascending: true }),
+      .order("scheduled_at", { ascending: true })
+      .limit(200),
     supabase
       .from("training_workout_reports")
       .select("*")
@@ -1083,7 +1081,11 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     .filter((e) => e.start_date_local >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
     .slice(0, 5);
-  const myWorkoutsByPlan = byPlan((myWorkouts ?? []) as WorkoutRow[]);
+  const memberWorkouts = (myWorkouts ?? []) as WorkoutRow[];
+  const myWorkoutsByPlan = byPlan(memberWorkouts);
+  const upcomingZwbMemberWorkouts = memberWorkouts
+    .filter((workout) => new Date(workout.scheduled_at).getTime() >= now.getTime())
+    .slice(0, 8);
   const myReportsByWorkout = byWorkout((myReports ?? []) as WorkoutReportRow[]);
 
   const assignments = (myAssignments ?? []) as AssignmentRow[];
@@ -1445,10 +1447,55 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               Uit intervals.icu en ZWB-schema&apos;s.
             </p>
           </div>
-          {upcomingEvents.length === 0 ? (
+          {upcomingEvents.length === 0 && upcomingZwbMemberWorkouts.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>
           ) : (
             <ul className="divide-y">
+              {upcomingZwbMemberWorkouts.map((workout) => (
+                <li key={workout.id} className="p-4">
+                  <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(workout.scheduled_at).toLocaleDateString("nl-NL", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{workout.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        ZWB-schema - {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
+                  </div>
+                  <WorkoutBlocks blocks={normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)} />
+                  {workout.publish_status === "published" && workout.intervals_event_id ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a
+                        href={intervalsWorkoutUrl(conn?.athlete_id, workout)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                      >
+                        <ExternalLink className="size-3" />
+                        Open in intervals.icu
+                      </a>
+                      <a
+                        href={`/api/training/workouts/${workout.id}/fit`}
+                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                      >
+                        <Download className="size-3" />
+                        Download FIT
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      FIT-download verschijnt zodra de trainer deze workout naar intervals.icu heeft gepubliceerd.
+                    </p>
+                  )}
+                </li>
+              ))}
               {upcomingEvents.map((event) => (
                 <li key={String(event.id)} className="grid gap-2 p-4 sm:grid-cols-[120px_1fr_auto] sm:items-center">
                   <span className="text-sm text-muted-foreground">
