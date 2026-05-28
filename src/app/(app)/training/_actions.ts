@@ -12,7 +12,6 @@ import {
   blocksToIntervalsText,
   estimateTrainingLoad,
   normalizeWorkoutBlocks,
-  projectCtl,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -711,14 +710,4 @@ export async function publishTrainingPlan(formData: FormData) {
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Publiceren faalde." };
   }
-}
-
-export function projectedCtlForPlan(initialCtl: number | null | undefined, workouts: Array<{ scheduled_at: string; structure_json: unknown; intensity: string }>) {
-  return projectCtl(
-    initialCtl,
-    workouts.map((workout) => ({
-      date: String(workout.scheduled_at).slice(0, 10),
-      load: estimateTrainingLoad(normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)),
-    })),
-  );
 }
