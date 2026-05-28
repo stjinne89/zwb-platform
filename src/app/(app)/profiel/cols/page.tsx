@@ -18,7 +18,19 @@ type ColRow = {
   summit_elevation_m: number | null;
   ascent_m: number | null;
   category: string | null;
+  strava_segment_id: number | null;
 };
+
+/** VeloViewer-deeplink: direct naar de segment-pagina als we de Strava-
+ *  segment-ID kennen, anders een VeloViewer-zoekopdracht op naam. */
+function veloviewerUrl(col: ColRow): string {
+  if (col.strava_segment_id) {
+    return `https://veloviewer.com/segments/${col.strava_segment_id}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(
+    `veloviewer ${col.name}`,
+  )}`;
+}
 
 type MyClimb = {
   col_slug: string;
@@ -88,7 +100,7 @@ export default async function MijnColsPage() {
       supabase
         .from("cols")
         .select(
-          "slug, name, country, region, summit_elevation_m, ascent_m, category",
+          "slug, name, country, region, summit_elevation_m, ascent_m, category, strava_segment_id",
         )
         .order("country")
         .order("name"),
@@ -280,7 +292,15 @@ function ClimbedCard({
         <div>
           <h3 className="font-semibold">
             {flag && <span className="mr-1">{flag}</span>}
-            {col.name}
+            <a
+              href={veloviewerUrl(col)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary hover:underline"
+              title="Bekijk op VeloViewer"
+            >
+              {col.name}
+            </a>
           </h3>
           <p className="text-xs text-muted-foreground">
             {col.region && `${col.region} · `}
@@ -357,10 +377,16 @@ function TodoCard({ col }: { col: ColRow }) {
   return (
     <li className="rounded-md border border-dashed bg-muted/20 p-2.5 text-sm opacity-70">
       <div className="flex items-start justify-between gap-1">
-        <span className="truncate">
+        <a
+          href={veloviewerUrl(col)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="truncate hover:text-primary hover:underline"
+          title="Bekijk op VeloViewer"
+        >
           {flag && <span className="mr-1">{flag}</span>}
           {col.name}
-        </span>
+        </a>
         <span
           className={`shrink-0 rounded-full px-1.5 text-[10px] ${cat.cls}`}
         >
