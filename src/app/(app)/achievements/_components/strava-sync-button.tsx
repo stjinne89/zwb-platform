@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { History, RefreshCw } from "lucide-react";
+import { History, RefreshCw, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  diagnoseWatopia,
   recomputeMyMilestoneBadges,
   syncMyStravaActivities,
 } from "../_actions";
@@ -141,6 +142,28 @@ export function StravaSyncButton() {
     }
   }
 
+  async function runWatopiaDiagnose() {
+    setState({ kind: "running", message: "Watopia-diagnose draaien…" });
+    try {
+      const res = await diagnoseWatopia();
+      if (!res.ok) {
+        setState({ kind: "error", message: res.error });
+        return;
+      }
+      // Toon het volledige rapport in een alert + korte samenvatting inline.
+      alert(res.report);
+      setState({
+        kind: "success",
+        message: "Watopia-diagnose klaar — zie pop-up.",
+      });
+    } catch (err) {
+      setState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Diagnose faalde.",
+      });
+    }
+  }
+
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <div className="flex flex-wrap items-center gap-2">
@@ -183,6 +206,16 @@ export function StravaSyncButton() {
         >
           <RefreshCw data-icon="inline-start" />
           Badges herberekenen
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={isRunning}
+          onClick={runWatopiaDiagnose}
+        >
+          <Stethoscope data-icon="inline-start" />
+          Watopia diagnose
         </Button>
       </div>
       {state.kind !== "idle" && (
