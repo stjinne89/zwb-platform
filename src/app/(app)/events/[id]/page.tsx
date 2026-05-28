@@ -19,6 +19,8 @@ import { WindSummary } from "./_components/wind-summary";
 import { RsvpButtons } from "./_components/rsvp-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
+import { ManualResultForm } from "./_components/manual-result-form";
+import { RemoveResultButton } from "./_components/remove-result-button";
 import { EventPhotoUploader } from "./_components/photo-uploader";
 import {
   EventPhotoGallery,
@@ -109,7 +111,7 @@ export default async function EventDetailPage({
     supabase
       .from("event_results")
       .select(
-        "id, profile_id, scraped_name, position, time_text, time_seconds, matched_via",
+        "id, profile_id, scraped_name, position, time_text, time_seconds, matched_via, is_manual",
       )
       .eq("event_id", id),
   ]);
@@ -146,6 +148,7 @@ export default async function EventDetailPage({
     timeText: string | null;
     timeSeconds: number | null;
     matchedVia: string;
+    isManual: boolean;
   };
   const results: EventResult[] = (resultRows ?? [])
     .map((r) => ({
@@ -156,6 +159,7 @@ export default async function EventDetailPage({
       timeText: r.time_text,
       timeSeconds: r.time_seconds,
       matchedVia: r.matched_via,
+      isManual: r.is_manual ?? false,
     }))
     .sort((a, b) => {
       if (a.position != null && b.position != null)
@@ -415,7 +419,7 @@ export default async function EventDetailPage({
               {event.results_url
                 ? "Nog geen uitslag opgehaald."
                 : canManage
-                  ? "Voeg een uitslag-URL toe via Bewerk om ZWB-uitslagen op te halen."
+                  ? "Voeg een uitslag-URL toe via Bewerk, of voeg hieronder handmatig deelnemers toe."
                   : "Nog geen uitslag beschikbaar."}
             </p>
           ) : (
@@ -426,6 +430,7 @@ export default async function EventDetailPage({
                     <th className="py-1.5 pr-3 font-medium">#</th>
                     <th className="py-1.5 pr-3 font-medium">Naam</th>
                     <th className="py-1.5 font-medium">Tijd</th>
+                    {canManage && <th className="py-1.5" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -451,15 +456,34 @@ export default async function EventDetailPage({
                               ZWB
                             </span>
                           )}
+                          {r.isManual && (
+                            <span
+                              className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                              title="Handmatig toegevoegd"
+                            >
+                              handmatig
+                            </span>
+                          )}
                         </span>
                       </td>
                       <td className="py-1.5 tabular-nums">
                         {r.timeText ?? "—"}
                       </td>
+                      {canManage && (
+                        <td className="py-1.5 pl-2 text-right">
+                          <RemoveResultButton resultId={r.id} />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {canManage && (
+            <div className="pt-1">
+              <ManualResultForm eventId={event.id} />
             </div>
           )}
 
