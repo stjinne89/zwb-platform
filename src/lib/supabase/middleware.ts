@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   "/api/team-results/sync",
   "/api/achievements/finalize",
   "/api/events/reminders",
+  "/api/training/adaptations/daily",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

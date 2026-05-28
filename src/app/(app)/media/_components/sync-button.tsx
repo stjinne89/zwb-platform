@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { syncPodcastRss, syncYouTubeChannel } from "../_actions";
+import { syncInstagramFeed, syncPodcastRss, syncYouTubeChannel } from "../_actions";
 import { Button } from "@/components/ui/button";
 
 type SyncStatus =
@@ -36,6 +36,44 @@ export function SyncYouTubeButton() {
         }}
       >
         {pending ? "Bezig met syncen…" : "📺 Sync YouTube"}
+      </Button>
+      {status.kind === "ok" && (
+        <span className="text-sm text-muted-foreground">{status.msg}</span>
+      )}
+      {status.kind === "error" && (
+        <span className="text-sm text-destructive">{status.msg}</span>
+      )}
+    </div>
+  );
+}
+
+export function SyncInstagramButton() {
+  const [pending, startTransition] = useTransition();
+  const [status, setStatus] = useState<SyncStatus>({ kind: "idle" });
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={pending}
+        onClick={() => {
+          setStatus({ kind: "idle" });
+          startTransition(async () => {
+            const res = await syncInstagramFeed();
+            if (!res.ok) {
+              setStatus({ kind: "error", msg: res.error });
+            } else {
+              setStatus({
+                kind: "ok",
+                msg: `${res.inserted} nieuw, ${res.updated} bijgewerkt (totaal ${res.total}).`,
+              });
+            }
+          });
+        }}
+      >
+        {pending ? "Bezig met syncen..." : "Sync Instagram"}
       </Button>
       {status.kind === "ok" && (
         <span className="text-sm text-muted-foreground">{status.msg}</span>

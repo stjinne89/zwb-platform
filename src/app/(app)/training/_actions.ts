@@ -6,24 +6,22 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { fetchIntervalsAthlete, upsertIntervalsWorkoutEvent } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
-import { generateTrainingPlanDraft } from "@/lib/training/ai";
+import { defaultTrainingPrompt, generateTrainingPlanDraft } from "@/lib/training/ai";
+import {
+  blocksFromForm,
+  blocksToIntervalsText,
+  estimateTrainingLoad,
+  normalizeWorkoutBlocks,
+  projectCtl,
+  WORKOUT_INTENSITIES,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
 const WEEKDAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"];
 const MODES = ["indoor", "outdoor", "mixed"];
 const LEVELS = ["beginner", "intermediate", "advanced"];
 const INTENSITIES = ["easy", "balanced", "hard"];
-const WORKOUT_INTENSITIES = [
-  "recovery",
-  "endurance",
-  "tempo",
-  "threshold",
-  "vo2max",
-  "anaerobic",
-  "race",
-  "rest",
-];
-
 type TrainingActionState = {
   ok: boolean;
   error?: string;
@@ -46,6 +44,12 @@ function mustString(value: FormDataEntryValue | null, label: string) {
   const text = optionalString(value);
   if (!text) throw new Error(`${label} ontbreekt.`);
   return text;
+}
+
+function assertWorkoutIntensity(value: string): asserts value is WorkoutIntensity {
+  if (!(WORKOUT_INTENSITIES as readonly string[]).includes(value)) {
+    throw new Error("Ongeldige intensiteit.");
+  }
 }
 
 async function currentUser() {
@@ -288,6 +292,7 @@ export async function generateAiDraft(formData: FormData) {
 
     const athleteId = mustString(formData.get("athlete_id"), "Lid");
     const goalId = mustString(formData.get("goal_id"), "Doel");
+    const promptText = optionalString(formData.get("prompt_text")) ?? defaultTrainingPrompt();
     const admin = createAdminClient();
     if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, athleteId))) {
       throw new Error("Dit lid heeft jou geen actieve trainer-toegang gegeven.");
@@ -323,26 +328,29 @@ export async function generateAiDraft(formData: FormData) {
       { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
     );
 
-    const ai = await generateTrainingPlanDraft({
-      athleteName: profile.display_name ?? "ZWB-lid",
-      goal: {
-        title: goal.title,
-        type: goal.goal_type,
-        targetDate: goal.target_date,
-        availableDays: goal.available_days ?? [],
-        maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
-        preferredMode: goal.preferred_mode,
-        experienceLevel: goal.experience_level,
-        desiredIntensity: goal.desired_intensity,
-        riskNotes: goal.risk_notes,
+    const ai = await generateTrainingPlanDraft(
+      {
+        athleteName: profile.display_name ?? "ZWB-lid",
+        goal: {
+          title: goal.title,
+          type: goal.goal_type,
+          targetDate: goal.target_date,
+          availableDays: goal.available_days ?? [],
+          maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
+          preferredMode: goal.preferred_mode,
+          experienceLevel: goal.experience_level,
+          desiredIntensity: goal.desired_intensity,
+          riskNotes: goal.risk_notes,
+        },
+        profile: {
+          ftpWatts: profile.ftp_watts ?? null,
+          weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
+          zrlCategory: profile.zrl_category ?? null,
+        },
+        recentLoad: recent,
       },
-      profile: {
-        ftpWatts: profile.ftp_watts ?? null,
-        weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-        zrlCategory: profile.zrl_category ?? null,
-      },
-      recentLoad: recent,
-    });
+      promptText,
+    );
 
     const { data: aiRow, error: aiError } = await admin
       .from("training_ai_generations")
@@ -352,6 +360,7 @@ export async function generateAiDraft(formData: FormData) {
         goal_id: goalId,
         model: ai.model,
         status: "completed",
+        prompt_text: promptText,
         prompt_summary: ai.promptSummary,
         response_json: ai.plan,
       })
@@ -377,18 +386,24 @@ export async function generateAiDraft(formData: FormData) {
       .single();
     if (planError) throw new Error(planError.message);
 
-    const workouts = ai.plan.workouts.map((workout) => ({
-      plan_id: plan.id,
-      profile_id: athleteId,
-      trainer_id: user.id,
-      scheduled_at: `${workout.date}T09:00:00+01:00`,
-      title: workout.title,
-      description: workout.description,
-      duration_minutes: Math.round(workout.durationMinutes),
-      intensity: workout.intensity,
-      target_type: workout.targetType,
-      structure_json: workout.structure,
-    }));
+    const workouts = ai.plan.workouts.map((workout) => {
+      const intensity = workout.intensity;
+      assertWorkoutIntensity(intensity);
+      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+      return {
+        plan_id: plan.id,
+        profile_id: athleteId,
+        trainer_id: user.id,
+        scheduled_at: `${workout.date}T09:00:00+01:00`,
+        title: workout.title,
+        description: workout.description,
+        duration_minutes: Math.round(workout.durationMinutes),
+        intensity,
+        target_type: workout.targetType,
+        structure_json: blocks,
+        intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
+      };
+    });
     const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
     if (workoutError) throw new Error(workoutError.message);
 
@@ -410,6 +425,37 @@ export async function generateAiDraft(formData: FormData) {
   }
 }
 
+export async function updateTrainingPlan(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om schema's te wijzigen.");
+    const planId = mustString(formData.get("plan_id"), "Schema");
+    const admin = createAdminClient();
+    const { data: plan } = await admin.from("training_plans").select("profile_id").eq("id", planId).single();
+    if (!plan) throw new Error("Schema niet gevonden.");
+    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, plan.profile_id))) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const { error } = await admin
+      .from("training_plans")
+      .update({
+        title: mustString(formData.get("title"), "Titel"),
+        summary: optionalString(formData.get("summary")),
+        start_date: mustString(formData.get("start_date"), "Startdatum"),
+        end_date: mustString(formData.get("end_date"), "Einddatum"),
+        status: "draft",
+      })
+      .eq("id", planId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/training");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Schema wijzigen faalde." };
+  }
+}
+
 export async function updateWorkout(formData: FormData) {
   try {
     const { user, access } = await currentUser();
@@ -427,16 +473,23 @@ export async function updateWorkout(formData: FormData) {
     }
 
     const intensity = optionalString(formData.get("intensity")) ?? "endurance";
-    if (!WORKOUT_INTENSITIES.includes(intensity)) throw new Error("Ongeldige intensiteit.");
+    assertWorkoutIntensity(intensity);
+    const blocks = blocksFromForm(formData, intensity);
+    const durationMinutes =
+      Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0) ||
+      blocks.reduce((total, block) => total + block.durationMinutes, 0) ||
+      60;
 
     const { error } = await admin
       .from("training_workouts")
       .update({
         title: mustString(formData.get("title"), "Titel"),
         scheduled_at: `${mustString(formData.get("date"), "Datum")}T${optionalString(formData.get("time")) ?? "09:00"}:00+01:00`,
-        duration_minutes: Math.round(optionalNumber(formData.get("duration_minutes")) ?? 60),
+        duration_minutes: durationMinutes,
         intensity,
+        target_type: optionalString(formData.get("target_type")) ?? "power",
         description: optionalString(formData.get("description")),
+        structure_json: blocks,
         publish_status: "pending",
         publish_error: null,
       })
@@ -447,6 +500,82 @@ export async function updateWorkout(formData: FormData) {
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Workout wijzigen faalde." };
+  }
+}
+
+export async function saveWorkoutReport(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const workoutId = mustString(formData.get("workout_id"), "Workout");
+    const admin = createAdminClient();
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, profile_id, trainer_id, intervals_event_id")
+      .eq("id", workoutId)
+      .single();
+    if (!workout) throw new Error("Workout niet gevonden.");
+    if (workout.profile_id !== user.id) throw new Error("Alleen de renner kan deze rapportage invullen.");
+
+    const rpe = optionalNumber(formData.get("athlete_rpe"));
+    const feel = optionalString(formData.get("athlete_feel"));
+    const values = {
+      workout_id: workoutId,
+      profile_id: workout.profile_id,
+      trainer_id: workout.trainer_id,
+      athlete_rpe: rpe ? Math.max(1, Math.min(10, Math.round(rpe))) : null,
+      athlete_feel: feel,
+      athlete_report: optionalString(formData.get("athlete_report")),
+      intervals_event_id: workout.intervals_event_id,
+      created_by: user.id,
+      updated_by: user.id,
+    };
+
+    const { error } = await admin
+      .from("training_workout_reports")
+      .upsert(values, { onConflict: "workout_id,profile_id" });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/training");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Rapportage opslaan faalde." };
+  }
+}
+
+export async function saveTrainerFeedback(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om feedback te geven.");
+    const workoutId = mustString(formData.get("workout_id"), "Workout");
+    const admin = createAdminClient();
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, profile_id, trainer_id, intervals_event_id")
+      .eq("id", workoutId)
+      .single();
+    if (!workout) throw new Error("Workout niet gevonden.");
+    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, workout.profile_id))) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const { error } = await admin.from("training_workout_reports").upsert(
+      {
+        workout_id: workoutId,
+        profile_id: workout.profile_id,
+        trainer_id: user.id,
+        trainer_feedback: optionalString(formData.get("trainer_feedback")),
+        intervals_event_id: workout.intervals_event_id,
+        created_by: user.id,
+        updated_by: user.id,
+      },
+      { onConflict: "workout_id,profile_id" },
+    );
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/training");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Feedback opslaan faalde." };
   }
 }
 
@@ -511,16 +640,26 @@ export async function publishTrainingPlan(formData: FormData) {
     let failed = 0;
     for (const workout of workouts ?? []) {
       try {
+        const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity);
+        const intervalsText = blocksToIntervalsText(blocks);
+        const trainingLoad = estimateTrainingLoad(blocks);
+        const externalId =
+          workout.intervals_external_id ?? `zwb-${workout.id}`;
         const event = await upsertIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, {
           id: workout.intervals_event_id,
+          externalId,
           startDateLocal: String(workout.scheduled_at).slice(0, 16),
           name: workout.title,
-          description: workout.description,
+          description: [workout.description, intervalsText].filter(Boolean).join("\n\n"),
           category: "WORKOUT",
+          type: "Ride",
+          target: "POWER",
+          trainingLoad,
           durationMinutes: workout.duration_minutes,
           workoutDoc: {
-            steps: workout.structure_json,
+            steps: blocks,
             zwb_plan_id: planId,
+            zwb_workout_id: workout.id,
             intensity: workout.intensity,
             target_type: workout.target_type,
           },
@@ -529,6 +668,7 @@ export async function publishTrainingPlan(formData: FormData) {
           .from("training_workouts")
           .update({
             intervals_event_id: String(event.id),
+            intervals_external_id: externalId,
             publish_status: "published",
             publish_error: null,
           })
@@ -571,4 +711,14 @@ export async function publishTrainingPlan(formData: FormData) {
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Publiceren faalde." };
   }
+}
+
+export function projectedCtlForPlan(initialCtl: number | null | undefined, workouts: Array<{ scheduled_at: string; structure_json: unknown; intensity: string }>) {
+  return projectCtl(
+    initialCtl,
+    workouts.map((workout) => ({
+      date: String(workout.scheduled_at).slice(0, 10),
+      load: estimateTrainingLoad(normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)),
+    })),
+  );
 }

@@ -6,7 +6,10 @@ import {
   Calendar,
   CheckCircle2,
   ClipboardList,
+  Download,
   ExternalLink,
+  FileText,
+  MessageSquare,
   Mountain,
   Send,
   ShieldCheck,
@@ -25,11 +28,25 @@ import {
 } from "@/lib/intervals/client";
 import {
   createTrainingGoal,
+  saveTrainerFeedback,
+  saveWorkoutReport,
   generateAiDraft,
   publishTrainingPlan,
   setPlanStatus,
+  updateTrainingPlan,
   updateWorkout,
 } from "./_actions";
+import {
+  defaultTrainingPrompt,
+  estimateTrainingLoad,
+  INTENSITY_COLORS,
+  INTENSITY_LABELS as WORKOUT_INTENSITY_LABELS,
+  normalizeWorkoutBlocks,
+  projectCtl,
+  WORKOUT_INTENSITIES,
+  type WorkoutBlock,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
@@ -92,6 +109,8 @@ type PlanRow = {
   status: string;
   source: string;
   created_at: string;
+  adaptation_reason: string | null;
+  ctl_projection_json?: Record<string, unknown> | null;
 };
 
 type WorkoutRow = {
@@ -104,9 +123,22 @@ type WorkoutRow = {
   duration_minutes: number;
   intensity: string;
   target_type: string;
-  structure_json: Array<{ label?: string; durationMinutes?: number; target?: string; notes?: string }> | null;
+  structure_json: Array<{ label?: string; durationMinutes?: number; target?: string; notes?: string; intensity?: string }> | null;
   publish_status: string;
   publish_error: string | null;
+  intervals_event_id: string | null;
+  intervals_external_id: string | null;
+};
+
+type WorkoutReportRow = {
+  id: string;
+  workout_id: string;
+  profile_id: string;
+  athlete_rpe: number | null;
+  athlete_feel: string | null;
+  athlete_report: string | null;
+  trainer_feedback: string | null;
+  updated_at: string;
 };
 
 type TrainingPageProps = {
@@ -191,6 +223,12 @@ function byProfile<T extends { profile_id: string }>(rows: T[]) {
 function byPlan<T extends { plan_id: string }>(rows: T[]) {
   const map = new Map<string, T[]>();
   for (const row of rows) map.set(row.plan_id, [...(map.get(row.plan_id) ?? []), row]);
+  return map;
+}
+
+function byWorkout<T extends { workout_id: string }>(rows: T[]) {
+  const map = new Map<string, T>();
+  for (const row of rows) map.set(row.workout_id, row);
   return map;
 }
 
@@ -306,14 +344,132 @@ function targetHint({
   return rpe ? `RPE ${rpe}: ${watts}` : watts;
 }
 
+function intervalsWorkoutUrl(athleteId: string | undefined, workout: WorkoutRow) {
+  const date = dateValue(workout.scheduled_at);
+  return athleteId
+    ? `https://intervals.icu/athletes/${athleteId}/calendar?date=${date}`
+    : `https://intervals.icu/calendar?date=${date}`;
+}
+
+function WorkoutBlocks({ blocks }: { blocks: WorkoutBlock[] }) {
+  if (blocks.length === 0) return null;
+  const total = blocks.reduce((sum, block) => sum + block.durationMinutes, 0) || 1;
+  return (
+    <div className="mt-3">
+      <div
+        className="flex h-8 overflow-hidden rounded-md border bg-muted"
+        role="img"
+        aria-label="Workoutblokken"
+      >
+        {blocks.map((block, idx) => (
+          <div
+            key={`${block.label}-${idx}`}
+            title={`${block.label}: ${block.durationMinutes} min ${block.target}`}
+            className="min-w-[8px]"
+            style={{
+              width: `${Math.max(4, (block.durationMinutes / total) * 100)}%`,
+              backgroundColor: INTENSITY_COLORS[block.intensity],
+            }}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {blocks.map((block, idx) => (
+          <span key={`${block.label}-label-${idx}`} className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {block.label} {block.durationMinutes}m {block.target}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReportPanel({
+  workout,
+  report,
+  editable,
+}: {
+  workout: WorkoutRow;
+  report?: WorkoutReportRow;
+  editable: boolean;
+}) {
+  return (
+    <details className="mt-3 rounded-md border bg-background/60 p-3">
+      <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+        <MessageSquare className="size-4" />
+        Rapportage en feedback
+      </summary>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <form action={formAction(saveWorkoutReport)} className="space-y-2">
+          <input type="hidden" name="workout_id" value={workout.id} />
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs text-muted-foreground">
+              RPE
+              <input
+                name="athlete_rpe"
+                type="number"
+                min="1"
+                max="10"
+                defaultValue={report?.athlete_rpe ?? ""}
+                className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Gevoel
+              <select
+                name="athlete_feel"
+                defaultValue={report?.athlete_feel ?? ""}
+                className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+              >
+                <option value="">-</option>
+                <option value="goed">Goed</option>
+                <option value="neutraal">Neutraal</option>
+                <option value="zwaar">Zwaar</option>
+                <option value="slecht">Slecht</option>
+              </select>
+            </label>
+          </div>
+          <textarea
+            name="athlete_report"
+            rows={3}
+            defaultValue={report?.athlete_report ?? ""}
+            placeholder="Hoe ging deze workout?"
+            className="w-full rounded-md border bg-background px-2 py-1 text-sm"
+          />
+          {!editable ? (
+            <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">Rapportage opslaan</button>
+          ) : null}
+        </form>
+        <form action={formAction(saveTrainerFeedback)} className="space-y-2">
+          <input type="hidden" name="workout_id" value={workout.id} />
+          <textarea
+            name="trainer_feedback"
+            rows={5}
+            defaultValue={report?.trainer_feedback ?? ""}
+            placeholder="Feedback van de trainer"
+            className="w-full rounded-md border bg-background px-2 py-1 text-sm"
+          />
+          {editable ? (
+            <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">Feedback opslaan</button>
+          ) : null}
+        </form>
+      </div>
+    </details>
+  );
+}
+
 function WorkoutList({
   workouts,
   editable,
   ftpWatts,
+  reports,
+  intervalsAthleteId,
 }: {
   workouts: WorkoutRow[];
   editable: boolean;
   ftpWatts?: number | null;
+  reports?: Map<string, WorkoutReportRow>;
+  intervalsAthleteId?: string;
 }) {
   if (workouts.length === 0) {
     return <p className="p-4 text-sm text-muted-foreground">Nog geen workouts in dit schema.</p>;
@@ -321,7 +477,10 @@ function WorkoutList({
 
   return (
     <ul className="divide-y">
-      {workouts.map((workout) => (
+      {workouts.map((workout) => {
+        const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity);
+        const report = reports?.get(workout.id);
+        return (
         <li key={workout.id} className="p-4">
           {editable ? (
             <form action={formAction(updateWorkout)} className="grid gap-3 lg:grid-cols-[120px_90px_1fr_90px_120px_auto] lg:items-end">
@@ -377,6 +536,7 @@ function WorkoutList({
                   ))}
                 </select>
               </label>
+              <input type="hidden" name="target_type" value={workout.target_type} />
               <button className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">
                 Opslaan
               </button>
@@ -389,6 +549,31 @@ function WorkoutList({
                   className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
                 />
               </label>
+              <div className="lg:col-span-6 rounded-md border bg-background/60 p-3">
+                <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <FileText className="size-3" />
+                  Intervalblokken
+                </p>
+                <div className="space-y-2">
+                  {[...blocks, { label: "", durationMinutes: 5, target: "", notes: "", intensity: workout.intensity as WorkoutIntensity }].map((block, idx) => (
+                    <div key={idx} className="grid gap-2 rounded-md border p-2 lg:grid-cols-[1fr_80px_1fr_1fr_130px_90px]">
+                      <input name="block_label" defaultValue={block.label} placeholder="Blok" className="rounded-md border bg-background px-2 py-1 text-sm" />
+                      <input name="block_duration" type="number" min="0" max="480" defaultValue={block.durationMinutes || ""} className="rounded-md border bg-background px-2 py-1 text-sm" />
+                      <input name="block_target" defaultValue={block.target} placeholder="Doel" className="rounded-md border bg-background px-2 py-1 text-sm" />
+                      <input name="block_notes" defaultValue={block.notes} placeholder="Notitie" className="rounded-md border bg-background px-2 py-1 text-sm" />
+                      <select name="block_intensity" defaultValue={block.intensity} className="rounded-md border bg-background px-2 py-1 text-sm">
+                        {WORKOUT_INTENSITIES.map((value) => (
+                          <option key={value} value={value}>{WORKOUT_INTENSITY_LABELS[value]}</option>
+                        ))}
+                      </select>
+                      <select name="block_delete" defaultValue="0" className="rounded-md border bg-background px-2 py-1 text-sm">
+                        <option value="0">Bewaar</option>
+                        <option value="1">Verwijder</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </form>
           ) : (
             <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
@@ -409,12 +594,13 @@ function WorkoutList({
               <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
             </div>
           )}
+          <WorkoutBlocks blocks={blocks} />
           {workout.structure_json && workout.structure_json.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {workout.structure_json.slice(0, 5).map((step, idx) => {
+              {blocks.slice(0, 5).map((step, idx) => {
                 const hint = targetHint({
                   ftpWatts,
-                  intensity: workout.intensity,
+                  intensity: step.intensity,
                   target: step.target,
                   notes: step.notes,
                 });
@@ -427,8 +613,30 @@ function WorkoutList({
               })}
             </div>
           )}
+          {workout.publish_status === "published" && workout.intervals_event_id ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={intervalsWorkoutUrl(intervalsAthleteId, workout)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+              >
+                <ExternalLink className="size-3" />
+                Open in intervals.icu
+              </a>
+              <a
+                href={`/api/training/workouts/${workout.id}/fit`}
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+              >
+                <Download className="size-3" />
+                Download FIT
+              </a>
+            </div>
+          ) : null}
+          <ReportPanel workout={workout} report={report} editable={editable} />
         </li>
-      ))}
+      );
+      })}
     </ul>
   );
 }
@@ -449,7 +657,9 @@ function CoachWorkspace({
   workoutsByPlan,
   workoutsByProfile,
   intervalEvents,
+  intervalAthleteIds,
   loadMetrics,
+  reportsByWorkout,
   selectedAthleteId,
   canUseAi,
   canGenerateAi,
@@ -464,7 +674,9 @@ function CoachWorkspace({
   workoutsByPlan: Map<string, WorkoutRow[]>;
   workoutsByProfile: Map<string, WorkoutRow[]>;
   intervalEvents: Map<string, IntervalsEvent[]>;
+  intervalAthleteIds: Map<string, string>;
   loadMetrics: Map<string, CoachLoadMetric>;
+  reportsByWorkout: Map<string, WorkoutReportRow>;
   selectedAthleteId?: string;
   canUseAi: boolean;
   canGenerateAi: boolean;
@@ -483,6 +695,7 @@ function CoachWorkspace({
   const athletePlans = plans.get(selected.athlete_id) ?? [];
   const athleteWorkouts = workoutsByProfile.get(selected.athlete_id) ?? [];
   const athleteEvents = intervalEvents.get(selected.athlete_id) ?? [];
+  const intervalsAthleteId = intervalAthleteIds.get(selected.athlete_id);
   const metric = loadMetrics.get(selected.athlete_id);
   const totals = loadSummary(athleteActivities);
   const recentZwbWorkouts = athleteWorkouts
@@ -493,6 +706,15 @@ function CoachWorkspace({
     .filter((workout) => new Date(workout.scheduled_at).getTime() >= nowMs)
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
     .slice(0, 5);
+  const activePlan = athletePlans.find((plan) => plan.status !== "archived");
+  const activePlanWorkouts = activePlan ? workoutsByPlan.get(activePlan.id) ?? [] : [];
+  const ctlProjection = projectCtl(
+    metric?.ctl,
+    activePlanWorkouts.map((workout) => ({
+      date: workout.scheduled_at.slice(0, 10),
+      load: estimateTrainingLoad(normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)),
+    })),
+  );
 
   return (
     <div className="grid gap-4 xl:grid-cols-[340px_1fr]">
@@ -561,6 +783,7 @@ function CoachWorkspace({
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
             <MetricCard icon={Activity} label="TSB" value={formatNumber(metric?.tsb, 1)} />
+            <MetricCard icon={TrendingUp} label="CTL doel" value={formatNumber(ctlProjection ?? undefined, 1)} />
             <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
             <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
           </div>
@@ -586,9 +809,18 @@ function CoachWorkspace({
                       {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL")}` : ""}
                       {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
                     </p>
-                    <form action={formAction(generateAiDraft)} className="mt-3">
+                    <form action={formAction(generateAiDraft)} className="mt-3 space-y-2">
                       <input type="hidden" name="athlete_id" value={selected.athlete_id} />
                       <input type="hidden" name="goal_id" value={goal.id} />
+                      <label className="block text-xs text-muted-foreground">
+                        AI-prompt
+                        <textarea
+                          name="prompt_text"
+                          rows={7}
+                          defaultValue={defaultTrainingPrompt()}
+                          className="mt-1 w-full rounded-md border bg-background px-2 py-1 font-mono text-xs"
+                        />
+                      </label>
                       <button
                         disabled={!canUseAi || !canGenerateAi}
                         className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
@@ -672,12 +904,29 @@ function CoachWorkspace({
             athletePlans.map((plan) => (
               <div key={plan.id} className="rounded-lg border bg-card">
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4">
-                  <div>
-                    <p className="font-medium">{plan.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(plan.start_date).toLocaleDateString("nl-NL")} - {new Date(plan.end_date).toLocaleDateString("nl-NL")}
-                    </p>
-                  </div>
+                  <form action={formAction(updateTrainingPlan)} className="grid flex-1 gap-2 lg:grid-cols-[1fr_130px_130px_auto]">
+                    <input type="hidden" name="plan_id" value={plan.id} />
+                    <label className="text-xs text-muted-foreground">
+                      Schema
+                      <input name="title" defaultValue={plan.title} className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm" />
+                    </label>
+                    <label className="text-xs text-muted-foreground">
+                      Start
+                      <input name="start_date" type="date" defaultValue={plan.start_date} className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm" />
+                    </label>
+                    <label className="text-xs text-muted-foreground">
+                      Eind
+                      <input name="end_date" type="date" defaultValue={plan.end_date} className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm" />
+                    </label>
+                    <button className="self-end rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">Schema opslaan</button>
+                    <label className="lg:col-span-4 text-xs text-muted-foreground">
+                      Samenvatting
+                      <textarea name="summary" rows={3} defaultValue={plan.summary ?? ""} className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm" />
+                    </label>
+                    {plan.adaptation_reason ? (
+                      <p className="lg:col-span-4 text-xs text-muted-foreground">{plan.adaptation_reason}</p>
+                    ) : null}
+                  </form>
                   <PlanBadge status={plan.status} />
                 </div>
                 <div className="flex flex-wrap gap-2 border-b p-3">
@@ -705,7 +954,13 @@ function CoachWorkspace({
                     </button>
                   </form>
                 </div>
-                <WorkoutList workouts={workoutsByPlan.get(plan.id) ?? []} editable ftpWatts={athlete?.ftp_watts} />
+                <WorkoutList
+                  workouts={workoutsByPlan.get(plan.id) ?? []}
+                  editable
+                  ftpWatts={athlete?.ftp_watts}
+                  reports={reportsByWorkout}
+                  intervalsAthleteId={intervalsAthleteId}
+                />
               </div>
             ))
           )}
@@ -747,6 +1002,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     { data: myGoals },
     { data: myPlans },
     { data: myWorkouts },
+    { data: myReports },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -795,6 +1051,11 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       .eq("profile_id", user.id)
       .gte("scheduled_at", since14Workouts.toISOString())
       .order("scheduled_at", { ascending: true }),
+    supabase
+      .from("training_workout_reports")
+      .select("*")
+      .eq("profile_id", user.id)
+      .order("updated_at", { ascending: false }),
   ]);
 
   let wellness: IntervalsWellness[] = [];
@@ -823,6 +1084,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
     .slice(0, 5);
   const myWorkoutsByPlan = byPlan((myWorkouts ?? []) as WorkoutRow[]);
+  const myReportsByWorkout = byWorkout((myReports ?? []) as WorkoutReportRow[]);
 
   const assignments = (myAssignments ?? []) as AssignmentRow[];
   const trainerIds = assignments.map((a) => a.trainer_id);
@@ -844,6 +1106,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   let coachPlans = new Map<string, PlanRow[]>();
   let coachWorkouts = new Map<string, WorkoutRow[]>();
   let coachWorkoutsByProfile = new Map<string, WorkoutRow[]>();
+  let coachReportsByWorkout = new Map<string, WorkoutReportRow>();
 
   if (canCoach) {
     const { data: assignmentRows } = await supabase
@@ -855,7 +1118,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     coachAssignments = (assignmentRows ?? []) as AssignmentRow[];
     const athleteIds = coachAssignments.map((assignment) => assignment.athlete_id);
     if (athleteIds.length > 0) {
-      const [{ data: profileRows }, { data: goalRows }, { data: activityRows }, { data: planRows }, { data: workoutRows }] =
+      const [
+        { data: profileRows },
+        { data: goalRows },
+        { data: activityRows },
+        { data: planRows },
+        { data: workoutRows },
+        { data: reportRows },
+      ] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -885,6 +1155,11 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             .in("profile_id", athleteIds)
             .gte("scheduled_at", since21Workouts.toISOString())
             .order("scheduled_at", { ascending: true }),
+          supabase
+            .from("training_workout_reports")
+            .select("*")
+            .in("profile_id", athleteIds)
+            .order("updated_at", { ascending: false }),
         ]);
       coachProfiles = new Map(((profileRows ?? []) as ProfileRow[]).map((profile) => [profile.id, profile]));
       coachGoals = byProfile((goalRows ?? []) as GoalRow[]);
@@ -893,12 +1168,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       const workouts = (workoutRows ?? []) as WorkoutRow[];
       coachWorkouts = byPlan(workouts);
       coachWorkoutsByProfile = byProfile(workouts);
+      coachReportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
     }
   }
 
   const activeTab = canCoach && requestedTab === "trainer" ? "trainer" : "member";
   const coachLoadMetrics = new Map<string, CoachLoadMetric>();
   const coachIntervalEvents = new Map<string, IntervalsEvent[]>();
+  const coachIntervalAthleteIds = new Map<string, string>();
 
   if (activeTab === "trainer" && coachAssignments.length > 0) {
     const athleteIds = coachAssignments.map((assignment) => assignment.athlete_id);
@@ -915,6 +1192,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               fetchIntervalsWellness(connection.api_key, connection.athlete_id, 30),
               fetchIntervalsEvents(connection.api_key, connection.athlete_id, 14),
             ]);
+            coachIntervalAthleteIds.set(connection.profile_id, connection.athlete_id);
             const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
             const latestRow = sorted[sorted.length - 1];
             coachLoadMetrics.set(connection.profile_id, {
@@ -1211,7 +1489,13 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   <PlanBadge status={plan.status} />
                 </div>
                 {plan.summary && <p className="px-4 pb-3 text-sm text-muted-foreground whitespace-pre-line">{plan.summary}</p>}
-                <WorkoutList workouts={myWorkoutsByPlan.get(plan.id) ?? []} editable={false} ftpWatts={myProfile?.ftp_watts} />
+                <WorkoutList
+                  workouts={myWorkoutsByPlan.get(plan.id) ?? []}
+                  editable={false}
+                  ftpWatts={myProfile?.ftp_watts}
+                  reports={myReportsByWorkout}
+                  intervalsAthleteId={conn?.athlete_id}
+                />
               </article>
             ))}
           </div>
@@ -1231,7 +1515,9 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             workoutsByPlan={coachWorkouts}
             workoutsByProfile={coachWorkoutsByProfile}
             intervalEvents={coachIntervalEvents}
+            intervalAthleteIds={coachIntervalAthleteIds}
             loadMetrics={coachLoadMetrics}
+            reportsByWorkout={coachReportsByWorkout}
             selectedAthleteId={requestedAthleteId}
             canUseAi={canUseAi}
             canGenerateAi={access.has("training.ai_generate")}

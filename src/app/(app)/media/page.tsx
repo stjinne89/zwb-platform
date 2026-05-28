@@ -9,7 +9,7 @@ import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
 import { AddMediaForm } from "./_components/add-form";
 import { MediaItemActions } from "./_components/item-actions";
-import { SyncPodcastButton, SyncYouTubeButton } from "./_components/sync-button";
+import { SyncInstagramButton, SyncPodcastButton, SyncYouTubeButton } from "./_components/sync-button";
 
 type SearchParams = Promise<{ kind?: string }>;
 
@@ -35,6 +35,7 @@ type MediaItem = {
   youtube_url: string | null;
   web_url: string | null;
   cover_url: string | null;
+  source: string | null;
   pinned: boolean;
   published_at: string;
   profiles: { display_name: string } | { display_name: string }[] | null;
@@ -62,7 +63,7 @@ export default async function MediaPage({
       let q = supabase
         .from("media_items")
         .select(
-          "id, kind, title, body_md, apple_url, spotify_url, rss_url, youtube_url, web_url, cover_url, pinned, published_at, profiles(display_name)",
+          "id, kind, title, body_md, apple_url, spotify_url, rss_url, youtube_url, web_url, cover_url, source, pinned, published_at, profiles(display_name)",
         )
         .order("pinned", { ascending: false })
         .order("published_at", { ascending: false });
@@ -242,6 +243,10 @@ export default async function MediaPage({
                         {PLATFORM_BUTTONS.map((b) => {
                           const url = item[b.key];
                           if (!url) return null;
+                          const label =
+                            item.source === "instagram" && b.key === "web_url"
+                              ? "Instagram"
+                              : b.label;
                           return (
                             <a
                               key={b.key}
@@ -250,7 +255,7 @@ export default async function MediaPage({
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 bg-background px-3 py-1 text-xs font-medium transition hover:border-foreground/50 hover:bg-secondary"
                             >
-                              {b.label}
+                              {label}
                             </a>
                           );
                         })}
@@ -275,6 +280,12 @@ export default async function MediaPage({
               </p>
             </div>
             <SyncYouTubeButton />
+            <div className="border-t pt-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Instagram (@zwb_cycling)
+              </p>
+              <SyncInstagramButton />
+            </div>
             <div className="border-t pt-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Podcast (RSS-feed)

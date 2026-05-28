@@ -75,14 +75,20 @@ export type IntervalsEvent = {
   icu_training_load?: number;
   load_target?: number;
   moving_time?: number;
+  workout_filename?: string;
+  workout_file_base64?: string;
+  external_id?: string;
 };
 
 export type IntervalsWorkoutInput = {
   id?: string | null;
+  externalId?: string | null;
   startDateLocal: string;
   name: string;
   description?: string | null;
   category?: string | null;
+  type?: string | null;
+  target?: string | null;
   trainingLoad?: number | null;
   durationMinutes?: number | null;
   workoutDoc?: Record<string, unknown> | null;
@@ -156,10 +162,35 @@ export async function upsertIntervalsWorkoutEvent(
     name: workout.name,
     description: workout.description ?? undefined,
     category: workout.category ?? "WORKOUT",
+    type: workout.type ?? "Ride",
+    target: workout.target ?? "POWER",
+    external_id: workout.externalId ?? undefined,
     icu_training_load: workout.trainingLoad ?? undefined,
     moving_time: workout.durationMinutes ? workout.durationMinutes * 60 : undefined,
     workout_doc: workout.workoutDoc ?? undefined,
   };
+  if (!workout.id && workout.externalId) {
+    const res = await fetch(`${BASE}/api/v1/athlete/${athleteId}/events/bulk?upsert=true`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader(apiKey),
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify([payload]),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new Error("intervals.icu API-key wordt afgewezen.");
+      const text = await res.text();
+      throw new Error(`intervals.icu ${res.status}: ${text.slice(0, 160)}`);
+    }
+    const events = (await res.json()) as IntervalsEvent[];
+    if (!events[0]) throw new Error("intervals.icu gaf geen workout terug.");
+    return events[0];
+  }
+
   const path = workout.id
     ? `/api/v1/athlete/${athleteId}/events/${workout.id}`
     : `/api/v1/athlete/${athleteId}/events`;
@@ -182,4 +213,31 @@ export async function upsertIntervalsWorkoutEvent(
     throw new Error(`intervals.icu ${res.status}: ${text.slice(0, 160)}`);
   }
   return (await res.json()) as IntervalsEvent;
+}
+
+export async function fetchIntervalsWorkoutFit(
+  apiKey: string,
+  athleteId: string,
+  eventId: string,
+  date: string,
+): Promise<{ filename: string; bytes: Uint8Array }> {
+  const query = new URLSearchParams({
+    oldest: date,
+    newest: date,
+    category: "WORKOUT",
+    ext: "fit",
+    resolve: "true",
+  });
+  const events = await intervalsFetch<IntervalsEvent[]>(
+    apiKey,
+    `/api/v1/athlete/${athleteId}/events?${query.toString()}`,
+  );
+  const event = events.find((row) => String(row.id) === String(eventId));
+  if (!event?.workout_file_base64) {
+    throw new Error("intervals.icu gaf geen FIT-bestand terug voor deze workout.");
+  }
+  return {
+    filename: event.workout_filename ?? `${event.name ?? "zwb-workout"}.fit`,
+    bytes: Uint8Array.from(Buffer.from(event.workout_file_base64, "base64")),
+  };
 }

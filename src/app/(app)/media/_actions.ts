@@ -10,6 +10,7 @@ import {
   type YouTubeVideo,
 } from "@/lib/youtube";
 import { fetchRssFeed } from "@/lib/rss";
+import { fetchInstagramMedia, instagramCoverUrl, ZWB_INSTAGRAM_URL } from "@/lib/instagram";
 
 const KINDS = MEDIA_KINDS.map((k) => k.value);
 
@@ -355,6 +356,96 @@ export async function syncPodcastRss(rssUrl?: string) {
     ok: true as const,
     feedTitle: feed.title,
     total: feed.episodes.length,
+    inserted,
+    updated,
+  };
+}
+
+export async function syncInstagramFeed() {
+  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN?.trim();
+  const userId = process.env.INSTAGRAM_USER_ID?.trim();
+  if (!accessToken || !userId) {
+    return {
+      ok: false as const,
+      error:
+        "INSTAGRAM_ACCESS_TOKEN en INSTAGRAM_USER_ID ontbreken in de server-env. Gebruik de officiële Meta Instagram API voor @zwb_cycling.",
+    };
+  }
+
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("media.manage")) {
+    return { ok: false as const, error: "Geen recht om media te syncen." };
+  }
+
+  let posts;
+  try {
+    posts = await fetchInstagramMedia({ accessToken, userId, limit: 12 });
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Onbekende Instagram-fout.",
+    };
+  }
+
+  let inserted = 0;
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const post of posts) {
+    const caption = (post.caption ?? "").trim();
+    const firstLine = caption.split(/\r?\n/).find(Boolean)?.trim();
+    const title = firstLine ? firstLine.slice(0, 120) : "Instagram-post van ZWB Cycling";
+    const publishedAt = post.timestamp ? new Date(post.timestamp).toISOString() : new Date().toISOString();
+    const permalink = post.permalink ?? ZWB_INSTAGRAM_URL;
+    const cover = instagramCoverUrl(post);
+
+    const { data: existing } = await supabase
+      .from("media_items")
+      .select("id")
+      .eq("source", "instagram")
+      .eq("external_id", post.id)
+      .maybeSingle();
+
+    const values = {
+      kind: "instagram",
+      title,
+      body_md: caption.slice(0, 1200) || null,
+      web_url: permalink,
+      cover_url: cover,
+      published_at: publishedAt,
+      source: "instagram",
+      external_id: post.id,
+    };
+
+    if (existing) {
+      const { error } = await supabase.from("media_items").update(values).eq("id", existing.id);
+      if (error) errors.push(`update ${post.id}: ${error.message}`);
+      else updated++;
+    } else {
+      const { error } = await supabase.from("media_items").insert({
+        ...values,
+        author_id: access.user.id,
+      });
+      if (error) errors.push(`insert ${post.id}: ${error.message}`);
+      else inserted++;
+    }
+  }
+
+  revalidatePath("/media");
+  revalidatePath("/dashboard");
+
+  if (posts.length > 0 && inserted === 0 && updated === 0) {
+    return {
+      ok: false as const,
+      error: errors[0] ?? "Geen Instagram-posts geimporteerd. Is migratie 0052 toegepast?",
+    };
+  }
+
+  return {
+    ok: true as const,
+    total: posts.length,
     inserted,
     updated,
   };

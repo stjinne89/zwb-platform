@@ -1,3 +1,5 @@
+import { defaultTrainingPrompt } from "@/lib/training/workouts";
+
 export type GeneratedWorkout = {
   date: string;
   title: string;
@@ -10,6 +12,7 @@ export type GeneratedWorkout = {
     durationMinutes: number;
     target: string;
     notes: string;
+    intensity: "recovery" | "endurance" | "tempo" | "threshold" | "vo2max" | "anaerobic" | "race" | "rest";
   }>;
 };
 
@@ -98,12 +101,25 @@ const PLAN_SCHEMA = {
             items: {
               type: "object",
               additionalProperties: false,
-              required: ["label", "durationMinutes", "target", "notes"],
+              required: ["label", "durationMinutes", "target", "notes", "intensity"],
               properties: {
                 label: { type: "string" },
                 durationMinutes: { type: "number" },
                 target: { type: "string" },
                 notes: { type: "string" },
+                intensity: {
+                  type: "string",
+                  enum: [
+                    "recovery",
+                    "endurance",
+                    "tempo",
+                    "threshold",
+                    "vo2max",
+                    "anaerobic",
+                    "race",
+                    "rest",
+                  ],
+                },
               },
             },
           },
@@ -130,6 +146,7 @@ function outputText(response: unknown): string {
 
 export async function generateTrainingPlanDraft(
   input: TrainingAiInput,
+  promptText = defaultTrainingPrompt(),
 ): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -146,8 +163,7 @@ export async function generateTrainingPlanDraft(
     },
     body: JSON.stringify({
       model,
-      instructions:
-        "Je bent een Nederlandse wielercoach-assistent voor ZWB Cycling. Maak veilige, realistische concept-workouts voor review door een menselijke trainer. Geef geen medisch advies. Respecteer beschikbaarheid en max uren. Bouw gestructureerde workouts met duidelijke blokken. Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld 'RPE 6, 210-235w'. Als FTP ontbreekt, gebruik RPE en korte gevoelstaal. Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
+      instructions: promptText,
       input: [
         {
           role: "user",
@@ -184,3 +200,5 @@ export async function generateTrainingPlanDraft(
     plan: JSON.parse(text) as GeneratedTrainingPlan,
   };
 }
+
+export { defaultTrainingPrompt };

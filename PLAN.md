@@ -185,6 +185,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - Self-coaching in training: leden met rol `Trainer` kunnen zichzelf als
   trainer aanwijzen; migratie `0039` verwijdert de oude database-check
   `athlete_id <> trainer_id`.
+- Training V2 doorbouw: bewerkbare AI-prompt per generatie, trainereditor
+  voor schema/workouts/intervalblokken, gekleurde workoutblokken, rapportage
+  + trainerfeedback, intervals.icu-links, FIT-downloadroute via intervals.icu,
+  en dagelijkse adaptation-cron met review-drafts. Migratie `0051`.
 
 ---
 
