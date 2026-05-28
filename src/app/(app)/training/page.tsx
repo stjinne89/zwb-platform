@@ -1100,6 +1100,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const plans = (myPlans ?? []) as PlanRow[];
   const canUseAi = Boolean(process.env.OPENAI_API_KEY);
   const canCoach = access.has("training.view_assigned");
+  const canSelfManagePlans = access.has("training.create_plans");
+  const canSelfPublishPlans = access.has("training.publish_plans");
 
   let coachAssignments: AssignmentRow[] = [];
   let coachProfiles = new Map<string, ProfileRow>();
@@ -1535,6 +1537,44 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   </div>
                   <PlanBadge status={plan.status} />
                 </div>
+                {(canSelfManagePlans || canSelfPublishPlans) && (
+                  <div className="flex flex-wrap gap-2 border-y p-3">
+                    {canSelfManagePlans && (
+                      <>
+                        <form action={formAction(setPlanStatus)}>
+                          <input type="hidden" name="plan_id" value={plan.id} />
+                          <input type="hidden" name="status" value="review" />
+                          <button className="rounded-md border px-3 py-1 text-xs hover:bg-accent">Naar review</button>
+                        </form>
+                        <form action={formAction(setPlanStatus)}>
+                          <input type="hidden" name="plan_id" value={plan.id} />
+                          <input type="hidden" name="status" value="approved" />
+                          <button className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs hover:bg-accent">
+                            <CheckCircle2 className="size-3" />
+                            Goedkeuren
+                          </button>
+                        </form>
+                      </>
+                    )}
+                    {canSelfPublishPlans && (
+                      <form action={formAction(publishTrainingPlan)}>
+                        <input type="hidden" name="plan_id" value={plan.id} />
+                        <button
+                          disabled={!["approved", "published"].includes(plan.status)}
+                          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Send className="size-3" />
+                          Publiceren naar intervals.icu
+                        </button>
+                      </form>
+                    )}
+                    {canSelfPublishPlans && !["approved", "published"].includes(plan.status) ? (
+                      <p className="text-xs text-muted-foreground">
+                        Keur het schema eerst goed voordat je publiceert.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
                 {plan.summary && <p className="px-4 pb-3 text-sm text-muted-foreground whitespace-pre-line">{plan.summary}</p>}
                 <WorkoutList
                   workouts={myWorkoutsByPlan.get(plan.id) ?? []}

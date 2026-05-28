@@ -59,6 +59,7 @@ async function currentUser() {
 }
 
 async function canCoach(admin: ReturnType<typeof createAdminClient>, trainerId: string, athleteId: string) {
+  if (trainerId === athleteId) return true;
   const { data } = await admin
     .from("training_coach_assignments")
     .select("id")
