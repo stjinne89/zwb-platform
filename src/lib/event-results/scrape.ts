@@ -123,7 +123,9 @@ async function buildMemberCandidates(
     const name = (p.display_name ?? "").trim();
     if (!name) continue;
     const tokens = nameTokens(name);
-    if (tokens.length === 0) continue;
+    // ≥2 tokens vereist (voor- én achternaam). Een losse voornaam als "Stijn"
+    // matcht anders élke gelijknamige deelnemer in een uitslag van duizenden.
+    if (tokens.length < 2) continue;
     candidates.push({
       profileId: p.id,
       tokens,
@@ -141,7 +143,7 @@ async function buildMemberCandidates(
     const name = (c.athlete_name ?? "").trim();
     if (!name) continue;
     const tokens = nameTokens(name);
-    if (tokens.length === 0) continue;
+    if (tokens.length < 2) continue;
     candidates.push({
       profileId: c.profile_id,
       tokens,
@@ -159,7 +161,7 @@ async function buildMemberCandidates(
     const name = (r.name ?? "").trim();
     if (!name) continue;
     const tokens = nameTokens(name);
-    if (tokens.length === 0) continue;
+    if (tokens.length < 2) continue;
     candidates.push({
       profileId: r.claimed_by ?? null,
       tokens,
@@ -171,21 +173,15 @@ async function buildMemberCandidates(
   return candidates;
 }
 
-// Strikt: bij ≥2 tokens moeten ALLE tokens in de rij voorkomen (voor+achternaam),
-// óf exacte genormaliseerde gelijkheid. Voorkomt false-positives op "Jan".
+// Strikt: ALLE naam-tokens van een lid (≥2, voor- én achternaam) moeten in de
+// rij voorkomen. Kandidaten met <2 tokens worden al bij het bouwen geweerd,
+// dus een losse voornaam kan nooit een hele uitslag platwalsen.
 function matchCandidate(
-  rowNorm: string,
+  _rowNorm: string,
   rowTokenSet: Set<string>,
   cand: MemberCandidate,
 ): boolean {
-  if (cand.tokens.length >= 2) {
-    return cand.tokens.every((t) => rowTokenSet.has(t));
-  }
-  // Eén token (mononiem): vereis dat het token een los woord in de rij is
-  // én dat de hele genormaliseerde naam erin voorkomt.
-  return rowTokenSet.has(cand.tokens[0]) && cand.norm.length >= 4
-    ? rowNorm.includes(cand.norm)
-    : false;
+  return cand.tokens.every((t) => rowTokenSet.has(t));
 }
 
 function rankVia(via: MatchedVia): number {
