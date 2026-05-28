@@ -7,9 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-27 (col-detector volledig: echte cols +
-> Watopia/Zwift via zelf-kalibratie, coördinaat-audit afgerond,
-> /profiel/cols met VeloViewer-links + ZWB-leaderboards)
+> Laatst bijgewerkt: 2026-05-27 (col-detector volledig + 3 nieuwe
+> geplande features: uitslagen-scraper, wellness-integratie training,
+> Strava-segmenttijden voor cols)
 
 ---
 
@@ -371,13 +371,65 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ---
 
+## Geplande features (afgesproken, nog te bouwen)
+
+Drie features die ZWB wil — nog niet ingepland qua volgorde, maar wel
+toegezegd om op te pakken.
+
+### 1. Uitslagen-scraper voor kalender-events (Gran Fondos e.d.)
+
+Als op een event-pagina een **uitslag-URL** wordt opgegeven, scrapen we de
+uitslagenlijst en tonen we **alleen de ZWB'ers** daaruit.
+
+- Per event optioneel veld `results_url` (nieuwe kolom op `events`).
+- Scraper haalt de uitslagenpagina op (Gran Fondo / wegwedstrijd /
+  toertocht) en parseert naam + klassering + tijd.
+- ZWB-matching: via ledennaam (fuzzy, zoals roster-claim `normalize()`
+  in `/leden`) óf via een "ZWB"-vermelding in de teamkolom van de uitslag.
+- Toon een ZWB-resultatenblok op de event-detail (klassering, tijd,
+  gap). Cache in een tabel `event_results` tegen herhaald scrapen.
+- Aandachtspunten: elke uitslagensite heeft eigen HTML → scraper per
+  bron isoleren met fallback "handmatig invoeren" (zelfde patroon als de
+  WTRL/Ladder-scrapers). Bearer-cron of admin-trigger voor de fetch.
+
+### 2. Wellness-integratie in de trainingsmodule (Sporthologe / herstel-data)
+
+Slaapkwaliteit, stress/HRV en herstel meenemen in de workout-planning,
+zodat de AI-conceptschema's rekening houden met de actuele belastbaarheid.
+
+- Databron: Sporthologe-koppeling (of equivalent: intervals.icu-wellness,
+  Garmin/Whoop/Oura) — per lid opt-in, read-only.
+- Nieuwe wellness-tabel (`profile_wellness`: date, sleep_score,
+  hrv, stress, readiness, resting_hr) gevoed via API/sync.
+- De training-AI-prompt (`src/lib/training/ai.ts`) uitbreiden met de
+  recente wellness-trend zodat zware blokken worden uitgesteld bij lage
+  herstelscores.
+- Trainer-cockpit toont de wellness-trend naast de load-metrics.
+- Privacy: gevoelige gezondheidsdata → expliciete opt-in + RLS, alleen
+  zichtbaar voor het lid + toegewezen trainer.
+
+### 3. Strava-segmenttijden voor de cols
+
+Echte beklimmingstijden per col ophalen zodat we **tijd-leaderboards**
+en de tijd-gebaseerde badge-tiers (A083 Alpe du Zwift sub-75/sub-60)
+kunnen vullen.
+
+- Strava `GET /segments/{id}` of segment-efforts uit detailed-activity
+  ophalen voor de cols met bekende `strava_segment_id`.
+- Per (profiel, col) de snelste effort-tijd bewaren in
+  `profile_climbed_cols` (nieuwe kolom `best_time_seconds`).
+- `/profiel/cols` toont PR-tijd + ZWB-tijd-ranking per col.
+- A083 silver/gold (sub 75/60 min) worden hiermee auto-detecteerbaar.
+- Let op rate-limit: segment-effort-fetch is duurder → batchen + cachen,
+  alleen voor cols die het lid daadwerkelijk geklommen heeft.
+
+---
+
 ## Mogelijke volgende richtingen (geen actieve toezegging)
 
 Fase 3 is dicht — wat hierna logisch zou kunnen komen, afhankelijk van
 waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 
-- **Rider-profile aggregaat** op `/leden/[id]` — jaaroverzicht per lid
-  (km/hm/uren-totalen + maand-trend) zoals op `/dashboard` maar persoonlijk.
 - **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
   per regio) als de dashboard-widget honger wekt.
 - **Foto-galerij × liveticker** — foto's automatisch koppelen aan event
