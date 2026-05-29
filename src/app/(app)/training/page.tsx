@@ -50,7 +50,10 @@ import {
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
 import { WellnessOptInToggle } from "./_components/wellness-optin-toggle";
-import { summarizeWellness } from "@/lib/training/wellness";
+import {
+  summarizeWellness,
+  type WellnessSummary,
+} from "@/lib/training/wellness";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 
 type ProfileRow = {
@@ -670,6 +673,7 @@ function CoachWorkspace({
   intervalEvents,
   intervalAthleteIds,
   loadMetrics,
+  wellness,
   reportsByWorkout,
   selectedAthleteId,
   canUseAi,
@@ -687,6 +691,7 @@ function CoachWorkspace({
   intervalEvents: Map<string, IntervalsEvent[]>;
   intervalAthleteIds: Map<string, string>;
   loadMetrics: Map<string, CoachLoadMetric>;
+  wellness: Map<string, WellnessSummary>;
   reportsByWorkout: Map<string, WorkoutReportRow>;
   selectedAthleteId?: string;
   canUseAi: boolean;
@@ -708,6 +713,7 @@ function CoachWorkspace({
   const athleteEvents = intervalEvents.get(selected.athlete_id) ?? [];
   const intervalsAthleteId = intervalAthleteIds.get(selected.athlete_id);
   const metric = loadMetrics.get(selected.athlete_id);
+  const recovery = wellness.get(selected.athlete_id);
   const totals = loadSummary(athleteActivities);
   const recentZwbWorkouts = athleteWorkouts
     .filter((workout) => new Date(workout.scheduled_at).getTime() < nowMs)
@@ -801,6 +807,49 @@ function CoachWorkspace({
           {metric?.error ? (
             <p className="mt-3 text-xs text-muted-foreground">Intervals: {metric.error}</p>
           ) : null}
+
+          {recovery && (
+            <div className="mt-4 rounded-md border bg-background p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <Activity className="size-4 text-primary" />
+                  Herstel &amp; belastbaarheid
+                </h3>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    recovery.state === "fatigued"
+                      ? "bg-destructive/15 text-destructive"
+                      : recovery.state === "fresh"
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {recovery.state === "fresh"
+                    ? "Fris"
+                    : recovery.state === "fatigued"
+                      ? "Vermoeid"
+                      : recovery.state === "normal"
+                        ? "Normaal"
+                        : "—"}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <RecoveryStat
+                  label="HRV (7d)"
+                  value={recovery.hrv != null ? `${recovery.hrv}` : "—"}
+                />
+                <RecoveryStat
+                  label="Rust-HR (7d)"
+                  value={recovery.restingHr != null ? `${recovery.restingHr}` : "—"}
+                />
+                <RecoveryStat
+                  label="Slaap (7d)"
+                  value={recovery.sleepHours != null ? `${recovery.sleepHours}u` : "—"}
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{recovery.note}</p>
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
@@ -1209,16 +1258,22 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const coachLoadMetrics = new Map<string, CoachLoadMetric>();
   const coachIntervalEvents = new Map<string, IntervalsEvent[]>();
   const coachIntervalAthleteIds = new Map<string, string>();
+  const coachWellness = new Map<string, WellnessSummary>();
 
   if (activeTab === "trainer" && coachAssignments.length > 0) {
     const athleteIds = coachAssignments.map((assignment) => assignment.athlete_id);
     const { data: coachConnections } = await admin
       .from("intervals_connections")
-      .select("profile_id, athlete_id, api_key")
+      .select("profile_id, athlete_id, api_key, wellness_opt_in")
       .in("profile_id", athleteIds);
 
     await Promise.all(
-      ((coachConnections ?? []) as Array<{ profile_id: string; athlete_id: string; api_key: string }>).map(
+      ((coachConnections ?? []) as Array<{
+        profile_id: string;
+        athlete_id: string;
+        api_key: string;
+        wellness_opt_in: boolean | null;
+      }>).map(
         async (connection) => {
           try {
             const [rows, upcoming] = await Promise.all([
@@ -1236,6 +1291,24 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   : undefined,
               eftp: [...sorted].reverse().find((row) => row.eftp)?.eftp,
             });
+            // Herstel-trend alleen als het lid wellness deelt (opt-in).
+            if (connection.wellness_opt_in) {
+              const summary = summarizeWellness(
+                rows.map((w) => ({
+                  date: w.id,
+                  resting_hr: w.restingHR ?? null,
+                  hrv: w.hrv ?? w.hrvSDNN ?? null,
+                  sleep_secs: w.sleepSecs ?? null,
+                  sleep_score: w.sleepScore ?? null,
+                  readiness: w.readiness ?? null,
+                  fatigue: w.fatigue ?? null,
+                  stress: w.stress ?? null,
+                  soreness: w.soreness ?? null,
+                  mood: w.mood ?? null,
+                })),
+              );
+              if (summary) coachWellness.set(connection.profile_id, summary);
+            }
             coachIntervalEvents.set(
               connection.profile_id,
               upcoming
@@ -1700,6 +1773,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             intervalEvents={coachIntervalEvents}
             intervalAthleteIds={coachIntervalAthleteIds}
             loadMetrics={coachLoadMetrics}
+            wellness={coachWellness}
             reportsByWorkout={coachReportsByWorkout}
             selectedAthleteId={requestedAthleteId}
             canUseAi={canUseAi}
