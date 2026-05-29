@@ -19,13 +19,18 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "jersey-panel flex flex-col gap-4 rounded-lg border bg-card/90 p-4 sm:flex-row sm:items-end sm:justify-between",
+        "jersey-panel relative flex flex-col gap-4 overflow-hidden rounded-lg border bg-card/90 p-4 pl-5 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
+      {/* Merk-accent: verticale gradient-balk links voor een flitsender look. */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-primary to-[var(--color-zwb-gold,theme(colors.amber.400))]"
+      />
       <div className="min-w-0">
         {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">
             {eyebrow}
           </p>
         )}

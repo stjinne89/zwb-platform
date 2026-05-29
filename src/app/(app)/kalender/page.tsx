@@ -34,7 +34,9 @@ export default async function KalenderPage() {
   const supabase = await createClient();
   const { data: allEvents } = await supabase
     .from("events")
-    .select("id, title, type, start_at, location, distance_km, elevation_m")
+    .select(
+      "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path",
+    )
     .order("start_at", { ascending: true });
 
   const todayKey = amsterdamDateKey(new Date());
@@ -107,12 +109,29 @@ export default async function KalenderPage() {
         <ul className="space-y-2">
           {events.map((event) => {
             const liveCount = liveCountsByEvent.get(event.id) ?? 0;
+            const coverUrl = event.cover_image_path
+              ? supabase.storage
+                  .from("event-photos")
+                  .getPublicUrl(event.cover_image_path).data.publicUrl
+              : null;
             return (
               <li
                 key={event.id}
-                className="flex flex-col gap-3 rounded-lg border bg-card p-4 transition hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4 transition hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between"
               >
-                <Link href={`/events/${event.id}`} className="min-w-0 flex-1">
+                <Link
+                  href={`/events/${event.id}`}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
+                  {coverUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={coverUrl}
+                      alt=""
+                      className="hidden size-14 shrink-0 rounded-md object-cover sm:block"
+                    />
+                  )}
+                  <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{event.title}</p>
                     {liveCount > 0 && (
@@ -132,6 +151,7 @@ export default async function KalenderPage() {
                     {event.distance_km ? ` · ${event.distance_km} km` : ""}
                     {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
                   </p>
+                  </div>
                 </Link>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2">

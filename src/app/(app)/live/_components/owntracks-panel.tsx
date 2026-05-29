@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Apple, Check, Copy, RotateCw, ShieldOff } from "lucide-react";
+import { Check, Copy, RotateCw, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HelpLink } from "@/components/app-ui";
 import {
@@ -162,49 +162,32 @@ export function OwnTracksPanel({
 
       <div className="rounded-md border bg-background p-3">
         <p className="text-sm font-medium">OwnTracks installeren</p>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <a
             href={OWNTRACKS_APP_STORE_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-[42px] w-[142px] items-center gap-2 rounded-[7px] bg-black px-3 text-white shadow-sm ring-1 ring-white/20 transition hover:bg-zinc-900"
             aria-label="Download OwnTracks in de App Store"
           >
-            <Apple className="size-[21px] shrink-0" aria-hidden />
-            <span className="min-w-0 leading-none">
-              <span className="block text-[0.52rem] font-medium tracking-wide">
-                Download in de
-              </span>
-              <span className="block text-[1.05rem] font-semibold tracking-tight">
-                App Store
-              </span>
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/app-store-badge.svg"
+              alt="Download in de App Store"
+              className="h-[40px] w-auto"
+            />
           </a>
           <a
             href={OWNTRACKS_PLAY_STORE_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-[42px] w-[142px] items-center gap-2 rounded-[7px] bg-black px-3 text-white shadow-sm ring-1 ring-white/20 transition hover:bg-zinc-900"
-            aria-label="Download OwnTracks in de Play Store"
+            aria-label="Ontdek OwnTracks op Google Play"
           >
-            <svg
-              viewBox="0 0 28 31"
-              className="size-[22px] shrink-0"
-              aria-hidden
-            >
-              <path d="M2.1 1.4 16 15.4 2.1 29.6A2.2 2.2 0 0 1 1 27.7V3.3c0-.8.4-1.5 1.1-1.9Z" fill="#00A0FF" />
-              <path d="m16 15.4 3.9 3.9L4.6 30.2a2.2 2.2 0 0 1-2.5-.6L16 15.4Z" fill="#00D56A" />
-              <path d="m16 15.4-14-14c.7-.5 1.7-.5 2.5 0l15.4 10.1-3.9 3.9Z" fill="#FFCE00" />
-              <path d="m19.9 11.5 5.2 3.4c1.2.8 1.2 2.5 0 3.3l-5.2 3.4-3.9-4 3.9-4.1Z" fill="#FF3D3D" />
-            </svg>
-            <span className="min-w-0 leading-none">
-              <span className="block text-[0.52rem] font-medium uppercase tracking-wide">
-                Ontdek het op
-              </span>
-              <span className="block text-[1.02rem] font-semibold tracking-tight">
-                Google Play
-              </span>
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/google-play-badge.png"
+              alt="Ontdek het op Google Play"
+              className="h-[40px] w-auto"
+            />
           </a>
         </div>
       </div>

@@ -549,13 +549,27 @@ export default async function DashboardPage() {
           <EmptyState>Geen events ingepland.</EmptyState>
         ) : (
           <ul className="divide-y rounded-lg border bg-card">
-            {upcoming.map((event) => (
+            {upcoming.map((event) => {
+              const coverUrl = event.cover_image_path
+                ? supabase.storage
+                    .from("event-photos")
+                    .getPublicUrl(event.cover_image_path).data.publicUrl
+                : null;
+              return (
               <li key={event.id}>
                 <Link
                   href={`/events/${event.id}`}
-                  className="grid gap-3 p-4 transition hover:bg-muted/50 sm:grid-cols-[1fr_auto] sm:items-center"
+                  className="flex items-center gap-3 p-4 transition hover:bg-muted/50"
                 >
-                  <div className="min-w-0">
+                  {coverUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={coverUrl}
+                      alt=""
+                      className="size-12 shrink-0 rounded-md object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{event.title}</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(event.start_at).toLocaleString("nl-NL", {
@@ -566,12 +580,13 @@ export default async function DashboardPage() {
                       {event.location ? ` - ${event.location}` : ""}
                     </p>
                   </div>
-                  <span className="w-fit rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+                  <span className="w-fit shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
                     {event.type}
                   </span>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>
