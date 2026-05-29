@@ -41,6 +41,7 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/polls", label: "Polls" },
       { type: "link", href: "/materiaal", label: "Vraag en Aanbod" },
       { type: "link", href: "/media", label: "Media" },
+      { type: "link", href: "/ritverslagen", label: "Ritverslagen" },
     ],
   },
   { type: "link", href: "/sponsors", label: "Sponsors" },

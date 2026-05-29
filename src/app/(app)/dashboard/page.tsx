@@ -19,6 +19,7 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { ClubStats } from "./_components/club-stats";
+import { PhotoNudge } from "./_components/photo-nudge";
 
 const CYCLING_SPORTS = [
   "Ride",
@@ -511,6 +512,8 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {user && <PhotoNudge userId={user.id} />}
 
       {standings.length > 0 && (
         <section>
