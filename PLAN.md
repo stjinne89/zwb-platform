@@ -439,9 +439,12 @@ tijd-gebaseerde badge-tiers (A083 sub-75/sub-60). Geleverd 2026-05-29.
   eerst, bekende tijden boven).
 - A083 silver/gold (sub 75/60) auto via `colBestSeconds` in de
   evaluator-context.
+- Watopia-cols zijn inbegrepen: alle 10 hebben een `strava_segment_id`
+  (migr. 0048) + gekalibreerde coords, dus VirtualRide-efforts tellen mee
+  (o.a. Alpe du Zwift voor A083 sub-75/60).
 - Open: alleen aangehaakt op recompute, niet op de reguliere sync (bewust,
-  om elke sync licht te houden). Pure-virtuele cols zonder Strava-segment
-  (geen `strava_segment_id`) krijgen geen tijd.
+  om elke sync licht te houden). Vereist een actieve Strava-koppeling — de
+  effort-fetch is een live API-call (opgeslagen `raw` heeft geen efforts).
 
 ---
 
