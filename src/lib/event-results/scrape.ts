@@ -593,6 +593,228 @@ async function scrapeGenericHtml(
   return { ok: true, results, provider: "html" };
 }
 
+// ---------------------------------------------------------------------------
+// RaceResult-adapter (my.raceresult.com). Veel sportives — en datasport.com
+// dat voor sommige events de RaceResult "RRPublish"-widget embed — serveren
+// uitslagen via deze JSON-API: config (geeft een key + lijsten) → data/list.
+// ---------------------------------------------------------------------------
+
+type RrListDef = {
+  Name?: string;
+  Contest?: string;
+  ID?: string;
+  ShowAs?: string;
+};
+type RrField = { Expression?: string; Label?: string };
+
+function rrEnLabel(label: string | undefined): string {
+  const m = (label ?? "").match(/EN:([^|}]+)/);
+  return (m ? m[1] : label ?? "").trim().toLowerCase();
+}
+
+function rrFieldIndex(
+  dataFields: string[],
+  listFields: RrField[],
+  keys: string[],
+  exclude: string[] = [],
+): number {
+  for (const f of listFields) {
+    const en = rrEnLabel(f.Label);
+    if (!en) continue;
+    if (keys.some((k) => en.includes(k)) && !exclude.some((k) => en.includes(k))) {
+      const idx = dataFields.indexOf(f.Expression ?? "");
+      if (idx >= 0) return idx;
+    }
+  }
+  return -1;
+}
+
+// data is genest per groep/split; verzamel alle arrays-van-rijen (rij = array).
+function rrCollectRows(node: unknown, out: string[][]): void {
+  if (Array.isArray(node)) {
+    if (node.length > 0 && Array.isArray(node[0])) {
+      for (const r of node as unknown[][]) {
+        out.push(r.map((c) => (c == null ? "" : String(c))));
+      }
+    }
+    return;
+  }
+  if (node && typeof node === "object") {
+    for (const v of Object.values(node)) rrCollectRows(v, out);
+  }
+}
+
+async function rrFetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function scrapeRaceResult(
+  candidates: MemberCandidate[],
+  eventId: string,
+  hash: string,
+): Promise<ScrapeOutcome> {
+  const base = `https://my.raceresult.com/${encodeURIComponent(eventId)}/RRPublish`;
+
+  const config = await rrFetchJson<{ key?: string; lists?: RrListDef[] }>(
+    `${base}/data/config`,
+  );
+  if (!config?.key) {
+    return {
+      ok: false,
+      results: [],
+      provider: "raceresult",
+      error: "Kon de RaceResult-config niet ophalen. Controleer de uitslag-URL.",
+    };
+  }
+
+  const lists = config.lists ?? [];
+  // Lijst-keuze: ID's uit de hash (#5_614596) matchen op een lijst, anders een
+  // "overall/scratch"-lijst, anders de eerste.
+  const hashIds = (hash ?? "")
+    .replace(/^#/, "")
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean);
+  let target =
+    lists.find((l) => l.ID && hashIds.includes(String(l.ID))) ||
+    lists.find((l) =>
+      /overall|scratch|gesamt|\bges\b|by name/i.test(
+        `${l.ShowAs ?? ""} ${l.Name ?? ""}`,
+      ),
+    ) ||
+    lists[0];
+
+  if (!target?.Name) {
+    return {
+      ok: false,
+      results: [],
+      provider: "raceresult",
+      error: "Geen uitslag-lijst gevonden in dit RaceResult-event.",
+    };
+  }
+
+  const listUrl =
+    `${base}/data/list?key=${encodeURIComponent(config.key)}` +
+    `&listname=${encodeURIComponent(target.Name)}` +
+    `&contest=${encodeURIComponent(target.Contest ?? "0")}`;
+  const listJson = await rrFetchJson<{
+    data?: unknown;
+    DataFields?: string[];
+    list?: { Fields?: RrField[] };
+  }>(listUrl);
+
+  if (!listJson?.DataFields || !listJson.list?.Fields) {
+    return {
+      ok: false,
+      results: [],
+      provider: "raceresult",
+      error: "Kon de RaceResult-uitslag niet ophalen.",
+    };
+  }
+
+  const DF = listJson.DataFields;
+  const LF = listJson.list.Fields;
+  const nameIdx = rrFieldIndex(DF, LF, ["name", "nom", "nome", "naam"]);
+  const posIdx = rrFieldIndex(DF, LF, ["rank", "platz", "pos"], ["place"]);
+  const timeIdx = rrFieldIndex(DF, LF, [
+    "time",
+    "temps",
+    "tempo",
+    "zeit",
+    "tijd",
+  ]);
+
+  if (nameIdx < 0) {
+    return {
+      ok: false,
+      results: [],
+      provider: "raceresult",
+      error: "Kon de naam-kolom in de RaceResult-uitslag niet herkennen.",
+    };
+  }
+
+  const rows: string[][] = [];
+  rrCollectRows(listJson.data, rows);
+
+  const rawRows: RawRow[] = rows.map((cells) => {
+    const name = cells[nameIdx] ?? "";
+    let position: number | null = null;
+    if (posIdx >= 0 && cells[posIdx]) {
+      const m = cells[posIdx].match(/(\d{1,5})/);
+      if (m) position = Number(m[1]);
+    }
+    const time =
+      timeIdx >= 0 && cells[timeIdx]
+        ? extractTime(cells[timeIdx])
+        : { timeText: null, timeSeconds: null };
+    return {
+      cells,
+      matchText: name,
+      knownName: name || null,
+      knownPosition: position,
+      knownTimeText: time.timeText,
+      knownTimeSeconds: time.timeSeconds,
+    };
+  });
+
+  const results = matchRows(candidates, rawRows);
+  return { ok: true, results, provider: "raceresult" };
+}
+
+function parseRaceResultDirect(
+  resultsUrl: string,
+): { eventId: string; hash: string } | null {
+  let u: URL;
+  try {
+    u = new URL(resultsUrl);
+  } catch {
+    return null;
+  }
+  if (!u.hostname.toLowerCase().includes("raceresult.com")) return null;
+  const m = u.pathname.match(/\/(\d{3,})\b/);
+  if (!m) return null;
+  return { eventId: m[1], hash: u.hash };
+}
+
+// Datasport embedt voor sommige races de RaceResult-widget. Haal de pagina op
+// en lees het RRPublish-event-id eruit; de hash (contest_lijst) zit in de URL.
+async function resolveDatasportRaceResult(
+  resultsUrl: string,
+): Promise<{ eventId: string; hash: string } | null> {
+  let u: URL;
+  try {
+    u = new URL(resultsUrl);
+  } catch {
+    return null;
+  }
+  if (!u.hostname.toLowerCase().includes("datasport.com")) return null;
+  try {
+    const res = await fetch(resultsUrl, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/new\s+RRPublish\([^,]*,\s*(\d{3,})/);
+    if (!m) return null;
+    return { eventId: m[1], hash: u.hash };
+  } catch {
+    return null;
+  }
+}
+
 export async function scrapeEventResults(
   supabase: SupabaseClient,
   _eventId: string,
@@ -614,6 +836,20 @@ export async function scrapeEventResults(
         "Open op de timing-site het tabblad met de uitslag en kopieer díe URL " +
         "(met /ctx/… en /home/… erin).",
     };
+  }
+
+  // RaceResult: directe my.raceresult.com-link.
+  const rrDirect = parseRaceResultDirect(resultsUrl);
+  if (rrDirect) {
+    return scrapeRaceResult(candidates, rrDirect.eventId, rrDirect.hash);
+  }
+
+  // Datasport: vaak een RaceResult-widget; probeer dat eerst.
+  if (resultsUrl.toLowerCase().includes("datasport.com")) {
+    const rr = await resolveDatasportRaceResult(resultsUrl);
+    if (rr) return scrapeRaceResult(candidates, rr.eventId, rr.hash);
+    // Geen RRPublish-embed → val terug op generieke HTML (datasport heeft ook
+    // een eigen, deels versleutelde variant die we nog niet ondersteunen).
   }
 
   return scrapeGenericHtml(candidates, resultsUrl);
