@@ -59,6 +59,16 @@ export type TrainingAiInput = {
     readiness: number | null;
     note: string;
   } | null;
+  /** Actuele belasting/vorm uit intervals.icu (CTL/ATL/TSB/eFTP). */
+  intervalsLoad?: {
+    ctl: number | null; // fitness
+    atl: number | null; // vermoeidheid
+    tsb: number | null; // vorm (ctl-atl)
+    eftp: number | null;
+    rampRate: number | null;
+  } | null;
+  /** Aankomende events/races waar het schema omheen moet plannen. */
+  upcomingEvents?: Array<{ title: string; type: string; date: string }>;
 };
 
 const PLAN_SCHEMA = {
@@ -163,7 +173,7 @@ export async function generateTrainingPlanDraft(
     throw new Error("OPENAI_API_KEY ontbreekt. Zet deze in Netlify env om AI-drafts te maken.");
   }
 
-  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1-mini";
+  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1";
   const promptSummary = JSON.stringify(input, null, 2);
   const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",

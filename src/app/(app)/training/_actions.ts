@@ -4,9 +4,17 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { fetchIntervalsAthlete, upsertIntervalsWorkoutEvent } from "@/lib/intervals/client";
+import {
+  fetchIntervalsAthlete,
+  fetchIntervalsWellness,
+  upsertIntervalsWorkoutEvent,
+} from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
-import { defaultTrainingPrompt, generateTrainingPlanDraft } from "@/lib/training/ai";
+import {
+  defaultTrainingPrompt,
+  generateTrainingPlanDraft,
+  type TrainingAiInput,
+} from "@/lib/training/ai";
 import {
   blocksFromForm,
   blocksToIntervalsText,
@@ -378,6 +386,51 @@ export async function generateAiDraft(formData: FormData) {
     const { wellnessForAi } = await import("@/lib/training/wellness");
     const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
 
+    // Intervals-belasting (CTL/ATL/TSB/eFTP) als extra AI-context.
+    let intervalsLoad: TrainingAiInput["intervalsLoad"] = null;
+    try {
+      const { data: conn } = await admin
+        .from("intervals_connections")
+        .select("api_key, athlete_id")
+        .eq("profile_id", athleteId)
+        .maybeSingle();
+      if (conn?.api_key && conn?.athlete_id) {
+        const rows = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
+        const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
+        const latest = sorted[sorted.length - 1];
+        if (latest) {
+          const ctl = latest.ctl ?? null;
+          const atl = latest.atl ?? null;
+          intervalsLoad = {
+            ctl,
+            atl,
+            tsb: ctl != null && atl != null ? Math.round((ctl - atl) * 10) / 10 : null,
+            eftp: [...sorted].reverse().find((r) => r.eftp)?.eftp ?? null,
+            rampRate: latest.ramp_rate ?? null,
+          };
+        }
+      }
+    } catch {
+      // niet kritiek
+    }
+
+    // Aankomende events/races om omheen te plannen (tot doeldatum of +90d).
+    const horizon = goal.target_date
+      ? new Date(goal.target_date)
+      : new Date(Date.now() + 90 * 86400_000);
+    const { data: upcomingRows } = await admin
+      .from("events")
+      .select("title, type, start_at")
+      .gte("start_at", new Date().toISOString())
+      .lte("start_at", horizon.toISOString())
+      .order("start_at")
+      .limit(8);
+    const upcomingEvents = (upcomingRows ?? []).map((e) => ({
+      title: e.title as string,
+      type: e.type as string,
+      date: String(e.start_at).slice(0, 10),
+    }));
+
     const ai = await generateTrainingPlanDraft(
       {
         athleteName: profile.display_name ?? "ZWB-lid",
@@ -409,6 +462,8 @@ export async function generateAiDraft(formData: FormData) {
               note: wellness.note,
             }
           : null,
+        intervalsLoad,
+        upcomingEvents,
       },
       promptText,
     );

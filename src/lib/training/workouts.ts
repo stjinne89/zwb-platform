@@ -53,6 +53,11 @@ export function defaultTrainingPrompt() {
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",
     "Maak een concept dat de trainer daarna kan redigeren; wees concreet maar niet dogmatisch.",
     "Als er herstel-data (wellness) is meegegeven, weeg die mee: bij state 'fatigued', lage readiness, weinig slaap of verhoogde rust-hartslag plan je voorzichtiger — stel zware blokken (threshold/vo2max/anaerobic) uit of vervang ze door endurance/herstel, en benoem dit kort in cautions. Bij state 'fresh' mag een zwaardere sleutelsessie.",
+    "Periodiseer: bouw belasting progressief op met 2-4 opbouwweken gevolgd door een herstelweek; vermijd te grote sprongen in wekelijkse belasting.",
+    "Plan rond de target_date naartoe met een taper (laatste ~1-2 weken volume omlaag, intensiteit/scherpte behouden) zodat de renner fris aan het doel start.",
+    "Houd rekening met aankomende events/races (indien meegegeven): plan eromheen — geen zware sleutelsessie vlak vóór een race, en gebruik races eventueel als kwaliteitsprikkel.",
+    "Gebruik intervals.icu-belasting indien meegegeven: bij sterk negatieve TSB (form) bouw je herstel in; bij hoge ramp_rate matig je de opbouw. Stem het wattage af op de eFTP wanneer die afwijkt van de profiel-FTP.",
+    "Respecteer de beschikbare dagen en max uren/week strikt; verdeel sleutelsessies met voldoende herstel ertussen.",
   ].join("\n");
 }
 
