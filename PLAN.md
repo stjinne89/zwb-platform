@@ -472,7 +472,8 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 - ✅ **WhatsApp bulk-import via OG metadata** — afgerond 2026-05-29.
   "Bulk toevoegen" op /community: meerdere invite-links tegelijk, namen via
   Open Graph opgehaald, dubbele/ongeldige overgeslagen.
-- **Sponsor-bannercarousel** op `/dashboard` of `/login`, of subtiel in
-  de footer — voor extra zichtbaarheid van sponsors.
+- ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
+  scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
+  reduced-motion-safe), logo's linken naar de sponsor-site.
 - **E2E chat** — alleen bij expliciete vraag van bestuur.
 - **Mollie iDEAL** — alleen bij expliciete vraag van bestuur.
