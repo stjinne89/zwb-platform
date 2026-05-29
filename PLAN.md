@@ -465,8 +465,10 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 - ✅ **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
   per regio) — afgerond 2026-05-29. KPI's + km-per-maand trend (klikbaar als
   maandfilter) + breakdowns discipline/regio + top-10 riders. In Club-nav.
-- **Foto-galerij × liveticker** — foto's automatisch koppelen aan event
-  na `eventIsToday`, zodat ritverslagen met foto's gestructureerd ontstaan.
+- ✅ **Foto-galerij × liveticker** — afgerond 2026-05-29. `/ritverslagen`
+  bundelt gereden events met foto's tot bladerbare verslagen + dashboard-nudge
+  ("Deel je foto's") voor recent gereden events zonder eigen foto. In
+  Community-nav.
 - **WhatsApp bulk-import via OG metadata** — open punt uit eerdere fase.
 - **Sponsor-bannercarousel** op `/dashboard` of `/login`, of subtiel in
   de footer — voor extra zichtbaarheid van sponsors.
