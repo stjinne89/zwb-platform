@@ -57,6 +57,8 @@ type EvaluatorContext = {
   virtualClimbedCols: Set<string>;
   /** col_slug → times_climbed (voor A083 platinum 25×). */
   colTimes: Map<string, number>;
+  /** col_slug → snelste segment-effort-tijd in seconden (voor A083 sub-75/60). */
+  colBestSeconds: Map<string, number>;
 };
 
 type Evaluator = {
@@ -1339,8 +1341,8 @@ const EVALUATORS: Evaluator[] = [
   },
 
   // A083 Alpe du Zwift — bronze (finish) + platinum (25×) auto.
-  // Silver/gold zijn tijd-gebaseerd (sub 75/60 min) → niet detecteerbaar
-  // zonder segment-effort-tijden, dus die tiers returnen null.
+  // Silver/gold zijn tijd-gebaseerd (sub 75/60 min): auto-detecteerbaar zodra
+  // de Strava-segmenttijd in colBestSeconds zit.
   {
     code: "A083",
     check: (_acts, badge, ctx) => {
@@ -1349,6 +1351,24 @@ const EVALUATORS: Evaluator[] = [
       if (!climbed) return null;
       const times = ctx.colTimes.get("zwift-alpe-du-zwift") ?? 0;
       const today = new Date().toISOString().slice(0, 10);
+
+      // "sub 75" / "sub 60" → tijd-gebaseerd op de snelste segment-effort.
+      const subMatch = raw.match(/sub[\s-]?(\d{2,3})/);
+      if (subMatch) {
+        const best = ctx.colBestSeconds.get("zwift-alpe-du-zwift");
+        if (best == null) return null;
+        const limitSeconds = Number(subMatch[1]) * 60;
+        if (best > limitSeconds) return null;
+        const mm = Math.floor(best / 60);
+        const ss = String(best % 60).padStart(2, "0");
+        return {
+          value: best,
+          displayUnit: "s Alpe du Zwift",
+          periodStart: today,
+          periodEnd: today,
+          note: `Alpe du Zwift in ${mm}:${ss} (sub ${subMatch[1]} min)`,
+        };
+      }
 
       if (raw.includes("finish")) {
         return {
@@ -1371,7 +1391,6 @@ const EVALUATORS: Evaluator[] = [
           note: `${times}× Alpe du Zwift`,
         };
       }
-      // "sub 75" / "sub 60" → tijd-gebaseerd, niet auto-detecteerbaar
       return null;
     },
   },
@@ -1494,7 +1513,7 @@ export async function evaluateMilestonesForUser(
   const [{ data: climbedRows }, { data: virtualColRows }] = await Promise.all([
     supabase
       .from("profile_climbed_cols")
-      .select("col_slug, times_climbed")
+      .select("col_slug, times_climbed, best_time_seconds")
       .eq("profile_id", profileId),
     supabase.from("cols").select("slug").eq("virtual", true),
   ]);
@@ -1506,12 +1525,17 @@ export async function evaluateMilestonesForUser(
   const realClimbedCols = new Set<string>();
   const virtualClimbedCols = new Set<string>();
   const colTimes = new Map<string, number>();
+  const colBestSeconds = new Map<string, number>();
   for (const row of (climbedRows ?? []) as {
     col_slug: string;
     times_climbed: number | null;
+    best_time_seconds: number | null;
   }[]) {
     climbedCols.add(row.col_slug);
     colTimes.set(row.col_slug, row.times_climbed ?? 1);
+    if (row.best_time_seconds != null) {
+      colBestSeconds.set(row.col_slug, row.best_time_seconds);
+    }
     if (virtualSlugs.has(row.col_slug)) virtualClimbedCols.add(row.col_slug);
     else realClimbedCols.add(row.col_slug);
   }
@@ -1520,6 +1544,7 @@ export async function evaluateMilestonesForUser(
     realClimbedCols,
     virtualClimbedCols,
     colTimes,
+    colBestSeconds,
   };
 
   const evaluatorByCode = new Map(EVALUATORS.map((e) => [e.code, e] as const));

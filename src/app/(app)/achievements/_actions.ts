@@ -88,9 +88,8 @@ export async function recomputeMyMilestoneBadges() {
   try {
     const admin = createAdminClient();
 
-    // Watopia-kalibratie (best-effort) met Strava-token zodat ook
-    // "Badges herberekenen" de virtuele col-coords kan vullen — niet
-    // alleen de sync-flow.
+    // Strava-token (eenmalig) voor Watopia-kalibratie + segmenttijden.
+    let stravaToken: string | null = null;
     try {
       const { data: conn } = await supabase
         .from("strava_connections")
@@ -103,8 +102,8 @@ export async function recomputeMyMilestoneBadges() {
         const { accessTokenFor } = await import("@/lib/strava/client");
         const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const token = await accessTokenFor(supabase, conn as any);
-        await calibrateWatopiaCols(admin, token);
+        stravaToken = await accessTokenFor(supabase, conn as any);
+        await calibrateWatopiaCols(admin, stravaToken);
       }
     } catch {
       // niet kritiek
@@ -117,6 +116,21 @@ export async function recomputeMyMilestoneBadges() {
       await syncClimbedColsForUser(admin, user.id);
     } catch {
       // niet kritiek; evaluators draaien sowieso
+    }
+
+    // Segmenttijden per col ophalen (begrensd per run i.v.m. rate-limit;
+    // backfilt over meerdere klikken). Voedt PR-tijden + A083 sub-75/60.
+    if (stravaToken) {
+      try {
+        const { syncColSegmentTimesForUser } = await import(
+          "@/lib/cols/segment-times"
+        );
+        await syncColSegmentTimesForUser(admin, stravaToken, user.id, {
+          maxFetches: 40,
+        });
+      } catch {
+        // niet kritiek; evaluators draaien sowieso
+      }
     }
 
     const result = await evaluateMilestonesForUser(admin, user.id);

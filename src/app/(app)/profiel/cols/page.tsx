@@ -37,6 +37,7 @@ type MyClimb = {
   times_climbed: number;
   first_climbed_at: string;
   last_climbed_at: string | null;
+  best_time_seconds: number | null;
 };
 
 type ClubClimb = {
@@ -45,7 +46,19 @@ type ClubClimb = {
   times_climbed: number;
   first_climbed_at: string;
   display_name: string | null;
+  best_time_seconds: number | null;
 };
+
+/** Seconden → "H:MM:SS" of "M:SS". */
+function formatTime(seconds: number | null | undefined): string | null {
+  if (seconds == null || seconds <= 0) return null;
+  const s = Math.round(seconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+}
 
 const COUNTRY_FLAGS: Record<string, string> = {
   FR: "🇫🇷",
@@ -107,12 +120,14 @@ export default async function MijnColsPage() {
         .order("name"),
       supabase
         .from("profile_climbed_cols")
-        .select("col_slug, times_climbed, first_climbed_at, last_climbed_at")
+        .select(
+          "col_slug, times_climbed, first_climbed_at, last_climbed_at, best_time_seconds",
+        )
         .eq("profile_id", user.id),
       supabase
         .from("profile_climbed_cols")
         .select(
-          "col_slug, profile_id, times_climbed, first_climbed_at, profiles(display_name)",
+          "col_slug, profile_id, times_climbed, first_climbed_at, best_time_seconds, profiles(display_name)",
         ),
     ]);
 
@@ -127,6 +142,7 @@ export default async function MijnColsPage() {
     profile_id: string;
     times_climbed: number;
     first_climbed_at: string;
+    best_time_seconds: number | null;
     profiles:
       | { display_name: string | null }
       | { display_name: string | null }[]
@@ -144,11 +160,21 @@ export default async function MijnColsPage() {
       times_climbed: row.times_climbed,
       first_climbed_at: row.first_climbed_at,
       display_name: name,
+      best_time_seconds: row.best_time_seconds,
     });
     leaderboardByCol.set(row.col_slug, list);
   }
+  // Sorteer op snelste segment-tijd (bekende tijden eerst), dan op meeste
+  // beklimmingen — zo is de lijst meteen een tijd-ranking waar tijden bestaan.
   for (const list of leaderboardByCol.values()) {
-    list.sort((a, b) => b.times_climbed - a.times_climbed);
+    list.sort((a, b) => {
+      const ta = a.best_time_seconds;
+      const tb = b.best_time_seconds;
+      if (ta != null && tb != null) return ta - tb;
+      if (ta != null) return -1;
+      if (tb != null) return 1;
+      return b.times_climbed - a.times_climbed;
+    });
   }
 
   const climbedCols = cols.filter((c) => myMap.has(c.slug));
@@ -286,6 +312,8 @@ function ClimbedCard({
   const flag = COUNTRY_FLAGS[col.country] ?? "";
   // Top 3 ZWBers — als jij top 1 bent, je naam tonen we sowieso
   const top = leaderboard.slice(0, 3);
+  const myPr = formatTime(myClimb.best_time_seconds);
+  const hasAnyTime = leaderboard.some((e) => e.best_time_seconds != null);
 
   return (
     <li className="space-y-2 rounded-lg border bg-card p-4">
@@ -323,12 +351,21 @@ function ClimbedCard({
           </div>
           <div className="text-muted-foreground">geklommen</div>
         </div>
-        <div className="rounded-md bg-muted/50 p-2 text-center">
-          <div className="font-semibold">
-            {formatDate(myClimb.first_climbed_at)}
+        {myPr ? (
+          <div className="rounded-md bg-primary/10 p-2 text-center">
+            <div className="font-semibold tabular-nums text-primary">
+              {myPr}
+            </div>
+            <div className="text-muted-foreground">jouw PR</div>
           </div>
-          <div className="text-muted-foreground">eerste keer</div>
-        </div>
+        ) : (
+          <div className="rounded-md bg-muted/50 p-2 text-center">
+            <div className="font-semibold">
+              {formatDate(myClimb.first_climbed_at)}
+            </div>
+            <div className="text-muted-foreground">eerste keer</div>
+          </div>
+        )}
         <div className="rounded-md bg-muted/50 p-2 text-center">
           <div className="font-semibold">
             {formatDate(myClimb.last_climbed_at)}
@@ -340,31 +377,47 @@ function ClimbedCard({
       {top.length > 1 && (
         <details className="text-xs">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-            ZWB-stand op deze col ({leaderboard.length}{" "}
+            {hasAnyTime ? "Snelste ZWB'ers op deze col" : "ZWB-stand op deze col"}{" "}
+            ({leaderboard.length}{" "}
             {leaderboard.length === 1 ? "rider" : "riders"})
           </summary>
           <ol className="mt-2 space-y-1">
-            {leaderboard.map((entry, i) => (
-              <li
-                key={entry.profile_id}
-                className={`flex items-center justify-between gap-2 ${
-                  entry.profile_id === myProfileId ? "font-semibold" : ""
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-5 text-right tabular-nums text-muted-foreground">
-                    {i + 1}.
+            {leaderboard.map((entry, i) => {
+              const t = formatTime(entry.best_time_seconds);
+              return (
+                <li
+                  key={entry.profile_id}
+                  className={`flex items-center justify-between gap-2 ${
+                    entry.profile_id === myProfileId ? "font-semibold" : ""
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-5 text-right tabular-nums text-muted-foreground">
+                      {i + 1}.
+                    </span>
+                    <Link
+                      href={`/leden/${entry.profile_id}`}
+                      className="hover:underline"
+                    >
+                      {entry.display_name ?? "Onbekend"}
+                    </Link>
                   </span>
-                  <Link
-                    href={`/leden/${entry.profile_id}`}
-                    className="hover:underline"
-                  >
-                    {entry.display_name ?? "Onbekend"}
-                  </Link>
-                </span>
-                <span className="tabular-nums">{entry.times_climbed}×</span>
-              </li>
-            ))}
+                  <span className="tabular-nums">
+                    {t ? (
+                      <>
+                        <span className="font-semibold">{t}</span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {entry.times_climbed}×
+                        </span>
+                      </>
+                    ) : (
+                      <span>{entry.times_climbed}×</span>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
           </ol>
         </details>
       )}
