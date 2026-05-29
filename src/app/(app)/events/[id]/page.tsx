@@ -21,6 +21,10 @@ import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
 import { ManualResultForm } from "./_components/manual-result-form";
 import { RemoveResultButton } from "./_components/remove-result-button";
+import {
+  EventReports,
+  type EventReport,
+} from "./_components/event-reports";
 import { EventPhotoUploader } from "./_components/photo-uploader";
 import {
   EventPhotoGallery,
@@ -86,6 +90,7 @@ export default async function EventDetailPage({
     { data: waGroups },
     { data: photoRows },
     { data: resultRows },
+    { data: reportRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -114,6 +119,13 @@ export default async function EventDetailPage({
         "id, profile_id, scraped_name, position, time_text, time_seconds, matched_via, is_manual",
       )
       .eq("event_id", id),
+    supabase
+      .from("event_reports")
+      .select(
+        "id, profile_id, body_md, created_at, profiles(display_name), event_report_comments(id, profile_id, body, created_at, profiles(display_name))",
+      )
+      .eq("event_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const isCreator = user?.id === event.created_by;
@@ -171,6 +183,47 @@ export default async function EventDetailPage({
       return a.scrapedName.localeCompare(b.scrapedName);
     });
   const lastScrapeAt = event.last_results_scrape_at as string | null;
+
+  // Ritverslagen + reacties → genest profielnaam uitpakken.
+  const nameOf = (rel: unknown): string => {
+    if (!rel) return "ZWB'er";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const single = Array.isArray(rel) ? (rel as any[])[0] : (rel as any);
+    return (single?.display_name as string) ?? "ZWB'er";
+  };
+  const eventReports: EventReport[] = (
+    (reportRows ?? []) as Array<{
+      id: string;
+      profile_id: string;
+      body_md: string;
+      created_at: string;
+      profiles: unknown;
+      event_report_comments:
+        | Array<{
+            id: string;
+            profile_id: string;
+            body: string;
+            created_at: string;
+            profiles: unknown;
+          }>
+        | null;
+    }>
+  ).map((r) => ({
+    id: r.id,
+    profileId: r.profile_id,
+    authorName: nameOf(r.profiles),
+    bodyMd: r.body_md,
+    createdAt: r.created_at,
+    comments: (r.event_report_comments ?? [])
+      .map((c) => ({
+        id: c.id,
+        profileId: c.profile_id,
+        authorName: nameOf(c.profiles),
+        body: c.body,
+        createdAt: c.created_at,
+      }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+  }));
 
   const myRsvp = rsvps?.find((r) => r.profile_id === user?.id)?.status as
     | RsvpStatus
@@ -514,6 +567,13 @@ export default async function EventDetailPage({
           isAdmin={access.isAdmin}
         />
       </section>
+
+      <EventReports
+        eventId={event.id}
+        currentUserId={user?.id ?? null}
+        isAdmin={access.isAdmin}
+        reports={eventReports}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Camera, CalendarDays, MapPin, Users } from "lucide-react";
+import { Camera, CalendarDays, MapPin, PencilLine, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 
@@ -37,6 +37,8 @@ type Report = {
   photoCount: number;
   contributors: number;
   thumbs: string[]; // public URLs
+  reportCount: number;
+  reportSnippet: string | null;
 };
 
 function amsterdamDateKey(date: Date) {
@@ -111,9 +113,34 @@ export default async function RitverslagenPage() {
     byEvent.set(p.event_id, agg);
   }
 
+  // Geschreven verslagen per event (aantal + nieuwste snippet).
+  const { data: reportTextRows } = await supabase
+    .from("event_reports")
+    .select("event_id, body_md, created_at")
+    .in("event_id", eventIds)
+    .order("created_at", { ascending: false });
+  const reportAgg = new Map<string, { count: number; snippet: string }>();
+  for (const r of (reportTextRows ?? []) as {
+    event_id: string;
+    body_md: string;
+    created_at: string;
+  }[]) {
+    const cur = reportAgg.get(r.event_id);
+    if (cur) {
+      cur.count += 1;
+    } else {
+      const text = r.body_md.replace(/[#*_>`\-]/g, "").replace(/\s+/g, " ").trim();
+      reportAgg.set(r.event_id, {
+        count: 1,
+        snippet: text.length > 160 ? `${text.slice(0, 160)}…` : text,
+      });
+    }
+  }
+
   // Reports voor álle voorbije events (ook zonder foto's), nieuwste rit eerst.
   const reports: Report[] = pastEvents.map((event) => {
     const agg = byEvent.get(event.id);
+    const rep = reportAgg.get(event.id);
     return {
       event,
       photoCount: agg?.count ?? 0,
@@ -123,6 +150,8 @@ export default async function RitverslagenPage() {
           supabase.storage.from("event-photos").getPublicUrl(path).data
             .publicUrl,
       ),
+      reportCount: rep?.count ?? 0,
+      reportSnippet: rep?.snippet ?? null,
     };
   });
 
@@ -182,10 +211,21 @@ export default async function RitverslagenPage() {
                       <Users className="size-3.5" />
                       {report.contributors}
                     </span>
+                    {report.reportCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <PencilLine className="size-3.5" />
+                        {report.reportCount}
+                      </span>
+                    )}
                   </div>
                   <h2 className="font-semibold group-hover:text-primary">
                     {event.title}
                   </h2>
+                  {report.reportSnippet && (
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                      {report.reportSnippet}
+                    </p>
+                  )}
                   <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       <CalendarDays className="size-3.5" />
