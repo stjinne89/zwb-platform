@@ -7,9 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-27 (col-detector volledig + 3 nieuwe
-> geplande features: uitslagen-scraper, wellness-integratie training,
-> Strava-segmenttijden voor cols)
+> Laatst bijgewerkt: 2026-05-29 (uitslagen-scraper afgerond — ChronoRace/ACN
+> + RaceResult/datasport + generieke HTML + handmatige invoer. Resteren:
+> wellness-integratie training, Strava-segmenttijden voor cols)
 
 ---
 
@@ -371,26 +371,39 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ---
 
-## Geplande features (afgesproken, nog te bouwen)
+## Geplande features (afgesproken)
 
-Drie features die ZWB wil — nog niet ingepland qua volgorde, maar wel
-toegezegd om op te pakken.
+Drie toegezegde features. #1 (uitslagen-scraper) is afgerond; #2 en #3
+resteren — nog niet ingepland qua volgorde.
 
-### 1. Uitslagen-scraper voor kalender-events (Gran Fondos e.d.)
+### 1. Uitslagen-scraper voor kalender-events (Gran Fondos e.d.) — ✅ AFGEROND
 
-Als op een event-pagina een **uitslag-URL** wordt opgegeven, scrapen we de
-uitslagenlijst en tonen we **alleen de ZWB'ers** daaruit.
+Op een event-pagina kan een **uitslag-URL** worden opgegeven; een admin klikt
+**"Uitslag ophalen"** en het systeem toont **alleen de ZWB'ers** met
+klassering + (netto) tijd. Geleverd 2026-05-29.
 
-- Per event optioneel veld `results_url` (nieuwe kolom op `events`).
-- Scraper haalt de uitslagenpagina op (Gran Fondo / wegwedstrijd /
-  toertocht) en parseert naam + klassering + tijd.
-- ZWB-matching: via ledennaam (fuzzy, zoals roster-claim `normalize()`
-  in `/leden`) óf via een "ZWB"-vermelding in de teamkolom van de uitslag.
-- Toon een ZWB-resultatenblok op de event-detail (klassering, tijd,
-  gap). Cache in een tabel `event_results` tegen herhaald scrapen.
-- Aandachtspunten: elke uitslagensite heeft eigen HTML → scraper per
-  bron isoleren met fallback "handmatig invoeren" (zelfde patroon als de
-  WTRL/Ladder-scrapers). Bearer-cron of admin-trigger voor de fetch.
+- Migraties `0053` (kolom `results_url` + status-velden op `events`, tabel
+  `event_results`, RLS) en `0054` (`is_manual`-vlag).
+- Provider-model in `src/lib/event-results/scrape.ts`:
+  - **ChronoRace / ACN Timing** — JSON-API (`results/table/search`); één
+    brede zoekterm haalt de hele tabel, kolommen op naam gemapt, netto tijd
+    voorkeur (Total > Temps).
+  - **RaceResult** (`my.raceresult.com`) — `config`→`data/list` JSON-API;
+    werkt ook via **datasport.com** dat de RRPublish-widget embed (event-id
+    uit de HTML, lijst o.b.v. URL-hash `#contest_listid`).
+  - **Generieke HTML-tabellen** (cheerio) voor server-rendered sites.
+  - Pure JS-SPA's zonder vindbare API (Sporthive, MyLaps) → nette
+    foutmelding + handmatige invoer als fallback.
+- ZWB-matching: strikt op voor- + achternaam (≥2 tokens, plus voornaam +
+  achternaam-initiaal zoals "Casper C"), gedeelde `normalize()`/`nameTokens()`
+  in `src/lib/text/normalize.ts`. Bronnen: `profiles.display_name`,
+  `strava_connections.athlete_name`, `roster_entries.name`. Plus
+  "ZWB"-vermelding (woordgrens) → `zwb_mention`.
+- Admin-acties (guarded op `events.manage_all` of creator): "Uitslag
+  ophalen" (delete+insert van gescrapte rijen), handmatig deelnemer
+  toevoegen/verwijderen. `is_manual`-rijen blijven behouden bij her-scrape.
+- Event-detail toont het ZWB-uitslagenblok (positie · naam · tijd, naam
+  linkt naar ledenprofiel bij match).
 
 ### 2. Wellness-integratie in de trainingsmodule (Sporthologe / herstel-data)
 
