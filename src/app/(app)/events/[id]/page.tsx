@@ -77,7 +77,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, results_url, last_results_scrape_at, results_scrape_error, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
     )
     .eq("id", id)
     .single();
@@ -225,6 +225,11 @@ export default async function EventDetailPage({
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
   }));
 
+  const coverUrl = event.cover_image_path
+    ? supabase.storage.from("event-photos").getPublicUrl(event.cover_image_path)
+        .data.publicUrl
+    : null;
+
   const myRsvp = rsvps?.find((r) => r.profile_id === user?.id)?.status as
     | RsvpStatus
     | undefined;
@@ -340,6 +345,17 @@ export default async function EventDetailPage({
       >
         ← Kalender
       </Link>
+
+      {coverUrl && (
+        <div className="overflow-hidden rounded-2xl border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={coverUrl}
+            alt=""
+            className="aspect-[16/6] w-full object-cover"
+          />
+        </div>
+      )}
 
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">

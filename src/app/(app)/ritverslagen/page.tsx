@@ -30,6 +30,7 @@ type EventRow = {
   location: string | null;
   distance_km: number | string | null;
   elevation_m: number | string | null;
+  cover_image_path: string | null;
 };
 
 type Report = {
@@ -37,6 +38,7 @@ type Report = {
   photoCount: number;
   contributors: number;
   thumbs: string[]; // public URLs
+  coverUrl: string | null;
   reportCount: number;
   reportSnippet: string | null;
 };
@@ -64,7 +66,9 @@ export default async function RitverslagenPage() {
   const todayKey = amsterdamDateKey(new Date());
   const { data: eventRows } = await supabase
     .from("events")
-    .select("id, title, type, start_at, location, distance_km, elevation_m")
+    .select(
+      "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path",
+    )
     .order("start_at", { ascending: false })
     .limit(150);
 
@@ -150,6 +154,11 @@ export default async function RitverslagenPage() {
           supabase.storage.from("event-photos").getPublicUrl(path).data
             .publicUrl,
       ),
+      coverUrl: event.cover_image_path
+        ? supabase.storage
+            .from("event-photos")
+            .getPublicUrl(event.cover_image_path).data.publicUrl
+        : null,
       reportCount: rep?.count ?? 0,
       reportSnippet: rep?.snippet ?? null,
     };
@@ -178,25 +187,35 @@ export default async function RitverslagenPage() {
                 href={`/events/${event.id}`}
                 className="group block overflow-hidden rounded-lg border bg-card transition hover:border-primary/40"
               >
-                {/* Foto-strip */}
-                <div className="grid grid-cols-3 gap-0.5 bg-muted">
-                  {report.thumbs.slice(0, 3).map((url, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={url}
-                      alt=""
-                      loading="lazy"
-                      className="aspect-[4/3] h-full w-full object-cover"
-                    />
-                  ))}
-                  {report.thumbs.length === 0 && (
-                    <div className="col-span-3 flex aspect-[12/3] items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Camera className="size-5" />
-                      Nog geen foto&apos;s
-                    </div>
-                  )}
-                </div>
+                {/* Cover-afbeelding heeft voorrang; anders foto-strip. */}
+                {report.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={report.coverUrl}
+                    alt=""
+                    loading="lazy"
+                    className="aspect-[16/6] w-full bg-muted object-cover"
+                  />
+                ) : (
+                  <div className="grid grid-cols-3 gap-0.5 bg-muted">
+                    {report.thumbs.slice(0, 3).map((url, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={i}
+                        src={url}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-[4/3] h-full w-full object-cover"
+                      />
+                    ))}
+                    {report.thumbs.length === 0 && (
+                      <div className="col-span-3 flex aspect-[12/3] items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Camera className="size-5" />
+                        Nog geen foto&apos;s
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2 p-4">
                   <div className="flex items-center gap-2">

@@ -20,6 +20,7 @@ type EventInput = {
   description?: string | null;
   external_url?: string | null;
   results_url?: string | null;
+  cover_image_path?: string | null;
 };
 
 const TYPES = ["outdoor", "zrl", "ladder", "flamme_rouge", "social", "training"];
@@ -64,6 +65,7 @@ export async function createEvent(input: EventInput) {
       description: input.description || null,
       external_url: input.external_url?.trim() || null,
       results_url: input.results_url?.trim() || null,
+      cover_image_path: input.cover_image_path ?? null,
       created_by: access.user.id,
     })
     .select("id")
@@ -134,6 +136,8 @@ export async function updateEvent(id: string, input: EventInput) {
   // GPX-velden alleen overschrijven als ze expliciet zijn meegegeven
   // (undefined = behoud bestaande waarde). De form geeft null door om te
   // verwijderen, of de nieuwe waardes bij een upload.
+  if (input.cover_image_path !== undefined)
+    update.cover_image_path = input.cover_image_path;
   if (input.gpx_path !== undefined) update.gpx_path = input.gpx_path;
   if (input.distance_km !== undefined) update.distance_km = input.distance_km;
   if (input.elevation_m !== undefined) update.elevation_m = input.elevation_m;

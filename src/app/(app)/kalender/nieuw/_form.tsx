@@ -30,10 +30,18 @@ export type EventInitial = {
   description: string | null;
   external_url: string | null;
   results_url: string | null;
+  cover_image_path: string | null;
   gpx_path: string | null;
   distance_km: number | string | null;
   elevation_m: number | string | null;
 };
+
+/** Publieke URL van een event-photos-pad (bucket is public). */
+function coverPublicUrl(path: string | null): string | null {
+  if (!path) return null;
+  return createClient().storage.from("event-photos").getPublicUrl(path).data
+    .publicUrl;
+}
 
 /** Converteer ISO-datum naar "YYYY-MM-DDTHH:MM" in local timezone. */
 function isoToLocalInput(iso: string | null): string {
@@ -51,9 +59,33 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
   const [gpx, setGpx] = useState<GpxSummary | null>(null);
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [removeExistingGpx, setRemoveExistingGpx] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(
+    coverPublicUrl(initial?.cover_image_path ?? null),
+  );
+  const [removeExistingCover, setRemoveExistingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const hasExistingGpx = Boolean(initial?.gpx_path);
+
+  function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Cover moet een afbeelding zijn.");
+      return;
+    }
+    setError(null);
+    setCoverFile(file);
+    setRemoveExistingCover(false);
+    setCoverPreview(URL.createObjectURL(file));
+  }
+
+  function clearCover() {
+    setCoverFile(null);
+    setRemoveExistingCover(true);
+    setCoverPreview(null);
+  }
 
   async function handleGpx(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,6 +149,33 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
         gpx_path = null;
       }
 
+      // Cover-afbeelding: undefined = niet wijzigen, null = verwijderen.
+      let cover_image_path: string | null | undefined = undefined;
+      if (coverFile) {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setError("Sessie verlopen — log opnieuw in.");
+          return;
+        }
+        const ext = coverFile.name.split(".").pop() ?? "jpg";
+        const path = `covers/${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("event-photos")
+          .upload(path, coverFile, { contentType: coverFile.type });
+        if (upErr) {
+          setError("Upload cover mislukt: " + upErr.message);
+          return;
+        }
+        cover_image_path = path;
+      } else if (isEdit && removeExistingCover) {
+        cover_image_path = null;
+      } else if (!isEdit) {
+        cover_image_path = null;
+      }
+
       const payload = {
         title: String(formData.get("title") ?? ""),
         type: String(formData.get("type") ?? ""),
@@ -128,6 +187,7 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
         description: String(formData.get("description") ?? "") || null,
         external_url: String(formData.get("external_url") ?? "") || null,
         results_url: String(formData.get("results_url") ?? "") || null,
+        cover_image_path,
         gpx_path,
         distance_km,
         elevation_m,
@@ -202,6 +262,44 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
           defaultValue={initial?.location ?? ""}
           className={FIELD_CLASS}
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Cover-afbeelding (optioneel)
+        </label>
+        {coverPreview && (
+          <div className="mb-2 overflow-hidden rounded-md border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverPreview}
+              alt="Cover-preview"
+              className="aspect-[16/6] w-full object-cover"
+            />
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleCover}
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-2 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80"
+          />
+          {coverPreview && (
+            <button
+              type="button"
+              onClick={clearCover}
+              className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-destructive hover:underline"
+            >
+              <Trash2 className="size-3" />
+              Verwijder
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Wordt als sfeerbeeld getoond op de event-pagina, kalender en in
+          ritverslagen.
+        </p>
       </div>
 
       <div>
