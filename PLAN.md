@@ -7,9 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-29 (uitslagen-scraper + Strava-segmenttijden
-> voor cols afgerond. Resteert van de drie toegezegde features alleen nog
-> de wellness-integratie in de trainingsmodule)
+> Laatst bijgewerkt: 2026-05-29 (alle drie de toegezegde features afgerond:
+> uitslagen-scraper, Strava-segmenttijden voor cols, en wellness-integratie
+> training via intervals.icu)
 
 ---
 
@@ -371,10 +371,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ---
 
-## Geplande features (afgesproken)
+## Geplande features (afgesproken) — ✅ alle drie afgerond
 
-Drie toegezegde features. #1 (uitslagen-scraper) en #3 (Strava-segmenttijden)
-zijn afgerond; alleen #2 (wellness-integratie training) resteert.
+Alle drie de toegezegde features zijn geleverd: #1 uitslagen-scraper,
+#2 wellness-integratie training, #3 Strava-segmenttijden voor cols.
 
 ### 1. Uitslagen-scraper voor kalender-events (Gran Fondos e.d.) — ✅ AFGEROND
 
@@ -405,21 +405,30 @@ klassering + (netto) tijd. Geleverd 2026-05-29.
 - Event-detail toont het ZWB-uitslagenblok (positie · naam · tijd, naam
   linkt naar ledenprofiel bij match).
 
-### 2. Wellness-integratie in de trainingsmodule (Sporthologe / herstel-data)
+### 2. Wellness-integratie in de trainingsmodule (herstel-data) — ✅ AFGEROND
 
-Slaapkwaliteit, stress/HRV en herstel meenemen in de workout-planning,
-zodat de AI-conceptschema's rekening houden met de actuele belastbaarheid.
+Slaap/HRV/stress/rust-HR meegenomen in de AI-workoutplanning zodat
+conceptschema's rekening houden met de actuele belastbaarheid. Databron:
+**intervals.icu-wellness** (al gekoppeld, dus geen extra koppeling). Sporthologe
+heeft geen publieke API; intervals.icu aggregeert Garmin/Oura/Whoop al.
+Geleverd 2026-05-29.
 
-- Databron: Sporthologe-koppeling (of equivalent: intervals.icu-wellness,
-  Garmin/Whoop/Oura) — per lid opt-in, read-only.
-- Nieuwe wellness-tabel (`profile_wellness`: date, sleep_score,
-  hrv, stress, readiness, resting_hr) gevoed via API/sync.
-- De training-AI-prompt (`src/lib/training/ai.ts`) uitbreiden met de
-  recente wellness-trend zodat zware blokken worden uitgesteld bij lage
-  herstelscores.
-- Trainer-cockpit toont de wellness-trend naast de load-metrics.
-- Privacy: gevoelige gezondheidsdata → expliciete opt-in + RLS, alleen
-  zichtbaar voor het lid + toegewezen trainer.
+- Migratie `0056`: `profile_wellness` (date, resting_hr, hrv, sleep_secs,
+  sleep_score, readiness, fatigue, stress, soreness, mood) + `wellness_opt_in`
+  op `intervals_connections`.
+- `src/lib/training/wellness.ts`: `syncWellnessForUser` (intervals→DB),
+  `summarizeWellness` (7d-gemiddelden + state fresh/normal/fatigued o.b.v.
+  HRV/rust-HR/slaap/readiness t.o.v. baseline), `wellnessForAi` (opt-in-gated).
+- `IntervalsWellness` uitgebreid met herstel-velden.
+- AI: `TrainingAiInput.wellness` + prompt-instructie (zware blokken uitstellen
+  bij vermoeidheid/lage readiness/weinig slaap), gewired in `generateAiDraft`
+  én de dagelijkse adaptatie-cron.
+- `/training`: opt-in-toggle + eigen herstel-overzicht (status, HRV, rust-HR,
+  slaap).
+- Privacy: strikt opt-in; `profile_wellness` RLS = alleen het lid zelf leest;
+  trainer/AI lezen via service-role na de bestaande coaching-check.
+- Open: trainer-cockpit toont de herstel-trend van een atleet nog niet apart
+  (AI gebruikt 'm wel); kan later naast de load-metrics.
 
 ### 3. Strava-segmenttijden voor de cols — ✅ AFGEROND
 
