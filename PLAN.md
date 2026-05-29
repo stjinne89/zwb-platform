@@ -469,7 +469,9 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
   bundelt gereden events met foto's tot bladerbare verslagen + dashboard-nudge
   ("Deel je foto's") voor recent gereden events zonder eigen foto. In
   Community-nav.
-- **WhatsApp bulk-import via OG metadata** — open punt uit eerdere fase.
+- ✅ **WhatsApp bulk-import via OG metadata** — afgerond 2026-05-29.
+  "Bulk toevoegen" op /community: meerdere invite-links tegelijk, namen via
+  Open Graph opgehaald, dubbele/ongeldige overgeslagen.
 - **Sponsor-bannercarousel** op `/dashboard` of `/login`, of subtiel in
   de footer — voor extra zichtbaarheid van sponsors.
 - **E2E chat** — alleen bij expliciete vraag van bestuur.
