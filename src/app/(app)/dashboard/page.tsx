@@ -241,6 +241,10 @@ export default async function DashboardPage() {
   const nowIso = new Date().toISOString();
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
+  const since7Iso = since7.toISOString();
+  const plus7 = new Date();
+  plus7.setDate(plus7.getDate() + 7);
+  const plus7Iso = plus7.toISOString();
   const today = new Date().toISOString().slice(0, 10);
 
   const [
@@ -255,6 +259,7 @@ export default async function DashboardPage() {
     { data: clubActivities },
     { data: awardRows },
     { data: sponsorRows },
+    { data: reportPreviewRows },
   ] = await Promise.all([
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
@@ -262,6 +267,7 @@ export default async function DashboardPage() {
     supabase
       .from("media_items")
       .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
+      .gte("published_at", since7Iso)
       .order("pinned", { ascending: false })
       .order("published_at", { ascending: false })
       .limit(5),
@@ -287,8 +293,9 @@ export default async function DashboardPage() {
       .limit(3),
     supabase
       .from("events")
-      .select("id, title, type, start_at, location")
+      .select("id, title, type, start_at, location, cover_image_path")
       .gte("start_at", nowIso)
+      .lte("start_at", plus7Iso)
       .order("start_at", { ascending: true })
       .limit(5),
     supabase
@@ -297,6 +304,7 @@ export default async function DashboardPage() {
         "id, team_id, competition, round_label, round_at, position, points, total_teams, created_at, source_url, teams(id, name, type, division)",
       )
       .not("position", "is", null)
+      .gte("round_at", since7Iso)
       .order("round_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(40),
@@ -314,6 +322,7 @@ export default async function DashboardPage() {
       .select(
         "id, profile_id, award_scope, period_start, awarded_at, value, metadata, profiles(display_name), achievement_badges(title, icon, color)",
       )
+      .gte("awarded_at", since7Iso)
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),
@@ -324,6 +333,12 @@ export default async function DashboardPage() {
       .not("logo_url", "is", null)
       .order("tier")
       .order("display_order"),
+    supabase
+      .from("event_reports")
+      .select("id, body_md, created_at, profiles(display_name), events(id, title)")
+      .gte("created_at", since7Iso)
+      .order("created_at", { ascending: false })
+      .limit(4),
   ]);
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
@@ -351,6 +366,29 @@ export default async function DashboardPage() {
       logoUrl: s.logo_url as string,
       websiteUrl: s.website_url,
     }));
+  const reportPreviews = (
+    (reportPreviewRows ?? []) as Array<{
+      id: string;
+      body_md: string;
+      created_at: string;
+      profiles: ProfileRef | ProfileRef[] | null;
+      events: { id: string; title: string } | { id: string; title: string }[] | null;
+    }>
+  )
+    .map((r) => {
+      const ev = Array.isArray(r.events) ? r.events[0] : r.events;
+      if (!ev) return null;
+      const text = r.body_md.replace(/[#*_>`-]/g, "").replace(/\s+/g, " ").trim();
+      return {
+        id: r.id,
+        author: singleProfileName(r.profiles) ?? "ZWB'er",
+        eventId: ev.id,
+        eventTitle: ev.title,
+        snippet: text.length > 120 ? `${text.slice(0, 120)}…` : text,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
   const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
     .trim()
     .split(/\s+/)[0];
@@ -648,6 +686,36 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {reportPreviews.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Newspaper}
+            title="Ritverslagen deze week"
+            action={<InlineMoreLink href="/ritverslagen">Alle verslagen</InlineMoreLink>}
+          />
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {reportPreviews.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/events/${r.eventId}`}
+                  className="block h-full rounded-lg border bg-card p-4 transition hover:border-foreground/30"
+                >
+                  <p className="text-sm font-medium">{r.eventTitle}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    door {r.author}
+                  </p>
+                  {r.snippet && (
+                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                      {r.snippet}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <SectionHeader
