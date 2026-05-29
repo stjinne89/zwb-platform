@@ -7,9 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-29 (uitslagen-scraper afgerond — ChronoRace/ACN
-> + RaceResult/datasport + generieke HTML + handmatige invoer. Resteren:
-> wellness-integratie training, Strava-segmenttijden voor cols)
+> Laatst bijgewerkt: 2026-05-29 (uitslagen-scraper + Strava-segmenttijden
+> voor cols afgerond. Resteert van de drie toegezegde features alleen nog
+> de wellness-integratie in de trainingsmodule)
 
 ---
 
@@ -373,8 +373,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Geplande features (afgesproken)
 
-Drie toegezegde features. #1 (uitslagen-scraper) is afgerond; #2 en #3
-resteren — nog niet ingepland qua volgorde.
+Drie toegezegde features. #1 (uitslagen-scraper) en #3 (Strava-segmenttijden)
+zijn afgerond; alleen #2 (wellness-integratie training) resteert.
 
 ### 1. Uitslagen-scraper voor kalender-events (Gran Fondos e.d.) — ✅ AFGEROND
 
@@ -421,20 +421,27 @@ zodat de AI-conceptschema's rekening houden met de actuele belastbaarheid.
 - Privacy: gevoelige gezondheidsdata → expliciete opt-in + RLS, alleen
   zichtbaar voor het lid + toegewezen trainer.
 
-### 3. Strava-segmenttijden voor de cols
+### 3. Strava-segmenttijden voor de cols — ✅ AFGEROND
 
-Echte beklimmingstijden per col ophalen zodat we **tijd-leaderboards**
-en de tijd-gebaseerde badge-tiers (A083 Alpe du Zwift sub-75/sub-60)
-kunnen vullen.
+Echte beklimmingstijden per col, voor **tijd-leaderboards** en de
+tijd-gebaseerde badge-tiers (A083 sub-75/sub-60). Geleverd 2026-05-29.
 
-- Strava `GET /segments/{id}` of segment-efforts uit detailed-activity
-  ophalen voor de cols met bekende `strava_segment_id`.
-- Per (profiel, col) de snelste effort-tijd bewaren in
-  `profile_climbed_cols` (nieuwe kolom `best_time_seconds`).
-- `/profiel/cols` toont PR-tijd + ZWB-tijd-ranking per col.
-- A083 silver/gold (sub 75/60 min) worden hiermee auto-detecteerbaar.
-- Let op rate-limit: segment-effort-fetch is duurder → batchen + cachen,
-  alleen voor cols die het lid daadwerkelijk geklommen heeft.
+- Migratie `0055`: `best_time_seconds`/`_activity_id`/`_at` op
+  `profile_climbed_cols` + `efforts_fetched_at` op `strava_activities`.
+- `src/lib/cols/segment-times.ts` (`syncColSegmentTimesForUser`): detecteert
+  col-passages (detector), fetcht detailed activity
+  (`include_all_efforts=true`) voor cols met `strava_segment_id`, neemt de
+  snelste effort per (profiel, col). Begrensd per run (`maxFetches=40`,
+  nieuwste eerst), gecachet via `efforts_fetched_at`, stopt netjes bij 429.
+- Draait mee in "Badges herberekenen" (`recomputeMyMilestoneBadges`), token
+  hergebruikt van de Watopia-kalibratie. Backfilt over meerdere klikken.
+- `/profiel/cols`: PR-tijd per geklommen col + ZWB-tijd-ranking (snelste
+  eerst, bekende tijden boven).
+- A083 silver/gold (sub 75/60) auto via `colBestSeconds` in de
+  evaluator-context.
+- Open: alleen aangehaakt op recompute, niet op de reguliere sync (bewust,
+  om elke sync licht te houden). Pure-virtuele cols zonder Strava-segment
+  (geen `strava_segment_id`) krijgen geen tijd.
 
 ---
 
