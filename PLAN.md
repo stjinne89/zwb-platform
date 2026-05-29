@@ -462,8 +462,9 @@ tijd-gebaseerde badge-tiers (A083 sub-75/sub-60). Geleverd 2026-05-29.
 Fase 3 is dicht — wat hierna logisch zou kunnen komen, afhankelijk van
 waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 
-- **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
-  per regio) als de dashboard-widget honger wekt.
+- ✅ **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
+  per regio) — afgerond 2026-05-29. KPI's + km-per-maand trend (klikbaar als
+  maandfilter) + breakdowns discipline/regio + top-10 riders. In Club-nav.
 - **Foto-galerij × liveticker** — foto's automatisch koppelen aan event
   na `eventIsToday`, zodat ritverslagen met foto's gestructureerd ontstaan.
 - **WhatsApp bulk-import via OG metadata** — open punt uit eerdere fase.
