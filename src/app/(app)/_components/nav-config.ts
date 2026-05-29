@@ -30,6 +30,7 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/leden", label: "Leden" },
       { type: "link", href: "/achievements", label: "Achievements" },
+      { type: "link", href: "/stats", label: "Stats" },
     ],
   },
   {
