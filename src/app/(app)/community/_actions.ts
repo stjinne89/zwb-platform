@@ -90,6 +90,107 @@ export async function addGroup(formData: FormData) {
   return { ok: true as const };
 }
 
+export async function bulkAddGroups(formData: FormData) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om community te beheren." };
+  }
+
+  const categoryRaw = String(formData.get("category") ?? "").trim();
+  const category = CATEGORIES.includes(categoryRaw) ? categoryRaw : null;
+  const { team_id, event_id } = parseScope(String(formData.get("scope") ?? "none"));
+
+  // Eén invite-URL per regel. Dedupe binnen de input + tegen wat al bestaat.
+  const rawLines = String(formData.get("urls") ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (rawLines.length === 0) {
+    return { ok: false as const, error: "Plak minstens één invite-URL." };
+  }
+  const MAX = 40;
+  const lines = rawLines.slice(0, MAX);
+
+  const valid: string[] = [];
+  let skippedInvalid = 0;
+  const seen = new Set<string>();
+  for (const line of lines) {
+    if (!isValidInviteUrl(line)) {
+      skippedInvalid += 1;
+      continue;
+    }
+    const norm = line.replace(/\/$/, "");
+    if (seen.has(norm)) continue;
+    seen.add(norm);
+    valid.push(line);
+  }
+  if (valid.length === 0) {
+    return {
+      ok: false as const,
+      error: "Geen geldige invite-URL's gevonden (https://chat.whatsapp.com/…).",
+    };
+  }
+
+  // Bestaande invite-URL's ophalen om duplicaten over te slaan.
+  const { data: existingRows } = await supabase
+    .from("whatsapp_groups")
+    .select("invite_url");
+  const existing = new Set(
+    ((existingRows ?? []) as { invite_url: string }[]).map((r) =>
+      r.invite_url.replace(/\/$/, ""),
+    ),
+  );
+
+  const toFetch = valid.filter((u) => !existing.has(u.replace(/\/$/, "")));
+  const skippedDuplicate = valid.length - toFetch.length;
+  if (toFetch.length === 0) {
+    return {
+      ok: true as const,
+      added: 0,
+      skippedInvalid,
+      skippedDuplicate,
+    };
+  }
+
+  // OG-metadata parallel ophalen (naam/omschrijving) voor elke nieuwe URL.
+  const infos = await Promise.all(
+    toFetch.map(async (url) => {
+      const info = await fetchWhatsAppGroupInfo(url).catch(() => null);
+      const code = url.replace(/\/$/, "").split("/").pop() ?? "";
+      return {
+        invite_url: url,
+        name: info?.name ?? `WhatsApp-groep ${code.slice(0, 6)}`,
+        description: info?.description ?? null,
+      };
+    }),
+  );
+
+  const rows = infos.map((info, i) => ({
+    name: info.name,
+    description: info.description,
+    category,
+    invite_url: info.invite_url,
+    team_id,
+    event_id,
+    display_order: i,
+  }));
+
+  const { error } = await supabase.from("whatsapp_groups").insert(rows);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/community");
+  if (team_id) revalidatePath(`/teams/${team_id}`);
+  if (event_id) revalidatePath(`/events/${event_id}`);
+  return {
+    ok: true as const,
+    added: rows.length,
+    skippedInvalid,
+    skippedDuplicate,
+  };
+}
+
 export async function deleteGroup(id: string) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);

@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import {
   addAnnouncement,
   addGroup,
+  bulkAddGroups,
   deleteAnnouncement,
   deleteGroup,
   fetchInvitePreview,
@@ -166,32 +167,7 @@ export function NewGroupForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={LABEL}>Koppel aan team / event (optioneel)</label>
-          <select name="scope" defaultValue="none" className={FIELD}>
-            <option value="none">— geen koppeling —</option>
-            {teams.length > 0 && (
-              <optgroup label="Teams">
-                {teams.map((t) => (
-                  <option key={t.id} value={`team:${t.id}`}>
-                    {t.name}
-                    {t.division ? ` (${t.division})` : ""}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {events.length > 0 && (
-              <optgroup label="Events">
-                {events.map((e) => (
-                  <option key={e.id} value={`event:${e.id}`}>
-                    {new Date(e.start_at).toLocaleDateString("nl-NL", {
-                      day: "2-digit",
-                      month: "2-digit",
-                    })}{" "}
-                    — {e.title}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+          <ScopeSelect teams={teams} events={events} />
         </div>
         <div>
           <label className={LABEL}>Volgorde (lager = eerder)</label>
@@ -207,6 +183,124 @@ export function NewGroupForm({
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Toevoegen…" : "Groep toevoegen"}
+      </Button>
+    </form>
+  );
+}
+
+function ScopeSelect({
+  teams,
+  events,
+}: {
+  teams: TeamOption[];
+  events: EventOption[];
+}) {
+  return (
+    <select name="scope" defaultValue="none" className={FIELD}>
+      <option value="none">— geen koppeling —</option>
+      {teams.length > 0 && (
+        <optgroup label="Teams">
+          {teams.map((t) => (
+            <option key={t.id} value={`team:${t.id}`}>
+              {t.name}
+              {t.division ? ` (${t.division})` : ""}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {events.length > 0 && (
+        <optgroup label="Events">
+          {events.map((e) => (
+            <option key={e.id} value={`event:${e.id}`}>
+              {new Date(e.start_at).toLocaleDateString("nl-NL", {
+                day: "2-digit",
+                month: "2-digit",
+                timeZone: "Europe/Amsterdam",
+              })}{" "}
+              — {e.title}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  );
+}
+
+export function BulkGroupForm({
+  teams,
+  events,
+}: {
+  teams: TeamOption[];
+  events: EventOption[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function submit(fd: FormData) {
+    setError(null);
+    setResult(null);
+    startTransition(async () => {
+      const res = await bulkAddGroups(fd);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      const parts = [`${res.added} toegevoegd`];
+      if (res.skippedDuplicate > 0) parts.push(`${res.skippedDuplicate} dubbel`);
+      if (res.skippedInvalid > 0) parts.push(`${res.skippedInvalid} ongeldig`);
+      setResult(parts.join(" · "));
+      formRef.current?.reset();
+    });
+  }
+
+  return (
+    <form
+      ref={formRef}
+      action={submit}
+      className="space-y-3 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4"
+    >
+      <h3 className="text-sm font-medium">Bulk toevoegen</h3>
+      <p className="text-xs text-muted-foreground">
+        Plak meerdere invite-links, één per regel. Namen worden automatisch
+        opgehaald. Dubbele links worden overgeslagen.
+      </p>
+
+      <div>
+        <label className={LABEL}>Invite-URL&apos;s (één per regel)</label>
+        <textarea
+          name="urls"
+          required
+          rows={6}
+          placeholder={
+            "https://chat.whatsapp.com/AbCdEf123…\nhttps://chat.whatsapp.com/GhIjKl456…"
+          }
+          className={`${FIELD} font-mono text-xs`}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Categorie (voor allemaal)</label>
+          <select name="category" className={FIELD} defaultValue="">
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={LABEL}>Koppel aan team / event</label>
+          <ScopeSelect teams={teams} events={events} />
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {result && <p className="text-sm text-primary">{result}</p>}
+      <Button type="submit" size="sm" disabled={pending}>
+        {pending ? "Importeren…" : "Importeer groepen"}
       </Button>
     </form>
   );

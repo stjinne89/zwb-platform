@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
-import { DeleteGroupButton, NewGroupForm } from "./_components/admin-forms";
+import {
+  BulkGroupForm,
+  DeleteGroupButton,
+  NewGroupForm,
+} from "./_components/admin-forms";
 
 const CATEGORY_LABELS: Record<string, string> = {
   algemeen: "Algemeen",
@@ -129,7 +133,10 @@ export default async function CommunityPage() {
         )}
 
         {canManageCommunity && (
-          <NewGroupForm teams={teamOptions} events={eventOptions} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <NewGroupForm teams={teamOptions} events={eventOptions} />
+            <BulkGroupForm teams={teamOptions} events={eventOptions} />
+          </div>
         )}
       </section>
     </div>
