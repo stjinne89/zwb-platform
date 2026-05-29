@@ -126,6 +126,53 @@ export async function disconnectIntervals() {
   return { ok: true as const };
 }
 
+export async function setWellnessOptIn(optIn: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  // Alleen schrijven als er een intervals-koppeling is.
+  const { data: conn } = await supabase
+    .from("intervals_connections")
+    .select("profile_id, api_key, athlete_id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!conn) {
+    return {
+      ok: false as const,
+      error: "Koppel eerst intervals.icu voordat je herstel-data deelt.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("intervals_connections")
+    .update({ wellness_opt_in: optIn })
+    .eq("profile_id", user.id);
+  if (error) return { ok: false as const, error: error.message };
+
+  // Bij aanzetten meteen een eerste sync draaien (best-effort, service-role).
+  if (optIn && conn.api_key && conn.athlete_id) {
+    try {
+      const admin = createAdminClient();
+      const { syncWellnessForUser } = await import("@/lib/training/wellness");
+      await syncWellnessForUser(
+        admin,
+        conn.api_key as string,
+        conn.athlete_id as string,
+        user.id,
+        30,
+      );
+    } catch {
+      // niet kritiek
+    }
+  }
+
+  revalidatePath("/training");
+  return { ok: true as const };
+}
+
 export async function createTrainingGoal(formData: FormData) {
   try {
     const { user } = await currentUser();
@@ -328,6 +375,9 @@ export async function generateAiDraft(formData: FormData) {
       { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
     );
 
+    const { wellnessForAi } = await import("@/lib/training/wellness");
+    const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
+
     const ai = await generateTrainingPlanDraft(
       {
         athleteName: profile.display_name ?? "ZWB-lid",
@@ -348,6 +398,17 @@ export async function generateAiDraft(formData: FormData) {
           zrlCategory: profile.zrl_category ?? null,
         },
         recentLoad: recent,
+        wellness: wellness
+          ? {
+              days: wellness.days,
+              state: wellness.state,
+              restingHr: wellness.restingHr,
+              hrv: wellness.hrv,
+              sleepHours: wellness.sleepHours,
+              readiness: wellness.readiness,
+              note: wellness.note,
+            }
+          : null,
       },
       promptText,
     );

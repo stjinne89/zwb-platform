@@ -49,6 +49,16 @@ export type TrainingAiInput = {
     elevationM: number;
     hours: number;
   };
+  /** Herstel-trend uit intervals.icu (alleen als het lid wellness deelt). */
+  wellness?: {
+    days: number;
+    state: "fresh" | "normal" | "fatigued" | "unknown";
+    restingHr: number | null;
+    hrv: number | null;
+    sleepHours: number | null;
+    readiness: number | null;
+    note: string;
+  } | null;
 };
 
 const PLAN_SCHEMA = {

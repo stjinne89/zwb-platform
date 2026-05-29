@@ -49,6 +49,8 @@ import {
 } from "@/lib/training/workouts";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
+import { WellnessOptInToggle } from "./_components/wellness-optin-toggle";
+import { summarizeWellness } from "@/lib/training/wellness";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 
 type ProfileRow = {
@@ -265,6 +267,15 @@ function MetricCard({
         <Icon className="size-5 text-primary" />
       </div>
       {hint && <p className="mt-2 text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+function RecoveryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-muted/50 p-3 text-center">
+      <div className="text-lg font-semibold tabular-nums">{value}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -1009,7 +1020,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       .single(),
     supabase
       .from("intervals_connections")
-      .select("athlete_id, athlete_name, api_key, updated_at")
+      .select("athlete_id, athlete_name, api_key, updated_at, wellness_opt_in")
       .eq("profile_id", user.id)
       .maybeSingle(),
     supabase
@@ -1074,6 +1085,24 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const totals14 = loadSummary(activities);
   const wellnessSorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
   const latest = wellnessSorted[wellnessSorted.length - 1];
+  // Herstel-samenvatting (alleen tonen als het lid wellness deelt).
+  const recoverySummary =
+    conn?.wellness_opt_in && wellness.length > 0
+      ? summarizeWellness(
+          wellness.map((w) => ({
+            date: w.id,
+            resting_hr: w.restingHR ?? null,
+            hrv: w.hrv ?? w.hrvSDNN ?? null,
+            sleep_secs: w.sleepSecs ?? null,
+            sleep_score: w.sleepScore ?? null,
+            readiness: w.readiness ?? null,
+            fatigue: w.fatigue ?? null,
+            stress: w.stress ?? null,
+            soreness: w.soreness ?? null,
+            mood: w.mood ?? null,
+          })),
+        )
+      : null;
   const eftpFirst = wellnessSorted.find((w) => w.eftp)?.eftp;
   const eftpLatest = [...wellnessSorted].reverse().find((w) => w.eftp)?.eftp;
   const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
@@ -1319,6 +1348,73 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
           }
         />
       </section>
+
+      {conn && (
+        <section className="rounded-lg border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Activity className="size-5 text-primary" />
+                Herstel &amp; belastbaarheid
+              </h2>
+              <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+                Deel je slaap, HRV en rust-hartslag uit intervals.icu zodat de
+                AI-trainingsplanning zware blokken uitstelt als je nog niet
+                hersteld bent. Alleen jij en je trainer zien deze data.
+              </p>
+            </div>
+            <WellnessOptInToggle initialOptIn={Boolean(conn.wellness_opt_in)} />
+          </div>
+
+          {conn.wellness_opt_in &&
+            (recoverySummary ? (
+              <div className="mt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <RecoveryStat
+                    label="Status"
+                    value={
+                      recoverySummary.state === "fresh"
+                        ? "Fris"
+                        : recoverySummary.state === "fatigued"
+                          ? "Vermoeid"
+                          : recoverySummary.state === "normal"
+                            ? "Normaal"
+                            : "—"
+                    }
+                  />
+                  <RecoveryStat
+                    label="HRV (7d gem.)"
+                    value={recoverySummary.hrv != null ? `${recoverySummary.hrv}` : "—"}
+                  />
+                  <RecoveryStat
+                    label="Rust-HR (7d gem.)"
+                    value={
+                      recoverySummary.restingHr != null
+                        ? `${recoverySummary.restingHr}`
+                        : "—"
+                    }
+                  />
+                  <RecoveryStat
+                    label="Slaap (7d gem.)"
+                    value={
+                      recoverySummary.sleepHours != null
+                        ? `${recoverySummary.sleepHours}u`
+                        : "—"
+                    }
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {recoverySummary.note}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Nog geen herstel-data gevonden in intervals.icu. Log je slaap/HRV
+                (bv. via Garmin/Oura/Whoop-koppeling daar) en het verschijnt hier.
+              </p>
+            ))}
+        </section>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border bg-card p-5">

@@ -52,6 +52,7 @@ export function defaultTrainingPrompt() {
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",
     "Maak een concept dat de trainer daarna kan redigeren; wees concreet maar niet dogmatisch.",
+    "Als er herstel-data (wellness) is meegegeven, weeg die mee: bij state 'fatigued', lage readiness, weinig slaap of verhoogde rust-hartslag plan je voorzichtiger — stel zware blokken (threshold/vo2max/anaerobic) uit of vervang ze door endurance/herstel, en benoem dit kort in cautions. Bij state 'fresh' mag een zwaardere sleutelsessie.",
   ].join("\n");
 }
 

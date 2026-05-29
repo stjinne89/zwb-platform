@@ -90,7 +90,12 @@ export async function POST(request: Request) {
           { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
         );
 
-        const prompt = `${defaultTrainingPrompt()}\n\nMaak een dagelijkse aanpassing als concept. Behoud alleen toekomstige workouts, verlaag of verhoog belasting voorzichtig op basis van wat de renner gisteren deed.`;
+        const { wellnessForAi } = await import("@/lib/training/wellness");
+        const wellness = await wellnessForAi(admin, plan.profile_id).catch(
+          () => null,
+        );
+
+        const prompt = `${defaultTrainingPrompt()}\n\nMaak een dagelijkse aanpassing als concept. Behoud alleen toekomstige workouts, verlaag of verhoog belasting voorzichtig op basis van wat de renner gisteren deed en de actuele herstel-data.`;
         const ai = await generateTrainingPlanDraft(
           {
             athleteName: profile.display_name ?? "ZWB-lid",
@@ -111,6 +116,17 @@ export async function POST(request: Request) {
               zrlCategory: profile.zrl_category ?? null,
             },
             recentLoad: recent,
+            wellness: wellness
+              ? {
+                  days: wellness.days,
+                  state: wellness.state,
+                  restingHr: wellness.restingHr,
+                  hrv: wellness.hrv,
+                  sleepHours: wellness.sleepHours,
+                  readiness: wellness.readiness,
+                  note: wellness.note,
+                }
+              : null,
           },
           prompt,
         );

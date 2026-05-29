@@ -62,6 +62,17 @@ export type IntervalsWellness = {
   atl_load?: number;
   weight?: number;
   eftp?: number;
+  // Herstel-velden (alleen gevuld als de athlete ze logt/synct in intervals.icu).
+  restingHR?: number | null;
+  hrv?: number | null; // rMSSD
+  hrvSDNN?: number | null;
+  sleepSecs?: number | null;
+  sleepScore?: number | null;
+  readiness?: number | null;
+  fatigue?: number | null;
+  stress?: number | null;
+  soreness?: number | null;
+  mood?: number | null;
 };
 
 export type IntervalsEvent = {
