@@ -20,6 +20,7 @@ import { Markdown } from "@/components/markdown";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { ClubStats } from "./_components/club-stats";
 import { PhotoNudge } from "./_components/photo-nudge";
+import { SponsorCarousel } from "./_components/sponsor-carousel";
 
 const CYCLING_SPORTS = [
   "Ride",
@@ -253,6 +254,7 @@ export default async function DashboardPage() {
     { data: standingRows },
     { data: clubActivities },
     { data: awardRows },
+    { data: sponsorRows },
   ] = await Promise.all([
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
@@ -315,6 +317,13 @@ export default async function DashboardPage() {
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),
+    supabase
+      .from("sponsors")
+      .select("name, logo_url, website_url")
+      .eq("active", true)
+      .not("logo_url", "is", null)
+      .order("tier")
+      .order("display_order"),
   ]);
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
@@ -329,6 +338,19 @@ export default async function DashboardPage() {
   const standings = latestStandings((standingRows ?? []) as unknown as TeamStanding[]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
+  const carouselSponsors = (
+    (sponsorRows ?? []) as {
+      name: string;
+      logo_url: string | null;
+      website_url: string | null;
+    }[]
+  )
+    .filter((s) => s.logo_url)
+    .map((s) => ({
+      name: s.name,
+      logoUrl: s.logo_url as string,
+      websiteUrl: s.website_url,
+    }));
   const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
     .trim()
     .split(/\s+/)[0];
@@ -674,6 +696,10 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {carouselSponsors.length > 0 && (
+        <SponsorCarousel sponsors={carouselSponsors} />
+      )}
     </div>
   );
 }
