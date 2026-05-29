@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Clock, Gauge, MapPin, Route } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
@@ -248,6 +249,7 @@ export function EventLiveTicker({
    */
   pollUrl?: string;
 }) {
+  const router = useRouter();
   const [sessions, setSessions] = useState(initialSessions);
   const [points, setPoints] = useState<GpxPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -259,6 +261,27 @@ export function EventLiveTicker({
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
   const activeIds = useMemo(() => new Set(sessions.map((s) => s.id)), [sessions]);
   const routeStats = useMemo(() => buildRouteStats(points), [points]);
+
+  // Gedebouncede her-fetch (alleen relevant in realtime-modus) — voorkomt een
+  // refresh-storm en haalt de verse sessie-/positie-snapshot op na een event.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) return;
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      router.refresh();
+    }, 1200);
+  }, [router]);
+
+  // Realtime-modus: synchroniseer verse server-props (na router.refresh) naar
+  // state. De snapshot bevat de recente posities, dus realtime-inserts tussen
+  // refreshes door blijven correct.
+  useEffect(() => {
+    if (pollUrl) return;
+    setSessions(initialSessions);
+    setMarkers(latestMarkers(initialSessions, initialPositions));
+    setNow(Date.now());
+  }, [pollUrl, initialSessions, initialPositions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -284,7 +307,8 @@ export function EventLiveTicker({
   }, []);
 
   useEffect(() => {
-    // Polling-mode (publiek): elke 10s een verse snapshot ophalen.
+    // Polling-mode (publiek): elke 10s een verse snapshot ophalen + meteen bij
+    // terugkeren naar de tab.
     if (pollUrl) {
       let cancelled = false;
       async function fetchSnapshot() {
@@ -304,14 +328,21 @@ export function EventLiveTicker({
         }
       }
       const id = setInterval(fetchSnapshot, 10_000);
+      const onVisible = () => {
+        if (document.visibilityState === "visible") fetchSnapshot();
+      };
+      document.addEventListener("visibilitychange", onVisible);
       return () => {
         cancelled = true;
         clearInterval(id);
+        document.removeEventListener("visibilitychange", onVisible);
       };
     }
 
-    // Realtime-mode (members): subscribe op postgres_changes.
+    // Realtime-mode (members): subscribe op postgres_changes + zelfherstel via
+    // periodieke her-fetch, visibilitychange en reconnect-catch-up.
     const supabase = createClient();
+    let cancelled = false;
     const channel = supabase
       .channel("event-live-ticker")
       .on(
@@ -320,7 +351,12 @@ export function EventLiveTicker({
         (payload) => {
           const row = payload.new as EventLivePosition;
           const session = sessionById.get(row.session_id);
-          if (!session) return;
+          // Onbekende sessie (nieuwe rider of na een herstart)? Verse snapshot
+          // ophalen zodat de rider verschijnt i.p.v. genegeerd te worden.
+          if (!session) {
+            scheduleRefresh();
+            return;
+          }
           setMarkers((prev) => {
             const next = new Map(prev);
             next.set(row.session_id, {
@@ -342,25 +378,32 @@ export function EventLiveTicker({
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "live_sessions" },
-        (payload) => {
-          const row = payload.new as { id: string; ended_at: string | null };
-          if (!activeIds.has(row.id)) return;
-          if (row.ended_at) {
-            setMarkers((prev) => {
-              const next = new Map(prev);
-              next.delete(row.id);
-              return next;
-            });
-          }
+        { event: "*", schema: "public", table: "live_sessions" },
+        () => {
+          // Elke sessie-wijziging (start/stop/stale-end) → snapshot verversen.
+          scheduleRefresh();
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED" && !cancelled) scheduleRefresh();
+      });
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") router.refresh();
+    }, 30_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      cancelled = true;
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [pollUrl, activeIds, sessionById]);
+  }, [pollUrl, activeIds, sessionById, scheduleRefresh, router]);
 
   if (error) {
     return (
