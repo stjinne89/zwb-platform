@@ -161,6 +161,7 @@ export default async function MarketplacePage({
                     {author} -{" "}
                     {new Date(p.created_at).toLocaleDateString("nl-NL", {
                       dateStyle: "medium",
+                      timeZone: "Europe/Amsterdam",
                     })}
                     {likes > 0 ? ` - ${likes} likes` : ""}
                     {comments > 0 ? ` - ${comments} reacties` : ""}

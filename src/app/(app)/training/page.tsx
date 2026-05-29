@@ -597,6 +597,7 @@ function WorkoutList({
                   weekday: "short",
                   day: "numeric",
                   month: "short",
+                  timeZone: "Europe/Amsterdam",
                 })}
               </span>
               <div className="min-w-0">
@@ -867,7 +868,7 @@ function CoachWorkspace({
                     <p className="font-medium">{goal.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
-                      {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL")}` : ""}
+                      {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
                       {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
                     </p>
                     <form action={formAction(generateAiDraft)} className="mt-3 space-y-2">
@@ -910,7 +911,7 @@ function CoachWorkspace({
                 {athleteActivities.slice(0, 5).map((activity) => (
                   <li key={activity.id} className="grid gap-2 p-4 sm:grid-cols-[90px_1fr_auto] sm:items-center">
                     <span className="text-xs text-muted-foreground">
-                      {new Date(activity.start_date).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}
+                      {new Date(activity.start_date).toLocaleDateString("nl-NL", { day: "numeric", month: "short", timeZone: "Europe/Amsterdam" })}
                     </span>
                     <p className="truncate text-sm font-medium">{activity.name ?? "Rit"}</p>
                     <span className="text-xs text-muted-foreground">
@@ -934,7 +935,7 @@ function CoachWorkspace({
               {upcomingZwbWorkouts.map((workout) => (
                 <li key={workout.id} className="grid gap-2 p-4 sm:grid-cols-[110px_1fr_auto] sm:items-center">
                   <span className="text-xs text-muted-foreground">
-                    {new Date(workout.scheduled_at).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })}
+                    {new Date(workout.scheduled_at).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Amsterdam" })}
                   </span>
                   <p className="truncate text-sm font-medium">{workout.title}</p>
                   <span className="text-xs text-muted-foreground">
@@ -1603,7 +1604,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   <p className="font-medium">{goal.title}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
-                    {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL")}` : ""}
+                    {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
                     {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
                   </p>
                 </li>
@@ -1631,6 +1632,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                         weekday: "short",
                         day: "numeric",
                         month: "short",
+                        timeZone: "Europe/Amsterdam",
                       })}
                     </span>
                     <div className="min-w-0">
@@ -1702,7 +1704,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   <div>
                     <h3 className="font-semibold">{plan.title}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(plan.start_date).toLocaleDateString("nl-NL")} - {new Date(plan.end_date).toLocaleDateString("nl-NL")}
+                      {new Date(plan.start_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })} - {new Date(plan.end_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}
                     </p>
                   </div>
                   <PlanBadge status={plan.status} />

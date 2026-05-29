@@ -102,6 +102,7 @@ export function OwnTracksPanel({
               ? new Date(tokenStatus.last_seen_at).toLocaleString("nl-NL", {
                   dateStyle: "short",
                   timeStyle: "short",
+                  timeZone: "Europe/Amsterdam",
                 })
               : "Nog niets ontvangen"}
           </p>
@@ -114,6 +115,7 @@ export function OwnTracksPanel({
             {tokenStatus
               ? new Date(tokenStatus.created_at).toLocaleDateString("nl-NL", {
                   dateStyle: "medium",
+                  timeZone: "Europe/Amsterdam",
                 })
               : "-"}
           </p>

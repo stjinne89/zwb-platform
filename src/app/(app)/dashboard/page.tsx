@@ -368,6 +368,7 @@ export default async function DashboardPage() {
                       {author} -{" "}
                       {new Date(item.published_at).toLocaleDateString("nl-NL", {
                         dateStyle: "medium",
+                        timeZone: "Europe/Amsterdam",
                       })}
                     </span>
                   </div>
@@ -461,6 +462,7 @@ export default async function DashboardPage() {
                             benefit.valid_until,
                           ).toLocaleDateString("nl-NL", {
                             dateStyle: "medium",
+                            timeZone: "Europe/Amsterdam",
                           })}`
                         : ""}
                     </p>
@@ -596,6 +598,7 @@ export default async function DashboardPage() {
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "Europe/Amsterdam",
                     })}
                     {activity.trainer ? " - trainer" : ""}
                   </p>
@@ -660,6 +663,7 @@ export default async function DashboardPage() {
                         {award.award_scope === "weekly" ? "Week van " : ""}
                         {new Date(award.period_start).toLocaleDateString("nl-NL", {
                           dateStyle: "medium",
+                          timeZone: "Europe/Amsterdam",
                         })}
                       </p>
                     </div>

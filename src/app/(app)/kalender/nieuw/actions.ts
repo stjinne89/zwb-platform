@@ -80,6 +80,7 @@ export async function createEvent(input: EventInput) {
       month: "long",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "Europe/Amsterdam",
     });
     await sendNotificationToMembers(
       "on_new_event",

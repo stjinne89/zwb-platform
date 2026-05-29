@@ -457,6 +457,7 @@ export async function RiderStats({
               value={new Date(firstRide.start_date).toLocaleDateString("nl-NL", {
                 month: "short",
                 year: "numeric",
+                timeZone: "Europe/Amsterdam",
               })}
             />
           )}
@@ -503,9 +504,10 @@ function formatSpeed(activity: ActivityRow): string {
 
 function formatMonthLabel(yearMonth: string): string {
   const [y, m] = yearMonth.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString("nl-NL", {
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("nl-NL", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -547,6 +549,7 @@ function BestRow({
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Europe/Amsterdam",
   });
   return (
     <li className="flex flex-col gap-0.5 rounded-md border bg-background p-2.5">

@@ -167,6 +167,7 @@ function Lightbox({
                   day: "numeric",
                   month: "short",
                   year: "numeric",
+                  timeZone: "Europe/Amsterdam",
                 })}
               </>
             )}

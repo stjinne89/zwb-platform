@@ -147,6 +147,7 @@ export default async function LedenPage() {
                     {new Date(p.created_at).toLocaleString("nl-NL", {
                       dateStyle: "medium",
                       timeStyle: "short",
+                      timeZone: "Europe/Amsterdam",
                     })}
                   </p>
                 </div>

@@ -85,6 +85,7 @@ export default async function PostDetailPage({
           {authorName} -{" "}
           {new Date(post.created_at).toLocaleDateString("nl-NL", {
             dateStyle: "long",
+            timeZone: "Europe/Amsterdam",
           })}
         </p>
         {post.tags && post.tags.length > 0 && (
@@ -146,6 +147,7 @@ export default async function PostDetailPage({
                         {new Date(c.created_at).toLocaleString("nl-NL", {
                           dateStyle: "short",
                           timeStyle: "short",
+                          timeZone: "Europe/Amsterdam",
                         })}
                       </p>
                       <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>

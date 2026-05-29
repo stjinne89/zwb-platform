@@ -321,6 +321,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
           value={formatMeters(totalElevation)}
           detail={`Week vanaf ${new Date(week).toLocaleDateString("nl-NL", {
             dateStyle: "medium",
+            timeZone: "Europe/Amsterdam",
           })}`}
           icon={Mountain}
         />
@@ -395,6 +396,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
                       Week van{" "}
                       {new Date(award.period_start).toLocaleDateString("nl-NL", {
                         dateStyle: "medium",
+                        timeZone: "Europe/Amsterdam",
                       })}
                     </p>
                   </div>
