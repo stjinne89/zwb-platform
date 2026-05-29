@@ -39,6 +39,17 @@ type Report = {
   thumbs: string[]; // public URLs
 };
 
+function amsterdamDateKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 export default async function RitverslagenPage() {
   const supabase = await createClient();
   const {
@@ -46,29 +57,41 @@ export default async function RitverslagenPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Recente foto's ophalen en per event groeperen.
-  const { data: photoRows } = await supabase
-    .from("event_photos")
-    .select("event_id, profile_id, storage_path, created_at")
-    .order("created_at", { ascending: false })
-    .limit(600);
+  // Voorbije events (dag vóór vandaag) verhuizen hierheen. Vandaag + toekomst
+  // staan op de kalender.
+  const todayKey = amsterdamDateKey(new Date());
+  const { data: eventRows } = await supabase
+    .from("events")
+    .select("id, title, type, start_at, location, distance_km, elevation_m")
+    .order("start_at", { ascending: false })
+    .limit(150);
 
-  const photos = (photoRows ?? []) as PhotoRow[];
-  if (photos.length === 0) {
+  const pastEvents = ((eventRows ?? []) as EventRow[]).filter(
+    (e) => amsterdamDateKey(new Date(e.start_at)) < todayKey,
+  );
+
+  if (pastEvents.length === 0) {
     return (
       <div className="space-y-6">
         <PageHeader
           eyebrow="ZWB"
           title="Ritverslagen"
-          description="Foto-verslagen van gereden events — automatisch gebundeld zodra leden foto's toevoegen."
+          description="Voorbije events met hun foto's — voeg foto's toe op de event-pagina."
         />
-        <EmptyState>
-          Nog geen ritverslagen. Voeg foto&apos;s toe op een event-pagina en ze
-          verschijnen hier als verslag.
-        </EmptyState>
+        <EmptyState>Nog geen voorbije events.</EmptyState>
       </div>
     );
   }
+
+  // Foto's voor de voorbije events ophalen en per event groeperen.
+  const eventIds = pastEvents.map((e) => e.id);
+  const { data: photoRows } = await supabase
+    .from("event_photos")
+    .select("event_id, profile_id, storage_path, created_at")
+    .in("event_id", eventIds)
+    .order("created_at", { ascending: false });
+
+  const photos = (photoRows ?? []) as PhotoRow[];
 
   type Agg = {
     count: number;
@@ -88,41 +111,27 @@ export default async function RitverslagenPage() {
     byEvent.set(p.event_id, agg);
   }
 
-  const eventIds = Array.from(byEvent.keys());
-  const { data: eventRows } = await supabase
-    .from("events")
-    .select("id, title, type, start_at, location, distance_km, elevation_m")
-    .in("id", eventIds);
-
-  const eventById = new Map(
-    ((eventRows ?? []) as EventRow[]).map((e) => [e.id, e]),
-  );
-
-  const reports: Report[] = eventIds
-    .map((id) => {
-      const event = eventById.get(id);
-      const agg = byEvent.get(id)!;
-      if (!event) return null;
-      return {
-        event,
-        photoCount: agg.count,
-        contributors: agg.contributors.size,
-        thumbs: agg.paths.map(
-          (path) =>
-            supabase.storage.from("event-photos").getPublicUrl(path).data
-              .publicUrl,
-        ),
-      };
-    })
-    .filter((r): r is Report => r !== null)
-    .sort((a, b) => b.event.start_at.localeCompare(a.event.start_at));
+  // Reports voor álle voorbije events (ook zonder foto's), nieuwste rit eerst.
+  const reports: Report[] = pastEvents.map((event) => {
+    const agg = byEvent.get(event.id);
+    return {
+      event,
+      photoCount: agg?.count ?? 0,
+      contributors: agg?.contributors.size ?? 0,
+      thumbs: (agg?.paths ?? []).map(
+        (path) =>
+          supabase.storage.from("event-photos").getPublicUrl(path).data
+            .publicUrl,
+      ),
+    };
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="ZWB"
         title="Ritverslagen"
-        description="Foto-verslagen van gereden events — automatisch gebundeld zodra leden foto's toevoegen."
+        description="Voorbije events met hun foto's — voeg foto's toe op de event-pagina zodat het verslag compleet wordt."
       />
 
       <ul className="grid gap-4 md:grid-cols-2">
@@ -153,8 +162,9 @@ export default async function RitverslagenPage() {
                     />
                   ))}
                   {report.thumbs.length === 0 && (
-                    <div className="col-span-3 flex aspect-[12/3] items-center justify-center text-muted-foreground">
-                      <Camera className="size-6" />
+                    <div className="col-span-3 flex aspect-[12/3] items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Camera className="size-5" />
+                      Nog geen foto&apos;s
                     </div>
                   )}
                 </div>

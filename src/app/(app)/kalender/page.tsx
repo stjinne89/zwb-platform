@@ -32,16 +32,22 @@ async function getActiveCutoffIso() {
 
 export default async function KalenderPage() {
   const supabase = await createClient();
-  const { data: events } = await supabase
+  const { data: allEvents } = await supabase
     .from("events")
     .select("id, title, type, start_at, location, distance_km, elevation_m")
     .order("start_at", { ascending: true });
 
   const todayKey = amsterdamDateKey(new Date());
-  const todayEventIds =
-    events
-      ?.filter((event) => amsterdamDateKey(new Date(event.start_at)) === todayKey)
-      .map((event) => event.id) ?? [];
+  // Alleen vandaag + toekomstige events op de kalender — voorbije events
+  // verhuizen naar /ritverslagen. Zo staat het event van vandaag (of het
+  // eerstvolgende) bovenaan.
+  const events = (allEvents ?? []).filter(
+    (event) => amsterdamDateKey(new Date(event.start_at)) >= todayKey,
+  );
+  const pastCount = (allEvents?.length ?? 0) - events.length;
+  const todayEventIds = events
+    .filter((event) => amsterdamDateKey(new Date(event.start_at)) === todayKey)
+    .map((event) => event.id);
   const liveCountsByEvent = new Map<string, number>();
 
   if (todayEventIds.length > 0) {
@@ -84,8 +90,19 @@ export default async function KalenderPage() {
         }
       />
 
-      {!events || events.length === 0 ? (
-        <EmptyState>Geen events.</EmptyState>
+      {events.length === 0 ? (
+        <EmptyState>
+          Geen aankomende events.
+          {pastCount > 0 && (
+            <>
+              {" "}
+              <Link href="/ritverslagen" className="underline">
+                Bekijk voorbije ritten
+              </Link>
+              .
+            </>
+          )}
+        </EmptyState>
       ) : (
         <ul className="space-y-2">
           {events.map((event) => {
@@ -133,6 +150,14 @@ export default async function KalenderPage() {
             );
           })}
         </ul>
+      )}
+
+      {events.length > 0 && pastCount > 0 && (
+        <p className="text-sm text-muted-foreground">
+          <Link href="/ritverslagen" className="font-medium text-primary hover:underline">
+            Voorbije ritten ({pastCount}) →
+          </Link>
+        </p>
       )}
     </div>
   );
