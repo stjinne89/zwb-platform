@@ -475,5 +475,63 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 - ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
   scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
   reduced-motion-safe), logo's linken naar de sponsor-site.
-- **E2E chat** — alleen bij expliciete vraag van bestuur.
-- **Mollie iDEAL** — alleen bij expliciete vraag van bestuur.
+- **E2E chat** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
+- **Mollie iDEAL** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
+
+---
+
+## Onderzoek (iteratie-ronde 2) — Mollie & E2E-chat
+
+Beide zijn deze ronde alléén onderzocht; nog niet gebouwd.
+
+### Mollie (contributie/betalingen)
+
+**Haalbaarheid: hoog.** `MOLLIE_API_KEY` staat al in `.env.local.example`.
+
+Ontwerp:
+- Migratie `payments` (id, profile_id, mollie_payment_id, amount_cents,
+  currency, description, status [open/paid/failed/expired/refunded], kind
+  [contributie/los/merch], created_at, paid_at). RLS: lid leest eigen; writes
+  via service-role.
+- Server-action `createPayment(amount, kind)` → Mollie Payments API
+  (`POST /v2/payments`, iDEAL/alle NL-methoden), `redirectUrl` →
+  `/betalingen/return`, `webhookUrl` → `/api/mollie/webhook`. Bewaar
+  `mollie_payment_id` + status `open`.
+- Webhook-route `/api/mollie/webhook` (geen Bearer — Mollie post alleen het
+  payment-id; status verifiëren via een GET naar Mollie met de API-key, nooit
+  de POST-body vertrouwen). Update `payments.status` + `paid_at`.
+- Jaarcontributie: óf losse Payments per jaar, óf Mollie **Subscriptions**
+  (vereist eerst een `customer` + eerste mandaat-betaling) voor automatische
+  incasso. Aanrader v1: losse jaarlijkse Payment-link (simpeler, geen
+  mandaat-administratie).
+- UI: `/betalingen` (eigen status + "Betaal contributie"-knop) + admin-
+  overzicht wie betaald heeft.
+- Schatting: ~1 migratie + 1 webhook-route + 1 server-action + 2 pagina's
+  = vergelijkbaar met de uitslagen-scraper qua omvang.
+
+### E2E-chat
+
+**Kernconclusie: geschiedenis-behoud (WhatsApp-import) en échte E2E zijn
+grotendeels onverenigbaar.** Kies dus eerst het doel.
+
+- WhatsApp `.txt`-import is parsebaar maar verliesgevoelig (locale-afhankelijk
+  formaat, multiline-berichten, zwakke afzender-identiteit = fuzzy mapping,
+  geen message-IDs/reacties/edits, media inconsistent, lokale tijd zonder
+  zone). En het is **onverenigbaar met écht E2E**: de server/importeur zou
+  platte tekst versleutelen namens auteurs zónder hun privésleutels → altijd
+  plaintext-opslag of schijn-E2E; auteurschap niet te bewijzen. Plus
+  **AVG/consent-risico**: andermans berichten importeren zonder expliciete
+  groeps-toestemming.
+- Opties:
+  - **(A)** WhatsApp-deeplinks behouden (huidige situatie) — nul risico/verlies,
+    nul onderhoud. *Aanrader als er geen sterke vraag is.*
+  - **(B)** Niet-E2E **Supabase-Realtime clubchat** vooruit (relatief simpel:
+    `chat_rooms`/`chat_messages` + RLS + Realtime) + optioneel een apart,
+    duidelijk gelabeld read-only "WhatsApp-archief" (met vooraf groeps-
+    toestemming, best-effort naam-matching). *Aanrader als historie-behoud +
+    eigen chat zwaarder wegen dan vertrouwelijkheid.*
+  - **(C)** Echte E2E (Matrix/Synapse self-hosted, of libsignal) — zware bouw,
+    alleen nieuwe berichten versleuteld; oude historie niet in de versleutelde
+    store. Alleen bij harde vertrouwelijkheidseis.
+- Schatting: (A) nul, (B) middelgroot (1 migratie + realtime-UI), (C) groot
+  (server-infra + key-management).

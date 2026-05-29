@@ -169,7 +169,7 @@ export default async function RitverslagenPage() {
       <PageHeader
         eyebrow="ZWB"
         title="Ritverslagen"
-        description="Voorbije events met hun foto's — voeg foto's toe op de event-pagina zodat het verslag compleet wordt."
+        description="Voorbije ritten met foto's en verslagen."
       />
 
       <ul className="grid gap-4 md:grid-cols-2">
