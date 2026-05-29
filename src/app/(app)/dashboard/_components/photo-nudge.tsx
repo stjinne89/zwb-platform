@@ -87,6 +87,7 @@ export async function PhotoNudge({ userId }: { userId: string }) {
                 <p className="text-xs text-muted-foreground">
                   {new Date(event.start_at).toLocaleDateString("nl-NL", {
                     dateStyle: "medium",
+                    timeZone: "Europe/Amsterdam",
                   })}
                   {event.location ? ` · ${event.location}` : ""}
                 </p>

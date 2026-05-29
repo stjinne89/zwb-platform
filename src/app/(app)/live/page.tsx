@@ -130,6 +130,7 @@ export default async function LivePage() {
                           {new Date(s.started_at).toLocaleTimeString("nl-NL", {
                             hour: "2-digit",
                             minute: "2-digit",
+                            timeZone: "Europe/Amsterdam",
                           })}
                         </p>
                       </div>

@@ -126,6 +126,7 @@ export default async function KalenderPage() {
                     {new Date(event.start_at).toLocaleString("nl-NL", {
                       dateStyle: "full",
                       timeStyle: "short",
+                      timeZone: "Europe/Amsterdam",
                     })}
                     {event.location ? ` · ${event.location}` : ""}
                     {event.distance_km ? ` · ${event.distance_km} km` : ""}

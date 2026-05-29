@@ -499,6 +499,7 @@ export default async function DashboardPage() {
                       {new Date(event.start_at).toLocaleString("nl-NL", {
                         dateStyle: "full",
                         timeStyle: "short",
+                        timeZone: "Europe/Amsterdam",
                       })}
                       {event.location ? ` - ${event.location}` : ""}
                     </p>

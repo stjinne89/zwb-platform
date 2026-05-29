@@ -191,6 +191,7 @@ export default async function RitverslagenPage() {
                       <CalendarDays className="size-3.5" />
                       {new Date(event.start_at).toLocaleDateString("nl-NL", {
                         dateStyle: "long",
+                        timeZone: "Europe/Amsterdam",
                       })}
                     </span>
                     {event.location && (
