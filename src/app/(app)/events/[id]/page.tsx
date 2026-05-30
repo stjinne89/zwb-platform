@@ -452,6 +452,7 @@ export default async function EventDetailPage({
         (eventIsToday ? (
           <EventLiveTicker
             gpxUrl={gpxUrl}
+            eventStartAt={event.start_at}
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
           />

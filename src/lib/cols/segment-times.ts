@@ -39,7 +39,6 @@ type DetailedActivity = {
   segment_efforts?: SegmentEffort[] | null;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchAllActivitiesWithEffortsFlag(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Mountain, Trophy, Repeat, Calendar } from "lucide-react";
+import { ArrowLeft, Mountain, Trophy, Repeat } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 // Cols-collectie: alle cols in de database vs. wat de huidige gebruiker

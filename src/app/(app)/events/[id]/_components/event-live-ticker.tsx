@@ -204,17 +204,42 @@ function formatKmh(value: number | null) {
   return `${value.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km/u`;
 }
 
+function validTime(value: string | null | undefined) {
+  const time = value ? new Date(value).getTime() : NaN;
+  return Number.isFinite(time) ? time : null;
+}
+
+function isoFromTime(time: number) {
+  return new Date(time).toISOString();
+}
+
+function baseStartTime(session: EventLiveSession, eventStartAt?: string) {
+  const sessionStart = validTime(session.startedAt) ?? Date.now();
+  const eventStart = validTime(eventStartAt);
+  return eventStart ? Math.max(sessionStart, eventStart) : sessionStart;
+}
+
 function latestMarkers(
   sessions: EventLiveSession[],
   positions: EventLivePosition[],
+  eventStartAt?: string,
 ) {
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
   const bySession = new Map<string, Marker>();
+  const activeSinceBySession = new Map<string, number>();
 
   for (const p of positions) {
-    if (bySession.has(p.session_id)) continue;
     const session = sessionById.get(p.session_id);
     if (!session) continue;
+    const baseStart = baseStartTime(session, eventStartAt);
+    const recordedAt = validTime(p.recorded_at);
+    if (recordedAt !== null && recordedAt >= baseStart) {
+      activeSinceBySession.set(
+        p.session_id,
+        Math.min(activeSinceBySession.get(p.session_id) ?? recordedAt, recordedAt),
+      );
+    }
+    if (bySession.has(p.session_id)) continue;
     bySession.set(p.session_id, {
       sessionId: p.session_id,
       profileId: p.profile_id,
@@ -225,8 +250,13 @@ function latestMarkers(
       altitude: toNumber(p.altitude),
       speedKmh: toNumber(p.speed_kmh),
       recordedAt: p.recorded_at,
-      startedAt: session.startedAt,
+      startedAt: isoFromTime(activeSinceBySession.get(p.session_id) ?? baseStart),
     });
+  }
+
+  for (const [sessionId, activeSince] of activeSinceBySession) {
+    const marker = bySession.get(sessionId);
+    if (marker) marker.startedAt = isoFromTime(activeSince);
   }
 
   return bySession;
@@ -234,11 +264,13 @@ function latestMarkers(
 
 export function EventLiveTicker({
   gpxUrl,
+  eventStartAt,
   sessions: initialSessions,
   initialPositions,
   pollUrl,
 }: {
   gpxUrl: string;
+  eventStartAt: string;
   sessions: EventLiveSession[];
   initialPositions: EventLivePosition[];
   /**
@@ -255,7 +287,7 @@ export function EventLiveTicker({
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [markers, setMarkers] = useState(() =>
-    latestMarkers(initialSessions, initialPositions),
+    latestMarkers(initialSessions, initialPositions, eventStartAt),
   );
 
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
@@ -278,10 +310,12 @@ export function EventLiveTicker({
   // refreshes door blijven correct.
   useEffect(() => {
     if (pollUrl) return;
+    // Sync verse server-snapshot na router.refresh; dit is de bron voor sessies/posities.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSessions(initialSessions);
-    setMarkers(latestMarkers(initialSessions, initialPositions));
+    setMarkers(latestMarkers(initialSessions, initialPositions, eventStartAt));
     setNow(Date.now());
-  }, [pollUrl, initialSessions, initialPositions]);
+  }, [pollUrl, initialSessions, initialPositions, eventStartAt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -321,7 +355,7 @@ export function EventLiveTicker({
           };
           if (cancelled) return;
           setSessions(data.sessions);
-          setMarkers(latestMarkers(data.sessions, data.positions));
+          setMarkers(latestMarkers(data.sessions, data.positions, eventStartAt));
           setNow(Date.now());
         } catch {
           // stilzwijgend; volgende poll probeert opnieuw
@@ -359,6 +393,11 @@ export function EventLiveTicker({
           }
           setMarkers((prev) => {
             const next = new Map(prev);
+            const previous = next.get(row.session_id);
+            const baseStart = baseStartTime(session, eventStartAt);
+            const recordedAt = validTime(row.recorded_at);
+            const firstLivePoint =
+              recordedAt !== null && recordedAt >= baseStart ? recordedAt : baseStart;
             next.set(row.session_id, {
               sessionId: row.session_id,
               profileId: row.profile_id,
@@ -369,7 +408,7 @@ export function EventLiveTicker({
               altitude: toNumber(row.altitude),
               speedKmh: toNumber(row.speed_kmh),
               recordedAt: row.recorded_at,
-              startedAt: session.startedAt,
+              startedAt: previous?.startedAt ?? isoFromTime(firstLivePoint),
             });
             return next;
           });
@@ -403,7 +442,7 @@ export function EventLiveTicker({
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [pollUrl, activeIds, sessionById, scheduleRefresh, router]);
+  }, [pollUrl, activeIds, sessionById, scheduleRefresh, router, eventStartAt]);
 
   if (error) {
     return (

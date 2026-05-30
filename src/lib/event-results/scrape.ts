@@ -683,7 +683,7 @@ async function scrapeRaceResult(
     .replace(/^#/, "")
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean);
-  let target =
+  const target =
     lists.find((l) => l.ID && hashIds.includes(String(l.ID))) ||
     lists.find((l) =>
       /overall|scratch|gesamt|\bges\b|by name/i.test(

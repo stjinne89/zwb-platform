@@ -21,6 +21,8 @@ function eventOf(rel: RsvpRow["events"]) {
 
 export async function PhotoNudge({ userId }: { userId: string }) {
   const supabase = await createClient();
+  // Request-time window for server-rendered dashboard nudges.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const since = new Date(now - 14 * 86400_000).toISOString();
   const nowIso = new Date(now).toISOString();

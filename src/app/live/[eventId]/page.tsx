@@ -213,6 +213,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
       ) : (
         <EventLiveTicker
           gpxUrl={event.gpxUrl}
+          eventStartAt={event.start_at}
           sessions={sessions}
           initialPositions={positions}
           pollUrl={`/api/live/event/${event.id}`}
