@@ -69,6 +69,21 @@ export type TrainingAiInput = {
   } | null;
   /** Aankomende events/races waar het schema omheen moet plannen. */
   upcomingEvents?: Array<{ title: string; type: string; date: string }>;
+  /** Renner-signaal voor vandaag (dag-aanpassing): tijd + gevoel. */
+  today?: {
+    availableMinutes: number | null;
+    feeling: "tired" | "normal" | "fresh" | null;
+    note: string | null;
+  } | null;
+  /** Geplande workout van gisteren vs. wat de renner werkelijk deed. */
+  yesterday?: {
+    plannedTitle: string | null;
+    plannedMinutes: number | null;
+    plannedIntensity: string | null;
+    actualName: string | null;
+    actualMinutes: number | null;
+    actualLoad: number | null; // TSS/training load indien bekend
+  } | null;
 };
 
 const PLAN_SCHEMA = {
@@ -164,46 +179,59 @@ function outputText(response: unknown): string {
   );
 }
 
+// GPT-5.x / o-serie zijn reasoning-modellen die het `reasoning`-veld accepteren
+// op de Responses API; gpt-4.x niet. Zo blijft de env-override naar een ouder
+// model werken zonder 400.
+function isReasoningModel(model: string): boolean {
+  return /^(gpt-5|o[134])/i.test(model);
+}
+
 export async function generateTrainingPlanDraft(
   input: TrainingAiInput,
   promptText = defaultTrainingPrompt(),
+  options: { reasoningEffort?: "low" | "medium" | "high" } = {},
 ): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY ontbreekt. Zet deze in Netlify env om AI-drafts te maken.");
   }
 
-  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1";
+  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
   const promptSummary = JSON.stringify(input, null, 2);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestBody: Record<string, any> = {
+    model,
+    instructions: promptText,
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: `Maak een trainingsplan-concept op basis van deze intake en recente data:\n${promptSummary}`,
+          },
+        ],
+      },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "zwb_training_plan",
+        strict: true,
+        schema: PLAN_SCHEMA,
+      },
+    },
+  };
+  if (isReasoningModel(model)) {
+    requestBody.reasoning = { effort: options.reasoningEffort ?? "medium" };
+  }
   const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      instructions: promptText,
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: `Maak een trainingsplan-concept op basis van deze intake en recente data:\n${promptSummary}`,
-            },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "zwb_training_plan",
-          strict: true,
-          schema: PLAN_SCHEMA,
-        },
-      },
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!res.ok) {

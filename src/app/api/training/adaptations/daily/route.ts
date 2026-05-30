@@ -1,6 +1,7 @@
-import { defaultTrainingPrompt, generateTrainingPlanDraft } from "@/lib/training/ai";
+import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizeWorkoutBlocks } from "@/lib/training/workouts";
+import { adaptiveDailyPrompt, normalizeWorkoutBlocks } from "@/lib/training/workouts";
+import { buildYesterdayContext } from "@/lib/training/adapt-context";
 
 type PlanRow = {
   id: string;
@@ -94,8 +95,12 @@ export async function POST(request: Request) {
         const wellness = await wellnessForAi(admin, plan.profile_id).catch(
           () => null,
         );
+        const yesterday = await buildYesterdayContext(
+          admin,
+          plan.profile_id,
+          plan.id,
+        ).catch(() => null);
 
-        const prompt = `${defaultTrainingPrompt()}\n\nMaak een dagelijkse aanpassing als concept. Behoud alleen toekomstige workouts, verlaag of verhoog belasting voorzichtig op basis van wat de renner gisteren deed en de actuele herstel-data.`;
         const ai = await generateTrainingPlanDraft(
           {
             athleteName: profile.display_name ?? "ZWB-lid",
@@ -127,8 +132,10 @@ export async function POST(request: Request) {
                   note: wellness.note,
                 }
               : null,
+            yesterday,
           },
-          prompt,
+          adaptiveDailyPrompt(),
+          { reasoningEffort: "low" },
         );
 
         const { data: draft, error: draftError } = await admin

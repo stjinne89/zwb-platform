@@ -50,6 +50,7 @@ import {
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
 import { WellnessOptInToggle } from "./_components/wellness-optin-toggle";
+import { AdjustTodayForm } from "./_components/adjust-today-form";
 import {
   summarizeWellness,
   type WellnessSummary,
@@ -1490,6 +1491,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             ))}
         </section>
       )}
+
+      <AdjustTodayForm />
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border bg-card p-5">

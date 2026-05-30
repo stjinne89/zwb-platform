@@ -61,6 +61,25 @@ export function defaultTrainingPrompt() {
   ].join("\n");
 }
 
+// Adaptieve dag-prompt: bovenop de basisprincipes een expliciet beslis-raamwerk
+// voor een dagelijks flexibel schema. Veiligheids-bias: bij twijfel of bij
+// tegenstrijdige signalen kies je minder belasting (blessurepreventie).
+export function adaptiveDailyPrompt() {
+  return [
+    defaultTrainingPrompt(),
+    "",
+    "Dit is een DAGELIJKSE AANPASSING van een bestaand plan, geen nieuw plan.",
+    "Behoud de plan-intentie en periodisering richting het doel: wijzig alleen de workouts van vandaag en de komende dagen van deze week; laat de verdere toekomst ongemoeid.",
+    "Veiligheidsregel: bij twijfel, tegenstrijdige signalen of onvolledige data kies je de voorzichtigere optie (minder belasting). Leg elke aanpassing kort uit in cautions.",
+    "Pas het schema aan op basis van de meegegeven signalen, volgens dit beslis-raamwerk:",
+    "1) Workout zwaarder uitgevallen (yesterday.actualLoad/actualMinutes duidelijk hoger dan gepland): maak de eerstvolgende sessie(s) lichter of vervang door herstel/endurance; voorkom opstapeling van vermoeidheid.",
+    "2) Te moe (today.feeling='tired', lage readiness, hoge ATL of verhoogde rust-HR): verlaag duur en intensiteit; vervang een sleutelsessie (threshold/vo2max/anaerobic) door endurance, hersteltraining of rust. Forceer geen kwaliteit.",
+    "3) Geen/weinig tijd vandaag (today.availableMinutes lager dan de geplande duur): comprimeer de sessie tot binnen de beschikbare tijd — behoud zo veel mogelijk de kernprikkel in een kortere vorm, of verschuif de sleutelsessie en plan vandaag een korte onderhoudsrit. Overschrijd de beschikbare minuten nooit.",
+    "4) Frisser dan verwacht (today.feeling='fresh', hoge readiness, positieve TSB): je mág kwaliteit toevoegen of een sessie iets zwaarder maken, maar blijf binnen de weeklimiet en ga niet ten koste van de volgende geplande sleutelsessie.",
+    "Combineer signalen verstandig (bv. fris maar weinig tijd = korte, scherpe sessie). Geef altijd een concreet, uitvoerbaar voorstel voor vandaag.",
+  ].join("\n");
+}
+
 function asIntensity(value: unknown, fallback: WorkoutIntensity): WorkoutIntensity {
   const text = String(value ?? "").toLowerCase();
   return (WORKOUT_INTENSITIES as readonly string[]).includes(text) ? (text as WorkoutIntensity) : fallback;
