@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { EventLiveTicker } from "@/app/(app)/events/[id]/_components/event-live-ticker";
+import { EventChat, type ChatMessage } from "@/app/(app)/events/[id]/_components/event-chat";
 import { WindSummary } from "@/app/(app)/events/[id]/_components/wind-summary";
 import { fetchEventLiveSnapshot } from "@/lib/live/event-snapshot";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchWindForecast } from "@/lib/weather";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { ZwbMark } from "@/components/zwb-logo";
@@ -94,6 +96,41 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
   const startDate = new Date(event.start_at);
   const startLabel = formatStartLabel(startDate);
 
+  // Publieke live-chat: initiële niet-interne berichten.
+  let initialChat: ChatMessage[] = [];
+  if (event.isToday) {
+    const admin = createAdminClient();
+    const { data: chatRows } = await admin
+      .from("event_chat_messages")
+      .select("id, profile_id, guest_name, body, created_at, profiles(display_name)")
+      .eq("event_id", event.id)
+      .eq("internal_only", false)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    initialChat = ((chatRows ?? []) as Array<{
+      id: string;
+      profile_id: string | null;
+      guest_name: string | null;
+      body: string;
+      created_at: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      profiles: any;
+    }>)
+      .map((r) => {
+        const prof = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+        return {
+          id: r.id,
+          profileId: r.profile_id,
+          name: r.profile_id ? prof?.display_name || "ZWB'er" : r.guest_name || "Gast",
+          isGuest: !r.profile_id,
+          body: r.body,
+          createdAt: r.created_at,
+          internal: false,
+        };
+      })
+      .reverse();
+  }
+
   // Weer + headwind: alleen als we lat/lon hebben én de rit binnen het
   // 16-daags forecast-venster valt (Open-Meteo).
   const windForecast =
@@ -180,6 +217,23 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
           initialPositions={positions}
           pollUrl={`/api/live/event/${event.id}`}
         />
+      )}
+
+      {event.isToday && (
+        <>
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-center text-xs text-muted-foreground">
+            Dit is een <strong>openbare pagina</strong> — iedereen met de link
+            kan meelezen en meedoen in de chat.
+          </p>
+          <EventChat
+            eventId={event.id}
+            mode="poll"
+            currentUserId={null}
+            isMember={false}
+            isAdmin={false}
+            initialMessages={initialChat}
+          />
+        </>
       )}
 
       <footer className="border-t pt-4 text-center text-xs text-muted-foreground">

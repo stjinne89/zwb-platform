@@ -25,6 +25,7 @@ import {
   EventReports,
   type EventReport,
 } from "./_components/event-reports";
+import { EventChat, type ChatMessage } from "./_components/event-chat";
 import { EventPhotoUploader } from "./_components/photo-uploader";
 import {
   EventPhotoGallery,
@@ -337,6 +338,38 @@ export default async function EventDetailPage({
     }
   }
 
+  // Live-chat: initiële berichten (leden zien ook interne via RLS).
+  let initialChat: ChatMessage[] = [];
+  if (eventIsToday) {
+    const { data: chatRows } = await supabase
+      .from("event_chat_messages")
+      .select(
+        "id, profile_id, guest_name, body, internal_only, created_at, profiles(display_name)",
+      )
+      .eq("event_id", id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    initialChat = ((chatRows ?? []) as Array<{
+      id: string;
+      profile_id: string | null;
+      guest_name: string | null;
+      body: string;
+      internal_only: boolean | null;
+      created_at: string;
+      profiles: unknown;
+    }>)
+      .map((r) => ({
+        id: r.id,
+        profileId: r.profile_id,
+        name: r.profile_id ? nameOf(r.profiles) : r.guest_name || "Gast",
+        isGuest: !r.profile_id,
+        body: r.body,
+        createdAt: r.created_at,
+        internal: Boolean(r.internal_only),
+      }))
+      .reverse();
+  }
+
   return (
     <div className="space-y-6">
       <Link
@@ -419,6 +452,17 @@ export default async function EventDetailPage({
             <ElevationProfile gpxUrl={gpxUrl} />
           </div>
         ))}
+
+      {eventIsToday && (
+        <EventChat
+          eventId={event.id}
+          mode="realtime"
+          currentUserId={user?.id ?? null}
+          isMember={Boolean(user)}
+          isAdmin={access.isAdmin}
+          initialMessages={initialChat}
+        />
+      )}
 
       {windForecast && (
         <WindSummary forecast={windForecast} rideBearing={rideBearing} />
