@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
-import { ExternalEventLink } from "@/components/external-event-link";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchWindForecast } from "@/lib/weather";
@@ -409,7 +408,22 @@ export default async function EventDetailPage({
             )}
           </div>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {event.external_url ? (
+            <a
+              href={event.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-baseline gap-1.5 transition hover:text-primary hover:underline"
+              title="Open de event-website"
+            >
+              {event.title}
+              <ArrowUpRight className="size-5 shrink-0 self-center text-muted-foreground" />
+            </a>
+          ) : (
+            event.title
+          )}
+        </h1>
         <p className="text-muted-foreground">
           {new Date(event.start_at).toLocaleString("nl-NL", {
             dateStyle: "full",
@@ -420,11 +434,6 @@ export default async function EventDetailPage({
           {event.distance_km ? ` · ${event.distance_km} km` : ""}
           {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
         </p>
-        {event.external_url && (
-          <div className="pt-1">
-            <ExternalEventLink url={event.external_url} />
-          </div>
-        )}
       </header>
 
       <WhatsAppGroupBlock
