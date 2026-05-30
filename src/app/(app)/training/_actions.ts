@@ -906,24 +906,24 @@ export async function publishTrainingPlan(formData: FormData) {
         const trainingLoad = estimateTrainingLoad(blocks);
         const externalId =
           workout.intervals_external_id ?? `zwb-${workout.id}`;
+        // Geen eigen workout_doc meer: intervals.icu parseert de native
+        // workout-tekst in `description` (regels als "- 10m 75%") zelf naar een
+        // gestructureerde workout. Een afwijkend workout_doc overschreef dat en
+        // brak de FIT-export. Structuur-regels eerst, prose erachter.
         const event = await upsertIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, {
           id: workout.intervals_event_id,
           externalId,
           startDateLocal: String(workout.scheduled_at).slice(0, 16),
           name: workout.title,
-          description: [workout.description, intervalsText].filter(Boolean).join("\n\n"),
+          description: [intervalsText, workout.description].filter(Boolean).join("\n\n"),
           category: "WORKOUT",
           type: "Ride",
           target: "POWER",
           trainingLoad,
           durationMinutes: workout.duration_minutes,
-          workoutDoc: {
-            steps: blocks,
-            zwb_plan_id: planId,
-            zwb_workout_id: workout.id,
-            intensity: workout.intensity,
-            target_type: workout.target_type,
-          },
+          // Leeg meesturen wist een eerder (fout) workout_doc bij her-publiceren,
+          // zodat intervals de description opnieuw parseert.
+          workoutDoc: {},
         });
         await admin
           .from("training_workouts")
