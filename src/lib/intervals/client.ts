@@ -230,29 +230,38 @@ export async function fetchIntervalsWorkoutFit(
   apiKey: string,
   athleteId: string,
   eventId: string,
+  date: string,
 ): Promise<{ filename: string; bytes: Uint8Array }> {
-  // Alleen DIT event ophalen met ext=fit. Voorheen haalden we de hele dag op
-  // (oldest/newest + resolve=true), waardoor intervals.icu álle events van die
-  // dag moest compileren — een onbruikbaar sibling-event (bv. een race of
-  // notitie) liet dan de hele export met een 500 falen.
-  const query = new URLSearchParams({ ext: "fit", resolve: "true" });
-  let event: IntervalsEvent;
-  try {
-    event = await intervalsFetch<IntervalsEvent>(
-      apiKey,
-      `/api/v1/athlete/${athleteId}/events/${eventId}?${query.toString()}`,
-    );
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (/intervals\.icu 5\d\d/.test(msg)) {
-      throw new Error(
-        "intervals.icu kon geen FIT genereren voor deze workout (mogelijk een ongeldige structuur). Open 'm direct in intervals.icu.",
+  // De FIT komt alleen via de events-lijst met ext=fit (workout_file_base64).
+  // `resolve=true` zet %FTP om naar watts; dat is de meest waarschijnlijke
+  // oorzaak van de 500 (bv. geen FTP ingesteld). FIT ondersteunt relatieve
+  // targets, dus we proberen eerst ZONDER resolve en pas daarna mét.
+  async function attempt(resolve: boolean): Promise<IntervalsEvent | null> {
+    const query = new URLSearchParams({
+      oldest: date,
+      newest: date,
+      category: "WORKOUT",
+      ext: "fit",
+    });
+    if (resolve) query.set("resolve", "true");
+    let events: IntervalsEvent[];
+    try {
+      events = await intervalsFetch<IntervalsEvent[]>(
+        apiKey,
+        `/api/v1/athlete/${athleteId}/events?${query.toString()}`,
       );
+    } catch {
+      return null; // 5xx of netwerk → val terug op de andere modus
     }
-    throw err;
+    const event = events.find((row) => String(row.id) === String(eventId));
+    return event?.workout_file_base64 ? event : null;
   }
+
+  const event = (await attempt(false)) ?? (await attempt(true));
   if (!event?.workout_file_base64) {
-    throw new Error("intervals.icu gaf geen FIT-bestand terug voor deze workout.");
+    throw new Error(
+      "intervals.icu gaf geen FIT-bestand terug. Controleer of de renner een FTP heeft ingesteld in intervals.icu, of open de workout daar direct.",
+    );
   }
   return {
     filename: event.workout_filename ?? `${event.name ?? "zwb-workout"}.fit`,
