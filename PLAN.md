@@ -7,9 +7,10 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-29 (alle drie de toegezegde features afgerond:
-> uitslagen-scraper, Strava-segmenttijden voor cols, en wellness-integratie
-> training via intervals.icu)
+> Laatst bijgewerkt: 2026-05-30 (iteratie-ronde 3: trainings-AI naar GPT-5.5 +
+> adaptieve dagcoach met renner-knop "pas vandaag aan"; live-chat op de
+> liveticker (app + publiek, met gast-posts en intern-markering); redesign-
+> traject vastgelegd voor een aparte ronde)
 
 ---
 
@@ -477,6 +478,33 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
   reduced-motion-safe), logo's linken naar de sponsor-site.
 - **E2E chat** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
 - **Mollie iDEAL** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
+
+---
+
+## Redesign-traject (gepland, aparte ronde)
+
+Ronde 3 leverde een eerste restyle-pass (merk-accent, beeld-forward cards,
+officiële store-badges). Een vólledige, op de smaak van de eigenaar afgestemde
+visuele herziening is bewust uitgesteld naar een eigen ronde, omdat dat eerst
+**referenties** vereist. Niets hiervan is gebouwd; dit is het stappenplan.
+
+- **Stap 0 — referenties (eerst).** Eigenaar levert inspiratie aan: apps/sites
+  die hij mooi vindt, gewenste sfeer (strak/sportief/premium/speels), merken,
+  kleuren, en concrete do's/don'ts. Dit bepaalt de hele richting; zonder dit
+  niet starten.
+- **Stap 1 — designsysteem.** Centraliseer de visuele taal in
+  `src/app/globals.css` (kleur-tokens — uitbreiding ZWB petrol/goud —
+  typografie-schaal, spacing, radius, shadow, motion) en
+  `src/components/app-ui.tsx` (component-varianten: card, hero, badge, section).
+  Zo propageert de stijl i.p.v. per pagina te divergeren.
+- **Stap 2 — high-impact pagina's eerst.** Login, dashboard, event-detail,
+  ritverslagen; daarna de overige hoofdpagina's (kalender, teams, leden, media,
+  training, sponsors).
+- **Stap 3 — afwerking.** Light/dark-pariteit, toegankelijkheid (contrast,
+  focus-states), `prefers-reduced-motion`, consistente iconografie, en
+  beeldgebruik (echte foto's waar mogelijk).
+- **Aanpak.** Aparte branch/ronde, pagina-voor-pagina met visuele review na elke
+  stap. Geen functionele wijzigingen — puur presentatie.
 
 ---
 
