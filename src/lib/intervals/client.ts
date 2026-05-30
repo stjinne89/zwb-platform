@@ -230,20 +230,27 @@ export async function fetchIntervalsWorkoutFit(
   apiKey: string,
   athleteId: string,
   eventId: string,
-  date: string,
 ): Promise<{ filename: string; bytes: Uint8Array }> {
-  const query = new URLSearchParams({
-    oldest: date,
-    newest: date,
-    category: "WORKOUT",
-    ext: "fit",
-    resolve: "true",
-  });
-  const events = await intervalsFetch<IntervalsEvent[]>(
-    apiKey,
-    `/api/v1/athlete/${athleteId}/events?${query.toString()}`,
-  );
-  const event = events.find((row) => String(row.id) === String(eventId));
+  // Alleen DIT event ophalen met ext=fit. Voorheen haalden we de hele dag op
+  // (oldest/newest + resolve=true), waardoor intervals.icu álle events van die
+  // dag moest compileren — een onbruikbaar sibling-event (bv. een race of
+  // notitie) liet dan de hele export met een 500 falen.
+  const query = new URLSearchParams({ ext: "fit", resolve: "true" });
+  let event: IntervalsEvent;
+  try {
+    event = await intervalsFetch<IntervalsEvent>(
+      apiKey,
+      `/api/v1/athlete/${athleteId}/events/${eventId}?${query.toString()}`,
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (/intervals\.icu 5\d\d/.test(msg)) {
+      throw new Error(
+        "intervals.icu kon geen FIT genereren voor deze workout (mogelijk een ongeldige structuur). Open 'm direct in intervals.icu.",
+      );
+    }
+    throw err;
+  }
   if (!event?.workout_file_base64) {
     throw new Error("intervals.icu gaf geen FIT-bestand terug voor deze workout.");
   }

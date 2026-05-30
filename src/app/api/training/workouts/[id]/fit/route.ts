@@ -52,7 +52,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       conn.api_key,
       conn.athlete_id,
       String(workout.intervals_event_id),
-      String(workout.scheduled_at).slice(0, 10),
     );
     const filename = fit.filename.toLowerCase().endsWith(".fit")
       ? fit.filename
