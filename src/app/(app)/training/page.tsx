@@ -932,7 +932,15 @@ function CoachWorkspace({
                     <span className="text-xs text-muted-foreground">
                       {new Date(activity.start_date).toLocaleDateString("nl-NL", { day: "numeric", month: "short", timeZone: "Europe/Amsterdam" })}
                     </span>
-                    <p className="truncate text-sm font-medium">{activity.name ?? "Rit"}</p>
+                    <a
+                      href={`https://www.strava.com/activities/${activity.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open deze rit op Strava"
+                      className="block truncate text-sm font-medium transition hover:text-primary hover:underline"
+                    >
+                      {activity.name ?? "Rit"}
+                    </a>
                     <span className="text-xs text-muted-foreground">
                       {formatKm(toNum(activity.distance_m))} - {formatHours(activity.moving_time_seconds)}
                     </span>
