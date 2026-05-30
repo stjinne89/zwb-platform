@@ -367,6 +367,33 @@ function intervalsWorkoutUrl(athleteId: string | undefined, workout: WorkoutRow)
     : `https://intervals.icu/calendar?date=${date}`;
 }
 
+// Workout-titel: linkt direct naar intervals.icu zodra de workout daar staat
+// (gepubliceerd = intervals_event_id aanwezig); anders platte tekst.
+function WorkoutTitle({
+  workout,
+  athleteId,
+  className = "truncate font-medium",
+}: {
+  workout: WorkoutRow;
+  athleteId?: string;
+  className?: string;
+}) {
+  if (workout.intervals_event_id) {
+    return (
+      <a
+        href={intervalsWorkoutUrl(athleteId, workout)}
+        target="_blank"
+        rel="noreferrer"
+        title="Open deze workout in intervals.icu"
+        className={`block ${className} transition hover:text-primary hover:underline`}
+      >
+        {workout.title}
+      </a>
+    );
+  }
+  return <p className={className}>{workout.title}</p>;
+}
+
 function WorkoutBlocks({ blocks }: { blocks: WorkoutBlock[] }) {
   if (blocks.length === 0) return null;
   const total = blocks.reduce((sum, block) => sum + block.durationMinutes, 0) || 1;
@@ -602,7 +629,7 @@ function WorkoutList({
                 })}
               </span>
               <div className="min-w-0">
-                <p className="truncate font-medium">{workout.title}</p>
+                <WorkoutTitle workout={workout} athleteId={intervalsAthleteId} />
                 <p className="text-xs text-muted-foreground">
                   {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
                   {workout.publish_status === "failed" ? ` - publicatiefout: ${workout.publish_error}` : ""}
@@ -632,15 +659,6 @@ function WorkoutList({
           )}
           {workout.publish_status === "published" && workout.intervals_event_id ? (
             <div className="mt-3 flex flex-wrap gap-2">
-              <a
-                href={intervalsWorkoutUrl(intervalsAthleteId, workout)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-              >
-                <ExternalLink className="size-3" />
-                Open in intervals.icu
-              </a>
               <a
                 href={`/api/training/workouts/${workout.id}/fit`}
                 className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
@@ -938,7 +956,11 @@ function CoachWorkspace({
                   <span className="text-xs text-muted-foreground">
                     {new Date(workout.scheduled_at).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Amsterdam" })}
                   </span>
-                  <p className="truncate text-sm font-medium">{workout.title}</p>
+                  <WorkoutTitle
+                    workout={workout}
+                    athleteId={intervalsAthleteId}
+                    className="truncate text-sm font-medium"
+                  />
                   <span className="text-xs text-muted-foreground">
                     {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
                   </span>
@@ -1639,7 +1661,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                       })}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{workout.title}</p>
+                      <WorkoutTitle workout={workout} athleteId={conn?.athlete_id} />
                       <p className="text-xs text-muted-foreground">
                         ZWB-schema - {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
                       </p>
@@ -1649,15 +1671,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   <WorkoutBlocks blocks={normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)} />
                   {workout.publish_status === "published" && workout.intervals_event_id ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <a
-                        href={intervalsWorkoutUrl(conn?.athlete_id, workout)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-                      >
-                        <ExternalLink className="size-3" />
-                        Open in intervals.icu
-                      </a>
                       <a
                         href={`/api/training/workouts/${workout.id}/fit`}
                         className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
