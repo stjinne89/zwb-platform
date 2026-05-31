@@ -159,6 +159,70 @@ export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
     .join("\n");
 }
 
+// Standaard %FTP per intensiteit als een blok geen leesbaar wattage/%-doel heeft.
+const INTENSITY_FTP_PCT: Record<WorkoutIntensity, number> = {
+  rest: 40,
+  recovery: 50,
+  endurance: 65,
+  tempo: 80,
+  threshold: 95,
+  vo2max: 110,
+  anaerobic: 125,
+  race: 100,
+};
+
+function clampPct(value: number) {
+  if (!Number.isFinite(value)) return null;
+  return Math.min(200, Math.max(20, Math.round(value)));
+}
+
+// Zet één blok-doel ("75%", "60-75%", "210w", "210-235w", "Vrij") om naar een
+// %FTP-waarde. Watt-doelen worden via de FTP omgerekend; ranges nemen het
+// middelpunt. Zonder bruikbaar doel valt het terug op de intensiteit. %FTP is
+// draagbaar: Wahoo/Garmin past de eigen FTP van de renner toe.
+function blockToFtpPct(block: WorkoutBlock, ftp: number | null): number | null {
+  const text = (block.target ?? "").trim();
+  const ftpRange = text.match(/(\d+)\s*-\s*(\d+)\s*%/);
+  if (ftpRange) return clampPct((Number(ftpRange[1]) + Number(ftpRange[2])) / 2);
+  const ftpSingle = text.match(/(\d+)\s*%/);
+  if (ftpSingle) return clampPct(Number(ftpSingle[1]));
+  const wattRange = text.match(/(\d+)\s*-\s*(\d+)\s*w/i);
+  if (wattRange && ftp && ftp > 0) {
+    const watts = (Number(wattRange[1]) + Number(wattRange[2])) / 2;
+    return clampPct((watts / ftp) * 100);
+  }
+  const wattSingle = text.match(/(\d+)\s*w/i);
+  if (wattSingle && ftp && ftp > 0) {
+    return clampPct((Number(wattSingle[1]) / ftp) * 100);
+  }
+  return clampPct(INTENSITY_FTP_PCT[block.intensity]);
+}
+
+// Bouwt een NATIVE intervals.icu workout_doc uit onze blokken. Dit is de bron
+// voor de FIT-export (Garmin/Wahoo). intervals parseert de description NIET
+// server-side, dus zonder een geldig workout_doc bevat de FIT 0 stappen en
+// weigeren apparaten het als "corrupt". Schema dat intervals accepteert:
+//   { duration, steps: [{ duration: <sec>, power: { units: "%ftp", value } }] }
+// We houden bewust alleen `duration` + `power.value` aan (geen extra velden zoals
+// label/target-strings) omdat afwijkende velden de FIT-generator deden crashen.
+export function blocksToWorkoutDoc(
+  blocks: WorkoutBlock[],
+  ftp: number | null,
+): { duration: number; steps: Array<Record<string, unknown>> } | null {
+  const steps = blocks
+    .filter((block) => block.durationMinutes > 0)
+    .map((block) => {
+      const pct = blockToFtpPct(block, ftp);
+      const duration = Math.round(block.durationMinutes * 60);
+      const step: Record<string, unknown> = { duration };
+      if (pct != null) step.power = { units: "%ftp", value: pct };
+      return step;
+    });
+  if (steps.length === 0) return null;
+  const duration = steps.reduce((total, step) => total + Number(step.duration), 0);
+  return { duration, steps };
+}
+
 export function estimateTrainingLoad(blocks: WorkoutBlock[]) {
   const factors: Record<WorkoutIntensity, number> = {
     rest: 0,

@@ -19,6 +19,7 @@ import {
   adaptiveDailyPrompt,
   blocksFromForm,
   blocksToIntervalsText,
+  blocksToWorkoutDoc,
   estimateTrainingLoad,
   normalizeWorkoutBlocks,
   WORKOUT_INTENSITIES,
@@ -889,14 +890,22 @@ export async function publishTrainingPlan(formData: FormData) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
-    const { data: conn } = await admin
-      .from("intervals_connections")
-      .select("api_key, athlete_id")
-      .eq("profile_id", plan.profile_id)
-      .maybeSingle();
+    const [{ data: conn }, { data: riderProfile }] = await Promise.all([
+      admin
+        .from("intervals_connections")
+        .select("api_key, athlete_id")
+        .eq("profile_id", plan.profile_id)
+        .maybeSingle(),
+      admin
+        .from("profiles")
+        .select("ftp_watts")
+        .eq("id", plan.profile_id)
+        .maybeSingle(),
+    ]);
     if (!conn?.api_key || !conn?.athlete_id) {
       throw new Error("Dit lid heeft intervals.icu nog niet gekoppeld.");
     }
+    const riderFtp = riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null;
 
     let failed = 0;
     for (const workout of workouts ?? []) {
@@ -906,10 +915,11 @@ export async function publishTrainingPlan(formData: FormData) {
         const trainingLoad = estimateTrainingLoad(blocks);
         const externalId =
           workout.intervals_external_id ?? `zwb-${workout.id}`;
-        // Geen eigen workout_doc meer: intervals.icu parseert de native
-        // workout-tekst in `description` (regels als "- 10m 75%") zelf naar een
-        // gestructureerde workout. Een afwijkend workout_doc overschreef dat en
-        // brak de FIT-export. Structuur-regels eerst, prose erachter.
+        // intervals.icu parseert de description NIET server-side, dus moeten we
+        // zelf een geldig native workout_doc meesturen. Zonder steps bevat de
+        // FIT-export 0 stappen en weigeren Garmin/Wahoo het bestand als corrupt.
+        // De description (workout-tekst + prose) blijft staan voor leesbaarheid.
+        const workoutDoc = blocksToWorkoutDoc(blocks, riderFtp);
         const event = await upsertIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, {
           id: workout.intervals_event_id,
           externalId,
@@ -921,9 +931,7 @@ export async function publishTrainingPlan(formData: FormData) {
           target: "POWER",
           trainingLoad,
           durationMinutes: workout.duration_minutes,
-          // Leeg meesturen wist een eerder (fout) workout_doc bij her-publiceren,
-          // zodat intervals de description opnieuw parseert.
-          workoutDoc: {},
+          workoutDoc,
         });
         await admin
           .from("training_workouts")
