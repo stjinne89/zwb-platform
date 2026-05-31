@@ -208,12 +208,18 @@ function paramString(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function parseDate(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
 function dateValue(value: string) {
-  return new Date(value).toISOString().slice(0, 10);
+  return parseDate(value)?.toISOString().slice(0, 10) ?? "";
 }
 
 function timeValue(value: string) {
-  return new Date(value).toLocaleTimeString("nl-NL", {
+  return (parseDate(value) ?? new Date("2000-01-01T09:00:00+01:00")).toLocaleTimeString("nl-NL", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
 import { generateAiDraft } from "../_actions";
 
-type DraftState =
-  | { kind: "idle" }
-  | { kind: "success"; message: string }
-  | { kind: "error"; message: string };
+type DraftState = {
+  ok: boolean;
+  error?: string;
+  message?: string;
+} | null;
+
+const initialState: DraftState = null;
 
 export function AiDraftForm({
   athleteId,
@@ -24,28 +27,33 @@ export function AiDraftForm({
   canGenerateAi: boolean;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [state, setState] = useState<DraftState>({ kind: "idle" });
+  const [state, action, pending] = useActionState(
+    async (_prevState: DraftState, formData: FormData): Promise<DraftState> => {
+      try {
+        const result = await generateAiDraft(formData);
+        return result.ok
+          ? { ok: true, message: "AI-concept aangemaakt." }
+          : { ok: false, error: result.error ?? "AI-concept maken faalde." };
+      } catch (err) {
+        return {
+          ok: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : "AI-concept maken faalde voordat de server antwoord gaf.",
+        };
+      }
+    },
+    initialState,
+  );
   const disabled = pending || !canUseAi || !canGenerateAi;
 
-  function submit(formData: FormData) {
-    setState({ kind: "idle" });
-    startTransition(async () => {
-      const result = await generateAiDraft(formData);
-      if (result.ok) {
-        setState({ kind: "success", message: "AI-concept aangemaakt." });
-        router.refresh();
-      } else {
-        setState({
-          kind: "error",
-          message: result.error ?? "AI-concept maken faalde.",
-        });
-      }
-    });
-  }
+  useEffect(() => {
+    if (state?.ok) router.refresh();
+  }, [router, state?.ok]);
 
   return (
-    <form action={submit} className="mt-3 space-y-2">
+    <form action={action} className="mt-3 space-y-2">
       <input type="hidden" name="athlete_id" value={athleteId} />
       <input type="hidden" name="goal_id" value={goalId} />
       <label className="block text-xs text-muted-foreground">
@@ -72,11 +80,11 @@ export function AiDraftForm({
           Je rol mist het recht om AI-trainingsconcepten te maken.
         </p>
       ) : null}
-      {state.kind === "error" ? (
+      {state?.error ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {state.message}
+          {state.error}
         </p>
-      ) : state.kind === "success" ? (
+      ) : state?.message ? (
         <p className="rounded-md border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
           {state.message}
         </p>
