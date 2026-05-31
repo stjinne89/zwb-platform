@@ -362,7 +362,7 @@ export default async function DashboardPage() {
   const reportByEvent = new Map<string, { count: number; author: string; snippet: string }>();
   const chatCountByEvent = new Map<string, number>();
   const photoCountByEvent = new Map<string, number>();
-  const photoUrlByEvent = new Map<string, string>();
+  const photoPathsByEvent = new Map<string, string[]>();
   if (recentEventIds.length > 0) {
     const [{ data: repRows }, { data: chatRows }, { data: photoRows }] =
       await Promise.all([
@@ -403,14 +403,9 @@ export default async function DashboardPage() {
     }
     for (const p of (photoRows ?? []) as { event_id: string; storage_path: string }[]) {
       photoCountByEvent.set(p.event_id, (photoCountByEvent.get(p.event_id) ?? 0) + 1);
-      // Nieuwste foto eerst (query is desc) → eerste die we zien is de header.
-      if (!photoUrlByEvent.has(p.event_id)) {
-        photoUrlByEvent.set(
-          p.event_id,
-          supabase.storage.from("event-photos").getPublicUrl(p.storage_path)
-            .data.publicUrl,
-        );
-      }
+      const list = photoPathsByEvent.get(p.event_id) ?? [];
+      list.push(p.storage_path);
+      photoPathsByEvent.set(p.event_id, list);
     }
   }
 
@@ -441,11 +436,20 @@ export default async function DashboardPage() {
     }));
   const reportPreviews = recentPastEvents.map((ev) => {
     const rep = reportByEvent.get(ev.id);
-    // Header-beeld: cover-afbeelding, anders een geplaatste event-foto.
-    const coverUrl = ev.cover_image_path
-      ? supabase.storage.from("event-photos").getPublicUrl(ev.cover_image_path)
-          .data.publicUrl
-      : photoUrlByEvent.get(ev.id) ?? null;
+    // Header-beeld: willekeurig gekozen uit cover + alle geplaatste foto's, dus
+    // elke pagina-render (bv. opnieuw inloggen) toont een ander beeld.
+    const imagePool = [
+      ...(ev.cover_image_path ? [ev.cover_image_path] : []),
+      ...(photoPathsByEvent.get(ev.id) ?? []),
+    ];
+    const pickedPath =
+      imagePool.length > 0
+        ? imagePool[Math.floor(Math.random() * imagePool.length)]
+        : null;
+    const coverUrl = pickedPath
+      ? supabase.storage.from("event-photos").getPublicUrl(pickedPath).data
+          .publicUrl
+      : null;
     return {
       id: ev.id,
       eventId: ev.id,
