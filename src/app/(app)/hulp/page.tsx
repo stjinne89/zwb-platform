@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleHelp,
+  Download,
   MapPinned,
   Medal,
   Navigation,
@@ -154,6 +155,25 @@ const OWNTRACKS_QUALITY_TIPS = [
   "Eén nieuwe koppellink maken vervangt de oude meteen; gebruik dat als je tracker gestolen/kwijt is.",
 ];
 
+const WAHOO_STEPS = [
+  {
+    title: "Open de Wahoo-instellingen op intervals.icu",
+    text: "Ga op intervals.icu naar Settings (instellingen) en scroll naar het Wahoo-blok.",
+  },
+  {
+    title: "Connect to Wahoo",
+    text: "Klik op 'Connect to Wahoo', log in met je Wahoo-account en geef toestemming.",
+  },
+  {
+    title: "Zet 'Upload planned workouts' aan",
+    text: "Vink het vakje aan om geplande workouts te uploaden. De workouts van de komende 7 dagen gaan dan automatisch naar de Wahoo Cloud.",
+  },
+  {
+    title: "Synchroniseer je ELEMNT",
+    text: "De workouts verschijnen op je ELEMNT onder Planned Workouts (sync via wifi of de ELEMNT-app). Geen bestand downloaden nodig.",
+  },
+];
+
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start daarna een achievements-sync.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', monitoring op 'Move'.",
@@ -291,6 +311,93 @@ export default function HelpPage() {
               <Navigation className="size-4 text-primary" />
               Naar Samen fietsen
             </Link>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="fit-export"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Download className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">
+              Workout op je fietscomputer (Wahoo / Garmin)
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Een gepubliceerd schema staat automatisch in intervals.icu. Hoe je
+              het op je fietscomputer krijgt, verschilt per merk.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Bike className="size-4 text-primary" />
+              Wahoo ELEMNT / BOLT / ROAM
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Wahoo importeert geplande workouts <strong>niet</strong> uit een
+              los bestand — dan krijg je de melding &ldquo;geen geldige
+              GPX&rdquo;, omdat de app het als route probeert te lezen. Geplande
+              workouts komen binnen via een koppeling. Koppel intervals.icu één
+              keer aan Wahoo, daarna synct het schema vanzelf:
+            </p>
+            <ol className="mt-3 space-y-3">
+              {WAHOO_STEPS.map((step, index) => (
+                <li key={step.title} className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {step.text}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-md border bg-background p-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Download className="size-4 text-primary" />
+                Garmin
+              </h3>
+              <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+                <li className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    Klik bij de workout op <strong>Download FIT</strong> en
+                    importeer het bestand in Garmin Connect (of zet het in de
+                    map NewFiles op het toestel).
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    Of koppel intervals.icu aan Garmin Connect in de
+                    intervals-instellingen, dan synct het schema ook automatisch.
+                  </span>
+                </li>
+              </ul>
+            </div>
+            <div className="rounded-md border bg-background p-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <CircleHelp className="size-4 text-primary" />
+                Goed om te weten
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                De <strong>Download FIT</strong>-knop is bedoeld voor Garmin en
+                andere apparaten die losse workout-bestanden accepteren. Voor
+                Wahoo gebruik je de cloudkoppeling hierboven. Pas je een schema
+                aan? Publiceer opnieuw, dan staat de nieuwste versie klaar.
+              </p>
+            </div>
           </div>
         </div>
       </section>

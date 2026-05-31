@@ -5,6 +5,7 @@ import {
   Bot,
   Calendar,
   CheckCircle2,
+  CircleHelp,
   ClipboardList,
   Download,
   ExternalLink,
@@ -666,6 +667,14 @@ function WorkoutList({
                 <Download className="size-3" />
                 Download FIT
               </a>
+              <Link
+                href="/hulp#fit-export"
+                title="Wahoo importeert geen losse bestanden — koppel intervals.icu aan Wahoo. De .fit-download is voor Garmin. Klik voor uitleg."
+                aria-label="Hulp bij workout op je fietscomputer"
+                className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <CircleHelp className="size-3.5" />
+              </Link>
             </div>
           ) : null}
           <ReportPanel workout={workout} report={report} editable={editable} />
