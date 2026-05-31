@@ -815,12 +815,141 @@ async function resolveDatasportRaceResult(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Ultratiming-adapter (ultratiming.live). Next.js-site: de uitslag staat in de
+// __NEXT_DATA__-JSON van de resultaten-pagina (resultsResult["hydra:member"]),
+// 100 per pagina, gepagineerd via ?page=N. We parsen die JSON server-side.
+// ---------------------------------------------------------------------------
+
+type UtMember = {
+  rank?: number | null;
+  finalTime?: number | null; // seconden
+  club?: string | null;
+  user?: { firstName?: string | null; lastName?: string | null } | null;
+};
+
+function extractNextData(html: string): unknown | null {
+  const m = html.match(
+    /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
+  );
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+async function utFetchPage(
+  baseUrl: string,
+  page: number,
+): Promise<{ members: UtMember[]; total: number } | null> {
+  const url = `${baseUrl}?page=${page}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "nl,en;q=0.8",
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = extractNextData(html) as any;
+    const rr = data?.props?.pageProps?.resultsResult;
+    if (!rr) return null;
+    return {
+      members: (rr["hydra:member"] ?? []) as UtMember[],
+      total: Number(rr["hydra:totalItems"] ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isUltratimingUrl(resultsUrl: string): boolean {
+  try {
+    return new URL(resultsUrl).hostname.toLowerCase().includes("ultratiming");
+  } catch {
+    return false;
+  }
+}
+
+async function scrapeUltratiming(
+  candidates: MemberCandidate[],
+  resultsUrl: string,
+): Promise<ScrapeOutcome> {
+  let baseUrl: string;
+  try {
+    const u = new URL(resultsUrl);
+    baseUrl = `${u.origin}${u.pathname}`; // strip bestaande query
+  } catch {
+    return { ok: false, results: [], provider: "ultratiming", error: "Ongeldige URL." };
+  }
+
+  const PER_PAGE = 100;
+  const MAX_PAGES = 40; // tot 4000 deelnemers
+  const BATCH = 5;
+
+  const first = await utFetchPage(baseUrl, 1);
+  if (!first) {
+    return {
+      ok: false,
+      results: [],
+      provider: "ultratiming",
+      error:
+        "Kon de Ultratiming-uitslag niet lezen. Open het juiste resultaten-" +
+        "tabblad (een specifieke proef) en kopieer díe URL.",
+    };
+  }
+
+  const pageCount = Math.min(
+    MAX_PAGES,
+    Math.max(1, Math.ceil((first.total || first.members.length) / PER_PAGE)),
+  );
+  const members: UtMember[] = [...first.members];
+  for (let start = 2; start <= pageCount; start += BATCH) {
+    const batch: Promise<{ members: UtMember[]; total: number } | null>[] = [];
+    for (let p = start; p < start + BATCH && p <= pageCount; p++) {
+      batch.push(utFetchPage(baseUrl, p));
+    }
+    const res = await Promise.all(batch);
+    for (const r of res) if (r) members.push(...r.members);
+  }
+
+  const rawRows: RawRow[] = members.map((m) => {
+    const name = `${m.user?.firstName ?? ""} ${m.user?.lastName ?? ""}`
+      .replace(/\s+/g, " ")
+      .trim();
+    const club = (m.club ?? "").trim();
+    const seconds = m.finalTime && m.finalTime > 0 ? m.finalTime : null;
+    return {
+      cells: [name, club],
+      matchText: `${name} ${club}`.trim(), // club erbij → "ZWB"-vermelding telt
+      knownName: name || null,
+      knownPosition: m.rank ?? null,
+      knownTimeText: seconds != null ? secondsToClock(seconds) : null,
+      knownTimeSeconds: seconds,
+    };
+  });
+
+  const results = matchRows(candidates, rawRows);
+  return { ok: true, results, provider: "ultratiming" };
+}
+
 export async function scrapeEventResults(
   supabase: SupabaseClient,
   _eventId: string,
   resultsUrl: string,
 ): Promise<ScrapeOutcome> {
   const candidates = await buildMemberCandidates(supabase);
+
+  if (isUltratimingUrl(resultsUrl)) {
+    return scrapeUltratiming(candidates, resultsUrl);
+  }
 
   if (isChronoRaceUrl(resultsUrl)) {
     const parsed = parseChronoUrl(resultsUrl);
