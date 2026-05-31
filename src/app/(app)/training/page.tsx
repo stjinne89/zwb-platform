@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Activity,
-  Bot,
   Calendar,
   CheckCircle2,
   CircleHelp,
@@ -29,10 +28,9 @@ import {
 } from "@/lib/intervals/client";
 import {
   createTrainingGoal,
+  publishTrainingPlan,
   saveTrainerFeedback,
   saveWorkoutReport,
-  generateAiDraft,
-  publishTrainingPlan,
   setPlanStatus,
   updateTrainingPlan,
   updateWorkout,
@@ -52,6 +50,7 @@ import { ConnectIntervalsForm } from "./_components/connect-form";
 import { DisconnectIntervalsButton } from "./_components/disconnect-button";
 import { WellnessOptInToggle } from "./_components/wellness-optin-toggle";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
+import { AiDraftForm } from "./_components/ai-draft-form";
 import {
   summarizeWellness,
   type WellnessSummary,
@@ -899,29 +898,13 @@ function CoachWorkspace({
                       {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
                       {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
                     </p>
-                    <form action={formAction(generateAiDraft)} className="mt-3 space-y-2">
-                      <input type="hidden" name="athlete_id" value={selected.athlete_id} />
-                      <input type="hidden" name="goal_id" value={goal.id} />
-                      <label className="block text-xs text-muted-foreground">
-                        AI-prompt
-                        <textarea
-                          name="prompt_text"
-                          rows={7}
-                          defaultValue={defaultTrainingPrompt()}
-                          className="mt-1 w-full rounded-md border bg-background px-2 py-1 font-mono text-xs"
-                        />
-                      </label>
-                      <button
-                        disabled={!canUseAi || !canGenerateAi}
-                        className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Bot className="size-4" />
-                        AI-concept maken
-                      </button>
-                    </form>
-                    {!canUseAi ? (
-                      <p className="mt-2 text-xs text-muted-foreground">OPENAI_API_KEY ontbreekt.</p>
-                    ) : null}
+                    <AiDraftForm
+                      athleteId={selected.athlete_id}
+                      goalId={goal.id}
+                      defaultPrompt={defaultTrainingPrompt()}
+                      canUseAi={canUseAi}
+                      canGenerateAi={canGenerateAi}
+                    />
                   </div>
                 ))}
               </div>
