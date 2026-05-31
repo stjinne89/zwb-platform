@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
   const now = Date.now();
   const fifteenMinAgo = new Date(now - 15 * 60 * 1000).toISOString();
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const oneYearAgo = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString();
 
   // 1. Markeer stale sessies als beeindigd.
   const { count: closedCount } = await admin
@@ -37,9 +38,30 @@ export async function POST(request: NextRequest) {
     .delete({ count: "exact" })
     .lt("recorded_at", thirtyDaysAgo);
 
+  // 3. AVG-retentie: vluchtige live-chatberichten >1 jaar oud opruimen.
+  //    Permanente content (ritverslagen e.d.) blijft bewust ongemoeid.
+  let deletedChat = 0;
+  try {
+    const { count } = await admin
+      .from("event_chat_messages")
+      .delete({ count: "exact" })
+      .lt("created_at", oneYearAgo);
+    deletedChat = count ?? 0;
+  } catch {
+    // tabel kan ontbreken in oudere omgevingen
+  }
+
+  // 4. Oude rate-limit-vensters opruimen.
+  try {
+    await admin.rpc("rate_limit_cleanup");
+  } catch {
+    // functie kan ontbreken vóór migratie 0062
+  }
+
   return NextResponse.json({
     ok: true,
     closedStaleSessions: closedCount ?? 0,
     deletedOldPositions: deletedPositions ?? 0,
+    deletedOldChat: deletedChat,
   });
 }

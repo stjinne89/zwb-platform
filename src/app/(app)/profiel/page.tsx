@@ -9,6 +9,7 @@ import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
 import { PushToggle } from "./_components/push-toggle";
 import { StravaSection } from "./_components/strava-section";
+import { AccountData } from "./_components/account-data";
 
 type AwardRow = {
   id: string;
@@ -173,6 +174,10 @@ export default async function ProfielPage() {
           }}
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
+      </div>
+
+      <div id="privacy" className="scroll-mt-20">
+        <AccountData email={user.email ?? ""} />
       </div>
 
       <section className="rounded-lg border bg-card p-4">
