@@ -1,3 +1,5 @@
+import { encryptSecret, decryptSecret } from "@/lib/crypto/secrets";
+
 type StravaTokenResponse = {
   access_token: string;
   refresh_token: string;
@@ -168,14 +170,15 @@ export async function accessTokenFor(
   connection: StravaConnection,
 ) {
   const now = Math.floor(Date.now() / 1000);
-  if (connection.expires_at > now + 600) return connection.access_token;
+  // Tokens kunnen versleuteld uit de DB komen; centraal ontsleutelen bij gebruik.
+  if (connection.expires_at > now + 600) return decryptSecret(connection.access_token);
 
-  const refreshed = await refreshStravaToken(connection.refresh_token);
+  const refreshed = await refreshStravaToken(decryptSecret(connection.refresh_token));
   const { error } = await supabase
     .from("strava_connections")
     .update({
-      access_token: refreshed.access_token,
-      refresh_token: refreshed.refresh_token,
+      access_token: encryptSecret(refreshed.access_token),
+      refresh_token: encryptSecret(refreshed.refresh_token),
       expires_at: refreshed.expires_at,
       updated_at: new Date().toISOString(),
     })

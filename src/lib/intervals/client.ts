@@ -1,10 +1,14 @@
 // intervals.icu API helpers — Basic Auth met username=API_KEY, password=API_KEY.
 // Documentatie: https://intervals.icu/api-docs.html
 
+import { decryptSecret } from "@/lib/crypto/secrets";
+
 const BASE = "https://intervals.icu";
 
 function authHeader(apiKey: string): string {
-  const credentials = `API_KEY:${apiKey}`;
+  // De api_key kan versleuteld uit de DB komen; hier centraal ontsleutelen zodat
+  // álle intervals-aanroepen gedekt zijn ongeacht waar de key is opgehaald.
+  const credentials = `API_KEY:${decryptSecret(apiKey)}`;
   // Buffer is beschikbaar in Node runtime (Next.js server). Geen client-side use.
   return `Basic ${Buffer.from(credentials).toString("base64")}`;
 }

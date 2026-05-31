@@ -26,6 +26,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
+import { encryptSecret } from "@/lib/crypto/secrets";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
 const WEEKDAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"];
@@ -109,7 +110,7 @@ export async function connectIntervalsWithKey(apiKey: string) {
   const { error } = await supabase.from("intervals_connections").upsert(
     {
       profile_id: user.id,
-      api_key: trimmed,
+      api_key: encryptSecret(trimmed), // versleuteld at rest (F4)
       athlete_id: athlete.id,
       athlete_name: athlete.name ?? null,
     },

@@ -5,6 +5,7 @@ import {
   exchangeStravaCode,
   pickAthleteAvatarUrl,
 } from "@/lib/strava/client";
+import { encryptSecret } from "@/lib/crypto/secrets";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -46,8 +47,8 @@ export async function GET(request: NextRequest) {
         strava_athlete_id: athleteId,
         athlete_username: token.athlete?.username ?? null,
         athlete_name: athleteName(token),
-        access_token: token.access_token,
-        refresh_token: token.refresh_token,
+        access_token: encryptSecret(token.access_token), // versleuteld at rest (F4)
+        refresh_token: encryptSecret(token.refresh_token),
         expires_at: token.expires_at,
         scope: token.scope ?? searchParams.get("scope"),
         updated_at: new Date().toISOString(),
