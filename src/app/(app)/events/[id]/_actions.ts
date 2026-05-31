@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { scrapeEventResults } from "@/lib/event-results/scrape";
+import { rateLimitHit } from "@/lib/rate-limit";
 
 type Status = "yes" | "maybe" | "no";
 
@@ -46,6 +47,14 @@ export async function refreshEventResults(eventId: string) {
     access.has("events.manage_all") || event.created_by === user.id;
   if (!canManage) {
     return { ok: false as const, error: "Geen recht om uitslagen op te halen." };
+  }
+
+  // Misbruik-rem op de externe scraper: max 30 ophaalacties per gebruiker/dag.
+  if (!(await rateLimitHit("scrape", user.id, 30, 86400)).allowed) {
+    return {
+      ok: false as const,
+      error: "Te veel ophaalacties vandaag. Probeer het morgen opnieuw.",
+    };
   }
 
   const resultsUrl = (event.results_url ?? "").trim();

@@ -3,11 +3,19 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimitHit, clientIpFromHeaders } from "@/lib/rate-limit";
+
+const TOO_MANY = "Te veel pogingen. Wacht even en probeer het opnieuw.";
 
 export async function signInWithPassword(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { ok: false, error: "E-mail en wachtwoord zijn verplicht." };
+
+  const ip = await clientIpFromHeaders();
+  if (!(await rateLimitHit("login", ip, 10, 300)).allowed) {
+    return { ok: false, error: TOO_MANY };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -25,6 +33,11 @@ export async function signUp(formData: FormData) {
   if (!displayName) return { ok: false as const, error: "Naam is verplicht." };
   if (password.length < 8) {
     return { ok: false as const, error: "Wachtwoord moet minimaal 8 tekens zijn." };
+  }
+
+  const ip = await clientIpFromHeaders();
+  if (!(await rateLimitHit("signup", ip, 5, 3600)).allowed) {
+    return { ok: false as const, error: TOO_MANY };
   }
 
   const supabase = await createClient();
@@ -58,6 +71,11 @@ export async function signUp(formData: FormData) {
 export async function sendMagicLink(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email) return { ok: false, error: "E-mailadres ontbreekt." };
+
+  const ip = await clientIpFromHeaders();
+  if (!(await rateLimitHit("magiclink", ip, 5, 900)).allowed) {
+    return { ok: false, error: TOO_MANY };
+  }
 
   const supabase = await createClient();
   const origin =

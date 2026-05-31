@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimitHit, clientIpFromRequest } from "@/lib/rate-limit";
 
 // Live-chat op de liveticker. Eén route voor beide pagina's:
 //   GET  → laatste publieke (niet-interne) berichten — gepolled door de
@@ -99,6 +100,15 @@ export async function POST(
     payload = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Ongeldige payload." }, { status: 400 });
+  }
+
+  // IP-rem tegen floods (naast de per-poster throttle verderop): max 20/min.
+  const ip = clientIpFromRequest(req);
+  if (!(await rateLimitHit("chat", ip, 20, 60)).allowed) {
+    return NextResponse.json(
+      { ok: false, error: "Te veel berichten. Wacht even." },
+      { status: 429 },
+    );
   }
 
   const body = (payload.body ?? "").replace(/\s+/g, " ").trim();
