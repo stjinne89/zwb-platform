@@ -262,13 +262,31 @@ function RegisterForm({
         placeholder="Wachtwoord (min. 8 tekens)"
         className={FIELD}
       />
+      <label className="flex items-start gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          name="privacy_accepted"
+          required
+          value="1"
+          className="mt-0.5 size-4 shrink-0 rounded border-input"
+        />
+        <span>
+          Ik ga akkoord met de{" "}
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary underline"
+          >
+            privacyverklaring
+          </a>{" "}
+          en met de verwerking van mijn gegevens. Je profiel is zichtbaar voor
+          andere leden.
+        </span>
+      </label>
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Bezig…" : "Account aanmaken"}
       </Button>
-      <p className="text-xs text-muted-foreground">
-        Door te registreren ga je akkoord met deelname aan de ZWB Cycling
-        Community. Je profiel is zichtbaar voor andere leden.
-      </p>
     </form>
   );
 }

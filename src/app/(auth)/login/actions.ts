@@ -28,11 +28,18 @@ export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const displayName = String(formData.get("display_name") ?? "").trim();
+  const privacyAccepted = Boolean(formData.get("privacy_accepted"));
 
   if (!email) return { ok: false as const, error: "E-mailadres is verplicht." };
   if (!displayName) return { ok: false as const, error: "Naam is verplicht." };
   if (password.length < 8) {
     return { ok: false as const, error: "Wachtwoord moet minimaal 8 tekens zijn." };
+  }
+  if (!privacyAccepted) {
+    return {
+      ok: false as const,
+      error: "Je moet akkoord gaan met de privacyverklaring.",
+    };
   }
 
   const ip = await clientIpFromHeaders();
@@ -58,6 +65,19 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) return { ok: false as const, error: error.message };
+
+  // AVG-toestemming vastleggen op het (door de trigger aangemaakte) profiel.
+  if (data.user) {
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      await createAdminClient()
+        .from("profiles")
+        .update({ privacy_accepted_at: new Date().toISOString() })
+        .eq("id", data.user.id);
+    } catch {
+      // niet kritiek voor de registratie zelf
+    }
+  }
 
   // Met "Confirm email" aan in Supabase: session is null totdat de gebruiker
   // op de bevestigings-link klikt. Met email-confirmation uit: directe sessie.
