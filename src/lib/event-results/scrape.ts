@@ -13,6 +13,8 @@ export type ScrapedResult = {
   position: number | null;
   timeText: string | null;
   timeSeconds: number | null;
+  category: string | null; // bv. "M2"
+  categoryRank: number | null; // positie binnen de categorie
   matchedVia: MatchedVia;
   profileId: string | null;
 };
@@ -42,6 +44,8 @@ type RawRow = {
   knownPosition?: number | null;
   knownTimeText?: string | null;
   knownTimeSeconds?: number | null;
+  knownCategory?: string | null;
+  knownCategoryRank?: number | null;
 };
 
 const FETCH_TIMEOUT_MS = 20000;
@@ -287,6 +291,8 @@ function matchRows(
       position,
       timeText,
       timeSeconds,
+      category: row.knownCategory ?? null,
+      categoryRank: row.knownCategoryRank ?? null,
       matchedVia,
       profileId,
     });
@@ -502,6 +508,8 @@ async function scrapeChronoRace(
     "gun",
     "bruto",
   ]);
+  const catIdx = findChronoColumnIndex(columns, ["cat", "categ"]);
+  const catRankIdx = findChronoColumnIndex(columns, ["rang", "catpos", "cat pos"]);
 
   const rawRows: RawRow[] = rows.map((r) => {
     const cells = r.map((c) => (c == null ? "" : String(c)));
@@ -512,6 +520,11 @@ async function scrapeChronoRace(
       if (m) position = Number(m[1]);
     }
     const time = timeIdx >= 0 ? chronoCellTime(r[timeIdx]) : { text: null, seconds: null };
+    let catRank: number | null = null;
+    if (catRankIdx >= 0) {
+      const m = cells[catRankIdx].match(/(\d{1,5})/);
+      if (m) catRank = Number(m[1]);
+    }
     return {
       cells,
       matchText: name,
@@ -519,6 +532,8 @@ async function scrapeChronoRace(
       knownPosition: position,
       knownTimeText: time.text,
       knownTimeSeconds: time.seconds,
+      knownCategory: catIdx >= 0 ? cells[catIdx]?.trim() || null : null,
+      knownCategoryRank: catRank,
     };
   });
 
@@ -825,6 +840,8 @@ type UtMember = {
   rank?: number | null;
   finalTime?: number | null; // seconden
   club?: string | null;
+  category?: string | null;
+  categoryRank?: number | null;
   user?: { firstName?: string | null; lastName?: string | null } | null;
 };
 
@@ -933,6 +950,8 @@ async function scrapeUltratiming(
       knownPosition: m.rank ?? null,
       knownTimeText: seconds != null ? secondsToClock(seconds) : null,
       knownTimeSeconds: seconds,
+      knownCategory: (m.category ?? "").trim() || null,
+      knownCategoryRank: m.categoryRank ?? null,
     };
   });
 

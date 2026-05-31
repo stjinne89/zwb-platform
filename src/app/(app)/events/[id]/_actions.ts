@@ -89,6 +89,8 @@ export async function refreshEventResults(eventId: string) {
       position: r.position,
       time_text: r.timeText,
       time_seconds: r.timeSeconds,
+      category: r.category,
+      category_rank: r.categoryRank,
       matched_via: r.matchedVia,
       is_manual: false,
     }));

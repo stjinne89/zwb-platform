@@ -116,7 +116,7 @@ export default async function EventDetailPage({
     supabase
       .from("event_results")
       .select(
-        "id, profile_id, scraped_name, position, time_text, time_seconds, matched_via, is_manual",
+        "id, profile_id, scraped_name, position, time_text, time_seconds, category, category_rank, matched_via, is_manual",
       )
       .eq("event_id", id),
     supabase
@@ -159,6 +159,8 @@ export default async function EventDetailPage({
     position: number | null;
     timeText: string | null;
     timeSeconds: number | null;
+    category: string | null;
+    categoryRank: number | null;
     matchedVia: string;
     isManual: boolean;
   };
@@ -170,6 +172,8 @@ export default async function EventDetailPage({
       position: r.position,
       timeText: r.time_text,
       timeSeconds: r.time_seconds,
+      category: r.category ?? null,
+      categoryRank: r.category_rank ?? null,
       matchedVia: r.matched_via,
       isManual: r.is_manual ?? false,
     }))
@@ -554,7 +558,8 @@ export default async function EventDetailPage({
                   <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="py-1.5 pr-3 font-medium">#</th>
                     <th className="py-1.5 pr-3 font-medium">Naam</th>
-                    <th className="py-1.5 font-medium">Tijd</th>
+                    <th className="py-1.5 pr-3 font-medium">Tijd</th>
+                    <th className="py-1.5 font-medium">Cat.</th>
                     {canManage && <th className="py-1.5" />}
                   </tr>
                 </thead>
@@ -591,8 +596,13 @@ export default async function EventDetailPage({
                           )}
                         </span>
                       </td>
-                      <td className="py-1.5 tabular-nums">
+                      <td className="py-1.5 pr-3 tabular-nums">
                         {r.timeText ?? "—"}
+                      </td>
+                      <td className="py-1.5 text-xs text-muted-foreground">
+                        {r.category
+                          ? `${r.category}${r.categoryRank != null ? ` · ${r.categoryRank}e` : ""}`
+                          : "—"}
                       </td>
                       {canManage && (
                         <td className="py-1.5 pl-2 text-right">
