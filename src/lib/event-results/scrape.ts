@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalize, nameTokens } from "@/lib/text/normalize";
+import { assertSafeUrl } from "@/lib/net/safe-fetch";
 
 export type MatchedVia =
   | "member_name"
@@ -964,6 +965,17 @@ export async function scrapeEventResults(
   _eventId: string,
   resultsUrl: string,
 ): Promise<ScrapeOutcome> {
+  // SSRF-bescherming: weiger interne/private adressen vóór er iets wordt opgehaald.
+  try {
+    await assertSafeUrl(resultsUrl);
+  } catch (err) {
+    return {
+      ok: false,
+      results: [],
+      error: err instanceof Error ? err.message : "Onveilige of ongeldige URL.",
+    };
+  }
+
   const candidates = await buildMemberCandidates(supabase);
 
   if (isUltratimingUrl(resultsUrl)) {

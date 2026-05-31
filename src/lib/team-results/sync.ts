@@ -1,3 +1,5 @@
+import { assertSafeUrl } from "@/lib/net/safe-fetch";
+
 type SourceTeam = {
   name?: string | null;
   type?: string | null;
@@ -295,6 +297,7 @@ function fetchHeaders(provider: SourceRow["provider"]): HeadersInit {
 }
 
 async function fetchText(source: SourceRow, url = source.source_url) {
+  await assertSafeUrl(url); // SSRF-bescherming: blokkeer interne/private adressen
   const res = await fetch(url, {
     cache: "no-store",
     headers: fetchHeaders(source.provider),

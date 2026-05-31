@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get("next") ?? "/dashboard";
   const supabase = await createClient();
 
-  console.log("[auth/confirm] incoming params:", Object.fromEntries(searchParams));
-
+  // Bewust GEEN log van de queryparams: die bevatten de login-`code` /
+  // `token_hash` (geheime eenmalige tokens) en mogen niet in serverlogs belanden.
   const code = searchParams.get("code");
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
