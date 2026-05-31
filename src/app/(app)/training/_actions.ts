@@ -545,16 +545,6 @@ export async function generateAiDraft(formData: FormData) {
   }
 }
 
-export async function generateAiDraftState(
-  _prevState: TrainingActionState,
-  formData: FormData,
-): Promise<TrainingActionState> {
-  const result = await generateAiDraft(formData);
-  return result.ok
-    ? { ok: true, message: "AI-concept aangemaakt." }
-    : { ok: false, error: result.error ?? "AI-concept maken faalde." };
-}
-
 // Renner-actie: "pas vandaag aan" - de renner geeft beschikbare tijd + gevoel
 // op en de AI maakt een draft-aanpassing van het actieve plan voor vandaag/deze
 // week (zelfde draft-patroon als de cron). Geen trainer-goedkeuring nodig om te

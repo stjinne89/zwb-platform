@@ -1,17 +1,14 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { type FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
-import { generateAiDraftState } from "../_actions";
 
 type DraftState = {
   ok: boolean;
   error?: string;
   message?: string;
 } | null;
-
-const initialState: DraftState = null;
 
 export function AiDraftForm({
   athleteId,
@@ -27,15 +24,53 @@ export function AiDraftForm({
   canGenerateAi: boolean;
 }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(generateAiDraftState, initialState);
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<DraftState>(null);
   const disabled = pending || !canUseAi || !canGenerateAi;
 
-  useEffect(() => {
-    if (state?.ok) router.refresh();
-  }, [router, state?.ok]);
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setState(null);
+
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/training/ai-draft", {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin",
+        });
+        const isJson = response.headers.get("content-type")?.includes("application/json");
+        const payload = isJson
+          ? ((await response.json()) as { ok?: boolean; error?: string; planId?: string })
+          : null;
+
+        if (!response.ok || !payload?.ok) {
+          setState({
+            ok: false,
+            error:
+              payload?.error ??
+              `AI-concept maken faalde met serverstatus ${response.status}.`,
+          });
+          return;
+        }
+
+        setState({ ok: true, message: "AI-concept aangemaakt." });
+        router.refresh();
+      } catch (err) {
+        setState({
+          ok: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : "AI-concept maken faalde voordat de server antwoord gaf.",
+        });
+      }
+    });
+  }
 
   return (
-    <form action={action} className="mt-3 space-y-2">
+    <form onSubmit={submit} className="mt-3 space-y-2">
       <input type="hidden" name="athlete_id" value={athleteId} />
       <input type="hidden" name="goal_id" value={goalId} />
       <label className="block text-xs text-muted-foreground">
