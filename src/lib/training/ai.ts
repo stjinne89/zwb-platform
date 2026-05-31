@@ -186,17 +186,24 @@ function isReasoningModel(model: string): boolean {
   return /^(gpt-5|o[134])/i.test(model);
 }
 
+type GenerateTrainingPlanOptions = {
+  model?: string;
+  reasoningEffort?: "low" | "medium" | "high";
+  timeoutMs?: number;
+};
+
 export async function generateTrainingPlanDraft(
   input: TrainingAiInput,
   promptText = defaultTrainingPrompt(),
-  options: { reasoningEffort?: "low" | "medium" | "high" } = {},
+  options: GenerateTrainingPlanOptions = {},
 ): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY ontbreekt. Zet deze in Netlify env om AI-drafts te maken.");
   }
 
-  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
+  const model = options.model?.trim() || process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
+  const timeoutMs = options.timeoutMs ?? 45_000;
   const promptSummary = JSON.stringify(input, null, 2);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: Record<string, any> = {
@@ -225,14 +232,27 @@ export async function generateTrainingPlanDraft(
   if (isReasoningModel(model)) {
     requestBody.reasoning = { effort: options.reasoningEffort ?? "medium" };
   }
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal: abortController.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("OpenAI duurde te lang. Probeer opnieuw of gebruik een sneller trainingsmodel.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const text = await res.text();

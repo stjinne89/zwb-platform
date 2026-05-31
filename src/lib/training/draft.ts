@@ -181,6 +181,11 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
         upcomingEvents,
       },
       promptText,
+      {
+        model: process.env.OPENAI_TRAINING_INTERACTIVE_MODEL?.trim() || "gpt-5-mini",
+        reasoningEffort: "low",
+        timeoutMs: 20_000,
+      },
     );
 
     const { data: aiRow, error: aiError } = await admin
