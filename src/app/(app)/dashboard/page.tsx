@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Bike,
   CalendarDays,
+  Camera,
   Gift,
   HeartHandshake,
   Medal,
@@ -335,11 +336,34 @@ export default async function DashboardPage() {
       .order("display_order"),
     supabase
       .from("event_reports")
-      .select("id, body_md, created_at, profiles(display_name), events(id, title)")
+      .select("id, event_id, body_md, created_at, profiles(display_name), events(id, title, cover_image_path)")
       .gte("created_at", since7Iso)
       .order("created_at", { ascending: false })
-      .limit(4),
+      .limit(6),
   ]);
+
+  // Live-chat per ritverslag-event meenemen (telling) zodat de chat onderdeel
+  // van het ritverslag wordt.
+  const reportEventIds = Array.from(
+    new Set(
+      ((reportPreviewRows ?? []) as Array<{ event_id: string }>).map(
+        (r) => r.event_id,
+      ),
+    ),
+  );
+  const chatCountByEvent = new Map<string, number>();
+  if (reportEventIds.length > 0) {
+    const { data: chatRows } = await supabase
+      .from("event_chat_messages")
+      .select("event_id")
+      .in("event_id", reportEventIds);
+    for (const row of (chatRows ?? []) as { event_id: string }[]) {
+      chatCountByEvent.set(
+        row.event_id,
+        (chatCountByEvent.get(row.event_id) ?? 0) + 1,
+      );
+    }
+  }
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
   const polls = dashboardPolls(
@@ -372,18 +396,27 @@ export default async function DashboardPage() {
       body_md: string;
       created_at: string;
       profiles: ProfileRef | ProfileRef[] | null;
-      events: { id: string; title: string } | { id: string; title: string }[] | null;
+      events:
+        | { id: string; title: string; cover_image_path: string | null }
+        | { id: string; title: string; cover_image_path: string | null }[]
+        | null;
     }>
   )
     .map((r) => {
       const ev = Array.isArray(r.events) ? r.events[0] : r.events;
       if (!ev) return null;
       const text = r.body_md.replace(/[#*_>`-]/g, "").replace(/\s+/g, " ").trim();
+      const coverUrl = ev.cover_image_path
+        ? supabase.storage.from("event-photos").getPublicUrl(ev.cover_image_path)
+            .data.publicUrl
+        : null;
       return {
         id: r.id,
         author: singleProfileName(r.profiles) ?? "ZWB'er",
         eventId: ev.id,
         eventTitle: ev.title,
+        coverUrl,
+        chatCount: chatCountByEvent.get(ev.id) ?? 0,
         snippet: text.length > 120 ? `${text.slice(0, 120)}…` : text,
       };
     })
@@ -399,6 +432,53 @@ export default async function DashboardPage() {
         eyebrow={firstName ? `Hoi ${firstName}` : "Welkom"}
         title="Home app van ZWB Cycling Community"
       />
+
+      {reportPreviews.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Camera}
+            title="Ritverslagen — afgelopen 7 dagen"
+            action={<InlineMoreLink href="/ritverslagen">Alle verslagen</InlineMoreLink>}
+          />
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {reportPreviews.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/events/${r.eventId}`}
+                  className="group block h-full overflow-hidden rounded-lg border bg-card transition hover:border-primary/40"
+                >
+                  <div className="relative aspect-[16/8] w-full bg-gradient-to-br from-primary/20 to-secondary">
+                    {r.coverUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={r.coverUrl}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-3">
+                      <p className="line-clamp-1 text-sm font-semibold text-white">
+                        {r.eventTitle}
+                      </p>
+                      <p className="text-xs text-white/80">
+                        door {r.author}
+                        {r.chatCount > 0 ? ` · ${r.chatCount} chatberichten` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  {r.snippet && (
+                    <p className="line-clamp-2 p-3 text-sm text-muted-foreground">
+                      {r.snippet}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {mediaItems.length > 0 && (
         <section>
@@ -701,36 +781,6 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
-
-      {reportPreviews.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Newspaper}
-            title="Ritverslagen deze week"
-            action={<InlineMoreLink href="/ritverslagen">Alle verslagen</InlineMoreLink>}
-          />
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {reportPreviews.map((r) => (
-              <li key={r.id}>
-                <Link
-                  href={`/events/${r.eventId}`}
-                  className="block h-full rounded-lg border bg-card p-4 transition hover:border-foreground/30"
-                >
-                  <p className="text-sm font-medium">{r.eventTitle}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    door {r.author}
-                  </p>
-                  {r.snippet && (
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {r.snippet}
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <section>
         <SectionHeader

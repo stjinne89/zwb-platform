@@ -337,9 +337,10 @@ export default async function EventDetailPage({
     }
   }
 
-  // Live-chat: initiële berichten (leden zien ook interne via RLS).
+  // Live-chat: initiële berichten (leden zien ook interne via RLS). Ook na de
+  // rit ophalen, zodat de chat als archief deel wordt van het ritverslag.
   let initialChat: ChatMessage[] = [];
-  if (eventIsToday) {
+  {
     const { data: chatRows } = await supabase
       .from("event_chat_messages")
       .select(
@@ -347,7 +348,7 @@ export default async function EventDetailPage({
       )
       .eq("event_id", id)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(eventIsToday ? 50 : 200);
     initialChat = ((chatRows ?? []) as Array<{
       id: string;
       profile_id: string | null;
@@ -644,6 +645,18 @@ export default async function EventDetailPage({
         isAdmin={access.isAdmin}
         reports={eventReports}
       />
+
+      {!eventIsToday && initialChat.length > 0 && (
+        <EventChat
+          eventId={event.id}
+          mode="poll"
+          currentUserId={user?.id ?? null}
+          isMember={Boolean(user)}
+          isAdmin={access.isAdmin}
+          initialMessages={initialChat}
+          readOnly
+        />
+      )}
     </div>
   );
 }

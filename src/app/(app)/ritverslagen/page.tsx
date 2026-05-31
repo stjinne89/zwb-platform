@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Camera, CalendarDays, MapPin, PencilLine, Users } from "lucide-react";
+import {
+  Camera,
+  CalendarDays,
+  MapPin,
+  MessageCircle,
+  PencilLine,
+  Users,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 
@@ -41,6 +48,7 @@ type Report = {
   coverUrl: string | null;
   reportCount: number;
   reportSnippet: string | null;
+  chatCount: number;
 };
 
 function amsterdamDateKey(date: Date) {
@@ -117,6 +125,16 @@ export default async function RitverslagenPage() {
     byEvent.set(p.event_id, agg);
   }
 
+  // Live-chat per event meetellen (onderdeel van het ritverslag).
+  const { data: chatRows } = await supabase
+    .from("event_chat_messages")
+    .select("event_id")
+    .in("event_id", eventIds);
+  const chatCountByEvent = new Map<string, number>();
+  for (const c of (chatRows ?? []) as { event_id: string }[]) {
+    chatCountByEvent.set(c.event_id, (chatCountByEvent.get(c.event_id) ?? 0) + 1);
+  }
+
   // Geschreven verslagen per event (aantal + nieuwste snippet).
   const { data: reportTextRows } = await supabase
     .from("event_reports")
@@ -161,6 +179,7 @@ export default async function RitverslagenPage() {
         : null,
       reportCount: rep?.count ?? 0,
       reportSnippet: rep?.snippet ?? null,
+      chatCount: chatCountByEvent.get(event.id) ?? 0,
     };
   });
 
@@ -234,6 +253,12 @@ export default async function RitverslagenPage() {
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                         <PencilLine className="size-3.5" />
                         {report.reportCount}
+                      </span>
+                    )}
+                    {report.chatCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <MessageCircle className="size-3.5" />
+                        {report.chatCount}
                       </span>
                     )}
                   </div>

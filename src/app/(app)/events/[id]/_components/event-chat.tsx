@@ -34,6 +34,7 @@ export function EventChat({
   isMember,
   isAdmin,
   initialMessages,
+  readOnly = false,
 }: {
   eventId: string;
   mode: "realtime" | "poll";
@@ -41,6 +42,8 @@ export function EventChat({
   isMember: boolean;
   isAdmin: boolean;
   initialMessages: ChatMessage[];
+  /** Archief-modus: alleen-lezen (geen invoer/realtime), als deel van het ritverslag. */
+  readOnly?: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [body, setBody] = useState("");
@@ -71,6 +74,7 @@ export function EventChat({
   // Realtime-modus (leden): subscribe als trigger → refetch (incl. interne +
   // namen). Poll-modus (publiek): elke 6s pollen. Beide: bij terugkeer tab.
   useEffect(() => {
+    if (readOnly) return; // archief: geen live updates
     const onVisible = () => {
       if (document.visibilityState === "visible") refetch();
     };
@@ -110,7 +114,7 @@ export function EventChat({
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [mode, eventId, refetch]);
+  }, [mode, eventId, refetch, readOnly]);
 
   async function send() {
     const text = body.trim();
@@ -155,7 +159,7 @@ export function EventChat({
     <section className="space-y-3 rounded-lg border bg-card p-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         <MessageCircle className="size-4" />
-        Live chat
+        {readOnly ? "Live chat tijdens de rit" : "Live chat"}
       </h2>
 
       <div
@@ -210,6 +214,8 @@ export function EventChat({
         )}
       </div>
 
+      {!readOnly && (
+        <>
       {/* Snel-emoji */}
       <div className="flex flex-wrap gap-1">
         {QUICK_EMOJI.map((e) => (
@@ -266,6 +272,8 @@ export function EventChat({
       )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
+        </>
+      )}
     </section>
   );
 }
