@@ -3,7 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
-import { generateAiDraft } from "../_actions";
+import { generateAiDraftState } from "../_actions";
 
 type DraftState = {
   ok: boolean;
@@ -27,25 +27,7 @@ export function AiDraftForm({
   canGenerateAi: boolean;
 }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(
-    async (_prevState: DraftState, formData: FormData): Promise<DraftState> => {
-      try {
-        const result = await generateAiDraft(formData);
-        return result.ok
-          ? { ok: true, message: "AI-concept aangemaakt." }
-          : { ok: false, error: result.error ?? "AI-concept maken faalde." };
-      } catch (err) {
-        return {
-          ok: false,
-          error:
-            err instanceof Error
-              ? err.message
-              : "AI-concept maken faalde voordat de server antwoord gaf.",
-        };
-      }
-    },
-    initialState,
-  );
+  const [state, action, pending] = useActionState(generateAiDraftState, initialState);
   const disabled = pending || !canUseAi || !canGenerateAi;
 
   useEffect(() => {

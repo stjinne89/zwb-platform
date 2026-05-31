@@ -1063,6 +1063,7 @@ function CoachWorkspace({
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 60;
 
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
   const params = (await searchParams) ?? {};
