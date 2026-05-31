@@ -260,7 +260,7 @@ export default async function DashboardPage() {
     { data: clubActivities },
     { data: awardRows },
     { data: sponsorRows },
-    { data: reportPreviewRows },
+    { data: recentPastEventRows },
   ] = await Promise.all([
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
@@ -335,33 +335,67 @@ export default async function DashboardPage() {
       .order("tier")
       .order("display_order"),
     supabase
-      .from("event_reports")
-      .select("id, event_id, body_md, created_at, profiles(display_name), events(id, title, cover_image_path)")
-      .gte("created_at", since7Iso)
-      .order("created_at", { ascending: false })
+      .from("events")
+      .select("id, title, start_at, location, cover_image_path")
+      .gte("start_at", since7Iso)
+      .lt("start_at", nowIso)
+      .order("start_at", { ascending: false })
       .limit(6),
   ]);
 
-  // Live-chat per ritverslag-event meenemen (telling) zodat de chat onderdeel
-  // van het ritverslag wordt.
-  const reportEventIds = Array.from(
-    new Set(
-      ((reportPreviewRows ?? []) as Array<{ event_id: string }>).map(
-        (r) => r.event_id,
-      ),
-    ),
-  );
+  // Ritverslagen = voorbije events van de afgelopen 7 dagen, verrijkt met een
+  // eventueel geschreven verslag, foto's en de live-chat.
+  const recentPastEvents = (recentPastEventRows ?? []) as Array<{
+    id: string;
+    title: string;
+    start_at: string;
+    location: string | null;
+    cover_image_path: string | null;
+  }>;
+  const recentEventIds = recentPastEvents.map((e) => e.id);
+
+  const reportByEvent = new Map<string, { count: number; author: string; snippet: string }>();
   const chatCountByEvent = new Map<string, number>();
-  if (reportEventIds.length > 0) {
-    const { data: chatRows } = await supabase
-      .from("event_chat_messages")
-      .select("event_id")
-      .in("event_id", reportEventIds);
-    for (const row of (chatRows ?? []) as { event_id: string }[]) {
-      chatCountByEvent.set(
-        row.event_id,
-        (chatCountByEvent.get(row.event_id) ?? 0) + 1,
-      );
+  const photoCountByEvent = new Map<string, number>();
+  if (recentEventIds.length > 0) {
+    const [{ data: repRows }, { data: chatRows }, { data: photoRows }] =
+      await Promise.all([
+        supabase
+          .from("event_reports")
+          .select("event_id, body_md, created_at, profiles(display_name)")
+          .in("event_id", recentEventIds)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("event_chat_messages")
+          .select("event_id")
+          .in("event_id", recentEventIds),
+        supabase
+          .from("event_photos")
+          .select("event_id")
+          .in("event_id", recentEventIds),
+      ]);
+    for (const r of (repRows ?? []) as Array<{
+      event_id: string;
+      body_md: string;
+      profiles: ProfileRef | ProfileRef[] | null;
+    }>) {
+      const cur = reportByEvent.get(r.event_id);
+      if (cur) {
+        cur.count += 1;
+      } else {
+        const text = r.body_md.replace(/[#*_>`-]/g, "").replace(/\s+/g, " ").trim();
+        reportByEvent.set(r.event_id, {
+          count: 1,
+          author: singleProfileName(r.profiles) ?? "ZWB'er",
+          snippet: text.length > 120 ? `${text.slice(0, 120)}…` : text,
+        });
+      }
+    }
+    for (const c of (chatRows ?? []) as { event_id: string }[]) {
+      chatCountByEvent.set(c.event_id, (chatCountByEvent.get(c.event_id) ?? 0) + 1);
+    }
+    for (const p of (photoRows ?? []) as { event_id: string }[]) {
+      photoCountByEvent.set(p.event_id, (photoCountByEvent.get(p.event_id) ?? 0) + 1);
     }
   }
 
@@ -390,37 +424,29 @@ export default async function DashboardPage() {
       logoUrl: s.logo_url as string,
       websiteUrl: s.website_url,
     }));
-  const reportPreviews = (
-    (reportPreviewRows ?? []) as Array<{
-      id: string;
-      body_md: string;
-      created_at: string;
-      profiles: ProfileRef | ProfileRef[] | null;
-      events:
-        | { id: string; title: string; cover_image_path: string | null }
-        | { id: string; title: string; cover_image_path: string | null }[]
-        | null;
-    }>
-  )
-    .map((r) => {
-      const ev = Array.isArray(r.events) ? r.events[0] : r.events;
-      if (!ev) return null;
-      const text = r.body_md.replace(/[#*_>`-]/g, "").replace(/\s+/g, " ").trim();
-      const coverUrl = ev.cover_image_path
-        ? supabase.storage.from("event-photos").getPublicUrl(ev.cover_image_path)
-            .data.publicUrl
-        : null;
-      return {
-        id: r.id,
-        author: singleProfileName(r.profiles) ?? "ZWB'er",
-        eventId: ev.id,
-        eventTitle: ev.title,
-        coverUrl,
-        chatCount: chatCountByEvent.get(ev.id) ?? 0,
-        snippet: text.length > 120 ? `${text.slice(0, 120)}…` : text,
-      };
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
+  const reportPreviews = recentPastEvents.map((ev) => {
+    const rep = reportByEvent.get(ev.id);
+    const coverUrl = ev.cover_image_path
+      ? supabase.storage.from("event-photos").getPublicUrl(ev.cover_image_path)
+          .data.publicUrl
+      : null;
+    return {
+      id: ev.id,
+      eventId: ev.id,
+      eventTitle: ev.title,
+      dateLabel: new Date(ev.start_at).toLocaleDateString("nl-NL", {
+        day: "numeric",
+        month: "short",
+        timeZone: "Europe/Amsterdam",
+      }),
+      coverUrl,
+      author: rep?.author ?? null,
+      snippet: rep?.snippet ?? null,
+      reportCount: rep?.count ?? 0,
+      chatCount: chatCountByEvent.get(ev.id) ?? 0,
+      photoCount: photoCountByEvent.get(ev.id) ?? 0,
+    };
+  });
 
   const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
     .trim()
@@ -463,16 +489,28 @@ export default async function DashboardPage() {
                         {r.eventTitle}
                       </p>
                       <p className="text-xs text-white/80">
-                        door {r.author}
-                        {r.chatCount > 0 ? ` · ${r.chatCount} chatberichten` : ""}
+                        {[
+                          r.dateLabel,
+                          r.reportCount > 0
+                            ? `${r.reportCount} verslag${r.reportCount === 1 ? "" : "en"}`
+                            : null,
+                          r.photoCount > 0 ? `${r.photoCount} foto's` : null,
+                          r.chatCount > 0 ? `${r.chatCount} chat` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                     </div>
                   </div>
-                  {r.snippet && (
-                    <p className="line-clamp-2 p-3 text-sm text-muted-foreground">
-                      {r.snippet}
-                    </p>
-                  )}
+                  <p className="line-clamp-2 p-3 text-sm text-muted-foreground">
+                    {r.snippet
+                      ? r.snippet
+                      : r.reportCount === 0 && r.photoCount === 0
+                        ? "Nog geen verslag of foto's — voeg jouw verslag toe."
+                        : r.author
+                          ? `Verslag van ${r.author}`
+                          : "Bekijk het ritverslag."}
+                  </p>
                 </Link>
               </li>
             ))}
