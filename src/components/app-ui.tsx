@@ -55,7 +55,7 @@ export function SectionHeader({
   className,
 }: {
   icon?: LucideIcon;
-  title: string;
+  title: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }) {

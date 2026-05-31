@@ -2,6 +2,45 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
+
+// Verwijder een ritverslag = het voorbije event en alle bijbehorende foto's,
+// verslagen en chat (cascade). Alleen moderators (events.manage_all) of de
+// maker van het event.
+export async function deleteRitverslag(eventId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("created_by")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!event) return { ok: false as const, error: "Event niet gevonden." };
+
+  const access = await getCurrentUserAccess(supabase);
+  const canManage =
+    access.has("events.manage_all") || event.created_by === user.id;
+  if (!canManage) {
+    return {
+      ok: false as const,
+      error: "Geen recht om dit ritverslag te verwijderen.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("events").delete().eq("id", eventId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/ritverslagen");
+  revalidatePath("/dashboard");
+  revalidatePath("/kalender");
+  return { ok: true as const };
+}
 
 function revalidateReportSurfaces(eventId: string) {
   revalidatePath(`/events/${eventId}`);

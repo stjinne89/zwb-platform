@@ -9,7 +9,9 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
+import { DeleteRitverslagButton } from "./_components/delete-ritverslag-button";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,7 @@ type EventRow = {
   distance_km: number | string | null;
   elevation_m: number | string | null;
   cover_image_path: string | null;
+  created_by: string | null;
 };
 
 type Report = {
@@ -69,13 +72,16 @@ export default async function RitverslagenPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const access = await getCurrentUserAccess(supabase);
+  const isModerator = access.has("events.manage_all");
+
   // Voorbije events (dag vóór vandaag) verhuizen hierheen. Vandaag + toekomst
   // staan op de kalender.
   const todayKey = amsterdamDateKey(new Date());
   const { data: eventRows } = await supabase
     .from("events")
     .select(
-      "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path",
+      "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path, created_by",
     )
     .order("start_at", { ascending: false })
     .limit(150);
@@ -200,8 +206,14 @@ export default async function RitverslagenPage() {
               })} km`
             : null;
           const hm = event.elevation_m ? `${event.elevation_m} hm` : null;
+          const canDelete = isModerator || event.created_by === user.id;
           return (
-            <li key={event.id}>
+            <li key={event.id} className="relative">
+              {canDelete && (
+                <div className="absolute right-2 top-2 z-10">
+                  <DeleteRitverslagButton eventId={event.id} />
+                </div>
+              )}
               <Link
                 href={`/events/${event.id}`}
                 className="group block overflow-hidden rounded-lg border bg-card transition hover:border-primary/40"

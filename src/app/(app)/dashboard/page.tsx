@@ -15,6 +15,8 @@ import {
   Vote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritverslag-button";
 import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
@@ -238,6 +240,8 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const access = await getCurrentUserAccess(supabase);
+  const isModerator = access.has("events.manage_all");
 
   const nowIso = new Date().toISOString();
   const since7 = new Date();
@@ -336,7 +340,7 @@ export default async function DashboardPage() {
       .order("display_order"),
     supabase
       .from("events")
-      .select("id, title, start_at, location, cover_image_path")
+      .select("id, title, start_at, location, cover_image_path, created_by")
       .gte("start_at", since7Iso)
       .lt("start_at", nowIso)
       .order("start_at", { ascending: false })
@@ -351,6 +355,7 @@ export default async function DashboardPage() {
     start_at: string;
     location: string | null;
     cover_image_path: string | null;
+    created_by: string | null;
   }>;
   const recentEventIds = recentPastEvents.map((e) => e.id);
 
@@ -456,6 +461,7 @@ export default async function DashboardPage() {
       reportCount: rep?.count ?? 0,
       chatCount: chatCountByEvent.get(ev.id) ?? 0,
       photoCount: photoCountByEvent.get(ev.id) ?? 0,
+      canDelete: isModerator || ev.created_by === user?.id,
     };
   });
 
@@ -474,12 +480,23 @@ export default async function DashboardPage() {
         <section>
           <SectionHeader
             icon={Camera}
-            title="Ritverslagen — afgelopen 7 dagen"
-            action={<InlineMoreLink href="/ritverslagen">Alle verslagen</InlineMoreLink>}
+            title={
+              <Link
+                href="/ritverslagen"
+                className="hover:text-primary hover:underline"
+              >
+                Ritverslagen
+              </Link>
+            }
           />
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {reportPreviews.map((r) => (
-              <li key={r.id}>
+              <li key={r.id} className="relative">
+                {r.canDelete && (
+                  <div className="absolute right-2 top-2 z-10">
+                    <DeleteRitverslagButton eventId={r.eventId} />
+                  </div>
+                )}
                 <Link
                   href={`/events/${r.eventId}`}
                   className="group block h-full overflow-hidden rounded-lg border bg-card transition hover:border-primary/40"
