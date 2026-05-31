@@ -357,6 +357,7 @@ export default async function DashboardPage() {
   const reportByEvent = new Map<string, { count: number; author: string; snippet: string }>();
   const chatCountByEvent = new Map<string, number>();
   const photoCountByEvent = new Map<string, number>();
+  const photoUrlByEvent = new Map<string, string>();
   if (recentEventIds.length > 0) {
     const [{ data: repRows }, { data: chatRows }, { data: photoRows }] =
       await Promise.all([
@@ -371,8 +372,9 @@ export default async function DashboardPage() {
           .in("event_id", recentEventIds),
         supabase
           .from("event_photos")
-          .select("event_id")
-          .in("event_id", recentEventIds),
+          .select("event_id, storage_path")
+          .in("event_id", recentEventIds)
+          .order("created_at", { ascending: false }),
       ]);
     for (const r of (repRows ?? []) as Array<{
       event_id: string;
@@ -394,8 +396,16 @@ export default async function DashboardPage() {
     for (const c of (chatRows ?? []) as { event_id: string }[]) {
       chatCountByEvent.set(c.event_id, (chatCountByEvent.get(c.event_id) ?? 0) + 1);
     }
-    for (const p of (photoRows ?? []) as { event_id: string }[]) {
+    for (const p of (photoRows ?? []) as { event_id: string; storage_path: string }[]) {
       photoCountByEvent.set(p.event_id, (photoCountByEvent.get(p.event_id) ?? 0) + 1);
+      // Nieuwste foto eerst (query is desc) → eerste die we zien is de header.
+      if (!photoUrlByEvent.has(p.event_id)) {
+        photoUrlByEvent.set(
+          p.event_id,
+          supabase.storage.from("event-photos").getPublicUrl(p.storage_path)
+            .data.publicUrl,
+        );
+      }
     }
   }
 
@@ -426,10 +436,11 @@ export default async function DashboardPage() {
     }));
   const reportPreviews = recentPastEvents.map((ev) => {
     const rep = reportByEvent.get(ev.id);
+    // Header-beeld: cover-afbeelding, anders een geplaatste event-foto.
     const coverUrl = ev.cover_image_path
       ? supabase.storage.from("event-photos").getPublicUrl(ev.cover_image_path)
           .data.publicUrl
-      : null;
+      : photoUrlByEvent.get(ev.id) ?? null;
     return {
       id: ev.id,
       eventId: ev.id,
