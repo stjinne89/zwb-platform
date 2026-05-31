@@ -477,7 +477,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow={firstName ? `Hoi ${firstName}` : "Welkom"}
-        title="Home app van ZWB Cycling Community"
+        title="Welkom thuis op ZWB Home"
       />
 
       {reportPreviews.length > 0 && (
