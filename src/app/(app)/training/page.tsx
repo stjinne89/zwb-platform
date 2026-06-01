@@ -1736,7 +1736,10 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                     </div>
                     <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
                   </div>
-                  <WorkoutBlocks blocks={normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)} />
+                  <WorkoutBlocks
+                    blocks={normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)}
+                    ftpWatts={myProfile?.ftp_watts}
+                  />
                   {workout.publish_status === "published" && workout.intervals_event_id ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <a

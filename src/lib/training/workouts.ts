@@ -54,6 +54,7 @@ export function defaultTrainingPrompt() {
     "Maak veilige, realistische concept-workouts voor review door een menselijke trainer.",
     "Geef geen medisch advies. Respecteer beschikbaarheid, max uren per week, herstel en bekende risiconotities.",
     "Bouw gestructureerde workouts met duidelijke blokken: warming-up, kern, herstel en cooling-down.",
+    "Schrijf herhalingen expliciet uit als losse structure-blokken: bijvoorbeeld 3x8 min sweet spot met 4 min herstel wordt 8 min werk, 4 min herstel, 8 min werk, 4 min herstel, enzovoort.",
     "Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld 'RPE 6, 210-235w'.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
@@ -98,9 +99,105 @@ function positiveMinutes(value: unknown, fallback = 5) {
   return Math.min(480, Math.max(1, Math.round(n)));
 }
 
+function repeatedWorkPattern(text: string) {
+  const match = text.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\s*(?:m|min|mins|minuten|minute|minutes)\b/i);
+  if (!match) return null;
+  const reps = Number(match[1]);
+  const workMinutes = Number(match[2]);
+  if (!Number.isFinite(reps) || !Number.isFinite(workMinutes) || reps < 2 || workMinutes < 1) {
+    return null;
+  }
+  return { reps, workMinutes };
+}
+
+function recoveryMinutesPattern(text: string) {
+  const afterDuration = text.match(/\b(\d{1,3})\s*(?:m|min|mins|minuten|minute|minutes)\s*(?:herstel|rust|rustig|recovery|easy)\b/i);
+  const beforeDuration = text.match(/\b(?:herstel|rust|rustig|recovery|easy)\D{0,16}(\d{1,3})\s*(?:m|min|mins|minuten|minute|minutes)\b/i);
+  const minutes = Number(afterDuration?.[1] ?? beforeDuration?.[1] ?? 0);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+}
+
+function recoveryTargetFromText(text: string) {
+  const recoveryText = text.match(/\b(?:herstel|rust|rustig|recovery|easy)\b[^.;,\n]*/i)?.[0] ?? "";
+  const range = recoveryText.match(/(\d+(?:[.,]\d+)?)\s*(?:-|–|—|to|tot)\s*(\d+(?:[.,]\d+)?)\s*(%|w|watt)/i);
+  if (range) return `${range[1]}-${range[2]}${range[3].toLowerCase() === "%" ? "%" : "w"}`;
+  const single = recoveryText.match(/([<≤]?\s*\d+(?:[.,]\d+)?)\s*(%|w|watt)/i);
+  if (single) return `${single[1].replace(/\s+/g, "")}${single[2].toLowerCase() === "%" ? "%" : "w"}`;
+  const rpe = recoveryText.match(/\brpe\s*([1-9]|10)\b/i);
+  if (rpe) return `RPE ${rpe[1]}`;
+  return "";
+}
+
+function cleanRepeatedWorkLabel(label: string) {
+  return (
+    label
+      .replace(/\b\d{1,2}\s*x\s*\d{1,3}\s*(?:m|min|mins|minuten|minute|minutes)\b/i, "")
+      .replace(/\s{2,}/g, " ")
+      .trim() || label
+  );
+}
+
+function cleanRepeatedWorkNotes(notes: string) {
+  return notes
+    .replace(/\b\d{1,2}\s*x\s*\d{1,3}\s*(?:m|min|mins|minuten|minute|minutes)\b/ig, "")
+    .replace(/\bmet\s+\d{1,3}\s*(?:m|min|mins|minuten|minute|minutes)\s*(?:herstel|rust|rustig|recovery|easy)[^.;,\n]*/ig, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function recoveryCountForCompactBlock(totalMinutes: number, reps: number, workMinutes: number, recoveryMinutes: number) {
+  const withFinalRecovery = reps * (workMinutes + recoveryMinutes);
+  const betweenOnly = reps * workMinutes + (reps - 1) * recoveryMinutes;
+  if (Math.abs(totalMinutes - withFinalRecovery) <= 1) return reps;
+  if (Math.abs(totalMinutes - betweenOnly) <= 1) return reps - 1;
+  return reps - 1;
+}
+
+function expandRepeatedBlock(block: WorkoutBlock): WorkoutBlock[] {
+  const text = `${block.label} ${block.notes}`;
+  const repeated = repeatedWorkPattern(text);
+  const recoveryMinutes = recoveryMinutesPattern(text);
+  if (!repeated || !recoveryMinutes) return [block];
+
+  const recoveryCount = recoveryCountForCompactBlock(
+    block.durationMinutes,
+    repeated.reps,
+    repeated.workMinutes,
+    recoveryMinutes,
+  );
+  const workLabel = cleanRepeatedWorkLabel(block.label);
+  const workNotes = cleanRepeatedWorkNotes(block.notes);
+  const recoveryTarget = recoveryTargetFromText(text);
+  const expanded: WorkoutBlock[] = [];
+
+  for (let rep = 1; rep <= repeated.reps; rep++) {
+    expanded.push({
+      ...block,
+      label: `${workLabel} ${rep}/${repeated.reps}`,
+      durationMinutes: repeated.workMinutes,
+      notes: workNotes,
+    });
+    if (rep <= recoveryCount) {
+      expanded.push({
+        label: `Herstel ${rep}/${repeated.reps}`,
+        durationMinutes: recoveryMinutes,
+        target: recoveryTarget,
+        notes: "Rustig rijden.",
+        intensity: "recovery",
+      });
+    }
+  }
+
+  return expanded;
+}
+
+function expandRepeatedBlocks(blocks: WorkoutBlock[]) {
+  return blocks.flatMap(expandRepeatedBlock);
+}
+
 export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: WorkoutIntensity = "endurance") {
   if (!Array.isArray(value)) return [] satisfies WorkoutBlock[];
-  return value
+  const blocks = value
     .map((row): WorkoutBlock => {
       const record = (row ?? {}) as Record<string, unknown>;
       return {
@@ -112,6 +209,7 @@ export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: Workou
       };
     })
     .filter((block) => block.durationMinutes > 0);
+  return expandRepeatedBlocks(blocks);
 }
 
 export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutIntensity = "endurance") {
@@ -140,7 +238,7 @@ export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutInt
     });
   }
 
-  return blocks;
+  return expandRepeatedBlocks(blocks);
 }
 
 function targetForIntervals(target: string) {
