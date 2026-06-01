@@ -6,7 +6,9 @@ import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import {
   defaultTrainingPrompt,
-  generateTrainingPlanDraft,
+  retrieveTrainingPlanDraftBackground,
+  startTrainingPlanDraftBackground,
+  type GeneratedTrainingPlan,
   type TrainingAiInput,
 } from "@/lib/training/ai";
 import {
@@ -15,9 +17,24 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 
+type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
+
 type TrainingDraftResult =
-  | { ok: true; planId: string }
+  | { ok: true; generationId: string; status: TrainingDraftStatus; planId?: string; message?: string; error?: string }
   | { ok: false; error: string };
+
+type AiGenerationRow = {
+  id: string;
+  profile_id: string;
+  trainer_id: string | null;
+  goal_id: string | null;
+  model: string;
+  status: TrainingDraftStatus;
+  prompt_summary: string;
+  response_json: unknown | null;
+  error: string | null;
+  openai_response_id: string | null;
+};
 
 function optionalString(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -55,6 +72,208 @@ async function canCoach(admin: ReturnType<typeof createAdminClient>, trainerId: 
   return Boolean(data);
 }
 
+async function canAccessGeneration(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  access: Awaited<ReturnType<typeof getCurrentUserAccess>>,
+  generation: AiGenerationRow,
+) {
+  if (access.has("training.manage_assignments")) return true;
+  if (generation.profile_id === userId || generation.trainer_id === userId) return true;
+  return canCoach(admin, userId, generation.profile_id);
+}
+
+async function buildTrainingInput(
+  admin: ReturnType<typeof createAdminClient>,
+  athleteId: string,
+  goalId: string,
+): Promise<TrainingAiInput> {
+  const [{ data: profile }, { data: goal }, { data: activities }] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("display_name, ftp_watts, weight_kg, zrl_category")
+      .eq("id", athleteId)
+      .single(),
+    admin
+      .from("training_goals")
+      .select("*")
+      .eq("id", goalId)
+      .eq("profile_id", athleteId)
+      .single(),
+    admin
+      .from("strava_activities")
+      .select("distance_m, total_elevation_gain_m, moving_time_seconds")
+      .eq("profile_id", athleteId)
+      .gte("start_date", new Date(Date.now() - 28 * 86400_000).toISOString()),
+  ]);
+  if (!profile || !goal) throw new Error("Profiel of doel niet gevonden.");
+
+  const recent = (activities ?? []).reduce(
+    (acc, row) => ({
+      activities: acc.activities + 1,
+      distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
+      elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
+      hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
+    }),
+    { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
+  );
+
+  const { wellnessForAi } = await import("@/lib/training/wellness");
+  const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
+
+  let intervalsLoad: TrainingAiInput["intervalsLoad"] = null;
+  try {
+    const { data: conn } = await admin
+      .from("intervals_connections")
+      .select("api_key, athlete_id")
+      .eq("profile_id", athleteId)
+      .maybeSingle();
+    if (conn?.api_key && conn?.athlete_id) {
+      const rows = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
+      const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
+      const latest = sorted[sorted.length - 1];
+      if (latest) {
+        const ctl = latest.ctl ?? null;
+        const atl = latest.atl ?? null;
+        intervalsLoad = {
+          ctl,
+          atl,
+          tsb: ctl != null && atl != null ? Math.round((ctl - atl) * 10) / 10 : null,
+          eftp: [...sorted].reverse().find((r) => r.eftp)?.eftp ?? null,
+          rampRate: latest.ramp_rate ?? null,
+        };
+      }
+    }
+  } catch {
+    // Niet kritiek: AI kan zonder intervals-belasting door.
+  }
+
+  const horizon = goal.target_date
+    ? new Date(goal.target_date)
+    : new Date(Date.now() + 90 * 86400_000);
+  const { data: upcomingRows } = await admin
+    .from("events")
+    .select("title, type, start_at")
+    .gte("start_at", new Date().toISOString())
+    .lte("start_at", horizon.toISOString())
+    .order("start_at")
+    .limit(8);
+  const upcomingEvents = (upcomingRows ?? []).map((e) => ({
+    title: e.title as string,
+    type: e.type as string,
+    date: String(e.start_at).slice(0, 10),
+  }));
+
+  return {
+    athleteName: profile.display_name ?? "ZWB-lid",
+    goal: {
+      title: goal.title,
+      type: goal.goal_type,
+      targetDate: goal.target_date,
+      availableDays: goal.available_days ?? [],
+      maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
+      preferredMode: goal.preferred_mode,
+      experienceLevel: goal.experience_level,
+      desiredIntensity: goal.desired_intensity,
+      riskNotes: goal.risk_notes,
+    },
+    profile: {
+      ftpWatts: profile.ftp_watts ?? null,
+      weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
+      zrlCategory: profile.zrl_category ?? null,
+    },
+    recentLoad: recent,
+    wellness: wellness
+      ? {
+          days: wellness.days,
+          state: wellness.state,
+          restingHr: wellness.restingHr,
+          hrv: wellness.hrv,
+          sleepHours: wellness.sleepHours,
+          readiness: wellness.readiness,
+          note: wellness.note,
+        }
+      : null,
+    intervalsLoad,
+    upcomingEvents,
+  };
+}
+
+async function createPlanFromAiGeneration(
+  admin: ReturnType<typeof createAdminClient>,
+  generation: Pick<AiGenerationRow, "id" | "profile_id" | "trainer_id" | "goal_id">,
+  planDraft: GeneratedTrainingPlan,
+) {
+  const { data: existingPlan, error: existingError } = await admin
+    .from("training_plans")
+    .select("id")
+    .eq("ai_generation_id", generation.id)
+    .maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+  if (existingPlan) return existingPlan.id as string;
+
+  const { data: plan, error: planError } = await admin
+    .from("training_plans")
+    .insert({
+      profile_id: generation.profile_id,
+      trainer_id: generation.trainer_id,
+      goal_id: generation.goal_id,
+      ai_generation_id: generation.id,
+      title: planDraft.title,
+      summary: [planDraft.summary, ...planDraft.cautions.map((c) => `Let op: ${c}`)].join("\n\n"),
+      start_date: planDraft.startDate,
+      end_date: planDraft.endDate,
+      status: "draft",
+      source: "ai",
+    })
+    .select("id")
+    .single();
+  if (planError) {
+    const { data: duplicatePlan } = await admin
+      .from("training_plans")
+      .select("id")
+      .eq("ai_generation_id", generation.id)
+      .maybeSingle();
+    if (duplicatePlan) return duplicatePlan.id as string;
+    throw new Error(planError.message);
+  }
+
+  const workouts = planDraft.workouts.map((workout) => {
+    const intensity = workout.intensity;
+    assertWorkoutIntensity(intensity);
+    const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+    return {
+      plan_id: plan.id,
+      profile_id: generation.profile_id,
+      trainer_id: generation.trainer_id,
+      scheduled_at: `${workout.date}T09:00:00+01:00`,
+      title: workout.title,
+      description: workout.description,
+      duration_minutes: Math.round(workout.durationMinutes),
+      intensity,
+      target_type: workout.targetType,
+      structure_json: blocks,
+      intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
+    };
+  });
+  const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
+  if (workoutError) throw new Error(workoutError.message);
+
+  await sendNotificationToMembers(
+    "on_training_plan",
+    {
+      title: "Nieuw trainingsconcept",
+      body: "Je trainer heeft een nieuw conceptschema klaargezet.",
+      url: "/training",
+      tag: `training-plan-${plan.id}`,
+    },
+    { profileIds: [generation.profile_id] },
+  ).catch(() => null);
+
+  revalidatePath("/training");
+  return plan.id as string;
+}
+
 export async function generateAiDraftFromForm(formData: FormData): Promise<TrainingDraftResult> {
   try {
     const { user, access } = await currentUser();
@@ -70,123 +289,13 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
       throw new Error("Dit lid heeft jou geen actieve trainer-toegang gegeven.");
     }
 
-    const [{ data: profile }, { data: goal }, { data: activities }] = await Promise.all([
-      admin
-        .from("profiles")
-        .select("display_name, ftp_watts, weight_kg, zrl_category")
-        .eq("id", athleteId)
-        .single(),
-      admin
-        .from("training_goals")
-        .select("*")
-        .eq("id", goalId)
-        .eq("profile_id", athleteId)
-        .single(),
-      admin
-        .from("strava_activities")
-        .select("distance_m, total_elevation_gain_m, moving_time_seconds")
-        .eq("profile_id", athleteId)
-        .gte("start_date", new Date(Date.now() - 28 * 86400_000).toISOString()),
-    ]);
-    if (!profile || !goal) throw new Error("Profiel of doel niet gevonden.");
-
-    const recent = (activities ?? []).reduce(
-      (acc, row) => ({
-        activities: acc.activities + 1,
-        distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
-        elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
-        hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
-      }),
-      { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
-    );
-
-    const { wellnessForAi } = await import("@/lib/training/wellness");
-    const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
-
-    let intervalsLoad: TrainingAiInput["intervalsLoad"] = null;
-    try {
-      const { data: conn } = await admin
-        .from("intervals_connections")
-        .select("api_key, athlete_id")
-        .eq("profile_id", athleteId)
-        .maybeSingle();
-      if (conn?.api_key && conn?.athlete_id) {
-        const rows = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
-        const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
-        const latest = sorted[sorted.length - 1];
-        if (latest) {
-          const ctl = latest.ctl ?? null;
-          const atl = latest.atl ?? null;
-          intervalsLoad = {
-            ctl,
-            atl,
-            tsb: ctl != null && atl != null ? Math.round((ctl - atl) * 10) / 10 : null,
-            eftp: [...sorted].reverse().find((r) => r.eftp)?.eftp ?? null,
-            rampRate: latest.ramp_rate ?? null,
-          };
-        }
-      }
-    } catch {
-      // Niet kritiek: AI kan zonder intervals-belasting door.
-    }
-
-    const horizon = goal.target_date
-      ? new Date(goal.target_date)
-      : new Date(Date.now() + 90 * 86400_000);
-    const { data: upcomingRows } = await admin
-      .from("events")
-      .select("title, type, start_at")
-      .gte("start_at", new Date().toISOString())
-      .lte("start_at", horizon.toISOString())
-      .order("start_at")
-      .limit(8);
-    const upcomingEvents = (upcomingRows ?? []).map((e) => ({
-      title: e.title as string,
-      type: e.type as string,
-      date: String(e.start_at).slice(0, 10),
-    }));
-
-    const ai = await generateTrainingPlanDraft(
-      {
-        athleteName: profile.display_name ?? "ZWB-lid",
-        goal: {
-          title: goal.title,
-          type: goal.goal_type,
-          targetDate: goal.target_date,
-          availableDays: goal.available_days ?? [],
-          maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
-          preferredMode: goal.preferred_mode,
-          experienceLevel: goal.experience_level,
-          desiredIntensity: goal.desired_intensity,
-          riskNotes: goal.risk_notes,
-        },
-        profile: {
-          ftpWatts: profile.ftp_watts ?? null,
-          weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-          zrlCategory: profile.zrl_category ?? null,
-        },
-        recentLoad: recent,
-        wellness: wellness
-          ? {
-              days: wellness.days,
-              state: wellness.state,
-              restingHr: wellness.restingHr,
-              hrv: wellness.hrv,
-              sleepHours: wellness.sleepHours,
-              readiness: wellness.readiness,
-              note: wellness.note,
-            }
-          : null,
-        intervalsLoad,
-        upcomingEvents,
-      },
-      promptText,
-      {
-        model: process.env.OPENAI_TRAINING_INTERACTIVE_MODEL?.trim() || "gpt-5-mini",
-        reasoningEffort: "low",
-        timeoutMs: 20_000,
-      },
-    );
+    const input = await buildTrainingInput(admin, athleteId, goalId);
+    const background = await startTrainingPlanDraftBackground(input, promptText, {
+      model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
+      reasoningEffort: "medium",
+      timeoutMs: 15_000,
+    });
+    const initialStatus: TrainingDraftStatus = background.status === "queued" ? "queued" : "in_progress";
 
     const { data: aiRow, error: aiError } = await admin
       .from("training_ai_generations")
@@ -194,69 +303,94 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
         profile_id: athleteId,
         trainer_id: user.id,
         goal_id: goalId,
-        model: ai.model,
-        status: "completed",
+        model: background.model,
+        status: initialStatus,
         prompt_text: promptText,
-        prompt_summary: ai.promptSummary,
-        response_json: ai.plan,
+        prompt_summary: background.promptSummary,
+        openai_response_id: background.responseId,
       })
       .select("id")
       .single();
     if (aiError) throw new Error(aiError.message);
 
-    const { data: plan, error: planError } = await admin
-      .from("training_plans")
-      .insert({
-        profile_id: athleteId,
-        trainer_id: user.id,
-        goal_id: goalId,
-        ai_generation_id: aiRow.id,
-        title: ai.plan.title,
-        summary: [ai.plan.summary, ...ai.plan.cautions.map((c) => `Let op: ${c}`)].join("\n\n"),
-        start_date: ai.plan.startDate,
-        end_date: ai.plan.endDate,
-        status: "draft",
-        source: "ai",
-      })
-      .select("id")
-      .single();
-    if (planError) throw new Error(planError.message);
-
-    const workouts = ai.plan.workouts.map((workout) => {
-      const intensity = workout.intensity;
-      assertWorkoutIntensity(intensity);
-      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
-      return {
-        plan_id: plan.id,
-        profile_id: athleteId,
-        trainer_id: user.id,
-        scheduled_at: `${workout.date}T09:00:00+01:00`,
-        title: workout.title,
-        description: workout.description,
-        duration_minutes: Math.round(workout.durationMinutes),
-        intensity,
-        target_type: workout.targetType,
-        structure_json: blocks,
-        intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
-      };
-    });
-    const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
-    if (workoutError) throw new Error(workoutError.message);
-
-    await sendNotificationToMembers(
-      "on_training_plan",
-      {
-        title: "Nieuw trainingsconcept",
-        body: "Je trainer heeft een nieuw conceptschema klaargezet.",
-        url: "/training",
-        tag: `training-plan-${plan.id}`,
-      },
-      { profileIds: [athleteId] },
-    ).catch(() => null);
-
     revalidatePath("/training");
-    return { ok: true, planId: plan.id };
+    return {
+      ok: true,
+      generationId: aiRow.id as string,
+      status: initialStatus,
+      message: "AI-concept wordt gemaakt.",
+    };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "AI-concept maken faalde." };
+  }
+}
+
+export async function pollAiDraft(generationId: string): Promise<TrainingDraftResult> {
+  try {
+    const { user, access } = await currentUser();
+    const admin = createAdminClient();
+    const { data: generation, error } = await admin
+      .from("training_ai_generations")
+      .select("id, profile_id, trainer_id, goal_id, model, status, prompt_summary, response_json, error, openai_response_id")
+      .eq("id", generationId)
+      .single();
+    if (error || !generation) throw new Error(error?.message ?? "AI-generatie niet gevonden.");
+
+    const row = generation as AiGenerationRow;
+    if (!(await canAccessGeneration(admin, user.id, access, row))) {
+      throw new Error("Geen toegang tot deze AI-generatie.");
+    }
+
+    const { data: existingPlan } = await admin
+      .from("training_plans")
+      .select("id")
+      .eq("ai_generation_id", row.id)
+      .maybeSingle();
+    if (existingPlan) {
+      if (row.status !== "completed") {
+        await admin.from("training_ai_generations").update({ status: "completed" }).eq("id", row.id);
+      }
+      return { ok: true, generationId: row.id, status: "completed", planId: existingPlan.id as string };
+    }
+
+    if (row.status === "failed" || row.status === "cancelled") {
+      return { ok: true, generationId: row.id, status: row.status, error: row.error ?? "AI-generatie is gestopt." };
+    }
+    if (!row.openai_response_id) throw new Error("OpenAI response-id ontbreekt voor deze AI-generatie.");
+
+    const result = await retrieveTrainingPlanDraftBackground(row.openai_response_id);
+    if (result.status === "queued" || result.status === "in_progress") {
+      if (row.status !== result.status) {
+        await admin.from("training_ai_generations").update({ status: result.status }).eq("id", row.id);
+      }
+      return { ok: true, generationId: row.id, status: result.status };
+    }
+
+    if (result.status === "failed" || result.status === "cancelled" || result.status === "incomplete") {
+      const status = result.status === "incomplete" ? "failed" : result.status;
+      await admin
+        .from("training_ai_generations")
+        .update({ status, error: result.error, response_json: result.responseJson })
+        .eq("id", row.id);
+      return { ok: true, generationId: row.id, status, error: result.error };
+    }
+
+    if (result.status !== "completed") {
+      return { ok: true, generationId: row.id, status: "in_progress" };
+    }
+
+    const planId = await createPlanFromAiGeneration(admin, row, result.plan);
+    await admin
+      .from("training_ai_generations")
+      .update({
+        status: "completed",
+        response_json: result.plan,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+
+    return { ok: true, generationId: row.id, status: "completed", planId };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "AI-concept status ophalen faalde." };
   }
 }

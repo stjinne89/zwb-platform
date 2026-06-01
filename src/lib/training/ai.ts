@@ -25,6 +25,14 @@ export type GeneratedTrainingPlan = {
   cautions: string[];
 };
 
+export type TrainingAiResponseStatus =
+  | "queued"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "incomplete";
+
 export type TrainingAiInput = {
   athleteName: string;
   goal: {
@@ -192,19 +200,24 @@ type GenerateTrainingPlanOptions = {
   timeoutMs?: number;
 };
 
-export async function generateTrainingPlanDraft(
-  input: TrainingAiInput,
-  promptText = defaultTrainingPrompt(),
-  options: GenerateTrainingPlanOptions = {},
-): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
+function getTrainingModel(options: GenerateTrainingPlanOptions) {
+  return options.model?.trim() || process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
+}
+
+function requireOpenAiKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY ontbreekt. Zet deze in Netlify env om AI-drafts te maken.");
   }
+  return apiKey;
+}
 
-  const model = options.model?.trim() || process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
-  const timeoutMs = options.timeoutMs ?? 45_000;
-  const promptSummary = JSON.stringify(input, null, 2);
+function buildTrainingPlanRequestBody(
+  input: TrainingAiInput,
+  promptText: string,
+  model: string,
+  options: GenerateTrainingPlanOptions,
+) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: Record<string, any> = {
     model,
@@ -215,7 +228,7 @@ export async function generateTrainingPlanDraft(
         content: [
           {
             type: "input_text",
-            text: `Maak een trainingsplan-concept op basis van deze intake en recente data:\n${promptSummary}`,
+            text: `Maak een trainingsplan-concept op basis van deze intake en recente data:\n${JSON.stringify(input, null, 2)}`,
           },
         ],
       },
@@ -232,17 +245,31 @@ export async function generateTrainingPlanDraft(
   if (isReasoningModel(model)) {
     requestBody.reasoning = { effort: options.reasoningEffort ?? "medium" };
   }
+  return requestBody;
+}
+
+function parseTrainingPlanResponse(body: unknown): GeneratedTrainingPlan {
+  const text = outputText(body);
+  if (!text) throw new Error("OpenAI gaf geen plan terug.");
+  return JSON.parse(text) as GeneratedTrainingPlan;
+}
+
+async function fetchOpenAiResponse(
+  url: string,
+  apiKey: string,
+  init: RequestInit,
+  timeoutMs: number,
+) {
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
-  let res: Response;
   try {
-    res = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
+    return await fetch(url, {
+      ...init,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        ...init.headers,
       },
-      body: JSON.stringify(requestBody),
       signal: abortController.signal,
     });
   } catch (err) {
@@ -253,6 +280,28 @@ export async function generateTrainingPlanDraft(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export async function generateTrainingPlanDraft(
+  input: TrainingAiInput,
+  promptText = defaultTrainingPrompt(),
+  options: GenerateTrainingPlanOptions = {},
+): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
+  const apiKey = requireOpenAiKey();
+  const model = getTrainingModel(options);
+  const timeoutMs = options.timeoutMs ?? 45_000;
+  const promptSummary = JSON.stringify(input, null, 2);
+  const requestBody = buildTrainingPlanRequestBody(input, promptText, model, options);
+
+  const res = await fetchOpenAiResponse(
+    "https://api.openai.com/v1/responses",
+    apiKey,
+    {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    },
+    timeoutMs,
+  );
 
   if (!res.ok) {
     const text = await res.text();
@@ -260,12 +309,93 @@ export async function generateTrainingPlanDraft(
   }
 
   const body = await res.json();
-  const text = outputText(body);
-  if (!text) throw new Error("OpenAI gaf geen plan terug.");
   return {
     model,
     promptSummary,
-    plan: JSON.parse(text) as GeneratedTrainingPlan,
+    plan: parseTrainingPlanResponse(body),
+  };
+}
+
+export async function startTrainingPlanDraftBackground(
+  input: TrainingAiInput,
+  promptText = defaultTrainingPrompt(),
+  options: GenerateTrainingPlanOptions = {},
+): Promise<{ responseId: string; status: TrainingAiResponseStatus; model: string; promptSummary: string }> {
+  const apiKey = requireOpenAiKey();
+  const model = getTrainingModel(options);
+  const promptSummary = JSON.stringify(input, null, 2);
+  const requestBody = {
+    ...buildTrainingPlanRequestBody(input, promptText, model, options),
+    background: true,
+    store: true,
+  };
+
+  const res = await fetchOpenAiResponse(
+    "https://api.openai.com/v1/responses",
+    apiKey,
+    {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    },
+    options.timeoutMs ?? 20_000,
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenAI ${res.status}: ${text.slice(0, 240)}`);
+  }
+
+  const body = (await res.json()) as {
+    id?: string;
+    status?: TrainingAiResponseStatus;
+  };
+  if (!body.id) throw new Error("OpenAI gaf geen response-id terug.");
+  return {
+    responseId: body.id,
+    status: body.status ?? "queued",
+    model,
+    promptSummary,
+  };
+}
+
+export async function retrieveTrainingPlanDraftBackground(
+  responseId: string,
+  options: Pick<GenerateTrainingPlanOptions, "timeoutMs"> = {},
+): Promise<
+  | { status: "queued" | "in_progress" }
+  | { status: "completed"; plan: GeneratedTrainingPlan; responseJson: unknown }
+  | { status: "failed" | "cancelled" | "incomplete"; error: string; responseJson: unknown }
+> {
+  const apiKey = requireOpenAiKey();
+  const res = await fetchOpenAiResponse(
+    `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,
+    apiKey,
+    { method: "GET" },
+    options.timeoutMs ?? 15_000,
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenAI ${res.status}: ${text.slice(0, 240)}`);
+  }
+
+  const body = (await res.json()) as {
+    status?: TrainingAiResponseStatus;
+    error?: { message?: string } | null;
+    incomplete_details?: { reason?: string } | null;
+  };
+  const status = body.status ?? "in_progress";
+  if (status === "queued" || status === "in_progress") return { status };
+  if (status === "completed") {
+    return { status, plan: parseTrainingPlanResponse(body), responseJson: body };
+  }
+  return {
+    status,
+    error:
+      body.error?.message ??
+      body.incomplete_details?.reason ??
+      `OpenAI response eindigde met status ${status}.`,
+    responseJson: body,
   };
 }
 

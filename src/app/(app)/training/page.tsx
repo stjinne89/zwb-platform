@@ -147,6 +147,15 @@ type WorkoutReportRow = {
   updated_at: string;
 };
 
+type AiGenerationRow = {
+  id: string;
+  profile_id: string;
+  goal_id: string | null;
+  status: "queued" | "in_progress" | "completed" | "failed" | "cancelled";
+  error: string | null;
+  created_at: string;
+};
+
 type TrainingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -710,6 +719,7 @@ function CoachWorkspace({
   loadMetrics,
   wellness,
   reportsByWorkout,
+  aiGenerations,
   selectedAthleteId,
   canUseAi,
   canGenerateAi,
@@ -728,6 +738,7 @@ function CoachWorkspace({
   loadMetrics: Map<string, CoachLoadMetric>;
   wellness: Map<string, WellnessSummary>;
   reportsByWorkout: Map<string, WorkoutReportRow>;
+  aiGenerations: AiGenerationRow[];
   selectedAthleteId?: string;
   canUseAi: boolean;
   canGenerateAi: boolean;
@@ -748,6 +759,16 @@ function CoachWorkspace({
   const athleteEvents = intervalEvents.get(selected.athlete_id) ?? [];
   const intervalsAthleteId = intervalAthleteIds.get(selected.athlete_id);
   const metric = loadMetrics.get(selected.athlete_id);
+  const pendingGenerationsByGoal = new Map<string, AiGenerationRow>();
+  for (const generation of aiGenerations) {
+    if (
+      generation.profile_id === selected.athlete_id &&
+      generation.goal_id &&
+      !pendingGenerationsByGoal.has(generation.goal_id)
+    ) {
+      pendingGenerationsByGoal.set(generation.goal_id, generation);
+    }
+  }
   const recovery = wellness.get(selected.athlete_id);
   const totals = loadSummary(athleteActivities);
   const recentZwbWorkouts = athleteWorkouts
@@ -896,23 +917,28 @@ function CoachWorkspace({
               <p className="p-4 text-sm text-muted-foreground">Geen actieve intake.</p>
             ) : (
               <div className="divide-y">
-                {athleteGoals.map((goal) => (
-                  <div key={goal.id} className="p-4">
-                    <p className="font-medium">{goal.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
-                      {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
-                      {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
-                    </p>
-                    <AiDraftForm
-                      athleteId={selected.athlete_id}
-                      goalId={goal.id}
-                      defaultPrompt={defaultTrainingPrompt()}
-                      canUseAi={canUseAi}
-                      canGenerateAi={canGenerateAi}
-                    />
-                  </div>
-                ))}
+                {athleteGoals.map((goal) => {
+                  const pendingGeneration = pendingGenerationsByGoal.get(goal.id);
+                  return (
+                    <div key={goal.id} className="p-4">
+                      <p className="font-medium">{goal.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
+                        {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
+                        {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
+                      </p>
+                      <AiDraftForm
+                        athleteId={selected.athlete_id}
+                        goalId={goal.id}
+                        defaultPrompt={defaultTrainingPrompt()}
+                        canUseAi={canUseAi}
+                        canGenerateAi={canGenerateAi}
+                        initialGenerationId={pendingGeneration?.id}
+                        initialStatus={pendingGeneration?.status}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1221,6 +1247,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   let coachWorkouts = new Map<string, WorkoutRow[]>();
   let coachWorkoutsByProfile = new Map<string, WorkoutRow[]>();
   let coachReportsByWorkout = new Map<string, WorkoutReportRow>();
+  let coachAiGenerations: AiGenerationRow[] = [];
 
   if (canCoach) {
     const { data: assignmentRows } = await supabase
@@ -1239,6 +1266,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         { data: planRows },
         { data: workoutRows },
         { data: reportRows },
+        { data: aiGenerationRows },
       ] =
         await Promise.all([
           supabase
@@ -1274,6 +1302,13 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             .select("*")
             .in("profile_id", athleteIds)
             .order("updated_at", { ascending: false }),
+          supabase
+            .from("training_ai_generations")
+            .select("id, profile_id, goal_id, status, error, created_at")
+            .in("profile_id", athleteIds)
+            .in("status", ["queued", "in_progress"])
+            .order("created_at", { ascending: false })
+            .limit(50),
         ]);
       coachProfiles = new Map(((profileRows ?? []) as ProfileRow[]).map((profile) => [profile.id, profile]));
       coachGoals = byProfile((goalRows ?? []) as GoalRow[]);
@@ -1283,6 +1318,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       coachWorkouts = byPlan(workouts);
       coachWorkoutsByProfile = byProfile(workouts);
       coachReportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
+      coachAiGenerations = (aiGenerationRows ?? []) as AiGenerationRow[];
     }
   }
 
@@ -1801,6 +1837,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             loadMetrics={coachLoadMetrics}
             wellness={coachWellness}
             reportsByWorkout={coachReportsByWorkout}
+            aiGenerations={coachAiGenerations}
             selectedAthleteId={requestedAthleteId}
             canUseAi={canUseAi}
             canGenerateAi={access.has("training.ai_generate")}
