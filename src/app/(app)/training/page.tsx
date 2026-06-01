@@ -41,6 +41,7 @@ import {
   INTENSITY_COLORS,
   INTENSITY_LABELS as WORKOUT_INTENSITY_LABELS,
   normalizeWorkoutBlocks,
+  powerRangePercentForBlock,
   projectCtl,
   WORKOUT_INTENSITIES,
   type WorkoutBlock,
@@ -51,6 +52,7 @@ import { DisconnectIntervalsButton } from "./_components/disconnect-button";
 import { WellnessOptInToggle } from "./_components/wellness-optin-toggle";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { AiDraftForm } from "./_components/ai-draft-form";
+import { DeleteTrainingPlanButton } from "./_components/delete-training-plan-button";
 import {
   summarizeWellness,
   type WellnessSummary,
@@ -409,27 +411,49 @@ function WorkoutTitle({
   return <p className={className}>{workout.title}</p>;
 }
 
-function WorkoutBlocks({ blocks }: { blocks: WorkoutBlock[] }) {
+function WorkoutBlocks({
+  blocks,
+  ftpWatts,
+}: {
+  blocks: WorkoutBlock[];
+  ftpWatts?: number | null;
+}) {
   if (blocks.length === 0) return null;
   const total = blocks.reduce((sum, block) => sum + block.durationMinutes, 0) || 1;
+  const maxPct = 160;
   return (
     <div className="mt-3">
       <div
-        className="flex h-8 overflow-hidden rounded-md border bg-muted"
+        className="flex h-16 overflow-hidden rounded-md border bg-muted"
         role="img"
-        aria-label="Workoutblokken"
+        aria-label="Workoutblokken met vermogensbanden"
       >
-        {blocks.map((block, idx) => (
-          <div
-            key={`${block.label}-${idx}`}
-            title={`${block.label}: ${block.durationMinutes} min ${block.target}`}
-            className="min-w-[8px]"
-            style={{
-              width: `${Math.max(4, (block.durationMinutes / total) * 100)}%`,
-              backgroundColor: INTENSITY_COLORS[block.intensity],
-            }}
-          />
-        ))}
+        {blocks.map((block, idx) => {
+          const range = powerRangePercentForBlock(block, ftpWatts ?? null);
+          const low = range ? Math.max(0, Math.min(maxPct, range[0])) : 0;
+          const high = range ? Math.max(low, Math.min(maxPct, range[1])) : maxPct;
+          const bandHeight = range ? Math.max(6, ((high - low) / maxPct) * 100) : 100;
+          return (
+            <div
+              key={`${block.label}-${idx}`}
+              title={`${block.label}: ${block.durationMinutes} min ${block.target || INTENSITY_LABELS[block.intensity]}`}
+              className="relative min-w-[10px] border-r border-background/60 last:border-r-0"
+              style={{
+                width: `${Math.max(4, (block.durationMinutes / total) * 100)}%`,
+                backgroundColor: `${INTENSITY_COLORS[block.intensity]}26`,
+              }}
+            >
+              <span
+                className="absolute inset-x-0"
+                style={{
+                  bottom: `${(low / maxPct) * 100}%`,
+                  height: `${bandHeight}%`,
+                  backgroundColor: INTENSITY_COLORS[block.intensity],
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
       <div className="mt-2 flex flex-wrap gap-1">
         {blocks.map((block, idx) => (
@@ -653,7 +677,7 @@ function WorkoutList({
               <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
             </div>
           )}
-          <WorkoutBlocks blocks={blocks} />
+          <WorkoutBlocks blocks={blocks} ftpWatts={ftpWatts} />
           {workout.structure_json && workout.structure_json.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {blocks.slice(0, 5).map((step, idx) => {
@@ -1070,6 +1094,7 @@ function CoachWorkspace({
                       Publiceren
                     </button>
                   </form>
+                  <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
                 </div>
                 <WorkoutList
                   workouts={workoutsByPlan.get(plan.id) ?? []}

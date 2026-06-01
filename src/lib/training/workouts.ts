@@ -19,6 +19,13 @@ export type WorkoutBlock = {
   intensity: WorkoutIntensity;
 };
 
+export type WorkoutPowerTarget = {
+  units: "%ftp" | "w";
+  value?: number;
+  start?: number;
+  end?: number;
+};
+
 export const INTENSITY_COLORS: Record<WorkoutIntensity, string> = {
   recovery: "#38bdf8",
   endurance: "#22c55e",
@@ -138,13 +145,13 @@ export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutInt
 
 function targetForIntervals(target: string) {
   const text = target.trim();
-  const wattRange = text.match(/(\d+)\s*-\s*(\d+)\s*w/i);
+  const wattRange = text.match(/(\d+(?:[.,]\d+)?)\s*(?:-|–|—|to|tot)\s*(\d+(?:[.,]\d+)?)\s*(?:w|watt)/i);
   if (wattRange) return `${wattRange[1]}-${wattRange[2]}w`;
-  const watt = text.match(/(\d+)\s*w/i);
+  const watt = text.match(/(\d+(?:[.,]\d+)?)\s*(?:w|watt)/i);
   if (watt) return `${watt[1]}w`;
-  const ftpRange = text.match(/(\d+)\s*-\s*(\d+)\s*%/);
+  const ftpRange = text.match(/(\d+(?:[.,]\d+)?)\s*(?:-|–|—|to|tot)\s*(\d+(?:[.,]\d+)?)\s*%/);
   if (ftpRange) return `${ftpRange[1]}-${ftpRange[2]}%`;
-  const ftp = text.match(/(\d+)\s*%/);
+  const ftp = text.match(/(\d+(?:[.,]\d+)?)\s*%/);
   if (ftp) return `${ftp[1]}%`;
   return text;
 }
@@ -160,15 +167,15 @@ export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
 }
 
 // Standaard %FTP per intensiteit als een blok geen leesbaar wattage/%-doel heeft.
-const INTENSITY_FTP_PCT: Record<WorkoutIntensity, number> = {
-  rest: 40,
-  recovery: 50,
-  endurance: 65,
-  tempo: 80,
-  threshold: 95,
-  vo2max: 110,
-  anaerobic: 125,
-  race: 100,
+const INTENSITY_FTP_RANGE: Record<WorkoutIntensity, [number, number]> = {
+  rest: [0, 40],
+  recovery: [45, 60],
+  endurance: [60, 75],
+  tempo: [76, 90],
+  threshold: [91, 105],
+  vo2max: [106, 120],
+  anaerobic: [121, 150],
+  race: [85, 115],
 };
 
 function clampPct(value: number) {
@@ -176,34 +183,98 @@ function clampPct(value: number) {
   return Math.min(200, Math.max(20, Math.round(value)));
 }
 
-// Zet één blok-doel ("75%", "60-75%", "210w", "210-235w", "Vrij") om naar een
-// %FTP-waarde. Watt-doelen worden via de FTP omgerekend; ranges nemen het
-// middelpunt. Zonder bruikbaar doel valt het terug op de intensiteit. %FTP is
-// draagbaar: Wahoo/Garmin past de eigen FTP van de renner toe.
-function blockToFtpPct(block: WorkoutBlock, ftp: number | null): number | null {
+function clampWatts(value: number) {
+  if (!Number.isFinite(value)) return null;
+  return Math.min(2500, Math.max(1, Math.round(value)));
+}
+
+function orderedRange(a: number, b: number): [number, number] {
+  return a <= b ? [a, b] : [b, a];
+}
+
+function parseNumber(value: string | undefined) {
+  if (!value) return null;
+  const n = Number(value.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+function rangeTarget(start: number, end: number, units: "%ftp" | "w"): WorkoutPowerTarget | null {
+  const [low, high] = orderedRange(start, end);
+  const clamp = units === "%ftp" ? clampPct : clampWatts;
+  const clampedLow = clamp(low);
+  const clampedHigh = clamp(high);
+  if (clampedLow == null || clampedHigh == null) return null;
+  if (clampedLow === clampedHigh) return { units, value: clampedLow };
+  return { units, start: clampedLow, end: clampedHigh };
+}
+
+function singleTarget(value: number, units: "%ftp" | "w"): WorkoutPowerTarget | null {
+  const clamp = units === "%ftp" ? clampPct : clampWatts;
+  const clamped = clamp(value);
+  return clamped == null ? null : { units, value: clamped };
+}
+
+function wattsToPowerTarget(lowWatts: number, highWatts: number | null, ftp: number | null) {
+  if (ftp && ftp > 0) {
+    const lowPct = (lowWatts / ftp) * 100;
+    const highPct = highWatts == null ? null : (highWatts / ftp) * 100;
+    return highPct == null ? singleTarget(lowPct, "%ftp") : rangeTarget(lowPct, highPct, "%ftp");
+  }
+  return highWatts == null ? singleTarget(lowWatts, "w") : rangeTarget(lowWatts, highWatts, "w");
+}
+
+// Zet een blok-doel ("75%", "60-75%", "210w", "210-235w", "210 tot 235 watt")
+// om naar een native intervals.icu power target. Ranges blijven ranges.
+export function blockToPowerTarget(block: WorkoutBlock, ftp: number | null): WorkoutPowerTarget | null {
   const text = (block.target ?? "").trim();
-  const ftpRange = text.match(/(\d+)\s*-\s*(\d+)\s*%/);
-  if (ftpRange) return clampPct((Number(ftpRange[1]) + Number(ftpRange[2])) / 2);
-  const ftpSingle = text.match(/(\d+)\s*%/);
-  if (ftpSingle) return clampPct(Number(ftpSingle[1]));
-  const wattRange = text.match(/(\d+)\s*-\s*(\d+)\s*w/i);
-  if (wattRange && ftp && ftp > 0) {
-    const watts = (Number(wattRange[1]) + Number(wattRange[2])) / 2;
-    return clampPct((watts / ftp) * 100);
+  const range = text.match(/(\d+(?:[.,]\d+)?)\s*(%|w|watt)?\s*(?:-|–|—|to|tot)\s*(\d+(?:[.,]\d+)?)\s*(%|w|watt)/i);
+  if (range) {
+    const low = parseNumber(range[1]);
+    const high = parseNumber(range[3]);
+    const unit = (range[4] || range[2] || "").toLowerCase();
+    if (low != null && high != null) {
+      if (unit === "%") return rangeTarget(low, high, "%ftp");
+      if (unit === "w" || unit === "watt") return wattsToPowerTarget(low, high, ftp);
+    }
   }
-  const wattSingle = text.match(/(\d+)\s*w/i);
-  if (wattSingle && ftp && ftp > 0) {
-    return clampPct((Number(wattSingle[1]) / ftp) * 100);
+
+  const ftpSingle = text.match(/(\d+(?:[.,]\d+)?)\s*%/);
+  const ftpValue = parseNumber(ftpSingle?.[1]);
+  if (ftpValue != null) return singleTarget(ftpValue, "%ftp");
+
+  const wattSingle = text.match(/(\d+(?:[.,]\d+)?)\s*(?:w|watt)/i);
+  const watts = parseNumber(wattSingle?.[1]);
+  if (watts != null) return wattsToPowerTarget(watts, null, ftp);
+
+  const fallback = INTENSITY_FTP_RANGE[block.intensity];
+  return rangeTarget(fallback[0], fallback[1], "%ftp");
+}
+
+export function powerRangePercentForBlock(block: WorkoutBlock, ftp: number | null): [number, number] | null {
+  const target = blockToPowerTarget(block, ftp);
+  if (!target) return null;
+  if (target.units === "%ftp") {
+    const value = target.value ?? null;
+    if (value != null) return [value, value];
+    if (target.start != null && target.end != null) return orderedRange(target.start, target.end);
+    return null;
   }
-  return clampPct(INTENSITY_FTP_PCT[block.intensity]);
+  if (target.units === "w" && ftp && ftp > 0) {
+    const value = target.value ?? null;
+    if (value != null) return [(value / ftp) * 100, (value / ftp) * 100];
+    if (target.start != null && target.end != null) {
+      return orderedRange((target.start / ftp) * 100, (target.end / ftp) * 100);
+    }
+  }
+  return null;
 }
 
 // Bouwt een NATIVE intervals.icu workout_doc uit onze blokken. Dit is de bron
 // voor de FIT-export (Garmin/Wahoo). intervals parseert de description NIET
 // server-side, dus zonder een geldig workout_doc bevat de FIT 0 stappen en
 // weigeren apparaten het als "corrupt". Schema dat intervals accepteert:
-//   { duration, steps: [{ duration: <sec>, power: { units: "%ftp", value } }] }
-// We houden bewust alleen `duration` + `power.value` aan (geen extra velden zoals
+//   { duration, steps: [{ duration: <sec>, power: { units: "%ftp", value|start/end } }] }
+// We houden bewust alleen `duration` + `power` aan (geen extra velden zoals
 // label/target-strings) omdat afwijkende velden de FIT-generator deden crashen.
 export function blocksToWorkoutDoc(
   blocks: WorkoutBlock[],
@@ -212,10 +283,10 @@ export function blocksToWorkoutDoc(
   const steps = blocks
     .filter((block) => block.durationMinutes > 0)
     .map((block) => {
-      const pct = blockToFtpPct(block, ftp);
+      const power = blockToPowerTarget(block, ftp);
       const duration = Math.round(block.durationMinutes * 60);
       const step: Record<string, unknown> = { duration };
-      if (pct != null) step.power = { units: "%ftp", value: pct };
+      if (power) step.power = power;
       return step;
     });
   if (steps.length === 0) return null;

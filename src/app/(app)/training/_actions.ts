@@ -511,6 +511,31 @@ export async function updateTrainingPlan(formData: FormData) {
   }
 }
 
+export async function deleteTrainingPlan(planId: string) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om schema's te verwijderen.");
+    const admin = createAdminClient();
+    const { data: plan } = await admin
+      .from("training_plans")
+      .select("id, profile_id")
+      .eq("id", planId)
+      .single();
+    if (!plan) throw new Error("Schema niet gevonden.");
+    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, plan.profile_id))) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const { error } = await admin.from("training_plans").delete().eq("id", planId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/training");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Schema verwijderen faalde." };
+  }
+}
+
 export async function updateWorkout(formData: FormData) {
   try {
     const { user, access } = await currentUser();
