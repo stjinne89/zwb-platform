@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DesktopNav } from "./_components/desktop-nav";
 import { AvatarMenu } from "./_components/avatar-menu";
 import { MobileMenu } from "./_components/mobile-menu";
+import { BackButton } from "./_components/back-button";
 import { ADMIN_NAV } from "./_components/nav-config";
 
 export default async function AppLayout({
@@ -40,6 +41,7 @@ export default async function AppLayout({
           >
             <ZwbMark className="h-7 w-auto" />
           </Link>
+          <BackButton />
 
           {/* Desktop nav (5 top-level slots, sommige met dropdown) */}
           <DesktopNav />

@@ -7,10 +7,14 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-05-30 (iteratie-ronde 3: trainings-AI naar GPT-5.5 +
-> adaptieve dagcoach met renner-knop "pas vandaag aan"; live-chat op de
-> liveticker (app + publiek, met gast-posts en intern-markering); redesign-
-> traject vastgelegd voor een aparte ronde)
+> Laatst bijgewerkt: 2026-06-01 (training-AI draait nu via OpenAI background
+> mode met polling; trainer-cockpit heeft schema-verwijderen, power-ranges en
+> repeat-blokken voor intervals/FIT; hersteltrend staat expliciet naast
+> load-metrics in de trainer-cockpit; iOS PWA is succesvol getest en heeft nu
+> een mobiele terugknop in de app-shell; eerste `/verhaal` scrollytelling-
+> prototype toegevoegd; OwnTracks is meermaals in het veld getest;
+> eerste Playwright e2e-smoke-suite en trainer-praktijktest toegevoegd; lokaal werken is de default,
+> push/deploy alleen op expliciet verzoek)
 
 ---
 
@@ -168,6 +172,14 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - OwnTracks background live tracking (`/api/live/owntracks`) met tokenbeheer
   op `/live`
 - Live-indicator op `/kalender`-rijen met directe knop naar `/live/[eventId]`
+- OwnTracks is meermaals in echte ritten getest en werkt goed, ook zonder de
+  meest batterij-intensieve stand.
+- iOS PWA-praktijktest op iPhone 16 Pro met iOS 26.5: hoofdflow werkt; extra
+  mobiele terugknop toegevoegd in de app-shell omdat iOS geen Android-achtige
+  systeem-terugknop heeft.
+- Publieke `/verhaal` prototypepagina: scrollytelling rond de evolutie van ZWB
+  met sticky renner/fiets, hoofdstuknavigatie en gestileerde kit-evolutie
+  (blauw/roze indoor-shirt -> VBTM/Tactic -> huidig Hage).
 - Nav-clustering met 5 top-level slots + dropdown-menus (desktop) en
   section-headers (mobiel)
 - RiderStats op `/leden/[id]`: jaar-overzicht + 12-maand-heatmap +
@@ -190,6 +202,26 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   voor schema/workouts/intervalblokken, gekleurde workoutblokken, rapportage
   + trainerfeedback, intervals.icu-links, FIT-downloadroute via intervals.icu,
   en dagelijkse adaptation-cron met review-drafts. Migratie `0051`.
+- Training AI hardening: AI-concepten draaien via OpenAI Responses background
+  mode met status-polling, zodat GPT-5.5 lang mag rekenen zonder Netlify
+  request-timeouts. Migratie `0066`.
+- Training planbeheer: trainers kunnen oude schema's lokaal uit ZWB
+  verwijderen; workouts verdwijnen cascade mee. Gepubliceerde intervals.icu-
+  events blijven daar staan.
+- Workout-output verbeterd: wattage-ranges blijven native power-ranges in
+  intervals/FIT (`start`/`end` in workout_doc) en compacte herhalingen zoals
+  `3x8 min met 4 min herstel` worden in grafiek, intervals-description en FIT
+  uitgeklapt naar losse werk- en herstelblokken.
+- Trainer-cockpit hersteltrend: trainers zien hersteldata nu expliciet naast
+  load-metrics, met onderscheid tussen niet gedeeld, opt-in zonder data en
+  actuele status/readiness/HRV/rust-HR/slaap.
+- Eerste Playwright e2e-smoke-suite toegevoegd: lokale runner start/stopt Next
+  dev-server op poort 3100, test publieke pagina's en anonieme redirects naar
+  `/login`.
+- Praktijktest voor trainer-cockpit vastgelegd in
+  `docs/training-cockpit-praktijktest.md`: inclusief waarschuwing dat publiceren
+  echte intervals.icu/Wahoo/Garmin-kalenderitems maakt en advies om een kort
+  weekplan te testen.
 
 ---
 
@@ -298,7 +330,26 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - Self-coaching toegestaan voor leden met rol `Trainer` via migratie
      `0039_allow_self_training_coach.sql`.
 
-8. **⏸️ On-hold (bewust uitgesteld)**
+8. **✅ Training AI + intervals/FIT hardening** (commits `f80164f`, `937a336`, `3cf687e`)
+   - AI-conceptschema's gebruiken OpenAI background mode: de knop start een
+     generatie, slaat `queued/in_progress` op en pollt tot het plan klaar is.
+     Hierdoor kan het beste model (`OPENAI_TRAINING_MODEL`, standaard GPT-5.5)
+     gebruikt worden zonder HTTP/Netlify-timeout.
+   - `training_ai_generations` heeft `openai_response_id`, `completed_at`,
+     `updated_at` en statussen `queued/in_progress/completed/failed/cancelled`
+     via migratie `0066_training_ai_background.sql`.
+   - Trainer-cockpit heeft een bevestigde knop om oude trainingsschema's uit
+     ZWB te verwijderen. Workouts verdwijnen via cascade; intervals.icu-events
+     blijven ongemoeid.
+   - Power-ranges worden niet meer naar een middenwaarde geplet: `210-235w`
+     en `60-75%` gaan als native `start/end` power targets naar intervals/FIT.
+   - Compacte repeat-blokken zoals `3x8 min met 4 min herstel` worden bij
+     normalisatie uitgeklapt naar losse werk- en herstelstappen voor grafiek,
+     intervals-description en FIT-export.
+   - De AI-prompt vraagt nieuwe concepten expliciet om herhalingen als losse
+     structure-blokken terug te geven.
+
+9. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
@@ -306,14 +357,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
 
-9. **Open punten**
-   - **iOS PWA push-praktijktest** — niemand in ontwikkelteam heeft
-     iPhone. Push werkt op desktop + Android getest; iOS-flow (PWA
-     beginscherm-installatie + opt-in) moet door een iOS-eigenaar
-     gevalideerd worden zodra er een ZWB'er beschikbaar is. Code
-     ondersteunt iOS 16.4+ via Web Push API.
-   - **OwnTracks praktijktest op een echte rit** (token werkt; veld-
-     validatie staat nog te gebeuren).
+10. **Open punten**
+   - **iOS PWA polish** — praktijktest op iPhone 16 Pro met iOS 26.5 is goed;
+     mobiele terugknop toegevoegd. Nog één regressiecheck na deploy.
    - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval.
    - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval.
 
@@ -354,8 +400,13 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 - `npm run dev` lokaal voor frontend-werk
 - TypeScript: `npx tsc --noEmit` (Netlify build faalt anders)
-- Netlify auto-deploy bij elke push naar `main`
-- Geen test-suite (Playwright e2e staat op de wenslijst voor later)
+- E2E smoke: `npm run test:e2e` (start/stopt zelf een lokale Next dev-server
+  op poort 3100; eerste dekking = login, privacy en auth-redirects)
+- Netlify auto-deploy bij elke push naar `main`; vanwege credits werken we
+  standaard lokaal en pushen/deployen we alleen als de eigenaar dat expliciet
+  vraagt.
+- Verdere Playwright-dekking voor ingelogde flows/training-cockpit is de
+  volgende stap zodra er stabiele testdata of een test-login is.
 
 ---
 
@@ -363,12 +414,11 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval (extern).
 - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval (extern).
-- **iOS PWA push** werkt theoretisch (iOS 16.4+) maar moet door een iOS-
-  eigenaar in de praktijk gevalideerd worden.
-- **Training coach-cockpit praktijktest**: trainerrol geven, doel aanmaken,
-  trainer toegang geven, AI-concept maken en publiceren naar intervals.icu.
-- **OwnTracks praktijktest** op een echte buitenrit (token + push naar
-  `/api/live/owntracks` is getest, eind-tot-eind veld-validatie nog niet).
+- **iOS PWA** is in de praktijk getest op iPhone 16 Pro met iOS 26.5; nog één
+  regressiecheck na deploy van de mobiele terugknop.
+- **Training coach-cockpit praktijktest**: draaiboek staat in
+  `docs/training-cockpit-praktijktest.md`; nog uitvoeren met echte trainer/renner
+  en intervals.icu -> Wahoo/Garmin-publicatie.
 
 ---
 
@@ -428,8 +478,8 @@ Geleverd 2026-05-29.
   slaap).
 - Privacy: strikt opt-in; `profile_wellness` RLS = alleen het lid zelf leest;
   trainer/AI lezen via service-role na de bestaande coaching-check.
-- Open: trainer-cockpit toont de herstel-trend van een atleet nog niet apart
-  (AI gebruikt 'm wel); kan later naast de load-metrics.
+- Trainer-cockpit toont de hersteltrend nu apart naast load-metrics
+  (niet gedeeld / geen data / status + readiness/HRV/rust-HR/slaap).
 
 ### 3. Strava-segmenttijden voor de cols — ✅ AFGEROND
 

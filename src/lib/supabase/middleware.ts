@@ -5,6 +5,7 @@ const PUBLIC_PATHS = [
   "/login",
   "/auth",
   "/privacy",
+  "/verhaal",
   "/profielen",
   "/live",
   "/api/live",

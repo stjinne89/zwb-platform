@@ -730,6 +730,34 @@ type CoachLoadMetric = {
   error?: string;
 };
 
+type CoachRecoveryState = {
+  optedIn: boolean;
+  summary: WellnessSummary | null;
+};
+
+function recoveryStateLabel(state?: WellnessSummary["state"]) {
+  if (state === "fresh") return "Fris";
+  if (state === "fatigued") return "Vermoeid";
+  if (state === "normal") return "Normaal";
+  return "-";
+}
+
+function recoveryPillClass(state?: WellnessSummary["state"]) {
+  if (state === "fatigued") return "bg-destructive/15 text-destructive";
+  if (state === "fresh") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  if (state === "normal") return "bg-primary/10 text-primary";
+  return "bg-muted text-muted-foreground";
+}
+
+function formatWellnessDate(value: string | null) {
+  if (!value) return "-";
+  return new Date(`${value}T12:00:00`).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Europe/Amsterdam",
+  });
+}
+
 function CoachWorkspace({
   assignments,
   profiles,
@@ -760,7 +788,7 @@ function CoachWorkspace({
   intervalEvents: Map<string, IntervalsEvent[]>;
   intervalAthleteIds: Map<string, string>;
   loadMetrics: Map<string, CoachLoadMetric>;
-  wellness: Map<string, WellnessSummary>;
+  wellness: Map<string, CoachRecoveryState>;
   reportsByWorkout: Map<string, WorkoutReportRow>;
   aiGenerations: AiGenerationRow[];
   selectedAthleteId?: string;
@@ -826,6 +854,7 @@ function CoachWorkspace({
           {assignments.map((assignment) => {
             const rowProfile = profiles.get(assignment.athlete_id);
             const rowMetric = loadMetrics.get(assignment.athlete_id);
+            const rowRecovery = wellness.get(assignment.athlete_id);
             const rowActivities = activities.get(assignment.athlete_id) ?? [];
             const rowTotals = loadSummary(rowActivities);
             const active = assignment.athlete_id === selected.athlete_id;
@@ -854,6 +883,21 @@ function CoachWorkspace({
                     TSB <strong>{formatNumber(rowMetric?.tsb, 1)}</strong>
                   </span>
                 </div>
+                <div className="mt-2">
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                      rowRecovery?.summary
+                        ? recoveryPillClass(rowRecovery.summary.state)
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {rowRecovery?.summary
+                      ? recoveryStateLabel(rowRecovery.summary.state)
+                      : rowRecovery?.optedIn
+                        ? "Geen hersteldata"
+                        : "Herstel niet gedeeld"}
+                  </span>
+                </div>
               </Link>
             );
           })}
@@ -877,59 +921,83 @@ function CoachWorkspace({
               Profiel <ExternalLink className="size-3" />
             </Link>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
-            <MetricCard icon={Activity} label="TSB" value={formatNumber(metric?.tsb, 1)} />
-            <MetricCard icon={TrendingUp} label="CTL doel" value={formatNumber(ctlProjection ?? undefined, 1)} />
-            <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
-            <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_0.95fr]">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <TrendingUp className="size-4 text-primary" />
+                Belasting
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
+                <MetricCard icon={Activity} label="TSB" value={formatNumber(metric?.tsb, 1)} />
+                <MetricCard icon={TrendingUp} label="CTL doel" value={formatNumber(ctlProjection ?? undefined, 1)} />
+                <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
+                <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <Activity className="size-4 text-primary" />
+                  Hersteltrend
+                </h3>
+                {recovery?.summary ? (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${recoveryPillClass(
+                      recovery.summary.state,
+                    )}`}
+                  >
+                    {recoveryStateLabel(recovery.summary.state)}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-3 rounded-md bg-muted/40 p-3">
+                {!recovery || !recovery.optedIn ? (
+                  <p className="text-sm text-muted-foreground">
+                    Hersteldata niet gedeeld.
+                  </p>
+                ) : !recovery.summary ? (
+                  <p className="text-sm text-muted-foreground">
+                    Nog geen hersteldata gevonden in intervals.icu.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <RecoveryStat
+                        label="Readiness"
+                        value={recovery.summary.readiness != null ? `${recovery.summary.readiness}` : "-"}
+                      />
+                      <RecoveryStat
+                        label="Laatste"
+                        value={formatWellnessDate(recovery.summary.latestDate)}
+                      />
+                      <RecoveryStat
+                        label="HRV 7d"
+                        value={recovery.summary.hrv != null ? `${recovery.summary.hrv}` : "-"}
+                      />
+                      <RecoveryStat
+                        label="Rust-HR 7d"
+                        value={recovery.summary.restingHr != null ? `${recovery.summary.restingHr}` : "-"}
+                      />
+                      <RecoveryStat
+                        label="Slaap 7d"
+                        value={recovery.summary.sleepHours != null ? `${recovery.summary.sleepHours}u` : "-"}
+                      />
+                      <RecoveryStat label="Dagen" value={`${recovery.summary.days}`} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {recovery.summary.note}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           {metric?.error ? (
             <p className="mt-3 text-xs text-muted-foreground">Intervals: {metric.error}</p>
           ) : null}
 
-          {recovery && (
-            <div className="mt-4 rounded-md border bg-background p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <Activity className="size-4 text-primary" />
-                  Herstel &amp; belastbaarheid
-                </h3>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    recovery.state === "fatigued"
-                      ? "bg-destructive/15 text-destructive"
-                      : recovery.state === "fresh"
-                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {recovery.state === "fresh"
-                    ? "Fris"
-                    : recovery.state === "fatigued"
-                      ? "Vermoeid"
-                      : recovery.state === "normal"
-                        ? "Normaal"
-                        : "—"}
-                </span>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <RecoveryStat
-                  label="HRV (7d)"
-                  value={recovery.hrv != null ? `${recovery.hrv}` : "—"}
-                />
-                <RecoveryStat
-                  label="Rust-HR (7d)"
-                  value={recovery.restingHr != null ? `${recovery.restingHr}` : "—"}
-                />
-                <RecoveryStat
-                  label="Slaap (7d)"
-                  value={recovery.sleepHours != null ? `${recovery.sleepHours}u` : "—"}
-                />
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">{recovery.note}</p>
-            </div>
-          )}
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
@@ -1351,7 +1419,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const coachLoadMetrics = new Map<string, CoachLoadMetric>();
   const coachIntervalEvents = new Map<string, IntervalsEvent[]>();
   const coachIntervalAthleteIds = new Map<string, string>();
-  const coachWellness = new Map<string, WellnessSummary>();
+  const coachWellness = new Map<string, CoachRecoveryState>();
 
   if (activeTab === "trainer" && coachAssignments.length > 0) {
     const athleteIds = coachAssignments.map((assignment) => assignment.athlete_id);
@@ -1384,7 +1452,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   : undefined,
               eftp: [...sorted].reverse().find((row) => row.eftp)?.eftp,
             });
-            // Herstel-trend alleen als het lid wellness deelt (opt-in).
             if (connection.wellness_opt_in) {
               const summary = summarizeWellness(
                 rows.map((w) => ({
@@ -1400,7 +1467,15 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   mood: w.mood ?? null,
                 })),
               );
-              if (summary) coachWellness.set(connection.profile_id, summary);
+              coachWellness.set(connection.profile_id, {
+                optedIn: true,
+                summary,
+              });
+            } else {
+              coachWellness.set(connection.profile_id, {
+                optedIn: false,
+                summary: null,
+              });
             }
             coachIntervalEvents.set(
               connection.profile_id,

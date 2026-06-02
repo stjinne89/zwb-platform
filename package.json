@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate-icons": "node scripts/generate-icons.mjs"
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:headed": "node scripts/run-e2e.mjs --headed",
+    "test:e2e:ui": "node scripts/run-e2e.mjs --ui"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -36,6 +39,7 @@
     "zwift-data": "^1.48.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/mapbox__polyline": "^1.0.5",
     "@types/node": "^20",

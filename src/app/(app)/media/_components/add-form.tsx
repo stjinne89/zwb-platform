@@ -93,7 +93,7 @@ export function MediaForm({ initial }: { initial?: MediaInitial }) {
           >
             {MEDIA_KINDS.map((k) => (
               <option key={k.value} value={k.value}>
-                {k.icon} {k.label}
+                {k.label}
               </option>
             ))}
           </select>

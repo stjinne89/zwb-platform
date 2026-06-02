@@ -99,7 +99,7 @@ export default async function MediaPage({
                 : "hover:bg-secondary"
             }`}
           >
-            {k.icon} {k.label}
+            {k.label}
           </Link>
         ))}
       </nav>
