@@ -1,0 +1,149 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+import { syncStravaActivitiesForUser } from "@/lib/strava/client";
+
+type ProfileSyncResult = {
+  profileId: string;
+  status: "completed" | "partial" | "rate_limited" | "failed" | "skipped";
+  chunks: number;
+  upserted: number;
+  totalSeen: number;
+  nonCyclingSkipped: number;
+  milestoneAwards: number;
+  milestoneErrors: string[];
+  nextPage?: number | null;
+  error?: string;
+};
+
+function positiveInt(value: string | null, fallback: number, max: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function envPositiveInt(name: string, fallback: number, max: number) {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+export async function POST(request: Request) {
+  const expected = process.env.STRAVA_SYNC_SECRET;
+  const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+  if (!expected || actual !== expected) {
+    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const profileLimit = positiveInt(
+    url.searchParams.get("limit"),
+    envPositiveInt("STRAVA_SYNC_MAX_PROFILES", 20, 100),
+    100,
+  );
+  const chunkPages = positiveInt(url.searchParams.get("chunkPages"), 1, 5);
+  const maxChunksPerProfile = positiveInt(
+    url.searchParams.get("maxChunks"),
+    2,
+    10,
+  );
+
+  try {
+    const admin = createAdminClient();
+    const { data: connections, error } = await admin
+      .from("strava_connections")
+      .select("profile_id, updated_at")
+      .order("updated_at", { ascending: true })
+      .limit(profileLimit);
+
+    if (error) throw new Error(error.message);
+
+    const results: ProfileSyncResult[] = [];
+    let rateLimited = false;
+
+    for (const connection of connections ?? []) {
+      const profileId = String(connection.profile_id);
+      let startPage: number | undefined;
+      let afterTs: number | undefined;
+      const summary: ProfileSyncResult = {
+        profileId,
+        status: "skipped",
+        chunks: 0,
+        upserted: 0,
+        totalSeen: 0,
+        nonCyclingSkipped: 0,
+        milestoneAwards: 0,
+        milestoneErrors: [],
+      };
+
+      try {
+        for (let chunk = 0; chunk < maxChunksPerProfile; chunk++) {
+          const result = await syncStravaActivitiesForUser(admin, profileId, {
+            startPage,
+            afterTs,
+            chunkPages,
+            colSegmentMaxFetches: 0,
+          });
+
+          if (!result.ok) {
+            summary.status = "skipped";
+            summary.error = result.error;
+            break;
+          }
+
+          summary.chunks += 1;
+          summary.upserted += result.upserted;
+          summary.totalSeen += result.totalSeen;
+          summary.nonCyclingSkipped += result.nonCyclingSkipped;
+
+          if (result.done) {
+            summary.status = "completed";
+            summary.milestoneAwards = result.milestoneAwards;
+            summary.milestoneErrors = result.milestoneErrors ?? [];
+            break;
+          }
+
+          summary.status = result.stravaRateLimited ? "rate_limited" : "partial";
+          summary.nextPage = result.nextPage;
+          startPage = result.nextPage ?? undefined;
+          afterTs = result.afterTs;
+
+          if (result.stravaRateLimited || !startPage) {
+            rateLimited = result.stravaRateLimited;
+            break;
+          }
+        }
+      } catch (err) {
+        summary.status = "failed";
+        summary.error =
+          err instanceof Error ? err.message : "Strava-profielsync faalde.";
+      }
+
+      results.push(summary);
+      if (rateLimited) break;
+    }
+
+    return Response.json(
+      {
+        ok: !results.some((r) => r.status === "failed"),
+        scannedProfiles: connections?.length ?? 0,
+        processedProfiles: results.length,
+        upserted: results.reduce((sum, r) => sum + r.upserted, 0),
+        totalSeen: results.reduce((sum, r) => sum + r.totalSeen, 0),
+        milestoneAwards: results.reduce((sum, r) => sum + r.milestoneAwards, 0),
+        rateLimited,
+        results,
+      },
+      { status: results.some((r) => r.status === "failed") ? 207 : 200 },
+    );
+  } catch (err) {
+    return Response.json(
+      {
+        ok: false,
+        error: err instanceof Error ? err.message : "Strava-cron faalde.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export const GET = POST;

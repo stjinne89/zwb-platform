@@ -257,6 +257,8 @@ export type SyncChunkOptions = {
   afterTs?: number;
   /** Max aantal pagina's per server-invocation. Default 5 → ~5-8s wall clock. */
   chunkPages?: number;
+  /** Begrens dure detailed-activity calls voor coltijden. Cron zet dit op 0. */
+  colSegmentMaxFetches?: number;
 };
 
 export async function syncStravaActivitiesForUser(
@@ -328,6 +330,7 @@ export async function syncStravaActivitiesForUser(
   let nextPage: number | null = null;
   let doneInThisChunk = false;
   let lastPageProcessed = startPage - 1;
+  let stravaRateLimited = false;
 
   for (let i = 0; i < chunkPages; i++) {
     const page = startPage + i;
@@ -345,6 +348,7 @@ export async function syncStravaActivitiesForUser(
       // Rate-limited binnen deze chunk: geef cursor terug zodat de client
       // 'm na ~60s opnieuw probeert. We blokkeren niet de hele function.
       nextPage = page;
+      stravaRateLimited = true;
       break;
     }
 
@@ -424,6 +428,11 @@ export async function syncStravaActivitiesForUser(
 
   const done = nextPage === null;
 
+  await supabase
+    .from("strava_connections")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("profile_id", profileId);
+
   // Milestone-evaluators: alleen op de laatste chunk, anders draaien we
   // 'm onnodig 10x op een halve dataset. Vóór de evaluators draaien we
   // de col-detector zodat A013-A019/A095 over de meest actuele set
@@ -457,21 +466,24 @@ export async function syncStravaActivitiesForUser(
 
       // Segmenttijden horen bij de cols-collectie zelf, niet alleen bij de
       // badge-recompute-knop. Beperkt houden i.v.m. Strava rate limits.
-      try {
-        const { syncColSegmentTimesForUser } = await import(
-          "@/lib/cols/segment-times"
-        );
-        const segmentResult = await syncColSegmentTimesForUser(
-          admin,
-          accessToken,
-          profileId,
-          { maxFetches: 20 },
-        );
-        colSegmentTimesFetched = segmentResult.fetched;
-        colSegmentTimesUpdated = segmentResult.updated;
-        colSegmentTimesRateLimited = segmentResult.rateLimited;
-      } catch {
-        // niet kritiek voor de sync-flow
+      const maxColSegmentFetches = options.colSegmentMaxFetches ?? 20;
+      if (maxColSegmentFetches > 0) {
+        try {
+          const { syncColSegmentTimesForUser } = await import(
+            "@/lib/cols/segment-times"
+          );
+          const segmentResult = await syncColSegmentTimesForUser(
+            admin,
+            accessToken,
+            profileId,
+            { maxFetches: maxColSegmentFetches },
+          );
+          colSegmentTimesFetched = segmentResult.fetched;
+          colSegmentTimesUpdated = segmentResult.updated;
+          colSegmentTimesRateLimited = segmentResult.rateLimited;
+        } catch {
+          // niet kritiek voor de sync-flow
+        }
       }
 
       const { evaluateMilestonesForUser } = await import(
@@ -504,6 +516,7 @@ export async function syncStravaActivitiesForUser(
     nextPage,
     afterTs: after,
     done,
+    stravaRateLimited,
   };
 }
 
