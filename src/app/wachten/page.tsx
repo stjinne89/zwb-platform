@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ZwbLogo } from "@/components/zwb-logo";
 import { LogoutButton } from "@/app/(app)/_components/logout-button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default async function WachtenPage() {
   const supabase = await createClient();
@@ -34,6 +37,12 @@ export default async function WachtenPage() {
           <p className="text-sm text-muted-foreground">
             Vragen? Neem contact op met het ZWB-bestuur.
           </p>
+          <Link
+            href="/welkom"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Open de starthelper
+          </Link>
         </div>
 
         <div className="flex items-center justify-between border-t pt-4 text-sm">

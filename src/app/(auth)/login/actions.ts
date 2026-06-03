@@ -60,7 +60,7 @@ export async function signUp(formData: FormData) {
       // De handle_new_user-trigger in 0001_initial.sql pikt full_name op
       // en zet het op profiles.display_name.
       data: { full_name: displayName },
-      emailRedirectTo: `${origin}/auth/confirm`,
+      emailRedirectTo: `${origin}/auth/confirm?next=/welkom`,
     },
   });
 
@@ -82,7 +82,7 @@ export async function signUp(formData: FormData) {
   // Met "Confirm email" aan in Supabase: session is null totdat de gebruiker
   // op de bevestigings-link klikt. Met email-confirmation uit: directe sessie.
   if (data.session) {
-    redirect("/dashboard");
+    redirect("/welkom");
   }
 
   return { ok: true as const, needsConfirmation: true };

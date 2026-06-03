@@ -10,6 +10,7 @@ export type NavLeaf = {
   type: "link";
   href: string;
   label: string;
+  external?: boolean;
 };
 
 export type NavGroup = {
@@ -27,17 +28,31 @@ export const NAV_GROUPS: NavNode[] = [
     type: "group",
     label: "Club",
     items: [
-      { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/leden", label: "Leden" },
+      { type: "link", href: "/teams", label: "Teams" },
+      { type: "link", href: "/teams/ttt-planner", label: "TTT Planner" },
+      { type: "link", href: "/teams/club-ladder", label: "Club Ladder" },
       { type: "link", href: "/achievements", label: "Achievements" },
       { type: "link", href: "/stats", label: "Stats" },
+      {
+        type: "link",
+        href: "https://zwbomnium.netlify.app/",
+        label: "ZWB Omnium",
+        external: true,
+      },
+      {
+        type: "link",
+        href: "https://voorzpwelbokaal.netlify.app/",
+        label: "voorZpWelBokaal",
+        external: true,
+      },
     ],
   },
   {
     type: "group",
     label: "Community",
     items: [
-      { type: "link", href: "/community", label: "Community" },
+      { type: "link", href: "/community", label: "WhatsApp-groepen" },
       { type: "link", href: "/polls", label: "Polls" },
       { type: "link", href: "/materiaal", label: "Vraag en Aanbod" },
       { type: "link", href: "/media", label: "Media" },
@@ -87,6 +102,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
 
 /** Helper: is een href de active route? Werkt voor zowel exact als nested. */
 export function isActiveHref(pathname: string, href: string): boolean {
+  if (href.startsWith("http")) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }

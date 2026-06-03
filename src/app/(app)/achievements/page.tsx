@@ -381,7 +381,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
                   key={award.id}
                   className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
                 >
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-3">
                     {badge && (
                       <AchievementBadge
                         title={badge.title}
@@ -389,16 +389,21 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
                         color={badge.color}
                       />
                     )}
-                    <p className="mt-2 truncate text-sm">
-                      {awardProfile(award)?.display_name ?? "ZWB'er"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Week van{" "}
-                      {new Date(award.period_start).toLocaleDateString("nl-NL", {
-                        dateStyle: "medium",
-                        timeZone: "Europe/Amsterdam",
-                      })}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {badge?.title ?? "Weekbadge"}
+                      </p>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                        {awardProfile(award)?.display_name ?? "ZWB'er"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Week van{" "}
+                        {new Date(award.period_start).toLocaleDateString("nl-NL", {
+                          dateStyle: "medium",
+                          timeZone: "Europe/Amsterdam",
+                        })}
+                      </p>
+                    </div>
                   </div>
                   <span className="text-sm font-semibold tabular-nums">
                     {formatBadgeValue(award.value, award.metadata?.unit)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useTransition } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { sendMagicLink, signInWithPassword, signUp } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,9 @@ export default function LoginPage() {
 function AuthScreen() {
   const params = useSearchParams();
   const initialError = params.get("error");
+  const initialMode = params.get("mode") === "register" ? "register" : "login";
 
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<Status>(
     initialError ? { kind: "error", msg: initialError } : { kind: "idle" },
@@ -125,11 +127,18 @@ function AuthScreen() {
         {/* Confirmation message */}
         {status.kind === "confirm-sent" ? (
           <div className="space-y-2 rounded-md bg-green-50 px-3 py-3 text-sm text-green-900 dark:bg-green-950 dark:text-green-100">
-            <p className="font-medium">Bijna klaar! ✉️</p>
+            <p className="font-medium">Bijna klaar.</p>
             <p>
               Check je inbox en klik op de bevestigingslink om je account te
-              activeren. Daarna kun je inloggen.
+              activeren. De mail kan vanuit Supabase komen; kijk ook in
+              ongewenste mail of spam en markeer de afzender als vertrouwd.
             </p>
+            <Link
+              href="/welkom"
+              className="inline-flex text-sm font-medium underline"
+            >
+              Open de starthelper
+            </Link>
           </div>
         ) : mode === "login" ? (
           <LoginForm

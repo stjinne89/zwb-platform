@@ -64,11 +64,11 @@ export default async function CommunityPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Community" />
+      <PageHeader title="WhatsApp-groepen" />
 
       <section className="space-y-3">
         <div className="flex items-end justify-between">
-          <h2 className="text-xl font-semibold">WhatsApp-groepen</h2>
+          <h2 className="text-xl font-semibold">Alle groepen</h2>
         </div>
 
         {!groups || groups.length === 0 ? (

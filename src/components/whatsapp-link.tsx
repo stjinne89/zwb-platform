@@ -24,7 +24,7 @@ export function WhatsAppGroupBlock({
           Nog geen WhatsApp-groep gekoppeld aan dit{" "}
           {scope === "team" ? "team" : "event"}.{" "}
           <Link href="/community" className="text-primary underline">
-            Koppel er een via Community →
+            Koppel er een via WhatsApp-groepen →
           </Link>
         </p>
       </section>

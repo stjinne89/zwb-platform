@@ -13,20 +13,28 @@ import {
   NAV_GROUPS,
   isActiveGroup,
   isActiveHref,
+  type NavLeaf,
   type NavNode,
 } from "./nav-config";
 
-function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+function linkTarget(item: NavLeaf) {
+  return item.external
+    ? { target: "_blank", rel: "noopener noreferrer" }
+    : {};
+}
+
+function NavLink({ item, active }: { item: NavLeaf; active: boolean }) {
   return (
     <Link
-      href={href}
+      href={item.href}
+      {...linkTarget(item)}
       className={
         active
           ? "text-foreground font-medium"
           : "text-muted-foreground hover:text-primary"
       }
     >
-      {label}
+      {item.label}
     </Link>
   );
 }
@@ -41,8 +49,7 @@ export function DesktopNav() {
           return (
             <li key={node.href}>
               <NavLink
-                href={node.href}
-                label={node.label}
+                item={node}
                 active={isActiveHref(pathname, node.href)}
               />
             </li>
@@ -69,6 +76,7 @@ export function DesktopNav() {
                     render={
                       <Link
                         href={item.href}
+                        {...linkTarget(item)}
                         className={
                           isActiveHref(pathname, item.href)
                             ? "font-medium"

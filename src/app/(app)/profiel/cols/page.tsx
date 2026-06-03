@@ -314,6 +314,11 @@ function ClimbedCard({
   const top = leaderboard.slice(0, 3);
   const myPr = formatTime(myClimb.best_time_seconds);
   const hasAnyTime = leaderboard.some((e) => e.best_time_seconds != null);
+  const myRank = leaderboard.findIndex((entry) => entry.profile_id === myProfileId) + 1;
+  const leaderboardSummary =
+    myRank > 0
+      ? `jij: ${myRank} van ${leaderboard.length} ZWB'ers`
+      : `${leaderboard.length} ZWB'ers`;
 
   return (
     <li className="space-y-2 rounded-lg border bg-card p-4">
@@ -378,8 +383,7 @@ function ClimbedCard({
         <details className="text-xs">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
             {hasAnyTime ? "Snelste ZWB'ers op deze col" : "ZWB-stand op deze col"}{" "}
-            ({leaderboard.length}{" "}
-            {leaderboard.length === 1 ? "rider" : "riders"})
+            ({leaderboardSummary})
           </summary>
           <ol className="mt-2 space-y-1">
             {leaderboard.map((entry, i) => {
