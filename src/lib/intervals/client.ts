@@ -34,11 +34,37 @@ async function intervalsFetch<T>(apiKey: string, path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function intervalsFetchFirst<T>(
+  apiKey: string,
+  paths: string[],
+): Promise<T> {
+  const errors: string[] = [];
+  for (const path of paths) {
+    try {
+      return await intervalsFetch<T>(apiKey, path);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : "Onbekende Intervals-fout.");
+    }
+  }
+  throw new Error(errors[errors.length - 1] ?? "intervals.icu gaf geen bruikbaar antwoord.");
+}
+
 export type IntervalsAthlete = {
   id: string; // "i12345"
   name?: string;
   email?: string;
   ftp?: number;
+  weight?: number;
+  sportSettings?: Array<{
+    ftp?: number;
+    indoor_ftp?: number;
+    weight?: number;
+    types?: string[];
+    mmp_model?: {
+      ftp?: number;
+      p_max?: number;
+    };
+  }>;
 };
 
 export type IntervalsActivity = {
@@ -109,6 +135,18 @@ export type IntervalsWorkoutInput = {
   workoutDoc?: Record<string, unknown> | null;
 };
 
+export type IntervalsPowerCurvePoint = {
+  seconds: number;
+  watts: number;
+};
+
+export type IntervalsPowerCurve = {
+  period: string;
+  points: IntervalsPowerCurvePoint[];
+  ftpWatts?: number | null;
+  debug?: string;
+};
+
 /** Haalt athlete-info voor de eigenaar van de API-key. */
 export async function fetchIntervalsAthlete(apiKey: string): Promise<IntervalsAthlete> {
   // "0" is een magic value: betekent "de athlete bij wie deze API-key hoort"
@@ -164,6 +202,141 @@ export async function fetchIntervalsEvents(
     apiKey,
     `/api/v1/athlete/${athleteId}/events?oldest=${oldest}&newest=${newest}`,
   );
+}
+
+function numericField(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
+function collectPowerCurvePoints(
+  value: unknown,
+  out: IntervalsPowerCurvePoint[],
+  depth = 0,
+) {
+  if (depth > 8) return;
+  if (Array.isArray(value)) {
+    if (
+      value.length >= 2 &&
+      typeof value[0] === "number" &&
+      typeof value[1] === "number" &&
+      value[0] > 0 &&
+      value[1] > 0
+    ) {
+      out.push({ seconds: Math.round(value[0]), watts: Math.round(value[1]) });
+      return;
+    }
+    for (const item of value) collectPowerCurvePoints(item, out, depth + 1);
+    return;
+  }
+
+  if (!value || typeof value !== "object") return;
+  const row = value as Record<string, unknown>;
+  const secondsArray = row.seconds ?? row.secs ?? row.duration ?? row.x;
+  const wattsArray = row.watts ?? row.power ?? row.y ?? row.values;
+  if (Array.isArray(secondsArray) && Array.isArray(wattsArray)) {
+    const count = Math.min(secondsArray.length, wattsArray.length);
+    for (let i = 0; i < count; i += 1) {
+      const seconds = Number(secondsArray[i]);
+      const watts = Number(wattsArray[i]);
+      if (Number.isFinite(seconds) && seconds > 0 && Number.isFinite(watts) && watts > 0) {
+        out.push({ seconds: Math.round(seconds), watts: Math.round(watts) });
+      }
+    }
+  }
+
+  const seconds = numericField(row, [
+    "seconds",
+    "secs",
+    "duration",
+    "duration_secs",
+    "duration_seconds",
+    "time",
+    "x",
+  ]);
+  const watts = numericField(row, [
+    "watts",
+    "power",
+    "mmp",
+    "value",
+    "y",
+    "avg_watts",
+    "average_watts",
+  ]);
+
+  if (seconds && watts) {
+    out.push({ seconds: Math.round(seconds), watts: Math.round(watts) });
+  }
+
+  for (const nested of Object.values(row)) {
+    if (nested && (Array.isArray(nested) || typeof nested === "object")) {
+      collectPowerCurvePoints(nested, out, depth + 1);
+    }
+  }
+}
+
+function nearestPower(points: IntervalsPowerCurvePoint[], seconds: number) {
+  let best: IntervalsPowerCurvePoint | null = null;
+  for (const point of points) {
+    if (!best || Math.abs(point.seconds - seconds) < Math.abs(best.seconds - seconds)) {
+      best = point;
+    }
+  }
+  return best && Math.abs(best.seconds - seconds) <= Math.max(3, seconds * 0.12)
+    ? best.watts
+    : null;
+}
+
+/** Power-duration curve voor race-roosters. Standaard: laatste 90 dagen Ride. */
+export async function fetchIntervalsPowerCurve(
+  apiKey: string,
+  athleteId: string,
+  period = "90d",
+): Promise<IntervalsPowerCurve> {
+  const now = new Date().toISOString().slice(0, 10);
+  const query = new URLSearchParams({
+    curves: period,
+    type: "Ride",
+    includeRanks: "false",
+    now,
+  });
+  const payload = await intervalsFetchFirst<unknown>(
+    apiKey,
+    [
+      `/api/v1/athlete/0/power-curves?${query.toString()}`,
+      `/api/athlete/0/power-curves?${query.toString()}`,
+      `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
+      `/api/athlete/${athleteId}/power-curves?${query.toString()}`,
+    ],
+  );
+  const points: IntervalsPowerCurvePoint[] = [];
+  collectPowerCurvePoints(payload, points);
+
+  const deduped = Array.from(
+    points
+      .reduce((map, point) => {
+        const current = map.get(point.seconds);
+        if (!current || point.watts > current.watts) map.set(point.seconds, point);
+        return map;
+      }, new Map<number, IntervalsPowerCurvePoint>())
+      .values(),
+  ).sort((a, b) => a.seconds - b.seconds);
+
+  const maybe = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+  const debug = Array.isArray(payload)
+    ? `array(${payload.length})`
+    : payload && typeof payload === "object"
+      ? `object keys: ${Object.keys(payload as Record<string, unknown>).slice(0, 12).join(", ")}`
+      : typeof payload;
+  const ftpWatts =
+    numericField(maybe, ["ftp", "eftp", "icu_ftp"]) ??
+    nearestPower(deduped, 1200);
+
+  return { period, points: deduped, ftpWatts, debug };
 }
 
 /** Maakt of wijzigt een gepland workout-event in intervals.icu. */

@@ -17,15 +17,20 @@ export default async function EditEventPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: event }, access] = await Promise.all([
+  const [{ data: event }, access, { data: teams }] = await Promise.all([
     supabase
       .from("events")
       .select(
-        "id, title, type, start_at, end_at, location, description, external_url, results_url, cover_image_path, gpx_path, distance_km, elevation_m, created_by",
+        "id, title, type, start_at, end_at, location, description, external_url, results_url, cover_image_path, team_id, gpx_path, distance_km, elevation_m, created_by",
       )
       .eq("id", id)
       .single(),
     getCurrentUserAccess(supabase),
+    supabase
+      .from("teams")
+      .select("id, name, type, parent_team_id")
+      .order("type")
+      .order("name"),
   ]);
 
   if (!event) notFound();
@@ -50,6 +55,7 @@ export default async function EditEventPage({
     external_url: event.external_url,
     results_url: event.results_url,
     cover_image_path: event.cover_image_path,
+    team_id: event.team_id,
     gpx_path: event.gpx_path,
     distance_km: event.distance_km,
     elevation_m: event.elevation_m,
@@ -70,7 +76,7 @@ export default async function EditEventPage({
           zijn direct zichtbaar voor alle leden.
         </p>
       </header>
-      <EventForm initial={initial} />
+      <EventForm initial={initial} teams={teams ?? []} />
     </div>
   );
 }

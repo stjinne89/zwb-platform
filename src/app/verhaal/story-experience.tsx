@@ -153,17 +153,23 @@ function StoryRider({
   chapter: Chapter;
   progress: number;
 }) {
-  const spin = progress * 900;
   const roadShift = progress * -240;
+  const groundY = 430;
+  const riderAssetBottom = 178 * 1.28;
   const riders = [
-    { x: 255, y: 78, scale: 1, opacity: 1 },
-    { x: 96, y: 118, scale: 0.78, opacity: 0.78 },
-    { x: 418, y: 120, scale: 0.76, opacity: 0.74 },
-    { x: 28, y: 166, scale: 0.58, opacity: 0.48 },
-    { x: 560, y: 166, scale: 0.58, opacity: 0.46 },
-    { x: 170, y: 188, scale: 0.5, opacity: 0.36 },
-    { x: 690, y: 188, scale: 0.5, opacity: 0.34 },
-  ].slice(0, chapter.riderCount);
+    { x: 255, scale: 1, opacity: 1 },
+    { x: 96, scale: 0.78, opacity: 0.78 },
+    { x: 418, scale: 0.76, opacity: 0.74 },
+    { x: 28, scale: 0.58, opacity: 0.48 },
+    { x: 560, scale: 0.58, opacity: 0.46 },
+    { x: 170, scale: 0.5, opacity: 0.36 },
+    { x: 690, scale: 0.5, opacity: 0.34 },
+  ]
+    .slice(0, chapter.riderCount)
+    .map((rider) => ({
+      ...rider,
+      y: groundY - riderAssetBottom * rider.scale,
+    }));
 
   return (
     <svg
@@ -198,7 +204,6 @@ function StoryRider({
             <StickCyclist
               key={`${chapter.id}-${index}`}
               kit={chapter.kit}
-              spin={spin + index * 28}
               x={rider.x}
               y={rider.y}
               scale={rider.scale}
@@ -213,7 +218,6 @@ function StoryRider({
 
 function StickCyclist({
   kit,
-  spin,
   x,
   y,
   scale,
@@ -221,7 +225,6 @@ function StickCyclist({
   featured,
 }: {
   kit: Chapter["kit"];
-  spin: number;
   x: number;
   y: number;
   scale: number;
@@ -230,81 +233,61 @@ function StickCyclist({
 }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`} opacity={opacity}>
-      <g stroke="#101820" strokeLinecap="round" strokeLinejoin="round">
-        <SmallWheel cx={78} cy={242} spin={spin} />
-        <SmallWheel cx={306} cy={242} spin={spin} />
-        <path d="M78 242 L145 122 L184 242 L306 242 L254 126 L145 122 L128 242 Z" fill="none" strokeWidth="8" />
-        <path d="M184 242 L254 126 L286 116" fill="none" strokeWidth="7" />
-        <path d="M286 116 C311 111 334 124 338 145 C342 164 327 180 306 174" fill="none" strokeWidth="7" />
-        <path d="M134 112 L164 108" fill="none" strokeWidth="7" />
-        <path d="M111 244 L181 243" fill="none" strokeWidth="3" opacity="0.58" />
-        <circle cx="184" cy="242" r="11" fill="#101820" />
-        <path d="M184 242 L208 260 M184 242 L160 224" fill="none" strokeWidth="4" />
-      </g>
-
-      <g strokeLinecap="round" strokeLinejoin="round">
-        <path
-          d="M142 115 C169 86 226 80 270 105 L248 135 C208 127 169 130 135 147Z"
-          fill={kit.primary}
-          stroke="#101820"
-          strokeWidth={featured ? 4 : 3}
+      <g transform="scale(1.28)">
+        <image
+          href="/story/riders/cyclist-base.svg"
+          x="0"
+          y="0"
+          width="202.96"
+          height="202.96"
+          opacity="0.94"
         />
-        <path
-          d="M143 138 C184 148 222 144 260 122 L248 135 C214 150 174 153 135 147Z"
-          fill={kit.secondary}
-          opacity="0.95"
-        />
-        <path d="M129 146 C106 166 91 194 82 226" fill="none" stroke={kit.shorts} strokeWidth="17" />
-        <path d="M82 226 C75 242 66 257 55 272" fill="none" stroke="#f1d5bd" strokeWidth="10" />
-        <path d="M51 276 L76 276" fill="none" stroke="#101820" strokeWidth="5" />
-        <path d="M177 146 C202 165 213 193 209 230" fill="none" stroke={kit.shorts} strokeWidth="17" />
-        <path d="M209 230 C203 247 194 263 181 278" fill="none" stroke="#f1d5bd" strokeWidth="10" />
-        <path d="M177 282 L202 277" fill="none" stroke="#101820" strokeWidth="5" />
-        <path d="M256 111 C277 124 292 142 300 162" fill="none" stroke={kit.sleeve} strokeWidth="12" />
-        <path d="M300 162 C316 159 329 151 339 140" fill="none" stroke="#f1d5bd" strokeWidth="9" />
-        <path d="M226 132 C248 152 263 174 273 196" fill="none" stroke={kit.sleeve} strokeWidth="12" />
-        <path d="M273 196 C291 190 305 180 316 166" fill="none" stroke="#f1d5bd" strokeWidth="9" />
-        <path d="M258 92 C273 73 294 64 315 68" fill="none" stroke="#f1d5bd" strokeWidth="9" />
-        <circle cx="326" cy="72" r="18" fill="#f1d5bd" stroke="#101820" strokeWidth="4" />
-        <path d="M306 70 C313 52 342 51 354 70 C336 65 321 65 306 70Z" fill={kit.shorts} />
-        <path d="M313 62 C328 54 346 58 356 72" fill="none" stroke="#ffffff" strokeWidth="5" />
-        <KitBadge kit={kit} featured={featured} />
+        <JerseyOverlay kit={kit} featured={featured} />
       </g>
     </g>
   );
 }
 
-function SmallWheel({ cx, cy, spin }: { cx: number; cy: number; spin: number }) {
-  return (
-    <g transform={`translate(${cx} ${cy})`}>
-      <circle r="44" fill="rgba(255,255,255,0.42)" stroke="#101820" strokeWidth="8" />
-      <circle r="34" fill="none" stroke="#f8f7f2" strokeWidth="3" opacity="0.86" />
-      <g transform={`rotate(${spin})`} stroke="#101820" strokeWidth="1.8" opacity="0.46">
-        {Array.from({ length: 12 }, (_, i) => (
-          <line key={i} x1="0" y1="0" x2="0" y2="-34" transform={`rotate(${i * 30})`} />
-        ))}
-      </g>
-      <circle r="5" fill="#101820" />
+function JerseyOverlay({ kit, featured }: { kit: Chapter["kit"]; featured: boolean }) {
+  const strokeWidth = featured ? 1.9 : 1.4;
+
+  const jersey = (
+    <g stroke="#101820" strokeLinejoin="round" strokeWidth={strokeWidth}>
+      <path
+        d="M61 55 C73 46 91 43 114 48 L143 54 C151 56 157 62 161 72 L151 91 C132 86 112 80 95 75 C81 71 69 69 58 69Z"
+        fill={kit.primary}
+      />
+      <path
+        d="M62 67 C83 70 111 78 153 89 L145 105 C121 99 94 91 74 83 C65 79 61 74 62 67Z"
+        fill={kit.secondary}
+        opacity="0.94"
+      />
+      <path
+        d="M144 58 C155 63 164 72 170 82 L163 95 C154 85 144 78 133 74Z"
+        fill={kit.sleeve}
+      />
     </g>
   );
-}
 
-function KitBadge({ kit, featured }: { kit: Chapter["kit"]; featured: boolean }) {
   if (kit.motif === "blank") {
     return (
-      <path d="M154 123 L245 105" stroke={kit.accent} strokeWidth={featured ? 5 : 3} opacity="0.8" />
+      <g>
+        {jersey}
+        <path d="M72 61 L142 74" stroke={kit.accent} strokeWidth={featured ? 2.6 : 2} opacity="0.9" />
+      </g>
     );
   }
   if (kit.motif === "comic") {
     return (
       <g>
+        {jersey}
         <path
-          d="M175 111 L187 102 L192 116 L207 111 L202 127 L216 136 L199 139 L198 155 L186 145 L172 156 L174 139 L158 136 L172 126 L167 111Z"
+          d="M91 57 L99 51 L103 61 L114 57 L111 69 L121 76 L109 78 L108 90 L98 82 L88 91 L90 78 L78 76 L88 68 L84 57Z"
           fill="#facc15"
           stroke="#171717"
-          strokeWidth={featured ? 3 : 2}
+          strokeWidth={featured ? 1.6 : 1.2}
         />
-        <text x="187" y="140" textAnchor="middle" fontSize={featured ? 22 : 18} fontWeight="900" fill="#ec407a">
+        <text x="99" y="77" textAnchor="middle" fontSize={featured ? 12 : 10} fontWeight="900" fill="#ec407a">
           Z
         </text>
       </g>
@@ -312,10 +295,11 @@ function KitBadge({ kit, featured }: { kit: Chapter["kit"]; featured: boolean })
   }
   if (kit.motif === "bands") {
     return (
-      <g opacity="0.95">
-        <path d="M149 131 L252 107 L262 121 L156 145Z" fill={kit.accent} />
-        <path d="M158 145 L263 123 L257 140 L177 151Z" fill="#1f6068" opacity="0.85" />
-        <text x="205" y="129" textAnchor="middle" fontSize={featured ? 14 : 11} fontWeight="800" fill="#ffffff">
+      <g>
+        {jersey}
+        <path d="M65 65 L150 57 L158 70 L72 79Z" fill={kit.accent} opacity="0.95" />
+        <path d="M72 79 L158 71 L150 90 L86 88Z" fill="#1f6068" opacity="0.9" />
+        <text x="107" y="73" textAnchor="middle" fontSize={featured ? 8 : 6.5} fontWeight="800" fill="#ffffff">
           VBTM
         </text>
       </g>
@@ -323,10 +307,11 @@ function KitBadge({ kit, featured }: { kit: Chapter["kit"]; featured: boolean })
   }
   if (kit.motif === "modern") {
     return (
-      <g opacity="0.95">
-        <path d="M149 128 L253 106 L264 123 L158 146Z" fill={kit.accent} />
-        <path d="M158 145 L263 123 L256 142 L177 151Z" fill="#6e8582" opacity="0.75" />
-        <text x="207" y="132" textAnchor="middle" fontSize={featured ? 16 : 12} fontWeight="900" fill={kit.text}>
+      <g>
+        {jersey}
+        <path d="M65 63 L152 56 L160 73 L73 82Z" fill={kit.accent} opacity="0.95" />
+        <path d="M73 81 L160 73 L149 92 L86 88Z" fill="#6e8582" opacity="0.78" />
+        <text x="108" y="76" textAnchor="middle" fontSize={featured ? 9 : 7} fontWeight="900" fill={kit.text}>
           Hage
         </text>
       </g>

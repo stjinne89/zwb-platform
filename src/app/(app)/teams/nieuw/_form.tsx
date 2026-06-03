@@ -16,7 +16,13 @@ const TYPES = [
   { value: "outdoor", label: "Outdoor" },
 ];
 
-export function NewTeamForm() {
+export function NewTeamForm({
+  parentTeams = [],
+  selectedParentTeamId = "",
+}: {
+  parentTeams?: Array<{ id: string; name: string }>;
+  selectedParentTeamId?: string;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +40,29 @@ export function NewTeamForm() {
         <label className={LABEL}>Naam</label>
         <input name="name" required className={FIELD} />
       </div>
+      {parentTeams.length > 0 && (
+        <div>
+          <label className={LABEL}>
+            {selectedParentTeamId ? "Hoofdteam" : "Hoofdteam (optioneel)"}
+          </label>
+          <select
+            name="parent_team_id"
+            defaultValue={selectedParentTeamId}
+            className={FIELD}
+            disabled={Boolean(selectedParentTeamId)}
+          >
+            <option value="">Geen hoofdteam</option>
+            {parentTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+          {selectedParentTeamId && (
+            <input type="hidden" name="parent_team_id" value={selectedParentTeamId} />
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={LABEL}>Type</label>

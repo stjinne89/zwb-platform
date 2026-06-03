@@ -36,6 +36,8 @@ export function StravaSyncButton() {
     let totalNonCycling = 0;
     let milestoneAwards = 0;
     let milestoneErrors: string[] = [];
+    let colSegmentTimesUpdated = 0;
+    let colSegmentTimesRateLimited = false;
     let isFirstSync = false;
     let startPage: number | undefined = undefined;
     let afterTs: number | undefined = undefined;
@@ -64,6 +66,8 @@ export function StravaSyncButton() {
         if (res.done) {
           milestoneAwards = res.milestoneAwards;
           milestoneErrors = res.milestoneErrors ?? [];
+          colSegmentTimesUpdated = res.colSegmentTimesUpdated ?? 0;
+          colSegmentTimesRateLimited = Boolean(res.colSegmentTimesRateLimited);
         }
 
         // Live progress in de UI.
@@ -92,6 +96,14 @@ export function StravaSyncButton() {
       }
       if (milestoneErrors.length > 0) {
         parts.push(`badgecheck: ${milestoneErrors[0]}`);
+      }
+      if (colSegmentTimesUpdated > 0) {
+        parts.push(
+          `${colSegmentTimesUpdated} coltijd${colSegmentTimesUpdated === 1 ? "" : "en"} bijgewerkt`,
+        );
+      }
+      if (colSegmentTimesRateLimited) {
+        parts.push("Strava rate-limit bij coltijden");
       }
       if (totalNonCycling > 0) {
         parts.push(`${totalNonCycling} niet-fiets overgeslagen`);

@@ -19,8 +19,10 @@ type StoredActivity = {
   id: number;
   start_date: string;
   efforts_fetched_at: string | null;
+  total_elevation_gain_m?: number | null;
   raw:
     | {
+        total_elevation_gain?: number | null;
         map?: {
           summary_polyline?: string | null;
           polyline?: string | null;
@@ -49,7 +51,7 @@ async function fetchAllActivitiesWithEffortsFlag(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("strava_activities")
-      .select("id, start_date, efforts_fetched_at, raw")
+      .select("id, start_date, efforts_fetched_at, total_elevation_gain_m, raw")
       .eq("profile_id", profileId)
       .order("start_date", { ascending: false })
       .range(from, from + PAGE - 1);
@@ -73,7 +75,9 @@ export async function syncColSegmentTimesForUser(
   // effort-tijd koppelen.
   const { data: colsRows } = await supabase
     .from("cols")
-    .select("slug, summit_lat, summit_lon, detection_radius_m, strava_segment_id")
+    .select(
+      "slug, summit_lat, summit_lon, detection_radius_m, ascent_m, strava_segment_id",
+    )
     .not("strava_segment_id", "is", null);
 
   const cols = ((colsRows ?? []) as (ColRecord & {
@@ -100,19 +104,36 @@ export async function syncColSegmentTimesForUser(
     summit_lat: c.summit_lat,
     summit_lon: c.summit_lon,
     detection_radius_m: c.detection_radius_m,
+    ascent_m: c.ascent_m,
   }));
 
   const acts = await fetchAllActivitiesWithEffortsFlag(supabase, profileId);
 
   // Kandidaten: ritten die ≥1 segment-col passeren en nog niet opgehaald zijn.
-  // Nieuwste eerst (acts is al desc gesorteerd).
-  const candidates: StoredActivity[] = [];
+  // Geef ritten met cols zonder PR-tijd voorrang. Anders blijven oude outdoor-
+  // cols achteraan de queue hangen bij riders met veel recente Zwift-ritten.
+  const { data: missingTimeRows } = await supabase
+    .from("profile_climbed_cols")
+    .select("col_slug")
+    .eq("profile_id", profileId)
+    .is("best_time_seconds", null);
+  const missingTimeSlugs = new Set(
+    ((missingTimeRows ?? []) as { col_slug: string }[]).map((r) => r.col_slug),
+  );
+
+  const prioritized: StoredActivity[] = [];
+  const fallback: StoredActivity[] = [];
   for (const act of acts) {
     if (act.efforts_fetched_at) continue;
     const hits = detectColsInActivity(act, detectCols);
-    if (hits.length > 0) candidates.push(act);
-    if (candidates.length >= maxFetches) break;
+    if (hits.length === 0) continue;
+    if (hits.some((slug) => missingTimeSlugs.has(slug))) {
+      prioritized.push(act);
+    } else {
+      fallback.push(act);
+    }
   }
+  const candidates = [...prioritized, ...fallback].slice(0, maxFetches);
 
   if (candidates.length === 0) {
     return { fetched: 0, updated: 0, rateLimited: false };

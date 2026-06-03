@@ -1,292 +1,267 @@
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Clock3,
-  LinkIcon,
-  Plus,
-  Trophy,
-  UserCheck,
-  Users,
-} from "lucide-react";
+import { Activity, LinkIcon, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { EmptyState, PageHeader } from "@/components/app-ui";
+import { PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
 import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
-
-const TYPE_LABELS: Record<string, string> = {
-  zrl: "ZRL",
-  ladder: "Ladder",
-  social: "Social",
-  outdoor: "Outdoor",
-};
+import { SyncPowerButton } from "./_components/sync-power-button";
+import {
+  TeamRosterTable,
+  type TeamOption,
+  type TeamRosterRow,
+} from "./_components/team-roster-table";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+type ProfileRow = {
+  id: string;
+  display_name: string | null;
+  region: string | null;
+  zrl_category: string | null;
+  ftp_watts: number | null;
+  weight_kg: number | string | null;
+};
 
 type TeamRow = {
   id: string;
   name: string;
   type: string;
   division: string | null;
-  description: string | null;
-  is_graveyard: boolean;
-  team_members: unknown;
+  parent_team_id: string | null;
 };
 
-type RosterRow = {
-  id: string;
-  name: string;
-  pace_category: string | null;
-  team_name: string | null;
-  team_id?: string | null;
-  claimed_by: string | null;
+type TeamMemberRow = {
+  profile_id: string;
+  role: string;
+  teams: TeamRow | TeamRow[] | null;
 };
 
-type ResultRow = {
-  id: string;
-  team_id: string;
-  competition: string;
-  round_label: string | null;
-  round_at: string | null;
+type PowerRow = {
+  profile_id: string;
+  rider_type: string | null;
+  sync_status: string | null;
+  synced_at: string | null;
+  ftp_watts: number | null;
+  ftp_wkg: number | string | null;
+  watts_15s: number | null;
+  watts_30s: number | null;
+  watts_1m: number | null;
+  watts_2m: number | null;
+  watts_5m: number | null;
+  watts_10m: number | null;
+  watts_20m: number | null;
+  wkg_15s: number | string | null;
+  wkg_30s: number | string | null;
+  wkg_1m: number | string | null;
+  wkg_2m: number | string | null;
+  wkg_5m: number | string | null;
+  wkg_10m: number | string | null;
+  wkg_20m: number | string | null;
+};
+
+type ZrlResultRow = {
+  profile_id: string | null;
   position: number | null;
-  points: number | null;
-  total_teams: number | null;
-  created_at: string;
-  external_source?: string | null;
-  synced_at?: string | null;
-  source_url?: string | null;
+  points: number | string | null;
 };
 
-type TeamCard = {
-  id: string | null;
-  name: string;
-  type: string;
-  division: string | null;
-  description: string | null;
-  isGraveyard: boolean;
-  memberCount: number;
-  claimedRosterCount: number;
-  pendingRosterCount: number;
-  rosterCount: number;
-  latestResult: ResultRow | null;
-  source: "team" | "roster";
-};
-
-function normalizeTeamName(name: string | null | undefined) {
-  return name?.trim().toLowerCase() ?? "";
+function num(value: number | string | null | undefined) {
+  const n = Number(value ?? NaN);
+  return Number.isFinite(n) ? n : null;
 }
 
-function relationCount(value: unknown) {
-  if (Array.isArray(value)) {
-    const first = value[0] as { count?: unknown } | undefined;
-    return Number(first?.count ?? 0);
-  }
-  if (value && typeof value === "object" && "count" in value) {
-    return Number((value as { count?: unknown }).count ?? 0);
-  }
-  return 0;
+function firstTeam(value: TeamRow | TeamRow[] | null) {
+  return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-function formatResult(result: ResultRow | null) {
-  if (!result) return "Nog geen resultaat";
-  const rank = result.position
-    ? `#${result.position}${result.total_teams ? `/${result.total_teams}` : ""}`
-    : "uitslag";
-  return `${result.competition}${result.round_label ? ` - ${result.round_label}` : ""} (${rank})`;
-}
-
-function latestByTeam(results: ResultRow[]) {
-  const map = new Map<string, ResultRow>();
-  for (const result of results) {
-    if (!map.has(result.team_id)) map.set(result.team_id, result);
-  }
-  return map;
-}
-
-function buildCards(
-  teams: TeamRow[],
-  roster: RosterRow[],
-  results: ResultRow[],
-) {
-  const rosterByTeamId = new Map<string, RosterRow[]>();
-  const rosterByName = new Map<string, RosterRow[]>();
-
-  for (const entry of roster) {
-    if (entry.team_id) {
-      rosterByTeamId.set(entry.team_id, [
-        ...(rosterByTeamId.get(entry.team_id) ?? []),
-        entry,
-      ]);
-    }
-    const normalizedName = normalizeTeamName(entry.team_name);
-    if (normalizedName) {
-      rosterByName.set(normalizedName, [
-        ...(rosterByName.get(normalizedName) ?? []),
-        entry,
-      ]);
-    }
-  }
-
-  const latestResults = latestByTeam(results);
-  const matchedRosterNames = new Set<string>();
-
-  const activeCards = teams.map<TeamCard>((team) => {
-    const byId = rosterByTeamId.get(team.id) ?? [];
-    const normalizedName = normalizeTeamName(team.name);
-    const byName = rosterByName.get(normalizedName) ?? [];
-    if (byName.length > 0) matchedRosterNames.add(normalizedName);
-
-    const rosterEntries = byId.length > 0 ? byId : byName;
-    const claimedRosterCount = rosterEntries.filter((r) => r.claimed_by).length;
-    const pendingRosterCount = rosterEntries.filter((r) => !r.claimed_by).length;
-
-    return {
-      id: team.id,
-      name: team.name,
-      type: team.type,
-      division: team.division,
-      description: team.description,
-      isGraveyard: team.is_graveyard ?? false,
-      memberCount: relationCount(team.team_members),
-      claimedRosterCount,
-      pendingRosterCount,
-      rosterCount: rosterEntries.length,
-      latestResult: latestResults.get(team.id) ?? null,
-      source: "team",
-    };
-  });
-
-  const rosterCards = Array.from(rosterByName.entries())
-    .filter(([name]) => !matchedRosterNames.has(name))
-    .map<TeamCard>(([, entries]) => {
-      const first = entries[0];
-      const claimedRosterCount = entries.filter((r) => r.claimed_by).length;
-      const pendingRosterCount = entries.filter((r) => !r.claimed_by).length;
-
-      return {
-        id: null,
-        name: first.team_name ?? "Onbekend team",
-        type: "zrl",
-        division: null,
-        description: "Herkend uit de bestaande ledenlijst.",
-        isGraveyard: false,
-        memberCount: 0,
-        claimedRosterCount,
-        pendingRosterCount,
-        rosterCount: entries.length,
-        latestResult: null,
-        source: "roster",
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, "nl"));
-
-  return { activeCards, rosterCards };
+function MetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="rounded-md border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <span className="text-muted-foreground">{icon}</span>
+      </div>
+      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
 }
 
 export default async function TeamsPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const [
-    teamsResult,
     access,
-    resultsResult,
-    rosterWithTeamIdResult,
+    { data: profiles },
+    { data: teams },
+    { data: teamMembers },
+    { data: powerRows },
+    { data: zrlResults },
   ] = await Promise.all([
-    supabase
-      .from("teams")
-      .select("id, name, type, division, description, is_graveyard, team_members(count)")
-      .order("is_graveyard")
-      .order("name"),
     getCurrentUserAccess(supabase),
     supabase
-      .from("team_results")
-      .select("id, team_id, competition, round_label, round_at, position, points, total_teams, created_at")
-      .order("round_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false }),
+      .from("profiles")
+      .select("id, display_name, region, zrl_category, ftp_watts, weight_kg")
+      .eq("is_approved", true)
+      .order("display_name"),
     supabase
-      .from("roster_entries")
-      .select("id, name, pace_category, team_name, team_id, claimed_by")
+      .from("teams")
+      .select("id, name, type, division, parent_team_id")
+      .order("type")
       .order("name"),
+    admin
+      .from("team_members")
+      .select("profile_id, role, teams(id, name, type, division, parent_team_id)"),
+    supabase
+      .from("rider_power_profiles")
+      .select(
+        "profile_id, rider_type, sync_status, synced_at, ftp_watts, ftp_wkg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, wkg_15s, wkg_30s, wkg_1m, wkg_2m, wkg_5m, wkg_10m, wkg_20m",
+      ),
+    supabase
+      .from("zrl_rider_results")
+      .select("profile_id, position, points")
+      .not("profile_id", "is", null)
+      .order("round_at", { ascending: false, nullsFirst: false })
+      .limit(1000),
   ]);
 
-  let teamsData = (teamsResult.data ?? []) as TeamRow[];
-  let teamsError = teamsResult.error;
-  const warnings: string[] = [];
+  const teamOptions: TeamOption[] = ((teams ?? []) as TeamRow[]).map((team) => ({
+    id: team.id,
+    name: team.name,
+    type: team.type,
+    parentTeamId: team.parent_team_id,
+  }));
+  const parentTeamOptions = teamOptions.filter((team) => !team.parentTeamId);
 
-  if (teamsResult.error) {
-    warnings.push(
-      "Teamleden-count kon niet worden gelezen; fallback zonder leden-count gebruikt.",
-    );
-    const fallbackTeamsResult = await supabase
-      .from("teams")
-      .select("id, name, type, division, description, is_graveyard")
-      .order("is_graveyard")
-      .order("name");
-    teamsData = ((fallbackTeamsResult.data ?? []) as Omit<TeamRow, "team_members">[])
-      .map((team) => ({ ...team, team_members: [] }));
-    teamsError = fallbackTeamsResult.error;
+  const membershipsByProfile = new Map<string, TeamRosterRow["teams"]>();
+  for (const member of ((teamMembers ?? []) as unknown as TeamMemberRow[])) {
+    const team = firstTeam(member.teams);
+    if (!team) continue;
+    membershipsByProfile.set(member.profile_id, [
+      ...(membershipsByProfile.get(member.profile_id) ?? []),
+      {
+        id: team.id,
+        name: team.name,
+        role: member.role,
+        parentTeamId: team.parent_team_id,
+      },
+    ]);
   }
 
-  let rosterData = (rosterWithTeamIdResult.data ?? []) as RosterRow[];
-  let rosterError = rosterWithTeamIdResult.error;
+  const powerByProfile = new Map(
+    ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
+  );
 
-  if (rosterWithTeamIdResult.error) {
-    warnings.push(
-      "Roster-team_id kon niet worden gelezen; fallback op team_name gebruikt.",
-    );
-    const fallbackRosterResult = await supabase
-      .from("roster_entries")
-      .select("id, name, pace_category, team_name, claimed_by")
-      .order("name");
-    rosterData = (fallbackRosterResult.data ?? []) as RosterRow[];
-    rosterError = fallbackRosterResult.error;
+  const zrlByProfile = new Map<
+    string,
+    { starts: number; bestPosition: number | null; points: number[] }
+  >();
+  for (const result of ((zrlResults ?? []) as ZrlResultRow[])) {
+    if (!result.profile_id) continue;
+    const current = zrlByProfile.get(result.profile_id) ?? {
+      starts: 0,
+      bestPosition: null,
+      points: [],
+    };
+    current.starts += 1;
+    if (result.position != null) {
+      current.bestPosition =
+        current.bestPosition == null
+          ? result.position
+          : Math.min(current.bestPosition, result.position);
+    }
+    const points = num(result.points);
+    if (points != null) current.points.push(points);
+    zrlByProfile.set(result.profile_id, current);
   }
+
+  let profileRows = (profiles ?? []) as ProfileRow[];
+  if (access.user && !profileRows.some((profile) => profile.id === access.user?.id)) {
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("id, display_name, region, zrl_category, ftp_watts, weight_kg")
+      .eq("id", access.user.id)
+      .maybeSingle();
+    if (myProfile) profileRows = [myProfile as ProfileRow, ...profileRows];
+  }
+
+  const rows: TeamRosterRow[] = profileRows.map((profile) => {
+    const power = powerByProfile.get(profile.id);
+    const zrl = zrlByProfile.get(profile.id);
+    return {
+      id: profile.id,
+      name: profile.display_name ?? "Onbekend",
+      region: profile.region,
+      zrlCategory: profile.zrl_category,
+      ftpWatts: profile.ftp_watts,
+      weightKg: num(profile.weight_kg),
+      teams: membershipsByProfile.get(profile.id) ?? [],
+      power: power
+        ? {
+            riderType: power.rider_type,
+            syncStatus: power.sync_status,
+            syncedAt: power.synced_at,
+            ftpWatts: power.ftp_watts,
+            ftpWkg: num(power.ftp_wkg),
+            watts15s: power.watts_15s,
+            watts30s: power.watts_30s,
+            watts1m: power.watts_1m,
+            watts2m: power.watts_2m,
+            watts5m: power.watts_5m,
+            watts10m: power.watts_10m,
+            watts20m: power.watts_20m,
+            wkg15s: num(power.wkg_15s),
+            wkg30s: num(power.wkg_30s),
+            wkg1m: num(power.wkg_1m),
+            wkg2m: num(power.wkg_2m),
+            wkg5m: num(power.wkg_5m),
+            wkg10m: num(power.wkg_10m),
+            wkg20m: num(power.wkg_20m),
+          }
+        : null,
+      zrlStarts: zrl?.starts ?? 0,
+      zrlBestPosition: zrl?.bestPosition ?? null,
+      zrlAvgPoints:
+        zrl && zrl.points.length > 0
+          ? zrl.points.reduce((sum, point) => sum + point, 0) / zrl.points.length
+          : null,
+    };
+  });
 
   const canCreateTeams = access.has("teams.create");
   const canSyncTeams = access.has("teams.sync_sources");
-  const canSeeDebug = access.hasAny(["teams.create", "teams.sync_sources"]);
-  const errors = [
-    teamsError,
-    resultsResult.error,
-    rosterError,
-  ]
-    .map((error) => error?.message)
-    .filter((message): message is string => Boolean(message));
-
-  const teams = teamsData;
-  const roster = rosterData;
-  const results = (resultsResult.data ?? []) as ResultRow[];
-  const { activeCards, rosterCards } = buildCards(teams, roster, results);
-  const allCards = [...activeCards, ...rosterCards];
-
-  const knownRiders = allCards.reduce(
-    (total, card) =>
-      total +
-      Math.max(card.memberCount, card.claimedRosterCount) +
-      card.pendingRosterCount,
-    0,
-  );
-  const claimedRiders = allCards.reduce(
-    (total, card) => total + card.claimedRosterCount,
-    0,
-  );
-  const pendingRoster = allCards.reduce(
-    (total, card) => total + card.pendingRosterCount,
-    0,
+  const powerSynced = rows.filter((row) =>
+    ["ok", "partial"].includes(row.power?.syncStatus ?? ""),
+  ).length;
+  const riderTypes = new Set(
+    rows
+      .map((row) => row.power?.riderType)
+      .filter((type): type is string => Boolean(type) && type !== "unknown"),
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Teams"
+        description="Een centraal race-rooster met teamlidmaatschappen, Intervals-waarden, W/kg, rennerprofielen en ZRL-historie."
         actions={
-          (canCreateTeams || canSyncTeams) && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <SyncPowerButton scope="self" />
             {canSyncTeams && (
               <>
+                <SyncPowerButton scope="all" />
                 <SyncResultsButton />
                 <SyncGraveyardButton />
               </>
@@ -300,220 +275,50 @@ export default async function TeamsPage() {
               </Link>
             )}
           </div>
-          )
         }
       />
 
-      {(errors.length > 0 || warnings.length > 0) && (
-        <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
-          <div className="flex gap-2">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-            <div className="space-y-2">
-              <p className="font-medium">Een deel van de teamdata kon niet geladen worden.</p>
-              <p className="text-muted-foreground">
-                De pagina toont de beschikbare data en gebruikt waar mogelijk de
-                ledenlijst als fallback.
-              </p>
-              {canSeeDebug && (
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                  {errors.map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          icon={<Users className="size-4" />}
-          label="Teams zichtbaar"
-          value={allCards.length}
-        />
-        <MetricCard
-          icon={<UserCheck className="size-4" />}
-          label="Bekende teamleden"
-          value={knownRiders}
-        />
-        <MetricCard
-          icon={<LinkIcon className="size-4" />}
-          label="Geclaimde leden"
-          value={claimedRiders}
-        />
-        <MetricCard
-          icon={<Clock3 className="size-4" />}
-          label="Open roster-koppelingen"
-          value={pendingRoster}
-        />
+        <MetricCard icon={<Users className="size-4" />} label="Renners" value={rows.length} />
+        <MetricCard icon={<LinkIcon className="size-4" />} label="Hoofdteams" value={parentTeamOptions.length} />
+        <MetricCard icon={<Activity className="size-4" />} label="Powerprofielen" value={powerSynced} />
+        <MetricCard icon={<Trophy className="size-4" />} label="Profieltypes" value={riderTypes.size} />
       </section>
 
-      {allCards.length === 0 ? (
-        <EmptyState>Geen teams of rosterteams gevonden.</EmptyState>
-      ) : (
-        <div className="space-y-8">
-          {activeCards.length > 0 && (
-            <TeamSection
-              title="Actieve teams"
-              cards={activeCards}
-              isAdmin={canCreateTeams}
-            />
-          )}
-
-          {rosterCards.length > 0 && (
-            <TeamSection
-              title="Uit roster herkend"
-              cards={rosterCards}
-              isAdmin={canCreateTeams}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="rounded-md border bg-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <span className="text-muted-foreground">{icon}</span>
-      </div>
-      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
-    </div>
-  );
-}
-
-function TeamSection({
-  title,
-  cards,
-  isAdmin,
-}: {
-  title: string;
-  cards: TeamCard[];
-  isAdmin: boolean;
-}) {
-  return (
-    <section className="space-y-3">
-      <div>
-        <h2 className="text-xl font-semibold">{title}</h2>
-      </div>
-      <ul className="grid gap-3 lg:grid-cols-2">
-        {cards.map((card) => (
-          <li key={`${card.source}-${card.id ?? card.name}`}>
-            <TeamOverviewCard card={card} isAdmin={isAdmin} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function TeamOverviewCard({
-  card,
-  isAdmin,
-}: {
-  card: TeamCard;
-  isAdmin: boolean;
-}) {
-  const visibleMembers =
-    Math.max(card.memberCount, card.claimedRosterCount) + card.pendingRosterCount;
-
-  return (
-    <article
-      className={`flex h-full flex-col justify-between rounded-md border bg-card p-4 ${
-        card.isGraveyard ? "opacity-75" : ""
-      }`}
-    >
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="space-y-3 rounded-lg border bg-card p-4">
+        <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-medium">
-              {card.isGraveyard && (
-                <span className="mr-1.5" title="Graveyard team" aria-label="graveyard">
-                  🪦
-                </span>
-              )}
-              {card.name}
+            <h2 className="font-semibold">Teamoverzicht</h2>
+            <p className="text-sm text-muted-foreground">
+              Open een team om leden toe te voegen, captainrollen te zetten en lineups te beheren.
             </p>
-            {card.description && (
-              <p className="mt-1 text-sm text-muted-foreground">{card.description}</p>
-            )}
           </div>
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="w-fit rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-              {TYPE_LABELS[card.type] ?? card.type}
-              {card.division ? ` · ${card.division}` : ""}
-            </span>
-            {card.isGraveyard && (
-              <span className="w-fit rounded-full bg-foreground/10 px-2 py-0.5 text-xs uppercase tracking-wide text-muted-foreground">
-                Graveyard
+          {canCreateTeams && (
+            <Link href="/teams/nieuw">
+              <Button size="sm" variant="outline">
+                <Plus data-icon="inline-start" />
+                Nieuw team
+              </Button>
+            </Link>
+          )}
+        </header>
+        <div className="flex flex-wrap gap-2">
+          {parentTeamOptions.map((team) => (
+            <Link
+              key={team.id}
+              href={`/teams/${team.id}`}
+              className="rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              {team.name}
+              <span className="ml-2 text-xs uppercase text-muted-foreground">
+                {team.type}
               </span>
-            )}
-          </div>
+            </Link>
+          ))}
         </div>
+      </section>
 
-        <dl className="grid gap-3 sm:grid-cols-3">
-          <CardStat label="Leden" value={visibleMembers} />
-          <CardStat label="Gekoppeld" value={card.claimedRosterCount} />
-          <CardStat label="Open" value={card.pendingRosterCount} />
-        </dl>
-
-        <div className="rounded-md bg-muted p-3 text-sm">
-          <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-            <Trophy className="size-4" />
-            <span>Laatste resultaat</span>
-          </div>
-          <p className="line-clamp-2">{formatResult(card.latestResult)}</p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-        {card.id ? (
-          <Link
-            href={`/teams/${card.id}`}
-            className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-          >
-            Open team
-            <ArrowRight className="size-4" />
-          </Link>
-        ) : (
-          <span className="text-muted-foreground">Nog niet gekoppeld</span>
-        )}
-
-        {!card.id && isAdmin && (
-          <Link href="/teams/nieuw">
-            <Button size="sm" variant="outline">
-              <Plus data-icon="inline-start" />
-              Team aanmaken
-            </Button>
-          </Link>
-        )}
-      </div>
-    </article>
-  );
-}
-
-function CardStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-1 font-semibold tabular-nums">{value}</dd>
+      <TeamRosterTable rows={rows} teams={teamOptions} />
     </div>
   );
 }

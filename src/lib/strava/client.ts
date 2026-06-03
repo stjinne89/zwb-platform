@@ -430,6 +430,9 @@ export async function syncStravaActivitiesForUser(
   // climbed-cols beschikken.
   let milestoneAwards = 0;
   let milestoneErrors: string[] = [];
+  let colSegmentTimesFetched = 0;
+  let colSegmentTimesUpdated = 0;
+  let colSegmentTimesRateLimited = false;
   if (done) {
     try {
       const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -448,6 +451,25 @@ export async function syncStravaActivitiesForUser(
       try {
         const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
         await syncClimbedColsForUser(admin, profileId);
+      } catch {
+        // niet kritiek voor de sync-flow
+      }
+
+      // Segmenttijden horen bij de cols-collectie zelf, niet alleen bij de
+      // badge-recompute-knop. Beperkt houden i.v.m. Strava rate limits.
+      try {
+        const { syncColSegmentTimesForUser } = await import(
+          "@/lib/cols/segment-times"
+        );
+        const segmentResult = await syncColSegmentTimesForUser(
+          admin,
+          accessToken,
+          profileId,
+          { maxFetches: 20 },
+        );
+        colSegmentTimesFetched = segmentResult.fetched;
+        colSegmentTimesUpdated = segmentResult.updated;
+        colSegmentTimesRateLimited = segmentResult.rateLimited;
       } catch {
         // niet kritiek voor de sync-flow
       }
@@ -472,6 +494,9 @@ export async function syncStravaActivitiesForUser(
     upserted,
     milestoneAwards,
     milestoneErrors,
+    colSegmentTimesFetched,
+    colSegmentTimesUpdated,
+    colSegmentTimesRateLimited,
     pagesScanned,
     totalSeen,
     nonCyclingSkipped,

@@ -52,16 +52,22 @@ export function SyncResultsButton() {
               res.summary.teamsCreated || res.summary.sourcesCreated
                 ? `${res.summary.teamsCreated} teams aangemaakt, ${res.summary.sourcesCreated} bronnen gekoppeld, `
                 : "";
+            const zrlSeeded = res.summary.zrlSeeded ?? 0;
+            const zrlRosterSeeded = res.summary.zrlRosterSeeded ?? 0;
+            const zrlText =
+              zrlSeeded > 0 || zrlRosterSeeded > 0
+                ? `${zrlSeeded} ZRL-lidmaatschappen, ${zrlRosterSeeded} rosterleden geseed, `
+                : "";
             const resultText = `${setupText}${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} rosterleden`;
             setState({
               kind: failed > 0 ? "error" : skipped > 0 ? "notice" : "success",
               details,
               message:
                 failed > 0
-                  ? `${resultText}, ${failed} bronnen met fout: ${firstProblem?.error ?? "onbekend"}.`
+                  ? `${zrlText}${resultText}, ${failed} bronnen met fout: ${firstProblem?.error ?? "onbekend"}.`
                   : skipped > 0
-                    ? `${resultText}, ${skipped} bronnen overgeslagen: ${firstProblem?.skipped ?? "geen stand gevonden"}.`
-                  : `${resultText} verwerkt.`,
+                    ? `${zrlText}${resultText}, ${skipped} bronnen overgeslagen: ${firstProblem?.skipped ?? "geen stand gevonden"}.`
+                    : `${zrlText}${resultText} verwerkt.`,
             });
           });
         }}

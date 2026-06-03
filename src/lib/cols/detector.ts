@@ -19,13 +19,16 @@ export type ColRecord = {
   summit_lat: number;
   summit_lon: number;
   detection_radius_m: number;
+  ascent_m?: number | null;
 };
 
 type StoredActivity = {
   id: number;
   start_date: string;
+  total_elevation_gain_m?: number | null;
   raw:
     | {
+        total_elevation_gain?: number | null;
         map?: {
           summary_polyline?: string | null;
           polyline?: string | null;
@@ -106,6 +109,28 @@ function bboxContains(b: Bbox, lat: number, lon: number): boolean {
   return lat >= b.minLat && lat <= b.maxLat && lon >= b.minLon && lon <= b.maxLon;
 }
 
+function activityElevationGain(activity: StoredActivity): number | null {
+  const stored = activity.total_elevation_gain_m;
+  if (typeof stored === "number" && Number.isFinite(stored)) return stored;
+  const raw = activity.raw?.total_elevation_gain;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  return null;
+}
+
+function hasEnoughElevationForCol(
+  activity: StoredActivity,
+  col: ColRecord,
+): boolean {
+  const ascent = col.ascent_m;
+  if (ascent == null || ascent < 500) return true;
+
+  const gain = activityElevationGain(activity);
+  if (gain == null) return true;
+
+  const requiredGain = Math.min(300, ascent * 0.2);
+  return gain >= requiredGain;
+}
+
 /**
  * Decodeer + match voor één activity. Geeft de col-slugs terug die zijn
  * gepasseerd. Lege array als de polyline ontbreekt of geen match.
@@ -137,6 +162,7 @@ export function detectColsInActivity(
 
   const hits: string[] = [];
   for (const col of cols) {
+    if (!hasEnoughElevationForCol(activity, col)) continue;
     if (!bboxContains(expanded, col.summit_lat, col.summit_lon)) continue;
     const summit: LatLng = [col.summit_lat, col.summit_lon];
     const radius = col.detection_radius_m;
@@ -185,7 +211,7 @@ async function fetchAllActivities(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("strava_activities")
-      .select("id, start_date, raw")
+      .select("id, start_date, total_elevation_gain_m, raw")
       .eq("profile_id", profileId)
       .order("start_date", { ascending: true })
       .range(from, from + PAGE - 1);
@@ -212,7 +238,7 @@ export async function syncClimbedColsForUser(
 ): Promise<{ scanned: number; newCols: number }> {
   const { data: colsRows } = await supabase
     .from("cols")
-    .select("slug, summit_lat, summit_lon, detection_radius_m")
+    .select("slug, summit_lat, summit_lon, detection_radius_m, ascent_m")
     .not("summit_lat", "is", null)
     .not("summit_lon", "is", null);
   const cols = ((colsRows ?? []) as ColRecord[]).map((c) => ({
@@ -267,10 +293,6 @@ export async function syncClimbedColsForUser(
     }
   }
 
-  if (agg.size === 0) {
-    return { scanned: acts.length, newCols: 0 };
-  }
-
   // Diff-counter: hoeveel cols zijn er nieuw bijgekomen?
   const { data: existingRows } = await supabase
     .from("profile_climbed_cols")
@@ -279,6 +301,20 @@ export async function syncClimbedColsForUser(
   const existing = new Set(
     ((existingRows ?? []) as { col_slug: string }[]).map((r) => r.col_slug),
   );
+  const detected = new Set(agg.keys());
+  const stale = Array.from(existing).filter((slug) => !detected.has(slug));
+
+  if (stale.length > 0) {
+    await supabase
+      .from("profile_climbed_cols")
+      .delete()
+      .eq("profile_id", profileId)
+      .in("col_slug", stale);
+  }
+
+  if (agg.size === 0) {
+    return { scanned: acts.length, newCols: 0 };
+  }
 
   const now = new Date().toISOString();
   const rowsToUpsert: ClimbedRow[] = Array.from(agg.entries()).map(

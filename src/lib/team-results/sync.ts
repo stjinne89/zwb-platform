@@ -41,12 +41,24 @@ type ParsedResult = {
   sourceUrl: string;
   metadata: Record<string, unknown>;
   rosterEntries?: SyncedRosterEntry[];
+  riderResults?: SyncedZrlRiderResult[];
 };
 
 type SyncedRosterEntry = {
   name: string;
   zwiftId: string | null;
   paceCategory: string | null;
+};
+
+type SyncedZrlRiderResult = {
+  name: string;
+  zwiftId: string | null;
+  category: string | null;
+  position: number | null;
+  points: number | null;
+  timeText: string | null;
+  timeSeconds: number | null;
+  metadata: Record<string, unknown>;
 };
 
 type SyncSourceOutcome = {
@@ -348,6 +360,17 @@ function stringOrNull(value: unknown) {
   return null;
 }
 
+function parseClockToSeconds(value: string | null) {
+  if (!value) return null;
+  const match = value.match(/(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?/);
+  if (!match) return null;
+  const a = Number(match[1]);
+  const b = Number(match[2]);
+  const c = match[3] != null ? Number(match[3]) : null;
+  if (c != null) return b < 60 && c < 60 ? a * 3600 + b * 60 + c : null;
+  return b < 60 ? a * 60 + b : null;
+}
+
 function sourceTeam(source: SourceRow) {
   return Array.isArray(source.teams) ? source.teams[0] : source.teams;
 }
@@ -428,6 +451,46 @@ function rosterFromWtrlRow(
     .filter((entry): entry is SyncedRosterEntry => Boolean(entry));
 }
 
+function riderResultsFromWtrlRow(
+  source: SourceRow,
+  row: Record<string, unknown>,
+): SyncedZrlRiderResult[] {
+  if (!Array.isArray(row.a)) return [];
+
+  const fallbackCategory =
+    paceCategoryFrom(row.class) ?? paceCategoryFrom(row.zrldivision) ??
+    paceCategoryFrom(sourceTeam(source)?.division);
+
+  return row.a
+    .map((rider) => {
+      if (!rider || typeof rider !== "object") return null;
+      const riderRow = rider as Record<string, unknown>;
+      const name = stringValue(riderRow, ["name", "rider", "display_name"]);
+      if (!name) return null;
+      const timeText = stringValue(riderRow, [
+        "time",
+        "finish_time",
+        "elapsed",
+        "duration",
+      ]);
+      return {
+        name,
+        zwiftId: stringOrNull(riderRow.zwid ?? riderRow.zwift_id ?? riderRow.zwiftId),
+        category: paceCategoryFrom(riderRow.class) ?? fallbackCategory,
+        position: numberOrNull(
+          riderRow.position ?? riderRow.rank ?? riderRow.pos ?? riderRow.p,
+        ),
+        points: numberOrNull(
+          riderRow.points ?? riderRow.pts ?? riderRow.score ?? riderRow.lpoints,
+        ),
+        timeText,
+        timeSeconds: parseClockToSeconds(timeText),
+        metadata: riderRow,
+      };
+    })
+    .filter((entry): entry is SyncedZrlRiderResult => Boolean(entry));
+}
+
 function resultFromWtrlRow(
   source: SourceRow,
   row: Record<string, unknown>,
@@ -456,6 +519,7 @@ function resultFromWtrlRow(
     sourceUrl,
     metadata: row,
     rosterEntries: rosterFromWtrlRow(source, row),
+    riderResults: riderResultsFromWtrlRow(source, row),
   };
 }
 
@@ -709,11 +773,15 @@ async function saveResult(supabase: any, result: ParsedResult) {
       supabase.from("team_results").update(values).eq("id", existing.data.id),
     );
     if (update.error) throw new Error(update.error.message);
-    return;
+    return existing.data.id;
   }
 
-  const insert = await asQuery<unknown>(supabase.from("team_results").insert(values));
+  const insert = await asQuery<{ id: string }>(
+    supabase.from("team_results").insert(values).select("id").single(),
+  );
   if (insert.error) throw new Error(insert.error.message);
+  if (!insert.data?.id) throw new Error("Teamresultaat opgeslagen zonder id.");
+  return insert.data.id;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -759,6 +827,7 @@ async function saveRosterEntries(supabase: any, result: ParsedResult) {
       team_name: result.notes,
       team_id: result.teamId,
       pace_category: entry.paceCategory,
+      team_assignment_source: "roster_sync",
       ...(entry.zwiftId ? { zwift_id: entry.zwiftId } : {}),
     };
 
@@ -783,9 +852,146 @@ async function saveRosterEntries(supabase: any, result: ParsedResult) {
         pace_category: entry.paceCategory,
         team_name: result.notes,
         team_id: result.teamId,
+        team_assignment_source: "roster_sync",
       }),
     );
     if (insert.error) throw new Error(insert.error.message);
+    synced += 1;
+  }
+
+  return synced;
+}
+
+function normalizedName(value: string) {
+  return value
+    .replace(/\[[^\]]*\]|\([^)]*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+async function matchZrlRider(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  rider: SyncedZrlRiderResult,
+) {
+  if (rider.zwiftId) {
+    const profile = await asQuery<{ id: string }>(
+      supabase
+        .from("profiles")
+        .select("id")
+        .eq("zwift_id", rider.zwiftId)
+        .limit(1)
+        .maybeSingle(),
+    );
+    if (profile.error) throw new Error(profile.error.message);
+    if (profile.data?.id) {
+      return { profileId: profile.data.id, rosterEntryId: null, matchedVia: "zwift_id" };
+    }
+
+    const roster = await asQuery<{ id: string; claimed_by: string | null }>(
+      supabase
+        .from("roster_entries")
+        .select("id, claimed_by")
+        .eq("zwift_id", rider.zwiftId)
+        .limit(1)
+        .maybeSingle(),
+    );
+    if (roster.error) throw new Error(roster.error.message);
+    if (roster.data?.id) {
+      return {
+        profileId: roster.data.claimed_by,
+        rosterEntryId: roster.data.id,
+        matchedVia: roster.data.claimed_by ? "zwift_id" : "roster",
+      };
+    }
+  }
+
+  const roster = await asQuery<{ id: string; claimed_by: string | null }>(
+    supabase
+      .from("roster_entries")
+      .select("id, claimed_by")
+      .ilike("name", rider.name)
+      .limit(1)
+      .maybeSingle(),
+  );
+  if (roster.error) throw new Error(roster.error.message);
+  if (roster.data?.id) {
+    return {
+      profileId: roster.data.claimed_by,
+      rosterEntryId: roster.data.id,
+      matchedVia: "roster",
+    };
+  }
+
+  const profile = await asQuery<{ id: string }>(
+    supabase
+      .from("profiles")
+      .select("id")
+      .ilike("display_name", rider.name)
+      .limit(1)
+      .maybeSingle(),
+  );
+  if (profile.error) throw new Error(profile.error.message);
+  if (profile.data?.id) {
+    return { profileId: profile.data.id, rosterEntryId: null, matchedVia: "profile_name" };
+  }
+
+  return { profileId: null, rosterEntryId: null, matchedVia: "unmatched" };
+}
+
+async function saveZrlRiderResults(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  result: ParsedResult,
+  teamResultId: string,
+) {
+  const riders = result.riderResults ?? [];
+  let synced = 0;
+
+  for (const rider of riders) {
+    const match = await matchZrlRider(supabase, rider);
+    const riderKey = rider.zwiftId ?? normalizedName(rider.name);
+    const externalId = `${result.externalId}:rider:${riderKey}`;
+    const values = {
+      team_result_id: teamResultId,
+      event_id: null,
+      team_id: result.teamId,
+      profile_id: match.profileId,
+      roster_entry_id: match.rosterEntryId,
+      external_source: result.externalSource,
+      external_id: externalId,
+      rider_name: rider.name,
+      zwift_id: rider.zwiftId,
+      category: rider.category,
+      position: rider.position,
+      points: rider.points,
+      time_text: rider.timeText,
+      time_seconds: rider.timeSeconds,
+      matched_via: match.matchedVia,
+      round_label: result.roundLabel,
+      round_at: result.roundAt,
+      source_url: result.sourceUrl,
+      metadata: rider.metadata,
+      synced_at: new Date().toISOString(),
+    };
+
+    const existing = await asQuery<{ id: string }>(
+      supabase
+        .from("zrl_rider_results")
+        .select("id")
+        .eq("external_source", result.externalSource)
+        .eq("external_id", externalId)
+        .maybeSingle(),
+    );
+    if (existing.error) throw new Error(existing.error.message);
+
+    const save = existing.data?.id
+      ? await asQuery<unknown>(
+          supabase.from("zrl_rider_results").update(values).eq("id", existing.data.id),
+        )
+      : await asQuery<unknown>(supabase.from("zrl_rider_results").insert(values));
+    if (save.error) throw new Error(save.error.message);
     synced += 1;
   }
 
@@ -829,9 +1035,11 @@ export async function syncTeamResults(
     try {
       const parsedResults = await syncSource(source);
       let rosterSynced = 0;
+      let ridersSynced = 0;
       for (const result of parsedResults) {
-        await saveResult(supabase, result);
+        const teamResultId = await saveResult(supabase, result);
         rosterSynced += await saveRosterEntries(supabase, result);
+        ridersSynced += await saveZrlRiderResults(supabase, result, teamResultId);
       }
       insertedOrUpdated += parsedResults.length;
       await markSource(supabase, source.id, {
@@ -843,7 +1051,7 @@ export async function syncTeamResults(
         provider: source.provider,
         matchName: source.match_name,
         insertedOrUpdated: parsedResults.length,
-        rosterSynced,
+        rosterSynced: rosterSynced + ridersSynced,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Onbekende sync-fout.";

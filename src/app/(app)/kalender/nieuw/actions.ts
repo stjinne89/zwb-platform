@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { EVENT_TYPE_VALUES } from "@/lib/event-types";
 
 type EventInput = {
   title: string;
@@ -21,13 +22,13 @@ type EventInput = {
   external_url?: string | null;
   results_url?: string | null;
   cover_image_path?: string | null;
+  team_id?: string | null;
 };
-
-const TYPES = ["outdoor", "zrl", "ladder", "flamme_rouge", "social", "training"];
 
 function validate(input: EventInput) {
   if (!input.title.trim()) return "Titel is verplicht.";
-  if (!TYPES.includes(input.type)) return "Ongeldig type.";
+  if (!EVENT_TYPE_VALUES.includes(input.type as (typeof EVENT_TYPE_VALUES)[number]))
+    return "Ongeldig type.";
   if (!input.start_at) return "Startdatum is verplicht.";
   if (input.external_url && !/^https?:\/\//i.test(input.external_url)) {
     return "Externe link moet beginnen met https:// of http://";
@@ -66,6 +67,7 @@ export async function createEvent(input: EventInput) {
       external_url: input.external_url?.trim() || null,
       results_url: input.results_url?.trim() || null,
       cover_image_path: input.cover_image_path ?? null,
+      team_id: input.team_id || null,
       created_by: access.user.id,
     })
     .select("id")
@@ -132,6 +134,7 @@ export async function updateEvent(id: string, input: EventInput) {
     description: input.description || null,
     external_url: input.external_url?.trim() || null,
     results_url: input.results_url?.trim() || null,
+    team_id: input.team_id || null,
   };
   // GPX-velden alleen overschrijven als ze expliciet zijn meegegeven
   // (undefined = behoud bestaande waarde). De form geeft null door om te

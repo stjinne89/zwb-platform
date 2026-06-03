@@ -12,17 +12,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { DeleteRitverslagButton } from "./_components/delete-ritverslag-button";
+import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 
 export const dynamic = "force-dynamic";
-
-const TYPE_LABELS: Record<string, string> = {
-  outdoor: "Outdoor rit",
-  zrl: "ZRL race",
-  ladder: "Ladder race",
-  flamme_rouge: "Flamme Rouge",
-  social: "Social",
-  training: "Training",
-};
 
 type PhotoRow = {
   event_id: string;
@@ -251,7 +243,7 @@ export default async function RitverslagenPage() {
                 <div className="space-y-2 p-4">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                      {TYPE_LABELS[event.type] ?? event.type}
+                      {EVENT_TYPE_LABELS[event.type] ?? event.type}
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Camera className="size-3.5" />

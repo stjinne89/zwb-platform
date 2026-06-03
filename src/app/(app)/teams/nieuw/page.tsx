@@ -3,14 +3,29 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { NewTeamForm } from "./_form";
 
-export default async function NewTeamPage() {
+export default async function NewTeamPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const supabase = await createClient();
+  const params = await searchParams;
+  const parentTeamIdParam = Array.isArray(params?.parent_team_id)
+    ? params?.parent_team_id[0]
+    : params?.parent_team_id;
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const access = await getCurrentUserAccess(supabase);
+  const [access, { data: parentTeams }] = await Promise.all([
+    getCurrentUserAccess(supabase),
+    supabase
+      .from("teams")
+      .select("id, name")
+      .is("parent_team_id", null)
+      .order("name"),
+  ]);
 
   if (!access.has("teams.create")) {
     return (
@@ -19,6 +34,10 @@ export default async function NewTeamPage() {
       </div>
     );
   }
+  const selectedParentTeamId =
+    (parentTeams ?? []).some((team) => team.id === parentTeamIdParam)
+      ? parentTeamIdParam
+      : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -28,7 +47,10 @@ export default async function NewTeamPage() {
           Maak een ZRL-, Ladder-, social- of outdoor-team aan.
         </p>
       </header>
-      <NewTeamForm />
+      <NewTeamForm
+        parentTeams={parentTeams ?? []}
+        selectedParentTeamId={selectedParentTeamId ?? ""}
+      />
     </div>
   );
 }

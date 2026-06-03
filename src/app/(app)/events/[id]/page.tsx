@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
+import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchWindForecast } from "@/lib/weather";
 import { GpxMap } from "./_components/gpx-map";
@@ -30,15 +31,6 @@ import {
   EventPhotoGallery,
   type EventPhotoData,
 } from "./_components/photo-gallery";
-
-const TYPE_LABELS: Record<string, string> = {
-  outdoor: "Outdoor rit",
-  zrl: "ZRL race",
-  ladder: "Ladder race",
-  flamme_rouge: "Flamme Rouge",
-  social: "Social",
-  training: "Training",
-};
 
 type RsvpStatus = "yes" | "maybe" | "no";
 const STALE_AFTER_MIN = 15;
@@ -384,12 +376,12 @@ export default async function EventDetailPage({
       </Link>
 
       {coverUrl && (
-        <div className="overflow-hidden rounded-2xl border">
+        <div className="overflow-hidden rounded-2xl border bg-muted/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={coverUrl}
             alt=""
-            className="aspect-[16/6] w-full object-cover"
+            className="aspect-[16/7] w-full object-contain sm:aspect-[16/6]"
           />
         </div>
       )}
@@ -397,7 +389,7 @@ export default async function EventDetailPage({
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-            {TYPE_LABELS[event.type] ?? event.type}
+            {EVENT_TYPE_LABELS[event.type] ?? event.type}
           </span>
           <div className="flex items-center gap-2">
             {eventIsToday && event.gpx_path && (

@@ -7,15 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxSummary } from "@/lib/gpx";
 import { createEvent, updateEvent } from "./actions";
 import { Button } from "@/components/ui/button";
-
-const TYPES: { value: string; label: string }[] = [
-  { value: "outdoor", label: "Outdoor rit" },
-  { value: "zrl", label: "ZRL race" },
-  { value: "ladder", label: "Ladder race" },
-  { value: "flamme_rouge", label: "Flamme Rouge" },
-  { value: "social", label: "Social" },
-  { value: "training", label: "Training" },
-];
+import { EVENT_TYPES } from "@/lib/event-types";
 
 const FIELD_CLASS =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -31,6 +23,7 @@ export type EventInitial = {
   external_url: string | null;
   results_url: string | null;
   cover_image_path: string | null;
+  team_id: string | null;
   gpx_path: string | null;
   distance_km: number | string | null;
   elevation_m: number | string | null;
@@ -52,7 +45,13 @@ function isoToLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function EventForm({ initial }: { initial?: EventInitial }) {
+export function EventForm({
+  initial,
+  teams = [],
+}: {
+  initial?: EventInitial;
+  teams?: Array<{ id: string; name: string; type: string; parent_team_id: string | null }>;
+}) {
   const isEdit = !!initial;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -188,6 +187,7 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
         external_url: String(formData.get("external_url") ?? "") || null,
         results_url: String(formData.get("results_url") ?? "") || null,
         cover_image_path,
+        team_id: String(formData.get("team_id") ?? "") || null,
         gpx_path,
         distance_km,
         elevation_m,
@@ -224,13 +224,33 @@ export function EventForm({ initial }: { initial?: EventInitial }) {
           defaultValue={initial?.type ?? "outdoor"}
           className={FIELD_CLASS}
         >
-          {TYPES.map((t) => (
+          {EVENT_TYPES.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
             </option>
           ))}
         </select>
       </div>
+
+      {teams.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Team (optioneel)
+          </label>
+          <select
+            name="team_id"
+            defaultValue={initial?.team_id ?? ""}
+            className={FIELD_CLASS}
+          >
+            <option value="">Geen teamkoppeling</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>

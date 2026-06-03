@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
+const ZRL_DIVISIONS = ["open", "women"] as const;
 const VISIBILITY_FIELDS = [
   "avatar",
   "region",
@@ -42,6 +43,11 @@ export async function updateProfile(formData: FormData) {
   const zrlRaw = optionalString(formData.get("zrl_category"));
   const zrl_category =
     zrlRaw && (ZRL_CATS as readonly string[]).includes(zrlRaw) ? zrlRaw : null;
+  const zrlDivisionRaw = optionalString(formData.get("zrl_division"));
+  const zrl_division =
+    zrlDivisionRaw && (ZRL_DIVISIONS as readonly string[]).includes(zrlDivisionRaw)
+      ? zrlDivisionRaw
+      : "open";
 
   const ftp = optionalNumber(formData.get("ftp_watts"));
   const weight = optionalNumber(formData.get("weight_kg"));
@@ -60,6 +66,7 @@ export async function updateProfile(formData: FormData) {
       zwift_id: optionalString(formData.get("zwift_id")),
       strava_id: optionalString(formData.get("strava_id")),
       zrl_category,
+      zrl_division,
       ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
       weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
       bio: optionalString(formData.get("bio")),
@@ -72,6 +79,7 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/profiel");
   revalidatePath("/leden");
+  revalidatePath("/teams");
   revalidatePath(`/leden/${user.id}`);
   revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };

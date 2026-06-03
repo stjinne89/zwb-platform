@@ -20,6 +20,7 @@ import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritve
 import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
+import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { ClubStats } from "./_components/club-stats";
 import { PhotoNudge } from "./_components/photo-nudge";
@@ -235,6 +236,10 @@ function formatKm(meters: number | string) {
   })} km`;
 }
 
+function stravaActivityUrl(activityId: number) {
+  return `https://www.strava.com/activities/${activityId}`;
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -436,16 +441,18 @@ export default async function DashboardPage() {
     }));
   const reportPreviews = recentPastEvents.map((ev) => {
     const rep = reportByEvent.get(ev.id);
-    // Header-beeld: willekeurig gekozen uit cover + alle geplaatste foto's, dus
-    // elke pagina-render (bv. opnieuw inloggen) toont een ander beeld.
+    // Header-beeld: stabiel gekozen uit cover + foto's, zodat renders puur blijven.
     const imagePool = [
       ...(ev.cover_image_path ? [ev.cover_image_path] : []),
       ...(photoPathsByEvent.get(ev.id) ?? []),
     ];
-    const pickedPath =
+    const pickedIndex =
       imagePool.length > 0
-        ? imagePool[Math.floor(Math.random() * imagePool.length)]
-        : null;
+        ? Array.from(ev.id).reduce((sum, ch) => sum + ch.charCodeAt(0), 0) %
+          imagePool.length
+        : -1;
+    const pickedPath =
+      pickedIndex >= 0 ? imagePool[pickedIndex] : null;
     const coverUrl = pickedPath
       ? supabase.storage.from("event-photos").getPublicUrl(pickedPath).data
           .publicUrl
@@ -731,7 +738,7 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   <span className="w-fit shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                    {event.type}
+                    {EVENT_TYPE_LABELS[event.type] ?? event.type}
                   </span>
                 </Link>
               </li>
@@ -804,48 +811,54 @@ export default async function DashboardPage() {
         ) : (
           <ul className="divide-y rounded-lg border bg-card">
             {activities.map((activity) => (
-              <li
-                key={activity.id}
-                className="grid gap-2 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
-              >
-                <div className="min-w-0">
-                  <p className="truncate">
-                    <span className="font-medium">{activityProfile(activity)}</span>{" "}
-                    <span className="text-muted-foreground">-</span>{" "}
-                    <span className="text-muted-foreground">
-                      {activity.name ?? "Activiteit"}
-                    </span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {new Date(activity.start_date).toLocaleDateString("nl-NL", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "Europe/Amsterdam",
-                    })}
-                    {activity.trainer ? " - trainer" : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-sm tabular-nums text-muted-foreground sm:justify-end">
-                  <span className="inline-flex items-center gap-1">
-                    <Bike className="size-3.5" />
-                    {formatKm(activity.distance_m)}
-                  </span>
-                  {toNumber(activity.total_elevation_gain_m) > 0 && (
+              <li key={activity.id}>
+                <a
+                  href={stravaActivityUrl(activity.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid gap-2 p-4 transition hover:bg-muted/50 sm:grid-cols-[1fr_auto] sm:items-center"
+                  title="Open activiteit op Strava"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate">
+                      <span className="font-medium">{activityProfile(activity)}</span>{" "}
+                      <span className="text-muted-foreground">-</span>{" "}
+                      <span className="text-muted-foreground">
+                        {activity.name ?? "Activiteit"}
+                      </span>
+                      <ArrowRight className="ml-1 inline size-3.5 text-muted-foreground" />
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {new Date(activity.start_date).toLocaleDateString("nl-NL", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Europe/Amsterdam",
+                      })}
+                      {activity.trainer ? " - trainer" : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm tabular-nums text-muted-foreground sm:justify-end">
                     <span className="inline-flex items-center gap-1">
-                      <Mountain className="size-3.5" />
-                      {Math.round(toNumber(activity.total_elevation_gain_m)).toLocaleString("nl-NL")}m
+                      <Bike className="size-3.5" />
+                      {formatKm(activity.distance_m)}
                     </span>
-                  )}
-                  {activity.kudos_count > 0 && (
-                    <span className="inline-flex items-center gap-1">
-                      <HeartHandshake className="size-3.5" />
-                      {activity.kudos_count}
-                    </span>
-                  )}
-                </div>
+                    {toNumber(activity.total_elevation_gain_m) > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <Mountain className="size-3.5" />
+                        {Math.round(toNumber(activity.total_elevation_gain_m)).toLocaleString("nl-NL")}m
+                      </span>
+                    )}
+                    {activity.kudos_count > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <HeartHandshake className="size-3.5" />
+                        {activity.kudos_count}
+                      </span>
+                    )}
+                  </div>
+                </a>
               </li>
             ))}
           </ul>

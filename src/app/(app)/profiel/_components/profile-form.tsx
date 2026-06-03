@@ -11,6 +11,7 @@ type Initial = {
   zwift_id: string;
   strava_id: string;
   zrl_category: string;
+  zrl_division: string;
   ftp_watts: string;
   weight_kg: string;
   bio: string;
@@ -128,6 +129,17 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               defaultValue={initial.zwift_id}
               className={FIELD}
             />
+          </div>
+          <div>
+            <label className={LABEL}>ZRL-divisie</label>
+            <select
+              name="zrl_division"
+              defaultValue={initial.zrl_division}
+              className={FIELD}
+            >
+              <option value="open">Open</option>
+              <option value="women">Dames</option>
+            </select>
           </div>
           <div>
             <label className={LABEL}>Strava-ID</label>

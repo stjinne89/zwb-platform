@@ -2,15 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
-
-const TYPE_LABELS: Record<string, string> = {
-  outdoor: "Outdoor rit",
-  zrl: "ZRL race",
-  ladder: "Ladder race",
-  flamme_rouge: "Flamme Rouge",
-  social: "Social",
-  training: "Training",
-};
+import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 
 const STALE_AFTER_MIN = 15;
 type RsvpStatus = "yes" | "maybe" | "no";
@@ -156,7 +148,7 @@ export default async function KalenderPage() {
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                    {TYPE_LABELS[event.type] ?? event.type}
+                    {EVENT_TYPE_LABELS[event.type] ?? event.type}
                   </span>
                   {liveCount > 0 && (
                     <Link

@@ -1,6 +1,14 @@
 import { EventForm } from "./_form";
+import { createClient } from "@/lib/supabase/server";
 
-export default function NewEventPage() {
+export default async function NewEventPage() {
+  const supabase = await createClient();
+  const { data: teams } = await supabase
+    .from("teams")
+    .select("id, name, type, parent_team_id")
+    .order("type")
+    .order("name");
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
@@ -10,7 +18,7 @@ export default function NewEventPage() {
           toevoegt, rekenen we afstand en hoogtemeters automatisch uit.
         </p>
       </header>
-      <EventForm />
+      <EventForm teams={teams ?? []} />
     </div>
   );
 }
