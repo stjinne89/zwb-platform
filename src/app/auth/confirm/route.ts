@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 const AUTH_LINK_STORAGE_MISSING = "auth-link-storage-missing";
 const AUTH_LINK_INVALID = "auth-link-invalid";
 const AUTH_LINK_MISSING = "auth-link-missing";
+const PASSWORD_RECOVERY_COOKIE = "zwb-password-recovery";
 
 function redirectToLoginWithError(request: NextRequest, error: string) {
   return NextResponse.redirect(
@@ -20,9 +21,27 @@ function isPkceVerifierMissing(error: { code?: string; message?: string; name?: 
   );
 }
 
+function redirectAfterAuth(request: NextRequest, next: string, isPasswordRecovery: boolean) {
+  const response = NextResponse.redirect(new URL(next, request.url));
+
+  if (isPasswordRecovery) {
+    response.cookies.set(PASSWORD_RECOVERY_COOKIE, "1", {
+      httpOnly: true,
+      maxAge: 15 * 60,
+      path: "/",
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+    });
+  }
+
+  return response;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const next = searchParams.get("next") ?? "/dashboard";
+  const type = (searchParams.get("type") ?? "email") as EmailOtpType;
+  const isPasswordRecovery = type === "recovery" || next === "/wachtwoord-resetten";
   const supabase = await createClient();
 
   // Bewust GEEN log van de queryparams: die bevatten de login-`code` /
@@ -41,11 +60,10 @@ export async function GET(request: NextRequest) {
         isPkceVerifierMissing(error) ? AUTH_LINK_STORAGE_MISSING : AUTH_LINK_INVALID,
       );
     }
-    return NextResponse.redirect(new URL(next, request.url));
+    return redirectAfterAuth(request, next, isPasswordRecovery);
   }
 
   const token_hash = searchParams.get("token_hash");
-  const type = (searchParams.get("type") ?? "email") as EmailOtpType;
   if (token_hash) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (error) {
@@ -56,7 +74,7 @@ export async function GET(request: NextRequest) {
       });
       return redirectToLoginWithError(request, AUTH_LINK_INVALID);
     }
-    return NextResponse.redirect(new URL(next, request.url));
+    return redirectAfterAuth(request, next, isPasswordRecovery);
   }
 
   // Implicit flow puts tokens in URL fragment — we cannot read those server-side.

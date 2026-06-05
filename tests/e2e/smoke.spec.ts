@@ -28,6 +28,14 @@ test.describe("public smoke checks", () => {
     await expectHealthyPage(page);
   });
 
+  test("password reset page shows the new password form", async ({ page }) => {
+    await page.goto("/wachtwoord-resetten");
+
+    await expect(page.getByRole("heading", { name: "Nieuw wachtwoord" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Wachtwoord opslaan" })).toBeVisible();
+    await expectHealthyPage(page);
+  });
+
   test("login page shows a friendly auth-link storage error", async ({ page }) => {
     await page.goto("/login?error=auth-link-storage-missing");
 

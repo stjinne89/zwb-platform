@@ -1,18 +1,7 @@
-import { redirect } from "next/navigation";
 import { ZwbLogo } from "@/components/zwb-logo";
-import { createClient } from "@/lib/supabase/server";
 import { PasswordResetForm } from "./password-reset-form";
 
 export default async function PasswordResetPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?mode=reset&error=password-reset-session-missing");
-  }
-
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-sm">
@@ -21,7 +10,7 @@ export default async function PasswordResetPage() {
           <div className="space-y-1">
             <h1 className="text-xl font-semibold">Nieuw wachtwoord</h1>
             <p className="text-sm text-muted-foreground">
-              Kies een nieuw wachtwoord voor je ZWB-account.
+              Kies eerst een nieuw wachtwoord. Daarna kun je verder naar de app.
             </p>
           </div>
         </div>

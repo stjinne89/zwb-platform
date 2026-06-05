@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const PASSWORD_RECOVERY_COOKIE = "zwb-password-recovery";
+
 const PUBLIC_PATHS = [
   "/login",
   "/wachtwoord-resetten",
@@ -56,6 +58,18 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (
+    user &&
+    request.cookies.has(PASSWORD_RECOVERY_COOKIE) &&
+    pathname !== "/wachtwoord-resetten" &&
+    !pathname.startsWith("/auth")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/wachtwoord-resetten";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

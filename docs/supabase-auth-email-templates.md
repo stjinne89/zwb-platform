@@ -34,6 +34,11 @@ zoals hieronder.
 </a>
 ```
 
+Een recovery-link zet tijdelijk een Supabase-sessie zodat `updateUser` het
+wachtwoord mag aanpassen. De app markeert zo'n sessie met een korte recovery
+cookie en stuurt de gebruiker naar `/wachtwoord-resetten` totdat het nieuwe
+wachtwoord is opgeslagen.
+
 ## Supabase URL-instellingen
 
 Zet in Supabase **Authentication -> URL Configuration**:
