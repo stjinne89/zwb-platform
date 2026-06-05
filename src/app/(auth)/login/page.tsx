@@ -3,16 +3,22 @@
 import { Suspense, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { sendMagicLink, signInWithPassword, signUp } from "./actions";
+import {
+  requestPasswordReset,
+  sendMagicLink,
+  signInWithPassword,
+  signUp,
+} from "./actions";
 import { Button } from "@/components/ui/button";
 import { ZwbLogo } from "@/components/zwb-logo";
 
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "reset";
 
 type Status =
   | { kind: "idle" }
   | { kind: "magic-sent" }
   | { kind: "confirm-sent" }
+  | { kind: "reset-sent" }
   | { kind: "error"; msg: string };
 
 const FIELD =
@@ -27,6 +33,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     "Deze e-maillink bevat geen geldige login-code. Vraag een nieuwe magic link aan.",
   "no-token-found-in-link":
     "Deze e-maillink bevat geen geldige login-code. Vraag een nieuwe magic link aan.",
+  "password-reset-session-missing":
+    "Deze wachtwoordlink is verlopen of al gebruikt. Vraag een nieuwe resetlink aan.",
 };
 
 function messageFromAuthError(error: string | null) {
@@ -49,7 +57,9 @@ export default function LoginPage() {
 function AuthScreen() {
   const params = useSearchParams();
   const initialError = messageFromAuthError(params.get("error"));
-  const initialMode = params.get("mode") === "register" ? "register" : "login";
+  const rawMode = params.get("mode");
+  const initialMode: Mode =
+    rawMode === "register" ? "register" : rawMode === "reset" ? "reset" : "login";
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [pending, startTransition] = useTransition();
@@ -100,49 +110,63 @@ function AuthScreen() {
     });
   }
 
+  function handleReset(formData: FormData) {
+    setStatus({ kind: "idle" });
+    startTransition(async () => {
+      const res = await requestPasswordReset(formData);
+      setStatus(
+        res.ok
+          ? { kind: "reset-sent" }
+          : { kind: "error", msg: res.error ?? "Onbekende fout." },
+      );
+    });
+  }
+
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-sm">
         <div className="space-y-3">
           <ZwbLogo className="h-16 w-auto text-foreground" />
           <p className="text-sm text-muted-foreground">
-            {mode === "login"
-              ? "Log in om verder te gaan."
-              : "Maak een ZWB-account aan."}
+            {mode === "login" && "Log in om verder te gaan."}
+            {mode === "register" && "Maak een ZWB-account aan."}
+            {mode === "reset" && "Vraag een link aan om je wachtwoord te herstellen."}
           </p>
         </div>
 
         {/* Mode toggle */}
-        <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm">
-          <button
-            type="button"
-            onClick={() => {
-              setMode("login");
-              setStatus({ kind: "idle" });
-            }}
-            className={`rounded px-3 py-1.5 transition ${
-              mode === "login"
-                ? "bg-background shadow-sm font-medium"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Inloggen
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("register");
-              setStatus({ kind: "idle" });
-            }}
-            className={`rounded px-3 py-1.5 transition ${
-              mode === "register"
-                ? "bg-background shadow-sm font-medium"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Registreren
-          </button>
-        </div>
+        {mode !== "reset" && (
+          <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setStatus({ kind: "idle" });
+              }}
+              className={`rounded px-3 py-1.5 transition ${
+                mode === "login"
+                  ? "bg-background shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Inloggen
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("register");
+                setStatus({ kind: "idle" });
+              }}
+              className={`rounded px-3 py-1.5 transition ${
+                mode === "register"
+                  ? "bg-background shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Registreren
+            </button>
+          </div>
+        )}
 
         {/* Confirmation message */}
         {status.kind === "confirm-sent" ? (
@@ -166,6 +190,21 @@ function AuthScreen() {
             setEmail={setEmail}
             pending={pending}
             onSubmit={handlePassword}
+            onResetMode={() => {
+              setMode("reset");
+              setStatus({ kind: "idle" });
+            }}
+          />
+        ) : mode === "reset" ? (
+          <ResetRequestForm
+            email={email}
+            setEmail={setEmail}
+            pending={pending}
+            onSubmit={handleReset}
+            onBack={() => {
+              setMode("login");
+              setStatus({ kind: "idle" });
+            }}
           />
         ) : (
           <RegisterForm
@@ -205,6 +244,13 @@ function AuthScreen() {
           </p>
         )}
 
+        {status.kind === "reset-sent" && (
+          <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-900 dark:bg-green-950 dark:text-green-100">
+            Als dit e-mailadres bekend is, ontvang je een link om je wachtwoord
+            opnieuw in te stellen.
+          </p>
+        )}
+
         {status.kind === "error" && (
           <p className="text-sm text-destructive">{status.msg}</p>
         )}
@@ -218,11 +264,13 @@ function LoginForm({
   setEmail,
   pending,
   onSubmit,
+  onResetMode,
 }: {
   email: string;
   setEmail: (v: string) => void;
   pending: boolean;
   onSubmit: (fd: FormData) => void;
+  onResetMode: () => void;
 }) {
   return (
     <form action={onSubmit} className="space-y-3">
@@ -247,6 +295,52 @@ function LoginForm({
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Bezig…" : "Inloggen"}
       </Button>
+      <button
+        type="button"
+        onClick={onResetMode}
+        className="w-full text-center text-sm font-medium text-primary underline"
+      >
+        Wachtwoord vergeten?
+      </button>
+    </form>
+  );
+}
+
+function ResetRequestForm({
+  email,
+  setEmail,
+  pending,
+  onSubmit,
+  onBack,
+}: {
+  email: string;
+  setEmail: (v: string) => void;
+  pending: boolean;
+  onSubmit: (fd: FormData) => void;
+  onBack: () => void;
+}) {
+  return (
+    <form action={onSubmit} className="space-y-3">
+      <input
+        type="email"
+        name="email"
+        required
+        autoComplete="email"
+        placeholder="E-mailadres"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className={FIELD}
+      />
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? "Bezig..." : "Stuur resetlink"}
+      </Button>
+      <button
+        type="button"
+        onClick={onBack}
+        className="w-full text-center text-sm font-medium text-primary underline"
+      >
+        Terug naar inloggen
+      </button>
     </form>
   );
 }

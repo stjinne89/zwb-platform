@@ -26,6 +26,14 @@ zoals hieronder.
 </a>
 ```
 
+## Reset Password
+
+```html
+<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/wachtwoord-resetten">
+  Wachtwoord opnieuw instellen
+</a>
+```
+
 ## Supabase URL-instellingen
 
 Zet in Supabase **Authentication -> URL Configuration**:

@@ -12,10 +12,19 @@ test.describe("public smoke checks", () => {
 
     await expect(page.locator("form").getByRole("button", { name: "Inloggen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Stuur magic link" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Wachtwoord vergeten?" })).toBeVisible();
     await expect(page.getByPlaceholder("E-mailadres")).toBeVisible();
 
     await page.getByRole("button", { name: "Registreren" }).click();
     await expect(page.getByRole("button", { name: "Account aanmaken" })).toBeVisible();
+    await expectHealthyPage(page);
+  });
+
+  test("login page can open password reset mode", async ({ page }) => {
+    await page.goto("/login?mode=reset");
+
+    await expect(page.getByRole("button", { name: "Stuur resetlink" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Terug naar inloggen" })).toBeVisible();
     await expectHealthyPage(page);
   });
 

@@ -6,6 +6,16 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimitHit, clientIpFromHeaders } from "@/lib/rate-limit";
 
 const TOO_MANY = "Te veel pogingen. Wacht even en probeer het opnieuw.";
+const INVALID_LOGIN =
+  "E-mail of wachtwoord klopt niet. Gebruik 'Wachtwoord vergeten?' om een nieuw wachtwoord in te stellen.";
+
+async function siteOrigin() {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (await headers()).get("origin") ??
+    "http://localhost:3000"
+  );
+}
 
 export async function signInWithPassword(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -19,7 +29,14 @@ export async function signInWithPassword(formData: FormData) {
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    const invalidCredentials =
+      error.code === "invalid_credentials" || error.message === "Invalid login credentials";
+    return {
+      ok: false,
+      error: invalidCredentials ? INVALID_LOGIN : error.message,
+    };
+  }
 
   redirect("/dashboard");
 }
@@ -48,10 +65,7 @@ export async function signUp(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (await headers()).get("origin") ??
-    "http://localhost:3000";
+  const origin = await siteOrigin();
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -98,14 +112,31 @@ export async function sendMagicLink(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (await headers()).get("origin") ??
-    "http://localhost:3000";
+  const origin = await siteOrigin();
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: `${origin}/auth/confirm` },
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email) return { ok: false, error: "E-mailadres ontbreekt." };
+
+  const ip = await clientIpFromHeaders();
+  if (!(await rateLimitHit("password-reset", ip, 5, 900)).allowed) {
+    return { ok: false, error: TOO_MANY };
+  }
+
+  const supabase = await createClient();
+  const origin = await siteOrigin();
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/wachtwoord-resetten`,
   });
 
   if (error) return { ok: false, error: error.message };
