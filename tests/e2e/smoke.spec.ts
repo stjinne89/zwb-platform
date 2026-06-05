@@ -19,6 +19,14 @@ test.describe("public smoke checks", () => {
     await expectHealthyPage(page);
   });
 
+  test("login page shows a friendly auth-link storage error", async ({ page }) => {
+    await page.goto("/login?error=auth-link-storage-missing");
+
+    await expect(page.getByText("Deze e-maillink kan niet worden afgerond")).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("PKCE code verifier");
+    await expectHealthyPage(page);
+  });
+
   test("privacy page loads without authentication", async ({ page }) => {
     await page.goto("/privacy");
 
@@ -32,7 +40,7 @@ test.describe("public smoke checks", () => {
     await page.goto("/verhaal", { waitUntil: "domcontentloaded", timeout: 60000 });
 
     await expect(page.getByRole("heading", { name: "Het verhaal van ZWB" })).toBeVisible();
-    await expect(page.getByText("Nét effe anders")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Van prototype naar echte story" })).toBeVisible();
     await expectHealthyPage(page);
   });
 });

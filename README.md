@@ -33,6 +33,8 @@ npm run dev
 
 Open http://localhost:3000 → wordt geredirect naar `/login`. Magische link verschijnt in Supabase Studio → Auth → Logs (of in je inbox).
 
+Gebruik voor Supabase auth-mails de `token_hash` templates uit `docs/supabase-auth-email-templates.md`, zodat magic links ook stabiel werken wanneer Mail/Safari een andere browsercontext opent.
+
 ## Mappenstructuur
 
 ```

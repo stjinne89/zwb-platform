@@ -18,6 +18,26 @@ type Status =
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  "auth-link-storage-missing":
+    "Deze e-maillink kan niet worden afgerond in deze browser. Vraag een nieuwe magic link aan en open die in dezelfde browser, of log in met e-mail en wachtwoord.",
+  "auth-link-invalid":
+    "Deze e-maillink is verlopen of ongeldig. Vraag een nieuwe magic link aan.",
+  "auth-link-missing":
+    "Deze e-maillink bevat geen geldige login-code. Vraag een nieuwe magic link aan.",
+  "no-token-found-in-link":
+    "Deze e-maillink bevat geen geldige login-code. Vraag een nieuwe magic link aan.",
+};
+
+function messageFromAuthError(error: string | null) {
+  if (!error) return null;
+  if (error in AUTH_ERROR_MESSAGES) return AUTH_ERROR_MESSAGES[error];
+  if (error.startsWith("code:") || error.startsWith("otp:")) {
+    return "Deze e-maillink is verlopen of ongeldig. Vraag een nieuwe magic link aan.";
+  }
+  return "Inloggen is mislukt. Probeer het opnieuw.";
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -28,7 +48,7 @@ export default function LoginPage() {
 
 function AuthScreen() {
   const params = useSearchParams();
-  const initialError = params.get("error");
+  const initialError = messageFromAuthError(params.get("error"));
   const initialMode = params.get("mode") === "register" ? "register" : "login";
 
   const [mode, setMode] = useState<Mode>(initialMode);
