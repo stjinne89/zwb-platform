@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, LinkIcon, Plus, Trophy, Users } from "lucide-react";
+import { Activity, ArrowRight, LinkIcon, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -69,6 +69,15 @@ type ZrlResultRow = {
   points: number | string | null;
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  zrl: "ZRL teams",
+  ladder: "Ladder teams",
+  social: "Social teams",
+  outdoor: "Outdoor teams",
+};
+
+const TEAM_TYPE_ORDER = ["zrl", "ladder", "social", "outdoor"];
+
 function num(value: number | string | null | undefined) {
   const n = Number(value ?? NaN);
   return Number.isFinite(n) ? n : null;
@@ -95,6 +104,18 @@ function MetricCard({
       </div>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
     </div>
+  );
+}
+
+function TeamToolLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-7 items-center gap-1 rounded-md border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+    >
+      {label}
+      <ArrowRight className="size-3.5" />
+    </Link>
   );
 }
 
@@ -144,6 +165,19 @@ export default async function TeamsPage() {
     parentTeamId: team.parent_team_id,
   }));
   const parentTeamOptions = teamOptions.filter((team) => !team.parentTeamId);
+  const parentTeamsByType = new Map<string, TeamOption[]>();
+  for (const team of parentTeamOptions) {
+    parentTeamsByType.set(team.type, [
+      ...(parentTeamsByType.get(team.type) ?? []),
+      team,
+    ]);
+  }
+  const orderedTeamTypes = [
+    ...TEAM_TYPE_ORDER.filter((type) => parentTeamsByType.has(type)),
+    ...Array.from(parentTeamsByType.keys()).filter(
+      (type) => !TEAM_TYPE_ORDER.includes(type),
+    ),
+  ];
 
   const membershipsByProfile = new Map<string, TeamRosterRow["teams"]>();
   for (const member of ((teamMembers ?? []) as unknown as TeamMemberRow[])) {
@@ -302,19 +336,36 @@ export default async function TeamsPage() {
             </Link>
           )}
         </header>
-        <div className="flex flex-wrap gap-2">
-          {parentTeamOptions.map((team) => (
-            <Link
-              key={team.id}
-              href={`/teams/${team.id}`}
-              className="rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
-            >
-              {team.name}
-              <span className="ml-2 text-xs uppercase text-muted-foreground">
-                {team.type}
-              </span>
-            </Link>
-          ))}
+        <div className="space-y-5">
+          {orderedTeamTypes.map((type) => {
+            const typeTeams = parentTeamsByType.get(type) ?? [];
+            return (
+              <div key={type} className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">
+                    {TYPE_LABELS[type] ?? `${type.toUpperCase()} teams`}
+                  </h3>
+                  {type === "zrl" && (
+                    <TeamToolLink href="/teams/ttt-planner" label="TTT Planner" />
+                  )}
+                  {type === "ladder" && (
+                    <TeamToolLink href="/teams/club-ladder" label="Club Ladder" />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {typeTeams.map((team) => (
+                    <Link
+                      key={team.id}
+                      href={`/teams/${team.id}`}
+                      className="rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      {team.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

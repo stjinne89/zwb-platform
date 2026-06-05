@@ -257,7 +257,7 @@ export type SyncChunkOptions = {
   afterTs?: number;
   /** Max aantal pagina's per server-invocation. Default 5 → ~5-8s wall clock. */
   chunkPages?: number;
-  /** Begrens dure detailed-activity calls voor coltijden. Cron zet dit op 0. */
+  /** Begrens dure detailed-activity calls voor coltijden. */
   colSegmentMaxFetches?: number;
 };
 

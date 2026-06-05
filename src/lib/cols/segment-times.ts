@@ -10,6 +10,8 @@
 // Rate-limit: detailed-activity-fetch is duurder (1 call per rit). We:
 //   - fetchen alleen ritten die minstens één segment-col passeren,
 //   - cachen welke ritten al opgehaald zijn (efforts_fetched_at),
+//   - stale cachemarkers opnieuw proberen als een gedetecteerde col nog geen
+//     tijd heeft (segment-ID's kunnen later zijn toegevoegd/gecorrigeerd),
 //   - begrenzen het aantal fetches per run (maxFetches), nieuwste eerst,
 //   - stoppen netjes bij HTTP 429.
 
@@ -67,9 +69,12 @@ export async function syncColSegmentTimesForUser(
   supabase: any,
   accessToken: string,
   profileId: string,
-  options: { maxFetches?: number } = {},
+  options: { maxFetches?: number; refetchMissingAfterHours?: number } = {},
 ): Promise<{ fetched: number; updated: number; rateLimited: boolean }> {
   const maxFetches = options.maxFetches ?? 40;
+  const refetchMissingAfterMs =
+    (options.refetchMissingAfterHours ?? 24) * 60 * 60 * 1000;
+  const now = Date.now();
 
   // Cols met een bekend Strava-segment-ID. Zonder ID kunnen we geen
   // effort-tijd koppelen.
@@ -124,10 +129,19 @@ export async function syncColSegmentTimesForUser(
   const prioritized: StoredActivity[] = [];
   const fallback: StoredActivity[] = [];
   for (const act of acts) {
-    if (act.efforts_fetched_at) continue;
     const hits = detectColsInActivity(act, detectCols);
     if (hits.length === 0) continue;
-    if (hits.some((slug) => missingTimeSlugs.has(slug))) {
+    const hasMissingTimeHit = hits.some((slug) => missingTimeSlugs.has(slug));
+
+    if (act.efforts_fetched_at) {
+      const fetchedAt = Date.parse(act.efforts_fetched_at);
+      const staleFetch =
+        !Number.isFinite(fetchedAt) ||
+        now - fetchedAt >= refetchMissingAfterMs;
+      if (!hasMissingTimeHit || !staleFetch) continue;
+    }
+
+    if (hasMissingTimeHit) {
       prioritized.push(act);
     } else {
       fallback.push(act);

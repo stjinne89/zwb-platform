@@ -10,6 +10,9 @@ type ProfileSyncResult = {
   nonCyclingSkipped: number;
   milestoneAwards: number;
   milestoneErrors: string[];
+  colSegmentTimesFetched: number;
+  colSegmentTimesUpdated: number;
+  colSegmentTimesRateLimited: boolean;
   nextPage?: number | null;
   error?: string;
 };
@@ -23,6 +26,18 @@ function positiveInt(value: string | null, fallback: number, max: number) {
 function envPositiveInt(name: string, fallback: number, max: number) {
   const parsed = Number.parseInt(process.env[name] ?? "", 10);
   if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function nonNegativeInt(value: string | null, fallback: number, max: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return Math.min(parsed, max);
+}
+
+function envNonNegativeInt(name: string, fallback: number, max: number) {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
   return Math.min(parsed, max);
 }
 
@@ -45,6 +60,11 @@ export async function POST(request: Request) {
     url.searchParams.get("maxChunks"),
     2,
     10,
+  );
+  const colSegmentMaxFetches = nonNegativeInt(
+    url.searchParams.get("colSegmentMaxFetches"),
+    envNonNegativeInt("STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES", 5, 40),
+    40,
   );
 
   try {
@@ -73,6 +93,9 @@ export async function POST(request: Request) {
         nonCyclingSkipped: 0,
         milestoneAwards: 0,
         milestoneErrors: [],
+        colSegmentTimesFetched: 0,
+        colSegmentTimesUpdated: 0,
+        colSegmentTimesRateLimited: false,
       };
 
       try {
@@ -81,7 +104,7 @@ export async function POST(request: Request) {
             startPage,
             afterTs,
             chunkPages,
-            colSegmentMaxFetches: 0,
+            colSegmentMaxFetches,
           });
 
           if (!result.ok) {
@@ -99,16 +122,32 @@ export async function POST(request: Request) {
             summary.status = "completed";
             summary.milestoneAwards = result.milestoneAwards;
             summary.milestoneErrors = result.milestoneErrors ?? [];
+            summary.colSegmentTimesFetched = result.colSegmentTimesFetched;
+            summary.colSegmentTimesUpdated = result.colSegmentTimesUpdated;
+            summary.colSegmentTimesRateLimited =
+              result.colSegmentTimesRateLimited;
+            if (result.colSegmentTimesRateLimited) {
+              rateLimited = true;
+              summary.status = "rate_limited";
+            }
             break;
           }
 
           summary.status = result.stravaRateLimited ? "rate_limited" : "partial";
+          summary.colSegmentTimesFetched += result.colSegmentTimesFetched;
+          summary.colSegmentTimesUpdated += result.colSegmentTimesUpdated;
+          summary.colSegmentTimesRateLimited ||= result.colSegmentTimesRateLimited;
           summary.nextPage = result.nextPage;
           startPage = result.nextPage ?? undefined;
           afterTs = result.afterTs;
 
-          if (result.stravaRateLimited || !startPage) {
-            rateLimited = result.stravaRateLimited;
+          if (
+            result.stravaRateLimited ||
+            result.colSegmentTimesRateLimited ||
+            !startPage
+          ) {
+            rateLimited =
+              result.stravaRateLimited || result.colSegmentTimesRateLimited;
             break;
           }
         }
@@ -130,6 +169,14 @@ export async function POST(request: Request) {
         upserted: results.reduce((sum, r) => sum + r.upserted, 0),
         totalSeen: results.reduce((sum, r) => sum + r.totalSeen, 0),
         milestoneAwards: results.reduce((sum, r) => sum + r.milestoneAwards, 0),
+        colSegmentTimesFetched: results.reduce(
+          (sum, r) => sum + r.colSegmentTimesFetched,
+          0,
+        ),
+        colSegmentTimesUpdated: results.reduce(
+          (sum, r) => sum + r.colSegmentTimesUpdated,
+          0,
+        ),
         rateLimited,
         results,
       },
