@@ -21,6 +21,7 @@ export type EventInitial = {
   location: string | null;
   description: string | null;
   external_url: string | null;
+  live_timing_url: string | null;
   results_url: string | null;
   cover_image_path: string | null;
   team_id: string | null;
@@ -185,6 +186,8 @@ export function EventForm({
         location: String(formData.get("location") ?? "") || null,
         description: String(formData.get("description") ?? "") || null,
         external_url: String(formData.get("external_url") ?? "") || null,
+        live_timing_url:
+          String(formData.get("live_timing_url") ?? "") || null,
         results_url: String(formData.get("results_url") ?? "") || null,
         cover_image_path,
         team_id: String(formData.get("team_id") ?? "") || null,
@@ -347,6 +350,23 @@ export function EventForm({
         <p className="mt-1 text-xs text-muted-foreground">
           Strava-route, Komoot tour, RideWithGPS — wordt op de event-pagina
           getoond als &quot;Open op X&quot;-knop met platform-icoon.
+        </p>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Live timing-URL (optioneel)
+        </label>
+        <input
+          type="url"
+          name="live_timing_url"
+          placeholder="https://www.acn-timing.com/…#/events/…/home/LIVE1"
+          defaultValue={initial?.live_timing_url ?? ""}
+          className={FIELD_CLASS}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Aparte livefeed voor de eventdag. Op Live tonen we alleen de
+          gematchte ZWB&apos;ers met hun actuele meetpunt en tijd.
         </p>
       </div>
 

@@ -35,6 +35,7 @@ export async function syncMyStravaActivities(
       revalidatePath("/dashboard");
       revalidatePath("/leden");
       revalidatePath("/profiel");
+      revalidatePath("/profiel/segments");
     }
     return result;
   } catch (err) {
@@ -131,6 +132,15 @@ export async function recomputeMyMilestoneBadges() {
       } catch {
         // niet kritiek; evaluators draaien sowieso
       }
+
+      try {
+        const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
+        await syncZwbSegmentsForUser(admin, stravaToken, user.id, {
+          maxFetches: 40,
+        });
+      } catch {
+        // niet kritiek; evaluators draaien sowieso
+      }
     }
 
     const result = await evaluateMilestonesForUser(admin, user.id);
@@ -138,6 +148,7 @@ export async function recomputeMyMilestoneBadges() {
     revalidatePath("/dashboard");
     revalidatePath("/leden");
     revalidatePath("/profiel");
+    revalidatePath("/profiel/segments");
     return {
       ok: true as const,
       awarded: result.awarded,

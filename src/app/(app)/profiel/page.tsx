@@ -185,18 +185,17 @@ export default async function ProfielPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Cols-collectie
+              ZWB Segments
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Welke iconische cols heb je geklommen? Automatisch gedetecteerd
-              uit Strava-ritten.
+              Je cols, Zwift-segmenten en clubsegmenten uit Strava.
             </p>
           </div>
           <Link
-            href="/profiel/cols"
+            href="/profiel/segments"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
-            Mijn cols bekijken →
+            ZWB Segments bekijken
           </Link>
         </div>
       </section>

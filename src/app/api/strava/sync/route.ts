@@ -6,6 +6,7 @@ type ProfileSyncResult = {
   status: "completed" | "partial" | "rate_limited" | "failed" | "skipped";
   chunks: number;
   upserted: number;
+  removed: number;
   totalSeen: number;
   nonCyclingSkipped: number;
   milestoneAwards: number;
@@ -13,6 +14,10 @@ type ProfileSyncResult = {
   colSegmentTimesFetched: number;
   colSegmentTimesUpdated: number;
   colSegmentTimesRateLimited: boolean;
+  zwbSegmentsFetched: number;
+  zwbSegmentEffortsStored: number;
+  zwbSegmentsCompleted: number;
+  zwbSegmentsRateLimited: boolean;
   nextPage?: number | null;
   error?: string;
 };
@@ -55,7 +60,7 @@ export async function POST(request: Request) {
     envPositiveInt("STRAVA_SYNC_MAX_PROFILES", 20, 100),
     100,
   );
-  const chunkPages = positiveInt(url.searchParams.get("chunkPages"), 1, 5);
+  const chunkPages = positiveInt(url.searchParams.get("chunkPages"), 2, 5);
   const maxChunksPerProfile = positiveInt(
     url.searchParams.get("maxChunks"),
     2,
@@ -65,6 +70,16 @@ export async function POST(request: Request) {
     url.searchParams.get("colSegmentMaxFetches"),
     envNonNegativeInt("STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES", 5, 40),
     40,
+  );
+  const zwbSegmentMaxFetches = nonNegativeInt(
+    url.searchParams.get("zwbSegmentMaxFetches"),
+    envNonNegativeInt("STRAVA_SYNC_ZWB_SEGMENT_MAX_FETCHES", 5, 40),
+    40,
+  );
+  const reconciliationDays = positiveInt(
+    url.searchParams.get("reconciliationDays"),
+    envPositiveInt("STRAVA_SYNC_RECONCILIATION_DAYS", 30, 365),
+    365,
   );
 
   try {
@@ -89,6 +104,7 @@ export async function POST(request: Request) {
         status: "skipped",
         chunks: 0,
         upserted: 0,
+        removed: 0,
         totalSeen: 0,
         nonCyclingSkipped: 0,
         milestoneAwards: 0,
@@ -96,6 +112,10 @@ export async function POST(request: Request) {
         colSegmentTimesFetched: 0,
         colSegmentTimesUpdated: 0,
         colSegmentTimesRateLimited: false,
+        zwbSegmentsFetched: 0,
+        zwbSegmentEffortsStored: 0,
+        zwbSegmentsCompleted: 0,
+        zwbSegmentsRateLimited: false,
       };
 
       try {
@@ -105,6 +125,8 @@ export async function POST(request: Request) {
             afterTs,
             chunkPages,
             colSegmentMaxFetches,
+            zwbSegmentMaxFetches,
+            reconciliationDays,
           });
 
           if (!result.ok) {
@@ -115,6 +137,7 @@ export async function POST(request: Request) {
 
           summary.chunks += 1;
           summary.upserted += result.upserted;
+          summary.removed += result.removed;
           summary.totalSeen += result.totalSeen;
           summary.nonCyclingSkipped += result.nonCyclingSkipped;
 
@@ -126,7 +149,14 @@ export async function POST(request: Request) {
             summary.colSegmentTimesUpdated = result.colSegmentTimesUpdated;
             summary.colSegmentTimesRateLimited =
               result.colSegmentTimesRateLimited;
-            if (result.colSegmentTimesRateLimited) {
+            summary.zwbSegmentsFetched = result.zwbSegmentsFetched;
+            summary.zwbSegmentEffortsStored = result.zwbSegmentEffortsStored;
+            summary.zwbSegmentsCompleted = result.zwbSegmentsCompleted;
+            summary.zwbSegmentsRateLimited = result.zwbSegmentsRateLimited;
+            if (
+              result.colSegmentTimesRateLimited ||
+              result.zwbSegmentsRateLimited
+            ) {
               rateLimited = true;
               summary.status = "rate_limited";
             }
@@ -137,6 +167,10 @@ export async function POST(request: Request) {
           summary.colSegmentTimesFetched += result.colSegmentTimesFetched;
           summary.colSegmentTimesUpdated += result.colSegmentTimesUpdated;
           summary.colSegmentTimesRateLimited ||= result.colSegmentTimesRateLimited;
+          summary.zwbSegmentsFetched += result.zwbSegmentsFetched;
+          summary.zwbSegmentEffortsStored += result.zwbSegmentEffortsStored;
+          summary.zwbSegmentsCompleted += result.zwbSegmentsCompleted;
+          summary.zwbSegmentsRateLimited ||= result.zwbSegmentsRateLimited;
           summary.nextPage = result.nextPage;
           startPage = result.nextPage ?? undefined;
           afterTs = result.afterTs;
@@ -144,10 +178,13 @@ export async function POST(request: Request) {
           if (
             result.stravaRateLimited ||
             result.colSegmentTimesRateLimited ||
+            result.zwbSegmentsRateLimited ||
             !startPage
           ) {
             rateLimited =
-              result.stravaRateLimited || result.colSegmentTimesRateLimited;
+              result.stravaRateLimited ||
+              result.colSegmentTimesRateLimited ||
+              result.zwbSegmentsRateLimited;
             break;
           }
         }
@@ -167,6 +204,7 @@ export async function POST(request: Request) {
         scannedProfiles: connections?.length ?? 0,
         processedProfiles: results.length,
         upserted: results.reduce((sum, r) => sum + r.upserted, 0),
+        removed: results.reduce((sum, r) => sum + r.removed, 0),
         totalSeen: results.reduce((sum, r) => sum + r.totalSeen, 0),
         milestoneAwards: results.reduce((sum, r) => sum + r.milestoneAwards, 0),
         colSegmentTimesFetched: results.reduce(
@@ -175,6 +213,18 @@ export async function POST(request: Request) {
         ),
         colSegmentTimesUpdated: results.reduce(
           (sum, r) => sum + r.colSegmentTimesUpdated,
+          0,
+        ),
+        zwbSegmentsFetched: results.reduce(
+          (sum, r) => sum + r.zwbSegmentsFetched,
+          0,
+        ),
+        zwbSegmentEffortsStored: results.reduce(
+          (sum, r) => sum + r.zwbSegmentEffortsStored,
+          0,
+        ),
+        zwbSegmentsCompleted: results.reduce(
+          (sum, r) => sum + r.zwbSegmentsCompleted,
           0,
         ),
         rateLimited,

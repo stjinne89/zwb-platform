@@ -27,6 +27,20 @@ export type ScrapeOutcome = {
   provider?: string;
 };
 
+export type LiveTimingResult = ScrapedResult & {
+  bib: string | null;
+  checkpoint: string | null;
+  averageKmh: number | null;
+  finished: boolean;
+};
+
+export type LiveTimingOutcome = {
+  ok: boolean;
+  results: LiveTimingResult[];
+  error?: string;
+  provider?: string;
+};
+
 type MemberCandidate = {
   profileId: string | null;
   tokens: string[]; // volledige naam-tokens (≥2 tekens)
@@ -341,6 +355,12 @@ function parseChronoUrl(
   return null;
 }
 
+export function isChronoLiveTimingUrl(resultsUrl: string | null | undefined) {
+  if (!resultsUrl) return false;
+  const parsed = parseChronoUrl(resultsUrl);
+  return Boolean(parsed && /^live/i.test(parsed.table));
+}
+
 function isChronoRaceUrl(resultsUrl: string): boolean {
   let u: URL;
   try {
@@ -366,7 +386,8 @@ function findChronoColumnIndex(
     for (let i = 0; i < columns.length; i++) {
       const dn = (columns[i].DisplayName ?? "").replace(/[#]/g, "").toLowerCase();
       const nm = (columns[i].Name ?? "").toLowerCase();
-      if (dn === kw || nm.includes(kw)) return i;
+      const columnTokens = nm.split(/[^a-z0-9]+/).filter(Boolean);
+      if (dn === kw || columnTokens.includes(kw)) return i;
     }
   }
   return -1;
@@ -386,6 +407,17 @@ function chronoCellTime(
   if (!str || /^0+([:.]0+)*$/.test(str)) return { text: null, seconds: null };
   const t = extractTime(str);
   return { text: t.timeText ?? str, seconds: t.timeSeconds };
+}
+
+function chronoCellLines(value: unknown): string[] {
+  if (value == null) return [];
+  const html = String(value).replace(/<br\s*\/?>/gi, "\n");
+  const $ = cheerio.load(`<body>${html}</body>`);
+  return $("body")
+    .text()
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 }
 
 async function chronoFetchTable(
@@ -514,7 +546,7 @@ async function scrapeChronoRace(
 
   const rawRows: RawRow[] = rows.map((r) => {
     const cells = r.map((c) => (c == null ? "" : String(c)));
-    const name = nameIdx >= 0 ? cells[nameIdx] : "";
+    const name = nameIdx >= 0 ? chronoCellLines(r[nameIdx])[0] ?? "" : "";
     let position: number | null = null;
     if (posIdx >= 0) {
       const m = cells[posIdx].match(/(\d{1,5})/);
@@ -539,6 +571,128 @@ async function scrapeChronoRace(
   });
 
   const results = matchRows(candidates, rawRows);
+  return { ok: true, results, provider: "chronorace" };
+}
+
+async function scrapeChronoRaceLive(
+  candidates: MemberCandidate[],
+  db: string,
+  table: string,
+): Promise<LiveTimingOutcome> {
+  const fetched = await chronoFetchTable(db, table);
+  if (!fetched.ok) {
+    return {
+      ok: false,
+      results: [],
+      error: fetched.error,
+      provider: "chronorace",
+    };
+  }
+
+  const { columns, rows } = fetched;
+  const nameIdx = findChronoColumnIndex(columns, ["name", "nom", "naam"]);
+  const bibIdx = findChronoColumnIndex(columns, ["nr", "dos", "bib"]);
+  const posIdx = findChronoColumnIndex(columns, [
+    "pos",
+    "plaats",
+    "place",
+    "plc",
+    "overall",
+  ]);
+  const checkpointIdx = findChronoColumnIndex(columns, [
+    "location",
+    "passage",
+    "checkpoint",
+    "point",
+  ]);
+  const timeIdx = findChronoColumnIndex(columns, [
+    "time",
+    "temps",
+    "tijd",
+    "result",
+  ]);
+  const avgIdx = findChronoColumnIndex(columns, ["avg", "moy", "gem"]);
+  const catIdx = findChronoColumnIndex(columns, ["cat", "categ"]);
+  const catRankIdx = findChronoColumnIndex(columns, ["rang", "catpos", "cat pos"]);
+
+  const detailsByName = new Map<
+    string,
+    {
+      bib: string | null;
+      checkpoint: string | null;
+      averageKmh: number | null;
+      finished: boolean;
+    }
+  >();
+
+  const rawRows: RawRow[] = rows.map((r) => {
+    const cells = r.map((c) => (c == null ? "" : String(c)));
+    const name = nameIdx >= 0 ? chronoCellLines(r[nameIdx])[0] ?? "" : "";
+    const checkpointLines =
+      checkpointIdx >= 0 ? chronoCellLines(r[checkpointIdx]) : [];
+    const checkpoint = checkpointLines[0] ?? null;
+    const checkpointTime =
+      checkpointLines.find((line, index) => index > 0 && timeToSeconds(line) != null) ??
+      null;
+    const time =
+      checkpointTime != null
+        ? { text: checkpointTime, seconds: timeToSeconds(checkpointTime) }
+        : timeIdx >= 0
+          ? chronoCellTime(r[timeIdx])
+          : { text: null, seconds: null };
+
+    let position: number | null = null;
+    if (posIdx >= 0) {
+      const m = cells[posIdx].match(/(\d{1,5})/);
+      if (m) position = Number(m[1]);
+    }
+
+    let categoryRank: number | null = null;
+    if (catRankIdx >= 0) {
+      const m = cells[catRankIdx].match(/(\d{1,5})/);
+      if (m) categoryRank = Number(m[1]);
+    }
+
+    const averageValue =
+      avgIdx >= 0 ? Number.parseFloat(cells[avgIdx].replace(",", ".")) : NaN;
+    const detail = {
+      bib: bibIdx >= 0 ? cells[bibIdx].trim() || null : null,
+      checkpoint,
+      averageKmh: Number.isFinite(averageValue) ? averageValue : null,
+      finished: /finish|arriv[ée]e?/i.test(checkpoint ?? ""),
+    };
+    if (name) detailsByName.set(normalize(name), detail);
+
+    return {
+      cells,
+      matchText: name,
+      knownName: name || null,
+      knownPosition: position,
+      knownTimeText: time.text,
+      knownTimeSeconds: time.seconds,
+      knownCategory: catIdx >= 0 ? cells[catIdx]?.trim() || null : null,
+      knownCategoryRank: categoryRank,
+    };
+  });
+
+  const results = matchRows(candidates, rawRows)
+    .map((result): LiveTimingResult => {
+      const detail = detailsByName.get(normalize(result.scrapedName));
+      return {
+        ...result,
+        bib: detail?.bib ?? null,
+        checkpoint: detail?.checkpoint ?? null,
+        averageKmh: detail?.averageKmh ?? null,
+        finished: detail?.finished ?? false,
+      };
+    })
+    .sort((a, b) => {
+      if (a.position != null && b.position != null) return a.position - b.position;
+      if (a.position != null) return -1;
+      if (b.position != null) return 1;
+      return a.scrapedName.localeCompare(b.scrapedName);
+    });
+
   return { ok: true, results, provider: "chronorace" };
 }
 
@@ -1013,4 +1167,32 @@ export async function scrapeEventResults(
   }
 
   return scrapeGenericHtml(candidates, resultsUrl);
+}
+
+export async function scrapeEventLiveTiming(
+  supabase: SupabaseClient,
+  timingUrl: string,
+): Promise<LiveTimingOutcome> {
+  try {
+    await assertSafeUrl(timingUrl);
+  } catch (err) {
+    return {
+      ok: false,
+      results: [],
+      error: err instanceof Error ? err.message : "Onveilige of ongeldige URL.",
+    };
+  }
+
+  const parsed = parseChronoUrl(timingUrl);
+  if (!parsed || !/^live/i.test(parsed.table)) {
+    return {
+      ok: false,
+      results: [],
+      provider: "chronorace",
+      error: "Deze link verwijst niet naar een ondersteunde ACN-liveweergave.",
+    };
+  }
+
+  const candidates = await buildMemberCandidates(supabase);
+  return scrapeChronoRaceLive(candidates, parsed.db, parsed.table);
 }

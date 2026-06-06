@@ -31,6 +31,12 @@ import {
   EventPhotoGallery,
   type EventPhotoData,
 } from "./_components/photo-gallery";
+import { LiveTimingPanel } from "../../live/_components/live-timing-panel";
+import {
+  isChronoLiveTimingUrl,
+  type LiveTimingOutcome,
+} from "@/lib/event-results/scrape";
+import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 const STALE_AFTER_MIN = 15;
@@ -69,7 +75,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
     )
     .eq("id", id)
     .single();
@@ -250,6 +256,16 @@ export default async function EventDetailPage({
     });
   }
   const eventIsToday = isAmsterdamToday(event.start_at);
+  let liveTimingOutcome: LiveTimingOutcome | null = null;
+  if (eventIsToday && isChronoLiveTimingUrl(event.live_timing_url)) {
+    liveTimingOutcome = await fetchExternalLiveTiming(
+      event.live_timing_url,
+    ).catch(() => ({
+      ok: false,
+      results: [],
+      error: "Live timing ophalen is mislukt.",
+    }));
+  }
   const liveParticipantIds = Array.from(
     new Set(
       (rsvps ?? [])
@@ -514,6 +530,14 @@ export default async function EventDetailPage({
           </div>
         ))}
       </section>
+
+      {liveTimingOutcome && (
+        <LiveTimingPanel
+          eventId={event.id}
+          eventTitle={event.title}
+          initialOutcome={liveTimingOutcome}
+        />
+      )}
 
       {(event.results_url || results.length > 0 || canManage) && (
         <section className="space-y-3 rounded-lg border bg-card p-4">

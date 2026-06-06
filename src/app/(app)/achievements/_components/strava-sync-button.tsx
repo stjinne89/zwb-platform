@@ -32,6 +32,7 @@ export function StravaSyncButton() {
     });
 
     let totalUpserted = 0;
+    let totalRemoved = 0;
     let totalSeen = 0;
     let totalNonCycling = 0;
     let milestoneAwards = 0;
@@ -59,6 +60,7 @@ export function StravaSyncButton() {
         }
 
         totalUpserted += res.upserted;
+        totalRemoved += res.removed;
         totalSeen += res.totalSeen;
         totalNonCycling += res.nonCyclingSkipped;
         isFirstSync = res.isFirstSync;
@@ -89,6 +91,11 @@ export function StravaSyncButton() {
 
       const parts: string[] = [];
       parts.push(`${totalUpserted} ritten gesynchroniseerd`);
+      if (totalRemoved > 0) {
+        parts.push(
+          `${totalRemoved} verwijderde rit${totalRemoved === 1 ? "" : "ten"} opgeruimd`,
+        );
+      }
       if (milestoneAwards > 0) {
         parts.push(
           `${milestoneAwards} nieuwe badge${milestoneAwards === 1 ? "" : "s"}`,

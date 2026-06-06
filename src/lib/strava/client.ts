@@ -259,6 +259,10 @@ export type SyncChunkOptions = {
   chunkPages?: number;
   /** Begrens dure detailed-activity calls voor coltijden. */
   colSegmentMaxFetches?: number;
+  /** Begrens extra detailed-activity calls voor ZWB Segments. */
+  zwbSegmentMaxFetches?: number;
+  /** Recent venster waarin Strava leidend is voor updates en verwijderingen. */
+  reconciliationDays?: number;
 };
 
 export async function syncStravaActivitiesForUser(
@@ -282,6 +286,7 @@ export async function syncStravaActivitiesForUser(
 
   const startPage = Math.max(1, options.startPage ?? 1);
   const chunkPages = Math.max(1, options.chunkPages ?? 5);
+  const reconciliationDays = Math.max(1, options.reconciliationDays ?? 30);
 
   // Avatar refresh: alleen op de eerste chunk (page 1) zodat we 'm niet
   // bij elke vervolg-call opnieuw doen.
@@ -289,8 +294,9 @@ export async function syncStravaActivitiesForUser(
     await refreshStravaAthleteInfo(supabase, profileId, accessToken);
   }
 
-  // Smart since-datum: bij eerste sync 5 jaar terug, daarna alleen vanaf
-  // laatste activity (minus 1 dag buffer voor late uploads / edits).
+  // Smart since-datum: bij eerste sync 5 jaar terug. Daarna halen we minimaal
+  // de laatste 30 dagen opnieuw op, zodat Strava-naamswijzigingen doorkomen en
+  // verwijderde device-dubbelen uit de lokale database kunnen worden gehaald.
   // Met fullBackfill=true overrulen we de DB-check zodat retroactieve
   // milestone-detectie mogelijk wordt zonder de DB te wissen.
   // afterTs override: client geeft 'm mee op vervolg-chunks zodat we niet
@@ -313,9 +319,15 @@ export async function syncStravaActivitiesForUser(
       .maybeSingle();
 
     isFirstSync = !mostRecent?.start_date;
+    const recentCutoff = Date.now() - reconciliationDays * 86400_000;
     const since = isFirstSync
       ? new Date(Date.now() - 5 * 365 * 86400_000)
-      : new Date(new Date(mostRecent!.start_date).getTime() - 86400_000);
+      : new Date(
+          Math.min(
+            new Date(mostRecent!.start_date).getTime() - 86400_000,
+            recentCutoff,
+          ),
+        );
     after = Math.floor(since.getTime() / 1000);
   }
 
@@ -331,6 +343,7 @@ export async function syncStravaActivitiesForUser(
   let doneInThisChunk = false;
   let lastPageProcessed = startPage - 1;
   let stravaRateLimited = false;
+  const remoteCyclingActivityIds = new Set<number>();
 
   for (let i = 0; i < chunkPages; i++) {
     const page = startPage + i;
@@ -371,6 +384,9 @@ export async function syncStravaActivitiesForUser(
 
     const cycling = rawBatch.filter(isCyclingActivity);
     nonCyclingSkipped += rawBatch.length - cycling.length;
+    for (const activity of cycling) {
+      if (activity.id) remoteCyclingActivityIds.add(Number(activity.id));
+    }
 
     if (cycling.length > 0) {
       const rows = cycling
@@ -427,6 +443,36 @@ export async function syncStravaActivitiesForUser(
   }
 
   const done = nextPage === null;
+  let removed = 0;
+  const removedActivityIds: number[] = [];
+
+  // Alleen wissen als dit ene syncverzoek het volledige autoritatieve venster
+  // vanaf pagina 1 heeft gezien. Bij pagination of een rate-limit slaan we de
+  // reconciliatie over; een onvolledige Strava-response mag nooit data wissen.
+  if (done && startPage === 1 && !stravaRateLimited) {
+    const { data: localRows, error: localError } = await supabase
+      .from("strava_activities")
+      .select("id")
+      .eq("profile_id", profileId)
+      .gt("start_date", new Date(after * 1000).toISOString());
+    if (localError) throw new Error(localError.message);
+
+    const staleIds = ((localRows ?? []) as Array<{ id: number }>)
+      .map((row) => Number(row.id))
+      .filter((id) => !remoteCyclingActivityIds.has(id));
+
+    for (let index = 0; index < staleIds.length; index += 100) {
+      const batch = staleIds.slice(index, index + 100);
+      const { error: deleteError, count } = await supabase
+        .from("strava_activities")
+        .delete({ count: "exact" })
+        .eq("profile_id", profileId)
+        .in("id", batch);
+      if (deleteError) throw new Error(deleteError.message);
+      removed += count ?? batch.length;
+      removedActivityIds.push(...batch);
+    }
+  }
 
   await supabase
     .from("strava_connections")
@@ -442,6 +488,10 @@ export async function syncStravaActivitiesForUser(
   let colSegmentTimesFetched = 0;
   let colSegmentTimesUpdated = 0;
   let colSegmentTimesRateLimited = false;
+  let zwbSegmentsFetched = 0;
+  let zwbSegmentEffortsStored = 0;
+  let zwbSegmentsCompleted = 0;
+  let zwbSegmentsRateLimited = false;
   if (done) {
     try {
       const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -462,6 +512,21 @@ export async function syncStravaActivitiesForUser(
         await syncClimbedColsForUser(admin, profileId);
       } catch {
         // niet kritiek voor de sync-flow
+      }
+
+      if (removed > 0) {
+        try {
+          const { repairDeletedColBestTimesForUser } = await import(
+            "@/lib/cols/segment-times"
+          );
+          await repairDeletedColBestTimesForUser(
+            admin,
+            profileId,
+            removedActivityIds,
+          );
+        } catch {
+          // niet kritiek voor de sync-flow
+        }
       }
 
       // Segmenttijden horen bij de cols-collectie zelf, niet alleen bij de
@@ -486,6 +551,24 @@ export async function syncStravaActivitiesForUser(
         }
       }
 
+      const maxZwbSegmentFetches =
+        options.zwbSegmentMaxFetches ?? maxColSegmentFetches;
+      try {
+        const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
+        const segmentResult = await syncZwbSegmentsForUser(
+          admin,
+          accessToken,
+          profileId,
+          { maxFetches: maxZwbSegmentFetches },
+        );
+        zwbSegmentsFetched = segmentResult.fetched;
+        zwbSegmentEffortsStored = segmentResult.storedEfforts;
+        zwbSegmentsCompleted = segmentResult.completed;
+        zwbSegmentsRateLimited = segmentResult.rateLimited;
+      } catch {
+        // niet kritiek voor de sync-flow
+      }
+
       const { evaluateMilestonesForUser } = await import(
         "@/lib/achievements/milestone-evaluators"
       );
@@ -504,11 +587,16 @@ export async function syncStravaActivitiesForUser(
   return {
     ok: true as const,
     upserted,
+    removed,
     milestoneAwards,
     milestoneErrors,
     colSegmentTimesFetched,
     colSegmentTimesUpdated,
     colSegmentTimesRateLimited,
+    zwbSegmentsFetched,
+    zwbSegmentEffortsStored,
+    zwbSegmentsCompleted,
+    zwbSegmentsRateLimited,
     pagesScanned,
     totalSeen,
     nonCyclingSkipped,

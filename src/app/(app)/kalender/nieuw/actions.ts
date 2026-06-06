@@ -20,6 +20,7 @@ type EventInput = {
   start_lon?: number | null;
   description?: string | null;
   external_url?: string | null;
+  live_timing_url?: string | null;
   results_url?: string | null;
   cover_image_path?: string | null;
   team_id?: string | null;
@@ -32,6 +33,9 @@ function validate(input: EventInput) {
   if (!input.start_at) return "Startdatum is verplicht.";
   if (input.external_url && !/^https?:\/\//i.test(input.external_url)) {
     return "Externe link moet beginnen met https:// of http://";
+  }
+  if (input.live_timing_url && !/^https?:\/\//i.test(input.live_timing_url)) {
+    return "Live timing-URL moet beginnen met https:// of http://";
   }
   if (input.results_url && !/^https?:\/\//i.test(input.results_url)) {
     return "Uitslag-URL moet beginnen met https:// of http://";
@@ -65,6 +69,7 @@ export async function createEvent(input: EventInput) {
       start_lon: input.start_lon ?? null,
       description: input.description || null,
       external_url: input.external_url?.trim() || null,
+      live_timing_url: input.live_timing_url?.trim() || null,
       results_url: input.results_url?.trim() || null,
       cover_image_path: input.cover_image_path ?? null,
       team_id: input.team_id || null,
@@ -133,6 +138,7 @@ export async function updateEvent(id: string, input: EventInput) {
     location: input.location || null,
     description: input.description || null,
     external_url: input.external_url?.trim() || null,
+    live_timing_url: input.live_timing_url?.trim() || null,
     results_url: input.results_url?.trim() || null,
     team_id: input.team_id || null,
   };
@@ -152,6 +158,7 @@ export async function updateEvent(id: string, input: EventInput) {
 
   revalidatePath(`/events/${id}`);
   revalidatePath("/kalender");
+  revalidatePath("/live");
   revalidatePath("/dashboard");
   redirect(`/events/${id}`);
 }

@@ -22,6 +22,8 @@ const PROFILE_TABLES: string[] = [
   "live_positions",
   "achievement_awards",
   "profile_climbed_cols",
+  "profile_completed_segments",
+  "strava_activity_segment_efforts",
   "notification_preferences",
   "push_subscriptions",
   "team_members",
