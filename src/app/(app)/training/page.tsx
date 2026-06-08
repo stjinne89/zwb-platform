@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import {
   Activity,
   Calendar,
-  CheckCircle2,
   CircleHelp,
   ClipboardList,
   Download,
@@ -11,7 +10,6 @@ import {
   FileText,
   MessageSquare,
   Mountain,
-  Send,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -28,10 +26,8 @@ import {
 } from "@/lib/intervals/client";
 import {
   createTrainingGoal,
-  publishTrainingPlan,
   saveTrainerFeedback,
   saveWorkoutReport,
-  setPlanStatus,
   updateTrainingPlan,
   updateWorkout,
 } from "./_actions";
@@ -53,6 +49,7 @@ import { WellnessOptInToggle } from "./_components/wellness-optin-toggle";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { AiDraftForm } from "./_components/ai-draft-form";
 import { DeleteTrainingPlanButton } from "./_components/delete-training-plan-button";
+import { PlanActions } from "./_components/plan-actions";
 import {
   summarizeWellness,
   type WellnessSummary,
@@ -118,6 +115,7 @@ type PlanRow = {
   source: string;
   created_at: string;
   adaptation_reason: string | null;
+  parent_plan_id: string | null;
   ctl_projection_json?: Record<string, unknown> | null;
 };
 
@@ -1138,30 +1136,13 @@ function CoachWorkspace({
                   </form>
                   <PlanBadge status={plan.status} />
                 </div>
-                <div className="flex flex-wrap gap-2 border-b p-3">
-                  <form action={formAction(setPlanStatus)}>
-                    <input type="hidden" name="plan_id" value={plan.id} />
-                    <input type="hidden" name="status" value="review" />
-                    <button className="rounded-md border px-3 py-1 text-xs hover:bg-accent">Naar review</button>
-                  </form>
-                  <form action={formAction(setPlanStatus)}>
-                    <input type="hidden" name="plan_id" value={plan.id} />
-                    <input type="hidden" name="status" value="approved" />
-                    <button className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs hover:bg-accent">
-                      <CheckCircle2 className="size-3" />
-                      Goedkeuren
-                    </button>
-                  </form>
-                  <form action={formAction(publishTrainingPlan)}>
-                    <input type="hidden" name="plan_id" value={plan.id} />
-                    <button
-                      disabled={!canPublish}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                    >
-                      <Send className="size-3" />
-                      Publiceren
-                    </button>
-                  </form>
+                <div className="flex flex-wrap items-center gap-2 border-b p-3">
+                  <PlanActions
+                    planId={plan.id}
+                    status={plan.status}
+                    mayApprove
+                    mayPublish={canPublish}
+                  />
                   <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
                 </div>
                 <WorkoutList
@@ -1871,44 +1852,24 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   </div>
                   <PlanBadge status={plan.status} />
                 </div>
-                {(canSelfManagePlans || canSelfPublishPlans) && (
-                  <div className="flex flex-wrap gap-2 border-y p-3">
-                    {canSelfManagePlans && (
-                      <>
-                        <form action={formAction(setPlanStatus)}>
-                          <input type="hidden" name="plan_id" value={plan.id} />
-                          <input type="hidden" name="status" value="review" />
-                          <button className="rounded-md border px-3 py-1 text-xs hover:bg-accent">Naar review</button>
-                        </form>
-                        <form action={formAction(setPlanStatus)}>
-                          <input type="hidden" name="plan_id" value={plan.id} />
-                          <input type="hidden" name="status" value="approved" />
-                          <button className="inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs hover:bg-accent">
-                            <CheckCircle2 className="size-3" />
-                            Goedkeuren
-                          </button>
-                        </form>
-                      </>
-                    )}
-                    {canSelfPublishPlans && (
-                      <form action={formAction(publishTrainingPlan)}>
-                        <input type="hidden" name="plan_id" value={plan.id} />
-                        <button
-                          disabled={!["approved", "published"].includes(plan.status)}
-                          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <Send className="size-3" />
-                          Publiceren naar intervals.icu
-                        </button>
-                      </form>
-                    )}
-                    {canSelfPublishPlans && !["approved", "published"].includes(plan.status) ? (
-                      <p className="text-xs text-muted-foreground">
-                        Keur het schema eerst goed voordat je publiceert.
-                      </p>
-                    ) : null}
-                  </div>
-                )}
+                {(() => {
+                  // Een renner mag zijn eigen dag-aanpassing (afgeleid plan) zelf
+                  // goedkeuren/publiceren, ook zonder trainer/bestuur-rol.
+                  const ownAdaptation = Boolean(plan.parent_plan_id);
+                  const mayApprove = canSelfManagePlans || ownAdaptation;
+                  const mayPublish = canSelfPublishPlans || ownAdaptation;
+                  if (!mayApprove && !mayPublish) return null;
+                  return (
+                    <div className="border-y p-3">
+                      <PlanActions
+                        planId={plan.id}
+                        status={plan.status}
+                        mayApprove={mayApprove}
+                        mayPublish={mayPublish}
+                      />
+                    </div>
+                  );
+                })()}
                 {plan.summary && <p className="px-4 pb-3 text-sm text-muted-foreground whitespace-pre-line">{plan.summary}</p>}
                 <WorkoutList
                   workouts={myWorkoutsByPlan.get(plan.id) ?? []}

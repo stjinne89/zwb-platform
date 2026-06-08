@@ -519,12 +519,25 @@ export async function setPlanStatus(formData: FormData) {
     const { user, access } = await currentUser();
     const status = mustString(formData.get("status"), "Status");
     if (!["review", "approved", "archived"].includes(status)) throw new Error("Ongeldige status.");
-    if (!access.has("training.create_plans")) throw new Error("Geen rechten voor schema-status.");
     const planId = mustString(formData.get("plan_id"), "Schema");
     const admin = createAdminClient();
-    const { data: plan } = await admin.from("training_plans").select("profile_id").eq("id", planId).single();
+    const { data: plan } = await admin
+      .from("training_plans")
+      .select("profile_id, parent_plan_id")
+      .eq("id", planId)
+      .single();
     if (!plan) throw new Error("Schema niet gevonden.");
-    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, plan.profile_id))) {
+    // Een renner mag zijn EIGEN dag-aanpassing (afgeleid plan) zelf beheren,
+    // ook zonder trainer/bestuur-rol.
+    const ownAdaptation = plan.profile_id === user.id && plan.parent_plan_id != null;
+    if (!access.has("training.create_plans") && !ownAdaptation) {
+      throw new Error("Geen rechten voor schema-status.");
+    }
+    if (
+      !ownAdaptation &&
+      !access.has("training.manage_assignments") &&
+      !(await canCoach(admin, user.id, plan.profile_id))
+    ) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
     const patch: Record<string, string | null> = { status };
@@ -544,11 +557,14 @@ export async function setPlanStatus(formData: FormData) {
 export async function publishTrainingPlan(formData: FormData) {
   try {
     const { user, access } = await currentUser();
-    if (!access.has("training.publish_plans")) throw new Error("Geen rechten om schema's te publiceren.");
     const planId = mustString(formData.get("plan_id"), "Schema");
     const admin = createAdminClient();
     const [{ data: plan }, { data: workouts }] = await Promise.all([
-      admin.from("training_plans").select("profile_id, status").eq("id", planId).single(),
+      admin
+        .from("training_plans")
+        .select("profile_id, status, parent_plan_id")
+        .eq("id", planId)
+        .single(),
       admin
         .from("training_workouts")
         .select("*")
@@ -556,10 +572,19 @@ export async function publishTrainingPlan(formData: FormData) {
         .order("scheduled_at", { ascending: true }),
     ]);
     if (!plan) throw new Error("Schema niet gevonden.");
+    // Renner mag zijn EIGEN dag-aanpassing zelf publiceren (ook zonder rol).
+    const ownAdaptation = plan.profile_id === user.id && plan.parent_plan_id != null;
+    if (!access.has("training.publish_plans") && !ownAdaptation) {
+      throw new Error("Geen rechten om schema's te publiceren.");
+    }
     if (!["approved", "published"].includes(plan.status)) {
       throw new Error("Keur het schema eerst goed voordat je publiceert.");
     }
-    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, plan.profile_id))) {
+    if (
+      !ownAdaptation &&
+      !access.has("training.manage_assignments") &&
+      !(await canCoach(admin, user.id, plan.profile_id))
+    ) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
