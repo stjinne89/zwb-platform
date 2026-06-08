@@ -9,9 +9,7 @@ import {
   upsertIntervalsWorkoutEvent,
 } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
-import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import {
-  adaptiveDailyPrompt,
   blocksFromForm,
   blocksToIntervalsText,
   blocksToWorkoutDoc,
@@ -20,7 +18,6 @@ import {
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
-import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { encryptSecret } from "@/lib/crypto/secrets";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
@@ -337,148 +334,6 @@ export async function revokeTrainerAccessState(
   return result.ok ? { ok: true, message: "Koppeling ingetrokken." } : result;
 }
 
-// Renner-actie: "pas vandaag aan" - de renner geeft beschikbare tijd + gevoel
-// op en de AI maakt een draft-aanpassing van het actieve plan voor vandaag/deze
-// week (zelfde draft-patroon als de cron). Geen trainer-goedkeuring nodig om te
-// genereren; publiceren volgt de bestaande flow.
-export async function adjustTodayPlan(formData: FormData) {
-  try {
-    const { user } = await currentUser();
-    const admin = createAdminClient();
-
-    const availableMinutes = optionalNumber(formData.get("available_minutes"));
-    const feelingRaw = optionalString(formData.get("feeling"));
-    const feeling =
-      feelingRaw === "tired" || feelingRaw === "fresh" || feelingRaw === "normal"
-        ? feelingRaw
-        : null;
-    const note = optionalString(formData.get("note"));
-
-    // Actief plan van de renner zelf (gepubliceerd > goedgekeurd), nog lopend.
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: plans } = await admin
-      .from("training_plans")
-      .select("id, goal_id, trainer_id, status, end_date")
-      .eq("profile_id", user.id)
-      .in("status", ["published", "approved"])
-      .gte("end_date", today)
-      .order("status", { ascending: false }) // 'published' > 'approved' alfabetisch? nee
-      .order("updated_at", { ascending: false })
-      .limit(5);
-    const active =
-      (plans ?? []).find((p) => p.status === "published") ?? (plans ?? [])[0];
-    if (!active) {
-      return {
-        ok: false as const,
-        error: "Geen actief schema gevonden om aan te passen.",
-      };
-    }
-
-    const [{ data: goal }, { data: profile }] = await Promise.all([
-      active.goal_id
-        ? admin.from("training_goals").select("*").eq("id", active.goal_id).maybeSingle()
-        : Promise.resolve({ data: null }),
-      admin
-        .from("profiles")
-        .select("display_name, ftp_watts, weight_kg, zrl_category")
-        .eq("id", user.id)
-        .single(),
-    ]);
-    if (!profile) return { ok: false as const, error: "Profiel niet gevonden." };
-
-    const { wellnessForAi } = await import("@/lib/training/wellness");
-    const wellness = await wellnessForAi(admin, user.id).catch(() => null);
-    const yesterday = await buildYesterdayContext(admin, user.id, active.id).catch(
-      () => null,
-    );
-
-    const ai = await generateTrainingPlanDraft(
-      {
-        athleteName: profile.display_name ?? "ZWB-lid",
-        goal: {
-          title: goal?.title ?? "Lopend schema",
-          type: goal?.goal_type ?? "base_fitness",
-          targetDate: goal?.target_date ?? null,
-          availableDays: goal?.available_days ?? [],
-          maxHoursPerWeek: goal?.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
-          preferredMode: goal?.preferred_mode ?? "mixed",
-          experienceLevel: goal?.experience_level ?? "intermediate",
-          desiredIntensity: goal?.desired_intensity ?? "balanced",
-          riskNotes: goal?.risk_notes ?? null,
-        },
-        profile: {
-          ftpWatts: profile.ftp_watts ?? null,
-          weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-          zrlCategory: profile.zrl_category ?? null,
-        },
-        recentLoad: { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
-        wellness: wellness
-          ? {
-              days: wellness.days,
-              state: wellness.state,
-              restingHr: wellness.restingHr,
-              hrv: wellness.hrv,
-              sleepHours: wellness.sleepHours,
-              readiness: wellness.readiness,
-              note: wellness.note,
-            }
-          : null,
-        today: { availableMinutes, feeling, note },
-        yesterday,
-      },
-      adaptiveDailyPrompt(),
-      { reasoningEffort: "low" },
-    );
-
-    const { data: draft, error: draftError } = await admin
-      .from("training_plans")
-      .insert({
-        profile_id: user.id,
-        trainer_id: active.trainer_id,
-        goal_id: active.goal_id,
-        parent_plan_id: active.id,
-        title: `${ai.plan.title} (aanpassing vandaag)`,
-        summary: [ai.plan.summary, ...ai.plan.cautions.map((c) => `Let op: ${c}`)].join("\n\n"),
-        start_date: ai.plan.startDate,
-        end_date: ai.plan.endDate,
-        status: "draft",
-        source: "ai",
-        adaptation_reason: `Renner-aanpassing: tijd=${availableMinutes ?? "-"}min, gevoel=${feeling ?? "-"}.`,
-      })
-      .select("id")
-      .single();
-    if (draftError) throw new Error(draftError.message);
-
-    const workouts = ai.plan.workouts.map((workout) => {
-      const intensity = workout.intensity;
-      assertWorkoutIntensity(intensity);
-      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
-      return {
-        plan_id: draft.id,
-        profile_id: user.id,
-        trainer_id: active.trainer_id,
-        scheduled_at: `${workout.date}T09:00:00+01:00`,
-        title: workout.title,
-        description: workout.description,
-        duration_minutes: Math.round(workout.durationMinutes),
-        intensity,
-        target_type: workout.targetType,
-        structure_json: blocks,
-        intervals_external_id: `zwb-${draft.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
-      };
-    });
-    const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
-    if (workoutError) throw new Error(workoutError.message);
-
-    revalidatePath("/training");
-    return { ok: true as const, planId: draft.id };
-  } catch (err) {
-    return {
-      ok: false as const,
-      error: err instanceof Error ? err.message : "Aanpassing maken faalde.",
-    };
-  }
-}
 
 export async function updateTrainingPlan(formData: FormData) {
   try {
