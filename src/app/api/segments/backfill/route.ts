@@ -126,6 +126,7 @@ export async function POST(request: Request) {
         storedEfforts: results.reduce((sum, r) => sum + r.storedEfforts, 0),
         completed: results.reduce((sum, r) => sum + r.completed, 0),
         beneluxSeeded: benelux.seeded,
+        beneluxVariantsRemoved: "removed" in benelux ? benelux.removed : 0,
         candidates,
         rateLimited: rateLimited || candidates.rateLimited,
         results,

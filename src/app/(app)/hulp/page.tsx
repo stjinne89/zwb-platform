@@ -6,13 +6,17 @@ import {
   CheckCircle2,
   CircleHelp,
   Download,
+  Gauge,
+  HeartPulse,
   MapPinned,
   Medal,
+  Mountain,
   Navigation,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Trophy,
+  TrendingUp,
   UserCircle,
   Users,
   Zap,
@@ -94,13 +98,24 @@ const GUIDES = [
     ],
   },
   {
+    id: "cols",
+    icon: Mountain,
+    title: "Cols, segmenten en records",
+    bullets: [
+      "ZWB herkent cols en segmenten automatisch uit je Strava-ritten.",
+      "Je recordtijd komt rechtstreeks van Strava; per segment zie je de ZWB-ranglijst.",
+      "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'.",
+    ],
+  },
+  {
     id: "community",
     icon: Users,
-    title: "Community, polls en Vraag & Aanbod",
+    title: "Community, polls, media en ritverslagen",
     bullets: [
       "Gebruik Vraag & Aanbod voor spullen, hulpvragen en tips.",
       "Polls verzamelen snelle keuzes vanuit de community.",
       "Media bundelt nieuws, mededelingen, video's en podcasts.",
+      "Schrijf na een gereden event een ritverslag; anderen kunnen reageren.",
     ],
   },
   {
@@ -113,6 +128,27 @@ const GUIDES = [
       "Trainer-data wordt alleen gedeeld na expliciete toestemming.",
     ],
   },
+];
+
+// Volledige wegwijzer: wat doet elke pagina/sectie van de app.
+const OVERVIEW: { href: string; name: string; text: string }[] = [
+  { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws." },
+  { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien." },
+  { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via OwnTracks." },
+  { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
+  { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
+  { href: "/achievements", name: "Achievements", text: "Al je badges. Herbereken ze hier na een Strava-sync." },
+  { href: "/training", name: "Training", text: "Schema's, AI-coach, je ZWBeterWorden-advies en de koppelingen." },
+  { href: "/training/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
+  { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
+  { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
+  { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
+  { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
+  { href: "/materiaal", name: "Vraag & Aanbod", text: "Spullen, hulpvragen en tips uitwisselen." },
+  { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
+  { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten." },
+  { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
+  { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, koppelingen (Strava/intervals) en account." },
 ];
 
 const OWNTRACKS_STEPS = [
@@ -133,8 +169,8 @@ const OWNTRACKS_STEPS = [
     text: "Geef de app locatietoegang 'Altijd' (niet 'Bij gebruik') én zet nauwkeurige/precieze locatie aan. Zonder 'Altijd' stopt het tracken zodra je scherm uit gaat.",
   },
   {
-    title: "Zet de modus op 'Move' tijdens je rit",
-    text: "In OwnTracks → instellingen → monitoring = Move. Dat stuurt regelmatig je positie door. 'Significant' of 'Manual' updaten te weinig en geven gaten op de kaart.",
+    title: "Zet de Controlemodus op 'Beweging' tijdens je rit",
+    text: "Open in OwnTracks de Controlemodus en kies 'Beweging': hoge frequentie en nauwkeurigheid (wel meer accuverbruik), zodat je een strak spoor krijgt. 'Grootte wijzigingen' is een spaarzamere balans; 'Handmatig' en 'Stop' publiceren geen locaties en geven gaten op de kaart.",
   },
   {
     title: "Rijden en verschijnen",
@@ -142,7 +178,7 @@ const OWNTRACKS_STEPS = [
   },
   {
     title: "Stoppen",
-    text: "Klaar? Zet OwnTracks-monitoring terug op 'Significant' of stop de koppeling op Samen fietsen. Na 15 min zonder positie verdwijn je sowieso automatisch.",
+    text: "Klaar? Zet de Controlemodus terug op 'Grootte wijzigingen' (of 'Stop'), of stop de koppeling op Samen fietsen. Na 15 min zonder positie verdwijn je sowieso automatisch.",
   },
 ];
 
@@ -176,10 +212,11 @@ const WAHOO_STEPS = [
 
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start daarna een achievements-sync.",
-  "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', monitoring op 'Move'.",
+  "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', Controlemodus op 'Beweging'.",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
   "Mis je rechten? Vraag bestuur of communitybeheer om je rol te controleren.",
+  "Werkt iets niet meer zoals vlak na de installatie? Loop de welkomstrondleiding op /welkom opnieuw door.",
 ];
 
 export default function HelpPage() {
@@ -188,8 +225,29 @@ export default function HelpPage() {
       <PageHeader
         eyebrow="ZWB gids"
         title="Hulp voor leden"
-        description="Korte startgidsen voor profiel, events, live tracking, training en badges."
+        description="Wat elke pagina doet, hoe je koppelt en live tracking instelt, en wat te doen als iets niet werkt."
       />
+
+      <section className="rounded-lg border bg-card/90 p-5">
+        <div className="flex items-start gap-3">
+          <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Net begonnen of werkt iets niet meer?</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Loop de welkomstrondleiding opnieuw door — die loodst je stap voor
+              stap door je profiel, de Strava-/intervals-koppeling en meldingen.
+              Handig als iets niet meer werkt zoals vlak na de eerste installatie.
+            </p>
+            <Link
+              href="/welkom"
+              className="mt-3 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+            >
+              <Navigation className="size-4 text-primary" />
+              Open de welkomstrondleiding
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-3 md:grid-cols-4">
         {START_STEPS.map((step, index) => (
@@ -205,6 +263,26 @@ export default function HelpPage() {
             <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
           </Link>
         ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-semibold">Wat vind je waar?</h2>
+        <p className="text-sm text-muted-foreground">
+          Een korte wegwijzer door de app. Tik op een onderdeel om er meteen
+          naartoe te gaan.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {OVERVIEW.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-lg border bg-card/90 p-3 transition hover:border-primary/40"
+            >
+              <p className="text-sm font-semibold">{item.name}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{item.text}</p>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
@@ -231,6 +309,216 @@ export default function HelpPage() {
             </article>
           );
         })}
+      </section>
+
+      <section
+        id="trainingsruimte"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <HeartPulse className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">
+              Form, herstel en je ZWBeterWorden-advies
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Deze waarden beantwoorden verschillende vragen. Daarom kunnen ze
+              van elkaar afwijken zonder dat de data fout is. ZWB voegt ze samen
+              in één praktisch advies:{" "}
+              <strong className="text-foreground">ZWBeterWorden</strong>, met vijf
+              niveaus van &ldquo;doe niks&rdquo; tot topvorm.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <TrendingUp className="size-4 text-primary" />
+              Form (TSB)
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              TSB is de trainingsbalans uit intervals.icu:
+              <strong className="text-foreground"> CTL min ATL</strong>. CTL is
+              je belasting over langere tijd en ATL je recente belasting.
+              Negatief betekent dus dat je recent relatief veel hebt getraind.
+              Het zegt niet rechtstreeks hoe je hebt geslapen of hoe je lichaam
+              vandaag reageert.
+            </p>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <HeartPulse className="size-4 text-primary" />
+              Hersteltrend en readiness
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De hersteltrend vergelijkt je HRV en rusthartslag met je eigen
+              baseline en neemt slaap en de meest recente readiness mee.
+              Readiness is een dagsignaal uit intervals.icu; HRV, rusthartslag
+              en slaap worden als zevendaagse trend bekeken. Een gunstige HRV
+              kan daardoor naast een middelmatige readiness staan.
+            </p>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Gauge className="size-4 text-primary" />
+              ZWBeterWorden
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              ZWB combineert belasting en herstel tot één advies in vijf
+              niveaus. Een sterk negatieve TSB of readiness van 50 of lager duwt
+              je naar een laag niveau (rust/herstel). Readiness 51-69 telt als
+              matig. Pas wanneer belasting én herstel gunstig zijn, klim je naar
+              de hoogste niveaus met ruimte voor kwaliteit.
+            </p>
+          </article>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+            <p className="text-sm font-semibold">DOE NIKS</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Je bent aan het overtrainen, geef je partner even wat aandacht
+              ofzo.
+            </p>
+          </div>
+          <div className="rounded-md border border-orange-500/40 bg-orange-500/10 p-3">
+            <p className="text-sm font-semibold">RICHT OP HERSTEL</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ga maar lekker vogeltjes kijken.
+            </p>
+          </div>
+          <div className="rounded-md border border-zwb-petrol/50 bg-zwb-petrol/10 p-3">
+            <p className="text-sm font-semibold">ALLEEN DUUR</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Je mag wel gaan fietsen, maar geen heftige intervallen.
+            </p>
+          </div>
+          <div className="rounded-md border border-zwb-teal/50 bg-zwb-teal/10 p-3">
+            <p className="text-sm font-semibold">FRIS GENOEG</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ga er maar lekker op uit en blokjes mogen ook, vergeet de chocomelk
+              niet na afloop.
+            </p>
+          </div>
+          <div className="rounded-md border border-zwb-gold/50 bg-zwb-gold/10 p-3">
+            <p className="text-sm font-semibold">BETER WORDT HET NIET</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Alles mag, probeer die andere ZWB&apos;ers er vandaag maar vanaf te
+              rijden.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4 text-sm text-muted-foreground">
+          <strong className="text-foreground">Voorbeeld:</strong> TSB -14,
+          readiness 66 en een goede HRV-trend betekent niet dat je volledig fris
+          bent. De HRV is positief, maar recente trainingsbelasting en
+          middelmatige readiness houden je in het middensegment. Je
+          ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
+        </div>
+      </section>
+
+      <section
+        id="vermogen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Zap className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Mijn vermogen en de powercurve</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              De powercurve toont je beste gemiddelde vermogen voor iedere duur
+              binnen de gekozen periode. De eigen curve wordt live uit
+              intervals.icu geladen.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">De grafiek gebruiken</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Kies 6 weken of 90 dagen voor je recente vorm, of all-time voor
+                  je beste vermogens uit je volledige Intervals-historie.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Beweeg over de lijn voor de exacte duur en waarde. Watt toont
+                  je beste absolute vermogen. Voor je eigen W/kg-lijn gebruikt
+                  ZWB het historische W/kg-record dat Intervals voor die duur
+                  heeft opgeslagen, dus met het gewicht rond die prestatie.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Korte duren zeggen meer over sprint en punch; 5-20 minuten
+                  over VO2max, klimmen en tijdritvermogen.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Vergelijken met ZWB</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De ZWB-mediaan en ledenkeuze gebruiken de volledige
+              gesynchroniseerde 90-daagse powercurve van leden met een
+              voltooide intervals.icu-koppeling. Daardoor vergelijk je niet
+              alleen 15s, 30s, 1m, 2m, 5m, 10m en 20m, maar de hele lijn.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Profielen die nog niet opnieuw zijn gesynchroniseerd na deze
+              uitbreiding vallen tijdelijk terug op die zeven vaste waarden.
+              Na een nieuwe sync wordt hun volledige curve opgeslagen. Alleen
+              ingelogde ZWB-leden kunnen deze vergelijking zien.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Volledig gesynchroniseerde W/kg-curves gebruiken de historische
+              W/kg-records van Intervals per duur. Oude fallback-profielen
+              gebruiken tot hun volgende sync het laatst gesynchroniseerde
+              gewicht.
+            </p>
+          </article>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">
+            Waarom Watt en W/kg niet altijd dezelfde rit tonen
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Intervals houdt per duur twee records bij: het hoogste absolute
+            vermogen en het hoogste vermogen per kilogram. Een iets lager
+            Watt-record bij een lager lichaamsgewicht kan dus je beste W/kg
+            zijn. Daarom kunnen de Watt- en W/kg-lijn voor dezelfde duur naar
+            verschillende activiteiten verwijzen.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Waarom de lijn altijd daalt</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Een maximaal gemiddeld vermogen kan bij een langere duur nooit hoger
+            zijn dan bij een kortere duur. ZWB verwijdert daarom ongeldige losse
+            punten uit de API-respons en maakt minieme afrondingssprongen vlak.
+            Een echte prestatie blijft zichtbaar, maar een technische piek of
+            dip hoort niet in de curve.
+          </p>
+          <Link
+            href="/training/vermogen"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open Mijn vermogen
+          </Link>
+        </div>
       </section>
 
       <section
@@ -299,8 +587,8 @@ export default function HelpPage() {
                   precies/nauwkeurig
                 </li>
                 <li>
-                  <strong className="text-foreground">Monitoring:</strong> Move
-                  (tijdens de rit)
+                  <strong className="text-foreground">Controlemodus:</strong>{" "}
+                  Beweging (tijdens de rit)
                 </li>
               </ul>
             </div>

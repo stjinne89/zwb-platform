@@ -43,6 +43,29 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function compactCurvePoints(points: Awaited<ReturnType<typeof fetchIntervalsPowerCurve>>["points"]) {
+  return points
+    .map((point) => {
+      const seconds = Number(point.seconds);
+      const watts = Number(point.watts);
+      const wattsPerKg = Number(point.wattsPerKg);
+      if (!Number.isFinite(seconds) || seconds <= 0 || !Number.isFinite(watts) || watts <= 0) {
+        return null;
+      }
+      return {
+        seconds: Math.round(seconds),
+        watts: Math.round(watts),
+        wattsPerKg:
+          Number.isFinite(wattsPerKg) && wattsPerKg > 0
+            ? Number(wattsPerKg.toFixed(3))
+            : null,
+      };
+    })
+    .filter((point): point is { seconds: number; watts: number; wattsPerKg: number | null } =>
+      point != null,
+    );
+}
+
 function athleteFallbacks(athlete: Awaited<ReturnType<typeof fetchIntervalsAthlete>> | null) {
   const rideSettings = athlete?.sportSettings?.find((settings) =>
     settings.types?.some((type) => /ride/i.test(type)),
@@ -238,18 +261,26 @@ async function syncOnePowerProfile(
     const hasCurve = Boolean(watts15s || watts30s || watts1m || watts2m || watts5m || watts10m || watts20m);
     const hasFallback = Boolean(payload.ftp_watts || payload.weight_kg);
 
-    const { error } = await supabase.from("rider_power_profiles").upsert({
+    const profileRow = {
       profile_id: connection.profile_id,
       athlete_id: athleteId,
       period: curve.period,
       source: "intervals",
       ...payload,
+      curve_points: compactCurvePoints(curve.points),
       sync_status: hasCurve ? "ok" : hasFallback ? "partial" : "error",
       sync_error: hasCurve
         ? null
         : `Geen powercurve-punten gevonden in Intervals (${curve.debug ?? "onbekend antwoord"}).`,
       synced_at: new Date().toISOString(),
-    });
+    };
+    let { error } = await supabase.from("rider_power_profiles").upsert(profileRow);
+    if (error?.message.includes("curve_points")) {
+      const legacyProfileRow = Object.fromEntries(
+        Object.entries(profileRow).filter(([key]) => key !== "curve_points"),
+      );
+      ({ error } = await supabase.from("rider_power_profiles").upsert(legacyProfileRow));
+    }
     if (error) throw new Error(error.message);
     return {
       ok: hasCurve,
@@ -325,5 +356,6 @@ export async function syncRiderPowerProfiles(scope: "self" | "all" = "self") {
 
   revalidatePath("/teams");
   revalidatePath("/dashboard");
+  revalidatePath("/training/vermogen");
   return { ok: true as const, synced, partial, failed, errors: errors.slice(0, 3) };
 }

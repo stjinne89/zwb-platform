@@ -10,7 +10,6 @@ import {
   signUp,
 } from "./actions";
 import { Button } from "@/components/ui/button";
-import { ZwbLogo } from "@/components/zwb-logo";
 
 type Mode = "login" | "register" | "reset";
 
@@ -126,7 +125,14 @@ function AuthScreen() {
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-sm">
         <div className="space-y-3">
-          <ZwbLogo className="h-16 w-auto text-foreground" />
+          <div className="inline-flex rounded-xl bg-white px-4 py-3 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/zwb-logo.png"
+              alt="ZWB Cycling Community"
+              className="h-14 w-auto"
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
             {mode === "login" && "Log in om verder te gaan."}
             {mode === "register" && "Maak een ZWB-account aan."}

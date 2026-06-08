@@ -2,6 +2,12 @@
 // Documentatie: https://intervals.icu/api-docs.html
 
 import { decryptSecret } from "@/lib/crypto/secrets";
+import {
+  normalizePowerCurvePoints,
+  type IntervalsPowerCurvePoint,
+} from "@/lib/intervals/power-curve";
+
+export type { IntervalsPowerCurvePoint } from "@/lib/intervals/power-curve";
 
 const BASE = "https://intervals.icu";
 
@@ -135,16 +141,17 @@ export type IntervalsWorkoutInput = {
   workoutDoc?: Record<string, unknown> | null;
 };
 
-export type IntervalsPowerCurvePoint = {
-  seconds: number;
-  watts: number;
-};
-
 export type IntervalsPowerCurve = {
   period: string;
   points: IntervalsPowerCurvePoint[];
   ftpWatts?: number | null;
   debug?: string;
+};
+
+type PowerCurveActivityMeta = {
+  id?: string;
+  start_date_local?: string;
+  icu_weight?: number;
 };
 
 /** Haalt athlete-info voor de eigenaar van de API-key. */
@@ -213,15 +220,46 @@ function numericField(row: Record<string, unknown>, keys: string[]) {
   return null;
 }
 
+function stringField(value: unknown) {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function collectPowerCurveActivities(value: unknown) {
+  const out = new Map<string, PowerCurveActivityMeta>();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return out;
+  const activities = (value as Record<string, unknown>).activities;
+  if (!activities || typeof activities !== "object" || Array.isArray(activities)) return out;
+
+  for (const [key, activity] of Object.entries(activities)) {
+    if (!activity || typeof activity !== "object" || Array.isArray(activity)) continue;
+    const row = activity as Record<string, unknown>;
+    const id = stringField(row.id) ?? key;
+    out.set(id, {
+      id,
+      start_date_local: stringField(row.start_date_local) ?? undefined,
+      icu_weight: numericField(row, ["icu_weight", "weight"]) ?? undefined,
+    });
+  }
+  return out;
+}
+
+function activityMeta(
+  activities: Map<string, PowerCurveActivityMeta>,
+  id: string | null,
+) {
+  return id ? activities.get(id) ?? null : null;
+}
+
 function collectPowerCurvePoints(
   value: unknown,
   out: IntervalsPowerCurvePoint[],
+  activities: Map<string, PowerCurveActivityMeta>,
   depth = 0,
 ) {
   if (depth > 8) return;
   if (Array.isArray(value)) {
     if (
-      value.length >= 2 &&
+      value.length === 2 &&
       typeof value[0] === "number" &&
       typeof value[1] === "number" &&
       value[0] > 0 &&
@@ -230,7 +268,7 @@ function collectPowerCurvePoints(
       out.push({ seconds: Math.round(value[0]), watts: Math.round(value[1]) });
       return;
     }
-    for (const item of value) collectPowerCurvePoints(item, out, depth + 1);
+    for (const item of value) collectPowerCurvePoints(item, out, activities, depth + 1);
     return;
   }
 
@@ -238,13 +276,38 @@ function collectPowerCurvePoints(
   const row = value as Record<string, unknown>;
   const secondsArray = row.seconds ?? row.secs ?? row.duration ?? row.x;
   const wattsArray = row.watts ?? row.power ?? row.y ?? row.values;
+  const wkgArray = row.watts_per_kg ?? row.wkg ?? row.power_per_kg;
+  const activityIds = row.activity_id ?? row.activity_ids;
+  const wkgActivityIds = row.wkg_activity_id ?? row.wkg_activity_ids;
+  const consumedArrays = new Set<unknown>();
   if (Array.isArray(secondsArray) && Array.isArray(wattsArray)) {
+    consumedArrays.add(secondsArray);
+    consumedArrays.add(wattsArray);
+    if (Array.isArray(wkgArray)) consumedArrays.add(wkgArray);
+    if (Array.isArray(activityIds)) consumedArrays.add(activityIds);
+    if (Array.isArray(wkgActivityIds)) consumedArrays.add(wkgActivityIds);
     const count = Math.min(secondsArray.length, wattsArray.length);
     for (let i = 0; i < count; i += 1) {
       const seconds = Number(secondsArray[i]);
       const watts = Number(wattsArray[i]);
       if (Number.isFinite(seconds) && seconds > 0 && Number.isFinite(watts) && watts > 0) {
-        out.push({ seconds: Math.round(seconds), watts: Math.round(watts) });
+        const activityId = Array.isArray(activityIds) ? stringField(activityIds[i]) : null;
+        const wkgActivityId = Array.isArray(wkgActivityIds)
+          ? stringField(wkgActivityIds[i])
+          : null;
+        const powerActivity = activityMeta(activities, activityId);
+        const wkgActivity = activityMeta(activities, wkgActivityId);
+        out.push({
+          seconds: Math.round(seconds),
+          watts: Math.round(watts),
+          wattsPerKg: Array.isArray(wkgArray) ? Number(wkgArray[i]) : null,
+          activityId,
+          activityDate: powerActivity?.start_date_local ?? null,
+          weightKg: powerActivity?.icu_weight ?? null,
+          wkgActivityId,
+          wkgActivityDate: wkgActivity?.start_date_local ?? null,
+          wkgWeightKg: wkgActivity?.icu_weight ?? null,
+        });
       }
     }
   }
@@ -267,14 +330,24 @@ function collectPowerCurvePoints(
     "avg_watts",
     "average_watts",
   ]);
+  const wattsPerKg = numericField(row, [
+    "watts_per_kg",
+    "wkg",
+    "power_per_kg",
+  ]);
 
   if (seconds && watts) {
-    out.push({ seconds: Math.round(seconds), watts: Math.round(watts) });
+    out.push({
+      seconds: Math.round(seconds),
+      watts: Math.round(watts),
+      wattsPerKg,
+    });
   }
 
   for (const nested of Object.values(row)) {
+    if (consumedArrays.has(nested)) continue;
     if (nested && (Array.isArray(nested) || typeof nested === "object")) {
-      collectPowerCurvePoints(nested, out, depth + 1);
+      collectPowerCurvePoints(nested, out, activities, depth + 1);
     }
   }
 }
@@ -314,17 +387,9 @@ export async function fetchIntervalsPowerCurve(
     ],
   );
   const points: IntervalsPowerCurvePoint[] = [];
-  collectPowerCurvePoints(payload, points);
+  collectPowerCurvePoints(payload, points, collectPowerCurveActivities(payload));
 
-  const deduped = Array.from(
-    points
-      .reduce((map, point) => {
-        const current = map.get(point.seconds);
-        if (!current || point.watts > current.watts) map.set(point.seconds, point);
-        return map;
-      }, new Map<number, IntervalsPowerCurvePoint>())
-      .values(),
-  ).sort((a, b) => a.seconds - b.seconds);
+  const deduped = normalizePowerCurvePoints(points);
 
   const maybe = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
   const debug = Array.isArray(payload)

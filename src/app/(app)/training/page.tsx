@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   Activity,
   Calendar,
+  ChevronDown,
   CircleHelp,
   ClipboardList,
   Download,
@@ -52,7 +53,9 @@ import { DeleteTrainingPlanButton } from "./_components/delete-training-plan-but
 import { PlanActions } from "./_components/plan-actions";
 import {
   summarizeWellness,
+  summarizeTrainingReadiness,
   type WellnessSummary,
+  type TrainingReadinessSummary,
 } from "@/lib/training/wellness";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 
@@ -62,6 +65,7 @@ type ProfileRow = {
   ftp_watts: number | null;
   weight_kg: number | string | null;
   zrl_category: string | null;
+  zrl_division: string | null;
   community_roles?: string[] | null;
 };
 
@@ -373,6 +377,34 @@ function targetHint({
   const watts = wattRangeLabel(ftpWatts, range);
   if (!watts || /(\d+\s*-\s*\d+\s*w|\d+\s*w)/i.test(target ?? "")) return null;
   return rpe ? `RPE ${rpe}: ${watts}` : watts;
+}
+
+// Inklapbaar blok (native <details>): standaard dicht, klik op de kop opent het.
+function CollapsibleCard({
+  title,
+  subtitle,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group rounded-lg border bg-card" open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+        <div>
+          <h2 className="font-semibold">{title}</h2>
+          {subtitle ? (
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
+          ) : null}
+        </div>
+        <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="border-t">{children}</div>
+    </details>
+  );
 }
 
 function intervalsWorkoutUrl(athleteId: string | undefined, workout: WorkoutRow) {
@@ -747,6 +779,75 @@ function recoveryPillClass(state?: WellnessSummary["state"]) {
   return "bg-muted text-muted-foreground";
 }
 
+// "ZWBeterWorden": 5 niveaus afgeleid van de readiness (state + score),
+// van overtraind (1) tot superfris (5).
+type ZwbAdvice = {
+  level: number;
+  title: string;
+  description: string;
+  pill: string;
+  block: string;
+};
+
+function zwbeterWordenAdvice(
+  summary: TrainingReadinessSummary,
+  zrlDivision?: string | null,
+): ZwbAdvice {
+  const score = summary.score;
+  // Geslacht-signaal uit de gekozen ZRL-divisie: "women" (Dames) → partner = man.
+  const partner = zrlDivision === "women" ? "man" : "vrouw";
+  if (summary.state === "unknown" || score == null) {
+    return {
+      level: 0,
+      title: "Nog geen advies",
+      description:
+        "Deel je herstel-data (slaap/HRV) en koppel intervals.icu, dan verschijnt hier je ZWBeterWorden-advies.",
+      pill: "bg-muted text-muted-foreground",
+      block: "border bg-background",
+    };
+  }
+  let level: number;
+  if (summary.state === "recovery") level = score < 25 ? 1 : 2;
+  else if (summary.state === "caution") level = score < 58 ? 3 : 4;
+  else level = 5;
+
+  const LEVELS: Record<number, Omit<ZwbAdvice, "level">> = {
+    1: {
+      title: "DOE NIKS",
+      description: `Je bent aan het overtrainen, geef je ${partner} even wat aandacht ofzo.`,
+      pill: "bg-destructive/20 text-destructive",
+      block: "border border-destructive/40 bg-destructive/10",
+    },
+    2: {
+      title: "RICHT OP HERSTEL",
+      description: "Ga maar lekker vogeltjes kijken.",
+      pill: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
+      block: "border border-orange-500/40 bg-orange-500/10",
+    },
+    3: {
+      title: "ALLEEN DUUR",
+      description: "Je mag wel gaan fietsen, maar geen heftige intervallen.",
+      pill: "bg-zwb-petrol text-white",
+      block: "border border-zwb-petrol/50 bg-zwb-petrol/10",
+    },
+    4: {
+      title: "FRIS GENOEG",
+      description:
+        "Ga er maar lekker op uit en blokjes mogen ook, vergeet de chocomelk niet na afloop.",
+      pill: "bg-zwb-teal text-white",
+      block: "border border-zwb-teal/50 bg-zwb-teal/10",
+    },
+    5: {
+      title: "BETER WORDT HET NIET",
+      description:
+        "Alles mag, probeer die andere ZWB'ers er vandaag maar vanaf te rijden.",
+      pill: "bg-zwb-gold text-white",
+      block: "border border-zwb-gold/50 bg-zwb-gold/10",
+    },
+  };
+  return { level, ...LEVELS[level] };
+}
+
 function formatWellnessDate(value: string | null) {
   if (!value) return "-";
   return new Date(`${value}T12:00:00`).toLocaleDateString("nl-NL", {
@@ -820,6 +921,10 @@ function CoachWorkspace({
     }
   }
   const recovery = wellness.get(selected.athlete_id);
+  const trainingReadiness = summarizeTrainingReadiness({
+    tsb: metric?.tsb,
+    wellness: recovery?.summary,
+  });
   const totals = loadSummary(athleteActivities);
   const recentZwbWorkouts = athleteWorkouts
     .filter((workout) => new Date(workout.scheduled_at).getTime() < nowMs)
@@ -855,6 +960,10 @@ function CoachWorkspace({
             const rowRecovery = wellness.get(assignment.athlete_id);
             const rowActivities = activities.get(assignment.athlete_id) ?? [];
             const rowTotals = loadSummary(rowActivities);
+            const rowTrainingReadiness = summarizeTrainingReadiness({
+              tsb: rowMetric?.tsb,
+              wellness: rowRecovery?.summary,
+            });
             const active = assignment.athlete_id === selected.athlete_id;
             return (
               <Link
@@ -882,19 +991,24 @@ function CoachWorkspace({
                   </span>
                 </div>
                 <div className="mt-2">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                      rowRecovery?.summary
-                        ? recoveryPillClass(rowRecovery.summary.state)
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {rowRecovery?.summary
-                      ? recoveryStateLabel(rowRecovery.summary.state)
-                      : rowRecovery?.optedIn
-                        ? "Geen hersteldata"
-                        : "Herstel niet gedeeld"}
-                  </span>
+                  {(() => {
+                    const advice = rowRecovery?.summary
+                      ? zwbeterWordenAdvice(rowTrainingReadiness, rowProfile?.zrl_division)
+                      : null;
+                    return (
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          advice ? advice.pill : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {advice
+                          ? `${advice.level}/5 · ${advice.title}`
+                          : rowRecovery?.optedIn
+                            ? "Geen hersteldata"
+                            : "Herstel niet gedeeld"}
+                      </span>
+                    );
+                  })()}
                 </div>
               </Link>
             );
@@ -928,6 +1042,12 @@ function CoachWorkspace({
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
                 <MetricCard icon={Activity} label="TSB" value={formatNumber(metric?.tsb, 1)} />
+                <MetricCard
+                  icon={ShieldCheck}
+                  label="Trainingsruimte"
+                  value={trainingReadiness.score != null ? `${trainingReadiness.score}` : "-"}
+                  hint={zwbeterWordenAdvice(trainingReadiness, athlete?.zrl_division).title}
+                />
                 <MetricCard icon={TrendingUp} label="CTL doel" value={formatNumber(ctlProjection ?? undefined, 1)} />
                 <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
                 <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
@@ -990,6 +1110,23 @@ function CoachWorkspace({
                   </div>
                 )}
               </div>
+              {(() => {
+                const advice = zwbeterWordenAdvice(trainingReadiness, athlete?.zrl_division);
+                return (
+                  <div className={`mt-3 rounded-md p-3 ${advice.block}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium">ZWBeterWorden</p>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${advice.pill}`}
+                      >
+                        {advice.level > 0 ? `Niveau ${advice.level}/5` : "—"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold">{advice.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{advice.description}</p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           {metric?.error ? (
@@ -1196,7 +1333,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, ftp_watts, weight_kg, zrl_category")
+      .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division")
       .eq("id", user.id)
       .single(),
     supabase
@@ -1287,14 +1424,26 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const eftpFirst = wellnessSorted.find((w) => w.eftp)?.eftp;
   const eftpLatest = [...wellnessSorted].reverse().find((w) => w.eftp)?.eftp;
   const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
+  const currentTsb =
+    latest?.ctl !== undefined && latest?.atl !== undefined ? latest.ctl - latest.atl : null;
+  const currentTrainingReadiness = summarizeTrainingReadiness({
+    tsb: currentTsb,
+    wellness: recoverySummary,
+  });
   const upcomingEvents = [...events]
     .filter((e) => e.start_date_local >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
     .slice(0, 5);
   const memberWorkouts = (myWorkouts ?? []) as WorkoutRow[];
   const myWorkoutsByPlan = byPlan(memberWorkouts);
+  // Toon workouts van VANDAAG of later. Vergelijk op datum (Amsterdam), niet op
+  // exact tijdstip — anders verdwijnt de training van vandaag zodra de klok het
+  // geplande uur voorbij is, terwijl de trainer-weergave 'm wel toont.
+  const todayKey = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Europe/Amsterdam",
+  });
   const upcomingZwbMemberWorkouts = memberWorkouts
-    .filter((workout) => new Date(workout.scheduled_at).getTime() >= now.getTime())
+    .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
   const myReportsByWorkout = byWorkout((myReports ?? []) as WorkoutReportRow[]);
 
@@ -1345,7 +1494,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         await Promise.all([
           supabase
             .from("profiles")
-            .select("id, display_name, ftp_watts, weight_kg, zrl_category")
+            .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division")
             .in("id", athleteIds),
           supabase
             .from("training_goals")
@@ -1482,7 +1631,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         title="Coach-cockpit"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <HelpLink href="/hulp#training" />
+            <Link
+              href="/training/vermogen"
+              className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+            >
+              <Activity className="size-4" />
+              Mijn vermogen
+            </Link>
+            <HelpLink href="/hulp#trainingsruimte" />
             {conn ? <DisconnectIntervalsButton /> : null}
           </div>
         }
@@ -1533,7 +1689,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         </section>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
           icon={TrendingUp}
           label="Fitness (CTL)"
@@ -1543,11 +1699,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         <MetricCard
           icon={Activity}
           label="Form (TSB)"
-          value={formatNumber(
-            latest?.ctl !== undefined && latest?.atl !== undefined ? latest.ctl - latest.atl : undefined,
-            1,
-          )}
-          hint="Positief = fris, negatief = vermoeid"
+          value={formatNumber(currentTsb ?? undefined, 1)}
+          hint="Negatief = trainingsvermoeidheid, niet automatisch je herstelstatus"
+        />
+        <MetricCard
+          icon={ShieldCheck}
+          label="Trainingsruimte"
+          value={currentTrainingReadiness.score != null ? `${currentTrainingReadiness.score}` : "-"}
+          hint={zwbeterWordenAdvice(currentTrainingReadiness, myProfile?.zrl_division).title}
         />
         <MetricCard
           icon={Mountain}
@@ -1605,6 +1764,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                     }
                   />
                   <RecoveryStat
+                    label="Readiness"
+                    value={
+                      recoverySummary.readiness != null
+                        ? `${recoverySummary.readiness}`
+                        : "-"
+                    }
+                  />
+                  <RecoveryStat
                     label="HRV (7d gem.)"
                     value={recoverySummary.hrv != null ? `${recoverySummary.hrv}` : "—"}
                   />
@@ -1628,6 +1795,26 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                 <p className="text-xs text-muted-foreground">
                   {recoverySummary.note}
                 </p>
+                {(() => {
+                  const advice = zwbeterWordenAdvice(
+                    currentTrainingReadiness,
+                    myProfile?.zrl_division,
+                  );
+                  return (
+                    <div className={`rounded-md p-3 ${advice.block}`}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-medium">ZWBeterWorden</p>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${advice.pill}`}
+                        >
+                          {advice.level > 0 ? `Niveau ${advice.level}/5` : "—"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold">{advice.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{advice.description}</p>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
@@ -1739,36 +1926,28 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         </form>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border bg-card">
-          <div className="border-b p-4">
-            <h2 className="font-semibold">Mijn doelen</h2>
-          </div>
-          {goals.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">Geen trainingsdoelen.</p>
-          ) : (
-            <ul className="divide-y">
-              {goals.map((goal) => (
-                <li key={goal.id} className="p-4">
-                  <p className="font-medium">{goal.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
-                    {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
-                    {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      <section className="space-y-4">
+        {conn?.athlete_id ? (
+          <a
+            href={`https://intervals.icu/athletes/${conn.athlete_id}/calendar`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 transition hover:border-primary/40"
+          >
+            <div>
+              <h2 className="font-semibold">Bekijk schema hier</h2>
+              <p className="text-sm text-muted-foreground">
+                Open je volledige kalender op intervals.icu
+              </p>
+            </div>
+            <ExternalLink className="size-5 shrink-0 text-muted-foreground" />
+          </a>
+        ) : null}
 
-        <div className="rounded-lg border bg-card">
-          <div className="border-b p-4">
-            <h2 className="font-semibold">Komende workouts</h2>
-            <p className="text-sm text-muted-foreground">
-              Uit intervals.icu en ZWB-schema&apos;s.
-            </p>
-          </div>
+        <CollapsibleCard
+          title="Komende workouts"
+          subtitle="Uit intervals.icu en ZWB-schema's"
+        >
           {upcomingEvents.length === 0 && upcomingZwbMemberWorkouts.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>
           ) : (
@@ -1830,13 +2009,28 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               ))}
             </ul>
           )}
-        </div>
-      </section>
+        </CollapsibleCard>
 
-      <section className="rounded-lg border bg-card">
-        <div className="border-b p-4">
-          <h2 className="font-semibold">Mijn ZWB-schema&apos;s</h2>
-        </div>
+        <CollapsibleCard title="Mijn doelen">
+          {goals.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Geen trainingsdoelen.</p>
+          ) : (
+            <ul className="divide-y">
+              {goals.map((goal) => (
+                <li key={goal.id} className="p-4">
+                  <p className="font-medium">{goal.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
+                    {goal.target_date ? ` - ${new Date(goal.target_date).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam" })}` : ""}
+                    {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Mijn ZWB-schema's">
         {plans.length === 0 ? (
           <EmptyState>Geen ZWB-trainingsschema&apos;s.</EmptyState>
         ) : (
@@ -1882,6 +2076,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             ))}
           </div>
         )}
+        </CollapsibleCard>
       </section>
         </>
       ) : null}

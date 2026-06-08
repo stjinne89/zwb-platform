@@ -51,6 +51,26 @@ type EffortRow = {
   started_at: string | null;
 };
 
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{
+    data: T[] | null;
+    error: { message?: string } | null;
+  }>,
+) {
+  const pageSize = 1000;
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery(from, from + pageSize - 1);
+    if (error) {
+      throw new Error(error.message ?? "Segmentdata kon niet volledig worden gelezen.");
+    }
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return rows;
+}
+
 function effortUid(
   profileId: string,
   activityId: number,
@@ -115,6 +135,71 @@ function inferredCountry(row: {
   if (lat >= 49.4 && lat <= 51.6 && lon >= 2.4 && lon <= 6.5) return "BE";
   if (lat >= 49.4 && lat <= 50.3 && lon >= 5.7 && lon <= 6.6) return "LU";
   return null;
+}
+
+const SEGMENT_NAME_STOP_WORDS = new Set([
+  "all",
+  "begin",
+  "bijna",
+  "boven",
+  "challenge",
+  "complete",
+  "correct",
+  "cycling",
+  "deel",
+  "doortrappen",
+  "eind",
+  "finish",
+  "full",
+  "gedeelte",
+  "grote",
+  "naar",
+  "route",
+  "segment",
+  "sprint",
+  "steilste",
+  "stuk",
+  "the",
+  "top",
+  "voor",
+  "volledig",
+  "way",
+  "zonder",
+  "uitloop",
+]);
+
+function segmentNameTokens(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(
+      (word) =>
+        word.length >= 4 &&
+        !/^\d+$/.test(word) &&
+        !SEGMENT_NAME_STOP_WORDS.has(word),
+    );
+}
+
+function distanceMeters(
+  aLat: number | null,
+  aLon: number | null,
+  bLat: number | null,
+  bLon: number | null,
+) {
+  if (aLat == null || aLon == null || bLat == null || bLon == null) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const lat1 = toRadians(aLat);
+  const lat2 = toRadians(bLat);
+  const deltaLat = lat2 - lat1;
+  const deltaLon = toRadians(bLon - aLon);
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 async function fetchAllActivities(
@@ -251,18 +336,22 @@ export async function recomputeCompletedSegmentsForUser(
   supabase: SupabaseClient,
   profileId: string,
 ) {
-  const [{ data: segmentRows }, { data: effortRows }] = await Promise.all([
+  const [{ data: segmentRows }, effortRows] = await Promise.all([
     supabase
       .from("zwb_segments")
       .select("slug, collection, strava_segment_id")
       .eq("active", true)
       .not("strava_segment_id", "is", null),
-    supabase
-      .from("strava_activity_segment_efforts")
-      .select(
-        "profile_id, activity_id, strava_segment_id, segment_name, elapsed_time_seconds, moving_time_seconds, started_at",
-      )
-      .eq("profile_id", profileId),
+    fetchAllRows<EffortRow>((from, to) =>
+      supabase
+        .from("strava_activity_segment_efforts")
+        .select(
+          "profile_id, activity_id, strava_segment_id, segment_name, elapsed_time_seconds, moving_time_seconds, started_at",
+        )
+        .eq("profile_id", profileId)
+        .order("effort_uid", { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
   const bySegmentId = new Map<number, SegmentRow>();
@@ -285,7 +374,7 @@ export async function recomputeCompletedSegmentsForUser(
     bestAt: string | null;
   };
   const aggregates = new Map<string, Aggregate>();
-  for (const effort of (effortRows ?? []) as EffortRow[]) {
+  for (const effort of effortRows) {
     const segment = bySegmentId.get(Number(effort.strava_segment_id));
     if (!segment || segment.collection === "cols") continue;
     const at = effort.started_at ?? new Date().toISOString();
@@ -358,6 +447,118 @@ export async function recomputeCompletedSegmentsForUser(
   return { completed: error ? 0 : rows.length };
 }
 
+// Authoritatieve PR per segment rechtstreeks van Strava. De activity-scan-cache
+// is per definitie onvolledig (we halen maar een deel van de ritten op), dus de
+// "snelste uit de cache" kan te traag zijn. Strava berekent zelf de PR over ALLE
+// efforts van de atleet (athlete_segment_stats.pr_elapsed_time) — dat is de
+// waarheid. We schrijven die over de berekende best_time heen. Dit lost het
+// permanent op: ongeacht welke ritten gescand zijn, klopt de recordtijd.
+export async function applyAuthoritativeSegmentPrs(
+  supabase: SupabaseClient,
+  accessToken: string,
+  profileId: string,
+  options: { maxSegments?: number } = {},
+) {
+  const maxSegments = options.maxSegments ?? 100;
+  const { data: segs } = await supabase
+    .from("zwb_segments")
+    .select("slug, collection, strava_segment_id")
+    .eq("active", true)
+    .not("strava_segment_id", "is", null)
+    .limit(maxSegments);
+
+  let checked = 0;
+  let updated = 0;
+  let rateLimited = false;
+
+  for (const seg of (segs ?? []) as SegmentRow[]) {
+    let res: Response;
+    try {
+      res = await fetch(`https://www.strava.com/api/v3/segments/${seg.strava_segment_id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+    } catch {
+      continue;
+    }
+    if (res.status === 429) {
+      rateLimited = true;
+      break;
+    }
+    if (!res.ok) continue;
+    checked++;
+
+    const detail = (await res.json()) as {
+      athlete_segment_stats?: {
+        pr_elapsed_time?: number | null;
+        pr_date?: string | null;
+        pr_activity_id?: number | null;
+        effort_count?: number | null;
+      } | null;
+    };
+    const stats = detail.athlete_segment_stats;
+    const pr = stats?.pr_elapsed_time ?? null;
+    const effortCount = stats?.effort_count ?? 0;
+    // Geen geldige PR (atleet heeft geen effort) → overslaan.
+    if (pr == null || pr <= 0 || effortCount <= 0) continue;
+
+    const { data: existing } = await supabase
+      .from("profile_completed_segments")
+      .select("first_activity_id, first_completed_at, times_completed")
+      .eq("profile_id", profileId)
+      .eq("segment_slug", seg.slug)
+      .maybeSingle();
+
+    const prDate = stats?.pr_date ?? null;
+    const { error } = await supabase.from("profile_completed_segments").upsert(
+      {
+        profile_id: profileId,
+        segment_slug: seg.slug,
+        best_time_seconds: pr,
+        best_time_activity_id: stats?.pr_activity_id ?? null,
+        best_time_at: prDate,
+        times_completed: Math.max(
+          effortCount,
+          (existing as { times_completed?: number } | null)?.times_completed ?? 0,
+        ),
+        first_activity_id:
+          (existing as { first_activity_id?: number } | null)?.first_activity_id ??
+          stats?.pr_activity_id ??
+          null,
+        first_completed_at:
+          (existing as { first_completed_at?: string } | null)?.first_completed_at ??
+          prDate ??
+          new Date().toISOString(),
+        last_activity_id: stats?.pr_activity_id ?? null,
+        last_completed_at: prDate ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "profile_id,segment_slug" },
+    );
+    if (!error) updated++;
+
+    // Virtuele/echte cols hebben hun recordtijd óók in profile_climbed_cols
+    // (gebruikt door /profiel/cols + de mirror). Werk de bestaande rij bij met
+    // de authoritatieve PR zodat beide weergaven kloppen.
+    if (seg.collection === "cols") {
+      await supabase
+        .from("profile_climbed_cols")
+        .update({
+          best_time_seconds: pr,
+          best_time_activity_id: stats?.pr_activity_id ?? null,
+          best_time_at: prDate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("profile_id", profileId)
+        .eq("col_slug", seg.slug);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+
+  return { checked, updated, rateLimited };
+}
+
 export async function syncZwbSegmentsForUser(
   supabase: SupabaseClient,
   accessToken: string,
@@ -368,7 +569,13 @@ export async function syncZwbSegmentsForUser(
   if (maxFetches <= 0) {
     await mirrorLegacyColsToSegments(supabase, profileId);
     const completed = await recomputeCompletedSegmentsForUser(supabase, profileId);
-    return { fetched: 0, storedEfforts: 0, completed: completed.completed, rateLimited: false };
+    const authoritative = await applyAuthoritativeSegmentPrs(supabase, accessToken, profileId);
+    return {
+      fetched: 0,
+      storedEfforts: 0,
+      completed: completed.completed,
+      rateLimited: authoritative.rateLimited,
+    };
   }
 
   const [activities, fetchedEffortActivityIds] = await Promise.all([
@@ -445,6 +652,12 @@ export async function syncZwbSegmentsForUser(
 
   await mirrorLegacyColsToSegments(supabase, profileId);
   const completed = await recomputeCompletedSegmentsForUser(supabase, profileId);
+  // Authoritatieve PR's ophalen (tenzij Strava al limiteert) zodat de recordtijd
+  // klopt ongeacht welke ritten al gescand zijn.
+  if (!rateLimited) {
+    const authoritative = await applyAuthoritativeSegmentPrs(supabase, accessToken, profileId);
+    rateLimited = authoritative.rateLimited;
+  }
   return { fetched, storedEfforts, completed: completed.completed, rateLimited };
 }
 
@@ -454,19 +667,47 @@ export async function seedBeneluxPopularSegments(
 ) {
   const { data: existingRows } = await supabase
     .from("zwb_segments")
-    .select("strava_segment_id")
+    .select("slug, name, source, strava_segment_id, metadata")
     .not("strava_segment_id", "is", null);
-  const existing = new Set(
-    ((existingRows ?? []) as { strava_segment_id: number }[]).map((r) =>
-      Number(r.strava_segment_id),
-    ),
+  const existing = (existingRows ?? []) as Array<{
+    slug: string;
+    name: string;
+    source: string;
+    strava_segment_id: number;
+    metadata: {
+      summit_lat?: number;
+      summit_lon?: number;
+      detection_radius_m?: number;
+    } | null;
+  }>;
+  const protectedSegments = existing.filter((row) => row.source !== "zwb-discovery");
+  const protectedIds = new Set(
+    protectedSegments.map((row) => Number(row.strava_segment_id)),
+  );
+  const protectedTokens = new Set(
+    protectedSegments.flatMap((row) => segmentNameTokens(row.name)),
   );
 
-  const { data } = await supabase
-    .from("strava_activity_segment_efforts")
-    .select(
-      "profile_id, strava_segment_id, segment_name, distance_m, elevation_gain_m, average_grade, start_lat, start_lon, end_lat, end_lon",
-    );
+  const data = await fetchAllRows<{
+    profile_id: string;
+    strava_segment_id: number;
+    segment_name: string | null;
+    distance_m: number | null;
+    elevation_gain_m: number | null;
+    average_grade: number | null;
+    start_lat: number | null;
+    start_lon: number | null;
+    end_lat: number | null;
+    end_lon: number | null;
+  }>((from, to) =>
+    supabase
+      .from("strava_activity_segment_efforts")
+      .select(
+        "profile_id, strava_segment_id, segment_name, distance_m, elevation_gain_m, average_grade, start_lat, start_lon, end_lat, end_lon",
+      )
+      .order("effort_uid", { ascending: true })
+      .range(from, to),
+  );
 
   type Candidate = {
     segmentId: number;
@@ -482,20 +723,9 @@ export async function seedBeneluxPopularSegments(
     end_lon: number | null;
   };
   const candidates = new Map<number, Candidate>();
-  for (const row of (data ?? []) as Array<{
-    profile_id: string;
-    strava_segment_id: number;
-    segment_name: string | null;
-    distance_m: number | null;
-    elevation_gain_m: number | null;
-    average_grade: number | null;
-    start_lat: number | null;
-    start_lon: number | null;
-    end_lat: number | null;
-    end_lon: number | null;
-  }>) {
+  for (const row of data) {
     const segmentId = Number(row.strava_segment_id);
-    if (existing.has(segmentId)) continue;
+    if (protectedIds.has(segmentId)) continue;
     if (!isBeneluxEffort(row)) continue;
     const current =
       candidates.get(segmentId) ??
@@ -517,18 +747,117 @@ export async function seedBeneluxPopularSegments(
     candidates.set(segmentId, current);
   }
 
-  const top = [...candidates.values()]
-    .sort((a, b) => {
+  const candidateList = [...candidates.values()].filter((candidate) => {
+    if (segmentNameTokens(candidate.name).some((token) => protectedTokens.has(token))) {
+      return false;
+    }
+    if ((candidate.grade ?? 0) <= 1) return true;
+    return !protectedSegments.some((segment) => {
+      const summitLat = Number(segment.metadata?.summit_lat);
+      const summitLon = Number(segment.metadata?.summit_lon);
+      const radius = Number(segment.metadata?.detection_radius_m);
+      if (!Number.isFinite(summitLat) || !Number.isFinite(summitLon)) return false;
+      return (
+        distanceMeters(candidate.end_lat, candidate.end_lon, summitLat, summitLon) <=
+        (Number.isFinite(radius) && radius > 0 ? radius : 500)
+      );
+    });
+  });
+
+  const tokenFrequency = new Map<string, number>();
+  for (const candidate of candidateList) {
+    for (const token of new Set(segmentNameTokens(candidate.name))) {
+      tokenFrequency.set(token, (tokenFrequency.get(token) ?? 0) + 1);
+    }
+  }
+  const parents = candidateList.map((_, index) => index);
+  const find = (index: number): number => {
+    while (parents[index] !== index) {
+      parents[index] = parents[parents[index]];
+      index = parents[index];
+    }
+    return index;
+  };
+  const join = (left: number, right: number) => {
+    const leftRoot = find(left);
+    const rightRoot = find(right);
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
+  };
+  for (let left = 0; left < candidateList.length; left += 1) {
+    const leftCandidate = candidateList[left];
+    const leftTokens = new Set(segmentNameTokens(leftCandidate.name));
+    for (let right = left + 1; right < candidateList.length; right += 1) {
+      const rightCandidate = candidateList[right];
+      const sharedLocationToken = segmentNameTokens(rightCandidate.name).some(
+        (token) => leftTokens.has(token) && (tokenFrequency.get(token) ?? 0) >= 2,
+      );
+      const sameGeometry =
+        distanceMeters(
+          leftCandidate.start_lat,
+          leftCandidate.start_lon,
+          rightCandidate.start_lat,
+          rightCandidate.start_lon,
+        ) <= 175 &&
+        distanceMeters(
+          leftCandidate.end_lat,
+          leftCandidate.end_lon,
+          rightCandidate.end_lat,
+          rightCandidate.end_lon,
+        ) <= 300;
+      if (sharedLocationToken || sameGeometry) join(left, right);
+    }
+  }
+
+  const clusters = new Map<number, Candidate[]>();
+  candidateList.forEach((candidate, index) => {
+    const root = find(index);
+    const cluster = clusters.get(root) ?? [];
+    cluster.push(candidate);
+    clusters.set(root, cluster);
+  });
+  const representatives = [...clusters.values()].map((cluster) => {
+    const clusterTokens = new Map<string, number>();
+    for (const candidate of cluster) {
+      for (const token of new Set(segmentNameTokens(candidate.name))) {
+        clusterTokens.set(token, (clusterTokens.get(token) ?? 0) + 1);
+      }
+    }
+    const dominantToken = [...clusterTokens.entries()]
+      .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0]?.[0];
+    const sorted = [...cluster].sort((a, b) => {
+      const aExact =
+        dominantToken != null &&
+        segmentNameTokens(a.name).join(" ") === dominantToken;
+      const bExact =
+        dominantToken != null &&
+        segmentNameTokens(b.name).join(" ") === dominantToken;
+      if (aExact !== bExact) return aExact ? -1 : 1;
       const profileDiff = b.profiles.size - a.profiles.size;
       if (profileDiff !== 0) return profileDiff;
+      const directionDiff = Number((b.grade ?? 0) > 1) - Number((a.grade ?? 0) > 1);
+      if (directionDiff !== 0) return directionDiff;
       const effortDiff = b.efforts - a.efforts;
       if (effortDiff !== 0) return effortDiff;
-      return a.name.localeCompare(b.name);
+      const elevationDiff = (b.elevation ?? 0) - (a.elevation ?? 0);
+      if (elevationDiff !== 0) return elevationDiff;
+      return (b.distance ?? 0) - (a.distance ?? 0);
+    });
+    return { candidate: sorted[0], variants: cluster.length, dominantToken };
+  });
+
+  const top = representatives
+    .sort((a, b) => {
+      const profileDiff =
+        b.candidate.profiles.size - a.candidate.profiles.size;
+      if (profileDiff !== 0) return profileDiff;
+      const effortDiff = b.candidate.efforts - a.candidate.efforts;
+      if (effortDiff !== 0) return effortDiff;
+      return a.candidate.name.localeCompare(b.candidate.name);
     })
     .slice(0, limit);
 
-  const rows = top.map((candidate) => ({
-    slug: slugifySegmentName(candidate.name, "benelux"),
+  const rows = top.map(({ candidate, variants, dominantToken }) => ({
+    slug: `${slugifySegmentName(candidate.name, "benelux")}-${candidate.segmentId}`,
     name: candidate.name,
     collection: "benelux_popular",
     country: inferredCountry(candidate),
@@ -548,6 +877,8 @@ export async function seedBeneluxPopularSegments(
       start_lon: candidate.start_lon,
       end_lat: candidate.end_lat,
       end_lon: candidate.end_lon,
+      dedupe_key: dominantToken ?? null,
+      variant_count: variants,
     },
   }));
 
@@ -555,7 +886,21 @@ export async function seedBeneluxPopularSegments(
   const { error } = await supabase
     .from("zwb_segments")
     .upsert(rows, { onConflict: "slug" });
-  return { seeded: error ? 0 : rows.length };
+  if (error) return { seeded: 0, removed: 0 };
+
+  const keepSlugs = new Set(rows.map((row) => row.slug));
+  const staleSlugs = existing
+    .filter((row) => row.source === "zwb-discovery" && !keepSlugs.has(row.slug))
+    .map((row) => row.slug);
+  let removed = 0;
+  if (staleSlugs.length > 0) {
+    const { count } = await supabase
+      .from("zwb_segments")
+      .delete({ count: "exact" })
+      .in("slug", staleSlugs);
+    removed = count ?? 0;
+  }
+  return { seeded: rows.length, removed };
 }
 
 function words(value: string) {

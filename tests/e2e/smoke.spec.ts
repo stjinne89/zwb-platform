@@ -63,7 +63,7 @@ test.describe("public smoke checks", () => {
 });
 
 test.describe("auth guard smoke checks", () => {
-  for (const path of ["/dashboard", "/training", "/profiel"]) {
+  for (const path of ["/dashboard", "/training", "/training/vermogen", "/profiel"]) {
     test(`${path} redirects anonymous visitors to login`, async ({ page }) => {
       await page.goto(path);
 

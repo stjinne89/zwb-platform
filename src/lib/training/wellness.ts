@@ -16,6 +16,13 @@ export type WellnessSummary = {
   note: string;
 };
 
+export type TrainingReadinessSummary = {
+  state: "ready" | "caution" | "recovery" | "unknown";
+  label: string;
+  score: number | null;
+  notes: string[];
+};
+
 type WellnessRow = {
   date: string;
   resting_hr: number | null;
@@ -134,9 +141,12 @@ export function summarizeWellness(rows: WellnessRow[]): WellnessSummary | null {
     }
   }
   if (readiness != null) {
-    if (readiness <= 40) {
+    if (readiness <= 50) {
       state = "fatigued";
       notes.push(`Readiness laag (${Math.round(readiness)}).`);
+    } else if (readiness < 70) {
+      if (state === "fresh" || state === "unknown") state = "normal";
+      notes.push(`Readiness middelmatig (${Math.round(readiness)}).`);
     } else if (readiness >= 75 && state === "unknown") {
       state = "fresh";
     }
@@ -163,6 +173,100 @@ export function summarizeWellness(rows: WellnessRow[]): WellnessSummary | null {
     readiness: readiness != null ? Math.round(readiness) : null,
     state,
     note: notes.join(" "),
+  };
+}
+
+export function summarizeTrainingReadiness({
+  tsb,
+  wellness,
+}: {
+  tsb: number | null | undefined;
+  wellness: WellnessSummary | null | undefined;
+}): TrainingReadinessSummary {
+  const notes: string[] = [];
+  let loadState: TrainingReadinessSummary["state"] = "unknown";
+  let recoveryState: TrainingReadinessSummary["state"] = "unknown";
+  let score = 72;
+
+  if (tsb == null || !Number.isFinite(tsb)) {
+    notes.push("TSB ontbreekt, dus trainingsbelasting telt niet mee.");
+  } else if (tsb <= -25) {
+    loadState = "recovery";
+    score -= 32;
+    notes.push(`TSB ${tsb.toFixed(1)}: hoge trainingsvermoeidheid.`);
+  } else if (tsb <= -10) {
+    loadState = "caution";
+    score -= 18;
+    notes.push(`TSB ${tsb.toFixed(1)}: nog duidelijk belast.`);
+  } else if (tsb < 8) {
+    loadState = "caution";
+    score -= 6;
+    notes.push(`TSB ${tsb.toFixed(1)}: redelijk in balans.`);
+  } else {
+    loadState = "ready";
+    score += 6;
+    notes.push(`TSB ${tsb.toFixed(1)}: belasting is goed gezakt.`);
+  }
+
+  if (!wellness) {
+    notes.push("Geen gedeelde hersteldata om readiness, slaap, HRV en rust-HR mee te wegen.");
+  } else {
+    const readiness = wellness.readiness;
+    if (wellness.state === "fatigued" || (readiness != null && readiness <= 50)) {
+      recoveryState = "recovery";
+      score -= 28;
+    } else if (readiness != null && readiness < 70) {
+      recoveryState = "caution";
+      score -= 16;
+    } else if (wellness.state === "fresh" && (readiness == null || readiness >= 75)) {
+      recoveryState = "ready";
+      score += 8;
+    } else if (wellness.state === "normal" || readiness != null) {
+      recoveryState = "caution";
+      score -= 4;
+    }
+
+    if (readiness != null) {
+      notes.push(`Readiness ${Math.round(readiness)}: ${
+        readiness >= 75 ? "goed" : readiness >= 70 ? "ok" : readiness >= 51 ? "matig" : "laag"
+      }.`);
+    }
+    notes.push(wellness.note);
+  }
+
+  const states = [loadState, recoveryState];
+  const hasUnknown = states.includes("unknown");
+  const state: TrainingReadinessSummary["state"] =
+    states.includes("recovery")
+      ? "recovery"
+      : states.includes("caution")
+        ? "caution"
+        : hasUnknown && states.includes("ready")
+          ? "caution"
+          : states.includes("ready")
+          ? "ready"
+          : "unknown";
+  const boundedScore =
+    state === "ready"
+      ? Math.max(75, score)
+      : state === "caution"
+        ? Math.max(45, Math.min(69, score))
+        : state === "recovery"
+          ? Math.min(44, score)
+          : null;
+
+  return {
+    state,
+    label:
+      state === "ready"
+        ? "Ruimte voor kwaliteit"
+        : state === "recovery"
+          ? "Herstel voorrang"
+          : state === "caution"
+            ? "Beperkte trainingsruimte"
+            : "Te weinig data",
+    score: boundedScore == null ? null : Math.max(0, Math.min(100, Math.round(boundedScore))),
+    notes,
   };
 }
 
