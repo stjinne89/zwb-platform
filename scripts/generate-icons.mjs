@@ -11,7 +11,9 @@ import sharp from "sharp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(__dirname, "..", "public");
-const logoPath = join(publicDir, "zwb-logo.png");
+// Hoge-resolutie bron voor scherpe icons; de login gebruikt het transparante
+// public/zwb-logo.png. Voor icons zetten we het logo op een wit vlak.
+const logoPath = join(publicDir, "brochure", "assets", "zwb-community.png");
 
 const BG = { r: 255, g: 255, b: 255, alpha: 1 };
 

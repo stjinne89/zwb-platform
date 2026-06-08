@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useTransition } from "react";
+import { Suspense, useState, useTransition, type CSSProperties } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -22,6 +22,30 @@ type Status =
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
+
+// De inlogkaart staat altijd in de lichte ZWB-palet — ook als de app in
+// dark-mode staat — zodat het transparante logo (met de donkere "B") goed
+// uitkomt en de hele kaart lichter oogt. We forceren de licht-tokens lokaal.
+const LIGHT_CARD_VARS = {
+  "--background": "oklch(0.965 0.011 103)",
+  "--foreground": "oklch(0.22 0.034 215)",
+  "--card": "oklch(0.992 0.006 103)",
+  "--card-foreground": "oklch(0.22 0.034 215)",
+  "--popover": "oklch(0.992 0.006 103)",
+  "--popover-foreground": "oklch(0.22 0.034 215)",
+  "--primary": "oklch(0.34 0.071 209)",
+  "--primary-foreground": "oklch(0.99 0.006 103)",
+  "--secondary": "oklch(0.9 0.026 178)",
+  "--secondary-foreground": "oklch(0.28 0.058 204)",
+  "--muted": "oklch(0.935 0.015 150)",
+  "--muted-foreground": "oklch(0.43 0.036 205)",
+  "--accent": "oklch(0.63 0.101 77)",
+  "--accent-foreground": "oklch(0.19 0.031 210)",
+  "--destructive": "oklch(0.577 0.245 27.325)",
+  "--border": "oklch(0.86 0.022 157)",
+  "--input": "oklch(0.86 0.022 157)",
+  "--ring": "oklch(0.63 0.101 77)",
+} as CSSProperties;
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   "auth-link-storage-missing":
@@ -123,16 +147,17 @@ function AuthScreen() {
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-sm">
-        <div className="space-y-3">
-          <div className="inline-flex rounded-xl bg-white px-4 py-3 shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/zwb-logo.png"
-              alt="ZWB Cycling Community"
-              className="h-14 w-auto"
-            />
-          </div>
+      <div
+        className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 text-card-foreground shadow-sm"
+        style={LIGHT_CARD_VARS}
+      >
+        <div className="space-y-3 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/zwb-logo.png"
+            alt="ZWB Cycling Community"
+            className="mx-auto h-16 w-auto"
+          />
           <p className="text-sm text-muted-foreground">
             {mode === "login" && "Log in om verder te gaan."}
             {mode === "register" && "Maak een ZWB-account aan."}
