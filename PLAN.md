@@ -7,14 +7,34 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-06-01 (training-AI draait nu via OpenAI background
-> mode met polling; trainer-cockpit heeft schema-verwijderen, power-ranges en
-> repeat-blokken voor intervals/FIT; hersteltrend staat expliciet naast
-> load-metrics in de trainer-cockpit; iOS PWA is succesvol getest en heeft nu
-> een mobiele terugknop in de app-shell; eerste `/verhaal` scrollytelling-
-> prototype toegevoegd; OwnTracks is meermaals in het veld getest;
-> eerste Playwright e2e-smoke-suite en trainer-praktijktest toegevoegd; lokaal werken is de default,
-> push/deploy alleen op expliciet verzoek)
+> Laatst bijgewerkt: 2026-06-10 (verjaardagen-feature met opt-in en afgeschermde
+> verjaardagsruimte per lid — felicitaties + foto's + een verjaardagsrondje
+> (rit-uitnodiging met GPX-route) inclusief RSVP en een eigen liveticker (kaart +
+> hoogteprofiel + aangemelde renners), surfacing op
+> kalender en ledenprofiel, migraties `0077`-`0079`; Strava-cron-sync verlicht (dure col/ZWB-segment-
+> detailcalls standaard uit, athlete-profiel-refresh overgeslagen bij cronruns);
+> app-brede copy-pass die uitleg/hulptekst uit formulieren haalt en naar `/hulp`
+> + privacyverklaring verplaatst, vastgelegd als nieuwe "Product copy"-conventie
+> in AGENTS.md. Deze ronde staat nog in de working tree (nog niet gecommit);
+> migraties zijn wel al gedraaid.)
+>
+> Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
+> wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
+> met power-selectie, beschikbaarheid en lineup-planner; automatische Strava-
+> sync-cron; club-ladder-overzicht + TTT-planner (ZwiftGopher) + onboarding-
+> flow `/welkom`+`/wachten`; verborgen `/brochure`-route; ZWB-segmenten met
+> live timing op events + `/profiel/segments` + Strava-reconciliatie;
+> vermogensprofiel/powercurve-pagina; training: ZWBeterWorden-advies, zichtbare
+> plan-actie-feedback en achtergrond-AI voor "pas vandaag aan"; recordtijden
+> komen nu van Strava's authoritatieve athlete-PR. Migraties t/m 0076.
+> Lokaal werken is de default, push/deploy alleen op expliciet verzoek.
+>
+> Eerdere mijlpaal 2026-06-01: training-AI draait via OpenAI background mode met
+> polling; trainer-cockpit heeft schema-verwijderen, power-ranges en repeat-
+> blokken voor intervals/FIT; hersteltrend staat expliciet naast load-metrics;
+> iOS PWA succesvol getest met mobiele terugknop; eerste `/verhaal`
+> scrollytelling-prototype; OwnTracks meermaals in het veld getest; eerste
+> Playwright e2e-smoke-suite en trainer-praktijktest toegevoegd.)
 
 ---
 
@@ -222,6 +242,95 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `docs/training-cockpit-praktijktest.md`: inclusief waarschuwing dat publiceren
   echte intervals.icu/Wahoo/Garmin-kalenderitems maakt en advies om een kort
   weekplan te testen.
+- Verborgen `/brochure`-route: deelbare scrollytelling-brochure (Landal
+  Warsberg-teamweekend) met hero-beeld, bungalow-foto, plattegrond-PDF en
+  sponsorlogo's. Buiten de nav, alleen via directe link.
+- Wachtwoord-reset-flow: e-mail + wachtwoord naast magic link op `/login`,
+  `/wachtwoord-resetten`-pagina, gehardende auth-confirm-route (betere
+  foutafhandeling op verlopen/ongeldige links) en middleware die
+  recovery-sessies afschermt tot het wachtwoord daadwerkelijk is gereset.
+  Supabase auth-mailtemplates gedocumenteerd in
+  `docs/supabase-auth-email-templates.md`.
+- Team-roster + ZRL-seeding (migr. `0067`-`0070`): volledige roster-tabel per
+  team, automatische seeding van ZRL-divisieteams vanuit een parent-team,
+  beschikbaarheidsknoppen per renner, lineup-planner en power-profiel-selectie
+  (sterkste renners per categorie). Event-type-categorieën (`0067`) voor
+  filterbare kalender. RLS-recursie op `team_members` gefixt (`0069`).
+- Automatische Strava-activiteiten-sync via cron (`/api/strava/sync`): houdt
+  activiteiten actueel zonder handmatige sync, bovenop de bestaande
+  knop-gestuurde backfill. Bearer-auth + toegevoegd aan `PUBLIC_PATHS`.
+- Club-planning + onboarding (migr. `0071`): `/teams/club-ladder`-overzicht
+  (clubbrede ladder-stand), `/teams/ttt-planner` team-tijdrit-planner met
+  ZwiftGopher-import en pull-berekening, en een onboarding-flow `/welkom` +
+  `/wachten` voor nieuwe leden vóór admin-approval.
+- ZWB-segmenten + live timing (migr. `0072`-`0075`): eigen ZWB-segmentendatabase
+  met collecties, `/profiel/segments` (persoonlijke segmenttijden +
+  leaderboards), live-timing-paneel op event-pagina's (`/api/live/timing`),
+  en Strava-activiteit-reconciliatie zodat dubbele/ontbrekende activiteiten
+  netjes worden samengevoegd. Segment-backfill-route + sync-lib.
+- Recordtijden authoritatief: PR-tijden voor cols/segmenten komen nu uit
+  Strava's `athlete_segment_stats` (athlete-PR) i.p.v. de onvolledige
+  activity-scan-cache — lost o.a. Alpe du Zwift (38:24) op.
+- Vermogensprofiel/powercurve (migr. `0076`): `/training/vermogen`-pagina met
+  powercurve-grafiek per renner, `src/lib/intervals/power-curve.ts`, gevoed via
+  intervals.icu. Power-profiel ook gebruikt in team-rosterselectie.
+- Training-iteratie: ZWBeterWorden-advies met 5 merkgekleurde niveaus
+  (gender-variabel via ZRL-divisie), inklapbare workout-blokken + "Bekijk schema
+  hier"-kaart naar intervals, "Komende workouts" toont de hele dag op datum.
+  Zichtbare feedback op plan-acties (`PlanActions`: 'Bezig…', succes/fout, aantal
+  niet-gepubliceerde workouts). Renner mag zijn eigen dag-aanpassing
+  (afgeleid plan) zelf goedkeuren/publiceren.
+- "Pas vandaag aan" crash gefixt: de renner-knop draait nu via dezelfde
+  achtergrond-AI + polling als de trainer (geen synchrone 45s-call die op
+  Netlify werd afgekapt). Migr. `0067_ai_generation_adaptation` voegt
+  `parent_plan_id` + `adaptation_reason` toe.
+- Echt ZWB-logo: login toont het transparante ZWB-wordmerk gecentreerd op een
+  lichte kaart (leesbaar in light/dark), en alle PWA/app-icons (192/512 +
+  maskable, apple-touch, favicons) zijn opnieuw uit het echte logo gegenereerd
+  via `scripts/generate-icons.mjs`.
+- Verjaardagen (migr. `0077`+`0078`, nog niet gecommit): `birth_date` +
+  `share_birthday`-opt-in op `profiles`. Met opt-in verschijnt de verjaardag bij
+  andere goedgekeurde leden, op `/kalender` en op het ledenprofiel. Per lid een
+  afgeschermde verjaardagsruimte `/verjaardagen/[id]` met felicitatieberichten
+  (`birthday_messages`), foto's (`birthday_photos` + privé bucket
+  `birthday-photos`, pad `<lid>/<jaar>/<uploader>/...`) en een **verjaardags-
+  rondje** (`birthday_rides`, migr. `0078`): de jarige zet één rit per jaar op met
+  datum/tijd/locatie/uitnodiging + optionele GPX-route (privé bucket
+  `birthday-gpx`) en afstand/hoogtemeters. Owner-only beheer; lezen strikt
+  RLS-gated op de opt-in. Tijdzone-correcte datums via `src/lib/birthdays.ts`
+  (Europe/Amsterdam). Het verjaardagsrondje heeft een **RSVP** (migr. `0079`,
+  `birthday_ride_rsvps`, zelfde ja/misschien/nee-model als events, composite-FK
+  naar `birthday_rides` zodat aanmeldingen mee-cascaden) en op de dag zelf een
+  eigen **liveticker**: dezelfde kaart + hoogteprofiel + renner-projectie als de
+  event-liveticker (`EventLiveTicker` hergebruikt), gevoed door **alleen de
+  aangemelde renners** (yes/maybe) die outdoor delen op Samen fietsen. Op andere
+  dagen blijven kaart + hoogteprofiel zichtbaar via `GpxMap`/`ElevationProfile`.
+  De ticker-copy is geparametriseerd (`heading`/`description`/`emptyText`) zodat
+  events ongemoeid blijven; `amsterdamWallTimeToIso` zet `ride_date`+`ride_time`
+  om naar een echte start-timestamp. De RSVP-UI is bewust clean gehouden: geen
+  losse knoppen of uitlegtekst, maar drie klikbare status-vakken (Rijdt
+  mee/Misschien/Niet) met je keuze gemarkeerd; de uitleg staat op
+  `/hulp#verjaardagsrondje`.
+- Strava-cron-sync verlicht (nog niet gecommit): de dure detailed-activity calls
+  voor col- en ZWB-segmenttijden staan in de cron standaard op 0
+  (`STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES` / `_ZWB_SEGMENT_MAX_FETCHES`), en het
+  athlete-/avatar-profiel wordt niet meer bij elke cronrun ververst
+  (`refreshAthleteInfo: false`). Houdt de frequente automatische sync licht
+  binnen Strava's rate-limit; de dure backfills draaien alleen op verzoek/recompute.
+- App-brede copy-pass (nog niet gecommit): uitleg- en hulptekst uit formulieren
+  en feature-schermen gehaald over ~64 bestanden; noodzakelijke uitleg staat op
+  `/hulp` en privacy-uitleg in de privacyverklaring. Vastgelegd als harde
+  conventie "Product copy" in `AGENTS.md` zodat nieuwe schermen compact blijven.
+- RSVP-UI verstrakt (nog niet gecommit): zowel events als het verjaardagsrondje
+  gebruiken nu één klikbare status-kolom-UI (Ja/Misschien/Nee resp. Rijdt
+  mee/Misschien/Niet) i.p.v. losse knoppen + aparte deelnemerslijst. Het vak met
+  je keuze is gemarkeerd; uitleg staat op `/hulp` (`#verjaardagsrondje`).
+- Events verwijderen (nog niet gecommit): rode "Verwijderen"-knop naast
+  Opslaan/Annuleer in het bewerkformulier (via een `deleteSlot`-prop zodat het
+  form generiek blijft). `deleteEvent`-actie met permissie-check (creator of
+  `events.manage_all`, gelijk aan de bestaande RLS-policy), bevestigingsdialoog,
+  cascade-cleanup van rsvps/foto's/chat/uitslagen via de FK's en best-effort
+  opruimen van GPX + de event-fotomap in storage. Redirect daarna naar `/kalender`.
 
 ---
 
@@ -349,7 +458,45 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - De AI-prompt vraagt nieuwe concepten expliciet om herhalingen als losse
      structure-blokken terug te geven.
 
-9. **⏸️ On-hold (bewust uitgesteld)**
+9. **✅ Team-ops, segmenten & onboarding-ronde** (commits `b882987`..`f51cabd`, 2026-06-02→08)
+   - **Team-roster + ZRL-seeding** (`6e8f9c5`, migr. `0067`-`0070`): roster-tabel,
+     auto-seed van ZRL-divisieteams uit een parent-team, beschikbaarheid +
+     lineup-planner + power-selectie, event-type-categorieën, RLS-recursiefix.
+   - **Automatische Strava-sync-cron** (`014f8f6`): `/api/strava/sync` houdt
+     activiteiten actueel zonder handmatige knop.
+   - **Club-ladder + TTT-planner + onboarding** (`cdac2b0`, migr. `0071`):
+     `/teams/club-ladder`, team-tijdrit-planner met ZwiftGopher-import,
+     `/welkom` + `/wachten` voor nieuwe leden.
+   - **Wachtwoord-reset-flow** (`fda4491`, `06f628c`, `ee46364`):
+     e-mail+wachtwoord naast magic link, `/wachtwoord-resetten`, gehardende
+     auth-confirm-route, recovery-sessie-gate in middleware.
+   - **ZWB-segmenten + live timing + reconciliatie** (`5058ac1`, `a54acbc`,
+     migr. `0072`-`0075`): eigen segmentendatabase + collecties,
+     `/profiel/segments`, live-timing-paneel op events, Strava-activiteit-
+     reconciliatie. Recordtijden nu via Strava athlete-PR.
+   - **Vermogensprofiel + training-iteratie + echt logo** (`c5ba039`, `201b043`,
+     `4cff23b`, `f51cabd`, migr. `0067_ai_generation_adaptation`, `0076`):
+     `/training/vermogen` powercurve, ZWBeterWorden-advies, zichtbare
+     plan-actie-feedback, achtergrond-AI voor "pas vandaag aan", en het echte
+     ZWB-logo op login + alle PWA-icons.
+   - **Verborgen `/brochure`** (`b882987`): deelbare team-weekend-brochure.
+
+10. **✅ Verjaardagen + Strava-cron-tuning + copy-pass** (2026-06-10, working tree — nog te committen)
+   - **Verjaardagen** (migr. `0077`+`0078`): opt-in `share_birthday`, verjaardag
+     op `/kalender` + ledenprofiel, en een afgeschermde ruimte
+     `/verjaardagen/[id]` met felicitaties (`birthday_messages`), foto's
+     (`birthday_photos` + privé bucket `birthday-photos`) en een verjaardagsrondje
+     (`birthday_rides`: rit-uitnodiging + GPX in privé bucket `birthday-gpx`) met
+     RSVP (`birthday_ride_rsvps`, migr. `0079`) en op de rit-dag een eigen
+     liveticker (hergebruikte `EventLiveTicker`: kaart + hoogteprofiel + alleen
+     aangemelde renners). Strikt RLS-gated op de opt-in.
+   - **Strava-cron-tuning**: dure col/ZWB-segment-detailcalls standaard op 0 in
+     de cron + athlete-profiel-refresh overgeslagen (`refreshAthleteInfo: false`)
+     zodat de frequente sync licht blijft binnen de rate-limit.
+   - **Copy-pass**: uitleg/hulptekst uit formulieren over ~64 bestanden naar
+     `/hulp` + privacyverklaring; nieuwe "Product copy"-conventie in `AGENTS.md`.
+
+11. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
@@ -357,7 +504,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
 
-10. **Open punten**
+12. **Open punten**
    - **iOS PWA polish** — praktijktest op iPhone 16 Pro met iOS 26.5 is goed;
      mobiele terugknop toegevoegd. Nog één regressiecheck na deploy.
    - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval.
