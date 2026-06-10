@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Bell,
   Bike,
+  Cake,
   CalendarDays,
   CheckCircle2,
   CircleHelp,
@@ -210,6 +211,86 @@ const WAHOO_STEPS = [
   },
 ];
 
+const INTERVALS_CONNECT_STEPS = [
+  "Open in intervals.icu de API-instellingen.",
+  "Kopieer je persoonlijke API-key.",
+  "Plak de sleutel in ZWB bij Training en kies Koppelen.",
+];
+
+const ADMIN_GUIDES = [
+  {
+    id: "eventbeheer",
+    title: "Events, routes en uitslagen",
+    bullets: [
+      "Een cover verschijnt op de eventpagina, kalender en bij ritverslagen.",
+      "De externe link kan verwijzen naar een route op Strava, Komoot, RideWithGPS of Garmin.",
+      "De live timing-link is voor een actuele timingfeed; ZWB toont daaruit alleen herkende leden.",
+      "De uitslagenlink wordt gebruikt om klasseringen en tijden van ZWB-leden op te halen.",
+      "Een GPX-bestand levert route, afstand, hoogtemeters en startpunt. Een nieuwe upload vervangt de bestaande route.",
+    ],
+  },
+  {
+    id: "communitybeheer",
+    title: "WhatsApp-groepen",
+    bullets: [
+      "Plak een WhatsApp-invitelink en kies Ophalen om beschikbare groepsgegevens in te vullen.",
+      "Bij bulkimport staat iedere invitelink op een eigen regel; dubbele en ongeldige links worden overgeslagen.",
+      "Een groep kan algemeen zijn of aan een team of event worden gekoppeld.",
+    ],
+  },
+  {
+    id: "mediabeheer",
+    title: "Media en imports",
+    bullets: [
+      "Gebruik als publicatiedatum de oorspronkelijke datum van het bericht, document of de aflevering.",
+      "Beschrijvingen ondersteunen markdown.",
+      "Bij podcasts kun je per platform een link toevoegen; RSS is bedoeld voor overige podcast-apps.",
+      "Automatische imports kunnen opnieuw worden uitgevoerd: bestaande items worden bijgewerkt.",
+      "YouTube- en Instagram-imports werken nadat technisch beheer de bronkoppelingen heeft ingesteld.",
+    ],
+  },
+  {
+    id: "rollenbeheer",
+    title: "Rollen, rechten en notificaties",
+    bullets: [
+      "De rechtenmatrix bepaalt per communityrol welke beheeracties zijn toegestaan.",
+      "Technische admins behouden altijd volledige toegang.",
+      "Een bestuursmelding gaat alleen naar apparaten van leden die aankondigingen hebben ingeschakeld.",
+      "De doorkliklink van een melding opent standaard het dashboard.",
+    ],
+  },
+  {
+    id: "badgebeheer",
+    title: "Achievements beheren",
+    bullets: [
+      "Ken milestonebadges handmatig toe wanneer een prestatie niet betrouwbaar uit Strava kan worden afgeleid.",
+      "Weekbadges blijven via de weekfinalisatie lopen.",
+      "Intrekken verwijdert alleen de handmatige toekenning bij het gekozen lid.",
+      "Gekoppelde Strava-profielen kunnen automatisch worden bijgewerkt via de beveiligde Strava-synchronisatietaak.",
+      "Plan die taak iedere 15 tot 30 minuten. Houd segmentdetails uit de frequente run om binnen de Strava-limieten te blijven.",
+      "Laat de planner een POST-verzoek sturen naar /api/strava/sync met STRAVA_SYNC_SECRET als Bearer-token.",
+    ],
+  },
+  {
+    id: "ttt-beheer",
+    title: "TTT Planner en exports",
+    bullets: [
+      "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",
+      "De JSON-export bewaart ook velden die ZWB niet zelf bewerkt.",
+      "De tekstexport is bedoeld als leesbare racesheet; de afbeelding als deelbare opstelling.",
+    ],
+  },
+  {
+    id: "teambeheer",
+    title: "Teams en roosters",
+    bullets: [
+      "Hoofdteams kunnen onderliggende race-, ladder-, sociale en outdoorteams bevatten.",
+      "Teambeheerders kunnen leden, captainrollen en opstellingen per team beheren.",
+      "Vermogensdata en wedstrijdresultaten kunnen opnieuw worden opgehaald via de beheeracties bovenaan.",
+    ],
+  },
+];
+
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start daarna een achievements-sync.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', Controlemodus op 'Beweging'.",
@@ -330,6 +411,26 @@ export default function HelpPage() {
             </p>
           </div>
         </header>
+
+        <div className="mt-5 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">intervals.icu koppelen</h3>
+          <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {INTERVALS_CONNECT_STEPS.map((step, index) => (
+              <li key={step} className="flex gap-2">
+                <span className="font-semibold text-foreground">{index + 1}.</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <a
+            href="https://intervals.icu/settings#api"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open intervals.icu API-instellingen
+          </a>
+        </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           <article className="rounded-md border bg-background p-4">
@@ -604,6 +705,52 @@ export default function HelpPage() {
       </section>
 
       <section
+        id="verjaardagsrondje"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Cake className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Verjaardagsrondje en aanmelden</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Deel je je verjaardag, dan kun je een verjaardagsrondje plannen met
+              datum, tijd, startplek en een GPX-route. Andere leden melden zich
+              daar aan.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Aanmelden doe je onder <strong className="text-foreground">Rijd
+              je mee?</strong> — tik op het vak{" "}
+              <strong className="text-foreground">Rijdt mee</strong>,{" "}
+              <strong className="text-foreground">Misschien</strong> of{" "}
+              <strong className="text-foreground">Niet</strong>. Je keuze is
+              meteen zichtbaar en je kunt later wisselen.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Op de dag van het rondje verschijnen de aangemelde renners
+              (Rijdt mee of Misschien) live op de kaart en het hoogteprofiel,
+              net als bij events — mits ze outdoor delen op Samen fietsen.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Alleen de jarige beheert het rondje zelf; aanmelden kan elk
+              goedgekeurd lid.
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section
         id="fit-export"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
@@ -687,6 +834,41 @@ export default function HelpPage() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section
+        id="beheer"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Beheer en technische koppelingen</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Naslag voor bestuur, communitybeheerders, trainers en teamcaptains.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {ADMIN_GUIDES.map((guide) => (
+            <article
+              key={guide.id}
+              id={guide.id}
+              className="scroll-mt-20 rounded-md border bg-background p-4"
+            >
+              <h3 className="text-sm font-semibold">{guide.title}</h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {guide.bullets.map((bullet) => (
+                  <li key={bullet} className="flex gap-2">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
         </div>
       </section>
 

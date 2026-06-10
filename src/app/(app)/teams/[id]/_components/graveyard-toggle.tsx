@@ -33,7 +33,7 @@ export function GraveyardToggle({
           ? "Bezig…"
           : isGraveyard
             ? "Activeer team"
-            : "🪦 Naar graveyard"}
+            : "Archiveer team"}
       </Button>
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>

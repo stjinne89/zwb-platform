@@ -1,22 +1,18 @@
 import Link from "next/link";
+import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import {
+  ageOnBirthday,
+  amsterdamDateKey,
+  formatDateKey,
+  nextBirthdayOccurrence,
+} from "@/lib/birthdays";
 
 const STALE_AFTER_MIN = 15;
 type RsvpStatus = "yes" | "maybe" | "no";
-
-function amsterdamDateKey(date: Date) {
-  const parts = new Intl.DateTimeFormat("nl-NL", {
-    timeZone: "Europe/Amsterdam",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
 
 async function getActiveCutoffIso() {
   return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
@@ -24,12 +20,20 @@ async function getActiveCutoffIso() {
 
 export default async function KalenderPage() {
   const supabase = await createClient();
-  const { data: allEvents } = await supabase
-    .from("events")
-    .select(
-      "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path",
-    )
-    .order("start_at", { ascending: true });
+  const [{ data: allEvents }, { data: birthdayProfiles }] = await Promise.all([
+    supabase
+      .from("events")
+      .select(
+        "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path",
+      )
+      .order("start_at", { ascending: true }),
+    supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url, birth_date")
+      .eq("is_approved", true)
+      .eq("share_birthday", true)
+      .not("birth_date", "is", null),
+  ]);
 
   const todayKey = amsterdamDateKey(new Date());
   // Alleen vandaag + toekomstige events op de kalender — voorbije events
@@ -39,6 +43,38 @@ export default async function KalenderPage() {
     (event) => amsterdamDateKey(new Date(event.start_at)) >= todayKey,
   );
   const pastCount = (allEvents?.length ?? 0) - events.length;
+  const birthdays = (birthdayProfiles ?? []).flatMap((profile) => {
+    if (!profile.birth_date) return [];
+    const occurrence = nextBirthdayOccurrence(profile.birth_date, todayKey);
+    if (!occurrence) return [];
+    return [
+      {
+        kind: "birthday" as const,
+        id: profile.id,
+        displayName: profile.display_name,
+        avatarUrl: profile.avatar_url,
+        birthDate: profile.birth_date,
+        dateKey: occurrence.dateKey,
+        year: occurrence.year,
+      },
+    ];
+  });
+  const calendarItems = [
+    ...events.map((event) => ({
+      kind: "event" as const,
+      sortKey:
+        `${amsterdamDateKey(new Date(event.start_at))}|` +
+        `${event.start_at}|event|${event.id}`,
+      event,
+    })),
+    ...birthdays.map((birthday) => ({
+      kind: "birthday" as const,
+      sortKey:
+        `${birthday.dateKey}|${birthday.dateKey}T09:00:00|` +
+        `birthday|${birthday.id}`,
+      birthday,
+    })),
+  ].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   const todayEventIds = events
     .filter((event) => amsterdamDateKey(new Date(event.start_at)) === todayKey)
     .map((event) => event.id);
@@ -84,9 +120,9 @@ export default async function KalenderPage() {
         }
       />
 
-      {events.length === 0 ? (
+      {calendarItems.length === 0 ? (
         <EmptyState>
-          Geen aankomende events.
+          Geen aankomende events of gedeelde verjaardagen.
           {pastCount > 0 && (
             <>
               {" "}
@@ -99,7 +135,59 @@ export default async function KalenderPage() {
         </EmptyState>
       ) : (
         <ul className="space-y-2">
-          {events.map((event) => {
+          {calendarItems.map((item) => {
+            if (item.kind === "birthday") {
+              const birthday = item.birthday;
+              const age = ageOnBirthday(birthday.birthDate, birthday.year);
+              const isToday = birthday.dateKey === todayKey;
+              return (
+                <li
+                  key={`birthday-${birthday.id}-${birthday.year}`}
+                  className="relative overflow-hidden rounded-lg border border-zwb-gold/50 bg-gradient-to-r from-zwb-gold/20 via-card to-zwb-gold/5 p-4 pl-5 shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-zwb-gold before:content-[''] hover:border-zwb-gold/80 hover:shadow-md"
+                >
+                  <Link
+                    href={`/verjaardagen/${birthday.id}?jaar=${birthday.year}`}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      {birthday.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={birthday.avatarUrl}
+                          alt=""
+                          className="size-14 shrink-0 rounded-full object-cover ring-2 ring-zwb-gold/50 ring-offset-2 ring-offset-background"
+                        />
+                      ) : (
+                        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-zwb-gold/15 text-zwb-gold ring-2 ring-zwb-gold/40 ring-offset-2 ring-offset-background">
+                          <Cake className="size-6" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">
+                            Verjaardag van {birthday.displayName}
+                          </p>
+                          {isToday && (
+                            <span className="rounded-full bg-zwb-gold px-2 py-0.5 text-xs font-semibold text-slate-950 shadow-sm">
+                              Vandaag
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDateKey(birthday.dateKey, { dateStyle: "full" })}
+                          {age !== null ? ` · ${age} jaar` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="hidden rounded-full border border-zwb-gold/40 bg-zwb-gold/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-200 sm:inline">
+                      Verjaardag
+                    </span>
+                  </Link>
+                </li>
+              );
+            }
+
+            const event = item.event;
             const liveCount = liveCountsByEvent.get(event.id) ?? 0;
             const coverUrl = event.cover_image_path
               ? supabase.storage
@@ -165,7 +253,7 @@ export default async function KalenderPage() {
         </ul>
       )}
 
-      {events.length > 0 && pastCount > 0 && (
+      {calendarItems.length > 0 && pastCount > 0 && (
         <p className="text-sm text-muted-foreground">
           <Link href="/ritverslagen" className="font-medium text-primary hover:underline">
             Voorbije ritten ({pastCount}) →

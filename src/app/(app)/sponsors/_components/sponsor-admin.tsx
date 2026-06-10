@@ -217,7 +217,7 @@ function SponsorForm({
           </Field>
         )}
       </div>
-      <Field label="Beschrijving (markdown)">
+      <Field label="Beschrijving">
         <textarea
           name="description_md"
           rows={3}

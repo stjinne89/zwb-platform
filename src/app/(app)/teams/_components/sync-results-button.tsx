@@ -56,9 +56,9 @@ export function SyncResultsButton() {
             const zrlRosterSeeded = res.summary.zrlRosterSeeded ?? 0;
             const zrlText =
               zrlSeeded > 0 || zrlRosterSeeded > 0
-                ? `${zrlSeeded} ZRL-lidmaatschappen, ${zrlRosterSeeded} rosterleden geseed, `
+                ? `${zrlSeeded} ZRL-lidmaatschappen, ${zrlRosterSeeded} teamleden toegevoegd, `
                 : "";
-            const resultText = `${setupText}${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} rosterleden`;
+            const resultText = `${setupText}${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden`;
             setState({
               kind: failed > 0 ? "error" : skipped > 0 ? "notice" : "success",
               details,
@@ -76,7 +76,7 @@ export function SyncResultsButton() {
           data-icon="inline-start"
           className={pending ? "animate-spin" : undefined}
         />
-        Teams en resultaten syncen
+        Teams en resultaten ophalen
       </Button>
       {state.kind !== "idle" && (
         <p

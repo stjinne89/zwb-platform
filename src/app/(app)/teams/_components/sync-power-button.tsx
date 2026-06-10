@@ -31,7 +31,7 @@ export function SyncPowerButton({
             if (res.partial) parts.push(`${res.partial} gedeeltelijk`);
             if (res.failed) parts.push(`${res.failed} fout`);
             setMessage(
-              `Powerprofielen: ${parts.join(", ")}.${res.errors?.length ? ` ${res.errors.join(" ")}` : ""}`,
+              `Vermogensdata: ${parts.join(", ")}.`,
             );
           });
         }}
@@ -41,7 +41,7 @@ export function SyncPowerButton({
         ) : (
           <Activity data-icon="inline-start" />
         )}
-        {scope === "all" ? "Alle waarden syncen" : "Mijn waarden syncen"}
+        {scope === "all" ? "Alle waarden ophalen" : "Mijn waarden ophalen"}
       </Button>
       {message && <p className="max-w-56 text-xs text-muted-foreground">{message}</p>}
     </div>

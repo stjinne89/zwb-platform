@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowUpRight, ClipboardPaste } from "lucide-react";
+import { ClipboardPaste } from "lucide-react";
 import { connectIntervalsWithKey } from "../_actions";
+import { HelpLink } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 
 export function ConnectIntervalsForm() {
@@ -22,7 +23,7 @@ export function ConnectIntervalsForm() {
       setApiKey(text.trim());
     } catch {
       setClipboardError(
-        "Browser staat geen clipboard-lezen toe. Plak handmatig met Ctrl+V.",
+        "Plakken lukte niet. Gebruik Ctrl+V.",
       );
     }
   }
@@ -42,42 +43,10 @@ export function ConnectIntervalsForm() {
 
   return (
     <div className="space-y-4 rounded-2xl border bg-card p-6">
-      <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold">Koppel intervals.icu</h2>
-        <p className="text-sm text-muted-foreground">
-          Zo zien je fitness-curve, eFTP-trend en geplande workouts hier op
-          jouw eigen training-dashboard. We lezen alleen jouw data — niks meer.
-        </p>
+        <HelpLink href="/hulp#trainingsruimte" />
       </div>
-
-      <ol className="space-y-3 rounded-md border bg-muted/40 p-4 text-sm">
-        <li className="flex flex-wrap items-center gap-2">
-          <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            1
-          </span>
-          <span>Open je intervals.icu API-instellingen</span>
-          <a
-            href="https://intervals.icu/settings#api"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-secondary"
-          >
-            Openen <ArrowUpRight className="size-3" />
-          </a>
-        </li>
-        <li className="flex items-center gap-2">
-          <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            2
-          </span>
-          <span>Kopieer je API-key (langer dan 16 tekens, eindigt vaak op &quot;-x&quot;)</span>
-        </li>
-        <li className="flex flex-wrap items-center gap-2">
-          <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            3
-          </span>
-          <span>Plak hieronder en klik &quot;Koppelen&quot;</span>
-        </li>
-      </ol>
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +67,7 @@ export function ConnectIntervalsForm() {
             disabled={pending}
           >
             <ClipboardPaste className="size-4" />
-            Plak vanuit clipboard
+            Plakken
           </Button>
         </div>
         {clipboardError && (

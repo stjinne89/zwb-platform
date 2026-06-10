@@ -171,7 +171,7 @@ export async function syncYouTubeChannel(handle: string = ZWB_YOUTUBE_HANDLE) {
     console.error("[syncYouTubeChannel] uncaught error:", err);
     return {
       ok: false as const,
-      error: err instanceof Error ? err.message : "Onbekende fout bij YouTube-sync.",
+      error: "YouTube kon niet worden opgehaald.",
     };
   }
 }
@@ -182,7 +182,7 @@ async function syncYouTubeChannelInner(handle: string) {
     return {
       ok: false as const,
       error:
-        "YOUTUBE_API_KEY ontbreekt in de server-env. Maak gratis een key aan op console.cloud.google.com en zet 'm in .env.local (lokaal) of Netlify env (productie).",
+        "YouTube ophalen is niet beschikbaar.",
     };
   }
 
@@ -197,10 +197,10 @@ async function syncYouTubeChannelInner(handle: string) {
   try {
     const uploads = await resolveUploadsPlaylistId(apiKey, handle);
     videos = await listChannelVideos(apiKey, uploads);
-  } catch (err) {
+  } catch {
     return {
       ok: false as const,
-      error: err instanceof Error ? err.message : "Onbekende YouTube-fout.",
+      error: "YouTube kon niet worden opgehaald.",
     };
   }
 
@@ -258,9 +258,7 @@ async function syncYouTubeChannelInner(handle: string) {
   if (videos.length > 0 && inserted === 0 && updated === 0) {
     return {
       ok: false as const,
-      error:
-        insertErrors[0] ??
-        "Geen video's geïmporteerd. Mogelijk ontbreekt migratie 0016.",
+      error: "Geen video's geimporteerd.",
     };
   }
 
@@ -277,12 +275,11 @@ export async function syncPodcastRss(rssUrl?: string) {
   if (!url) {
     return {
       ok: false as const,
-      error:
-        "Geen RSS-URL opgegeven. Plak de feed-URL in het veld, of zet PODCAST_RSS_URL in env.",
+      error: "Geen podcastfeed opgegeven.",
     };
   }
   if (!/^https?:\/\//i.test(url)) {
-    return { ok: false as const, error: "RSS-URL moet beginnen met http:// of https://" };
+    return { ok: false as const, error: "Podcastfeed moet een geldige web-link zijn." };
   }
 
   const supabase = await createClient();
@@ -295,17 +292,17 @@ export async function syncPodcastRss(rssUrl?: string) {
   let feed;
   try {
     feed = await fetchRssFeed(url);
-  } catch (err) {
+  } catch {
     return {
       ok: false as const,
-      error: err instanceof Error ? err.message : "Onbekende RSS-fout.",
+      error: "Podcastfeed kon niet worden geladen.",
     };
   }
 
   if (feed.episodes.length === 0) {
     return {
       ok: false as const,
-      error: "Geen episodes gevonden in deze feed. Controleer of het wel een podcast-RSS is.",
+      error: "Geen afleveringen gevonden.",
     };
   }
 
@@ -372,8 +369,7 @@ export async function syncInstagramFeed() {
   if (!accessToken) {
     return {
       ok: false as const,
-      error:
-        "INSTAGRAM_ACCESS_TOKEN ontbreekt in de server-env. Maak een long-lived token via de officiële Meta Instagram API voor @zwb_cycling en zet die in Netlify env.",
+      error: "Instagram ophalen is niet beschikbaar.",
     };
   }
 
@@ -388,10 +384,10 @@ export async function syncInstagramFeed() {
   try {
     userId = userId || (await resolveInstagramUserId(accessToken));
     posts = await fetchInstagramMedia({ accessToken, userId, limit: 12 });
-  } catch (err) {
+  } catch {
     return {
       ok: false as const,
-      error: err instanceof Error ? err.message : "Onbekende Instagram-fout.",
+      error: "Instagram kon niet worden opgehaald.",
     };
   }
 
@@ -445,7 +441,7 @@ export async function syncInstagramFeed() {
   if (posts.length > 0 && inserted === 0 && updated === 0) {
     return {
       ok: false as const,
-      error: errors[0] ?? "Geen Instagram-posts geimporteerd. Is migratie 0052 toegepast?",
+      error: "Geen Instagram-berichten geimporteerd.",
     };
   }
 

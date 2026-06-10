@@ -4,6 +4,7 @@ import { CalendarDays, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { HelpLink } from "@/components/app-ui";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import {
@@ -372,7 +373,7 @@ export default async function TeamDetailPage({
           </span>
           {team.is_graveyard && (
             <span className="inline-block rounded-full bg-foreground/10 px-2 py-0.5 text-xs uppercase tracking-wide text-muted-foreground">
-              Graveyard
+              Archief
             </span>
           )}
         </div>
@@ -383,9 +384,12 @@ export default async function TeamDetailPage({
               <p className="mt-1 text-muted-foreground">{team.description}</p>
             )}
           </div>
-          {canManageRoster && (
-            <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
-          )}
+          <div className="flex items-center gap-2">
+            <HelpLink href="/hulp#teambeheer" />
+            {canManageRoster && (
+              <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
+            )}
+          </div>
         </div>
         {scopeTeams.length > 1 && (
           <div className="flex flex-wrap gap-2">
@@ -405,12 +409,7 @@ export default async function TeamDetailPage({
       {team.parent_team_id == null && (
         <section className="space-y-3 rounded-lg border bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">Subteams</h2>
-              <p className="text-sm text-muted-foreground">
-                Maak racegroepen zoals B1, B2, B3 of Bdevelopment onder {team.name}.
-              </p>
-            </div>
+            <h2 className="font-semibold">Subteams</h2>
             {canManageRoster && (
               <Link href={`/teams/nieuw?parent_team_id=${team.id}`}>
                 <Button size="sm" variant="outline">

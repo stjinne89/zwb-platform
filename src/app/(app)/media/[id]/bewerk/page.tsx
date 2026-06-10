@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { HelpLink } from "@/components/app-ui";
 import { MediaForm, type MediaInitial } from "../../_components/add-form";
 import type { MediaKind } from "@/lib/media-kinds";
 
@@ -60,14 +61,11 @@ export default async function EditMediaPage({
       >
         ← Media
       </Link>
-      <header>
+      <header className="flex items-start justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">
           Media-item bewerken
         </h1>
-        <p className="mt-1 text-muted-foreground">
-          Pas titel, datum, inhoud, links of soort aan. Wijzigingen worden
-          direct zichtbaar voor alle leden.
-        </p>
+        <HelpLink href="/hulp#mediabeheer" />
       </header>
       <MediaForm initial={initial} />
     </div>

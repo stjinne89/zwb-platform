@@ -737,7 +737,7 @@ function WorkoutList({
               </a>
               <Link
                 href="/hulp#fit-export"
-                title="Wahoo importeert geen losse bestanden — koppel intervals.icu aan Wahoo. De .fit-download is voor Garmin. Klik voor uitleg."
+                title="Hulp bij workout op je fietscomputer"
                 aria-label="Hulp bij workout op je fietscomputer"
                 className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
               >
@@ -1678,15 +1678,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       {activeTab === "member" ? (
         <>
       {!conn && (
-        <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-          <div className="rounded-lg border bg-card p-5">
-            <h2 className="font-semibold">Koppel intervals.icu</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Nodig voor publicatie naar je trainingskalender.
-            </p>
-          </div>
-          <ConnectIntervalsForm />
-        </section>
+        <ConnectIntervalsForm />
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -1934,12 +1926,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             rel="noopener noreferrer"
             className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 transition hover:border-primary/40"
           >
-            <div>
-              <h2 className="font-semibold">Bekijk schema hier</h2>
-              <p className="text-sm text-muted-foreground">
-                Open je volledige kalender op intervals.icu
-              </p>
-            </div>
+            <h2 className="font-semibold">Bekijk schema in intervals.icu</h2>
             <ExternalLink className="size-5 shrink-0 text-muted-foreground" />
           </a>
         ) : null}
@@ -1987,7 +1974,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                     </div>
                   ) : (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      FIT-download verschijnt zodra de trainer deze workout naar intervals.icu heeft gepubliceerd.
+                      FIT nog niet beschikbaar.
                     </p>
                   )}
                 </li>

@@ -44,13 +44,13 @@ export function SyncGraveyardButton() {
           });
         }}
       >
-        {pending ? "Bezig…" : "🪦 Sync graveyard"}
+        {pending ? "Bezig…" : "Teamarchief bijwerken"}
       </Button>
       {status.kind === "ok" && (
         <span className="text-xs text-muted-foreground">
-          {status.foundOnLadder} teams gevonden op ladder ·{" "}
-          {status.matchedZwbTeams.length} ZWB-matches ·{" "}
-          {status.toGraveyard} naar graveyard, {status.toActive} terug actief.
+          {status.foundOnLadder} teams gevonden ·{" "}
+          {status.matchedZwbTeams.length} gekoppeld ·{" "}
+          {status.toGraveyard} gearchiveerd, {status.toActive} terug actief.
         </span>
       )}
       {status.kind === "error" && (

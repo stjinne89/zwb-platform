@@ -363,9 +363,6 @@ export function StoryExperience() {
               <h1 className="mt-3 text-5xl font-black leading-[0.92] tracking-tight sm:text-7xl lg:text-7xl xl:text-8xl">
                 Het verhaal van ZWB
               </h1>
-              <p className="mt-5 max-w-md text-base font-medium leading-7 text-[#253640]">
-                Scroll door de shirts, de ritten en de momenten die van een losse groep rijders een herkenbare community maakten.
-              </p>
             </div>
 
             <div className="relative min-h-[42vh] self-center lg:min-h-[72vh]">
@@ -434,32 +431,6 @@ export function StoryExperience() {
         ))}
       </section>
 
-      <section className="bg-[#101820] px-5 py-20 text-white md:px-10">
-        <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[0.75fr_1fr] md:items-end">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#b8873d]">
-              Volgende iteratie
-            </p>
-            <h2 className="mt-4 text-4xl font-black tracking-tight md:text-6xl">
-              Van prototype naar echte story
-            </h2>
-          </div>
-          <div className="space-y-4 text-sm leading-7 text-white/72 md:text-base">
-            <p>
-              Dit prototype gebruikt gestileerde vectorrenners. De volgende stap is de shirts en fietsposes preciezer tekenen op basis van de aangeleverde referenties.
-            </p>
-            <p>
-              Daarna kunnen echte fotohoofdstukken, ledenquotes en mijlpalen worden toegevoegd zonder de scrollbasis opnieuw te bouwen.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex rounded-md bg-white px-4 py-2 text-sm font-bold text-[#101820] transition hover:bg-[#f2eadc]"
-            >
-              Naar ZWB
-            </Link>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }

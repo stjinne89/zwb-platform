@@ -85,7 +85,7 @@ export function AiDraftForm({
             generationId,
             error:
               payload?.error ??
-              `AI-concept status ophalen faalde met serverstatus ${response.status}.`,
+              "AI-concept ophalen is mislukt.",
           });
           setActiveGenerationId(null);
           return;
@@ -122,15 +122,13 @@ export function AiDraftForm({
           message: "AI-concept wordt gemaakt...",
         });
         timeoutId = setTimeout(poll, 5_000);
-      } catch (err) {
+      } catch {
         if (cancelled) return;
         setState({
           ok: false,
           generationId,
           error:
-            err instanceof Error
-              ? err.message
-              : "AI-concept status ophalen faalde voordat de server antwoord gaf.",
+            "AI-concept ophalen is mislukt.",
         });
         setActiveGenerationId(null);
       }
@@ -163,7 +161,7 @@ export function AiDraftForm({
           ok: false,
           error:
             payload?.error ??
-            `AI-concept maken faalde met serverstatus ${response.status}.`,
+            "AI-concept maken is mislukt.",
         });
         return;
       }
@@ -176,13 +174,11 @@ export function AiDraftForm({
       });
       setActiveGenerationId(payload.generationId);
       router.refresh();
-    } catch (err) {
+    } catch {
       setState({
         ok: false,
         error:
-          err instanceof Error
-            ? err.message
-            : "AI-concept maken faalde voordat de server antwoord gaf.",
+          "AI-concept maken is mislukt.",
       });
     } finally {
       setSubmitting(false);
@@ -211,10 +207,12 @@ export function AiDraftForm({
         {submitting || active ? "AI-concept loopt..." : "AI-concept maken"}
       </button>
       {!canUseAi ? (
-        <p className="text-xs text-muted-foreground">OPENAI_API_KEY ontbreekt.</p>
+        <p className="text-xs text-muted-foreground">
+          AI-generatie is niet beschikbaar.
+        </p>
       ) : !canGenerateAi ? (
         <p className="text-xs text-muted-foreground">
-          Je rol mist het recht om AI-trainingsconcepten te maken.
+          AI-generatie is niet beschikbaar voor jouw account.
         </p>
       ) : null}
       {state?.error ? (

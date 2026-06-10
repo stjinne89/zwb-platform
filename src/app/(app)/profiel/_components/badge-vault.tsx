@@ -105,8 +105,7 @@ export function BadgeVault({
             Badge-kast
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            {totalAchievements} achievements x 4 tiers. Klik een badge om de
-            exacte eis uit de achievementlijst te bekijken.
+            {totalAchievements} achievements x 4 tiers
           </p>
         </div>
         <p className="text-sm tabular-nums">

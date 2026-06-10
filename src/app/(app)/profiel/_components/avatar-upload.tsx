@@ -139,7 +139,7 @@ export function AvatarUpload({
         .eq("id", user.id);
       if (updErr) throw new Error(updErr.message);
 
-      setMessage("Eigen foto verwijderd. Klik 'Vernieuw foto' onder Strava-koppeling om de Strava-foto terug te halen.");
+      setMessage("Eigen foto verwijderd.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verwijderen faalde.");
@@ -153,11 +153,6 @@ export function AvatarUpload({
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         Profielfoto
       </h2>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Upload je eigen foto, of laat de foto vanuit Strava staan. Eigen
-        upload heeft voorrang op de Strava-foto en wordt automatisch
-        verkleind naar 512px.
-      </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button

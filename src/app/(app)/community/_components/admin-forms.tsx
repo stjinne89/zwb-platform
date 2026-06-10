@@ -112,10 +112,6 @@ export function NewGroupForm({
             {fetching ? "Ophalen…" : "Ophalen"}
           </Button>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Plak de invite-link en klik &quot;Ophalen&quot; om naam + omschrijving
-          automatisch in te vullen.
-        </p>
       </div>
 
       {iconUrl && (
@@ -261,12 +257,7 @@ export function BulkGroupForm({
       action={submit}
       className="space-y-3 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4"
     >
-      <h3 className="text-sm font-medium">Bulk toevoegen</h3>
-      <p className="text-xs text-muted-foreground">
-        Plak meerdere invite-links, één per regel. Namen worden automatisch
-        opgehaald. Dubbele links worden overgeslagen.
-      </p>
-
+      <h3 className="text-sm font-medium">Meerdere groepen toevoegen</h3>
       <div>
         <label className={LABEL}>Invite-URL&apos;s (één per regel)</label>
         <textarea
@@ -350,7 +341,7 @@ export function NewAnnouncementForm() {
         <input name="title" required className={FIELD} />
       </div>
       <div>
-        <label className={LABEL}>Bericht (markdown)</label>
+        <label className={LABEL}>Bericht</label>
         <textarea name="body_md" required rows={4} className={`${FIELD} font-mono`} />
       </div>
       <label className="flex items-center gap-2 text-sm">

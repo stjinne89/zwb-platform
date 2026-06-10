@@ -262,12 +262,21 @@ function latestMarkers(
   return bySession;
 }
 
+const DEFAULT_HEADING = "Live tijdens dit event";
+const DEFAULT_DESCRIPTION =
+  "Actieve RSVP-deelnemers worden op de route en het hoogteprofiel gevolgd.";
+const DEFAULT_EMPTY =
+  "Nog geen live deelnemers. Zodra een RSVP-deelnemer vandaag een outdoor live-sessie heeft, verschijnt die hier.";
+
 export function EventLiveTicker({
   gpxUrl,
   eventStartAt,
   sessions: initialSessions,
   initialPositions,
   pollUrl,
+  heading = DEFAULT_HEADING,
+  description = DEFAULT_DESCRIPTION,
+  emptyText = DEFAULT_EMPTY,
 }: {
   gpxUrl: string;
   eventStartAt: string;
@@ -280,6 +289,10 @@ export function EventLiveTicker({
    * anon-clients geen RLS-leesrechten hebben.
    */
   pollUrl?: string;
+  /** Kop, omschrijving en lege-staat-tekst (default: event-bewoording). */
+  heading?: string;
+  description?: string;
+  emptyText?: string;
 }) {
   const router = useRouter();
   const [sessions, setSessions] = useState(initialSessions);
@@ -482,12 +495,9 @@ export function EventLiveTicker({
         <div>
           <h2 className="flex items-center gap-2 font-semibold">
             <span className="inline-block size-2.5 animate-pulse rounded-full bg-destructive" />
-            Live tijdens dit event
+            {heading}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Actieve RSVP-deelnemers worden op de route en het hoogteprofiel
-            gevolgd.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="rounded-md border bg-background px-3 py-2 text-sm tabular-nums">
           <strong>{riders.length}</strong>{" "}
@@ -537,8 +547,7 @@ export function EventLiveTicker({
 
       {riders.length === 0 && (
         <div className="rounded-md border border-dashed bg-background p-4 text-sm text-muted-foreground">
-          Nog geen live deelnemers. Zodra een RSVP-deelnemer vandaag een
-          outdoor live-sessie heeft, verschijnt die hier.
+          {emptyText}
         </div>
       )}
     </section>

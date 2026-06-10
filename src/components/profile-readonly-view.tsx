@@ -15,6 +15,7 @@ export type ReadonlyProfile = {
   ftp_watts: number | null;
   weight_kg: number | string | null;
   bio: string | null;
+  birth_date?: string | null;
   is_admin: boolean | null;
   community_roles: string[] | null;
   public_profile_enabled?: boolean | null;
@@ -51,6 +52,16 @@ function formatWeight(value: number | string | null) {
   return `${value} kg`;
 }
 
+function formatBirthDate(value: string | null | undefined) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Intl.DateTimeFormat("nl-NL", {
+    dateStyle: "long",
+    timeZone: "Europe/Amsterdam",
+  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+}
+
 export function ProfileReadonlyView({
   profile,
   milestones,
@@ -77,6 +88,7 @@ export function ProfileReadonlyView({
       value: profile.ftp_watts ? `${profile.ftp_watts} watt` : null,
     },
     { label: "Gewicht", value: formatWeight(profile.weight_kg) },
+    { label: "Geboortedatum", value: formatBirthDate(profile.birth_date) },
   ].filter((tile): tile is { label: string; value: string } => Boolean(tile.value));
 
   return (

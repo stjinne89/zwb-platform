@@ -93,7 +93,7 @@ export function CreatePollForm() {
 
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-muted-foreground">
-          Toelichting (markdown, optioneel)
+          Toelichting
         </span>
         <textarea
           name="description_md"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -49,9 +49,12 @@ function isoToLocalInput(iso: string | null): string {
 export function EventForm({
   initial,
   teams = [],
+  deleteSlot,
 }: {
   initial?: EventInitial;
   teams?: Array<{ id: string; name: string; type: string; parent_team_id: string | null }>;
+  /** Optionele verwijder-knop, getoond naast Opslaan/Annuleer bij bewerken. */
+  deleteSlot?: ReactNode;
 }) {
   const isEdit = !!initial;
   const router = useRouter();
@@ -319,10 +322,6 @@ export function EventForm({
             </button>
           )}
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Wordt als sfeerbeeld getoond op de event-pagina, kalender en in
-          ritverslagen.
-        </p>
       </div>
 
       <div>
@@ -347,10 +346,6 @@ export function EventForm({
           defaultValue={initial?.external_url ?? ""}
           className={FIELD_CLASS}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Strava-route, Komoot tour, RideWithGPS — wordt op de event-pagina
-          getoond als &quot;Open op X&quot;-knop met platform-icoon.
-        </p>
       </div>
 
       <div>
@@ -364,10 +359,6 @@ export function EventForm({
           defaultValue={initial?.live_timing_url ?? ""}
           className={FIELD_CLASS}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Aparte livefeed voor de eventdag. Op Live tonen we alleen de
-          gematchte ZWB&apos;ers met hun actuele meetpunt en tijd.
-        </p>
       </div>
 
       <div>
@@ -381,11 +372,6 @@ export function EventForm({
           defaultValue={initial?.results_url ?? ""}
           className={FIELD_CLASS}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Link naar de uitslag op de timing-site. Een admin kan dan op de
-          event-pagina &quot;Uitslag ophalen&quot; klikken — we tonen alleen de
-          ZWB&apos;ers met hun klassering en tijd.
-        </p>
       </div>
 
       <div>
@@ -399,10 +385,6 @@ export function EventForm({
                 ? ` — ${Number(initial.distance_km).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`
                 : ""}
               {initial?.elevation_m ? ` · ${initial.elevation_m} hm` : ""}.
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Upload hieronder een nieuwe GPX om hem te vervangen, of klik
-              &quot;Verwijder&quot; om de route weg te halen.
             </p>
             <button
               type="button"
@@ -466,6 +448,7 @@ export function EventForm({
             Annuleer
           </Button>
         )}
+        {deleteSlot && <div className="ml-auto">{deleteSlot}</div>}
       </div>
     </form>
   );

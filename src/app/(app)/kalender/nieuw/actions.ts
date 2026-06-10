@@ -162,3 +162,62 @@ export async function updateEvent(id: string, input: EventInput) {
   revalidatePath("/dashboard");
   redirect(`/events/${id}`);
 }
+
+export async function deleteEvent(id: string) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+
+  // Permissie-check: alleen creator of iemand met beheerrecht mag verwijderen.
+  const { data: event } = await supabase
+    .from("events")
+    .select("created_by, gpx_path, cover_image_path")
+    .eq("id", id)
+    .single();
+  if (!event) return { ok: false as const, error: "Event bestaat niet." };
+  const isCreator = event.created_by === access.user.id;
+  if (!isCreator && !access.has("events.manage_all")) {
+    return { ok: false as const, error: "Geen toegang om dit event te verwijderen." };
+  }
+
+  // Verwijder de event-rij. Alle gerelateerde rijen (rsvps, foto's, reminders,
+  // results, reports, chat, roster) cascaden of worden op null gezet via de FK's.
+  const { error } = await supabase.from("events").delete().eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+
+  // Storage best-effort opruimen (nooit blokkerend): GPX + de event-fotomap
+  // (bevat foto's en de cover onder `<id>/cover/...`). Via de admin-client zodat
+  // ook andermans geüploade foto's mee kunnen.
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    if (event.gpx_path) {
+      await admin.storage.from("event-gpx").remove([event.gpx_path]);
+    }
+    const paths: string[] = [];
+    const { data: top } = await admin.storage.from("event-photos").list(id);
+    for (const item of top ?? []) {
+      // Mappen hebben geen id; bestanden wel.
+      if (item.id) {
+        paths.push(`${id}/${item.name}`);
+      } else {
+        const { data: sub } = await admin.storage
+          .from("event-photos")
+          .list(`${id}/${item.name}`);
+        for (const f of sub ?? []) {
+          if (f.id) paths.push(`${id}/${item.name}/${f.name}`);
+        }
+      }
+    }
+    if (paths.length > 0) {
+      await admin.storage.from("event-photos").remove(paths);
+    }
+  } catch {
+    // Een achtergebleven bestand kan later worden opgeruimd; de delete is leidend.
+  }
+
+  revalidatePath("/kalender");
+  revalidatePath("/live");
+  revalidatePath("/dashboard");
+  redirect("/kalender");
+}

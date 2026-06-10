@@ -41,9 +41,6 @@ export function WindSummary({
             <Wind className="size-4 text-primary" />
             Weer + wind bij start
           </h3>
-          <p className="text-xs text-muted-foreground">
-            Voorspelling van Open-Meteo voor het tijdstip + locatie van het event.
-          </p>
         </div>
         {cls && (
           <span

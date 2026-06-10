@@ -15,6 +15,8 @@ type Initial = {
   ftp_watts: string;
   weight_kg: string;
   bio: string;
+  birth_date: string;
+  share_birthday: boolean;
   public_profile_enabled: boolean;
   profile_visibility: Record<string, boolean>;
 };
@@ -181,6 +183,31 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               className={FIELD}
             />
           </div>
+        </div>
+        <div className="space-y-3 rounded-lg border bg-background p-3">
+          <div>
+            <label className={LABEL}>Geboortedatum</label>
+            <input
+              type="date"
+              name="birth_date"
+              min="1900-01-01"
+              defaultValue={initial.birth_date}
+              className={FIELD}
+            />
+          </div>
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="share_birthday"
+              defaultChecked={initial.share_birthday}
+              className="mt-1 size-4 accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                Deel mijn verjaardag met leden
+              </span>
+            </span>
+          </label>
         </div>
       </section>
 

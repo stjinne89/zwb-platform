@@ -1,5 +1,6 @@
 import { EventForm } from "./_form";
 import { createClient } from "@/lib/supabase/server";
+import { HelpLink } from "@/components/app-ui";
 
 export default async function NewEventPage() {
   const supabase = await createClient();
@@ -11,12 +12,9 @@ export default async function NewEventPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <header>
+      <header className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Nieuw event</h1>
-        <p className="mt-1 text-muted-foreground">
-          Plan een rit, race of social. GPX is optioneel — als je er één
-          toevoegt, rekenen we afstand en hoogtemeters automatisch uit.
-        </p>
+        <HelpLink href="/hulp#eventbeheer" />
       </header>
       <EventForm teams={teams ?? []} />
     </div>

@@ -77,13 +77,8 @@ export function OwnTracksPanel({
   return (
     <section className="space-y-4 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-semibold">OwnTracks live GPS</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Echte achtergrondpositie via de native app.
-          </p>
-        </div>
-        <HelpLink href="/hulp#owntracks" label="Setup" />
+        <h2 className="font-semibold">OwnTracks live GPS</h2>
+        <HelpLink href="/hulp#owntracks" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -143,9 +138,6 @@ export function OwnTracksPanel({
       {endpointUrl && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
           <p className="text-sm font-medium">Kopieer deze URL naar OwnTracks</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Wordt eenmalig getoond.
-          </p>
           <div className="mt-3 flex gap-2">
             <input
               readOnly

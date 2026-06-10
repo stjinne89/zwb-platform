@@ -85,7 +85,6 @@ export function EventReports({
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
           <label className="text-xs font-medium text-muted-foreground">
             {myReport ? "Bewerk jouw verslag" : "Schrijf jouw ritverslag"}
-            <span className="ml-1 font-normal">(markdown)</span>
           </label>
           <textarea
             value={draft}

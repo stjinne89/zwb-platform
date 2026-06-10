@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { HelpLink } from "@/components/app-ui";
 import { EventForm, type EventInitial } from "../../../kalender/nieuw/_form";
+import { DeleteEventButton } from "../_components/delete-event-button";
 
 export default async function EditEventPage({
   params,
@@ -39,7 +41,7 @@ export default async function EditEventPage({
   if (!isCreator && !access.has("events.manage_all")) {
     return (
       <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-        Alleen de aanmaker of iemand met eventbeheerrecht kan dit event bewerken.
+        Alleen de aanmaker of een eventbeheerder kan dit event bewerken.
       </div>
     );
   }
@@ -70,14 +72,17 @@ export default async function EditEventPage({
       >
         Terug naar event
       </Link>
-      <header>
+      <header className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Event bewerken</h1>
-        <p className="mt-1 text-muted-foreground">
-          Pas titel, datum, locatie, beschrijving of route aan. Wijzigingen
-          zijn direct zichtbaar voor alle leden.
-        </p>
+        <HelpLink href="/hulp#eventbeheer" />
       </header>
-      <EventForm initial={initial} teams={teams ?? []} />
+      <EventForm
+        initial={initial}
+        teams={teams ?? []}
+        deleteSlot={
+          <DeleteEventButton eventId={event.id} eventTitle={event.title} />
+        }
+      />
     </div>
   );
 }

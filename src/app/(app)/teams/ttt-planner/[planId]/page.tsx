@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader, EmptyState } from "@/components/app-ui";
+import { PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -155,12 +155,15 @@ export default async function TttPlanDetailPage({
         title={plan.name}
         description={`${raceTeamName}${eventTitle ? ` - ${eventTitle}` : ""} - ${plan.status}`}
         actions={
-          <Link
-            href={`/teams/ttt-planner?plan=${plan.id}`}
-            className={cn(buttonVariants({ variant: "default" }))}
-          >
-            Open in planner
-          </Link>
+          <div className="flex items-center gap-2">
+            <HelpLink href="/hulp#ttt-beheer" />
+            <Link
+              href={`/teams/ttt-planner?plan=${plan.id}`}
+              className={cn(buttonVariants({ variant: "default" }))}
+            >
+              Open in planner
+            </Link>
+          </div>
         }
       />
 
@@ -189,12 +192,7 @@ export default async function TttPlanDetailPage({
 
       <section className="rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold">Race sheet</h2>
-            <p className="text-sm text-muted-foreground">
-              Pull-volgorde, watts en duur zoals opgeslagen in dit TTT-plan.
-            </p>
-          </div>
+            <h2 className="font-semibold">Raceplan</h2>
           <p className="text-sm text-muted-foreground">
             Bijgewerkt {new Date(plan.updated_at).toLocaleString("nl-NL")}
           </p>
@@ -248,7 +246,7 @@ export default async function TttPlanDetailPage({
           </pre>
         </div>
         <div className="rounded-lg border bg-card p-4">
-          <h2 className="font-semibold">ZwiftGopher JSON</h2>
+          <h2 className="font-semibold">Planbestand</h2>
           <pre className="mt-3 max-h-80 overflow-auto rounded-md bg-muted p-3 text-xs">
             {JSON.stringify(plan.api_response ?? {}, null, 2)}
           </pre>

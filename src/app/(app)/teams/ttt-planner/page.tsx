@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader, EmptyState } from "@/components/app-ui";
+import { PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -340,12 +340,15 @@ export default async function TttPlannerPage({
         eyebrow="Club"
         title="TTT Planner"
         actions={
-          <Link
-            href="/teams"
-            className={cn(buttonVariants({ variant: "outline" }))}
-          >
-            Terug naar club
-          </Link>
+          <div className="flex items-center gap-2">
+            <HelpLink href="/hulp#ttt-beheer" />
+            <Link
+              href="/teams"
+              className={cn(buttonVariants({ variant: "outline" }))}
+            >
+              Terug naar club
+            </Link>
+          </div>
         }
       />
 

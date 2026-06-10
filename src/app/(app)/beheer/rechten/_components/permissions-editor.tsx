@@ -65,12 +65,7 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-semibold">Rechtenmatrix</h2>
-          <p className="text-sm text-muted-foreground">
-            Vink per ledengroep aan welke acties straks toegestaan zijn.
-          </p>
-        </div>
+        <h2 className="font-semibold">Rechten per ledengroep</h2>
         <div className="flex items-center gap-3">
           {status.kind === "saved" && (
             <span className="text-sm text-green-600 dark:text-green-400">

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -51,6 +52,25 @@ export async function updateProfile(formData: FormData) {
 
   const ftp = optionalNumber(formData.get("ftp_watts"));
   const weight = optionalNumber(formData.get("weight_kg"));
+  const birthDateRaw = optionalString(formData.get("birth_date"));
+  const birthDate = birthDateRaw ? parseDateKey(birthDateRaw) : null;
+  if (birthDateRaw && !birthDate) {
+    return { ok: false as const, error: "Vul een geldige geboortedatum in." };
+  }
+  const todayKey = amsterdamDateKey();
+  if (birthDate && (birthDate.dateKey < "1900-01-01" || birthDate.dateKey > todayKey)) {
+    return {
+      ok: false as const,
+      error: "De geboortedatum moet tussen 1900 en vandaag liggen.",
+    };
+  }
+  const shareBirthday = formData.get("share_birthday") === "on";
+  if (shareBirthday && !birthDate) {
+    return {
+      ok: false as const,
+      error: "Vul eerst je geboortedatum in om je verjaardag te delen.",
+    };
+  }
   const profile_visibility = Object.fromEntries(
     VISIBILITY_FIELDS.map((field) => [
       field,
@@ -70,6 +90,8 @@ export async function updateProfile(formData: FormData) {
       ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
       weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
       bio: optionalString(formData.get("bio")),
+      birth_date: birthDate?.dateKey ?? null,
+      share_birthday: shareBirthday,
       public_profile_enabled: formData.get("public_profile_enabled") === "on",
       profile_visibility,
     })
@@ -79,6 +101,7 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/profiel");
   revalidatePath("/leden");
+  revalidatePath("/kalender");
   revalidatePath("/teams");
   revalidatePath(`/leden/${user.id}`);
   revalidatePath(`/profielen/${user.id}`);

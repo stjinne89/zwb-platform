@@ -468,7 +468,7 @@ export function TttPlanner({
       <section className="grid gap-4 xl:grid-cols-[0.9fr_1.3fr]">
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">Roster</h2>
+            <h2 className="font-semibold">Teamleden</h2>
             <Button size="sm" variant="outline" onClick={addManualRider}>
               <Plus className="size-4" />
               Gast
@@ -497,12 +497,7 @@ export function TttPlanner({
 
         <div className="rounded-lg border bg-card p-4" ref={imageRef}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">Race sheet ({raceRiders.length}/8)</h2>
-              <p className="text-sm text-muted-foreground">
-                Riders zonder Zwift ID worden als custom rider verstuurd.
-              </p>
-            </div>
+            <h2 className="font-semibold">Raceplan ({raceRiders.length}/8)</h2>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" disabled={!managed || pending} onClick={save}>
                 <Save className="size-4" />
@@ -510,14 +505,14 @@ export function TttPlanner({
               </Button>
               <Button size="sm" disabled={!managed || pending} onClick={optimize}>
                 <Sparkles className="size-4" />
-                Auto Optimize
+                Optimaliseren
               </Button>
             </div>
           </div>
 
           {raceRiders.length === 0 ? (
             <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-              Voeg riders toe uit het roster of maak een gast aan.
+              Voeg renners toe uit het team of maak een gast aan.
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
@@ -590,12 +585,7 @@ export function TttPlanner({
 
       <section className="rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold">Resultaat en export</h2>
-            <p className="text-sm text-muted-foreground">
-              Onbekende ZwiftGopher-velden blijven in JSON-export beschikbaar.
-            </p>
-          </div>
+          <h2 className="font-semibold">Resultaat en export</h2>
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -603,7 +593,7 @@ export function TttPlanner({
               onClick={() => downloadFile("ttt-plan.json", "application/json", JSON.stringify({ plan: currentPlan(), apiResponse }, null, 2))}
             >
               <Download className="size-4" />
-              JSON
+              Planbestand
             </Button>
             <Button
               size="sm"

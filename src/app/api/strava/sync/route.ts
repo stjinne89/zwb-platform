@@ -68,12 +68,12 @@ export async function POST(request: Request) {
   );
   const colSegmentMaxFetches = nonNegativeInt(
     url.searchParams.get("colSegmentMaxFetches"),
-    envNonNegativeInt("STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES", 5, 40),
+    envNonNegativeInt("STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES", 0, 40),
     40,
   );
   const zwbSegmentMaxFetches = nonNegativeInt(
     url.searchParams.get("zwbSegmentMaxFetches"),
-    envNonNegativeInt("STRAVA_SYNC_ZWB_SEGMENT_MAX_FETCHES", 5, 40),
+    envNonNegativeInt("STRAVA_SYNC_ZWB_SEGMENT_MAX_FETCHES", 0, 40),
     40,
   );
   const reconciliationDays = positiveInt(
@@ -127,6 +127,7 @@ export async function POST(request: Request) {
             colSegmentMaxFetches,
             zwbSegmentMaxFetches,
             reconciliationDays,
+            refreshAthleteInfo: false,
           });
 
           if (!result.ok) {

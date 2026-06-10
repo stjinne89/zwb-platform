@@ -31,22 +31,23 @@ export function AccountData({ email }: { email: string }) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Privacy & gegevens
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Bekijk de{" "}
-          <Link href="/privacy" className="text-primary underline">
-            privacyverklaring
-          </Link>
-          , download je gegevens of verwijder je account.
-        </p>
       </div>
 
-      <a
-        href="/api/account/export"
-        className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
-      >
-        <Download className="size-4" />
-        Download mijn gegevens (JSON)
-      </a>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/privacy"
+          className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+        >
+          Privacyverklaring
+        </Link>
+        <a
+          href="/api/account/export"
+          className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+        >
+          <Download className="size-4" />
+          Download mijn gegevens
+        </a>
+      </div>
 
       <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
         <div className="flex items-start gap-2">

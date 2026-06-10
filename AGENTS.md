@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Deployment workflow
 
 Netlify credits are limited. Work locally by default: make changes, run local checks, and leave commits unpushed unless the user explicitly asks to push or deploy.
+
+## Product copy
+
+Keep application interfaces concise. Do not add explanatory or technical help
+text inside forms or feature screens. Put necessary guidance on `/hulp` and
+privacy-related explanations in the privacy statement.

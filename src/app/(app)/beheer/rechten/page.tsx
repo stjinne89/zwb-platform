@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { HelpLink } from "@/components/app-ui";
 import {
   COMMUNITY_ROLE_META,
   COMMUNITY_ROLES,
@@ -58,23 +59,21 @@ export default async function RechtenPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Beheer
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Rechten per ledengroep
-        </h1>
-        <p className="max-w-3xl text-muted-foreground">
-          Beheer welke taken elke communityrol straks mag uitvoeren. De huidige
-          technische adminstatus blijft altijd superuser, zodat beheer niet per
-          ongeluk wordt buitengesloten.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            Beheer
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Rechten per ledengroep
+          </h1>
+        </div>
+        <HelpLink href="/hulp#rollenbeheer" />
       </header>
 
       {error && (
         <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          Kon rechten niet uit Supabase lezen: {error.message}
+          Kon rechten niet laden.
         </section>
       )}
 

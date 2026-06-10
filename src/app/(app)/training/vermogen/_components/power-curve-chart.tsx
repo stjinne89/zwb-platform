@@ -346,14 +346,6 @@ export function PowerCurveChart({
           </span>
         )}
       </div>
-      {metric === "wkg" ? (
-        <p className="text-xs text-muted-foreground">
-          Volledig gesynchroniseerde lijnen gebruiken de historische W/kg-records
-          van Intervals per duur. Oudere profielen gebruiken tot hun volgende sync
-          het laatst gesynchroniseerde gewicht.
-        </p>
-      ) : null}
-
       <PowerBenchmarks
         metric={metric}
         ownPoints={own}

@@ -15,6 +15,7 @@ type PageProps = {
 };
 
 type ProfileRow = ReadonlyProfile & {
+  share_birthday: boolean | null;
   profile_visibility: Record<string, boolean> | null;
 };
 
@@ -34,6 +35,7 @@ function visibleProfile(profile: ProfileRow): ReadonlyProfile {
     ftp_watts: isVisible(profile, "ftp_watts") ? profile.ftp_watts : null,
     weight_kg: isVisible(profile, "weight_kg") ? profile.weight_kg : null,
     bio: isVisible(profile, "bio") ? profile.bio : null,
+    birth_date: profile.share_birthday ? profile.birth_date : null,
     is_admin: isVisible(profile, "roles") ? profile.is_admin : false,
     community_roles: isVisible(profile, "roles") ? profile.community_roles : null,
     public_profile_enabled: profile.public_profile_enabled,
@@ -57,7 +59,7 @@ export default async function LidProfielPage({ params }: PageProps) {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, is_admin, community_roles, avatar_url, is_approved, public_profile_enabled, profile_visibility",
+        "id, display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, is_approved, public_profile_enabled, profile_visibility",
       )
       .eq("id", id)
       .eq("is_approved", true)

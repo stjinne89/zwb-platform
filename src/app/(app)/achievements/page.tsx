@@ -305,7 +305,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
       )}
       {connected && (
         <p className="rounded-md border bg-card p-3 text-sm text-muted-foreground">
-          Strava is gekoppeld. Sync je activiteiten om mee te doen in de badges.
+          Strava gekoppeld.
         </p>
       )}
 
@@ -421,7 +421,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
           <div>
             <h2 className="font-semibold">Kudomaster</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Klaar voor zodra we betrouwbare kudo-brondata hebben.
+              Nog niet beschikbaar.
             </p>
           </div>
         </div>

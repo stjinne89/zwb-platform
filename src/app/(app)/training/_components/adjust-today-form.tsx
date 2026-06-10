@@ -54,7 +54,7 @@ export function AdjustTodayForm() {
         if (cancelled) return;
 
         if (!response.ok || !payload?.ok) {
-          setError(payload?.error ?? `Status ophalen faalde (${response.status}).`);
+          setError(payload?.error ?? "Voorstel ophalen is mislukt.");
           setActiveGenerationId(null);
           return;
         }
@@ -74,9 +74,9 @@ export function AdjustTodayForm() {
         }
 
         timeoutId = setTimeout(poll, 5_000);
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Status ophalen faalde.");
+        setError("Voorstel ophalen is mislukt.");
         setActiveGenerationId(null);
       }
     }
@@ -106,12 +106,12 @@ export function AdjustTodayForm() {
       const payload = isJson ? ((await response.json()) as DraftPayload) : null;
 
       if (!response.ok || !payload?.ok || !payload.generationId) {
-        setError(payload?.error ?? `Aanpassing maken faalde (${response.status}).`);
+        setError(payload?.error ?? "Voorstel maken is mislukt.");
         return;
       }
       setActiveGenerationId(payload.generationId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Aanpassing maken faalde.");
+    } catch {
+      setError("Voorstel maken is mislukt.");
     } finally {
       setSubmitting(false);
     }
@@ -121,16 +121,10 @@ export function AdjustTodayForm() {
     return (
       <div className="rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 font-semibold">
-              <Sparkles className="size-5 text-primary" />
-              Pas je training van vandaag aan
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Te moe, weinig tijd of juist fris? Laat de AI je schema van vandaag
-              bijsturen.
-            </p>
-          </div>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Sparkles className="size-5 text-primary" />
+            Pas je training van vandaag aan
+          </h2>
           <Button type="button" size="sm" onClick={() => setOpen(true)}>
             Aanpassen
           </Button>
@@ -214,10 +208,6 @@ export function AdjustTodayForm() {
           Annuleer
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Het voorstel wordt op de achtergrond gemaakt en verschijnt als concept bij
-        je schema&apos;s; je trainer (of jijzelf) kan het goedkeuren en publiceren.
-      </p>
     </form>
   );
 }

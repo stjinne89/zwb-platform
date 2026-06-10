@@ -134,7 +134,7 @@ export function NewPostForm() {
 
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className={LABEL}>Beschrijving (markdown)</label>
+          <label className={LABEL}>Beschrijving</label>
           <button
             type="button"
             onClick={() => setShowPreview((v) => !v)}

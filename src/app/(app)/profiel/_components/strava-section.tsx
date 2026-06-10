@@ -46,17 +46,13 @@ export function StravaSection({
               )}
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Ritten tellen mee voor badges. Sync via{" "}
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/achievements"
-              className="font-medium text-primary hover:underline"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Achievements
+              Naar achievements
             </Link>
-            .
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               size="sm"
@@ -102,9 +98,6 @@ export function StravaSection({
         </div>
       ) : (
         <div className="mt-3 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Nodig voor ritten, badges en trainingsdata.
-          </p>
           <Link
             href="/api/strava/connect"
             className={cn(buttonVariants({ variant: "default", size: "sm" }))}

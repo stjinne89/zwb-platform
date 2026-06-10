@@ -125,7 +125,7 @@ export function TeamRosterTable({
     <section className="space-y-3 rounded-lg border bg-card p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Rennerrooster</h2>
+          <h2 className="font-semibold">Renners</h2>
           <p className="text-sm text-muted-foreground">
             {filtered.length} van {rows.length} renners zichtbaar
           </p>
@@ -212,7 +212,7 @@ export function TeamRosterTable({
               <SortableHeader label="20m" sortKey="20m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="FTP" sortKey="ftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="ZRL" sortKey="zrl" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <th className="py-2 font-medium">Sync</th>
+              <th className="py-2 font-medium">Bijgewerkt</th>
             </tr>
           </thead>
           <tbody>

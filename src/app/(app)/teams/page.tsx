@@ -3,7 +3,7 @@ import { Activity, ArrowRight, LinkIcon, Plus, Trophy, Users } from "lucide-reac
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { PageHeader } from "@/components/app-ui";
+import { HelpLink, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
 import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
@@ -289,9 +289,9 @@ export default async function TeamsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Teams"
-        description="Een centraal race-rooster met teamlidmaatschappen, Intervals-waarden, W/kg, rennerprofielen en ZRL-historie."
         actions={
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <HelpLink href="/hulp#teambeheer" />
             <SyncPowerButton scope="self" />
             {canSyncTeams && (
               <>
@@ -315,18 +315,13 @@ export default async function TeamsPage() {
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard icon={<Users className="size-4" />} label="Renners" value={rows.length} />
         <MetricCard icon={<LinkIcon className="size-4" />} label="Hoofdteams" value={parentTeamOptions.length} />
-        <MetricCard icon={<Activity className="size-4" />} label="Powerprofielen" value={powerSynced} />
+        <MetricCard icon={<Activity className="size-4" />} label="Vermogensdata" value={powerSynced} />
         <MetricCard icon={<Trophy className="size-4" />} label="Profieltypes" value={riderTypes.size} />
       </section>
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold">Teamoverzicht</h2>
-            <p className="text-sm text-muted-foreground">
-              Open een team om leden toe te voegen, captainrollen te zetten en lineups te beheren.
-            </p>
-          </div>
+          <h2 className="font-semibold">Teamoverzicht</h2>
           {canCreateTeams && (
             <Link href="/teams/nieuw">
               <Button size="sm" variant="outline">

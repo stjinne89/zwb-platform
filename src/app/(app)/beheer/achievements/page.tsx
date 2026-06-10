@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { HelpLink } from "@/components/app-ui";
 import { ManualBadgeManager } from "./_components/manual-badge-manager";
 
 type PageProps = {
@@ -85,17 +86,16 @@ export default async function AchievementBeheerPage({ searchParams }: PageProps)
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Beheer
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Achievementbadges beheren
-        </h1>
-        <p className="max-w-3xl text-muted-foreground">
-          Ken milestonebadges handmatig toe voor achievements die Strava niet
-          betrouwbaar kan meten, zoals mentor-, klassieker- of communitybadges.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            Beheer
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Achievementbadges beheren
+          </h1>
+        </div>
+        <HelpLink href="/hulp#badgebeheer" />
       </header>
 
       {profileOptions.length === 0 ? (

@@ -212,15 +212,7 @@ export default async function PowerPage({
       />
 
       {!connection ? (
-        <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-          <div className="rounded-lg border bg-card p-5">
-            <h2 className="font-semibold">Koppel intervals.icu</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              De powercurve wordt rechtstreeks uit je Intervals-account geladen.
-            </p>
-          </div>
-          <ConnectIntervalsForm />
-        </section>
+        <ConnectIntervalsForm />
       ) : (
         <>
           <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
@@ -239,9 +231,6 @@ export default async function PowerPage({
                 </Link>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Vergelijking gebruikt volledige 90-daagse ZWB-curves waar beschikbaar.
-            </p>
           </section>
 
           {curveError ? (
@@ -258,19 +247,13 @@ export default async function PowerPage({
               icon={Scale}
               label="Huidig gewicht"
               value={ownWeightKg == null ? "-" : `${ownWeightKg.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} kg`}
-              hint="Je eigen W/kg-curve gebruikt historische Intervals-waarden."
             />
           </section>
 
           {ownPoints.length > 1 ? (
             <section className="rounded-lg border bg-card p-4 sm:p-5">
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold">Power-duration curve</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Beweeg over de grafiek voor het vermogen bij iedere seconde of minuut.
-                  </p>
-                </div>
+                <h2 className="text-lg font-semibold">Power-duration curve</h2>
                 <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                   <Users className="size-3.5" />
                   {comparisonRiders.length} vergelijkbare ZWB-profielen
@@ -288,7 +271,6 @@ export default async function PowerPage({
               <h2 className="font-semibold">Nog geen powercurve gevonden</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Intervals gaf wel een koppeling terug, maar geen bruikbare vermogenspunten voor deze periode.
-                Controleer of je ritten vermogensdata bevatten.
               </p>
             </section>
           )}

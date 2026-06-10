@@ -274,7 +274,7 @@ export default async function ClubLadderPage({
                       <span className="flex items-center justify-between gap-2">
                         <span className="font-medium">{team.name}</span>
                         {team.is_graveyard && (
-                          <span className="text-xs text-muted-foreground">graveyard</span>
+                          <span className="text-xs text-muted-foreground">archief</span>
                         )}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">
@@ -316,7 +316,7 @@ export default async function ClubLadderPage({
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Alias: {aliases.join(", ")}
+                    Teamnaam bij bron: {aliases.join(", ")}
                   </p>
                 </div>
                 <StandingsTable rows={window} selectedAliases={aliases} />
@@ -369,7 +369,7 @@ export default async function ClubLadderPage({
               <h2 className="font-semibold">Komende matchups</h2>
               {fixtures.length === 0 ? (
                 <EmptyState className="mt-3">
-                  Geen publieke fixture gevonden voor deze alias.
+                  Geen openbare wedstrijd gevonden.
                 </EmptyState>
               ) : (
                 <ul className="mt-3 space-y-2">

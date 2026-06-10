@@ -238,9 +238,6 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
       )}
 
       <footer className="border-t pt-4 text-center text-xs text-muted-foreground">
-        Live posities worden door ZWB-leden zelf gedeeld via de ZWB-app.
-        Updates komen binnen via een poll-loop van ~10 seconden.
-        <br />
         <Link href="/login" className="underline">
           Log in op het ZWB-platform
         </Link>{" "}

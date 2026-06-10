@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addMediaItem, updateMediaItem } from "../_actions";
+import { HelpLink } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { MEDIA_KINDS, type MediaKind } from "@/lib/media-kinds";
 
@@ -78,9 +79,12 @@ export function MediaForm({ initial }: { initial?: MediaInitial }) {
           : "space-y-4 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4"
       }
     >
-      <h3 className="text-sm font-medium">
-        {isEdit ? "Media-item bewerken" : "Nieuw media-item"}
-      </h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-medium">
+          {isEdit ? "Media-item bewerken" : "Nieuw media-item"}
+        </h3>
+        <HelpLink href="/hulp#mediabeheer" />
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -115,24 +119,17 @@ export function MediaForm({ initial }: { initial?: MediaInitial }) {
       </div>
 
       <div>
-        <label className={LABEL}>
-          Publicatiedatum {isEdit ? "" : "(optioneel — leeg = nu)"}
-        </label>
+        <label className={LABEL}>Publicatiedatum</label>
         <input
           type="datetime-local"
           name="published_at"
           defaultValue={isoToLocalInput(initial?.published_at ?? null)}
           className={FIELD}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Gebruik de oorspronkelijke datum van de inhoud (bv. de
-          creatie-datum van een Drive-document of de uitzenddatum van
-          een aflevering).
-        </p>
       </div>
 
       <div>
-        <label className={LABEL}>Tekst / beschrijving (markdown, optioneel)</label>
+        <label className={LABEL}>Tekst / beschrijving</label>
         <textarea
           name="body_md"
           rows={kind === "mededeling" ? 4 : 2}
@@ -144,8 +141,7 @@ export function MediaForm({ initial }: { initial?: MediaInitial }) {
       {showPodcastFields && (
         <div className="space-y-3 rounded-md border bg-card/40 p-3">
           <p className="text-xs font-medium text-muted-foreground">
-            Podcast-links (vul in waar je een link voor hebt; leden zien een knop
-            per platform)
+            Podcast-links
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
@@ -169,7 +165,7 @@ export function MediaForm({ initial }: { initial?: MediaInitial }) {
               />
             </div>
             <div>
-              <label className={LABEL}>RSS-feed (voor andere podcast-apps)</label>
+              <label className={LABEL}>Podcastfeed</label>
               <input
                 name="rss_url"
                 type="url"

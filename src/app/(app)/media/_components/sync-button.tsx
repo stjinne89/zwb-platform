@@ -35,7 +35,7 @@ export function SyncYouTubeButton() {
           });
         }}
       >
-        {pending ? "Bezig met syncen…" : "📺 Sync YouTube"}
+        {pending ? "Bezig met ophalen…" : "YouTube ophalen"}
       </Button>
       {status.kind === "ok" && (
         <span className="text-sm text-muted-foreground">{status.msg}</span>
@@ -73,7 +73,7 @@ export function SyncInstagramButton() {
           });
         }}
       >
-        {pending ? "Bezig met syncen..." : "Sync Instagram"}
+        {pending ? "Bezig met ophalen..." : "Instagram ophalen"}
       </Button>
       {status.kind === "ok" && (
         <span className="text-sm text-muted-foreground">{status.msg}</span>
@@ -120,7 +120,7 @@ export function SyncPodcastButton({ defaultRssUrl }: { defaultRssUrl: string }) 
             });
           }}
         >
-          {pending ? "Bezig met syncen…" : "🎙️ Sync podcast RSS"}
+          {pending ? "Bezig met ophalen…" : "Podcast ophalen"}
         </Button>
       </div>
       {status.kind === "ok" && (

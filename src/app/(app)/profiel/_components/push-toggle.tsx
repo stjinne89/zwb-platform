@@ -96,7 +96,7 @@ export function PushToggle({
       const p256dh = json.keys?.p256dh;
       const auth = json.keys?.auth;
       if (!subscription.endpoint || !p256dh || !auth) {
-        throw new Error("Subscription incompleet, probeer opnieuw.");
+        throw new Error("Meldingen konden niet worden ingesteld.");
       }
 
       const res = await savePushSubscription({

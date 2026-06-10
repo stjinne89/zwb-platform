@@ -300,15 +300,10 @@ export async function RiderStats({
 
   return (
     <section className="space-y-4 rounded-lg border bg-card p-6">
-      <header>
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          <Bike className="size-4 text-primary" />
-          {firstLastName} op de fiets
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Aggregaten uit Strava-activiteiten. Bijgewerkt bij elke sync.
-        </p>
-      </header>
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <Bike className="size-4 text-primary" />
+        {firstLastName} op de fiets
+      </h2>
 
       {/* Jaar-totalen */}
       <div>

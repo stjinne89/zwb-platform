@@ -20,7 +20,7 @@ const PLATFORM_BUTTONS: Array<{
   { key: "apple_url", label: "Apple Podcasts" },
   { key: "spotify_url", label: "Spotify" },
   { key: "youtube_url", label: "YouTube" },
-  { key: "rss_url", label: "RSS-feed" },
+  { key: "rss_url", label: "Podcastfeed" },
   { key: "web_url", label: "Web" },
 ];
 
@@ -272,13 +272,7 @@ export default async function MediaPage({
       {canManageMedia && (
         <div className="space-y-4 border-t pt-6">
           <div className="space-y-4 rounded-2xl border border-dashed border-foreground/20 bg-card/40 p-4">
-            <div>
-              <h3 className="text-sm font-medium">Automatische import</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Re-syncs zijn idempotent — bestaande items worden alleen
-                bijgewerkt.
-              </p>
-            </div>
+            <h3 className="text-sm font-medium">Automatische import</h3>
             <SyncYouTubeButton />
             <div className="border-t pt-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -288,7 +282,7 @@ export default async function MediaPage({
             </div>
             <div className="border-t pt-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Podcast (RSS-feed)
+                Podcast
               </p>
               <SyncPodcastButton defaultRssUrl={defaultRssUrl} />
             </div>

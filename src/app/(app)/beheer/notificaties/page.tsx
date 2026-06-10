@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { HelpLink } from "@/components/app-ui";
 import { BroadcastForm } from "./_components/broadcast-form";
 
 export default async function BroadcastPage() {
@@ -21,19 +22,16 @@ export default async function BroadcastPage() {
 
   return (
     <div className="space-y-6">
-      <header>
+      <header className="flex items-start justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">
           Notificaties versturen
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Stuur een push-melding naar alle leden die de aankondigingen-
-          optie hebben aanstaan.
-        </p>
+        <HelpLink href="/hulp#rollenbeheer" />
       </header>
 
       <section className="rounded-lg border bg-card p-4 text-sm">
         <p>
-          <span className="text-muted-foreground">Actieve subscriptions:</span>{" "}
+          <span className="text-muted-foreground">Apparaten met meldingen:</span>{" "}
           <strong>{subCount ?? 0}</strong>
         </p>
         <p className="mt-1">

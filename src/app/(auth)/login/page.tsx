@@ -205,8 +205,7 @@ function AuthScreen() {
             <p className="font-medium">Bijna klaar.</p>
             <p>
               Check je inbox en klik op de bevestigingslink om je account te
-              activeren. De mail kan vanuit Supabase komen; kijk ook in
-              ongewenste mail of spam en markeer de afzender als vertrouwd.
+              activeren. Kijk ook in ongewenste mail of spam.
             </p>
             <Link
               href="/welkom"

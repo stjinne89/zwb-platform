@@ -24,7 +24,7 @@ export function BroadcastForm() {
       }
       setResult(
         `Verzonden naar ${res.sent} ${res.sent === 1 ? "apparaat" : "apparaten"}` +
-          (res.pruned > 0 ? ` (${res.pruned} verlopen subscriptions opgeruimd)` : "") +
+          (res.pruned > 0 ? ` (${res.pruned} verlopen apparaten opgeruimd)` : "") +
           ".",
       );
       form.reset();
@@ -64,7 +64,7 @@ export function BroadcastForm() {
 
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-muted-foreground">
-          Doorklik-URL (default: /dashboard)
+          Doorkliklink
         </span>
         <input
           name="url"

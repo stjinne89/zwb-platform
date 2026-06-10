@@ -88,7 +88,6 @@ export default async function RitverslagenPage() {
         <PageHeader
           eyebrow="ZWB"
           title="Ritverslagen"
-          description="Voorbije events met hun foto's — voeg foto's toe op de event-pagina."
         />
         <EmptyState>Nog geen voorbije events.</EmptyState>
       </div>

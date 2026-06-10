@@ -61,7 +61,7 @@ export default async function ProfielPage() {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, strava_id, zrl_category, zrl_division, ftp_watts, weight_kg, bio, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
+        "id, display_name, region, zwift_id, strava_id, zrl_category, zrl_division, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
       )
       .eq("id", user.id)
       .single(),
@@ -143,6 +143,8 @@ export default async function ProfielPage() {
           ftp_watts: profile?.ftp_watts?.toString() ?? "",
           weight_kg: profile?.weight_kg?.toString() ?? "",
           bio: profile?.bio ?? "",
+          birth_date: profile?.birth_date ?? "",
+          share_birthday: profile?.share_birthday ?? false,
           public_profile_enabled: profile?.public_profile_enabled ?? false,
           profile_visibility: {
             ...DEFAULT_VISIBILITY,
@@ -183,14 +185,9 @@ export default async function ProfielPage() {
 
       <section className="rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              ZWB Segments
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Je cols, Zwift-segmenten en clubsegmenten uit Strava.
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            ZWB Segments
+          </h2>
           <Link
             href="/profiel/segments"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"

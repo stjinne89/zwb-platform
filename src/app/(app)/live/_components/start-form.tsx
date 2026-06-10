@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { startSession } from "../_actions";
+import { HelpLink } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 
 const MODES = [
@@ -44,11 +45,10 @@ export function StartLiveForm({ onStarted }: { onStarted?: () => void }) {
 
   return (
     <form action={submit} className="space-y-3 rounded-2xl border bg-card p-4">
-      <h3 className="text-sm font-semibold">Start live-sessie</h3>
-      <p className="text-xs text-muted-foreground">
-        Echte outdoor GPS-posities lopen via OwnTracks. Dit formulier is voor
-        indoor status of een Garmin/Wahoo LiveTrack-doorlink.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-semibold">Start live-sessie</h3>
+        <HelpLink href="/hulp#owntracks" />
+      </div>
 
       <div>
         <label className={LABEL}>Mode</label>
@@ -78,11 +78,6 @@ export function StartLiveForm({ onStarted }: { onStarted?: () => void }) {
           maxLength={120}
           className={FIELD}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {isOutdoor
-            ? "Korte beschrijving van je rit; verschijnt naast je LiveTrack-link."
-            : "Welke wereld/route rijd je? Zo kunnen anderen joinen."}
-        </p>
       </div>
 
       <div>
@@ -93,19 +88,7 @@ export function StartLiveForm({ onStarted }: { onStarted?: () => void }) {
           placeholder="https://livetrack.garmin.com/... of Wahoo LiveTrack"
           className={FIELD}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Garmin/Wahoo share-link. Voor outdoor is deze link verplicht als je
-          geen OwnTracks gebruikt.
-        </p>
       </div>
-
-      {isOutdoor && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200">
-          <strong>Tip:</strong> wil je echt als bolletje op de ZWB-kaart
-          verschijnen, koppel dan OwnTracks hierboven. Een externe LiveTrack-link
-          opent Garmin of Wahoo, maar levert geen GPS-punten aan ZWB.
-        </div>
-      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

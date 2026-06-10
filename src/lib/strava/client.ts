@@ -251,6 +251,8 @@ export async function refreshStravaAthleteInfo(
 
 export type SyncChunkOptions = {
   fullBackfill?: boolean;
+  /** Athlete-profiel opnieuw ophalen. Voor frequente cronruns meestal false. */
+  refreshAthleteInfo?: boolean;
   /** Voor resumable sync: vanaf welke Strava-pagina (1-based). Default 1. */
   startPage?: number;
   /** Unix-seconds; als gezet wordt deze gebruikt i.p.v. de smart-since-check. */
@@ -290,7 +292,7 @@ export async function syncStravaActivitiesForUser(
 
   // Avatar refresh: alleen op de eerste chunk (page 1) zodat we 'm niet
   // bij elke vervolg-call opnieuw doen.
-  if (startPage === 1) {
+  if (startPage === 1 && options.refreshAthleteInfo !== false) {
     await refreshStravaAthleteInfo(supabase, profileId, accessToken);
   }
 

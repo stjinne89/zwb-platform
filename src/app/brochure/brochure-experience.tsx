@@ -300,13 +300,10 @@ export function BrochureExperience() {
         </section>
 
         <section className="border-t border-slate-200 px-6 py-14 sm:px-12 lg:px-20">
-          <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
+          <div className="mb-8">
             <h2 className="text-4xl font-black tracking-[-0.03em] sm:text-5xl">
               Eigen invulling
             </h2>
-            <p className="text-slate-600">
-              Vul de belangrijkste keuzes in. De invoer wordt lokaal in je browser opgeslagen.
-            </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5">
             <div className="grid gap-3 md:grid-cols-4">
@@ -335,13 +332,10 @@ export function BrochureExperience() {
         </section>
 
         <section className="border-t border-slate-200 px-6 py-14 sm:px-12 lg:px-20">
-          <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
+          <div className="mb-8">
             <h2 className="text-4xl font-black tracking-[-0.03em] sm:text-5xl">
               Landal Warsberg
             </h2>
-            <p className="text-slate-600">
-              Publieke Landal-beelden zijn lokaal opgenomen; de plattegrond is als download beschikbaar.
-            </p>
           </div>
           <div className="grid gap-5 lg:grid-cols-[1.35fr_.8fr]">
             <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
@@ -376,13 +370,10 @@ export function BrochureExperience() {
         </section>
 
         <section className="border-t border-slate-200 px-6 py-14 sm:px-12 lg:px-20">
-          <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
+          <div className="mb-8">
             <h2 className="text-4xl font-black tracking-[-0.03em] sm:text-5xl">
               Routes uit Strava
             </h2>
-            <p className="text-slate-600">
-              Plak publieke Strava-route-URL's. Herkenbare route-ID's worden automatisch als embed getoond.
-            </p>
           </div>
           <div className="grid gap-5 lg:grid-cols-3">
             {routes.map((route, index) => {
@@ -458,13 +449,10 @@ export function BrochureExperience() {
         </section>
 
         <section className="border-t border-slate-200 px-6 py-14 sm:px-12 lg:px-20">
-          <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
+          <div className="mb-8">
             <h2 className="text-4xl font-black tracking-[-0.03em] sm:text-5xl">
               Grof tijdschema
             </h2>
-            <p className="text-slate-600">
-              Alle velden zijn aanpasbaar. Voeg extra rijen toe met de knop bovenaan.
-            </p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
             <table className="w-full border-collapse text-left text-sm">
@@ -537,13 +525,10 @@ export function BrochureExperience() {
         </section>
 
         <section className="border-t border-slate-200 px-6 py-14 sm:px-12 lg:px-20">
-          <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_420px] lg:items-end">
+          <div className="mb-8">
             <h2 className="text-4xl font-black tracking-[-0.03em] sm:text-5xl">
               Sponsoren
             </h2>
-            <p className="text-slate-600">
-              Logo's zijn lokaal gekoppeld; Nex Reply kan later worden toegevoegd als los bestand beschikbaar is.
-            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {sponsorLogos.map((logo) => (

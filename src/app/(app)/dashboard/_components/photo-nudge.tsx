@@ -73,10 +73,6 @@ export async function PhotoNudge({ userId }: { userId: string }) {
           <ArrowRight className="size-4" />
         </Link>
       </div>
-      <p className="mb-3 text-sm text-muted-foreground">
-        Je reed onlangs mee — voeg je foto&apos;s toe zodat er een ritverslag
-        ontstaat.
-      </p>
       <ul className="space-y-2">
         {todo.map((event) => (
           <li key={event.id}>

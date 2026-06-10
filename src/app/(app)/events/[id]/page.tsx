@@ -16,7 +16,7 @@ import {
   type EventLiveSession,
 } from "./_components/event-live-ticker";
 import { WindSummary } from "./_components/wind-summary";
-import { RsvpButtons } from "./_components/rsvp-buttons";
+import { RsvpPicker } from "./_components/rsvp-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
 import { ManualResultForm } from "./_components/manual-result-form";
@@ -491,44 +491,11 @@ export default async function EventDetailPage({
         <WindSummary forecast={windForecast} rideBearing={rideBearing} />
       )}
 
-      <section className="space-y-3 rounded-lg border bg-card p-4">
+      <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Ben jij erbij?
         </h2>
-        <RsvpButtons eventId={event.id} current={myRsvp ?? null} />
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {(["yes", "maybe", "no"] as RsvpStatus[]).map((s) => (
-          <div key={s} className="rounded-lg border bg-card p-4">
-            <h3 className="mb-2 text-sm font-semibold">
-              {s === "yes" ? "Ja" : s === "maybe" ? "Misschien" : "Nee"}{" "}
-              <span className="text-muted-foreground">({grouped[s].length})</span>
-            </h3>
-            {grouped[s].length === 0 ? (
-              <p className="text-sm text-muted-foreground">—</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {grouped[s].map((entry, i) => (
-                  <li
-                    key={i}
-                    className="flex flex-wrap items-center gap-1.5"
-                  >
-                    <span>{entry.name}</span>
-                    {entry.zrl && (
-                      <span
-                        className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
-                        title={`ZRL-categorie ${entry.zrl}`}
-                      >
-                        {entry.zrl}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+        <RsvpPicker eventId={event.id} current={myRsvp ?? null} groups={grouped} />
       </section>
 
       {liveTimingOutcome && (

@@ -172,10 +172,6 @@ export function ManualBadgeManager({
           <h2 className="font-semibold">
             Badges van {selectedProfile?.display_name ?? "dit lid"}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Alleen milestonebadges staan hier. Weekbadges blijven via de
-            gewone weekfinalisatie lopen.
-          </p>
         </div>
         {earnedBadges.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">
