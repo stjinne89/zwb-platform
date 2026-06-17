@@ -7,8 +7,11 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-06-10 (verjaardagen-feature met opt-in en afgeschermde
-> verjaardagsruimte per lid — felicitaties + foto's + een verjaardagsrondje
+> Laatst bijgewerkt: 2026-06-17 (testerfeedback juni 2026 verwerkt tot roadmap:
+> menu-polish, achievementkwaliteit, Zwift/MyWhoosh-kalenderonderzoek,
+> team/club challenges en AI-agenten. Vorige working-tree ronde 2026-06-10:
+> verjaardagen-feature met opt-in en afgeschermde verjaardagsruimte per lid —
+> felicitaties + foto's + een verjaardagsrondje
 > (rit-uitnodiging met GPX-route) inclusief RSVP en een eigen liveticker (kaart +
 > hoogteprofiel + aangemelde renners), surfacing op
 > kalender en ledenprofiel, migraties `0077`-`0079`; Strava-cron-sync verlicht (dure col/ZWB-segment-
@@ -496,7 +499,33 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - **Copy-pass**: uitleg/hulptekst uit formulieren over ~64 bestanden naar
      `/hulp` + privacyverklaring; nieuwe "Product copy"-conventie in `AGENTS.md`.
 
-11. **⏸️ On-hold (bewust uitgesteld)**
+11. **🛠️ Testerfeedback juni 2026 — in uitvoering**
+   - **Prioriteit 1: mobile menu polish.** Light-mode hamburger-menu krijgt
+     meer contrast, duidelijkere section-dividers en subtiele inspringing per
+     cluster. Dark mode blijft visueel gelijkwaardig. Geïmplementeerd in
+     `src/app/(app)/_components/mobile-menu.tsx`.
+   - **Prioriteit 2: achievementkwaliteit.** Niet-betrouwbare proxy/future
+     achievements worden standaard verborgen i.p.v. verwijderd; bestuur/admin
+     krijgt een flow om handmatige achievements aan te maken met basistitel,
+     tier-titels (brons/zilver/goud/platinum) en icoonkeuze. Geïmplementeerd
+     via gedeeld badgebeleid, badgebeheer-tab en publieke profiel-RPC-migratie
+     `0080`.
+   - **Prioriteit 3: Zwift/MyWhoosh-kalenderonderzoek.** Onderzoek of events
+     automatisch gescand kunnen worden op ZWB-deelname en daarna als concept-
+     kalenderitems klaar kunnen staan voor beheerreview. Geen simpele plaklijst
+     als eerste voorkeur; integratie/scan is het gewenste spoor. Eerste spike
+     vastgelegd in `docs/zwift-mywhoosh-kalender-spike.md`. Eerste beheer-MVP
+     staat op `/beheer/event-scan`: duurzame conceptlaag
+     `external_event_candidates` (migratie `0081`), MyWhoosh-metadata opslaan,
+     handmatige ZWB-matchstatus, negeren/heropenen, idempotent publiceren naar
+     `/kalender`; Zwift wacht op een stabiele detailfeed/deelnamebron.
+   - **Later: team/club challenges.** Winter- en zomerchallenges voor teams,
+     groepen of de hele club om verbinding te versterken.
+   - **Later/betaalversie: AI-agenten.** Agenten voor platformvragen, beleid,
+     abonnementen, functies vinden en "wie moet ik hebben"; privacy- en
+     kennisscope eerst expliciet afbakenen.
+
+12. **⏸️ On-hold (bewust uitgesteld)**
    - **E2E encrypted chat** — grote keuze. WhatsApp dekt dit
      momenteel voor ZWB; volwaardige eigen chat is forse bouw die
      pas zin heeft als bestuur 'm expliciet wil.
@@ -673,6 +702,10 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 - ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
   scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
   reduced-motion-safe), logo's linken naar de sponsor-site.
+- **Team/club challenges + AI-agenten** — productsporen na de quick wins uit
+  testerfeedback juni 2026. Challenges richten zich op winter/zomerbinding;
+  agenten horen bij een latere/betaalversie en vragen eerst afbakening van
+  kennis, privacy en verantwoordelijkheden.
 - **E2E chat** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
 - **Mollie iDEAL** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
 

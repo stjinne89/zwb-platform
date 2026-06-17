@@ -10,6 +10,7 @@ import {
   type MemberAwardBadge,
   type MemberListProfile,
 } from "./_components/member-list";
+import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
 type Profile = {
   id: string;
@@ -36,9 +37,24 @@ type RosterEntry = {
 type AwardRow = {
   id: string;
   profile_id: string;
+  award_scope: string;
   achievement_badges:
-    | { title: string; icon: string | null; color: string | null }
-    | { title: string; icon: string | null; color: string | null }[]
+    | {
+        id: string;
+        title: string;
+        icon: string | null;
+        color: string | null;
+        kind: string;
+        trigger_source: "auto" | "manual" | "future";
+      }
+    | {
+        id: string;
+        title: string;
+        icon: string | null;
+        color: string | null;
+        kind: string;
+        trigger_source: "auto" | "manual" | "future";
+      }[]
     | null;
 };
 
@@ -90,7 +106,7 @@ export default async function LedenPage() {
       .single(),
     supabase
       .from("achievement_awards")
-      .select("id, profile_id, achievement_badges(title, icon, color)")
+      .select("id, profile_id, award_scope, achievement_badges(id, title, icon, color, kind, trigger_source)")
       .order("awarded_at", { ascending: false })
       .limit(120),
     getCurrentUserAccess(supabase),
@@ -220,6 +236,12 @@ export default async function LedenPage() {
                 ? a.achievement_badges[0]
                 : a.achievement_badges;
               if (!badge) return null;
+              if (
+                a.award_scope === "milestone" &&
+                !isBadgeVisibleInVault(badge, true)
+              ) {
+                return null;
+              }
               return {
                 id: a.id,
                 title: badge.title,

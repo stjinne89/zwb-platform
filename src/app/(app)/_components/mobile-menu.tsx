@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { Menu, X } from "lucide-react";
 import { LogoutButton } from "./logout-button";
 import {
   AVATAR_NAV,
@@ -17,10 +18,12 @@ function MobileMenuItem({
   item,
   pathname,
   close,
+  nested = false,
 }: {
   item: NavLeaf;
   pathname: string;
   close: () => void;
+  nested?: boolean;
 }) {
   const active = isActiveHref(pathname, item.href);
   return (
@@ -29,11 +32,11 @@ function MobileMenuItem({
       target={item.external ? "_blank" : undefined}
       rel={item.external ? "noopener noreferrer" : undefined}
       onClick={close}
-      className={`block rounded-md px-3 py-2.5 text-sm transition ${
+      className={`block rounded-md border px-3 py-2.5 text-sm transition ${
         active
-          ? "bg-primary font-medium text-primary-foreground"
-          : "text-foreground hover:bg-muted"
-      }`}
+          ? "border-primary bg-primary font-medium text-primary-foreground shadow-sm"
+          : "border-transparent text-foreground hover:border-border hover:bg-muted"
+      } ${nested ? "ml-3" : ""}`}
     >
       {item.label}
     </Link>
@@ -42,9 +45,11 @@ function MobileMenuItem({
 
 function SectionHeader({ label }: { label: string }) {
   return (
-    <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      {label}
-    </p>
+    <div className="px-1 pb-1 pt-3">
+      <p className="border-l-2 border-primary/50 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -57,6 +62,7 @@ export function MobileMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const originalBodyOverflow = useRef<string | null>(null);
   const pathname = usePathname();
   const close = () => setOpen(false);
 
@@ -64,13 +70,36 @@ export function MobileMenu({
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
+  // Sluit het menu bij navigatie, ook als de Link-click state-update niet
+  // meer commit voor de routewissel.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setOpen(false), [pathname]);
+
   // Body-scroll lock terwijl het menu open is.
   useEffect(() => {
-    if (!open) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (open) {
+      if (originalBodyOverflow.current === null) {
+        originalBodyOverflow.current = document.body.style.overflow;
+      }
+      document.body.style.overflow = "hidden";
+      return () => {
+        if (originalBodyOverflow.current !== null) {
+          document.body.style.overflow = originalBodyOverflow.current;
+          originalBodyOverflow.current = null;
+        }
+      };
+    }
+
+    if (originalBodyOverflow.current !== null) {
+      document.body.style.overflow = originalBodyOverflow.current;
+      originalBodyOverflow.current = null;
+    }
+
     return () => {
-      document.body.style.overflow = original;
+      if (originalBodyOverflow.current !== null) {
+        document.body.style.overflow = originalBodyOverflow.current;
+        originalBodyOverflow.current = null;
+      }
     };
   }, [open]);
 
@@ -81,36 +110,12 @@ export function MobileMenu({
         aria-label={open ? "Sluit menu" : "Open menu"}
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="rounded-md p-2 text-foreground hover:bg-muted md:hidden"
+        className="rounded-md border border-transparent p-2 text-foreground hover:border-border hover:bg-muted md:hidden"
       >
         {open ? (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-            aria-hidden
-          >
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <X className="size-5" aria-hidden />
         ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-            aria-hidden
-          >
-            <path d="M3 6h18M3 12h18M3 18h18" />
-          </svg>
+          <Menu className="size-5" aria-hidden />
         )}
       </button>
 
@@ -121,13 +126,13 @@ export function MobileMenu({
             <div className="md:hidden">
               {/* Backdrop */}
               <div
-                className="fixed inset-x-0 bottom-0 top-14 z-[9998] bg-zwb-petrol-dark/80 dark:bg-black/80"
+                className="fixed inset-x-0 bottom-0 top-14 z-[9998] bg-zwb-petrol-dark/55 backdrop-blur-[1px] dark:bg-black/80"
                 onClick={close}
                 aria-hidden
               />
               {/* Panel */}
-              <div className="fixed inset-x-0 top-14 z-[9999] max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b bg-card shadow-2xl">
-                <nav className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-3">
+              <div className="fixed inset-x-0 top-14 z-[9999] max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b border-border bg-card shadow-2xl ring-1 ring-border/70 dark:ring-white/10">
+                <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
                   {NAV_GROUPS.map((node) => {
                     if (node.type === "link") {
                       return (
@@ -140,7 +145,7 @@ export function MobileMenu({
                       );
                     }
                     return (
-                      <div key={node.label} className="flex flex-col gap-0.5">
+                      <div key={node.label} className="flex flex-col gap-1 border-t border-border/80 pt-1 first:border-t-0 first:pt-0 dark:border-white/10">
                         <SectionHeader label={node.label} />
                         {node.items.map((item) => (
                           <MobileMenuItem
@@ -148,13 +153,14 @@ export function MobileMenu({
                             item={item}
                             pathname={pathname}
                             close={close}
+                            nested
                           />
                         ))}
                       </div>
                     );
                   })}
 
-                  <div className="my-2 border-t" />
+                  <div className="my-2 border-t border-border/80 dark:border-white/10" />
 
                   <SectionHeader label={displayName} />
                   {AVATAR_NAV.map((item) => (
@@ -179,6 +185,7 @@ export function MobileMenu({
                             href: item.href,
                             label: item.label,
                           }}
+                          nested
                         />
                       ))}
                     </>

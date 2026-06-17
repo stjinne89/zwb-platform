@@ -9,6 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { type MilestoneBadgeRow } from "../../profiel/_components/badge-vault";
 import { RiderStats } from "./_components/rider-stats";
+import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -90,11 +91,13 @@ export default async function LidProfielPage({ params }: PageProps) {
 
   const profileRow = profile as unknown as ProfileRow;
   const showBadges = isVisible(profileRow, "badges");
-  const milestones = showBadges
-    ? ((milestoneBadges ?? []) as unknown as MilestoneBadgeRow[])
-    : [];
   const earnedMilestoneIds = showBadges
     ? (milestoneAwards ?? []).map((award) => award.badge_id)
+    : [];
+  const earnedMilestoneSet = new Set(earnedMilestoneIds);
+  const milestones = showBadges
+    ? ((milestoneBadges ?? []) as unknown as MilestoneBadgeRow[])
+        .filter((badge) => isBadgeVisibleInVault(badge, earnedMilestoneSet.has(badge.id)))
     : [];
   const weeklyList = showBadges
     ? ((weeklyAwards ?? []) as unknown as WeeklyAwardView[])

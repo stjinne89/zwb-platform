@@ -6,6 +6,7 @@ import {
 } from "@/components/profile-readonly-view";
 import { createClient } from "@/lib/supabase/server";
 import { type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
+import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -45,9 +46,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
   if (!profile) notFound();
 
   const publicMilestones = (milestoneRows ?? []) as unknown as PublicMilestoneRow[];
-  const milestones = publicMilestones.map(
-    (badge) =>
-      ({
+  const milestones = publicMilestones
+    .filter((badge) => isBadgeVisibleInVault(badge, badge.earned))
+    .map(
+      (badge) =>
+        ({
         id: badge.id,
         title: badge.title,
         description: badge.description,
@@ -60,7 +63,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         trigger_config: badge.trigger_config,
         sort_order: badge.sort_order,
       }) satisfies MilestoneBadgeRow,
-  );
+    );
   const earnedMilestoneIds = publicMilestones
     .filter((badge) => badge.earned)
     .map((badge) => badge.id);

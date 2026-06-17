@@ -10,6 +10,7 @@ import { ProfileHeader } from "./_components/profile-header";
 import { PushToggle } from "./_components/push-toggle";
 import { StravaSection } from "./_components/strava-section";
 import { AccountData } from "./_components/account-data";
+import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
 type AwardRow = {
   id: string;
@@ -61,7 +62,7 @@ export default async function ProfielPage() {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, strava_id, zrl_category, zrl_division, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
+        "id, display_name, region, zwift_id, mywhoosh_id, strava_id, zrl_category, zrl_division, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
       )
       .eq("id", user.id)
       .single(),
@@ -110,10 +111,11 @@ export default async function ProfielPage() {
   ]);
 
   const awardList = (awards ?? []) as unknown as AwardRow[];
-  const milestones = (milestoneBadges ?? []) as unknown as MilestoneBadgeRow[];
   const earnedMilestoneIds = new Set(
     (milestoneAwards ?? []).map((a) => a.badge_id),
   );
+  const milestones = ((milestoneBadges ?? []) as unknown as MilestoneBadgeRow[])
+    .filter((badge) => isBadgeVisibleInVault(badge, earnedMilestoneIds.has(badge.id)));
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -137,6 +139,7 @@ export default async function ProfielPage() {
           display_name: profile?.display_name ?? "",
           region: profile?.region ?? "",
           zwift_id: profile?.zwift_id ?? "",
+          mywhoosh_id: profile?.mywhoosh_id ?? "",
           strava_id: profile?.strava_id ?? "",
           zrl_category: profile?.zrl_category ?? "",
           zrl_division: profile?.zrl_division ?? "open",
