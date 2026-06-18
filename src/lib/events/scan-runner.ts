@@ -33,17 +33,30 @@ export function allowedExternalUrl(raw: string) {
   }
 }
 
-// Volg alle leden met een Zwift-ID, zodat hun inschrijvingen in de member-feed
-// verschijnen. Idempotent; veilig om bij elke (cron-)scan te draaien.
+// Alle bekende ZWB-Zwift-ID's: van profielen én van (ook nog niet geclaimde)
+// roster-vermeldingen. Gededupliceerd.
+export async function getMemberZwiftIds(admin: AdminClient): Promise<string[]> {
+  const [{ data: profileRows }, { data: rosterRows }] = await Promise.all([
+    admin.from("profiles").select("zwift_id").not("zwift_id", "is", null),
+    admin.from("roster_entries").select("zwift_id").not("zwift_id", "is", null),
+  ]);
+  const ids = new Set<string>();
+  for (const row of (profileRows ?? []) as Array<{ zwift_id: string | null }>) {
+    const id = row.zwift_id?.trim();
+    if (id) ids.add(id);
+  }
+  for (const row of (rosterRows ?? []) as Array<{ zwift_id: string | null }>) {
+    const id = row.zwift_id?.trim();
+    if (id) ids.add(id);
+  }
+  return [...ids];
+}
+
+// Volg alle leden met een Zwift-ID (profiel + roster), zodat hun inschrijvingen
+// in de member-feed verschijnen. Idempotent; veilig bij elke (cron-)scan.
 async function followMembers(admin: AdminClient): Promise<string | null> {
   if (!zwiftClubConfigured()) return null;
-  const { data: profileRows } = await admin
-    .from("profiles")
-    .select("zwift_id")
-    .not("zwift_id", "is", null);
-  const zwiftIds = ((profileRows ?? []) as Array<{ zwift_id: string | null }>)
-    .map((row) => row.zwift_id?.trim())
-    .filter((id): id is string => Boolean(id));
+  const zwiftIds = await getMemberZwiftIds(admin);
   if (zwiftIds.length === 0) return null;
   const result = await followZwbMembers(zwiftIds);
   return `Volgen: ${result.followed}/${zwiftIds.length} leden${result.failed > 0 ? `, ${result.failed} mislukt` : ""}.`;
@@ -58,10 +71,20 @@ async function syncZwiftFeed(admin: AdminClient) {
   const feed = await fetchFeedEvents();
   if (feed.length === 0) return { events: 0, members: 0, note: null };
 
-  const { data: profileRows } = await admin
-    .from("profiles")
-    .select("id, display_name, zwift_id, mywhoosh_id");
+  const [{ data: profileRows }, { data: rosterRows }] = await Promise.all([
+    admin.from("profiles").select("id, display_name, zwift_id, mywhoosh_id"),
+    admin
+      .from("roster_entries")
+      .select("zwift_id")
+      .not("zwift_id", "is", null),
+  ]);
   const profiles = (profileRows ?? []) as MatchableProfile[];
+  // Zwift-ID's van (ook nog niet geclaimde) roster-leden zonder profiel.
+  const rosterZwiftIds = new Set(
+    ((rosterRows ?? []) as Array<{ zwift_id: string | null }>)
+      .map((row) => row.zwift_id?.trim())
+      .filter((id): id is string => Boolean(id)),
+  );
 
   const now = new Date().toISOString();
   let savedEvents = 0;
@@ -75,10 +98,14 @@ async function syncZwiftFeed(admin: AdminClient) {
     const entrants = await fetchEntrants(subgroupIds);
     const seen = new Set<string>();
     const memberRows = entrants.flatMap((entrant) => {
+      // Eerst een echt profiel (ID of naam); anders een roster-lid op Zwift-ID
+      // (nog niet geclaimd, dus zonder profielkoppeling).
       const profileId = matchProfile(entrant.name, profiles, {
         zwiftId: entrant.zwiftId,
       });
-      if (!profileId) return [];
+      const isRosterMember =
+        !profileId && Boolean(entrant.zwiftId) && rosterZwiftIds.has(entrant.zwiftId);
+      if (!profileId && !isRosterMember) return [];
       const key = `${normalizeName(entrant.name)}|${entrant.category ?? ""}`;
       if (seen.has(key)) return [];
       seen.add(key);
