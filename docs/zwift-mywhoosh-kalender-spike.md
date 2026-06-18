@@ -205,6 +205,9 @@ ZWB'ers als deelnemer.
   bepaalt welke events de moeite waard zijn om entrants van op te halen.
 - Gepubliceerde events tonen de ZWB-deelnemers op `/kalender` (regel
   "ZWB-deelnemers: ..." uit de eventbeschrijving).
+- **Roster-leden meegenomen**: niet alleen profielen, maar ook (nog niet
+  geclaimde) `roster_entries` met een `zwift_id` worden gevolgd én herkend als
+  deelnemer (op Zwift-ID, zonder profielkoppeling — naam wel zichtbaar).
 
 ### Increment 4 - 24-uurs cron-scan (GEBOUWD)
 

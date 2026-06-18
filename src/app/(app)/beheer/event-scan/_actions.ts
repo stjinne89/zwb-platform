@@ -11,7 +11,11 @@ import {
   followZwbMembers,
   zwiftClubConfigured,
 } from "@/lib/events/zwift-club";
-import { allowedExternalUrl, runEventScan } from "@/lib/events/scan-runner";
+import {
+  allowedExternalUrl,
+  getMemberZwiftIds,
+  runEventScan,
+} from "@/lib/events/scan-runner";
 
 const MATCH_STATUSES = new Set(["unknown", "likely", "confirmed", "manual"]);
 const CATEGORY_VALUES = new Set(["A", "B", "C", "D", "E"]);
@@ -125,13 +129,7 @@ export async function followZwbMembersAction() {
     redirect(`/beheer/event-scan?${params.toString()}`);
   }
 
-  const { data: profileRows } = await access.admin
-    .from("profiles")
-    .select("zwift_id")
-    .not("zwift_id", "is", null);
-  const zwiftIds = ((profileRows ?? []) as Array<{ zwift_id: string | null }>)
-    .map((row) => row.zwift_id?.trim())
-    .filter((id): id is string => Boolean(id));
+  const zwiftIds = await getMemberZwiftIds(access.admin);
 
   if (zwiftIds.length === 0) {
     params.set("message", "Geen leden met een Zwift-ID gevonden.");
