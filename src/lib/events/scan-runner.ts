@@ -59,7 +59,7 @@ async function followMembers(admin: AdminClient): Promise<string | null> {
   const zwiftIds = await getMemberZwiftIds(admin);
   if (zwiftIds.length === 0) return null;
   const result = await followZwbMembers(zwiftIds);
-  return `Volgen: ${result.followed}/${zwiftIds.length} leden${result.failed > 0 ? `, ${result.failed} mislukt` : ""}.`;
+  return `Volgen: ${result.followed} nieuw, ${result.alreadyFollowing} al gevolgd, ${result.remaining} nog te gaan.`;
 }
 
 // Geautoriseerde Zwift-feed-sync: ZWB-club-events plus elk ander event waar

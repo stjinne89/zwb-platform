@@ -251,23 +251,64 @@ async function getMyProfileId(): Promise<string> {
   return String((me as { id?: number | string })?.id ?? "");
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Wie volgt het serviceaccount al? Voorkomt onnodige (rate-limited) follow-calls.
+async function getFollowedIds(meId: string): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (let start = 0; start < 5000; start += 200) {
+    let data: unknown;
+    try {
+      data = await authedJson(
+        `${apiBase()}/profiles/${encodeURIComponent(meId)}/followees?start=${start}&limit=200`,
+      );
+    } catch {
+      break;
+    }
+    const rows = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+    if (rows.length === 0) break;
+    for (const row of rows) {
+      const nested = row.followeeProfile as { id?: unknown } | undefined;
+      const fid =
+        row.followeeProfileId ?? nested?.id ?? row.profileId ?? row.id;
+      if (fid != null) ids.add(String(fid));
+    }
+    if (rows.length < 200) break;
+  }
+  return ids;
+}
+
+export type FollowResult = {
+  followed: number;
+  alreadyFollowing: number;
+  remaining: number;
+  sample: string | null;
+};
+
 /**
  * Laat het serviceaccount de opgegeven Zwift-ID's volgen, zodat hun
- * inschrijvingen in de member-feed verschijnen. Idempotent: al gevolgde
- * renners leveren gewoon opnieuw 200.
+ * inschrijvingen in de member-feed verschijnen. Slaat al gevolgde renners over,
+ * throttelt om Zwift-rate-limits te ontzien, en stopt bij een 429 of als het
+ * tijdsbudget op is — de rest wordt bij een volgende run opgepakt. Idempotent.
  */
-export async function followZwbMembers(
-  zwiftIds: string[],
-): Promise<{ followed: number; failed: number }> {
+export async function followZwbMembers(zwiftIds: string[]): Promise<FollowResult> {
   const meId = await getMyProfileId();
   if (!meId) throw new Error("Kon eigen Zwift-profiel niet ophalen.");
   const token = await fetchToken();
+  const alreadyFollowing = await getFollowedIds(meId);
 
+  const todo = zwiftIds
+    .map((id) => id.trim())
+    .filter((id) => id && id !== meId && !alreadyFollowing.has(id));
+
+  const budgetMs = 7000;
+  const startedAt = Date.now();
   let followed = 0;
-  let failed = 0;
-  for (const rawId of zwiftIds) {
-    const themId = rawId.trim();
-    if (!themId || themId === meId) continue;
+  let sample: string | null = null;
+  let index = 0;
+  for (; index < todo.length; index += 1) {
+    if (Date.now() - startedAt > budgetMs) break;
+    const themId = todo[index];
     try {
       const response = await safeFetch(
         `${apiBase()}/profiles/${encodeURIComponent(meId)}/following/${encodeURIComponent(themId)}`,
@@ -284,13 +325,29 @@ export async function followZwbMembers(
           body: JSON.stringify({ followeeId: themId, followerId: meId }),
         },
       );
-      if (response.ok) followed += 1;
-      else failed += 1;
-    } catch {
-      failed += 1;
+      if (response.ok) {
+        followed += 1;
+      } else if (response.status === 429) {
+        sample = "Zwift rate-limit (429) — rest volgt bij de volgende run.";
+        break;
+      } else if (!sample) {
+        const text = (await response.text().catch(() => "")).slice(0, 160);
+        sample = `id ${themId}: ${response.status} ${text}`;
+      }
+    } catch (error) {
+      if (!sample) {
+        sample = `id ${themId}: ${error instanceof Error ? error.message : "fout"}`;
+      }
     }
+    await sleep(400);
   }
-  return { followed, failed };
+
+  return {
+    followed,
+    alreadyFollowing: alreadyFollowing.size,
+    remaining: todo.length - index,
+    sample,
+  };
 }
 
 /**
