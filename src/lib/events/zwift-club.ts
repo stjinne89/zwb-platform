@@ -258,13 +258,14 @@ async function getMyProfileId(): Promise<string> {
  */
 export async function followZwbMembers(
   zwiftIds: string[],
-): Promise<{ followed: number; failed: number }> {
+): Promise<{ followed: number; failed: number; sample: string | null }> {
   const meId = await getMyProfileId();
   if (!meId) throw new Error("Kon eigen Zwift-profiel niet ophalen.");
   const token = await fetchToken();
 
   let followed = 0;
   let failed = 0;
+  let sample: string | null = null;
   for (const rawId of zwiftIds) {
     const themId = rawId.trim();
     if (!themId || themId === meId) continue;
@@ -284,13 +285,23 @@ export async function followZwbMembers(
           body: JSON.stringify({ followeeId: themId, followerId: meId }),
         },
       );
-      if (response.ok) followed += 1;
-      else failed += 1;
-    } catch {
+      if (response.ok) {
+        followed += 1;
+      } else {
+        failed += 1;
+        if (!sample) {
+          const text = (await response.text().catch(() => "")).slice(0, 200);
+          sample = `id ${themId}: ${response.status} ${text}`;
+        }
+      }
+    } catch (error) {
       failed += 1;
+      if (!sample) {
+        sample = `id ${themId}: ${error instanceof Error ? error.message : "fout"}`;
+      }
     }
   }
-  return { followed, failed };
+  return { followed, failed, sample };
 }
 
 /**
