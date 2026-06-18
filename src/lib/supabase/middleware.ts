@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   "/api/strava/sync",
   "/api/achievements/finalize",
   "/api/events/reminders",
+  "/api/events/scan",
   "/api/training/adaptations/daily",
 ];
 
