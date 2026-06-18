@@ -140,7 +140,7 @@ export async function followZwbMembersAction() {
     const result = await followZwbMembers(zwiftIds);
     params.set(
       "message",
-      `Volgen klaar: ${result.followed} van ${zwiftIds.length} leden gevolgd${result.failed > 0 ? `, ${result.failed} mislukt` : ""}.${result.sample ? ` Eerste fout: ${result.sample}` : ""}`,
+      `Volgen: ${result.followed} nieuw gevolgd, ${result.alreadyFollowing} al gevolgd, ${result.remaining} nog te gaan${result.remaining > 0 ? " — klik later nog eens of laat de dagelijkse cron de rest doen" : ""}.${result.sample ? ` (${result.sample})` : ""}`,
     );
   } catch (error) {
     params.set(
