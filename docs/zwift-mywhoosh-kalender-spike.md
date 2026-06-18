@@ -206,7 +206,19 @@ ZWB'ers als deelnemer.
 - Gepubliceerde events tonen de ZWB-deelnemers op `/kalender` (regel
   "ZWB-deelnemers: ..." uit de eventbeschrijving).
 
-### Increment 4 - Auto-publicatiebeleid
+### Increment 4 - 24-uurs cron-scan (GEBOUWD)
+
+- Endpoint `POST /api/events/scan`, beveiligd met `Authorization: Bearer
+  ${EVENT_SCAN_SECRET}`. Externe cron (bv. cron-job.org) roept dit elke 24u aan.
+- Draait dezelfde logica als de "Scan bronnen"-knop, herbruikt via
+  `src/lib/events/scan-runner.ts` (`runEventScan`): leden volgen → publieke
+  ZWB-relevante scan → Zwift-feedsync. Schrijft via de service-role admin-client.
+- **Publiceren blijft een handmatige beheeractie**; de cron vult alleen de
+  conceptlaag. Auto-publicatie zonder review is bewust nog niet gebouwd.
+- Setup: zet `EVENT_SCAN_SECRET` als env, maak een cron aan die elke 24u
+  `POST https://<site>/api/events/scan` met die Bearer-header doet.
+
+### Increment 5 - Auto-publicatiebeleid (open)
 
 - Bepaal wanneer een `confirmed` ZWB-event zonder adminreview live mag, en of
   daarbij een reguliere eventpushnotificatie hoort. Tot dan blijft publiceren
@@ -218,4 +230,4 @@ ZWB'ers als deelnemer.
 - Akkoord op de Zwift-club-serviceaccountroute voor Increment 2?
 - Moeten gepubliceerde scan-events `type = overig` blijven of een eigen
   eventtype krijgen?
-- Wanneer mag automatische publicatie zonder adminreview (Increment 4)?
+- Wanneer mag automatische publicatie zonder adminreview (Increment 5)?

@@ -5,39 +5,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { scanExternalEvents } from "@/lib/events/external-scan";
-import {
-  detectZwbMatchStatus,
-  matchProfile,
-  normalizeName,
-  type MatchableProfile,
-} from "@/lib/events/zwb-detection";
+import { matchProfile, type MatchableProfile } from "@/lib/events/zwb-detection";
 import {
   diagnoseZwiftClub,
-  fetchEntrants,
-  fetchFeedEvents,
   followZwbMembers,
   zwiftClubConfigured,
 } from "@/lib/events/zwift-club";
-
-type AdminClient = ReturnType<typeof createAdminClient>;
+import { allowedExternalUrl, runEventScan } from "@/lib/events/scan-runner";
 
 const MATCH_STATUSES = new Set(["unknown", "likely", "confirmed", "manual"]);
 const CATEGORY_VALUES = new Set(["A", "B", "C", "D", "E"]);
-
-function allowedExternalUrl(raw: string) {
-  try {
-    const url = new URL(raw);
-    return (
-      url.protocol === "https:" &&
-      (url.hostname === "event.mywhoosh.com" ||
-        url.hostname === "www.zwift.com" ||
-        url.hostname === "zwift.com")
-    );
-  } catch {
-    return false;
-  }
-}
 
 async function requireEventScanAccess() {
   const supabase = await createClient();
@@ -98,193 +75,30 @@ function participantDescription(
   return `ZWB-deelnemers: ${names}`;
 }
 
-// Geautoriseerde Zwift-feed-sync: ZWB-club-events plus elk ander event waar
-// minstens één ZWB'er zich op inschreef worden als bevestigd concept bewaard,
-// met de ingeschreven ZWB'ers als deelnemer (match op Zwift-ID).
-async function syncZwiftFeed(admin: AdminClient) {
-  if (!zwiftClubConfigured()) return { events: 0, members: 0, note: null as string | null };
-
-  const feed = await fetchFeedEvents();
-  if (feed.length === 0) return { events: 0, members: 0, note: null };
-
-  const { data: profileRows } = await admin
-    .from("profiles")
-    .select("id, display_name, zwift_id, mywhoosh_id");
-  const profiles = (profileRows ?? []) as MatchableProfile[];
-
-  const now = new Date().toISOString();
-  let savedEvents = 0;
-  let totalMembers = 0;
-
-  for (const { candidate, subgroupIds, isClub } of feed) {
-    if (!allowedExternalUrl(candidate.externalUrl)) continue;
-    // Haal entrants op voor elk feed-event (de member-feed is al klein en
-    // persoonlijk) en bewaar alleen events met een ZWB'er. Zo werkt het ook als
-    // het serviceaccount zélf is ingeschreven — er is dan geen followee-signaal.
-    const entrants = await fetchEntrants(subgroupIds);
-    const seen = new Set<string>();
-    const memberRows = entrants.flatMap((entrant) => {
-      const profileId = matchProfile(entrant.name, profiles, {
-        zwiftId: entrant.zwiftId,
-      });
-      if (!profileId) return [];
-      const key = `${normalizeName(entrant.name)}|${entrant.category ?? ""}`;
-      if (seen.has(key)) return [];
-      seen.add(key);
-      return [
-        {
-          source: "zwift_feed",
-          external_name: entrant.name,
-          category: entrant.category,
-          profile_id: profileId,
-          raw_text: `zwift:${entrant.zwiftId}`,
-          updated_at: now,
-        },
-      ];
-    });
-
-    // Niet-club-events alleen bewaren als er echt een ZWB'er meedoet.
-    if (!isClub && memberRows.length === 0) continue;
-
-    const { data: saved } = await admin
-      .from("external_event_candidates")
-      .upsert(
-        {
-          source: candidate.source,
-          external_id: candidate.externalId,
-          external_url: candidate.externalUrl,
-          title: candidate.title,
-          start_at: candidate.startAt,
-          distance_km: candidate.distanceKm,
-          elevation_m: candidate.elevationM,
-          raw_metadata: candidate.rawMetadata,
-          zwb_match_status: "confirmed",
-          last_seen_at: now,
-          updated_at: now,
-        },
-        { onConflict: "source,external_id" },
-      )
-      .select("id, published_event_id, ignored_at")
-      .maybeSingle();
-    if (!saved || saved.published_event_id || saved.ignored_at) continue;
-    savedEvents += 1;
-
-    // Idempotent: ververs alleen de feed-gesyncte deelnemers, handmatige blijven.
-    await admin
-      .from("external_event_participants")
-      .delete()
-      .eq("candidate_id", saved.id)
-      .eq("source", "zwift_feed");
-    if (memberRows.length > 0) {
-      await admin
-        .from("external_event_participants")
-        .insert(memberRows.map((row) => ({ ...row, candidate_id: saved.id })));
-      totalMembers += memberRows.length;
-    }
-  }
-
-  return {
-    events: savedEvents,
-    members: totalMembers,
-    note: `Zwift-feedsync: ${savedEvents} events met ZWB-deelname, ${totalMembers} koppelingen.`,
-  };
-}
-
 export async function scanExternalEventCandidates() {
   const access = await requireEventScanAccess();
   if (!access) return;
 
-  const scan = await scanExternalEvents();
-  const params = new URLSearchParams();
-
-  if (scan.candidates.length > 0) {
-    const now = new Date().toISOString();
-    // Alleen ZWB-relevante events bewaren: events die op een ZWB-marker matchen.
-    // Generieke Zwift/MyWhoosh-events zonder ZWB-verband komen niet in de lijst;
-    // events met ZWB-deelnemers worden los toegevoegd door de feedsync hieronder.
-    const rows = scan.candidates
-      .filter(
-        (candidate) =>
-          allowedExternalUrl(candidate.externalUrl) &&
-          detectZwbMatchStatus(candidate) !== null,
-      )
-      .map((candidate) => ({
-        source: candidate.source,
-        external_id: candidate.externalId,
-        external_url: candidate.externalUrl,
-        title: candidate.title,
-        start_at: candidate.startAt,
-        distance_km: candidate.distanceKm,
-        elevation_m: candidate.elevationM,
-        raw_metadata: candidate.rawMetadata,
-        last_seen_at: now,
-        updated_at: now,
-      }));
-
-    if (rows.length > 0) {
-      const { error } = await access.admin
-        .from("external_event_candidates")
-        .upsert(rows, { onConflict: "source,external_id" });
-      if (error) {
-        params.set("scan", "error");
-        params.set("message", error.message);
-        redirect(`/beheer/event-scan?${params.toString()}`);
-      }
-
-      // Auto-markeer ZWB's eigen events. Werk alleen 'unknown'-concepten bij,
-      // zodat een handmatige beheerstatus nooit wordt overschreven.
-      const detections = scan.candidates
-        .map((candidate) => ({
-          source: candidate.source,
-          externalId: candidate.externalId,
-          status: detectZwbMatchStatus(candidate),
-        }))
-        .filter((detection) => detection.status !== null);
-      let autoFlagged = 0;
-      for (const status of ["likely", "confirmed"] as const) {
-        for (const source of ["mywhoosh", "zwift"] as const) {
-          const externalIds = detections
-            .filter((d) => d.status === status && d.source === source)
-            .map((d) => d.externalId);
-          if (externalIds.length === 0) continue;
-          const { count } = await access.admin
-            .from("external_event_candidates")
-            .update({ zwb_match_status: status }, { count: "exact" })
-            .eq("source", source)
-            .in("external_id", externalIds)
-            .eq("zwb_match_status", "unknown");
-          autoFlagged += count ?? 0;
-        }
-      }
-      if (autoFlagged > 0) params.set("auto", String(autoFlagged));
-    }
-    params.set("found", String(rows.length));
-    params.set("saved", String(rows.length));
-  } else {
-    params.set("found", "0");
-    params.set("saved", "0");
-  }
-
-  const notes = [...scan.notes];
-  try {
-    const feedSync = await syncZwiftFeed(access.admin);
-    if (feedSync.note) {
-      notes.push(feedSync.note);
-      params.set("club", String(feedSync.events));
-      params.set("clubMembers", String(feedSync.members));
-    }
-  } catch (error) {
-    notes.push(
-      error instanceof Error
-        ? `Zwift-feedsync mislukt: ${error.message}`
-        : "Zwift-feedsync mislukt.",
-    );
-  }
+  const result = await runEventScan(access.admin);
 
   revalidatePath("/beheer/event-scan");
   revalidatePath("/kalender");
-  params.set("scan", scan.candidates.length > 0 ? "ok" : "empty");
-  if (notes.length > 0) params.set("message", notes.join(" "));
+
+  const params = new URLSearchParams();
+  params.set("found", String(result.found));
+  params.set("saved", String(result.saved));
+  if (result.auto > 0) params.set("auto", String(result.auto));
+  if (result.feedEvents > 0 || result.feedMembers > 0) {
+    params.set("club", String(result.feedEvents));
+    params.set("clubMembers", String(result.feedMembers));
+  }
+  if (result.error) {
+    params.set("scan", "error");
+    params.set("message", result.error);
+  } else {
+    params.set("scan", result.found > 0 || result.feedEvents > 0 ? "ok" : "empty");
+    if (result.notes.length > 0) params.set("message", result.notes.join(" "));
+  }
   redirect(`/beheer/event-scan?${params.toString()}`);
 }
 
