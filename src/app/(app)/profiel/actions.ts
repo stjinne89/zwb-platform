@@ -84,6 +84,7 @@ export async function updateProfile(formData: FormData) {
       display_name,
       region: optionalString(formData.get("region")),
       zwift_id: optionalString(formData.get("zwift_id")),
+      mywhoosh_id: optionalString(formData.get("mywhoosh_id")),
       strava_id: optionalString(formData.get("strava_id")),
       zrl_category,
       zrl_division,

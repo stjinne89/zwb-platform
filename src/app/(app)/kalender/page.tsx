@@ -24,7 +24,7 @@ export default async function KalenderPage() {
     supabase
       .from("events")
       .select(
-        "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path",
+        "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path",
       )
       .order("start_at", { ascending: true }),
     supabase
@@ -79,6 +79,32 @@ export default async function KalenderPage() {
     .filter((event) => amsterdamDateKey(new Date(event.start_at)) === todayKey)
     .map((event) => event.id);
   const liveCountsByEvent = new Map<string, number>();
+
+  // Renners die "ja" hebben gezegd, met avatar + naam onder de eventtitel.
+  type YesRider = { id: string; name: string; avatarUrl: string | null };
+  const yesRidersByEvent = new Map<string, YesRider[]>();
+  const upcomingEventIds = events.map((event) => event.id);
+  if (upcomingEventIds.length > 0) {
+    const { data: yesRsvps } = await supabase
+      .from("event_rsvps")
+      .select("event_id, profiles(id, display_name, avatar_url)")
+      .in("event_id", upcomingEventIds)
+      .eq("status", "yes" satisfies RsvpStatus);
+
+    for (const rsvp of yesRsvps ?? []) {
+      const profile = Array.isArray(rsvp.profiles)
+        ? rsvp.profiles[0]
+        : rsvp.profiles;
+      if (!profile) continue;
+      const current = yesRidersByEvent.get(rsvp.event_id) ?? [];
+      current.push({
+        id: profile.id,
+        name: profile.display_name,
+        avatarUrl: profile.avatar_url,
+      });
+      yesRidersByEvent.set(rsvp.event_id, current);
+    }
+  }
 
   if (todayEventIds.length > 0) {
     const cutoff = await getActiveCutoffIso();
@@ -188,6 +214,10 @@ export default async function KalenderPage() {
             }
 
             const event = item.event;
+            const participantLine = String(event.description ?? "")
+              .split("\n")
+              .find((line) => line.startsWith("ZWB-deelnemers:"));
+            const yesRiders = yesRidersByEvent.get(event.id) ?? [];
             const liveCount = liveCountsByEvent.get(event.id) ?? 0;
             const coverUrl = event.cover_image_path
               ? supabase.storage
@@ -231,6 +261,45 @@ export default async function KalenderPage() {
                     {event.distance_km ? ` · ${event.distance_km} km` : ""}
                     {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
                   </p>
+                  {participantLine && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {participantLine}
+                    </p>
+                  )}
+                  {yesRiders.length > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {yesRiders.slice(0, 5).map((rider) =>
+                          rider.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={rider.id}
+                              src={rider.avatarUrl}
+                              alt=""
+                              title={rider.name}
+                              className="size-7 rounded-full object-cover ring-2 ring-card"
+                            />
+                          ) : (
+                            <span
+                              key={rider.id}
+                              title={rider.name}
+                              className="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground ring-2 ring-card"
+                            >
+                              {rider.name.slice(0, 1).toUpperCase()}
+                            </span>
+                          ),
+                        )}
+                      </div>
+                      <p className="min-w-0 truncate text-sm text-muted-foreground">
+                        {yesRiders.length <= 3
+                          ? yesRiders.map((rider) => rider.name).join(", ")
+                          : `${yesRiders
+                              .slice(0, 2)
+                              .map((rider) => rider.name)
+                              .join(", ")} +${yesRiders.length - 2}`}
+                      </p>
+                    </div>
+                  )}
                   </div>
                 </Link>
 

@@ -9,6 +9,7 @@ type Initial = {
   display_name: string;
   region: string;
   zwift_id: string;
+  mywhoosh_id: string;
   strava_id: string;
   zrl_category: string;
   zrl_division: string;
@@ -149,6 +150,15 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               name="strava_id"
               placeholder="bv. atletennaam"
               defaultValue={initial.strava_id}
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL}>MyWhoosh-ID</label>
+            <input
+              name="mywhoosh_id"
+              placeholder="bv. 1234567"
+              defaultValue={initial.mywhoosh_id}
               className={FIELD}
             />
           </div>

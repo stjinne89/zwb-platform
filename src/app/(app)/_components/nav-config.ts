@@ -92,6 +92,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
   },
   {
     type: "link",
+    href: "/beheer/event-scan",
+    label: "Eventscan",
+    permission: "events.manage_all",
+  },
+  {
+    type: "link",
     href: "/beheer/notificaties",
     label: "Notificaties",
     permission: "community.manage",

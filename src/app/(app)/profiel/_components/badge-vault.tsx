@@ -2,16 +2,11 @@
 
 import { useMemo } from "react";
 import { AchievementBadge } from "@/components/achievement-badge";
-
-const TIER_ORDER = ["bronze", "silver", "gold", "platinum"] as const;
-type Tier = (typeof TIER_ORDER)[number];
-
-const TIER_LABEL: Record<Tier, string> = {
-  bronze: "Brons",
-  silver: "Zilver",
-  gold: "Goud",
-  platinum: "Platinum",
-};
+import {
+  MILESTONE_TIERS,
+  TIER_LABELS,
+  type MilestoneTier,
+} from "@/lib/achievements/badge-policy";
 
 export type MilestoneBadgeRow = {
   id: string;
@@ -20,7 +15,7 @@ export type MilestoneBadgeRow = {
   icon: string | null;
   color: string | null;
   achievement_code: string;
-  tier: Tier;
+  tier: MilestoneTier;
   visual_hint: string | null;
   trigger_source: "auto" | "manual" | "future";
   trigger_config: {
@@ -86,7 +81,7 @@ export function BadgeVault({
 
     for (const tiers of grouped.values()) {
       tiers.sort(
-        (a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
+        (a, b) => MILESTONE_TIERS.indexOf(a.tier) - MILESTONE_TIERS.indexOf(b.tier),
       );
     }
 
@@ -156,7 +151,7 @@ export function BadgeVault({
                         locked={!earned}
                       />
                       <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
-                        {TIER_LABEL[badge.tier]}
+                        {TIER_LABELS[badge.tier]}
                       </span>
                       <span className="line-clamp-2 min-h-[2rem] text-[0.68rem] leading-tight text-foreground">
                         {requirement}
