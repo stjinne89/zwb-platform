@@ -1,5 +1,9 @@
-import { TrendingUp, Mountain, Clock, Bike, Trophy } from "lucide-react";
+import { TrendingUp, Mountain, Clock, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import {
+  RiderOfTheMonthCarousel,
+  type RiderMetricSlide,
+} from "./rider-of-the-month-carousel";
 
 // Club-stats widget op /dashboard. Aggregeert outdoor + indoor cycling-
 // activities over alle leden voor:
@@ -30,8 +34,12 @@ type ActivityRow = {
   distance_m: number | string | null;
   total_elevation_gain_m: number | string | null;
   moving_time_seconds: number | string | null;
+  kudos_count: number | string | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
+
+// Per-lid maandtotalen waarop we de "rider of the month"-top-3 baseren.
+type RiderTotals = { name: string; km: number; uren: number; hm: number; kudos: number };
 
 type Totals = { km: number; hm: number; uren: number; count: number };
 
@@ -105,7 +113,7 @@ export async function ClubStats() {
   const { data: rows } = await supabase
     .from("strava_activities")
     .select(
-      "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, profiles(display_name)",
+      "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
     )
     .gte("start_date", since.toISOString())
     .in("sport_type", CYCLING_SPORTS);
@@ -124,7 +132,7 @@ export async function ClubStats() {
   })();
 
   const totalsByMonth = new Map<string, Totals>();
-  const kmByProfileCurrentMonth = new Map<string, { km: number; name: string }>();
+  const ridersCurrentMonth = new Map<string, RiderTotals>();
   const kmByWeek = new Map<string, number>();
 
   for (const a of activities) {
@@ -133,6 +141,7 @@ export async function ClubStats() {
     const km = Number(a.distance_m ?? 0) / 1000;
     const hm = Number(a.total_elevation_gain_m ?? 0);
     const uren = Number(a.moving_time_seconds ?? 0) / 3600;
+    const kudos = Number(a.kudos_count ?? 0);
 
     const mKey = monthKey(date);
     const t = totalsByMonth.get(mKey) ?? emptyTotals();
@@ -143,12 +152,14 @@ export async function ClubStats() {
     totalsByMonth.set(mKey, t);
 
     if (mKey === currentMonth) {
-      const cur = kmByProfileCurrentMonth.get(a.profile_id) ?? {
-        km: 0,
-        name: displayName(a.profiles),
-      };
+      const cur =
+        ridersCurrentMonth.get(a.profile_id) ??
+        ({ name: displayName(a.profiles), km: 0, uren: 0, hm: 0, kudos: 0 } satisfies RiderTotals);
       cur.km += km;
-      kmByProfileCurrentMonth.set(a.profile_id, cur);
+      cur.uren += uren;
+      cur.hm += hm;
+      cur.kudos += kudos;
+      ridersCurrentMonth.set(a.profile_id, cur);
     }
 
     const wKey = isoWeekStart(date);
@@ -168,10 +179,29 @@ export async function ClubStats() {
   }
   const sparkValues = weekKeys.map((k) => Math.round(kmByWeek.get(k) ?? 0));
 
-  // Top 3 huidige maand
-  const top3 = Array.from(kmByProfileCurrentMonth.values())
-    .sort((a, b) => b.km - a.km)
-    .slice(0, 3);
+  // Rider of the month: top 3 per maatstaf voor de carousel.
+  const riders = Array.from(ridersCurrentMonth.values());
+  const topBy = (
+    metric: "km" | "uren" | "hm" | "kudos",
+    format: (value: number) => string,
+  ) =>
+    [...riders]
+      .sort((a, b) => b[metric] - a[metric])
+      .slice(0, 3)
+      .map((r) => ({ name: r.name, value: format(r[metric]) }));
+
+  const intFmt = (v: number) => Math.round(v).toLocaleString("nl-NL");
+  const slides: RiderMetricSlide[] = [
+    { key: "km", label: "Kilometers", unit: "km", riders: topBy("km", intFmt) },
+    {
+      key: "uren",
+      label: "Uren in 't zadel",
+      unit: "u",
+      riders: topBy("uren", (v) => v.toLocaleString("nl-NL", { maximumFractionDigits: 1 })),
+    },
+    { key: "kudos", label: "Kudo's", unit: "", riders: topBy("kudos", intFmt) },
+    { key: "hm", label: "Hoogtemeters", unit: "hm", riders: topBy("hm", intFmt) },
+  ];
 
   const monthLabel = new Intl.DateTimeFormat("nl-NL", {
     month: "long",
@@ -212,32 +242,7 @@ export async function ClubStats() {
         />
       </div>
 
-      {top3.length > 0 && (
-        <div className="mt-4 rounded-lg border bg-card p-4">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <Trophy className="size-4 text-primary" />
-            Rider of the month - top 3
-          </h3>
-          <ol className="space-y-1 text-sm">
-            {top3.map((rider, idx) => (
-              <li
-                key={rider.name + idx}
-                className="flex items-center justify-between gap-3"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="inline-block w-5 text-right tabular-nums text-muted-foreground">
-                    {idx + 1}.
-                  </span>
-                  {rider.name}
-                </span>
-                <span className="font-medium tabular-nums">
-                  {Math.round(rider.km).toLocaleString("nl-NL")} km
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
+      {riders.length > 0 && <RiderOfTheMonthCarousel slides={slides} />}
     </section>
   );
 }
