@@ -18,8 +18,13 @@
 > detailcalls standaard uit, athlete-profiel-refresh overgeslagen bij cronruns);
 > app-brede copy-pass die uitleg/hulptekst uit formulieren haalt en naar `/hulp`
 > + privacyverklaring verplaatst, vastgelegd als nieuwe "Product copy"-conventie
-> in AGENTS.md. Deze ronde staat nog in de working tree (nog niet gecommit);
-> migraties zijn wel al gedraaid.)
+> in AGENTS.md. Deze ronde is inmiddels gecommit en gemigreerd.)
+>
+> Update 2026-06-21: externe events (Zwift/MyWhoosh) krijgen bij publicatie een
+> eigen eventtype, profielgekoppelde RSVP-deelnemers en een ZwiftPower-uitslag-
+> link (migraties `0086`/`0087`). Daarnaast operationele hardening:
+> integratie-health-check + alerting, een `docs/runbook.md`, en een eerste
+> unit-testlaag (Vitest) voor de breekbare pure logica.
 >
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
@@ -200,6 +205,17 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - iOS PWA-praktijktest op iPhone 16 Pro met iOS 26.5: hoofdflow werkt; extra
   mobiele terugknop toegevoegd in de app-shell omdat iOS geen Android-achtige
   systeem-terugknop heeft.
+- **Privacy/AVG-bouwstenen**: eigen data-export (`/api/account/export`) en een
+  accountverwijder-flow (`/profiel` → `_actions.ts`), naast de per-veld
+  privacy-opt-in. Privacyverklaring op `/privacy`, securityreview in
+  `docs/security-review.md`.
+- **Live-data-retentie**: `live_positions`/`live_sessions` worden periodiek
+  opgeruimd via de Netlify scheduled function `live-cleanup` → `/api/live/cleanup`
+  (bearer `LIVE_CLEANUP_SECRET`).
+- **Operationele hardening**: integratie-health-check met admin-alerting
+  (`/api/health/integrations` + scheduled function) en een onderhouds-`docs/runbook.md`
+  met cron-inventaris en credential-vernieuwing. Eerste Vitest-unit-tests voor de
+  breekbare pure logica (uitslag-matching, col-detector, normalisatie, tijdzones).
 - Publieke `/verhaal` prototypepagina: scrollytelling rond de evolutie van ZWB
   met sticky renner/fiets, hoofdstuknavigatie en gestileerde kit-evolutie
   (blauw/roze indoor-shirt -> VBTM/Tactic -> huidig Hage).
@@ -291,7 +307,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   lichte kaart (leesbaar in light/dark), en alle PWA/app-icons (192/512 +
   maskable, apple-touch, favicons) zijn opnieuw uit het echte logo gegenereerd
   via `scripts/generate-icons.mjs`.
-- Verjaardagen (migr. `0077`+`0078`, nog niet gecommit): `birth_date` +
+- Verjaardagen (migr. `0077`+`0078`): `birth_date` +
   `share_birthday`-opt-in op `profiles`. Met opt-in verschijnt de verjaardag bij
   andere goedgekeurde leden, op `/kalender` en op het ledenprofiel. Per lid een
   afgeschermde verjaardagsruimte `/verjaardagen/[id]` met felicitatieberichten
@@ -314,21 +330,21 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   losse knoppen of uitlegtekst, maar drie klikbare status-vakken (Rijdt
   mee/Misschien/Niet) met je keuze gemarkeerd; de uitleg staat op
   `/hulp#verjaardagsrondje`.
-- Strava-cron-sync verlicht (nog niet gecommit): de dure detailed-activity calls
+- Strava-cron-sync verlicht: de dure detailed-activity calls
   voor col- en ZWB-segmenttijden staan in de cron standaard op 0
   (`STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES` / `_ZWB_SEGMENT_MAX_FETCHES`), en het
   athlete-/avatar-profiel wordt niet meer bij elke cronrun ververst
   (`refreshAthleteInfo: false`). Houdt de frequente automatische sync licht
   binnen Strava's rate-limit; de dure backfills draaien alleen op verzoek/recompute.
-- App-brede copy-pass (nog niet gecommit): uitleg- en hulptekst uit formulieren
+- App-brede copy-pass: uitleg- en hulptekst uit formulieren
   en feature-schermen gehaald over ~64 bestanden; noodzakelijke uitleg staat op
   `/hulp` en privacy-uitleg in de privacyverklaring. Vastgelegd als harde
   conventie "Product copy" in `AGENTS.md` zodat nieuwe schermen compact blijven.
-- RSVP-UI verstrakt (nog niet gecommit): zowel events als het verjaardagsrondje
+- RSVP-UI verstrakt: zowel events als het verjaardagsrondje
   gebruiken nu één klikbare status-kolom-UI (Ja/Misschien/Nee resp. Rijdt
   mee/Misschien/Niet) i.p.v. losse knoppen + aparte deelnemerslijst. Het vak met
   je keuze is gemarkeerd; uitleg staat op `/hulp` (`#verjaardagsrondje`).
-- Events verwijderen (nog niet gecommit): rode "Verwijderen"-knop naast
+- Events verwijderen: rode "Verwijderen"-knop naast
   Opslaan/Annuleer in het bewerkformulier (via een `deleteSlot`-prop zodat het
   form generiek blijft). `deleteEvent`-actie met permissie-check (creator of
   `events.manage_all`, gelijk aan de bestaande RLS-policy), bevestigingsdialoog,
@@ -484,7 +500,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      ZWB-logo op login + alle PWA-icons.
    - **Verborgen `/brochure`** (`b882987`): deelbare team-weekend-brochure.
 
-10. **✅ Verjaardagen + Strava-cron-tuning + copy-pass** (2026-06-10, working tree — nog te committen)
+10. **✅ Verjaardagen + Strava-cron-tuning + copy-pass** (2026-06-10, gecommit)
    - **Verjaardagen** (migr. `0077`+`0078`): opt-in `share_birthday`, verjaardag
      op `/kalender` + ledenprofiel, en een afgeschermde ruimte
      `/verjaardagen/[id]` met felicitaties (`birthday_messages`), foto's
@@ -542,7 +558,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
    - **Native app (Expo/React Native)** — PWA volstaat tot er
      concrete iOS-pushlimitaties bijten.
 
-12. **Open punten**
+13. **Open punten**
    - **iOS PWA polish** — praktijktest op iPhone 16 Pro met iOS 26.5 is goed;
      mobiele terugknop toegevoegd. Nog één regressiecheck na deploy.
    - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval.
