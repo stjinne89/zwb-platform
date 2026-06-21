@@ -16,6 +16,10 @@ import {
   getMemberZwiftIds,
   runEventScan,
 } from "@/lib/events/scan-runner";
+import {
+  eventTypeForSource,
+  resultsUrlForSource,
+} from "@/lib/events/external-publish";
 
 const MATCH_STATUSES = new Set(["unknown", "likely", "confirmed", "manual"]);
 const CATEGORY_VALUES = new Set(["A", "B", "C", "D", "E"]);
@@ -77,23 +81,6 @@ function participantDescription(
     )
     .join(", ");
   return `ZWB-deelnemers: ${names}`;
-}
-
-// Eigen eventtype + locatie per bron, zodat een gepubliceerd Zwift-/MyWhoosh-
-// concept als zodanig op de kalender staat in plaats van als generiek "Online".
-function eventTypeForSource(source: string | null) {
-  if (source === "zwift") return { type: "zwift", location: "Zwift" };
-  if (source === "mywhoosh") return { type: "mywhoosh", location: "MyWhoosh" };
-  return { type: "overig", location: "Online" };
-}
-
-// ZwiftPower toont de uitslag per event op events.php?zid=<zwift-event-id>. Dat
-// id is exact het externe id van het Zwift-concept (ook in de zwift.com-link),
-// dus de uitslag-URL is deterministisch af te leiden.
-function resultsUrlForSource(source: string | null, externalId: string | null) {
-  if (source !== "zwift") return null;
-  const zid = String(externalId ?? "").trim();
-  return /^\d+$/.test(zid) ? `https://zwiftpower.com/events.php?zid=${zid}` : null;
 }
 
 // Koppelt gematchte leden als RSVP "ja" aan het gepubliceerde event, zodat ze —
