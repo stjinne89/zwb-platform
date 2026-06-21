@@ -79,6 +79,43 @@ function participantDescription(
   return `ZWB-deelnemers: ${names}`;
 }
 
+// Eigen eventtype + locatie per bron, zodat een gepubliceerd Zwift-/MyWhoosh-
+// concept als zodanig op de kalender staat in plaats van als generiek "Online".
+function eventTypeForSource(source: string | null) {
+  if (source === "zwift") return { type: "zwift", location: "Zwift" };
+  if (source === "mywhoosh") return { type: "mywhoosh", location: "MyWhoosh" };
+  return { type: "overig", location: "Online" };
+}
+
+// ZwiftPower toont de uitslag per event op events.php?zid=<zwift-event-id>. Dat
+// id is exact het externe id van het Zwift-concept (ook in de zwift.com-link),
+// dus de uitslag-URL is deterministisch af te leiden.
+function resultsUrlForSource(source: string | null, externalId: string | null) {
+  if (source !== "zwift") return null;
+  const zid = String(externalId ?? "").trim();
+  return /^\d+$/.test(zid) ? `https://zwiftpower.com/events.php?zid=${zid}` : null;
+}
+
+// Koppelt gematchte leden als RSVP "ja" aan het gepubliceerde event, zodat ze —
+// net als bij gewone events — met avatar verschijnen. Idempotent via upsert op
+// (event_id, profile_id); bestaande antwoorden van een lid blijven ongemoeid.
+async function linkParticipantsAsRsvps(
+  admin: ReturnType<typeof createAdminClient>,
+  eventId: string,
+  profileIds: string[],
+) {
+  if (profileIds.length === 0) return;
+  await admin.from("event_rsvps").upsert(
+    profileIds.map((profileId) => ({
+      event_id: eventId,
+      profile_id: profileId,
+      status: "yes",
+      updated_at: new Date().toISOString(),
+    })),
+    { onConflict: "event_id,profile_id", ignoreDuplicates: true },
+  );
+}
+
 export async function scanExternalEventCandidates() {
   const access = await requireEventScanAccess();
   if (!access) return;
@@ -161,7 +198,7 @@ export async function publishCandidate(formData: FormData) {
   const { data: candidate } = await access.admin
     .from("external_event_candidates")
     .select(
-      "id, title, start_at, external_url, distance_km, elevation_m, published_event_id",
+      "id, source, external_id, title, start_at, external_url, distance_km, elevation_m, published_event_id",
     )
     .eq("id", candidateId)
     .maybeSingle();
@@ -171,12 +208,29 @@ export async function publishCandidate(formData: FormData) {
 
   const { data: participants } = await access.admin
     .from("external_event_participants")
-    .select("external_name, category")
+    .select("external_name, category, profile_id")
     .eq("candidate_id", candidateId)
     .order("external_name", { ascending: true });
+  const allParticipants = (participants ?? []) as Array<{
+    external_name: string;
+    category: string | null;
+    profile_id: string | null;
+  }>;
+  // Leden met een profiel koppelen we als deelnemer (RSVP "ja"), net als bij
+  // gewone events — zij verschijnen dan met avatar in plaats van als tekstregel.
+  // Alleen niet-gekoppelde namen blijven in de beschrijving staan.
+  const linkedProfileIds = [
+    ...new Set(
+      allParticipants
+        .map((participant) => participant.profile_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   const description = participantDescription(
-    (participants ?? []) as Array<{ external_name: string; category: string | null }>,
+    allParticipants.filter((participant) => !participant.profile_id),
   );
+  const { type, location } = eventTypeForSource(candidate.source);
+  const resultsUrl = resultsUrlForSource(candidate.source, candidate.external_id);
 
   const { data: existing } = await access.admin
     .from("events")
@@ -184,6 +238,7 @@ export async function publishCandidate(formData: FormData) {
     .eq("external_url", candidate.external_url)
     .maybeSingle();
   if (existing) {
+    await linkParticipantsAsRsvps(access.admin, existing.id, linkedProfileIds);
     await access.admin
       .from("external_event_candidates")
       .update({
@@ -193,6 +248,7 @@ export async function publishCandidate(formData: FormData) {
       })
       .eq("id", candidateId);
     revalidatePath("/beheer/event-scan");
+    revalidatePath("/kalender");
     return;
   }
 
@@ -200,14 +256,14 @@ export async function publishCandidate(formData: FormData) {
     .from("events")
     .insert({
       title: candidate.title,
-      type: "overig",
+      type,
       start_at: new Date(candidate.start_at).toISOString(),
       end_at: null,
-      location: "Online",
+      location,
       description,
       external_url: candidate.external_url,
       live_timing_url: null,
-      results_url: null,
+      results_url: resultsUrl,
       team_id: null,
       gpx_path: null,
       distance_km: candidate.distance_km,
@@ -221,6 +277,8 @@ export async function publishCandidate(formData: FormData) {
     .single();
 
   if (error) return;
+
+  await linkParticipantsAsRsvps(access.admin, event.id, linkedProfileIds);
 
   await access.admin
     .from("external_event_candidates")

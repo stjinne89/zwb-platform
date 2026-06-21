@@ -8,6 +8,8 @@ export const EVENT_TYPES = [
   { value: "flamme_rouge", label: "Flamme Rouge" },
   { value: "social", label: "Social" },
   { value: "training", label: "Training" },
+  { value: "zwift", label: "Zwift" },
+  { value: "mywhoosh", label: "MyWhoosh" },
   { value: "overig", label: "Overig" },
 ] as const;
 

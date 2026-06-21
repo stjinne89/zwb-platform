@@ -216,7 +216,9 @@ export default async function KalenderPage() {
             const event = item.event;
             const participantLine = String(event.description ?? "")
               .split("\n")
-              .find((line) => line.startsWith("ZWB-deelnemers:"));
+              .find((line) => line.startsWith("ZWB-deelnemers:"))
+              ?.replace(/^ZWB-deelnemers:\s*/, "")
+              .trim();
             const yesRiders = yesRidersByEvent.get(event.id) ?? [];
             const liveCount = liveCountsByEvent.get(event.id) ?? 0;
             const coverUrl = event.cover_image_path

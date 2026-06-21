@@ -82,6 +82,33 @@ export default async function EventDetailPage({
 
   if (!event) notFound();
 
+  // Strip het interne "ZWB-deelnemers:"-label uit de omschrijving (gekoppelde
+  // leden tonen we als RSVP-deelnemer). De namen zelf blijven leesbaar staan,
+  // zodat ook nog niet-gekoppelde deelnemers zichtbaar blijven.
+  const eventDescription = String(event.description ?? "")
+    .split("\n")
+    .map((line) =>
+      line.startsWith("ZWB-deelnemers:")
+        ? line.replace(/^ZWB-deelnemers:\s*/, "").trim()
+        : line,
+    )
+    .join("\n")
+    .trim();
+
+  // ZwiftPower-uitslagen zijn niet als tabel te scrapen; we tonen ze als directe
+  // link in plaats van de gebruikelijke uitslag-tabel.
+  const zwiftPowerUrl = (() => {
+    try {
+      const url = new URL(event.results_url ?? "");
+      return url.hostname === "zwiftpower.com" ||
+        url.hostname.endsWith(".zwiftpower.com")
+        ? url.toString()
+        : null;
+    } catch {
+      return null;
+    }
+  })();
+
   const [
     { data: rsvps },
     access,
@@ -455,9 +482,9 @@ export default async function EventDetailPage({
         canManage={canManage}
       />
 
-      {event.description && (
+      {eventDescription && (
         <section className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-sm">
-          {event.description}
+          {eventDescription}
         </section>
       )}
 
@@ -506,7 +533,22 @@ export default async function EventDetailPage({
         />
       )}
 
-      {(event.results_url || results.length > 0 || canManage) && (
+      {zwiftPowerUrl ? (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Uitslag
+          </h2>
+          <a
+            href={zwiftPowerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            Bekijk de uitslag op ZwiftPower →
+          </a>
+        </section>
+      ) : (
+        (event.results_url || results.length > 0 || canManage) && (
         <section className="space-y-3 rounded-lg border bg-card p-4">
           <header className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -615,6 +657,7 @@ export default async function EventDetailPage({
             </p>
           )}
         </section>
+        )
       )}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
