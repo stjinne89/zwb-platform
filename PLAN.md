@@ -518,7 +518,16 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      staat op `/beheer/event-scan`: duurzame conceptlaag
      `external_event_candidates` (migratie `0081`), MyWhoosh-metadata opslaan,
      handmatige ZWB-matchstatus, negeren/heropenen, idempotent publiceren naar
-     `/kalender`; Zwift wacht op een stabiele detailfeed/deelnamebron.
+     `/kalender`. Zwift-feedsync werkt via een geautoriseerd club-serviceaccount
+     dat ZWB'ers volgt en inschrijvingen op Zwift-ID matcht (migraties `0084`/
+     `0085`). Bij publiceren krijgen externe events een eigen type
+     (`zwift`/`mywhoosh`) met passende locatie (migratie `0086`); leden met een
+     profiel worden als RSVP-deelnemer gekoppeld (avatars zoals bij gewone
+     events) en alleen niet-gekoppelde namen blijven als tekst in de
+     omschrijving (het interne `ZWB-deelnemers:`-label is uit kalender én
+     eventdetail gestript). Zwift-events tonen automatisch de ZwiftPower-uitslag
+     als directe link (`events.php?zid=<zwift-event-id>`); migratie `0087`
+     backfilt bestaande gepubliceerde events.
    - **Later: team/club challenges.** Winter- en zomerchallenges voor teams,
      groepen of de hele club om verbinding te versterken.
    - **Later/betaalversie: AI-agenten.** Agenten voor platformvragen, beleid,
