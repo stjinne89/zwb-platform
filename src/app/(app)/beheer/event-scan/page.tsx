@@ -17,6 +17,7 @@ import {
   updateCandidateMatchStatus,
 } from "./_actions";
 import { ScanButton } from "./_components/scan-button";
+import { IntegrationHealth } from "./_components/integration-health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -154,6 +155,8 @@ export default async function EventScanPage({ searchParams }: PageProps) {
           </div>
         }
       />
+
+      <IntegrationHealth />
 
       {(clubStatus === "test" || clubStatus === "follow") && scanMessage && (
         <section className="rounded-lg border bg-card p-4 text-xs text-muted-foreground">
