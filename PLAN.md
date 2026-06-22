@@ -26,6 +26,15 @@
 > integratie-health-check + alerting, een `docs/runbook.md`, en een eerste
 > unit-testlaag (Vitest) voor de breekbare pure logica.
 >
+> Update 2026-06-22: event-pagina-upgrade + dashboard-personalisatie (gecommit
+> + gepusht). Interactief hoogteprofiel én routekaart met cols/klimmen
+> (categorie 4e/3e/2e/1e/HC) uit de GPX zelf berekend, in ZWB-kleuren, met
+> hover-readout (afstand/hoogte/stijgingspercentage) en uitklapbare fullscreen
+> (mobiel liggend, desktop recht); ook in de liveticker. Nieuw persoonlijk
+> trainingsstatus-blok op het dashboard (ZWBeterWorden-advies + Fitness/Vorm/
+> Herstel + eerstvolgende workout) en de clubactiviteit-link wijst nu naar
+> `/stats`. ZWBeterWorden-advies kreeg 10 per-dag wisselende teksten per niveau.
+>
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
 > met power-selectie, beschikbaarheid en lineup-planner; automatische Strava-
@@ -350,6 +359,33 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `events.manage_all`, gelijk aan de bestaande RLS-policy), bevestigingsdialoog,
   cascade-cleanup van rsvps/foto's/chat/uitslagen via de FK's en best-effort
   opruimen van GPX + de event-fotomap in storage. Redirect daarna naar `/kalender`.
+- **Interactief hoogteprofiel + cols op events** (2026-06-22): klimmen worden
+  **direct uit de GPX-hoogtedata** berekend (`src/lib/gpx-climbs.ts`: smoothing,
+  resampling, klim-detectie met dal-tolerantie, categorie via klim-score) — geen
+  Strava/VeloViewer-afhankelijkheid, dus geen segment-ambiguïteit. Een klim krijgt
+  een echte col-naam zodra hij dicht bij een bekende col uit de `cols`-tabel ligt
+  (hergebruikt de equirectangulaire punt-tot-lijnsegment-projectie). Het
+  hoogteprofiel (`elevation-profile.tsx`) en de routekaart (`gpx-map.tsx`) tonen
+  gekleurde klim-banden/segmenten in ZWB-kleuren met klikbare stats (lengte, gem.%,
+  max.%, hoogtemeters, naam). Een gedeelde orchestrator (`route-section.tsx`) haalt
+  de GPX één keer op en deelt de actieve-klim-state tussen kaart en profiel.
+  Hoveren toont afstand · hoogte · stijgingspercentage in een readout **onder** het
+  profiel (niet meer achter de categorie-badges). Beide zijn **uitklapbaar** naar
+  fullscreen: het profiel draait op touch-apparaten in portret naar liggend voor
+  maximaal zicht (desktop blijft recht), de kaart vult groot zonder rotatie.
+  Klimmen komen ook terug in de liveticker (`event-live-ticker.tsx`), inclusief de
+  publieke `/live`-pagina en de verjaardagsrit. Vitest-tests voor de
+  klim-detectie/categorisatie.
+- **Persoonlijk trainingsstatus-blok op het dashboard** (2026-06-22): bovenaan een
+  blok met het **ZWBeterWorden-advies** + de metrics **Fitness (CTL)**, **Vorm
+  (TSB)** en **Herstel/readiness** plus de **eerstvolgende geplande workout**.
+  Alleen zichtbaar wanneer relevant (intervals.icu gekoppeld óf een geplande
+  workout); de trage intervals-fetch zit in een `<Suspense>`-kind zodat de rest van
+  het dashboard niet wacht. De "Training en clubactiviteit"-link wijst nu naar
+  `/stats` i.p.v. `/training`. De ZWBeterWorden-advieslogica is verplaatst naar een
+  gedeelde lib (`src/lib/training/zwbeterworden.ts`, met `computeZwbStatus`) zodat
+  dashboard en trainingspagina één bron delen, en kreeg **10 per-dag wisselende
+  tekstvarianten per niveau** (deterministisch o.b.v. de Amsterdam-datum).
 
 ---
 
