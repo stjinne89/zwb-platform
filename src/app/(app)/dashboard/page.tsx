@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -25,6 +26,12 @@ import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { ClubStats } from "./_components/club-stats";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { SponsorCarousel } from "./_components/sponsor-carousel";
+import {
+  TrainingStatus,
+  TrainingStatusSkeleton,
+  type TrainingStatusConn,
+  type TrainingStatusWorkout,
+} from "./_components/training-status";
 
 const CYCLING_SPORTS = [
   "Ride",
@@ -256,6 +263,11 @@ export default async function DashboardPage() {
   plus7.setDate(plus7.getDate() + 7);
   const plus7Iso = plus7.toISOString();
   const today = new Date().toISOString().slice(0, 10);
+  // Amsterdam-datum: zo verdwijnt de workout van vandaag niet zodra het geplande
+  // tijdstip voorbij is (zelfde keuze als de trainingspagina).
+  const todayKey = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Europe/Amsterdam",
+  });
 
   const [
     { data: profile },
@@ -270,9 +282,15 @@ export default async function DashboardPage() {
     { data: awardRows },
     { data: sponsorRows },
     { data: recentPastEventRows },
+    { data: trainingConn },
+    { data: nextWorkoutRows },
   ] = await Promise.all([
     user
-      ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+      ? supabase
+          .from("profiles")
+          .select("display_name, zrl_division")
+          .eq("id", user.id)
+          .single()
       : Promise.resolve({ data: null }),
     supabase
       .from("media_items")
@@ -350,6 +368,22 @@ export default async function DashboardPage() {
       .lt("start_at", nowIso)
       .order("start_at", { ascending: false })
       .limit(6),
+    user
+      ? supabase
+          .from("intervals_connections")
+          .select("api_key, athlete_id, wellness_opt_in")
+          .eq("profile_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("training_workouts")
+          .select("title, scheduled_at, intensity, duration_minutes")
+          .eq("profile_id", user.id)
+          .gte("scheduled_at", `${todayKey}T00:00:00`)
+          .order("scheduled_at", { ascending: true })
+          .limit(1)
+      : Promise.resolve({ data: null }),
   ]);
 
   // Ritverslagen = voorbije events van de afgelopen 7 dagen, verrijkt met een
@@ -480,12 +514,32 @@ export default async function DashboardPage() {
     .trim()
     .split(/\s+/)[0];
 
+  // Persoonlijk trainingsblok: alleen tonen als het lid intervals.icu gekoppeld
+  // heeft óf een geplande workout heeft. De trage intervals-fetch zit in het
+  // gesuspende <TrainingStatus>, niet in deze pagina-render.
+  const conn = (trainingConn ?? null) as TrainingStatusConn | null;
+  const nextWorkout =
+    ((nextWorkoutRows ?? [])[0] ?? null) as TrainingStatusWorkout | null;
+  const zrlDivision =
+    (profile as { zrl_division?: string | null } | null)?.zrl_division ?? null;
+  const showTraining = Boolean(conn) || Boolean(nextWorkout);
+
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow={firstName ? `Hoi ${firstName}` : "Welkom"}
         title="Welkom thuis op ZWB Home"
       />
+
+      {showTraining && (
+        <Suspense fallback={<TrainingStatusSkeleton />}>
+          <TrainingStatus
+            conn={conn}
+            nextWorkout={nextWorkout}
+            zrlDivision={zrlDivision}
+          />
+        </Suspense>
+      )}
 
       {reportPreviews.length > 0 && (
         <section>
@@ -804,7 +858,7 @@ export default async function DashboardPage() {
         <SectionHeader
           icon={Bike}
           title="Training en clubactiviteit"
-          action={<InlineMoreLink href="/training">Training</InlineMoreLink>}
+          action={<InlineMoreLink href="/stats">Clubstats</InlineMoreLink>}
         />
         {activities.length === 0 ? (
           <EmptyState>Geen recente clubritten.</EmptyState>

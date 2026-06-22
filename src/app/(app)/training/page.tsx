@@ -55,8 +55,8 @@ import {
   summarizeWellness,
   summarizeTrainingReadiness,
   type WellnessSummary,
-  type TrainingReadinessSummary,
 } from "@/lib/training/wellness";
+import { zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 
 type ProfileRow = {
@@ -779,74 +779,6 @@ function recoveryPillClass(state?: WellnessSummary["state"]) {
   return "bg-muted text-muted-foreground";
 }
 
-// "ZWBeterWorden": 5 niveaus afgeleid van de readiness (state + score),
-// van overtraind (1) tot superfris (5).
-type ZwbAdvice = {
-  level: number;
-  title: string;
-  description: string;
-  pill: string;
-  block: string;
-};
-
-function zwbeterWordenAdvice(
-  summary: TrainingReadinessSummary,
-  zrlDivision?: string | null,
-): ZwbAdvice {
-  const score = summary.score;
-  // Geslacht-signaal uit de gekozen ZRL-divisie: "women" (Dames) → partner = man.
-  const partner = zrlDivision === "women" ? "man" : "vrouw";
-  if (summary.state === "unknown" || score == null) {
-    return {
-      level: 0,
-      title: "Nog geen advies",
-      description:
-        "Deel je herstel-data (slaap/HRV) en koppel intervals.icu, dan verschijnt hier je ZWBeterWorden-advies.",
-      pill: "bg-muted text-muted-foreground",
-      block: "border bg-background",
-    };
-  }
-  let level: number;
-  if (summary.state === "recovery") level = score < 25 ? 1 : 2;
-  else if (summary.state === "caution") level = score < 58 ? 3 : 4;
-  else level = 5;
-
-  const LEVELS: Record<number, Omit<ZwbAdvice, "level">> = {
-    1: {
-      title: "DOE NIKS",
-      description: `Je bent aan het overtrainen, geef je ${partner} even wat aandacht ofzo.`,
-      pill: "bg-destructive/20 text-destructive",
-      block: "border border-destructive/40 bg-destructive/10",
-    },
-    2: {
-      title: "RICHT OP HERSTEL",
-      description: "Ga maar lekker vogeltjes kijken.",
-      pill: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
-      block: "border border-orange-500/40 bg-orange-500/10",
-    },
-    3: {
-      title: "ALLEEN DUUR",
-      description: "Je mag wel gaan fietsen, maar geen heftige intervallen.",
-      pill: "bg-zwb-petrol text-white",
-      block: "border border-zwb-petrol/50 bg-zwb-petrol/10",
-    },
-    4: {
-      title: "FRIS GENOEG",
-      description:
-        "Ga er maar lekker op uit en blokjes mogen ook, vergeet de chocomelk niet na afloop.",
-      pill: "bg-zwb-teal text-white",
-      block: "border border-zwb-teal/50 bg-zwb-teal/10",
-    },
-    5: {
-      title: "BETER WORDT HET NIET",
-      description:
-        "Alles mag, probeer die andere ZWB'ers er vandaag maar vanaf te rijden.",
-      pill: "bg-zwb-gold text-white",
-      block: "border border-zwb-gold/50 bg-zwb-gold/10",
-    },
-  };
-  return { level, ...LEVELS[level] };
-}
 
 function formatWellnessDate(value: string | null) {
   if (!value) return "-";

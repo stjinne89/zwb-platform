@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, X } from "lucide-react";
 import type { GpxPoint } from "@/lib/gpx";
 import type { Climb } from "@/lib/gpx-climbs";
 import {
@@ -26,6 +27,13 @@ function haversineKm(a: GpxPoint, b: GpxPoint): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+type Geometry = {
+  width: number;
+  xFor: (km: number) => number;
+  linePath: string;
+  areaPath: string;
+};
+
 export function ElevationProfile({
   points,
   climbs,
@@ -37,8 +45,8 @@ export function ElevationProfile({
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ km: number; ele: number } | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const stats = useMemo(() => {
     if (points.length < 2) return null;
@@ -63,7 +71,7 @@ export function ElevationProfile({
     return { samples, totalKm: cumKm, minEle, maxEle, gain };
   }, [points]);
 
-  const geometry = useMemo(() => {
+  const geometry: Geometry | null = useMemo(() => {
     if (!stats) return null;
     const { samples, totalKm, minEle, maxEle } = stats;
     const step = Math.max(1, Math.floor(samples.length / 250));
@@ -87,6 +95,41 @@ export function ElevationProfile({
     return { width, xFor, linePath, areaPath };
   }, [stats]);
 
+  const sampleAtKm = useCallback(
+    (km: number): { km: number; ele: number } | null => {
+      if (!stats) return null;
+      const { samples } = stats;
+      let best = samples[0];
+      let bestDelta = Infinity;
+      for (let i = 0; i < samples.length; i++) {
+        const delta = Math.abs(samples[i].km - km);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          best = samples[i];
+        } else if (samples[i].km > km) {
+          break;
+        }
+      }
+      return best;
+    },
+    [stats],
+  );
+
+  const onScrub = useCallback(
+    (km: number | null) => {
+      setHover(km == null ? null : sampleAtKm(km));
+    },
+    [sampleAtKm],
+  );
+
+  const onSelectAtKm = useCallback(
+    (km: number) => {
+      const idx = climbs.findIndex((c) => km >= c.startKm && km <= c.endKm);
+      onActiveClimb(idx >= 0 && idx !== activeClimb ? idx : null);
+    },
+    [climbs, activeClimb, onActiveClimb],
+  );
+
   if (!stats || !geometry) {
     return (
       <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
@@ -95,47 +138,7 @@ export function ElevationProfile({
     );
   }
 
-  const { samples, totalKm, minEle, maxEle, gain } = stats;
-  const { width, xFor, linePath, areaPath } = geometry;
-
-  function sampleAtKm(km: number): { km: number; ele: number } {
-    // Binaire-zoek-vrije lineaire scan: samples zijn klein genoeg (~max enkele
-    // duizenden) en dit draait alleen tijdens hover.
-    let lo = 0;
-    let best = samples[0];
-    let bestDelta = Infinity;
-    for (; lo < samples.length; lo++) {
-      const delta = Math.abs(samples[lo].km - km);
-      if (delta < bestDelta) {
-        bestDelta = delta;
-        best = samples[lo];
-      } else if (samples[lo].km > km) {
-        break;
-      }
-    }
-    return best;
-  }
-
-  function onMove(clientX: number) {
-    const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const km = ratio * totalKm;
-    setHover(sampleAtKm(km));
-  }
-
-  function onClick(clientX: number) {
-    const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const km = ratio * totalKm;
-    const idx = climbs.findIndex((c) => km >= c.startKm && km <= c.endKm);
-    onActiveClimb(idx >= 0 && idx !== activeClimb ? idx : null);
-  }
-
-  const hoverLeft = hover ? (hover.km / totalKm) * 100 : 0;
+  const { totalKm, minEle, maxEle, gain } = stats;
 
   return (
     <div className="space-y-2 rounded-lg border bg-card p-4">
@@ -147,73 +150,269 @@ export function ElevationProfile({
         </span>
       </div>
 
-      <div
-        ref={wrapRef}
-        className="relative touch-none select-none"
-        onPointerMove={(e) => onMove(e.clientX)}
-        onPointerDown={(e) => {
-          onMove(e.clientX);
-          onClick(e.clientX);
-        }}
-        onPointerLeave={() => setHover(null)}
-      >
-        <svg
-          viewBox={`0 0 ${width} ${HEIGHT}`}
-          preserveAspectRatio="none"
-          className="block h-24 w-full sm:h-28"
-          aria-label="Hoogteprofiel van de route"
-        >
-          <defs>
-            <linearGradient id="elev-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.05" />
-            </linearGradient>
-          </defs>
-          <ClimbBands
-            climbs={climbs}
-            xFor={xFor}
-            height={HEIGHT}
-            activeIndex={activeClimb}
-          />
-          <path d={areaPath} fill="url(#elev-fill)" />
-          <path
-            d={linePath}
-            fill="none"
-            stroke="var(--color-zwb-petrol)"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-
-        {hover && (
-          <>
-            <div
-              className="pointer-events-none absolute inset-y-0 w-px bg-zwb-petrol/60"
-              style={{ left: `${hoverLeft}%` }}
-            />
-            <div
-              className="pointer-events-none absolute top-0 -translate-x-1/2 rounded bg-zwb-petrol px-1.5 py-0.5 text-[0.65rem] font-medium leading-tight text-white tabular-nums"
-              style={{ left: `${Math.min(92, Math.max(8, hoverLeft))}%` }}
-            >
-              {hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km ·{" "}
-              {Math.round(hover.ele)} m
-            </div>
-          </>
-        )}
-
-        <ClimbBadges
+      <div className="relative">
+        <ProfileChart
+          geometry={geometry}
           climbs={climbs}
+          activeClimb={activeClimb}
           totalKm={totalKm}
-          activeIndex={activeClimb}
-          onSelect={(i) => onActiveClimb(i === activeClimb ? null : i)}
+          cursorKm={hover?.km ?? null}
+          idSuffix="inline"
+          onScrub={onScrub}
+          onSelectAtKm={onSelectAtKm}
+          onTapFullscreen={() => setFullscreen(true)}
         />
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label="Hoogteprofiel vergroten"
+          className="absolute right-1 top-1 rounded-md bg-card/80 p-1 text-muted-foreground shadow-sm backdrop-blur transition hover:text-foreground"
+        >
+          <Maximize2 className="size-4" />
+        </button>
+      </div>
+
+      {/* Readout onder het profiel — verdwijnt niet achter de categorie-badges. */}
+      <div className="h-5 text-sm tabular-nums text-muted-foreground">
+        {hover
+          ? `${hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km · ${Math.round(hover.ele)} m`
+          : ""}
       </div>
 
       <ClimbLegend climbs={climbs} />
 
       {activeClimb !== null && climbs[activeClimb] && (
         <ClimbInfoCard climb={climbs[activeClimb]} />
+      )}
+
+      {fullscreen && (
+        <FullscreenProfile
+          geometry={geometry}
+          climbs={climbs}
+          activeClimb={activeClimb}
+          totalKm={totalKm}
+          hover={hover}
+          onScrub={onScrub}
+          onSelectAtKm={onSelectAtKm}
+          onClose={() => {
+            setFullscreen(false);
+            setHover(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProfileChart({
+  geometry,
+  climbs,
+  activeClimb,
+  totalKm,
+  cursorKm,
+  idSuffix,
+  rotated = false,
+  fill = false,
+  onScrub,
+  onSelectAtKm,
+  onTapFullscreen,
+  heightClass = "h-24 w-full sm:h-28",
+}: {
+  geometry: Geometry;
+  climbs: Climb[];
+  activeClimb: number | null;
+  totalKm: number;
+  cursorKm: number | null;
+  idSuffix: string;
+  rotated?: boolean;
+  fill?: boolean;
+  onScrub: (km: number | null) => void;
+  onSelectAtKm: (km: number) => void;
+  onTapFullscreen?: () => void;
+  heightClass?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { width, xFor, linePath, areaPath } = geometry;
+
+  const ratioFromEvent = (clientX: number, clientY: number) => {
+    const el = ref.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    // In de geroteerde (liggende) weergave loopt de afstand-as langs de
+    // verticale schermrichting.
+    const r = rotated
+      ? (clientY - rect.top) / rect.height
+      : (clientX - rect.left) / rect.width;
+    return Math.min(1, Math.max(0, r));
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={`relative touch-none select-none ${fill ? "h-full w-full" : ""}`}
+      onPointerMove={(e) => onScrub(ratioFromEvent(e.clientX, e.clientY) * totalKm)}
+      onPointerLeave={() => onScrub(null)}
+      onPointerDown={(e) => {
+        if (e.pointerType === "touch" && onTapFullscreen) {
+          onTapFullscreen();
+          return;
+        }
+        const km = ratioFromEvent(e.clientX, e.clientY) * totalKm;
+        onScrub(km);
+        onSelectAtKm(km);
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${width} ${HEIGHT}`}
+        preserveAspectRatio="none"
+        className={`block ${fill ? "h-full w-full" : heightClass}`}
+        aria-label="Hoogteprofiel van de route"
+      >
+        <defs>
+          <linearGradient id={`elev-fill-${idSuffix}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        <ClimbBands
+          climbs={climbs}
+          xFor={xFor}
+          height={HEIGHT}
+          activeIndex={activeClimb}
+        />
+        <path d={areaPath} fill={`url(#elev-fill-${idSuffix})`} />
+        <path
+          d={linePath}
+          fill="none"
+          stroke="var(--color-zwb-petrol)"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {cursorKm != null && (
+          <line
+            x1={xFor(cursorKm)}
+            y1={0}
+            x2={xFor(cursorKm)}
+            y2={HEIGHT}
+            stroke="var(--color-zwb-petrol)"
+            strokeWidth="1"
+            strokeOpacity="0.6"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+      </svg>
+
+      <ClimbBadges
+        climbs={climbs}
+        totalKm={totalKm}
+        activeIndex={activeClimb}
+        onSelect={(i) => onSelectAtKm((climbs[i].startKm + climbs[i].endKm) / 2)}
+      />
+    </div>
+  );
+}
+
+function FullscreenProfile({
+  geometry,
+  climbs,
+  activeClimb,
+  totalKm,
+  hover,
+  onScrub,
+  onSelectAtKm,
+  onClose,
+}: {
+  geometry: Geometry;
+  climbs: Climb[];
+  activeClimb: number | null;
+  totalKm: number;
+  hover: { km: number; ele: number } | null;
+  onScrub: (km: number | null) => void;
+  onSelectAtKm: (km: number) => void;
+  onClose: () => void;
+}) {
+  const [win, setWin] = useState<{ w: number; h: number } | null>(null);
+
+  // Body-scroll vergrendelen + Escape sluit.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  // Meet het scherm zodat we een liggend "canvas" kunnen maken dat na rotatie
+  // het hele scherm vult.
+  useLayoutEffect(() => {
+    const measure = () => setWin({ w: window.innerWidth, h: window.innerHeight });
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, []);
+
+  // Het hele canvas (kop + profiel + details) wordt 90° gedraaid: alles staat
+  // liggend, te lezen door de telefoon te kantelen. Breedte = schermhoogte,
+  // hoogte = schermbreedte, zodat het na rotatie precies past.
+  // z-[1000] zodat het boven de Leaflet-kaart valt (panes tot z-700); bg-card is
+  // volledig ondoorzichtig.
+  const readout = hover
+    ? `${hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km · ${Math.round(hover.ele)} m`
+    : "Sleep of tik op het profiel";
+
+  return (
+    <div className="fixed inset-0 z-[1000] overflow-hidden bg-card">
+      {win && (
+        <div
+          className="absolute left-1/2 top-1/2 flex flex-col"
+          style={{
+            width: win.h,
+            height: win.w,
+            transform: "translate(-50%, -50%) rotate(90deg)",
+          }}
+        >
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b p-3">
+            <span className="text-sm font-medium tabular-nums">{readout}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Sluiten"
+              className="rounded-md border bg-background p-1.5 text-muted-foreground transition hover:text-foreground"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+          <div className="relative flex-1 overflow-hidden p-2">
+            <ProfileChart
+              geometry={geometry}
+              climbs={climbs}
+              activeClimb={activeClimb}
+              totalKm={totalKm}
+              cursorKm={hover?.km ?? null}
+              idSuffix="full"
+              rotated
+              fill
+              onScrub={onScrub}
+              onSelectAtKm={onSelectAtKm}
+            />
+          </div>
+          {activeClimb !== null && climbs[activeClimb] && (
+            <div className="shrink-0 border-t p-3">
+              <ClimbInfoCard climb={climbs[activeClimb]} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

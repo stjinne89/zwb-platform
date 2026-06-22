@@ -62,11 +62,15 @@ export function ClimbBadges({
   totalKm,
   activeIndex,
   onSelect,
+  uprightDeg = 0,
 }: {
   climbs: Climb[];
   totalKm: number;
   activeIndex: number | null;
   onSelect: (index: number) => void;
+  /** Tegen-rotatie (graden) zodat de badges rechtop blijven in een geroteerde
+   *  (liggende) fullscreen-weergave. */
+  uprightDeg?: number;
 }) {
   return (
     <div className="pointer-events-none absolute inset-0">
@@ -78,12 +82,14 @@ export function ClimbBadges({
             key={i}
             type="button"
             onClick={() => onSelect(i)}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               left: `${left}%`,
               borderColor: CLIMB_CATEGORY_COLORS[climb.category],
               backgroundColor: CLIMB_CATEGORY_COLORS[climb.category],
+              transform: `translateX(-50%) rotate(${uprightDeg}deg)`,
             }}
-            className={`pointer-events-auto absolute top-1 -translate-x-1/2 rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm ${
+            className={`pointer-events-auto absolute top-1 rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm ${
               activeIndex === i ? "ring-2 ring-white/80" : ""
             }`}
             aria-label={`Klim ${climb.name ?? climb.category}`}
