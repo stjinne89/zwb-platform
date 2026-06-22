@@ -8,6 +8,7 @@ import { fetchEventLiveSnapshot } from "@/lib/live/event-snapshot";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchWindForecast } from "@/lib/weather";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
+import type { ColLite } from "@/lib/gpx-climbs";
 import { ZwbMark } from "@/components/zwb-logo";
 
 type PageProps = {
@@ -160,6 +161,30 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
     }
   }
 
+  // Cols voor klim-naam-matching — publieke referentiedata, via admin-client.
+  let cols: ColLite[] = [];
+  if (event.gpxUrl && event.isToday) {
+    const admin = createAdminClient();
+    const { data: colRows } = await admin
+      .from("cols")
+      .select("slug, name, summit_lat, summit_lon, detection_radius_m")
+      .not("summit_lat", "is", null)
+      .not("summit_lon", "is", null);
+    cols = ((colRows ?? []) as Array<{
+      slug: string;
+      name: string;
+      summit_lat: number | string;
+      summit_lon: number | string;
+      detection_radius_m: number | null;
+    }>).map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      summit_lat: Number(c.summit_lat),
+      summit_lon: Number(c.summit_lon),
+      detection_radius_m: c.detection_radius_m,
+    }));
+  }
+
   return (
     <div className="mx-auto min-h-screen max-w-5xl space-y-6 px-4 py-6">
       <header className="flex items-start justify-between gap-4">
@@ -216,6 +241,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
           eventStartAt={event.start_at}
           sessions={sessions}
           initialPositions={positions}
+          cols={cols}
           pollUrl={`/api/live/event/${event.id}`}
         />
       )}

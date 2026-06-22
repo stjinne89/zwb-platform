@@ -16,8 +16,8 @@ import {
   type EventLiveSession,
   type EventLivePosition,
 } from "@/app/(app)/events/[id]/_components/event-live-ticker";
-import { GpxMap } from "@/app/(app)/events/[id]/_components/gpx-map";
-import { ElevationProfile } from "@/app/(app)/events/[id]/_components/elevation-profile";
+import { RouteSection } from "@/app/(app)/events/[id]/_components/route-section";
+import type { ColLite } from "@/lib/gpx-climbs";
 import {
   BirthdayMessages,
   type BirthdayMessage,
@@ -166,6 +166,30 @@ export default async function BirthdayPage({
       .from("birthday-gpx")
       .createSignedUrl(ride.gpxPath, 3600);
     ride = { ...ride, gpxUrl: data?.signedUrl ?? null };
+  }
+
+  // Cols voor de klim-naam-matching op het hoogteprofiel/de kaart — alleen
+  // ophalen als er een route is.
+  let cols: ColLite[] = [];
+  if (ride?.gpxUrl) {
+    const { data: colRows } = await supabase
+      .from("cols")
+      .select("slug, name, summit_lat, summit_lon, detection_radius_m")
+      .not("summit_lat", "is", null)
+      .not("summit_lon", "is", null);
+    cols = ((colRows ?? []) as Array<{
+      slug: string;
+      name: string;
+      summit_lat: number | string;
+      summit_lon: number | string;
+      detection_radius_m: number | null;
+    }>).map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      summit_lat: Number(c.summit_lat),
+      summit_lon: Number(c.summit_lon),
+      detection_radius_m: c.detection_radius_m,
+    }));
   }
 
   const age = ageOnBirthday(profile.birth_date, celebrationYear);
@@ -328,15 +352,13 @@ export default async function BirthdayPage({
                 eventStartAt={rideStartAt}
                 sessions={rideLiveSessions}
                 initialPositions={rideLivePositions}
+                cols={cols}
                 heading="Live tijdens het verjaardagsrondje"
                 description="Aangemelde renners worden op de route en het hoogteprofiel gevolgd."
                 emptyText="Nog geen live deelnemers. Zodra een aangemelde renner vandaag outdoor deelt op Samen fietsen, verschijnt die hier."
               />
             ) : (
-              <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-                <GpxMap gpxUrl={ride.gpxUrl} />
-                <ElevationProfile gpxUrl={ride.gpxUrl} />
-              </div>
+              <RouteSection gpxUrl={ride.gpxUrl} cols={cols} />
             ))}
 
           <BirthdayMessages

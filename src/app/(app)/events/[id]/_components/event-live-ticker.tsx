@@ -6,6 +6,20 @@ import { useRouter } from "next/navigation";
 import { Clock, Gauge, MapPin, Route } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
+import {
+  CLIMB_CATEGORY_HEX,
+  detectClimbs,
+  labelClimbsWithCols,
+  type Climb,
+  type ColLite,
+} from "@/lib/gpx-climbs";
+import {
+  ClimbBadges,
+  ClimbBands,
+  ClimbInfoCard,
+  ClimbLegend,
+  climbLength,
+} from "./climb-overlay";
 import "leaflet/dist/leaflet.css";
 
 const MapContainer = dynamic(
@@ -273,6 +287,7 @@ export function EventLiveTicker({
   eventStartAt,
   sessions: initialSessions,
   initialPositions,
+  cols = [],
   pollUrl,
   heading = DEFAULT_HEADING,
   description = DEFAULT_DESCRIPTION,
@@ -282,6 +297,8 @@ export function EventLiveTicker({
   eventStartAt: string;
   sessions: EventLiveSession[];
   initialPositions: EventLivePosition[];
+  /** Bekende cols voor klim-naam-matching op profiel + kaart. */
+  cols?: ColLite[];
   /**
    * Als gezet wordt deze URL elke 10s gepolled voor een verse
    * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
@@ -303,9 +320,17 @@ export function EventLiveTicker({
     latestMarkers(initialSessions, initialPositions, eventStartAt),
   );
 
+  const [activeClimb, setActiveClimb] = useState<number | null>(null);
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
   const activeIds = useMemo(() => new Set(sessions.map((s) => s.id)), [sessions]);
   const routeStats = useMemo(() => buildRouteStats(points), [points]);
+  const climbs = useMemo(
+    () =>
+      points.length < 2
+        ? []
+        : labelClimbsWithCols(detectClimbs(points), points, cols),
+    [points, cols],
+  );
 
   // Gedebouncede her-fetch (alleen relevant in realtime-modus) — voorkomt een
   // refresh-storm en haalt de verse sessie-/positie-snapshot op na een event.
@@ -516,6 +541,31 @@ export function EventLiveTicker({
               positions={positions}
               pathOptions={{ color: "#1f3a47", weight: 4, opacity: 0.8 }}
             />
+            {climbs.map((climb, i) => {
+              const segment = positions.slice(climb.startIdx, climb.endIdx + 1);
+              if (segment.length < 2) return null;
+              return (
+                <Polyline
+                  key={`climb-${i}`}
+                  positions={segment}
+                  pathOptions={{
+                    color: CLIMB_CATEGORY_HEX[climb.category],
+                    weight: activeClimb === i ? 8 : 6,
+                    opacity: 0.95,
+                  }}
+                  eventHandlers={{
+                    click: () => setActiveClimb(activeClimb === i ? null : i),
+                  }}
+                >
+                  <Tooltip direction="top" className="!bg-card !text-foreground">
+                    <strong>{climb.name ?? `Klim (${climb.category})`}</strong>
+                  </Tooltip>
+                  <Popup>
+                    <ClimbPopup climb={climb} />
+                  </Popup>
+                </Polyline>
+              );
+            })}
             {riders.map((rider) => (
               <CircleMarker
                 key={rider.sessionId}
@@ -540,7 +590,13 @@ export function EventLiveTicker({
         </div>
 
         <div className="space-y-4">
-          <LiveElevationProfile stats={routeStats} riders={riders} />
+          <LiveElevationProfile
+            stats={routeStats}
+            riders={riders}
+            climbs={climbs}
+            activeClimb={activeClimb}
+            onActiveClimb={setActiveClimb}
+          />
           <RiderList riders={riders} totalKm={routeStats.totalKm} />
         </div>
       </div>
@@ -670,12 +726,41 @@ function MiniStat({
   );
 }
 
+function ClimbPopup({ climb }: { climb: Climb }) {
+  const fmt = (n: number) =>
+    n.toLocaleString("nl-NL", { maximumFractionDigits: 1 });
+  return (
+    <div className="min-w-40 space-y-1 text-sm">
+      <p className="font-semibold">{climb.name ?? "Klim"}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {climb.category} categorie
+      </p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 tabular-nums">
+        <dt className="text-muted-foreground">Lengte</dt>
+        <dd>{climbLength(climb)}</dd>
+        <dt className="text-muted-foreground">Gem.</dt>
+        <dd>{fmt(climb.avgGradient)}%</dd>
+        <dt className="text-muted-foreground">Max.</dt>
+        <dd>{fmt(climb.maxGradient)}%</dd>
+        <dt className="text-muted-foreground">Stijging</dt>
+        <dd>{Math.round(climb.gainM)} hm</dd>
+      </dl>
+    </div>
+  );
+}
+
 function LiveElevationProfile({
   stats,
   riders,
+  climbs,
+  activeClimb,
+  onActiveClimb,
 }: {
   stats: RouteStats;
   riders: RiderProgress[];
+  climbs: Climb[];
+  activeClimb: number | null;
+  onActiveClimb: (index: number | null) => void;
 }) {
   const samples = stats.points
     .map((point, i) => ({
@@ -720,6 +805,7 @@ function LiveElevationProfile({
           {Math.round(stats.gain)} hm
         </span>
       </div>
+      <div className="relative">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
@@ -732,6 +818,12 @@ function LiveElevationProfile({
             <stop offset="100%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.06" />
           </linearGradient>
         </defs>
+        <ClimbBands
+          climbs={climbs}
+          xFor={xFor}
+          height={height}
+          activeIndex={activeClimb}
+        />
         <path d={areaPath} fill="url(#event-live-elev-fill)" />
         <path
           d={linePath}
@@ -758,6 +850,17 @@ function LiveElevationProfile({
             </g>
           ))}
       </svg>
+        <ClimbBadges
+          climbs={climbs}
+          totalKm={stats.totalKm}
+          activeIndex={activeClimb}
+          onSelect={(i) => onActiveClimb(i === activeClimb ? null : i)}
+        />
+      </div>
+      <ClimbLegend climbs={climbs} />
+      {activeClimb !== null && climbs[activeClimb] && (
+        <ClimbInfoCard climb={climbs[activeClimb]} />
+      )}
     </div>
   );
 }

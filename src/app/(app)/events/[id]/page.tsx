@@ -8,8 +8,8 @@ import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchWindForecast } from "@/lib/weather";
-import { GpxMap } from "./_components/gpx-map";
-import { ElevationProfile } from "./_components/elevation-profile";
+import { RouteSection } from "./_components/route-section";
+import type { ColLite } from "@/lib/gpx-climbs";
 import {
   EventLiveTicker,
   type EventLivePosition,
@@ -116,6 +116,7 @@ export default async function EventDetailPage({
     { data: photoRows },
     { data: resultRows },
     { data: reportRows },
+    { data: colRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -151,7 +152,27 @@ export default async function EventDetailPage({
       )
       .eq("event_id", id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("cols")
+      .select("slug, name, summit_lat, summit_lon, detection_radius_m")
+      .not("summit_lat", "is", null)
+      .not("summit_lon", "is", null),
   ]);
+
+  // Cols → ColLite (numerics als number) voor de klim-naam-matching.
+  const cols: ColLite[] = ((colRows ?? []) as Array<{
+    slug: string;
+    name: string;
+    summit_lat: number | string;
+    summit_lon: number | string;
+    detection_radius_m: number | null;
+  }>).map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    summit_lat: Number(c.summit_lat),
+    summit_lon: Number(c.summit_lon),
+    detection_radius_m: c.detection_radius_m,
+  }));
 
   const isCreator = user?.id === event.created_by;
   const canManage = access.has("events.manage_all") || isCreator;
@@ -495,12 +516,10 @@ export default async function EventDetailPage({
             eventStartAt={event.start_at}
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
+            cols={cols}
           />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-            <GpxMap gpxUrl={gpxUrl} />
-            <ElevationProfile gpxUrl={gpxUrl} />
-          </div>
+          <RouteSection gpxUrl={gpxUrl} cols={cols} />
         ))}
 
       {eventIsToday && (
