@@ -45,7 +45,9 @@ export function ElevationProfile({
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
 }) {
-  const [hover, setHover] = useState<{ km: number; ele: number } | null>(null);
+  const [hover, setHover] = useState<
+    { km: number; ele: number; grade: number } | null
+  >(null);
   const [fullscreen, setFullscreen] = useState(false);
 
   const stats = useMemo(() => {
@@ -117,7 +119,22 @@ export function ElevationProfile({
 
   const onScrub = useCallback(
     (km: number | null) => {
-      setHover(km == null ? null : sampleAtKm(km));
+      if (km == null) {
+        setHover(null);
+        return;
+      }
+      const center = sampleAtKm(km);
+      if (!center) {
+        setHover(null);
+        return;
+      }
+      // Lokaal stijgingspercentage over een ~100 m-venster (minder ruisgevoelig
+      // dan punt-tot-punt).
+      const lo = sampleAtKm(km - 0.05) ?? center;
+      const hi = sampleAtKm(km + 0.05) ?? center;
+      const dDistM = (hi.km - lo.km) * 1000;
+      const grade = dDistM > 0 ? ((hi.ele - lo.ele) / dDistM) * 100 : 0;
+      setHover({ km: center.km, ele: center.ele, grade });
     },
     [sampleAtKm],
   );
@@ -176,7 +193,7 @@ export function ElevationProfile({
       {/* Readout onder het profiel — verdwijnt niet achter de categorie-badges. */}
       <div className="h-5 text-sm tabular-nums text-muted-foreground">
         {hover
-          ? `${hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km · ${Math.round(hover.ele)} m`
+          ? `${hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km · ${Math.round(hover.ele)} m · ${hover.grade.toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`
           : ""}
       </div>
 
@@ -328,12 +345,15 @@ function FullscreenProfile({
   climbs: Climb[];
   activeClimb: number | null;
   totalKm: number;
-  hover: { km: number; ele: number } | null;
+  hover: { km: number; ele: number; grade: number } | null;
   onScrub: (km: number | null) => void;
   onSelectAtKm: (km: number) => void;
   onClose: () => void;
 }) {
   const [win, setWin] = useState<{ w: number; h: number } | null>(null);
+  // Touch-apparaat (telefoon/tablet) vs. desktop met muis. Bepaalt of we
+  // mogen draaien — op desktop nooit, ook niet in een smal venster.
+  const [coarse, setCoarse] = useState(false);
 
   // Body-scroll vergrendelen + Escape sluit.
   useEffect(() => {
@@ -352,7 +372,10 @@ function FullscreenProfile({
   // Meet het scherm zodat we een liggend "canvas" kunnen maken dat na rotatie
   // het hele scherm vult.
   useLayoutEffect(() => {
-    const measure = () => setWin({ w: window.innerWidth, h: window.innerHeight });
+    const measure = () => {
+      setWin({ w: window.innerWidth, h: window.innerHeight });
+      setCoarse(window.matchMedia("(pointer: coarse)").matches);
+    };
     measure();
     window.addEventListener("resize", measure);
     window.addEventListener("orientationchange", measure);
@@ -362,58 +385,71 @@ function FullscreenProfile({
     };
   }, []);
 
-  // Het hele canvas (kop + profiel + details) wordt 90° gedraaid: alles staat
-  // liggend, te lezen door de telefoon te kantelen. Breedte = schermhoogte,
-  // hoogte = schermbreedte, zodat het na rotatie precies past.
-  // z-[1000] zodat het boven de Leaflet-kaart valt (panes tot z-700); bg-card is
-  // volledig ondoorzichtig.
   const readout = hover
-    ? `${hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km · ${Math.round(hover.ele)} m`
+    ? `${hover.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km · ${Math.round(hover.ele)} m · ${hover.grade.toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`
     : "Sleep of tik op het profiel";
 
-  return (
-    <div className="fixed inset-0 z-[1000] overflow-hidden bg-card">
-      {win && (
-        <div
-          className="absolute left-1/2 top-1/2 flex flex-col"
-          style={{
-            width: win.h,
-            height: win.w,
-            transform: "translate(-50%, -50%) rotate(90deg)",
-          }}
+  // Alleen op een touch-apparaat in portret draaien we naar liggend voor
+  // maximaal zicht; op desktop tonen we het profiel gewoon groot, niet gedraaid.
+  const rotated = coarse && !!win && win.h > win.w;
+
+  const content = (
+    <>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b p-3">
+        <span className="text-sm font-medium tabular-nums">{readout}</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Sluiten"
+          className="rounded-md border bg-background p-1.5 text-muted-foreground transition hover:text-foreground"
         >
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b p-3">
-            <span className="text-sm font-medium tabular-nums">{readout}</span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Sluiten"
-              className="rounded-md border bg-background p-1.5 text-muted-foreground transition hover:text-foreground"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-          <div className="relative flex-1 overflow-hidden p-2">
-            <ProfileChart
-              geometry={geometry}
-              climbs={climbs}
-              activeClimb={activeClimb}
-              totalKm={totalKm}
-              cursorKm={hover?.km ?? null}
-              idSuffix="full"
-              rotated
-              fill
-              onScrub={onScrub}
-              onSelectAtKm={onSelectAtKm}
-            />
-          </div>
-          {activeClimb !== null && climbs[activeClimb] && (
-            <div className="shrink-0 border-t p-3">
-              <ClimbInfoCard climb={climbs[activeClimb]} />
-            </div>
-          )}
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="relative flex-1 overflow-hidden p-2">
+        <ProfileChart
+          geometry={geometry}
+          climbs={climbs}
+          activeClimb={activeClimb}
+          totalKm={totalKm}
+          cursorKm={hover?.km ?? null}
+          idSuffix="full"
+          rotated={rotated}
+          fill
+          onScrub={onScrub}
+          onSelectAtKm={onSelectAtKm}
+        />
+      </div>
+      {activeClimb !== null && climbs[activeClimb] && (
+        <div className="shrink-0 border-t p-3">
+          <ClimbInfoCard climb={climbs[activeClimb]} />
         </div>
       )}
+    </>
+  );
+
+  // z-[1000] zodat het boven de Leaflet-kaart valt (panes tot z-700); bg-card is
+  // volledig ondoorzichtig.
+  return (
+    <div className="fixed inset-0 z-[1000] overflow-hidden bg-card">
+      {win &&
+        (rotated ? (
+          // Portret: het hele canvas 90° draaien zodat alles liggend staat,
+          // te lezen door de telefoon te kantelen. Breedte = schermhoogte,
+          // hoogte = schermbreedte, zodat het na rotatie precies past.
+          <div
+            className="absolute left-1/2 top-1/2 flex flex-col"
+            style={{
+              width: win.h,
+              height: win.w,
+              transform: "translate(-50%, -50%) rotate(90deg)",
+            }}
+          >
+            {content}
+          </div>
+        ) : (
+          <div className="flex h-full w-full flex-col">{content}</div>
+        ))}
     </div>
   );
 }
