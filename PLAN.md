@@ -35,6 +35,19 @@
 > Herstel + eerstvolgende workout) en de clubactiviteit-link wijst nu naar
 > `/stats`. ZWBeterWorden-advies kreeg 10 per-dag wisselende teksten per niveau.
 >
+> Update 2026-06-23: onderhoud van slijtbare onderdelen + fietsen op het
+> profiel (gecommit, gepusht en gedeployd). Strava-gear-sync (`/athlete`)
+> vult `strava_bikes` met de levensduur-kilometerstand per fiets; leden leggen
+> op `/onderhoud` slijtbare onderdelen vast (ketting/cassette/banden/remblokken
+> …) met een slijtage-range (enige/normale/hoge) of eigen km-drempel, krijgen
+> een dashboardblok + push (`on_maintenance_due`) bij overschrijding. Fietsen
+> verschijnen ook in de showcase op het eigen profiel en ledenprofiel, met
+> foto-upload en zichtbaarheid per fiets; leden zónder Strava voegen een fiets
+> handmatig toe (showcase-only, geen onderhoud). Migraties `0089`-`0091`,
+> nieuwe storage-bucket `bikes`. `/hulp` + `/welkom` bijgewerkt. Tijdelijk
+> diagnose-endpoint `/api/strava/debug-gear` (verwijderen na verificatie van de
+> gear-sync; Strava-leeslimiet was tijdens de test bereikt).
+>
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
 > met power-selectie, beschikbaarheid en lineup-planner; automatische Strava-
@@ -386,6 +399,28 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   gedeelde lib (`src/lib/training/zwbeterworden.ts`, met `computeZwbStatus`) zodat
   dashboard en trainingspagina één bron delen, en kreeg **10 per-dag wisselende
   tekstvarianten per niveau** (deterministisch o.b.v. de Amsterdam-datum).
+- **Onderhoud van slijtbare onderdelen** (2026-06-23, migr. `0089`): nieuwe
+  `strava_bikes` (fietsen + levensduur-km gesynct uit Strava `/athlete`) en
+  `bike_components` (door het lid bijgehouden onderdelen). De gear-sync hangt aan
+  de bestaande sync-completion (`syncStravaBikesForUser` in `client.ts`, 1 call
+  per run). Onderdelen-bibliotheek met richt-km per slijtage-range
+  (`src/lib/maintenance/component-types.ts`: enige/normale/hoge, overschrijfbaar
+  met eigen km). Versleten km = fietsstand nu − stand bij montage (met optioneel
+  "al gereden km"); status groen/oranje/rood. `/onderhoud`-pagina (toevoegen,
+  vervangen=baseline reset, verwijderen), dashboardblok `maintenance-status.tsx`
+  (alleen oranje/rood) en push-trigger `on_maintenance_due` (idempotent via
+  `notified_at`, geëvalueerd na de sync in `src/lib/maintenance/evaluate.ts`).
+  Nav-item onder de avatar-dropdown; `materiaal` blijft de marktplaats.
+- **Fietsen op het profiel + handmatige fietsen** (2026-06-23, migr. `0090`+`0091`):
+  per fiets een eigen foto (storage-bucket `bikes`, public-read, eigen-folder-
+  RLS, gespiegeld aan `0026`) en een zichtbaarheidskeuze (`show_on_profile`,
+  default tonen tenzij gearchiveerd). De sync raakt `image_url`/`show_on_profile`
+  nooit aan (upsert zet alleen z'n eigen kolommen). Showcase "Mijn fietsen" op
+  `/profiel` en op het ledenprofiel (`ProfileReadonlyView`), niet op het publieke
+  profiel. Leden zónder Strava voegen handmatig een fiets toe
+  (`source='manual'`, `profiel/_actions/bikes.ts`): naam, merk/model, optionele
+  afstand + foto, showcase-only en bewust buiten de onderhoudsfunctie
+  (`/onderhoud` filtert op `source='strava'`). Helpers in `src/lib/strava/bikes.ts`.
 
 ---
 
