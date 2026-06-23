@@ -63,7 +63,8 @@
 > geen API-key). Daarnaast kunnen leden POI's plaatsen door op de kaart te klikken
 > (water/eten/gevaar/uitzicht/info + optioneel label), die blijvend op kaart én
 > hoogteprofiel verschijnen (`event_pois`, migratie `0093`; eigen POI's of als
-> beheerder verwijderbaar). Nog te doen: POI's ook in de liveticker.
+> beheerder verwijderbaar). POI's worden ook read-only getoond in de liveticker
+> (kaart + profiel), incl. de publieke `/live`-pagina.
 >
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding

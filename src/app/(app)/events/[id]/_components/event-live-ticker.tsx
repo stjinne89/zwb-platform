@@ -22,6 +22,8 @@ import {
   ClimbLegend,
   climbLength,
 } from "./climb-overlay";
+import { POI_TYPES, type EventPoi, type PoiType, type ProfilePoi } from "./poi";
+import type { DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 const MapContainer = dynamic(
@@ -47,6 +49,14 @@ const Tooltip = dynamic(
 const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), {
   ssr: false,
 });
+const Marker = dynamic(() => import("react-leaflet").then((m) => m.Marker), {
+  ssr: false,
+});
+
+function poiIconHtml(type: PoiType): string {
+  const { emoji, color } = POI_TYPES[type];
+  return `<div style="width:24px;height:24px;border-radius:9999px 9999px 9999px 2px;background:${color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;">${emoji}</div>`;
+}
 
 export type EventLiveSession = {
   id: string;
@@ -291,6 +301,7 @@ export function EventLiveTicker({
   initialPositions,
   cols = [],
   climbOverrides = [],
+  pois = [],
   pollUrl,
   heading = DEFAULT_HEADING,
   description = DEFAULT_DESCRIPTION,
@@ -304,6 +315,8 @@ export function EventLiveTicker({
   cols?: ColLite[];
   /** Door admin/creator opgeslagen klim-overrides; vervangen de auto-detectie. */
   climbOverrides?: ClimbRange[];
+  /** POI's (waterpunten e.d.) — read-only getoond op kaart + profiel. */
+  pois?: EventPoi[];
   /**
    * Als gezet wordt deze URL elke 10s gepolled voor een verse
    * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
@@ -335,6 +348,52 @@ export function EventLiveTicker({
       return climbsFromRanges(points, climbOverrides, cols);
     return labelClimbsWithCols(detectClimbs(points), points, cols);
   }, [points, cols, climbOverrides]);
+
+  // POI-marker-iconen (divIcon, geen image-assets).
+  const [poiIcons, setPoiIcons] = useState<Record<PoiType, DivIcon> | null>(null);
+  useEffect(() => {
+    let active = true;
+    import("leaflet").then((m) => {
+      if (!active) return;
+      const icons = {} as Record<PoiType, DivIcon>;
+      (Object.keys(POI_TYPES) as PoiType[]).forEach((t) => {
+        icons[t] = m.default.divIcon({
+          className: "",
+          html: poiIconHtml(t),
+          iconSize: [24, 24],
+          iconAnchor: [12, 24],
+          popupAnchor: [0, -22],
+        });
+      });
+      setPoiIcons(icons);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // POI's geprojecteerd op de route → plaats op het hoogteprofiel.
+  const profilePois = useMemo<ProfilePoi[]>(() => {
+    if (!routeStats || pois.length === 0) return [];
+    return pois.map((poi) => {
+      let bestIdx = 0;
+      let bd = Infinity;
+      for (let i = 0; i < routeStats.points.length; i++) {
+        const p = routeStats.points[i];
+        const d = (p.lat - poi.lat) ** 2 + (p.lon - poi.lng) ** 2;
+        if (d < bd) {
+          bd = d;
+          bestIdx = i;
+        }
+      }
+      return {
+        id: poi.id,
+        type: poi.type,
+        label: poi.label,
+        km: routeStats.cumulativeKm[bestIdx] ?? 0,
+      };
+    });
+  }, [routeStats, pois]);
 
   // Gedebouncede her-fetch (alleen relevant in realtime-modus) — voorkomt een
   // refresh-storm en haalt de verse sessie-/positie-snapshot op na een event.
@@ -570,6 +629,28 @@ export function EventLiveTicker({
                 </Polyline>
               );
             })}
+            {poiIcons &&
+              pois.map((poi) => {
+                const meta = POI_TYPES[poi.type];
+                return (
+                  <Marker
+                    key={poi.id}
+                    position={[poi.lat, poi.lng]}
+                    icon={poiIcons[poi.type]}
+                  >
+                    <Popup>
+                      <div className="min-w-32 space-y-0.5 text-sm">
+                        <p className="font-semibold">
+                          {meta.emoji} {poi.label?.trim() || meta.label}
+                        </p>
+                        {poi.label?.trim() && (
+                          <p className="text-xs text-muted-foreground">{meta.label}</p>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
             {riders.map((rider) => (
               <CircleMarker
                 key={rider.sessionId}
@@ -600,6 +681,7 @@ export function EventLiveTicker({
             climbs={climbs}
             activeClimb={activeClimb}
             onActiveClimb={setActiveClimb}
+            pois={profilePois}
           />
           <RiderList riders={riders} totalKm={routeStats.totalKm} />
         </div>
@@ -759,12 +841,14 @@ function LiveElevationProfile({
   climbs,
   activeClimb,
   onActiveClimb,
+  pois = [],
 }: {
   stats: RouteStats;
   riders: RiderProgress[];
   climbs: Climb[];
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
+  pois?: ProfilePoi[];
 }) {
   const samples = stats.points
     .map((point, i) => ({
@@ -860,6 +944,28 @@ function LiveElevationProfile({
           activeIndex={activeClimb}
           onSelect={(i) => onActiveClimb(i === activeClimb ? null : i)}
         />
+        <div className="pointer-events-none absolute inset-0">
+          {pois.map((poi) => {
+            const left = stats.totalKm > 0 ? (poi.km / stats.totalKm) * 100 : 0;
+            const meta = POI_TYPES[poi.type];
+            return (
+              <div
+                key={poi.id}
+                className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
+                style={{ left: `${left}%` }}
+                title={poi.label?.trim() || meta.label}
+              >
+                <span className="text-[0.7rem] leading-none drop-shadow-sm">
+                  {meta.emoji}
+                </span>
+                <span
+                  className="w-px flex-1"
+                  style={{ backgroundColor: meta.color, opacity: 0.5, minHeight: 6 }}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
       <ClimbLegend climbs={climbs} />
       {activeClimb !== null && climbs[activeClimb] && (

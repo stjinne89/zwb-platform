@@ -561,6 +561,7 @@ export default async function EventDetailPage({
             initialPositions={eventLivePositions}
             cols={cols}
             climbOverrides={climbOverrides}
+            pois={eventPois}
           />
         ) : (
           <RouteSection
