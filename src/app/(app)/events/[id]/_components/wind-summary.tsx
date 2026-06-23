@@ -1,4 +1,4 @@
-import { Wind } from "lucide-react";
+import { ChevronDown, Wind } from "lucide-react";
 import {
   classifyWind,
   compassDirection,
@@ -22,9 +22,15 @@ const CATEGORY_CLASS = {
 export function WindSummary({
   forecast,
   rideBearing,
+  expandable = false,
+  expanded = false,
+  onToggle,
 }: {
   forecast: WindForecast;
   rideBearing: number | null;
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
 }) {
   const cls =
     rideBearing !== null
@@ -33,15 +39,30 @@ export function WindSummary({
 
   const compass = compassDirection(forecast.windDirectionFrom);
 
+  const title = expandable ? (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className="flex items-center gap-2 font-semibold"
+    >
+      <Wind className="size-4 text-primary" />
+      Weer + wind bij start
+      <ChevronDown
+        className={`size-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+      />
+    </button>
+  ) : (
+    <h3 className="flex items-center gap-2 font-semibold">
+      <Wind className="size-4 text-primary" />
+      Weer + wind bij start
+    </h3>
+  );
+
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="flex items-center gap-2 font-semibold">
-            <Wind className="size-4 text-primary" />
-            Weer + wind bij start
-          </h3>
-        </div>
+        <div>{title}</div>
         {cls && (
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${CATEGORY_CLASS[cls.category]}`}

@@ -6,17 +6,26 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
-import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
-import { fetchWindForecast } from "@/lib/weather";
+import { allTrkptFromGpx, firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
+import { fetchRouteForecast, fetchWindForecast, type RoutePointForecast } from "@/lib/weather";
+import { sampleRoute, type SampledRoute } from "@/lib/route-sample";
+import { enduranceWkg } from "@/lib/teams/power-profile";
 import { RouteSection } from "./_components/route-section";
 import { isPoiType, type EventPoi } from "./_components/poi";
-import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
+import {
+  climbsFromRanges,
+  detectClimbs,
+  labelClimbsWithCols,
+  type ColLite,
+  type ClimbRange,
+} from "@/lib/gpx-climbs";
 import {
   EventLiveTicker,
   type EventLivePosition,
   type EventLiveSession,
 } from "./_components/event-live-ticker";
 import { WindSummary } from "./_components/wind-summary";
+import { RouteWeather } from "./_components/route-weather";
 import { RsvpPicker } from "./_components/rsvp-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
@@ -59,6 +68,58 @@ function isAmsterdamToday(value: string) {
 
 async function getActiveCutoffIso() {
   return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
+}
+
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
+type CurvePoint = { seconds: number; watts: number; wattsPerKg?: number | null };
+
+function numOrNull(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// Power-profiel van het lid voor de standaard duur-w/kg: rider_power_profiles
+// (uit intervals.icu) met fallback op het handmatige profiel. FTP ontbreekt? Dan
+// uit 20-min-vermogen (~95%). Mirrort de aanpak van /training/vermogen.
+async function readRiderPower(supabase: SupabaseServer, userId: string) {
+  let weightKg: number | null = null;
+  let ftpWatts: number | null = null;
+  let curvePoints: CurvePoint[] | null = null;
+
+  let row = await supabase
+    .from("rider_power_profiles")
+    .select("weight_kg, ftp_watts, watts_20m, curve_points")
+    .eq("profile_id", userId)
+    .maybeSingle();
+  if (row.error?.message.includes("curve_points")) {
+    row = await supabase
+      .from("rider_power_profiles")
+      .select("weight_kg, ftp_watts, watts_20m")
+      .eq("profile_id", userId)
+      .maybeSingle();
+  }
+  const r = row.data as Record<string, unknown> | null;
+  if (r) {
+    weightKg = numOrNull(r.weight_kg);
+    const w20 = numOrNull(r.watts_20m);
+    ftpWatts = numOrNull(r.ftp_watts) ?? (w20 ? Math.round(w20 * 0.95) : null);
+    if (Array.isArray(r.curve_points)) curvePoints = r.curve_points as CurvePoint[];
+  }
+
+  if (weightKg === null || ftpWatts === null) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("weight_kg, ftp_watts")
+      .eq("id", userId)
+      .maybeSingle();
+    const p = prof as Record<string, unknown> | null;
+    if (p) {
+      weightKg = weightKg ?? numOrNull(p.weight_kg);
+      ftpWatts = ftpWatts ?? numOrNull(p.ftp_watts);
+    }
+  }
+
+  return { weightKg, ftpWatts, curvePoints };
 }
 
 export default async function EventDetailPage({
@@ -421,9 +482,10 @@ export default async function EventDetailPage({
         )
       : null;
 
-  // Initial bearing voor headwind-classificatie: fetch GPX server-side
-  // (cached via next.revalidate=3600) en pak de eerste twee trkpt-punten.
+  // Initial bearing voor headwind-classificatie + route-weer: fetch GPX één keer
+  // server-side (cached via next.revalidate=3600) en hergebruik de XML.
   let rideBearing: number | null = null;
+  let sampledRoute: SampledRoute | null = null;
   if (gpxUrl) {
     try {
       const gpxRes = await fetch(gpxUrl, {
@@ -434,9 +496,39 @@ export default async function EventDetailPage({
         const xml = await gpxRes.text();
         const pair = firstTwoTrkptFromGpx(xml);
         if (pair) rideBearing = gpxBearing(pair[0], pair[1]);
+
+        // Route-weer alleen voor toekomstige events (vandaag = liveticker).
+        if (!eventIsToday) {
+          const points = allTrkptFromGpx(xml);
+          if (points.length >= 2) {
+            const climbs =
+              climbOverrides.length > 0
+                ? climbsFromRanges(points, climbOverrides, cols)
+                : labelClimbsWithCols(detectClimbs(points), points, cols);
+            sampledRoute = sampleRoute(points, climbs);
+          }
+        }
       }
     } catch {
       // negeer — wind wordt dan zonder richting-classificatie getoond
+    }
+  }
+
+  // Uurforecast langs de route (één multi-point Open-Meteo-call) + standaard
+  // duur-w/kg uit het power-profiel van het lid (overrulebaar in de UI).
+  let routeForecast: RoutePointForecast[] | null = null;
+  let defaultWkg = 2.5;
+  let riderWeightKg = 75;
+  if (sampledRoute && sampledRoute.samples.length > 0) {
+    routeForecast = await fetchRouteForecast(
+      sampledRoute.samples,
+      new Date(event.start_at),
+    );
+    if (routeForecast && user) {
+      const power = await readRiderPower(supabase, user.id);
+      const endurance = enduranceWkg(power.curvePoints, power.ftpWatts, power.weightKg);
+      defaultWkg = endurance.wkg;
+      riderWeightKg = endurance.weightKg;
     }
   }
 
@@ -586,9 +678,22 @@ export default async function EventDetailPage({
         />
       )}
 
-      {windForecast && (
-        <WindSummary forecast={windForecast} rideBearing={rideBearing} />
-      )}
+      {windForecast &&
+        (routeForecast && sampledRoute && !eventIsToday ? (
+          <RouteWeather
+            forecast={windForecast}
+            rideBearing={rideBearing}
+            routePoints={routeForecast}
+            segments={sampledRoute.segments}
+            climbs={sampledRoute.climbs}
+            totalKm={sampledRoute.totalKm}
+            startAtIso={event.start_at}
+            defaultWkg={defaultWkg}
+            riderWeightKg={riderWeightKg}
+          />
+        ) : (
+          <WindSummary forecast={windForecast} rideBearing={rideBearing} />
+        ))}
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

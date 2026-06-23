@@ -27,7 +27,8 @@ export function gpxBearing(a: GpxPoint, b: GpxPoint): number {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-function haversine(a: GpxPoint, b: GpxPoint): number {
+/** Afstand in km tussen twee punten (haversine). */
+export function haversineKm(a: GpxPoint, b: GpxPoint): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLon = toRad(b.lon - a.lon);
@@ -37,6 +38,48 @@ function haversine(a: GpxPoint, b: GpxPoint): number {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+const haversine = haversineKm;
+
+/** Cumulatieve afstand (km) per punt; cumKm[0] = 0. */
+export function routeCumulativeKm(points: GpxPoint[]): number[] {
+  const cum = new Array<number>(points.length);
+  cum[0] = 0;
+  for (let i = 1; i < points.length; i++) {
+    cum[i] = cum[i - 1] + haversineKm(points[i - 1], points[i]);
+  }
+  return cum;
+}
+
+/**
+ * Server-safe: haal ALLE trkpt-punten (lat/lon + geneste <ele>) uit GPX XML via
+ * regex, zonder DOMParser (parseGpx() vereist DOMParser → alleen browser).
+ */
+export function allTrkptFromGpx(xml: string): GpxPoint[] {
+  const re = /<trkpt\s+([^>]*?)(?:\/>|>([\s\S]*?)<\/trkpt>)/g;
+  const points: GpxPoint[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const attrs = m[1];
+    const inner = m[2];
+    const latMatch = attrs.match(/lat="([^"]+)"/);
+    const lonMatch = attrs.match(/lon="([^"]+)"/);
+    if (!latMatch || !lonMatch) continue;
+    const lat = parseFloat(latMatch[1]);
+    const lon = parseFloat(lonMatch[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    let ele: number | undefined;
+    if (inner) {
+      const eleMatch = inner.match(/<ele>\s*([^<]+?)\s*<\/ele>/);
+      if (eleMatch) {
+        const e = parseFloat(eleMatch[1]);
+        if (Number.isFinite(e)) ele = e;
+      }
+    }
+    points.push({ lat, lon, ele });
+  }
+  return points;
 }
 
 /**

@@ -38,6 +38,50 @@ export function wkg(watts: number | null | undefined, weightKg: number | null | 
   return Number((watts / weightKg).toFixed(2));
 }
 
+// Aandeel van FTP dat over een lange (duur)rit volgehouden wordt — voor een
+// realistische standaard-tempo-w/kg, lager dan FTP. Door het lid overrulebaar.
+export const ENDURANCE_FTP_FRACTION = 0.72;
+export const FALLBACK_WKG = 2.5; // lid zonder power-profiel
+export const FALLBACK_WEIGHT_KG = 75;
+
+/**
+ * Standaard duur-w/kg (+ rijdersgewicht) voor de rit-weer-tempo-inschatting.
+ * Voorkeur: FTP·fractie (betrouwbaar duurvermogen). Anders het langste curve-punt
+ * (≈ duurvermogen). Anders een clubbrede fallback. Geeft altijd iets bruikbaars.
+ */
+export function enduranceWkg(
+  curvePoints:
+    | Array<{ seconds: number; watts: number; wattsPerKg?: number | null }>
+    | null
+    | undefined,
+  ftpWatts: number | null | undefined,
+  weightKg: number | null | undefined,
+): { wkg: number; weightKg: number } {
+  const weight = finite(weightKg) ?? FALLBACK_WEIGHT_KG;
+  const clamp = (w: number) => Math.min(6, Math.max(1, Number(w.toFixed(2))));
+
+  const ftp = finite(ftpWatts);
+  if (ftp) {
+    const w = wkg(ftp * ENDURANCE_FTP_FRACTION, weight);
+    if (w) return { wkg: clamp(w), weightKg: weight };
+  }
+
+  if (Array.isArray(curvePoints) && curvePoints.length > 0) {
+    let longest: { seconds: number; watts: number; wattsPerKg?: number | null } | null = null;
+    for (const p of curvePoints) {
+      if (finite(p.seconds) && finite(p.watts) && (!longest || p.seconds > longest.seconds)) {
+        longest = p;
+      }
+    }
+    if (longest) {
+      const w = finite(longest.wattsPerKg) ?? wkg(longest.watts, weight);
+      if (w) return { wkg: clamp(w), weightKg: weight };
+    }
+  }
+
+  return { wkg: FALLBACK_WKG, weightKg: weight };
+}
+
 export function classifyRider(values: PowerValues): RiderType {
   const ftp = finite(values.ftpWatts);
   const weight = finite(values.weightKg);
