@@ -8,9 +8,11 @@ import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
 import {
   CLIMB_CATEGORY_HEX,
+  climbsFromRanges,
   detectClimbs,
   labelClimbsWithCols,
   type Climb,
+  type ClimbRange,
   type ColLite,
 } from "@/lib/gpx-climbs";
 import {
@@ -288,6 +290,7 @@ export function EventLiveTicker({
   sessions: initialSessions,
   initialPositions,
   cols = [],
+  climbOverrides = [],
   pollUrl,
   heading = DEFAULT_HEADING,
   description = DEFAULT_DESCRIPTION,
@@ -299,6 +302,8 @@ export function EventLiveTicker({
   initialPositions: EventLivePosition[];
   /** Bekende cols voor klim-naam-matching op profiel + kaart. */
   cols?: ColLite[];
+  /** Door admin/creator opgeslagen klim-overrides; vervangen de auto-detectie. */
+  climbOverrides?: ClimbRange[];
   /**
    * Als gezet wordt deze URL elke 10s gepolled voor een verse
    * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
@@ -324,13 +329,12 @@ export function EventLiveTicker({
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
   const activeIds = useMemo(() => new Set(sessions.map((s) => s.id)), [sessions]);
   const routeStats = useMemo(() => buildRouteStats(points), [points]);
-  const climbs = useMemo(
-    () =>
-      points.length < 2
-        ? []
-        : labelClimbsWithCols(detectClimbs(points), points, cols),
-    [points, cols],
-  );
+  const climbs = useMemo(() => {
+    if (points.length < 2) return [];
+    if (climbOverrides.length > 0)
+      return climbsFromRanges(points, climbOverrides, cols);
+    return labelClimbsWithCols(detectClimbs(points), points, cols);
+  }, [points, cols, climbOverrides]);
 
   // Gedebouncede her-fetch (alleen relevant in realtime-modus) — voorkomt een
   // refresh-storm en haalt de verse sessie-/positie-snapshot op na een event.

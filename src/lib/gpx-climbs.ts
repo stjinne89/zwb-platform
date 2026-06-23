@@ -271,6 +271,149 @@ export function detectClimbs(points: GpxPoint[]): Climb[] {
   return climbs;
 }
 
+function nearestColInRange(
+  points: GpxPoint[],
+  startIdx: number,
+  endIdx: number,
+  cols: ColLite[],
+): { name: string; slug: string } | null {
+  let best: { name: string; slug: string; dist: number } | null = null;
+  for (const col of cols) {
+    const radius = col.detection_radius_m ?? 500;
+    const summit: [number, number] = [col.summit_lat, col.summit_lon];
+    let minDist = Infinity;
+    for (let i = startIdx; i < endIdx; i++) {
+      const a: [number, number] = [points[i].lat, points[i].lon];
+      const b: [number, number] = [points[i + 1].lat, points[i + 1].lon];
+      const d = pointToSegmentMeters(summit, a, b);
+      if (d < minDist) minDist = d;
+      if (minDist === 0) break;
+    }
+    if (minDist <= radius && (!best || minDist < best.dist)) {
+      best = { name: col.name, slug: col.slug, dist: minDist };
+    }
+  }
+  return best ? { name: best.name, slug: best.slug } : null;
+}
+
+// Een door de admin/creator opgeslagen klim-override: alleen het bereik + naam +
+// categorie. De stats (lengte/hoogtemeters/%) worden uit de GPX herberekend.
+export type ClimbRange = {
+  startKm: number;
+  endKm: number;
+  name?: string | null;
+  category?: ClimbCategory | null;
+};
+
+/**
+ * Bouw Climb-objecten uit handmatige bereiken (admin-overrides). Stats komen uit
+ * de GPX over het gekozen bereik; categorie en naam zijn override-baar (anders
+ * automatisch berekend resp. via col-match). Zo wordt bv. een over-gesplitste
+ * Col du Glandon één klim met de juiste totalen.
+ */
+export function climbsFromRanges(
+  points: GpxPoint[],
+  ranges: ClimbRange[],
+  cols: ColLite[] = [],
+): Climb[] {
+  if (points.length < 2 || ranges.length === 0) return [];
+
+  const cumKm: number[] = new Array(points.length);
+  cumKm[0] = 0;
+  for (let i = 1; i < points.length; i++) {
+    cumKm[i] = cumKm[i - 1] + haversineKm(points[i - 1], points[i]);
+  }
+  const samples = buildResampled(points);
+
+  const nearestIdx = (km: number): number => {
+    let best = 0;
+    let bd = Infinity;
+    for (let i = 0; i < cumKm.length; i++) {
+      const d = Math.abs(cumKm[i] - km);
+      if (d < bd) {
+        bd = d;
+        best = i;
+      } else if (cumKm[i] > km) {
+        break;
+      }
+    }
+    return best;
+  };
+
+  const out: Climb[] = [];
+  for (const range of ranges) {
+    let startIdx = nearestIdx(Math.min(range.startKm, range.endKm));
+    let endIdx = nearestIdx(Math.max(range.startKm, range.endKm));
+    if (endIdx <= startIdx) {
+      if (startIdx < points.length - 1) endIdx = startIdx + 1;
+      else startIdx = Math.max(0, endIdx - 1);
+    }
+
+    const startKm = cumKm[startIdx];
+    const endKm = cumKm[endIdx];
+    const lengthM = (endKm - startKm) * 1000;
+
+    // Net hoogtewinst van eerste → laatste hoogte-punt in het bereik.
+    let eleStart: number | undefined;
+    let eleEnd: number | undefined;
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (points[i].ele !== undefined) {
+        eleStart = points[i].ele;
+        break;
+      }
+    }
+    for (let i = endIdx; i >= startIdx; i--) {
+      if (points[i].ele !== undefined) {
+        eleEnd = points[i].ele;
+        break;
+      }
+    }
+    const gainM =
+      eleStart !== undefined && eleEnd !== undefined
+        ? Math.max(0, eleEnd - eleStart)
+        : 0;
+    const avgGradient = lengthM > 0 ? (gainM / lengthM) * 100 : 0;
+
+    // Max % over het bereik (resampled, ~100 m-venster).
+    const startM = startKm * 1000;
+    const endM = endKm * 1000;
+    let fromS = 0;
+    while (fromS < samples.length && samples[fromS].m < startM) fromS++;
+    let toS = fromS;
+    while (toS < samples.length && samples[toS].m <= endM) toS++;
+    const maxGradient =
+      samples.length > 0 ? maxGradientOver(samples, fromS, toS) * 100 : avgGradient;
+
+    const category =
+      range.category ?? categoryFor(lengthM, avgGradient) ?? "4e";
+
+    let name = range.name?.trim() || null;
+    let colSlug: string | null = null;
+    if (!name && cols.length > 0) {
+      const match = nearestColInRange(points, startIdx, endIdx, cols);
+      if (match) {
+        name = match.name;
+        colSlug = match.slug;
+      }
+    }
+
+    out.push({
+      startIdx,
+      endIdx,
+      startKm,
+      endKm,
+      lengthM,
+      gainM,
+      avgGradient,
+      maxGradient: Math.max(maxGradient, avgGradient),
+      category,
+      name,
+      colSlug,
+    });
+  }
+  return out;
+}
+
 /**
  * Geef elke klim de naam van de dichtstbijzijnde bekende col, mits de
  * summit binnen detection-radius van het klim-segment ligt. Muteert niet:

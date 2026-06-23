@@ -48,6 +48,15 @@
 > diagnose-endpoint `/api/strava/debug-gear` (verwijderen na verificatie van de
 > gear-sync; Strava-leeslimiet was tijdens de test bereikt).
 >
+> Update 2026-06-23 (b): klim-overrides per event (gecommit + gepusht).
+> Admin/creator kan de automatisch uit de GPX gedetecteerde klimmen bijsturen via
+> een lijst-editor met live preview op de event-pagina: hernoemen, samenvoegen
+> (bv. een over-gesplitste Col du Glandon → één HC-klim), categorie kiezen
+> (auto/4e/3e/2e/1e/HC), bereik aanpassen en niet-gedetecteerde klimmen handmatig
+> toevoegen. Opgeslagen overrides (`event_climbs`, migratie `0092`) vervangen de
+> auto-detectie overal: profiel, kaart én liveticker (incl. publieke `/live`).
+> Stats blijven uit de GPX herberekend (`climbsFromRanges`).
+>
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
 > met power-selectie, beschikbaarheid en lineup-planner; automatische Strava-
@@ -389,6 +398,18 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Klimmen komen ook terug in de liveticker (`event-live-ticker.tsx`), inclusief de
   publieke `/live`-pagina en de verjaardagsrit. Vitest-tests voor de
   klim-detectie/categorisatie.
+- **Klim-overrides per event** (2026-06-23): admin/creator kan de auto-gedetecteerde
+  klimmen bijsturen via een lijst-editor met live preview op de event-pagina
+  (`climb-editor.tsx` + `route-section.tsx`): naam, categorie (auto/4e/3e/2e/1e/HC),
+  start/eind-km, samenvoegen (over-gesplitste klim → één), verwijderen en handmatig
+  toevoegen van niet-gedetecteerde klimmen. Opgeslagen als afstand-bereiken in
+  `event_climbs` (migratie `0092`, RLS-read voor leden, schrijven via service-role
+  na `guardEventManage`); de server-action `saveEventClimbs` vervangt het hele
+  setje idempotent. Een nieuwe pure helper `climbsFromRanges()` herberekent de
+  stats (lengte/hoogtemeters/%) uit de GPX over het bereik, met override-bare naam
+  en categorie. Overrides vervangen de auto-detectie overal: profiel, kaart én
+  liveticker (ook de publieke `/live`-pagina). Met unit-tests (samenvoegen,
+  categorie-override, naam-voorrang).
 - **Persoonlijk trainingsstatus-blok op het dashboard** (2026-06-22): bovenaan een
   blok met het **ZWBeterWorden-advies** + de metrics **Fitness (CTL)**, **Vorm
   (TSB)** en **Herstel/readiness** plus de **eerstvolgende geplande workout**.

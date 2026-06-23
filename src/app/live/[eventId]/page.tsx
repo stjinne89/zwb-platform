@@ -8,7 +8,7 @@ import { fetchEventLiveSnapshot } from "@/lib/live/event-snapshot";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchWindForecast } from "@/lib/weather";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
-import type { ColLite } from "@/lib/gpx-climbs";
+import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
 import { ZwbMark } from "@/components/zwb-logo";
 
 type PageProps = {
@@ -161,15 +161,23 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
     }
   }
 
-  // Cols voor klim-naam-matching — publieke referentiedata, via admin-client.
+  // Cols voor klim-naam-matching + klim-overrides — via admin-client.
   let cols: ColLite[] = [];
+  let climbOverrides: ClimbRange[] = [];
   if (event.gpxUrl && event.isToday) {
     const admin = createAdminClient();
-    const { data: colRows } = await admin
-      .from("cols")
-      .select("slug, name, summit_lat, summit_lon, detection_radius_m")
-      .not("summit_lat", "is", null)
-      .not("summit_lon", "is", null);
+    const [{ data: colRows }, { data: climbRows }] = await Promise.all([
+      admin
+        .from("cols")
+        .select("slug, name, summit_lat, summit_lon, detection_radius_m")
+        .not("summit_lat", "is", null)
+        .not("summit_lon", "is", null),
+      admin
+        .from("event_climbs")
+        .select("name, category, start_km, end_km")
+        .eq("event_id", event.id)
+        .order("position"),
+    ]);
     cols = ((colRows ?? []) as Array<{
       slug: string;
       name: string;
@@ -182,6 +190,17 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
       summit_lat: Number(c.summit_lat),
       summit_lon: Number(c.summit_lon),
       detection_radius_m: c.detection_radius_m,
+    }));
+    climbOverrides = ((climbRows ?? []) as Array<{
+      name: string | null;
+      category: string | null;
+      start_km: number | string;
+      end_km: number | string;
+    }>).map((r) => ({
+      name: r.name,
+      category: (r.category as ClimbRange["category"]) ?? null,
+      startKm: Number(r.start_km),
+      endKm: Number(r.end_km),
     }));
   }
 
@@ -242,6 +261,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
           sessions={sessions}
           initialPositions={positions}
           cols={cols}
+          climbOverrides={climbOverrides}
           pollUrl={`/api/live/event/${event.id}`}
         />
       )}

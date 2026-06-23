@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  climbsFromRanges,
   detectClimbs,
   labelClimbsWithCols,
   type ColLite,
@@ -118,6 +119,62 @@ describe("labelClimbsWithCols", () => {
     expect(labelled[0].colSlug).toBe("test-col");
   });
 
+});
+
+describe("climbsFromRanges", () => {
+  it("voegt een over-gesplitste klim samen tot één met juiste totalen", () => {
+    // Drie stijgende blokken met korte dipjes ertussen — auto-detectie kan dit
+    // opsplitsen; één override-bereik moet de hele klim als geheel meten.
+    const route = buildRoute(45, 6, [
+      { lengthM: 500, grade: 0 },
+      { lengthM: 2000, grade: 0.08 }, // +160
+      { lengthM: 300, grade: -0.03 }, // dipje
+      { lengthM: 2000, grade: 0.08 }, // +160
+      { lengthM: 300, grade: -0.03 },
+      { lengthM: 2000, grade: 0.08 }, // +160
+      { lengthM: 500, grade: 0 },
+    ]);
+    // Bereik van begin stijging tot de top (~0,5 tot ~7,1 km).
+    const climbs = climbsFromRanges(route, [{ startKm: 0.5, endKm: 7.1 }], []);
+    expect(climbs).toHaveLength(1);
+    const c = climbs[0];
+    expect(c.lengthM).toBeGreaterThan(5500);
+    expect(c.gainM).toBeGreaterThan(380); // ~3×160 minus dipjes
+    expect(c.startIdx).toBeLessThan(c.endIdx);
+  });
+
+  it("respecteert een handmatige categorie-override", () => {
+    const route = buildRoute(45, 6, [
+      { lengthM: 500, grade: 0 },
+      { lengthM: 1000, grade: 0.05 },
+      { lengthM: 500, grade: 0 },
+    ]);
+    const auto = climbsFromRanges(route, [{ startKm: 0.5, endKm: 1.5 }], []);
+    const forced = climbsFromRanges(
+      route,
+      [{ startKm: 0.5, endKm: 1.5, category: "HC" }],
+      [],
+    );
+    expect(forced[0].category).toBe("HC");
+    expect(auto[0].category).not.toBe("HC");
+  });
+
+  it("gebruikt een handmatige naam boven col-matching", () => {
+    const route = buildRoute(45, 6, [
+      { lengthM: 500, grade: 0 },
+      { lengthM: 2000, grade: 0.06 },
+      { lengthM: 500, grade: 0 },
+    ]);
+    const climbs = climbsFromRanges(
+      route,
+      [{ startKm: 0.5, endKm: 2.5, name: "Mijn Col" }],
+      [],
+    );
+    expect(climbs[0].name).toBe("Mijn Col");
+  });
+});
+
+describe("labelClimbsWithCols (vervolg)", () => {
   it("laat een klim zonder nabije col ongenoemd", () => {
     const route = buildRoute(45, 6, [
       { lengthM: 1000, grade: 0 },

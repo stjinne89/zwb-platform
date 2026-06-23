@@ -9,7 +9,7 @@ import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchWindForecast } from "@/lib/weather";
 import { RouteSection } from "./_components/route-section";
-import type { ColLite } from "@/lib/gpx-climbs";
+import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
 import {
   EventLiveTicker,
   type EventLivePosition,
@@ -117,6 +117,7 @@ export default async function EventDetailPage({
     { data: resultRows },
     { data: reportRows },
     { data: colRows },
+    { data: colClimbRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -157,7 +158,25 @@ export default async function EventDetailPage({
       .select("slug, name, summit_lat, summit_lon, detection_radius_m")
       .not("summit_lat", "is", null)
       .not("summit_lon", "is", null),
+    supabase
+      .from("event_climbs")
+      .select("name, category, start_km, end_km")
+      .eq("event_id", id)
+      .order("position"),
   ]);
+
+  // Klim-overrides (admin/creator) → ClimbRange[] voor RouteSection/liveticker.
+  const climbOverrides: ClimbRange[] = ((colClimbRows ?? []) as Array<{
+    name: string | null;
+    category: string | null;
+    start_km: number | string;
+    end_km: number | string;
+  }>).map((r) => ({
+    name: r.name,
+    category: (r.category as ClimbRange["category"]) ?? null,
+    startKm: Number(r.start_km),
+    endKm: Number(r.end_km),
+  }));
 
   // Cols → ColLite (numerics als number) voor de klim-naam-matching.
   const cols: ColLite[] = ((colRows ?? []) as Array<{
@@ -517,9 +536,16 @@ export default async function EventDetailPage({
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
             cols={cols}
+            climbOverrides={climbOverrides}
           />
         ) : (
-          <RouteSection gpxUrl={gpxUrl} cols={cols} />
+          <RouteSection
+            gpxUrl={gpxUrl}
+            cols={cols}
+            eventId={event.id}
+            canManage={canManage}
+            initialClimbs={climbOverrides}
+          />
         ))}
 
       {eventIsToday && (

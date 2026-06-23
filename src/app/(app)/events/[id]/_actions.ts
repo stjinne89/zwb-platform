@@ -189,6 +189,68 @@ export async function addManualEventResult(
   return { ok: true as const };
 }
 
+type ClimbInput = {
+  name?: string | null;
+  category?: string | null;
+  startKm: number;
+  endKm: number;
+};
+
+const CLIMB_CATEGORIES = ["4e", "3e", "2e", "1e", "HC"] as const;
+
+export async function saveEventClimbs(eventId: string, climbs: ClimbInput[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const guard = await guardEventManage(eventId);
+  if (!guard.ok) return guard;
+
+  // Valideer + normaliseer de bereiken. Lege/ongeldige rijen vallen weg.
+  const rows = (Array.isArray(climbs) ? climbs : [])
+    .map((c, i) => {
+      const startKm = Number(c.startKm);
+      const endKm = Number(c.endKm);
+      if (!Number.isFinite(startKm) || !Number.isFinite(endKm)) return null;
+      const lo = Math.max(0, Math.min(startKm, endKm));
+      const hi = Math.max(startKm, endKm);
+      if (hi - lo <= 0) return null;
+      const name = (c.name ?? "").trim().slice(0, 120) || null;
+      const category =
+        c.category && (CLIMB_CATEGORIES as readonly string[]).includes(c.category)
+          ? c.category
+          : null;
+      return {
+        event_id: eventId,
+        position: i,
+        name,
+        category,
+        start_km: Math.round(lo * 1000) / 1000,
+        end_km: Math.round(hi * 1000) / 1000,
+        created_by: user.id,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  const admin = createAdminClient();
+  // Vervang het hele setje (idempotent): eerst weg, dan opnieuw.
+  const { error: delError } = await admin
+    .from("event_climbs")
+    .delete()
+    .eq("event_id", eventId);
+  if (delError) return { ok: false as const, error: delError.message };
+
+  if (rows.length > 0) {
+    const { error } = await admin.from("event_climbs").insert(rows);
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true as const, count: rows.length };
+}
+
 export async function removeEventResult(resultId: string) {
   const supabase = await createClient();
   const {
