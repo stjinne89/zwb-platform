@@ -9,7 +9,9 @@ import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
 import { PushToggle } from "./_components/push-toggle";
 import { StravaSection } from "./_components/strava-section";
+import { BikeShowcase } from "./_components/bike-showcase";
 import { AccountData } from "./_components/account-data";
+import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
 type AwardRow = {
@@ -58,6 +60,7 @@ export default async function ProfielPage() {
     { data: milestoneAwards },
     { data: pushPrefs },
     { data: pushSubs },
+    { data: bikes },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -99,7 +102,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -108,7 +111,15 @@ export default async function ProfielPage() {
       .select("id")
       .eq("profile_id", user.id)
       .limit(1),
+    supabase
+      .from("strava_bikes")
+      .select("id, name, brand_model, distance_m, retired, image_url, show_on_profile, source")
+      .eq("profile_id", user.id)
+      .order("is_primary", { ascending: false })
+      .order("distance_m", { ascending: false }),
   ]);
+
+  const bikeRows = (bikes ?? []) as StravaBikeRow[];
 
   const awardList = (awards ?? []) as unknown as AwardRow[];
   const earnedMilestoneIds = new Set(
@@ -167,6 +178,10 @@ export default async function ProfielPage() {
         <StravaSection connection={stravaConn ?? null} />
       </div>
 
+      <div id="fietsen" className="scroll-mt-20">
+        <BikeShowcase bikes={bikeRows} />
+      </div>
+
       <div id="meldingen" className="scroll-mt-20">
         <PushToggle
           vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
@@ -177,6 +192,7 @@ export default async function ProfielPage() {
             on_training_plan: pushPrefs?.on_training_plan ?? true,
             on_event_reminder: pushPrefs?.on_event_reminder ?? true,
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
+            on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,
           }}
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />

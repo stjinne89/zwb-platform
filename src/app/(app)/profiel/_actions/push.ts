@@ -76,6 +76,7 @@ export async function updateNotificationPreferences(formData: FormData) {
     on_training_plan: formData.get("on_training_plan") === "on",
     on_event_reminder: formData.get("on_event_reminder") === "on",
     on_admin_broadcast: formData.get("on_admin_broadcast") === "on",
+    on_maintenance_due: formData.get("on_maintenance_due") === "on",
     updated_at: new Date().toISOString(),
   };
 

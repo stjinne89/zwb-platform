@@ -27,7 +27,8 @@ export type NotificationTrigger =
   | "on_new_badge"
   | "on_training_plan"
   | "on_event_reminder"
-  | "on_admin_broadcast";
+  | "on_admin_broadcast"
+  | "on_maintenance_due";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

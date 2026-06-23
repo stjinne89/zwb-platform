@@ -19,6 +19,7 @@ type Props = {
     on_training_plan: boolean;
     on_event_reminder: boolean;
     on_admin_broadcast: boolean;
+    on_maintenance_due: boolean;
   };
   hasSubscriptionInDb: boolean;
 };
@@ -261,6 +262,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_admin_broadcast}
           />
           Aankondiging vanuit het bestuur
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_maintenance_due"
+            defaultChecked={initialPreferences.on_maintenance_due}
+          />
+          Onderhoud: onderdeel toe aan vervanging
         </label>
         <div className="flex justify-end">
           <Button type="submit" size="sm" disabled={savingPrefs}>

@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type MilestoneBadgeRow } from "../../profiel/_components/badge-vault";
 import { RiderStats } from "./_components/rider-stats";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
+import { bikeShownOnProfile, type StravaBikeRow } from "@/lib/strava/bikes";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -56,6 +57,7 @@ export default async function LidProfielPage({ params }: PageProps) {
     { data: milestoneBadges },
     { data: milestoneAwards },
     { data: weeklyAwards },
+    { data: bikes },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -85,6 +87,12 @@ export default async function LidProfielPage({ params }: PageProps) {
       .eq("profile_id", id)
       .eq("award_scope", "weekly")
       .order("period_start", { ascending: false }),
+    supabase
+      .from("strava_bikes")
+      .select("id, name, brand_model, distance_m, retired, image_url, show_on_profile, source")
+      .eq("profile_id", id)
+      .order("is_primary", { ascending: false })
+      .order("distance_m", { ascending: false }),
   ]);
 
   if (!profile) notFound();
@@ -102,6 +110,7 @@ export default async function LidProfielPage({ params }: PageProps) {
   const weeklyList = showBadges
     ? ((weeklyAwards ?? []) as unknown as WeeklyAwardView[])
     : [];
+  const shownBikes = ((bikes ?? []) as StravaBikeRow[]).filter(bikeShownOnProfile);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -118,6 +127,7 @@ export default async function LidProfielPage({ params }: PageProps) {
         milestones={milestones}
         earnedMilestoneIds={earnedMilestoneIds}
         weeklyAwards={weeklyList}
+        bikes={shownBikes}
         publicUrl={
           profileRow.public_profile_enabled ? `/profielen/${profileRow.id}` : null
         }

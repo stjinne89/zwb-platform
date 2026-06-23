@@ -32,6 +32,7 @@ import {
   type TrainingStatusConn,
   type TrainingStatusWorkout,
 } from "./_components/training-status";
+import { MaintenanceStatus } from "./_components/maintenance-status";
 
 const CYCLING_SPORTS = [
   "Ride",
@@ -540,6 +541,8 @@ export default async function DashboardPage() {
           />
         </Suspense>
       )}
+
+      {user?.id && <MaintenanceStatus profileId={user.id} />}
 
       {reportPreviews.length > 0 && (
         <section>

@@ -249,6 +249,58 @@ export async function refreshStravaAthleteInfo(
   }
 }
 
+/**
+ * Synct de fietsen ("gear") van het athlete-profiel naar strava_bikes.
+ * /api/v3/athlete geeft bikes[] met levensduur-afstand (meters) terug — één
+ * goedkope call. Best-effort: faalt stil zodat de activity-sync niet breekt.
+ */
+export async function syncStravaBikesForUser(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+  accessToken: string,
+): Promise<{ synced: number }> {
+  try {
+    const res = await fetch("https://www.strava.com/api/v3/athlete", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { synced: 0 };
+    const athlete = (await res.json()) as {
+      bikes?: Array<{
+        id?: string;
+        name?: string | null;
+        distance?: number;
+        primary?: boolean;
+        retired?: boolean;
+        brand_name?: string | null;
+        model_name?: string | null;
+      }>;
+    };
+
+    const rows = (athlete.bikes ?? [])
+      .filter((b) => b.id)
+      .map((b) => ({
+        id: String(b.id),
+        profile_id: profileId,
+        name: b.name ?? null,
+        brand_model:
+          [b.brand_name, b.model_name].filter(Boolean).join(" ") || null,
+        distance_m: typeof b.distance === "number" ? b.distance : 0,
+        is_primary: Boolean(b.primary),
+        retired: Boolean(b.retired),
+        synced_at: new Date().toISOString(),
+      }));
+
+    if (rows.length === 0) return { synced: 0 };
+    await supabase.from("strava_bikes").upsert(rows, { onConflict: "id" });
+    return { synced: rows.length };
+  } catch {
+    return { synced: 0 };
+  }
+}
+
 export type SyncChunkOptions = {
   fullBackfill?: boolean;
   /** Athlete-profiel opnieuw ophalen. Voor frequente cronruns meestal false. */
@@ -567,6 +619,17 @@ export async function syncStravaActivitiesForUser(
         zwbSegmentEffortsStored = segmentResult.storedEfforts;
         zwbSegmentsCompleted = segmentResult.completed;
         zwbSegmentsRateLimited = segmentResult.rateLimited;
+      } catch {
+        // niet kritiek voor de sync-flow
+      }
+
+      // Onderhoud: fiets-kilometerstanden bijwerken + slijtage evalueren.
+      try {
+        await syncStravaBikesForUser(admin, profileId, accessToken);
+        const { evaluateMaintenanceForProfile } = await import(
+          "@/lib/maintenance/evaluate"
+        );
+        await evaluateMaintenanceForProfile(admin, profileId);
       } catch {
         // niet kritiek voor de sync-flow
       }

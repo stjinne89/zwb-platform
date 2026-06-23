@@ -1,8 +1,14 @@
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { Bike, ExternalLink } from "lucide-react";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { BadgeVault, type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
 import { ProfileHeader } from "@/app/(app)/profiel/_components/profile-header";
+import {
+  bikeName,
+  formatBikeDistance,
+  hasBikeDistance,
+  type StravaBikeRow,
+} from "@/lib/strava/bikes";
 
 export type ReadonlyProfile = {
   id: string;
@@ -70,6 +76,7 @@ export function ProfileReadonlyView({
   publicUrl,
   publicLabel = "Publiek profiel",
   extraBeforeBadges,
+  bikes,
 }: {
   profile: ReadonlyProfile;
   milestones: MilestoneBadgeRow[];
@@ -79,6 +86,8 @@ export function ProfileReadonlyView({
   publicLabel?: string;
   /** Optionele sectie tussen profile-info en de badge-kast in (bv. RiderStats). */
   extraBeforeBadges?: React.ReactNode;
+  /** Op het profiel getoonde fietsen (al gefilterd op zichtbaarheid). */
+  bikes?: StravaBikeRow[];
 }) {
   const infoTiles = [
     { label: "ZRL-categorie", value: profile.zrl_category },
@@ -142,6 +151,43 @@ export function ProfileReadonlyView({
             Over dit lid
           </h2>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{profile.bio}</p>
+        </section>
+      )}
+
+      {bikes && bikes.length > 0 && (
+        <section className="rounded-lg border bg-card p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Fietsen
+          </h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {bikes.map((b) => (
+              <li
+                key={b.id}
+                className="overflow-hidden rounded-lg border bg-background"
+              >
+                <div className="flex aspect-[16/10] items-center justify-center bg-muted">
+                  {b.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={b.image_url}
+                      alt={bikeName(b)}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Bike className="size-8 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="truncate font-medium">{bikeName(b)}</p>
+                  {hasBikeDistance(b.distance_m) && (
+                    <p className="text-sm text-muted-foreground">
+                      {formatBikeDistance(b.distance_m)}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

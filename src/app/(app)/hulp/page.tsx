@@ -20,6 +20,7 @@ import {
   TrendingUp,
   UserCircle,
   Users,
+  Wrench,
   Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-ui";
@@ -55,6 +56,7 @@ const GUIDES = [
     bullets: [
       "Je profiel bepaalt wat andere leden mogen zien.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
+      "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
       "Bestuur of beheerders keuren nieuwe leden goed.",
     ],
   },
@@ -96,6 +98,16 @@ const GUIDES = [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
+    ],
+  },
+  {
+    id: "onderhoud",
+    icon: Wrench,
+    title: "Onderhoud van je fiets",
+    bullets: [
+      "Houd slijtbare onderdelen (ketting, cassette, banden, remblokken …) bij op basis van je Strava-kilometers.",
+      "Kies per onderdeel een slijtage-range — enige, normale of hoge slijtage — of vul een eigen kilometerdrempel in.",
+      "Je krijgt een melding zodra een onderdeel toe is aan vervanging; op het dashboard zie je wat bijna of over de drempel is.",
     ],
   },
   {
@@ -141,6 +153,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/achievements", name: "Achievements", text: "Al je badges. Herbereken ze hier na een Strava-sync." },
   { href: "/training", name: "Training", text: "Schema's, AI-coach, je ZWBeterWorden-advies en de koppelingen." },
   { href: "/training/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
+  { href: "/onderhoud", name: "Onderhoud", text: "Slijtage van je onderdelen op basis van je Strava-kilometers, met een melding bij vervangen." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
@@ -149,7 +162,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
-  { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, koppelingen (Strava/intervals) en account." },
+  { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
 
 const OWNTRACKS_STEPS = [
@@ -296,6 +309,7 @@ const TROUBLESHOOTING = [
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', Controlemodus op 'Beweging'.",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
+  "Geen fietsen onder Mijn fietsen of Onderhoud? Koppel je fiets in Strava aan je ritten en draai daarna een Strava-sync.",
   "Mis je rechten? Vraag bestuur of communitybeheer om je rol te controleren.",
   "Werkt iets niet meer zoals vlak na de installatie? Loop de welkomstrondleiding op /welkom opnieuw door.",
 ];
@@ -748,6 +762,133 @@ export default function HelpPage() {
             </span>
           </li>
         </ul>
+      </section>
+
+      <section
+        id="onderhoud"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Wrench className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Mijn fietsen en onderhoud</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Zodra je Strava gekoppeld en gesynchroniseerd hebt, kent ZWB je
+              fietsen met hun totale kilometerstand. Daarmee toon je je fietsen
+              op je profiel en houd je de slijtage van onderdelen bij.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Bike className="size-4 text-primary" />
+              Fietsen op je profiel
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Naam en kilometers komen rechtstreeks uit Strava (
+                  <em>Mijn uitrusting</em>). Koppel daar je fiets aan je ritten,
+                  anders blijft de lijst leeg.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Geen Strava? Voeg met{" "}
+                  <strong className="text-foreground">Fiets handmatig
+                  toevoegen</strong> zelf een fiets toe met naam, merk/model en
+                  eventueel afstand. Handmatige fietsen tonen we wel op je
+                  profiel, maar doen niet mee in de onderhoudsfunctie.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Onder <strong className="text-foreground">Mijn fietsen</strong>{" "}
+                  op je profiel kies je per fiets of die zichtbaar is en zet je
+                  er een eigen foto bij. Virtuele fietsen staan standaard aan;
+                  gearchiveerde fietsen standaard uit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Zichtbare fietsen verschijnen ook op je ledenprofiel, zodat
+                  clubgenoten zien waarop je rijdt.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Wrench className="size-4 text-primary" />
+              Slijtage bijhouden
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Voeg op <strong className="text-foreground">Onderhoud</strong>{" "}
+                  een onderdeel toe (ketting, cassette, banden, remblokken …) en
+                  kies een slijtage-range: <em>enige</em>, <em>normale</em> of{" "}
+                  <em>hoge</em> slijtage. Elke range heeft een richt-aantal
+                  kilometers dat je mag overschrijven met een eigen drempel.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De gereden kilometers van een onderdeel = de stand van de fiets
+                  nu min de stand bij montage. Monteer je een al gebruikt
+                  onderdeel, vul dan &ldquo;al gereden km&rdquo; in.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De balk kleurt groen, oranje (bijna) en rood (toe aan
+                  vervanging). Onderdelen die opvallen verschijnen ook op je
+                  dashboard.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Vervangen? Klik op <strong className="text-foreground">Vervangen</strong>{" "}
+                  — de teller begint opnieuw vanaf de huidige stand.
+                </span>
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/onderhoud"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Wrench className="size-4 text-primary" />
+            Naar Onderhoud
+          </Link>
+          <Link
+            href="/profiel#fietsen"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Bike className="size-4 text-primary" />
+            Mijn fietsen
+          </Link>
+        </div>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Zet onder Profiel → Meldingen de optie{" "}
+          <strong className="text-foreground">Onderhoud: onderdeel toe aan
+          vervanging</strong> aan om hierover een pushmelding te krijgen.
+        </p>
       </section>
 
       <section

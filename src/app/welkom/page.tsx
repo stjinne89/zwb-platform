@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  Wrench,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/app-ui";
@@ -104,6 +105,7 @@ export default async function WelkomPage() {
     { data: intervals },
     { data: pushSubscription },
     { data: trackerToken },
+    { data: bike },
   ] = user
     ? await Promise.all([
         supabase
@@ -137,8 +139,15 @@ export default async function WelkomPage() {
           .is("revoked_at", null)
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("strava_bikes")
+          .select("id")
+          .eq("profile_id", user.id)
+          .limit(1)
+          .maybeSingle(),
       ])
     : [
+        { data: null },
         { data: null },
         { data: null },
         { data: null },
@@ -196,11 +205,19 @@ export default async function WelkomPage() {
     },
     {
       title: "Strava koppelen en syncen",
-      text: "Strava voedt clubritten, badges, cols en trainingscontext. Na koppelen kun je op Achievements een sync starten.",
+      text: "Strava voedt clubritten, badges, cols, je fietsen en trainingscontext. Na koppelen kun je op Achievements een sync starten.",
       href: "/profiel#strava",
       action: strava ? "Strava bekijken" : "Strava koppelen",
       status: strava ? "done" : canUseIntegrations ? "current" : "upcoming",
       icon: Bike,
+    },
+    {
+      title: "Je fietsen en onderhoud",
+      text: "Na een Strava-sync verschijnen je fietsen. Toon ze op je profiel met een foto, en houd op Onderhoud de slijtage van onderdelen bij.",
+      href: "/onderhoud",
+      action: bike ? "Onderhoud openen" : "Bekijk Onderhoud",
+      status: bike ? "done" : strava ? "current" : "upcoming",
+      icon: Wrench,
     },
     {
       title: "intervals.icu koppelen",
@@ -212,7 +229,7 @@ export default async function WelkomPage() {
     },
     {
       title: "Meldingen activeren",
-      text: "Zet pushmeldingen aan voor events, live ritten, badges, trainingsschema's en bestuurupdates.",
+      text: "Zet pushmeldingen aan voor events, live ritten, badges, trainingsschema's, onderhoud en bestuurupdates.",
       href: "/profiel#meldingen",
       action: pushSubscription ? "Meldingen bekijken" : "Meldingen instellen",
       status: pushSubscription ? "done" : canUseIntegrations ? "current" : "upcoming",
@@ -302,8 +319,8 @@ export default async function WelkomPage() {
             <h2 className="font-semibold">Wat gebeurt automatisch?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Je profiel wordt bij registratie aangemaakt. Strava-, badge-,
-              cols-, team- en trainingsdata verschijnen daarna via de bestaande
-              syncs zodra je koppelingen actief zijn.
+              cols-, fiets-, team- en trainingsdata verschijnen daarna via de
+              bestaande syncs zodra je koppelingen actief zijn.
             </p>
           </article>
           <article className="rounded-lg border bg-card/90 p-4">

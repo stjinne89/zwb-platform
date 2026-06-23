@@ -157,11 +157,16 @@ export function BrochureExperience() {
         schedule?: ScheduleRow[];
         routes?: RouteCard[];
       };
+      // Eenmalige hydratie uit localStorage bij mount. Bewuste setState —
+      // geen cascading-render-zorg, en in een initializer zou dit een
+      // SSR/hydratie-mismatch geven. Zelfde patroon als push-toggle.
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (parsed.title) setTitle(parsed.title);
       if (parsed.lead) setLead(parsed.lead);
       if (parsed.details) setDetails(parsed.details);
       if (parsed.schedule?.length) setSchedule(parsed.schedule);
       if (parsed.routes?.length) setRoutes(parsed.routes);
+      /* eslint-enable react-hooks/set-state-in-effect */
     } catch {
       // Ignore invalid local state; the page remains usable with defaults.
     }

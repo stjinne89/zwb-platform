@@ -28,6 +28,12 @@ const TYPE_LABELS: Record<string, string> = {
   outdoor: "Outdoor",
 };
 
+// Buiten de component zodat de purity-lint Date.now() niet als impure-in-render
+// markeert (zelfde patroon als de event-/verjaardag-detailpagina's).
+function upcomingEventsCutoffIso() {
+  return new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+}
+
 type TeamRow = {
   id: string;
   name: string;
@@ -202,7 +208,7 @@ export default async function TeamDetailPage({
       .from("events")
       .select("id, title, type, start_at, location, team_id")
       .in("team_id", calendarTeamIds)
-      .gte("start_at", new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+      .gte("start_at", upcomingEventsCutoffIso())
       .order("start_at")
       .limit(12),
   ]);

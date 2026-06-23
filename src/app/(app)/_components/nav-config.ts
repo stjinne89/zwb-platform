@@ -65,6 +65,7 @@ export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
   { type: "link", href: "/profiel/segments", label: "ZWB Segments" },
   { type: "link", href: "/training", label: "Training" },
+  { type: "link", href: "/onderhoud", label: "Onderhoud" },
   { type: "link", href: "/hulp", label: "Hulp" },
 ];
 
