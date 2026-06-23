@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import type { Map as LeafletMap } from "leaflet";
 import { createClient } from "@/lib/supabase/client";
 import type { ActiveSession } from "../types";
 import "leaflet/dist/leaflet.css";
@@ -24,7 +25,7 @@ const Tooltip = dynamic(
   { ssr: false },
 );
 
-type PositionRow = {
+export type PositionRow = {
   session_id: string;
   profile_id: string;
   lat: number | string;
@@ -47,12 +48,18 @@ const DEFAULT_ZOOM = 8;
 // realtime-event gemist is. Korter dan de 15-min stale-grens.
 const REFRESH_MS = 30_000;
 
+// Een klik op een rider in de lijst zet dit doel; nonce dwingt een herhaalde
+// klik op dezelfde rider af (effect re-runt ook als sessionId gelijk blijft).
+export type MapFocus = { sessionId: string; nonce: number };
+
 export function LiveMap({
   outdoorSessions,
   initialPositions,
+  focus,
 }: {
   outdoorSessions: ActiveSession[];
   initialPositions: PositionRow[];
+  focus?: MapFocus | null;
 }) {
   const router = useRouter();
 
@@ -174,6 +181,23 @@ export function LiveMap({
     return Array.from(merged.values()).filter((m) => activeIds.has(m.sessionId));
   }, [serverMarkers, liveMarkers, activeIds, nameById]);
 
+  // Vlieg naar een rider zodra de lijst er één aanwijst. Bewust alléén afhankelijk
+  // van `focus` (de klik): markers veranderen elke paar seconden door realtime-
+  // updates — daar mee re-runnen zou de kaart continu opnieuw laten inzoomen.
+  // Daarom lezen we de actuele positie via een ref i.p.v. als dependency.
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markersRef = useRef(visibleMarkers);
+  useEffect(() => {
+    markersRef.current = visibleMarkers;
+  }, [visibleMarkers]);
+  useEffect(() => {
+    if (!focus) return;
+    const target = markersRef.current.find((m) => m.sessionId === focus.sessionId);
+    if (target) {
+      mapRef.current?.flyTo([target.lat, target.lng], 14, { duration: 0.8 });
+    }
+  }, [focus]);
+
   // Center alleen bij mount (props-change herrendert niet de MapContainer-center).
   const center: [number, number] = useMemo(() => {
     if (visibleMarkers.length === 0) return DEFAULT_CENTER;
@@ -187,6 +211,7 @@ export function LiveMap({
   return (
     <div className="h-96 overflow-hidden rounded-lg border">
       <MapContainer
+        ref={mapRef}
         center={center}
         zoom={visibleMarkers.length > 0 ? 11 : DEFAULT_ZOOM}
         className="h-full w-full"

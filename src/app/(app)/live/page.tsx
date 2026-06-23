@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
-import { LiveMap } from "./_components/live-map";
+import { HelpLink, PageHeader } from "@/components/app-ui";
+import { LiveBoard } from "./_components/live-board";
 import {
   OwnTracksPanel,
   type OwnTracksTokenStatus,
@@ -80,8 +79,6 @@ export default async function LivePage() {
 
   const mySession = sessions.find((s) => s.profileId === user.id) ?? null;
   const outdoorSessions = sessions.filter((s) => s.mode === "outdoor");
-  const indoorSessions = sessions.filter((s) => s.mode !== "outdoor");
-  const externalSessions = sessions.filter((s) => s.external_track_url);
   const trackerStatus =
     ((trackerTokens?.[0] ?? null) as OwnTracksTokenStatus | null) ?? null;
 
@@ -93,104 +90,38 @@ export default async function LivePage() {
         actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href="/hulp#owntracks" />}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <div className="space-y-3">
-          <LiveMap outdoorSessions={outdoorSessions} initialPositions={positionRows ?? []} />
-          {outdoorSessions.length === 0 && (
-            <EmptyState>Geen outdoor riders actief.</EmptyState>
-          )}
-        </div>
+      <LiveBoard
+        sessions={sessions}
+        outdoorSessions={outdoorSessions}
+        initialPositions={positionRows ?? []}
+      >
+        {!mySession && (
+          <div className="space-y-4">
+            <OwnTracksPanel tokenStatus={trackerStatus} />
+            <StartLiveForm />
+          </div>
+        )}
 
-        <div className="space-y-4">
-          <section className="rounded-md border bg-card">
-            <div className="border-b p-4">
-              <h2 className="font-semibold">Actieve riders ({sessions.length})</h2>
-            </div>
-            {sessions.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground">Niemand is live.</p>
-            ) : (
-              <ul className="divide-y">
-                {sessions.map((s) => (
-                  <li key={s.id} className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {s.profileName}
-                          <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
-                            {MODE_LABELS[s.mode]}
-                          </span>
-                        </p>
-                        {s.status_text && (
-                          <p className="mt-0.5 text-sm text-muted-foreground">
-                            {s.status_text}
-                          </p>
-                        )}
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Sinds{" "}
-                          {new Date(s.started_at).toLocaleTimeString("nl-NL", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            timeZone: "Europe/Amsterdam",
-                          })}
-                        </p>
-                      </div>
-                      {s.external_track_url && (
-                        <a
-                          href={s.external_track_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-secondary"
-                        >
-                          LiveTrack
-                          <ArrowUpRight className="size-3" />
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border bg-card p-4">
-              <p className="text-2xl font-semibold">{indoorSessions.length}</p>
-              <p className="text-sm text-muted-foreground">Indoor actief</p>
-            </div>
-            <div className="rounded-md border bg-card p-4">
-              <p className="text-2xl font-semibold">{externalSessions.length}</p>
-              <p className="text-sm text-muted-foreground">Met LiveTrack-link</p>
-            </div>
-          </section>
-
-          {!mySession && (
-            <div className="space-y-4">
-              <OwnTracksPanel tokenStatus={trackerStatus} />
-              <StartLiveForm />
-            </div>
-          )}
-
-          {mySession && (
-            <div className="space-y-4">
-              <OwnTracksPanel tokenStatus={trackerStatus} />
-              <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
-                <p className="font-medium">Je bent live als {MODE_LABELS[mySession.mode]}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {mySession.mode === "outdoor"
-                    ? "GPS via OwnTracks of LiveTrack-link."
-                    : "Zichtbaar voor ZWB-leden."}
-                </p>
-                <a
-                  href="#stop-live"
-                  className="mt-2 inline-flex text-xs font-medium text-destructive hover:underline"
-                >
-                  Stop bovenaan
-                </a>
-              </section>
-            </div>
-          )}
-        </div>
-      </div>
+        {mySession && (
+          <div className="space-y-4">
+            <OwnTracksPanel tokenStatus={trackerStatus} />
+            <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
+              <p className="font-medium">Je bent live als {MODE_LABELS[mySession.mode]}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {mySession.mode === "outdoor"
+                  ? "GPS via OwnTracks of LiveTrack-link."
+                  : "Zichtbaar voor ZWB-leden."}
+              </p>
+              <a
+                href="#stop-live"
+                className="mt-2 inline-flex text-xs font-medium text-destructive hover:underline"
+              >
+                Stop bovenaan
+              </a>
+            </section>
+          </div>
+        )}
+      </LiveBoard>
     </div>
   );
 }

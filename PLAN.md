@@ -7,7 +7,9 @@
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
-> Laatst bijgewerkt: 2026-06-17 (testerfeedback juni 2026 verwerkt tot roadmap:
+> Laatst bijgewerkt: 2026-06-23 (Strava-import, training-load-grafiek,
+> hulp/welkom-copy, Street View-flow en workout-preview verwerkt. Vorige
+> roadmap-update 2026-06-17: testerfeedback juni 2026 verwerkt tot roadmap:
 > menu-polish, achievementkwaliteit, Zwift/MyWhoosh-kalenderonderzoek,
 > team/club challenges en AI-agenten. Vorige working-tree ronde 2026-06-10:
 > verjaardagen-feature met opt-in en afgeschermde verjaardagsruimte per lid —
@@ -65,6 +67,33 @@
 > hoogteprofiel verschijnen (`event_pois`, migratie `0093`; eigen POI's of als
 > beheerder verwijderbaar). POI's worden ook read-only getoond in de liveticker
 > (kaart + profiel), incl. de publieke `/live`-pagina.
+>
+> Update 2026-06-23 (d): Strava-cap-workaround, Street View-flow en training-
+> dashboard afgerond (commit `e834bc1`, gepusht). Strava gear-sync is eerst
+> naar max. 1x/dag gethrottled (`bfa819b`) om de API-limiet te sparen; daarnaast
+> kunnen leden nu handmatig een Strava `activities.csv` importeren op
+> `/achievements`, zodat late instappers of leden buiten de Strava-app-cap toch
+> badges/stats kunnen vullen. `/welkom` en `/hulp` leggen de import uit en
+> `/hulp` heeft een zoekfunctie gekregen. Street View opent direct zonder popup,
+> gebruikt een ZWB-kleurige wielrenner-marker, linkt met route-heading uit de
+> GPX en gebruikt een stabielere Google Maps deep-link. `/training` toont een
+> klikbare Load/Form-grafiek (42d/90d/6m/1j/2j) op basis van intervals.icu
+> wellness, met CTL/ATL/Form in ZWB-stijl, plus een compacte eerstvolgende
+> workout-kaart met workout-preview. De training-UI is opgeschoond: uitleg naar
+> `/hulp`, 7-dagen totaal i.p.v. 14 dagen, en "TSB" heet in de UI voortaan
+> "Form".
+>
+> Update 2026-06-23 (e): kleine UX-/hulpronde op Samen fietsen + OwnTracks
+> (lokaal, nog niet gepusht bij schrijven). Op `/live` laat een klik op een
+> outdoor-rider in de riderslijst de kaart nu naar dat lid toe vliegen (zoom 14)
+> i.p.v. alleen het gemiddelde midden te tonen; kaart + lijst delen daarvoor één
+> client-boundary (`live-board.tsx`). `flyTo` vuurt bewust alléén op de klik en
+> niet op realtime positie-updates (anders trilt/herinzoomt de kaart continu).
+> Daarnaast is de OwnTracks-hulp op `/hulp` iOS-bewust gemaakt: de iOS-modi
+> heten **Actie** (actief, strak spoor) en **Significant** (zuiniger, minder
+> nauwkeurig) i.p.v. de Android-namen Beweging/Grootte wijzigingen, en de
+> verbinding (Private HTTP + koppellink) zit op iOS achter het i-icoon
+> linksboven op de kaart.
 >
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
@@ -432,6 +461,48 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   service-role). Server-actions `addEventPoi`/`removeEventPoi`, gedeelde types in
   `poi.ts`, kaartklik via `map-click.tsx` (`useMapEvents`), marker-iconen als
   `divIcon` (geen image-assets). Markers werken op de inline- én fullscreen-kaart.
+- **Street View-flow verfijnd** (2026-06-23, commit `e834bc1`): bovenop de
+  POI/Street-View-basis opent de Street View-marker nu direct zonder popup,
+  gebruikt hij een ZWB-kleurige wielrenner-marker en berekent hij de kijkrichting
+  uit de GPX-route (`heading` in de Google Maps deep-link). Dit voorkomt de
+  dubbele klik en vermindert zwarte/verkeerd-gerichte Street View-starts.
+- **Strava API-limiet ontzien + handmatige import** (2026-06-23, commits
+  `bfa819b` + `e834bc1`): gear-sync (`/athlete`, fietsstanden) wordt maximaal
+  1x per dag opgehaald om de leeslimiet te sparen. Daarnaast kunnen leden op
+  `/achievements` een Strava-export `activities.csv` uploaden. De import parser
+  (`src/lib/strava/import.ts`) normaliseert CSV/semicolon/quoted velden,
+  filtert fietsactiviteiten, schrijft naar `strava_activities`, en triggert
+  badge-evaluatie + week-awards. Dit geeft leden buiten de Strava app-cap of
+  late instappers toch badge/stat-functionaliteit zonder live OAuth-koppeling.
+  `/welkom` en `/hulp` leggen de flow uit.
+- **Hulp-zoekfunctie** (2026-06-23): `/hulp` heeft een client-side zoekveld
+  (`help-search.tsx`) dat routes, onderwerpen en veelvoorkomende hulpvragen
+  indexeert, inclusief Strava-import, training, OwnTracks, onderhoud, Street
+  View/kaart en badges.
+- **Training-load-grafiek + eerstvolgende workout-preview** (2026-06-23):
+  `/training` toont bij klik op Fitness/Form een ZWB-stijl grafiek voor Load,
+  CTL, ATL en Form met schaalkeuze 42 dagen, 90 dagen, 6 maanden, 1 jaar en
+  2 jaar (`training-load-chart.tsx`, gevoed door 730 dagen intervals.icu
+  wellness). UI-copy is compact gehouden; uitleg over CTL/ATL/Form en
+  hersteldata staat op `/hulp`. De metric-rij gebruikt nu 7-dagen totaal i.p.v.
+  14 dagen. Onder de vijf metrics staat de eerstvolgende workout met grote
+  workout-preview: ZWB-schema's gebruiken de eigen blokken; intervals.icu-events
+  gebruiken `workout_doc`-stappen als aanwezig en vallen anders terug op een
+  zichtbare TSS/load-preview.
+- **Samen fietsen: klik-naar-rider op de kaart + iOS-OwnTracks-hulp**
+  (2026-06-23, lokaal): de riderslijst en de kaart op `/live` zijn samengevoegd
+  in één client-component (`live-board.tsx`) die focus-state deelt; de
+  mySession-blokken (OwnTracks-paneel, start/stop) blijven server-side en komen
+  via `children` binnen. Een klik op een outdoor-rider zet een `focus`-doel
+  (`{sessionId, nonce}`); `LiveMap` vliegt via een `ref` op `MapContainer`
+  (react-leaflet v5, `useImperativeHandle` → Leaflet-`Map`) naar de positie.
+  Het `flyTo`-effect hangt alléén aan `focus` en leest de actuele positie via een
+  ref, zodat realtime positie-updates de kaart niet continu laten herinzoomen.
+  Alleen outdoor-riders zijn klikbaar (alleen die hebben GPS). De `/hulp`-
+  OwnTracks-sectie is iOS-bewust: modi **Actie**/**Significant**/**Handmatig**/
+  **Rustig** naast de Android-namen, en de verbinding zit op iOS achter het
+  i-icoon linksboven; Significant/Grootte wijzigingen genoemd als zuinigere maar
+  minder nauwkeurige optie.
 - **Persoonlijk trainingsstatus-blok op het dashboard** (2026-06-22): bovenaan een
   blok met het **ZWBeterWorden-advies** + de metrics **Fitness (CTL)**, **Vorm
   (TSB)** en **Herstel/readiness** plus de **eerstvolgende geplande workout**.
@@ -467,7 +538,150 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ---
 
-## Roadmap forward (chronologisch)
+## Chronologisch werkplan vanaf 2026-06-23
+
+Deze sectie is het actieve werkplan. De volgorde is gebaseerd op de huidige
+staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
+operationele risico's die nu het meest waarschijnlijk bijten. De oudere
+"roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
+
+### 0. Documenthygiëne en release-basis
+
+**Doel:** zorgen dat nieuwe rondes niet opnieuw door elkaar gaan lopen.
+
+1. Houd deze sectie bovenaan als enige actieve volgorde.
+2. Verplaats afgeronde rondes na push/deploy naar de historische roadmap of de
+   featurelijst.
+3. Laat detailonderzoek in losse docs staan (`docs/...`) en link alleen de
+   conclusie hier.
+4. Noteer per ronde: datum, commit, migraties, risico's en verificatie.
+
+### 1. Stabilisatie na de juni-builds
+
+**Waarom nu:** de laatste deploys raakten veel kernpaden: Strava, training,
+events/kaart, onderhoud en hulp/onboarding.
+
+1. Verifieer production-flow na deploy van `e834bc1`:
+   `/training`, `/achievements`, `/hulp`, `/welkom`, eventkaart + Street View.
+2. Controleer de Strava rate-limit na gear-throttle + lagere cronfrequentie:
+   daglimiet, 15-minutenvenster, aantal actieve profielen.
+3. Verwijder of beveilig het tijdelijke `/api/strava/debug-gear` zodra de
+   gear-sync is bevestigd.
+4. Doe de nog open iOS PWA-regressiecheck na de recente navigatie- en
+   trainingwijzigingen.
+5. Houd `npm run lint`, `npm run test`, `npm run build` als standaard
+   acceptatiecheck; breid tests alleen uit waar nieuwe pure logica bijkomt.
+
+### 2. Training-cockpit praktijktest
+
+**Waarom daarna:** training is nu functioneel rijk, maar publicatie naar
+intervals/Wahoo/Garmin is een echte gebruikersflow met externe gevolgen.
+
+1. Voer `docs/training-cockpit-praktijktest.md` uit met één trainer en één
+   renner/testaccount.
+2. Test: intake, AI-concept, traineredit, publicatie naar intervals.icu,
+   FIT-download, Wahoo/Garmin-route, dag-aanpassing en rapportage.
+3. Leg bevindingen vast in hetzelfde document: bugs, UX-frictie,
+   copy die naar `/hulp` moet, en eventuele dataverschillen met intervals.icu.
+4. Pas daarna pas nieuwe trainingfeatures toe; eerst stabiliseren wat er nu is.
+
+### 3. Strava-integratie structureel oplossen
+
+**Waarom:** de club groeit richting de Strava app-cap en de API-limieten blijven
+een operationeel risico.
+
+1. Blijf de status van Strava app approval / athlete-cap verhogen volgen.
+2. Houd de handmatige `activities.csv` import als fallback en verbeter alleen
+   op basis van echte importfouten van leden.
+3. Werk Strava-webhooks uit als structurele polling-vervanger:
+   verify-challenge endpoint, subscription, athlete-id mapping, eventqueue,
+   lichte dagelijkse reconcile.
+4. Pas cron daarna aan naar een lage reconcilefrequentie; webhooks worden de
+   realtime trigger.
+5. Documenteer in `docs/runbook.md` welke calls overblijven en wat de normale
+   daglimiet hoort te zijn.
+
+### 4. Event- en livekaart afronden
+
+**Waarom:** de eventpagina is een grote kracht van het platform en kreeg veel
+snelle upgrades.
+
+1. Praktijktest routekaart: hoogteprofiel, klim-overrides, POI's, fullscreen,
+   Street View-marker en publieke `/live`.
+2. Controleer Google Street View deep-links op meerdere GPX-routes:
+   juiste panorama, rijrichting, gedrag bij ontbrekende Street View.
+3. Beslis of POI's alleen event-detail blijven of ook prominenter in de
+   kalender/livehub moeten komen.
+4. Pas pas daarna nieuwe kaartfeatures toe; eerst regressies uit de huidige set.
+
+### 5. Achievements en importkwaliteit
+
+**Waarom:** badges zijn engagement-kern, en import maakt dit nu toegankelijker
+voor leden zonder Strava-koppeling.
+
+1. Verzamel 3-5 echte Strava `activities.csv` exports en test varianten in
+   datumformaat, delimiter, sporttype en ontbrekende velden.
+2. Voeg unit-tests toe voor elke importvariant die stukgaat.
+3. Maak admin/herbereken-flow zichtbaar genoeg voor support, maar houd de
+   leden-UI compact.
+4. Rond de testerfeedback rond achievementkwaliteit af: verborgen proxy/future
+   achievements, handmatige achievement-flow, duidelijke badgekwaliteit.
+
+### 6. Externe events en teamplanning hardenen
+
+**Waarom:** Zwift/MyWhoosh-eventscan en teamtools zijn geleverd, maar externe
+feeds en cookies zijn broos.
+
+1. Monitor eventscan-cron na de 429-fixes: volgen, matchen, publiceren,
+   ZwiftPower-link.
+2. Leg failure modes in `docs/runbook.md` vast: cookie verlopen, feed leeg,
+   publish mismatch, roster-onbekend.
+3. Verbeter pas daarna de beheer-MVP met extra automatisering of reviewfilters.
+4. Houd team-roster/TTT-planner/powerselectie stabiel voor het volgende seizoen.
+
+### 7. Club- en teamchallenges
+
+**Waarom:** dit is de eerstvolgende productmatige uitbreiding uit
+testerfeedback die direct communitywaarde kan leveren.
+
+1. Start met een eenvoudige challenge-vorm: clubbreed of per team, periode,
+   metric (km/hoogtemeters/ritten/consistentie), leaderboard.
+2. Gebruik bestaande Strava-activiteiten en teams; geen nieuwe externe koppeling.
+3. Bouw eerst beheer + read-only leaderboard, daarna pas badges/pushes.
+4. Denk aan winter- en zomerchallenge als twee templates.
+
+### 8. Visuele herziening
+
+**Waarom later:** er is al veel functionaliteit; een redesign is waardevol,
+maar moet niet door functionele stabilisatie heen lopen.
+
+1. Verzamel eerst referenties van de eigenaar: apps/sites, sfeer, do's/don'ts.
+2. Werk designsysteem bij: tokens, cards, typografie, spacing, states.
+3. Pak daarna high-impact pagina's in volgorde:
+   login, dashboard, event-detail, ritverslagen, training.
+4. Doe dit op een aparte branch/ronde zonder functionele wijzigingen.
+
+### 9. AI-agenten en kennisvragen
+
+**Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
+strak zijn.
+
+1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
+2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
+   eventueel afgeschermde ledeninformatie met expliciete grenzen.
+3. Start met read-only Q&A; geen acties namens gebruiker in v1.
+
+### 10. Bewust on-hold
+
+Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
+
+- E2E encrypted chat: WhatsApp dekt nu de behoefte; echte E2E is groot.
+- Mollie/iDEAL contributie of merch: onderzocht, niet gevraagd.
+- Native Expo/React Native app: PWA volstaat zolang iOS-push/UX niet blokkeert.
+
+---
+
+## Historische roadmap (afgeronde werkstromen)
 
 1. **✅ Sponsor-zone + ledenvoordeel** (commit `687f6ec`) — punt 17
    - Migratie `0030_sponsors.sql`: `sponsor_tier` enum + `sponsors` +
@@ -630,6 +844,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
      `/hulp` + privacyverklaring; nieuwe "Product copy"-conventie in `AGENTS.md`.
 
 11. **🛠️ Testerfeedback juni 2026 — in uitvoering**
+   - Verdere opvolging staat voortaan in **Chronologisch werkplan vanaf
+     2026-06-23**; deze bundel is historische context.
    - **Prioriteit 1: mobile menu polish.** Light-mode hamburger-menu krijgt
      meer contrast, duidelijkere section-dividers en subtiele inspringing per
      cluster. Dark mode blijft visueel gelijkwaardig. Geïmplementeerd in

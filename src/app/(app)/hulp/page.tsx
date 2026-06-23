@@ -178,15 +178,15 @@ const OWNTRACKS_STEPS = [
   },
   {
     title: "Zet OwnTracks op HTTP-modus",
-    text: "Open OwnTracks → instellingen (i- of tandwiel-icoon) → Connection → Mode = Private HTTP. Plak je koppellink in het veld URL.",
+    text: "iPhone: tik op de kaart linksboven op het i-icoon → tandwiel/Instellingen → Mode = Private HTTP. Android: instellingen (tandwiel) → Connection → Mode = Private HTTP. Plak je koppellink in het veld URL.",
   },
   {
     title: "Locatie op 'Altijd toestaan'",
     text: "Geef de app locatietoegang 'Altijd' (niet 'Bij gebruik') én zet nauwkeurige/precieze locatie aan. Zonder 'Altijd' stopt het tracken zodra je scherm uit gaat.",
   },
   {
-    title: "Zet de Controlemodus op 'Beweging' tijdens je rit",
-    text: "Open in OwnTracks de Controlemodus en kies 'Beweging': hoge frequentie en nauwkeurigheid (wel meer accuverbruik), zodat je een strak spoor krijgt. 'Grootte wijzigingen' is een spaarzamere balans; 'Handmatig' en 'Stop' publiceren geen locaties en geven gaten op de kaart.",
+    title: "Kies de actieve modus tijdens je rit",
+    text: "De modusbalk staat bovenin het Kaart-scherm. iPhone: kies 'Actie' — hoge frequentie en nauwkeurigheid (wel meer accuverbruik) voor een strak spoor. 'Significant' (Android: 'Grootte wijzigingen') werkt ook en is aanbevolen voor lager batterijgebruik, maar geeft een minder nauwkeurig spoor. 'Handmatig' en 'Rustig'/'Stop' publiceren geen locaties en geven gaten op de kaart.",
   },
   {
     title: "Rijden en verschijnen",
@@ -194,7 +194,7 @@ const OWNTRACKS_STEPS = [
   },
   {
     title: "Stoppen",
-    text: "Klaar? Zet de Controlemodus terug op 'Grootte wijzigingen' (of 'Stop'), of stop de koppeling op Samen fietsen. Na 15 min zonder positie verdwijn je sowieso automatisch.",
+    text: "Klaar? Zet de modus terug op iPhone 'Significant' (of 'Rustig'), Android 'Grootte wijzigingen' (of 'Stop'), of stop de koppeling op Samen fietsen. Na 15 min zonder positie verdwijn je sowieso automatisch.",
   },
 ];
 
@@ -308,7 +308,7 @@ const ADMIN_GUIDES = [
 
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv op Achievements.",
-  "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', Controlemodus op 'Beweging'.",
+  "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
   "Geen fietsen onder Mijn fietsen of Onderhoud? Koppel je fiets in Strava aan je ritten en draai daarna een Strava-sync.",
@@ -748,8 +748,9 @@ export default function HelpPage() {
                   precies/nauwkeurig
                 </li>
                 <li>
-                  <strong className="text-foreground">Controlemodus:</strong>{" "}
-                  Beweging (tijdens de rit)
+                  <strong className="text-foreground">Modus tijdens rit:</strong>{" "}
+                  iPhone Actie · Android Beweging (strak spoor). Significant /
+                  Grootte wijzigingen mag ook: zuiniger, iets minder nauwkeurig.
                 </li>
               </ul>
             </div>
