@@ -19,6 +19,7 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { currentAchievementWeek } from "@/lib/strava/client";
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
+import { StravaImportForm } from "./_components/strava-import-form";
 import { StravaSyncButton } from "./_components/strava-sync-button";
 
 export const dynamic = "force-dynamic";
@@ -293,6 +294,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
               Gekoppeld als {connection.athlete_name ?? "Strava-atleet"}.
             </p>
           )}
+          <StravaImportForm />
           {access.has("achievements.finalize") && <FinalizeAwardsButton />}
         </div>
         }

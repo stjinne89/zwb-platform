@@ -52,12 +52,17 @@ import { AiDraftForm } from "./_components/ai-draft-form";
 import { DeleteTrainingPlanButton } from "./_components/delete-training-plan-button";
 import { PlanActions } from "./_components/plan-actions";
 import {
+  TrainingLoadMetrics,
+  type TrainingLoadPoint,
+} from "./_components/training-load-chart";
+import {
   summarizeWellness,
   summarizeTrainingReadiness,
   type WellnessSummary,
 } from "@/lib/training/wellness";
 import { zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
+import { cn } from "@/lib/utils";
 
 type ProfileRow = {
   id: string;
@@ -211,6 +216,11 @@ function formatNumber(n?: number, digits = 0) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
+}
+
+function finiteNumber(value: number | null | undefined) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 function formAction(action: (formData: FormData) => Promise<unknown>) {
@@ -444,17 +454,23 @@ function WorkoutTitle({
 function WorkoutBlocks({
   blocks,
   ftpWatts,
+  variant = "compact",
 }: {
   blocks: WorkoutBlock[];
   ftpWatts?: number | null;
+  variant?: "compact" | "preview";
 }) {
   if (blocks.length === 0) return null;
   const total = blocks.reduce((sum, block) => sum + block.durationMinutes, 0) || 1;
   const maxPct = 160;
+  const preview = variant === "preview";
   return (
     <div className="mt-3">
       <div
-        className="flex h-16 overflow-hidden rounded-md border bg-muted"
+        className={cn(
+          "flex overflow-hidden rounded-md border bg-muted",
+          preview ? "h-32" : "h-16",
+        )}
         role="img"
         aria-label="Workoutblokken met vermogensbanden"
       >
@@ -474,26 +490,150 @@ function WorkoutBlocks({
               }}
             >
               <span
-                className="absolute inset-x-0"
+                className={cn("absolute inset-x-0", preview && "shadow-sm")}
                 style={{
                   bottom: `${(low / maxPct) * 100}%`,
                   height: `${bandHeight}%`,
                   backgroundColor: INTENSITY_COLORS[block.intensity],
                 }}
               />
+              {preview && block.durationMinutes >= total * 0.08 ? (
+                <span className="absolute inset-x-1 bottom-1 truncate text-[10px] font-medium text-foreground/80">
+                  {block.durationMinutes}m
+                </span>
+              ) : null}
             </div>
           );
         })}
       </div>
-      <div className="mt-2 flex flex-wrap gap-1">
+      <div className={cn("mt-2 flex flex-wrap gap-1", preview && "gap-1.5")}>
         {blocks.map((block, idx) => (
-          <span key={`${block.label}-label-${idx}`} className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          <span
+            key={`${block.label}-label-${idx}`}
+            className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+          >
             {block.label} {block.durationMinutes}m {block.target}
           </span>
         ))}
       </div>
     </div>
   );
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function positiveNumber(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function secondsFromStep(row: Record<string, unknown>) {
+  const seconds =
+    positiveNumber(row.duration) ??
+    positiveNumber(row.seconds) ??
+    positiveNumber(row.secs) ??
+    positiveNumber(row.duration_secs) ??
+    positiveNumber(row.duration_seconds);
+  if (seconds) return seconds;
+  const minutes = positiveNumber(row.minutes) ?? positiveNumber(row.durationMinutes);
+  return minutes ? minutes * 60 : null;
+}
+
+function powerTargetFromStep(row: Record<string, unknown>) {
+  const power = recordValue(row.power ?? row.target ?? row.power_target);
+  if (!power) return { target: "", pct: null as number | null };
+  const units = String(power.units ?? power.unit ?? "").toLowerCase();
+  const value = positiveNumber(power.value);
+  const start = positiveNumber(power.start ?? power.low ?? power.min);
+  const end = positiveNumber(power.end ?? power.high ?? power.max);
+  const suffix = units.includes("%") || units.includes("ftp") ? "%" : units.includes("w") ? "w" : "";
+
+  if (start && end) {
+    return {
+      target: `${Math.round(start)}-${Math.round(end)}${suffix}`,
+      pct: suffix === "%" ? (start + end) / 2 : null,
+    };
+  }
+  if (value) {
+    return {
+      target: `${Math.round(value)}${suffix}`,
+      pct: suffix === "%" ? value : null,
+    };
+  }
+  return { target: "", pct: null as number | null };
+}
+
+function intensityFromPct(pct: number | null): WorkoutIntensity {
+  if (pct == null) return "endurance";
+  if (pct < 55) return "recovery";
+  if (pct < 76) return "endurance";
+  if (pct < 91) return "tempo";
+  if (pct < 106) return "threshold";
+  if (pct < 121) return "vo2max";
+  return "anaerobic";
+}
+
+function intensityFromLoad(load: number | null, minutes: number): WorkoutIntensity {
+  if (!load || minutes <= 0) return "endurance";
+  const loadPerHour = load / (minutes / 60);
+  if (loadPerHour < 35) return "recovery";
+  if (loadPerHour < 65) return "endurance";
+  if (loadPerHour < 85) return "tempo";
+  if (loadPerHour < 105) return "threshold";
+  if (loadPerHour < 125) return "vo2max";
+  return "anaerobic";
+}
+
+function intervalStepBlocks(value: unknown): WorkoutBlock[] {
+  if (Array.isArray(value)) return value.flatMap(intervalStepBlocks);
+  const row = recordValue(value);
+  if (!row) return [];
+
+  const nested = row.steps ?? row.blocks ?? row.children;
+  if (Array.isArray(nested)) {
+    const repeats = Math.max(1, Math.min(20, Math.round(positiveNumber(row.reps ?? row.repeat ?? row.repeat_count) ?? 1)));
+    return Array.from({ length: repeats }).flatMap(() => intervalStepBlocks(nested));
+  }
+
+  const seconds = secondsFromStep(row);
+  if (!seconds) return [];
+  const { target, pct } = powerTargetFromStep(row);
+  const label = String(row.name ?? row.label ?? row.title ?? "Blok").trim() || "Blok";
+  return [
+    {
+      label,
+      durationMinutes: Math.max(1, Math.round(seconds / 60)),
+      target,
+      notes: "",
+      intensity: intensityFromPct(pct),
+    },
+  ];
+}
+
+function eventWorkoutBlocks(event: IntervalsEvent): WorkoutBlock[] {
+  const doc = recordValue(event.workout_doc);
+  const docBlocks = doc ? intervalStepBlocks(doc.steps ?? doc.blocks ?? doc.children) : [];
+  if (docBlocks.length > 0) return docBlocks;
+
+  const load = positiveNumber(event.icu_training_load ?? event.load_target ?? doc?.tss);
+  const durationSeconds =
+    positiveNumber(event.moving_time) ??
+    positiveNumber(doc?.duration) ??
+    (load ? Math.max(30, Math.round(load * 1.2)) * 60 : 60 * 60);
+  const minutes = Math.max(1, Math.round(durationSeconds / 60));
+  return [
+    {
+      label: "Workout",
+      durationMinutes: minutes,
+      target: load ? `${Math.round(load)} TSS` : "",
+      notes: "",
+      intensity: intensityFromLoad(load, minutes),
+    },
+  ];
 }
 
 function ReportPanel({
@@ -919,7 +1059,7 @@ function CoachWorkspace({
                     CTL <strong>{formatNumber(rowMetric?.ctl, 1)}</strong>
                   </span>
                   <span className="rounded-md bg-background px-2 py-1">
-                    TSB <strong>{formatNumber(rowMetric?.tsb, 1)}</strong>
+                    Form <strong>{formatNumber(rowMetric?.tsb, 1)}</strong>
                   </span>
                 </div>
                 <div className="mt-2">
@@ -973,7 +1113,7 @@ function CoachWorkspace({
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
-                <MetricCard icon={Activity} label="TSB" value={formatNumber(metric?.tsb, 1)} />
+                <MetricCard icon={Activity} label="Form" value={formatNumber(metric?.tsb, 1)} />
                 <MetricCard
                   icon={ShieldCheck}
                   label="Trainingsruimte"
@@ -1245,8 +1385,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   if (!user) redirect("/login");
 
   const now = new Date();
-  const since14 = new Date(now);
-  since14.setDate(since14.getDate() - 14);
+  const since7 = new Date(now);
+  since7.setDate(since7.getDate() - 7);
   const since21Workouts = new Date(now);
   since21Workouts.setDate(since21Workouts.getDate() - 21);
   const since28 = new Date(now);
@@ -1279,7 +1419,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         "id, profile_id, name, sport_type, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds, trainer",
       )
       .eq("profile_id", user.id)
-      .gte("start_date", since14.toISOString())
+      .gte("start_date", since7.toISOString())
       .order("start_date", { ascending: false })
       .limit(40),
     admin
@@ -1323,7 +1463,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   if (conn?.api_key && conn.athlete_id) {
     try {
       [wellness, events] = await Promise.all([
-        fetchIntervalsWellness(conn.api_key, conn.athlete_id, 90),
+        fetchIntervalsWellness(conn.api_key, conn.athlete_id, 730),
         fetchIntervalsEvents(conn.api_key, conn.athlete_id, 14),
       ]);
     } catch (err) {
@@ -1332,7 +1472,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   }
 
   const activities = (stravaRows ?? []) as StravaActivityRow[];
-  const totals14 = loadSummary(activities);
+  const totals7 = loadSummary(activities);
   const wellnessSorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
   const latest = wellnessSorted[wellnessSorted.length - 1];
   // Herstel-samenvatting (alleen tonen als het lid wellness deelt).
@@ -1358,6 +1498,20 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
   const currentTsb =
     latest?.ctl !== undefined && latest?.atl !== undefined ? latest.ctl - latest.atl : null;
+  const todayKey = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Europe/Amsterdam",
+  });
+  const trainingLoadPoints: TrainingLoadPoint[] = wellnessSorted.map((row) => {
+    const ctl = finiteNumber(row.ctl);
+    const atl = finiteNumber(row.atl);
+    return {
+      date: row.id,
+      load: finiteNumber(row.ctl_load ?? row.atl_load),
+      ctl,
+      atl,
+      tsb: ctl != null && atl != null ? ctl - atl : null,
+    };
+  });
   const currentTrainingReadiness = summarizeTrainingReadiness({
     tsb: currentTsb,
     wellness: recoverySummary,
@@ -1371,12 +1525,22 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   // Toon workouts van VANDAAG of later. Vergelijk op datum (Amsterdam), niet op
   // exact tijdstip — anders verdwijnt de training van vandaag zodra de klok het
   // geplande uur voorbij is, terwijl de trainer-weergave 'm wel toont.
-  const todayKey = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Europe/Amsterdam",
-  });
   const upcomingZwbMemberWorkouts = memberWorkouts
     .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
+  const nextZwbWorkout = upcomingZwbMemberWorkouts[0] ?? null;
+  const nextIntervalsEvent = upcomingEvents[0] ?? null;
+  const nextWorkout =
+    nextZwbWorkout && nextIntervalsEvent
+      ? new Date(nextZwbWorkout.scheduled_at).getTime() <=
+          new Date(nextIntervalsEvent.start_date_local).getTime()
+        ? { kind: "zwb" as const, workout: nextZwbWorkout }
+        : { kind: "intervals" as const, event: nextIntervalsEvent }
+      : nextZwbWorkout
+        ? { kind: "zwb" as const, workout: nextZwbWorkout }
+        : nextIntervalsEvent
+          ? { kind: "intervals" as const, event: nextIntervalsEvent }
+          : null;
   const myReportsByWorkout = byWorkout((myReports ?? []) as WorkoutReportRow[]);
 
   const assignments = (myAssignments ?? []) as AssignmentRow[];
@@ -1614,17 +1778,11 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricCard
-          icon={TrendingUp}
-          label="Fitness (CTL)"
-          value={formatNumber(latest?.ctl, 1)}
-          hint="Lange termijn vorm uit intervals.icu"
-        />
-        <MetricCard
-          icon={Activity}
-          label="Form (TSB)"
-          value={formatNumber(currentTsb ?? undefined, 1)}
-          hint="Negatief = trainingsvermoeidheid, niet automatisch je herstelstatus"
+        <TrainingLoadMetrics
+          points={trainingLoadPoints}
+          ctl={latest?.ctl ?? null}
+          tsb={currentTsb}
+          today={todayKey}
         />
         <MetricCard
           icon={ShieldCheck}
@@ -1644,15 +1802,79 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         />
         <MetricCard
           icon={Calendar}
-          label="14 dagen totaal"
-          value={formatKm(totals14.distance)}
+          label="7 dagen totaal"
+          value={formatKm(totals7.distance)}
           hint={
             activities.length > 0
-              ? `${activities.length} ritten - ${formatHours(totals14.time)} - ${formatMeters(totals14.elevation)}`
+              ? `${activities.length} ritten - ${formatHours(totals7.time)} - ${formatMeters(totals7.elevation)}`
               : "Nog geen recente Strava-ritten"
           }
         />
       </section>
+
+      {nextWorkout && (
+        <section className="rounded-lg border bg-card p-5">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <ClipboardList className="size-5 text-primary" />
+            Eerstvolgende workout
+          </h2>
+          {nextWorkout.kind === "zwb" ? (
+            <div className="mt-4">
+              <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
+                <span className="text-sm text-muted-foreground">
+                  {new Date(nextWorkout.workout.scheduled_at).toLocaleDateString("nl-NL", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    timeZone: "Europe/Amsterdam",
+                  })}
+                </span>
+                <div className="min-w-0">
+                  <WorkoutTitle workout={nextWorkout.workout} athleteId={conn?.athlete_id} />
+                  <p className="text-xs text-muted-foreground">
+                    ZWB-schema - {nextWorkout.workout.duration_minutes} min -{" "}
+                    {INTENSITY_LABELS[nextWorkout.workout.intensity] ?? nextWorkout.workout.intensity}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {nextWorkout.workout.publish_status}
+                </span>
+              </div>
+              <WorkoutBlocks
+                blocks={normalizeWorkoutBlocks(
+                  nextWorkout.workout.structure_json,
+                  nextWorkout.workout.intensity as WorkoutIntensity,
+                )}
+                ftpWatts={myProfile?.ftp_watts}
+                variant="preview"
+              />
+            </div>
+          ) : (
+            <div className="mt-4">
+              <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
+                <span className="text-sm text-muted-foreground">
+                  {new Date(nextWorkout.event.start_date_local).toLocaleDateString("nl-NL", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+                <p className="truncate font-medium">{nextWorkout.event.name ?? "Workout"}</p>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {nextWorkout.event.icu_training_load
+                    ? `${Math.round(nextWorkout.event.icu_training_load)} TSS`
+                    : "intervals.icu"}
+                </span>
+              </div>
+              <WorkoutBlocks
+                blocks={eventWorkoutBlocks(nextWorkout.event)}
+                ftpWatts={myProfile?.ftp_watts}
+                variant="preview"
+              />
+            </div>
+          )}
+        </section>
+      )}
 
       {conn && (
         <section className="rounded-lg border bg-card p-5">
@@ -1662,11 +1884,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                 <Activity className="size-5 text-primary" />
                 Herstel &amp; belastbaarheid
               </h2>
-              <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-                Deel je slaap, HRV en rust-hartslag uit intervals.icu zodat de
-                AI-trainingsplanning zware blokken uitstelt als je nog niet
-                hersteld bent. Alleen jij en je trainer zien deze data.
-              </p>
             </div>
             <WellnessOptInToggle initialOptIn={Boolean(conn.wellness_opt_in)} />
           </div>

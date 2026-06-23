@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-ui";
+import { HelpSearch } from "./help-search";
 
 const START_STEPS = [
   {
@@ -32,9 +33,9 @@ const START_STEPS = [
     href: "/profiel",
   },
   {
-    title: "Koppel Strava",
-    text: "Nodig voor clubritten, badges en trainingsdata.",
-    href: "/profiel#strava",
+    title: "Strava-data toevoegen",
+    text: "Koppel Strava of importeer activities.csv via Achievements.",
+    href: "/achievements",
   },
   {
     title: "Zet meldingen aan",
@@ -96,6 +97,7 @@ const GUIDES = [
     title: "Badges en achievements",
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
+      "Zonder Strava-koppeling kun je activities.csv uit je Strava-export importeren op Achievements.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
     ],
@@ -150,7 +152,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
-  { href: "/achievements", name: "Achievements", text: "Al je badges. Herbereken ze hier na een Strava-sync." },
+  { href: "/achievements", name: "Achievements", text: "Al je badges. Sync Strava, importeer activities.csv of herbereken badges." },
   { href: "/training", name: "Training", text: "Schema's, AI-coach, je ZWBeterWorden-advies en de koppelingen." },
   { href: "/training/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/onderhoud", name: "Onderhoud", text: "Slijtage van je onderdelen op basis van je Strava-kilometers, met een melding bij vervangen." },
@@ -305,7 +307,7 @@ const ADMIN_GUIDES = [
 ];
 
 const TROUBLESHOOTING = [
-  "Zie je geen badges? Koppel Strava en start daarna een achievements-sync.",
+  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv op Achievements.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', Controlemodus op 'Beweging'.",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
@@ -322,6 +324,8 @@ export default function HelpPage() {
         title="Hulp voor leden"
         description="Wat elke pagina doet, hoe je koppelt en live tracking instelt, en wat te doen als iets niet werkt."
       />
+
+      <HelpSearch />
 
       <section className="rounded-lg border bg-card/90 p-5">
         <div className="flex items-start gap-3">
@@ -407,6 +411,43 @@ export default function HelpPage() {
       </section>
 
       <section
+        id="strava-import"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Download className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Strava-export importeren</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Geen plek voor een Strava-koppeling? Importeer je Strava-archief op
+              Achievements.
+            </p>
+          </div>
+        </header>
+        <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">1.</span>
+            <span>Vraag op Strava.com je accountdownload aan.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">2.</span>
+            <span>Pak de download uit en kies activities.csv.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">3.</span>
+            <span>Upload dat bestand op Achievements met Importeer CSV.</span>
+          </li>
+        </ol>
+        <Link
+          href="/achievements"
+          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+        >
+          <Medal className="size-4 text-primary" />
+          Naar Achievements
+        </Link>
+      </section>
+
+      <section
         id="trainingsruimte"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
@@ -450,10 +491,10 @@ export default function HelpPage() {
           <article className="rounded-md border bg-background p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <TrendingUp className="size-4 text-primary" />
-              Form (TSB)
+              Form
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              TSB is de trainingsbalans uit intervals.icu:
+              Form is de trainingsbalans uit intervals.icu:
               <strong className="text-foreground"> CTL min ATL</strong>. CTL is
               je belasting over langere tijd en ATL je recente belasting.
               Negatief betekent dus dat je recent relatief veel hebt getraind.
@@ -474,6 +515,11 @@ export default function HelpPage() {
               en slaap worden als zevendaagse trend bekeken. Een gunstige HRV
               kan daardoor naast een middelmatige readiness staan.
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Als je hersteldata deelt, gebruikt ZWB slaap, HRV en rusthartslag
+              uit intervals.icu voor trainingsplanning. Alleen jij en je trainer
+              zien deze data.
+            </p>
           </article>
 
           <article className="rounded-md border bg-background p-4">
@@ -483,7 +529,7 @@ export default function HelpPage() {
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
               ZWB combineert belasting en herstel tot één advies in vijf
-              niveaus. Een sterk negatieve TSB of readiness van 50 of lager duwt
+              niveaus. Een sterk negatieve Form of readiness van 50 of lager duwt
               je naar een laag niveau (rust/herstel). Readiness 51-69 telt als
               matig. Pas wanneer belasting én herstel gunstig zijn, klim je naar
               de hoogste niveaus met ruimte voor kwaliteit.
@@ -528,7 +574,7 @@ export default function HelpPage() {
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4 text-sm text-muted-foreground">
-          <strong className="text-foreground">Voorbeeld:</strong> TSB -14,
+          <strong className="text-foreground">Voorbeeld:</strong> Form -14,
           readiness 66 en een goede HRV-trend betekent niet dat je volledig fris
           bent. De HRV is positief, maar recente trainingsbelasting en
           middelmatige readiness houden je in het middensegment. Je

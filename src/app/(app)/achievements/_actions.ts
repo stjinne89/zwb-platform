@@ -7,6 +7,9 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
+import { stravaActivitiesFromCsv } from "@/lib/strava/import";
+
+const STRAVA_CSV_MAX_BYTES = 10 * 1024 * 1024;
 
 export async function syncMyStravaActivities(
   options: {
@@ -162,6 +165,84 @@ export async function recomputeMyMilestoneBadges() {
         err instanceof Error
           ? err.message
           : "Milestonebadges herberekenen faalde.",
+    };
+  }
+}
+
+export async function importMyStravaCsv(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false as const, error: "Kies activities.csv." };
+  }
+  if (file.size > STRAVA_CSV_MAX_BYTES) {
+    return { ok: false as const, error: "CSV is te groot." };
+  }
+
+  try {
+    const { data: connection } = await supabase
+      .from("strava_connections")
+      .select("strava_athlete_id")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+
+    const text = await file.text();
+    const imported = stravaActivitiesFromCsv(
+      text,
+      user.id,
+      connection?.strava_athlete_id,
+    );
+
+    if (imported.rows.length === 0) {
+      return {
+        ok: false as const,
+        error: "Geen fietsritten gevonden in deze CSV.",
+      };
+    }
+
+    for (let index = 0; index < imported.rows.length; index += 500) {
+      const batch = imported.rows.slice(index, index + 500);
+      const { error } = await supabase
+        .from("strava_activities")
+        .upsert(batch, { onConflict: "id" });
+      if (error) throw new Error(error.message);
+    }
+
+    const admin = createAdminClient();
+    const [milestones, weekAwards] = await Promise.all([
+      evaluateMilestonesForUser(admin, user.id),
+      awardCompletedAchievementWeeks(admin).catch(() => ({ awarded: 0 })),
+    ]);
+
+    revalidatePath("/achievements");
+    revalidatePath("/dashboard");
+    revalidatePath("/leden");
+    revalidatePath("/profiel");
+    revalidatePath("/profiel/segments");
+    revalidatePath("/stats");
+
+    return {
+      ok: true as const,
+      imported: imported.rows.length,
+      skippedRows: imported.skippedRows,
+      skippedNonCycling: imported.skippedNonCycling,
+      milestoneAwards: milestones.awarded,
+      milestoneErrors: milestones.errors,
+      weekAwards: weekAwards.awarded,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Strava CSV importeren faalde.",
     };
   }
 }

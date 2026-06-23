@@ -49,8 +49,97 @@ type LatLng = [number, number];
 
 // Google Street View deep-link: opent een panorama bij de coördinaat (in Google
 // Maps, dus géén API-key nodig). Daar kun je verder "lopen".
-function streetViewUrl(p: LatLng): string {
-  return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p[0]},${p[1]}`;
+function streetViewUrl(p: LatLng, heading: number): string {
+  const params = new URLSearchParams({
+    api: "1",
+    map_action: "pano",
+    viewpoint: `${p[0]},${p[1]}`,
+    heading: String(Math.round(heading)),
+    pitch: "0",
+    fov: "90",
+  });
+  return `https://www.google.com/maps/@?${params.toString()}`;
+}
+
+const STREET_VIEW_LOOKAHEAD_M = 35;
+
+function distanceMeters(a: LatLng, b: LatLng): number {
+  const lat1 = (a[0] * Math.PI) / 180;
+  const lat2 = (b[0] * Math.PI) / 180;
+  const dLat = lat2 - lat1;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const x = dLng * Math.cos((lat1 + lat2) / 2);
+  return Math.sqrt(x * x + dLat * dLat) * 6_371_000;
+}
+
+function interpolateLatLng(a: LatLng, b: LatLng, ratio: number): LatLng {
+  return [
+    a[0] + (b[0] - a[0]) * ratio,
+    a[1] + (b[1] - a[1]) * ratio,
+  ];
+}
+
+function bearing(from: LatLng, to: LatLng): number {
+  const lat1 = (from[0] * Math.PI) / 180;
+  const lat2 = (to[0] * Math.PI) / 180;
+  const dLon = ((to[1] - from[1]) * Math.PI) / 180;
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+function routeHeading(positions: LatLng[], point: LatLng): number {
+  if (positions.length < 2) return 0;
+
+  let bestIndex = 0;
+  let bd = Infinity;
+  for (let i = 0; i < positions.length; i++) {
+    const p = positions[i];
+    const d = distanceMeters(p, point);
+    if (d < bd) {
+      bd = d;
+      bestIndex = i;
+    }
+  }
+
+  let distance = 0;
+  let forward = positions[bestIndex];
+  for (let i = bestIndex; i < positions.length - 1; i++) {
+    const segment = distanceMeters(positions[i], positions[i + 1]);
+    if (distance + segment >= STREET_VIEW_LOOKAHEAD_M && segment > 0) {
+      forward = interpolateLatLng(
+        positions[i],
+        positions[i + 1],
+        (STREET_VIEW_LOOKAHEAD_M - distance) / segment,
+      );
+      break;
+    }
+    distance += segment;
+    forward = positions[i + 1];
+  }
+
+  if (distanceMeters(point, forward) > 2) return bearing(point, forward);
+
+  distance = 0;
+  let backward = positions[bestIndex];
+  for (let i = bestIndex; i > 0; i--) {
+    const segment = distanceMeters(positions[i], positions[i - 1]);
+    if (distance + segment >= STREET_VIEW_LOOKAHEAD_M && segment > 0) {
+      backward = interpolateLatLng(
+        positions[i],
+        positions[i - 1],
+        (STREET_VIEW_LOOKAHEAD_M - distance) / segment,
+      );
+      break;
+    }
+    distance += segment;
+    backward = positions[i - 1];
+  }
+
+  if (distanceMeters(backward, point) > 2) return bearing(backward, point);
+  return bearing(positions[bestIndex], positions[Math.min(bestIndex + 1, positions.length - 1)]);
 }
 
 // Dichtstbijzijnde route-punt (snap), zodat de marker op het parcours blijft.
@@ -128,9 +217,9 @@ export function GpxMap({
         L.divIcon({
           className: "",
           html:
-            '<div style="width:24px;height:24px;border-radius:9999px;background:#b8873d;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;">🚶</div>',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
+            '<div style="width:28px;height:28px;border-radius:9999px;background:#004653;border:2px solid #b8873d;box-shadow:0 1px 4px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;line-height:1;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fbfbf7" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M8.5 17.5 11 11h3l-2 6.5"/><path d="M11 11 8 8"/><path d="M14 11 17 8"/><path d="M13.5 6.5h.1"/><path d="M12 17.5h3.5"/></svg></div>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
         }),
       );
       const icons = {} as Record<PoiType, DivIcon>;
@@ -331,6 +420,13 @@ function MapLayers({
           draggable
           icon={pin}
           eventHandlers={{
+            click: () => {
+              window.open(
+                streetViewUrl(svPoint, routeHeading(positions, svPoint)),
+                "_blank",
+                "noopener,noreferrer",
+              );
+            },
             dragend: (e: LeafletEvent) => {
               const ll = (
                 e.target as { getLatLng: () => { lat: number; lng: number } }
@@ -342,21 +438,6 @@ function MapLayers({
           <Tooltip direction="top" offset={[0, -12]} className="!bg-card !text-foreground">
             Street View
           </Tooltip>
-          <Popup>
-            <div className="space-y-1 text-sm">
-              <a
-                href={streetViewUrl(svPoint)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                Street View hier openen ↗
-              </a>
-              <p className="text-xs text-muted-foreground">
-                Sleep de marker langs de route.
-              </p>
-            </div>
-          </Popup>
         </Marker>
       )}
 

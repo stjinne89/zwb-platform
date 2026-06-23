@@ -118,7 +118,7 @@ export type IntervalsEvent = {
   description?: string;
   type?: string;
   category?: string;
-  workout_doc?: { duration?: number; tss?: number };
+  workout_doc?: Record<string, unknown> & { duration?: number; tss?: number };
   icu_training_load?: number;
   load_target?: number;
   moving_time?: number;

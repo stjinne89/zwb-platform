@@ -4,6 +4,7 @@ import {
   Bike,
   CheckCircle2,
   Clock3,
+  Download,
   ExternalLink,
   MailCheck,
   MapPinned,
@@ -106,6 +107,7 @@ export default async function WelkomPage() {
     { data: pushSubscription },
     { data: trackerToken },
     { data: bike },
+    { data: stravaActivity },
   ] = user
     ? await Promise.all([
         supabase
@@ -145,8 +147,15 @@ export default async function WelkomPage() {
           .eq("profile_id", user.id)
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("strava_activities")
+          .select("id")
+          .eq("profile_id", user.id)
+          .limit(1)
+          .maybeSingle(),
       ])
     : [
+        { data: null },
         { data: null },
         { data: null },
         { data: null },
@@ -204,16 +213,28 @@ export default async function WelkomPage() {
       icon: UserRound,
     },
     {
-      title: "Strava koppelen en syncen",
-      text: "Strava voedt clubritten, badges, cols, je fietsen en trainingscontext. Na koppelen kun je op Achievements een sync starten.",
-      href: "/profiel#strava",
-      action: strava ? "Strava bekijken" : "Strava koppelen",
-      status: strava ? "done" : canUseIntegrations ? "current" : "upcoming",
+      title: "Strava koppelen of importeren",
+      text: "Koppel Strava voor automatische sync, of importeer activities.csv op Achievements als koppelen niet lukt.",
+      href: strava ? "/profiel#strava" : "/achievements",
+      action: strava
+        ? "Strava bekijken"
+        : stravaActivity
+          ? "Import bekijken"
+          : "Achievements openen",
+      status: strava || stravaActivity ? "done" : canUseIntegrations ? "current" : "upcoming",
+      icon: Download,
+    },
+    {
+      title: "Strava syncen voor fietsen",
+      text: "Een echte Strava-koppeling vult je fietsen en kilometerstanden automatisch. Zonder koppeling kun je fietsen handmatig toevoegen.",
+      href: strava ? "/achievements" : "/profiel#fietsen",
+      action: strava ? "Strava syncen" : "Fiets toevoegen",
+      status: bike ? "done" : strava ? "current" : canUseIntegrations ? "upcoming" : "upcoming",
       icon: Bike,
     },
     {
       title: "Je fietsen en onderhoud",
-      text: "Na een Strava-sync verschijnen je fietsen. Toon ze op je profiel met een foto, en houd op Onderhoud de slijtage van onderdelen bij.",
+      text: "Toon fietsen op je profiel met een foto, en houd op Onderhoud de slijtage van onderdelen bij.",
       href: "/onderhoud",
       action: bike ? "Onderhoud openen" : "Bekijk Onderhoud",
       status: bike ? "done" : strava ? "current" : "upcoming",
