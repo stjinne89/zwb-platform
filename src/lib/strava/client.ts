@@ -259,14 +259,35 @@ export async function syncStravaBikesForUser(
   supabase: any,
   profileId: string,
   accessToken: string,
-): Promise<{ synced: number }> {
+  options: { minIntervalHours?: number } = {},
+): Promise<{ synced: number; skipped: boolean }> {
   try {
+    const minIntervalHours = Math.max(0, options.minIntervalHours ?? 0);
+    if (minIntervalHours > 0) {
+      const cutoff = new Date(Date.now() - minIntervalHours * 3600_000);
+      const { data: lastSync } = await supabase
+        .from("strava_bikes")
+        .select("synced_at")
+        .eq("profile_id", profileId)
+        .eq("source", "strava")
+        .order("synced_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (
+        lastSync?.synced_at &&
+        new Date(String(lastSync.synced_at)).getTime() > cutoff.getTime()
+      ) {
+        return { synced: 0, skipped: true };
+      }
+    }
+
     const res = await fetch("https://www.strava.com/api/v3/athlete", {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return { synced: 0 };
+    if (!res.ok) return { synced: 0, skipped: false };
     const athlete = (await res.json()) as {
       bikes?: Array<{
         id?: string;
@@ -290,14 +311,15 @@ export async function syncStravaBikesForUser(
         distance_m: typeof b.distance === "number" ? b.distance : 0,
         is_primary: Boolean(b.primary),
         retired: Boolean(b.retired),
+        source: "strava",
         synced_at: new Date().toISOString(),
       }));
 
-    if (rows.length === 0) return { synced: 0 };
+    if (rows.length === 0) return { synced: 0, skipped: false };
     await supabase.from("strava_bikes").upsert(rows, { onConflict: "id" });
-    return { synced: rows.length };
+    return { synced: rows.length, skipped: false };
   } catch {
-    return { synced: 0 };
+    return { synced: 0, skipped: false };
   }
 }
 
@@ -625,7 +647,9 @@ export async function syncStravaActivitiesForUser(
 
       // Onderhoud: fiets-kilometerstanden bijwerken + slijtage evalueren.
       try {
-        await syncStravaBikesForUser(admin, profileId, accessToken);
+        await syncStravaBikesForUser(admin, profileId, accessToken, {
+          minIntervalHours: 24,
+        });
         const { evaluateMaintenanceForProfile } = await import(
           "@/lib/maintenance/evaluate"
         );
