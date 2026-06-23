@@ -251,6 +251,88 @@ export async function saveEventClimbs(eventId: string, climbs: ClimbInput[]) {
   return { ok: true as const, count: rows.length };
 }
 
+const POI_TYPES = ["water", "food", "danger", "view", "info"] as const;
+
+export async function addEventPoi(
+  eventId: string,
+  input: { type: string; label?: string | null; lat: number; lng: number },
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const type = (POI_TYPES as readonly string[]).includes(input.type)
+    ? input.type
+    : null;
+  const lat = Number(input.lat);
+  const lng = Number(input.lng);
+  if (!type) return { ok: false as const, error: "Ongeldig type." };
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { ok: false as const, error: "Ongeldige locatie." };
+  }
+  const label = (input.label ?? "").trim().slice(0, 80) || null;
+
+  const { data, error } = await supabase
+    .from("event_pois")
+    .insert({
+      event_id: eventId,
+      type,
+      label,
+      lat: Math.round(lat * 1e6) / 1e6,
+      lng: Math.round(lng * 1e6) / 1e6,
+      created_by: user.id,
+    })
+    .select("id, type, label, lat, lng, created_by")
+    .single();
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/events/${eventId}`);
+  return {
+    ok: true as const,
+    poi: {
+      id: data.id as string,
+      type: data.type as string,
+      label: (data.label as string | null) ?? null,
+      lat: Number(data.lat),
+      lng: Number(data.lng),
+      createdBy: (data.created_by as string | null) ?? null,
+    },
+  };
+}
+
+export async function removeEventPoi(poiId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { data: poi } = await supabase
+    .from("event_pois")
+    .select("id, event_id, created_by")
+    .eq("id", poiId)
+    .single();
+  if (!poi) return { ok: false as const, error: "POI niet gevonden." };
+
+  // Eigen POI? Anders moet je de event-beheerder/admin zijn.
+  let canDelete = poi.created_by === user.id;
+  if (!canDelete) {
+    canDelete = (await guardEventManage(poi.event_id)).ok;
+  }
+  if (!canDelete) {
+    return { ok: false as const, error: "Geen recht om deze POI te verwijderen." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("event_pois").delete().eq("id", poiId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/events/${poi.event_id}`);
+  return { ok: true as const };
+}
+
 export async function removeEventResult(resultId: string) {
   const supabase = await createClient();
   const {

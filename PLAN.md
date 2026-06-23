@@ -57,6 +57,14 @@
 > auto-detectie overal: profiel, kaart én liveticker (incl. publieke `/live`).
 > Stats blijven uit de GPX herberekend (`climbsFromRanges`).
 >
+> Update 2026-06-23 (c): Street View + POI's op de routekaart (gecommit +
+> gepusht). De kaart heeft een versleepbare 🚶-marker die naar de dichtstbijzijnde
+> route-punt snapt; een popup-link opent Google Street View op dat punt (deep-link,
+> geen API-key). Daarnaast kunnen leden POI's plaatsen door op de kaart te klikken
+> (water/eten/gevaar/uitzicht/info + optioneel label), die blijvend op kaart én
+> hoogteprofiel verschijnen (`event_pois`, migratie `0093`; eigen POI's of als
+> beheerder verwijderbaar). Nog te doen: POI's ook in de liveticker.
+>
 > Mijlpaal 2026-06-08 (echt ZWB-logo op login + alle PWA/app-icons;
 > wachtwoord-reset-flow met magic-link-fallback; team-roster + ZRL-auto-seeding
 > met power-selectie, beschikbaarheid en lineup-planner; automatische Strava-
@@ -410,6 +418,19 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   en categorie. Overrides vervangen de auto-detectie overal: profiel, kaart én
   liveticker (ook de publieke `/live`-pagina). Met unit-tests (samenvoegen,
   categorie-override, naam-voorrang).
+- **Street View-knop + POI's op de routekaart** (2026-06-23): de kaart
+  (`gpx-map.tsx`) heeft een versleepbare 🚶-marker die naar het dichtstbijzijnde
+  route-punt snapt; de popup-link opent Google **Street View** op dat punt via een
+  deep-link (`maps/@?api=1&map_action=pano&viewpoint=…`) — geen API-key/kosten, je
+  loopt verder in Google. Daarnaast kunnen **alle leden POI's plaatsen** door op de
+  kaart te klikken: vaste types met icoon (💧 water, 🍌 eten, ⚠️ gevaar, 📷
+  uitzicht, ℹ️ info) + optioneel label. POI's verschijnen blijvend op **kaart én
+  hoogteprofiel** (de kaartlocatie wordt op de route geprojecteerd voor de
+  profielplaats). Opgeslagen in `event_pois` (migratie `0093`, RLS: iedereen leest,
+  leden voegen eigen toe/verwijderen die; beheerder verwijdert alles via
+  service-role). Server-actions `addEventPoi`/`removeEventPoi`, gedeelde types in
+  `poi.ts`, kaartklik via `map-click.tsx` (`useMapEvents`), marker-iconen als
+  `divIcon` (geen image-assets). Markers werken op de inline- én fullscreen-kaart.
 - **Persoonlijk trainingsstatus-blok op het dashboard** (2026-06-22): bovenaan een
   blok met het **ZWBeterWorden-advies** + de metrics **Fitness (CTL)**, **Vorm
   (TSB)** en **Herstel/readiness** plus de **eerstvolgende geplande workout**.

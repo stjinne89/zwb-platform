@@ -10,6 +10,7 @@ import {
   ClimbInfoCard,
   ClimbLegend,
 } from "./climb-overlay";
+import { POI_TYPES, type ProfilePoi } from "./poi";
 
 const HEIGHT = 100;
 const PADDING = 4;
@@ -39,11 +40,13 @@ export function ElevationProfile({
   climbs,
   activeClimb,
   onActiveClimb,
+  pois = [],
 }: {
   points: GpxPoint[];
   climbs: Climb[];
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
+  pois?: ProfilePoi[];
 }) {
   const [hover, setHover] = useState<
     { km: number; ele: number; grade: number } | null
@@ -175,6 +178,7 @@ export function ElevationProfile({
           totalKm={totalKm}
           cursorKm={hover?.km ?? null}
           idSuffix="inline"
+          pois={pois}
           onScrub={onScrub}
           onSelectAtKm={onSelectAtKm}
           onTapFullscreen={() => setFullscreen(true)}
@@ -210,6 +214,7 @@ export function ElevationProfile({
           activeClimb={activeClimb}
           totalKm={totalKm}
           hover={hover}
+          pois={pois}
           onScrub={onScrub}
           onSelectAtKm={onSelectAtKm}
           onClose={() => {
@@ -231,6 +236,7 @@ function ProfileChart({
   idSuffix,
   rotated = false,
   fill = false,
+  pois = [],
   onScrub,
   onSelectAtKm,
   onTapFullscreen,
@@ -244,6 +250,7 @@ function ProfileChart({
   idSuffix: string;
   rotated?: boolean;
   fill?: boolean;
+  pois?: ProfilePoi[];
   onScrub: (km: number | null) => void;
   onSelectAtKm: (km: number) => void;
   onTapFullscreen?: () => void;
@@ -327,6 +334,30 @@ function ProfileChart({
         activeIndex={activeClimb}
         onSelect={(i) => onSelectAtKm((climbs[i].startKm + climbs[i].endKm) / 2)}
       />
+
+      {/* POI's: blijvend zichtbaar op de tijdlijn van het profiel. */}
+      <div className="pointer-events-none absolute inset-0">
+        {pois.map((poi) => {
+          const left = totalKm > 0 ? (poi.km / totalKm) * 100 : 0;
+          const meta = POI_TYPES[poi.type];
+          return (
+            <div
+              key={poi.id}
+              className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
+              style={{ left: `${left}%` }}
+              title={poi.label?.trim() || meta.label}
+            >
+              <span className="text-[0.7rem] leading-none drop-shadow-sm">
+                {meta.emoji}
+              </span>
+              <span
+                className="w-px flex-1"
+                style={{ backgroundColor: meta.color, opacity: 0.5, minHeight: 6 }}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -337,6 +368,7 @@ function FullscreenProfile({
   activeClimb,
   totalKm,
   hover,
+  pois = [],
   onScrub,
   onSelectAtKm,
   onClose,
@@ -346,6 +378,7 @@ function FullscreenProfile({
   activeClimb: number | null;
   totalKm: number;
   hover: { km: number; ele: number; grade: number } | null;
+  pois?: ProfilePoi[];
   onScrub: (km: number | null) => void;
   onSelectAtKm: (km: number) => void;
   onClose: () => void;
@@ -416,6 +449,7 @@ function FullscreenProfile({
           idSuffix="full"
           rotated={rotated}
           fill
+          pois={pois}
           onScrub={onScrub}
           onSelectAtKm={onSelectAtKm}
         />

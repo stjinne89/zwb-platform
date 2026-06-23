@@ -9,6 +9,7 @@ import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchWindForecast } from "@/lib/weather";
 import { RouteSection } from "./_components/route-section";
+import { isPoiType, type EventPoi } from "./_components/poi";
 import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
 import {
   EventLiveTicker,
@@ -118,6 +119,7 @@ export default async function EventDetailPage({
     { data: reportRows },
     { data: colRows },
     { data: colClimbRows },
+    { data: poiRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -163,7 +165,29 @@ export default async function EventDetailPage({
       .select("name, category, start_km, end_km")
       .eq("event_id", id)
       .order("position"),
+    supabase
+      .from("event_pois")
+      .select("id, type, label, lat, lng, created_by")
+      .eq("event_id", id),
   ]);
+
+  const eventPois: EventPoi[] = ((poiRows ?? []) as Array<{
+    id: string;
+    type: string;
+    label: string | null;
+    lat: number | string;
+    lng: number | string;
+    created_by: string | null;
+  }>)
+    .filter((r) => isPoiType(r.type))
+    .map((r) => ({
+      id: r.id,
+      type: r.type as EventPoi["type"],
+      label: r.label,
+      lat: Number(r.lat),
+      lng: Number(r.lng),
+      createdBy: r.created_by,
+    }));
 
   // Klim-overrides (admin/creator) → ClimbRange[] voor RouteSection/liveticker.
   const climbOverrides: ClimbRange[] = ((colClimbRows ?? []) as Array<{
@@ -545,6 +569,8 @@ export default async function EventDetailPage({
             eventId={event.id}
             canManage={canManage}
             initialClimbs={climbOverrides}
+            initialPois={eventPois}
+            currentUserId={user?.id ?? null}
           />
         ))}
 
