@@ -53,6 +53,12 @@ export function StravaSection({
             >
               Naar achievements
             </Link>
+            <Link
+              href="/api/strava/connect"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Opnieuw koppelen
+            </Link>
             <Button
               type="button"
               size="sm"

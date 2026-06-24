@@ -93,8 +93,13 @@ export function stravaAuthorizeUrl(redirectUri: string, state: string) {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("approval_prompt", "auto");
-  url.searchParams.set("scope", "read,activity:read_all");
+  // approval_prompt=force zodat een scope-uitbreiding (profile:read_all, nodig
+  // voor de fiets-/gear-data) ook bij al-gekoppelde leden opnieuw wordt
+  // gevraagd; met "auto" hergebruikt Strava de oude toestemming zonder de
+  // nieuwe scope. profile:read_all is vereist om bikes/shoes uit /athlete te
+  // krijgen (gear ontbreekt anders volledig in de response).
+  url.searchParams.set("approval_prompt", "force");
+  url.searchParams.set("scope", "read,activity:read_all,profile:read_all");
   url.searchParams.set("state", state);
   return url;
 }

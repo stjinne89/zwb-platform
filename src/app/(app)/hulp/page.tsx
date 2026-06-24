@@ -845,6 +845,14 @@ export default function HelpPage() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Geen fietsen na een sync? Klik op je profiel bij Strava op{" "}
+                  <strong className="text-foreground">Opnieuw koppelen</strong> —
+                  voor je uitrusting hebben we eenmalig extra toestemming nodig.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   Geen Strava? Voeg met{" "}
                   <strong className="text-foreground">Fiets handmatig
                   toevoegen</strong> zelf een fiets toe met naam, merk/model en
