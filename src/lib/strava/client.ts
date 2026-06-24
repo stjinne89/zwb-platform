@@ -344,6 +344,14 @@ export type SyncChunkOptions = {
   zwbSegmentMaxFetches?: number;
   /** Recent venster waarin Strava leidend is voor updates en verwijderingen. */
   reconciliationDays?: number;
+  /**
+   * Sla de zware na-sync-stappen over (watopia-kalibratie, col-detector,
+   * segmenttijden, milestone-evaluators). De gear-/onderhoud-sync draait
+   * altijd. Bedoeld voor de interactieve sync, die anders op een grote
+   * historie tegen de Netlify-functietimeout (~10s) aanloopt; badges/cols
+   * lopen dan via de cron en "Badges herberekenen".
+   */
+  skipPostProcessing?: boolean;
 };
 
 export async function syncStravaActivitiesForUser(
@@ -578,79 +586,10 @@ export async function syncStravaActivitiesForUser(
       const { createAdminClient } = await import("@/lib/supabase/admin");
       const admin = createAdminClient();
 
-      // Watopia-kalibratie — haalt eenmalig de virtuele summit-coords op
-      // via de Strava segment-API (we hebben de accessToken hier).
-      try {
-        const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
-        await calibrateWatopiaCols(admin, accessToken);
-      } catch {
-        // niet kritiek
-      }
-
-      // Col-detector — best-effort, faalt stil als polyline-data ontbreekt.
-      try {
-        const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
-        await syncClimbedColsForUser(admin, profileId);
-      } catch {
-        // niet kritiek voor de sync-flow
-      }
-
-      if (removed > 0) {
-        try {
-          const { repairDeletedColBestTimesForUser } = await import(
-            "@/lib/cols/segment-times"
-          );
-          await repairDeletedColBestTimesForUser(
-            admin,
-            profileId,
-            removedActivityIds,
-          );
-        } catch {
-          // niet kritiek voor de sync-flow
-        }
-      }
-
-      // Segmenttijden horen bij de cols-collectie zelf, niet alleen bij de
-      // badge-recompute-knop. Beperkt houden i.v.m. Strava rate limits.
-      const maxColSegmentFetches = options.colSegmentMaxFetches ?? 20;
-      if (maxColSegmentFetches > 0) {
-        try {
-          const { syncColSegmentTimesForUser } = await import(
-            "@/lib/cols/segment-times"
-          );
-          const segmentResult = await syncColSegmentTimesForUser(
-            admin,
-            accessToken,
-            profileId,
-            { maxFetches: maxColSegmentFetches },
-          );
-          colSegmentTimesFetched = segmentResult.fetched;
-          colSegmentTimesUpdated = segmentResult.updated;
-          colSegmentTimesRateLimited = segmentResult.rateLimited;
-        } catch {
-          // niet kritiek voor de sync-flow
-        }
-      }
-
-      const maxZwbSegmentFetches =
-        options.zwbSegmentMaxFetches ?? maxColSegmentFetches;
-      try {
-        const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
-        const segmentResult = await syncZwbSegmentsForUser(
-          admin,
-          accessToken,
-          profileId,
-          { maxFetches: maxZwbSegmentFetches },
-        );
-        zwbSegmentsFetched = segmentResult.fetched;
-        zwbSegmentEffortsStored = segmentResult.storedEfforts;
-        zwbSegmentsCompleted = segmentResult.completed;
-        zwbSegmentsRateLimited = segmentResult.rateLimited;
-      } catch {
-        // niet kritiek voor de sync-flow
-      }
-
-      // Onderhoud: fiets-kilometerstanden bijwerken + slijtage evalueren.
+      // Onderhoud: fiets-kilometerstanden + slijtage EERST, vóór het zware
+      // werk hieronder. Zo landt de gear-data altijd — ook als de col-detector
+      // of evaluators op een grote historie tegen de functietimeout aanlopen.
+      // De /athlete-call is bovendien gethrottled (max 1×/24u).
       try {
         await syncStravaBikesForUser(admin, profileId, accessToken, {
           minIntervalHours: 24,
@@ -663,12 +602,88 @@ export async function syncStravaActivitiesForUser(
         // niet kritiek voor de sync-flow
       }
 
-      const { evaluateMilestonesForUser } = await import(
-        "@/lib/achievements/milestone-evaluators"
-      );
-      const result = await evaluateMilestonesForUser(admin, profileId);
-      milestoneAwards = result.awarded;
-      milestoneErrors = result.errors;
+      // Zware na-sync-stappen (alle activiteiten doorlopen): bij de
+      // interactieve sync overgeslagen om binnen de Netlify-timeout te blijven.
+      if (!options.skipPostProcessing) {
+        // Watopia-kalibratie — haalt eenmalig de virtuele summit-coords op
+        // via de Strava segment-API (we hebben de accessToken hier).
+        try {
+          const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
+          await calibrateWatopiaCols(admin, accessToken);
+        } catch {
+          // niet kritiek
+        }
+
+        // Col-detector — best-effort, faalt stil als polyline-data ontbreekt.
+        try {
+          const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
+          await syncClimbedColsForUser(admin, profileId);
+        } catch {
+          // niet kritiek voor de sync-flow
+        }
+
+        if (removed > 0) {
+          try {
+            const { repairDeletedColBestTimesForUser } = await import(
+              "@/lib/cols/segment-times"
+            );
+            await repairDeletedColBestTimesForUser(
+              admin,
+              profileId,
+              removedActivityIds,
+            );
+          } catch {
+            // niet kritiek voor de sync-flow
+          }
+        }
+
+        // Segmenttijden horen bij de cols-collectie zelf, niet alleen bij de
+        // badge-recompute-knop. Beperkt houden i.v.m. Strava rate limits.
+        const maxColSegmentFetches = options.colSegmentMaxFetches ?? 20;
+        if (maxColSegmentFetches > 0) {
+          try {
+            const { syncColSegmentTimesForUser } = await import(
+              "@/lib/cols/segment-times"
+            );
+            const segmentResult = await syncColSegmentTimesForUser(
+              admin,
+              accessToken,
+              profileId,
+              { maxFetches: maxColSegmentFetches },
+            );
+            colSegmentTimesFetched = segmentResult.fetched;
+            colSegmentTimesUpdated = segmentResult.updated;
+            colSegmentTimesRateLimited = segmentResult.rateLimited;
+          } catch {
+            // niet kritiek voor de sync-flow
+          }
+        }
+
+        const maxZwbSegmentFetches =
+          options.zwbSegmentMaxFetches ?? maxColSegmentFetches;
+        try {
+          const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
+          const segmentResult = await syncZwbSegmentsForUser(
+            admin,
+            accessToken,
+            profileId,
+            { maxFetches: maxZwbSegmentFetches },
+          );
+          zwbSegmentsFetched = segmentResult.fetched;
+          zwbSegmentEffortsStored = segmentResult.storedEfforts;
+          zwbSegmentsCompleted = segmentResult.completed;
+          zwbSegmentsRateLimited = segmentResult.rateLimited;
+        } catch {
+          // niet kritiek voor de sync-flow
+        }
+
+        const { evaluateMilestonesForUser } = await import(
+          "@/lib/achievements/milestone-evaluators"
+        );
+        const result = await evaluateMilestonesForUser(admin, profileId);
+        milestoneAwards = result.awarded;
+        milestoneErrors = result.errors;
+      }
     } catch (err) {
       milestoneErrors = [
         err instanceof Error

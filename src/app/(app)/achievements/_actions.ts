@@ -27,16 +27,15 @@ export async function syncMyStravaActivities(
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
   try {
-    // De interactieve sync houden we licht: de dure detailed-activity calls
-    // voor col-/ZWB-segmenttijden (tot ~40 sequentiële Strava-calls) slaan we
-    // hier over, anders tikt het "klaar"-blok tegen de ~10s Netlify-timeout
-    // ("An unexpected response..."). Segmenttijden vullen zich via de cron en
-    // de knop "Badges herberekenen". Activiteiten, col-detectie, gear-sync en
-    // de evaluators blijven gewoon draaien.
+    // De interactieve sync houden we licht: het zware na-sync-werk
+    // (col-detector, segmenttijden, milestone-evaluators — die álle
+    // activiteiten doorlopen) slaan we over, anders tikt het "klaar"-blok op
+    // een grote historie tegen de ~10s Netlify-timeout (504 → "An unexpected
+    // response..."). De gear-/onderhoud-sync draait wél (staat vooraan). Badges
+    // en cols lopen via de cron en de knop "Badges herberekenen".
     const result = await syncStravaActivitiesForUser(supabase, user.id, {
       ...options,
-      colSegmentMaxFetches: 0,
-      zwbSegmentMaxFetches: 0,
+      skipPostProcessing: true,
     });
     if (!result.ok) return result;
 
