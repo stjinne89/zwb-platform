@@ -2,21 +2,28 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { disconnectStrava } from "../../achievements/_actions";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HelpLink } from "@/components/app-ui";
 import { cn } from "@/lib/utils";
+import { hasActivityScope } from "@/lib/strava/scope";
 
 export function StravaSection({
   connection,
 }: {
-  connection: { athlete_name: string | null; updated_at: string | null } | null;
+  connection: {
+    athlete_name: string | null;
+    updated_at: string | null;
+    scope: string | null;
+  } | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const missingActivityScope =
+    connection != null && !hasActivityScope(connection.scope);
 
   return (
     <section className="rounded-lg border bg-card p-6">
@@ -46,6 +53,16 @@ export function StravaSection({
               )}
             </div>
           </div>
+          {missingActivityScope && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <p>
+                Je ritten kunnen niet worden opgehaald omdat het recht op je
+                activiteiten ontbreekt. Koppel opnieuw en zet het vinkje voor je
+                activiteiten aan.
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/achievements"
@@ -55,7 +72,12 @@ export function StravaSection({
             </Link>
             <Link
               href="/api/strava/connect"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              className={cn(
+                buttonVariants({
+                  variant: missingActivityScope ? "default" : "outline",
+                  size: "sm",
+                }),
+              )}
             >
               Opnieuw koppelen
             </Link>

@@ -99,6 +99,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
   },
   {
     type: "link",
+    href: "/beheer/strava",
+    label: "Strava-sync",
+    permission: "community.manage",
+  },
+  {
+    type: "link",
     href: "/beheer/notificaties",
     label: "Notificaties",
     permission: "community.manage",

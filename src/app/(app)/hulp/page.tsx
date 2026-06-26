@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   Bell,
   Bike,
   Cake,
@@ -34,7 +35,7 @@ const START_STEPS = [
   },
   {
     title: "Strava-data toevoegen",
-    text: "Koppel Strava of importeer activities.csv via Achievements.",
+    text: "Koppel Strava met activiteitenrecht of importeer activities.csv via Achievements.",
     href: "/achievements",
   },
   {
@@ -97,6 +98,7 @@ const GUIDES = [
     title: "Badges en achievements",
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
+      "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
       "Zonder Strava-koppeling kun je activities.csv uit je Strava-export importeren op Achievements.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
@@ -287,6 +289,16 @@ const ADMIN_GUIDES = [
     ],
   },
   {
+    id: "stravabeheer",
+    title: "Strava-sync beheren",
+    bullets: [
+      "Gebruik Beheer > Strava-sync om gekoppelde leden zonder ritten in de statistieken te vinden.",
+      "Sync een lid handmatig of start de volledige historie voor alle leden die nog niet zichtbaar zijn.",
+      "Leden zonder activiteitenrecht moeten zelf opnieuw koppelen en het activiteitenvinkje aanzetten.",
+      "Badges + cols herberekenen draait op bestaande ritten en doet geen extra Strava-calls.",
+    ],
+  },
+  {
     id: "ttt-beheer",
     title: "TTT Planner en exports",
     bullets: [
@@ -308,6 +320,7 @@ const ADMIN_GUIDES = [
 
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv op Achievements.",
+  "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of Achievements en zet het activiteitenvinkje aan.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
@@ -444,6 +457,43 @@ export default function HelpPage() {
         >
           <Medal className="size-4 text-primary" />
           Naar Achievements
+        </Link>
+      </section>
+
+      <section
+        id="strava-rechten"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Strava opnieuw koppelen</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              ZWB heeft activiteitenrecht nodig om je ritten, badges, cols,
+              fietsen en statistieken bij te werken.
+            </p>
+          </div>
+        </header>
+        <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">1.</span>
+            <span>Ga naar Profiel of Achievements en kies Opnieuw koppelen.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">2.</span>
+            <span>Zet bij Strava het vinkje voor activiteiten aan.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">3.</span>
+            <span>Start daarna op Achievements een Strava-sync.</span>
+          </li>
+        </ol>
+        <Link
+          href="/api/strava/connect"
+          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+        >
+          <Medal className="size-4 text-primary" />
+          Strava opnieuw koppelen
         </Link>
       </section>
 

@@ -79,7 +79,7 @@ export default async function ProfielPage() {
       .order("period_start", { ascending: false }),
     supabase
       .from("strava_connections")
-      .select("athlete_name, updated_at")
+      .select("athlete_name, updated_at, scope")
       .eq("profile_id", user.id)
       .maybeSingle(),
     supabase

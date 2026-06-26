@@ -16,7 +16,13 @@ const HELP_INDEX: HelpResult[] = [
     title: "Strava koppelen",
     text: "OAuth-koppeling voor clubritten, badges, cols, fietsen en trainingscontext.",
     href: "/profiel#strava",
-    terms: "strava koppelen sync oauth activiteiten ritten limiet",
+    terms: "strava koppelen sync oauth activiteiten ritten limiet activiteitenrecht opnieuw",
+  },
+  {
+    title: "Strava opnieuw koppelen",
+    text: "Los ontbrekend activiteitenrecht op voor ritten, badges en stats.",
+    href: "/hulp#strava-rechten",
+    terms: "strava opnieuw koppelen activiteitenrecht activity read vinkje toestemming ritten badges stats",
   },
   {
     title: "Strava CSV importeren",
@@ -82,7 +88,13 @@ const HELP_INDEX: HelpResult[] = [
     title: "Beheer",
     text: "Events, achievements, teams, rollen, media en technische koppelingen.",
     href: "/hulp#beheer",
-    terms: "beheer admin rollen rechten achievements events teams media notificaties",
+    terms: "beheer admin rollen rechten achievements events teams media notificaties strava sync",
+  },
+  {
+    title: "Strava-sync beheren",
+    text: "Leden zonder ritten syncen en badges + cols herberekenen.",
+    href: "/hulp#stravabeheer",
+    terms: "beheer admin strava sync leden ritten statistieken activiteitenrecht badges cols herberekenen",
   },
   {
     title: "Problemen oplossen",

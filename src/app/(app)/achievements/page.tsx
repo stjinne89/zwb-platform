@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowUpRight,
   Bike,
   Crown,
@@ -18,6 +19,7 @@ import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { currentAchievementWeek } from "@/lib/strava/client";
+import { hasActivityScope } from "@/lib/strava/scope";
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
 import { StravaImportForm } from "./_components/strava-import-form";
 import { StravaSyncButton } from "./_components/strava-sync-button";
@@ -269,6 +271,8 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
   const activeAthletes = scores.length;
   const stravaError = params.strava_error;
   const connected = params.strava_connected;
+  const missingActivityScope =
+    connection != null && !hasActivityScope(connection.scope);
   const awards = (awardRows ?? []) as unknown as AwardRow[];
 
   return (
@@ -279,7 +283,17 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
         <div className="flex flex-col gap-2 sm:items-end">
           <HelpLink href="/hulp#badges" />
           {connection ? (
-            <StravaSyncButton />
+            missingActivityScope ? (
+              <Link
+                href="/api/strava/connect"
+                className={cn(buttonVariants({ variant: "default" }))}
+              >
+                <ArrowUpRight data-icon="inline-start" />
+                Opnieuw koppelen
+              </Link>
+            ) : (
+              <StravaSyncButton />
+            )
           ) : (
             <Link
               href="/api/strava/connect"
@@ -304,6 +318,16 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {Array.isArray(stravaError) ? stravaError[0] : stravaError}
         </p>
+      )}
+      {missingActivityScope && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <p>
+            Je ritten kunnen niet worden opgehaald omdat het recht op je
+            activiteiten ontbreekt. Koppel opnieuw en zet het vinkje voor je
+            activiteiten aan.
+          </p>
+        </div>
       )}
       {connected && (
         <p className="rounded-md border bg-card p-3 text-sm text-muted-foreground">
