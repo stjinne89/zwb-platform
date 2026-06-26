@@ -30,6 +30,18 @@ export function bikeName(b: {
   return b.name?.trim() || b.brand_model?.trim() || "Fiets";
 }
 
+export function bikeBrandModel(b: {
+  name: string | null;
+  brand_model: string | null;
+}): string | null {
+  const brandModel = b.brand_model?.trim();
+  if (!brandModel) return null;
+  const name = b.name?.trim();
+  return name && name.toLowerCase() === brandModel.toLowerCase()
+    ? null
+    : brandModel;
+}
+
 export function formatBikeDistance(distanceM: number | string): string {
   const km = (Number(distanceM) || 0) / 1000;
   return `${km.toLocaleString("nl-NL", { maximumFractionDigits: 0 })} km`;

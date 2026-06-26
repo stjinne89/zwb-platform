@@ -9,6 +9,7 @@ import {
   MailCheck,
   MapPinned,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   UserRound,
   Wrench,
@@ -325,6 +326,36 @@ export default async function WelkomPage() {
                 className="h-full rounded-full bg-primary"
                 style={{ width: `${(doneCount / steps.length) * 100}%` }}
               />
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border bg-card/90 p-5">
+          <div className="flex items-start gap-3">
+            <Smartphone className="mt-1 size-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold">ZWB als app op je telefoon</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Zet de webapp op je beginscherm voor snelle toegang.
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <h3 className="text-sm font-semibold">iPhone of iPad</h3>
+                  <ol className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                    <li>1. Open ZWB in Safari.</li>
+                    <li>2. Tik op Delen.</li>
+                    <li>3. Kies Zet op beginscherm en daarna Voeg toe.</li>
+                  </ol>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Android</h3>
+                  <ol className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                    <li>1. Open ZWB in Chrome.</li>
+                    <li>2. Tik op het menu met drie puntjes.</li>
+                    <li>3. Kies Toevoegen aan startscherm of Installeren.</li>
+                  </ol>
+                </div>
+              </div>
             </div>
           </div>
         </section>

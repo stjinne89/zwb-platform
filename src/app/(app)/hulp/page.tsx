@@ -361,6 +361,60 @@ export default function HelpPage() {
         </div>
       </section>
 
+      <section
+        id="webapp-installeren"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Smartphone className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWB als app op je telefoon</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Zet de webapp op je beginscherm voor snelle toegang zonder App
+              Store of Play Store.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">iPhone of iPad</h3>
+            <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">1.</span>
+                <span>Open ZWB in Safari.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">2.</span>
+                <span>Tik op Delen.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">3.</span>
+                <span>Kies Zet op beginscherm en daarna Voeg toe.</span>
+              </li>
+            </ol>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Android</h3>
+            <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">1.</span>
+                <span>Open ZWB in Chrome.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">2.</span>
+                <span>Tik op het menu met drie puntjes.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">3.</span>
+                <span>Kies Toevoegen aan startscherm of Installeren.</span>
+              </li>
+            </ol>
+          </article>
+        </div>
+      </section>
+
       <section className="grid gap-3 md:grid-cols-4">
         {START_STEPS.map((step, index) => (
           <Link
@@ -440,7 +494,18 @@ export default function HelpPage() {
         <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground">1.</span>
-            <span>Vraag op Strava.com je accountdownload aan.</span>
+            <span>
+              Vraag op{" "}
+              <a
+                href="https://www.strava.com/athlete/download_my_account"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-primary hover:underline"
+              >
+                Strava.com je accountdownload
+              </a>{" "}
+              aan.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground">2.</span>
@@ -451,13 +516,24 @@ export default function HelpPage() {
             <span>Upload dat bestand op Achievements met Importeer CSV.</span>
           </li>
         </ol>
-        <Link
-          href="/achievements"
-          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
-        >
-          <Medal className="size-4 text-primary" />
-          Naar Achievements
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href="https://www.strava.com/athlete/download_my_account"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Download className="size-4 text-primary" />
+            Strava-data downloaden
+          </a>
+          <Link
+            href="/achievements"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Medal className="size-4 text-primary" />
+            Naar Achievements
+          </Link>
+        </div>
       </section>
 
       <section

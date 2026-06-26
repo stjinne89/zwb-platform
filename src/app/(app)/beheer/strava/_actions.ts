@@ -4,9 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { syncStravaActivitiesForUser } from "@/lib/strava/client";
+import {
+  accessTokenFor,
+  syncStravaActivitiesForUser,
+  type StravaConnection,
+} from "@/lib/strava/client";
 import { syncClimbedColsForUser } from "@/lib/cols/detector";
+import { syncColSegmentTimesForUser } from "@/lib/cols/segment-times";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
+import { hasActivityScope } from "@/lib/strava/scope";
 
 export type AdminSyncResult =
   | { ok: false; error: string }
@@ -99,15 +105,21 @@ function friendlyError(message: string): string {
 
 export type AdminRecomputeResult =
   | { ok: false; error: string }
-  | { ok: true; newCols: number; awarded: number; errors: string[] };
+  | {
+      ok: true;
+      newCols: number;
+      awarded: number;
+      errors: string[];
+      segmentTimesFetched: number;
+      segmentTimesUpdated: number;
+      segmentTimesRateLimited: boolean;
+      segmentTimesSkipped: boolean;
+    };
 
 // Beklommen cols opnieuw detecteren + milestone-badges herberekenen voor één
-// lid. Beide stappen draaien puur op de al-gesynchroniseerde ritten in de
-// database (geen Strava-calls), dus dit is veilig voor iedereen achter elkaar
-// te draaien zonder tegen Strava's rate-limit aan te lopen. De client rijgt de
-// leden aan elkaar; per call doen we één lid zodat we binnen de Netlify-timeout
-// blijven. Segmenttijden (PR's per col) blijven bij de cron en de
-// "Badges herberekenen"-knop omdat die wél Strava-detailcalls vereisen.
+// lid. Segmenttijden doen Strava-detailcalls, dus die vullen we in kleine
+// batches aan. De client rijgt leden aan elkaar zodat we binnen timeouts en
+// rate-limits blijven.
 export async function adminRecomputeBadgesAndCols(
   profileId: string,
 ): Promise<AdminRecomputeResult> {
@@ -132,6 +144,43 @@ export async function adminRecomputeBadgesAndCols(
       // col-detectie is best-effort; badges draaien sowieso
     }
 
+    let segmentTimesFetched = 0;
+    let segmentTimesUpdated = 0;
+    let segmentTimesRateLimited = false;
+    let segmentTimesSkipped = false;
+
+    try {
+      const { data: connection, error } = await admin
+        .from("strava_connections")
+        .select(
+          "profile_id, strava_athlete_id, access_token, refresh_token, expires_at, scope",
+        )
+        .eq("profile_id", id)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!connection || !hasActivityScope(connection.scope)) {
+        segmentTimesSkipped = true;
+      } else {
+        const accessToken = await accessTokenFor(
+          admin,
+          connection as StravaConnection,
+        );
+        const segmentResult = await syncColSegmentTimesForUser(
+          admin,
+          accessToken,
+          id,
+          { maxFetches: 10 },
+        );
+        segmentTimesFetched = segmentResult.fetched;
+        segmentTimesUpdated = segmentResult.updated;
+        segmentTimesRateLimited = segmentResult.rateLimited;
+      }
+    } catch {
+      // Segmenttijden zijn best-effort; badges draaien sowieso.
+      segmentTimesSkipped = true;
+    }
+
     const result = await evaluateMilestonesForUser(admin, id);
 
     return {
@@ -139,6 +188,10 @@ export async function adminRecomputeBadgesAndCols(
       newCols,
       awarded: result.awarded,
       errors: result.errors,
+      segmentTimesFetched,
+      segmentTimesUpdated,
+      segmentTimesRateLimited,
+      segmentTimesSkipped,
     };
   } catch (err) {
     return {
@@ -161,4 +214,5 @@ export async function revalidateAfterRecompute() {
   revalidatePath("/dashboard");
   revalidatePath("/leden");
   revalidatePath("/stats");
+  revalidatePath("/profiel/segments");
 }

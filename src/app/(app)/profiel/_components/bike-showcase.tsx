@@ -6,6 +6,7 @@ import { Bike, Eye, EyeOff, ImageOff, Pencil, Plus, Trash2, Upload } from "lucid
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
+  bikeBrandModel,
   bikeName,
   bikeShownOnProfile,
   formatBikeDistance,
@@ -15,7 +16,7 @@ import {
 import {
   addManualBike,
   deleteManualBike,
-  updateManualBike,
+  updateBikeDetails,
 } from "../_actions/bikes";
 
 const MAX_DIMENSION = 1024; // px aan de langste zijde
@@ -88,6 +89,7 @@ function BikeRow({ bike }: { bike: StravaBikeRow }) {
 
   const shown = bikeShownOnProfile(bike);
   const isManual = bike.source === "manual";
+  const brandModel = bikeBrandModel(bike);
   const busy = pending !== null || actionPending;
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -183,9 +185,12 @@ function BikeRow({ bike }: { bike: StravaBikeRow }) {
   function saveEdit(formData: FormData) {
     setError(null);
     startAction(async () => {
-      const res = await updateManualBike(formData);
+      const res = await updateBikeDetails(formData);
       if (!res.ok) setError(res.error);
-      else setEditing(false);
+      else {
+        setEditing(false);
+        router.refresh();
+      }
     });
   }
 
@@ -204,15 +209,17 @@ function BikeRow({ bike }: { bike: StravaBikeRow }) {
         <form action={saveEdit} className="space-y-3">
           <input type="hidden" name="bike_id" value={bike.id} />
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="sm:col-span-1">
-              <label className={LABEL}>Naam</label>
-              <input
-                name="name"
-                required
-                defaultValue={bike.name ?? ""}
-                className={FIELD}
-              />
-            </div>
+            {isManual && (
+              <div className="sm:col-span-1">
+                <label className={LABEL}>Naam</label>
+                <input
+                  name="name"
+                  required
+                  defaultValue={bike.name ?? ""}
+                  className={FIELD}
+                />
+              </div>
+            )}
             <div>
               <label className={LABEL}>Merk/model</label>
               <input
@@ -221,21 +228,23 @@ function BikeRow({ bike }: { bike: StravaBikeRow }) {
                 className={FIELD}
               />
             </div>
-            <div>
-              <label className={LABEL}>Afstand (km)</label>
-              <input
-                name="distance_km"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                defaultValue={
-                  hasBikeDistance(bike.distance_m)
-                    ? Math.round(Number(bike.distance_m) / 1000)
-                    : ""
-                }
-                className={FIELD}
-              />
-            </div>
+            {isManual && (
+              <div>
+                <label className={LABEL}>Afstand (km)</label>
+                <input
+                  name="distance_km"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  defaultValue={
+                    hasBikeDistance(bike.distance_m)
+                      ? Math.round(Number(bike.distance_m) / 1000)
+                      : ""
+                  }
+                  className={FIELD}
+                />
+              </div>
+            )}
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2">
@@ -284,6 +293,9 @@ function BikeRow({ bike }: { bike: StravaBikeRow }) {
             </span>
           )}
         </p>
+        {brandModel && (
+          <p className="text-sm text-muted-foreground">{brandModel}</p>
+        )}
         {hasBikeDistance(bike.distance_m) && (
           <p className="text-sm text-muted-foreground">
             {formatBikeDistance(bike.distance_m)}
@@ -332,29 +344,27 @@ function BikeRow({ bike }: { bike: StravaBikeRow }) {
           {shown ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
           {shown ? "Zichtbaar" : "Verborgen"}
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => setEditing(true)}
+          aria-label="Fiets bewerken"
+        >
+          <Pencil className="size-4" />
+        </Button>
         {isManual && (
-          <>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => setEditing(true)}
-              aria-label="Fiets bewerken"
-            >
-              <Pencil className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={remove}
-              aria-label="Fiets verwijderen"
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={remove}
+            aria-label="Fiets verwijderen"
+          >
+            <Trash2 className="size-4" />
+          </Button>
         )}
       </div>
     </li>

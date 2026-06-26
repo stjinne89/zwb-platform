@@ -7,6 +7,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
+import { type StravaBikeRow } from "@/lib/strava/bikes";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -34,12 +35,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
     { data: profileRows },
     { data: milestoneRows },
     { data: weeklyRows },
+    { data: bikeRows },
   ] = await Promise.all([
     supabase.rpc("get_public_profile", { target_profile_id: id }),
     supabase.rpc("get_public_profile_milestone_badges", {
       target_profile_id: id,
     }),
     supabase.rpc("get_public_profile_weekly_awards", { target_profile_id: id }),
+    supabase.rpc("get_public_profile_bikes", { target_profile_id: id }),
   ]);
 
   const profile = (profileRows?.[0] ?? null) as ReadonlyProfile | null;
@@ -81,6 +84,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         },
       }) satisfies WeeklyAwardView,
   );
+  const bikes = (bikeRows ?? []) as unknown as StravaBikeRow[];
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
@@ -93,6 +97,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           milestones={milestones}
           earnedMilestoneIds={earnedMilestoneIds}
           weeklyAwards={weeklyAwards}
+          bikes={bikes}
         />
       </div>
     </main>

@@ -55,6 +55,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "owntracks live gps locatie tracking samen fietsen kaart",
   },
   {
+    title: "ZWB als app installeren",
+    text: "Zet de webapp op je beginscherm op iOS of Android.",
+    href: "/hulp#webapp-installeren",
+    terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
+  },
+  {
     title: "Training en intervals.icu",
     text: "Trainingsdashboard, hersteldata, workouts en trainer-toegang.",
     href: "/hulp#trainingsruimte",

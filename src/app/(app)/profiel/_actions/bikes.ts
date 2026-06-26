@@ -39,10 +39,11 @@ export async function addManualBike(formData: FormData) {
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/profiel");
+  revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };
 }
 
-export async function updateManualBike(formData: FormData) {
+export async function updateBikeDetails(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,23 +51,47 @@ export async function updateManualBike(formData: FormData) {
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
   const bikeId = String(formData.get("bike_id") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
   if (!bikeId) return { ok: false as const, error: "Onbekende fiets." };
-  if (!name) return { ok: false as const, error: "Geef je fiets een naam." };
   const brand = String(formData.get("brand_model") ?? "").trim() || null;
-  const km = parseKm(formData.get("distance_km"));
 
-  // Alleen eigen handmatige fietsen mogen bewerkt worden; Strava-naam/afstand
-  // komen uit de sync en blijven ongemoeid.
-  const { error } = await supabase
+  const { data: bike, error: fetchError } = await supabase
     .from("strava_bikes")
-    .update({ name, brand_model: brand, distance_m: km * 1000 })
+    .select("source")
     .eq("id", bikeId)
     .eq("profile_id", user.id)
-    .eq("source", "manual");
+    .maybeSingle();
+  if (fetchError) return { ok: false as const, error: fetchError.message };
+  if (!bike) return { ok: false as const, error: "Fiets niet gevonden." };
+
+  if (bike.source === "manual") {
+    const name = String(formData.get("name") ?? "").trim();
+    if (!name) return { ok: false as const, error: "Geef je fiets een naam." };
+    const km = parseKm(formData.get("distance_km"));
+
+    const { error } = await supabase
+      .from("strava_bikes")
+      .update({ name, brand_model: brand, distance_m: km * 1000 })
+      .eq("id", bikeId)
+      .eq("profile_id", user.id)
+      .eq("source", "manual");
+    if (error) return { ok: false as const, error: error.message };
+
+    revalidatePath("/profiel");
+    revalidatePath(`/profielen/${user.id}`);
+    return { ok: true as const };
+  }
+
+  // Strava-naam en afstand blijven uit de sync komen; merk/model is leden-copy.
+  const { error } = await supabase
+    .from("strava_bikes")
+    .update({ brand_model: brand })
+    .eq("id", bikeId)
+    .eq("profile_id", user.id)
+    .eq("source", "strava");
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/profiel");
+  revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };
 }
 
@@ -100,5 +125,6 @@ export async function deleteManualBike(bikeId: string) {
   if (path) await supabase.storage.from("bikes").remove([path]);
 
   revalidatePath("/profiel");
+  revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };
 }

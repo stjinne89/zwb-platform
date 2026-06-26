@@ -4,6 +4,7 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { BadgeVault, type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
 import { ProfileHeader } from "@/app/(app)/profiel/_components/profile-header";
 import {
+  bikeBrandModel,
   bikeName,
   formatBikeDistance,
   hasBikeDistance,
@@ -161,31 +162,7 @@ export function ProfileReadonlyView({
           </h2>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {bikes.map((b) => (
-              <li
-                key={b.id}
-                className="overflow-hidden rounded-lg border bg-background"
-              >
-                <div className="flex aspect-[16/10] items-center justify-center bg-muted">
-                  {b.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={b.image_url}
-                      alt={bikeName(b)}
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <Bike className="size-8 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="p-3">
-                  <p className="truncate font-medium">{bikeName(b)}</p>
-                  {hasBikeDistance(b.distance_m) && (
-                    <p className="text-sm text-muted-foreground">
-                      {formatBikeDistance(b.distance_m)}
-                    </p>
-                  )}
-                </div>
-              </li>
+              <BikeCard key={b.id} bike={b} />
             ))}
           </ul>
         </section>
@@ -212,6 +189,38 @@ export function ProfileReadonlyView({
         </section>
       )}
     </div>
+  );
+}
+
+function BikeCard({ bike }: { bike: StravaBikeRow }) {
+  const brandModel = bikeBrandModel(bike);
+
+  return (
+    <li className="overflow-hidden rounded-lg border bg-background">
+      <div className="flex aspect-[16/10] items-center justify-center bg-muted">
+        {bike.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={bike.image_url}
+            alt={bikeName(bike)}
+            className="size-full object-cover"
+          />
+        ) : (
+          <Bike className="size-8 text-muted-foreground" />
+        )}
+      </div>
+      <div className="p-3">
+        <p className="truncate font-medium">{bikeName(bike)}</p>
+        {brandModel && (
+          <p className="truncate text-sm text-muted-foreground">{brandModel}</p>
+        )}
+        {hasBikeDistance(bike.distance_m) && (
+          <p className="text-sm text-muted-foreground">
+            {formatBikeDistance(bike.distance_m)}
+          </p>
+        )}
+      </div>
+    </li>
   );
 }
 

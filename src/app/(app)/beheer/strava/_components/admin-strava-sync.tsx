@@ -67,6 +67,17 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
     }
     const parts = [`${res.awarded} badge${res.awarded === 1 ? "" : "s"}`];
     if (res.newCols > 0) parts.push(`${res.newCols} nieuwe cols`);
+    if (res.segmentTimesUpdated > 0) {
+      parts.push(
+        `${res.segmentTimesUpdated} segmenttijd${
+          res.segmentTimesUpdated === 1 ? "" : "en"
+        }`,
+      );
+    } else if (res.segmentTimesFetched > 0) {
+      parts.push(`${res.segmentTimesFetched} ritten op segmenten gecheckt`);
+    }
+    if (res.segmentTimesSkipped) parts.push("segmenttijden overgeslagen");
+    if (res.segmentTimesRateLimited) parts.push("Strava rate-limit");
     if (res.errors.length > 0) parts.push(`waarschuwing: ${res.errors[0]}`);
     setRecomputeRow(profileId, { kind: "done", message: parts.join(" · ") });
     return true;

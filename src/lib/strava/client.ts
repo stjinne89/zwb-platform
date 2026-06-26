@@ -305,20 +305,41 @@ export async function syncStravaBikesForUser(
       }>;
     };
 
+    const bikeIds = (athlete.bikes ?? [])
+      .map((bike) => (bike.id ? String(bike.id) : null))
+      .filter((id): id is string => Boolean(id));
+    const existingBrandModels = new Map<string, string>();
+    if (bikeIds.length > 0) {
+      const { data: existingBikes } = await supabase
+        .from("strava_bikes")
+        .select("id, brand_model")
+        .eq("profile_id", profileId)
+        .eq("source", "strava")
+        .in("id", bikeIds);
+      for (const existingBike of existingBikes ?? []) {
+        const brandModel = String(existingBike.brand_model ?? "").trim();
+        if (brandModel) existingBrandModels.set(String(existingBike.id), brandModel);
+      }
+    }
+
     const rows = (athlete.bikes ?? [])
       .filter((b) => b.id)
-      .map((b) => ({
-        id: String(b.id),
-        profile_id: profileId,
-        name: b.name ?? null,
-        brand_model:
-          [b.brand_name, b.model_name].filter(Boolean).join(" ") || null,
-        distance_m: typeof b.distance === "number" ? b.distance : 0,
-        is_primary: Boolean(b.primary),
-        retired: Boolean(b.retired),
-        source: "strava",
-        synced_at: new Date().toISOString(),
-      }));
+      .map((b) => {
+        const id = String(b.id);
+        return {
+          id,
+          profile_id: profileId,
+          name: b.name ?? null,
+          brand_model:
+            existingBrandModels.get(id) ??
+            ([b.brand_name, b.model_name].filter(Boolean).join(" ") || null),
+          distance_m: typeof b.distance === "number" ? b.distance : 0,
+          is_primary: Boolean(b.primary),
+          retired: Boolean(b.retired),
+          source: "strava",
+          synced_at: new Date().toISOString(),
+        };
+      });
 
     if (rows.length === 0) return { synced: 0, skipped: false };
     await supabase.from("strava_bikes").upsert(rows, { onConflict: "id" });
