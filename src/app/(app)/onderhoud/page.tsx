@@ -19,6 +19,7 @@ type BikeRow = {
   brand_model: string | null;
   distance_m: number | string;
   retired: boolean;
+  image_url: string | null;
 };
 
 type ComponentRow = {
@@ -72,7 +73,7 @@ export default async function OnderhoudPage() {
       .maybeSingle(),
     supabase
       .from("strava_bikes")
-      .select("id, name, brand_model, distance_m, retired")
+      .select("id, name, brand_model, distance_m, retired, image_url")
       .eq("profile_id", user.id)
       .eq("source", "strava")
       .order("is_primary", { ascending: false }),
@@ -151,12 +152,22 @@ export default async function OnderhoudPage() {
         return (
           <section key={b.id}>
             <SectionHeader
-              icon={Bike}
+              icon={b.image_url ? undefined : Bike}
               title={
-                <span>
-                  {bikeLabel(b)}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {fmtKm(distance / 1000)}
+                <span className="flex min-w-0 items-center gap-2">
+                  {b.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={b.image_url}
+                      alt={bikeLabel(b)}
+                      className="size-7 shrink-0 rounded-md border object-cover"
+                    />
+                  )}
+                  <span className="truncate">
+                    {bikeLabel(b)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {fmtKm(distance / 1000)}
+                    </span>
                   </span>
                 </span>
               }
