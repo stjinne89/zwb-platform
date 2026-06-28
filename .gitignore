@@ -39,6 +39,9 @@ yarn-error.log*
 # scratch / one-off downloads (csv imports, dumps, etc.)
 /.tmp/
 
+# local dev logs
+/.codex/
+
 # vercel
 .vercel
 

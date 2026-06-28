@@ -251,6 +251,60 @@ export async function saveEventClimbs(eventId: string, climbs: ClimbInput[]) {
   return { ok: true as const, count: rows.length };
 }
 
+type ZoneInput = {
+  label?: string | null;
+  startKm: number;
+  endKm: number;
+};
+
+export async function saveEventZones(eventId: string, zones: ZoneInput[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const guard = await guardEventManage(eventId);
+  if (!guard.ok) return guard;
+
+  // Valideer + normaliseer de bereiken. Lege/ongeldige rijen vallen weg.
+  const rows = (Array.isArray(zones) ? zones : [])
+    .map((z, i) => {
+      const startKm = Number(z.startKm);
+      const endKm = Number(z.endKm);
+      if (!Number.isFinite(startKm) || !Number.isFinite(endKm)) return null;
+      const lo = Math.max(0, Math.min(startKm, endKm));
+      const hi = Math.max(startKm, endKm);
+      if (hi - lo <= 0) return null;
+      const label = (z.label ?? "").trim().slice(0, 80) || null;
+      return {
+        event_id: eventId,
+        position: i,
+        label,
+        start_km: Math.round(lo * 1000) / 1000,
+        end_km: Math.round(hi * 1000) / 1000,
+        created_by: user.id,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  const admin = createAdminClient();
+  // Vervang het hele setje (idempotent): eerst weg, dan opnieuw.
+  const { error: delError } = await admin
+    .from("event_zones")
+    .delete()
+    .eq("event_id", eventId);
+  if (delError) return { ok: false as const, error: delError.message };
+
+  if (rows.length > 0) {
+    const { error } = await admin.from("event_zones").insert(rows);
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true as const, count: rows.length };
+}
+
 const POI_TYPES = ["water", "food", "danger", "view", "info"] as const;
 
 export async function addEventPoi(

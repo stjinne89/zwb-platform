@@ -9,8 +9,11 @@ import {
   ClimbBands,
   ClimbInfoCard,
   ClimbLegend,
+  ZoneBadges,
+  ZoneBands,
 } from "./climb-overlay";
 import { POI_TYPES, type ProfilePoi } from "./poi";
+import type { EventZone } from "./zone";
 
 const HEIGHT = 100;
 const PADDING = 4;
@@ -31,6 +34,8 @@ function haversineKm(a: GpxPoint, b: GpxPoint): number {
 type Geometry = {
   width: number;
   xFor: (km: number) => number;
+  /** Verticale positie van de profiellijn op een km, als fractie 0–1 (0 = boven). */
+  yFracForKm: (km: number) => number;
   linePath: string;
   areaPath: string;
 };
@@ -41,12 +46,14 @@ export function ElevationProfile({
   activeClimb,
   onActiveClimb,
   pois = [],
+  zones = [],
 }: {
   points: GpxPoint[];
   climbs: Climb[];
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
   pois?: ProfilePoi[];
+  zones?: EventZone[];
 }) {
   const [hover, setHover] = useState<
     { km: number; ele: number; grade: number } | null
@@ -97,7 +104,27 @@ export function ElevationProfile({
       `M ${xFor(decimated[0].km)},${HEIGHT - PADDING} ` +
       linePath.replace(/^M /, "L ") +
       ` L ${xFor(decimated[decimated.length - 1].km)},${HEIGHT - PADDING} Z`;
-    return { width, xFor, linePath, areaPath };
+
+    // Hoogte op een km via lineaire interpolatie tussen de getekende punten,
+    // zodat een POI precies op de lijn valt.
+    const eleAtKm = (km: number) => {
+      if (km <= decimated[0].km) return decimated[0].ele;
+      const last = decimated[decimated.length - 1];
+      if (km >= last.km) return last.ele;
+      for (let i = 1; i < decimated.length; i++) {
+        if (decimated[i].km >= km) {
+          const a = decimated[i - 1];
+          const b = decimated[i];
+          const span = b.km - a.km;
+          const t = span > 0 ? (km - a.km) / span : 0;
+          return a.ele + t * (b.ele - a.ele);
+        }
+      }
+      return last.ele;
+    };
+    const yFracForKm = (km: number) => yFor(eleAtKm(km)) / HEIGHT;
+
+    return { width, xFor, yFracForKm, linePath, areaPath };
   }, [stats]);
 
   const sampleAtKm = useCallback(
@@ -162,12 +189,22 @@ export function ElevationProfile({
 
   return (
     <div className="space-y-2 rounded-lg border bg-card p-4">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
-        <h3 className="font-semibold">Hoogteprofiel</h3>
-        <span className="text-muted-foreground">
-          {totalKm.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km ·{" "}
-          {Math.round(gain)} hm · {Math.round(minEle)}–{Math.round(maxEle)}m
-        </span>
+      <div className="flex items-start justify-between gap-x-4">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+          <h3 className="font-semibold">Hoogteprofiel</h3>
+          <span className="text-muted-foreground">
+            {totalKm.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km ·{" "}
+            {Math.round(gain)} hm · {Math.round(minEle)}–{Math.round(maxEle)}m
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          aria-label="Hoogteprofiel vergroten"
+          className="shrink-0 rounded-md p-1 text-muted-foreground transition hover:text-foreground"
+        >
+          <Maximize2 className="size-4" />
+        </button>
       </div>
 
       <div className="relative">
@@ -179,19 +216,11 @@ export function ElevationProfile({
           cursorKm={hover?.km ?? null}
           idSuffix="inline"
           pois={pois}
+          zones={zones}
           onScrub={onScrub}
           onSelectAtKm={onSelectAtKm}
           onTapFullscreen={() => setFullscreen(true)}
         />
-        <button
-          type="button"
-          onClick={() => setFullscreen(true)}
-          onPointerDown={(e) => e.stopPropagation()}
-          aria-label="Hoogteprofiel vergroten"
-          className="absolute right-1 top-1 rounded-md bg-card/80 p-1 text-muted-foreground shadow-sm backdrop-blur transition hover:text-foreground"
-        >
-          <Maximize2 className="size-4" />
-        </button>
       </div>
 
       {/* Readout onder het profiel — verdwijnt niet achter de categorie-badges. */}
@@ -215,6 +244,7 @@ export function ElevationProfile({
           totalKm={totalKm}
           hover={hover}
           pois={pois}
+          zones={zones}
           onScrub={onScrub}
           onSelectAtKm={onSelectAtKm}
           onClose={() => {
@@ -237,6 +267,7 @@ function ProfileChart({
   rotated = false,
   fill = false,
   pois = [],
+  zones = [],
   onScrub,
   onSelectAtKm,
   onTapFullscreen,
@@ -251,13 +282,14 @@ function ProfileChart({
   rotated?: boolean;
   fill?: boolean;
   pois?: ProfilePoi[];
+  zones?: EventZone[];
   onScrub: (km: number | null) => void;
   onSelectAtKm: (km: number) => void;
   onTapFullscreen?: () => void;
   heightClass?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { width, xFor, linePath, areaPath } = geometry;
+  const { width, xFor, yFracForKm, linePath, areaPath } = geometry;
 
   const ratioFromEvent = (clientX: number, clientY: number) => {
     const el = ref.current;
@@ -305,6 +337,7 @@ function ProfileChart({
           height={HEIGHT}
           activeIndex={activeClimb}
         />
+        <ZoneBands zones={zones} xFor={xFor} height={HEIGHT} idSuffix={idSuffix} />
         <path d={areaPath} fill={`url(#elev-fill-${idSuffix})`} />
         <path
           d={linePath}
@@ -335,26 +368,23 @@ function ProfileChart({
         onSelect={(i) => onSelectAtKm((climbs[i].startKm + climbs[i].endKm) / 2)}
       />
 
-      {/* POI's: blijvend zichtbaar op de tijdlijn van het profiel. */}
+      <ZoneBadges zones={zones} totalKm={totalKm} />
+
+      {/* POI's: blijvend zichtbaar, op de profiellijn op de juiste hoogte. */}
       <div className="pointer-events-none absolute inset-0">
         {pois.map((poi) => {
           const left = totalKm > 0 ? (poi.km / totalKm) * 100 : 0;
+          const top = yFracForKm(poi.km) * 100;
           const meta = POI_TYPES[poi.type];
           return (
-            <div
+            <span
               key={poi.id}
-              className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
-              style={{ left: `${left}%` }}
+              className="absolute -translate-x-1/2 -translate-y-full text-[0.7rem] leading-none drop-shadow-sm"
+              style={{ left: `${left}%`, top: `${top}%` }}
               title={poi.label?.trim() || meta.label}
             >
-              <span className="text-[0.7rem] leading-none drop-shadow-sm">
-                {meta.emoji}
-              </span>
-              <span
-                className="w-px flex-1"
-                style={{ backgroundColor: meta.color, opacity: 0.5, minHeight: 6 }}
-              />
-            </div>
+              {meta.emoji}
+            </span>
           );
         })}
       </div>
@@ -369,6 +399,7 @@ function FullscreenProfile({
   totalKm,
   hover,
   pois = [],
+  zones = [],
   onScrub,
   onSelectAtKm,
   onClose,
@@ -379,6 +410,7 @@ function FullscreenProfile({
   totalKm: number;
   hover: { km: number; ele: number; grade: number } | null;
   pois?: ProfilePoi[];
+  zones?: EventZone[];
   onScrub: (km: number | null) => void;
   onSelectAtKm: (km: number) => void;
   onClose: () => void;
@@ -450,6 +482,7 @@ function FullscreenProfile({
           rotated={rotated}
           fill
           pois={pois}
+          zones={zones}
           onScrub={onScrub}
           onSelectAtKm={onSelectAtKm}
         />

@@ -21,8 +21,11 @@ import {
   ClimbInfoCard,
   ClimbLegend,
   climbLength,
+  ZoneBadges,
+  ZoneBands,
 } from "./climb-overlay";
 import { POI_TYPES, type EventPoi, type PoiType, type ProfilePoi } from "./poi";
+import { ZONE_COLOR, ZONE_LABEL, type EventZone } from "./zone";
 import type { DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -302,6 +305,7 @@ export function EventLiveTicker({
   cols = [],
   climbOverrides = [],
   pois = [],
+  zones = [],
   pollUrl,
   heading = DEFAULT_HEADING,
   description = DEFAULT_DESCRIPTION,
@@ -317,6 +321,8 @@ export function EventLiveTicker({
   climbOverrides?: ClimbRange[];
   /** POI's (waterpunten e.d.) — read-only getoond op kaart + profiel. */
   pois?: EventPoi[];
+  /** Geneutraliseerde zones — read-only band op kaart + profiel. */
+  zones?: EventZone[];
   /**
    * Als gezet wordt deze URL elke 10s gepolled voor een verse
    * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
@@ -567,6 +573,19 @@ export function EventLiveTicker({
   });
   const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now));
   const positions = routeStats.points.map((p) => [p.lat, p.lon] as [number, number]);
+  // Zones → route-stukken (LatLng) voor de kaart-band.
+  const zoneSegments = zones.map((z) => {
+    const lo = Math.min(z.startKm, z.endKm);
+    const hi = Math.max(z.startKm, z.endKm);
+    const segment: [number, number][] = [];
+    for (let i = 0; i < routeStats.points.length; i++) {
+      const km = routeStats.cumulativeKm[i];
+      if (km >= lo && km <= hi) {
+        segment.push([routeStats.points[i].lat, routeStats.points[i].lon]);
+      }
+    }
+    return { positions: segment, label: z.label };
+  });
   const lats = routeStats.points.map((p) => p.lat);
   const lons = routeStats.points.map((p) => p.lon);
   const bounds: [[number, number], [number, number]] =
@@ -604,6 +623,25 @@ export function EventLiveTicker({
               positions={positions}
               pathOptions={{ color: "#1f3a47", weight: 4, opacity: 0.8 }}
             />
+            {zoneSegments.map((zone, i) =>
+              zone.positions.length >= 2 ? (
+                <Polyline
+                  key={`zone-${i}`}
+                  positions={zone.positions}
+                  pathOptions={{
+                    color: ZONE_COLOR,
+                    weight: 7,
+                    opacity: 0.9,
+                    dashArray: "4 8",
+                    lineCap: "round",
+                  }}
+                >
+                  <Tooltip direction="top" className="!bg-card !text-foreground">
+                    <strong>{zone.label?.trim() || ZONE_LABEL}</strong>
+                  </Tooltip>
+                </Polyline>
+              ) : null,
+            )}
             {climbs.map((climb, i) => {
               const segment = positions.slice(climb.startIdx, climb.endIdx + 1);
               if (segment.length < 2) return null;
@@ -682,6 +720,7 @@ export function EventLiveTicker({
             activeClimb={activeClimb}
             onActiveClimb={setActiveClimb}
             pois={profilePois}
+            zones={zones}
           />
           <RiderList riders={riders} totalKm={routeStats.totalKm} />
         </div>
@@ -842,6 +881,7 @@ function LiveElevationProfile({
   activeClimb,
   onActiveClimb,
   pois = [],
+  zones = [],
 }: {
   stats: RouteStats;
   riders: RiderProgress[];
@@ -849,6 +889,7 @@ function LiveElevationProfile({
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
   pois?: ProfilePoi[];
+  zones?: EventZone[];
 }) {
   const samples = stats.points
     .map((point, i) => ({
@@ -912,6 +953,7 @@ function LiveElevationProfile({
           height={height}
           activeIndex={activeClimb}
         />
+        <ZoneBands zones={zones} xFor={xFor} height={height} idSuffix="event-live" />
         <path d={areaPath} fill="url(#event-live-elev-fill)" />
         <path
           d={linePath}
@@ -944,6 +986,7 @@ function LiveElevationProfile({
           activeIndex={activeClimb}
           onSelect={(i) => onActiveClimb(i === activeClimb ? null : i)}
         />
+        <ZoneBadges zones={zones} totalKm={stats.totalKm} />
         <div className="pointer-events-none absolute inset-0">
           {pois.map((poi) => {
             const left = stats.totalKm > 0 ? (poi.km / stats.totalKm) * 100 : 0;

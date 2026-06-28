@@ -9,6 +9,7 @@ import {
   CLIMB_CATEGORY_COLORS,
   type Climb,
 } from "@/lib/gpx-climbs";
+import { ZONE_COLOR, ZONE_LABEL, type EventZone } from "./zone";
 
 const fmt = (n: number, digits = 1) =>
   n.toLocaleString("nl-NL", { maximumFractionDigits: digits });
@@ -49,6 +50,86 @@ export function ClimbBands({
         );
       })}
     </g>
+  );
+}
+
+/**
+ * Geneutraliseerde zones als band binnen de profiel-SVG (viewBox-coords).
+ * Cyaan met een diagonale arcering, zodat het duidelijk geen klim-band is.
+ */
+export function ZoneBands({
+  zones,
+  xFor,
+  height,
+  idSuffix,
+}: {
+  zones: EventZone[];
+  xFor: (km: number) => number;
+  height: number;
+  idSuffix: string;
+}) {
+  if (zones.length === 0) return null;
+  const patternId = `zone-hatch-${idSuffix}`;
+  return (
+    <g>
+      <defs>
+        <pattern
+          id={patternId}
+          width={6}
+          height={6}
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <rect width={6} height={6} fill={ZONE_COLOR} fillOpacity={0.14} />
+          <line x1={0} y1={0} x2={0} y2={6} stroke={ZONE_COLOR} strokeWidth={1.5} strokeOpacity={0.5} />
+        </pattern>
+      </defs>
+      {zones.map((zone, i) => {
+        const x = xFor(zone.startKm);
+        const w = Math.max(0, xFor(zone.endKm) - x);
+        return (
+          <g key={i}>
+            <rect x={x} y={0} width={w} height={height} fill={`url(#${patternId})`} />
+            <line x1={x} y1={0} x2={x} y2={height} stroke={ZONE_COLOR} strokeWidth={1} strokeOpacity={0.7} />
+            <line x1={x + w} y1={0} x2={x + w} y2={height} stroke={ZONE_COLOR} strokeWidth={1} strokeOpacity={0.7} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+/** Zone-labels als HTML-laag bovenop de SVG (net als de klim-badges). */
+export function ZoneBadges({
+  zones,
+  totalKm,
+  uprightDeg = 0,
+}: {
+  zones: EventZone[];
+  totalKm: number;
+  uprightDeg?: number;
+}) {
+  if (zones.length === 0) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {zones.map((zone, i) => {
+        const midKm = (zone.startKm + zone.endKm) / 2;
+        const left = totalKm > 0 ? (midKm / totalKm) * 100 : 0;
+        return (
+          <span
+            key={i}
+            style={{
+              left: `${left}%`,
+              backgroundColor: ZONE_COLOR,
+              transform: `translateX(-50%) rotate(${uprightDeg}deg)`,
+            }}
+            className="absolute bottom-1 max-w-[40%] truncate rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm"
+          >
+            {zone.label?.trim() || ZONE_LABEL}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

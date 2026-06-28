@@ -11,6 +11,7 @@ import {
 } from "@/lib/gpx-climbs";
 import { climbLength } from "./climb-overlay";
 import { POI_TYPES, type EventPoi, type PoiType } from "./poi";
+import { ZONE_COLOR, ZONE_LABEL } from "./zone";
 import "leaflet/dist/leaflet.css";
 
 const MapClick = dynamic(() => import("./map-click"), { ssr: false });
@@ -156,9 +157,13 @@ function nearestOnRoute(positions: LatLng[], lat: number, lng: number): LatLng {
   return best;
 }
 
+// Een geneutraliseerde zone als route-stuk (al naar coördinaten vertaald).
+type MapZone = { positions: LatLng[]; label: string | null };
+
 type MapData = {
   bounds: [LatLng, LatLng];
   positions: LatLng[];
+  zones: MapZone[];
   climbs: Climb[];
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
@@ -176,7 +181,7 @@ type MapData = {
 
 function poiIconHtml(type: PoiType): string {
   const { emoji, color } = POI_TYPES[type];
-  return `<div style="width:24px;height:24px;border-radius:9999px 9999px 9999px 2px;background:${color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;">${emoji}</div>`;
+  return `<div style="width:24px;height:24px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;">${emoji}</div>`;
 }
 
 export function GpxMap({
@@ -185,6 +190,7 @@ export function GpxMap({
   activeClimb,
   onActiveClimb,
   pois = [],
+  zones = [],
   placing = false,
   onMapClick,
   onDeletePoi,
@@ -196,6 +202,7 @@ export function GpxMap({
   activeClimb: number | null;
   onActiveClimb: (index: number | null) => void;
   pois?: EventPoi[];
+  zones?: MapZone[];
   placing?: boolean;
   onMapClick?: (lat: number, lng: number) => void;
   onDeletePoi?: (id: string) => void;
@@ -228,8 +235,8 @@ export function GpxMap({
           className: "",
           html: poiIconHtml(t),
           iconSize: [24, 24],
-          iconAnchor: [12, 24],
-          popupAnchor: [0, -22],
+          iconAnchor: [12, 12],
+          popupAnchor: [0, -14],
         });
       });
       setPoiIcons(icons);
@@ -257,6 +264,7 @@ export function GpxMap({
   const data: MapData = {
     bounds,
     positions,
+    zones,
     climbs,
     activeClimb,
     onActiveClimb,
@@ -342,6 +350,7 @@ function FullscreenMap({
 
 function MapLayers({
   positions,
+  zones,
   climbs,
   activeClimb,
   onActiveClimb,
@@ -365,6 +374,26 @@ function MapLayers({
 
       {placing && onMapClick && <MapClick onClick={onMapClick} />}
       <Polyline positions={positions} pathOptions={{ color: "#475569", weight: 4 }} />
+
+      {zones.map((zone, i) =>
+        zone.positions.length >= 2 ? (
+          <Polyline
+            key={`zone-${i}`}
+            positions={zone.positions}
+            pathOptions={{
+              color: ZONE_COLOR,
+              weight: 7,
+              opacity: 0.9,
+              dashArray: "4 8",
+              lineCap: "round",
+            }}
+          >
+            <Tooltip direction="top" className="!bg-card !text-foreground">
+              <strong>{zone.label?.trim() || ZONE_LABEL}</strong>
+            </Tooltip>
+          </Polyline>
+        ) : null,
+      )}
 
       {climbs.map((climb, i) => {
         const segment = positions.slice(climb.startIdx, climb.endIdx + 1);

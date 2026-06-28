@@ -10,6 +10,7 @@ import { fetchWindForecast } from "@/lib/weather";
 import { firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
 import { isPoiType, type EventPoi } from "@/app/(app)/events/[id]/_components/poi";
+import type { EventZone } from "@/app/(app)/events/[id]/_components/zone";
 import { ZwbMark } from "@/components/zwb-logo";
 
 type PageProps = {
@@ -166,9 +167,10 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
   let cols: ColLite[] = [];
   let climbOverrides: ClimbRange[] = [];
   let eventPois: EventPoi[] = [];
+  let eventZones: EventZone[] = [];
   if (event.gpxUrl && event.isToday) {
     const admin = createAdminClient();
-    const [{ data: colRows }, { data: climbRows }, { data: poiRows }] =
+    const [{ data: colRows }, { data: climbRows }, { data: poiRows }, { data: zoneRows }] =
       await Promise.all([
         admin
           .from("cols")
@@ -184,6 +186,11 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
           .from("event_pois")
           .select("id, type, label, lat, lng, created_by")
           .eq("event_id", event.id),
+        admin
+          .from("event_zones")
+          .select("label, start_km, end_km")
+          .eq("event_id", event.id)
+          .order("position"),
       ]);
     cols = ((colRows ?? []) as Array<{
       slug: string;
@@ -226,6 +233,15 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
         lng: Number(r.lng),
         createdBy: r.created_by,
       }));
+    eventZones = ((zoneRows ?? []) as Array<{
+      label: string | null;
+      start_km: number | string;
+      end_km: number | string;
+    }>).map((r) => ({
+      label: r.label,
+      startKm: Number(r.start_km),
+      endKm: Number(r.end_km),
+    }));
   }
 
   return (
@@ -287,6 +303,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
           cols={cols}
           climbOverrides={climbOverrides}
           pois={eventPois}
+          zones={eventZones}
           pollUrl={`/api/live/event/${event.id}`}
         />
       )}

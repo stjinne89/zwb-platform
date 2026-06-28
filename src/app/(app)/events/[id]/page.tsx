@@ -12,6 +12,7 @@ import { sampleRoute, type SampledRoute } from "@/lib/route-sample";
 import { enduranceWkg } from "@/lib/teams/power-profile";
 import { RouteSection } from "./_components/route-section";
 import { isPoiType, type EventPoi } from "./_components/poi";
+import type { EventZone } from "./_components/zone";
 import {
   climbsFromRanges,
   detectClimbs,
@@ -181,6 +182,7 @@ export default async function EventDetailPage({
     { data: colRows },
     { data: colClimbRows },
     { data: poiRows },
+    { data: zoneRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -230,6 +232,11 @@ export default async function EventDetailPage({
       .from("event_pois")
       .select("id, type, label, lat, lng, created_by")
       .eq("event_id", id),
+    supabase
+      .from("event_zones")
+      .select("label, start_km, end_km")
+      .eq("event_id", id)
+      .order("position"),
   ]);
 
   const eventPois: EventPoi[] = ((poiRows ?? []) as Array<{
@@ -259,6 +266,17 @@ export default async function EventDetailPage({
   }>).map((r) => ({
     name: r.name,
     category: (r.category as ClimbRange["category"]) ?? null,
+    startKm: Number(r.start_km),
+    endKm: Number(r.end_km),
+  }));
+
+  // Geneutraliseerde zones (beheerder) → EventZone[] voor RouteSection.
+  const eventZones: EventZone[] = ((zoneRows ?? []) as Array<{
+    label: string | null;
+    start_km: number | string;
+    end_km: number | string;
+  }>).map((r) => ({
+    label: r.label,
     startKm: Number(r.start_km),
     endKm: Number(r.end_km),
   }));
@@ -654,6 +672,7 @@ export default async function EventDetailPage({
             cols={cols}
             climbOverrides={climbOverrides}
             pois={eventPois}
+            zones={eventZones}
           />
         ) : (
           <RouteSection
@@ -663,6 +682,7 @@ export default async function EventDetailPage({
             canManage={canManage}
             initialClimbs={climbOverrides}
             initialPois={eventPois}
+            initialZones={eventZones}
             currentUserId={user?.id ?? null}
           />
         ))}

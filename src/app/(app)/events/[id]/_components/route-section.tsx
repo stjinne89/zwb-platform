@@ -13,6 +13,7 @@ import {
 import { GpxMap } from "./gpx-map";
 import { ElevationProfile } from "./elevation-profile";
 import { ClimbEditor } from "./climb-editor";
+import { ZoneEditor } from "./zone-editor";
 import {
   POI_TYPES,
   POI_TYPE_LIST,
@@ -20,7 +21,13 @@ import {
   type PoiType,
   type ProfilePoi,
 } from "./poi";
-import { addEventPoi, removeEventPoi, saveEventClimbs } from "../_actions";
+import type { EventZone } from "./zone";
+import {
+  addEventPoi,
+  removeEventPoi,
+  saveEventClimbs,
+  saveEventZones,
+} from "../_actions";
 
 /**
  * Haalt de GPX één keer op, berekent de klimmen één keer, en deelt
@@ -35,6 +42,7 @@ export function RouteSection({
   canManage = false,
   initialClimbs = [],
   initialPois = [],
+  initialZones = [],
   currentUserId = null,
 }: {
   gpxUrl: string;
@@ -43,6 +51,7 @@ export function RouteSection({
   canManage?: boolean;
   initialClimbs?: ClimbRange[];
   initialPois?: EventPoi[];
+  initialZones?: EventZone[];
   currentUserId?: string | null;
 }) {
   const [points, setPoints] = useState<GpxPoint[]>([]);
@@ -65,6 +74,13 @@ export function RouteSection({
     label: string;
   } | null>(null);
   const [poiSaving, setPoiSaving] = useState(false);
+
+  // Geneutraliseerde zones (alleen beheerder bewerkt); band op kaart + profiel.
+  const [zones, setZones] = useState<EventZone[]>(initialZones);
+  const [zoneEditing, setZoneEditing] = useState(false);
+  const [zoneDraft, setZoneDraft] = useState<EventZone[]>([]);
+  const [zoneSaving, setZoneSaving] = useState(false);
+  const [zoneMessage, setZoneMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,6 +205,57 @@ export function RouteSection({
 
   const canPlacePoi = Boolean(eventId && currentUserId && points.length > 1);
 
+  // Effectieve zones: tijdens bewerken het draft, anders de opgeslagen zones.
+  const effectiveZones = zoneEditing ? zoneDraft : zones;
+
+  // Zones → route-stukken (LatLng) voor de kaart-band.
+  const mapZones = useMemo(() => {
+    return effectiveZones.map((z) => {
+      const lo = Math.min(z.startKm, z.endKm);
+      const hi = Math.max(z.startKm, z.endKm);
+      const positions: [number, number][] = [];
+      for (let i = 0; i < points.length; i++) {
+        if (cumKm[i] >= lo && cumKm[i] <= hi) {
+          positions.push([points[i].lat, points[i].lon]);
+        }
+      }
+      return { positions, label: z.label };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoneEditing, zoneDraft, zones, points, cumKm]);
+
+  const startZoneEditing = () => {
+    setZoneMessage(null);
+    setZoneDraft(zones.map((z) => ({ ...z })));
+    setZoneEditing(true);
+  };
+
+  const persistZones = async (next: EventZone[]) => {
+    if (!eventId) return;
+    setZoneSaving(true);
+    setZoneMessage(null);
+    const res = await saveEventZones(
+      eventId,
+      next.map((z) => ({ label: z.label, startKm: z.startKm, endKm: z.endKm })),
+    );
+    setZoneSaving(false);
+    if (!res.ok) {
+      setZoneMessage(res.error ?? "Opslaan mislukt.");
+      return;
+    }
+    // Normaliseer net als de server (lo/hi, lege weg) voor consistente weergave.
+    setZones(
+      next
+        .map((z) => ({
+          startKm: Math.max(0, Math.min(z.startKm, z.endKm)),
+          endKm: Math.max(z.startKm, z.endKm),
+          label: (z.label ?? "").trim() || null,
+        }))
+        .filter((z) => z.endKm - z.startKm > 0),
+    );
+    setZoneEditing(false);
+  };
+
   const onMapClick = (lat: number, lng: number) => {
     if (!placing) return;
     setPoiDraft((prev) => ({ lat, lng, type: prev?.type ?? "water", label: prev?.label ?? "" }));
@@ -237,6 +304,7 @@ export function RouteSection({
           activeClimb={activeClimb}
           onActiveClimb={setActiveClimb}
           pois={displayPois}
+          zones={mapZones}
           placing={placing}
           onMapClick={onMapClick}
           onDeletePoi={deletePoi}
@@ -249,6 +317,7 @@ export function RouteSection({
           activeClimb={activeClimb}
           onActiveClimb={setActiveClimb}
           pois={profilePois}
+          zones={effectiveZones}
         />
       </div>
 
@@ -328,15 +397,40 @@ export function RouteSection({
         </div>
       )}
 
-      {canManage && eventId && points.length > 1 && !editing && (
-        <button
-          type="button"
-          onClick={startEditing}
-          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Pencil className="size-3.5" />
-          Klimmen bewerken
-        </button>
+      {canManage && eventId && points.length > 1 && !editing && !zoneEditing && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={startEditing}
+            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <Pencil className="size-3.5" />
+            Klimmen bewerken
+          </button>
+          <button
+            type="button"
+            onClick={startZoneEditing}
+            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <Pencil className="size-3.5" />
+            Neutralisatie bewerken
+          </button>
+        </div>
+      )}
+
+      {canManage && eventId && zoneEditing && (
+        <ZoneEditor
+          draft={zoneDraft}
+          totalKm={totalKm}
+          saving={zoneSaving}
+          message={zoneMessage}
+          onChange={setZoneDraft}
+          onSave={() => persistZones(zoneDraft)}
+          onCancel={() => {
+            setZoneEditing(false);
+            setZoneMessage(null);
+          }}
+        />
       )}
 
       {canManage && eventId && editing && (
