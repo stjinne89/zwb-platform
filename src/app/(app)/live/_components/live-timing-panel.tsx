@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { CheckCircle2, RefreshCw, Radio } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, RefreshCw, Radio } from "lucide-react";
 import type {
   LiveTimingOutcome,
   LiveTimingResult,
@@ -13,7 +13,17 @@ type LiveTimingPanelProps = {
   eventId: string;
   eventTitle: string;
   initialOutcome: LiveTimingOutcome;
+  /** Bron-URL van de live timing — link naar de site voor het volledige beeld. */
+  sourceUrl?: string | null;
 };
+
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "de bron";
+  }
+}
 
 function TimingRows({ rows }: { rows: LiveTimingResult[] }) {
   return (
@@ -94,6 +104,7 @@ export function LiveTimingPanel({
   eventId,
   eventTitle,
   initialOutcome,
+  sourceUrl,
 }: LiveTimingPanelProps) {
   const [outcome, setOutcome] = useState(initialOutcome);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -145,6 +156,17 @@ export function LiveTimingPanel({
                 })}`
               : "zojuist bijgewerkt"}
           </p>
+          {sourceUrl && (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              Volledige live timing op {hostLabel(sourceUrl)}
+              <ArrowUpRight className="size-3" />
+            </a>
+          )}
         </div>
         <Button
           type="button"

@@ -71,6 +71,16 @@ async function getActiveCutoffIso() {
   return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
 }
 
+// Leesbare hostnaam (zonder "www.") voor bron-links naar de scrape-site.
+function prettyHost(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
 type CurvePoint = { seconds: number; watts: number; wattsPerKg?: number | null };
 
@@ -727,6 +737,7 @@ export default async function EventDetailPage({
           eventId={event.id}
           eventTitle={event.title}
           initialOutcome={liveTimingOutcome}
+          sourceUrl={event.live_timing_url}
         />
       )}
 
@@ -758,6 +769,18 @@ export default async function EventDetailPage({
               <RefreshResultsButton eventId={event.id} />
             )}
           </header>
+
+          {event.results_url && (
+            <a
+              href={event.results_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              Volledige uitslag op {prettyHost(event.results_url) ?? "de bron"}
+              <ArrowUpRight className="size-3.5" />
+            </a>
+          )}
 
           {event.results_scrape_error && canManage && (
             <p className="text-xs text-destructive">
