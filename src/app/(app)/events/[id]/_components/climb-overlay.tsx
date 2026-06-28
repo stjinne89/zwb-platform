@@ -123,7 +123,7 @@ export function ZoneBadges({
               backgroundColor: ZONE_COLOR,
               transform: `translateX(-50%) rotate(${uprightDeg}deg)`,
             }}
-            className="absolute bottom-1 max-w-[40%] truncate rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm"
+            className="absolute top-1 max-w-[40%] truncate rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm"
           >
             {zone.label?.trim() || ZONE_LABEL}
           </span>
