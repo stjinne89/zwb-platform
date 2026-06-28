@@ -255,19 +255,12 @@ function latestMarkers(
 ) {
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
   const bySession = new Map<string, Marker>();
-  const activeSinceBySession = new Map<string, number>();
 
   for (const p of positions) {
     const session = sessionById.get(p.session_id);
     if (!session) continue;
-    const baseStart = baseStartTime(session, eventStartAt);
-    const recordedAt = validTime(p.recorded_at);
-    if (recordedAt !== null && recordedAt >= baseStart) {
-      activeSinceBySession.set(
-        p.session_id,
-        Math.min(activeSinceBySession.get(p.session_id) ?? recordedAt, recordedAt),
-      );
-    }
+    // Eerste (= nieuwste) positie per sessie is de marker; posities komen
+    // aflopend op recorded_at binnen.
     if (bySession.has(p.session_id)) continue;
     bySession.set(p.session_id, {
       sessionId: p.session_id,
@@ -279,13 +272,13 @@ function latestMarkers(
       altitude: toNumber(p.altitude),
       speedKmh: toNumber(p.speed_kmh),
       recordedAt: p.recorded_at,
-      startedAt: isoFromTime(activeSinceBySession.get(p.session_id) ?? baseStart),
+      // "Bezig" = tijd sinds de werkelijke start (event-starttijd, of de
+      // sessiestart als die later is). Bewust níét afgeleid uit de eerste
+      // opgehaalde positie: die lijst is afgekapt (limit), waardoor de start
+      // bij lange ritten ten onrechte naar voren schuift en de gemiddelde
+      // snelheid + ETA dan te hoog uitvallen.
+      startedAt: isoFromTime(baseStartTime(session, eventStartAt)),
     });
-  }
-
-  for (const [sessionId, activeSince] of activeSinceBySession) {
-    const marker = bySession.get(sessionId);
-    if (marker) marker.startedAt = isoFromTime(activeSince);
   }
 
   return bySession;
@@ -502,9 +495,6 @@ export function EventLiveTicker({
             const next = new Map(prev);
             const previous = next.get(row.session_id);
             const baseStart = baseStartTime(session, eventStartAt);
-            const recordedAt = validTime(row.recorded_at);
-            const firstLivePoint =
-              recordedAt !== null && recordedAt >= baseStart ? recordedAt : baseStart;
             next.set(row.session_id, {
               sessionId: row.session_id,
               profileId: row.profile_id,
@@ -515,7 +505,7 @@ export function EventLiveTicker({
               altitude: toNumber(row.altitude),
               speedKmh: toNumber(row.speed_kmh),
               recordedAt: row.recorded_at,
-              startedAt: previous?.startedAt ?? isoFromTime(firstLivePoint),
+              startedAt: previous?.startedAt ?? isoFromTime(baseStart),
             });
             return next;
           });
