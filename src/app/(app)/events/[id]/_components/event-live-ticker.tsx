@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { Clock, Gauge, MapPin, Route } from "lucide-react";
+import { Clock, Gauge, MapPin, Maximize2, Route, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
 import {
@@ -338,6 +346,7 @@ export function EventLiveTicker({
   );
 
   const [activeClimb, setActiveClimb] = useState<number | null>(null);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
   const activeIds = useMemo(() => new Set(sessions.map((s) => s.id)), [sessions]);
   const routeStats = useMemo(() => buildRouteStats(points), [points]);
@@ -586,6 +595,107 @@ export function EventLiveTicker({
         ]
       : [DEFAULT_CENTER, DEFAULT_CENTER];
 
+  // De kaartlagen worden zowel in de inline-kaart als in de fullscreen-overlay
+  // getekend; één render-helper houdt ze identiek.
+  const renderMapLayers = () => (
+    <>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <Polyline
+        positions={positions}
+        pathOptions={{ color: "#1f3a47", weight: 4, opacity: 0.8 }}
+      />
+      {zoneSegments.map((zone, i) =>
+        zone.positions.length >= 2 ? (
+          <Polyline
+            key={`zone-${i}`}
+            positions={zone.positions}
+            pathOptions={{
+              color: ZONE_COLOR,
+              weight: 7,
+              opacity: 0.9,
+              dashArray: "4 8",
+              lineCap: "round",
+            }}
+          >
+            <Tooltip direction="top" className="!bg-card !text-foreground">
+              <strong>{zone.label?.trim() || ZONE_LABEL}</strong>
+            </Tooltip>
+          </Polyline>
+        ) : null,
+      )}
+      {climbs.map((climb, i) => {
+        const segment = positions.slice(climb.startIdx, climb.endIdx + 1);
+        if (segment.length < 2) return null;
+        return (
+          <Polyline
+            key={`climb-${i}`}
+            positions={segment}
+            pathOptions={{
+              color: CLIMB_CATEGORY_HEX[climb.category],
+              weight: activeClimb === i ? 8 : 6,
+              opacity: 0.95,
+            }}
+            eventHandlers={{
+              click: () => setActiveClimb(activeClimb === i ? null : i),
+            }}
+          >
+            <Tooltip direction="top" className="!bg-card !text-foreground">
+              <strong>{climb.name ?? `Klim (${climb.category})`}</strong>
+            </Tooltip>
+            <Popup>
+              <ClimbPopup climb={climb} />
+            </Popup>
+          </Polyline>
+        );
+      })}
+      {poiIcons &&
+        pois.map((poi) => {
+          const meta = POI_TYPES[poi.type];
+          return (
+            <Marker
+              key={poi.id}
+              position={[poi.lat, poi.lng]}
+              icon={poiIcons[poi.type]}
+            >
+              <Popup>
+                <div className="min-w-32 space-y-0.5 text-sm">
+                  <p className="font-semibold">
+                    {meta.emoji} {poi.label?.trim() || meta.label}
+                  </p>
+                  {poi.label?.trim() && (
+                    <p className="text-xs text-muted-foreground">{meta.label}</p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      {riders.map((rider) => (
+        <CircleMarker
+          key={rider.sessionId}
+          center={[rider.lat, rider.lng]}
+          radius={10}
+          pathOptions={{
+            color: "#d4a84e",
+            weight: 3,
+            fillColor: "#0f2a32",
+            fillOpacity: 0.95,
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -10]} className="!bg-card !text-foreground">
+            <strong>{rider.name}</strong>
+          </Tooltip>
+          <Popup>
+            <RiderPopup rider={rider} totalKm={routeStats.totalKm} />
+          </Popup>
+        </CircleMarker>
+      ))}
+    </>
+  );
+
   return (
     <section className="space-y-4 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -603,103 +713,18 @@ export function EventLiveTicker({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <div className="h-[28rem] overflow-hidden rounded-lg border bg-background">
+        <div className="relative h-[28rem] overflow-hidden rounded-lg border bg-background">
           <MapContainer bounds={bounds} className="h-full w-full" scrollWheelZoom>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Polyline
-              positions={positions}
-              pathOptions={{ color: "#1f3a47", weight: 4, opacity: 0.8 }}
-            />
-            {zoneSegments.map((zone, i) =>
-              zone.positions.length >= 2 ? (
-                <Polyline
-                  key={`zone-${i}`}
-                  positions={zone.positions}
-                  pathOptions={{
-                    color: ZONE_COLOR,
-                    weight: 7,
-                    opacity: 0.9,
-                    dashArray: "4 8",
-                    lineCap: "round",
-                  }}
-                >
-                  <Tooltip direction="top" className="!bg-card !text-foreground">
-                    <strong>{zone.label?.trim() || ZONE_LABEL}</strong>
-                  </Tooltip>
-                </Polyline>
-              ) : null,
-            )}
-            {climbs.map((climb, i) => {
-              const segment = positions.slice(climb.startIdx, climb.endIdx + 1);
-              if (segment.length < 2) return null;
-              return (
-                <Polyline
-                  key={`climb-${i}`}
-                  positions={segment}
-                  pathOptions={{
-                    color: CLIMB_CATEGORY_HEX[climb.category],
-                    weight: activeClimb === i ? 8 : 6,
-                    opacity: 0.95,
-                  }}
-                  eventHandlers={{
-                    click: () => setActiveClimb(activeClimb === i ? null : i),
-                  }}
-                >
-                  <Tooltip direction="top" className="!bg-card !text-foreground">
-                    <strong>{climb.name ?? `Klim (${climb.category})`}</strong>
-                  </Tooltip>
-                  <Popup>
-                    <ClimbPopup climb={climb} />
-                  </Popup>
-                </Polyline>
-              );
-            })}
-            {poiIcons &&
-              pois.map((poi) => {
-                const meta = POI_TYPES[poi.type];
-                return (
-                  <Marker
-                    key={poi.id}
-                    position={[poi.lat, poi.lng]}
-                    icon={poiIcons[poi.type]}
-                  >
-                    <Popup>
-                      <div className="min-w-32 space-y-0.5 text-sm">
-                        <p className="font-semibold">
-                          {meta.emoji} {poi.label?.trim() || meta.label}
-                        </p>
-                        {poi.label?.trim() && (
-                          <p className="text-xs text-muted-foreground">{meta.label}</p>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
-                );
-              })}
-            {riders.map((rider) => (
-              <CircleMarker
-                key={rider.sessionId}
-                center={[rider.lat, rider.lng]}
-                radius={10}
-                pathOptions={{
-                  color: "#d4a84e",
-                  weight: 3,
-                  fillColor: "#0f2a32",
-                  fillOpacity: 0.95,
-                }}
-              >
-                <Tooltip direction="top" offset={[0, -10]} className="!bg-card !text-foreground">
-                  <strong>{rider.name}</strong>
-                </Tooltip>
-                <Popup>
-                  <RiderPopup rider={rider} totalKm={routeStats.totalKm} />
-                </Popup>
-              </CircleMarker>
-            ))}
+            {renderMapLayers()}
           </MapContainer>
+          <button
+            type="button"
+            onClick={() => setMapFullscreen(true)}
+            aria-label="Kaart vergroten"
+            className="absolute right-2 top-2 z-[1000] rounded-md bg-card/80 p-1 text-muted-foreground shadow-sm backdrop-blur transition hover:text-foreground"
+          >
+            <Maximize2 className="size-4" />
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -721,7 +746,59 @@ export function EventLiveTicker({
           {emptyText}
         </div>
       )}
+
+      {mapFullscreen && (
+        <MapFullscreen bounds={bounds} onClose={() => setMapFullscreen(false)}>
+          {renderMapLayers()}
+        </MapFullscreen>
+      )}
     </section>
+  );
+}
+
+function MapFullscreen({
+  bounds,
+  onClose,
+  children,
+}: {
+  bounds: [[number, number], [number, number]];
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  // Body-scroll vergrendelen + Escape sluit. Geen rotatie — een kaart vult elk
+  // formaat prima.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex flex-col bg-card">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b p-3">
+        <span className="text-sm font-medium">Live route</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Sluiten"
+          className="rounded-md border bg-background p-1.5 text-muted-foreground transition hover:text-foreground"
+        >
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="relative flex-1">
+        <MapContainer bounds={bounds} className="h-full w-full" scrollWheelZoom>
+          {children}
+        </MapContainer>
+      </div>
+    </div>
   );
 }
 
@@ -881,6 +958,7 @@ function LiveElevationProfile({
   pois?: ProfilePoi[];
   zones?: EventZone[];
 }) {
+  const [fullscreen, setFullscreen] = useState(false);
   const samples = stats.points
     .map((point, i) => ({
       km: stats.cumulativeKm[i],
@@ -915,24 +993,101 @@ function LiveElevationProfile({
     linePath.replace(/^M /, "L ") +
     ` L ${xFor(decimated[decimated.length - 1].km)},${height - padding} Z`;
 
+  const chart: LiveProfileChartData = {
+    width,
+    height,
+    xFor,
+    yFor,
+    linePath,
+    areaPath,
+    stats,
+    riders,
+    climbs,
+    activeClimb,
+    onActiveClimb,
+    pois,
+    zones,
+  };
+
   return (
     <div className="space-y-2 rounded-lg border bg-background p-4">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
-        <h3 className="font-semibold">Live hoogteprofiel</h3>
-        <span className="text-muted-foreground">
-          {stats.totalKm.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km -{" "}
-          {Math.round(stats.gain)} hm
-        </span>
+      <div className="flex items-start justify-between gap-x-4">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+          <h3 className="font-semibold">Live hoogteprofiel</h3>
+          <span className="text-muted-foreground">
+            {stats.totalKm.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km -{" "}
+            {Math.round(stats.gain)} hm
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          aria-label="Hoogteprofiel vergroten"
+          className="shrink-0 rounded-md p-1 text-muted-foreground transition hover:text-foreground"
+        >
+          <Maximize2 className="size-4" />
+        </button>
       </div>
-      <div className="relative">
+
+      <LiveProfileChart {...chart} idSuffix="event-live" />
+
+      <ClimbLegend climbs={climbs} />
+      {activeClimb !== null && climbs[activeClimb] && (
+        <ClimbInfoCard climb={climbs[activeClimb]} />
+      )}
+
+      {fullscreen && (
+        <LiveProfileFullscreen chart={chart} onClose={() => setFullscreen(false)} />
+      )}
+    </div>
+  );
+}
+
+type LiveProfileChartData = {
+  width: number;
+  height: number;
+  xFor: (km: number) => number;
+  yFor: (ele: number) => number;
+  linePath: string;
+  areaPath: string;
+  stats: RouteStats;
+  riders: RiderProgress[];
+  climbs: Climb[];
+  activeClimb: number | null;
+  onActiveClimb: (index: number | null) => void;
+  pois: ProfilePoi[];
+  zones: EventZone[];
+};
+
+/** De profiel-SVG + overlays; gedeeld door de inline- en fullscreen-weergave. */
+function LiveProfileChart({
+  width,
+  height,
+  xFor,
+  yFor,
+  linePath,
+  areaPath,
+  stats,
+  riders,
+  climbs,
+  activeClimb,
+  onActiveClimb,
+  pois,
+  zones,
+  idSuffix,
+  fill = false,
+}: LiveProfileChartData & { idSuffix: string; fill?: boolean }) {
+  const fillId = `event-live-elev-fill-${idSuffix}`;
+  return (
+    <div className={`relative ${fill ? "h-full w-full" : ""}`}>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
-        className="block h-28 w-full"
+        className={`block ${fill ? "h-full w-full" : "h-28 w-full"}`}
         aria-label="Live hoogteprofiel"
       >
         <defs>
-          <linearGradient id="event-live-elev-fill" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.55" />
             <stop offset="100%" stopColor="var(--color-zwb-petrol)" stopOpacity="0.06" />
           </linearGradient>
@@ -943,8 +1098,8 @@ function LiveElevationProfile({
           height={height}
           activeIndex={activeClimb}
         />
-        <ZoneBands zones={zones} xFor={xFor} height={height} idSuffix="event-live" />
-        <path d={areaPath} fill="url(#event-live-elev-fill)" />
+        <ZoneBands zones={zones} xFor={xFor} height={height} idSuffix={idSuffix} />
+        <path d={areaPath} fill={`url(#${fillId})`} />
         <path
           d={linePath}
           fill="none"
@@ -970,40 +1125,123 @@ function LiveElevationProfile({
             </g>
           ))}
       </svg>
-        <ClimbBadges
-          climbs={climbs}
-          totalKm={stats.totalKm}
-          activeIndex={activeClimb}
-          onSelect={(i) => onActiveClimb(i === activeClimb ? null : i)}
-        />
-        <ZoneBadges zones={zones} totalKm={stats.totalKm} />
-        <div className="pointer-events-none absolute inset-0">
-          {pois.map((poi) => {
-            const left = stats.totalKm > 0 ? (poi.km / stats.totalKm) * 100 : 0;
-            const meta = POI_TYPES[poi.type];
-            return (
-              <div
-                key={poi.id}
-                className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
-                style={{ left: `${left}%` }}
-                title={poi.label?.trim() || meta.label}
-              >
-                <span className="text-[0.7rem] leading-none drop-shadow-sm">
-                  {meta.emoji}
-                </span>
-                <span
-                  className="w-px flex-1"
-                  style={{ backgroundColor: meta.color, opacity: 0.5, minHeight: 6 }}
-                />
-              </div>
-            );
-          })}
-        </div>
+      <ClimbBadges
+        climbs={climbs}
+        totalKm={stats.totalKm}
+        activeIndex={activeClimb}
+        onSelect={(i) => onActiveClimb(i === activeClimb ? null : i)}
+      />
+      <ZoneBadges zones={zones} totalKm={stats.totalKm} />
+      <div className="pointer-events-none absolute inset-0">
+        {pois.map((poi) => {
+          const left = stats.totalKm > 0 ? (poi.km / stats.totalKm) * 100 : 0;
+          const meta = POI_TYPES[poi.type];
+          return (
+            <div
+              key={poi.id}
+              className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
+              style={{ left: `${left}%` }}
+              title={poi.label?.trim() || meta.label}
+            >
+              <span className="text-[0.7rem] leading-none drop-shadow-sm">
+                {meta.emoji}
+              </span>
+              <span
+                className="w-px flex-1"
+                style={{ backgroundColor: meta.color, opacity: 0.5, minHeight: 6 }}
+              />
+            </div>
+          );
+        })}
       </div>
-      <ClimbLegend climbs={climbs} />
+    </div>
+  );
+}
+
+function LiveProfileFullscreen({
+  chart,
+  onClose,
+}: {
+  chart: LiveProfileChartData;
+  onClose: () => void;
+}) {
+  const [win, setWin] = useState<{ w: number; h: number } | null>(null);
+  // Touch-apparaat? Dan draaien we in portret naar liggend voor maximaal zicht;
+  // op desktop tonen we het profiel gewoon groot, niet gedraaid.
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      setWin({ w: window.innerWidth, h: window.innerHeight });
+      setCoarse(window.matchMedia("(pointer: coarse)").matches);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, []);
+
+  const rotated = coarse && !!win && win.h > win.w;
+  const { activeClimb, climbs } = chart;
+
+  const content = (
+    <>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b p-3">
+        <span className="text-sm font-medium">Live hoogteprofiel</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Sluiten"
+          className="rounded-md border bg-background p-1.5 text-muted-foreground transition hover:text-foreground"
+        >
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="relative flex-1 overflow-hidden p-2">
+        <LiveProfileChart {...chart} idSuffix="event-live-full" fill />
+      </div>
       {activeClimb !== null && climbs[activeClimb] && (
-        <ClimbInfoCard climb={climbs[activeClimb]} />
+        <div className="shrink-0 border-t p-3">
+          <ClimbInfoCard climb={climbs[activeClimb]} />
+        </div>
       )}
+    </>
+  );
+
+  // z-[1000] zodat het boven de Leaflet-kaart valt; bg-card is ondoorzichtig.
+  return (
+    <div className="fixed inset-0 z-[1000] overflow-hidden bg-card">
+      {win &&
+        (rotated ? (
+          <div
+            className="absolute left-1/2 top-1/2 flex flex-col"
+            style={{
+              width: win.h,
+              height: win.w,
+              transform: "translate(-50%, -50%) rotate(90deg)",
+            }}
+          >
+            {content}
+          </div>
+        ) : (
+          <div className="flex h-full w-full flex-col">{content}</div>
+        ))}
     </div>
   );
 }
