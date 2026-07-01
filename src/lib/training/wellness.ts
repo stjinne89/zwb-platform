@@ -101,11 +101,57 @@ function avg(values: (number | null)[]): number | null {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
+// Het readiness-veld in intervals.icu is één veld waar elke wellness-bron z'n
+// eigen schaal in duwt. Garmin (Training Readiness), Oura en Whoop leveren
+// 0-100. Polar's Nightly Recharge komt binnen als kleine integer-schaal ("very
+// poor → very good"). Zonder correctie leest de app een Polar-"3" (Ok) als
+// "3 van de 100 = zwaar overtraind". Het lid kiest z'n apparaat in het profiel
+// zodat we de juiste interpretatie kunnen toepassen.
+export const WELLNESS_DEVICES = [
+  "garmin",
+  "polar",
+  "oura",
+  "whoop",
+  "coros",
+  "suunto",
+  "other",
+] as const;
+export type WellnessDevice = (typeof WELLNESS_DEVICES)[number];
+
+// Polar Nightly Recharge status is een officiële 6-staps schaal:
+// 1 very poor · 2 poor · 3 compromised · 4 OK · 5 good · 6 very good.
+// We rekenen die om naar de 0-100 range waarop summarizeTrainingReadiness/ZWB
+// rekent (≤50 vermoeid, ≥75 fris), zodat een "OK" (4 → 62) niet langer als
+// 4/100 = overtraind leest. Waarden buiten 1..6 worden geclamped.
+const POLAR_READINESS_TO_100: Record<number, number> = {
+  1: 15,
+  2: 30,
+  3: 45,
+  4: 62,
+  5: 78,
+  6: 90,
+};
+
+function normalizeReadiness(
+  raw: number,
+  device?: WellnessDevice | null,
+): number {
+  if (device === "polar") {
+    const step = Math.min(6, Math.max(1, Math.round(raw)));
+    return POLAR_READINESS_TO_100[step];
+  }
+  return raw; // garmin/oura/whoop/coros/suunto/other/onbekend = al 0-100
+}
+
 /**
  * Vat de laatste 7 dagen herstel samen + bepaalt een grove "state" door de
  * recente HRV/rust-HR te vergelijken met de baseline van het hele venster.
+ * `device` bepaalt hoe de readiness-schaal geïnterpreteerd wordt (zie boven).
  */
-export function summarizeWellness(rows: WellnessRow[]): WellnessSummary | null {
+export function summarizeWellness(
+  rows: WellnessRow[],
+  device?: WellnessDevice | null,
+): WellnessSummary | null {
   if (rows.length === 0) return null;
   const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date)); // nieuwste eerst
   const last7 = sorted.slice(0, 7);
@@ -113,7 +159,9 @@ export function summarizeWellness(rows: WellnessRow[]): WellnessSummary | null {
   const restingHr = avg(last7.map((r) => r.resting_hr));
   const hrv = avg(last7.map((r) => r.hrv));
   const sleepSecs = avg(last7.map((r) => r.sleep_secs));
-  const readiness = sorted.find((r) => r.readiness != null)?.readiness ?? null;
+  const rawReadiness = sorted.find((r) => r.readiness != null)?.readiness ?? null;
+  const readiness =
+    rawReadiness == null ? null : normalizeReadiness(rawReadiness, device);
   const sleepHours = sleepSecs != null ? sleepSecs / 3600 : null;
 
   // Baseline over het hele venster voor HRV + rust-HR.
@@ -149,6 +197,9 @@ export function summarizeWellness(rows: WellnessRow[]): WellnessSummary | null {
       notes.push(`Readiness middelmatig (${Math.round(readiness)}).`);
     } else if (readiness >= 75 && state === "unknown") {
       state = "fresh";
+    }
+    if (device === "polar") {
+      notes.push("Readiness omgerekend van Polar's Nightly Recharge-schaal naar 0-100.");
     }
   }
   if (sleepHours != null && sleepHours < 6.5) {
@@ -305,13 +356,23 @@ export async function getWellnessSummary(
   const oldest = new Date(Date.now() - days * 86400_000)
     .toISOString()
     .slice(0, 10);
-  const { data } = await supabase
-    .from("profile_wellness")
-    .select(
-      "date, resting_hr, hrv, sleep_secs, sleep_score, readiness, fatigue, stress, soreness, mood",
-    )
-    .eq("profile_id", profileId)
-    .gte("date", oldest)
-    .order("date", { ascending: false });
-  return summarizeWellness((data ?? []) as WellnessRow[]);
+  const [{ data }, { data: profile }] = await Promise.all([
+    supabase
+      .from("profile_wellness")
+      .select(
+        "date, resting_hr, hrv, sleep_secs, sleep_score, readiness, fatigue, stress, soreness, mood",
+      )
+      .eq("profile_id", profileId)
+      .gte("date", oldest)
+      .order("date", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("wellness_device")
+      .eq("id", profileId)
+      .maybeSingle(),
+  ]);
+  return summarizeWellness(
+    (data ?? []) as WellnessRow[],
+    (profile?.wellness_device ?? null) as WellnessDevice | null,
+  );
 }

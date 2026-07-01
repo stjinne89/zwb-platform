@@ -58,6 +58,7 @@ import {
 import {
   summarizeWellness,
   summarizeTrainingReadiness,
+  type WellnessDevice,
   type WellnessSummary,
 } from "@/lib/training/wellness";
 import { zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
@@ -71,6 +72,7 @@ type ProfileRow = {
   weight_kg: number | string | null;
   zrl_category: string | null;
   zrl_division: string | null;
+  wellness_device: string | null;
   community_roles?: string[] | null;
 };
 
@@ -1405,7 +1407,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division")
+      .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, wellness_device")
       .eq("id", user.id)
       .single(),
     supabase
@@ -1491,6 +1493,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             soreness: w.soreness ?? null,
             mood: w.mood ?? null,
           })),
+          (myProfile?.wellness_device ?? null) as WellnessDevice | null,
         )
       : null;
   const eftpFirst = wellnessSorted.find((w) => w.eftp)?.eftp;
@@ -1590,7 +1593,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         await Promise.all([
           supabase
             .from("profiles")
-            .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division")
+            .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, wellness_device")
             .in("id", athleteIds),
           supabase
             .from("training_goals")
@@ -1692,6 +1695,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   soreness: w.soreness ?? null,
                   mood: w.mood ?? null,
                 })),
+                (coachProfiles.get(connection.profile_id)?.wellness_device ??
+                  null) as WellnessDevice | null,
               );
               coachWellness.set(connection.profile_id, {
                 optedIn: true,

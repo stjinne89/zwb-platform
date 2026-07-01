@@ -7,6 +7,7 @@ import {
   summarizeTrainingReadiness,
   summarizeWellness,
   type TrainingReadinessSummary,
+  type WellnessDevice,
   type WellnessSummary,
 } from "@/lib/training/wellness";
 
@@ -182,7 +183,12 @@ export function computeZwbStatus(
   {
     wellnessOptIn,
     zrlDivision,
-  }: { wellnessOptIn: boolean; zrlDivision?: string | null },
+    wellnessDevice,
+  }: {
+    wellnessOptIn: boolean;
+    zrlDivision?: string | null;
+    wellnessDevice?: WellnessDevice | null;
+  },
 ): ZwbStatus {
   const sorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
   const latest = sorted[sorted.length - 1];
@@ -206,6 +212,7 @@ export function computeZwbStatus(
             soreness: w.soreness ?? null,
             mood: w.mood ?? null,
           })),
+          wellnessDevice,
         )
       : null;
 

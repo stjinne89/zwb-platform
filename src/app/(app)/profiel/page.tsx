@@ -65,7 +65,7 @@ export default async function ProfielPage() {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, mywhoosh_id, strava_id, zrl_category, zrl_division, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
+        "id, display_name, region, zwift_id, mywhoosh_id, strava_id, zrl_category, zrl_division, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
       )
       .eq("id", user.id)
       .single(),
@@ -154,6 +154,7 @@ export default async function ProfielPage() {
           strava_id: profile?.strava_id ?? "",
           zrl_category: profile?.zrl_category ?? "",
           zrl_division: profile?.zrl_division ?? "open",
+          wellness_device: profile?.wellness_device ?? "",
           ftp_watts: profile?.ftp_watts?.toString() ?? "",
           weight_kg: profile?.weight_kg?.toString() ?? "",
           bio: profile?.bio ?? "",

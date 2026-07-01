@@ -3,6 +3,7 @@ import { Activity, CalendarClock, Dumbbell, Gauge, HeartPulse } from "lucide-rea
 import { InlineMoreLink, SectionHeader } from "@/components/app-ui";
 import { fetchIntervalsWellness, type IntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
+import type { WellnessDevice } from "@/lib/training/wellness";
 import {
   INTENSITY_COLORS,
   INTENSITY_LABELS,
@@ -50,10 +51,12 @@ export async function TrainingStatus({
   conn,
   nextWorkout,
   zrlDivision,
+  wellnessDevice,
 }: {
   conn: TrainingStatusConn | null;
   nextWorkout: TrainingStatusWorkout | null;
   zrlDivision: string | null;
+  wellnessDevice: WellnessDevice | null;
 }) {
   let wellness: IntervalsWellness[] = [];
   if (conn?.api_key && conn.athlete_id) {
@@ -67,6 +70,7 @@ export async function TrainingStatus({
   const status = computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
     zrlDivision,
+    wellnessDevice,
   });
   const { advice, ctl, tsb, recoverySummary } = status;
   const hasMetrics = ctl != null || tsb != null || recoverySummary != null;

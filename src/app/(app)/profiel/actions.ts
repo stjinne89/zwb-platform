@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
+import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -50,6 +51,12 @@ export async function updateProfile(formData: FormData) {
       ? zrlDivisionRaw
       : "open";
 
+  const wellnessDeviceRaw = optionalString(formData.get("wellness_device"));
+  const wellness_device =
+    wellnessDeviceRaw && (WELLNESS_DEVICES as readonly string[]).includes(wellnessDeviceRaw)
+      ? wellnessDeviceRaw
+      : null;
+
   const ftp = optionalNumber(formData.get("ftp_watts"));
   const weight = optionalNumber(formData.get("weight_kg"));
   const birthDateRaw = optionalString(formData.get("birth_date"));
@@ -88,6 +95,7 @@ export async function updateProfile(formData: FormData) {
       strava_id: optionalString(formData.get("strava_id")),
       zrl_category,
       zrl_division,
+      wellness_device,
       ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
       weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
       bio: optionalString(formData.get("bio")),

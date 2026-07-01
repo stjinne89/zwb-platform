@@ -32,6 +32,7 @@ import {
   type TrainingStatusConn,
   type TrainingStatusWorkout,
 } from "./_components/training-status";
+import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
 
 const CYCLING_SPORTS = [
@@ -289,7 +290,7 @@ export default async function DashboardPage() {
     user
       ? supabase
           .from("profiles")
-          .select("display_name, zrl_division")
+          .select("display_name, zrl_division, wellness_device")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -523,6 +524,9 @@ export default async function DashboardPage() {
     ((nextWorkoutRows ?? [])[0] ?? null) as TrainingStatusWorkout | null;
   const zrlDivision =
     (profile as { zrl_division?: string | null } | null)?.zrl_division ?? null;
+  const wellnessDevice =
+    ((profile as { wellness_device?: string | null } | null)?.wellness_device ??
+      null) as WellnessDevice | null;
   const showTraining = Boolean(conn) || Boolean(nextWorkout);
 
   return (
@@ -538,6 +542,7 @@ export default async function DashboardPage() {
             conn={conn}
             nextWorkout={nextWorkout}
             zrlDivision={zrlDivision}
+            wellnessDevice={wellnessDevice}
           />
         </Suspense>
       )}

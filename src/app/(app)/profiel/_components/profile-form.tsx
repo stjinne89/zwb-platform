@@ -13,6 +13,7 @@ type Initial = {
   strava_id: string;
   zrl_category: string;
   zrl_division: string;
+  wellness_device: string;
   ftp_watts: string;
   weight_kg: string;
   bio: string;
@@ -26,6 +27,15 @@ const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 const LABEL = "mb-1 block text-sm font-medium";
+
+const WELLNESS_DEVICE_OPTIONS = [
+  { value: "garmin", label: "Garmin" },
+  { value: "polar", label: "Polar" },
+  { value: "oura", label: "Oura" },
+  { value: "whoop", label: "Whoop" },
+  { value: "coros", label: "Coros" },
+  { value: "suunto", label: "Suunto" },
+] as const;
 
 const VISIBILITY_FIELDS = [
   { key: "avatar", label: "Profielfoto" },
@@ -218,6 +228,27 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               </span>
             </span>
           </label>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Herstel
+        </h2>
+        <div>
+          <label className={LABEL}>Wellness-apparaat</label>
+          <select
+            name="wellness_device"
+            defaultValue={initial.wellness_device}
+            className={FIELD}
+          >
+            <option value="">Anders / weet ik niet</option>
+            {WELLNESS_DEVICE_OPTIONS.map((device) => (
+              <option key={device.value} value={device.value}>
+                {device.label}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
 
