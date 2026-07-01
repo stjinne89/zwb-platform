@@ -15,6 +15,12 @@ export type MemberAwardBadge = {
   color: string | null;
 };
 
+export type MemberZwb = {
+  level: number;
+  ring: string;
+  title: string;
+};
+
 export type MemberListProfile = {
   id: string;
   display_name: string;
@@ -24,6 +30,7 @@ export type MemberListProfile = {
   avatar_url: string | null;
   is_admin: boolean;
   community_roles: string[] | null;
+  zwb: MemberZwb | null;
   awards: MemberAwardBadge[];
 };
 
@@ -149,8 +156,17 @@ export function MemberList({
               <div className="flex min-w-0 gap-3">
                 <Link
                   href={`/leden/${p.id}`}
-                  className="mt-0.5 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zwb-petrol text-xs font-semibold text-white"
-                  aria-label={`Bekijk profiel van ${p.display_name}`}
+                  className={`mt-0.5 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zwb-petrol text-xs font-semibold text-white ${
+                    p.zwb
+                      ? `ring-2 ring-offset-2 ring-offset-card ${p.zwb.ring}`
+                      : ""
+                  }`}
+                  aria-label={
+                    p.zwb
+                      ? `Bekijk profiel van ${p.display_name} — ZWBeterWorden: ${p.zwb.title}`
+                      : `Bekijk profiel van ${p.display_name}`
+                  }
+                  title={p.zwb ? `ZWBeterWorden: ${p.zwb.title}` : undefined}
                 >
                   {p.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element

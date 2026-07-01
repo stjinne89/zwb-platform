@@ -17,38 +17,45 @@ export type ZwbAdvice = {
   description: string;
   pill: string;
   block: string;
+  ring: string;
 };
 
 // Statische opmaak per niveau (titel + kleuren). De teksten staan los, zodat we
-// er per niveau 10 varianten van hebben die per dag wisselen.
+// er per niveau 10 varianten van hebben die per dag wisselen. `ring` is de
+// randkleur om de profielfoto in de ledenlijst (zelfde kleur als pill/block).
 export const ZWB_LEVEL_META: Record<
   1 | 2 | 3 | 4 | 5,
-  { title: string; pill: string; block: string }
+  { title: string; pill: string; block: string; ring: string }
 > = {
   1: {
     title: "DOE NIKS",
     pill: "bg-destructive/20 text-destructive",
     block: "border border-destructive/40 bg-destructive/10",
+    ring: "ring-destructive",
   },
   2: {
     title: "RICHT OP HERSTEL",
     pill: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
     block: "border border-orange-500/40 bg-orange-500/10",
+    ring: "ring-orange-500",
   },
   3: {
     title: "ALLEEN DUUR",
     pill: "bg-zwb-petrol text-white",
     block: "border border-zwb-petrol/50 bg-zwb-petrol/10",
+    ring: "ring-zwb-petrol",
   },
   4: {
     title: "FRIS GENOEG",
     pill: "bg-zwb-teal text-white",
     block: "border border-zwb-teal/50 bg-zwb-teal/10",
+    ring: "ring-zwb-teal",
   },
   5: {
     title: "BETER WORDT HET NIET",
     pill: "bg-zwb-gold text-white",
     block: "border border-zwb-gold/50 bg-zwb-gold/10",
+    ring: "ring-zwb-gold",
   },
 };
 
@@ -148,6 +155,7 @@ export function zwbeterWordenAdvice(
         "Deel je herstel-data (slaap/HRV) en koppel intervals.icu, dan verschijnt hier je ZWBeterWorden-advies.",
       pill: "bg-muted text-muted-foreground",
       block: "border bg-background",
+      ring: "",
     };
   }
   let level: 1 | 2 | 3 | 4 | 5;

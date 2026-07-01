@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
@@ -9,8 +10,12 @@ import {
   MemberList,
   type MemberAwardBadge,
   type MemberListProfile,
+  type MemberZwb,
 } from "./_components/member-list";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
+import { fetchIntervalsWellness } from "@/lib/intervals/client";
+import { computeZwbStatus } from "@/lib/training/zwbeterworden";
+import type { WellnessDevice } from "@/lib/training/wellness";
 
 type Profile = {
   id: string;
@@ -18,6 +23,8 @@ type Profile = {
   region: string | null;
   zwift_id: string | null;
   zrl_category: string | null;
+  zrl_division: string | null;
+  wellness_device: string | null;
   avatar_url: string | null;
   is_approved: boolean;
   is_admin: boolean;
@@ -92,7 +99,7 @@ export default async function LedenPage() {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, zrl_category, avatar_url, is_approved, is_admin, community_roles, created_at",
+        "id, display_name, region, zwift_id, zrl_category, zrl_division, wellness_device, avatar_url, is_approved, is_admin, community_roles, created_at",
       )
       .order("display_name"),
     supabase
@@ -125,6 +132,50 @@ export default async function LedenPage() {
     if (current.length < 3) current.push(award);
     awardsByProfile.set(award.profile_id, current);
   }
+
+  // ZWBeterWorden-ring per lid dat intervals.icu heeft gekoppeld. De kleur volgt
+  // hetzelfde niveau als in het trainingsblok (belasting + gedeeld herstel).
+  // Andermans intervals-koppeling valt buiten RLS, dus via de service-role.
+  const zwbByProfile = new Map<string, MemberZwb>();
+  const profileById = new Map(profileList.map((p) => [p.id, p]));
+  const admin = createAdminClient();
+  const { data: connections } = await admin
+    .from("intervals_connections")
+    .select("profile_id, api_key, athlete_id, wellness_opt_in")
+    .in(
+      "profile_id",
+      profileList.map((p) => p.id),
+    );
+  await Promise.all(
+    (
+      (connections ?? []) as Array<{
+        profile_id: string;
+        api_key: string | null;
+        athlete_id: string | null;
+        wellness_opt_in: boolean | null;
+      }>
+    ).map(async (conn) => {
+      if (!conn.api_key || !conn.athlete_id) return;
+      try {
+        const wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
+        const prof = profileById.get(conn.profile_id);
+        const { advice } = computeZwbStatus(wellness, {
+          wellnessOptIn: Boolean(conn.wellness_opt_in),
+          zrlDivision: prof?.zrl_division ?? null,
+          wellnessDevice: (prof?.wellness_device ?? null) as WellnessDevice | null,
+        });
+        if (advice.level > 0) {
+          zwbByProfile.set(conn.profile_id, {
+            level: advice.level,
+            ring: advice.ring,
+            title: advice.title,
+          });
+        }
+      } catch {
+        // intervals.icu onbereikbaar voor dit lid → geen ring
+      }
+    }),
+  );
 
   const myClaimed = rosterList.filter((r) => r.claimed_by === user.id);
   const unclaimed = rosterList.filter((r) => r.claimed_by === null);
@@ -230,6 +281,7 @@ export default async function LedenPage() {
           avatar_url: p.avatar_url,
           is_admin: p.is_admin,
           community_roles: p.community_roles,
+          zwb: zwbByProfile.get(p.id) ?? null,
           awards: (awardsByProfile.get(p.id) ?? [])
             .map((a) => {
               const badge = Array.isArray(a.achievement_badges)
