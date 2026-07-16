@@ -215,7 +215,7 @@ export default async function WelkomPage() {
     },
     {
       title: "Strava koppelen of importeren",
-      text: "Koppel Strava voor automatische sync, of importeer activities.csv op Achievements als koppelen niet lukt.",
+      text: "Koppel Strava voor automatische sync, of importeer je ritten (activities.csv of GPX) op Achievements als koppelen niet lukt.",
       href: strava ? "/profiel#strava" : "/achievements",
       action: strava
         ? "Strava bekijken"

@@ -35,7 +35,7 @@ const START_STEPS = [
   },
   {
     title: "Strava-data toevoegen",
-    text: "Koppel Strava met activiteitenrecht of importeer activities.csv via Achievements.",
+    text: "Koppel Strava met activiteitenrecht of importeer je ritten (CSV of GPX) via Achievements.",
     href: "/achievements",
   },
   {
@@ -99,7 +99,7 @@ const GUIDES = [
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
-      "Zonder Strava-koppeling kun je activities.csv uit je Strava-export importeren op Achievements.",
+      "Zonder Strava-koppeling importeer je op Achievements je hele historie (activities.csv) of één rit (GPX).",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
     ],
@@ -154,7 +154,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
-  { href: "/achievements", name: "Achievements", text: "Al je badges. Sync Strava, importeer activities.csv of herbereken badges." },
+  { href: "/achievements", name: "Achievements", text: "Al je badges. Sync Strava, importeer je ritten (CSV/GPX) of herbereken badges." },
   { href: "/training", name: "Training", text: "Schema's, AI-coach, je ZWBeterWorden-advies en de koppelingen." },
   { href: "/training/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/onderhoud", name: "Onderhoud", text: "Slijtage van je onderdelen op basis van je Strava-kilometers, met een melding bij vervangen." },
@@ -319,7 +319,7 @@ const ADMIN_GUIDES = [
 ];
 
 const TROUBLESHOOTING = [
-  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv op Achievements.",
+  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op Achievements.",
   "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of Achievements en zet het activiteitenvinkje aan.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
@@ -484,38 +484,94 @@ export default function HelpPage() {
         <header className="flex items-start gap-2">
           <Download className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">Strava-export importeren</h2>
+            <h2 className="font-semibold">Strava-ritten importeren zonder koppeling</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Geen plek voor een Strava-koppeling? Importeer je Strava-archief op
-              Achievements.
+              Geen plek voor een Strava-koppeling of wil je die niet gebruiken?
+              Upload je ritten dan zelf op Achievements: je hele historie in
+              één keer via activities.csv, of losse ritten via GPX.
             </p>
           </div>
         </header>
-        <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
-          <li className="flex gap-2">
-            <span className="font-semibold text-foreground">1.</span>
-            <span>
-              Vraag op{" "}
-              <a
-                href="https://www.strava.com/athlete/download_my_account"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                Strava.com je accountdownload
-              </a>{" "}
-              aan.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="font-semibold text-foreground">2.</span>
-            <span>Pak de download uit en kies activities.csv.</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="font-semibold text-foreground">3.</span>
-            <span>Upload dat bestand op Achievements met Importeer CSV.</span>
-          </li>
-        </ol>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Hele historie (activities.csv)</h3>
+            <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">1.</span>
+                <span>
+                  Vraag op{" "}
+                  <a
+                    href="https://www.strava.com/athlete/download_my_account"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Strava.com je accountdownload
+                  </a>{" "}
+                  aan (Instellingen → Mijn account → Download of verwijder je
+                  account → Verzoek je archief).
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">2.</span>
+                <span>
+                  Strava mailt je (soms pas na een paar uur) een link naar een
+                  ZIP-archief.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">3.</span>
+                <span>
+                  Pak de ZIP uit. Het bestand activities.csv staat in de
+                  hoofdmap van het archief.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">4.</span>
+                <span>
+                  Upload activities.csv op Achievements met Importeer CSV of
+                  GPX.
+                </span>
+              </li>
+            </ol>
+            <p className="mt-3 text-xs text-muted-foreground">
+              De taal van je Strava-account maakt niet uit — Nederlandse,
+              Engelse en andere kolomnamen worden herkend. Alleen fietsritten
+              (ook virtueel, gravel, MTB en e-bike) worden geïmporteerd; de
+              rest wordt automatisch overgeslagen. Opnieuw importeren kan
+              altijd, ritten worden niet dubbel geteld.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Eén rit (GPX)</h3>
+            <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">1.</span>
+                <span>Open je rit op Strava.com (website, niet de app).</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">2.</span>
+                <span>
+                  Klik op het moersleutel-icoon (⋯) links en kies Exporteer
+                  GPX.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">3.</span>
+                <span>
+                  Upload het GPX-bestand op Achievements met Importeer CSV of
+                  GPX.
+                </span>
+              </li>
+            </ol>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Gebruik de GPX van een gereden rit (met tijden), geen route-GPX.
+              Afstand, hoogtemeters en rijtijd worden uit het bestand berekend.
+              Herhaal dit per rit; dezelfde rit twee keer uploaden is geen
+              probleem.
+            </p>
+          </article>
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <a
             href="https://www.strava.com/athlete/download_my_account"

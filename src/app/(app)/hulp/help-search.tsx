@@ -25,10 +25,11 @@ const HELP_INDEX: HelpResult[] = [
     terms: "strava opnieuw koppelen activiteitenrecht activity read vinkje toestemming ritten badges stats",
   },
   {
-    title: "Strava CSV importeren",
-    text: "Importeer activities.csv uit je Strava-export op Achievements.",
+    title: "Strava-ritten importeren (CSV of GPX)",
+    text: "Importeer je hele historie (activities.csv) of één rit (GPX) op Achievements.",
     href: "/hulp#strava-import",
-    terms: "strava export csv activities importeren upload bestand geen koppeling limiet",
+    terms:
+      "strava export csv activities importeren upload bestand geen koppeling limiet gpx een rit losse rit bulk archief taal geen fietsritten gevonden",
   },
   {
     title: "Badges en achievements",

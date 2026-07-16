@@ -7,9 +7,14 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
-import { stravaActivitiesFromCsv } from "@/lib/strava/import";
+import {
+  stravaActivitiesFromCsv,
+  stravaActivityFromGpx,
+  type ImportedStravaActivity,
+} from "@/lib/strava/import";
 
 const STRAVA_CSV_MAX_BYTES = 10 * 1024 * 1024;
+const STRAVA_GPX_MAX_BYTES = 25 * 1024 * 1024;
 
 export async function syncMyStravaActivities(
   options: {
@@ -178,7 +183,7 @@ export async function recomputeMyMilestoneBadges() {
   }
 }
 
-export async function importMyStravaCsv(formData: FormData) {
+export async function importMyStravaFile(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -188,10 +193,15 @@ export async function importMyStravaCsv(formData: FormData) {
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false as const, error: "Kies activities.csv." };
+    return {
+      ok: false as const,
+      error: "Kies activities.csv of een GPX-bestand.",
+    };
   }
-  if (file.size > STRAVA_CSV_MAX_BYTES) {
-    return { ok: false as const, error: "CSV is te groot." };
+  const isGpx =
+    /\.gpx$/i.test(file.name) || /xml|gpx/i.test(file.type);
+  if (file.size > (isGpx ? STRAVA_GPX_MAX_BYTES : STRAVA_CSV_MAX_BYTES)) {
+    return { ok: false as const, error: "Bestand is te groot." };
   }
 
   try {
@@ -202,21 +212,42 @@ export async function importMyStravaCsv(formData: FormData) {
       .maybeSingle();
 
     const text = await file.text();
-    const imported = stravaActivitiesFromCsv(
-      text,
-      user.id,
-      connection?.strava_athlete_id,
-    );
 
-    if (imported.rows.length === 0) {
-      return {
-        ok: false as const,
-        error: "Geen fietsritten gevonden in deze CSV.",
-      };
+    let rows: ImportedStravaActivity[];
+    let skippedRows = 0;
+    let skippedNonCycling = 0;
+
+    if (isGpx || /^\s*(?:<\?xml|<gpx)/i.test(text.slice(0, 300))) {
+      const result = stravaActivityFromGpx(
+        text,
+        user.id,
+        connection?.strava_athlete_id,
+      );
+      if (!result.ok) return { ok: false as const, error: result.error };
+      rows = [result.row];
+    } else {
+      const imported = stravaActivitiesFromCsv(
+        text,
+        user.id,
+        connection?.strava_athlete_id,
+      );
+
+      if (imported.rows.length === 0) {
+        return {
+          ok: false as const,
+          error:
+            imported.totalRows === 0
+              ? "Geen activiteiten gevonden. Gebruik activities.csv uit je Strava-export."
+              : `Geen fietsritten gevonden in deze CSV (${imported.totalRows} regels gelezen). Gebruik activities.csv uit je Strava-export; zie de hulp-pagina.`,
+        };
+      }
+      rows = imported.rows;
+      skippedRows = imported.skippedRows;
+      skippedNonCycling = imported.skippedNonCycling;
     }
 
-    for (let index = 0; index < imported.rows.length; index += 500) {
-      const batch = imported.rows.slice(index, index + 500);
+    for (let index = 0; index < rows.length; index += 500) {
+      const batch = rows.slice(index, index + 500);
       const { error } = await supabase
         .from("strava_activities")
         .upsert(batch, { onConflict: "id" });
@@ -238,9 +269,9 @@ export async function importMyStravaCsv(formData: FormData) {
 
     return {
       ok: true as const,
-      imported: imported.rows.length,
-      skippedRows: imported.skippedRows,
-      skippedNonCycling: imported.skippedNonCycling,
+      imported: rows.length,
+      skippedRows,
+      skippedNonCycling,
       milestoneAwards: milestones.awarded,
       milestoneErrors: milestones.errors,
       weekAwards: weekAwards.awarded,
@@ -249,9 +280,7 @@ export async function importMyStravaCsv(formData: FormData) {
     return {
       ok: false as const,
       error:
-        err instanceof Error
-          ? err.message
-          : "Strava CSV importeren faalde.",
+        err instanceof Error ? err.message : "Strava-import faalde.",
     };
   }
 }
