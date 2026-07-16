@@ -13,8 +13,8 @@ import {
   type ImportedStravaActivity,
 } from "@/lib/strava/import";
 
-const STRAVA_CSV_MAX_BYTES = 10 * 1024 * 1024;
-const STRAVA_GPX_MAX_BYTES = 25 * 1024 * 1024;
+// Gelijk aan serverActions.bodySizeLimit in next.config.ts.
+const STRAVA_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 export async function syncMyStravaActivities(
   options: {
@@ -200,8 +200,8 @@ export async function importMyStravaFile(formData: FormData) {
   }
   const isGpx =
     /\.gpx$/i.test(file.name) || /xml|gpx/i.test(file.type);
-  if (file.size > (isGpx ? STRAVA_GPX_MAX_BYTES : STRAVA_CSV_MAX_BYTES)) {
-    return { ok: false as const, error: "Bestand is te groot." };
+  if (file.size > STRAVA_UPLOAD_MAX_BYTES) {
+    return { ok: false as const, error: "Bestand is te groot (max 10 MB)." };
   }
 
   try {

@@ -39,6 +39,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // De Strava-import (activities.csv / GPX-rit) upload via een Server
+      // Action; de standaardlimiet van 1 MB is daarvoor te krap. Let op:
+      // Netlify Functions kennen zelf een payload-limiet van ~6 MB.
+      bodySizeLimit: "10mb",
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
