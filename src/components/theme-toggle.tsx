@@ -12,7 +12,9 @@ export function ThemeToggle() {
       type="button"
       variant="ghost"
       size="sm"
-      aria-label={isDark ? "Schakel naar lichte modus" : "Schakel naar donkere modus"}
+      // Themaneutraal label: het thema is pas op de client bekend en een
+      // thema-afhankelijk label geeft een hydration-mismatch.
+      aria-label="Wissel tussen licht en donker thema"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className="px-2"
     >
