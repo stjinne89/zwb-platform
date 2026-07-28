@@ -33,7 +33,7 @@ export default async function AppLayout({
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <header className="relative border-b border-border/80 bg-background/88 backdrop-blur">
-        <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2.5 md:gap-6">
+        <nav className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 md:gap-6">
           <Link
             href="/dashboard"
             className="flex shrink-0 items-center"
@@ -64,7 +64,7 @@ export default async function AppLayout({
           </div>
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
     </div>
   );
 }

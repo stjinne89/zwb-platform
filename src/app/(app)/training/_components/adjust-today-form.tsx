@@ -2,8 +2,9 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Moon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { markTodayRestDay } from "../_actions";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -117,6 +118,27 @@ export function AdjustTodayForm() {
     }
   }
 
+  async function restDay(form: HTMLFormElement | null) {
+    setError(null);
+    setResult(null);
+    setSubmitting(true);
+    try {
+      const formData = form ? new FormData(form) : new FormData();
+      const outcome = await markTodayRestDay(formData);
+      if (!outcome.ok) {
+        setError(outcome.error);
+        return;
+      }
+      setResult("Rustdag genoteerd — de training van vandaag is vervallen.");
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Rustdag opslaan is mislukt.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (!open) {
     return (
       <div className="rounded-lg border bg-card p-4">
@@ -191,9 +213,19 @@ export function AdjustTodayForm() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" disabled={busy}>
           {busy ? "Bezig…" : "Maak voorstel"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={(event) => restDay(event.currentTarget.form)}
+          disabled={busy}
+        >
+          <Moon data-icon="inline-start" />
+          Rustdag
         </Button>
         <Button
           type="button"

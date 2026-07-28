@@ -22,16 +22,13 @@ type IntervalsConnectionRow = {
   profile_id: string;
   athlete_id: string | null;
   api_key: string;
-  profiles?:
-    | {
-        ftp_watts?: number | null;
-        weight_kg?: number | string | null;
-      }
-    | Array<{
-        ftp_watts?: number | null;
-        weight_kg?: number | string | null;
-      }>
-    | null;
+  profiles?: ConnectionProfile | ConnectionProfile[] | null;
+};
+
+type ConnectionProfile = {
+  ftp_watts?: number | null;
+  weight_kg?: number | string | null;
+  auto_sync_physique?: boolean | null;
 };
 
 function connectionProfile(connection: IntervalsConnectionRow) {
@@ -243,6 +240,18 @@ async function syncOnePowerProfile(
     const hasCurve = Boolean(watts15s || watts30s || watts1m || watts2m || watts5m || watts10m || watts20m);
     const hasFallback = Boolean(payload.ftp_watts || payload.weight_kg);
 
+    // Opt-in: het lid laat FTP en gewicht in het profiel meelopen met intervals.
+    if (profile?.auto_sync_physique) {
+      const physique: Record<string, number> = {};
+      const syncedFtp = athleteDefaults.ftpWatts ?? latestWellnessValue(wellness, "eftp");
+      const syncedWeight = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
+      if (syncedFtp) physique.ftp_watts = Math.round(syncedFtp);
+      if (syncedWeight) physique.weight_kg = Math.round(syncedWeight * 10) / 10;
+      if (Object.keys(physique).length > 0) {
+        await supabase.from("profiles").update(physique).eq("id", connection.profile_id);
+      }
+    }
+
     const profileRow = {
       profile_id: connection.profile_id,
       athlete_id: athleteId,
@@ -303,7 +312,7 @@ export async function syncRiderPowerProfiles(scope: "self" | "all" = "self") {
   const db = syncAll ? createAdminClient() : supabase;
   let query = db
     .from("intervals_connections")
-    .select("profile_id, athlete_id, api_key, profiles(ftp_watts, weight_kg)");
+    .select("profile_id, athlete_id, api_key, profiles(ftp_watts, weight_kg, auto_sync_physique)");
 
   if (!syncAll) query = query.eq("profile_id", access.user.id);
 
@@ -339,5 +348,6 @@ export async function syncRiderPowerProfiles(scope: "self" | "all" = "self") {
   revalidatePath("/teams");
   revalidatePath("/dashboard");
   revalidatePath("/training/vermogen");
+  revalidatePath("/profiel");
   return { ok: true as const, synced, partial, failed, errors: errors.slice(0, 3) };
 }

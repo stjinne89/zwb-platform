@@ -5,16 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
+  deleteIntervalsWorkoutEvent,
   fetchIntervalsAthlete,
-  upsertIntervalsWorkoutEvent,
 } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import {
   blocksFromForm,
-  blocksToIntervalsText,
-  blocksToWorkoutDoc,
-  estimateTrainingLoad,
-  normalizeWorkoutBlocks,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -438,6 +435,77 @@ export async function updateWorkout(formData: FormData) {
   }
 }
 
+/**
+ * Rustdag: de renner heeft vandaag geen tijd of ruimte. De geplande workout
+ * vervalt en verdwijnt ook uit de intervals.icu-kalender.
+ */
+export async function markTodayRestDay(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const note = optionalString(formData.get("note"));
+
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+    const { data: workouts } = await admin
+      .from("training_workouts")
+      .select("id, trainer_id, intervals_event_id, status, scheduled_at")
+      .eq("profile_id", user.id)
+      .gte("scheduled_at", `${today}T00:00:00`)
+      .lt("scheduled_at", `${today}T23:59:59`)
+      .order("scheduled_at", { ascending: true });
+    const workout = (workouts ?? []).find((row) => row.status !== "skipped");
+    if (!workout) {
+      return { ok: false as const, error: "Er staat vandaag geen training gepland." };
+    }
+
+    const { error } = await admin
+      .from("training_workouts")
+      .update({ status: "skipped" })
+      .eq("id", workout.id);
+    if (error) throw new Error(error.message);
+
+    await admin.from("training_workout_reports").upsert(
+      {
+        workout_id: workout.id,
+        profile_id: user.id,
+        trainer_id: workout.trainer_id,
+        athlete_report: note ?? "Rustdag genomen.",
+        intervals_event_id: workout.intervals_event_id,
+        created_by: user.id,
+        updated_by: user.id,
+      },
+      { onConflict: "workout_id,profile_id" },
+    );
+
+    if (workout.intervals_event_id) {
+      const { data: conn } = await admin
+        .from("intervals_connections")
+        .select("api_key, athlete_id")
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      if (conn?.api_key && conn.athlete_id) {
+        await deleteIntervalsWorkoutEvent(
+          conn.api_key,
+          conn.athlete_id,
+          workout.intervals_event_id,
+        ).catch(() => null);
+      }
+      await admin
+        .from("training_workouts")
+        .update({ intervals_event_id: null, publish_status: "pending" })
+        .eq("id", workout.id);
+    }
+
+    revalidatePath("/training");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Rustdag opslaan faalde.",
+    };
+  }
+}
+
 export async function saveWorkoutReport(formData: FormData) {
   try {
     const { user } = await currentUser();
@@ -559,18 +627,11 @@ export async function publishTrainingPlan(formData: FormData) {
     const { user, access } = await currentUser();
     const planId = mustString(formData.get("plan_id"), "Schema");
     const admin = createAdminClient();
-    const [{ data: plan }, { data: workouts }] = await Promise.all([
-      admin
-        .from("training_plans")
-        .select("profile_id, status, parent_plan_id")
-        .eq("id", planId)
-        .single(),
-      admin
-        .from("training_workouts")
-        .select("*")
-        .eq("plan_id", planId)
-        .order("scheduled_at", { ascending: true }),
-    ]);
+    const { data: plan } = await admin
+      .from("training_plans")
+      .select("profile_id, status, parent_plan_id")
+      .eq("id", planId)
+      .single();
     if (!plan) throw new Error("Schema niet gevonden.");
     // Renner mag zijn EIGEN dag-aanpassing zelf publiceren (ook zonder rol).
     const ownAdaptation = plan.profile_id === user.id && plan.parent_plan_id != null;
@@ -588,68 +649,13 @@ export async function publishTrainingPlan(formData: FormData) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
-    const [{ data: conn }, { data: riderProfile }] = await Promise.all([
-      admin
-        .from("intervals_connections")
-        .select("api_key, athlete_id")
-        .eq("profile_id", plan.profile_id)
-        .maybeSingle(),
-      admin
-        .from("profiles")
-        .select("ftp_watts")
-        .eq("id", plan.profile_id)
-        .maybeSingle(),
-    ]);
-    if (!conn?.api_key || !conn?.athlete_id) {
+    const { connected, failed } = await pushPlanWorkoutsToIntervals(
+      admin,
+      planId,
+      plan.profile_id,
+    );
+    if (!connected) {
       throw new Error("Dit lid heeft intervals.icu nog niet gekoppeld.");
-    }
-    const riderFtp = riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null;
-
-    let failed = 0;
-    for (const workout of workouts ?? []) {
-      try {
-        const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity);
-        const intervalsText = blocksToIntervalsText(blocks);
-        const trainingLoad = estimateTrainingLoad(blocks);
-        const externalId =
-          workout.intervals_external_id ?? `zwb-${workout.id}`;
-        // intervals.icu parseert de description NIET server-side, dus moeten we
-        // zelf een geldig native workout_doc meesturen. Zonder steps bevat de
-        // FIT-export 0 stappen en weigeren Garmin/Wahoo het bestand als corrupt.
-        // De description (workout-tekst + prose) blijft staan voor leesbaarheid.
-        const workoutDoc = blocksToWorkoutDoc(blocks, riderFtp);
-        const event = await upsertIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, {
-          id: workout.intervals_event_id,
-          externalId,
-          startDateLocal: String(workout.scheduled_at).slice(0, 16),
-          name: workout.title,
-          description: [intervalsText, workout.description].filter(Boolean).join("\n\n"),
-          category: "WORKOUT",
-          type: "Ride",
-          target: "POWER",
-          trainingLoad,
-          durationMinutes: workout.duration_minutes,
-          workoutDoc,
-        });
-        await admin
-          .from("training_workouts")
-          .update({
-            intervals_event_id: String(event.id),
-            intervals_external_id: externalId,
-            publish_status: "published",
-            publish_error: null,
-          })
-          .eq("id", workout.id);
-      } catch (err) {
-        failed++;
-        await admin
-          .from("training_workouts")
-          .update({
-            publish_status: "failed",
-            publish_error: err instanceof Error ? err.message : "Publicatie faalde.",
-          })
-          .eq("id", workout.id);
-      }
     }
 
     if (failed === 0) {

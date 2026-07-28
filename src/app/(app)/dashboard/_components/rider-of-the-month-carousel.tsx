@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy, Bike, Clock, Mountain, Heart, type LucideIcon } from "lucide-react";
+import {
+  Trophy,
+  Bike,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Mountain,
+  Heart,
+  type LucideIcon,
+} from "lucide-react";
 
 export type RiderEntry = { name: string; value: string };
 export type RiderMetricSlide = {
@@ -24,15 +33,19 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
+  // index in de deps: na handmatig bladeren begint de rotatietijd opnieuw.
   useEffect(() => {
     if (paused || slides.length <= 1) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
     }, ROTATE_MS);
     return () => clearInterval(id);
-  }, [paused, slides.length]);
+  }, [paused, slides.length, index]);
 
   if (slides.length === 0) return null;
+
+  const step = (delta: number) =>
+    setIndex((i) => (i + delta + slides.length) % slides.length);
 
   const slide = slides[index];
   const Icon = ICONS[slide.key];
@@ -48,20 +61,42 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
           <Trophy className="size-4 text-primary" />
           Rider of the month
         </h3>
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="Maatstaf">
-          {slides.map((s, i) => (
+        <div className="flex items-center gap-1">
+          {slides.length > 1 && (
             <button
-              key={s.key}
               type="button"
-              role="tab"
-              aria-selected={i === index}
-              aria-label={s.label}
-              onClick={() => setIndex(i)}
-              className={`size-1.5 rounded-full transition-colors ${
-                i === index ? "bg-primary" : "bg-muted-foreground/30"
-              }`}
-            />
-          ))}
+              aria-label="Vorige maatstaf"
+              onClick={() => step(-1)}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+          )}
+          <div className="flex items-center gap-1.5 px-1" role="tablist" aria-label="Maatstaf">
+            {slides.map((s, i) => (
+              <button
+                key={s.key}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={s.label}
+                onClick={() => setIndex(i)}
+                className={`size-1.5 rounded-full transition-colors ${
+                  i === index ? "bg-primary" : "bg-muted-foreground/30"
+                }`}
+              />
+            ))}
+          </div>
+          {slides.length > 1 && (
+            <button
+              type="button"
+              aria-label="Volgende maatstaf"
+              onClick={() => step(1)}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          )}
         </div>
       </div>
 

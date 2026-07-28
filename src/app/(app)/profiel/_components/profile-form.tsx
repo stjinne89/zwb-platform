@@ -16,6 +16,7 @@ type Initial = {
   wellness_device: string;
   ftp_watts: string;
   weight_kg: string;
+  auto_sync_physique: boolean;
   bio: string;
   birth_date: string;
   share_birthday: boolean;
@@ -52,6 +53,7 @@ const VISIBILITY_FIELDS = [
 
 export function ProfileForm({ email, initial }: { email: string; initial: Initial }) {
   const [pending, startTransition] = useTransition();
+  const [autoSyncPhysique, setAutoSyncPhysique] = useState(initial.auto_sync_physique);
   const [status, setStatus] = useState<
     | { kind: "idle" }
     | { kind: "saved" }
@@ -188,7 +190,8 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               min={50}
               max={700}
               defaultValue={initial.ftp_watts}
-              className={FIELD}
+              readOnly={autoSyncPhysique}
+              className={`${FIELD} ${autoSyncPhysique ? "opacity-60" : ""}`}
             />
           </div>
           <div>
@@ -200,10 +203,21 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               min={30}
               max={200}
               defaultValue={initial.weight_kg}
-              className={FIELD}
+              readOnly={autoSyncPhysique}
+              className={`${FIELD} ${autoSyncPhysique ? "opacity-60" : ""}`}
             />
           </div>
         </div>
+        <label className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            name="auto_sync_physique"
+            checked={autoSyncPhysique}
+            onChange={(event) => setAutoSyncPhysique(event.target.checked)}
+            className="mt-0.5 size-4"
+          />
+          <span className="text-sm">Bijhouden vanuit intervals.icu</span>
+        </label>
         <div className="space-y-3 rounded-lg border bg-background p-3">
           <div>
             <label className={LABEL}>Geboortedatum</label>

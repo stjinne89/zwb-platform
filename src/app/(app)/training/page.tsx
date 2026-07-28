@@ -64,6 +64,7 @@ import {
   type WellnessSummary,
 } from "@/lib/training/wellness";
 import { zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
+import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 import { cn } from "@/lib/utils";
 
@@ -143,6 +144,7 @@ type WorkoutRow = {
   intensity: string;
   target_type: string;
   structure_json: Array<{ label?: string; durationMinutes?: number; target?: string; notes?: string; intensity?: string }> | null;
+  status: string;
   publish_status: string;
   publish_error: string | null;
   intervals_event_id: string | null;
@@ -1297,7 +1299,9 @@ function CoachWorkspace({
                     className="truncate text-sm font-medium"
                   />
                   <span className="text-xs text-muted-foreground">
-                    {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
+                    {workout.status === "skipped"
+                      ? "Rustdag"
+                      : `${workout.duration_minutes} min - ${INTENSITY_LABELS[workout.intensity] ?? workout.intensity}`}
                   </span>
                 </li>
               ))}
@@ -1542,7 +1546,22 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     .filter((e) => e.start_date_local >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
     .slice(0, 5);
-  const memberWorkouts = (myWorkouts ?? []) as WorkoutRow[];
+  // Verschoof het lid een workout in intervals.icu? Neem die datum over.
+  const rawMemberWorkouts = (myWorkouts ?? []) as WorkoutRow[];
+  const movedDates = events.length
+    ? await syncWorkoutDatesFromIntervals(admin, rawMemberWorkouts, events).catch(
+        () => new Map<string, string>(),
+      )
+    : new Map<string, string>();
+  const memberWorkouts = (
+    movedDates.size
+      ? rawMemberWorkouts.map((workout) =>
+          movedDates.has(workout.id)
+            ? { ...workout, scheduled_at: movedDates.get(workout.id)! }
+            : workout,
+        )
+      : rawMemberWorkouts
+  ).sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
   const myWorkoutsByPlan = byPlan(memberWorkouts);
   // Toon workouts van VANDAAG of later. Vergelijk op datum (Amsterdam), niet op
   // exact tijdstip — anders verdwijnt de training van vandaag zodra de klok het
@@ -1550,7 +1569,9 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const upcomingZwbMemberWorkouts = memberWorkouts
     .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
-  const nextZwbWorkout = upcomingZwbMemberWorkouts[0] ?? null;
+  // Een rustdag telt niet als eerstvolgende workout.
+  const nextZwbWorkout =
+    upcomingZwbMemberWorkouts.find((workout) => workout.status !== "skipped") ?? null;
   const nextIntervalsEvent = upcomingEvents[0] ?? null;
   const nextWorkout =
     nextZwbWorkout && nextIntervalsEvent
@@ -2038,7 +2059,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               <input name="target_date" type="date" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
             </label>
             <label className="text-sm">
-              Uren per week
+              Max. trainingsuren per week
               <input name="max_hours_per_week" type="number" min="1" max="30" step="0.5" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
             </label>
             <label className="text-sm">
@@ -2125,7 +2146,9 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                         ZWB-schema - {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
                       </p>
                     </div>
-                    <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {workout.status === "skipped" ? "Rustdag" : workout.publish_status}
+                    </span>
                   </div>
                   <WorkoutBlocks
                     blocks={normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity)}

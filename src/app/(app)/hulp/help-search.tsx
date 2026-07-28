@@ -62,6 +62,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
   },
   {
+    title: "Trainingsdoel en je schema",
+    text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
+    href: "/hulp#trainingsschema",
+    terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag aanpassen ai",
+  },
+  {
     title: "Training en intervals.icu",
     text: "Trainingsdashboard, hersteldata, workouts en trainer-toegang.",
     href: "/hulp#trainingsruimte",

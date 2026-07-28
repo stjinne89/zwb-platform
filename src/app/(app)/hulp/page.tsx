@@ -635,6 +635,55 @@ export default function HelpPage() {
       </section>
 
       <section
+        id="trainingsschema"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Trainingsdoel en je schema</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een schema begint bij een doel. Daarin leg je vast waar je naartoe
+              werkt en hoeveel ruimte je hebt.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Max. trainingsuren per week</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Dit is het plafond waarbinnen de AI je week vult, samen met de
+              dagen die je beschikbaar hebt gemaakt. Zet je 6 uur, dan blijft de
+              totale geplande tijd daaronder — ook in een zware blokweek. Het is
+              geen streefwaarde: minder plannen mag altijd.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">FTP en gewicht uit intervals.icu</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Zet je onder Profiel &rarr; Fysiek{" "}
+              <strong className="text-foreground">Bijhouden vanuit intervals.icu</strong>{" "}
+              aan, dan nemen we bij elke sync je eFTP en gewicht over en vervalt
+              de handmatige invoer. Die FTP bepaalt ook de targetwatts in je
+              workouts.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Met <strong className="text-foreground">Aanpassen</strong> op de
+              trainingspagina geef je door hoeveel tijd je vandaag hebt en hoe je
+              je voelt; de AI herschrijft de sessie van vandaag. Heb je helemaal
+              geen tijd, kies dan{" "}
+              <strong className="text-foreground">Rustdag</strong>: de training
+              van vandaag vervalt en verdwijnt ook uit intervals.icu.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section
         id="trainingsruimte"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >

@@ -425,6 +425,29 @@ export async function fetchIntervalsPowerCurve(
   return { period, points: deduped, ftpWatts, debug };
 }
 
+/** Haalt een gepland event weg uit de intervals.icu-kalender. */
+export async function deleteIntervalsWorkoutEvent(
+  apiKey: string,
+  athleteId: string,
+  eventId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/api/v1/athlete/${athleteId}/events/${eventId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: authHeader(apiKey),
+      Accept: "application/json",
+    },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  // 404 = al weg in intervals; dat is voor ons hetzelfde als geslaagd.
+  if (!res.ok && res.status !== 404) {
+    if (res.status === 401) throw new Error("intervals.icu API-key wordt afgewezen.");
+    const text = await res.text();
+    throw new Error(`intervals.icu ${res.status}: ${text.slice(0, 160)}`);
+  }
+}
+
 /** Maakt of wijzigt een gepland workout-event in intervals.icu. */
 export async function upsertIntervalsWorkoutEvent(
   apiKey: string,

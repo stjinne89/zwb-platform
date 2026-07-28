@@ -51,8 +51,11 @@ export default async function ProfielPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const PROFILE_COLUMNS =
+    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, zrl_category, zrl_division, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility";
+
   const [
-    { data: profile },
+    { data: profile, error: profileError },
     { data: awards },
     { data: stravaConn },
     { data: stravaUser },
@@ -64,9 +67,7 @@ export default async function ProfielPage() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select(
-        "id, display_name, region, zwift_id, mywhoosh_id, strava_id, zrl_category, zrl_division, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility",
-      )
+      .select(`${PROFILE_COLUMNS}, auto_sync_physique`)
       .eq("id", user.id)
       .single(),
     supabase
@@ -119,6 +120,17 @@ export default async function ProfielPage() {
       .order("distance_m", { ascending: false }),
   ]);
 
+  // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
+  const profileRow = profileError?.message.includes("auto_sync_physique")
+    ? (
+        await supabase
+          .from("profiles")
+          .select(PROFILE_COLUMNS)
+          .eq("id", user.id)
+          .single()
+      ).data
+    : profile;
+
   const bikeRows = (bikes ?? []) as StravaBikeRow[];
 
   const awardList = (awards ?? []) as unknown as AwardRow[];
@@ -131,14 +143,14 @@ export default async function ProfielPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <ProfileHeader
-        displayName={profile?.display_name ?? ""}
+        displayName={profileRow?.display_name ?? ""}
         email={user.email ?? ""}
-        region={profile?.region ?? null}
-        avatarUrl={(profile as { avatar_url?: string | null })?.avatar_url ?? null}
+        region={profileRow?.region ?? null}
+        avatarUrl={(profileRow as { avatar_url?: string | null })?.avatar_url ?? null}
         stravaUsername={stravaUser?.athlete_username ?? null}
         stravaConnected={Boolean(stravaConn)}
-        communityRoles={profile?.community_roles}
-        isAdmin={profile?.is_admin ?? false}
+        communityRoles={profileRow?.community_roles}
+        isAdmin={profileRow?.is_admin ?? false}
         earnedCount={earnedMilestoneIds.size}
         totalCount={milestones.length}
       />
@@ -146,24 +158,26 @@ export default async function ProfielPage() {
       <ProfileForm
         email={user.email ?? ""}
         initial={{
-          id: profile?.id ?? user.id,
-          display_name: profile?.display_name ?? "",
-          region: profile?.region ?? "",
-          zwift_id: profile?.zwift_id ?? "",
-          mywhoosh_id: profile?.mywhoosh_id ?? "",
-          strava_id: profile?.strava_id ?? "",
-          zrl_category: profile?.zrl_category ?? "",
-          zrl_division: profile?.zrl_division ?? "open",
-          wellness_device: profile?.wellness_device ?? "",
-          ftp_watts: profile?.ftp_watts?.toString() ?? "",
-          weight_kg: profile?.weight_kg?.toString() ?? "",
-          bio: profile?.bio ?? "",
-          birth_date: profile?.birth_date ?? "",
-          share_birthday: profile?.share_birthday ?? false,
-          public_profile_enabled: profile?.public_profile_enabled ?? false,
+          id: profileRow?.id ?? user.id,
+          display_name: profileRow?.display_name ?? "",
+          region: profileRow?.region ?? "",
+          zwift_id: profileRow?.zwift_id ?? "",
+          mywhoosh_id: profileRow?.mywhoosh_id ?? "",
+          strava_id: profileRow?.strava_id ?? "",
+          zrl_category: profileRow?.zrl_category ?? "",
+          zrl_division: profileRow?.zrl_division ?? "open",
+          wellness_device: profileRow?.wellness_device ?? "",
+          ftp_watts: profileRow?.ftp_watts?.toString() ?? "",
+          weight_kg: profileRow?.weight_kg?.toString() ?? "",
+          auto_sync_physique:
+            (profileRow as { auto_sync_physique?: boolean | null })?.auto_sync_physique ?? false,
+          bio: profileRow?.bio ?? "",
+          birth_date: profileRow?.birth_date ?? "",
+          share_birthday: profileRow?.share_birthday ?? false,
+          public_profile_enabled: profileRow?.public_profile_enabled ?? false,
           profile_visibility: {
             ...DEFAULT_VISIBILITY,
-            ...((profile?.profile_visibility as Record<string, boolean> | null) ??
+            ...((profileRow?.profile_visibility as Record<string, boolean> | null) ??
               {}),
           },
         }}
@@ -171,7 +185,7 @@ export default async function ProfielPage() {
 
       <AvatarUpload
         currentAvatarUrl={
-          (profile as { avatar_url?: string | null })?.avatar_url ?? null
+          (profileRow as { avatar_url?: string | null })?.avatar_url ?? null
         }
       />
 

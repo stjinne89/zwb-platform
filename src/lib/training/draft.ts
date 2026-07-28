@@ -18,6 +18,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
+import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
 
@@ -295,13 +296,36 @@ async function createPlanFromAiGeneration(
   const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
   if (workoutError) throw new Error(friendlyDbError(workoutError.message));
 
+  // Schema's die het lid zelf maakt (dag-aanpassing of zelf coachend) hoeven
+  // niet langs een trainer: die gaan direct door naar intervals.icu.
+  const selfManaged = isAdaptation || generation.trainer_id === generation.profile_id;
+  let autoPublished = false;
+  if (selfManaged) {
+    const push = await pushPlanWorkoutsToIntervals(admin, plan.id, generation.profile_id).catch(
+      () => null,
+    );
+    if (push?.connected && push.failed === 0) {
+      await admin
+        .from("training_plans")
+        .update({
+          status: "published",
+          published_by: generation.profile_id,
+          published_at: new Date().toISOString(),
+        })
+        .eq("id", plan.id);
+      autoPublished = true;
+    }
+  }
+
   await sendNotificationToMembers(
     "on_training_plan",
     {
       title: isAdaptation ? "Aangepast schema klaar" : "Nieuw trainingsconcept",
-      body: isAdaptation
-        ? "Je aangepaste schema van vandaag staat klaar als concept."
-        : "Je trainer heeft een nieuw conceptschema klaargezet.",
+      body: autoPublished
+        ? "Je schema staat klaar in ZWB en intervals.icu."
+        : isAdaptation
+          ? "Je aangepaste schema van vandaag staat klaar als concept."
+          : "Je trainer heeft een nieuw conceptschema klaargezet.",
       url: "/training",
       tag: `training-plan-${plan.id}`,
     },

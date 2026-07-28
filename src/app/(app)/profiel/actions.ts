@@ -59,6 +59,7 @@ export async function updateProfile(formData: FormData) {
 
   const ftp = optionalNumber(formData.get("ftp_watts"));
   const weight = optionalNumber(formData.get("weight_kg"));
+  const autoSyncPhysique = formData.get("auto_sync_physique") === "on";
   const birthDateRaw = optionalString(formData.get("birth_date"));
   const birthDate = birthDateRaw ? parseDateKey(birthDateRaw) : null;
   if (birthDateRaw && !birthDate) {
@@ -96,8 +97,15 @@ export async function updateProfile(formData: FormData) {
       zrl_category,
       zrl_division,
       wellness_device,
-      ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
-      weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
+      auto_sync_physique: autoSyncPhysique,
+      // Bij auto-sync blijven de bestaande waarden staan; de intervals-sync
+      // schrijft ze bij (de velden staan in het formulier op alleen-lezen).
+      ...(autoSyncPhysique
+        ? {}
+        : {
+            ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
+            weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
+          }),
       bio: optionalString(formData.get("bio")),
       birth_date: birthDate?.dateKey ?? null,
       share_birthday: shareBirthday,
