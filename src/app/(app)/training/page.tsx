@@ -85,6 +85,13 @@ import {
   suggestSegmentsForBlock,
   type SegmentCandidate,
 } from "@/lib/training/segment-suggestions";
+import {
+  ACTIVITY_SYNC_MAX_AGE_MS,
+  syncIntervalsActivities,
+  weeklyLoad,
+  type ActivityLoadRow,
+} from "@/lib/intervals/activities";
+import { ActivityLoadPanel } from "./_components/activity-load-panel";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 import { cn } from "@/lib/utils";
 
@@ -1557,10 +1564,39 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         fetchIntervalsEvents(conn.api_key, conn.athlete_id, 14),
       ]);
       intervalsFtp = athletePhysique(await athletePromise).ftpWatts;
+      // Belasting per rit bijwerken als de opgeslagen versie verouderd is.
+      const { data: newest } = await admin
+        .from("intervals_activities")
+        .select("synced_at")
+        .eq("profile_id", user.id)
+        .order("synced_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const staleSince = now.getTime() - ACTIVITY_SYNC_MAX_AGE_MS;
+      if (!newest || new Date(newest.synced_at).getTime() < staleSince) {
+        await syncIntervalsActivities(admin, {
+          profile_id: user.id,
+          athlete_id: conn.athlete_id,
+          api_key: conn.api_key,
+        }).catch(() => null);
+      }
     } catch (err) {
       fetchError = err instanceof Error ? err.message : "Onbekende fout.";
     }
   }
+
+  // Opgeslagen belasting per rit (leesbaar voor jezelf en je trainer via RLS).
+  const { data: activityLoadRows } = await supabase
+    .from("intervals_activities")
+    .select(
+      "intervals_id, start_date_local, name, type, moving_time_seconds, training_load, intensity, normalized_watts, kilojoules",
+    )
+    .eq("profile_id", user.id)
+    .order("start_date_local", { ascending: false })
+    .limit(400);
+  const activityLoad = (activityLoadRows ?? []) as ActivityLoadRow[];
+  const activityWeeks = weeklyLoad(activityLoad);
+  const recentActivityLoad = activityLoad.slice(0, 14);
 
   const activities = (stravaRows ?? []) as StravaActivityRow[];
   const totals7 = loadSummary(activities);
@@ -2255,6 +2291,15 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             <h2 className="font-semibold">Bekijk schema in intervals.icu</h2>
             <ExternalLink className="size-5 shrink-0 text-muted-foreground" />
           </a>
+        ) : null}
+
+        {activityLoad.length > 0 ? (
+          <CollapsibleCard
+            title="Belasting per rit"
+            subtitle="TSS, intensiteit en arbeid uit intervals.icu"
+          >
+            <ActivityLoadPanel weeks={activityWeeks} recent={recentActivityLoad} />
+          </CollapsibleCard>
         ) : null}
 
         <CollapsibleCard

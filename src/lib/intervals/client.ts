@@ -84,9 +84,15 @@ export type IntervalsActivity = {
   total_elevation_gain?: number;
   icu_training_load?: number; // TSS
   icu_ftp?: number;
-  icu_intensity?: number;
+  icu_intensity?: number; // IF
   average_watts?: number;
-  weighted_average_watts?: number;
+  weighted_average_watts?: number; // NP
+  // Arbeid in joules; intervals.icu gebruikt niet overal dezelfde veldnaam,
+  // vandaar de varianten. Zie kilojoulesFromActivity in intervals/activities.ts.
+  icu_joules?: number;
+  joules?: number;
+  kilojoules?: number;
+  calories?: number;
 };
 
 export type IntervalsWellness = {
