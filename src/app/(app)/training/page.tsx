@@ -23,6 +23,7 @@ import {
   athletePhysique,
   fetchIntervalsAthlete,
   fetchIntervalsEvents,
+  fetchIntervalsPowerCurve,
   fetchIntervalsWellness,
   type IntervalsEvent,
   type IntervalsWellness,
@@ -53,17 +54,28 @@ import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { AiDraftForm } from "./_components/ai-draft-form";
 import { DeleteTrainingPlanButton } from "./_components/delete-training-plan-button";
 import { PlanActions } from "./_components/plan-actions";
+import { TrainingLoadMetrics } from "./_components/training-load-chart";
 import {
-  TrainingLoadMetrics,
+  PowerCurveChart,
+  type ComparisonRider,
+  type PowerCurvePoint,
+} from "@/components/charts/power-curve-chart";
+import {
+  COMPARISON_RIDER_COLUMNS,
+  comparisonRidersFromRows,
+  downsample,
+} from "@/lib/teams/comparison-riders";
+import {
+  toTrainingLoadPoints,
   type TrainingLoadPoint,
-} from "./_components/training-load-chart";
+} from "@/lib/training/load-points";
 import {
   summarizeWellness,
   summarizeTrainingReadiness,
   type WellnessDevice,
   type WellnessSummary,
 } from "@/lib/training/wellness";
-import { zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
+import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 import { cn } from "@/lib/utils";
@@ -950,6 +962,10 @@ function CoachWorkspace({
   reportsByWorkout,
   aiGenerations,
   selectedAthleteId,
+  loadPoints,
+  powerPoints,
+  comparisonRiders,
+  todayKey,
   canUseAi,
   canGenerateAi,
   canPublish,
@@ -969,6 +985,10 @@ function CoachWorkspace({
   reportsByWorkout: Map<string, WorkoutReportRow>;
   aiGenerations: AiGenerationRow[];
   selectedAthleteId?: string;
+  loadPoints: TrainingLoadPoint[];
+  powerPoints: PowerCurvePoint[];
+  comparisonRiders: ComparisonRider[];
+  todayKey: string;
   canUseAi: boolean;
   canGenerateAi: boolean;
   canPublish: boolean;
@@ -1111,25 +1131,32 @@ function CoachWorkspace({
               Profiel <ExternalLink className="size-3" />
             </Link>
           </div>
+          <h3 className="mt-4 flex items-center gap-2 text-sm font-semibold">
+            <TrendingUp className="size-4 text-primary" />
+            Belasting
+          </h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <TrainingLoadMetrics
+              points={loadPoints}
+              ctl={metric?.ctl ?? null}
+              tsb={metric?.tsb ?? null}
+              today={todayKey}
+              idSuffix="coach"
+            />
+            <MetricCard icon={Mountain} label="eFTP" value={formatNumber(metric?.eftp, 0)} />
+            <MetricCard
+              icon={ShieldCheck}
+              label="Trainingsruimte"
+              value={trainingReadiness.score != null ? `${trainingReadiness.score}` : "-"}
+              hint={zwbeterWordenAdvice(trainingReadiness, athlete?.zrl_division).title}
+            />
+            <MetricCard icon={TrendingUp} label="CTL doel" value={formatNumber(ctlProjection ?? undefined, 1)} />
+          </div>
+
           <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_0.95fr]">
-            <div>
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <TrendingUp className="size-4 text-primary" />
-                Belasting
-              </h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <MetricCard icon={TrendingUp} label="CTL" value={formatNumber(metric?.ctl, 1)} />
-                <MetricCard icon={Activity} label="Form" value={formatNumber(metric?.tsb, 1)} />
-                <MetricCard
-                  icon={ShieldCheck}
-                  label="Trainingsruimte"
-                  value={trainingReadiness.score != null ? `${trainingReadiness.score}` : "-"}
-                  hint={zwbeterWordenAdvice(trainingReadiness, athlete?.zrl_division).title}
-                />
-                <MetricCard icon={TrendingUp} label="CTL doel" value={formatNumber(ctlProjection ?? undefined, 1)} />
-                <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
-                <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MetricCard icon={Mountain} label="28 dagen" value={formatKm(totals.distance)} hint={`${formatHours(totals.time)} - ${formatMeters(totals.elevation)}`} />
+              <MetricCard icon={Calendar} label="Komend" value={`${upcomingZwbWorkouts.length + athleteEvents.length}`} hint="ZWB + intervals.icu" />
             </div>
 
             <div>
@@ -1212,6 +1239,25 @@ function CoachWorkspace({
           ) : null}
 
         </section>
+
+        {powerPoints.length > 1 ? (
+          <section className="rounded-lg border bg-card p-4 sm:p-5">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <h3 className="font-semibold">Power-duration curve</h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+                <Users className="size-3.5" />
+                {comparisonRiders.length} vergelijkbare ZWB-profielen
+              </span>
+            </div>
+            <PowerCurveChart
+              ownName={athlete?.display_name ?? "Renner"}
+              ownWeightKg={athlete?.weight_kg ? Number(athlete.weight_kg) : null}
+              ownPoints={downsample(powerPoints)}
+              riders={comparisonRiders}
+              idSuffix="coach"
+            />
+          </section>
+        ) : null}
 
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-lg border bg-card">
@@ -1485,32 +1531,19 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const activities = (stravaRows ?? []) as StravaActivityRow[];
   const totals7 = loadSummary(activities);
   const wellnessSorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
-  const latest = wellnessSorted[wellnessSorted.length - 1];
-  // Herstel-samenvatting (alleen tonen als het lid wellness deelt).
-  const recoverySummary =
-    conn?.wellness_opt_in && wellness.length > 0
-      ? summarizeWellness(
-          wellness.map((w) => ({
-            date: w.id,
-            resting_hr: w.restingHR ?? null,
-            hrv: w.hrv ?? w.hrvSDNN ?? null,
-            sleep_secs: w.sleepSecs ?? null,
-            sleep_score: w.sleepScore ?? null,
-            readiness: w.readiness ?? null,
-            fatigue: w.fatigue ?? null,
-            stress: w.stress ?? null,
-            soreness: w.soreness ?? null,
-            mood: w.mood ?? null,
-          })),
-          (myProfile?.wellness_device ?? null) as WellnessDevice | null,
-        )
-      : null;
+  // Eén bron voor CTL/ATL/TSB/eFTP, herstel-samenvatting en advies.
+  const zwbStatus = computeZwbStatus(wellness, {
+    wellnessOptIn: Boolean(conn?.wellness_opt_in),
+    zrlDivision: myProfile?.zrl_division,
+    wellnessDevice: (myProfile?.wellness_device ?? null) as WellnessDevice | null,
+  });
+  const recoverySummary = zwbStatus.recoverySummary;
   // Trend over 90 dagen: oudste eFTP binnen dat venster als vertrekpunt.
   const eftpWindow = new Date();
   eftpWindow.setDate(eftpWindow.getDate() - 90);
   const eftpWindowStart = eftpWindow.toISOString().slice(0, 10);
   const eftpFirst = wellnessSorted.find((w) => w.eftp && w.id >= eftpWindowStart)?.eftp;
-  const eftpLatest = [...wellnessSorted].reverse().find((w) => w.eftp)?.eftp;
+  const eftpLatest = zwbStatus.eftp;
   const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
   const eftpValue = eftpLatest ?? intervalsFtp ?? myProfile?.ftp_watts ?? null;
   const eftpHint = eftpLatest
@@ -1522,26 +1555,12 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       : myProfile?.ftp_watts
         ? "FTP uit je profiel"
         : "Nog geen eFTP bekend";
-  const currentTsb =
-    latest?.ctl !== undefined && latest?.atl !== undefined ? latest.ctl - latest.atl : null;
+  const currentTsb = zwbStatus.tsb;
   const todayKey = new Date().toLocaleDateString("en-CA", {
     timeZone: "Europe/Amsterdam",
   });
-  const trainingLoadPoints: TrainingLoadPoint[] = wellnessSorted.map((row) => {
-    const ctl = finiteNumber(row.ctl);
-    const atl = finiteNumber(row.atl);
-    return {
-      date: row.id,
-      load: finiteNumber(row.ctl_load ?? row.atl_load),
-      ctl,
-      atl,
-      tsb: ctl != null && atl != null ? ctl - atl : null,
-    };
-  });
-  const currentTrainingReadiness = summarizeTrainingReadiness({
-    tsb: currentTsb,
-    wellness: recoverySummary,
-  });
+  const trainingLoadPoints = toTrainingLoadPoints(wellness);
+  const currentTrainingReadiness = zwbStatus.readiness;
   const upcomingEvents = [...events]
     .filter((e) => e.start_date_local >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
@@ -1689,6 +1708,13 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const coachIntervalEvents = new Map<string, IntervalsEvent[]>();
   const coachIntervalAthleteIds = new Map<string, string>();
   const coachWellness = new Map<string, CoachRecoveryState>();
+  // De cockpit toont grafiek en curve alleen voor de geselecteerde renner.
+  const selectedAthleteId =
+    coachAssignments.find((assignment) => assignment.athlete_id === requestedAthleteId)
+      ?.athlete_id ?? coachAssignments[0]?.athlete_id;
+  // Map i.p.v. losse variabelen: de fetch-lus is async en mag geen buitenliggende
+  // binding herschrijven.
+  const coachSelectedDetail = new Map<"load" | "power", TrainingLoadPoint[] | PowerCurvePoint[]>();
 
   if (activeTab === "trainer" && coachAssignments.length > 0) {
     const athleteIds = coachAssignments.map((assignment) => assignment.athlete_id);
@@ -1705,48 +1731,38 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         wellness_opt_in: boolean | null;
       }>).map(
         async (connection) => {
+          // Alleen de geselecteerde renner krijgt de lange reeks en de curve;
+          // voor de lijst is 30 dagen genoeg en blijft het één aanroep per renner.
+          const isSelected = connection.profile_id === selectedAthleteId;
           try {
-            const [rows, upcoming] = await Promise.all([
-              fetchIntervalsWellness(connection.api_key, connection.athlete_id, 30),
+            const [rows, upcoming, curve] = await Promise.all([
+              fetchIntervalsWellness(connection.api_key, connection.athlete_id, isSelected ? 730 : 30),
               fetchIntervalsEvents(connection.api_key, connection.athlete_id, 14),
+              isSelected
+                ? fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, "90d").catch(
+                    () => null,
+                  )
+                : Promise.resolve(null),
             ]);
             coachIntervalAthleteIds.set(connection.profile_id, connection.athlete_id);
-            const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
-            const latestRow = sorted[sorted.length - 1];
-            coachLoadMetrics.set(connection.profile_id, {
-              ctl: latestRow?.ctl,
-              tsb:
-                latestRow?.ctl !== undefined && latestRow?.atl !== undefined
-                  ? latestRow.ctl - latestRow.atl
-                  : undefined,
-              eftp: [...sorted].reverse().find((row) => row.eftp)?.eftp,
+            const status = computeZwbStatus(rows, {
+              wellnessOptIn: Boolean(connection.wellness_opt_in),
+              zrlDivision: coachProfiles.get(connection.profile_id)?.zrl_division,
+              wellnessDevice: (coachProfiles.get(connection.profile_id)?.wellness_device ??
+                null) as WellnessDevice | null,
             });
-            if (connection.wellness_opt_in) {
-              const summary = summarizeWellness(
-                rows.map((w) => ({
-                  date: w.id,
-                  resting_hr: w.restingHR ?? null,
-                  hrv: w.hrv ?? w.hrvSDNN ?? null,
-                  sleep_secs: w.sleepSecs ?? null,
-                  sleep_score: w.sleepScore ?? null,
-                  readiness: w.readiness ?? null,
-                  fatigue: w.fatigue ?? null,
-                  stress: w.stress ?? null,
-                  soreness: w.soreness ?? null,
-                  mood: w.mood ?? null,
-                })),
-                (coachProfiles.get(connection.profile_id)?.wellness_device ??
-                  null) as WellnessDevice | null,
-              );
-              coachWellness.set(connection.profile_id, {
-                optedIn: true,
-                summary,
-              });
-            } else {
-              coachWellness.set(connection.profile_id, {
-                optedIn: false,
-                summary: null,
-              });
+            coachLoadMetrics.set(connection.profile_id, {
+              ctl: status.ctl ?? undefined,
+              tsb: status.tsb ?? undefined,
+              eftp: status.eftp ?? undefined,
+            });
+            coachWellness.set(connection.profile_id, {
+              optedIn: Boolean(connection.wellness_opt_in),
+              summary: status.recoverySummary,
+            });
+            if (isSelected) {
+              coachSelectedDetail.set("load", toTrainingLoadPoints(rows));
+              coachSelectedDetail.set("power", curve?.points ?? []);
             }
             coachIntervalEvents.set(
               connection.profile_id,
@@ -1764,6 +1780,21 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       ),
     );
   }
+
+  const coachLoadPoints = (coachSelectedDetail.get("load") ?? []) as TrainingLoadPoint[];
+  const coachPowerPoints = (coachSelectedDetail.get("power") ?? []) as PowerCurvePoint[];
+
+  // Vergelijkingscurves voor de trainer: dezelfde clubbrede momentopname als op
+  // de vermogenspagina, leesbaar via RLS dus zonder admin-client.
+  const { data: coachComparisonRows } =
+    coachPowerPoints.length > 1 && selectedAthleteId
+      ? await supabase
+          .from("rider_power_profiles")
+          .select(COMPARISON_RIDER_COLUMNS)
+          .in("sync_status", ["ok", "partial"])
+          .neq("profile_id", selectedAthleteId)
+      : { data: null };
+  const coachComparisonRiders = comparisonRidersFromRows(coachComparisonRows);
 
   return (
     <div className="space-y-8">
@@ -1825,7 +1856,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <TrainingLoadMetrics
           points={trainingLoadPoints}
-          ctl={latest?.ctl ?? null}
+          ctl={zwbStatus.ctl}
           tsb={currentTsb}
           today={todayKey}
         />
@@ -2276,7 +2307,11 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             wellness={coachWellness}
             reportsByWorkout={coachReportsByWorkout}
             aiGenerations={coachAiGenerations}
-            selectedAthleteId={requestedAthleteId}
+            selectedAthleteId={selectedAthleteId}
+            loadPoints={coachLoadPoints}
+            powerPoints={coachPowerPoints}
+            comparisonRiders={coachComparisonRiders}
+            todayKey={todayKey}
             canUseAi={canUseAi}
             canGenerateAi={access.has("training.ai_generate")}
             canPublish={access.has("training.publish_plans")}

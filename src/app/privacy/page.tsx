@@ -70,7 +70,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
-            intervals.icu-trainingsdata, gekoppeld via jouw toestemming.
+            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
+            een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
+            je eFTP en je powercurve; hersteldata blijft afgeschermd tot je de
+            aparte opt-in aanzet. Je trekt die toegang zelf weer in op de
+            trainingspagina.
           </li>
           <li>
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,

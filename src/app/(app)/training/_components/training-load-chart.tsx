@@ -3,14 +3,14 @@
 import { useMemo, useState } from "react";
 import { Activity, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChartTooltip } from "@/components/charts/chart-tooltip";
+import { formatChartDate, formatMetric } from "@/lib/charts/format";
+import { defsId } from "@/lib/charts/ids";
+import { lineSegments } from "@/lib/charts/paths";
+import { absMax, positiveMax } from "@/lib/charts/scale";
+import type { TrainingLoadPoint } from "@/lib/training/load-points";
 
-export type TrainingLoadPoint = {
-  date: string;
-  load: number | null;
-  ctl: number | null;
-  atl: number | null;
-  tsb: number | null;
-};
+export type { TrainingLoadPoint };
 
 type RangeKey = "42d" | "90d" | "6m" | "1y" | "2y";
 
@@ -34,58 +34,9 @@ function finite(value: number | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatMetric(value: number | null, digits = 1) {
-  if (value == null) return "-";
-  return value.toLocaleString("nl-NL", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-}
-
-function formatDate(value: string) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "short",
-  });
-}
-
 function dateMs(value: string) {
   const ms = new Date(`${value}T12:00:00`).getTime();
   return Number.isFinite(ms) ? ms : 0;
-}
-
-function positiveMax(values: Array<number | null>, fallback: number) {
-  const max = Math.max(...values.flatMap((value) => (value != null && value > 0 ? [value] : [])), fallback);
-  return Math.ceil(max / 10) * 10;
-}
-
-function absMax(values: Array<number | null>, fallback: number) {
-  const max = Math.max(...values.flatMap((value) => (value != null ? [Math.abs(value)] : [])), fallback);
-  return Math.ceil(max / 5) * 5;
-}
-
-function lineSegments<T>(
-  points: T[],
-  valueFor: (point: T) => number | null,
-  xFor: (index: number) => number,
-  yFor: (value: number) => number,
-) {
-  const segments: string[] = [];
-  let current = "";
-
-  points.forEach((point, index) => {
-    const value = valueFor(point);
-    if (value == null) {
-      if (current) segments.push(current);
-      current = "";
-      return;
-    }
-    const command = current ? "L" : "M";
-    current += `${command} ${xFor(index).toFixed(1)} ${yFor(value).toFixed(1)} `;
-  });
-
-  if (current) segments.push(current);
-  return segments;
 }
 
 function enrichPoints(points: TrainingLoadPoint[]) {
@@ -148,11 +99,17 @@ export function TrainingLoadMetrics({
   ctl,
   tsb,
   today,
+  panelClassName = "order-first rounded-lg border bg-card p-4 sm:col-span-2 lg:col-span-5",
+  idSuffix,
 }: {
   points: TrainingLoadPoint[];
   ctl: number | null | undefined;
   tsb: number | null | undefined;
   today: string;
+  /** Past het paneel in een ander raster, geef dan eigen span-klassen mee. */
+  panelClassName?: string;
+  /** Verplicht zodra dezelfde grafiek twee keer op één pagina staat. */
+  idSuffix?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<RangeKey>("90d");
@@ -190,11 +147,12 @@ export function TrainingLoadMetrics({
       )
     : [];
   const loadBarWidth = Math.max(1, Math.min(5, plotWidth / Math.max(visible.length, 1) - 1));
+  const topGradientId = defsId("training-load-top", idSuffix);
 
   return (
     <>
       {open && (
-        <div className="order-first rounded-lg border bg-card p-4 sm:col-span-2 lg:col-span-5">
+        <div className={panelClassName}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold">Load en Form</h3>
@@ -237,7 +195,7 @@ export function TrainingLoadMetrics({
                 }}
               >
                 <defs>
-                  <linearGradient id="training-load-top" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={topGradientId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.16" />
                     <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.02" />
                   </linearGradient>
@@ -248,7 +206,7 @@ export function TrainingLoadMetrics({
                   y={TOP.y}
                   width={plotWidth}
                   height={TOP.h}
-                  fill="url(#training-load-top)"
+                  fill={`url(#${topGradientId})`}
                 />
                 <rect
                   x={MARGIN.left}
@@ -328,7 +286,7 @@ export function TrainingLoadMetrics({
                       fontSize="12"
                       fill="var(--muted-foreground)"
                     >
-                      {formatDate(visible[index].date)}
+                      {formatChartDate(visible[index].date)}
                     </text>
                   </g>
                 ))}
@@ -402,28 +360,18 @@ export function TrainingLoadMetrics({
                       stroke="var(--foreground)"
                       strokeOpacity="0.5"
                     />
-                    <g
-                      transform={`translate(${
-                        xFor(hoverIndex) > WIDTH - 250 ? xFor(hoverIndex) - 226 : xFor(hoverIndex) + 12
-                      }, ${TOP.y + 8})`}
-                    >
-                      <rect width="214" height="106" rx="8" fill="var(--popover)" stroke="var(--border)" />
-                      <text x="12" y="21" fontSize="12" fontWeight="600" fill="var(--popover-foreground)">
-                        {formatDate(hoverPoint.date)}
-                      </text>
-                      <text x="12" y="43" fontSize="12" fill="var(--chart-3)">
-                        Load {formatMetric(hoverPoint.load, 0)}
-                      </text>
-                      <text x="12" y="62" fontSize="12" fill="var(--chart-1)">
-                        CTL {formatMetric(hoverPoint.ctl)}
-                      </text>
-                      <text x="12" y="81" fontSize="12" fill="var(--chart-2)">
-                        ATL {formatMetric(hoverPoint.atl)}
-                      </text>
-                      <text x="12" y="100" fontSize="12" fill="var(--chart-3)">
-                        Form {formatMetric(hoverPoint.tsb)}
-                      </text>
-                    </g>
+                    <ChartTooltip
+                      x={xFor(hoverIndex)}
+                      y={TOP.y + 8}
+                      chartWidth={WIDTH}
+                      title={formatChartDate(hoverPoint.date)}
+                      rows={[
+                        { label: "Load", value: formatMetric(hoverPoint.load, 0), color: "var(--chart-3)" },
+                        { label: "CTL", value: formatMetric(hoverPoint.ctl), color: "var(--chart-1)" },
+                        { label: "ATL", value: formatMetric(hoverPoint.atl), color: "var(--chart-2)" },
+                        { label: "Form", value: formatMetric(hoverPoint.tsb), color: "var(--chart-3)" },
+                      ]}
+                    />
                   </g>
                 )}
               </svg>
