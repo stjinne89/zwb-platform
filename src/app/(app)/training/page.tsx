@@ -20,6 +20,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import {
+  athletePhysique,
+  fetchIntervalsAthlete,
   fetchIntervalsEvents,
   fetchIntervalsWellness,
   type IntervalsEvent,
@@ -1461,13 +1463,16 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
   let wellness: IntervalsWellness[] = [];
   let events: IntervalsEvent[] = [];
+  let intervalsFtp: number | null = null;
   let fetchError: string | null = null;
   if (conn?.api_key && conn.athlete_id) {
     try {
+      const athletePromise = fetchIntervalsAthlete(conn.api_key).catch(() => null);
       [wellness, events] = await Promise.all([
         fetchIntervalsWellness(conn.api_key, conn.athlete_id, 730),
         fetchIntervalsEvents(conn.api_key, conn.athlete_id, 14),
       ]);
+      intervalsFtp = athletePhysique(await athletePromise).ftpWatts;
     } catch (err) {
       fetchError = err instanceof Error ? err.message : "Onbekende fout.";
     }
@@ -1496,9 +1501,23 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
           (myProfile?.wellness_device ?? null) as WellnessDevice | null,
         )
       : null;
-  const eftpFirst = wellnessSorted.find((w) => w.eftp)?.eftp;
+  // Trend over 90 dagen: oudste eFTP binnen dat venster als vertrekpunt.
+  const eftpWindow = new Date();
+  eftpWindow.setDate(eftpWindow.getDate() - 90);
+  const eftpWindowStart = eftpWindow.toISOString().slice(0, 10);
+  const eftpFirst = wellnessSorted.find((w) => w.eftp && w.id >= eftpWindowStart)?.eftp;
   const eftpLatest = [...wellnessSorted].reverse().find((w) => w.eftp)?.eftp;
   const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
+  const eftpValue = eftpLatest ?? intervalsFtp ?? myProfile?.ftp_watts ?? null;
+  const eftpHint = eftpLatest
+    ? eftpDelta !== null
+      ? `${eFTPDeltaLabel(eftpDelta)} over 90 dagen`
+      : "eFTP uit intervals.icu"
+    : intervalsFtp
+      ? "FTP uit intervals.icu"
+      : myProfile?.ftp_watts
+        ? "FTP uit je profiel"
+        : "Nog geen eFTP bekend";
   const currentTsb =
     latest?.ctl !== undefined && latest?.atl !== undefined ? latest.ctl - latest.atl : null;
   const todayKey = new Date().toLocaleDateString("en-CA", {
@@ -1798,12 +1817,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         <MetricCard
           icon={Mountain}
           label="eFTP"
-          value={eftpLatest ? `${Math.round(eftpLatest)}w` : "-"}
-          hint={
-            eftpDelta !== null
-              ? `${eFTPDeltaLabel(eftpDelta)} over 90 dagen`
-              : `${myProfile?.ftp_watts ?? "-"}w in profiel`
-          }
+          value={eftpValue ? `${Math.round(eftpValue)}w` : "-"}
+          hint={eftpHint}
         />
         <MetricCard
           icon={Calendar}

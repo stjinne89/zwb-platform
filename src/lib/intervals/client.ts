@@ -352,16 +352,37 @@ function collectPowerCurvePoints(
   }
 }
 
-function nearestPower(points: IntervalsPowerCurvePoint[], seconds: number) {
-  let best: IntervalsPowerCurvePoint | null = null;
-  for (const point of points) {
-    if (!best || Math.abs(point.seconds - seconds) < Math.abs(best.seconds - seconds)) {
-      best = point;
-    }
-  }
-  return best && Math.abs(best.seconds - seconds) <= Math.max(3, seconds * 0.12)
-    ? best.watts
-    : null;
+/** FTP en gewicht uit de athlete-instellingen; het mmp-model gaat voor. */
+export function athletePhysique(athlete: IntervalsAthlete | null) {
+  const rideSettings = athlete?.sportSettings?.find((settings) =>
+    settings.types?.some((type) => /ride/i.test(type)),
+  );
+  const positive = (value: unknown) => {
+    const n = Number(value ?? NaN);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  return {
+    ftpWatts:
+      positive(rideSettings?.mmp_model?.ftp) ??
+      positive(rideSettings?.ftp) ??
+      positive(rideSettings?.indoor_ftp) ??
+      positive(athlete?.ftp),
+    weightKg: positive(rideSettings?.weight) ?? positive(athlete?.weight),
+  };
+}
+
+/** Meest recente wellness-waarde die daadwerkelijk gevuld is (id = datum). */
+export function latestWellnessValue(
+  rows: IntervalsWellness[],
+  key: "eftp" | "weight",
+): number | null {
+  const filled = rows.filter((row) => {
+    const value = Number(row?.[key] ?? NaN);
+    return Number.isFinite(value) && value > 0;
+  });
+  if (!filled.length) return null;
+  const latest = filled.reduce((best, row) => (row.id > best.id ? row : best));
+  return Number(latest[key]);
 }
 
 /** Power-duration curve voor race-roosters. Standaard: laatste 90 dagen Ride. */
@@ -397,9 +418,9 @@ export async function fetchIntervalsPowerCurve(
     : payload && typeof payload === "object"
       ? `object keys: ${Object.keys(payload as Record<string, unknown>).slice(0, 12).join(", ")}`
       : typeof payload;
-  const ftpWatts =
-    numericField(maybe, ["ftp", "eftp", "icu_ftp"]) ??
-    nearestPower(deduped, 1200);
+  // Geen fallback op het 20-min-vermogen: dat maakte de eFTP-tegel gelijk aan
+  // de 20-minutentegel. Bellers vullen zelf aan uit wellness/athlete/profiel.
+  const ftpWatts = numericField(maybe, ["ftp", "eftp", "icu_ftp"]);
 
   return { period, points: deduped, ftpWatts, debug };
 }

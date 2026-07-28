@@ -149,8 +149,8 @@ export function AdjustTodayForm() {
           <input
             name="available_minutes"
             type="number"
-            min={0}
-            max={600}
+            min={10}
+            max={480}
             placeholder="bv. 60"
             className={FIELD}
           />

@@ -5,9 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
+  athletePhysique,
   fetchIntervalsAthlete,
   fetchIntervalsPowerCurve,
   fetchIntervalsWellness,
+  latestWellnessValue,
 } from "@/lib/intervals/client";
 import { syncTeamResults } from "@/lib/team-results/sync";
 import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
@@ -64,20 +66,6 @@ function compactCurvePoints(points: Awaited<ReturnType<typeof fetchIntervalsPowe
     .filter((point): point is { seconds: number; watts: number; wattsPerKg: number | null } =>
       point != null,
     );
-}
-
-function athleteFallbacks(athlete: Awaited<ReturnType<typeof fetchIntervalsAthlete>> | null) {
-  const rideSettings = athlete?.sportSettings?.find((settings) =>
-    settings.types?.some((type) => /ride/i.test(type)),
-  );
-  return {
-    ftpWatts:
-      numberOrNull(rideSettings?.mmp_model?.ftp) ??
-      numberOrNull(rideSettings?.ftp) ??
-      numberOrNull(rideSettings?.indoor_ftp) ??
-      numberOrNull(athlete?.ftp),
-    weightKg: numberOrNull(rideSettings?.weight) ?? numberOrNull(athlete?.weight),
-  };
 }
 
 export async function syncResultsNow() {
@@ -231,24 +219,18 @@ async function syncOnePowerProfile(
     const watts10m = wattsAtDuration(curve.points, 600);
     const watts20m = wattsAtDuration(curve.points, 1200);
     const profile = connectionProfile(connection);
-    const athleteDefaults = athleteFallbacks(athlete);
-    const latestWellnessWithWeight = [...wellness]
-      .reverse()
-      .find((row) => numberOrNull(row.weight));
-    const latestWellnessWithEftp = [...wellness]
-      .reverse()
-      .find((row) => numberOrNull(row.eftp));
+    const athleteDefaults = athletePhysique(athlete);
     const payload = powerProfilePayload({
       ftpWatts:
         curve.ftpWatts ??
         athleteDefaults.ftpWatts ??
-        numberOrNull(latestWellnessWithEftp?.eftp) ??
+        latestWellnessValue(wellness, "eftp") ??
         profile?.ftp_watts ??
         watts20m ??
         null,
       weightKg:
         athleteDefaults.weightKg ??
-        numberOrNull(latestWellnessWithWeight?.weight) ??
+        latestWellnessValue(wellness, "weight") ??
         numberOrNull(profile?.weight_kg),
       watts15s,
       watts30s,

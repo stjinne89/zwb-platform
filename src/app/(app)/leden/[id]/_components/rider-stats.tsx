@@ -297,6 +297,15 @@ export async function RiderStats({
 
   const yearLabel = now.getUTCFullYear();
   const firstLastName = displayName.split(" ")[0];
+  // Records gaan alleen over de ritten die in ZWB staan; Strava synct standaard
+  // vijf jaar terug, dus benoem vanaf wanneer de historie loopt.
+  const recordsSince = firstRide
+    ? new Date((firstRide as ActivityRow).start_date).toLocaleDateString("nl-NL", {
+        month: "short",
+        year: "numeric",
+        timeZone: "Europe/Amsterdam",
+      })
+    : null;
 
   return (
     <section className="space-y-4 rounded-lg border bg-card p-6">
@@ -384,7 +393,7 @@ export async function RiderStats({
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           <Trophy className="size-3.5 text-primary" />
-          Persoonlijke records (ooit)
+          {recordsSince ? `Persoonlijke records (sinds ${recordsSince})` : "Persoonlijke records"}
         </h3>
         <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
           {bestDistance && (

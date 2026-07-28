@@ -4,7 +4,13 @@ import { Activity, ArrowLeft, CircleHelp, Gauge, Scale, Users, Zap } from "lucid
 import { PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { fetchIntervalsPowerCurve } from "@/lib/intervals/client";
+import {
+  athletePhysique,
+  fetchIntervalsAthlete,
+  fetchIntervalsPowerCurve,
+  fetchIntervalsWellness,
+  latestWellnessValue,
+} from "@/lib/intervals/client";
 import { normalizePowerCurvePoints } from "@/lib/intervals/power-curve";
 import { wattsAtDuration, POWER_DURATIONS } from "@/lib/teams/power-profile";
 import { ConnectIntervalsForm } from "../_components/connect-form";
@@ -20,7 +26,9 @@ export const revalidate = 0;
 
 const PERIODS = [
   { value: "42d", label: "6 weken" },
+  { value: "60d", label: "60 dagen" },
   { value: "90d", label: "90 dagen" },
+  { value: "1y", label: "12 maanden" },
   { value: "all", label: "All-time" },
 ] as const;
 
@@ -158,12 +166,26 @@ export default async function PowerPage({
 
   let curve: Awaited<ReturnType<typeof fetchIntervalsPowerCurve>> | null = null;
   let curveError: string | null = null;
+  let intervalsEftp: number | null = null;
+  let intervalsFtp: number | null = null;
+  let intervalsWeightKg: number | null = null;
   if (connection?.api_key && connection.athlete_id) {
-    try {
-      curve = await fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, period);
-    } catch (error) {
-      curveError = error instanceof Error ? error.message : "Kon de powercurve niet laden.";
+    const [curveResult, wellness, athlete] = await Promise.all([
+      fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, period).catch(
+        (error: unknown) => error instanceof Error ? error : new Error("Kon de powercurve niet laden."),
+      ),
+      fetchIntervalsWellness(connection.api_key, connection.athlete_id, 90).catch(() => []),
+      fetchIntervalsAthlete(connection.api_key).catch(() => null),
+    ]);
+    if (curveResult instanceof Error) {
+      curveError = curveResult.message;
+    } else {
+      curve = curveResult;
     }
+    intervalsEftp = latestWellnessValue(wellness, "eftp");
+    const athleteDefaults = athletePhysique(athlete);
+    intervalsFtp = athleteDefaults.ftpWatts;
+    intervalsWeightKg = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
   }
 
   const curvePoints = curve?.points ?? [];
@@ -182,8 +204,17 @@ export default async function PowerPage({
     })
     .filter((rider) => rider.points.length >= 3)
     .sort((a, b) => a.name.localeCompare(b.name, "nl"));
-  const ownWeightKg = numberOrNull(profile?.weight_kg);
-  const ftpWatts = numberOrNull(curve?.ftpWatts) ?? numberOrNull(profile?.ftp_watts);
+  const ownWeightKg = numberOrNull(profile?.weight_kg) ?? intervalsWeightKg;
+  // eFTP uit intervals gaat voor; daarna de FTP uit intervals-instellingen of het profiel.
+  const eftpWatts = numberOrNull(curve?.ftpWatts) ?? intervalsEftp;
+  const ftpWatts = eftpWatts ?? intervalsFtp ?? numberOrNull(profile?.ftp_watts);
+  const ftpSource = eftpWatts
+    ? "eFTP uit intervals.icu"
+    : intervalsFtp
+      ? "FTP uit intervals.icu"
+      : numberOrNull(profile?.ftp_watts)
+        ? "FTP uit je profiel"
+        : undefined;
   const power5m = wattsAtDuration(curvePoints, 300);
   const power20m = wattsAtDuration(curvePoints, 1200);
 
@@ -240,7 +271,12 @@ export default async function PowerPage({
           ) : null}
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric icon={Zap} label="FTP / eFTP" value={formatValue(ftpWatts, " W")} />
+            <Metric
+              icon={Zap}
+              label="FTP / eFTP"
+              value={formatValue(ftpWatts, " W")}
+              hint={ftpSource}
+            />
             <Metric icon={Gauge} label="5 minuten" value={formatValue(power5m, " W")} />
             <Metric icon={Activity} label="20 minuten" value={formatValue(power20m, " W")} />
             <Metric

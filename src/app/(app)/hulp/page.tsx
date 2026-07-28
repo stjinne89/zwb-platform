@@ -490,6 +490,11 @@ export default function HelpPage() {
               Upload je ritten dan zelf op Achievements: je hele historie in
               één keer via activities.csv, of losse ritten via GPX.
             </p>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              De koppeling haalt ritten tot vijf jaar terug op. Records als
+              langste rit gaan daarom over die periode; met activities.csv haal
+              je je volledige historie binnen.
+            </p>
           </div>
         </header>
         <div className="mt-4 grid gap-3 md:grid-cols-2">

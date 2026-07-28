@@ -21,6 +21,11 @@ import { buildYesterdayContext } from "@/lib/training/adapt-context";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
 
+/** Onder deze grens is een aanpassing zinloos; dan is het een rustdag. */
+export const MIN_ADJUST_MINUTES = 10;
+/** DB-cap op training_workouts.duration_minutes. */
+export const MAX_ADJUST_MINUTES = 480;
+
 type TrainingDraftResult =
   | { ok: true; generationId: string; status: TrainingDraftStatus; planId?: string; message?: string; error?: string }
   | { ok: false; error: string };
@@ -56,6 +61,14 @@ function mustString(value: FormDataEntryValue | null, label: string) {
   const text = optionalString(value);
   if (!text) throw new Error(`${label} ontbreekt.`);
   return text;
+}
+
+// Databasefouten mogen nooit rauw in de UI belanden.
+function friendlyDbError(message: string) {
+  if (message.includes("training_workouts_duration_minutes_check")) {
+    return "De AI stelde een ongeldige trainingsduur voor. Probeer het opnieuw.";
+  }
+  return "Schema opslaan is mislukt. Probeer het opnieuw.";
 }
 
 function assertWorkoutIntensity(value: string): asserts value is WorkoutIntensity {
@@ -255,29 +268,32 @@ async function createPlanFromAiGeneration(
       .eq("ai_generation_id", generation.id)
       .maybeSingle();
     if (duplicatePlan) return duplicatePlan.id as string;
-    throw new Error(planError.message);
+    throw new Error(friendlyDbError(planError.message));
   }
 
-  const workouts = planDraft.workouts.map((workout) => {
-    const intensity = workout.intensity;
-    assertWorkoutIntensity(intensity);
-    const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
-    return {
-      plan_id: plan.id,
-      profile_id: generation.profile_id,
-      trainer_id: generation.trainer_id,
-      scheduled_at: `${workout.date}T09:00:00+01:00`,
-      title: workout.title,
-      description: workout.description,
-      duration_minutes: Math.round(workout.durationMinutes),
-      intensity,
-      target_type: workout.targetType,
-      structure_json: blocks,
-      intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
-    };
-  });
+  const workouts = planDraft.workouts
+    // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
+    .filter((workout) => Math.round(workout.durationMinutes) >= 1)
+    .map((workout) => {
+      const intensity = workout.intensity;
+      assertWorkoutIntensity(intensity);
+      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+      return {
+        plan_id: plan.id,
+        profile_id: generation.profile_id,
+        trainer_id: generation.trainer_id,
+        scheduled_at: `${workout.date}T09:00:00+01:00`,
+        title: workout.title,
+        description: workout.description,
+        duration_minutes: Math.min(480, Math.round(workout.durationMinutes)),
+        intensity,
+        target_type: workout.targetType,
+        structure_json: blocks,
+        intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
+      };
+    });
   const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
-  if (workoutError) throw new Error(workoutError.message);
+  if (workoutError) throw new Error(friendlyDbError(workoutError.message));
 
   await sendNotificationToMembers(
     "on_training_plan",
@@ -358,6 +374,9 @@ export async function startTodayAdjustmentDraft(
     const admin = createAdminClient();
 
     const availableMinutes = optionalNumber(formData.get("available_minutes"));
+    if (availableMinutes != null && availableMinutes < MIN_ADJUST_MINUTES) {
+      return { ok: false, error: `Vul minstens ${MIN_ADJUST_MINUTES} minuten in, of kies Rustdag.` };
+    }
     const feelingRaw = optionalString(formData.get("feeling"));
     const feeling =
       feelingRaw === "tired" || feelingRaw === "fresh" || feelingRaw === "normal"

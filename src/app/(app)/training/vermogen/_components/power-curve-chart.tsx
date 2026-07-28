@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { POWER_DURATIONS, riderTypeLabel } from "@/lib/teams/power-profile";
+import { riderTypeLabel } from "@/lib/teams/power-profile";
 
 export type PowerCurvePoint = {
   seconds: number;
@@ -30,6 +30,10 @@ const WIDTH = 920;
 const HEIGHT = 390;
 const MARGIN = { top: 24, right: 24, bottom: 48, left: 58 };
 const X_TICKS = [5, 15, 30, 60, 120, 300, 600, 1200, 3600, 7200, 18000];
+// Records per duur; alleen duren die de eigen curve dekt worden getoond.
+const BENCHMARK_SECONDS = [
+  1, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 1800, 3600, 5400, 7200, 10800, 14400, 18000,
+];
 
 function formatDuration(seconds: number) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -366,33 +370,28 @@ function PowerBenchmarks({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {POWER_DURATIONS.map((duration) => {
-        const ownValue = valueAt(ownPoints, duration.seconds);
+      {BENCHMARK_SECONDS.flatMap((seconds) => {
+        const ownValue = valueAt(ownPoints, seconds);
+        if (ownValue == null) return [];
         const clubValues = riders.flatMap((rider) => {
           const points = metricPoints(rider.points, rider.weightKg, metric);
-          const value = valueAt(points, duration.seconds);
+          const value = valueAt(points, seconds);
           return value == null ? [] : [value];
         });
-        const below = ownValue == null ? 0 : clubValues.filter((value) => value <= ownValue).length;
+        const below = clubValues.filter((value) => value <= ownValue).length;
         const percentile =
-          ownValue == null || clubValues.length === 0
-            ? null
-            : Math.round((below / clubValues.length) * 100);
-        return (
-          <div key={duration.key} className="rounded-md border bg-card p-4">
-            <p className="text-sm text-muted-foreground">{duration.key}</p>
+          clubValues.length === 0 ? null : Math.round((below / clubValues.length) * 100);
+        return [
+          <div key={seconds} className="rounded-md border bg-card p-4">
+            <p className="text-sm text-muted-foreground">{formatDuration(seconds)}</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {ownValue == null
-                ? "-"
-                : metric === "watts"
-                  ? `${Math.round(ownValue)} W`
-                  : `${ownValue.toFixed(2)} W/kg`}
+              {metric === "watts" ? `${Math.round(ownValue)} W` : `${ownValue.toFixed(2)} W/kg`}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {percentile == null ? "Geen ZWB-vergelijking" : `Hoger dan ${percentile}% van ${clubValues.length} profielen`}
             </p>
-          </div>
-        );
+          </div>,
+        ];
       })}
     </div>
   );
