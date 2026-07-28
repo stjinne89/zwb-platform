@@ -401,6 +401,9 @@ export async function startTodayAdjustmentDraft(
     if (availableMinutes != null && availableMinutes < MIN_ADJUST_MINUTES) {
       return { ok: false, error: `Vul minstens ${MIN_ADJUST_MINUTES} minuten in, of kies Rustdag.` };
     }
+    if (availableMinutes != null && availableMinutes > MAX_ADJUST_MINUTES) {
+      return { ok: false, error: `Vul hoogstens ${MAX_ADJUST_MINUTES} minuten in.` };
+    }
     const feelingRaw = optionalString(formData.get("feeling"));
     const feeling =
       feelingRaw === "tired" || feelingRaw === "fresh" || feelingRaw === "normal"
