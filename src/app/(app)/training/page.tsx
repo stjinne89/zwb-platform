@@ -56,6 +56,10 @@ import { DeleteTrainingPlanButton } from "./_components/delete-training-plan-but
 import { PlanActions } from "./_components/plan-actions";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
 import {
+  WorkoutCalendar,
+  type CalendarWorkout,
+} from "./_components/workout-calendar";
+import {
   PowerCurveChart,
   type ComparisonRider,
   type PowerCurvePoint,
@@ -77,6 +81,10 @@ import {
 } from "@/lib/training/wellness";
 import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
+import {
+  suggestSegmentsForBlock,
+  type SegmentCandidate,
+} from "@/lib/training/segment-suggestions";
 import { TrainerAccessPanel } from "./_components/trainer-access-panel";
 import { cn } from "@/lib/utils";
 
@@ -162,6 +170,22 @@ type WorkoutRow = {
   intervals_event_id: string | null;
   intervals_external_id: string | null;
 };
+
+type SegmentRow = {
+  segment_slug: string;
+  best_time_seconds: number | null;
+  zwb_segments:
+    | { name: string; distance_m: number | string | null; elevation_gain_m: number | string | null; virtual: boolean | null }
+    | Array<{ name: string; distance_m: number | string | null; elevation_gain_m: number | string | null; virtual: boolean | null }>
+    | null;
+};
+
+/** mm:ss voor segmenttijden. */
+function formatSegmentTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.round(seconds % 60);
+  return `${minutes}:${`${rest}`.padStart(2, "0")}`;
+}
 
 type WorkoutReportRow = {
   id: string;
@@ -1432,6 +1456,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const params = (await searchParams) ?? {};
   const requestedTab = paramString(params.tab);
   const requestedAthleteId = paramString(params.athlete);
+  const workoutView = paramString(params.view) === "maand" ? "maand" : "lijst";
   const supabase = await createClient();
   const admin = createAdminClient();
   const access = await getCurrentUserAccess(supabase);
@@ -1456,6 +1481,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     { data: myPlans },
     { data: myWorkouts },
     { data: myReports },
+    { data: segmentRows },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -1509,6 +1535,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       .select("*")
       .eq("profile_id", user.id)
       .order("updated_at", { ascending: false }),
+    supabase
+      .from("profile_completed_segments")
+      .select(
+        "segment_slug, best_time_seconds, zwb_segments(name, distance_m, elevation_gain_m, virtual)",
+      )
+      .eq("profile_id", user.id)
+      .not("best_time_seconds", "is", null)
+      .limit(300),
   ]);
 
   let wellness: IntervalsWellness[] = [];
@@ -1588,6 +1622,45 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const upcomingZwbMemberWorkouts = memberWorkouts
     .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
+  // Segmenten die bij het zwaarste blok van de eerstvolgende workout passen.
+  const riddenSegments: SegmentCandidate[] = ((segmentRows ?? []) as SegmentRow[]).flatMap(
+    (row) => {
+      const segment = Array.isArray(row.zwb_segments) ? row.zwb_segments[0] : row.zwb_segments;
+      if (!segment) return [];
+      return [
+        {
+          slug: row.segment_slug,
+          name: segment.name,
+          distanceM: segment.distance_m == null ? null : Number(segment.distance_m),
+          elevationGainM:
+            segment.elevation_gain_m == null ? null : Number(segment.elevation_gain_m),
+          virtual: Boolean(segment.virtual),
+          bestTimeSeconds: row.best_time_seconds,
+        },
+      ];
+    },
+  );
+
+  // Maandweergave toont de hele maand, dus ook wat al geweest is.
+  const calendarWorkouts: CalendarWorkout[] = [
+    ...memberWorkouts.map((workout) => ({
+      id: workout.id,
+      dateKey: String(workout.scheduled_at).slice(0, 10),
+      title: workout.title,
+      durationMinutes: workout.duration_minutes,
+      intensity: workout.intensity,
+      source: "zwb" as const,
+      skipped: workout.status === "skipped",
+    })),
+    ...events.map((event) => ({
+      id: `intervals-${event.id}`,
+      dateKey: String(event.start_date_local).slice(0, 10),
+      title: event.name ?? "Workout",
+      durationMinutes: event.moving_time ? Math.round(event.moving_time / 60) : null,
+      intensity: null,
+      source: "intervals" as const,
+    })),
+  ];
   // Een rustdag telt niet als eerstvolgende workout.
   const nextZwbWorkout =
     upcomingZwbMemberWorkouts.find((workout) => workout.status !== "skipped") ?? null;
@@ -1604,6 +1677,18 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
           ? { kind: "intervals" as const, event: nextIntervalsEvent }
           : null;
   const myReportsByWorkout = byWorkout((myReports ?? []) as WorkoutReportRow[]);
+  const hardestBlock =
+    nextWorkout?.kind === "zwb"
+      ? normalizeWorkoutBlocks(
+          nextWorkout.workout.structure_json,
+          nextWorkout.workout.intensity as WorkoutIntensity,
+        )
+          .filter((block) => block.intensity !== "rest" && block.intensity !== "recovery")
+          .sort((a, b) => b.durationMinutes - a.durationMinutes)[0]
+      : null;
+  const segmentSuggestions = hardestBlock
+    ? suggestSegmentsForBlock(hardestBlock, riddenSegments)
+    : [];
 
   const assignments = (myAssignments ?? []) as AssignmentRow[];
   const trainerIds = assignments.map((a) => a.trainer_id);
@@ -1920,6 +2005,26 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                 ftpWatts={myProfile?.ftp_watts}
                 variant="preview"
               />
+              {segmentSuggestions.length > 0 ? (
+                <div className="mt-4 border-t pt-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Segmenten voor het zware blok
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {segmentSuggestions.map((segment) => (
+                      <span
+                        key={segment.slug}
+                        className="rounded-full border px-3 py-1 text-xs"
+                      >
+                        {segment.name}
+                        <span className="ml-1.5 text-muted-foreground tabular-nums">
+                          {formatSegmentTime(segment.estimatedSeconds)}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="mt-4">
@@ -2155,8 +2260,34 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         <CollapsibleCard
           title="Komende workouts"
           subtitle="Uit intervals.icu en ZWB-schema's"
+          defaultOpen
         >
-          {upcomingEvents.length === 0 && upcomingZwbMemberWorkouts.length === 0 ? (
+          <div className="flex justify-end border-b p-2">
+            <div className="flex rounded-md border bg-background p-0.5 text-xs">
+              {(
+                [
+                  { value: "lijst", label: "Lijst" },
+                  { value: "maand", label: "Maand" },
+                ] as const
+              ).map((option) => (
+                <Link
+                  key={option.value}
+                  href={`/training?view=${option.value}`}
+                  scroll={false}
+                  className={`rounded px-2 py-1 font-medium ${
+                    workoutView === option.value
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {option.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          {workoutView === "maand" ? (
+            <WorkoutCalendar workouts={calendarWorkouts} todayKey={todayKey} />
+          ) : upcomingEvents.length === 0 && upcomingZwbMemberWorkouts.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>
           ) : (
             <ul className="divide-y">
