@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { fetchWhatsAppGroupInfo, isValidInviteUrl } from "@/lib/whatsapp";
+import { fetchWhatsAppGroupInfo, isChannelUrl, isValidInviteUrl } from "@/lib/whatsapp";
 
 const CATEGORIES = [
   "algemeen",
@@ -22,7 +22,7 @@ export async function fetchInvitePreview(inviteUrl: string) {
   if (!isValidInviteUrl(url)) {
     return {
       ok: false as const,
-      error: "Invite-URL moet eruitzien als https://chat.whatsapp.com/AbCdEf…",
+      error: "Gebruik een https://chat.whatsapp.com/… of https://whatsapp.com/channel/… link.",
     };
   }
   const info = await fetchWhatsAppGroupInfo(url);
@@ -70,7 +70,7 @@ export async function addGroup(formData: FormData) {
   if (!isValidInviteUrl(invite_url)) {
     return {
       ok: false as const,
-      error: "Invite-URL moet beginnen met https://chat.whatsapp.com/",
+      error: "Gebruik een chat.whatsapp.com-groepslink of een whatsapp.com/channel-link.",
     };
   }
 
@@ -79,6 +79,7 @@ export async function addGroup(formData: FormData) {
     description,
     category,
     invite_url,
+    kind: isChannelUrl(invite_url) ? "channel" : "group",
     team_id,
     event_id,
     display_order: Number.isFinite(display_order) ? display_order : 0,
@@ -172,6 +173,7 @@ export async function bulkAddGroups(formData: FormData) {
     description: info.description,
     category,
     invite_url: info.invite_url,
+    kind: isChannelUrl(info.invite_url) ? "channel" : "group",
     team_id,
     event_id,
     display_order: i,

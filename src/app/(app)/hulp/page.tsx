@@ -132,7 +132,8 @@ const GUIDES = [
       "Gebruik Vraag & Aanbod voor spullen, hulpvragen en tips.",
       "Polls verzamelen snelle keuzes vanuit de community.",
       "Media bundelt nieuws, mededelingen, video's en podcasts.",
-      "Schrijf na een gereden event een ritverslag; anderen kunnen reageren.",
+      "Schrijf na een gereden event een ritverslag met vaste kopjes: voorbereiding, verloop, uitslag en leerpunten. Je hoeft niet alles in te vullen; je eigen uitslag staat er al bij als die bekend is.",
+      "Anderen kunnen op je verslag reageren; met Deel stuur je het via WhatsApp door.",
     ],
   },
   {

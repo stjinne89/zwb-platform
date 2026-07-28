@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, Trash2, Send, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/markdown";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import {
   addReportComment,
   deleteEventReport,
@@ -26,9 +27,53 @@ export type EventReport = {
   profileId: string;
   authorName: string;
   bodyMd: string;
+  preparationMd: string | null;
+  courseMd: string | null;
+  resultMd: string | null;
+  lessonsMd: string | null;
   createdAt: string;
   comments: ReportComment[];
 };
+
+/** Uitslagregel uit event_results, zodat niemand cijfers overtypt. */
+export type EventResultLine = {
+  position: number | null;
+  timeText: string | null;
+  category: string | null;
+  categoryRank: number | null;
+};
+
+const SECTIONS = [
+  { key: "preparation", label: "Voorbereiding" },
+  { key: "course", label: "Verloop" },
+  { key: "result", label: "Uitslag" },
+  { key: "lessons", label: "Leerpunten" },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]["key"];
+type Draft = Record<SectionKey, string>;
+
+function draftFrom(report: EventReport | null): Draft {
+  return {
+    preparation: report?.preparationMd ?? "",
+    // Verslagen van voor de secties staan volledig in body_md.
+    course: report?.courseMd ?? report?.bodyMd ?? "",
+    result: report?.resultMd ?? "",
+    lessons: report?.lessonsMd ?? "",
+  };
+}
+
+function resultSummary(result: EventResultLine) {
+  return [
+    result.position ? `Plaats ${result.position}` : null,
+    result.timeText,
+    result.category
+      ? `${result.category}${result.categoryRank ? ` (${result.categoryRank}e)` : ""}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -42,18 +87,22 @@ function fmt(value: string) {
 
 export function EventReports({
   eventId,
+  eventTitle,
   currentUserId,
   isAdmin,
   reports,
+  myResult,
 }: {
   eventId: string;
+  eventTitle: string;
   currentUserId: string | null;
   isAdmin: boolean;
   reports: EventReport[];
+  myResult?: EventResultLine | null;
 }) {
   const router = useRouter();
   const myReport = reports.find((r) => r.profileId === currentUserId) ?? null;
-  const [draft, setDraft] = useState(myReport?.bodyMd ?? "");
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(myReport));
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -82,17 +131,30 @@ export function EventReports({
 
       {/* Eigen verslag schrijven / bewerken */}
       {showEditor && (
-        <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-          <label className="text-xs font-medium text-muted-foreground">
+        <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+          <p className="text-xs font-medium text-muted-foreground">
             {myReport ? "Bewerk jouw verslag" : "Schrijf jouw ritverslag"}
-          </label>
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={5}
-            placeholder="Hoe was de rit? Tempo, koffiestop, het lijden op de slotklim…"
-            className={`${FIELD} font-mono`}
-          />
+          </p>
+          {SECTIONS.map((section) => (
+            <label key={section.key} className="block">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                {section.label}
+              </span>
+              {section.key === "result" && myResult ? (
+                <span className="mb-1 block text-xs text-foreground">
+                  {resultSummary(myResult)}
+                </span>
+              ) : null}
+              <textarea
+                value={draft[section.key]}
+                onChange={(e) =>
+                  setDraft((current) => ({ ...current, [section.key]: e.target.value }))
+                }
+                rows={section.key === "course" ? 5 : 2}
+                className={`${FIELD} font-mono`}
+              />
+            </label>
+          ))}
           {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2">
             <Button type="button" size="sm" onClick={save} disabled={pending}>
@@ -105,7 +167,7 @@ export function EventReports({
                 variant="ghost"
                 onClick={() => {
                   setEditing(false);
-                  setDraft(myReport.bodyMd);
+                  setDraft(draftFrom(myReport));
                   setError(null);
                 }}
               >
@@ -147,12 +209,18 @@ export function EventReports({
                   </span>
                 </p>
                 <div className="flex items-center gap-1">
+                  <WhatsAppShareLink
+                    text={`Ritverslag ${eventTitle} — ${report.authorName}`}
+                    path={`/events/${eventId}`}
+                    label="Deel"
+                    className="text-xs text-muted-foreground hover:text-green-700 dark:hover:text-green-300"
+                  />
                   {mine && (
                     <button
                       type="button"
                       onClick={() => {
                         setEditing(true);
-                        setDraft(report.bodyMd);
+                        setDraft(draftFrom(report));
                       }}
                       className="text-xs text-muted-foreground hover:text-foreground"
                     >

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
+import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { allTrkptFromGpx, firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchRouteForecast, fetchWindForecast, type RoutePointForecast } from "@/lib/weather";
@@ -203,7 +204,7 @@ export default async function EventDetailPage({
     getCurrentUserAccess(supabase),
     supabase
       .from("whatsapp_groups")
-      .select("id, name, invite_url, description")
+      .select("id, name, invite_url, description, kind")
       .eq("event_id", id)
       .order("display_order")
       .order("name"),
@@ -224,7 +225,7 @@ export default async function EventDetailPage({
     supabase
       .from("event_reports")
       .select(
-        "id, profile_id, body_md, created_at, profiles(display_name), event_report_comments(id, profile_id, body, created_at, profiles(display_name))",
+        "id, profile_id, body_md, preparation_md, course_md, result_md, lessons_md, created_at, profiles(display_name), event_report_comments(id, profile_id, body, created_at, profiles(display_name))",
       )
       .eq("event_id", id)
       .order("created_at", { ascending: false }),
@@ -365,6 +366,16 @@ export default async function EventDetailPage({
       return a.scrapedName.localeCompare(b.scrapedName);
     });
   const lastScrapeAt = event.last_results_scrape_at as string | null;
+  // Eigen uitslag naast het uitslagveld van het verslag, zodat niemand overtypt.
+  const own = user ? results.find((result) => result.profileId === user.id) : null;
+  const myEventResult = own
+    ? {
+        position: own.position,
+        timeText: own.timeText,
+        category: own.category,
+        categoryRank: own.categoryRank,
+      }
+    : null;
 
   // Ritverslagen + reacties → genest profielnaam uitpakken.
   const nameOf = (rel: unknown): string => {
@@ -378,6 +389,10 @@ export default async function EventDetailPage({
       id: string;
       profile_id: string;
       body_md: string;
+      preparation_md: string | null;
+      course_md: string | null;
+      result_md: string | null;
+      lessons_md: string | null;
       created_at: string;
       profiles: unknown;
       event_report_comments:
@@ -395,6 +410,10 @@ export default async function EventDetailPage({
     profileId: r.profile_id,
     authorName: nameOf(r.profiles),
     bodyMd: r.body_md,
+    preparationMd: r.preparation_md,
+    courseMd: r.course_md,
+    resultMd: r.result_md,
+    lessonsMd: r.lessons_md,
     createdAt: r.created_at,
     comments: (r.event_report_comments ?? [])
       .map((c) => ({
@@ -619,6 +638,14 @@ export default async function EventDetailPage({
             {EVENT_TYPE_LABELS[event.type] ?? event.type}
           </span>
           <div className="flex items-center gap-2">
+            <WhatsAppShareLink
+              text={`${event.title} — ${new Date(event.start_at).toLocaleDateString("nl-NL", {
+                day: "numeric",
+                month: "long",
+                timeZone: "Europe/Amsterdam",
+              })}${event.location ? `, ${event.location}` : ""}`}
+              path={`/events/${event.id}`}
+            />
             {eventIsToday && event.gpx_path && (
               <ShareLiveButton eventId={event.id} />
             )}
@@ -897,9 +924,11 @@ export default async function EventDetailPage({
 
       <EventReports
         eventId={event.id}
+        eventTitle={event.title}
         currentUserId={user?.id ?? null}
         isAdmin={access.isAdmin}
         reports={eventReports}
+        myResult={myEventResult}
       />
 
       {!eventIsToday && initialChat.length > 0 && (

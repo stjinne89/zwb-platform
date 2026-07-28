@@ -48,19 +48,55 @@ function revalidateReportSurfaces(eventId: string) {
   revalidatePath("/dashboard");
 }
 
+export type ReportSections = {
+  preparation?: string;
+  course?: string;
+  result?: string;
+  lessons?: string;
+};
+
+const SECTION_HEADINGS: Array<{ key: keyof ReportSections; heading: string }> = [
+  { key: "preparation", heading: "Voorbereiding" },
+  { key: "course", heading: "Verloop" },
+  { key: "result", heading: "Uitslag" },
+  { key: "lessons", heading: "Leerpunten" },
+];
+
+/**
+ * body_md blijft de gerenderde versie van het verslag: alle leespaden (event,
+ * ritverslagen, dashboard) tonen die kolom ongewijzigd.
+ */
+function sectionsToMarkdown(sections: ReportSections) {
+  const filled = SECTION_HEADINGS.flatMap(({ key, heading }) => {
+    const value = (sections[key] ?? "").trim();
+    return value ? [{ heading, value }] : [];
+  });
+  // Eén ingevulde sectie zonder kopje leest prettiger dan een enkel kopje.
+  if (filled.length === 1) return filled[0].value;
+  return filled.map(({ heading, value }) => `**${heading}**\n\n${value}`).join("\n\n");
+}
+
 // Eén verslag per (event, lid): bestaat er al een → bijwerken, anders nieuw.
-export async function saveEventReport(eventId: string, bodyMd: string) {
+export async function saveEventReport(eventId: string, sections: ReportSections) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
-  const body = (bodyMd ?? "").trim();
-  if (!body) return { ok: false as const, error: "Schrijf eerst iets." };
+  const body = sectionsToMarkdown(sections);
+  if (!body) return { ok: false as const, error: "Vul minstens één onderdeel in." };
   if (body.length > 8000) {
     return { ok: false as const, error: "Verslag is te lang (max 8000 tekens)." };
   }
+
+  const values = {
+    body_md: body,
+    preparation_md: (sections.preparation ?? "").trim() || null,
+    course_md: (sections.course ?? "").trim() || null,
+    result_md: (sections.result ?? "").trim() || null,
+    lessons_md: (sections.lessons ?? "").trim() || null,
+  };
 
   const { data: existing } = await supabase
     .from("event_reports")
@@ -72,14 +108,14 @@ export async function saveEventReport(eventId: string, bodyMd: string) {
   if (existing) {
     const { error } = await supabase
       .from("event_reports")
-      .update({ body_md: body })
+      .update(values)
       .eq("id", existing.id);
     if (error) return { ok: false as const, error: error.message };
   } else {
     const { error } = await supabase.from("event_reports").insert({
       event_id: eventId,
       profile_id: user.id,
-      body_md: body,
+      ...values,
     });
     if (error) return { ok: false as const, error: error.message };
   }

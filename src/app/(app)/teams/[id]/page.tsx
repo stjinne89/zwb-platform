@@ -193,7 +193,7 @@ export default async function TeamDetailPage({
       .order("name"),
     supabase
       .from("whatsapp_groups")
-      .select("id, name, invite_url, description")
+      .select("id, name, invite_url, description, kind")
       .eq("team_id", id)
       .order("display_order")
       .order("name"),

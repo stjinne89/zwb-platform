@@ -32,7 +32,7 @@ export default async function CommunityPage() {
       supabase
         .from("whatsapp_groups")
         .select(
-          "id, name, description, category, invite_url, display_order, team_id, event_id, teams(name, division), events(title, start_at)",
+          "id, name, description, category, invite_url, kind, display_order, team_id, event_id, teams(name, division), events(title, start_at)",
         )
         .order("display_order")
         .order("name"),

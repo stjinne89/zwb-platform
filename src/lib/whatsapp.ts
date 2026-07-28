@@ -21,7 +21,16 @@ export type WhatsAppGroupInfo = {
 };
 
 export function isValidInviteUrl(url: string): boolean {
-  return /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+\/?$/i.test(url.trim());
+  const value = url.trim();
+  return (
+    /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+\/?$/i.test(value) ||
+    isChannelUrl(value)
+  );
+}
+
+/** Kanalen zijn eenrichtingsverkeer: alleen de beheerder post er. */
+export function isChannelUrl(url: string): boolean {
+  return /^https:\/\/(www\.)?whatsapp\.com\/channel\/[A-Za-z0-9]+\/?$/i.test(url.trim());
 }
 
 export async function fetchWhatsAppGroupInfo(
