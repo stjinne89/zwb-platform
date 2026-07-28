@@ -10,6 +10,7 @@ import {
   fetchIntervalsPowerCurve,
   fetchIntervalsWellness,
   latestWellnessValue,
+  rideSportSettings,
 } from "@/lib/intervals/client";
 import { syncTeamResults } from "@/lib/team-results/sync";
 import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
@@ -239,6 +240,23 @@ async function syncOnePowerProfile(
     });
     const hasCurve = Boolean(watts15s || watts30s || watts1m || watts2m || watts5m || watts10m || watts20m);
     const hasFallback = Boolean(payload.ftp_watts || payload.weight_kg);
+
+    // CP, W' en zones vastleggen; die zitten al in het athlete-antwoord.
+    const rideSettings = rideSportSettings(athlete);
+    if (rideSettings) {
+      await supabase.from("profile_sport_settings").upsert({
+        profile_id: connection.profile_id,
+        ftp_watts: numberOrNull(rideSettings.ftp),
+        cp_watts: numberOrNull(rideSettings.cp),
+        w_prime_joules: numberOrNull(rideSettings.w_prime),
+        lthr: numberOrNull(rideSettings.lthr),
+        max_hr: numberOrNull(rideSettings.max_hr),
+        power_zones: rideSettings.power_zones ?? null,
+        hr_zones: rideSettings.hr_zones ?? null,
+        power_zone_names: rideSettings.power_zone_names ?? null,
+        synced_at: new Date().toISOString(),
+      });
+    }
 
     // Opt-in: het lid laat FTP en gewicht in het profiel meelopen met intervals.
     if (profile?.auto_sync_physique) {

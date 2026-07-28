@@ -61,17 +61,38 @@ export type IntervalsAthlete = {
   email?: string;
   ftp?: number;
   weight?: number;
-  sportSettings?: Array<{
-    ftp?: number;
-    indoor_ftp?: number;
-    weight?: number;
-    types?: string[];
-    mmp_model?: {
-      ftp?: number;
-      p_max?: number;
-    };
-  }>;
+  sportSettings?: IntervalsSportSettings[];
 };
+
+export type IntervalsSportSettings = {
+  ftp?: number;
+  indoor_ftp?: number;
+  weight?: number;
+  types?: string[];
+  mmp_model?: {
+    ftp?: number;
+    p_max?: number;
+  };
+  /** Critical power en anaerobe capaciteit (W'), als het model gevuld is. */
+  cp?: number;
+  w_prime?: number;
+  lthr?: number;
+  max_hr?: number;
+  /** Zonegrenzen; eenheid (percentage of watt) verschilt per instelling. */
+  power_zones?: number[];
+  hr_zones?: number[];
+  power_zone_names?: string[];
+  hr_zone_names?: string[];
+};
+
+/** Ride-instellingen van de athlete; daar staan CP, W' en de zones in. */
+export function rideSportSettings(athlete: IntervalsAthlete | null) {
+  return (
+    athlete?.sportSettings?.find((settings) =>
+      settings.types?.some((type) => /ride/i.test(type)),
+    ) ?? null
+  );
+}
 
 export type IntervalsActivity = {
   id: string;
@@ -360,9 +381,7 @@ function collectPowerCurvePoints(
 
 /** FTP en gewicht uit de athlete-instellingen; het mmp-model gaat voor. */
 export function athletePhysique(athlete: IntervalsAthlete | null) {
-  const rideSettings = athlete?.sportSettings?.find((settings) =>
-    settings.types?.some((type) => /ride/i.test(type)),
-  );
+  const rideSettings = rideSportSettings(athlete);
   const positive = (value: unknown) => {
     const n = Number(value ?? NaN);
     return Number.isFinite(n) && n > 0 ? n : null;

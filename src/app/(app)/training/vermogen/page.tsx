@@ -59,7 +59,7 @@ export default async function PowerPage({
     ? requestedPeriod!
     : "90d";
 
-  const [profileResult, connectionResult, comparisonResult] =
+  const [profileResult, connectionResult, comparisonResult, sportSettingsResult] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -76,7 +76,13 @@ export default async function PowerPage({
         .select(COMPARISON_RIDER_COLUMNS)
         .in("sync_status", ["ok", "partial"])
         .neq("profile_id", user.id),
+      supabase
+        .from("profile_sport_settings")
+        .select("cp_watts, w_prime_joules")
+        .eq("profile_id", user.id)
+        .maybeSingle(),
     ]);
+  const sportSettings = sportSettingsResult.data;
   const profile = profileResult.data;
   const connection = connectionResult.data;
   let comparisonRows: unknown[] | null = comparisonResult.data;
@@ -182,7 +188,7 @@ export default async function PowerPage({
             </p>
           ) : null}
 
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Metric
               icon={Zap}
               label="FTP / eFTP"
@@ -191,6 +197,22 @@ export default async function PowerPage({
             />
             <Metric icon={Gauge} label="5 minuten" value={formatValue(power5m, " W")} />
             <Metric icon={Activity} label="20 minuten" value={formatValue(power20m, " W")} />
+            <Metric
+              icon={Gauge}
+              label="CP"
+              value={formatValue(numberOrNull(sportSettings?.cp_watts), " W")}
+              hint="Critical power uit intervals.icu"
+            />
+            <Metric
+              icon={Zap}
+              label="W'"
+              value={
+                sportSettings?.w_prime_joules
+                  ? `${Math.round(Number(sportSettings.w_prime_joules) / 1000)} kJ`
+                  : "-"
+              }
+              hint="Anaerobe capaciteit"
+            />
             <Metric
               icon={Scale}
               label="Huidig gewicht"
