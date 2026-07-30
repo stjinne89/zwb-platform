@@ -8,10 +8,10 @@ import { Menu, X } from "lucide-react";
 import { LogoutButton } from "./logout-button";
 import {
   AVATAR_NAV,
-  NAV_GROUPS,
   isActiveHref,
   type AdminNavItem,
   type NavLeaf,
+  type NavNode,
 } from "./nav-config";
 
 function MobileMenuItem({
@@ -56,9 +56,11 @@ function SectionHeader({ label }: { label: string }) {
 export function MobileMenu({
   displayName,
   adminItems,
+  nodes,
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
+  nodes: NavNode[];
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -133,7 +135,7 @@ export function MobileMenu({
               {/* Panel */}
               <div className="fixed inset-x-0 top-14 z-[9999] max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b border-border bg-card shadow-2xl ring-1 ring-border/70 dark:ring-white/10">
                 <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
-                  {NAV_GROUPS.map((node) => {
+                  {nodes.map((node) => {
                     if (node.type === "link") {
                       return (
                         <MobileMenuItem

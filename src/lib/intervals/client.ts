@@ -108,6 +108,11 @@ export type IntervalsActivity = {
   icu_intensity?: number; // IF
   average_watts?: number;
   weighted_average_watts?: number; // NP
+  // Hartslag en cadans; alleen gevuld als het lid met de bijbehorende sensor
+  // heeft gereden. intervals.icu gebruikt hier de Strava-veldnamen.
+  average_heartrate?: number;
+  max_heartrate?: number;
+  average_cadence?: number;
   // Arbeid in joules; intervals.icu gebruikt niet overal dezelfde veldnaam,
   // vandaar de varianten. Zie kilojoulesFromActivity in intervals/activities.ts.
   icu_joules?: number;

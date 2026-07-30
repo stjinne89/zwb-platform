@@ -2,6 +2,13 @@
 // Draait als laatste stap van de Strava-sync (src/lib/strava/client.ts), want
 // daar zijn de activiteiten per definitie vers.
 //
+// De belasting per rit (Workout score) komt uit de Strava-activiteit zelf: TSS
+// en IF worden berekend uit genormaliseerd vermogen en de FTP van het lid, zie
+// lib/training/ride-metrics.ts. Eerder kwam die uit intervals.icu, maar dat
+// geeft via de API niets terug voor activiteiten die daar via Strava
+// binnenkwamen — precies de ritten waar dit blok over gaat. CTL, gereedscore en
+// fitness-status komen wél uit intervals: die zitten in de wellness-reeks.
+//
 // Twee harde grenzen, bewust niet optioneel:
 //  - STRAVA_ZWB_SUMMARY_SINCE: ritten van vóór die datum raken we nooit aan.
 //    Ontbreekt de variabele, dan doet deze module niets. Zonder die grens zou
@@ -15,15 +22,11 @@ import {
   updateStravaActivityDescription,
   type StravaRateLimitUsage,
 } from "@/lib/strava/activity-api";
-import {
-  syncIntervalsActivities,
-  type ActivityLoadRow,
-} from "@/lib/intervals/activities";
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
+import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
 import {
   buildZwbSummaryBlock,
   composeDescription,
-  pickIntervalsActivity,
   pickPlannedWorkout,
   stripZwbSummary,
   summaryHash,
@@ -44,10 +47,6 @@ import {
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Hoe oud de opgeslagen intervals-belasting mag zijn voordat we bijsyncen. Los
- * van ACTIVITY_SYNC_MAX_AGE_MS (6u), waar de trainingspagina aan hangt. */
-export const SUMMARY_INTERVALS_MAX_AGE_MS = 30 * 60 * 1000;
-
 /** Strava kapt of weigert een te lange beschrijving; dan schrijven we niets. */
 const MAX_DESCRIPTION_LENGTH = 8000;
 
@@ -56,14 +55,10 @@ const MIN_ACTIVITY_AGE_MS = 15 * 60 * 1000;
 
 /** Na zoveel pogingen laten we een rit los, zodat een rij niet blijft hangen. */
 const MAX_ATTEMPTS = 4;
-/** Tot zoveel pogingen wachten we op de belasting uit intervals.icu. */
-const MAX_PENDING_ATTEMPTS = 3;
 
 export type SummaryWriteResult = {
   written: number;
   skipped: number;
-  /** Wacht op de belasting uit intervals.icu. */
-  pending: number;
   rateLimited: boolean;
   errors: string[];
 };
@@ -71,7 +66,6 @@ export type SummaryWriteResult = {
 const EMPTY_RESULT: SummaryWriteResult = {
   written: 0,
   skipped: 0,
-  pending: 0,
   rateLimited: false,
   errors: [],
 };
@@ -80,6 +74,7 @@ type CandidateRow = {
   id: number;
   start_date: string;
   moving_time_seconds: number | null;
+  raw: unknown;
 };
 
 type SummaryRow = {
@@ -127,7 +122,7 @@ export async function writeZwbSummariesForUser(
 
   const { data: candidateRows } = await admin
     .from("strava_activities")
-    .select("id, start_date, moving_time_seconds")
+    .select("id, start_date, moving_time_seconds, raw")
     .eq("profile_id", profileId)
     // Negatieve id's komen uit de CSV/GPX-import en bestaan niet bij Strava.
     .gt("id", 0)
@@ -166,12 +161,14 @@ export async function writeZwbSummariesForUser(
       .maybeSingle(),
     admin
       .from("profiles")
-      .select("zrl_division, wellness_device")
+      .select("zrl_division, wellness_device, ftp_watts")
       .eq("id", profileId)
       .maybeSingle(),
   ]);
-  // Zonder intervals.icu zouden vijf van de acht regels "-" zijn. Zo'n blok
-  // publiceren we niet onder de clubnaam.
+  // CTL, gereedscore en fitness-status komen uit de wellness-reeks van
+  // intervals.icu. Zonder die koppeling zou de halve blok "-" zijn, en zo'n blok
+  // publiceren we niet onder de clubnaam. De belasting per rit komt wél uit
+  // Strava: intervals geeft daar voor Strava-activiteiten niets voor terug.
   if (!intervalsConn?.api_key || !intervalsConn?.athlete_id) {
     return { ...EMPTY_RESULT, skipped: open.length };
   }
@@ -179,40 +176,10 @@ export async function writeZwbSummariesForUser(
   const result: SummaryWriteResult = {
     written: 0,
     skipped: 0,
-    pending: 0,
     rateLimited: false,
     errors: [],
   };
-
-  // Belasting per rit vers genoeg? Zeven dagen is ruim voor het 48-uursvenster
-  // en een fractie van de payload die de trainingspagina ophaalt.
-  const { data: newestSync } = await admin
-    .from("intervals_activities")
-    .select("synced_at")
-    .eq("profile_id", profileId)
-    .order("synced_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (
-    !newestSync ||
-    new Date(newestSync.synced_at).getTime() < now - SUMMARY_INTERVALS_MAX_AGE_MS
-  ) {
-    try {
-      await syncIntervalsActivities(
-        admin,
-        {
-          profile_id: profileId,
-          athlete_id: intervalsConn.athlete_id,
-          api_key: intervalsConn.api_key,
-        },
-        7,
-      );
-    } catch (err) {
-      result.errors.push(
-        err instanceof Error ? err.message : "intervals-belasting bijwerken faalde.",
-      );
-    }
-  }
+  const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
 
   const wellness = await fetchIntervalsWellness(
     intervalsConn.api_key,
@@ -230,36 +197,17 @@ export async function writeZwbSummariesForUser(
   );
 
   const oldestCandidate = open[open.length - 1];
-  const [{ data: intervalsRows }, { data: workoutRows }] = await Promise.all([
-    admin
-      .from("intervals_activities")
-      .select(
-        "intervals_id, start_date_local, name, type, moving_time_seconds, training_load, intensity, normalized_watts, kilojoules, raw",
-      )
-      .eq("profile_id", profileId)
-      .gte(
-        "start_date_local",
-        new Date(
-          new Date(oldestCandidate.start_date).getTime() - 86400_000,
-        )
-          .toISOString()
-          .slice(0, 10),
-      ),
-    admin
-      .from("training_workouts")
-      .select("id, scheduled_at, title, duration_minutes, intensity, structure_json")
-      .is("superseded_at", null)
-      .eq("profile_id", profileId)
-      .gte(
-        "scheduled_at",
-        new Date(
-          new Date(oldestCandidate.start_date).getTime() - 36 * 3600_000,
-        ).toISOString(),
-      ),
-  ]);
-  const intervalsActivities = (intervalsRows ?? []) as Array<
-    ActivityLoadRow & { raw?: unknown }
-  >;
+  const { data: workoutRows } = await admin
+    .from("training_workouts")
+    .select("id, scheduled_at, title, duration_minutes, intensity, structure_json")
+    .is("superseded_at", null)
+    .eq("profile_id", profileId)
+    .gte(
+      "scheduled_at",
+      new Date(
+        new Date(oldestCandidate.start_date).getTime() - 36 * 3600_000,
+      ).toISOString(),
+    );
   const plannedWorkouts = (workoutRows ?? []) as PlannedWorkoutRow[];
 
   let usage: StravaRateLimitUsage | null = null;
@@ -273,37 +221,21 @@ export async function writeZwbSummariesForUser(
     const existing = summaries.get(candidate.id);
     const attempts = existing?.attempts ?? 0;
     const activityStart = new Date(candidate.start_date);
-    const activityMinutes = candidate.moving_time_seconds
-      ? Math.round(candidate.moving_time_seconds / 60)
-      : null;
-
-    const matchedActivity = pickIntervalsActivity(
-      intervalsActivities,
-      candidate.id,
-      activityStart,
-      activityMinutes,
+    // Belasting uit de rit zelf: TSS en IF uit genormaliseerd vermogen en de FTP
+    // van het lid. Zonder vermogensmeter blijft de belasting leeg en toont het
+    // blok "-" bij Workout score.
+    const metrics = rideMetricsFromStrava(
+      candidate.raw,
+      candidate.moving_time_seconds,
+      ftpWatts,
     );
-    const actualLoad = matchedActivity?.training_load ?? null;
+    const activityMinutes = metrics.movingMinutes;
+    const actualLoad = metrics.tss;
     const matchedWorkout = pickPlannedWorkout(
       plannedWorkouts,
       activityStart,
       activityMinutes,
     );
-
-    // Nog geen belasting bekend: intervals.icu heeft de rit niet verwerkt. Even
-    // laten liggen; na MAX_PENDING_ATTEMPTS schrijven we alsnog met "-".
-    if (actualLoad == null && attempts < MAX_PENDING_ATTEMPTS) {
-      await upsertSummary(admin, {
-        activity_id: candidate.id,
-        profile_id: profileId,
-        workout_id: matchedWorkout?.id ?? null,
-        intervals_id: matchedActivity?.intervals_id ?? null,
-        attempts: attempts + 1,
-        last_error: "Wacht op belasting uit intervals.icu.",
-      });
-      result.pending++;
-      continue;
-    }
 
     const plannedLoad = matchedWorkout
       ? estimateTrainingLoad(
@@ -319,13 +251,8 @@ export async function writeZwbSummariesForUser(
       plannedIntensity: matchedWorkout?.intensity ?? null,
       plannedMinutes: matchedWorkout?.duration_minutes ?? null,
       plannedLoad,
-      actualLoad: actualLoad == null ? null : Number(actualLoad),
-      detectedIntensity: detectIntensityFromLoad(
-        actualLoad == null ? null : Number(actualLoad),
-        matchedActivity?.moving_time_seconds
-          ? Math.round(matchedActivity.moving_time_seconds / 60)
-          : activityMinutes,
-      ),
+      actualLoad,
+      detectedIntensity: detectIntensityFromLoad(actualLoad, activityMinutes),
       ctl: zwbStatus.ctl,
       readinessLevel: zwbStatus.advice.level,
       readinessTitle: zwbStatus.advice.title,
@@ -339,7 +266,6 @@ export async function writeZwbSummariesForUser(
       activity_id: candidate.id,
       profile_id: profileId,
       workout_id: matchedWorkout?.id ?? null,
-      intervals_id: matchedActivity?.intervals_id ?? null,
       attempts: attempts + 1,
     });
     if (!claimed) {
@@ -393,24 +319,6 @@ export async function writeZwbSummariesForUser(
   return result;
 }
 
-async function upsertSummary(
-  admin: Admin,
-  row: {
-    activity_id: number;
-    profile_id: string;
-    workout_id: string | null;
-    intervals_id: string | null;
-    attempts: number;
-    last_error: string | null;
-  },
-) {
-  await admin
-    .from("strava_activity_summaries")
-    .upsert({ ...row, updated_at: new Date().toISOString() }, {
-      onConflict: "activity_id",
-    });
-}
-
 /**
  * Zet written_at, maar alleen als die nog leeg is. Nul rijen terug betekent dat
  * een andere run de rit al onder handen heeft.
@@ -421,7 +329,6 @@ async function claimSummary(
     activity_id: number;
     profile_id: string;
     workout_id: string | null;
-    intervals_id: string | null;
     attempts: number;
   },
 ): Promise<boolean> {
@@ -439,7 +346,6 @@ async function claimSummary(
     .update({
       written_at: new Date().toISOString(),
       workout_id: row.workout_id,
-      intervals_id: row.intervals_id,
       attempts: row.attempts,
       last_error: null,
       updated_at: new Date().toISOString(),

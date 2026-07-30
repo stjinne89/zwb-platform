@@ -365,7 +365,7 @@ export async function syncRiderPowerProfiles(scope: "self" | "all" = "self") {
 
   revalidatePath("/teams");
   revalidatePath("/dashboard");
-  revalidatePath("/training/vermogen");
+  revalidatePath("/zwbeter-worden/vermogen");
   revalidatePath("/profiel");
   return { ok: true as const, synced, partial, failed, errors: errors.slice(0, 3) };
 }

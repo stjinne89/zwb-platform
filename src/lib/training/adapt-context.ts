@@ -2,6 +2,11 @@
 // gisteren gepland vs. wat deed die werkelijk. Gebruikt door zowel de
 // renner-actie "pas vandaag aan" als de dagelijkse cron.
 
+import {
+  rideMetricsFromStrava,
+  STRAVA_RIDE_COLUMNS,
+  type StravaRideRow,
+} from "@/lib/training/ride-metrics";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type YesterdayContext = {
@@ -49,31 +54,33 @@ export async function buildYesterdayContext(
     }
   }
 
-  // Werkelijke Strava-rit van gisteren (langste die dag).
-  const { data: acts } = await admin
-    .from("strava_activities")
-    .select("name, moving_time_seconds, start_date")
-    .eq("profile_id", profileId)
-    .gte("start_date", fromIso)
-    .lte("start_date", toIso)
-    .order("moving_time_seconds", { ascending: false });
-  const actual = (acts ?? []).find(
-    (a: { start_date: string }) =>
-      amsterdamDayKey(new Date(a.start_date)) === yKey,
+  // Werkelijke rit van gisteren (langste die dag). Uit Strava, want intervals.icu
+  // geeft via de API geen cijfers voor activiteiten die daar via Strava
+  // binnenkwamen — zie ride-metrics.ts.
+  const [{ data: rides }, { data: profile }] = await Promise.all([
+    admin
+      .from("strava_activities")
+      .select(STRAVA_RIDE_COLUMNS)
+      .eq("profile_id", profileId)
+      .gte("start_date", fromIso)
+      .lte("start_date", toIso)
+      .order("moving_time_seconds", { ascending: false }),
+    admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
+  ]);
+  const actual = ((rides ?? []) as StravaRideRow[]).find(
+    (ride) => amsterdamDayKey(new Date(ride.start_date)) === yKey,
   );
 
-  const actualName = actual?.name ?? null;
-  const actualMinutes = actual?.moving_time_seconds
-    ? Math.round(Number(actual.moving_time_seconds) / 60)
+  const metrics = actual
+    ? rideMetricsFromStrava(
+        actual.raw,
+        actual.moving_time_seconds,
+        profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+      )
     : null;
 
   // Niets om mee te geven → null zodat de prompt het kan negeren.
-  if (
-    plannedTitle == null &&
-    plannedMinutes == null &&
-    actualName == null &&
-    actualMinutes == null
-  ) {
+  if (plannedTitle == null && plannedMinutes == null && actual == null) {
     return null;
   }
 
@@ -81,8 +88,8 @@ export async function buildYesterdayContext(
     plannedTitle,
     plannedMinutes,
     plannedIntensity,
-    actualName,
-    actualMinutes,
-    actualLoad: null, // strava_activities heeft geen TSS; prompt verwerkt null
+    actualName: actual?.name ?? null,
+    actualMinutes: metrics?.movingMinutes ?? null,
+    actualLoad: metrics?.tss ?? null,
   };
 }

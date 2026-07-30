@@ -81,7 +81,7 @@ export async function TrainingStatus({
       <SectionHeader
         icon={HeartPulse}
         title="Jouw trainingsstatus"
-        action={<InlineMoreLink href="/training">Training</InlineMoreLink>}
+        action={<InlineMoreLink href="/zwbeter-worden">Training</InlineMoreLink>}
       />
       <div className="space-y-3">
         <div className={`rounded-lg p-4 ${advice.block}`}>
@@ -129,7 +129,7 @@ export async function TrainingStatus({
 
         {nextWorkout ? (
           <Link
-            href="/training"
+            href="/zwbeter-worden"
             className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 transition hover:bg-muted/50"
           >
             <div className="min-w-0">

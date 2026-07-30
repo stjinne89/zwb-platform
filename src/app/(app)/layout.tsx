@@ -9,7 +9,7 @@ import { DesktopNav } from "./_components/desktop-nav";
 import { AvatarMenu } from "./_components/avatar-menu";
 import { MobileMenu } from "./_components/mobile-menu";
 import { BackButton } from "./_components/back-button";
-import { ADMIN_NAV } from "./_components/nav-config";
+import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
 
 export default async function AppLayout({
   children,
@@ -29,6 +29,7 @@ export default async function AppLayout({
 
   const displayName = profile?.display_name ?? user.email ?? "";
   const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
+  const navNodes = filterNavForPermissions(NAV_GROUPS, (permission) => access.has(permission));
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -43,8 +44,8 @@ export default async function AppLayout({
           </Link>
           <BackButton />
 
-          {/* Desktop nav (5 top-level slots, sommige met dropdown) */}
-          <DesktopNav />
+          {/* Desktop nav (6 top-level slots, sommige met dropdown) */}
+          <DesktopNav nodes={navNodes} />
 
           {/* Spacer voor mobiel zodat right-side rechts uitlijnt */}
           <div className="flex-1 md:hidden" />
@@ -60,7 +61,7 @@ export default async function AppLayout({
             </Link>
             <AvatarMenu displayName={displayName} adminItems={adminItems} />
             <ThemeToggle />
-            <MobileMenu displayName={displayName} adminItems={adminItems} />
+            <MobileMenu displayName={displayName} adminItems={adminItems} nodes={navNodes} />
           </div>
         </nav>
       </header>

@@ -157,8 +157,8 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
   { href: "/achievements", name: "Achievements", text: "Al je badges. Sync Strava, importeer je ritten (CSV/GPX) of herbereken badges." },
-  { href: "/training", name: "Training", text: "Schema's, AI-coach, je ZWBeterWorden-advies en de koppelingen." },
-  { href: "/training/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
+  { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
+  { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/onderhoud", name: "Onderhoud", text: "Slijtage van je onderdelen op basis van je Strava-kilometers, met een melding bij vervangen." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
@@ -868,8 +868,8 @@ Fitness-status: Verbeterend`}
               </li>
               <li>
                 2. Koppel intervals.icu op de{" "}
-                <Link href="/training" className="underline">
-                  trainingspagina
+                <Link href="/zwbeter-worden/doelen" className="underline">
+                  Doelen-pagina
                 </Link>
                 . Daar komen de belasting, CTL en gereedscore vandaan.
               </li>
@@ -996,7 +996,7 @@ Fitness-status: Verbeterend`}
             dip hoort niet in de curve.
           </p>
           <Link
-            href="/training/vermogen"
+            href="/zwbeter-worden/vermogen"
             className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Open Mijn vermogen

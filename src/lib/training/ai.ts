@@ -1,4 +1,5 @@
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
+import type { ComplianceContext } from "@/lib/training/compliance";
 
 export type GeneratedWorkout = {
   date: string;
@@ -92,6 +93,29 @@ export type TrainingAiInput = {
     actualMinutes: number | null;
     actualLoad: number | null; // TSS/training load indien bekend
   } | null;
+  /** Naleving van het lopende schema: gepland vs. werkelijk gereden. */
+  compliance?: ComplianceContext | null;
+  /** Alleen bij "schema bijwerken": wat er verandert en welk deel opnieuw mag. */
+  planUpdate?: {
+    reason: string;
+    fromDate: string;
+    toDate: string;
+    previousTitle: string;
+    previousSummary: string | null;
+    changed: {
+      hoursPerWeek?: [number | null, number | null];
+      intensity?: [string, string];
+      goalType?: [string, string];
+      targetDate?: [string | null, string | null];
+      availableDays?: [string[], string[]];
+    };
+    remainingWorkouts: Array<{
+      date: string;
+      title: string;
+      durationMinutes: number;
+      intensity: string;
+    }>;
+  } | null;
 };
 
 const PLAN_SCHEMA = {
@@ -107,7 +131,9 @@ const PLAN_SCHEMA = {
     workouts: {
       type: "array",
       minItems: 3,
-      maxItems: 21,
+      // Een bijwerking beslaat de rest van het lopende schema en kan daarmee
+      // meer weken omvatten dan een nieuw concept van drie weken.
+      maxItems: 42,
       items: {
         type: "object",
         additionalProperties: false,

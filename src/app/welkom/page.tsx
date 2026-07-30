@@ -244,8 +244,8 @@ export default async function WelkomPage() {
     {
       title: "intervals.icu koppelen",
       text: "Voor trainingsdashboard, geplande workouts, Wahoo/Garmin-export en optionele hersteldata.",
-      href: "/training",
-      action: intervals ? "Training openen" : "intervals koppelen",
+      href: "/zwbeter-worden/doelen",
+      action: intervals ? "ZWBeter Worden openen" : "intervals koppelen",
       status: intervals ? "done" : canUseIntegrations ? "current" : "upcoming",
       icon: Sparkles,
     },

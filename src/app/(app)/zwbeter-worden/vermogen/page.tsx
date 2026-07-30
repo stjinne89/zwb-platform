@@ -149,7 +149,7 @@ export default async function PowerPage({
                 Uitleg
               </Button>
             </Link>
-            <Link href="/training">
+            <Link href="/zwbeter-worden">
               <Button variant="outline">
                 <ArrowLeft data-icon="inline-start" />
                 Coach-cockpit
@@ -169,7 +169,7 @@ export default async function PowerPage({
               {PERIODS.map((option) => (
                 <Link
                   key={option.value}
-                  href={`/training/vermogen?period=${option.value}`}
+                  href={`/zwbeter-worden/vermogen?period=${option.value}`}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                     option.value === period
                       ? "bg-primary text-primary-foreground"

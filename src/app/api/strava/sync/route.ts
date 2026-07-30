@@ -19,7 +19,6 @@ type ProfileSyncResult = {
   zwbSegmentsCompleted: number;
   zwbSegmentsRateLimited: boolean;
   zwbSummariesWritten: number;
-  zwbSummariesPending: number;
   zwbSummariesSkipped: number;
   zwbSummariesRateLimited: boolean;
   nextPage?: number | null;
@@ -126,7 +125,6 @@ export async function POST(request: Request) {
         zwbSegmentsCompleted: 0,
         zwbSegmentsRateLimited: false,
         zwbSummariesWritten: 0,
-        zwbSummariesPending: 0,
         zwbSummariesSkipped: 0,
         zwbSummariesRateLimited: false,
       };
@@ -169,7 +167,6 @@ export async function POST(request: Request) {
             summary.zwbSegmentsCompleted = result.zwbSegmentsCompleted;
             summary.zwbSegmentsRateLimited = result.zwbSegmentsRateLimited;
             summary.zwbSummariesWritten = result.zwbSummariesWritten;
-            summary.zwbSummariesPending = result.zwbSummariesPending;
             summary.zwbSummariesSkipped = result.zwbSummariesSkipped;
             summary.zwbSummariesRateLimited = result.zwbSummariesRateLimited;
             if (
@@ -192,7 +189,6 @@ export async function POST(request: Request) {
           summary.zwbSegmentsCompleted += result.zwbSegmentsCompleted;
           summary.zwbSegmentsRateLimited ||= result.zwbSegmentsRateLimited;
           summary.zwbSummariesWritten += result.zwbSummariesWritten;
-          summary.zwbSummariesPending += result.zwbSummariesPending;
           summary.zwbSummariesSkipped += result.zwbSummariesSkipped;
           summary.zwbSummariesRateLimited ||= result.zwbSummariesRateLimited;
           summary.nextPage = result.nextPage;
@@ -255,10 +251,6 @@ export async function POST(request: Request) {
         ),
         zwbSummariesWritten: results.reduce(
           (sum, r) => sum + r.zwbSummariesWritten,
-          0,
-        ),
-        zwbSummariesPending: results.reduce(
-          (sum, r) => sum + r.zwbSummariesPending,
           0,
         ),
         rateLimited,

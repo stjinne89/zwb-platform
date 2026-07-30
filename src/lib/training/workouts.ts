@@ -114,6 +114,10 @@ export function defaultTrainingPrompt() {
     "Houd rekening met aankomende events/races (indien meegegeven): plan eromheen — geen zware sleutelsessie vlak vóór een race, en gebruik races eventueel als kwaliteitsprikkel.",
     "Gebruik intervals.icu-belasting indien meegegeven: bij sterk negatieve TSB (form) bouw je herstel in; bij hoge ramp_rate matig je de opbouw. Stem het wattage af op de eFTP wanneer die afwijkt van de profiel-FTP.",
     "Respecteer de beschikbare dagen en max uren/week strikt; verdeel sleutelsessies met voldoende herstel ertussen.",
+    "Gebruik de naleving (compliance) indien meegegeven: dat is per geplande workout de werkelijk gereden belasting als percentage van de geplande, met een oordeel (te_licht, volgens_plan, te_zwaar, niet_gereden).",
+    "Is de naleving structureel 'te_licht' (avgLoadPct duidelijk onder 100 of meerdere sessies te licht), plan dan realistischer: verlaag duur en/of intensiteit naar wat het lid werkelijk haalt in plaats van hetzelfde nog eens voor te schrijven.",
+    "Is de naleving 'te_zwaar' in combinatie met een hoge RPE (8+) of gevoel 'zwaar'/'slecht', bouw dan extra herstel in en verlaag de eerstvolgende sleutelsessie.",
+    "Zijn workouts 'niet_gereden' op steeds dezelfde weekdagen, plan die dagen dan lichter of houd ze vrij; benoem dat kort in cautions.",
   ].join("\n");
 }
 
@@ -133,6 +137,24 @@ export function adaptiveDailyPrompt() {
     "3) Geen/weinig tijd vandaag (today.availableMinutes lager dan de geplande duur): comprimeer de sessie tot binnen de beschikbare tijd — behoud zo veel mogelijk de kernprikkel in een kortere vorm, of verschuif de sleutelsessie en plan vandaag een korte onderhoudsrit. Overschrijd de beschikbare minuten nooit.",
     "4) Frisser dan verwacht (today.feeling='fresh', hoge readiness, positieve TSB): je mág kwaliteit toevoegen of een sessie iets zwaarder maken, maar blijf binnen de weeklimiet en ga niet ten koste van de volgende geplande sleutelsessie.",
     "Combineer signalen verstandig (bv. fris maar weinig tijd = korte, scherpe sessie). Geef altijd een concreet, uitvoerbaar voorstel voor vandaag.",
+  ].join("\n");
+}
+
+// Prompt voor "schema bijwerken": het doel of de randvoorwaarden zijn veranderd
+// (uren per week, intensiteit, doeldatum) en het resterende deel van het lopende
+// schema moet daarop worden herzien. Anders dan de dag-aanpassing gaat het hier
+// om de hele periode tot de einddatum, niet alleen om vandaag.
+export function planUpdatePrompt() {
+  return [
+    defaultTrainingPrompt(),
+    "",
+    "Dit is een BIJWERKING van een lopend schema, geen nieuw plan.",
+    "Herplan uitsluitend de periode van planUpdate.fromDate tot en met planUpdate.toDate. Geef geen workouts buiten dat bereik.",
+    "Wat al gereden is blijft staan; je bouwt verder op de belasting die het lid tot nu toe heeft opgebouwd.",
+    "Behoud de opzet en de periodisering richting het doel: als het oude schema in een opbouwfase zat, ga daar verder, en houd de taper voor de target_date intact.",
+    "Neem de gewijzigde randvoorwaarden uit planUpdate.changed strikt over. Minder uren per week betekent minder volume, niet dezelfde sessies ingekort tot ze hun prikkel verliezen — schrap dan liever een sessie en houd de sleutelsessies heel.",
+    "Gebruik planUpdate.remainingWorkouts als vertrekpunt: houd vast wat nog past en vervang alleen wat door de wijziging niet meer klopt.",
+    "Leg in cautions per verandering kort uit wat je anders hebt gedaan dan in het oude schema, en waarom.",
   ].join("\n");
 }
 
@@ -313,7 +335,7 @@ export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
 }
 
 // Standaard %FTP per intensiteit als een blok geen leesbaar wattage/%-doel heeft.
-const INTENSITY_FTP_RANGE: Record<WorkoutIntensity, [number, number]> = {
+export const INTENSITY_FTP_RANGE: Record<WorkoutIntensity, [number, number]> = {
   rest: [0, 40],
   recovery: [45, 60],
   endurance: [60, 75],

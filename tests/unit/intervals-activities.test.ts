@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  kilojoulesFromActivity,
-  weeklyLoad,
-  type ActivityLoadRow,
-} from "@/lib/intervals/activities";
+import { kilojoulesFromActivity, type ActivityLoadRow } from "@/lib/intervals/activities";
+import { weeklyLoad } from "@/lib/training/ride-metrics";
 
 describe("kilojoulesFromActivity", () => {
   it("rekent joules om naar kilojoules", () => {

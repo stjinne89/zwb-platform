@@ -15,6 +15,7 @@ import {
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
@@ -107,7 +108,7 @@ export async function connectIntervalsWithKey(apiKey: string) {
   );
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/training");
+  revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/profiel");
   return { ok: true as const, athleteName: athlete.name ?? athlete.id };
 }
@@ -122,7 +123,7 @@ export async function disconnectIntervals() {
   const { error } = await supabase.from("intervals_connections").delete().eq("profile_id", user.id);
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/training");
+  revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/profiel");
   return { ok: true as const };
 }
@@ -170,7 +171,7 @@ export async function setWellnessOptIn(optIn: boolean) {
     }
   }
 
-  revalidatePath("/training");
+  revalidatePath("/zwbeter-worden", "layout");
   return { ok: true as const };
 }
 
@@ -214,13 +215,13 @@ export async function createTrainingGoal(formData: FormData) {
       {
         title: "Nieuwe trainingsintake",
         body: "Een toegewezen lid heeft een nieuw trainingsdoel toegevoegd.",
-        url: "/training",
+        url: "/zwbeter-worden",
         tag: `training-goal-${user.id}`,
       },
       { profileIds: (trainers ?? []).map((row) => row.trainer_id as string) },
     ).catch(() => null);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Doel opslaan faalde." };
@@ -269,13 +270,13 @@ export async function grantTrainerAccess(formData: FormData) {
       {
         title: "Trainer-toegang gekregen",
         body: "Een lid heeft jou toegang gegeven tot trainingsdata.",
-        url: "/training",
+        url: "/zwbeter-worden",
         tag: `training-access-${user.id}-${trainerId}`,
       },
       { profileIds: [trainerId] },
     ).catch(() => null);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Trainer koppelen faalde." };
@@ -316,7 +317,7 @@ export async function revokeTrainerAccess(formData: FormData) {
       .eq("id", assignmentId);
     if (error) throw new Error(error.message);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Koppeling intrekken faalde." };
@@ -356,7 +357,7 @@ export async function updateTrainingPlan(formData: FormData) {
       .eq("id", planId);
     if (error) throw new Error(error.message);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Schema wijzigen faalde." };
@@ -381,7 +382,7 @@ export async function deleteTrainingPlan(planId: string) {
     const { error } = await admin.from("training_plans").delete().eq("id", planId);
     if (error) throw new Error(error.message);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Schema verwijderen faalde." };
@@ -428,7 +429,7 @@ export async function updateWorkout(formData: FormData) {
       .eq("id", workoutId);
     if (error) throw new Error(error.message);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Workout wijzigen faalde." };
@@ -496,7 +497,7 @@ export async function markTodayRestDay(formData: FormData) {
         .eq("id", workout.id);
     }
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return {
@@ -538,7 +539,7 @@ export async function saveWorkoutReport(formData: FormData) {
       .upsert(values, { onConflict: "workout_id,profile_id" });
     if (error) throw new Error(error.message);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Rapportage opslaan faalde." };
@@ -575,7 +576,7 @@ export async function saveTrainerFeedback(formData: FormData) {
     );
     if (error) throw new Error(error.message);
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Feedback opslaan faalde." };
@@ -615,7 +616,7 @@ export async function setPlanStatus(formData: FormData) {
     }
     const { error } = await admin.from("training_plans").update(patch).eq("id", planId);
     if (error) throw new Error(error.message);
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Status wijzigen faalde." };
@@ -672,16 +673,275 @@ export async function publishTrainingPlan(formData: FormData) {
         {
           title: "Trainingsschema gepubliceerd",
           body: "Je schema staat klaar in ZWB en intervals.icu.",
-          url: "/training",
+          url: "/zwbeter-worden",
           tag: `training-published-${planId}`,
         },
         { profileIds: [plan.profile_id] },
       ).catch(() => null);
     }
 
-    revalidatePath("/training");
+    revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const, failed };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Publiceren faalde." };
+  }
+}
+
+/**
+ * Zet een workout uit de bibliotheek op een datum in een schema. Tot nu toe kon
+ * een workout alleen ontstaan uit een AI-generatie; dit is het handmatige pad.
+ */
+export async function addWorkoutFromTemplate(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om workouts te maken.");
+    const planId = mustString(formData.get("plan_id"), "Schema");
+    const templateId = mustString(formData.get("template_id"), "Workout");
+    const date = mustString(formData.get("date"), "Datum");
+    const time = optionalString(formData.get("time")) ?? "09:00";
+
+    const admin = createAdminClient();
+    const [{ data: plan }, { data: template }] = await Promise.all([
+      admin
+        .from("training_plans")
+        .select("id, profile_id, trainer_id")
+        .eq("id", planId)
+        .maybeSingle(),
+      admin
+        .from("training_workout_templates")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json")
+        .eq("id", templateId)
+        .maybeSingle(),
+    ]);
+    if (!plan) throw new Error("Schema niet gevonden.");
+    if (!template) throw new Error("Workout niet gevonden in de bibliotheek.");
+    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, plan.profile_id))) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const slug = String(template.title)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 48);
+    const { error } = await admin.from("training_workouts").insert({
+      plan_id: plan.id,
+      profile_id: plan.profile_id,
+      trainer_id: plan.trainer_id ?? user.id,
+      scheduled_at: `${date}T${time}:00+01:00`,
+      title: template.title,
+      description: template.description,
+      duration_minutes: template.duration_minutes,
+      intensity: template.intensity,
+      target_type: template.target_type,
+      structure_json: template.structure_json,
+      publish_status: "pending",
+      // Zelfde vorm als de AI-flow, zodat intervals.icu de workout bij een
+      // herpublicatie bijwerkt in plaats van dubbel neer te zetten.
+      intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Workout invoegen faalde.",
+    };
+  }
+}
+
+/** Eigen workout bewaren in de bibliotheek. De standaardset blijft ongemoeid. */
+export async function saveWorkoutTemplate(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om workouts te maken.");
+    const form = mustString(formData.get("form"), "Trainingsvorm");
+    if (!TRAINING_FORM_SLUGS.includes(form as (typeof TRAINING_FORM_SLUGS)[number])) {
+      throw new Error("Ongeldige trainingsvorm.");
+    }
+    const intensity = optionalString(formData.get("intensity")) ?? "endurance";
+    assertWorkoutIntensity(intensity);
+    const blocks = blocksFromForm(formData, intensity);
+    if (blocks.length === 0) throw new Error("Voeg minstens één blok toe.");
+
+    const admin = createAdminClient();
+    const { error } = await admin.from("training_workout_templates").insert({
+      form,
+      title: mustString(formData.get("title"), "Titel"),
+      description: optionalString(formData.get("description")),
+      duration_minutes: blocks.reduce((total, block) => total + block.durationMinutes, 0),
+      intensity,
+      target_type: optionalString(formData.get("target_type")) ?? "power",
+      structure_json: blocks,
+      is_standard: false,
+      created_by: user.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Workout bewaren faalde.",
+    };
+  }
+}
+
+export async function deleteWorkoutTemplate(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om workouts te maken.");
+    const templateId = mustString(formData.get("template_id"), "Workout");
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("training_workout_templates")
+      .delete()
+      .eq("id", templateId)
+      .eq("created_by", user.id)
+      .eq("is_standard", false)
+      .select("id");
+    if (error) throw new Error(error.message);
+    if ((data ?? []).length === 0) {
+      throw new Error("Alleen je eigen workouts kun je verwijderen.");
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Workout verwijderen faalde.",
+    };
+  }
+}
+
+/**
+ * Het lid bevestigt een afgeronde workout: RPE, gevoel en opmerking erbij, en
+ * daarna gaat het naar de trainer. athlete_confirmed_at is het signaal waarop de
+ * beoordelingsrij van de trainer filtert.
+ */
+export async function confirmWorkoutReview(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const workoutId = mustString(formData.get("workout_id"), "Workout");
+    const admin = createAdminClient();
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, profile_id, trainer_id, title, intervals_event_id")
+      .eq("id", workoutId)
+      .single();
+    if (!workout) throw new Error("Workout niet gevonden.");
+    if (workout.profile_id !== user.id) {
+      throw new Error("Alleen de renner kan deze training bevestigen.");
+    }
+
+    const rpe = optionalNumber(formData.get("athlete_rpe"));
+    const feel = optionalString(formData.get("athlete_feel"));
+    const { error } = await admin
+      .from("training_workout_reports")
+      .update({
+        athlete_rpe: rpe ? Math.max(1, Math.min(10, Math.round(rpe))) : null,
+        athlete_feel: feel,
+        athlete_report: optionalString(formData.get("athlete_report")),
+        athlete_confirmed_at: new Date().toISOString(),
+        updated_by: user.id,
+      })
+      .eq("workout_id", workoutId)
+      .eq("profile_id", user.id);
+    if (error) throw new Error(error.message);
+
+    if (workout.trainer_id && workout.trainer_id !== user.id) {
+      const { data: athlete } = await admin
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      await sendNotificationToMembers(
+        "on_workout_review",
+        {
+          title: "Training om te beoordelen",
+          body: `${athlete?.display_name ?? "Een lid"} bevestigde ${workout.title}.`,
+          url: `/zwbeter-worden/trainer?athlete=${user.id}`,
+          tag: `workout-reviewed-${workoutId}`,
+        },
+        { profileIds: [workout.trainer_id] },
+      ).catch(() => null);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Bevestigen faalde.",
+    };
+  }
+}
+
+/**
+ * De trainer sluit de lus: feedback erbij en goedkeuren, of markeren dat het
+ * schema wordt aangepast. Daarmee verdwijnt de workout uit de beoordelingsrij.
+ */
+export async function reviewWorkoutAsTrainer(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om te beoordelen.");
+    const workoutId = mustString(formData.get("workout_id"), "Workout");
+    const status = optionalString(formData.get("trainer_status")) ?? "approved";
+    if (!["approved", "adjusted"].includes(status)) throw new Error("Ongeldige status.");
+
+    const admin = createAdminClient();
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, profile_id, trainer_id, title, intervals_event_id")
+      .eq("id", workoutId)
+      .single();
+    if (!workout) throw new Error("Workout niet gevonden.");
+    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, workout.profile_id))) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const feedback = optionalString(formData.get("trainer_feedback"));
+    const { error } = await admin.from("training_workout_reports").upsert(
+      {
+        workout_id: workoutId,
+        profile_id: workout.profile_id,
+        trainer_id: user.id,
+        trainer_feedback: feedback,
+        trainer_reviewed_at: new Date().toISOString(),
+        trainer_status: status,
+        intervals_event_id: workout.intervals_event_id,
+        created_by: user.id,
+        updated_by: user.id,
+      },
+      { onConflict: "workout_id,profile_id" },
+    );
+    if (error) throw new Error(error.message);
+
+    // Alleen berichten als er ook iets te lezen valt; een stille goedkeuring
+    // hoeft geen pushbericht.
+    if (feedback) {
+      await sendNotificationToMembers(
+        "on_workout_review",
+        {
+          title: "Feedback van je trainer",
+          body: `Je trainer reageerde op ${workout.title}.`,
+          url: "/zwbeter-worden/schema",
+          tag: `workout-feedback-${workoutId}`,
+        },
+        { profileIds: [workout.profile_id] },
+      ).catch(() => null);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Beoordelen faalde.",
+    };
   }
 }

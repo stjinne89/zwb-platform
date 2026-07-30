@@ -42,6 +42,9 @@ function toRow(profileId: string, activity: IntervalsActivity) {
     intensity: positive(activity.icu_intensity),
     average_watts: positive(activity.average_watts),
     normalized_watts: positive(activity.weighted_average_watts),
+    average_hr: positive(activity.average_heartrate),
+    max_hr: positive(activity.max_heartrate),
+    average_cadence: positive(activity.average_cadence),
     kilojoules: kilojoulesFromActivity(activity),
     ftp_watts: positive(activity.icu_ftp),
     raw: activity as unknown as Record<string, unknown>,
@@ -83,41 +86,12 @@ export type ActivityLoadRow = {
   intensity: number | null;
   normalized_watts: number | null;
   kilojoules: number | null;
+  average_watts?: number | null;
+  average_hr?: number | null;
+  max_hr?: number | null;
+  average_cadence?: number | null;
 };
 
-export type WeeklyLoad = {
-  /** Maandag van de week, als datumsleutel. */
-  weekStart: string;
-  load: number;
-  hours: number;
-  kilojoules: number;
-};
-
-function mondayOf(dateKey: string) {
-  const date = new Date(`${dateKey}T12:00:00Z`);
-  const offset = (date.getUTCDay() + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - offset);
-  return date.toISOString().slice(0, 10);
-}
-
-/** Telt belasting per week op, oudste week eerst. */
-export function weeklyLoad(rows: ActivityLoadRow[], weeks = 12): WeeklyLoad[] {
-  const byWeek = new Map<string, WeeklyLoad>();
-  for (const row of rows) {
-    const weekStart = mondayOf(row.start_date_local);
-    const entry = byWeek.get(weekStart) ?? { weekStart, load: 0, hours: 0, kilojoules: 0 };
-    entry.load += Number(row.training_load ?? 0);
-    entry.hours += Number(row.moving_time_seconds ?? 0) / 3600;
-    entry.kilojoules += Number(row.kilojoules ?? 0);
-    byWeek.set(weekStart, entry);
-  }
-  return Array.from(byWeek.values())
-    .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
-    .slice(-weeks)
-    .map((week) => ({
-      ...week,
-      load: Math.round(week.load),
-      hours: Math.round(week.hours * 10) / 10,
-      kilojoules: Math.round(week.kilojoules),
-    }));
-}
+// weeklyLoad staat in @/lib/training/ride-metrics: de weekbelasting wordt nu uit
+// Strava-ritten opgebouwd, omdat intervals.icu voor Strava-activiteiten niets
+// teruggeeft. De functie werkt met beide rijvormen.

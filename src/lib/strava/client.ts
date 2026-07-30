@@ -614,7 +614,6 @@ export async function syncStravaActivitiesForUser(
   let zwbSegmentsCompleted = 0;
   let zwbSegmentsRateLimited = false;
   let zwbSummariesWritten = 0;
-  let zwbSummariesPending = 0;
   let zwbSummariesSkipped = 0;
   let zwbSummariesRateLimited = false;
   if (done) {
@@ -659,12 +658,22 @@ export async function syncStravaActivitiesForUser(
             { maxWrites: maxSummaryWrites },
           );
           zwbSummariesWritten = summaryResult.written;
-          zwbSummariesPending = summaryResult.pending;
           zwbSummariesSkipped = summaryResult.skipped;
           zwbSummariesRateLimited = summaryResult.rateLimited;
         } catch {
           // niet kritiek voor de sync-flow
         }
+      }
+
+      // Geplande workouts afronden waar een rit bij hoort, zodat het lid het
+      // bevestigscherm krijgt. Hangt alleen aan intervals.icu, dus los van de
+      // Strava-scope hierboven; de summary-writer heeft de belasting per rit
+      // net bijgewerkt.
+      try {
+        const { detectCompletedWorkouts } = await import("@/lib/training/completion");
+        await detectCompletedWorkouts(admin, profileId);
+      } catch {
+        // niet kritiek voor de sync-flow
       }
 
       // Zware na-sync-stappen (alle activiteiten doorlopen): bij de
@@ -772,7 +781,6 @@ export async function syncStravaActivitiesForUser(
     zwbSegmentsCompleted,
     zwbSegmentsRateLimited,
     zwbSummariesWritten,
-    zwbSummariesPending,
     zwbSummariesSkipped,
     zwbSummariesRateLimited,
     pagesScanned,

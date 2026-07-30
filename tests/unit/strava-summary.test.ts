@@ -4,7 +4,6 @@ import {
   buildZwbSummaryBlock,
   composeDescription,
   fitnessStatusLabel,
-  pickIntervalsActivity,
   pickPlannedWorkout,
   stripZwbSummary,
   workoutScoreLabel,
@@ -268,54 +267,5 @@ describe("pickPlannedWorkout", () => {
     expect(
       pickPlannedWorkout(workouts, new Date("2026-07-29T23:30:00+02:00"), 90)?.id,
     ).toBe("c");
-  });
-});
-
-describe("pickIntervalsActivity", () => {
-  const rows = [
-    {
-      intervals_id: "i-1",
-      start_date_local: "2026-07-30",
-      moving_time_seconds: 3600,
-      raw: {},
-    },
-    {
-      intervals_id: "i-2",
-      start_date_local: "2026-07-30",
-      moving_time_seconds: 7200,
-      raw: { strava_id: 999 },
-    },
-  ];
-  const start = new Date("2026-07-30T10:00:00+02:00");
-
-  it("matcht op intervals_id gelijk aan de Strava-id", () => {
-    const byId = [{ ...rows[0], intervals_id: "999" }, rows[1]];
-    expect(pickIntervalsActivity(byId, 999, start, 60)?.intervals_id).toBe("999");
-  });
-
-  it("matcht op raw.strava_id, ook als de duur verder afligt", () => {
-    expect(pickIntervalsActivity(rows, 999, start, 60)?.intervals_id).toBe("i-2");
-  });
-
-  it("valt terug op dezelfde dag met een vergelijkbare rijtijd", () => {
-    expect(pickIntervalsActivity(rows, 12345, start, 62)?.intervals_id).toBe("i-1");
-    expect(pickIntervalsActivity(rows, 12345, start, 118)?.intervals_id).toBe("i-2");
-  });
-
-  it("geeft null als geen rit binnen de duurmarge valt", () => {
-    // 30 minuten tegen 60/120: marge is max(300s, 15%) = 300s.
-    expect(pickIntervalsActivity(rows, 12345, start, 30)).toBeNull();
-  });
-
-  it("geeft null als er die dag geen intervals-rit is", () => {
-    expect(
-      pickIntervalsActivity(rows, 12345, new Date("2026-07-28T10:00:00+02:00"), 60),
-    ).toBeNull();
-  });
-
-  it("pakt de langste rit als de rijtijd onbekend is", () => {
-    expect(pickIntervalsActivity(rows, 12345, start, null)?.intervals_id).toBe(
-      "i-2",
-    );
   });
 });

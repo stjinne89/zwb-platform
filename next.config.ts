@@ -50,6 +50,18 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // /training heet nu /zwbeter-worden. Permanent, want er staan al verstuurde
+  // pushberichten en gedeelde links met de oude URL in omloop.
+  async redirects() {
+    return [
+      { source: "/training", destination: "/zwbeter-worden", permanent: true },
+      {
+        source: "/training/vermogen",
+        destination: "/zwbeter-worden/vermogen",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,4 +1,4 @@
-import type { ActivityLoadRow, WeeklyLoad } from "@/lib/intervals/activities";
+import type { RideLoad, WeeklyLoad } from "@/lib/training/ride-metrics";
 import { formatChartDate } from "@/lib/charts/format";
 
 function formatDuration(seconds: number | null) {
@@ -17,9 +17,10 @@ export function ActivityLoadPanel({
   recent,
 }: {
   weeks: WeeklyLoad[];
-  recent: ActivityLoadRow[];
+  recent: RideLoad[];
 }) {
   const maxLoad = Math.max(...weeks.map((week) => week.load), 1);
+  const withoutPower = recent.filter((row) => !row.hasPowerMeter).length;
 
   return (
     <div className="space-y-5 p-4">
@@ -69,7 +70,7 @@ export function ActivityLoadPanel({
             </thead>
             <tbody className="divide-y">
               {recent.map((row) => (
-                <tr key={row.intervals_id}>
+                <tr key={row.id}>
                   <td className="py-1.5 pr-3 whitespace-nowrap text-muted-foreground">
                     {formatChartDate(row.start_date_local)}
                   </td>
@@ -93,6 +94,12 @@ export function ActivityLoadPanel({
               ))}
             </tbody>
           </table>
+          {withoutPower > 0 ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {withoutPower === 1 ? "Eén rit is" : `${withoutPower} ritten zijn`} zonder
+              vermogensmeter gereden; daarvoor zijn TSS, IF en NP niet te bepalen.
+            </p>
+          ) : null}
         </div>
       )}
     </div>

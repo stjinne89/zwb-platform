@@ -190,61 +190,7 @@ export function pickPlannedWorkout<T extends PlannedWorkoutLike>(
   })[0];
 }
 
-type IntervalsActivityLike = {
-  intervals_id: string;
-  start_date_local: string;
-  moving_time_seconds: number | null;
-  raw?: unknown;
-};
-
-function rawStravaId(raw: unknown): number | null {
-  if (!raw || typeof raw !== "object") return null;
-  const value = (raw as Record<string, unknown>).strava_id;
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-/**
- * De intervals.icu-activiteit die bij een Strava-rit hoort. Eerst op id — die
- * hergebruikt intervals voor Strava-activiteiten — en anders op dezelfde dag met
- * een vergelijkbare rijtijd. Zonder duurmarge zouden twee ritten op één dag
- * verwisseld kunnen worden.
- */
-export function pickIntervalsActivity<T extends IntervalsActivityLike>(
-  rows: T[],
-  stravaActivityId: number,
-  activityStart: Date,
-  activityMinutes: number | null,
-): T | null {
-  const byId = rows.find(
-    (row) =>
-      row.intervals_id === String(stravaActivityId) ||
-      rawStravaId(row.raw) === stravaActivityId,
-  );
-  if (byId) return byId;
-
-  const dayKey = amsterdamDayKey(activityStart);
-  const sameDay = rows.filter((row) => row.start_date_local === dayKey);
-  if (sameDay.length === 0) return null;
-  if (activityMinutes == null) {
-    return [...sameDay].sort(
-      (a, b) => (b.moving_time_seconds ?? 0) - (a.moving_time_seconds ?? 0),
-    )[0];
-  }
-
-  const activitySeconds = activityMinutes * 60;
-  const tolerance = Math.max(300, activitySeconds * 0.15);
-  const withGap = sameDay
-    .filter((row) => row.moving_time_seconds != null)
-    .map((row) => ({
-      row,
-      gap: Math.abs((row.moving_time_seconds as number) - activitySeconds),
-    }))
-    .filter((entry) => entry.gap <= tolerance)
-    .sort(
-      (a, b) =>
-        a.gap - b.gap ||
-        (b.row.moving_time_seconds ?? 0) - (a.row.moving_time_seconds ?? 0),
-    );
-  return withGap[0]?.row ?? null;
-}
+// pickIntervalsActivity stond hier: die koppelde een Strava-rit aan de
+// intervals.icu-activiteit om er de belasting uit te halen. Dat pad is vervallen
+// — intervals geeft via de API niets terug voor Strava-activiteiten — en de
+// belasting komt nu uit de Strava-payload zelf (lib/training/ride-metrics.ts).

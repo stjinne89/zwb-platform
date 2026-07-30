@@ -63,6 +63,11 @@ export async function syncWorkoutDatesFromIntervals<T extends SchedulableWorkout
  * ándere plannen van dit lid op dezelfde datums. Zonder deze stap bleef de oude
  * training na een aanpassing in intervals.icu staan en zag het lid er twee.
  *
+ * Met `range` geldt het hele bereik als vervangen, niet alleen de datums waar
+ * het nieuwe schema toevallig ook een workout heeft. Dat is nodig bij een
+ * bijwerking: die kan een trainingsdag laten vervallen, en zonder bereik zou de
+ * oude workout van die dag blijven staan.
+ *
  * We markeren ze (superseded_at) in plaats van ze te verwijderen, zodat
  * zichtbaar blijft wat er oorspronkelijk gepland stond. Al gereden of
  * gerapporteerde workouts laten we staan — die zijn geschiedenis, geen planning.
@@ -72,6 +77,7 @@ export async function retireSupersededWorkouts(
   planId: string,
   profileId: string,
   connection: { api_key: string; athlete_id: string } | null,
+  range?: { from: string; to: string } | null,
 ): Promise<number> {
   const { data: incoming } = await admin
     .from("training_workouts")
@@ -80,22 +86,26 @@ export async function retireSupersededWorkouts(
   const dayKeys = new Set(
     (incoming ?? []).map((row) => String(row.scheduled_at).slice(0, 10)),
   );
-  if (dayKeys.size === 0) return 0;
+  if (dayKeys.size === 0 && !range) return 0;
 
   const days = [...dayKeys].sort();
+  const from = range?.from ?? days[0];
+  const to = range?.to ?? days[days.length - 1];
+  if (!from || !to) return 0;
+
   const { data: others } = await admin
     .from("training_workouts")
     .select("id, scheduled_at, intervals_event_id, status")
     .eq("profile_id", profileId)
     .neq("plan_id", planId)
     .is("superseded_at", null)
-    .gte("scheduled_at", `${days[0]}T00:00:00`)
-    .lte("scheduled_at", `${days[days.length - 1]}T23:59:59`);
+    .gte("scheduled_at", `${from}T00:00:00`)
+    .lte("scheduled_at", `${to}T23:59:59`);
 
   const superseded = (others ?? []).filter(
     (row) =>
       row.status === "planned" &&
-      dayKeys.has(String(row.scheduled_at).slice(0, 10)),
+      (range ? true : dayKeys.has(String(row.scheduled_at).slice(0, 10))),
   );
   if (superseded.length === 0) return 0;
 
@@ -129,29 +139,47 @@ export async function pushPlanWorkoutsToIntervals(
   planId: string,
   profileId: string,
 ): Promise<PushResult> {
-  const [{ data: conn }, { data: riderProfile }, { data: workouts }] = await Promise.all([
-    admin
-      .from("intervals_connections")
-      .select("api_key, athlete_id")
-      .eq("profile_id", profileId)
-      .maybeSingle(),
-    admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
-    admin
-      .from("training_workouts")
-      .select("*")
-      .eq("plan_id", planId)
-      .order("scheduled_at", { ascending: true }),
-  ]);
+  const [{ data: conn }, { data: riderProfile }, { data: plan }, { data: workouts }] =
+    await Promise.all([
+      admin
+        .from("intervals_connections")
+        .select("api_key, athlete_id")
+        .eq("profile_id", profileId)
+        .maybeSingle(),
+      admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
+      admin
+        .from("training_plans")
+        .select("adapt_from_date, end_date")
+        .eq("id", planId)
+        .maybeSingle(),
+      admin
+        .from("training_workouts")
+        .select("*")
+        .eq("plan_id", planId)
+        .order("scheduled_at", { ascending: true }),
+    ]);
   if (!conn?.api_key || !conn?.athlete_id) {
     return { connected: false, pushed: 0, failed: 0, superseded: 0 };
   }
 
+  // Een bijgewerkt schema vervangt alles vanaf de bijwerkdatum, ook de dagen
+  // waar het nu bewust géén training meer plant.
+  const range = plan?.adapt_from_date
+    ? {
+        from: String(plan.adapt_from_date).slice(0, 10),
+        to: String(plan.end_date).slice(0, 10),
+      }
+    : null;
+
   // Eerst opruimen, dan pas de nieuwe workouts plaatsen: anders staan er kort
   // twee trainingen op dezelfde dag in intervals.icu.
-  const superseded = await retireSupersededWorkouts(admin, planId, profileId, {
-    api_key: conn.api_key,
-    athlete_id: conn.athlete_id,
-  }).catch(() => 0);
+  const superseded = await retireSupersededWorkouts(
+    admin,
+    planId,
+    profileId,
+    { api_key: conn.api_key, athlete_id: conn.athlete_id },
+    range,
+  ).catch(() => 0);
 
   const riderFtp = riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null;
   let pushed = 0;

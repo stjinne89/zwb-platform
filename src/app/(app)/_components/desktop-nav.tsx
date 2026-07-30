@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  NAV_GROUPS,
   isActiveGroup,
   isActiveHref,
   type NavLeaf,
@@ -39,12 +38,12 @@ function NavLink({ item, active }: { item: NavLeaf; active: boolean }) {
   );
 }
 
-export function DesktopNav() {
+export function DesktopNav({ nodes }: { nodes: NavNode[] }) {
   const pathname = usePathname();
 
   return (
     <ul className="hidden flex-1 items-center gap-5 text-sm md:flex">
-      {NAV_GROUPS.map((node: NavNode) => {
+      {nodes.map((node: NavNode) => {
         if (node.type === "link") {
           return (
             <li key={node.href}>
