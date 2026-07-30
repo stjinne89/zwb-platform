@@ -381,6 +381,7 @@ export default async function DashboardPage() {
       ? supabase
           .from("training_workouts")
           .select("title, scheduled_at, intensity, duration_minutes")
+          .is("superseded_at", null)
           .eq("profile_id", user.id)
           .gte("scheduled_at", `${todayKey}T00:00:00`)
           .order("scheduled_at", { ascending: true })

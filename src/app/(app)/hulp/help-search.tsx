@@ -74,6 +74,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "training intervals icu herstel form workout trainer vermogen wahoo garmin",
   },
   {
+    title: "ZWBeter Worden-samenvatting in Strava",
+    text: "Het blokje dat na een rit onderaan je Strava-omschrijving komt.",
+    href: "/hulp#strava-samenvatting",
+    terms:
+      "strava omschrijving beschrijving samenvatting join ctl gereedscore workout score tss fitness status opnieuw koppelen",
+  },
+  {
     title: "Workout op fietscomputer",
     text: "FIT-export, Wahoo-koppeling en Garmin-import.",
     href: "/hulp#fit-export",

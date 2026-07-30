@@ -2,6 +2,8 @@
 // gisteren gepland vs. wat deed die werkelijk. Gebruikt door zowel de
 // renner-actie "pas vandaag aan" als de dagelijkse cron.
 
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+
 type YesterdayContext = {
   plannedTitle: string | null;
   plannedMinutes: number | null;
@@ -10,15 +12,6 @@ type YesterdayContext = {
   actualMinutes: number | null;
   actualLoad: number | null;
 };
-
-function amsterdamDayKey(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Amsterdam",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-}
 
 export async function buildYesterdayContext(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +33,7 @@ export async function buildYesterdayContext(
     const { data: planned } = await admin
       .from("training_workouts")
       .select("title, duration_minutes, intensity, scheduled_at")
+      .is("superseded_at", null)
       .eq("plan_id", planId)
       .gte("scheduled_at", fromIso)
       .lte("scheduled_at", toIso)

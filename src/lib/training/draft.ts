@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
+import { intervalsWeekUrl } from "@/lib/intervals/links";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import {
   defaultTrainingPrompt,
@@ -28,7 +29,18 @@ export const MIN_ADJUST_MINUTES = 10;
 export const MAX_ADJUST_MINUTES = 480;
 
 type TrainingDraftResult =
-  | { ok: true; generationId: string; status: TrainingDraftStatus; planId?: string; message?: string; error?: string }
+  | {
+      ok: true;
+      generationId: string;
+      status: TrainingDraftStatus;
+      planId?: string;
+      message?: string;
+      error?: string;
+      /** Staat het schema al in intervals.icu? Alleen bij dag-aanpassingen. */
+      published?: boolean;
+      /** Deeplink naar de week in intervals.icu, zodra gepubliceerd. */
+      intervalsUrl?: string | null;
+    }
   | { ok: false; error: string };
 
 type AiGenerationRow = {
@@ -332,6 +344,30 @@ async function createPlanFromAiGeneration(
     { profileIds: [generation.profile_id] },
   ).catch(() => null);
 
+  // Dag-aanpassing gaat direct door naar intervals.icu; de trainer beoordeelt
+  // achteraf. Zonder dit bericht zou die niet weten dat de week is afgeweken en
+  // dus ook niet dat de rest van de week bijgesteld moet worden.
+  if (isAdaptation && generation.trainer_id && generation.trainer_id !== generation.profile_id) {
+    const { data: athlete } = await admin
+      .from("profiles")
+      .select("display_name")
+      .eq("id", generation.profile_id)
+      .maybeSingle();
+    const name = athlete?.display_name ?? "Een lid";
+    await sendNotificationToMembers(
+      "on_training_plan",
+      {
+        title: "Aanpassing om te beoordelen",
+        body: autoPublished
+          ? `${name} paste de training van vandaag aan. Die staat al in intervals.icu — bekijk of de rest van de week nog past.`
+          : `${name} maakte een aanpassing voor vandaag. Bekijk het concept.`,
+        url: "/training",
+        tag: `training-adaptation-${plan.id}`,
+      },
+      { profileIds: [generation.trainer_id] },
+    ).catch(() => null);
+  }
+
   revalidatePath("/training");
   return plan.id as string;
 }
@@ -523,6 +559,44 @@ export async function startTodayAdjustmentDraft(
   }
 }
 
+/**
+ * Is het aangepaste schema al doorgezet naar intervals.icu, en waar staat het?
+ * Gebruikt door de dag-aanpassing, zodat het lid meteen kan doorklikken in
+ * plaats van eerst het schema te moeten opzoeken.
+ */
+async function planPublishState(
+  admin: ReturnType<typeof createAdminClient>,
+  planId: string,
+  profileId: string,
+): Promise<{ published: boolean; intervalsUrl: string | null }> {
+  const [{ data: plan }, { data: firstWorkout }, { data: conn }] = await Promise.all([
+    admin.from("training_plans").select("status").eq("id", planId).maybeSingle(),
+    admin
+      .from("training_workouts")
+      .select("scheduled_at")
+      .eq("plan_id", planId)
+      .order("scheduled_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("intervals_connections")
+      .select("athlete_id")
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+  ]);
+  const published = plan?.status === "published";
+  return {
+    published,
+    intervalsUrl:
+      published && firstWorkout?.scheduled_at
+        ? intervalsWeekUrl(
+            conn?.athlete_id ?? null,
+            String(firstWorkout.scheduled_at).slice(0, 10),
+          )
+        : null,
+  };
+}
+
 export async function pollAiDraft(generationId: string): Promise<TrainingDraftResult> {
   try {
     const { user, access } = await currentUser();
@@ -548,7 +622,14 @@ export async function pollAiDraft(generationId: string): Promise<TrainingDraftRe
       if (row.status !== "completed") {
         await admin.from("training_ai_generations").update({ status: "completed" }).eq("id", row.id);
       }
-      return { ok: true, generationId: row.id, status: "completed", planId: existingPlan.id as string };
+      const planId = existingPlan.id as string;
+      return {
+        ok: true,
+        generationId: row.id,
+        status: "completed",
+        planId,
+        ...(await planPublishState(admin, planId, row.profile_id)),
+      };
     }
 
     if (row.status === "failed" || row.status === "cancelled") {
@@ -587,7 +668,13 @@ export async function pollAiDraft(generationId: string): Promise<TrainingDraftRe
       })
       .eq("id", row.id);
 
-    return { ok: true, generationId: row.id, status: "completed", planId };
+    return {
+      ok: true,
+      generationId: row.id,
+      status: "completed",
+      planId,
+      ...(await planPublishState(admin, planId, row.profile_id)),
+    };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "AI-concept status ophalen faalde." };
   }

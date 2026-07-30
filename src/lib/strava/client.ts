@@ -1,4 +1,5 @@
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secrets";
+import { hasActivityWriteScope } from "@/lib/strava/scope";
 
 type StravaTokenResponse = {
   access_token: string;
@@ -97,9 +98,15 @@ export function stravaAuthorizeUrl(redirectUri: string, state: string) {
   // voor de fiets-/gear-data) ook bij al-gekoppelde leden opnieuw wordt
   // gevraagd; met "auto" hergebruikt Strava de oude toestemming zonder de
   // nieuwe scope. profile:read_all is vereist om bikes/shoes uit /athlete te
-  // krijgen (gear ontbreekt anders volledig in de response).
+  // krijgen (gear ontbreekt anders volledig in de response). activity:write is
+  // nodig om de ZWBeter Worden-samenvatting in de Strava-beschrijving te zetten;
+  // leden die nog niet opnieuw hebben gekoppeld missen dat recht en worden
+  // daarvoor stil overgeslagen (de rest van de sync blijft gewoon werken).
   url.searchParams.set("approval_prompt", "force");
-  url.searchParams.set("scope", "read,activity:read_all,profile:read_all");
+  url.searchParams.set(
+    "scope",
+    "read,activity:read_all,activity:write,profile:read_all",
+  );
   url.searchParams.set("state", state);
   return url;
 }
@@ -363,6 +370,8 @@ export type SyncChunkOptions = {
   colSegmentMaxFetches?: number;
   /** Begrens extra detailed-activity calls voor ZWB Segments. */
   zwbSegmentMaxFetches?: number;
+  /** Hoeveel Strava-beschrijvingen per run een ZWB-samenvatting krijgen. 0 = uit. */
+  zwbSummaryMaxWrites?: number;
   /** Recent venster waarin Strava leidend is voor updates en verwijderingen. */
   reconciliationDays?: number;
   /**
@@ -383,7 +392,9 @@ export async function syncStravaActivitiesForUser(
 ) {
   const { data: connection, error } = await supabase
     .from("strava_connections")
-    .select("profile_id, strava_athlete_id, access_token, refresh_token, expires_at")
+    .select(
+      "profile_id, strava_athlete_id, access_token, refresh_token, expires_at, scope",
+    )
     .eq("profile_id", profileId)
     .maybeSingle();
 
@@ -602,6 +613,10 @@ export async function syncStravaActivitiesForUser(
   let zwbSegmentEffortsStored = 0;
   let zwbSegmentsCompleted = 0;
   let zwbSegmentsRateLimited = false;
+  let zwbSummariesWritten = 0;
+  let zwbSummariesPending = 0;
+  let zwbSummariesSkipped = 0;
+  let zwbSummariesRateLimited = false;
   if (done) {
     try {
       const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -621,6 +636,35 @@ export async function syncStravaActivitiesForUser(
         await evaluateMaintenanceForProfile(admin, profileId);
       } catch {
         // niet kritiek voor de sync-flow
+      }
+
+      // ZWBeter Worden-samenvatting in de Strava-beschrijving. Net als de
+      // gear-sync bewust vóór het zware werk hieronder en buiten
+      // skipPostProcessing: het zijn 2-3 calls, en de activiteiten zijn hier
+      // net vers. Zonder activity:write in de scope slaan we het stil over —
+      // dat lid moet Strava eerst opnieuw koppelen.
+      const maxSummaryWrites = options.zwbSummaryMaxWrites ?? 1;
+      if (
+        maxSummaryWrites > 0 &&
+        hasActivityWriteScope((connection as { scope?: string | null }).scope)
+      ) {
+        try {
+          const { writeZwbSummariesForUser } = await import(
+            "@/lib/strava/summary-writer"
+          );
+          const summaryResult = await writeZwbSummariesForUser(
+            admin,
+            profileId,
+            accessToken,
+            { maxWrites: maxSummaryWrites },
+          );
+          zwbSummariesWritten = summaryResult.written;
+          zwbSummariesPending = summaryResult.pending;
+          zwbSummariesSkipped = summaryResult.skipped;
+          zwbSummariesRateLimited = summaryResult.rateLimited;
+        } catch {
+          // niet kritiek voor de sync-flow
+        }
       }
 
       // Zware na-sync-stappen (alle activiteiten doorlopen): bij de
@@ -727,6 +771,10 @@ export async function syncStravaActivitiesForUser(
     zwbSegmentEffortsStored,
     zwbSegmentsCompleted,
     zwbSegmentsRateLimited,
+    zwbSummariesWritten,
+    zwbSummariesPending,
+    zwbSummariesSkipped,
+    zwbSummariesRateLimited,
     pagesScanned,
     totalSeen,
     nonCyclingSkipped,

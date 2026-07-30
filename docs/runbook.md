@@ -35,6 +35,7 @@ Twee soorten geplande jobs:
 | Live-data opruimen | Netlify function | `*/15 * * * *` | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
 | Integratie-health-check | Netlify function | `0 * * * *` (elk uur) | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
 | Strava-sync | Externe cron | ~elke 15-30 min | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
+| ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
 | Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
 | Training-adaptaties (drafts) | Externe cron | dagelijks | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
@@ -72,6 +73,26 @@ vangen, maar weet hier hoe je ze ververst:
 
 Overige secrets (`SUPABASE_SERVICE_ROLE_KEY`, `TOKEN_ENCRYPTION_KEY`, VAPID-keys,
 cron-secrets) zijn statisch en hoeven alleen bij een bewuste rotatie aangepast.
+
+### Strava-scope: alle leden moeten één keer opnieuw koppelen
+
+De gevraagde OAuth-scope bevat sinds de ZWBeter Worden-samenvatting ook
+`activity:write` (`src/lib/strava/client.ts`). Tokens die vóór die wijziging zijn
+afgegeven missen dat recht; die leden worden voor het schrijven **stil
+overgeslagen** en houden verder alles (sync, badges, cols, segmenten). Ze moeten
+één keer opnieuw koppelen via `/profiel` → **Opnieuw koppelen**.
+
+Wie dat nog niet deed, zie je op `/beheer/strava`: de teller "Moet opnieuw
+koppelen" en een badge per lid.
+
+Twee environment-variabelen horen bij deze functie:
+
+- `STRAVA_ZWB_SUMMARY_SINCE` — ISO-datum. Ritten die eerder zijn gestart krijgen
+  nooit een samenvatting. **Leeg = functie uit.** Zet dit op de dag van
+  livegang; het is de zekering die voorkomt dat een `fullBackfill`-run of een
+  nieuw gekoppeld lid jaren historie herschrijft.
+- `STRAVA_SYNC_ZWB_SUMMARY_MAX_WRITES` — writes per profiel per run (default 1).
+  Elke write kost 2 Strava-calls, en Strava's rate limit geldt per applicatie.
 
 ---
 
@@ -132,3 +153,17 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   draait (Netlify → Functions → logs).
 - **Cron draait niet** → controleer in cron-job.org of het secret en de URL nog
   kloppen; test handmatig met curl (sectie 2).
+- **"ZWB-samenvatting verschijnt niet in Strava"** → loop deze vijf langs:
+  1. `STRAVA_ZWB_SUMMARY_SINCE` is gezet en ligt vóór de rit (leeg = uit).
+  2. `STRAVA_SYNC_ZWB_SUMMARY_MAX_WRITES` staat niet op 0.
+  3. `strava_connections.scope` van het lid bevat `activity:write` — anders
+     opnieuw koppelen (sectie 3).
+  4. Het lid heeft een `intervals_connections`-rij; zonder intervals.icu slaan we
+     de rit bewust over.
+  5. `strava_activity_summaries.last_error` voor die `activity_id`. Staat er
+     "Wacht op belasting uit intervals.icu", dan heeft intervals de rit nog niet
+     verwerkt — dat lost zich in een volgende run op.
+
+  Let op: heeft een lid het blok zelf uit de beschrijving gehaald, dan plakken we
+  het niet terug. `written_at` in `strava_activity_summaries` leegmaken forceert
+  een nieuwe poging.

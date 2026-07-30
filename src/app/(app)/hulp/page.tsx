@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CircleHelp,
   Download,
+  FileText,
   Gauge,
   HeartPulse,
   MapPinned,
@@ -675,10 +676,12 @@ export default function HelpPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Met <strong className="text-foreground">Aanpassen</strong> op de
               trainingspagina geef je door hoeveel tijd je vandaag hebt en hoe je
-              je voelt; de AI herschrijft de sessie van vandaag. Heb je helemaal
-              geen tijd, kies dan{" "}
-              <strong className="text-foreground">Rustdag</strong>: de training
-              van vandaag vervalt en verdwijnt ook uit intervals.icu.
+              je voelt; de AI herschrijft de sessie van vandaag. Die gaat direct
+              naar intervals.icu — de oude training van die dag verdwijnt daar —
+              en je kunt meteen doorklikken. Je trainer krijgt bericht en kijkt
+              achteraf of de rest van de week nog past. Heb je helemaal geen
+              tijd, kies dan <strong className="text-foreground">Rustdag</strong>:
+              de training van vandaag vervalt en verdwijnt ook uit intervals.icu.
             </p>
           </article>
         </div>
@@ -816,6 +819,88 @@ export default function HelpPage() {
           bent. De HRV is positief, maar recente trainingsbelasting en
           middelmatige readiness houden je in het middensegment. Je
           ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
+        </div>
+      </section>
+
+      <section
+        id="strava-samenvatting"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <FileText className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">
+              ZWBeter Worden-samenvatting in je Strava-omschrijving
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Na een rit zet ZWB automatisch een blokje onderaan de omschrijving
+              van die rit op Strava. Je ziet in één oogopslag wat er gepland
+              stond, wat je er werkelijk van maakte en hoe je ervoor staat.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 rounded-md border bg-background p-4">
+          <pre className="overflow-x-auto whitespace-pre text-xs text-muted-foreground">
+{`📊 ZWBeter Worden
+Gepland: 3x10 min drempel
+Geplande duur: 75 min
+Gedetecteerd type: Drempel
+Workout score: +8% (82 vs 76 TSS)
+📈 Progressie
+CTL: 49,9
+Gereedscore: 72 (niveau 4 – FRIS GENOEG)
+Fitness-status: Verbeterend`}
+          </pre>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Wat je ervoor moet doen</h3>
+            <ol className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                1. Koppel Strava opnieuw via{" "}
+                <Link href="/profiel" className="underline">
+                  je profiel
+                </Link>{" "}
+                en laat het vinkje staan waarmee ZWB je activiteiten mag
+                bijwerken. Zonder dat recht blijft de omschrijving leeg.
+              </li>
+              <li>
+                2. Koppel intervals.icu op de{" "}
+                <Link href="/training" className="underline">
+                  trainingspagina
+                </Link>
+                . Daar komen de belasting, CTL en gereedscore vandaan.
+              </li>
+              <li>
+                3. Zet een schema klaar. Zonder geplande workout blijven
+                &ldquo;Gepland&rdquo; en &ldquo;Workout score&rdquo; op
+                &ldquo;-&rdquo;.
+              </li>
+            </ol>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Goed om te weten</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                Je eigen tekst blijft staan; de samenvatting komt eronder.
+              </li>
+              <li>
+                Haal je de samenvatting weg, dan zetten we hem niet terug.
+              </li>
+              <li>
+                Het blokje verschijnt pas als intervals.icu je rit heeft
+                verwerkt — meestal binnen een uur.
+              </li>
+              <li>
+                Wie jouw Strava-rit kan zien, ziet ook deze samenvatting. Je
+                slaap- en HRV-data komen er nooit in, alleen de score die daaruit
+                volgt.
+              </li>
+            </ul>
+          </article>
         </div>
       </section>
 

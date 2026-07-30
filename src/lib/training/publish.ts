@@ -1,5 +1,9 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { upsertIntervalsWorkoutEvent, type IntervalsEvent } from "@/lib/intervals/client";
+import {
+  deleteIntervalsWorkoutEvent,
+  upsertIntervalsWorkoutEvent,
+  type IntervalsEvent,
+} from "@/lib/intervals/client";
 import {
   blocksToIntervalsText,
   blocksToWorkoutDoc,
@@ -13,6 +17,8 @@ export type PushResult = {
   connected: boolean;
   pushed: number;
   failed: number;
+  /** Workouts van andere plannen die door dit schema zijn vervangen. */
+  superseded: number;
 };
 
 type SchedulableWorkout = {
@@ -53,6 +59,68 @@ export async function syncWorkoutDatesFromIntervals<T extends SchedulableWorkout
 }
 
 /**
+ * Ruimt de workouts op die door dit schema worden vervangen: workouts van
+ * ándere plannen van dit lid op dezelfde datums. Zonder deze stap bleef de oude
+ * training na een aanpassing in intervals.icu staan en zag het lid er twee.
+ *
+ * We markeren ze (superseded_at) in plaats van ze te verwijderen, zodat
+ * zichtbaar blijft wat er oorspronkelijk gepland stond. Al gereden of
+ * gerapporteerde workouts laten we staan — die zijn geschiedenis, geen planning.
+ */
+export async function retireSupersededWorkouts(
+  admin: Admin,
+  planId: string,
+  profileId: string,
+  connection: { api_key: string; athlete_id: string } | null,
+): Promise<number> {
+  const { data: incoming } = await admin
+    .from("training_workouts")
+    .select("scheduled_at")
+    .eq("plan_id", planId);
+  const dayKeys = new Set(
+    (incoming ?? []).map((row) => String(row.scheduled_at).slice(0, 10)),
+  );
+  if (dayKeys.size === 0) return 0;
+
+  const days = [...dayKeys].sort();
+  const { data: others } = await admin
+    .from("training_workouts")
+    .select("id, scheduled_at, intervals_event_id, status")
+    .eq("profile_id", profileId)
+    .neq("plan_id", planId)
+    .is("superseded_at", null)
+    .gte("scheduled_at", `${days[0]}T00:00:00`)
+    .lte("scheduled_at", `${days[days.length - 1]}T23:59:59`);
+
+  const superseded = (others ?? []).filter(
+    (row) =>
+      row.status === "planned" &&
+      dayKeys.has(String(row.scheduled_at).slice(0, 10)),
+  );
+  if (superseded.length === 0) return 0;
+
+  for (const workout of superseded) {
+    if (workout.intervals_event_id && connection) {
+      await deleteIntervalsWorkoutEvent(
+        connection.api_key,
+        connection.athlete_id,
+        workout.intervals_event_id,
+      ).catch(() => null);
+    }
+    await admin
+      .from("training_workouts")
+      .update({
+        superseded_at: new Date().toISOString(),
+        superseded_by_plan_id: planId,
+        intervals_event_id: null,
+        publish_status: "pending",
+      })
+      .eq("id", workout.id);
+  }
+  return superseded.length;
+}
+
+/**
  * Zet alle workouts van een schema in de intervals.icu-kalender. Per workout
  * wordt publish_status bijgewerkt, zodat een mislukte push zichtbaar blijft.
  */
@@ -75,8 +143,15 @@ export async function pushPlanWorkoutsToIntervals(
       .order("scheduled_at", { ascending: true }),
   ]);
   if (!conn?.api_key || !conn?.athlete_id) {
-    return { connected: false, pushed: 0, failed: 0 };
+    return { connected: false, pushed: 0, failed: 0, superseded: 0 };
   }
+
+  // Eerst opruimen, dan pas de nieuwe workouts plaatsen: anders staan er kort
+  // twee trainingen op dezelfde dag in intervals.icu.
+  const superseded = await retireSupersededWorkouts(admin, planId, profileId, {
+    api_key: conn.api_key,
+    athlete_id: conn.athlete_id,
+  }).catch(() => 0);
 
   const riderFtp = riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null;
   let pushed = 0;
@@ -126,5 +201,5 @@ export async function pushPlanWorkoutsToIntervals(
     }
   }
 
-  return { connected: true, pushed, failed };
+  return { connected: true, pushed, failed, superseded };
 }

@@ -8,7 +8,7 @@ import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HelpLink } from "@/components/app-ui";
 import { cn } from "@/lib/utils";
-import { hasActivityScope } from "@/lib/strava/scope";
+import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 
 export function StravaSection({
   connection,
@@ -24,6 +24,12 @@ export function StravaSection({
   const [message, setMessage] = useState<string | null>(null);
   const missingActivityScope =
     connection != null && !hasActivityScope(connection.scope);
+  // Alleen melden als het leesrecht wél in orde is; anders zou deze box de
+  // urgentere waarschuwing hierboven overschaduwen.
+  const missingWriteScope =
+    connection != null &&
+    hasActivityScope(connection.scope) &&
+    !hasActivityWriteScope(connection.scope);
 
   return (
     <section className="rounded-lg border bg-card p-6">
@@ -31,7 +37,9 @@ export function StravaSection({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Strava
         </h2>
-        <HelpLink href="/hulp#badges" />
+        <HelpLink
+          href={missingWriteScope ? "/hulp#strava-samenvatting" : "/hulp#badges"}
+        />
       </div>
 
       {connection ? (
@@ -63,6 +71,15 @@ export function StravaSection({
               </p>
             </div>
           )}
+          {missingWriteScope && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <p>
+                Koppel opnieuw om je ZWBeter Worden-samenvatting in je
+                Strava-beschrijving te laten zetten.
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/achievements"
@@ -74,7 +91,10 @@ export function StravaSection({
               href="/api/strava/connect"
               className={cn(
                 buttonVariants({
-                  variant: missingActivityScope ? "default" : "outline",
+                  variant:
+                    missingActivityScope || missingWriteScope
+                      ? "default"
+                      : "outline",
                   size: "sm",
                 }),
               )}

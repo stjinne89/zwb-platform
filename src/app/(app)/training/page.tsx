@@ -28,6 +28,7 @@ import {
   type IntervalsEvent,
   type IntervalsWellness,
 } from "@/lib/intervals/client";
+import { intervalsWeekUrl } from "@/lib/intervals/links";
 import {
   createTrainingGoal,
   saveTrainerFeedback,
@@ -39,7 +40,10 @@ import {
   defaultTrainingPrompt,
   estimateTrainingLoad,
   INTENSITY_COLORS,
-  INTENSITY_LABELS as WORKOUT_INTENSITY_LABELS,
+  INTENSITY_LABELS,
+  intensityFromLoad,
+  intensityFromPct,
+  intensityLabel,
   normalizeWorkoutBlocks,
   powerRangePercentForBlock,
   projectCtl,
@@ -79,7 +83,11 @@ import {
   type WellnessDevice,
   type WellnessSummary,
 } from "@/lib/training/wellness";
-import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
+import {
+  computeZwbStatus,
+  eftpTrend,
+  zwbeterWordenAdvice,
+} from "@/lib/training/zwbeterworden";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
 import {
   suggestSegmentsForBlock,
@@ -226,17 +234,6 @@ const GOAL_LABELS: Record<string, string> = {
   ftp: "FTP",
   base_fitness: "Basisconditie",
   rebuild: "Herstel/opbouw",
-};
-
-const INTENSITY_LABELS: Record<string, string> = {
-  recovery: "Herstel",
-  endurance: "Duur",
-  tempo: "Tempo",
-  threshold: "Drempel",
-  vo2max: "VO2max",
-  anaerobic: "Anaeroob",
-  race: "Race",
-  rest: "Rust",
 };
 
 function toNum(v: number | string | null | undefined): number {
@@ -467,10 +464,7 @@ function CollapsibleCard({
 }
 
 function intervalsWorkoutUrl(athleteId: string | undefined, workout: WorkoutRow) {
-  const date = dateValue(workout.scheduled_at);
-  return athleteId
-    ? `https://intervals.icu/athletes/${athleteId}/calendar?date=${date}`
-    : `https://intervals.icu/calendar?date=${date}`;
+  return intervalsWeekUrl(athleteId, dateValue(workout.scheduled_at));
 }
 
 // Workout-titel: linkt direct naar intervals.icu zodra de workout daar staat
@@ -614,27 +608,6 @@ function powerTargetFromStep(row: Record<string, unknown>) {
     };
   }
   return { target: "", pct: null as number | null };
-}
-
-function intensityFromPct(pct: number | null): WorkoutIntensity {
-  if (pct == null) return "endurance";
-  if (pct < 55) return "recovery";
-  if (pct < 76) return "endurance";
-  if (pct < 91) return "tempo";
-  if (pct < 106) return "threshold";
-  if (pct < 121) return "vo2max";
-  return "anaerobic";
-}
-
-function intensityFromLoad(load: number | null, minutes: number): WorkoutIntensity {
-  if (!load || minutes <= 0) return "endurance";
-  const loadPerHour = load / (minutes / 60);
-  if (loadPerHour < 35) return "recovery";
-  if (loadPerHour < 65) return "endurance";
-  if (loadPerHour < 85) return "tempo";
-  if (loadPerHour < 105) return "threshold";
-  if (loadPerHour < 125) return "vo2max";
-  return "anaerobic";
 }
 
 function intervalStepBlocks(value: unknown): WorkoutBlock[] {
@@ -864,7 +837,7 @@ function WorkoutList({
                       <input name="block_notes" defaultValue={block.notes} placeholder="Notitie" className="rounded-md border bg-background px-2 py-1 text-sm" />
                       <select name="block_intensity" defaultValue={block.intensity} className="rounded-md border bg-background px-2 py-1 text-sm">
                         {WORKOUT_INTENSITIES.map((value) => (
-                          <option key={value} value={value}>{WORKOUT_INTENSITY_LABELS[value]}</option>
+                          <option key={value} value={value}>{INTENSITY_LABELS[value]}</option>
                         ))}
                       </select>
                       <select name="block_delete" defaultValue="0" className="rounded-md border bg-background px-2 py-1 text-sm">
@@ -889,7 +862,7 @@ function WorkoutList({
               <div className="min-w-0">
                 <WorkoutTitle workout={workout} athleteId={intervalsAthleteId} />
                 <p className="text-xs text-muted-foreground">
-                  {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
+                  {workout.duration_minutes} min - {intensityLabel(workout.intensity)}
                   {workout.publish_status === "failed" ? ` - publicatiefout: ${workout.publish_error}` : ""}
                 </p>
               </div>
@@ -1378,7 +1351,7 @@ function CoachWorkspace({
                   <span className="text-xs text-muted-foreground">
                     {workout.status === "skipped"
                       ? "Rustdag"
-                      : `${workout.duration_minutes} min - ${INTENSITY_LABELS[workout.intensity] ?? workout.intensity}`}
+                      : `${workout.duration_minutes} min - ${intensityLabel(workout.intensity)}`}
                   </span>
                 </li>
               ))}
@@ -1534,6 +1507,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     supabase
       .from("training_workouts")
       .select("*")
+      // Door een aanpassing vervangen workouts horen niet meer in het schema.
+      .is("superseded_at", null)
       .eq("profile_id", user.id)
       .order("scheduled_at", { ascending: true })
       .limit(200),
@@ -1600,7 +1575,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
   const activities = (stravaRows ?? []) as StravaActivityRow[];
   const totals7 = loadSummary(activities);
-  const wellnessSorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
   // Eén bron voor CTL/ATL/TSB/eFTP, herstel-samenvatting en advies.
   const zwbStatus = computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
@@ -1609,12 +1583,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   });
   const recoverySummary = zwbStatus.recoverySummary;
   // Trend over 90 dagen: oudste eFTP binnen dat venster als vertrekpunt.
-  const eftpWindow = new Date();
-  eftpWindow.setDate(eftpWindow.getDate() - 90);
-  const eftpWindowStart = eftpWindow.toISOString().slice(0, 10);
-  const eftpFirst = wellnessSorted.find((w) => w.eftp && w.id >= eftpWindowStart)?.eftp;
-  const eftpLatest = zwbStatus.eftp;
-  const eftpDelta = eftpLatest && eftpFirst ? eftpLatest - eftpFirst : null;
+  const { latest: eftpLatest, delta: eftpDelta } = eftpTrend(wellness, 90);
   const eftpValue = eftpLatest ?? intervalsFtp ?? myProfile?.ftp_watts ?? null;
   const eftpHint = eftpLatest
     ? eftpDelta !== null
@@ -1796,6 +1765,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
           supabase
             .from("training_workouts")
             .select("*")
+            .is("superseded_at", null)
             .in("profile_id", athleteIds)
             .gte("scheduled_at", since21Workouts.toISOString())
             .order("scheduled_at", { ascending: true }),
@@ -2026,7 +1996,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   <WorkoutTitle workout={nextWorkout.workout} athleteId={conn?.athlete_id} />
                   <p className="text-xs text-muted-foreground">
                     ZWB-schema - {nextWorkout.workout.duration_minutes} min -{" "}
-                    {INTENSITY_LABELS[nextWorkout.workout.intensity] ?? nextWorkout.workout.intensity}
+                    {intensityLabel(nextWorkout.workout.intensity)}
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -2283,7 +2253,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       <section className="space-y-4">
         {conn?.athlete_id ? (
           <a
-            href={`https://intervals.icu/athletes/${conn.athlete_id}/calendar`}
+            href={intervalsWeekUrl(conn.athlete_id, todayKey)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 transition hover:border-primary/40"
@@ -2350,7 +2320,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                     <div className="min-w-0">
                       <WorkoutTitle workout={workout} athleteId={conn?.athlete_id} />
                       <p className="text-xs text-muted-foreground">
-                        ZWB-schema - {workout.duration_minutes} min - {INTENSITY_LABELS[workout.intensity] ?? workout.intensity}
+                        ZWB-schema - {workout.duration_minutes} min - {intensityLabel(workout.intensity)}
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">

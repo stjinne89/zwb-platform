@@ -18,6 +18,10 @@ type ProfileSyncResult = {
   zwbSegmentEffortsStored: number;
   zwbSegmentsCompleted: number;
   zwbSegmentsRateLimited: boolean;
+  zwbSummariesWritten: number;
+  zwbSummariesPending: number;
+  zwbSummariesSkipped: number;
+  zwbSummariesRateLimited: boolean;
   nextPage?: number | null;
   error?: string;
 };
@@ -76,6 +80,11 @@ export async function POST(request: Request) {
     envNonNegativeInt("STRAVA_SYNC_ZWB_SEGMENT_MAX_FETCHES", 0, 40),
     40,
   );
+  const zwbSummaryMaxWrites = nonNegativeInt(
+    url.searchParams.get("zwbSummaryMaxWrites"),
+    envNonNegativeInt("STRAVA_SYNC_ZWB_SUMMARY_MAX_WRITES", 1, 5),
+    5,
+  );
   const reconciliationDays = positiveInt(
     url.searchParams.get("reconciliationDays"),
     envPositiveInt("STRAVA_SYNC_RECONCILIATION_DAYS", 30, 365),
@@ -116,6 +125,10 @@ export async function POST(request: Request) {
         zwbSegmentEffortsStored: 0,
         zwbSegmentsCompleted: 0,
         zwbSegmentsRateLimited: false,
+        zwbSummariesWritten: 0,
+        zwbSummariesPending: 0,
+        zwbSummariesSkipped: 0,
+        zwbSummariesRateLimited: false,
       };
 
       try {
@@ -126,6 +139,7 @@ export async function POST(request: Request) {
             chunkPages,
             colSegmentMaxFetches,
             zwbSegmentMaxFetches,
+            zwbSummaryMaxWrites,
             reconciliationDays,
             refreshAthleteInfo: false,
           });
@@ -154,9 +168,14 @@ export async function POST(request: Request) {
             summary.zwbSegmentEffortsStored = result.zwbSegmentEffortsStored;
             summary.zwbSegmentsCompleted = result.zwbSegmentsCompleted;
             summary.zwbSegmentsRateLimited = result.zwbSegmentsRateLimited;
+            summary.zwbSummariesWritten = result.zwbSummariesWritten;
+            summary.zwbSummariesPending = result.zwbSummariesPending;
+            summary.zwbSummariesSkipped = result.zwbSummariesSkipped;
+            summary.zwbSummariesRateLimited = result.zwbSummariesRateLimited;
             if (
               result.colSegmentTimesRateLimited ||
-              result.zwbSegmentsRateLimited
+              result.zwbSegmentsRateLimited ||
+              result.zwbSummariesRateLimited
             ) {
               rateLimited = true;
               summary.status = "rate_limited";
@@ -172,6 +191,10 @@ export async function POST(request: Request) {
           summary.zwbSegmentEffortsStored += result.zwbSegmentEffortsStored;
           summary.zwbSegmentsCompleted += result.zwbSegmentsCompleted;
           summary.zwbSegmentsRateLimited ||= result.zwbSegmentsRateLimited;
+          summary.zwbSummariesWritten += result.zwbSummariesWritten;
+          summary.zwbSummariesPending += result.zwbSummariesPending;
+          summary.zwbSummariesSkipped += result.zwbSummariesSkipped;
+          summary.zwbSummariesRateLimited ||= result.zwbSummariesRateLimited;
           summary.nextPage = result.nextPage;
           startPage = result.nextPage ?? undefined;
           afterTs = result.afterTs;
@@ -180,12 +203,14 @@ export async function POST(request: Request) {
             result.stravaRateLimited ||
             result.colSegmentTimesRateLimited ||
             result.zwbSegmentsRateLimited ||
+            result.zwbSummariesRateLimited ||
             !startPage
           ) {
             rateLimited =
               result.stravaRateLimited ||
               result.colSegmentTimesRateLimited ||
-              result.zwbSegmentsRateLimited;
+              result.zwbSegmentsRateLimited ||
+              result.zwbSummariesRateLimited;
             break;
           }
         }
@@ -226,6 +251,14 @@ export async function POST(request: Request) {
         ),
         zwbSegmentsCompleted: results.reduce(
           (sum, r) => sum + r.zwbSegmentsCompleted,
+          0,
+        ),
+        zwbSummariesWritten: results.reduce(
+          (sum, r) => sum + r.zwbSummariesWritten,
+          0,
+        ),
+        zwbSummariesPending: results.reduce(
+          (sum, r) => sum + r.zwbSummariesPending,
           0,
         ),
         rateLimited,

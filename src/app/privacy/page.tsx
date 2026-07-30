@@ -77,6 +77,20 @@ export default function PrivacyPage() {
             trainingspagina.
           </li>
           <li>
+            <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
+            recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
+            samenvatting onderaan de omschrijving van die rit. Daarin staan je
+            geplande en gedetecteerde trainingstype, de duur, het verschil tussen
+            geplande en werkelijke belasting (TSS), je CTL, je gereedscore en je
+            fitness-richting. Wie jouw Strava-activiteit kan zien, kan die
+            samenvatting dus ook zien. Je onderliggende hersteldata (slaap, HRV,
+            hartslag) komt er nooit in — alleen de daaruit berekende score. Je
+            eigen tekst in de omschrijving laten we staan, en verwijder je de
+            samenvatting, dan zetten we hem niet terug. Wil je dit helemaal niet,
+            koppel Strava dan opnieuw zonder het wijzigrecht, of verbreek de
+            koppeling.
+          </li>
+          <li>
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,
             ritverslagen, reacties, polls en geüploade foto&apos;s.
           </li>

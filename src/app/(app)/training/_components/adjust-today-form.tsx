@@ -2,8 +2,9 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Moon, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ExternalLink, Moon, Sparkles } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { markTodayRestDay } from "../_actions";
 
 const FIELD =
@@ -24,6 +25,8 @@ type DraftPayload = {
   planId?: string;
   error?: string;
   message?: string;
+  published?: boolean;
+  intervalsUrl?: string | null;
 };
 
 export function AdjustTodayForm() {
@@ -33,6 +36,7 @@ export function AdjustTodayForm() {
   const [submitting, setSubmitting] = useState(false);
   const [activeGenerationId, setActiveGenerationId] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [intervalsUrl, setIntervalsUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const busy = submitting || Boolean(activeGenerationId);
@@ -61,7 +65,12 @@ export function AdjustTodayForm() {
         }
 
         if (payload.status === "completed") {
-          setResult("Voorstel klaargezet — bekijk het bij je schema's hieronder.");
+          setResult(
+            payload.published
+              ? "Aangepast. De training staat in ZWB en intervals.icu; je trainer kijkt er later naar."
+              : "Voorstel klaargezet — bekijk het bij je schema's hieronder.",
+          );
+          setIntervalsUrl(payload.intervalsUrl ?? null);
           setActiveGenerationId(null);
           setOpen(false);
           router.refresh();
@@ -74,7 +83,7 @@ export function AdjustTodayForm() {
           return;
         }
 
-        timeoutId = setTimeout(poll, 5_000);
+        timeoutId = setTimeout(poll, 2_500);
       } catch {
         if (cancelled) return;
         setError("Voorstel ophalen is mislukt.");
@@ -82,7 +91,7 @@ export function AdjustTodayForm() {
       }
     }
 
-    timeoutId = setTimeout(poll, 2_000);
+    timeoutId = setTimeout(poll, 1_000);
     return () => {
       cancelled = true;
       if (timeoutId) clearTimeout(timeoutId);
@@ -152,6 +161,20 @@ export function AdjustTodayForm() {
           </Button>
         </div>
         {result && <p className="mt-2 text-sm text-primary">{result}</p>}
+        {intervalsUrl && (
+          <a
+            href={intervalsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "mt-2",
+            )}
+          >
+            <ExternalLink data-icon="inline-start" />
+            Open in intervals.icu
+          </a>
+        )}
       </div>
     );
   }

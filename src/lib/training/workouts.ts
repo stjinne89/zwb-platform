@@ -48,6 +48,54 @@ export const INTENSITY_LABELS: Record<WorkoutIntensity, string> = {
   rest: "Rust",
 };
 
+/**
+ * Label voor een intensiteit die als losse string uit de database komt. Valt
+ * terug op de ruwe waarde, zodat een onbekende intensiteit niet als leeg veld
+ * in de UI belandt.
+ */
+export function intensityLabel(intensity: string | null | undefined): string {
+  if (!intensity) return "";
+  return INTENSITY_LABELS[intensity as WorkoutIntensity] ?? intensity;
+}
+
+/** %FTP naar intensiteit. Gebruikt om blokken uit een intervals.icu workout_doc
+ * te classificeren. */
+export function intensityFromPct(pct: number | null): WorkoutIntensity {
+  if (pct == null) return "endurance";
+  if (pct < 55) return "recovery";
+  if (pct < 76) return "endurance";
+  if (pct < 91) return "tempo";
+  if (pct < 106) return "threshold";
+  if (pct < 121) return "vo2max";
+  return "anaerobic";
+}
+
+/**
+ * Intensiteit uit belasting per uur (TSS/uur). Geeft null als er te weinig data
+ * is, zodat een samenvatting "onbekend" kan onderscheiden van "duur" — de UI
+ * gebruikt daarvoor de wrapper `intensityFromLoad` met een vaste terugval.
+ */
+export function detectIntensityFromLoad(
+  load: number | null,
+  minutes: number | null,
+): WorkoutIntensity | null {
+  if (!load || !minutes || minutes <= 0) return null;
+  const loadPerHour = load / (minutes / 60);
+  if (loadPerHour < 35) return "recovery";
+  if (loadPerHour < 65) return "endurance";
+  if (loadPerHour < 85) return "tempo";
+  if (loadPerHour < 105) return "threshold";
+  if (loadPerHour < 125) return "vo2max";
+  return "anaerobic";
+}
+
+export function intensityFromLoad(
+  load: number | null,
+  minutes: number,
+): WorkoutIntensity {
+  return detectIntensityFromLoad(load, minutes) ?? "endurance";
+}
+
 export function defaultTrainingPrompt() {
   return [
     "Je bent een Nederlandse wielercoach-assistent voor ZWB Cycling.",

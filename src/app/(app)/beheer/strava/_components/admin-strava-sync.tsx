@@ -17,6 +17,7 @@ export type SyncMember = {
   lastActivity: string | null;
   connectedAt: string | null;
   missingActivityScope: boolean;
+  missingWriteScope: boolean;
 };
 
 // Zelfde veiligheidsplafond als de ledenknop: 40 chunks × 5 pages × 100 =
@@ -266,11 +267,23 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
                       {member.activityCount} ritten
                     </span>
                   )}
+                  {member.missingWriteScope && (
+                    <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="size-3" />
+                      Geen schrijfrecht
+                    </span>
+                  )}
                 </div>
                 {member.missingActivityScope && (
                   <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
                     Lid moet opnieuw koppelen en het vinkje &ldquo;activiteiten&rdquo;
                     aanzetten.
+                  </p>
+                )}
+                {member.missingWriteScope && (
+                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                    Lid moet opnieuw koppelen; zonder schrijfrecht komt er geen
+                    ZWB-samenvatting in de Strava-beschrijving.
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">

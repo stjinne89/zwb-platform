@@ -1,10 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   ZWB_LEVEL_DESCRIPTIONS,
+  amsterdamDayKey,
+  ctlTrend,
   dayIndex,
+  eftpTrend,
+  fitnessTrendFromDelta,
   zwbeterWordenAdvice,
 } from "@/lib/training/zwbeterworden";
 import type { TrainingReadinessSummary } from "@/lib/training/wellness";
+import type { IntervalsWellness } from "@/lib/intervals/client";
+
+/** Wellness-rij `daysAgo` dagen terug, met alleen de velden die we hier nodig hebben. */
+function day(
+  daysAgo: number,
+  fields: Partial<IntervalsWellness> = {},
+): IntervalsWellness {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return { id: date.toISOString().slice(0, 10), ...fields };
+}
 
 function readiness(
   state: TrainingReadinessSummary["state"],
@@ -92,5 +107,92 @@ describe("dagelijkse tekstrotatie", () => {
     expect(key).not.toBe("");
     expect(zwbeterWordenAdvice(readiness("recovery", 10), "women", key).description).toContain("man");
     expect(zwbeterWordenAdvice(readiness("recovery", 10), "open", key).description).toContain("vrouw");
+  });
+});
+
+describe("eftpTrend", () => {
+  it("neemt de oudste meting binnen het venster als vertrekpunt", () => {
+    const trend = eftpTrend(
+      [day(120, { eftp: 200 }), day(80, { eftp: 273 }), day(2, { eftp: 285 })],
+      90,
+    );
+    expect(trend.first).toBe(273);
+    expect(trend.latest).toBe(285);
+    expect(trend.delta).toBe(12);
+  });
+
+  it("verdraagt ongesorteerde invoer", () => {
+    const trend = eftpTrend([day(2, { eftp: 285 }), day(80, { eftp: 273 })], 90);
+    expect(trend.delta).toBe(12);
+  });
+
+  it("geeft null als er geen eFTP-meting is", () => {
+    const trend = eftpTrend([day(5, { ctl: 40 })], 90);
+    expect(trend.first).toBeNull();
+    expect(trend.latest).toBeNull();
+    expect(trend.delta).toBeNull();
+  });
+
+  it("geeft delta 0 bij één meting binnen het venster", () => {
+    const trend = eftpTrend([day(5, { eftp: 280 })], 90);
+    expect(trend.delta).toBe(0);
+  });
+
+  it("geeft geen delta als de enige meting buiten het venster valt", () => {
+    const trend = eftpTrend([day(200, { eftp: 280 })], 90);
+    expect(trend.first).toBeNull();
+    expect(trend.delta).toBeNull();
+  });
+});
+
+describe("ctlTrend", () => {
+  it("vergelijkt de nieuwste CTL met de oudste binnen het venster", () => {
+    expect(ctlTrend([day(40, { ctl: 38 }), day(1, { ctl: 45 })], 42)).toBe(7);
+  });
+
+  it("geeft null zonder CTL-metingen", () => {
+    expect(ctlTrend([day(1, { eftp: 280 })], 42)).toBeNull();
+  });
+});
+
+describe("fitnessTrendFromDelta", () => {
+  it("laat eFTP voorgaan op CTL", () => {
+    expect(fitnessTrendFromDelta(5, -10)).toBe("improving");
+    expect(fitnessTrendFromDelta(-5, 10)).toBe("declining");
+    expect(fitnessTrendFromDelta(1, 10)).toBe("stable");
+  });
+
+  it("valt terug op CTL zonder eFTP-delta", () => {
+    expect(fitnessTrendFromDelta(null, 5)).toBe("improving");
+    expect(fitnessTrendFromDelta(null, -5)).toBe("declining");
+    expect(fitnessTrendFromDelta(null, 1)).toBe("stable");
+  });
+
+  it("geeft unknown als er niets te vergelijken is", () => {
+    expect(fitnessTrendFromDelta(null, null)).toBe("unknown");
+  });
+});
+
+describe("amsterdamDayKey", () => {
+  it("houdt 23:30 CEST op dezelfde dag", () => {
+    expect(amsterdamDayKey(new Date("2026-07-30T23:30:00+02:00"))).toBe(
+      "2026-07-30",
+    );
+  });
+
+  it("rekent 00:30 CEST niet terug naar de UTC-dag ervoor", () => {
+    expect(amsterdamDayKey(new Date("2026-07-30T00:30:00+02:00"))).toBe(
+      "2026-07-30",
+    );
+  });
+
+  it("volgt de zomertijdovergang", () => {
+    // Laatste zondag van oktober 2026: 03:00 CEST wordt 02:00 CET.
+    expect(amsterdamDayKey(new Date("2026-10-25T00:30:00+02:00"))).toBe(
+      "2026-10-25",
+    );
+    expect(amsterdamDayKey(new Date("2026-10-25T23:30:00+01:00"))).toBe(
+      "2026-10-25",
+    );
   });
 });

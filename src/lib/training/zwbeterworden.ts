@@ -171,6 +171,69 @@ export function zwbeterWordenAdvice(
   return { level, ...ZWB_LEVEL_META[level], description };
 }
 
+export type FitnessTrend = "improving" | "stable" | "declining" | "unknown";
+
+/**
+ * eFTP-trend over een venster: oudste meting binnen het venster als vertrekpunt,
+ * de meest recente meting als eindpunt. Wellness-rijen mogen ongesorteerd zijn.
+ */
+export function eftpTrend(
+  wellness: IntervalsWellness[],
+  days = 90,
+): { first: number | null; latest: number | null; delta: number | null } {
+  const sorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
+  const window = new Date();
+  window.setDate(window.getDate() - days);
+  const windowStart = window.toISOString().slice(0, 10);
+  const first = sorted.find((w) => w.eftp && w.id >= windowStart)?.eftp ?? null;
+  const latest = [...sorted].reverse().find((w) => w.eftp)?.eftp ?? null;
+  return {
+    first,
+    latest,
+    delta: first != null && latest != null ? latest - first : null,
+  };
+}
+
+/**
+ * Fitness-richting. eFTP gaat voor, want dat is het getal dat het lid ook op de
+ * trainingspagina ziet; CTL-delta is de terugval voor wie geen eFTP-schatting
+ * heeft. Bewust niet ramp_rate: dat is een korte-vensterhelling die elke paar
+ * dagen van teken wisselt, en een dagelijks omklappende status leest als kapot.
+ */
+export function fitnessTrendFromDelta(
+  eftpDelta: number | null,
+  ctlDelta: number | null,
+  eftpThresholdWatts = 2,
+  ctlThreshold = 2,
+): FitnessTrend {
+  if (eftpDelta != null) {
+    if (eftpDelta >= eftpThresholdWatts) return "improving";
+    if (eftpDelta <= -eftpThresholdWatts) return "declining";
+    return "stable";
+  }
+  if (ctlDelta != null) {
+    if (ctlDelta >= ctlThreshold) return "improving";
+    if (ctlDelta <= -ctlThreshold) return "declining";
+    return "stable";
+  }
+  return "unknown";
+}
+
+/** CTL-verschil tussen nu en `days` dagen terug, uit dezelfde wellness-reeks. */
+export function ctlTrend(
+  wellness: IntervalsWellness[],
+  days = 42,
+): number | null {
+  const sorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
+  const latest = [...sorted].reverse().find((w) => w.ctl != null)?.ctl ?? null;
+  const window = new Date();
+  window.setDate(window.getDate() - days);
+  const windowStart = window.toISOString().slice(0, 10);
+  const first =
+    sorted.find((w) => w.ctl != null && w.id >= windowStart)?.ctl ?? null;
+  return first != null && latest != null ? latest - first : null;
+}
+
 export type ZwbStatus = {
   ctl: number | null;
   atl: number | null;

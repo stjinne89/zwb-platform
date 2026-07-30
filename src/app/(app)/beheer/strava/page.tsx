@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
-import { hasActivityScope } from "@/lib/strava/scope";
+import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { AdminStravaSync, type SyncMember } from "./_components/admin-strava-sync";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +104,10 @@ export default async function BeheerStravaPage() {
       lastActivity: stats?.last ?? null,
       connectedAt: c.updated_at,
       missingActivityScope: !hasActivityScope(c.scope),
+      // Alleen melden als het leesrecht wél in orde is, zodat deze badge de
+      // urgentere "geen activiteiten-recht" niet dubbelop toont.
+      missingWriteScope:
+        hasActivityScope(c.scope) && !hasActivityWriteScope(c.scope),
     };
   });
 
@@ -123,6 +127,7 @@ export default async function BeheerStravaPage() {
     (m) => m.activityCount === 0 && !m.missingActivityScope,
   ).length;
   const inStatsCount = members.filter((m) => m.activityCount > 0).length;
+  const writeScopeIssueCount = members.filter((m) => m.missingWriteScope).length;
 
   return (
     <div className="space-y-6">
@@ -132,7 +137,7 @@ export default async function BeheerStravaPage() {
         description="Start de Strava-sync voor leden zonder ritten in de statistieken, of herbereken badges en cols — het lid hoeft niets te doen."
       />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Metric label="Gekoppeld" value={members.length} />
         <Metric label="In stats (12 mnd)" value={inStatsCount} />
         <Metric label="Niet zichtbaar" value={missingCount} highlight={missingCount > 0} />
@@ -140,6 +145,11 @@ export default async function BeheerStravaPage() {
           label="Geen activiteiten-recht"
           value={scopeIssueCount}
           highlight={scopeIssueCount > 0}
+        />
+        <Metric
+          label="Moet opnieuw koppelen"
+          value={writeScopeIssueCount}
+          highlight={writeScopeIssueCount > 0}
         />
       </section>
 
