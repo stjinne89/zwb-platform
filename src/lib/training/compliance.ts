@@ -92,6 +92,19 @@ export const COMPLIANCE_LABELS: Record<ComplianceVerdict, string> = {
   te_zwaar: "Te zwaar",
 };
 
+/**
+ * Zelfde palet als de gereedscore (ZWB_LEVEL_META), zodat een kleur in de app
+ * overal hetzelfde betekent: teal is goed, oranje is een signaal, rood vraagt om
+ * actie. Te zwaar weegt zwaarder dan te licht — een sessie boven plan rijden
+ * stapelt vermoeidheid op, te licht kost alleen prikkel.
+ */
+export const COMPLIANCE_PILLS: Record<ComplianceVerdict, string> = {
+  niet_gereden: "bg-muted text-muted-foreground",
+  te_licht: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
+  volgens_plan: "bg-zwb-teal text-white",
+  te_zwaar: "bg-destructive/20 text-destructive",
+};
+
 export function summarizeCompliance(workouts: WorkoutCompliance[]): ComplianceSummary {
   const measured = workouts.filter((workout) => workout.loadPct != null);
   return {

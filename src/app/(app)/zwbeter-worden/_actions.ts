@@ -15,6 +15,7 @@ import {
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { reviewNotificationBody } from "@/lib/training/completion";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
 
@@ -840,7 +841,7 @@ export async function confirmWorkoutReview(formData: FormData) {
 
     const rpe = optionalNumber(formData.get("athlete_rpe"));
     const feel = optionalString(formData.get("athlete_feel"));
-    const { error } = await admin
+    const { data: report, error } = await admin
       .from("training_workout_reports")
       .update({
         athlete_rpe: rpe ? Math.max(1, Math.min(10, Math.round(rpe))) : null,
@@ -850,7 +851,9 @@ export async function confirmWorkoutReview(formData: FormData) {
         updated_by: user.id,
       })
       .eq("workout_id", workoutId)
-      .eq("profile_id", user.id);
+      .eq("profile_id", user.id)
+      .select("metrics_json")
+      .maybeSingle();
     if (error) throw new Error(error.message);
 
     if (workout.trainer_id && workout.trainer_id !== user.id) {
@@ -859,11 +862,14 @@ export async function confirmWorkoutReview(formData: FormData) {
         .select("display_name")
         .eq("id", user.id)
         .maybeSingle();
+      const name = athlete?.display_name ?? "Een lid";
       await sendNotificationToMembers(
         "on_workout_review",
         {
-          title: "Training om te beoordelen",
-          body: `${athlete?.display_name ?? "Een lid"} bevestigde ${workout.title}.`,
+          // De kern in het bericht zelf: zo ziet de trainer op zijn
+          // vergrendelscherm al of er iets aan de hand is.
+          title: `${name} · ${workout.title}`,
+          body: reviewNotificationBody(report?.metrics_json, rpe, feel),
           url: `/zwbeter-worden/trainer?athlete=${user.id}`,
           tag: `workout-reviewed-${workoutId}`,
         },

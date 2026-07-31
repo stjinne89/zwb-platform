@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   COMPLIANCE_HIGH,
   COMPLIANCE_LOW,
+  COMPLIANCE_LABELS,
+  COMPLIANCE_PILLS,
   complianceForWorkouts,
   complianceVerdict,
   loadPercentage,
@@ -211,5 +213,27 @@ describe("summarizeCompliance", () => {
       onPlan: 0,
       avgLoadPct: 174,
     });
+  });
+});
+
+describe("COMPLIANCE_PILLS", () => {
+  it("heeft een kleur voor elk oordeel", () => {
+    for (const verdict of Object.keys(COMPLIANCE_LABELS) as Array<
+      keyof typeof COMPLIANCE_LABELS
+    >) {
+      expect(COMPLIANCE_PILLS[verdict]).toBeTruthy();
+    }
+  });
+
+  it("volgt het gereedscore-palet: teal goed, oranje signaal, rood actie", () => {
+    expect(COMPLIANCE_PILLS.volgens_plan).toContain("zwb-teal");
+    expect(COMPLIANCE_PILLS.te_licht).toContain("orange");
+    expect(COMPLIANCE_PILLS.te_zwaar).toContain("destructive");
+    expect(COMPLIANCE_PILLS.niet_gereden).toContain("muted");
+  });
+
+  it("geeft te licht en te zwaar niet dezelfde kleur", () => {
+    // Te zwaar stapelt vermoeidheid op; te licht kost alleen prikkel.
+    expect(COMPLIANCE_PILLS.te_licht).not.toBe(COMPLIANCE_PILLS.te_zwaar);
   });
 });

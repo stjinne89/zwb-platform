@@ -14,6 +14,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { fetchIntervalsWellness, type IntervalsWellness } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import {
+  COMPLIANCE_LABELS,
   complianceVerdict,
   loadPercentage,
   pickRideForWorkout,
@@ -29,6 +30,7 @@ import {
 import { targetHint } from "@/lib/training/targets";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import {
+  detectIntensityFromLoad,
   estimateTrainingLoad,
   intensityLabel,
   normalizeWorkoutBlocks,
@@ -177,6 +179,39 @@ export function buildMetricsSnapshot({
     loadPct,
     verdict: complianceVerdict(loadPct, Boolean(ride)),
   };
+}
+
+/**
+ * Samenvatting voor het pushbericht aan de trainer: naleving, de gereden zone,
+ * de belasting en wat het lid zelf invulde. metrics_json staat in de database op
+ * `{}` tot een rit is gekoppeld, dus alles is optioneel — een bericht zonder
+ * cijfers is nog altijd beter dan geen bericht.
+ */
+export function reviewNotificationBody(
+  metricsJson: unknown,
+  rpe: number | null,
+  feel: string | null,
+): string {
+  const metrics = (metricsJson ?? null) as Partial<WorkoutMetricsSnapshot> | null;
+  const parts: string[] = [];
+
+  if (metrics?.verdict) {
+    parts.push(
+      metrics.loadPct == null
+        ? COMPLIANCE_LABELS[metrics.verdict]
+        : `${COMPLIANCE_LABELS[metrics.verdict]} · ${metrics.loadPct}%`,
+    );
+  }
+  const zone = detectIntensityFromLoad(
+    metrics?.tss ?? null,
+    metrics?.movingMinutes ?? null,
+  );
+  if (zone) parts.push(intensityLabel(zone));
+  if (metrics?.tss != null) parts.push(`${Math.round(metrics.tss)} TSS`);
+  if (rpe) parts.push(`RPE ${Math.max(1, Math.min(10, Math.round(rpe)))}`);
+  if (feel) parts.push(`voelde ${feel}`);
+
+  return parts.length > 0 ? parts.join(" · ") : "Training bevestigd.";
 }
 
 export type CompletionResult = {
