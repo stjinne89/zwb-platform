@@ -8,6 +8,7 @@ import { valueAt, median } from "@/lib/charts/interpolate";
 import { areaPath, linePath } from "@/lib/charts/paths";
 import { logScale, linearScale } from "@/lib/charts/scale";
 import { MAX_SERIES, seriesColor } from "@/lib/charts/palette";
+import { matchFatigueCurve } from "@/lib/teams/fatigue-curves";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
 
 export type PowerCurvePoint = {
@@ -22,12 +23,19 @@ export type PowerCurvePoint = {
   wkgWeightKg?: number | null;
 };
 
+/** Curve van maximaal vermogen ná een hoeveelheid arbeid (kJ) in de rit. */
+export type FatigueCurve = {
+  afterKj: number;
+  points: PowerCurvePoint[];
+};
+
 export type ComparisonRider = {
   id: string;
   name: string;
   riderType: string | null;
   weightKg: number | null;
   points: PowerCurvePoint[];
+  fatigueCurves?: FatigueCurve[];
   hasFullCurve?: boolean;
 };
 
@@ -77,16 +85,30 @@ function formatValue(value: number | null, metric: Metric) {
   return metric === "watts" ? `${Math.round(value)} W` : `${value.toFixed(2)} W/kg`;
 }
 
+function formatKj(afterKj: number) {
+  return `${afterKj.toLocaleString("nl-NL")} kJ`;
+}
+
+/** Het lid in de gekozen stand; null als het daar geen curve voor heeft. */
+function riderAtLevel(rider: ComparisonRider, afterKj: number): ComparisonRider | null {
+  if (afterKj === 0) return rider;
+  const match = matchFatigueCurve(rider.fatigueCurves, afterKj);
+  return match ? { ...rider, points: match.points } : null;
+}
+
 export function PowerCurveChart({
   ownName,
   ownWeightKg,
   ownPoints,
+  fatigueCurves = [],
   riders,
   idSuffix,
 }: {
   ownName: string;
   ownWeightKg: number | null;
   ownPoints: PowerCurvePoint[];
+  /** Vermoeide curves uit intervals.icu, oplopend op kJ. */
+  fatigueCurves?: FatigueCurve[];
   riders: ComparisonRider[];
   /** Verplicht zodra dezelfde grafiek twee keer op één pagina staat. */
   idSuffix?: string;
@@ -94,6 +116,7 @@ export function PowerCurveChart({
   const [metric, setMetric] = useState<Metric>("watts");
   const [comparisonIds, setComparisonIds] = useState<string[]>([MEDIAN_ID]);
   const [hoverSeconds, setHoverSeconds] = useState<number | null>(null);
+  const [levelIndex, setLevelIndex] = useState(0);
   const hasOwnWkg =
     ownWeightKg != null ||
     ownPoints.some((point) => {
@@ -101,17 +124,39 @@ export function PowerCurveChart({
       return Number.isFinite(value) && value > 0;
     });
 
+  const levels = useMemo<FatigueCurve[]>(
+    () => [{ afterKj: 0, points: ownPoints }, ...fatigueCurves],
+    [fatigueCurves, ownPoints],
+  );
+  const level = levels[Math.min(levelIndex, levels.length - 1)];
+  const afterKj = level.afterKj;
+
   const own = useMemo(
-    () => metricPoints(ownPoints, ownWeightKg, metric),
-    [metric, ownPoints, ownWeightKg],
+    () => metricPoints(level.points, ownWeightKg, metric),
+    [level, metric, ownWeightKg],
+  );
+  const fresh = useMemo(
+    () => (afterKj === 0 ? [] : metricPoints(ownPoints, ownWeightKg, metric)),
+    [afterKj, metric, ownPoints, ownWeightKg],
+  );
+
+  // Vergelijken gebeurt in de gekozen stand: elk lid levert de curve die bij
+  // dezelfde arbeid hoort, anders doet het lid in deze stand niet mee.
+  const levelRiders = useMemo(
+    () => riders.flatMap((rider) => {
+      const matched = riderAtLevel(rider, afterKj);
+      return matched ? [matched] : [];
+    }),
+    [afterKj, riders],
   );
 
   const series = useMemo(() => {
     return comparisonIds.flatMap((id, index) => {
       const color = seriesColor(index);
+      const suffix = afterKj === 0 ? "" : ` na ${formatKj(afterKj)}`;
       if (id === MEDIAN_ID) {
-        const points = medianCurveSeconds(riders).flatMap((seconds) => {
-          const values = riders.flatMap((rider) => {
+        const points = medianCurveSeconds(levelRiders).flatMap((seconds) => {
+          const values = levelRiders.flatMap((rider) => {
             const riderPoints = metricPoints(rider.points, rider.weightKg, metric);
             const value = valueAt(riderPoints, seconds);
             return value == null ? [] : [value];
@@ -120,21 +165,21 @@ export function PowerCurveChart({
           return value == null ? [] : [{ seconds, watts: value }];
         });
         return points.length
-          ? [{ id, name: `ZWB-mediaan (${riders.length})`, points, color }]
+          ? [{ id, name: `ZWB-mediaan (${levelRiders.length})${suffix}`, points, color }]
           : [];
       }
-      const rider = riders.find((entry) => entry.id === id);
+      const rider = levelRiders.find((entry) => entry.id === id);
       if (!rider) return [];
       return [
         {
           id,
-          name: rider.name,
+          name: `${rider.name}${suffix}`,
           points: metricPoints(rider.points, rider.weightKg, metric),
           color,
         },
       ];
     });
-  }, [comparisonIds, metric, riders]);
+  }, [afterKj, comparisonIds, levelRiders, metric]);
 
   function toggleComparison(id: string) {
     setComparisonIds((current) =>
@@ -146,7 +191,7 @@ export function PowerCurveChart({
     );
   }
 
-  const allPoints = [...own, ...series.flatMap((entry) => entry.points)];
+  const allPoints = [...own, ...fresh, ...series.flatMap((entry) => entry.points)];
   const minSeconds = Math.max(1, Math.min(...allPoints.map((point) => point.seconds), 5));
   const maxSeconds = Math.max(...allPoints.map((point) => point.seconds), 1200);
   const maxValue = Math.max(...allPoints.map((point) => point.watts), metric === "watts" ? 300 : 3);
@@ -162,13 +207,27 @@ export function PowerCurveChart({
   });
   const yTicks = Array.from({ length: 5 }, (_, index) => (maxValue * 1.08 * index) / 4);
   const ownPath = linePath(own, (point) => x.forward(point.seconds), (point) => y.forward(point.watts));
+  const freshPath = linePath(fresh, (point) => x.forward(point.seconds), (point) => y.forward(point.watts));
   const hoverX = hoverSeconds == null ? null : x.forward(hoverSeconds);
   const ownHover = hoverSeconds == null ? null : valueAt(own, hoverSeconds);
   const areaGradientId = defsId("power-area", idSuffix);
   const atLimit = comparisonIds.length >= MAX_SERIES;
+  const ownLabel = afterKj === 0 ? ownName : `${ownName} na ${formatKj(afterKj)}`;
 
   const tooltipRows: TooltipRow[] = [
-    { label: `${ownName}:`, value: formatValue(ownHover, metric), color: "var(--chart-1)" },
+    { label: `${ownLabel}:`, value: formatValue(ownHover, metric), color: "var(--chart-1)" },
+    ...(afterKj === 0
+      ? []
+      : [
+          {
+            label: `${ownName} vers:`,
+            value: formatValue(
+              hoverSeconds == null ? null : valueAt(fresh, hoverSeconds),
+              metric,
+            ),
+            color: "var(--chart-1)",
+          },
+        ]),
     ...series.map((entry) => ({
       label: `${entry.name}:`,
       value: formatValue(hoverSeconds == null ? null : valueAt(entry.points, hoverSeconds), metric),
@@ -197,17 +256,21 @@ export function PowerCurveChart({
         <div className="min-w-0 flex-1 sm:max-w-xl">
           <p className="mb-1.5 text-sm">Vergelijk met (max. {MAX_SERIES})</p>
           <div className="flex flex-wrap gap-1.5">
-            {[{ id: MEDIAN_ID, label: "ZWB-mediaan" }, ...riders.map((rider) => ({
-              id: rider.id,
-              label: `${rider.name} - ${riderTypeLabel(rider.riderType)}`,
-            }))].map((option) => {
+            {[
+              { id: MEDIAN_ID, label: "ZWB-mediaan", available: levelRiders.length > 0 },
+              ...riders.map((rider) => ({
+                id: rider.id,
+                label: `${rider.name} - ${riderTypeLabel(rider.riderType)}`,
+                available: levelRiders.some((entry) => entry.id === rider.id),
+              })),
+            ].map((option) => {
               const active = comparisonIds.includes(option.id);
               return (
                 <button
                   key={option.id}
                   type="button"
                   aria-pressed={active}
-                  disabled={!active && atLimit}
+                  disabled={!option.available || (!active && atLimit)}
                   onClick={() => toggleComparison(option.id)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                     active
@@ -288,6 +351,17 @@ export function PowerCurveChart({
             </g>
           ))}
 
+          {freshPath && (
+            <path
+              d={freshPath}
+              fill="none"
+              stroke="var(--chart-1)"
+              strokeOpacity="0.35"
+              strokeWidth="2.5"
+              strokeDasharray="2 6"
+              strokeLinecap="round"
+            />
+          )}
           {ownPath && (
             <>
               <path
@@ -370,11 +444,45 @@ export function PowerCurveChart({
         </svg>
       </div>
 
+      {levels.length > 1 ? (
+        <label className="block">
+          <span className="flex items-center justify-between text-sm">
+            <span className="font-medium">Na arbeid</span>
+            <span className="tabular-nums text-muted-foreground">
+              {afterKj === 0 ? "Vers" : formatKj(afterKj)}
+            </span>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={levels.length - 1}
+            step={1}
+            value={Math.min(levelIndex, levels.length - 1)}
+            onChange={(event) => setLevelIndex(Number(event.target.value))}
+            aria-label="Vermogen na arbeid"
+            className="mt-1 w-full accent-primary"
+          />
+          <span className="flex justify-between text-xs text-muted-foreground">
+            {levels.map((entry) => (
+              <span key={entry.afterKj}>
+                {entry.afterKj === 0 ? "Vers" : formatKj(entry.afterKj)}
+              </span>
+            ))}
+          </span>
+        </label>
+      ) : null}
+
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-2">
           <span className="h-1 w-8 rounded bg-[var(--chart-1)]" />
-          {ownName}
+          {ownLabel}
         </span>
+        {afterKj === 0 ? null : (
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-8 rounded bg-[var(--chart-1)] opacity-40" />
+            {ownName} vers
+          </span>
+        )}
         {series.map((entry) => (
           <span key={`legend-${entry.id}`} className="inline-flex items-center gap-2">
             <span className="h-1 w-8 rounded" style={{ backgroundColor: entry.color }} />
@@ -382,7 +490,13 @@ export function PowerCurveChart({
           </span>
         ))}
       </div>
-      <PowerBenchmarks metric={metric} ownPoints={own} riders={riders} />
+      <PowerBenchmarks
+        metric={metric}
+        ownPoints={own}
+        freshPoints={fresh}
+        afterKj={afterKj}
+        riders={levelRiders}
+      />
     </div>
   );
 }
@@ -390,10 +504,14 @@ export function PowerCurveChart({
 function PowerBenchmarks({
   metric,
   ownPoints,
+  freshPoints,
+  afterKj,
   riders,
 }: {
   metric: Metric;
   ownPoints: PowerCurvePoint[];
+  freshPoints: PowerCurvePoint[];
+  afterKj: number;
   riders: ComparisonRider[];
 }) {
   return (
@@ -409,6 +527,11 @@ function PowerBenchmarks({
         const below = clubValues.filter((value) => value <= ownValue).length;
         const percentile =
           clubValues.length === 0 ? null : Math.round((below / clubValues.length) * 100);
+        const freshValue = afterKj === 0 ? null : valueAt(freshPoints, seconds);
+        const change =
+          freshValue == null || freshValue === 0
+            ? null
+            : Math.round(((ownValue - freshValue) / freshValue) * 100);
         return [
           <div key={seconds} className="rounded-md border bg-card p-4">
             <p className="text-sm text-muted-foreground">{formatDuration(seconds)}</p>
@@ -418,8 +541,15 @@ function PowerBenchmarks({
             <p className="mt-1 text-xs text-muted-foreground">
               {percentile == null
                 ? "Geen ZWB-vergelijking"
-                : `Hoger dan ${percentile}% van ${clubValues.length} profielen`}
+                : `Hoger dan ${percentile}% van ${clubValues.length} profiel${
+                    clubValues.length === 1 ? "" : "en"
+                  }`}
             </p>
+            {change == null ? null : (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {`${change > 0 ? "+" : ""}${change}% t.o.v. vers`}
+              </p>
+            )}
           </div>,
         ];
       })}

@@ -66,6 +66,15 @@ function compactCurvePoints(points: Awaited<ReturnType<typeof fetchIntervalsPowe
     );
 }
 
+function compactFatigueCurves(
+  curves: Awaited<ReturnType<typeof fetchIntervalsPowerCurve>>["fatigueCurves"],
+) {
+  return curves.flatMap((curve) => {
+    const points = compactCurvePoints(curve.points);
+    return points.length > 1 ? [{ afterKj: curve.afterKj, points }] : [];
+  });
+}
+
 export async function syncResultsNow() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
@@ -205,7 +214,9 @@ async function syncOnePowerProfile(
 
   try {
     const [curve, athlete, wellness] = await Promise.all([
-      fetchIntervalsPowerCurve(connection.api_key, athleteId, "90d"),
+      fetchIntervalsPowerCurve(connection.api_key, athleteId, "90d", {
+        includeFatigue: true,
+      }),
       fetchIntervalsAthlete(connection.api_key).catch(() => null),
       fetchIntervalsWellness(connection.api_key, athleteId, 30).catch(() => []),
     ]);
@@ -277,18 +288,22 @@ async function syncOnePowerProfile(
       source: "intervals",
       ...payload,
       curve_points: compactCurvePoints(curve.points),
+      curve_points_fatigue: compactFatigueCurves(curve.fatigueCurves),
       sync_status: hasCurve ? "ok" : hasFallback ? "partial" : "error",
       sync_error: hasCurve
         ? null
         : `Geen powercurve-punten gevonden in Intervals (${curve.debug ?? "onbekend antwoord"}).`,
       synced_at: new Date().toISOString(),
     };
+    // Databases zonder de curve-migraties kennen die kolommen niet; dan slaan we
+    // eerst de vermoeide curves over en daarna de hele curve.
     let { error } = await supabase.from("rider_power_profiles").upsert(profileRow);
-    if (error?.message.includes("curve_points")) {
-      const legacyProfileRow = Object.fromEntries(
-        Object.entries(profileRow).filter(([key]) => key !== "curve_points"),
+    for (const skipped of [["curve_points_fatigue"], ["curve_points_fatigue", "curve_points"]]) {
+      if (!error?.message.includes("curve_points")) break;
+      const trimmedRow = Object.fromEntries(
+        Object.entries(profileRow).filter(([key]) => !skipped.includes(key)),
       );
-      ({ error } = await supabase.from("rider_power_profiles").upsert(legacyProfileRow));
+      ({ error } = await supabase.from("rider_power_profiles").upsert(trimmedRow));
     }
     if (error) throw new Error(error.message);
     return {

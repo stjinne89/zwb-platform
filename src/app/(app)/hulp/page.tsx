@@ -974,6 +974,33 @@ Fitness-status: Verbeterend`}
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Vermogen na arbeid (kJ)</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Onder de curve staat een schuifje. Links staat je verse curve,
+            rechts je vermogen nadat je in een rit een bepaalde hoeveelheid
+            arbeid hebt geleverd. Zo zie je hoeveel vermogen je overhoudt als je
+            moe wordt.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            De standen komen uit je eigen intervals.icu-instellingen. Zet ze op
+            1000 en 2000 kJ: open intervals.icu, ga naar Power, klik boven de
+            powercurve op de knoppen met &quot;? kJ&quot; en vul 1000 en 2000
+            in. Intervals rekent de curves daarna door; dat duurt een paar
+            minuten.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Iedereen die 1000 en 2000 kJ gebruikt, vergelijkt in dezelfde stand
+            met de ZWB-mediaan en met andere leden. Wie andere waarden of niets
+            heeft ingesteld, doet in die stand niet mee aan de vergelijking.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Klik na het instellen op Mijn vermogen op &quot;Mijn waarden
+            ophalen&quot;, zodat je vermoeide curves ook in de clubvergelijking
+            terechtkomen.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">
             Waarom Watt en W/kg niet altijd dezelfde rit tonen
           </h3>

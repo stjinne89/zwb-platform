@@ -1,14 +1,22 @@
 import { normalizePowerCurvePoints } from "@/lib/intervals/power-curve";
 import { POWER_DURATIONS } from "@/lib/teams/power-profile";
-import type { ComparisonRider, PowerCurvePoint } from "@/components/charts/power-curve-chart";
+import type {
+  ComparisonRider,
+  FatigueCurve,
+  PowerCurvePoint,
+} from "@/components/charts/power-curve-chart";
+
+const BASE_COLUMNS =
+  "profile_id, rider_type, weight_kg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m";
 
 /** Kolommen die `comparisonRidersFromRows` verwacht. */
-export const COMPARISON_RIDER_COLUMNS =
-  "profile_id, rider_type, weight_kg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, curve_points, profiles(display_name)";
+export const COMPARISON_RIDER_COLUMNS = `${BASE_COLUMNS}, curve_points, curve_points_fatigue, profiles(display_name)`;
+
+/** Zonder de vermoeide curves, voor databases zonder migratie 0108. */
+export const COMPARISON_RIDER_COLUMNS_NO_FATIGUE = `${BASE_COLUMNS}, curve_points, profiles(display_name)`;
 
 /** Zelfde kolommen zonder curve_points, voor databases zonder die migratie. */
-export const COMPARISON_RIDER_COLUMNS_LEGACY =
-  "profile_id, rider_type, weight_kg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, profiles(display_name)";
+export const COMPARISON_RIDER_COLUMNS_LEGACY = `${BASE_COLUMNS}, profiles(display_name)`;
 
 type PowerProfileRow = {
   profile_id: string;
@@ -22,6 +30,7 @@ type PowerProfileRow = {
   watts_10m: number | null;
   watts_20m: number | null;
   curve_points?: unknown;
+  curve_points_fatigue?: unknown;
   profiles: { display_name: string | null } | Array<{ display_name: string | null }> | null;
 };
 
@@ -52,9 +61,9 @@ function fixedPoints(row: PowerProfileRow): PowerCurvePoint[] {
   });
 }
 
-function storedCurvePoints(row: PowerProfileRow) {
-  if (!Array.isArray(row.curve_points)) return [];
-  const points = row.curve_points.flatMap((value) => {
+function storedCurvePoints(stored: unknown) {
+  if (!Array.isArray(stored)) return [];
+  const points = stored.flatMap((value) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) return [];
     const point = value as Record<string, unknown>;
     const seconds = Number(point.seconds);
@@ -74,6 +83,21 @@ function storedCurvePoints(row: PowerProfileRow) {
   return normalizePowerCurvePoints(points);
 }
 
+/** Vermoeide curves van een lid, oplopend op kJ. */
+function storedFatigueCurves(stored: unknown): FatigueCurve[] {
+  if (!Array.isArray(stored)) return [];
+  return stored
+    .flatMap((value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+      const curve = value as Record<string, unknown>;
+      const afterKj = Number(curve.afterKj);
+      const points = storedCurvePoints(curve.points);
+      if (!Number.isFinite(afterKj) || afterKj <= 0 || points.length < 3) return [];
+      return [{ afterKj: Math.round(afterKj), points: downsample(points) }];
+    })
+    .sort((a, b) => a.afterKj - b.afterKj);
+}
+
 /** Houdt de curve hanteerbaar voor de SVG zonder de vorm te verliezen. */
 export function downsample(points: PowerCurvePoint[], limit = 260) {
   if (points.length <= limit) return points;
@@ -90,14 +114,18 @@ export function downsample(points: PowerCurvePoint[], limit = 260) {
 export function comparisonRidersFromRows(rows: unknown[] | null): ComparisonRider[] {
   return ((rows ?? []) as unknown as PowerProfileRow[])
     .map((row) => {
-      const storedPoints = storedCurvePoints(row);
+      const storedPoints = storedCurvePoints(row.curve_points);
+      const hasFullCurve = storedPoints.length >= 3;
       return {
         id: row.profile_id,
         name: profileName(row.profiles),
         riderType: row.rider_type,
         weightKg: numberOrNull(row.weight_kg),
-        points: downsample(storedPoints.length >= 3 ? storedPoints : fixedPoints(row)),
-        hasFullCurve: storedPoints.length >= 3,
+        points: downsample(hasFullCurve ? storedPoints : fixedPoints(row)),
+        // Vermoeide curves horen bij de volledige curve; zonder die curve is er
+        // niets om mee te vergelijken.
+        fatigueCurves: hasFullCurve ? storedFatigueCurves(row.curve_points_fatigue) : [],
+        hasFullCurve,
       };
     })
     .filter((rider) => rider.points.length >= 3)

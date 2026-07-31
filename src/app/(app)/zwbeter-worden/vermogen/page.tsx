@@ -15,6 +15,7 @@ import { wattsAtDuration } from "@/lib/teams/power-profile";
 import {
   COMPARISON_RIDER_COLUMNS,
   COMPARISON_RIDER_COLUMNS_LEGACY,
+  COMPARISON_RIDER_COLUMNS_NO_FATIGUE,
   comparisonRidersFromRows,
   downsample,
 } from "@/lib/teams/comparison-riders";
@@ -86,13 +87,18 @@ export default async function PowerPage({
   const profile = profileResult.data;
   const connection = connectionResult.data;
   let comparisonRows: unknown[] | null = comparisonResult.data;
-  if (comparisonResult.error?.message.includes("curve_points")) {
+  // Databases zonder de curve-migraties kennen die kolommen niet; val dan stap
+  // voor stap terug op minder kolommen.
+  let comparisonError = comparisonResult.error;
+  for (const columns of [COMPARISON_RIDER_COLUMNS_NO_FATIGUE, COMPARISON_RIDER_COLUMNS_LEGACY]) {
+    if (!comparisonError?.message.includes("curve_points")) break;
     const fallback = await supabase
       .from("rider_power_profiles")
-      .select(COMPARISON_RIDER_COLUMNS_LEGACY)
+      .select(columns)
       .in("sync_status", ["ok", "partial"])
       .neq("profile_id", user.id);
     comparisonRows = fallback.data;
+    comparisonError = fallback.error;
   }
 
   let curve: Awaited<ReturnType<typeof fetchIntervalsPowerCurve>> | null = null;
@@ -102,7 +108,9 @@ export default async function PowerPage({
   let intervalsWeightKg: number | null = null;
   if (connection?.api_key && connection.athlete_id) {
     const [curveResult, wellness, athlete] = await Promise.all([
-      fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, period).catch(
+      fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, period, {
+        includeFatigue: true,
+      }).catch(
         (error: unknown) => error instanceof Error ? error : new Error("Kon de powercurve niet laden."),
       ),
       fetchIntervalsWellness(connection.api_key, connection.athlete_id, 90).catch(() => []),
@@ -121,6 +129,10 @@ export default async function PowerPage({
 
   const curvePoints = curve?.points ?? [];
   const ownPoints = downsample(curvePoints);
+  const fatigueCurves = (curve?.fatigueCurves ?? []).flatMap((entry) => {
+    const points = downsample(entry.points);
+    return points.length > 1 ? [{ afterKj: entry.afterKj, points }] : [];
+  });
   const comparisonRiders = comparisonRidersFromRows(comparisonRows);
   const ownWeightKg = numberOrNull(profile?.weight_kg) ?? intervalsWeightKg;
   // eFTP uit intervals gaat voor; daarna de FTP uit intervals-instellingen of het profiel.
@@ -233,6 +245,7 @@ export default async function PowerPage({
                 ownName={profile?.display_name ?? "Jij"}
                 ownWeightKg={ownWeightKg}
                 ownPoints={ownPoints}
+                fatigueCurves={fatigueCurves}
                 riders={comparisonRiders}
               />
             </section>

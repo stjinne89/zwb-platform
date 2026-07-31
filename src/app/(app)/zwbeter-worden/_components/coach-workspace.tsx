@@ -27,6 +27,7 @@ import type { TrainingLoadPoint } from "@/lib/training/load-points";
 import {
   PowerCurveChart,
   type ComparisonRider,
+  type FatigueCurve,
   type PowerCurvePoint,
 } from "@/components/charts/power-curve-chart";
 import { downsample } from "@/lib/teams/comparison-riders";
@@ -87,6 +88,7 @@ export function CoachWorkspace({
   selectedAthleteId,
   loadPoints,
   powerPoints,
+  powerFatigueCurves = [],
   comparisonRiders,
   todayKey,
   canUseAi,
@@ -112,6 +114,7 @@ export function CoachWorkspace({
   selectedAthleteId?: string;
   loadPoints: TrainingLoadPoint[];
   powerPoints: PowerCurvePoint[];
+  powerFatigueCurves?: FatigueCurve[];
   comparisonRiders: ComparisonRider[];
   todayKey: string;
   canUseAi: boolean;
@@ -405,6 +408,10 @@ export function CoachWorkspace({
               ownName={athlete?.display_name ?? "Renner"}
               ownWeightKg={athlete?.weight_kg ? Number(athlete.weight_kg) : null}
               ownPoints={downsample(powerPoints)}
+              fatigueCurves={powerFatigueCurves.flatMap((curve) => {
+                const points = downsample(curve.points);
+                return points.length > 1 ? [{ afterKj: curve.afterKj, points }] : [];
+              })}
               riders={comparisonRiders}
               idSuffix="coach"
             />

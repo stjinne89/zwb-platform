@@ -8,9 +8,10 @@ import {
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { toTrainingLoadPoints, type TrainingLoadPoint } from "@/lib/training/load-points";
-import type { PowerCurvePoint } from "@/components/charts/power-curve-chart";
+import type { FatigueCurve, PowerCurvePoint } from "@/components/charts/power-curve-chart";
 import {
   COMPARISON_RIDER_COLUMNS,
+  COMPARISON_RIDER_COLUMNS_NO_FATIGUE,
   comparisonRidersFromRows,
 } from "@/lib/teams/comparison-riders";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
@@ -149,6 +150,8 @@ export default async function ZwbeterWordenTrainerPage({ searchParams }: SearchP
   // Map i.p.v. losse variabelen: de fetch-lus is async en mag geen buitenliggende
   // binding herschrijven.
   const selectedDetail = new Map<"load" | "power", TrainingLoadPoint[] | PowerCurvePoint[]>();
+  // Vermoeide curves van de geselecteerde renner; wordt binnen de lus gevuld.
+  const selectedFatigueCurves: FatigueCurve[] = [];
 
   if (athleteIds.length > 0) {
     const { data: connections } = await viewer.admin
@@ -173,9 +176,9 @@ export default async function ZwbeterWordenTrainerPage({ searchParams }: SearchP
             fetchIntervalsWellness(connection.api_key, connection.athlete_id, isSelected ? 730 : 30),
             fetchIntervalsEvents(connection.api_key, connection.athlete_id, 14),
             isSelected
-              ? fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, "90d").catch(
-                  () => null,
-                )
+              ? fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, "90d", {
+                  includeFatigue: true,
+                }).catch(() => null)
               : Promise.resolve(null),
           ]);
           intervalAthleteIds.set(connection.profile_id, connection.athlete_id);
@@ -197,6 +200,7 @@ export default async function ZwbeterWordenTrainerPage({ searchParams }: SearchP
           if (isSelected) {
             selectedDetail.set("load", toTrainingLoadPoints(rows));
             selectedDetail.set("power", curve?.points ?? []);
+            selectedFatigueCurves.push(...(curve?.fatigueCurves ?? []));
           }
           intervalEvents.set(
             connection.profile_id,
@@ -234,14 +238,23 @@ export default async function ZwbeterWordenTrainerPage({ searchParams }: SearchP
 
   // Vergelijkingscurves voor de trainer: dezelfde clubbrede momentopname als op
   // de vermogenspagina, leesbaar via RLS dus zonder admin-client.
-  const { data: comparisonRows } =
+  async function comparisonProfiles(athleteId: string) {
+    // Zonder migratie 0108 bestaat curve_points_fatigue nog niet; val dan terug.
+    for (const columns of [COMPARISON_RIDER_COLUMNS, COMPARISON_RIDER_COLUMNS_NO_FATIGUE]) {
+      const { data, error } = await viewer.supabase
+        .from("rider_power_profiles")
+        .select(columns)
+        .in("sync_status", ["ok", "partial"])
+        .neq("profile_id", athleteId);
+      if (!error) return data;
+    }
+    return null;
+  }
+
+  const comparisonRows =
     powerPoints.length > 1 && selectedAthleteId
-      ? await viewer.supabase
-          .from("rider_power_profiles")
-          .select(COMPARISON_RIDER_COLUMNS)
-          .in("sync_status", ["ok", "partial"])
-          .neq("profile_id", selectedAthleteId)
-      : { data: null };
+      ? await comparisonProfiles(selectedAthleteId)
+      : null;
 
   return (
     <section className="space-y-4">
@@ -262,6 +275,7 @@ export default async function ZwbeterWordenTrainerPage({ searchParams }: SearchP
         selectedAthleteId={selectedAthleteId}
         loadPoints={loadPoints}
         powerPoints={powerPoints}
+        powerFatigueCurves={selectedFatigueCurves}
         comparisonRiders={comparisonRidersFromRows(comparisonRows)}
         todayKey={todayKeyAmsterdam()}
         canUseAi={Boolean(process.env.OPENAI_API_KEY)}

@@ -173,9 +173,16 @@ export type IntervalsWorkoutInput = {
   workoutDoc?: Record<string, unknown> | null;
 };
 
+/** Curve van maximaal vermogen ná een hoeveelheid arbeid (kJ) in de rit. */
+export type IntervalsFatigueCurve = {
+  afterKj: number;
+  points: IntervalsPowerCurvePoint[];
+};
+
 export type IntervalsPowerCurve = {
   period: string;
   points: IntervalsPowerCurvePoint[];
+  fatigueCurves: IntervalsFatigueCurve[];
   ftpWatts?: number | null;
   debug?: string;
 };
@@ -384,6 +391,55 @@ function collectPowerCurvePoints(
   }
 }
 
+function curveEntryPoints(entry: unknown, activities: Map<string, PowerCurveActivityMeta>) {
+  const points: IntervalsPowerCurvePoint[] = [];
+  collectPowerCurvePoints(entry, points, activities);
+  return normalizePowerCurvePoints(points);
+}
+
+/**
+ * Splitst het antwoord in de normale curve en de vermoeide curves. Intervals
+ * zet elke curve als los item in `list` met `after_kj`; antwoorden zonder die
+ * lijst gaan als één curve door de molen.
+ */
+export function parsePowerCurveSet(payload: unknown): {
+  points: IntervalsPowerCurvePoint[];
+  fatigueCurves: IntervalsFatigueCurve[];
+} {
+  const activities = collectPowerCurveActivities(payload);
+  const list =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>).list
+      : null;
+  if (!Array.isArray(list)) {
+    return { points: curveEntryPoints(payload, activities), fatigueCurves: [] };
+  }
+
+  const curves = list.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const afterKj = Number((entry as Record<string, unknown>).after_kj);
+    const points = curveEntryPoints(entry, activities);
+    if (points.length < 2) return [];
+    return [
+      {
+        afterKj: Number.isFinite(afterKj) && afterKj > 0 ? Math.round(afterKj) : 0,
+        points,
+      },
+    ];
+  });
+
+  const base = curves.find((curve) => curve.afterKj === 0) ?? curves[0] ?? null;
+  const seen = new Set<number>();
+  const fatigueCurves = curves
+    .filter((curve) => {
+      if (curve === base || curve.afterKj <= 0 || seen.has(curve.afterKj)) return false;
+      seen.add(curve.afterKj);
+      return true;
+    })
+    .sort((a, b) => a.afterKj - b.afterKj);
+  return { points: base?.points ?? [], fatigueCurves };
+}
+
 /** FTP en gewicht uit de athlete-instellingen; het mmp-model gaat voor. */
 export function athletePhysique(athlete: IntervalsAthlete | null) {
   const rideSettings = rideSportSettings(athlete);
@@ -420,27 +476,31 @@ export async function fetchIntervalsPowerCurve(
   apiKey: string,
   athleteId: string,
   period = "90d",
+  options: { includeFatigue?: boolean } = {},
 ): Promise<IntervalsPowerCurve> {
   const now = new Date().toISOString().slice(0, 10);
-  const query = new URLSearchParams({
-    curves: period,
-    type: "Ride",
-    includeRanks: "false",
-    now,
-  });
-  const payload = await intervalsFetchFirst<unknown>(
-    apiKey,
-    [
+  // Vermoeide curves bestaan alleen voor de twee drempels die de renner zelf in
+  // intervals.icu instelt (after_kj0/after_kj1); `<periode>-kj0` vraagt die op.
+  // Zonder ingestelde drempels valt de aanroep terug op de gewone curve.
+  const curveSets = options.includeFatigue
+    ? [`${period},${period}-kj0,${period}-kj1`, period]
+    : [period];
+  const paths = curveSets.flatMap((curves) => {
+    const query = new URLSearchParams({
+      curves,
+      type: "Ride",
+      includeRanks: "false",
+      now,
+    });
+    return [
       `/api/v1/athlete/0/power-curves?${query.toString()}`,
       `/api/athlete/0/power-curves?${query.toString()}`,
       `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
       `/api/athlete/${athleteId}/power-curves?${query.toString()}`,
-    ],
-  );
-  const points: IntervalsPowerCurvePoint[] = [];
-  collectPowerCurvePoints(payload, points, collectPowerCurveActivities(payload));
-
-  const deduped = normalizePowerCurvePoints(points);
+    ];
+  });
+  const payload = await intervalsFetchFirst<unknown>(apiKey, paths);
+  const { points: deduped, fatigueCurves } = parsePowerCurveSet(payload);
 
   const maybe = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
   const debug = Array.isArray(payload)
@@ -452,7 +512,7 @@ export async function fetchIntervalsPowerCurve(
   // de 20-minutentegel. Bellers vullen zelf aan uit wellness/athlete/profiel.
   const ftpWatts = numericField(maybe, ["ftp", "eftp", "icu_ftp"]);
 
-  return { period, points: deduped, ftpWatts, debug };
+  return { period, points: deduped, fatigueCurves, ftpWatts, debug };
 }
 
 /** Haalt een gepland event weg uit de intervals.icu-kalender. */

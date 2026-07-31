@@ -243,7 +243,7 @@ export default async function WelkomPage() {
     },
     {
       title: "intervals.icu koppelen",
-      text: "Voor trainingsdashboard, geplande workouts, Wahoo/Garmin-export en optionele hersteldata.",
+      text: "Voor trainingsdashboard, geplande workouts, Wahoo/Garmin-export en optionele hersteldata. Zet in intervals.icu je kJ-drempels op 1000 en 2000, dan vergelijkt de club het vermogen na dezelfde arbeid.",
       href: "/zwbeter-worden/doelen",
       action: intervals ? "ZWBeter Worden openen" : "intervals koppelen",
       status: intervals ? "done" : canUseIntegrations ? "current" : "upcoming",
