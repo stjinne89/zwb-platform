@@ -40,6 +40,16 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   },
 ];
 
+/** De tabs binnen de trainerspagina. Die staan bewust niet in het hoofdmenu:
+ * daar blijft ZWBeter Worden één "Trainer"-item. */
+export const TRAINER_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/trainer", label: "Overzicht" },
+  { type: "link", href: "/zwbeter-worden/trainer/beoordelen", label: "Beoordelen" },
+  { type: "link", href: "/zwbeter-worden/trainer/schema", label: "Schema" },
+  { type: "link", href: "/zwbeter-worden/trainer/vermogen", label: "Vermogen" },
+  { type: "link", href: "/zwbeter-worden/trainer/doelen", label: "Doelen" },
+];
+
 export const NAV_GROUPS: NavNode[] = [
   { type: "link", href: "/kalender", label: "Kalender" },
   { type: "link", href: "/samen-fietsen", label: "Samen fietsen" },

@@ -5,8 +5,12 @@
 import { Library } from "lucide-react";
 import { INTENSITY_LABELS, WORKOUT_INTENSITIES, type WorkoutIntensity } from "@/lib/training/workouts";
 import { TRAINING_FORMS, trainingFormLabel } from "@/lib/training/training-forms";
-import { addWorkoutFromTemplate, deleteWorkoutTemplate, saveWorkoutTemplate } from "../_actions";
-import { formAction } from "./format";
+import {
+  addWorkoutFromTemplate,
+  deleteWorkoutTemplate,
+  saveWorkoutTemplate,
+} from "../../_actions";
+import { formAction } from "../../_components/format";
 
 export type WorkoutTemplateRow = {
   id: string;

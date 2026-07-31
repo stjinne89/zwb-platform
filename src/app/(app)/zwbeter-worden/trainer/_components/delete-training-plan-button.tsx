@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { deleteTrainingPlan } from "../_actions";
+import { deleteTrainingPlan } from "../../_actions";
 
 export function DeleteTrainingPlanButton({
   planId,

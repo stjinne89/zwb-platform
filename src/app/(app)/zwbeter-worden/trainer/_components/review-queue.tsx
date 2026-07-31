@@ -5,9 +5,9 @@
 
 import { ClipboardCheck } from "lucide-react";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
-import { WorkoutMetricsPanel } from "./workout-metrics-panel";
-import { reviewWorkoutAsTrainer } from "../_actions";
-import { formAction, formatDayMonth } from "./format";
+import { WorkoutMetricsPanel } from "../../_components/workout-metrics-panel";
+import { reviewWorkoutAsTrainer } from "../../_actions";
+import { formAction, formatDayMonth } from "../../_components/format";
 
 export type ReviewQueueItem = {
   workoutId: string;
