@@ -667,33 +667,23 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border bg-card p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 font-semibold">
-                <Vote className="size-5 text-primary" />
-                Polls
-              </h2>
-            </div>
-            <Link
-              href="/polls"
-              className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              Stem mee
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section>
+          <SectionHeader
+            icon={Vote}
+            title="Polls"
+            action={<InlineMoreLink href="/polls">Stem mee</InlineMoreLink>}
+          />
           {polls.length === 0 ? (
             <EmptyState>Geen open polls.</EmptyState>
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y rounded-lg border bg-card">
               {polls.map((poll) => {
                 const topOption = [...poll.options].sort(
                   (a, b) => b.voteCount - a.voteCount,
                 )[0];
                 return (
-                  <li key={poll.id} className="rounded-md bg-muted/40 p-3">
+                  <li key={poll.id} className="p-3">
                     <p className="line-clamp-2 text-sm font-medium">
                       {poll.question}
                     </p>
@@ -706,32 +696,22 @@ export default async function DashboardPage() {
               })}
             </ul>
           )}
-        </div>
+        </section>
 
-        <div className="rounded-lg border bg-card p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 font-semibold">
-                <Gift className="size-5 text-primary" />
-                Ledenvoordeel
-              </h2>
-            </div>
-            <Link
-              href="/sponsors"
-              className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              Alles
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
+        <section>
+          <SectionHeader
+            icon={Gift}
+            title="Ledenvoordeel"
+            action={<InlineMoreLink href="/sponsors">Alles</InlineMoreLink>}
+          />
           {benefits.length === 0 ? (
             <EmptyState>Geen actief ledenvoordeel.</EmptyState>
           ) : (
-            <ul className="space-y-2">
+            <ul className="divide-y rounded-lg border bg-card">
               {benefits.map((benefit) => (
                 <li
                   key={benefit.id}
-                  className="grid gap-2 rounded-md bg-muted/40 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+                  className="grid gap-2 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{benefit.title}</p>
@@ -756,8 +736,8 @@ export default async function DashboardPage() {
               ))}
             </ul>
           )}
-        </div>
-      </section>
+        </section>
+      </div>
 
       <section>
         <SectionHeader
