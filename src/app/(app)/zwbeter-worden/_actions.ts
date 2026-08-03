@@ -156,20 +156,24 @@ export async function setWellnessOptIn(optIn: boolean) {
   if (error) return { ok: false as const, error: error.message };
 
   // Bij aanzetten meteen een eerste sync draaien (best-effort, service-role).
+  // Mislukt die, dan is dat niet erg: elke volgende keer dat het lid een
+  // trainingspagina opent haalt refreshWellnessIfStale de achterstand in.
   if (optIn && conn.api_key && conn.athlete_id) {
-    try {
-      const admin = createAdminClient();
-      const { syncWellnessForUser } = await import("@/lib/training/wellness");
-      await syncWellnessForUser(
-        admin,
-        conn.api_key as string,
-        conn.athlete_id as string,
-        user.id,
-        30,
-      );
-    } catch {
-      // niet kritiek
-    }
+    const admin = createAdminClient();
+    const { syncWellnessForUser } = await import("@/lib/training/wellness");
+    await syncWellnessForUser(
+      admin,
+      conn.api_key as string,
+      conn.athlete_id as string,
+      user.id,
+      30,
+    ).catch((err) => {
+      console.error("[wellness] eerste sync na opt-in mislukt", {
+        profileId: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { upserted: 0 };
+    });
   }
 
   revalidatePath("/zwbeter-worden", "layout");

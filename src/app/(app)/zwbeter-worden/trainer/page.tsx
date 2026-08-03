@@ -87,7 +87,11 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
         .order("created_at", { ascending: false }),
     ]);
 
-  const intervals = await loadAthleteIntervals(connection, { wellnessDays: 730, eventDays: 14 });
+  const intervals = await loadAthleteIntervals(connection, {
+    wellnessDays: 730,
+    eventDays: 14,
+    admin: viewer.admin,
+  });
   const status = computeZwbStatus(intervals.wellness, {
     wellnessOptIn: Boolean(connection?.wellness_opt_in),
     zrlDivision: athlete?.zrl_division,

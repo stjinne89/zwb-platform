@@ -230,6 +230,14 @@ const WAHOO_STEPS = [
   },
 ];
 
+const DATA_FRESHNESS_HELP = [
+  "Onder Training → Belasting staat per bron wanneer er voor het laatst iets binnenkwam.",
+  "Strava-ritten haal je zelf op met Sync op Achievements; nieuwe ritten kunnen tot een half uur duren.",
+  "Hersteldata (slaap, HRV, rust-hartslag) komt van je horloge of ring via intervals.icu. ZWB haalt op wat daar staat, maar levert je apparaat niets aan, dan blijft het leeg.",
+  "De herstelwaarden zijn gemiddelden over de laatste 7 dagen. Staat je bron langer stil, dan zie je streepjes.",
+  "Controleer bij lege hersteldata eerst op intervals.icu of je wellness-koppeling (Garmin, Polar, Oura, Whoop) nog actief is.",
+];
+
 const INTERVALS_CONNECT_STEPS = [
   "Open in intervals.icu de API-instellingen.",
   "Kopieer je persoonlijke API-key.",
@@ -725,6 +733,24 @@ export default function HelpPage() {
           >
             Open intervals.icu API-instellingen
           </a>
+        </div>
+
+        <div className="mt-5 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Data blijft achter of komt niet binnen</h3>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {DATA_FRESHNESS_HELP.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span aria-hidden>·</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/zwbeter-worden/belasting"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Bekijk wanneer je data voor het laatst is opgehaald
+          </Link>
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-3">

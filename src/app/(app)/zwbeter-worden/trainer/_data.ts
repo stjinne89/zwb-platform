@@ -11,7 +11,7 @@ import {
 } from "@/lib/intervals/client";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import type { WellnessDevice } from "@/lib/training/wellness";
-import { summarizeTrainingReadiness } from "@/lib/training/wellness";
+import { refreshWellnessIfStale, summarizeTrainingReadiness } from "@/lib/training/wellness";
 import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { requireViewer, type Viewer } from "../_data";
 import { byProfile, formatKm, formatNumber, loadSummary, paramString } from "../_components/format";
@@ -118,7 +118,17 @@ export type AthleteIntervals = {
  */
 export async function loadAthleteIntervals(
   conn: IntervalsAthleteConnection | null,
-  { wellnessDays = 0, eventDays = 0 }: { wellnessDays?: number; eventDays?: number } = {},
+  {
+    wellnessDays = 0,
+    eventDays = 0,
+    admin,
+  }: {
+    wellnessDays?: number;
+    eventDays?: number;
+    /** Service-role client; meegeven om de opgeslagen kopie bij te werken. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    admin?: any;
+  } = {},
 ): Promise<AthleteIntervals> {
   if (!conn?.api_key || !conn.athlete_id) {
     return { wellness: [], events: [], fetchError: null };
@@ -132,6 +142,17 @@ export async function loadAthleteIntervals(
         ? fetchIntervalsEvents(conn.api_key, conn.athlete_id, eventDays)
         : Promise.resolve([] as IntervalsEvent[]),
     ]);
+
+    // Ook hier zelfherstellend, onder het profiel van de rénner: opent de
+    // trainer diens belasting, dan loopt de opgeslagen kopie meteen bij.
+    if (admin && conn.wellness_opt_in && wellness.length > 0) {
+      await refreshWellnessIfStale(admin, conn.profile_id, {
+        apiKey: conn.api_key,
+        athleteId: conn.athlete_id,
+        records: wellness,
+      });
+    }
+
     return { wellness, events, fetchError: null };
   } catch (err) {
     return {

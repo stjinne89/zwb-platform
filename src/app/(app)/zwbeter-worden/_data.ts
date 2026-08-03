@@ -25,7 +25,7 @@ import {
   detectCompletedWorkouts,
   type WorkoutMetricsSnapshot,
 } from "@/lib/training/completion";
-import type { WellnessDevice } from "@/lib/training/wellness";
+import { refreshWellnessIfStale, type WellnessDevice } from "@/lib/training/wellness";
 import type { GoalRow, PlanRow, ProfileRow, WorkoutRow } from "./_components/types";
 import type { PendingReview } from "./_components/workout-review-dialog";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
@@ -127,6 +127,18 @@ export async function loadIntervalsSnapshot(
 
     if (syncActivities) {
       await refreshIntervalsActivitiesIfStale(viewer, conn);
+    }
+
+    // Zelfherstellend: de opgeslagen kopie voor de AI-planner bijwerken met de
+    // records die we hier tóch al hebben. Voorheen gebeurde dat alleen op het
+    // moment dat het lid de opt-in aanzette, dus een mislukte eerste poging
+    // bleef voorgoed een lege tabel.
+    if (conn.wellness_opt_in && wellness.length > 0) {
+      await refreshWellnessIfStale(viewer.admin, viewer.user.id, {
+        apiKey: conn.api_key,
+        athleteId: conn.athlete_id,
+        records: wellness,
+      });
     }
 
     return { wellness, events, intervalsFtp, fetchError: null };
