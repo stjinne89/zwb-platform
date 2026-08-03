@@ -31,6 +31,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/schema", label: "Schema" },
   { type: "link", href: "/zwbeter-worden/belasting", label: "Belasting" },
   { type: "link", href: "/zwbeter-worden/vermogen", label: "Vermogen" },
+  { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
   {
     type: "link",

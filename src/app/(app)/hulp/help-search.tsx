@@ -74,6 +74,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "training intervals icu herstel form workout trainer vermogen wahoo garmin",
   },
   {
+    title: "Core & mobiliteit",
+    text: "Korte series naast de fiets, zelf afvinken, los van je trainingsbelasting.",
+    href: "/hulp#core-mobiliteit",
+    terms:
+      "core mobiliteit stabiliteit rug rugpijn onderrug plank stretchen rekken heup hamstring houding zithouding oefeningen serie afvinken",
+  },
+  {
     title: "ZWBeter Worden-samenvatting in Strava",
     text: "Het blokje dat na een rit onderaan je Strava-omschrijving komt.",
     href: "/hulp#strava-samenvatting",

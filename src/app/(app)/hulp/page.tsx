@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CircleHelp,
   Download,
+  Dumbbell,
   FileText,
   Gauge,
   HeartPulse,
@@ -1053,6 +1054,104 @@ Fitness-status: Verbeterend`}
             className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Open Mijn vermogen
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="core-mobiliteit"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Dumbbell className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Core &amp; mobiliteit</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Korte series van 6 tot 12 minuten die je naast het fietsen doet.
+              Je vinkt ze zelf af; ze tellen niet mee in je trainingsbelasting,
+              CTL of naleving.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Wat je ervan mag verwachten</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Meer rompuithoudingsvermogen en houdingscontrole. Dat is wat
+                  je nodig hebt om urenlang voorovergebogen te zitten zonder in
+                  je onderrug te zakken.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Minder kans op lage rugklachten. Rugpijn komt bij wielrenners
+                  veel voor, en renners mét klachten zitten tijdens het rijden
+                  meetbaar meer geflecteerd in hun lage rug.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  <strong className="text-foreground">Geen extra watt.</strong>{" "}
+                  Onderzoek naar core-training laat wel duidelijke winst zien op
+                  romp-uithoudingsvermogen en balans, maar nauwelijks op kracht
+                  en snelheid. Dit is houdings- en belastbaarheidswerk, geen
+                  prestatietraining.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Hoe je het inplant</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Twee tot drie keer per week, en houd het minstens vier weken
+                  vol. Korter meten heeft weinig zin; daarom telt het overzicht
+                  in blokken van 28 dagen en niet per dag.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  <strong className="text-foreground">Voor de rit</strong> is
+                  bewust volledig dynamisch. Lang statisch rekken vlak voor een
+                  inspanning kost meetbaar vermogen, dus lange rekhoudingen doe
+                  je ná de rit of op een rustdag.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De AI-trainer plant dit niet in. Off-bike werk hoort niet in
+                  je fietsschema, want het heeft geen wattages en zou je
+                  belastingcijfers vervuilen.
+                </span>
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Klachten en grenzen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Deze series zijn algemeen onderhoudswerk, geen behandeling. Stop bij
+            pijn. Heb je aanhoudende rug-, knie- of heupklachten, of een
+            blessure, ga dan naar een fysiotherapeut of huisarts — ZWB geeft
+            daar bewust geen advies over, en de AI-trainer ook niet.
+          </p>
+          <Link
+            href="/zwbeter-worden/core"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open Core &amp; mobiliteit
           </Link>
         </div>
       </section>

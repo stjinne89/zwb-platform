@@ -4,13 +4,14 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
-import { eftpTrend, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
+import { amsterdamDayKey, eftpTrend, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import {
   suggestSegmentsForBlock,
   type SegmentCandidate,
 } from "@/lib/training/segment-suggestions";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
+import { CoreTodayCard } from "./core/_components/core-today-card";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
 import { MetricCard } from "./_components/ui";
@@ -264,6 +265,21 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           )}
         </section>
       )}
+
+      <CoreTodayCard
+        viewer={viewer}
+        today={todayKey}
+        context={{
+          hasPlannedWorkoutToday: memberWorkouts.some(
+            (workout) =>
+              String(workout.scheduled_at).slice(0, 10) === todayKey &&
+              workout.status !== "skipped",
+          ),
+          rodeToday: activities.some(
+            (activity) => amsterdamDayKey(new Date(activity.start_date)) === todayKey,
+          ),
+        }}
+      />
 
       <AdjustTodayForm />
 
