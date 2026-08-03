@@ -21,7 +21,7 @@ export function CommunityRoleBadges({
         <span
           className={cn(
             "inline-flex items-center rounded-full border border-destructive/25 bg-destructive/10 font-medium text-destructive",
-            compact ? "px-1.5 py-0.5 text-[0.7rem]" : "px-2 py-0.5 text-xs",
+            compact ? "px-1.5 py-0.5 text-xs" : "px-2 py-0.5 text-xs",
           )}
         >
           Systeemadmin
@@ -36,7 +36,7 @@ export function CommunityRoleBadges({
             className={cn(
               "inline-flex items-center rounded-full border font-medium",
               meta.className,
-              compact ? "px-1.5 py-0.5 text-[0.7rem]" : "px-2 py-0.5 text-xs",
+              compact ? "px-1.5 py-0.5 text-xs" : "px-2 py-0.5 text-xs",
             )}
           >
             {compact ? meta.shortLabel : meta.label}

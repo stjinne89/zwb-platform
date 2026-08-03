@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChartTooltip, type TooltipRow } from "@/components/charts/chart-tooltip";
+import { ResponsiveChart } from "@/components/charts/responsive-chart";
 import { formatDuration } from "@/lib/charts/format";
 import { defsId } from "@/lib/charts/ids";
 import { valueAt, median } from "@/lib/charts/interpolate";
@@ -41,10 +42,9 @@ export type ComparisonRider = {
 
 type Metric = "watts" | "wkg";
 
-const WIDTH = 920;
-const HEIGHT = 390;
-const MARGIN = { top: 24, right: 24, bottom: 48, left: 58 };
 const X_TICKS = [5, 15, 30, 60, 120, 300, 600, 1200, 3600, 7200, 18000];
+/** Op telefoonbreedte passen elf duurlabels niet; deze wel. */
+const X_TICKS_COMPACT = [5, 60, 300, 1200, 3600, 18000];
 // Records per duur; alleen duren die de eigen curve dekt worden getoond.
 const BENCHMARK_SECONDS = [
   1, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 1800, 3600, 5400, 7200, 10800, 14400, 18000,
@@ -195,20 +195,13 @@ export function PowerCurveChart({
   const minSeconds = Math.max(1, Math.min(...allPoints.map((point) => point.seconds), 5));
   const maxSeconds = Math.max(...allPoints.map((point) => point.seconds), 1200);
   const maxValue = Math.max(...allPoints.map((point) => point.watts), metric === "watts" ? 300 : 3);
-  const plotWidth = WIDTH - MARGIN.left - MARGIN.right;
-  const plotHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
-  const x = logScale({
-    domain: [minSeconds, maxSeconds],
-    range: [MARGIN.left, MARGIN.left + plotWidth],
-  });
-  const y = linearScale({
-    domain: [0, maxValue * 1.08],
-    range: [MARGIN.top + plotHeight, MARGIN.top],
-  });
-  const yTicks = Array.from({ length: 5 }, (_, index) => (maxValue * 1.08 * index) / 4);
-  const ownPath = linePath(own, (point) => x.forward(point.seconds), (point) => y.forward(point.watts));
-  const freshPath = linePath(fresh, (point) => x.forward(point.seconds), (point) => y.forward(point.watts));
-  const hoverX = hoverSeconds == null ? null : x.forward(hoverSeconds);
+  const yMax = maxValue * 1.08;
+  // De aanwijzer levert een fractie van het plotvlak; de log-as maakt daar
+  // seconden van, los van de breedte waarop we uiteindelijk tekenen.
+  const secondsFromRatio = (ratio: number) =>
+    Math.exp(
+      Math.log(minSeconds) + ratio * (Math.log(maxSeconds) - Math.log(minSeconds)),
+    );
   const ownHover = hoverSeconds == null ? null : valueAt(own, hoverSeconds);
   const areaGradientId = defsId("power-area", idSuffix);
   const atLimit = comparisonIds.length >= MAX_SERIES;
@@ -245,7 +238,7 @@ export function PowerCurveChart({
               type="button"
               onClick={() => setMetric(value)}
               disabled={value === "wkg" && !hasOwnWkg}
-              className={`rounded px-3 py-1.5 font-medium ${
+              className={`min-h-9 rounded px-3 font-medium ${
                 metric === value ? "bg-primary text-primary-foreground" : "text-muted-foreground"
               } disabled:cursor-not-allowed disabled:opacity-40`}
             >
@@ -272,7 +265,7 @@ export function PowerCurveChart({
                   aria-pressed={active}
                   disabled={!option.available || (!active && atLimit)}
                   onClick={() => toggleComparison(option.id)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium transition ${
                     active
                       ? "border-primary bg-primary text-primary-foreground"
                       : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -287,161 +280,197 @@ export function PowerCurveChart({
       </div>
 
       <div className="overflow-hidden rounded-lg border bg-background p-2 sm:p-4">
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          role="img"
-          aria-label="Interactieve power-duration curve"
-          className="h-auto w-full touch-none"
-          onPointerLeave={() => setHoverSeconds(null)}
-          onPointerMove={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const chartX = ((event.clientX - rect.left) / rect.width) * WIDTH;
-            const clamped = Math.max(MARGIN.left, Math.min(WIDTH - MARGIN.right, chartX));
-            setHoverSeconds(x.invert(clamped));
-          }}
+        <ResponsiveChart
+          ariaLabel="Interactieve power-duration curve"
+          onPointerRatio={(ratio) =>
+            setHoverSeconds(ratio == null ? null : secondsFromRatio(ratio))
+          }
+          heightOptions={{ compact: 0.82, comfortable: 0.42, min: 220, max: 400 }}
         >
-          <defs>
-            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
-
-          {yTicks.map((tick) => (
-            <g key={tick}>
-              <line
-                x1={MARGIN.left}
-                x2={WIDTH - MARGIN.right}
-                y1={y.forward(tick)}
-                y2={y.forward(tick)}
-                stroke="var(--border)"
-                strokeDasharray="4 5"
-              />
-              <text
-                x={MARGIN.left - 10}
-                y={y.forward(tick) + 4}
-                textAnchor="end"
-                fontSize="12"
-                fill="var(--muted-foreground)"
-              >
-                {metric === "watts" ? Math.round(tick) : tick.toFixed(1)}
-              </text>
-            </g>
-          ))}
-
-          {X_TICKS.filter((tick) => tick >= minSeconds && tick <= maxSeconds).map((tick) => (
-            <g key={tick}>
-              <line
-                x1={x.forward(tick)}
-                x2={x.forward(tick)}
-                y1={MARGIN.top}
-                y2={HEIGHT - MARGIN.bottom}
-                stroke="var(--border)"
-                strokeOpacity="0.5"
-              />
-              <text
-                x={x.forward(tick)}
-                y={HEIGHT - 18}
-                textAnchor="middle"
-                fontSize="12"
-                fill="var(--muted-foreground)"
-              >
-                {formatDuration(tick)}
-              </text>
-            </g>
-          ))}
-
-          {freshPath && (
-            <path
-              d={freshPath}
-              fill="none"
-              stroke="var(--chart-1)"
-              strokeOpacity="0.35"
-              strokeWidth="2.5"
-              strokeDasharray="2 6"
-              strokeLinecap="round"
-            />
-          )}
-          {ownPath && (
-            <>
-              <path
-                d={areaPath(
-                  ownPath,
-                  x.forward(own[0].seconds),
-                  x.forward(own[own.length - 1].seconds),
-                  HEIGHT - MARGIN.bottom,
-                )}
-                fill={`url(#${areaGradientId})`}
-              />
-              <path d={ownPath} fill="none" stroke="var(--chart-1)" strokeWidth="4" strokeLinecap="round" />
-            </>
-          )}
-          {series.map((entry) => {
-            const path = linePath(
-              entry.points,
+          {({ width, height, metrics, plotWidth, plotHeight }) => {
+            const { margin, axisFontSize } = metrics;
+            const x = logScale({
+              domain: [minSeconds, maxSeconds],
+              range: [margin.left, margin.left + plotWidth],
+            });
+            const y = linearScale({
+              domain: [0, yMax],
+              range: [margin.top + plotHeight, margin.top],
+            });
+            const steps = Math.max(2, metrics.yTickCount - 1);
+            const yTicks = Array.from({ length: steps + 1 }, (_, i) => (yMax * i) / steps);
+            const xTicks = metrics.density === "compact" ? X_TICKS_COMPACT : X_TICKS;
+            const baseline = height - margin.bottom;
+            const ownPath = linePath(
+              own,
               (point) => x.forward(point.seconds),
               (point) => y.forward(point.watts),
             );
-            if (!path) return null;
-            return (
-              <path
-                key={entry.id}
-                d={path}
-                fill="none"
-                stroke={entry.color}
-                strokeWidth="3"
-                strokeDasharray="9 7"
-                strokeLinecap="round"
-              />
+            const freshPath = linePath(
+              fresh,
+              (point) => x.forward(point.seconds),
+              (point) => y.forward(point.watts),
             );
-          })}
+            const hoverX = hoverSeconds == null ? null : x.forward(hoverSeconds);
 
-          {hoverX != null && (
-            <g>
-              <line
-                x1={hoverX}
-                x2={hoverX}
-                y1={MARGIN.top}
-                y2={HEIGHT - MARGIN.bottom}
-                stroke="var(--foreground)"
-                strokeOpacity="0.55"
-              />
-              {ownHover != null && (
-                <circle
-                  cx={hoverX}
-                  cy={y.forward(ownHover)}
-                  r="6"
-                  fill="var(--chart-1)"
-                  stroke="var(--background)"
-                  strokeWidth="3"
-                />
-              )}
-              {series.map((entry) => {
-                const value = hoverSeconds == null ? null : valueAt(entry.points, hoverSeconds);
-                if (value == null) return null;
-                return (
-                  <circle
-                    key={`hover-${entry.id}`}
-                    cx={hoverX}
-                    cy={y.forward(value)}
-                    r="5"
-                    fill={entry.color}
-                    stroke="var(--background)"
-                    strokeWidth="3"
+            return (
+              <>
+                <defs>
+                  <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.28" />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+
+                {yTicks.map((tick) => (
+                  <g key={tick}>
+                    <line
+                      x1={margin.left}
+                      x2={width - margin.right}
+                      y1={y.forward(tick)}
+                      y2={y.forward(tick)}
+                      stroke="var(--border)"
+                      strokeDasharray="4 5"
+                    />
+                    <text
+                      x={margin.left - 6}
+                      y={y.forward(tick) + axisFontSize / 3}
+                      textAnchor="end"
+                      fontSize={axisFontSize}
+                      fill="var(--muted-foreground)"
+                    >
+                      {metric === "watts" ? Math.round(tick) : tick.toFixed(1)}
+                    </text>
+                  </g>
+                ))}
+
+                {xTicks
+                  .filter((tick) => tick >= minSeconds && tick <= maxSeconds)
+                  .map((tick, index, all) => (
+                    <g key={tick}>
+                      <line
+                        x1={x.forward(tick)}
+                        x2={x.forward(tick)}
+                        y1={margin.top}
+                        y2={baseline}
+                        stroke="var(--border)"
+                        strokeOpacity="0.5"
+                      />
+                      <text
+                        x={x.forward(tick)}
+                        y={height - Math.round(margin.bottom / 3)}
+                        textAnchor={
+                          index === 0 ? "start" : index === all.length - 1 ? "end" : "middle"
+                        }
+                        fontSize={axisFontSize}
+                        fill="var(--muted-foreground)"
+                      >
+                        {formatDuration(tick)}
+                      </text>
+                    </g>
+                  ))}
+
+                {freshPath && (
+                  <path
+                    d={freshPath}
+                    fill="none"
+                    stroke="var(--chart-1)"
+                    strokeOpacity="0.35"
+                    strokeWidth={metrics.strokeWidth.secondary}
+                    strokeDasharray="2 6"
+                    strokeLinecap="round"
                   />
-                );
-              })}
-              <ChartTooltip
-                x={hoverX}
-                y={MARGIN.top + 8}
-                chartWidth={WIDTH}
-                title={formatDuration(hoverSeconds ?? 0)}
-                rows={tooltipRows}
-                width={230}
-              />
-            </g>
-          )}
-        </svg>
+                )}
+                {ownPath && (
+                  <>
+                    <path
+                      d={areaPath(
+                        ownPath,
+                        x.forward(own[0].seconds),
+                        x.forward(own[own.length - 1].seconds),
+                        baseline,
+                      )}
+                      fill={`url(#${areaGradientId})`}
+                    />
+                    <path
+                      d={ownPath}
+                      fill="none"
+                      stroke="var(--chart-1)"
+                      strokeWidth={metrics.strokeWidth.primary + 1}
+                      strokeLinecap="round"
+                    />
+                  </>
+                )}
+                {series.map((entry) => {
+                  const path = linePath(
+                    entry.points,
+                    (point) => x.forward(point.seconds),
+                    (point) => y.forward(point.watts),
+                  );
+                  if (!path) return null;
+                  return (
+                    <path
+                      key={entry.id}
+                      d={path}
+                      fill="none"
+                      stroke={entry.color}
+                      strokeWidth={metrics.strokeWidth.primary}
+                      strokeDasharray="9 7"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+
+                {hoverX != null && (
+                  <g>
+                    <line
+                      x1={hoverX}
+                      x2={hoverX}
+                      y1={margin.top}
+                      y2={baseline}
+                      stroke="var(--foreground)"
+                      strokeOpacity="0.55"
+                    />
+                    {ownHover != null && (
+                      <circle
+                        cx={hoverX}
+                        cy={y.forward(ownHover)}
+                        r={metrics.dotRadius + 2.5}
+                        fill="var(--chart-1)"
+                        stroke="var(--background)"
+                        strokeWidth="3"
+                      />
+                    )}
+                    {series.map((entry) => {
+                      const value =
+                        hoverSeconds == null ? null : valueAt(entry.points, hoverSeconds);
+                      if (value == null) return null;
+                      return (
+                        <circle
+                          key={`hover-${entry.id}`}
+                          cx={hoverX}
+                          cy={y.forward(value)}
+                          r={metrics.dotRadius + 1.5}
+                          fill={entry.color}
+                          stroke="var(--background)"
+                          strokeWidth="3"
+                        />
+                      );
+                    })}
+                    <ChartTooltip
+                      x={hoverX}
+                      y={margin.top + 4}
+                      chartWidth={width}
+                      title={formatDuration(hoverSeconds ?? 0)}
+                      rows={tooltipRows}
+                      width={230}
+                    />
+                  </g>
+                )}
+              </>
+            );
+          }}
+        </ResponsiveChart>
       </div>
 
       {levels.length > 1 ? (
@@ -462,9 +491,15 @@ export function PowerCurveChart({
             aria-label="Vermogen na arbeid"
             className="mt-1 w-full accent-primary"
           />
+          {/* Op smal scherm botsen alle tussenstanden; daar volstaan de uitersten. */}
           <span className="flex justify-between text-xs text-muted-foreground">
-            {levels.map((entry) => (
-              <span key={entry.afterKj}>
+            {levels.map((entry, index) => (
+              <span
+                key={entry.afterKj}
+                className={
+                  index === 0 || index === levels.length - 1 ? undefined : "hidden sm:inline"
+                }
+              >
                 {entry.afterKj === 0 ? "Vers" : formatKj(entry.afterKj)}
               </span>
             ))}

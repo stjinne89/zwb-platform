@@ -93,21 +93,23 @@ export function WorkoutCalendar({
               )}
             >
               <span className="text-xs tabular-nums">{dayNumber}</span>
+              {/* Een maandcel is op een telefoon ~40px breed: daar past geen
+                  titel in, ook niet afgekapt. Dan tonen we een gekleurde balk
+                  per workout en pas vanaf sm de titel zelf. */}
               <div className="mt-1 space-y-0.5">
                 {dayWorkouts.map((workout) => (
                   <span
                     key={workout.id}
                     title={labelFor(workout)}
                     className={cn(
-                      "block truncate rounded px-1 py-0.5 text-[10px] leading-tight",
-                      workout.skipped && "line-through opacity-60",
+                      "block h-1.5 rounded-full sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
+                      workout.skipped && "opacity-60 sm:line-through",
                     )}
                     style={{
-                      backgroundColor: `${colorFor(workout.intensity)}22`,
-                      borderLeft: `3px solid ${colorFor(workout.intensity)}`,
+                      backgroundColor: colorFor(workout.intensity),
                     }}
                   >
-                    {workout.title}
+                    <span className="hidden sm:inline">{workout.title}</span>
                   </span>
                 ))}
               </div>

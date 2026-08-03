@@ -93,7 +93,7 @@ export function WorkoutBlocks({
                 }}
               />
               {preview && block.durationMinutes >= total * 0.08 ? (
-                <span className="absolute inset-x-1 bottom-1 truncate text-[10px] font-medium text-foreground/80">
+                <span className="absolute inset-x-1 bottom-1 truncate text-xs font-medium text-foreground/80">
                   {block.durationMinutes}m
                 </span>
               ) : null}

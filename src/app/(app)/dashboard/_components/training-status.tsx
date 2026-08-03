@@ -95,7 +95,7 @@ export async function TrainingStatus({
         </div>
 
         {hasMetrics && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Stat
               icon={<Activity className="size-4" />}
               label="Fitness"
@@ -197,7 +197,7 @@ export function TrainingStatusSkeleton() {
       <SectionHeader icon={HeartPulse} title="Jouw trainingsstatus" />
       <div className="space-y-3">
         <div className="h-24 animate-pulse rounded-lg border bg-muted/40" />
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div className="h-20 animate-pulse rounded-lg border bg-muted/40" />
           <div className="h-20 animate-pulse rounded-lg border bg-muted/40" />
           <div className="h-20 animate-pulse rounded-lg border bg-muted/40" />

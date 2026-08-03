@@ -1063,6 +1063,121 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
   kennis, privacy en verantwoordelijkheden.
 - **E2E chat** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
 - **Mollie iDEAL** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
+- **Core & mobiliteit als eigen trainingsspoor** — aanleiding: de AI plande in
+  augustus 2026 een "Rust + rug/mobiliteit"-sessie in een ZWB-schema. Inhoudelijk
+  waardevol, maar het past niet in de fietspijplijn: geen wattages dus geen
+  intervals.icu-publicatie en geen FIT-download, de duur telt via
+  `estimateTrainingLoad` ten onrechte mee als fietsbelasting (en dus in
+  `projectCtl`), en compliance matcht alleen Strava-**ritten** — waardoor een
+  keurig uitgevoerde mobiliteitssessie altijd `niet_gereden` scoort en de
+  AI-prompt die dag daarna juist lichter gaat plannen. Per direct is off-bike
+  werk uit `defaultTrainingPrompt()` verbannen. Een echte inbouw vraagt om:
+  een apart sessietype dat buiten de fietsbelasting valt, handmatig afvinken
+  in plaats van Strava-matching, een eigen compliance-regel, en een kleine
+  oefeningenbibliotheek. Let op de scope-grens met fysiotherapie: rug- en
+  blessuregerelateerd advies hoort niet automatisch uit de AI te rollen.
+
+---
+
+## Mobiele revisie (gepland, eigen ronde)
+
+Aanleiding: op telefoon zijn grafieklabels onleesbaar klein, vallen detail-
+weergaven buiten het scherm en loopt de tab-balk van ZWBeter Worden net buiten
+de marge. Dit is géén smaakkwestie maar een ergonomie-/techniekprobleem, dus het
+staat los van het redesign-traject hieronder en heeft geen referentiemateriaal
+nodig. Uitgangspunt: 360 px breed (kleinste veelgebruikte Android), controle op
+390 px (iPhone) en 430 px (Max/Ultra).
+
+### Diagnose — vijf oorzaken, niet vijftig symptomen
+
+1. **Grafieken schalen mee in plaats van te herschalen.** Alle SVG-grafieken
+   hebben een vaste viewBox (`training-load-chart.tsx` 980×420,
+   `power-curve-chart.tsx` 920×390) plus `className="h-auto w-full"`. Op een
+   telefoon is de beschikbare breedte ~340 px, dus schaalt de hele tekening
+   ~0,35×. Een `fontSize="12"` komt daardoor als ~4 CSS-px op het scherm — dat
+   is de kern van "te kleine letters". Lijndikte, marges en tickafstand krimpen
+   even hard mee.
+2. **Tabellen krimpen in plaats van te scrollen.** `overflow-x-auto` om een
+   `<table className="w-full">` doet niets: de tabel perst zich in de container.
+   Zo wordt "2u 2m" over twee regels gebroken en vallen de laatste kolommen weg
+   (`activity-load-panel.tsx`, 7 kolommen). Andere tabellen hebben wél een
+   `min-w-[…]` (`team-roster-table.tsx` 1180 px) en scrollen dan drie schermen
+   ver — ook geen antwoord. Het patroon is inconsistent over 8 tabellen.
+3. **Tab-strips scrollen zonder houvast.** `SectionNav` gebruikt `-mx-1` terwijl
+   de pagina `px-4` heeft, dus de strip loopt niet door tot de schermrand; het
+   laatste item ("Vermogen") wordt middenin afgekapt zonder fade, zonder
+   scroll-snap en zonder dat het actieve item in beeld wordt gescrold.
+4. **Informatie verstopt achter hover.** Op `/stats` staan de maandwaarden als
+   `opacity-0 group-hover:opacity-100` en de staafdetails in `title=`-attributen.
+   Op touch bestaat hover niet: die cijfers zijn op telefoon onbereikbaar.
+5. **Micro-typografie.** 24 plekken met `text-[10px]` / `text-[0.6rem]` als
+   dragende datalabels (aslabels, weekstaven). Onder de leesbaarheidsdrempel.
+
+### Ontwerpregels (gelden app-breed)
+
+- **Datatekst nooit onder 12 px effectief.** Niet de opgegeven waarde telt maar
+  de gerenderde: bij een geschaalde SVG moet je terugrekenen.
+- **1 SVG-eenheid = 1 CSS-pixel.** Grafieken tekenen op hun werkelijke breedte
+  in plaats van een vaste viewBox weg te schalen. Dan klopt typografie vanzelf.
+- **Minder datapunten in plaats van kleinere labels.** Op smal scherm minder
+  ticks, kortere datumnotatie, geaggregeerde reeksen — niet uitzoomen.
+- **Horizontaal scrollen is een uitzondering**, alleen voor echt tabelvormige
+  data, altijd met zichtbare rand-fade en altijd full-bleed tot de schermrand.
+- **Alles wat op desktop hover is, moet op touch een tap zijn.**
+- **Tapdoelen: 44 px hoog voor navigatie en primaire acties, 36 px voor
+  secundaire filterchips.** Eén maat voor alles maakte dichte chiprijen
+  onwerkbaar hoog, dus de grens is bewust gesplitst.
+
+### Gedeelde bouwstenen (eerst bouwen, daarna toepassen)
+
+- `useContainerWidth` — ResizeObserver-hook die de werkelijke breedte teruggeeft.
+- `<ResponsiveChart>` — wrapper die breedte + dichtheid (`compact` / `comfortable`)
+  doorgeeft, zodat elke grafiek zelf bepaalt hoeveel ticks en welke marges.
+- Grafiek-tokens in `src/lib/charts/` — asfont, marges, tickaantal per dichtheid,
+  datumnotatie kort/lang. Sluit aan op het bestaande `format.ts` / `scale.ts`.
+- `<ScrollTabs>` — full-bleed (`-mx-4 px-4`), scroll-snap, rand-fade, en
+  `scrollIntoView` op het actieve item. Vervangt de binnenkant van `SectionNav`,
+  de segment-nav op `/profiel/segments` en de maand-chips op `/stats`.
+- `<ResponsiveTable>` — tabel vanaf `sm`, daaronder gestapelde kaarten per rij
+  met label/waarde-paren. Eén component voor alle 8 tabellen.
+- Tap-tooltip voor grafieken: tap toont waarde, tweede tap elders sluit.
+
+### Fasering — ✅ alle zes uitgevoerd (2026-08-03)
+
+- **Fase 1 — bouwstenen.** ✅ `src/lib/charts/responsive.ts` (dichtheid, marges,
+  ticks, pointer-helpers), `use-container-width.ts`, `<ResponsiveChart>` +
+  `useChartPointer`, `<ScrollTabs>`, `<ResponsiveTable>`. `ChartTooltip` klemt
+  zich nu binnen de grafiekranden.
+- **Fase 2 — grafieken.** ✅ `training-load-chart.tsx`, `power-curve-chart.tsx`,
+  weekstaven in `activity-load-panel.tsx`, `/stats` maandtrend,
+  `elevation-profile.tsx`. Onderweg gevonden en gerepareerd: de maandstaven op
+  `/stats` renderden helemaal niet — de kolom om de staaf had geen definitieve
+  hoogte, waardoor een hoogte in procenten tegen `auto` werd afgezet.
+- **Fase 3 — navigatie.** ✅ `SectionNav` (en daarmee `trainer-nav.tsx`),
+  segment-filters, maand-chips. Carousel-stippen op het dashboard kregen een
+  fatsoenlijk tapdoel.
+- **Fase 4 — tabellen.** ✅ Zeven van de acht naar `<ResponsiveTable>`.
+  `team-roster-table.tsx` (13 kolommen, sorteerbare koppen) houdt zijn tabel
+  vanaf `sm` en kreeg een eigen kaartweergave op mobiel. Het invulschema in de
+  brochure zat in een `overflow-hidden` en kon dus niet scrollen.
+- **Fase 5 — dichte pagina's.** ✅ Drie-koloms KPI-rasters worden twee koloms
+  onder `sm`. De maandkalender toont op mobiel een gekleurde balk per workout
+  in plaats van een titel die in ~40 px toch niet leesbaar is.
+- **Fase 6 — sweep.** ✅ Alle 24 plekken met `text-[10px]`/`[0.6rem]`/`[0.65rem]`
+  naar minimaal 12 px.
+
+### Verificatie
+
+Per fase een doorloop op 360/390/430 px: geen horizontale paginascroll, geen
+afgekapte tekst, alle datalabels ≥12 px, tapdoelen ≥44 px, licht én donker.
+Let op: vrijwel alles zit achter login, dus visuele controle loopt via de
+ingelogde browser van de eigenaar tegen de lokale dev-server — niet via een
+kale preview.
+
+### Klaar wanneer
+
+Elke pagina is op 360 px bruikbaar zonder in te zoomen of horizontaal te
+scrollen, op de expliciet als scrollbaar gemarkeerde tabellen na.
 
 ---
 

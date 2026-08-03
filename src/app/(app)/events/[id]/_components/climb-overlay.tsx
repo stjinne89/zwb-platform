@@ -123,7 +123,7 @@ export function ZoneBadges({
               backgroundColor: ZONE_COLOR,
               transform: `translateX(-50%) rotate(${uprightDeg}deg)`,
             }}
-            className="absolute top-1 max-w-[40%] truncate rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm"
+            className="absolute top-1 max-w-[40%] truncate rounded px-1.5 py-0.5 text-xs font-bold leading-none text-white shadow-sm"
           >
             {zone.label?.trim() || ZONE_LABEL}
           </span>
@@ -170,7 +170,7 @@ export function ClimbBadges({
               backgroundColor: CLIMB_CATEGORY_COLORS[climb.category],
               transform: `translateX(-50%) rotate(${uprightDeg}deg)`,
             }}
-            className={`pointer-events-auto absolute top-1 rounded px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white shadow-sm ${
+            className={`pointer-events-auto absolute top-1 rounded px-1.5 py-0.5 text-xs font-bold leading-none text-white shadow-sm ${
               activeIndex === i ? "ring-2 ring-white/80" : ""
             }`}
             aria-label={`Klim ${climb.name ?? climb.category}`}

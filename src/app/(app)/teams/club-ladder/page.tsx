@@ -14,6 +14,7 @@ import { normalizeTeamName } from "@/lib/ladder";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { SyncResultsButton } from "../_components/sync-results-button";
 
 export const dynamic = "force-dynamic";
@@ -333,36 +334,45 @@ export default async function ClubLadderPage({
                 <Metric icon={<Activity className="size-4" />} label="W/kg gem." value={n(selectedStrength?.avgWkg, 2)} />
                 <Metric icon={<Activity className="size-4" />} label="5m gem." value={`${n(selectedStrength?.avg5m)}w`} />
               </div>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-sm">
-                  <thead className="border-b text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="py-2 pr-3">Rider</th>
-                      <th className="py-2 pr-3">FTP</th>
-                      <th className="py-2 pr-3">W/kg</th>
-                      <th className="py-2 pr-3">5m</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {members.map((member) => {
+              <ResponsiveTable
+                className="mt-4"
+                rows={members}
+                rowKey={(member) => member.profile_id}
+                minWidth={520}
+                columns={[
+                  {
+                    key: "rider",
+                    header: "Rider",
+                    primary: true,
+                    cell: (member) => member.profiles?.display_name ?? "Onbekend",
+                    cellClassName: "font-medium",
+                  },
+                  {
+                    key: "ftp",
+                    header: "FTP",
+                    align: "right",
+                    cell: (member) =>
+                      `${n(powerByProfile.get(member.profile_id)?.ftp_watts ?? member.profiles?.ftp_watts ?? null)}w`,
+                  },
+                  {
+                    key: "wkg",
+                    header: "W/kg",
+                    align: "right",
+                    cell: (member) => {
                       const power = powerByProfile.get(member.profile_id);
                       const ftp = power?.ftp_watts ?? member.profiles?.ftp_watts ?? null;
                       const weight = num(member.profiles?.weight_kg);
-                      const wkg = num(power?.ftp_wkg) ?? (ftp && weight ? ftp / weight : null);
-                      return (
-                        <tr key={member.profile_id}>
-                          <td className="py-2 pr-3 font-medium">
-                            {member.profiles?.display_name ?? "Onbekend"}
-                          </td>
-                          <td className="py-2 pr-3 tabular-nums">{n(ftp)}w</td>
-                          <td className="py-2 pr-3 tabular-nums">{n(wkg, 2)}</td>
-                          <td className="py-2 pr-3 tabular-nums">{n(power?.watts_5m)}w</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      return n(num(power?.ftp_wkg) ?? (ftp && weight ? ftp / weight : null), 2);
+                    },
+                  },
+                  {
+                    key: "w5m",
+                    header: "5m",
+                    align: "right",
+                    cell: (member) => `${n(powerByProfile.get(member.profile_id)?.watts_5m)}w`,
+                  },
+                ]}
+              />
             </section>
 
             <section className="rounded-lg border bg-card p-4">
@@ -423,51 +433,67 @@ function StandingsTable({
   }
 
   const normalizedAliases = selectedAliases.map(normalizeTeamName);
+  const isSelected = (row: (typeof rows)[number]) =>
+    normalizedAliases.includes(normalizeTeamName(row.name));
   return (
-    <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[680px] text-left text-sm">
-        <thead className="border-b text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="py-2 pr-3">Pos</th>
-            <th className="py-2 pr-3">Team</th>
-            <th className="py-2 pr-3">Regio</th>
-            <th className="py-2 pr-3">Vorm</th>
-            <th className="py-2 pr-3">Move</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map((row) => {
-            const selected = normalizedAliases.includes(normalizeTeamName(row.name));
-            return (
-              <tr key={`${row.region}-${row.position}-${row.name}`} className={selected ? "bg-primary/10" : undefined}>
-                <td className="py-2 pr-3 tabular-nums">{row.position}</td>
-                <td className="py-2 pr-3 font-medium">{row.name}</td>
-                <td className="py-2 pr-3">{row.region}</td>
-                <td className="py-2 pr-3">
-                  <span className="flex gap-1">
-                    {row.form.length > 0
-                      ? row.form.map((result, index) => (
-                          <span
-                            key={`${result}-${index}`}
-                            className={cn(
-                              "inline-flex size-6 items-center justify-center rounded-md border text-xs font-semibold",
-                              result === "W"
-                                ? "border-primary/30 bg-primary/10 text-primary"
-                                : "border-muted bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {result}
-                          </span>
-                        ))
-                      : "-"}
-                  </span>
-                </td>
-                <td className="py-2 pr-3">{row.move ?? "-"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div>
+      <ResponsiveTable
+        className="mt-4"
+        rows={rows}
+        rowKey={(row) => `${row.region}-${row.position}-${row.name}`}
+        minWidth={680}
+        rowClassName={(row) => (isSelected(row) ? "bg-primary/10" : undefined)}
+        columns={[
+          {
+            key: "team",
+            header: "Team",
+            primary: true,
+            cell: (row) => row.name,
+            cellClassName: "font-medium",
+          },
+          {
+            key: "region",
+            header: "Regio",
+            secondary: true,
+            cell: (row) => row.region,
+          },
+          {
+            key: "position",
+            header: "Pos",
+            cell: (row) => row.position,
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "form",
+            header: "Vorm",
+            cell: (row) => (
+              <span className="flex gap-1">
+                {row.form.length > 0
+                  ? row.form.map((result, index) => (
+                      <span
+                        key={`${result}-${index}`}
+                        className={cn(
+                          "inline-flex size-6 items-center justify-center rounded-md border text-xs font-semibold",
+                          result === "W"
+                            ? "border-primary/30 bg-primary/10 text-primary"
+                            : "border-muted bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {result}
+                      </span>
+                    ))
+                  : "-"}
+              </span>
+            ),
+          },
+          {
+            key: "move",
+            header: "Move",
+            align: "right",
+            cell: (row) => row.move ?? "-",
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import type {
   LiveTimingResult,
 } from "@/lib/event-results/scrape";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 type LiveTimingPanelProps = {
   eventId: string;
@@ -27,76 +28,76 @@ function hostLabel(url: string): string {
 
 function TimingRows({ rows }: { rows: LiveTimingResult[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="py-2 pr-3 font-medium">#</th>
-            <th className="py-2 pr-3 font-medium">ZWB&apos;er</th>
-            <th className="py-2 pr-3 font-medium">Laatste punt</th>
-            <th className="py-2 pr-3 font-medium">Tijd</th>
-            <th className="py-2 pr-3 font-medium">Gem.</th>
-            <th className="py-2 font-medium">Cat.</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.profileId ?? `${row.scrapedName}-${row.bib ?? ""}`}
-              className="border-b last:border-0"
-            >
-              <td className="py-2 pr-3 tabular-nums text-muted-foreground">
-                {row.position ?? "—"}
-              </td>
-              <td className="py-2 pr-3">
-                <div className="flex min-w-44 items-center gap-2">
-                  {row.profileId ? (
-                    <Link
-                      href={`/leden/${row.profileId}`}
-                      className="font-medium hover:underline"
-                    >
-                      {row.scrapedName}
-                    </Link>
-                  ) : (
-                    <span className="font-medium">{row.scrapedName}</span>
-                  )}
-                  {row.bib && (
-                    <span className="text-xs text-muted-foreground">
-                      nr. {row.bib}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="py-2 pr-3">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  {row.finished ? (
-                    <CheckCircle2 className="size-3.5 text-emerald-600" />
-                  ) : (
-                    <Radio className="size-3.5 text-destructive" />
-                  )}
-                  {row.checkpoint ?? "Onderweg"}
-                </span>
-              </td>
-              <td className="py-2 pr-3 tabular-nums">
-                {row.timeText ?? "—"}
-              </td>
-              <td className="py-2 pr-3 tabular-nums">
-                {row.averageKmh != null
-                  ? `${row.averageKmh.toLocaleString("nl-NL", {
-                      maximumFractionDigits: 1,
-                    })} km/u`
-                  : "—"}
-              </td>
-              <td className="py-2 text-xs text-muted-foreground">
-                {row.category
-                  ? `${row.category}${row.categoryRank != null ? ` · ${row.categoryRank}e` : ""}`
-                  : "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ResponsiveTable
+      rows={rows}
+      rowKey={(row) => row.profileId ?? `${row.scrapedName}-${row.bib ?? ""}`}
+      minWidth={620}
+      columns={[
+        {
+          key: "name",
+          header: "ZWB'er",
+          primary: true,
+          cell: (row) => (
+            <span className="flex items-center gap-2">
+              {row.profileId ? (
+                <Link href={`/leden/${row.profileId}`} className="font-medium hover:underline">
+                  {row.scrapedName}
+                </Link>
+              ) : (
+                <span className="font-medium">{row.scrapedName}</span>
+              )}
+              {row.bib && <span className="text-xs text-muted-foreground">nr. {row.bib}</span>}
+            </span>
+          ),
+        },
+        {
+          key: "checkpoint",
+          header: "Laatste punt",
+          secondary: true,
+          cell: (row) => (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              {row.finished ? (
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+              ) : (
+                <Radio className="size-3.5 text-destructive" />
+              )}
+              {row.checkpoint ?? "Onderweg"}
+            </span>
+          ),
+        },
+        {
+          key: "position",
+          header: "#",
+          cell: (row) => row.position ?? "—",
+          cellClassName: "tabular-nums text-muted-foreground",
+        },
+        {
+          key: "time",
+          header: "Tijd",
+          align: "right",
+          cell: (row) => row.timeText ?? "—",
+        },
+        {
+          key: "avg",
+          header: "Gem.",
+          align: "right",
+          cell: (row) =>
+            row.averageKmh != null
+              ? `${row.averageKmh.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km/u`
+              : "—",
+        },
+        {
+          key: "category",
+          header: "Cat.",
+          align: "right",
+          cell: (row) =>
+            row.category
+              ? `${row.category}${row.categoryRank != null ? ` · ${row.categoryRank}e` : ""}`
+              : "—",
+          cellClassName: "text-muted-foreground",
+        },
+      ]}
+    />
   );
 }
 

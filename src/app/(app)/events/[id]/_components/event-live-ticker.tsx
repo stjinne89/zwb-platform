@@ -860,7 +860,7 @@ function RiderList({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-medium">{rider.name}</p>
-                <p className="mt-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {rider.source === "owntracks" ? "OwnTracks live" : "ZWB live"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -1143,7 +1143,7 @@ function LiveProfileChart({
               style={{ left: `${left}%` }}
               title={poi.label?.trim() || meta.label}
             >
-              <span className="text-[0.7rem] leading-none drop-shadow-sm">
+              <span className="text-sm leading-none drop-shadow-sm">
                 {meta.emoji}
               </span>
               <span

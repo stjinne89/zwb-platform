@@ -306,7 +306,9 @@ function ProfileChart({
   return (
     <div
       ref={ref}
-      className={`relative touch-none select-none ${fill ? "h-full w-full" : ""}`}
+      // pan-y in plaats van touch-none: verticaal door de pagina scrollen blijft
+      // werken, horizontaal slepen scrubt nog steeds over het profiel.
+      className={`relative select-none [touch-action:pan-y] ${fill ? "h-full w-full" : ""}`}
       onPointerMove={(e) => onScrub(ratioFromEvent(e.clientX, e.clientY) * totalKm)}
       onPointerLeave={() => onScrub(null)}
       onPointerDown={(e) => {
@@ -379,7 +381,7 @@ function ProfileChart({
           return (
             <span
               key={poi.id}
-              className="absolute -translate-x-1/2 -translate-y-full text-[0.7rem] leading-none drop-shadow-sm"
+              className="absolute -translate-x-1/2 -translate-y-full text-sm leading-none drop-shadow-sm"
               style={{ left: `${left}%`, top: `${top}%` }}
               title={poi.label?.trim() || meta.label}
             >

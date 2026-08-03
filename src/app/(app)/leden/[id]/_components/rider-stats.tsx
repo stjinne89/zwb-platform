@@ -134,7 +134,7 @@ function MonthHeatmap({ values }: { values: number[] }) {
               title={`${monthLabel(i - 11)}: ${Math.round(v)} km`}
               aria-label={`${monthLabel(i - 11)}: ${Math.round(v)} km`}
             />
-            <div className="mt-0.5 text-[10px] text-muted-foreground">
+            <div className="mt-0.5 text-xs text-muted-foreground">
               {monthLabel(i - 11).slice(0, 3)}
             </div>
           </div>
@@ -319,7 +319,7 @@ export async function RiderStats({
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Dit jaar ({yearLabel})
         </h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Stat
             icon={<Bike className="size-4" />}
             label="Kilometers"

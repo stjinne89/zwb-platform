@@ -49,6 +49,7 @@ import {
   type LiveTimingOutcome,
 } from "@/lib/event-results/scrape";
 import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 const STALE_AFTER_MIN = 15;
@@ -824,68 +825,78 @@ export default async function EventDetailPage({
                   : "Nog geen uitslag beschikbaar."}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="py-1.5 pr-3 font-medium">#</th>
-                    <th className="py-1.5 pr-3 font-medium">Naam</th>
-                    <th className="py-1.5 pr-3 font-medium">Tijd</th>
-                    <th className="py-1.5 font-medium">Cat.</th>
-                    {canManage && <th className="py-1.5" />}
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0">
-                      <td className="py-1.5 pr-3 tabular-nums text-muted-foreground">
-                        {r.position ?? "—"}
-                      </td>
-                      <td className="py-1.5 pr-3">
-                        <span className="inline-flex flex-wrap items-center gap-1.5">
-                          {r.profileId ? (
-                            <Link
-                              href={`/leden/${r.profileId}`}
-                              className="font-medium hover:underline"
-                            >
-                              {r.scrapedName}
-                            </Link>
-                          ) : (
-                            <span>{r.scrapedName}</span>
-                          )}
-                          {r.matchedVia === "zwb_mention" && (
-                            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                              ZWB
-                            </span>
-                          )}
-                          {r.isManual && (
-                            <span
-                              className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
-                              title="Handmatig toegevoegd"
-                            >
-                              handmatig
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-1.5 pr-3 tabular-nums">
-                        {r.timeText ?? "—"}
-                      </td>
-                      <td className="py-1.5 text-xs text-muted-foreground">
-                        {r.category
-                          ? `${r.category}${r.categoryRank != null ? ` · ${r.categoryRank}e` : ""}`
-                          : "—"}
-                      </td>
-                      {canManage && (
-                        <td className="py-1.5 pl-2 text-right">
-                          <RemoveResultButton resultId={r.id} />
-                        </td>
+            <ResponsiveTable
+              rows={results}
+              rowKey={(r) => r.id}
+              columns={[
+                {
+                  key: "name",
+                  header: "Naam",
+                  primary: true,
+                  cell: (r) => (
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      {r.profileId ? (
+                        <Link
+                          href={`/leden/${r.profileId}`}
+                          className="font-medium hover:underline"
+                        >
+                          {r.scrapedName}
+                        </Link>
+                      ) : (
+                        <span>{r.scrapedName}</span>
                       )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      {r.matchedVia === "zwb_mention" && (
+                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                          ZWB
+                        </span>
+                      )}
+                      {r.isManual && (
+                        <span
+                          className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                          title="Handmatig toegevoegd"
+                        >
+                          handmatig
+                        </span>
+                      )}
+                    </span>
+                  ),
+                },
+                {
+                  key: "position",
+                  header: "#",
+                  cell: (r) => r.position ?? "—",
+                  cellClassName: "tabular-nums text-muted-foreground",
+                },
+                {
+                  key: "time",
+                  header: "Tijd",
+                  align: "right",
+                  cell: (r) => r.timeText ?? "—",
+                },
+                {
+                  key: "category",
+                  header: "Cat.",
+                  align: "right",
+                  cell: (r) =>
+                    r.category
+                      ? `${r.category}${r.categoryRank != null ? ` · ${r.categoryRank}e` : ""}`
+                      : "—",
+                  cellClassName: "text-muted-foreground",
+                },
+                ...(canManage
+                  ? [
+                      {
+                        key: "actions",
+                        header: <span className="sr-only">Acties</span>,
+                        align: "right" as const,
+                        cell: (r: (typeof results)[number]) => (
+                          <RemoveResultButton resultId={r.id} />
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           )}
 
           {canManage && (

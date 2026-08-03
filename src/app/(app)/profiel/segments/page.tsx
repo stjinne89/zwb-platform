@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Gauge, Mountain, Repeat, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 
 type SegmentCollection =
   | "cols"
@@ -443,7 +444,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
         />
       </section>
 
-      <nav className="flex gap-2 overflow-x-auto pb-1">
+      <ScrollTabs ariaLabel="Segmentfilter">
         {FILTERS.map((filter) => {
           const href =
             filter.key === "all"
@@ -455,7 +456,9 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
             <Link
               key={filter.key}
               href={href}
-              className={`shrink-0 rounded-md border px-3 py-2 text-sm font-medium transition ${
+              data-active={isActive ? "true" : undefined}
+              aria-current={isActive ? "page" : undefined}
+              className={`${SCROLL_TAB_ITEM} whitespace-nowrap border ${
                 isActive
                   ? "border-primary bg-primary text-primary-foreground"
                   : "bg-card hover:border-primary/40"
@@ -465,7 +468,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
             </Link>
           );
         })}
-      </nav>
+      </ScrollTabs>
 
       {completed.length > 0 && (
         <section className="space-y-3">
@@ -677,7 +680,7 @@ function TodoCard({ segment }: { segment: SegmentRow }) {
           {segment.name}
         </a>
         <span
-          className={`shrink-0 rounded-full px-1.5 text-[10px] ${badge.cls}`}
+          className={`shrink-0 rounded-full px-1.5 text-xs ${badge.cls}`}
         >
           {badge.label}
         </span>

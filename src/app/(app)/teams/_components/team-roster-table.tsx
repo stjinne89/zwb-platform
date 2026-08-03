@@ -196,7 +196,75 @@ export function TeamRosterTable({
         </select>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Op telefoonbreedte is 1180px tabel drie schermen scrollen; daar tonen
+          we per renner een kaart met de kerncijfers. */}
+      <ul className="space-y-2 sm:hidden">
+        {filtered.map((row) => {
+          const power = row.power;
+          return (
+            <li key={row.id} className="rounded-lg border bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <Link href={`/leden/${row.id}`} className="font-medium hover:underline">
+                  {row.name}
+                </Link>
+                {row.zrlCategory && (
+                  <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                    {row.zrlCategory}
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {riderTypeLabel(power?.riderType)}
+                {row.region ? ` · ${row.region}` : ""}
+              </p>
+              {row.teams.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {row.teams.map((team) => (
+                    <Link
+                      key={team.id}
+                      href={`/teams/${team.id}`}
+                      className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
+                    >
+                      {team.name}
+                      {ROLE_LABELS[team.role] ? ` · ${ROLE_LABELS[team.role]}` : ""}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t pt-2.5 text-sm">
+                {(
+                  [
+                    ["FTP", power?.ftpWatts ?? row.ftpWatts, power?.ftpWkg],
+                    ["5m", power?.watts5m, power?.wkg5m],
+                    ["1m", power?.watts1m, power?.wkg1m],
+                    ["15s", power?.watts15s, power?.wkg15s],
+                  ] as const
+                ).map(([label, watts, wkg]) => (
+                  <div key={label} className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="tabular-nums">
+                      {watts ? `${Math.round(watts)}w` : "-"}
+                      {wkg ? (
+                        <span className="text-muted-foreground"> · {fmt(wkg, 2)}</span>
+                      ) : null}
+                    </dd>
+                  </div>
+                ))}
+                <div className="col-span-2 flex items-baseline justify-between gap-2">
+                  <dt className="text-muted-foreground">ZRL</dt>
+                  <dd className="tabular-nums">
+                    {row.zrlStarts} starts · best{" "}
+                    {row.zrlBestPosition ? `#${row.zrlBestPosition}` : "-"} ·{" "}
+                    {fmt(row.zrlAvgPoints, 1)} pt
+                  </dd>
+                </div>
+              </dl>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[1180px] text-sm">
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

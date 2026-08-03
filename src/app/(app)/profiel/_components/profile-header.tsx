@@ -66,7 +66,7 @@ export function ProfileHeader({
             </div>
             {stravaConnected && (
               <span
-                className="absolute -bottom-1 -right-1 inline-flex items-center justify-center rounded-full bg-orange-500 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white shadow"
+                className="absolute -bottom-1 -right-1 inline-flex items-center justify-center rounded-full bg-orange-500 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-white shadow"
                 title={stravaUsername ? `Strava: ${stravaUsername}` : "Gekoppeld met Strava"}
               >
                 Strava

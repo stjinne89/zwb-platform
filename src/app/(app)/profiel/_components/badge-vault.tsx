@@ -150,7 +150,7 @@ export function BadgeVault({
                         size="md"
                         locked={!earned}
                       />
-                      <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
                         {TIER_LABELS[badge.tier]}
                       </span>
                       <span className="line-clamp-2 min-h-[2rem] text-[0.68rem] leading-tight text-foreground">
@@ -162,12 +162,12 @@ export function BadgeVault({
               </div>
 
               {first?.trigger_source === "manual" && (
-                <p className="mt-2 text-[0.65rem] uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                <p className="mt-2 text-xs uppercase tracking-wide text-amber-700 dark:text-amber-400">
                   Deze achievement vraagt handmatige toekenning door beheer.
                 </p>
               )}
               {first?.trigger_source === "future" && (
-                <p className="mt-2 text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+                <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
                   Toekomstige bron
                 </p>
               )}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -201,40 +202,53 @@ export default async function TttPlanDetailPage({
         {riderRows.length === 0 ? (
           <EmptyState className="mt-4">Geen riders in dit plan.</EmptyState>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="border-b text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="py-2 pr-3">#</th>
-                  <th className="py-2 pr-3">Rider</th>
-                  <th className="py-2 pr-3">Zwift ID</th>
-                  <th className="py-2 pr-3">FTP</th>
-                  <th className="py-2 pr-3">Kg</th>
-                  <th className="py-2 pr-3">300s</th>
-                  <th className="py-2 pr-3">Pull watts</th>
-                  <th className="py-2 pr-3">Pull duur</th>
-                  <th className="py-2 pr-3">Notities</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {riderRows.map((rider, index) => (
-                  <tr key={rider.id}>
-                    <td className="py-2 pr-3 tabular-nums">{index + 1}</td>
-                    <td className="py-2 pr-3 font-medium">{rider.name}</td>
-                    <td className="py-2 pr-3">{rider.zwift_id ?? "-"}</td>
-                    <td className="py-2 pr-3 tabular-nums">{n(rider.ftp_watts)}w</td>
-                    <td className="py-2 pr-3 tabular-nums">{n(rider.weight_kg, 1)}</td>
-                    <td className="py-2 pr-3 tabular-nums">{n(rider.power_300_watts)}w</td>
-                    <td className="py-2 pr-3 tabular-nums">{n(rider.pull_watts)}w</td>
-                    <td className="py-2 pr-3 tabular-nums">
-                      {rider.pull_duration_seconds ?? "-"}s
-                    </td>
-                    <td className="py-2 pr-3 text-muted-foreground">{rider.notes ?? "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            className="mt-4"
+            rows={riderRows}
+            rowKey={(rider) => String(rider.id)}
+            minWidth={760}
+            columns={[
+              {
+                key: "name",
+                header: "Rider",
+                primary: true,
+                cell: (rider, index) => `${index + 1}. ${rider.name}`,
+                cellClassName: "font-medium",
+              },
+              {
+                key: "zwift",
+                header: "Zwift ID",
+                secondary: true,
+                cell: (rider) => rider.zwift_id ?? "-",
+              },
+              { key: "ftp", header: "FTP", align: "right", cell: (rider) => `${n(rider.ftp_watts)}w` },
+              { key: "kg", header: "Kg", align: "right", cell: (rider) => n(rider.weight_kg, 1) },
+              {
+                key: "p300",
+                header: "300s",
+                align: "right",
+                cell: (rider) => `${n(rider.power_300_watts)}w`,
+              },
+              {
+                key: "pull",
+                header: "Pull watts",
+                align: "right",
+                cell: (rider) => `${n(rider.pull_watts)}w`,
+              },
+              {
+                key: "pullDur",
+                header: "Pull duur",
+                align: "right",
+                cell: (rider) => `${rider.pull_duration_seconds ?? "-"}s`,
+              },
+              {
+                key: "notes",
+                header: "Notities",
+                cell: (rider) => rider.notes ?? "-",
+                cellClassName: "text-muted-foreground",
+              },
+            ]}
+          />
         )}
       </section>
 

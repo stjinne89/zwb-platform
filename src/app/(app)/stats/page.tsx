@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Bike, Clock, Mountain, Trophy, Users, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -210,7 +211,9 @@ export default async function StatsPage({
       ) : (
         <>
           {/* Maand-selector */}
-          <div className="flex flex-wrap gap-1.5">
+          {/* Dertien chips vullen op een telefoon drie regels; als scrollende
+              rij blijven ze één regel en scrolt de gekozen maand in beeld. */}
+          <ScrollTabs ariaLabel="Maandfilter">
             <Chip href="/stats" active={!selectedMonth}>
               12 mnd
             </Chip>
@@ -223,7 +226,7 @@ export default async function StatsPage({
                 {monthLabel(m)}
               </Chip>
             ))}
-          </div>
+          </ScrollTabs>
 
           {/* KPI's voor de scope */}
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -256,7 +259,48 @@ export default async function StatsPage({
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Kilometers per maand
             </h2>
-            <div className="flex items-end gap-1.5" style={{ height: 140 }}>
+            {/* Mobiel: liggende balken. Twaalf staande kolommen geven op een
+                telefoon ~24px per kolom en daar past geen maandlabel of
+                kilometerstand in — ook niet verdeeld over twee rijen. */}
+            <ul className="space-y-1 sm:hidden">
+              {months.map((m) => {
+                const km = byMonth.get(m)?.km ?? 0;
+                const pct = (km / maxMonthKm) * 100;
+                const active = selectedMonth === m;
+                return (
+                  <li key={m}>
+                    <Link
+                      href={active ? "/stats" : `/stats?month=${m}`}
+                      className="group flex min-h-9 items-center gap-2"
+                    >
+                      <span
+                        className={`w-14 shrink-0 text-xs ${
+                          active ? "font-semibold text-primary" : "text-muted-foreground"
+                        }`}
+                      >
+                        {monthLabel(m)}
+                      </span>
+                      <span className="relative h-4 min-w-0 flex-1 overflow-hidden rounded bg-muted">
+                        <span
+                          className={`absolute inset-y-0 left-0 rounded ${
+                            active ? "bg-primary" : "bg-primary/45"
+                          }`}
+                          style={{ width: `${Math.max(1, pct)}%` }}
+                        />
+                      </span>
+                      <span className="w-16 shrink-0 text-right text-xs tabular-nums">
+                        {nl(km)}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Vanaf sm: staande kolommen. De staaf zit in een eigen zone met
+                een definitieve hoogte, anders klapt een hoogte in procenten
+                dicht; min-w-0 houdt de kolommen binnen de kaart. */}
+            <div className="hidden h-40 items-stretch gap-1.5 sm:flex">
               {months.map((m) => {
                 const km = byMonth.get(m)?.km ?? 0;
                 const pct = (km / maxMonthKm) * 100;
@@ -265,21 +309,25 @@ export default async function StatsPage({
                   <Link
                     key={m}
                     href={active ? "/stats" : `/stats?month=${m}`}
-                    className="group flex flex-1 flex-col items-center justify-end gap-1"
+                    className="group flex h-full min-w-0 flex-1 flex-col gap-1"
                     title={`${monthLabel(m)}: ${nl(km)} km`}
                   >
-                    <span className="text-[0.6rem] tabular-nums text-muted-foreground opacity-0 group-hover:opacity-100">
+                    <span
+                      className={`h-4 truncate text-center text-xs tabular-nums text-muted-foreground transition-opacity group-hover:opacity-100 ${
+                        active ? "opacity-100" : "opacity-0"
+                      }`}
+                    >
                       {nl(km)}
                     </span>
-                    <span
-                      className={`w-full rounded-t transition-colors ${
-                        active
-                          ? "bg-primary"
-                          : "bg-primary/40 group-hover:bg-primary/70"
-                      }`}
-                      style={{ height: `${Math.max(2, pct)}%` }}
-                    />
-                    <span className="text-[0.6rem] text-muted-foreground">
+                    <span className="relative flex-1">
+                      <span
+                        className={`absolute inset-x-0 bottom-0 rounded-t transition-colors ${
+                          active ? "bg-primary" : "bg-primary/40 group-hover:bg-primary/70"
+                        }`}
+                        style={{ height: `${Math.max(2, pct)}%` }}
+                      />
+                    </span>
+                    <span className="h-4 truncate text-center text-xs text-muted-foreground">
                       {monthLabel(m).split(" ")[0]}
                     </span>
                   </Link>
@@ -381,7 +429,9 @@ function Chip({
   return (
     <Link
       href={href}
-      className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+      data-active={active ? "true" : undefined}
+      aria-current={active ? "page" : undefined}
+      className={`${SCROLL_TAB_ITEM} whitespace-nowrap rounded-full border ${
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"

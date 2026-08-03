@@ -1,5 +1,8 @@
 import type { RideLoad, WeeklyLoad } from "@/lib/training/ride-metrics";
 import { formatChartDate } from "@/lib/charts/format";
+import { tickIndices } from "@/lib/charts/responsive";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { cn } from "@/lib/utils";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return "-";
@@ -21,28 +24,47 @@ export function ActivityLoadPanel({
 }) {
   const maxLoad = Math.max(...weeks.map((week) => week.load), 1);
   const withoutPower = recent.filter((row) => !row.hasPowerMeter).length;
+  const labelTicks = new Set(tickIndices(weeks.length, 4));
 
   return (
     <div className="space-y-5 p-4">
       {weeks.length > 0 ? (
         <div>
-          <div className="flex h-32 items-end gap-1">
-            {weeks.map((week) => (
-              <div key={week.weekStart} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                <span className="text-[10px] tabular-nums text-muted-foreground">
+          {/* De staafzone staat los van de waarderegel: een hoogte in procenten
+              heeft een kolom met definitieve hoogte nodig, en anders snoepen de
+              tekstregels hoogte van de hoogste staven af. */}
+          <div className="flex h-32 items-stretch gap-1">
+            {weeks.map((week, index) => (
+              <div key={week.weekStart} className="flex h-full min-w-0 flex-1 flex-col gap-1">
+                <span
+                  className={cn(
+                    "h-4 overflow-visible whitespace-nowrap text-center text-xs tabular-nums text-muted-foreground",
+                    !labelTicks.has(index) && "invisible sm:visible",
+                  )}
+                >
                   {week.load || ""}
                 </span>
-                <div
-                  title={`${formatChartDate(week.weekStart)} - ${week.load} TSS, ${week.hours}u, ${week.kilojoules} kJ`}
-                  className="w-full rounded-t bg-[var(--chart-1)]"
-                  style={{ height: `${Math.max(2, (week.load / maxLoad) * 90)}%` }}
-                />
+                <span className="relative flex-1">
+                  <span
+                    title={`${formatChartDate(week.weekStart)} - ${week.load} TSS, ${week.hours}u, ${week.kilojoules} kJ`}
+                    className="absolute inset-x-0 bottom-0 rounded-t bg-[var(--chart-1)]"
+                    style={{ height: `${Math.max(2, (week.load / maxLoad) * 100)}%` }}
+                  />
+                </span>
               </div>
             ))}
           </div>
-          <div className="mt-1 flex gap-1 text-[10px] text-muted-foreground">
-            {weeks.map((week) => (
-              <span key={week.weekStart} className="min-w-0 flex-1 truncate text-center">
+          {/* Op smal scherm past niet elke weekdatum; dan tonen we alleen de
+              ijkpunten en houden de lege cellen de uitlijning intact. */}
+          <div className="mt-1 flex gap-1 text-xs text-muted-foreground">
+            {weeks.map((week, index) => (
+              <span
+                key={week.weekStart}
+                className={cn(
+                  "min-w-0 flex-1 overflow-visible whitespace-nowrap text-center sm:truncate",
+                  !labelTicks.has(index) && "invisible sm:visible",
+                )}
+              >
                 {formatChartDate(week.weekStart)}
               </span>
             ))}
@@ -55,45 +77,59 @@ export function ActivityLoadPanel({
           Nog geen ritten met belastinggegevens gevonden.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-1 pr-3 font-medium">Datum</th>
-                <th className="py-1 pr-3 font-medium">Rit</th>
-                <th className="py-1 pr-3 text-right font-medium">Tijd</th>
-                <th className="py-1 pr-3 text-right font-medium">TSS</th>
-                <th className="py-1 pr-3 text-right font-medium">IF</th>
-                <th className="py-1 pr-3 text-right font-medium">NP</th>
-                <th className="py-1 text-right font-medium">kJ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {recent.map((row) => (
-                <tr key={row.id}>
-                  <td className="py-1.5 pr-3 whitespace-nowrap text-muted-foreground">
-                    {formatChartDate(row.start_date_local)}
-                  </td>
-                  <td className="max-w-40 truncate py-1.5 pr-3">{row.name ?? "Rit"}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {formatDuration(row.moving_time_seconds)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {row.training_load ? Math.round(row.training_load) : "-"}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {row.intensity ? row.intensity.toFixed(2) : "-"}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {row.normalized_watts ? `${Math.round(row.normalized_watts)}w` : "-"}
-                  </td>
-                  <td className="py-1.5 text-right tabular-nums">
-                    {row.kilojoules ? Math.round(row.kilojoules) : "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <ResponsiveTable
+            rows={recent}
+            rowKey={(row) => String(row.id)}
+            minWidth={640}
+            columns={[
+              {
+                key: "name",
+                header: "Rit",
+                primary: true,
+                cell: (row) => row.name ?? "Rit",
+                cellClassName: "max-w-40 truncate",
+              },
+              {
+                key: "date",
+                header: "Datum",
+                secondary: true,
+                cell: (row) => formatChartDate(row.start_date_local),
+                cellClassName: "whitespace-nowrap text-muted-foreground",
+              },
+              {
+                key: "time",
+                header: "Tijd",
+                align: "right",
+                cell: (row) => formatDuration(row.moving_time_seconds),
+              },
+              {
+                key: "tss",
+                header: "TSS",
+                align: "right",
+                cell: (row) => (row.training_load ? Math.round(row.training_load) : "-"),
+              },
+              {
+                key: "if",
+                header: "IF",
+                align: "right",
+                cell: (row) => (row.intensity ? row.intensity.toFixed(2) : "-"),
+              },
+              {
+                key: "np",
+                header: "NP",
+                align: "right",
+                cell: (row) =>
+                  row.normalized_watts ? `${Math.round(row.normalized_watts)}w` : "-",
+              },
+              {
+                key: "kj",
+                header: "kJ",
+                align: "right",
+                cell: (row) => (row.kilojoules ? Math.round(row.kilojoules) : "-"),
+              },
+            ]}
+          />
           {withoutPower > 0 ? (
             <p className="mt-3 text-xs text-muted-foreground">
               {withoutPower === 1 ? "Eén rit is" : `${withoutPower} ritten zijn`} zonder

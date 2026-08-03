@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isActiveHref } from "../../_components/nav-config";
+import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 import { cn } from "@/lib/utils";
 
 export type SectionLink = {
@@ -25,7 +26,7 @@ export function SectionNav({
   const pathname = usePathname();
   const indexHref = exactHref ?? items[0]?.href;
   return (
-    <nav className="-mx-1 flex gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm">
+    <ScrollTabs variant="panel" ariaLabel="Subnavigatie">
       {items.map((item) => {
         const active =
           item.href === indexHref ? pathname === item.href : isActiveHref(pathname, item.href);
@@ -33,8 +34,10 @@ export function SectionNav({
           <Link
             key={item.href}
             href={item.query ? `${item.href}?${item.query}` : item.href}
+            data-active={active ? "true" : undefined}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition",
+              SCROLL_TAB_ITEM,
               active
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -56,6 +59,6 @@ export function SectionNav({
           </Link>
         );
       })}
-    </nav>
+    </ScrollTabs>
   );
 }

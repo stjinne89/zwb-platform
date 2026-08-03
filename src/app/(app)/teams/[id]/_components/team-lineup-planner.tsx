@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
 import { removeTeamLineup, setTeamLineup } from "../_actions";
 
@@ -116,56 +117,73 @@ export function TeamLineupPlanner({
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-xs">
-          <thead>
-            <tr className="border-b text-left uppercase tracking-wide text-muted-foreground">
-              <th className="py-1.5 pr-2 font-medium">Renner</th>
-              <th className="py-1.5 pr-2 font-medium">Beschikbaar</th>
-              <th className="py-1.5 pr-2 font-medium">Profiel</th>
-              <th className="py-1.5 pr-2 font-medium">5m</th>
-              <th className="py-1.5 pr-2 font-medium">20m</th>
-              <th className="py-1.5 pr-2 font-medium">FTP/kg</th>
-              <th className="py-1.5 pr-2 font-medium">ZRL</th>
-              <th className="py-1.5 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {riders.map((rider) => (
-              <tr key={rider.id} className="border-b last:border-0">
-                <td className="py-1.5 pr-2">
-                  <span className="font-medium">{rider.name}</span>
-                  {rider.category && (
-                    <span className="ml-1 rounded-full bg-secondary px-1 py-0.5 text-[10px] text-secondary-foreground">
-                      {rider.category}
-                    </span>
-                  )}
-                </td>
-                <td className="py-1.5 pr-2">{availabilityLabel(rider.availability)}</td>
-                <td className="py-1.5 pr-2">{riderTypeLabel(rider.riderType)}</td>
-                <td className="py-1.5 pr-2 tabular-nums">{fmt(rider.watts5m)}w</td>
-                <td className="py-1.5 pr-2 tabular-nums">{fmt(rider.watts20m)}w</td>
-                <td className="py-1.5 pr-2 tabular-nums">{fmt(rider.ftpWkg, 2)}</td>
-                <td className="py-1.5 pr-2 tabular-nums">
-                  {rider.zrlStarts} · best {rider.bestPosition ? `#${rider.bestPosition}` : "-"}
-                </td>
-                <td className="py-1.5 text-right">
-                  <Button
-                    type="button"
-                    size="icon-xs"
-                    variant={selectedIds.has(rider.id) ? "secondary" : "outline"}
-                    disabled={pending || selectedIds.has(rider.id)}
-                    onClick={() => add(rider.id)}
-                    aria-label={`${rider.name} toevoegen`}
-                  >
-                    <Plus />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable
+        rows={riders}
+        rowKey={(rider) => rider.id}
+        minWidth={760}
+        columns={[
+          {
+            key: "name",
+            header: "Renner",
+            primary: true,
+            cell: (rider) => (
+              <span>
+                <span className="font-medium">{rider.name}</span>
+                {rider.category && (
+                  <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                    {rider.category}
+                  </span>
+                )}
+              </span>
+            ),
+          },
+          {
+            key: "profile",
+            header: "Profiel",
+            secondary: true,
+            cell: (rider) =>
+              `${riderTypeLabel(rider.riderType)} · ${availabilityLabel(rider.availability)}`,
+          },
+          {
+            key: "availability",
+            header: "Beschikbaar",
+            hideOnCard: true,
+            cell: (rider) => availabilityLabel(rider.availability),
+          },
+          { key: "w5m", header: "5m", align: "right", cell: (rider) => `${fmt(rider.watts5m)}w` },
+          { key: "w20m", header: "20m", align: "right", cell: (rider) => `${fmt(rider.watts20m)}w` },
+          {
+            key: "ftpwkg",
+            header: "FTP/kg",
+            align: "right",
+            cell: (rider) => fmt(rider.ftpWkg, 2),
+          },
+          {
+            key: "zrl",
+            header: "ZRL",
+            align: "right",
+            cell: (rider) =>
+              `${rider.zrlStarts} · best ${rider.bestPosition ? `#${rider.bestPosition}` : "-"}`,
+          },
+          {
+            key: "add",
+            header: <span className="sr-only">Toevoegen</span>,
+            align: "right",
+            cell: (rider) => (
+              <Button
+                type="button"
+                size="icon-xs"
+                variant={selectedIds.has(rider.id) ? "secondary" : "outline"}
+                disabled={pending || selectedIds.has(rider.id)}
+                onClick={() => add(rider.id)}
+                aria-label={`${rider.name} toevoegen`}
+              >
+                <Plus />
+              </Button>
+            ),
+          },
+        ]}
+      />
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

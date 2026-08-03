@@ -206,8 +206,8 @@ export function AchievementBadge({
           className={cn(
             "absolute -right-1 -top-1 inline-flex items-center justify-center rounded-full bg-primary font-bold leading-none text-primary-foreground shadow-sm tabular-nums",
             effectiveSize === "sm"
-              ? "h-4 min-w-4 px-1 text-[0.6rem]"
-              : "h-5 min-w-5 px-1.5 text-[0.65rem]",
+              ? "h-5 min-w-5 px-1 text-xs"
+              : "h-6 min-w-6 px-1.5 text-xs",
           )}
         >
           {count}×

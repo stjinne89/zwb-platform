@@ -459,8 +459,10 @@ export function BrochureExperience() {
               Grof tijdschema
             </h2>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
-            <table className="w-full border-collapse text-left text-sm">
+          {/* overflow-hidden blokkeerde het scrollen, waardoor de drie
+              invulkolommen op een telefoon in elkaar werden geperst. */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+            <table className="w-full min-w-[560px] border-collapse text-left text-sm">
               <thead className="bg-[#1d4652] text-xs uppercase tracking-[0.08em] text-white">
                 <tr>
                   <th className="p-4">Moment</th>

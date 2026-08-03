@@ -187,12 +187,12 @@ export function EventChat({
                 <span className="font-medium">{m.name}</span>
               )}
               {m.isGuest && (
-                <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                   gast
                 </span>
               )}
               {m.internal && (
-                <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-[0.65rem] text-secondary-foreground">
+                <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
                   <Lock className="size-2.5" />
                   intern
                 </span>

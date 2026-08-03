@@ -67,7 +67,7 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
               type="button"
               aria-label="Vorige maatstaf"
               onClick={() => step(-1)}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -81,10 +81,15 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
                 aria-selected={i === index}
                 aria-label={s.label}
                 onClick={() => setIndex(i)}
-                className={`size-1.5 rounded-full transition-colors ${
-                  i === index ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-              />
+                className="flex size-8 items-center justify-center"
+              >
+                {/* Stip blijft klein; het tapdoel eromheen niet. */}
+                <span
+                  className={`size-1.5 rounded-full transition-colors ${
+                    i === index ? "bg-primary" : "bg-muted-foreground/30"
+                  }`}
+                />
+              </button>
             ))}
           </div>
           {slides.length > 1 && (
@@ -92,7 +97,7 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
               type="button"
               aria-label="Volgende maatstaf"
               onClick={() => step(1)}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <ChevronRight className="size-4" />
             </button>

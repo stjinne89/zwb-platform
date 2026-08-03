@@ -222,7 +222,7 @@ export async function ClubStats() {
         </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat
           icon={<Bike className="size-4" />}
           label="Kilometers"
