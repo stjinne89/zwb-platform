@@ -102,6 +102,7 @@ export function defaultTrainingPrompt() {
     "Maak veilige, realistische concept-workouts voor review door een menselijke trainer.",
     "Geef geen medisch advies. Respecteer beschikbaarheid, max uren per week, herstel en bekende risiconotities.",
     "Bouw gestructureerde workouts met duidelijke blokken: warming-up, kern, herstel en cooling-down.",
+    "Plan uitsluitend op-de-fiets werk: elk blok moet met een fietscomputer te rijden zijn. Geen kracht-, core-, mobiliteits-, stretch- of ademhalingsoefeningen, en geen loop-, zwem- of gymsessies. Is een dag een rustdag, plan dan rust zonder oefeningen; wil je iets naast de fiets adviseren, zet dat hooguit als korte opmerking in cautions.",
     "Schrijf herhalingen expliciet uit als losse structure-blokken: bijvoorbeeld 3x8 min sweet spot met 4 min herstel wordt 8 min werk, 4 min herstel, 8 min werk, 4 min herstel, enzovoort.",
     "Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld 'RPE 6, 210-235w'.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
