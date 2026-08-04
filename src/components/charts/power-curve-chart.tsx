@@ -230,8 +230,11 @@ export function PowerCurveChart({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex rounded-md border bg-background p-1 text-sm">
+      {/* Mobiel onder elkaar: naast de metric-toggle bleef er zo weinig breedte
+          over dat elke renner-pil een eigen regel kreeg. Over de volle breedte
+          passen er meerdere naast elkaar en scheelt dat flink scrollen. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="flex self-start rounded-md border bg-background p-1 text-sm">
           {(["watts", "wkg"] as const).map((value) => (
             <button
               key={value}
@@ -246,7 +249,7 @@ export function PowerCurveChart({
             </button>
           ))}
         </div>
-        <div className="min-w-0 flex-1 sm:max-w-xl">
+        <div className="w-full min-w-0 sm:flex-1 sm:max-w-xl">
           <p className="mb-1.5 text-sm">Vergelijk met (max. {MAX_SERIES})</p>
           <div className="flex flex-wrap gap-1.5">
             {[
@@ -265,7 +268,7 @@ export function PowerCurveChart({
                   aria-pressed={active}
                   disabled={!option.available || (!active && atLimit)}
                   onClick={() => toggleComparison(option.id)}
-                  className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium transition ${
+                  className={`inline-flex min-h-9 items-center rounded-full border px-2.5 text-xs font-medium transition sm:px-3 ${
                     active
                       ? "border-primary bg-primary text-primary-foreground"
                       : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
