@@ -950,6 +950,29 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 - **Training coach-cockpit praktijktest**: draaiboek staat in
   `docs/training-cockpit-praktijktest.md`; nog uitvoeren met echte trainer/renner
   en intervals.icu -> Wahoo/Garmin-publicatie.
+- **AI-trainingszones sluiten niet aan op de renner** (2026-08-04, opvolging van
+  de dag-aanpassing-fixes). De dataproblemen zijn verholpen — recente load,
+  CTL/ATL/TSB/eFTP, het lopende weekschema en `minWorkouts: 1` gaan nu mee — maar
+  de wattages zelf staan structureel aan de lage kant. Drie oorzaken, nog open:
+  1. **FTP-bron.** De AI rekent met `profiles.ftp_watts`, terwijl de
+     trainingspagina eFTP toont (`eftpLatest ?? intervalsFtp ?? profile.ftp_watts`,
+     `src/app/(app)/zwbeter-worden/page.tsx`). `profiles.ftp_watts` loopt alleen
+     mee met intervals.icu als `auto_sync_physique` aan staat én het lid
+     handmatig de powerprofiel-sync draait (`src/app/(app)/teams/_actions.ts`) —
+     er is geen achtergrondsync, dus die waarde veroudert. Overwegen: eFTP laten
+     voorgaan voor de AI, of de physique-sync echt periodiek laten lopen.
+  2. **Echte zones gaan niet mee.** `profile_sport_settings.power_zones` (+ CP,
+     W', LTHR) wordt gesynct maar alleen op `/zwbeter-worden/vermogen` gebruikt.
+     De AI valt terug op de generieke banden in `INTENSITY_FTP_RANGE`
+     (`src/lib/training/workouts.ts`), die conservatiever zijn dan wat leden van
+     JOIN gewend zijn.
+  3. **RPE-tabel spreekt de prompt tegen.** Het promptvoorbeeld "RPE 6, 210-235w"
+     is 72-80% FTP, terwijl `percentRangeForRpe(6)` 80-90% geeft
+     (`src/lib/training/targets.ts`). Bij dezelfde RPE kan de UI-hint ~25w
+     afwijken van het wattage van de AI.
+
+  Eerst meten: wat is de actuele eFTP versus de opgeslagen `profiles.ftp_watts`?
+  Dat bepaalt of dit vooral een bronprobleem (1) of een zonemodel-probleem (2/3) is.
 
 ---
 

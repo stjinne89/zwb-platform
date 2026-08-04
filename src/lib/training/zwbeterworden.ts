@@ -129,6 +129,18 @@ export function amsterdamDayKey(now: Date = new Date()): string {
   return now.toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
 }
 
+/**
+ * Zondag van de week waarin `dayKey` valt, als "YYYY-MM-DD". De week loopt
+ * maandag t/m zondag; valt `dayKey` al op zondag, dan is dat de uitkomst.
+ */
+export function endOfWeekKey(dayKey: string): string {
+  const date = new Date(`${dayKey}T12:00:00Z`);
+  // getUTCDay(): 0 = zondag. Maandag telt als dag 1, dus zondag is dag 7.
+  const daysToSunday = (7 - (date.getUTCDay() || 7)) % 7;
+  date.setUTCDate(date.getUTCDate() + daysToSunday);
+  return date.toISOString().slice(0, 10);
+}
+
 /** Deterministische index 0..len-1 op basis van de dag-sleutel (FNV-1a). */
 export function dayIndex(dayKey: string, len: number): number {
   let h = 2166136261;

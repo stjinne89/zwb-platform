@@ -22,6 +22,7 @@ import {
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
+import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
 
@@ -128,12 +129,75 @@ async function canAccessGeneration(
   return canCoach(admin, userId, generation.profile_id);
 }
 
+/**
+ * Trainingsbelasting van de afgelopen 28 dagen uit Strava. Gedeeld door de
+ * trainer-flow en de dag-aanpassing: zonder dit ziet de AI een renner die niets
+ * doet en plant hij structureel te voorzichtig.
+ */
+export async function buildRecentLoad(
+  admin: ReturnType<typeof createAdminClient>,
+  athleteId: string,
+  days = 28,
+): Promise<TrainingAiInput["recentLoad"]> {
+  const { data: activities } = await admin
+    .from("strava_activities")
+    .select("distance_m, total_elevation_gain_m, moving_time_seconds")
+    .eq("profile_id", athleteId)
+    .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString());
+
+  return (activities ?? []).reduce(
+    (acc, row) => ({
+      activities: acc.activities + 1,
+      distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
+      elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
+      hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
+    }),
+    { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
+  );
+}
+
+/**
+ * Actuele belasting/vorm uit intervals.icu (CTL/ATL/TSB/eFTP/ramp rate).
+ * Best-effort: zonder koppeling of bij een API-fout gaat de AI door zonder.
+ */
+export async function buildIntervalsLoad(
+  admin: ReturnType<typeof createAdminClient>,
+  athleteId: string,
+): Promise<TrainingAiInput["intervalsLoad"]> {
+  try {
+    const { data: conn } = await admin
+      .from("intervals_connections")
+      .select("api_key, athlete_id")
+      .eq("profile_id", athleteId)
+      .maybeSingle();
+    if (!conn?.api_key || !conn?.athlete_id) return null;
+
+    const rows = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
+    const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
+    const latest = sorted[sorted.length - 1];
+    if (!latest) return null;
+
+    const ctl = latest.ctl ?? null;
+    const atl = latest.atl ?? null;
+    return {
+      ctl,
+      atl,
+      tsb: ctl != null && atl != null ? Math.round((ctl - atl) * 10) / 10 : null,
+      eftp: [...sorted].reverse().find((r) => r.eftp)?.eftp ?? null,
+      rampRate: latest.ramp_rate ?? null,
+    };
+  } catch {
+    // Niet kritiek: AI kan zonder intervals-belasting door.
+    return null;
+  }
+}
+
 async function buildTrainingInput(
   admin: ReturnType<typeof createAdminClient>,
   athleteId: string,
   goalId: string,
 ): Promise<TrainingAiInput> {
-  const [{ data: profile }, { data: goal }, { data: activities }] = await Promise.all([
+  const [{ data: profile }, { data: goal }, recent] = await Promise.all([
     admin
       .from("profiles")
       .select("display_name, ftp_watts, weight_kg, zrl_category")
@@ -145,53 +209,13 @@ async function buildTrainingInput(
       .eq("id", goalId)
       .eq("profile_id", athleteId)
       .single(),
-    admin
-      .from("strava_activities")
-      .select("distance_m, total_elevation_gain_m, moving_time_seconds")
-      .eq("profile_id", athleteId)
-      .gte("start_date", new Date(Date.now() - 28 * 86400_000).toISOString()),
+    buildRecentLoad(admin, athleteId),
   ]);
   if (!profile || !goal) throw new Error("Profiel of doel niet gevonden.");
 
-  const recent = (activities ?? []).reduce(
-    (acc, row) => ({
-      activities: acc.activities + 1,
-      distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
-      elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
-      hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
-    }),
-    { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
-  );
-
   const { wellnessForAi } = await import("@/lib/training/wellness");
   const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
-
-  let intervalsLoad: TrainingAiInput["intervalsLoad"] = null;
-  try {
-    const { data: conn } = await admin
-      .from("intervals_connections")
-      .select("api_key, athlete_id")
-      .eq("profile_id", athleteId)
-      .maybeSingle();
-    if (conn?.api_key && conn?.athlete_id) {
-      const rows = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
-      const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
-      const latest = sorted[sorted.length - 1];
-      if (latest) {
-        const ctl = latest.ctl ?? null;
-        const atl = latest.atl ?? null;
-        intervalsLoad = {
-          ctl,
-          atl,
-          tsb: ctl != null && atl != null ? Math.round((ctl - atl) * 10) / 10 : null,
-          eftp: [...sorted].reverse().find((r) => r.eftp)?.eftp ?? null,
-          rampRate: latest.ramp_rate ?? null,
-        };
-      }
-    }
-  } catch {
-    // Niet kritiek: AI kan zonder intervals-belasting door.
-  }
+  const intervalsLoad = await buildIntervalsLoad(admin, athleteId);
 
   const horizon = goal.target_date
     ? new Date(goal.target_date)
@@ -476,10 +500,10 @@ export async function startTodayAdjustmentDraft(
     const note = optionalString(formData.get("note"));
 
     // Actief plan van de renner zelf (gepubliceerd > goedgekeurd), nog lopend.
-    const today = new Date().toISOString().slice(0, 10);
+    const today = amsterdamDayKey();
     const { data: plans } = await admin
       .from("training_plans")
-      .select("id, goal_id, trainer_id, status, end_date")
+      .select("id, goal_id, trainer_id, status, end_date, title")
       .eq("profile_id", user.id)
       .in("status", ["published", "approved"])
       .gte("end_date", today)
@@ -492,7 +516,15 @@ export async function startTodayAdjustmentDraft(
       return { ok: false, error: "Geen actief schema gevonden om aan te passen." };
     }
 
-    const [{ data: goal }, { data: profile }] = await Promise.all([
+    // Het deel van het lopende schema dat de aanpassing raakt: vandaag t/m het
+    // einde van deze week. Zonder deze context kan de AI niet aanpassen wat er
+    // staat en verzint hij de week opnieuw.
+    const weekEnd = endOfWeekKey(today);
+    const planTo = active.end_date && String(active.end_date).slice(0, 10) < weekEnd
+      ? String(active.end_date).slice(0, 10)
+      : weekEnd;
+
+    const [{ data: goal }, { data: profile }, { data: planned }] = await Promise.all([
       active.goal_id
         ? admin.from("training_goals").select("*").eq("id", active.goal_id).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -501,14 +533,24 @@ export async function startTodayAdjustmentDraft(
         .select("display_name, ftp_watts, weight_kg, zrl_category")
         .eq("id", user.id)
         .single(),
+      admin
+        .from("training_workouts")
+        .select("scheduled_at, title, duration_minutes, intensity")
+        .eq("plan_id", active.id)
+        .is("superseded_at", null)
+        .gte("scheduled_at", `${today}T00:00:00`)
+        .lte("scheduled_at", `${planTo}T23:59:59`)
+        .order("scheduled_at", { ascending: true }),
     ]);
     if (!profile) return { ok: false, error: "Profiel niet gevonden." };
 
     const { wellnessForAi } = await import("@/lib/training/wellness");
-    const wellness = await wellnessForAi(admin, user.id).catch(() => null);
-    const yesterday = await buildYesterdayContext(admin, user.id, active.id).catch(
-      () => null,
-    );
+    const [wellness, yesterday, recentLoad, intervalsLoad] = await Promise.all([
+      wellnessForAi(admin, user.id).catch(() => null),
+      buildYesterdayContext(admin, user.id, active.id).catch(() => null),
+      buildRecentLoad(admin, user.id),
+      buildIntervalsLoad(admin, user.id),
+    ]);
 
     const input: TrainingAiInput = {
       athleteName: profile.display_name ?? "ZWB-lid",
@@ -528,7 +570,7 @@ export async function startTodayAdjustmentDraft(
         weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
         zrlCategory: profile.zrl_category ?? null,
       },
-      recentLoad: { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
+      recentLoad,
       wellness: wellness
         ? {
             days: wellness.days,
@@ -540,8 +582,20 @@ export async function startTodayAdjustmentDraft(
             note: wellness.note,
           }
         : null,
+      intervalsLoad,
       today: { availableMinutes, feeling, note },
       yesterday,
+      currentPlan: {
+        title: (active.title as string | null) ?? "Lopend schema",
+        fromDate: today,
+        toDate: planTo,
+        workouts: (planned ?? []).map((workout) => ({
+          date: String(workout.scheduled_at).slice(0, 10),
+          title: workout.title as string,
+          durationMinutes: Number(workout.duration_minutes ?? 0),
+          intensity: workout.intensity as string,
+        })),
+      },
     };
 
     const adaptationReason = `Renner-aanpassing: tijd=${availableMinutes ?? "-"}min, gevoel=${feeling ?? "-"}.`;
@@ -550,6 +604,9 @@ export async function startTodayAdjustmentDraft(
       model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
       reasoningEffort: "low",
       timeoutMs: 15_000,
+      // Een dag-aanpassing mag één workout zijn; het oude minimum van 3 dwong de
+      // AI om de rest van de week te verzinnen.
+      minWorkouts: 1,
     });
     const initialStatus: TrainingDraftStatus =
       background.status === "queued" ? "queued" : "in_progress";

@@ -2,6 +2,8 @@ import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adaptiveDailyPrompt, normalizeWorkoutBlocks } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
+import { buildIntervalsLoad, buildRecentLoad } from "@/lib/training/draft";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type PlanRow = {
   id: string;
@@ -81,25 +83,25 @@ export async function POST(request: Request) {
           continue;
         }
 
-        const recent = recentActivities.reduce(
-          (acc, row) => ({
-            activities: acc.activities + 1,
-            distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
-            elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
-            hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
-          }),
-          { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
-        );
-
+        // De activiteiten van gisteren zijn alleen de trigger; de AI krijgt de
+        // trainingsbelasting over 28 dagen, net als de andere flows.
         const { wellnessForAi } = await import("@/lib/training/wellness");
-        const wellness = await wellnessForAi(admin, plan.profile_id).catch(
-          () => null,
-        );
-        const yesterday = await buildYesterdayContext(
-          admin,
-          plan.profile_id,
-          plan.id,
-        ).catch(() => null);
+        const [wellness, yesterday, recent, intervalsLoad] = await Promise.all([
+          wellnessForAi(admin, plan.profile_id).catch(() => null),
+          buildYesterdayContext(admin, plan.profile_id, plan.id).catch(() => null),
+          buildRecentLoad(admin, plan.profile_id),
+          buildIntervalsLoad(admin, plan.profile_id),
+        ]);
+
+        // Wat er nog gepland staat vanaf vandaag; zonder dit verzint de AI de
+        // resterende week opnieuw in plaats van hem aan te passen.
+        const { data: planned } = await admin
+          .from("training_workouts")
+          .select("scheduled_at, title, duration_minutes, intensity")
+          .eq("plan_id", plan.id)
+          .is("superseded_at", null)
+          .gte("scheduled_at", `${amsterdamDayKey()}T00:00:00`)
+          .order("scheduled_at", { ascending: true });
 
         const ai = await generateTrainingPlanDraft(
           {
@@ -132,10 +134,22 @@ export async function POST(request: Request) {
                   note: wellness.note,
                 }
               : null,
+            intervalsLoad,
             yesterday,
+            currentPlan: {
+              title: plan.title,
+              fromDate: amsterdamDayKey(),
+              toDate: String(plan.end_date).slice(0, 10),
+              workouts: (planned ?? []).map((workout) => ({
+                date: String(workout.scheduled_at).slice(0, 10),
+                title: workout.title as string,
+                durationMinutes: Number(workout.duration_minutes ?? 0),
+                intensity: workout.intensity as string,
+              })),
+            },
           },
           adaptiveDailyPrompt(),
-          { reasoningEffort: "low" },
+          { reasoningEffort: "low", minWorkouts: 1 },
         );
 
         const { data: draft, error: draftError } = await admin

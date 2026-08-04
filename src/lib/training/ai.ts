@@ -95,6 +95,21 @@ export type TrainingAiInput = {
   } | null;
   /** Naleving van het lopende schema: gepland vs. werkelijk gereden. */
   compliance?: ComplianceContext | null;
+  /**
+   * Het lopende schema waar een dag-aanpassing op ingrijpt: wat er nog gepland
+   * staat vanaf vandaag. Zonder dit zou de AI de week opnieuw moeten verzinnen.
+   */
+  currentPlan?: {
+    title: string;
+    fromDate: string;
+    toDate: string;
+    workouts: Array<{
+      date: string;
+      title: string;
+      durationMinutes: number;
+      intensity: string;
+    }>;
+  } | null;
   /** Alleen bij "schema bijwerken": wat er verandert en welk deel opnieuw mag. */
   planUpdate?: {
     reason: string;
@@ -118,7 +133,13 @@ export type TrainingAiInput = {
   } | null;
 };
 
-const PLAN_SCHEMA = {
+/**
+ * `minWorkouts` verschilt per flow: een nieuw plan of een bijwerking beslaat
+ * meerdere weken, maar een dag-aanpassing gaat vaak over één training. Stond dat
+ * minimum op 3, dan dwong het strict schema de AI om er twee bij te verzinnen —
+ * en die overschreven bij publicatie de echte workouts van die dagen.
+ */
+const planSchema = (minWorkouts: number) => ({
   type: "object",
   additionalProperties: false,
   required: ["title", "summary", "startDate", "endDate", "workouts", "cautions"],
@@ -130,7 +151,7 @@ const PLAN_SCHEMA = {
     cautions: { type: "array", items: { type: "string" } },
     workouts: {
       type: "array",
-      minItems: 3,
+      minItems: minWorkouts,
       // Een bijwerking beslaat de rest van het lopende schema en kan daarmee
       // meer weken omvatten dan een nieuw concept van drie weken.
       maxItems: 42,
@@ -196,7 +217,7 @@ const PLAN_SCHEMA = {
       },
     },
   },
-};
+});
 
 function outputText(response: unknown): string {
   const record = response as {
@@ -224,6 +245,8 @@ type GenerateTrainingPlanOptions = {
   model?: string;
   reasoningEffort?: "low" | "medium" | "high";
   timeoutMs?: number;
+  /** Minimum aantal workouts dat het antwoord moet bevatten. Default 3. */
+  minWorkouts?: number;
 };
 
 function getTrainingModel(options: GenerateTrainingPlanOptions) {
@@ -264,7 +287,7 @@ function buildTrainingPlanRequestBody(
         type: "json_schema",
         name: "zwb_training_plan",
         strict: true,
-        schema: PLAN_SCHEMA,
+        schema: planSchema(options.minWorkouts ?? 3),
       },
     },
   };

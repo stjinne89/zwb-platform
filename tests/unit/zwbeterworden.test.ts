@@ -5,6 +5,7 @@ import {
   ctlTrend,
   dayIndex,
   eftpTrend,
+  endOfWeekKey,
   fitnessTrendFromDelta,
   zwbeterWordenAdvice,
 } from "@/lib/training/zwbeterworden";
@@ -194,5 +195,31 @@ describe("amsterdamDayKey", () => {
     expect(amsterdamDayKey(new Date("2026-10-25T23:30:00+01:00"))).toBe(
       "2026-10-25",
     );
+  });
+});
+
+describe("endOfWeekKey", () => {
+  it("geeft de zondag van dezelfde week", () => {
+    // 2026-08-04 is een dinsdag.
+    expect(endOfWeekKey("2026-08-04")).toBe("2026-08-09");
+  });
+
+  it("laat maandag de hele week zien", () => {
+    expect(endOfWeekKey("2026-08-03")).toBe("2026-08-09");
+  });
+
+  it("houdt zondag op zichzelf in plaats van een week door te schuiven", () => {
+    expect(endOfWeekKey("2026-08-09")).toBe("2026-08-09");
+  });
+
+  it("stapt over een maand- en jaargrens", () => {
+    expect(endOfWeekKey("2026-08-31")).toBe("2026-09-06");
+    expect(endOfWeekKey("2026-12-31")).toBe("2027-01-03");
+  });
+
+  it("blijft op dezelfde datum rond de zomertijdovergang", () => {
+    // Laatste zondag van oktober; een UTC-middaganker voorkomt dat de
+    // klokverzetting de dag een stap terug duwt.
+    expect(endOfWeekKey("2026-10-20")).toBe("2026-10-25");
   });
 });
