@@ -94,6 +94,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "fit export fietscomputer wahoo garmin elemnt bolt roam workout",
   },
   {
+    title: "Workout in Zwift",
+    text: "Zwift koppelen aan intervals.icu, dan staat je training vanzelf klaar.",
+    href: "/hulp#zwift-workout",
+    terms:
+      "zwift koppelen connect indoor trainer workout training zwo custom intervals icu ftp percentage smart",
+  },
+  {
     title: "Events en RSVP",
     text: "Kalender, routes, GPX, liveticker en aanmelden.",
     href: "/hulp#events",

@@ -14,6 +14,7 @@ import {
   HeartPulse,
   MapPinned,
   Medal,
+  Monitor,
   Mountain,
   Navigation,
   ShieldCheck,
@@ -229,6 +230,33 @@ const WAHOO_STEPS = [
     title: "Synchroniseer je ELEMNT",
     text: "De workouts verschijnen op je ELEMNT onder Planned Workouts (sync via wifi of de ELEMNT-app). Geen bestand downloaden nodig.",
   },
+];
+
+const ZWIFT_STEPS = [
+  {
+    title: "Open de Zwift-instellingen op intervals.icu",
+    text: "Ga op intervals.icu naar Settings (instellingen) en zoek het Zwift-blok.",
+  },
+  {
+    title: "Connect",
+    text: "Klik op 'Connect' en geef toestemming. Log eerst in op het Zwift-account dat je zelf gebruikt.",
+  },
+  {
+    title: "Zet ritten aan bij de workout-types",
+    text: "Kies welke types naar Zwift gaan en zorg dat ritten aanstaan. De workouts van de komende week gaan dan automatisch mee.",
+  },
+  {
+    title: "Start Zwift",
+    text: "De training van vandaag staat op het beginscherm, of via Workouts → Custom → Intervals.icu.",
+  },
+];
+
+const ZWIFT_NOTES = [
+  "Zet je FTP in Zwift gelijk aan die in ZWB: de blokken gaan als percentage van je FTP mee, dus een afwijkende FTP geeft andere watts.",
+  "Alleen vermogen en cadans gaan mee, geen hartslagdoelen.",
+  "Alleen de komende week wordt vooruitgestuurd, niet je hele schema.",
+  "Je Zwift-ritten komen vanzelf terug in intervals.icu, dus je belasting in ZWB blijft kloppen.",
+  "Dag aangepast? Publiceer opnieuw, dan gaat de nieuwe versie bij de volgende sync mee.",
 ];
 
 const DATA_FRESHNESS_HELP = [
@@ -1503,6 +1531,61 @@ Fitness-status: Verbeterend`}
                 aan? Publiceer opnieuw, dan staat de nieuwste versie klaar.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="zwift-workout"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Monitor className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Workout in Zwift</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Koppel Zwift één keer aan intervals.icu, daarna staat de training
+              van de dag vanzelf in Zwift klaar.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Zap className="size-4 text-primary" />
+              Zwift koppelen
+            </h3>
+            <ol className="mt-3 space-y-3">
+              {ZWIFT_STEPS.map((step, index) => (
+                <li key={step.title} className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {step.text}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <CircleHelp className="size-4 text-primary" />
+              Goed om te weten
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {ZWIFT_NOTES.map((note) => (
+                <li key={note} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
