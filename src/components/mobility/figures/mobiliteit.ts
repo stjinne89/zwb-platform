@@ -179,33 +179,39 @@ export const MOBILITY_POSES: Record<string, Pose[]> = {
 
   "child-pose": [
     {
-      // Zit op de hielen: knie naar voren, voet ónder de zitbotten terug.
-      head: [150, 112],
-      neck: [152, 138],
-      hip: [156, 172],
+      // Zit op de hielen, gezicht naar links: knie naar voren, voet ónder de
+      // zitbotten terug. Beide poses kijken dezelfde kant op, anders klapt de
+      // figuur tijdens de lus 180 graden om.
+      head: [180, 108],
+      neck: [178, 134],
+      hip: [178, 172],
       arm: [
-        [140, 158],
-        [132, 176],
+        [162, 154],
+        [146, 168],
       ],
       leg: [
-        [198, 186],
-        [160, 190],
+        [136, 186],
+        [174, 190],
       ],
     },
     {
-      head: [92, 168],
-      neck: [116, 174],
-      hip: [176, 178],
-      torsoPath: "M 116 174 Q 148 160 176 178",
+      // Vanuit diezelfde zit naar voren gevouwen: knieën blijven links liggen,
+      // de romp zakt eroverheen.
+      // Zitbotten blijven hoog op de hielen, borst zakt naar de mat: die
+      // schuine lijn is wat de houding herkenbaar maakt.
+      head: [88, 178],
+      neck: [112, 180],
+      hip: [178, 160],
+      torsoPath: "M 112 180 Q 146 176 178 160",
       arm: [
-        [80, 178],
-        [46, 184],
+        [76, 184],
+        [44, 188],
       ],
       leg: [
-        [212, 186],
-        [178, 190],
+        [136, 184],
+        [176, 190],
       ],
-      accent: { d: "M 46 176 L 178 170", dashed: true },
+      accent: { d: "M 44 180 L 182 154", dashed: true },
     },
   ],
 

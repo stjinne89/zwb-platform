@@ -7,13 +7,13 @@ import type { Pose } from "./figure-kit";
 export const ACTIVATION_POSES: Record<string, Pose[]> = {
   "leg-swing": [
     {
-      props: ["M 252 54 L 252 190"],
+      props: ["M 276 54 L 276 190"],
       head: [150, 62],
       neck: [152, 90],
       hip: [154, 146],
       arm: [
-        [192, 110],
-        [242, 104],
+        [206, 110],
+        [266, 104],
       ],
       leg: [
         [116, 152],
@@ -34,13 +34,13 @@ export const ACTIVATION_POSES: Record<string, Pose[]> = {
       },
     },
     {
-      props: ["M 252 54 L 252 190"],
+      props: ["M 276 54 L 276 190"],
       head: [150, 62],
       neck: [152, 90],
       hip: [154, 146],
       arm: [
-        [192, 110],
-        [242, 104],
+        [206, 110],
+        [266, 104],
       ],
       leg: [
         [186, 154],
