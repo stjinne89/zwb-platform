@@ -4,23 +4,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { AdminStravaSync, type SyncMember } from "./_components/admin-strava-sync";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-// Gelijk aan /stats en de dashboard club-stats widget: alleen fietsdisciplines
-// tellen mee voor de clubstatistieken.
-const CYCLING_SPORTS = [
-  "Ride",
-  "VirtualRide",
-  "MountainBikeRide",
-  "EBikeRide",
-  "GravelRide",
-  "EMountainBikeRide",
-  "Velomobile",
-  "Handcycle",
-];
 
 type ConnectionRow = {
   profile_id: string;

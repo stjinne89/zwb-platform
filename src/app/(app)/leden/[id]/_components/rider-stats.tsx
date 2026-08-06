@@ -18,17 +18,7 @@ import {
   Sunrise,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-
-const CYCLING_SPORTS = [
-  "Ride",
-  "VirtualRide",
-  "MountainBikeRide",
-  "EBikeRide",
-  "GravelRide",
-  "EMountainBikeRide",
-  "Velomobile",
-  "Handcycle",
-];
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
 
 type ActivityRow = {
   id: number;

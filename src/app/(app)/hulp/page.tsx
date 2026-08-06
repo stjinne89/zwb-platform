@@ -11,6 +11,7 @@ import {
   Dumbbell,
   FileText,
   Gauge,
+  Grid3x3,
   HeartPulse,
   MapPinned,
   Medal,
@@ -1311,6 +1312,76 @@ Fitness-status: Verbeterend`}
             </span>
           </li>
         </ul>
+      </section>
+
+      <section
+        id="zwblokken"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Grid3x3 className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBlokken</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              De kaart is verdeeld in blokken van ongeveer anderhalve kilometer.
+              Rijd je door een blok, dan kleurt het in — voor jou én voor de
+              club. Zo zie je in één oogopslag welke hoeken je nog nooit gehad
+              hebt.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              De blokken komen uit je Strava-ritten. Zonder Strava-koppeling
+              blijft je eigen laag leeg; de clubkaart zie je wel.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Zwift en andere
+              indoorritten tellen niet mee.</strong> Die spelen zich af in een
+              virtuele wereld en zouden een vlek midden op zee opleveren.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Uit privacy-overweging telt het blok waar een rit begint of
+              eindigt nooit mee, en laten we ook de eerste en laatste kilometer
+              van elke rit buiten beschouwing. Je woonadres komt dus niet als
+              opgelicht blok op de kaart.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Hoe donkerder een clubblok, hoe meer verschillende leden er
+              geweest zijn. De goudkleurige blokken zijn die van het lid dat je
+              in de kiezer hebt staan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Nieuwe ritten komen erbij zodra de Strava-sync gedraaid heeft,
+              meestal binnen een half uur.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/zwblokken"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Grid3x3 className="size-4 text-primary" />
+            Naar ZWBlokken
+          </Link>
+        </div>
       </section>
 
       <section

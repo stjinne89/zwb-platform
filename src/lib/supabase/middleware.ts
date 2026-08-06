@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
   "/api/events/scan",
   "/api/training/adaptations/daily",
   "/api/health/integrations",
+  "/api/zwblokken/backfill",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

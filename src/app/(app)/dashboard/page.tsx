@@ -34,17 +34,7 @@ import {
 } from "./_components/training-status";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
-
-const CYCLING_SPORTS = [
-  "Ride",
-  "VirtualRide",
-  "MountainBikeRide",
-  "EBikeRide",
-  "GravelRide",
-  "EMountainBikeRide",
-  "Velomobile",
-  "Handcycle",
-];
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
 
 type ProfileRef = {
   display_name: string | null;

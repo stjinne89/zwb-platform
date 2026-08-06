@@ -113,6 +113,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "verjaardag verjaardagsrondje aanmelden rit jarig",
   },
   {
+    title: "ZWBlokken",
+    text: "De blokkenkaart: waar heb jij en waar heeft de club al gereden?",
+    href: "/hulp#zwblokken",
+    terms:
+      "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken",
+  },
+  {
     title: "Privacy en zichtbaarheid",
     text: "Profielvelden, live tracking en trainer-data delen.",
     href: "/hulp#privacy",

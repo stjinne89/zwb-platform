@@ -41,6 +41,7 @@ Twee soorten geplande jobs:
 | Training-adaptaties (drafts) | Externe cron | dagelijks | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | Team-resultaten sync | Externe cron | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
 | Achievements finalize | Externe cron | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
+| ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
 
 **Als een cron faalt**: alle routes zijn idempotent en mogen veilig opnieuw
 worden aangeroepen. Test handmatig met:
@@ -153,6 +154,13 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   draait (Netlify → Functions → logs).
 - **Cron draait niet** → controleer in cron-job.org of het secret en de URL nog
   kloppen; test handmatig met curl (sectie 2).
+- **"ZWBlokken-kaart is leeg of loopt achter"** → de backfill is per aanroep
+  begrensd op `limit` profielen × `maxActivities` ritten. Roep hem herhaald aan
+  tot het antwoord `"remaining": false` geeft; daarna houdt de Strava-sync het
+  bij. Klopt de berekening niet meer, dan is
+  `update public.strava_activities set blocks_processed_at = null;` (eventueel
+  met `where profile_id = …`) de reset — de blokken worden dan opnieuw
+  opgebouwd.
 - **"ZWB-samenvatting verschijnt niet in Strava"** → loop deze vijf langs:
   1. `STRAVA_ZWB_SUMMARY_SINCE` is gezet en ligt vóór de rit (leeg = uit).
   2. `STRAVA_SYNC_ZWB_SUMMARY_MAX_WRITES` staat niet op 0.

@@ -696,6 +696,15 @@ export async function syncStravaActivitiesForUser(
           // niet kritiek voor de sync-flow
         }
 
+        // ZWBlokken — verwerkt alleen de nog niet gemarkeerde ritten, dus na
+        // de eerste inhaalslag is dit een paar ritten per sync.
+        try {
+          const { syncBlocksForUser } = await import("@/lib/zwblokken/sync");
+          await syncBlocksForUser(admin, profileId);
+        } catch {
+          // niet kritiek voor de sync-flow
+        }
+
         if (removed > 0) {
           try {
             const { repairDeletedColBestTimesForUser } = await import(

@@ -67,6 +67,7 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/achievements", label: "Achievements" },
       { type: "link", href: "/stats", label: "Stats" },
+      { type: "link", href: "/zwblokken", label: "ZWBlokken" },
       {
         type: "link",
         href: "https://zwbomnium.netlify.app/",

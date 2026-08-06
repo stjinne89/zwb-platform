@@ -64,9 +64,20 @@ export default function PrivacyPage() {
             jou aangewezen trainer) zichtbaar.
           </li>
           <li>
-            <strong>Locatiegegevens (alleen tijdens live tracking):</strong> als je
-            een live rit start, worden je GPS-positie, snelheid en hoogte gedeeld
-            met clubleden. Dit is per rit opt-in en stopt automatisch.
+            <strong>Locatiegegevens tijdens live tracking:</strong> als je een
+            live rit start, worden je GPS-positie, snelheid en hoogte gedeeld met
+            clubleden. Dit is per rit opt-in en stopt automatisch.
+          </li>
+          <li>
+            <strong>Grofmazig bereden gebied (ZWBlokken):</strong> uit je
+            Strava-ritten leiden we af in welke vakken van ongeveer anderhalve
+            kilometer je gereden hebt. Die kaart is voor clubleden zichtbaar,
+            per lid en voor de club samen. Er staan geen routes of tijden in:
+            alleen of een vak wel of niet is aangedaan. Het vak waarin een rit
+            begint of eindigt telt nooit mee en de eerste en laatste kilometer
+            van elke rit laten we buiten beschouwing, zodat je woonadres er niet
+            uit af te leiden is. Zwift- en andere indoorritten blijven volledig
+            buiten deze kaart.
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
@@ -120,6 +131,9 @@ export default function PrivacyPage() {
       <Section title="4. Hoe lang we gegevens bewaren">
         <ul className="list-disc space-y-1 pl-5">
           <li>Live GPS-posities worden na 30 dagen automatisch verwijderd.</li>
+          <li>
+            Je ZWBlokken worden mee verwijderd als je account wordt verwijderd.
+          </li>
           <li>
             Profiel-, activiteiten- en communityinhoud bewaren we zolang je lid
             bent. Bij het verwijderen van je account worden deze gegevens gewist.

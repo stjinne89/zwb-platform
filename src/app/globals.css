@@ -64,6 +64,14 @@
   --zwb-sage: #7f9590;
   --zwb-gold: #b8873d;
 
+  /* ZWBlokken-kaart. Als losse RGB-tripletten omdat een canvas geen CSS
+     variabelen kent: de laag leest ze uit en bouwt er zelf rgba() mee.
+     Sage viel als lichtste stap weg tegen de kaart, dus de schaal loopt nu
+     helemaal binnen de teal-familie. */
+  --zwblok-club: 31 96 104;        /* teal — één lid is hier geweest */
+  --zwblok-club-busy: 0 70 83;     /* petrol — door de hele club bereden */
+  --zwblok-own: 184 135 61;        /* gold — jouw blokken */
+
   --background: oklch(0.965 0.011 103);
   --foreground: oklch(0.22 0.034 215);
   --card: oklch(0.992 0.006 103);
@@ -100,6 +108,12 @@
 
 /* ---------- Dark theme ---------- */
 .dark {
+  /* Petrol verdwijnt in een donkere kaart, dus de schaal draait om: druk
+     bereden wordt hier juist lichter in plaats van donkerder. */
+  --zwblok-club: 60 130 140;       /* teal */
+  --zwblok-club-busy: 110 200 210; /* lichte teal */
+  --zwblok-own: 214 172 96;
+
   --background: oklch(0.16 0.025 220);              /* deep petrol */
   --foreground: oklch(0.97 0.005 80);
   --card: oklch(0.22 0.025 220);

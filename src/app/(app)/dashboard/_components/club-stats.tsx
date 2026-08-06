@@ -1,5 +1,6 @@
 import { TrendingUp, Mountain, Clock, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import {
   RiderOfTheMonthCarousel,
   type RiderMetricSlide,
@@ -14,17 +15,6 @@ import {
 // Query gaat over de laatste ~13 weken (zo zit zowel vorige maand als
 // huidige maand er volledig in) en groepeert pas in TS — dat is voor de
 // huidige clubgrootte ruim snel genoeg en vermijdt een Postgres-RPC.
-
-const CYCLING_SPORTS = [
-  "Ride",
-  "VirtualRide",
-  "MountainBikeRide",
-  "EBikeRide",
-  "GravelRide",
-  "EMountainBikeRide",
-  "Velomobile",
-  "Handcycle",
-];
 
 const WEEKS_BACK = 13;
 

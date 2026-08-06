@@ -2,22 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bike, Clock, Mountain, Trophy, Users, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 
 export const dynamic = "force-dynamic";
-
-// Cycling sport_types (gelijk aan de dashboard club-stats widget).
-const CYCLING_SPORTS = [
-  "Ride",
-  "VirtualRide",
-  "MountainBikeRide",
-  "EBikeRide",
-  "GravelRide",
-  "EMountainBikeRide",
-  "Velomobile",
-  "Handcycle",
-];
 
 const DISCIPLINE_LABELS: Record<string, string> = {
   Ride: "Weg",
