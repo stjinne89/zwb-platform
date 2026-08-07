@@ -71,6 +71,10 @@
   --zwblok-club: 31 96 104;        /* teal — één lid is hier geweest */
   --zwblok-club-busy: 0 70 83;     /* petrol — door de hele club bereden */
   --zwblok-own: 184 135 61;        /* gold — jouw blokken */
+  /* Hetzelfde goud haalt als kleine tekst op een lichte achtergrond maar
+     3,1:1. Voor cijfers en labels dus een diepere tint (4,9:1); vlakken en
+     balken houden het kaartgoud hierboven. */
+  --zwblok-own-text: 143 102 38;
 
   --background: oklch(0.965 0.011 103);
   --foreground: oklch(0.22 0.034 215);
@@ -113,6 +117,8 @@
   --zwblok-club: 60 130 140;       /* teal */
   --zwblok-club-busy: 110 200 210; /* lichte teal */
   --zwblok-own: 214 172 96;
+  /* Op donker haalt het kaartgoud zelf 7:1, dus geen aparte tekstkleur nodig. */
+  --zwblok-own-text: 214 172 96;
 
   --background: oklch(0.16 0.025 220);              /* deep petrol */
   --foreground: oklch(0.97 0.005 80);
@@ -170,6 +176,13 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Het aangeklikte ZWBlok op de kaart. Als CSS-regel en niet via Leaflets
+   pathOptions.color, want een var() in een SVG-presentatieattribuut wordt niet
+   in elke browser opgelost. */
+.leaflet-overlay-pane .zwblok-picked {
+  stroke: rgb(var(--zwblok-own));
 }
 
 @layer components {

@@ -35,6 +35,39 @@ function formatPct(value: number): string {
   })}%`;
 }
 
+// Vlakken krijgen de kaartkleur, tekst een variant met genoeg contrast: het
+// merkgoud haalt als kleine tekst op een lichte achtergrond maar 3,1:1.
+const OWN_FILL = "rgb(var(--zwblok-own))";
+const OWN_TEXT = "rgb(var(--zwblok-own-text))";
+const CLUB = "rgb(var(--zwblok-club-busy))";
+
+/**
+ * Eén balk voor beide waarden, met goud binnen teal. Dat mag omdat je eigen
+ * blokken per definitie een deelverzameling van de clubblokken zijn: jouw
+ * percentage kan nooit hoger liggen. Zo leest de balk hetzelfde als de kaart,
+ * waar jouw goud ook binnen het clubgebied ligt.
+ */
+function Bar({ ownPct, clubPct }: { ownPct: number; clubPct: number }) {
+  // Een waarde die niet nul is moet zichtbaar blijven, ook bij 0,1%.
+  const width = (value: number) =>
+    value <= 0 ? 0 : Math.max(2, Math.min(100, value));
+  return (
+    <span
+      aria-hidden
+      className="relative mt-1 block h-1.5 overflow-hidden rounded-full bg-muted"
+    >
+      <span
+        className="absolute inset-y-0 left-0 rounded-full"
+        style={{ width: `${width(clubPct)}%`, background: CLUB }}
+      />
+      <span
+        className="absolute inset-y-0 left-0 rounded-full"
+        style={{ width: `${width(ownPct)}%`, background: OWN_FILL }}
+      />
+    </span>
+  );
+}
+
 function Table({
   rows,
   caption,
@@ -51,37 +84,44 @@ function Table({
       <div className="mt-2 overflow-x-auto">
         <table className="w-full min-w-[24rem] text-sm">
           <thead>
-            <tr className="border-b text-xs text-muted-foreground">
-              <th className="py-1.5 pr-3 text-left font-medium">Gebied</th>
-              <th className="py-1.5 pr-3 text-right font-medium">
+            <tr className="border-b text-xs">
+              <th className="py-1.5 pr-3 text-left font-medium text-muted-foreground">
+                Gebied
+              </th>
+              <th
+                className="py-1.5 pr-3 text-right font-medium"
+                style={{ color: OWN_TEXT }}
+              >
                 {memberName}
               </th>
-              <th className="py-1.5 text-right font-medium">Club</th>
+              <th
+                className="py-1.5 text-right font-medium"
+                style={{ color: CLUB }}
+              >
+                Club
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map(({ region, own, club }) => {
+              const ownPct = pct(own, region.blocks);
               const clubPct = pct(club, region.blocks);
               return (
                 <tr key={region.code} className="border-b last:border-0">
                   <td className="py-1.5 pr-3">
                     {region.name}
-                    <span
-                      aria-hidden
-                      className="mt-1 block h-1 overflow-hidden rounded-full bg-muted"
-                    >
-                      <span
-                        className="block h-full rounded-full bg-[rgb(var(--zwblok-club-busy))]"
-                        style={{
-                          width: `${Math.max(1.5, Math.min(100, clubPct))}%`,
-                        }}
-                      />
-                    </span>
+                    <Bar ownPct={ownPct} clubPct={clubPct} />
                   </td>
-                  <td className="py-1.5 pr-3 text-right align-top tabular-nums">
-                    {formatPct(pct(own, region.blocks))}
+                  <td
+                    className="py-1.5 pr-3 text-right align-top font-medium tabular-nums"
+                    style={{ color: OWN_TEXT }}
+                  >
+                    {formatPct(ownPct)}
                   </td>
-                  <td className="py-1.5 text-right align-top tabular-nums text-muted-foreground">
+                  <td
+                    className="py-1.5 text-right align-top tabular-nums"
+                    style={{ color: CLUB }}
+                  >
                     {formatPct(clubPct)}
                   </td>
                 </tr>

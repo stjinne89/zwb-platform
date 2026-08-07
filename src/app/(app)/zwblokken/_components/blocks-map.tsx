@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { Maximize2, X } from "lucide-react";
 import { blockBounds } from "@/lib/zwblokken/grid";
 import { BlocksLayer, type BlockSet } from "./blocks-layer";
+import { BlockRiders, type Rider } from "./block-riders";
 import "leaflet/dist/leaflet.css";
 
 // react-leaflet hits window during init — must be client-only.
@@ -17,6 +18,14 @@ const TileLayer = dynamic(
   () => import("react-leaflet").then((m) => m.TileLayer),
   { ssr: false },
 );
+const Rectangle = dynamic(
+  () => import("react-leaflet").then((m) => m.Rectangle),
+  { ssr: false },
+);
+const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), {
+  ssr: false,
+});
+const BlockClick = dynamic(() => import("./block-click"), { ssr: false });
 
 /** Compacte transportvorm: x → lijst van y's (plus rider_count voor de club). */
 export type PackedBlocks = Record<string, number[]>;
@@ -48,6 +57,12 @@ function unpackClub(packed: PackedClubBlocks): BlockSet {
   return out;
 }
 
+/** Middelpunt van één blok, voor het plaatsen van de popup. */
+function blockCentre(x: number, y: number): [number, number] {
+  const [[south, west], [north, east]] = blockBounds(x, y);
+  return [(south + north) / 2, (west + east) / 2];
+}
+
 /** Zwaartepunt van een blokkenset, zodat de kaart opent waar de data ligt. */
 function centerOf(blocks: BlockSet): [number, number] | null {
   let sumX = 0;
@@ -71,6 +86,34 @@ function centerOf(blocks: BlockSet): [number, number] | null {
 export function BlocksMap({ club, own, maxRiders }: Props) {
   const { resolvedTheme } = useTheme();
   const [fullscreen, setFullscreen] = useState(false);
+  const [picked, setPicked] = useState<{ x: number; y: number } | null>(null);
+  // Per blok bewaard, zodat opnieuw klikken op hetzelfde blok niets kost.
+  const [ridersByBlock, setRidersByBlock] = useState<Record<string, Rider[]>>(
+    {},
+  );
+
+  const pickedKey = picked ? `${picked.x}/${picked.y}` : null;
+  const riders = pickedKey ? (ridersByBlock[pickedKey] ?? null) : null;
+
+  // Klik op een blok: wie is hier geweest? Per blok opgevraagd, want de hele
+  // koppeling blok → leden vooraf meesturen is veel te zwaar.
+  useEffect(() => {
+    if (!picked || !pickedKey || ridersByBlock[pickedKey]) return;
+    let cancelled = false;
+    fetch(`/api/zwblokken/block?x=${picked.x}&y=${picked.y}`)
+      .then((res) => (res.ok ? res.json() : { riders: [] }))
+      .then((json) => {
+        if (cancelled) return;
+        setRidersByBlock((prev) => ({ ...prev, [pickedKey]: json.riders ?? [] }));
+      })
+      .catch(() => {
+        if (!cancelled)
+          setRidersByBlock((prev) => ({ ...prev, [pickedKey]: [] }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [picked, pickedKey, ridersByBlock]);
 
   const clubBlocks = useMemo(() => unpackClub(club), [club]);
   const ownBlocks = useMemo(() => unpackOwn(own), [own]);
@@ -113,6 +156,35 @@ export function BlocksMap({ club, own, maxRiders }: Props) {
         maxRiders={maxRiders}
         theme={resolvedTheme}
       />
+      <BlockClick onPick={(x, y) => setPicked({ x, y })} />
+      {picked ? (
+        <>
+          {/* De rand maakt zichtbaar wélk blok je geraakt hebt — bij uitzoomen
+              is een blok maar een paar pixels breed. Niet interactief, anders
+              vangt hij de volgende klik af. De kleur komt uit CSS: een var()
+              in een Leaflet-strokekleur wordt niet overal opgelost. */}
+          <Rectangle
+            key={`${picked.x}/${picked.y}`}
+            bounds={blockBounds(picked.x, picked.y)}
+            pathOptions={{
+              className: "zwblok-picked",
+              weight: 2,
+              fillOpacity: 0,
+              interactive: false,
+            }}
+          />
+          {/* Losstaande popup i.p.v. genest in de Rectangle: genest opent hij
+              pas als je de rand zelf aanklikt, en je klikte op de kaart. */}
+          <Popup
+            key={`popup-${picked.x}/${picked.y}`}
+            position={blockCentre(picked.x, picked.y)}
+            autoPan
+            eventHandlers={{ remove: () => setPicked(null) }}
+          >
+            <BlockRiders riders={riders} loading={riders === null} />
+          </Popup>
+        </>
+      ) : null}
     </MapContainer>
   );
 
