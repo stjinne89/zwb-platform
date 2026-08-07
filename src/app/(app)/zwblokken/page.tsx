@@ -52,7 +52,12 @@ export default async function ZwblokkenPage() {
       return b.blocks - a.blocks;
     });
 
-  const leaderboard = members.filter((m) => m.blocks > 0).slice(0, 10);
+  // Eigen sortering: de kiezer zet jou bovenaan, maar in een ranglijst hoort
+  // iedereen gewoon op zijn eigen plek te staan.
+  const leaderboard = [...members]
+    .filter((m) => m.blocks > 0)
+    .sort((a, b) => b.blocks - a.blocks)
+    .slice(0, 10);
 
   return (
     <div className="space-y-6">
