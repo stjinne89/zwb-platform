@@ -9,7 +9,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OUTDOOR_CYCLING_SPORTS } from "@/lib/strava/sports";
-import { syncBlocksForUser } from "@/lib/zwblokken/sync";
+import { backfillRegions, syncBlocksForUser } from "@/lib/zwblokken/sync";
 
 type ProfileResult = {
   profileId: string;
@@ -18,6 +18,12 @@ type ProfileResult = {
   remaining: boolean;
   error?: string;
 };
+
+function nonNegativeInt(value: string | null, fallback: number, max: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return Math.min(parsed, max);
+}
 
 function positiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -84,6 +90,17 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
+
+    // Eenmalig na de regio-migratie: country/province op bestaande blokken.
+    // Puur databasewerk, dus in één aanroep te doen; `offset` is er voor als
+    // je 'm toch in stukken wilt draaien (bv. tegen een functietimeout aan).
+    if (url.searchParams.get("regions")) {
+      const result = await backfillRegions(admin, {
+        maxRows: positiveInt(url.searchParams.get("maxRows"), 100_000, 500_000),
+        startAt: nonNegativeInt(url.searchParams.get("offset"), 0, 5_000_000),
+      });
+      return Response.json({ ok: true, mode: "regions", ...result });
+    }
 
     const candidates = only
       ? [only]

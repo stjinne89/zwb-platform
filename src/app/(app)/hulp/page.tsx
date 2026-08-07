@@ -1367,6 +1367,14 @@ Fitness-status: Verbeterend`}
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
+              Onder de kaart staat per provincie en per Europees land hoeveel
+              procent van de blokken je gehad hebt. Ritten buiten Europa kleuren
+              wel op de kaart, maar hebben geen gebied in die tabel.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
               Nieuwe ritten komen erbij zodra de Strava-sync gedraaid heeft,
               meestal binnen een half uur.
             </span>

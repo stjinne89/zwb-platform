@@ -2,7 +2,7 @@
 // De pagina levert de eerste set als prop mee; deze route is er voor de rest.
 
 import { createClient } from "@/lib/supabase/server";
-import { fetchOwnBlocks } from "@/lib/zwblokken/query";
+import { countNewThisYear, fetchOwnBlocks } from "@/lib/zwblokken/query";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -19,10 +19,18 @@ export async function GET(request: Request) {
   }
 
   // RLS op profile_blocks bepaalt wat een lid mag zien; hier geen extra check.
-  const blocks = await fetchOwnBlocks(supabase, profileId);
+  const [{ packed, regions, total }, newThisYear] = await Promise.all([
+    fetchOwnBlocks(supabase, profileId),
+    countNewThisYear(supabase, profileId),
+  ]);
 
   return Response.json(
-    { blocks },
+    {
+      blocks: packed,
+      regions: Object.fromEntries(regions),
+      total,
+      newThisYear,
+    },
     { headers: { "Cache-Control": "private, max-age=300" } },
   );
 }

@@ -13,6 +13,7 @@ import polyline from "@mapbox/polyline";
 import type { GpxPoint } from "@/lib/gpx";
 import { OUTDOOR_CYCLING_SPORTS, looksVirtual } from "@/lib/strava/sports";
 import { BLOCK_ZOOM, blocksForActivity, parseBlockKey } from "./grid";
+import { regionForBlock } from "./regions";
 
 type ActivityRow = {
   id: number;
@@ -125,11 +126,14 @@ async function processBatch(
   if (firstSeen.size > 0) {
     const rows = [...firstSeen].map(([key, seen]) => {
       const { x, y } = parseBlockKey(key);
+      const { country, province } = regionForBlock(x, y);
       return {
         profile_id: profileId,
         z: BLOCK_ZOOM,
         x,
         y,
+        country,
+        province,
         first_activity_id: seen.activityId,
         first_seen_at: seen.startDate,
       };
@@ -169,6 +173,69 @@ function decodePolyline(encoded: string | null): GpxPoint[] | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Vult country/province op blokken die van vóór de regio-migratie stammen.
+ *
+ * We kunnen "nog niet bepaald" niet aan een lege country herkennen — buiten
+ * Europa is die waarde terecht leeg — dus loopt dit gewoon één keer over alle
+ * rijen heen. Idempotent: opnieuw draaien schrijft dezelfde waarden.
+ */
+export async function backfillRegions(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  options: { maxRows?: number; startAt?: number } = {},
+): Promise<{ updated: number; remaining: boolean; nextOffset: number }> {
+  const maxRows = Math.max(1, options.maxRows ?? 20_000);
+  const startAt = Math.max(0, options.startAt ?? 0);
+  const PAGE_SIZE = 1000;
+  let updated = 0;
+
+  // Vaste sortering, zodat de offset tussen aanroepen naar dezelfde rijen
+  // blijft wijzen; zonder cursor zou elke aanroep weer bij nul beginnen.
+  for (let offset = 0; offset < maxRows; offset += PAGE_SIZE) {
+    const from = startAt + offset;
+    const { data, error } = await supabase
+      .from("profile_blocks")
+      .select("profile_id, z, x, y, first_activity_id, first_seen_at")
+      .order("profile_id", { ascending: true })
+      .order("x", { ascending: true })
+      .order("y", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as {
+      profile_id: string;
+      z: number;
+      x: number;
+      y: number;
+      first_activity_id: number | null;
+      first_seen_at: string;
+    }[];
+    if (rows.length === 0) {
+      return { updated, remaining: false, nextOffset: startAt + updated };
+    }
+
+    // Alle velden meesturen: dit is een upsert die bestaande rijen bijwerkt,
+    // dus wat we niet meesturen zou op de standaardwaarde belanden.
+    const withRegion = rows.map((row) => ({
+      ...row,
+      ...regionForBlock(row.x, row.y),
+    }));
+
+    const { error: upsertError } = await supabase
+      .from("profile_blocks")
+      .upsert(withRegion, { onConflict: "profile_id,z,x,y" });
+    if (upsertError) throw new Error(upsertError.message);
+
+    updated += rows.length;
+    if (rows.length < PAGE_SIZE) {
+      return { updated, remaining: false, nextOffset: startAt + updated };
+    }
+  }
+
+  return { updated, remaining: true, nextOffset: startAt + updated };
 }
 
 /**

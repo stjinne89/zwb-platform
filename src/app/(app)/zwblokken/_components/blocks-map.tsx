@@ -22,17 +22,10 @@ const TileLayer = dynamic(
 export type PackedBlocks = Record<string, number[]>;
 export type PackedClubBlocks = Record<string, [number, number][]>;
 
-export type MemberOption = { id: string; name: string; blocks: number };
-
-/** Stabiele referentie, zodat een lege set geen hertekening uitlokt. */
-const EMPTY: PackedBlocks = {};
-
 type Props = {
   club: PackedClubBlocks;
+  own: PackedBlocks;
   maxRiders: number;
-  initialOwn: PackedBlocks;
-  members: MemberOption[];
-  selectedId: string;
 };
 
 function unpackOwn(packed: PackedBlocks): BlockSet {
@@ -75,49 +68,17 @@ function centerOf(blocks: BlockSet): [number, number] | null {
   return [(south + north) / 2, (west + east) / 2];
 }
 
-export function BlocksMap({
-  club,
-  maxRiders,
-  initialOwn,
-  members,
-  selectedId,
-}: Props) {
+export function BlocksMap({ club, own, maxRiders }: Props) {
   const { resolvedTheme } = useTheme();
-  const [memberId, setMemberId] = useState(selectedId);
-  // Opgehaalde sets per lid, zodat heen-en-weer wisselen niet opnieuw fetcht.
-  const [fetched, setFetched] = useState<Record<string, PackedBlocks>>({});
   const [fullscreen, setFullscreen] = useState(false);
 
-  const pending = memberId !== selectedId && !fetched[memberId];
-  const ownPacked =
-    memberId === selectedId ? initialOwn : fetched[memberId] ?? EMPTY;
-
   const clubBlocks = useMemo(() => unpackClub(club), [club]);
-  const ownBlocks = useMemo(() => unpackOwn(ownPacked), [ownPacked]);
+  const ownBlocks = useMemo(() => unpackOwn(own), [own]);
   // Valt terug op het midden van Nederland als er nog niets te tonen is.
   const center = useMemo<[number, number]>(
     () => centerOf(ownBlocks) ?? centerOf(clubBlocks) ?? [52.09, 5.11],
     [ownBlocks, clubBlocks],
   );
-
-  useEffect(() => {
-    if (memberId === selectedId || fetched[memberId]) return;
-
-    let cancelled = false;
-    fetch(`/api/zwblokken?profile=${encodeURIComponent(memberId)}`)
-      .then((res) => (res.ok ? res.json() : { blocks: EMPTY }))
-      .then((data) => {
-        if (cancelled) return;
-        setFetched((prev) => ({ ...prev, [memberId]: data.blocks ?? EMPTY }));
-      })
-      .catch(() => {
-        // Ook bij een fout een (lege) set opslaan, anders blijft "Laden…" staan.
-        if (!cancelled) setFetched((prev) => ({ ...prev, [memberId]: EMPTY }));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [memberId, selectedId, fetched]);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -156,40 +117,7 @@ export function BlocksMap({
   );
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={memberId}
-          onChange={(e) => setMemberId(e.target.value)}
-          className="rounded-md border border-border bg-card px-3 py-2 text-sm"
-        >
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name} ({m.blocks})
-            </option>
-          ))}
-        </select>
-        {pending ? (
-          <span className="text-sm text-muted-foreground">Laden…</span>
-        ) : null}
-        <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block size-3 rounded-[2px]"
-              style={{ background: "rgb(var(--zwblok-club) / 0.55)" }}
-            />
-            Club
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block size-3 rounded-[2px]"
-              style={{ background: "rgb(var(--zwblok-own) / 0.7)" }}
-            />
-            Geselecteerd lid
-          </span>
-        </div>
-      </div>
-
+    <>
       <div className="relative h-[65vh] overflow-hidden rounded-xl border border-border">
         {renderMap("inline")}
         <button
@@ -215,6 +143,6 @@ export function BlocksMap({
           </button>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

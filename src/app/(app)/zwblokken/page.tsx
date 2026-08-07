@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Grid3x3, MapPin, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import {
@@ -8,31 +7,15 @@ import {
   fetchClubBlocks,
   fetchOwnBlocks,
 } from "@/lib/zwblokken/query";
-import { BlocksMap, type MemberOption } from "./_components/blocks-map";
+import { REGIONS } from "@/lib/zwblokken/regions";
+import {
+  ZwblokkenView,
+  type MemberOption,
+} from "./_components/zwblokken-view";
 
 export const dynamic = "force-dynamic";
 
 const nl = (n: number) => n.toLocaleString("nl-NL");
-
-function Stat({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border bg-card/90 p-4">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-    </div>
-  );
-}
 
 export default async function ZwblokkenPage() {
   const supabase = await createClient();
@@ -41,17 +24,13 @@ export default async function ZwblokkenPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [club, counts, ownBlocks, newThisYear, profilesResult] =
-    await Promise.all([
-      fetchClubBlocks(supabase),
-      fetchBlockCounts(supabase),
-      fetchOwnBlocks(supabase, user.id),
-      countNewThisYear(supabase, user.id),
-      supabase
-        .from("profiles")
-        .select("id, display_name")
-        .eq("is_approved", true),
-    ]);
+  const [club, counts, own, newThisYear, profilesResult] = await Promise.all([
+    fetchClubBlocks(supabase),
+    fetchBlockCounts(supabase),
+    fetchOwnBlocks(supabase, user.id),
+    countNewThisYear(supabase, user.id),
+    supabase.from("profiles").select("id, display_name").eq("is_approved", true),
+  ]);
 
   const profiles = (profilesResult.data ?? []) as {
     id: string;
@@ -73,7 +52,6 @@ export default async function ZwblokkenPage() {
       return b.blocks - a.blocks;
     });
 
-  const ownCount = counts.get(user.id) ?? 0;
   const leaderboard = members.filter((m) => m.blocks > 0).slice(0, 10);
 
   return (
@@ -92,30 +70,22 @@ export default async function ZwblokkenPage() {
         </EmptyState>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Stat
-              icon={<Grid3x3 className="size-3.5" />}
-              label="Jouw blokken"
-              value={nl(ownCount)}
-            />
-            <Stat
-              icon={<Sparkles className="size-3.5" />}
-              label="Nieuw dit jaar"
-              value={nl(newThisYear)}
-            />
-            <Stat
-              icon={<MapPin className="size-3.5" />}
-              label="Hele club"
-              value={nl(club.total)}
-            />
-          </div>
-
-          <BlocksMap
+          <ZwblokkenView
             club={club.packed}
+            clubRegions={Object.fromEntries(club.regions)}
+            clubTotal={club.total}
             maxRiders={club.maxRiders}
-            initialOwn={ownBlocks}
+            // Alleen de metadata; de omtrekken uit regions.json blijven op de
+            // server, die zijn ruim anderhalve megabyte.
+            regions={REGIONS}
             members={members}
             selectedId={user.id}
+            initial={{
+              blocks: own.packed,
+              regions: Object.fromEntries(own.regions),
+              total: own.total,
+              newThisYear,
+            }}
           />
 
           {leaderboard.length > 0 && (
@@ -123,17 +93,12 @@ export default async function ZwblokkenPage() {
               <h2 className="text-sm font-semibold">Meeste blokken</h2>
               <ol className="mt-3 space-y-1.5">
                 {leaderboard.map((m, i) => (
-                  <li
-                    key={m.id}
-                    className="flex items-baseline gap-3 text-sm"
-                  >
+                  <li key={m.id} className="flex items-baseline gap-3 text-sm">
                     <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                       {i + 1}
                     </span>
                     <span
-                      className={
-                        m.id === user.id ? "font-semibold" : undefined
-                      }
+                      className={m.id === user.id ? "font-semibold" : undefined}
                     >
                       {m.name}
                     </span>
