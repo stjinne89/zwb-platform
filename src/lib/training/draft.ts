@@ -798,7 +798,7 @@ export async function startPlanUpdate({
 }): Promise<TrainingDraftResult> {
   const { data: plan } = await admin
     .from("training_plans")
-    .select("id, profile_id, trainer_id, goal_id, title, summary, end_date, status")
+    .select("id, profile_id, trainer_id, goal_id, title, summary, end_date, status, root_plan_id")
     .eq("id", planId)
     .maybeSingle();
   if (!plan) return { ok: false, error: "Schema niet gevonden." };
@@ -855,13 +855,28 @@ export async function startPlanUpdate({
     .lte("scheduled_at", `${toDate}T23:59:59`)
     .order("scheduled_at", { ascending: true });
 
+  // De omschrijving van het schéma zoals het nu loopt, niet die van het
+  // basisplan. Een herziening hangt aan het basisplan, en dat draagt nog de
+  // samenvatting van de allereerste generatie — inclusief de uitgangspunten die
+  // sindsdien zijn veranderd. Zo bleef een schema verwijzen naar de zes uur per
+  // week waarmee het ooit begon terwijl het doel allang op tien stond.
+  const { data: newest } = await admin
+    .from("training_plans")
+    .select("title, summary")
+    .eq("profile_id", plan.profile_id)
+    .eq("root_plan_id", plan.root_plan_id ?? plan.id)
+    .in("status", ["published", "approved"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const input = await buildTrainingInput(admin, plan.profile_id, plan.goal_id);
   input.planUpdate = {
     reason,
     fromDate,
     toDate,
-    previousTitle: plan.title,
-    previousSummary: plan.summary,
+    previousTitle: newest?.title ?? plan.title,
+    previousSummary: newest?.summary ?? plan.summary,
     changed,
     remainingWorkouts: (remaining ?? []).map((workout) => ({
       date: String(workout.scheduled_at).slice(0, 10),

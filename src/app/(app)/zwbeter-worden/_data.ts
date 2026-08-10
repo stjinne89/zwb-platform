@@ -397,10 +397,16 @@ export function planUpdateDefaults(
  * allebei toont, ziet elke geplande training twee keer — één keer in de kleur
  * van zijn intensiteit en één keer als naamloos event.
  *
- * We herkennen ons eigen werk op twee manieren: het event-id dat we bij het
- * publiceren hebben opgeslagen, en anders de external_id die we zelf meegeven
- * (`zwb-…`). Die tweede vangt de gevallen op waarin het opgeslagen id niet meer
- * klopt, bijvoorbeeld na een mislukte opruimactie.
+ * We herkennen ons eigen werk aan het event-id dat we bij het publiceren hebben
+ * opgeslagen, en anders aan de external_id die we zelf meegeven — die tweede
+ * vangt de gevallen op waarin het opgeslagen id niet meer klopt.
+ *
+ * Allebei vergeleken met de workouts die het lid nú in zijn schema heeft. Een
+ * `zwb-`-event zonder actieve workout is een wees: een sessie die wij ooit in
+ * intervals.icu hebben gezet en daarna hebben vervangen zonder hem daar op te
+ * ruimen. Die tonen we juist wél. Op alleen de `zwb-`-prefix filteren maakte
+ * zo'n dag in ZWB helemaal leeg terwijl er in intervals.icu gewoon een training
+ * stond — en dat is precies het verschil dat je niet wilt verbergen.
  */
 export function externalIntervalsEvents(
   events: IntervalsEvent[],
@@ -409,9 +415,13 @@ export function externalIntervalsEvents(
   const ownEventIds = new Set(
     workouts.map((workout) => workout.intervals_event_id).filter(Boolean) as string[],
   );
+  const ownExternalIds = new Set(
+    workouts.map((workout) => workout.intervals_external_id).filter(Boolean) as string[],
+  );
   return events.filter(
     (event) =>
-      !ownEventIds.has(String(event.id)) && !String(event.external_id ?? "").startsWith("zwb-"),
+      !ownEventIds.has(String(event.id)) &&
+      !(event.external_id != null && ownExternalIds.has(String(event.external_id))),
   );
 }
 

@@ -58,6 +58,37 @@ export async function syncWorkoutDatesFromIntervals<T extends SchedulableWorkout
   return moved;
 }
 
+type SupersedeCandidate = {
+  plan_id: string;
+  scheduled_at: string;
+  status: string;
+};
+
+/**
+ * Welke van de gevonden workouts werkelijk vervangen worden.
+ *
+ * Drie regels, elk uit een bug:
+ * - Alleen wat nog gepland staat. Gereden of gerapporteerde sessies zijn
+ *   geschiedenis, geen planning.
+ * - Nooit een workout uit een plan dat ná dit plan is gemaakt. Dat is een
+ *   recentere beslissing; zonder deze regel streepten twee herzieningen elkaar
+ *   volledig weg en bleef er van een hele week niets over.
+ * - Buiten een bereik alleen de datums waar dit plan zelf iets neerzet; mét
+ *   bereik geldt het hele bereik, zodat een geschrapte trainingsdag ook echt
+ *   vervalt.
+ */
+export function supersedableWorkouts<T extends SupersedeCandidate>(
+  candidates: T[],
+  options: { newerPlanIds: Set<string>; dayKeys: Set<string>; wholeRange: boolean },
+): T[] {
+  return candidates.filter(
+    (row) =>
+      row.status === "planned" &&
+      !options.newerPlanIds.has(row.plan_id) &&
+      (options.wholeRange || options.dayKeys.has(String(row.scheduled_at).slice(0, 10))),
+  );
+}
+
 /**
  * Ruimt de workouts op die door dit schema worden vervangen: workouts van
  * ándere plannen van dit lid op dezelfde datums. Zonder deze stap bleef de oude
@@ -97,9 +128,28 @@ export async function retireSupersededWorkouts(
   const to = range?.to ?? days[days.length - 1];
   if (!from || !to) return 0;
 
+  // Plannen die ná dit plan zijn gemaakt vertegenwoordigen een recentere
+  // beslissing en mogen niet worden weggestreept door een oudere publicatie.
+  // Zonder deze grens streepten twee herzieningen elkaar volledig weg: de eerste
+  // verving de tweede en de tweede daarna de eerste, waarna er van een hele week
+  // geen enkele workout meer overbleef.
+  const { data: thisPlan } = await admin
+    .from("training_plans")
+    .select("created_at")
+    .eq("id", planId)
+    .maybeSingle();
+  const { data: newerPlans } = thisPlan
+    ? await admin
+        .from("training_plans")
+        .select("id")
+        .eq("profile_id", profileId)
+        .gt("created_at", thisPlan.created_at)
+    : { data: [] as { id: string }[] };
+  const newerPlanIds = new Set((newerPlans ?? []).map((row) => row.id as string));
+
   const { data: others } = await admin
     .from("training_workouts")
-    .select("id, scheduled_at, intervals_event_id, status, origin")
+    .select("id, plan_id, scheduled_at, intervals_event_id, status, origin")
     .eq("profile_id", profileId)
     .neq("plan_id", planId)
     .is("superseded_at", null)
@@ -107,11 +157,11 @@ export async function retireSupersededWorkouts(
     .gte("scheduled_at", `${from}T00:00:00`)
     .lte("scheduled_at", `${to}T23:59:59`);
 
-  const superseded = (others ?? []).filter(
-    (row) =>
-      row.status === "planned" &&
-      (range ? true : dayKeys.has(String(row.scheduled_at).slice(0, 10))),
-  );
+  const superseded = supersedableWorkouts(others ?? [], {
+    newerPlanIds,
+    dayKeys,
+    wholeRange: Boolean(range),
+  });
   if (superseded.length === 0) return 0;
 
   for (const workout of superseded) {
@@ -157,10 +207,14 @@ export async function pushPlanWorkoutsToIntervals(
         .select("adapt_from_date, end_date")
         .eq("id", planId)
         .maybeSingle(),
+      // Vervangen workouts horen niet meer in de kalender. Zonder dit filter
+      // zette een herpublicatie van een ouder plan zijn al vervangen sessies
+      // opnieuw in intervals.icu — zichtbaar daar, maar onvindbaar in ZWB.
       admin
         .from("training_workouts")
         .select("*")
         .eq("plan_id", planId)
+        .is("superseded_at", null)
         .order("scheduled_at", { ascending: true }),
     ]);
   if (!conn?.api_key || !conn?.athlete_id) {

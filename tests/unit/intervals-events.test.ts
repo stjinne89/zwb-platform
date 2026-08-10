@@ -45,8 +45,24 @@ describe("externalIntervalsEvents", () => {
 
   it("herkent ons eigen event ook aan de external_id als het id niet meer klopt", () => {
     const events = [event("999", { external_id: "zwb-p1-2026-08-12-vo2-5x3" })];
-    const workouts = [workout({ intervals_event_id: "111" })];
+    const workouts = [
+      workout({
+        intervals_event_id: "111",
+        intervals_external_id: "zwb-p1-2026-08-12-vo2-5x3",
+      }),
+    ];
     expect(externalIntervalsEvents(events, workouts)).toEqual([]);
+  });
+
+  it("toont een zwb-event waar geen actieve workout meer bij hoort", () => {
+    // Een sessie die is vervangen maar in intervals.icu is blijven staan. Op
+    // alleen de zwb-prefix filteren maakte die dag in ZWB helemaal leeg terwijl
+    // er in intervals.icu gewoon een training stond.
+    const events = [event("222", { external_id: "zwb-p1-2026-08-12-oude-sessie" })];
+    const workouts = [
+      workout({ intervals_event_id: "111", intervals_external_id: "zwb-p1-2026-08-12-nieuw" }),
+    ];
+    expect(externalIntervalsEvents(events, workouts).map((row) => row.id)).toEqual(["222"]);
   });
 
   it("houdt een rit die het lid buiten ZWB om plande gewoon staan", () => {

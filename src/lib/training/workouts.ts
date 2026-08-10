@@ -164,6 +164,8 @@ export function planUpdatePrompt() {
     "Behoud de opzet en de periodisering richting het doel: als het oude schema in een opbouwfase zat, ga daar verder, en houd de taper voor de target_date intact.",
     "Neem de gewijzigde randvoorwaarden uit planUpdate.changed strikt over. Minder uren per week betekent minder volume, niet dezelfde sessies ingekort tot ze hun prikkel verliezen — schrap dan liever een sessie en houd de sleutelsessies heel.",
     "Gebruik planUpdate.remainingWorkouts als vertrekpunt: houd vast wat nog past en vervang alleen wat door de wijziging niet meer klopt.",
+    "De geldende randvoorwaarden staan UITSLUITEND in goal.maxHoursPerWeek, goal.availableDays en availability. Noemt planUpdate.previousSummary of planUpdate.previousTitle een ander aantal uren per week, andere trainingsdagen of een andere doeldatum, dan is dat de beschrijving van een eerdere versie van dit schema en dus achterhaald: volg die niet, en herhaal die getallen niet in je eigen titel, samenvatting of cautions.",
+    "Rekent availability voor een week op tot minder dan goal.maxHoursPerWeek, dan is de beschikbaarheid van die week leidend. Is de som groter, dan blijft maxHoursPerWeek het plafond — de extra beschikbare tijd is ruimte om in te plannen, geen doel om te vullen.",
     "Leg in cautions per verandering kort uit wat je anders hebt gedaan dan in het oude schema, en waarom.",
   ].join("\n");
 }
