@@ -148,7 +148,7 @@ export async function buildRecentLoad(
     .eq("profile_id", athleteId)
     .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString());
 
-  return (activities ?? []).reduce(
+  const totals = (activities ?? []).reduce(
     (acc, row) => ({
       days: acc.days,
       activities: acc.activities + 1,
@@ -158,6 +158,14 @@ export async function buildRecentLoad(
     }),
     { days, activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
   );
+
+  // Voorgerekend, want dit is precies de deling die het model eerder zelf maakte
+  // en toen tegen het urenplafond legde alsof het een overschrijding was. Nu is
+  // het waar het voor bedoeld is: het volume dat dit lid al aankan.
+  return {
+    ...totals,
+    hoursPerWeek: days > 0 ? Math.round((totals.hours / days) * 7 * 10) / 10 : 0,
+  };
 }
 
 /**

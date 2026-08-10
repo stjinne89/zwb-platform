@@ -64,6 +64,8 @@ export type TrainingAiInput = {
     distanceKm: number;
     elevationM: number;
     hours: number;
+    /** Uren per week over dat venster; voorgerekend zodat het model niet deelt. */
+    hoursPerWeek: number;
   };
   /** Herstel-trend uit intervals.icu (alleen als het lid wellness deelt). */
   wellness?: {
