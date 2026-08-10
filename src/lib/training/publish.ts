@@ -71,6 +71,10 @@ export async function syncWorkoutDatesFromIntervals<T extends SchedulableWorkout
  * We markeren ze (superseded_at) in plaats van ze te verwijderen, zodat
  * zichtbaar blijft wat er oorspronkelijk gepland stond. Al gereden of
  * gerapporteerde workouts laten we staan — die zijn geschiedenis, geen planning.
+ *
+ * Ritten die het lid zelf heeft ingepland (origin 'member') blijven óók staan:
+ * die zijn een afspraak, geen voorstel. Een herziening plant eromheen; hem hier
+ * wegstrepen zou de clubrit van zaterdag laten verdwijnen.
  */
 export async function retireSupersededWorkouts(
   admin: Admin,
@@ -95,10 +99,11 @@ export async function retireSupersededWorkouts(
 
   const { data: others } = await admin
     .from("training_workouts")
-    .select("id, scheduled_at, intervals_event_id, status")
+    .select("id, scheduled_at, intervals_event_id, status, origin")
     .eq("profile_id", profileId)
     .neq("plan_id", planId)
     .is("superseded_at", null)
+    .neq("origin", "member")
     .gte("scheduled_at", `${from}T00:00:00`)
     .lte("scheduled_at", `${to}T23:59:59`);
 

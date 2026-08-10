@@ -698,6 +698,14 @@ export default function HelpPage() {
               totale geplande tijd daaronder — ook in een zware blokweek. Het is
               geen streefwaarde: minder plannen mag altijd.
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Het zegt niets over wat je aankunt. Reed je vorige week 7,5 uur
+              terwijl je plafond op 6 staat, dan wordt de week erna{" "}
+              <strong className="text-foreground">niet</strong> afgeremd om dat te
+              compenseren. Het schema gaat pas voorzichtiger plannen bij echte
+              signalen: een sterk negatieve form, een te snelle opbouw, slechte
+              herstelwaarden, of trainingen die je zwaar reed én zwaar vond.
+            </p>
           </article>
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">FTP en gewicht uit intervals.icu</h3>
@@ -720,6 +728,62 @@ export default function HelpPage() {
               achteraf of de rest van de week nog past. Heb je helemaal geen
               tijd, kies dan <strong className="text-foreground">Rustdag</strong>:
               de training van vandaag vervalt en verdwijnt ook uit intervals.icu.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Readiness en je apparaat</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Whoop, Oura en Polar sturen een eigen readiness of herstelscore naar
+              intervals.icu; die nemen we één op één over. Garmin doet dat niet —
+              Body Battery en Training Readiness blijven in Garmin Connect en
+              komen niet mee. Voor die horloges rekent ZWB zelf een readiness uit
+              je HRV, je rust-hartslag en je slaap, telkens afgezet tegen je eigen
+              gemiddelde van de afgelopen 30 dagen. Zo&apos;n waarde staat in de
+              app met <em>berekend door ZWB</em> erbij.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Meet je horloge geen HRV, of is je laatste meting ouder dan een
+              week, dan blijft het bewust een streepje. Een herstelscore op alleen
+              je rust-hartslag zou vooral meetruis zijn, en dat wil je niet terug
+              zien in je trainingsadvies.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Beschikbaarheid per week</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bij je schema zet je per weekdag met een schuifbalk hoeveel tijd je
+              hebt. Zet een dag op <em>geen</em> en er wordt niets gepland; zet je
+              dinsdag op een uur, dan blijft de training van die dag daarbinnen.
+              Je vult dat in voor{" "}
+              <strong className="text-foreground">deze week</strong> of{" "}
+              <strong className="text-foreground">volgende week</strong>; wat je
+              onder <strong className="text-foreground">Standaard</strong> zet
+              geldt voor elke week die je niet apart invult. Na het opslaan werkt
+              het schema zichzelf bij op de dagen die nog komen.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Zelf een rit inplannen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Weet je dat je zaterdag met de club rijdt? Zet hem met{" "}
+              <strong className="text-foreground">Rit inplannen</strong> in je
+              schema: soort, datum, duur en zwaarte. Die rit ligt daarna vast — de
+              planner verplaatst of vervangt hem niet, maar zet de rest van de week
+              eromheen en telt de belasting mee. Zo&apos;n rit heeft geen
+              blokkenstructuur en dus geen FIT-bestand; hij staat alleen in ZWB.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Voorstellen in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Op basis van je laatste ritten kan er &apos;s nachts een{" "}
+              <strong className="text-foreground">voorstel</strong> in je schema
+              verschijnen, bijvoorbeeld om woensdag korter te maken. Het is een
+              regel bovenin je schema, geen nieuw programma:{" "}
+              <strong className="text-foreground">Toepassen</strong> zet het door
+              naar intervals.icu, <strong className="text-foreground">Negeren</strong>{" "}
+              laat je schema zoals het was. Doe je niets, dan verdwijnt het voorstel
+              vanzelf zodra het over een voorbije dag gaat.
             </p>
           </article>
         </div>

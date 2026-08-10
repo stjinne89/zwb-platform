@@ -10,6 +10,7 @@ import {
   retrieveTrainingPlanDraftBackground,
   startTrainingPlanDraftBackground,
   type GeneratedTrainingPlan,
+  type GeneratedWorkout,
   type TrainingAiInput,
 } from "@/lib/training/ai";
 import {
@@ -21,6 +22,8 @@ import {
 } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
+import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
+import { rootIdOf } from "@/lib/training/plan-tree";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 
@@ -147,12 +150,13 @@ export async function buildRecentLoad(
 
   return (activities ?? []).reduce(
     (acc, row) => ({
+      days: acc.days,
       activities: acc.activities + 1,
       distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
       elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
       hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
     }),
-    { activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
+    { days, activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
   );
 }
 
@@ -237,6 +241,14 @@ async function buildTrainingInput(
   // afstemmen op wat het lid werkelijk rijdt in plaats van op wat er stond.
   const compliance = await buildComplianceContext(admin, athleteId).catch(() => null);
 
+  // Wat het lid deze week aan tijd heeft, en welke ritten het al zelf heeft
+  // vastgezet. Zonder dit plant de AI dwars door een clubrit heen.
+  const today = amsterdamDayKey();
+  const [availability, fixedWorkouts] = await Promise.all([
+    availabilityForAi(admin, athleteId, today),
+    loadFixedWorkouts(admin, athleteId, today, horizon.toISOString().slice(0, 10)).catch(() => []),
+  ]);
+
   return {
     athleteName: profile.display_name ?? "ZWB-lid",
     goal: {
@@ -264,13 +276,81 @@ async function buildTrainingInput(
           hrv: wellness.hrv,
           sleepHours: wellness.sleepHours,
           readiness: wellness.readiness,
+          readinessSource: wellness.readinessSource,
           note: wellness.note,
         }
       : null,
     intervalsLoad,
     upcomingEvents,
     compliance,
+    availability,
+    fixedWorkouts,
   };
+}
+
+/**
+ * Het schema waar een afgeleid plan bij hoort. Voor een basisplan is dat het
+ * plan zelf; de kolom bestaat sinds 0113 maar kan bij oudere rijen leeg zijn,
+ * vandaar de terugval op de parent-keten.
+ */
+export async function resolveRootPlanId(
+  admin: ReturnType<typeof createAdminClient>,
+  parentPlanId: string | null,
+): Promise<string | null> {
+  if (!parentPlanId) return null;
+  const { data: parent } = await admin
+    .from("training_plans")
+    .select("id, profile_id, root_plan_id, parent_plan_id")
+    .eq("id", parentPlanId)
+    .maybeSingle();
+  if (!parent) return null;
+  if (parent.root_plan_id) return parent.root_plan_id as string;
+
+  const { data: siblings } = await admin
+    .from("training_plans")
+    .select("id, parent_plan_id, root_plan_id, created_at")
+    .eq("profile_id", parent.profile_id)
+    .limit(500);
+  return rootIdOf((siblings ?? []) as Parameters<typeof rootIdOf>[0], parentPlanId);
+}
+
+/**
+ * Zet de workouts van een AI-concept in een schema. Gedeeld met de dagelijkse
+ * cron: die had een eigen kopie zonder de 0-minutenfilter en zonder de cap op
+ * 480, waardoor de duration-check een hele run kon laten klappen.
+ */
+export async function insertPlanWorkouts(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: { id: string; profile_id: string; trainer_id: string | null },
+  workouts: GeneratedWorkout[],
+) {
+  const rows = workouts
+    // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
+    .filter((workout) => Math.round(workout.durationMinutes) >= 1)
+    .map((workout) => {
+      const intensity = workout.intensity;
+      assertWorkoutIntensity(intensity);
+      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+      return {
+        plan_id: plan.id,
+        profile_id: plan.profile_id,
+        trainer_id: plan.trainer_id,
+        scheduled_at: `${workout.date}T09:00:00+01:00`,
+        title: workout.title,
+        description: workout.description,
+        duration_minutes: Math.min(480, Math.round(workout.durationMinutes)),
+        intensity,
+        target_type: workout.targetType,
+        structure_json: blocks,
+        origin: "ai",
+        intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
+      };
+    });
+  if (rows.length === 0) return 0;
+
+  const { error } = await admin.from("training_workouts").insert(rows);
+  if (error) throw new Error(friendlyDbError(error.message));
+  return rows.length;
 }
 
 async function createPlanFromAiGeneration(
@@ -307,6 +387,10 @@ async function createPlanFromAiGeneration(
       ? `${planDraft.title} (aanpassing vandaag)`
       : planDraft.title;
 
+  // root_plan_id wijst naar het schema waar deze rij bij hoort. Zonder dat zou
+  // de aanpassing weer als los programma in de schemalijst belanden.
+  const rootPlanId = await resolveRootPlanId(admin, generation.parent_plan_id ?? null);
+
   const { data: plan, error: planError } = await admin
     .from("training_plans")
     .insert({
@@ -315,7 +399,9 @@ async function createPlanFromAiGeneration(
       goal_id: generation.goal_id,
       ai_generation_id: generation.id,
       parent_plan_id: generation.parent_plan_id ?? null,
+      root_plan_id: rootPlanId,
       adaptation_reason: generation.adaptation_reason ?? null,
+      adaptation_kind: generation.adaptation_kind ?? (isAdaptation ? "day" : null),
       adapt_from_date: generation.adapt_from_date ?? null,
       title,
       summary: [planDraft.summary, ...planDraft.cautions.map((c) => `Let op: ${c}`)].join("\n\n"),
@@ -336,29 +422,17 @@ async function createPlanFromAiGeneration(
     throw new Error(friendlyDbError(planError.message));
   }
 
-  const workouts = planDraft.workouts
-    // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
-    .filter((workout) => Math.round(workout.durationMinutes) >= 1)
-    .map((workout) => {
-      const intensity = workout.intensity;
-      assertWorkoutIntensity(intensity);
-      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
-      return {
-        plan_id: plan.id,
-        profile_id: generation.profile_id,
-        trainer_id: generation.trainer_id,
-        scheduled_at: `${workout.date}T09:00:00+01:00`,
-        title: workout.title,
-        description: workout.description,
-        duration_minutes: Math.min(480, Math.round(workout.durationMinutes)),
-        intensity,
-        target_type: workout.targetType,
-        structure_json: blocks,
-        intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
-      };
-    });
-  const { error: workoutError } = await admin.from("training_workouts").insert(workouts);
-  if (workoutError) throw new Error(friendlyDbError(workoutError.message));
+  // Een basisplan is zijn eigen schema. Dat kan pas na de insert: we hebben het
+  // id nodig dat de database net heeft toegekend.
+  if (!rootPlanId) {
+    await admin.from("training_plans").update({ root_plan_id: plan.id }).eq("id", plan.id);
+  }
+
+  await insertPlanWorkouts(
+    admin,
+    { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
+    planDraft.workouts,
+  );
 
   // Schema's die het lid zelf maakt (dag-aanpassing of zelf coachend) hoeven
   // niet langs een trainer: die gaan direct door naar intervals.icu.
@@ -499,12 +573,15 @@ export async function startTodayAdjustmentDraft(
         : null;
     const note = optionalString(formData.get("note"));
 
-    // Actief plan van de renner zelf (gepubliceerd > goedgekeurd), nog lopend.
+    // Actief schema van de renner zelf (gepubliceerd > goedgekeurd), nog lopend.
+    // Alleen basisplannen: een eerdere aanpassing is geen schema om op voort te
+    // bouwen, en zou de parent-keten nodeloos verlengen.
     const today = amsterdamDayKey();
     const { data: plans } = await admin
       .from("training_plans")
       .select("id, goal_id, trainer_id, status, end_date, title")
       .eq("profile_id", user.id)
+      .is("parent_plan_id", null)
       .in("status", ["published", "approved"])
       .gte("end_date", today)
       .order("status", { ascending: false })
@@ -533,11 +610,14 @@ export async function startTodayAdjustmentDraft(
         .select("display_name, ftp_watts, weight_kg, zrl_category")
         .eq("id", user.id)
         .single(),
+      // Op profiel en datum, niet op plan_id: eerdere aanpassingen wonen in
+      // afgeleide plannen, en die horen net zo goed bij het lopende schema.
       admin
         .from("training_workouts")
         .select("scheduled_at, title, duration_minutes, intensity")
-        .eq("plan_id", active.id)
+        .eq("profile_id", user.id)
         .is("superseded_at", null)
+        .eq("status", "planned")
         .gte("scheduled_at", `${today}T00:00:00`)
         .lte("scheduled_at", `${planTo}T23:59:59`)
         .order("scheduled_at", { ascending: true }),
@@ -545,12 +625,15 @@ export async function startTodayAdjustmentDraft(
     if (!profile) return { ok: false, error: "Profiel niet gevonden." };
 
     const { wellnessForAi } = await import("@/lib/training/wellness");
-    const [wellness, yesterday, recentLoad, intervalsLoad] = await Promise.all([
-      wellnessForAi(admin, user.id).catch(() => null),
-      buildYesterdayContext(admin, user.id, active.id).catch(() => null),
-      buildRecentLoad(admin, user.id),
-      buildIntervalsLoad(admin, user.id),
-    ]);
+    const [wellness, yesterday, recentLoad, intervalsLoad, availability, fixedWorkouts] =
+      await Promise.all([
+        wellnessForAi(admin, user.id).catch(() => null),
+        buildYesterdayContext(admin, user.id, active.id).catch(() => null),
+        buildRecentLoad(admin, user.id),
+        buildIntervalsLoad(admin, user.id),
+        availabilityForAi(admin, user.id, today),
+        loadFixedWorkouts(admin, user.id, today, planTo).catch(() => []),
+      ]);
 
     const input: TrainingAiInput = {
       athleteName: profile.display_name ?? "ZWB-lid",
@@ -579,10 +662,13 @@ export async function startTodayAdjustmentDraft(
             hrv: wellness.hrv,
             sleepHours: wellness.sleepHours,
             readiness: wellness.readiness,
+            readinessSource: wellness.readinessSource,
             note: wellness.note,
           }
         : null,
       intervalsLoad,
+      availability,
+      fixedWorkouts,
       today: { availableMinutes, feeling, note },
       yesterday,
       currentPlan: {
@@ -674,12 +760,156 @@ function changedGoalFields(
   return changed;
 }
 
+/** Nieuwe uitgangspunten voor het doel; alleen de velden die je wilt wijzigen. */
+export type GoalUpdates = Partial<{
+  max_hours_per_week: number | null;
+  desired_intensity: string;
+  goal_type: string;
+  target_date: string | null;
+  available_days: string[];
+}>;
+
 /**
- * "Schema bijwerken": de uitgangspunten veranderen (uren, doel, intensiteit) en
- * het resterende deel van het lopende schema wordt daarop herzien. Zelfde
- * achtergrond-flow als de dag-aanpassing, maar met de plan-update-prompt en het
- * bereik vandaag t/m de einddatum van het lopende plan.
+ * De kern van "schema bijwerken": het resterende deel van een lopend schema
+ * wordt herzien, met de plan-update-prompt en het bereik vandaag t/m de
+ * einddatum van het plan.
+ *
+ * Wordt aangeroepen door het bijwerkformulier (met nieuwe uitgangspunten) en
+ * door requestReplan() in replan.ts, dat na een wijziging in de beschikbaarheid
+ * of een zelf ingeplande rit hetzelfde doet zonder het doel aan te raken.
+ *
+ * `authorized` is voor de trainer-route: die heeft zijn toegang al gecontroleerd
+ * met de rechten van de aanroeper. Zonder die vlag mag alleen het lid zelf.
  */
+export async function startPlanUpdate({
+  admin,
+  planId,
+  actorId,
+  reason,
+  goalUpdates,
+  authorized = false,
+}: {
+  admin: ReturnType<typeof createAdminClient>;
+  planId: string;
+  actorId: string;
+  reason: string;
+  goalUpdates?: GoalUpdates;
+  authorized?: boolean;
+}): Promise<TrainingDraftResult> {
+  const { data: plan } = await admin
+    .from("training_plans")
+    .select("id, profile_id, trainer_id, goal_id, title, summary, end_date, status")
+    .eq("id", planId)
+    .maybeSingle();
+  if (!plan) return { ok: false, error: "Schema niet gevonden." };
+  if (!authorized && plan.profile_id !== actorId) {
+    return { ok: false, error: "Geen trainer-toegang voor dit lid." };
+  }
+  if (!plan.goal_id) {
+    return { ok: false, error: "Dit schema hangt niet aan een doel; maak een nieuw schema." };
+  }
+
+  const { data: goal } = await admin
+    .from("training_goals")
+    .select("*")
+    .eq("id", plan.goal_id)
+    .maybeSingle();
+  if (!goal) return { ok: false, error: "Doel niet gevonden." };
+
+  const fromDate = amsterdamDayKey();
+  const toDate = String(plan.end_date).slice(0, 10);
+  if (toDate < fromDate) {
+    return { ok: false, error: "Dit schema is al afgelopen; maak een nieuw schema." };
+  }
+
+  // Leeg gelaten velden houden hun huidige waarde, zodat een aanroeper alleen
+  // hoeft mee te geven wat er verandert.
+  const updates = {
+    max_hours_per_week: goalUpdates?.max_hours_per_week ?? goal.max_hours_per_week,
+    desired_intensity: goalUpdates?.desired_intensity ?? goal.desired_intensity,
+    goal_type: goalUpdates?.goal_type ?? goal.goal_type,
+    target_date: goalUpdates?.target_date ?? goal.target_date,
+    available_days: goalUpdates?.available_days ?? goal.available_days ?? [],
+  };
+  const changed = changedGoalFields(goal, updates);
+
+  // Doel bijwerken vóór de generatie, zodat buildTrainingInput en elke volgende
+  // generatie met de nieuwe uitgangspunten werken.
+  if (Object.keys(changed).length > 0) {
+    const { error: goalError } = await admin
+      .from("training_goals")
+      .update(updates)
+      .eq("id", plan.goal_id);
+    if (goalError) throw new Error(goalError.message);
+  }
+
+  // Op profiel en datum, niet op plan_id: eerdere aanpassingen wonen in
+  // afgeleide plannen en horen net zo goed bij het lopende schema.
+  const { data: remaining } = await admin
+    .from("training_workouts")
+    .select("scheduled_at, title, duration_minutes, intensity")
+    .eq("profile_id", plan.profile_id)
+    .is("superseded_at", null)
+    .eq("status", "planned")
+    .gte("scheduled_at", `${fromDate}T00:00:00`)
+    .lte("scheduled_at", `${toDate}T23:59:59`)
+    .order("scheduled_at", { ascending: true });
+
+  const input = await buildTrainingInput(admin, plan.profile_id, plan.goal_id);
+  input.planUpdate = {
+    reason,
+    fromDate,
+    toDate,
+    previousTitle: plan.title,
+    previousSummary: plan.summary,
+    changed,
+    remainingWorkouts: (remaining ?? []).map((workout) => ({
+      date: String(workout.scheduled_at).slice(0, 10),
+      title: workout.title as string,
+      durationMinutes: Number(workout.duration_minutes ?? 0),
+      intensity: workout.intensity as string,
+    })),
+  };
+
+  const prompt = planUpdatePrompt();
+  const background = await startTrainingPlanDraftBackground(input, prompt, {
+    model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
+    reasoningEffort: "medium",
+    timeoutMs: 15_000,
+  });
+  const initialStatus: TrainingDraftStatus =
+    background.status === "queued" ? "queued" : "in_progress";
+
+  const { data: aiRow, error: aiError } = await admin
+    .from("training_ai_generations")
+    .insert({
+      profile_id: plan.profile_id,
+      trainer_id: plan.trainer_id ?? actorId,
+      goal_id: plan.goal_id,
+      parent_plan_id: plan.id,
+      adaptation_reason: reason,
+      adaptation_kind: "plan_update",
+      adapt_from_date: fromDate,
+      model: background.model,
+      status: initialStatus,
+      prompt_text: prompt,
+      prompt_summary: background.promptSummary,
+      openai_response_id: background.responseId,
+    })
+    .select("id")
+    .single();
+  if (aiError) throw new Error(aiError.message);
+
+  revalidatePath("/zwbeter-worden", "layout");
+  return {
+    ok: true,
+    generationId: aiRow.id as string,
+    status: initialStatus,
+    message: "Bijgewerkt schema wordt gemaakt.",
+  };
+}
+
+/** Formulier-route van "Schema bijwerken": rechten checken en dan bijwerken. */
 export async function startPlanUpdateDraft(formData: FormData): Promise<TrainingDraftResult> {
   try {
     const { user, access } = await currentUser();
@@ -688,115 +918,32 @@ export async function startPlanUpdateDraft(formData: FormData): Promise<Training
 
     const { data: plan } = await admin
       .from("training_plans")
-      .select("id, profile_id, trainer_id, goal_id, title, summary, end_date, status")
+      .select("profile_id")
       .eq("id", planId)
       .maybeSingle();
     if (!plan) return { ok: false, error: "Schema niet gevonden." };
-    if (
-      plan.profile_id !== user.id &&
-      !access.has("training.manage_assignments") &&
-      !(await canCoach(admin, user.id, plan.profile_id))
-    ) {
-      return { ok: false, error: "Geen trainer-toegang voor dit lid." };
-    }
-    if (!plan.goal_id) {
-      return { ok: false, error: "Dit schema hangt niet aan een doel; maak een nieuw schema." };
-    }
 
-    const { data: goal } = await admin
-      .from("training_goals")
-      .select("*")
-      .eq("id", plan.goal_id)
-      .maybeSingle();
-    if (!goal) return { ok: false, error: "Doel niet gevonden." };
+    const authorized =
+      plan.profile_id === user.id ||
+      access.has("training.manage_assignments") ||
+      (await canCoach(admin, user.id, plan.profile_id));
+    if (!authorized) return { ok: false, error: "Geen trainer-toegang voor dit lid." };
 
-    const fromDate = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
-    const toDate = String(plan.end_date).slice(0, 10);
-    if (toDate < fromDate) {
-      return { ok: false, error: "Dit schema is al afgelopen; maak een nieuw schema." };
-    }
-
-    // De nieuwe uitgangspunten. Leeg gelaten velden houden hun huidige waarde,
-    // zodat het formulier alleen hoeft te bevatten wat je wilt wijzigen.
     const days = formData.getAll("available_days").map(String).filter(Boolean);
-    const updates = {
-      max_hours_per_week: optionalNumber(formData.get("max_hours_per_week")) ?? goal.max_hours_per_week,
-      desired_intensity: optionalString(formData.get("desired_intensity")) ?? goal.desired_intensity,
-      goal_type: optionalString(formData.get("goal_type")) ?? goal.goal_type,
-      target_date: optionalString(formData.get("target_date")) ?? goal.target_date,
-      available_days: days.length > 0 ? days : goal.available_days ?? [],
-    };
-    const changed = changedGoalFields(goal, updates);
-    const reason = optionalString(formData.get("reason")) ?? "Schema bijgewerkt.";
-
-    // Doel bijwerken vóór de generatie, zodat buildTrainingInput en elke
-    // volgende generatie met de nieuwe uitgangspunten werken.
-    const { error: goalError } = await admin
-      .from("training_goals")
-      .update(updates)
-      .eq("id", plan.goal_id);
-    if (goalError) throw new Error(goalError.message);
-
-    const { data: remaining } = await admin
-      .from("training_workouts")
-      .select("scheduled_at, title, duration_minutes, intensity")
-      .eq("plan_id", plan.id)
-      .is("superseded_at", null)
-      .gte("scheduled_at", `${fromDate}T00:00:00`)
-      .order("scheduled_at", { ascending: true });
-
-    const input = await buildTrainingInput(admin, plan.profile_id, plan.goal_id);
-    input.planUpdate = {
-      reason,
-      fromDate,
-      toDate,
-      previousTitle: plan.title,
-      previousSummary: plan.summary,
-      changed,
-      remainingWorkouts: (remaining ?? []).map((workout) => ({
-        date: String(workout.scheduled_at).slice(0, 10),
-        title: workout.title as string,
-        durationMinutes: Number(workout.duration_minutes ?? 0),
-        intensity: workout.intensity as string,
-      })),
-    };
-
-    const prompt = planUpdatePrompt();
-    const background = await startTrainingPlanDraftBackground(input, prompt, {
-      model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
-      reasoningEffort: "medium",
-      timeoutMs: 15_000,
+    return await startPlanUpdate({
+      admin,
+      planId,
+      actorId: user.id,
+      reason: optionalString(formData.get("reason")) ?? "Schema bijgewerkt.",
+      authorized: true,
+      goalUpdates: {
+        max_hours_per_week: optionalNumber(formData.get("max_hours_per_week")) ?? undefined,
+        desired_intensity: optionalString(formData.get("desired_intensity")) ?? undefined,
+        goal_type: optionalString(formData.get("goal_type")) ?? undefined,
+        target_date: optionalString(formData.get("target_date")) ?? undefined,
+        available_days: days.length > 0 ? days : undefined,
+      },
     });
-    const initialStatus: TrainingDraftStatus =
-      background.status === "queued" ? "queued" : "in_progress";
-
-    const { data: aiRow, error: aiError } = await admin
-      .from("training_ai_generations")
-      .insert({
-        profile_id: plan.profile_id,
-        trainer_id: plan.trainer_id ?? user.id,
-        goal_id: plan.goal_id,
-        parent_plan_id: plan.id,
-        adaptation_reason: reason,
-        adaptation_kind: "plan_update",
-        adapt_from_date: fromDate,
-        model: background.model,
-        status: initialStatus,
-        prompt_text: prompt,
-        prompt_summary: background.promptSummary,
-        openai_response_id: background.responseId,
-      })
-      .select("id")
-      .single();
-    if (aiError) throw new Error(aiError.message);
-
-    revalidatePath("/zwbeter-worden", "layout");
-    return {
-      ok: true,
-      generationId: aiRow.id as string,
-      status: initialStatus,
-      message: "Bijgewerkt schema wordt gemaakt.",
-    };
   } catch (err) {
     return {
       ok: false,

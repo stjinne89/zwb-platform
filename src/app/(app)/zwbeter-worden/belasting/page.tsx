@@ -145,6 +145,11 @@ export default async function ZwbeterWordenLoadPage() {
                   <RecoveryStat
                     label="Readiness"
                     value={recoverySummary.readiness != null ? `${recoverySummary.readiness}` : "-"}
+                    hint={
+                      recoverySummary.readinessSource === "afgeleid"
+                        ? "berekend door ZWB"
+                        : undefined
+                    }
                   />
                   <RecoveryStat
                     label="HRV (7d gem.)"

@@ -11,6 +11,13 @@ export type WellnessSummary = {
   hrv: number | null; // gemiddelde laatste 7d
   sleepHours: number | null; // gemiddelde laatste 7d
   readiness: number | null; // meest recente, mits niet ouder dan 7 dagen
+  /**
+   * Waar de readiness vandaan komt. Garmin levert er geen aan intervals.icu
+   * (Body Battery en Training Readiness blijven in Garmin Connect), dus voor die
+   * leden rekenen we er zelf een uit. Dat moet zichtbaar blijven: een afgeleid
+   * getal is geen meting.
+   */
+  readinessSource: "device" | "afgeleid" | null;
   /** Aftrek op de trainingsruimte door korte nachten (0 = genoeg geslapen). */
   sleepPenalty: number;
   // Trend t.o.v. eigen baseline: 'fresh' | 'normal' | 'fatigued' | 'unknown'.
@@ -225,6 +232,92 @@ const SLEEP_STEPS: Array<{ below: number; penalty: number; note: string }> = [
   { below: 6.5, penalty: 6, note: "Iets weinig slaap" },
 ];
 
+/**
+ * Neutrale start van de afgeleide readiness. 70 is in dit systeem de grens
+ * tussen "ok" en "middelmatig": zonder afwijking van de eigen baseline is er
+ * niets aan de hand, maar we claimen ook geen topherstel.
+ */
+const DERIVED_NEUTRAL = 70;
+
+/** Een afgeleid getal mag nooit een 0 of een 100 suggereren. */
+const DERIVED_MIN = 5;
+const DERIVED_MAX = 95;
+
+/**
+ * Zoveel dagen moet de baseline minstens tellen. Daaronder vergelijk je het
+ * weekgemiddelde vooral met zichzelf en komt er per definitie "normaal" uit.
+ */
+export const MIN_BASELINE_DAYS = 14;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Readiness voor leden van wie het apparaat er zelf geen levert — in de praktijk
+ * Garmin, Coros en Suunto. Body Battery en Training Readiness komen niet mee in
+ * de wellness-API van intervals.icu; wat er wél elke dag binnenkomt is HRV,
+ * rust-hartslag en slaap. Precies de bouwstenen van een herstelscore.
+ *
+ * De schaal volgt de bestaande drempels (≤50 laag, <70 middelmatig, ≥75 goed),
+ * zodat een afgeleide waarde net zo leest als die van een Whoop of Polar.
+ * Alles wordt afgezet tegen de eigen baseline, niet tegen een absolute norm:
+ * een HRV van 95 zegt niets zonder te weten wat voor dit lid gewoon is.
+ *
+ * Geeft null zodra er te weinig grond is voor een oordeel — dat is de normale
+ * uitkomst voor een horloge dat geen HRV meet, en beter dan een getal dat het
+ * trainingsadvies stuurt op ruis.
+ */
+export function deriveReadiness(input: {
+  hrv: number | null;
+  hrvBase: number | null;
+  restingHr: number | null;
+  rhrBase: number | null;
+  sleepHours: number | null;
+  sleepScore: number | null;
+  baselineDays: number;
+  /** Ouderdom van de nieuwste meting; oude data mag geen vers oordeel opleveren. */
+  dataAgeDays: number | null;
+}): number | null {
+  const { hrv, hrvBase, restingHr, rhrBase, sleepHours, sleepScore, baselineDays } = input;
+  if (baselineDays < MIN_BASELINE_DAYS) return null;
+
+  // Zonder verse meting zegt een herstelgetal niets. Een lid van wie het
+  // horloge maanden geleden is gestopt met leveren kreeg anders een keurige
+  // score op data van vorig seizoen.
+  if (input.dataAgeDays == null || input.dataAgeDays > READINESS_MAX_AGE_DAYS) return null;
+
+  const hasHrv = hrv != null && hrvBase != null && hrvBase > 0;
+  const hasRhr = restingHr != null && rhrBase != null && rhrBase > 0;
+
+  // HRV is verplicht. Rust-hartslag alleen is te dun: het verschil tussen een
+  // week- en maandgemiddelde is daar vaak twee slagen, en dat is meetruis. Wie
+  // daarop een getal baseert, zet leden structureel op "matig" zonder dat er
+  // iets aan de hand is. Liever een streepje dan een verzonnen oordeel.
+  if (!hasHrv) return null;
+
+  let score = DERIVED_NEUTRAL;
+
+  // HRV onder de eigen baseline is het sterkste vermoeidheidssignaal, dus die
+  // weegt naar beneden zwaarder dan naar boven.
+  score += clamp((hrv! / hrvBase! - 1) * 200, -25, 15);
+
+  // Verhoogde rust-hartslag wijst op onvoltooid herstel. +3 bpm op een baseline
+  // van 50 is 6% en kost hier ~18 punten — vergelijkbaar met de bestaande regel
+  // die daar de status op 'fatigued' zet.
+  if (hasRhr) score += clamp(((rhrBase! - restingHr!) / rhrBase!) * 300, -20, 10);
+
+  if (sleepHours != null) {
+    const step = SLEEP_STEPS.find((entry) => sleepHours < entry.below);
+    if (step) score -= step.penalty;
+  }
+
+  // Slaapkwaliteit als bijstelling, niet als hoofdmoot: 75 is neutraal.
+  if (sleepScore != null) score += clamp((sleepScore - 75) / 3, -8, 8);
+
+  return Math.round(clamp(score, DERIVED_MIN, DERIVED_MAX));
+}
+
 /** Hele dagen tussen twee datumsleutels ("YYYY-MM-DD"); null bij onzin. */
 function daysBetween(from: string, to: string): number | null {
   const a = new Date(`${from}T12:00:00`).getTime();
@@ -244,10 +337,26 @@ function normalizeReadiness(
   return raw; // garmin/oura/whoop/coros/suunto/other/onbekend = al 0-100
 }
 
+/** Venster voor de "laatste 7 dagen"-gemiddelden. */
+export const RECENT_DAYS = 7;
+
+/**
+ * Onder deze TSB verzachten we niet meer, hoe goed de hersteldata ook is. Zo
+ * diep in de min is de kans op overreaching te groot om op één goede
+ * HRV-week te varen, en past de huisregel "bij twijfel minder belasting".
+ */
+export const SEVERE_TSB = -40;
+
 /**
  * Vat de laatste 7 dagen herstel samen + bepaalt een grove "state" door de
- * recente HRV/rust-HR te vergelijken met de baseline van het hele venster.
+ * recente HRV/rust-HR te vergelijken met de baseline van 30 dagen.
  * `device` bepaalt hoe de readiness-schaal geïnterpreteerd wordt (zie boven).
+ *
+ * De vensters lopen op datum, niet op aantal rijen. Dat is het verschil tussen
+ * "de laatste zeven dagen" en "de zeven nieuwste rijen die er zijn": bij een
+ * horloge dat maanden geleden stopte met leveren was dat laatste een
+ * februari-gemiddelde onder het kopje "7d gem.". Oude data hoort niets meer te
+ * zeggen over hoe iemand er nu voor staat.
  */
 export function summarizeWellness(
   rows: WellnessRow[],
@@ -257,11 +366,18 @@ export function summarizeWellness(
 ): WellnessSummary | null {
   if (rows.length === 0) return null;
   const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date)); // nieuwste eerst
-  const last7 = sorted.slice(0, 7);
+
+  // Een rij uit de toekomst is onzin (tijdzone-artefact) en telt niet mee.
+  const withinDays = (row: WellnessRow, days: number) => {
+    const age = daysBetween(row.date, today);
+    return age != null && age >= 0 && age <= days;
+  };
+  const last7 = sorted.filter((row) => withinDays(row, RECENT_DAYS));
 
   const restingHr = avg(last7.map((r) => r.resting_hr));
   const hrv = avg(last7.map((r) => r.hrv));
   const sleepSecs = avg(last7.map((r) => r.sleep_secs));
+  const sleepScore = avg(last7.map((r) => r.sleep_score));
 
   // Readiness telt alleen als hij vers is. Zonder deze grens bleef een waarde
   // van maanden geleden meetellen zodra een apparaat stopte met leveren; nu
@@ -272,7 +388,7 @@ export function summarizeWellness(
   const readinessIsStale =
     readinessAgeDays == null || readinessAgeDays > READINESS_MAX_AGE_DAYS;
   const rawReadiness = readinessIsStale ? null : (readinessRow?.readiness ?? null);
-  const readiness =
+  const deviceReadiness =
     rawReadiness == null ? null : normalizeReadiness(rawReadiness, device);
   const sleepHours = sleepSecs != null ? sleepSecs / 3600 : null;
 
@@ -280,9 +396,30 @@ export function summarizeWellness(
   // een weekgemiddelde een tweejaarsgemiddelde verslaan om als "fris" te gelden;
   // dat lukte vrijwel nooit en liet de baseline bovendien meedrijven met
   // seizoen en vormopbouw.
-  const baselineWindow = sorted.slice(0, BASELINE_DAYS);
+  const baselineWindow = sorted.filter((row) => withinDays(row, BASELINE_DAYS));
   const hrvBase = avg(baselineWindow.map((r) => r.hrv));
   const rhrBase = avg(baselineWindow.map((r) => r.resting_hr));
+
+  // Levert het apparaat geen readiness, dan rekenen we er zelf een uit de
+  // signalen die er wél zijn. Dat gebeurt bewust ná de baseline-berekening en
+  // beïnvloedt hieronder de `state` niet: die komt uit dezelfde HRV en rust-HR,
+  // en zou anders dubbel meetellen.
+  const derivedReadiness =
+    deviceReadiness != null
+      ? null
+      : deriveReadiness({
+          hrv,
+          hrvBase,
+          restingHr,
+          rhrBase,
+          sleepHours,
+          sleepScore,
+          baselineDays: baselineWindow.length,
+          dataAgeDays: sorted[0] ? daysBetween(sorted[0].date, today) : null,
+        });
+  const readiness = deviceReadiness ?? derivedReadiness;
+  const readinessSource: WellnessSummary["readinessSource"] =
+    deviceReadiness != null ? "device" : derivedReadiness != null ? "afgeleid" : null;
 
   let state: WellnessSummary["state"] = "unknown";
   const notes: string[] = [];
@@ -304,19 +441,24 @@ export function summarizeWellness(
       notes.push("Rust-hartslag verhoogd t.o.v. baseline.");
     }
   }
-  if (readiness != null) {
-    if (readiness <= 50) {
+  if (deviceReadiness != null) {
+    if (deviceReadiness <= 50) {
       state = "fatigued";
-      notes.push(`Readiness laag (${Math.round(readiness)}).`);
-    } else if (readiness < 70) {
+      notes.push(`Readiness laag (${Math.round(deviceReadiness)}).`);
+    } else if (deviceReadiness < 70) {
       if (state === "fresh" || state === "unknown") state = "normal";
-      notes.push(`Readiness middelmatig (${Math.round(readiness)}).`);
-    } else if (readiness >= 75 && state === "unknown") {
+      notes.push(`Readiness middelmatig (${Math.round(deviceReadiness)}).`);
+    } else if (deviceReadiness >= 75 && state === "unknown") {
       state = "fresh";
     }
     if (device === "polar") {
       notes.push("Readiness omgerekend van Polar's Nightly Recharge-schaal naar 0-100.");
     }
+  } else if (derivedReadiness != null) {
+    // Bewust géén aanpassing van `state`: die komt uit dezelfde HRV en rust-HR.
+    notes.push(
+      `Readiness ${derivedReadiness} berekend uit je HRV, rust-hartslag en slaap; je apparaat levert er zelf geen.`,
+    );
   } else if (readinessRow) {
     // Er is wél ooit een readiness geweest, maar te oud om nog iets te zeggen.
     notes.push(
@@ -338,7 +480,19 @@ export function summarizeWellness(
     }
   }
 
-  if (notes.length === 0) {
+  // Alles buiten het venster: er is wél data, maar niets recents. Zonder deze
+  // melding zou de app "Herstelwaarden binnen de normale range" tonen op basis
+  // van cijfers van maanden geleden.
+  if (baselineWindow.length === 0) {
+    state = "unknown";
+    const laatste = sorted[0]?.date;
+    notes.length = 0;
+    notes.push(
+      laatste
+        ? `Geen hersteldata van de laatste ${BASELINE_DAYS} dagen; laatste meting ${laatste}.`
+        : `Geen hersteldata van de laatste ${BASELINE_DAYS} dagen.`,
+    );
+  } else if (notes.length === 0) {
     notes.push(
       state === "fresh"
         ? "Herstelwaarden zien er goed uit."
@@ -347,12 +501,15 @@ export function summarizeWellness(
   }
 
   return {
-    days: sorted.length,
+    // Aantal dagen met verse data, niet het aantal opgeslagen rijen: dat laatste
+    // suggereerde een gevuld venster terwijl het maanden oud kon zijn.
+    days: baselineWindow.length,
     latestDate: sorted[0]?.date ?? null,
     restingHr: restingHr != null ? Math.round(restingHr) : null,
     hrv: hrv != null ? Math.round(hrv) : null,
     sleepHours: sleepHours != null ? Math.round(sleepHours * 10) / 10 : null,
     readiness: readiness != null ? Math.round(readiness) : null,
+    readinessSource,
     sleepPenalty,
     state,
     note: notes.join(" "),
@@ -410,19 +567,49 @@ export function summarizeTrainingReadiness({
     }
 
     if (readiness != null) {
-      notes.push(`Readiness ${Math.round(readiness)}: ${
+      notes.push(`Readiness ${Math.round(readiness)}${
+        wellness.readinessSource === "afgeleid" ? " (berekend)" : ""
+      }: ${
         readiness >= 75 ? "goed" : readiness >= 70 ? "ok" : readiness >= 51 ? "matig" : "laag"
       }.`);
     }
 
     // Korte nachten drukken de score gestaffeld; de zwaarste stap zit al in
-    // `state` verwerkt en telt daar niet nog een keer bovenop.
-    if (wellness.sleepPenalty > 0 && wellness.state !== "fatigued") {
+    // `state` verwerkt en telt daar niet nog een keer bovenop. Bij een berekende
+    // readiness zit de slaapaftrek al in dat getal, dus dan ook niet.
+    if (
+      wellness.sleepPenalty > 0 &&
+      wellness.state !== "fatigued" &&
+      wellness.readinessSource !== "afgeleid"
+    ) {
       score -= wellness.sleepPenalty;
       if (recoveryState === "ready") recoveryState = "caution";
     }
 
     notes.push(wellness.note);
+  }
+
+  // Belastingmodel zegt "herstellen", lichaam zegt "fris". Dat is het beeld van
+  // een renner die goed is aangepast aan zijn blok, niet van iemand die
+  // overtraind raakt: een diep negatieve TSB hoort bij een opbouwblok, en HRV
+  // boven de eigen baseline is het bewijs dat het verwerkt wordt. Zonder deze
+  // verzachting kreeg zo iemand "richt op herstel" terwijl al zijn
+  // hersteldata het tegendeel liet zien.
+  //
+  // Bewust eenzijdig: andersom verzachten we nooit. TSB is een schatting uit een
+  // model, HRV en slaap zijn metingen aan het lichaam. Zegt de meting dat er
+  // vermoeidheid is, dan wint die altijd — ook bij een keurige TSB.
+  if (
+    loadState === "recovery" &&
+    recoveryState === "ready" &&
+    tsb != null &&
+    Number.isFinite(tsb) &&
+    tsb > SEVERE_TSB
+  ) {
+    loadState = "caution";
+    notes.push(
+      "Je belasting is hoog, maar je hersteldata is goed: geen herstelrust nodig, wel de scherpte eruit.",
+    );
   }
 
   const states = [loadState, recoveryState];

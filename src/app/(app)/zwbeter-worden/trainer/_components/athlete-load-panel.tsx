@@ -99,6 +99,11 @@ export function AthleteLoadPanel({
                     value={
                       recovery.summary.readiness != null ? `${recovery.summary.readiness}` : "-"
                     }
+                    hint={
+                      recovery.summary.readinessSource === "afgeleid"
+                        ? "berekend door ZWB"
+                        : undefined
+                    }
                   />
                   <RecoveryStat
                     label="Laatste"

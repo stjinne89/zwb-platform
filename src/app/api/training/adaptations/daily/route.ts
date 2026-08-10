@@ -1,9 +1,16 @@
 import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { adaptiveDailyPrompt, normalizeWorkoutBlocks } from "@/lib/training/workouts";
+import { adaptiveDailyPrompt } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
-import { buildIntervalsLoad, buildRecentLoad } from "@/lib/training/draft";
+import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
+import { buildIntervalsLoad, buildRecentLoad, insertPlanWorkouts } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+
+/**
+ * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
+ * de trainingen van die dag, en die zijn inmiddels geweest.
+ */
+const PROPOSAL_TTL_DAYS = 3;
 
 type PlanRow = {
   id: string;
@@ -12,22 +19,45 @@ type PlanRow = {
   goal_id: string | null;
   title: string;
   end_date: string;
+  root_plan_id: string | null;
 };
 
 function since(days: number) {
   return new Date(Date.now() - days * 86400_000).toISOString();
 }
 
+/**
+ * Lopende schema's om een voorstel voor te maken. Alleen basisplannen: een
+ * eerdere aanpassing is zelf geen schema, en zou een voorstel op een voorstel
+ * opleveren.
+ */
 async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>) {
   const { data, error } = await admin
     .from("training_plans")
-    .select("id, profile_id, trainer_id, goal_id, title, end_date")
+    .select("id, profile_id, trainer_id, goal_id, title, end_date, root_plan_id")
+    .is("parent_plan_id", null)
     .in("status", ["approved", "published"])
     .gte("end_date", new Date().toISOString().slice(0, 10))
     .order("updated_at", { ascending: false })
     .limit(25);
   if (error) throw new Error(error.message);
   return (data ?? []) as PlanRow[];
+}
+
+/**
+ * Voorstellen die niemand heeft opgepakt en die over een voorbije dag gingen.
+ * Zonder dit blijven ze in het schema hangen als suggestie voor gisteren.
+ */
+async function archiveStaleProposals(admin: ReturnType<typeof createAdminClient>) {
+  const cutoff = new Date(Date.now() - PROPOSAL_TTL_DAYS * 86400_000).toISOString();
+  const { data } = await admin
+    .from("training_plans")
+    .update({ status: "archived" })
+    .eq("adaptation_kind", "daily")
+    .eq("status", "draft")
+    .or(`created_at.lt.${cutoff},adapt_from_date.lt.${amsterdamDayKey()}`)
+    .select("id");
+  return (data ?? []).length;
 }
 
 export async function POST(request: Request) {
@@ -41,6 +71,8 @@ export async function POST(request: Request) {
   const results: Array<{ profileId: string; status: string; draftPlanId?: string; error?: string }> = [];
 
   try {
+    const archived = await archiveStaleProposals(admin).catch(() => 0);
+
     for (const plan of await latestPlanCandidates(admin)) {
       const today = new Date().toISOString().slice(0, 10);
       const { data: existingRun } = await admin
@@ -85,22 +117,30 @@ export async function POST(request: Request) {
 
         // De activiteiten van gisteren zijn alleen de trigger; de AI krijgt de
         // trainingsbelasting over 28 dagen, net als de andere flows.
+        const today = amsterdamDayKey();
+        const planEnd = String(plan.end_date).slice(0, 10);
         const { wellnessForAi } = await import("@/lib/training/wellness");
-        const [wellness, yesterday, recent, intervalsLoad] = await Promise.all([
-          wellnessForAi(admin, plan.profile_id).catch(() => null),
-          buildYesterdayContext(admin, plan.profile_id, plan.id).catch(() => null),
-          buildRecentLoad(admin, plan.profile_id),
-          buildIntervalsLoad(admin, plan.profile_id),
-        ]);
+        const [wellness, yesterday, recent, intervalsLoad, availability, fixedWorkouts] =
+          await Promise.all([
+            wellnessForAi(admin, plan.profile_id).catch(() => null),
+            buildYesterdayContext(admin, plan.profile_id, plan.id).catch(() => null),
+            buildRecentLoad(admin, plan.profile_id),
+            buildIntervalsLoad(admin, plan.profile_id),
+            availabilityForAi(admin, plan.profile_id, today),
+            loadFixedWorkouts(admin, plan.profile_id, today, planEnd).catch(() => []),
+          ]);
 
         // Wat er nog gepland staat vanaf vandaag; zonder dit verzint de AI de
-        // resterende week opnieuw in plaats van hem aan te passen.
+        // resterende week opnieuw in plaats van hem aan te passen. Op profiel en
+        // datum, niet op plan_id: eerdere aanpassingen wonen in afgeleide plannen.
         const { data: planned } = await admin
           .from("training_workouts")
           .select("scheduled_at, title, duration_minutes, intensity")
-          .eq("plan_id", plan.id)
+          .eq("profile_id", plan.profile_id)
           .is("superseded_at", null)
-          .gte("scheduled_at", `${amsterdamDayKey()}T00:00:00`)
+          .eq("status", "planned")
+          .gte("scheduled_at", `${today}T00:00:00`)
+          .lte("scheduled_at", `${planEnd}T23:59:59`)
           .order("scheduled_at", { ascending: true });
 
         const ai = await generateTrainingPlanDraft(
@@ -131,15 +171,18 @@ export async function POST(request: Request) {
                   hrv: wellness.hrv,
                   sleepHours: wellness.sleepHours,
                   readiness: wellness.readiness,
+                  readinessSource: wellness.readinessSource,
                   note: wellness.note,
                 }
               : null,
             intervalsLoad,
+            availability,
+            fixedWorkouts,
             yesterday,
             currentPlan: {
               title: plan.title,
-              fromDate: amsterdamDayKey(),
-              toDate: String(plan.end_date).slice(0, 10),
+              fromDate: today,
+              toDate: planEnd,
               workouts: (planned ?? []).map((workout) => ({
                 date: String(workout.scheduled_at).slice(0, 10),
                 title: workout.title as string,
@@ -152,6 +195,10 @@ export async function POST(request: Request) {
           { reasoningEffort: "low", minWorkouts: 1 },
         );
 
+        // Een voorstel, geen schema: het blijft 'draft' tot het lid het toepast,
+        // en hangt via root_plan_id onder het lopende schema in plaats van
+        // ernaast. De titel krijgt geen suffix meer — de kaart toont zelf al dat
+        // het een voorstel is.
         const { data: draft, error: draftError } = await admin
           .from("training_plans")
           .insert({
@@ -159,13 +206,16 @@ export async function POST(request: Request) {
             trainer_id: plan.trainer_id,
             goal_id: plan.goal_id,
             parent_plan_id: plan.id,
-            title: `${ai.plan.title} (dagelijkse aanpassing)`,
+            root_plan_id: plan.root_plan_id ?? plan.id,
+            title: ai.plan.title,
             summary: ai.plan.summary,
             start_date: ai.plan.startDate,
             end_date: ai.plan.endDate,
             status: "draft",
             source: "ai",
-            adaptation_reason: "Dagelijkse aanpassing op basis van uitgevoerde workouts.",
+            adaptation_kind: "daily",
+            adapt_from_date: today,
+            adaptation_reason: "Dagelijkse bijstelling op basis van je laatste ritten.",
             ctl_projection_json: {
               sourcePlanId: plan.id,
               sourceWorkoutCount: (sourceWorkouts ?? []).length,
@@ -175,20 +225,10 @@ export async function POST(request: Request) {
           .single();
         if (draftError) throw new Error(draftError.message);
 
-        await admin.from("training_workouts").insert(
-          ai.plan.workouts.map((workout) => ({
-            plan_id: draft.id,
-            profile_id: plan.profile_id,
-            trainer_id: plan.trainer_id,
-            scheduled_at: `${workout.date}T09:00:00+01:00`,
-            title: workout.title,
-            description: workout.description,
-            duration_minutes: Math.round(workout.durationMinutes),
-            intensity: workout.intensity,
-            target_type: workout.targetType,
-            structure_json: normalizeWorkoutBlocks(workout.structure, workout.intensity),
-            intervals_external_id: `zwb-${draft.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
-          })),
+        await insertPlanWorkouts(
+          admin,
+          { id: draft.id, profile_id: plan.profile_id, trainer_id: plan.trainer_id },
+          ai.plan.workouts,
         );
 
         await admin.from("training_adaptation_runs").insert({
@@ -217,7 +257,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json({ ok: true, results });
+    return Response.json({ ok: true, archived, results });
   } catch (err) {
     return Response.json(
       { ok: false, error: err instanceof Error ? err.message : "Adaptatie-cron faalde." },

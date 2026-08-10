@@ -7,7 +7,11 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { adaptationLabel, groupByRoot, planToRoot } from "@/lib/training/plan-tree";
+import { AdaptationProposal } from "../_components/adaptation-proposal";
+import { AvailabilityForm } from "../_components/availability-form";
 import { PlanActions } from "../_components/plan-actions";
+import { PlanRideForm } from "../_components/plan-ride-form";
 import { CollapsibleCard, PlanBadge } from "../_components/ui";
 import { WorkoutBlocks, WorkoutTitle } from "../_components/workout-blocks";
 import { WorkoutList } from "../_components/workout-list";
@@ -15,19 +19,17 @@ import {
   WorkoutCalendar,
   type CalendarWorkout,
 } from "../_components/workout-calendar";
-import { byPlan, byWorkout, formatDayMonth, paramString } from "../_components/format";
+import { byRootPlan, byWorkout, formatDayMonth, paramString } from "../_components/format";
 import { PlanUpdateForm } from "../_components/plan-update-form";
-import type {
-  GoalRow,
-  PlanRow,
-  SearchParamsProp,
-  WorkoutReportRow,
-} from "../_components/types";
+import type { GoalRow, SearchParamsProp, WorkoutReportRow } from "../_components/types";
 import {
   activePlan,
+  externalIntervalsEvents,
+  loadAvailabilityOptions,
   loadConnection,
   loadIntervalsSnapshot,
   loadMemberWorkouts,
+  loadPlanFamilies,
   loadProfile,
   planUpdateDefaults,
   requireViewer,
@@ -45,15 +47,10 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const viewer = await requireViewer();
 
   const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
-  const [snapshot, { data: planRows }, { data: reportRows }, { data: goalRows }] =
+  const [snapshot, plans, { data: reportRows }, { data: goalRows }, availabilityOptions] =
     await Promise.all([
       loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }),
-      viewer.supabase
-        .from("training_plans")
-        .select("*")
-        .eq("profile_id", viewer.user.id)
-        .order("created_at", { ascending: false })
-        .limit(8),
+      loadPlanFamilies(viewer),
       viewer.supabase
         .from("training_workout_reports")
         .select("*")
@@ -64,20 +61,35 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         .select("*")
         .eq("profile_id", viewer.user.id)
         .order("created_at", { ascending: false }),
+      loadAvailabilityOptions(viewer),
     ]);
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
   const todayKey = todayKeyAmsterdam();
-  const plans = (planRows ?? []) as PlanRow[];
   const reportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
-  const workoutsByPlan = byPlan(memberWorkouts);
-  const upcomingEvents = upcomingIntervalsEvents(snapshot.events, 5);
+
+  // Een aanpassing is een afgeleid plan, maar hoort in het schema waar hij op
+  // ingrijpt. Vandaar de groepering per familie in plaats van per plan.
+  const families = groupByRoot(plans);
+  const rootByPlan = planToRoot(plans);
+  const workoutsByPlan = byRootPlan(memberWorkouts, rootByPlan);
+  const adaptedPlans = new Map(
+    plans
+      .filter((plan) => plan.parent_plan_id != null)
+      .map((plan) => [plan.id, adaptationLabel(plan.adaptation_kind)] as const),
+  );
+
+  // Alleen wat het lid buiten ZWB om heeft gepland; onze eigen gepubliceerde
+  // workouts staan al in de lijst hierboven.
+  const otherEvents = externalIntervalsEvents(snapshot.events, memberWorkouts);
+  const upcomingEvents = upcomingIntervalsEvents(otherEvents, 5);
   const upcomingWorkouts = memberWorkouts
     .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
 
   const canSelfManagePlans = viewer.access.has("training.create_plans");
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
+  const hasActivePlan = activePlan(plans) != null;
   // Bijwerken is voor wie zijn eigen schema beheert; heeft het lid een trainer,
   // dan doet die het vanuit de trainer-pagina.
   const updateDefaults = canSelfManagePlans
@@ -95,7 +107,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       source: "zwb" as const,
       skipped: workout.status === "skipped",
     })),
-    ...snapshot.events.map((event) => ({
+    ...otherEvents.map((event) => ({
       id: `intervals-${event.id}`,
       dateKey: String(event.start_date_local).slice(0, 10),
       title: event.name ?? "Workout",
@@ -187,7 +199,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                       Download FIT
                     </a>
                   </div>
-                ) : (
+                ) : workout.origin === "member" ? null : (
                   <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
                 )}
               </li>
@@ -210,52 +222,60 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         )}
       </CollapsibleCard>
 
+      <AvailabilityForm options={availabilityOptions} />
+
+      {hasActivePlan ? <PlanRideForm todayKey={todayKey} /> : null}
+
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 
       <CollapsibleCard title="Mijn ZWB-schema's" defaultOpen>
-        {plans.length === 0 ? (
+        {families.length === 0 ? (
           <EmptyState>Geen ZWB-trainingsschema&apos;s.</EmptyState>
         ) : (
           <div className="divide-y">
-            {plans.map((plan) => {
-              // Een renner mag zijn eigen dag-aanpassing (afgeleid plan) zelf
-              // goedkeuren/publiceren, ook zonder trainer/bestuur-rol.
-              const ownAdaptation = Boolean(plan.parent_plan_id);
-              const mayApprove = canSelfManagePlans || ownAdaptation;
-              const mayPublish = canSelfPublishPlans || ownAdaptation;
+            {families.map(({ root, derived }) => {
+              // Openstaande bijstellingen tonen we als voorstel binnen het
+              // schema; de overige aanpassingen zitten al in de workoutlijst.
+              const proposals = derived.filter(
+                (plan) => plan.status === "draft" && plan.adaptation_kind === "daily",
+              );
               return (
-                <article key={plan.id}>
+                <article key={root.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3 p-4">
                     <div>
-                      <h3 className="font-semibold">{plan.title}</h3>
+                      <h3 className="font-semibold">{root.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {formatDayMonth(plan.start_date, false)} -{" "}
-                        {formatDayMonth(plan.end_date, false)}
+                        {formatDayMonth(root.start_date, false)} -{" "}
+                        {formatDayMonth(root.end_date, false)}
                       </p>
                     </div>
-                    <PlanBadge status={plan.status} />
+                    <PlanBadge status={root.status} />
                   </div>
-                  {mayApprove || mayPublish ? (
+                  {proposals.map((proposal) => (
+                    <AdaptationProposal key={proposal.id} proposal={proposal} />
+                  ))}
+                  {canSelfManagePlans || canSelfPublishPlans ? (
                     <div className="border-y p-3">
                       <PlanActions
-                        planId={plan.id}
-                        status={plan.status}
-                        mayApprove={mayApprove}
-                        mayPublish={mayPublish}
+                        planId={root.id}
+                        status={root.status}
+                        mayApprove={canSelfManagePlans}
+                        mayPublish={canSelfPublishPlans}
                       />
                     </div>
                   ) : null}
-                  {plan.summary && (
+                  {root.summary && (
                     <p className="px-4 pb-3 text-sm text-muted-foreground whitespace-pre-line">
-                      {plan.summary}
+                      {root.summary}
                     </p>
                   )}
                   <WorkoutList
-                    workouts={workoutsByPlan.get(plan.id) ?? []}
+                    workouts={workoutsByPlan.get(root.id) ?? []}
                     editable={false}
                     ftpWatts={profile?.ftp_watts}
                     reports={reportsByWorkout}
                     intervalsAthleteId={conn?.athlete_id}
+                    adaptedPlans={adaptedPlans}
                   />
                 </article>
               );

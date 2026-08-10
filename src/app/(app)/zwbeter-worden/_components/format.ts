@@ -108,6 +108,26 @@ export function byPlan<T extends { plan_id: string }>(rows: T[]) {
   return map;
 }
 
+/**
+ * Groepeert workouts per schema in plaats van per plan: een aanpassing woont in
+ * een afgeleid plan, maar hoort bij het schema waar hij op ingrijpt. Workouts
+ * met een onbekend plan vallen terug op hun eigen plan_id.
+ */
+export function byRootPlan<T extends { plan_id: string; scheduled_at: string }>(
+  rows: T[],
+  planToRoot: Map<string, string>,
+) {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = planToRoot.get(row.plan_id) ?? row.plan_id;
+    map.set(key, [...(map.get(key) ?? []), row]);
+  }
+  for (const [key, workouts] of map) {
+    map.set(key, [...workouts].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+  }
+  return map;
+}
+
 export function byWorkout<T extends { workout_id: string }>(rows: T[]) {
   const map = new Map<string, T>();
   for (const row of rows) map.set(row.workout_id, row);

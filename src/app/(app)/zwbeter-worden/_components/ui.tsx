@@ -28,11 +28,21 @@ export function MetricCard({
   );
 }
 
-export function RecoveryStat({ label, value }: { label: string; value: string }) {
+export function RecoveryStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  /** Bijschrift onder het label, bv. dat een waarde berekend is en niet gemeten. */
+  hint?: string;
+}) {
   return (
     <div className="rounded-md bg-muted/50 p-3 text-center">
       <div className="text-lg font-semibold tabular-nums">{value}</div>
       <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
+      {hint ? <div className="mt-0.5 text-[0.65rem] text-muted-foreground">{hint}</div> : null}
     </div>
   );
 }

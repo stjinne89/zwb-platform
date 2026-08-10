@@ -120,7 +120,9 @@ export async function TrainingStatus({
               }
               sub={
                 recoverySummary?.readiness != null
-                  ? RECOVERY_LABELS[recoverySummary.state] ?? undefined
+                  ? `${RECOVERY_LABELS[recoverySummary.state] ?? ""}${
+                      recoverySummary.readinessSource === "afgeleid" ? " (berekend)" : ""
+                    }`.trim() || undefined
                   : undefined
               }
             />

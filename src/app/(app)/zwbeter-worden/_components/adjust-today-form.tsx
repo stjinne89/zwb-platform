@@ -1,11 +1,12 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Moon, Sparkles } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { markTodayRestDay } from "../_actions";
+import { useAiDraftPoll, type DraftPayload } from "./use-ai-draft-poll";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -16,87 +17,32 @@ const FEELINGS: { value: string; label: string }[] = [
   { value: "fresh", label: "Fris" },
 ];
 
-type DraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
-
-type DraftPayload = {
-  ok?: boolean;
-  generationId?: string;
-  status?: DraftStatus;
-  planId?: string;
-  error?: string;
-  message?: string;
-  published?: boolean;
-  intervalsUrl?: string | null;
-};
-
 export function AdjustTodayForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [feeling, setFeeling] = useState("normal");
   const [submitting, setSubmitting] = useState(false);
-  const [activeGenerationId, setActiveGenerationId] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [intervalsUrl, setIntervalsUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const busy = submitting || Boolean(activeGenerationId);
+  const onCompleted = useCallback((payload: DraftPayload) => {
+    setResult(
+      payload.published
+        ? "Aangepast. De training staat in ZWB en intervals.icu; je trainer kijkt er later naar."
+        : "Voorstel klaargezet — bekijk het bij je schema's hieronder.",
+    );
+    setIntervalsUrl(payload.intervalsUrl ?? null);
+    setOpen(false);
+  }, []);
+  const poll = useAiDraftPoll({
+    onCompleted,
+    firstDelayMs: 1_000,
+    intervalMs: 2_500,
+    failureMessage: "Voorstel ophalen is mislukt.",
+  });
+  const { error, setError } = poll;
 
-  // Poll de gedeelde AI-draft-status tot het concept klaar is.
-  useEffect(() => {
-    if (!activeGenerationId) return;
-    const generationId = activeGenerationId;
-    let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    async function poll() {
-      try {
-        const response = await fetch(`/api/training/ai-draft/${generationId}`, {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        const isJson = response.headers.get("content-type")?.includes("application/json");
-        const payload = isJson ? ((await response.json()) as DraftPayload) : null;
-        if (cancelled) return;
-
-        if (!response.ok || !payload?.ok) {
-          setError(payload?.error ?? "Voorstel ophalen is mislukt.");
-          setActiveGenerationId(null);
-          return;
-        }
-
-        if (payload.status === "completed") {
-          setResult(
-            payload.published
-              ? "Aangepast. De training staat in ZWB en intervals.icu; je trainer kijkt er later naar."
-              : "Voorstel klaargezet — bekijk het bij je schema's hieronder.",
-          );
-          setIntervalsUrl(payload.intervalsUrl ?? null);
-          setActiveGenerationId(null);
-          setOpen(false);
-          router.refresh();
-          return;
-        }
-
-        if (payload.status === "failed" || payload.status === "cancelled") {
-          setError(payload.error ?? "Aanpassing maken faalde.");
-          setActiveGenerationId(null);
-          return;
-        }
-
-        timeoutId = setTimeout(poll, 2_500);
-      } catch {
-        if (cancelled) return;
-        setError("Voorstel ophalen is mislukt.");
-        setActiveGenerationId(null);
-      }
-    }
-
-    timeoutId = setTimeout(poll, 1_000);
-    return () => {
-      cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [activeGenerationId, router]);
+  const busy = submitting || poll.pending;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,7 +65,7 @@ export function AdjustTodayForm() {
         setError(payload?.error ?? "Voorstel maken is mislukt.");
         return;
       }
-      setActiveGenerationId(payload.generationId);
+      poll.watch(payload.generationId);
     } catch {
       setError("Voorstel maken is mislukt.");
     } finally {

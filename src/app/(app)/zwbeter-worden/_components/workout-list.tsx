@@ -12,10 +12,23 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { targetHint } from "@/lib/training/targets";
-import { saveTrainerFeedback, saveWorkoutReport, updateWorkout } from "../_actions";
+import {
+  removeOwnRide,
+  saveTrainerFeedback,
+  saveWorkoutReport,
+  updateWorkout,
+} from "../_actions";
 import { dateValue, formAction, formatDayMonth, timeValue } from "./format";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
 import { WorkoutBlocks, WorkoutTitle } from "./workout-blocks";
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[0.7rem] font-medium text-primary">
+      {children}
+    </span>
+  );
+}
 
 function ReportPanel({
   workout,
@@ -101,12 +114,15 @@ export function WorkoutList({
   ftpWatts,
   reports,
   intervalsAthleteId,
+  adaptedPlans,
 }: {
   workouts: WorkoutRow[];
   editable: boolean;
   ftpWatts?: number | null;
   reports?: Map<string, WorkoutReportRow>;
   intervalsAthleteId?: string;
+  /** plan_id → label, voor workouts die uit een aanpassing komen. */
+  adaptedPlans?: Map<string, string>;
 }) {
   if (workouts.length === 0) {
     return <p className="p-4 text-sm text-muted-foreground">Nog geen workouts in dit schema.</p>;
@@ -120,6 +136,8 @@ export function WorkoutList({
           workout.intensity as WorkoutIntensity,
         );
         const report = reports?.get(workout.id);
+        const ownRide = workout.origin === "member";
+        const adaptedLabel = adaptedPlans?.get(workout.plan_id);
         return (
           <li key={workout.id} className="p-4">
             {editable ? (
@@ -268,7 +286,11 @@ export function WorkoutList({
                   {formatDayMonth(workout.scheduled_at)}
                 </span>
                 <div className="min-w-0">
-                  <WorkoutTitle workout={workout} athleteId={intervalsAthleteId} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <WorkoutTitle workout={workout} athleteId={intervalsAthleteId} />
+                    {ownRide ? <Chip>Eigen rit</Chip> : null}
+                    {!ownRide && adaptedLabel ? <Chip>{adaptedLabel}</Chip> : null}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {workout.duration_minutes} min - {intensityLabel(workout.intensity)}
                     {workout.publish_status === "failed"
@@ -276,7 +298,16 @@ export function WorkoutList({
                       : ""}
                   </p>
                 </div>
-                <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
+                {ownRide ? (
+                  <form action={formAction(removeOwnRide)}>
+                    <input type="hidden" name="workout_id" value={workout.id} />
+                    <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+                      Verwijder
+                    </button>
+                  </form>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
+                )}
               </div>
             )}
             <WorkoutBlocks blocks={blocks} ftpWatts={ftpWatts} />

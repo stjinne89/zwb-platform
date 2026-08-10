@@ -20,6 +20,7 @@ import {
   syncIntervalsActivities,
 } from "@/lib/intervals/activities";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
+import { loadAvailability, mondayKey, shiftWeeks } from "@/lib/training/availability";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import {
   detectCompletedWorkouts,
@@ -29,6 +30,7 @@ import { refreshWellnessIfStale, type WellnessDevice } from "@/lib/training/well
 import type { GoalRow, PlanRow, ProfileRow, WorkoutRow } from "./_components/types";
 import type { PendingReview } from "./_components/workout-review-dialog";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
+import type { AvailabilityOptions } from "./_components/availability-form";
 
 export type IntervalsConnection = {
   athlete_id: string;
@@ -187,20 +189,34 @@ export function zwbStatusFor(
  * Workouts van het lid, met de datums die het in intervals.icu heeft verschoven
  * al toegepast. Door een aanpassing vervangen workouts horen niet meer in het
  * schema en filteren we eruit.
+ *
+ * Ook eruit: de workouts van een nog niet toegepast voorstel uit de nachtelijke
+ * bijstelling. Die staan al wel in de database, maar zouden anders naast de
+ * bestaande training van diezelfde dag verschijnen — precies de dubbeling die we
+ * met het voorstel-strookje wilden voorkomen.
  */
 export async function loadMemberWorkouts(
   viewer: Viewer,
   events: IntervalsEvent[],
 ): Promise<WorkoutRow[]> {
-  const { data } = await viewer.supabase
-    .from("training_workouts")
-    .select("*")
-    .is("superseded_at", null)
-    .eq("profile_id", viewer.user.id)
-    .order("scheduled_at", { ascending: true })
-    .limit(200);
+  const [{ data }, { data: proposalPlans }] = await Promise.all([
+    viewer.supabase
+      .from("training_workouts")
+      .select("*")
+      .is("superseded_at", null)
+      .eq("profile_id", viewer.user.id)
+      .order("scheduled_at", { ascending: true })
+      .limit(200),
+    viewer.supabase
+      .from("training_plans")
+      .select("id")
+      .eq("profile_id", viewer.user.id)
+      .eq("status", "draft")
+      .eq("adaptation_kind", "daily"),
+  ]);
 
-  const rows = (data ?? []) as WorkoutRow[];
+  const proposalIds = new Set((proposalPlans ?? []).map((plan) => plan.id as string));
+  const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !proposalIds.has(row.plan_id));
   const movedDates = events.length
     ? await syncWorkoutDatesFromIntervals(viewer.admin, rows, events).catch(
         () => new Map<string, string>(),
@@ -280,17 +296,77 @@ export async function loadPendingReview(
 }
 
 /**
- * Het schema dat nu loopt: nog niet afgelopen, niet gearchiveerd, en bij
- * meerdere kandidaten de meest recente. Dit is het schema dat "bijwerken"
- * aanpast.
+ * Alle schema's van het lid, gegroepeerd per familie: een basisplan met de
+ * aanpassingen die eraan hangen. Voorheen haalde de schemapagina de plannen plat
+ * op met een limiet, waardoor elke dagelijkse aanpassing als eigen programma in
+ * de lijst kwam en het echte schema er binnen een week uit duwde.
+ */
+export async function loadPlanFamilies(viewer: Viewer, limit = 5) {
+  const { data: roots } = await viewer.supabase
+    .from("training_plans")
+    .select("*")
+    .eq("profile_id", viewer.user.id)
+    .is("parent_plan_id", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const rootIds = (roots ?? []).map((plan) => plan.id as string);
+  if (rootIds.length === 0) return [] as PlanRow[];
+
+  const { data: derived } = await viewer.supabase
+    .from("training_plans")
+    .select("*")
+    .eq("profile_id", viewer.user.id)
+    .not("parent_plan_id", "is", null)
+    .in("root_plan_id", rootIds)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  return [...(roots ?? []), ...(derived ?? [])] as PlanRow[];
+}
+
+/**
+ * Het schema dat nu loopt: een basisplan dat nog niet afgelopen is en niet
+ * gearchiveerd, en bij meerdere kandidaten de meest recente. Dit is het schema
+ * dat "bijwerken" aanpast — een aanpassing zelf is dat nadrukkelijk niet, die
+ * loopt maar één dag en zou de bijwerking tot een lege operatie maken.
  */
 export function activePlan(plans: PlanRow[]): PlanRow | null {
   const today = todayKeyAmsterdam();
   return (
     plans
-      .filter((plan) => plan.status !== "archived" && String(plan.end_date).slice(0, 10) >= today)
+      .filter(
+        (plan) =>
+          plan.parent_plan_id == null &&
+          plan.status !== "archived" &&
+          String(plan.end_date).slice(0, 10) >= today,
+      )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
   );
+}
+
+/**
+ * De drie weken die het beschikbaarheidsformulier toont: deze week, volgende
+ * week en het standaardpatroon. Elke week valt terug op de standaard zolang er
+ * niets aparts is ingevuld, zodat het lid alleen hoeft in te vullen wat afwijkt.
+ */
+export async function loadAvailabilityOptions(viewer: Viewer): Promise<AvailabilityOptions> {
+  const thisWeek = mondayKey(todayKeyAmsterdam());
+  const nextWeek = shiftWeeks(thisWeek, 1);
+
+  const [current, next, standard] = await Promise.all([
+    loadAvailability(viewer.admin, viewer.user.id, thisWeek),
+    loadAvailability(viewer.admin, viewer.user.id, nextWeek),
+    loadAvailability(viewer.admin, viewer.user.id, null),
+  ]);
+
+  return {
+    weeks: [
+      { key: "deze", label: "Deze week", weekStart: thisWeek, availability: current },
+      { key: "volgende", label: "Volgende week", weekStart: nextWeek, availability: next },
+      { key: "standaard", label: "Standaard", weekStart: null, availability: standard },
+    ],
+  };
 }
 
 /** Voorgevulde waarden voor het bijwerkformulier; null zonder gekoppeld doel. */
@@ -311,6 +387,32 @@ export function planUpdateDefaults(
     desiredIntensity: goal.desired_intensity,
     availableDays: goal.available_days ?? [],
   };
+}
+
+/**
+ * De intervals.icu-events die géén ZWB-workout zijn.
+ *
+ * Een gepubliceerde workout bestaat in beide bronnen: als rij in
+ * training_workouts én als event dat wij daar zelf hebben neergezet. Wie ze
+ * allebei toont, ziet elke geplande training twee keer — één keer in de kleur
+ * van zijn intensiteit en één keer als naamloos event.
+ *
+ * We herkennen ons eigen werk op twee manieren: het event-id dat we bij het
+ * publiceren hebben opgeslagen, en anders de external_id die we zelf meegeven
+ * (`zwb-…`). Die tweede vangt de gevallen op waarin het opgeslagen id niet meer
+ * klopt, bijvoorbeeld na een mislukte opruimactie.
+ */
+export function externalIntervalsEvents(
+  events: IntervalsEvent[],
+  workouts: WorkoutRow[],
+): IntervalsEvent[] {
+  const ownEventIds = new Set(
+    workouts.map((workout) => workout.intervals_event_id).filter(Boolean) as string[],
+  );
+  return events.filter(
+    (event) =>
+      !ownEventIds.has(String(event.id)) && !String(event.external_id ?? "").startsWith("zwb-"),
+  );
 }
 
 /** Events van vandaag of later, oplopend, maximaal `limit`. */

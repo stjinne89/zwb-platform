@@ -1,9 +1,9 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { type FormEvent, useCallback, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAiDraftPoll, type DraftPayload } from "./use-ai-draft-poll";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -26,16 +26,6 @@ const INTENSITY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "hard", label: "Ambitieus" },
 ];
 
-type DraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
-
-type DraftPayload = {
-  ok?: boolean;
-  generationId?: string;
-  status?: DraftStatus;
-  planId?: string;
-  error?: string;
-};
-
 export type PlanUpdateDefaults = {
   planId: string;
   planTitle: string;
@@ -54,67 +44,22 @@ export function PlanUpdateForm({
   /** Voorgevulde reden, bv. vanuit de naleving van een beoordeelde workout. */
   reason?: string;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState<string[]>(defaults.availableDays);
   const [submitting, setSubmitting] = useState(false);
-  const [activeGenerationId, setActiveGenerationId] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const busy = submitting || Boolean(activeGenerationId);
+  const onCompleted = useCallback(() => {
+    setResult("Bijgewerkt schema staat klaar als concept — beoordeel en publiceer het.");
+    setOpen(false);
+  }, []);
+  const poll = useAiDraftPoll({
+    onCompleted,
+    failureMessage: "Bijgewerkt schema ophalen is mislukt.",
+  });
+  const { error, setError } = poll;
 
-  // Poll de gedeelde AI-draft-status tot het bijgewerkte schema klaar is.
-  useEffect(() => {
-    if (!activeGenerationId) return;
-    const generationId = activeGenerationId;
-    let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    async function poll() {
-      try {
-        const response = await fetch(`/api/training/ai-draft/${generationId}`, {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        const isJson = response.headers.get("content-type")?.includes("application/json");
-        const payload = isJson ? ((await response.json()) as DraftPayload) : null;
-        if (cancelled) return;
-
-        if (!response.ok || !payload?.ok) {
-          setError(payload?.error ?? "Bijgewerkt schema ophalen is mislukt.");
-          setActiveGenerationId(null);
-          return;
-        }
-
-        if (payload.status === "completed") {
-          setResult("Bijgewerkt schema staat klaar als concept — beoordeel en publiceer het.");
-          setActiveGenerationId(null);
-          setOpen(false);
-          router.refresh();
-          return;
-        }
-
-        if (payload.status === "failed" || payload.status === "cancelled") {
-          setError(payload.error ?? "Schema bijwerken faalde.");
-          setActiveGenerationId(null);
-          return;
-        }
-
-        timeoutId = setTimeout(poll, 3_000);
-      } catch {
-        if (cancelled) return;
-        setError("Bijgewerkt schema ophalen is mislukt.");
-        setActiveGenerationId(null);
-      }
-    }
-
-    timeoutId = setTimeout(poll, 1_500);
-    return () => {
-      cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [activeGenerationId, router]);
+  const busy = submitting || poll.pending;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,7 +83,7 @@ export function PlanUpdateForm({
         setError(payload?.error ?? "Schema bijwerken is mislukt.");
         return;
       }
-      setActiveGenerationId(payload.generationId);
+      poll.watch(payload.generationId);
     } catch {
       setError("Schema bijwerken is mislukt.");
     } finally {

@@ -52,7 +52,14 @@ export type TrainingAiInput = {
     weightKg: number | null;
     zrlCategory: string | null;
   };
+  /**
+   * Wat het lid werkelijk heeft gereden. `days` staat erbij omdat het model
+   * anders zelf een periode aanneemt: het deelde de 28-daagse optelsom door vier
+   * en vergeleek dat weekgemiddelde met maxHoursPerWeek, alsof dat een
+   * overschrijding was die het moest compenseren.
+   */
   recentLoad: {
+    days: number;
     activities: number;
     distanceKm: number;
     elevationM: number;
@@ -66,6 +73,8 @@ export type TrainingAiInput = {
     hrv: number | null;
     sleepHours: number | null;
     readiness: number | null;
+    /** 'afgeleid' = door ZWB berekend uit HRV/rust-HR/slaap, geen meting. */
+    readinessSource: "device" | "afgeleid" | null;
     note: string;
   } | null;
   /** Actuele belasting/vorm uit intervals.icu (CTL/ATL/TSB/eFTP). */
@@ -78,6 +87,23 @@ export type TrainingAiInput = {
   } | null;
   /** Aankomende events/races waar het schema omheen moet plannen. */
   upcomingEvents?: Array<{ title: string; type: string; date: string }>;
+  /**
+   * Minuten per weekdag die het lid deze week heeft. Gaat vóór
+   * goal.availableDays: dat kent alleen dagen, dit ook de tijd per dag.
+   */
+  availability?: {
+    weekStart: string | null;
+    minutesByDay: Record<string, number>;
+    source: "week" | "default";
+  } | null;
+  /** Zelf ingeplande ritten (clubrit, buitenrit): die liggen vast. */
+  fixedWorkouts?: Array<{
+    date: string;
+    title: string;
+    durationMinutes: number;
+    intensity: string;
+    kind: "eigen_rit";
+  }>;
   /** Renner-signaal voor vandaag (dag-aanpassing): tijd + gevoel. */
   today?: {
     availableMinutes: number | null;

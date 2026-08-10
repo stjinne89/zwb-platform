@@ -65,6 +65,10 @@ export type PlanRow = {
   created_at: string;
   adaptation_reason: string | null;
   parent_plan_id: string | null;
+  /** Het schema waar deze rij bij hoort; voor een basisplan het eigen id. */
+  root_plan_id: string | null;
+  adaptation_kind: string | null;
+  adapt_from_date: string | null;
   ctl_projection_json?: Record<string, unknown> | null;
 };
 
@@ -90,6 +94,9 @@ export type WorkoutRow = {
   publish_error: string | null;
   intervals_event_id: string | null;
   intervals_external_id: string | null;
+  /** 'member' is een rit die het lid zelf heeft ingepland; die ligt vast. */
+  origin: string;
+  superseded_at: string | null;
 };
 
 export type WorkoutReportRow = {

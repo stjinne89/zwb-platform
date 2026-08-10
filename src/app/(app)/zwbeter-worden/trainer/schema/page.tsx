@@ -2,11 +2,12 @@
 // invoegen en de schema's van de renner beheren.
 
 import { EmptyState } from "@/components/app-ui";
+import { adaptationLabel, groupByRoot, planToRoot } from "@/lib/training/plan-tree";
 import { PlanActions } from "../../_components/plan-actions";
 import { PlanUpdateForm } from "../../_components/plan-update-form";
 import { WorkoutList } from "../../_components/workout-list";
 import { CollapsibleCard, PlanBadge } from "../../_components/ui";
-import { byPlan, byWorkout, formAction, formatDayMonth } from "../../_components/format";
+import { byRootPlan, byWorkout, formAction, formatDayMonth } from "../../_components/format";
 import type {
   GoalRow,
   PlanRow,
@@ -84,14 +85,23 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
       .order("updated_at", { ascending: false }),
   ]);
 
-  const workoutsByPlan = byPlan((workoutRows ?? []) as WorkoutRow[]);
+  // Aanpassingen zijn afgeleide plannen; ze horen in het schema waar ze op
+  // ingrijpen, niet als losse kaart ernaast. Zelfde groepering als bij het lid.
+  const families = groupByRoot(plans);
+  const rootByPlan = planToRoot(plans);
+  const workoutsByPlan = byRootPlan((workoutRows ?? []) as WorkoutRow[], rootByPlan);
   const reportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
+  const adaptedPlans = new Map(
+    plans
+      .filter((plan) => plan.parent_plan_id != null)
+      .map((plan) => [plan.id, adaptationLabel(plan.adaptation_kind)] as const),
+  );
 
   // Het schema dat "bijwerken" aanpast (loopt nu), en het schema dat standaard
   // openklapt (het eerste niet-gearchiveerde).
   const runningPlan = activePlan(plans);
   const updateDefaults = planUpdateDefaults(runningPlan, goals);
-  const openPlan = plans.find((plan) => plan.status !== "archived");
+  const openPlan = families.find((family) => family.root.status !== "archived")?.root;
   const canPublish = viewer.access.has("training.publish_plans");
 
   return (
@@ -106,12 +116,12 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
 
       <section className="space-y-3">
         <h2 className="font-semibold">Schema&apos;s maken en beheren</h2>
-        {plans.length === 0 ? (
+        {families.length === 0 ? (
           <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
             Nog geen schema&apos;s voor dit lid.
           </p>
         ) : (
-          plans.map((plan) => (
+          families.map(({ root: plan, derived }) => (
             <CollapsibleCard
               key={plan.id}
               title={plan.title}
@@ -174,12 +184,49 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
                 <PlanActions planId={plan.id} status={plan.status} mayApprove mayPublish={canPublish} />
                 <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
               </div>
+              {derived.length > 0 ? (
+                <div className="border-b bg-muted/30 p-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Aanpassingen op dit schema
+                  </p>
+                  <ul className="space-y-2">
+                    {derived.map((adaptation) => (
+                      <li
+                        key={adaptation.id}
+                        className="flex flex-wrap items-center gap-2 rounded-md border bg-background p-2"
+                      >
+                        <span className="text-xs font-medium">
+                          {adaptationLabel(adaptation.adaptation_kind)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDayMonth(adaptation.adapt_from_date ?? adaptation.created_at, false)}
+                          {adaptation.adaptation_reason ? ` - ${adaptation.adaptation_reason}` : ""}
+                        </span>
+                        <PlanBadge status={adaptation.status} />
+                        <div className="ml-auto flex flex-wrap items-center gap-2">
+                          <PlanActions
+                            planId={adaptation.id}
+                            status={adaptation.status}
+                            mayApprove
+                            mayPublish={canPublish}
+                          />
+                          <DeleteTrainingPlanButton
+                            planId={adaptation.id}
+                            title={adaptation.title}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <WorkoutList
                 workouts={workoutsByPlan.get(plan.id) ?? []}
                 editable
                 ftpWatts={athlete?.ftp_watts}
                 reports={reportsByWorkout}
                 intervalsAthleteId={connection?.athlete_id}
+                adaptedPlans={adaptedPlans}
               />
             </CollapsibleCard>
           ))

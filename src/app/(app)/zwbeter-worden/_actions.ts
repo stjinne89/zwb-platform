@@ -10,8 +10,18 @@ import {
 } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
+import { requestReplan } from "@/lib/training/replan";
+import {
+  clampMinutes,
+  mondayKey,
+  normalizeMinutesByDay,
+  WEEKDAY_SLUGS,
+  type MinutesByDay,
+} from "@/lib/training/availability";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import {
   blocksFromForm,
+  normalizeWorkoutBlocks,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -20,7 +30,7 @@ import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
-const WEEKDAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"];
+const WEEKDAYS: readonly string[] = WEEKDAY_SLUGS;
 const MODES = ["indoor", "outdoor", "mixed"];
 const LEVELS = ["beginner", "intermediate", "advanced"];
 const INTENSITIES = ["easy", "balanced", "hard"];
@@ -819,6 +829,325 @@ export async function deleteWorkoutTemplate(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Workout verwijderen faalde.",
+    };
+  }
+}
+
+/** Het lopende schema van een lid: een basisplan dat nog niet is afgelopen. */
+async function activeBasePlanFor(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+) {
+  const { data } = await admin
+    .from("training_plans")
+    .select("id, profile_id, trainer_id, status, end_date")
+    .eq("profile_id", profileId)
+    .is("parent_plan_id", null)
+    .in("status", ["published", "approved"])
+    .gte("end_date", amsterdamDayKey())
+    .order("status", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(5);
+
+  const plans = data ?? [];
+  return plans.find((plan) => plan.status === "published") ?? plans[0] ?? null;
+}
+
+/**
+ * Beschikbaarheid voor een week opslaan: minuten per weekdag. Een lege
+ * `week_start` is het standaardpatroon, dat geldt voor elke week waarvoor niets
+ * apart is ingevuld.
+ *
+ * Veranderde er niets, dan laten we het schema met rust — anders zou elk
+ * openen-en-opslaan een AI-generatie kosten.
+ */
+export async function saveWeekAvailability(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+
+    const weekRaw = optionalString(formData.get("week_start"));
+    const weekStart = weekRaw ? mondayKey(weekRaw) : null;
+
+    const minutesByDay: MinutesByDay = {};
+    for (const day of WEEKDAY_SLUGS) {
+      minutesByDay[day] = clampMinutes(formData.get(`minutes_${day}`));
+    }
+
+    const { data: existing } = await admin
+      .from("training_availability")
+      .select("id, minutes_by_day")
+      .eq("profile_id", user.id)
+      .filter("week_start", weekStart ? "eq" : "is", weekStart ?? null)
+      .maybeSingle();
+
+    const unchanged =
+      existing != null &&
+      JSON.stringify(normalizeMinutesByDay(existing.minutes_by_day)) ===
+        JSON.stringify(minutesByDay);
+
+    const values = {
+      profile_id: user.id,
+      week_start: weekStart,
+      minutes_by_day: minutesByDay,
+      note: optionalString(formData.get("note")),
+      updated_by: user.id,
+    };
+    const result = existing
+      ? await admin.from("training_availability").update(values).eq("id", existing.id)
+      : await admin
+          .from("training_availability")
+          .insert({ ...values, created_by: user.id });
+    if (result.error) throw new Error(result.error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    if (unchanged) return { ok: true as const, generationId: null };
+
+    const replan = await requestReplan(
+      admin,
+      user.id,
+      weekStart
+        ? `Beschikbaarheid gewijzigd voor de week van ${weekStart}.`
+        : "Standaard beschikbaarheid gewijzigd.",
+    );
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Beschikbaarheid opslaan faalde.",
+    };
+  }
+}
+
+/** Soorten rit die een lid zelf kan inplannen, met hun standaardintensiteit. */
+const RIDE_KINDS: Record<string, { title: string; intensity: WorkoutIntensity }> = {
+  buitenrit: { title: "Buitenrit", intensity: "endurance" },
+  clubrit: { title: "Clubrit", intensity: "endurance" },
+  wedstrijd: { title: "Wedstrijd", intensity: "race" },
+  eigen: { title: "Eigen training", intensity: "endurance" },
+};
+
+const RIDE_EFFORTS: Record<string, WorkoutIntensity> = {
+  rustig: "recovery",
+  duur: "endurance",
+  tempo: "tempo",
+  zwaar: "threshold",
+};
+
+/**
+ * Een vrije rit in het eigen schema zetten: een vast moment waar de planner
+ * omheen werkt. Geen blokkenstructuur en dus geen FIT — het is een afspraak,
+ * geen voorgeschreven training.
+ *
+ * Gaat via de service-role omdat RLS leden geen writes op training_workouts
+ * toestaat; de eigendomscheck staat daarom hier.
+ */
+export async function planOwnRide(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+
+    const date = mustString(formData.get("date"), "Datum");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Ongeldige datum.");
+    const time = optionalString(formData.get("time")) ?? "09:00";
+    const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
+    if (durationMinutes < 15 || durationMinutes > 480) {
+      throw new Error("Kies een duur tussen 15 en 480 minuten.");
+    }
+
+    const kind = RIDE_KINDS[optionalString(formData.get("kind")) ?? "buitenrit"];
+    if (!kind) throw new Error("Ongeldig soort rit.");
+    const effort = RIDE_EFFORTS[optionalString(formData.get("effort")) ?? ""] ?? kind.intensity;
+    const note = optionalString(formData.get("note"));
+    const title = optionalString(formData.get("title")) ?? kind.title;
+
+    const plan = await activeBasePlanFor(admin, user.id);
+    if (!plan) {
+      throw new Error("Je hebt nog geen lopend schema om een rit in te plannen.");
+    }
+
+    const blocks = normalizeWorkoutBlocks(
+      [{ label: title, durationMinutes, target: "", notes: note ?? "", intensity: effort }],
+      effort,
+    );
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48);
+    const { error } = await admin.from("training_workouts").insert({
+      plan_id: plan.id,
+      profile_id: user.id,
+      trainer_id: plan.trainer_id,
+      scheduled_at: `${date}T${time}:00+01:00`,
+      title,
+      description: note,
+      duration_minutes: durationMinutes,
+      intensity: effort,
+      target_type: "free",
+      structure_json: blocks,
+      origin: "member",
+      publish_status: "pending",
+      intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    const replan = await requestReplan(admin, user.id, `${title} ingepland op ${date}.`);
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Rit inplannen faalde.",
+    };
+  }
+}
+
+/** Een zelf ingeplande rit weer weghalen; alleen je eigen vrije ritten. */
+export async function removeOwnRide(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const workoutId = mustString(formData.get("workout_id"), "Rit");
+
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, profile_id, origin, intervals_event_id, scheduled_at")
+      .eq("id", workoutId)
+      .maybeSingle();
+    if (!workout || workout.profile_id !== user.id || workout.origin !== "member") {
+      throw new Error("Alleen je eigen ingeplande ritten kun je verwijderen.");
+    }
+
+    if (workout.intervals_event_id) {
+      const { data: conn } = await admin
+        .from("intervals_connections")
+        .select("api_key, athlete_id")
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      if (conn?.api_key && conn.athlete_id) {
+        await deleteIntervalsWorkoutEvent(
+          conn.api_key,
+          conn.athlete_id,
+          workout.intervals_event_id,
+        ).catch(() => null);
+      }
+    }
+
+    const { error } = await admin.from("training_workouts").delete().eq("id", workoutId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    const replan = await requestReplan(
+      admin,
+      user.id,
+      `Ingeplande rit van ${String(workout.scheduled_at).slice(0, 10)} vervallen.`,
+    );
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Rit verwijderen faalde.",
+    };
+  }
+}
+
+/**
+ * Een voorstel uit de nachtelijke bijstelling toepassen: goedkeuren en meteen
+ * publiceren, zodat het lid er één handeling aan heeft.
+ */
+export async function applyAdaptationProposal(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    const admin = createAdminClient();
+    const planId = mustString(formData.get("plan_id"), "Voorstel");
+
+    const { data: plan } = await admin
+      .from("training_plans")
+      .select("id, profile_id, parent_plan_id, status")
+      .eq("id", planId)
+      .maybeSingle();
+    if (!plan) throw new Error("Voorstel niet gevonden.");
+    if (!plan.parent_plan_id) throw new Error("Dit is geen voorstel.");
+    // Een renner mag zijn eigen afgeleide plan beheren, ook zonder trainersrol.
+    if (
+      plan.profile_id !== user.id &&
+      !access.has("training.manage_assignments") &&
+      !(await canCoach(admin, user.id, plan.profile_id))
+    ) {
+      throw new Error("Geen toegang tot dit voorstel.");
+    }
+
+    const { connected, failed } = await pushPlanWorkoutsToIntervals(
+      admin,
+      planId,
+      plan.profile_id,
+    );
+    if (!connected) throw new Error("Koppel eerst intervals.icu.");
+    if (failed > 0) throw new Error("Niet alle workouts konden worden doorgezet.");
+
+    const now = new Date().toISOString();
+    const { error } = await admin
+      .from("training_plans")
+      .update({
+        status: "published",
+        approved_by: user.id,
+        approved_at: now,
+        published_by: user.id,
+        published_at: now,
+      })
+      .eq("id", planId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Voorstel toepassen faalde.",
+    };
+  }
+}
+
+/** Voorstel wegklikken: het schema blijft zoals het was. */
+export async function dismissAdaptationProposal(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    const admin = createAdminClient();
+    const planId = mustString(formData.get("plan_id"), "Voorstel");
+
+    const { data: plan } = await admin
+      .from("training_plans")
+      .select("id, profile_id, parent_plan_id")
+      .eq("id", planId)
+      .maybeSingle();
+    if (!plan) throw new Error("Voorstel niet gevonden.");
+    if (!plan.parent_plan_id) throw new Error("Dit is geen voorstel.");
+    if (
+      plan.profile_id !== user.id &&
+      !access.has("training.manage_assignments") &&
+      !(await canCoach(admin, user.id, plan.profile_id))
+    ) {
+      throw new Error("Geen toegang tot dit voorstel.");
+    }
+
+    const { error } = await admin
+      .from("training_plans")
+      .update({ status: "archived" })
+      .eq("id", planId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Voorstel wegklikken faalde.",
     };
   }
 }

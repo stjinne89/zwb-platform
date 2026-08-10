@@ -29,6 +29,7 @@ import { WorkoutReviewDialog } from "./_components/workout-review-dialog";
 import { paramString } from "./_components/format";
 import type { SearchParamsProp, SegmentRow, StravaActivityRow } from "./_components/types";
 import {
+  externalIntervalsEvents,
   loadConnection,
   loadIntervalsSnapshot,
   loadMemberWorkouts,
@@ -109,7 +110,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   );
   // Een rustdag telt niet als eerstvolgende workout.
   const nextZwbWorkout = upcomingWorkouts.find((workout) => workout.status !== "skipped") ?? null;
-  const nextIntervalsEvent = upcomingIntervalsEvents(snapshot.events, 1)[0] ?? null;
+  // Zonder deze filter concurreert een gepubliceerde ZWB-workout met zijn eigen
+  // intervals.icu-event om de plek van "eerstvolgende workout".
+  const nextIntervalsEvent =
+    upcomingIntervalsEvents(externalIntervalsEvents(snapshot.events, memberWorkouts), 1)[0] ??
+    null;
   const nextWorkout =
     nextZwbWorkout && nextIntervalsEvent
       ? new Date(nextZwbWorkout.scheduled_at).getTime() <=
