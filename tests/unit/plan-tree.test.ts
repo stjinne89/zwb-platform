@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adaptationLabel,
+  currentPlanOf,
   groupByRoot,
   planToRoot,
   rootIdOf,
@@ -85,6 +86,39 @@ describe("groupByRoot", () => {
     const families = groupByRoot([plan("01")]);
     expect(families).toHaveLength(1);
     expect(families[0].derived).toEqual([]);
+  });
+});
+
+describe("currentPlanOf", () => {
+  function withStatus(id: string, parent: string | null, status: string, day: string) {
+    return { ...plan(id, parent), status, created_at: `2026-08-${day}T09:00:00Z` };
+  }
+
+  it("pakt de nieuwste lopende herziening", () => {
+    const root = withStatus("01", null, "published", "01");
+    const family = {
+      root,
+      derived: [
+        withStatus("03", "01", "published", "03"),
+        withStatus("02", "01", "published", "02"),
+      ],
+    };
+    expect(currentPlanOf(family).id).toBe("03");
+  });
+
+  it("slaat een voorstel over: een concept is nog geen schema", () => {
+    const root = withStatus("01", null, "published", "01");
+    const family = {
+      root,
+      derived: [withStatus("03", "01", "draft", "03"), withStatus("02", "01", "published", "02")],
+    };
+    expect(currentPlanOf(family).id).toBe("02");
+  });
+
+  it("valt terug op het basisplan als er nog geen herziening loopt", () => {
+    const root = withStatus("01", null, "published", "01");
+    expect(currentPlanOf({ root, derived: [] }).id).toBe("01");
+    expect(currentPlanOf({ root, derived: [withStatus("02", "01", "draft", "02")] }).id).toBe("01");
   });
 });
 

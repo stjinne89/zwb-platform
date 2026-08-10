@@ -7,7 +7,12 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
-import { adaptationLabel, groupByRoot, planToRoot } from "@/lib/training/plan-tree";
+import {
+  adaptationLabel,
+  currentPlanOf,
+  groupByRoot,
+  planToRoot,
+} from "@/lib/training/plan-tree";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
 import { PlanActions } from "../_components/plan-actions";
@@ -239,6 +244,10 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
               const proposals = derived.filter(
                 (plan) => plan.status === "draft" && plan.adaptation_kind === "daily",
               );
+              // De omschrijving van het schema zoals het nu loopt. Het basisplan
+              // draagt nog de tekst van de eerste generatie, met uitgangspunten
+              // die sindsdien zijn bijgesteld.
+              const current = currentPlanOf({ root, derived });
               return (
                 <article key={root.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3 p-4">
@@ -264,9 +273,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                       />
                     </div>
                   ) : null}
-                  {root.summary && (
+                  {current.summary && (
                     <p className="px-4 pb-3 text-sm text-muted-foreground whitespace-pre-line">
-                      {root.summary}
+                      {current.summary}
                     </p>
                   )}
                   <WorkoutList

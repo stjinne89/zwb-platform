@@ -172,9 +172,9 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
           {busy ? "Bezig…" : "Opslaan"}
         </Button>
         <span className="text-sm text-muted-foreground">
-          {minutesLabel(total)} deze week
+          {minutesLabel(total)} — {week.label.toLowerCase()}
           {week.availability.source !== "week" && week.weekStart
-            ? " — nu nog volgens je standaardweek"
+            ? " (nu nog volgens je standaardweek)"
             : ""}
         </span>
       </div>

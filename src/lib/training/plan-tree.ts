@@ -82,6 +82,28 @@ export function groupByRoot<T extends PlanNode>(plans: T[]): Array<PlanFamily<T>
     .sort((a, b) => b.root.created_at.localeCompare(a.root.created_at));
 }
 
+/**
+ * Het plan dat de huidige stand van het schema beschrijft: de nieuwste
+ * herziening die daadwerkelijk loopt, en anders het basisplan zelf.
+ *
+ * Nodig omdat de kaart van een schema het basisplan als kop gebruikt, en dat
+ * draagt nog de samenvatting van de allereerste generatie. Een lid dat zijn
+ * uren van zes naar tien bijstelde bleef daardoor "maximaal 6 uur per week"
+ * lezen terwijl de workouts eronder allang op tien uur stonden.
+ *
+ * Concepten tellen niet mee: een voorstel is nog geen schema.
+ */
+export function currentPlanOf<T extends PlanNode & { status?: string }>(family: {
+  root: T;
+  derived: T[];
+}): T {
+  return (
+    family.derived.find(
+      (plan) => plan.status === "published" || plan.status === "approved",
+    ) ?? family.root
+  );
+}
+
 const ADAPTATION_LABELS: Record<string, string> = {
   day: "Aangepast",
   plan_update: "Bijgewerkt",
