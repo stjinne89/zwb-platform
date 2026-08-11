@@ -8,6 +8,7 @@ import Link from "next/link";
 import { CalendarCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptClubEvent, declineClubEvent } from "../_actions";
+import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
 
 export type ScheduleEventItem = {
@@ -19,15 +20,6 @@ export type ScheduleEventItem = {
   durationMinutes: number;
   rsvp: string | null;
   inSchedule: boolean;
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  zrl: "ZRL",
-  ladder: "Ladder",
-  flamme_rouge: "Flamme Rouge",
-  outdoor: "Buitenrit",
-  social: "Social",
-  training: "Training",
 };
 
 function durationLabel(minutes: number) {
@@ -94,41 +86,51 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
         {events.map((event) => {
           const busy = busyId === event.id || poll.pending;
           return (
-            <li key={event.id} className="flex flex-wrap items-center gap-3 p-4">
-              <span className="w-24 shrink-0 text-sm text-muted-foreground">
+            <li
+              key={event.id}
+              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4"
+            >
+              {/* Op mobiel staat de datum in de metaregel; daar is geen ruimte
+                  voor een eigen kolom naast de knoppen. */}
+              <span className="hidden w-24 shrink-0 text-sm text-muted-foreground sm:block">
                 {event.dateLabel}
               </span>
               <div className="min-w-0 flex-1">
-                <Link
-                  href={`/events/${event.id}`}
-                  className="font-medium underline-offset-2 hover:underline"
-                >
-                  {event.title}
-                </Link>
-                <p className="text-xs text-muted-foreground">
-                  {TYPE_LABELS[event.type] ?? event.type} — {durationLabel(event.durationMinutes)}
+                <div className="flex items-start gap-2">
+                  <Link
+                    href={`/events/${event.id}`}
+                    className="min-w-0 font-medium underline-offset-2 hover:underline"
+                  >
+                    {event.title}
+                  </Link>
+                  <Link
+                    href={`/events/${event.id}`}
+                    aria-label={`Open ${event.title}`}
+                    className="shrink-0 rounded-md border p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="sm:hidden">{event.dateLabel} — </span>
+                  {EVENT_TYPE_LABELS[event.type] ?? event.type} —{" "}
+                  {durationLabel(event.durationMinutes)}
                   {event.inSchedule ? " — staat in je schema" : ""}
                 </p>
               </div>
-              <Link
-                href={`/events/${event.id}`}
-                aria-label={`Open ${event.title}`}
-                className="rounded-md border p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                <ExternalLink className="size-3.5" />
-              </Link>
               {event.rsvp === "yes" ? (
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
+                  className="shrink-0 self-start sm:self-auto"
                   disabled={busy}
                   onClick={() => decide(event.id, false)}
                 >
                   Toch niet
                 </Button>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <Button
                     type="button"
                     size="sm"
