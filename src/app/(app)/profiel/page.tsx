@@ -11,6 +11,7 @@ import { PushToggle } from "./_components/push-toggle";
 import { StravaSection } from "./_components/strava-section";
 import { BikeShowcase } from "./_components/bike-showcase";
 import { AccountData } from "./_components/account-data";
+import { ZwiftExternalLinks } from "@/components/zwift-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
@@ -154,6 +155,8 @@ export default async function ProfielPage() {
         earnedCount={earnedMilestoneIds.size}
         totalCount={milestones.length}
       />
+
+      <ZwiftExternalLinks zwiftId={profileRow?.zwift_id} />
 
       <ProfileForm
         email={user.email ?? ""}
