@@ -3,7 +3,7 @@ import { Bike, ExternalLink } from "lucide-react";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { BadgeVault, type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
 import { ProfileHeader } from "@/app/(app)/profiel/_components/profile-header";
-import { ZwiftExternalLinks } from "@/components/zwift-external-links";
+import { ProfileExternalLinks } from "@/components/profile-external-links";
 import {
   bikeBrandModel,
   bikeName,
@@ -117,7 +117,10 @@ export function ProfileReadonlyView({
         totalCount={milestones.length}
       />
 
-      <ZwiftExternalLinks zwiftId={profile.zwift_id} />
+      <ProfileExternalLinks
+        zwiftId={profile.zwift_id}
+        stravaId={profile.strava_id}
+      />
 
       {publicUrl && (
         <section className="rounded-lg border bg-card p-4">
