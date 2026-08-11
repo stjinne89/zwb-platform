@@ -23,6 +23,7 @@ import {
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
+import { committedEventsForAi } from "@/lib/training/events";
 import { rootIdOf } from "@/lib/training/plan-tree";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
@@ -232,29 +233,21 @@ async function buildTrainingInput(
   const horizon = goal.target_date
     ? new Date(goal.target_date)
     : new Date(Date.now() + 90 * 86400_000);
-  const { data: upcomingRows } = await admin
-    .from("events")
-    .select("title, type, start_at")
-    .gte("start_at", new Date().toISOString())
-    .lte("start_at", horizon.toISOString())
-    .order("start_at")
-    .limit(8);
-  const upcomingEvents = (upcomingRows ?? []).map((e) => ({
-    title: e.title as string,
-    type: e.type as string,
-    date: String(e.start_at).slice(0, 10),
-  }));
+  const today = amsterdamDayKey();
+  const horizonKey = horizon.toISOString().slice(0, 10);
 
   // Naleving van het lopende schema: hiermee kan de AI het volgende blok
   // afstemmen op wat het lid werkelijk rijdt in plaats van op wat er stond.
   const compliance = await buildComplianceContext(admin, athleteId).catch(() => null);
 
-  // Wat het lid deze week aan tijd heeft, en welke ritten het al zelf heeft
-  // vastgezet. Zonder dit plant de AI dwars door een clubrit heen.
-  const today = amsterdamDayKey();
-  const [availability, fixedWorkouts] = await Promise.all([
+  // Wat het lid deze week aan tijd heeft, welke ritten het al zelf heeft
+  // vastgezet, en welke clubevents het heeft toegezegd. Zonder dat eerste plant
+  // de AI dwars door een clubrit heen; zonder dat laatste zette hij sessies
+  // klaar voor events waar het lid niet eens heen ging.
+  const [availability, fixedWorkouts, upcomingEvents] = await Promise.all([
     availabilityForAi(admin, athleteId, today),
-    loadFixedWorkouts(admin, athleteId, today, horizon.toISOString().slice(0, 10)).catch(() => []),
+    loadFixedWorkouts(admin, athleteId, today, horizonKey).catch(() => []),
+    committedEventsForAi(admin, athleteId, today, horizonKey),
   ]);
 
   return {

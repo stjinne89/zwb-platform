@@ -160,8 +160,9 @@ export async function availabilityForAi(admin: Admin, profileId: string, fromDat
 }
 
 /**
- * De ritten die het lid zelf heeft ingepland in een bereik. Die staan vast: de
- * planner mag ze niet vervangen of verplaatsen, alleen de rest eromheen zetten.
+ * Wat er in een bereik vastligt: ritten die het lid zelf heeft ingepland en
+ * clubevents die het heeft toegezegd. De planner mag ze niet vervangen of
+ * verplaatsen, alleen de rest eromheen zetten.
  */
 export async function loadFixedWorkouts(
   admin: Admin,
@@ -171,9 +172,9 @@ export async function loadFixedWorkouts(
 ) {
   const { data } = await admin
     .from("training_workouts")
-    .select("scheduled_at, title, duration_minutes, intensity")
+    .select("scheduled_at, title, duration_minutes, intensity, origin")
     .eq("profile_id", profileId)
-    .eq("origin", "member")
+    .in("origin", ["member", "event"])
     .eq("status", "planned")
     .is("superseded_at", null)
     .gte("scheduled_at", `${from}T00:00:00`)
@@ -185,6 +186,6 @@ export async function loadFixedWorkouts(
     title: workout.title as string,
     durationMinutes: Number(workout.duration_minutes ?? 0),
     intensity: workout.intensity as string,
-    kind: "eigen_rit" as const,
+    kind: workout.origin === "event" ? ("clubevent" as const) : ("eigen_rit" as const),
   }));
 }

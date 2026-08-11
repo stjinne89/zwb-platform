@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { supersedableWorkouts } from "@/lib/training/publish";
 
-function workout(planId: string, date: string, status = "planned") {
-  return { plan_id: planId, scheduled_at: `${date}T09:00:00+01:00`, status };
+function workout(planId: string, date: string, status = "planned", origin = "ai") {
+  return { plan_id: planId, scheduled_at: `${date}T09:00:00+01:00`, status, origin };
 }
 
 const geenNieuwere = new Set<string>();
@@ -29,6 +29,23 @@ describe("supersedableWorkouts", () => {
       wholeRange: true,
     });
     expect(result.map((row) => row.plan_id)).toEqual(["oud"]);
+  });
+
+  it("laat afspraken van het lid zelf staan", () => {
+    // Een eigen rit en een toegezegd clubevent zijn afspraken, geen voorstellen;
+    // een herziening plant eromheen in plaats van eroverheen.
+    const rows = [
+      workout("oud", "2026-08-11", "planned", "member"),
+      workout("oud", "2026-08-12", "planned", "event"),
+      workout("oud", "2026-08-13", "planned", "ai"),
+    ];
+    const result = supersedableWorkouts(rows, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: alleDagen,
+      wholeRange: true,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].origin).toBe("ai");
   });
 
   it("laat gereden en overgeslagen sessies staan", () => {

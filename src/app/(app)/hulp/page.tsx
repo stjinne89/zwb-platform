@@ -763,6 +763,19 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Clubevents in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bij je schema staan de clubevents die binnen de looptijd vallen. Ze
+              komen er pas in als je <strong className="text-foreground">Ik doe mee</strong>{" "}
+              kiest: dan wordt het event een vast blok, met een duur uit de
+              eindtijd of de afstand, en werkt het schema de week eromheen bij —
+              geen zware sessie vlak ervoor of erna. Kies je{" "}
+              <strong className="text-foreground">Nee</strong>, dan verdwijnt het
+              uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
+              telt als nog niet beslist, dus dat blijft gewoon staan.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Zelf een rit inplannen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Weet je dat je zaterdag met de club rijdt? Zet hem met{" "}

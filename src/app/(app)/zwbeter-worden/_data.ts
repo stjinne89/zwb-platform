@@ -21,6 +21,7 @@ import {
 } from "@/lib/intervals/activities";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
 import { loadAvailability, mondayKey, shiftWeeks } from "@/lib/training/availability";
+import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import {
   detectCompletedWorkouts,
@@ -31,6 +32,7 @@ import type { GoalRow, PlanRow, ProfileRow, WorkoutRow } from "./_components/typ
 import type { PendingReview } from "./_components/workout-review-dialog";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
 import type { AvailabilityOptions } from "./_components/availability-form";
+import type { ScheduleEventItem } from "./_components/event-choice";
 
 export type IntervalsConnection = {
   athlete_id: string;
@@ -367,6 +369,39 @@ export async function loadAvailabilityOptions(viewer: Viewer): Promise<Availabil
       { key: "standaard", label: "Standaard", weekStart: null, availability: standard },
     ],
   };
+}
+
+/**
+ * Clubevents binnen de looptijd van het lopende schema, met het antwoord van het
+ * lid erbij. Events waarop 'nee' staat vallen weg — die keuze is gemaakt.
+ */
+export async function loadScheduleEventChoices(
+  viewer: Viewer,
+  plan: PlanRow | null,
+): Promise<ScheduleEventItem[]> {
+  if (!plan) return [];
+  const today = todayKeyAmsterdam();
+  const to = String(plan.end_date).slice(0, 10);
+  if (to < today) return [];
+
+  const events = await loadScheduleEvents(viewer.admin, viewer.user.id, today, to).catch(() => []);
+  return events
+    .filter((event) => event.rsvp !== "no")
+    .map((event) => ({
+      id: event.id,
+      title: event.title,
+      type: event.type,
+      startAt: event.start_at,
+      dateLabel: new Date(event.start_at).toLocaleDateString("nl-NL", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone: "Europe/Amsterdam",
+      }),
+      durationMinutes: eventWorkoutDefaults(event).durationMinutes,
+      rsvp: event.rsvp,
+      inSchedule: event.inSchedule,
+    }));
 }
 
 /** Voorgevulde waarden voor het bijwerkformulier; null zonder gekoppeld doel. */

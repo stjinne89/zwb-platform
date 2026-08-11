@@ -137,6 +137,8 @@ export function WorkoutList({
         );
         const report = reports?.get(workout.id);
         const ownRide = workout.origin === "member";
+        // Een toegezegd clubevent beheer je vanuit de keuzelijst, niet hier.
+        const clubEvent = workout.origin === "event";
         const adaptedLabel = adaptedPlans?.get(workout.plan_id);
         return (
           <li key={workout.id} className="p-4">
@@ -289,7 +291,8 @@ export function WorkoutList({
                   <div className="flex flex-wrap items-center gap-2">
                     <WorkoutTitle workout={workout} athleteId={intervalsAthleteId} />
                     {ownRide ? <Chip>Eigen rit</Chip> : null}
-                    {!ownRide && adaptedLabel ? <Chip>{adaptedLabel}</Chip> : null}
+                    {clubEvent ? <Chip>Clubevent</Chip> : null}
+                    {!ownRide && !clubEvent && adaptedLabel ? <Chip>{adaptedLabel}</Chip> : null}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {workout.duration_minutes} min - {intensityLabel(workout.intensity)}

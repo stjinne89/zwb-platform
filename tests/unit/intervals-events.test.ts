@@ -25,6 +25,7 @@ function workout(extra: Partial<WorkoutRow> = {}): WorkoutRow {
     intervals_event_id: null,
     intervals_external_id: null,
     origin: "ai",
+    event_id: null,
     superseded_at: null,
     ...extra,
   };

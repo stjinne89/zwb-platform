@@ -15,6 +15,7 @@ import {
 } from "@/lib/training/plan-tree";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
+import { EventChoice } from "../_components/event-choice";
 import { PlanActions } from "../_components/plan-actions";
 import { PlanRideForm } from "../_components/plan-ride-form";
 import { CollapsibleCard, PlanBadge } from "../_components/ui";
@@ -36,6 +37,7 @@ import {
   loadMemberWorkouts,
   loadPlanFamilies,
   loadProfile,
+  loadScheduleEventChoices,
   planUpdateDefaults,
   requireViewer,
   todayKeyAmsterdam,
@@ -94,7 +96,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
   const canSelfManagePlans = viewer.access.has("training.create_plans");
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
-  const hasActivePlan = activePlan(plans) != null;
+  const runningPlan = activePlan(plans);
+  const eventChoices = await loadScheduleEventChoices(viewer, runningPlan);
   // Bijwerken is voor wie zijn eigen schema beheert; heeft het lid een trainer,
   // dan doet die het vanuit de trainer-pagina.
   const updateDefaults = canSelfManagePlans
@@ -229,7 +232,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       <AvailabilityForm options={availabilityOptions} />
 
-      {hasActivePlan ? <PlanRideForm todayKey={todayKey} /> : null}
+      <EventChoice events={eventChoices} />
+
+      {runningPlan ? <PlanRideForm todayKey={todayKey} /> : null}
 
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 

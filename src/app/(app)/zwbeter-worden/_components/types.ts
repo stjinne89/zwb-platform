@@ -94,8 +94,9 @@ export type WorkoutRow = {
   publish_error: string | null;
   intervals_event_id: string | null;
   intervals_external_id: string | null;
-  /** 'member' is een rit die het lid zelf heeft ingepland; die ligt vast. */
+  /** 'member' (eigen rit) en 'event' (toegezegd clubevent) liggen vast. */
   origin: string;
+  event_id: string | null;
   superseded_at: string | null;
 };
 

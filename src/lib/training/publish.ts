@@ -62,14 +62,20 @@ type SupersedeCandidate = {
   plan_id: string;
   scheduled_at: string;
   status: string;
+  origin?: string;
 };
+
+/** Wat het lid zelf heeft vastgezet; een herziening plant daaromheen. */
+const FIXED_ORIGINS = new Set(["member", "event"]);
 
 /**
  * Welke van de gevonden workouts werkelijk vervangen worden.
  *
- * Drie regels, elk uit een bug:
+ * Vier regels, elk uit een bug:
  * - Alleen wat nog gepland staat. Gereden of gerapporteerde sessies zijn
  *   geschiedenis, geen planning.
+ * - Nooit wat het lid zelf heeft vastgezet: een eigen rit of een toegezegd
+ *   clubevent is een afspraak, geen voorstel.
  * - Nooit een workout uit een plan dat ná dit plan is gemaakt. Dat is een
  *   recentere beslissing; zonder deze regel streepten twee herzieningen elkaar
  *   volledig weg en bleef er van een hele week niets over.
@@ -84,6 +90,7 @@ export function supersedableWorkouts<T extends SupersedeCandidate>(
   return candidates.filter(
     (row) =>
       row.status === "planned" &&
+      !FIXED_ORIGINS.has(row.origin ?? "ai") &&
       !options.newerPlanIds.has(row.plan_id) &&
       (options.wholeRange || options.dayKeys.has(String(row.scheduled_at).slice(0, 10))),
   );
@@ -153,7 +160,6 @@ export async function retireSupersededWorkouts(
     .eq("profile_id", profileId)
     .neq("plan_id", planId)
     .is("superseded_at", null)
-    .neq("origin", "member")
     .gte("scheduled_at", `${from}T00:00:00`)
     .lte("scheduled_at", `${to}T23:59:59`);
 

@@ -11,6 +11,7 @@ import {
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
+import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
 import {
   clampMinutes,
   mondayKey,
@@ -1001,6 +1002,153 @@ export async function planOwnRide(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Rit inplannen faalde.",
+    };
+  }
+}
+
+/**
+ * Meedoen aan een clubevent: je antwoord vastleggen én het event als vast blok
+ * in je schema zetten. Daarna past een herziening de week eromheen aan, zodat er
+ * geen zware sessie vlak voor of na komt te staan.
+ *
+ * Alleen een 'ja' zet iets in het schema. Voorheen kreeg de planner elk event
+ * mee en plande hij sessies voor ritten waar het lid niet heen ging.
+ */
+export async function acceptClubEvent(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const eventId = mustString(formData.get("event_id"), "Event");
+
+    const { data: event } = await admin
+      .from("events")
+      .select("id, title, type, start_at, end_at, distance_km, elevation_m")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!event) throw new Error("Event niet gevonden.");
+
+    const { error: rsvpError } = await admin.from("event_rsvps").upsert(
+      { event_id: eventId, profile_id: user.id, status: "yes", updated_at: new Date().toISOString() },
+      { onConflict: "event_id,profile_id" },
+    );
+    if (rsvpError) throw new Error(rsvpError.message);
+
+    const plan = await activeBasePlanFor(admin, user.id);
+    if (!plan) {
+      revalidatePath("/zwbeter-worden", "layout");
+      revalidatePath("/kalender");
+      return { ok: true as const, generationId: null, message: "Je aanmelding is genoteerd." };
+    }
+
+    // Staat hij er al? Dan alleen het antwoord bijwerken; de unieke index zou een
+    // tweede blok toch weigeren.
+    const { data: existing } = await admin
+      .from("training_workouts")
+      .select("id")
+      .eq("profile_id", user.id)
+      .eq("event_id", eventId)
+      .is("superseded_at", null)
+      .maybeSingle();
+
+    if (!existing) {
+      const { durationMinutes, intensity } = eventWorkoutDefaults(event as ClubEventRow);
+      const startsAt = new Date(event.start_at as string);
+      const blocks = normalizeWorkoutBlocks(
+        [
+          {
+            label: event.title as string,
+            durationMinutes,
+            target: "",
+            notes: "Clubevent uit de ZWB-kalender.",
+            intensity,
+          },
+        ],
+        intensity,
+      );
+      const slug = String(event.title)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 48);
+      const { error } = await admin.from("training_workouts").insert({
+        plan_id: plan.id,
+        profile_id: user.id,
+        trainer_id: plan.trainer_id,
+        event_id: eventId,
+        scheduled_at: startsAt.toISOString(),
+        title: event.title,
+        description: `Clubevent: ${event.title}.`,
+        duration_minutes: durationMinutes,
+        intensity,
+        target_type: "free",
+        structure_json: blocks,
+        origin: "event",
+        publish_status: "pending",
+        intervals_external_id: `zwb-${plan.id}-${String(event.start_at).slice(0, 10)}-${slug}`,
+      });
+      if (error) throw new Error(error.message);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    revalidatePath("/kalender");
+    const replan = await requestReplan(admin, user.id, `${event.title} toegezegd; schema eromheen.`);
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Aanmelden faalde.",
+    };
+  }
+}
+
+/** Niet meedoen: antwoord vastleggen en het blok weer uit het schema halen. */
+export async function declineClubEvent(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const eventId = mustString(formData.get("event_id"), "Event");
+
+    const { error: rsvpError } = await admin.from("event_rsvps").upsert(
+      { event_id: eventId, profile_id: user.id, status: "no", updated_at: new Date().toISOString() },
+      { onConflict: "event_id,profile_id" },
+    );
+    if (rsvpError) throw new Error(rsvpError.message);
+
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, intervals_event_id")
+      .eq("profile_id", user.id)
+      .eq("event_id", eventId)
+      .is("superseded_at", null)
+      .maybeSingle();
+
+    if (workout) {
+      if (workout.intervals_event_id) {
+        const { data: conn } = await admin
+          .from("intervals_connections")
+          .select("api_key, athlete_id")
+          .eq("profile_id", user.id)
+          .maybeSingle();
+        if (conn?.api_key && conn.athlete_id) {
+          await deleteIntervalsWorkoutEvent(
+            conn.api_key,
+            conn.athlete_id,
+            workout.intervals_event_id,
+          ).catch(() => null);
+        }
+      }
+      await admin.from("training_workouts").delete().eq("id", workout.id);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    revalidatePath("/kalender");
+    return { ok: true as const, generationId: null };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Afmelden faalde.",
     };
   }
 }

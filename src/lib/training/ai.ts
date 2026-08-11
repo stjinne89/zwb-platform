@@ -98,13 +98,13 @@ export type TrainingAiInput = {
     minutesByDay: Record<string, number>;
     source: "week" | "default";
   } | null;
-  /** Zelf ingeplande ritten (clubrit, buitenrit): die liggen vast. */
+  /** Zelf ingeplande ritten en toegezegde clubevents: die liggen vast. */
   fixedWorkouts?: Array<{
     date: string;
     title: string;
     durationMinutes: number;
     intensity: string;
-    kind: "eigen_rit";
+    kind: "eigen_rit" | "clubevent";
   }>;
   /** Renner-signaal voor vandaag (dag-aanpassing): tijd + gevoel. */
   today?: {
