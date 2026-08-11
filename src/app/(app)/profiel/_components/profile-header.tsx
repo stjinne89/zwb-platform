@@ -43,10 +43,10 @@ export function ProfileHeader({
       {/* Banner met petrol-gradient */}
       <div className="h-20 w-full bg-gradient-to-br from-zwb-petrol via-zwb-teal to-zwb-petrol-dark sm:h-24" />
 
-      <div className="-mt-12 px-5 pb-5 sm:px-6 sm:pb-6">
+      <div className="px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-5">
-          {/* Avatar */}
-          <div className="relative">
+          {/* Avatar — enkel de avatar overlapt de banner */}
+          <div className="relative -mt-14 shrink-0 self-start sm:-mt-16">
             <div className="size-24 overflow-hidden rounded-full border-4 border-card bg-zwb-petrol shadow-lg sm:size-28">
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
