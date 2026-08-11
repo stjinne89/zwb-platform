@@ -9,6 +9,7 @@ import {
   CircleHelp,
   Download,
   Dumbbell,
+  ExternalLink,
   FileText,
   Gauge,
   Grid3x3,
@@ -82,6 +83,7 @@ const GUIDES = [
     title: "Training en trainer-toegang",
     bullets: [
       "Koppel intervals.icu voor geplande workouts en trainingsbelasting.",
+      "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
       "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
     ],
@@ -518,6 +520,72 @@ export default function HelpPage() {
       </section>
 
       <section
+        id="externe-profielen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <ExternalLink className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Doorklikken naar je andere profielen</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Vul je ID&apos;s in op Profiel en er verschijnen knoppen naar
+              ZwiftPower, ZwiftRacing.app, Strava en intervals.icu — op jouw
+              profiel en op je ledenprofiel. Per ID kies je zelf of het zichtbaar
+              is.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <article
+            id="zwift-id"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Zwift-ID</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Log in op my.zwift.com en open je profiel: het nummer in de
+              adresbalk is je Zwift-ID. Staat ook in je ZwiftPower-adres, achter
+              z=. Dit ene nummer verzorgt zowel ZwiftPower als
+              ZwiftRacing.app.
+            </p>
+          </article>
+
+          <article
+            id="strava-id"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Strava</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Open je Strava-profiel in een browser. Het laatste stuk van het
+              adres — strava.com/athletes/… — is wat je invult. Zowel het nummer
+              als je gebruikersnaam werkt.
+            </p>
+          </article>
+
+          <article
+            id="intervals-id"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">intervals.icu</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Open intervals.icu in een browser; in de adresbalk staat
+              /athlete/i… gevolgd door cijfers. Vul dat i-nummer in. Let op: je
+              gegevens daar zijn standaard privé, dus anderen zien alleen wat je
+              vrijgeeft.
+            </p>
+          </article>
+        </div>
+
+        <Link
+          href="/profiel"
+          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+        >
+          <UserCircle className="size-4 text-primary" />
+          Naar je profiel
+        </Link>
+      </section>
+
+      <section
         id="strava-import"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
@@ -690,6 +758,36 @@ export default function HelpPage() {
         </header>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <article
+            id="doeltype"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Doeltype en de laatste weken</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Het doeltype bepaalt hoe je schema eindigt, dus kies het type dat
+              bij je plan hoort — niet alleen de naam die het dichtst in de buurt
+              komt.
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Outdoor event of gran fondo:</strong>{" "}
+                één piekdag. De laatste een tot twee weken gaat het volume omlaag
+                terwijl de scherpte blijft, zodat je fris aan de start staat.
+              </li>
+              <li>
+                <strong className="text-foreground">Basisconditie, FTP of herstel/opbouw:</strong>{" "}
+                doorlopende doelen. Er komt geen taper: je bouwt door tot het
+                eind, want die laatste weken zijn juist de weken waar je conditie
+                van omhoog gaat. De targetdatum is dan het einde van de
+                planperiode, geen wedstrijddag.
+              </li>
+              <li>
+                <strong className="text-foreground">ZRL of Ladder:</strong> een
+                reeks races over meerdere weken. Je traint er doorheen; alleen de
+                dag vóór een racedag blijft licht.
+              </li>
+            </ul>
+          </article>
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Max. trainingsuren per week</h3>
             <p className="mt-2 text-sm text-muted-foreground">

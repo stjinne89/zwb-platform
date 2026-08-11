@@ -32,6 +32,13 @@ const HELP_INDEX: HelpResult[] = [
       "strava export csv activities importeren upload bestand geen koppeling limiet gpx een rit losse rit bulk archief taal geen fietsritten gevonden",
   },
   {
+    title: "Doorklikken naar je andere profielen",
+    text: "Zwift-ID, Strava en intervals.icu invullen voor knoppen naar ZwiftPower, ZwiftRacing.app, Strava en intervals.",
+    href: "/hulp#externe-profielen",
+    terms:
+      "zwiftpower zwiftracing zwift racing app strava intervals icu zwift-id athlete id profiel link knop grijs externe profielen",
+  },
+  {
     title: "Badges en achievements",
     text: "Weekbadges, milestone badges en badges herberekenen.",
     href: "/hulp#badges",
@@ -66,6 +73,13 @@ const HELP_INDEX: HelpResult[] = [
     text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
     href: "/hulp#trainingsschema",
     terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag aanpassen ai",
+  },
+  {
+    title: "Doeltype en de laatste weken",
+    text: "Waarom een gran fondo wel een taper krijgt en basisconditie of ZRL niet.",
+    href: "/hulp#doeltype",
+    terms:
+      "doeltype taper piek pieken laatste weken basisconditie base fitness ftp herstel opbouw rebuild zrl ladder gran fondo outdoor event targetdatum afbouwen volume",
   },
   {
     title: "Training en intervals.icu",
