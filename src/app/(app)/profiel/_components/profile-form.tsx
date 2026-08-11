@@ -11,6 +11,7 @@ type Initial = {
   zwift_id: string;
   mywhoosh_id: string;
   strava_id: string;
+  intervals_id: string;
   zrl_category: string;
   zrl_division: string;
   wellness_device: string;
@@ -43,6 +44,7 @@ const VISIBILITY_FIELDS = [
   { key: "region", label: "Regio" },
   { key: "zwift_id", label: "Zwift-ID" },
   { key: "strava_id", label: "Strava-vermelding" },
+  { key: "intervals_id", label: "intervals.icu" },
   { key: "zrl_category", label: "ZRL-categorie" },
   { key: "ftp_watts", label: "FTP" },
   { key: "weight_kg", label: "Gewicht" },
@@ -162,6 +164,15 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               name="strava_id"
               placeholder="bv. atletennaam"
               defaultValue={initial.strava_id}
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL}>intervals.icu-ID</label>
+            <input
+              name="intervals_id"
+              placeholder="bv. i141441"
+              defaultValue={initial.intervals_id}
               className={FIELD}
             />
           </div>

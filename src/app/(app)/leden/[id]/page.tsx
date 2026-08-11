@@ -33,6 +33,7 @@ function visibleProfile(profile: ProfileRow): ReadonlyProfile {
     region: isVisible(profile, "region") ? profile.region : null,
     zwift_id: isVisible(profile, "zwift_id") ? profile.zwift_id : null,
     strava_id: isVisible(profile, "strava_id") ? profile.strava_id : null,
+    intervals_id: isVisible(profile, "intervals_id") ? profile.intervals_id : null,
     zrl_category: isVisible(profile, "zrl_category") ? profile.zrl_category : null,
     ftp_watts: isVisible(profile, "ftp_watts") ? profile.ftp_watts : null,
     weight_kg: isVisible(profile, "weight_kg") ? profile.weight_kg : null,
@@ -62,7 +63,7 @@ export default async function LidProfielPage({ params }: PageProps) {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, strava_id, zrl_category, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, is_approved, public_profile_enabled, profile_visibility",
+        "id, display_name, region, zwift_id, strava_id, intervals_id, zrl_category, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, is_approved, public_profile_enabled, profile_visibility",
       )
       .eq("id", id)
       .eq("is_approved", true)

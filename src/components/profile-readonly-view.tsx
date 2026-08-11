@@ -19,6 +19,7 @@ export type ReadonlyProfile = {
   region: string | null;
   zwift_id: string | null;
   strava_id: string | null;
+  intervals_id?: string | null;
   zrl_category: string | null;
   ftp_watts: number | null;
   weight_kg: number | string | null;
@@ -120,6 +121,7 @@ export function ProfileReadonlyView({
       <ProfileExternalLinks
         zwiftId={profile.zwift_id}
         stravaId={profile.strava_id}
+        intervalsId={profile.intervals_id}
       />
 
       {publicUrl && (

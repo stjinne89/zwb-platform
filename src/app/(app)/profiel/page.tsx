@@ -31,6 +31,7 @@ const DEFAULT_VISIBILITY = {
   region: true,
   zwift_id: true,
   strava_id: true,
+  intervals_id: true,
   zrl_category: true,
   ftp_watts: true,
   weight_kg: true,
@@ -53,7 +54,7 @@ export default async function ProfielPage() {
   if (!user) redirect("/login");
 
   const PROFILE_COLUMNS =
-    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, zrl_category, zrl_division, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility";
+    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility";
 
   const [
     { data: profile, error: profileError },
@@ -159,6 +160,8 @@ export default async function ProfielPage() {
       <ProfileExternalLinks
         zwiftId={profileRow?.zwift_id}
         stravaId={profileRow?.strava_id || stravaUser?.athlete_username}
+        intervalsId={profileRow?.intervals_id}
+        showInactive
       />
 
       <ProfileForm
@@ -170,6 +173,7 @@ export default async function ProfielPage() {
           zwift_id: profileRow?.zwift_id ?? "",
           mywhoosh_id: profileRow?.mywhoosh_id ?? "",
           strava_id: profileRow?.strava_id ?? "",
+          intervals_id: profileRow?.intervals_id ?? "",
           zrl_category: profileRow?.zrl_category ?? "",
           zrl_division: profileRow?.zrl_division ?? "open",
           wellness_device: profileRow?.wellness_device ?? "",
