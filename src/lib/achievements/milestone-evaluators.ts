@@ -745,7 +745,10 @@ const EVALUATORS: Evaluator[] = [
       for (const a of acts) {
         if (!isOutdoor(a)) continue;
         if ((a.distance_m ?? 0) < minDistM) continue;
-        if ((a.moving_time_seconds ?? Infinity) > cap) continue;
+        // Een rit zonder beweegtijd (import zonder tijdkolom) is oneindig
+        // snel; die mag geen tijdbadge winnen.
+        if (!(a.moving_time_seconds > 0)) continue;
+        if (a.moving_time_seconds > cap) continue;
         if (!best || a.moving_time_seconds < best.moving_time_seconds) best = a;
       }
       if (!best) return null;
@@ -775,7 +778,8 @@ const EVALUATORS: Evaluator[] = [
         if (!isOutdoor(a)) continue;
         if ((a.distance_m ?? 0) < minDistM) continue;
         if ((a.distance_m ?? 0) > 80_000) continue; // 40 km, geen century
-        if ((a.moving_time_seconds ?? Infinity) > cap) continue;
+        if (!(a.moving_time_seconds > 0)) continue;
+        if (a.moving_time_seconds > cap) continue;
         if (!best || a.moving_time_seconds < best.moving_time_seconds) best = a;
       }
       if (!best) return null;

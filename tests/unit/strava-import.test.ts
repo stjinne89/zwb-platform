@@ -146,6 +146,55 @@ describe("stravaActivitiesFromCsv", () => {
     });
   });
 
+  it("leest een export met afstand in meters (o.a. intervals.icu)", () => {
+    const result = stravaActivitiesFromCsv(
+      [
+        "Activity ID,Date,Name,Type,Distance,Total Ascent,Duration",
+        "i164209588,2026-07-09T07:01:33Z,Woon-Werk,Ride,10473.55,42,0:22:10",
+        "i164209599,2026-07-09T16:42:26Z,Werk-Woon,Ride,10526.07,45,0:23:02",
+        "19141156251,2026-07-01T20:04:16Z,Zwift - Race,Virtual Ride,18697.7,120,0:41:00",
+      ].join("\n"),
+      profileId,
+    );
+
+    expect(result.rows).toHaveLength(3);
+    expect(result.rows[0]).toMatchObject({
+      name: "Woon-Werk",
+      distance_m: 10474,
+      total_elevation_gain_m: 42,
+      moving_time_seconds: 1330,
+    });
+    expect(result.rows[2].distance_m).toBe(18698);
+  });
+
+  it("laat kilometers ongemoeid bij een gemengd bestand met korte ritten", () => {
+    const result = stravaActivitiesFromCsv(
+      [
+        "Activity ID,Activity Date,Activity Name,Activity Type,Distance",
+        "1,2025-06-01T08:00:00Z,Rondje,Ride,0.8",
+        "2,2025-06-02T08:00:00Z,Lange rit,Ride,240",
+      ].join("\n"),
+      profileId,
+    );
+
+    expect(result.rows.map((row) => row.distance_m)).toEqual([800, 240000]);
+  });
+
+  it("slaat een rit over die zelfs als meters onmogelijk lang is", () => {
+    const result = stravaActivitiesFromCsv(
+      [
+        "Activity ID,Activity Date,Activity Name,Activity Type,Distance",
+        "1,2025-06-01T08:00:00Z,Rit,Ride,50",
+        "2,2025-06-02T08:00:00Z,Kapotte regel,Ride,4200000",
+        "3,2025-06-03T08:00:00Z,Rit,Ride,60",
+      ].join("\n"),
+      profileId,
+    );
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.skippedRows).toBe(1);
+  });
+
   it("creates deterministic synthetic IDs", () => {
     const csv = [
       "Activity Date,Activity Name,Activity Type,Distance",

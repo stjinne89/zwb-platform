@@ -98,6 +98,14 @@ const ELEVATION_ALIASES = [
   "dénivelé positif",
   "höhengewinn",
   "positiver höhenunterschied",
+  // Ruimere namen (o.a. intervals.icu en Garmin) — achteraan zodat de
+  // exacte Strava-kolommen voorrang houden.
+  "total ascent",
+  "ascent",
+  "climbing",
+  "hoogtemeters",
+  "totale stijging",
+  "stijging",
 ];
 const MOVING_TIME_ALIASES = [
   "moving time",
@@ -107,6 +115,13 @@ const MOVING_TIME_ALIASES = [
   "temps de déplacement",
   "bewegungszeit",
   "zeit in bewegung",
+  "ride time",
+  "activity time",
+  "rijtijd",
+  "duration",
+  "duur",
+  "time",
+  "tijd",
 ];
 const ELAPSED_TIME_ALIASES = [
   "elapsed time",
@@ -115,6 +130,9 @@ const ELAPSED_TIME_ALIASES = [
   "totale tijd",
   "temps écoulé",
   "verstrichene zeit",
+  "total elapsed time",
+  "total time",
+  "totale duur",
 ];
 const COMMUTE_ALIASES = [
   "commute",
@@ -483,6 +501,29 @@ function detectPositionalLayout(records: CsvRecord[]) {
     .every((record) => /^\d+$/.test(positionalField(record, POSITIONS.id)));
 }
 
+// Strava's activities.csv zet afstand in kilometers, maar andere exports
+// (o.a. intervals.icu) gebruiken dezelfde kolomnaam voor meters. De eenheid
+// wordt daarom per bestand bepaald: een mediaan-rit boven de 1000 kan nooit
+// in kilometers zijn.
+const METERS_MEDIAN_THRESHOLD = 1000;
+// Een enkele rit hierboven is geen rit maar een leesfout; die laten we liever
+// vallen dan dat hij alle klassementen scheeftrekt.
+const MAX_PLAUSIBLE_DISTANCE_M = 1_000_000;
+
+function median(values: number[]) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+function distanceScale(distances: number[]) {
+  const positive = distances.filter((value) => value > 0);
+  return median(positive) >= METERS_MEDIAN_THRESHOLD ? 1 : 1000;
+}
+
 function activityId(extracted: ExtractedRow, profileId: string) {
   if (/^\d+$/.test(extracted.id)) return extracted.id;
 
@@ -504,6 +545,7 @@ export function stravaActivitiesFromCsv(
   let skippedNonCycling = 0;
   const syncedAt = new Date().toISOString();
 
+  const usable: Array<{ extracted: ExtractedRow; start: Date }> = [];
   for (const record of records) {
     const extracted = positional
       ? extractByPosition(record)
@@ -520,7 +562,19 @@ export function stravaActivitiesFromCsv(
       continue;
     }
 
-    const distanceM = Math.round(parseNumber(extracted.distance) * 1000);
+    usable.push({ extracted, start });
+  }
+
+  const scale = distanceScale(
+    usable.map(({ extracted }) => parseNumber(extracted.distance)),
+  );
+
+  for (const { extracted, start } of usable) {
+    const distanceM = Math.round(parseNumber(extracted.distance) * scale);
+    if (distanceM > MAX_PLAUSIBLE_DISTANCE_M) {
+      skippedRows++;
+      continue;
+    }
     let movingTime = parseDurationSeconds(extracted.moving);
     const elapsedTime = parseDurationSeconds(extracted.elapsed) || movingTime;
     // Bij positionele mapping is de Moving Time-kolom minder zeker: negeer
