@@ -14,16 +14,16 @@ import {
   type NavNode,
 } from "./nav-config";
 
+// Alle links delen dezelfde linkermarge, ook binnen een groep: 1px rand +
+// px-3 zet de tekst op 13px. De kopjes lijnen daarop uit met 2px rand + 11px.
 function MobileMenuItem({
   item,
   pathname,
   close,
-  nested = false,
 }: {
   item: NavLeaf;
   pathname: string;
   close: () => void;
-  nested?: boolean;
 }) {
   const active = isActiveHref(pathname, item.href);
   return (
@@ -36,7 +36,7 @@ function MobileMenuItem({
         active
           ? "border-primary bg-primary font-medium text-primary-foreground shadow-sm"
           : "border-transparent text-foreground hover:border-border hover:bg-muted"
-      } ${nested ? "ml-3" : ""}`}
+      }`}
     >
       {item.label}
     </Link>
@@ -45,8 +45,8 @@ function MobileMenuItem({
 
 function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="px-1 pb-1 pt-3">
-      <p className="border-l-2 border-primary/50 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="pb-1 pt-3">
+      <p className="border-l-2 border-primary/50 pl-[11px] pr-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
     </div>
@@ -155,7 +155,6 @@ export function MobileMenu({
                             item={item}
                             pathname={pathname}
                             close={close}
-                            nested
                           />
                         ))}
                       </div>
@@ -187,7 +186,6 @@ export function MobileMenu({
                             href: item.href,
                             label: item.label,
                           }}
-                          nested
                         />
                       ))}
                     </>
