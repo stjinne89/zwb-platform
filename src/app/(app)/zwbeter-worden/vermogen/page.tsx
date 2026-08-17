@@ -10,6 +10,7 @@ import {
   fetchIntervalsPowerCurve,
   fetchIntervalsWellness,
   latestWellnessValue,
+  rideSportSettings,
 } from "@/lib/intervals/client";
 import { wattsAtDuration } from "@/lib/teams/power-profile";
 import {
@@ -106,6 +107,12 @@ export default async function PowerPage({
   let intervalsEftp: number | null = null;
   let intervalsFtp: number | null = null;
   let intervalsWeightKg: number | null = null;
+  // CP en W' komen uit dezelfde athlete-instellingen als de FTP hierboven. Ze
+  // stonden eerder alleen in profile_sport_settings, en die tabel wordt pas
+  // gevuld als het lid handmatig de powerprofiel-sync draait — vandaar een
+  // gevulde FTP-tegel naast lege CP- en W'-tegels.
+  let intervalsCp: number | null = null;
+  let intervalsWPrime: number | null = null;
   if (connection?.api_key && connection.athlete_id) {
     const [curveResult, wellness, athlete] = await Promise.all([
       fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, period, {
@@ -125,6 +132,9 @@ export default async function PowerPage({
     const athleteDefaults = athletePhysique(athlete);
     intervalsFtp = athleteDefaults.ftpWatts;
     intervalsWeightKg = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
+    const rideSettings = rideSportSettings(athlete);
+    intervalsCp = numberOrNull(rideSettings?.cp);
+    intervalsWPrime = numberOrNull(rideSettings?.w_prime);
   }
 
   const curvePoints = curve?.points ?? [];
@@ -147,6 +157,10 @@ export default async function PowerPage({
         : undefined;
   const power5m = wattsAtDuration(curvePoints, 300);
   const power20m = wattsAtDuration(curvePoints, 1200);
+  // Live waarde gaat voor; de opgeslagen sync-waarde vangt op als intervals nu
+  // even niets teruggeeft.
+  const cpWatts = intervalsCp ?? numberOrNull(sportSettings?.cp_watts);
+  const wPrimeJoules = intervalsWPrime ?? numberOrNull(sportSettings?.w_prime_joules);
 
   return (
     <div className="space-y-6">
@@ -209,22 +223,24 @@ export default async function PowerPage({
             />
             <Metric icon={Gauge} label="5 minuten" value={formatValue(power5m, " W")} />
             <Metric icon={Activity} label="20 minuten" value={formatValue(power20m, " W")} />
-            <Metric
-              icon={Gauge}
-              label="CP"
-              value={formatValue(numberOrNull(sportSettings?.cp_watts), " W")}
-              hint="Critical power uit intervals.icu"
-            />
-            <Metric
-              icon={Zap}
-              label="W'"
-              value={
-                sportSettings?.w_prime_joules
-                  ? `${Math.round(Number(sportSettings.w_prime_joules) / 1000)} kJ`
-                  : "-"
-              }
-              hint="Anaerobe capaciteit"
-            />
+            {/* Zonder CP-model in intervals.icu blijven deze twee leeg; dan
+                heeft een tegel met een streepje geen waarde. */}
+            {cpWatts != null || wPrimeJoules != null ? (
+              <>
+                <Metric
+                  icon={Gauge}
+                  label="CP"
+                  value={formatValue(cpWatts, " W")}
+                  hint="Critical power uit intervals.icu"
+                />
+                <Metric
+                  icon={Zap}
+                  label="W'"
+                  value={wPrimeJoules == null ? "-" : `${Math.round(wPrimeJoules / 1000)} kJ`}
+                  hint="Anaerobe capaciteit"
+                />
+              </>
+            ) : null}
             <Metric
               icon={Scale}
               label="Huidig gewicht"

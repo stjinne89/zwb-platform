@@ -175,6 +175,28 @@ async function refreshIntervalsActivitiesIfStale(
   }).catch(() => null);
 }
 
+/**
+ * Laatste dag waarop intervals.icu daadwerkelijk een herstelwaarde had. De
+ * panelen tonen 7-daagse gemiddelden, dus zonder deze regel lijkt een bron die
+ * al dagen stilstaat op een kapotte koppeling.
+ */
+export function lastWellnessDayOf(wellness: IntervalsWellness[]): string | null {
+  return (
+    wellness
+      .filter(
+        (day) =>
+          day.restingHR != null ||
+          day.hrv != null ||
+          day.hrvSDNN != null ||
+          day.sleepSecs != null ||
+          day.readiness != null,
+      )
+      .map((day) => day.id)
+      .sort()
+      .at(-1) ?? null
+  );
+}
+
 export function zwbStatusFor(
   wellness: IntervalsWellness[],
   conn: IntervalsConnection | null,

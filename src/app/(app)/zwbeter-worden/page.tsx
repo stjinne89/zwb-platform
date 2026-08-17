@@ -13,6 +13,7 @@ import {
 import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { CoreTodayCard } from "./core/_components/core-today-card";
 import { ConnectIntervalsForm } from "./_components/connect-form";
+import { RecoveryCard } from "./_components/recovery-card";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
 import { MetricCard } from "./_components/ui";
 import { WorkoutBlocks, WorkoutTitle, eventWorkoutBlocks } from "./_components/workout-blocks";
@@ -30,6 +31,7 @@ import { paramString } from "./_components/format";
 import type { SearchParamsProp, SegmentRow, StravaActivityRow } from "./_components/types";
 import {
   externalIntervalsEvents,
+  lastWellnessDayOf,
   loadConnection,
   loadIntervalsSnapshot,
   loadMemberWorkouts,
@@ -90,6 +92,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   const totals7 = loadSummary(activities);
 
   const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile);
+  const advice = zwbeterWordenAdvice(zwbStatus.readiness, profile?.zrl_division);
   const { latest: eftpLatest, delta: eftpDelta } = eftpTrend(snapshot.wellness, 90);
   const eftpValue = eftpLatest ?? snapshot.intervalsFtp ?? profile?.ftp_watts ?? null;
   const eftpHint = eftpLatest
@@ -179,7 +182,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           icon={ShieldCheck}
           label="Trainingsruimte"
           value={zwbStatus.readiness.score != null ? `${zwbStatus.readiness.score}` : "-"}
-          hint={zwbeterWordenAdvice(zwbStatus.readiness, profile?.zrl_division).title}
+          hint={advice.title}
         />
         <MetricCard
           icon={Mountain}
@@ -198,6 +201,15 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           }
         />
       </section>
+
+      {conn && (
+        <RecoveryCard
+          optIn={Boolean(conn.wellness_opt_in)}
+          summary={zwbStatus.recoverySummary}
+          advice={advice}
+          lastWellnessDay={lastWellnessDayOf(snapshot.wellness)}
+        />
+      )}
 
       {nextWorkout && (
         <section className="rounded-lg border bg-card p-5">
