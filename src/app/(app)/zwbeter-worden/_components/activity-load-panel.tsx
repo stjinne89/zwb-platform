@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { RideLoad, WeeklyLoad } from "@/lib/training/ride-metrics";
 import { formatChartDate } from "@/lib/charts/format";
 import { tickIndices } from "@/lib/charts/responsive";
@@ -8,7 +11,57 @@ function formatDuration(seconds: number | null) {
   if (!seconds) return "-";
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.round((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}u ${minutes}m` : `${minutes}m`;
+  if (hours === 0) return `${minutes}m`;
+  return minutes === 0 ? `${hours}u` : `${hours}u ${minutes}m`;
+}
+
+function formatCtlChange(value: number | null) {
+  if (value == null) return "-";
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("nl-NL", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}`;
+}
+
+/** Week van maandag tot en met zondag, als "18 - 24 aug". */
+function weekRange(weekStart: string) {
+  const end = new Date(`${weekStart}T12:00:00`);
+  end.setDate(end.getDate() + 6);
+  return `${formatChartDate(weekStart)} - ${formatChartDate(end.toISOString().slice(0, 10))}`;
+}
+
+function WeekTooltip({ week, position }: { week: WeeklyLoad; position: number }) {
+  // Zonder meting uitlijnen: bij de randen schuift de kaart naar binnen, in het
+  // midden staat hij gecentreerd boven de kolom.
+  const shift = position < 0.25 ? "0%" : position > 0.75 ? "-100%" : "-50%";
+
+  return (
+    <div
+      className="pointer-events-none absolute top-0 z-10 w-44 rounded-md border bg-popover p-3 text-popover-foreground shadow-md"
+      style={{ left: `${position * 100}%`, transform: `translateX(${shift})` }}
+    >
+      <p className="text-xs font-semibold">{weekRange(week.weekStart)}</p>
+      <dl className="mt-2 space-y-1 text-xs tabular-nums">
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">TSS</dt>
+          <dd className="font-medium">{week.load}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">CTL</dt>
+          <dd className="font-medium">{formatCtlChange(week.ctlChange)}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Afstand</dt>
+          <dd className="font-medium">{week.kilometers} km</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Tijd</dt>
+          <dd className="font-medium">{formatDuration(week.seconds)}</dd>
+        </div>
+      </dl>
+    </div>
+  );
 }
 
 /**
@@ -22,36 +75,45 @@ export function ActivityLoadPanel({
   weeks: WeeklyLoad[];
   recent: RideLoad[];
 }) {
+  const [active, setActive] = useState<number | null>(null);
   const maxLoad = Math.max(...weeks.map((week) => week.load), 1);
   const withoutPower = recent.filter((row) => !row.hasPowerMeter).length;
   const labelTicks = new Set(tickIndices(weeks.length, 4));
+  const activeWeek = active == null ? null : weeks[active] ?? null;
 
   return (
     <div className="space-y-5 p-4">
       {weeks.length > 0 ? (
         <div>
-          {/* De staafzone staat los van de waarderegel: een hoogte in procenten
-              heeft een kolom met definitieve hoogte nodig, en anders snoepen de
-              tekstregels hoogte van de hoogste staven af. */}
-          <div className="flex h-32 items-stretch gap-1">
+          <div
+            className="relative flex h-32 items-stretch gap-1"
+            onMouseLeave={() => setActive(null)}
+          >
+            {activeWeek && (
+              <WeekTooltip
+                week={activeWeek}
+                position={((active ?? 0) + 0.5) / weeks.length}
+              />
+            )}
             {weeks.map((week, index) => (
-              <div key={week.weekStart} className="flex h-full min-w-0 flex-1 flex-col gap-1">
+              <button
+                key={week.weekStart}
+                type="button"
+                aria-label={`Week van ${weekRange(week.weekStart)}: ${week.load} TSS`}
+                onMouseEnter={() => setActive(index)}
+                onFocus={() => setActive(index)}
+                onBlur={() => setActive(null)}
+                onClick={() => setActive((current) => (current === index ? null : index))}
+                className="relative flex h-full min-w-0 flex-1 items-end rounded-t focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
                 <span
                   className={cn(
-                    "h-4 overflow-visible whitespace-nowrap text-center text-xs tabular-nums text-muted-foreground",
-                    !labelTicks.has(index) && "invisible sm:visible",
+                    "w-full rounded-t bg-[var(--chart-1)] transition-opacity",
+                    active != null && active !== index && "opacity-40",
                   )}
-                >
-                  {week.load || ""}
-                </span>
-                <span className="relative flex-1">
-                  <span
-                    title={`${formatChartDate(week.weekStart)} - ${week.load} TSS, ${week.hours}u, ${week.kilojoules} kJ`}
-                    className="absolute inset-x-0 bottom-0 rounded-t bg-[var(--chart-1)]"
-                    style={{ height: `${Math.max(2, (week.load / maxLoad) * 100)}%` }}
-                  />
-                </span>
-              </div>
+                  style={{ height: `${Math.max(2, (week.load / maxLoad) * 100)}%` }}
+                />
+              </button>
             ))}
           </div>
           {/* Op smal scherm past niet elke weekdatum; dan tonen we alleen de

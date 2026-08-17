@@ -114,10 +114,11 @@ export type StravaRideRow = {
   name: string | null;
   start_date: string;
   moving_time_seconds: number | null;
+  distance_m?: number | string | null;
   raw: unknown;
 };
 
-export const STRAVA_RIDE_COLUMNS = "id, name, start_date, moving_time_seconds, raw";
+export const STRAVA_RIDE_COLUMNS = "id, name, start_date, moving_time_seconds, distance_m, raw";
 
 /**
  * Eén rit met zijn belasting, klaar voor de tabel en de weekgrafiek. De
@@ -136,6 +137,7 @@ export type RideLoad = {
   intensity: number | null;
   normalized_watts: number | null;
   kilojoules: number | null;
+  distance_m: number | null;
   hasPowerMeter: boolean;
 };
 
@@ -148,6 +150,7 @@ export function rideLoadRows(rides: StravaRideRow[], ftpWatts: number | null): R
         id: ride.id,
         name: ride.name,
         start_date_local: amsterdamDayKey(new Date(ride.start_date)),
+        distance_m: positive(ride.distance_m),
         moving_time_seconds: metrics.movingMinutes ? metrics.movingMinutes * 60 : null,
         training_load: metrics.tss,
         intensity: metrics.intensityFactor,
@@ -163,8 +166,11 @@ export type WeeklyLoad = {
   /** Maandag van de week, als datumsleutel. */
   weekStart: string;
   load: number;
-  hours: number;
+  seconds: number;
+  kilometers: number;
   kilojoules: number;
+  /** Verschil in CTL over de week; null zonder intervals-data. */
+  ctlChange: number | null;
 };
 
 /** Alles wat weeklyLoad nodig heeft; zowel RideLoad als ActivityLoadRow past. */
@@ -173,7 +179,11 @@ type WeeklyLoadInput = {
   moving_time_seconds: number | null;
   training_load: number | null;
   kilojoules: number | null;
+  distance_m?: number | string | null;
 };
+
+/** Eén dag CTL, zoals toTrainingLoadPoints hem oplevert. */
+export type WeeklyCtlPoint = { date: string; ctl: number | null };
 
 function mondayOf(dateKey: string) {
   const date = new Date(`${dateKey}T12:00:00Z`);
@@ -182,24 +192,62 @@ function mondayOf(dateKey: string) {
   return date.toISOString().slice(0, 10);
 }
 
+function addDays(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * CTL-groei over een week: de laatste waarde binnen de week min de laatste
+ * waarde ervoor. Zonder waarde vóór de week valt er niets te vergelijken.
+ */
+function ctlChangeFor(weekStart: string, points: WeeklyCtlPoint[]) {
+  const weekEnd = addDays(weekStart, 6);
+  let before: number | null = null;
+  let inside: number | null = null;
+  for (const point of points) {
+    if (point.ctl == null || !Number.isFinite(point.ctl)) continue;
+    if (point.date < weekStart) before = point.ctl;
+    else if (point.date <= weekEnd) inside = point.ctl;
+  }
+  if (before == null || inside == null) return null;
+  return Math.round((inside - before) * 10) / 10;
+}
+
 /** Telt belasting per week op, oudste week eerst. */
-export function weeklyLoad(rows: WeeklyLoadInput[], weeks = 12): WeeklyLoad[] {
+export function weeklyLoad(
+  rows: WeeklyLoadInput[],
+  weeks = 12,
+  ctlPoints: WeeklyCtlPoint[] = [],
+): WeeklyLoad[] {
   const byWeek = new Map<string, WeeklyLoad>();
   for (const row of rows) {
     const weekStart = mondayOf(row.start_date_local);
-    const entry = byWeek.get(weekStart) ?? { weekStart, load: 0, hours: 0, kilojoules: 0 };
+    const entry = byWeek.get(weekStart) ?? {
+      weekStart,
+      load: 0,
+      seconds: 0,
+      kilometers: 0,
+      kilojoules: 0,
+      ctlChange: null,
+    };
     entry.load += Number(row.training_load ?? 0);
-    entry.hours += Number(row.moving_time_seconds ?? 0) / 3600;
+    entry.seconds += Number(row.moving_time_seconds ?? 0);
+    entry.kilometers += Number(row.distance_m ?? 0) / 1000;
     entry.kilojoules += Number(row.kilojoules ?? 0);
     byWeek.set(weekStart, entry);
   }
+  const ctl = [...ctlPoints].sort((a, b) => a.date.localeCompare(b.date));
   return Array.from(byWeek.values())
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
     .slice(-weeks)
     .map((week) => ({
       ...week,
       load: Math.round(week.load),
-      hours: Math.round(week.hours * 10) / 10,
+      seconds: Math.round(week.seconds),
+      kilometers: Math.round(week.kilometers),
       kilojoules: Math.round(week.kilojoules),
+      ctlChange: ctlChangeFor(week.weekStart, ctl),
     }));
 }

@@ -43,7 +43,14 @@ describe("weeklyLoad", () => {
       row("2026-07-28", 40, 1800, 300),
     ]);
     expect(weeks).toHaveLength(1);
-    expect(weeks[0]).toEqual({ weekStart: "2026-07-27", load: 100, hours: 1.5, kilojoules: 1000 });
+    expect(weeks[0]).toEqual({
+      weekStart: "2026-07-27",
+      load: 100,
+      seconds: 5400,
+      kilometers: 0,
+      kilojoules: 1000,
+      ctlChange: null,
+    });
   });
 
   it("scheidt opeenvolgende weken en sorteert oudste eerst", () => {

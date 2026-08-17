@@ -119,6 +119,7 @@ function stravaRide(id: number, startDate: string, np: number | null): StravaRid
     name: `Rit ${id}`,
     start_date: startDate,
     moving_time_seconds: 3600,
+    distance_m: 30000,
     raw: {
       moving_time: 3600,
       device_watts: np != null,
@@ -179,9 +180,46 @@ describe("weeklyLoad", () => {
       ),
     );
     expect(weeks).toEqual([
-      { weekStart: "2026-07-20", load: 200, hours: 2, kilojoules: 1400 },
-      { weekStart: "2026-07-27", load: 25, hours: 1, kilojoules: 700 },
+      {
+        weekStart: "2026-07-20",
+        load: 200,
+        seconds: 7200,
+        kilometers: 60,
+        kilojoules: 1400,
+        ctlChange: null,
+      },
+      {
+        weekStart: "2026-07-27",
+        load: 25,
+        seconds: 3600,
+        kilometers: 30,
+        kilojoules: 700,
+        ctlChange: null,
+      },
     ]);
+  });
+
+  it("zet de CTL-groei van de week uit de intervals-punten", () => {
+    const weeks = weeklyLoad(
+      rideLoadRows([stravaRide(1, "2026-07-22T09:00:00Z", 250)], 250),
+      12,
+      [
+        { date: "2026-07-19", ctl: 60 },
+        { date: "2026-07-22", ctl: 62 },
+        { date: "2026-07-26", ctl: 63.4 },
+        { date: "2026-07-28", ctl: 70 },
+      ],
+    );
+    expect(weeks[0].ctlChange).toBe(3.4);
+  });
+
+  it("laat de CTL-groei leeg zonder waarde vóór de week", () => {
+    const weeks = weeklyLoad(
+      rideLoadRows([stravaRide(1, "2026-07-22T09:00:00Z", 250)], 250),
+      12,
+      [{ date: "2026-07-24", ctl: 62 }],
+    );
+    expect(weeks[0].ctlChange).toBeNull();
   });
 
   it("telt een rit zonder vermogen wel mee in de uren, niet in de belasting", () => {
@@ -195,6 +233,6 @@ describe("weeklyLoad", () => {
       ),
     );
     expect(week.load).toBe(100);
-    expect(week.hours).toBe(2);
+    expect(week.seconds).toBe(7200);
   });
 });
