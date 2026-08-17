@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Bike,
   CalendarDays,
@@ -34,6 +36,11 @@ import {
 } from "./_components/training-status";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
+import { StravaImportForm } from "@/components/strava-import-form";
+import { StravaSyncButton } from "@/components/strava-sync-button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { hasActivityScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 
 type ProfileRef = {
@@ -239,7 +246,16 @@ function stravaActivityUrl(activityId: number) {
   return `https://www.strava.com/activities/${activityId}`;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // De Strava-koppeling komt hier terug uit OAuth; de melding hoort dus ook
+  // hier, bij de knop die het lid net gebruikte.
+  const params = (await searchParams) ?? {};
+  const rawStravaError = params.strava_error;
+  const stravaError = Array.isArray(rawStravaError) ? rawStravaError[0] : rawStravaError;
   const supabase = await createClient();
   const {
     data: { user },
@@ -276,6 +292,7 @@ export default async function DashboardPage() {
     { data: recentPastEventRows },
     { data: trainingConn },
     { data: nextWorkoutRows },
+    { data: stravaConn },
   ] = await Promise.all([
     user
       ? supabase
@@ -376,6 +393,13 @@ export default async function DashboardPage() {
           .gte("scheduled_at", `${todayKey}T00:00:00`)
           .order("scheduled_at", { ascending: true })
           .limit(1)
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("strava_connections")
+          .select("scope")
+          .eq("profile_id", user.id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -519,6 +543,11 @@ export default async function DashboardPage() {
     ((profile as { wellness_device?: string | null } | null)?.wellness_device ??
       null) as WellnessDevice | null;
   const showTraining = Boolean(conn) || Boolean(nextWorkout);
+  // Syncen kan alleen met een koppeling die ook activiteiten mag lezen. Lukt
+  // koppelen niet — de Strava-atletenlimiet raakt niet elk lid — dan blijft de
+  // CSV/GPX-import de volwaardige route, dus die staat er altijd.
+  const strava = (stravaConn ?? null) as { scope?: string | null } | null;
+  const canSyncStrava = hasActivityScope(strava?.scope ?? null);
 
   return (
     <div className="space-y-8">
@@ -839,6 +868,37 @@ export default async function DashboardPage() {
           title="Training en clubactiviteit"
           action={<InlineMoreLink href="/stats">Clubstats</InlineMoreLink>}
         />
+        {stravaError ? (
+          <p className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {stravaError}
+          </p>
+        ) : null}
+        {strava && !canSyncStrava ? (
+          <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <p>
+              Je ritten kunnen niet worden opgehaald omdat het recht op je
+              activiteiten ontbreekt. Koppel opnieuw en zet het vinkje voor je
+              activiteiten aan.
+            </p>
+          </div>
+        ) : null}
+        {user && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+            {canSyncStrava ? (
+              <StravaSyncButton variant="sync" />
+            ) : (
+              <Link
+                href="/api/strava/connect"
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
+                <ArrowUpRight data-icon="inline-start" />
+                {strava ? "Strava opnieuw koppelen" : "Strava koppelen"}
+              </Link>
+            )}
+            <StravaImportForm />
+          </div>
+        )}
         {activities.length === 0 ? (
           <EmptyState>Geen recente clubritten.</EmptyState>
         ) : (

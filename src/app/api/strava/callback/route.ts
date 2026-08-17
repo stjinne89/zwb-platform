@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
   if (error) {
     return NextResponse.redirect(
-      new URL(`/achievements?strava_error=${encodeURIComponent(error)}`, request.url),
+      new URL(`/dashboard?strava_error=${encodeURIComponent(error)}`, request.url),
     );
   }
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   if (!code || !state || state !== expectedState) {
     return NextResponse.redirect(
       new URL(
-        `/achievements?strava_error=${encodeURIComponent("Strava state controle mislukt.")}`,
+        `/dashboard?strava_error=${encodeURIComponent("Strava state controle mislukt.")}`,
         request.url,
       ),
     );
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     await supabase.from("profiles").update(profileUpdate).eq("id", user.id);
 
     const response = NextResponse.redirect(
-      new URL("/achievements?strava_connected=1", request.url),
+      new URL("/dashboard?strava_connected=1", request.url),
     );
     response.cookies.delete("strava_oauth_state");
     return response;
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const message =
       err instanceof Error ? err.message : "Strava koppeling kon niet worden opgeslagen.";
     return NextResponse.redirect(
-      new URL(`/achievements?strava_error=${encodeURIComponent(message)}`, request.url),
+      new URL(`/dashboard?strava_error=${encodeURIComponent(message)}`, request.url),
     );
   }
 }

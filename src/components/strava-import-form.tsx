@@ -2,9 +2,10 @@
 
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { importMyStravaFile } from "../_actions";
+import { importMyStravaFile } from "@/app/(app)/achievements/_actions";
 
 type State =
   | { kind: "idle" }
@@ -12,6 +13,7 @@ type State =
   | { kind: "error"; message: string };
 
 export function StravaImportForm() {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState<State>({ kind: "idle" });
@@ -48,6 +50,9 @@ export function StravaImportForm() {
 
       formRef.current?.reset();
       setState({ kind: "success", message: `${parts.join(" · ")}.` });
+      // De lijst eromheen is server-gerenderd; zonder refresh staan de zojuist
+      // geïmporteerde ritten er pas na een handmatige herlaadbeurt.
+      router.refresh();
     });
   }
 

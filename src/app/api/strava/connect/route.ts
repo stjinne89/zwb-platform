@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const message =
       err instanceof Error ? err.message : "Strava koppeling kon niet starten.";
     return NextResponse.redirect(
-      new URL(`/achievements?strava_error=${encodeURIComponent(message)}`, request.url),
+      new URL(`/dashboard?strava_error=${encodeURIComponent(message)}`, request.url),
     );
   }
 }

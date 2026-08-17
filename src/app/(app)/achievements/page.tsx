@@ -1,7 +1,4 @@
-import Link from "next/link";
 import {
-  AlertTriangle,
-  ArrowUpRight,
   Bike,
   Crown,
   HeartHandshake,
@@ -13,23 +10,15 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { currentAchievementWeek } from "@/lib/strava/client";
-import { hasActivityScope } from "@/lib/strava/scope";
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
-import { StravaImportForm } from "./_components/strava-import-form";
-import { StravaSyncButton } from "./_components/strava-sync-button";
+import { StravaSyncButton } from "@/components/strava-sync-button";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-type PageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
 
 type ProfileRef = {
   display_name: string | null;
@@ -226,22 +215,13 @@ function Leaderboard({
   );
 }
 
-export default async function AchievementsPage({ searchParams }: PageProps) {
-  const params = (await searchParams) ?? {};
+export default async function AchievementsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const week = currentAchievementWeek();
 
-  const [{ data: connection }, { data: activityRows }, { data: awardRows }, access] =
+  const [{ data: activityRows }, { data: awardRows }, access] =
     await Promise.all([
-      supabase
-        .from("strava_connections")
-        .select("athlete_name, scope, updated_at")
-        .eq("profile_id", user?.id)
-        .maybeSingle(),
       supabase
         .from("strava_activities")
         .select(
@@ -269,10 +249,6 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
   const totalElevation = scores.reduce((sum, score) => sum + score.elevationM, 0);
   const totalActivities = rows.length;
   const activeAthletes = scores.length;
-  const stravaError = params.strava_error;
-  const connected = params.strava_connected;
-  const missingActivityScope =
-    connection != null && !hasActivityScope(connection.scope);
   const awards = (awardRows ?? []) as unknown as AwardRow[];
 
   return (
@@ -280,60 +256,15 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
       <PageHeader
         title="Achievements"
         actions={
+        // Ritten binnenhalen (koppelen, syncen, importeren) staat op het
+        // dashboard, bij de ritten zelf. Hier gaat het alleen nog over badges.
         <div className="flex flex-col gap-2 sm:items-end">
           <HelpLink href="/hulp#badges" />
-          {connection ? (
-            missingActivityScope ? (
-              <Link
-                href="/api/strava/connect"
-                className={cn(buttonVariants({ variant: "default" }))}
-              >
-                <ArrowUpRight data-icon="inline-start" />
-                Opnieuw koppelen
-              </Link>
-            ) : (
-              <StravaSyncButton />
-            )
-          ) : (
-            <Link
-              href="/api/strava/connect"
-              className={cn(buttonVariants({ variant: "default" }))}
-            >
-              <ArrowUpRight data-icon="inline-start" />
-              Strava koppelen
-            </Link>
-          )}
-          {connection && (
-            <p className="text-xs text-muted-foreground">
-              Gekoppeld als {connection.athlete_name ?? "Strava-atleet"}.
-            </p>
-          )}
-          <StravaImportForm />
+          <StravaSyncButton variant="badges" />
           {access.has("achievements.finalize") && <FinalizeAwardsButton />}
         </div>
         }
       />
-
-      {stravaError && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {Array.isArray(stravaError) ? stravaError[0] : stravaError}
-        </p>
-      )}
-      {missingActivityScope && (
-        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <p>
-            Je ritten kunnen niet worden opgehaald omdat het recht op je
-            activiteiten ontbreekt. Koppel opnieuw en zet het vinkje voor je
-            activiteiten aan.
-          </p>
-        </div>
-      )}
-      {connected && (
-        <p className="rounded-md border bg-card p-3 text-sm text-muted-foreground">
-          Strava gekoppeld.
-        </p>
-      )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard

@@ -228,7 +228,7 @@ export default async function WelkomPage() {
     {
       title: "Strava syncen voor fietsen",
       text: "Een echte Strava-koppeling vult je fietsen en kilometerstanden automatisch. Zonder koppeling kun je fietsen handmatig toevoegen.",
-      href: strava ? "/achievements" : "/profiel#fietsen",
+      href: strava ? "/dashboard" : "/profiel#fietsen",
       action: strava ? "Strava syncen" : "Fiets toevoegen",
       status: bike ? "done" : strava ? "current" : canUseIntegrations ? "upcoming" : "upcoming",
       icon: Bike,

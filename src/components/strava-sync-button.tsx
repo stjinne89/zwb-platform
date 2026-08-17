@@ -1,12 +1,17 @@
 "use client";
 
+// Ritten binnenhalen staat op het dashboard ("sync": de gewone sync en de hele
+// historie), badges opnieuw beoordelen bij de badges zelf ("badges"). Eén
+// component, zodat de chunked sync maar op één plek bestaat.
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   recomputeMyMilestoneBadges,
   syncMyStravaActivities,
-} from "../_actions";
+} from "@/app/(app)/achievements/_actions";
 
 type State =
   | { kind: "idle" }
@@ -19,9 +24,17 @@ type State =
 // extreem actieve rider.
 const MAX_CHUNKS = 40;
 
-export function StravaSyncButton() {
+export function StravaSyncButton({
+  variant = "all",
+}: {
+  /** "sync" = ritten ophalen, "badges" = badges herberekenen. */
+  variant?: "all" | "sync" | "badges";
+}) {
+  const router = useRouter();
   const [state, setState] = useState<State>({ kind: "idle" });
   const isRunning = state.kind === "running";
+  const showSync = variant !== "badges";
+  const showBadges = variant !== "sync";
 
   async function runSync(fullBackfill: boolean) {
     setState({
@@ -124,6 +137,9 @@ export function StravaSyncButton() {
         parts.push("(eerste sync)");
       }
       setState({ kind: "success", message: parts.join(" · ") + "." });
+      // De pagina eromheen is server-gerenderd; zonder refresh staat de zojuist
+      // opgehaalde rit er pas na een handmatige herlaadbeurt.
+      router.refresh();
     } catch (err) {
       setState({
         kind: "error",
@@ -151,6 +167,7 @@ export function StravaSyncButton() {
       ];
       if (res.errors.length > 0) parts.push(`waarschuwing: ${res.errors[0]}`);
       setState({ kind: "success", message: parts.join(" · ") + "." });
+      router.refresh();
     } catch (err) {
       setState({
         kind: "error",
@@ -163,46 +180,52 @@ export function StravaSyncButton() {
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isRunning}
-          onClick={() => runSync(false)}
-        >
-          <RefreshCw
-            data-icon="inline-start"
-            className={isRunning ? "animate-spin" : undefined}
-          />
-          Strava syncen
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isRunning}
-          onClick={() => {
-            if (
-              !confirm(
-                "Volledige 5-jaar historie ophalen? Kan ~30-90 seconden duren bij actieve riders. We doen het nu in kleine stukjes zodat de browser-pagina niet onderuit gaat. Bestaande ritten worden netjes upsert (geen duplicaten).",
+        {showSync ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isRunning}
+            onClick={() => runSync(false)}
+          >
+            <RefreshCw
+              data-icon="inline-start"
+              className={isRunning ? "animate-spin" : undefined}
+            />
+            Strava syncen
+          </Button>
+        ) : null}
+        {showSync ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isRunning}
+            onClick={() => {
+              if (
+                !confirm(
+                  "Volledige 5-jaar historie ophalen? Kan ~30-90 seconden duren bij actieve riders. We doen het nu in kleine stukjes zodat de browser-pagina niet onderuit gaat. Bestaande ritten worden netjes upsert (geen duplicaten).",
+                )
               )
-            )
-              return;
-            runSync(true);
-          }}
-        >
-          <History data-icon="inline-start" />
-          Sync hele historie
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isRunning}
-          onClick={runBadgeRecompute}
-        >
-          <RefreshCw data-icon="inline-start" />
-          Badges herberekenen
-        </Button>
+                return;
+              runSync(true);
+            }}
+          >
+            <History data-icon="inline-start" />
+            Sync hele historie
+          </Button>
+        ) : null}
+        {showBadges ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isRunning}
+            onClick={runBadgeRecompute}
+          >
+            <RefreshCw data-icon="inline-start" />
+            Badges herberekenen
+          </Button>
+        ) : null}
       </div>
       {state.kind !== "idle" && (
         <p
