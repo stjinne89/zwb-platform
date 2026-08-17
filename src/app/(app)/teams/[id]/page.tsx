@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink } from "@/components/app-ui";
-import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
+import { TeamChatLinks } from "@/components/team-chat-links";
 import { Button } from "@/components/ui/button";
 import {
   TeamRosterTable,
@@ -43,6 +43,7 @@ type TeamRow = {
   captain_id: string | null;
   is_graveyard: boolean | null;
   parent_team_id: string | null;
+  discord_url: string | null;
 };
 
 type MemberRow = {
@@ -134,7 +135,7 @@ export default async function TeamDetailPage({
 
   const { data: team } = await supabase
     .from("teams")
-    .select("id, name, type, division, description, captain_id, is_graveyard, parent_team_id")
+    .select("id, name, type, division, description, captain_id, is_graveyard, parent_team_id, discord_url")
     .eq("id", id)
     .single<TeamRow>();
 
@@ -143,7 +144,7 @@ export default async function TeamDetailPage({
   const rootTeamId = team.parent_team_id ?? team.id;
   const { data: childTeams } = await supabase
     .from("teams")
-    .select("id, name, type, division, description, captain_id, is_graveyard, parent_team_id")
+    .select("id, name, type, division, description, captain_id, is_graveyard, parent_team_id, discord_url")
     .eq("parent_team_id", rootTeamId)
     .order("name");
   const scopeTeams: TeamRow[] =
@@ -391,6 +392,10 @@ export default async function TeamDetailPage({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <TeamChatLinks
+              whatsappGroups={waGroups ?? []}
+              discordUrl={team.discord_url}
+            />
             <HelpLink href="/hulp#teambeheer" />
             {canManageRoster && (
               <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
@@ -455,12 +460,6 @@ export default async function TeamDetailPage({
         <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={(events ?? []).length} />
         <Metric icon={<Trophy className="size-4" />} label="ZRL-starts" value={rows.reduce((sum, row) => sum + row.zrlStarts, 0)} />
       </section>
-
-      <WhatsAppGroupBlock
-        scope="team"
-        groups={waGroups ?? []}
-        canManage={canManage}
-      />
 
       <TeamRosterTable
         rows={rows}
@@ -610,6 +609,8 @@ export default async function TeamDetailPage({
         <AdminPanel
           teamId={team.id}
           candidates={candidates}
+          whatsappUrl={(waGroups ?? [])[0]?.invite_url ?? null}
+          discordUrl={team.discord_url}
           members={rows.map((row) => ({
             profile_id: row.id,
             role: row.teams.find((membership) => membership.id === team.id)?.role ?? "member",

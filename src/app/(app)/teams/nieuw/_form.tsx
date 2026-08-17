@@ -83,6 +83,28 @@ export function NewTeamForm({
           />
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>WhatsApp (optioneel)</label>
+          <input
+            name="whatsapp_url"
+            type="url"
+            inputMode="url"
+            placeholder="https://chat.whatsapp.com/…"
+            className={FIELD}
+          />
+        </div>
+        <div>
+          <label className={LABEL}>Discord (optioneel)</label>
+          <input
+            name="discord_url"
+            type="url"
+            inputMode="url"
+            placeholder="https://discord.gg/…"
+            className={FIELD}
+          />
+        </div>
+      </div>
       <div>
         <label className={LABEL}>Korte omschrijving</label>
         <textarea name="description" rows={2} className={FIELD} />

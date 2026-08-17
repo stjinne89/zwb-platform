@@ -2,7 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
-import { addMember, addResult, deleteResult, removeMember } from "../_actions";
+import {
+  addMember,
+  addResult,
+  deleteResult,
+  removeMember,
+  setTeamChatLinks,
+} from "../_actions";
 import { Button } from "@/components/ui/button";
 
 const FIELD =
@@ -17,10 +23,14 @@ export function AdminPanel({
   teamId,
   candidates,
   members,
+  whatsappUrl,
+  discordUrl,
 }: {
   teamId: string;
   candidates: Profile[];
   members: Member[];
+  whatsappUrl: string | null;
+  discordUrl: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +55,15 @@ export function AdminPanel({
 
   function onAddResult(fd: FormData) {
     call(addResult, teamId, fd);
+  }
+
+  function onSaveChatLinks(fd: FormData) {
+    call(
+      setTeamChatLinks,
+      teamId,
+      String(fd.get("whatsapp_url") ?? ""),
+      String(fd.get("discord_url") ?? ""),
+    );
   }
 
   return (
@@ -95,6 +114,39 @@ export function AdminPanel({
             </div>
           </div>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-medium">Chatkanalen</h3>
+        <form action={onSaveChatLinks} className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className={LABEL}>WhatsApp</label>
+            <input
+              name="whatsapp_url"
+              type="url"
+              inputMode="url"
+              defaultValue={whatsappUrl ?? ""}
+              placeholder="https://chat.whatsapp.com/…"
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL}>Discord</label>
+            <input
+              name="discord_url"
+              type="url"
+              inputMode="url"
+              defaultValue={discordUrl ?? ""}
+              placeholder="https://discord.gg/…"
+              className={FIELD}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Button type="submit" variant="outline" disabled={pending}>
+              Chatkanalen opslaan
+            </Button>
+          </div>
+        </form>
       </section>
 
       <section className="space-y-3">

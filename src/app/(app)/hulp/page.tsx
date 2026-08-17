@@ -355,6 +355,9 @@ const ADMIN_GUIDES = [
     bullets: [
       "Hoofdteams kunnen onderliggende race-, ladder-, sociale en outdoorteams bevatten.",
       "Teambeheerders kunnen leden, captainrollen en opstellingen per team beheren.",
+      "Zet de WhatsApp- en Discord-link van een team onder Beheer op de teampagina; het logo verschijnt daarna bovenaan bij de teamnaam.",
+      "De WhatsApp-link van een team staat ook in de lijst op Community, want het is dezelfde groep.",
+      "Een discord.gg-invite laat iedereen erbij; een discord.com/channels-link opent direct het kanaal maar werkt alleen voor wie al in de server zit.",
       "Vermogensdata en wedstrijdresultaten kunnen opnieuw worden opgehaald via de beheeracties bovenaan.",
     ],
   },
