@@ -9,6 +9,7 @@ import {
   blocksToWorkoutDoc,
   estimateTrainingLoad,
   normalizeWorkoutBlocks,
+  type WorkoutIntensity,
 } from "@/lib/training/workouts";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -250,49 +251,116 @@ export async function pushPlanWorkoutsToIntervals(
   let pushed = 0;
   let failed = 0;
   for (const workout of workouts ?? []) {
-    try {
-      const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity);
-      const intervalsText = blocksToIntervalsText(blocks);
-      const trainingLoad = estimateTrainingLoad(blocks);
-      const externalId = workout.intervals_external_id ?? `zwb-${workout.id}`;
-      // intervals.icu parseert de description NIET server-side, dus moeten we
-      // zelf een geldig native workout_doc meesturen. Zonder steps bevat de
-      // FIT-export 0 stappen en weigeren Garmin/Wahoo het bestand als corrupt.
-      const workoutDoc = blocksToWorkoutDoc(blocks, riderFtp);
-      const event = await upsertIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, {
-        id: workout.intervals_event_id,
-        externalId,
-        startDateLocal: String(workout.scheduled_at).slice(0, 16),
-        name: workout.title,
-        description: [intervalsText, workout.description].filter(Boolean).join("\n\n"),
-        category: "WORKOUT",
-        type: "Ride",
-        target: "POWER",
-        trainingLoad,
-        durationMinutes: workout.duration_minutes,
-        workoutDoc,
-      });
-      await admin
-        .from("training_workouts")
-        .update({
-          intervals_event_id: String(event.id),
-          intervals_external_id: externalId,
-          publish_status: "published",
-          publish_error: null,
-        })
-        .eq("id", workout.id);
-      pushed++;
-    } catch (err) {
-      failed++;
-      await admin
-        .from("training_workouts")
-        .update({
-          publish_status: "failed",
-          publish_error: err instanceof Error ? err.message : "Publicatie faalde.",
-        })
-        .eq("id", workout.id);
-    }
+    const ok = await pushOneWorkout(admin, workout as PublishableWorkout, conn, riderFtp);
+    if (ok) pushed++;
+    else failed++;
   }
 
   return { connected: true, pushed, failed, superseded };
+}
+
+type PublishableWorkout = {
+  id: string;
+  scheduled_at: string;
+  title: string;
+  description: string | null;
+  duration_minutes: number;
+  intensity: WorkoutIntensity;
+  structure_json: unknown;
+  intervals_event_id: string | null;
+  intervals_external_id: string | null;
+};
+
+type IntervalsAuth = { api_key: string; athlete_id: string };
+
+/** Eén workout naar intervals.icu, en de uitkomst vastleggen op de rij zelf. */
+async function pushOneWorkout(
+  admin: Admin,
+  workout: PublishableWorkout,
+  conn: IntervalsAuth,
+  riderFtp: number | null,
+): Promise<boolean> {
+  try {
+    const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity);
+    const intervalsText = blocksToIntervalsText(blocks);
+    const trainingLoad = estimateTrainingLoad(blocks);
+    const externalId = workout.intervals_external_id ?? `zwb-${workout.id}`;
+    // intervals.icu parseert de description NIET server-side, dus moeten we
+    // zelf een geldig native workout_doc meesturen. Zonder steps bevat de
+    // FIT-export 0 stappen en weigeren Garmin/Wahoo het bestand als corrupt.
+    const workoutDoc = blocksToWorkoutDoc(blocks, riderFtp);
+    const event = await upsertIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, {
+      id: workout.intervals_event_id,
+      externalId,
+      startDateLocal: String(workout.scheduled_at).slice(0, 16),
+      name: workout.title,
+      description: [intervalsText, workout.description].filter(Boolean).join("\n\n"),
+      category: "WORKOUT",
+      type: "Ride",
+      target: "POWER",
+      trainingLoad,
+      durationMinutes: workout.duration_minutes,
+      workoutDoc,
+    });
+    await admin
+      .from("training_workouts")
+      .update({
+        intervals_event_id: String(event.id),
+        intervals_external_id: externalId,
+        publish_status: "published",
+        publish_error: null,
+      })
+      .eq("id", workout.id);
+    return true;
+  } catch (err) {
+    await admin
+      .from("training_workouts")
+      .update({
+        publish_status: "failed",
+        publish_error: err instanceof Error ? err.message : "Publicatie faalde.",
+      })
+      .eq("id", workout.id);
+    return false;
+  }
+}
+
+/**
+ * Zet één gewijzigde workout meteen in intervals.icu. Bedoeld voor een losse
+ * aanpassing door de trainer: zonder dit bleef de wijziging in ZWB hangen tot
+ * iemand het hele schema opnieuw publiceerde, en reed het lid ondertussen de
+ * oude versie van zijn fietscomputer.
+ *
+ * Alleen voor workouts die daar al staan; een nog niet gepubliceerde workout
+ * gaat mee met de publicatie van het schema.
+ */
+export async function pushWorkoutToIntervals(
+  admin: Admin,
+  workoutId: string,
+): Promise<{ connected: boolean; ok: boolean }> {
+  const { data: workout } = await admin
+    .from("training_workouts")
+    .select(
+      "id, profile_id, scheduled_at, title, description, duration_minutes, intensity, structure_json, intervals_event_id, intervals_external_id",
+    )
+    .eq("id", workoutId)
+    .maybeSingle();
+  if (!workout) return { connected: false, ok: false };
+
+  const [{ data: conn }, { data: riderProfile }] = await Promise.all([
+    admin
+      .from("intervals_connections")
+      .select("api_key, athlete_id")
+      .eq("profile_id", workout.profile_id)
+      .maybeSingle(),
+    admin.from("profiles").select("ftp_watts").eq("id", workout.profile_id).maybeSingle(),
+  ]);
+  if (!conn?.api_key || !conn?.athlete_id) return { connected: false, ok: false };
+
+  const ok = await pushOneWorkout(
+    admin,
+    workout as PublishableWorkout,
+    { api_key: conn.api_key, athlete_id: conn.athlete_id },
+    riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null,
+  );
+  return { connected: true, ok };
 }

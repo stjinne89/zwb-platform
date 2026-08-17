@@ -1,26 +1,21 @@
-// Lijst met workouts binnen een schema. `editable` schakelt tussen de
-// trainer-weergave (inline formulier per workout) en de lees-weergave voor het
-// lid.
+// Lijst met workouts binnen een schema, voor het lid: kijken en rapporteren.
+// Aanpassen gebeurt in de maandweergave van de trainer — een renner hoort een
+// training niet op blokniveau te kunnen wijzigen, anders klopt de opbouw van
+// het schema niet meer.
+//
+// Elke workout staat in een <details>: dicht toont de rij alleen dag, titel en
+// het type training, open pas de blokken, de knoppen en de rapportage. Een
+// schema van twaalf weken is anders niet te overzien.
 
 import Link from "next/link";
-import { CircleHelp, Download, FileText, MessageSquare } from "lucide-react";
-import {
-  INTENSITY_LABELS,
-  intensityLabel,
-  normalizeWorkoutBlocks,
-  WORKOUT_INTENSITIES,
-  type WorkoutIntensity,
-} from "@/lib/training/workouts";
+import { ChevronDown, CircleHelp, Download, ExternalLink, MessageSquare } from "lucide-react";
+import { intensityLabel, normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { targetHint } from "@/lib/training/targets";
-import {
-  removeOwnRide,
-  saveTrainerFeedback,
-  saveWorkoutReport,
-  updateWorkout,
-} from "../_actions";
-import { dateValue, formAction, formatDayMonth, timeValue } from "./format";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { removeOwnRide, saveWorkoutReport } from "../_actions";
+import { formAction, formatDayMonth } from "./format";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
-import { WorkoutBlocks, WorkoutTitle } from "./workout-blocks";
+import { WorkoutBlocks, intervalsWorkoutUrl } from "./workout-blocks";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -30,22 +25,14 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ReportPanel({
-  workout,
-  report,
-  editable,
-}: {
-  workout: WorkoutRow;
-  report?: WorkoutReportRow;
-  editable: boolean;
-}) {
+function ReportPanel({ workout, report }: { workout: WorkoutRow; report?: WorkoutReportRow }) {
   return (
     <details className="mt-3 rounded-md border bg-background/60 p-3">
       <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
         <MessageSquare className="size-4" />
         Rapportage en feedback
       </summary>
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 space-y-3">
         <form action={formAction(saveWorkoutReport)} className="space-y-2">
           <input type="hidden" name="workout_id" value={workout.id} />
           <div className="grid grid-cols-2 gap-2">
@@ -82,27 +69,18 @@ function ReportPanel({
             placeholder="Hoe ging deze workout?"
             className="w-full rounded-md border bg-background px-2 py-1 text-sm"
           />
-          {!editable ? (
-            <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-              Rapportage opslaan
-            </button>
-          ) : null}
+          <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+            Rapportage opslaan
+          </button>
         </form>
-        <form action={formAction(saveTrainerFeedback)} className="space-y-2">
-          <input type="hidden" name="workout_id" value={workout.id} />
-          <textarea
-            name="trainer_feedback"
-            rows={5}
-            defaultValue={report?.trainer_feedback ?? ""}
-            placeholder="Feedback van de trainer"
-            className="w-full rounded-md border bg-background px-2 py-1 text-sm"
-          />
-          {editable ? (
-            <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-              Feedback opslaan
-            </button>
-          ) : null}
-        </form>
+        {report?.trainer_feedback ? (
+          <div>
+            <p className="text-xs text-muted-foreground">Feedback van je trainer</p>
+            <p className="mt-1 rounded-md border-l-2 border-primary bg-primary/5 p-3 text-sm whitespace-pre-line">
+              {report.trainer_feedback}
+            </p>
+          </div>
+        ) : null}
       </div>
     </details>
   );
@@ -110,14 +88,12 @@ function ReportPanel({
 
 export function WorkoutList({
   workouts,
-  editable,
   ftpWatts,
   reports,
   intervalsAthleteId,
   adaptedPlans,
 }: {
   workouts: WorkoutRow[];
-  editable: boolean;
   ftpWatts?: number | null;
   reports?: Map<string, WorkoutReportRow>;
   intervalsAthleteId?: string;
@@ -127,6 +103,8 @@ export function WorkoutList({
   if (workouts.length === 0) {
     return <p className="p-4 text-sm text-muted-foreground">Nog geen workouts in dit schema.</p>;
   }
+
+  const todayKey = amsterdamDayKey(new Date());
 
   return (
     <ul className="divide-y">
@@ -140,222 +118,104 @@ export function WorkoutList({
         // Een toegezegd clubevent beheer je vanuit de keuzelijst, niet hier.
         const clubEvent = workout.origin === "event";
         const adaptedLabel = adaptedPlans?.get(workout.plan_id);
+        const dayKey = String(workout.scheduled_at).slice(0, 10);
         return (
-          <li key={workout.id} className="p-4">
-            {editable ? (
-              <form
-                action={formAction(updateWorkout)}
-                className="grid gap-3 lg:grid-cols-[120px_90px_1fr_90px_120px_auto] lg:items-end"
-              >
-                <input type="hidden" name="workout_id" value={workout.id} />
-                <label className="text-xs text-muted-foreground">
-                  Datum
-                  <input
-                    name="date"
-                    type="date"
-                    defaultValue={dateValue(workout.scheduled_at)}
-                    className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                  />
-                </label>
-                <label className="text-xs text-muted-foreground">
-                  Tijd
-                  <input
-                    name="time"
-                    type="time"
-                    defaultValue={timeValue(workout.scheduled_at)}
-                    className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                  />
-                </label>
-                <label className="text-xs text-muted-foreground">
-                  Titel
-                  <input
-                    name="title"
-                    defaultValue={workout.title}
-                    className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                  />
-                </label>
-                <label className="text-xs text-muted-foreground">
-                  Minuten
-                  <input
-                    name="duration_minutes"
-                    type="number"
-                    min="1"
-                    max="480"
-                    defaultValue={workout.duration_minutes}
-                    className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                  />
-                </label>
-                <label className="text-xs text-muted-foreground">
-                  Intensiteit
-                  <select
-                    name="intensity"
-                    defaultValue={workout.intensity}
-                    className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                  >
-                    {Object.entries(INTENSITY_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <input type="hidden" name="target_type" value={workout.target_type} />
-                <button className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">
-                  Opslaan
-                </button>
-                <label className="lg:col-span-6 text-xs text-muted-foreground">
-                  Instructie
-                  <textarea
-                    name="description"
-                    defaultValue={workout.description ?? ""}
-                    rows={2}
-                    className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                  />
-                </label>
-                <div className="lg:col-span-6 rounded-md border bg-background/60 p-3">
-                  <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                    <FileText className="size-3" />
-                    Intervalblokken
-                  </p>
-                  <div className="space-y-2">
-                    {[
-                      ...blocks,
-                      {
-                        label: "",
-                        durationMinutes: 5,
-                        target: "",
-                        notes: "",
-                        intensity: workout.intensity as WorkoutIntensity,
-                      },
-                    ].map((block, idx) => (
-                      <div
-                        key={idx}
-                        className="grid gap-2 rounded-md border p-2 lg:grid-cols-[1fr_80px_1fr_1fr_130px_90px]"
-                      >
-                        <input
-                          name="block_label"
-                          defaultValue={block.label}
-                          placeholder="Blok"
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
-                        />
-                        <input
-                          name="block_duration"
-                          type="number"
-                          min="0"
-                          max="480"
-                          defaultValue={block.durationMinutes || ""}
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
-                        />
-                        <input
-                          name="block_target"
-                          defaultValue={block.target}
-                          placeholder="Doel"
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
-                        />
-                        <input
-                          name="block_notes"
-                          defaultValue={block.notes}
-                          placeholder="Notitie"
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
-                        />
-                        <select
-                          name="block_intensity"
-                          defaultValue={block.intensity}
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
-                        >
-                          {WORKOUT_INTENSITIES.map((value) => (
-                            <option key={value} value={value}>
-                              {INTENSITY_LABELS[value]}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          name="block_delete"
-                          defaultValue="0"
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
-                        >
-                          <option value="0">Bewaar</option>
-                          <option value="1">Verwijder</option>
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-                <span className="text-sm text-muted-foreground">
+          <li key={workout.id}>
+            <details className="group" open={dayKey === todayKey}>
+              <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
+                <span className="w-24 shrink-0 text-sm text-muted-foreground">
                   {formatDayMonth(workout.scheduled_at)}
                 </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <WorkoutTitle workout={workout} athleteId={intervalsAthleteId} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="truncate font-medium">{workout.title}</span>
                     {ownRide ? <Chip>Eigen rit</Chip> : null}
                     {clubEvent ? <Chip>Clubevent</Chip> : null}
                     {!ownRide && !clubEvent && adaptedLabel ? <Chip>{adaptedLabel}</Chip> : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
+                    {report?.athlete_rpe ? <Chip>RPE {report.athlete_rpe}</Chip> : null}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
                     {workout.duration_minutes} min - {intensityLabel(workout.intensity)}
+                    {workout.status === "completed" ? " - gereden" : ""}
                     {workout.publish_status === "failed"
                       ? ` - publicatiefout: ${workout.publish_error}`
                       : ""}
-                  </p>
-                </div>
-                {ownRide ? (
-                  <form action={formAction(removeOwnRide)}>
-                    <input type="hidden" name="workout_id" value={workout.id} />
-                    <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-                      Verwijder
-                    </button>
-                  </form>
-                ) : (
-                  <span className="text-xs text-muted-foreground">{workout.publish_status}</span>
+                  </span>
+                </span>
+                {!ownRide ? (
+                  <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+                    {workout.publish_status}
+                  </span>
+                ) : null}
+                <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="px-4 pb-4">
+                <WorkoutBlocks blocks={blocks} ftpWatts={ftpWatts} />
+                {workout.structure_json && workout.structure_json.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {blocks.slice(0, 5).map((step, idx) => {
+                      const hint = targetHint({
+                        ftpWatts,
+                        intensity: step.intensity,
+                        target: step.target,
+                        notes: step.notes,
+                      });
+                      return (
+                        <span
+                          key={idx}
+                          className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                        >
+                          {step.label ?? "Blok"} {step.durationMinutes ? `${step.durationMinutes}m` : ""}{" "}
+                          {step.target ?? ""}
+                          {hint ? ` - ${hint}` : ""}
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
-              </div>
-            )}
-            <WorkoutBlocks blocks={blocks} ftpWatts={ftpWatts} />
-            {workout.structure_json && workout.structure_json.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {blocks.slice(0, 5).map((step, idx) => {
-                  const hint = targetHint({
-                    ftpWatts,
-                    intensity: step.intensity,
-                    target: step.target,
-                    notes: step.notes,
-                  });
-                  return (
-                    <span
-                      key={idx}
-                      className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {workout.publish_status === "published" && workout.intervals_event_id ? (
+                    <>
+                      <a
+                        href={`/api/training/workouts/${workout.id}/fit`}
+                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                      >
+                        <Download className="size-3" />
+                        Download FIT
+                      </a>
+                      <Link
+                        href="/hulp#fit-export"
+                        title="Hulp bij workout op je fietscomputer"
+                        aria-label="Hulp bij workout op je fietscomputer"
+                        className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                      >
+                        <CircleHelp className="size-3.5" />
+                      </Link>
+                    </>
+                  ) : null}
+                  {workout.intervals_event_id ? (
+                    <a
+                      href={intervalsWorkoutUrl(intervalsAthleteId, workout)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
                     >
-                      {step.label ?? "Blok"} {step.durationMinutes ? `${step.durationMinutes}m` : ""}{" "}
-                      {step.target ?? ""}
-                      {hint ? ` - ${hint}` : ""}
-                    </span>
-                  );
-                })}
+                      <ExternalLink className="size-3" />
+                      In intervals.icu
+                    </a>
+                  ) : null}
+                  {ownRide ? (
+                    <form action={formAction(removeOwnRide)}>
+                      <input type="hidden" name="workout_id" value={workout.id} />
+                      <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+                        Verwijder
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+                <ReportPanel workout={workout} report={report} />
               </div>
-            )}
-            {workout.publish_status === "published" && workout.intervals_event_id ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a
-                  href={`/api/training/workouts/${workout.id}/fit`}
-                  className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-                >
-                  <Download className="size-3" />
-                  Download FIT
-                </a>
-                <Link
-                  href="/hulp#fit-export"
-                  title="Hulp bij workout op je fietscomputer"
-                  aria-label="Hulp bij workout op je fietscomputer"
-                  className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <CircleHelp className="size-3.5" />
-                </Link>
-              </div>
-            ) : null}
-            <ReportPanel workout={workout} report={report} editable={editable} />
+            </details>
           </li>
         );
       })}

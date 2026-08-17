@@ -2,6 +2,14 @@
 
 import type { StravaActivityRow } from "./types";
 
+/** Het gevoel dat het lid bij een training invulde. */
+export const FEEL_LABELS: Record<string, string> = {
+  goed: "Goed",
+  neutraal: "Neutraal",
+  zwaar: "Zwaar",
+  slecht: "Slecht",
+};
+
 export const GOAL_LABELS: Record<string, string> = {
   zrl: "ZRL",
   ladder: "Ladder",

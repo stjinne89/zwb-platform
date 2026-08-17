@@ -34,9 +34,14 @@ function labelFor(workout: CalendarWorkout) {
 export function WorkoutCalendar({
   workouts,
   todayKey,
+  onSelect,
+  selectedId,
 }: {
   workouts: CalendarWorkout[];
   todayKey: string;
+  /** Meegeven maakt de blokjes aanklikbaar; zonder dit is de maand alleen kijken. */
+  onSelect?: (workoutId: string) => void;
+  selectedId?: string | null;
 }) {
   const [year, month] = todayKey.split("-").map(Number);
   const [view, setView] = useState({ year, month });
@@ -97,21 +102,35 @@ export function WorkoutCalendar({
                   titel in, ook niet afgekapt. Dan tonen we een gekleurde balk
                   per workout en pas vanaf sm de titel zelf. */}
               <div className="mt-1 space-y-0.5">
-                {dayWorkouts.map((workout) => (
-                  <span
-                    key={workout.id}
-                    title={labelFor(workout)}
-                    className={cn(
-                      "block h-1.5 rounded-full sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
-                      workout.skipped && "opacity-60 sm:line-through",
-                    )}
-                    style={{
-                      backgroundColor: colorFor(workout.intensity),
-                    }}
-                  >
-                    <span className="hidden sm:inline">{workout.title}</span>
-                  </span>
-                ))}
+                {dayWorkouts.map((workout) => {
+                  const className = cn(
+                    "block w-full rounded-full text-left sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
+                    // Aanklikbaar wil op een telefoon een grotere raakvlek dan
+                    // het streepje van de leesweergave.
+                    onSelect ? "h-4 cursor-pointer transition hover:opacity-80" : "h-1.5",
+                    workout.skipped && "opacity-60 sm:line-through",
+                    selectedId === workout.id && "ring-2 ring-foreground ring-offset-1",
+                  );
+                  const style = { backgroundColor: colorFor(workout.intensity) };
+                  return onSelect ? (
+                    <button
+                      key={workout.id}
+                      type="button"
+                      title={labelFor(workout)}
+                      aria-label={labelFor(workout)}
+                      aria-pressed={selectedId === workout.id}
+                      onClick={() => onSelect(workout.id)}
+                      className={className}
+                      style={style}
+                    >
+                      <span className="hidden sm:inline">{workout.title}</span>
+                    </button>
+                  ) : (
+                    <span key={workout.id} title={labelFor(workout)} className={className} style={style}>
+                      <span className="hidden sm:inline">{workout.title}</span>
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );

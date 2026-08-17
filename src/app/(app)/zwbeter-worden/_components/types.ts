@@ -1,6 +1,7 @@
 // Rijtypes die door meerdere ZWBeter Worden-subpagina's worden gedeeld. Ze
 // spiegelen de kolommen van de training_*-tabellen zoals we ze selecteren.
 
+import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import type { WellnessSummary } from "@/lib/training/wellness";
 
 export type ProfileRow = {
@@ -109,6 +110,9 @@ export type WorkoutReportRow = {
   athlete_report: string | null;
   trainer_feedback: string | null;
   updated_at: string;
+  /** Momentopname van gepland versus gereden; leeg zonder gekoppelde rit. */
+  metrics_json?: WorkoutMetricsSnapshot | null;
+  athlete_confirmed_at?: string | null;
 };
 
 export type AiGenerationRow = {

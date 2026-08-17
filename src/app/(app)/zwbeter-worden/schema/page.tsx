@@ -7,25 +7,24 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
-import {
-  adaptationLabel,
-  currentPlanOf,
-  groupByRoot,
-  planToRoot,
-} from "@/lib/training/plan-tree";
+import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
+import { workoutOutcome } from "../_components/completed-workouts";
 import { EventChoice } from "../_components/event-choice";
 import { PlanActions } from "../_components/plan-actions";
 import { PlanRideForm } from "../_components/plan-ride-form";
 import { CollapsibleCard, PlanBadge } from "../_components/ui";
-import { WorkoutBlocks, WorkoutTitle } from "../_components/workout-blocks";
-import { WorkoutList } from "../_components/workout-list";
 import {
-  WorkoutCalendar,
-  type CalendarWorkout,
-} from "../_components/workout-calendar";
-import { byRootPlan, byWorkout, formatDayMonth, paramString } from "../_components/format";
+  WorkoutBlocks,
+  WorkoutTitle,
+  intervalsWorkoutUrl,
+} from "../_components/workout-blocks";
+import {
+  MemberWorkoutCalendar,
+  type MemberCalendarItem,
+} from "../_components/member-calendar";
+import { byWorkout, formatDayMonth, paramString } from "../_components/format";
 import { PlanUpdateForm } from "../_components/plan-update-form";
 import type { GoalRow, SearchParamsProp, WorkoutReportRow } from "../_components/types";
 import {
@@ -50,7 +49,9 @@ export const maxDuration = 60;
 
 export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchParamsProp) {
   const params = (await searchParams) ?? {};
-  const workoutView = paramString(params.view) === "maand" ? "maand" : "lijst";
+  // Maand is de ingang: daar zie je in één blik je week én kun je een training
+  // aanklikken. De lijst blijft als alternatief bestaan.
+  const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
   const viewer = await requireViewer();
 
   const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
@@ -78,13 +79,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Een aanpassing is een afgeleid plan, maar hoort in het schema waar hij op
   // ingrijpt. Vandaar de groepering per familie in plaats van per plan.
   const families = groupByRoot(plans);
-  const rootByPlan = planToRoot(plans);
-  const workoutsByPlan = byRootPlan(memberWorkouts, rootByPlan);
-  const adaptedPlans = new Map(
-    plans
-      .filter((plan) => plan.parent_plan_id != null)
-      .map((plan) => [plan.id, adaptationLabel(plan.adaptation_kind)] as const),
-  );
 
   // Alleen wat het lid buiten ZWB om heeft gepland; onze eigen gepubliceerde
   // workouts staan al in de lijst hierboven.
@@ -104,17 +98,40 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ? planUpdateDefaults(activePlan(plans), (goalRows ?? []) as GoalRow[])
     : null;
 
-  // Maandweergave toont de hele maand, dus ook wat al geweest is.
-  const calendarWorkouts: CalendarWorkout[] = [
-    ...memberWorkouts.map((workout) => ({
-      id: workout.id,
-      dateKey: String(workout.scheduled_at).slice(0, 10),
-      title: workout.title,
-      durationMinutes: workout.duration_minutes,
-      intensity: workout.intensity,
-      source: "zwb" as const,
-      skipped: workout.status === "skipped",
-    })),
+  // Maandweergave toont de hele maand, dus ook wat al geweest is. Elke
+  // ZWB-workout draagt zijn eigen detail mee, zodat een klik meteen laat zien
+  // hoe de training eruitziet of hoe hij ging.
+  const calendarItems: MemberCalendarItem[] = [
+    ...memberWorkouts.map((workout) => {
+      const report = reportsByWorkout.get(workout.id);
+      const published = workout.publish_status === "published" && workout.intervals_event_id;
+      return {
+        id: workout.id,
+        dateKey: String(workout.scheduled_at).slice(0, 10),
+        title: workout.title,
+        durationMinutes: workout.duration_minutes,
+        intensity: workout.intensity,
+        source: "zwb" as const,
+        skipped: workout.status === "skipped",
+        detail: {
+          outcome: workoutOutcome(workout, report, todayKey),
+          description: workout.description,
+          blocks: normalizeWorkoutBlocks(
+            workout.structure_json,
+            workout.intensity as WorkoutIntensity,
+          ),
+          intervalsUrl: workout.intervals_event_id
+            ? intervalsWorkoutUrl(conn?.athlete_id, workout)
+            : null,
+          fitUrl: published ? `/api/training/workouts/${workout.id}/fit` : null,
+          rpe: report?.athlete_rpe ?? null,
+          feel: report?.athlete_feel ?? null,
+          report: report?.athlete_report ?? null,
+          trainerFeedback: report?.trainer_feedback ?? null,
+          metrics: report?.metrics_json ?? null,
+        },
+      };
+    }),
     ...otherEvents.map((event) => ({
       id: `intervals-${event.id}`,
       dateKey: String(event.start_date_local).slice(0, 10),
@@ -122,6 +139,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       durationMinutes: event.moving_time ? Math.round(event.moving_time / 60) : null,
       intensity: null,
       source: "intervals" as const,
+      skipped: false,
     })),
   ];
 
@@ -140,7 +158,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       ) : null}
 
       <CollapsibleCard
-        title="Komende workouts"
+        title="Mijn trainingen"
         subtitle="Uit intervals.icu en ZWB-schema's"
         defaultOpen
       >
@@ -168,7 +186,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           </div>
         </div>
         {workoutView === "maand" ? (
-          <WorkoutCalendar workouts={calendarWorkouts} todayKey={todayKey} />
+          <MemberWorkoutCalendar
+            items={calendarItems}
+            todayKey={todayKey}
+            ftpWatts={profile?.ftp_watts}
+          />
         ) : upcomingEvents.length === 0 && upcomingWorkouts.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>
         ) : (
@@ -283,14 +305,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                       {current.summary}
                     </p>
                   )}
-                  <WorkoutList
-                    workouts={workoutsByPlan.get(root.id) ?? []}
-                    editable={false}
-                    ftpWatts={profile?.ftp_watts}
-                    reports={reportsByWorkout}
-                    intervalsAthleteId={conn?.athlete_id}
-                    adaptedPlans={adaptedPlans}
-                  />
                 </article>
               );
             })}

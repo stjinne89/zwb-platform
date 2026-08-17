@@ -2,12 +2,23 @@
 // invoegen en de schema's van de renner beheren.
 
 import { EmptyState } from "@/components/app-ui";
-import { adaptationLabel, groupByRoot, planToRoot } from "@/lib/training/plan-tree";
+import { adaptationLabel, groupByRoot } from "@/lib/training/plan-tree";
+import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { PlanActions } from "../../_components/plan-actions";
 import { PlanUpdateForm } from "../../_components/plan-update-form";
-import { WorkoutList } from "../../_components/workout-list";
+import {
+  COMPLETED_WINDOW_DAYS,
+  CompletedWorkouts,
+  recentCompleted,
+} from "../../_components/completed-workouts";
 import { CollapsibleCard, PlanBadge } from "../../_components/ui";
-import { byRootPlan, byWorkout, formAction, formatDayMonth } from "../../_components/format";
+import {
+  byWorkout,
+  dateValue,
+  formAction,
+  formatDayMonth,
+  timeValue,
+} from "../../_components/format";
 import type {
   GoalRow,
   PlanRow,
@@ -19,10 +30,16 @@ import { updateTrainingPlan } from "../../_actions";
 import { activePlan, planUpdateDefaults, todayKeyAmsterdam } from "../../_data";
 import { DeleteTrainingPlanButton } from "../_components/delete-training-plan-button";
 import {
+  TrainerWorkoutCalendar,
+  type CalendarEditWorkout,
+  type CalendarReport,
+  type CalendarTemplate,
+} from "../_components/calendar-editor";
+import {
   WorkoutLibraryPanel,
   type WorkoutTemplateRow,
 } from "../_components/workout-library-panel";
-import { loadAthlete, loadAthleteConnection, trainerContext } from "../_data";
+import { loadAthlete, trainerContext } from "../_data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,10 +57,9 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   }
   const { viewer, athleteId } = context;
 
-  const [athlete, connection, { data: planRows }, { data: goalRows }, { data: templateRows }] =
+  const [athlete, { data: planRows }, { data: goalRows }, { data: templateRows }] =
     await Promise.all([
       loadAthlete(viewer, athleteId),
-      loadAthleteConnection(viewer, athleteId),
       viewer.supabase
         .from("training_plans")
         .select("*")
@@ -88,14 +104,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   // Aanpassingen zijn afgeleide plannen; ze horen in het schema waar ze op
   // ingrijpen, niet als losse kaart ernaast. Zelfde groepering als bij het lid.
   const families = groupByRoot(plans);
-  const rootByPlan = planToRoot(plans);
-  const workoutsByPlan = byRootPlan((workoutRows ?? []) as WorkoutRow[], rootByPlan);
   const reportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
-  const adaptedPlans = new Map(
-    plans
-      .filter((plan) => plan.parent_plan_id != null)
-      .map((plan) => [plan.id, adaptationLabel(plan.adaptation_kind)] as const),
-  );
 
   // Het schema dat "bijwerken" aanpast (loopt nu), en het schema dat standaard
   // openklapt (het eerste niet-gearchiveerde).
@@ -104,15 +113,79 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   const openPlan = families.find((family) => family.root.status !== "archived")?.root;
   const canPublish = viewer.access.has("training.publish_plans");
 
+  const templates = (templateRows ?? []) as WorkoutTemplateRow[];
+  const calendarWorkouts: CalendarEditWorkout[] = ((workoutRows ?? []) as WorkoutRow[]).map(
+    (workout) => ({
+      id: workout.id,
+      dateKey: dateValue(workout.scheduled_at),
+      time: timeValue(workout.scheduled_at),
+      title: workout.title,
+      description: workout.description,
+      durationMinutes: workout.duration_minutes,
+      intensity: workout.intensity,
+      targetType: workout.target_type,
+      blocks: normalizeWorkoutBlocks(
+        workout.structure_json,
+        workout.intensity as WorkoutIntensity,
+      ),
+      skipped: workout.status === "skipped",
+      publishStatus: workout.publish_status,
+    }),
+  );
+  const calendarTemplates: CalendarTemplate[] = templates.map((template) => ({
+    id: template.id,
+    title: template.title,
+    durationMinutes: template.duration_minutes,
+    intensity: template.intensity,
+  }));
+  const calendarReports: CalendarReport[] = ((reportRows ?? []) as WorkoutReportRow[]).map(
+    (row) => ({
+      workoutId: row.workout_id,
+      rpe: row.athlete_rpe,
+      feel: row.athlete_feel,
+      report: row.athlete_report,
+      trainerFeedback: row.trainer_feedback,
+    }),
+  );
+
   return (
     <div className="space-y-4">
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
       <WorkoutLibraryPanel
-        templates={(templateRows ?? []) as WorkoutTemplateRow[]}
+        templates={templates}
         planId={runningPlan?.id ?? null}
         defaultDate={todayKeyAmsterdam()}
         viewerId={viewer.user.id}
       />
+
+      <CollapsibleCard
+        title="Workouts per maand"
+        subtitle="Klik een training om hem aan te passen of te vervangen"
+        defaultOpen
+      >
+        <TrainerWorkoutCalendar
+          workouts={calendarWorkouts}
+          templates={calendarTemplates}
+          reports={calendarReports}
+          todayKey={todayKeyAmsterdam()}
+          ftpWatts={athlete?.ftp_watts}
+        />
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        title="Afgewerkt en gemist"
+        subtitle={`Laatste ${COMPLETED_WINDOW_DAYS} dagen, gepland naast gereden`}
+        defaultOpen
+      >
+        <CompletedWorkouts
+          items={recentCompleted(
+            (workoutRows ?? []) as WorkoutRow[],
+            reportsByWorkout,
+            todayKeyAmsterdam(),
+          )}
+          feelingLabel="Gevoel lid"
+        />
+      </CollapsibleCard>
 
       <section className="space-y-3">
         <h2 className="font-semibold">Schema&apos;s maken en beheren</h2>
@@ -220,14 +293,6 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
                   </ul>
                 </div>
               ) : null}
-              <WorkoutList
-                workouts={workoutsByPlan.get(plan.id) ?? []}
-                editable
-                ftpWatts={athlete?.ftp_watts}
-                reports={reportsByWorkout}
-                intervalsAthleteId={connection?.athlete_id}
-                adaptedPlans={adaptedPlans}
-              />
             </CollapsibleCard>
           ))
         )}

@@ -9,7 +9,7 @@ import {
   fetchIntervalsAthlete,
 } from "@/lib/intervals/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
-import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
+import { pushPlanWorkoutsToIntervals, pushWorkoutToIntervals } from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
 import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
 import {
@@ -413,7 +413,7 @@ export async function updateWorkout(formData: FormData) {
     const admin = createAdminClient();
     const { data: workout } = await admin
       .from("training_workouts")
-      .select("profile_id")
+      .select("profile_id, intervals_event_id")
       .eq("id", workoutId)
       .single();
     if (!workout) throw new Error("Workout niet gevonden.");
@@ -444,6 +444,12 @@ export async function updateWorkout(formData: FormData) {
       })
       .eq("id", workoutId);
     if (error) throw new Error(error.message);
+
+    // Staat de workout al in intervals.icu, dan moet de wijziging daar meteen
+    // heen: het lid rijdt hem morgen van zijn fietscomputer.
+    if (workout.intervals_event_id) {
+      await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
+    }
 
     revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
@@ -763,6 +769,67 @@ export async function addWorkoutFromTemplate(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Workout invoegen faalde.",
+    };
+  }
+}
+
+/**
+ * Vervangt de inhoud van een geplande workout door die van een bibliotheek-
+ * workout. De datum, het schema en de koppeling met intervals.icu blijven staan;
+ * alleen wat er getraind wordt verandert. Zo hoeft de trainer een verkeerd
+ * uitgevallen training niet te verwijderen en opnieuw in te plannen.
+ */
+export async function replaceWorkoutFromTemplate(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    if (!access.has("training.create_plans")) throw new Error("Geen rechten om workouts te wijzigen.");
+    const workoutId = mustString(formData.get("workout_id"), "Workout");
+    const templateId = mustString(formData.get("template_id"), "Bibliotheek-workout");
+
+    const admin = createAdminClient();
+    const [{ data: workout }, { data: template }] = await Promise.all([
+      admin
+        .from("training_workouts")
+        .select("id, profile_id, intervals_event_id")
+        .eq("id", workoutId)
+        .maybeSingle(),
+      admin
+        .from("training_workout_templates")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json")
+        .eq("id", templateId)
+        .maybeSingle(),
+    ]);
+    if (!workout) throw new Error("Workout niet gevonden.");
+    if (!template) throw new Error("Workout niet gevonden in de bibliotheek.");
+    if (!access.has("training.manage_assignments") && !(await canCoach(admin, user.id, workout.profile_id))) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const { error } = await admin
+      .from("training_workouts")
+      .update({
+        title: template.title,
+        description: template.description,
+        duration_minutes: template.duration_minutes,
+        intensity: template.intensity,
+        target_type: template.target_type,
+        structure_json: template.structure_json,
+        publish_status: "pending",
+        publish_error: null,
+      })
+      .eq("id", workoutId);
+    if (error) throw new Error(error.message);
+
+    if (workout.intervals_event_id) {
+      await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Workout vervangen faalde.",
     };
   }
 }
