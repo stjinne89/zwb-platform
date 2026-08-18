@@ -256,8 +256,57 @@ async function revertEmptyCompletion(
 type ExistingReport = {
   workout_id: string;
   athlete_confirmed_at: string | null;
+  paired_activity_id: string | null;
   metrics_json: Partial<WorkoutMetricsSnapshot> | null;
 };
+
+/** Wat de koppeling van een workout nodig heeft: wanneer, en hoe lang gepland. */
+export type WorkoutForPairing = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+};
+
+/**
+ * Welke rit bij welke workout hoort. Elke workout claimt hooguit één rit van die
+ * dag, en een geclaimde rit is voor de volgende workout van tafel — anders zou
+ * een tweede training op dezelfde dag dezelfde rit nog eens opeisen.
+ *
+ * Een workout die al een `paired_activity_id` heeft, houdt die rit: die
+ * koppeling is vastgelegd en weegt zwaarder dan wat we hier opnieuw zouden
+ * uitrekenen. Alle vastgelegde ritten gaan er daarom vooraf af, zodat een
+ * workout zonder koppeling er niet alsnog eentje wegkaapt. Staat de vastgelegde
+ * rit niet meer in de bron, dan blijft de workout zonder rit — opnieuw matchen
+ * zou de bevestigde koppeling stilzwijgend vervangen.
+ */
+export function pairWorkoutsWithRides<T extends StravaRideRow>(
+  workouts: WorkoutForPairing[],
+  rides: T[],
+  pairedActivityIds: ReadonlyMap<string, string | null | undefined>,
+): Map<string, T | null> {
+  const used = new Set<string>();
+  for (const id of pairedActivityIds.values()) {
+    if (id != null && id !== "") used.add(String(id));
+  }
+  const ridesById = new Map(rides.map((ride) => [String(ride.id), ride]));
+
+  const pairs = new Map<string, T | null>();
+  for (const workout of workouts) {
+    const paired = pairedActivityIds.get(workout.id);
+    if (paired != null && paired !== "") {
+      pairs.set(workout.id, ridesById.get(String(paired)) ?? null);
+      continue;
+    }
+    const match = pickRideForWorkout(
+      rides.filter((ride) => !used.has(String(ride.id))),
+      workout.scheduled_at,
+      workout.duration_minutes ?? null,
+    );
+    pairs.set(workout.id, match);
+    if (match) used.add(String(match.id));
+  }
+  return pairs;
+}
 
 /**
  * Zoekt workouts uit de afgelopen week waar een rit bij hoort, markeert die als
@@ -294,7 +343,7 @@ export async function detectCompletedWorkouts(
 
   const { data: reportRows } = await admin
     .from("training_workout_reports")
-    .select("workout_id, athlete_confirmed_at, metrics_json")
+    .select("workout_id, athlete_confirmed_at, paired_activity_id, metrics_json")
     .in(
       "workout_id",
       workouts.map((workout) => workout.id),
@@ -337,16 +386,15 @@ export async function detectCompletedWorkouts(
   });
   const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
 
-  const used = new Set<number>();
+  const pairs = pairWorkoutsWithRides(
+    workouts,
+    rides,
+    new Map([...reports].map(([workoutId, row]) => [workoutId, row.paired_activity_id])),
+  );
   const result: CompletionResult = { completed: 0, refreshed: 0, notified: 0, reverted: 0 };
 
   for (const workout of workouts) {
-    const available = rides.filter((row) => !used.has(row.id));
-    const match = pickRideForWorkout(
-      available,
-      workout.scheduled_at,
-      workout.duration_minutes ?? null,
-    );
+    const match = pairs.get(workout.id) ?? null;
     const report = reports.get(workout.id);
     const isNew = workout.status === "planned";
     // Al afgerond, maar de momentopname is leeg gebleven en het lid heeft nog
@@ -366,9 +414,6 @@ export async function detectCompletedWorkouts(
       }
       continue;
     }
-    // De rit hoort nu bij deze workout; anders zou een volgende workout op
-    // dezelfde dag hem alsnog opeisen.
-    used.add(match.id);
 
     if (!isNew && !isEmptySnapshot) continue;
 

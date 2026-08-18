@@ -629,7 +629,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   een `ViewOnStrava`-link in het detailpaneel. Ritten die al vastgelegd aan een
   workout hangen (`training_workout_reports.paired_activity_id`) gaan er sowieso
   af; een rustdag of een als rustdag afgeschreven training claimt niets, zodat
-  wie op zijn rustdag toch reed die rit ziet staan. Bron is `strava_activities`
+  wie op zijn rustdag toch reed die rit ziet staan. Dezelfde voorrang voor een
+  vastgelegde koppeling geldt sinds dezelfde dag ook bij het afronden van
+  workouts (zie de bullet hieronder over `detectCompletedWorkouts`). Bron is `strava_activities`
   over 120 dagen, hetzelfde venster als de belastingpagina — intervals.icu geeft
   via de API niets terug voor ritten die daar via Strava binnenkwamen. Omdat de
   schemapagina nu Strava-data toont, staat er een `StravaAttribution` onder
@@ -678,6 +680,29 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   eventpagina blijft de plek voor het precieze antwoord), en geen automatische
   reparatie van bestaande schema's tijdens het renderen — dat zou een tweede
   blok naast het AI-blok zetten zonder dat iemand erom vroeg.
+- **Vastgelegde rit-koppeling telt ook bij het afronden mee** (2026-08-18, geen
+  migratie): dezelfde fout die bij de ongeplande ritten is gerepareerd zat ook in
+  `detectCompletedWorkouts` (`src/lib/training/completion.ts`). Die lus riep voor
+  elke workout opnieuw `pickRideForWorkout` aan, ook voor workouts die via
+  `training_workout_reports.paired_activity_id` al aan een rit hingen, en vulde
+  de `used`-set niet vooraf met die vastgelegde ritten. Een al bevestigde
+  training kon daardoor bij een volgende detectieronde een ándere rit van die dag
+  opeisen dan de rit in haar eigen rapportage. Geschreven werd er niets — de
+  `isNew`/`isEmptySnapshot`-poortjes hielden dat tegen — maar de rit was wel
+  verbruikt, en een tweede training kon zo zonder rit achterblijven en (bij een
+  lege momentopname) zelfs teruggedraaid worden naar 'gepland'. De koppeling
+  wordt nu vooraf uitgerekend in de pure, exporteerbare `pairWorkoutsWithRides`:
+  alle vastgelegde `paired_activity_id`'s gaan er eerst af, een workout mét
+  koppeling houdt zijn eigen rit en wordt niet opnieuw gematcht, en de
+  herberekening van een lege momentopname gebruikt die rit. Staat de vastgelegde
+  rit niet meer in `strava_activities`, dan blijft de workout zonder rit in
+  plaats van er stilzwijgend een andere bij te zoeken. Getest in
+  `tests/unit/training-completion.test.ts` met twee ritten en twee trainingen op
+  één dag; de oude lus zakt op beide nieuwe gevallen.
+  **Bewust niet gebouwd:** geen reparatie achteraf van rapportages die in het
+  verleden een verkeerde rit hebben opgeslagen — er is geen betrouwbare manier om
+  te zien of `paired_activity_id` ooit fout is gezet of gewoon een handmatige
+  keuze was.
 
 ---
 

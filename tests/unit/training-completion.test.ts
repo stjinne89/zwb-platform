@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildMetricsSnapshot,
   ctlAround,
+  pairWorkoutsWithRides,
   targetSummaryFor,
   type PlannedWorkoutRow,
+  type WorkoutForPairing,
 } from "@/lib/training/completion";
 import type { StravaRideRow } from "@/lib/training/ride-metrics";
 import type { IntervalsWellness } from "@/lib/intervals/client";
@@ -166,5 +168,88 @@ describe("buildMetricsSnapshot", () => {
     expect(snapshot.verdict).toBe("niet_gereden");
     expect(snapshot.movingMinutes).toBeNull();
     expect(snapshot.plannedMinutes).toBe(75);
+  });
+});
+
+describe("pairWorkoutsWithRides", () => {
+  const ochtend: StravaRideRow = {
+    id: 101,
+    name: "Ochtendrit",
+    start_date: "2026-07-20T07:00:00Z",
+    moving_time_seconds: 4500,
+    raw: { moving_time: 4500, device_watts: true, weighted_average_watts: 232 },
+  };
+  const avond: StravaRideRow = {
+    id: 202,
+    name: "Avondrondje",
+    start_date: "2026-07-20T17:00:00Z",
+    moving_time_seconds: 3600,
+    raw: { moving_time: 3600, device_watts: true, weighted_average_watts: 190 },
+  };
+
+  const ochtendtraining: WorkoutForPairing = {
+    id: "w1",
+    scheduled_at: "2026-07-20T09:00:00+02:00",
+    duration_minutes: 75,
+  };
+  const avondtraining: WorkoutForPairing = {
+    id: "w2",
+    scheduled_at: "2026-07-20T19:00:00+02:00",
+    duration_minutes: 60,
+  };
+
+  it("geeft elke training van dezelfde dag zijn eigen rit", () => {
+    const pairs = pairWorkoutsWithRides(
+      [ochtendtraining, avondtraining],
+      [ochtend, avond],
+      new Map(),
+    );
+    expect(pairs.get("w1")?.id).toBe(101);
+    expect(pairs.get("w2")?.id).toBe(202);
+  });
+
+  it("laat een training die al aan een rit hangt geen tweede rit claimen", () => {
+    // w1 hangt vastgelegd aan de avondrit; zonder de vooraf gevulde used-set zou
+    // w1 de ochtendrit opeisen en w2 met lege handen achterblijven.
+    const pairs = pairWorkoutsWithRides(
+      [ochtendtraining, avondtraining],
+      [ochtend, avond],
+      new Map([["w1", "202"]]),
+    );
+    expect(pairs.get("w1")?.id).toBe(202);
+    expect(pairs.get("w2")?.id).toBe(101);
+  });
+
+  it("houdt de vastgelegde koppeling aan, ook als een andere rit beter past", () => {
+    const pairs = pairWorkoutsWithRides([ochtendtraining], [ochtend, avond], new Map([["w1", "202"]]));
+    expect(pairs.get("w1")?.id).toBe(202);
+  });
+
+  it("laat de training zonder rit als de vastgelegde rit niet meer in de bron staat", () => {
+    const pairs = pairWorkoutsWithRides([ochtendtraining], [ochtend], new Map([["w1", "999"]]));
+    expect(pairs.get("w1")).toBeNull();
+  });
+
+  it("laat een training niet leeglopen doordat een gekoppelde training haar rit inpikt", () => {
+    // De ochtendtraining hangt vastgelegd aan een rit van de dag ervoor. Zonder
+    // die koppeling te respecteren pikt zij de rit van 20 juli in, en blijft de
+    // avondtraining als niet-gereden staan terwijl er wel gereden is.
+    const vorigeAvond: StravaRideRow = {
+      ...avond,
+      id: 303,
+      start_date: "2026-07-19T17:00:00Z",
+    };
+    const pairs = pairWorkoutsWithRides(
+      [ochtendtraining, avondtraining],
+      [vorigeAvond, ochtend],
+      new Map([["w1", "303"]]),
+    );
+    expect(pairs.get("w1")?.id).toBe(303);
+    expect(pairs.get("w2")?.id).toBe(101);
+  });
+
+  it("negeert een lege koppeling en matcht gewoon opnieuw", () => {
+    const pairs = pairWorkoutsWithRides([ochtendtraining], [ochtend], new Map([["w1", ""]]));
+    expect(pairs.get("w1")?.id).toBe(101);
   });
 });
