@@ -105,11 +105,28 @@ export default function PrivacyPage() {
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,
             ritverslagen, reacties, polls en geüploade foto&apos;s.
           </li>
+          <li>
+            <strong>Gezondheidsgegevens (alleen met jouw uitdrukkelijke toestemming):</strong>{" "}
+            als je het klachtenlogboek aanzet, leggen we per dag vast hoeveel last
+            je hebt, welke klachten je aanvinkt, of het de eerste dag van je
+            menstruatie is, en een eventuele notitie. Ook je herstelwaarden uit
+            intervals.icu (HRV, rust-hartslag, slaap) vallen hieronder. Het
+            geslacht op je profiel is optioneel en kun je leeg laten.
+          </li>
         </ul>
       </Section>
 
       <Section title="3. Waarom en op welke grondslag">
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Gezondheidsgegevens: uitdrukkelijke toestemming</strong>{" "}
+            (artikel 9 lid 2 sub a AVG). Het klachtenlogboek staat standaard uit
+            en verwerkt niets tot jij het zelf aanzet. Alleen jij ziet wat erin
+            staat — je trainer en het bestuur niet. Je trainingsschema gebruikt
+            er hooguit een samengevat signaal uit (&quot;lagere belastbaarheid deze
+            week&quot;), nooit losse klachten. Je kunt je toestemming op elk moment
+            intrekken door het logboek uit te zetten.
+          </li>
           <li>
             <strong>Uitvoering van het lidmaatschap</strong> (gerechtvaardigd belang
             / overeenkomst): kalender, teams, uitslagen, community en het tonen van
@@ -141,6 +158,11 @@ export default function PrivacyPage() {
           <li>
             Je kunt je intervals.icu- of Strava-koppeling op elk moment verbreken;
             de bijbehorende gesynchroniseerde data wordt dan opgeruimd.
+          </li>
+          <li>
+            Je klachtenlogboek blijft staan zolang jij het bewaart. Je kunt losse
+            dagen verwijderen en het logboek uitzetten; bij het verwijderen van je
+            account wordt alles gewist.
           </li>
         </ul>
       </Section>

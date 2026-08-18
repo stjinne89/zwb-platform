@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
         destination: "/zwbeter-worden/vermogen",
         permanent: true,
       },
+      // /onderhoud heet nu /mijn-garage. Ook hier staan er al pushberichten met
+      // de oude URL in omloop.
+      { source: "/onderhoud", destination: "/mijn-garage", permanent: true },
     ];
   },
 };

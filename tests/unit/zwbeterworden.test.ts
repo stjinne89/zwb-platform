@@ -85,14 +85,16 @@ describe("dagelijkse tekstrotatie", () => {
     // Over alle dagen mag er nooit een letterlijke {partner} blijven staan.
     for (let d = 1; d <= 31; d++) {
       const key = `2026-01-${String(d).padStart(2, "0")}`;
-      const women = zwbeterWordenAdvice(readiness("recovery", 10), "women", key);
-      const open = zwbeterWordenAdvice(readiness("recovery", 10), "open", key);
-      expect(women.description).not.toContain("{partner}");
-      expect(open.description).not.toContain("{partner}");
+      const vrouw = zwbeterWordenAdvice(readiness("recovery", 10), "vrouw", key);
+      const man = zwbeterWordenAdvice(readiness("recovery", 10), "man", key);
+      const onbekend = zwbeterWordenAdvice(readiness("recovery", 10), null, key);
+      expect(vrouw.description).not.toContain("{partner}");
+      expect(man.description).not.toContain("{partner}");
+      expect(onbekend.description).not.toContain("{partner}");
     }
   });
 
-  it("kiest de partner-tekst op basis van de ZRL-divisie", () => {
+  it("kiest de partner-tekst op basis van het geslachtsveld", () => {
     // Zoek een dag die een variant mét {partner} selecteert (niveau 1).
     const withPartner = ZWB_LEVEL_DESCRIPTIONS[1].findIndex((d) =>
       d.includes("{partner}"),
@@ -106,8 +108,15 @@ describe("dagelijkse tekstrotatie", () => {
       }
     }
     expect(key).not.toBe("");
-    expect(zwbeterWordenAdvice(readiness("recovery", 10), "women", key).description).toContain("man");
-    expect(zwbeterWordenAdvice(readiness("recovery", 10), "open", key).description).toContain("vrouw");
+    expect(zwbeterWordenAdvice(readiness("recovery", 10), "vrouw", key).description).toContain("man");
+    expect(zwbeterWordenAdvice(readiness("recovery", 10), "man", key).description).toContain("vrouw");
+    // Niet ingevuld of "zeg ik liever niet": geen gok, maar een neutrale variant.
+    expect(
+      zwbeterWordenAdvice(readiness("recovery", 10), null, key).description,
+    ).toContain("lief");
+    expect(
+      zwbeterWordenAdvice(readiness("recovery", 10), "zeg_ik_liever_niet", key).description,
+    ).toContain("lief");
   });
 });
 

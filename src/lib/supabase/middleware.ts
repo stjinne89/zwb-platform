@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/welkom",
   "/auth",
   "/privacy",
+  "/voorwaarden",
   "/verhaal",
   "/profielen",
   "/live",

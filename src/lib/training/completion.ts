@@ -316,7 +316,7 @@ export async function detectCompletedWorkouts(
   const [{ data: profile }, { data: conn }] = await Promise.all([
     admin
       .from("profiles")
-      .select("ftp_watts, zrl_division, wellness_device")
+      .select("ftp_watts, sex, wellness_device")
       .eq("id", profileId)
       .maybeSingle(),
     admin
@@ -332,7 +332,7 @@ export async function detectCompletedWorkouts(
       : [];
   const status = computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
-    zrlDivision: profile?.zrl_division ?? null,
+    sex: profile?.sex ?? null,
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
   const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);

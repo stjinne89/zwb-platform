@@ -1,4 +1,5 @@
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secrets";
+import { guessDiscipline } from "@/lib/maintenance/guess-discipline";
 import { hasActivityWriteScope } from "@/lib/strava/scope";
 
 type StravaTokenResponse = {
@@ -316,16 +317,22 @@ export async function syncStravaBikesForUser(
       .map((bike) => (bike.id ? String(bike.id) : null))
       .filter((id): id is string => Boolean(id));
     const existingBrandModels = new Map<string, string>();
+    // Het fietstype wordt bij de eerste sync gegokt, maar een correctie van het
+    // lid moet elke volgende sync overleven — dus lezen we de huidige waarde en
+    // schrijven die terug.
+    const existingDisciplines = new Map<string, string>();
     if (bikeIds.length > 0) {
       const { data: existingBikes } = await supabase
         .from("strava_bikes")
-        .select("id, brand_model")
+        .select("id, brand_model, discipline")
         .eq("profile_id", profileId)
         .eq("source", "strava")
         .in("id", bikeIds);
       for (const existingBike of existingBikes ?? []) {
         const brandModel = String(existingBike.brand_model ?? "").trim();
         if (brandModel) existingBrandModels.set(String(existingBike.id), brandModel);
+        const discipline = String(existingBike.discipline ?? "").trim();
+        if (discipline) existingDisciplines.set(String(existingBike.id), discipline);
       }
     }
 
@@ -343,6 +350,9 @@ export async function syncStravaBikesForUser(
           distance_m: typeof b.distance === "number" ? b.distance : 0,
           is_primary: Boolean(b.primary),
           retired: Boolean(b.retired),
+          discipline:
+            existingDisciplines.get(id) ??
+            guessDiscipline(b.name, [b.brand_name, b.model_name].filter(Boolean).join(" ")),
           source: "strava",
           synced_at: new Date().toISOString(),
         };

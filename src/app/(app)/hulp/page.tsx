@@ -114,7 +114,7 @@ const GUIDES = [
   {
     id: "onderhoud",
     icon: Wrench,
-    title: "Onderhoud van je fiets",
+    title: "Mijn garage",
     bullets: [
       "Houd slijtbare onderdelen (ketting, cassette, banden, remblokken …) bij op basis van je Strava-kilometers.",
       "Kies per onderdeel een slijtage-range — enige, normale of hoge slijtage — of vul een eigen kilometerdrempel in.",
@@ -165,7 +165,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/achievements", name: "Achievements", text: "Al je badges. Importeer je ritten (CSV/GPX), haal je hele historie op of herbereken badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
-  { href: "/onderhoud", name: "Onderhoud", text: "Slijtage van je onderdelen op basis van je Strava-kilometers, met een melding bij vervangen." },
+  { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
@@ -370,7 +370,7 @@ const TROUBLESHOOTING = [
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
-  "Geen fietsen onder Mijn fietsen of Onderhoud? Koppel je fiets in Strava aan je ritten en draai daarna een Strava-sync.",
+  "Geen fietsen onder Mijn fietsen of Mijn garage? Koppel je fiets in Strava aan je ritten en draai daarna een Strava-sync.",
   "Mis je rechten? Vraag bestuur of communitybeheer om je rol te controleren.",
   "Werkt iets niet meer zoals vlak na de installatie? Loop de welkomstrondleiding op /welkom opnieuw door.",
 ];
@@ -896,6 +896,31 @@ export default function HelpPage() {
             </p>
           </article>
         </div>
+      </section>
+
+      <section
+        id="logboek"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <h2 className="text-lg font-semibold">Logboek: hoe je je voelt</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Onder ZWBeter Worden staat een logboek waarin je per dag bijhoudt
+          hoeveel last je hebt en waarvan — buikpijn, slecht geslapen, stemming,
+          darmen. Je kunt er ook de eerste dag van je menstruatie markeren; de
+          cycluslengte volgt dan vanzelf.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Het logboek staat standaard uit en doet niets tot je het zelf aanzet.
+          Alleen jij ziet wat erin staat: je trainer niet en het bestuur niet.
+          Het schema krijgt hooguit een samengevat signaal mee, nooit losse
+          klachten.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Waarom klachten en geen cyclusfase? Onderzoek naar trainen per
+          cyclusfase levert wisselende en zwakke uitkomsten op, terwijl klachten
+          wél samenhangen met wat je die week aankunt. Bovendien heeft niet
+          iedereen een natuurlijke cyclus. Zo werkt het voor iedereen.
+        </p>
       </section>
 
       <section
@@ -1573,7 +1598,7 @@ Fitness-status: Verbeterend`}
       </section>
 
       <section
-        id="onderhoud"
+        id="mijn-garage"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
         <header className="flex items-start gap-2">
@@ -1649,7 +1674,7 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Voeg op <strong className="text-foreground">Onderhoud</strong>{" "}
+                  Voeg in <strong className="text-foreground">Mijn garage</strong>{" "}
                   een onderdeel toe (ketting, cassette, banden, remblokken …) en
                   kies een slijtage-range: <em>enige</em>, <em>normale</em> of{" "}
                   <em>hoge</em> slijtage. Elke range heeft een richt-aantal
@@ -1685,11 +1710,11 @@ Fitness-status: Verbeterend`}
 
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
-            href="/onderhoud"
+            href="/mijn-garage"
             className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
           >
             <Wrench className="size-4 text-primary" />
-            Naar Onderhoud
+            Naar Mijn garage
           </Link>
           <Link
             href="/profiel#fietsen"
@@ -1702,7 +1727,7 @@ Fitness-status: Verbeterend`}
 
         <p className="mt-4 text-xs text-muted-foreground">
           Zet onder Profiel → Meldingen de optie{" "}
-          <strong className="text-foreground">Onderhoud: onderdeel toe aan
+          <strong className="text-foreground">Mijn garage: onderdeel toe aan
           vervanging</strong> aan om hierover een pushmelding te krijgen.
         </p>
       </section>

@@ -47,8 +47,14 @@ const HELP_INDEX: HelpResult[] = [
   {
     title: "Mijn fietsen en onderhoud",
     text: "Fietsen tonen, handmatig toevoegen en slijtage bijhouden.",
-    href: "/hulp#onderhoud",
+    href: "/hulp#mijn-garage",
     terms: "fiets fietsen onderhoud ketting cassette banden remblokken slijtage strava",
+  },
+  {
+    title: "Logboek: hoe je je voelt",
+    text: "Houd per dag bij hoeveel last je hebt en waarvan. Je schema weegt het mee als signaal; alleen jij ziet wat erin staat.",
+    href: "/hulp#logboek",
+    terms: "logboek klachten menstruatie cyclus herstel belastbaarheid symptomen privacy",
   },
   {
     title: "Cols, segmenten en records",

@@ -59,7 +59,7 @@ export const ZWB_LEVEL_META: Record<
   },
 };
 
-// 10 varianten per niveau. `{partner}` wordt vervangen door "man"/"vrouw" op
+// 10 varianten per niveau. `{partner}` wordt vervangen door "man"/"vrouw"/"lief" op
 // basis van de ZRL-divisie. Per dag wordt er deterministisch één gekozen.
 export const ZWB_LEVEL_DESCRIPTIONS: Record<1 | 2 | 3 | 4 | 5, string[]> = {
   1: [
@@ -153,12 +153,14 @@ export function dayIndex(dayKey: string, len: number): number {
 
 export function zwbeterWordenAdvice(
   summary: TrainingReadinessSummary,
-  zrlDivision?: string | null,
+  sex?: string | null,
   dayKey: string = amsterdamDayKey(),
 ): ZwbAdvice {
   const score = summary.score;
-  // Geslacht-signaal uit de gekozen ZRL-divisie: "women" (Dames) → partner = man.
-  const partner = zrlDivision === "women" ? "man" : "vrouw";
+  // Leunde eerst op zrl_division, maar dat is een wedstrijdklasse en geen
+  // geslacht. Wie het niet invult krijgt een neutrale variant in plaats van een
+  // gok.
+  const partner = sex === "vrouw" ? "man" : sex === "man" ? "vrouw" : "lief";
   if (summary.state === "unknown" || score == null) {
     return {
       level: 0,
@@ -265,11 +267,11 @@ export function computeZwbStatus(
   wellness: IntervalsWellness[],
   {
     wellnessOptIn,
-    zrlDivision,
+    sex,
     wellnessDevice,
   }: {
     wellnessOptIn: boolean;
-    zrlDivision?: string | null;
+    sex?: string | null;
     wellnessDevice?: WellnessDevice | null;
   },
 ): ZwbStatus {
@@ -300,7 +302,7 @@ export function computeZwbStatus(
       : null;
 
   const readiness = summarizeTrainingReadiness({ tsb, wellness: recoverySummary });
-  const advice = zwbeterWordenAdvice(readiness, zrlDivision);
+  const advice = zwbeterWordenAdvice(readiness, sex);
 
   return { ctl, atl, tsb, eftp, recoverySummary, readiness, advice };
 }

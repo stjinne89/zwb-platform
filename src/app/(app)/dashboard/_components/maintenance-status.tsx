@@ -53,11 +53,11 @@ export async function MaintenanceStatus({ profileId }: { profileId: string }) {
       <SectionHeader
         icon={Wrench}
         title={
-          <Link href="/onderhoud" className="hover:text-primary hover:underline">
-            Onderhoud
+          <Link href="/mijn-garage" className="hover:text-primary hover:underline">
+            Mijn garage
           </Link>
         }
-        action={<InlineMoreLink href="/onderhoud">Alles</InlineMoreLink>}
+        action={<InlineMoreLink href="/mijn-garage">Alles</InlineMoreLink>}
       />
       <ul className="grid gap-2 sm:grid-cols-2">
         {flagged.map(({ c, status }) => (

@@ -14,6 +14,7 @@ type Initial = {
   intervals_id: string;
   zrl_category: string;
   zrl_division: string;
+  sex: string;
   wellness_device: string;
   ftp_watts: string;
   weight_kg: string;
@@ -96,6 +97,15 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
             defaultValue={initial.display_name}
             className={FIELD}
           />
+        </div>
+        <div>
+          <label className={LABEL}>Geslacht</label>
+          <select name="sex" defaultValue={initial.sex} className={FIELD}>
+            <option value="">Niet ingevuld</option>
+            <option value="vrouw">Vrouw</option>
+            <option value="man">Man</option>
+            <option value="zeg_ik_liever_niet">Zeg ik liever niet</option>
+          </select>
         </div>
         <div>
           <label className={LABEL}>Regio</label>

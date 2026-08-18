@@ -273,7 +273,7 @@ export function PushToggle({
             name="on_maintenance_due"
             defaultChecked={initialPreferences.on_maintenance_due}
           />
-          Onderhoud: onderdeel toe aan vervanging
+          Mijn garage: onderdeel toe aan vervanging
         </label>
         {canApproveMembers && (
           <label className="flex items-center gap-2 text-sm">

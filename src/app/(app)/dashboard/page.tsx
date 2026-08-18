@@ -298,7 +298,7 @@ export default async function DashboardPage({
     user
       ? supabase
           .from("profiles")
-          .select("display_name, zrl_division, wellness_device, zwift_id, zwift_opt_out")
+          .select("display_name, sex, wellness_device, zwift_id, zwift_opt_out")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -538,8 +538,7 @@ export default async function DashboardPage({
   const conn = (trainingConn ?? null) as TrainingStatusConn | null;
   const nextWorkout =
     ((nextWorkoutRows ?? [])[0] ?? null) as TrainingStatusWorkout | null;
-  const zrlDivision =
-    (profile as { zrl_division?: string | null } | null)?.zrl_division ?? null;
+  const sex = (profile as { sex?: string | null } | null)?.sex ?? null;
   const zwiftProfile = profile as
     | { zwift_id?: string | null; zwift_opt_out?: boolean | null }
     | null;
@@ -580,7 +579,7 @@ export default async function DashboardPage({
           <TrainingStatus
             conn={conn}
             nextWorkout={nextWorkout}
-            zrlDivision={zrlDivision}
+            sex={sex}
             wellnessDevice={wellnessDevice}
           />
         </Suspense>

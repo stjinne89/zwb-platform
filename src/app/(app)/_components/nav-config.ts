@@ -30,6 +30,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden", label: "Vandaag" },
   { type: "link", href: "/zwbeter-worden/schema", label: "Schema" },
   { type: "link", href: "/zwbeter-worden/belasting", label: "Belasting" },
+  { type: "link", href: "/zwbeter-worden/logboek", label: "Logboek" },
   { type: "link", href: "/zwbeter-worden/vermogen", label: "Vermogen" },
   { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
@@ -100,7 +101,7 @@ export const NAV_GROUPS: NavNode[] = [
 export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
   { type: "link", href: "/profiel/segments", label: "ZWB Segments" },
-  { type: "link", href: "/onderhoud", label: "Onderhoud" },
+  { type: "link", href: "/mijn-garage", label: "Mijn garage" },
   { type: "link", href: "/hulp", label: "Hulp" },
 ];
 
@@ -125,6 +126,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
     href: "/beheer/achievements",
     label: "Badgebeheer",
     permission: "achievements.finalize",
+  },
+  {
+    type: "link",
+    href: "/beheer/citaten",
+    label: "Tips en citaten",
+    permission: "community.manage",
   },
   {
     type: "link",

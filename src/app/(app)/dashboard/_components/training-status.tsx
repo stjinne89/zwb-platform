@@ -50,12 +50,12 @@ function formatWorkoutDate(value: string): string {
 export async function TrainingStatus({
   conn,
   nextWorkout,
-  zrlDivision,
+  sex,
   wellnessDevice,
 }: {
   conn: TrainingStatusConn | null;
   nextWorkout: TrainingStatusWorkout | null;
-  zrlDivision: string | null;
+  sex: string | null;
   wellnessDevice: WellnessDevice | null;
 }) {
   let wellness: IntervalsWellness[] = [];
@@ -69,7 +69,7 @@ export async function TrainingStatus({
 
   const status = computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
-    zrlDivision,
+    sex,
     wellnessDevice,
   });
   const { advice, ctl, tsb, recoverySummary } = status;

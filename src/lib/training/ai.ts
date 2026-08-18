@@ -51,7 +51,20 @@ export type TrainingAiInput = {
     ftpWatts: number | null;
     weightKg: number | null;
     zrlCategory: string | null;
+    sex: string | null;
   };
+  /**
+   * Klachtenlast uit het logboek van het lid, als die het logboek aan heeft
+   * staan. Bewust geen cyclusfase: fase-effecten op prestatie zijn in de
+   * literatuur inconsistent, klachtenlast hangt wél samen met belastbaarheid.
+   * Zie docs/training-en-cyclus.md.
+   */
+  symptoms?: {
+    /** 0 = geen last, 1 = maximale last, over de afgelopen 7 dagen. */
+    score: number;
+    label: string;
+    daysLogged: number;
+  } | null;
   /**
    * Wat het lid werkelijk heeft gereden. `days` staat erbij omdat het model
    * anders zelf een periode aanneemt: het deelde de 28-daagse optelsom door vier

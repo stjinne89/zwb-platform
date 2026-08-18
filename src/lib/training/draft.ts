@@ -22,6 +22,7 @@ import {
 } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
+import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
 import { committedEventsForAi } from "@/lib/training/events";
 import { rootIdOf } from "@/lib/training/plan-tree";
@@ -213,7 +214,7 @@ async function buildTrainingInput(
   const [{ data: profile }, { data: goal }, recent] = await Promise.all([
     admin
       .from("profiles")
-      .select("display_name, ftp_watts, weight_kg, zrl_category")
+      .select("display_name, ftp_watts, weight_kg, zrl_category, sex")
       .eq("id", athleteId)
       .single(),
     admin
@@ -267,7 +268,9 @@ async function buildTrainingInput(
       ftpWatts: profile.ftp_watts ?? null,
       weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
       zrlCategory: profile.zrl_category ?? null,
+      sex: profile.sex ?? null,
     },
+    symptoms: await loadSymptomLoadForAi(admin, athleteId),
     recentLoad: recent,
     wellness: wellness
       ? {
@@ -608,7 +611,7 @@ export async function startTodayAdjustmentDraft(
         : Promise.resolve({ data: null }),
       admin
         .from("profiles")
-        .select("display_name, ftp_watts, weight_kg, zrl_category")
+        .select("display_name, ftp_watts, weight_kg, zrl_category, sex")
         .eq("id", user.id)
         .single(),
       // Op profiel en datum, niet op plan_id: eerdere aanpassingen wonen in
@@ -653,6 +656,7 @@ export async function startTodayAdjustmentDraft(
         ftpWatts: profile.ftp_watts ?? null,
         weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
         zrlCategory: profile.zrl_category ?? null,
+        sex: profile.sex ?? null,
       },
       recentLoad,
       wellness: wellness

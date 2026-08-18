@@ -9,6 +9,7 @@ import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
 import { PushToggle } from "./_components/push-toggle";
+import { MyQuotes, type MyQuote } from "./_components/my-quotes";
 import { StravaSection } from "./_components/strava-section";
 import { BikeShowcase } from "./_components/bike-showcase";
 import { AccountData } from "./_components/account-data";
@@ -55,7 +56,7 @@ export default async function ProfielPage() {
   if (!user) redirect("/login");
 
   const PROFILE_COLUMNS =
-    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility";
+    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility";
 
   const access = await getCurrentUserAccess(supabase);
 
@@ -69,6 +70,7 @@ export default async function ProfielPage() {
     { data: pushPrefs },
     { data: pushSubs },
     { data: bikes },
+    { data: myQuotes },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -123,6 +125,11 @@ export default async function ProfielPage() {
       .eq("profile_id", user.id)
       .order("is_primary", { ascending: false })
       .order("distance_m", { ascending: false }),
+    supabase
+      .from("maintenance_tips")
+      .select("id, component_type, body")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -179,6 +186,7 @@ export default async function ProfielPage() {
           intervals_id: profileRow?.intervals_id ?? "",
           zrl_category: profileRow?.zrl_category ?? "",
           zrl_division: profileRow?.zrl_division ?? "open",
+          sex: profileRow?.sex ?? "",
           wellness_device: profileRow?.wellness_device ?? "",
           ftp_watts: profileRow?.ftp_watts?.toString() ?? "",
           weight_kg: profileRow?.weight_kg?.toString() ?? "",
@@ -208,6 +216,10 @@ export default async function ProfielPage() {
 
       <div id="fietsen" className="scroll-mt-20">
         <BikeShowcase bikes={bikeRows} />
+      </div>
+
+      <div id="citaten" className="scroll-mt-20">
+        <MyQuotes quotes={(myQuotes ?? []) as MyQuote[]} />
       </div>
 
       <div id="meldingen" className="scroll-mt-20">

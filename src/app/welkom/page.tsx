@@ -235,9 +235,9 @@ export default async function WelkomPage() {
     },
     {
       title: "Je fietsen en onderhoud",
-      text: "Toon fietsen op je profiel met een foto, en houd op Onderhoud de slijtage van onderdelen bij.",
-      href: "/onderhoud",
-      action: bike ? "Onderhoud openen" : "Bekijk Onderhoud",
+      text: "Toon fietsen op je profiel met een foto, en houd in Mijn garage de slijtage van onderdelen bij.",
+      href: "/mijn-garage",
+      action: bike ? "Mijn garage openen" : "Bekijk Mijn garage",
       status: bike ? "done" : strava ? "current" : "upcoming",
       icon: Wrench,
     },

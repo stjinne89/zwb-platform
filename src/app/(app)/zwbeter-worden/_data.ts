@@ -64,7 +64,7 @@ export async function loadProfile(viewer: Viewer): Promise<ProfileRow | null> {
   const { data } = await viewer.supabase
     .from("profiles")
     .select(
-      "id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, wellness_device",
+      "id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, sex, wellness_device",
     )
     .eq("id", viewer.user.id)
     .single();
@@ -204,7 +204,7 @@ export function zwbStatusFor(
 ): ZwbStatus {
   return computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
-    zrlDivision: profile?.zrl_division,
+    sex: profile?.sex,
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
 }

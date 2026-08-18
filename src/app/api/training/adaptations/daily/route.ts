@@ -1,3 +1,4 @@
+import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adaptiveDailyPrompt } from "@/lib/training/workouts";
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
               : Promise.resolve({ data: null }),
             admin
               .from("profiles")
-              .select("display_name, ftp_watts, weight_kg, zrl_category")
+              .select("display_name, ftp_watts, weight_kg, zrl_category, sex")
               .eq("id", plan.profile_id)
               .single(),
             admin.from("training_workouts").select("*").eq("plan_id", plan.id).order("scheduled_at"),
@@ -161,7 +162,9 @@ export async function POST(request: Request) {
               ftpWatts: profile.ftp_watts ?? null,
               weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
               zrlCategory: profile.zrl_category ?? null,
+              sex: profile.sex ?? null,
             },
+            symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
             recentLoad: recent,
             wellness: wellness
               ? {

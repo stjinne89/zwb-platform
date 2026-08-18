@@ -161,7 +161,7 @@ export async function writeZwbSummariesForUser(
       .maybeSingle(),
     admin
       .from("profiles")
-      .select("zrl_division, wellness_device, ftp_watts")
+      .select("sex, wellness_device, ftp_watts")
       .eq("id", profileId)
       .maybeSingle(),
   ]);
@@ -188,7 +188,7 @@ export async function writeZwbSummariesForUser(
   ).catch(() => []);
   const zwbStatus = computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(intervalsConn.wellness_opt_in),
-    zrlDivision: profile?.zrl_division ?? null,
+    sex: profile?.sex ?? null,
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
   const fitnessTrend = fitnessTrendFromDelta(

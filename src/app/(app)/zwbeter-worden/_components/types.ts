@@ -11,6 +11,7 @@ export type ProfileRow = {
   weight_kg: number | string | null;
   zrl_category: string | null;
   zrl_division: string | null;
+  sex: string | null;
   wellness_device: string | null;
   community_roles?: string[] | null;
 };

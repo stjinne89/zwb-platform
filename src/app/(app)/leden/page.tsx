@@ -24,6 +24,7 @@ type Profile = {
   zwift_id: string | null;
   zrl_category: string | null;
   zrl_division: string | null;
+  sex: string | null;
   wellness_device: string | null;
   avatar_url: string | null;
   is_approved: boolean;
@@ -99,7 +100,7 @@ export default async function LedenPage() {
     supabase
       .from("profiles")
       .select(
-        "id, display_name, region, zwift_id, zrl_category, zrl_division, wellness_device, avatar_url, is_approved, is_admin, community_roles, created_at",
+        "id, display_name, region, zwift_id, zrl_category, zrl_division, sex, wellness_device, avatar_url, is_approved, is_admin, community_roles, created_at",
       )
       .order("display_name"),
     supabase
@@ -161,7 +162,7 @@ export default async function LedenPage() {
         const prof = profileById.get(conn.profile_id);
         const { advice } = computeZwbStatus(wellness, {
           wellnessOptIn: Boolean(conn.wellness_opt_in),
-          zrlDivision: prof?.zrl_division ?? null,
+          sex: prof?.sex ?? null,
           wellnessDevice: (prof?.wellness_device ?? null) as WellnessDevice | null,
         });
         if (advice.level > 0) {

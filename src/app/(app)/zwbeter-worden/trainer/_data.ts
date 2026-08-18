@@ -82,7 +82,7 @@ export async function trainerContext(
 export async function loadAthlete(viewer: Viewer, athleteId: string): Promise<ProfileRow | null> {
   const { data } = await viewer.supabase
     .from("profiles")
-    .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, wellness_device")
+    .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, sex, wellness_device")
     .eq("id", athleteId)
     .maybeSingle();
   return (data ?? null) as ProfileRow | null;
@@ -195,7 +195,7 @@ export async function loadRiders(
   const [{ data: profileRows }, { data: activityRows }, { data: reportRows }] = await Promise.all([
     viewer.supabase
       .from("profiles")
-      .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, wellness_device")
+      .select("id, display_name, ftp_watts, weight_kg, zrl_category, zrl_division, sex, wellness_device")
       .in("id", athleteIds),
     viewer.supabase
       .from("strava_activities")
@@ -273,13 +273,13 @@ async function loadRiderStatus(
         const wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, 30);
         const status = computeZwbStatus(wellness, {
           wellnessOptIn: Boolean(connection.wellness_opt_in),
-          zrlDivision: profile?.zrl_division,
+          sex: profile?.sex,
           wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
         });
         const advice = status.recoverySummary
           ? zwbeterWordenAdvice(
               summarizeTrainingReadiness({ tsb: status.tsb, wellness: status.recoverySummary }),
-              profile?.zrl_division,
+              profile?.sex,
             )
           : null;
         result.set(connection.profile_id, {

@@ -95,7 +95,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
   });
   const status = computeZwbStatus(intervals.wellness, {
     wellnessOptIn: Boolean(connection?.wellness_opt_in),
-    zrlDivision: athlete?.zrl_division,
+    sex: athlete?.sex,
     wellnessDevice: (athlete?.wellness_device ?? null) as WellnessDevice | null,
   });
 
@@ -139,7 +139,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
           optedIn: Boolean(connection?.wellness_opt_in),
           summary: status.recoverySummary,
         }}
-        zrlDivision={athlete?.zrl_division}
+        sex={athlete?.sex}
         todayKey={todayKeyAmsterdam()}
         fetchError={intervals.fetchError}
       />

@@ -22,7 +22,7 @@ export function AthleteLoadPanel({
   ctlProjection,
   readiness,
   recovery,
-  zrlDivision,
+  sex,
   todayKey,
   fetchError,
 }: {
@@ -33,11 +33,11 @@ export function AthleteLoadPanel({
   ctlProjection: number | null;
   readiness: TrainingReadinessSummary;
   recovery: { optedIn: boolean; summary: WellnessSummary | null };
-  zrlDivision?: string | null;
+  sex?: string | null;
   todayKey: string;
   fetchError: string | null;
 }) {
-  const advice = zwbeterWordenAdvice(readiness, zrlDivision);
+  const advice = zwbeterWordenAdvice(readiness, sex);
 
   return (
     <section className="rounded-lg border bg-card p-5">

@@ -8,6 +8,7 @@ import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
+const SEXES = ["man", "vrouw", "zeg_ik_liever_niet"] as const;
 const VISIBILITY_FIELDS = [
   "avatar",
   "region",
@@ -88,6 +89,9 @@ export async function updateProfile(formData: FormData) {
       ? zrlDivisionRaw
       : "open";
 
+  const sexRaw = optionalString(formData.get("sex"));
+  const sex = sexRaw && (SEXES as readonly string[]).includes(sexRaw) ? sexRaw : null;
+
   const wellnessDeviceRaw = optionalString(formData.get("wellness_device"));
   const wellness_device =
     wellnessDeviceRaw && (WELLNESS_DEVICES as readonly string[]).includes(wellnessDeviceRaw)
@@ -134,6 +138,7 @@ export async function updateProfile(formData: FormData) {
       intervals_id: intervals.value,
       zrl_category,
       zrl_division,
+      sex,
       wellness_device,
       auto_sync_physique: autoSyncPhysique,
       // Bij auto-sync blijven de bestaande waarden staan; de intervals-sync
