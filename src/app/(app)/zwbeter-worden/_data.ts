@@ -305,7 +305,10 @@ export async function loadUnplannedRides(
       status: workout.status,
     })),
     ftpWatts,
-    reports.map((report) => report.paired_activity_id),
+    reports.map((report) => ({
+      workoutId: report.workout_id,
+      activityId: report.paired_activity_id,
+    })),
   );
 }
 
@@ -474,6 +477,7 @@ export async function loadScheduleEventChoices(
       durationMinutes: eventWorkoutDefaults(event).durationMinutes,
       rsvp: event.rsvp,
       inSchedule: event.inSchedule,
+      inIntervals: event.inIntervals,
     }));
 }
 

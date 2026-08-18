@@ -641,6 +641,17 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   samenvoegen van twee helften tot één rit (dat zou de bron herschrijven op basis
   van een gok), en de lijstweergave blijft ongemoeid — die toont alleen wat nog
   komt, en een gereden rit is per definitie verleden tijd.
+  **Correctie same-day (2026-08-18, na commit `0f0071a`):** de eerste versie
+  deed precies níét waar hij voor gebouwd was. `pairedActivityIds` haalde wel de
+  gekoppelde rit van de stapel, maar liet de bijbehorende wórkout gewoon
+  meedoen aan het verdelen — dus claimde die er een tweede bij, en verdween
+  precies de rit die zichtbaar had moeten worden. Twee Zwift-ritten op één avond
+  (20 min pacer group ride, 41 min race) met één geplande training ertegenover
+  leverden nul ongeplande ritten op. De parameter is nu `pairings` met
+  workout-id én rit-id: de rit gaat van de stapel af én de workout doet niet meer
+  mee. Regressietest met dat scenario staat in
+  `tests/unit/unplanned-rides.test.ts`. Gevonden doordat het in de praktijk
+  meteen opviel — de kaart toonde één rit waar er twee waren.
 - **Toegezegd event met zijn echte duur in het schema** (2026-08-18, migr.
   `0125`): in Stijns schema stond de Velomedian Claudy Criquélion (167 km, 3305
   hm) als blok van 150 minuten. Diagnose: dat blok kwam helemaal niet uit het
@@ -680,6 +691,20 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   eventpagina blijft de plek voor het precieze antwoord), en geen automatische
   reparatie van bestaande schema's tijdens het renderen — dat zou een tweede
   blok naast het AI-blok zetten zonder dat iemand erom vroeg.
+  **Vervolg (2026-08-18): losse workouts bereikten intervals.icu nooit.** Het
+  eventblok stond na "In schema zetten" wél in ZWB (443 min, AI-blok van 150
+  netjes superseded) maar bleef op `publish_status='pending'` met een lege
+  `intervals_event_id`. Oorzaak: `syncEventWorkout` hangt het blok aan het
+  lópende basisplan, terwijl de herziening die erna draait een níéuw afgeleid
+  plan publiceert en via `pushPlanWorkoutsToIntervals` alleen díéns workouts
+  doorzet. Het blok viel tussen die twee plannen in en werd nooit gepusht.
+  Dezelfde fout zat in `planOwnRide`: een zelf ingeplande rit belandde om
+  precies dezelfde reden nooit op de fietscomputer. Allebei pushen nu direct na
+  het invoegen met `pushWorkoutToIntervals`. Daarnaast draagt `ScheduleEvent` nu
+  `inIntervals`, zodat het eventpaneel "Naar intervals.icu" aanbiedt bij een blok
+  dat wel in ZWB staat maar niet is doorgezet — zonder die knop was er geen enkele
+  weg terug voor een blok dat blijft hangen, want de RSVP-knop op de eventpagina
+  negeert een klik op de al gekozen optie (`if (s === active) return`).
 - **Vastgelegde rit-koppeling telt ook bij het afronden mee** (2026-08-18, geen
   migratie): dezelfde fout die bij de ongeplande ritten is gerepareerd zat ook in
   `detectCompletedWorkouts` (`src/lib/training/completion.ts`). Die lus riep voor
@@ -717,6 +742,19 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   **Bewust niet gebouwd:** geen koppeling met WTRL zelf (hun voorwaarden), en
   geen automatisch bijstellen als WTRL een tijd verschuift — opnieuw draaien vult
   alleen aan, het verplaatst niets.
+- **Sync- en importrij leesbaar op een telefoon** (2026-08-18, geen migratie): op
+  het dashboard stonden de syncknoppen en de CSV/GPX-import naast elkaar. Ze
+  wrapten onder elkaar op een smal scherm, maar hielden hun uitlijning — knoppen
+  links, importrij rechts — en het bestandsveld kapte door een vaste max-breedte
+  zijn eigen bijschrift af tot "geen be...ecteerd". Onder `sm` staan beide
+  groepen nu onder elkaar en allebei links, en het bestandsveld krijgt een eigen
+  regel: naast de knop zou het op 390px op 132px uitkomen, nog smaller dan de
+  max-breedte die het probleem gaf. Vanaf `sm` geldt de oude maat.
+  In hetzelfde blok: de link in "Laatst opgehaald" op
+  `/zwbeter-worden/belasting` heette "Nu synchroniseren" maar wees naar
+  `/dashboard` en kwam dus bovenaan het dashboard uit, terwijl de knop verderop
+  staat. Hij heet nu "Naar Strava-sync" — gelijk aan "Naar herstel-instelling"
+  ernaast — en springt via `#strava-sync` naar het kaartje met de sync-knop.
 
 ---
 

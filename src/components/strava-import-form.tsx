@@ -57,16 +57,32 @@ export function StravaImportForm() {
   }
 
   return (
-    <form ref={formRef} action={submit} className="flex flex-col items-start gap-2 sm:items-end">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+    <form
+      ref={formRef}
+      action={submit}
+      className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end"
+    >
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+        {/* Het veld kreeg een vaste max-breedte en kapte daardoor zijn eigen
+            bijschrift af tot "geen be...ecteerd". Op een telefoon krijgt het nu
+            een eigen regel — de knop wrapt eronder — want naast die knop blijft
+            er te weinig over: op 390px zou het veld op 132px uitkomen, nóg
+            smaller dan de max-breedte die het probleem veroorzaakte. Vanaf sm is
+            er wel ruimte naast elkaar en geldt de oude maat. */}
         <input
           type="file"
           name="file"
           accept=".csv,.gpx,text/csv,application/gpx+xml"
-          className="max-w-48 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-xs file:font-medium"
+          className="w-full min-w-0 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-xs file:font-medium sm:w-auto sm:max-w-48"
           disabled={pending}
         />
-        <Button type="submit" variant="outline" size="sm" disabled={pending}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          disabled={pending}
+        >
           <Upload data-icon="inline-start" />
           {pending ? "Importeren..." : "Importeer CSV of GPX"}
         </Button>

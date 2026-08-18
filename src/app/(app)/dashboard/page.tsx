@@ -902,7 +902,14 @@ export default async function DashboardPage({
           </div>
         ) : null}
         {user && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+          // Op een telefoon passen de twee groepen niet naast elkaar. Ze
+          // wrapten dan wel, maar hielden hun uitlijning: syncknoppen links,
+          // importrij rechts. Onder sm staan ze daarom onder elkaar en allebei
+          // links.
+          <div
+            id="strava-sync"
+            className="mb-3 flex scroll-mt-4 flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+          >
             {canSyncStrava ? (
               <StravaSyncButton variant="sync" />
             ) : (

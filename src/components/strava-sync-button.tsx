@@ -178,8 +178,8 @@ export function StravaSyncButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2 sm:items-end">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
         {showSync ? (
           <Button
             type="button"

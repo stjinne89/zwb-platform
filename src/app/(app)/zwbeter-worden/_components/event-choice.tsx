@@ -20,6 +20,8 @@ export type ScheduleEventItem = {
   durationMinutes: number;
   rsvp: string | null;
   inSchedule: boolean;
+  /** Staat het blok ook in intervals.icu? Zo niet, dan mist het op de fietscomputer. */
+  inIntervals: boolean;
 };
 
 function durationLabel(minutes: number) {
@@ -62,7 +64,10 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
         setResult(
           outcome.generationId
             ? "In je schema gezet. De week eromheen wordt bijgewerkt…"
-            : "In je schema gezet.",
+            : // De actie weet zelf of het blok nieuw was of alleen nog moest
+              // worden doorgezet naar intervals.icu. `outcome` is de unie met
+              // declineClubEvent, die geen message kent.
+              (("message" in outcome ? outcome.message : null) ?? "In je schema gezet."),
         );
         if (outcome.generationId) poll.watch(outcome.generationId);
       } else {
@@ -115,14 +120,20 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
                   <span className="sm:hidden">{event.dateLabel} — </span>
                   {EVENT_TYPE_LABELS[event.type] ?? event.type} —{" "}
                   {durationLabel(event.durationMinutes)}
-                  {event.inSchedule ? " — staat in je schema" : ""}
+                  {event.inSchedule
+                    ? event.inIntervals
+                      ? " — staat in je schema"
+                      : " — in je schema, nog niet in intervals.icu"
+                    : ""}
                 </p>
               </div>
-              {/* Ja gezegd, maar er staat geen blok: dat kon ontstaan door een
+              {/* Ja gezegd, maar er staat geen blok — of wel een blok dat nooit
+                  in intervals.icu beland is. Dat eerste kon ontstaan door een
                   toezegging van vóór je schema, of doordat de knop op de
-                  eventpagina het schema tot 2026-08-18 niet bijwerkte. Eén klik
-                  zet hem er alsnog in met zijn eigen duur. */}
-              {event.rsvp === "yes" && !event.inSchedule ? (
+                  eventpagina het schema tot 2026-08-18 niet bijwerkte; het
+                  tweede doordat een los ingevoegd blok nooit werd doorgezet.
+                  Eén klik herstelt allebei. */}
+              {event.rsvp === "yes" && !(event.inSchedule && event.inIntervals) ? (
                 <div className="flex shrink-0 gap-2 self-start sm:self-auto">
                   <Button
                     type="button"
@@ -130,7 +141,11 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
                     disabled={busy}
                     onClick={() => decide(event.id, true)}
                   >
-                    {busy ? "Bezig…" : "In schema zetten"}
+                    {busy
+                      ? "Bezig…"
+                      : event.inSchedule
+                        ? "Naar intervals.icu"
+                        : "In schema zetten"}
                   </Button>
                   <Button
                     type="button"

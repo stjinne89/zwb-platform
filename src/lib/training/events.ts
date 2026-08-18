@@ -8,6 +8,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { deleteIntervalsWorkoutEvent } from "@/lib/intervals/client";
 import { activeBasePlan } from "@/lib/training/active-plan";
+import { pushWorkoutToIntervals } from "@/lib/training/publish";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -111,6 +112,12 @@ export type ScheduleEvent = ClubEventRow & {
   rsvp: string | null;
   /** Staat dit event al als blok in het schema? */
   inSchedule: boolean;
+  /**
+   * En staat dat blok ook in intervals.icu? Die twee liepen uiteen: een blok kon
+   * in ZWB staan terwijl het nooit was doorgezet, en dan reed het lid het niet
+   * van zijn fietscomputer.
+   */
+  inIntervals: boolean;
 };
 
 /**
@@ -142,19 +149,25 @@ export async function loadScheduleEvents(
       .in("event_id", ids),
     admin
       .from("training_workouts")
-      .select("event_id")
+      .select("event_id, intervals_event_id")
       .eq("profile_id", profileId)
       .is("superseded_at", null)
       .in("event_id", ids),
   ]);
 
   const byEvent = new Map((rsvps ?? []).map((row) => [row.event_id as string, row.status as string]));
-  const scheduled = new Set((workouts ?? []).map((row) => row.event_id as string));
+  const scheduled = new Map(
+    (workouts ?? []).map((row) => [
+      row.event_id as string,
+      (row.intervals_event_id as string | null) ?? null,
+    ]),
+  );
 
   return (events as ClubEventRow[]).map((event) => ({
     ...event,
     rsvp: byEvent.get(event.id) ?? null,
     inSchedule: scheduled.has(event.id),
+    inIntervals: Boolean(scheduled.get(event.id)),
   }));
 }
 
@@ -205,8 +218,8 @@ export async function syncEventWorkout(
   profileId: string,
   eventId: string,
   status: "yes" | "maybe" | "no",
-): Promise<{ inserted: boolean; removed: boolean }> {
-  const unchanged = { inserted: false, removed: false };
+): Promise<{ inserted: boolean; removed: boolean; pushed: boolean }> {
+  const unchanged = { inserted: false, removed: false, pushed: false };
 
   const { data: existing } = await admin
     .from("training_workouts")
@@ -235,12 +248,18 @@ export async function syncEventWorkout(
       }
     }
     await admin.from("training_workouts").delete().eq("id", existing.id);
-    return { inserted: false, removed: true };
+    return { inserted: false, removed: true, pushed: false };
   }
 
-  // Staat hij er al? Dan niets doen; de unieke index zou een tweede blok toch
-  // weigeren.
-  if (existing) return unchanged;
+  // Staat hij er al? Dan geen tweede blok — de unieke index zou dat toch
+  // weigeren. Wél alsnog doorzetten als hij nooit in intervals.icu is beland;
+  // zo repareert een tweede keer 'ja' een blok dat in ZWB stond maar niet op de
+  // fietscomputer.
+  if (existing) {
+    if (existing.intervals_event_id) return unchanged;
+    const { ok } = await pushWorkoutToIntervals(admin, existing.id).catch(() => ({ ok: false }));
+    return { inserted: false, removed: false, pushed: ok };
+  }
 
   const { data: event } = await admin
     .from("events")
@@ -273,22 +292,33 @@ export async function syncEventWorkout(
     .replace(/[^a-z0-9]+/g, "-")
     .slice(0, 48);
 
-  const { error } = await admin.from("training_workouts").insert({
-    plan_id: plan.id,
-    profile_id: profileId,
-    trainer_id: plan.trainer_id,
-    event_id: eventId,
-    scheduled_at: new Date(event.start_at as string).toISOString(),
-    title: event.title,
-    description: `Clubevent: ${event.title}.`,
-    duration_minutes: durationMinutes,
-    intensity,
-    target_type: "free",
-    structure_json: blocks,
-    origin: "event",
-    publish_status: "pending",
-    intervals_external_id: `zwb-${plan.id}-${String(event.start_at).slice(0, 10)}-${slug}`,
-  });
+  const { data: created, error } = await admin
+    .from("training_workouts")
+    .insert({
+      plan_id: plan.id,
+      profile_id: profileId,
+      trainer_id: plan.trainer_id,
+      event_id: eventId,
+      scheduled_at: new Date(event.start_at as string).toISOString(),
+      title: event.title,
+      description: `Clubevent: ${event.title}.`,
+      duration_minutes: durationMinutes,
+      intensity,
+      target_type: "free",
+      structure_json: blocks,
+      origin: "event",
+      publish_status: "pending",
+      intervals_external_id: `zwb-${plan.id}-${String(event.start_at).slice(0, 10)}-${slug}`,
+    })
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
-  return { inserted: true, removed: false };
+
+  // Meteen doorzetten naar intervals.icu. Zonder dit bleef het blok op
+  // 'pending' staan: het hangt aan het lópende basisplan, terwijl de herziening
+  // die erna draait een níéuw afgeleid plan publiceert en alleen díens workouts
+  // pusht. Het event viel zo tussen wal en schip en stond wel in ZWB, maar niet
+  // op de fietscomputer.
+  const { ok } = await pushWorkoutToIntervals(admin, created.id).catch(() => ({ ok: false }));
+  return { inserted: true, removed: false, pushed: ok };
 }

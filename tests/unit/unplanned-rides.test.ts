@@ -87,8 +87,40 @@ describe("unplannedRides", () => {
   });
 
   it("respecteert een vastgelegde koppeling, ook zonder de workout erbij", () => {
-    const result = unplannedRides([ride({ id: 1 })], [], FTP, ["1"]);
+    const result = unplannedRides([ride({ id: 1 })], [], FTP, [
+      { workoutId: "w-elders", activityId: "1" },
+    ]);
     expect(result).toEqual([]);
+  });
+
+  it("laat een workout die al aan een rit hangt geen tweede rit claimen", () => {
+    // De regressie uit de praktijk: twee Zwift-ritten op een avond met een
+    // geplande training ertegenover. De training hing al aan de race; zonder
+    // deze regel eiste ze ook de pacer-rit op en bleef er niets over.
+    const rides = [
+      ride({ id: 19798282373, moving_time_seconds: 1200, name: "Pacer Group Ride with Coco" }),
+      ride({
+        id: 19798921295,
+        moving_time_seconds: 2460,
+        start_date: "2026-07-20T18:34:00Z",
+        name: "Race: UK Armed Forces",
+      }),
+    ];
+    const result = unplannedRides(
+      rides,
+      [workout({ id: "w1", duration_minutes: 120, status: "completed" })],
+      FTP,
+      [{ workoutId: "w1", activityId: "19798921295" }],
+    );
+    expect(result.map((row) => row.name)).toEqual(["Pacer Group Ride with Coco"]);
+  });
+
+  it("laat een workout zonder koppeling wel gewoon een rit claimen", () => {
+    const rides = [ride({ id: 1 }), ride({ id: 2, moving_time_seconds: 900, name: "Extra" })];
+    const result = unplannedRides(rides, [workout({ id: "w1" })], FTP, [
+      { workoutId: "w-andere-dag", activityId: "999" },
+    ]);
+    expect(result.map((row) => row.name)).toEqual(["Extra"]);
   });
 
   it("rekent de cijfers uit en sorteert nieuwste eerst", () => {

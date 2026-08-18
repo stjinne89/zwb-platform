@@ -1023,22 +1023,32 @@ export async function planOwnRide(formData: FormData) {
       effort,
     );
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48);
-    const { error } = await admin.from("training_workouts").insert({
-      plan_id: plan.id,
-      profile_id: user.id,
-      trainer_id: plan.trainer_id,
-      scheduled_at: `${date}T${time}:00+01:00`,
-      title,
-      description: note,
-      duration_minutes: durationMinutes,
-      intensity: effort,
-      target_type: "free",
-      structure_json: blocks,
-      origin: "member",
-      publish_status: "pending",
-      intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,
-    });
+    const { data: created, error } = await admin
+      .from("training_workouts")
+      .insert({
+        plan_id: plan.id,
+        profile_id: user.id,
+        trainer_id: plan.trainer_id,
+        scheduled_at: `${date}T${time}:00+01:00`,
+        title,
+        description: note,
+        duration_minutes: durationMinutes,
+        intensity: effort,
+        target_type: "free",
+        structure_json: blocks,
+        origin: "member",
+        publish_status: "pending",
+        intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+
+    // Zelfde reden als bij een clubevent: dit blok hangt aan het lopende
+    // basisplan, en de herziening hierna publiceert een nieuw afgeleid plan.
+    // Zonder deze push blijft de rit op 'pending' en haalt hij intervals.icu
+    // nooit.
+    await pushWorkoutToIntervals(admin, created.id).catch(() => null);
 
     revalidatePath("/zwbeter-worden", "layout");
     const replan = await requestReplan(admin, user.id, `${title} ingepland op ${date}.`);
@@ -1081,18 +1091,29 @@ export async function acceptClubEvent(formData: FormData) {
     );
     if (rsvpError) throw new Error(rsvpError.message);
 
-    const { inserted } = await syncEventWorkout(admin, user.id, eventId, "yes");
+    const { inserted, pushed } = await syncEventWorkout(admin, user.id, eventId, "yes");
 
     revalidatePath("/zwbeter-worden", "layout");
     revalidatePath("/kalender");
     if (!inserted) {
-      return { ok: true as const, generationId: null, message: "Je aanmelding is genoteerd." };
+      // Stond al in je schema. Was hij alleen nog niet doorgezet, dan is dat nu
+      // alsnog gebeurd en hoeft het schema er niet omheen herzien te worden.
+      return {
+        ok: true as const,
+        generationId: null,
+        message: pushed
+          ? "Doorgezet naar intervals.icu."
+          : "Je aanmelding is genoteerd.",
+      };
     }
 
     const replan = await requestReplan(admin, user.id, `${event.title} toegezegd; schema eromheen.`);
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      message: pushed
+        ? "In je schema gezet en doorgezet naar intervals.icu."
+        : "In je schema gezet.",
     };
   } catch (err) {
     return {

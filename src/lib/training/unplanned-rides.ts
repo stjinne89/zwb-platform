@@ -47,13 +47,28 @@ function distanceKm(value: unknown): number | null {
   return Math.round(meters / 100) / 10;
 }
 
+/** Een vastgelegde koppeling tussen een workout en de rit die erbij hoort. */
+export type WorkoutPairing = {
+  workoutId: string;
+  /** Strava-id uit training_workout_reports.paired_activity_id; null als leeg. */
+  activityId: string | number | null | undefined;
+};
+
 /**
  * De ritten die geen enkele geplande training opeisen.
  *
- * `pairedActivityIds` zijn de ritten die al vastgelegd aan een workout hangen
- * (training_workout_reports.paired_activity_id). Die gaan er sowieso af: die
- * koppeling is bevestigd en telt zwaarder dan wat we hier opnieuw zouden
- * uitrekenen — ook als de bijbehorende workout buiten dit venster valt.
+ * `pairings` zijn de koppelingen die al vastliggen
+ * (training_workout_reports.paired_activity_id). Ze doen twee dingen. De rit
+ * gaat van de stapel af — die koppeling is bevestigd en telt zwaarder dan wat we
+ * hier opnieuw zouden uitrekenen, ook als de bijbehorende workout buiten dit
+ * venster valt. En de wórkout doet niet meer mee aan het verdelen: die heeft zijn
+ * rit al.
+ *
+ * Dat tweede is niet theoretisch. Zonder die regel claimde een workout die al aan
+ * een rit hing er alsnog een tweede, en dan verdween precies de rit die hier
+ * zichtbaar had moeten worden. Bij twee Zwift-ritten op één avond — 20 minuten
+ * pacer group ride en 41 minuten race, met één geplande training ertegenover —
+ * bleef er zo niets over.
  *
  * Een als rustdag afgeschreven training claimt niets: wie op zijn rustdag toch
  * reed, hoort die rit juist te zien staan.
@@ -62,15 +77,23 @@ export function unplannedRides(
   rides: StravaRideRow[],
   workouts: PlannedWorkoutForRides[],
   ftpWatts: number | null,
-  pairedActivityIds: Iterable<string | number | null | undefined> = [],
+  pairings: Iterable<WorkoutPairing> = [],
 ): UnplannedRide[] {
   const used = new Set<string>();
-  for (const id of pairedActivityIds) {
-    if (id != null && id !== "") used.add(String(id));
+  const alreadyPaired = new Set<string>();
+  for (const { workoutId, activityId } of pairings) {
+    if (activityId == null || activityId === "") continue;
+    used.add(String(activityId));
+    alreadyPaired.add(workoutId);
   }
 
   const claiming = workouts
-    .filter((workout) => workout.intensity !== "rest" && workout.status !== "skipped")
+    .filter(
+      (workout) =>
+        workout.intensity !== "rest" &&
+        workout.status !== "skipped" &&
+        !alreadyPaired.has(workout.id),
+    )
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
 
   for (const workout of claiming) {

@@ -73,7 +73,7 @@ export default async function ZwbeterWordenLoadPage() {
           {
             label: "Strava-ritten",
             at: lastStravaSync?.synced_at ?? null,
-            action: { href: "/dashboard", label: "Nu synchroniseren" },
+            action: { href: "/dashboard#strava-sync", label: "Naar Strava-sync" },
           },
           ...(conn
             ? [
