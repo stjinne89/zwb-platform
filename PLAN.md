@@ -703,6 +703,20 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   verleden een verkeerde rit hebben opgeslagen — er is geen betrouwbare manier om
   te zien of `paired_activity_id` ooit fout is gezet of gewoon een handmatige
   keuze was.
+- **ZRL-racekalender per ronde vullen** (2026-08-18, geen migratie): nieuw
+  beheerscherm `/beheer/zrl-kalender` achter `teams.manage_roster`, dat per
+  gekozen team een hele ZRL-ronde in `events` zet. WTRL verbiedt scrapen en het
+  aanroepen van hun endpoints van buiten hun domein zonder schriftelijke
+  toestemming; dat hoeft ook niet, want de kalender is een patroon. ZRL rijdt op
+  dinsdag, een ronde is een reeks opeenvolgende weken, en de eerste race van elke
+  ronde is een Race of Truth. `src/lib/teams/zrl-season.ts` leidt daar de hele
+  ronde uit af, met de regels in `tests/unit/zrl-season.test.ts`. Er is geen
+  migratie nodig: `events.type` kent `'zrl'` al sinds migr. `0001`. Het vullen is
+  idempotent op (team_id, start_at) — er is geen unieke index op dat paar, dus de
+  bestaande races worden eerst opgehaald in plaats van een upsert te doen.
+  **Bewust niet gebouwd:** geen koppeling met WTRL zelf (hun voorwaarden), en
+  geen automatisch bijstellen als WTRL een tijd verschuift — opnieuw draaien vult
+  alleen aan, het verplaatst niets.
 
 ---
 
