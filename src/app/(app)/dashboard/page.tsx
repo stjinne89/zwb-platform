@@ -298,7 +298,7 @@ export default async function DashboardPage({
     user
       ? supabase
           .from("profiles")
-          .select("display_name, zrl_division, wellness_device")
+          .select("display_name, zrl_division, wellness_device, zwift_id, zwift_opt_out")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -540,6 +540,12 @@ export default async function DashboardPage({
     ((nextWorkoutRows ?? [])[0] ?? null) as TrainingStatusWorkout | null;
   const zrlDivision =
     (profile as { zrl_division?: string | null } | null)?.zrl_division ?? null;
+  const zwiftProfile = profile as
+    | { zwift_id?: string | null; zwift_opt_out?: boolean | null }
+    | null;
+  const needsZwiftId = Boolean(
+    user && zwiftProfile && !zwiftProfile.zwift_id && !zwiftProfile.zwift_opt_out,
+  );
   const wellnessDevice =
     ((profile as { wellness_device?: string | null } | null)?.wellness_device ??
       null) as WellnessDevice | null;
@@ -556,6 +562,18 @@ export default async function DashboardPage({
         eyebrow={firstName ? `Hoi ${firstName}` : "Welkom"}
         title="Welkom thuis op ZWB Home"
       />
+
+      {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
+          worden, maar dan moet het ergens zichtbaar blijven. */}
+      {needsZwiftId && (
+        <Link
+          href="/profiel#racen"
+          className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 transition hover:border-amber-500/70 dark:text-amber-300"
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          Vul je Zwift-ID in, anders sta je niet in de ZwiftPower- en ZwiftRacing-standen.
+        </Link>
+      )}
 
       {showTraining && (
         <Suspense fallback={<TrainingStatusSkeleton />}>

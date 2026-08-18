@@ -25,7 +25,12 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body || "",
     icon: payload.icon || "/icon-192.png",
-    badge: payload.badge || "/icon-192.png",
+    // Android tekent de badge als alfamasker op ~24px: elke dekkende pixel
+    // wordt wit. Met icon-192.png (een vol vierkant) leverde dat een massief
+    // wit blok op. badge-96.png is transparant met alleen het merksilhouet.
+    badge: payload.badge || "/badge-96.png",
+    image: payload.image || undefined,
+    actions: Array.isArray(payload.actions) ? payload.actions : undefined,
     tag: payload.tag || undefined,
     data: { url: payload.url || "/", ...payload.data },
     requireInteraction: false,

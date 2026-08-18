@@ -83,3 +83,43 @@ export async function getCurrentUserAccess(
       permissions.some((permission) => permissionSet.has(permission)),
   };
 }
+
+/**
+ * Alle profielen die een bepaald recht hebben — beheerders plus iedereen met
+ * een rol waar het recht in zit. Nodig om een pushbericht aan de juiste groep
+ * te sturen; `is_admin` alleen mist bijvoorbeeld de community-managers.
+ *
+ * Vraagt een client met leesrecht op alle profielen (admin-client bij
+ * server-side triggers).
+ */
+export async function profileIdsWithPermission(
+  supabase: SupabaseClient,
+  permission: CommunityPermission,
+): Promise<string[]> {
+  const [{ data: profiles }, { data: permissionRows }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, is_admin, community_roles")
+      .returns<(ProfileAccessRow & { id: string })[]>(),
+    supabase
+      .from("community_role_permissions")
+      .select("role, permissions")
+      .returns<RolePermissionRow[]>(),
+  ]);
+
+  const rolesWithPermission = new Set(
+    (permissionRows ?? [])
+      .filter((row) => normalizePermissions(row.permissions).includes(permission))
+      .map((row) => row.role),
+  );
+
+  return (profiles ?? [])
+    .filter(
+      (row) =>
+        row.is_admin === true ||
+        normalizeCommunityRoles(row.community_roles).some((role) =>
+          rolesWithPermission.has(role),
+        ),
+    )
+    .map((row) => row.id);
+}

@@ -80,14 +80,33 @@ export async function signUp(formData: FormData) {
 
   if (error) return { ok: false as const, error: error.message };
 
-  // AVG-toestemming vastleggen op het (door de trigger aangemaakte) profiel.
+  // AVG-toestemming vastleggen op het (door de trigger aangemaakte) profiel, en
+  // beheer laten weten dat er iemand wacht. Beide stil falend: een registratie
+  // mag niet stuklopen op een pushbericht.
   if (data.user) {
     try {
       const { createAdminClient } = await import("@/lib/supabase/admin");
-      await createAdminClient()
+      const admin = createAdminClient();
+      await admin
         .from("profiles")
         .update({ privacy_accepted_at: new Date().toISOString() })
         .eq("id", data.user.id);
+
+      const { profileIdsWithPermission } = await import("@/lib/auth/permissions");
+      const { sendNotificationToMembers } = await import("@/lib/push/send");
+      const approverIds = await profileIdsWithPermission(admin, "members.approve");
+      if (approverIds.length > 0) {
+        await sendNotificationToMembers(
+          "on_member_pending",
+          {
+            title: "Nieuw lid wacht op goedkeuring",
+            body: `${displayName} heeft zich aangemeld.`,
+            url: "/leden",
+            tag: `member-pending-${data.user.id}`,
+          },
+          { profileIds: approverIds },
+        );
+      }
     } catch {
       // niet kritiek voor de registratie zelf
     }

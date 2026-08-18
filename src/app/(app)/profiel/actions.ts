@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
+import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
@@ -33,6 +34,22 @@ function optionalString(v: FormDataEntryValue | null): string | null {
   return s ? s : null;
 }
 
+/**
+ * Leeg mag, onzin niet. Zonder deze controle belandde "weet ik niet" gewoon in
+ * zwift_id en bleef de koppeling stil kapot: de chip verscheen niet en niemand
+ * zag waarom.
+ */
+function parsedId(
+  v: FormDataEntryValue | null,
+  parse: (raw: string | null) => string | null,
+  error: string,
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  const raw = optionalString(v);
+  if (!raw) return { ok: true, value: null };
+  const parsed = parse(raw);
+  return parsed ? { ok: true, value: parsed } : { ok: false, error };
+}
+
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -42,6 +59,25 @@ export async function updateProfile(formData: FormData) {
 
   const display_name = String(formData.get("display_name") ?? "").trim();
   if (!display_name) return { ok: false as const, error: "Naam is verplicht." };
+
+  const zwift = parsedId(
+    formData.get("zwift_id"),
+    zwiftId,
+    "Zwift-ID moet een nummer zijn, of plak de link naar je ZwiftPower-profiel.",
+  );
+  if (!zwift.ok) return { ok: false as const, error: zwift.error };
+  const strava = parsedId(
+    formData.get("strava_id"),
+    stravaHandle,
+    "Strava-ID klopt niet. Gebruik je atletennummer, je gebruikersnaam of de link naar je profiel.",
+  );
+  if (!strava.ok) return { ok: false as const, error: strava.error };
+  const intervals = parsedId(
+    formData.get("intervals_id"),
+    intervalsId,
+    "intervals.icu-ID heeft de vorm i141441, of plak de link naar je profiel.",
+  );
+  if (!intervals.ok) return { ok: false as const, error: intervals.error };
 
   const zrlRaw = optionalString(formData.get("zrl_category"));
   const zrl_category =
@@ -92,10 +128,10 @@ export async function updateProfile(formData: FormData) {
     .update({
       display_name,
       region: optionalString(formData.get("region")),
-      zwift_id: optionalString(formData.get("zwift_id")),
+      zwift_id: zwift.value,
       mywhoosh_id: optionalString(formData.get("mywhoosh_id")),
-      strava_id: optionalString(formData.get("strava_id")),
-      intervals_id: optionalString(formData.get("intervals_id")),
+      strava_id: strava.value,
+      intervals_id: intervals.value,
       zrl_category,
       zrl_division,
       wellness_device,

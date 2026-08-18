@@ -77,6 +77,12 @@ export async function updateNotificationPreferences(formData: FormData) {
     on_event_reminder: formData.get("on_event_reminder") === "on",
     on_admin_broadcast: formData.get("on_admin_broadcast") === "on",
     on_maintenance_due: formData.get("on_maintenance_due") === "on",
+    // Alleen wie leden mag goedkeuren krijgt dit vinkje te zien. Staat het niet
+    // in het formulier, dan laten we de bestaande waarde staan in plaats van
+    // hem stilletjes op false te zetten.
+    ...(formData.has("__has_member_pending")
+      ? { on_member_pending: formData.get("on_member_pending") === "on" }
+      : {}),
     updated_at: new Date().toISOString(),
   };
 

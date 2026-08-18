@@ -20,8 +20,11 @@ type Props = {
     on_event_reminder: boolean;
     on_admin_broadcast: boolean;
     on_maintenance_due: boolean;
+    on_member_pending: boolean;
   };
   hasSubscriptionInDb: boolean;
+  /** Alleen zichtbaar voor wie leden mag goedkeuren; anders vuurt hij nooit. */
+  canApproveMembers?: boolean;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -39,6 +42,7 @@ export function PushToggle({
   vapidPublicKey,
   initialPreferences,
   hasSubscriptionInDb,
+  canApproveMembers = false,
 }: Props) {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | null>(
@@ -271,6 +275,17 @@ export function PushToggle({
           />
           Onderhoud: onderdeel toe aan vervanging
         </label>
+        {canApproveMembers && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="hidden" name="__has_member_pending" value="1" />
+            <input
+              type="checkbox"
+              name="on_member_pending"
+              defaultChecked={initialPreferences.on_member_pending}
+            />
+            Nieuw lid wacht op goedkeuring
+          </label>
+        )}
         <div className="flex justify-end">
           <Button type="submit" size="sm" disabled={savingPrefs}>
             {savingPrefs ? "Opslaan…" : "Voorkeuren opslaan"}

@@ -67,18 +67,18 @@ export async function generateMetadata({
       locale: "nl_NL",
       images: [
         {
-          url: "/icon-512.png",
-          width: 512,
-          height: 512,
-          alt: "ZWB Cycling",
+          url: "/og-default.png",
+          width: 1200,
+          height: 630,
+          alt: "ZWB Cycling Community",
         },
       ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: ["/icon-512.png"],
+      images: ["/og-default.png"],
     },
     robots: {
       // Niet indexeren — dit is een share-link, geen publieke landing.

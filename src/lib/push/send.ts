@@ -17,6 +17,11 @@ export type PushPayload = {
   body: string;
   url?: string;
   icon?: string;
+  /** Monochroom silhouet voor de statusbalk; leeg laten pakt /badge-96.png. */
+  badge?: string;
+  /** Grote afbeelding onder de tekst (Android). */
+  image?: string;
+  actions?: Array<{ action: string; title: string; icon?: string }>;
   tag?: string;
   data?: Record<string, unknown>;
 };
@@ -29,7 +34,8 @@ export type NotificationTrigger =
   | "on_workout_review"
   | "on_event_reminder"
   | "on_admin_broadcast"
-  | "on_maintenance_due";
+  | "on_maintenance_due"
+  | "on_member_pending";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

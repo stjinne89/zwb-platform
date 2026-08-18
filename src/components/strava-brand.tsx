@@ -57,10 +57,17 @@ export function StravaAttribution({ className }: { className?: string }) {
 export function ConnectWithStrava({
   className,
   reconnect = false,
+  size = "default",
 }: {
   className?: string;
   /** Bij een scope-uitbreiding koppelt het lid opnieuw met dezelfde knop. */
   reconnect?: boolean;
+  /**
+   * "compact" is h-7 en staat daarmee gelijk met buttonVariants({ size: "sm" }),
+   * voor rijen waar de knop naast gewone knoppen staat. Schalen mag van de
+   * guidelines; hertinten of bijsnijden niet.
+   */
+  size?: "default" | "compact";
 }) {
   return (
     <Link
@@ -71,7 +78,7 @@ export function ConnectWithStrava({
       <img
         src="/strava/connect-with-strava-orange.svg"
         alt={reconnect ? "Opnieuw koppelen met Strava" : "Connect with Strava"}
-        className="h-12 w-auto"
+        className={cn("w-auto", size === "compact" ? "h-7" : "h-12")}
       />
     </Link>
   );

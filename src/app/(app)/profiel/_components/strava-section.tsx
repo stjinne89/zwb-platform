@@ -88,7 +88,7 @@ export function StravaSection({
             >
               Naar achievements
             </Link>
-            <ConnectWithStrava reconnect />
+            <ConnectWithStrava reconnect size="compact" />
             <Button
               type="button"
               size="sm"

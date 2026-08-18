@@ -9,6 +9,7 @@ import { DesktopNav } from "./_components/desktop-nav";
 import { AvatarMenu } from "./_components/avatar-menu";
 import { MobileMenu } from "./_components/mobile-menu";
 import { BackButton } from "./_components/back-button";
+import { ZwiftIdDialog } from "./_components/zwift-id-dialog";
 import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
 
 export default async function AppLayout({
@@ -23,11 +24,17 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   const [{ data: profile }, access] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+    supabase
+      .from("profiles")
+      .select("display_name, zwift_id, zwift_opt_out")
+      .eq("id", user.id)
+      .single(),
     getCurrentUserAccess(supabase),
   ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";
+  // Vragen tot het ingevuld is of tot het lid zegt niet te zwiften.
+  const needsZwiftId = Boolean(profile && !profile.zwift_id && !profile.zwift_opt_out);
   const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
   const navNodes = filterNavForPermissions(NAV_GROUPS, (permission) => access.has(permission));
 
@@ -66,6 +73,7 @@ export default async function AppLayout({
         </nav>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+      {needsZwiftId && <ZwiftIdDialog />}
     </div>
   );
 }

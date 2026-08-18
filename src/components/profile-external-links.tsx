@@ -1,11 +1,8 @@
 import Link from "next/link";
+import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 
 // De logo's in public/logos/ komen van de sites zelf (favicon/logo) en staan
 // lokaal, zodat we niets hotlinken.
-
-const NUMERIC_ZWIFT_ID = /^\d+$/;
-const STRAVA_HANDLE = /^[A-Za-z0-9._-]+$/;
-const INTERVALS_ID = /^i\d+$/i;
 
 type SiteKey = "zwiftpower" | "zwiftracing" | "strava" | "intervals";
 
@@ -18,39 +15,6 @@ type Site = {
   /** null zolang het ID ontbreekt of niet bruikbaar is voor een URL. */
   href: string | null;
 };
-
-/**
- * ZwiftPower en ZwiftRacing.app werken beide met het numerieke Zwift-ID.
- * Staat er iets anders in het profielveld, dan levert dat geen link op.
- */
-function zwiftId(raw: string | null | undefined): string | null {
-  const id = (raw ?? "").trim();
-  return NUMERIC_ZWIFT_ID.test(id) ? id : null;
-}
-
-/**
- * Strava accepteert zowel het atletennummer als de gebruikersnaam in de URL.
- * Een geplakte profiel-URL of een @-prefix wordt teruggebracht tot de handle;
- * alles met spaties of rare tekens levert geen link op.
- */
-function stravaHandle(raw: string | null | undefined): string | null {
-  let handle = (raw ?? "").trim();
-  const pasted = handle.match(/strava\.com\/athletes\/([^/?#]+)/i);
-  if (pasted) handle = pasted[1];
-  handle = handle.replace(/^@/, "");
-  return STRAVA_HANDLE.test(handle) ? handle : null;
-}
-
-/**
- * intervals.icu gebruikt een athlete-ID in de vorm i141441. Een geplakte
- * profiel-URL wordt teruggebracht tot dat ID.
- */
-function intervalsId(raw: string | null | undefined): string | null {
-  let id = (raw ?? "").trim();
-  const pasted = id.match(/intervals\.icu\/athlete\/([^/?#]+)/i);
-  if (pasted) id = pasted[1];
-  return INTERVALS_ID.test(id) ? id.toLowerCase() : null;
-}
 
 function buildSites({
   zwift,
