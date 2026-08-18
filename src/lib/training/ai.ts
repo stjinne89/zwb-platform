@@ -100,8 +100,20 @@ export type TrainingAiInput = {
     eftp: number | null;
     rampRate: number | null;
   } | null;
-  /** Aankomende events/races waar het schema omheen moet plannen. */
-  upcomingEvents?: Array<{ title: string; type: string; date: string }>;
+  /**
+   * Aankomende events/races waar het schema omheen moet plannen, met hun
+   * afmetingen: zonder die cijfers weet de planner niet of een event een uurtje
+   * duurt of een dag.
+   */
+  upcomingEvents?: Array<{
+    title: string;
+    type: string;
+    date: string;
+    /** Geschatte rijtijd uit eindtijd, of uit afstand + hoogtemeters. */
+    durationMinutes: number;
+    distanceKm: number | null;
+    elevationM: number | null;
+  }>;
   /**
    * Minuten per weekdag die het lid deze week heeft. Gaat vóór
    * goal.availableDays: dat kent alleen dagen, dit ook de tijd per dag.

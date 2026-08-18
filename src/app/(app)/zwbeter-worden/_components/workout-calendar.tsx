@@ -12,19 +12,26 @@ export type CalendarWorkout = {
   title: string;
   durationMinutes: number | null;
   intensity: string | null;
-  /** ZWB-schema of een event uit intervals.icu. */
-  source: "zwb" | "intervals";
+  /**
+   * ZWB-schema, een event uit intervals.icu, of een gereden rit waar geen
+   * training voor stond gepland.
+   */
+  source: "zwb" | "intervals" | "rit";
   skipped?: boolean;
 };
 
-function colorFor(intensity: string | null) {
-  const key = (intensity ?? "endurance") as WorkoutIntensity;
+function colorFor(workout: CalendarWorkout) {
+  // Bij een rit is de intensiteit afgeleid uit de belasting; zonder
+  // vermogensmeter valt daar niets over te zeggen en blijft hij neutraal.
+  if (workout.source === "rit" && !workout.intensity) return INTENSITY_COLORS.rest;
+  const key = (workout.intensity ?? "endurance") as WorkoutIntensity;
   return INTENSITY_COLORS[key] ?? INTENSITY_COLORS.endurance;
 }
 
 function labelFor(workout: CalendarWorkout) {
   const intensity = (workout.intensity ?? "") as WorkoutIntensity;
   const parts = [
+    workout.source === "rit" ? "gereden rit" : null,
     workout.durationMinutes ? `${workout.durationMinutes} min` : null,
     INTENSITY_LABELS[intensity] ?? null,
   ].filter(Boolean);
@@ -103,15 +110,23 @@ export function WorkoutCalendar({
                   per workout en pas vanaf sm de titel zelf. */}
               <div className="mt-1 space-y-0.5">
                 {dayWorkouts.map((workout) => {
+                  // Een gereden rit stond niet in het schema, dus krijgt hij
+                  // niet het volle vlak van een geplande training: gestippeld
+                  // en doorzichtig, in de kleur van de zone waarin hij viel.
+                  const ridden = workout.source === "rit";
                   const className = cn(
                     "block w-full rounded-full text-left sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
                     // Aanklikbaar wil op een telefoon een grotere raakvlek dan
                     // het streepje van de leesweergave.
                     onSelect ? "h-4 cursor-pointer transition hover:opacity-80" : "h-1.5",
+                    ridden && "border border-dashed",
                     workout.skipped && "opacity-60 sm:line-through",
                     selectedId === workout.id && "ring-2 ring-foreground ring-offset-1",
                   );
-                  const style = { backgroundColor: colorFor(workout.intensity) };
+                  const color = colorFor(workout);
+                  const style = ridden
+                    ? { backgroundColor: `${color}33`, borderColor: color }
+                    : { backgroundColor: color };
                   return onSelect ? (
                     <button
                       key={workout.id}

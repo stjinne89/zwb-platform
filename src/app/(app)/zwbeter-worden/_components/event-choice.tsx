@@ -118,7 +118,31 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
                   {event.inSchedule ? " — staat in je schema" : ""}
                 </p>
               </div>
-              {event.rsvp === "yes" ? (
+              {/* Ja gezegd, maar er staat geen blok: dat kon ontstaan door een
+                  toezegging van vóór je schema, of doordat de knop op de
+                  eventpagina het schema tot 2026-08-18 niet bijwerkte. Eén klik
+                  zet hem er alsnog in met zijn eigen duur. */}
+              {event.rsvp === "yes" && !event.inSchedule ? (
+                <div className="flex shrink-0 gap-2 self-start sm:self-auto">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => decide(event.id, true)}
+                  >
+                    {busy ? "Bezig…" : "In schema zetten"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => decide(event.id, false)}
+                  >
+                    Toch niet
+                  </Button>
+                </div>
+              ) : event.rsvp === "yes" ? (
                 <Button
                   type="button"
                   size="sm"

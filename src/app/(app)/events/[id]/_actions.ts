@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { scrapeEventResults } from "@/lib/event-results/scrape";
 import { rateLimitHit } from "@/lib/rate-limit";
+import { syncEventWorkout } from "@/lib/training/events";
+import { requestReplan } from "@/lib/training/replan";
 
 type Status = "yes" | "maybe" | "no";
 
@@ -24,7 +26,34 @@ export async function setRsvp(eventId: string, status: Status) {
   });
   if (error) return { ok: false as const, error: error.message };
 
+  // Een 'ja' hier telt net zo hard als een 'ja' in het schemapaneel: het event
+  // hoort als vast blok in het schema. Deze knop schreef tot 2026-08-18 alleen
+  // de RSVP, waardoor de planner zelf maar iets verzon voor die dag.
+  const admin = createAdminClient();
+  const { inserted } = await syncEventWorkout(admin, user.id, eventId, status).catch(() => ({
+    inserted: false,
+  }));
+
   revalidatePath(`/events/${eventId}`);
+  revalidatePath("/zwbeter-worden", "layout");
+  revalidatePath("/kalender");
+
+  // Alleen het schema eromheen laten herzien als er echt iets bij is gekomen;
+  // requestReplan heeft zijn eigen cooldown, maar een AI-run voor niets is nog
+  // steeds een AI-run voor niets.
+  if (inserted) {
+    const { data: event } = await admin
+      .from("events")
+      .select("title")
+      .eq("id", eventId)
+      .maybeSingle();
+    await requestReplan(
+      admin,
+      user.id,
+      `${event?.title ?? "Clubevent"} toegezegd; schema eromheen.`,
+    ).catch(() => null);
+  }
+
   return { ok: true as const };
 }
 

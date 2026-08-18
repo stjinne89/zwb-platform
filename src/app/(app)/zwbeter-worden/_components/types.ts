@@ -114,6 +114,8 @@ export type WorkoutReportRow = {
   /** Momentopname van gepland versus gereden; leeg zonder gekoppelde rit. */
   metrics_json?: WorkoutMetricsSnapshot | null;
   athlete_confirmed_at?: string | null;
+  /** De Strava-rit die aan deze training is gekoppeld. */
+  paired_activity_id?: string | null;
 };
 
 export type AiGenerationRow = {

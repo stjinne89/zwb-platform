@@ -33,7 +33,12 @@ type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "
 
 /** Onder deze grens is een aanpassing zinloos; dan is het een rustdag. */
 export const MIN_ADJUST_MINUTES = 10;
-/** DB-cap op training_workouts.duration_minutes. */
+/**
+ * Bovengrens voor een dagaanpassing. Was de DB-cap op
+ * training_workouts.duration_minutes; sinds migratie `0125` staat die op 720 om
+ * een lang clubevent te kunnen opslaan. Een tráining van meer dan acht uur
+ * bestaat niet, dus die grens blijft hier staan.
+ */
 export const MAX_ADJUST_MINUTES = 480;
 
 type TrainingDraftResult =

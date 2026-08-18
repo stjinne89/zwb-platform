@@ -9,14 +9,21 @@
 import { useState } from "react";
 import { CircleHelp, Download, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { ViewOnStrava } from "@/components/strava-brand";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { COMPLIANCE_LABELS, COMPLIANCE_PILLS } from "@/lib/training/compliance";
-import { intensityLabel, type WorkoutBlock } from "@/lib/training/workouts";
+import type { RideMetrics } from "@/lib/training/ride-metrics";
+import {
+  detectIntensityFromLoad,
+  INTENSITY_COLORS,
+  intensityLabel,
+  type WorkoutBlock,
+} from "@/lib/training/workouts";
 import { saveWorkoutReport } from "../_actions";
 import { formatDayMonth, formAction } from "./format";
 import type { WorkoutOutcome } from "./completed-workouts";
 import { WorkoutBlocks } from "./workout-blocks";
-import { WorkoutMetricsPanel } from "./workout-metrics-panel";
+import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { WorkoutCalendar, type CalendarWorkout } from "./workout-calendar";
 
 export type MemberCalendarItem = {
@@ -25,8 +32,15 @@ export type MemberCalendarItem = {
   title: string;
   durationMinutes: number | null;
   intensity: string | null;
-  source: "zwb" | "intervals";
+  source: "zwb" | "intervals" | "rit";
   skipped: boolean;
+  /** Alleen voor een gereden rit zonder geplande training. */
+  ride?: {
+    /** Het Strava-id, voor de link naar de bronactiviteit. */
+    stravaId: number;
+    distanceKm: number | null;
+    metrics: RideMetrics;
+  };
   /** Alleen voor ZWB-workouts; een intervals-event heeft geen detail. */
   detail?: {
     outcome: WorkoutOutcome;
@@ -119,6 +133,82 @@ function ReportForm({
   );
 }
 
+function nl(value: number | null | undefined, digits = 0) {
+  if (value == null) return "-";
+  return value.toLocaleString("nl-NL", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+/**
+ * Een rit waar geen training voor stond: een extra herstelrondje, een groepsrit,
+ * of de tweede helft van een rit die onderweg in tweeën is geknipt. Dezelfde
+ * cijfers als bij een afgeronde training, maar zonder de vergelijking met een
+ * plan — dat plan was er immers niet.
+ */
+function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<MemberCalendarItem["ride"]> } }) {
+  const { metrics, distanceKm, stravaId } = item.ride;
+  const zone = detectIntensityFromLoad(metrics.tss, metrics.movingMinutes);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium">{item.title}</p>
+          <p className="text-xs text-muted-foreground">
+            {formatDayMonth(`${item.dateKey}T12:00:00`)}
+            {metrics.movingMinutes ? ` - ${metrics.movingMinutes} min` : ""}
+            {distanceKm ? ` - ${nl(distanceKm, 1)} km` : ""}
+          </p>
+        </div>
+        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          Niet gepland
+        </span>
+      </div>
+
+      {zone ? (
+        <span className="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
+          <span
+            aria-hidden
+            className="size-2 rounded-full"
+            style={{ backgroundColor: INTENSITY_COLORS[zone] }}
+          />
+          Gereden in {intensityLabel(zone).toLowerCase()}
+        </span>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <MetricStat label="TSS" value={nl(metrics.tss)} />
+        <MetricStat
+          label="Duur"
+          value={metrics.movingMinutes == null ? "-" : `${metrics.movingMinutes} min`}
+        />
+        <MetricStat label="IF" value={nl(metrics.intensityFactor, 2)} />
+        <MetricStat
+          label="Gem. HR"
+          value={metrics.averageHr == null ? "-" : `${nl(metrics.averageHr)} bpm`}
+        />
+        <MetricStat
+          label="Gem. vermogen"
+          value={metrics.averageWatts == null ? "-" : `${nl(metrics.averageWatts)}w`}
+        />
+        <MetricStat
+          label="NP"
+          value={metrics.normalizedWatts == null ? "-" : `${nl(metrics.normalizedWatts)}w`}
+        />
+      </div>
+      {metrics.hasPowerMeter || metrics.movingMinutes == null ? null : (
+        <p className="text-xs text-muted-foreground">
+          Zonder vermogensmeter zijn TSS en IF niet te bepalen.
+        </p>
+      )}
+
+      <ViewOnStrava activityId={stravaId} />
+    </div>
+  );
+}
+
 function WorkoutDetail({
   item,
   ftpWatts,
@@ -126,6 +216,8 @@ function WorkoutDetail({
   item: MemberCalendarItem;
   ftpWatts?: number | null;
 }) {
+  if (item.ride) return <RideDetail item={{ ...item, ride: item.ride }} />;
+
   const detail = item.detail;
   if (!detail) {
     return (

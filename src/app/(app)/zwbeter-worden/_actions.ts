@@ -11,7 +11,8 @@ import {
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { pushPlanWorkoutsToIntervals, pushWorkoutToIntervals } from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
-import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
+import { syncEventWorkout } from "@/lib/training/events";
+import { activeBasePlan } from "@/lib/training/active-plan";
 import {
   clampMinutes,
   mondayKey,
@@ -19,7 +20,6 @@ import {
   WEEKDAY_SLUGS,
   type MinutesByDay,
 } from "@/lib/training/availability";
-import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import {
   blocksFromForm,
   normalizeWorkoutBlocks,
@@ -902,25 +902,6 @@ export async function deleteWorkoutTemplate(formData: FormData) {
 }
 
 /** Het lopende schema van een lid: een basisplan dat nog niet is afgelopen. */
-async function activeBasePlanFor(
-  admin: ReturnType<typeof createAdminClient>,
-  profileId: string,
-) {
-  const { data } = await admin
-    .from("training_plans")
-    .select("id, profile_id, trainer_id, status, end_date")
-    .eq("profile_id", profileId)
-    .is("parent_plan_id", null)
-    .in("status", ["published", "approved"])
-    .gte("end_date", amsterdamDayKey())
-    .order("status", { ascending: false })
-    .order("updated_at", { ascending: false })
-    .limit(5);
-
-  const plans = data ?? [];
-  return plans.find((plan) => plan.status === "published") ?? plans[0] ?? null;
-}
-
 /**
  * Beschikbaarheid voor een week opslaan: minuten per weekdag. Een lege
  * `week_start` is het standaardpatroon, dat geldt voor elke week waarvoor niets
@@ -1032,7 +1013,7 @@ export async function planOwnRide(formData: FormData) {
     const note = optionalString(formData.get("note"));
     const title = optionalString(formData.get("title")) ?? kind.title;
 
-    const plan = await activeBasePlanFor(admin, user.id);
+    const plan = await activeBasePlan(admin, user.id);
     if (!plan) {
       throw new Error("Je hebt nog geen lopend schema om een rit in te plannen.");
     }
@@ -1089,7 +1070,7 @@ export async function acceptClubEvent(formData: FormData) {
 
     const { data: event } = await admin
       .from("events")
-      .select("id, title, type, start_at, end_at, distance_km, elevation_m")
+      .select("id, title")
       .eq("id", eventId)
       .maybeSingle();
     if (!event) throw new Error("Event niet gevonden.");
@@ -1100,63 +1081,14 @@ export async function acceptClubEvent(formData: FormData) {
     );
     if (rsvpError) throw new Error(rsvpError.message);
 
-    const plan = await activeBasePlanFor(admin, user.id);
-    if (!plan) {
-      revalidatePath("/zwbeter-worden", "layout");
-      revalidatePath("/kalender");
-      return { ok: true as const, generationId: null, message: "Je aanmelding is genoteerd." };
-    }
-
-    // Staat hij er al? Dan alleen het antwoord bijwerken; de unieke index zou een
-    // tweede blok toch weigeren.
-    const { data: existing } = await admin
-      .from("training_workouts")
-      .select("id")
-      .eq("profile_id", user.id)
-      .eq("event_id", eventId)
-      .is("superseded_at", null)
-      .maybeSingle();
-
-    if (!existing) {
-      const { durationMinutes, intensity } = eventWorkoutDefaults(event as ClubEventRow);
-      const startsAt = new Date(event.start_at as string);
-      const blocks = normalizeWorkoutBlocks(
-        [
-          {
-            label: event.title as string,
-            durationMinutes,
-            target: "",
-            notes: "Clubevent uit de ZWB-kalender.",
-            intensity,
-          },
-        ],
-        intensity,
-      );
-      const slug = String(event.title)
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .slice(0, 48);
-      const { error } = await admin.from("training_workouts").insert({
-        plan_id: plan.id,
-        profile_id: user.id,
-        trainer_id: plan.trainer_id,
-        event_id: eventId,
-        scheduled_at: startsAt.toISOString(),
-        title: event.title,
-        description: `Clubevent: ${event.title}.`,
-        duration_minutes: durationMinutes,
-        intensity,
-        target_type: "free",
-        structure_json: blocks,
-        origin: "event",
-        publish_status: "pending",
-        intervals_external_id: `zwb-${plan.id}-${String(event.start_at).slice(0, 10)}-${slug}`,
-      });
-      if (error) throw new Error(error.message);
-    }
+    const { inserted } = await syncEventWorkout(admin, user.id, eventId, "yes");
 
     revalidatePath("/zwbeter-worden", "layout");
     revalidatePath("/kalender");
+    if (!inserted) {
+      return { ok: true as const, generationId: null, message: "Je aanmelding is genoteerd." };
+    }
+
     const replan = await requestReplan(admin, user.id, `${event.title} toegezegd; schema eromheen.`);
     return {
       ok: true as const,
@@ -1183,31 +1115,7 @@ export async function declineClubEvent(formData: FormData) {
     );
     if (rsvpError) throw new Error(rsvpError.message);
 
-    const { data: workout } = await admin
-      .from("training_workouts")
-      .select("id, intervals_event_id")
-      .eq("profile_id", user.id)
-      .eq("event_id", eventId)
-      .is("superseded_at", null)
-      .maybeSingle();
-
-    if (workout) {
-      if (workout.intervals_event_id) {
-        const { data: conn } = await admin
-          .from("intervals_connections")
-          .select("api_key, athlete_id")
-          .eq("profile_id", user.id)
-          .maybeSingle();
-        if (conn?.api_key && conn.athlete_id) {
-          await deleteIntervalsWorkoutEvent(
-            conn.api_key,
-            conn.athlete_id,
-            workout.intervals_event_id,
-          ).catch(() => null);
-        }
-      }
-      await admin.from("training_workouts").delete().eq("id", workout.id);
-    }
+    await syncEventWorkout(admin, user.id, eventId, "no");
 
     revalidatePath("/zwbeter-worden", "layout");
     revalidatePath("/kalender");

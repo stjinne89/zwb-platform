@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Download, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
+import { StravaAttribution } from "@/components/strava-brand";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
 import {
+  detectIntensityFromLoad,
   intensityLabel,
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
@@ -37,6 +39,7 @@ import {
   loadPlanFamilies,
   loadProfile,
   loadScheduleEventChoices,
+  loadUnplannedRides,
   planUpdateDefaults,
   requireViewer,
   todayKeyAmsterdam,
@@ -74,7 +77,19 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
   const todayKey = todayKeyAmsterdam();
-  const reportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
+  const reports = (reportRows ?? []) as WorkoutReportRow[];
+  const reportsByWorkout = byWorkout(reports);
+
+  // Ritten waar geen training voor stond: een extra herstelrondje, een groepsrit,
+  // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
+  // deze regel verdween die belasting uit het schema terwijl hij in de benen
+  // wel degelijk meetelde.
+  const extraRides = await loadUnplannedRides(
+    viewer,
+    memberWorkouts,
+    reports,
+    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+  );
 
   // Een aanpassing is een afgeleid plan, maar hoort in het schema waar hij op
   // ingrijpt. Vandaar de groepering per familie in plaats van per plan.
@@ -141,6 +156,22 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       source: "intervals" as const,
       skipped: false,
     })),
+    ...extraRides.map((ride) => ({
+      id: `rit-${ride.id}`,
+      dateKey: ride.dateKey,
+      title: ride.name,
+      durationMinutes: ride.metrics.movingMinutes,
+      // De zone volgt uit de gereden belasting; zonder vermogensmeter blijft hij
+      // leeg en kleurt de kalender de rit neutraal.
+      intensity: detectIntensityFromLoad(ride.metrics.tss, ride.metrics.movingMinutes),
+      source: "rit" as const,
+      skipped: false,
+      ride: {
+        stravaId: ride.id,
+        distanceKm: ride.distanceKm,
+        metrics: ride.metrics,
+      },
+    })),
   ];
 
   return (
@@ -159,7 +190,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       <CollapsibleCard
         title="Mijn trainingen"
-        subtitle="Uit intervals.icu en ZWB-schema's"
+        subtitle="Uit ZWB-schema's, intervals.icu en je gereden ritten"
         defaultOpen
       >
         <div className="flex justify-end border-b p-2">
@@ -311,6 +342,10 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           </div>
         )}
       </CollapsibleCard>
+
+      {/* De kalender toont nu ritdata uit Strava; de brand guidelines vragen het
+          merk op elk scherm waar die data staat. */}
+      {extraRides.length > 0 ? <StravaAttribution /> : null}
     </div>
   );
 }

@@ -550,7 +550,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   urenplafond toe in plaats van eronder te blijven hangen, een taper komt alleen
   bij een doel met één piekdag, en een clubevent komt pas in het schema als het
   lid ja zegt. Beschikbaarheid per week in `training_availability` (migr. `0115`).
-  Herstel en belastbaarheid verhuisd naar de dagpagina.
+  Herstel en belastbaarheid verhuisd naar de dagpagina. **Die laatste claim
+  klopte maar half:** alleen de ja-knop in het schemapaneel zette het event er
+  echt in; de knop op de eventpagina schreef alleen de RSVP. Rechtgezet op
+  2026-08-18, zie hieronder.
 - **Profiel- en hulpronde** (2026-08, migr. `0117`): echte logo's bij de externe
   profielen, intervals.icu als eigen ID-veld, doorklik naar ZwiftPower,
   ZwiftRacing.app en Strava, en grijze knoppen met uitleg voor wat er nog
@@ -615,6 +618,66 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   betekenisloos. Klachtenlast hangt wél samen met belastbaarheid. Onderbouwing
   in `docs/training-en-cyclus.md`, vervolgvoorstel in
   `docs/voorstel-training-vrouwen.md`.
+- **Ongeplande ritten in het schema** (2026-08-18, geen migratie): de
+  maandweergave van `/zwbeter-worden/schema` toonde alleen wat gepland stond —
+  ZWB-workouts en events uit intervals.icu. Een extra herstelrondje, een
+  groepsrit of de tweede helft van een rit die onderweg in tweeën geknipt werd,
+  was daar nergens te zien, terwijl die belasting in de benen wél meetelde.
+  `src/lib/training/unplanned-rides.ts` draait daarom dezelfde koppeling als
+  `compliance.ts`: elke geplande training claimt hooguit één rit van die dag, en
+  wat overblijft komt als gestippeld blokje in de kalender, met de cijfers en
+  een `ViewOnStrava`-link in het detailpaneel. Ritten die al vastgelegd aan een
+  workout hangen (`training_workout_reports.paired_activity_id`) gaan er sowieso
+  af; een rustdag of een als rustdag afgeschreven training claimt niets, zodat
+  wie op zijn rustdag toch reed die rit ziet staan. Bron is `strava_activities`
+  over 120 dagen, hetzelfde venster als de belastingpagina — intervals.icu geeft
+  via de API niets terug voor ritten die daar via Strava binnenkwamen. Omdat de
+  schemapagina nu Strava-data toont, staat er een `StravaAttribution` onder
+  zodra er zo'n rit is.
+  **Bewust niet gebouwd:** geen RPE/rapportage-formulier bij zo'n rit (een
+  rapportage hangt aan een `workout_id`, en die is er niet), geen automatisch
+  samenvoegen van twee helften tot één rit (dat zou de bron herschrijven op basis
+  van een gok), en de lijstweergave blijft ongemoeid — die toont alleen wat nog
+  komt, en een gereden rit is per definitie verleden tijd.
+- **Toegezegd event met zijn echte duur in het schema** (2026-08-18, migr.
+  `0125`): in Stijns schema stond de Velomedian Claudy Criquélion (167 km, 3305
+  hm) als blok van 150 minuten. Diagnose: dat blok kwam helemaal niet uit het
+  event. `origin='ai'`, `event_id=null`. Drie fouten onder elkaar:
+  1. **Twee ja-knoppen die niet hetzelfde deden.** `setRsvp` op de eventpagina
+     schreef alleen `event_rsvps`; alleen `acceptClubEvent` in het schemapaneel
+     zette het blok erbij. Wie zich opgaf op de logische plek, kreeg een schema
+     dat niets van het event wist. Beide knoppen lopen nu via één
+     `syncEventWorkout` in `training/events.ts`: 'ja' zet het blok erin, 'nee'
+     én 'misschien' halen het eruit (alleen 'ja' is een toezegging).
+  2. **De planner kreeg geen cijfers.** `committedEventsForAi` gaf alleen titel,
+     type en datum door. De AI kón niet weten dat het een rit van zeven uur was
+     en maakte er een "gecontroleerde eventprikkel" van. Nu gaan duur, afstand
+     en hoogtemeters mee, met een promptregel dat die duur een gegeven is. De
+     bestaande promptregel dat events "ook als vast blok in fixedWorkouts staan"
+     was in dit geval aantoonbaar onwaar en is verzacht.
+  3. **`gran_fondo` en `zwift` stonden niet in `EVENT_DEFAULTS`** en vielen
+     terug op `outdoor`. Toegevoegd.
+  Daarnaast is het duurmodel vervangen: was 28 km/h over de afstand met de
+  hoogtemeters volledig genegeerd (Marmotte 32% te laag, vlakke ritten 17% te
+  hoog), nu `afstand / 34 km/h + hoogtemeters × 0,045 min`. Die twee constanten
+  zijn een kleinste-kwadraten-fit op het natuurkundige model uit
+  `lib/ride-estimate.ts`, gedraaid over de acht ZWB-events mét GPX; de
+  ijkpunten staan als test in `tests/unit/training-events.test.ts`. Afwijking
+  binnen 7% op elke echte route, behalve op een pure klimroute (14 km, 1064 hm)
+  waar de vlakke term betekenisloos wordt. De DB-check op `duration_minutes`
+  ging van 480 naar 720 minuten (migr. `0125`) omdat de Marmotte anders op acht
+  uur werd afgekapt; `MAX_ADJUST_MINUTES` blijft wél op 480 — een tráining van
+  twaalf uur bestaat niet. **Niet lokaal te verifiëren:** migratie `0125` is niet
+  gedraaid (geen Docker/Supabase-config hier).
+  Bestaande schema's repareren zichzelf niet: het foute blok staat al
+  gepubliceerd. Daarom toont het eventpaneel nu "In schema zetten" bij een event
+  waar je ja op zei maar dat geen blok heeft — één klik zet het erin en laat het
+  schema eromheen herzien.
+  **Bewust niet gebouwd:** geen serverside GPX-schatting per lid (dat vraagt
+  GPX-parsing bij elke plan-run en werkt alleen bij events mét route; de
+  eventpagina blijft de plek voor het precieze antwoord), en geen automatische
+  reparatie van bestaande schema's tijdens het renderen — dat zou een tweede
+  blok naast het AI-blok zetten zonder dat iemand erom vroeg.
 
 ---
 

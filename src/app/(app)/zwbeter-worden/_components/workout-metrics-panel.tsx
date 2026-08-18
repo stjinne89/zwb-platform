@@ -73,7 +73,8 @@ function powerNote(metrics: WorkoutMetricsSnapshot) {
   return "Zonder vermogensmeter zijn TSS en IF niet te bepalen.";
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/** Eén cijfer in het rooster; ook gebruikt voor de cijfers van een losse rit. */
+export function MetricStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-muted/50 p-3 text-center">
       <div className="text-lg font-semibold tabular-nums">{value}</div>
@@ -132,21 +133,21 @@ export function WorkoutMetricsPanel({
       <WorkoutVerdictPills metrics={metrics} />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <Stat label="TSS" value={nl(metrics.tss)} />
-        <Stat
+        <MetricStat label="TSS" value={nl(metrics.tss)} />
+        <MetricStat
           label="Duur"
           value={metrics.movingMinutes == null ? "-" : `${metrics.movingMinutes} min`}
         />
-        <Stat label="IF" value={nl(metrics.intensityFactor, 2)} />
-        <Stat
+        <MetricStat label="IF" value={nl(metrics.intensityFactor, 2)} />
+        <MetricStat
           label="Gem. HR"
           value={metrics.averageHr == null ? "-" : `${nl(metrics.averageHr)} bpm`}
         />
-        <Stat
+        <MetricStat
           label="Gem. vermogen"
           value={metrics.averageWatts == null ? "-" : `${nl(metrics.averageWatts)}w`}
         />
-        <Stat
+        <MetricStat
           label="NP"
           value={metrics.normalizedWatts == null ? "-" : `${nl(metrics.normalizedWatts)}w`}
         />

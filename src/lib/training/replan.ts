@@ -8,8 +8,8 @@
 // wél opgeslagen en wordt bij de eerstvolgende herziening meegenomen.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { activeBasePlan } from "@/lib/training/active-plan";
 import { startPlanUpdate } from "@/lib/training/draft";
-import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -19,26 +19,6 @@ export const REPLAN_COOLDOWN_MS = 5 * 60_000;
 export type ReplanResult =
   | { started: true; generationId: string }
   | { started: false; reason: "no_plan" | "cooldown" | "failed"; error?: string };
-
-/**
- * Het schema dat nu loopt: een basisplan (geen aanpassing), goedgekeurd of
- * gepubliceerd, en nog niet afgelopen.
- */
-async function activeBasePlan(admin: Admin, profileId: string) {
-  const { data } = await admin
-    .from("training_plans")
-    .select("id, status, end_date, updated_at")
-    .eq("profile_id", profileId)
-    .is("parent_plan_id", null)
-    .in("status", ["published", "approved"])
-    .gte("end_date", amsterdamDayKey())
-    .order("status", { ascending: false })
-    .order("updated_at", { ascending: false })
-    .limit(5);
-
-  const plans = data ?? [];
-  return plans.find((plan) => plan.status === "published") ?? plans[0] ?? null;
-}
 
 /** Loopt er al een verse herziening voor dit lid? */
 async function withinCooldown(admin: Admin, profileId: string) {

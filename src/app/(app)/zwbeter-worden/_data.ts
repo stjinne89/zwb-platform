@@ -28,7 +28,15 @@ import {
   type WorkoutMetricsSnapshot,
 } from "@/lib/training/completion";
 import { refreshWellnessIfStale, type WellnessDevice } from "@/lib/training/wellness";
-import type { GoalRow, PlanRow, ProfileRow, WorkoutRow } from "./_components/types";
+import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
+import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
+import type {
+  GoalRow,
+  PlanRow,
+  ProfileRow,
+  WorkoutReportRow,
+  WorkoutRow,
+} from "./_components/types";
 import type { PendingReview } from "./_components/workout-review-dialog";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
 import type { AvailabilityOptions } from "./_components/availability-form";
@@ -256,6 +264,49 @@ export async function loadMemberWorkouts(
         )
       : rows
   ).sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+}
+
+/** Hoe ver de schemakalender terugkijkt voor gereden ritten. */
+export const SCHEDULE_RIDE_DAYS = 120;
+
+/**
+ * De ritten van het lid waar geen geplande training tegenover stond. Zelfde
+ * bron en venster als de belastingpagina, zodat een rit die daar meetelt ook in
+ * het schema zichtbaar is.
+ */
+export async function loadUnplannedRides(
+  viewer: Viewer,
+  workouts: WorkoutRow[],
+  reports: WorkoutReportRow[],
+  ftpWatts: number | null,
+  days = SCHEDULE_RIDE_DAYS,
+): Promise<UnplannedRide[]> {
+  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const { data } = await viewer.supabase
+    .from("strava_activities")
+    .select(STRAVA_RIDE_COLUMNS)
+    .eq("profile_id", viewer.user.id)
+    .gte("start_date", since)
+    .order("start_date", { ascending: false })
+    .limit(400);
+
+  const rides = (data ?? []) as StravaRideRow[];
+  if (rides.length === 0) return [];
+
+  return unplannedRides(
+    rides,
+    workouts.map((workout) => ({
+      id: workout.id,
+      scheduled_at: workout.scheduled_at,
+      title: workout.title,
+      duration_minutes: workout.duration_minutes,
+      intensity: workout.intensity,
+      structure_json: workout.structure_json,
+      status: workout.status,
+    })),
+    ftpWatts,
+    reports.map((report) => report.paired_activity_id),
+  );
 }
 
 /**
