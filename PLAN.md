@@ -533,8 +533,88 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `/profiel` en op het ledenprofiel (`ProfileReadonlyView`), niet op het publieke
   profiel. Leden zónder Strava voegen handmatig een fiets toe
   (`source='manual'`, `profiel/_actions/bikes.ts`): naam, merk/model, optionele
-  afstand + foto, showcase-only en bewust buiten de onderhoudsfunctie
-  (`/onderhoud` filtert op `source='strava'`). Helpers in `src/lib/strava/bikes.ts`.
+  afstand + foto. Waren showcase-only omdat `/onderhoud` op `source='strava'`
+  filterde; sinds Mijn garage (2026-08-18) doen ze volwaardig mee met een eigen
+  kilometerteller. Helpers in `src/lib/strava/bikes.ts`.
+
+- **ZWBlokken** (2026-08, migr. `0111`+`0112`): kaart met verkende blokken per
+  lid en voor de club (`zwblokken/_components/blocks-map.tsx`), dekking per
+  provincie en per Europees land (`coverage.tsx`), en een ranglijst op aantal
+  blokken. Nav-item, dashboard- en statsintegratie, hulpsectie met zoekindex.
+  Privacyregel: start- en eindblok tellen nooit mee, plus de eerste en laatste
+  kilometer.
+- **Schema-herziening ZWBeter Worden** (2026-08, migr. `0113`–`0116`): het schema
+  beweegt mee met het lid in plaats van één keer gegenereerd te blijven
+  (`root_plan_id`, `adaptation_kind`, `origin`, `event_id`). De maand is de
+  ingang; aanpassen blijft bij de trainer. Het schema bouwt naar het
+  urenplafond toe in plaats van eronder te blijven hangen, een taper komt alleen
+  bij een doel met één piekdag, en een clubevent komt pas in het schema als het
+  lid ja zegt. Beschikbaarheid per week in `training_availability` (migr. `0115`).
+  Herstel en belastbaarheid verhuisd naar de dagpagina.
+- **Profiel- en hulpronde** (2026-08, migr. `0117`): echte logo's bij de externe
+  profielen, intervals.icu als eigen ID-veld, doorklik naar ZwiftPower,
+  ZwiftRacing.app en Strava, en grijze knoppen met uitleg voor wat er nog
+  ontbreekt. Hulpuitleg over de profielknoppen, het doeltype en het exporteren
+  van een workout naar Zwift via intervals.icu.
+- **Teams: kanaal als logo** (2026-08, migr. `0118`+`0119`): WhatsApp- en
+  Discord-kanaal verschijnen als logo bij de teamnaam.
+- **Kleinere correcties** (2026-08): power-duration curve met
+  vergelijk-knoppen over de volle breedte op mobiel, weekgrafiek in Belasting die
+  bij hover vertelt wat je ziet, import die afstand in meters herkent en 0
+  seconden niet als oneindig snel behandelt, mobiel menu met één linkermarge, en
+  een paar mobiele overloop-fixes.
+- **Strava Brand Guidelines** (2026-08-18, commit `2ba430a`): de aanvraag voor
+  een hogere atletenlimiet vraagt een vinkje dat de app aan de guidelines
+  voldoet, en dat klopte niet. `src/components/strava-brand.tsx` bundelt nu de
+  drie voorschriften: `PoweredByStrava` op elk scherm dat Strava-data toont,
+  `ConnectWithStrava` (de officiële knop, met een `compact`-variant op h-7 zodat
+  hij naast gewone knoppen past) en `ViewOnStrava` voor de terugverwijzing. De
+  logo's in `public/strava/` zijn de onbewerkte bestanden van
+  developers.strava.com. De "View on Strava"-tekst ligt vast en blijft Engels;
+  de opmaak is vet in de grijstint, want de richtlijn vraagt vet, onderstreping
+  óf oranje.
+- **Meldingen, icons en Zwift-ID** (2026-08-18, commit `b269140`, migr. `0120`):
+  icons kwamen uit een breed wordmark op een dekwit vierkant en vulden op 192px
+  een kwart van de tegel; ze komen nu uit het beeldmerk in `public/icon.svg`.
+  De push-badge wees naar datzelfde dekkende bestand, en omdat Android een badge
+  als alfamasker tekent werd dat een massief wit blok — vandaar `badge-96.png`
+  met transparante achtergrond. De root-metadata had geen `openGraph`, waardoor
+  WhatsApp zelf een favicon pakte; nu een liggende 1200×630-kaart uit hetzelfde
+  script. Verder een Zwift-ID-dialoog bij inloggen (`zwift_opt_out` voor wie
+  niet zwift, uitstellen via sessionStorage) en pushtrigger
+  `on_member_pending` naar iedereen met `members.approve` — niet alleen
+  `is_admin`, anders miste de community-manager hem. Bijvangst: de
+  profiel-action sloeg élke tekst op als Zwift-ID; parsers staan nu in
+  `src/lib/profile/ids.ts` en worden ook server-side gebruikt.
+- **Mijn garage** (2026-08-18, commit `90759a1`, migr. `0121`+`0122`):
+  `/onderhoud` heet nu `/mijn-garage` (permanente redirect in `next.config.ts`).
+  Fietstype per fiets (`discipline`, gegokt uit de gearnaam via
+  `src/lib/maintenance/guess-discipline.ts`, correctie overleeft de sync), een
+  catalogus met negentien onderdeeltypes per discipline, en een tweede
+  slijtagemaat in maanden voor remvloeistof, kabels, vering en stuurlint.
+  Draaiuren kunnen niet: `strava_activities` heeft geen `gear_id`. Tips-databank
+  `maintenance_tips` met RLS, geshuffeld per onderdeel; ledencitaten komen via
+  een WhatsApp-export op `/beheer/citaten` waar de naamkoppeling wordt
+  voorgesteld maar nooit automatisch toegewezen. Elk citaat houdt zijn
+  `profile_id` zodat het lid het zelf beheert onder "Mijn citaten" op zijn
+  profiel. Onderbouwing in `docs/onderhoud-per-fietstype.md`; 33 tips ingezet in
+  migr. `0124` (commit `0e71389`).
+- **Gebruikersvoorwaarden** (2026-08-18): nieuwe publieke pagina
+  `/voorwaarden` naar het model van `/privacy`, met de onderhoudsdisclaimer als
+  eigen paragraaf en de afspraak over ledencitaten. Er was tot nu toe geen
+  voorwaardenpagina in het project.
+- **Klachtenlogboek en geslachtsveld** (2026-08-18, commit `90759a1`, migr.
+  `0123`): `profiles.sex` vervangt het afleiden van geslacht uit `zrl_division`
+  — dat is een wedstrijdklasse, geen fysiologie. Nieuw logboek onder
+  `/zwbeter-worden/logboek` (`symptom_logs`, opt-in via
+  `symptom_tracking_enabled`, RLS alleen eigen rijen, trainers zien niets). Het
+  schema krijgt één samengevat signaal mee naast readiness en TSB.
+  **Bewust afgeweken van het plan:** er zou op cyclusfase gepersonaliseerd
+  worden, maar fase-effecten op prestatie zijn in de literatuur inconsistent en
+  zwak onderbouwd, en bij hormonale anticonceptie is een faseberekening
+  betekenisloos. Klachtenlast hangt wél samen met belastbaarheid. Onderbouwing
+  in `docs/training-en-cyclus.md`, vervolgvoorstel in
+  `docs/voorstel-training-vrouwen.md`.
 
 ---
 
