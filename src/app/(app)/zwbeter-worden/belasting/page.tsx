@@ -1,3 +1,4 @@
+import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState } from "@/components/app-ui";
 import {
   rideLoadRows,
@@ -109,6 +110,8 @@ export default async function ZwbeterWordenLoadPage() {
           />
         )}
       </section>
+
+      <StravaAttribution />
     </div>
   );
 }

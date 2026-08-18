@@ -2,8 +2,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowRight,
-  ArrowUpRight,
   BadgeCheck,
   Bike,
   CalendarDays,
@@ -38,8 +36,11 @@ import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
 import { StravaImportForm } from "@/components/strava-import-form";
 import { StravaSyncButton } from "@/components/strava-sync-button";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  ConnectWithStrava,
+  StravaAttribution,
+  ViewOnStravaLabel,
+} from "@/components/strava-brand";
 import { hasActivityScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 
@@ -888,13 +889,7 @@ export default async function DashboardPage({
             {canSyncStrava ? (
               <StravaSyncButton variant="sync" />
             ) : (
-              <Link
-                href="/api/strava/connect"
-                className={cn(buttonVariants({ variant: "outline" }))}
-              >
-                <ArrowUpRight data-icon="inline-start" />
-                {strava ? "Strava opnieuw koppelen" : "Strava koppelen"}
-              </Link>
+              <ConnectWithStrava reconnect={Boolean(strava)} />
             )}
             <StravaImportForm />
           </div>
@@ -919,7 +914,6 @@ export default async function DashboardPage({
                       <span className="text-muted-foreground">
                         {activity.name ?? "Activiteit"}
                       </span>
-                      <ArrowRight className="ml-1 inline size-3.5 text-muted-foreground" />
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(activity.start_date).toLocaleDateString("nl-NL", {
@@ -950,12 +944,14 @@ export default async function DashboardPage({
                         {activity.kudos_count}
                       </span>
                     )}
+                    <ViewOnStravaLabel />
                   </div>
                 </a>
               </li>
             ))}
           </ul>
         )}
+        <StravaAttribution />
       </section>
 
       <section>

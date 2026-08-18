@@ -3,6 +3,7 @@
 
 import { Calendar, Mountain } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
+import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import { summarizeTrainingReadiness, type WellnessDevice } from "@/lib/training/wellness";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
@@ -222,22 +223,20 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
                 <span className="text-xs text-muted-foreground">
                   {formatDayMonth(activity.start_date, false)}
                 </span>
-                <a
-                  href={`https://www.strava.com/activities/${activity.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Open deze rit op Strava"
-                  className="block truncate text-sm font-medium transition hover:text-primary hover:underline"
-                >
+                <span className="block truncate text-sm font-medium">
                   {activity.name ?? "Rit"}
-                </a>
-                <span className="text-xs text-muted-foreground">
+                </span>
+                <span className="flex items-center gap-3 text-xs text-muted-foreground">
                   {formatKm(toNum(activity.distance_m))} - {formatHours(activity.moving_time_seconds)}
+                  <ViewOnStrava activityId={activity.id} />
                 </span>
               </li>
             ))}
           </ul>
         )}
+        <div className="p-4 pt-0">
+          <StravaAttribution className="mt-0" />
+        </div>
       </section>
     </div>
   );

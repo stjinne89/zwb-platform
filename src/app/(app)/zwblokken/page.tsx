@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import {
   countNewThisYear,
@@ -117,6 +118,8 @@ export default async function ZwblokkenPage() {
           )}
         </>
       )}
+
+      <StravaAttribution />
     </div>
   );
 }

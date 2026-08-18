@@ -18,6 +18,7 @@ import {
   Sunrise,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 
 type ActivityRow = {
@@ -477,6 +478,7 @@ export async function RiderStats({
             />
           )}
         </div>
+        <StravaAttribution />
       </div>
     </section>
   );
@@ -556,6 +558,7 @@ function BestRow({
         {activity.name ? `${activity.name} · ` : ""}
         {date}
       </span>
+      <ViewOnStrava activityId={activity.id} />
     </li>
   );
 }

@@ -4,6 +4,7 @@ import { Bike, Clock, Mountain, Trophy, Users, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { StravaAttribution } from "@/components/strava-brand";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 
 export const dynamic = "force-dynamic";
@@ -402,6 +403,8 @@ export default async function StatsPage({
           </section>
         </>
       )}
+
+      <StravaAttribution />
     </div>
   );
 }

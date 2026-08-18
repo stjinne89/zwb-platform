@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { ConnectWithStrava, StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, PageHeader, SectionHeader } from "@/components/app-ui";
 import { cn } from "@/lib/utils";
 import {
@@ -99,16 +99,7 @@ export default async function OnderhoudPage() {
     return (
       <div className="space-y-6">
         {header}
-        <EmptyState
-          action={
-            <Link
-              href="/profiel#strava"
-              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
-            >
-              Strava koppelen
-            </Link>
-          }
-        >
+        <EmptyState action={<ConnectWithStrava />}>
           Koppel eerst Strava om je fietsen en kilometers op te halen.
         </EmptyState>
       </div>
@@ -228,6 +219,8 @@ export default async function OnderhoudPage() {
           </section>
         );
       })}
+
+      <StravaAttribution />
     </div>
   );
 }

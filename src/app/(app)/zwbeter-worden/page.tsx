@@ -1,4 +1,5 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { StravaAttribution } from "@/components/strava-brand";
 import {
   intensityLabel,
   normalizeWorkoutBlocks,
@@ -301,6 +302,8 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
       <AdjustTodayForm />
 
       {pendingReview ? <WorkoutReviewDialog review={pendingReview} /> : null}
+
+      <StravaAttribution />
     </div>
   );
 }

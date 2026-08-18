@@ -30,6 +30,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-ui";
+import { ConnectWithStrava } from "@/components/strava-brand";
 import { HelpSearch } from "./help-search";
 
 const START_STEPS = [
@@ -736,13 +737,7 @@ export default function HelpPage() {
             <span>Start daarna op Achievements een Strava-sync.</span>
           </li>
         </ol>
-        <Link
-          href="/api/strava/connect"
-          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
-        >
-          <Medal className="size-4 text-primary" />
-          Strava opnieuw koppelen
-        </Link>
+        <ConnectWithStrava reconnect className="mt-4" />
       </section>
 
       <section

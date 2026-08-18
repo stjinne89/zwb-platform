@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { type StravaBikeRow } from "@/lib/strava/bikes";
+import { StravaAttribution } from "@/components/strava-brand";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -99,6 +100,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           weeklyAwards={weeklyAwards}
           bikes={bikes}
         />
+        {bikes.length > 0 && <StravaAttribution />}
       </div>
     </main>
   );

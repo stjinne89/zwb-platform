@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { formatBadgeValue } from "@/lib/achievements/awards";
@@ -383,6 +384,8 @@ export default async function AchievementsPage() {
           </div>
         </div>
       </section>
+
+      <StravaAttribution />
     </div>
   );
 }

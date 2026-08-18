@@ -7,6 +7,7 @@ import { disconnectStrava } from "../../achievements/_actions";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HelpLink } from "@/components/app-ui";
+import { ConnectWithStrava, StravaAttribution } from "@/components/strava-brand";
 import { cn } from "@/lib/utils";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 
@@ -87,20 +88,7 @@ export function StravaSection({
             >
               Naar achievements
             </Link>
-            <Link
-              href="/api/strava/connect"
-              className={cn(
-                buttonVariants({
-                  variant:
-                    missingActivityScope || missingWriteScope
-                      ? "default"
-                      : "outline",
-                  size: "sm",
-                }),
-              )}
-            >
-              Opnieuw koppelen
-            </Link>
+            <ConnectWithStrava reconnect />
             <Button
               type="button"
               size="sm"
@@ -143,15 +131,11 @@ export function StravaSection({
           </div>
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
+          <StravaAttribution />
         </div>
       ) : (
         <div className="mt-3 space-y-3">
-          <Link
-            href="/api/strava/connect"
-            className={cn(buttonVariants({ variant: "default", size: "sm" }))}
-          >
-            Koppel met Strava
-          </Link>
+          <ConnectWithStrava />
         </div>
       )}
     </section>
