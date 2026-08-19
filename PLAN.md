@@ -755,6 +755,38 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `/dashboard` en kwam dus bovenaan het dashboard uit, terwijl de knop verderop
   staat. Hij heet nu "Naar Strava-sync" — gelijk aan "Naar herstel-instelling"
   ernaast — en springt via `#strava-sync` naar het kaartje met de sync-knop.
+- **Dubbele trainingen bij een lid zonder intervals.icu** (2026-08-19, geen
+  migratie): het schema toonde elke trainingsdag twee keer — één keer uit het
+  basisplan en één keer uit de bijwerking ernaast. Oorzaak zat niet in het tonen
+  maar in het opruimen: `retireSupersededWorkouts` is alleen bereikbaar via
+  `pushPlanWorkoutsToIntervals`, en die stapte helemaal bovenaan uit zodra het
+  lid geen `intervals_connections`-rij had. Het vervangen van het oude schema is
+  echter ZWB-boekhouding (`superseded_at` in `training_workouts`) en heeft met
+  intervals.icu niets te maken; alleen het wíssen van de kalender-events daar
+  hangt van de koppeling af, en dat regelt `retireSupersededWorkouts` zelf al per
+  workout (`if (workout.intervals_event_id && connection)`). Zonder koppeling
+  bleef er dus niets superseded en stapelde elke herziening een compleet schema
+  bovenop het vorige — en `loadMemberWorkouts` haalt alle niet-vervangen workouts
+  van het lid op, over alle plannen heen. Opruimen gebeurt nu vóór de
+  koppelingscheck, en de uitkomst (`superseded`) gaat ook mee in het
+  `connected: false`-antwoord. Voor een gekoppeld lid verandert er niets: zelfde
+  volgorde, zelfde argumenten.
+  **Niet lokaal te verifiëren:** er is hier geen Supabase, dus dit is niet tegen
+  echte data gedraaid. `npx tsc --noEmit`, `npm test` (482 tests) en eslint op het
+  gewijzigde bestand zijn schoon; `supersedableWorkouts` had al dekking in
+  `tests/unit/supersede.test.ts` en die regels zijn niet aangeraakt.
+  **Bewust niet gebouwd:** (1) geen opschoning achteraf van de dubbelingen die al
+  in de database staan — dat vraagt om per lid te kijken welk plan het echte is,
+  en dat is een migratie op gegevens die niemand hier kan controleren; (2) publiceren
+  zonder intervals.icu blijft geweigerd (`"Dit lid heeft intervals.icu nog niet
+  gekoppeld."`) — dat is een productkeuze, geen bug, en zo'n plan blijft dus als
+  concept in het schema staan; (3) niet gerepareerd is de omgekeerde volgorde:
+  wordt een bijwerking gepubliceerd nádat er al een nieuwer plan bestaat, dan
+  laat de "nooit een nieuwer plan wegstrepen"-regel beide workouts op die dag
+  staan. Die regel is er niet voor niets — zonder haar streepten twee
+  herzieningen elkaar volledig weg — en de spiegelregel (je eigen workout laten
+  wijken voor een nieuwer plan) zou een dag leeghalen zodra het nieuwere plan een
+  nog niet toegepast nachtvoorstel is.
 
 ---
 

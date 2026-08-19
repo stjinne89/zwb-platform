@@ -224,9 +224,10 @@ export async function pushPlanWorkoutsToIntervals(
         .is("superseded_at", null)
         .order("scheduled_at", { ascending: true }),
     ]);
-  if (!conn?.api_key || !conn?.athlete_id) {
-    return { connected: false, pushed: 0, failed: 0, superseded: 0 };
-  }
+  const connection =
+    conn?.api_key && conn?.athlete_id
+      ? { api_key: conn.api_key as string, athlete_id: conn.athlete_id as string }
+      : null;
 
   // Een bijgewerkt schema vervangt alles vanaf de bijwerkdatum, ook de dagen
   // waar het nu bewust géén training meer plant.
@@ -239,19 +240,30 @@ export async function pushPlanWorkoutsToIntervals(
 
   // Eerst opruimen, dan pas de nieuwe workouts plaatsen: anders staan er kort
   // twee trainingen op dezelfde dag in intervals.icu.
+  //
+  // Dit gebeurt ook zónder koppeling. Het vervangen is ZWB-boekhouding en niet
+  // iets van intervals.icu: stond de opruiming achter de koppeling, dan bleef
+  // bij een lid zonder intervals.icu het oude schema gewoon staan naast het
+  // nieuwe en zag het elke trainingsdag dubbel — één keer uit het basisplan en
+  // één keer uit de bijwerking. Alleen het verwijderen in de kalender daar
+  // hangt van de koppeling af, en dat regelt retireSupersededWorkouts zelf.
   const superseded = await retireSupersededWorkouts(
     admin,
     planId,
     profileId,
-    { api_key: conn.api_key, athlete_id: conn.athlete_id },
+    connection,
     range,
   ).catch(() => 0);
+
+  if (!connection) {
+    return { connected: false, pushed: 0, failed: 0, superseded };
+  }
 
   const riderFtp = riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null;
   let pushed = 0;
   let failed = 0;
   for (const workout of workouts ?? []) {
-    const ok = await pushOneWorkout(admin, workout as PublishableWorkout, conn, riderFtp);
+    const ok = await pushOneWorkout(admin, workout as PublishableWorkout, connection, riderFtp);
     if (ok) pushed++;
     else failed++;
   }
