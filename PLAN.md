@@ -755,8 +755,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `/dashboard` en kwam dus bovenaan het dashboard uit, terwijl de knop verderop
   staat. Hij heet nu "Naar Strava-sync" — gelijk aan "Naar herstel-instelling"
   ernaast — en springt via `#strava-sync` naar het kaartje met de sync-knop.
-- **Dubbele trainingen bij een lid zonder intervals.icu** (2026-08-19, geen
-  migratie): het schema toonde elke trainingsdag twee keer — één keer uit het
+- **Dubbele trainingen bij een lid zonder intervals.icu** (2026-08-19, commit
+  `0917a26`, geen migratie): het schema toonde elke trainingsdag twee keer — één keer uit het
   basisplan en één keer uit de bijwerking ernaast. Oorzaak zat niet in het tonen
   maar in het opruimen: `retireSupersededWorkouts` is alleen bereikbaar via
   `pushPlanWorkoutsToIntervals`, en die stapte helemaal bovenaan uit zodra het
@@ -788,7 +788,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   wijken voor een nieuwer plan) zou een dag leeghalen zodra het nieuwere plan een
   nog niet toegepast nachtvoorstel is.
 - **Een niet-gepubliceerd concept stond naast het lopende schema** (2026-08-19,
-  geen migratie): vervolg op het punt hierboven, en dit is de oorzaak bij een lid
+  commit `3072521`, geen migratie): vervolg op het punt hierboven, en dit is de oorzaak bij een lid
   dát intervals.icu gekoppeld heeft en de dubbeling alleen in ZWB ziet.
   `insertPlanWorkouts` schrijft de workouts van een AI-generatie meteen weg,
   terwijl het vervangen van het oude schema (`superseded_at`) pas bij het
@@ -806,7 +806,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   niet-lopend schema (`draft`/`review`) op de dagen waar een lopend schema
   (`published`/`approved`) zelf iets heeft staan. Het concept zelf blijft
   gewoon in de schemalijst staan en publiceerbaar; alleen de kalender toont het
-  niet meer naast het echte schema.
+  niet meer naast het echte schema. In de praktijk bevestigd: bij het lid waar
+  het speelde zijn de dubbele dagen na deze wijziging weg.
   **Bewust niet gebouwd:** (1) concepten niet altijd verbergen maar alleen op
   bezette dagen — een lid dat alléén een concept heeft (bv. omdat publiceren
   zonder intervals.icu wordt geweigerd) zou anders een lege kalender krijgen, en
