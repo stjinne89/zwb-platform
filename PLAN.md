@@ -787,6 +787,34 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   herzieningen elkaar volledig weg — en de spiegelregel (je eigen workout laten
   wijken voor een nieuwer plan) zou een dag leeghalen zodra het nieuwere plan een
   nog niet toegepast nachtvoorstel is.
+- **Een niet-gepubliceerd concept stond naast het lopende schema** (2026-08-19,
+  geen migratie): vervolg op het punt hierboven, en dit is de oorzaak bij een lid
+  dát intervals.icu gekoppeld heeft en de dubbeling alleen in ZWB ziet.
+  `insertPlanWorkouts` schrijft de workouts van een AI-generatie meteen weg,
+  terwijl het vervangen van het oude schema (`superseded_at`) pas bij het
+  publiceren gebeurt. Tussen die twee momenten staan beide schema's compleet in
+  `training_workouts`, en `loadMemberWorkouts` haalt alles op wat niet vervangen
+  is — over alle plannen heen. Dat venster is lang niet altijd kort: een
+  trainerschema blijft concept tot de trainer publiceert, en een eigen bijwerking
+  blijft het voorgoed als `pushPlanWorkoutsToIntervals` onderweg klapte (de
+  aanroep in `createPlanFromAiGeneration` staat achter `.catch(() => null)`, dus
+  dan draait het opruimen óók niet). Er stond al een filter voor precies dit
+  probleem, maar alleen voor het nachtelijke dagvoorstel
+  (`status='draft' && adaptation_kind='daily'`); elk ander concept viel erbuiten.
+  `withoutConceptDuplicates` (`src/lib/training/active-plan.ts`, getest in
+  `tests/unit/concept-duplicates.test.ts`) verbergt nu de workouts van een
+  niet-lopend schema (`draft`/`review`) op de dagen waar een lopend schema
+  (`published`/`approved`) zelf iets heeft staan. Het concept zelf blijft
+  gewoon in de schemalijst staan en publiceerbaar; alleen de kalender toont het
+  niet meer naast het echte schema.
+  **Bewust niet gebouwd:** (1) concepten niet altijd verbergen maar alleen op
+  bezette dagen — een lid dat alléén een concept heeft (bv. omdat publiceren
+  zonder intervals.icu wordt geweigerd) zou anders een lege kalender krijgen, en
+  leeg is erger dan dubbel; (2) een workout van een onbekend plan blijft staan,
+  om dezelfde reden; (3) het "eerstvolgende workout"-blok op het dashboard heeft
+  een eigen query (`dashboard/page.tsx`, `limit(1)`) die dit filter niet kent.
+  Dubbel kan het daar niet tonen, maar het kan wel de conceptversie van een dag
+  laten zien. Los te trekken zodra dat blok toch onder handen gaat.
 
 ---
 

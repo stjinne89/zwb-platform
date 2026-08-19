@@ -20,6 +20,7 @@ import {
   syncIntervalsActivities,
 } from "@/lib/intervals/activities";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
+import { withoutConceptDuplicates } from "@/lib/training/active-plan";
 import { loadAvailability, mondayKey, shiftWeeks } from "@/lib/training/availability";
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
@@ -226,12 +227,16 @@ export function zwbStatusFor(
  * bijstelling. Die staan al wel in de database, maar zouden anders naast de
  * bestaande training van diezelfde dag verschijnen — precies de dubbeling die we
  * met het voorstel-strookje wilden voorkomen.
+ *
+ * En om diezelfde reden: elk ánder concept dat nog niet is gepubliceerd, op de
+ * dagen waar het lopende schema al iets heeft staan. Zie
+ * `withoutConceptDuplicates`.
  */
 export async function loadMemberWorkouts(
   viewer: Viewer,
   events: IntervalsEvent[],
 ): Promise<WorkoutRow[]> {
-  const [{ data }, { data: proposalPlans }] = await Promise.all([
+  const [{ data }, { data: planRows }] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("*")
@@ -241,14 +246,24 @@ export async function loadMemberWorkouts(
       .limit(200),
     viewer.supabase
       .from("training_plans")
-      .select("id")
-      .eq("profile_id", viewer.user.id)
-      .eq("status", "draft")
-      .eq("adaptation_kind", "daily"),
+      .select("id, status, adaptation_kind")
+      .eq("profile_id", viewer.user.id),
   ]);
 
-  const proposalIds = new Set((proposalPlans ?? []).map((plan) => plan.id as string));
-  const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !proposalIds.has(row.plan_id));
+  const plans = (planRows ?? []) as Array<{
+    id: string;
+    status: string;
+    adaptation_kind: string | null;
+  }>;
+  const proposalIds = new Set(
+    plans
+      .filter((plan) => plan.status === "draft" && plan.adaptation_kind === "daily")
+      .map((plan) => plan.id),
+  );
+  const rows = withoutConceptDuplicates(
+    ((data ?? []) as WorkoutRow[]).filter((row) => !proposalIds.has(row.plan_id)),
+    plans,
+  );
   const movedDates = events.length
     ? await syncWorkoutDatesFromIntervals(viewer.admin, rows, events).catch(
         () => new Map<string, string>(),

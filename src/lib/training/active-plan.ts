@@ -40,3 +40,51 @@ export async function activeBasePlan(
   // meest recent bijgewerkte.
   return plans.find((plan) => plan.status === "published") ?? plans[0] ?? null;
 }
+
+/**
+ * Statussen waarin een schema meetelt als het lopende schema. Een concept
+ * (`draft`/`review`) is een voorstel: het bestaat wel, met workouts en al, maar
+ * het is nog niemands planning.
+ */
+export const LIVE_PLAN_STATUSES = new Set(["published", "approved"]);
+
+/**
+ * Haalt de conceptworkouts weg op dagen waar het lopende schema zelf al iets
+ * heeft staan.
+ *
+ * `insertPlanWorkouts` zet de workouts van een AI-generatie meteen in de
+ * database, terwijl het vervangen van het oude schema (`superseded_at`) pas bij
+ * het publiceren gebeurt. Tussen die twee momenten staan beide schema's er dus
+ * volledig in, en de schemakalender haalt alles op wat niet vervangen is — over
+ * alle plannen heen. Het lid zag daardoor elke trainingsdag twee keer: één keer
+ * uit zijn lopende schema en één keer uit het concept ernaast. Dat duurt zolang
+ * het concept niet gepubliceerd wordt: bij een trainerschema tot de trainer erop
+ * drukt, en bij een eigen bijwerking voorgoed als de push naar intervals.icu
+ * onderweg klapte.
+ *
+ * Alleen op dagen waar het lopende schema iets heeft. Een concept van een lid
+ * zonder lopend schema blijft dus gewoon zichtbaar — anders zou de kalender
+ * leeg zijn in plaats van dubbel.
+ */
+export function withoutConceptDuplicates<
+  W extends { plan_id: string; scheduled_at: string },
+  P extends { id: string; status: string },
+>(workouts: W[], plans: P[]): W[] {
+  const statusOf = new Map(plans.map((plan) => [plan.id, plan.status]));
+  const isLive = (planId: string) => {
+    const status = statusOf.get(planId);
+    // Onbekend plan: laten staan. Liever een dubbeling dan een lege dag.
+    return status == null || LIVE_PLAN_STATUSES.has(status);
+  };
+
+  const liveDays = new Set(
+    workouts
+      .filter((workout) => isLive(workout.plan_id))
+      .map((workout) => String(workout.scheduled_at).slice(0, 10)),
+  );
+
+  return workouts.filter(
+    (workout) =>
+      isLive(workout.plan_id) || !liveDays.has(String(workout.scheduled_at).slice(0, 10)),
+  );
+}
