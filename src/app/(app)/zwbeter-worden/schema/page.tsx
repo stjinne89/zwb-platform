@@ -14,6 +14,7 @@ import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
 import { EventChoice } from "../_components/event-choice";
+import { FtpTestCard } from "../_components/ftp-test-card";
 import { PlanActions } from "../_components/plan-actions";
 import { PlanRideForm } from "../_components/plan-ride-form";
 import { CollapsibleCard, PlanBadge } from "../_components/ui";
@@ -34,6 +35,7 @@ import {
   externalIntervalsEvents,
   loadAvailabilityOptions,
   loadConnection,
+  loadFtpTestState,
   loadIntervalsSnapshot,
   loadMemberWorkouts,
   loadPlanFamilies,
@@ -58,7 +60,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const viewer = await requireViewer();
 
   const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
-  const [snapshot, plans, { data: reportRows }, { data: goalRows }, availabilityOptions] =
+  const [
+    snapshot,
+    plans,
+    { data: reportRows },
+    { data: goalRows },
+    availabilityOptions,
+    ftpTestState,
+  ] =
     await Promise.all([
       loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }),
       loadPlanFamilies(viewer),
@@ -73,6 +82,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         .eq("profile_id", viewer.user.id)
         .order("created_at", { ascending: false }),
       loadAvailabilityOptions(viewer),
+      loadFtpTestState(viewer),
     ]);
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
@@ -288,6 +298,16 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       <EventChoice events={eventChoices} />
 
       {runningPlan ? <PlanRideForm todayKey={todayKey} /> : null}
+
+      {/* Inplannen doet de trainer; hier vult het lid alleen zijn uitslag in.
+          Zonder test in zicht en zonder historie valt er niets te tonen. */}
+      {ftpTestState.awaitingResult || ftpTestState.upcoming || ftpTestState.lastTest ? (
+        <FtpTestCard
+          upcoming={ftpTestState.upcoming}
+          awaitingResult={ftpTestState.awaitingResult}
+          lastTest={ftpTestState.lastTest}
+        />
+      ) : null}
 
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 

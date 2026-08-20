@@ -61,7 +61,7 @@ export default async function PowerPage({
     ? requestedPeriod!
     : "90d";
 
-  const [profileResult, connectionResult, comparisonResult, sportSettingsResult] =
+  const [profileResult, connectionResult, ftpTestResult, comparisonResult, sportSettingsResult] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -73,6 +73,12 @@ export default async function PowerPage({
         .select("athlete_id, api_key")
         .eq("profile_id", user.id)
         .maybeSingle(),
+      supabase
+        .from("training_ftp_tests")
+        .select("id, tested_on, test_type, result_watts, ftp_watts")
+        .eq("profile_id", user.id)
+        .order("tested_on", { ascending: false })
+        .limit(5),
       supabase
         .from("rider_power_profiles")
         .select(COMPARISON_RIDER_COLUMNS)
@@ -86,6 +92,13 @@ export default async function PowerPage({
     ]);
   const sportSettings = sportSettingsResult.data;
   const profile = profileResult.data;
+  const ftpTests = (ftpTestResult.data ?? []) as Array<{
+    id: string;
+    tested_on: string;
+    test_type: string;
+    result_watts: number;
+    ftp_watts: number;
+  }>;
   const connection = connectionResult.data;
   let comparisonRows: unknown[] | null = comparisonResult.data;
   // Databases zonder de curve-migraties kennen die kolommen niet; val dan stap
@@ -153,7 +166,11 @@ export default async function PowerPage({
     : intervalsFtp
       ? "FTP uit intervals.icu"
       : numberOrNull(profile?.ftp_watts)
-        ? "FTP uit je profiel"
+        ? // Komt de profiel-FTP uit een test, dan is de datum ervan het antwoord
+          // op "hoe oud is dit getal" — de vraag die de tegel oproept.
+          ftpTests[0] && ftpTests[0].ftp_watts === numberOrNull(profile?.ftp_watts)
+          ? `FTP-test van ${new Date(`${ftpTests[0].tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`
+          : "FTP uit je profiel"
         : undefined;
   const power5m = wattsAtDuration(curvePoints, 300);
   const power20m = wattsAtDuration(curvePoints, 1200);
@@ -247,6 +264,34 @@ export default async function PowerPage({
               value={ownWeightKg == null ? "-" : `${ownWeightKg.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} kg`}
             />
           </section>
+
+          {ftpTests.length > 0 ? (
+            <section className="rounded-lg border bg-card p-4 sm:p-5">
+              <h2 className="text-lg font-semibold">FTP-tests</h2>
+              <ul className="mt-3 divide-y text-sm">
+                {ftpTests.map((test) => (
+                  <li key={test.id} className="flex items-center justify-between gap-3 py-2">
+                    <span>
+                      {new Date(`${test.tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      <span className="ml-2 text-muted-foreground">
+                        {test.test_type === "ramp" ? "ramp" : "20 min"}
+                      </span>
+                    </span>
+                    <span className="tabular-nums">
+                      <span className="text-muted-foreground">
+                        {Math.round(Number(test.result_watts))} W gemeten
+                      </span>
+                      <span className="ml-3 font-medium">{test.ftp_watts} W FTP</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {ownPoints.length > 1 ? (
             <section className="rounded-lg border bg-card p-4 sm:p-5">

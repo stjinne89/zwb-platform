@@ -85,3 +85,21 @@ describe("supersedableWorkouts", () => {
     expect(result).toHaveLength(1);
   });
 });
+
+describe("supersedableWorkouts en tests", () => {
+  it("laat een FTP-test staan, ook als die uit de bibliotheek komt", () => {
+    // Een test uit de bibliotheek draagt origin 'ai', maar is een meetmoment:
+    // de wattages van de weken erna hangen aan de uitslag. Wegstrepen zou het
+    // lid met een uitslagvraag zonder training achterlaten.
+    const rows = [
+      { ...workout("oud", "2026-08-11"), test_type: "ramp" },
+      { ...workout("oud", "2026-08-12"), test_type: null },
+    ];
+    const result = supersedableWorkouts(rows, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: alleDagen,
+      wholeRange: true,
+    });
+    expect(result.map((row) => row.scheduled_at.slice(0, 10))).toEqual(["2026-08-12"]);
+  });
+});

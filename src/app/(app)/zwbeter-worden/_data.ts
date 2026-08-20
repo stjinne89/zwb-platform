@@ -21,6 +21,7 @@ import {
 } from "@/lib/intervals/activities";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
 import { loadAvailability, mondayKey, shiftWeeks } from "@/lib/training/availability";
+import { asFtpTestType, loadFtpTests, type FtpTestType, type FtpTestRow } from "@/lib/training/ftp-test";
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import {
@@ -544,4 +545,59 @@ export function upcomingIntervalsEvents(events: IntervalsEvent[], limit = 5) {
     .filter((event) => event.start_date_local >= today)
     .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
     .slice(0, limit);
+}
+
+export type PlannedFtpTest = {
+  workoutId: string;
+  date: string;
+  testType: FtpTestType;
+};
+
+export type FtpTestState = {
+  todayKey: string;
+  /** Een test die nog moet komen. */
+  upcoming: PlannedFtpTest | null;
+  /** Een test die geweest is en waarvan de uitslag nog ontbreekt. */
+  awaitingResult: PlannedFtpTest | null;
+  lastTest: FtpTestRow | null;
+};
+
+/**
+ * Waar een lid staat met zijn FTP-test: staat er één klaar, wacht er één op een
+ * uitslag, en wat was de vorige. Een test die is ingevuld staat op 'completed',
+ * dus alles wat nog op 'planned' staat wacht per definitie nog op een uitslag.
+ *
+ * `profileId` is er voor het trainerscherm, waar het inplannen woont; zonder die
+ * parameter gaat het over de kijker zelf.
+ */
+export async function loadFtpTestState(
+  viewer: Viewer,
+  profileId: string = viewer.user.id,
+): Promise<FtpTestState> {
+  const todayKey = todayKeyAmsterdam();
+  const [{ data: rows }, tests] = await Promise.all([
+    viewer.admin
+      .from("training_workouts")
+      .select("id, scheduled_at, test_type")
+      .eq("profile_id", profileId)
+      .not("test_type", "is", null)
+      .eq("status", "planned")
+      .is("superseded_at", null)
+      .order("scheduled_at", { ascending: true }),
+    loadFtpTests(viewer.admin, profileId, 1).catch(() => []),
+  ]);
+
+  const planned = (rows ?? []).flatMap((row) => {
+    const testType = asFtpTestType(row.test_type);
+    if (!testType) return [];
+    return [{ workoutId: row.id as string, date: String(row.scheduled_at).slice(0, 10), testType }];
+  });
+
+  return {
+    todayKey,
+    upcoming: planned.find((test) => test.date > todayKey) ?? null,
+    // De laatste die geweest is; een test van vandaag mag je 's avonds invullen.
+    awaitingResult: [...planned].reverse().find((test) => test.date <= todayKey) ?? null,
+    lastTest: tests[0] ?? null,
+  };
 }

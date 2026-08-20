@@ -13,6 +13,13 @@ type HelpResult = {
 
 const HELP_INDEX: HelpResult[] = [
   {
+    title: "FTP-test",
+    text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",
+    href: "/hulp#ftp-test",
+    terms:
+      "ftp test ramptest ramp 20 minuten twintig minuten drempel vermogen watt meten uitslag testen targetwatts",
+  },
+  {
     title: "Strava koppelen",
     text: "OAuth-koppeling voor clubritten, badges, cols, fietsen en trainingscontext.",
     href: "/profiel#strava",

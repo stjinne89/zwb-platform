@@ -49,6 +49,12 @@ export type TrainingAiInput = {
   };
   profile: {
     ftpWatts: number | null;
+    /**
+     * Datum van de laatste FTP-test, of null als er nooit een is gedaan. Zonder
+     * dit weet de planner niet of hij met een verse of een jaar oude drempel
+     * rekent, terwijl elk wattage eraan hangt.
+     */
+    ftpTestedOn?: string | null;
     weightKg: number | null;
     zrlCategory: string | null;
     sex: string | null;
@@ -115,21 +121,25 @@ export type TrainingAiInput = {
     elevationM: number | null;
   }>;
   /**
-   * Minuten per weekdag die het lid deze week heeft. Gaat vóór
+   * Minuten per weekdag, per week van de planperiode. Gaat vóór
    * goal.availableDays: dat kent alleen dagen, dit ook de tijd per dag.
+   *
+   * `weeks` bevat alleen de weken die het lid apart heeft ingevuld; voor elke
+   * andere week geldt `default`. Dit was tot 0131 één platte minutenlijst van de
+   * huidige week, waardoor een schema tot de doeldatum werd volgepland op de
+   * beschikbaarheid van déze week.
    */
   availability?: {
-    weekStart: string | null;
-    minutesByDay: Record<string, number>;
-    source: "week" | "default";
+    default: Record<string, number> | null;
+    weeks: Array<{ weekStart: string; minutesByDay: Record<string, number> }>;
   } | null;
-  /** Zelf ingeplande ritten en toegezegde clubevents: die liggen vast. */
+  /** Zelf ingeplande ritten, toegezegde clubevents en tests: die liggen vast. */
   fixedWorkouts?: Array<{
     date: string;
     title: string;
     durationMinutes: number;
     intensity: string;
-    kind: "eigen_rit" | "clubevent";
+    kind: "eigen_rit" | "clubevent" | "ftp_test";
   }>;
   /** Renner-signaal voor vandaag (dag-aanpassing): tijd + gevoel. */
   today?: {

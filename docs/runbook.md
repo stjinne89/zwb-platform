@@ -39,6 +39,7 @@ Twee soorten geplande jobs:
 | Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
 | Training-adaptaties (drafts) | Externe cron | dagelijks | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
+| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` (max. 5 per run, synchrone generatie: deze route mag dus minuten duren) | | | | |
 | Team-resultaten sync | Externe cron | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
 | Achievements finalize | Externe cron | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |

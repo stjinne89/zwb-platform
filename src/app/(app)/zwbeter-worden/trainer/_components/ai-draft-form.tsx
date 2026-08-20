@@ -3,6 +3,11 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
+import {
+  FTP_TEST_LABELS,
+  FTP_TEST_TYPES,
+  type FtpTestType,
+} from "@/lib/training/ftp-test";
 
 type DraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
 
@@ -43,6 +48,9 @@ export function AiDraftForm({
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  // Een schema dat met een test begint rekent daarna met een gemeten FTP in
+  // plaats van met het getal dat ooit in het profiel is getypt.
+  const [ftpTest, setFtpTest] = useState<FtpTestType | "">("");
   const [activeGenerationId, setActiveGenerationId] = useState<string | null>(
     initialGenerationId ?? null,
   );
@@ -198,6 +206,35 @@ export function AiDraftForm({
           className="mt-1 w-full rounded-md border bg-background px-2 py-1 font-mono text-xs"
         />
       </label>
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <label className="text-muted-foreground">
+          Start met FTP-test
+          <select
+            name="ftp_test"
+            value={ftpTest}
+            onChange={(event) => setFtpTest(event.target.value as FtpTestType | "")}
+            className="ml-2 rounded-md border bg-background px-2 py-1"
+          >
+            <option value="">Nee</option>
+            {FTP_TEST_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {FTP_TEST_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </label>
+        {ftpTest ? (
+          <label className="text-muted-foreground">
+            Op
+            <input
+              name="ftp_test_date"
+              type="date"
+              defaultValue={new Date().toISOString().slice(0, 10)}
+              className="ml-2 rounded-md border bg-background px-2 py-1"
+            />
+          </label>
+        ) : null}
+      </div>
       <button
         type="submit"
         disabled={disabled}

@@ -3,8 +3,18 @@ import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adaptiveDailyPrompt } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
-import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
-import { buildIntervalsLoad, buildRecentLoad, insertPlanWorkouts } from "@/lib/training/draft";
+import {
+  availabilityNeedsReplan,
+  clearReplanPending,
+  loadPendingReplan,
+} from "@/lib/training/replan";
+import { availabilityForAi, loadFixedWorkouts, mondayKey } from "@/lib/training/availability";
+import {
+  buildIntervalsLoad,
+  buildRecentLoad,
+  insertPlanWorkouts,
+  runPlanUpdateNow,
+} from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 /**
@@ -12,6 +22,15 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
  * de trainingen van die dag, en die zijn inmiddels geweest.
  */
 const PROPOSAL_TTL_DAYS = 3;
+
+/**
+ * Hoeveel volledige herzieningen deze run mag draaien. Een herziening is een
+ * hele generatie over het resterende schema en duurt dus veel langer dan een
+ * dagvoorstel; zonder plafond loopt de run bij een drukke dag tegen de
+ * functietimeout. Wie er vannacht buiten valt, is morgennacht aan de beurt —
+ * de wijziging blijft immers nieuwer dan de laatste herziening.
+ */
+const MAX_PLAN_UPDATES_PER_RUN = 5;
 
 type PlanRow = {
   id: string;
@@ -21,6 +40,7 @@ type PlanRow = {
   title: string;
   end_date: string;
   root_plan_id: string | null;
+  created_at: string;
 };
 
 function since(days: number) {
@@ -35,7 +55,7 @@ function since(days: number) {
 async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>) {
   const { data, error } = await admin
     .from("training_plans")
-    .select("id, profile_id, trainer_id, goal_id, title, end_date, root_plan_id")
+    .select("id, profile_id, trainer_id, goal_id, title, end_date, root_plan_id, created_at")
     .is("parent_plan_id", null)
     .in("status", ["approved", "published"])
     .gte("end_date", new Date().toISOString().slice(0, 10))
@@ -61,6 +81,98 @@ async function archiveStaleProposals(admin: ReturnType<typeof createAdminClient>
   return (data ?? []).length;
 }
 
+type ReplanTrigger = {
+  /** Waarom er herzien wordt; komt in de reden van het bijgewerkte schema. */
+  reason: string;
+  /** 'request' = vastgelegd verzoek, 'availability' = afgeleid uit tijdstempels. */
+  source: "request" | "availability";
+  at: string;
+};
+
+/**
+ * Ligt er voor dit lid een herziening klaar die overdag niet is gelukt?
+ *
+ * Twee bronnen, in deze volgorde. Het vastgelegde verzoek
+ * (`training_replan_requests`) is de gewone weg: elke wijziging die om een
+ * herziening vraagt zet er een, en hij verdwijnt zodra er een schema uit is
+ * gekomen. Dat dekt ook een afmelding, waarbij het blok uit het schema wordt
+ * verwijderd en er dus niets meer valt af te lezen.
+ *
+ * Daarnaast blijft de afleiding op beschikbaarheid staan als terugval: die
+ * wijziging is achteraf nog zichtbaar, dus een verzoek dat nooit is vastgelegd
+ * (of van vóór migratie 0132 dateert) valt daar alsnog op.
+ */
+async function pendingReplanFor(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: PlanRow,
+  todayKey: string,
+): Promise<ReplanTrigger | null> {
+  const request = await loadPendingReplan(admin, plan.profile_id).catch(() => null);
+  if (request) {
+    return { reason: request.reason, source: "request", at: request.requestedAt };
+  }
+
+  const changedAt = await availabilityChangedSinceRevision(admin, plan, todayKey).catch(
+    () => null,
+  );
+  if (!changedAt) return null;
+  return {
+    reason: "Je beschikbaarheid is aangepast.",
+    source: "availability",
+    at: changedAt,
+  };
+}
+
+/**
+ * Beschikbaarheid die is gewijzigd nadat het schema voor het laatst is herzien.
+ *
+ * Bij het opslaan vraagt het lid al meteen een herziening aan, maar die kan zijn
+ * overgeslagen: de cooldown van vijf minuten, een generatie die niemand heeft
+ * opgehaald, of een mislukte call. Zonder deze controle bleef zo'n wijziging
+ * liggen tot het lid toevallig iets anders deed.
+ *
+ * Vergeleken wordt met het laatste moment waarop het schema de beschikbaarheid
+ * werkelijk heeft verwerkt: het aanmaken van het basisplan, of een geslaagde
+ * herziening daarna. Een dagaanpassing telt niet mee — die laat de verdere
+ * toekomst juist met rust en kan een gewijzigde week dus niet hebben verwerkt.
+ *
+ * Weken die al voorbij zijn tellen ook niet mee: daar valt niets meer aan te
+ * plannen.
+ */
+async function availabilityChangedSinceRevision(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: PlanRow,
+  todayKey: string,
+): Promise<string | null> {
+  const weekFloor = mondayKey(todayKey);
+  const [{ data: availability }, { data: lastUpdate }] = await Promise.all([
+    admin
+      .from("training_availability")
+      .select("updated_at")
+      .eq("profile_id", plan.profile_id)
+      .or(`week_start.is.null,week_start.gte.${weekFloor}`)
+      .order("updated_at", { ascending: false })
+      .limit(1),
+    admin
+      .from("training_ai_generations")
+      .select("created_at")
+      .eq("profile_id", plan.profile_id)
+      .eq("adaptation_kind", "plan_update")
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const changedAt = (availability ?? [])[0]?.updated_at as string | undefined;
+  const needed = availabilityNeedsReplan(
+    changedAt,
+    plan.created_at,
+    lastUpdate?.created_at ? String(lastUpdate.created_at) : null,
+  );
+  return needed ? (changedAt as string) : null;
+}
+
 export async function POST(request: Request) {
   const expected = process.env.TRAINING_ADAPTATION_SECRET;
   const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -73,6 +185,7 @@ export async function POST(request: Request) {
 
   try {
     const archived = await archiveStaleProposals(admin).catch(() => 0);
+    let planUpdatesRun = 0;
 
     for (const plan of await latestPlanCandidates(admin)) {
       const today = new Date().toISOString().slice(0, 10);
@@ -84,6 +197,66 @@ export async function POST(request: Request) {
         .gte("created_at", `${today}T00:00:00.000Z`)
         .maybeSingle();
       if (existingRun) continue;
+
+      // Ligt er een herziening klaar, dan is een dagvoorstel het verkeerde
+      // gereedschap: dat laat de verdere toekomst met rust, terwijl de wijziging
+      // vaak juist over een latere week gaat. Dan draait hier een volledige
+      // herziening, en die vervangt het dagvoorstel van vannacht — hij kijkt
+      // naar dezelfde signalen en beslaat meer.
+      if (planUpdatesRun < MAX_PLAN_UPDATES_PER_RUN) {
+        const trigger = await pendingReplanFor(admin, plan, today);
+        if (trigger) {
+          planUpdatesRun += 1;
+          const runLog = { trigger: trigger.source, reason: trigger.reason, at: trigger.at };
+          try {
+            const update = await runPlanUpdateNow({
+              admin,
+              planId: plan.id,
+              actorId: plan.profile_id,
+              reason: `${trigger.reason} Het schema is 's nachts herzien.`,
+              authorized: true,
+            });
+
+            // Geen AI-fout maar een structurele: het schema is afgelopen, hangt
+            // niet aan een doel, of is verdwenen. Morgen lukt het dan ook niet,
+            // dus het verzoek gaat weg in plaats van elke nacht een poging te
+            // kosten.
+            if (!update.ok) {
+              await clearReplanPending(admin, plan.profile_id, new Date().toISOString());
+              await admin.from("training_adaptation_runs").insert({
+                profile_id: plan.profile_id,
+                trainer_id: plan.trainer_id,
+                source_plan_id: plan.id,
+                status: "skipped",
+                input_json: { ...runLog, error: update.error },
+              });
+              results.push({ profileId: plan.profile_id, status: "skipped", error: update.error });
+              continue;
+            }
+            await admin.from("training_adaptation_runs").insert({
+              profile_id: plan.profile_id,
+              trainer_id: plan.trainer_id,
+              source_plan_id: plan.id,
+              draft_plan_id: update.planId,
+              status: "completed",
+              input_json: runLog,
+            });
+            results.push({ profileId: plan.profile_id, status: "plan_update", draftPlanId: update.planId });
+          } catch (err) {
+            const error = err instanceof Error ? err.message : "Nachtelijke herziening faalde.";
+            await admin.from("training_adaptation_runs").insert({
+              profile_id: plan.profile_id,
+              trainer_id: plan.trainer_id,
+              source_plan_id: plan.id,
+              status: "failed",
+              input_json: runLog,
+              error,
+            });
+            results.push({ profileId: plan.profile_id, status: "failed", error });
+          }
+          continue;
+        }
+      }
 
       try {
         const [{ data: recentActivities }, { data: goal }, { data: profile }, { data: sourceWorkouts }] =
@@ -127,7 +300,7 @@ export async function POST(request: Request) {
             buildYesterdayContext(admin, plan.profile_id, plan.id).catch(() => null),
             buildRecentLoad(admin, plan.profile_id),
             buildIntervalsLoad(admin, plan.profile_id),
-            availabilityForAi(admin, plan.profile_id, today),
+            availabilityForAi(admin, plan.profile_id, today, planEnd),
             loadFixedWorkouts(admin, plan.profile_id, today, planEnd).catch(() => []),
           ]);
 

@@ -30,18 +30,19 @@ export async function setRsvp(eventId: string, status: Status) {
   // hoort als vast blok in het schema. Deze knop schreef tot 2026-08-18 alleen
   // de RSVP, waardoor de planner zelf maar iets verzon voor die dag.
   const admin = createAdminClient();
-  const { inserted } = await syncEventWorkout(admin, user.id, eventId, status).catch(() => ({
-    inserted: false,
-  }));
+  const { inserted, removed } = await syncEventWorkout(admin, user.id, eventId, status).catch(
+    () => ({ inserted: false, removed: false }),
+  );
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/kalender");
 
-  // Alleen het schema eromheen laten herzien als er echt iets bij is gekomen;
+  // Alleen het schema laten herzien als er werkelijk iets is veranderd;
   // requestReplan heeft zijn eigen cooldown, maar een AI-run voor niets is nog
-  // steeds een AI-run voor niets.
-  if (inserted) {
+  // steeds een AI-run voor niets. Een afmelding telt ook: die laat een dag leeg
+  // achter waar de planner omheen had gewerkt.
+  if (inserted || removed) {
     const { data: event } = await admin
       .from("events")
       .select("title")
@@ -50,7 +51,9 @@ export async function setRsvp(eventId: string, status: Status) {
     await requestReplan(
       admin,
       user.id,
-      `${event?.title ?? "Clubevent"} toegezegd; schema eromheen.`,
+      inserted
+        ? `${event?.title ?? "Clubevent"} toegezegd; schema eromheen.`
+        : `${event?.title ?? "Clubevent"} afgezegd; die dag opnieuw ingevuld.`,
     ).catch(() => null);
   }
 

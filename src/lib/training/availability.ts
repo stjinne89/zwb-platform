@@ -40,6 +40,22 @@ export type Availability = {
   source: AvailabilitySource;
 };
 
+/** Eén week die het lid apart heeft ingevuld. */
+export type AvailabilityWeekMinutes = {
+  /** Maandag van de week. */
+  weekStart: string;
+  minutesByDay: MinutesByDay;
+};
+
+/**
+ * De beschikbaarheid over een heel planvenster: de weken met een eigen rij, plus
+ * het standaardpatroon dat voor alle andere weken geldt.
+ */
+export type AvailabilityPlan = {
+  default: MinutesByDay | null;
+  weeks: AvailabilityWeekMinutes[];
+};
+
 /**
  * Maandag van de week waarin `dayKey` valt, als "YYYY-MM-DD". Spiegelbeeld van
  * endOfWeekKey() in zwbeterworden.ts, inclusief de UTC-truc op 12:00 zodat een
@@ -145,24 +161,77 @@ export async function loadAvailability(
 }
 
 /**
- * Beschikbaarheid in de vorm die de AI-prompt verwacht. Valt hij terug op het
- * oude available_days, dan geven we niets mee: dat zit al in goal.availableDays
- * en zou anders als harde minutenlimiet worden gelezen.
+ * Alle beschikbaarheid die in een planvenster geldt: elke week met een eigen rij
+ * plus het standaardpatroon voor de rest.
+ *
+ * Deze functie bestond eerst niet, en dat was precies het probleem: de planner
+ * kreeg via loadAvailability() alleen de week van vandaag mee en legde die over
+ * elke week tot de doeldatum. Vulde een lid volgende week in, dan zag het schema
+ * daar niets van terug.
  */
-export async function availabilityForAi(admin: Admin, profileId: string, fromDate: string) {
-  const availability = await loadAvailability(admin, profileId, fromDate).catch(() => null);
-  if (!availability || availability.source === "goal") return null;
+export async function loadAvailabilityRange(
+  admin: Admin,
+  profileId: string,
+  from: string,
+  to: string,
+): Promise<AvailabilityPlan> {
+  const firstWeek = mondayKey(from);
+  const lastWeek = mondayKey(to);
+
+  const { data: rows } = await admin
+    .from("training_availability")
+    .select("week_start, minutes_by_day")
+    .eq("profile_id", profileId)
+    .or(`and(week_start.gte.${firstWeek},week_start.lte.${lastWeek}),week_start.is.null`)
+    .order("week_start", { ascending: true });
+
+  const weeks: AvailabilityWeekMinutes[] = [];
+  let fallback: MinutesByDay | null = null;
+
+  for (const row of rows ?? []) {
+    if (row.week_start == null) {
+      fallback = normalizeMinutesByDay(row.minutes_by_day);
+      continue;
+    }
+    // Ook hier filteren en niet alleen in de query: een week buiten het venster
+    // hoort de planner niet te zien, wat de kolom ook teruggeeft.
+    const week = String(row.week_start).slice(0, 10);
+    if (week < firstWeek || week > lastWeek) continue;
+    weeks.push({ weekStart: week, minutesByDay: normalizeMinutesByDay(row.minutes_by_day) });
+  }
+
+  weeks.sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  return { default: fallback, weeks };
+}
+
+/**
+ * Beschikbaarheid in de vorm die de AI-prompt verwacht, voor het hele bereik dat
+ * gepland wordt. Heeft het lid niets ingevuld — geen weekrij en geen standaard —
+ * dan geven we niets mee: dan geldt het oude available_days, dat zit al in
+ * goal.availableDays, en als minutenlijst zou het een harde limiet worden.
+ */
+export async function availabilityForAi(
+  admin: Admin,
+  profileId: string,
+  from: string,
+  to: string,
+) {
+  const plan = await loadAvailabilityRange(admin, profileId, from, to).catch(() => null);
+  if (!plan) return null;
+  if (!plan.default && plan.weeks.length === 0) return null;
   return {
-    weekStart: availability.weekStart,
-    minutesByDay: availability.minutesByDay as Record<string, number>,
-    source: availability.source,
+    default: (plan.default ?? null) as Record<string, number> | null,
+    weeks: plan.weeks.map((week) => ({
+      weekStart: week.weekStart,
+      minutesByDay: week.minutesByDay as Record<string, number>,
+    })),
   };
 }
 
 /**
- * Wat er in een bereik vastligt: ritten die het lid zelf heeft ingepland en
- * clubevents die het heeft toegezegd. De planner mag ze niet vervangen of
- * verplaatsen, alleen de rest eromheen zetten.
+ * Wat er in een bereik vastligt: ritten die het lid zelf heeft ingepland,
+ * clubevents die het heeft toegezegd en ingeplande tests. De planner mag ze niet
+ * vervangen of verplaatsen, alleen de rest eromheen zetten.
  */
 export async function loadFixedWorkouts(
   admin: Admin,
@@ -172,7 +241,7 @@ export async function loadFixedWorkouts(
 ) {
   const { data } = await admin
     .from("training_workouts")
-    .select("scheduled_at, title, duration_minutes, intensity, origin")
+    .select("scheduled_at, title, duration_minutes, intensity, origin, test_type")
     .eq("profile_id", profileId)
     .in("origin", ["member", "event"])
     .eq("status", "planned")
@@ -186,6 +255,10 @@ export async function loadFixedWorkouts(
     title: workout.title as string,
     durationMinutes: Number(workout.duration_minutes ?? 0),
     intensity: workout.intensity as string,
-    kind: workout.origin === "event" ? ("clubevent" as const) : ("eigen_rit" as const),
+    kind: workout.test_type
+      ? ("ftp_test" as const)
+      : workout.origin === "event"
+        ? ("clubevent" as const)
+        : ("eigen_rit" as const),
   }));
 }

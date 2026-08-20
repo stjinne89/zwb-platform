@@ -27,7 +27,7 @@ import type {
   WorkoutRow,
 } from "../../_components/types";
 import { updateTrainingPlan } from "../../_actions";
-import { activePlan, planUpdateDefaults, todayKeyAmsterdam } from "../../_data";
+import { activePlan, loadFtpTestState, planUpdateDefaults, todayKeyAmsterdam } from "../../_data";
 import { DeleteTrainingPlanButton } from "../_components/delete-training-plan-button";
 import {
   TrainerWorkoutCalendar,
@@ -39,6 +39,7 @@ import {
   WorkoutLibraryPanel,
   type WorkoutTemplateRow,
 } from "../_components/workout-library-panel";
+import { FtpTestPlanner } from "../_components/ftp-test-planner";
 import { loadAthlete, trainerContext } from "../_data";
 
 export const dynamic = "force-dynamic";
@@ -113,6 +114,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   const openPlan = families.find((family) => family.root.status !== "archived")?.root;
   const canPublish = viewer.access.has("training.publish_plans");
 
+  const ftpTestState = await loadFtpTestState(viewer, athleteId);
   const templates = (templateRows ?? []) as WorkoutTemplateRow[];
   const calendarWorkouts: CalendarEditWorkout[] = ((workoutRows ?? []) as WorkoutRow[]).map(
     (workout) => ({
@@ -151,6 +153,16 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   return (
     <div className="space-y-4">
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
+
+      <FtpTestPlanner
+        athleteId={athleteId}
+        todayKey={todayKeyAmsterdam()}
+        hasPlan={Boolean(runningPlan)}
+        upcoming={ftpTestState.upcoming}
+        awaitingResult={ftpTestState.awaitingResult}
+        lastTest={ftpTestState.lastTest}
+      />
+
       <WorkoutLibraryPanel
         templates={templates}
         planId={runningPlan?.id ?? null}

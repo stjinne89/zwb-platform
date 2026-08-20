@@ -7,6 +7,7 @@ import { intervalsWeekUrl } from "@/lib/intervals/links";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import {
   defaultTrainingPrompt,
+  generateTrainingPlanDraft,
   retrieveTrainingPlanDraftBackground,
   startTrainingPlanDraftBackground,
   type GeneratedTrainingPlan,
@@ -24,6 +25,14 @@ import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
+import {
+  asFtpTestType,
+  ftpTestBlocks,
+  ftpTestDurationMinutes,
+  ftpTestTitle,
+  loadFtpTests,
+  type FtpTestType,
+} from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
 import { rootIdOf } from "@/lib/training/plan-tree";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
@@ -71,11 +80,20 @@ type AiGenerationRow = {
   adaptation_reason: string | null;
   adaptation_kind: "day" | "plan_update" | null;
   adapt_from_date: string | null;
+  /** Gevraagde FTP-test bij een nieuw schema; wordt bij het plan een workout. */
+  ftp_test_type: string | null;
+  ftp_test_date: string | null;
+  /**
+   * Wanneer de generatie is gestart, en daarmee wanneer de invoer is opgebouwd.
+   * Alles wat het lid daarna wijzigde zit er niet in — daar rekent het opruimen
+   * van een openstaand herzieningsverzoek mee.
+   */
+  created_at: string;
 };
 
 /** Kolommen die pollAiDraft nodig heeft om het plan te kunnen bouwen. */
 const AI_GENERATION_COLUMNS =
-  "id, profile_id, trainer_id, goal_id, model, status, prompt_summary, response_json, error, openai_response_id, parent_plan_id, adaptation_reason, adaptation_kind, adapt_from_date";
+  "id, profile_id, trainer_id, goal_id, model, status, prompt_summary, response_json, error, openai_response_id, parent_plan_id, adaptation_reason, adaptation_kind, adapt_from_date, ftp_test_type, ftp_test_date, created_at";
 
 function optionalNumber(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -215,6 +233,13 @@ async function buildTrainingInput(
   admin: ReturnType<typeof createAdminClient>,
   athleteId: string,
   goalId: string,
+  /**
+   * Een FTP-test die nog niet bestaat maar wel gepland gaat worden. Bij een
+   * nieuw schema kan de workout er nog niet zijn — er is nog geen plan om hem
+   * aan te hangen — maar de planner moet er wel omheen werken. Hij gaat daarom
+   * als vast blok mee en wordt pas bij het aanmaken van het plan een echte rij.
+   */
+  plannedFtpTest?: { date: string; type: FtpTestType } | null,
 ): Promise<TrainingAiInput> {
   const [{ data: profile }, { data: goal }, recent] = await Promise.all([
     admin
@@ -246,15 +271,30 @@ async function buildTrainingInput(
   // afstemmen op wat het lid werkelijk rijdt in plaats van op wat er stond.
   const compliance = await buildComplianceContext(admin, athleteId).catch(() => null);
 
-  // Wat het lid deze week aan tijd heeft, welke ritten het al zelf heeft
+  // Wat het lid per week aan tijd heeft, welke ritten het al zelf heeft
   // vastgezet, en welke clubevents het heeft toegezegd. Zonder dat eerste plant
   // de AI dwars door een clubrit heen; zonder dat laatste zette hij sessies
-  // klaar voor events waar het lid niet eens heen ging.
-  const [availability, fixedWorkouts, upcomingEvents] = await Promise.all([
-    availabilityForAi(admin, athleteId, today),
+  // klaar voor events waar het lid niet eens heen ging. De beschikbaarheid gaat
+  // over het hele venster: één week meegeven liet de planner elke latere week op
+  // de minuten van vandaag plannen.
+  const [availability, loadedFixedWorkouts, upcomingEvents, ftpTests] = await Promise.all([
+    availabilityForAi(admin, athleteId, today, horizonKey),
     loadFixedWorkouts(admin, athleteId, today, horizonKey).catch(() => []),
     committedEventsForAi(admin, athleteId, today, horizonKey),
+    loadFtpTests(admin, athleteId, 1).catch(() => []),
   ]);
+
+  const fixedWorkouts: NonNullable<TrainingAiInput["fixedWorkouts"]> = [...loadedFixedWorkouts];
+  if (plannedFtpTest) {
+    fixedWorkouts.push({
+      date: plannedFtpTest.date,
+      title: ftpTestTitle(plannedFtpTest.type),
+      durationMinutes: ftpTestDurationMinutes(plannedFtpTest.type),
+      intensity: "threshold",
+      kind: "ftp_test" as const,
+    });
+    fixedWorkouts.sort((a, b) => a.date.localeCompare(b.date));
+  }
 
   return {
     athleteName: profile.display_name ?? "ZWB-lid",
@@ -271,6 +311,7 @@ async function buildTrainingInput(
     },
     profile: {
       ftpWatts: profile.ftp_watts ?? null,
+      ftpTestedOn: ftpTests[0]?.testedOn ?? null,
       weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
       zrlCategory: profile.zrl_category ?? null,
       sex: profile.sex ?? null,
@@ -362,6 +403,50 @@ export async function insertPlanWorkouts(
   return rows.length;
 }
 
+/**
+ * Zet een FTP-test als vaste afspraak in een schema. origin 'member' is geen
+ * detail: alleen daarmee overleeft de test elke herziening — retireSupersededWorkouts
+ * laat wat het lid zelf heeft vastgezet met rust.
+ */
+export async function insertFtpTestWorkout(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    planId: string;
+    profileId: string;
+    trainerId: string | null;
+    date: string;
+    type: FtpTestType;
+  },
+): Promise<string> {
+  const blocks = ftpTestBlocks(input.type);
+  const title = ftpTestTitle(input.type);
+  const { data, error } = await admin
+    .from("training_workouts")
+    .insert({
+      plan_id: input.planId,
+      profile_id: input.profileId,
+      trainer_id: input.trainerId,
+      scheduled_at: `${input.date}T09:00:00+01:00`,
+      title,
+      description:
+        input.type === "ramp"
+          ? "Trap tot je stukgaat; de laatste volledige minuut telt."
+          : "Twintig minuten zo hard als je kunt volhouden; het gemiddelde telt.",
+      duration_minutes: ftpTestDurationMinutes(input.type),
+      intensity: "threshold",
+      target_type: "power",
+      structure_json: blocks,
+      origin: "member",
+      test_type: input.type,
+      publish_status: "pending",
+      intervals_external_id: `zwb-${input.planId}-${input.date}-ftp-test-${input.type}`,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(friendlyDbError(error.message));
+  return data.id as string;
+}
+
 async function createPlanFromAiGeneration(
   admin: ReturnType<typeof createAdminClient>,
   generation: Pick<
@@ -374,6 +459,9 @@ async function createPlanFromAiGeneration(
     | "adaptation_reason"
     | "adaptation_kind"
     | "adapt_from_date"
+    | "ftp_test_type"
+    | "ftp_test_date"
+    | "created_at"
   >,
   planDraft: GeneratedTrainingPlan,
 ) {
@@ -442,6 +530,31 @@ async function createPlanFromAiGeneration(
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
     planDraft.workouts,
   );
+
+  // De gevraagde FTP-test. Die kon bij de generatie nog geen workout worden —
+  // dit plan bestond toen niet — maar de AI heeft er wel omheen gepland, want
+  // hij zat als vast blok in de input.
+  const ftpTestType = asFtpTestType(generation.ftp_test_type);
+  if (ftpTestType && generation.ftp_test_date) {
+    await insertFtpTestWorkout(admin, {
+      planId: plan.id,
+      profileId: generation.profile_id,
+      trainerId: generation.trainer_id,
+      date: String(generation.ftp_test_date).slice(0, 10),
+      type: ftpTestType,
+    }).catch(() => null);
+  }
+
+  // Het openstaande herzieningsverzoek is hiermee ingelost. Alleen wat ouder is
+  // dan deze generatie: wijzigde het lid iets terwijl de AI werkte, dan zat dat
+  // niet in de invoer en moet het verzoek blijven staan voor de volgende ronde.
+  // Dynamische import, anders verwijzen draft.ts en replan.ts naar elkaar.
+  if (generation.adaptation_kind === "plan_update") {
+    const { clearReplanPending } = await import("@/lib/training/replan");
+    await clearReplanPending(admin, generation.profile_id, generation.created_at).catch(
+      () => null,
+    );
+  }
 
   // Schema's die het lid zelf maakt (dag-aanpassing of zelf coachend) hoeven
   // niet langs een trainer: die gaan direct door naar intervals.icu.
@@ -522,7 +635,24 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
       throw new Error("Dit lid heeft jou geen actieve trainer-toegang gegeven.");
     }
 
-    const input = await buildTrainingInput(admin, athleteId, goalId);
+    // Begint dit schema met een FTP-test, dan gaat die als vast blok mee in de
+    // input zodat de AI er omheen plant. De workout zelf kan hier nog niet
+    // bestaan — er is nog geen plan om hem aan te hangen — dus hij wordt bij het
+    // aanmaken van het plan neergezet, uit deze twee velden.
+    const ftpTestType = asFtpTestType(formData.get("ftp_test"));
+    const ftpTestDate = ftpTestType
+      ? optionalString(formData.get("ftp_test_date")) ?? amsterdamDayKey()
+      : null;
+    if (ftpTestDate && !/^\d{4}-\d{2}-\d{2}$/.test(ftpTestDate)) {
+      throw new Error("Ongeldige datum voor de FTP-test.");
+    }
+
+    const input = await buildTrainingInput(
+      admin,
+      athleteId,
+      goalId,
+      ftpTestType && ftpTestDate ? { date: ftpTestDate, type: ftpTestType } : null,
+    );
     const background = await startTrainingPlanDraftBackground(input, promptText, {
       model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
       reasoningEffort: "medium",
@@ -541,6 +671,8 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
         prompt_text: promptText,
         prompt_summary: background.promptSummary,
         openai_response_id: background.responseId,
+        ftp_test_type: ftpTestType,
+        ftp_test_date: ftpTestDate,
       })
       .select("id")
       .single();
@@ -640,7 +772,7 @@ export async function startTodayAdjustmentDraft(
         buildYesterdayContext(admin, user.id, active.id).catch(() => null),
         buildRecentLoad(admin, user.id),
         buildIntervalsLoad(admin, user.id),
-        availabilityForAi(admin, user.id, today),
+        availabilityForAi(admin, user.id, today, planTo),
         loadFixedWorkouts(admin, user.id, today, planTo).catch(() => []),
       ]);
 
@@ -779,33 +911,43 @@ export type GoalUpdates = Partial<{
   available_days: string[];
 }>;
 
-/**
- * De kern van "schema bijwerken": het resterende deel van een lopend schema
- * wordt herzien, met de plan-update-prompt en het bereik vandaag t/m de
- * einddatum van het plan.
- *
- * Wordt aangeroepen door het bijwerkformulier (met nieuwe uitgangspunten) en
- * door requestReplan() in replan.ts, dat na een wijziging in de beschikbaarheid
- * of een zelf ingeplande rit hetzelfde doet zonder het doel aan te raken.
- *
- * `authorized` is voor de trainer-route: die heeft zijn toegang al gecontroleerd
- * met de rechten van de aanroeper. Zonder die vlag mag alleen het lid zelf.
- */
-export async function startPlanUpdate({
-  admin,
-  planId,
-  actorId,
-  reason,
-  goalUpdates,
-  authorized = false,
-}: {
+type PlanUpdateArgs = {
   admin: ReturnType<typeof createAdminClient>;
   planId: string;
   actorId: string;
   reason: string;
   goalUpdates?: GoalUpdates;
   authorized?: boolean;
-}): Promise<TrainingDraftResult> {
+};
+
+type PreparedPlanUpdate = {
+  plan: { id: string; profile_id: string; trainer_id: string | null; goal_id: string };
+  fromDate: string;
+  input: TrainingAiInput;
+  prompt: string;
+};
+
+/**
+ * Alles wat een herziening nodig heeft, klaargezet: rechten gecontroleerd, het
+ * doel bijgewerkt, de resterende workouts erbij en de AI-input compleet.
+ *
+ * Gedeeld door de twee routes hieronder: de directe (achtergrondgeneratie, het
+ * lid kijkt mee en haalt hem op) en de nachtelijke (synchroon, want er kijkt
+ * niemand mee).
+ *
+ * `authorized` is voor de trainer-route: die heeft zijn toegang al gecontroleerd
+ * met de rechten van de aanroeper. Zonder die vlag mag alleen het lid zelf.
+ */
+async function preparePlanUpdate({
+  admin,
+  planId,
+  actorId,
+  reason,
+  goalUpdates,
+  authorized = false,
+}: PlanUpdateArgs): Promise<
+  { ok: false; error: string } | { ok: true; prepared: PreparedPlanUpdate }
+> {
   const { data: plan } = await admin
     .from("training_plans")
     .select("id, profile_id, trainer_id, goal_id, title, summary, end_date, status, root_plan_id")
@@ -896,7 +1038,40 @@ export async function startPlanUpdate({
     })),
   };
 
-  const prompt = planUpdatePrompt();
+  return {
+    ok: true,
+    prepared: {
+      plan: {
+        id: plan.id as string,
+        profile_id: plan.profile_id as string,
+        trainer_id: (plan.trainer_id as string | null) ?? null,
+        goal_id: plan.goal_id as string,
+      },
+      fromDate,
+      input,
+      prompt: planUpdatePrompt(),
+    },
+  };
+}
+
+/**
+ * De kern van "schema bijwerken": het resterende deel van een lopend schema
+ * wordt herzien, met de plan-update-prompt en het bereik vandaag t/m de
+ * einddatum van het plan.
+ *
+ * Wordt aangeroepen door het bijwerkformulier (met nieuwe uitgangspunten) en
+ * door requestReplan() in replan.ts, dat na een wijziging in de beschikbaarheid
+ * of een zelf ingeplande rit hetzelfde doet zonder het doel aan te raken.
+ *
+ * De generatie loopt in de achtergrond; het lid haalt hem op via
+ * /api/training/ai-draft/[id]. Kijkt er niemand mee, gebruik dan
+ * runPlanUpdateNow().
+ */
+export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDraftResult> {
+  const prepared = await preparePlanUpdate(args);
+  if (!prepared.ok) return { ok: false, error: prepared.error };
+  const { plan, fromDate, input, prompt } = prepared.prepared;
+
   const background = await startTrainingPlanDraftBackground(input, prompt, {
     model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
     reasoningEffort: "medium",
@@ -905,14 +1080,14 @@ export async function startPlanUpdate({
   const initialStatus: TrainingDraftStatus =
     background.status === "queued" ? "queued" : "in_progress";
 
-  const { data: aiRow, error: aiError } = await admin
+  const { data: aiRow, error: aiError } = await args.admin
     .from("training_ai_generations")
     .insert({
       profile_id: plan.profile_id,
-      trainer_id: plan.trainer_id ?? actorId,
+      trainer_id: plan.trainer_id ?? args.actorId,
       goal_id: plan.goal_id,
       parent_plan_id: plan.id,
-      adaptation_reason: reason,
+      adaptation_reason: args.reason,
       adaptation_kind: "plan_update",
       adapt_from_date: fromDate,
       model: background.model,
@@ -932,6 +1107,63 @@ export async function startPlanUpdate({
     status: initialStatus,
     message: "Bijgewerkt schema wordt gemaakt.",
   };
+}
+
+/**
+ * Dezelfde herziening, maar synchroon en meteen doorgevoerd. Voor de nacht-cron.
+ *
+ * Een achtergrondgeneratie moet door iemand worden opgehaald voordat er een
+ * schema uit komt; dat doet de browser van het lid. 's Nachts kijkt er niemand
+ * mee, dus zo'n generatie zou tot de volgende keer dat het lid de app opent in
+ * 'queued' blijven hangen. Vandaar hier de synchrone variant: het bijgewerkte
+ * schema staat er 's ochtends gewoon.
+ */
+export async function runPlanUpdateNow(
+  args: PlanUpdateArgs,
+): Promise<{ ok: true; planId: string } | { ok: false; error: string }> {
+  // Vóór het opbouwen van de invoer, niet na de AI-call: dit tijdstip bepaalt
+  // welke verzoeken als ingelost gelden, en de call zelf duurt een minuut.
+  const startedAt = new Date().toISOString();
+
+  const prepared = await preparePlanUpdate(args);
+  if (!prepared.ok) return { ok: false, error: prepared.error };
+  const { plan, fromDate, input, prompt } = prepared.prepared;
+
+  const ai = await generateTrainingPlanDraft(input, prompt, {
+    model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
+    reasoningEffort: "medium",
+    timeoutMs: 120_000,
+  });
+
+  const { data: aiRow, error: aiError } = await args.admin
+    .from("training_ai_generations")
+    .insert({
+      profile_id: plan.profile_id,
+      trainer_id: plan.trainer_id ?? args.actorId,
+      goal_id: plan.goal_id,
+      parent_plan_id: plan.id,
+      adaptation_reason: args.reason,
+      adaptation_kind: "plan_update",
+      adapt_from_date: fromDate,
+      model: ai.model,
+      status: "completed",
+      prompt_text: prompt,
+      prompt_summary: ai.promptSummary,
+      response_json: ai.plan,
+      created_at: startedAt,
+      completed_at: new Date().toISOString(),
+    })
+    .select(AI_GENERATION_COLUMNS)
+    .single();
+  if (aiError) throw new Error(aiError.message);
+
+  const newPlanId = await createPlanFromAiGeneration(
+    args.admin,
+    aiRow as unknown as AiGenerationRow,
+    ai.plan,
+  );
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true, planId: newPlanId };
 }
 
 /** Formulier-route van "Schema bijwerken": rechten checken en dan bijwerken. */

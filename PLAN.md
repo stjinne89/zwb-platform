@@ -550,6 +550,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   urenplafond toe in plaats van eronder te blijven hangen, een taper komt alleen
   bij een doel met één piekdag, en een clubevent komt pas in het schema als het
   lid ja zegt. Beschikbaarheid per week in `training_availability` (migr. `0115`).
+  **Die weekbeschikbaarheid werd tot 2026-08-20 alleen opgeslagen, niet gepland:**
+  de planner kreeg uitsluitend de week van vandaag mee. Rechtgezet, zie hieronder.
   Herstel en belastbaarheid verhuisd naar de dagpagina. **Die laatste claim
   klopte maar half:** alleen de ja-knop in het schemapaneel zette het event er
   echt in; de knop op de eventpagina schreef alleen de RSVP. Rechtgezet op
@@ -764,6 +766,490 @@ Deze sectie is het actieve werkplan. De volgorde is gebaseerd op de huidige
 staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
+
+### Opgeleverd — beschikbaarheid per week, nachtelijk vangnet + FTP-test in het schema
+
+**2026-08-20, gecommit op `main`.** Migraties `0131`-`0133`.
+
+**Beschikbaarheid: de bug.** Werkte een lid zijn schema bij, dan paste de
+planner álle toekomstige weken aan op de beschikbaarheid van déze week — ook
+wanneer er voor volgende week iets anders was ingevuld. Oorzaak was één
+argument: `availabilityForAi(admin, id, today)` laadde via `loadAvailability()`
+precies één week (de rij van die maandag, anders de standaardrij), en
+`TrainingAiInput.availability` was één platte `minutesByDay`. De promptregel
+"plan op een dag nooit langer dan dat aantal minuten" gold daarmee voor elke
+week tot de doeldatum. Erger nog: het opslaan van de beschikbaarheid van
+*volgende* week trapte via `requestReplan()` een herziening af waarvan de input
+die wijziging niet bevatte — een generatie die niets kon veranderen, en de
+5-minuten-cooldown was op.
+
+**Opgelost** met `loadAvailabilityRange(admin, profileId, from, to)`: één query
+over het hele planvenster, teruggegeven als `{ default, weeks[] }` — alleen de
+weken met een eigen rij, de rest valt op de standaardweek terug. De AI-input
+heeft die vorm nu ook, en de prompt zoekt per workout de week op waarin de datum
+valt. Alle drie de aanroepers geven een bereik mee: nieuw schema tot de horizon,
+bijwerking tot de einddatum, dag-aanpassing tot het einde van deze week. Tests
+in `tests/unit/availability.test.ts`.
+
+**FTP-test: waarom.** De FTP was een getal dat je één keer bij je profiel
+intypte en dat daarna nooit meer werd gemeten, terwijl élk wattage in een
+workout eraan hangt (`blockToPowerTarget`). Een schema van acht weken rekende de
+laatste weken dus met een waarde die het lid allang voorbij was — te laag, en
+dus zonder prikkel. Kwam als feedback van een lid.
+
+**Wat er is gebouwd.** Twee protocollen in `src/lib/training/ftp-test.ts`: een
+ramptest (40 min, FTP = 75% van het hoogste minuutvermogen) en een
+20-minutentest (65 min, FTP = 95% van het gemiddelde). Ruwe meting én afgeleide
+FTP gaan de historie in (`training_ftp_tests`), want de omrekenfactor is een
+afspraak en geen natuurwet. Drie ingangen:
+
+- **Inplannen door de trainer**, op het schema-tabblad van het lid
+  (`trainer/_components/ftp-test-planner.tsx`). De test wordt een workout met
+  `origin 'member'` en `test_type`, dus hij overleeft elke herziening en de
+  planner werkt eromheen. Eén openstaande test tegelijk. *Stond in de eerste
+  versie van deze ronde bij het lid zelf; op 2026-08-20 verplaatst omdat wánneer
+  je meet een keuze in de opbouw van het schema is, niet in de dag.*
+- **Als basis van een nieuw schema**: keuze in het AI-conceptformulier van de
+  trainer. De workout kan daar nog niet bestaan — er is nog geen plan om hem aan
+  te hangen — dus hij gaat als vast blok mee in de AI-input en wordt pas bij het
+  aanmaken van het plan een echte rij (`ftp_test_type`/`ftp_test_date` op de
+  generatie-rij, `insertFtpTestWorkout()`).
+- **Uit de workout-bibliotheek** (migratie `0133`), voor wie de test liever
+  zelf ergens in de week zet. `training_workout_templates` kreeg daarvoor een
+  `test_type`: zonder die kolom zou een test uit de bibliotheek een zware rit
+  zijn zonder uitslagvraag. De twee bestaande standaardrijen ('Ramp-test',
+  'FTP-test 20 min' uit `0107`) zijn vervangen door precies de protocollen uit
+  de code, zodat er niet twee bijna-gelijke tests naast elkaar staan.
+  'Test 2x8 min' blijft: dat is een andere test, geen FTP-meting.
+- **De uitslag**, bij het lid op zijn eigen schemapagina
+  (`_components/ftp-test-card.tsx`). Die schrijft de meting weg, zet
+  `profiles.ftp_watts` en vraagt een herziening aan, zodat de wattages van de
+  resterende weken op de nieuwe FTP staan. Dát is de hele reden dat een test in
+  het schema staat. Dit blijft bewust bij het lid: het reed de test en kent het
+  getal; het is geen beslissing maar een waarneming.
+
+De prompt kreeg twee regels: hoe je om een `kind: 'ftp_test'` heen plant (dag
+ervoor licht, dag erna geen sleutelsessie), en dat een FTP ouder dan acht weken
+in `cautions` benoemd hoort te worden — de AI plant zelf nooit een test, hij
+signaleert alleen dat er één nodig is, en die keuze ligt bij de trainer. `profile.ftpTestedOn` gaat daarvoor mee
+in de input. Uitslagen staan als lijst op `/zwbeter-worden/vermogen`, en komt de
+profiel-FTP uit een test, dan noemt de FTP-tegel die datum als bron. Uitleg op
+`/hulp#ftp-test`, met zoekindex-regel.
+
+**Bekende wrijving.** Staat het profiel op *bijhouden vanuit intervals.icu*
+(`auto_sync_physique`), dan overschrijft de eerstvolgende vermogenssync de
+testwaarde met de eFTP van intervals. De test blijft in de historie staan en het
+lid krijgt die zin te zien bij het opslaan; automatisch die instelling uitzetten
+leek te ver gaan.
+
+**Nachtelijk vangnet.** Bij het opslaan van je beschikbaarheid vraagt het lid
+al meteen een herziening aan, maar die kan zijn overgeslagen: de cooldown van
+vijf minuten in `replan.ts`, een achtergrondgeneratie die niemand ophaalde
+(alleen de browser van het lid pollt `/api/training/ai-draft/[id]`), of een
+mislukte call. De comment in `replan.ts` beloofde dat zo'n wijziging "bij de
+eerstvolgende herziening" meekwam, maar niets vroeg die herziening dan alsnog
+aan — een lid dat vier keer aan de schuifbalken zat, verloor de laatste drie
+wijzigingen tot het toevallig iets anders deed. Die belofte klopt nu wel.
+
+De nacht-cron (`/api/training/adaptations/daily`) draaide alleen voor leden met
+een Strava-rit van de afgelopen dag, en gebruikte de dagprompt — die de verdere
+toekomst juist met rust laat en een gewijzigde wéék dus niet kan verwerken. Hij
+kijkt nu eerst of de beschikbaarheid nieuwer is dan de laatste keer dat het
+schema die verwerkte (`availabilityNeedsReplan()` in `replan.ts`, vergeleken met
+het aanmaken van het basisplan en de laatste geslaagde `plan_update`-generatie;
+een dagaanpassing telt niet mee). Zo ja, dan draait er een volledige herziening
+in plaats van het dagvoorstel — die kijkt naar dezelfde signalen en beslaat
+meer, dus twee generaties voor één lid zou verspilling zijn.
+
+Die herziening loopt **synchroon** (`runPlanUpdateNow()`, gedeeld met
+`startPlanUpdate()` via `preparePlanUpdate()`): een achtergrondgeneratie moet
+door iemand worden opgehaald voordat er een schema uit komt, en 's nachts kijkt
+er niemand mee. Het resultaat wordt direct doorgevoerd, net als overdag — geen
+voorstelkaart. Maximaal vijf per run, zodat de route niet tegen de
+functietimeout loopt; wie er vannacht buiten valt is morgennacht aan de beurt,
+want de wijziging blijft nieuwer dan de laatste herziening.
+
+Bijvangst: `saveWeekAvailability` schreef ook wanneer er niets was veranderd. De
+touch-trigger zette `updated_at` dan vooruit, en daar leest de cron aan af of er
+werk is — twee keer op Opslaan drukken zou zo elke nacht een generatie hebben
+gekost. Nu slaat hij een ongewijzigde opslag helemaal over.
+
+**Vangnet voor álle wijzigingen, niet alleen beschikbaarheid** (migratie `0132`).
+De tijdstempel-afleiding hierboven werkt voor een gewijzigde rij, maar niet voor
+een verdwenen rij: `syncEventWorkout()` **verwijdert** het blok als een lid zich
+afmeldt, en `removeOwnRide()` doet hetzelfde met een eigen rit. Aan wat er niet
+meer is valt niets af te lezen. Daarom legt `requestReplan()` het verzoek nu
+zelf vast in `training_replan_requests` — één rij per lid, nieuwste reden wint,
+zodat vier wijzigingen op één avond samen één herziening opleveren. De rij
+verdwijnt in `createPlanFromAiGeneration()` zodra er een herziening uit is
+gekomen, en alleen als het verzoek ouder is dan die generatie: wijzigde het lid
+iets terwijl de AI werkte, dan zat dat niet in de invoer en blijft het verzoek
+staan. De cron leest eerst dat verzoek en gebruikt de reden ervan in het
+bijgewerkte schema; de afleiding op beschikbaarheid blijft ernaast staan als
+terugval voor verzoeken die nooit zijn vastgelegd of van vóór `0132` dateren.
+
+Faalt de herziening structureel — schema afgelopen, geen doel meer — dan wordt
+het verzoek weggehaald in plaats van elke nacht opnieuw een poging te kosten. Een
+mislukte AI-call laat het verzoek juist staan.
+
+Daarbij twee gaten dichtgetrokken die er los van stonden: **afmelden voor een
+clubevent vroeg helemaal geen herziening aan**, niet vanaf de schemapagina
+(`declineClubEvent`) en niet vanaf de eventpagina (die replande alleen bij
+`inserted`). Het blok verdween uit het schema en de vrijgekomen dag bleef leeg
+liggen, terwijl de planner er juist omheen had gepland. Beide vragen nu een
+herziening aan bij `removed`, en het lid ziet in de keuzemodule dat die dag
+opnieuw wordt ingevuld.
+
+**Bewust niet gebouwd.**
+- *De uitslag ook in het beoordelingsvenster van een workout.* Twee invulplekken
+  voor één meting geeft dubbele uitslagen; bovendien verschijnt dat venster
+  alleen als er een Strava-rit aan te koppelen valt, en dan zou een lid zonder
+  koppeling nergens terechtkunnen.
+- *De AI zelf een test laten inplannen.* Hij kan geen `test_type` zetten, dus het
+  zou een gewone zware workout worden zonder uitslagvraag. Hij benoemt het in
+  `cautions`; de trainer kiest.
+- *De trainer ook de uitslag laten invullen.* Kan technisch (de RLS van
+  `training_ftp_tests` laat een trainer met `training.manage_assignments` toe),
+  maar twee invulplekken voor één meting geeft dubbele uitslagen. Pas doen als
+  blijkt dat leden hun uitslag laten liggen.
+- *Meer dan drie weken in het beschikbaarheidsformulier.* De reeks ondersteunt
+  het nu wel, maar vijf tabjes passen niet op een telefoonscherm. Pas doen als
+  iemand er echt om vraagt.
+
+**Niet lokaal te verifiëren.** Migraties `0131` (`test_type` op
+`training_workouts`, `ftp_test_type`/`ftp_test_date` op
+`training_ai_generations`, tabel `training_ftp_tests` met RLS), `0132` (tabel
+`training_replan_requests`, bewust zonder schrijf-policies: alleen de
+service-role zet en wist die rij) en `0133` (`test_type` op
+`training_workout_templates` plus de twee FTP-tests in de bibliotheek, waarbij
+de oude 'Ramp-test' en 'FTP-test 20 min' worden verwijderd) zijn niet gedraaid:
+er is hier geen Docker of Supabase-config. Ook de nachtelijke herziening is niet end-to-end gedraaid —
+daar hoort een cron-aanroep met een OpenAI-call bij; de logica eromheen is wél
+getest (`tests/unit/replan.test.ts`). `npm run build`, `npx tsc --noEmit`,
+`eslint` en de volledige Vitest-suite (575 tests) zijn groen.
+
+Eén regel die daarbij hoort: een workout met `test_type` wordt door
+`supersedableWorkouts()` nooit meer vervangen. Een test uit de bibliotheek draagt
+`origin 'ai'` en zou anders bij de eerstvolgende herziening verdwijnen — met een
+uitslagvraag zonder training als resultaat.
+
+### Actief — ZWB Omnium als platformmodule
+
+**Ronde 1 (datamodel + puntenmotor) opgeleverd 2026-08-19, working tree, nog
+niet gecommit.** Migraties `0126`-`0130`.
+
+**Waarom.** Het Omnium draaide op een losse statische site (bron in OneDrive,
+geen git, live op zwbomnium.netlify.app). Eén editie stond daar verspreid over
+zeven HTML-bestanden zonder bron van waarheid, met minstens negen handmatige
+bewerkingen per ronde. Het gevolg was zichtbaar: `rules.html` stond nog op
+editie 3 terwijl de rest op editie 7 zat, en `index.html`, `rules.html` en de
+eventpagina's noemden alle drie andere routes. Punten werden met de hand vanuit
+ZwiftPower in Google Sheets gescoord en het seizoensklassement matchte renners
+op naam. Vanaf 2026/27 komt daar een YouTube-uitzending en prijzen per
+categorie bij; die opzet schaalt niet op handwerk.
+
+**Nieuw format 2026/27.** Zes edities in plaats van wekelijks: elke tweede
+zondag van de maand van oktober tot en met maart, 11:00 Nederlandse tijd,
+voorbeschouwing 10:30. Data: 11 okt, 8 nov, 13 dec 2026 en 10 jan, 14 feb,
+14 mrt 2027. Onderbouwing: dinsdag valt af omdat de ZRL daar rijdt (en in
+oktober en maart is er geen enkele vrije dinsdag — het Omnium botste vorig
+seizoen frontaal met de ZRL), donderdag om de WTRL TTT, zaterdag om de Zwift
+Insider Tiny Races die hetzelfde format hebben. Overdag in plaats van 's avonds
+omdat negentig minuten op intensiteit daar beter valt; 11:00 opent het veld
+naar Azië en Oceanië en laat Noord-Amerika bewust vallen. Editie 4, 5 en 6
+lopen naast Tour de Zwift en Zwift Games — week-lange etappevensters, dus een
+aandachtsconflict en geen agendaconflict.
+
+**Datamodelkeuzes.** `events` wordt hergebruikt voor één kalenderrij per editie
+(90 minuten) plus de recon; de vier onderdelen leven in
+`omnium_edition_events` en zijn nadrukkelijk géén losse kalenderitems, anders
+vult de ledenkalender zich maandelijks met vier bijna identieke rijen.
+`event_results` is bewust **niet** hergebruikt: dat contract is "één gescrapete
+positie per deelnemer", terwijl de Omnium per renner en onderdeel ook punten,
+status, segmenttijd, FAL-sprintpunten en een league nodig heeft — en die tabel
+is op `authenticated` afgeschermd waar Omnium-uitslagen juist publiek moeten
+zijn. De vorm van `zwift_rider_results` (migratie `0068`) is wel overgenomen.
+`omnium_riders` is nieuw omdat een deelnemer zónder ZWB-profiel over edities
+heen dezelfde persoon moet blijven; zonder stabiele identiteit is een
+seizoens-GC niet betrouwbaar, en dat is precies waar het handwerk vandaan komt.
+
+**RLS.** Nieuw patroon naast de bestaande twee: `anon` mag lezen, maar alleen
+waar `published_at is not null`. Anders dan `/live` (overal
+`createAdminClient()`) en `/profielen` (security-definer RPC's uit `0029`),
+omdat de Omnium bedoeld-publieke content is; een echte anon-policy houdt
+`revalidate` bruikbaar en zet de service-role niet in het pad van een pagina
+die extern verkeer trekt. Schrijven blijft service-role-only.
+`omnium_kit_codes` heeft **geen enkele leespolicy** — kitcodes zijn geheimen.
+
+**Sportieve beslissingen (vastgesteld met Stijn).** Het reglement zegt
+"40, 38, 36 … aflopend tot 1 punt", wat bij stappen van twee nooit op 1
+uitkomt; opgelost met `tail: 1` bij Prologue en Scratch (elke finisher buiten
+de tabel krijgt één punt) en `tail: 0` bij Sprint Quali en Crit Royale. Bij een
+gelijke positie krijgen beide renners de hoogste punten (`tiePolicy: "high"`).
+
+**Nog te bevestigen vóór editie 1:** de tiebreak. Die bestond niet en met
+prijzen per categorie kan dat niet meer. Voorstel staat in
+`src/lib/omnium/scales.ts` als data: per editie punten → Crit Royale →
+overwinningen → countback → gedeelde plaats; per seizoen punten → aantal
+edities → overwinningen → countback → laatste editie → gedeelde plaats.
+Achteraf een tiebreak invoeren die een gepubliceerde uitslag wijzigt is erger
+dan geen tiebreak.
+
+**Bewust niet gebouwd in deze ronde.** Geen UI — de motor eerst, omdat dat het
+enige is dat lokaal hard te bewijzen valt. Geen ZwiftPower-scraping (staande
+ToS-keuze); de plak-import wordt de productieroute en de Zwift-API krijgt een
+spike met open uitkomst, getest op editie 1 zelf. Geen import van de
+GC-sheet van vorig seizoen: die is afgeleid, en hem overnemen zou juist de
+fout verstoppen die de herberekening moet vinden.
+
+**Niet lokaal geverifieerd.** De migraties `0126`-`0130` zijn niet gedraaid —
+er is geen lokale Supabase en geen Docker. Ze zijn alleen op leesbaarheid en
+idempotentie beoordeeld. Datzelfde geldt voor het anon-RLS-gedrag en voor de
+afscherming van `omnium_kit_codes`; beide moeten na deploy handmatig worden
+nagelopen. Wel groen: `npm run test` (527 tests, waarvan 45 nieuw),
+`npx tsc --noEmit`, `npm run lint` en `npm run build`.
+
+**Ronde 2 (beheerscherm + seizoensplanner + editiegenerator) opgeleverd
+2026-08-19, working tree, nog niet gecommit.** Geen migraties.
+
+Nieuw: `/beheer/omnium` met seizoenskeuze, een seizoensplanner die de zes
+concept-edities in één keer neerzet, en een editielijst met publiceren. Plus
+`/beheer/omnium/[editie]` om per editie de titel, slug, intro, YouTube-URL,
+recon en de vier onderdelen (route, wereld, afstand, rondes, duur, pauze,
+Zwift-event-ID, tussensprints) te vullen, met live preview van de vier
+starttijden. Menu-item in `ADMIN_NAV` achter het nieuwe recht `omnium.manage`.
+
+**Drie keuzes die afwijken van het bestaande ZRL-patroon, met reden.**
+(1) `importZrlRound` dedupliceert in code omdat er geen unieke index is; hier
+zijn die er wel, maar een blinde upsert zou het handwerk van de beheerder
+overschrijven. Daarom leest `planSeasonEditions` eerst wat er staat, vult
+alleen aan, en schuift bestaande edities hooguit in tijd — titel, slug en
+routes blijven. (2) Alle schrijfacties lopen via `createAdminClient()`, omdat
+de Omnium-tabellen geen write-policy hebben; het recht wordt daarvoor op de
+RLS-client gecheckt in `requireOmniumAccess`. (3) Publiceren maakt het
+kalenderitem aan (van de voorbeschouwing tot het einde van de Crit Royale);
+**depubliceren verwijdert dat kalenderitem bewust niet**, want daar kunnen al
+RSVP's en chatberichten aan hangen en een zichtbaarheidsknop mag geen data
+weggooien.
+
+**Bewust niet in deze ronde.** Geen pushnotificatie of Discord-bericht bij
+publiceren — dat is ronde 7, en een publieke post hoort een expliciete knop met
+preview te zijn. Geen uitslagenscherm; dat is de volgende ronde. Geen
+uitlegtekst in de formulieren, conform de copy-conventie.
+
+**Niet geverifieerd.** `npm run build` registreert `/beheer/omnium` en
+`/beheer/omnium/[editie]`, en `tsc`, `eslint` en de 527 tests zijn groen. Maar
+de schermen zijn **niet in een browser doorlopen**: zonder sessie stuurt de
+middleware door naar `/login`, en de tabellen `omnium_*` bestaan nog niet omdat
+de migraties `0126`-`0130` niet gedraaid zijn. Eerste echte test is dus na het
+toepassen van die migraties: seizoen aanmaken → plannen → editie vullen →
+publiceren → controleren dat het kalenderitem klopt en dat een uitgelogde
+bezoeker een concept niet ziet.
+
+**Los opgemerkt:** Next.js 16.2.6 waarschuwt dat de `middleware`-conventie
+verouderd is en `proxy` heet. Raakt `src/middleware.ts` en
+`src/lib/supabase/middleware.ts`, staat los van het Omnium, apart op te pakken.
+
+**Ronde 3 (plak-import + klassement) opgeleverd 2026-08-19, working tree, nog
+niet gecommit.** Eén migratiewijziging: `0128` kreeg alsnog `wins` en
+`positions` op `omnium_edition_standings` (zie hieronder). `0128` was nog
+nergens toegepast, dus dat kon in het bestaand blijven.
+
+Nieuw: `src/lib/omnium/parse-results.ts` (tolerante parser), `import.ts` (brug
+naar de puntenmotor), `standings.ts` (herberekenen en bewaren), en
+`/beheer/omnium/[editie]/uitslagen` met per onderdeel plakken → voorbeeld →
+opslaan, plus de stand per league en een herbereken-knop. Dit vervangt het
+handmatig scoren in Google Sheets.
+
+**De parser sorteert kolommen op hun vorm, niet op hun plaats.** Hij kiest zelf
+het scheidingsteken (tab, puntkomma, dubbele spatie, komma — komma als laatste
+omdat namen er zelf een kunnen bevatten), herkent tijden, statussen
+(DNF/DNS/DSQ), Zwift-ID's en leagues, en vult een losse kleur aan tot de
+gepaarde league: "RUBY" wordt `DIAMOND-RUBY`. Wat hij niet snapt komt als
+melding terug in plaats van stil te verdwijnen. Vier invoervormen:
+finishvolgorde, segmenttijd, kant-en-klare critpunten, en sprint-/finishblokken
+waarbij de motor de FAL-punten zelf uitdeelt.
+
+**Drie correcties op eerdere aannames.**
+(1) De CSV van de oude Google Sheet heeft een lege Team-kolom. De
+regelsplitser gooide lege tokens weg — prima voor geplakte uitslagen, fataal
+voor een CSV, want dan schuift elke puntenkolom een plaats op. Er is nu een
+aparte `splitCsvRow` die lege cellen behoudt en quotes aankan.
+(2) De seizoenstiebreak telt overwinningen *per onderdeel* en doet een
+countback op de beste klasseringen, maar die informatie stond niet in
+`omnium_edition_standings`. Zonder `wins` en `positions` zou de GC-tiebreak
+stilzwijgend editie-rangnummers hebben vergeleken — iets anders dan wat er in
+het reglement staat. Kolommen toegevoegd aan `0128`.
+(3) `scoreStoredEdition` draait de crit-nulregel eerst terug en past hem dan
+opnieuw toe. Zonder die reset blijft een renner die eenmaal op nul is gezet
+daar staan, ook nadat zijn ontbrekende uitslag alsnog is ingevoerd — precies
+het scenario van een avond waarop de onderdelen los binnenkomen.
+
+**Ontwerpkeuzes.** De preview gebruikt exact dezelfde rekenweg als het opslaan
+(`scoreParsedRows`); een preview met een eigen berekening is niets waard, want
+dan bevestig je iets anders dan je ziet. Opnieuw importeren van een onderdeel
+vervangt (delete + insert) in plaats van te upserten, zodat een gecorrigeerde
+uitslag geen renners laat staan die er niet meer in horen. Renner-matching gaat
+eerst op Zwift-ID, dan op genormaliseerde naam, en nooit fuzzy — dezelfde
+terughoudendheid als `zwb-detection.ts`. `matched_via` legt per resultaat vast
+welke van de twee het was; dat is straks het verschil tussen een harde match en
+een die bij de historische import nagelopen moet worden.
+
+**Bewust niet in deze ronde.** Geen `mergeRiders`-UI: de server action bestaat
+en wordt automatisch na een samenvoeging doorgerekend, maar het scherm ervoor
+heeft pas zin bij de historische import, want daar ontstaan de dubbelen. Geen
+sheet-CSV-importknop om dezelfde reden — de parser kan het al
+(`parseSheetCsv`), de UI volgt bij ronde 11.
+
+**Niet geverifieerd.** 553 tests groen (73 nieuw), `tsc`, `eslint` en
+`npm run build` schoon, en de drie routes staan in de buildoutput. Maar net als
+ronde 2 is er **niets in een browser doorlopen**: geen sessie en de
+`omnium_*`-tabellen bestaan nog niet. De hele keten plakken → voorbeeld →
+opslaan → stand is dus nog nooit tegen een echte database gedraaid; dat is de
+generale repetitie die vóór 11 oktober moet gebeuren.
+
+**Ronde 4 (publieke `/omnium`-pagina's) opgeleverd 2026-08-19, working tree,
+nog niet gecommit.** Geen migraties.
+
+Nieuw: `src/app/omnium/` met een eigen Engelstalige layout en de pagina's home,
+`regels`, `inschrijven`, `klassement`, `[editie]`, `[editie]/uitslag` en
+`[editie]/startlijst`. Plus `src/lib/omnium/public-data.ts` als leeslaag en
+`src/lib/supabase/public.ts` als derde Supabase-client. `/omnium` staat in
+`PUBLIC_PATHS` en de menu-link wijst niet langer naar zwbomnium.netlify.app maar
+naar `/omnium`.
+
+**Waarom een derde Supabase-client.** `server.ts` leest cookies en maakt de
+route daarmee per definitie dynamisch; `admin.ts` zou de service-role in het pad
+van publiek verkeer zetten. `createPublicClient()` leest als `anon`, valt dus
+precies binnen de policies die alleen gepubliceerd materiaal vrijgeven, en maakt
+de pagina's cachebaar. Resultaat in de buildoutput: `/omnium`,
+`/omnium/inschrijven` en `/omnium/regels` zijn statisch met 5 minuten
+revalidate.
+
+**Twee dingen die de React-compiler-lintregels afdwongen, en allebei terecht.**
+`Date.now()` mag niet tijdens het renderen van een servercomponent worden
+aangeroepen; "welke editie is de eerstvolgende" hoort sowieso in de leeslaag en
+staat nu in `loadFeaturedEdition`. En `LocalTime` gebruikt
+`useSyncExternalStore` in plaats van een effect met `setState`, wat de
+canonieke manier is om na hydratie iets anders te tonen dan op de server.
+
+**Fout die het browseronderzoek blootlegde.** De leeslaag negeerde de
+query-error en gaf bij een mislukte query hetzelfde lege resultaat als bij "nog
+niets gepubliceerd". Een ontbrekende tabel of een te strakke RLS-policy zou er
+dus uitzien als een normale lege pagina — de stilste manier om een storing te
+missen. Elke loader logt nu `[omnium] … mislukt` met de databasefout.
+
+**Geverifieerd in de browser, tegen de draaiende dev-server:** `/omnium` en
+`/omnium/klassement` laden **zonder login** (dus `PUBLIC_PATHS` klopt), de
+metadata-template werkt (`Season standings — ZWB Omnium`), de Engelstalige nav
+rendert, en er zijn geen consolefouten. Verder 553 tests, `tsc`, `eslint` en
+`npm run build` groen, met alle tien Omnium-routes in de buildoutput.
+
+**Niet geverifieerd.** De e2e-assertie dat `/omnium`, `/omnium/klassement` en
+`/omnium/regels` zonder login laden is toegevoegd aan
+`tests/e2e/smoke.spec.ts`, maar **kon niet gedraaid worden**: Next 16 weigert
+een tweede dev-server voor dezelfde map, en er draaide er al een op poort 3000.
+Die is niet afgesloten omdat het niet mijn proces is. Draai
+`npm run test:e2e -- --grep omnium` zodra die server uit staat. De inhoud van
+die assertie is wel handmatig bevestigd (zie hierboven). Verder is er nog geen
+enkele pagina met échte data gezien: er is nog geen gepubliceerd seizoen, dus
+alles toont de lege staat.
+
+**Openstaand punt om te beslissen vóór de links gedeeld worden.** De publieke
+pagina's zijn Engels maar de routes zijn Nederlands (`/omnium/regels`,
+`/omnium/klassement`, `/omnium/[editie]/uitslag`, `/omnium/[editie]/startlijst`).
+Dat volgt de projectconventie en het goedgekeurde plan, maar het is wringend
+voor een internationaal publiek. Wijzigen kan nu nog gratis; zodra deze URL's op
+Zwift, Discord en YouTube staan, breekt elke wijziging bestaande links.
+
+**Generale repetitie tegen de echte database, 2026-08-19.** De migraties
+`0126`-`0130` zijn door Stijn toegepast. Daarna is de hele keten één keer
+doorlopen met een gemarkeerd testseizoen, dat na afloop weer is verwijderd
+(gecontroleerd: nul testrenners, nul uitslagen, nul kalenderitems, nul
+kitcodes). Vastgelegd als `tests/unit/omnium-live.test.ts`, standaard
+overgeslagen en te draaien met `OMNIUM_LIVE=1`; met `OMNIUM_KEEP=1` blijft de
+data staan om de publieke pagina's te bekijken.
+
+Daarmee is alles bevestigd wat eerder in dit document als "niet lokaal te
+verifiëren" stond:
+
+- Het schema klopt: zes edities × vier onderdelen komen door alle constraints.
+- De puntenmotor levert tegen echte data exact de verwachte stand
+  (116 / 113 / 98 / 0) met de juiste rangorde.
+- De crit-nulregel werkt end-to-end: een renner die alleen de Crit Royale reed
+  staat op 0 met `points_raw` 12 en `voided_reason = 'no_other_race'`.
+- **De anon-RLS klopt**: een uitgelogde bezoeker ziet de gepubliceerde editie
+  wel en de vijf concept-edities niet — ook zichtbaar op de publieke
+  seizoenskalender, die maar één ronde toont.
+- **`omnium_kit_codes` is voor niemand leesbaar** behalve de service-role.
+- `/omnium`, `/omnium/klassement` en `/omnium/regels` geven 200 zonder login;
+  de e2e-assertie draait nu wél (`npm run test:e2e -- --grep omnium`). Die kon
+  eerder niet omdat Next 16 geen tweede dev-server voor dezelfde map toestaat.
+
+**Twee fouten die alleen door het bekijken van de gerenderde pagina naar boven
+kwamen, allebei gerepareerd:**
+(1) De geparseerde tijd bereikte de database nooit. `ScoredResult` had wel
+`timeSeconds` maar geen `timeText`, dus de tijdkolom op de uitslagpagina bleef
+leeg — bij een tijdrit is dat precies de informatie waar het om gaat. `timeText`
+loopt nu door parser, motor, opslag en herberekening heen.
+(2) De Crit Royale stond in willekeurige volgorde wanneer de bron alleen punten
+geeft en er dus geen klassering is. De publieke uitslag sorteert nu aflopend op
+punten als tweede sleutel.
+
+**Wat hiermee nog niet getest is:** de beheerschermen zelf. Het aanmaken van een
+seizoen is via het formulier gelukt (het seizoen `2026-27` staat in de database),
+maar plannen, een editie vullen, publiceren en uitslagen plakken zijn nog niet
+door een mens doorgeklikt — het integratiescript spiegelt de databasestappen van
+die server actions, maar niet de React-kant. Dat blijft over voor Stijn.
+
+**Ronde 5 (livestream-basis) opgeleverd 2026-08-19, working tree, nog niet
+gecommit.** Geen migraties.
+
+Nieuw: `/omnium/[editie]/live` met de stream-embed, de aftelling naar de
+voorbeschouwing en de start, een voortgangsbalk van vier onderdelen
+(gescoord / nog te komen) en de meelopende stand per league. Plus de
+componenten `Countdown` en `AutoRefresh`, en een aftelling en "Watch live"-link
+op de homepage en de editiepagina.
+
+**Verversen zonder realtime.** De stand verandert vier keer per uitzending — na
+elk afgerond onderdeel — dus een websocket zou niets toevoegen. De pagina heeft
+`revalidate = 15` en de client pollt elke 20 seconden. Gevolg: hoeveel kijkers
+er ook zijn, de database ziet één query per cachevenster.
+
+**Aftelling zonder effect-cascade.** Zowel `Countdown` als `LocalTime` gebruikt
+`useSyncExternalStore`. Een effect met `setState` zou hier een cascade-render
+zijn en wordt door de React-lintregels afgekeurd; de serversnapshot zorgt er
+bovendien voor dat server en client hetzelfde eerste beeld renderen.
+
+**Geverifieerd tegen de echte database**, via het integratiescript met
+`OMNIUM_KEEP=1` en daarna in de browser:
+- Volledige editie: vier onderdelen "Scored", stand 116 / 113 / 98 / 0.
+- **De tussenstand-situatie waar de pagina voor bedoeld is**: met de Crit
+  Royale eruit toont de pagina drie keer "Scored", één keer "To come", de
+  banner "After 3 of 4 events" en een herberekende stand (98 / 96 / 88) waarin
+  Anna leidt — de Crit draait dat later nog om. De renner die alléén de Crit
+  reed verdwijnt dan terecht uit de stand.
+- De aftelling loopt, met de voorbeschouwing precies dertig minuten vóór de
+  eerste start.
+
+Het integratiescript is uitgebreid met een assertie voor die voorlopige stand en
+is nu herhaalbaar (het ruimt een vorige run zelf op). Testdata na afloop
+gecontroleerd verwijderd.
+
+**Bewust niet in deze ronde.** De OBS-overlay staat volgens de fasering in ronde
+8, samen met het commentatoren-draaiboek. Dat blijft zo, maar het is het
+overwegen waard om hem naar voren te halen: voor de eerste uitzending op
+11 oktober is een browserbron met de stand in beeld waarschijnlijk waardevoller
+dan de publieke live-pagina.
+
+**Daarmee staat alles wat vóór 11 oktober moest staan.** Wat rest is één ding
+dat ik niet kan doen: de beheerschermen één keer met de hand doorlopen
+(plannen → editie vullen → publiceren → uitslag plakken). Het integratiescript
+spiegelt de databasestappen van die server actions, niet de React-kant.
+
+**Volgende rondes:** spike Zwift-uitslagen (te testen op editie 1 zelf),
+startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
+historische import, uitfaseren van de oude site.
 
 ### 0. Documenthygiëne en release-basis
 
@@ -1119,6 +1605,10 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 ## Architectuur-conventies
 
 - **Taal in UI: Nederlands.** Code-comments + variabelen mogen Engels.
+  **Uitzondering sinds 2026-08-19: de publieke `/omnium`-pagina's zijn
+  Engels**, omdat het Omnium een internationaal deelnemersveld heeft dat niet
+  inlogt. De beheerschermen onder `/beheer/omnium` blijven Nederlands. Er komt
+  geen i18n-laag; de Omnium-sectie krijgt `lang="en"` op zijn contentwrapper.
 - **Routes Nederlands**: `/kalender`, `/leden`, `/media`, `/community`,
   `/profiel`, `/achievements` (uitzondering), `/live`. Nieuwe routes
   volgen deze conventie.

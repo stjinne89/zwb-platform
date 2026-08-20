@@ -64,6 +64,7 @@ type SupersedeCandidate = {
   scheduled_at: string;
   status: string;
   origin?: string;
+  test_type?: string | null;
 };
 
 /** Wat het lid zelf heeft vastgezet; een herziening plant daaromheen. */
@@ -72,11 +73,16 @@ const FIXED_ORIGINS = new Set(["member", "event"]);
 /**
  * Welke van de gevonden workouts werkelijk vervangen worden.
  *
- * Vier regels, elk uit een bug:
+ * Vijf regels, elk uit een bug:
  * - Alleen wat nog gepland staat. Gereden of gerapporteerde sessies zijn
  *   geschiedenis, geen planning.
  * - Nooit wat het lid zelf heeft vastgezet: een eigen rit of een toegezegd
  *   clubevent is een afspraak, geen voorstel.
+ * - Nooit een test. Een FTP-test is een meetmoment dat de trainer heeft gekozen
+ *   en waar de wattages van de weken erna aan hangen; een herziening die hem
+ *   wegstreept haalt de meting uit het schema en laat het lid met een
+ *   uitslagvraag zonder training achter. Dit geldt ook voor een test die uit de
+ *   bibliotheek komt en dus origin 'ai' draagt.
  * - Nooit een workout uit een plan dat ná dit plan is gemaakt. Dat is een
  *   recentere beslissing; zonder deze regel streepten twee herzieningen elkaar
  *   volledig weg en bleef er van een hele week niets over.
@@ -92,6 +98,7 @@ export function supersedableWorkouts<T extends SupersedeCandidate>(
     (row) =>
       row.status === "planned" &&
       !FIXED_ORIGINS.has(row.origin ?? "ai") &&
+      !row.test_type &&
       !options.newerPlanIds.has(row.plan_id) &&
       (options.wholeRange || options.dayKeys.has(String(row.scheduled_at).slice(0, 10))),
   );
@@ -157,7 +164,7 @@ export async function retireSupersededWorkouts(
 
   const { data: others } = await admin
     .from("training_workouts")
-    .select("id, plan_id, scheduled_at, intervals_event_id, status, origin")
+    .select("id, plan_id, scheduled_at, intervals_event_id, status, origin, test_type")
     .eq("profile_id", profileId)
     .neq("plan_id", planId)
     .is("superseded_at", null)

@@ -813,6 +813,21 @@ export default function HelpPage() {
               workouts.
             </p>
           </article>
+          <article id="ftp-test" className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">FTP-test</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je trainer zet een ramptest (40 minuten, oplopend tot je stukgaat)
+              of een 20-minutentest (65 minuten, met opener) in je schema. De test
+              ligt daarna vast: er wordt omheen gepland en de dag ervoor blijft
+              licht. Na afloop vul je op je schemapagina onder{" "}
+              <strong className="text-foreground">FTP-test</strong> je resultaat
+              in — het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
+              een 20-minutentest. ZWB rekent daar je FTP uit (75% respectievelijk
+              95%), zet die in je profiel en werkt de targetwatts van de rest van
+              je schema bij. Staat je profiel op bijhouden vanuit intervals.icu,
+              dan zet de eerstvolgende sync je eFTP terug.
+            </p>
+          </article>
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -855,7 +870,10 @@ export default function HelpPage() {
               <strong className="text-foreground">volgende week</strong>; wat je
               onder <strong className="text-foreground">Standaard</strong> zet
               geldt voor elke week die je niet apart invult. Na het opslaan werkt
-              het schema zichzelf bij op de dagen die nog komen.
+              het schema zichzelf bij op de dagen die nog komen. Dat geldt ook
+              als je een rit inplant of je voor een clubevent aan- of afmeldt.
+              Lukt het niet meteen — bijvoorbeeld omdat je schema net al werd
+              bijgewerkt — dan gebeurt het 's nachts alsnog.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">

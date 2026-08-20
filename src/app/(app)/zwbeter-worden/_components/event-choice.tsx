@@ -60,19 +60,28 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
         poll.setError(outcome.error);
         return;
       }
+      // De actie weet zelf of het blok nieuw was of alleen nog moest worden
+      // doorgezet naar intervals.icu. `outcome` is de unie met declineClubEvent,
+      // die geen message kent.
+      const message =
+        "message" in outcome && typeof outcome.message === "string" ? outcome.message : null;
+
       if (meedoen) {
         setResult(
           outcome.generationId
             ? "In je schema gezet. De week eromheen wordt bijgewerkt…"
-            : // De actie weet zelf of het blok nieuw was of alleen nog moest
-              // worden doorgezet naar intervals.icu. `outcome` is de unie met
-              // declineClubEvent, die geen message kent.
-              (("message" in outcome ? outcome.message : null) ?? "In je schema gezet."),
+            : message ?? "In je schema gezet.",
         );
-        if (outcome.generationId) poll.watch(outcome.generationId);
       } else {
-        setResult("Genoteerd; het event blijft uit je schema.");
+        // Stond het event in je schema, dan valt er een dag vrij en wordt die
+        // opnieuw ingevuld.
+        setResult(
+          outcome.generationId
+            ? "Genoteerd. Die dag wordt opnieuw ingevuld…"
+            : "Genoteerd; het event blijft uit je schema.",
+        );
       }
+      if (outcome.generationId) poll.watch(outcome.generationId);
     } catch {
       poll.setError("Opslaan is mislukt.");
     } finally {

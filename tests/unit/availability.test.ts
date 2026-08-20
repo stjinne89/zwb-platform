@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  availabilityForAi,
   clampMinutes,
   loadAvailability,
+  loadAvailabilityRange,
   mondayKey,
   normalizeMinutesByDay,
   shiftWeeks,
@@ -138,5 +140,64 @@ describe("loadAvailability", () => {
     const result = await loadAvailability(admin, "lid", null);
     expect(result.source).toBe("default");
     expect(result.weekStart).toBeNull();
+  });
+});
+
+describe("loadAvailabilityRange", () => {
+  const from = "2026-08-12"; // woensdag in de week van 2026-08-10
+  const to = "2026-09-06"; // zondag in de week van 2026-08-31
+
+  it("scheidt de weekrijen van de standaardrij", async () => {
+    const admin = fakeAdmin({
+      training_availability: [
+        { week_start: null, minutes_by_day: { ma: 60 } },
+        { week_start: "2026-08-17", minutes_by_day: { ma: 0, di: 90 } },
+      ],
+    });
+    const plan = await loadAvailabilityRange(admin, "lid", from, to);
+    expect(plan.default).toEqual({ ma: 60 });
+    expect(plan.weeks).toEqual([
+      { weekStart: "2026-08-17", minutesByDay: { ma: 0, di: 90 } },
+    ]);
+  });
+
+  it("laat weken buiten het venster weg en zet de rest op volgorde", async () => {
+    const admin = fakeAdmin({
+      training_availability: [
+        { week_start: "2026-08-24", minutes_by_day: { wo: 45 } },
+        { week_start: "2026-08-03", minutes_by_day: { wo: 120 } }, // week vóór het venster
+        { week_start: "2026-09-14", minutes_by_day: { wo: 30 } }, // week ná het venster
+        { week_start: "2026-08-10", minutes_by_day: { wo: 60 } },
+      ],
+    });
+    const plan = await loadAvailabilityRange(admin, "lid", from, to);
+    expect(plan.weeks.map((week) => week.weekStart)).toEqual(["2026-08-10", "2026-08-24"]);
+  });
+
+  it("geeft een leeg plan als het lid niets heeft ingevuld", async () => {
+    const admin = fakeAdmin({ training_availability: [] });
+    const plan = await loadAvailabilityRange(admin, "lid", from, to);
+    expect(plan).toEqual({ default: null, weeks: [] });
+  });
+});
+
+describe("availabilityForAi", () => {
+  it("geeft de hele reeks mee, niet alleen de week van vandaag", async () => {
+    const admin = fakeAdmin({
+      training_availability: [
+        { week_start: null, minutes_by_day: { za: 180 } },
+        { week_start: "2026-08-10", minutes_by_day: { za: 60 } },
+        { week_start: "2026-08-17", minutes_by_day: { za: 0 } },
+      ],
+    });
+    const result = await availabilityForAi(admin, "lid", "2026-08-12", "2026-08-23");
+    expect(result?.default).toEqual({ za: 180 });
+    expect(result?.weeks).toHaveLength(2);
+    expect(result?.weeks[1]).toEqual({ weekStart: "2026-08-17", minutesByDay: { za: 0 } });
+  });
+
+  it("geeft niets mee als er geen beschikbaarheid is ingevuld", async () => {
+    const admin = fakeAdmin({ training_availability: [] });
+    expect(await availabilityForAi(admin, "lid", "2026-08-12", "2026-08-23")).toBeNull();
   });
 });

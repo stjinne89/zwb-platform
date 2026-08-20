@@ -27,6 +27,13 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { reviewNotificationBody } from "@/lib/training/completion";
+import {
+  asFtpTestType,
+  FTP_TEST_LABELS,
+  recordFtpTest,
+} from "@/lib/training/ftp-test";
+import { insertFtpTestWorkout } from "@/lib/training/draft";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
 
@@ -731,7 +738,7 @@ export async function addWorkoutFromTemplate(formData: FormData) {
         .maybeSingle(),
       admin
         .from("training_workout_templates")
-        .select("title, description, duration_minutes, intensity, target_type, structure_json")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json, test_type")
         .eq("id", templateId)
         .maybeSingle(),
     ]);
@@ -756,6 +763,9 @@ export async function addWorkoutFromTemplate(formData: FormData) {
       intensity: template.intensity,
       target_type: template.target_type,
       structure_json: template.structure_json,
+      // Een test uit de bibliotheek blijft een test: alleen met test_type vraagt
+      // het schema achteraf om de uitslag en wordt de FTP ermee bijgewerkt.
+      test_type: template.test_type ?? null,
       publish_status: "pending",
       // Zelfde vorm als de AI-flow, zodat intervals.icu de workout bij een
       // herpublicatie bijwerkt in plaats van dubbel neer te zetten.
@@ -795,7 +805,7 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
         .maybeSingle(),
       admin
         .from("training_workout_templates")
-        .select("title, description, duration_minutes, intensity, target_type, structure_json")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json, test_type")
         .eq("id", templateId)
         .maybeSingle(),
     ]);
@@ -814,6 +824,9 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
         intensity: template.intensity,
         target_type: template.target_type,
         structure_json: template.structure_json,
+        // Ook als hij leeg is: vervang je een test door een gewone training, dan
+        // hoort de uitslagvraag mee te verdwijnen.
+        test_type: template.test_type ?? null,
         publish_status: "pending",
         publish_error: null,
       })
@@ -925,21 +938,29 @@ export async function saveWeekAvailability(formData: FormData) {
 
     const { data: existing } = await admin
       .from("training_availability")
-      .select("id, minutes_by_day")
+      .select("id, minutes_by_day, note")
       .eq("profile_id", user.id)
       .filter("week_start", weekStart ? "eq" : "is", weekStart ?? null)
       .maybeSingle();
 
+    const note = optionalString(formData.get("note"));
     const unchanged =
       existing != null &&
+      (existing.note ?? null) === note &&
       JSON.stringify(normalizeMinutesByDay(existing.minutes_by_day)) ===
         JSON.stringify(minutesByDay);
+
+    // Niets gewijzigd: ook niet schrijven. De touch-trigger zou updated_at
+    // anders vooruitzetten, en daar leest de nacht-cron aan af of er nog een
+    // herziening nodig is — een lid dat twee keer op Opslaan drukt zou zo elke
+    // nacht een generatie kosten.
+    if (unchanged) return { ok: true as const, generationId: null };
 
     const values = {
       profile_id: user.id,
       week_start: weekStart,
       minutes_by_day: minutesByDay,
-      note: optionalString(formData.get("note")),
+      note,
       updated_by: user.id,
     };
     const result = existing
@@ -950,7 +971,6 @@ export async function saveWeekAvailability(formData: FormData) {
     if (result.error) throw new Error(result.error.message);
 
     revalidatePath("/zwbeter-worden", "layout");
-    if (unchanged) return { ok: true as const, generationId: null };
 
     const replan = await requestReplan(
       admin,
@@ -1065,6 +1085,156 @@ export async function planOwnRide(formData: FormData) {
 }
 
 /**
+ * Een FTP-test inplannen. Dezelfde vorm als een eigen rit — origin 'member', dus
+ * een afspraak die elke herziening overleeft — maar met een vast protocol en een
+ * test_type, zodat we er later de uitslag bij kunnen vragen.
+ *
+ * Dit is trainerswerk: wánneer je test hoort bij de opbouw van het schema, niet
+ * bij de dag zelf. Het lid vult na afloop alleen de uitslag in.
+ */
+export async function planFtpTest(formData: FormData) {
+  try {
+    const { user, access } = await currentUser();
+    const admin = createAdminClient();
+    const athleteId = mustString(formData.get("athlete_id"), "Lid");
+
+    if (
+      !access.has("training.manage_assignments") &&
+      !(await canCoach(admin, user.id, athleteId))
+    ) {
+      throw new Error("Geen trainer-toegang voor dit lid.");
+    }
+
+    const date = mustString(formData.get("date"), "Datum");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Ongeldige datum.");
+    const testType = asFtpTestType(formData.get("test_type"));
+    if (!testType) throw new Error("Kies een testvorm.");
+
+    const plan = await activeBasePlan(admin, athleteId);
+    if (!plan) {
+      throw new Error("Dit lid heeft geen lopend schema om een test in te plannen.");
+    }
+
+    // Twee tests naast elkaar leveren twee uitslagen voor dezelfde FTP op, en de
+    // tweede zou de eerste stilletjes overschrijven.
+    const { data: existing } = await admin
+      .from("training_workouts")
+      .select("scheduled_at")
+      .eq("profile_id", athleteId)
+      .not("test_type", "is", null)
+      .eq("status", "planned")
+      .is("superseded_at", null)
+      .gte("scheduled_at", `${amsterdamDayKey()}T00:00:00`)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      throw new Error(
+        `Er staat al een FTP-test gepland op ${String(existing.scheduled_at).slice(0, 10)}.`,
+      );
+    }
+
+    const workoutId = await insertFtpTestWorkout(admin, {
+      planId: plan.id,
+      profileId: athleteId,
+      trainerId: plan.trainer_id ?? user.id,
+      date,
+      type: testType,
+    });
+
+    // Zelfde reden als bij een eigen rit: zonder deze push blijft het blok op
+    // 'pending' staan en haalt het intervals.icu nooit.
+    await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    const replan = await requestReplan(
+      admin,
+      athleteId,
+      `${FTP_TEST_LABELS[testType]} ingepland op ${date}.`,
+    );
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FTP-test inplannen faalde.",
+    };
+  }
+}
+
+/**
+ * De uitslag van een test vastleggen. Dit is de stap waar het om draait: de
+ * meting gaat de historie in én wordt de nieuwe FTP van het profiel, waarna een
+ * herziening de wattages van de resterende weken op dat getal zet.
+ */
+export async function saveFtpTestResult(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+
+    const testType = asFtpTestType(formData.get("test_type"));
+    if (!testType) throw new Error("Kies een testvorm.");
+    const testedOn = mustString(formData.get("tested_on"), "Datum");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(testedOn)) throw new Error("Ongeldige datum.");
+    const resultWatts = optionalNumber(formData.get("result_watts"));
+    if (resultWatts == null || resultWatts < 50 || resultWatts > 999) {
+      throw new Error("Vul een vermogen tussen 50 en 999 watt in.");
+    }
+
+    const workoutId = optionalString(formData.get("workout_id"));
+    if (workoutId) {
+      const { data: workout } = await admin
+        .from("training_workouts")
+        .select("id, profile_id, test_type")
+        .eq("id", workoutId)
+        .maybeSingle();
+      if (!workout || workout.profile_id !== user.id || !workout.test_type) {
+        throw new Error("Deze test hoort niet bij jou.");
+      }
+    }
+
+    const { ftpWatts, previousFtpWatts, overwrittenByIntervals } = await recordFtpTest(admin, {
+      profileId: user.id,
+      workoutId,
+      testedOn,
+      testType,
+      resultWatts,
+      note: optionalString(formData.get("note")),
+      actorId: user.id,
+    });
+
+    if (workoutId) {
+      await admin
+        .from("training_workouts")
+        .update({ status: "completed" })
+        .eq("id", workoutId)
+        .eq("profile_id", user.id);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    revalidatePath("/profiel");
+    const replan = await requestReplan(
+      admin,
+      user.id,
+      `FTP bijgewerkt naar ${ftpWatts} W na een ${FTP_TEST_LABELS[testType].toLowerCase()}.`,
+    );
+    return {
+      ok: true as const,
+      ftpWatts,
+      previousFtpWatts,
+      overwrittenByIntervals,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Uitslag opslaan faalde.",
+    };
+  }
+}
+
+/**
  * Meedoen aan een clubevent: je antwoord vastleggen én het event als vast blok
  * in je schema zetten. Daarna past een herziening de week eromheen aan, zodat er
  * geen zware sessie vlak voor of na komt te staan.
@@ -1136,11 +1306,30 @@ export async function declineClubEvent(formData: FormData) {
     );
     if (rsvpError) throw new Error(rsvpError.message);
 
-    await syncEventWorkout(admin, user.id, eventId, "no");
+    const { removed } = await syncEventWorkout(admin, user.id, eventId, "no");
 
     revalidatePath("/zwbeter-worden", "layout");
     revalidatePath("/kalender");
-    return { ok: true as const, generationId: null };
+
+    // Stond het event in je schema, dan valt er nu een dag vrij. Zonder
+    // herziening blijft dat een gat: de planner had die dag om het event heen
+    // gepland en niemand vult hem opnieuw in.
+    if (!removed) return { ok: true as const, generationId: null };
+
+    const { data: event } = await admin
+      .from("events")
+      .select("title")
+      .eq("id", eventId)
+      .maybeSingle();
+    const replan = await requestReplan(
+      admin,
+      user.id,
+      `${event?.title ?? "Clubevent"} afgezegd; die dag opnieuw ingevuld.`,
+    );
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
   } catch (err) {
     return {
       ok: false as const,
