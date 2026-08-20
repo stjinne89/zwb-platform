@@ -767,6 +767,81 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — Geplande belasting kwadratisch, uit het doel van het blok
+
+**2026-08-20, working tree.** Geen migratie.
+
+**Waarom.** Jeroen reed een tempo-workout van 75 min volledig in ERG-mode op
+Zwift — dus per definitie precies volgens plan — en kreeg "Te zwaar · 123% van
+gepland" te zien. Geen incident maar een rekenfout: `estimateTrainingLoad`
+telde `minuten × IF` op (lineair), terwijl de gereden kant
+(`trainingStressScore`) TSS kwadratisch berekent, zoals TSS is gedefinieerd
+(een uur op IF x levert x² × 100). Beide getallen heetten "TSS" en werden in
+`loadPercentage` op elkaar gedeeld.
+
+De twee schalen kruisen elkaar alleen bij IF 0,6. Daarboven kwam de planning
+structureel te laag uit, en dus het nalevingspercentage te hoog: tempo +30%,
+drempel +58%, VO2max +92%, anaeroob +117%. Dat het nooit opviel komt doordat de
+enige testcase 60 minuten duur was — precies het ene punt waar lineair en
+kwadratisch hetzelfde antwoord geven.
+
+De schade zat niet alleen in het label. `publish.ts` stuurt deze schatting als
+geplande belasting naar intervals.icu, `projectCtl` op de trainerpagina voedt er
+de CTL-projectie mee, en `avgLoadPct` gaat mee in de AI-prompt — waar de regel
+"structureel te zwaar zónder hoge RPE betekent dat het schema te voorzichtig is,
+verhoog duur en volume" precies verkeerd om vuurde voor ieder lid dat zijn
+drempel- en VO2max-sessies netjes reed.
+
+**Wat er staat.** `estimateTrainingLoad(blocks, ftpWatts)` rekent nu
+`minuten/60 × IF² × 100`, en de IF komt uit het doel van het blok zelf ("80%",
+"210-235w") via het bestaande `powerRangePercentForBlock`. Zonder leesbaar doel
+valt hij terug op het midden van `INTENSITY_FTP_RANGE` — dezelfde band die
+`blocksToWorkoutDoc` naar intervals.icu en de fietscomputer stuurt, zodat de
+schatting rekent met het wattage dat het lid werkelijk voorgeschreven krijgt.
+De eigen factorentabel binnen de functie is weg; die tweede, lagere schaal naast
+`INTENSITY_FTP_RANGE` wás het probleem.
+
+Wattage-doelen worden gedeeld door de FTP die je meegeeft, niet door de FTP van
+het moment waarop het schema is gemaakt: 210w is een zwaardere sessie geworden
+als de FTP sindsdien is gezakt, en dat hoort de belasting te zien. Alle vijf de
+aanroepers geven nu een FTP mee (`compliance`, `completion`, `publish`,
+`summary-writer`, trainer-overzicht); zonder FTP blijft een wattage-doel
+onleesbaar en geldt de band van de intensiteit.
+
+Effect op het nalevingspercentage van een sessie die exact volgens plan is
+gereden:
+
+| workout | oud | nieuw | loadPct oud |
+| --- | --- | --- | --- |
+| Duur 90' @68% | 54 | 69 | 128% |
+| Tempo 75' (het geval van Jeroen) | 50 | 62 | 124% |
+| Drempel 2×20, 75' | 56 | 80 | 143% |
+| VO2max 5×4, 60' | 43 | 62 | 144% |
+
+**Wat bewust niet is gebeurd.** De nalevingsband (`COMPLIANCE_LOW` 80,
+`COMPLIANCE_HIGH` 115) blijft ongewijzigd. Ook met een correcte kwadratische
+blok-som komt een perfect in ERG gereden workout rond de 105% uit: een gereden
+rit meet TSS via het genormaliseerd vermogen over de héle rit, en NP is een
+vierdemachtsgemiddelde, dat bij blokkig werk boven het kwadratische gemiddelde
+van de losse blokken ligt. Dat is echte natuurkunde, geen fout — TrainingPeaks
+heeft hetzelfde. Een expliciete variabiliteits-opslag van ~5% op de planning is
+eerlijker dan de band oprekken, maar dat is een keuze over hoe streng het
+oordeel moet zijn en die hoort niet in een bugfix.
+
+Ook niet aangeraakt: dat ZWB alle historie omrekent met de húdige
+`profiles.ftp_watts`, terwijl intervals.icu de FTP gebruikt die gold op de dag
+van de rit. TSS schaalt kwadratisch met FTP, dus 5% FTP-verschil geeft 10%
+TSS-verschil met terugwerkende kracht over de hele grafiek. Dat is de grootste
+resterende bron van TSS-verschillen tussen ZWB en intervals; daarna komen
+Strava's `weighted_average_watts` als NP (intervals rekent NP zelf uit de
+stream) en `moving_time` versus de volledige activiteitsduur. Vraagt een eigen
+ronde, want het betekent een FTP-historie bijhouden.
+
+**Niet lokaal verifieerbaar.** De doorwerking naar intervals.icu (de
+`trainingLoad` die `publish.ts` meestuurt) is niet getest — daarvoor is een
+echte koppeling nodig. Bestaande, al gepubliceerde workouts houden daar hun oude
+lagere waarde tot ze opnieuw worden gepusht.
+
 ### Opgeleverd — GPX downloaden vanaf de event-pagina
 
 **2026-08-20, working tree.** Geen migratie.
@@ -2050,7 +2125,9 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
      W', LTHR) wordt gesynct maar alleen op `/zwbeter-worden/vermogen` gebruikt.
      De AI valt terug op de generieke banden in `INTENSITY_FTP_RANGE`
      (`src/lib/training/workouts.ts`), die conservatiever zijn dan wat leden van
-     JOIN gewend zijn.
+     JOIN gewend zijn. Let op: sinds 2026-08-20 hangt ook `estimateTrainingLoad`
+     aan die banden (als terugval zonder leesbaar blokdoel), dus wie ze verruimt
+     verhoogt tegelijk de geschatte belasting van elk schema.
   3. **RPE-tabel spreekt de prompt tegen.** Het promptvoorbeeld "RPE 6, 210-235w"
      is 72-80% FTP, terwijl `percentRangeForRpe(6)` 80-90% geeft
      (`src/lib/training/targets.ts`). Bij dezelfde RPE kan de UI-hint ~25w
@@ -2058,6 +2135,38 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
   Eerst meten: wat is de actuele eFTP versus de opgeslagen `profiles.ftp_watts`?
   Dat bepaalt of dit vooral een bronprobleem (1) of een zonemodel-probleem (2/3) is.
+
+- **Geen FTP-historie: alle TSS wordt omgerekend met de húdige FTP**
+  (2026-08-20, opvolging van de kwadratische belastingfix). `rideMetricsFromStrava`
+  krijgt één `ftpWatts` mee — de huidige `profiles.ftp_watts` — en past die toe op
+  elke rit, ook die van maanden terug. intervals.icu gebruikt de FTP die gold op
+  de dag van de rit. TSS schaalt kwadratisch met FTP, dus 5% verschil geeft 10%
+  TSS-verschil, met terugwerkende kracht over de hele grafiek. Dit is de grootste
+  bron van de TSS-verschillen tussen ZWB en intervals die in de praktijk opvallen.
+  Daarna komen twee kleinere: ZWB neemt Strava's `weighted_average_watts` als NP
+  terwijl intervals NP zelf uit de stream rekent, en ZWB rekent met `moving_time`
+  in plaats van de volledige activiteitsduur.
+
+  Vraagt een eigen ronde: een FTP-historie per lid bijhouden (datum + waarde,
+  gevoed door de FTP-test en door de intervals-sync) en `rideMetricsFromStrava`
+  de FTP van de ritdatum laten opzoeken. Raakt ook de weekgrafiek en de
+  CTL-reeks, dus historische cijfers verschuiven eenmalig. Hangt samen met punt 1
+  hierboven — dezelfde vraag naar welke FTP-bron leidend is, maar dan over de tijd.
+
+- **Naleving komt structureel net boven 100% uit bij blokkige workouts**
+  (2026-08-20, restant van dezelfde fix). Een gereden rit meet TSS via het
+  genormaliseerd vermogen over de héle rit, en NP is een vierdemachtsgemiddelde;
+  de geplande kant is een kwadratische som over losse blokken. Bij blokkig werk
+  ligt het eerste zo'n 5% boven het tweede — dat is de definitie van TSS, geen
+  fout, en TrainingPeaks heeft hetzelfde. Gevolg: wie in ERG exact volgens plan
+  rijdt scoort ~105% in plaats van 100%, en bij variabeler werk loopt dat op.
+
+  `COMPLIANCE_HIGH` staat op 115 en vangt dat nu, maar de marge voor een sessie
+  die wel echt te zwaar was is daarmee smal. Overwegen: een expliciete
+  variabiliteits-opslag van ~5% op `estimateTrainingLoad` in plaats van de band
+  oprekken. Dat is een keuze over hoe streng het oordeel moet zijn — die hoort
+  bij de trainer, niet in een bugfix. Eerst meten: wat is de gemiddelde `loadPct`
+  over sessies die aantoonbaar in ERG zijn gereden?
 
 ---
 

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   detectIntensityFromLoad,
+  estimateTrainingLoad,
   intensityFromLoad,
   intensityFromPct,
   intensityLabel,
+  normalizeWorkoutBlocks,
 } from "@/lib/training/workouts";
 
 /** TSS-per-uur omzetten naar (load, minuten) voor een rit van een uur. */
@@ -80,5 +82,54 @@ describe("intensityLabel", () => {
     expect(intensityLabel(null)).toBe("");
     expect(intensityLabel(undefined)).toBe("");
     expect(intensityLabel("")).toBe("");
+  });
+});
+
+describe("estimateTrainingLoad", () => {
+  const blocks = (rows: Array<Record<string, unknown>>) => normalizeWorkoutBlocks(rows);
+
+  it("rekent kwadratisch: een uur op FTP is 100", () => {
+    expect(
+      estimateTrainingLoad(
+        blocks([{ durationMinutes: 60, target: "100%", intensity: "threshold" }]),
+      ),
+    ).toBe(100);
+    // Half zo hard is een kwart van de belasting, niet de helft.
+    expect(
+      estimateTrainingLoad(
+        blocks([{ durationMinutes: 60, target: "50%", intensity: "recovery" }]),
+      ),
+    ).toBe(25);
+  });
+
+  it("volgt het doel van het blok, niet de intensiteitsklasse", () => {
+    const sweetspot = blocks([{ durationMinutes: 60, target: "88%", intensity: "tempo" }]);
+    const rustigTempo = blocks([{ durationMinutes: 60, target: "77%", intensity: "tempo" }]);
+    expect(estimateTrainingLoad(sweetspot)).toBe(77);
+    expect(estimateTrainingLoad(rustigTempo)).toBe(59);
+  });
+
+  it("leest een wattage-doel af tegen de meegegeven FTP", () => {
+    const block = blocks([{ durationMinutes: 60, target: "200-220w", intensity: "tempo" }]);
+    // 210w op FTP 250 is 84%; op FTP 210 is het precies FTP.
+    expect(estimateTrainingLoad(block, 250)).toBe(71);
+    expect(estimateTrainingLoad(block, 210)).toBe(100);
+  });
+
+  it("valt zonder leesbaar doel terug op de band van de intensiteit", () => {
+    // Zonder FTP is "200-220w" onleesbaar; drempel is dan 91-105%, midden 98%.
+    const block = blocks([{ durationMinutes: 60, target: "200-220w", intensity: "threshold" }]);
+    expect(estimateTrainingLoad(block, null)).toBe(96);
+  });
+
+  it("telt rust niet mee", () => {
+    expect(
+      estimateTrainingLoad(
+        blocks([
+          { durationMinutes: 30, target: "", intensity: "rest" },
+          { durationMinutes: 60, target: "100%", intensity: "threshold" },
+        ]),
+      ),
+    ).toBe(100);
   });
 });

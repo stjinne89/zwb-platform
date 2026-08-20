@@ -119,6 +119,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
         date: workout.scheduled_at.slice(0, 10),
         load: estimateTrainingLoad(
           normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
+          athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts),
         ),
       })),
   );

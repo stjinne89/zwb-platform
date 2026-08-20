@@ -160,7 +160,7 @@ export function complianceForWorkouts(
         workout.structure_json,
         workout.intensity as WorkoutIntensity,
       );
-      const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks) : null;
+      const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks, ftpWatts) : null;
 
       // Een rit kan maar bij één workout horen; zonder deze filter zou een
       // dubbele training op één dag twee keer als "gereden" tellen.

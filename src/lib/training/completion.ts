@@ -149,7 +149,7 @@ export function buildMetricsSnapshot({
     workout.structure_json,
     workout.intensity as WorkoutIntensity,
   );
-  const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks) : null;
+  const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks, ftpWatts) : null;
   const metrics: RideMetrics = ride
     ? rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts)
     : EMPTY_RIDE_METRICS;

@@ -488,19 +488,52 @@ export function blocksToWorkoutDoc(
   return { duration, steps };
 }
 
-export function estimateTrainingLoad(blocks: WorkoutBlock[]) {
-  const factors: Record<WorkoutIntensity, number> = {
-    rest: 0,
-    recovery: 0.45,
-    endurance: 0.6,
-    tempo: 0.78,
-    threshold: 0.95,
-    vo2max: 1.15,
-    anaerobic: 1.3,
-    race: 1.05,
-  };
+/**
+ * De intensiteit waarop een blok wordt gereden, als fractie van FTP. Het doel
+ * van het blok gaat voor — "80%", "210-235w" — en zonder leesbaar doel valt hij
+ * terug op het midden van de band die bij de intensiteit hoort. Rust telt niet.
+ *
+ * Dat is dezelfde bron als blocksToWorkoutDoc naar intervals.icu en de
+ * fietscomputer stuurt, dus de schatting rekent met het wattage dat het lid
+ * werkelijk voorgeschreven krijgt.
+ */
+function loadIntensityFactor(block: WorkoutBlock, ftpWatts: number | null): number {
+  if (block.intensity === "rest") return 0;
+  const [low, high] =
+    powerRangePercentForBlock(block, ftpWatts) ?? INTENSITY_FTP_RANGE[block.intensity];
+  return (low + high) / 200;
+}
+
+/**
+ * Geschatte TSS van een workout, uit de blokken.
+ *
+ * TSS is kwadratisch in intensiteit: een uur op IF x levert x² x 100. Tot
+ * 2026-08-20 telde deze functie `minuten x IF` op — lineair — met een eigen
+ * factorentabel naast INTENSITY_FTP_RANGE. Die twee schalen kruisen elkaar
+ * alleen bij IF 0,6 (duur); daarboven kwam de geplande belasting structureel te
+ * laag uit. Omdat de gereden kant (trainingStressScore) wél kwadratisch rekent,
+ * scoorde een in ERG exact gereden tempo- of drempelsessie 120 tot 160% "van
+ * gepland" en kleurde hij rood als "te zwaar".
+ *
+ * Een wattage-doel wordt gedeeld door de FTP die je meegeeft, niet door de FTP
+ * van het moment waarop het schema werd gemaakt: 210w is een zwaardere sessie
+ * geworden als de FTP sindsdien is gezakt, en dat hoort de belasting te zien.
+ * Zonder FTP blijven wattage-doelen onleesbaar en geldt de band van de
+ * intensiteit.
+ *
+ * Blijft een schatting van de blok-som. Een gereden rit meet TSS via het
+ * genormaliseerd vermogen over de hele rit, en dat is een vierdemachtsgemiddelde
+ * — bij een blokkige workout komt dat zo'n 5% boven deze som uit.
+ */
+export function estimateTrainingLoad(
+  blocks: WorkoutBlock[],
+  ftpWatts: number | null = null,
+) {
   return Math.round(
-    blocks.reduce((total, block) => total + block.durationMinutes * factors[block.intensity], 0),
+    blocks.reduce((total, block) => {
+      const factor = loadIntensityFactor(block, ftpWatts);
+      return total + (block.durationMinutes / 60) * factor * factor * 100;
+    }, 0),
   );
 }
 

@@ -244,6 +244,7 @@ export async function writeZwbSummariesForUser(
             // training_workouts.intensity is via een CHECK beperkt tot deze set.
             matchedWorkout.intensity as WorkoutIntensity,
           ),
+          ftpWatts,
         )
       : null;
     const block = buildZwbSummaryBlock({

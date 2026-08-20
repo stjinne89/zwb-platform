@@ -290,7 +290,7 @@ async function pushOneWorkout(
   try {
     const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity);
     const intervalsText = blocksToIntervalsText(blocks);
-    const trainingLoad = estimateTrainingLoad(blocks);
+    const trainingLoad = estimateTrainingLoad(blocks, riderFtp);
     const externalId = workout.intervals_external_id ?? `zwb-${workout.id}`;
     // intervals.icu parseert de description NIET server-side, dus moeten we
     // zelf een geldig native workout_doc meesturen. Zonder steps bevat de

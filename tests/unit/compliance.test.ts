@@ -45,7 +45,7 @@ function workout(
     title: "Duur 60",
     duration_minutes: 60,
     intensity: "endurance",
-    // 60 min endurance => estimateTrainingLoad = 60 * 0.6 = 36
+    // 60 min op 65% => estimateTrainingLoad = 0,65^2 * 100 = 42
     structure_json: [
       { label: "Duur", durationMinutes: 60, target: "65%", notes: "", intensity: "endurance" },
     ],
@@ -116,13 +116,13 @@ describe("pickRideForWorkout", () => {
 
 describe("complianceForWorkouts", () => {
   it("koppelt een rit en beoordeelt de afwijking", () => {
-    // 36 gepland, 100 gereden => 278%.
+    // 42 gepland, 100 gereden => 238%.
     const [result] = complianceForWorkouts([workout({ id: "w1" })], [ride({ id: 1 })], FTP);
-    expect(result.plannedLoad).toBe(36);
+    expect(result.plannedLoad).toBe(42);
     expect(result.actualLoad).toBe(100);
     expect(result.actualIf).toBe(1);
     expect(result.actualMinutes).toBe(60);
-    expect(result.loadPct).toBe(278);
+    expect(result.loadPct).toBe(238);
     expect(result.verdict).toBe("te_zwaar");
   });
 
@@ -198,7 +198,7 @@ describe("summarizeCompliance", () => {
           workout({ id: "woensdag", scheduled_at: "2026-07-22T09:00:00+02:00" }),
         ],
         [
-          // 36 gepland. 125w NP => 25 TSS (69%), 250w NP => 100 TSS (278%).
+          // 42 gepland. 125w NP => 25 TSS (60%), 250w NP => 100 TSS (238%).
           ride({ id: 1, start_date: "2026-07-20T09:00:00Z", np: 125 }),
           ride({ id: 2, start_date: "2026-07-21T09:00:00Z", np: 250 }),
         ],
@@ -212,7 +212,7 @@ describe("summarizeCompliance", () => {
       tooLight: 1,
       tooHard: 1,
       onPlan: 0,
-      avgLoadPct: 174,
+      avgLoadPct: 149,
     });
   });
 });
