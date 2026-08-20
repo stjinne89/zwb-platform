@@ -25,6 +25,7 @@ import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
+import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
 import { Greeting } from "./_components/greeting";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { SponsorCarousel } from "./_components/sponsor-carousel";
@@ -576,16 +577,30 @@ export default async function DashboardPage({
         </Link>
       )}
 
-      {showTraining && (
-        <Suspense fallback={<TrainingStatusSkeleton />}>
-          <TrainingStatus
-            conn={conn}
-            nextWorkout={nextWorkout}
-            sex={sex}
-            wellnessDevice={wellnessDevice}
-          />
+      {/* Naast elkaar op desktop: de trainingsstatus is het brede blok, het
+          core-advies de smalle kolom ernaast. Zonder trainingsstatus staat core
+          gewoon over de volle breedte. */}
+      <div
+        className={
+          showTraining
+            ? "grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+            : "grid items-start gap-6"
+        }
+      >
+        {showTraining && (
+          <Suspense fallback={<TrainingStatusSkeleton />}>
+            <TrainingStatus
+              conn={conn}
+              nextWorkout={nextWorkout}
+              sex={sex}
+              wellnessDevice={wellnessDevice}
+            />
+          </Suspense>
+        )}
+        <Suspense fallback={<CoreStatusSkeleton />}>
+          <CoreStatus />
         </Suspense>
-      )}
+      </div>
 
       {user?.id && <MaintenanceStatus profileId={user.id} />}
 

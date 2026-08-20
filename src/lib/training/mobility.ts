@@ -89,6 +89,21 @@ export function itemSeconds(item: MobilitySeriesItem): number {
   return item.sets * sides * (perSet + item.rest_seconds);
 }
 
+/**
+ * Korte notatie van één item, voor een lijstje waar geen ruimte is voor een hele
+ * zin: "2×8", "2×40s", en bij een eenzijdige oefening "p/k" (per kant) erachter.
+ */
+export function itemLabel(item: MobilitySeriesItem): string {
+  const perSet =
+    item.hold_seconds != null
+      ? `${item.hold_seconds}s`
+      : item.reps != null
+        ? String(item.reps)
+        : null;
+  const base = perSet ? `${item.sets}×${perSet}` : `${item.sets} sets`;
+  return item.exercise.is_unilateral ? `${base} p/k` : base;
+}
+
 /** Geschatte duur van een serie, naar boven afgerond op hele minuten. Wordt
  * gebruikt voor zelfgemaakte series; de standaardset heeft een vaste duur uit
  * de seed. */
@@ -123,6 +138,10 @@ export function sessionsLast28Days(
  *
  * Bewust geen dagenstreak: het doel is twee tot drie sessies per week, dus een
  * dagteller zou bij een correct uitgevoerd programma elke dag breken.
+ *
+ * De lopende week telt pas mee als hij vol is, maar breekt de reeks niet. Anders
+ * stond er elke maandagochtend "nog geen reeks" bij iemand die het al een maand
+ * volhoudt — en juist daar is de teller voor bedoeld.
  */
 export function weeklyStreak(
   sessions: MobilitySession[],
@@ -139,7 +158,12 @@ export function weeklyStreak(
     for (const day of days) {
       if (day >= start && day <= end) count++;
     }
-    if (count < perWeek) return streak;
+    if (count < perWeek) {
+      // Week 0 loopt nog; wat daar (nog) niet staat zegt niets over de weken
+      // ervoor.
+      if (week === 0) continue;
+      return streak;
+    }
     streak++;
     // Zonder bovengrens zou een lege sessielijst hier niet uitkomen; die valt
     // al bij week 0 af, maar de grens houdt de lus hoe dan ook eindig.
@@ -174,12 +198,12 @@ export type RecommendContext = {
  * Bij een rustdag kiest hij tussen de twee rustdagseries op wat het langst
  * geleden is, zodat het programma vanzelf afwisselt.
  */
-export function recommendSeries(
-  series: MobilitySeries[],
+export function recommendSeries<T extends MobilitySeries>(
+  series: T[],
   sessions: MobilitySession[],
   today: string,
   context: RecommendContext,
-): MobilitySeries | null {
+): T | null {
   if (series.length === 0) return null;
   const bySlug = (slug: string) => series.find((row) => row.slug === slug) ?? null;
 

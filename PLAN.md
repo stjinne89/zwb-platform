@@ -767,6 +767,36 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — core-advies op het dashboard, met weekreeks
+
+**2026-08-20, working tree.** Geen migratie.
+
+**Waarom.** Het core-spoor stond alleen op zijn eigen pagina's en in een klein
+blok op Vandaag. Wie via het dashboard binnenkomt — en dat is de meeste leden —
+zag er niets van, en dan bestaat het in de praktijk niet.
+
+**Wat er staat.** Op desktop naast de trainingsstatus (3fr/2fr; op mobiel onder
+elkaar): de serie die vandaag wordt geadviseerd, met de eerste vijf oefeningen en
+hun sets/herhalingen erbij. Een serietitel alleen zegt niet waar je aan begint,
+en dit is op het dashboard het enige wat een lid van het core-spoor ziet.
+
+Dezelfde loaders en dezelfde `recommendSeries()` als het blok op Vandaag, plus
+het bestaande `loadDayContext()` — er kunnen dus geen twee verschillende
+adviezen naast elkaar ontstaan. `recommendSeries()` is generiek gemaakt zodat hij
+teruggeeft wat je erin stopt (mét items), in plaats van de kale `MobilitySeries`.
+
+**De reeks.** Weken, geen dagen: het doel is twee sessies per week, dus een
+dagteller breekt bij een correct uitgevoerd programma elke dag. `weeklyStreak()`
+bestond al, maar zette de teller op nul zodra de lópende week het doel nog niet
+had gehaald — elke maandagochtend "nog geen reeks" bij iemand die het al een
+maand volhoudt, precies het tegenovergestelde van wat een teller moet doen. De
+lopende week telt nu pas mee als hij vol is, maar breekt de reeks niet meer. Dat
+werkt door op de core-pagina, die dezelfde functie gebruikt; daar was het net zo
+goed verkeerd.
+
+Naast de reeks staat de voortgang van deze week ("1 van 2 deze week"), zodat er
+altijd iets concreets staat, ook bij een reeks van nul.
+
 ### Opgeleverd — ZWBasis en een groet op de klok van het lid
 
 **2026-08-20, working tree.** Geen migratie.

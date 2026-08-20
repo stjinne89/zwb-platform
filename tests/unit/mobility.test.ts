@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  itemLabel,
   lastDoneOn,
   recommendSeries,
   seriesMinutes,
@@ -159,6 +160,19 @@ describe("weeklyStreak", () => {
     expect(weeklyStreak([], today)).toBe(0);
   });
 
+  it("laat de lopende week de reeks niet breken", () => {
+    // Twee volle weken achter de rug, deze week pas één sessie: dat is geen
+    // reden om "nog geen reeks" te tonen.
+    const rows = [
+      session("2026-08-03"),
+      session("2026-07-30"),
+      session("2026-07-28"),
+      session("2026-07-27"),
+      session("2026-07-24"),
+    ];
+    expect(weeklyStreak(rows, today)).toBe(2);
+  });
+
   it("respecteert een afwijkend weekdoel", () => {
     // Eén sessie in deze week, één in de week ervoor.
     const rows = [session("2026-08-03"), session("2026-07-25")];
@@ -224,5 +238,29 @@ describe("recommendSeries", () => {
     expect(
       recommendSeries([], [], today, { hasPlannedWorkoutToday: false, rodeToday: false }),
     ).toBeNull();
+  });
+});
+
+describe("itemLabel", () => {
+  it("schrijft een houdtijd als sets maal seconden", () => {
+    expect(itemLabel(item({ sets: 2, hold_seconds: 40, reps: null }))).toBe("2×40s");
+  });
+
+  it("schrijft herhalingen zonder eenheid", () => {
+    expect(itemLabel(item({ sets: 3, hold_seconds: null, reps: 8 }))).toBe("3×8");
+  });
+
+  it("zet er bij een eenzijdige oefening 'p/k' achter", () => {
+    const eenzijdig = item({
+      sets: 2,
+      hold_seconds: null,
+      reps: 8,
+      exercise: exercise({ is_unilateral: true }),
+    });
+    expect(itemLabel(eenzijdig)).toBe("2×8 p/k");
+  });
+
+  it("valt terug op het aantal sets als er niets is opgegeven", () => {
+    expect(itemLabel(item({ sets: 2, hold_seconds: null, reps: null }))).toBe("2 sets");
   });
 });
