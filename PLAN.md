@@ -855,6 +855,14 @@ van een identiek doel binnen vijf minuten. Migratie `0135` ruimt de bestaande
 kopieën op — alleen die zonder schema, want aan een doel met een plan hangt een
 verwijzing.
 
+**Naloper (`0136`).** `0135` gedraaid op 2026-08-20: twintig doelen werden er
+achttien, maar er bleven drie dubbelen staan. De aanname klopte niet — het schema
+hangt in de praktijk aan de *tweede* rij, want de trainer maakt het aan vanuit de
+doelenlijst en pakt daar de onderste. `0135` bewaart altijd de oudste, dus bleef
+die als doel zónder schema naast het echte staan. `0136` haalt zo'n wees weg als
+er een identieke rij mét schema naast staat; is er in een reeks geen enkele rij
+met een schema, dan blijft alles staan.
+
 **6. 55 beoordelingen, 2 reacties van een trainer.** Bij het uitzoeken bleek het
 reactieveld al te bestaan; de wrijving zat in de vindbaarheid. Elke trainerstab
 werkte op één renner tegelijk (`?athlete=`), dus je moest elk lid apart aanklikken
