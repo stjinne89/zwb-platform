@@ -12,7 +12,12 @@ import { TRAINER_SECTIONS } from "../../../_components/nav-config";
 import { SectionNav } from "../../_components/section-nav";
 import type { TrainerRider } from "../_data";
 
-/** De enige tab met een telbadge; het aantal hangt van de gekozen renner af. */
+/**
+ * De enige tab met een telbadge. Die telt álle toegewezen leden, niet alleen de
+ * gekozen renner: uit de doorlichting van 2026-08-20 bleek dat er 55 bevestigde
+ * beoordelingen lagen met twee reacties, en de meest waarschijnlijke reden is dat
+ * een trainer elk lid apart moest aanklikken om te ontdekken dat er iets wachtte.
+ */
 const REVIEW_HREF = "/zwbeter-worden/trainer/beoordelen";
 
 export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
@@ -24,6 +29,7 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
   // in de URL valt terug op de eerste.
   const requested = searchParams.get("athlete");
   const selected = riders.find((rider) => rider.id === requested) ?? riders[0];
+  const totalPending = riders.reduce((sum, rider) => sum + rider.pendingReviews, 0);
   if (!selected) return null;
 
   return (
@@ -118,12 +124,17 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
 
       <SectionNav
         exactHref="/zwbeter-worden/trainer"
-        items={TRAINER_SECTIONS.map((section) => ({
-          href: section.href,
-          label: section.label,
-          query: `athlete=${selected.id}`,
-          badge: section.href === REVIEW_HREF ? selected.pendingReviews : undefined,
-        }))}
+        items={TRAINER_SECTIONS.map((section) => {
+          const isReview = section.href === REVIEW_HREF;
+          return {
+            href: section.href,
+            label: section.label,
+            // De wachtrij gaat over alle leden; een rennerfilter zou hem juist
+            // weer versmallen tot wat de trainer al niet zag.
+            query: isReview ? undefined : `athlete=${selected.id}`,
+            badge: isReview ? totalPending : undefined,
+          };
+        })}
       />
     </div>
   );

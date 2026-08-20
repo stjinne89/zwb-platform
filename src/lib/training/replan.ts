@@ -14,6 +14,7 @@
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { activeBasePlan } from "@/lib/training/active-plan";
+import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
 import { startPlanUpdate } from "@/lib/training/draft";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -23,7 +24,11 @@ export const REPLAN_COOLDOWN_MS = 5 * 60_000;
 
 export type ReplanResult =
   | { started: true; generationId: string }
-  | { started: false; reason: "no_plan" | "cooldown" | "failed"; error?: string };
+  | {
+      started: false;
+      reason: "no_plan" | "cooldown" | "ignored" | "failed";
+      error?: string;
+    };
 
 /** Loopt er al een verse herziening voor dit lid? */
 async function withinCooldown(admin: Admin, profileId: string) {
@@ -37,6 +42,17 @@ async function withinCooldown(admin: Admin, profileId: string) {
     .gte("created_at", since)
     .limit(1);
   return (data ?? []).length > 0;
+}
+
+/**
+ * Rijdt dit lid zijn schema nog? Wordt op twee plekken gebruikt — hier vóór een
+ * herziening, en op de schemapagina om het lid de vraag te stellen — dus de
+ * uitkomst moet op beide plekken hetzelfde zijn.
+ */
+export async function planIsIgnored(admin: Admin, profileId: string): Promise<boolean> {
+  const compliance = await buildComplianceContext(admin, profileId).catch(() => null);
+  if (!compliance) return false;
+  return planIsBeingIgnored(compliance.workouts);
 }
 
 /**
@@ -59,6 +75,13 @@ export async function requestReplan(
     // komt er niets uit, dan staat het verzoek er nog en pakt de nacht-cron het
     // op. Slaagt hij wel, dan haalt createPlanFromAiGeneration() de rij weg.
     await markReplanPending(admin, profileId, reason);
+
+    // Ligt het schema stil, dan is herzien geen dienst maar ruis: het lid krijgt
+    // een nieuwe versie van iets dat het toch niet rijdt. Het verzoek blijft
+    // staan, dus zodra er weer gereden wordt gaat het alsnog door.
+    if (await planIsIgnored(admin, profileId)) {
+      return { started: false, reason: "ignored" };
+    }
 
     if (await withinCooldown(admin, profileId)) {
       return { started: false, reason: "cooldown" };

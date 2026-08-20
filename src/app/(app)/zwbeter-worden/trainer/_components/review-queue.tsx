@@ -12,6 +12,8 @@ import { formAction, formatDayMonth } from "../../_components/format";
 export type ReviewQueueItem = {
   workoutId: string;
   title: string;
+  /** Van wie deze training was; de wachtrij gaat over alle toegewezen leden. */
+  athleteName: string;
   scheduledAt: string;
   metrics: WorkoutMetricsSnapshot;
   athleteRpe: number | null;
@@ -58,7 +60,7 @@ export function ReviewQueue({ items }: { items: ReviewQueueItem[] }) {
               <div className="min-w-0">
                 <p className="truncate font-medium">{item.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatDayMonth(item.scheduledAt)}
+                  {item.athleteName} · {formatDayMonth(item.scheduledAt)}
                 </p>
               </div>
 

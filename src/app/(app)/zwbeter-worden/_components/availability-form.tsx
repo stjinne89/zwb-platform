@@ -7,13 +7,8 @@
 import { useCallback, useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AVAILABILITY_MAX_MINUTES,
-  AVAILABILITY_STEP_MINUTES,
-  WEEKDAY_LABELS,
-  WEEKDAY_SLUGS,
-  type MinutesByDay,
-} from "@/lib/training/availability";
+import { WEEKDAY_SLUGS, type MinutesByDay } from "@/lib/training/availability";
+import { AvailabilityGrid, minutesLabel } from "./availability-grid";
 import { saveWeekAvailability } from "../_actions";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
 
@@ -31,15 +26,6 @@ export type AvailabilityWeek = {
 export type AvailabilityOptions = {
   weeks: AvailabilityWeek[];
 };
-
-function minutesLabel(minutes: number) {
-  if (minutes <= 0) return "geen";
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours === 0) return `${rest} min`;
-  if (rest === 0) return `${hours} uur`;
-  return `${hours}u ${rest}`;
-}
 
 function toMinutes(availability: AvailabilityWeek["availability"]): Record<string, number> {
   const result: Record<string, number> = {};
@@ -136,35 +122,13 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
-        {WEEKDAY_SLUGS.map((day) => {
-          const value = minutes[day] ?? 0;
-          return (
-            <div key={day} className="grid grid-cols-[5.5rem_1fr_4.5rem] items-center gap-3">
-              <label htmlFor={`availability-${week.key}-${day}`} className="text-sm">
-                {WEEKDAY_LABELS[day]}
-              </label>
-              <input
-                id={`availability-${week.key}-${day}`}
-                type="range"
-                min={0}
-                max={AVAILABILITY_MAX_MINUTES}
-                step={AVAILABILITY_STEP_MINUTES}
-                value={value}
-                disabled={busy}
-                onChange={(event) => setDay(day, Number(event.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary disabled:cursor-not-allowed"
-              />
-              <span
-                className={`text-right text-sm tabular-nums ${
-                  value > 0 ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                {minutesLabel(value)}
-              </span>
-            </div>
-          );
-        })}
+      <div className="mt-4">
+        <AvailabilityGrid
+          minutes={minutes}
+          idPrefix={`availability-${week.key}`}
+          disabled={busy}
+          onChange={setDay}
+        />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">

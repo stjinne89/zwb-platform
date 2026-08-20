@@ -85,6 +85,14 @@ export type TrainingAiInput = {
     hours: number;
     /** Uren per week over dat venster; voorgerekend zodat het model niet deelt. */
     hoursPerWeek: number;
+    /**
+     * Hóé dat volume gereden wordt. Zonder deze drie zag het model alleen een
+     * weektotaal en goot het dat in een paar lange blokken — ook bij een lid dat
+     * elke dag een uur fietst en één keer per week lang gaat.
+     */
+    ridesPerWeek: number;
+    avgDurationMinutes: number;
+    longestRideMinutes: number;
   };
   /** Herstel-trend uit intervals.icu (alleen als het lid wellness deelt). */
   wellness?: {

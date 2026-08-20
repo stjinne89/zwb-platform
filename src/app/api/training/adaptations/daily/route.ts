@@ -7,11 +7,13 @@ import {
   availabilityNeedsReplan,
   clearReplanPending,
   loadPendingReplan,
+  planIsIgnored,
 } from "@/lib/training/replan";
 import { availabilityForAi, loadFixedWorkouts, mondayKey } from "@/lib/training/availability";
 import {
   buildIntervalsLoad,
   buildRecentLoad,
+  finishAiGeneration,
   insertPlanWorkouts,
   runPlanUpdateNow,
 } from "@/lib/training/draft";
@@ -31,6 +33,27 @@ const PROPOSAL_TTL_DAYS = 3;
  * de wijziging blijft immers nieuwer dan de laatste herziening.
  */
 const MAX_PLAN_UPDATES_PER_RUN = 5;
+
+/**
+ * Hoe lang een generatie mag lopen voordat de cron hem overneemt. Een
+ * achtergrondgeneratie is normaal binnen een paar minuten klaar; wat na een
+ * kwartier nog loopt, wacht op iemand die hem ophaalt.
+ */
+const STALE_GENERATION_MINUTES = 15;
+
+/**
+ * En hoe oud hij hoogstens mag zijn om nog afgemaakt te worden.
+ *
+ * Dit is geen zuinigheid maar veiligheid. Een herziening beslaat de periode vanaf
+ * de dag dat hij is aangevraagd; maak je er twee weken later alsnog een schema
+ * van, dan is dat schema het nieuwste en overschrijft het de trainingen die het
+ * lid inmiddels heeft — met een voorstel dat op verouderde gegevens rust. Wat de
+ * nacht erna wordt opgepakt is nog actueel; wat ouder is, is dat niet.
+ */
+const STALE_GENERATION_MAX_HOURS = 18;
+
+/** Plafond per run, zodat één nacht niet twintig OpenAI-calls achter elkaar doet. */
+const MAX_STALE_GENERATIONS_PER_RUN = 10;
 
 type PlanRow = {
   id: string;
@@ -107,6 +130,10 @@ async function pendingReplanFor(
   plan: PlanRow,
   todayKey: string,
 ): Promise<ReplanTrigger | null> {
+  // Zelfde rem als overdag: een schema dat stilligt herzien we niet, ook niet
+  // 's nachts. Het verzoek blijft staan tot het lid weer rijdt.
+  if (await planIsIgnored(admin, plan.profile_id).catch(() => false)) return null;
+
   const request = await loadPendingReplan(admin, plan.profile_id).catch(() => null);
   if (request) {
     return { reason: request.reason, source: "request", at: request.requestedAt };
@@ -173,6 +200,85 @@ async function availabilityChangedSinceRevision(
   return needed ? (changedAt as string) : null;
 }
 
+/**
+ * Generaties die zijn blijven hangen alsnog afmaken.
+ *
+ * Een achtergrondgeneratie wordt pas een schema zodra iemand hem ophaalt, en dat
+ * deed tot nu toe alleen de browser van het lid. Sloot dat tabblad, dan bleef de
+ * generatie eeuwig op 'queued' of 'in_progress' staan: op 20 augustus 2026 gold
+ * dat voor 20 van de 79 generaties, sommige weken oud. Allemaal betaald, geen
+ * enkele een schema.
+ */
+async function finishStaleGenerations(
+  admin: ReturnType<typeof createAdminClient>,
+  results: Array<{ profileId: string; status: string; draftPlanId?: string; error?: string }>,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - STALE_GENERATION_MINUTES * 60_000).toISOString();
+  const tooOld = new Date(Date.now() - STALE_GENERATION_MAX_HOURS * 3600_000).toISOString();
+
+  // Te oud om nog een schema van te maken: afsluiten, niet uitvoeren. Anders
+  // blijft de cron ze elke nacht opnieuw zien én zou hij er een schema van maken
+  // dat het huidige overschrijft.
+  const { data: verlopen } = await admin
+    .from("training_ai_generations")
+    .update({ status: "failed", error: "Niet afgemaakt binnen de tijd; verlopen." })
+    .in("status", ["queued", "in_progress"])
+    .lt("created_at", tooOld)
+    .select("id");
+
+  const { data: stale } = await admin
+    .from("training_ai_generations")
+    .select("id, profile_id, trainer_id, adaptation_kind, created_at")
+    .in("status", ["queued", "in_progress"])
+    .lt("created_at", cutoff)
+    .gte("created_at", tooOld)
+    .order("created_at", { ascending: true })
+    .limit(MAX_STALE_GENERATIONS_PER_RUN);
+
+  if ((verlopen ?? []).length > 0) {
+    results.push({
+      profileId: "-",
+      status: `expired_${(verlopen ?? []).length}`,
+    });
+  }
+
+  let afgemaakt = 0;
+  for (const row of stale ?? []) {
+    const outcome = await finishAiGeneration(admin, row.id as string).catch((err) => ({
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Ophalen faalde.",
+    }));
+
+    // Nog steeds onderweg is geen fout: OpenAI is er dan zelf nog mee bezig.
+    const nogBezig =
+      outcome.ok && (outcome.status === "queued" || outcome.status === "in_progress");
+    if (nogBezig) continue;
+
+    if (outcome.ok && outcome.planId) afgemaakt += 1;
+
+    await admin.from("training_adaptation_runs").insert({
+      profile_id: row.profile_id,
+      trainer_id: row.trainer_id,
+      status: outcome.ok && outcome.planId ? "completed" : "failed",
+      draft_plan_id: outcome.ok ? outcome.planId ?? null : null,
+      input_json: {
+        trigger: "stale_generation",
+        generationId: row.id,
+        kind: row.adaptation_kind ?? "basis",
+        startedAt: row.created_at,
+      },
+      error: outcome.ok ? (outcome.error ?? null) : outcome.error,
+    });
+    results.push({
+      profileId: row.profile_id as string,
+      status: outcome.ok && outcome.planId ? "generation_finished" : "generation_failed",
+      draftPlanId: outcome.ok ? outcome.planId : undefined,
+      error: outcome.ok ? outcome.error : outcome.error,
+    });
+  }
+  return afgemaakt;
+}
+
 export async function POST(request: Request) {
   const expected = process.env.TRAINING_ADAPTATION_SECRET;
   const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -185,6 +291,10 @@ export async function POST(request: Request) {
 
   try {
     const archived = await archiveStaleProposals(admin).catch(() => 0);
+
+    // Eerst het werk dat al betaald is: generaties die op iemand wachtten.
+    const finishedGenerations = await finishStaleGenerations(admin, results).catch(() => 0);
+
     let planUpdatesRun = 0;
 
     for (const plan of await latestPlanCandidates(admin)) {
@@ -433,7 +543,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json({ ok: true, archived, results });
+    return Response.json({ ok: true, archived, finishedGenerations, results });
   } catch (err) {
     return Response.json(
       { ok: false, error: err instanceof Error ? err.message : "Adaptatie-cron faalde." },

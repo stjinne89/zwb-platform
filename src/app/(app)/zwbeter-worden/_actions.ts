@@ -38,7 +38,6 @@ import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
-const WEEKDAYS: readonly string[] = WEEKDAY_SLUGS;
 const MODES = ["indoor", "outdoor", "mixed"];
 const LEVELS = ["beginner", "intermediate", "advanced"];
 const INTENSITIES = ["easy", "balanced", "hard"];
@@ -206,18 +205,49 @@ export async function createTrainingGoal(formData: FormData) {
     const preferredMode = optionalString(formData.get("preferred_mode")) ?? "mixed";
     const experienceLevel = optionalString(formData.get("experience_level")) ?? "intermediate";
     const desiredIntensity = optionalString(formData.get("desired_intensity")) ?? "balanced";
-    const availableDays = formData.getAll("available_days").map(String).filter((day) => WEEKDAYS.includes(day));
+    // Beschikbaarheid hoort bij het doel: zonder minuten per dag kent de planner
+    // alleen dagen, en dan belandt het weekvolume in een paar lange blokken. De
+    // beschikbare dagen leiden we eruit af; die kolom blijft bestaan omdat oudere
+    // schema's erop leunen.
+    const minutesByDay: MinutesByDay = {};
+    for (const day of WEEKDAY_SLUGS) {
+      minutesByDay[day] = clampMinutes(formData.get(`minutes_${day}`));
+    }
+    const availableDays = WEEKDAY_SLUGS.filter((day) => (minutesByDay[day] ?? 0) > 0);
 
     if (!GOAL_TYPES.includes(goalType)) throw new Error("Ongeldig doeltype.");
     if (!MODES.includes(preferredMode)) throw new Error("Ongeldige trainingsvoorkeur.");
     if (!LEVELS.includes(experienceLevel)) throw new Error("Ongeldig ervaringsniveau.");
     if (!INTENSITIES.includes(desiredIntensity)) throw new Error("Ongeldige intensiteit.");
+    if (availableDays.length === 0) {
+      throw new Error("Vul in hoeveel tijd je per dag hebt; zonder dat kan er geen schema komen.");
+    }
+
+    const title = mustString(formData.get("title"), "Titel");
+    const targetDate = optionalString(formData.get("target_date"));
+
+    // Een tweede klik op "Doel opslaan" leverde tot 2026-08-20 een tweede doel op
+    // — vijf van de twintig doelen waren zo'n herhaling, telkens twee seconden na
+    // de vorige. Het schema hangt aan één doel-id, dus de rest blijft als wees
+    // achter en niemand ziet nog welk doel het echte is.
+    const { data: recent } = await admin
+      .from("training_goals")
+      .select("id")
+      .eq("profile_id", user.id)
+      .eq("title", title)
+      .eq("goal_type", goalType)
+      .gte("created_at", new Date(Date.now() - 5 * 60_000).toISOString())
+      .limit(1);
+    if ((recent ?? []).length > 0) {
+      revalidatePath("/zwbeter-worden", "layout");
+      return { ok: true as const };
+    }
 
     const { error } = await admin.from("training_goals").insert({
       profile_id: user.id,
-      title: mustString(formData.get("title"), "Titel"),
+      title,
       goal_type: goalType,
-      target_date: optionalString(formData.get("target_date")),
+      target_date: targetDate,
       available_days: availableDays,
       max_hours_per_week: optionalNumber(formData.get("max_hours_per_week")),
       preferred_mode: preferredMode,
@@ -227,6 +257,24 @@ export async function createTrainingGoal(formData: FormData) {
       created_by: user.id,
     });
     if (error) throw new Error(error.message);
+
+    // De standaardweek alleen aanvullen, niet overschrijven: wie zijn
+    // beschikbaarheid al op de schemapagina heeft ingesteld, houdt die.
+    const { data: bestaand } = await admin
+      .from("training_availability")
+      .select("id")
+      .eq("profile_id", user.id)
+      .is("week_start", null)
+      .maybeSingle();
+    if (!bestaand) {
+      await admin.from("training_availability").insert({
+        profile_id: user.id,
+        week_start: null,
+        minutes_by_day: minutesByDay,
+        created_by: user.id,
+        updated_by: user.id,
+      });
+    }
 
     const { data: trainers } = await admin
       .from("training_coach_assignments")

@@ -227,6 +227,25 @@ export function pickRideForWorkout<T extends StravaRideRow>(
  * intervals.icu geeft via de API niets terug voor activiteiten die daar via
  * Strava binnenkwamen, en dat is bij de meeste leden alles.
  */
+/**
+ * Ligt dit schema stil? De laatste `streak` trainingen die geweest zijn, zijn
+ * geen van alle gereden.
+ *
+ * Waarom dit bestaat: uit de doorlichting van 2026-08-20 bleek dat het systeem
+ * bleef herzien voor leden die hun schema niet aanraakten — voor één lid twaalf
+ * generaties en zes herzieningen bij nul gereden trainingen. Een herziening is
+ * dan geen dienst maar ruis, en hij kost geld.
+ *
+ * Bewust op een reeks en niet op een percentage: wie de helft van zijn
+ * trainingen rijdt, is bezig. Wie er vier op rij laat lopen, is dat niet.
+ */
+export function planIsBeingIgnored(workouts: WorkoutCompliance[], streak = 4): boolean {
+  // buildComplianceContext levert alleen trainingen met een datum in het
+  // verleden, op volgorde; de laatste vier zijn dus de vier meest recente.
+  if (workouts.length < streak) return false;
+  return workouts.slice(-streak).every((workout) => workout.verdict === "niet_gereden");
+}
+
 export async function buildComplianceContext(
   admin: Admin,
   profileId: string,

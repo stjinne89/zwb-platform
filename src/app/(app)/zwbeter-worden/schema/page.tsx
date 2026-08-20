@@ -15,6 +15,7 @@ import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
 import { EventChoice } from "../_components/event-choice";
 import { FtpTestCard } from "../_components/ftp-test-card";
+import { PlanCheckCard } from "../_components/plan-check-card";
 import { PlanActions } from "../_components/plan-actions";
 import { PlanRideForm } from "../_components/plan-ride-form";
 import { CollapsibleCard, PlanBadge } from "../_components/ui";
@@ -36,6 +37,7 @@ import {
   loadAvailabilityOptions,
   loadConnection,
   loadFtpTestState,
+  loadIgnoredStreak,
   loadIntervalsSnapshot,
   loadMemberWorkouts,
   loadPlanFamilies,
@@ -67,6 +69,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     { data: goalRows },
     availabilityOptions,
     ftpTestState,
+    ignoredStreak,
   ] =
     await Promise.all([
       loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }),
@@ -83,6 +86,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         .order("created_at", { ascending: false }),
       loadAvailabilityOptions(viewer),
       loadFtpTestState(viewer),
+      loadIgnoredStreak(viewer),
     ]);
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
@@ -292,6 +296,10 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           </ul>
         )}
       </CollapsibleCard>
+
+      {/* Vier ongereden trainingen op rij: dan herzien we niet meer vanzelf en
+          vragen we het gewoon. Zie plan-check-card.tsx. */}
+      {ignoredStreak ? <PlanCheckCard missedCount={ignoredStreak} /> : null}
 
       <AvailabilityForm options={availabilityOptions} />
 

@@ -7,6 +7,9 @@ import { CollapsibleCard } from "../_components/ui";
 import { formAction, formatDayMonth, GOAL_LABELS } from "../_components/format";
 import type { AssignmentRow, GoalRow, ProfileRow } from "../_components/types";
 import { loadConnection, requireViewer } from "../_data";
+import { GoalAvailability } from "./_components/goal-availability";
+import { SaveGoalButton } from "./_components/save-goal-button";
+import { loadAvailability } from "@/lib/training/availability";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,6 +37,10 @@ export default async function ZwbeterWordenGoalsPage() {
         .eq("is_approved", true)
         .order("display_name"),
     ]);
+
+  // Al eerder ingevuld? Dan begint het formulier daarmee in plaats van op nul.
+  const bestaand = await loadAvailability(viewer.admin, viewer.user.id, null).catch(() => null);
+  const availability = (bestaand?.minutesByDay ?? {}) as Record<string, number>;
 
   const goals = (goalRows ?? []) as GoalRow[];
   const assignments = (assignmentRows ?? []) as AssignmentRow[];
@@ -163,17 +170,7 @@ export default async function ZwbeterWordenGoalsPage() {
                 <option value="hard">Ambitieus</option>
               </select>
             </label>
-            <fieldset className="sm:col-span-2">
-              <legend className="text-sm">Beschikbare dagen</legend>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {["ma", "di", "wo", "do", "vr", "za", "zo"].map((day) => (
-                  <label key={day} className="rounded-md border px-2 py-1 text-sm">
-                    <input type="checkbox" name="available_days" value={day} className="mr-1" />
-                    {day}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <GoalAvailability initial={availability} />
             <label className="sm:col-span-2 text-sm">
               Blessures, risico&apos;s of aandachtspunten
               <textarea
@@ -183,9 +180,7 @@ export default async function ZwbeterWordenGoalsPage() {
               />
             </label>
           </div>
-          <button className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-            Doel opslaan
-          </button>
+          <SaveGoalButton />
         </form>
       </section>
 

@@ -796,6 +796,126 @@ URL krijgt. Een eigen endpoint zou die check dupliceren.
 naar. Ook niet op de publieke `/live/[eventId]`: de bucket is privé en leest
 `authenticated`, en een download-URL daar zou de GPX buiten het ledenbestand
 brengen. Geen teller of logging van downloads.
+### Opgeleverd — opvolging van de doorlichting ZWBeter Worden
+
+**2026-08-20, working tree.** Migratie `0135`. Rapport:
+https://claude.ai/code/artifact/76570493-518f-4ef0-a6f7-8ced2c1ebb00
+
+Een doorlichting van het werkelijke gebruik (33 leden, 79 generaties, acht weken
+trainingen) leverde vier dingen op die niet met bouwen maar met meten aan het
+licht kwamen. Dit is de opvolging; het plan staat in
+`.claude/plans/maak-een-plan-gebaseerd-spicy-snowflake.md`.
+
+**1. De nacht-cron heeft nooit gedraaid.** `training_adaptation_runs` was leeg —
+nul rijen, terwijl elke aanroep daar schrijft. De runbook noemde een "externe
+cron" die nooit is ingesteld. Daardoor bestonden de dagvoorstellen niet en draaide
+het vangnet voor blijven liggen herzieningen (vorige ronde gebouwd) evenmin. Nu
+een Netlify-functie in de repo (`netlify/functions/training-adaptations.mjs`,
+`30 0 * * *`), zelfde patroon als de live-cleanup en de health-check. De eigenaar
+moet `TRAINING_ADAPTATION_SECRET` nog als env-variabele zetten; zonder die
+variabele stopt de functie met een duidelijke melding.
+
+**2. Een kwart van de AI-generaties liep vast.** 20 van de 79 stonden nog op
+`queued`/`in_progress`, de oudste achttien dagen. Oorzaak: een
+achtergrondgeneratie wordt pas een schema als iemand hem ophaalt, en dat deed
+alleen de browser van het lid. `pollAiDraft` is gesplitst — de binnenkant heet nu
+`finishAiGeneration(admin, generatie)` en werkt zonder sessie; `pollAiDraft` doet
+de rechtencheck en roept hem aan. De cron maakt per nacht maximaal tien
+achterstallige generaties af. Een generatie die niet meer op te halen is én ouder
+dan een dag, wordt op `failed` gezet: OpenAI bewaart een achtergrondantwoord niet
+eeuwig, en zonder die afsluiting zou de cron elke nacht dezelfde tien hopeloze
+rijen proberen.
+
+**3. De helft van de trainingen wordt niet gereden — en het systeem bleef
+herzien.** 50 van de 56 achterstallige trainingen hadden die dag geen enkele rit.
+Uitgesplitst vallen leden in twee groepen: vier rijden hun schema grotendeels,
+drie raken het niet aan. Voor één van die drie draaiden twaalf generaties en zes
+herzieningen bij nul gereden trainingen. Nieuw: `planIsBeingIgnored()` in
+`compliance.ts` (puur, getest) en `planIsIgnored()` in `replan.ts`. Vier ongereden
+trainingen op rij en `requestReplan` slaat over met reden `ignored`; de nacht-cron
+doet hetzelfde, anders doet de nacht alsnog wat de dag weigert. Het verzoek blijft
+in `training_replan_requests` staan, dus zodra het lid weer rijdt gaat het door.
+In plaats van de stille herziening krijgt het lid één vraag op zijn schemapagina
+(`plan-check-card.tsx`): *klopt dit schema nog?*, met knoppen naar het
+bijwerkformulier en naar zijn doel.
+
+**4. Beschikbaarheid was optioneel, en juist de twee leden zonder ingevulde
+beschikbaarheid hadden de opvallendste schema's.** Zonder minuten per dag kent de
+planner alleen dagen. De schuifbalken zitten nu ook in het doelformulier
+(`availability-grid.tsx`, gedeeld met de kaart op de schemapagina); zonder ingevulde
+tijd wordt het doel geweigerd. `available_days` wordt daaruit afgeleid in plaats
+van los aangevinkt — die kolom blijft bestaan omdat oudere schema's erop leunen.
+De standaardweek wordt alleen aangevuld, nooit overschreven: wie zijn
+beschikbaarheid al had ingesteld, houdt die.
+
+**5. Vijf van de twintig doelen waren dubbelklikken**, telkens twee seconden na de
+vorige, één lid met drie identieke. Het formulier had een kale knop. Nu een
+`useFormStatus`-knop die zichzelf uitschakelt, plus een weigering aan de serverkant
+van een identiek doel binnen vijf minuten. Migratie `0135` ruimt de bestaande
+kopieën op — alleen die zonder schema, want aan een doel met een plan hangt een
+verwijzing.
+
+**6. 55 beoordelingen, 2 reacties van een trainer.** Bij het uitzoeken bleek het
+reactieveld al te bestaan; de wrijving zat in de vindbaarheid. Elke trainerstab
+werkte op één renner tegelijk (`?athlete=`), dus je moest elk lid apart aanklikken
+om te ontdekken dat er iets wachtte. `/zwbeter-worden/trainer/beoordelen` gaat nu
+over álle toegewezen leden, oudste eerst, met de naam van het lid per regel, en de
+telbadge op die tab telt iedereen bij elkaar op.
+
+**Niet lokaal te verifiëren.** Migratie `0135` is niet gedraaid (geen Docker of
+Supabase-config). De cron zelf evenmin: dat vraagt een deploy plus de
+env-variabele. Wel gecontroleerd met een leesquery dat de tien oudste
+vastgelopen generaties precies de rijen zijn die de cron zou oppakken, en dat ze
+allemaal een `openai_response_id` hebben. `npm run build`, `tsc`, `eslint` en de
+volledige Vitest-suite (605 tests) zijn groen.
+
+**Bewust niet in deze ronde.** Core, logboek en het zelf inplannen van ritten
+(2, 0 en 3 gebruiken) — het core-advies staat sinds vandaag op het dashboard en
+dat is de lopende meting; over vier weken opnieuw tellen. En de dertien doelen
+zonder schema: een wachtrij op het trainerscherm is de logische stap, maar dat
+scherm is deze ronde al verbouwd — eerst kijken of trainers de nieuwe wachtrij
+gebruiken.
+
+### Opgeleverd — de planner ziet nu hóé een lid zijn uren rijdt
+
+**2026-08-20, working tree.** Geen migratie.
+
+**Aanleiding.** Een lid meldde dat ze alleen nog lange trainingen kreeg. Bij het
+uitzoeken bleek er niets stuk: haar doel is een bergrit van acht uur, haar
+plafond staat op 15 uur per week, ze heeft geen beschikbaarheid ingevuld (dus
+geen enkel plafond per dág), en ze rijdt zelf 19,8 uur per week. Alle regels
+wezen dezelfde kant op.
+
+Maar één ding zag de planner niet: ze rijdt die 19,8 uur in **13 ritten per
+week** van gemiddeld 91 minuten. Hij kreeg alleen het weektotaal en goot dat in
+drie blokken van gemiddeld 220 minuten. Twee leden met precies hetzelfde
+weektotaal — de een zes keer een uur, de ander twee keer drie uur — kregen tot nu
+toe hetzelfde schema.
+
+**Wat er is veranderd.** `recentLoad` draagt nu ook `ridesPerWeek`,
+`avgDurationMinutes` en `longestRideMinutes`, berekend in de pure
+`summarizeRecentRides()` in `ride-metrics.ts` (met tests). De prompt kreeg twee
+regels: verdeel het weekvolume over ongeveer evenveel dagen als het lid zelf
+rijdt en houd de gemiddelde sessie in de buurt van wat het gewend is; en gebruik
+`longestRideMinutes` als vertrekpunt voor de lange rit — daar mag één rit per
+week overheen groeien als het doel dat vraagt, maar niet twee of drie in dezelfde
+week.
+
+**Tweede correctie in dezelfde functie.** `buildRecentLoad` telde élke
+Strava-activiteit mee, ook hardlopen en wandelen. Dat is het getal waar de
+ondergrens van een opbouwweek op rust ("plan nooit onder wat het lid al uit
+zichzelf rijdt"), dus een hardloopblok tilde het fietsvolume op. Nu gefilterd op
+`CYCLING_SPORTS`, dezelfde lijst die de rest van het platform gebruikt.
+
+**Detail dat de data opleverde.** Er zijn leden met ritten zónder duur
+(handmatig ingevoerd). Die tellen wel als rit maar niet in het gemiddelde; anders
+zou zo'n lid "drie ritten van nul minuten per week" heten en zou de planner zijn
+sessielengte dáárop afstemmen.
+
+**Niet aangeraakt.** Het lid in kwestie had geen beschikbaarheid ingevuld, en dát
+is de knop die haar het snelst helpt: met minuten per dag blijven doordeweekse
+sessies kort en gaat het lange werk naar het weekend. Dat is bestaande
+functionaliteit, geen nieuwe code.
 
 ### Opgeleverd — core-advies op het dashboard, met weekreeks
 
@@ -1095,6 +1215,90 @@ Eén regel die daarbij hoort: een workout met `test_type` wordt door
 `supersedableWorkouts()` nooit meer vervangen. Een test uit de bibliotheek draagt
 `origin 'ai'` en zou anders bij de eerstvolgende herziening verdwijnen — met een
 uitslagvraag zonder training als resultaat.
+
+### Spike — uitslagen uit de Zwift-API (uitkomst: ja, voor drie van de vier)
+
+**2026-08-20.** Geen code, geen migratie. Volledig verslag in
+`docs/omnium-zwift-api-spike.md`.
+
+**Conclusie.** Met het bestaande ZWB-club-serviceaccount geeft
+`GET /api/race-results/entries?event_id={id}` de uitslag van een Zwift-event als
+JSON: `rank`, `profileId` (de Zwift-ID), `eventSubgroupId` (de categorie) en
+`activityData.durationInMilliseconds` — de tijd in **milliseconden**. Getest op
+een echt afgelopen event; de nummers 1 en 2 scheelden daar 322 duizendsten.
+
+Dat maakt de drie problemen uit de proefdraai op editie 7 in één klap
+irrelevant: geen verschilnotatie meer om te parsen, precisie in milliseconden, en
+renners op Zwift-ID in plaats van op naam. De inschrijvers per subgroep zijn
+apart opvraagbaar (draait al in productie voor de kalender), dus de gastenvraag
+is er ook mee opgelost: wie niet is ingeschreven valt eruit vóór het scoren.
+
+**Wat er niet uit komt.** `segment-results` geeft 400/406 in elk wire-formaat, en
+`type=SEGMENT` wordt genegeerd. De **Sprint Quali** (snelste tijd op een
+KOM-segment) heeft dus geen bron; de **tussensprints van de Crit Royale** staan
+per definitie in geen enkele uitslag. Die twee blijven handwerk — twee momenten
+per uitzending in plaats van vier.
+
+**Nog niet bewezen:** of de uitslag al tijdens het event binnendruppelt. Er stond
+geen live event om op te testen; te bevestigen op de eerstvolgende clubrit.
+
+**Gevolg voor de planning.** De plak-import blijft nodig als terugval en als
+route voor de Sprint Quali, dus die is geen weggegooid werk. De volgende stap is
+een `omnium/zwift-results.ts` naast de bestaande `zwift-club.ts`, met dezelfde
+cache-aanpak als `live/external-timing.ts`.
+
+### Proefdraai Omnium op editie 7 (2025/26)
+
+**2026-08-20, working tree.** Migratie `0134`.
+
+**Wat.** De motor tegen een échte editie gelegd: uitslagen uit de Drive-sheet van
+Race 7 door `parseOmniumResults` → `scoreParsedRows`, en het resultaat vergeleken
+met de GC-tab van diezelfde sheet, die vorig seizoen met de hand is gescoord.
+Vastgelegd als `tests/unit/omnium-race7.test.ts`, want dit is het enige materiaal
+waarmee de puntenmotor tegen een uitkomst uit de praktijk te leggen valt.
+
+**Uitkomst: 16 van de 17 renners exact gelijk**, over alle vier de onderdelen én
+het totaal. De ene afwijking is de nieuwe tiebreak-regel zelf: Ángel Jiménez en
+Radlrainer finishten in de Scratch op dezelfde weergegeven tijd, de oude sheet
+brak dat op regelvolgorde, `tiePolicy: "high"` geeft ze allebei 18.
+
+**Drie dingen die dat aan het licht bracht.**
+
+(1) *De tijdkolom van ZwiftPower werd niet gelezen.* Een uitslag geeft één
+absolute tijd voor de leider en daarna "+4.187s". Die cel viel niet onder
+"tijd" en belandde daarmee in de **naam**: de renner heette "Jake Johnson 22:42
++4.126s" en er werd geen enkele tijd opgeslagen. Dat de punten desondanks
+klopten was toeval — zonder tijd valt `rankWithinLeague` terug op de
+regelvolgorde. Opgelost met `expandTimeDelta` + `applyDeltas` in
+`parse-results.ts`: het verschil wordt herkend, en leiderstijd + verschil geeft
+de echte tijd per league.
+
+(2) *De tijdkolommen waren `int`.* In de Crit Royale van league A stonden acht
+renners op "22:42" met 0,6 seconde ertussen — tussen de zevende en achtste zat
+één duizendste. Als `int` werden dat acht keer 1362. De punten worden vóór het
+opslaan berekend en klopten dus nog, maar de opgeslagen uitslag kon het niet
+navertellen. `0134` zet `time_seconds` en `segment_seconds` op `numeric(9,3)`;
+`standings.ts` en `public-data.ts` zetten die waarde nu om, want PostgREST
+levert numeric als string.
+
+(3) *Een niet-ingeschreven rijder verschuift de punten van iedereen eronder.*
+Twee gasten reden de crit van editie 7 mee. De oude sheet haalde ze er vóór het
+scoren uit; de import kent `omnium_entrants` alleen op de startlijstpagina en
+scoort iederéén die in de plak staat. Met de gasten erin klopt nog maar 9 van de
+17. Dat is een regelvraag, geen bug: **telt een gast mee of niet?** Tot dat
+besluit er is legt de test het huidige gedrag vast.
+
+**Nog open.** De weergegeven achterstand is boven de minuut in mm:ss ("+01:01"),
+dus daar zijn de duizendsten wél weg; drie renners in league D staan zo op
+dezelfde tijd terwijl ze het niet waren. Zolang de bron dat niet fijner geeft,
+kan de motor daar niets aan doen — de vraag is of een plak met een expliciete
+plaatskolom dan vóór de tijd moet gaan.
+
+**Niet gedaan.** De keten is nog niet tégen de database gedraaid: parse → opslaan
+→ stand → tiebreak loopt via `saveOmniumResults`, en dat schrijft in de
+productiedatabase. De tabellen bestaan inmiddels wel (`0126`-`0130` zijn
+gedraaid). Dat is de volgende stap, met een testeditie die niet gepubliceerd
+wordt.
 
 ### Actief — ZWB Omnium als platformmodule
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  summarizeRecentRides,
   intensityFactorFrom,
   rideLoadRows,
   rideMetricsFromStrava,
@@ -234,5 +235,62 @@ describe("weeklyLoad", () => {
     );
     expect(week.load).toBe(100);
     expect(week.seconds).toBe(7200);
+  });
+});
+
+describe("summarizeRecentRides", () => {
+  const rit = (minuten: number) => ({
+    moving_time_seconds: minuten * 60,
+    distance_m: minuten * 500,
+    total_elevation_gain_m: minuten,
+  });
+
+  it("rekent uren, ritten en gemiddelde duur per week uit", () => {
+    // Zes ritten van een uur en één van vier, in 28 dagen.
+    const rides = [rit(60), rit(60), rit(60), rit(60), rit(60), rit(60), rit(240)];
+    const shape = summarizeRecentRides(rides, 28);
+    expect(shape.activities).toBe(7);
+    expect(shape.hours).toBeCloseTo(10, 5);
+    expect(shape.hoursPerWeek).toBe(2.5);
+    expect(shape.ridesPerWeek).toBe(1.8);
+    expect(shape.avgDurationMinutes).toBe(86);
+    expect(shape.longestRideMinutes).toBe(240);
+  });
+
+  it("onderscheidt vaak-en-kort van weinig-en-lang bij hetzelfde weektotaal", () => {
+    // Precies waar dit voor bedoeld is: zelfde uren, ander ritme.
+    const vaakKort = summarizeRecentRides(Array.from({ length: 28 }, () => rit(60)), 28);
+    const weinigLang = summarizeRecentRides(Array.from({ length: 7 }, () => rit(240)), 28);
+    expect(vaakKort.hoursPerWeek).toBe(weinigLang.hoursPerWeek);
+    expect(vaakKort.avgDurationMinutes).toBe(60);
+    expect(weinigLang.avgDurationMinutes).toBe(240);
+    expect(vaakKort.ridesPerWeek).toBe(7);
+    expect(weinigLang.ridesPerWeek).toBe(1.8);
+  });
+
+  it("gaat om met een leeg venster", () => {
+    const shape = summarizeRecentRides([], 28);
+    expect(shape).toMatchObject({
+      activities: 0,
+      hoursPerWeek: 0,
+      ridesPerWeek: 0,
+      avgDurationMinutes: 0,
+      longestRideMinutes: 0,
+    });
+  });
+
+  it("negeert een rit zonder bruikbare tijd bij de langste rit", () => {
+    const shape = summarizeRecentRides([{ moving_time_seconds: null }, rit(90)], 28);
+    expect(shape.longestRideMinutes).toBe(90);
+    expect(shape.activities).toBe(2);
+  });
+
+  it("laat ritten zonder tijd het gemiddelde niet naar beneden trekken", () => {
+    // Komt echt voor: handmatig ingevoerde ritten zonder duur.
+    const shape = summarizeRecentRides(
+      [{ moving_time_seconds: null }, { moving_time_seconds: 0 }, rit(90)],
+      28,
+    );
+    expect(shape.avgDurationMinutes).toBe(90);
   });
 });

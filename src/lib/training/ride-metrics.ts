@@ -251,3 +251,71 @@ export function weeklyLoad(
       ctlChange: ctlChangeFor(week.weekStart, ctl),
     }));
 }
+
+/**
+ * Hoe iemand zijn volume rijdt: vaak en kort, of weinig en lang.
+ *
+ * Het weektotaal alleen is misleidend. Een lid dat elke dag een uur fietst en in
+ * het weekend vier uur komt op hetzelfde aantal uren uit als iemand die drie
+ * keer per week lang gaat — en kreeg tot nu toe hetzelfde schema, want de
+ * planner zag alleen dat totaal. Met deze cijfers erbij kan hij het ritme van
+ * het lid volgen in plaats van het volume in een paar lange blokken te gieten.
+ */
+export type RecentRideShape = {
+  activities: number;
+  hours: number;
+  distanceKm: number;
+  elevationM: number;
+  /** Uren per week over het venster; voorgerekend zodat het model niet deelt. */
+  hoursPerWeek: number;
+  /** Aantal ritten per week over hetzelfde venster. */
+  ridesPerWeek: number;
+  /** Gemiddelde duur van één rit, in minuten. */
+  avgDurationMinutes: number;
+  /** De langste rit in het venster; wat het lid nu aan één stuk aankan. */
+  longestRideMinutes: number;
+};
+
+export function summarizeRecentRides(
+  rides: Array<{
+    moving_time_seconds?: unknown;
+    distance_m?: unknown;
+    total_elevation_gain_m?: unknown;
+  }>,
+  days: number,
+): RecentRideShape {
+  let seconds = 0;
+  let distanceKm = 0;
+  let elevationM = 0;
+  let longestSeconds = 0;
+  // Ritten zonder bruikbare tijd tellen wel als rit, maar mogen het gemiddelde
+  // niet naar nul trekken: een lid met tien handmatig ingevoerde ritten zonder
+  // duur zou anders "tien ritten van nul minuten" heten, en daar zou de planner
+  // zijn sessielengte op afstemmen.
+  let timed = 0;
+
+  for (const ride of rides) {
+    const moving = Number(ride.moving_time_seconds ?? 0);
+    if (Number.isFinite(moving) && moving > 0) {
+      seconds += moving;
+      timed += 1;
+      if (moving > longestSeconds) longestSeconds = moving;
+    }
+    distanceKm += Number(ride.distance_m ?? 0) / 1000;
+    elevationM += Number(ride.total_elevation_gain_m ?? 0);
+  }
+
+  const weeks = days > 0 ? days / 7 : 1;
+  const round1 = (value: number) => Math.round(value * 10) / 10;
+
+  return {
+    activities: rides.length,
+    hours: seconds / 3600,
+    distanceKm,
+    elevationM,
+    hoursPerWeek: round1(seconds / 3600 / weeks),
+    ridesPerWeek: round1(rides.length / weeks),
+    avgDurationMinutes: timed > 0 ? Math.round(seconds / 60 / timed) : 0,
+    longestRideMinutes: Math.round(longestSeconds / 60),
+  };
+}

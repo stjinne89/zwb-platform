@@ -93,7 +93,10 @@ export function PlanUpdateForm({
 
   if (!open) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+      <div
+        id="schema-bijwerken"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+      >
         <h3 className="flex items-center gap-2 font-semibold">
           <RefreshCw className="size-5 text-primary" />
           Schema bijwerken
@@ -107,7 +110,7 @@ export function PlanUpdateForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-lg border bg-card p-4">
+    <form id="schema-bijwerken" onSubmit={submit} className="space-y-3 rounded-lg border bg-card p-4">
       <input type="hidden" name="plan_id" value={defaults.planId} />
       <h3 className="flex items-center gap-2 font-semibold">
         <RefreshCw className="size-5 text-primary" />

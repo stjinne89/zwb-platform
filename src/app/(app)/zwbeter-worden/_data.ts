@@ -25,6 +25,7 @@ import { asFtpTestType, loadFtpTests, type FtpTestType, type FtpTestRow } from "
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
+import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
 import {
   detectCompletedWorkouts,
   type WorkoutMetricsSnapshot,
@@ -619,4 +620,22 @@ export async function loadPlanCautions(
     .eq("id", planId)
     .maybeSingle();
   return memberCautions(cautionsFromSummary(data?.summary as string | null));
+}
+
+/**
+ * Hoeveel trainingen dit lid achter elkaar heeft laten lopen, of null zolang het
+ * schema gewoon draait. Dezelfde regel als de rem op de herzieningen
+ * (planIsIgnored in replan.ts), zodat het lid geen vraag krijgt over iets dat wel
+ * gewoon doorloopt — of andersom.
+ */
+export async function loadIgnoredStreak(viewer: Viewer): Promise<number | null> {
+  const compliance = await buildComplianceContext(viewer.admin, viewer.user.id).catch(() => null);
+  if (!compliance || !planIsBeingIgnored(compliance.workouts)) return null;
+
+  let streak = 0;
+  for (const workout of [...compliance.workouts].reverse()) {
+    if (workout.verdict !== "niet_gereden") break;
+    streak += 1;
+  }
+  return streak;
 }

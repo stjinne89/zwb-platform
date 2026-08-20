@@ -8,6 +8,7 @@ import {
   complianceVerdict,
   loadPercentage,
   pickRideForWorkout,
+  planIsBeingIgnored,
   summarizeCompliance,
   type PlannedWorkoutForCompliance,
 } from "@/lib/training/compliance";
@@ -235,5 +236,58 @@ describe("COMPLIANCE_PILLS", () => {
   it("geeft te licht en te zwaar niet dezelfde kleur", () => {
     // Te zwaar stapelt vermoeidheid op; te licht kost alleen prikkel.
     expect(COMPLIANCE_PILLS.te_licht).not.toBe(COMPLIANCE_PILLS.te_zwaar);
+  });
+});
+
+describe("planIsBeingIgnored", () => {
+  const workout = (verdict: "niet_gereden" | "volgens_plan") =>
+    ({
+      workoutId: `w-${verdict}-${Math.random()}`,
+      date: "2026-08-01",
+      title: "Training",
+      plannedMinutes: 60,
+      plannedLoad: 60,
+      plannedIntensity: "endurance",
+      actualMinutes: null,
+      actualLoad: null,
+      actualIf: null,
+      loadPct: null,
+      verdict,
+      athleteRpe: null,
+      athleteFeel: null,
+    }) as Parameters<typeof planIsBeingIgnored>[0][number];
+
+  it("slaat aan bij vier ongereden trainingen op rij", () => {
+    const rows = [
+      workout("volgens_plan"),
+      workout("niet_gereden"),
+      workout("niet_gereden"),
+      workout("niet_gereden"),
+      workout("niet_gereden"),
+    ];
+    expect(planIsBeingIgnored(rows)).toBe(true);
+  });
+
+  it("slaat niet aan als er tussendoor wél is gereden", () => {
+    const rows = [
+      workout("niet_gereden"),
+      workout("niet_gereden"),
+      workout("volgens_plan"),
+      workout("niet_gereden"),
+      workout("niet_gereden"),
+    ];
+    expect(planIsBeingIgnored(rows)).toBe(false);
+  });
+
+  it("oordeelt niet over een schema dat net begonnen is", () => {
+    // Drie trainingen is te weinig om iemand af te schrijven.
+    expect(planIsBeingIgnored([workout("niet_gereden"), workout("niet_gereden"), workout("niet_gereden")])).toBe(false);
+    expect(planIsBeingIgnored([])).toBe(false);
+  });
+
+  it("laat de reekslengte instellen", () => {
+    const twee = [workout("niet_gereden"), workout("niet_gereden")];
+    expect(planIsBeingIgnored(twee, 2)).toBe(true);
+    expect(planIsBeingIgnored(twee, 4)).toBe(false);
   });
 });

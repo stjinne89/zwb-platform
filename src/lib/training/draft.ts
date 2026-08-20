@@ -35,6 +35,8 @@ import {
 } from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
 import { rootIdOf } from "@/lib/training/plan-tree";
+import { summarizeRecentRides } from "@/lib/training/ride-metrics";
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
@@ -168,30 +170,23 @@ export async function buildRecentLoad(
   athleteId: string,
   days = 28,
 ): Promise<TrainingAiInput["recentLoad"]> {
+  // Alleen fietsen. Zonder deze filter telde een hardloopblok of een wandeling
+  // mee als fietsvolume, en dat is precies het getal waar de planner zijn
+  // ondergrens op baseert.
   const { data: activities } = await admin
     .from("strava_activities")
-    .select("distance_m, total_elevation_gain_m, moving_time_seconds")
+    .select("distance_m, total_elevation_gain_m, moving_time_seconds, sport_type")
     .eq("profile_id", athleteId)
+    .in("sport_type", CYCLING_SPORTS)
     .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString());
-
-  const totals = (activities ?? []).reduce(
-    (acc, row) => ({
-      days: acc.days,
-      activities: acc.activities + 1,
-      distanceKm: acc.distanceKm + Number(row.distance_m ?? 0) / 1000,
-      elevationM: acc.elevationM + Number(row.total_elevation_gain_m ?? 0),
-      hours: acc.hours + Number(row.moving_time_seconds ?? 0) / 3600,
-    }),
-    { days, activities: 0, distanceKm: 0, elevationM: 0, hours: 0 },
-  );
 
   // Voorgerekend, want dit is precies de deling die het model eerder zelf maakte
   // en toen tegen het urenplafond legde alsof het een overschrijding was. Nu is
-  // het waar het voor bedoeld is: het volume dat dit lid al aankan.
-  return {
-    ...totals,
-    hoursPerWeek: days > 0 ? Math.round((totals.hours / days) * 7 * 10) / 10 : 0,
-  };
+  // het waar het voor bedoeld is: het volume dat dit lid al aankan — met erbij
+  // hóé het dat rijdt, zodat er geen drie blokken van 3,5 uur uit komen voor
+  // iemand die elke dag een uurtje fietst.
+  const shape = summarizeRecentRides(activities ?? [], days);
+  return { days, ...shape };
 }
 
 /**
@@ -1265,6 +1260,39 @@ export async function pollAiDraft(generationId: string): Promise<TrainingDraftRe
     const row = generation as AiGenerationRow;
     if (!(await canAccessGeneration(admin, user.id, access, row))) {
       throw new Error("Geen toegang tot deze AI-generatie.");
+    }
+    return await finishAiGeneration(admin, row);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "AI-concept status ophalen faalde." };
+  }
+}
+
+/**
+ * Een generatie afmaken: ophalen bij OpenAI en er een schema van maken zodra hij
+ * klaar is. Zonder sessie, want de nacht-cron heeft er geen.
+ *
+ * Dit was tot 2026-08-20 de binnenkant van pollAiDraft, en daar zat het probleem:
+ * een achtergrondgeneratie wordt pas een schema zodra iemand hem ophaalt, en dat
+ * deed alleen de browser van het lid. Sloot dat tabblad, dan bleef de generatie
+ * staan — een kwart van alle generaties is zo blijven hangen, betaald en zonder
+ * resultaat. De cron gebruikt deze functie om die alsnog af te maken.
+ */
+export async function finishAiGeneration(
+  admin: ReturnType<typeof createAdminClient>,
+  generation: AiGenerationRow | string,
+): Promise<TrainingDraftResult> {
+  try {
+    let row: AiGenerationRow;
+    if (typeof generation === "string") {
+      const { data, error } = await admin
+        .from("training_ai_generations")
+        .select(AI_GENERATION_COLUMNS)
+        .eq("id", generation)
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "AI-generatie niet gevonden.");
+      row = data as AiGenerationRow;
+    } else {
+      row = generation;
     }
 
     const { data: existingPlan } = await admin
