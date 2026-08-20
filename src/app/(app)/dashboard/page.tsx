@@ -23,7 +23,9 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
+import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
+import { Greeting } from "./_components/greeting";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { SponsorCarousel } from "./_components/sponsor-carousel";
 import {
@@ -558,8 +560,8 @@ export default async function DashboardPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={firstName ? `Hoi ${firstName}` : "Welkom"}
-        title="Welkom thuis op ZWB Home"
+        eyebrow={<Greeting name={firstName || null} serverHour={amsterdamHour()} />}
+        title="Welkom thuis op ZWBasis"
       />
 
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt

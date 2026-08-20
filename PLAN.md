@@ -767,6 +767,34 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — ZWBasis en een groet op de klok van het lid
+
+**2026-08-20, working tree.** Geen migratie.
+
+**ZWB Home heet ZWBasis.** Voorlopige uitkomst van de naampoll; stond op één
+plek in de code (de titel van het dashboard), dus dit is een naamswijziging van
+één regel. Komt er uit de poll alsnog iets anders, dan is het weer één regel.
+
+**Groet op het uur.** Het dashboard opende met "Hoi Bart"; dat is nu
+"Goedemorgen, Bart" / "Goedemiddag" / "Goedenavond" / "Goedenacht", met de
+gewone Nederlandse grenzen (6, 12, 18, 0 uur) in `src/lib/greeting.ts`.
+
+Belangrijker dan de tekst is wélke klok telt. De server draait in UTC en weet de
+tijdzone van het lid niet, dus die kán het niet goed hebben. Daarom rendert de
+server het Nederlandse uur — goed voor verreweg de meeste leden, en identiek aan
+wat de browser bij hydratie verwacht — en zet de client het daarna om naar de
+eigen tijdzone (`_components/greeting.tsx`). Zonder die volgorde krijg je ofwel
+een hydratiewaarschuwing, ofwel een dashboard dat een tel lang zonder groet
+staat. Wie het dashboard open laat staan ziet de groet meeschuiven: er wordt elke
+minuut gekeken of het uur is gewisseld.
+
+`PageHeader.eyebrow` accepteert daarvoor nu een `ReactNode` in plaats van alleen
+een string; verder verandert er niets aan die component.
+
+**Bewust niet gedaan.** *De tijdzone in het profiel opslaan.* De browser weet hem
+al en er is geen enkele andere plek die hem nodig heeft; een kolom die je bij
+elke verhuizing moet bijhouden levert hier niets op.
+
 ### Opgeleverd — de "Let op"-regels bij de eerstvolgende workout
 
 **2026-08-20, working tree.** Geen migratie.

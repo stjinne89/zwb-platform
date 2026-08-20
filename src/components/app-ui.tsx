@@ -10,7 +10,8 @@ export function PageHeader({
   actions,
   className,
 }: {
-  eyebrow?: string;
+  /** Tekst of component; het dashboard zet er een klok-afhankelijke groet in. */
+  eyebrow?: React.ReactNode;
   title: string;
   description?: string;
   actions?: React.ReactNode;
