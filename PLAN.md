@@ -767,6 +767,30 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — GPX downloaden vanaf de event-pagina
+
+**2026-08-20, working tree.** Geen migratie.
+
+**Waarom.** De GPX van een event was alleen te zien (kaart + hoogteprofiel),
+niet te pakken. Wie de route op zijn fietscomputer wil zetten, moest het bestand
+elders vandaan halen of erom vragen in de groep.
+
+**Wat er staat.** Naast de deel-knoppen in de event-header staat een
+download-icoon (alleen als het event een GPX heeft). Het linkt naar een tweede
+signed URL van dezelfde storage-bucket, aangemaakt met `download: <titel>.gpx`,
+zodat Supabase `Content-Disposition: attachment` meestuurt en de browser het
+bestand opslaat onder een herkenbare naam in plaats van de opaque storage-key.
+De bestaande signed URL voor kaart/profiel blijft ongewijzigd — die wordt met
+`fetch()` gelezen en mag geen attachment-header krijgen.
+
+Bewust geen aparte route of eigen API-endpoint: de bucket is privé en de
+bestaande RLS-policy ("event-gpx read authenticated") bepaalt al wie een signed
+URL krijgt. Een eigen endpoint zou die check dupliceren.
+
+**Niet gebouwd.** Geen downloadknop bij het verjaardagsrondje
+(`/verjaardagen/[id]`), dat een eigen GPX-pad heeft — daar is nog geen vraag
+naar. Ook geen teller of logging van downloads.
+
 ### Opgeleverd — core-advies op het dashboard, met weekreeks
 
 **2026-08-20, working tree.** Geen migratie.

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, Pencil } from "lucide-react";
+import { ArrowUpRight, Download, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { slugify } from "@/lib/slugify";
 import { allTrkptFromGpx, firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchRouteForecast, fetchWindForecast, type RoutePointForecast } from "@/lib/weather";
 import { sampleRoute, type SampledRoute } from "@/lib/route-sample";
@@ -475,11 +476,21 @@ export default async function EventDetailPage({
   );
 
   let gpxUrl: string | null = null;
+  // Aparte signed URL met `download`: die zet Content-Disposition op attachment,
+  // zodat de browser het bestand opslaat in plaats van toont.
+  let gpxDownloadUrl: string | null = null;
   if (event.gpx_path) {
     const { data } = await supabase.storage
       .from("event-gpx")
       .createSignedUrl(event.gpx_path, 3600);
     gpxUrl = data?.signedUrl ?? null;
+
+    const { data: downloadData } = await supabase.storage
+      .from("event-gpx")
+      .createSignedUrl(event.gpx_path, 3600, {
+        download: `${slugify(event.title) || "route"}.gpx`,
+      });
+    gpxDownloadUrl = downloadData?.signedUrl ?? null;
   }
 
   let eventLiveSessions: EventLiveSession[] = [];
@@ -649,6 +660,17 @@ export default async function EventDetailPage({
             />
             {eventIsToday && event.gpx_path && (
               <ShareLiveButton eventId={event.id} />
+            )}
+            {gpxDownloadUrl && (
+              <Button
+                size="icon-sm"
+                variant="outline"
+                title="Download GPX"
+                aria-label="Download GPX"
+                render={<a href={gpxDownloadUrl} download />}
+              >
+                <Download />
+              </Button>
             )}
             {canManage && (
               <Link href={`/events/${event.id}/bewerk`}>
