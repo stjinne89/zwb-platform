@@ -775,8 +775,12 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 niet te pakken. Wie de route op zijn fietscomputer wil zetten, moest het bestand
 elders vandaan halen of erom vragen in de groep.
 
-**Wat er staat.** Naast de deel-knoppen in de event-header staat een
-download-icoon (alleen als het event een GPX heeft). Het linkt naar een tweede
+**Wat er staat.** Onder de kaart en het hoogteprofiel staat een download-icoon
+(alleen als het event een GPX heeft), zowel in `RouteSection` als in de
+liveticker van een event dat vandaag is — gedeeld component
+`_components/gpx-download-link.tsx`. Het icoon stond eerst in de event-header
+naast de deel-knoppen; daar was de link naar de route niet te leggen, want de
+kaart staat een halve pagina lager. Het linkt naar een tweede
 signed URL van dezelfde storage-bucket, aangemaakt met `download: <titel>.gpx`,
 zodat Supabase `Content-Disposition: attachment` meestuurt en de browser het
 bestand opslaat onder een herkenbare naam in plaats van de opaque storage-key.
@@ -789,7 +793,9 @@ URL krijgt. Een eigen endpoint zou die check dupliceren.
 
 **Niet gebouwd.** Geen downloadknop bij het verjaardagsrondje
 (`/verjaardagen/[id]`), dat een eigen GPX-pad heeft — daar is nog geen vraag
-naar. Ook geen teller of logging van downloads.
+naar. Ook niet op de publieke `/live/[eventId]`: de bucket is privé en leest
+`authenticated`, en een download-URL daar zou de GPX buiten het ledenbestand
+brengen. Geen teller of logging van downloads.
 
 ### Opgeleverd — core-advies op het dashboard, met weekreeks
 

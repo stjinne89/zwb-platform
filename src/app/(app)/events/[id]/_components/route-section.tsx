@@ -10,6 +10,7 @@ import {
   type ClimbRange,
   type ColLite,
 } from "@/lib/gpx-climbs";
+import { GpxDownloadLink } from "./gpx-download-link";
 import { GpxMap } from "./gpx-map";
 import { ElevationProfile } from "./elevation-profile";
 import { ClimbEditor } from "./climb-editor";
@@ -37,6 +38,7 @@ import {
  */
 export function RouteSection({
   gpxUrl,
+  gpxDownloadUrl = null,
   cols = [],
   eventId,
   canManage = false,
@@ -46,6 +48,7 @@ export function RouteSection({
   currentUserId = null,
 }: {
   gpxUrl: string;
+  gpxDownloadUrl?: string | null;
   cols?: ColLite[];
   eventId?: string;
   canManage?: boolean;
@@ -320,6 +323,8 @@ export function RouteSection({
           zones={effectiveZones}
         />
       </div>
+
+      {gpxDownloadUrl && <GpxDownloadLink href={gpxDownloadUrl} />}
 
       {canPlacePoi && (
         <div className="space-y-2">

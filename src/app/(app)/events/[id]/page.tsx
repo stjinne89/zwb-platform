@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, Download, Pencil } from "lucide-react";
+import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
@@ -661,17 +661,6 @@ export default async function EventDetailPage({
             {eventIsToday && event.gpx_path && (
               <ShareLiveButton eventId={event.id} />
             )}
-            {gpxDownloadUrl && (
-              <Button
-                size="icon-sm"
-                variant="outline"
-                title="Download GPX"
-                aria-label="Download GPX"
-                render={<a href={gpxDownloadUrl} download />}
-              >
-                <Download />
-              </Button>
-            )}
             {canManage && (
               <Link href={`/events/${event.id}/bewerk`}>
                 <Button type="button" size="sm" variant="outline">
@@ -726,6 +715,7 @@ export default async function EventDetailPage({
         (eventIsToday ? (
           <EventLiveTicker
             gpxUrl={gpxUrl}
+            gpxDownloadUrl={gpxDownloadUrl}
             eventStartAt={event.start_at}
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
@@ -737,6 +727,7 @@ export default async function EventDetailPage({
         ) : (
           <RouteSection
             gpxUrl={gpxUrl}
+            gpxDownloadUrl={gpxDownloadUrl}
             cols={cols}
             eventId={event.id}
             canManage={canManage}

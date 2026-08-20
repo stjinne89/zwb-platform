@@ -32,6 +32,7 @@ import {
   ZoneBadges,
   ZoneBands,
 } from "./climb-overlay";
+import { GpxDownloadLink } from "./gpx-download-link";
 import { POI_TYPES, type EventPoi, type PoiType, type ProfilePoi } from "./poi";
 import { ZONE_COLOR, ZONE_LABEL, type EventZone } from "./zone";
 import type { DivIcon } from "leaflet";
@@ -300,6 +301,7 @@ const DEFAULT_EMPTY =
 
 export function EventLiveTicker({
   gpxUrl,
+  gpxDownloadUrl = null,
   eventStartAt,
   sessions: initialSessions,
   initialPositions,
@@ -313,6 +315,8 @@ export function EventLiveTicker({
   emptyText = DEFAULT_EMPTY,
 }: {
   gpxUrl: string;
+  /** Signed URL met `download`; toont het download-icoon onder de kaart. */
+  gpxDownloadUrl?: string | null;
   eventStartAt: string;
   sessions: EventLiveSession[];
   initialPositions: EventLivePosition[];
@@ -740,6 +744,8 @@ export function EventLiveTicker({
           <RiderList riders={riders} totalKm={routeStats.totalKm} />
         </div>
       </div>
+
+      {gpxDownloadUrl && <GpxDownloadLink href={gpxDownloadUrl} />}
 
       {riders.length === 0 && (
         <div className="rounded-md border border-dashed bg-background p-4 text-sm text-muted-foreground">
