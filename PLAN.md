@@ -769,7 +769,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 ### Opgeleverd — beschikbaarheid per week, nachtelijk vangnet + FTP-test in het schema
 
-**2026-08-20, gecommit op `main`.** Migraties `0131`-`0133`.
+**2026-08-20, commit `3360f6b`.** Migraties `0131`-`0133`.
 
 **Beschikbaarheid: de bug.** Werkte een lid zijn schema bij, dan paste de
 planner álle toekomstige weken aan op de beschikbaarheid van déze week — ook
