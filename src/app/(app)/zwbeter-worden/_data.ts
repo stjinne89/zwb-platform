@@ -24,6 +24,7 @@ import { loadAvailability, mondayKey, shiftWeeks } from "@/lib/training/availabi
 import { asFtpTestType, loadFtpTests, type FtpTestType, type FtpTestRow } from "@/lib/training/ftp-test";
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
+import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
 import {
   detectCompletedWorkouts,
   type WorkoutMetricsSnapshot,
@@ -600,4 +601,22 @@ export async function loadFtpTestState(
     awaitingResult: [...planned].reverse().find((test) => test.date <= todayKey) ?? null,
     lastTest: tests[0] ?? null,
   };
+}
+
+/**
+ * De "Let op"-regels van één schema. Bewust op plan_id van de wórkout en niet op
+ * het lopende basisplan: een herziening draagt haar eigen cautions, en dat is de
+ * generatie die de duur van die dag heeft bepaald.
+ */
+export async function loadPlanCautions(
+  viewer: Viewer,
+  planId: string | null | undefined,
+): Promise<string[]> {
+  if (!planId) return [];
+  const { data } = await viewer.supabase
+    .from("training_plans")
+    .select("summary")
+    .eq("id", planId)
+    .maybeSingle();
+  return memberCautions(cautionsFromSummary(data?.summary as string | null));
 }

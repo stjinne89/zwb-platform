@@ -25,7 +25,7 @@ export default async function LogboekPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("symptom_tracking_enabled")
+    .select("symptom_tracking_enabled, sex")
     .eq("id", user.id)
     .maybeSingle();
   const enabled = Boolean(profile?.symptom_tracking_enabled);
@@ -37,6 +37,32 @@ export default async function LogboekPage() {
       description="Hoe je je voelt, zodat je schema erop kan meebewegen."
     />
   );
+
+  // Het logboek gaat over klachten rond de cyclus en is niet voor mannen
+  // geschreven. Het menu-item is verborgen (nav-config), maar een bookmark of
+  // een oude link komt hier nog steeds uit — vandaar ook deze controle.
+  if (profile?.sex !== "vrouw") {
+    return (
+      <div className="space-y-6">
+        {header}
+        <section className="space-y-3 rounded-lg border bg-card p-6">
+          <p className="text-sm text-muted-foreground">
+            Het logboek is nu ingericht op klachten rond de cyclus en daarom
+            alleen beschikbaar voor leden met{" "}
+            <strong className="text-foreground">Vrouw</strong> bij{" "}
+            <Link href="/profiel" className="underline underline-offset-2">
+              geslacht in je profiel
+            </Link>
+            .
+          </p>
+          {/* Wie het logboek eerder aanzette moet het ook weer uit kunnen
+              zetten; die knop staat alleen hier, dus zonder dit zou zijn
+              klachtensignaal voor altijd naar het schema blijven gaan. */}
+          {enabled ? <OptInButton enabled /> : null}
+        </section>
+      </div>
+    );
+  }
 
   if (!enabled) {
     return (

@@ -18,8 +18,18 @@ export default async function ZwbeterWordenLayout({
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
 
-  const sections = filterNavForPermissions(ZWBETER_WORDEN_SECTIONS, (permission) =>
-    access.has(permission),
+  // Geslacht bepaalt of het logboek in de tabbalk staat; zie onlyForSex in
+  // nav-config.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("sex")
+    .eq("id", access.user.id)
+    .maybeSingle();
+
+  const sections = filterNavForPermissions(
+    ZWBETER_WORDEN_SECTIONS,
+    (permission) => access.has(permission),
+    (profile?.sex as string | null) ?? null,
   ) as NavLeaf[];
 
   return (

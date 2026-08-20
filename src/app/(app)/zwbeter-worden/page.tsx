@@ -16,6 +16,7 @@ import { CoreTodayCard } from "./core/_components/core-today-card";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { RecoveryCard } from "./_components/recovery-card";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
+import { PlanCautions } from "./_components/plan-cautions";
 import { MetricCard } from "./_components/ui";
 import { WorkoutBlocks, WorkoutTitle, eventWorkoutBlocks } from "./_components/workout-blocks";
 import {
@@ -37,6 +38,7 @@ import {
   loadIntervalsSnapshot,
   loadMemberWorkouts,
   loadPendingReview,
+  loadPlanCautions,
   loadProfile,
   requireViewer,
   todayKeyAmsterdam,
@@ -162,6 +164,15 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
     ? suggestSegmentsForBlock(hardestBlock, riddenSegments)
     : [];
 
+  // Waarom staat er vandaag negentig minuten terwijl er twee uur beschikbaar is?
+  // Dat antwoord stond alleen in de samenvatting van het schema, waar niemand
+  // kijkt. Zie plan-cautions.tsx: bedoeld om mee te kijken zolang we leren hoe
+  // streng de opbouwregels uitpakken.
+  const planCautions =
+    nextWorkout?.kind === "zwb"
+      ? await loadPlanCautions(viewer, nextWorkout.workout.plan_id)
+      : [];
+
   return (
     <div className="space-y-6">
       {snapshot.fetchError && (
@@ -243,6 +254,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 ftpWatts={profile?.ftp_watts}
                 variant="preview"
               />
+              <PlanCautions items={planCautions} />
               {segmentSuggestions.length > 0 ? (
                 <div className="mt-4 border-t pt-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

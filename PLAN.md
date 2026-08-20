@@ -767,6 +767,81 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — de "Let op"-regels bij de eerstvolgende workout
+
+**2026-08-20, working tree.** Geen migratie.
+
+**Waarom.** Vraag van een lid: "Ik heb vandaag en morgen 120 minuten beschikbaar
+en krijg 90 en 60 voorgeschoteld, waar komt dat vandaan?" Het antwoord stond er
+al — in de cautions van zijn schema: *"De eerste dagen zijn bewust rustiger
+vanwege vermoeidheidssignalen"* en *"De weekbeschikbaarheid telt op tot 9 uur en
+ligt onder het doelplafond van 12 uur"*. Alleen leven die regels in de
+samenvatting van het schéma, en een lid dat naar zijn dag kijkt komt daar nooit.
+Niet de duur was het probleem, maar dat de redenering onvindbaar was.
+
+**Hoe.** `training_plans.summary` is één tekstveld waarin de omschrijving en de
+cautions (elk met "Let op: " ervoor) zijn samengevoegd. `plan-summary.ts` haalt
+ze er weer uit — en gebruikt hetzelfde `CAUTION_PREFIX` dat
+`createPlanFromAiGeneration()` bij het samenstellen gebruikt, zodat het formaat
+op één plek staat. De Vandaag-pagina toont ze onder de blokken van de
+eerstvolgende workout, op `plan_id` van díe workout: een herziening draagt haar
+eigen cautions, en dat is de generatie die deze dag heeft bepaald.
+
+`memberCautions()` filtert eerst de regels die over de herplanning zelf gaan
+("Herplanning is beperkt tot ...", "Concept ter review door de trainer") en kapt
+af op vier. In de praktijk levert een generatie er zes tot acht op, met de
+administratie bovenaan; zonder die filter duwt die het echte antwoord uit beeld.
+Getest tegen letterlijke regels uit schema's van 19 en 20 augustus.
+
+**Bewust tijdelijk.** Dit is de goedkope manier om mee te kijken of de
+opbouwregels in de praktijk niet te streng uitpakken, over meerdere leden en
+situaties heen. Zit dat vertrouwen er, dan kan het blok er in één keer uit:
+`plan-cautions.tsx` weg, de `loadPlanCautions()`-aanroep uit
+`zwbeter-worden/page.tsx` en klaar. `plan-summary.ts` mag blijven staan.
+
+**Wat daarbij opviel.** De AI schrijft in cautions soms de namen van zijn eigen
+invoervelden op: *"Er zijn geen gewijzigde randvoorwaarden in
+planUpdate.changed"*, *"Omdat goal.type base_fitness is ..."*. Voor een lid is
+dat onleesbaar. Eén promptregel ("noem in titel, samenvatting en cautions nooit
+de namen van de invoervelden; schrijf voor het lid") lost dat bij de bron op;
+bewust niet in deze ronde meegenomen, omdat die elke generatie raakt en deze
+ronde juist buiten de AI moest blijven.
+
+**Niet gebouwd, wel overwogen.** *Een korte "waarom" per workout laten
+meegenereren.* Dat is het echte antwoord op de vraag van het lid — een zin onder
+de titel, per training. Maar het raakt het antwoordschema van élke AI-flow en de
+publicatie, dus dat is een eigen ronde. Eerst kijken of de schema-brede regels
+al genoeg verklaren.
+
+### Opgeleverd — logboek alleen voor vrouwelijke leden
+
+**2026-08-20, working tree.** Geen migratie.
+
+**Waarom.** Het klachtenlogboek is geschreven rond de cyclus: buikpijn, stemming,
+de eerste dag markeren, cycluslengte die vanzelf volgt. Voor een man staan daar
+vragen die niet over hem gaan, en dat maakt de rest van het logboek ook minder
+serieus. Liever niets tonen dan iets tonen dat niet klopt.
+
+**Hoe.** Een nav-item kan nu `onlyForSex` dragen (`_components/nav-config.ts`);
+`filterNavForPermissions()` krijgt daarvoor het geslacht uit het profiel mee, in
+het hoofdmenu én in de tabbalk van ZWBeter Worden. Alleen `sex = 'vrouw'` ziet
+het item: wie niets heeft ingevuld of 'zeg ik liever niet' koos dus ook niet.
+De pagina zelf controleert het opnieuw — een verborgen tabje is geen slot, en een
+bookmark komt er anders gewoon uit. `/hulp#logboek` en de zoekindex zeggen nu
+voor wie het is.
+
+**Wat er bewust bleef staan.** Een lid dat het logboek eerder aanzette ziet op
+die pagina nog de knop om het uit te zetten. Die knop bestaat nergens anders, en
+zonder deze uitzondering zou zijn klachtensignaal voor altijd naar de planner
+blijven gaan zonder dat hij er nog bij kan. Bestaande logregels laten we staan;
+ze zijn van het lid zelf.
+
+**Bewust niet gebouwd.** *Een mannenversie van het logboek.* Dat is een eigen
+ronde: andere vragen (slaap, stress, belasting, blessuregevoel) en een eigen
+onderbouwing, niet dezelfde lijst met de cyclusvragen eruit geknipt. Zolang die
+er niet is, is verbergen eerlijker dan half tonen. Zie ook `docs/training-en-cyclus.md`
+voor waarom er op klachten wordt gestuurd en niet op cyclusfase.
+
 ### Opgeleverd — beschikbaarheid per week, nachtelijk vangnet + FTP-test in het schema
 
 **2026-08-20, commit `3360f6b`.** Migraties `0131`-`0133`.

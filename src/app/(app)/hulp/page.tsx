@@ -873,7 +873,7 @@ export default function HelpPage() {
               het schema zichzelf bij op de dagen die nog komen. Dat geldt ook
               als je een rit inplant of je voor een clubevent aan- of afmeldt.
               Lukt het niet meteen — bijvoorbeeld omdat je schema net al werd
-              bijgewerkt — dan gebeurt het 's nachts alsnog.
+              bijgewerkt — dan gebeurt het ’s nachts alsnog.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -925,7 +925,10 @@ export default function HelpPage() {
           Onder ZWBeter Worden staat een logboek waarin je per dag bijhoudt
           hoeveel last je hebt en waarvan — buikpijn, slecht geslapen, stemming,
           darmen. Je kunt er ook de eerste dag van je menstruatie markeren; de
-          cycluslengte volgt dan vanzelf.
+          cycluslengte volgt dan vanzelf. De vragen zijn daarop geschreven, dus
+          het logboek staat alleen bij leden met{" "}
+          <strong className="text-foreground">Vrouw</strong> bij geslacht in hun
+          profiel. Een versie voor mannen kan later volgen.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           Het logboek staat standaard uit en doet niets tot je het zelf aanzet.
@@ -937,7 +940,7 @@ export default function HelpPage() {
           Waarom klachten en geen cyclusfase? Onderzoek naar trainen per
           cyclusfase levert wisselende en zwakke uitkomsten op, terwijl klachten
           wél samenhangen met wat je die week aankunt. Bovendien heeft niet
-          iedereen een natuurlijke cyclus. Zo werkt het voor iedereen.
+          iedereen een natuurlijke cyclus. Zo werkt het ook zonder.
         </p>
       </section>
 

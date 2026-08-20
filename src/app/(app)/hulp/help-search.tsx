@@ -59,7 +59,7 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Logboek: hoe je je voelt",
-    text: "Houd per dag bij hoeveel last je hebt en waarvan. Je schema weegt het mee als signaal; alleen jij ziet wat erin staat.",
+    text: "Voor vrouwelijke leden: houd per dag bij hoeveel last je hebt en waarvan. Alleen jij ziet wat erin staat.",
     href: "/hulp#logboek",
     terms: "logboek klachten menstruatie cyclus herstel belastbaarheid symptomen privacy",
   },

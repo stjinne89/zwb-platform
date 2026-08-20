@@ -26,7 +26,7 @@ export default async function AppLayout({
   const [{ data: profile }, access] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, zwift_id, zwift_opt_out")
+      .select("display_name, zwift_id, zwift_opt_out, sex")
       .eq("id", user.id)
       .single(),
     getCurrentUserAccess(supabase),
@@ -36,7 +36,11 @@ export default async function AppLayout({
   // Vragen tot het ingevuld is of tot het lid zegt niet te zwiften.
   const needsZwiftId = Boolean(profile && !profile.zwift_id && !profile.zwift_opt_out);
   const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
-  const navNodes = filterNavForPermissions(NAV_GROUPS, (permission) => access.has(permission));
+  const navNodes = filterNavForPermissions(
+    NAV_GROUPS,
+    (permission) => access.has(permission),
+    (profile?.sex as string | null) ?? null,
+  );
 
   return (
     <div className="app-shell flex min-h-screen flex-col">

@@ -14,6 +14,12 @@ export type NavLeaf = {
   /** Alleen tonen als de gebruiker dit recht heeft. Filteren gebeurt in de
    * layout, want de nav-componenten draaien client-side. */
   permission?: CommunityPermission;
+  /**
+   * Alleen tonen bij dit geslacht uit het profiel. Nu alleen voor het logboek:
+   * de inhoud daarvan gaat over klachten rond de cyclus en is niet geschreven
+   * voor mannen. Wie niets heeft ingevuld ziet het item dus ook niet.
+   */
+  onlyForSex?: "vrouw" | "man";
 };
 
 export type NavGroup = {
@@ -30,7 +36,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden", label: "Vandaag" },
   { type: "link", href: "/zwbeter-worden/schema", label: "Schema" },
   { type: "link", href: "/zwbeter-worden/belasting", label: "Belasting" },
-  { type: "link", href: "/zwbeter-worden/logboek", label: "Logboek" },
+  { type: "link", href: "/zwbeter-worden/logboek", label: "Logboek", onlyForSex: "vrouw" },
   { type: "link", href: "/zwbeter-worden/vermogen", label: "Vermogen" },
   { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
@@ -166,8 +172,11 @@ export const ADMIN_NAV: AdminNavItem[] = [
 export function filterNavForPermissions(
   nodes: NavNode[],
   has: (permission: CommunityPermission) => boolean,
+  /** Geslacht uit het profiel; null als het niet is ingevuld. */
+  sex: string | null = null,
 ): NavNode[] {
-  const allowed = (item: NavLeaf) => !item.permission || has(item.permission);
+  const allowed = (item: NavLeaf) =>
+    (!item.permission || has(item.permission)) && (!item.onlyForSex || item.onlyForSex === sex);
   return nodes.flatMap<NavNode>((node) => {
     if (node.type === "link") return allowed(node) ? [node] : [];
     const items = node.items.filter(allowed);

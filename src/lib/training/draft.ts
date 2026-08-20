@@ -35,6 +35,7 @@ import {
 } from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
 import { rootIdOf } from "@/lib/training/plan-tree";
+import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 
@@ -501,7 +502,10 @@ async function createPlanFromAiGeneration(
       adaptation_kind: generation.adaptation_kind ?? (isAdaptation ? "day" : null),
       adapt_from_date: generation.adapt_from_date ?? null,
       title,
-      summary: [planDraft.summary, ...planDraft.cautions.map((c) => `Let op: ${c}`)].join("\n\n"),
+      summary: [
+        planDraft.summary,
+        ...planDraft.cautions.map((caution) => `${CAUTION_PREFIX}${caution}`),
+      ].join("\n\n"),
       start_date: planDraft.startDate,
       end_date: planDraft.endDate,
       status: "draft",
