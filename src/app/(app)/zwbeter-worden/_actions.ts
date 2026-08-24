@@ -999,7 +999,7 @@ export async function saveWeekAvailability(formData: FormData) {
         JSON.stringify(minutesByDay);
 
     // Niets gewijzigd: ook niet schrijven. De touch-trigger zou updated_at
-    // anders vooruitzetten, en daar leest de nacht-cron aan af of er nog een
+    // anders vooruitzetten, en daar leest de dagelijkse cron aan af of er nog een
     // herziening nodig is — een lid dat twee keer op Opslaan drukt zou zo elke
     // nacht een generatie kosten.
     if (unchanged) return { ok: true as const, generationId: null };
@@ -1439,7 +1439,7 @@ export async function removeOwnRide(formData: FormData) {
 }
 
 /**
- * Een voorstel uit de nachtelijke bijstelling toepassen: goedkeuren en meteen
+ * Een voorstel uit de dagelijkse bijstelling toepassen: goedkeuren en meteen
  * publiceren, zodat het lid er één handeling aan heeft.
  */
 export async function applyAdaptationProposal(formData: FormData) {

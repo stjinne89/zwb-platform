@@ -3,17 +3,29 @@ import { Wrench } from "lucide-react";
 import { SectionHeader, InlineMoreLink } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import { componentLabel } from "@/lib/maintenance/component-types";
-import { wearPct, wearStatus } from "@/lib/maintenance/status";
+import {
+  componentLabel,
+  isInspection,
+  type WearMetric,
+} from "@/lib/maintenance/component-types";
+import { wearProgress, wearStatus } from "@/lib/maintenance/status";
 
-type BikeRow = { id: string; distance_m: number | string };
+type BikeRow = {
+  id: string;
+  distance_m: number | string;
+  manual_distance_m: number | string | null;
+  source: string | null;
+};
 type ComponentRow = {
   id: string;
   bike_id: string;
   component_type: string;
   name: string | null;
+  wear_metric: WearMetric | null;
+  threshold_value: number | null;
   threshold_km: number;
   baseline_distance_m: number | string;
+  installed_at: string | null;
 };
 
 // Toont alleen onderdelen die bijna/over de drempel zijn. Rendert niets als
@@ -23,10 +35,15 @@ export async function MaintenanceStatus({ profileId }: { profileId: string }) {
   const supabase = await createClient();
 
   const [{ data: bikes }, { data: components }] = await Promise.all([
-    supabase.from("strava_bikes").select("id, distance_m").eq("profile_id", profileId),
+    supabase
+      .from("strava_bikes")
+      .select("id, distance_m, manual_distance_m, source")
+      .eq("profile_id", profileId),
     supabase
       .from("bike_components")
-      .select("id, bike_id, component_type, name, threshold_km, baseline_distance_m")
+      .select(
+        "id, bike_id, component_type, name, wear_metric, threshold_value, threshold_km, baseline_distance_m, installed_at",
+      )
       .eq("profile_id", profileId)
       .eq("status", "active"),
   ]);
@@ -35,12 +52,25 @@ export async function MaintenanceStatus({ profileId }: { profileId: string }) {
   const componentRows = (components ?? []) as ComponentRow[];
   if (bikeRows.length === 0 || componentRows.length === 0) return null;
 
-  const bikeDistance = new Map(bikeRows.map((b) => [b.id, Number(b.distance_m) || 0]));
+  const bikeDistance = new Map(
+    bikeRows.map((b) => [
+      b.id,
+      b.source === "manual"
+        ? Number(b.manual_distance_m) || 0
+        : Number(b.distance_m) || 0,
+    ]),
+  );
 
   const flagged = componentRows
     .map((c) => {
       const distance = bikeDistance.get(c.bike_id) ?? 0;
-      const { pct } = wearPct(distance, Number(c.baseline_distance_m) || 0, c.threshold_km);
+      const { pct } = wearProgress({
+        metric: c.wear_metric ?? "km",
+        threshold: c.threshold_value ?? c.threshold_km,
+        bikeDistanceM: distance,
+        baselineDistanceM: Number(c.baseline_distance_m) || 0,
+        since: c.installed_at,
+      });
       return { c, pct, status: wearStatus(pct) };
     })
     .filter((x) => x.status !== "ok")
@@ -79,7 +109,11 @@ export async function MaintenanceStatus({ profileId }: { profileId: string }) {
                   : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
               )}
             >
-              {status === "due" ? "Vervangen" : "Bijna"}
+              {status === "due"
+                ? isInspection(c.component_type)
+                  ? "Nakijken"
+                  : "Vervangen"
+                : "Bijna"}
             </span>
           </li>
         ))}

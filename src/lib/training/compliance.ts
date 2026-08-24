@@ -42,6 +42,7 @@ export type WorkoutCompliance = {
   verdict: ComplianceVerdict;
   athleteRpe: number | null;
   athleteFeel: string | null;
+  athleteReport: string | null;
 };
 
 export type ComplianceSummary = {
@@ -136,6 +137,7 @@ export type ReportForCompliance = {
   workout_id: string;
   athlete_rpe: number | null;
   athlete_feel: string | null;
+  athlete_report: string | null;
 };
 
 /**
@@ -188,6 +190,7 @@ export function complianceForWorkouts(
         verdict: complianceVerdict(loadPct, Boolean(match)),
         athleteRpe: report?.athlete_rpe ?? null,
         athleteFeel: report?.athlete_feel ?? null,
+        athleteReport: report?.athlete_report ?? null,
       };
     });
 }
@@ -277,7 +280,7 @@ export async function buildComplianceContext(
 
   const { data: reportRows } = await admin
     .from("training_workout_reports")
-    .select("workout_id, athlete_rpe, athlete_feel")
+    .select("workout_id, athlete_rpe, athlete_feel, athlete_report")
     .in(
       "workout_id",
       workouts.map((workout) => workout.id),

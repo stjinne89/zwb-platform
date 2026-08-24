@@ -163,6 +163,10 @@ export type TrainingAiInput = {
     actualName: string | null;
     actualMinutes: number | null;
     actualLoad: number | null; // TSS/training load indien bekend
+    /** Beleving en toelichting die het lid na deze training invulde. */
+    athleteRpe: number | null;
+    athleteFeel: string | null;
+    athleteReport: string | null;
   } | null;
   /** Naleving van het lopende schema: gepland vs. werkelijk gereden. */
   compliance?: ComplianceContext | null;

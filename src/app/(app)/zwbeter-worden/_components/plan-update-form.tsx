@@ -8,8 +8,6 @@ import { useAiDraftPoll, type DraftPayload } from "./use-ai-draft-poll";
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
-const WEEKDAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"];
-
 const GOAL_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "zrl", label: "ZRL" },
   { value: "ladder", label: "Ladder" },
@@ -33,7 +31,6 @@ export type PlanUpdateDefaults = {
   targetDate: string | null;
   maxHoursPerWeek: number | null;
   desiredIntensity: string;
-  availableDays: string[];
 };
 
 export function PlanUpdateForm({
@@ -45,7 +42,6 @@ export function PlanUpdateForm({
   reason?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [days, setDays] = useState<string[]>(defaults.availableDays);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -66,8 +62,6 @@ export function PlanUpdateForm({
     setError(null);
     setResult(null);
     const formData = new FormData(event.currentTarget);
-    formData.delete("available_days");
-    for (const day of days) formData.append("available_days", day);
 
     setSubmitting(true);
     try {
@@ -175,37 +169,6 @@ export function PlanUpdateForm({
           />
         </label>
       </div>
-
-      <fieldset>
-        <legend className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Beschikbare dagen
-        </legend>
-        <div className="flex flex-wrap gap-1.5">
-          {WEEKDAYS.map((day) => {
-            const active = days.includes(day);
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() =>
-                  setDays((current) =>
-                    current.includes(day)
-                      ? current.filter((value) => value !== day)
-                      : [...current, day],
-                  )
-                }
-                className={`rounded-md border px-3 py-1.5 text-sm transition ${
-                  active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-background hover:border-primary/40"
-                }`}
-              >
-                {day}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
 
       <label className="block text-sm">
         <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">

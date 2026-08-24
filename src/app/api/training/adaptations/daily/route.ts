@@ -29,7 +29,7 @@ const PROPOSAL_TTL_DAYS = 3;
  * Hoeveel volledige herzieningen deze run mag draaien. Een herziening is een
  * hele generatie over het resterende schema en duurt dus veel langer dan een
  * dagvoorstel; zonder plafond loopt de run bij een drukke dag tegen de
- * functietimeout. Wie er vannacht buiten valt, is morgennacht aan de beurt —
+ * functietimeout. Wie er vandaag buiten valt, is de volgende ochtend aan de beurt —
  * de wijziging blijft immers nieuwer dan de laatste herziening.
  */
 const MAX_PLAN_UPDATES_PER_RUN = 5;
@@ -131,7 +131,7 @@ async function pendingReplanFor(
   todayKey: string,
 ): Promise<ReplanTrigger | null> {
   // Zelfde rem als overdag: een schema dat stilligt herzien we niet, ook niet
-  // 's nachts. Het verzoek blijft staan tot het lid weer rijdt.
+  // in de automatische run. Het verzoek blijft staan tot het lid weer rijdt.
   if (await planIsIgnored(admin, plan.profile_id).catch(() => false)) return null;
 
   const request = await loadPendingReplan(admin, plan.profile_id).catch(() => null);
@@ -311,7 +311,7 @@ export async function POST(request: Request) {
       // Ligt er een herziening klaar, dan is een dagvoorstel het verkeerde
       // gereedschap: dat laat de verdere toekomst met rust, terwijl de wijziging
       // vaak juist over een latere week gaat. Dan draait hier een volledige
-      // herziening, en die vervangt het dagvoorstel van vannacht — hij kijkt
+      // herziening, en die vervangt het automatische dagvoorstel — hij kijkt
       // naar dezelfde signalen en beslaat meer.
       if (planUpdatesRun < MAX_PLAN_UPDATES_PER_RUN) {
         const trigger = await pendingReplanFor(admin, plan, today);
@@ -323,7 +323,7 @@ export async function POST(request: Request) {
               admin,
               planId: plan.id,
               actorId: plan.profile_id,
-              reason: `${trigger.reason} Het schema is 's nachts herzien.`,
+              reason: `${trigger.reason} Het schema is automatisch herzien.`,
               authorized: true,
             });
 
@@ -353,7 +353,7 @@ export async function POST(request: Request) {
             });
             results.push({ profileId: plan.profile_id, status: "plan_update", draftPlanId: update.planId });
           } catch (err) {
-            const error = err instanceof Error ? err.message : "Nachtelijke herziening faalde.";
+            const error = err instanceof Error ? err.message : "Automatische herziening faalde.";
             await admin.from("training_adaptation_runs").insert({
               profile_id: plan.profile_id,
               trainer_id: plan.trainer_id,

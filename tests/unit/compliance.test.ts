@@ -176,15 +176,26 @@ describe("complianceForWorkouts", () => {
     expect(result.verdict).toBe("volgens_plan");
   });
 
-  it("neemt RPE en gevoel uit de rapportage over", () => {
+  it("neemt RPE, gevoel en de opmerking uit de rapportage over", () => {
     const [result] = complianceForWorkouts(
       [workout({ id: "w1" })],
       [ride({ id: 1 })],
       FTP,
-      new Map([["w1", { workout_id: "w1", athlete_rpe: 8, athlete_feel: "zwaar" }]]),
+      new Map([
+        [
+          "w1",
+          {
+            workout_id: "w1",
+            athlete_rpe: 8,
+            athlete_feel: "zwaar",
+            athlete_report: "Mijn knie begon na een uur op te spelen.",
+          },
+        ],
+      ]),
     );
     expect(result.athleteRpe).toBe(8);
     expect(result.athleteFeel).toBe("zwaar");
+    expect(result.athleteReport).toBe("Mijn knie begon na een uur op te spelen.");
   });
 });
 
@@ -255,6 +266,7 @@ describe("planIsBeingIgnored", () => {
       verdict,
       athleteRpe: null,
       athleteFeel: null,
+      athleteReport: null,
     }) as Parameters<typeof planIsBeingIgnored>[0][number];
 
   it("slaat aan bij vier ongereden trainingen op rij", () => {

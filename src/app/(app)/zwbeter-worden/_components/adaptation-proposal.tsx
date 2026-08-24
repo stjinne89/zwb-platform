@@ -1,4 +1,4 @@
-// De nachtelijke bijstelling. Tot nu toe werd dat een compleet conceptschema
+// De dagelijkse bijstelling. Tot nu toe werd dat een compleet conceptschema
 // naast het lopende schema, dat vervolgens door niemand werd goedgekeurd. Nu is
 // het een regel binnen het schema zelf: toepassen of wegklikken.
 

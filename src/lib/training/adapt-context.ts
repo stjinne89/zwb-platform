@@ -16,6 +16,9 @@ type YesterdayContext = {
   actualName: string | null;
   actualMinutes: number | null;
   actualLoad: number | null;
+  athleteRpe: number | null;
+  athleteFeel: string | null;
+  athleteReport: string | null;
 };
 
 export async function buildYesterdayContext(
@@ -34,10 +37,11 @@ export async function buildYesterdayContext(
   let plannedTitle: string | null = null;
   let plannedMinutes: number | null = null;
   let plannedIntensity: string | null = null;
+  let plannedWorkoutId: string | null = null;
   if (planId) {
     const { data: planned } = await admin
       .from("training_workouts")
-      .select("title, duration_minutes, intensity, scheduled_at")
+      .select("id, title, duration_minutes, intensity, scheduled_at")
       .is("superseded_at", null)
       .eq("plan_id", planId)
       .gte("scheduled_at", fromIso)
@@ -48,6 +52,7 @@ export async function buildYesterdayContext(
         amsterdamDayKey(new Date(w.scheduled_at)) === yKey,
     );
     if (match) {
+      plannedWorkoutId = match.id ?? null;
       plannedTitle = match.title ?? null;
       plannedMinutes = match.duration_minutes ?? null;
       plannedIntensity = match.intensity ?? null;
@@ -57,7 +62,7 @@ export async function buildYesterdayContext(
   // Werkelijke rit van gisteren (langste die dag). Uit Strava, want intervals.icu
   // geeft via de API geen cijfers voor activiteiten die daar via Strava
   // binnenkwamen — zie ride-metrics.ts.
-  const [{ data: rides }, { data: profile }] = await Promise.all([
+  const [{ data: rides }, { data: profile }, { data: report }] = await Promise.all([
     admin
       .from("strava_activities")
       .select(STRAVA_RIDE_COLUMNS)
@@ -66,6 +71,14 @@ export async function buildYesterdayContext(
       .lte("start_date", toIso)
       .order("moving_time_seconds", { ascending: false }),
     admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
+    plannedWorkoutId
+      ? admin
+          .from("training_workout_reports")
+          .select("athlete_rpe, athlete_feel, athlete_report")
+          .eq("profile_id", profileId)
+          .eq("workout_id", plannedWorkoutId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const actual = ((rides ?? []) as StravaRideRow[]).find(
     (ride) => amsterdamDayKey(new Date(ride.start_date)) === yKey,
@@ -91,5 +104,8 @@ export async function buildYesterdayContext(
     actualName: actual?.name ?? null,
     actualMinutes: metrics?.movingMinutes ?? null,
     actualLoad: metrics?.tss ?? null,
+    athleteRpe: report?.athlete_rpe ?? null,
+    athleteFeel: report?.athlete_feel ?? null,
+    athleteReport: report?.athlete_report ?? null,
   };
 }

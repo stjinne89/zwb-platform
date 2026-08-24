@@ -931,7 +931,7 @@ type PreparedPlanUpdate = {
  * doel bijgewerkt, de resterende workouts erbij en de AI-input compleet.
  *
  * Gedeeld door de twee routes hieronder: de directe (achtergrondgeneratie, het
- * lid kijkt mee en haalt hem op) en de nachtelijke (synchroon, want er kijkt
+ * lid kijkt mee en haalt hem op) en de automatische (synchroon, want er kijkt
  * niemand mee).
  *
  * `authorized` is voor de trainer-route: die heeft zijn toegang al gecontroleerd
@@ -1109,7 +1109,7 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
 }
 
 /**
- * Dezelfde herziening, maar synchroon en meteen doorgevoerd. Voor de nacht-cron.
+ * Dezelfde herziening, maar synchroon en meteen doorgevoerd. Voor de dagelijkse cron.
  *
  * Een achtergrondgeneratie moet door iemand worden opgehaald voordat er een
  * schema uit komt; dat doet de browser van het lid. 's Nachts kijkt er niemand
@@ -1269,7 +1269,7 @@ export async function pollAiDraft(generationId: string): Promise<TrainingDraftRe
 
 /**
  * Een generatie afmaken: ophalen bij OpenAI en er een schema van maken zodra hij
- * klaar is. Zonder sessie, want de nacht-cron heeft er geen.
+ * klaar is. Zonder sessie, want de dagelijkse cron heeft er geen.
  *
  * Dit was tot 2026-08-20 de binnenkant van pollAiDraft, en daar zat het probleem:
  * een achtergrondgeneratie wordt pas een schema zodra iemand hem ophaalt, en dat

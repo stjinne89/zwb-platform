@@ -9,23 +9,43 @@ export type FreshnessSource = {
   label: string;
   /** Moment waarop deze bron voor het laatst iets opleverde. */
   at: string | Date | null;
+  /** De bron levert alleen een kalenderdag, geen werkelijk tijdstip. */
+  dateOnly?: boolean;
   /** Waar het lid het ophalen zelf kan starten. */
   action?: { href: string; label: string };
 };
 
-function toDate(value: string | Date | null): Date | null {
+function toDate(value: string | Date | null, dateOnly = false): Date | null {
   if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
+  const date =
+    typeof value === "string" && dateOnly && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T12:00:00Z`)
+      : value instanceof Date
+        ? value
+        : new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
-function daysAgo(date: Date) {
-  return Math.floor((Date.now() - date.getTime()) / 86_400_000);
+function amsterdamDayNumber(date: Date) {
+  const [year, month, day] = date
+    .toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" })
+    .split("-")
+    .map(Number);
+  return Date.UTC(year, month - 1, day) / 86_400_000;
 }
 
-function formatMoment(date: Date) {
-  const days = daysAgo(date);
+export function freshnessDaysAgo(date: Date, now: Date = new Date()) {
+  return amsterdamDayNumber(now) - amsterdamDayNumber(date);
+}
+
+export function formatFreshnessMoment(
+  date: Date,
+  dateOnly = false,
+  now: Date = new Date(),
+) {
+  const days = freshnessDaysAgo(date, now);
   if (days <= 0) {
+    if (dateOnly) return "vandaag";
     return `vandaag ${date.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}`;
   }
   if (days === 1) return "gisteren";
@@ -47,8 +67,8 @@ export function DataFreshness({ sources }: { sources: FreshnessSource[] }) {
       </h2>
       <ul className="mt-3 divide-y">
         {sources.map((source) => {
-          const date = toDate(source.at);
-          const stale = date ? daysAgo(date) >= STALE_DAYS : true;
+          const date = toDate(source.at, source.dateOnly);
+          const stale = date ? freshnessDaysAgo(date) >= STALE_DAYS : true;
           return (
             <li
               key={source.label}
@@ -62,7 +82,9 @@ export function DataFreshness({ sources }: { sources: FreshnessSource[] }) {
                     stale ? "font-medium text-destructive" : "text-muted-foreground",
                   )}
                 >
-                  {date ? formatMoment(date) : "nog niets opgehaald"}
+                  {date
+                    ? formatFreshnessMoment(date, source.dateOnly)
+                    : "nog niets opgehaald"}
                 </span>
                 {stale && <AlertTriangle className="size-4 shrink-0 text-destructive" />}
               </span>

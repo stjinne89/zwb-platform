@@ -1,16 +1,16 @@
-// Nachtelijke trainingsronde: dagvoorstellen, blijven liggen herzieningen en
+// Dagelijkse trainingsronde: dagvoorstellen, blijven liggen herzieningen en
 // gestrande AI-generaties.
 //
 // De runbook noemde hiervoor een "externe cron", maar die is nooit ingesteld:
 // training_adaptation_runs was op 20 augustus 2026 nog volledig leeg, terwijl de
 // route al maanden bestond. Daarmee draaide ook het vangnet voor vastgelopen
 // herzieningen niet. Als functie in deze repo staat de cron in versiebeheer en
-// hoeft niemand hem ergens anders te onthouden — één aanroep per nacht.
+// hoeft niemand hem ergens anders te onthouden — één aanroep per ochtend.
 
 export const config = {
-  // 02:30 Nederlandse tijd is 00:30 UTC in de zomer, 01:30 in de winter. Netlify
-  // draait op UTC; het precieze uur maakt niet uit, als het maar 's nachts is.
-  schedule: "30 0 * * *",
+  // 08:30 UTC is 09:30 Nederlandse tijd in de winter en 10:30 in de zomer.
+  // Dan heeft intervals.icu doorgaans de hersteldata van de huidige dag al.
+  schedule: "30 8 * * *",
 };
 
 export default async function handler() {

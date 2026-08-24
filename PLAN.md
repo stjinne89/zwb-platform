@@ -767,6 +767,53 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — iteratielijst ZWBasis: training, intervals en garage
+
+**2026-08-24, working tree op `b97aba7`.** Geen migratie.
+
+**Waarom.** De iteratielijst van een lid bracht zes kleine fouten aan het licht
+die samen vooral verwarrend gedrag gaven: het intervals-ID stond op de verkeerde
+plek uitgelegd; hersteldata kreeg een verzonnen tijdstip van 00:00 en de
+dagelijkse bijstelling liep vóór de meting van die dag; één afwijkende
+beschikbaarheidsweek kon door de planner als nieuw patroon worden gelezen; het
+bijwerkformulier vroeg dubbel om beschikbare dagen; de vrije trainingsopmerking
+bereikte de planner niet; en het dashboard rekende stuurlint nog in kilometers
+terwijl Mijn garage al maanden gebruikte.
+
+**Wat er staat.** `/hulp` wijst voor Athlete ID en API-key naar Settings →
+Developer Settings. Datum-only hersteldata toont alleen *vandaag/gisteren* en
+nooit meer 00:00. De Netlify-job draait voortaan om `30 8 * * *` (09:30 winter,
+10:30 zomer), zodat intervals.icu de hersteldata van de huidige dag doorgaans
+al heeft. De schema-prompt zegt expliciet dat een uitzondering voor één week
+niet naar dezelfde weekdag in andere weken mag lekken; de gegevensvorm uit
+`0131` bleef ongewijzigd en had die scheiding al. Het dubbele veld
+*Beschikbare dagen* is uit *Schema bijwerken* verwijderd: de schuifbalken erboven
+zijn de enige bron.
+
+RPE en gevoel gingen al via `compliance` naar de planner; nu gaat ook
+`athlete_report` mee. De dagelijkse bijstelling krijgt alle drie bovendien bij
+`yesterday`, zodat concrete feedback bij de eerstvolgende aanpassing kan wegen
+zonder één losse opmerking meteen tot een compleet ander schema te maken.
+`MaintenanceStatus` op het dashboard gebruikt nu dezelfde `wearProgress()` als
+Mijn garage, inclusief maanden, montagedatum, eigen drempel en de kilometerstand
+van een handmatige fiets. Daarmee kan een pas gemonteerd stuurlint niet meer door
+de oude kilometerfallback op *Vervangen* springen.
+
+**Bewust niet gebouwd.** Geen polling totdat intervals.icu een dagmeting
+publiceert: de API geeft geen betrouwbaar verschijnmoment en herhaald ophalen
+zou voor ieder gekoppeld lid extra externe calls geven. De ochtendrun is de
+kleinste voorspelbare correctie; een pagina die het lid later opent haalt de
+actuele waarden nog steeds live op. Ook geen nieuw beschikbaarheidsmodel of
+databasecorrectie: `default + weeks[]` uit migratie `0131` was al de juiste
+bron, de resterende fout zat in de interpretatieruimte van de planner.
+
+**Verificatie.** Gerichte Vitest-regressies voor herstelweergave, prompts,
+naleving, beschikbaarheid en onderhoud zijn groen (60 tests); ook de volledige
+suite (614 geslaagd, 6 overgeslagen), TypeScript, productie-build en ESLint zijn
+groen. ESLint meldt alleen 23 bestaande waarschuwingen in brochure-/hulpscripts
+en oude `.claude`-worktrees, geen fouten. De gewijzigde Netlify-tijd is pas na
+een deploy operationeel en is daarom lokaal niet end-to-end te verifiëren.
+
 ### Opgeleverd — Geplande belasting kwadratisch, uit het doel van het blok
 
 **2026-08-20, working tree.** Geen migratie.
@@ -881,12 +928,12 @@ trainingen) leverde vier dingen op die niet met bouwen maar met meten aan het
 licht kwamen. Dit is de opvolging; het plan staat in
 `.claude/plans/maak-een-plan-gebaseerd-spicy-snowflake.md`.
 
-**1. De nacht-cron heeft nooit gedraaid.** `training_adaptation_runs` was leeg —
+**1. De dagelijkse cron heeft nooit gedraaid.** `training_adaptation_runs` was leeg —
 nul rijen, terwijl elke aanroep daar schrijft. De runbook noemde een "externe
 cron" die nooit is ingesteld. Daardoor bestonden de dagvoorstellen niet en draaide
 het vangnet voor blijven liggen herzieningen (vorige ronde gebouwd) evenmin. Nu
 een Netlify-functie in de repo (`netlify/functions/training-adaptations.mjs`,
-`30 0 * * *`), zelfde patroon als de live-cleanup en de health-check. De eigenaar
+per 2026-08-24 `30 8 * * *`), zelfde patroon als de live-cleanup en de health-check. De eigenaar
 moet `TRAINING_ADAPTATION_SECRET` nog als env-variabele zetten; zonder die
 variabele stopt de functie met een duidelijke melding.
 
@@ -907,7 +954,7 @@ Uitgesplitst vallen leden in twee groepen: vier rijden hun schema grotendeels,
 drie raken het niet aan. Voor één van die drie draaiden twaalf generaties en zes
 herzieningen bij nul gereden trainingen. Nieuw: `planIsBeingIgnored()` in
 `compliance.ts` (puur, getest) en `planIsIgnored()` in `replan.ts`. Vier ongereden
-trainingen op rij en `requestReplan` slaat over met reden `ignored`; de nacht-cron
+trainingen op rij en `requestReplan` slaat over met reden `ignored`; de dagelijkse cron
 doet hetzelfde, anders doet de nacht alsnog wat de dag weigert. Het verzoek blijft
 in `training_replan_requests` staan, dus zodra het lid weer rijdt gaat het door.
 In plaats van de stille herziening krijgt het lid één vraag op zijn schemapagina
@@ -1133,7 +1180,7 @@ onderbouwing, niet dezelfde lijst met de cyclusvragen eruit geknipt. Zolang die
 er niet is, is verbergen eerlijker dan half tonen. Zie ook `docs/training-en-cyclus.md`
 voor waarom er op klachten wordt gestuurd en niet op cyclusfase.
 
-### Opgeleverd — beschikbaarheid per week, nachtelijk vangnet + FTP-test in het schema
+### Opgeleverd — beschikbaarheid per week, dagelijks vangnet + FTP-test in het schema
 
 **2026-08-20, commit `3360f6b`.** Migraties `0131`-`0133`.
 
@@ -1208,7 +1255,7 @@ testwaarde met de eFTP van intervals. De test blijft in de historie staan en het
 lid krijgt die zin te zien bij het opslaan; automatisch die instelling uitzetten
 leek te ver gaan.
 
-**Nachtelijk vangnet.** Bij het opslaan van je beschikbaarheid vraagt het lid
+**Dagelijks vangnet.** Bij het opslaan van je beschikbaarheid vraagt het lid
 al meteen een herziening aan, maar die kan zijn overgeslagen: de cooldown van
 vijf minuten in `replan.ts`, een achtergrondgeneratie die niemand ophaalde
 (alleen de browser van het lid pollt `/api/training/ai-draft/[id]`), of een
@@ -1217,7 +1264,7 @@ eerstvolgende herziening" meekwam, maar niets vroeg die herziening dan alsnog
 aan — een lid dat vier keer aan de schuifbalken zat, verloor de laatste drie
 wijzigingen tot het toevallig iets anders deed. Die belofte klopt nu wel.
 
-De nacht-cron (`/api/training/adaptations/daily`) draaide alleen voor leden met
+De dagelijkse cron (`/api/training/adaptations/daily`) draaide alleen voor leden met
 een Strava-rit van de afgelopen dag, en gebruikte de dagprompt — die de verdere
 toekomst juist met rust laat en een gewijzigde wéék dus niet kan verwerken. Hij
 kijkt nu eerst of de beschikbaarheid nieuwer is dan de laatste keer dat het
@@ -1229,10 +1276,10 @@ meer, dus twee generaties voor één lid zou verspilling zijn.
 
 Die herziening loopt **synchroon** (`runPlanUpdateNow()`, gedeeld met
 `startPlanUpdate()` via `preparePlanUpdate()`): een achtergrondgeneratie moet
-door iemand worden opgehaald voordat er een schema uit komt, en 's nachts kijkt
+door iemand worden opgehaald voordat er een schema uit komt, en tijdens de automatische run kijkt
 er niemand mee. Het resultaat wordt direct doorgevoerd, net als overdag — geen
 voorstelkaart. Maximaal vijf per run, zodat de route niet tegen de
-functietimeout loopt; wie er vannacht buiten valt is morgennacht aan de beurt,
+functietimeout loopt; wie er vandaag buiten valt is de volgende ochtend aan de beurt,
 want de wijziging blijft nieuwer dan de laatste herziening.
 
 Bijvangst: `saveWeekAvailability` schreef ook wanneer er niets was veranderd. De
@@ -1289,7 +1336,7 @@ opnieuw wordt ingevuld.
 service-role zet en wist die rij) en `0133` (`test_type` op
 `training_workout_templates` plus de twee FTP-tests in de bibliotheek, waarbij
 de oude 'Ramp-test' en 'FTP-test 20 min' worden verwijderd) zijn niet gedraaid:
-er is hier geen Docker of Supabase-config. Ook de nachtelijke herziening is niet end-to-end gedraaid —
+er is hier geen Docker of Supabase-config. Ook de dagelijkse herziening is niet end-to-end gedraaid —
 daar hoort een cron-aanroep met een OpenAI-call bij; de logica eromheen is wél
 getest (`tests/unit/replan.test.ts`). `npm run build`, `npx tsc --noEmit`,
 `eslint` en de volledige Vitest-suite (575 tests) zijn groen.

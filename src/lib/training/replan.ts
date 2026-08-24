@@ -9,7 +9,7 @@
 //
 // Die laatste zin was lang een loze belofte: niets vroeg die volgende herziening
 // aan. Sinds 0132 legt elk verzoek zich vast in `training_replan_requests`, en
-// haalt de nacht-cron op wat is blijven liggen. De rij verdwijnt zodra er een
+// haalt de dagelijkse cron op wat is blijven liggen. De rij verdwijnt zodra er een
 // herziening uit is gekomen.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -67,12 +67,12 @@ export async function requestReplan(
 ): Promise<ReplanResult> {
   try {
     const plan = await activeBasePlan(admin, profileId);
-    // Zonder schema valt er niets te herzien, ook niet vannacht: dan zou er een
+    // Zonder schema valt er niets te herzien, ook niet bij de volgende run: dan zou er een
     // verzoek blijven staan waar nooit iemand iets mee doet.
     if (!plan) return { started: false, reason: "no_plan" };
 
     // Eerst vastleggen, dan pas proberen. Gaat de generatie hierna niet door of
-    // komt er niets uit, dan staat het verzoek er nog en pakt de nacht-cron het
+    // komt er niets uit, dan staat het verzoek er nog en pakt de dagelijkse cron het
     // op. Slaagt hij wel, dan haalt createPlanFromAiGeneration() de rij weg.
     await markReplanPending(admin, profileId, reason);
 

@@ -225,7 +225,7 @@ export function zwbStatusFor(
  * al toegepast. Door een aanpassing vervangen workouts horen niet meer in het
  * schema en filteren we eruit.
  *
- * Ook eruit: de workouts van een nog niet toegepast voorstel uit de nachtelijke
+ * Ook eruit: de workouts van een nog niet toegepast voorstel uit de dagelijkse
  * bijstelling. Die staan al wel in de database, maar zouden anders naast de
  * bestaande training van diezelfde dag verschijnen — precies de dubbeling die we
  * met het voorstel-strookje wilden voorkomen.
@@ -500,7 +500,6 @@ export function planUpdateDefaults(
     maxHoursPerWeek:
       goal.max_hours_per_week == null ? null : Number(goal.max_hours_per_week),
     desiredIntensity: goal.desired_intensity,
-    availableDays: goal.available_days ?? [],
   };
 }
 

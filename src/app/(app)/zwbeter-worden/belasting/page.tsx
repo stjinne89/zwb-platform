@@ -80,6 +80,7 @@ export default async function ZwbeterWordenLoadPage() {
                 {
                   label: "Hersteldata (intervals.icu)",
                   at: lastWellnessDay,
+                  dateOnly: true,
                   action: { href: "/zwbeter-worden#herstel", label: "Naar herstel-instelling" },
                 },
               ]

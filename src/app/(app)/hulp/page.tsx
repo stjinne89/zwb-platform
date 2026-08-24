@@ -272,7 +272,7 @@ const DATA_FRESHNESS_HELP = [
 ];
 
 const INTERVALS_CONNECT_STEPS = [
-  "Open in intervals.icu de API-instellingen.",
+  "Open in intervals.icu Settings en daarna Developer Settings.",
   "Kopieer je persoonlijke API-key.",
   "Plak de sleutel in ZWB bij Training en kies Koppelen.",
 ];
@@ -572,10 +572,12 @@ export default function HelpPage() {
           >
             <h3 className="text-sm font-semibold">intervals.icu</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Open intervals.icu in een browser; in de adresbalk staat
-              /athlete/i… gevolgd door cijfers. Vul dat i-nummer in. Let op: je
-              gegevens daar zijn standaard privé, dus anderen zien alleen wat je
-              vrijgeeft.
+              Open in intervals.icu <strong className="text-foreground">Settings</strong>
+              {" "}en daarna <strong className="text-foreground">Developer Settings</strong>.
+              Daar staat je Athlete ID: een i gevolgd door cijfers. Vul dat
+              i-nummer in. In de adresbalk staat het bij je eigen account niet
+              altijd. Je gegevens daar zijn standaard privé, dus anderen zien
+              alleen wat je vrijgeeft.
             </p>
           </article>
         </div>
@@ -873,7 +875,16 @@ export default function HelpPage() {
               het schema zichzelf bij op de dagen die nog komen. Dat geldt ook
               als je een rit inplant of je voor een clubevent aan- of afmeldt.
               Lukt het niet meteen — bijvoorbeeld omdat je schema net al werd
-              bijgewerkt — dan gebeurt het ’s nachts alsnog.
+              bijgewerkt — dan gebeurt het de volgende ochtend alsnog.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Feedback na een training</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je RPE, gevoel en opmerking zijn voor je trainer én voor volgende
+              bijstellingen van je schema. Een losse zware training verandert
+              niet meteen alles; terugkerende signalen en een concrete opmerking
+              wegen mee bij de eerstvolgende aanpassing.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -903,7 +914,7 @@ export default function HelpPage() {
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Voorstellen in je schema</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Op basis van je laatste ritten kan er &apos;s nachts een{" "}
+              Op basis van je laatste ritten kan er iedere ochtend een{" "}
               <strong className="text-foreground">voorstel</strong> in je schema
               verschijnen, bijvoorbeeld om woensdag korter te maken. Het is een
               regel bovenin je schema, geen nieuw programma:{" "}
