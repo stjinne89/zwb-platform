@@ -786,9 +786,11 @@ niet: `user = data.user ?? null` levert dus `null`. Geen foutmelding, registrati
 werkt gewoon, blok overgeslagen.
 
 De verklikker die dit hard maakte, staat in hetzelfde blok: de AVG-toestemming
-werd daar één regel eerder weggeschreven. Bij álle twaalf leden die zich sinds
-`0063` (31 mei 2026) hebben aangemeld is `privacy_accepted_at` leeg, terwijl de
-registratie zónder dat vinkje weigert. Dat blok heeft dus nooit gedraaid.
+werd daar één regel eerder weggeschreven. Bij álle 35 profielen stond
+`privacy_accepted_at` leeg, ook bij de 29 die zich ná `0063` (31 mei 2026)
+hebben aangemeld, terwijl de registratie zónder dat vinkje weigert. Dat blok
+heeft dus nooit gedraaid. (In een eerdere versie van deze notitie stond
+"twaalf"; dat kwam uit een lijst van alleen de nieuwste profielen en was fout.)
 
 **Wat er staat.** De melding hangt niet meer aan `data.user` — die had het id
 ook helemaal niet nodig, alleen de naam die al in de body stond. De tag is
@@ -801,11 +803,28 @@ de user-metadata en `handle_new_user` zet er `privacy_accepted_at` mee. Dat is
 atomair met het aanmaken van het account, dus het hangt niet langer af van de
 vorm van een API-antwoord.
 
-**Bewust niet gedaan.** De twaalf bestaande profielen zijn niet bijgewerkt. Ze
-hebben het vinkje aantoonbaar gezet — anders was er geen account — maar een
-toestemmingsdatum invullen voor iemand die al lid is, is een AVG-administratie
-verzinnen. Dat is een aparte, bewuste keuze voor de eigenaar, geen bijvangst van
-een bugfix.
+**Bestaande profielen alsnog bijgewerkt (`0138`).** Eerst bewust niet gedaan —
+een toestemmingsdatum invullen voor iemand die al lid is, is een
+AVG-administratie verzinnen, en dat is een keuze van de eigenaar en geen
+bijvangst van een bugfix. Op zijn verzoek is het daarna wél gebeurd, maar alleen
+waar de toestemming vaststaat. De 35 lege profielen vallen in drie groepen:
+
+- **27 via het registratieformulier, ná het live gaan van `0063`.** Dat
+  formulier weigert zonder vinkje, dus geen vinkje betekent geen account. Zij
+  krijgen `created_at` als datum — het vinkje is gezet in exact hetzelfde
+  verzoek dat het account aanmaakte, dus dat is de wérkelijke datum en geen
+  schatting.
+- **6 van vóór 2026-05-31 15:30 CEST.** Toen bestond het vinkje niet.
+- **2 die via een magic link binnenkwamen** (Bart, Willem Bouwman).
+  `sendMagicLink()` toont geen privacyverklaring en geeft geen user-metadata
+  mee; ze zijn te herkennen aan het ontbreken van `full_name` in
+  `raw_user_meta_data`, dat `signUp()` altijd zet.
+
+Die laatste acht blijven leeg. Een gat in de registratie is hier de juiste
+uitkomst: het zegt precies wat er is gebeurd. Gedraaid op 2026-08-25 met de
+service-role, uitkomst gecontroleerd — 27 gevuld, 8 leeg, precies de bedoelde
+verdeling. `0138` legt dezelfde update vast en is idempotent (alleen waar de
+kolom leeg is, en de waarde hangt aan `created_at`, niet aan `now()`).
 
 **Zwift-ID: claimen op de plek van de vraag.** Een nieuw lid kreeg de dialoog
 "Je Zwift-ID ontbreekt" terwijl zijn regel al klaarstond op `/leden`. Die
