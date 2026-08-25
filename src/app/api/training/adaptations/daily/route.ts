@@ -16,6 +16,7 @@ import {
   finishAiGeneration,
   insertPlanWorkouts,
   runPlanUpdateNow,
+  STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
@@ -33,13 +34,6 @@ const PROPOSAL_TTL_DAYS = 3;
  * de wijziging blijft immers nieuwer dan de laatste herziening.
  */
 const MAX_PLAN_UPDATES_PER_RUN = 5;
-
-/**
- * Hoe lang een generatie mag lopen voordat de cron hem overneemt. Een
- * achtergrondgeneratie is normaal binnen een paar minuten klaar; wat na een
- * kwartier nog loopt, wacht op iemand die hem ophaalt.
- */
-const STALE_GENERATION_MINUTES = 15;
 
 /**
  * En hoe oud hij hoogstens mag zijn om nog afgemaakt te worden.

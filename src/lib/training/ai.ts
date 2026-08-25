@@ -324,7 +324,12 @@ type GenerateTrainingPlanOptions = {
   minWorkouts?: number;
 };
 
-function getTrainingModel(options: GenerateTrainingPlanOptions) {
+/**
+ * Welk model deze generatie gebruikt. Geëxporteerd omdat startPlanUpdate de rij
+ * in training_ai_generations aanmaakt vóórdat de call naar OpenAI vertrekt, en
+ * het model dus al moet weten.
+ */
+export function getTrainingModel(options: GenerateTrainingPlanOptions = {}) {
   return options.model?.trim() || process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
 }
 

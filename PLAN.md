@@ -767,6 +767,105 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — dubbele trainingen: de race tussen twee publicaties
+
+**2026-08-25, working tree op `4b6eaee`.** Geen migratie.
+
+**Waarom.** Een lid meldde opnieuw dubbele trainingen in zijn maandkalender,
+elke dag van de komende twee weken twee blokken. In de database stond niets
+dubbels: precies één actieve workout per dag. Het tweede blok kwam uit de derde
+bron van `calendarItems` — een event uit intervals.icu dat
+`externalIntervalsEvents()` niet als het onze herkende. Twee dingen wezen dat
+aan: het venster liep exact veertien dagen ver (`fetchIntervalsEvents`), en het
+tweede blok was altijd groen, want een extern event draagt geen intensiteit en
+`colorFor()` valt dan terug op `endurance`.
+
+**De oorzaak.** Twee herzieningen liepen tegelijk. Om 20:42:27 vuurde een
+wijziging in de beschikbaarheid via `requestReplan()` een generatie af; zes
+seconden later drukte dezelfde persoon op *Schema bijwerken*, dat rechtstreeks
+naar `startPlanUpdate()` gaat en dus om de cooldown van `requestReplan` heen
+liep. Beide werden een plan, drie seconden na elkaar. Het nieuwste markeerde de
+workouts van het oudste als vervangen om 20:44:41, maar dat oudste plan stond
+op dat moment nog te pushen: zijn lus schreef om 20:44:48 alsnog een
+`intervals_event_id` terug op rijen die ZWB al vervangen had. Die events bleven
+in intervals.icu staan zonder dat een actieve workout ze nog kende.
+
+Het gold voor 85 workouts van drie leden, en bij alle 85 lag `updated_at` ná
+`superseded_at` — zonder uitzondering dezelfde race.
+
+**Wat er staat.** `pushOneWorkout()` weigert een vervangen rij op twee plekken:
+vóór de call (dan ontstaat het event niet eens) en in de update die de uitkomst
+wegschrijft, met `.is("superseded_at", null).select()`. Lukt die claim niet, dan
+wordt het zojuist geplaatste event meteen weer gewist. Alleen die tweede is
+waterdicht. `PushResult` heeft er een veld `skipped` bij: overgeslagen is geen
+fout, want een nieuwer schema heeft het overgenomen.
+
+`retireSupersededWorkouts()` markeert nu eerst en wist daarna, in plaats van
+andersom. Andersom bleef er een event achter wanneer een oudere publicatie
+tussen het lezen en het wissen in nog een nieuw event-id op de rij zette. En
+`intervals_event_id` wordt alleen leeggemaakt als het wissen echt lukte:
+blijft het id staan, dan is het event vindbaar voor een volgende opruiming.
+Voorheen ging de kolom ook bij een mislukking op `null` en was het spoor weg.
+
+`preparePlanUpdate()` weigert een tweede herziening zolang er één loopt, dus op
+de gedeelde voorbereiding waar zowel de knop, `requestReplan()` als de cron
+langskomen. Alleen generaties jonger dan `STALE_GENERATION_MINUTES` tellen mee,
+zodat een blijven hangen generatie het bijwerken niet voorgoed blokkeert. Dat
+getal stond in twee bestanden en woont nu in `draft.ts`; de dagelijkse cron
+importeert het.
+
+`startPlanUpdate()` maakt de rij in `training_ai_generations` nu áán vóór de
+call naar OpenAI en vult response-id en model erna aan. Andersom was de grendel
+lek: het aanmelden van een achtergrondgeneratie duurt tot vijftien seconden en
+pas daarna verscheen de generatie in de tabel — precies breed genoeg voor de
+zes seconden van 24 augustus. Mislukt het aanmelden, dan sluit de rij meteen op
+`failed`, anders houdt hij de grendel een kwartier dicht.
+
+**Opruiming.** `scripts/cleanup-orphan-intervals-events.mjs` wist de events van
+alle rijen met een `superseded_at` én een `intervals_event_id`. Droogloop
+standaard, echt wissen met `--apply`. Gedraaid op 2026-08-25: 85 opgeruimd, 0
+mislukt. Daarna gecontroleerd tegen de live API van alle twaalf gekoppelde
+leden — nul overgebleven events met een `zwb-`-prefix die ZWB niet herkent. Wat
+er nog aan vreemde events staat is echt van de leden zelf (eigen workouts en
+plannen in intervals.icu), en dat hoort de kalender te tonen.
+
+**Bewust niet gebouwd.** Geen zelfherstellende opruimstap in de dagelijkse cron
+en geen filter op de `zwb-`-prefix in `externalIntervalsEvents()`. Beide waren
+voorgesteld als vangnet, maar met de grendel erop hoort er niets meer te
+ontstaan; een vangnet dat nooit aanslaat verbergt vooral of de fix werkt. Het
+script blijft staan voor als het tóch terugkomt.
+
+Ook niet: `intervals_external_id` per lid+datum in plaats van per plan, zodat
+intervals.icu zelf zou overschrijven. Dat botst met de unieke index uit `0051`
+en maakt twee trainingen op één dag onmogelijk.
+
+**Niet lokaal te verifiëren.** De race zelf niet: die vraagt twee gelijktijdige
+publicaties tegen een echte intervals.icu. Wel afgedekt met
+`tests/unit/publish-race.test.ts`, dat de drie gevallen naspeelt tegen een
+supabase-stub — en dat op de oude code alle drie faalt. `npm run build` niet
+gedraaid; `tsc`, `eslint` en de volledige Vitest-suite (621 tests) zijn groen.
+
+**Los daarvan aangetroffen: het verlopen event-id.** Bij het lid in kwestie
+stonden 31 actieve workouts op `publish_status='published'` met een
+`intervals_event_id` die in intervals.icu niet meer bestond; bij de andere elf
+gekoppelde leden klopte het één op één. Vermoedelijk heeft hij zijn kalender
+daar zelf leeggemaakt na het dubbele-blokken-gedoe — ZWB volgt bij
+`syncWorkoutDatesFromIntervals()` bewust alleen datumverschuivingen en negeert
+verwijderingen. Zijn schema stond daardoor nergens op zijn fietscomputer, en hij
+kwam er ook niet uit door opnieuw te publiceren: `upsertIntervalsWorkoutEvent()`
+deed een PUT op een id dat 404 gaf en `pushOneWorkout()` telde dat als mislukt.
+
+`upsertIntervalsWorkoutEvent()` laat bij een 404 op de PUT het opgeslagen id nu
+los en maakt het event opnieuw aan; de aanroeper legt het nieuwe id vast. Een
+gewone publicatie repareert zo'n verlopen verwijzing daarmee vanzelf, en de knop
+*Opnieuw publiceren* staat er al voor een gepubliceerd schema. Een 404 op de
+aanmaakroute zelf blijft gewoon een fout — geen herhaling.
+`tests/unit/intervals-upsert.test.ts` dekt de vier gevallen af.
+
+**Nog te doen.** De 31 events van dat lid zijn nog niet teruggezet; dat vraagt
+één klik op *Opnieuw publiceren* op zijn schema, en dat is niet iets om namens
+hem te doen.
+
 ### Opgeleverd — iteratielijst ZWBasis: training, intervals en garage
 
 **2026-08-24, working tree op `b97aba7`.** Geen migratie.

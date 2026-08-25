@@ -538,7 +538,21 @@ export async function deleteIntervalsWorkoutEvent(
   }
 }
 
-/** Maakt of wijzigt een gepland workout-event in intervals.icu. */
+/**
+ * Maakt of wijzigt een gepland workout-event in intervals.icu.
+ *
+ * Met een opgeslagen `id` wordt het een PUT op dat event. Dat id kan verlopen
+ * zijn: wist een lid zijn kalender in intervals.icu leeg, dan houdt ZWB een
+ * verwijzing over naar iets dat daar niet meer bestaat. Dat overkwam in
+ * augustus 2026 een lid dat zijn hele schema had weggegooid nadat het dubbel in
+ * zijn agenda stond — 31 workouts stonden bij ons op 'published' en waren daar
+ * onvindbaar. Elke publicatie liep daarna stuk op een 404, dus hij kwam er ook
+ * niet meer uit door opnieuw te publiceren.
+ *
+ * Bij een 404 laten we het opgeslagen id daarom los en maken we het event
+ * opnieuw aan. De aanroeper legt het nieuwe id vast, en daarmee repareert een
+ * gewone publicatie zo'n verlopen verwijzing vanzelf.
+ */
 export async function upsertIntervalsWorkoutEvent(
   apiKey: string,
   athleteId: string,
@@ -592,6 +606,12 @@ export async function upsertIntervalsWorkoutEvent(
     signal: AbortSignal.timeout(15000),
     body: JSON.stringify(payload),
   });
+  // Het event bestaat daar niet meer: opnieuw aanmaken in plaats van de hele
+  // publicatie laten stuklopen. Zonder id valt de aanroep hierboven terug op de
+  // aanmaakroute, dus één ronde is genoeg.
+  if (res.status === 404 && workout.id) {
+    return upsertIntervalsWorkoutEvent(apiKey, athleteId, { ...workout, id: null });
+  }
   if (!res.ok) {
     if (res.status === 401) {
       throw new Error("intervals.icu API-key wordt afgewezen.");

@@ -20,6 +20,11 @@ export type PushResult = {
   failed: number;
   /** Workouts van andere plannen die door dit schema zijn vervangen. */
   superseded: number;
+  /**
+   * Workouts van dít plan die tijdens de publicatie zelf werden vervangen. Geen
+   * fout: een nieuwer schema heeft ze overgenomen terwijl wij stonden te pushen.
+   */
+  skipped: number;
 };
 
 type SchedulableWorkout = {
@@ -179,22 +184,49 @@ export async function retireSupersededWorkouts(
   if (superseded.length === 0) return 0;
 
   for (const workout of superseded) {
-    if (workout.intervals_event_id && connection) {
-      await deleteIntervalsWorkoutEvent(
-        connection.api_key,
-        connection.athlete_id,
-        workout.intervals_event_id,
-      ).catch(() => null);
-    }
-    await admin
+    // Eerst markeren, dan pas wissen. Andersom bleef er een event achter: de
+    // publicatie van een ouder plan kon tussen ons lezen en ons wissen in nog
+    // een nieuw intervals_event_id op deze rij zetten, en dat id gooiden we er
+    // daarna overheen. Zodra superseded_at staat, weigert pushOneWorkout de rij
+    // en ligt het event-id vast.
+    const { data: retired } = await admin
       .from("training_workouts")
       .update({
         superseded_at: new Date().toISOString(),
         superseded_by_plan_id: planId,
-        intervals_event_id: null,
         publish_status: "pending",
       })
-      .eq("id", workout.id);
+      .eq("id", workout.id)
+      .is("superseded_at", null)
+      .select("id");
+    if (!retired || retired.length === 0) continue;
+    if (!connection) continue;
+
+    const { data: current } = await admin
+      .from("training_workouts")
+      .select("intervals_event_id")
+      .eq("id", workout.id)
+      .maybeSingle();
+    if (!current?.intervals_event_id) continue;
+
+    // Alleen leegmaken als het wissen lukte. Blijft het id staan, dan is het
+    // event nog te vinden en op te ruimen; nullen we het bij een fout tóch, dan
+    // is het spoor weg en staat er voorgoed een blok in intervals.icu dat ZWB
+    // niet meer kent.
+    const wiped = await deleteIntervalsWorkoutEvent(
+      connection.api_key,
+      connection.athlete_id,
+      current.intervals_event_id,
+    ).then(
+      () => true,
+      () => false,
+    );
+    if (wiped) {
+      await admin
+        .from("training_workouts")
+        .update({ intervals_event_id: null })
+        .eq("id", workout.id);
+    }
   }
   return superseded.length;
 }
@@ -232,7 +264,7 @@ export async function pushPlanWorkoutsToIntervals(
         .order("scheduled_at", { ascending: true }),
     ]);
   if (!conn?.api_key || !conn?.athlete_id) {
-    return { connected: false, pushed: 0, failed: 0, superseded: 0 };
+    return { connected: false, pushed: 0, failed: 0, superseded: 0, skipped: 0 };
   }
 
   // Een bijgewerkt schema vervangt alles vanaf de bijwerkdatum, ook de dagen
@@ -257,13 +289,15 @@ export async function pushPlanWorkoutsToIntervals(
   const riderFtp = riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null;
   let pushed = 0;
   let failed = 0;
+  let skipped = 0;
   for (const workout of workouts ?? []) {
-    const ok = await pushOneWorkout(admin, workout as PublishableWorkout, conn, riderFtp);
-    if (ok) pushed++;
+    const outcome = await pushOneWorkout(admin, workout as PublishableWorkout, conn, riderFtp);
+    if (outcome === "pushed") pushed++;
+    else if (outcome === "skipped") skipped++;
     else failed++;
   }
 
-  return { connected: true, pushed, failed, superseded };
+  return { connected: true, pushed, failed, superseded, skipped };
 }
 
 type PublishableWorkout = {
@@ -280,14 +314,38 @@ type PublishableWorkout = {
 
 type IntervalsAuth = { api_key: string; athlete_id: string };
 
-/** Eén workout naar intervals.icu, en de uitkomst vastleggen op de rij zelf. */
+/** Geplaatst, overgeslagen omdat een nieuwer schema hem overnam, of mislukt. */
+type PushOutcome = "pushed" | "skipped" | "failed";
+
+/**
+ * Eén workout naar intervals.icu, en de uitkomst vastleggen op de rij zelf.
+ *
+ * De workoutlijst wordt aan het begin van de publicatie ingelezen en daarna
+ * doet de lus er per training een HTTP-call over; een schema van zestig
+ * trainingen staat zo een kwartier te pushen. Publiceert er in dat kwartier een
+ * tweede schema, dan vervangt dat deze workout terwijl wij hem nog plaatsen.
+ *
+ * Vandaar twee keer superseded_at: één keer vooraf, zodat we het event meestal
+ * niet eens aanmaken, en één keer in de update die de uitkomst wegschrijft.
+ * Alleen die tweede is waterdicht, en precies in dat gaatje zijn op 24 augustus
+ * 2026 de weesevents ontstaan — geplaatst in intervals.icu, teruggeschreven op
+ * een rij die ZWB al vervangen had, en daarna door niets meer opgeruimd. Het lid
+ * zag ze als tweede blok naast elke training van de komende twee weken.
+ */
 async function pushOneWorkout(
   admin: Admin,
   workout: PublishableWorkout,
   conn: IntervalsAuth,
   riderFtp: number | null,
-): Promise<boolean> {
+): Promise<PushOutcome> {
   try {
+    const { data: fresh } = await admin
+      .from("training_workouts")
+      .select("superseded_at")
+      .eq("id", workout.id)
+      .maybeSingle();
+    if (fresh?.superseded_at) return "skipped";
+
     const blocks = normalizeWorkoutBlocks(workout.structure_json, workout.intensity);
     const intervalsText = blocksToIntervalsText(blocks);
     const trainingLoad = estimateTrainingLoad(blocks, riderFtp);
@@ -309,7 +367,7 @@ async function pushOneWorkout(
       durationMinutes: workout.duration_minutes,
       workoutDoc,
     });
-    await admin
+    const { data: claimed } = await admin
       .from("training_workouts")
       .update({
         intervals_event_id: String(event.id),
@@ -317,8 +375,20 @@ async function pushOneWorkout(
         publish_status: "published",
         publish_error: null,
       })
-      .eq("id", workout.id);
-    return true;
+      .eq("id", workout.id)
+      .is("superseded_at", null)
+      .select("id");
+    if (!claimed || claimed.length === 0) {
+      // Vervangen terwijl de call liep. Het event moet meteen weer weg: laten
+      // staan levert een blok in intervals.icu op dat geen enkele actieve
+      // workout meer kent, en dat de schemakalender als vreemd event náást de
+      // vervanger tekent.
+      await deleteIntervalsWorkoutEvent(conn.api_key, conn.athlete_id, String(event.id)).catch(
+        () => null,
+      );
+      return "skipped";
+    }
+    return "pushed";
   } catch (err) {
     await admin
       .from("training_workouts")
@@ -326,8 +396,9 @@ async function pushOneWorkout(
         publish_status: "failed",
         publish_error: err instanceof Error ? err.message : "Publicatie faalde.",
       })
-      .eq("id", workout.id);
-    return false;
+      .eq("id", workout.id)
+      .is("superseded_at", null);
+    return "failed";
   }
 }
 
@@ -363,11 +434,11 @@ export async function pushWorkoutToIntervals(
   ]);
   if (!conn?.api_key || !conn?.athlete_id) return { connected: false, ok: false };
 
-  const ok = await pushOneWorkout(
+  const outcome = await pushOneWorkout(
     admin,
     workout as PublishableWorkout,
     { api_key: conn.api_key, athlete_id: conn.athlete_id },
     riderProfile?.ftp_watts ? Number(riderProfile.ftp_watts) : null,
   );
-  return { connected: true, ok };
+  return { connected: true, ok: outcome === "pushed" };
 }

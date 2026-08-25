@@ -8,6 +8,7 @@ import { sendNotificationToMembers } from "@/lib/push/send";
 import {
   defaultTrainingPrompt,
   generateTrainingPlanDraft,
+  getTrainingModel,
   retrieveTrainingPlanDraftBackground,
   startTrainingPlanDraftBackground,
   type GeneratedTrainingPlan,
@@ -52,6 +53,19 @@ export const MIN_ADJUST_MINUTES = 10;
  * bestaat niet, dus die grens blijft hier staan.
  */
 export const MAX_ADJUST_MINUTES = 480;
+
+/**
+ * Hoe lang een generatie mag lopen voordat we hem als vastgelopen beschouwen.
+ * Een achtergrondgeneratie is normaal binnen een paar minuten klaar; wat na een
+ * kwartier nog loopt, wacht op iemand die hem ophaalt.
+ *
+ * Twee plekken leunen hierop en moeten dezelfde grens hanteren: de dagelijkse
+ * cron neemt zo'n generatie over, en preparePlanUpdate weigert een tweede
+ * herziening zolang er één loopt. Zouden die getallen uiteenlopen, dan kon een
+ * blijven hangen generatie het bijwerken langer blokkeren dan de cron er over
+ * doet om hem af te maken.
+ */
+export const STALE_GENERATION_MINUTES = 15;
 
 type TrainingDraftResult =
   | {
@@ -927,6 +941,40 @@ type PreparedPlanUpdate = {
 };
 
 /**
+ * Loopt er al een herziening voor dit lid?
+ *
+ * Twee herzieningen tegelijk leveren twee schema's op, en die vechten om
+ * dezelfde dagen: wie het laatst publiceert vervangt de workouts van de ander,
+ * terwijl die ander nog naar intervals.icu staat te pushen. Op 24 augustus 2026
+ * gebeurde dat bij drie leden — een schuifbalk in de beschikbaarheid vuurde een
+ * herziening af, zes seconden later drukte dezelfde persoon op "Schema
+ * bijwerken", en er bleven 85 losse events in intervals.icu achter.
+ *
+ * requestReplan() had daar al een demping voor, maar de knop gaat rechtstreeks
+ * naar startPlanUpdate en liep er dus omheen. Vandaar deze grendel op de
+ * gedeelde voorbereiding, waar beide routes én de cron langskomen.
+ *
+ * Alleen wat écht nog loopt telt mee. Een generatie die is blijven hangen mag
+ * het bijwerken niet voorgoed blokkeren; na STALE_GENERATION_MINUTES neemt de
+ * dagelijkse cron hem over en tellen we hem hier niet meer.
+ */
+async function planUpdateRunning(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+): Promise<boolean> {
+  const since = new Date(Date.now() - STALE_GENERATION_MINUTES * 60_000).toISOString();
+  const { data } = await admin
+    .from("training_ai_generations")
+    .select("id")
+    .eq("profile_id", profileId)
+    .eq("adaptation_kind", "plan_update")
+    .in("status", ["queued", "in_progress"])
+    .gte("created_at", since)
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
+/**
  * Alles wat een herziening nodig heeft, klaargezet: rechten gecontroleerd, het
  * doel bijgewerkt, de resterende workouts erbij en de AI-input compleet.
  *
@@ -958,6 +1006,13 @@ async function preparePlanUpdate({
   }
   if (!plan.goal_id) {
     return { ok: false, error: "Dit schema hangt niet aan een doel; maak een nieuw schema." };
+  }
+
+  if (await planUpdateRunning(admin, plan.profile_id)) {
+    return {
+      ok: false,
+      error: "Er wordt al een bijgewerkt schema gemaakt. Wacht tot dat klaar is.",
+    };
   }
 
   const { data: goal } = await admin
@@ -1071,14 +1126,16 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
   if (!prepared.ok) return { ok: false, error: prepared.error };
   const { plan, fromDate, input, prompt } = prepared.prepared;
 
-  const background = await startTrainingPlanDraftBackground(input, prompt, {
-    model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
-    reasoningEffort: "medium",
+  const options = {
+    reasoningEffort: "medium" as const,
     timeoutMs: 15_000,
-  });
-  const initialStatus: TrainingDraftStatus =
-    background.status === "queued" ? "queued" : "in_progress";
+  };
 
+  // Eerst de rij, dan pas OpenAI. Andersom was de grendel in preparePlanUpdate
+  // lek: het aanmelden van een achtergrondgeneratie duurt tot vijftien seconden
+  // en pas dáárna verscheen de generatie in de tabel. Een tweede verzoek in dat
+  // gaatje zag niets lopen en startte er nog een — zo ontstonden de twee
+  // schema's van 24 augustus 2026, zes seconden na elkaar.
   const { data: aiRow, error: aiError } = await args.admin
     .from("training_ai_generations")
     .insert({
@@ -1089,20 +1146,47 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
       adaptation_reason: args.reason,
       adaptation_kind: "plan_update",
       adapt_from_date: fromDate,
-      model: background.model,
-      status: initialStatus,
+      model: getTrainingModel(options),
+      status: "queued",
       prompt_text: prompt,
-      prompt_summary: background.promptSummary,
-      openai_response_id: background.responseId,
+      prompt_summary: JSON.stringify(input, null, 2),
     })
     .select("id")
     .single();
   if (aiError) throw new Error(aiError.message);
+  const generationId = aiRow.id as string;
+
+  let background: Awaited<ReturnType<typeof startTrainingPlanDraftBackground>>;
+  try {
+    background = await startTrainingPlanDraftBackground(input, prompt, options);
+  } catch (err) {
+    // Zonder response-id valt er niets op te halen. De rij meteen sluiten, want
+    // een generatie die op 'queued' blijft staan houdt de grendel een kwartier
+    // dicht en komt daarna elke nacht bij de cron langs.
+    const error = err instanceof Error ? err.message : "Generatie starten faalde.";
+    await args.admin
+      .from("training_ai_generations")
+      .update({ status: "failed", error })
+      .eq("id", generationId);
+    return { ok: false, error };
+  }
+
+  const initialStatus: TrainingDraftStatus =
+    background.status === "queued" ? "queued" : "in_progress";
+  await args.admin
+    .from("training_ai_generations")
+    .update({
+      status: initialStatus,
+      model: background.model,
+      prompt_summary: background.promptSummary,
+      openai_response_id: background.responseId,
+    })
+    .eq("id", generationId);
 
   revalidatePath("/zwbeter-worden", "layout");
   return {
     ok: true,
-    generationId: aiRow.id as string,
+    generationId,
     status: initialStatus,
     message: "Bijgewerkt schema wordt gemaakt.",
   };
