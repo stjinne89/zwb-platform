@@ -855,6 +855,15 @@ VAPID-variabelen ontbraken, of dat niemand het recht `members.approve` heeft.
 Deze melding is maanden weggevallen zonder één spoor; een lege `catch` is daar
 de directe oorzaak van geweest.
 
+**Nog niet aangetoond.** Dat de melding nu écht aankomt is niet getest: een
+tweede wegwerpregistratie liep op Supabase's eigen e-maillimiet ("email rate
+limit exceeded"), en daarna is bewust gekozen om op een echte aanmelding te
+wachten in plaats van te forceren. Wat vaststaat is dat de dynamische imports
+uit de build verdwenen zijn en dat de bezorgketen los is bewezen. De
+eerstvolgende aanmelding schrijft zelf een regel in `integration_health`, dus
+het antwoord staat dan op `/beheer/event-scan` — ook als het weer misgaat, en
+dan mét reden.
+
 `npm run build`, `tsc`, `eslint` en de Vitest-suite (621 tests) zijn groen.
 
 ### Opgeleverd — dubbele trainingen: de race tussen twee publicaties
