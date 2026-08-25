@@ -14,6 +14,7 @@ const SOURCE_LABELS: Record<string, string> = {
   ladder: "Club-ladder",
   wtrl: "WTRL / ZRL",
   openai: "Training-AI (OpenAI)",
+  signup_notification: "Melding bij nieuwe aanmelding",
 };
 
 // Compact statusoverzicht van de externe integraties, gevoed door

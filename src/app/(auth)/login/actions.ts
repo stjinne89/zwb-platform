@@ -2,6 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { profileIdsWithPermission } from "@/lib/auth/permissions";
+import { sendNotificationToMembers } from "@/lib/push/send";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimitHit, clientIpFromHeaders } from "@/lib/rate-limit";
 
@@ -39,6 +42,71 @@ export async function signInWithPassword(formData: FormData) {
   }
 
   redirect("/dashboard");
+}
+
+/** Bron-sleutel in integration_health; zie het statusblok op /beheer/event-scan. */
+const SIGNUP_NOTICE_SOURCE = "signup_notification";
+
+/**
+ * Beheer laten weten dat er iemand op goedkeuring wacht.
+ *
+ * Faalt stil richting het nieuwe lid — een registratie mag niet stuklopen op
+ * een pushbericht — maar niet stil richting ons: de uitkomst gaat in
+ * `integration_health`, zodat hij op de beheerpagina staat. Precies dat
+ * ontbrak: deze melding is maanden weggevallen zonder één spoor.
+ *
+ * De imports hierboven zijn bewust statisch. Ze waren `await import(...)`, en
+ * Turbopack maakt daar runtime-chunkresolutie van; overal elders in de app
+ * worden dezelfde modules statisch geïmporteerd en dáár werkte het pushbericht
+ * wel. Een server-only module in een "use server"-bestand heeft niets te winnen
+ * bij lui laden, en wel iets te verliezen.
+ */
+async function notifyApprovers(displayName: string): Promise<void> {
+  let admin: ReturnType<typeof createAdminClient> | null = null;
+  try {
+    admin = createAdminClient();
+    const approverIds = await profileIdsWithPermission(admin, "members.approve");
+    if (approverIds.length === 0) {
+      await recordSignupNotice(admin, false, "Geen enkel profiel heeft members.approve.");
+      return;
+    }
+
+    const result = await sendNotificationToMembers(
+      "on_member_pending",
+      {
+        title: "Nieuw lid wacht op goedkeuring",
+        body: `${displayName} heeft zich aangemeld.`,
+        url: "/leden",
+        // Geen e-mailadres in de tag: die reist mee naar het toestel van de
+        // beheerder. De naam staat toch al in de body.
+        tag: `member-pending-${displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      },
+      { profileIds: approverIds },
+    );
+    await recordSignupNotice(
+      admin,
+      result.sent > 0,
+      result.skipped
+        ? "Overgeslagen: VAPID-variabelen ontbreken."
+        : `${result.sent} bezorgd, ${result.pruned} verlopen, ${approverIds.length} beheerder(s) met het recht.`,
+    );
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("[signup] melding aan beheer faalde:", err);
+    if (admin) await recordSignupNotice(admin, false, detail).catch(() => null);
+  }
+}
+
+/** Best effort; een mislukte statusregel mag de registratie niet raken. */
+async function recordSignupNotice(
+  admin: ReturnType<typeof createAdminClient>,
+  ok: boolean,
+  detail: string,
+): Promise<void> {
+  await admin
+    .from("integration_health")
+    .insert({ source: SIGNUP_NOTICE_SOURCE, ok, detail })
+    .then(() => null, () => null);
 }
 
 export async function signUp(formData: FormData) {
@@ -93,33 +161,7 @@ export async function signUp(formData: FormData) {
   // werd overgeslagen: geen melding, en ook geen AVG-toestemming — die stond
   // sinds mei bij álle twaalf leden op leeg. De toestemming loopt daarom nu via
   // de trigger, en de melding heeft het id helemaal niet nodig.
-  try {
-    const { createAdminClient } = await import("@/lib/supabase/admin");
-    const { profileIdsWithPermission } = await import("@/lib/auth/permissions");
-    const { sendNotificationToMembers } = await import("@/lib/push/send");
-    const approverIds = await profileIdsWithPermission(
-      createAdminClient(),
-      "members.approve",
-    );
-    if (approverIds.length > 0) {
-      await sendNotificationToMembers(
-        "on_member_pending",
-        {
-          title: "Nieuw lid wacht op goedkeuring",
-          body: `${displayName} heeft zich aangemeld.`,
-          url: "/leden",
-          // Geen e-mailadres in de tag: die reist mee naar het toestel van de
-          // beheerder. De naam staat toch al in de body.
-          tag: `member-pending-${displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-        },
-        { profileIds: approverIds },
-      );
-    }
-  } catch (err) {
-    // Niet kritiek voor de registratie zelf, maar wél loggen. Deze melding is
-    // maanden stil weggevallen juist omdat hier niets van te zien was.
-    console.error("[signup] melding aan beheer faalde:", err);
-  }
+  await notifyApprovers(displayName);
 
   // Met "Confirm email" aan in Supabase: session is null totdat de gebruiker
   // op de bevestigings-link klikt. Met email-confirmation uit: directe sessie.

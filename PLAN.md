@@ -831,12 +831,29 @@ werkt, en de deploy met deze ronde is live. De wegwerpgebruiker is meteen daarna
 verwijderd (`auth.admin.deleteUser`, profiel volgt via `on delete cascade`);
 profielentelling terug op 35, geen resten, niets meer in de goedkeuringslijst.
 
-De pushmelding zelf is hiermee **niet** bewezen: die is alleen op het toestel van
-de beheerder te zien. Wat we wel weten is dat er geen endpoint is opgeruimd — de
-zeven abonnementen stonden er voor en na — dus er is geen 404/410 teruggekomen.
-Blijft de melding bij een volgende echte aanmelding uit, dan zit het niet meer in
-`data.user` maar in de bezorging, en is `console.error` in de registratie-actie
-het eerste wat je in de Netlify-logs naslaat.
+**Tweede oorzaak: de dynamische imports.** De melding kwam ook na die
+wegwerpregistratie niet aan, terwijl er 38 minuten eerder wél een
+`on_training_plan`-push was bezorgd (Jeroens plan van 16:47 UTC, tegen de
+registratie van 17:25). De bezorgketen is daarna los getoetst door met de
+productie-VAPID-sleutels dezelfde payload en dezelfde trigger rechtstreeks naar
+zijn drie abonnementen te sturen: drie keer HTTP 201, en de melding kwam aan.
+Sleutels, ontvangerselectie, abonnementen, payload en service worker deugen dus
+allemaal — de registratiecode bereikte `webpush` simpelweg niet.
+
+In de gebouwde output was te zien waarom het daar misging: de drie
+`await import(...)`-regels worden door Turbopack runtime-chunkresolutie
+(`await a.A(677521)`), en die landde in de `catch`. Overal élders in de app
+worden dezelfde modules statisch geïmporteerd, en daar werkt de push wel. Ze
+staan nu ook hier bovenaan als gewone import; in de build is `a.A(...)`
+vervangen door een directe verwijzing. Een server-only module in een
+`"use server"`-bestand heeft niets te winnen bij lui laden.
+
+**Zodat dit niet nóg eens stil wegvalt.** De uitkomst gaat als bron
+`signup_notification` naar `integration_health`, dus hij staat op het
+statusblok van `/beheer/event-scan`: hoeveel er bezorgd zijn, of er
+VAPID-variabelen ontbraken, of dat niemand het recht `members.approve` heeft.
+Deze melding is maanden weggevallen zonder één spoor; een lege `catch` is daar
+de directe oorzaak van geweest.
 
 `npm run build`, `tsc`, `eslint` en de Vitest-suite (621 tests) zijn groen.
 
