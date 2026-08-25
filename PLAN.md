@@ -826,6 +826,23 @@ service-role, uitkomst gecontroleerd — 27 gevuld, 8 leeg, precies de bedoelde
 verdeling. `0138` legt dezelfde update vast en is idempotent (alleen waar de
 kolom leeg is, en de waarde hangt aan `created_at`, niet aan `now()`).
 
+**En die acht alsnog vragen.** Een gat laten staan is eerlijk, maar het blijft
+een gat: acht leden gebruiken de app zonder vastgelegde toestemming.
+`PrivacyConsentDialog` in de app-layout vraagt het hun alsnog, met dezelfde
+zin als op het registratieformulier en een link naar `/privacy`.
+`acceptPrivacyStatement()` zet dan `now()` — híér is dat wél de juiste datum,
+anders dan bij de backfill, want het lid tekent op dat moment.
+
+Bewust niet blokkerend, met een "Later" die één sessie geldt en daarna opnieuw
+vraagt. Toestemming moet vrij gegeven zijn; wie de app pas in mag ná het
+vinkje, geeft die niet vrij, en dan is de handtekening minder waard dan het
+gat dat je ermee dichtte. Wél zonder ontsnapping: er is geen "niet meer vragen",
+zoals het Zwift-ID die met *Ik zwift niet* wel heeft.
+
+De Zwift-ID-dialoog is ondergeschikt gemaakt aan deze: twee dialogen over elkaar
+heen is geen keuze meer. `privacy_accepted_at` komt uit de bestaande
+profielquery van de layout, dus er is geen query bijgekomen.
+
 **Zwift-ID: claimen op de plek van de vraag.** Een nieuw lid kreeg de dialoog
 "Je Zwift-ID ontbreekt" terwijl zijn regel al klaarstond op `/leden`. Die
 dialoog toont nu eerst de ongeclaimde ledenlijst-regels die op zijn naam lijken,
