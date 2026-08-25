@@ -822,11 +822,22 @@ leden die deze dialoog nu zouden zien een directe claim aangeboden.
 De query draait alleen als de vraag ook echt gesteld wordt; deze layout draait
 op elke pagina en mag er niet standaard een query bij krijgen.
 
-**Niet lokaal te verifiëren.** Migratie `0137` is niet lokaal te draaien (geen
-Docker of Supabase-config); de eigenaar heeft hem op 2026-08-25 op productie
-gedraaid. De melding en de toestemming zijn daarmee nog niet aangetoond: dat
-vraagt een echte registratie. De eerstvolgende aanmelding is de test — komt de
-push aan én staat `privacy_accepted_at` gevuld, dan klopt de hele keten.
+**Verificatie op productie (2026-08-25).** Migratie `0137` is niet lokaal te
+draaien (geen Docker of Supabase-config), maar is op productie gedraaid en
+daarna getoetst met een wegwerpregistratie via het echte formulier op
+`zwb-platform.netlify.app`. Uitkomst: het profiel kreeg `privacy_accepted_at`
+gelijk aan `created_at`. Daarmee staan twee dingen vast — de trigger uit `0137`
+werkt, en de deploy met deze ronde is live. De wegwerpgebruiker is meteen daarna
+verwijderd (`auth.admin.deleteUser`, profiel volgt via `on delete cascade`);
+profielentelling terug op 35, geen resten, niets meer in de goedkeuringslijst.
+
+De pushmelding zelf is hiermee **niet** bewezen: die is alleen op het toestel van
+de beheerder te zien. Wat we wel weten is dat er geen endpoint is opgeruimd — de
+zeven abonnementen stonden er voor en na — dus er is geen 404/410 teruggekomen.
+Blijft de melding bij een volgende echte aanmelding uit, dan zit het niet meer in
+`data.user` maar in de bezorging, en is `console.error` in de registratie-actie
+het eerste wat je in de Netlify-logs naslaat.
+
 `npm run build`, `tsc`, `eslint` en de Vitest-suite (621 tests) zijn groen.
 
 ### Opgeleverd — dubbele trainingen: de race tussen twee publicaties
