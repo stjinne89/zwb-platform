@@ -767,6 +767,67 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — de melding bij een wachtend lid, en claimen vanuit de Zwift-vraag
+
+**2026-08-25, working tree op `e25a5f5`.** Migratie `0137`.
+
+**Waarom.** De beheerder kreeg nooit een melding als er iemand op goedkeuring
+wachtte, terwijl andere pushberichten wél aankwamen. Aan de ontvangkant klopte
+alles: hij is de enige admin, heeft een `notification_preferences`-rij met
+`on_member_pending = true` en drie geldige abonnementen. De melding werd dus
+nooit verstuurd.
+
+**De oorzaak.** De verzendcode hing in een `if (data.user)` na
+`supabase.auth.signUp()`, en daar kwam hij nooit uit. Staat *Confirm email* aan
+— bij ons het geval, `mailer_autoconfirm: false` — dan antwoordt GoTrue op
+`/signup` met het User-object op het hóógste niveau. supabase-js leest in
+`_sessionResponse()` alleen `data.user`, en dat veld bestaat in dat antwoord
+niet: `user = data.user ?? null` levert dus `null`. Geen foutmelding, registratie
+werkt gewoon, blok overgeslagen.
+
+De verklikker die dit hard maakte, staat in hetzelfde blok: de AVG-toestemming
+werd daar één regel eerder weggeschreven. Bij álle twaalf leden die zich sinds
+`0063` (31 mei 2026) hebben aangemeld is `privacy_accepted_at` leeg, terwijl de
+registratie zónder dat vinkje weigert. Dat blok heeft dus nooit gedraaid.
+
+**Wat er staat.** De melding hangt niet meer aan `data.user` — die had het id
+ook helemaal niet nodig, alleen de naam die al in de body stond. De tag is
+daarop gebaseerd in plaats van op het id; bewust geen e-mailadres, want een tag
+reist mee naar het toestel van de beheerder. De lege `catch` logt nu, want
+precies dat zwijgen heeft dit maanden verborgen gehouden.
+
+De toestemming loopt via `0137`: de registratie geeft `privacy_accepted` mee in
+de user-metadata en `handle_new_user` zet er `privacy_accepted_at` mee. Dat is
+atomair met het aanmaken van het account, dus het hangt niet langer af van de
+vorm van een API-antwoord.
+
+**Bewust niet gedaan.** De twaalf bestaande profielen zijn niet bijgewerkt. Ze
+hebben het vinkje aantoonbaar gezet — anders was er geen account — maar een
+toestemmingsdatum invullen voor iemand die al lid is, is een AVG-administratie
+verzinnen. Dat is een aparte, bewuste keuze voor de eigenaar, geen bijvangst van
+een bugfix.
+
+**Zwift-ID: claimen op de plek van de vraag.** Een nieuw lid kreeg de dialoog
+"Je Zwift-ID ontbreekt" terwijl zijn regel al klaarstond op `/leden`. Die
+dialoog toont nu eerst de ongeclaimde ledenlijst-regels die op zijn naam lijken,
+met "Dit ben ik" per regel; het invoerveld staat eronder als tweede weg.
+`claim_roster_entry` zet het Zwift-ID uit die regel meteen op het profiel, dus
+daarmee is de vraag beantwoord. Alleen regels mét een Zwift-ID worden
+voorgesteld — zonder zou de claim de vraag niet oplossen en kwam de dialoog bij
+de volgende pagina terug. De matching is `looksLikeMe()` uit
+`lib/text/normalize.ts`, dezelfde als de claimlijst op `/leden`, zodat een lid
+op beide plekken hetzelfde ziet. Op de huidige gegevens krijgen 13 van de 14
+leden die deze dialoog nu zouden zien een directe claim aangeboden.
+
+De query draait alleen als de vraag ook echt gesteld wordt; deze layout draait
+op elke pagina en mag er niet standaard een query bij krijgen.
+
+**Niet lokaal te verifiëren.** Migratie `0137` is niet gedraaid (geen Docker of
+Supabase-config). De melding zelf evenmin: die vraagt een echte registratie
+tegen productie. De eerstvolgende aanmelding is de test — komt de push aan én
+staat `privacy_accepted_at` gevuld, dan klopt het. `npm run build`, `tsc`,
+`eslint` en de Vitest-suite (621 tests) zijn groen.
+
 ### Opgeleverd — dubbele trainingen: de race tussen twee publicaties
 
 **2026-08-25, working tree op `4b6eaee`.** Geen migratie.

@@ -72,44 +72,53 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       // De handle_new_user-trigger in 0001_initial.sql pikt full_name op
-      // en zet het op profiles.display_name.
-      data: { full_name: displayName },
+      // en zet het op profiles.display_name. Sinds `0137` leest diezelfde
+      // trigger ook privacy_accepted en zet daarmee de AVG-toestemming, want
+      // die kan hier niet meer worden weggeschreven — zie hieronder.
+      data: { full_name: displayName, privacy_accepted: true },
       emailRedirectTo: `${origin}/auth/confirm?next=/welkom`,
     },
   });
 
   if (error) return { ok: false as const, error: error.message };
 
-  // AVG-toestemming vastleggen op het (door de trigger aangemaakte) profiel, en
-  // beheer laten weten dat er iemand wacht. Beide stil falend: een registratie
-  // mag niet stuklopen op een pushbericht.
-  if (data.user) {
-    try {
-      const { createAdminClient } = await import("@/lib/supabase/admin");
-      const admin = createAdminClient();
-      await admin
-        .from("profiles")
-        .update({ privacy_accepted_at: new Date().toISOString() })
-        .eq("id", data.user.id);
-
-      const { profileIdsWithPermission } = await import("@/lib/auth/permissions");
-      const { sendNotificationToMembers } = await import("@/lib/push/send");
-      const approverIds = await profileIdsWithPermission(admin, "members.approve");
-      if (approverIds.length > 0) {
-        await sendNotificationToMembers(
-          "on_member_pending",
-          {
-            title: "Nieuw lid wacht op goedkeuring",
-            body: `${displayName} heeft zich aangemeld.`,
-            url: "/leden",
-            tag: `member-pending-${data.user.id}`,
-          },
-          { profileIds: approverIds },
-        );
-      }
-    } catch {
-      // niet kritiek voor de registratie zelf
+  // Beheer laten weten dat er iemand wacht. Stil falend: een registratie mag
+  // niet stuklopen op een pushbericht.
+  //
+  // Dit hing tot 2026-08-25 in een `if (data.user)`, en daar is het al die tijd
+  // niet uitgekomen. Staat "Confirm email" aan — bij ons het geval — dan
+  // antwoordt GoTrue op /signup met het User-object op het hoogste niveau, en
+  // supabase-js leest in `_sessionResponse()` alleen `data.user`. Dat veld
+  // bestaat in dat antwoord niet, dus `data.user` is `null` en het hele blok
+  // werd overgeslagen: geen melding, en ook geen AVG-toestemming — die stond
+  // sinds mei bij álle twaalf leden op leeg. De toestemming loopt daarom nu via
+  // de trigger, en de melding heeft het id helemaal niet nodig.
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { profileIdsWithPermission } = await import("@/lib/auth/permissions");
+    const { sendNotificationToMembers } = await import("@/lib/push/send");
+    const approverIds = await profileIdsWithPermission(
+      createAdminClient(),
+      "members.approve",
+    );
+    if (approverIds.length > 0) {
+      await sendNotificationToMembers(
+        "on_member_pending",
+        {
+          title: "Nieuw lid wacht op goedkeuring",
+          body: `${displayName} heeft zich aangemeld.`,
+          url: "/leden",
+          // Geen e-mailadres in de tag: die reist mee naar het toestel van de
+          // beheerder. De naam staat toch al in de body.
+          tag: `member-pending-${displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        },
+        { profileIds: approverIds },
+      );
     }
+  } catch (err) {
+    // Niet kritiek voor de registratie zelf, maar wél loggen. Deze melding is
+    // maanden stil weggevallen juist omdat hier niets van te zien was.
+    console.error("[signup] melding aan beheer faalde:", err);
   }
 
   // Met "Confirm email" aan in Supabase: session is null totdat de gebruiker
