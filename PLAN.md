@@ -822,11 +822,12 @@ leden die deze dialoog nu zouden zien een directe claim aangeboden.
 De query draait alleen als de vraag ook echt gesteld wordt; deze layout draait
 op elke pagina en mag er niet standaard een query bij krijgen.
 
-**Niet lokaal te verifiëren.** Migratie `0137` is niet gedraaid (geen Docker of
-Supabase-config). De melding zelf evenmin: die vraagt een echte registratie
-tegen productie. De eerstvolgende aanmelding is de test — komt de push aan én
-staat `privacy_accepted_at` gevuld, dan klopt het. `npm run build`, `tsc`,
-`eslint` en de Vitest-suite (621 tests) zijn groen.
+**Niet lokaal te verifiëren.** Migratie `0137` is niet lokaal te draaien (geen
+Docker of Supabase-config); de eigenaar heeft hem op 2026-08-25 op productie
+gedraaid. De melding en de toestemming zijn daarmee nog niet aangetoond: dat
+vraagt een echte registratie. De eerstvolgende aanmelding is de test — komt de
+push aan én staat `privacy_accepted_at` gevuld, dan klopt de hele keten.
+`npm run build`, `tsc`, `eslint` en de Vitest-suite (621 tests) zijn groen.
 
 ### Opgeleverd — dubbele trainingen: de race tussen twee publicaties
 
