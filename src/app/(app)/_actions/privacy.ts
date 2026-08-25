@@ -1,23 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { PRIVACY_STATEMENT_VERSION } from "@/lib/privacy";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Legt alsnog de toestemming vast van een lid dat er nooit om gevraagd is.
+ * Legt de toestemming vast op de versie die het lid zojuist voorgelegd kreeg.
  *
- * Acht leden gebruiken de app zonder vastgelegde toestemming: zes van vóór het
- * vinkje bestond (`0063`, 31 mei 2026) en twee die via een magic link
- * binnenkwamen, waar geen privacyverklaring bij hoort. Bij de backfill in `0138`
- * zijn die bewust leeg gelaten — een datum invullen voor iemand die nooit iets
- * is voorgelegd, is de administratie vervalsen. Dit is de enige nette manier om
- * dat gat te dichten: het gewoon vragen.
+ * Twee groepen komen hier langs. Leden die nooit iets is voorgelegd — zes van
+ * vóór het vinkje bestond (`0063`) en twee die via een magic link binnenkwamen —
+ * en leden die tekenden op een verklaring die daarna inhoudelijk is gewijzigd.
+ * Bij de backfill in `0138` bleef de eerste groep bewust leeg, want een datum
+ * invullen voor iemand die nooit iets is voorgelegd, is de administratie
+ * vervalsen. Dit is de nette manier om dat te dichten: het gewoon vragen.
  *
  * `now()` is hier wél de juiste datum, anders dan bij de backfill: het lid geeft
- * de toestemming op dit moment.
+ * de toestemming op dit moment, op de versie van dit moment.
  *
- * De `is null`-voorwaarde maakt dit onschadelijk bij dubbel klikken en zorgt dat
- * een bestaande toestemmingsdatum nooit wordt overschreven.
+ * Anders dan bij `0138` schrijven we hier zonder `is null`-voorwaarde: een lid
+ * dat opnieuw tekent op een nieuwere versie moet de oude waarde juist wél
+ * overschrijven. Wat er stond, staat in de audit-log van het profiel.
  */
 export async function acceptPrivacyStatement() {
   const supabase = await createClient();
@@ -28,9 +30,11 @@ export async function acceptPrivacyStatement() {
 
   const { error } = await supabase
     .from("profiles")
-    .update({ privacy_accepted_at: new Date().toISOString() })
-    .eq("id", user.id)
-    .is("privacy_accepted_at", null);
+    .update({
+      privacy_accepted_at: new Date().toISOString(),
+      privacy_accepted_version: PRIVACY_STATEMENT_VERSION,
+    })
+    .eq("id", user.id);
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/", "layout");

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CircleHelp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { looksLikeMe } from "@/lib/text/normalize";
 import { ZwbMark } from "@/components/zwb-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -54,7 +55,7 @@ export default async function AppLayout({
   const [{ data: profile }, access] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, zwift_id, zwift_opt_out, sex, privacy_accepted_at")
+      .select("display_name, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
     getCurrentUserAccess(supabase),
@@ -62,11 +63,15 @@ export default async function AppLayout({
 
   const displayName = profile?.display_name ?? user.email ?? "";
 
-  // Leden van vóór het toestemmingsvinkje (`0063`) en leden die via een magic
-  // link binnenkwamen hebben nooit getekend. `0138` liet die bewust leeg — een
-  // datum invullen die niemand heeft gegeven is de administratie vervalsen — dus
-  // vragen we het alsnog, elke sessie opnieuw tot het er staat.
-  const needsPrivacyConsent = Boolean(profile && !profile.privacy_accepted_at);
+  // Twee redenen om het te vragen. Nooit getekend: leden van vóór het
+  // toestemmingsvinkje (`0063`) en leden die via een magic link binnenkwamen —
+  // `0138` liet die bewust leeg, want een datum invullen die niemand heeft
+  // gegeven is de administratie vervalsen. Of wél getekend, maar op een tekst
+  // die daarna inhoudelijk is gewijzigd; die toestemming dekt de nieuwe
+  // verwerking niet. Elke sessie opnieuw tot het akkoord er staat.
+  const consentVersion = (profile?.privacy_accepted_version as string | null) ?? null;
+  const signedBefore = Boolean(profile?.privacy_accepted_at);
+  const needsPrivacyConsent = Boolean(profile) && !privacyConsentIsCurrent(consentVersion);
 
   // Vragen tot het ingevuld is of tot het lid zegt niet te zwiften. Nooit
   // tegelijk met de toestemmingsvraag: twee dialogen over elkaar heen is geen
@@ -123,7 +128,7 @@ export default async function AppLayout({
         </nav>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
-      {needsPrivacyConsent && <PrivacyConsentDialog />}
+      {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
     </div>
   );

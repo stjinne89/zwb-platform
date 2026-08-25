@@ -843,6 +843,41 @@ De Zwift-ID-dialoog is ondergeschikt gemaakt aan deze: twee dialogen over elkaar
 heen is geen keuze meer. `privacy_accepted_at` komt uit de bestaande
 profielquery van de layout, dus er is geen query bijgekomen.
 
+**Versiebeheer op de verklaring (`0139`).** Vastleggen dát iemand tekende is te
+weinig; het gaat om waaróp. De tekst is sinds mei vier keer inhoudelijk
+gewijzigd — trainersinzage, terugschrijven naar Strava, live locatie plus
+ZWBlokken, en gezondheidsgegevens — dus wie in juni tekende heeft over dat
+laatste niets gelezen, en dat is een bijzondere categorie onder de AVG.
+
+`PRIVACY_VERSIONS` in `src/lib/privacy.ts` is de enige plek die bijgewerkt hoeft
+te worden als de tekst verandert. Eén regel erbij laat élk lid opnieuw tekenen,
+dus dat is bewust een knop met gevolgen; de comment zegt er expliciet bij dat
+het alleen bij een inhoudelijke wijziging mag, niet bij een herformulering.
+`privacyConsentIsCurrent()` vergelijkt op gelijkheid en niet op "nieuwer dan",
+zodat een teruggedraaide tekst ook opnieuw wordt voorgelegd.
+
+`0139` rekent per lid terug welke versie destijds gold, op de commit-tijdstippen
+van die vier wijzigingen. Gecontroleerd dat geen enkel lid binnen zes uur ná een
+wissel heeft getekend, dus deploy-vertraging kan de toekenning niet verschoven
+hebben. Gedraaid op 2026-08-25, uitkomst gecontroleerd: 23 op de eerste versie,
+2 op `2026-08-07`, 2 op `2026-08-18`, 8 nooit getekend — geen enkele rij met een
+datum maar zonder versie. **33 van de 35 leden krijgen dus de vraag.** Dat is de
+bedoeling en geen bijwerking.
+
+De migratie is bewust apart gepusht (`971dded`), vóór de code. De layout
+selecteert de nieuwe kolom, en PostgREST laat een select in zijn geheel falen op
+een onbekende kolom; dan valt `profile` terug op `null` en ziet elk lid zijn
+e-mailadres in plaats van zijn naam.
+
+De pagina zelf zei "Laatst bijgewerkt: 31 mei 2026" terwijl er vier wijzigingen
+overheen waren gegaan. Die datum komt nu uit dezelfde versielijst, dus hij kan
+niet opnieuw gaan afwijken.
+
+**Bewust niet gebouwd.** Geen changelog van wat er per versie veranderde. Dat
+klinkt behulpzaam, maar het vraagt onderhouden copy naast de verklaring zelf en
+staat op gespannen voet met de afspraak om uitleg in de verklaring te houden en
+niet in het scherm. Wie wil weten wat er veranderd is, leest de verklaring.
+
 **Zwift-ID: claimen op de plek van de vraag.** Een nieuw lid kreeg de dialoog
 "Je Zwift-ID ontbreekt" terwijl zijn regel al klaarstond op `/leden`. Die
 dialoog toont nu eerst de ongeclaimde ledenlijst-regels die op zijn naam lijken,

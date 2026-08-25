@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatPrivacyVersion } from "@/lib/privacy";
 
 export const metadata = {
   title: "Privacyverklaring — ZWB Cycling",
@@ -6,7 +7,10 @@ export const metadata = {
     "Hoe ZWB Cycling met je persoonsgegevens omgaat: welke data we verwerken, waarom, hoe lang en welke rechten je hebt.",
 };
 
-const UPDATED = "31 mei 2026";
+// Uit de versielijst, niet met de hand. Deze regel stond op "31 mei 2026"
+// terwijl de tekst sindsdien vier keer inhoudelijk was gewijzigd; met een los
+// bijgehouden datum loopt dat vroeg of laat weer uiteen.
+const UPDATED = formatPrivacyVersion();
 
 function Section({
   title,
