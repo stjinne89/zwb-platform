@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   estimateEventMinutes,
   eventWorkoutDefaults,
+  loadScheduleEvents,
   type ClubEventRow,
 } from "@/lib/training/events";
 
@@ -112,5 +113,43 @@ describe("estimateEventMinutes", () => {
   it("zou de Velomedian nooit meer als korte sessie zien", () => {
     // De AI plande hier ooit 150 minuten voor; dat was de aanleiding.
     expect(estimateEventMinutes(166.88, 3305)).toBeGreaterThan(360);
+  });
+});
+
+/**
+ * Minimale supabase-stub die alleen onthoudt met welke limiet er is gevraagd.
+ * Elke keten levert dezelfde builder op, die awaitbaar is.
+ */
+function fakeAdmin(gezien: { limit: number | null }) {
+  const builder: Record<string, unknown> = {};
+  const chain = () => builder;
+  Object.assign(builder, {
+    select: chain,
+    eq: chain,
+    gte: chain,
+    lte: chain,
+    is: chain,
+    in: chain,
+    order: chain,
+    limit: (value: number) => {
+      gezien.limit = value;
+      return builder;
+    },
+    then: (resolve: (value: { data: unknown[] }) => unknown) => resolve({ data: [] }),
+  });
+  return { from: () => builder } as never;
+}
+
+describe("loadScheduleEvents", () => {
+  it("vraagt standaard 50 events op", async () => {
+    const gezien = { limit: null as number | null };
+    await loadScheduleEvents(fakeAdmin(gezien), "p1", "2026-03-01", "2026-06-01");
+    expect(gezien.limit).toBe(50);
+  });
+
+  it("neemt een ruimere limiet over, voor een venster van twaalf maanden", async () => {
+    const gezien = { limit: null as number | null };
+    await loadScheduleEvents(fakeAdmin(gezien), "p1", "2026-03-01", "2027-03-01", 400);
+    expect(gezien.limit).toBe(400);
   });
 });

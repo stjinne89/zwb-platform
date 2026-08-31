@@ -767,6 +767,100 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — jaarplanning boven het trainingsschema
+
+**2026-08-31, branch `claude/training-yearly-planning-3e88rl`.** Migratie `0140`.
+
+**Waarom.** Het trainingsdeel kende precies één horizon: een doel met één
+`target_date`, waar `buildTrainingInput()` de planperiode uit afleidde. Daarboven
+zat niets. Een lid kon nergens kwijt dat het in juli twee weken weg is, dat de
+gran fondo in mei het echte mikpunt is en de ZRL-ronde in maart wordt meegepakt,
+of dat er een winterstop aankomt. Voor amateurs is dat juist de laag die telt:
+hun jaar wordt niet gestuurd door een piek maar door vakanties en drukke weken.
+Een schema dat daar niets van weet plant een opbouwblok dwars door de vakantie,
+het lid haalt het niet, en de nalevingslogica concludeert vervolgens dat het
+schema te zwaar was — precies de verkeerde conclusie.
+
+**Wat er is gekomen.** `/zwbeter-worden/jaarplan`: een seizoensbalk van twaalf
+maanden (een maand terug, elf vooruit) met vier banen — schema's, rustperiodes,
+mikpunten en clubevents — plus een maandlijst eronder en een blok signaleringen
+bovenaan. Migratie `0140` voegt `training_season_targets` (mikpunt met datum en
+prioriteit a/b/c, optioneel gekoppeld aan een event en aan het doel dat ervoor
+is gemaakt) en `training_season_periods` (periode met kind `rust` of `rustig`)
+toe. RLS spiegelt `training_availability`: lezen mag het lid én zijn trainer,
+schrijven alleen het lid zelf. De trainer heeft een eigen leesweergave op
+`/zwbeter-worden/trainer/jaarplan`.
+
+**Hoe het het schema stuurt.** `seasonPlanForAi()` (nieuw
+`src/lib/training/season-data.ts`) hangt de jaarplanning als veld `seasonPlan` in
+`TrainingAiInput`, en `defaultTrainingPrompt()` kreeg er zeven regels bij: een
+A-mikpunt is een piekdag met taper, B alleen de dag ervóór licht, C verandert
+niets; `rust` betekent niet plannen en er geen opbouwblok doorheen leggen;
+`rustig` is de helft van het weekvolume zonder sleutelsessies; na meer dan tien
+dagen rust begin je lager en bouw je in twee weken terug op. Omdat
+`adaptiveDailyPrompt()` en `planUpdatePrompt()` op `defaultTrainingPrompt()`
+voortbouwen gelden die regels ook daar; beide kregen daarnaast één eigen regel.
+Elke wijziging in de jaarplanning vraagt via `requestReplan()` een herziening
+aan, net als een gewijzigde beschikbaarheid.
+
+**Waarom niet via `training_availability`.** Een rustperiode wegschrijven als
+weekrijen met 0 minuten was de goedkopere route — dat mechanisme bestaat al en de
+prompt gehoorzaamt het hard. Toch niet gedaan: het overschrijft de
+beschikbaarheid die het lid zelf invulde (en moet die bij verwijderen weer
+terugzetten), een vakantie valt niet netjes op maandagen, en `rustig` is er niet
+in uit te drukken zonder een verzonnen minutenaantal. Het is bovendien geen
+beschikbaarheidsvraag maar een periodiseringsvraag, en periodisering leeft in dit
+project in de promptregels.
+
+**Het vangnet.** Omdat sturing via de prompt loopt, is de signalering bewust
+deterministisch: `seasonWarnings()` in `src/lib/training/season.ts` is pure
+logica over datums, met zeven gevallen die elk een knop dragen die ze oplost —
+trainingen in een rustperiode (→ herziening), twee A-doelen binnen 21 dagen (→ er
+één op B), een A-doel zonder doel of zonder schema, een schema dat meer dan 7
+dagen vóór een A-doel stopt, een toegezegd event dat nog geen mikpunt is, een
+event midden in een rustperiode, en een jaar zonder enkele rustperiode (tip).
+Gedekt door `tests/unit/season.test.ts` (26 tests), inclusief grenswaarden,
+schrikkeljaar en zomertijd.
+
+**Claim die niet meer klopt.** Het `/hulp`-artikel `#doeltype` stelde dat er bij
+`base_fitness`, `ftp` en `rebuild` géén taper komt. Dat geldt nu alleen zolang er
+geen A-mikpunt in de planperiode ligt; de alinea is bijgesteld en er staat een
+nieuw artikel `#jaarplan` naast, met een regel in de zoekindex.
+
+**Verder aangeraakt.** `loadScheduleEvents()` kreeg een optionele
+`limit`-parameter (standaard 50, ongewijzigd voor de bestaande drie aanroepers);
+twaalf maanden events passen niet in die limiet. `createTrainingGoal()` accepteert
+een verborgen `season_target_id` en legt daarmee de koppeling terug vast, zodat de
+waarschuwing "A-doel zonder schema" verdwijnt zodra het doel er is.
+
+**Bewust niet gebouwd.**
+- *Geen deterministische jaarperiodisering* die zelf blokken over twaalf maanden
+  genereert. De periodisering leeft in promptregels; een tweede motor ernaast
+  geeft twee waarheden die uit elkaar gaan lopen.
+- *Geen container-tabel* `training_season_plans`. Die zou het lid dwingen eerst
+  een jaarplan aan te maken voordat het één vakantie kan invullen, terwijl het
+  venster gewoon uit de datums volgt.
+- *Geen trainingsblok uit een `misschien`.* `syncEventWorkout()` houdt vast dat
+  alleen `ja` een toezegging is; op de tijdlijn zichtbaar maken is genoeg.
+- *Geen bewerkrecht voor de trainer.* Spiegelt `training_availability`: de agenda
+  en de vakanties zijn van het lid.
+- *Geen seizoensgrafiek van CTL/FTP.* Zonder FTP-historie (zie "Bekende open
+  dingen") zou die misleiden; dat blijft een eigen ronde.
+
+**Niet lokaal te verifiëren.** Migratie `0140` is hier niet gedraaid — er is geen
+Docker/Supabase-config in deze repo. De tabellen, constraints en RLS-policies zijn
+pas op productie te controleren. Let op de gaten `0126`-`0130` en `0134`: die zijn
+door de Omnium-ronde bezet en staan niet in de repo, vandaar `0140` en niet `0134`.
+
+**Volgorde.** Deze ronde ging vóór punt 2 van de actieve lijst (de
+training-cockpit praktijktest), die daar zegt "pas daarna nieuwe trainingfeatures
+toe". Dat was een expliciete keuze van de eigenaar; punt 2 blijft staan en schuift
+niet naar achteren.
+
+**Verificatie.** `npm run lint` (0 errors), `npm run test` (52 bestanden, 586
+tests), `npx tsc --noEmit` en `npm run build` — alle vier groen. Beide nieuwe
+routes staan in de build-output. Niet gedeployed.
+
 ### Opgeleverd — de melding bij een wachtend lid, en claimen vanuit de Zwift-vraag
 
 **2026-08-25, working tree op `e25a5f5`.** Migratie `0137`.

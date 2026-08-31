@@ -130,6 +130,12 @@ export async function loadScheduleEvents(
   profileId: string,
   from: string,
   to: string,
+  /**
+   * Standaard 50, want een schemaperiode van een paar maanden komt daar niet
+   * overheen. De jaarplanning kijkt twaalf maanden vooruit en heeft er meer
+   * nodig; die geeft daarom zelf een ruimere waarde mee.
+   */
+  limit = 50,
 ): Promise<ScheduleEvent[]> {
   const { data: events } = await admin
     .from("events")
@@ -137,7 +143,7 @@ export async function loadScheduleEvents(
     .gte("start_at", `${from}T00:00:00`)
     .lte("start_at", `${to}T23:59:59`)
     .order("start_at", { ascending: true })
-    .limit(50);
+    .limit(limit);
   if (!events || events.length === 0) return [];
 
   const ids = events.map((event) => event.id as string);

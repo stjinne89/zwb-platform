@@ -35,6 +35,7 @@ import {
   type FtpTestType,
 } from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
+import { seasonPlanForAi } from "@/lib/training/season-data";
 import { rootIdOf } from "@/lib/training/plan-tree";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
@@ -287,12 +288,17 @@ async function buildTrainingInput(
   // klaar voor events waar het lid niet eens heen ging. De beschikbaarheid gaat
   // over het hele venster: één week meegeven liet de planner elke latere week op
   // de minuten van vandaag plannen.
-  const [availability, loadedFixedWorkouts, upcomingEvents, ftpTests] = await Promise.all([
-    availabilityForAi(admin, athleteId, today, horizonKey),
-    loadFixedWorkouts(admin, athleteId, today, horizonKey).catch(() => []),
-    committedEventsForAi(admin, athleteId, today, horizonKey),
-    loadFtpTests(admin, athleteId, 1).catch(() => []),
-  ]);
+  const [availability, loadedFixedWorkouts, upcomingEvents, ftpTests, seasonPlan] =
+    await Promise.all([
+      availabilityForAi(admin, athleteId, today, horizonKey),
+      loadFixedWorkouts(admin, athleteId, today, horizonKey).catch(() => []),
+      committedEventsForAi(admin, athleteId, today, horizonKey),
+      loadFtpTests(admin, athleteId, 1).catch(() => []),
+      // De jaarplanning: mikpunten en rustperiodes. Zonder dit plant de AI een
+      // opbouwblok dwars door een vakantie heen en tapert hij naar de doeldatum
+      // in plaats van naar de piek die het lid zelf heeft aangewezen.
+      seasonPlanForAi(admin, athleteId, today, horizonKey).catch(() => null),
+    ]);
 
   const fixedWorkouts: NonNullable<TrainingAiInput["fixedWorkouts"]> = [...loadedFixedWorkouts];
   if (plannedFtpTest) {
@@ -344,6 +350,7 @@ async function buildTrainingInput(
     upcomingEvents,
     compliance,
     availability,
+    seasonPlan,
     fixedWorkouts,
   };
 }

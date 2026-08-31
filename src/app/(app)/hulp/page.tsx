@@ -779,7 +779,9 @@ export default function HelpPage() {
                 doorlopende doelen. Er komt geen taper: je bouwt door tot het
                 eind, want die laatste weken zijn juist de weken waar je conditie
                 van omhoog gaat. De targetdatum is dan het einde van de
-                planperiode, geen wedstrijddag.
+                planperiode, geen wedstrijddag. Zet je in je jaarplan wél een
+                A-doel in die periode, dan wint dat: daar wordt naartoe
+                afgebouwd.
               </li>
               <li>
                 <strong className="text-foreground">ZRL of Ladder:</strong> een
@@ -788,6 +790,52 @@ export default function HelpPage() {
               </li>
             </ul>
           </article>
+          <article
+            id="jaarplan"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Jaarplan: mikpunten en rustperiodes</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je schema werkt naar één datum toe. Het jaarplan is de laag
+              daarboven: het jaar eromheen. Wat je erin zet stuurt het schema.
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">A-doel:</strong> je piekdag.
+                De laatste een tot twee weken gaat het volume omlaag en de
+                scherpte blijft. Eén A-doel tegelijk: naar twee pieken binnen
+                drie weken toewerken kan niet.
+              </li>
+              <li>
+                <strong className="text-foreground">B-doel:</strong> belangrijk,
+                maar je bouwt er gewoon doorheen. Alleen de dag ervóór blijft
+                licht.
+              </li>
+              <li>
+                <strong className="text-foreground">C-doel:</strong> je doet mee,
+                je opbouw verandert er niet van.
+              </li>
+              <li>
+                <strong className="text-foreground">Rust:</strong> vakantie of
+                winterstop. Er wordt niets ingepland, en er begint geen
+                opbouwblok dat er doorheen loopt. Duurde het langer dan tien
+                dagen, dan begint het schema erna lager en bouwt het in twee
+                weken terug op.
+              </li>
+              <li>
+                <strong className="text-foreground">Rustig:</strong> een drukke
+                periode. Ongeveer de helft van je normale weekvolume en geen
+                zware sleutelsessies.
+              </li>
+            </ul>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Clubevents waar je ja of misschien op hebt gezegd staan
+              automatisch op de tijdlijn. Alleen een ja wordt een blok in je
+              schema; misschien blijft een aantekening. Je trainer kan je
+              jaarplan bekijken maar niet wijzigen.
+            </p>
+          </article>
+
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Max. trainingsuren per week</h3>
             <p className="mt-2 text-sm text-muted-foreground">

@@ -88,6 +88,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag aanpassen ai",
   },
   {
+    title: "Jaarplan: mikpunten en rustperiodes",
+    text: "A-, B- en C-doelen, vakanties en drukke periodes, en wat ze met je schema doen.",
+    href: "/hulp#jaarplan",
+    terms:
+      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn clubevent kalender misschien",
+  },
+  {
     title: "Doeltype en de laatste weken",
     text: "Waarom een gran fondo wel een taper krijgt en basisconditie of ZRL niet.",
     href: "/hulp#doeltype",

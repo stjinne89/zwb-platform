@@ -243,7 +243,7 @@ export async function createTrainingGoal(formData: FormData) {
       return { ok: true as const };
     }
 
-    const { error } = await admin.from("training_goals").insert({
+    const { data: created, error } = await admin.from("training_goals").insert({
       profile_id: user.id,
       title,
       goal_type: goalType,
@@ -255,8 +255,22 @@ export async function createTrainingGoal(formData: FormData) {
       desired_intensity: desiredIntensity,
       risk_notes: optionalString(formData.get("risk_notes")),
       created_by: user.id,
-    });
+    })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+
+    // Komt dit doel uit een mikpunt op de jaarplanning, leg de koppeling dan
+    // vast. Zonder die verwijzing blijft de tijdlijn zeggen dat het A-doel nog
+    // geen schema heeft, ook nadat het lid er net een doel voor heeft gemaakt.
+    const seasonTargetId = optionalString(formData.get("season_target_id"));
+    if (seasonTargetId && created?.id) {
+      await admin
+        .from("training_season_targets")
+        .update({ goal_id: created.id, updated_by: user.id })
+        .eq("id", seasonTargetId)
+        .eq("profile_id", user.id);
+    }
 
     // De standaardweek alleen aanvullen, niet overschrijven: wie zijn
     // beschikbaarheid al op de schemapagina heeft ingesteld, houdt die.

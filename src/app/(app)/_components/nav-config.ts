@@ -35,6 +35,7 @@ export type NavNode = NavLeaf | NavGroup;
 export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden", label: "Vandaag" },
   { type: "link", href: "/zwbeter-worden/schema", label: "Schema" },
+  { type: "link", href: "/zwbeter-worden/jaarplan", label: "Jaarplan" },
   { type: "link", href: "/zwbeter-worden/belasting", label: "Belasting" },
   { type: "link", href: "/zwbeter-worden/logboek", label: "Logboek", onlyForSex: "vrouw" },
   { type: "link", href: "/zwbeter-worden/vermogen", label: "Vermogen" },
@@ -54,6 +55,7 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/trainer", label: "Overzicht" },
   { type: "link", href: "/zwbeter-worden/trainer/beoordelen", label: "Beoordelen" },
   { type: "link", href: "/zwbeter-worden/trainer/schema", label: "Schema" },
+  { type: "link", href: "/zwbeter-worden/trainer/jaarplan", label: "Jaarplan" },
   { type: "link", href: "/zwbeter-worden/trainer/vermogen", label: "Vermogen" },
   { type: "link", href: "/zwbeter-worden/trainer/doelen", label: "Doelen" },
 ];

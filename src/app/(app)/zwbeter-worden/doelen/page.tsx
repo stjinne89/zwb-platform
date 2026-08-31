@@ -4,8 +4,13 @@ import { ConnectIntervalsForm } from "../_components/connect-form";
 import { DisconnectIntervalsButton } from "../_components/disconnect-button";
 import { TrainerAccessPanel } from "../_components/trainer-access-panel";
 import { CollapsibleCard } from "../_components/ui";
-import { formAction, formatDayMonth, GOAL_LABELS } from "../_components/format";
-import type { AssignmentRow, GoalRow, ProfileRow } from "../_components/types";
+import { formAction, formatDayMonth, GOAL_LABELS, paramString } from "../_components/format";
+import type {
+  AssignmentRow,
+  GoalRow,
+  ProfileRow,
+  SearchParamsProp,
+} from "../_components/types";
 import { loadConnection, requireViewer } from "../_data";
 import { GoalAvailability } from "./_components/goal-availability";
 import { SaveGoalButton } from "./_components/save-goal-button";
@@ -14,8 +19,22 @@ import { loadAvailability } from "@/lib/training/availability";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function ZwbeterWordenGoalsPage() {
+export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchParamsProp) {
   const viewer = await requireViewer();
+
+  // Komt het lid hier vanaf een mikpunt op de jaarplanning ("Maak hier een doel
+  // van"), dan begint het formulier met de titel en de datum van dat mikpunt en
+  // wordt de koppeling na opslaan vastgelegd.
+  const params = (await searchParams) ?? {};
+  const seasonTargetId = paramString(params.mikpunt);
+  const { data: seasonTarget } = seasonTargetId
+    ? await viewer.supabase
+        .from("training_season_targets")
+        .select("id, title, target_date")
+        .eq("id", seasonTargetId)
+        .eq("profile_id", viewer.user.id)
+        .maybeSingle()
+    : { data: null };
 
   const [conn, { data: goalRows }, { data: assignmentRows }, { data: trainerRows }] =
     await Promise.all([
@@ -96,11 +115,15 @@ export default async function ZwbeterWordenGoalsPage() {
             Nieuw trainingsdoel
           </h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {seasonTarget ? (
+              <input type="hidden" name="season_target_id" value={seasonTarget.id as string} />
+            ) : null}
             <label className="sm:col-span-2 text-sm">
               Titel
               <input
                 name="title"
                 required
+                defaultValue={(seasonTarget?.title as string | undefined) ?? undefined}
                 placeholder="ZRL Round 5 pieken"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               />
@@ -123,6 +146,9 @@ export default async function ZwbeterWordenGoalsPage() {
               <input
                 name="target_date"
                 type="date"
+                defaultValue={
+                  seasonTarget ? String(seasonTarget.target_date).slice(0, 10) : undefined
+                }
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               />
             </label>

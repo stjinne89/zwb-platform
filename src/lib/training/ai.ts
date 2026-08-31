@@ -141,6 +141,20 @@ export type TrainingAiInput = {
     default: Record<string, number> | null;
     weeks: Array<{ weekStart: string; minutesByDay: Record<string, number> }>;
   } | null;
+  /**
+   * De jaarplanning van het lid, beperkt tot deze planperiode: de mikpunten met
+   * hun prioriteit en de periodes waarin het niet of minder traint.
+   *
+   * Dit is de laag boven het doel. `goal.targetDate` zegt waar dit schema
+   * eindigt; `seasonPlan` zegt hoe het jaar eromheen loopt — dat er in juli twee
+   * weken vakantie zit, en dat de piek in mei ligt en niet in maart.
+   */
+  seasonPlan?: {
+    targets: Array<{ title: string; date: string; priority: "a" | "b" | "c" }>;
+    periods: Array<{ title: string; from: string; to: string; kind: "rust" | "rustig" }>;
+    /** Het eerste A- of B-mikpunt ná het einde van deze planperiode. */
+    nextTargetAfterPlan: { title: string; date: string; priority: "a" | "b" } | null;
+  } | null;
   /** Zelf ingeplande ritten, toegezegde clubevents en tests: die liggen vast. */
   fixedWorkouts?: Array<{
     date: string;
