@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
@@ -92,6 +93,27 @@ function numOrNull(value: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+// Het opgeslagen pacingplan van dit lid, vertaald naar w/kg per routesegment.
+// Daarmee rekent het rit-weer de doorkomsttijden op het plan door in plaats van
+// op één schuifregelaar. Alleen voor gpx-routes: die delen hetzelfde
+// segmentraster (sampleRoute) met het pacingmodel.
+async function readPlanWkg(
+  eventId: string,
+  userId: string,
+  segmentEndKmList: number[],
+): Promise<number[] | null> {
+  try {
+    const { readOwnPlan } = await import("@/lib/pacing/session");
+    const { wkgBySegment } = await import("@/lib/pacing/plan");
+    const plan = await readOwnPlan(eventId, userId);
+    if (!plan?.segments?.length) return null;
+    return wkgBySegment(plan.segments, segmentEndKmList);
+  } catch {
+    // Nooit blokkerend voor de eventpagina.
+    return null;
+  }
+}
+
 // Power-profiel van het lid voor de standaard duur-w/kg: rider_power_profiles
 // (uit intervals.icu) met fallback op het handmatige profiel. FTP ontbreekt? Dan
 // uit 20-min-vermogen (~95%). Mirrort de aanpak van /training/vermogen.
@@ -151,7 +173,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_route_id, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
     )
     .eq("id", id)
     .single();
@@ -310,6 +332,10 @@ export default async function EventDetailPage({
   }));
 
   const isCreator = user?.id === event.created_by;
+  // Een pacingplan kan zodra er een parcours is: een geüploade GPX of een
+  // gekoppelde Zwift-route.
+  const hasRoute = Boolean(event.gpx_path || event.zwift_route_id);
+
   const canManage = access.has("events.manage_all") || isCreator;
 
   // Map photo rows → public URLs voor de gallery.
@@ -578,6 +604,7 @@ export default async function EventDetailPage({
   let routeForecast: RoutePointForecast[] | null = null;
   let defaultWkg = 2.5;
   let riderWeightKg = 75;
+  let planWkg: number[] | null = null;
   if (sampledRoute && sampledRoute.samples.length > 0) {
     routeForecast = await fetchRouteForecast(
       sampledRoute.samples,
@@ -588,6 +615,14 @@ export default async function EventDetailPage({
       const endurance = enduranceWkg(power.curvePoints, power.ftpWatts, power.weightKg);
       defaultWkg = endurance.wkg;
       riderWeightKg = endurance.weightKg;
+
+      const endKms: number[] = [];
+      let cum = 0;
+      for (const segment of sampledRoute.segments) {
+        cum += segment.distanceM / 1000;
+        endKms.push(cum);
+      }
+      planWkg = await readPlanWkg(event.id, user.id, endKms);
     }
   }
 
@@ -711,6 +746,25 @@ export default async function EventDetailPage({
         </section>
       )}
 
+      {hasRoute && user && (
+        <section className="rounded-lg border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="font-semibold">Pacingplan</h2>
+              <p className="text-sm text-muted-foreground">
+                Wattverdeling over dit parcours, op jouw vermogen.
+              </p>
+            </div>
+            <Link
+              href={`/events/${event.id}/pacing`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Open pacingplan
+            </Link>
+          </div>
+        </section>
+      )}
+
       {gpxUrl &&
         (eventIsToday ? (
           <EventLiveTicker
@@ -761,6 +815,7 @@ export default async function EventDetailPage({
             startAtIso={event.start_at}
             defaultWkg={defaultWkg}
             riderWeightKg={riderWeightKg}
+            planWkg={planWkg}
           />
         ) : (
           <WindSummary forecast={windForecast} rideBearing={rideBearing} />

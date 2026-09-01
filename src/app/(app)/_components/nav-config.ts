@@ -155,6 +155,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
   },
   {
     type: "link",
+    href: "/beheer/zwift-routes",
+    label: "Zwift-routes",
+    permission: "events.manage_all",
+  },
+  {
+    type: "link",
     href: "/beheer/strava",
     label: "Strava-sync",
     permission: "community.manage",

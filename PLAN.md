@@ -2111,6 +2111,171 @@ spiegelt de databasestappen van die server actions, niet de React-kant.
 startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
 historische import, uitfaseren van de oude site.
 
+### Actief — pacingplan bij events
+
+**2026-08-31, working tree.** Migraties `0144` en `0145`. Nieuwe bestanden:
+`src/lib/events/zwift-route-streams.ts`, `src/lib/events/zwift-route.ts`,
+`src/lib/events/zwift-route-sync.ts`, `src/app/(app)/beheer/zwift-routes/`,
+`tests/unit/zwift-route-streams.test.ts`, `tests/unit/zwift-route.test.ts`,
+`docs/zwift-routeprofiel-spike.md`, de twaalf modules in `src/lib/pacing/` met
+hun tests (`pacing-cp`, `pacing-w-prime`, `pacing-durability`,
+`pacing-route-profile`, `pacing-plan`, `pacing-similarity`, `pacing-adopt`,
+`pacing-stale`, `pacing-share`), `/events/[id]/pacing` met zijn componenten en
+acties, en de twee API-routes onder `src/app/api/events/[id]/pacing/`. Gewijzigd: het
+eventformulier en zijn actions, de bewerkpagina, `external-scan.ts` (`routeId` in
+`ZwiftEventApiRow`) en de beheernavigatie.
+
+**Wat en waarom.** Een lid dat inschrijft op een event weet niet met welk vermogen
+het moet rijden. Er stond al een ruwe temposchatting in het weerblok van de
+eventpagina (`RouteWeather`: één basis-w/kg-slider plus een override per klim),
+maar die vertrekt van een generieke `FTP × 0,72`, kent de anaerobe reserve van het
+lid niet, kijkt niet naar eerdere ritten en wordt nergens bewaard. Het doel is een
+**pacingplan per lid per event**: voorstel uit routeprofiel + eigen data
+(vermogenscurve, CP/W′, vorm, vergelijkbare ritten uit het verleden mét
+verwijzing), accenten gelegd door de AI binnen door ons opgelegde grenzen, en
+daarna zelf bij te schuiven. Voor Zwift-events zonder dat het lid een .gpx uploadt.
+
+**Ronde 1 was de spike** die de hele Zwift-tak draagt. Zie
+`docs/zwift-routeprofiel-spike.md`. Vier dingen staan geverifieerd vast:
+`us-or-rly101.zwift.com/api/public/events/{id}` is zonder login bereikbaar en geeft
+`routeId`/`laps`/`distanceInMeters`; alle 320 routes in `zwift-data` (al een
+dependency) hebben dat `id`; 263 van de 279 fietsroutes hebben een
+`stravaSegmentId`; en `segmentsOnRoute` levert de klimmen en sprints van een route
+met naam en kilometrering, zodat er voor Zwift-routes géén klimdetectie nodig is.
+
+**De spike is gedraaid en geslaagd.** Alle vier de testroutes gaven zowel een
+`altitude`- als een `latlng`-stream; de afstand week maximaal 1,3 % af. De
+hoogtemeters komen structureel iets lager uit dan `zwift-data` opgeeft (−0,1 % op
+Road to Sky tot −26 % op Tempus Fugit), en dat hoort zo: smoothing telt ruis niet
+als hoogtewinst. Op een vlakke route is dat percentage misleidend — Tempus Fugit
+heeft 26 hm over 17 km, dus zeven meter is meteen 26 %. Daarom heeft de hoogtetoets
+naast de 20 %-marge nu ook een absolute ondergrens van 15 m.
+
+**Ronde 2 — routebibliotheek en eventlink.** Migraties `0144_zwift_routes.sql`
+(routebibliotheek met profiel op 25 m en vorm op 100 m) en
+`0145_event_route_link.sql` (`events.zwift_event_id`, `zwift_route_id`, `laps`).
+Nieuw: `src/lib/events/zwift-route.ts` (eventlink parsen, publiek event ophalen,
+`routeId` → route, accenten uit `segmentsOnRoute`, totalen over lead-in plus
+ronden) en `src/lib/events/zwift-route-sync.ts` (gechunkte sync, 200 ms pauze, stoppen op 429
+met een teller voor de volgende klik). Die sync begrenst zichzelf op een
+**wandklok van 7 s** in plaats van op een vast aantal routes — hetzelfde als
+`followZwbMembers`: hoeveel routes er in een Netlify-functie van 10 s passen hangt
+van de Strava-responstijd af, dus een aantal vooraf kiezen is gokken. `/beheer/zwift-routes` heeft
+nu naast de spike-knop een "Routes ophalen"-knop met statusoverzicht, en het
+eventformulier een veld "Zwift-eventlink" dat route, ronden, afstand en
+hoogtemeters invult. Een route wordt bij het ophalen alvast als rij in
+`zwift_routes` gezet, anders houdt de foreign key niet voordat de sync heeft
+gedraaid. Tests: `tests/unit/zwift-route.test.ts` (18) en
+`zwift-route-streams.test.ts` (14).
+
+**Ronde 3 — de rekenmotor.** Geen migratie, geen scherm: zeven pure modules in
+`src/lib/pacing/` met 70 tests eromheen.
+
+- `route-profile.ts` maakt van een .gpx-route en een Zwift-route hetzelfde
+  begrip: segmenten met gradiënt plus de accenten. De gpx-tak hergebruikt
+  `sampleRoute` (en daarmee exact de segmenten die het rit-weer al gebruikt); de
+  Zwift-tak rolt het profiel uit de bibliotheek uit over lead-in en ronden.
+- `cp.ts` bepaalt CP en W′ met een bron-label dat de UI toont: intervals.icu,
+  anders een regressie op de vermogenscurve (P = W′/t + CP is lineair in 1/t),
+  anders FTP, anders een clubbrede schatting. Een fit die buiten de
+  fysiologische grenzen valt wordt verworpen in plaats van getoond.
+- `w-prime.ts` rekent de anaerobe balans door met Skiba's differentiële model,
+  inclusief de tijdconstante die van het verschil met CP afhangt — met een vaste
+  τ zou een renner die net onder CP rijdt even snel herstellen als een die
+  stilstaat.
+- `durability.ts` laat CP meezakken met het verzette werk, gefit op de
+  vermoeidheidscurves die al in `rider_power_profiles.curve_points_fatigue`
+  staan. Begrensd op 25 % afname: een curve op een hoge kJ-drempel steunt vaak
+  op een handvol ritten. Zonder die curves gebeurt er niets.
+- `plan.ts` vertaalt tussen planstukken en segmentraster, begrenst elk stuk op
+  `CP + W′/t` (of lager, waar de gemeten curve dat zegt) en schaalt de pieken
+  terug tot de reserve de finish haalt.
+- `baseline.ts` is het deterministische voorstel: basisintensiteit naar duur,
+  opslag per klim naar lengte, steilte en rennerstype. Dat is tegelijk het
+  vertrekpunt voor de AI en de terugval als die faalt.
+- `similarity.ts` scoort eerdere ritten op afstand, hoogtemeters per kilometer,
+  langste klim en rijduur, en levert de reden in gewone taal mee.
+
+**Twee dingen gingen onderweg mis en zijn gerepareerd.** Bij het aaneenschakelen
+van ronden werd het verkeerde punt weggelaten, waardoor per rondeovergang ruim
+een hoogtemeter verdween — bij tien ronden telt dat op. En een stuk route dat het
+plan niet noemde kreeg de mediaan van de geplande doelen; dat maakte van een gat
+in het plan stilzwijgend een inspanning die de W′-balans leegtrok. Nu geldt het
+laagste doel uit het plan. Beide staan vast in een test.
+
+**Ronde 4 — AI, opslag en het scherm.** Migratie `0146_event_pacing_plans.sql`
+(`event_pacing_plans` + `event_pacing_generations`). Nieuwe env-variabele
+`OPENAI_PACING_MODEL`, met terugval op `OPENAI_TRAINING_MODEL`.
+
+- `ai.ts` + `prompt.ts` volgen `training/ai.ts`: Responses API, strict
+  `json_schema`, background met polling. De prompt legt de rolverdeling vast —
+  het model kiest wáár de accenten liggen en waarom, wij rekenen door of het kan.
+- `adopt.ts` is de reparatielaag daartussen. Het schema garandeert de vórm van
+  het antwoord, niet dat de stukken de route dekken: een model schrijft "km 8 tot
+  10" en daarna "km 9 tot 14", of vergeet de laatste vijf kilometer. Overlap
+  wordt ingekort, gaten worden gevuld met het láágste doel van de buren, en pas
+  daarna gaan de stukken door `clampPlan` en `rebalancePlan`.
+- `route-loader.ts` haalt het parcours op uit beide bronnen. De gpx-tak gebruikt
+  de server-veilige regex-parser (`parseGpx` vereist DOMParser) en respecteert de
+  handmatige `event_climbs`-overrides, net als de routesectie op de eventpagina.
+- `draft.ts` bouwt de modelcontext: parcours, renner, vorm, vergelijkbare ritten,
+  én het doorgerekende basisvoorstel. Dat laatste is er met opzet — een model dat
+  met een leeg vel begint verzint een verdeling, een model dat een doorgerekend
+  voorstel ziet verbetert er een.
+- `store.ts` schrijft de generatie-rij vóór de call vertrekt en slaat idempotent
+  op. `staleness.ts` en `share.ts` zijn puur en getest.
+- Scherm: `/events/[id]/pacing` met hoogteprofiel, accentbanden, W′-balanslijn,
+  een SVG-routevorm voor Zwift (geen Leaflet: voor Watopia bestaat geen
+  kaartlaag), een schuifregelaar per stuk die **clientside** herrekent, de
+  vergelijkbare ritten, en de gedeelde plannen van clubgenoten.
+
+**Delen.** Opt-in per plan. Wat naar buiten gaat staat expliciet in
+`sharedPlanView`; de persoonlijke notities gaan nooit mee. Andermans plan
+overnemen rekent de doelen om naar jouw CP: zijn 4,2 w/kg op de Muur zegt niets
+over jou, maar "108 % van zijn CP" wel.
+
+**Verversen.** Twee knoppen bij een verouderd plan: herberekenen met je huidige
+gegevens (gratis, accenten blijven) of een nieuw AI-voorstel. Nooit automatisch —
+dan verandert een plan onder het lid vandaan, mogelijk vlak voor een event.
+
+**Weerblok gevoed.** `RouteWeather` krijgt de wattverdeling uit het opgeslagen
+plan mee en rekent de doorkomsttijden daarop door, met een vinkje terug naar de
+vrije schuifregelaars. Alleen voor gpx-events: die delen hetzelfde segmentraster
+(`sampleRoute`) met het pacingmodel. Een Zwift-event heeft geen weer.
+
+**Rem op de kosten:** vijf generaties per lid per uur via `rate-limit.ts`.
+
+**Bewust niet.** Geen wind- of draftingmodel in het pacingplan — `estimateRide`
+rekent windstil en Zwift-drafting is per subgroep niet betrouwbaar te modelleren;
+de AI mag het in tekst noemen, het rekenmodel niet. Geen live begeleiding tijdens
+het event. Geen Leaflet-kaart voor Zwift-routes: er bestaat geen kaartlaag voor
+Watopia, dus dat wordt een eigen SVG-vorm uit de `latlng`-stream, en niet Zwifts
+eigen route-PNG's van `cdn.zwift.com`. Geen automatische herberekening op de
+achtergrond als de FTP van een lid verandert — verouderen gebeurt zichtbaar en
+verversen alleen op de knop van het lid.
+
+**Wel besloten, tegen een eerder voorstel in:** het pacingplan gaat het weerblok
+wél voeden (de doorkomsttijden daar gaan straks op jouw plan draaien in plaats van
+op één slider), en pacingplannen zijn te delen binnen de club — opt-in per plan,
+zonder de persoonlijke notities.
+
+**Niet lokaal te verifiëren.** De migraties `0144`, `0145` en `0146` zijn **niet**
+getest — er is geen Docker of Supabase-config in deze repo, dus `supabase db reset`
+is geen optie. Evenmin getest: de OpenAI-call zelf en het scherm mét data, want
+daarvoor is een ingelogde sessie op een gemigreerde database nodig. Wat wél gedraaid is: `npm run lint`
+(0 errors), `npm run test` (692 geslaagd), `npx tsc --noEmit` en `npm run build`.
+Ook niet lokaal te draaien: de routesync zelf, want die heeft een geldige
+Strava-token nodig. Na ronde 4: `npm run test` (815 geslaagd), lint (0 errors),
+`npx tsc --noEmit` en `npm run build` schoon; `/events/[id]/pacing` en beide
+API-routes staan in de build-output en sturen oningelogd door naar `/login`.
+Ontbreekt migratie 0146, dan meldt de pagina dat met zoveel woorden in plaats van
+om te vallen.
+
+**Let op bij het uitrollen.** `0144` en `0145` moeten vóór deze code live staan.
+`createEvent` schrijft `zwift_event_id`, `zwift_route_id` en `laps` altijd mee, dus
+op een database zonder die kolommen breekt het aanmaken van élk event — niet alleen
+van Zwift-events. De migraties en de code horen in dezelfde uitrol.
+
 ### 0. Documenthygiëne en release-basis
 
 **Doel:** zorgen dat nieuwe rondes niet opnieuw door elkaar gaan lopen.

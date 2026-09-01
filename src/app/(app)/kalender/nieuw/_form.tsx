@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxSummary } from "@/lib/gpx";
-import { createEvent, updateEvent } from "./actions";
+import {
+  createEvent,
+  lookupZwiftEvent,
+  updateEvent,
+  type ZwiftLookupResult,
+} from "./actions";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPES } from "@/lib/event-types";
 
@@ -28,7 +33,12 @@ export type EventInitial = {
   gpx_path: string | null;
   distance_km: number | string | null;
   elevation_m: number | string | null;
+  zwift_event_id?: number | string | null;
+  zwift_route_id?: number | string | null;
+  laps?: number | string | null;
 };
+
+type ZwiftLookupOk = Extract<ZwiftLookupResult, { ok: true }>;
 
 /** Publieke URL van een event-photos-pad (bucket is public). */
 function coverPublicUrl(path: string | null): string | null {
@@ -68,8 +78,26 @@ export function EventForm({
   );
   const [removeExistingCover, setRemoveExistingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [zwiftLink, setZwiftLink] = useState("");
+  const [zwift, setZwift] = useState<ZwiftLookupOk | null>(null);
+  const [zwiftError, setZwiftError] = useState<string | null>(null);
+  const [zwiftPending, startZwiftLookup] = useTransition();
 
   const hasExistingGpx = Boolean(initial?.gpx_path);
+  const hasExistingZwift = Boolean(initial?.zwift_event_id);
+
+  function handleZwiftLookup() {
+    setZwiftError(null);
+    startZwiftLookup(async () => {
+      const result = await lookupZwiftEvent(zwiftLink);
+      if (!result.ok) {
+        setZwift(null);
+        setZwiftError(result.error);
+        return;
+      }
+      setZwift(result);
+    });
+  }
 
   function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -152,6 +180,22 @@ export function EventForm({
         gpx_path = null;
       }
 
+      // Zwift-event opgehaald: route, ronden en afmetingen komen daarvandaan.
+      // Een geüploade GPX gaat wel voor — die is specifieker dan lead-in plus
+      // n ronden van een standaardroute.
+      let zwift_event_id: number | null | undefined = undefined;
+      let zwift_route_id: number | null | undefined = undefined;
+      let laps: number | null | undefined = undefined;
+      if (zwift) {
+        zwift_event_id = zwift.zwift_event_id;
+        zwift_route_id = zwift.zwift_route_id;
+        laps = zwift.laps;
+        if (!gpxFile) {
+          distance_km = zwift.distance_km;
+          elevation_m = zwift.elevation_m;
+        }
+      }
+
       // Cover-afbeelding: undefined = niet wijzigen, null = verwijderen.
       let cover_image_path: string | null | undefined = undefined;
       if (coverFile) {
@@ -188,7 +232,10 @@ export function EventForm({
           : null,
         location: String(formData.get("location") ?? "") || null,
         description: String(formData.get("description") ?? "") || null,
-        external_url: String(formData.get("external_url") ?? "") || null,
+        external_url:
+          String(formData.get("external_url") ?? "") ||
+          zwift?.external_url ||
+          null,
         live_timing_url:
           String(formData.get("live_timing_url") ?? "") || null,
         results_url: String(formData.get("results_url") ?? "") || null,
@@ -199,6 +246,9 @@ export function EventForm({
         elevation_m,
         start_lat,
         start_lon,
+        zwift_event_id,
+        zwift_route_id,
+        laps,
       };
 
       const res = isEdit
@@ -372,6 +422,67 @@ export function EventForm({
           defaultValue={initial?.results_url ?? ""}
           className={FIELD_CLASS}
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Zwift-eventlink (optioneel)
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            inputMode="url"
+            value={zwiftLink}
+            onChange={(e) => setZwiftLink(e.target.value)}
+            placeholder="https://www.zwift.com/events/view/…"
+            className={FIELD_CLASS}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleZwiftLookup}
+            disabled={zwiftPending || !zwiftLink.trim()}
+          >
+            {zwiftPending ? "Ophalen..." : "Ophalen"}
+          </Button>
+        </div>
+
+        {hasExistingZwift && !zwift && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Gekoppeld aan Zwift-event {String(initial?.zwift_event_id)}
+            {initial?.laps ? ` · ${initial.laps} ronde(n)` : ""}.
+          </p>
+        )}
+
+        {zwift && (
+          <div className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">{zwift.title}</p>
+            <p className="text-muted-foreground">
+              {zwift.route_name ?? "route onbekend"}
+              {zwift.world ? ` · ${zwift.world}` : ""}
+              {zwift.laps ? ` · ${zwift.laps} ronde(n)` : ""}
+              {zwift.distance_km != null
+                ? ` · ${zwift.distance_km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`
+                : ""}
+              {zwift.elevation_m != null ? ` · ${zwift.elevation_m} hm` : ""}
+            </p>
+            {zwift.accents > 0 && (
+              <p className="text-muted-foreground">
+                {zwift.accents} klim/sprintsegment(en) op de route.
+              </p>
+            )}
+            {zwift.route_name === null && (
+              <p className="mt-1 text-destructive">Route niet herkend.</p>
+            )}
+            {zwift.profile_missing && zwift.route_name !== null && (
+              <p className="mt-1 text-amber-600 dark:text-amber-400">
+                Profiel nog niet opgehaald.
+              </p>
+            )}
+          </div>
+        )}
+
+        {zwiftError && <p className="mt-2 text-sm text-destructive">{zwiftError}</p>}
       </div>
 
       <div>

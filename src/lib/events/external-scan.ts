@@ -27,6 +27,10 @@ export type ZwiftEventApiRow = {
   distanceInMeters?: number;
   durationInSeconds?: number;
   laps?: number;
+  /** Verwijst naar een route in de `zwift-data`-package (`routes[].id`). */
+  routeId?: number | string | null;
+  worldId?: number | string | null;
+  mapId?: number | string | null;
   sport?: string;
   type?: string;
   eventType?: string;

@@ -3,8 +3,14 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EVENT_TYPE_VALUES } from "@/lib/event-types";
+import {
+  eventRouteTotals,
+  fetchZwiftPublicEvent,
+  parseZwiftEventUrl,
+} from "@/lib/events/zwift-route";
 
 type EventInput = {
   title: string;
@@ -24,6 +30,11 @@ type EventInput = {
   results_url?: string | null;
   cover_image_path?: string | null;
   team_id?: string | null;
+  // Zwift-koppeling: gevuld door "Zwift-eventlink ophalen" in het formulier.
+  // undefined = niet wijzigen, null = losmaken.
+  zwift_event_id?: number | null;
+  zwift_route_id?: number | null;
+  laps?: number | null;
 };
 
 function validate(input: EventInput) {
@@ -73,6 +84,9 @@ export async function createEvent(input: EventInput) {
       results_url: input.results_url?.trim() || null,
       cover_image_path: input.cover_image_path ?? null,
       team_id: input.team_id || null,
+      zwift_event_id: input.zwift_event_id ?? null,
+      zwift_route_id: input.zwift_route_id ?? null,
+      laps: input.laps ?? null,
       created_by: access.user.id,
     })
     .select("id")
@@ -152,6 +166,11 @@ export async function updateEvent(id: string, input: EventInput) {
   if (input.elevation_m !== undefined) update.elevation_m = input.elevation_m;
   if (input.start_lat !== undefined) update.start_lat = input.start_lat;
   if (input.start_lon !== undefined) update.start_lon = input.start_lon;
+  if (input.zwift_event_id !== undefined)
+    update.zwift_event_id = input.zwift_event_id;
+  if (input.zwift_route_id !== undefined)
+    update.zwift_route_id = input.zwift_route_id;
+  if (input.laps !== undefined) update.laps = input.laps;
 
   const { error } = await supabase.from("events").update(update).eq("id", id);
   if (error) return { ok: false as const, error: error.message };
@@ -220,4 +239,90 @@ export async function deleteEvent(id: string) {
   revalidatePath("/live");
   revalidatePath("/dashboard");
   redirect("/kalender");
+}
+
+export type ZwiftLookupResult =
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      zwift_event_id: number;
+      zwift_route_id: number | null;
+      laps: number | null;
+      title: string;
+      external_url: string;
+      route_name: string | null;
+      world: string | null;
+      distance_km: number | null;
+      elevation_m: number | null;
+      accents: number;
+      /** Het profiel van deze route staat nog niet in de bibliotheek. */
+      profile_missing: boolean;
+    };
+
+/**
+ * Haalt een Zwift-event op aan de hand van de link die de beheerder plakt, en
+ * registreert de route meteen in `zwift_routes` — anders zou de foreign key van
+ * `events.zwift_route_id` niet houden voordat de routesync heeft gedraaid. Het
+ * profiel zelf komt uit die sync (/beheer/zwift-routes); dit zet alleen de
+ * identificerende velden.
+ */
+export async function lookupZwiftEvent(link: string): Promise<ZwiftLookupResult> {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false, error: "Niet ingelogd." };
+  if (!access.has("events.create") && !access.has("events.manage_all")) {
+    return { ok: false, error: "Geen recht om events te bewerken." };
+  }
+
+  const eventId = parseZwiftEventUrl(link);
+  if (!eventId) {
+    return { ok: false, error: "Geen geldige Zwift-eventlink of event-id." };
+  }
+
+  const result = await fetchZwiftPublicEvent(eventId);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const { event } = result;
+  const route = event.route;
+  const totals = eventRouteTotals(event);
+
+  let profileMissing = true;
+  if (route) {
+    const admin = createAdminClient();
+    // Alleen de identificatie; profile/shape/synced_at blijven aan de sync.
+    const { error } = await admin.from("zwift_routes").upsert(
+      {
+        route_id: route.routeId,
+        slug: route.slug,
+        name: route.name,
+        world: route.world,
+        strava_segment_id: route.stravaSegmentId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "route_id", ignoreDuplicates: false },
+    );
+    if (error) return { ok: false, error: error.message };
+
+    const { data: stored } = await admin
+      .from("zwift_routes")
+      .select("synced_at")
+      .eq("route_id", route.routeId)
+      .maybeSingle();
+    profileMissing = !stored?.synced_at;
+  }
+
+  return {
+    ok: true,
+    zwift_event_id: event.eventId,
+    zwift_route_id: route?.routeId ?? null,
+    laps: totals?.laps ?? event.laps,
+    title: event.title,
+    external_url: event.externalUrl,
+    route_name: route?.name ?? null,
+    world: route?.world ?? null,
+    distance_km: totals?.distanceKm ?? event.distanceKm,
+    elevation_m: totals?.elevationM ?? null,
+    accents: route?.accents.length ?? 0,
+    profile_missing: profileMissing,
+  };
 }

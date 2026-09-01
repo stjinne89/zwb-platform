@@ -56,6 +56,7 @@ export function RouteWeather({
   startAtIso,
   defaultWkg,
   riderWeightKg,
+  planWkg = null,
   equipmentKg = DEFAULT_EQUIPMENT_KG,
 }: {
   forecast: WindForecast;
@@ -67,6 +68,12 @@ export function RouteWeather({
   startAtIso: string;
   defaultWkg: number;
   riderWeightKg: number;
+  /**
+   * W/kg per segment uit het opgeslagen pacingplan van dit lid, of null. Is het
+   * er, dan rekenen we de doorkomsttijden — en dus het weer per punt — op jouw
+   * plan door in plaats van op één schuifregelaar.
+   */
+  planWkg?: number[] | null;
   equipmentKg?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -74,6 +81,8 @@ export function RouteWeather({
   const [baseWkg, setBaseWkg] = useState(defaultWkg);
   // Alleen expliciet bijgestelde klimmen; de rest volgt de basis.
   const [climbWkg, setClimbWkg] = useState<Record<number, number>>({});
+  const hasPlan = Boolean(planWkg && planWkg.length === segments.length);
+  const [usePlan, setUsePlan] = useState(hasPlan);
 
   const wkgForClimb = (index: number) => climbWkg[index] ?? baseWkg;
 
@@ -88,18 +97,22 @@ export function RouteWeather({
   }, [segments]);
 
   const estimate = useMemo(() => {
-    const modelSegments: RouteSegment[] = segments.map((s) => ({
+    const modelSegments: RouteSegment[] = segments.map((s, index) => ({
       distanceM: s.distanceM,
       gradient: s.gradient,
       watts:
-        (s.climbIndex === null ? baseWkg : wkgForClimb(s.climbIndex)) * riderWeightKg,
+        (usePlan && planWkg
+          ? planWkg[index]
+          : s.climbIndex === null
+            ? baseWkg
+            : wkgForClimb(s.climbIndex)) * riderWeightKg,
     }));
     return estimateRide({
       segments: modelSegments,
       totalMassKg: riderWeightKg + equipmentKg,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segments, baseWkg, climbWkg, riderWeightKg, equipmentKg]);
+  }, [segments, baseWkg, climbWkg, riderWeightKg, equipmentKg, usePlan, planWkg]);
 
   const startAt = useMemo(() => new Date(startAtIso), [startAtIso]);
 
@@ -143,7 +156,19 @@ export function RouteWeather({
             </button>
           </div>
 
-          <div className="space-y-3">
+          {hasPlan && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={usePlan}
+                onChange={(e) => setUsePlan(e.target.checked)}
+                className="size-4 accent-primary"
+              />
+              Reken met mijn pacingplan
+            </label>
+          )}
+
+          <div className={`space-y-3 ${usePlan ? "opacity-50" : ""}`}>
             <label className="block text-sm">
               <span className="flex items-center justify-between">
                 <span className="font-medium">Tempo (basis)</span>
@@ -155,6 +180,7 @@ export function RouteWeather({
                 max={8}
                 step={0.1}
                 value={baseWkg}
+                disabled={usePlan}
                 onChange={(e) => setBaseWkg(Number(e.target.value))}
                 className="mt-1 w-full accent-primary"
               />
@@ -177,6 +203,7 @@ export function RouteWeather({
                   max={8}
                   step={0.1}
                   value={wkgForClimb(climb.index)}
+                  disabled={usePlan}
                   onChange={(e) =>
                     setClimbWkg((prev) => ({ ...prev, [climb.index]: Number(e.target.value) }))
                   }
