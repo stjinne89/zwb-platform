@@ -2394,6 +2394,38 @@ heet "De Alpe (2/3)" — dat is precies waar dosering over gaat.
 **Niet veranderd:** de tolerantie op de hoogte. Die 20 % plus 15 m absoluut blijft
 staan; het probleem zat niet daar.
 
+**Ronde 6 — wat de dertig overgebleven meldingen bleken te zijn.** Migratie `0147`.
+
+Van de dertig routes die na een volledige verversing bleven staan, droegen er
+**zesentwintig nog de oude meldingtekst** uit ronde 4. Die rijen waren dus nooit
+opnieuw opgehaald, en dat legde een bug bloot: bij `refreshAll` stond `todo` in
+vaste volgorde, dus elke klik op "Alles opnieuw" herhaalde dezelfde eerste
+vijftien routes en kwam de sweep nooit verder. De lijst wordt nu gesorteerd op
+`synced_at` — nooit-opgehaald bovenaan, daarna de langst niet-ververste — zodat
+herhaald klikken vanzelf door de bibliotheek loopt. De eigenschap ligt vast in
+`tests/unit/zwift-route-sync.test.ts`. De pagina toont het oudste opgehaalde
+profiel, zodat te zien is dát een sweep opschiet.
+
+**Echt kapot zijn er drie:** Lutscher (+76,8 %), Lutscher CCW (+62,7 %) en
+Southern Coast Cruise (+11,5 %). Daar wijst `zwift-data` naar een Strava-segment
+dat een andere afstand beslaat dan de route. Een vierde, Innsbruckring, verwijst
+naar `innsbruck-uci-lap` (8,8 km tegen 23,65 km) — ook een foute koppeling bij de
+bron. Voor die routes blijft weigeren het juiste antwoord; een event erop heeft
+een GPX nodig.
+
+**Open vraag: de hoogtemeters.** Op rollende routes zit er structureel zo'n 35 %
+tussen ons profiel en `zwift-data` (Bon Voyage 83 om 132, Douce France 78 om 133,
+Three Musketeers 122 om 195), terwijl een lange aaneengesloten klim exact klopt
+(Road to Sky 1043 om 1044). Dat past bij het vermoeden dat `zwift-data` de ruwe
+optelsom overneemt en wij eerst smoothen over 80 m — maar 35 % is te veel om op
+een vermoeden te laten staan. Migratie `0147` bewaart daarom de **ongesmoothde**
+som ernaast, zodat in beheer af te lezen is welke van de twee waarden ons
+smoothing-venster wegneemt. Valt de ruwe som samen met `zwift-data`, dan is het
+een meetconventie en klopt onze waarde voor pacing. Zit hij daar ook onder, dan
+staat het venster te ruim en gooien we echt klimwerk weg. **Nog te beslissen na
+de volgende verversing** — het pacingmodel rekent met de gradiënten uit het
+gesmoothde profiel, dus dit raakt de doorrekening, niet alleen de weergave.
+
 **Bewust niet.** Geen wind- of draftingmodel in het pacingplan — `estimateRide`
 rekent windstil en Zwift-drafting is per subgroep niet betrouwbaar te modelleren;
 de AI mag het in tekst noemen, het rekenmodel niet. Geen live begeleiding tijdens
@@ -2408,13 +2440,13 @@ wél voeden (de doorkomsttijden daar gaan straks op jouw plan draaien in plaats 
 op één slider), en pacingplannen zijn te delen binnen de club — opt-in per plan,
 zonder de persoonlijke notities.
 
-**Niet lokaal te verifiëren.** De migraties `0144`, `0145` en `0146` zijn **niet**
+**Niet lokaal te verifiëren.** De migraties `0144` t/m `0147` zijn **niet**
 getest — er is geen Docker of Supabase-config in deze repo, dus `supabase db reset`
 is geen optie. Evenmin getest: de OpenAI-call zelf en het scherm mét data, want
 daarvoor is een ingelogde sessie op een gemigreerde database nodig. Wat wél gedraaid is: `npm run lint`
 (0 errors), `npm run test` (692 geslaagd), `npx tsc --noEmit` en `npm run build`.
 Ook niet lokaal te draaien: de routesync zelf, want die heeft een geldige
-Strava-token nodig. Na ronde 5: `npm run test` (830 geslaagd), lint (0 errors),
+Strava-token nodig. Na ronde 6: `npm run test` (834 geslaagd), lint (0 errors),
 `npx tsc --noEmit` en `npm run build` schoon; `/events/[id]/pacing` en beide
 API-routes staan in de build-output en sturen oningelogd door naar `/login`.
 Ontbreekt migratie 0146, dan meldt de pagina dat met zoveel woorden in plaats van

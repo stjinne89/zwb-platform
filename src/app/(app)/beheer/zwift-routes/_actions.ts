@@ -164,11 +164,17 @@ export async function syncRouteLibrary(formData: FormData) {
   revalidatePath("/beheer/zwift-routes");
 
   const lines = [
-    `${result.synced} route(s) opgehaald, ${result.failed} mislukt, ${result.remaining} nog te doen.`,
+    `${result.synced} route(s) opgehaald, ${result.failed} mislukt` +
+      (refreshAll ? "." : `, ${result.remaining} nog te doen.`),
   ];
+  if (result.mismatched > 0) {
+    lines.push(
+      `${result.mismatched} keer dekt het Strava-segment een andere afstand dan de route.`,
+    );
+  }
   if (result.rateLimited) {
     lines.push("Gestopt op de Strava rate limit — klik over een kwartier opnieuw.");
-  } else if (result.remaining > 0) {
+  } else if (refreshAll || result.remaining > 0) {
     lines.push(
       result.budgetSpent
         ? "Gestopt op het tijdbudget. Klik nogmaals om verder te gaan."

@@ -43,6 +43,8 @@ export type RouteSyncResult = {
   rateLimited: boolean;
   /** Gestopt omdat het tijdbudget op was, niet omdat het werk klaar is. */
   budgetSpent: boolean;
+  /** Oudste tijdstempel in de bibliotheek bij aanvang; toont of een sweep opschiet. */
+  oldestSyncedAt?: string;
   notes: string[];
 };
 
@@ -82,15 +84,26 @@ export async function syncZwiftRoutes(
     .select("route_id, synced_at");
   if (error) throw new Error(error.message);
 
-  const syncedIds = new Set(
-    ((data ?? []) as StoredRow[])
-      .filter((row) => row.synced_at)
-      .map((row) => Number(row.route_id)),
+  const syncedAt = new Map(
+    ((data ?? []) as StoredRow[]).map((row) => [
+      Number(row.route_id),
+      row.synced_at,
+    ]),
   );
 
-  const todo = options.refreshAll
-    ? candidates
-    : candidates.filter((route) => !syncedIds.has(route.id!));
+  // Langst niet-ververste eerst, nooit-opgehaald bovenaan. Dat is wat een
+  // "alles opnieuw" over meerdere klikken laat opschieten: zonder deze
+  // volgorde begon elke klik weer bij dezelfde eerste vijftien routes en kwam
+  // de sweep nooit verder dan dat.
+  const todo = (
+    options.refreshAll
+      ? [...candidates]
+      : candidates.filter((route) => !syncedAt.get(route.id!))
+  ).sort((a, b) => {
+    const left = syncedAt.get(a.id!) ?? "";
+    const right = syncedAt.get(b.id!) ?? "";
+    return left.localeCompare(right);
+  });
 
   const result: RouteSyncResult = {
     synced: 0,
@@ -139,6 +152,8 @@ export async function syncZwiftRoutes(
     }
 
     const shape = shapeFromStreams(streams.streams);
+    // De ongesmoothde som, puur ter vergelijking met wat zwift-data zegt.
+    const rawElevationM = elevationGainM(streams.streams.altitude);
     const check = checkProfile({
       slug: route.slug,
       segmentId,
@@ -159,12 +174,17 @@ export async function syncZwiftRoutes(
       );
     }
 
-    await writeRow(supabase, route, profile, shape, check);
+    await writeRow(supabase, route, profile, shape, check, null, rawElevationM);
     result.synced += 1;
     result.remaining -= 1;
 
     await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
   }
+
+  // Hoe ver de sweep is: de oudste tijdstempel die nog in de bibliotheek staat.
+  // Loopt die op, dan schiet "alles opnieuw" op.
+  const oldest = [...syncedAt.values()].filter(Boolean).sort()[0];
+  if (oldest) result.oldestSyncedAt = oldest;
 
   return result;
 }
@@ -176,6 +196,7 @@ async function writeRow(
   shape: { lat: number[]; lon: number[] } | null,
   check: ProfileCheck | null,
   syncError: string | null = null,
+  rawElevationM: number | null = null,
 ) {
   const now = new Date().toISOString();
   const { error } = await supabase.from("zwift_routes").upsert(
@@ -192,6 +213,8 @@ async function writeRow(
       profile_elevation_m: profile
         ? Number(elevationGainM(profile.altitudeM).toFixed(1))
         : null,
+      profile_raw_elevation_m:
+        rawElevationM == null ? null : Number(rawElevationM.toFixed(1)),
       // Alleen een geslaagde ophaal telt als gesynchroniseerd; anders zou een
       // mislukte route de volgende ronde overgeslagen worden.
       synced_at: check ? now : null,

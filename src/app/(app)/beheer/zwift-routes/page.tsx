@@ -22,6 +22,7 @@ type RouteRow = {
   world: string | null;
   profile_distance_m: number | string | null;
   profile_elevation_m: number | string | null;
+  profile_raw_elevation_m: number | string | null;
   synced_at: string | null;
   sync_error: string | null;
 };
@@ -53,7 +54,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
   const { data, error } = await admin
     .from("zwift_routes")
     .select(
-      "route_id, slug, name, world, profile_distance_m, profile_elevation_m, synced_at, sync_error",
+      "route_id, slug, name, world, profile_distance_m, profile_elevation_m, profile_raw_elevation_m, synced_at, sync_error",
     )
     .order("slug", { ascending: true });
 
@@ -61,6 +62,10 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
   const syncable = syncableRoutes();
   const withProfile = stored.filter((row) => row.synced_at);
   const withProblem = stored.filter((row) => row.sync_error);
+  const oldestSync = stored
+    .map((row) => row.synced_at)
+    .filter((value): value is string => Boolean(value))
+    .sort()[0];
   const remaining = syncable.length - withProfile.length;
 
   // Sorteer de probleemgevallen naar boven: die vragen om een beslissing, de
@@ -93,6 +98,18 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
         <Metric label="Met profiel" value={withProfile.length} />
         <Metric label="Segment past niet" value={withProblem.length} />
       </section>
+
+      {oldestSync && (
+        <p className="text-sm text-muted-foreground">
+          Oudste opgehaalde profiel:{" "}
+          {new Date(oldestSync).toLocaleString("nl-NL", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Europe/Amsterdam",
+          })}
+          . Loopt die op bij elke klik op &quot;Alles opnieuw&quot;, dan schiet de sweep op.
+        </p>
+      )}
 
       {message && (
         <section className="rounded-lg border bg-card p-4 text-xs">
@@ -144,6 +161,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 function RouteItem({ row }: { row: RouteRow }) {
   const distanceKm = num(row.profile_distance_m);
   const elevationM = num(row.profile_elevation_m);
+  const rawElevationM = num(row.profile_raw_elevation_m);
   // Waar zwift-data de route op houdt, zodat het verschil af te lezen is in
   // plaats van dat er alleen "aandacht nodig" staat.
   const meta = zwiftRoutes.find((item) => item.id === Number(row.route_id));
@@ -162,6 +180,9 @@ function RouteItem({ row }: { row: RouteRow }) {
             zwift-data: {meta.distance} km · {meta.elevation} hm
             {distanceKm != null &&
               ` · afstandsverschil ${(((distanceKm / 1000 - meta.distance) / meta.distance) * 100).toFixed(1)}%`}
+            {/* Ruw naast gesmoothd: zo is te zien wat het smoothing-venster
+                wegneemt en of zwift-data simpelweg de ruwe som overneemt. */}
+            {rawElevationM != null && ` · ruw ${Math.round(rawElevationM)} hm`}
           </p>
         )}
         {row.sync_error && (
