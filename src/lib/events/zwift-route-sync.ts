@@ -14,6 +14,7 @@ import {
   fetchSegmentStreams,
   profileFromStreams,
   shapeFromStreams,
+  type ProfileCheck,
 } from "@/lib/events/zwift-route-streams";
 
 type SupabaseClient = {
@@ -37,6 +38,8 @@ export type RouteSyncResult = {
   failed: number;
   /** Routes die na deze ronde nog zonder profiel staan. */
   remaining: number;
+  /** Opgehaald, maar het segment dekt niet dezelfde afstand als de route. */
+  mismatched: number;
   rateLimited: boolean;
   /** Gestopt omdat het tijdbudget op was, niet omdat het werk klaar is. */
   budgetSpent: boolean;
@@ -92,6 +95,7 @@ export async function syncZwiftRoutes(
   const result: RouteSyncResult = {
     synced: 0,
     failed: 0,
+    mismatched: 0,
     remaining: todo.length,
     rateLimited: false,
     budgetSpent: false,
@@ -143,24 +147,19 @@ export async function syncZwiftRoutes(
       profile,
       shape,
     });
-    // Een afwijkend profiel wordt wél bewaard, maar met de reden erbij: in
-    // beheer is dan zichtbaar waar het scheef zit, in plaats van dat het stil
-    // in iemands pacingplan verdwijnt.
-    if (check.verdict === "afwijkend") {
+    // Alleen een afstandsverschil is een echt probleem: dan dekt het
+    // Strava-segment niet dezelfde route en zou een pacingplan over het
+    // verkeerde parcours gaan. Een hoogteverschil is vrijwel altijd een
+    // meetconventie — zwift-data neemt de ruwe optelsom van ZwiftInsider over,
+    // wij smoothen eerst en tellen ruis niet als klimwerk mee.
+    if (!check.distanceOk) {
+      result.mismatched += 1;
       result.notes.push(
-        `${route.slug}: ${check.streamKm.toFixed(1)} km / ${Math.round(check.streamElevationM)} hm ` +
-          `tegen ${route.distance} km / ${route.elevation} hm in zwift-data`,
+        `${route.slug}: segment is ${check.streamKm.toFixed(1)} km, route is ${route.distance} km`,
       );
     }
 
-    await writeRow(
-      supabase,
-      route,
-      profile,
-      shape,
-      check.verdict,
-      check.verdict === "afwijkend" ? "Wijkt af van zwift-data." : null,
-    );
+    await writeRow(supabase, route, profile, shape, check);
     result.synced += 1;
     result.remaining -= 1;
 
@@ -175,8 +174,8 @@ async function writeRow(
   route: (typeof routes)[number],
   profile: { distanceM: number[]; altitudeM: number[] } | null,
   shape: { lat: number[]; lon: number[] } | null,
-  verdict: "ok" | "afwijkend" | null,
-  syncError: string | null,
+  check: ProfileCheck | null,
+  syncError: string | null = null,
 ) {
   const now = new Date().toISOString();
   const { error } = await supabase.from("zwift_routes").upsert(
@@ -195,8 +194,12 @@ async function writeRow(
         : null,
       // Alleen een geslaagde ophaal telt als gesynchroniseerd; anders zou een
       // mislukte route de volgende ronde overgeslagen worden.
-      synced_at: verdict ? now : null,
-      sync_error: syncError,
+      synced_at: check ? now : null,
+      sync_error:
+        syncError ??
+        (check && !check.distanceOk
+          ? `Segment is ${check.streamKm.toFixed(1)} km, route is ${check.expectedKm} km.`
+          : null),
       updated_at: now,
     },
     { onConflict: "route_id" },

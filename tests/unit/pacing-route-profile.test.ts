@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectProfileAccents,
   expandAccents,
   expandLaps,
   pacingRouteFromGpx,
@@ -238,5 +239,57 @@ describe("pacingRouteFromGpx", () => {
     ]);
     expect(route.accents[0].name).toBe("Klim 1");
     expect(route.accents[0].id).toBe("klim-1");
+  });
+});
+
+describe("detectProfileAccents", () => {
+  /** Rollend profiel: drie heuveltjes van 40 m over 20 km, verder vlak. */
+  function rolling(): RouteProfile {
+    const distanceM: number[] = [];
+    const altitudeM: number[] = [];
+    for (let d = 0; d <= 20_000; d += 25) {
+      const hill =
+        (d > 4000 && d < 5000) || (d > 10_000 && d < 11_000) || (d > 16_000 && d < 17_000);
+      const previous = altitudeM.at(-1) ?? 100;
+      distanceM.push(d);
+      altitudeM.push(hill ? previous + 1 : Math.max(100, previous - 0.5));
+    }
+    return { distanceM, altitudeM };
+  }
+
+  it("vindt klimmen die zwift-data niet bij naam kent", () => {
+    const found = detectProfileAccents(rolling(), []);
+    expect(found.length).toBeGreaterThanOrEqual(3);
+    expect(found.every((accent) => accent.kind === "climb")).toBe(true);
+    expect(found.every((accent) => accent.endKm > accent.startKm)).toBe(true);
+  });
+
+  it("laat een klim met een naam met rust", () => {
+    const named = [
+      {
+        id: "de-heuvel",
+        name: "De Heuvel",
+        kind: "climb" as const,
+        startKm: 4,
+        endKm: 5,
+        avgGradient: 0.04,
+        lap: null,
+      },
+    ];
+    const found = detectProfileAccents(rolling(), named);
+    expect(found.some((accent) => accent.startKm < 5 && accent.endKm > 4)).toBe(false);
+  });
+
+  it("negeert bulten die te klein of te flauw zijn", () => {
+    const flat: RouteProfile = {
+      distanceM: Array.from({ length: 400 }, (_, i) => i * 25),
+      // Tien kilometer met 5 m verval: nergens een klim.
+      altitudeM: Array.from({ length: 400 }, (_, i) => 100 + Math.sin(i / 40) * 2.5),
+    };
+    expect(detectProfileAccents(flat, [])).toHaveLength(0);
+  });
+
+  it("geeft niets terug voor een te kort profiel", () => {
+    expect(detectProfileAccents({ distanceM: [0, 25], altitudeM: [10, 12] }, [])).toEqual([]);
   });
 });

@@ -253,3 +253,74 @@ describe("buildBaselinePlan", () => {
     expect(long.evaluation.avgWkg).toBeLessThan(short.evaluation.avgWkg);
   });
 });
+
+describe("baseline: fijnere opdeling", () => {
+  /** Vlakke route van 40 km zonder enig genoemd segment. */
+  function flatRoute(km: number): PacingRoute {
+    const distanceM: number[] = [];
+    const altitudeM: number[] = [];
+    for (let d = 0; d <= km * 1000; d += 25) {
+      distanceM.push(d);
+      altitudeM.push(50);
+    }
+    return pacingRouteFromZwift({
+      profile: { distanceM, altitudeM },
+      accents: [],
+      leadInKm: 0,
+      leadInElevationM: 0,
+      lapKm: km,
+      laps: 1,
+    });
+  }
+
+  it("knipt een lange vlakke route op in plaats van één schuifregelaar te geven", () => {
+    const result = buildBaselinePlan({ route: flatRoute(40), model: MODEL });
+    expect(result.plan.length).toBeGreaterThanOrEqual(5);
+    expect(Math.max(...result.plan.map((s) => s.endKm - s.startKm))).toBeLessThanOrEqual(8.01);
+  });
+
+  it("dekt de hele route zonder gaten", () => {
+    const result = buildBaselinePlan({ route: flatRoute(40), model: MODEL });
+    expect(result.plan[0].startKm).toBe(0);
+    expect(result.plan.at(-1)!.endKm).toBeCloseTo(40, 1);
+    for (let i = 1; i < result.plan.length; i++) {
+      expect(result.plan[i].startKm).toBeCloseTo(result.plan[i - 1].endKm, 5);
+    }
+  });
+
+  it("houdt het aantal stukken hanteerbaar op een heel lange rit", () => {
+    const result = buildBaselinePlan({ route: flatRoute(200), model: MODEL });
+    expect(result.plan.length).toBeLessThanOrEqual(24);
+  });
+
+  it("knipt een lange klim op en nummert de delen", () => {
+    const distanceM: number[] = [];
+    const altitudeM: number[] = [];
+    for (let d = 0; d <= 14_000; d += 25) {
+      distanceM.push(d);
+      altitudeM.push(d <= 2000 ? 50 : 50 + (d - 2000) * 0.07);
+    }
+    const route = pacingRouteFromZwift({
+      profile: { distanceM, altitudeM },
+      accents: [
+        {
+          slug: "de-alpe",
+          name: "De Alpe",
+          kind: "climb",
+          startKm: 2,
+          endKm: 14,
+          avgInclinePct: 7,
+        },
+      ],
+      leadInKm: 0,
+      leadInElevationM: 0,
+      lapKm: 14,
+      laps: 1,
+    });
+
+    const result = buildBaselinePlan({ route, model: MODEL });
+    const climbParts = result.plan.filter((s) => s.accentId === "de-alpe");
+    expect(climbParts.length).toBeGreaterThanOrEqual(3);
+    expect(climbParts[0].label).toMatch(/De Alpe \(1\/\d\)/);
+  });
+});

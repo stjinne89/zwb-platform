@@ -2367,6 +2367,33 @@ vrije schuifregelaars. Alleen voor gpx-events: die delen hetzelfde segmentraster
 
 **Rem op de kosten:** vijf generaties per lid per uur via `rate-limit.ts`.
 
+**Ronde 5 — na de eerste praktijktest.** Twee dingen uit het gebruik.
+
+*28 van de 130 opgehaalde routes vroegen aandacht.* Dat bleek niet aan de
+hoogtemeters te liggen maar aan de afstand: bij die routes dekt het
+Strava-segment niet dezelfde afstand als de route, en dan slaat het profiel op
+een ander parcours. `checkProfile` geeft die twee nu apart terug. Een
+hoogteverschil is vrijwel altijd een meetconventie — zwift-data neemt de ruwe
+optelsom van ZwiftInsider over, wij smoothen eerst en tellen ruis niet als
+klimwerk mee, dus onze waarde is voor pacing juister — en levert geen melding
+meer op. Een afstandsverschil boven 10 % is wél een fout: `route-loader.ts`
+weigert zo'n profiel voortaan met een leesbare uitleg in plaats van er stilzwijgend
+een pacingplan op te bouwen over de verkeerde kilometers. `/beheer/zwift-routes`
+toont per route het gemeten profiel naast wat zwift-data zegt, met het
+afstandsverschil in procenten, en zet de probleemgevallen bovenaan.
+
+*Een plan kwam uit op drie stukken.* Twee oorzaken, allebei verholpen. Een
+Zwift-route leverde alleen de bij naam bekende KOM's en sprints als accent, dus
+een route met rollend terrein en geen genoemd segment werd één lang stuk; er is
+nu ook detectie op het profiel zelf (`detectProfileAccents`, ≥15 hm over ≥300 m
+bij ≥2,5 %), en klimmen die al een naam hebben blijven ongemoeid. Daarnaast
+worden lange stukken opgeknipt: vlak op 8 km, een klim op 4 km, met een
+bovengrens van 24 stukken zodat de lijst leesbaar blijft. Een opgeknipte klim
+heet "De Alpe (2/3)" — dat is precies waar dosering over gaat.
+
+**Niet veranderd:** de tolerantie op de hoogte. Die 20 % plus 15 m absoluut blijft
+staan; het probleem zat niet daar.
+
 **Bewust niet.** Geen wind- of draftingmodel in het pacingplan — `estimateRide`
 rekent windstil en Zwift-drafting is per subgroep niet betrouwbaar te modelleren;
 de AI mag het in tekst noemen, het rekenmodel niet. Geen live begeleiding tijdens
@@ -2387,7 +2414,7 @@ is geen optie. Evenmin getest: de OpenAI-call zelf en het scherm mét data, want
 daarvoor is een ingelogde sessie op een gemigreerde database nodig. Wat wél gedraaid is: `npm run lint`
 (0 errors), `npm run test` (692 geslaagd), `npx tsc --noEmit` en `npm run build`.
 Ook niet lokaal te draaien: de routesync zelf, want die heeft een geldige
-Strava-token nodig. Na ronde 4: `npm run test` (815 geslaagd), lint (0 errors),
+Strava-token nodig. Na ronde 5: `npm run test` (830 geslaagd), lint (0 errors),
 `npx tsc --noEmit` en `npm run build` schoon; `/events/[id]/pacing` en beide
 API-routes staan in de build-output en sturen oningelogd door naar `/login`.
 Ontbreekt migratie 0146, dan meldt de pagina dat met zoveel woorden in plaats van

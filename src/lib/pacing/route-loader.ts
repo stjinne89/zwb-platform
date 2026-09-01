@@ -63,7 +63,14 @@ export type LoadedRoute = {
 
 export type LoadRouteResult =
   | { ok: true; loaded: LoadedRoute }
-  | { ok: false; reason: "geen-route" | "profiel-ontbreekt" | "leeg"; message: string };
+  | {
+      ok: false;
+      reason: "geen-route" | "profiel-ontbreekt" | "profiel-wijkt-af" | "leeg";
+      message: string;
+    };
+
+/** Zelfde marge als de synccontrole: meer dan 10 % verschil is geen ruis. */
+const PROFILE_KM_TOLERANCE = 0.1;
 
 function num(value: number | string | null | undefined): number | null {
   if (value == null || value === "") return null;
@@ -121,7 +128,22 @@ async function loadZwiftRoute(
   // hoort de bron te blijven voor alles wat we niet zelf hebben opgehaald.
   const { routes } = await import("zwift-data");
   const meta = routes.find((item) => item.id === routeId);
-  const lapKm = meta?.distance ?? row.profile.distanceM.at(-1)! / 1000;
+  const profileKm = row.profile.distanceM.at(-1)! / 1000;
+  const lapKm = meta?.distance ?? profileKm;
+
+  // Dekt het Strava-segment een andere afstand dan de route, dan slaat het
+  // profiel op een ander parcours en zou een pacingplan over de verkeerde
+  // kilometers gaan. Beter geen plan dan een plan dat nergens op slaat.
+  if (meta && Math.abs(profileKm - meta.distance) / meta.distance > PROFILE_KM_TOLERANCE) {
+    return {
+      ok: false,
+      reason: "profiel-wijkt-af",
+      message:
+        `Het opgehaalde profiel beslaat ${profileKm.toFixed(1)} km terwijl deze route ` +
+        `${meta.distance} km is. Het Strava-segment hoort niet bij deze route; ` +
+        `upload voor dit event een GPX.`,
+    };
+  }
 
   const laps =
     num(event.laps) ??

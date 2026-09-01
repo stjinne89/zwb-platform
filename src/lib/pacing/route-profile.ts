@@ -223,6 +223,91 @@ function gradientBetween(
   return (end - start) / distance;
 }
 
+/**
+ * Klimmen die zwift-data niet bij naam kent, uit het profiel zelf.
+ *
+ * `segmentsOnRoute` levert alleen de officiële KOM's en sprints. Een route met
+ * rollend terrein en geen enkel genoemd segment zou daardoor één lang stuk
+ * worden, en dan valt er niets te doseren. Deze detectie vult dat aan; klimmen
+ * die al een naam hebben blijven ongemoeid.
+ */
+const DETECT_MIN_GAIN_M = 15;
+const DETECT_MIN_GRADIENT = 0.025;
+const DETECT_MIN_LENGTH_M = 300;
+/** Een korte onderbreking breekt een klim niet op. */
+const DETECT_MERGE_GAP_M = 400;
+
+export function detectProfileAccents(
+  profile: RouteProfile,
+  existing: PacingAccent[],
+): PacingAccent[] {
+  const { distanceM, altitudeM } = profile;
+  if (distanceM.length < 3) return [];
+
+  const runs: Array<{ startM: number; endM: number; gainM: number }> = [];
+  let startIndex: number | null = null;
+
+  for (let i = 1; i < altitudeM.length; i++) {
+    const rising = altitudeM[i] > altitudeM[i - 1];
+    if (rising && startIndex === null) startIndex = i - 1;
+    if (!rising && startIndex !== null) {
+      runs.push({
+        startM: distanceM[startIndex],
+        endM: distanceM[i - 1],
+        gainM: altitudeM[i - 1] - altitudeM[startIndex],
+      });
+      startIndex = null;
+    }
+  }
+  if (startIndex !== null) {
+    const last = altitudeM.length - 1;
+    runs.push({
+      startM: distanceM[startIndex],
+      endM: distanceM[last],
+      gainM: altitudeM[last] - altitudeM[startIndex],
+    });
+  }
+
+  // Stukjes die dicht op elkaar liggen horen bij dezelfde klim.
+  const merged: typeof runs = [];
+  for (const run of runs) {
+    const previous = merged[merged.length - 1];
+    if (previous && run.startM - previous.endM <= DETECT_MERGE_GAP_M) {
+      previous.endM = run.endM;
+      previous.gainM += run.gainM;
+      continue;
+    }
+    merged.push({ ...run });
+  }
+
+  const out: PacingAccent[] = [];
+  for (const run of merged) {
+    const lengthM = run.endM - run.startM;
+    if (lengthM < DETECT_MIN_LENGTH_M) continue;
+    if (run.gainM < DETECT_MIN_GAIN_M) continue;
+    const gradient = run.gainM / lengthM;
+    if (gradient < DETECT_MIN_GRADIENT) continue;
+
+    const startKm = run.startM / 1000;
+    const endKm = run.endM / 1000;
+    // Overlapt met een klim die al een naam heeft: die wint.
+    if (existing.some((accent) => accent.startKm < endKm && accent.endKm > startKm)) {
+      continue;
+    }
+
+    out.push({
+      id: `klim-${out.length + 1}`,
+      name: `Klim km ${startKm.toFixed(1)}`,
+      kind: "climb",
+      startKm,
+      endKm,
+      avgGradient: gradient,
+      lap: null,
+    });
+  }
+  return out;
+}
+
 /** Een Zwift-event: routeprofiel uit de bibliotheek, uitgerold over de ronden. */
 export function pacingRouteFromZwift(input: {
   profile: RouteProfile;
@@ -237,11 +322,14 @@ export function pacingRouteFromZwift(input: {
     leadInElevationM: input.leadInElevationM,
     laps: input.laps,
   });
-  const accents = expandAccents(input.accents, expanded, {
+  const named = expandAccents(input.accents, expanded, {
     leadInKm: input.leadInKm,
     lapKm: input.lapKm,
     laps: input.laps,
   });
+  const accents = [...named, ...detectProfileAccents(expanded, named)].sort(
+    (a, b) => a.startKm - b.startKm,
+  );
 
   return {
     source: "zwift",

@@ -103,9 +103,46 @@ function effortFor(wkg: number, cpWkg: number): PlanEffort {
 }
 
 /**
+ * Hoe lang een stuk hoogstens mag zijn voordat het wordt opgeknipt. Zonder deze
+ * grens levert een route met één genoemde klim precies drie stukken op, en dan
+ * valt er niets te doseren: het hele vlakke deel zit op één schuifregelaar.
+ *
+ * Een klim mag langer blijven dan een vlak stuk — bij het opknippen van een klim
+ * hoort een reden ("eerste derde ingehouden"), bij een vlak stuk is elke plek
+ * even goed.
+ */
+const MAX_FLAT_PART_KM = 8;
+const MAX_CLIMB_PART_KM = 4;
+/** Onder deze lengte heeft opknippen geen zin meer. */
+const MIN_PART_KM = 1.5;
+/** Bovengrens op het totaal; meer dan dit onthoudt niemand, en de AI mag er 30. */
+const MAX_PARTS = 24;
+
+/**
+ * Knipt een stuk in gelijke delen zodat geen deel langer is dan `maxKm`.
+ * Levert altijd minstens één deel op.
+ */
+function chop(
+  startKm: number,
+  endKm: number,
+  maxKm: number,
+): Array<{ startKm: number; endKm: number }> {
+  const lengthKm = endKm - startKm;
+  if (lengthKm <= maxKm || lengthKm < MIN_PART_KM * 2) {
+    return [{ startKm, endKm }];
+  }
+  const pieces = Math.ceil(lengthKm / maxKm);
+  const step = lengthKm / pieces;
+  return Array.from({ length: pieces }, (_, index) => ({
+    startKm: startKm + index * step,
+    endKm: index === pieces - 1 ? endKm : startKm + (index + 1) * step,
+  }));
+}
+
+/**
  * Verdeelt de route in stukken: elk accent apart, en het stuk ertussen als
- * "tussenstuk". Zo is de lijst kort genoeg om te bewerken en lang genoeg om
- * ergens accent op te leggen.
+ * "tussenstuk". Lange stukken worden opgeknipt, zodat er genoeg plekken zijn om
+ * een accent te leggen zonder dat de lijst onleesbaar wordt.
  */
 function splitIntoSegments(route: PacingRoute): Array<{
   startKm: number;
@@ -121,17 +158,40 @@ function splitIntoSegments(route: PacingRoute): Array<{
     const end = Math.min(route.totalKm, accent.endKm);
     if (end <= start) continue;
     if (start > cursor + 0.2) {
-      parts.push({ startKm: cursor, endKm: start, accent: null });
+      for (const piece of chop(cursor, start, MAX_FLAT_PART_KM)) {
+        parts.push({ ...piece, accent: null });
+      }
     }
-    parts.push({ startKm: start, endKm: end, accent });
+    for (const piece of chop(start, end, MAX_CLIMB_PART_KM)) {
+      parts.push({ ...piece, accent });
+    }
     cursor = end;
   }
   if (route.totalKm > cursor + 0.2) {
-    parts.push({ startKm: cursor, endKm: route.totalKm, accent: null });
+    for (const piece of chop(cursor, route.totalKm, MAX_FLAT_PART_KM)) {
+      parts.push({ ...piece, accent: null });
+    }
   }
   if (parts.length === 0) {
-    parts.push({ startKm: 0, endKm: route.totalKm, accent: null });
+    for (const piece of chop(0, route.totalKm, MAX_FLAT_PART_KM)) {
+      parts.push({ ...piece, accent: null });
+    }
   }
+
+  // Te veel stukken: dun de vlakke uit door ze weer samen te voegen. Accenten
+  // blijven, die zijn juist de reden dat de lijst bestaat.
+  while (parts.length > MAX_PARTS) {
+    const index = parts.findIndex(
+      (part, i) => !part.accent && !parts[i + 1]?.accent && i + 1 < parts.length,
+    );
+    if (index === -1) break;
+    parts.splice(index, 2, {
+      startKm: parts[index].startKm,
+      endKm: parts[index + 1].endKm,
+      accent: null,
+    });
+  }
+
   return parts;
 }
 
@@ -173,7 +233,9 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
         startKm: part.startKm,
         endKm: part.endKm,
         targetWkg: wkg,
-        label: accent ? accent.name : partLabel(index, parts.length),
+        label: accent
+          ? climbPartLabel(accent.name, parts, index)
+          : partLabel(index, parts.length),
         effort: effortFor(wkg, cpWkg),
         accentId: accent?.id ?? null,
         rationale: accent
@@ -196,4 +258,16 @@ function partLabel(index: number, total: number): string {
   if (index === 0) return "Start";
   if (index === total - 1) return "Naar de finish";
   return `Tussenstuk ${index}`;
+}
+
+/** "De Muur" blijft "De Muur"; opgeknipt wordt het "De Muur (2/3)". */
+function climbPartLabel(
+  name: string,
+  parts: Array<{ accent: PacingAccent | null }>,
+  index: number,
+): string {
+  const accent = parts[index].accent;
+  const siblings = parts.filter((part) => part.accent === accent);
+  if (siblings.length < 2) return name;
+  return `${name} (${siblings.indexOf(parts[index]) + 1}/${siblings.length})`;
 }

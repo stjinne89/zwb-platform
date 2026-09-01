@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { routes as zwiftRoutes } from "zwift-data";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -62,6 +63,13 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
   const withProblem = stored.filter((row) => row.sync_error);
   const remaining = syncable.length - withProfile.length;
 
+  // Sorteer de probleemgevallen naar boven: die vragen om een beslissing, de
+  // rest is achtergrond.
+  const ordered = [...stored].sort((a, b) => {
+    const problem = Number(Boolean(b.sync_error)) - Number(Boolean(a.sync_error));
+    return problem !== 0 ? problem : a.slug.localeCompare(b.slug);
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -83,7 +91,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
       <section className="grid gap-3 sm:grid-cols-3">
         <Metric label="Beschikbaar" value={syncable.length} />
         <Metric label="Met profiel" value={withProfile.length} />
-        <Metric label="Aandacht nodig" value={withProblem.length} />
+        <Metric label="Segment past niet" value={withProblem.length} />
       </section>
 
       {message && (
@@ -114,7 +122,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
           </p>
         ) : (
           <ul className="divide-y">
-            {stored.map((row) => (
+            {ordered.map((row) => (
               <RouteItem key={row.route_id} row={row} />
             ))}
           </ul>
@@ -136,6 +144,9 @@ function Metric({ label, value }: { label: string; value: number }) {
 function RouteItem({ row }: { row: RouteRow }) {
   const distanceKm = num(row.profile_distance_m);
   const elevationM = num(row.profile_elevation_m);
+  // Waar zwift-data de route op houdt, zodat het verschil af te lezen is in
+  // plaats van dat er alleen "aandacht nodig" staat.
+  const meta = zwiftRoutes.find((item) => item.id === Number(row.route_id));
 
   return (
     <li className="flex flex-wrap items-baseline justify-between gap-2 p-4">
@@ -146,6 +157,13 @@ function RouteItem({ row }: { row: RouteRow }) {
           {distanceKm != null && ` · ${(distanceKm / 1000).toFixed(1)} km`}
           {elevationM != null && ` · ${Math.round(elevationM)} hm`}
         </p>
+        {meta && (
+          <p className="text-xs text-muted-foreground">
+            zwift-data: {meta.distance} km · {meta.elevation} hm
+            {distanceKm != null &&
+              ` · afstandsverschil ${(((distanceKm / 1000 - meta.distance) / meta.distance) * 100).toFixed(1)}%`}
+          </p>
+        )}
         {row.sync_error && (
           <p className="mt-1 text-sm text-destructive">{row.sync_error}</p>
         )}

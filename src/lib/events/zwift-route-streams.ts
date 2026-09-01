@@ -134,7 +134,20 @@ export type ProfileCheck = {
   elevationDeltaPct: number;
   points: number;
   hasShape: boolean;
-  verdict: "ok" | "afwijkend";
+  /**
+   * Twee heel verschillende problemen, dus twee vlaggen.
+   *
+   * Afstand fout = het Strava-segment dekt niet dezelfde route. Dan is het
+   * profiel onbruikbaar: een pacingplan zou over het verkeerde parcours gaan.
+   *
+   * Hoogte fout = meestal een meetconventie, geen fout. zwift-data neemt de
+   * hoogtemeters over van ZwiftInsider, die de ruwe optelsom rapporteert; wij
+   * smoothen eerst, en tellen zo geen ruis als klimwerk mee. Onze waarde is voor
+   * pacing juister, niet slechter.
+   */
+  distanceOk: boolean;
+  elevationOk: boolean;
+  verdict: "ok" | "hoogte-wijkt-af" | "afstand-wijkt-af";
 };
 
 /**
@@ -174,6 +187,10 @@ export function checkProfile(input: {
   const streamElevationM = elevationGainM(profile.altitudeM);
   const kmDeltaPct = deltaPct(streamKm, input.expectedKm);
   const elevationDeltaPct = deltaPct(streamElevationM, input.expectedElevationM);
+  const distanceOk = Math.abs(kmDeltaPct) <= KM_TOLERANCE_PCT;
+  const elevationOk =
+    Math.abs(elevationDeltaPct) <= ELEVATION_TOLERANCE_PCT ||
+    Math.abs(streamElevationM - input.expectedElevationM) <= ELEVATION_TOLERANCE_M;
   return {
     slug: input.slug,
     segmentId: input.segmentId,
@@ -185,12 +202,13 @@ export function checkProfile(input: {
     elevationDeltaPct,
     points: profile.distanceM.length,
     hasShape: Boolean(input.shape),
-    verdict:
-      Math.abs(kmDeltaPct) <= KM_TOLERANCE_PCT &&
-      (Math.abs(elevationDeltaPct) <= ELEVATION_TOLERANCE_PCT ||
-        Math.abs(streamElevationM - input.expectedElevationM) <= ELEVATION_TOLERANCE_M)
+    distanceOk,
+    elevationOk,
+    verdict: !distanceOk
+      ? "afstand-wijkt-af"
+      : elevationOk
         ? "ok"
-        : "afwijkend",
+        : "hoogte-wijkt-af",
   };
 }
 

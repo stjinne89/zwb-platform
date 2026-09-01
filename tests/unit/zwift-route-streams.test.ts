@@ -113,7 +113,7 @@ describe("checkProfile", () => {
     expect(check.verdict).toBe("ok");
   });
 
-  it("laat een echte klim wel afgaan als de hoogte er ver naast zit", () => {
+  it("meldt een hoogte die er ver naast zit, maar niet als onbruikbaar", () => {
     const check = checkProfile({
       slug: "road-to-sky",
       segmentId: 22280036,
@@ -122,10 +122,15 @@ describe("checkProfile", () => {
       profile: profileFromStreams(syntheticStreams(17_496, 200))!,
       shape: null,
     });
-    expect(check.verdict).toBe("afwijkend");
+    expect(check.verdict).toBe("hoogte-wijkt-af");
+    // De afstand klopt, dus het profiel gaat wél over deze route.
+    expect(check.distanceOk).toBe(true);
+    expect(check.elevationOk).toBe(false);
   });
 
-  it("slaat aan op een afstand die niet klopt", () => {
+  it("keurt een afstand die niet klopt af als onbruikbaar", () => {
+    // Dit is het geval dat ertoe doet: het Strava-segment dekt een andere route,
+    // dus een pacingplan zou over de verkeerde kilometers gaan.
     const check = checkProfile({
       slug: "onzin",
       segmentId: 1,
@@ -134,8 +139,22 @@ describe("checkProfile", () => {
       profile,
       shape: null,
     });
-    expect(check.verdict).toBe("afwijkend");
+    expect(check.verdict).toBe("afstand-wijkt-af");
+    expect(check.distanceOk).toBe(false);
     expect(check.hasShape).toBe(false);
+  });
+
+  it("laat de afstand zwaarder wegen dan de hoogte", () => {
+    // Allebei fout: de afstand bepaalt het oordeel, want dat is het echte probleem.
+    const check = checkProfile({
+      slug: "onzin",
+      segmentId: 1,
+      expectedKm: 40,
+      expectedElevationM: 900,
+      profile,
+      shape: null,
+    });
+    expect(check.verdict).toBe("afstand-wijkt-af");
   });
 });
 
