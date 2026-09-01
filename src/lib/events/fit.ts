@@ -2,8 +2,11 @@
  * "Past dit event bij mij?" — de logica achter het Voor mij-filter op de
  * kalender.
  *
- * Twee soorten signalen, en ze doen bewust iets anders:
+ * Drie soorten signalen, en ze doen bewust iets anders:
  *
+ * - **Een "nee" op de RSVP** is het meest expliciete signaal dat er is: het lid
+ *   heeft over dit ene event al gezegd dat het niet meerijdt. Onder Alles blijft
+ *   zo'n event gewoon staan, zodat je van gedachten kunt veranderen.
  * - **Interesse** is wat het lid zelf aanvinkt op zijn profiel. Niets
  *   aangevinkt betekent "alles interessant"; we raden interesse nooit.
  * - **Geschiktheid** leidt ZWB af: hoort het event bij een team waar je in
@@ -12,7 +15,7 @@
  *
  * Eén regel houdt het eerlijk: onbekend telt nooit als "past niet". Een lid
  * zonder Strava en zonder ingevulde grenzen wordt dus nergens door
- * weggefilterd behalve door zijn eigen interesses. Niet elk lid kan Strava
+ * weggefilterd behalve door zijn eigen nee en zijn eigen interesses. Niet elk lid kan Strava
  * koppelen (de app zit tegen de atletenlimiet aan), en die leden mogen geen
  * halve kalender krijgen.
  */
@@ -28,9 +31,15 @@ export const FIT_HEADROOM = 1.2;
 /** Onder dit aantal ritten zegt de geschiedenis te weinig. */
 export const MIN_RIDES_FOR_CEILING = 5;
 
-export type FitReason = "team" | "interest" | "distance" | "elevation";
+export type FitReason =
+  | "declined"
+  | "team"
+  | "interest"
+  | "distance"
+  | "elevation";
 
 export const FIT_REASON_LABELS: Record<FitReason, string> = {
+  declined: "Je zei nee",
   team: "Voor een ander team",
   interest: "Buiten je interesses",
   distance: "Langer dan je grens",
@@ -41,6 +50,8 @@ export type MemberFit = {
   /** Leeg = geen voorkeur opgegeven, dus alles is interessant. */
   interests: string[];
   teamIds: string[];
+  /** Events waar het lid al "nee" op heeft geantwoord. */
+  declinedEventIds: Set<string>;
   /** Al inclusief marge als hij is afgeleid. Null = geen plafond bekend. */
   maxDistanceKm: number | null;
   maxElevationM: number | null;
@@ -49,6 +60,7 @@ export type MemberFit = {
 };
 
 export type FitEvent = {
+  id?: string | null;
   type: string | null;
   team_id?: string | null;
   distance_km?: number | string | null;
@@ -68,10 +80,15 @@ function numberOrNull(value: number | string | null | undefined): number | null 
 }
 
 /**
- * Volgorde is niet willekeurig: de hardste reden wint. "Voor een ander team"
- * is een feit, "buiten je interesses" een keuze, en de omvang een schatting.
+ * Volgorde is niet willekeurig: de hardste reden wint. Een "nee" op de RSVP is
+ * het meest expliciete signaal dat er is — het lid heeft het letterlijk gezegd,
+ * over dit ene event. Daarna een feit ("voor een ander team"), dan een keuze
+ * ("buiten je interesses"), en als laatste een schatting (de omvang).
  */
 export function eventFitsMember(event: FitEvent, member: MemberFit): FitResult {
+  if (event.id && member.declinedEventIds.has(event.id)) {
+    return { fits: false, reason: "declined" };
+  }
   if (event.team_id && !member.teamIds.includes(event.team_id)) {
     return { fits: false, reason: "team" };
   }
@@ -110,6 +127,7 @@ export type RideHistory = {
 export type MemberFitInput = {
   interests: string[] | null;
   teamIds: string[];
+  declinedEventIds: string[];
   /** Uit het profiel; null betekent "leid maar af". */
   maxDistanceKm: number | null;
   maxElevationM: number | null;
@@ -149,6 +167,7 @@ export function resolveMemberFit(input: MemberFitInput): MemberFit {
   return {
     interests: (input.interests ?? []).filter(Boolean),
     teamIds: input.teamIds,
+    declinedEventIds: new Set(input.declinedEventIds),
     maxDistanceKm,
     maxElevationM,
     ceilingSource,
@@ -162,6 +181,7 @@ export function resolveMemberFit(input: MemberFitInput): MemberFit {
 export function fitIsInformative(member: MemberFit): boolean {
   return (
     member.interests.length > 0 ||
+    member.declinedEventIds.size > 0 ||
     member.maxDistanceKm !== null ||
     member.maxElevationM !== null
   );

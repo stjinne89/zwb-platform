@@ -811,6 +811,37 @@ bij gelijktijdige, niet in deze commit opgenomen Zwift-routewijzigingen van een
 andere agent. De lokale mobiele browser bereikte zonder ingelogde sessie alleen
 de loginpagina, dus een echte save met persoonsgegevens is niet uitgevoerd.
 
+### Opgeleverd — Voor mij negeerde je eigen "nee"
+
+**2026-09-01, working tree (nog niet gecommit).** Geen migratie.
+
+**Wat er mis was.** Het Voor mij-filter uit `a12210c` liet events staan waar je
+al "nee" op had geantwoord. De kalender bevroeg `event_rsvps` wel, maar alleen
+voor de "ja"-avatars van *andere* leden en voor de live-telling; je eigen
+antwoord kwam nergens in de fit-logica voor. Daarmee bleef precies het duidelijkste
+signaal ongebruikt: een lid dat zich al had afgemeld kreeg het event alsnog
+voorgeschoteld als "passend voor jou".
+
+**De oplossing.** `eventFitsMember()` kent een vijfde reden, `declined`, en die
+staat vóór alle andere. De volgorde is nu: een expliciete "nee" (het lid heeft
+het letterlijk gezegd, over dit ene event), dan een feit (ander team), dan een
+keuze (interesses), dan een schatting (afstand en hoogtemeters). Zo krijgt het
+lid altijd de hardste verklaring te zien in de "n verborgen"-regel.
+
+**Onder Alles blijven die events staan.** Je "nee" verbergt ze in Voor mij, niet
+in de kalender zelf — anders kun je nooit meer van gedachten veranderen. `/hulp`
+zegt dat er expliciet bij.
+
+**`declinedEventIds` is een verplicht veld** op `MemberFitInput`, geen optionele
+met een lege standaard. Een vergeten signaal is precies hoe deze bug ontstond;
+nu weigert TypeScript een aanroep die het weglaat.
+
+**Verificatie.** `npm run build`, `tsc --noEmit`, eslint en de Vitest-suite zijn
+groen; `tests/unit/event-fit.test.ts` groeide van 11 naar 14 tests, waaronder
+twee die deze regressie afdekken (een "nee" verbergt het event, en een "nee"
+weegt zwaarder dan een ander team). Niet in een browser gecontroleerd: migratie
+`0143` draait hier niet.
+
 ### Opgeleverd — "Voor mij" op de kalender
 
 **2026-09-01, commit `a12210c` op `main`.** Migratie `0143`.

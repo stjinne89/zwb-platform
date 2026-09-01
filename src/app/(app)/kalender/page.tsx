@@ -79,8 +79,13 @@ export default async function KalenderPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: allEvents }, { data: birthdayProfiles }, { data: me }, { data: myTeams }] =
-    await Promise.all([
+  const [
+    { data: allEvents },
+    { data: birthdayProfiles },
+    { data: me },
+    { data: myTeams },
+    { data: myDeclines },
+  ] = await Promise.all([
       supabase
         .from("events")
         .select(
@@ -103,6 +108,16 @@ export default async function KalenderPage({
       user
         ? supabase.from("team_members").select("team_id").eq("profile_id", user.id)
         : Promise.resolve({ data: null }),
+      // Je eigen "nee". Stond hier eerst niet, waardoor Voor mij events bleef
+      // tonen waar je je al voor had afgemeld — precies wat het filter zou
+      // moeten wegnemen.
+      user
+        ? supabase
+            .from("event_rsvps")
+            .select("event_id")
+            .eq("profile_id", user.id)
+            .eq("status", "no" satisfies RsvpStatus)
+        : Promise.resolve({ data: null }),
     ]);
 
   // Ritgeschiedenis alleen ophalen als het lid minstens één as leeg liet; wie
@@ -117,6 +132,7 @@ export default async function KalenderPage({
   const member = resolveMemberFit({
     interests: me?.event_type_interests ?? null,
     teamIds: (myTeams ?? []).map((row) => row.team_id),
+    declinedEventIds: (myDeclines ?? []).map((row) => row.event_id),
     maxDistanceKm: me?.fit_max_distance_km ?? null,
     maxElevationM: me?.fit_max_elevation_m ?? null,
     history: rideHistory,

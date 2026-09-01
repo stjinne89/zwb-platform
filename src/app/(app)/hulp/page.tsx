@@ -76,6 +76,7 @@ const GUIDES = [
     bullets: [
       "Gebruik de kalender voor groepsritten, ZRL, Ladder en socials.",
       "Met Voor mij toont de kalender alleen events die bij je passen: de eventtypes die je op je profiel aanvinkt, events van je eigen teams, en ritten binnen je grens voor afstand en hoogtemeters.",
+      "Events waar je Nee op hebt geantwoord verdwijnen uit Voor mij. Onder Alles blijven ze staan, dus je kunt altijd van gedachten veranderen.",
       "Vink je geen enkel eventtype aan, dan telt alles als interessant en verbergt Voor mij niets op interesse.",
       "Vul je op je profiel geen max afstand of hoogtemeters in, dan leidt ZWB die grens af uit je langste rit van het afgelopen jaar, plus 20 procent. Zonder ritten in ZWB blijft die grens leeg en wordt er niets op omvang verborgen.",
       "Onder de knop staat wat er verborgen is en waarom; met Alles zie je de hele kalender weer.",
