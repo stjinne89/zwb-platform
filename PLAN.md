@@ -769,7 +769,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 ### Opgeleverd — "Voor mij" op de kalender
 
-**2026-09-01, working tree (nog niet gecommit).** Migratie `0143`.
+**2026-09-01, commit `a12210c` op `main`.** Migratie `0143`.
 
 **Waarom.** De kalender toonde iedereen dezelfde lijst: elk aankomend event van
 de hele club, inclusief ZRL-ritten van teams waar je niet in zit en gran fondo's
