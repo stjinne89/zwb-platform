@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateProfile } from "../actions";
 import { Button } from "@/components/ui/button";
+import { EVENT_TYPES } from "@/lib/event-types";
 
 type Initial = {
   id: string;
@@ -20,6 +21,9 @@ type Initial = {
   weight_kg: string;
   auto_sync_physique: boolean;
   bio: string;
+  event_type_interests: string[];
+  fit_max_distance_km: string;
+  fit_max_elevation_m: string;
   birth_date: string;
   share_birthday: boolean;
   public_profile_enabled: boolean;
@@ -263,6 +267,52 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               </span>
             </span>
           </label>
+        </div>
+      </section>
+
+      <section id="interesses" className="scroll-mt-24 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Interesses
+        </h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {EVENT_TYPES.map((type) => (
+            <label
+              key={type.value}
+              className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                name={`interest_${type.value}`}
+                defaultChecked={initial.event_type_interests.includes(type.value)}
+                className="size-4 accent-primary"
+              />
+              <span>{type.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={LABEL}>Max afstand (km)</label>
+            <input
+              type="number"
+              name="fit_max_distance_km"
+              min={1}
+              max={1000}
+              defaultValue={initial.fit_max_distance_km}
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL}>Max hoogtemeters</label>
+            <input
+              type="number"
+              name="fit_max_elevation_m"
+              min={0}
+              max={20000}
+              defaultValue={initial.fit_max_elevation_m}
+              className={FIELD}
+            />
+          </div>
         </div>
       </section>
 

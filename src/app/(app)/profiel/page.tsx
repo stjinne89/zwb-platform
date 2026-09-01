@@ -56,7 +56,7 @@ export default async function ProfielPage() {
   if (!user) redirect("/login");
 
   const PROFILE_COLUMNS =
-    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility";
+    "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility, event_type_interests, fit_max_distance_km, fit_max_elevation_m";
 
   const access = await getCurrentUserAccess(supabase);
 
@@ -193,6 +193,9 @@ export default async function ProfielPage() {
           auto_sync_physique:
             (profileRow as { auto_sync_physique?: boolean | null })?.auto_sync_physique ?? false,
           bio: profileRow?.bio ?? "",
+          event_type_interests: profileRow?.event_type_interests ?? [],
+          fit_max_distance_km: profileRow?.fit_max_distance_km?.toString() ?? "",
+          fit_max_elevation_m: profileRow?.fit_max_elevation_m?.toString() ?? "",
           birth_date: profileRow?.birth_date ?? "",
           share_birthday: profileRow?.share_birthday ?? false,
           public_profile_enabled: profileRow?.public_profile_enabled ?? false,

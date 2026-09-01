@@ -767,6 +767,84 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — "Voor mij" op de kalender
+
+**2026-09-01, working tree (nog niet gecommit).** Migratie `0143`.
+
+**Waarom.** De kalender toonde iedereen dezelfde lijst: elk aankomend event van
+de hele club, inclusief ZRL-ritten van teams waar je niet in zit en gran fondo's
+van 220 km die voor de meeste leden geen realistische keuze zijn. Wie de
+kalender opende moest die selectie zelf in zijn hoofd maken, elke keer opnieuw.
+
+**Wat er is gekomen.** Een filter op `/kalender` met twee knoppen — `Alles (n)`
+en `Voor mij (n)` — via `?voor=mij`, in dezelfde chip-stijl als `/materiaal`.
+Verjaardagen blijven in beide standen staan: die dragen geen geschiktheids-
+signaal en horen bij het clubleven, niet bij de keuze welke rit je rijdt.
+
+**Twee soorten signalen, bewust gescheiden** (`src/lib/events/fit.ts`):
+
+- *Interesse* is wat het lid zelf aanvinkt: een nieuwe sectie Interesses op
+  `/profiel` met een vinkje per eventtype uit `EVENT_TYPES`. Niets aangevinkt
+  betekent "alles interessant" — we raden interesse nooit, want een lid dat daar
+  nooit komt mag geen halve kalender krijgen.
+- *Geschiktheid* leidt ZWB af: hoort het event bij een team waar je in zit
+  (`events.team_id` tegen `team_members`), en past de omvang van de rit. Het
+  plafond voor afstand en hoogtemeters komt uit het profiel, en anders uit je
+  langste rit en zwaarste klimdag van de afgelopen 365 dagen (`strava_activities`,
+  `CYCLING_SPORTS`, geen woon-werk), plus 20 procent marge (`FIT_HEADROOM`).
+  Onder vijf ritten (`MIN_RIDES_FOR_CEILING`) zegt die geschiedenis te weinig en
+  blijft het plafond leeg.
+
+**De regel die het eerlijk houdt: onbekend telt nooit als "past niet".** Een lid
+zonder Strava-koppeling en zonder ingevulde grenzen wordt nergens door
+weggefilterd behalve door zijn eigen interesses. Dat is geen detail maar de
+kern: de app zit tegen de Strava-atletenlimiet aan, dus niet elk lid kán
+koppelen, en die leden mochten geen uitgeklede kalender krijgen. Een event
+zonder afstand in de database valt om dezelfde reden nooit af.
+
+**Wat er zichtbaar is.** Onder de knoppen staat wat er verborgen is en waarom,
+geteld per reden ("3 verborgen · Buiten je interesses (2) · Langer dan je grens
+(1)"). Verbergt het filter niets en heeft het lid ook geen voorkeuren, dan staat
+er een link naar `/profiel#interesses` in plaats van een identieke lijst.
+`/hulp` legt de werking uit; in het formulier zelf staat geen uitleg (conventie
+Product copy).
+
+**Zwaarste reden wint.** De volgorde in `eventFitsMember()` is niet
+willekeurig: team is een feit, interesse een keuze, omvang een schatting. Zo
+krijgt het lid de meest harde verklaring te zien.
+
+**Migratie `0143`** voegt `event_type_interests text[] not null default '{}'`,
+`fit_max_distance_km` en `fit_max_elevation_m` toe aan `profiles`. Bewust
+*geen* check-constraint op de eventtypes: die lijst is al twee keer uitgebreid
+(`0067`, `0086`) en een constraint zou bij de derde keer stil de profielopslag
+breken — de server-action valideert tegen `EVENT_TYPE_VALUES`.
+
+**Volgorde bij deploy: eerst `0143`, dan de code.** `/profiel` haalt de drie
+nieuwe kolommen op in één `select` met de rest van het profiel; draait de code
+voor de migratie, dan faalt die hele query en staat het profielformulier leeg.
+De kalender zelf is wel veilig: die valt bij een mislukte profiel-query terug op
+"geen voorkeuren" en toont dus gewoon alles.
+
+**Niet gebouwd, en waarom.** Geen filterchips per eventtype naast de Voor
+mij-knop: dat is een tweede filtermodel naast de interesses die het lid al op
+zijn profiel zet, en twee modellen voor hetzelfde gaan uit elkaar lopen. Geen
+match op ZRL-categorie: events kennen geen categorie-eis, alleen leden hebben
+`zrl_category`, dus daar valt niets tegen af te zetten. Geen filter op regio of
+afstand tot de startplaats: `events.start_lat/lon` is er wel, maar `profiles.region`
+is vrije tekst ("Tilburg", "Antwerpen") zonder coördinaten, dus dat zou raden
+worden.
+
+**Niet lokaal verifieerbaar.** Migratie `0143` is niet gedraaid (geen Docker of
+Supabase-config in deze repo). `npm run build`, `npx tsc --noEmit`, eslint en de
+volledige Vitest-suite (815 tests, waarvan 11 nieuw in
+`tests/unit/event-fit.test.ts`) zijn wél groen. De kalender is niet in een
+browser gecontroleerd: zonder de migratie bestaan de kolommen niet en zou dat
+niets bewijzen.
+
+**Nog op te lossen (buiten deze ronde).** Er staan twee migraties met nummer
+`0140`: `0140_training_season.sql` (gecommit) en `0140_zwift_routes.sql`
+(untracked). Dat moet rechtgezet worden vóór de volgende deploy.
+
 ### Opgeleverd — jaarplanning boven het trainingsschema
 
 **2026-08-31, branch `claude/training-yearly-planning-3e88rl`.** Migratie `0140`.

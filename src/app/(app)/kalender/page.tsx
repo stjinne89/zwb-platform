@@ -4,6 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import {
+  eventFitsMember,
+  fitIsInformative,
+  resolveMemberFit,
+  FIT_REASON_LABELS,
+  MIN_RIDES_FOR_CEILING,
+  type FitReason,
+} from "@/lib/events/fit";
 import {
   ageOnBirthday,
   amsterdamDateKey,
@@ -12,37 +21,127 @@ import {
 } from "@/lib/birthdays";
 
 const STALE_AFTER_MIN = 15;
+const HISTORY_DAYS = 365;
 type RsvpStatus = "yes" | "maybe" | "no";
+type SearchParams = Promise<{ voor?: string }>;
 
 async function getActiveCutoffIso() {
   return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
 }
 
-export default async function KalenderPage() {
-  const supabase = await createClient();
-  const [{ data: allEvents }, { data: birthdayProfiles }] = await Promise.all([
+/**
+ * De langste rit en de zwaarste klimdag van het afgelopen jaar. Twee
+ * top-1-queries plus een telling; de vijf rijen van de eerste query zijn er
+ * alleen om te weten óf er genoeg ritten zijn (zie MIN_RIDES_FOR_CEILING).
+ */
+async function loadRideHistory(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+) {
+  const sinceIso = new Date(
+    Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const base = () =>
     supabase
-      .from("events")
-      .select(
-        "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path",
-      )
-      .order("start_at", { ascending: true }),
-    supabase
-      .from("profiles")
-      .select("id, display_name, avatar_url, birth_date")
-      .eq("is_approved", true)
-      .eq("share_birthday", true)
-      .not("birth_date", "is", null),
+      .from("strava_activities")
+      .select("distance_m, total_elevation_gain_m")
+      .eq("profile_id", profileId)
+      .eq("commute", false)
+      .in("sport_type", CYCLING_SPORTS)
+      .gte("start_date", sinceIso);
+
+  const [{ data: longest }, { data: steepest }] = await Promise.all([
+    base().order("distance_m", { ascending: false }).limit(MIN_RIDES_FOR_CEILING),
+    base().order("total_elevation_gain_m", { ascending: false }).limit(1),
   ]);
+
+  const rides = longest ?? [];
+  if (rides.length === 0) return null;
+  return {
+    rideCount: rides.length,
+    longestKm: Number(rides[0].distance_m) / 1000,
+    biggestClimbM: steepest?.[0]
+      ? Number(steepest[0].total_elevation_gain_m)
+      : null,
+  };
+}
+
+export default async function KalenderPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { voor } = await searchParams;
+  const onlyForMe = voor === "mij";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: allEvents }, { data: birthdayProfiles }, { data: me }, { data: myTeams }] =
+    await Promise.all([
+      supabase
+        .from("events")
+        .select(
+          "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path, team_id",
+        )
+        .order("start_at", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, birth_date")
+        .eq("is_approved", true)
+        .eq("share_birthday", true)
+        .not("birth_date", "is", null),
+      user
+        ? supabase
+            .from("profiles")
+            .select("event_type_interests, fit_max_distance_km, fit_max_elevation_m")
+            .eq("id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase.from("team_members").select("team_id").eq("profile_id", user.id)
+        : Promise.resolve({ data: null }),
+    ]);
+
+  // Ritgeschiedenis alleen ophalen als het lid minstens één as leeg liet; wie
+  // beide grenzen zelf invulde heeft de afleiding niet nodig. Twee kleine
+  // top-1-queries in plaats van een jaar aan ritten in het geheugen.
+  const needsHistory =
+    Boolean(user) &&
+    (me?.fit_max_distance_km == null || me?.fit_max_elevation_m == null);
+  const rideHistory =
+    needsHistory && user ? await loadRideHistory(supabase, user.id) : null;
+
+  const member = resolveMemberFit({
+    interests: me?.event_type_interests ?? null,
+    teamIds: (myTeams ?? []).map((row) => row.team_id),
+    maxDistanceKm: me?.fit_max_distance_km ?? null,
+    maxElevationM: me?.fit_max_elevation_m ?? null,
+    history: rideHistory,
+  });
 
   const todayKey = amsterdamDateKey(new Date());
   // Alleen vandaag + toekomstige events op de kalender — voorbije events
   // verhuizen naar /ritverslagen. Zo staat het event van vandaag (of het
   // eerstvolgende) bovenaan.
-  const events = (allEvents ?? []).filter(
+  const upcoming = (allEvents ?? []).filter(
     (event) => amsterdamDateKey(new Date(event.start_at)) >= todayKey,
   );
-  const pastCount = (allEvents?.length ?? 0) - events.length;
+  const pastCount = (allEvents?.length ?? 0) - upcoming.length;
+
+  // Wat past er niet, en waarom? Ook zonder actief filter berekend, zodat de
+  // knop meteen zijn aantal kan tonen.
+  const hiddenByReason = new Map<FitReason, number>();
+  const forMe = upcoming.filter((event) => {
+    const verdict = eventFitsMember(event, member);
+    if (verdict.fits) return true;
+    hiddenByReason.set(verdict.reason, (hiddenByReason.get(verdict.reason) ?? 0) + 1);
+    return false;
+  });
+  const hiddenCount = upcoming.length - forMe.length;
+  const events = onlyForMe ? forMe : upcoming;
   const birthdays = (birthdayProfiles ?? []).flatMap((profile) => {
     if (!profile.birth_date) return [];
     const occurrence = nextBirthdayOccurrence(profile.birth_date, todayKey);
@@ -145,6 +244,42 @@ export default async function KalenderPage() {
           </Link>
         }
       />
+
+      {user && (
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Kalenderfilter">
+          <Link
+            href="/kalender"
+            aria-current={onlyForMe ? undefined : "page"}
+            className={`rounded-full border px-3 py-1 text-xs ${
+              onlyForMe ? "hover:bg-secondary" : "bg-foreground text-background"
+            }`}
+          >
+            Alles ({upcoming.length})
+          </Link>
+          <Link
+            href="/kalender?voor=mij"
+            aria-current={onlyForMe ? "page" : undefined}
+            className={`rounded-full border px-3 py-1 text-xs ${
+              onlyForMe ? "bg-foreground text-background" : "hover:bg-secondary"
+            }`}
+          >
+            Voor mij ({forMe.length})
+          </Link>
+          {onlyForMe && hiddenCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {hiddenCount} verborgen ·{" "}
+              {[...hiddenByReason.entries()]
+                .map(([reason, count]) => `${FIT_REASON_LABELS[reason]} (${count})`)
+                .join(" · ")}
+            </span>
+          )}
+          {onlyForMe && hiddenCount === 0 && !fitIsInformative(member) && (
+            <Link href="/profiel#interesses" className="text-xs underline">
+              Stel je interesses in
+            </Link>
+          )}
+        </nav>
+      )}
 
       {calendarItems.length === 0 ? (
         <EmptyState>

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
+import { EVENT_TYPE_VALUES } from "@/lib/event-types";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -120,6 +121,25 @@ export async function updateProfile(formData: FormData) {
       error: "Vul eerst je geboortedatum in om je verjaardag te delen.",
     };
   }
+  // Interesses: alleen bekende eventtypes, in de volgorde van EVENT_TYPES zodat
+  // de opslag stabiel is. Niets aangevinkt = geen voorkeur, en dan filtert de
+  // kalender ook niet op type.
+  const event_type_interests = EVENT_TYPE_VALUES.filter(
+    (type) => formData.get(`interest_${type}`) === "on",
+  );
+
+  const maxDistance = optionalNumber(formData.get("fit_max_distance_km"));
+  const maxElevation = optionalNumber(formData.get("fit_max_elevation_m"));
+  if (maxDistance !== null && (maxDistance <= 0 || maxDistance > 1000)) {
+    return { ok: false as const, error: "Max afstand moet tussen 1 en 1000 km liggen." };
+  }
+  if (maxElevation !== null && (maxElevation < 0 || maxElevation > 20000)) {
+    return {
+      ok: false as const,
+      error: "Max hoogtemeters moet tussen 0 en 20000 liggen.",
+    };
+  }
+
   const profile_visibility = Object.fromEntries(
     VISIBILITY_FIELDS.map((field) => [
       field,
@@ -149,6 +169,9 @@ export async function updateProfile(formData: FormData) {
             ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
             weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
           }),
+      event_type_interests,
+      fit_max_distance_km: maxDistance === null ? null : Math.round(maxDistance),
+      fit_max_elevation_m: maxElevation === null ? null : Math.round(maxElevation),
       bio: optionalString(formData.get("bio")),
       birth_date: birthDate?.dateKey ?? null,
       share_birthday: shareBirthday,

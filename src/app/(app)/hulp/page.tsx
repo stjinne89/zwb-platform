@@ -63,6 +63,7 @@ const GUIDES = [
     title: "Profiel en ledenlijst",
     bullets: [
       "Je profiel bepaalt wat andere leden mogen zien.",
+      "Onder Interesses kies je welke eventtypes je wilt zien op de kalender, en welke afstand en hoogtemeters je grens zijn.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
       "Bestuur of beheerders keuren nieuwe leden goed.",
@@ -74,6 +75,10 @@ const GUIDES = [
     title: "Events en RSVP",
     bullets: [
       "Gebruik de kalender voor groepsritten, ZRL, Ladder en socials.",
+      "Met Voor mij toont de kalender alleen events die bij je passen: de eventtypes die je op je profiel aanvinkt, events van je eigen teams, en ritten binnen je grens voor afstand en hoogtemeters.",
+      "Vink je geen enkel eventtype aan, dan telt alles als interessant en verbergt Voor mij niets op interesse.",
+      "Vul je op je profiel geen max afstand of hoogtemeters in, dan leidt ZWB die grens af uit je langste rit van het afgelopen jaar, plus 20 procent. Zonder ritten in ZWB blijft die grens leeg en wordt er niets op omvang verborgen.",
+      "Onder de knop staat wat er verborgen is en waarom; met Alles zie je de hele kalender weer.",
       "Op eventdagen kan de liveticker deelnemers tonen die live tracken.",
       "GPX, routekaart en hoogteprofiel staan op de eventpagina.",
     ],
@@ -158,7 +163,7 @@ const GUIDES = [
 // Volledige wegwijzer: wat doet elke pagina/sectie van de app.
 const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier synchroniseer je ook je Strava-ritten." },
-  { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien." },
+  { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past." },
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
