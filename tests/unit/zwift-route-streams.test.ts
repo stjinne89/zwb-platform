@@ -38,7 +38,7 @@ describe("profileFromStreams", () => {
     expect(profileFromStreams({ distance: [], altitude: [] })).toBeNull();
   });
 
-  it("smoothing haalt de ruis eruit die anders als hoogtemeters meetelt", () => {
+  it("dempt kwantisatiegeruis dat anders als hoogtemeters meetelt", () => {
     const distance: number[] = [];
     const altitude: number[] = [];
     for (let d = 0; d <= 1000; d += 10) {
@@ -46,9 +46,27 @@ describe("profileFromStreams", () => {
       // Volledig vlak, maar met 1 m zaagtand — dat is 50 m "winst" als je niet smootht.
       altitude.push(d % 20 === 0 ? 100 : 101);
     }
-    expect(elevationGainM(altitude)).toBeGreaterThan(40);
-    const profile = profileFromStreams({ distance, altitude });
-    expect(elevationGainM(profile!.altitudeM)).toBeLessThan(2);
+    const raw = elevationGainM(altitude);
+    expect(raw).toBeGreaterThan(40);
+    const smoothed = elevationGainM(profileFromStreams({ distance, altitude })!.altitudeM);
+    expect(smoothed / raw).toBeLessThan(0.1);
+  });
+
+  it("laat korte golving staan in plaats van die glad te strijken", () => {
+    // Dit is de eigenschap die met een venster van 80 m sneuvelde. Golving met
+    // een periode van 200 m — heel gewoon op Zwift — hield toen 14 % van het
+    // klimwerk over; dat is de 35 % die op rollende routes verdween. Langere
+    // heuvels overleefden ook het oude venster, dus die zeggen hier niets.
+    const distance: number[] = [];
+    const altitude: number[] = [];
+    for (let d = 0; d <= 10_000; d += 10) {
+      distance.push(d);
+      altitude.push(100 + 5 * (1 - Math.cos((d / 200) * 2 * Math.PI)));
+    }
+    const raw = elevationGainM(altitude);
+    const smoothed = elevationGainM(profileFromStreams({ distance, altitude })!.altitudeM);
+    expect(raw).toBeGreaterThan(400);
+    expect(smoothed / raw).toBeGreaterThan(0.6);
   });
 });
 

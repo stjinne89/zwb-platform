@@ -2413,49 +2413,34 @@ naar `innsbruck-uci-lap` (8,8 km tegen 23,65 km) — ook een foute koppeling bij
 bron. Voor die routes blijft weigeren het juiste antwoord; een event erop heeft
 een GPX nodig.
 
-**Open vraag: de hoogtemeters.** Op rollende routes zit er structureel zo'n 35 %
-tussen ons profiel en `zwift-data` (Bon Voyage 83 om 132, Douce France 78 om 133,
-Three Musketeers 122 om 195), terwijl een lange aaneengesloten klim exact klopt
-(Road to Sky 1043 om 1044). Dat past bij het vermoeden dat `zwift-data` de ruwe
-optelsom overneemt en wij eerst smoothen over 80 m — maar 35 % is te veel om op
-een vermoeden te laten staan. Migratie `0147` bewaart daarom de **ongesmoothde**
-som ernaast, zodat in beheer af te lezen is welke van de twee waarden ons
-smoothing-venster wegneemt. Valt de ruwe som samen met `zwift-data`, dan is het
-een meetconventie en klopt onze waarde voor pacing. Zit hij daar ook onder, dan
-staat het venster te ruim en gooien we echt klimwerk weg. **Nog te beslissen na
-de volgende verversing** — het pacingmodel rekent met de gradiënten uit het
-gesmoothde profiel, dus dit raakt de doorrekening, niet alleen de weergave.
+**Beslist: het smoothing-venster stond te ruim.** De vraag was of `zwift-data`
+simpelweg de ruwe optelsom overneemt of dat ons venster echt klimwerk weggooit.
+Migratie `0147` bewaarde daarvoor de ongesmoothde som, en die wees het uit. Op
+Southern Coast Cruise: ruw 148 hm, `zwift-data` 136 hm, ons profiel 121 hm. De
+ruwe som ligt dus *boven* `zwift-data` — er valt nauwelijks ruis weg te halen —
+terwijl ons venster er 27 hm af haalde.
 
-**Bewust niet.** Geen wind- of draftingmodel in het pacingplan — `estimateRide`
-rekent windstil en Zwift-drafting is per subgroep niet betrouwbaar te modelleren;
-de AI mag het in tekst noemen, het rekenmodel niet. Geen live begeleiding tijdens
-het event. Geen Leaflet-kaart voor Zwift-routes: er bestaat geen kaartlaag voor
-Watopia, dus dat wordt een eigen SVG-vorm uit de `latlng`-stream, en niet Zwifts
-eigen route-PNG's van `cdn.zwift.com`. Geen automatische herberekening op de
-achtergrond als de FTP van een lid verandert — verouderen gebeurt zichtbaar en
-verversen alleen op de knop van het lid.
+Waar dat aan lag: die 80 m kwam uit `route-sample.ts`, gemaakt voor gps-data van
+echte ritten. Zwift-hoogte komt uit een game-engine, waar geen gps-ruis in zit.
+Doorgemeten per golflengte houdt een venster van 80 m bij golving van 200 m — heel
+gewoon op Zwift — nog maar **14 %** van het klimwerk over; bij 25 m is dat 81 %.
+Precies de 35 % die op rollende routes verdween.
 
-**Wel besloten, tegen een eerder voorstel in:** het pacingplan gaat het weerblok
-wél voeden (de doorkomsttijden daar gaan straks op jouw plan draaien in plaats van
-op één slider), en pacingplannen zijn te delen binnen de club — opt-in per plan,
-zonder de persoonlijke notities.
+`SMOOTH_WINDOW_M` staat daarom op 25 m voor Zwift-profielen. `route-sample.ts`
+blijft op 80 m voor .gpx-routes; daar is het venster wél terecht. Vastgelegd in
+twee tests die allebei nodig zijn: een zaagtand moet voor meer dan 90 % verdwijnen,
+en golving van 200 m moet voor meer dan 60 % blijven staan. Alleen de eerste had
+de oude waarde ook doorstaan.
 
-**Niet lokaal te verifiëren.** De migraties `0144` t/m `0147` zijn **niet**
-getest — er is geen Docker of Supabase-config in deze repo, dus `supabase db reset`
-is geen optie. Evenmin getest: de OpenAI-call zelf en het scherm mét data, want
-daarvoor is een ingelogde sessie op een gemigreerde database nodig. Wat wél gedraaid is: `npm run lint`
-(0 errors), `npm run test` (692 geslaagd), `npx tsc --noEmit` en `npm run build`.
-Ook niet lokaal te draaien: de routesync zelf, want die heeft een geldige
-Strava-token nodig. Na ronde 6: `npm run test` (834 geslaagd), lint (0 errors),
-`npx tsc --noEmit` en `npm run build` schoon; `/events/[id]/pacing` en beide
-API-routes staan in de build-output en sturen oningelogd door naar `/login`.
-Ontbreekt migratie 0146, dan meldt de pagina dat met zoveel woorden in plaats van
-om te vallen.
+**Dit raakt de doorrekening, niet alleen de weergave:** het pacingmodel rekent met
+de gradiënten uit ditzelfde profiel, dus rollende routes werden als te licht
+ingeschat. Na deze wijziging moet de bibliotheek één keer volledig opnieuw
+opgehaald worden.
 
-**Let op bij het uitrollen.** `0144` en `0145` moeten vóór deze code live staan.
-`createEvent` schrijft `zwift_event_id`, `zwift_route_id` en `laps` altijd mee, dus
-op een database zonder die kolommen breekt het aanmaken van élk event — niet alleen
-van Zwift-events. De migraties en de code horen in dezelfde uitrol.
+**Wat blijft staan:** drie routes waar `zwift-data` naar een Strava-segment wijst
+dat een andere afstand beslaat — Lutscher, Lutscher CCW en Southern Coast Cruise —
+plus Innsbruckring met dezelfde fout bij de bron. Vier van de 263. Een event op
+een van die routes heeft een GPX nodig.
 
 ### 0. Documenthygiëne en release-basis
 

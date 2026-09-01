@@ -39,8 +39,25 @@ export type RouteShape = {
 export const PROFILE_STEP_M = 25;
 /** De vorm is alleen tekenwerk; grover raster houdt de jsonb klein. */
 export const SHAPE_STEP_M = 100;
-/** Smoothing-venster voor de hoogte, gelijk aan route-sample.ts. */
-export const SMOOTH_WINDOW_M = 80;
+/**
+ * Smoothing-venster voor de hoogte.
+ *
+ * Stond aanvankelijk op 80 m, overgenomen uit route-sample.ts. Dat venster is
+ * gemaakt voor **gps-data van echte ritten**, waar de hoogte alle kanten op
+ * springt. Zwift-hoogte komt uit een game-engine: daar zit geen gps-ruis in,
+ * alleen wat kwantisatie in hoe Strava de stream bewaart.
+ *
+ * De meting die dat uitwees, op Southern Coast Cruise: ruwe som 148 hm,
+ * zwift-data 136 hm, ons profiel op 80 m smoothing 121 hm. De ruwe som ligt dus
+ * bóven zwift-data — er valt nauwelijks ruis weg te halen — terwijl ons venster
+ * er 27 hm af haalde. Dat is geen ruis maar terrein, en op rollende routes liep
+ * dat op tot 35 %.
+ *
+ * 25 m is één rasterpunt aan weerszijden: genoeg om kwantisatiegeruis te
+ * dempen, te weinig om een helling glad te strijken. Voor .gpx-routes blijft
+ * route-sample.ts op 80 m staan; daar is het venster wél terecht.
+ */
+export const SMOOTH_WINDOW_M = 25;
 
 // --- Pure logica ---------------------------------------------------------
 
