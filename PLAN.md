@@ -769,7 +769,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 ### Opgeleverd — mobiele rapportagefeedback en ZRL-specificiteitsbewaking
 
-**2026-09-01, commit `(deze commit; hash volgt in planmetadata)`.** Geen migratie.
+**2026-09-01, commit `ec3eb4b` op `main`.** Geen migratie.
 
 **Waarom.** Op het mobiele rapportageformulier gaf de knop na een tik geen
 zichtbare status. De Server Action werkte voor mobiel en desktop hetzelfde, maar
