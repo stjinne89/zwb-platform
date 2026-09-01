@@ -813,7 +813,7 @@ de loginpagina, dus een echte save met persoonsgegevens is niet uitgevoerd.
 
 ### Opgeleverd — Voor mij negeerde je eigen "nee"
 
-**2026-09-01, working tree (nog niet gecommit).** Geen migratie.
+**2026-09-01, commit `add643e` op `main` (nog niet gepusht).** Geen migratie.
 
 **Wat er mis was.** Het Voor mij-filter uit `a12210c` liet events staan waar je
 al "nee" op had geantwoord. De kalender bevroeg `event_rsvps` wel, maar alleen
