@@ -503,6 +503,18 @@ export function planUpdateDefaults(
   };
 }
 
+/** Teamlidmaatschap is het concrete signaal dat iemand ZRL rijdt; een ingevulde
+ * categorie alleen betekent nog niet dat ZRL ook het trainingsdoel is. */
+export async function loadZrlTeamMembership(viewer: Viewer): Promise<boolean> {
+  const { data } = await viewer.admin
+    .from("team_members")
+    .select("teams!inner(type)")
+    .eq("profile_id", viewer.user.id)
+    .eq("teams.type", "zrl")
+    .limit(1);
+  return Boolean(data?.length);
+}
+
 /**
  * De intervals.icu-events die géén ZWB-workout zijn.
  *

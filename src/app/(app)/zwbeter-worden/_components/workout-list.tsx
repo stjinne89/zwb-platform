@@ -12,10 +12,11 @@ import { ChevronDown, CircleHelp, Download, ExternalLink, MessageSquare } from "
 import { intensityLabel, normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { targetHint } from "@/lib/training/targets";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
-import { removeOwnRide, saveWorkoutReport } from "../_actions";
+import { removeOwnRide } from "../_actions";
 import { formAction, formatDayMonth } from "./format";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
 import { WorkoutBlocks, intervalsWorkoutUrl } from "./workout-blocks";
+import { WorkoutReportForm } from "./workout-report-form";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -33,46 +34,12 @@ function ReportPanel({ workout, report }: { workout: WorkoutRow; report?: Workou
         Rapportage en feedback
       </summary>
       <div className="mt-3 space-y-3">
-        <form action={formAction(saveWorkoutReport)} className="space-y-2">
-          <input type="hidden" name="workout_id" value={workout.id} />
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs text-muted-foreground">
-              RPE
-              <input
-                name="athlete_rpe"
-                type="number"
-                min="1"
-                max="10"
-                defaultValue={report?.athlete_rpe ?? ""}
-                className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-              />
-            </label>
-            <label className="text-xs text-muted-foreground">
-              Gevoel
-              <select
-                name="athlete_feel"
-                defaultValue={report?.athlete_feel ?? ""}
-                className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-              >
-                <option value="">-</option>
-                <option value="goed">Goed</option>
-                <option value="neutraal">Neutraal</option>
-                <option value="zwaar">Zwaar</option>
-                <option value="slecht">Slecht</option>
-              </select>
-            </label>
-          </div>
-          <textarea
-            name="athlete_report"
-            rows={3}
-            defaultValue={report?.athlete_report ?? ""}
-            placeholder="Hoe ging deze workout?"
-            className="w-full rounded-md border bg-background px-2 py-1 text-sm"
-          />
-          <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-            Rapportage opslaan
-          </button>
-        </form>
+        <WorkoutReportForm
+          workoutId={workout.id}
+          rpe={report?.athlete_rpe ?? null}
+          feel={report?.athlete_feel ?? null}
+          report={report?.athlete_report ?? null}
+        />
         {report?.trainer_feedback ? (
           <div>
             <p className="text-xs text-muted-foreground">Feedback van je trainer</p>

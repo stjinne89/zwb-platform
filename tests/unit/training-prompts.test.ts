@@ -42,4 +42,11 @@ describe("training prompts", () => {
   it("weet bij een bijwerking dat een A-mikpunt wél een piekmoment is", () => {
     expect(planUpdatePrompt()).toContain("A-mikpunt uit seasonPlan");
   });
+
+  it("maakt de wedstrijdspecifieke ZRL-prikkel expliciet", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("goal.type 'zrl'");
+    expect(prompt).toContain("één VO2max-, anaerobe of raceprikkel");
+    expect(prompt).toContain("herstelweek of concrete vermoeidheidssignalen");
+  });
 });

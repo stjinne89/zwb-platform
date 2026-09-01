@@ -19,12 +19,12 @@ import {
   intensityLabel,
   type WorkoutBlock,
 } from "@/lib/training/workouts";
-import { saveWorkoutReport } from "../_actions";
-import { formatDayMonth, formAction } from "./format";
+import { formatDayMonth } from "./format";
 import type { WorkoutOutcome } from "./completed-workouts";
 import { WorkoutBlocks } from "./workout-blocks";
 import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { WorkoutCalendar, type CalendarWorkout } from "./workout-calendar";
+import { WorkoutReportForm } from "./workout-report-form";
 
 export type MemberCalendarItem = {
   id: string;
@@ -63,8 +63,6 @@ const OUTCOME_LABELS: Record<WorkoutOutcome, string> = {
   gepland: "Staat gepland",
 };
 
-const FIELD = "mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm";
-
 function OutcomePill({ outcome, metrics }: { outcome: WorkoutOutcome; metrics: WorkoutMetricsSnapshot | null }) {
   const base = "rounded-md px-2 py-0.5 text-xs font-medium";
   if (outcome === "gereden" && metrics) {
@@ -79,58 +77,6 @@ function OutcomePill({ outcome, metrics }: { outcome: WorkoutOutcome; metrics: W
     return <span className={`${base} ${COMPLIANCE_PILLS.niet_gereden}`}>{OUTCOME_LABELS.gemist}</span>;
   }
   return <span className={`${base} bg-muted text-muted-foreground`}>{OUTCOME_LABELS[outcome]}</span>;
-}
-
-/** Wat het lid zelf invulde; blijft ook na afloop aanpasbaar. */
-function ReportForm({
-  workoutId,
-  rpe,
-  feel,
-  report,
-}: {
-  workoutId: string;
-  rpe: number | null;
-  feel: string | null;
-  report: string | null;
-}) {
-  return (
-    <form key={workoutId} action={formAction(saveWorkoutReport)} className="space-y-2">
-      <input type="hidden" name="workout_id" value={workoutId} />
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs text-muted-foreground">
-          RPE
-          <input
-            name="athlete_rpe"
-            type="number"
-            min="1"
-            max="10"
-            defaultValue={rpe ?? ""}
-            className={FIELD}
-          />
-        </label>
-        <label className="text-xs text-muted-foreground">
-          Gevoel
-          <select name="athlete_feel" defaultValue={feel ?? ""} className={FIELD}>
-            <option value="">-</option>
-            <option value="goed">Goed</option>
-            <option value="neutraal">Neutraal</option>
-            <option value="zwaar">Zwaar</option>
-            <option value="slecht">Slecht</option>
-          </select>
-        </label>
-      </div>
-      <textarea
-        name="athlete_report"
-        rows={3}
-        defaultValue={report ?? ""}
-        placeholder="Hoe ging deze training?"
-        className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-      />
-      <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-        Rapportage opslaan
-      </button>
-    </form>
-  );
 }
 
 function nl(value: number | null | undefined, digits = 0) {
@@ -294,7 +240,8 @@ function WorkoutDetail({
       ) : (
         <>
           {detail.metrics ? <WorkoutMetricsPanel metrics={detail.metrics} /> : null}
-          <ReportForm
+          <WorkoutReportForm
+            key={item.id}
             workoutId={item.id}
             rpe={detail.rpe}
             feel={detail.feel}

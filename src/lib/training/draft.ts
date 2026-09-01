@@ -40,6 +40,10 @@ import { rootIdOf } from "@/lib/training/plan-tree";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
+import {
+  goalTypeFromPromptSummary,
+  zrlPlanSpecificityCautions,
+} from "@/lib/training/specificity";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 
@@ -479,6 +483,7 @@ async function createPlanFromAiGeneration(
     | "ftp_test_type"
     | "ftp_test_date"
     | "created_at"
+    | "prompt_summary"
   >,
   planDraft: GeneratedTrainingPlan,
 ) {
@@ -504,6 +509,13 @@ async function createPlanFromAiGeneration(
   // root_plan_id wijst naar het schema waar deze rij bij hoort. Zonder dat zou
   // de aanpassing weer als los programma in de schemalijst belanden.
   const rootPlanId = await resolveRootPlanId(admin, generation.parent_plan_id ?? null);
+  const planCautions = [
+    ...planDraft.cautions,
+    ...zrlPlanSpecificityCautions(
+      goalTypeFromPromptSummary(generation.prompt_summary),
+      planDraft.workouts,
+    ),
+  ].filter((caution, index, all) => all.indexOf(caution) === index);
 
   const { data: plan, error: planError } = await admin
     .from("training_plans")
@@ -520,7 +532,7 @@ async function createPlanFromAiGeneration(
       title,
       summary: [
         planDraft.summary,
-        ...planDraft.cautions.map((caution) => `${CAUTION_PREFIX}${caution}`),
+        ...planCautions.map((caution) => `${CAUTION_PREFIX}${caution}`),
       ].join("\n\n"),
       start_date: planDraft.startDate,
       end_date: planDraft.endDate,

@@ -767,6 +767,50 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — mobiele rapportagefeedback en ZRL-specificiteitsbewaking
+
+**2026-09-01, commit `(deze commit; hash volgt in planmetadata)`.** Geen migratie.
+
+**Waarom.** Op het mobiele rapportageformulier gaf de knop na een tik geen
+zichtbare status. De Server Action werkte voor mobiel en desktop hetzelfde, maar
+de returnwaarde werd door beide formulieren genegeerd; daardoor waren succesvol
+opslaan en een fout voor het lid visueel niet te onderscheiden. Bij Jeroen
+Janssen bleek daarnaast niet de ZRL-categorie maar de doelcontext bepalend: zijn
+lopende schema was gekoppeld aan `base_fitness`, er lagen geen ZRL-races in de
+schemahorizon en het schema bevatte daardoor geen VO2max-prikkel.
+
+**Wat er is gekomen.** De twee rapportageformulieren gebruiken nu één mobiel
+geschikt formulier met een grotere opslaanknop en zichtbare statussen voor
+bezig, opgeslagen, fout en opnieuw gewijzigd. De opslag en autorisatie zelf zijn
+niet veranderd. Voor ZRL krijgt de trainingsprompt een expliciete regel: in een
+normale opbouwweek hoort één VO2max-, anaerobe of raceprikkel; een vaste race
+telt mee en herstel of concrete vermoeidheid mag de prikkel vervangen mits dat
+in `cautions` wordt uitgelegd. Na generatie wordt een ZRL-schema dat over de
+hele looptijd geen enkele van die prikkels bevat alsnog deterministisch
+gesignaleerd. Op de schemapagina ziet een ZRL-teamlid bovendien wanneer het
+lopende doel geen ZRL-doel is; bij een ZRL-doel worden ontbrekende racecontext
+en een gevulde komende twee weken zonder specifieke prikkel zichtbaar.
+
+**Bewust niet gebouwd.** Jeroens doel, wedstrijden en schema zijn niet
+automatisch aangepast: teamlidmaatschap bewijst dat hij ZRL rijdt, maar niet
+welke races hij rijdt of dat extra belasting nu veilig is. De signalering
+blokkeert daarom ook geen publicatie. Eerst hoort het doel bewust op ZRL gezet,
+de racekalender gevuld en deelname gekozen te worden; daarna kan een trainer het
+resterende schema laten herzien. Er is geen databasewijziging nodig.
+
+**Claims die niet meer kloppen.** De planner vertrouwt niet meer uitsluitend op
+de vrije AI-uitkomst voor ZRL-specificiteit: een volledig ZRL-schema zonder
+VO2max-, anaerobe of raceprikkel krijgt nu altijd een waarschuwing. De oude
+stelling dat de rapportageknop "niet werkt op mobiel" is niet als technische
+platformfout bevestigd; het aantoonbare probleem was ontbrekende terugkoppeling.
+
+**Verificatie.** `npm run build`, `npx tsc --noEmit`, gerichte eslint en 12
+gerichte Vitest-tests zijn groen. De volledige Vitest-run kwam tot 819 geslaagde
+tests en faalde op twee verwachtingen in `zwift-route-streams.test.ts`; die horen
+bij gelijktijdige, niet in deze commit opgenomen Zwift-routewijzigingen van een
+andere agent. De lokale mobiele browser bereikte zonder ingelogde sessie alleen
+de loginpagina, dus een echte save met persoonsgegevens is niet uitgevoerd.
+
 ### Opgeleverd — "Voor mij" op de kalender
 
 **2026-09-01, commit `a12210c` op `main`.** Migratie `0143`.

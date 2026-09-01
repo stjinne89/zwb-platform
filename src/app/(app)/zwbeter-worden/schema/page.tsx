@@ -10,6 +10,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
+import { zrlUpcomingSpecificityWarning } from "@/lib/training/specificity";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
@@ -30,6 +31,7 @@ import {
 } from "../_components/member-calendar";
 import { byWorkout, formatDayMonth, paramString } from "../_components/format";
 import { PlanUpdateForm } from "../_components/plan-update-form";
+import { ZrlContextNotice } from "../_components/zrl-context-notice";
 import type { GoalRow, SearchParamsProp, WorkoutReportRow } from "../_components/types";
 import {
   activePlan,
@@ -44,6 +46,7 @@ import {
   loadProfile,
   loadScheduleEventChoices,
   loadUnplannedRides,
+  loadZrlTeamMembership,
   planUpdateDefaults,
   requireViewer,
   todayKeyAmsterdam,
@@ -70,6 +73,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     availabilityOptions,
     ftpTestState,
     ignoredStreak,
+    zrlTeamMember,
   ] =
     await Promise.all([
       loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }),
@@ -87,6 +91,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       loadAvailabilityOptions(viewer),
       loadFtpTestState(viewer),
       loadIgnoredStreak(viewer),
+      loadZrlTeamMembership(viewer),
     ]);
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
@@ -121,6 +126,29 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
   const runningPlan = activePlan(plans);
   const eventChoices = await loadScheduleEventChoices(viewer, runningPlan);
+  const runningGoal = runningPlan?.goal_id
+    ? ((goalRows ?? []) as GoalRow[]).find((goal) => goal.id === runningPlan.goal_id) ?? null
+    : null;
+  const zrlMessages: string[] = [];
+  if (zrlTeamMember && runningPlan && runningGoal?.goal_type !== "zrl") {
+    zrlMessages.push(
+      "Je rijdt in een ZRL-team, maar je lopende schema is niet aan een ZRL-doel gekoppeld. Daardoor stuurt de planner niet bewust op ZRL-prikkels.",
+    );
+  }
+  if (runningGoal?.goal_type === "zrl") {
+    const zrlEvents = eventChoices.filter((event) => event.type === "zrl");
+    if (zrlEvents.length === 0) {
+      zrlMessages.push("Er staan geen ZRL-races binnen de looptijd van dit schema.");
+    } else if (!zrlEvents.some((event) => event.rsvp === "yes" || event.inSchedule)) {
+      zrlMessages.push("Geef bij de ZRL-races aan welke je rijdt, zodat ze als kwaliteitsprikkel meetellen.");
+    }
+    const specificityWarning = zrlUpcomingSpecificityWarning(
+      runningGoal.goal_type,
+      memberWorkouts,
+      todayKey,
+    );
+    if (specificityWarning) zrlMessages.push(specificityWarning);
+  }
   // Bijwerken is voor wie zijn eigen schema beheert; heeft het lid een trainer,
   // dan doet die het vanuit de trainer-pagina.
   const updateDefaults = canSelfManagePlans
@@ -201,6 +229,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           <ExternalLink className="size-5 shrink-0 text-muted-foreground" />
         </a>
       ) : null}
+
+      <ZrlContextNotice messages={zrlMessages} />
 
       <CollapsibleCard
         title="Mijn trainingen"

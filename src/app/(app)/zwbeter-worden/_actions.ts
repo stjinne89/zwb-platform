@@ -47,6 +47,11 @@ type TrainingActionState = {
   message?: string;
 } | null;
 
+export type WorkoutReportActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
 function optionalString(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
   return text || null;
@@ -635,6 +640,21 @@ export async function saveWorkoutReport(formData: FormData) {
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Rapportage opslaan faalde." };
   }
+}
+
+/**
+ * useActionState-variant van saveWorkoutReport. Het oude formulier negeerde de
+ * returnwaarde van de Server Action, waardoor succes en fouten er op mobiel
+ * allebei uitzagen als een knop die niets deed.
+ */
+export async function saveWorkoutReportWithState(
+  _previous: WorkoutReportActionState,
+  formData: FormData,
+): Promise<WorkoutReportActionState> {
+  const result = await saveWorkoutReport(formData);
+  return result.ok
+    ? { status: "success", message: "Rapportage opgeslagen." }
+    : { status: "error", message: result.error };
 }
 
 export async function saveTrainerFeedback(formData: FormData) {
