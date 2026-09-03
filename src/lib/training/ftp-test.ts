@@ -215,3 +215,195 @@ export async function loadFtpTests(
     ftpWatts: Number(row.ftp_watts),
   }));
 }
+
+/**
+ * Welke FTP het profiel hoort aan te houden nadat een uitslag is gecorrigeerd of
+ * verwijderd.
+ *
+ * Het profiel volgt de nieuwste test, maar alleen als het die waarde ook echt
+ * had: staat er een getal in dat het lid zelf heeft ingetypt of dat uit
+ * intervals.icu komt, dan mag een correctie in de historie dat niet stilzwijgend
+ * overschrijven. Blijft er na een verwijdering geen enkele test over, dan laten
+ * we het profiel staan — elk wattage in een schema hangt eraan, dus het leeghalen
+ * is schadelijker dan een verouderd getal. Het lid krijgt dat wel te zien.
+ */
+export function profileFtpAfterChange(input: {
+  /** De FTP die nu in het profiel staat. */
+  profileFtpWatts: number | null;
+  /** De FTP van de gewijzigde of verwijderde test, zoals hij in de historie stond. */
+  changedFtpWatts: number;
+  /** De nieuwste test die er ná de wijziging nog is. */
+  latestFtpWatts: number | null;
+}): {
+  /** De waarde die het profiel na afloop aanhoudt. */
+  ftpWatts: number | null;
+  /** Moet het profiel worden bijgewerkt? */
+  changed: boolean;
+  /** Het profiel volgde deze test en er is nu geen test meer om op terug te vallen. */
+  withoutTest: boolean;
+} {
+  const { profileFtpWatts, changedFtpWatts, latestFtpWatts } = input;
+  const followed = profileFtpWatts != null && profileFtpWatts === changedFtpWatts;
+  if (!followed) return { ftpWatts: profileFtpWatts, changed: false, withoutTest: false };
+  if (latestFtpWatts == null) {
+    return { ftpWatts: profileFtpWatts, changed: false, withoutTest: true };
+  }
+  return {
+    ftpWatts: latestFtpWatts,
+    changed: latestFtpWatts !== profileFtpWatts,
+    withoutTest: false,
+  };
+}
+
+export type FtpTestChange = {
+  /** De FTP die het profiel na afloop aanhoudt. */
+  profileFtpWatts: number | null;
+  /** Wat er stond voordat we hem bijwerkten. */
+  previousProfileFtpWatts: number | null;
+  profileChanged: boolean;
+  /** Het profiel hing aan deze test en er is er geen meer over. */
+  profileWithoutTest: boolean;
+  /** Zie recordFtpTest: een profiel dat intervals.icu volgt houdt dit getal niet vast. */
+  overwrittenByIntervals: boolean;
+};
+
+/** De nieuwste uitslag van een lid, of null als er geen test meer is. */
+async function latestFtpTestFtp(admin: Admin, profileId: string): Promise<number | null> {
+  const { data } = await admin
+    .from("training_ftp_tests")
+    .select("ftp_watts, tested_on, created_at")
+    .eq("profile_id", profileId)
+    .order("tested_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const row = (data ?? [])[0];
+  return row ? Number(row.ftp_watts) : null;
+}
+
+/** Het profiel achter de gecorrigeerde historie aan trekken. */
+async function syncProfileToLatestTest(
+  admin: Admin,
+  profileId: string,
+  changedFtpWatts: number,
+): Promise<FtpTestChange> {
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("ftp_watts, auto_sync_physique")
+    .eq("id", profileId)
+    .maybeSingle();
+  const current = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
+  const outcome = profileFtpAfterChange({
+    profileFtpWatts: current,
+    changedFtpWatts,
+    latestFtpWatts: await latestFtpTestFtp(admin, profileId),
+  });
+
+  if (outcome.changed && outcome.ftpWatts != null) {
+    const { error } = await admin
+      .from("profiles")
+      .update({ ftp_watts: outcome.ftpWatts })
+      .eq("id", profileId);
+    if (error) throw new Error(error.message);
+  }
+
+  return {
+    profileFtpWatts: outcome.ftpWatts,
+    previousProfileFtpWatts: current,
+    profileChanged: outcome.changed,
+    profileWithoutTest: outcome.withoutTest,
+    overwrittenByIntervals: Boolean(profile?.auto_sync_physique),
+  };
+}
+
+/** De uitslag zoals hij in de historie staat, met de eigenaarscontrole erbij. */
+async function ownFtpTest(admin: Admin, testId: string, profileId: string) {
+  const { data } = await admin
+    .from("training_ftp_tests")
+    .select("id, profile_id, workout_id, ftp_watts")
+    .eq("id", testId)
+    .maybeSingle();
+  if (!data || data.profile_id !== profileId) throw new Error("Deze test hoort niet bij jou.");
+  return {
+    workoutId: (data.workout_id as string | null) ?? null,
+    ftpWatts: Number(data.ftp_watts),
+  };
+}
+
+/**
+ * Een uitslag corrigeren. De ruwe meting wordt met de hand ingetypt en gaat dus
+ * soms mis; zonder correctie blijft die typefout niet alleen in de historie
+ * staan maar ook in de FTP waar elk wattage in het schema aan hangt.
+ *
+ * De FTP blijft afgeleid: hij volgt uit meting en protocol, precies zoals bij
+ * het opslaan. Zo kan een correctie geen combinatie opleveren die met de
+ * omrekenfactor in strijd is.
+ */
+export async function updateFtpTest(
+  admin: Admin,
+  input: {
+    testId: string;
+    profileId: string;
+    testedOn: string;
+    testType: FtpTestType;
+    resultWatts: number;
+  },
+): Promise<FtpTestChange & { ftpWatts: number }> {
+  const existing = await ownFtpTest(admin, input.testId, input.profileId);
+
+  const ftpWatts = ftpFromTest(input.testType, input.resultWatts);
+  if (ftpWatts <= 0 || ftpWatts >= 800) {
+    throw new Error("Die uitslag levert geen bruikbare FTP op; controleer het vermogen.");
+  }
+
+  const { error } = await admin
+    .from("training_ftp_tests")
+    .update({
+      tested_on: input.testedOn,
+      test_type: input.testType,
+      result_watts: Math.round(input.resultWatts * 10) / 10,
+      ftp_watts: ftpWatts,
+    })
+    .eq("id", input.testId)
+    .eq("profile_id", input.profileId);
+  if (error) throw new Error(error.message);
+
+  return { ...(await syncProfileToLatestTest(admin, input.profileId, existing.ftpWatts)), ftpWatts };
+}
+
+/**
+ * Een uitslag verwijderen.
+ *
+ * Hoorde er een testworkout bij, dan gaat die terug naar 'planned'. Dat is geen
+ * kosmetiek: loadFtpTestState() leest "afgerond" als "uitslag is er", dus een
+ * afgeronde test zonder meting zou nergens meer om een uitslag vragen.
+ */
+export async function deleteFtpTest(
+  admin: Admin,
+  input: { testId: string; profileId: string },
+): Promise<FtpTestChange & { workoutReopened: boolean }> {
+  const existing = await ownFtpTest(admin, input.testId, input.profileId);
+
+  const { error } = await admin
+    .from("training_ftp_tests")
+    .delete()
+    .eq("id", input.testId)
+    .eq("profile_id", input.profileId);
+  if (error) throw new Error(error.message);
+
+  let workoutReopened = false;
+  if (existing.workoutId) {
+    const { data: reopened } = await admin
+      .from("training_workouts")
+      .update({ status: "planned" })
+      .eq("id", existing.workoutId)
+      .eq("profile_id", input.profileId)
+      .eq("status", "completed")
+      .select("id");
+    workoutReopened = (reopened ?? []).length > 0;
+  }
+
+  return {
+    ...(await syncProfileToLatestTest(admin, input.profileId, existing.ftpWatts)),
+    workoutReopened,
+  };
+}

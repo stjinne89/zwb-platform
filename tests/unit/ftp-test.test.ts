@@ -5,6 +5,7 @@ import {
   ftpTestBlocks,
   ftpTestDurationMinutes,
   ftpTestTitle,
+  profileFtpAfterChange,
 } from "@/lib/training/ftp-test";
 
 describe("ftpFromTest", () => {
@@ -60,5 +61,48 @@ describe("ftpTestTitle", () => {
   it("benoemt het protocol in de titel", () => {
     expect(ftpTestTitle("ramp")).toContain("ramp");
     expect(ftpTestTitle("twenty_min")).toContain("20 min");
+  });
+});
+
+describe("profileFtpAfterChange", () => {
+  it("trekt het profiel mee als het aan de gecorrigeerde test hing", () => {
+    // 554 W ramp gaf 416 W; na correctie naar 520 W is dat 390 W.
+    expect(
+      profileFtpAfterChange({ profileFtpWatts: 416, changedFtpWatts: 416, latestFtpWatts: 390 }),
+    ).toEqual({ ftpWatts: 390, changed: true, withoutTest: false });
+  });
+
+  it("laat een profiel-FTP uit een andere bron met rust", () => {
+    // Handmatig ingetypt of uit intervals.icu: een correctie in de historie mag
+    // die niet stilzwijgend overschrijven.
+    expect(
+      profileFtpAfterChange({ profileFtpWatts: 300, changedFtpWatts: 416, latestFtpWatts: 390 }),
+    ).toEqual({ ftpWatts: 300, changed: false, withoutTest: false });
+  });
+
+  it("valt bij verwijderen terug op de test die overblijft", () => {
+    expect(
+      profileFtpAfterChange({ profileFtpWatts: 416, changedFtpWatts: 416, latestFtpWatts: 380 }),
+    ).toEqual({ ftpWatts: 380, changed: true, withoutTest: false });
+  });
+
+  it("laat de FTP staan als er geen test meer over is", () => {
+    // Leeghalen is schadelijker dan een verouderd getal: elk wattage in het
+    // schema hangt eraan. Het lid krijgt het wel te zien.
+    expect(
+      profileFtpAfterChange({ profileFtpWatts: 416, changedFtpWatts: 416, latestFtpWatts: null }),
+    ).toEqual({ ftpWatts: 416, changed: false, withoutTest: true });
+  });
+
+  it("schrijft niets als de nieuwste test dezelfde FTP oplevert", () => {
+    expect(
+      profileFtpAfterChange({ profileFtpWatts: 416, changedFtpWatts: 416, latestFtpWatts: 416 }),
+    ).toEqual({ ftpWatts: 416, changed: false, withoutTest: false });
+  });
+
+  it("doet niets bij een profiel zonder FTP", () => {
+    expect(
+      profileFtpAfterChange({ profileFtpWatts: null, changedFtpWatts: 416, latestFtpWatts: 390 }),
+    ).toEqual({ ftpWatts: null, changed: false, withoutTest: false });
   });
 });

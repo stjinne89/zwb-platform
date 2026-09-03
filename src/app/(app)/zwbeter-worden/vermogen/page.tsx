@@ -20,7 +20,9 @@ import {
   comparisonRidersFromRows,
   downsample,
 } from "@/lib/teams/comparison-riders";
+import { asFtpTestType } from "@/lib/training/ftp-test";
 import { ConnectIntervalsForm } from "../_components/connect-form";
+import { FtpTestHistory, type FtpTestHistoryRow } from "../_components/ftp-test-history";
 import { SyncPowerButton } from "../../teams/_components/sync-power-button";
 import { PowerCurveChart } from "@/components/charts/power-curve-chart";
 
@@ -99,6 +101,21 @@ export default async function PowerPage({
     result_watts: number;
     ftp_watts: number;
   }>;
+  // De historie gaat als los clientonderdeel de pagina in: het lid corrigeert
+  // daar een verkeerd ingetypte meting.
+  const ftpTestRows: FtpTestHistoryRow[] = ftpTests.flatMap((test) => {
+    const testType = asFtpTestType(test.test_type);
+    if (!testType) return [];
+    return [
+      {
+        id: test.id,
+        testedOn: String(test.tested_on).slice(0, 10),
+        testType,
+        resultWatts: Number(test.result_watts),
+        ftpWatts: Number(test.ftp_watts),
+      },
+    ];
+  });
   const connection = connectionResult.data;
   let comparisonRows: unknown[] | null = comparisonResult.data;
   // Databases zonder de curve-migraties kennen die kolommen niet; val dan stap
@@ -265,31 +282,10 @@ export default async function PowerPage({
             />
           </section>
 
-          {ftpTests.length > 0 ? (
+          {ftpTestRows.length > 0 ? (
             <section className="rounded-lg border bg-card p-4 sm:p-5">
               <h2 className="text-lg font-semibold">FTP-tests</h2>
-              <ul className="mt-3 divide-y text-sm">
-                {ftpTests.map((test) => (
-                  <li key={test.id} className="flex items-center justify-between gap-3 py-2">
-                    <span>
-                      {new Date(`${test.tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                      <span className="ml-2 text-muted-foreground">
-                        {test.test_type === "ramp" ? "ramp" : "20 min"}
-                      </span>
-                    </span>
-                    <span className="tabular-nums">
-                      <span className="text-muted-foreground">
-                        {Math.round(Number(test.result_watts))} W gemeten
-                      </span>
-                      <span className="ml-3 font-medium">{test.ftp_watts} W FTP</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <FtpTestHistory tests={ftpTestRows} />
             </section>
           ) : null}
 

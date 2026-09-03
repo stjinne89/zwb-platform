@@ -767,6 +767,70 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — een verkeerd ingetypte testuitslag corrigeren
+
+**2026-09-03, branch `claude/ftp-ramptest-edit-delete-3opo4k`.** Geen migratie.
+
+**Waarom.** De uitslag van een FTP-test is handinvoer: het lid typt na de
+ramptest zijn hoogste minuutvermogen in. Eén cijfer ernaast en het loopt door tot
+in de wattages van elke training — `recordFtpTest()` zet `profiles.ftp_watts` en
+daar hangt `blockToPowerTarget()` aan. De historie op `/zwbeter-worden/vermogen`
+was tot nu toe read-only, dus de enige uitweg uit een typefout was een nieuwe
+test doen. Kwam als feedback van een lid, met een ramptest van 554 W → 416 W FTP
+in beeld.
+
+**Wat er is gekomen.** Elke regel in het blok FTP-tests heeft nu een potlood en
+een prullenbak (`_components/ftp-test-history.tsx`, clientonderdeel; de
+serverpagina levert alleen de rijen). Bewerken opent de regel als klein formulier
+met datum, testvorm en gemeten vermogen, met de afgeleide FTP live ernaast.
+Verwijderen vraagt een bevestiging. Twee Server Actions,
+`correctFtpTestResult()` en `removeFtpTestResult()`, en twee functies in
+`src/lib/training/ftp-test.ts` (`updateFtpTest()`, `deleteFtpTest()`).
+
+Vier beslissingen die het gedrag bepalen:
+
+- **De FTP blijft afgeleid.** Hij volgt uit meting × protocolfactor, net als bij
+  het opslaan; hij is dus geen invoerveld. Anders kun je een regel achterlaten
+  waarin de omrekenfactor niet meer klopt, en juist die ruwe waarde bewaren we om
+  een oude test opnieuw te kunnen uitrekenen.
+- **Het profiel volgt alleen mee als het aan déze test hing**
+  (`profileFtpAfterChange()`, puur en getest). Stond er een getal in dat het lid
+  zelf intypte of dat uit intervals.icu komt, dan mag een correctie in de
+  historie dat niet stilzwijgend overschrijven. Hing het er wel aan, dan zakt het
+  profiel terug naar de nieuwste test die overblijft.
+- **Verwijderen zet de testworkout terug op `planned`.** `loadFtpTestState()`
+  leest "afgerond" als "uitslag is er"; een afgeronde test zonder meting zou
+  nergens meer om een uitslag vragen. Gevolg: na verwijderen staat op de
+  schemapagina weer het invulveld voor die test.
+- **Herzien alleen als de FTP echt verschuift.** Een correctie in de datum van
+  een oude test verandert geen enkel wattage, en elke herziening is een
+  AI-generatie die geld kost. `requestReplan()` draait dus alleen bij
+  `profileChanged`.
+
+**Bewust niet gebouwd.** De FTP is niet los invulbaar (zie hierboven). Een
+trainer kan de uitslag van een lid niet corrigeren: de acties draaien op
+`auth.uid()` en `/zwbeter-worden/trainer/vermogen` toont de historie niet — de
+RLS-policies uit `0131` staan het wel toe, dus dat kan later zonder migratie.
+Verwijder je je enige test, dan blijft `profiles.ftp_watts` staan op de waarde
+van die test: leeghalen is schadelijker dan een verouderd getal, want elk wattage
+hangt eraan. Het lid krijgt in plaats daarvan de zin dat het profiel die waarde
+aanhoudt en zelf aan te passen is. Het blok FTP-tests staat nog altijd binnen de
+intervals.icu-tak van de pagina, dus een lid zonder koppeling ziet zijn historie
+niet en kan dus ook niets corrigeren; dat losmaken viel buiten deze ronde.
+`note` is nog steeds nergens in te vullen of te tonen.
+
+**Claims die niet meer kloppen.** In de ronde van 2026-08-20 stond dat de
+uitslagen "als lijst" op `/zwbeter-worden/vermogen` staan; die lijst is nu ook de
+plek waar je ze corrigeert of verwijdert.
+
+**Niet lokaal te verifiëren.** Er is hier geen database, dus de update en delete
+zelf, de terugval op de nieuwste overgebleven test en het terugzetten van de
+workoutstatus zijn niet tegen Postgres gedraaid. Alleen de beslisregel
+(`profileFtpAfterChange`) is unit-getest.
+
+**Verificatie.** `npm run build`, `npx tsc --noEmit`, eslint op de gewijzigde
+bestanden en de volledige Vitest-run (770 tests, 66 bestanden) zijn groen.
+
 ### Opgeleverd — mobiele rapportagefeedback en ZRL-specificiteitsbewaking
 
 **2026-09-01, commit `ec3eb4b` op `main`.** Geen migratie.
@@ -1761,7 +1825,8 @@ De prompt kreeg twee regels: hoe je om een `kind: 'ftp_test'` heen plant (dag
 ervoor licht, dag erna geen sleutelsessie), en dat een FTP ouder dan acht weken
 in `cautions` benoemd hoort te worden — de AI plant zelf nooit een test, hij
 signaleert alleen dat er één nodig is, en die keuze ligt bij de trainer. `profile.ftpTestedOn` gaat daarvoor mee
-in de input. Uitslagen staan als lijst op `/zwbeter-worden/vermogen`, en komt de
+in de input. Uitslagen staan als lijst op `/zwbeter-worden/vermogen` — sinds 2026-09-03 ook
+te corrigeren en te verwijderen — en komt de
 profiel-FTP uit een test, dan noemt de FTP-tegel die datum als bron. Uitleg op
 `/hulp#ftp-test`, met zoekindex-regel.
 

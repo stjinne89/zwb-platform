@@ -17,7 +17,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",
     href: "/hulp#ftp-test",
     terms:
-      "ftp test ramptest ramp 20 minuten twintig minuten drempel vermogen watt meten uitslag testen targetwatts",
+      "ftp test ramptest ramp 20 minuten twintig minuten drempel vermogen watt meten uitslag testen targetwatts corrigeren aanpassen wijzigen verwijderen verkeerd ingevuld fout",
   },
   {
     title: "Strava koppelen",

@@ -29,8 +29,10 @@ import {
 import { reviewNotificationBody } from "@/lib/training/completion";
 import {
   asFtpTestType,
+  deleteFtpTest,
   FTP_TEST_LABELS,
   recordFtpTest,
+  updateFtpTest,
 } from "@/lib/training/ftp-test";
 import { insertFtpTestWorkout } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -1314,6 +1316,85 @@ export async function saveFtpTestResult(formData: FormData) {
       error: err instanceof Error ? err.message : "Uitslag opslaan faalde.",
     };
   }
+}
+
+/**
+ * Een uitslag corrigeren. Het vermogen wordt met de hand ingetypt, dus een
+ * verkeerd getal komt voor — en het werkt door in de FTP waar elk wattage in het
+ * schema aan hangt. Zonder correctie zou het lid alleen een nieuwe test kunnen
+ * doen om er vanaf te komen.
+ */
+export async function correctFtpTestResult(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+
+    const testId = mustString(formData.get("test_id"), "Test");
+    const testType = asFtpTestType(formData.get("test_type"));
+    if (!testType) throw new Error("Kies een testvorm.");
+    const testedOn = mustString(formData.get("tested_on"), "Datum");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(testedOn)) throw new Error("Ongeldige datum.");
+    const resultWatts = optionalNumber(formData.get("result_watts"));
+    if (resultWatts == null || resultWatts < 50 || resultWatts > 999) {
+      throw new Error("Vul een vermogen tussen 50 en 999 watt in.");
+    }
+
+    const change = await updateFtpTest(admin, {
+      testId,
+      profileId: user.id,
+      testedOn,
+      testType,
+      resultWatts,
+    });
+
+    revalidatePath("/zwbeter-worden", "layout");
+    revalidatePath("/profiel");
+    return { ...change, ok: true as const, generationId: await replanAfterFtpChange(admin, user.id, change) };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Uitslag aanpassen faalde.",
+    };
+  }
+}
+
+/** Een uitslag die er helemaal niet had moeten staan weghalen. */
+export async function removeFtpTestResult(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const testId = mustString(formData.get("test_id"), "Test");
+
+    const change = await deleteFtpTest(admin, { testId, profileId: user.id });
+
+    revalidatePath("/zwbeter-worden", "layout");
+    revalidatePath("/profiel");
+    return { ...change, ok: true as const, generationId: await replanAfterFtpChange(admin, user.id, change) };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Uitslag verwijderen faalde.",
+    };
+  }
+}
+
+/**
+ * Alleen herzien als de FTP van het profiel daadwerkelijk is verschoven: een
+ * correctie in de datum van een oude test verandert geen enkel wattage, en een
+ * generatie kost geld.
+ */
+async function replanAfterFtpChange(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+  change: { profileChanged: boolean; profileFtpWatts: number | null },
+) {
+  if (!change.profileChanged) return null;
+  const replan = await requestReplan(
+    admin,
+    profileId,
+    `FTP gecorrigeerd naar ${change.profileFtpWatts} W.`,
+  );
+  return replan.started ? replan.generationId : null;
 }
 
 /**

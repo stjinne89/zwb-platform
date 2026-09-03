@@ -881,7 +881,10 @@ export default function HelpPage() {
               een 20-minutentest. ZWB rekent daar je FTP uit (75% respectievelijk
               95%), zet die in je profiel en werkt de targetwatts van de rest van
               je schema bij. Staat je profiel op bijhouden vanuit intervals.icu,
-              dan zet de eerstvolgende sync je eFTP terug.
+              dan zet de eerstvolgende sync je eFTP terug. Typte je het verkeerde
+              vermogen in, dan pas je de uitslag aan of verwijder je hem bij{" "}
+              <strong className="text-foreground">Mijn vermogen</strong> onder
+              FTP-tests; je FTP en de targetwatts volgen die correctie.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
