@@ -769,7 +769,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 ### Opgeleverd — een verkeerd ingetypte testuitslag corrigeren
 
-**2026-09-03, branch `claude/ftp-ramptest-edit-delete-3opo4k`.** Geen migratie.
+**2026-09-03, commit `6ea2dc4` op branch `claude/ftp-ramptest-edit-delete-3opo4k`.** Geen migratie.
 
 **Waarom.** De uitslag van een FTP-test is handinvoer: het lid typt na de
 ramptest zijn hoogste minuutvermogen in. Eén cijfer ernaast en het loopt door tot
