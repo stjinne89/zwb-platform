@@ -319,7 +319,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   wat de vorige heeft opgemaakt. Dat was principieel onmogelijk zolang elke run
   zonder geheugen begon.
 
-  *Nagekomen hardening (commit `<hash2>`).* Twee dingen die pas bij het naar
+  *Nagekomen hardening (commit `6fc0bbc`).* Twee dingen die pas bij het naar
   productie brengen opvielen. (a) Het inactiviteitsbeleid sloeg bij een
   onleesbare `last_sign_in_at` stil terug op "niemand logt in", en zou dan leden
   waarschuwen die dagelijks in de app zitten maar toevallig een jaar niet hebben
