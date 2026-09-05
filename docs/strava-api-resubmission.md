@@ -19,15 +19,15 @@ lijkt het alsof we juist verder van de cap af zijn geraakt.
 
 ## Checklist vóór indienen
 
-- [ ] `STRAVA_WEBHOOK_VERIFY_TOKEN` gezet in Netlify (en niet meer wijzigen).
-- [ ] Migraties `0148` t/m `0151` gedraaid op productie.
-- [ ] Gedeployd, daarna op `/beheer/strava` → **Webhooks** → **Aanmaken**.
-      Noteer het subscription-id.
+- [x] `STRAVA_WEBHOOK_VERIFY_TOKEN` gezet in Netlify (en niet meer wijzigen).
+- [x] Migraties `0148` t/m `0151` gedraaid op productie.
+- [x] Gedeployd, daarna op `/beheer/strava` → **Webhooks** → **Aanmaken**.
+      Subscription **371417**, callback
+      `https://zwb-platform.netlify.app/api/strava/webhook` (2026-09-05).
 - [ ] Externe cron (cron-job.org) voor `/api/strava/sync` teruggezet van elke
       15-30 minuten naar **1x per dag**.
 - [ ] Minstens **7 dagen** laten draaien.
 - [ ] Daarna invullen in de notitie hieronder:
-  - subscription-id en callback-URL;
   - aantal gekoppelde atleten (`/beheer/strava` → *Gekoppeld*) tegenover de cap;
   - aantal opgeruimde koppelingen sinds de uitrol;
   - dagelijks callvolume vóór en na (`strava_api_usage.daily_used`, en de
@@ -59,8 +59,8 @@ We previously polled `GET /athlete/activities` for every connected athlete on a
 15-30 minute cron, regardless of whether the athlete had ridden. That was the bulk
 of our API usage and almost all of it returned no new data.
 
-We now run a single push subscription (id `<subscription id>`, callback
-`https://<site>/api/strava/webhook`). Activity events are queued on receipt and
+We now run a single push subscription (id `371417`, callback
+`https://zwb-platform.netlify.app/api/strava/webhook`). Activity events are queued on receipt and
 processed out-of-band, so the callback always answers well within the two-second
 window. Each `create`/`update` event results in exactly one
 `GET /activities/{id}` call for that specific activity; `delete` events need no
