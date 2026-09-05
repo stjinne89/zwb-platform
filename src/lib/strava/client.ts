@@ -1,6 +1,17 @@
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secrets";
 import { guessDiscipline } from "@/lib/maintenance/guess-discipline";
 import { hasActivityWriteScope } from "@/lib/strava/scope";
+import { isCyclingSportType } from "@/lib/strava/sports";
+import { isInvalidGrant } from "@/lib/strava/deauthorize";
+import {
+  revocationPatch,
+  StravaConnectionRevokedError,
+} from "@/lib/strava/lifecycle";
+import {
+  loadRateLimitUsage,
+  recordRateLimitUsage,
+  shouldPauseForRateLimit,
+} from "@/lib/strava/rate-limit-budget";
 
 type StravaTokenResponse = {
   access_token: string;
@@ -157,8 +168,7 @@ async function refreshStravaToken(refreshToken: string) {
 }
 
 function isCyclingActivity(activity: StravaActivity) {
-  const type = activity.sport_type ?? activity.type ?? "";
-  return /ride|cycling|bike/i.test(type);
+  return isCyclingSportType(activity.sport_type ?? activity.type);
 }
 
 export function weekStartDate(value = new Date()) {
@@ -186,7 +196,30 @@ export async function accessTokenFor(
   // Tokens kunnen versleuteld uit de DB komen; centraal ontsleutelen bij gebruik.
   if (connection.expires_at > now + 600) return decryptSecret(connection.access_token);
 
-  const refreshed = await refreshStravaToken(decryptSecret(connection.refresh_token));
+  let refreshed: StravaTokenResponse;
+  try {
+    refreshed = await refreshStravaToken(decryptSecret(connection.refresh_token));
+  } catch (err) {
+    // Een refresh-token die Strava niet meer accepteert betekent dat de atleet de
+    // app op strava.com heeft ingetrokken. Tot nu toe kwam dat als generieke fout
+    // naar boven en probeerde de cron dezelfde dode koppeling elke run opnieuw.
+    // Nu markeren we 'm meteen: er valt niets meer te deauthoriseren, de grant is
+    // al weg, dus deauthorized_at gaat direct mee.
+    if (isInvalidGrant(err)) {
+      await supabase
+        .from("strava_connections")
+        .update(
+          revocationPatch("invalid_grant", {
+            deauthorized: true,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        )
+        .eq("profile_id", connection.profile_id);
+      throw new StravaConnectionRevokedError("invalid_grant");
+    }
+    throw err;
+  }
+
   const { error } = await supabase
     .from("strava_connections")
     .update({
@@ -403,7 +436,7 @@ export async function syncStravaActivitiesForUser(
   const { data: connection, error } = await supabase
     .from("strava_connections")
     .select(
-      "profile_id, strava_athlete_id, access_token, refresh_token, expires_at, scope",
+      "profile_id, strava_athlete_id, access_token, refresh_token, expires_at, scope, revoked_at",
     )
     .eq("profile_id", profileId)
     .maybeSingle();
@@ -411,6 +444,11 @@ export async function syncStravaActivitiesForUser(
   if (error) throw new Error(error.message);
   if (!connection) {
     return { ok: false as const, error: "Koppel eerst Strava." };
+  }
+  // Een opgeheven koppeling wordt nooit meer gesynct; de rij bestaat alleen nog
+  // tot de sweeper de deauthorisatie bij Strava heeft afgerond.
+  if ((connection as { revoked_at?: string | null }).revoked_at) {
+    return { ok: false as const, error: "Deze Strava-koppeling is opgeheven." };
   }
 
   const accessToken = await accessTokenFor(supabase, connection as StravaConnection);
@@ -476,6 +514,38 @@ export async function syncStravaActivitiesForUser(
   let stravaRateLimited = false;
   const remoteCyclingActivityIds = new Set<number>();
 
+  // Strava's limieten gelden per applicatie. Het laatst waargenomen verbruik staat
+  // in strava_api_usage, zodat een koud gestarte cronrun weet wat de vorige run
+  // heeft opgemaakt — anders is een dagbudget bewaken onmogelijk.
+  const budgetBefore = shouldPauseForRateLimit(await loadRateLimitUsage(supabase));
+  if (budgetBefore.pause) {
+    return {
+      ok: true as const,
+      upserted: 0,
+      removed: 0,
+      milestoneAwards: 0,
+      milestoneErrors: [],
+      colSegmentTimesFetched: 0,
+      colSegmentTimesUpdated: 0,
+      colSegmentTimesRateLimited: false,
+      zwbSegmentsFetched: 0,
+      zwbSegmentEffortsStored: 0,
+      zwbSegmentsCompleted: 0,
+      zwbSegmentsRateLimited: false,
+      zwbSummariesWritten: 0,
+      zwbSummariesSkipped: 0,
+      zwbSummariesRateLimited: false,
+      pagesScanned: 0,
+      totalSeen: 0,
+      nonCyclingSkipped: 0,
+      isFirstSync,
+      nextPage: startPage,
+      afterTs: after,
+      done: false,
+      stravaRateLimited: true,
+    };
+  }
+
   for (let i = 0; i < chunkPages; i++) {
     const page = startPage + i;
     const url = new URL("https://www.strava.com/api/v3/athlete/activities");
@@ -486,7 +556,12 @@ export async function syncStravaActivitiesForUser(
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
+      // Als enige call had deze geen timeout; een hangende fetch kostte de hele
+      // Netlify-invocatie.
+      signal: AbortSignal.timeout(15_000),
     });
+
+    const usage = await recordRateLimitUsage(supabase, res.headers);
 
     if (res.status === 429) {
       // Rate-limited binnen deze chunk: geef cursor terug zodat de client
@@ -561,6 +636,14 @@ export async function syncStravaActivitiesForUser(
       break; // laatste pagina
     }
 
+    // Zit de app tegen de limiet, dan stoppen we netjes met een cursor in plaats
+    // van door te rammen en de sync van andere leden op te blazen.
+    if (shouldPauseForRateLimit(usage).pause) {
+      nextPage = page + 1;
+      stravaRateLimited = true;
+      break;
+    }
+
     // Kleine pauze tussen pages — beleefd zijn voor Strava's rate limit.
     if (i < chunkPages - 1) {
       await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
@@ -605,9 +688,17 @@ export async function syncStravaActivitiesForUser(
     }
   }
 
+  // updated_at was tot nu toe tegelijk "token ververst" en "cronvolgorde".
+  // last_synced_at maakt dat expliciet, zodat de reconcile op syncleeftijd kan
+  // sorteren zonder dat een tokenrefresh iemand achteraan de rij zet.
   await supabase
     .from("strava_connections")
-    .update({ updated_at: new Date().toISOString() })
+    .update({
+      last_synced_at: new Date().toISOString(),
+      consecutive_failures: 0,
+      last_error: null,
+      last_error_at: null,
+    })
     .eq("profile_id", profileId);
 
   // Milestone-evaluators: alleen op de laatste chunk, anders draaien we
@@ -627,156 +718,47 @@ export async function syncStravaActivitiesForUser(
   let zwbSummariesSkipped = 0;
   let zwbSummariesRateLimited = false;
   if (done) {
+    // De nasync-stappen staan in post-sync.ts, omdat het webhook-pad exact
+    // dezelfde stappen moet draaien voor de ritten die daar binnenkomen.
     try {
       const { createAdminClient } = await import("@/lib/supabase/admin");
+      const { runPostSyncForProfile } = await import("@/lib/strava/post-sync");
       const admin = createAdminClient();
 
-      // Onderhoud: fiets-kilometerstanden + slijtage EERST, vóór het zware
-      // werk hieronder. Zo landt de gear-data altijd — ook als de col-detector
-      // of evaluators op een grote historie tegen de functietimeout aanlopen.
-      // De /athlete-call is bovendien gethrottled (max 1×/24u).
-      try {
-        await syncStravaBikesForUser(admin, profileId, accessToken, {
-          minIntervalHours: 24,
-        });
-        const { evaluateMaintenanceForProfile } = await import(
-          "@/lib/maintenance/evaluate"
-        );
-        await evaluateMaintenanceForProfile(admin, profileId);
-      } catch {
-        // niet kritiek voor de sync-flow
-      }
+      const skip = Boolean(options.skipPostProcessing);
+      const maxColSegmentFetches = options.colSegmentMaxFetches ?? 20;
 
-      // ZWBeter Worden-samenvatting in de Strava-beschrijving. Net als de
-      // gear-sync bewust vóór het zware werk hieronder en buiten
-      // skipPostProcessing: het zijn 2-3 calls, en de activiteiten zijn hier
-      // net vers. Zonder activity:write in de scope slaan we het stil over —
-      // dat lid moet Strava eerst opnieuw koppelen.
-      const maxSummaryWrites = options.zwbSummaryMaxWrites ?? 1;
-      if (
-        maxSummaryWrites > 0 &&
-        hasActivityWriteScope((connection as { scope?: string | null }).scope)
-      ) {
-        try {
-          const { writeZwbSummariesForUser } = await import(
-            "@/lib/strava/summary-writer"
-          );
-          const summaryResult = await writeZwbSummariesForUser(
-            admin,
-            profileId,
-            accessToken,
-            { maxWrites: maxSummaryWrites },
-          );
-          zwbSummariesWritten = summaryResult.written;
-          zwbSummariesSkipped = summaryResult.skipped;
-          zwbSummariesRateLimited = summaryResult.rateLimited;
-        } catch {
-          // niet kritiek voor de sync-flow
-        }
-      }
+      const post = await runPostSyncForProfile(admin, profileId, accessToken, {
+        gear: true,
+        summaries: options.zwbSummaryMaxWrites ?? 1,
+        hasActivityWriteScope: hasActivityWriteScope(
+          (connection as { scope?: string | null }).scope,
+        ),
+        workoutCompletion: true,
+        watopiaCalibration: !skip,
+        colsDetector: !skip,
+        zwblokken: !skip,
+        colSegmentTimes: skip ? 0 : maxColSegmentFetches,
+        // undefined = overslaan; 0 betekent "doorrekenen zonder nieuwe calls".
+        zwbSegments: skip
+          ? undefined
+          : (options.zwbSegmentMaxFetches ?? maxColSegmentFetches),
+        milestones: !skip,
+        removedActivityIds: skip ? [] : removedActivityIds,
+      });
 
-      // Geplande workouts afronden waar een rit bij hoort, zodat het lid het
-      // bevestigscherm krijgt. Hangt alleen aan intervals.icu, dus los van de
-      // Strava-scope hierboven; de summary-writer heeft de belasting per rit
-      // net bijgewerkt.
-      try {
-        const { detectCompletedWorkouts } = await import("@/lib/training/completion");
-        await detectCompletedWorkouts(admin, profileId);
-      } catch {
-        // niet kritiek voor de sync-flow
-      }
-
-      // Zware na-sync-stappen (alle activiteiten doorlopen): bij de
-      // interactieve sync overgeslagen om binnen de Netlify-timeout te blijven.
-      if (!options.skipPostProcessing) {
-        // Watopia-kalibratie — haalt eenmalig de virtuele summit-coords op
-        // via de Strava segment-API (we hebben de accessToken hier).
-        try {
-          const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
-          await calibrateWatopiaCols(admin, accessToken);
-        } catch {
-          // niet kritiek
-        }
-
-        // Col-detector — best-effort, faalt stil als polyline-data ontbreekt.
-        try {
-          const { syncClimbedColsForUser } = await import("@/lib/cols/detector");
-          await syncClimbedColsForUser(admin, profileId);
-        } catch {
-          // niet kritiek voor de sync-flow
-        }
-
-        // ZWBlokken — verwerkt alleen de nog niet gemarkeerde ritten, dus na
-        // de eerste inhaalslag is dit een paar ritten per sync.
-        try {
-          const { syncBlocksForUser } = await import("@/lib/zwblokken/sync");
-          await syncBlocksForUser(admin, profileId);
-        } catch {
-          // niet kritiek voor de sync-flow
-        }
-
-        if (removed > 0) {
-          try {
-            const { repairDeletedColBestTimesForUser } = await import(
-              "@/lib/cols/segment-times"
-            );
-            await repairDeletedColBestTimesForUser(
-              admin,
-              profileId,
-              removedActivityIds,
-            );
-          } catch {
-            // niet kritiek voor de sync-flow
-          }
-        }
-
-        // Segmenttijden horen bij de cols-collectie zelf, niet alleen bij de
-        // badge-recompute-knop. Beperkt houden i.v.m. Strava rate limits.
-        const maxColSegmentFetches = options.colSegmentMaxFetches ?? 20;
-        if (maxColSegmentFetches > 0) {
-          try {
-            const { syncColSegmentTimesForUser } = await import(
-              "@/lib/cols/segment-times"
-            );
-            const segmentResult = await syncColSegmentTimesForUser(
-              admin,
-              accessToken,
-              profileId,
-              { maxFetches: maxColSegmentFetches },
-            );
-            colSegmentTimesFetched = segmentResult.fetched;
-            colSegmentTimesUpdated = segmentResult.updated;
-            colSegmentTimesRateLimited = segmentResult.rateLimited;
-          } catch {
-            // niet kritiek voor de sync-flow
-          }
-        }
-
-        const maxZwbSegmentFetches =
-          options.zwbSegmentMaxFetches ?? maxColSegmentFetches;
-        try {
-          const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
-          const segmentResult = await syncZwbSegmentsForUser(
-            admin,
-            accessToken,
-            profileId,
-            { maxFetches: maxZwbSegmentFetches },
-          );
-          zwbSegmentsFetched = segmentResult.fetched;
-          zwbSegmentEffortsStored = segmentResult.storedEfforts;
-          zwbSegmentsCompleted = segmentResult.completed;
-          zwbSegmentsRateLimited = segmentResult.rateLimited;
-        } catch {
-          // niet kritiek voor de sync-flow
-        }
-
-        const { evaluateMilestonesForUser } = await import(
-          "@/lib/achievements/milestone-evaluators"
-        );
-        const result = await evaluateMilestonesForUser(admin, profileId);
-        milestoneAwards = result.awarded;
-        milestoneErrors = result.errors;
-      }
+      milestoneAwards = post.milestoneAwards;
+      milestoneErrors = post.milestoneErrors;
+      colSegmentTimesFetched = post.colSegmentTimesFetched;
+      colSegmentTimesUpdated = post.colSegmentTimesUpdated;
+      colSegmentTimesRateLimited = post.colSegmentTimesRateLimited;
+      zwbSegmentsFetched = post.zwbSegmentsFetched;
+      zwbSegmentEffortsStored = post.zwbSegmentEffortsStored;
+      zwbSegmentsCompleted = post.zwbSegmentsCompleted;
+      zwbSegmentsRateLimited = post.zwbSegmentsRateLimited;
+      zwbSummariesWritten = post.zwbSummariesWritten;
+      zwbSummariesSkipped = post.zwbSummariesSkipped;
+      zwbSummariesRateLimited = post.zwbSummariesRateLimited;
     } catch (err) {
       milestoneErrors = [
         err instanceof Error

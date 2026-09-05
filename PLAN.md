@@ -4,6 +4,17 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
+> Update 2026-09-05: Strava wees onze aanvraag voor een hogere atletenlimiet af.
+> Daarop is de integratie omgebouwd van polling naar webhooks en is
+> deauthorisatie-beheer gebouwd (migraties `0148`-`0151`): `/api/strava/webhook`
+> + eventwachtrij, een minuutlijkse verwerker, `POST /oauth/deauthorize` bij
+> ontkoppelen/accountverwijdering, herkenning van op strava.com ingetrokken
+> koppelingen, een nachtelijke opruiming met inactiviteitsbeleid, dataretentie
+> bij ontkoppelen, en een app-breed rate-limit-budget. `/api/strava/sync` is
+> daarmee een dagelijkse reconcile geworden in plaats van een kwartierpoll.
+> Herindiening bij Strava kan pas ná deploy + een week meten; checklist in
+> `docs/strava-api-resubmission.md`, bediening in `docs/runbook.md` §6.
+>
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
@@ -254,6 +265,78 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Buiten oorspronkelijk plan opgeleverd
+
+- **Strava-webhooks en actief koppelingbeheer** (2026-09-05, commit `<hash>`,
+  migr. `0148`-`0151`): antwoord op Strava's **afwijzing** van onze aanvraag voor
+  een hogere atletenlimiet. Die afwijzing stelde twee eisen — webhooks in plaats
+  van polling, en actief beheer van stale en gedeauthoriseerde atleten — en op
+  beide voldeed de app aantoonbaar niet.
+
+  *Wat er misging.* We pollden elke 15-30 minuten `/athlete/activities` voor élke
+  koppeling, ongeacht of er gereden was: ordegrootte 2.000-7.700 calls per dag,
+  vrijwel allemaal leeg. De dure col- en ZWB-segmentdetailcalls stonden daarom in
+  de cron op 0 — features uitgezet om het pollen te kunnen betalen. Daarnaast
+  riepen we `POST /oauth/deauthorize` **nergens** aan: elk lid dat in de app
+  ontkoppelde of zijn account verwijderde bleef op Strava's kant gekoppeld en
+  bezette permanent een plek in onze cap, terwijl wij de rij met de token net
+  hadden weggegooid. En een koppeling die op strava.com was ingetrokken werd nooit
+  gemarkeerd maar wél elke cronrun opnieuw geprobeerd — precies de "stale
+  athletes" uit de afwijzing.
+
+  *Webhooks.* `GET/POST /api/strava/webhook` doet de verificatie-handshake en zet
+  events in `strava_webhook_events`; hij antwoordt **altijd** 200, ook bij een
+  fout aan onze kant, want een 5xx kost ons de subscription. Verwerken gebeurt
+  buiten die request om, via de Netlify function `strava-webhook-process` (elke
+  minuut) op `/api/strava/webhook/process` — achtergrondwerk ná het antwoord is op
+  serverless niet betrouwbaar. Eén `GET /activities/{id}?include_all_efforts=true`
+  per échte rit levert meteen ook de segment-inspanningen, waardoor coltijden en
+  ZWB-segmenttijden gratis meekomen in plaats van elk hun eigen detailcall te
+  doen. Subscriptionbeheer zit op `/beheer/strava` (aanmaken/status/verwijderen),
+  want Strava valideert de callback live en dat kan alleen tegen productie.
+
+  *Koppelingbeheer.* `strava_connections` kreeg een levenscyclus: `revoked_at`
+  (de app negeert de rij) los van `deauthorized_at` (Strava weet het ook). Tussen
+  die twee blijft de rij bewust staan — we hebben de token nodig om te kúnnen
+  deauthoriseren. Alle vier de paden zijn afgedekt: ontkoppelen in de app,
+  account verwijderen, intrekken op strava.com (webhook), en een afgewezen
+  refresh-token (`invalid_grant`, nu herkend in plaats van eeuwig herhaald). De
+  nachtelijke sweeper (`strava-lifecycle`, 03:40) maakt openstaande
+  deauthorisaties af, ruimt op, en draait het inactiviteitsbeleid: geen ritten én
+  geen login in 12 maanden → waarschuwing, na 30 dagen loskoppelen.
+
+  *Retentie.* Bij een ingetrokken koppeling gaat de ruwe Strava-data weg
+  (activiteiten, segment-efforts, gear, `strava_id`, Strava-avatar); de afgeleide
+  clubdata blijft (badges, ZWBlokken, onderhoud, coltijden — die FK staat op
+  `on delete set null`). De bevestigtekst bij "Ontkoppel Strava" beloofde tot nu
+  toe het tegenovergestelde en is aangepast.
+
+  *Poll wordt reconcile.* `/api/strava/sync` selecteert nu op `last_synced_at`
+  (niet meer op `updated_at`, dat ook door een tokenrefresh werd aangeraakt —
+  waardoor leden achteraan de rij structureel verhongerden), slaat gerevokte
+  koppelingen over, en hoort **1x per dag** te draaien. Nieuw is een app-breed
+  rate-limit-budget in `strava_api_usage`: we lezen de `x-ratelimit-*`-headers nu
+  op elke call en bewaren de laatste meting, zodat een koud gestarte cronrun weet
+  wat de vorige heeft opgemaakt. Dat was principieel onmogelijk zolang elke run
+  zonder geheugen begon.
+
+  *Bewust niet gebouwd.* (a) Het pollpad is niet verwijderd: bij een gemist of
+  vertraagd event is de dagelijkse reconcile het enige vangnet, en dat opgeven
+  vóór we webhookbetrouwbaarheid hebben gemeten is te vroeg. (b) Geen
+  e-mailwaarschuwing bij het inactiviteitsbeleid — de app heeft geen
+  transactionele e-mail, alleen Supabase's auth-mails; daarom staat er een teller
+  "Waarschuwing verstuurd" op `/beheer/strava` zodat het bestuur die leden via
+  WhatsApp kan benaderen. (c) Geen retry-met-backoff op de Strava-calls zelf: het
+  budget stopt nu vóór een 429 in plaats van erna te herstellen.
+
+  *Niet lokaal te verifiëren:* de migraties `0148`-`0151` (geen Docker/Supabase
+  hier), het aanmaken van de subscription (vereist een publieke HTTPS-callback) en
+  echte Strava-deliveries. Wél lokaal getest: `npm run lint`, `npm run test` (822
+  tests, waarvan 52 nieuw over webhookparsing, de toestandsmachine, de
+  rit-mapping en het budget), `npm run build`, plus een smoke-test tegen
+  `next dev` — de handshake geeft 200 met `{"hub.challenge":...}`, een verkeerd
+  verify token 403, en een POST met onbereikbare database geeft nog steeds 200.
+  Herindieningsdossier: `docs/strava-api-resubmission.md`; bediening en
+  storingsafhandeling: `docs/runbook.md` §6.
 
 - `/community` met announcements
 - `/media` met podcasts (RSS-sync), YouTube channel-sync, nieuwsbrief,
@@ -2558,8 +2641,8 @@ events/kaart, onderhoud en hulp/onboarding.
    `/training`, `/achievements`, `/hulp`, `/welkom`, eventkaart + Street View.
 2. Controleer de Strava rate-limit na gear-throttle + lagere cronfrequentie:
    daglimiet, 15-minutenvenster, aantal actieve profielen.
-3. Verwijder of beveilig het tijdelijke `/api/strava/debug-gear` zodra de
-   gear-sync is bevestigd.
+3. ~~Verwijder het tijdelijke `/api/strava/debug-gear`.~~ Gedaan in de ronde van
+   2026-09-05.
 4. Doe de nog open iOS PWA-regressiecheck na de recente navigatie- en
    trainingwijzigingen.
 5. Houd `npm run lint`, `npm run test`, `npm run build` als standaard
@@ -2578,21 +2661,23 @@ intervals/Wahoo/Garmin is een echte gebruikersflow met externe gevolgen.
    copy die naar `/hulp` moet, en eventuele dataverschillen met intervals.icu.
 4. Pas daarna pas nieuwe trainingfeatures toe; eerst stabiliseren wat er nu is.
 
-### 3. Strava-integratie structureel oplossen
+### 3. Strava-capaciteit: meten en opnieuw indienen
 
-**Waarom:** de club groeit richting de Strava app-cap en de API-limieten blijven
-een operationeel risico.
+**Waarom:** de aanvraag voor een hogere atletenlimiet is afgewezen. De twee
+technische eisen (webhooks, actief beheer van gedeauthoriseerde atleten) zijn
+gebouwd — zie de ronde van 2026-09-05 in de featurelijst. Wat rest is bewijs
+verzamelen en indienen.
 
-1. Blijf de status van Strava app approval / athlete-cap verhogen volgen.
-2. Houd de handmatige `activities.csv` import als fallback en verbeter alleen
-   op basis van echte importfouten van leden.
-3. Werk Strava-webhooks uit als structurele polling-vervanger:
-   verify-challenge endpoint, subscription, athlete-id mapping, eventqueue,
-   lichte dagelijkse reconcile.
-4. Pas cron daarna aan naar een lage reconcilefrequentie; webhooks worden de
-   realtime trigger.
-5. Documenteer in `docs/runbook.md` welke calls overblijven en wat de normale
-   daglimiet hoort te zijn.
+1. Zet `STRAVA_WEBHOOK_VERIFY_TOKEN`, draai migraties `0148`-`0151`, deploy, en
+   maak de subscription aan via `/beheer/strava` → Webhooks → Aanmaken.
+2. Zet de externe cron voor `/api/strava/sync` terug van elke 15-30 min naar
+   1x/dag.
+3. Laat het minstens een week draaien en vul de cijfers in
+   `docs/strava-api-resubmission.md` in: callvolume vóór/na, aantal opgeruimde
+   koppelingen, gekoppelde atleten tegenover de cap.
+4. Dien daarna opnieuw in via het formulier — **niet** via een reply op de
+   afwijzingsmail; die telt volgens Strava niet als herindiening.
+5. Houd de handmatige `activities.csv` import als fallback zolang de cap knelt.
 
 ### 4. Event- en livekaart afronden
 
@@ -2884,7 +2969,9 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 13. **Open punten**
    - **iOS PWA polish** — praktijktest op iPhone 16 Pro met iOS 26.5 is goed;
      mobiele terugknop toegevoegd. Nog één regressiecheck na deploy.
-   - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval.
+   - **Strava 1→100+ athleten cap** — **afgewezen**; webhooks + koppelingbeheer
+     zijn daarop gebouwd (2026-09-05). Herindienen na een week meten, zie
+     `docs/strava-api-resubmission.md`.
    - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval.
 
 ---
@@ -2940,7 +3027,11 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
-- **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval (extern).
+- **Strava 1→100+ athleten cap** — **afgewezen** door Strava met twee eisen:
+  webhooks in plaats van polling, en actief beheer van stale/gedeauthoriseerde
+  atleten. Beide zijn gebouwd (2026-09-05). Herindienen kan pas ná deploy,
+  subscription aanmaken en een week meten; checklist en conceptnotitie staan in
+  `docs/strava-api-resubmission.md`.
 - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval (extern).
 - **iOS PWA** is in de praktijk getest op iPhone 16 Pro met iOS 26.5; nog één
   regressiecheck na deploy van de mobiele terugknop.

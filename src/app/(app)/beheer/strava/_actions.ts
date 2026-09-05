@@ -216,3 +216,145 @@ export async function revalidateAfterRecompute() {
   revalidatePath("/stats");
   revalidatePath("/profiel/segments");
 }
+
+// ──────────────────────────────────────────────────────────────────────
+// Webhooks + koppelingbeheer
+//
+// De subscription moet vanuit de app aangemaakt kunnen worden en niet vanuit een
+// script: Strava valideert de callback-URL met een live handshake, dus dit werkt
+// alleen tegen productie, en na een domeinwijziging moet het opnieuw kunnen
+// zonder deploy.
+// ──────────────────────────────────────────────────────────────────────
+
+export type SubscriptionState = {
+  ok: boolean;
+  error?: string;
+  subscription?: { id: number; callbackUrl: string | null; createdAt: string | null } | null;
+  expectedCallbackUrl?: string;
+};
+
+async function requireManager() {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.has("community.manage")) {
+    throw new Error("Geen rechten voor Strava-beheer.");
+  }
+  return supabase;
+}
+
+export async function adminViewStravaSubscription(): Promise<SubscriptionState> {
+  try {
+    await requireManager();
+    const { viewSubscription, callbackUrl } = await import("@/lib/strava/subscription");
+    const subscription = await viewSubscription();
+    return {
+      ok: true,
+      subscription,
+      expectedCallbackUrl: safeCallbackUrl(callbackUrl),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Subscription opvragen faalde.",
+    };
+  }
+}
+
+export async function adminCreateStravaSubscription(): Promise<SubscriptionState> {
+  try {
+    await requireManager();
+    const { createSubscription, verifyToken, callbackUrl } = await import(
+      "@/lib/strava/subscription"
+    );
+    const subscription = await createSubscription();
+
+    const admin = createAdminClient();
+    await admin.from("strava_webhook_subscriptions").upsert(
+      {
+        id: subscription.id,
+        callback_url: subscription.callbackUrl ?? callbackUrl(),
+        verify_token: verifyToken(),
+        deleted_at: null,
+      },
+      { onConflict: "id" },
+    );
+
+    revalidatePath("/beheer/strava");
+    return { ok: true, subscription };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Subscription aanmaken faalde.",
+    };
+  }
+}
+
+export async function adminDeleteStravaSubscription(
+  id: number,
+): Promise<SubscriptionState> {
+  try {
+    await requireManager();
+    const { deleteSubscription } = await import("@/lib/strava/subscription");
+    await deleteSubscription(id);
+
+    const admin = createAdminClient();
+    await admin
+      .from("strava_webhook_subscriptions")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+
+    revalidatePath("/beheer/strava");
+    return { ok: true, subscription: null };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Subscription verwijderen faalde.",
+    };
+  }
+}
+
+/** Ruimt de koppeling van één lid op, inclusief deauthorisatie bij Strava. */
+export async function adminRevokeStravaConnection(profileId: string) {
+  try {
+    await requireManager();
+    const admin = createAdminClient();
+    const { revokeAndCleanupStravaConnection } = await import("@/lib/strava/sweep");
+    const result = await revokeAndCleanupStravaConnection(admin, profileId, "admin");
+    revalidatePath("/beheer/strava");
+    return {
+      ok: true as const,
+      deauthorized: result.deauthorized,
+      error: result.error,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Koppeling opruimen faalde.",
+    };
+  }
+}
+
+/** Draait de nachtelijke opruiming nu, zodat een beheerder niet hoeft te wachten. */
+export async function adminRunStravaSweep() {
+  try {
+    await requireManager();
+    const admin = createAdminClient();
+    const { runStravaSweep } = await import("@/lib/strava/sweep");
+    const result = await runStravaSweep(admin);
+    revalidatePath("/beheer/strava");
+    return { ok: true as const, ...result };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Opruiming faalde.",
+    };
+  }
+}
+
+function safeCallbackUrl(build: () => string): string | undefined {
+  try {
+    return build();
+  } catch {
+    return undefined;
+  }
+}

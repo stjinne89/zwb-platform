@@ -35,7 +35,8 @@ export type NotificationTrigger =
   | "on_event_reminder"
   | "on_admin_broadcast"
   | "on_maintenance_due"
-  | "on_member_pending";
+  | "on_member_pending"
+  | "on_strava_link_expiring";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

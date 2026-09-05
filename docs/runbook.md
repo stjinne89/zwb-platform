@@ -34,8 +34,11 @@ Twee soorten geplande jobs:
 |---|---|---|---|---|
 | Live-data opruimen | Netlify function | `*/15 * * * *` | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
 | Integratie-health-check | Netlify function | `0 * * * *` (elk uur) | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
-| Strava-sync | Externe cron | ~elke 15-30 min | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
+| Strava-reconcile | Externe cron | **1x/dag** (was elke 15-30 min) | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
+| ↳ ritten komen sinds de webhooks realtime binnen; deze run kijkt alleen het venster van 30 dagen na op hernoemingen en op Strava verwijderde ritten | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
+| Strava-webhookverwerking | Netlify function | `* * * * *` (elke minuut) | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| Strava-koppelingen opruimen | Netlify function | `40 3 * * *` | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
 | Training-adaptaties (drafts) | Netlify function | `30 8 * * *` | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
@@ -117,8 +120,12 @@ waarschuwing kunnen wijzigen:
 | Training-AI | OpenAI | API + key | quota/model-wijziging |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
 
-**Strava app-cap**: aanvraag 1→100+ atleten staat open bij Strava (extern).
-Tot goedkeuring kan de sync tegen de cap lopen.
+**Strava app-cap**: de eerste aanvraag voor een hogere atletenlimiet is
+**afgewezen**. Strava stelde twee voorwaarden: webhooks in plaats van polling, en
+actief beheer van stale en gedeauthoriseerde atleten. Beide zijn nu gebouwd (zie
+sectie 6). Het herindieningsdossier staat in
+`docs/strava-api-resubmission.md`; dat moet nog worden ingediend, ná een periode
+meten op productie.
 
 ---
 
@@ -178,3 +185,121 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   Let op: heeft een lid het blok zelf uit de beschrijving gehaald, dan plakken we
   het niet terug. `written_at` in `strava_activity_summaries` leegmaken forceert
   een nieuwe poging.
+
+---
+
+## 6. Strava-webhooks en koppelingbeheer
+
+### Waarom dit zo werkt
+
+Strava wees onze capaciteitsaanvraag af met twee eisen: gebruik webhooks in plaats
+van polling, en beheer stale en gedeauthoriseerde atleten actief. De app pollde
+elk kwartier alle koppelingen ongeacht of er gereden was, riep
+`POST /oauth/deauthorize` nergens aan, en liet dode koppelingen eindeloos
+opnieuw proberen. Alle drie zijn opgelost.
+
+### De subscription
+
+Eén per applicatie. Beheer zit op **`/beheer/strava`** → paneel *Webhooks*:
+
+- **Status** — vraagt bij Strava op of er een subscription staat.
+- **Aanmaken** — zet 'm. Strava valideert dan live onze callback met een
+  GET-handshake, dus dit werkt **alleen tegen productie** en alleen als
+  `STRAVA_WEBHOOK_VERIFY_TOKEN` en `NEXT_PUBLIC_SITE_URL` (https) gezet zijn.
+- **Verwijderen** — nodig vóór een domeinwijziging; daarna opnieuw aanmaken.
+
+Callback-URL: `https://<site>/api/strava/webhook`. Die route staat in
+`PUBLIC_PATHS` (`src/lib/supabase/middleware.ts`) omdat Strava niet inlogt.
+
+### De verwerkingsketen
+
+1. Strava POST → `/api/strava/webhook` schrijft het event in
+   `strava_webhook_events` en antwoordt meteen. **Altijd 200**, ook bij een fout
+   aan onze kant: een 5xx kost ons de subscription.
+2. Netlify function `strava-webhook-process` (elke minuut) roept
+   `/api/strava/webhook/process` aan. Die verwerkt max. 25 events per run en stopt
+   na ~8s (Netlify-timeout).
+3. Per event: `activity` → één `GET /activities/{id}?include_all_efforts=true`
+   (ook meteen de segment-inspanningen); `athlete` met
+   `updates.authorized = "false"` → koppeling direct opheffen.
+4. Nachtelijk (`strava-lifecycle`, 03:40) → openstaande deauthorisaties afmaken,
+   opgeruimde koppelingen wissen, inactiviteitsbeleid draaien.
+
+### De levenscyclus van een koppeling
+
+`strava_connections` heeft twee tijdstempels:
+
+- `revoked_at` — de koppeling is opgeheven; de app negeert de rij vanaf dat moment.
+- `deauthorized_at` — Strava's kant is ook echt los.
+
+Staat het eerste gezet en het tweede niet, dan moet de deauthorize-call nog. De
+rij blijft dán bewust staan: we hebben de token nodig om te kunnen
+deauthoriseren. Pas als `deauthorized_at` staat, worden de ruwe Strava-data en de
+rij gewist.
+
+| Aanleiding | `revoked_reason` |
+|---|---|
+| Lid drukt op "Ontkoppel Strava" | `member` |
+| Lid verwijdert zijn account | `account_deleted` |
+| Lid trekt de app in op strava.com (webhook) | `strava` |
+| Refresh-token wordt afgewezen | `invalid_grant` |
+| 12 maanden inactief, na waarschuwing | `inactive` |
+| Beheerder ruimt de koppeling op | `admin` |
+
+### Dataretentie bij ontkoppelen
+
+De ruwe Strava-data gaat weg: `strava_activities` (cascadeert
+`strava_activity_segment_efforts` en `strava_activity_summaries`), de uit Strava
+gesynchroniseerde fietsen, `profiles.strava_id` en de avatar als die op Strava's
+CDN staat. De afgeleide clubdata blijft: badges, ZWBlokken, onderhoudsstanden en
+`profile_climbed_cols` (de FK naar de rit staat op `on delete set null`).
+
+### Inactiviteitsbeleid
+
+Geen ritten **en** geen login in `STRAVA_INACTIVITY_MONTHS` (12) →
+waarschuwing via push (`on_strava_link_expiring`) en een melding op `/profiel`.
+Blijft het daarna `STRAVA_INACTIVITY_GRACE_DAYS` (30) stil, dan wordt de
+koppeling opgeheven en gedeauthoriseerd.
+
+**Let op:** een lid dat twaalf maanden weg is heeft meestal geen werkende
+push-subscription meer, en de app kent geen transactionele e-mail. Daarom staat
+de teller "Waarschuwing verstuurd" op `/beheer/strava`: benader die leden binnen
+de 30 dagen via WhatsApp als je ze wilt behouden.
+
+### Verwacht callvolume
+
+| | Vóór (polling) | Na (webhooks) |
+|---|---|---|
+| Activiteitenlijsten | ordegrootte 2.000-7.700/dag | ~1 per lid per dag |
+| Ritdetails | 0 (stond uit wegens budget) | 1 per daadwerkelijk gereden rit |
+| Coltijden/ZWB-segmenten | uit (`..._MAX_FETCHES=0`) | komen gratis mee met de ritdetail |
+
+Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
+`x-ratelimit-*`-headers). De sync stopt zelf bij 70% van het 15-minutenvenster of
+90% van de daglimiet.
+
+### Als er iets misgaat
+
+- **"Er komen geen events meer binnen"** → de health-check-bron
+  `strava_webhook` faalt na 48u stilte. Loop dit langs:
+  1. `/beheer/strava` → **Status**. Geen subscription? Strava heeft 'm verwijderd
+     omdat onze callback te vaak faalde of te traag was → opnieuw **Aanmaken**.
+  2. `STRAVA_WEBHOOK_VERIFY_TOKEN` gewijzigd na het aanmaken? Dan mislukt de
+     handshake bij een hercontrole → subscription verwijderen en opnieuw zetten.
+  3. Domein gewijzigd? De callback-URL staat vast bij Strava → opnieuw aanmaken.
+  4. Ondertussen blijft de dagelijkse reconcile de ritten ophalen; er gaat dus
+     niets verloren, het is alleen trager.
+- **"Events blijven op *wacht* staan"** → de Netlify function
+  `strava-webhook-process` draait niet (Netlify → Functions → logs) of
+  `STRAVA_SYNC_SECRET` klopt niet. Handmatig: `curl -X POST -H "Authorization:
+  Bearer $STRAVA_SYNC_SECRET" https://<site>/api/strava/webhook/process`.
+- **"Een event blijft mislukken"** → na 5 pogingen laten we het liggen;
+  `last_error` in `strava_webhook_events` zegt waarom. De reconcile haalt de rit
+  alsnog op.
+- **"Een lid staat op *wacht op opruiming*"** → de deauthorize-call bij Strava
+  faalde. De nachtrun probeert het opnieuw; met de knop **Opruiming nu draaien**
+  forceer je dat. Blijft het hangen, dan is de token waarschijnlijk al dood aan
+  Strava's kant en is de atleet feitelijk al losgekoppeld.
+- **"Een lid heeft opnieuw gekoppeld maar wordt overgeslagen"** → hoort niet te
+  kunnen: de OAuth-callback wist de revocatievelden. Controleer `revoked_at` in
+  `strava_connections`.

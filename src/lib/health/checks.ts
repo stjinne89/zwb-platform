@@ -57,6 +57,35 @@ export function evaluateReachable(
   return { source, ok: false, detail: `HTTP ${status}` };
 }
 
+/**
+ * Komen er nog webhook-events binnen? Sinds we niet meer pollen is dit het enige
+ * signaal dat de Strava-koppeling nog leeft: valt de subscription weg (Strava
+ * verwijdert 'm bij herhaald falen van onze callback), dan blijft de app stil
+ * zonder foutmelding. De drempel is ruim, want 's nachts rijdt niemand.
+ */
+export function evaluateStravaWebhook(
+  hasSubscription: boolean,
+  lastEventAt: string | null,
+  maxSilentHours: number,
+  now = new Date(),
+): HealthCheckResult {
+  const source = "strava_webhook";
+  if (!hasSubscription) {
+    return { source, ok: false, detail: "geen actieve subscription" };
+  }
+  if (!lastEventAt) {
+    return { source, ok: true, detail: "subscription actief, nog geen events" };
+  }
+  const parsed = Date.parse(lastEventAt);
+  if (!Number.isFinite(parsed)) {
+    return { source, ok: false, detail: "laatste event heeft geen geldige datum" };
+  }
+  const hours = Math.round((now.getTime() - parsed) / 3600_000);
+  return hours > maxSilentHours
+    ? { source, ok: false, detail: `${hours}u geen events` }
+    : { source, ok: true, detail: `laatste event ${hours}u geleden` };
+}
+
 export function evaluateEnvPresent(
   source: string,
   present: boolean,
@@ -126,5 +155,28 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
     guard("openai", async () =>
       evaluateEnvPresent("openai", Boolean(process.env.OPENAI_API_KEY)),
     ),
+    guard("strava_webhook", async () => {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const admin = createAdminClient();
+      const [{ data: subscription }, { data: lastEvent }] = await Promise.all([
+        admin
+          .from("strava_webhook_subscriptions")
+          .select("id")
+          .is("deleted_at", null)
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("strava_webhook_events")
+          .select("received_at")
+          .order("received_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      return evaluateStravaWebhook(
+        Boolean(subscription),
+        (lastEvent?.received_at as string | null) ?? null,
+        48,
+      );
+    }),
   ]);
 }

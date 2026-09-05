@@ -16,6 +16,8 @@ const PUBLIC_PATHS = [
   "/api/live",
   "/api/team-results/sync",
   "/api/strava/sync",
+  "/api/strava/webhook",
+  "/api/strava/lifecycle",
   "/api/achievements/finalize",
   "/api/events/reminders",
   "/api/events/scan",

@@ -99,6 +99,18 @@ export async function deleteMyAccount(confirmEmail: string) {
     // niet kritiek
   }
 
+  // Strava's toestemming intrekken vóór de cascade. Zonder dit blijft de grant bij
+  // Strava bestaan terwijl wij zeggen dat alles weg is: een AVG-hiaat, én de
+  // atleet blijft een plek in onze athlete cap bezetten zonder dat we er nog bij
+  // kunnen. Best-effort: een falende Strava-call mag een accountverwijdering niet
+  // blokkeren, en de rij verdwijnt zo meteen toch.
+  try {
+    const { revokeStravaConnection } = await import("@/lib/strava/sweep");
+    await revokeStravaConnection(admin, user.id, "account_deleted");
+  } catch {
+    // niet kritiek voor de verwijdering zelf
+  }
+
   // Auth-gebruiker verwijderen → cascade ruimt profiel + gekoppelde data op.
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) return { ok: false as const, error: error.message };

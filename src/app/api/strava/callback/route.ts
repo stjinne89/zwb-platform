@@ -6,6 +6,8 @@ import {
   pickAthleteAvatarUrl,
 } from "@/lib/strava/client";
 import { encryptSecret } from "@/lib/crypto/secrets";
+import { reconnectPatch } from "@/lib/strava/lifecycle";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -41,6 +43,17 @@ export async function GET(request: NextRequest) {
     const athleteId = token.athlete?.id;
     if (!athleteId) throw new Error("Strava gaf geen athlete id terug.");
 
+    // strava_athlete_id is uniek. Koppelt dezelfde atleet onder een ánder profiel
+    // terwijl er nog een opgeheven rij van hem staat (wachtend op de sweeper), dan
+    // botst de upsert. Die dode rij mag weg: de grant die erbij hoorde is net
+    // vervangen door deze nieuwe.
+    const admin = createAdminClient();
+    await admin
+      .from("strava_connections")
+      .delete()
+      .eq("strava_athlete_id", athleteId)
+      .neq("profile_id", user.id);
+
     const { error: upsertError } = await supabase.from("strava_connections").upsert(
       {
         profile_id: user.id,
@@ -52,6 +65,9 @@ export async function GET(request: NextRequest) {
         expires_at: token.expires_at,
         scope: token.scope ?? searchParams.get("scope"),
         updated_at: new Date().toISOString(),
+        // Een eerdere revocatie moet hier weg, anders blijft het lid door de sync
+        // overgeslagen worden nadat hij netjes opnieuw heeft gekoppeld.
+        ...reconnectPatch(),
       },
       { onConflict: "profile_id" },
     );

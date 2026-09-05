@@ -48,3 +48,16 @@ export function looksVirtual(activity: {
     haystack,
   );
 }
+
+/**
+ * De sport-test die de activiteitensync gebruikt. Bewust een ruime regex en niet
+ * CYCLING_SPORTS: die lijst is voor queries op opgeslagen rijen, terwijl hier een
+ * onbekende nieuwe Strava-discipline binnen kan komen die we liever wél opslaan.
+ *
+ * Staat hier en niet in client.ts omdat het webhook-pad (één rit tegelijk) en het
+ * reconcile-pad (paginascan) exact dezelfde beslissing moeten nemen — anders komt
+ * een rit via het ene pad wel binnen en via het andere niet.
+ */
+export function isCyclingSportType(sportType: string | null | undefined): boolean {
+  return /ride|cycling|bike/i.test(sportType ?? "");
+}

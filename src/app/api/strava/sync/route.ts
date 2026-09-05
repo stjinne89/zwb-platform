@@ -1,5 +1,12 @@
+// Sinds de webhooks (zie /api/strava/webhook) is dit geen poll meer maar een
+// reconcile: ritten komen realtime binnen via events, en deze run kijkt één keer
+// per dag het venster van 30 dagen na op hernoemingen en op Strava verwijderde
+// ritten die we via een gemist event niet hebben gezien. Zet de externe cron dus
+// op dagelijks, niet meer op elk kwartier — zie docs/runbook.md.
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
+import { StravaConnectionRevokedError } from "@/lib/strava/lifecycle";
 
 type ProfileSyncResult = {
   profileId: string;
@@ -89,13 +96,27 @@ export async function POST(request: Request) {
     envPositiveInt("STRAVA_SYNC_RECONCILIATION_DAYS", 30, 365),
     365,
   );
+  // Koppelingen die vandaag al aan de beurt zijn geweest slaan we over. Zonder
+  // deze grens zou een tweede run op dezelfde dag alles opnieuw ophalen.
+  const minAgeHours = positiveInt(
+    url.searchParams.get("minAgeHours"),
+    envPositiveInt("STRAVA_RECONCILE_MIN_AGE_HOURS", 20, 720),
+    720,
+  );
 
   try {
     const admin = createAdminClient();
+    const cutoff = new Date(Date.now() - minAgeHours * 3600_000).toISOString();
     const { data: connections, error } = await admin
       .from("strava_connections")
-      .select("profile_id, updated_at")
-      .order("updated_at", { ascending: true })
+      .select("profile_id, last_synced_at")
+      // Opgeheven koppelingen nooit meer aanraken; die wachten op de sweeper.
+      .is("revoked_at", null)
+      .or(`last_synced_at.is.null,last_synced_at.lt.${cutoff}`)
+      // Nooit gesynct eerst, daarna de oudste. Vroeger stond hier updated_at, dat
+      // ook door een tokenrefresh werd aangeraakt — waardoor leden achteraan de
+      // rij structureel konden verhongeren.
+      .order("last_synced_at", { ascending: true, nullsFirst: true })
       .limit(profileLimit);
 
     if (error) throw new Error(error.message);
@@ -211,9 +232,25 @@ export async function POST(request: Request) {
           }
         }
       } catch (err) {
-        summary.status = "failed";
-        summary.error =
-          err instanceof Error ? err.message : "Strava-profielsync faalde.";
+        if (err instanceof StravaConnectionRevokedError) {
+          // accessTokenFor heeft de koppeling zojuist opgeheven; geen fout, en de
+          // sweeper ruimt 'm vannacht op.
+          summary.status = "skipped";
+          summary.error = "Koppeling is niet meer geldig en is opgeheven.";
+        } else {
+          summary.status = "failed";
+          summary.error =
+            err instanceof Error ? err.message : "Strava-profielsync faalde.";
+          // Vastleggen op de koppeling zelf, zodat /beheer/strava laat zien welke
+          // leden blijven falen in plaats van dat het in een cronlog verdwijnt.
+          await admin
+            .from("strava_connections")
+            .update({
+              last_error: summary.error.slice(0, 500),
+              last_error_at: new Date().toISOString(),
+            })
+            .eq("profile_id", profileId);
+        }
       }
 
       results.push(summary);

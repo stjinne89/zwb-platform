@@ -63,6 +63,16 @@ export async function syncMyStravaActivities(
   }
 }
 
+/**
+ * Ontkoppelen deed tot nu toe alleen een lokale delete. Daardoor bleef de grant op
+ * Strava's kant bestaan en bleef de atleet een plek in onze athlete cap bezetten —
+ * permanent, want de rij met de token was net weg. Nu trekken we de toestemming
+ * eerst bij Strava in, wissen we de ruwe Strava-data (API Agreement) en pas dan de
+ * rij.
+ *
+ * Lukt de call bij Strava niet, dan blijft de koppeling gemarkeerd staan: de app
+ * negeert 'm vanaf nu, en de nachtelijke sweeper probeert het opnieuw.
+ */
 export async function disconnectStrava() {
   const supabase = await createClient();
   const {
@@ -70,15 +80,23 @@ export async function disconnectStrava() {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
-  const { error } = await supabase
-    .from("strava_connections")
-    .delete()
-    .eq("profile_id", user.id);
-  if (error) return { ok: false as const, error: error.message };
+  const admin = createAdminClient();
+  const { revokeAndCleanupStravaConnection } = await import("@/lib/strava/sweep");
+  const result = await revokeAndCleanupStravaConnection(admin, user.id, "member");
 
   revalidatePath("/achievements");
   revalidatePath("/profiel");
-  return { ok: true as const };
+
+  if (!result.deauthorized) {
+    return {
+      ok: true as const,
+      pending: true as const,
+      message:
+        "Strava is losgekoppeld in de app. De toestemming bij Strava zelf ruimen we vannacht op.",
+    };
+  }
+
+  return { ok: true as const, pending: false as const };
 }
 
 export async function recomputeMyMilestoneBadges() {
