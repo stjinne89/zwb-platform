@@ -285,6 +285,18 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
 
 ### Als er iets misgaat
 
+- **"Aanmaken lukt niet meteen na het zetten van een env-var"** → Netlify past
+  env-vars pas toe op een **nieuwe deploy**. Zet je `STRAVA_WEBHOOK_VERIFY_TOKEN`
+  (of `NEXT_PUBLIC_SITE_URL`) nadat de laatste deploy al draaide, dan kent de
+  draaiende functie hem niet en faalt zowel de handshake als het aanmaken.
+  Eerst *Trigger deploy → Deploy site*, dan pas de knop.
+
+  Zelf te toetsen zonder het echte token prijs te geven — vraag de handshake op
+  met een **opzettelijk fout** token:
+  `https://<site>/api/strava/webhook?hub.mode=subscribe&hub.verify_token=fout&hub.challenge=test`
+  → **403** betekent dat het token in de draaiende deploy zit (het antwoord is
+  alleen anders bij een kloppend token); **500** betekent dat de var ontbreekt en
+  er dus een redeploy nodig is; **404** dat de deploy nog niet live is.
 - **"Er komen geen events meer binnen"** → de health-check-bron
   `strava_webhook` faalt na 48u stilte. Loop dit langs:
   1. `/beheer/strava` → **Status**. Geen subscription? Strava heeft 'm verwijderd
