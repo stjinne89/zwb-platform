@@ -13,7 +13,7 @@
 > bij ontkoppelen, en een app-breed rate-limit-budget. `/api/strava/sync` is
 > daarmee een dagelijkse reconcile geworden in plaats van een kwartierpoll.
 > Herindiening bij Strava kan pas ná deploy + een week meten; checklist in
-> `docs/strava-api-resubmission.md`, bediening in `docs/runbook.md` §6.
+> `docs/strava-api-resubmission.md`, bediening in `docs/runbook.md` §7.
 >
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
@@ -346,7 +346,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `next dev` — de handshake geeft 200 met `{"hub.challenge":...}`, een verkeerd
   verify token 403, en een POST met onbereikbare database geeft nog steeds 200.
   Herindieningsdossier: `docs/strava-api-resubmission.md`; bediening en
-  storingsafhandeling: `docs/runbook.md` §6.
+  storingsafhandeling: `docs/runbook.md` §7.
 
 - `/community` met announcements
 - `/media` met podcasts (RSS-sync), YouTube channel-sync, nieuwsbrief,
@@ -3036,6 +3036,25 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 ---
 
 ## Bekende open dingen
+
+- **Netlify scheduled functions draaien niet sinds 22-06-2026** (ontdekt
+  2026-09-05). Het integratie-statusblok op `/beheer/event-scan` stond als
+  "laatst gecontroleerd" nog op 22 juni 22:01, terwijl `integrations-healthcheck`
+  elk uur hoort te draaien. Alle vijf de functions in `netlify/functions/` liggen
+  dus ruim twee maanden stil. De code klopt — dezelfde routes doen hun werk als je
+  ze met hun bearer-secret aanroept — het is de planning aan Netlify's kant die
+  niet afgaat; vermoedelijk een plan- of verbruiksgrens.
+
+  Gevolgen, op volgorde van urgentie: **`live-cleanup` draait niet, dus de
+  AVG-retentie op `live_positions` (30 dagen) en `event_chat_messages` (1 jaar)
+  is al maanden niet uitgevoerd** — er staat locatiedata die gewist had moeten
+  zijn. Daarnaast maakt `training-adaptations` geen dagelijkse aanpassingen meer,
+  is er sinds juni geen monitoring, en zouden ook de nieuwe
+  Strava-webhookverwerking en -opruiming nooit zijn afgegaan.
+
+  Oplossing en volgorde staan in `docs/runbook.md` §8: de jobs verhuizen naar
+  cron-job.org, waar de Strava-reconcile al over loopt. Dit is niet door de
+  webhookronde veroorzaakt maar er wél door aan het licht gekomen.
 
 - **Strava 1→100+ athleten cap** — **afgewezen** door Strava met twee eisen:
   webhooks in plaats van polling, en actief beheer van stale/gedeauthoriseerde

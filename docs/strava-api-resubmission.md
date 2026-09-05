@@ -31,7 +31,7 @@ lijkt het alsof we juist verder van de cap af zijn geraakt.
   - aantal gekoppelde atleten (`/beheer/strava` → *Gekoppeld*) tegenover de cap;
   - aantal opgeruimde koppelingen sinds de uitrol;
   - dagelijks callvolume vóór en na (`strava_api_usage.daily_used`, en de
-    schatting uit `docs/runbook.md` §6 voor de oude situatie);
+    schatting uit `docs/runbook.md` §7 voor de oude situatie);
   - aantal ontvangen webhook-events (`strava_webhook_events`).
 - [ ] Controleren dat de health-check-bron `strava_webhook` op ok staat.
 - [ ] Indienen via het Strava-formulier. **Niet** reageren op de afwijzingsmail:
@@ -152,4 +152,4 @@ display Strava data).
 | Rate-limit-budget | `src/lib/strava/rate-limit-budget.ts` |
 | Dagelijkse reconcile | `src/app/api/strava/sync/route.ts` |
 
-Bediening en storingsafhandeling: `docs/runbook.md` §6.
+Bediening en storingsafhandeling: `docs/runbook.md` §7.

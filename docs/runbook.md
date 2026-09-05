@@ -30,6 +30,15 @@ Twee soorten geplande jobs:
 - **Externe cron** (cron-job.org e.d.) die een beveiligde API-route aanroept met
   `Authorization: Bearer <SECRET>`.
 
+> **Waarschuwing (2026-09-05): de Netlify scheduled functions draaien niet.**
+> Het integratie-statusblok op `/beheer/event-scan` stond op **22-06-2026 22:01**
+> als "laatst gecontroleerd", terwijl `integrations-healthcheck` elk uur hoort te
+> draaien. Alle vijf de functions in `netlify/functions/` liggen dus al ruim twee
+> maanden stil. De code klopt — dezelfde routes werken prima als je ze met hun
+> bearer-secret aanroept — het is de Netlify-planning die niet afgaat. Zet de
+> jobs hieronder op cron-job.org, waar de Strava-reconcile al jaren over loopt.
+> Zie sectie 8.
+
 | Job | Type | Schema | Endpoint | Secret-env |
 |---|---|---|---|---|
 | Live-data opruimen | Netlify function | `*/15 * * * *` | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
@@ -189,7 +198,7 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
 
 ---
 
-## 6. Strava-webhooks en koppelingbeheer
+## 7. Strava-webhooks en koppelingbeheer
 
 ### Waarom dit zo werkt
 
@@ -351,3 +360,60 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
 - **"Een lid heeft opnieuw gekoppeld maar wordt overgeslagen"** → hoort niet te
   kunnen: de OAuth-callback wist de revocatievelden. Controleer `revoked_at` in
   `strava_connections`.
+
+---
+
+## 8. Netlify scheduled functions liggen stil (2026-09-05)
+
+### Wat er aan de hand is
+
+`/beheer/event-scan` toonde als laatste health-check **22-06-2026 22:01**. Die
+hoort elk uur te draaien. Alle vijf de scheduled functions in
+`netlify/functions/` zijn dus sinds eind juni niet meer afgegaan.
+
+Het ligt niet aan de code: roep je dezelfde routes met hun bearer-secret aan,
+dan doen ze gewoon hun werk. Dat is ook precies hoe het bij de webhookrij
+zichtbaar werd — de knop **Nu verwerken** op `/beheer/strava` trok de rij in één
+keer leeg, terwijl de scheduled function er drie uur niets mee had gedaan.
+
+Wat de oorzaak aan Netlify's kant is, is van buitenaf niet vast te stellen.
+Het meest waarschijnlijk is een plan- of verbruiksgrens (AGENTS.md vermeldt niet
+voor niets dat de credits beperkt zijn). Kijk in Netlify onder Functions en
+Billing.
+
+### Wat er al die tijd stil heeft gestaan
+
+| Function | Gevolg |
+|---|---|
+| `live-cleanup` (elke 15 min) | **AVG-retentie draait niet.** Stap 2 wist `live_positions` ouder dan 30 dagen en stap 3 `event_chat_messages` ouder dan een jaar. Er staat dus locatiedata die er niet meer had mogen zijn. Dit is het urgentste punt. |
+| `training-adaptations` (dagelijks 08:30) | Dagelijkse trainingsaanpassingen worden niet gemaakt, herplanverzoeken niet opgepakt, en blijven hangen AI-generaties niet afgemaakt. Ledenzichtbaar, en al maanden stil zonder dat iemand het meldde. |
+| `integrations-healthcheck` (elk uur) | Geen monitoring. Verlopen WTRL-/ladder-cookies of een gewijzigde bron zijn sinds eind juni nooit gemeld. |
+| `strava-webhook-process` (elke 5 min) | Webhook-events blijven op *wacht* staan. |
+| `strava-lifecycle` (03:40) | Deauthorisaties worden niet afgemaakt en het inactiviteitsbeleid draait niet. |
+
+### De oplossing: zet ze op cron-job.org
+
+Die route werkt aantoonbaar op deze site — de Strava-reconcile loopt er al over —
+en kost geen Netlify-invocaties. Per job: methode **POST**, header
+`Authorization: Bearer <secret>`, URL onder `https://<site>`.
+
+| Volgorde | Endpoint | Schema | Secret |
+|---|---|---|---|
+| 1 | `/api/live/cleanup` | elke 15 min | `LIVE_CLEANUP_SECRET` |
+| 2 | `/api/strava/webhook/process` | elke 5 min | `STRAVA_SYNC_SECRET` |
+| 3 | `/api/training/adaptations/daily` | dagelijks 08:30 | `TRAINING_ADAPTATION_SECRET` |
+| 4 | `/api/health/integrations` | elk uur | `HEALTHCHECK_SECRET` |
+| 5 | `/api/strava/lifecycle` | dagelijks 03:40 | `STRAVA_SYNC_SECRET` |
+
+`live-cleanup` staat bewust bovenaan: dat is de enige met een juridische kant.
+
+De `.mjs`-bestanden blijven staan. Gaan de Netlify-schedules ooit weer lopen,
+dan draaien beide — alle routes zijn idempotent, dus dat kost hooguit dubbele
+invocaties, geen schade. Haal in dat geval één van de twee weg.
+
+### Controleren dat het weer loopt
+
+Na het aanzetten van job 4 hoort "laatst gecontroleerd" op `/beheer/event-scan`
+binnen het uur bij te trekken. Blijft die op 22 juni staan, dan komt cron-job.org
+niet binnen: controleer het secret en of het endpoint in `PUBLIC_PATHS` staat
+(`src/lib/supabase/middleware.ts`).
