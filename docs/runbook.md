@@ -37,7 +37,8 @@ Twee soorten geplande jobs:
 | Strava-reconcile | Externe cron | **1x/dag** (was elke 15-30 min) | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
 | ↳ ritten komen sinds de webhooks realtime binnen; deze run kijkt alleen het venster van 30 dagen na op hernoemingen en op Strava verwijderde ritten | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
-| Strava-webhookverwerking | Netlify function | `*/5 * * * *` | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| Strava-webhookverwerking | Externe cron **of** Netlify function | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| ↳ er staat een Netlify scheduled function klaar (`strava-webhook-process`), maar zet er een cron-job.org-job op als de Netlify-schedules niet blijken te lopen. Gebruik er één, niet allebei | | | | |
 | Strava-koppelingen opruimen | Netlify function | `40 3 * * *` | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
@@ -310,6 +311,16 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   `processed_at is null` én `attempts = 0`. Elk faalpad in de verwerker verhoogt
   `attempts`, dus dit zegt dat de events **nooit zijn aangeraakt**: het probleem
   zit in de trigger, niet in de verwerking of in de events zelf.
+
+  **Loopt de Netlify-schedule überhaupt?** Kijk op `/beheer/event-scan` naar
+  "laatst gecontroleerd" bij het integratie-statusblok. Dat wordt geschreven door
+  de scheduled function `integrations-healthcheck`, elk uur. Staat daar een tijd
+  van uren of dagen geleden, dan lopen de **Netlify scheduled functions
+  site-breed niet** — en dan is dit groter dan de webhookrij: ook `live-cleanup`,
+  `training-adaptations` en `strava-lifecycle` staan dan stil. Zet in dat geval
+  een cron-job.org-job op `/api/strava/webhook/process` (elke 5 min, bearer
+  `STRAVA_SYNC_SECRET`), net als bij de Strava-reconcile; dat werkt aantoonbaar
+  op deze site en kost geen Netlify-invocaties.
 
   Isoleer het met de knop **Nu verwerken** op `/beheer/strava`. Die draait
   precies dezelfde verwerker, maar dan vanuit de app in plaats van via de
