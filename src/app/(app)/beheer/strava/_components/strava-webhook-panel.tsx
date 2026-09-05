@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   adminCreateStravaSubscription,
   adminDeleteStravaSubscription,
+  adminProcessStravaWebhookEvents,
   adminRunStravaSweep,
   adminViewStravaSubscription,
   type SubscriptionState,
@@ -35,6 +36,7 @@ export function StravaWebhookPanel({
 }) {
   const [state, setState] = useState<SubscriptionState | null>(null);
   const [sweep, setSweep] = useState<string | null>(null);
+  const [processed, setProcessed] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const liveId = state?.subscription?.id ?? null;
@@ -118,6 +120,30 @@ export function StravaWebhookPanel({
           disabled={pending}
           onClick={() =>
             startTransition(async () => {
+              const result = await adminProcessStravaWebhookEvents();
+              setProcessed(
+                result.ok
+                  ? `Verwerkt ${result.processed} · opgeslagen ${result.stored} · verwijderd ${result.removed} · overgeslagen ${result.skipped} · mislukt ${result.failed}${result.remaining ? " · nog meer in de rij" : ""}`
+                  : result.error,
+              );
+            })
+          }
+        >
+          {pending ? "Bezig…" : "Nu verwerken"}
+        </Button>
+        {processed && (
+          <span className="text-xs text-muted-foreground">{processed}</span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
               const result = await adminRunStravaSweep();
               setSweep(
                 result.ok
@@ -135,7 +161,8 @@ export function StravaWebhookPanel({
       {events.length > 0 && (
         <ul className="divide-y rounded-md border text-xs">
           {events.map((event) => (
-            <li key={event.id} className="flex flex-wrap items-center gap-2 p-2">
+            <li key={event.id} className="p-2">
+              <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono">
                 {event.objectType}/{event.aspectType}
               </span>
@@ -161,6 +188,10 @@ export function StravaWebhookPanel({
                     ? `${event.attempts}x mislukt`
                     : "wacht"}
               </span>
+              </div>
+              {event.lastError && (
+                <p className="mt-1 break-words text-destructive">{event.lastError}</p>
+              )}
             </li>
           ))}
         </ul>

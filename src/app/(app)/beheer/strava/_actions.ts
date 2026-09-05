@@ -358,3 +358,28 @@ function safeCallbackUrl(build: () => string): string | undefined {
     return undefined;
   }
 }
+
+/**
+ * Draait de webhook-verwerker nu. Normaal doet de Netlify scheduled function
+ * `strava-webhook-process` dit elke 5 minuten; deze knop bestaat om te kunnen
+ * zien of het verwerken zélf werkt wanneer events blijven staan. Blijft de
+ * wachtrij vollopen terwijl deze knop hem leegtrekt, dan ligt het aan de
+ * scheduled function of aan STRAVA_SYNC_SECRET, niet aan de verwerking.
+ */
+export async function adminProcessStravaWebhookEvents() {
+  try {
+    await requireManager();
+    const admin = createAdminClient();
+    const { processStravaWebhookEvents } = await import(
+      "@/lib/strava/webhook-processor"
+    );
+    const result = await processStravaWebhookEvents(admin, { maxEvents: 25 });
+    revalidatePath("/beheer/strava");
+    return { ok: true as const, ...result };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Events verwerken faalde.",
+    };
+  }
+}

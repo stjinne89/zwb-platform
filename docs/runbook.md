@@ -306,10 +306,30 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   3. Domein gewijzigd? De callback-URL staat vast bij Strava → opnieuw aanmaken.
   4. Ondertussen blijft de dagelijkse reconcile de ritten ophalen; er gaat dus
      niets verloren, het is alleen trager.
-- **"Events blijven op *wacht* staan"** → de Netlify function
-  `strava-webhook-process` draait niet (Netlify → Functions → logs) of
-  `STRAVA_SYNC_SECRET` klopt niet. Handmatig: `curl -X POST -H "Authorization:
-  Bearer $STRAVA_SYNC_SECRET" https://<site>/api/strava/webhook/process`.
+- **"Events blijven op *wacht* staan"** → *wacht* betekent letterlijk
+  `processed_at is null` én `attempts = 0`. Elk faalpad in de verwerker verhoogt
+  `attempts`, dus dit zegt dat de events **nooit zijn aangeraakt**: het probleem
+  zit in de trigger, niet in de verwerking of in de events zelf.
+
+  Isoleer het met de knop **Nu verwerken** op `/beheer/strava`. Die draait
+  precies dezelfde verwerker, maar dan vanuit de app in plaats van via de
+  scheduled function:
+  1. Knop trekt de rij leeg → verwerking is in orde, de **scheduled function**
+     is de boosdoek. Kijk in Netlify → Functions → `strava-webhook-process` →
+     logs. Meestal: de function draait niet (deploy dateert van vóór de function)
+     of `STRAVA_SYNC_SECRET` ontbreekt in Netlify, waardoor hij een 401 krijgt en
+     stil niets doet.
+  2. Knop geeft een foutmelding → de verwerking zelf is stuk; de melding zegt
+     wat er mis is.
+  3. Knop meldt 0 verwerkt terwijl er events staan → de events horen bij een
+     atleet zonder actieve koppeling, of `attempts` staat al op 5.
+
+  Handmatig kan ook: `curl -X POST -H "Authorization: Bearer
+  $STRAVA_SYNC_SECRET" https://<site>/api/strava/webhook/process`. Een **401**
+  wijst het secret aan als oorzaak.
+
+  Blijft de wachtrij staan, dan gaat er niets verloren: de dagelijkse reconcile
+  haalt de ritten alsnog op. Het is alleen trager.
 - **"Een event blijft mislukken"** → na 5 pogingen laten we het liggen;
   `last_error` in `strava_webhook_events` zegt waarom. De reconcile haalt de rit
   alsnog op.
