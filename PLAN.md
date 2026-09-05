@@ -3037,13 +3037,17 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
-- **Netlify scheduled functions draaien niet sinds 22-06-2026** (ontdekt
-  2026-09-05). Het integratie-statusblok op `/beheer/event-scan` stond als
-  "laatst gecontroleerd" nog op 22 juni 22:01, terwijl `integrations-healthcheck`
-  elk uur hoort te draaien. Alle vijf de functions in `netlify/functions/` liggen
-  dus ruim twee maanden stil. De code klopt — dezelfde routes doen hun werk als je
-  ze met hun bearer-secret aanroept — het is de planning aan Netlify's kant die
-  niet afgaat; vermoedelijk een plan- of verbruiksgrens.
+- **Netlify scheduled functions gaan niet af** (ontdekt 2026-09-05). Netlify
+  toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
+  is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026
+  22:01, de dag dat de health-check werd uitgerold. De code klopt — dezelfde
+  routes doen hun werk als je ze met hun bearer-secret aanroept.
+
+  Dat ene datapunt is vrijwel zeker de uitrol-/testrun zelf en niet het bewijs
+  dat de planning ooit gelopen heeft; anders stonden er meer rijen. De
+  waarschijnlijkste lezing is dus dat de scheduled functions hier **nooit op
+  schema zijn afgegaan** — geregistreerd wel, uitgevoerd niet. Zeker is dat niet
+  (Netlify bewaart logs maar kort), maar het maakt voor de oplossing niet uit.
 
   Gevolgen, op volgorde van urgentie: **`live-cleanup` draait niet, dus de
   AVG-retentie op `live_positions` (30 dagen) en `event_chat_messages` (1 jaar)

@@ -30,14 +30,12 @@ Twee soorten geplande jobs:
 - **Externe cron** (cron-job.org e.d.) die een beveiligde API-route aanroept met
   `Authorization: Bearer <SECRET>`.
 
-> **Waarschuwing (2026-09-05): de Netlify scheduled functions draaien niet.**
-> Het integratie-statusblok op `/beheer/event-scan` stond op **22-06-2026 22:01**
-> als "laatst gecontroleerd", terwijl `integrations-healthcheck` elk uur hoort te
-> draaien. Alle vijf de functions in `netlify/functions/` liggen dus al ruim twee
-> maanden stil. De code klopt — dezelfde routes werken prima als je ze met hun
-> bearer-secret aanroept — het is de Netlify-planning die niet afgaat. Zet de
-> jobs hieronder op cron-job.org, waar de Strava-reconcile al jaren over loopt.
-> Zie sectie 8.
+> **Waarschuwing (2026-09-05): de Netlify scheduled functions gaan niet af.**
+> Netlify toont ze alle vijf als *scheduled*, maar er is geen enkele
+> invocatie-log, en het integratie-statusblok op `/beheer/event-scan` staat nog
+> op **22-06-2026 22:01** — de dag dat die health-check werd uitgerold. De code
+> klopt: dezelfde routes doen hun werk als je ze met hun bearer-secret aanroept.
+> Vertrouw niet op deze functions; zet de jobs op cron-job.org. Zie sectie 8.
 
 | Job | Type | Schema | Endpoint | Secret-env |
 |---|---|---|---|---|
@@ -363,25 +361,39 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
 
 ---
 
-## 8. Netlify scheduled functions liggen stil (2026-09-05)
+## 8. Netlify scheduled functions gaan niet af (2026-09-05)
 
-### Wat er aan de hand is
+### Wat we zeker weten
 
-`/beheer/event-scan` toonde als laatste health-check **22-06-2026 22:01**. Die
-hoort elk uur te draaien. Alle vijf de scheduled functions in
-`netlify/functions/` zijn dus sinds eind juni niet meer afgegaan.
+- Netlify toont alle vijf de functions in `netlify/functions/` als *scheduled*.
+- Er is **geen enkele invocatie-log**.
+- `integration_health` heeft één rij, van **22-06-2026 22:01** — de dag dat de
+  health-check werd uitgerold (zie `PLAN.md`, update 2026-06-21).
+- De routes zelf werken: met hun bearer-secret aangeroepen doen ze gewoon hun
+  werk. Zo kwam het ook boven — de knop **Nu verwerken** op `/beheer/strava`
+  trok de webhookrij in één keer leeg, terwijl de scheduled function er uren
+  niets mee had gedaan.
 
-Het ligt niet aan de code: roep je dezelfde routes met hun bearer-secret aan,
-dan doen ze gewoon hun werk. Dat is ook precies hoe het bij de webhookrij
-zichtbaar werd — de knop **Nu verwerken** op `/beheer/strava` trok de rij in één
-keer leeg, terwijl de scheduled function er drie uur niets mee had gedaan.
+### Wat dat waarschijnlijk betekent
 
-Wat de oorzaak aan Netlify's kant is, is van buitenaf niet vast te stellen.
-Het meest waarschijnlijk is een plan- of verbruiksgrens (AGENTS.md vermeldt niet
-voor niets dat de credits beperkt zijn). Kijk in Netlify onder Functions en
-Billing.
+Dat ene datapunt uit juni is vrijwel zeker de uitrol-/testrun van de health-check
+zelf, niet het bewijs dat de planning ooit heeft gelopen. Zou hij daarna nog
+uren of dagen zijn afgegaan, dan stonden er meer rijen. De waarschijnlijkste
+lezing is dus niet "het is in juni kapotgegaan", maar **de scheduled functions
+zijn hier nooit op schema afgegaan** — geregistreerd wel, uitgevoerd niet.
 
-### Wat er al die tijd stil heeft gestaan
+Dat is geen zekerheid: Netlify bewaart functie-logs maar beperkt, dus "geen logs"
+alleen bewijst niets over juni. In combinatie met die ene rij is het wel de
+verklaring die het beste past.
+
+Praktisch maakt het niet uit welke van de twee waar is: de oplossing is
+hetzelfde. Wie tóch de oorzaak wil weten, kijkt in Netlify naar het plan van het
+team en het verbruik (AGENTS.md vermeldt niet voor niets dat de credits beperkt
+zijn), en of er openstaande facturen zijn. "Wel scheduled, nooit uitgevoerd, geen
+logs" is verder een vraag voor Netlify-support, niet iets wat vanuit deze repo
+op te lossen is.
+
+### Wat er daardoor nooit heeft gedraaid
 
 | Function | Gevolg |
 |---|---|
