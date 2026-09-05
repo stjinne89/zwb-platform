@@ -266,7 +266,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Buiten oorspronkelijk plan opgeleverd
 
-- **Strava-webhooks en actief koppelingbeheer** (2026-09-05, commit `<hash>`,
+- **Strava-webhooks en actief koppelingbeheer** (2026-09-05, commit `2c575b9`,
   migr. `0148`-`0151`): antwoord op Strava's **afwijzing** van onze aanvraag voor
   een hogere atletenlimiet. Die afwijzing stelde twee eisen — webhooks in plaats
   van polling, en actief beheer van stale en gedeauthoriseerde atleten — en op
