@@ -37,7 +37,7 @@ Twee soorten geplande jobs:
 | Strava-reconcile | Externe cron | **1x/dag** (was elke 15-30 min) | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
 | ↳ ritten komen sinds de webhooks realtime binnen; deze run kijkt alleen het venster van 30 dagen na op hernoemingen en op Strava verwijderde ritten | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
-| Strava-webhookverwerking | Netlify function | `* * * * *` (elke minuut) | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| Strava-webhookverwerking | Netlify function | `*/5 * * * *` | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
 | Strava-koppelingen opruimen | Netlify function | `40 3 * * *` | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
@@ -216,9 +216,10 @@ Callback-URL: `https://<site>/api/strava/webhook`. Die route staat in
 1. Strava POST → `/api/strava/webhook` schrijft het event in
    `strava_webhook_events` en antwoordt meteen. **Altijd 200**, ook bij een fout
    aan onze kant: een 5xx kost ons de subscription.
-2. Netlify function `strava-webhook-process` (elke minuut) roept
+2. Netlify function `strava-webhook-process` (elke 5 minuten) roept
    `/api/strava/webhook/process` aan. Die verwerkt max. 25 events per run en stopt
-   na ~8s (Netlify-timeout).
+   na ~8s (Netlify-timeout). Elke tik kost twee Netlify-invocaties, vandaar niet
+   elke minuut; een rit staat dus binnen ~5 minuten in de app.
 3. Per event: `activity` → één `GET /activities/{id}?include_all_efforts=true`
    (ook meteen de segment-inspanningen); `athlete` met
    `updates.authorized = "false"` → koppeling direct opheffen.
@@ -260,6 +261,10 @@ Geen ritten **en** geen login in `STRAVA_INACTIVITY_MONTHS` (12) →
 waarschuwing via push (`on_strava_link_expiring`) en een melding op `/profiel`.
 Blijft het daarna `STRAVA_INACTIVITY_GRACE_DAYS` (30) stil, dan wordt de
 koppeling opgeheven en gedeauthoriseerd.
+
+Is `last_sign_in_at` niet leesbaar (Supabase admin-API faalt), dan slaat de run
+het hele inactiviteitsbeleid over en meldt dat in `errors`. Doorgaan zou leden
+waarschuwen die wél inloggen maar toevallig een jaar niet gereden hebben.
 
 **Let op:** een lid dat twaalf maanden weg is heeft meestal geen werkende
 push-subscription meer, en de app kent geen transactionele e-mail. Daarom staat

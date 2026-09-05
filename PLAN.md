@@ -319,6 +319,16 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   wat de vorige heeft opgemaakt. Dat was principieel onmogelijk zolang elke run
   zonder geheugen begon.
 
+  *Nagekomen hardening (commit `<hash2>`).* Twee dingen die pas bij het naar
+  productie brengen opvielen. (a) Het inactiviteitsbeleid sloeg bij een
+  onleesbare `last_sign_in_at` stil terug op "niemand logt in", en zou dan leden
+  waarschuwen die dagelijks in de app zitten maar toevallig een jaar niet hebben
+  gereden; nu slaat de run het beleid over en meldt dat. (b) De
+  webhook-verwerker draaide elke minuut, wat met de route erachter ~86k
+  Netlify-invocaties per maand kost voor iets dat meestal niets te doen heeft —
+  dat botst met de credit-conventie in AGENTS.md. Nu elke 5 minuten, nog altijd
+  3 tot 6 keer sneller dan de kwartierpoll die het vervangt.
+
   *Bewust niet gebouwd.* (a) Het pollpad is niet verwijderd: bij een gemist of
   vertraagd event is de dagelijkse reconcile het enige vangnet, en dat opgeven
   vóór we webhookbetrouwbaarheid hebben gemeten is te vroeg. (b) Geen

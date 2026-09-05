@@ -206,6 +206,9 @@ export async function applyInactivityPolicy(
     .from("strava_connections")
     .select("profile_id, inactivity_warned_at")
     .is("revoked_at", null)
+    // Zonder ordening geeft Postgres bij meer koppelingen dan `limit` een
+    // willekeurige greep; dan wordt er nooit een hele ronde gemaakt.
+    .order("connected_at", { ascending: true })
     .limit(limit);
 
   const rows = (data ?? []) as Array<{
@@ -215,6 +218,15 @@ export async function applyInactivityPolicy(
   if (rows.length === 0) return { warned: 0, revoked: 0, errors: [] };
 
   const lastSignIn = await lastSignInByProfile(admin);
+  if (!lastSignIn) {
+    // Eén van de twee signalen ontbreekt. Doorgaan zou betekenen dat we leden
+    // waarschuwen op basis van halve informatie, en dit beleid neemt ze iets af.
+    return {
+      warned: 0,
+      revoked: 0,
+      errors: ["Inactiviteitsbeleid overgeslagen: last_sign_in_at niet leesbaar."],
+    };
+  }
 
   let warned = 0;
   let revoked = 0;
@@ -285,11 +297,16 @@ export async function applyInactivityPolicy(
  * last_sign_in_at staat in auth.users; profiles heeft geen last-seen-kolom. Voor
  * een club van deze omvang is de admin-API één of twee pagina's — een view op
  * auth.users zou een tabel openzetten die nu volledig dicht zit.
+ *
+ * Geeft null terug als de bron niet te lezen was. Dat verschil is belangrijk:
+ * een lege map zou betekenen "niemand logt in", en dan waarschuwen we leden die
+ * dagelijks in de app zitten maar toevallig een jaar niet gereden hebben. Bij
+ * null slaan we het inactiviteitsbeleid deze run gewoon over.
  */
 async function lastSignInByProfile(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
-): Promise<Map<string, string | null>> {
+): Promise<Map<string, string | null> | null> {
   const result = new Map<string, string | null>();
   try {
     for (let page = 1; page <= 5; page++) {
@@ -297,7 +314,7 @@ async function lastSignInByProfile(
         page,
         perPage: 200,
       });
-      if (error) break;
+      if (error) return null;
       const users = (data?.users ?? []) as Array<{
         id: string;
         last_sign_in_at?: string | null;
@@ -308,8 +325,7 @@ async function lastSignInByProfile(
       if (users.length < 200) break;
     }
   } catch {
-    // Zonder deze bron blijft alleen het ritsignaal over; decideInactivity gaat
-    // dan uit van "geen login bekend", en de waarschuwing komt er alsnog eerst.
+    return null;
   }
   return result;
 }
