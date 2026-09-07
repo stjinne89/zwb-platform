@@ -862,8 +862,8 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 ### Opgeleverd — clubevents inklapbaar op de schemapagina
 
-**2026-09-07, branch `claude/clubevents-collapsible-training-sv5pno`.** Geen
-migratie.
+**2026-09-07, commit `9071f23` op branch
+`claude/clubevents-collapsible-training-sv5pno`.** Geen migratie.
 
 **Waarom.** In een ZRL-seizoen vallen er tientallen races binnen dezelfde
 schemaperiode, en elke race is een eigen regel met twee knoppen in het blok
