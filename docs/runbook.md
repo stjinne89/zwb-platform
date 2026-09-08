@@ -41,8 +41,10 @@ Twee soorten geplande jobs:
 |---|---|---|---|---|
 | Live-data opruimen | Netlify function | `*/15 * * * *` | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
 | Integratie-health-check | Netlify function | `0 * * * *` (elk uur) | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
-| Strava-reconcile | Externe cron | **1x/dag** (was elke 15-30 min) | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
+| Strava-reconcile | Externe cron | **elk uur**, met `?limit=3` | `POST /api/strava/sync?limit=3` | `STRAVA_SYNC_SECRET` |
 | ↳ ritten komen sinds de webhooks realtime binnen; deze run kijkt alleen het venster van 30 dagen na op hernoemingen en op Strava verwijderde ritten | | | | |
+| ↳ **elk uur is niet hetzelfde als vaak syncen.** `STRAVA_RECONCILE_MIN_AGE_HOURS` (20) slaat elk lid over dat binnen 20 uur al aan de beurt was, dus iedereen wordt hooguit 1x per dag opgehaald. De frequentie bepaalt alleen hoeveel leden er per dag doorheen komen | | | | |
+| ↳ `?limit=3` omdat de route per lid Strava-calls én nawerk doet; 20 leden in één verzoek loopt tegen de timeout van de cron-dienst (en tegen die van Netlify). Verhoog `limit` pas als de duur in de job-historie ruim onder je timeout blijft | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
 | Strava-webhookverwerking | Externe cron **of** Netlify function | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
 | ↳ er staat een Netlify scheduled function klaar (`strava-webhook-process`), maar zet er een cron-job.org-job op als de Netlify-schedules niet blijken te lopen. Gebruik er één, niet allebei | | | | |
@@ -314,6 +316,14 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   3. Domein gewijzigd? De callback-URL staat vast bij Strava → opnieuw aanmaken.
   4. Ondertussen blijft de dagelijkse reconcile de ritten ophalen; er gaat dus
      niets verloren, het is alleen trager.
+- **"Strava-sync geeft timeout"** → geen autorisatieprobleem: een 401 komt
+  direct terug, een timeout betekent dat de route is begonnen maar niet op tijd
+  klaar was. De route doet per lid Strava-calls plus nawerk, dus met een hoge
+  `limit` haalt hij het nooit binnen de 30 seconden van een cron-dienst — laat
+  staan binnen de ~10 seconden van een Netlify-functie. Verlaag `limit` (3 is een
+  veilig startpunt) en laat de job vaker draaien; door de 20-uursgrens blijft elk
+  lid alsnog hooguit 1x per dag aan de beurt. Zet de timeout van de job meteen op
+  het maximum.
 - **"Events blijven op *wacht* staan"** → *wacht* betekent letterlijk
   `processed_at is null` én `attempts = 0`. Elk faalpad in de verwerker verhoogt
   `attempts`, dus dit zegt dat de events **nooit zijn aangeraakt**: het probleem
