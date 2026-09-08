@@ -96,6 +96,13 @@ export async function POST(request: Request) {
     envPositiveInt("STRAVA_SYNC_RECONCILIATION_DAYS", 30, 365),
     365,
   );
+  // Het zware nawerk (col-detector, ZWBlokken, milestones, segmenten) hoort sinds
+  // de webhooks bij het webhook-pad: dat draait per binnengekomen rit. Deed de
+  // reconcile het óók, dan kostte één lid tot honderd extra Strava-calls, want
+  // syncZwbSegmentsForUser haalt ook met maxFetches 0 de authoritatieve PR's op.
+  // Vandaar hier standaard uit; met ?full=1 zet je het aan voor een inhaalslag.
+  const fullPostProcessing = url.searchParams.get("full") === "1";
+
   // Koppelingen die vandaag al aan de beurt zijn geweest slaan we over. Zonder
   // deze grens zou een tweede run op dezelfde dag alles opnieuw ophalen.
   const minAgeHours = positiveInt(
@@ -161,6 +168,7 @@ export async function POST(request: Request) {
             zwbSummaryMaxWrites,
             reconciliationDays,
             refreshAthleteInfo: false,
+            skipPostProcessing: !fullPostProcessing,
           });
 
           if (!result.ok) {
@@ -260,6 +268,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         ok: !results.some((r) => r.status === "failed"),
+        fullPostProcessing,
         scannedProfiles: connections?.length ?? 0,
         processedProfiles: results.length,
         upserted: results.reduce((sum, r) => sum + r.upserted, 0),

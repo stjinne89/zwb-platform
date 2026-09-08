@@ -744,7 +744,11 @@ export async function syncStravaActivitiesForUser(
           ? undefined
           : (options.zwbSegmentMaxFetches ?? maxColSegmentFetches),
         milestones: !skip,
-        removedActivityIds: skip ? [] : removedActivityIds,
+        // Altijd meegeven, ook bij skipPostProcessing: dit draait alleen als er
+        // daadwerkelijk ritten zijn verdwenen, en dan moeten de coltijden die
+        // eraan hingen hoe dan ook herberekend worden. Dat is nou juist het werk
+        // waarvoor de reconcile bestaat.
+        removedActivityIds,
       });
 
       milestoneAwards = post.milestoneAwards;
