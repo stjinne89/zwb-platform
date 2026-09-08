@@ -397,7 +397,7 @@ op te lossen is.
 
 | Function | Gevolg |
 |---|---|
-| `live-cleanup` (elke 15 min) | **AVG-retentie draait niet.** Stap 2 wist `live_positions` ouder dan 30 dagen en stap 3 `event_chat_messages` ouder dan een jaar. Er staat dus locatiedata die er niet meer had mogen zijn. Dit is het urgentste punt. |
+| `live-cleanup` (elke 15 min) | **AVG-retentie heeft nooit gedraaid.** Dubbel stuk: los van de planning ontbrak `LIVE_CLEANUP_SECRET` volledig in Netlify (ontdekt 2026-09-08), en zonder die var geeft de route 403 — ook als de schedule wél was afgegaan. Stap 2 wist `live_positions` ouder dan 30 dagen en stap 3 `event_chat_messages` ouder dan een jaar; er staat dus locatiedata die er niet meer had mogen zijn. Dit is het urgentste punt. Zet de var eerst, dán de cron-job. |
 | `training-adaptations` (dagelijks 08:30) | Dagelijkse trainingsaanpassingen worden niet gemaakt, herplanverzoeken niet opgepakt, en blijven hangen AI-generaties niet afgemaakt. Ledenzichtbaar, en al maanden stil zonder dat iemand het meldde. |
 | `integrations-healthcheck` (elk uur) | Geen monitoring. Verlopen WTRL-/ladder-cookies of een gewijzigde bron zijn sinds eind juni nooit gemeld. |
 | `strava-webhook-process` (elke 5 min) | Webhook-events blijven op *wacht* staan. |
@@ -411,7 +411,7 @@ en kost geen Netlify-invocaties. Per job: methode **POST**, header
 
 | Volgorde | Endpoint | Schema | Secret |
 |---|---|---|---|
-| 1 | `/api/live/cleanup` | elke 15 min | `LIVE_CLEANUP_SECRET` |
+| 1 | `/api/live/cleanup` | elke 15 min | `LIVE_CLEANUP_SECRET` — **bestond niet in Netlify; eerst aanmaken** (`openssl rand -hex 32`) |
 | 2 | `/api/strava/webhook/process` | elke 5 min | `STRAVA_SYNC_SECRET` |
 | 3 | `/api/training/adaptations/daily` | dagelijks 08:30 | `TRAINING_ADAPTATION_SECRET` |
 | 4 | `/api/health/integrations` | elk uur | `HEALTHCHECK_SECRET` |
