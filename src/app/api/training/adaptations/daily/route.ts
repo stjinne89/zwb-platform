@@ -1,5 +1,4 @@
 import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
-import { generateTrainingPlanDraft } from "@/lib/training/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adaptiveDailyPrompt } from "@/lib/training/workouts";
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
@@ -14,8 +13,8 @@ import {
   buildIntervalsLoad,
   buildRecentLoad,
   finishAiGeneration,
-  insertPlanWorkouts,
-  runPlanUpdateNow,
+  startBackgroundAdaptation,
+  startPlanUpdate,
   STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -37,6 +36,20 @@ const PROPOSAL_TTL_DAYS = 3;
 const MAX_PLAN_UPDATES_PER_RUN = 5;
 
 /**
+ * Hoeveel generaties we per run mogen uitzetten.
+ *
+ * Uitzetten is goedkoop vergeleken met wachten, maar het aanmelden bij OpenAI mag
+ * tot vijftien seconden duren. Een paar per run past ruim binnen de
+ * Netlify-invocatie; twintig niet. De cron draait elk uur, dus de rij komt er
+ * vanzelf doorheen — en de dagcheck per schema zorgt dat niemand twee keer aan de
+ * beurt komt.
+ */
+const MAX_GENERATIONS_STARTED_PER_RUN = Math.max(
+  1,
+  Math.min(10, Number.parseInt(process.env.TRAINING_ADAPTATION_MAX_STARTS ?? "", 10) || 3),
+);
+
+/**
  * En hoe oud hij hoogstens mag zijn om nog afgemaakt te worden.
  *
  * Dit is geen zuinigheid maar veiligheid. Een herziening beslaat de periode vanaf
@@ -49,6 +62,16 @@ const STALE_GENERATION_MAX_HOURS = 18;
 
 /** Plafond per run, zodat één nacht niet twintig OpenAI-calls achter elkaar doet. */
 const MAX_STALE_GENERATIONS_PER_RUN = 10;
+
+/**
+ * Wall-clock budget voor de hele run.
+ *
+ * Netlify kapt een functie rond de tien seconden af, en dan is de respons weg —
+ * inclusief het overzicht van wat er wél is gelukt. Beide lussen kijken hierop,
+ * zodat de route altijd netjes terugkomt en vertelt waar hij is gebleven. De rest
+ * volgt het uur erna; alles hier is idempotent.
+ */
+const RUN_BUDGET_MS = 8000;
 
 type PlanRow = {
   id: string;
@@ -207,6 +230,7 @@ async function availabilityChangedSinceRevision(
 async function finishStaleGenerations(
   admin: ReturnType<typeof createAdminClient>,
   results: Array<{ profileId: string; status: string; draftPlanId?: string; error?: string }>,
+  deadline: number,
 ): Promise<number> {
   const cutoff = new Date(Date.now() - STALE_GENERATION_MINUTES * 60_000).toISOString();
   const tooOld = new Date(Date.now() - STALE_GENERATION_MAX_HOURS * 3600_000).toISOString();
@@ -239,6 +263,10 @@ async function finishStaleGenerations(
 
   let afgemaakt = 0;
   for (const row of stale ?? []) {
+    // Elke afronding is een poll bij OpenAI plus, als hij klaar is, het opbouwen
+    // van een schema. Tien daarvan passen niet gegarandeerd in één invocatie.
+    if (Date.now() > deadline) break;
+
     const outcome = await finishAiGeneration(admin, row.id as string).catch((err) => ({
       ok: false as const,
       error: err instanceof Error ? err.message : "Ophalen faalde.",
@@ -281,17 +309,27 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
+  const deadline = Date.now() + RUN_BUDGET_MS;
   const results: Array<{ profileId: string; status: string; draftPlanId?: string; error?: string }> = [];
 
   try {
     const archived = await archiveStaleProposals(admin).catch(() => 0);
 
     // Eerst het werk dat al betaald is: generaties die op iemand wachtten.
-    const finishedGenerations = await finishStaleGenerations(admin, results).catch(() => 0);
+    const finishedGenerations = await finishStaleGenerations(admin, results, deadline).catch(
+      () => 0,
+    );
 
     let planUpdatesRun = 0;
+    let generationsStarted = 0;
 
     for (const plan of await latestPlanCandidates(admin)) {
+      // Plafond of budget bereikt: de rest komt volgend uur. Niet doorgaan, want
+      // elke start kost tot vijftien seconden en de invocatie stopt na een
+      // seconde of tien.
+      if (generationsStarted >= MAX_GENERATIONS_STARTED_PER_RUN) break;
+      if (Date.now() > deadline) break;
+
       const today = new Date().toISOString().slice(0, 10);
       const { data: existingRun } = await admin
         .from("training_adaptation_runs")
@@ -313,13 +351,17 @@ export async function POST(request: Request) {
           planUpdatesRun += 1;
           const runLog = { trigger: trigger.source, reason: trigger.reason, at: trigger.at };
           try {
-            const update = await runPlanUpdateNow({
+            // Uitzetten, niet uitvoeren: startPlanUpdate meldt de generatie aan bij
+            // OpenAI en geeft meteen terug. finishStaleGenerations pikt hem een
+            // van de volgende uren op en maakt er het schema van.
+            const update = await startPlanUpdate({
               admin,
               planId: plan.id,
               actorId: plan.profile_id,
               reason: `${trigger.reason} Het schema is automatisch herzien.`,
               authorized: true,
             });
+            generationsStarted += 1;
 
             // Geen AI-fout maar een structurele: het schema is afgelopen, hangt
             // niet aan een doel, of is verdwenen. Morgen lukt het dan ook niet,
@@ -337,15 +379,17 @@ export async function POST(request: Request) {
               results.push({ profileId: plan.profile_id, status: "skipped", error: update.error });
               continue;
             }
+            // 'queued', niet 'completed': er is nog geen schema. Deze rij houdt
+            // wel de dagcheck bezet, zodat het volgende uur niet nog een
+            // generatie voor hetzelfde plan start.
             await admin.from("training_adaptation_runs").insert({
               profile_id: plan.profile_id,
               trainer_id: plan.trainer_id,
               source_plan_id: plan.id,
-              draft_plan_id: update.planId,
-              status: "completed",
-              input_json: runLog,
+              status: "queued",
+              input_json: { ...runLog, generationId: update.generationId },
             });
-            results.push({ profileId: plan.profile_id, status: "plan_update", draftPlanId: update.planId });
+            results.push({ profileId: plan.profile_id, status: "plan_update_queued" });
           } catch (err) {
             const error = err instanceof Error ? err.message : "Automatische herziening faalde.";
             await admin.from("training_adaptation_runs").insert({
@@ -363,7 +407,7 @@ export async function POST(request: Request) {
       }
 
       try {
-        const [{ data: recentActivities }, { data: goal }, { data: profile }, { data: sourceWorkouts }] =
+        const [{ data: recentActivities }, { data: goal }, { data: profile }] =
           await Promise.all([
             admin
               .from("strava_activities")
@@ -378,7 +422,6 @@ export async function POST(request: Request) {
               .select("display_name, ftp_watts, weight_kg, zrl_category, sex")
               .eq("id", plan.profile_id)
               .single(),
-            admin.from("training_workouts").select("*").eq("plan_id", plan.id).order("scheduled_at"),
           ]);
 
         if (!recentActivities || recentActivities.length === 0 || !goal || !profile) {
@@ -421,106 +464,96 @@ export async function POST(request: Request) {
           .lte("scheduled_at", `${planEnd}T23:59:59`)
           .order("scheduled_at", { ascending: true });
 
-        const ai = await generateTrainingPlanDraft(
-          {
-            athleteName: profile.display_name ?? "ZWB-lid",
-            goal: {
-              title: goal.title,
-              type: goal.goal_type,
-              targetDate: goal.target_date,
-              availableDays: goal.available_days ?? [],
-              maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
-              preferredMode: goal.preferred_mode,
-              experienceLevel: goal.experience_level,
-              desiredIntensity: goal.desired_intensity,
-              riskNotes: goal.risk_notes,
-            },
-            profile: {
-              ftpWatts: profile.ftp_watts ?? null,
-              weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-              zrlCategory: profile.zrl_category ?? null,
-              sex: profile.sex ?? null,
-            },
-            symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
-            recentLoad: recent,
-            wellness: wellness
-              ? {
-                  days: wellness.days,
-                  state: wellness.state,
-                  restingHr: wellness.restingHr,
-                  hrv: wellness.hrv,
-                  sleepHours: wellness.sleepHours,
-                  readiness: wellness.readiness,
-                  readinessSource: wellness.readinessSource,
-                  note: wellness.note,
-                }
-              : null,
-            intervalsLoad,
-            availability,
-            fixedWorkouts,
-            yesterday,
-            currentPlan: {
-              title: plan.title,
-              fromDate: today,
-              toDate: planEnd,
-              workouts: (planned ?? []).map((workout) => ({
-                date: String(workout.scheduled_at).slice(0, 10),
-                title: workout.title as string,
-                durationMinutes: Number(workout.duration_minutes ?? 0),
-                intensity: workout.intensity as string,
-              })),
-            },
+        const input = {
+          athleteName: profile.display_name ?? "ZWB-lid",
+          goal: {
+            title: goal.title,
+            type: goal.goal_type,
+            targetDate: goal.target_date,
+            availableDays: goal.available_days ?? [],
+            maxHoursPerWeek: goal.max_hours_per_week ? Number(goal.max_hours_per_week) : null,
+            preferredMode: goal.preferred_mode,
+            experienceLevel: goal.experience_level,
+            desiredIntensity: goal.desired_intensity,
+            riskNotes: goal.risk_notes,
           },
-          adaptiveDailyPrompt(),
-          { reasoningEffort: "low", minWorkouts: 1 },
-        );
+          profile: {
+            ftpWatts: profile.ftp_watts ?? null,
+            weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
+            zrlCategory: profile.zrl_category ?? null,
+            sex: profile.sex ?? null,
+          },
+          symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
+          recentLoad: recent,
+          wellness: wellness
+            ? {
+                days: wellness.days,
+                state: wellness.state,
+                restingHr: wellness.restingHr,
+                hrv: wellness.hrv,
+                sleepHours: wellness.sleepHours,
+                readiness: wellness.readiness,
+                readinessSource: wellness.readinessSource,
+                note: wellness.note,
+              }
+            : null,
+          intervalsLoad,
+          availability,
+          fixedWorkouts,
+          yesterday,
+          currentPlan: {
+            title: plan.title,
+            fromDate: today,
+            toDate: planEnd,
+            workouts: (planned ?? []).map((workout) => ({
+              date: String(workout.scheduled_at).slice(0, 10),
+              title: workout.title as string,
+              durationMinutes: Number(workout.duration_minutes ?? 0),
+              intensity: workout.intensity as string,
+            })),
+          },
+        };
 
-        // Een voorstel, geen schema: het blijft 'draft' tot het lid het toepast,
-        // en hangt via root_plan_id onder het lopende schema in plaats van
-        // ernaast. De titel krijgt geen suffix meer — de kaart toont zelf al dat
-        // het een voorstel is.
-        const { data: draft, error: draftError } = await admin
-          .from("training_plans")
-          .insert({
+        // Uitzetten, niet uitvoeren. Het voorstel wordt een schema zodra
+        // finishStaleGenerations 'm ophaalt, een van de volgende uren.
+        const started = await startBackgroundAdaptation({
+          admin,
+          input,
+          prompt: adaptiveDailyPrompt(),
+          profileId: plan.profile_id,
+          trainerId: plan.trainer_id,
+          goalId: plan.goal_id,
+          parentPlanId: plan.id,
+          adaptationKind: "daily",
+          adaptationReason: "Dagelijkse bijstelling op basis van je laatste ritten.",
+          adaptFromDate: today,
+          options: { reasoningEffort: "low", minWorkouts: 1 },
+        });
+        generationsStarted += 1;
+
+        if (!started.ok) {
+          await admin.from("training_adaptation_runs").insert({
             profile_id: plan.profile_id,
             trainer_id: plan.trainer_id,
-            goal_id: plan.goal_id,
-            parent_plan_id: plan.id,
-            root_plan_id: plan.root_plan_id ?? plan.id,
-            title: ai.plan.title,
-            summary: ai.plan.summary,
-            start_date: ai.plan.startDate,
-            end_date: ai.plan.endDate,
-            status: "draft",
-            source: "ai",
-            adaptation_kind: "daily",
-            adapt_from_date: today,
-            adaptation_reason: "Dagelijkse bijstelling op basis van je laatste ritten.",
-            ctl_projection_json: {
-              sourcePlanId: plan.id,
-              sourceWorkoutCount: (sourceWorkouts ?? []).length,
-            },
-          })
-          .select("id")
-          .single();
-        if (draftError) throw new Error(draftError.message);
+            source_plan_id: plan.id,
+            status: "failed",
+            input_json: { recent },
+            error: started.error,
+          });
+          results.push({ profileId: plan.profile_id, status: "failed", error: started.error });
+          continue;
+        }
 
-        await insertPlanWorkouts(
-          admin,
-          { id: draft.id, profile_id: plan.profile_id, trainer_id: plan.trainer_id },
-          ai.plan.workouts,
-        );
-
+        // 'queued': er is nog geen schema, maar deze rij bezet wel de dagcheck
+        // zodat het volgende uur niet opnieuw voor dit plan wordt gestart.
         await admin.from("training_adaptation_runs").insert({
           profile_id: plan.profile_id,
           trainer_id: plan.trainer_id,
           source_plan_id: plan.id,
-          draft_plan_id: draft.id,
-          status: "completed",
-          input_json: { recent },
-          response_json: ai.plan,
+          status: "queued",
+          input_json: { recent, generationId: started.generationId },
         });
-        results.push({ profileId: plan.profile_id, status: "completed", draftPlanId: draft.id });
+        results.push({ profileId: plan.profile_id, status: "queued" });
       } catch (err) {
         await admin.from("training_adaptation_runs").insert({
           profile_id: plan.profile_id,
@@ -537,7 +570,14 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json({ ok: true, archived, finishedGenerations, results });
+    return Response.json({
+      ok: true,
+      archived,
+      finishedGenerations,
+      generationsStarted,
+      budgetSpent: Date.now() > deadline,
+      results,
+    });
   } catch (err) {
     return Response.json(
       { ok: false, error: err instanceof Error ? err.message : "Adaptatie-cron faalde." },

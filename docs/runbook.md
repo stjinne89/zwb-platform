@@ -45,9 +45,10 @@ op cron-job.org.
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
-| Training-adaptaties (drafts) | cron-job.org | dagelijks 10:30 | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
-| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` (max. 5 per run, **synchrone** generatie) | | | | |
-| ↳ ⚠️ die synchrone generaties passen niet binnen een Netlify-invocatie (~10 s), dus de job meldt een timeout en de herzieningen vallen af. De goedkope stappen — verlopen voorstellen archiveren, afgeronde achtergrondgeneraties ophalen — lukken wél. Zie "Bekende open dingen" in `PLAN.md` | | | | |
+| Training-adaptaties (drafts) | cron-job.org | **elk uur** (was dagelijks) | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
+| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
+| ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. Vandaar elk uur — dat is de pollfrequentie, niet hoe vaak een lid aan de beurt komt. Een schema krijgt hooguit één voorstel per dag (dagcheck op `training_adaptation_runs`) | | | | |
+| ↳ een voorstel is er dus ~1 uur na het uitzetten, niet meteen. De hele run heeft een wall-clock budget van 8 s en breekt netjes af; wat overblijft volgt het uur erna | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
 | Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
 | Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
@@ -310,11 +311,17 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   3. Domein gewijzigd? De callback-URL staat vast bij Strava → opnieuw aanmaken.
   4. Ondertussen blijft de dagelijkse reconcile de ritten ophalen; er gaat dus
      niets verloren, het is alleen trager.
-- **"Trainingsaanpassingen geven elke run een timeout"** → verwacht gedrag tot de
-  route is omgebouwd, geen fout in je cron of secret. De synchrone AI-generaties
-  passen niet binnen een Netlify-invocatie. Laat de job staan (de goedkope stappen
-  hebben nut) en zet de timeout op het maximum; de foutmelding is dan ruis die je
-  kunt negeren tot het open punt in `PLAN.md` is opgepakt.
+- **"Trainingsaanpassingen geven een timeout"** → hoort sinds 2026-09-08 niet meer
+  te gebeuren: de generaties draaien in de achtergrond en de run heeft een budget
+  van 8 s. Gebeurt het toch, kijk dan naar `generationsStarted` en `budgetSpent` in
+  het antwoord. Staat `budgetSpent` op true, dan was het budget op vóór de timeout
+  — dat is normaal bij een inhaalslag. Verlaag anders `TRAINING_ADAPTATION_MAX_STARTS`.
+- **"Er verschijnt geen voorstel voor een lid"** → een voorstel wordt uitgezet en
+  pas een run later opgehaald, dus reken op ~1 uur. Kijk in
+  `training_ai_generations` op `status`: blijft die op `queued`/`in_progress`, dan
+  is OpenAI nog bezig (na 18 uur wordt hij automatisch verlopen verklaard). Staat
+  er `failed` met een `error`, dan zegt die wat er mis is. In
+  `training_adaptation_runs` staat per schema of er die dag al iets is uitgezet.
 - **"Strava-sync geeft timeout"** → geen autorisatieprobleem: een 401 komt
   direct terug, een timeout betekent dat de route is begonnen maar niet op tijd
   klaar was. Twee oorzaken, in deze volgorde:

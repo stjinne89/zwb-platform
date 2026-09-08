@@ -3099,7 +3099,28 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
-- **`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**
+- ~~**`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**~~
+  — **opgelost 2026-09-08, commit `<hash4>`.** De route zet de generaties nu in de
+  achtergrond (`startPlanUpdate` en het nieuwe `startBackgroundAdaptation`) en
+  haalt ze een volgende run op met de `finishStaleGenerations` die er al zat.
+  Daarom draait die cron nu elk uur: dat is de pollfrequentie, niet hoe vaak een
+  lid aan de beurt komt — de dagcheck op `training_adaptation_runs` houdt het op
+  één voorstel per schema per dag. Per run worden er hooguit
+  `TRAINING_ADAPTATION_MAX_STARTS` (3) uitgezet, en de hele run heeft een
+  wall-clock budget van 8 seconden zodat hij altijd netjes terugkomt met een
+  overzicht in plaats van te worden afgekapt.
+
+  Onderweg meegenomen: het TypeScript-type van `adaptation_kind` kende `'daily'`
+  niet, terwijl de database het sinds migratie 0113 toestaat. En de route haalde
+  per schema álle workouts op om er een telling van te zetten in
+  `ctl_projection_json`, dat nergens wordt gelezen — die query is weg.
+
+  De prijs is dat een voorstel er ongeveer een uur later staat in plaats van
+  meteen. Dat is de juiste ruil: nu stond er hélemaal niets, want de route liep
+  elke run in een timeout.
+
+  *Oorspronkelijke beschrijving:*
+  **`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**
   (ontdekt 2026-09-08 bij het opzetten van de cron-jobs). De route doet tot
   `MAX_PLAN_UPDATES_PER_RUN` (5) **synchrone** AI-generaties, en het runbook
   vermeldt zelf dat hij "minuten mag duren". Dat kan niet: een Netlify-functie
