@@ -329,7 +329,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   dat botst met de credit-conventie in AGENTS.md. Nu elke 5 minuten, nog altijd
   3 tot 6 keer sneller dan de kwartierpoll die het vervangt.
 
-  *Nagekomen (2026-09-08, commit `<hash3>`).* Bij het opzetten van de cron-jobs
+  *Nagekomen (2026-09-08, commit `572c5ca`).* Bij het opzetten van de cron-jobs
   bleek de reconcile in een timeout te lopen. Oorzaak: hij draaide per lid nog
   het volledige nawerk, inclusief `syncZwbSegmentsForUser` — en die haalt ook met
   `maxFetches: 0` de authoritatieve PR's op, tot honderd `GET /segments/{id}` per
