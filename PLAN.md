@@ -3088,6 +3088,28 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
+- **`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**
+  (ontdekt 2026-09-08 bij het opzetten van de cron-jobs). De route doet tot
+  `MAX_PLAN_UPDATES_PER_RUN` (5) **synchrone** AI-generaties, en het runbook
+  vermeldt zelf dat hij "minuten mag duren". Dat kan niet: een Netlify-functie
+  wordt na circa tien seconden afgekapt. Dit is exact dezelfde ziekte die eerder
+  al bij de renner-knop is verholpen — zie de regel hierboven over "Pas vandaag
+  aan", waar de synchrone 45s-call werd vervangen door achtergrond-AI met polling.
+
+  Het is nooit opgevallen omdat de scheduled function die deze route aanriep
+  überhaupt nooit is afgegaan. Nu er een cron-job.org-job op staat, meldt die
+  elke run een timeout.
+
+  Wat wél lukt binnen het budget zijn de goedkope stappen: verlopen voorstellen
+  archiveren en al afgeronde achtergrondgeneraties ophalen
+  (`finishStaleGenerations`). Wat structureel niet lukt zijn de synchrone
+  herzieningen; die vallen elke nacht af.
+
+  **Op te lossen door de generaties net als bij de renner-knop naar de
+  achtergrond-AI met polling te brengen**, zodat de route alleen werk uitzet en
+  ophaalt. Tot die tijd blijft de job een timeout melden en blijven openstaande
+  herplanverzoeken liggen.
+
 - **Netlify scheduled functions gaan niet af** (ontdekt 2026-09-05). Netlify
   toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
   is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026

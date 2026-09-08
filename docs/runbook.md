@@ -52,7 +52,8 @@ Twee soorten geplande jobs:
 | Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
 | Training-adaptaties (drafts) | Netlify function | `30 8 * * *` | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
-| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` (max. 5 per run, synchrone generatie: deze route mag dus minuten duren) | | | | |
+| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` (max. 5 per run, **synchrone** generatie) | | | | |
+| ↳ ⚠️ die synchrone generaties passen niet binnen een Netlify-invocatie (~10 s), dus de job meldt een timeout en de herzieningen vallen af. De goedkope stappen — verlopen voorstellen archiveren, afgeronde achtergrondgeneraties ophalen — lukken wél. Zie "Bekende open dingen" in `PLAN.md` | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
 | Team-resultaten sync | Externe cron | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
 | Achievements finalize | Externe cron | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
@@ -316,6 +317,11 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   3. Domein gewijzigd? De callback-URL staat vast bij Strava → opnieuw aanmaken.
   4. Ondertussen blijft de dagelijkse reconcile de ritten ophalen; er gaat dus
      niets verloren, het is alleen trager.
+- **"Trainingsaanpassingen geven elke run een timeout"** → verwacht gedrag tot de
+  route is omgebouwd, geen fout in je cron of secret. De synchrone AI-generaties
+  passen niet binnen een Netlify-invocatie. Laat de job staan (de goedkope stappen
+  hebben nut) en zet de timeout op het maximum; de foutmelding is dan ruis die je
+  kunt negeren tot het open punt in `PLAN.md` is opgepakt.
 - **"Strava-sync geeft timeout"** → geen autorisatieprobleem: een 401 komt
   direct terug, een timeout betekent dat de route is begonnen maar niet op tijd
   klaar was. De route doet per lid Strava-calls plus nawerk, dus met een hoge
