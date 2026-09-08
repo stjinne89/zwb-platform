@@ -3100,7 +3100,7 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 ## Bekende open dingen
 
 - ~~**`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**~~
-  — **opgelost 2026-09-08, commit `<hash4>`.** De route zet de generaties nu in de
+  — **opgelost 2026-09-08, commit `201d816`.** De route zet de generaties nu in de
   achtergrond (`startPlanUpdate` en het nieuwe `startBackgroundAdaptation`) en
   haalt ze een volgende run op met de `finishStaleGenerations` die er al zat.
   Daarom draait die cron nu elk uur: dat is de pollfrequentie, niet hoe vaak een
