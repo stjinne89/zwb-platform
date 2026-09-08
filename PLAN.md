@@ -3140,9 +3140,15 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
   is er sinds juni geen monitoring, en zouden ook de nieuwe
   Strava-webhookverwerking en -opruiming nooit zijn afgegaan.
 
-  Oplossing en volgorde staan in `docs/runbook.md` §8: de jobs verhuizen naar
-  cron-job.org, waar de Strava-reconcile al over loopt. Dit is niet door de
-  webhookronde veroorzaakt maar er wél door aan het licht gekomen.
+  **Opgelost op 2026-09-08**: alle jobs draaien nu op cron-job.org, tijdzone
+  Europe/Amsterdam. De `.mjs`-bestanden blijven als documentatie staan, met een
+  waarschuwing bovenaan dat ze niet afgaan. Details in `docs/runbook.md` §8. Dit
+  is niet door de webhookronde veroorzaakt maar er wél door aan het licht gekomen.
+
+  Onderweg kwamen er nog twee losstaande storingen boven: `LIVE_CLEANUP_SECRET`
+  bestond helemaal niet in Netlify (dus de AVG-retentie had ook met een werkende
+  planning nooit gedraaid), en de reconcile deed per lid tot honderd
+  segment-calls. Beide inmiddels verholpen.
 
 - **Strava 1→100+ athleten cap** — **afgewezen** door Strava met twee eisen:
   webhooks in plaats van polling, en actief beheer van stale/gedeauthoriseerde

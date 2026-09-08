@@ -23,41 +23,34 @@ persoon.
 
 ## 2. Cron-inventaris
 
-Twee soorten geplande jobs:
+**Alles draait op cron-job.org** (sinds 2026-09-08). Elke job is een POST naar
+een beveiligde API-route met header `Authorization: Bearer <SECRET>`, tijdzone
+**Europe/Amsterdam**.
 
-- **Netlify scheduled functions** (`netlify/functions/*.mjs`, schema via
-  `export const config = { schedule }`).
-- **Externe cron** (cron-job.org e.d.) die een beveiligde API-route aanroept met
-  `Authorization: Bearer <SECRET>`.
-
-> **Waarschuwing (2026-09-05): de Netlify scheduled functions gaan niet af.**
-> Netlify toont ze alle vijf als *scheduled*, maar er is geen enkele
-> invocatie-log, en het integratie-statusblok op `/beheer/event-scan` staat nog
-> op **22-06-2026 22:01** — de dag dat die health-check werd uitgerold. De code
-> klopt: dezelfde routes doen hun werk als je ze met hun bearer-secret aanroept.
-> Vertrouw niet op deze functions; zet de jobs op cron-job.org. Zie sectie 8.
+De `netlify/functions/*.mjs` staan er nog, maar gaan op deze site niet af — zie
+sectie 8. Vertrouw er niet op en voeg er geen nieuwe aan toe; zet een nieuwe job
+op cron-job.org.
 
 | Job | Type | Schema | Endpoint | Secret-env |
 |---|---|---|---|---|
-| Live-data opruimen | Netlify function | `*/15 * * * *` | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
-| Integratie-health-check | Netlify function | `0 * * * *` (elk uur) | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
-| Strava-reconcile | Externe cron | **elk uur**, met `?limit=3` | `POST /api/strava/sync?limit=3` | `STRAVA_SYNC_SECRET` |
+| Live-data opruimen | cron-job.org | elke 15 min | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
+| Integratie-health-check | cron-job.org | elk uur | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
+| Strava-reconcile | cron-job.org | **elk uur**, met `?limit=3` | `POST /api/strava/sync?limit=3` | `STRAVA_SYNC_SECRET` |
 | ↳ ritten komen sinds de webhooks realtime binnen; deze run kijkt alleen het venster van 30 dagen na op hernoemingen en op Strava verwijderde ritten | | | | |
 | ↳ **elk uur is niet hetzelfde als vaak syncen.** `STRAVA_RECONCILE_MIN_AGE_HOURS` (20) slaat elk lid over dat binnen 20 uur al aan de beurt was, dus iedereen wordt hooguit 1x per dag opgehaald. De frequentie bepaalt alleen hoeveel leden er per dag doorheen komen | | | | |
 | ↳ `?limit=3` omdat de route per lid Strava-calls doet; 20 leden in één verzoek loopt tegen de timeout van de cron-dienst (en tegen die van Netlify). Verhoog `limit` pas als de duur in de job-historie ruim onder je timeout blijft | | | | |
 | ↳ het zware nawerk (col-detector, ZWBlokken, milestones, segmenten) staat hier **uit**: dat hoort sinds de webhooks bij het webhook-pad, per binnengekomen rit. Met `?full=1` zet je het aan voor een eenmalige inhaalslag — reken dan op minuten en veel Strava-calls, dus alleen handmatig | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
-| Strava-webhookverwerking | Externe cron **of** Netlify function | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
-| ↳ er staat een Netlify scheduled function klaar (`strava-webhook-process`), maar zet er een cron-job.org-job op als de Netlify-schedules niet blijken te lopen. Gebruik er één, niet allebei | | | | |
-| Strava-koppelingen opruimen | Netlify function | `40 3 * * *` | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
-| Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
-| Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
-| Training-adaptaties (drafts) | Netlify function | `30 8 * * *` | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
+| Strava-webhookverwerking | cron-job.org | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
+| Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
+| Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
+| Training-adaptaties (drafts) | cron-job.org | dagelijks 10:30 | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` (max. 5 per run, **synchrone** generatie) | | | | |
 | ↳ ⚠️ die synchrone generaties passen niet binnen een Netlify-invocatie (~10 s), dus de job meldt een timeout en de herzieningen vallen af. De goedkope stappen — verlopen voorstellen archiveren, afgeronde achtergrondgeneraties ophalen — lukken wél. Zie "Bekende open dingen" in `PLAN.md` | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
-| Team-resultaten sync | Externe cron | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
-| Achievements finalize | Externe cron | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
+| Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
+| Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
 | ↳ regio's op bestaande blokken (eenmalig na migratie 0112): `?regions=1` | | | | |
 
@@ -148,7 +141,7 @@ probes per bron en schrijft het resultaat naar de tabel `integration_health`
 (laatste status + tijd per bron). Bij een **transitie van ok → faalt** stuurt de
 route een push naar admins via trigger `on_admin_broadcast`.
 
-- **Schema**: elk uur (Netlify function `netlify/functions/integrations-healthcheck.mjs`).
+- **Schema**: elk uur, via cron-job.org (zie sectie 2).
 - **Statusoverzicht**: zichtbaar voor beheerders op `/beheer` (groen/rood + tijd
   van laatste check).
 - **Handmatig draaien**:
@@ -228,10 +221,9 @@ Callback-URL: `https://<site>/api/strava/webhook`. Die route staat in
 1. Strava POST → `/api/strava/webhook` schrijft het event in
    `strava_webhook_events` en antwoordt meteen. **Altijd 200**, ook bij een fout
    aan onze kant: een 5xx kost ons de subscription.
-2. Netlify function `strava-webhook-process` (elke 5 minuten) roept
-   `/api/strava/webhook/process` aan. Die verwerkt max. 25 events per run en stopt
-   na ~8s (Netlify-timeout). Elke tik kost twee Netlify-invocaties, vandaar niet
-   elke minuut; een rit staat dus binnen ~5 minuten in de app.
+2. Een cron-job.org-job roept elke 5 minuten `/api/strava/webhook/process` aan.
+   Die verwerkt max. 25 events per run en stopt na ~8s (Netlify-timeout). Een rit
+   staat dus binnen ~5 minuten in de app.
 3. Per event: `activity` → één `GET /activities/{id}?include_all_efforts=true`
    (ook meteen de segment-inspanningen); `athlete` met
    `updates.authorized = "false"` → koppeling direct opheffen.
@@ -423,29 +415,38 @@ op te lossen is.
 | `strava-webhook-process` (elke 5 min) | Webhook-events blijven op *wacht* staan. |
 | `strava-lifecycle` (03:40) | Deauthorisaties worden niet afgemaakt en het inactiviteitsbeleid draait niet. |
 
-### De oplossing: zet ze op cron-job.org
+### De oplossing: alles op cron-job.org — uitgevoerd 2026-09-08
 
-Die route werkt aantoonbaar op deze site — de Strava-reconcile loopt er al over —
-en kost geen Netlify-invocaties. Per job: methode **POST**, header
-`Authorization: Bearer <secret>`, URL onder `https://<site>`.
+Per job: methode **POST**, header `Authorization: Bearer <secret>`, URL onder
+`https://<site>` (let op: **één** slash tussen domein en pad; een dubbele geeft
+een 308 en veel clients laten de Authorization-header dan vallen). Tijdzone
+Europe/Amsterdam, timeout op het maximum, en zet mail bij mislukking aan — het
+hele probleem was juist dat niemand merkte dat er niets draaide.
 
-| Volgorde | Endpoint | Schema | Secret |
+| Endpoint | Schema | Secret | Status |
 |---|---|---|---|
-| 1 | `/api/live/cleanup` | elke 15 min | `LIVE_CLEANUP_SECRET` — **bestond niet in Netlify; eerst aanmaken** (`openssl rand -hex 32`) |
-| 2 | `/api/strava/webhook/process` | elke 5 min | `STRAVA_SYNC_SECRET` |
-| 3 | `/api/training/adaptations/daily` | dagelijks 08:30 | `TRAINING_ADAPTATION_SECRET` |
-| 4 | `/api/health/integrations` | elk uur | `HEALTHCHECK_SECRET` |
-| 5 | `/api/strava/lifecycle` | dagelijks 03:40 | `STRAVA_SYNC_SECRET` |
+| `/api/live/cleanup` | elke 15 min | `LIVE_CLEANUP_SECRET` | ✅ — de variabele **bestond niet** in Netlify en is toen aangemaakt |
+| `/api/health/integrations` | elk uur | `HEALTHCHECK_SECRET` | ✅ |
+| `/api/strava/webhook/process` | elke 5 min | `STRAVA_SYNC_SECRET` | ✅ |
+| `/api/strava/sync?limit=3` | elk uur | `STRAVA_SYNC_SECRET` | ✅ |
+| `/api/strava/lifecycle` | dagelijks 05:40 | `STRAVA_SYNC_SECRET` | ✅ |
+| `/api/training/adaptations/daily` | dagelijks 10:30 | `TRAINING_ADAPTATION_SECRET` | ⚠️ meldt timeout; zie "Bekende open dingen" in `PLAN.md` |
 
-`live-cleanup` staat bewust bovenaan: dat is de enige met een juridische kant.
+De `.mjs`-bestanden blijven staan als documentatie van wat er zou moeten draaien
+als Netlify het ooit doet. Gaan die schedules alsnog lopen, dan draait alles
+dubbel — alle routes zijn idempotent, dus dat kost invocaties, geen data. Haal
+in dat geval één van de twee weg.
 
-De `.mjs`-bestanden blijven staan. Gaan de Netlify-schedules ooit weer lopen,
-dan draaien beide — alle routes zijn idempotent, dus dat kost hooguit dubbele
-invocaties, geen schade. Haal in dat geval één van de twee weg.
+### Controleren dat het loopt
 
-### Controleren dat het weer loopt
+Twee plekken, allebei binnen het uur zichtbaar:
 
-Na het aanzetten van job 4 hoort "laatst gecontroleerd" op `/beheer/event-scan`
-binnen het uur bij te trekken. Blijft die op 22 juni staan, dan komt cron-job.org
-niet binnen: controleer het secret en of het endpoint in `PUBLIC_PATHS` staat
-(`src/lib/supabase/middleware.ts`).
+1. `/beheer/event-scan` — "laatst gecontroleerd" moet van vandaag zijn. Dat is de
+   health-check en meteen het bewijs dat de keten draait.
+2. `/beheer/strava` — de webhookrij loopt vanzelf leeg, zonder op *Nu verwerken*
+   te drukken.
+
+Staat er iets stil, kijk dan in de job-historie naar de responscode: **401/403**
+= secret klopt niet of staat niet in de draaiende deploy (env-vars gelden pas
+vanaf een nieuwe deploy), **308** = dubbele slash in de URL, **timeout** = de
+route is wél begonnen; verlaag `limit` of zie de storingenlijst in sectie 6.
