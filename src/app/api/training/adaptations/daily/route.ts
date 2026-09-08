@@ -19,6 +19,7 @@ import {
   STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { checkCronSecret } from "@/lib/cron/auth";
 
 /**
  * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
@@ -274,10 +275,9 @@ async function finishStaleGenerations(
 }
 
 export async function POST(request: Request) {
-  const expected = process.env.TRAINING_ADAPTATION_SECRET;
-  const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!expected || actual !== expected) {
-    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = checkCronSecret(request, "TRAINING_ADAPTATION_SECRET");
+  if (!auth.ok) {
+    return Response.json({ ok: false, error: auth.message }, { status: 401 });
   }
 
   const admin = createAdminClient();

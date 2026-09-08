@@ -5,6 +5,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runStravaSweep } from "@/lib/strava/sweep";
+import { checkCronSecret } from "@/lib/cron/auth";
 
 function positiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -13,11 +14,9 @@ function positiveInt(value: string | null, fallback: number, max: number) {
 }
 
 export async function POST(request: Request) {
-  const expected = process.env.STRAVA_SYNC_SECRET;
-  const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-
-  if (!expected || actual !== expected) {
-    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = checkCronSecret(request, "STRAVA_SYNC_SECRET");
+  if (!auth.ok) {
+    return Response.json({ ok: false, error: auth.message }, { status: 401 });
   }
 
   const url = new URL(request.url);

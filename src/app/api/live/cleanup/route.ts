@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkCronSecret } from "@/lib/cron/auth";
 
 // Cron-cleanup voor live-sessies + AVG-retention op posities.
 // Bearer-token check via LIVE_CLEANUP_SECRET env var.
 export async function POST(request: NextRequest) {
-  const auth = request.headers.get("authorization") ?? "";
-  const expected = `Bearer ${process.env.LIVE_CLEANUP_SECRET ?? ""}`;
-  if (!process.env.LIVE_CLEANUP_SECRET || auth !== expected) {
-    return new NextResponse("forbidden", { status: 403 });
+  const auth = checkCronSecret(request, "LIVE_CLEANUP_SECRET");
+  if (!auth.ok) {
+    return new NextResponse(auth.message, { status: 403 });
   }
 
   let admin;

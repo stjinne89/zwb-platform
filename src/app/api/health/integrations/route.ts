@@ -7,12 +7,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runIntegrationHealthChecks } from "@/lib/health/checks";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { checkCronSecret } from "@/lib/cron/auth";
 
 export async function POST(request: Request) {
-  const expected = process.env.HEALTHCHECK_SECRET;
-  const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!expected || actual !== expected) {
-    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = checkCronSecret(request, "HEALTHCHECK_SECRET");
+  if (!auth.ok) {
+    return Response.json({ ok: false, error: auth.message }, { status: 401 });
   }
 
   try {
