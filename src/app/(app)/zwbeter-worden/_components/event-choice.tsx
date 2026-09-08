@@ -9,6 +9,7 @@ import { CalendarCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptClubEvent, declineClubEvent } from "../_actions";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { CollapsibleCard } from "./ui";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
 
 export type ScheduleEventItem = {
@@ -89,13 +90,23 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
     }
   }
 
-  return (
-    <section className="rounded-lg border bg-card">
-      <div className="flex items-center gap-2 border-b p-4">
-        <CalendarCheck className="size-5 text-primary" />
-        <h2 className="font-semibold">Clubevents in je schemaperiode</h2>
-      </div>
+  // Een ZRL-seizoen levert tientallen events in dezelfde schemaperiode op; open
+  // duwde die lijst de rest van de pagina weg. Dicht blijft de vraag zichtbaar
+  // in de kop: alles wat nog een klik nodig heeft, telt mee.
+  const openCount = events.filter(
+    (event) => !(event.rsvp === "yes" && event.inSchedule && event.inIntervals),
+  ).length;
 
+  return (
+    <CollapsibleCard
+      icon={CalendarCheck}
+      title="Clubevents in je schemaperiode"
+      subtitle={
+        openCount > 0
+          ? `${openCount} nog te beantwoorden`
+          : `${events.length} ${events.length === 1 ? "event" : "events"}, allemaal beantwoord`
+      }
+    >
       <ul className="divide-y">
         {events.map((event) => {
           const busy = busyId === event.id || poll.pending;
@@ -210,6 +221,6 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
           {poll.error ?? result}
         </p>
       )}
-    </section>
+    </CollapsibleCard>
   );
 }

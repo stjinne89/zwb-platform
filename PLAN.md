@@ -860,6 +860,57 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Opgeleverd — clubevents inklapbaar op de schemapagina
+
+**2026-09-07, commit `9071f23` op branch
+`claude/clubevents-collapsible-training-sv5pno`.** Geen migratie.
+
+**Waarom.** In een ZRL-seizoen vallen er tientallen races binnen dezelfde
+schemaperiode, en elke race is een eigen regel met twee knoppen in het blok
+"Clubevents in je schemaperiode". Op de telefoon vulde dat blok schermen achter
+elkaar en duwde het alles wat eronder staat — het ritformulier, de FTP-test, de
+eigen schema's — buiten beeld. Gevraagd door de eigenaar, met een screenshot
+waarop na Beschikbaarheid alleen nog ZRL-races volgen.
+
+**Wat er is gekomen.** `EventChoice` gebruikt nu de gedeelde `CollapsibleCard`
+(native `<details>`) in plaats van een eigen `<section>` met vaste kop — dezelfde
+vorm als "Mijn trainingen" en "Mijn ZWB-schema's" op diezelfde pagina. De kaart
+staat standaard dicht; de vraag blijft in de kop staan als subtitel: hoeveel
+events nog een klik nodig hebben ("3 nog te beantwoorden"), of dat ze allemaal
+beantwoord zijn. Die teller telt precies de regels die ook een actieknop tonen —
+alles behalve een 'ja' dat én in het schema én in intervals.icu staat — dus
+"allemaal beantwoord" betekent hier ook echt dat er niets meer te doen is.
+`CollapsibleCard` kreeg daarvoor een optionele `icon`-prop, zodat de
+kalendermarkering in de kop blijft staan zoals bij Beschikbaarheid.
+
+Twee keuzes die het gedrag bepalen:
+
+- **Standaard dicht, niet "open zolang er iets openstaat".** Juist in het geval
+  waarin het knelt — begin van een ZRL-seizoen, nog niets beantwoord — zou zo'n
+  regel de kaart altijd openzetten en verandert er niets aan het probleem. De
+  teller in de kop is het signaal; één tik opent de lijst.
+- **De stand wordt niet onthouden.** `<details>` houdt open/dicht vast binnen de
+  pagina, ook na een herziening (`router.refresh()` raakt het `open`-attribuut
+  niet), maar na een navigatie staat de kaart weer dicht.
+
+**Bewust niet gebouwd.** Geen opslag van de stand per lid (localStorage of
+profiel): dat is een voorkeur die je pas wilt bewaren als meer kaarten erom
+vragen, en het maakt van een presentatiecomponent een stateful onderdeel. Geen
+filter of paginering binnen de lijst — de kaart is nu dicht, dus de lengte
+erbinnen knelt niet meer; dát is wel de plek om te kijken als er straks gevraagd
+wordt om alleen de eigen ZRL-categorie te tonen. Aan de keuzelogica zelf (RSVP,
+blok in het schema, doorzetten naar intervals.icu) is niets veranderd.
+
+**Claims die niet meer kloppen.** Geen, wel een nuance bij de ronde van
+2026-08-20: daar staat dat het lid "in de keuzemodule ziet dat die dag opnieuw
+wordt ingevuld". Die melding staat binnen de kaart. Op het moment zelf klopt dat
+nog steeds — je klikt in de open lijst — maar wie daarna inklapt, klapt de
+melding mee weg.
+
+**Verificatie.** `npx tsc --noEmit`, eslint op de gewijzigde bestanden, de
+volledige Vitest-run (822 tests, 70 bestanden) en `npm run build` zijn groen. De
+kaart is niet in een draaiende app bekeken: daar is hier geen Supabase voor.
+
 ### Opgeleverd — een verkeerd ingetypte testuitslag corrigeren
 
 **2026-09-03, commit `6ea2dc4` op branch `claude/ftp-ramptest-edit-delete-3opo4k`.** Geen migratie.
