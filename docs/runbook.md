@@ -45,10 +45,11 @@ op cron-job.org.
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
-| Training-adaptaties (drafts) | cron-job.org | **elk uur** (was dagelijks) | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
+| Training-adaptaties (drafts) | cron-job.org | **elke 15 min** | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
-| ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. Vandaar elk uur — dat is de pollfrequentie, niet hoe vaak een lid aan de beurt komt. Een schema krijgt hooguit één voorstel per dag (dagcheck op `training_adaptation_runs`) | | | | |
-| ↳ een voorstel is er dus ~1 uur na het uitzetten, niet meteen. De hele run heeft een wall-clock budget van 8 s en breekt netjes af; wat overblijft volgt het uur erna | | | | |
+| ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_adaptation_runs`) | | | | |
+| ↳ de run heeft een wall-clock budget van 8 s, waarvan het ophalen hoogstens 60% mag kosten. Die reservering is er zodat een rij wachtende generaties niet elke run het hele budget opeet en er niets nieuws meer gestart wordt | | | | |
+| ↳ één afronding (poll bij OpenAI + schema opbouwen) kost al seconden, dus reken op 1 à 2 per run. Elke 15 min geeft ~96 runs per dag; heb je meer actieve schema's dan daar doorheen komen, verlaag dan niets maar kijk eerst of de achterstand écht oploopt | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
 | Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
 | Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |

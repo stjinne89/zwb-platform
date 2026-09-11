@@ -73,6 +73,17 @@ const MAX_STALE_GENERATIONS_PER_RUN = 10;
  */
 const RUN_BUDGET_MS = 8000;
 
+/**
+ * Welk deel daarvan het ophalen hoogstens mag kosten.
+ *
+ * Ophalen gaat vóór uitzetten, en één afronding (poll bij OpenAI plus het
+ * opbouwen van een schema) kan al seconden duren. Zonder deze reservering vreet
+ * een rij wachtende generaties het hele budget op en wordt er run na run niets
+ * nieuws gestart — dan loopt de achterstand op in plaats van weg. Nu houdt elke
+ * run ruimte over om ook te beginnen.
+ */
+const FINISH_BUDGET_SHARE = 0.6;
+
 type PlanRow = {
   id: string;
   profile_id: string;
@@ -316,9 +327,11 @@ export async function POST(request: Request) {
     const archived = await archiveStaleProposals(admin).catch(() => 0);
 
     // Eerst het werk dat al betaald is: generaties die op iemand wachtten.
-    const finishedGenerations = await finishStaleGenerations(admin, results, deadline).catch(
-      () => 0,
-    );
+    const finishedGenerations = await finishStaleGenerations(
+      admin,
+      results,
+      Date.now() + RUN_BUDGET_MS * FINISH_BUDGET_SHARE,
+    ).catch(() => 0);
 
     let planUpdatesRun = 0;
     let generationsStarted = 0;
