@@ -801,7 +801,7 @@ Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
 
 ### Opgeleverd — FTP-test: uitslag blijft invulbaar, beste minuut uit intervals.icu
 
-**2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+**2026-09-11, commit `8b2c9fc` op `main` (niet gepusht).** Geen migratie.
 
 **Waarom.** Bart de Groot deed op 3 en 10 september een ramptest en kon de
 uitslag nergens kwijt. Oorzaak: het invulveld verscheen alleen bij een test op
