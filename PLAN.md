@@ -877,8 +877,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 ### Opgeleverd — achievement_week hangt niet meer af van de klok van het proces
 
-**2026-09-11, commit volgt in de PLAN.md-commit hierna (niet gepusht).** Geen
-migratie, geen backfill.
+**2026-09-11, commit `86b8457` (niet gepusht).** Geen migratie, geen backfill.
 
 **Waarom.** `tests/unit/strava-ingest.test.ts` ("zet achievement_week op de
 maandag van die week", sinds `2c575b9`) faalde op een dev-machine in
