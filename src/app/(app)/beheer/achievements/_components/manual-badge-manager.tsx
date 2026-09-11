@@ -84,6 +84,10 @@ export function ManualBadgeManager({
     [awards],
   );
   const availableBadges = badges.filter((badge) => !earnedIds.has(badge.id));
+  // Wat alleen met de hand kan eerst; automatische badges kun je ook
+  // toekennen, bijvoorbeeld als een rit buiten Strava om is gereden.
+  const manualBadges = availableBadges.filter((badge) => badge.trigger_source !== "auto");
+  const autoBadges = availableBadges.filter((badge) => badge.trigger_source === "auto");
   const earnedBadges = badges.filter((badge) => earnedIds.has(badge.id));
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
@@ -217,11 +221,24 @@ export function ManualBadgeManager({
                   }}
                 >
                   <option value="">Kies een nog niet behaalde badge</option>
-                  {availableBadges.map((badge) => (
-                    <option key={badge.id} value={badge.id}>
-                      {labelFor(badge)}
-                    </option>
-                  ))}
+                  {manualBadges.length > 0 ? (
+                    <optgroup label="Handmatig">
+                      {manualBadges.map((badge) => (
+                        <option key={badge.id} value={badge.id}>
+                          {labelFor(badge)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  {autoBadges.length > 0 ? (
+                    <optgroup label="Automatisch">
+                      {autoBadges.map((badge) => (
+                        <option key={badge.id} value={badge.id}>
+                          {labelFor(badge)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
                 </select>
               </div>
               <Button type="button" disabled={pending || !badgeId} onClick={award}>

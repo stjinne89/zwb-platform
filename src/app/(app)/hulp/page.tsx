@@ -330,6 +330,7 @@ const ADMIN_GUIDES = [
     title: "Achievements beheren",
     bullets: [
       "Ken milestonebadges handmatig toe wanneer een prestatie niet betrouwbaar uit Strava kan worden afgeleid.",
+      "De keuzelijst toont eerst de badges die alleen met de hand kunnen, daarna de automatische.",
       "Weekbadges blijven via de weekfinalisatie lopen.",
       "Intrekken verwijdert alleen de handmatige toekenning bij het gekozen lid.",
       "Gekoppelde Strava-profielen kunnen automatisch worden bijgewerkt via de beveiligde Strava-synchronisatietaak.",

@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink } from "@/components/app-ui";
 import { ManualBadgeManager } from "./_components/manual-badge-manager";
-import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -84,10 +83,10 @@ export default async function AchievementBeheerPage({ searchParams }: PageProps)
         .eq("award_scope", "milestone")
         .order("awarded_at", { ascending: false })
     : { data: [] };
-  const earnedIds = new Set((awards ?? []).map((award) => award.badge_id));
-  const visibleBadges = ((badges ?? []) as BadgeRow[]).filter((badge) =>
-    isBadgeVisibleInVault(badge, earnedIds.has(badge.id)),
-  );
+  // Alle milestonebadges, ook de handmatige uit de catalogus. Die zijn in de
+  // kluis verborgen tot iemand ze heeft, maar juist hier moeten ze te kiezen
+  // zijn: het bestuur kende ze eerst niet toe omdat ze niet in de lijst stonden.
+  const visibleBadges = (badges ?? []) as BadgeRow[];
 
   return (
     <div className="space-y-6">

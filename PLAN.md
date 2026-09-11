@@ -770,7 +770,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 ### Actief — feedbackronde 11 september 2026 (vijf punten)
 
 Stijn leverde vijf punten aan. Na diagnose is de volgorde afgesproken: **5**
-FTP-test (opgeleverd, zie hieronder), **3** badges door het bestuur, **4** een
+FTP-test (opgeleverd), **3** badges door het bestuur (opgeleverd), **4** een
 geplande test verdringt de training van die dag, **2** geplande trainingen
 handmatig verwijderen, **1** beschikbaarheid die het schema echt bijwerkt.
 Weekbadges handmatig toekennen hoort er uitdrukkelijk *niet* bij.
@@ -798,6 +798,29 @@ Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
   van een geplande training zelf laten aanpassen.
 - **Terzijde.** Bart heeft per dag tot zestien vervangen versies van dezelfde
   training: er draaien veel meer generaties dan nodig. Nog niet onderzocht.
+
+### Opgeleverd — bestuur kan alle milestonebadges toekennen
+
+**2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+
+**Waarom.** Het bestuur kon niet elke badge toekennen. Het recht
+(`achievements.finalize`) had het al; de beheerpagina filterde de keuzelijst
+met `isBadgeVisibleInVault()`, dezelfde regel als de kluis van een lid. Daardoor
+ontbraken precies de 216 handmatige catalogusbadges (54 achievements × vier
+tiers, zoals *New Rider Mentor*, *Wind Warrior*, *FTP Milestone*): badges die
+níet automatisch kunnen en dus juist met de hand moeten.
+
+**Wat er is gekomen.** `/beheer/achievements` toont alle milestonebadges, in
+twee groepen: *Handmatig* bovenaan, *Automatisch* eronder (een automatische
+badge toekennen blijft mogelijk, bijvoorbeeld voor een rit buiten Strava om).
+Toekennen en intrekken zelf zijn niet veranderd.
+
+**Bewust niet gebouwd.** Weekbadges handmatig toekennen: afgesproken dat dat
+niet hoeft. De kluis van leden blijft zoals besloten in juni: een handmatige
+badge is daar pas zichtbaar als iemand hem heeft.
+
+**Verificatie.** `npx tsc --noEmit` en gerichte eslint zijn groen. De pagina
+zelf is niet in de browser doorlopen: lokaal is er geen ingelogde sessie.
 
 ### Opgeleverd — FTP-test: uitslag blijft invulbaar, beste minuut uit intervals.icu
 
