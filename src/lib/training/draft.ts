@@ -25,13 +25,16 @@ import {
 import { buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
-import { availabilityForAi, loadFixedWorkouts } from "@/lib/training/availability";
+import {
+  availabilityForAi,
+  dropWorkoutsOnBlockedDays,
+  loadFixedWorkouts,
+} from "@/lib/training/availability";
 import {
   asFtpTestType,
   ftpTestBlocks,
   ftpTestDurationMinutes,
   ftpTestTitle,
-  dropWorkoutsOnTestDays,
   loadFtpTests,
   type FtpTestType,
 } from "@/lib/training/ftp-test";
@@ -396,23 +399,22 @@ export async function insertPlanWorkouts(
   plan: { id: string; profile_id: string; trainer_id: string | null },
   workouts: GeneratedWorkout[],
 ) {
-  // Een testdag is van de test; zie dropWorkoutsOnTestDays().
+  // Testdagen en dagen die het lid heeft vrijgemaakt; zie dropWorkoutsOnBlockedDays().
   const dates = workouts.map((workout) => workout.date).sort();
-  let testDays = new Set<string>();
+  let blockedDays = new Set<string>();
   if (dates.length > 0) {
-    const { data: tests } = await admin
+    const { data: blocking } = await admin
       .from("training_workouts")
       .select("scheduled_at")
       .eq("profile_id", plan.profile_id)
-      .not("test_type", "is", null)
-      .neq("status", "skipped")
+      .or("test_type.not.is.null,status.eq.skipped")
       .is("superseded_at", null)
       .gte("scheduled_at", `${dates[0]}T00:00:00`)
       .lte("scheduled_at", `${dates[dates.length - 1]}T23:59:59`);
-    testDays = new Set((tests ?? []).map((row) => String(row.scheduled_at).slice(0, 10)));
+    blockedDays = new Set((blocking ?? []).map((row) => String(row.scheduled_at).slice(0, 10)));
   }
 
-  const rows = dropWorkoutsOnTestDays(workouts, testDays)
+  const rows = dropWorkoutsOnBlockedDays(workouts, blockedDays)
     // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
     .filter((workout) => Math.round(workout.durationMinutes) >= 1)
     .map((workout) => {

@@ -16,6 +16,7 @@ import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
 import { EventChoice } from "../_components/event-choice";
 import { FtpTestCard } from "../_components/ftp-test-card";
+import { RemoveWorkoutButton } from "../_components/remove-workout-button";
 import { PlanCheckCard } from "../_components/plan-check-card";
 import { PlanActions } from "../_components/plan-actions";
 import { PlanRideForm } from "../_components/plan-ride-form";
@@ -307,6 +308,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                 ) : workout.origin === "member" ? null : (
                   <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
                 )}
+                {workout.status === "planned" && workout.origin !== "event" ? (
+                  <div className="mt-2">
+                    <RemoveWorkoutButton workoutId={workout.id} title={workout.title} />
+                  </div>
+                ) : null}
               </li>
             ))}
             {upcomingEvents.map((event) => (

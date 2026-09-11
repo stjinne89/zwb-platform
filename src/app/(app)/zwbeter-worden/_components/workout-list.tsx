@@ -1,4 +1,5 @@
-// Lijst met workouts binnen een schema, voor het lid: kijken en rapporteren.
+// Lijst met workouts binnen een schema, voor het lid: kijken, rapporteren en
+// een geplande training schrappen.
 // Aanpassen gebeurt in de maandweergave van de trainer — een renner hoort een
 // training niet op blokniveau te kunnen wijzigen, anders klopt de opbouw van
 // het schema niet meer.
@@ -12,8 +13,8 @@ import { ChevronDown, CircleHelp, Download, ExternalLink, MessageSquare } from "
 import { intensityLabel, normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { targetHint } from "@/lib/training/targets";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
-import { removeOwnRide } from "../_actions";
-import { formAction, formatDayMonth } from "./format";
+import { formatDayMonth } from "./format";
+import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
 import { WorkoutBlocks, intervalsWorkoutUrl } from "./workout-blocks";
 import { WorkoutReportForm } from "./workout-report-form";
@@ -86,6 +87,7 @@ export function WorkoutList({
         const clubEvent = workout.origin === "event";
         const adaptedLabel = adaptedPlans?.get(workout.plan_id);
         const dayKey = String(workout.scheduled_at).slice(0, 10);
+        const removable = workout.status === "planned" && !clubEvent && dayKey >= todayKey;
         return (
           <li key={workout.id}>
             <details className="group" open={dayKey === todayKey}>
@@ -171,13 +173,8 @@ export function WorkoutList({
                       In intervals.icu
                     </a>
                   ) : null}
-                  {ownRide ? (
-                    <form action={formAction(removeOwnRide)}>
-                      <input type="hidden" name="workout_id" value={workout.id} />
-                      <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-                        Verwijder
-                      </button>
-                    </form>
+                  {removable ? (
+                    <RemoveWorkoutButton workoutId={workout.id} title={workout.title} />
                   ) : null}
                 </div>
                 <ReportPanel workout={workout} report={report} />

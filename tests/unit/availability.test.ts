@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   availabilityForAi,
   clampMinutes,
+  dropWorkoutsOnBlockedDays,
   loadAvailability,
   loadAvailabilityRange,
   mondayKey,
@@ -9,6 +10,21 @@ import {
   shiftWeeks,
   weekdayOf,
 } from "@/lib/training/availability";
+
+describe("dropWorkoutsOnBlockedDays", () => {
+  it("zet niets op een testdag of een vrijgemaakte dag", () => {
+    const kept = dropWorkoutsOnBlockedDays(
+      [
+        { date: "2026-09-09", title: "Duur" },
+        { date: "2026-09-10", title: "Sweet spot" },
+        { date: "2026-09-11", title: "Herstel" },
+        { date: "2026-09-12", title: "Lange rit" },
+      ],
+      new Set(["2026-09-10", "2026-09-12"]),
+    );
+    expect(kept.map((workout) => workout.title)).toEqual(["Duur", "Herstel"]);
+  });
+});
 
 /**
  * Minimale supabase-stub: elke keten van .select/.eq/.or/... levert dezelfde

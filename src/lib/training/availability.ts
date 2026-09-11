@@ -229,6 +229,20 @@ export async function availabilityForAi(
 }
 
 /**
+ * Dagen waar de AI niets meer bij zet, ook als hij het voorstelt:
+ * - een dag met een test. Die gaat als vast blok mee in de input, maar de AI zette
+ *   er soms toch een training naast.
+ * - een dag waarvan het lid een training heeft geschrapt (status 'skipped'). Zonder
+ *   deze regel vulde de volgende herziening die dag gewoon weer.
+ */
+export function dropWorkoutsOnBlockedDays<T extends { date: string }>(
+  workouts: T[],
+  blockedDays: ReadonlySet<string>,
+): T[] {
+  return workouts.filter((workout) => !blockedDays.has(workout.date));
+}
+
+/**
  * Wat er in een bereik vastligt: ritten die het lid zelf heeft ingepland,
  * clubevents die het heeft toegezegd en ingeplande tests. De planner mag ze niet
  * vervangen of verplaatsen, alleen de rest eromheen zetten.

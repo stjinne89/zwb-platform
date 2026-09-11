@@ -895,6 +895,16 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Een training verwijderen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Met <strong className="text-foreground">Verwijder</strong> bij een
+              geplande training haal je die uit je schema en uit intervals.icu.
+              Een voorgestelde training komt daarna niet terug: de planner laat
+              die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt
+              eromheen bijgewerkt. Een clubevent zeg je af bij de events.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Met <strong className="text-foreground">Aanpassen</strong> op de

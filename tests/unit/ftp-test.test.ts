@@ -5,7 +5,6 @@ import {
   ftpTestBlocks,
   ftpTestDurationMinutes,
   ftpTestTitle,
-  dropWorkoutsOnTestDays,
   pickFtpTestState,
   type FtpTestWorkout,
 } from "@/lib/training/ftp-test";
@@ -18,20 +17,6 @@ function test(
 ): FtpTestWorkout {
   return { workoutId, date, testType: "ramp", status, origin };
 }
-
-describe("dropWorkoutsOnTestDays", () => {
-  it("laat op een testdag geen tweede training staan", () => {
-    const kept = dropWorkoutsOnTestDays(
-      [
-        { date: "2026-09-09", title: "Duur" },
-        { date: "2026-09-10", title: "Sweet spot" },
-        { date: "2026-09-11", title: "Herstel" },
-      ],
-      new Set(["2026-09-10"]),
-    );
-    expect(kept.map((workout) => workout.title)).toEqual(["Duur", "Herstel"]);
-  });
-});
 
 describe("pickFtpTestState", () => {
   const today = "2026-09-11";

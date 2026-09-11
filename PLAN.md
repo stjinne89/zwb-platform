@@ -772,7 +772,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 Stijn leverde vijf punten aan. Na diagnose is de volgorde afgesproken: **5**
 FTP-test (opgeleverd), **3** badges door het bestuur (opgeleverd), **4** een
 geplande test verdringt de training van die dag (opgeleverd), **2** geplande trainingen
-handmatig verwijderen, **1** beschikbaarheid die het schema echt bijwerkt.
+handmatig verwijderen (opgeleverd), **1** beschikbaarheid die het schema echt bijwerkt.
 Weekbadges handmatig toekennen hoort er uitdrukkelijk *niet* bij.
 
 Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
@@ -799,9 +799,40 @@ Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
 - **Terzijde.** Bart heeft per dag tot zestien vervangen versies van dezelfde
   training: er draaien veel meer generaties dan nodig. Nog niet onderzocht.
 
-### Opgeleverd — een geplande test verdringt de training van die dag
+### Opgeleverd — geplande trainingen zelf verwijderen
 
 **2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+
+**Waarom.** Een lid kon alleen een eigen rit verwijderen (`removeOwnRide`), en
+voor vandaag een rustdag nemen. Een voorgestelde training op een andere dag
+bleef staan, hoe graag het lid die dag ook vrij wilde.
+
+**Wat er is gekomen.** `removePlannedWorkout()` vervangt `removeOwnRide()`. Een
+eigen rit verdwijnt zoals voorheen helemaal, met een herziening eromheen. Een
+voorgestelde training (AI, trainer, test) krijgt `status = 'skipped'`, net als
+een rustdag, en gaat uit intervals.icu. De knop **Verwijder** (met bevestiging)
+staat bij elke geplande training van vandaag of later, zowel onder *Mijn
+trainingen* als in de schemalijst. Een dag met een geschrapte training blijft
+vrij: `insertPlanWorkouts()` slaat die dag over (`dropWorkoutsOnBlockedDays()`,
+de verbrede opvolger van `dropWorkoutsOnTestDays()`, nu in `availability.ts`).
+Uitleg op `/hulp`.
+
+**Bewust niet gebouwd.** Geen herziening na het schrappen van een voorgestelde
+training: dat kost een generatie en zou de training alleen naar een andere dag
+schuiven. Een clubevent gaat nog steeds via de events, zodat je antwoord en je
+schema gelijk lopen. Er is geen knop om een geschrapte training terug te zetten.
+
+**Bekende rand.** Een geschrapte dag blokkeert ook een dag-aanpassing
+("Aanpassen") voor diezelfde dag: wie vandaag een rustdag neemt en later toch
+wil rijden, krijgt van de AI niets meer voor vandaag.
+
+**Verificatie.** `npx tsc --noEmit`, gerichte eslint en de volledige
+Vitest-run (845 geslaagd, 6 overgeslagen) zijn groen. Niet in de browser
+doorlopen (geen ingelogde sessie).
+
+### Opgeleverd — een geplande test verdringt de training van die dag
+
+**2026-09-11, commit `ba91bc6` op `main` (niet gepusht).** Geen migratie.
 
 **Waarom.** Plande Stijn een FTP-test, dan bleef de training die al op die dag
 stond staan. `planFtpTest` liet het opruimen over aan de AI-herziening erna, en
@@ -1943,7 +1974,8 @@ gekost. Nu slaat hij een ongewijzigde opslag helemaal over.
 **Vangnet voor álle wijzigingen, niet alleen beschikbaarheid** (migratie `0132`).
 De tijdstempel-afleiding hierboven werkt voor een gewijzigde rij, maar niet voor
 een verdwenen rij: `syncEventWorkout()` **verwijdert** het blok als een lid zich
-afmeldt, en `removeOwnRide()` doet hetzelfde met een eigen rit. Aan wat er niet
+afmeldt, en `removeOwnRide()` (sinds 2026-09-11 `removePlannedWorkout()`) doet
+hetzelfde met een eigen rit. Aan wat er niet
 meer is valt niets af te lezen. Daarom legt `requestReplan()` het verzoek nu
 zelf vast in `training_replan_requests` — één rij per lid, nieuwste reden wint,
 zodat vier wijzigingen op één avond samen één herziening opleveren. De rij

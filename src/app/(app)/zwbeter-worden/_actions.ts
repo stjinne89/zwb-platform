@@ -1493,20 +1493,37 @@ export async function declineClubEvent(formData: FormData) {
   }
 }
 
-/** Een zelf ingeplande rit weer weghalen; alleen je eigen vrije ritten. */
-export async function removeOwnRide(formData: FormData) {
+/**
+ * Een geplande training uit je eigen schema halen.
+ *
+ * Een eigen rit verdwijnt helemaal en het schema wordt eromheen herzien. Een
+ * voorgestelde training (AI, trainer, test) wordt 'skipped', net als een
+ * rustdag: zichtbaar blijft wat er stond, en insertPlanWorkouts() vult die dag
+ * bij een volgende herziening niet opnieuw. Daar hoort geen herziening bij; die
+ * kost een generatie en zou de training alleen ergens anders neerzetten.
+ *
+ * Tot september 2026 kon alleen een eigen rit weg. Een toegezegd clubevent zeg
+ * je nog steeds af bij de events, zodat je antwoord en je schema gelijk lopen.
+ */
+export async function removePlannedWorkout(formData: FormData) {
   try {
     const { user } = await currentUser();
     const admin = createAdminClient();
-    const workoutId = mustString(formData.get("workout_id"), "Rit");
+    const workoutId = mustString(formData.get("workout_id"), "Training");
 
     const { data: workout } = await admin
       .from("training_workouts")
-      .select("id, profile_id, origin, intervals_event_id, scheduled_at")
+      .select("id, profile_id, origin, status, superseded_at, intervals_event_id, scheduled_at")
       .eq("id", workoutId)
       .maybeSingle();
-    if (!workout || workout.profile_id !== user.id || workout.origin !== "member") {
-      throw new Error("Alleen je eigen ingeplande ritten kun je verwijderen.");
+    if (!workout || workout.profile_id !== user.id) {
+      throw new Error("Deze training hoort niet bij jou.");
+    }
+    if (workout.origin === "event") {
+      throw new Error("Een clubevent zeg je af bij de events.");
+    }
+    if (workout.status !== "planned" || workout.superseded_at) {
+      throw new Error("Alleen een geplande training kun je verwijderen.");
     }
 
     if (workout.intervals_event_id) {
@@ -1522,6 +1539,16 @@ export async function removeOwnRide(formData: FormData) {
           workout.intervals_event_id,
         ).catch(() => null);
       }
+    }
+
+    if (workout.origin !== "member") {
+      const { error } = await admin
+        .from("training_workouts")
+        .update({ status: "skipped", intervals_event_id: null, publish_status: "pending" })
+        .eq("id", workoutId);
+      if (error) throw new Error(error.message);
+      revalidatePath("/zwbeter-worden", "layout");
+      return { ok: true as const, generationId: null };
     }
 
     const { error } = await admin.from("training_workouts").delete().eq("id", workoutId);
@@ -1540,7 +1567,7 @@ export async function removeOwnRide(formData: FormData) {
   } catch (err) {
     return {
       ok: false as const,
-      error: err instanceof Error ? err.message : "Rit verwijderen faalde.",
+      error: err instanceof Error ? err.message : "Training verwijderen faalde.",
     };
   }
 }
