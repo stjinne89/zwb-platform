@@ -878,10 +878,19 @@ export default function HelpPage() {
               licht. Na afloop vul je op je schemapagina onder{" "}
               <strong className="text-foreground">FTP-test</strong> je resultaat
               in — het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
-              een 20-minutentest. ZWB rekent daar je FTP uit (75% respectievelijk
-              95%), zet die in je profiel en werkt de targetwatts van de rest van
-              je schema bij. Staat je profiel op bijhouden vanuit intervals.icu,
-              dan zet de eerstvolgende sync je eFTP terug.
+              een 20-minutentest. Met een intervals.icu-koppeling staat daar al
+              het vermogen dat intervals die dag heeft gemeten; klopt het niet,
+              typ dan je eigen waarde. ZWB rekent daar je FTP uit (75%
+              respectievelijk 95%), zet die in je profiel en werkt de targetwatts
+              van de rest van je schema bij.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een test die niet in je schema stond, vul je in via{" "}
+              <strong className="text-foreground">Test invullen</strong>. Voor je
+              FTP geldt deze volgorde: je laatste test, dan intervals.icu, dan wat
+              je zelf in je profiel invulde. Heb je een test gedaan, dan houdt je
+              profiel die uitslag vast, ook als het intervals.icu volgt; de
+              volgende test werkt hem weer bij.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">

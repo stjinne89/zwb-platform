@@ -158,20 +158,21 @@ export default async function PowerPage({
   });
   const comparisonRiders = comparisonRidersFromRows(comparisonRows);
   const ownWeightKg = numberOrNull(profile?.weight_kg) ?? intervalsWeightKg;
-  // eFTP uit intervals gaat voor; daarna de FTP uit intervals-instellingen of het profiel.
+  // Voorrang: de laatste FTP-test, dan intervals.icu (eFTP, dan de ingestelde
+  // FTP), dan het profiel. Dezelfde volgorde als de profielsync in teams/_actions.ts.
+  const testFtp = ftpTests[0] ? numberOrNull(ftpTests[0].ftp_watts) : null;
   const eftpWatts = numberOrNull(curve?.ftpWatts) ?? intervalsEftp;
-  const ftpWatts = eftpWatts ?? intervalsFtp ?? numberOrNull(profile?.ftp_watts);
-  const ftpSource = eftpWatts
-    ? "eFTP uit intervals.icu"
-    : intervalsFtp
-      ? "FTP uit intervals.icu"
-      : numberOrNull(profile?.ftp_watts)
-        ? // Komt de profiel-FTP uit een test, dan is de datum ervan het antwoord
-          // op "hoe oud is dit getal" — de vraag die de tegel oproept.
-          ftpTests[0] && ftpTests[0].ftp_watts === numberOrNull(profile?.ftp_watts)
-          ? `FTP-test van ${new Date(`${ftpTests[0].tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`
-          : "FTP uit je profiel"
-        : undefined;
+  const ftpWatts = testFtp ?? eftpWatts ?? intervalsFtp ?? numberOrNull(profile?.ftp_watts);
+  const ftpSource = testFtp
+    ? // De datum is het antwoord op "hoe oud is dit getal" — de vraag die de tegel oproept.
+      `FTP-test van ${new Date(`${ftpTests[0].tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`
+    : eftpWatts
+      ? "eFTP uit intervals.icu"
+      : intervalsFtp
+        ? "FTP uit intervals.icu"
+        : numberOrNull(profile?.ftp_watts)
+          ? "FTP uit je profiel"
+          : undefined;
   const power5m = wattsAtDuration(curvePoints, 300);
   const power20m = wattsAtDuration(curvePoints, 1200);
   // Live waarde gaat voor; de opgeslagen sync-waarde vangt op als intervals nu

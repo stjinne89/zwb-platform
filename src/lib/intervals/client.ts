@@ -515,6 +515,29 @@ export async function fetchIntervalsPowerCurve(
   return { period, points: deduped, fatigueCurves, ftpWatts, debug };
 }
 
+/**
+ * Powercurve van één dag: het beste vermogen per duur over de ritten van die
+ * dag. Daaruit lezen we de uitslag van een FTP-test af. `r.<van>.<tot>` is het
+ * datumbereik-formaat van intervals.icu; op 11 september 2026 gecontroleerd.
+ */
+export async function fetchIntervalsDayPowerCurve(
+  apiKey: string,
+  athleteId: string,
+  dayKey: string,
+): Promise<IntervalsPowerCurvePoint[]> {
+  const query = new URLSearchParams({
+    curves: `r.${dayKey}.${dayKey}`,
+    type: "Ride",
+    includeRanks: "false",
+    now: dayKey,
+  });
+  const payload = await intervalsFetchFirst<unknown>(apiKey, [
+    `/api/v1/athlete/0/power-curves?${query.toString()}`,
+    `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
+  ]);
+  return parsePowerCurveSet(payload).points;
+}
+
 /** Haalt een gepland event weg uit de intervals.icu-kalender. */
 export async function deleteIntervalsWorkoutEvent(
   apiKey: string,

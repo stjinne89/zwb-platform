@@ -5,7 +5,75 @@ import {
   ftpTestBlocks,
   ftpTestDurationMinutes,
   ftpTestTitle,
+  pickFtpTestState,
+  type FtpTestWorkout,
 } from "@/lib/training/ftp-test";
+
+function test(
+  workoutId: string,
+  date: string,
+  status = "planned",
+  origin = "member",
+): FtpTestWorkout {
+  return { workoutId, date, testType: "ramp", status, origin };
+}
+
+describe("pickFtpTestState", () => {
+  const today = "2026-09-11";
+
+  it("laat een door de ritsync afgeronde test toch op een uitslag wachten", () => {
+    const state = pickFtpTestState([test("a", "2026-09-10", "completed")], [], today);
+    expect(state.awaitingResult?.workoutId).toBe("a");
+  });
+
+  it("volgt Barts situatie: oude uitslag, twee tests zonder uitslag", () => {
+    const state = pickFtpTestState(
+      [
+        test("aug", "2026-08-21", "completed"),
+        test("sep3", "2026-09-03", "completed"),
+        test("sep10", "2026-09-10", "completed"),
+        test("sep10-bieb", "2026-09-10", "completed", "ai"),
+      ],
+      // De uitslag hangt aan de augustustest; de testdatum telt dan niet.
+      [{ workoutId: "aug", testedOn: "2026-09-10" }],
+      today,
+    );
+    expect(state.awaitingResult?.workoutId).toBe("sep10");
+  });
+
+  it("vraagt na een uitslag niet meer om de kopie op dezelfde dag of een oudere test", () => {
+    const state = pickFtpTestState(
+      [
+        test("sep3", "2026-09-03", "completed"),
+        test("sep10", "2026-09-10", "completed"),
+        test("sep10-bieb", "2026-09-10", "completed", "ai"),
+      ],
+      [{ workoutId: "sep10", testedOn: "2026-09-10" }],
+      today,
+    );
+    expect(state.awaitingResult).toBeNull();
+  });
+
+  it("laat een losse uitslag de test van die dag dekken", () => {
+    const state = pickFtpTestState(
+      [test("sep10", "2026-09-10", "completed")],
+      [{ workoutId: null, testedOn: "2026-09-10" }],
+      today,
+    );
+    expect(state.awaitingResult).toBeNull();
+  });
+
+  it("slaat een test over die als rustdag is geschrapt", () => {
+    const state = pickFtpTestState([test("a", "2026-09-10", "skipped")], [], today);
+    expect(state.awaitingResult).toBeNull();
+  });
+
+  it("toont een geplande test in de toekomst als volgende", () => {
+    const state = pickFtpTestState([test("next", "2026-09-20")], [], today);
+    expect(state.upcoming?.workoutId).toBe("next");
+    expect(state.awaitingResult).toBeNull();
+  });
+});
 
 describe("ftpFromTest", () => {
   it("rekent een ramptest op 75% van het hoogste minuutvermogen", () => {

@@ -272,7 +272,18 @@ async function syncOnePowerProfile(
     // Opt-in: het lid laat FTP en gewicht in het profiel meelopen met intervals.
     if (profile?.auto_sync_physique) {
       const physique: Record<string, number> = {};
-      const syncedFtp = athleteDefaults.ftpWatts ?? latestWellnessValue(wellness, "eftp");
+      // Voorrang voor de FTP: een test, dan intervals.icu, dan wat het lid zelf
+      // invulde. Heeft het lid een testuitslag, dan houdt het profiel die vast
+      // tot de volgende test; de eFTP schuift er niet meer overheen.
+      const { data: tested } = await supabase
+        .from("training_ftp_tests")
+        .select("id")
+        .eq("profile_id", connection.profile_id)
+        .limit(1);
+      const syncedFtp =
+        (tested ?? []).length > 0
+          ? null
+          : athleteDefaults.ftpWatts ?? latestWellnessValue(wellness, "eftp");
       const syncedWeight = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
       if (syncedFtp) physique.ftp_watts = Math.round(syncedFtp);
       if (syncedWeight) physique.weight_kg = Math.round(syncedWeight * 10) / 10;

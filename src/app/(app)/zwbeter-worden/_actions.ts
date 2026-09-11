@@ -7,7 +7,9 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
   deleteIntervalsWorkoutEvent,
   fetchIntervalsAthlete,
+  fetchIntervalsDayPowerCurve,
 } from "@/lib/intervals/client";
+import { wattsAtDuration } from "@/lib/teams/power-profile";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { pushPlanWorkoutsToIntervals, pushWorkoutToIntervals } from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
@@ -30,6 +32,7 @@ import { reviewNotificationBody } from "@/lib/training/completion";
 import {
   asFtpTestType,
   FTP_TEST_LABELS,
+  FTP_TEST_RESULT_SECONDS,
   recordFtpTest,
 } from "@/lib/training/ftp-test";
 import { insertFtpTestWorkout } from "@/lib/training/draft";
@@ -1246,9 +1249,42 @@ export async function planFtpTest(formData: FormData) {
 }
 
 /**
+ * Wat de test volgens intervals.icu heeft opgeleverd: de beste minuut van die
+ * dag bij een ramptest, de beste twintig minuten bij de 20-minutentest. Dat
+ * vult het invulveld voor; het lid kan het overschrijven. Zonder koppeling, of
+ * zonder vermogen op die dag, komt er niets terug en vult het lid zelf in.
+ */
+export async function suggestFtpTestResult(input: {
+  testedOn: string;
+  testType: string;
+}): Promise<{ watts: number | null }> {
+  try {
+    const { user } = await currentUser();
+    const testType = asFtpTestType(input.testType);
+    if (!testType || !/^\d{4}-\d{2}-\d{2}$/.test(input.testedOn)) return { watts: null };
+
+    const admin = createAdminClient();
+    const { data: conn } = await admin
+      .from("intervals_connections")
+      .select("api_key, athlete_id")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!conn?.api_key || !conn.athlete_id) return { watts: null };
+
+    const points = await fetchIntervalsDayPowerCurve(conn.api_key, conn.athlete_id, input.testedOn);
+    const watts = wattsAtDuration(points, FTP_TEST_RESULT_SECONDS[testType]);
+    return { watts: watts && watts > 0 ? Math.round(watts) : null };
+  } catch {
+    return { watts: null };
+  }
+}
+
+/**
  * De uitslag van een test vastleggen. Dit is de stap waar het om draait: de
  * meting gaat de historie in én wordt de nieuwe FTP van het profiel, waarna een
  * herziening de wattages van de resterende weken op dat getal zet.
+ *
+ * Zonder workout_id is het een losse test, buiten het schema om gereden.
  */
 export async function saveFtpTestResult(formData: FormData) {
   try {
@@ -1259,6 +1295,9 @@ export async function saveFtpTestResult(formData: FormData) {
     if (!testType) throw new Error("Kies een testvorm.");
     const testedOn = mustString(formData.get("tested_on"), "Datum");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(testedOn)) throw new Error("Ongeldige datum.");
+    if (testedOn > amsterdamDayKey()) {
+      throw new Error("Een test in de toekomst kun je nog niet invullen.");
+    }
     const resultWatts = optionalNumber(formData.get("result_watts"));
     if (resultWatts == null || resultWatts < 50 || resultWatts > 999) {
       throw new Error("Vul een vermogen tussen 50 en 999 watt in.");
@@ -1276,7 +1315,7 @@ export async function saveFtpTestResult(formData: FormData) {
       }
     }
 
-    const { ftpWatts, previousFtpWatts, overwrittenByIntervals } = await recordFtpTest(admin, {
+    const { ftpWatts, previousFtpWatts } = await recordFtpTest(admin, {
       profileId: user.id,
       workoutId,
       testedOn,
@@ -1305,7 +1344,6 @@ export async function saveFtpTestResult(formData: FormData) {
       ok: true as const,
       ftpWatts,
       previousFtpWatts,
-      overwrittenByIntervals,
       generationId: replan.started ? replan.generationId : null,
     };
   } catch (err) {

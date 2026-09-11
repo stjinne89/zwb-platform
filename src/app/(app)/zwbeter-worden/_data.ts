@@ -21,7 +21,14 @@ import {
 } from "@/lib/intervals/activities";
 import { syncWorkoutDatesFromIntervals } from "@/lib/training/publish";
 import { loadAvailability, mondayKey, shiftWeeks } from "@/lib/training/availability";
-import { asFtpTestType, loadFtpTests, type FtpTestType, type FtpTestRow } from "@/lib/training/ftp-test";
+import {
+  asFtpTestType,
+  loadFtpTests,
+  pickFtpTestState,
+  type FtpTestRow,
+  type FtpTestType,
+  type FtpTestWorkout,
+} from "@/lib/training/ftp-test";
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
@@ -577,8 +584,9 @@ export type FtpTestState = {
 
 /**
  * Waar een lid staat met zijn FTP-test: staat er één klaar, wacht er één op een
- * uitslag, en wat was de vorige. Een test die is ingevuld staat op 'completed',
- * dus alles wat nog op 'planned' staat wacht per definitie nog op een uitslag.
+ * uitslag, en wat was de vorige. Of een test op een uitslag wacht, hangt af van
+ * de uitslagen zelf en niet van de workoutstatus: de ritsync zet een gereden
+ * test op 'completed'. Zie pickFtpTestState().
  *
  * `profileId` is er voor het trainerscherm, waar het inplannen woont; zonder die
  * parameter gaat het over de kijker zelf.
@@ -591,26 +599,35 @@ export async function loadFtpTestState(
   const [{ data: rows }, tests] = await Promise.all([
     viewer.admin
       .from("training_workouts")
-      .select("id, scheduled_at, test_type")
+      .select("id, scheduled_at, test_type, status, origin")
       .eq("profile_id", profileId)
       .not("test_type", "is", null)
-      .eq("status", "planned")
       .is("superseded_at", null)
       .order("scheduled_at", { ascending: true }),
-    loadFtpTests(viewer.admin, profileId, 1).catch(() => []),
+    loadFtpTests(viewer.admin, profileId, 50).catch(() => []),
   ]);
 
-  const planned = (rows ?? []).flatMap((row) => {
+  const workouts = (rows ?? []).flatMap((row): FtpTestWorkout[] => {
     const testType = asFtpTestType(row.test_type);
     if (!testType) return [];
-    return [{ workoutId: row.id as string, date: String(row.scheduled_at).slice(0, 10), testType }];
+    return [
+      {
+        workoutId: row.id as string,
+        date: String(row.scheduled_at).slice(0, 10),
+        testType,
+        status: String(row.status),
+        origin: String(row.origin),
+      },
+    ];
   });
+  const state = pickFtpTestState(workouts, tests, todayKey);
+  const brief = (test: FtpTestWorkout | null): PlannedFtpTest | null =>
+    test ? { workoutId: test.workoutId, date: test.date, testType: test.testType } : null;
 
   return {
     todayKey,
-    upcoming: planned.find((test) => test.date > todayKey) ?? null,
-    // De laatste die geweest is; een test van vandaag mag je 's avonds invullen.
-    awaitingResult: [...planned].reverse().find((test) => test.date <= todayKey) ?? null,
+    upcoming: brief(state.upcoming),
+    awaitingResult: brief(state.awaitingResult),
     lastTest: tests[0] ?? null,
   };
 }

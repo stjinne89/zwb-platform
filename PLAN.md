@@ -767,6 +767,85 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
+### Actief — feedbackronde 11 september 2026 (vijf punten)
+
+Stijn leverde vijf punten aan. Na diagnose is de volgorde afgesproken: **5**
+FTP-test (opgeleverd, zie hieronder), **3** badges door het bestuur, **4** een
+geplande test verdringt de training van die dag, **2** geplande trainingen
+handmatig verwijderen, **1** beschikbaarheid die het schema echt bijwerkt.
+Weekbadges handmatig toekennen hoort er uitdrukkelijk *niet* bij.
+
+Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
+
+- **Badges (3).** Het bestuur heeft `achievements.finalize` al. De beheerpagina
+  toont alleen milestonebadges die `auto` zijn of met `custom_` beginnen; de 216
+  handmatige milestonebadges uit de catalogus staan niet in de keuzelijst.
+- **Test verdringt training (4).** `planFtpTest` zet de test erbij en laat het
+  opruimen van de training van die dag over aan een AI-herziening. Die kan
+  worden overgeslagen (cooldown, genegeerd schema) of blijft hangen. Bij Bart
+  stond de test op 10 september bovendien dubbel: een tweede kopie kwam via de
+  workout-bibliotheek, die `test_type` van het sjabloon overneemt.
+- **Beschikbaarheid (1).** Drie oorzaken. Een ingevulde week gaat voor de
+  standaardweek zonder dat het formulier dat laat zien (Stijn zette zijn
+  standaardvrijdag op 0, maar de week van 7 september had een eigen rij met
+  vrijdag 195 min). Een achtergrondgeneratie wordt pas verwerkt als de browser
+  van het lid pollt; Stijns herziening van 11 september 09:35 bleef op
+  `in_progress`. En beschikbaarheid is een plafond, geen doel (zie de
+  promptregel in `workouts.ts`), dus een dag op 120 min maakt een training van
+  90 min niet langer. Voorstel: dagen op 0 en te lange trainingen direct en
+  deterministisch bijsnijden, de herziening server-side afmaken, eigen
+  weekinvulling zichtbaar maken met "terug naar standaard", en een lid de duur
+  van een geplande training zelf laten aanpassen.
+- **Terzijde.** Bart heeft per dag tot zestien vervangen versies van dezelfde
+  training: er draaien veel meer generaties dan nodig. Nog niet onderzocht.
+
+### Opgeleverd — FTP-test: uitslag blijft invulbaar, beste minuut uit intervals.icu
+
+**2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+
+**Waarom.** Bart de Groot deed op 3 en 10 september een ramptest en kon de
+uitslag nergens kwijt. Oorzaak: het invulveld verscheen alleen bij een test op
+`status = 'planned'`, maar `detectCompletedWorkouts()` zet een workout op
+`completed` zodra er een Strava-rit aan hangt, precies wanneer je de test hebt
+gereden. Dat treft iedereen die zijn test synchroniseert, niet alleen Bart.
+Daarnaast wilde Stijn dat het systeem het beste minuutvermogen zelf oppakt, en
+een vaste volgorde voor de FTP: test, dan intervals.icu, dan het profiel.
+
+**Wat er is gekomen.**
+- `pickFtpTestState()` in `ftp-test.ts`: een test wacht op een uitslag zolang
+  er geen `training_ftp_tests`-rij bij hoort, ongeacht de workoutstatus. Eén
+  test per dag (die van het lid gaat voor op een bibliotheekkopie), geschrapte
+  tests tellen niet, en een test van vóór de laatste uitslag is ingehaald.
+  Barts test van 10 september verschijnt daardoor weer.
+- `fetchIntervalsDayPowerCurve()` haalt de powercurve van één dag op
+  (`curves=r.<dag>.<dag>`; het formaat is op 11 september met Stijns koppeling
+  gecontroleerd: 481 W over 60 s op 10 september). `suggestFtpTestResult()`
+  vult daarmee het invulveld: beste 60 s bij een ramptest, beste 20 min bij de
+  20-minutentest. Het lid kan het overschrijven.
+- **Test invullen** op de FTP-kaart, voor een test die buiten het schema om is
+  gereden (datum en soort vrij, niet in de toekomst). De kaart staat daarom
+  altijd op de schemapagina.
+- FTP-voorrang: de powerprofiel-sync (`teams/_actions.ts`) laat
+  `profiles.ftp_watts` met rust zodra het lid een testuitslag heeft. De
+  FTP-tegel op `/zwbeter-worden/vermogen` volgt dezelfde volgorde. Een
+  handmatige profielwaarde blijft de terugval en loopt mee met elke nieuwe test.
+
+**Bewust niet gebouwd.** Geen Strava-streams als bron voor de beste minuut:
+de gekoppelde rit komt uit `strava_activities` zonder vermogensdata, en nog een
+Strava-call per test weegt niet op tegen de API-limiet. Zonder intervals.icu
+typt het lid zelf. De eFTP-tegel op het ZWBeter Worden-overzicht blijft een
+eFTP-trend en is niet omgezet naar de testwaarde. Een test verloopt niet: een
+oude uitslag houdt het profiel vast tot de volgende test, zoals afgesproken.
+
+**Claims die niet meer kloppen.** "Alles wat nog op 'planned' staat wacht per
+definitie nog op een uitslag" (comment in `_data.ts`, en de ronde van 0131) is
+vervangen. De "bekende wrijving" met `auto_sync_physique` is opgelost.
+
+**Verificatie.** `npm run build`, `npx tsc --noEmit`, gerichte eslint en de 15
+tests in `tests/unit/ftp-test.test.ts` (waaronder Barts situatie) zijn groen.
+Het invullen zelf is niet in de browser doorlopen: lokaal is er geen ingelogde
+sessie, dus `/zwbeter-worden/schema` eindigt op de loginpagina.
+
 ### Opgeleverd — mobiele rapportagefeedback en ZRL-specificiteitsbewaking
 
 **2026-09-01, commit `ec3eb4b` op `main`.** Geen migratie.
@@ -1765,11 +1844,11 @@ in de input. Uitslagen staan als lijst op `/zwbeter-worden/vermogen`, en komt de
 profiel-FTP uit een test, dan noemt de FTP-tegel die datum als bron. Uitleg op
 `/hulp#ftp-test`, met zoekindex-regel.
 
-**Bekende wrijving.** Staat het profiel op *bijhouden vanuit intervals.icu*
-(`auto_sync_physique`), dan overschrijft de eerstvolgende vermogenssync de
-testwaarde met de eFTP van intervals. De test blijft in de historie staan en het
-lid krijgt die zin te zien bij het opslaan; automatisch die instelling uitzetten
-leek te ver gaan.
+**Bekende wrijving (opgelost 2026-09-11).** Staat het profiel op *bijhouden
+vanuit intervals.icu* (`auto_sync_physique`), dan overschreef de eerstvolgende
+vermogenssync de testwaarde met de eFTP van intervals. Sinds de ronde "FTP-test:
+uitslag blijft invulbaar" hierboven gaat een test voor: de sync laat de FTP met
+rust zodra het lid een testuitslag heeft. De waarschuwing bij het opslaan is weg.
 
 **Dagelijks vangnet.** Bij het opslaan van je beschikbaarheid vraagt het lid
 al meteen een herziening aan, maar die kan zijn overgeslagen: de cooldown van

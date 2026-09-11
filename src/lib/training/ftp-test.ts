@@ -30,6 +30,12 @@ export const FTP_TEST_RESULT_LABELS: Record<FtpTestType, string> = {
   twenty_min: "Gemiddeld vermogen over de 20 minuten",
 };
 
+/** Over welke duur die meting gaat; daarop zoeken we het beste vermogen van de testdag. */
+export const FTP_TEST_RESULT_SECONDS: Record<FtpTestType, number> = {
+  ramp: 60,
+  twenty_min: 1200,
+};
+
 /** Van ruwe meting naar FTP: 75% van de laatste minuut, 95% van twintig minuten. */
 const FTP_TEST_FACTORS: Record<FtpTestType, number> = {
   ramp: 0.75,
@@ -125,16 +131,81 @@ export function ftpTestDurationMinutes(type: FtpTestType): number {
 
 export type FtpTestRow = {
   id: string;
+  workoutId: string | null;
   testedOn: string;
   testType: FtpTestType;
   resultWatts: number;
   ftpWatts: number;
 };
 
+export type FtpTestWorkout = {
+  workoutId: string;
+  date: string;
+  testType: FtpTestType;
+  status: string;
+  origin: string;
+};
+
+/**
+ * Welke test er nog komt, en welke op een uitslag wacht.
+ *
+ * Tot september 2026 wachtte alleen een test op 'planned' op een uitslag. Maar
+ * de ritsync zet een workout op 'completed' zodra er een rit aan hangt — precies
+ * op het moment dat je hem gereden hebt — en dan verdween het invulveld. Zo
+ * bleven Barts ramptests van 3 en 10 september zonder uitslag. Nu telt alleen of
+ * er een uitslag bij hoort, niet de status.
+ */
+export function pickFtpTestState(
+  workouts: FtpTestWorkout[],
+  recorded: Array<{ workoutId: string | null; testedOn: string }>,
+  todayKey: string,
+): { upcoming: FtpTestWorkout | null; awaitingResult: FtpTestWorkout | null } {
+  // Eén test per dag. Een test uit de bibliotheek naast een ingeplande test is
+  // dezelfde meting; die van het lid gaat voor.
+  const byDate = new Map<string, FtpTestWorkout>();
+  for (const workout of workouts) {
+    if (workout.status === "skipped") continue;
+    const current = byDate.get(workout.date);
+    if (!current || (current.origin !== "member" && workout.origin === "member")) {
+      byDate.set(workout.date, workout);
+    }
+  }
+
+  // De dag van een uitslag: die van zijn workout als hij eraan hangt, anders de
+  // ingevulde testdatum. Een losse uitslag dekt zo ook de test van die dag.
+  const dateOf = new Map(workouts.map((workout) => [workout.workoutId, workout.date]));
+  const recordedIds = new Set(recorded.flatMap((test) => (test.workoutId ? [test.workoutId] : [])));
+  const recordedDates = [
+    ...new Set(
+      recorded.map((test) => (test.workoutId && dateOf.get(test.workoutId)) || test.testedOn),
+    ),
+  ].sort();
+  const newestRecorded = recordedDates[recordedDates.length - 1] ?? null;
+
+  const open = [...byDate.values()]
+    .filter((test) => !recordedIds.has(test.workoutId) && !recordedDates.includes(test.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    upcoming: open.find((test) => test.date > todayKey && test.status === "planned") ?? null,
+    // De laatste die geweest is; een test van vandaag mag je 's avonds invullen.
+    // Een test van vóór de laatste uitslag is door die uitslag ingehaald.
+    awaitingResult:
+      [...open]
+        .reverse()
+        .find(
+          (test) => test.date <= todayKey && (newestRecorded == null || test.date > newestRecorded),
+        ) ?? null,
+  };
+}
+
 /**
  * De uitslag vastleggen: de meting bewaren én de FTP van het profiel bijwerken.
  * Dat tweede is de hele reden dat een test in het schema staat — zonder die stap
  * blijft elk wattage in de weken erna op het oude getal gebaseerd.
+ *
+ * De test gaat voor op intervals.icu: de powerprofiel-sync schuift zijn eFTP
+ * niet meer over een profiel dat een testuitslag heeft (zie teams/_actions.ts).
  */
 export async function recordFtpTest(
   admin: Admin,
@@ -150,13 +221,6 @@ export async function recordFtpTest(
 ): Promise<{
   ftpWatts: number;
   previousFtpWatts: number | null;
-  /**
-   * Staat het profiel op "bijhouden vanuit intervals.icu", dan overschrijft de
-   * eerstvolgende vermogenssync deze waarde met de eFTP van intervals. De test
-   * blijft dan wel in de historie staan, maar het lid moet weten dat zijn
-   * profiel het getal niet vasthoudt.
-   */
-  overwrittenByIntervals: boolean;
 }> {
   const ftpWatts = ftpFromTest(input.testType, input.resultWatts);
   if (ftpWatts <= 0 || ftpWatts >= 800) {
@@ -165,7 +229,7 @@ export async function recordFtpTest(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("ftp_watts, auto_sync_physique")
+    .select("ftp_watts")
     .eq("id", input.profileId)
     .maybeSingle();
 
@@ -190,7 +254,6 @@ export async function recordFtpTest(
   return {
     ftpWatts,
     previousFtpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-    overwrittenByIntervals: Boolean(profile?.auto_sync_physique),
   };
 }
 
@@ -202,13 +265,14 @@ export async function loadFtpTests(
 ): Promise<FtpTestRow[]> {
   const { data } = await admin
     .from("training_ftp_tests")
-    .select("id, tested_on, test_type, result_watts, ftp_watts")
+    .select("id, workout_id, tested_on, test_type, result_watts, ftp_watts")
     .eq("profile_id", profileId)
     .order("tested_on", { ascending: false })
     .limit(limit);
 
   return (data ?? []).map((row) => ({
     id: row.id as string,
+    workoutId: (row.workout_id as string | null) ?? null,
     testedOn: String(row.tested_on).slice(0, 10),
     testType: (asFtpTestType(row.test_type) ?? "ramp") as FtpTestType,
     resultWatts: Number(row.result_watts),

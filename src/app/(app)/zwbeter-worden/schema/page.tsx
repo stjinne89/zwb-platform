@@ -337,15 +337,15 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       {runningPlan ? <PlanRideForm todayKey={todayKey} /> : null}
 
-      {/* Inplannen doet de trainer; hier vult het lid alleen zijn uitslag in.
-          Zonder test in zicht en zonder historie valt er niets te tonen. */}
-      {ftpTestState.awaitingResult || ftpTestState.upcoming || ftpTestState.lastTest ? (
-        <FtpTestCard
-          upcoming={ftpTestState.upcoming}
-          awaitingResult={ftpTestState.awaitingResult}
-          lastTest={ftpTestState.lastTest}
-        />
-      ) : null}
+      {/* Inplannen doet de trainer; hier vult het lid zijn uitslag in, ook van
+          een test die buiten het schema om is gereden. */}
+      <FtpTestCard
+        todayKey={todayKey}
+        upcoming={ftpTestState.upcoming}
+        awaitingResult={ftpTestState.awaitingResult}
+        lastTest={ftpTestState.lastTest}
+      />
+
 
       {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 
