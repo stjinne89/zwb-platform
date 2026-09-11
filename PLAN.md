@@ -802,7 +802,7 @@ De diagnose die de rondes stuurde (productiedata, alleen gelezen):
 
 ### Opgeleverd — beschikbaarheid werkt het schema echt bij, en de duur zelf aanpassen
 
-**2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+**2026-09-11, commit `ffce4b8` op `main` (niet gepusht).** Geen migratie.
 
 **Waarom.** Stijn kreeg zijn vrijdagen niet vrij en de trainingen van vandaag en
 morgen niet op twee uur. Drie oorzaken (zie het overzicht hierboven): een eigen
