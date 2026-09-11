@@ -200,6 +200,18 @@ export function pickFtpTestState(
 }
 
 /**
+ * Een testdag is van de test. De AI hoort daar niets naast te zetten (de test
+ * gaat als vast blok mee in zijn input), maar doet het soms toch; dan viel er
+ * een tweede training op de testdag. Dit haalt die er vóór het wegschrijven uit.
+ */
+export function dropWorkoutsOnTestDays<T extends { date: string }>(
+  workouts: T[],
+  testDays: ReadonlySet<string>,
+): T[] {
+  return workouts.filter((workout) => !testDays.has(workout.date));
+}
+
+/**
  * De uitslag vastleggen: de meting bewaren én de FTP van het profiel bijwerken.
  * Dat tweede is de hele reden dat een test in het schema staat — zonder die stap
  * blijft elk wattage in de weken erna op het oude getal gebaseerd.

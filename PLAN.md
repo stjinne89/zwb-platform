@@ -771,7 +771,7 @@ operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 
 Stijn leverde vijf punten aan. Na diagnose is de volgorde afgesproken: **5**
 FTP-test (opgeleverd), **3** badges door het bestuur (opgeleverd), **4** een
-geplande test verdringt de training van die dag, **2** geplande trainingen
+geplande test verdringt de training van die dag (opgeleverd), **2** geplande trainingen
 handmatig verwijderen, **1** beschikbaarheid die het schema echt bijwerkt.
 Weekbadges handmatig toekennen hoort er uitdrukkelijk *niet* bij.
 
@@ -799,9 +799,44 @@ Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
 - **Terzijde.** Bart heeft per dag tot zestien vervangen versies van dezelfde
   training: er draaien veel meer generaties dan nodig. Nog niet onderzocht.
 
-### Opgeleverd — bestuur kan alle milestonebadges toekennen
+### Opgeleverd — een geplande test verdringt de training van die dag
 
 **2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+
+**Waarom.** Plande Stijn een FTP-test, dan bleef de training die al op die dag
+stond staan. `planFtpTest` liet het opruimen over aan de AI-herziening erna, en
+die wordt overgeslagen bij de cooldown of een stilliggend schema, of blijft op
+`in_progress` hangen. Daarnaast zag de planner een test uit de
+workout-bibliotheek niet als vast blok: die draagt origin `ai`, en
+`loadFixedWorkouts()` keek alleen naar `member`/`event`.
+
+**Wat er is gekomen.**
+- `clearDayForTest()` in `publish.ts` verklaart de andere trainingen van die
+  dag meteen vervallen en haalt ze uit intervals.icu. Dat gebeurt met dezelfde
+  regels als een herziening (`supersedableWorkouts()`): een eigen rit,
+  clubevent, andere test of gereden training blijft staan. De opruimlus uit
+  `retireSupersededWorkouts()` is daarvoor apart gezet als `retireWorkoutRows()`.
+  Aangeroepen door `planFtpTest`, en door `addWorkoutFromTemplate` en
+  `replaceWorkoutFromTemplate` als het sjabloon een test is.
+- `insertPlanWorkouts()` zet geen AI-training meer op een dag met een test
+  (`dropWorkoutsOnTestDays()`), ook als de AI dat toch voorstelt. In
+  `createPlanFromAiGeneration()` staat de gevraagde test daarom nu vóór de
+  workouts van het plan.
+- `loadFixedWorkouts()` neemt elke workout met een `test_type` mee als vast blok.
+
+**Bewust niet gebouwd.** Een eigen rit of clubevent op de testdag blijft
+staan: dat is een afspraak van het lid, en de vraag ging over de voorgestelde
+training. Oude dubbele tests in de database (Bart, 10 september) zijn niet
+opgeruimd: dat is geschiedenis, en de uitslagkaart telt ze sinds de vorige
+ronde als één.
+
+**Verificatie.** `npx tsc --noEmit`, gerichte eslint en de volledige
+Vitest-run (845 geslaagd, 6 overgeslagen) zijn groen. Niet in de browser
+doorlopen (geen ingelogde sessie).
+
+### Opgeleverd — bestuur kan alle milestonebadges toekennen
+
+**2026-09-11, commit `92c70d5` op `main` (niet gepusht).** Geen migratie.
 
 **Waarom.** Het bestuur kon niet elke badge toekennen. Het recht
 (`achievements.finalize`) had het al; de beheerpagina filterde de keuzelijst

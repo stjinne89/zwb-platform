@@ -183,7 +183,61 @@ export async function retireSupersededWorkouts(
   });
   if (superseded.length === 0) return 0;
 
-  for (const workout of superseded) {
+  await retireWorkoutRows(admin, superseded, planId, connection);
+  return superseded.length;
+}
+
+/**
+ * Een test verdringt de training die op die dag stond.
+ *
+ * Tot september 2026 liet het inplannen van een test dat over aan de
+ * AI-herziening erna. Die kan worden overgeslagen (cooldown, een schema dat
+ * stilligt) of blijft hangen, en dan stond de oude training gewoon naast de
+ * test. Nu gebeurt het meteen, met dezelfde regels als bij een herziening: een
+ * eigen rit, clubevent, andere test of gereden training blijft staan.
+ */
+export async function clearDayForTest(
+  admin: Admin,
+  input: { profileId: string; planId: string; dayKey: string; keepWorkoutId: string },
+): Promise<number> {
+  const { data: rows } = await admin
+    .from("training_workouts")
+    .select("id, plan_id, scheduled_at, intervals_event_id, status, origin, test_type")
+    .eq("profile_id", input.profileId)
+    .neq("id", input.keepWorkoutId)
+    .is("superseded_at", null)
+    .gte("scheduled_at", `${input.dayKey}T00:00:00`)
+    .lte("scheduled_at", `${input.dayKey}T23:59:59`);
+
+  const retire = supersedableWorkouts(rows ?? [], {
+    newerPlanIds: new Set(),
+    dayKeys: new Set([input.dayKey]),
+    wholeRange: false,
+  });
+  if (retire.length === 0) return 0;
+
+  const { data: conn } = await admin
+    .from("intervals_connections")
+    .select("api_key, athlete_id")
+    .eq("profile_id", input.profileId)
+    .maybeSingle();
+  await retireWorkoutRows(
+    admin,
+    retire,
+    input.planId,
+    conn?.api_key && conn.athlete_id ? { api_key: conn.api_key, athlete_id: conn.athlete_id } : null,
+  );
+  return retire.length;
+}
+
+/** Markeert workouts als vervangen en haalt ze uit de intervals.icu-kalender. */
+async function retireWorkoutRows(
+  admin: Admin,
+  rows: Array<{ id: string }>,
+  planId: string,
+  connection: { api_key: string; athlete_id: string } | null,
+) {
+  for (const workout of rows) {
     // Eerst markeren, dan pas wissen. Andersom bleef er een event achter: de
     // publicatie van een ouder plan kon tussen ons lezen en ons wissen in nog
     // een nieuw intervals_event_id op deze rij zetten, en dat id gooiden we er
@@ -228,7 +282,6 @@ export async function retireSupersededWorkouts(
         .eq("id", workout.id);
     }
   }
-  return superseded.length;
 }
 
 /**

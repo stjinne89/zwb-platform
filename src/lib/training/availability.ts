@@ -232,6 +232,10 @@ export async function availabilityForAi(
  * Wat er in een bereik vastligt: ritten die het lid zelf heeft ingepland,
  * clubevents die het heeft toegezegd en ingeplande tests. De planner mag ze niet
  * vervangen of verplaatsen, alleen de rest eromheen zetten.
+ *
+ * Een test uit de workout-bibliotheek draagt origin 'ai'; die telt via
+ * test_type toch mee. Voorheen zag de planner zo'n test niet en zette hij er
+ * gewoon een training naast.
  */
 export async function loadFixedWorkouts(
   admin: Admin,
@@ -243,7 +247,7 @@ export async function loadFixedWorkouts(
     .from("training_workouts")
     .select("scheduled_at, title, duration_minutes, intensity, origin, test_type")
     .eq("profile_id", profileId)
-    .in("origin", ["member", "event"])
+    .or("origin.in.(member,event),test_type.not.is.null")
     .eq("status", "planned")
     .is("superseded_at", null)
     .gte("scheduled_at", `${from}T00:00:00`)

@@ -31,6 +31,7 @@ import {
   ftpTestBlocks,
   ftpTestDurationMinutes,
   ftpTestTitle,
+  dropWorkoutsOnTestDays,
   loadFtpTests,
   type FtpTestType,
 } from "@/lib/training/ftp-test";
@@ -395,7 +396,23 @@ export async function insertPlanWorkouts(
   plan: { id: string; profile_id: string; trainer_id: string | null },
   workouts: GeneratedWorkout[],
 ) {
-  const rows = workouts
+  // Een testdag is van de test; zie dropWorkoutsOnTestDays().
+  const dates = workouts.map((workout) => workout.date).sort();
+  let testDays = new Set<string>();
+  if (dates.length > 0) {
+    const { data: tests } = await admin
+      .from("training_workouts")
+      .select("scheduled_at")
+      .eq("profile_id", plan.profile_id)
+      .not("test_type", "is", null)
+      .neq("status", "skipped")
+      .is("superseded_at", null)
+      .gte("scheduled_at", `${dates[0]}T00:00:00`)
+      .lte("scheduled_at", `${dates[dates.length - 1]}T23:59:59`);
+    testDays = new Set((tests ?? []).map((row) => String(row.scheduled_at).slice(0, 10)));
+  }
+
+  const rows = dropWorkoutsOnTestDays(workouts, testDays)
     // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
     .filter((workout) => Math.round(workout.durationMinutes) >= 1)
     .map((workout) => {
@@ -557,15 +574,10 @@ async function createPlanFromAiGeneration(
     await admin.from("training_plans").update({ root_plan_id: plan.id }).eq("id", plan.id);
   }
 
-  await insertPlanWorkouts(
-    admin,
-    { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
-    planDraft.workouts,
-  );
-
   // De gevraagde FTP-test. Die kon bij de generatie nog geen workout worden —
   // dit plan bestond toen niet — maar de AI heeft er wel omheen gepland, want
-  // hij zat als vast blok in de input.
+  // hij zat als vast blok in de input. Vóór de workouts van het plan, zodat
+  // insertPlanWorkouts() de testdag vrij houdt.
   const ftpTestType = asFtpTestType(generation.ftp_test_type);
   if (ftpTestType && generation.ftp_test_date) {
     await insertFtpTestWorkout(admin, {
@@ -576,6 +588,12 @@ async function createPlanFromAiGeneration(
       type: ftpTestType,
     }).catch(() => null);
   }
+
+  await insertPlanWorkouts(
+    admin,
+    { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
+    planDraft.workouts,
+  );
 
   // Het openstaande herzieningsverzoek is hiermee ingelost. Alleen wat ouder is
   // dan deze generatie: wijzigde het lid iets terwijl de AI werkte, dan zat dat

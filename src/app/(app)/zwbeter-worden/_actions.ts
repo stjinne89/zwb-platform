@@ -11,7 +11,11 @@ import {
 } from "@/lib/intervals/client";
 import { wattsAtDuration } from "@/lib/teams/power-profile";
 import { sendNotificationToMembers } from "@/lib/push/send";
-import { pushPlanWorkoutsToIntervals, pushWorkoutToIntervals } from "@/lib/training/publish";
+import {
+  clearDayForTest,
+  pushPlanWorkoutsToIntervals,
+  pushWorkoutToIntervals,
+} from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
 import { syncEventWorkout } from "@/lib/training/events";
 import { activeBasePlan } from "@/lib/training/active-plan";
@@ -837,7 +841,7 @@ export async function addWorkoutFromTemplate(formData: FormData) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .slice(0, 48);
-    const { error } = await admin.from("training_workouts").insert({
+    const { data: created, error } = await admin.from("training_workouts").insert({
       plan_id: plan.id,
       profile_id: plan.profile_id,
       trainer_id: plan.trainer_id ?? user.id,
@@ -855,8 +859,20 @@ export async function addWorkoutFromTemplate(formData: FormData) {
       // Zelfde vorm als de AI-flow, zodat intervals.icu de workout bij een
       // herpublicatie bijwerkt in plaats van dubbel neer te zetten.
       intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,
-    });
+    })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+
+    // Een test verdringt de training van die dag; zie clearDayForTest().
+    if (template.test_type) {
+      await clearDayForTest(admin, {
+        profileId: plan.profile_id,
+        planId: plan.id,
+        dayKey: date,
+        keepWorkoutId: created.id as string,
+      }).catch(() => 0);
+    }
 
     revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
@@ -885,7 +901,7 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
     const [{ data: workout }, { data: template }] = await Promise.all([
       admin
         .from("training_workouts")
-        .select("id, profile_id, intervals_event_id")
+        .select("id, profile_id, plan_id, scheduled_at, intervals_event_id")
         .eq("id", workoutId)
         .maybeSingle(),
       admin
@@ -920,6 +936,16 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
 
     if (workout.intervals_event_id) {
       await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
+    }
+
+    // Wordt de workout een test, dan verdringt hij wat er nog meer op die dag stond.
+    if (template.test_type) {
+      await clearDayForTest(admin, {
+        profileId: workout.profile_id,
+        planId: workout.plan_id,
+        dayKey: String(workout.scheduled_at).slice(0, 10),
+        keepWorkoutId: workoutId,
+      }).catch(() => 0);
     }
 
     revalidatePath("/zwbeter-worden", "layout");
@@ -1225,6 +1251,15 @@ export async function planFtpTest(formData: FormData) {
       date,
       type: testType,
     });
+
+    // De training die al op die dag stond gaat er meteen af, niet pas bij de
+    // herziening hieronder: die kan worden overgeslagen of blijven hangen.
+    await clearDayForTest(admin, {
+      profileId: athleteId,
+      planId: plan.id,
+      dayKey: date,
+      keepWorkoutId: workoutId,
+    }).catch(() => 0);
 
     // Zelfde reden als bij een eigen rit: zonder deze push blijft het blok op
     // 'pending' staan en haalt het intervals.icu nooit.
