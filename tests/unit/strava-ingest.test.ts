@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { weekStartDate } from "@/lib/strava/client";
 import {
   activityRowFromDetail,
   RAW_DETAIL_DROP_KEYS,
@@ -126,6 +127,36 @@ describe("activityRowFromDetail", () => {
     expect(activityRowFromDetail({ id: 1 }, "p", 1)).toBeNull();
     expect(activityRowFromDetail({ id: 1, start_date: "onzin" }, "p", 1)).toBeNull();
   });
+});
+
+describe("weekStartDate", () => {
+  // Productie draait in UTC, een dev-machine niet. Onder UTC kon de oude
+  // lokale-tijdversie niet falen; daarom hier bewust een klok ernaast.
+  const originalTz = process.env.TZ;
+  afterAll(() => {
+    if (originalTz === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTz;
+  });
+
+  for (const tz of ["Europe/Amsterdam", "America/Los_Angeles"]) {
+    describe(`met de procesklok op ${tz}`, () => {
+      beforeAll(() => {
+        process.env.TZ = tz;
+      });
+
+      const week = (iso: string) => weekStartDate(new Date(iso)).toISOString().slice(0, 10);
+
+      it("geeft de UTC-maandag van die week", () => {
+        expect(week("2026-09-05T06:12:00Z")).toBe("2026-08-31");
+      });
+
+      it("legt de weekgrens op maandag 00:00 UTC", () => {
+        expect(week("2026-09-06T23:59:59Z")).toBe("2026-08-31");
+        expect(week("2026-09-07T00:00:00Z")).toBe("2026-09-07");
+        expect(week("2026-09-07T03:00:00Z")).toBe("2026-09-07");
+      });
+    });
+  }
 });
 
 describe("isCyclingSportType", () => {

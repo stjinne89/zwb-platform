@@ -356,6 +356,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   rit-mapping en het budget), `npm run build`, plus een smoke-test tegen
   `next dev` — de handshake geeft 200 met `{"hub.challenge":...}`, een verkeerd
   verify token 403, en een POST met onbereikbare database geeft nog steeds 200.
+  *Correctie (2026-09-11):* die testrun was alleen groen in een proces op UTC.
+  Buiten UTC faalde de nieuwe `achievement_week`-test, door een fout in
+  `weekStartDate()` die al sinds de eerste commit bestond. Zie de ronde
+  "achievement_week hangt niet meer af van de klok van het proces".
   Herindieningsdossier: `docs/strava-api-resubmission.md`; bediening en
   storingsafhandeling: `docs/runbook.md` §7.
 
@@ -870,6 +874,52 @@ Deze sectie is het actieve werkplan. De volgorde is gebaseerd op de huidige
 staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
+
+### Opgeleverd — achievement_week hangt niet meer af van de klok van het proces
+
+**2026-09-11, commit volgt in de PLAN.md-commit hierna (niet gepusht).** Geen
+migratie, geen backfill.
+
+**Waarom.** `tests/unit/strava-ingest.test.ts` ("zet achievement_week op de
+maandag van die week", sinds `2c575b9`) faalde op een dev-machine in
+Europe/Paris: de week kwam uit op zondag. De test had gelijk, de code niet.
+`weekStartDate()` in `src/lib/strava/client.ts` zette de datum op lokale
+middernacht (`setHours`/`getDay`/`setDate`), maar elke aanroeper maakt er met
+`toISOString()` een UTC-datum van. In UTC+2 wordt maandag 00:00 lokaal dan
+zondag 22:00 UTC, en dus de zondag. De fout zat er sinds de eerste commit
+(`edd3cbd`). Hij viel niet op omdat productie en de cloud-testomgeving in UTC
+draaien.
+
+**Wat er is veranderd.** `weekStartDate()` rekent nu in UTC
+(`setUTCHours`/`getUTCDay`/`setUTCDate`). Alles wat de week afleidt loopt
+via deze ene functie, dus de fix geldt overal:
+- schrijvers van `strava_activities.achievement_week`: het webhookpad
+  (`activityRowFromDetail`), de reconcile (`client.ts`) en de CSV/GPX-import
+  (`import.ts`, twee plekken);
+- lezers via `currentAchievementWeek()`: de weekbadge-toekenning
+  (`awardCompletedAchievementWeeks`, `.lt("achievement_week", …)`) en de
+  "deze week"-cijfers op `/achievements` (`.eq("achievement_week", …)`).
+In SQL wordt de week nergens afgeleid.
+
+**Gevolg voor bestaande data: geen.** Omdat productie in UTC draait, deed de
+oude code daar precies hetzelfde als de nieuwe. Alleen een lokale `next dev`
+buiten UTC schreef zondagen weg en vond geen ritten van de lopende week, en
+alleen dáár verandert iets.
+
+**Bewust niet gebouwd.** De week van het lid (`start_date_local`) in plaats van
+UTC. Voor een Nederlandse rit tussen maandag 00:00 en 02:00 lokaal kiest UTC nog
+de week ervoor. Overstappen zou bestaande weken verschuiven en een backfill van
+`strava_activities` plus een herberekening van `achievement_awards` vragen, voor
+een grensgeval van twee uur per week. Dat is een productkeuze, geen bugfix.
+
+**Tests.** Nieuw: `weekStartDate` onder `process.env.TZ` Europe/Amsterdam en
+America/Los_Angeles, op de weekgrens (zondag 23:59:59Z, maandag 00:00Z en
+03:00Z). Tegen de oude code falen die ook in een UTC-proces, terwijl de
+bestaande test daar slaagde; dit is dus de vangrail die ontbrak.
+
+**Verificatie.** De volledige Vitest-run (72 bestanden, 848 geslaagd),
+`npx tsc --noEmit` en eslint op de gewijzigde bestanden zijn groen, lokaal in
+Europe/Paris.
 
 ### Opgeleverd — feedbackronde 11 september 2026 (overzicht)
 

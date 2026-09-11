@@ -171,11 +171,17 @@ function isCyclingActivity(activity: StravaActivity) {
   return isCyclingSportType(activity.sport_type ?? activity.type);
 }
 
+/**
+ * Maandag 00:00 UTC van de week waarin `value` valt. Bewust UTC en niet de klok
+ * van het proces: iedereen serialiseert dit met toISOString(), dus lokale
+ * middernacht werd buiten UTC de zondag ervoor. Productie draait in UTC, dus
+ * dit is precies wat daar altijd al werd opgeslagen.
+ */
 export function weekStartDate(value = new Date()) {
   const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() - day + 1);
+  date.setUTCHours(0, 0, 0, 0);
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() - day + 1);
   return date;
 }
 
