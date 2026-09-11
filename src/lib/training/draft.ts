@@ -19,6 +19,7 @@ import {
   adaptiveDailyPrompt,
   normalizeWorkoutBlocks,
   planUpdatePrompt,
+  resizeBlocks,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -28,7 +29,9 @@ import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import {
   availabilityForAi,
   dropWorkoutsOnBlockedDays,
+  loadAvailabilityRange,
   loadFixedWorkouts,
+  minutesForDate,
 } from "@/lib/training/availability";
 import {
   asFtpTestType,
@@ -398,6 +401,11 @@ export async function insertPlanWorkouts(
   admin: ReturnType<typeof createAdminClient>,
   plan: { id: string; profile_id: string; trainer_id: string | null },
   workouts: GeneratedWorkout[],
+  /**
+   * Beschikbaarheid als harde grens toepassen. Uit bij een dag-aanpassing: daar
+   * geeft het lid zelf op hoeveel tijd het vandaag heeft, en dat mag meer zijn.
+   */
+  options: { fitToAvailability?: boolean } = {},
 ) {
   // Testdagen en dagen die het lid heeft vrijgemaakt; zie dropWorkoutsOnBlockedDays().
   const dates = workouts.map((workout) => workout.date).sort();
@@ -414,27 +422,47 @@ export async function insertPlanWorkouts(
     blockedDays = new Set((blocking ?? []).map((row) => String(row.scheduled_at).slice(0, 10)));
   }
 
+  // Beschikbaarheid is een plafond, en de AI houdt zich er niet altijd aan: geen
+  // training op een dag zonder tijd, en niet langer dan de tijd die er is. Zie
+  // ook fitScheduleToAvailability().
+  const availability =
+    options.fitToAvailability === false || dates.length === 0
+      ? null
+      : await loadAvailabilityRange(
+          admin,
+          plan.profile_id,
+          dates[0],
+          dates[dates.length - 1],
+        ).catch(() => null);
+
   const rows = dropWorkoutsOnBlockedDays(workouts, blockedDays)
     // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
     .filter((workout) => Math.round(workout.durationMinutes) >= 1)
-    .map((workout) => {
+    .flatMap((workout) => {
+      const limit = availability ? minutesForDate(availability, workout.date) : null;
+      if (limit === 0) return [];
       const intensity = workout.intensity;
       assertWorkoutIntensity(intensity);
-      const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
-      return {
+      let blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+      let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
+      if (limit != null && durationMinutes > limit) {
+        blocks = resizeBlocks(blocks, limit);
+        durationMinutes = limit;
+      }
+      return [{
         plan_id: plan.id,
         profile_id: plan.profile_id,
         trainer_id: plan.trainer_id,
         scheduled_at: `${workout.date}T09:00:00+01:00`,
         title: workout.title,
         description: workout.description,
-        duration_minutes: Math.min(480, Math.round(workout.durationMinutes)),
+        duration_minutes: durationMinutes,
         intensity,
         target_type: workout.targetType,
         structure_json: blocks,
         origin: "ai",
         intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
-      };
+      }];
     });
   if (rows.length === 0) return 0;
 
@@ -591,10 +619,15 @@ async function createPlanFromAiGeneration(
     }).catch(() => null);
   }
 
+  // Bij een dag-aanpassing gaf het lid zelf de tijd van vandaag op; die gaat
+  // dan voor op de opgeslagen beschikbaarheid.
+  const memberSetTime =
+    generation.adaptation_kind === "day" || (isAdaptation && !generation.adaptation_kind);
   await insertPlanWorkouts(
     admin,
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
     planDraft.workouts,
+    { fitToAvailability: !memberSetTime },
   );
 
   // Het openstaande herzieningsverzoek is hiermee ingelost. Alleen wat ouder is

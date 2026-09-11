@@ -100,6 +100,8 @@ export type WorkoutRow = {
   origin: string;
   event_id: string | null;
   superseded_at: string | null;
+  /** Gevuld bij een FTP-test; daarvan ligt de duur vast. */
+  test_type?: string | null;
 };
 
 export type WorkoutReportRow = {

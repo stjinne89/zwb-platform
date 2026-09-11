@@ -945,11 +945,25 @@ export default function HelpPage() {
               <strong className="text-foreground">deze week</strong> of{" "}
               <strong className="text-foreground">volgende week</strong>; wat je
               onder <strong className="text-foreground">Standaard</strong> zet
-              geldt voor elke week die je niet apart invult. Na het opslaan werkt
-              het schema zichzelf bij op de dagen die nog komen. Dat geldt ook
-              als je een rit inplant of je voor een clubevent aan- of afmeldt.
-              Lukt het niet meteen — bijvoorbeeld omdat je schema net al werd
-              bijgewerkt — dan gebeurt het de volgende ochtend alsnog.
+              geldt voor elke week die je niet apart invult. Een week met een
+              eigen invulling heeft een stip op het tabblad en gaat voor de
+              standaard; met <strong className="text-foreground">Terug naar
+              standaard</strong> volgt hij weer je standaardweek.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bij het opslaan gaat een training op een dag zonder tijd er meteen
+              af, en wordt een te lange training ingekort. Daarna werkt het schema
+              zichzelf bij op de dagen die nog komen. Dat geldt ook als je een rit
+              inplant of je voor een clubevent aan- of afmeldt. Lukt dat niet
+              meteen, dan gebeurt het de volgende keer dat je je schema opent, of
+              uiterlijk de volgende ochtend.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Beschikbaarheid is een plafond: meer tijd maakt een training niet
+              vanzelf langer. Wil je een training langer of korter, gebruik dan{" "}
+              <strong className="text-foreground">Duur aanpassen</strong> bij die
+              training. De intervallen blijven gelijk; in- en uitrijden en
+              duurblokken schuiven mee. Daarna ligt die training vast.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">

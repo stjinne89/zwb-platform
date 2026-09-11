@@ -767,15 +767,16 @@ staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
 "roadmap forward" hieronder is vanaf nu vooral historisch naslagwerk.
 
-### Actief — feedbackronde 11 september 2026 (vijf punten)
+### Opgeleverd — feedbackronde 11 september 2026 (overzicht)
 
-Stijn leverde vijf punten aan. Na diagnose is de volgorde afgesproken: **5**
-FTP-test (opgeleverd), **3** badges door het bestuur (opgeleverd), **4** een
-geplande test verdringt de training van die dag (opgeleverd), **2** geplande trainingen
-handmatig verwijderen (opgeleverd), **1** beschikbaarheid die het schema echt bijwerkt.
-Weekbadges handmatig toekennen hoort er uitdrukkelijk *niet* bij.
+Stijn leverde vijf punten aan. Na diagnose is de volgorde afgesproken en zijn
+alle vijf opgeleverd, elk als eigen ronde hieronder: **5** FTP-test, **3**
+badges door het bestuur, **4** een geplande test verdringt de training van die
+dag, **2** geplande trainingen handmatig verwijderen, **1** beschikbaarheid die
+het schema echt bijwerkt. Weekbadges handmatig toekennen hoort er uitdrukkelijk
+*niet* bij. Niets is gepusht.
 
-Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
+De diagnose die de rondes stuurde (productiedata, alleen gelezen):
 
 - **Badges (3).** Het bestuur heeft `achievements.finalize` al. De beheerpagina
   toont alleen milestonebadges die `auto` zijn of met `custom_` beginnen; de 216
@@ -799,9 +800,66 @@ Diagnose die de volgende punten sturen (productiedata, alleen gelezen):
 - **Terzijde.** Bart heeft per dag tot zestien vervangen versies van dezelfde
   training: er draaien veel meer generaties dan nodig. Nog niet onderzocht.
 
-### Opgeleverd — geplande trainingen zelf verwijderen
+### Opgeleverd — beschikbaarheid werkt het schema echt bij, en de duur zelf aanpassen
 
 **2026-09-11, commit volgt op `main` (niet gepusht).** Geen migratie.
+
+**Waarom.** Stijn kreeg zijn vrijdagen niet vrij en de trainingen van vandaag en
+morgen niet op twee uur. Drie oorzaken (zie het overzicht hierboven): een eigen
+weekrij ging onzichtbaar voor de standaard; een herziening werd alleen afgemaakt
+als de browser openbleef, of 's nachts; en beschikbaarheid was voor de AI een
+aanwijzing, geen grens.
+
+**Wat er is gekomen.**
+- `fitScheduleToAvailability()` (nieuw, `availability-fit.ts`) draait bij elk
+  opslaan, ook als er niets veranderde: AI- en trainerworkouts op een dag met 0
+  minuten vervallen meteen (`retireWorkoutRows()`, nu geëxporteerd, ook uit
+  intervals.icu), en een te lange training wordt ingekort. Eigen ritten,
+  clubevents en tests blijven staan. Horizon twaalf weken.
+- `insertPlanWorkouts()` past dezelfde grens toe op elke AI-uitvoer
+  (`minutesForDate()`), behalve bij een dag-aanpassing: daar geeft het lid zelf
+  op hoeveel tijd het vandaag heeft.
+- `resizeBlocks()` in `workouts.ts` zet een training op een andere duur zonder
+  de kern te raken: inrijden, uitrijden en duurblokken (`recovery`/`endurance`)
+  geven mee, en alleen als de kern niet past schaalt alles.
+- `settleOwnReplans()` in `replan.ts`, aangeroepen bij het openen van
+  `/zwbeter-worden/schema`: maakt een hangende generatie van het lid af, of start
+  een blijven liggend verzoek (met dezelfde remmen als `requestReplan()`).
+- Het formulier toont met een stip welke week een eigen invulling heeft, zegt bij
+  een week of die de standaard volgt, en heeft **Terug naar standaard**
+  (`resetWeekAvailability()`).
+- **Duur aanpassen** bij elke geplande training (niet bij tests en clubevents),
+  in de lijst en in het detailpaneel van de maandweergave
+  (`setWorkoutDuration()`). De training krijgt daarna origin `member`, zodat een
+  herziening hem niet terugzet; hij toont dan het label *Eigen rit*.
+- `Verwijder` staat nu ook in het detailpaneel van de maandweergave, de
+  standaardweergave van het schema.
+
+**Bewust niet gebouwd.** Meer beschikbaarheid maakt een training niet vanzelf
+langer: beschikbaarheid blijft een plafond (de promptregel in `workouts.ts`
+blijft staan), en langer rijden is een keuze per training. Bij het opslaan van
+de standaardweek worden eigen weekrijen niet overschreven; die zijn bewust
+ingevuld. Geen herziening na *Duur aanpassen*: dat kost een generatie voor een
+keuze die het lid al gemaakt heeft.
+
+**Claims die niet meer kloppen.** De hulptekst beloofde al dat een training
+"daarbinnen blijft"; dat was tot nu toe alleen een verzoek aan de AI. En "dan
+gebeurt het de volgende ochtend alsnog" is nu "bij het openen van je schema, of
+uiterlijk de volgende ochtend".
+
+**Niet lokaal te verifiëren.** Het afmaken van een echte achtergrondgeneratie
+en het inkorten van gepubliceerde workouts in intervals.icu zijn niet
+doorlopen: dat vraagt een ingelogde sessie en schrijft naar productie. Het
+schema van Stijn is dus nog niet bijgewerkt; dat gebeurt bij de eerste keer dat
+hij na een deploy zijn beschikbaarheid opslaat of zijn schema opent.
+
+**Verificatie.** `npx tsc --noEmit`, gerichte eslint en de volledige
+Vitest-run (853 geslaagd, 6 overgeslagen; nieuw: `workout-resize.test.ts` en
+`minutesForDate` met Stijns weken) zijn groen.
+
+### Opgeleverd — geplande trainingen zelf verwijderen
+
+**2026-09-11, commit `501a384` op `main` (niet gepusht).** Geen migratie.
 
 **Waarom.** Een lid kon alleen een eigen rit verwijderen (`removeOwnRide`), en
 voor vandaag een rustdag nemen. Een voorgestelde training op een andere dag

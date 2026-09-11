@@ -3,13 +3,17 @@
 // Beschikbaarheid per weekdag, in minuten. Schuifbalken in plaats van invoer:
 // dit is een grove inschatting ("dinsdag anderhalf uur"), geen precisiewerk, en
 // op de telefoon sleep je dat sneller dan je het typt.
+//
+// Een week met een eigen invulling gaat voor de standaard. Dat staat met een
+// stip op het tabblad, en zo'n week zet je met één knop terug naar de standaard;
+// voorheen zag je niet waarom een gewijzigde standaard deze week niets deed.
 
 import { useCallback, useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WEEKDAY_SLUGS, type MinutesByDay } from "@/lib/training/availability";
 import { AvailabilityGrid, minutesLabel } from "./availability-grid";
-import { saveWeekAvailability } from "../_actions";
+import { resetWeekAvailability, saveWeekAvailability } from "../_actions";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
 
 export type AvailabilityWeek = {
@@ -56,6 +60,7 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
   const minutes = drafts[week?.key ?? ""] ?? {};
   const total = WEEKDAY_SLUGS.reduce((sum, day) => sum + (minutes[day] ?? 0), 0);
   const busy = saving || poll.pending;
+  const ownWeek = Boolean(week?.weekStart) && week?.availability.source === "week";
 
   function setDay(day: string, value: number) {
     if (!week) return;
@@ -65,21 +70,14 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
     }));
   }
 
-  async function save() {
-    if (!week) return;
+  async function run(action: () => Promise<{ ok: boolean; error?: string; generationId?: string | null }>) {
     poll.setError(null);
     setResult(null);
     setSaving(true);
     try {
-      const formData = new FormData();
-      if (week.weekStart) formData.set("week_start", week.weekStart);
-      for (const day of WEEKDAY_SLUGS) {
-        formData.set(`minutes_${day}`, String(minutes[day] ?? 0));
-      }
-
-      const outcome = await saveWeekAvailability(formData);
+      const outcome = await action();
       if (!outcome.ok) {
-        poll.setError(outcome.error);
+        poll.setError(outcome.error ?? "Opslaan is mislukt.");
         return;
       }
       if (outcome.generationId) {
@@ -93,6 +91,30 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
     } finally {
       setSaving(false);
     }
+  }
+
+  function save() {
+    if (!week) return;
+    const formData = new FormData();
+    if (week.weekStart) formData.set("week_start", week.weekStart);
+    for (const day of WEEKDAY_SLUGS) {
+      formData.set(`minutes_${day}`, String(minutes[day] ?? 0));
+    }
+    void run(() => saveWeekAvailability(formData));
+  }
+
+  function resetToStandard() {
+    if (!week?.weekStart) return;
+    const standard = options.weeks.find((row) => row.weekStart == null);
+    const formData = new FormData();
+    formData.set("week_start", week.weekStart);
+    void run(async () => {
+      const outcome = await resetWeekAvailability(formData);
+      if (outcome.ok && standard) {
+        setDrafts((current) => ({ ...current, [week.key]: toMinutes(standard.availability) }));
+      }
+      return outcome;
+    });
   }
 
   if (!week) return null;
@@ -117,6 +139,9 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
               }`}
             >
               {option.label}
+              {option.weekStart && option.availability.source === "week" ? (
+                <span aria-label="eigen invulling"> •</span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -135,10 +160,17 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
         <Button type="button" size="sm" onClick={save} disabled={busy}>
           {busy ? "Bezig…" : "Opslaan"}
         </Button>
+        {ownWeek ? (
+          <Button type="button" size="sm" variant="ghost" onClick={resetToStandard} disabled={busy}>
+            Terug naar standaard
+          </Button>
+        ) : null}
         <span className="text-sm text-muted-foreground">
           {minutesLabel(total)} — {week.label.toLowerCase()}
-          {week.availability.source !== "week" && week.weekStart
-            ? " (nu nog volgens je standaardweek)"
+          {week.weekStart
+            ? ownWeek
+              ? " (eigen invulling)"
+              : " (volgens je standaardweek)"
             : ""}
         </span>
       </div>

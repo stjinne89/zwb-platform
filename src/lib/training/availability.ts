@@ -229,6 +229,17 @@ export async function availabilityForAi(
 }
 
 /**
+ * De minuten die op een dag beschikbaar zijn: de eigen rij van die week, anders
+ * de standaard. null betekent dat er geen grens bekend is.
+ */
+export function minutesForDate(plan: AvailabilityPlan, dayKey: string): number | null {
+  const week = plan.weeks.find((row) => row.weekStart === mondayKey(dayKey));
+  const byDay = week?.minutesByDay ?? plan.default;
+  const value = byDay?.[weekdayOf(dayKey)];
+  return value == null ? null : value;
+}
+
+/**
  * Dagen waar de AI niets meer bij zet, ook als hij het voorstelt:
  * - een dag met een test. Die gaat als vast blok mee in de input, maar de AI zette
  *   er soms toch een training naast.

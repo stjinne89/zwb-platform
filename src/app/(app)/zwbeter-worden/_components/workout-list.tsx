@@ -15,6 +15,7 @@ import { targetHint } from "@/lib/training/targets";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { formatDayMonth } from "./format";
 import { RemoveWorkoutButton } from "./remove-workout-button";
+import { WorkoutDurationControl } from "./workout-duration-control";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
 import { WorkoutBlocks, intervalsWorkoutUrl } from "./workout-blocks";
 import { WorkoutReportForm } from "./workout-report-form";
@@ -172,6 +173,12 @@ export function WorkoutList({
                       <ExternalLink className="size-3" />
                       In intervals.icu
                     </a>
+                  ) : null}
+                  {removable && !workout.test_type ? (
+                    <WorkoutDurationControl
+                      workoutId={workout.id}
+                      minutes={workout.duration_minutes}
+                    />
                   ) : null}
                   {removable ? (
                     <RemoveWorkoutButton workoutId={workout.id} title={workout.title} />

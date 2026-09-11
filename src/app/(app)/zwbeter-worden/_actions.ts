@@ -29,9 +29,11 @@ import {
 import {
   blocksFromForm,
   normalizeWorkoutBlocks,
+  resizeBlocks,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { fitScheduleToAvailability } from "@/lib/training/availability-fit";
 import { reviewNotificationBody } from "@/lib/training/completion";
 import {
   asFtpTestType,
@@ -1064,8 +1066,13 @@ export async function saveWeekAvailability(formData: FormData) {
     // Niets gewijzigd: ook niet schrijven. De touch-trigger zou updated_at
     // anders vooruitzetten, en daar leest de dagelijkse cron aan af of er nog een
     // herziening nodig is — een lid dat twee keer op Opslaan drukt zou zo elke
-    // nacht een generatie kosten.
-    if (unchanged) return { ok: true as const, generationId: null };
+    // nacht een generatie kosten. Wel het schema passend maken: dat kost niets en
+    // vangt een schema dat nog van vóór deze regel is.
+    if (unchanged) {
+      await fitScheduleToAvailability(admin, user.id).catch(() => null);
+      revalidatePath("/zwbeter-worden", "layout");
+      return { ok: true as const, generationId: null };
+    }
 
     const values = {
       profile_id: user.id,
@@ -1081,6 +1088,8 @@ export async function saveWeekAvailability(formData: FormData) {
           .insert({ ...values, created_by: user.id });
     if (result.error) throw new Error(result.error.message);
 
+    // Meteen, niet pas na de herziening: een dag zonder tijd is direct vrij.
+    await fitScheduleToAvailability(admin, user.id).catch(() => null);
     revalidatePath("/zwbeter-worden", "layout");
 
     const replan = await requestReplan(
@@ -1098,6 +1107,106 @@ export async function saveWeekAvailability(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Beschikbaarheid opslaan faalde.",
+    };
+  }
+}
+
+/**
+ * Een week terugzetten naar de standaardweek: de eigen rij weghalen. Een
+ * ingevulde week gaat altijd voor de standaard, en dat zag je niet: Stijn zette
+ * zijn standaardvrijdag op 0, maar deze week had nog een eigen rij met vrijdag
+ * erin.
+ */
+export async function resetWeekAvailability(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const weekStart = mondayKey(mustString(formData.get("week_start"), "Week"));
+
+    const { data: removed, error } = await admin
+      .from("training_availability")
+      .delete()
+      .eq("profile_id", user.id)
+      .eq("week_start", weekStart)
+      .select("id");
+    if (error) throw new Error(error.message);
+    if ((removed ?? []).length === 0) return { ok: true as const, generationId: null };
+
+    await fitScheduleToAvailability(admin, user.id).catch(() => null);
+    revalidatePath("/zwbeter-worden", "layout");
+    const replan = await requestReplan(
+      admin,
+      user.id,
+      `De week van ${weekStart} volgt weer de standaard beschikbaarheid.`,
+    );
+    return {
+      ok: true as const,
+      generationId: replan.started ? replan.generationId : null,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Terugzetten faalde.",
+    };
+  }
+}
+
+/**
+ * De duur van een geplande training zelf aanpassen. De kern blijft staan;
+ * inrijden, uitrijden en duurblokken schuiven mee (resizeBlocks()).
+ *
+ * Daarna ligt de training vast (origin 'member'): anders zette de eerstvolgende
+ * herziening hem terug op wat de AI had bedacht. Een test heeft een vast
+ * protocol en een clubevent een vaste lengte; die blijven zoals ze zijn.
+ */
+export async function setWorkoutDuration(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const workoutId = mustString(formData.get("workout_id"), "Training");
+    const minutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
+    if (minutes < 15 || minutes > 480) throw new Error("Kies een duur tussen 15 en 480 minuten.");
+
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select(
+        "id, profile_id, origin, status, superseded_at, test_type, intensity, structure_json, intervals_event_id",
+      )
+      .eq("id", workoutId)
+      .maybeSingle();
+    if (!workout || workout.profile_id !== user.id) {
+      throw new Error("Deze training hoort niet bij jou.");
+    }
+    if (workout.status !== "planned" || workout.superseded_at) {
+      throw new Error("Alleen een geplande training kun je aanpassen.");
+    }
+    if (workout.origin === "event" || workout.test_type) {
+      throw new Error("Van een clubevent of test ligt de duur vast.");
+    }
+
+    const intensity = workout.intensity as WorkoutIntensity;
+    const blocks = resizeBlocks(normalizeWorkoutBlocks(workout.structure_json, intensity), minutes);
+    const { error } = await admin
+      .from("training_workouts")
+      .update({
+        duration_minutes: minutes,
+        structure_json: blocks,
+        origin: "member",
+        publish_status: "pending",
+        publish_error: null,
+      })
+      .eq("id", workoutId);
+    if (error) throw new Error(error.message);
+
+    if (workout.intervals_event_id) {
+      await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
+    }
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Duur aanpassen faalde.",
     };
   }
 }

@@ -303,6 +303,57 @@ function expandRepeatedBlocks(blocks: WorkoutBlock[]) {
   return blocks.flatMap(expandRepeatedBlock);
 }
 
+/** Blokken die meegeven als een training korter of langer moet. */
+const FLEXIBLE_INTENSITIES = new Set<WorkoutIntensity>(["recovery", "endurance"]);
+
+/**
+ * Een training op een andere duur zetten zonder de kern aan te tasten: eerst
+ * geven inrijden, uitrijden en duurblokken mee, de intervallen blijven zoals ze
+ * waren. Past de kern niet in de nieuwe duur, of is er niets dat mee kan geven,
+ * dan schaalt alles naar verhouding.
+ */
+export function resizeBlocks(blocks: WorkoutBlock[], targetMinutes: number): WorkoutBlock[] {
+  const target = Math.max(1, Math.round(targetMinutes));
+  const total = blocks.reduce((sum, block) => sum + block.durationMinutes, 0);
+  if (blocks.length === 0 || total <= 0 || Math.round(total) === target) return blocks;
+
+  const flexible = blocks.map((block) => FLEXIBLE_INTENSITIES.has(block.intensity));
+  const flexibleCount = flexible.filter(Boolean).length;
+  const flexibleTotal = blocks.reduce(
+    (sum, block, index) => sum + (flexible[index] ? block.durationMinutes : 0),
+    0,
+  );
+  const fixedTotal = total - flexibleTotal;
+  // Elk meegevend blok houdt minstens een minuut.
+  const onlyFlexible = flexibleTotal > 0 && target - fixedTotal >= flexibleCount;
+  const factor = onlyFlexible ? (target - fixedTotal) / flexibleTotal : target / total;
+  const scales = (index: number) => !onlyFlexible || flexible[index];
+
+  const resized = blocks.map((block, index) =>
+    scales(index)
+      ? { ...block, durationMinutes: Math.max(1, Math.round(block.durationMinutes * factor)) }
+      : block,
+  );
+
+  // Het afronden laat een paar minuten liggen; die gaan naar het langste
+  // meegevende blok, zodat de som precies de nieuwe duur is.
+  const diff = target - resized.reduce((sum, block) => sum + block.durationMinutes, 0);
+  if (diff !== 0) {
+    let longest = -1;
+    resized.forEach((block, index) => {
+      if (!scales(index)) return;
+      if (longest < 0 || block.durationMinutes > resized[longest].durationMinutes) longest = index;
+    });
+    if (longest >= 0) {
+      resized[longest] = {
+        ...resized[longest],
+        durationMinutes: Math.max(1, resized[longest].durationMinutes + diff),
+      };
+    }
+  }
+  return resized;
+}
+
 export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: WorkoutIntensity = "endurance") {
   if (!Array.isArray(value)) return [] satisfies WorkoutBlock[];
   const blocks = value

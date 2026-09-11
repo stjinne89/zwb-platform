@@ -15,7 +15,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
-import { startPlanUpdate } from "@/lib/training/draft";
+import { finishAiGeneration, startPlanUpdate } from "@/lib/training/draft";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -102,6 +102,42 @@ export async function requestReplan(
       error: err instanceof Error ? err.message : "Schema bijwerken faalde.",
     };
   }
+}
+
+/** Ouder dan dit maakt de nachtelijke cron een generatie af of sluit hij hem. */
+const SETTLE_MAX_AGE_MS = 6 * 3600_000;
+
+/**
+ * Zelfherstel bij het openen van het schema.
+ *
+ * Een achtergrondgeneratie werd pas een schema als de browser van het lid hem
+ * ophaalde terwijl de pagina openstond, en een verzoek dat door de cooldown was
+ * blijven liggen wachtte tot de nachtelijke cron. Zo bleef Stijns herziening van
+ * 11 september 09:35 op 'in_progress' staan en zag hij zijn gewijzigde
+ * beschikbaarheid niet terug. Nu maakt elk bezoek een hangende generatie af, of
+ * start het het blijven liggende verzoek; requestReplan() houdt zich daarbij aan
+ * dezelfde remmen (cooldown, schema dat stilligt).
+ */
+export async function settleOwnReplans(admin: Admin, profileId: string): Promise<void> {
+  const since = new Date(Date.now() - SETTLE_MAX_AGE_MS).toISOString();
+  const { data: pending } = await admin
+    .from("training_ai_generations")
+    .select("id")
+    .eq("profile_id", profileId)
+    .in("status", ["queued", "in_progress"])
+    .gte("created_at", since)
+    .order("created_at", { ascending: true })
+    .limit(2);
+
+  if ((pending ?? []).length > 0) {
+    for (const row of pending ?? []) {
+      await finishAiGeneration(admin, row.id as string).catch(() => null);
+    }
+    return;
+  }
+
+  const request = await loadPendingReplan(admin, profileId).catch(() => null);
+  if (request) await requestReplan(admin, profileId, request.reason).catch(() => null);
 }
 
 export type PendingReplan = {

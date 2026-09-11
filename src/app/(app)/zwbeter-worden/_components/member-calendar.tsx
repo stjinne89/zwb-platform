@@ -25,6 +25,8 @@ import { WorkoutBlocks } from "./workout-blocks";
 import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { WorkoutCalendar, type CalendarWorkout } from "./workout-calendar";
 import { WorkoutReportForm } from "./workout-report-form";
+import { RemoveWorkoutButton } from "./remove-workout-button";
+import { WorkoutDurationControl } from "./workout-duration-control";
 
 export type MemberCalendarItem = {
   id: string;
@@ -53,6 +55,9 @@ export type MemberCalendarItem = {
     report: string | null;
     trainerFeedback: string | null;
     metrics: WorkoutMetricsSnapshot | null;
+    /** Wat het lid met een geplande training mag: verwijderen, en de duur aanpassen. */
+    removable?: boolean;
+    resizable?: boolean;
   };
 };
 
@@ -233,6 +238,16 @@ function WorkoutDetail({
                   <ExternalLink className="size-3" />
                   In intervals.icu
                 </a>
+              ) : null}
+            </div>
+          ) : null}
+          {detail.removable || detail.resizable ? (
+            <div key={item.id} className="flex flex-wrap gap-2">
+              {detail.resizable && item.durationMinutes ? (
+                <WorkoutDurationControl workoutId={item.id} minutes={item.durationMinutes} />
+              ) : null}
+              {detail.removable ? (
+                <RemoveWorkoutButton workoutId={item.id} title={item.title} />
               ) : null}
             </div>
           ) : null}

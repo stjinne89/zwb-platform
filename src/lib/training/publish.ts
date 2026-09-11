@@ -230,11 +230,15 @@ export async function clearDayForTest(
   return retire.length;
 }
 
-/** Markeert workouts als vervangen en haalt ze uit de intervals.icu-kalender. */
-async function retireWorkoutRows(
+/**
+ * Markeert workouts als vervangen en haalt ze uit de intervals.icu-kalender.
+ * `planId` is het plan dat ze vervangt; null als er geen plan maar een regel
+ * achter zit, zoals een dag zonder beschikbare tijd.
+ */
+export async function retireWorkoutRows(
   admin: Admin,
   rows: Array<{ id: string }>,
-  planId: string,
+  planId: string | null,
   connection: { api_key: string; athlete_id: string } | null,
 ) {
   for (const workout of rows) {

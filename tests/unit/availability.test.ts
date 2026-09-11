@@ -5,11 +5,39 @@ import {
   dropWorkoutsOnBlockedDays,
   loadAvailability,
   loadAvailabilityRange,
+  minutesForDate,
   mondayKey,
   normalizeMinutesByDay,
   shiftWeeks,
   weekdayOf,
 } from "@/lib/training/availability";
+
+describe("minutesForDate", () => {
+  const plan = {
+    default: { ma: 90, di: 120, wo: 60, do: 120, vr: 0, za: 180, zo: 180 },
+    weeks: [
+      {
+        weekStart: "2026-09-07",
+        minutesByDay: { ma: 240, di: 240, wo: 120, do: 180, vr: 195, za: 90, zo: 0 },
+      },
+    ],
+  };
+
+  it("laat de eigen rij van een week voorgaan op de standaard", () => {
+    // Stijns situatie van 11 september: standaardvrijdag 0, maar deze week 195.
+    expect(minutesForDate(plan, "2026-09-11")).toBe(195);
+    expect(minutesForDate(plan, "2026-09-12")).toBe(90);
+  });
+
+  it("valt in een week zonder eigen rij terug op de standaard", () => {
+    expect(minutesForDate(plan, "2026-09-18")).toBe(0);
+    expect(minutesForDate(plan, "2026-09-19")).toBe(180);
+  });
+
+  it("kent geen grens zonder standaard en zonder weekrij", () => {
+    expect(minutesForDate({ default: null, weeks: [] }, "2026-09-18")).toBeNull();
+  });
+});
 
 describe("dropWorkoutsOnBlockedDays", () => {
   it("zet niets op een testdag of een vrijgemaakte dag", () => {

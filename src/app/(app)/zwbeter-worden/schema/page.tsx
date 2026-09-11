@@ -11,12 +11,14 @@ import {
 } from "@/lib/training/workouts";
 import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
 import { zrlUpcomingSpecificityWarning } from "@/lib/training/specificity";
+import { settleOwnReplans } from "@/lib/training/replan";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
 import { EventChoice } from "../_components/event-choice";
 import { FtpTestCard } from "../_components/ftp-test-card";
 import { RemoveWorkoutButton } from "../_components/remove-workout-button";
+import { WorkoutDurationControl } from "../_components/workout-duration-control";
 import { PlanCheckCard } from "../_components/plan-check-card";
 import { PlanActions } from "../_components/plan-actions";
 import { PlanRideForm } from "../_components/plan-ride-form";
@@ -64,6 +66,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // aanklikken. De lijst blijft als alternatief bestaan.
   const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
   const viewer = await requireViewer();
+  // Eerst afmaken wat is blijven hangen, zodat de lijst hieronder het bijgewerkte
+  // schema toont. Zie settleOwnReplans().
+  await settleOwnReplans(viewer.admin, viewer.user.id).catch(() => null);
 
   const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
   const [
@@ -187,6 +192,15 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           report: report?.athlete_report ?? null,
           trainerFeedback: report?.trainer_feedback ?? null,
           metrics: report?.metrics_json ?? null,
+          removable:
+            workout.status === "planned" &&
+            workout.origin !== "event" &&
+            String(workout.scheduled_at).slice(0, 10) >= todayKey,
+          resizable:
+            workout.status === "planned" &&
+            workout.origin !== "event" &&
+            !workout.test_type &&
+            String(workout.scheduled_at).slice(0, 10) >= todayKey,
         },
       };
     }),
@@ -309,7 +323,13 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                   <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
                 )}
                 {workout.status === "planned" && workout.origin !== "event" ? (
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {!workout.test_type ? (
+                      <WorkoutDurationControl
+                        workoutId={workout.id}
+                        minutes={workout.duration_minutes}
+                      />
+                    ) : null}
                     <RemoveWorkoutButton workoutId={workout.id} title={workout.title} />
                   </div>
                 ) : null}
