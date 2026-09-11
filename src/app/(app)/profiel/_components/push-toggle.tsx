@@ -21,6 +21,7 @@ type Props = {
     on_admin_broadcast: boolean;
     on_maintenance_due: boolean;
     on_member_pending: boolean;
+    on_strava_link_expiring: boolean;
   };
   hasSubscriptionInDb: boolean;
   /** Alleen zichtbaar voor wie leden mag goedkeuren; anders vuurt hij nooit. */
@@ -274,6 +275,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_maintenance_due}
           />
           Mijn garage: onderdeel toe aan vervanging
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_strava_link_expiring"
+            defaultChecked={initialPreferences.on_strava_link_expiring}
+          />
+          Mijn Strava-koppeling vervalt binnenkort
         </label>
         {canApproveMembers && (
           <label className="flex items-center gap-2 text-sm">

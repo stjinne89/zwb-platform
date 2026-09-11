@@ -15,6 +15,7 @@ const SOURCE_LABELS: Record<string, string> = {
   wtrl: "WTRL / ZRL",
   openai: "Training-AI (OpenAI)",
   signup_notification: "Melding bij nieuwe aanmelding",
+  strava_webhook: "Strava-webhooks",
 };
 
 // Compact statusoverzicht van de externe integraties, gevoed door

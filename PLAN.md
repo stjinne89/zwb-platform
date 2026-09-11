@@ -4,6 +4,17 @@
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
 >
+> Update 2026-09-05: Strava wees onze aanvraag voor een hogere atletenlimiet af.
+> Daarop is de integratie omgebouwd van polling naar webhooks en is
+> deauthorisatie-beheer gebouwd (migraties `0148`-`0151`): `/api/strava/webhook`
+> + eventwachtrij, een minuutlijkse verwerker, `POST /oauth/deauthorize` bij
+> ontkoppelen/accountverwijdering, herkenning van op strava.com ingetrokken
+> koppelingen, een nachtelijke opruiming met inactiviteitsbeleid, dataretentie
+> bij ontkoppelen, en een app-breed rate-limit-budget. `/api/strava/sync` is
+> daarmee een dagelijkse reconcile geworden in plaats van een kwartierpoll.
+> Herindiening bij Strava kan pas ná deploy + een week meten; checklist in
+> `docs/strava-api-resubmission.md`, bediening in `docs/runbook.md` §7.
+>
 > Update 2026-05-27: UI-polish + hulppagina afgerond: compactere
 > app-copy, `/hulp` beginnerhub, sponsorlogo's zonder dubbele namen,
 > en trainer-aanwijzing in `/training`.
@@ -254,6 +265,99 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Buiten oorspronkelijk plan opgeleverd
+
+- **Strava-webhooks en actief koppelingbeheer** (2026-09-05, commit `2c575b9`,
+  migr. `0148`-`0151`): antwoord op Strava's **afwijzing** van onze aanvraag voor
+  een hogere atletenlimiet. Die afwijzing stelde twee eisen — webhooks in plaats
+  van polling, en actief beheer van stale en gedeauthoriseerde atleten — en op
+  beide voldeed de app aantoonbaar niet.
+
+  *Wat er misging.* We pollden elke 15-30 minuten `/athlete/activities` voor élke
+  koppeling, ongeacht of er gereden was: ordegrootte 2.000-7.700 calls per dag,
+  vrijwel allemaal leeg. De dure col- en ZWB-segmentdetailcalls stonden daarom in
+  de cron op 0 — features uitgezet om het pollen te kunnen betalen. Daarnaast
+  riepen we `POST /oauth/deauthorize` **nergens** aan: elk lid dat in de app
+  ontkoppelde of zijn account verwijderde bleef op Strava's kant gekoppeld en
+  bezette permanent een plek in onze cap, terwijl wij de rij met de token net
+  hadden weggegooid. En een koppeling die op strava.com was ingetrokken werd nooit
+  gemarkeerd maar wél elke cronrun opnieuw geprobeerd — precies de "stale
+  athletes" uit de afwijzing.
+
+  *Webhooks.* `GET/POST /api/strava/webhook` doet de verificatie-handshake en zet
+  events in `strava_webhook_events`; hij antwoordt **altijd** 200, ook bij een
+  fout aan onze kant, want een 5xx kost ons de subscription. Verwerken gebeurt
+  buiten die request om, via de Netlify function `strava-webhook-process` (elke
+  minuut) op `/api/strava/webhook/process` — achtergrondwerk ná het antwoord is op
+  serverless niet betrouwbaar. Eén `GET /activities/{id}?include_all_efforts=true`
+  per échte rit levert meteen ook de segment-inspanningen, waardoor coltijden en
+  ZWB-segmenttijden gratis meekomen in plaats van elk hun eigen detailcall te
+  doen. Subscriptionbeheer zit op `/beheer/strava` (aanmaken/status/verwijderen),
+  want Strava valideert de callback live en dat kan alleen tegen productie.
+
+  *Koppelingbeheer.* `strava_connections` kreeg een levenscyclus: `revoked_at`
+  (de app negeert de rij) los van `deauthorized_at` (Strava weet het ook). Tussen
+  die twee blijft de rij bewust staan — we hebben de token nodig om te kúnnen
+  deauthoriseren. Alle vier de paden zijn afgedekt: ontkoppelen in de app,
+  account verwijderen, intrekken op strava.com (webhook), en een afgewezen
+  refresh-token (`invalid_grant`, nu herkend in plaats van eeuwig herhaald). De
+  nachtelijke sweeper (`strava-lifecycle`, 03:40) maakt openstaande
+  deauthorisaties af, ruimt op, en draait het inactiviteitsbeleid: geen ritten én
+  geen login in 12 maanden → waarschuwing, na 30 dagen loskoppelen.
+
+  *Retentie.* Bij een ingetrokken koppeling gaat de ruwe Strava-data weg
+  (activiteiten, segment-efforts, gear, `strava_id`, Strava-avatar); de afgeleide
+  clubdata blijft (badges, ZWBlokken, onderhoud, coltijden — die FK staat op
+  `on delete set null`). De bevestigtekst bij "Ontkoppel Strava" beloofde tot nu
+  toe het tegenovergestelde en is aangepast.
+
+  *Poll wordt reconcile.* `/api/strava/sync` selecteert nu op `last_synced_at`
+  (niet meer op `updated_at`, dat ook door een tokenrefresh werd aangeraakt —
+  waardoor leden achteraan de rij structureel verhongerden), slaat gerevokte
+  koppelingen over, en hoort **1x per dag** te draaien. Nieuw is een app-breed
+  rate-limit-budget in `strava_api_usage`: we lezen de `x-ratelimit-*`-headers nu
+  op elke call en bewaren de laatste meting, zodat een koud gestarte cronrun weet
+  wat de vorige heeft opgemaakt. Dat was principieel onmogelijk zolang elke run
+  zonder geheugen begon.
+
+  *Nagekomen hardening (commit `6fc0bbc`).* Twee dingen die pas bij het naar
+  productie brengen opvielen. (a) Het inactiviteitsbeleid sloeg bij een
+  onleesbare `last_sign_in_at` stil terug op "niemand logt in", en zou dan leden
+  waarschuwen die dagelijks in de app zitten maar toevallig een jaar niet hebben
+  gereden; nu slaat de run het beleid over en meldt dat. (b) De
+  webhook-verwerker draaide elke minuut, wat met de route erachter ~86k
+  Netlify-invocaties per maand kost voor iets dat meestal niets te doen heeft —
+  dat botst met de credit-conventie in AGENTS.md. Nu elke 5 minuten, nog altijd
+  3 tot 6 keer sneller dan de kwartierpoll die het vervangt.
+
+  *Nagekomen (2026-09-08, commit `572c5ca`).* Bij het opzetten van de cron-jobs
+  bleek de reconcile in een timeout te lopen. Oorzaak: hij draaide per lid nog
+  het volledige nawerk, inclusief `syncZwbSegmentsForUser` — en die haalt ook met
+  `maxFetches: 0` de authoritatieve PR's op, tot honderd `GET /segments/{id}` per
+  lid. Dat was niet alleen te traag maar ook precies het soort callvolume dat we
+  in deze ronde juist wilden wegnemen. Sinds de webhooks hoort dat werk bij het
+  webhook-pad, per binnengekomen rit; de reconcile slaat het nu over
+  (`skipPostProcessing`), met `?full=1` als handmatige inhaalslag. Het repareren
+  van coltijden bij verwijderde ritten blijft wél altijd draaien — dat is nou
+  juist waarvoor de reconcile bestaat.
+
+  *Bewust niet gebouwd.* (a) Het pollpad is niet verwijderd: bij een gemist of
+  vertraagd event is de dagelijkse reconcile het enige vangnet, en dat opgeven
+  vóór we webhookbetrouwbaarheid hebben gemeten is te vroeg. (b) Geen
+  e-mailwaarschuwing bij het inactiviteitsbeleid — de app heeft geen
+  transactionele e-mail, alleen Supabase's auth-mails; daarom staat er een teller
+  "Waarschuwing verstuurd" op `/beheer/strava` zodat het bestuur die leden via
+  WhatsApp kan benaderen. (c) Geen retry-met-backoff op de Strava-calls zelf: het
+  budget stopt nu vóór een 429 in plaats van erna te herstellen.
+
+  *Niet lokaal te verifiëren:* de migraties `0148`-`0151` (geen Docker/Supabase
+  hier), het aanmaken van de subscription (vereist een publieke HTTPS-callback) en
+  echte Strava-deliveries. Wél lokaal getest: `npm run lint`, `npm run test` (822
+  tests, waarvan 52 nieuw over webhookparsing, de toestandsmachine, de
+  rit-mapping en het budget), `npm run build`, plus een smoke-test tegen
+  `next dev` — de handshake geeft 200 met `{"hub.challenge":...}`, een verkeerd
+  verify token 403, en een POST met onbereikbare database geeft nog steeds 200.
+  Herindieningsdossier: `docs/strava-api-resubmission.md`; bediening en
+  storingsafhandeling: `docs/runbook.md` §7.
 
 - `/community` met announcements
 - `/media` met podcasts (RSS-sync), YouTube channel-sync, nieuwsbrief,
@@ -992,6 +1096,130 @@ vervangen. De "bekende wrijving" met `auto_sync_physique` is opgelost.
 tests in `tests/unit/ftp-test.test.ts` (waaronder Barts situatie) zijn groen.
 Het invullen zelf is niet in de browser doorlopen: lokaal is er geen ingelogde
 sessie, dus `/zwbeter-worden/schema` eindigt op de loginpagina.
+
+**Samengevoegd met de correctieronde (merge van 11 september).** Op `main` was
+intussen "Testuitslag corrigeren of verwijderen" (`6ea2dc4`) geland. Daarvan is
+de profielregel aangepast aan de nieuwe voorrang: `profileFtpAfterChange()` zet
+het profiel na een correctie of verwijdering op de nieuwste overgebleven test,
+ook als er een ingetypt getal of een eFTP uit intervals.icu stond (voorheen
+bleef dat staan). `overwrittenByIntervals` betekent nu: er is geen test meer en
+het profiel volgt intervals.icu, dus de sync neemt de FTP weer over. De melding
+op *Mijn vermogen* is daarop aangepast.
+
+### Opgeleverd — clubevents inklapbaar op de schemapagina
+
+**2026-09-07, commit `9071f23` op branch
+`claude/clubevents-collapsible-training-sv5pno`.** Geen migratie.
+
+**Waarom.** In een ZRL-seizoen vallen er tientallen races binnen dezelfde
+schemaperiode, en elke race is een eigen regel met twee knoppen in het blok
+"Clubevents in je schemaperiode". Op de telefoon vulde dat blok schermen achter
+elkaar en duwde het alles wat eronder staat — het ritformulier, de FTP-test, de
+eigen schema's — buiten beeld. Gevraagd door de eigenaar, met een screenshot
+waarop na Beschikbaarheid alleen nog ZRL-races volgen.
+
+**Wat er is gekomen.** `EventChoice` gebruikt nu de gedeelde `CollapsibleCard`
+(native `<details>`) in plaats van een eigen `<section>` met vaste kop — dezelfde
+vorm als "Mijn trainingen" en "Mijn ZWB-schema's" op diezelfde pagina. De kaart
+staat standaard dicht; de vraag blijft in de kop staan als subtitel: hoeveel
+events nog een klik nodig hebben ("3 nog te beantwoorden"), of dat ze allemaal
+beantwoord zijn. Die teller telt precies de regels die ook een actieknop tonen —
+alles behalve een 'ja' dat én in het schema én in intervals.icu staat — dus
+"allemaal beantwoord" betekent hier ook echt dat er niets meer te doen is.
+`CollapsibleCard` kreeg daarvoor een optionele `icon`-prop, zodat de
+kalendermarkering in de kop blijft staan zoals bij Beschikbaarheid.
+
+Twee keuzes die het gedrag bepalen:
+
+- **Standaard dicht, niet "open zolang er iets openstaat".** Juist in het geval
+  waarin het knelt — begin van een ZRL-seizoen, nog niets beantwoord — zou zo'n
+  regel de kaart altijd openzetten en verandert er niets aan het probleem. De
+  teller in de kop is het signaal; één tik opent de lijst.
+- **De stand wordt niet onthouden.** `<details>` houdt open/dicht vast binnen de
+  pagina, ook na een herziening (`router.refresh()` raakt het `open`-attribuut
+  niet), maar na een navigatie staat de kaart weer dicht.
+
+**Bewust niet gebouwd.** Geen opslag van de stand per lid (localStorage of
+profiel): dat is een voorkeur die je pas wilt bewaren als meer kaarten erom
+vragen, en het maakt van een presentatiecomponent een stateful onderdeel. Geen
+filter of paginering binnen de lijst — de kaart is nu dicht, dus de lengte
+erbinnen knelt niet meer; dát is wel de plek om te kijken als er straks gevraagd
+wordt om alleen de eigen ZRL-categorie te tonen. Aan de keuzelogica zelf (RSVP,
+blok in het schema, doorzetten naar intervals.icu) is niets veranderd.
+
+**Claims die niet meer kloppen.** Geen, wel een nuance bij de ronde van
+2026-08-20: daar staat dat het lid "in de keuzemodule ziet dat die dag opnieuw
+wordt ingevuld". Die melding staat binnen de kaart. Op het moment zelf klopt dat
+nog steeds — je klikt in de open lijst — maar wie daarna inklapt, klapt de
+melding mee weg.
+
+**Verificatie.** `npx tsc --noEmit`, eslint op de gewijzigde bestanden, de
+volledige Vitest-run (822 tests, 70 bestanden) en `npm run build` zijn groen. De
+kaart is niet in een draaiende app bekeken: daar is hier geen Supabase voor.
+
+### Opgeleverd — een verkeerd ingetypte testuitslag corrigeren
+
+**2026-09-03, commit `6ea2dc4` op branch `claude/ftp-ramptest-edit-delete-3opo4k`.** Geen migratie.
+
+**Waarom.** De uitslag van een FTP-test is handinvoer: het lid typt na de
+ramptest zijn hoogste minuutvermogen in. Eén cijfer ernaast en het loopt door tot
+in de wattages van elke training — `recordFtpTest()` zet `profiles.ftp_watts` en
+daar hangt `blockToPowerTarget()` aan. De historie op `/zwbeter-worden/vermogen`
+was tot nu toe read-only, dus de enige uitweg uit een typefout was een nieuwe
+test doen. Kwam als feedback van een lid, met een ramptest van 554 W → 416 W FTP
+in beeld.
+
+**Wat er is gekomen.** Elke regel in het blok FTP-tests heeft nu een potlood en
+een prullenbak (`_components/ftp-test-history.tsx`, clientonderdeel; de
+serverpagina levert alleen de rijen). Bewerken opent de regel als klein formulier
+met datum, testvorm en gemeten vermogen, met de afgeleide FTP live ernaast.
+Verwijderen vraagt een bevestiging. Twee Server Actions,
+`correctFtpTestResult()` en `removeFtpTestResult()`, en twee functies in
+`src/lib/training/ftp-test.ts` (`updateFtpTest()`, `deleteFtpTest()`).
+
+Vier beslissingen die het gedrag bepalen:
+
+- **De FTP blijft afgeleid.** Hij volgt uit meting × protocolfactor, net als bij
+  het opslaan; hij is dus geen invoerveld. Anders kun je een regel achterlaten
+  waarin de omrekenfactor niet meer klopt, en juist die ruwe waarde bewaren we om
+  een oude test opnieuw te kunnen uitrekenen.
+- **Het profiel volgt alleen mee als het aan déze test hing**
+  (`profileFtpAfterChange()`, puur en getest). Stond er een getal in dat het lid
+  zelf intypte of dat uit intervals.icu komt, dan mag een correctie in de
+  historie dat niet stilzwijgend overschrijven. Hing het er wel aan, dan zakt het
+  profiel terug naar de nieuwste test die overblijft.
+- **Verwijderen zet de testworkout terug op `planned`.** `loadFtpTestState()`
+  leest "afgerond" als "uitslag is er"; een afgeronde test zonder meting zou
+  nergens meer om een uitslag vragen. Gevolg: na verwijderen staat op de
+  schemapagina weer het invulveld voor die test.
+- **Herzien alleen als de FTP echt verschuift.** Een correctie in de datum van
+  een oude test verandert geen enkel wattage, en elke herziening is een
+  AI-generatie die geld kost. `requestReplan()` draait dus alleen bij
+  `profileChanged`.
+
+**Bewust niet gebouwd.** De FTP is niet los invulbaar (zie hierboven). Een
+trainer kan de uitslag van een lid niet corrigeren: de acties draaien op
+`auth.uid()` en `/zwbeter-worden/trainer/vermogen` toont de historie niet — de
+RLS-policies uit `0131` staan het wel toe, dus dat kan later zonder migratie.
+Verwijder je je enige test, dan blijft `profiles.ftp_watts` staan op de waarde
+van die test: leeghalen is schadelijker dan een verouderd getal, want elk wattage
+hangt eraan. Het lid krijgt in plaats daarvan de zin dat het profiel die waarde
+aanhoudt en zelf aan te passen is. Het blok FTP-tests staat nog altijd binnen de
+intervals.icu-tak van de pagina, dus een lid zonder koppeling ziet zijn historie
+niet en kan dus ook niets corrigeren; dat losmaken viel buiten deze ronde.
+`note` is nog steeds nergens in te vullen of te tonen.
+
+**Claims die niet meer kloppen.** In de ronde van 2026-08-20 stond dat de
+uitslagen "als lijst" op `/zwbeter-worden/vermogen` staan; die lijst is nu ook de
+plek waar je ze corrigeert of verwijdert.
+
+**Niet lokaal te verifiëren.** Er is hier geen database, dus de update en delete
+zelf, de terugval op de nieuwste overgebleven test en het terugzetten van de
+workoutstatus zijn niet tegen Postgres gedraaid. Alleen de beslisregel
+(`profileFtpAfterChange`) is unit-getest.
+
+**Verificatie.** `npm run build`, `npx tsc --noEmit`, eslint op de gewijzigde
+bestanden en de volledige Vitest-run (770 tests, 66 bestanden) zijn groen.
 
 ### Opgeleverd — mobiele rapportagefeedback en ZRL-specificiteitsbewaking
 
@@ -1987,7 +2215,8 @@ De prompt kreeg twee regels: hoe je om een `kind: 'ftp_test'` heen plant (dag
 ervoor licht, dag erna geen sleutelsessie), en dat een FTP ouder dan acht weken
 in `cautions` benoemd hoort te worden — de AI plant zelf nooit een test, hij
 signaleert alleen dat er één nodig is, en die keuze ligt bij de trainer. `profile.ftpTestedOn` gaat daarvoor mee
-in de input. Uitslagen staan als lijst op `/zwbeter-worden/vermogen`, en komt de
+in de input. Uitslagen staan als lijst op `/zwbeter-worden/vermogen` — sinds 2026-09-03 ook
+te corrigeren en te verwijderen — en komt de
 profiel-FTP uit een test, dan noemt de FTP-tegel die datum als bron. Uitleg op
 `/hulp#ftp-test`, met zoekindex-regel.
 
@@ -2720,8 +2949,8 @@ events/kaart, onderhoud en hulp/onboarding.
    `/training`, `/achievements`, `/hulp`, `/welkom`, eventkaart + Street View.
 2. Controleer de Strava rate-limit na gear-throttle + lagere cronfrequentie:
    daglimiet, 15-minutenvenster, aantal actieve profielen.
-3. Verwijder of beveilig het tijdelijke `/api/strava/debug-gear` zodra de
-   gear-sync is bevestigd.
+3. ~~Verwijder het tijdelijke `/api/strava/debug-gear`.~~ Gedaan in de ronde van
+   2026-09-05.
 4. Doe de nog open iOS PWA-regressiecheck na de recente navigatie- en
    trainingwijzigingen.
 5. Houd `npm run lint`, `npm run test`, `npm run build` als standaard
@@ -2740,21 +2969,23 @@ intervals/Wahoo/Garmin is een echte gebruikersflow met externe gevolgen.
    copy die naar `/hulp` moet, en eventuele dataverschillen met intervals.icu.
 4. Pas daarna pas nieuwe trainingfeatures toe; eerst stabiliseren wat er nu is.
 
-### 3. Strava-integratie structureel oplossen
+### 3. Strava-capaciteit: meten en opnieuw indienen
 
-**Waarom:** de club groeit richting de Strava app-cap en de API-limieten blijven
-een operationeel risico.
+**Waarom:** de aanvraag voor een hogere atletenlimiet is afgewezen. De twee
+technische eisen (webhooks, actief beheer van gedeauthoriseerde atleten) zijn
+gebouwd — zie de ronde van 2026-09-05 in de featurelijst. Wat rest is bewijs
+verzamelen en indienen.
 
-1. Blijf de status van Strava app approval / athlete-cap verhogen volgen.
-2. Houd de handmatige `activities.csv` import als fallback en verbeter alleen
-   op basis van echte importfouten van leden.
-3. Werk Strava-webhooks uit als structurele polling-vervanger:
-   verify-challenge endpoint, subscription, athlete-id mapping, eventqueue,
-   lichte dagelijkse reconcile.
-4. Pas cron daarna aan naar een lage reconcilefrequentie; webhooks worden de
-   realtime trigger.
-5. Documenteer in `docs/runbook.md` welke calls overblijven en wat de normale
-   daglimiet hoort te zijn.
+1. Zet `STRAVA_WEBHOOK_VERIFY_TOKEN`, draai migraties `0148`-`0151`, deploy, en
+   maak de subscription aan via `/beheer/strava` → Webhooks → Aanmaken.
+2. Zet de externe cron voor `/api/strava/sync` terug van elke 15-30 min naar
+   1x/dag.
+3. Laat het minstens een week draaien en vul de cijfers in
+   `docs/strava-api-resubmission.md` in: callvolume vóór/na, aantal opgeruimde
+   koppelingen, gekoppelde atleten tegenover de cap.
+4. Dien daarna opnieuw in via het formulier — **niet** via een reply op de
+   afwijzingsmail; die telt volgens Strava niet als herindiening.
+5. Houd de handmatige `activities.csv` import als fallback zolang de cap knelt.
 
 ### 4. Event- en livekaart afronden
 
@@ -3046,7 +3277,9 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 13. **Open punten**
    - **iOS PWA polish** — praktijktest op iPhone 16 Pro met iOS 26.5 is goed;
      mobiele terugknop toegevoegd. Nog één regressiecheck na deploy.
-   - **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval.
+   - **Strava 1→100+ athleten cap** — **afgewezen**; webhooks + koppelingbeheer
+     zijn daarop gebouwd (2026-09-05). Herindienen na een week meten, zie
+     `docs/strava-api-resubmission.md`.
    - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval.
 
 ---
@@ -3102,7 +3335,83 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
-- **Strava 1→100+ athleten cap** — eerder ingediend, wachten op approval (extern).
+- ~~**`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**~~
+  — **opgelost 2026-09-08, commit `201d816`.** De route zet de generaties nu in de
+  achtergrond (`startPlanUpdate` en het nieuwe `startBackgroundAdaptation`) en
+  haalt ze een volgende run op met de `finishStaleGenerations` die er al zat.
+  Daarom draait die cron nu elk uur: dat is de pollfrequentie, niet hoe vaak een
+  lid aan de beurt komt — de dagcheck op `training_adaptation_runs` houdt het op
+  één voorstel per schema per dag. Per run worden er hooguit
+  `TRAINING_ADAPTATION_MAX_STARTS` (3) uitgezet, en de hele run heeft een
+  wall-clock budget van 8 seconden zodat hij altijd netjes terugkomt met een
+  overzicht in plaats van te worden afgekapt.
+
+  Onderweg meegenomen: het TypeScript-type van `adaptation_kind` kende `'daily'`
+  niet, terwijl de database het sinds migratie 0113 toestaat. En de route haalde
+  per schema álle workouts op om er een telling van te zetten in
+  `ctl_projection_json`, dat nergens wordt gelezen — die query is weg.
+
+  De prijs is dat een voorstel er ongeveer een uur later staat in plaats van
+  meteen. Dat is de juiste ruil: nu stond er hélemaal niets, want de route liep
+  elke run in een timeout.
+
+  *Oorspronkelijke beschrijving:*
+  **`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**
+  (ontdekt 2026-09-08 bij het opzetten van de cron-jobs). De route doet tot
+  `MAX_PLAN_UPDATES_PER_RUN` (5) **synchrone** AI-generaties, en het runbook
+  vermeldt zelf dat hij "minuten mag duren". Dat kan niet: een Netlify-functie
+  wordt na circa tien seconden afgekapt. Dit is exact dezelfde ziekte die eerder
+  al bij de renner-knop is verholpen — zie de regel hierboven over "Pas vandaag
+  aan", waar de synchrone 45s-call werd vervangen door achtergrond-AI met polling.
+
+  Het is nooit opgevallen omdat de scheduled function die deze route aanriep
+  überhaupt nooit is afgegaan. Nu er een cron-job.org-job op staat, meldt die
+  elke run een timeout.
+
+  Wat wél lukt binnen het budget zijn de goedkope stappen: verlopen voorstellen
+  archiveren en al afgeronde achtergrondgeneraties ophalen
+  (`finishStaleGenerations`). Wat structureel niet lukt zijn de synchrone
+  herzieningen; die vallen elke nacht af.
+
+  **Op te lossen door de generaties net als bij de renner-knop naar de
+  achtergrond-AI met polling te brengen**, zodat de route alleen werk uitzet en
+  ophaalt. Tot die tijd blijft de job een timeout melden en blijven openstaande
+  herplanverzoeken liggen.
+
+- **Netlify scheduled functions gaan niet af** (ontdekt 2026-09-05). Netlify
+  toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
+  is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026
+  22:01, de dag dat de health-check werd uitgerold. De code klopt — dezelfde
+  routes doen hun werk als je ze met hun bearer-secret aanroept.
+
+  Dat ene datapunt is vrijwel zeker de uitrol-/testrun zelf en niet het bewijs
+  dat de planning ooit gelopen heeft; anders stonden er meer rijen. De
+  waarschijnlijkste lezing is dus dat de scheduled functions hier **nooit op
+  schema zijn afgegaan** — geregistreerd wel, uitgevoerd niet. Zeker is dat niet
+  (Netlify bewaart logs maar kort), maar het maakt voor de oplossing niet uit.
+
+  Gevolgen, op volgorde van urgentie: **`live-cleanup` draait niet, dus de
+  AVG-retentie op `live_positions` (30 dagen) en `event_chat_messages` (1 jaar)
+  is al maanden niet uitgevoerd** — er staat locatiedata die gewist had moeten
+  zijn. Daarnaast maakt `training-adaptations` geen dagelijkse aanpassingen meer,
+  is er sinds juni geen monitoring, en zouden ook de nieuwe
+  Strava-webhookverwerking en -opruiming nooit zijn afgegaan.
+
+  **Opgelost op 2026-09-08**: alle jobs draaien nu op cron-job.org, tijdzone
+  Europe/Amsterdam. De `.mjs`-bestanden blijven als documentatie staan, met een
+  waarschuwing bovenaan dat ze niet afgaan. Details in `docs/runbook.md` §8. Dit
+  is niet door de webhookronde veroorzaakt maar er wél door aan het licht gekomen.
+
+  Onderweg kwamen er nog twee losstaande storingen boven: `LIVE_CLEANUP_SECRET`
+  bestond helemaal niet in Netlify (dus de AVG-retentie had ook met een werkende
+  planning nooit gedraaid), en de reconcile deed per lid tot honderd
+  segment-calls. Beide inmiddels verholpen.
+
+- **Strava 1→100+ athleten cap** — **afgewezen** door Strava met twee eisen:
+  webhooks in plaats van polling, en actief beheer van stale/gedeauthoriseerde
+  atleten. Beide zijn gebouwd (2026-09-05). Herindienen kan pas ná deploy,
+  subscription aanmaken en een week meten; checklist en conceptnotitie staan in
+  `docs/strava-api-resubmission.md`.
 - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval (extern).
 - **iOS PWA** is in de praktijk getest op iPhone 16 Pro met iOS 26.5; nog één
   regressiecheck na deploy van de mobiele terugknop.

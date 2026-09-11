@@ -883,7 +883,10 @@ export default function HelpPage() {
               het vermogen dat intervals die dag heeft gemeten; klopt het niet,
               typ dan je eigen waarde. ZWB rekent daar je FTP uit (75%
               respectievelijk 95%), zet die in je profiel en werkt de targetwatts
-              van de rest van je schema bij.
+              van de rest van je schema bij. Typte je het verkeerde vermogen in,
+              dan pas je de uitslag aan of verwijder je hem bij{" "}
+              <strong className="text-foreground">Mijn vermogen</strong> onder
+              FTP-tests; je FTP en de targetwatts volgen die correctie.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Een test die niet in je schema stond, vul je in via{" "}

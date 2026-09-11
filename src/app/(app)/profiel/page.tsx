@@ -87,7 +87,9 @@ export default async function ProfielPage() {
       .order("period_start", { ascending: false }),
     supabase
       .from("strava_connections")
-      .select("athlete_name, updated_at, scope")
+      .select(
+        "athlete_name, updated_at, scope, revoked_at, revoked_reason, inactivity_warned_at",
+      )
       .eq("profile_id", user.id)
       .maybeSingle(),
     supabase
@@ -110,7 +112,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -236,6 +238,7 @@ export default async function ProfielPage() {
             on_event_reminder: pushPrefs?.on_event_reminder ?? true,
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,
+            on_strava_link_expiring: pushPrefs?.on_strava_link_expiring ?? true,
             on_member_pending: pushPrefs?.on_member_pending ?? true,
           }}
           canApproveMembers={access.has("members.approve")}

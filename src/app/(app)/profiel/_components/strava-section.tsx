@@ -18,11 +18,20 @@ export function StravaSection({
     athlete_name: string | null;
     updated_at: string | null;
     scope: string | null;
+    revoked_at?: string | null;
+    revoked_reason?: string | null;
+    inactivity_warned_at?: string | null;
   } | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Een opgeheven koppeling bestaat alleen nog tot de nachtelijke opruiming; voor
+  // het lid is hij weg, dus tonen we de koppelknop.
+  const revoked = Boolean(connection?.revoked_at);
+  const expiringSoon = Boolean(
+    connection && !connection.revoked_at && connection.inactivity_warned_at,
+  );
   const missingActivityScope =
     connection != null && !hasActivityScope(connection.scope);
   // Alleen melden als het leesrecht wél in orde is; anders zou deze box de
@@ -43,7 +52,7 @@ export function StravaSection({
         />
       </div>
 
-      {connection ? (
+      {connection && !revoked ? (
         <div className="mt-3 space-y-3">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
@@ -62,6 +71,15 @@ export function StravaSection({
               )}
             </div>
           </div>
+          {expiringSoon && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <p>
+                Je koppeling wordt binnenkort losgemaakt omdat er lang geen ritten
+                of bezoek waren. Rijd of log in om hem te houden.
+              </p>
+            </div>
+          )}
           {missingActivityScope && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -117,12 +135,18 @@ export function StravaSection({
               variant="ghost"
               disabled={pending}
               onClick={() => {
-                if (!confirm("Strava ontkoppelen? Je gesyncte ritten blijven bewaard.")) return;
+                if (
+                  !confirm(
+                    "Strava ontkoppelen? We trekken de toestemming bij Strava in en verwijderen je opgehaalde ritten. Je badges en ZWBlokken blijven.",
+                  )
+                )
+                  return;
                 setError(null);
                 setMessage(null);
                 startTransition(async () => {
                   const res = await disconnectStrava();
                   if (!res.ok) setError(res.error);
+                  else if (res.pending) setMessage(res.message);
                 });
               }}
             >

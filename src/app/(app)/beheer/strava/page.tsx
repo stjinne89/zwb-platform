@@ -6,6 +6,10 @@ import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { AdminStravaSync, type SyncMember } from "./_components/admin-strava-sync";
+import {
+  StravaWebhookPanel,
+  type WebhookEventRow,
+} from "./_components/strava-webhook-panel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,8 +17,12 @@ export const revalidate = 0;
 type ConnectionRow = {
   profile_id: string;
   updated_at: string | null;
+  last_synced_at: string | null;
   strava_athlete_id: number | string | null;
   scope: string | null;
+  revoked_at: string | null;
+  revoked_reason: string | null;
+  inactivity_warned_at: string | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,15 +66,46 @@ export default async function BeheerStravaPage() {
   windowStart.setUTCHours(0, 0, 0, 0);
   windowStart.setUTCMonth(windowStart.getUTCMonth() - 11);
 
-  const [{ data: connections }, windowCounts] = await Promise.all([
+  const [
+    { data: connections },
+    windowCounts,
+    { data: webhookEvents },
+    { count: pendingEvents },
+    { data: subscriptionRow },
+  ] = await Promise.all([
     admin
       .from("strava_connections")
-      .select("profile_id, updated_at, strava_athlete_id, scope")
+      .select(
+        "profile_id, updated_at, last_synced_at, strava_athlete_id, scope, revoked_at, revoked_reason, inactivity_warned_at",
+      )
       .order("updated_at", { ascending: true }),
     fetchWindowActivities(admin, windowStart.toISOString()),
+    admin
+      .from("strava_webhook_events")
+      .select(
+        "id, object_type, object_id, aspect_type, owner_id, received_at, processed_at, attempts, last_error",
+      )
+      .order("received_at", { ascending: false })
+      .limit(15),
+    admin
+      .from("strava_webhook_events")
+      .select("id", { count: "exact", head: true })
+      .is("processed_at", null),
+    admin
+      .from("strava_webhook_subscriptions")
+      .select("id, callback_url")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
-  const connectionRows = (connections ?? []) as ConnectionRow[];
+  const allConnections = (connections ?? []) as ConnectionRow[];
+  // Opgeheven koppelingen horen niet in de ledenlijst: die wachten alleen nog op
+  // de nachtelijke opruiming.
+  const connectionRows = allConnections.filter((c) => !c.revoked_at);
+  const revokedCount = allConnections.filter((c) => c.revoked_at).length;
+  const warnedCount = connectionRows.filter((c) => c.inactivity_warned_at).length;
   const profileIds = connectionRows.map((c) => c.profile_id);
 
   const profilesById = new Map<string, string>();
@@ -90,7 +129,7 @@ export default async function BeheerStravaPage() {
       name: profilesById.get(c.profile_id) || "Onbekend lid",
       activityCount: stats?.count ?? 0,
       lastActivity: stats?.last ?? null,
-      connectedAt: c.updated_at,
+      connectedAt: c.last_synced_at ?? c.updated_at,
       missingActivityScope: !hasActivityScope(c.scope),
       // Alleen melden als het leesrecht wél in orde is, zodat deze badge de
       // urgentere "geen activiteiten-recht" niet dubbelop toont.
@@ -127,6 +166,16 @@ export default async function BeheerStravaPage() {
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Metric label="Gekoppeld" value={members.length} />
+        <Metric
+          label="Wacht op opruiming"
+          value={revokedCount}
+          highlight={revokedCount > 0}
+        />
+        <Metric
+          label="Waarschuwing verstuurd"
+          value={warnedCount}
+          highlight={warnedCount > 0}
+        />
         <Metric label="In stats (12 mnd)" value={inStatsCount} />
         <Metric label="Niet zichtbaar" value={missingCount} highlight={missingCount > 0} />
         <Metric
@@ -140,6 +189,29 @@ export default async function BeheerStravaPage() {
           highlight={writeScopeIssueCount > 0}
         />
       </section>
+
+      <StravaWebhookPanel
+        storedSubscriptionId={
+          subscriptionRow ? Number((subscriptionRow as { id: number }).id) : null
+        }
+        callbackUrl={
+          (subscriptionRow as { callback_url?: string } | null)?.callback_url ?? null
+        }
+        pendingCount={pendingEvents ?? 0}
+        events={((webhookEvents ?? []) as Array<Record<string, unknown>>).map(
+          (row): WebhookEventRow => ({
+            id: Number(row.id),
+            objectType: String(row.object_type),
+            objectId: Number(row.object_id),
+            aspectType: String(row.aspect_type),
+            ownerId: Number(row.owner_id),
+            receivedAt: String(row.received_at),
+            processedAt: (row.processed_at as string | null) ?? null,
+            attempts: Number(row.attempts ?? 0),
+            lastError: (row.last_error as string | null) ?? null,
+          }),
+        )}
+      />
 
       <AdminStravaSync members={members} />
     </div>

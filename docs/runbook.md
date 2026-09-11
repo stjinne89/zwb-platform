@@ -23,26 +23,36 @@ persoon.
 
 ## 2. Cron-inventaris
 
-Twee soorten geplande jobs:
+**Alles draait op cron-job.org** (sinds 2026-09-08). Elke job is een POST naar
+een beveiligde API-route met header `Authorization: Bearer <SECRET>`, tijdzone
+**Europe/Amsterdam**.
 
-- **Netlify scheduled functions** (`netlify/functions/*.mjs`, schema via
-  `export const config = { schedule }`).
-- **Externe cron** (cron-job.org e.d.) die een beveiligde API-route aanroept met
-  `Authorization: Bearer <SECRET>`.
+De `netlify/functions/*.mjs` staan er nog, maar gaan op deze site niet af — zie
+sectie 8. Vertrouw er niet op en voeg er geen nieuwe aan toe; zet een nieuwe job
+op cron-job.org.
 
 | Job | Type | Schema | Endpoint | Secret-env |
 |---|---|---|---|---|
-| Live-data opruimen | Netlify function | `*/15 * * * *` | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
-| Integratie-health-check | Netlify function | `0 * * * *` (elk uur) | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
-| Strava-sync | Externe cron | ~elke 15-30 min | `POST /api/strava/sync` | `STRAVA_SYNC_SECRET` |
+| Live-data opruimen | cron-job.org | elke 15 min | `POST /api/live/cleanup` | `LIVE_CLEANUP_SECRET` |
+| Integratie-health-check | cron-job.org | elk uur | `POST /api/health/integrations` | `HEALTHCHECK_SECRET` |
+| Strava-reconcile | cron-job.org | **elk uur**, met `?limit=3` | `POST /api/strava/sync?limit=3` | `STRAVA_SYNC_SECRET` |
+| ↳ ritten komen sinds de webhooks realtime binnen; deze run kijkt alleen het venster van 30 dagen na op hernoemingen en op Strava verwijderde ritten | | | | |
+| ↳ **elk uur is niet hetzelfde als vaak syncen.** `STRAVA_RECONCILE_MIN_AGE_HOURS` (20) slaat elk lid over dat binnen 20 uur al aan de beurt was, dus iedereen wordt hooguit 1x per dag opgehaald. De frequentie bepaalt alleen hoeveel leden er per dag doorheen komen | | | | |
+| ↳ `?limit=3` omdat de route per lid Strava-calls doet; 20 leden in één verzoek loopt tegen de timeout van de cron-dienst (en tegen die van Netlify). Verhoog `limit` pas als de duur in de job-historie ruim onder je timeout blijft | | | | |
+| ↳ het zware nawerk (col-detector, ZWBlokken, milestones, segmenten) staat hier **uit**: dat hoort sinds de webhooks bij het webhook-pad, per binnengekomen rit. Met `?full=1` zet je het aan voor een eenmalige inhaalslag — reken dan op minuten en veel Strava-calls, dus alleen handmatig | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
-| Event-reminders (24u/2u) | Externe cron | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
-| Event-scan (Zwift/MyWhoosh) | Externe cron | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
-| Training-adaptaties (drafts) | Netlify function | `30 8 * * *` | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
-| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` (max. 5 per run, synchrone generatie: deze route mag dus minuten duren) | | | | |
+| Strava-webhookverwerking | cron-job.org | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
+| Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
+| Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
+| Training-adaptaties (drafts) | cron-job.org | **elke 15 min** | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
+| ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
+| ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_adaptation_runs`) | | | | |
+| ↳ de run heeft een wall-clock budget van 8 s, waarvan het ophalen hoogstens 60% mag kosten. Die reservering is er zodat een rij wachtende generaties niet elke run het hele budget opeet en er niets nieuws meer gestart wordt | | | | |
+| ↳ één afronding (poll bij OpenAI + schema opbouwen) kost al seconden, dus reken op 1 à 2 per run. Elke 15 min geeft ~96 runs per dag; heb je meer actieve schema's dan daar doorheen komen, verlaag dan niets maar kijk eerst of de achterstand écht oploopt | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
-| Team-resultaten sync | Externe cron | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
-| Achievements finalize | Externe cron | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
+| Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
+| Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
 | ↳ regio's op bestaande blokken (eenmalig na migratie 0112): `?regions=1` | | | | |
 
@@ -117,8 +127,12 @@ waarschuwing kunnen wijzigen:
 | Training-AI | OpenAI | API + key | quota/model-wijziging |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
 
-**Strava app-cap**: aanvraag 1→100+ atleten staat open bij Strava (extern).
-Tot goedkeuring kan de sync tegen de cap lopen.
+**Strava app-cap**: de eerste aanvraag voor een hogere atletenlimiet is
+**afgewezen**. Strava stelde twee voorwaarden: webhooks in plaats van polling, en
+actief beheer van stale en gedeauthoriseerde atleten. Beide zijn nu gebouwd (zie
+sectie 6). Het herindieningsdossier staat in
+`docs/strava-api-resubmission.md`; dat moet nog worden ingediend, ná een periode
+meten op productie.
 
 ---
 
@@ -129,7 +143,7 @@ probes per bron en schrijft het resultaat naar de tabel `integration_health`
 (laatste status + tijd per bron). Bij een **transitie van ok → faalt** stuurt de
 route een push naar admins via trigger `on_admin_broadcast`.
 
-- **Schema**: elk uur (Netlify function `netlify/functions/integrations-healthcheck.mjs`).
+- **Schema**: elk uur, via cron-job.org (zie sectie 2).
 - **Statusoverzicht**: zichtbaar voor beheerders op `/beheer` (groen/rood + tijd
   van laatste check).
 - **Handmatig draaien**:
@@ -178,3 +192,269 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   Let op: heeft een lid het blok zelf uit de beschrijving gehaald, dan plakken we
   het niet terug. `written_at` in `strava_activity_summaries` leegmaken forceert
   een nieuwe poging.
+
+---
+
+## 7. Strava-webhooks en koppelingbeheer
+
+### Waarom dit zo werkt
+
+Strava wees onze capaciteitsaanvraag af met twee eisen: gebruik webhooks in plaats
+van polling, en beheer stale en gedeauthoriseerde atleten actief. De app pollde
+elk kwartier alle koppelingen ongeacht of er gereden was, riep
+`POST /oauth/deauthorize` nergens aan, en liet dode koppelingen eindeloos
+opnieuw proberen. Alle drie zijn opgelost.
+
+### De subscription
+
+Eén per applicatie. Beheer zit op **`/beheer/strava`** → paneel *Webhooks*:
+
+- **Status** — vraagt bij Strava op of er een subscription staat.
+- **Aanmaken** — zet 'm. Strava valideert dan live onze callback met een
+  GET-handshake, dus dit werkt **alleen tegen productie** en alleen als
+  `STRAVA_WEBHOOK_VERIFY_TOKEN` en `NEXT_PUBLIC_SITE_URL` (https) gezet zijn.
+- **Verwijderen** — nodig vóór een domeinwijziging; daarna opnieuw aanmaken.
+
+Callback-URL: `https://<site>/api/strava/webhook`. Die route staat in
+`PUBLIC_PATHS` (`src/lib/supabase/middleware.ts`) omdat Strava niet inlogt.
+
+### De verwerkingsketen
+
+1. Strava POST → `/api/strava/webhook` schrijft het event in
+   `strava_webhook_events` en antwoordt meteen. **Altijd 200**, ook bij een fout
+   aan onze kant: een 5xx kost ons de subscription.
+2. Een cron-job.org-job roept elke 5 minuten `/api/strava/webhook/process` aan.
+   Die verwerkt max. 25 events per run en stopt na ~8s (Netlify-timeout). Een rit
+   staat dus binnen ~5 minuten in de app.
+3. Per event: `activity` → één `GET /activities/{id}?include_all_efforts=true`
+   (ook meteen de segment-inspanningen); `athlete` met
+   `updates.authorized = "false"` → koppeling direct opheffen.
+4. Nachtelijk (`strava-lifecycle`, 03:40) → openstaande deauthorisaties afmaken,
+   opgeruimde koppelingen wissen, inactiviteitsbeleid draaien.
+
+### De levenscyclus van een koppeling
+
+`strava_connections` heeft twee tijdstempels:
+
+- `revoked_at` — de koppeling is opgeheven; de app negeert de rij vanaf dat moment.
+- `deauthorized_at` — Strava's kant is ook echt los.
+
+Staat het eerste gezet en het tweede niet, dan moet de deauthorize-call nog. De
+rij blijft dán bewust staan: we hebben de token nodig om te kunnen
+deauthoriseren. Pas als `deauthorized_at` staat, worden de ruwe Strava-data en de
+rij gewist.
+
+| Aanleiding | `revoked_reason` |
+|---|---|
+| Lid drukt op "Ontkoppel Strava" | `member` |
+| Lid verwijdert zijn account | `account_deleted` |
+| Lid trekt de app in op strava.com (webhook) | `strava` |
+| Refresh-token wordt afgewezen | `invalid_grant` |
+| 12 maanden inactief, na waarschuwing | `inactive` |
+| Beheerder ruimt de koppeling op | `admin` |
+
+### Dataretentie bij ontkoppelen
+
+De ruwe Strava-data gaat weg: `strava_activities` (cascadeert
+`strava_activity_segment_efforts` en `strava_activity_summaries`), de uit Strava
+gesynchroniseerde fietsen, `profiles.strava_id` en de avatar als die op Strava's
+CDN staat. De afgeleide clubdata blijft: badges, ZWBlokken, onderhoudsstanden en
+`profile_climbed_cols` (de FK naar de rit staat op `on delete set null`).
+
+### Inactiviteitsbeleid
+
+Geen ritten **en** geen login in `STRAVA_INACTIVITY_MONTHS` (12) →
+waarschuwing via push (`on_strava_link_expiring`) en een melding op `/profiel`.
+Blijft het daarna `STRAVA_INACTIVITY_GRACE_DAYS` (30) stil, dan wordt de
+koppeling opgeheven en gedeauthoriseerd.
+
+Is `last_sign_in_at` niet leesbaar (Supabase admin-API faalt), dan slaat de run
+het hele inactiviteitsbeleid over en meldt dat in `errors`. Doorgaan zou leden
+waarschuwen die wél inloggen maar toevallig een jaar niet gereden hebben.
+
+**Let op:** een lid dat twaalf maanden weg is heeft meestal geen werkende
+push-subscription meer, en de app kent geen transactionele e-mail. Daarom staat
+de teller "Waarschuwing verstuurd" op `/beheer/strava`: benader die leden binnen
+de 30 dagen via WhatsApp als je ze wilt behouden.
+
+### Verwacht callvolume
+
+| | Vóór (polling) | Na (webhooks) |
+|---|---|---|
+| Activiteitenlijsten | ordegrootte 2.000-7.700/dag | ~1 per lid per dag |
+| Ritdetails | 0 (stond uit wegens budget) | 1 per daadwerkelijk gereden rit |
+| Coltijden/ZWB-segmenten | uit (`..._MAX_FETCHES=0`) | komen gratis mee met de ritdetail |
+
+Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
+`x-ratelimit-*`-headers). De sync stopt zelf bij 70% van het 15-minutenvenster of
+90% van de daglimiet.
+
+### Als er iets misgaat
+
+- **"Aanmaken lukt niet meteen na het zetten van een env-var"** → Netlify past
+  env-vars pas toe op een **nieuwe deploy**. Zet je `STRAVA_WEBHOOK_VERIFY_TOKEN`
+  (of `NEXT_PUBLIC_SITE_URL`) nadat de laatste deploy al draaide, dan kent de
+  draaiende functie hem niet en faalt zowel de handshake als het aanmaken.
+  Eerst *Trigger deploy → Deploy site*, dan pas de knop.
+
+  Zelf te toetsen zonder het echte token prijs te geven — vraag de handshake op
+  met een **opzettelijk fout** token:
+  `https://<site>/api/strava/webhook?hub.mode=subscribe&hub.verify_token=fout&hub.challenge=test`
+  → **403** betekent dat het token in de draaiende deploy zit (het antwoord is
+  alleen anders bij een kloppend token); **500** betekent dat de var ontbreekt en
+  er dus een redeploy nodig is; **404** dat de deploy nog niet live is.
+- **"Er komen geen events meer binnen"** → de health-check-bron
+  `strava_webhook` faalt na 48u stilte. Loop dit langs:
+  1. `/beheer/strava` → **Status**. Geen subscription? Strava heeft 'm verwijderd
+     omdat onze callback te vaak faalde of te traag was → opnieuw **Aanmaken**.
+  2. `STRAVA_WEBHOOK_VERIFY_TOKEN` gewijzigd na het aanmaken? Dan mislukt de
+     handshake bij een hercontrole → subscription verwijderen en opnieuw zetten.
+  3. Domein gewijzigd? De callback-URL staat vast bij Strava → opnieuw aanmaken.
+  4. Ondertussen blijft de dagelijkse reconcile de ritten ophalen; er gaat dus
+     niets verloren, het is alleen trager.
+- **"Trainingsaanpassingen geven een timeout"** → hoort sinds 2026-09-08 niet meer
+  te gebeuren: de generaties draaien in de achtergrond en de run heeft een budget
+  van 8 s. Gebeurt het toch, kijk dan naar `generationsStarted` en `budgetSpent` in
+  het antwoord. Staat `budgetSpent` op true, dan was het budget op vóór de timeout
+  — dat is normaal bij een inhaalslag. Verlaag anders `TRAINING_ADAPTATION_MAX_STARTS`.
+- **"Er verschijnt geen voorstel voor een lid"** → een voorstel wordt uitgezet en
+  pas een run later opgehaald, dus reken op ~1 uur. Kijk in
+  `training_ai_generations` op `status`: blijft die op `queued`/`in_progress`, dan
+  is OpenAI nog bezig (na 18 uur wordt hij automatisch verlopen verklaard). Staat
+  er `failed` met een `error`, dan zegt die wat er mis is. In
+  `training_adaptation_runs` staat per schema of er die dag al iets is uitgezet.
+- **"Strava-sync geeft timeout"** → geen autorisatieprobleem: een 401 komt
+  direct terug, een timeout betekent dat de route is begonnen maar niet op tijd
+  klaar was. Twee oorzaken, in deze volgorde:
+  1. **Het zware nawerk stond nog aan** (opgelost 2026-09-08). De reconcile draaide
+     per lid ook de col-detector, ZWBlokken, milestones én de segmentsync — en die
+     laatste haalt óók met `maxFetches: 0` de authoritatieve PR's op, tot honderd
+     `GET /segments/{id}` per lid. Eén lid kon zo minuten kosten. Dat werk hoort
+     sinds de webhooks bij het webhook-pad; de reconcile slaat het nu over.
+  2. **`limit` te hoog.** Verlaag naar 3 (of 1) en laat de job vaker draaien; door
+     de 20-uursgrens blijft elk lid alsnog hooguit 1x per dag aan de beurt. Zet de
+     timeout van de job meteen op het maximum.
+- **"Events blijven op *wacht* staan"** → *wacht* betekent letterlijk
+  `processed_at is null` én `attempts = 0`. Elk faalpad in de verwerker verhoogt
+  `attempts`, dus dit zegt dat de events **nooit zijn aangeraakt**: het probleem
+  zit in de trigger, niet in de verwerking of in de events zelf.
+
+  **Loopt de Netlify-schedule überhaupt?** Kijk op `/beheer/event-scan` naar
+  "laatst gecontroleerd" bij het integratie-statusblok. Dat wordt geschreven door
+  de scheduled function `integrations-healthcheck`, elk uur. Staat daar een tijd
+  van uren of dagen geleden, dan lopen de **Netlify scheduled functions
+  site-breed niet** — en dan is dit groter dan de webhookrij: ook `live-cleanup`,
+  `training-adaptations` en `strava-lifecycle` staan dan stil. Zet in dat geval
+  een cron-job.org-job op `/api/strava/webhook/process` (elke 5 min, bearer
+  `STRAVA_SYNC_SECRET`), net als bij de Strava-reconcile; dat werkt aantoonbaar
+  op deze site en kost geen Netlify-invocaties.
+
+  Isoleer het met de knop **Nu verwerken** op `/beheer/strava`. Die draait
+  precies dezelfde verwerker, maar dan vanuit de app in plaats van via de
+  scheduled function:
+  1. Knop trekt de rij leeg → verwerking is in orde, de **scheduled function**
+     is de boosdoek. Kijk in Netlify → Functions → `strava-webhook-process` →
+     logs. Meestal: de function draait niet (deploy dateert van vóór de function)
+     of `STRAVA_SYNC_SECRET` ontbreekt in Netlify, waardoor hij een 401 krijgt en
+     stil niets doet.
+  2. Knop geeft een foutmelding → de verwerking zelf is stuk; de melding zegt
+     wat er mis is.
+  3. Knop meldt 0 verwerkt terwijl er events staan → de events horen bij een
+     atleet zonder actieve koppeling, of `attempts` staat al op 5.
+
+  Handmatig kan ook: `curl -X POST -H "Authorization: Bearer
+  $STRAVA_SYNC_SECRET" https://<site>/api/strava/webhook/process`. Een **401**
+  wijst het secret aan als oorzaak.
+
+  Blijft de wachtrij staan, dan gaat er niets verloren: de dagelijkse reconcile
+  haalt de ritten alsnog op. Het is alleen trager.
+- **"Een event blijft mislukken"** → na 5 pogingen laten we het liggen;
+  `last_error` in `strava_webhook_events` zegt waarom. De reconcile haalt de rit
+  alsnog op.
+- **"Een lid staat op *wacht op opruiming*"** → de deauthorize-call bij Strava
+  faalde. De nachtrun probeert het opnieuw; met de knop **Opruiming nu draaien**
+  forceer je dat. Blijft het hangen, dan is de token waarschijnlijk al dood aan
+  Strava's kant en is de atleet feitelijk al losgekoppeld.
+- **"Een lid heeft opnieuw gekoppeld maar wordt overgeslagen"** → hoort niet te
+  kunnen: de OAuth-callback wist de revocatievelden. Controleer `revoked_at` in
+  `strava_connections`.
+
+---
+
+## 8. Netlify scheduled functions gaan niet af (2026-09-05)
+
+### Wat we zeker weten
+
+- Netlify toont alle vijf de functions in `netlify/functions/` als *scheduled*.
+- Er is **geen enkele invocatie-log**.
+- `integration_health` heeft één rij, van **22-06-2026 22:01** — de dag dat de
+  health-check werd uitgerold (zie `PLAN.md`, update 2026-06-21).
+- De routes zelf werken: met hun bearer-secret aangeroepen doen ze gewoon hun
+  werk. Zo kwam het ook boven — de knop **Nu verwerken** op `/beheer/strava`
+  trok de webhookrij in één keer leeg, terwijl de scheduled function er uren
+  niets mee had gedaan.
+
+### Wat dat waarschijnlijk betekent
+
+Dat ene datapunt uit juni is vrijwel zeker de uitrol-/testrun van de health-check
+zelf, niet het bewijs dat de planning ooit heeft gelopen. Zou hij daarna nog
+uren of dagen zijn afgegaan, dan stonden er meer rijen. De waarschijnlijkste
+lezing is dus niet "het is in juni kapotgegaan", maar **de scheduled functions
+zijn hier nooit op schema afgegaan** — geregistreerd wel, uitgevoerd niet.
+
+Dat is geen zekerheid: Netlify bewaart functie-logs maar beperkt, dus "geen logs"
+alleen bewijst niets over juni. In combinatie met die ene rij is het wel de
+verklaring die het beste past.
+
+Praktisch maakt het niet uit welke van de twee waar is: de oplossing is
+hetzelfde. Wie tóch de oorzaak wil weten, kijkt in Netlify naar het plan van het
+team en het verbruik (AGENTS.md vermeldt niet voor niets dat de credits beperkt
+zijn), en of er openstaande facturen zijn. "Wel scheduled, nooit uitgevoerd, geen
+logs" is verder een vraag voor Netlify-support, niet iets wat vanuit deze repo
+op te lossen is.
+
+### Wat er daardoor nooit heeft gedraaid
+
+| Function | Gevolg |
+|---|---|
+| `live-cleanup` (elke 15 min) | **AVG-retentie heeft nooit gedraaid.** Dubbel stuk: los van de planning ontbrak `LIVE_CLEANUP_SECRET` volledig in Netlify (ontdekt 2026-09-08), en zonder die var geeft de route 403 — ook als de schedule wél was afgegaan. Stap 2 wist `live_positions` ouder dan 30 dagen en stap 3 `event_chat_messages` ouder dan een jaar; er staat dus locatiedata die er niet meer had mogen zijn. Dit is het urgentste punt. Zet de var eerst, dán de cron-job. |
+| `training-adaptations` (dagelijks 08:30) | Dagelijkse trainingsaanpassingen worden niet gemaakt, herplanverzoeken niet opgepakt, en blijven hangen AI-generaties niet afgemaakt. Ledenzichtbaar, en al maanden stil zonder dat iemand het meldde. |
+| `integrations-healthcheck` (elk uur) | Geen monitoring. Verlopen WTRL-/ladder-cookies of een gewijzigde bron zijn sinds eind juni nooit gemeld. |
+| `strava-webhook-process` (elke 5 min) | Webhook-events blijven op *wacht* staan. |
+| `strava-lifecycle` (03:40) | Deauthorisaties worden niet afgemaakt en het inactiviteitsbeleid draait niet. |
+
+### De oplossing: alles op cron-job.org — uitgevoerd 2026-09-08
+
+Per job: methode **POST**, header `Authorization: Bearer <secret>`, URL onder
+`https://<site>` (let op: **één** slash tussen domein en pad; een dubbele geeft
+een 308 en veel clients laten de Authorization-header dan vallen). Tijdzone
+Europe/Amsterdam, timeout op het maximum, en zet mail bij mislukking aan — het
+hele probleem was juist dat niemand merkte dat er niets draaide.
+
+| Endpoint | Schema | Secret | Status |
+|---|---|---|---|
+| `/api/live/cleanup` | elke 15 min | `LIVE_CLEANUP_SECRET` | ✅ — de variabele **bestond niet** in Netlify en is toen aangemaakt |
+| `/api/health/integrations` | elk uur | `HEALTHCHECK_SECRET` | ✅ |
+| `/api/strava/webhook/process` | elke 5 min | `STRAVA_SYNC_SECRET` | ✅ |
+| `/api/strava/sync?limit=3` | elk uur | `STRAVA_SYNC_SECRET` | ✅ |
+| `/api/strava/lifecycle` | dagelijks 05:40 | `STRAVA_SYNC_SECRET` | ✅ |
+| `/api/training/adaptations/daily` | dagelijks 10:30 | `TRAINING_ADAPTATION_SECRET` | ⚠️ meldt timeout; zie "Bekende open dingen" in `PLAN.md` |
+
+De `.mjs`-bestanden blijven staan als documentatie van wat er zou moeten draaien
+als Netlify het ooit doet. Gaan die schedules alsnog lopen, dan draait alles
+dubbel — alle routes zijn idempotent, dus dat kost invocaties, geen data. Haal
+in dat geval één van de twee weg.
+
+### Controleren dat het loopt
+
+Twee plekken, allebei binnen het uur zichtbaar:
+
+1. `/beheer/event-scan` — "laatst gecontroleerd" moet van vandaag zijn. Dat is de
+   health-check en meteen het bewijs dat de keten draait.
+2. `/beheer/strava` — de webhookrij loopt vanzelf leeg, zonder op *Nu verwerken*
+   te drukken.
+
+Staat er iets stil, kijk dan in de job-historie naar de responscode: **401/403**
+= secret klopt niet of staat niet in de draaiende deploy (env-vars gelden pas
+vanaf een nieuwe deploy), **308** = dubbele slash in de URL, **timeout** = de
+route is wél begonnen; verlaag `limit` of zie de storingenlijst in sectie 6.

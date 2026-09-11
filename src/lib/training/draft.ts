@@ -107,7 +107,9 @@ type AiGenerationRow = {
   openai_response_id: string | null;
   parent_plan_id: string | null;
   adaptation_reason: string | null;
-  adaptation_kind: "day" | "plan_update" | null;
+  // 'daily' = het automatische voorstel uit de cron. Stond hier niet, terwijl de
+  // database het sinds migratie 0113 wel toestaat.
+  adaptation_kind: "day" | "plan_update" | "daily" | null;
   adapt_from_date: string | null;
   /** Gevraagde FTP-test bij een nieuw schema; wordt bij het plan een workout. */
   ftp_test_type: string | null;
@@ -547,11 +549,17 @@ async function createPlanFromAiGeneration(
   // twee het is.
   const isAdaptation = Boolean(generation.parent_plan_id);
   const isPlanUpdate = generation.adaptation_kind === "plan_update";
+  // Het dagelijkse voorstel uit de cron krijgt bewust géén suffix: de kaart in de
+  // app toont zelf al dat het een voorstel is, en "(aanpassing vandaag)" hoort bij
+  // de knop van de renner.
+  const isDailyProposal = generation.adaptation_kind === "daily";
   const title = isPlanUpdate
     ? `${planDraft.title} (bijgewerkt)`
-    : isAdaptation
-      ? `${planDraft.title} (aanpassing vandaag)`
-      : planDraft.title;
+    : isDailyProposal
+      ? planDraft.title
+      : isAdaptation
+        ? `${planDraft.title} (aanpassing vandaag)`
+        : planDraft.title;
 
   // root_plan_id wijst naar het schema waar deze rij bij hoort. Zonder dat zou
   // de aanpassing weer als los programma in de schemalijst belanden.
@@ -1265,13 +1273,108 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
 }
 
 /**
+ * Zet een aanpassing als achtergrondgeneratie klaar, zonder op OpenAI te wachten.
+ *
+ * Bestaat voor de dagelijkse cron. Die deed zijn AI-calls synchroon, en dat kan
+ * niet: een Netlify-functie wordt na een seconde of tien afgekapt, terwijl een
+ * generatie een minuut duurt. Het gevolg was dat de route elke run in een timeout
+ * liep en er nooit een voorstel uit kwam.
+ *
+ * De aanroeper bouwt de invoer; deze functie doet alleen het uitzetten. Ophalen
+ * gebeurt later door finishStaleGenerations in dezelfde cron — daarom draait die
+ * cron nu elk uur in plaats van één keer per nacht.
+ *
+ * Eerst de rij, dan pas OpenAI — om dezelfde reden als in startPlanUpdate: het
+ * aanmelden duurt tot vijftien seconden, en in dat gaatje zou een tweede run niets
+ * zien lopen en er nog een starten.
+ */
+export async function startBackgroundAdaptation(args: {
+  admin: ReturnType<typeof createAdminClient>;
+  input: TrainingAiInput;
+  prompt: string;
+  profileId: string;
+  trainerId: string | null;
+  goalId: string | null;
+  parentPlanId: string;
+  adaptationKind: string;
+  adaptationReason: string;
+  adaptFromDate: string;
+  options?: {
+    reasoningEffort?: "low" | "medium" | "high";
+    minWorkouts?: number;
+    timeoutMs?: number;
+  };
+}): Promise<
+  { ok: true; generationId: string; status: TrainingDraftStatus } | { ok: false; error: string }
+> {
+  const options = {
+    reasoningEffort: args.options?.reasoningEffort ?? ("low" as const),
+    minWorkouts: args.options?.minWorkouts ?? 1,
+    timeoutMs: args.options?.timeoutMs ?? 15_000,
+  };
+
+  const { data: aiRow, error: aiError } = await args.admin
+    .from("training_ai_generations")
+    .insert({
+      profile_id: args.profileId,
+      trainer_id: args.trainerId,
+      goal_id: args.goalId,
+      parent_plan_id: args.parentPlanId,
+      adaptation_reason: args.adaptationReason,
+      adaptation_kind: args.adaptationKind,
+      adapt_from_date: args.adaptFromDate,
+      model: getTrainingModel(options),
+      status: "queued",
+      prompt_text: args.prompt,
+      prompt_summary: JSON.stringify(args.input, null, 2),
+    })
+    .select("id")
+    .single();
+  if (aiError) return { ok: false, error: aiError.message };
+  const generationId = aiRow.id as string;
+
+  let background: Awaited<ReturnType<typeof startTrainingPlanDraftBackground>>;
+  try {
+    background = await startTrainingPlanDraftBackground(args.input, args.prompt, options);
+  } catch (err) {
+    // Zonder response-id valt er niets op te halen. Meteen sluiten, anders blijft
+    // de rij op 'queued' staan en komt hij elke run bij de cron terug.
+    const error = err instanceof Error ? err.message : "Generatie starten faalde.";
+    await args.admin
+      .from("training_ai_generations")
+      .update({ status: "failed", error })
+      .eq("id", generationId);
+    return { ok: false, error };
+  }
+
+  const status: TrainingDraftStatus =
+    background.status === "queued" ? "queued" : "in_progress";
+  await args.admin
+    .from("training_ai_generations")
+    .update({
+      status,
+      model: background.model,
+      prompt_summary: background.promptSummary,
+      openai_response_id: background.responseId,
+    })
+    .eq("id", generationId);
+
+  return { ok: true, generationId, status };
+}
+
+/**
  * Dezelfde herziening, maar synchroon en meteen doorgevoerd. Voor de dagelijkse cron.
  *
- * Een achtergrondgeneratie moet door iemand worden opgehaald voordat er een
- * schema uit komt; dat doet de browser van het lid. 's Nachts kijkt er niemand
- * mee, dus zo'n generatie zou tot de volgende keer dat het lid de app opent in
- * 'queued' blijven hangen. Vandaar hier de synchrone variant: het bijgewerkte
- * schema staat er 's ochtends gewoon.
+ * NIET MEER VOOR DE CRON. De redenering hieronder klopte toen er 's nachts
+ * niemand meekeek om een achtergrondgeneratie op te halen, maar de cron doet dat
+ * inmiddels zelf (finishStaleGenerations) en draait elk uur. En synchroon kón
+ * hier sowieso niet: een generatie duurt een minuut, een Netlify-functie stopt na
+ * een seconde of tien. De cron gebruikt nu startPlanUpdate.
+ *
+ * Blijft staan voor aanroepers die wél op het resultaat kunnen wachten.
+ *
+ * Oorspronkelijke motivatie: een achtergrondgeneratie moet door iemand worden
+ * opgehaald voordat er een schema uit komt; dat deed de browser van het lid.
  */
 export async function runPlanUpdateNow(
   args: PlanUpdateArgs,

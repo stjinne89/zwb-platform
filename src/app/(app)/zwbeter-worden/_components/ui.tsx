@@ -67,11 +67,14 @@ export function PlanBadge({ status }: { status: string }) {
 
 // Inklapbaar blok (native <details>): standaard dicht, klik op de kop opent het.
 export function CollapsibleCard({
+  icon: Icon,
   title,
   subtitle,
   defaultOpen = false,
   children,
 }: {
+  /** Optioneel merkje voor de kop, zoals de andere kaarten op deze pagina. */
+  icon?: typeof Activity;
   title: string;
   subtitle?: string;
   defaultOpen?: boolean;
@@ -80,8 +83,11 @@ export function CollapsibleCard({
   return (
     <details className="group rounded-lg border bg-card" open={defaultOpen}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
-        <div>
-          <h2 className="font-semibold">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 font-semibold">
+            {Icon ? <Icon className="size-5 shrink-0 text-primary" /> : null}
+            {title}
+          </h2>
           {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
         </div>
         <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
