@@ -906,7 +906,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — bugronde plannenboek (meldingen Jeroen, 4–13 september)
 
-**2026-09-13, lokaal op `main`, niet gepusht.** Migratie `0153` (niet lokaal
+**2026-09-13, commit `d69eb63` op `main`, niet gepusht.** Migratie `0153` (niet lokaal
 uitgevoerd). Opdracht: [docs/bugfix-agent-prompt-2026-09-13.md](docs/bugfix-agent-prompt-2026-09-13.md);
 nummers hieronder zijn die uit het Drive-plannenboek. Eerst bugs, wensen apart.
 
