@@ -340,7 +340,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 <!-- zwb-segment-assessment-round -->
 - **Segmentinschatting: eigen record, profiel bij openen, voorrangslijst**
-  (2026-09-13; migratie 0155; lokaal gecommit, niet gepusht). Elk segment gaf
+  (2026-09-13; `71827b7`, gepusht 2026-09-13; migratie 0155). Elk segment gaf
   "Onvoldoende gegevens": geen tegenstander (de eigenaar was de enige zichtbare rijder)
   en geen enkel hoogteprofiel, omdat de vorige ronde lijnen pas na alle ~6.000 ritten
   ophaalde — die volgorde was een verkeerde keuze en is teruggedraaid. Nu: eigen PR − 1 s
