@@ -88,8 +88,8 @@ export default function PrivacyPage() {
             segmentlijnen en verstreken tijden voor de kaart en het klassement binnen
             ZWB. Andere goedgekeurde leden zien je naam, tijd en positie. Je gewicht,
             vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
-            niet met andere leden gedeeld. Privéritten en verborgen pogingen zijn
-            uitgesloten. Bij het verbreken van je Strava-koppeling vervallen je
+            niet met andere leden gedeeld. Privéritten, ritten die alleen jij mag
+            zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Bij het verbreken van je Strava-koppeling vervallen je
             prestaties uit dit klassement.
           </li>
           <li>

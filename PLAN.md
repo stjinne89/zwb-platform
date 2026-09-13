@@ -301,6 +301,23 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   en gepusht op 2026-09-13.
 <!-- /zwb-segment-tiles-round -->
 
+<!-- zwb-segment-hidden-round -->
+- **Segmentklassement: alleen de eigenaar zichtbaar** (2026-09-13; migratie 0154;
+  lokaal gecommit, niet gepusht). Leesanalyse op productie: de hoofdoorzaak is dat
+  alleen de eigenaar privacyversie 2026-09-13 heeft getekend — geen bug; negen leden
+  met ~58.000 pogingen verschijnen na opnieuw akkoord. Daarnaast sloot het filter op
+  Strava's `effort.hidden` 41% van alle pogingen uit, terwijl dat een weergavestandaard
+  is en geen privacykeuze van het lid. 0154 laat dat filter vallen (simulatie: 1.745 →
+  3.671 gedeelde klassementen). Privacyverklaring en `/hulp/segments` noemden
+  "verborgen pogingen"; die zinnen noemen nu de echte uitsluitingen. **Bewust geen
+  nieuwe privacyversie**: zelfde gegevens en ontvangers, en alleen de eigenaar had
+  2026-09-13 getekend — push daarom snel, anders tekenen leden de oude zin.
+  **Niet gebouwd:** Gravel/MTB meetellen (+1 klassement, wegfietsmodel past niet).
+  Getest: PGlite-databasetest met 0152+0154 (verborgen poging telt, privésegment niet),
+  25 gerichte tests en lint geslaagd. 0154 is niet tegen de productie-Supabase getest en
+  moet door de eigenaar gedraaid worden. Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
+<!-- /zwb-segment-hidden-round -->
+
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde
   plannenboek" bovenaan het chronologische werkplan): de 22 meldingen uit het

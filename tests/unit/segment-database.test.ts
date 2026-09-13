@@ -18,6 +18,7 @@ beforeAll(async () => {
     "create table strava_activity_segment_efforts(effort_uid text primary key,profile_id uuid references profiles(id),activity_id bigint references strava_activities(id) on delete cascade,strava_segment_id bigint,segment_name text,elapsed_time_seconds integer,moving_time_seconds integer,distance_m numeric,elevation_gain_m numeric,average_grade numeric,start_lat numeric,start_lon numeric,end_lat numeric,end_lon numeric,started_at timestamptz,raw jsonb,created_at timestamptz default now());",
   ].join("\n"));
   await db.exec(await readFile("supabase/migrations/0152_zwb_segment_explorer.sql","utf8"));
+  await db.exec(await readFile("supabase/migrations/0154_segment_club_include_hidden_efforts.sql","utf8"));
 }, 20000);
 afterAll(async () => { await db?.close(); });
 beforeEach(async () => {
@@ -60,6 +61,12 @@ describe("segment migration against isolated PostgreSQL", () => {
     await db.exec("delete from strava_activities where id=4; set role authenticated");
     const row = (await db.query<{ leaderboard:Array<{seconds:number}> }>("select leaderboard from zwb_segment_club")).rows[0];
     expect(row.leaderboard.map((r) => r.seconds)).toEqual([100]);
+  });
+  it("counts Strava-hidden efforts but still excludes private segments", async () => {
+    await db.exec(`update strava_activity_segment_efforts set raw='{"hidden":true}' where activity_id=2`);
+    await db.exec(`update strava_activity_segment_efforts set raw='{"segment":{"private":true}}' where activity_id=3; set role authenticated`);
+    const row = (await db.query<{ leaderboard:Array<{seconds:number}> }>("select leaderboard from zwb_segment_club")).rows[0];
+    expect(row.leaderboard.map((r) => r.seconds)).toEqual([100,110,130]);
   });
   it("replaces missing efforts and rejects mismatched owners", async () => {
     await db.query("select replace_activity_segment_efforts($1,1,'[]')",[ids[0]]);

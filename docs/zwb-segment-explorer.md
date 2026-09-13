@@ -24,7 +24,9 @@ Een trigger registreert ieder ontvangen segment-ID. De beveiligde projectie
 zwb_segment_club bepaalt tijden rechtstreeks uit pogingen en huidige activiteiten:
 geen achterblijvende podiumtijd na verwijderen, wijzigen, privé maken of ontkoppelen.
 Dubbele namen met verschillende ID's blijven apart. Alleen Ride, geen trainer/privé/
-gemarkeerde/verborgen poging; andere disciplines hebben geen betrouwbare racefietsaanname.
+only_me/gemarkeerde rit en geen privésegment; andere disciplines hebben geen betrouwbare
+racefietsaanname. Strava's `hidden` op een poging telt sinds 0154 wel mee: dat is een
+weergavestandaard in de activiteit, geen privacykeuze van het lid (zie correctie hieronder).
 Posities worden per snelste verstreken tijd per lid berekend. Gelijke tijden delen een rang.
 Voor record/podium wordt de eigen tijd uit de tegenstanders verwijderd.
 
@@ -73,6 +75,26 @@ controleert nu ook expliciet het tegeladres. De fixture onderschept tegelverzoek
 een geslaagde browsertest bewijst dus niet de beschikbaarheid van een externe provider.
 Bij deze correctie is daarnaast één echte OSM-tegel opgehaald: HTTP 200, image/png,
 visueel gecontroleerd zonder API-keywatermerk.
+
+Correctie 2026-09-13 (migratie 0154): na livegang verscheen alleen de eigenaar in de
+klassementen. Leesanalyse op productie:
+
+- Hoofdoorzaak is geen bug: alleen de eigenaar had privacyversie 2026-09-13 getekend
+  (overige goedgekeurde leden: 15× 08-18, 1× 08-07, 14× 05-31, 4× nooit). Negen leden met
+  samen ~58.000 opgeslagen pogingen tellen mee zodra ze opnieuw akkoord geven.
+- Het filter op `effort.raw->>'hidden'` sloot 28.470 van 69.498 pogingen (41%) uit. Dat
+  veld volgt vrijwel altijd het segment (192 van 25.993 lid-segmentcombinaties wisselen),
+  en 10.547 verborgen pogingen hebben toch een `pr_rank`. Het is Strava's "verborgen
+  segmenten"-weergave, geen afscherming door het lid. Afgeleid uit API-documentatie en
+  datapatroon, niet in de Strava-app nagespeeld.
+- Simulatie als alle negen leden tekenen: met het filter 1.745 segmenten met ≥2 rijders,
+  zonder 3.671. Gravel/MTB toevoegen levert +1 op en is daarom niet gedaan.
+- Ingelezen dekking is laag (bijv. 56 van 1.433 activiteiten); aanvullen via /beheer/segments.
+
+0154 vervangt de view met exact dezelfde voorwaarden minus `hidden`. De privacyverklaring
+noemde "verborgen pogingen" als uitsluiting; die zin somt nu de werkelijke uitsluitingen op.
+Geen nieuwe privacyversie: zelfde gegevenscategorie en ontvangers, en op het moment van
+wijzigen had alleen de eigenaar 2026-09-13 getekend.
 
 ## Bewuste grenzen
 
