@@ -267,8 +267,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ## Buiten oorspronkelijk plan opgeleverd
 
 <!-- zwb-segment-explorer-round -->
-- **ZWB Segments: interactieve clubkaart** (2026-09-13; lokale featurecommit,
-  hash volgt bij vastleggen; migratie 0152): bestaande pagina omgebouwd naar
+- **ZWB Segments: interactieve clubkaart** (2026-09-13; lokale featurecommit
+  048b94f; migratie 0152): bestaande pagina omgebouwd naar
   kaart/lijst met eigen ZWB-record/podium, persoonlijke vermogen-/windinschatting,
   gedeelde selectie, filters en Strava-links. Eigenaar bevestigde toestemming.
   De eerdere collecties/Zwift staan nu op /profiel/segments/collecties; cols en
