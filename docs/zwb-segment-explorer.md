@@ -145,9 +145,19 @@ lijnen pas na alle ritten ophaalde). Eigenaar koos A + C + D:
   rijder. Elke run eerst één lijn, daarna ritten; zonder open ritten tot zes lijnen.
   Een fout segment komt na zeven dagen terug. Zonder 0155 slaat de taak lijnen over.
 
-Niet getest: de looptijd van de aggregatie in 0155 op de productiedatabase (~70.000
-pogingen, groeiend) en echte Strava-calls bij openen. Wel: PGlite-test voor volgorde,
-indoor-uitsluiting en rechten; unittests voor doel en taakvolgorde; browsertests.
+Wel getest: PGlite-test voor volgorde, indoor-uitsluiting en rechten; unittests voor
+doel en taakvolgorde; browsertests. Door de eigenaar bevestigd in productie: openen
+geeft een inschatting met "Doel: eigen record".
+
+**Correctie 0155 → 0156.** Op productie brak `segment_geometry_priority` eerst af op de
+statement timeout; daarna gemeten 3,1 s, 2,4 s, 1,1 s en 0,6 s (koude tegen warme cache).
+De taak wachtte daarop en had daardoor weinig tijd voor ritten (23 ritten in het
+eerste halfuur). 0156 geeft dezelfde uitkomst, maar leest voor de rangorde alleen twee
+smalle nieuwe indexen en zoekt de token-rijder pas voor de teruggegeven segmenten. De
+taak breekt de aanroep bovendien na 2 s af en gaat dan door met ritten. In PGlite met
+synthetische data (70.000 pogingen, 20.000 ritten met brede raw-kolommen): 0155 127 ms,
+0156 52 ms, identieke uitkomst. Die data haalde de productievertraging niet; de winst
+op productie is dus niet gemeten.
 
 ## Bewuste grenzen
 

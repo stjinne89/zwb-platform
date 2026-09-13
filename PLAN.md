@@ -349,9 +349,11 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes.
   **Niet gebouwd:** profiel bij openen voor leden zonder Strava-koppeling (geen token),
   en profielen voor de hele lijst in één keer (40 × 2 calls per pagina is te duur).
-  Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests.
-  Niet getest: looptijd van 0155 op productie en echte Strava-calls. 0155 moet door de
-  eigenaar gedraaid worden; zonder die migratie werkt alles behalve de voorrangslijst.
+  Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests;
+  de eigenaar bevestigde de inschatting bij openen in productie. 0155 gedraaid, maar
+  bleek op productie te traag (timeout, daarna 0,6–3,1 s) en at de taaktijd op:
+  vervangen door 0156 (smalle indexen, zelfde uitkomst) plus een afbreekgrens van 2 s
+  in de taak. 0156 is niet op productie gemeten en moet door de eigenaar gedraaid worden.
   Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-assessment-round -->
 

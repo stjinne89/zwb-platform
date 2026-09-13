@@ -20,6 +20,7 @@ beforeAll(async () => {
   await db.exec(await readFile("supabase/migrations/0152_zwb_segment_explorer.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0154_segment_club_include_hidden_efforts.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0155_segment_geometry_priority.sql","utf8"));
+  await db.exec(await readFile("supabase/migrations/0156_segment_geometry_priority_fast.sql","utf8"));
 }, 20000);
 afterAll(async () => { await db?.close(); });
 beforeEach(async () => {

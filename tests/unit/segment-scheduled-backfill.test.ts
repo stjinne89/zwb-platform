@@ -66,6 +66,19 @@ describe("runScheduledSegmentBackfill", () => {
     expect(result.geometry).toBe(1);
   });
 
+  it("gaat door met ritten als de voorrangslijst niet op tijd antwoordt", async () => {
+    let signal: AbortSignal | undefined;
+    const admin = Object.assign(fakeAdmin([{ id: 1, profile_id: A }]), {
+      rpc: () => ({ abortSignal: (s: AbortSignal) => { signal = s; return Promise.reject(new DOMException("timeout", "TimeoutError")); } }),
+    });
+    const d = deps({});
+    delete d.value.geometryCandidates;
+    const result = await runScheduledSegmentBackfill(admin, { deadline: 8000, deps: d.value });
+    expect(signal).toBeDefined();
+    expect(d.geometryCalls).toEqual([]);
+    expect(result.fetched).toBe(1);
+  });
+
   it("slaat een voorrangslijn zonder bruikbare token over in plaats van vast te lopen", async () => {
     const admin = fakeAdmin([{ id: 1, profile_id: A }]);
     const d = deps({}, {}, [{ id: "10", profile_id: "onbekend" }, { id: "11", profile_id: B }]);

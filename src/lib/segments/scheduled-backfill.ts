@@ -26,6 +26,7 @@ const MAX_FAILURES_PER_RUN = 3;
 /** Segmentlijnen per run zolang er nog ritten openstaan, en daarna. */
 const GEOMETRY_WHILE_ACTIVITIES = 1;
 const GEOMETRY_WHEN_DONE = 6;
+const PRIORITY_TIMEOUT_MS = 2000;
 
 export type ScheduledBackfillResult = {
   fetched: number;
@@ -65,9 +66,15 @@ function defaultDeps(
         token,
       ),
     geometryCandidates: async (limit) => {
-      const { data, error } = await admin.rpc("segment_geometry_priority", { p_limit: limit });
-      // Zonder migratie 0155 slaat de run alleen de segmentlijnen over.
-      return error ? [] : (data ?? []);
+      // Hard begrensd: 0155 liep op een koude cache tegen de statement timeout en at zo
+      // het hele runbudget op. Zonder antwoord (of zonder migratie) alleen geen lijnen.
+      try {
+        const { data, error } = await admin.rpc("segment_geometry_priority", { p_limit: limit })
+          .abortSignal(AbortSignal.timeout(PRIORITY_TIMEOUT_MS));
+        return error ? [] : (data ?? []);
+      } catch {
+        return [];
+      }
     },
     fetchGeometry: (token, segmentId) => fetchSegmentGeometry(admin, token, segmentId, BACKFILL_BUDGET),
   };
