@@ -302,8 +302,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-tiles-round -->
 
 <!-- zwb-segment-hidden-round -->
-- **Segmentklassement: alleen de eigenaar zichtbaar** (2026-09-13; migratie 0154;
-  lokaal gecommit, niet gepusht). Leesanalyse op productie: de hoofdoorzaak is dat
+- **Segmentklassement: alleen de eigenaar zichtbaar** (2026-09-13; `a7dba9c`; migratie 0154;
+  gepusht 2026-09-13). Leesanalyse op productie: de hoofdoorzaak is dat
   alleen de eigenaar privacyversie 2026-09-13 heeft getekend — geen bug; negen leden
   met ~58.000 pogingen verschijnen na opnieuw akkoord. Daarnaast sloot het filter op
   Strava's `effort.hidden` 41% van alle pogingen uit, terwijl dat een weergavestandaard
@@ -319,8 +319,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-hidden-round -->
 
 <!-- zwb-segment-backfill-round -->
-- **Segmentpogingen automatisch aanvullen** (2026-09-13; lokaal gecommit, niet
-  gepusht; geen migratie). ~6.000 oude buitenritten misten segmentpogingen; via
+- **Segmentpogingen automatisch aanvullen** (2026-09-13; `49d286d`, gepusht
+  2026-09-13; geen migratie). ~6.000 oude buitenritten misten segmentpogingen; via
   `/beheer/segments` was dat ~1.200 klikken en de eigenaar wil niets handmatig. De
   bestaande 5-minutenjob `/api/strava/webhook/process` vult nu bij een lege webhookrij
   binnen het resterende 8 s-budget ritten aan (nieuwste eerst), en daarna segmentlijnen.
@@ -333,7 +333,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Getest: 7 unittests op de beslislogica, 59 tests in de geraakte suites, lint, en
   de databasequery's alleen-lezen tegen productie (10 leden, 6.044 open ritten). Niet
   getest: echte Strava-calls en de looptijd op Netlify; de doorloop van 4–5 dagen is
-  een schatting. Pas zichtbaar na push/deploy. Details in
+  een schatting. Details in
   [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-backfill-round -->
 
