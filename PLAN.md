@@ -352,7 +352,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests;
   de eigenaar bevestigde de inschatting bij openen in productie. 0155 gedraaid, maar
   bleek op productie te traag (timeout, daarna 0,6–3,1 s) en at de taaktijd op:
-  vervangen door 0156 (smalle indexen, zelfde uitkomst) plus een afbreekgrens van 2 s
+  vervangen door 0156 (`8200fc4`, gepusht 2026-09-13; smalle indexen, zelfde uitkomst) plus een afbreekgrens van 2 s
   in de taak. 0156 is niet op productie gemeten en moet door de eigenaar gedraaid worden.
   Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-assessment-round -->
