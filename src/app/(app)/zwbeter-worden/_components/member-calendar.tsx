@@ -36,6 +36,7 @@ export type MemberCalendarItem = {
   intensity: string | null;
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
+  missed?: boolean;
   /** Alleen voor een gereden rit zonder geplande training. */
   ride?: {
     /** Het Strava-id, voor de link naar de bronactiviteit. */
@@ -297,6 +298,7 @@ export function MemberWorkoutCalendar({
     intensity: item.intensity,
     source: item.source,
     skipped: item.skipped,
+    missed: item.missed,
   }));
 
   return (

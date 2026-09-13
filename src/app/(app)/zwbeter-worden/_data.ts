@@ -30,11 +30,16 @@ import {
   type FtpTestWorkout,
 } from "@/lib/training/ftp-test";
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
-import { computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
+import { amsterdamDayKey, computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
 import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
 import {
+  COMPLETION_WINDOW_DAYS,
   detectCompletedWorkouts,
+  pickPendingReview,
+  reassignCandidates,
+  type PendingReviewReport,
+  type PendingReviewWorkout,
   type WorkoutMetricsSnapshot,
 } from "@/lib/training/completion";
 import { refreshWellnessIfStale, type WellnessDevice } from "@/lib/training/wellness";
@@ -322,10 +327,24 @@ export async function loadUnplannedRides(
   );
 }
 
+function dayLabel(iso: string) {
+  return new Date(iso).toLocaleDateString("nl-NL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Amsterdam",
+  });
+}
+
 /**
- * De workout die het lid nog moet bevestigen: afgerond, maar zonder
- * athlete_confirmed_at. Draait eerst de detectie, zodat een lid dat de app
- * opent voordat de Strava-cron langskwam toch meteen zijn scherm krijgt.
+ * De workout die het lid nog moet bevestigen. Draait eerst de detectie, zodat een
+ * lid dat de app opent voordat de Strava-cron langskwam toch meteen zijn scherm
+ * krijgt. Welke het wordt, beslist pickPendingReview: de nieuwste gekoppelde rit
+ * van de afgelopen week, niet de rapportage die toevallig het laatst is
+ * bijgewerkt.
+ *
+ * Met `requestedWorkoutId` (de link uit de pushmelding) komt precies die
+ * training, ook als hij al is bevestigd.
  */
 export async function loadPendingReview(
   viewer: Viewer,
@@ -336,50 +355,107 @@ export async function loadPendingReview(
   let query = viewer.supabase
     .from("training_workout_reports")
     .select(
-      "workout_id, metrics_json, athlete_rpe, athlete_feel, athlete_report, athlete_confirmed_at",
+      "workout_id, paired_activity_id, metrics_json, athlete_rpe, athlete_feel, athlete_report, athlete_confirmed_at",
     )
     .eq("profile_id", viewer.user.id)
-    .order("updated_at", { ascending: false })
-    .limit(1);
+    .not("paired_activity_id", "is", null)
+    .limit(50);
   query = requestedWorkoutId
     ? query.eq("workout_id", requestedWorkoutId)
     : query.is("athlete_confirmed_at", null);
-
   const { data: reportRows } = await query;
-  const report = (reportRows ?? [])[0] as
-    | {
-        workout_id: string;
-        metrics_json: WorkoutMetricsSnapshot | null;
-        athlete_rpe: number | null;
-        athlete_feel: string | null;
-        athlete_report: string | null;
-      }
-    | undefined;
-  // Zonder momentopname is er niets te tonen; dat is een rapportage die langs de
-  // oude weg (het rapportage-paneel) is aangemaakt.
-  if (!report?.metrics_json?.plannedTitle) return null;
+  const reports = (reportRows ?? []) as PendingReviewReport[];
+  if (reports.length === 0) return null;
 
-  const { data: workout } = await viewer.supabase
+  const { data: workoutRows } = await viewer.supabase
     .from("training_workouts")
-    .select("id, title, description, scheduled_at")
-    .eq("id", report.workout_id)
-    .maybeSingle();
+    .select("id, title, description, scheduled_at, status, superseded_at")
+    .in(
+      "id",
+      reports.map((report) => report.workout_id),
+    );
+  const workouts = new Map(
+    ((workoutRows ?? []) as Array<PendingReviewWorkout & { id: string; title: string; description: string | null }>).map(
+      (row) => [row.id, row],
+    ),
+  );
+
+  const picked = requestedWorkoutId
+    ? reports.find((report) => report.metrics_json?.plannedTitle && workouts.has(report.workout_id))
+    : pickPendingReview(reports, workouts, todayKeyAmsterdam());
+  if (!picked?.paired_activity_id) return null;
+  const workout = workouts.get(picked.workout_id);
   if (!workout) return null;
+
+  // De rit die werkelijk gereden is: die beoordeelt het lid, niet de titel van
+  // het plan. En de trainingen waar hij ook bij kan horen, voor als het lid een
+  // training van een andere dag reed.
+  const { data: rideRow } = await viewer.supabase
+    .from("strava_activities")
+    .select("id, name, start_date, moving_time_seconds, distance_m")
+    .eq("profile_id", viewer.user.id)
+    .eq("id", picked.paired_activity_id)
+    .maybeSingle();
+
+  let candidates: PendingReview["candidates"] = [];
+  if (rideRow && !picked.athlete_confirmed_at) {
+    const rideDayKey = amsterdamDayKey(new Date(rideRow.start_date));
+    const from = new Date(`${rideDayKey}T12:00:00Z`);
+    from.setUTCDate(from.getUTCDate() - COMPLETION_WINDOW_DAYS);
+    const { data: openRows } = await viewer.supabase
+      .from("training_workouts")
+      .select("id, title, scheduled_at, intensity, status, origin")
+      .eq("profile_id", viewer.user.id)
+      .eq("status", "planned")
+      .is("superseded_at", null)
+      .gte("scheduled_at", from.toISOString())
+      .lte("scheduled_at", `${rideDayKey}T23:59:59Z`);
+    const open = openRows ?? [];
+    const { data: pairedRows } = open.length
+      ? await viewer.supabase
+          .from("training_workout_reports")
+          .select("workout_id")
+          .eq("profile_id", viewer.user.id)
+          .not("paired_activity_id", "is", null)
+          .in(
+            "workout_id",
+            open.map((row) => row.id),
+          )
+      : { data: [] };
+    candidates = reassignCandidates(
+      open,
+      rideDayKey,
+      picked.workout_id,
+      new Set((pairedRows ?? []).map((row) => row.workout_id)),
+    ).map((candidate) => ({
+      workoutId: candidate.id,
+      label: `${candidate.title} · ${dayLabel(`${candidate.dayKey}T12:00:00Z`)}`,
+    }));
+  }
 
   return {
     workoutId: workout.id,
     title: workout.title,
-    dateLabel: new Date(workout.scheduled_at).toLocaleDateString("nl-NL", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      timeZone: "Europe/Amsterdam",
-    }),
+    dateLabel: dayLabel(workout.scheduled_at),
     description: workout.description,
-    metrics: report.metrics_json,
-    athleteRpe: report.athlete_rpe,
-    athleteFeel: report.athlete_feel,
-    athleteReport: report.athlete_report,
+    metrics: picked.metrics_json as WorkoutMetricsSnapshot,
+    athleteRpe: picked.athlete_rpe,
+    athleteFeel: picked.athlete_feel,
+    athleteReport: picked.athlete_report,
+    ride: rideRow
+      ? {
+          name: rideRow.name?.trim() || "Rit",
+          dateLabel: dayLabel(rideRow.start_date),
+          movingMinutes:
+            rideRow.moving_time_seconds == null
+              ? null
+              : Math.round(Number(rideRow.moving_time_seconds) / 60),
+          distanceKm:
+            rideRow.distance_m == null ? null : Math.round(Number(rideRow.distance_m) / 100) / 10,
+        }
+      : null,
+    candidates,
+    requested: Boolean(requestedWorkoutId),
   };
 }
 
@@ -502,6 +578,7 @@ export function planUpdateDefaults(
   return {
     planId: plan.id,
     planTitle: plan.title,
+    planEndDate: String(plan.end_date).slice(0, 10),
     goalType: goal.goal_type,
     targetDate: goal.target_date,
     maxHoursPerWeek:

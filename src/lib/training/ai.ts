@@ -177,6 +177,15 @@ export type TrainingAiInput = {
     actualName: string | null;
     actualMinutes: number | null;
     actualLoad: number | null; // TSS/training load indien bekend
+    /** De training van een andere dag waar de rit van gisteren voor telt, indien bekend. */
+    actualCountsFor?: {
+      date: string;
+      title: string;
+      intensity: string;
+      confirmed: boolean;
+    } | null;
+    /** Niet-gereden trainingen van de dagen vóór gisteren. */
+    recentlyMissed?: Array<{ date: string; title: string; intensity: string }>;
     /** Beleving en toelichting die het lid na deze training invulde. */
     athleteRpe: number | null;
     athleteFeel: string | null;

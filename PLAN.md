@@ -286,6 +286,20 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   API-verificatie of veldkalibratie uitgevoerd. Niets gepusht of gedeployd.
 <!-- /zwb-segment-explorer-round -->
 
+- **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
+  basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde
+  plannenboek" bovenaan het chronologische werkplan): de 22 meldingen uit het
+  gedeelde ZWBasis-plannenboek getrieerd en gericht aan de lokale code getoetst.
+  [Uitvoerbare prompt](docs/bugfix-agent-prompt-2026-09-13.md) met bronnummering,
+  acceptatiecriteria en onderscheid tussen code-aanwijzingen en bewezen oorzaken.
+  Eigenaar kiest eerst bugs, wensen apart; wijzigen van doeltype repareren.
+  De genoemde einddatum betreft de doeldatum/evenementdatum, niet de schemahorizon.
+  Geen applicatiecode aangepast of bugs als opgelost verklaard: dit was een
+  analyse-/overdrachtsronde. Bestaande lokale wijzigingen, waaronder de dagelijkse
+  schema-aanpassingsroute, behouden. Geen iPhone-reproductie, productiegegevens,
+  migratie-uitvoering of visuele screenshotverificatie; vragen over hersteldata
+  en annuleren staan nog open. Wensen blijven in Drive.
+
 - **Strava-webhooks en actief koppelingbeheer** (2026-09-05, commit `2c575b9`,
   migr. `0148`-`0151`): antwoord op Strava's **afwijzing** van onze aanvraag voor
   een hogere atletenlimiet. Die afwijzing stelde twee eisen — webhooks in plaats
@@ -890,6 +904,160 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — bugronde plannenboek (meldingen Jeroen, 4–13 september)
+
+**2026-09-13, lokaal op `main`, niet gepusht.** Migratie `0153` (niet lokaal
+uitgevoerd). Opdracht: [docs/bugfix-agent-prompt-2026-09-13.md](docs/bugfix-agent-prompt-2026-09-13.md);
+nummers hieronder zijn die uit het Drive-plannenboek. Eerst bugs, wensen apart.
+
+**1 — RPE-vraag leek willekeurig.** `loadPendingReview` koos de onbevestigde
+rapportage met de nieuwste `updated_at`. Die volgorde verschoof bij elke
+herberekende momentopname en elke opgeslagen opmerking; stond er een rapportage
+zónder momentopname bovenaan, dan viel het scherm helemaal weg. "Later" sloot
+alleen de dialoog, dus bij elke navigatie of verversing kwam hij terug. Nu kiest
+`pickPendingReview` (completion.ts) de nieuwste nog niet bevestigde, gekoppelde en
+niet vervangen training uit de afgelopen week. "Later" geldt per training voor de
+rest van de sessie (`sessionStorage`); de link uit de pushmelding opent altijd.
+*Open vraag aan eigenaar:* wanneer mag een uitgestelde vraag terugkomen? Een
+herinnertijd is productbeleid en is dus niet verzonnen.
+
+**14 en 17 — verschoven training, verkeerde vergelijking, "extra sweet spot".**
+Drie breuken in dezelfde keten:
+- `complianceForWorkouts` negeerde `paired_activity_id` en koppelde puur op
+  kalenderdag. Hij gebruikt nu `pairWorkoutsWithRides` (verhuisd naar
+  compliance.ts), inclusief koppelingen van workouts buiten het venster
+  (`loadRidePairings`). Een rit telt precies één keer; dezelfde rit twee keer in de
+  invoer ook. `WorkoutCompliance` kreeg `actualDate`/`actualName`.
+- `buildYesterdayContext` nam de langste rit van gisteren en vergeleek die met de
+  training van gisteren, gefilterd op het basisplan-id (dagaanpassingen wonen in
+  afgeleide plannen). Nu: profiel en datum, een vastgelegde koppeling gaat voor,
+  `actualCountsFor` zegt voor welke training van een andere dag de rit telde, en
+  `recentlyMissed` geeft de net gemiste trainingen mee. De dag- en
+  bijwerkprompt zeggen dat een verschoven training geen extra training is en dat
+  een gemiste training nooit belasting oplevert; herstel na werkelijke belasting
+  mag wel.
+- Het bevestigscherm toont nu de werkelijk gereden rit (naam, dag, duur, km) en
+  laat het lid kiezen welke training het was: de gekoppelde of een nog open
+  training uit de week tot en met de ritdag. `reassignRideToWorkout` verhuist rit,
+  momentopname (opnieuw tegen de gekozen training gerekend; CTL/gereedscore van
+  de ritdag blijven) en RPE/gevoel/opmerking; de oude training gaat terug naar
+  gepland. Volgorde claim → schrijven → loslaten, met terugdraaien bij een
+  schrijffout; trainerfeedback op de oude rij blijft staan.
+- In de maandkalender staat een gemiste training gedimd: historie, niet
+  achterstallig. Er is niets verwijderd.
+*Bewust niet gebouwd:* "dit was geen enkele geplande training". Dat vraagt een
+blijvende markering "deze rit niet aan deze training" (anders koppelt de detectie
+hem terug), dus een migratie; eerst aan de eigenaar voorleggen. Ook geen
+automatische conclusie "verschoven" zonder bevestiging: de AI krijgt de gemiste
+training alleen als mogelijkheid.
+
+**15 — veel automatische schema-updates.** De oorzaak (dagcheck die nooit iets
+vond) was al opgelost in `1839204`. Wat openstond: twee overlappende runs komen
+allebei door `handledToday` en zetten allebei een betaalde generatie uit.
+Migratie `0153` legt een unieke index op `training_ai_generations
+(parent_plan_id, adapt_from_date) where adaptation_kind = 'daily'` (vanaf
+2026-09-14, want 11–13 sep bevat tientallen dubbelen). `startBackgroundAdaptation`
+meldt een 23505 als `duplicate` vóór de OpenAI-call; de route telt dat als
+`already_started`, niet als mislukt. De daggrens van dagcheck en noodrem is een
+Amsterdamse dag, gelijk aan `adapt_from_date` (met UTC kon een run tussen 0 en 2
+uur 's nachts een tweede voorstel voor dezelfde dag geven). `plan_update` valt
+buiten de index. Afronden van generaties was al idempotent (unieke
+`training_plans.ai_generation_id`), dus ook de pushmelding gaat één keer.
+
+**22 — gevoel verdwijnt na opslaan.** Weergaveprobleem dat tot dataverlies
+leidde. React zet een formulier na een `<form action>` terug, en een `<select>`
+neemt een gewijzigde `defaultValue` bij een update niet over
+(react-dom `updateOptions` alleen bij mount). Na opslaan stond "-" in beeld terwijl
+de database "zwaar" had; een tweede keer opslaan (bijvoorbeeld na een opmerking)
+schreef `null`. Gereproduceerd in een tijdelijk harnas met de dev-server
+(Chromium), daarna verwijderd: oud patroon toont "-" en wist bij tweede opslag,
+nieuw patroon houdt "zwaar", ook na verversen. Beide formulieren (rapportage en
+bevestigscherm) versturen nu zelf in een transition, zodat ook bij een fout de
+invoer blijft staan; de select krijgt een `key` op het opgeslagen gevoel. Een
+onbekende gevoelwaarde is een fout. Een bevestiging die geen rij raakt is geen
+succes meer.
+
+**2 — gewijzigd doeltype.** Het doel wérd opgeslagen, maar: na een mislukte of
+geblokkeerde generatie was `planUpdate.changed` bij de volgende poging leeg (het
+doel stond al op de nieuwe waarde), het formulier toonde zonder verversen de oude
+keuze en stuurde die bij een nieuwe poging mee, en de prompt noemde alleen uren,
+dagen en datum als geldend terwijl `goal.title` en de oude samenvatting het oude
+doel noemden. Nu: `changedSinceSchedule` vergelijkt met de invoer van de generatie
+waar het lopende schema uit komt, het formulier ververst na elke respons, het
+doeltype wordt gevalideerd, en de prompt wijst `goal.type` aan als enige bron en
+zegt de opzet om te bouwen.
+
+**3 — gewijzigde doeldatum.** Een leeg datumveld hield door `??` de oude datum
+vast; nu wist het de datum. De prompt onderscheidt doeldatum en schema-einde:
+piek/taper op de nieuwe doeldatum als die binnen de periode valt, daarna herstel
+en onderhoud; ligt hij erna, geen taper. Een bijgewerkt schema eindigt nooit vóór
+de gevraagde periode (`planUpdateEndDate`), zodat publiceren alle oude workouts
+tot dat einde vervangt. Formulier: "Targetdatum" heet "Doeldatum" en de kop toont
+tot wanneer het schema loopt. *Bewust niet gebouwd:* de schemahorizon automatisch
+verlengen naar een latere doeldatum (AI-uitvoer is begrensd op 42 workouts, en
+horizon ≠ doeldatum). Voorleggen aan de eigenaar.
+
+**10 — annuleren doet raar.** Niet gereproduceerd; de melding is te vaag.
+Annuleren vóór verzenden deed al geen request. Aangepast: na annuleren schuift de
+ingeklapte kaart terug in beeld (op een telefoon stond je anders ineens verderop)
+en verdwijnt een oude resultaatmelding. Tijdens een lopende generatie blijft
+annuleren uit: een fetch afbreken stopt de servertaak niet. *Vraag:* wat gebeurde
+er precies, en was er al een generatie gestart?
+
+**4 — meerdere menu-opties actief.** `isActiveHref` matchte ook subroutes. Nieuw
+`activeHrefIn`: per lijst (desktop, mobiel paneel inclusief profiel en beheer,
+tabbalk) is alleen de meest specifieke link actief; een groep licht op als de
+actieve link erin zit. Querystrings tellen niet (usePathname).
+
+**5 — samengevoegde klimmen nog in oude indeling.** De routelader las
+`event_climbs` al; het plan zelf bleef de oude stukken houden en een GPX-route
+heeft geen routesync-tijd die dat verraadt. `route_snapshot` bewaart nu ook de
+km-grenzen per klim; `planLayoutMatchesRoute` herkent samenvoegen (ook bij plannen
+van vóór deze ronde, via het aantal klim-id's) en verleggen. Het plan heet dan
+verouderd; "Opnieuw doorrekenen" deelt in op de huidige klimmen en houdt de eigen
+doelen op stukken die gelijk bleven. Schuifregelaars opslaan maakt de oude
+indeling niet stil "actueel" meer. *Beperking:* een event met zowel Zwift-route
+als GPX gebruikt de Zwift-accenten; `event_climbs` telt daar niet.
+
+**8 — Marmotte als C-doel, niet te wijzigen.** De signalering "zet als C-doel"
+maakt een mikpunt op een event; opnieuw toevoegen gaf "gelukt" zonder iets te
+doen, en er was geen bewerkmogelijkheid of eventkeuze. Nu: prioriteit per mikpunt
+wijzigen in de lijst, en bij *Mikpunt toevoegen* een clubevent kiezen (titel en
+datum van het event, gelezen met de sessie van het lid). Bestaat het mikpunt al,
+dan wordt de prioriteit bijgewerkt en volgt een herziening. Alleen eigen rijen.
+Niet gedaan: bug 9 (event en mikpunt als één regel) was hiervoor niet nodig.
+
+**21 — Voor mij verbergt aanmeldingen.** `MemberFit` kende alleen afmeldingen. Nu
+houden een RSVP "ja", "beschikbaar" voor een teamrit en een plek in de opstelling
+(`team_event_lineups`) een event onder Voor mij, ook buiten interesse, team of
+grenzen. Een "nee" wint. "Misschien" telt niet als aanmelding (ongewijzigd;
+*vraag* aan eigenaar of dat zo moet). Toegang blijft RLS: het filter maakt niets
+zichtbaar dat niet al in de lijst stond.
+
+**20 — hersteldata.** Keten intervals → wellness → gereedscore → herstelkaart
+nagelopen; geen aantoonbare fout gevonden (ontbrekend blijft `null`, oude
+readiness vervalt na `READINESS_MAX_AGE_DAYS`). Niets gewijzigd. *Vraag:* welke
+waarden ontbreken, van welk apparaat, op welk scherm, en staat de opt-in aan?
+Verificatiestap: `intervals_connections.wellness_opt_in` en de laatste
+wellness-dagen van dit lid in intervals.icu bekijken.
+
+**Hulp.** `/hulp` (kalender: aanmeldingen onder Voor mij; jaarplan: event kiezen
+en prioriteit wijzigen) en de zoekindex bijgewerkt.
+
+**Verificatie.** Vitest volledig groen (993 geslaagd, 6 overgeslagen), nieuw:
+`nav-active`, `shifted-workout`, `reassign-ride`, `daily-adaptation-concurrency`
+(twee echt gelijktijdige runs tegen een stub met de index uit `0153`, gemockte
+OpenAI), `plan-update-goal`, `season-target-event`, `pacing-layout`, uitgebreid
+`event-fit`. `tsc --noEmit` schoon op eigen code, eslint op gewijzigde bestanden
+schoon, `npm run build` geslaagd. Playwright-smoke: 16 geslaagd, 1 faalt al
+(`/verhaal` zoekt een kop die niet meer in de code staat). *Niet geverifieerd:*
+geen iPhone/PWA, geen WebKit (niet geïnstalleerd), geen ingelogde schermen in de
+browser (geen testaccount), geen productiedata, geen echte generatie, migratie
+`0153` niet uitgevoerd. Na uitvoeren: de verificatiequery's onderaan de migratie.
+
+**Deploy-volgorde.** Code en `0153` zijn onafhankelijk: zonder index werkt de
+code, zonder de databasegrendel.
+
 ### Opgeleverd — de adaptatie-cron zette elk kwartier een nieuw voorstel uit
 
 **2026-09-13, commit `1839204` op `main`, gepusht.** Geen migratie.
@@ -915,12 +1083,13 @@ naar elk kwartier.
 **Wat er veranderde.**
 - De dagcheck (`handledToday`) kijkt nu ook naar `training_ai_generations`: een
   `daily`- of `plan_update`-generatie met dit schema als `parent_plan_id` sinds
-  middernacht UTC. Die rij wordt vóór de OpenAI-call geschreven en bestaat dus
+  middernacht (sinds de bugronde plannenboek: Amsterdamse middernacht, eerst
+  UTC). Die rij wordt vóór de OpenAI-call geschreven en bestaat dus
   altijd. `.maybeSingle()` is `.limit(1)` geworden; dat brak bij twee rijen.
 - De `queued`-inserts in `training_adaptation_runs` zijn weg, want ze zijn nooit
   gelukt. Het spoor van een uitgezette generatie is de generatierij zelf.
 - Noodrem: hoogstens `TRAINING_ADAPTATION_MAX_PER_DAY` (standaard 25)
-  dagvoorstellen per UTC-dag over alle leden samen. Is die op, dan meldt de
+  dagvoorstellen per dag (inmiddels een Amsterdamse dag) over alle leden samen. Is die op, dan meldt de
   route `daily_cap_reached`. Herzieningen tellen niet mee.
 
 **Bewust niet gedaan.**

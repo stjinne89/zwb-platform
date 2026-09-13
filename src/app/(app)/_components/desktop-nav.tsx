@@ -10,8 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  activeHrefIn,
   isActiveGroup,
-  isActiveHref,
+  navHrefs,
   type NavLeaf,
   type NavNode,
 } from "./nav-config";
@@ -40,6 +41,7 @@ function NavLink({ item, active }: { item: NavLeaf; active: boolean }) {
 
 export function DesktopNav({ nodes }: { nodes: NavNode[] }) {
   const pathname = usePathname();
+  const activeHref = activeHrefIn(pathname, navHrefs(nodes));
 
   return (
     <ul className="hidden flex-1 items-center gap-5 text-sm md:flex">
@@ -47,14 +49,11 @@ export function DesktopNav({ nodes }: { nodes: NavNode[] }) {
         if (node.type === "link") {
           return (
             <li key={node.href}>
-              <NavLink
-                item={node}
-                active={isActiveHref(pathname, node.href)}
-              />
+              <NavLink item={node} active={node.href === activeHref} />
             </li>
           );
         }
-        const groupActive = isActiveGroup(pathname, node);
+        const groupActive = isActiveGroup(activeHref, node);
         return (
           <li key={node.label}>
             <DropdownMenu>
@@ -77,7 +76,7 @@ export function DesktopNav({ nodes }: { nodes: NavNode[] }) {
                         href={item.href}
                         {...linkTarget(item)}
                         className={
-                          isActiveHref(pathname, item.href)
+                          item.href === activeHref
                             ? "font-medium"
                             : undefined
                         }

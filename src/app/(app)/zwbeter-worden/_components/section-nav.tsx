@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isActiveHref } from "../../_components/nav-config";
+import { activeHrefIn } from "../../_components/nav-config";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 import { cn } from "@/lib/utils";
 
@@ -25,11 +25,18 @@ export function SectionNav({
 }) {
   const pathname = usePathname();
   const indexHref = exactHref ?? items[0]?.href;
+  // De index telt alleen exact; verder wint de meest specifieke tab.
+  const activeHref =
+    pathname === indexHref
+      ? indexHref
+      : activeHrefIn(
+          pathname,
+          items.map((item) => item.href).filter((href) => href !== indexHref),
+        );
   return (
     <ScrollTabs variant="panel" ariaLabel="Subnavigatie">
       {items.map((item) => {
-        const active =
-          item.href === indexHref ? pathname === item.href : isActiveHref(pathname, item.href);
+        const active = item.href === activeHref;
         return (
           <Link
             key={item.href}

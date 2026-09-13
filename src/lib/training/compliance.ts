@@ -31,6 +31,13 @@ export type WorkoutCompliance = {
   workoutId: string;
   date: string;
   title: string;
+  /**
+   * Kalenderdag (Amsterdam) en naam van de rit die bij deze training hoort.
+   * Wijkt die dag af van `date`, dan is de training verschoven gereden: dezelfde
+   * prikkel op een andere dag, geen extra training.
+   */
+  actualDate: string | null;
+  actualName: string | null;
   plannedMinutes: number | null;
   plannedLoad: number | null;
   plannedIntensity: string;
@@ -138,37 +145,104 @@ export type ReportForCompliance = {
   athlete_rpe: number | null;
   athlete_feel: string | null;
   athlete_report: string | null;
+  /** De vastgelegde rit bij deze training, als die er is. */
+  paired_activity_id?: string | null;
+};
+
+/** Wat de koppeling van een workout nodig heeft: wanneer, en hoe lang gepland. */
+export type WorkoutForPairing = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
 };
 
 /**
- * Pure koppeling van geplande workouts aan gereden ritten. De match loopt via de
- * kalenderdag in Amsterdam-tijd en, bij meerdere ritten op één dag, via de
- * rijtijd die het dichtst bij de geplande duur ligt.
+ * Welke rit bij welke workout hoort. Elke workout claimt hooguit één rit van die
+ * dag, en een geclaimde rit is voor de volgende workout van tafel — anders zou
+ * een tweede training op dezelfde dag dezelfde rit nog eens opeisen.
+ *
+ * Een workout die al een `paired_activity_id` heeft, houdt die rit: die
+ * koppeling is vastgelegd en weegt zwaarder dan wat we hier opnieuw zouden
+ * uitrekenen. Alle vastgelegde ritten gaan er daarom vooraf af, zodat een
+ * workout zonder koppeling er niet alsnog eentje wegkaapt. Staat de vastgelegde
+ * rit niet meer in de bron, dan blijft de workout zonder rit — opnieuw matchen
+ * zou de bevestigde koppeling stilzwijgend vervangen.
+ *
+ * `pairedActivityIds` mag ook koppelingen bevatten van workouts die niet in
+ * `workouts` staan; die halen alleen hun rit van tafel. Zo telt een rit die het
+ * lid aan de training van donderdag hing niet nóg eens voor de training van
+ * vrijdag, ook als donderdag buiten het venster van de aanroeper valt.
+ *
+ * Staat dezelfde rit twee keer in `rides` (overlappende queries), dan telt hij één keer.
+ */
+export function pairWorkoutsWithRides<T extends StravaRideRow>(
+  workouts: WorkoutForPairing[],
+  rides: T[],
+  pairedActivityIds: ReadonlyMap<string, string | null | undefined>,
+): Map<string, T | null> {
+  const used = new Set<string>();
+  for (const id of pairedActivityIds.values()) {
+    if (id != null && id !== "") used.add(String(id));
+  }
+  const ridesById = new Map(rides.map((ride) => [String(ride.id), ride]));
+  const uniqueRides = [...ridesById.values()];
+
+  const pairs = new Map<string, T | null>();
+  for (const workout of workouts) {
+    const paired = pairedActivityIds.get(workout.id);
+    if (paired != null && paired !== "") {
+      pairs.set(workout.id, ridesById.get(String(paired)) ?? null);
+      continue;
+    }
+    const match = pickRideForWorkout(
+      uniqueRides.filter((ride) => !used.has(String(ride.id))),
+      workout.scheduled_at,
+      workout.duration_minutes ?? null,
+    );
+    pairs.set(workout.id, match);
+    if (match) used.add(String(match.id));
+  }
+  return pairs;
+}
+
+/**
+ * Pure koppeling van geplande workouts aan gereden ritten, via
+ * pairWorkoutsWithRides: een vastgelegde koppeling uit de rapportage gaat voor,
+ * verder de kalenderdag in Amsterdam-tijd en bij meerdere ritten de rijtijd die
+ * het dichtst bij de geplande duur ligt.
+ *
+ * Tot 13 september 2026 negeerde deze functie vastgelegde koppelingen. Een lid
+ * dat de training van donderdag op vrijdag reed en die rit aan donderdag hing,
+ * zag de AI dan donderdag als niet gereden lezen en vrijdag als afwijking van
+ * de training die daar gepland stond.
  */
 export function complianceForWorkouts(
   workouts: PlannedWorkoutForCompliance[],
   rides: StravaRideRow[],
   ftpWatts: number | null,
   reports: Map<string, ReportForCompliance> = new Map(),
+  /** Koppelingen van workouts buiten `workouts`; zie pairWorkoutsWithRides. */
+  otherPairings: ReadonlyMap<string, string | null | undefined> = new Map(),
 ): WorkoutCompliance[] {
-  const used = new Set<number>();
-
-  return workouts
+  const sorted = workouts
     .filter((workout) => workout.intensity !== "rest")
-    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
-    .map((workout) => {
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+  const pairings = new Map(otherPairings);
+  for (const [workoutId, report] of reports) {
+    if (report.paired_activity_id) pairings.set(workoutId, report.paired_activity_id);
+  }
+  // Een rit kan maar bij één workout horen; anders zou een dubbele training op
+  // één dag twee keer als "gereden" tellen.
+  const pairs = pairWorkoutsWithRides(sorted, rides, pairings);
+
+  return sorted.map((workout) => {
       const plannedMinutes = workout.duration_minutes ?? null;
       const blocks = normalizeWorkoutBlocks(
         workout.structure_json,
         workout.intensity as WorkoutIntensity,
       );
       const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks, ftpWatts) : null;
-
-      // Een rit kan maar bij één workout horen; zonder deze filter zou een
-      // dubbele training op één dag twee keer als "gereden" tellen.
-      const available = rides.filter((row) => !used.has(row.id));
-      const match = pickRideForWorkout(available, workout.scheduled_at, plannedMinutes);
-      if (match) used.add(match.id);
+      const match = pairs.get(workout.id) ?? null;
 
       const metrics = match
         ? rideMetricsFromStrava(match.raw, match.moving_time_seconds, ftpWatts)
@@ -178,8 +252,10 @@ export function complianceForWorkouts(
 
       return {
         workoutId: workout.id,
-        date: String(workout.scheduled_at).slice(0, 10),
+        date: amsterdamDayKey(new Date(workout.scheduled_at)),
         title: workout.title,
+        actualDate: match ? amsterdamDayKey(new Date(match.start_date)) : null,
+        actualName: match?.name ?? null,
         plannedMinutes,
         plannedLoad,
         plannedIntensity: workout.intensity,
@@ -249,6 +325,29 @@ export function planIsBeingIgnored(workouts: WorkoutCompliance[], streak = 4): b
   return workouts.slice(-streak).every((workout) => workout.verdict === "niet_gereden");
 }
 
+/**
+ * Alle vastgelegde koppelingen (workoutId → Strava-id) voor deze ritten, ook van
+ * workouts buiten het venster van de aanroeper. Zie pairWorkoutsWithRides.
+ */
+export async function loadRidePairings(
+  admin: Admin,
+  profileId: string,
+  rides: Pick<StravaRideRow, "id">[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(rides.map((ride) => String(ride.id)))];
+  if (ids.length === 0) return new Map();
+  const { data } = await admin
+    .from("training_workout_reports")
+    .select("workout_id, paired_activity_id")
+    .eq("profile_id", profileId)
+    .in("paired_activity_id", ids);
+  return new Map(
+    ((data ?? []) as Array<{ workout_id: string; paired_activity_id: string | null }>)
+      .filter((row) => row.paired_activity_id)
+      .map((row) => [row.workout_id, String(row.paired_activity_id)]),
+  );
+}
+
 export async function buildComplianceContext(
   admin: Admin,
   profileId: string,
@@ -278,22 +377,27 @@ export async function buildComplianceContext(
   const workouts = (workoutRows ?? []) as PlannedWorkoutForCompliance[];
   if (workouts.length === 0) return null;
 
-  const { data: reportRows } = await admin
-    .from("training_workout_reports")
-    .select("workout_id, athlete_rpe, athlete_feel, athlete_report")
-    .in(
-      "workout_id",
-      workouts.map((workout) => workout.id),
-    );
+  const rides = (rideRows ?? []) as StravaRideRow[];
+  const [{ data: reportRows }, otherPairings] = await Promise.all([
+    admin
+      .from("training_workout_reports")
+      .select("workout_id, athlete_rpe, athlete_feel, athlete_report, paired_activity_id")
+      .in(
+        "workout_id",
+        workouts.map((workout) => workout.id),
+      ),
+    loadRidePairings(admin, profileId, rides),
+  ]);
   const reports = new Map(
     ((reportRows ?? []) as ReportForCompliance[]).map((row) => [row.workout_id, row]),
   );
 
   const result = complianceForWorkouts(
     workouts,
-    (rideRows ?? []) as StravaRideRow[],
+    rides,
     profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
     reports,
+    otherPairings,
   );
   return { workouts: result, summary: summarizeCompliance(result) };
 }

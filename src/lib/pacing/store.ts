@@ -17,7 +17,12 @@ import { buildBaselinePlan } from "@/lib/pacing/baseline";
 import { evaluatePlan, type PlanEvaluation, type PlanSegment } from "@/lib/pacing/plan";
 import type { RiderContext } from "@/lib/pacing/draft";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
-import { buildAssumptions, type PlanAssumptions } from "@/lib/pacing/staleness";
+import {
+  buildAssumptions,
+  planLayoutMatchesRoute,
+  type PlanAssumptions,
+  type RouteLayoutSnapshot,
+} from "@/lib/pacing/staleness";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -49,7 +54,7 @@ export type StoredPlan = {
   segments: PlanSegment[];
   assumptions: PlanAssumptions | null;
   summary: PlanSummary | null;
-  route_snapshot: { totalKm: number; accentIds: string[] } | null;
+  route_snapshot: RouteLayoutSnapshot | null;
   notes: string | null;
   shared: boolean;
   ai_generation_id: string | null;
@@ -77,10 +82,17 @@ export function summarize(
   };
 }
 
-export function routeSnapshot(route: PacingRoute) {
+export function routeSnapshot(route: PacingRoute): RouteLayoutSnapshot {
+  const km = (value: number) => Math.round(value * 1000) / 1000;
   return {
     totalKm: Math.round(route.totalKm * 100) / 100,
     accentIds: route.accents.map((accent) => accent.id),
+    // De grenzen erbij, zodat een verlegde klim het plan ook verouderd maakt.
+    accents: route.accents.map((accent) => ({
+      id: accent.id,
+      startKm: km(accent.startKm),
+      endKm: km(accent.endKm),
+    })),
   };
 }
 
@@ -112,6 +124,8 @@ export async function savePlan(
     strategy?: string | null;
     risks?: string[];
     notes?: string[];
+    /** De route waar de stukken bij horen, als dat niet de huidige is. */
+    routeSnapshot?: RouteLayoutSnapshot | null;
   },
 ) {
   const { error } = await admin.from("event_pacing_plans").upsert(
@@ -120,7 +134,7 @@ export async function savePlan(
       profile_id: input.profileId,
       source: input.source,
       segments: input.segments,
-      route_snapshot: routeSnapshot(input.route),
+      route_snapshot: input.routeSnapshot ?? routeSnapshot(input.route),
       assumptions: input.assumptions,
       summary: summarize(
         input.evaluation,
@@ -218,8 +232,31 @@ export async function recomputePlan(
   },
 ) {
   const { rebalancePlan } = await import("@/lib/pacing/plan");
-  const rebalanced = rebalancePlan(
+
+  // Zijn de klimmen van de route veranderd, dan past de oude indeling er niet
+  // meer op. Dan de indeling van de huidige route, met de eigen doelen van het
+  // lid overgenomen op elk stuk dat precies gelijk is gebleven. Het lid drukt hier
+  // zelf op de knop; stil op de achtergrond gebeurt dit nooit.
+  const layoutChanged = !planLayoutMatchesRoute(
+    input.plan.route_snapshot,
     input.plan.segments,
+    input.route,
+  );
+  const startSegments = layoutChanged
+    ? carryTargetsOver(
+        input.plan.segments,
+        buildBaselinePlan({
+          route: input.route,
+          model: input.rider.model,
+          riderType: input.rider.riderType,
+          curve: input.rider.curve,
+          durability: input.rider.durability,
+        }).plan,
+      )
+    : input.plan.segments;
+
+  const rebalanced = rebalancePlan(
+    startSegments,
     input.route,
     input.rider.model,
     input.rider.curve,
@@ -242,11 +279,29 @@ export async function recomputePlan(
     notes: [
       ...rebalanced.adjustments,
       ...rebalanced.clampNotes.map(clampNoteText),
-      "Opnieuw doorgerekend met je huidige gegevens.",
+      layoutChanged
+        ? "Opnieuw ingedeeld op de huidige klimmen; je eigen doelen staan nog op de stukken die gelijk bleven."
+        : "Opnieuw doorgerekend met je huidige gegevens.",
     ],
   });
 
   return rebalanced;
+}
+
+/**
+ * Nieuwe indeling, oude keuzes: elk nieuw stuk dat qua grenzen en accent
+ * precies gelijk is aan een oud stuk houdt het doel dat het lid daar had.
+ * De rest krijgt het voorstel van de nieuwe indeling.
+ */
+export function carryTargetsOver(previous: PlanSegment[], next: PlanSegment[]): PlanSegment[] {
+  const same = (a: PlanSegment, b: PlanSegment) =>
+    Math.abs(a.startKm - b.startKm) <= 0.05 &&
+    Math.abs(a.endKm - b.endKm) <= 0.05 &&
+    (a.accentId ?? null) === (b.accentId ?? null);
+  return next.map((segment) => {
+    const kept = previous.find((old) => same(old, segment));
+    return kept ? { ...segment, targetWkg: kept.targetWkg, effort: kept.effort } : segment;
+  });
 }
 
 /** Rekent een door het lid bewerkt plan door en bewaart het. */
@@ -278,6 +333,16 @@ export async function saveEditedPlan(
     aiGenerationId: input.plan.ai_generation_id,
     strategy: input.plan.summary?.strategy ?? null,
     risks: input.plan.summary?.risks ?? [],
+    // Een schuifregelaar verzetten verandert de indeling niet. Hoorde die bij een
+    // oudere route, dan blijft dat zo vastgelegd; anders verdween de melding
+    // "verouderd" zodra het lid iets opsloeg, terwijl de stukken nog oud waren.
+    routeSnapshot: planLayoutMatchesRoute(
+      input.plan.route_snapshot,
+      input.segments,
+      input.route,
+    )
+      ? null
+      : input.plan.route_snapshot,
   });
 
   if (input.notes !== null) {

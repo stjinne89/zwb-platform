@@ -10,6 +10,7 @@ const OPEN: MemberFit = {
   interests: [],
   teamIds: [],
   declinedEventIds: new Set<string>(),
+  committedEventIds: new Set<string>(),
   maxDistanceKm: null,
   maxElevationM: null,
   ceilingSource: "onbekend",
@@ -103,12 +104,62 @@ describe("eventFitsMember", () => {
   });
 });
 
+describe("aanmeldingen onder Voor mij", () => {
+  // Melding 21 (plannenboek, 13 september): Voor mij toonde niet alles waarvoor
+  // het lid zich had aangemeld, omdat interesse en afgeleide grenzen die events
+  // gewoon wegfilterden.
+  const strict: MemberFit = {
+    ...OPEN,
+    interests: ["zrl"],
+    teamIds: ["team-a"],
+    maxDistanceKm: 120,
+    maxElevationM: 1500,
+  };
+  const marmotte = {
+    id: "marmotte",
+    type: "gran_fondo",
+    distance_km: 177,
+    elevation_m: 5000,
+  };
+
+  it("houdt een event met een ja staan buiten interesse en grenzen", () => {
+    expect(eventFitsMember(marmotte, strict)).toEqual({ fits: false, reason: "interest" });
+    const committed = { ...strict, committedEventIds: new Set(["marmotte"]) };
+    expect(eventFitsMember(marmotte, committed)).toEqual({ fits: true });
+  });
+
+  it("houdt een teamrit van een ander team staan als je bent opgesteld", () => {
+    const event = { id: "zrl-1", type: "zrl", team_id: "team-b" };
+    expect(eventFitsMember(event, strict)).toEqual({ fits: false, reason: "team" });
+    const committed = { ...strict, committedEventIds: new Set(["zrl-1"]) };
+    expect(eventFitsMember(event, committed).fits).toBe(true);
+  });
+
+  it("laat een nee winnen en filtert overige events gewoon", () => {
+    const member = {
+      ...strict,
+      committedEventIds: new Set(["marmotte"]),
+      declinedEventIds: new Set(["marmotte"]),
+    };
+    expect(eventFitsMember(marmotte, member)).toEqual({ fits: false, reason: "declined" });
+    const other = { ...strict, committedEventIds: new Set(["marmotte"]) };
+    expect(
+      eventFitsMember({ id: "andere-fondo", type: "gran_fondo", distance_km: 200 }, other),
+    ).toEqual({ fits: false, reason: "interest" });
+  });
+
+  it("zonder antwoord gelden de gewone regels", () => {
+    expect(eventFitsMember({ ...marmotte, id: null }, { ...strict, committedEventIds: new Set(["marmotte"]) }).fits).toBe(false);
+  });
+});
+
 describe("resolveMemberFit", () => {
   it("leidt een plafond af uit de langste rit, met marge", () => {
     const member = resolveMemberFit({
       interests: null,
       teamIds: [],
       declinedEventIds: [],
+      committedEventIds: [],
       maxDistanceKm: null,
       maxElevationM: null,
       history: { rideCount: 40, longestKm: 100, biggestClimbM: 1000 },
@@ -123,6 +174,7 @@ describe("resolveMemberFit", () => {
       interests: null,
       teamIds: [],
       declinedEventIds: [],
+      committedEventIds: [],
       maxDistanceKm: null,
       maxElevationM: null,
       history: { rideCount: 3, longestKm: 40, biggestClimbM: 200 },
@@ -136,6 +188,7 @@ describe("resolveMemberFit", () => {
       interests: ["social"],
       teamIds: ["team-a"],
       declinedEventIds: [],
+      committedEventIds: [],
       maxDistanceKm: 80,
       maxElevationM: null,
       history: { rideCount: 40, longestKm: 200, biggestClimbM: 3000 },
@@ -151,6 +204,7 @@ describe("resolveMemberFit", () => {
       interests: [],
       teamIds: [],
       declinedEventIds: ["event-1"],
+      committedEventIds: [],
       maxDistanceKm: null,
       maxElevationM: null,
       history: null,
@@ -164,6 +218,7 @@ describe("resolveMemberFit", () => {
       interests: [],
       teamIds: [],
       declinedEventIds: [],
+      committedEventIds: [],
       maxDistanceKm: null,
       maxElevationM: null,
       history: null,

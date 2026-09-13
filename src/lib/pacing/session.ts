@@ -29,7 +29,12 @@ import {
   startGeneration,
   type StoredPlan,
 } from "@/lib/pacing/store";
-import { checkStaleness, type Staleness } from "@/lib/pacing/staleness";
+import {
+  checkStaleness,
+  planLayoutMatchesRoute,
+  withLayoutStaleness,
+  type Staleness,
+} from "@/lib/pacing/staleness";
 import { sharedPlanView, type SharedPlanView } from "@/lib/pacing/share";
 
 const EVENT_COLUMNS =
@@ -132,13 +137,16 @@ export async function loadPacingPage(
     return { ok: false, error: message || "Het pacingplan kon niet worden geladen." };
   }
 
-  const staleness = checkStaleness(plan.assumptions, {
-    cpWatts: ctx.rider.model.cpWatts,
-    wPrimeJoules: ctx.rider.model.wPrimeJoules,
-    ftpWatts: ctx.rider.ftpWatts,
-    weightKg: ctx.rider.model.weightKg,
-    routeSyncedAt: ctx.loaded.routeSyncedAt,
-  });
+  const staleness = withLayoutStaleness(
+    checkStaleness(plan.assumptions, {
+      cpWatts: ctx.rider.model.cpWatts,
+      wPrimeJoules: ctx.rider.model.wPrimeJoules,
+      ftpWatts: ctx.rider.ftpWatts,
+      weightKg: ctx.rider.model.weightKg,
+      routeSyncedAt: ctx.loaded.routeSyncedAt,
+    }),
+    planLayoutMatchesRoute(plan.route_snapshot, plan.segments, ctx.loaded.route),
+  );
 
   const [sharedPlans, similarRides] = await Promise.all([
     loadSharedPlans(ctx.admin, eventId, ctx.userId),

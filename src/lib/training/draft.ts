@@ -590,7 +590,9 @@ async function createPlanFromAiGeneration(
         ...planCautions.map((caution) => `${CAUTION_PREFIX}${caution}`),
       ].join("\n\n"),
       start_date: planDraft.startDate,
-      end_date: planDraft.endDate,
+      end_date: isPlanUpdate
+        ? planUpdateEndDate(planDraft.endDate, generation.prompt_summary)
+        : planDraft.endDate,
       status: "draft",
       source: "ai",
     })
@@ -862,7 +864,7 @@ export async function startTodayAdjustmentDraft(
     const [wellness, yesterday, recentLoad, intervalsLoad, availability, fixedWorkouts] =
       await Promise.all([
         wellnessForAi(admin, user.id).catch(() => null),
-        buildYesterdayContext(admin, user.id, active.id).catch(() => null),
+        buildYesterdayContext(admin, user.id).catch(() => null),
         buildRecentLoad(admin, user.id),
         buildIntervalsLoad(admin, user.id),
         availabilityForAi(admin, user.id, today, planTo),
@@ -964,6 +966,109 @@ export async function startTodayAdjustmentDraft(
       error: err instanceof Error ? err.message : "Aanpassing maken faalde.",
     };
   }
+}
+
+/**
+ * Einddatum van een bijgewerkt schema: minstens het einde van de periode waarom
+ * gevraagd is. Bij publiceren vervangt dit schema alles van adapt_from_date tot en
+ * met end_date. Liet de AI het schema eerder eindigen, bijvoorbeeld op een naar
+ * voren gehaalde doeldatum, dan bleven de oude workouts daarna gewoon staan naast
+ * wat hen had moeten vervangen.
+ */
+export function planUpdateEndDate(aiEndDate: string, promptSummary: string | null): string {
+  let requested: unknown;
+  try {
+    requested = (JSON.parse(promptSummary ?? "") as { planUpdate?: { toDate?: unknown } })
+      .planUpdate?.toDate;
+  } catch {
+    return aiEndDate;
+  }
+  if (typeof requested !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(requested)) return aiEndDate;
+  return requested > String(aiEndDate).slice(0, 10) ? requested : aiEndDate;
+}
+
+/**
+ * De doelrij na "schema bijwerken". Niet meegegeven velden (undefined) houden hun
+ * huidige waarde, zodat een aanroeper alleen hoeft mee te geven wat er verandert.
+ * De doeldatum mag expliciet leeg (null): met `??` bleef een gewiste datum
+ * stilletjes staan.
+ */
+export function applyGoalUpdates(
+  goal: {
+    max_hours_per_week: number | string | null;
+    desired_intensity: string;
+    goal_type: string;
+    target_date: string | null;
+    available_days: string[] | null;
+  },
+  goalUpdates: GoalUpdates | undefined,
+) {
+  return {
+    max_hours_per_week: goalUpdates?.max_hours_per_week ?? goal.max_hours_per_week,
+    desired_intensity: goalUpdates?.desired_intensity ?? goal.desired_intensity,
+    goal_type: goalUpdates?.goal_type ?? goal.goal_type,
+    target_date:
+      goalUpdates?.target_date === undefined ? goal.target_date : goalUpdates.target_date,
+    available_days: goalUpdates?.available_days ?? goal.available_days ?? [],
+  };
+}
+
+/** Wat het bijwerkformulier aan het doel wil veranderen. */
+export function goalUpdatesFromForm(formData: FormData): GoalUpdates {
+  const days = formData.getAll("available_days").map(String).filter(Boolean);
+  const text = (name: string) => String(formData.get(name) ?? "").trim() || null;
+  const hours = Number(String(formData.get("max_hours_per_week") ?? "").replace(",", "."));
+  return {
+    max_hours_per_week:
+      text("max_hours_per_week") && Number.isFinite(hours) ? hours : undefined,
+    desired_intensity: text("desired_intensity") ?? undefined,
+    goal_type: text("goal_type") ?? undefined,
+    // Een leeg datumveld is een gewiste doeldatum; alleen een ontbrekend veld
+    // laat de huidige staan.
+    target_date: formData.has("target_date") ? text("target_date") : undefined,
+    available_days: days.length > 0 ? days : undefined,
+  };
+}
+
+/** Zelfde lijst als het doelformulier; de database kent een check op dezelfde waarden. */
+const GOAL_TYPE_VALUES = [
+  "zrl",
+  "ladder",
+  "outdoor_event",
+  "gran_fondo",
+  "ftp",
+  "base_fitness",
+  "rebuild",
+];
+
+/**
+ * Doeltype en doeldatum waarmee het lopende schema is gegenereerd, tegen de
+ * nieuwe waarden. Leest de AI-invoer van die generatie (prompt_summary); zonder
+ * leesbare invoer is er niets te vergelijken en komt er niets uit.
+ */
+export function changedSinceSchedule(
+  promptSummary: string | null,
+  after: { goal_type: string; target_date: string | null },
+): NonNullable<TrainingAiInput["planUpdate"]>["changed"] {
+  if (!promptSummary) return {};
+  let goal: { type?: unknown; targetDate?: unknown } | undefined;
+  try {
+    goal = (JSON.parse(promptSummary) as { goal?: typeof goal }).goal;
+  } catch {
+    return {};
+  }
+  if (!goal) return {};
+  const changed: NonNullable<TrainingAiInput["planUpdate"]>["changed"] = {};
+  if (typeof goal.type === "string" && goal.type !== after.goal_type) {
+    changed.goalType = [goal.type, after.goal_type];
+  }
+  const dateBefore =
+    typeof goal.targetDate === "string" && goal.targetDate ? goal.targetDate.slice(0, 10) : null;
+  const dateAfter = after.target_date ? String(after.target_date).slice(0, 10) : null;
+  if ("targetDate" in goal && dateBefore !== dateAfter) {
+    changed.targetDate = [dateBefore, dateAfter];
+  }
+  return changed;
 }
 
 /** Alleen de velden die daadwerkelijk veranderen, als [oud, nieuw]. */
@@ -1108,20 +1213,16 @@ async function preparePlanUpdate({
     return { ok: false, error: "Dit schema is al afgelopen; maak een nieuw schema." };
   }
 
-  // Leeg gelaten velden houden hun huidige waarde, zodat een aanroeper alleen
-  // hoeft mee te geven wat er verandert.
-  const updates = {
-    max_hours_per_week: goalUpdates?.max_hours_per_week ?? goal.max_hours_per_week,
-    desired_intensity: goalUpdates?.desired_intensity ?? goal.desired_intensity,
-    goal_type: goalUpdates?.goal_type ?? goal.goal_type,
-    target_date: goalUpdates?.target_date ?? goal.target_date,
-    available_days: goalUpdates?.available_days ?? goal.available_days ?? [],
-  };
-  const changed = changedGoalFields(goal, updates);
+  if (goalUpdates?.goal_type !== undefined && !GOAL_TYPE_VALUES.includes(goalUpdates.goal_type)) {
+    return { ok: false, error: "Ongeldig doeltype." };
+  }
+
+  const updates = applyGoalUpdates(goal, goalUpdates);
+  const changedInGoal = changedGoalFields(goal, updates);
 
   // Doel bijwerken vóór de generatie, zodat buildTrainingInput en elke volgende
   // generatie met de nieuwe uitgangspunten werken.
-  if (Object.keys(changed).length > 0) {
+  if (Object.keys(changedInGoal).length > 0) {
     const { error: goalError } = await admin
       .from("training_goals")
       .update(updates)
@@ -1148,13 +1249,31 @@ async function preparePlanUpdate({
   // week waarmee het ooit begon terwijl het doel allang op tien stond.
   const { data: newest } = await admin
     .from("training_plans")
-    .select("title, summary")
+    .select("title, summary, ai_generation_id")
     .eq("profile_id", plan.profile_id)
     .eq("root_plan_id", plan.root_plan_id ?? plan.id)
     .in("status", ["published", "approved"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // Wat er verandert ten opzichte van het doel waarmee het lopende schema is
+  // gemaakt, niet alleen ten opzichte van de doelrij van vlak voor deze klik.
+  // Dat verschil is er niet meer zodra het doel al is opgeslagen: bij een tweede
+  // poging na een mislukte generatie, of wanneer de knop net geblokkeerd was door
+  // een lopende herziening. De AI kreeg dan een lege `changed`, een oude
+  // samenvatting die "basisconditie" zei, en hield die opzet aan.
+  const { data: builtWith } = newest?.ai_generation_id
+    ? await admin
+        .from("training_ai_generations")
+        .select("prompt_summary")
+        .eq("id", newest.ai_generation_id)
+        .maybeSingle()
+    : { data: null };
+  const changed = {
+    ...changedSinceSchedule(builtWith?.prompt_summary ?? null, updates),
+    ...changedInGoal,
+  };
 
   const input = await buildTrainingInput(admin, plan.profile_id, plan.goal_id);
   input.planUpdate = {
@@ -1305,7 +1424,8 @@ export async function startBackgroundAdaptation(args: {
     timeoutMs?: number;
   };
 }): Promise<
-  { ok: true; generationId: string; status: TrainingDraftStatus } | { ok: false; error: string }
+  | { ok: true; generationId: string; status: TrainingDraftStatus }
+  | { ok: false; error: string; duplicate?: boolean }
 > {
   const options = {
     reasoningEffort: args.options?.reasoningEffort ?? ("low" as const),
@@ -1330,7 +1450,11 @@ export async function startBackgroundAdaptation(args: {
     })
     .select("id")
     .single();
-  if (aiError) return { ok: false, error: aiError.message };
+  // 23505: een gelijktijdige run heeft dit voorstel net uitgezet (migratie 0153).
+  // Dat is geen fout, en er gaat dus ook geen tweede OpenAI-call uit.
+  if (aiError) {
+    return { ok: false, error: aiError.message, duplicate: aiError.code === "23505" };
+  }
   const generationId = aiRow.id as string;
 
   let background: Awaited<ReturnType<typeof startTrainingPlanDraftBackground>>;
@@ -1444,20 +1568,13 @@ export async function startPlanUpdateDraft(formData: FormData): Promise<Training
       (await canCoach(admin, user.id, plan.profile_id));
     if (!authorized) return { ok: false, error: "Geen trainer-toegang voor dit lid." };
 
-    const days = formData.getAll("available_days").map(String).filter(Boolean);
     return await startPlanUpdate({
       admin,
       planId,
       actorId: user.id,
       reason: optionalString(formData.get("reason")) ?? "Schema bijgewerkt.",
       authorized: true,
-      goalUpdates: {
-        max_hours_per_week: optionalNumber(formData.get("max_hours_per_week")) ?? undefined,
-        desired_intensity: optionalString(formData.get("desired_intensity")) ?? undefined,
-        goal_type: optionalString(formData.get("goal_type")) ?? undefined,
-        target_date: optionalString(formData.get("target_date")) ?? undefined,
-        available_days: days.length > 0 ? days : undefined,
-      },
+      goalUpdates: goalUpdatesFromForm(formData),
     });
   } catch (err) {
     return {

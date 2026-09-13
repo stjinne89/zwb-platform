@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import {
   SEASON_PERIOD_LABELS,
+  SEASON_PRIORITIES,
   SEASON_PRIORITY_LABELS,
   type SeasonEvent,
   type SeasonPeriod,
   type SeasonPlanBar,
   type SeasonTarget,
 } from "@/lib/training/season";
-import { deleteSeasonPeriod, deleteSeasonTarget } from "../_actions";
+import { deleteSeasonPeriod, deleteSeasonTarget, updateSeasonTarget } from "../_actions";
 
 type Item =
   | { kind: "target"; date: string; target: SeasonTarget }
@@ -111,11 +112,11 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
   const [fout, setFout] = useState<string | null>(null);
   const verleden = item.date < today;
 
-  function verwijder(fn: () => Promise<{ ok: boolean; error?: string } | null>) {
+  function voerUit(fn: () => Promise<{ ok: boolean; error?: string } | null>) {
     setFout(null);
     startTransition(async () => {
       const result = await fn();
-      if (result && !result.ok) setFout(result.error ?? "Verwijderen faalde.");
+      if (result && !result.ok) setFout(result.error ?? "Opslaan faalde.");
     });
   }
 
@@ -131,10 +132,33 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
           <>
             <p className="text-sm font-medium">
               {item.target.title}{" "}
-              <span className="text-xs font-normal text-muted-foreground">
-                · {SEASON_PRIORITY_LABELS[item.target.priority]}
-              </span>
+              {editable ? null : (
+                <span className="text-xs font-normal text-muted-foreground">
+                  · {SEASON_PRIORITY_LABELS[item.target.priority]}
+                </span>
+              )}
             </p>
+            {editable ? (
+              <select
+                aria-label={`Prioriteit van ${item.target.title}`}
+                defaultValue={item.target.priority}
+                key={item.target.priority}
+                disabled={pending}
+                onChange={(event) => {
+                  const formData = new FormData();
+                  formData.set("id", item.target.id);
+                  formData.set("priority", event.target.value);
+                  voerUit(() => updateSeasonTarget(formData));
+                }}
+                className="mt-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+              >
+                {SEASON_PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {SEASON_PRIORITY_LABELS[priority]}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             {item.target.note ? (
               <p className="mt-1 text-sm text-muted-foreground">{item.target.note}</p>
             ) : null}
@@ -183,7 +207,7 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
           aria-label="Verwijderen"
           disabled={pending}
           onClick={() =>
-            verwijder(() => {
+            voerUit(() => {
               const formData = new FormData();
               if (item.kind === "target") {
                 formData.set("id", item.target.id);

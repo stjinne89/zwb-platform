@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState, type FormEvent } from "react";
 import {
   saveWorkoutReportWithState,
   type WorkoutReportActionState,
@@ -36,13 +36,20 @@ export function WorkoutReportForm({
           ? state.message
           : "";
 
+  // Zelf versturen in plaats van <form action>. Na een form action zet React
+  // het formulier terug op zijn beginwaarden, en een <select> onthoudt daarbij
+  // de keuze van de eerste render: het gevoel sprong na opslaan terug naar "-"
+  // terwijl het wel in de database stond. Een volgende keer opslaan wiste het
+  // dan echt. Zo blijft staan wat het lid koos, ook als opslaan faalt.
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setDirty(false);
+    startTransition(() => action(formData));
+  }
+
   return (
-    <form
-      action={action}
-      className="space-y-2"
-      onChange={() => setDirty(true)}
-      onSubmit={() => setDirty(false)}
-    >
+    <form onSubmit={onSubmit} className="space-y-2" onChange={() => setDirty(true)}>
       <input type="hidden" name="workout_id" value={workoutId} />
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs text-muted-foreground">
@@ -58,7 +65,15 @@ export function WorkoutReportForm({
         </label>
         <label className="text-xs text-muted-foreground">
           Gevoel
-          <select name="athlete_feel" defaultValue={feel ?? ""} className={FIELD}>
+          {/* key: komt er van buitenaf een ander opgeslagen gevoel binnen (het
+              bevestigscherm), dan opnieuw opbouwen; een select neemt een
+              gewijzigde defaultValue anders niet over. */}
+          <select
+            key={feel ?? ""}
+            name="athlete_feel"
+            defaultValue={feel ?? ""}
+            className={FIELD}
+          >
             <option value="">-</option>
             <option value="goed">Goed</option>
             <option value="neutraal">Neutraal</option>

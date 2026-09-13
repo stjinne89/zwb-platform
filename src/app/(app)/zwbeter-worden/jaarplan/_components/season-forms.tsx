@@ -6,25 +6,38 @@
 import { useState } from "react";
 import { CalendarRange, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SEASON_PERIOD_LABELS, SEASON_PRIORITY_LABELS } from "@/lib/training/season";
+import {
+  SEASON_PERIOD_LABELS,
+  SEASON_PRIORITY_LABELS,
+  type SeasonEvent,
+} from "@/lib/training/season";
 import { createSeasonPeriod, createSeasonTarget } from "../_actions";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
-export function SeasonForms({ todayKey }: { todayKey: string }) {
+export function SeasonForms({
+  todayKey,
+  events,
+}: {
+  todayKey: string;
+  /** Clubevents waar het lid ja of misschien op zei en die nog geen mikpunt zijn. */
+  events: SeasonEvent[];
+}) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <TargetForm todayKey={todayKey} />
+      <TargetForm todayKey={todayKey} events={events} />
       <PeriodForm todayKey={todayKey} />
     </div>
   );
 }
 
-function TargetForm({ todayKey }: { todayKey: string }) {
+function TargetForm({ todayKey, events }: { todayKey: string; events: SeasonEvent[] }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
+  // Met een event gekozen komen titel en datum van het event.
+  const [eventId, setEventId] = useState("");
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,6 +51,7 @@ function TargetForm({ todayKey }: { todayKey: string }) {
       return;
     }
     form.reset();
+    setEventId("");
     setOpen(false);
   }
 
@@ -55,20 +69,42 @@ function TargetForm({ todayKey }: { todayKey: string }) {
 
       {open ? (
         <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="sm:col-span-2 text-sm">
-            Titel
-            <input name="title" required className={`mt-1 ${FIELD}`} />
-          </label>
-          <label className="text-sm">
-            Datum
-            <input
-              type="date"
-              name="target_date"
-              required
-              defaultValue={todayKey}
-              className={`mt-1 ${FIELD}`}
-            />
-          </label>
+          {events.length > 0 ? (
+            <label className="sm:col-span-2 text-sm">
+              Event
+              <select
+                name="event_id"
+                value={eventId}
+                onChange={(event) => setEventId(event.target.value)}
+                className={`mt-1 ${FIELD}`}
+              >
+                <option value="">Geen</option>
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.title} · {event.date}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {eventId ? null : (
+            <>
+              <label className="sm:col-span-2 text-sm">
+                Titel
+                <input name="title" required className={`mt-1 ${FIELD}`} />
+              </label>
+              <label className="text-sm">
+                Datum
+                <input
+                  type="date"
+                  name="target_date"
+                  required
+                  defaultValue={todayKey}
+                  className={`mt-1 ${FIELD}`}
+                />
+              </label>
+            </>
+          )}
           <label className="text-sm">
             Prioriteit
             <select name="priority" defaultValue="b" className={`mt-1 ${FIELD}`}>

@@ -18,6 +18,7 @@ import {
   STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
 
 /**
@@ -64,7 +65,7 @@ const STALE_GENERATION_MAX_HOURS = 18;
 const MAX_STALE_GENERATIONS_PER_RUN = 10;
 
 /**
- * Noodrem: zoveel dagvoorstellen mag deze cron per UTC-dag hoogstens uitzetten,
+ * Noodrem: zoveel dagvoorstellen mag deze cron per Amsterdamse dag hoogstens uitzetten,
  * over alle leden samen. Herzieningen vallen erbuiten; die hebben een eigen
  * plafond per run en verdwijnen zodra het verzoek is ingelost.
  *
@@ -141,6 +142,10 @@ async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>)
  * bezetten werd stilletjes geweigerd. Elke kwartierrun zag dan niets en startte
  * een nieuwe generatie. De generatierij wordt vóór de OpenAI-call geschreven en
  * is er dus altijd.
+ *
+ * Dit is een snelle voorselectie, geen grendel: tussen deze check en de insert
+ * zitten seconden. Twee overlappende runs houdt de unieke index uit migratie 0153
+ * uit elkaar; startBackgroundAdaptation meldt dat als `duplicate`.
  */
 async function handledToday(
   admin: ReturnType<typeof createAdminClient>,
@@ -397,8 +402,12 @@ export async function POST(request: Request) {
 
     let planUpdatesRun = 0;
     let generationsStarted = 0;
-    const today = new Date().toISOString().slice(0, 10);
-    const dayStart = `${today}T00:00:00.000Z`;
+    // Eén dag is een Amsterdamse dag, net als adapt_from_date van het voorstel.
+    // Met een UTC-grens kon een run tussen 00:00 en 02:00 's nachts (zomertijd)
+    // nog als "gisteren" tellen en daarna na middernacht UTC een tweede voorstel
+    // voor dezelfde Amsterdamse dag uitzetten.
+    const today = amsterdamDayKey();
+    const dayStart = amsterdamWallTimeToIso(today, "00:00") ?? `${today}T00:00:00.000Z`;
     let dailyStartedToday = await generationsStartedToday(admin, dayStart);
 
     for (const plan of await latestPlanCandidates(admin)) {
@@ -511,7 +520,7 @@ export async function POST(request: Request) {
         const [wellness, yesterday, recent, intervalsLoad, availability, fixedWorkouts] =
           await Promise.all([
             wellnessForAi(admin, plan.profile_id).catch(() => null),
-            buildYesterdayContext(admin, plan.profile_id, plan.id).catch(() => null),
+            buildYesterdayContext(admin, plan.profile_id).catch(() => null),
             buildRecentLoad(admin, plan.profile_id),
             buildIntervalsLoad(admin, plan.profile_id),
             availabilityForAi(admin, plan.profile_id, today, planEnd),
@@ -597,6 +606,12 @@ export async function POST(request: Request) {
           options: { reasoningEffort: "low", minWorkouts: 1 },
         });
         generationsStarted += 1;
+
+        if (!started.ok && started.duplicate) {
+          // Een overlappende run was ons net voor. Niets te doen, niets te loggen.
+          results.push({ profileId: plan.profile_id, status: "already_started" });
+          continue;
+        }
 
         if (!started.ok) {
           await admin.from("training_adaptation_runs").insert({

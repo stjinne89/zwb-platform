@@ -192,14 +192,40 @@ export function filterNavForPermissions(
   });
 }
 
-/** Helper: is een href de active route? Werkt voor zowel exact als nested. */
+/**
+ * Helper: valt pathname onder deze href? Exact of een subroute. Let op: op
+ * /zwbeter-worden/schema geldt dat voor zowel "/zwbeter-worden" als
+ * "/zwbeter-worden/schema". Markeer een link in een lijst daarom met
+ * activeHrefIn, niet hiermee.
+ */
 export function isActiveHref(pathname: string, href: string): boolean {
   if (href.startsWith("http")) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Helper: heeft deze groep een actief child? Voor highlight-state op trigger. */
-export function isActiveGroup(pathname: string, group: NavGroup): boolean {
-  return group.items.some((item) => isActiveHref(pathname, item.href));
+/**
+ * De ene link die in een lijst actief is: de meest specifieke href waaronder
+ * pathname valt. Zo is op /profiel/segments alleen "ZWB Segments" actief en
+ * niet ook "Profiel". Null als geen enkele link past.
+ */
+export function activeHrefIn(pathname: string, hrefs: readonly string[]): string | null {
+  let best: string | null = null;
+  for (const href of hrefs) {
+    if (!isActiveHref(pathname, href)) continue;
+    if (best === null || href.length > best.length) best = href;
+  }
+  return best;
+}
+
+/** Alle interne hrefs uit nav-nodes, groepen uitgevouwen. */
+export function navHrefs(nodes: readonly NavNode[]): string[] {
+  return nodes.flatMap((node) =>
+    node.type === "link" ? [node.href] : node.items.map((item) => item.href),
+  );
+}
+
+/** Helper: bevat deze groep de actieve link? Voor highlight-state op trigger. */
+export function isActiveGroup(activeHref: string | null, group: NavGroup): boolean {
+  return activeHref !== null && group.items.some((item) => item.href === activeHref);
 }

@@ -8,7 +8,8 @@ import { Menu, X } from "lucide-react";
 import { LogoutButton } from "./logout-button";
 import {
   AVATAR_NAV,
-  isActiveHref,
+  activeHrefIn,
+  navHrefs,
   type AdminNavItem,
   type NavLeaf,
   type NavNode,
@@ -18,14 +19,14 @@ import {
 // px-3 zet de tekst op 13px. De kopjes lijnen daarop uit met 2px rand + 11px.
 function MobileMenuItem({
   item,
-  pathname,
+  activeHref,
   close,
 }: {
   item: NavLeaf;
-  pathname: string;
+  activeHref: string | null;
   close: () => void;
 }) {
-  const active = isActiveHref(pathname, item.href);
+  const active = item.href === activeHref;
   return (
     <Link
       href={item.href}
@@ -67,6 +68,13 @@ export function MobileMenu({
   const originalBodyOverflow = useRef<string | null>(null);
   const pathname = usePathname();
   const close = () => setOpen(false);
+  // Eén actieve link in het hele paneel: de meest specifieke. Anders staan op
+  // /zwbeter-worden/schema zowel "Vandaag" als "Schema" gemarkeerd.
+  const activeHref = activeHrefIn(pathname, [
+    ...navHrefs(nodes),
+    ...AVATAR_NAV.map((item) => item.href),
+    ...adminItems.map((item) => item.href),
+  ]);
 
   // SSR-safe portal: pas mounten als de DOM beschikbaar is.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -141,7 +149,7 @@ export function MobileMenu({
                         <MobileMenuItem
                           key={node.href}
                           item={node}
-                          pathname={pathname}
+                          activeHref={activeHref}
                           close={close}
                         />
                       );
@@ -153,7 +161,7 @@ export function MobileMenu({
                           <MobileMenuItem
                             key={item.href}
                             item={item}
-                            pathname={pathname}
+                            activeHref={activeHref}
                             close={close}
                           />
                         ))}
@@ -168,7 +176,7 @@ export function MobileMenu({
                     <MobileMenuItem
                       key={item.href}
                       item={item}
-                      pathname={pathname}
+                      activeHref={activeHref}
                       close={close}
                     />
                   ))}
@@ -179,7 +187,7 @@ export function MobileMenu({
                       {adminItems.map((item) => (
                         <MobileMenuItem
                           key={item.href}
-                          pathname={pathname}
+                          activeHref={activeHref}
                           close={close}
                           item={{
                             type: "link",

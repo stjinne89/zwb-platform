@@ -34,7 +34,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { fitScheduleToAvailability } from "@/lib/training/availability-fit";
-import { reviewNotificationBody } from "@/lib/training/completion";
+import { reassignRideToWorkout, reviewNotificationBody } from "@/lib/training/completion";
 import {
   asFtpTestType,
   deleteFtpTest,
@@ -73,6 +73,15 @@ function optionalNumber(value: FormDataEntryValue | null) {
   if (!text) return null;
   const n = Number(text.replace(",", "."));
   return Number.isFinite(n) ? n : null;
+}
+
+const ATHLETE_FEELS = ["goed", "neutraal", "zwaar", "slecht"];
+
+/** Gevoel uit het formulier; een onbekende waarde is een fout, geen stille leegte. */
+function optionalFeel(value: FormDataEntryValue | null) {
+  const feel = optionalString(value);
+  if (feel && !ATHLETE_FEELS.includes(feel)) throw new Error("Ongeldig gevoel.");
+  return feel;
 }
 
 function mustString(value: FormDataEntryValue | null, label: string) {
@@ -628,7 +637,7 @@ export async function saveWorkoutReport(formData: FormData) {
     if (workout.profile_id !== user.id) throw new Error("Alleen de renner kan deze rapportage invullen.");
 
     const rpe = optionalNumber(formData.get("athlete_rpe"));
-    const feel = optionalString(formData.get("athlete_feel"));
+    const feel = optionalFeel(formData.get("athlete_feel"));
     const values = {
       workout_id: workoutId,
       profile_id: workout.profile_id,
@@ -1878,23 +1887,51 @@ export async function confirmWorkoutReview(formData: FormData) {
     }
 
     const rpe = optionalNumber(formData.get("athlete_rpe"));
-    const feel = optionalString(formData.get("athlete_feel"));
-    const { data: report, error } = await admin
-      .from("training_workout_reports")
-      .update({
-        athlete_rpe: rpe ? Math.max(1, Math.min(10, Math.round(rpe))) : null,
-        athlete_feel: feel,
-        athlete_report: optionalString(formData.get("athlete_report")),
-        athlete_confirmed_at: new Date().toISOString(),
-        updated_by: user.id,
-      })
-      .eq("workout_id", workoutId)
-      .eq("profile_id", user.id)
-      .select("metrics_json")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
+    const feel = optionalFeel(formData.get("athlete_feel"));
+    const athleteReport = optionalString(formData.get("athlete_report"));
+    const athleteRpe = rpe ? Math.max(1, Math.min(10, Math.round(rpe))) : null;
+    const confirmedAt = new Date().toISOString();
 
-    if (workout.trainer_id && workout.trainer_id !== user.id) {
+    // Het lid zegt dat de rit een andere training was, bijvoorbeeld die van
+    // gisteren. Dan verhuist de rit met wat het lid invulde naar die training.
+    const riddenWorkoutId = optionalString(formData.get("ridden_workout_id"));
+    let reviewed: { trainerId: string | null; title: string; metricsJson: unknown; workoutId: string };
+    if (riddenWorkoutId && riddenWorkoutId !== workoutId) {
+      const moved = await reassignRideToWorkout(admin, {
+        profileId: user.id,
+        fromWorkoutId: workoutId,
+        toWorkoutId: riddenWorkoutId,
+        review: { rpe: athleteRpe, feel, report: athleteReport },
+        confirmedAt,
+      });
+      if (!moved.ok) throw new Error(moved.error);
+      reviewed = { ...moved, workoutId: riddenWorkoutId };
+    } else {
+      const { data: report, error } = await admin
+        .from("training_workout_reports")
+        .update({
+          athlete_rpe: athleteRpe,
+          athlete_feel: feel,
+          athlete_report: athleteReport,
+          athlete_confirmed_at: confirmedAt,
+          updated_by: user.id,
+        })
+        .eq("workout_id", workoutId)
+        .eq("profile_id", user.id)
+        .select("metrics_json")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      // Geen rij geraakt is geen succes: dan is er niets bevestigd.
+      if (!report) throw new Error("Rapportage niet gevonden.");
+      reviewed = {
+        trainerId: workout.trainer_id,
+        title: workout.title,
+        metricsJson: report.metrics_json,
+        workoutId,
+      };
+    }
+
+    if (reviewed.trainerId && reviewed.trainerId !== user.id) {
       const { data: athlete } = await admin
         .from("profiles")
         .select("display_name")
@@ -1906,12 +1943,12 @@ export async function confirmWorkoutReview(formData: FormData) {
         {
           // De kern in het bericht zelf: zo ziet de trainer op zijn
           // vergrendelscherm al of er iets aan de hand is.
-          title: `${name} · ${workout.title}`,
-          body: reviewNotificationBody(report?.metrics_json, rpe, feel),
+          title: `${name} · ${reviewed.title}`,
+          body: reviewNotificationBody(reviewed.metricsJson, rpe, feel),
           url: `/zwbeter-worden/trainer?athlete=${user.id}`,
-          tag: `workout-reviewed-${workoutId}`,
+          tag: `workout-reviewed-${reviewed.workoutId}`,
         },
-        { profileIds: [workout.trainer_id] },
+        { profileIds: [reviewed.trainerId] },
       ).catch(() => null);
     }
 

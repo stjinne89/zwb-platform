@@ -168,6 +168,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ...memberWorkouts.map((workout) => {
       const report = reportsByWorkout.get(workout.id);
       const published = workout.publish_status === "published" && workout.intervals_event_id;
+      const outcome = workoutOutcome(workout, report, todayKey);
       return {
         id: workout.id,
         dateKey: String(workout.scheduled_at).slice(0, 10),
@@ -176,8 +177,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         intensity: workout.intensity,
         source: "zwb" as const,
         skipped: workout.status === "skipped",
+        missed: outcome === "gemist",
         detail: {
-          outcome: workoutOutcome(workout, report, todayKey),
+          outcome,
           description: workout.description,
           blocks: normalizeWorkoutBlocks(
             workout.structure_json,

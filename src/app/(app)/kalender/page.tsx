@@ -84,7 +84,9 @@ export default async function KalenderPage({
     { data: birthdayProfiles },
     { data: me },
     { data: myTeams },
-    { data: myDeclines },
+    { data: myRsvps },
+    { data: myTeamAvailability },
+    { data: myLineups },
   ] = await Promise.all([
       supabase
         .from("events")
@@ -108,15 +110,27 @@ export default async function KalenderPage({
       user
         ? supabase.from("team_members").select("team_id").eq("profile_id", user.id)
         : Promise.resolve({ data: null }),
-      // Je eigen "nee". Stond hier eerst niet, waardoor Voor mij events bleef
-      // tonen waar je je al voor had afgemeld — precies wat het filter zou
-      // moeten wegnemen.
+      // Je eigen "ja" en "nee". De nee stond hier eerst niet, waardoor Voor mij
+      // events bleef tonen waar je je al voor had afgemeld; de ja ontbrak tot
+      // 13 september, waardoor een afgeleide grens of interesse een rit
+      // verborg waar je je zelf voor had aangemeld.
       user
         ? supabase
             .from("event_rsvps")
+            .select("event_id, status")
+            .eq("profile_id", user.id)
+            .in("status", ["yes", "no"] satisfies RsvpStatus[])
+        : Promise.resolve({ data: null }),
+      // Teamritten meld je niet via de RSVP aan, maar op de teampagina.
+      user
+        ? supabase
+            .from("team_event_availability")
             .select("event_id")
             .eq("profile_id", user.id)
-            .eq("status", "no" satisfies RsvpStatus)
+            .eq("status", "available")
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase.from("team_event_lineups").select("event_id").eq("profile_id", user.id)
         : Promise.resolve({ data: null }),
     ]);
 
@@ -132,7 +146,14 @@ export default async function KalenderPage({
   const member = resolveMemberFit({
     interests: me?.event_type_interests ?? null,
     teamIds: (myTeams ?? []).map((row) => row.team_id),
-    declinedEventIds: (myDeclines ?? []).map((row) => row.event_id),
+    declinedEventIds: (myRsvps ?? [])
+      .filter((row) => row.status === "no")
+      .map((row) => row.event_id),
+    committedEventIds: [
+      ...(myRsvps ?? []).filter((row) => row.status === "yes").map((row) => row.event_id),
+      ...(myTeamAvailability ?? []).map((row) => row.event_id),
+      ...(myLineups ?? []).map((row) => row.event_id),
+    ],
     maxDistanceKm: me?.fit_max_distance_km ?? null,
     maxElevationM: me?.fit_max_elevation_m ?? null,
     history: rideHistory,

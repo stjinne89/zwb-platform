@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { requestReplan } from "@/lib/training/replan";
 import { SEASON_PERIOD_KINDS, SEASON_PRIORITIES } from "@/lib/training/season";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type SeasonActionState = { ok: boolean; error?: string } | null;
 
@@ -72,25 +73,54 @@ function mislukt(err: unknown, fallback: string): SeasonActionState {
 
 export async function createSeasonTarget(formData: FormData): Promise<SeasonActionState> {
   try {
-    const { user } = await currentUser();
+    const { supabase, user } = await currentUser();
     const admin = createAdminClient();
 
-    const title = mustString(formData.get("title"), "Titel");
-    const targetDate = mustDate(formData.get("target_date"), "Datum");
     const priority = mustPriority(formData.get("priority"));
     const eventId = optionalString(formData.get("event_id"));
 
-    // Hetzelfde clubevent twee keer op de tijdlijn is geen mikpunt maar een
-    // fout; de unieke index weigert het toch, dus vang het hier netjes af.
+    // Een mikpunt op een clubevent neemt titel en datum van het event over. Het
+    // event wordt gelezen met de sessie van het lid: wat die niet mag zien, kan
+    // hij ook niet als mikpunt kiezen.
+    let event: { title: string; start_at: string } | null = null;
+    if (eventId) {
+      const { data } = await supabase
+        .from("events")
+        .select("title, start_at")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (!data) throw new Error("Event niet gevonden.");
+      event = data;
+    }
+    const title = optionalString(formData.get("title")) ?? event?.title ?? null;
+    if (!title) throw new Error("Titel ontbreekt.");
+    const targetDate = event
+      ? amsterdamDayKey(new Date(event.start_at))
+      : mustDate(formData.get("target_date"), "Datum");
+
+    // Hetzelfde clubevent twee keer op de tijdlijn kan niet (unieke index). Staat
+    // het er al, dan is dit een wijziging van dat mikpunt: tot 13 september 2026
+    // gaf dit "gelukt" terug zonder iets te doen, waardoor een als C-doel
+    // toegevoegd event niet meer naar A kon.
     if (eventId) {
       const { data: bestaand } = await admin
         .from("training_season_targets")
-        .select("id")
+        .select("id, priority")
         .eq("profile_id", user.id)
         .eq("event_id", eventId)
         .maybeSingle();
       if (bestaand) {
-        revalidatePath("/zwbeter-worden", "layout");
+        if (bestaand.priority !== priority) {
+          const { error } = await admin
+            .from("training_season_targets")
+            .update({ priority, updated_by: user.id })
+            .eq("id", bestaand.id)
+            .eq("profile_id", user.id);
+          if (error) throw new Error(error.message);
+          await afterSeasonChange(user.id, `prioriteit van mikpunt "${title}" gewijzigd`);
+        } else {
+          revalidatePath("/zwbeter-worden", "layout");
+        }
         return { ok: true };
       }
     }

@@ -7,6 +7,10 @@
  * - **Een "nee" op de RSVP** is het meest expliciete signaal dat er is: het lid
  *   heeft over dit ene event al gezegd dat het niet meerijdt. Onder Alles blijft
  *   zo'n event gewoon staan, zodat je van gedachten kunt veranderen.
+ * - **Een "ja"** (RSVP, beschikbaar voor je team of opgesteld door de captain)
+ *   is net zo expliciet, andersom: het event blijft onder Voor mij staan, ook als
+ *   interesse, team of omvang het anders zou verbergen. "Misschien" is geen
+ *   toezegging en doet hier niets.
  * - **Interesse** is wat het lid zelf aanvinkt op zijn profiel. Niets
  *   aangevinkt betekent "alles interessant"; we raden interesse nooit.
  * - **Geschiktheid** leidt ZWB af: hoort het event bij een team waar je in
@@ -52,6 +56,8 @@ export type MemberFit = {
   teamIds: string[];
   /** Events waar het lid al "nee" op heeft geantwoord. */
   declinedEventIds: Set<string>;
+  /** Events waarvoor het lid zich heeft aangemeld; die blijven altijd staan. */
+  committedEventIds: Set<string>;
   /** Al inclusief marge als hij is afgeleid. Null = geen plafond bekend. */
   maxDistanceKm: number | null;
   maxElevationM: number | null;
@@ -88,6 +94,12 @@ function numberOrNull(value: number | string | null | undefined): number | null 
 export function eventFitsMember(event: FitEvent, member: MemberFit): FitResult {
   if (event.id && member.declinedEventIds.has(event.id)) {
     return { fits: false, reason: "declined" };
+  }
+  // Aangemeld is aangemeld: geen afgeleide grens of interesse mag een rit
+  // verbergen waar het lid zelf ja op zei. Toegang is al geregeld doordat het
+  // event in de (RLS-)lijst staat; dit filter maakt niets zichtbaar dat dat niet was.
+  if (event.id && member.committedEventIds.has(event.id)) {
+    return FITS;
   }
   if (event.team_id && !member.teamIds.includes(event.team_id)) {
     return { fits: false, reason: "team" };
@@ -128,6 +140,8 @@ export type MemberFitInput = {
   interests: string[] | null;
   teamIds: string[];
   declinedEventIds: string[];
+  /** Verplicht om dezelfde reden als declinedEventIds: een vergeten signaal is een stille bug. */
+  committedEventIds: string[];
   /** Uit het profiel; null betekent "leid maar af". */
   maxDistanceKm: number | null;
   maxElevationM: number | null;
@@ -168,6 +182,7 @@ export function resolveMemberFit(input: MemberFitInput): MemberFit {
     interests: (input.interests ?? []).filter(Boolean),
     teamIds: input.teamIds,
     declinedEventIds: new Set(input.declinedEventIds),
+    committedEventIds: new Set(input.committedEventIds),
     maxDistanceKm,
     maxElevationM,
     ceilingSource,

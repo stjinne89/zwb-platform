@@ -17,7 +17,8 @@ import {
   COMPLIANCE_LABELS,
   complianceVerdict,
   loadPercentage,
-  pickRideForWorkout,
+  loadRidePairings,
+  pairWorkoutsWithRides,
   type ComplianceVerdict,
 } from "@/lib/training/compliance";
 import {
@@ -260,53 +261,7 @@ type ExistingReport = {
   metrics_json: Partial<WorkoutMetricsSnapshot> | null;
 };
 
-/** Wat de koppeling van een workout nodig heeft: wanneer, en hoe lang gepland. */
-export type WorkoutForPairing = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number | null;
-};
-
-/**
- * Welke rit bij welke workout hoort. Elke workout claimt hooguit één rit van die
- * dag, en een geclaimde rit is voor de volgende workout van tafel — anders zou
- * een tweede training op dezelfde dag dezelfde rit nog eens opeisen.
- *
- * Een workout die al een `paired_activity_id` heeft, houdt die rit: die
- * koppeling is vastgelegd en weegt zwaarder dan wat we hier opnieuw zouden
- * uitrekenen. Alle vastgelegde ritten gaan er daarom vooraf af, zodat een
- * workout zonder koppeling er niet alsnog eentje wegkaapt. Staat de vastgelegde
- * rit niet meer in de bron, dan blijft de workout zonder rit — opnieuw matchen
- * zou de bevestigde koppeling stilzwijgend vervangen.
- */
-export function pairWorkoutsWithRides<T extends StravaRideRow>(
-  workouts: WorkoutForPairing[],
-  rides: T[],
-  pairedActivityIds: ReadonlyMap<string, string | null | undefined>,
-): Map<string, T | null> {
-  const used = new Set<string>();
-  for (const id of pairedActivityIds.values()) {
-    if (id != null && id !== "") used.add(String(id));
-  }
-  const ridesById = new Map(rides.map((ride) => [String(ride.id), ride]));
-
-  const pairs = new Map<string, T | null>();
-  for (const workout of workouts) {
-    const paired = pairedActivityIds.get(workout.id);
-    if (paired != null && paired !== "") {
-      pairs.set(workout.id, ridesById.get(String(paired)) ?? null);
-      continue;
-    }
-    const match = pickRideForWorkout(
-      rides.filter((ride) => !used.has(String(ride.id))),
-      workout.scheduled_at,
-      workout.duration_minutes ?? null,
-    );
-    pairs.set(workout.id, match);
-    if (match) used.add(String(match.id));
-  }
-  return pairs;
-}
+export { pairWorkoutsWithRides, type WorkoutForPairing } from "@/lib/training/compliance";
 
 /**
  * Zoekt workouts uit de afgelopen week waar een rit bij hoort, markeert die als
@@ -386,11 +341,14 @@ export async function detectCompletedWorkouts(
   });
   const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
 
-  const pairs = pairWorkoutsWithRides(
-    workouts,
-    rides,
-    new Map([...reports].map(([workoutId, row]) => [workoutId, row.paired_activity_id])),
+  // Ook koppelingen van workouts buiten het venster: een rit die het lid aan de
+  // training van een eerdere dag heeft gehangen, mag de training van de ritdag
+  // niet alsnog opeisen.
+  const pairings = new Map<string, string | null>(
+    await loadRidePairings(admin, profileId, rides).catch(() => new Map<string, string>()),
   );
+  for (const [workoutId, row] of reports) pairings.set(workoutId, row.paired_activity_id);
+  const pairs = pairWorkoutsWithRides(workouts, rides, pairings);
   const result: CompletionResult = { completed: 0, refreshed: 0, notified: 0, reverted: 0 };
 
   for (const workout of workouts) {
@@ -487,4 +445,297 @@ export async function detectCompletedWorkouts(
   }
 
   return result;
+}
+
+export type PendingReviewReport = {
+  workout_id: string;
+  paired_activity_id: string | null;
+  metrics_json: Partial<WorkoutMetricsSnapshot> | null;
+  athlete_rpe: number | null;
+  athlete_feel: string | null;
+  athlete_report: string | null;
+  athlete_confirmed_at: string | null;
+};
+
+export type PendingReviewWorkout = {
+  scheduled_at: string;
+  status: string;
+  superseded_at: string | null;
+};
+
+/**
+ * Welke training het bevestigscherm vraagt. Stabiel en uit te leggen: de
+ * nieuwste nog niet bevestigde training met een gekoppelde rit, uit de
+ * afgelopen week.
+ *
+ * Tot 13 september 2026 was dat "de rapportage die het laatst is bijgewerkt".
+ * Die volgorde verschoof bij elke herberekening van een momentopname en bij elke
+ * opgeslagen opmerking, en een rapportage zonder momentopname bovenaan liet het
+ * scherm helemaal wegvallen. Op een telefoon leek de vraag daardoor willekeurig
+ * te komen en te gaan. Een vervangen of weer op gepland gezette training, en een
+ * rit van weken terug, vragen niets meer.
+ */
+export function pickPendingReview<R extends PendingReviewReport>(
+  reports: R[],
+  workouts: ReadonlyMap<string, PendingReviewWorkout>,
+  todayKey: string,
+): R | null {
+  const earliest = new Date(`${todayKey}T12:00:00Z`);
+  earliest.setUTCDate(earliest.getUTCDate() - COMPLETION_WINDOW_DAYS);
+  const earliestKey = earliest.toISOString().slice(0, 10);
+
+  const eligible = reports.flatMap((report) => {
+    const workout = workouts.get(report.workout_id);
+    if (
+      !workout ||
+      report.athlete_confirmed_at ||
+      !report.paired_activity_id ||
+      !report.metrics_json?.plannedTitle ||
+      workout.status !== "completed" ||
+      workout.superseded_at
+    ) {
+      return [];
+    }
+    if (amsterdamDayKey(new Date(workout.scheduled_at)) < earliestKey) return [];
+    return [{ report, scheduledAt: workout.scheduled_at }];
+  });
+
+  eligible.sort(
+    (a, b) =>
+      new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime() ||
+      a.report.workout_id.localeCompare(b.report.workout_id),
+  );
+  return eligible[0]?.report ?? null;
+}
+
+/** Een training waar een gereden rit ook bij kan horen. */
+export type ReassignCandidate = {
+  id: string;
+  title: string;
+  dayKey: string;
+  intensity: string;
+};
+
+type CandidateWorkout = {
+  id: string;
+  scheduled_at: string;
+  title: string;
+  intensity: string;
+  status: string;
+  origin?: string | null;
+};
+
+/**
+ * Welke andere trainingen deze rit kan zijn geweest: nog niet gereden, niet
+ * als rustdag afgeschreven, geen rust en geen clubevent, en gepland in de week
+ * tot en met de ritdag. Een training die later gepland staat valt af: die staat
+ * nog open in het schema, en afvinken zou hem daar stilletjes laten verdwijnen.
+ *
+ * Nieuwste eerst: de training van gisteren is waarschijnlijker dan die van
+ * vorige week.
+ */
+export function reassignCandidates(
+  workouts: CandidateWorkout[],
+  rideDayKey: string,
+  currentWorkoutId: string,
+  pairedWorkoutIds: ReadonlySet<string>,
+): ReassignCandidate[] {
+  const earliest = new Date(`${rideDayKey}T12:00:00Z`);
+  earliest.setUTCDate(earliest.getUTCDate() - (COMPLETION_WINDOW_DAYS - 1));
+  const earliestKey = earliest.toISOString().slice(0, 10);
+
+  return workouts
+    .map((workout) => ({ workout, dayKey: amsterdamDayKey(new Date(workout.scheduled_at)) }))
+    .filter(
+      ({ workout, dayKey }) =>
+        workout.id !== currentWorkoutId &&
+        workout.status === "planned" &&
+        workout.intensity !== "rest" &&
+        workout.origin !== "event" &&
+        !pairedWorkoutIds.has(workout.id) &&
+        dayKey >= earliestKey &&
+        dayKey <= rideDayKey,
+    )
+    .sort((a, b) => b.workout.scheduled_at.localeCompare(a.workout.scheduled_at))
+    .map(({ workout, dayKey }) => ({
+      id: workout.id,
+      title: workout.title,
+      dayKey,
+      intensity: workout.intensity,
+    }));
+}
+
+/** Wat het lid bij de rit invulde; gaat mee naar de training waar de rit heen verhuist. */
+export type AthleteReview = {
+  rpe: number | null;
+  feel: string | null;
+  report: string | null;
+};
+
+export type ReassignResult =
+  | { ok: true; trainerId: string | null; title: string; metricsJson: WorkoutMetricsSnapshot }
+  | { ok: false; error: string };
+
+/**
+ * Het lid zegt: deze rit was niet de training die we eraan hingen, maar een
+ * andere. Typisch de training van donderdag, op vrijdag gereden. De rit, de
+ * cijfers en wat het lid invulde verhuizen naar die training; de training van
+ * de ritdag gaat terug naar gepland en telt daarmee als niet gereden, tenzij er
+ * die dag nog een rit is die er wél bij past.
+ *
+ * De volgorde is bewust: eerst de nieuwe training claimen (alleen zolang die nog
+ * op 'planned' staat), dan de rapportage schrijven, en pas daarna de oude
+ * loslaten. Faalt een stap halverwege, dan hangt de rit hooguit even aan twee
+ * trainingen en nooit aan geen enkele; een gelijktijdige detectierun deelt hem
+ * dan niet opnieuw uit, want vastgelegde koppelingen gaan daar voor.
+ *
+ * CTL en gereedscore komen uit de bestaande momentopname: die horen bij de dag
+ * van de rit, en die verandert niet.
+ */
+export async function reassignRideToWorkout(
+  admin: Admin,
+  input: {
+    profileId: string;
+    fromWorkoutId: string;
+    toWorkoutId: string;
+    review: AthleteReview;
+    confirmedAt: string;
+  },
+): Promise<ReassignResult> {
+  const { profileId, fromWorkoutId, toWorkoutId } = input;
+
+  const { data: fromReport } = await admin
+    .from("training_workout_reports")
+    .select("paired_activity_id, metrics_json, athlete_confirmed_at, trainer_feedback")
+    .eq("workout_id", fromWorkoutId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  const activityId = fromReport?.paired_activity_id ? String(fromReport.paired_activity_id) : null;
+  if (!activityId) return { ok: false, error: "Er hangt geen rit aan deze training." };
+  if (fromReport?.athlete_confirmed_at) {
+    return { ok: false, error: "Deze training is al bevestigd." };
+  }
+
+  const { data: ride } = await admin
+    .from("strava_activities")
+    .select(STRAVA_RIDE_COLUMNS)
+    .eq("profile_id", profileId)
+    .eq("id", activityId)
+    .maybeSingle();
+  if (!ride) return { ok: false, error: "De rit is niet meer gevonden." };
+  const rideRow = ride as unknown as StravaRideRow;
+  const rideDayKey = amsterdamDayKey(new Date(rideRow.start_date));
+
+  const { data: target } = await admin
+    .from("training_workouts")
+    .select(
+      "id, profile_id, trainer_id, scheduled_at, title, duration_minutes, intensity, target_type, structure_json, intervals_event_id, status, origin",
+    )
+    .eq("id", toWorkoutId)
+    .eq("profile_id", profileId)
+    .is("superseded_at", null)
+    .maybeSingle();
+  if (!target) return { ok: false, error: "Die training is niet gevonden." };
+
+  const { data: targetReport } = await admin
+    .from("training_workout_reports")
+    .select("paired_activity_id")
+    .eq("workout_id", toWorkoutId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  const allowed = reassignCandidates(
+    [target as CandidateWorkout],
+    rideDayKey,
+    fromWorkoutId,
+    new Set(targetReport?.paired_activity_id ? [toWorkoutId] : []),
+  );
+  if (allowed.length === 0) {
+    return { ok: false, error: "Deze rit kan niet bij die training horen." };
+  }
+
+  const { data: claimed } = await admin
+    .from("training_workouts")
+    .update({ status: "completed" })
+    .eq("id", toWorkoutId)
+    .eq("status", "planned")
+    .select("id");
+  if ((claimed ?? []).length === 0) {
+    return { ok: false, error: "Die training is intussen al afgerond." };
+  }
+
+  const previous = (fromReport?.metrics_json ?? {}) as Partial<WorkoutMetricsSnapshot>;
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("ftp_watts")
+    .eq("id", profileId)
+    .maybeSingle();
+  const targetRow = target as PlannedWorkoutRow;
+  const metrics = buildMetricsSnapshot({
+    workout: targetRow,
+    ride: rideRow,
+    ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ctl: { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null },
+    readiness: {
+      score: previous.readinessScore ?? null,
+      level: previous.readinessLevel ?? null,
+      title: previous.readinessTitle ?? null,
+    },
+  });
+
+  const { error: writeError } = await admin.from("training_workout_reports").upsert(
+    {
+      workout_id: toWorkoutId,
+      profile_id: profileId,
+      trainer_id: targetRow.trainer_id,
+      paired_activity_id: activityId,
+      intervals_event_id: targetRow.intervals_event_id,
+      metrics_json: metrics,
+      athlete_rpe: input.review.rpe,
+      athlete_feel: input.review.feel,
+      athlete_report: input.review.report,
+      athlete_confirmed_at: input.confirmedAt,
+      created_by: profileId,
+      updated_by: profileId,
+    },
+    { onConflict: "workout_id,profile_id" },
+  );
+  if (writeError) {
+    await admin
+      .from("training_workouts")
+      .update({ status: "planned" })
+      .eq("id", toWorkoutId)
+      .eq("status", "completed");
+    return { ok: false, error: writeError.message };
+  }
+
+  // De oude rapportage was de automatische koppeling. Feedback van een trainer
+  // gooien we niet weg: dan blijft de rij staan, zonder rit en cijfers.
+  if (fromReport?.trainer_feedback) {
+    await admin
+      .from("training_workout_reports")
+      .update({
+        paired_activity_id: null,
+        metrics_json: {},
+        athlete_rpe: null,
+        athlete_feel: null,
+        athlete_report: null,
+        updated_by: profileId,
+      })
+      .eq("workout_id", fromWorkoutId)
+      .eq("profile_id", profileId);
+  } else {
+    await admin
+      .from("training_workout_reports")
+      .delete()
+      .eq("workout_id", fromWorkoutId)
+      .eq("profile_id", profileId)
+      .is("athlete_confirmed_at", null);
+  }
+  await admin
+    .from("training_workouts")
+    .update({ status: "planned" })
+    .eq("id", fromWorkoutId)
+    .eq("status", "completed");
+
+  return { ok: true, trainerId: targetRow.trainer_id, title: targetRow.title, metricsJson: metrics };
 }

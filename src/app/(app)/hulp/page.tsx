@@ -77,6 +77,7 @@ const GUIDES = [
       "Gebruik de kalender voor groepsritten, ZRL, Ladder en socials.",
       "Met Voor mij toont de kalender alleen events die bij je passen: de eventtypes die je op je profiel aanvinkt, events van je eigen teams, en ritten binnen je grens voor afstand en hoogtemeters.",
       "Events waar je Nee op hebt geantwoord verdwijnen uit Voor mij. Onder Alles blijven ze staan, dus je kunt altijd van gedachten veranderen.",
+      "Heb je Ja gezegd, je beschikbaar gemeld voor je team of sta je in de opstelling, dan blijft het event onder Voor mij staan, ook als het buiten je interesses of grenzen valt. Misschien telt niet als aanmelding.",
       "Vink je geen enkel eventtype aan, dan telt alles als interessant en verbergt Voor mij niets op interesse.",
       "Vul je op je profiel geen max afstand of hoogtemeters in, dan leidt ZWB die grens af uit je langste rit van het afgelopen jaar, plus 20 procent. Zonder ritten in ZWB blijft die grens leeg en wordt er niets op omvang verborgen.",
       "Onder de knop staat wat er verborgen is en waarom; met Alles zie je de hele kalender weer.",
@@ -840,6 +841,12 @@ export default function HelpPage() {
               automatisch op de tijdlijn. Alleen een ja wordt een blok in je
               schema; misschien blijft een aantekening. Je trainer kan je
               jaarplan bekijken maar niet wijzigen.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Wil je zo&apos;n clubevent als mikpunt, kies het dan bij Mikpunt
+              toevoegen onder Event; titel en datum komen van het event. De
+              prioriteit van een mikpunt wijzig je in de lijst eronder. Dat geldt
+              alleen voor jouw jaarplan, niet voor dat van andere leden.
             </p>
           </article>
 

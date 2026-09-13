@@ -39,7 +39,14 @@ export default async function JaarplanPage() {
 
       <SeasonWarnings warnings={season.warnings} />
 
-      <SeasonForms todayKey={today} />
+      <SeasonForms
+        todayKey={today}
+        events={season.events.filter(
+          (event) =>
+            event.date >= today &&
+            !season.targets.some((target) => target.eventId === event.id),
+        )}
+      />
 
       <SeasonList
         today={season.today}

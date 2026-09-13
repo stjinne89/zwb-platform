@@ -18,6 +18,11 @@ export type CalendarWorkout = {
    */
   source: "zwb" | "intervals" | "rit";
   skipped?: boolean;
+  /**
+   * Geplande training waarvan de dag voorbij is zonder rit. Blijft staan als
+   * historie, maar mag er niet uitzien als iets dat nog gereden moet worden.
+   */
+  missed?: boolean;
 };
 
 function colorFor(workout: CalendarWorkout) {
@@ -32,6 +37,7 @@ function labelFor(workout: CalendarWorkout) {
   const intensity = (workout.intensity ?? "") as WorkoutIntensity;
   const parts = [
     workout.source === "rit" ? "gereden rit" : null,
+    workout.missed ? "niet gereden" : null,
     workout.durationMinutes ? `${workout.durationMinutes} min` : null,
     INTENSITY_LABELS[intensity] ?? null,
   ].filter(Boolean);
@@ -121,6 +127,7 @@ export function WorkoutCalendar({
                     onSelect ? "h-4 cursor-pointer transition hover:opacity-80" : "h-1.5",
                     ridden && "border border-dashed",
                     workout.skipped && "opacity-60 sm:line-through",
+                    workout.missed && "opacity-35",
                     selectedId === workout.id && "ring-2 ring-foreground ring-offset-1",
                   );
                   const color = colorFor(workout);

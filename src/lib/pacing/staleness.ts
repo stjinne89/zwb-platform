@@ -25,7 +25,76 @@ export type StaleReason =
   | "wprime"
   | "gewicht"
   | "ftp"
-  | "route";
+  | "route"
+  | "indeling";
+
+/** Kleiner dan dit is afronding, geen andere klim. */
+const LAYOUT_TOLERANCE_KM = 0.05;
+
+type LayoutAccent = { id: string; startKm: number; endKm: number };
+type LayoutSegment = { startKm: number; endKm: number; accentId?: string | null };
+export type RouteLayoutSnapshot = {
+  totalKm: number;
+  accentIds: string[];
+  /** Sinds 13 september 2026; oudere plannen hebben alleen de id's. */
+  accents?: LayoutAccent[];
+};
+
+/**
+ * Hoort de indeling van dit plan nog bij de klimmen van de route?
+ *
+ * Een plan bewaart zijn stukken met km-grenzen en de route zoals die toen was
+ * (route_snapshot). Voegt een beheerder klimmen samen of verlegt hij er een
+ * (event_climbs), dan tekent de pagina het profiel met de nieuwe klimmen, maar
+ * stonden eronder nog de oude stukken. Bij een GPX-route is er geen
+ * routesync-tijd die dat verraadt; vandaar deze vergelijking.
+ *
+ * Een plan van vóór 13 september kent alleen de accent-id's (klim-1, klim-2, …):
+ * samenvoegen verandert hun aantal, en dat is genoeg. Nieuwere plannen bewaren
+ * ook de km-grenzen, zodat een verlegde klim met hetzelfde aantal ook opvalt.
+ * Namen tellen niet: een hernoemde klim rekent hetzelfde.
+ */
+export function planLayoutMatchesRoute(
+  snapshot: RouteLayoutSnapshot | null | undefined,
+  segments: LayoutSegment[],
+  route: { totalKm: number; accents: LayoutAccent[] },
+): boolean {
+  const currentIds = new Set(route.accents.map((accent) => accent.id));
+  // Een stuk dat naar een klim verwijst die er niet meer is.
+  if (segments.some((segment) => segment.accentId && !currentIds.has(segment.accentId))) {
+    return false;
+  }
+  if (!snapshot) return true;
+  if (Math.abs(snapshot.totalKm - route.totalKm) > 0.1) return false;
+  if (
+    snapshot.accentIds.length !== route.accents.length ||
+    snapshot.accentIds.some((id, index) => route.accents[index]?.id !== id)
+  ) {
+    return false;
+  }
+  if (!snapshot.accents) return true;
+  return snapshot.accents.every((before, index) => {
+    const now = route.accents[index];
+    return (
+      now?.id === before.id &&
+      Math.abs(now.startKm - before.startKm) <= LAYOUT_TOLERANCE_KM &&
+      Math.abs(now.endKm - before.endKm) <= LAYOUT_TOLERANCE_KM
+    );
+  });
+}
+
+/** Voegt "de klimmen zijn veranderd" toe aan een verouderdoordeel. */
+export function withLayoutStaleness(staleness: Staleness, layoutMatches: boolean): Staleness {
+  if (layoutMatches) return staleness;
+  return {
+    stale: true,
+    reasons: [...staleness.reasons, "indeling"],
+    messages: [
+      ...staleness.messages,
+      "De klimmen van deze route zijn gewijzigd sinds dit plan is gemaakt.",
+    ],
+  };
+}
 
 export type Staleness = {
   stale: boolean;

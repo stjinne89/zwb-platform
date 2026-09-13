@@ -1,6 +1,7 @@
 "use client";
 
-import { type FormEvent, useCallback, useState } from "react";
+import { type FormEvent, useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAiDraftPoll, type DraftPayload } from "./use-ai-draft-poll";
@@ -24,9 +25,19 @@ const INTENSITY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "hard", label: "Ambitieus" },
 ];
 
+function formatEndDate(dayKey: string) {
+  return new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Amsterdam",
+  });
+}
+
 export type PlanUpdateDefaults = {
   planId: string;
   planTitle: string;
+  /** Einde van het schema (YYYY-MM-DD); niet hetzelfde als de doeldatum. */
+  planEndDate: string;
   goalType: string;
   targetDate: string | null;
   maxHoursPerWeek: number | null;
@@ -44,6 +55,10 @@ export function PlanUpdateForm({
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const router = useRouter();
+  // Na annuleren klapt het formulier in tot een regel. Op een telefoon stond je
+  // dan ineens een stuk verderop in de pagina; daarom terug naar de kaart.
+  const scrollBack = useRef(false);
 
   const onCompleted = useCallback(() => {
     setResult("Bijgewerkt schema staat klaar als concept — beoordeel en publiceer het.");
@@ -72,6 +87,10 @@ export function PlanUpdateForm({
       });
       const isJson = response.headers.get("content-type")?.includes("application/json");
       const payload = isJson ? ((await response.json()) as DraftPayload) : null;
+      // Het doel is op de server al opgeslagen voordat de generatie start, ook
+      // als die daarna faalt. Zonder verversen toonde het formulier bij opnieuw
+      // openen de oude keuze, en stuurde een volgende poging die weer mee.
+      router.refresh();
 
       if (!response.ok || !payload?.ok || !payload.generationId) {
         setError(payload?.error ?? "Schema bijwerken is mislukt.");
@@ -89,6 +108,12 @@ export function PlanUpdateForm({
     return (
       <div
         id="schema-bijwerken"
+        ref={(node) => {
+          if (node && scrollBack.current) {
+            scrollBack.current = false;
+            node.scrollIntoView({ block: "nearest" });
+          }
+        }}
         className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
       >
         <h3 className="flex items-center gap-2 font-semibold">
@@ -111,7 +136,7 @@ export function PlanUpdateForm({
         Schema bijwerken
       </h3>
       <p className="text-sm text-muted-foreground">
-        {defaults.planTitle} — vanaf vandaag tot de einddatum.
+        {defaults.planTitle} — t/m {formatEndDate(defaults.planEndDate)}
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -159,7 +184,7 @@ export function PlanUpdateForm({
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Targetdatum
+            Doeldatum
           </span>
           <input
             name="target_date"
@@ -193,8 +218,10 @@ export function PlanUpdateForm({
           size="sm"
           variant="ghost"
           onClick={() => {
+            scrollBack.current = true;
             setOpen(false);
             setError(null);
+            setResult(null);
           }}
           disabled={busy}
         >

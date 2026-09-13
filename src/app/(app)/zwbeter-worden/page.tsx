@@ -313,7 +313,9 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
       <AdjustTodayForm />
 
-      {pendingReview ? <WorkoutReviewDialog review={pendingReview} /> : null}
+      {pendingReview ? (
+        <WorkoutReviewDialog key={pendingReview.workoutId} review={pendingReview} />
+      ) : null}
 
       <StravaAttribution />
     </div>
