@@ -977,7 +977,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — pacingplan: hellingen, indeling en doorrekenen na klimwijziging
 
-**2026-09-13, working tree, niet gecommit.** Geen migratie.
+**2026-09-13, commit `f98c994` op `main`, gepusht.** Geen migratie.
 
 **Aanleiding.** Stijn vond de indeling vreemd, en Jeroen had op dezelfde
 Marmotte 2027 een heel ander plan. Productiedata (alleen gelezen): Stijns plan is
