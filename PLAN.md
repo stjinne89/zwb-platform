@@ -872,7 +872,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — de adaptatie-cron zette elk kwartier een nieuw voorstel uit
 
-**2026-09-13, commit volgt hieronder, op `main` (niet gepusht).** Geen migratie.
+**2026-09-13, commit `1839204` op `main`, gepusht.** Geen migratie.
 
 **Waarom.** Het OpenAI-verbruik schoot vanaf 11 september omhoog. Productiedata
 (alleen gelezen): `training_ai_generations` met `adaptation_kind = 'daily'` ging
@@ -916,6 +916,13 @@ naar elk kwartier.
 **Niet lokaal geverifieerd.** Typecheck en lint zijn schoon. De cronroute zelf
 draait tegen productie en is hier niet uitgevoerd. Controleer na deploy in
 `training_ai_generations` dat er per schema hoogstens één `daily` per dag bijkomt.
+
+**Cronfrequentie.** Stijn heeft de job op cron-job.org op 13 september van elk
+kwartier naar elke 12 uur gezet. Met de fix is vaker weer veilig, maar 12 uur
+heeft een prijs: dezelfde run haalt ook de achtergrondgeneraties op, dus een
+dagvoorstel staat er pas een run later, tot 12 uur na het starten. Per dag
+worden er hoogstens 6 gestart (2 runs keer `TRAINING_ADAPTATION_MAX_STARTS`).
+Openen van de schemapagina maakt een eigen hangende generatie wel direct af.
 
 Deze sectie is het actieve werkplan. De volgorde is gebaseerd op de huidige
 staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de

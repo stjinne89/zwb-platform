@@ -45,7 +45,7 @@ op cron-job.org.
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
-| Training-adaptaties (drafts) | cron-job.org | **elke 15 min** | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
+| Training-adaptaties (drafts) | cron-job.org | **elke 12 uur** (sinds 2026-09-13) | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
 | ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_ai_generations`), met een noodrem van `TRAINING_ADAPTATION_MAX_PER_DAY` (25) dagvoorstellen over alle leden samen | | | | |
 | ↳ de run heeft een wall-clock budget van 8 s, waarvan het ophalen hoogstens 60% mag kosten. Die reservering is er zodat een rij wachtende generaties niet elke run het hele budget opeet en er niets nieuws meer gestart wordt | | | | |
