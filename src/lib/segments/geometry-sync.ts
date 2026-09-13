@@ -16,12 +16,13 @@ export function trackFromStreams(streams: Record<string, { data?: unknown[] }>):
 }
 
 /** Bounded shared geometry job. Membership in this user's efforts grants the candidate set. */
-export async function syncSegmentGeometry(admin: SupabaseClient, token: string, profileId: string, limit = 3) {
+export async function syncSegmentGeometry(admin: SupabaseClient, token: string, profileId: string, limit = 3,
+  budget?: Parameters<typeof shouldPauseForRateLimit>[1]) {
   const candidates = await admin.rpc("segment_geometry_candidates", { p_profile: profileId, p_limit: Math.min(10, Math.max(0, limit)) });
   if (candidates.error) throw new Error(candidates.error.message);
   let fetched = 0, failed = 0, rateLimited = false;
   for (const row of candidates.data ?? []) {
-    if (shouldPauseForRateLimit(await loadRateLimitUsage(admin)).pause) { rateLimited = true; break; }
+    if (shouldPauseForRateLimit(await loadRateLimitUsage(admin), budget).pause) { rateLimited = true; break; }
     const get = async (path: string) => {
       const response = await fetch(`https://www.strava.com/api/v3/segments/${row.id}${path}`, {
         headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(8000),
@@ -42,7 +43,7 @@ export async function syncSegmentGeometry(admin: SupabaseClient, token: string, 
       const line = polyline ? decode(polyline) : [];
       const coordinates = line.length ? line : Array.isArray(detail.start_latlng) ? [detail.start_latlng] : [];
       let track: TrackPoint[] = [];
-      if (shouldPauseForRateLimit(await loadRateLimitUsage(admin)).pause) { rateLimited = true; break; }
+      if (shouldPauseForRateLimit(await loadRateLimitUsage(admin), budget).pause) { rateLimited = true; break; }
       const streams = await get("/streams?keys=latlng,distance,altitude&key_by_type=true");
       if (streams.status === 429) { rateLimited = true; break; }
       if (streams.ok) track = trackFromStreams(await streams.json());

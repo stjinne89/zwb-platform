@@ -42,6 +42,7 @@ op cron-job.org.
 | ↳ het zware nawerk (col-detector, ZWBlokken, milestones, segmenten) staat hier **uit**: dat hoort sinds de webhooks bij het webhook-pad, per binnengekomen rit. Met `?full=1` zet je het aan voor een eenmalige inhaalslag — reken dan op minuten en veel Strava-calls, dus alleen handmatig | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
 | Strava-webhookverwerking | cron-job.org | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
+| ↳ is de wachtrij leeg, dan vult dezelfde run binnen 8 s segmentpogingen van oude buitenritten aan (nieuwste eerst), en daarna segmentlijnen. Stopt vanzelf onder 50% van het kwartier- en 60% van het dagbudget. Voortgang staat als `segmentBackfill` in het antwoord (`remaining`, `stopped`); `stopped: "done"` met `remaining: 0` betekent klaar. Uitzetten zonder deploy: `?segmentBackfill=0` in de job-URL | | | | |
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |

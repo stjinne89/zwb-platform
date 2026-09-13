@@ -89,12 +89,39 @@ klassementen. Leesanalyse op productie:
   datapatroon, niet in de Strava-app nagespeeld.
 - Simulatie als alle negen leden tekenen: met het filter 1.745 segmenten met ≥2 rijders,
   zonder 3.671. Gravel/MTB toevoegen levert +1 op en is daarom niet gedaan.
-- Ingelezen dekking is laag (bijv. 56 van 1.433 activiteiten); aanvullen via /beheer/segments.
+- Ingelezen dekking is laag (bijv. 56 van 1.433 activiteiten). Aanvullen gebeurt sinds
+  dezelfde dag automatisch (zie "Automatische inhaalslag"); /beheer/segments blijft als
+  handmatige route bestaan.
 
 0154 vervangt de view met exact dezelfde voorwaarden minus `hidden`. De privacyverklaring
 noemde "verborgen pogingen" als uitsluiting; die zin somt nu de werkelijke uitsluitingen op.
 Geen nieuwe privacyversie: zelfde gegevenscategorie en ontvangers, en op het moment van
 wijzigen had alleen de eigenaar 2026-09-13 getekend.
+
+## Automatische inhaalslag (2026-09-13)
+
+Handmatig waren de ~6.000 open ritten van leden met een actieve koppeling ~1.200 klikken.
+`runScheduledSegmentBackfill` draait daarom mee in `POST /api/strava/webhook/process`
+(cron-job.org, elke 5 min). Bewust geen nieuwe cron-job: die had handmatig ingericht
+moeten worden, en een extra job kost extra Netlify-invocaties.
+
+- Alleen als de webhookrij leeg is en niet gelimiteerd; beide delen één budget van 8 s.
+  Geen nieuwe ritcall met minder dan 2,5 s over.
+- Goedgekeurde leden met actieve koppeling, Ride zonder trainer en zonder
+  `efforts_fetched_at`, nieuwste eerst over alle leden heen (max. 20 per run).
+- Budget: stopt bij 50% van het 15-minutenvenster of 60% van de daglimiet
+  (gemeten 400/4.000), zodat nieuwe ritten van leden nooit wachten.
+- Onvolledig antwoord (`skipped`): afgevinkt, anders blokkeert die rit de rij.
+  Tijdelijke fout (`failed`): blijft staan; na drie in één run stopt de run.
+  Dode token: lid overgeslagen, koppeling **niet** ingetrokken (dat blijft bij
+  webhook- en lifecycle-pad).
+- Pas als er geen ritten meer openstaan: twee segmentlijnen per run, per run een
+  ander lid (19.781 segmenten stonden op `pending`).
+
+Schatting, niet gemeten: ~5 ritten per run ≈ 1.400 per dag, dus ongeveer 4–5 dagen
+voor de ritten; de segmentlijnen daarna ~600 per dag, dus enkele weken. De werkelijke
+duur per ritcall op Netlify is niet bekend. Niet lokaal tegen Strava getest; wel
+unittests op de beslislogica en de databasequery's alleen-lezen tegen productie.
 
 ## Bewuste grenzen
 

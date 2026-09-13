@@ -7,10 +7,18 @@
 // is op serverless niet betrouwbaar — de invocatie wordt bevroren. Deze route is
 // idempotent en herstartbaar; blijven er events liggen, dan pakt de volgende run
 // ze op.
+//
+// Is de wachtrij leeg, dan gebruikt dezelfde run de resterende tijd voor de
+// segment-inhaalslag (runScheduledSegmentBackfill). Uitzetten zonder deploy: voeg
+// `?segmentBackfill=0` toe aan de URL van de cron-job.
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processStravaWebhookEvents } from "@/lib/strava/webhook-processor";
+import { runScheduledSegmentBackfill } from "@/lib/segments/scheduled-backfill";
 import { checkCronSecret } from "@/lib/cron/auth";
+
+/** Netlify kapt rond 10 s af; webhook-events en inhaalslag delen dit budget. */
+const RUN_BUDGET_MS = 8000;
 
 function positiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -31,10 +39,20 @@ export async function POST(request: Request) {
     200,
   );
 
+  const startedAt = Date.now();
   try {
     const admin = createAdminClient();
-    const result = await processStravaWebhookEvents(admin, { maxEvents });
-    return Response.json({ ok: true, ...result });
+    const result = await processStravaWebhookEvents(admin, { maxEvents, deadlineMs: RUN_BUDGET_MS });
+    let segmentBackfill: unknown = null;
+    if (url.searchParams.get("segmentBackfill") !== "0" && !result.remaining && !result.rateLimited) {
+      try {
+        segmentBackfill = await runScheduledSegmentBackfill(admin, { deadline: startedAt + RUN_BUDGET_MS });
+      } catch (err) {
+        // De webhookverwerking is gelukt; een mislukte inhaalslag probeert de volgende run.
+        segmentBackfill = { error: err instanceof Error ? err.message : "Segment-inhaalslag faalde." };
+      }
+    }
+    return Response.json({ ok: true, ...result, segmentBackfill });
   } catch (err) {
     return Response.json(
       {

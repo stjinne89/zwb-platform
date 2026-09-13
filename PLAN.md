@@ -318,6 +318,25 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   moet door de eigenaar gedraaid worden. Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-hidden-round -->
 
+<!-- zwb-segment-backfill-round -->
+- **Segmentpogingen automatisch aanvullen** (2026-09-13; lokaal gecommit, niet
+  gepusht; geen migratie). ~6.000 oude buitenritten misten segmentpogingen; via
+  `/beheer/segments` was dat ~1.200 klikken en de eigenaar wil niets handmatig. De
+  bestaande 5-minutenjob `/api/strava/webhook/process` vult nu bij een lege webhookrij
+  binnen het resterende 8 s-budget ritten aan (nieuwste eerst), en daarna segmentlijnen.
+  Eigen krappe Strava-budget (50% kwartier / 60% dag); onvolledige ritten worden
+  afgevinkt, tijdelijke fouten blijven staan, een dode token trekt niets in.
+  `?segmentBackfill=0` zet het uit zonder deploy.
+  **Niet gebouwd:** een aparte cron-job (handmatige inrichting en extra invocaties) en
+  een voortgangsscherm (het job-antwoord toont `remaining`). Oude `/api/segments/backfill`
+  en de knoppen op `/beheer/segments` blijven ongewijzigd.
+  Getest: 7 unittests op de beslislogica, 59 tests in de geraakte suites, lint, en
+  de databasequery's alleen-lezen tegen productie (10 leden, 6.044 open ritten). Niet
+  getest: echte Strava-calls en de looptijd op Netlify; de doorloop van 4–5 dagen is
+  een schatting. Pas zichtbaar na push/deploy. Details in
+  [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
+<!-- /zwb-segment-backfill-round -->
+
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde
   plannenboek" bovenaan het chronologische werkplan): de 22 meldingen uit het
