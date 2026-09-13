@@ -64,6 +64,22 @@ const STALE_GENERATION_MAX_HOURS = 18;
 const MAX_STALE_GENERATIONS_PER_RUN = 10;
 
 /**
+ * Noodrem: zoveel dagvoorstellen mag deze cron per UTC-dag hoogstens uitzetten,
+ * over alle leden samen. Herzieningen vallen erbuiten; die hebben een eigen
+ * plafond per run en verdwijnen zodra het verzoek is ingelost.
+ *
+ * De dagcheck hoort het al op één per schema te houden. Maar van 11 tot en met 13
+ * september 2026 werkte die niet en zette elke kwartierrun opnieuw een voorstel
+ * uit voor dezelfde schema's: zo'n 50 gpt-5.5-calls per dag voor drie leden. Een
+ * plafond op het totaal maakt zo'n fout voortaan een kleine rekening in plaats van
+ * een grote.
+ */
+const MAX_GENERATIONS_STARTED_PER_DAY = Math.max(
+  1,
+  Number.parseInt(process.env.TRAINING_ADAPTATION_MAX_PER_DAY ?? "", 10) || 25,
+);
+
+/**
  * Wall-clock budget voor de hele run.
  *
  * Netlify kapt een functie rond de tien seconden af, en dan is de respons weg —
@@ -115,6 +131,52 @@ async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>)
     .limit(25);
   if (error) throw new Error(error.message);
   return (data ?? []) as PlanRow[];
+}
+
+/**
+ * Heeft dit schema vandaag al een run of een generatie gehad?
+ *
+ * Op de generatie kijken en niet alleen op training_adaptation_runs: die tabel
+ * kent geen status 'queued', dus de rij die bij het uitzetten de dagcheck moest
+ * bezetten werd stilletjes geweigerd. Elke kwartierrun zag dan niets en startte
+ * een nieuwe generatie. De generatierij wordt vóór de OpenAI-call geschreven en
+ * is er dus altijd.
+ */
+async function handledToday(
+  admin: ReturnType<typeof createAdminClient>,
+  plan: PlanRow,
+  dayStart: string,
+): Promise<boolean> {
+  const [{ data: runs }, { data: generations }] = await Promise.all([
+    admin
+      .from("training_adaptation_runs")
+      .select("id")
+      .eq("profile_id", plan.profile_id)
+      .eq("source_plan_id", plan.id)
+      .gte("created_at", dayStart)
+      .limit(1),
+    admin
+      .from("training_ai_generations")
+      .select("id")
+      .eq("parent_plan_id", plan.id)
+      .in("adaptation_kind", ["daily", "plan_update"])
+      .gte("created_at", dayStart)
+      .limit(1),
+  ]);
+  return (runs ?? []).length > 0 || (generations ?? []).length > 0;
+}
+
+/** Hoeveel generaties de cron vandaag al heeft uitgezet; voor de noodrem. */
+async function generationsStartedToday(
+  admin: ReturnType<typeof createAdminClient>,
+  dayStart: string,
+): Promise<number> {
+  const { count } = await admin
+    .from("training_ai_generations")
+    .select("id", { count: "exact", head: true })
+    .eq("adaptation_kind", "daily")
+    .gte("created_at", dayStart);
+  return count ?? 0;
 }
 
 /**
@@ -335,6 +397,9 @@ export async function POST(request: Request) {
 
     let planUpdatesRun = 0;
     let generationsStarted = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const dayStart = `${today}T00:00:00.000Z`;
+    let dailyStartedToday = await generationsStartedToday(admin, dayStart);
 
     for (const plan of await latestPlanCandidates(admin)) {
       // Plafond of budget bereikt: de rest komt volgend uur. Niet doorgaan, want
@@ -343,15 +408,7 @@ export async function POST(request: Request) {
       if (generationsStarted >= MAX_GENERATIONS_STARTED_PER_RUN) break;
       if (Date.now() > deadline) break;
 
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: existingRun } = await admin
-        .from("training_adaptation_runs")
-        .select("id")
-        .eq("profile_id", plan.profile_id)
-        .eq("source_plan_id", plan.id)
-        .gte("created_at", `${today}T00:00:00.000Z`)
-        .maybeSingle();
-      if (existingRun) continue;
+      if (await handledToday(admin, plan, dayStart)) continue;
 
       // Ligt er een herziening klaar, dan is een dagvoorstel het verkeerde
       // gereedschap: dat laat de verdere toekomst met rust, terwijl de wijziging
@@ -392,16 +449,8 @@ export async function POST(request: Request) {
               results.push({ profileId: plan.profile_id, status: "skipped", error: update.error });
               continue;
             }
-            // 'queued', niet 'completed': er is nog geen schema. Deze rij houdt
-            // wel de dagcheck bezet, zodat het volgende uur niet nog een
-            // generatie voor hetzelfde plan start.
-            await admin.from("training_adaptation_runs").insert({
-              profile_id: plan.profile_id,
-              trainer_id: plan.trainer_id,
-              source_plan_id: plan.id,
-              status: "queued",
-              input_json: { ...runLog, generationId: update.generationId },
-            });
+            // Geen rij in training_adaptation_runs: er is nog geen schema, en de
+            // generatie zelf bezet de dagcheck (zie handledToday).
             results.push({ profileId: plan.profile_id, status: "plan_update_queued" });
           } catch (err) {
             const error = err instanceof Error ? err.message : "Automatische herziening faalde.";
@@ -417,6 +466,11 @@ export async function POST(request: Request) {
           }
           continue;
         }
+      }
+
+      if (dailyStartedToday >= MAX_GENERATIONS_STARTED_PER_DAY) {
+        results.push({ profileId: plan.profile_id, status: "daily_cap_reached" });
+        continue;
       }
 
       try {
@@ -557,15 +611,9 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // 'queued': er is nog geen schema, maar deze rij bezet wel de dagcheck
-        // zodat het volgende uur niet opnieuw voor dit plan wordt gestart.
-        await admin.from("training_adaptation_runs").insert({
-          profile_id: plan.profile_id,
-          trainer_id: plan.trainer_id,
-          source_plan_id: plan.id,
-          status: "queued",
-          input_json: { recent, generationId: started.generationId },
-        });
+        // Geen rij in training_adaptation_runs: er is nog geen schema, en de
+        // generatie zelf bezet de dagcheck (zie handledToday).
+        dailyStartedToday += 1;
         results.push({ profileId: plan.profile_id, status: "queued" });
       } catch (err) {
         await admin.from("training_adaptation_runs").insert({

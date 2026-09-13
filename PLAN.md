@@ -870,6 +870,53 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — de adaptatie-cron zette elk kwartier een nieuw voorstel uit
+
+**2026-09-13, commit volgt hieronder, op `main` (niet gepusht).** Geen migratie.
+
+**Waarom.** Het OpenAI-verbruik schoot vanaf 11 september omhoog. Productiedata
+(alleen gelezen): `training_ai_generations` met `adaptation_kind = 'daily'` ging
+van 1 per dag naar 53 (11 sep), 45 (12 sep) en 47 (13 sep), bijna allemaal voor
+drie leden, allemaal `gpt-5.5` met ~8k tekens invoer. Elke kwartierrun van
+`/api/training/adaptations/daily` startte opnieuw een voorstel voor hetzelfde
+schema; elk werd een gepubliceerd plan (145 in drie dagen) dat het vorige
+verving, met een pushmelding erbij. Dat verklaart ook Barts zestien versies per
+dag. Herzieningen (`plan_update`, 1-5 per dag) en pacing (1 generatie) waren
+niet veranderd.
+
+**Oorzaak.** De dagcheck keek in `training_adaptation_runs`, en commit `201d816`
+liet de route bij het uitzetten een rij met `status = 'queued'` schrijven om die
+check te bezetten. De CHECK-constraint uit migratie `0051` staat alleen
+`completed`, `skipped` en `failed` toe; de insert werd geweigerd en de fout niet
+gelezen. Het viel pas op na `2bf527d` (11 sep): daarvóór at het ophalen het hele
+runbudget op en werd er zelden iets gestart, en de cron ging toen van elk uur
+naar elk kwartier.
+
+**Wat er veranderde.**
+- De dagcheck (`handledToday`) kijkt nu ook naar `training_ai_generations`: een
+  `daily`- of `plan_update`-generatie met dit schema als `parent_plan_id` sinds
+  middernacht UTC. Die rij wordt vóór de OpenAI-call geschreven en bestaat dus
+  altijd. `.maybeSingle()` is `.limit(1)` geworden; dat brak bij twee rijen.
+- De `queued`-inserts in `training_adaptation_runs` zijn weg, want ze zijn nooit
+  gelukt. Het spoor van een uitgezette generatie is de generatierij zelf.
+- Noodrem: hoogstens `TRAINING_ADAPTATION_MAX_PER_DAY` (standaard 25)
+  dagvoorstellen per UTC-dag over alle leden samen. Is die op, dan meldt de
+  route `daily_cap_reached`. Herzieningen tellen niet mee.
+
+**Bewust niet gedaan.**
+- Geen migratie die `queued` toestaat: een check op de generatierij heeft geen
+  schemawijziging nodig en werkt dus direct na deploy. Een migratie is hier
+  bovendien niet lokaal te testen.
+- Geen goedkoper model voor het dagvoorstel. `OPENAI_TRAINING_MODEL` geldt voor
+  alle trainingsflows, en of een kleiner model goede voorstellen maakt is niet
+  getoetst. Na deze fix gaat het om een paar calls per dag.
+- De 145 overbodige plannen zijn niet opgeruimd. Hun workouts zijn op één na
+  allemaal vervangen (`superseded_at`), dus het lid ziet ze niet meer.
+
+**Niet lokaal geverifieerd.** Typecheck en lint zijn schoon. De cronroute zelf
+draait tegen productie en is hier niet uitgevoerd. Controleer na deploy in
+`training_ai_generations` dat er per schema hoogstens één `daily` per dag bijkomt.
+
 Deze sectie is het actieve werkplan. De volgorde is gebaseerd op de huidige
 staat van `PLAN.md`, de commit/deploy-geschiedenis t/m `e834bc1`, en de
 operationele risico's die nu het meest waarschijnlijk bijten. De oudere
@@ -951,7 +998,8 @@ De diagnose die de rondes stuurde (productiedata, alleen gelezen):
   weekinvulling zichtbaar maken met "terug naar standaard", en een lid de duur
   van een geplande training zelf laten aanpassen.
 - **Terzijde.** Bart heeft per dag tot zestien vervangen versies van dezelfde
-  training: er draaien veel meer generaties dan nodig. Nog niet onderzocht.
+  training: er draaien veel meer generaties dan nodig. Onderzocht en verholpen op
+  13 september, zie "de adaptatie-cron zette elk kwartier een nieuw voorstel uit".
 
 ### Opgeleverd — beschikbaarheid werkt het schema echt bij, en de duur zelf aanpassen
 
@@ -3389,8 +3437,10 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
   achtergrond (`startPlanUpdate` en het nieuwe `startBackgroundAdaptation`) en
   haalt ze een volgende run op met de `finishStaleGenerations` die er al zat.
   Daarom draait die cron nu elk uur: dat is de pollfrequentie, niet hoe vaak een
-  lid aan de beurt komt — de dagcheck op `training_adaptation_runs` houdt het op
-  één voorstel per schema per dag. Per run worden er hooguit
+  lid aan de beurt komt — de dagcheck houdt het op één voorstel per schema per
+  dag. (Correctie 2026-09-13: die dagcheck op `training_adaptation_runs` werkte
+  niet, want de `queued`-rij werd door de CHECK-constraint geweigerd. Hij kijkt
+  nu naar `training_ai_generations`; zie de ronde van 13 september.) Per run worden er hooguit
   `TRAINING_ADAPTATION_MAX_STARTS` (3) uitgezet, en de hele run heeft een
   wall-clock budget van 8 seconden zodat hij altijd netjes terugkomt met een
   overzicht in plaats van te worden afgekapt.

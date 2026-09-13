@@ -47,7 +47,7 @@ op cron-job.org.
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
 | Training-adaptaties (drafts) | cron-job.org | **elke 15 min** | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
-| ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_adaptation_runs`) | | | | |
+| ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_ai_generations`), met een noodrem van `TRAINING_ADAPTATION_MAX_PER_DAY` (25) dagvoorstellen over alle leden samen | | | | |
 | ↳ de run heeft een wall-clock budget van 8 s, waarvan het ophalen hoogstens 60% mag kosten. Die reservering is er zodat een rij wachtende generaties niet elke run het hele budget opeet en er niets nieuws meer gestart wordt | | | | |
 | ↳ één afronding (poll bij OpenAI + schema opbouwen) kost al seconden, dus reken op 1 à 2 per run. Elke 15 min geeft ~96 runs per dag; heb je meer actieve schema's dan daar doorheen komen, verlaag dan niets maar kijk eerst of de achterstand écht oploopt | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
@@ -321,8 +321,15 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   pas een run later opgehaald, dus reken op ~1 uur. Kijk in
   `training_ai_generations` op `status`: blijft die op `queued`/`in_progress`, dan
   is OpenAI nog bezig (na 18 uur wordt hij automatisch verlopen verklaard). Staat
-  er `failed` met een `error`, dan zegt die wat er mis is. In
-  `training_adaptation_runs` staat per schema of er die dag al iets is uitgezet.
+  er `failed` met een `error`, dan zegt die wat er mis is. Of er die dag al iets
+  is uitgezet, staat in `training_ai_generations` (`parent_plan_id` = het schema,
+  `adaptation_kind` `daily` of `plan_update`) of als `skipped`/`failed` in
+  `training_adaptation_runs`. Meldt de route `daily_cap_reached`, dan is de
+  noodrem `TRAINING_ADAPTATION_MAX_PER_DAY` (25) bereikt.
+- **"Het OpenAI-verbruik schiet omhoog"** → tel `training_ai_generations` per dag
+  en `adaptation_kind`. Meer dan één `daily` per schema per dag betekent dat de
+  dagcheck lekt, zoals van 11 tot 13 september 2026. Zet de cron-job op
+  cron-job.org dan eerst op pauze.
 - **"Strava-sync geeft timeout"** → geen autorisatieprobleem: een 401 komt
   direct terug, een timeout betekent dat de route is begonnen maar niet op tijd
   klaar was. Twee oorzaken, in deze volgorde:
