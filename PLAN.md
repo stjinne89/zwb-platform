@@ -282,8 +282,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   gegevens. [Werking, uitrol en beperkingen](docs/zwb-segment-explorer.md).
   Gecontroleerd: 38 gerichte tests, waaronder vijf geïsoleerde PostgreSQL-tests;
   twee hermetische Playwright-browsertests (desktop/mobiel), gerichte lint en
-  volledige productiebuild geslaagd. Geen live Supabase-migratie, echte
-  API-verificatie of veldkalibratie uitgevoerd. Niets gepusht of gedeployd.
+  volledige productiebuild geslaagd. Geen echte API-verificatie of
+  veldkalibratie uitgevoerd. Gepusht op 2026-09-13 (t/m `31c4299`); migratie
+  0152 dezelfde dag door de eigenaar in productie gedraaid.
 <!-- /zwb-segment-explorer-round -->
 
 <!-- zwb-segment-tiles-round -->
@@ -296,7 +297,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   gecontroleerd omdat browsertests tegelverzoeken onderscheppen; die tests bewijzen
   dus geen externe beschikbaarheid. De tegel-URL wordt nu expliciet gecontroleerd.
   Verificatie: twee browsertests en lint geslaagd; één echte OSM-tegel gaf HTTP 200
-  en is visueel als kaart zonder watermerk gecontroleerd. Niets gepusht of gedeployd.
+  en is visueel als kaart zonder watermerk gecontroleerd. Gecommit als `31c4299`
+  en gepusht op 2026-09-13.
 <!-- /zwb-segment-tiles-round -->
 
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
@@ -919,8 +921,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — bugronde plannenboek (meldingen Jeroen, 4–13 september)
 
-**2026-09-13, commit `d69eb63` op `main`, niet gepusht.** Migratie `0153` (niet lokaal
-uitgevoerd). Opdracht: [docs/bugfix-agent-prompt-2026-09-13.md](docs/bugfix-agent-prompt-2026-09-13.md);
+**2026-09-13, commit `d69eb63` op `main`, gepusht (t/m `31c4299`).** Migratie
+`0153`, dezelfde dag door de eigenaar in productie gedraaid (niet lokaal getest). Opdracht: [docs/bugfix-agent-prompt-2026-09-13.md](docs/bugfix-agent-prompt-2026-09-13.md);
 nummers hieronder zijn die uit het Drive-plannenboek. Eerst bugs, wensen apart.
 
 **1 — RPE-vraag leek willekeurig.** `loadPendingReview` koos de onbevestigde
@@ -1065,8 +1067,9 @@ OpenAI), `plan-update-goal`, `season-target-event`, `pacing-layout`, uitgebreid
 schoon, `npm run build` geslaagd. Playwright-smoke: 16 geslaagd, 1 faalt al
 (`/verhaal` zoekt een kop die niet meer in de code staat). *Niet geverifieerd:*
 geen iPhone/PWA, geen WebKit (niet geïnstalleerd), geen ingelogde schermen in de
-browser (geen testaccount), geen productiedata, geen echte generatie, migratie
-`0153` niet uitgevoerd. Na uitvoeren: de verificatiequery's onderaan de migratie.
+browser (geen testaccount), geen productiedata, geen echte generatie. Migratie
+`0153` is door de eigenaar gedraaid; of de verificatiequery's onderaan de
+migratie zijn gecontroleerd, is hier niet vastgesteld.
 
 **Deploy-volgorde.** Code en `0153` zijn onafhankelijk: zonder index werkt de
 code, zonder de databasegrendel.
