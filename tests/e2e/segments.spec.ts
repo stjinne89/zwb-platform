@@ -31,7 +31,7 @@ test.beforeEach(async ({ page }) => {
     }
     return route.fulfill({ status:404 });
   });
-  await page.route("https://*.basemaps.cartocdn.com/**", (route) => route.fulfill({ status:204 }));
+  await page.route("https://tile.openstreetmap.org/**", (route) => route.fulfill({ status:204 }));
   await page.goto("https://segment.test/");
   await page.addStyleTag({ content:stylesheet });
   await page.addScriptTag({ content:javascript });
@@ -39,6 +39,7 @@ test.beforeEach(async ({ page }) => {
 
 test("kaart en lijst delen selectie, doeltijd en Strava-link", async ({ page }) => {
   await expect(page.getByRole("button",{name:/ZWB testklim/})).toBeVisible();
+  await expect(page.locator(".leaflet-tile").first()).toHaveAttribute("src", /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/);
   await page.getByRole("button",{name:/ZWB testklim/}).click();
   const details = page.getByRole("region",{name:"Segmentdetails"});
   await expect(details.getByRole("link",{name:"ZWB testklim"})).toHaveAttribute("href","https://www.strava.com/segments/12345");

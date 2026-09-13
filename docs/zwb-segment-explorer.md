@@ -6,7 +6,9 @@ De bestaande atletenlimiet van de Strava-app staat los van die toestemming.
 
 ## Werking
 
-- /profiel/segments: Leaflet-kaart, lijst, record/podium, filters, persoonlijk model en Strava-link.
+- /profiel/segments: Leaflet-kaart met standaard OpenStreetMap-tegels (geen API-key),
+  lijst, record/podium, filters, persoonlijk model en Strava-link. De basiskaart blijft
+  licht in beide thema's; de kaartlijnen gebruiken daarop afgestemde contrastkleuren.
 - /profiel/segments/collecties: eerdere collecties en Zwift; bestaande cols/badges zijn behouden.
 - /beheer/segments: hervatbare batches van maximaal vijf ontbrekende ritdetails en drie geometrieën.
   Link beschikbaar via /beheer/strava. Alleen community.manage.
@@ -63,6 +65,14 @@ inclusief database-rollen, registratietrigger, privileges, aggregatie en delete/
 Dat vervangt geen verificatie tegen de volledige productie-Supabase-schema-/RLS-configuratie.
 Geen echte Strava-/Intervals-/weerresponses gebruikt en geen veldvalidatie met ritpogingen
 gedaan; de voorspelling is nog niet empirisch gekalibreerd.
+
+Correctie 2026-09-13: de eerste versie gebruikte CARTO zonder sleutel. CARTO vereist
+inmiddels een API-key en toonde daardoor een watermerk. Vervangen door het canonieke
+OSM-tegeladres met zichtbare bronvermelding en normale browsercaching. De browserfixture
+controleert nu ook expliciet het tegeladres. De fixture onderschept tegelverzoeken;
+een geslaagde browsertest bewijst dus niet de beschikbaarheid van een externe provider.
+Bij deze correctie is daarnaast één echte OSM-tegel opgehaald: HTTP 200, image/png,
+visueel gecontroleerd zonder API-keywatermerk.
 
 ## Bewuste grenzen
 

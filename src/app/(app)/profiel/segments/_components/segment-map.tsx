@@ -3,14 +3,12 @@
 import { Fragment, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import { divIcon } from "leaflet";
-import { useTheme } from "next-themes";
 import { type MapCluster, type SegmentDetail, type SegmentItem, type SegmentStatus, STATUS_LABELS } from "@/lib/segments/explorer";
 import type { Viewport } from "./segment-explorer";
 import "leaflet/dist/leaflet.css";
 
 type Props = { items: SegmentItem[]; clusters: MapCluster[]; selected: string | null; detail: SegmentDetail | null; onSelect: (id: string) => void; onMove: (view: Viewport) => void; visible: boolean; ready: boolean };
 const colors: Record<SegmentStatus, string> = { likely: "#b8873d", borderline: "#1f6068", unreachable: "#657a80", unknown: "#777777" };
-const darkColors: Record<SegmentStatus, string> = { likely: "#d2a357", borderline: "#6eb3b5", unreachable: "#9bb1b6", unknown: "#a5a5a5" };
 
 function Controls(props: Props) {
   const initialized = useRef(false), lastSelection = useRef<string | null>(null);
@@ -45,10 +43,10 @@ function Cluster({ cluster }: { cluster: MapCluster }) {
   return <Marker position={[cluster.lat,cluster.lon]} icon={divIcon({ className: "", html: '<span class="segment-cluster">'+Number(cluster.count)+'</span>', iconSize: [36,36], iconAnchor: [18,18] })} eventHandlers={{ click: () => map.setView([cluster.lat,cluster.lon], Math.min(18,map.getZoom()+2)) }}><Tooltip>{cluster.count} segmenten · klik om in te zoomen</Tooltip></Marker>;
 }
 export default function SegmentMap(props: Props) {
-  const { resolvedTheme } = useTheme();
-  const palette = resolvedTheme === "dark" ? darkColors : colors;
+  // The standard OSM basemap stays light in both themes; use matching overlay contrast.
+  const palette = colors;
   return <MapContainer className="segment-map w-full rounded-xl border" center={[52.1,5.3]} zoom={7} minZoom={2} maxZoom={18} maxBounds={[[-85,-180],[85,180]]} scrollWheelZoom>
-    <TileLayer url={resolvedTheme === "dark" ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"} attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' />
+    <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
     <Controls {...props} />
     {props.clusters.filter((c) => c.count > 1 || !props.items.some((item) => item.start && Math.abs(item.start[0]-c.lat)<0.00001 && Math.abs(item.start[1]-c.lon)<0.00001)).map((c, i) => <Cluster key={i} cluster={c} />)}
     {props.items.map((item) => <Fragment key={item.id}>

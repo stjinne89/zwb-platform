@@ -286,6 +286,19 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   API-verificatie of veldkalibratie uitgevoerd. Niets gepusht of gedeployd.
 <!-- /zwb-segment-explorer-round -->
 
+<!-- zwb-segment-tiles-round -->
+- **Segmentkaart: CARTO-watermerk opgelost** (2026-09-13; lokaal ongecommit,
+  basiscommit ed1e230; geen migratie): CARTO bleek een API-key te vereisen,
+  waardoor de eerste kaart "API key required" toonde. De segmentkaart gebruikt nu
+  standaard OpenStreetMap-tegels en bijbehorende attributie. De basiskaart blijft
+  licht in beide thema's, met leesbare segmentkleuren. Geen CARTO-account of sleutel
+  toegevoegd: de bestaande OSM-aanpak volstaat. De eerdere provider was niet live
+  gecontroleerd omdat browsertests tegelverzoeken onderscheppen; die tests bewijzen
+  dus geen externe beschikbaarheid. De tegel-URL wordt nu expliciet gecontroleerd.
+  Verificatie: twee browsertests en lint geslaagd; één echte OSM-tegel gaf HTTP 200
+  en is visueel als kaart zonder watermerk gecontroleerd. Niets gepusht of gedeployd.
+<!-- /zwb-segment-tiles-round -->
+
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde
   plannenboek" bovenaan het chronologische werkplan): de 22 meldingen uit het
