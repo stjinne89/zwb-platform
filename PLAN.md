@@ -323,7 +323,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   2026-09-13; geen migratie). ~6.000 oude buitenritten misten segmentpogingen; via
   `/beheer/segments` was dat ~1.200 klikken en de eigenaar wil niets handmatig. De
   bestaande 5-minutenjob `/api/strava/webhook/process` vult nu bij een lege webhookrij
-  binnen het resterende 8 s-budget ritten aan (nieuwste eerst), en daarna segmentlijnen.
+  binnen het resterende 8 s-budget ritten aan (nieuwste eerst). Segmentlijnen kwamen
+  eerst pas daarna; sinds de ronde hieronder begint elke run met één voorrangslijn.
   Eigen krappe Strava-budget (50% kwartier / 60% dag); onvolledige ritten worden
   afgevinkt, tijdelijke fouten blijven staan, een dode token trekt niets in.
   `?segmentBackfill=0` zet het uit zonder deploy.
@@ -336,6 +337,23 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   een schatting. Details in
   [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-backfill-round -->
+
+<!-- zwb-segment-assessment-round -->
+- **Segmentinschatting: eigen record, profiel bij openen, voorrangslijst**
+  (2026-09-13; migratie 0155; lokaal gecommit, niet gepusht). Elk segment gaf
+  "Onvoldoende gegevens": geen tegenstander (de eigenaar was de enige zichtbare rijder)
+  en geen enkel hoogteprofiel, omdat de vorige ronde lijnen pas na alle ~6.000 ritten
+  ophaalde — die volgorde was een verkeerde keuze en is teruggedraaid. Nu: eigen PR − 1 s
+  als doel zonder clubdoel ("Doel: eigen record"); ontbrekend profiel ophalen bij openen
+  met de eigen koppeling; de 5-minutentaak begint elke run met één lijn uit
+  `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes.
+  **Niet gebouwd:** profiel bij openen voor leden zonder Strava-koppeling (geen token),
+  en profielen voor de hele lijst in één keer (40 × 2 calls per pagina is te duur).
+  Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests.
+  Niet getest: looptijd van 0155 op productie en echte Strava-calls. 0155 moet door de
+  eigenaar gedraaid worden; zonder die migratie werkt alles behalve de voorrangslijst.
+  Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
+<!-- /zwb-segment-assessment-round -->
 
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde

@@ -5,7 +5,10 @@ import { fetchIntervalsPowerCurve } from "@/lib/intervals/client";
 import { fetchWindForecast } from "@/lib/weather";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { normalizePowerCurvePoints } from "@/lib/intervals/power-curve";
-import { assessSegment, leaderboard, targetTime, type SegmentDetail, type SegmentTarget, type TrackPoint } from "./explorer";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { accessTokenFor, type StravaConnection } from "@/lib/strava/client";
+import { assessSegment, leaderboard, segmentTarget, type SegmentDetail, type SegmentTarget, type TrackPoint } from "./explorer";
+import { fetchSegmentGeometry } from "./geometry-sync";
 
 export const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" };
 export async function segmentSession(requireConsent = true) {
@@ -41,7 +44,7 @@ export function segmentPresenter(session: SegmentSession, curve: Awaited<ReturnT
   const forecasts = new Map<string, ReturnType<typeof fetchWindForecast>>();
   return async (row: ClubRow): Promise<SegmentDetail> => {
     const board = leaderboard(row.leaderboard), me = board.find((r) => r.profileId === session.user.id);
-    const threshold = targetTime(board, session.user.id, target);
+    const goal = segmentTarget(board, session.user.id, target), threshold = goal?.seconds ?? null;
     let wind = null;
     if (row.start_lat != null && row.start_lon != null && curve.length >= 2 && session.weight && row.track?.length >= 2 && threshold && !row.hazardous) {
       const lat = Math.round(row.start_lat * 10) / 10, lon = Math.round(row.start_lon * 10) / 10;
@@ -57,9 +60,32 @@ export function segmentPresenter(session: SegmentSession, curve: Awaited<ReturnT
       start: row.start_lat != null && row.start_lon != null ? [row.start_lat, row.start_lon] : null,
       line, riders: board.length, mine: me?.seconds ?? null, rank: me?.rank ?? null,
       record: board[0]?.seconds ?? null, updatedAt: row.updated_at, leaderboard: board, hazardous: row.hazardous,
-      assessment: assessSegment({ targetSeconds: threshold, track: row.track ?? [], curve, weight: session.weight, wind, hazardous: row.hazardous }),
+      assessment: assessSegment({ targetSeconds: threshold, targetKind: goal?.kind, track: row.track ?? [], curve, weight: session.weight, wind, hazardous: row.hazardous }),
     };
   };
+}
+
+/**
+ * Hoogteprofiel ophalen zodra een lid een segment opent (twee Strava-calls met de eigen
+ * koppeling), in plaats van te wachten op de achtergrondtaak. Het gewone interactieve
+ * budget geldt; een fout wordt pas na een uur opnieuw geprobeerd.
+ * Geeft true als er een nieuw profiel in de registry staat.
+ */
+export async function ensureSegmentGeometry(session: SegmentSession, id: string): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const { data: map } = await admin.from("zwb_segment_maps").select("geometry_status,geometry_checked_at").eq("id", id).maybeSingle();
+    if (!map) return false;
+    const retryError = map.geometry_status === "error" && Date.now() - Date.parse(map.geometry_checked_at ?? "") > 3600000;
+    if (map.geometry_status !== "pending" && !retryError) return false;
+    const { data: connection } = await admin.from("strava_connections")
+      .select("profile_id,strava_athlete_id,access_token,refresh_token,expires_at").eq("profile_id", session.user.id).is("revoked_at", null).maybeSingle();
+    if (!connection) return false;
+    const token = await accessTokenFor(admin, connection as StravaConnection);
+    return ["ready", "unavailable", "private"].includes(await fetchSegmentGeometry(admin, token, id));
+  } catch {
+    return false;
+  }
 }
 
 export function segmentRequest(params: URLSearchParams) {

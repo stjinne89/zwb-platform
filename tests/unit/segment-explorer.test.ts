@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessSegment, bearing, leaderboard, powerAt, targetTime, validTrack, windSpeed, type TrackPoint } from "@/lib/segments/explorer";
+import { assessSegment, bearing, leaderboard, powerAt, segmentTarget, targetTime, validTrack, windSpeed, type TrackPoint } from "@/lib/segments/explorer";
 import { trackFromStreams } from "@/lib/segments/geometry-sync";
 
 const flat: TrackPoint[] = [{ lat: 52, lon: 5, distance: 0, altitude: 10 }, { lat: 52.045, lon: 5, distance: 5000, altitude: 10 }];
@@ -19,6 +19,16 @@ describe("club leaderboard", () => {
     expect(targetTime(board,"a","record")).toBe(109);
     expect(targetTime(board,"c","podium")).toBe(129);
     expect(targetTime(board.slice(0,1),"a","record")).toBeNull();
+  });
+  it("falls back to beating the own record only when there is no club target", () => {
+    const board = leaderboard(["a","b"].map((profileId,i) => ({ profileId, name: profileId, seconds: 100+i*10 })));
+    expect(segmentTarget(board,"b","record")).toEqual({ seconds: 99, kind: "club" });
+    expect(segmentTarget(board.slice(0,1),"a","record")).toEqual({ seconds: 99, kind: "own" });
+    expect(segmentTarget(board,"a","podium")).toEqual({ seconds: 99, kind: "own" });
+    expect(segmentTarget(board.slice(0,1),"new","record")).toEqual({ seconds: 99, kind: "club" });
+    expect(segmentTarget([],"a","record")).toBeNull();
+    expect(assessSegment({ ...input, targetKind: "own" }).targetKind).toBe("own");
+    expect(assessSegment({ ...input, targetSeconds: null, targetKind: "own" }).targetKind).toBeNull();
   });
   it("does not truncate after 30 riders", () => {
     expect(leaderboard(Array.from({ length: 1005 }, (_, i) => ({ profileId: String(i), name:"Lid", seconds: 100+i }))).length).toBe(1005);

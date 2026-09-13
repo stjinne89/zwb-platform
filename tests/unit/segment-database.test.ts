@@ -19,6 +19,7 @@ beforeAll(async () => {
   ].join("\n"));
   await db.exec(await readFile("supabase/migrations/0152_zwb_segment_explorer.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0154_segment_club_include_hidden_efforts.sql","utf8"));
+  await db.exec(await readFile("supabase/migrations/0155_segment_geometry_priority.sql","utf8"));
 }, 20000);
 afterAll(async () => { await db?.close(); });
 beforeEach(async () => {
@@ -67,6 +68,20 @@ describe("segment migration against isolated PostgreSQL", () => {
     await db.exec(`update strava_activity_segment_efforts set raw='{"segment":{"private":true}}' where activity_id=3; set role authenticated`);
     const row = (await db.query<{ leaderboard:Array<{seconds:number}> }>("select leaderboard from zwb_segment_club")).rows[0];
     expect(row.leaderboard.map((r) => r.seconds)).toEqual([100,110,130]);
+  });
+  it("prioritises geometry by number of riders and hides the queue from members", async () => {
+    await db.query("insert into strava_activities(id,profile_id,sport_type,trainer,raw) values(11,$1,'Ride',false,'{}'),(12,$1,'Ride',true,'{}')",[ids[0]]);
+    await db.query("select replace_activity_segment_efforts($1,11,$2)",[ids[0],JSON.stringify([{effort_uid:"solo",profile_id:ids[0],activity_id:11,strava_segment_id:77,segment_name:"Solo",elapsed_time_seconds:50,raw:{}}])]);
+    await db.query("select replace_activity_segment_efforts($1,12,$2)",[ids[0],JSON.stringify([{effort_uid:"indoor",profile_id:ids[0],activity_id:12,strava_segment_id:88,segment_name:"Binnen",elapsed_time_seconds:50,raw:{}}])]);
+    await db.exec("update zwb_segment_maps set geometry_status='ready' where id=99");
+    const first = await db.query<{ id:string }>("select id from segment_geometry_priority(10)");
+    expect(first.rows.map((r) => r.id)).toEqual(["77"]);
+    await db.exec("update zwb_segment_maps set geometry_status='pending' where id=99");
+    const ranked = await db.query<{ id:string; profile_id:string }>("select * from segment_geometry_priority(10)");
+    expect(ranked.rows.map((r) => r.id)).toEqual(["99","77"]);
+    expect(ranked.rows[1].profile_id).toBe(ids[0]);
+    await db.exec("set role authenticated");
+    await expect(db.query("select * from segment_geometry_priority(1)")).rejects.toThrow(/permission denied/);
   });
   it("replaces missing efforts and rejects mismatched owners", async () => {
     await db.query("select replace_activity_segment_efforts($1,1,'[]')",[ids[0]]);

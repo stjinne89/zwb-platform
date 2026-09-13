@@ -115,13 +115,39 @@ moeten worden, en een extra job kost extra Netlify-invocaties.
   Tijdelijke fout (`failed`): blijft staan; na drie in één run stopt de run.
   Dode token: lid overgeslagen, koppeling **niet** ingetrokken (dat blijft bij
   webhook- en lifecycle-pad).
-- Pas als er geen ritten meer openstaan: twee segmentlijnen per run, per run een
-  ander lid (19.781 segmenten stonden op `pending`).
+- Segmentlijnen: elke run eerst één uit de voorrangslijst, zonder open ritten tot zes
+  (zie "Inschatting zonder tegenstander en hoogteprofiel"; de eerste versie wachtte
+  tot alle ritten binnen waren).
 
 Schatting, niet gemeten: ~5 ritten per run ≈ 1.400 per dag, dus ongeveer 4–5 dagen
-voor de ritten; de segmentlijnen daarna ~600 per dag, dus enkele weken. De werkelijke
+voor de ritten. De werkelijke
 duur per ritcall op Netlify is niet bekend. Niet lokaal tegen Strava getest; wel
 unittests op de beslislogica en de databasequery's alleen-lezen tegen productie.
+
+## Inschatting zonder tegenstander en hoogteprofiel (2026-09-13, migratie 0155)
+
+Na livegang toonde elk segment "Onvoldoende gegevens", ook voor de eigenaar met gewicht,
+90-daagse curve en intervals.icu. Twee oorzaken, in de volgorde van `assessSegment`:
+geen doeltijd (hij was overal de enige zichtbare rijder; de eigen tijd telt niet als
+tegenstander) en geen hoogteprofiel (0 van 19.781 segmenten `ready`, omdat de taak
+lijnen pas na alle ritten ophaalde). Eigenaar koos A + C + D:
+
+- **A — eigen record als doel.** `segmentTarget` gebruikt de clubdoeltijd waar die bestaat;
+  anders eigen PR − 1 s, met `targetKind: "own"` en in de details "Doel: eigen record".
+  Ook bij podium met minder dan drie tegenstanders. Geen eigen tijd → nog steeds geen doel.
+- **C — profiel bij openen.** De detailroute haalt na de toegangscontrole van de view een
+  ontbrekend profiel op met de koppeling van de kijker (twee calls, gewoon interactief
+  budget; een fout pas na een uur opnieuw). Lijst en kaart nemen de nieuwe beoordeling
+  meteen over. Leden zonder Strava-koppeling krijgen geen profiel bij openen.
+- **D — voorrangslijst.** `segment_geometry_priority` (service_role) ordent pending
+  segmenten op aantal goedgekeurde rijders met actieve koppeling (ongeacht privacyversie,
+  zodat lijnen klaarliggen bij opnieuw tekenen), dan pogingen; token van de laatste
+  rijder. Elke run eerst één lijn, daarna ritten; zonder open ritten tot zes lijnen.
+  Een fout segment komt na zeven dagen terug. Zonder 0155 slaat de taak lijnen over.
+
+Niet getest: de looptijd van de aggregatie in 0155 op de productiedatabase (~70.000
+pogingen, groeiend) en echte Strava-calls bij openen. Wel: PGlite-test voor volgorde,
+indoor-uitsluiting en rechten; unittests voor doel en taakvolgorde; browsertests.
 
 ## Bewuste grenzen
 

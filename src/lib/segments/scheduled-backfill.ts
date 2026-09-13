@@ -1,24 +1,31 @@
-// Automatische inhaalslag voor segmentpogingen van oude buitenritten.
+// Automatische inhaalslag voor segmentpogingen van oude buitenritten en segmentlijnen.
 //
 // Draait mee in de 5-minutenjob van de webhookverwerking, zodat er geen aparte
 // cron-job.org-job nodig is. Webhook-events gaan altijd voor: deze stap krijgt alleen
-// de tijd en het Strava-budget die daarna over zijn. Op 2026-09-13 stonden er ~7100
-// ritten zonder pogingen open; handmatig via /beheer/segments waren dat ~1400 klikken.
+// de tijd en het Strava-budget die daarna over zijn. Op 2026-09-13 stonden er ~6000
+// ritten zonder pogingen open; handmatig via /beheer/segments waren dat ~1200 klikken.
 //
 // Het budget is bewust krapper dan voor interactief werk (50% van het kwartier, 60%
 // van de dag): leden die net een rit uploaden mogen hier nooit op wachten.
+//
+// Elke run begint met één segmentlijn uit de voorrangslijst (meeste ZWB-rijders
+// eerst): zonder hoogteprofiel geen inschatting, en wachten tot alle ritten binnen
+// zijn kostte dagen. Zijn de ritten op, dan krijgt de hele run segmentlijnen.
 
 import { accessTokenFor, type StravaConnection } from "@/lib/strava/client";
 import { ingestStravaActivity, type IngestOutcome } from "@/lib/strava/ingest-activity";
 import { loadRateLimitUsage, shouldPauseForRateLimit } from "@/lib/strava/rate-limit-budget";
 import type { StravaRateLimitUsage } from "@/lib/strava/activity-api";
-import { syncSegmentGeometry } from "./geometry-sync";
+import { fetchSegmentGeometry, type GeometryOutcome } from "./geometry-sync";
 
 export const BACKFILL_BUDGET = { shortTermRatio: 0.5, dailyRatio: 0.6 } as const;
 /** Een ritdetail duurt meestal onder de seconde; zonder deze marge geen nieuwe call. */
 const MIN_REMAINING_MS = 2500;
 const MAX_ACTIVITIES_PER_RUN = 20;
 const MAX_FAILURES_PER_RUN = 3;
+/** Segmentlijnen per run zolang er nog ritten openstaan, en daarna. */
+const GEOMETRY_WHILE_ACTIVITIES = 1;
+const GEOMETRY_WHEN_DONE = 6;
 
 export type ScheduledBackfillResult = {
   fetched: number;
@@ -38,7 +45,8 @@ export type BackfillDeps = {
   loadUsage: () => Promise<StravaRateLimitUsage | null>;
   tokenFor: (connection: Connection) => Promise<string>;
   ingest: (connection: Connection, activityId: number, token: string) => Promise<IngestOutcome>;
-  geometry: (token: string, profileId: string, limit: number) => Promise<{ fetched: number; rateLimited: boolean }>;
+  geometryCandidates: (limit: number) => Promise<Array<{ id: string; profile_id: string }>>;
+  fetchGeometry: (token: string, segmentId: string) => Promise<GeometryOutcome>;
 };
 
 function defaultDeps(
@@ -56,8 +64,12 @@ function defaultDeps(
         activityId,
         token,
       ),
-    geometry: (token, profileId, limit) =>
-      syncSegmentGeometry(admin, token, profileId, limit, BACKFILL_BUDGET),
+    geometryCandidates: async (limit) => {
+      const { data, error } = await admin.rpc("segment_geometry_priority", { p_limit: limit });
+      // Zonder migratie 0155 slaat de run alleen de segmentlijnen over.
+      return error ? [] : (data ?? []);
+    },
+    fetchGeometry: (token, segmentId) => fetchSegmentGeometry(admin, token, segmentId, BACKFILL_BUDGET),
   };
 }
 
@@ -75,58 +87,68 @@ export async function runScheduledSegmentBackfill(
   if (connections.size === 0) return { ...result, stopped: "done" };
   const profileIds = [...connections.keys()];
 
+  const tokens = new Map<string, string | null>();
+  const token = async (profileId: string) => {
+    const connection = connections.get(profileId);
+    if (!connection) return null;
+    if (!tokens.has(profileId)) {
+      try { tokens.set(profileId, await deps.tokenFor(connection)); }
+      catch { tokens.set(profileId, null); }
+    }
+    return tokens.get(profileId) ?? null;
+  };
+
+  // true = doorgaan; false = run stoppen (result.stopped is dan gezet).
+  const geometry = async (limit: number) => {
+    let attempts = 0;
+    // Ruimer ophalen: een kandidaat van een lid zonder bruikbare token mag de rij niet blokkeren.
+    for (const candidate of await deps.geometryCandidates(Math.min(10, limit + 4))) {
+      if (attempts >= limit) break;
+      if (!timeLeft()) { result.stopped = "deadline"; return false; }
+      if (!(await budgetLeft())) { result.stopped = "budget"; return false; }
+      const accessToken = await token(candidate.profile_id);
+      if (!accessToken) continue;
+      attempts++;
+      const outcome = await deps.fetchGeometry(accessToken, candidate.id);
+      if (outcome === "rate_limited") { result.stopped = "rate_limited"; return false; }
+      if (outcome === "ready" || outcome === "unavailable") result.geometry++;
+    }
+    return true;
+  };
+
   const candidates = await admin.from("strava_activities").select("id,profile_id")
     .in("profile_id", profileIds).eq("sport_type", "Ride").eq("trainer", false).is("efforts_fetched_at", null)
     .order("start_date", { ascending: false }).order("id").limit(MAX_ACTIVITIES_PER_RUN);
   if (candidates.error) throw new Error(candidates.error.message);
   const queue = (candidates.data ?? []) as Array<{ id: number; profile_id: string }>;
 
-  const tokens = new Map<string, string | null>();
-  const token = async (profileId: string) => {
-    if (!tokens.has(profileId)) {
-      try { tokens.set(profileId, await deps.tokenFor(connections.get(profileId)!)); }
-      catch { tokens.set(profileId, null); }
+  if (await geometry(queue.length ? GEOMETRY_WHILE_ACTIVITIES : GEOMETRY_WHEN_DONE)) {
+    for (const activity of queue) {
+      if (!timeLeft()) { result.stopped = "deadline"; break; }
+      if (!(await budgetLeft())) { result.stopped = "budget"; break; }
+      const accessToken = await token(activity.profile_id);
+      // Koppelingsproblemen lost de webhook-/lifecycle-route op; hier niet intrekken.
+      if (!accessToken) continue;
+      const outcome = await deps.ingest(connections.get(activity.profile_id)!, activity.id, accessToken);
+      if (outcome.status === "rate_limited") { result.stopped = "rate_limited"; break; }
+      if (outcome.status === "auth_failed") { tokens.set(activity.profile_id, null); continue; }
+      if (outcome.status === "stored") { result.fetched++; continue; }
+      if (outcome.status === "removed") { result.removed++; continue; }
+      // Een time-out of 5xx kan tijdelijk zijn: laten staan, en bij een storing stoppen.
+      if (outcome.status === "failed") {
+        result.failed++;
+        if (result.failed >= MAX_FAILURES_PER_RUN) { result.stopped = "failures"; break; }
+        continue;
+      }
+      await admin.from("strava_activities").update({ efforts_fetched_at: new Date(deps.now()).toISOString() }).eq("id", activity.id);
+      result.abandoned++;
     }
-    return tokens.get(profileId) ?? null;
-  };
-
-  for (const activity of queue) {
-    if (!timeLeft()) { result.stopped = "deadline"; break; }
-    if (!(await budgetLeft())) { result.stopped = "budget"; break; }
-    const accessToken = await token(activity.profile_id);
-    // Koppelingsproblemen lost de webhook-/lifecycle-route op; hier niet intrekken.
-    if (!accessToken) continue;
-    const outcome = await deps.ingest(connections.get(activity.profile_id)!, activity.id, accessToken);
-    if (outcome.status === "rate_limited") { result.stopped = "rate_limited"; break; }
-    if (outcome.status === "auth_failed") { tokens.set(activity.profile_id, null); continue; }
-    if (outcome.status === "stored") { result.fetched++; continue; }
-    if (outcome.status === "removed") { result.removed++; continue; }
-    // Een time-out of 5xx kan tijdelijk zijn: laten staan, en bij een storing stoppen.
-    if (outcome.status === "failed") {
-      result.failed++;
-      if (result.failed >= MAX_FAILURES_PER_RUN) { result.stopped = "failures"; break; }
-      continue;
-    }
-    await admin.from("strava_activities").update({ efforts_fetched_at: new Date(deps.now()).toISOString() }).eq("id", activity.id);
-    result.abandoned++;
   }
 
   const remaining = await admin.from("strava_activities").select("id", { count: "exact", head: true })
     .in("profile_id", profileIds).eq("sport_type", "Ride").eq("trainer", false).is("efforts_fetched_at", null);
   if (remaining.error) throw new Error(remaining.error.message);
   result.remaining = remaining.count ?? 0;
-
-  // Segmentlijnen pas als de ritten binnen zijn: zonder pogingen geen klassement.
-  // Wie aan de beurt is schuift per run door, zodat elk lid zijn segmenten krijgt.
-  if (queue.length === 0 && result.stopped === null) {
-    const profileId = profileIds[Math.floor(deps.now() / 300_000) % profileIds.length];
-    const accessToken = timeLeft() && (await budgetLeft()) ? await token(profileId) : null;
-    if (accessToken) {
-      const geometry = await deps.geometry(accessToken, profileId, 2);
-      result.geometry = geometry.fetched;
-      if (geometry.rateLimited) result.stopped = "budget";
-    }
-  }
   if (queue.length === 0) result.stopped ??= "done";
   return result;
 }

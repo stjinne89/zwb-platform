@@ -5,7 +5,9 @@ export type SegmentTarget = "record" | "podium";
 export type SegmentStatus = "likely" | "borderline" | "unreachable" | "unknown";
 export type TrackPoint = { lat: number; lon: number; distance: number; altitude: number };
 export type SegmentResult = { profileId: string; name: string; seconds: number; rank: number };
-export type SegmentAssessment = { status: SegmentStatus; reason: string | null; targetSeconds: number | null; fastSeconds: number | null; slowSeconds: number | null };
+/** club = tijd van een ander lid; own = eigen PR, alleen als er geen clubdoel is. */
+export type TargetKind = "club" | "own";
+export type SegmentAssessment = { status: SegmentStatus; reason: string | null; targetSeconds: number | null; targetKind?: TargetKind | null; fastSeconds: number | null; slowSeconds: number | null };
 export type SegmentItem = {
   id: string; name: string; distance: number | null; grade: number | null;
   start: [number, number] | null; line: [number, number][];
@@ -34,6 +36,14 @@ export function targetTime(board: SegmentResult[], profileId: string, target: Se
   const threshold = opponents[target === "record" ? 0 : 2]?.seconds;
   // Strava elapsed times have integer-second precision; beating a time requires a full second.
   return threshold != null && threshold > 1 ? threshold - 1 : null;
+}
+
+/** Clubdoel waar dat bestaat; anders de eigen PR verbeteren, zodat een segment zonder tegenstander toch een inschatting krijgt. */
+export function segmentTarget(board: SegmentResult[], profileId: string, target: SegmentTarget): { seconds: number; kind: TargetKind } | null {
+  const club = targetTime(board, profileId, target);
+  if (club != null) return { seconds: club, kind: "club" };
+  const own = board.find((r) => r.profileId === profileId)?.seconds;
+  return own != null && own > 1 ? { seconds: own - 1, kind: "own" } : null;
 }
 
 export function powerAt(points: Array<{ seconds: number; watts: number }>, seconds: number): number | null {
@@ -100,8 +110,9 @@ function predictedTime(track: TrackPoint[], curve: Array<{ seconds: number; watt
   return (lo + hi) / 2;
 }
 
-export function assessSegment(input: { targetSeconds: number | null; track: TrackPoint[]; curve: Array<{ seconds: number; watts: number }>; weight: number | null; wind: Wind | null; hazardous: boolean }): SegmentAssessment {
-  const unknown = (reason: string): SegmentAssessment => ({ status: "unknown", reason, targetSeconds: input.targetSeconds, fastSeconds: null, slowSeconds: null });
+export function assessSegment(input: { targetSeconds: number | null; targetKind?: TargetKind | null; track: TrackPoint[]; curve: Array<{ seconds: number; watts: number }>; weight: number | null; wind: Wind | null; hazardous: boolean }): SegmentAssessment {
+  const targetKind = input.targetSeconds == null ? null : input.targetKind ?? "club";
+  const unknown = (reason: string): SegmentAssessment => ({ status: "unknown", reason, targetSeconds: input.targetSeconds, targetKind, fastSeconds: null, slowSeconds: null });
   if (input.targetSeconds == null) return unknown("Nog geen doeltijd");
   if (input.hazardous) return unknown("Gevaarlijk segment");
   if (!validTrack(input.track)) return unknown("Hoogteprofiel ontbreekt");
@@ -116,7 +127,7 @@ export function assessSegment(input: { targetSeconds: number | null; track: Trac
     times.push(time);
   }
   const fastSeconds = Math.min(...times), slowSeconds = Math.max(...times);
-  return { status: slowSeconds <= input.targetSeconds ? "likely" : fastSeconds <= input.targetSeconds ? "borderline" : "unreachable", reason: null, targetSeconds: input.targetSeconds, fastSeconds, slowSeconds };
+  return { status: slowSeconds <= input.targetSeconds ? "likely" : fastSeconds <= input.targetSeconds ? "borderline" : "unreachable", reason: null, targetSeconds: input.targetSeconds, targetKind, fastSeconds, slowSeconds };
 }
 
 export function formatSegmentTime(value: number | null): string {

@@ -63,7 +63,12 @@ export function SegmentExplorer() {
     const controller = new AbortController();
     fetch("/api/segments/explore/"+selected+"?"+selectionQuery, { signal: controller.signal, cache: "no-store" })
       .then(async (r) => { const payload = await r.json(); if (!r.ok) throw new Error(payload.error); return payload; })
-      .then((r) => { if (!controller.signal.aborted) { setDetail(r); setDetailError(""); } })
+      .then((r: SegmentDetail) => {
+        if (controller.signal.aborted) return;
+        setDetail(r); setDetailError("");
+        // Openen kan net een hoogteprofiel hebben opgehaald: lijst en kaart direct bijwerken.
+        setData((old) => ({ ...old, items: old.items.map((item) => item.id === r.id ? { ...item, line: r.line, assessment: r.assessment } : item) }));
+      })
       .catch((e) => { if (!controller.signal.aborted) setDetailError(e.message); });
     return () => controller.abort();
   }, [selected, selectionQuery, retry]);
@@ -111,7 +116,7 @@ export function SegmentExplorer() {
       <div className="mb-3 flex justify-between"><h2 className="font-semibold">Segmentdetails</h2><button type="button" onClick={() => { setSelected(null); setDetail(null); }} className="text-sm text-muted-foreground">Sluiten</button></div>
       {detailError ? <p role="alert">{detailError}</p> : !detail ? <p role="status" className="text-sm text-muted-foreground">Laden…</p> : <>
         <div className="flex flex-wrap items-center justify-between gap-3"><a href={"https://www.strava.com/segments/"+detail.id} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xl font-semibold hover:underline">{detail.name}<ArrowUpRight size={18} /></a><Status item={detail} /></div>
-        <div className="my-4 grid grid-cols-2 gap-3 md:grid-cols-4">{[["Jouw tijd", time(detail.mine)], ["ZWB-record", time(detail.record)], ["Doeltijd", time(detail.assessment.targetSeconds)], ["Verwachte tijd", detail.assessment.fastSeconds == null ? "—" : time(detail.assessment.fastSeconds)+" – "+time(detail.assessment.slowSeconds)]].map(([label, value]) => <div key={label} className="rounded-lg bg-muted/50 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold tabular-nums">{value}</p></div>)}</div>
+        <div className="my-4 grid grid-cols-2 gap-3 md:grid-cols-4">{[["Jouw tijd", time(detail.mine)], ["ZWB-record", time(detail.record)], [detail.assessment.targetKind === "own" ? "Doel: eigen record" : "Doeltijd", time(detail.assessment.targetSeconds)], ["Verwachte tijd", detail.assessment.fastSeconds == null ? "—" : time(detail.assessment.fastSeconds)+" – "+time(detail.assessment.slowSeconds)]].map(([label, value]) => <div key={label} className="rounded-lg bg-muted/50 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold tabular-nums">{value}</p></div>)}</div>
         {detail.assessment.reason && <p className="mb-4 text-sm text-muted-foreground">{detail.assessment.reason}</p>}
         <div className="max-h-80 overflow-auto"><table className="w-full text-left text-sm"><caption className="mb-2 text-left font-semibold">ZWB-klassement</caption><thead className="text-xs text-muted-foreground"><tr><th className="py-2">Positie</th><th>Lid</th><th className="text-right">Tijd</th></tr></thead><tbody>{detail.leaderboard.map((r) => <tr key={r.profileId} className="border-t"><td className="py-2">{r.rank}</td><td>{r.name ?? "ZWB-lid"}</td><td className="text-right tabular-nums">{time(r.seconds)}</td></tr>)}</tbody></table></div>
       </>}
