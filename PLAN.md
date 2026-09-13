@@ -918,10 +918,11 @@ draait tegen productie en is hier niet uitgevoerd. Controleer na deploy in
 `training_ai_generations` dat er per schema hoogstens één `daily` per dag bijkomt.
 
 **Cronfrequentie.** Stijn heeft de job op cron-job.org op 13 september van elk
-kwartier naar elke 12 uur gezet. Met de fix is vaker weer veilig, maar 12 uur
-heeft een prijs: dezelfde run haalt ook de achtergrondgeneraties op, dus een
+kwartier eerst naar elke 12 uur gezet en daarna naar elk uur. Elke 12 uur had een
+prijs: dezelfde run haalt ook de achtergrondgeneraties op, dus een
 dagvoorstel staat er pas een run later, tot 12 uur na het starten. Per dag
-worden er hoogstens 6 gestart (2 runs keer `TRAINING_ADAPTATION_MAX_STARTS`).
+zouden er hoogstens 6 gestart worden. Met de fix is elk uur veilig: de dagcheck
+en de noodrem bepalen het aantal AI-calls, niet de frequentie.
 Openen van de schemapagina maakt een eigen hangende generatie wel direct af.
 
 Deze sectie is het actieve werkplan. De volgorde is gebaseerd op de huidige
