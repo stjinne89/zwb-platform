@@ -207,7 +207,8 @@ export async function ingestStravaActivity(
       .update({ efforts_fetched_at: new Date().toISOString() })
       .eq("id", row.id);
   } catch {
-    // niet kritiek: de segmenttijden lopen anders via de nachtelijke reconcile
+    // Keep the webhook retryable after a partial write.
+    return { status: "failed", error: "Segmentpogingen opslaan mislukt; activiteit wordt opnieuw geprobeerd." };
   }
 
   return { status: "stored", activityId: row.id, efforts };

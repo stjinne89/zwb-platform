@@ -266,6 +266,26 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Buiten oorspronkelijk plan opgeleverd
 
+<!-- zwb-segment-explorer-round -->
+- **ZWB Segments: interactieve clubkaart** (2026-09-13; lokale featurecommit,
+  hash volgt bij vastleggen; migratie 0152): bestaande pagina omgebouwd naar
+  kaart/lijst met eigen ZWB-record/podium, persoonlijke vermogen-/windinschatting,
+  gedeelde selectie, filters en Strava-links. Eigenaar bevestigde toestemming.
+  De eerdere collecties/Zwift staan nu op /profiel/segments/collecties; cols en
+  badges behouden hun bestaande opslag. De nieuwe kaart gebruikt alle ingelezen
+  ondersteunde buitenpogingen, onafhankelijk van de oude Benelux-selectielimiet.
+  Atomaire pogingvervanging en een live databaseprojectie voorkomen verouderde
+  tijden na gewijzigde/verwijderde/privéritten en ingetrokken koppelingen.
+  Beheerscherm voor hervatbare rit-/geometriebatches, hulppagina en privacyversie
+  2026-09-13; bestaande consentdialoog blijft het akkoord registreren.
+  Geen algemeen leaderboard, scraping, indoorvoorspelling of verzonnen ontbrekende
+  gegevens. [Werking, uitrol en beperkingen](docs/zwb-segment-explorer.md).
+  Gecontroleerd: 38 gerichte tests, waaronder vijf geïsoleerde PostgreSQL-tests;
+  twee hermetische Playwright-browsertests (desktop/mobiel), gerichte lint en
+  volledige productiebuild geslaagd. Geen live Supabase-migratie, echte
+  API-verificatie of veldkalibratie uitgevoerd. Niets gepusht of gedeployd.
+<!-- /zwb-segment-explorer-round -->
+
 - **Strava-webhooks en actief koppelingbeheer** (2026-09-05, commit `2c575b9`,
   migr. `0148`-`0151`): antwoord op Strava's **afwijzing** van onze aanvraag voor
   een hogere atletenlimiet. Die afwijzing stelde twee eisen — webhooks in plaats

@@ -84,6 +84,15 @@ export default function PrivacyPage() {
             buiten deze kaart.
           </li>
           <li>
+            <strong>ZWB Segments:</strong> ingelezen buitenritten leveren segmentnamen,
+            segmentlijnen en verstreken tijden voor de kaart en het klassement binnen
+            ZWB. Andere goedgekeurde leden zien je naam, tijd en positie. Je gewicht,
+            vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
+            niet met andere leden gedeeld. Privéritten en verborgen pogingen zijn
+            uitgesloten. Bij het verbreken van je Strava-koppeling vervallen je
+            prestaties uit dit klassement.
+          </li>
+          <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
             intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),

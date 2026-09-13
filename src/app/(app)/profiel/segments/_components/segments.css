@@ -1,0 +1,15 @@
+.segment-select { border: 1px solid var(--border); border-radius: .375rem; background: var(--card); padding: .5rem .75rem; font-size: .875rem; }
+.segment-map, .segment-list { height: 560px; }
+.segment-map { z-index: 0; }
+.segment-status { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .2rem .55rem; font-size: .7rem; font-weight: 600; background: color-mix(in srgb, var(--segment-color) 12%, var(--card)); color: var(--segment-text, var(--segment-color)); }
+.segment-likely { --segment-color: #b8873d; --segment-text: #825e28; }
+.segment-borderline { --segment-color: #1f6068; }
+.segment-unreachable { --segment-color: #657a80; --segment-text: #4e6268; }
+.segment-unknown { --segment-color: #777777; --segment-text: #606060; }
+.dark .segment-likely { --segment-color: #d2a357; --segment-text: #d2a357; }
+.dark .segment-borderline { --segment-color: #6eb3b5; }
+.dark .segment-unreachable { --segment-color: #9bb1b6; --segment-text: #9bb1b6; }
+.dark .segment-unknown { --segment-color: #a5a5a5; --segment-text: #a5a5a5; }
+.segment-dot { display:inline-block; width:.55rem; height:.55rem; border-radius:50%; background:var(--segment-color); }
+.segment-cluster { display:grid; place-items:center; width:36px; height:36px; border:2px solid #fbfbf7; border-radius:50%; background:#004653; color:white; font:600 12px system-ui; box-shadow:0 2px 6px #0004; }
+@media(max-width: 640px) { .segment-map { height: 52vh; min-height: 320px; } .segment-list { height: auto; max-height: 65vh; } }

@@ -224,6 +224,12 @@ export async function runPostSyncForProfile(
 
     if (steps.recomputeSegments) {
       try {
+        const { syncSegmentGeometry } = await import("@/lib/segments/geometry-sync");
+        await syncSegmentGeometry(admin, accessToken, profileId, 1);
+      } catch {
+        // Retried by the bounded segment backfill; raw efforts remain usable.
+      }
+      try {
         const { mirrorLegacyColsToSegments, recomputeCompletedSegmentsForUser } =
           await import("@/lib/segments/sync");
         await mirrorLegacyColsToSegments(admin, profileId);

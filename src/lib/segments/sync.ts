@@ -1,6 +1,9 @@
 type SupabaseClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
+  // Optional only for legacy callers/tests; production clients provide RPC.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rpc?: (name: string, args: Record<string, unknown>) => any;
 };
 
 type StoredActivity = {
@@ -280,6 +283,13 @@ export async function storeActivitySegmentEfforts(
     });
   }
 
+  if (supabase.rpc) {
+    const { data, error } = await supabase.rpc("replace_activity_segment_efforts", {
+      p_profile: profileId, p_activity: activity.id, p_rows: rows,
+    });
+    if (error) throw new Error(error.message ?? "Segmentpogingen opslaan faalde.");
+    return Number(data ?? 0);
+  }
   if (rows.length === 0) return 0;
   const { error } = await supabase
     .from("strava_activity_segment_efforts")

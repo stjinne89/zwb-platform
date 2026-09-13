@@ -21,6 +21,7 @@ export const PRIVACY_VERSIONS = [
   "2026-07-30", // samenvatting terugschrijven naar de Strava-omschrijving
   "2026-08-07", // live locatie tijdens tracking, en grofmazig bereden gebied
   "2026-08-18", // gezondheidsgegevens: klachtenlogboek en herstelwaarden
+  "2026-09-13", // ZWB-segmentkaart en onderling clubklassement
 ] as const;
 
 export type PrivacyVersion = (typeof PRIVACY_VERSIONS)[number];
