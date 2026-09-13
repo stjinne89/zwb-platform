@@ -356,7 +356,8 @@ export function pacingRouteFromGpx(
     kind: "climb",
     startKm: climb.startKm,
     endKm: climb.endKm,
-    avgGradient: climb.avgGradient,
+    // Een GPX-klim draagt zijn helling in procenten, een accent als rise/run.
+    avgGradient: climb.avgGradient / 100,
     lap: null,
   }));
 

@@ -262,30 +262,64 @@ export async function recomputePlan(
     input.rider.curve,
     { durability: input.rider.durability },
   );
+  const origin = recomputedOrigin(input.plan, layoutChanged);
 
   await savePlan(admin, {
     eventId: input.eventId,
     profileId: input.profileId,
-    // De bron blijft wat hij was: een herberekening maakt van een AI-plan geen
-    // handmatig plan, en de strategie van de AI blijft staan.
-    source: input.plan.source,
+    ...origin,
     segments: rebalanced.plan,
     evaluation: rebalanced.evaluation,
     route: input.route,
     assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
-    aiGenerationId: input.plan.ai_generation_id,
-    strategy: input.plan.summary?.strategy ?? null,
-    risks: input.plan.summary?.risks ?? [],
     notes: [
       ...rebalanced.adjustments,
       ...rebalanced.clampNotes.map(clampNoteText),
-      layoutChanged
-        ? "Opnieuw ingedeeld op de huidige klimmen; je eigen doelen staan nog op de stukken die gelijk bleven."
-        : "Opnieuw doorgerekend met je huidige gegevens.",
+      !layoutChanged
+        ? "Opnieuw doorgerekend met je huidige gegevens."
+        : input.plan.source === "ai"
+          ? "Opnieuw ingedeeld op de huidige klimmen als basisvoorstel; het AI-voorstel hoorde bij de oude klimmen."
+          : "Opnieuw ingedeeld op de huidige klimmen; je eigen doelen staan nog op de stukken die gelijk bleven.",
     ],
   });
 
   return rebalanced;
+}
+
+/**
+ * Waar een herberekend plan vandaan komt. Zonder nieuwe indeling blijft dat wat
+ * het was: een herberekening maakt van een AI-plan geen handmatig plan, en de
+ * strategie van de AI blijft staan.
+ *
+ * Met een nieuwe indeling staan er stukken uit het basisvoorstel. De strategie
+ * en risico's van de AI gingen over de oude stukken ("Glandon strak afronden"
+ * boven "Glandon (begin)") en vallen daarom weg; een AI-plan heet dan
+ * basisvoorstel. Een handmatig plan blijft handmatig, want daar staan nog eigen
+ * doelen op.
+ */
+export function recomputedOrigin(
+  plan: Pick<StoredPlan, "source" | "summary" | "ai_generation_id">,
+  layoutChanged: boolean,
+): {
+  source: StoredPlan["source"];
+  aiGenerationId: string | null;
+  strategy: string | null;
+  risks: string[];
+} {
+  if (!layoutChanged) {
+    return {
+      source: plan.source,
+      aiGenerationId: plan.ai_generation_id,
+      strategy: plan.summary?.strategy ?? null,
+      risks: plan.summary?.risks ?? [],
+    };
+  }
+  return {
+    source: plan.source === "ai" ? "baseline" : plan.source,
+    aiGenerationId: null,
+    strategy: null,
+    risks: [],
+  };
 }
 
 /**

@@ -212,7 +212,7 @@ describe("pacingRouteFromGpx", () => {
       {
         startKm: 0.1,
         endKm: 0.2,
-        avgGradient: 0.06,
+        avgGradient: 6,
         name: "Naamloze klim",
         colSlug: null,
       } as Climb,
@@ -220,6 +220,9 @@ describe("pacingRouteFromGpx", () => {
 
     const route = pacingRouteFromGpx(sampled, climbs);
     expect(route.source).toBe("gpx");
+    // gpx-climbs rekent in procenten, het pacingmodel in rise/run. De Marmotte
+    // kreeg 478,9 % op de Glandon mee naar de AI.
+    expect(route.accents[0].avgGradient).toBeCloseTo(0.06, 6);
     expect(route.segments[1].accentIndex).toBe(0);
     expect(route.accents[0].name).toBe("Naamloze klim");
     expect(route.accents[0].lap).toBeNull();
@@ -235,7 +238,7 @@ describe("pacingRouteFromGpx", () => {
       hasElevation: true,
     };
     const route = pacingRouteFromGpx(sampled, [
-      { startKm: 0, endKm: 0.1, avgGradient: 0.05, name: null, colSlug: null } as Climb,
+      { startKm: 0, endKm: 0.1, avgGradient: 5, name: null, colSlug: null } as Climb,
     ]);
     expect(route.accents[0].name).toBe("Klim 1");
     expect(route.accents[0].id).toBe("klim-1");

@@ -293,7 +293,7 @@ describe("baseline: fijnere opdeling", () => {
     expect(result.plan.length).toBeLessThanOrEqual(24);
   });
 
-  it("knipt een lange klim op en nummert de delen", () => {
+  it("knipt een lange klim op in delen met elk een eigen rol", () => {
     const distanceM: number[] = [];
     const altitudeM: number[] = [];
     for (let d = 0; d <= 14_000; d += 25) {
@@ -320,7 +320,76 @@ describe("baseline: fijnere opdeling", () => {
 
     const result = buildBaselinePlan({ route, model: MODEL });
     const climbParts = result.plan.filter((s) => s.accentId === "de-alpe");
-    expect(climbParts.length).toBeGreaterThanOrEqual(3);
-    expect(climbParts[0].label).toMatch(/De Alpe \(1\/\d\)/);
+    expect(climbParts.map((s) => s.label)).toEqual([
+      "De Alpe (begin)",
+      "De Alpe (midden)",
+      "De Alpe (slot)",
+    ]);
+    // Zeven delen met zeven keer hetzelfde doel zeggen niets: elk deel verschilt.
+    expect(climbParts[0].targetWkg).toBeLessThan(climbParts[1].targetWkg);
+    expect(climbParts[1].targetWkg).toBeLessThan(climbParts[2].targetWkg);
+  });
+
+  it("knipt ook een klim van 25 km in hoogstens drie delen", () => {
+    const distanceM: number[] = [];
+    const altitudeM: number[] = [];
+    for (let d = 0; d <= 30_000; d += 25) {
+      distanceM.push(d);
+      altitudeM.push(d <= 5000 ? 50 : 50 + (d - 5000) * 0.05);
+    }
+    const route = pacingRouteFromZwift({
+      profile: { distanceM, altitudeM },
+      accents: [
+        { slug: "glandon", name: "Glandon", kind: "climb", startKm: 5, endKm: 30, avgInclinePct: 5 },
+      ],
+      leadInKm: 0,
+      leadInElevationM: 0,
+      lapKm: 30,
+      laps: 1,
+    });
+    const result = buildBaselinePlan({ route, model: MODEL });
+    expect(result.plan.filter((s) => s.accentId === "glandon")).toHaveLength(3);
+  });
+
+  it("dunt bij te veel stukken gespreid uit in plaats van vlak aaneen te smeden", () => {
+    // Marmotte-achtig: 176 km, vier lange klimmen met lange vlakke stukken
+    // ertussen. Het oude uitdunnen voegde steeds het eerste vlakke paar samen en
+    // liet 42 en 48 km vlak op één schuifregelaar staan.
+    const climbs = [
+      { slug: "glandon", startKm: 11.5, endKm: 36.6 },
+      { slug: "telegraphe", startKm: 79, endKm: 92.7 },
+      { slug: "galibier", startKm: 96.8, endKm: 114 },
+      { slug: "alpe", startKm: 162.1, endKm: 175.4 },
+    ];
+    const distanceM: number[] = [];
+    const altitudeM: number[] = [];
+    let altitude = 700;
+    for (let d = 0; d <= 175_900; d += 25) {
+      const km = d / 1000;
+      if (d > 0 && climbs.some((c) => km > c.startKm && km <= c.endKm)) altitude += 25 * 0.07;
+      distanceM.push(d);
+      altitudeM.push(altitude);
+    }
+    const route = pacingRouteFromZwift({
+      profile: { distanceM, altitudeM },
+      accents: climbs.map((c) => ({ ...c, name: c.slug, kind: "climb" as const, avgInclinePct: 7 })),
+      leadInKm: 0,
+      leadInElevationM: 0,
+      lapKm: 175.9,
+      laps: 1,
+    });
+
+    const result = buildBaselinePlan({ route, model: MODEL });
+    expect(result.plan.length).toBeLessThanOrEqual(24);
+    const flat = result.plan.filter((s) => !s.accentId);
+    expect(Math.max(...flat.map((s) => s.endKm - s.startKm))).toBeLessThanOrEqual(16);
+    for (const climb of climbs) {
+      const parts = result.plan.filter((s) => s.accentId === climb.slug);
+      expect(parts.length).toBeGreaterThanOrEqual(1);
+      expect(parts.length).toBeLessThanOrEqual(3);
+    }
+    for (let i = 1; i < result.plan.length; i++) {
+      expect(result.plan[i].startKm).toBeCloseTo(result.plan[i - 1].endKm, 5);
+    }
   });
 });

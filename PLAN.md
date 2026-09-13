@@ -975,6 +975,63 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — pacingplan: hellingen, indeling en doorrekenen na klimwijziging
+
+**2026-09-13, working tree, niet gecommit.** Geen migratie.
+
+**Aanleiding.** Stijn vond de indeling vreemd, en Jeroen had op dezelfde
+Marmotte 2027 een heel ander plan. Productiedata (alleen gelezen): Stijns plan is
+het basisvoorstel (25 stukken, Glandon in 7 delen van 3,6 km met 7 keer 1,85
+w/kg, daarna 42 en 48 km vlak op één regelaar). Jeroens plan is een AI-voorstel
+(13 stukken). Ook de renner verschilt: CP 302 W op 94 kg tegen 248 W op 83 kg.
+Jeroens melding "klimmen aangepast, indeling blijft" was melding 5 uit de
+bugronde hieronder: hij voegde de klimmen op 1 september samen, na zijn eerste
+AI-plan. Na die deploy liet hij een nieuw voorstel maken, en dat staat op de
+4 cols.
+
+**1 — hellingen van GPX-klimmen 100× te hoog.** `gpx-climbs` geeft
+`avgGradient` in procenten, `PacingAccent` verwacht rise/run.
+`pacingRouteFromGpx` nam het getal ongewijzigd over. Gevolgen: de AI kreeg
+`avgGradientPct: 478.9` voor de Glandon mee (2016,8 in de eerste generatie), het
+basisvoorstel zag elke GPX-klim als steiler dan 8 % en gaf er altijd 20 % extra
+opslag op, en de uitleg luidde "à 478,9%". Nu gedeeld door 100. De
+tempoberekening zelf rekende al goed: die gebruikt de gradiënten van de
+100-meterstukken. Zwift-routes hadden de fout niet. De testfixture gebruikte de
+foute eenheid en is rechtgezet.
+
+**2 — indeling van het basisvoorstel.** Een klim wordt niet meer in stukken van
+hoogstens 4 km geknipt, maar in hoogstens drie delen van ongeveer 5 km. Elk deel
+heeft een rol en een eigen doel: begin ×0,96, midden ×1, slot ×1,04 op het
+klimdoel. Labels zijn "Col du Glandon (begin/midden/slot)" in plaats van
+"(1/7)". Bij meer dan 24 stukken wordt steeds het kórtste buurpaar samengevoegd:
+eerst vlakke stukken, daarna delen van dezelfde klim. Het oude uitdunnen nam het
+eerste vlakke paar en smeedde zo hele vlakke stukken aaneen. Op de echte
+Marmotte-GPX nagerekend: 24 stukken, elke col in 3 delen, langste vlakke stuk
+14 km.
+
+**3 — "Opnieuw doorrekenen" na een klimwijziging.** De indeling komt dan uit het
+basisvoorstel. De strategie en risico's van een AI-plan bleven er toch boven
+staan, en de bron bleef "ai". Nu (`recomputedOrigin`): bij een nieuwe indeling
+vallen strategie, risico's en generatie-id weg, en een AI-plan heet
+basisvoorstel. Een handmatig plan blijft handmatig. De notitie zegt dat het
+AI-voorstel bij de oude klimmen hoorde.
+
+**Bewust niet gebouwd.** Bestaande plannen worden niet automatisch
+herberekend: geen plan verandert onder een lid vandaan (zie "Verversen"). Plannen
+en AI-voorstellen die met de foute hellingen zijn gemaakt, blijven staan tot het
+lid zelf doorrekent of een nieuw voorstel vraagt. De hellingfix maakt ze niet
+"verouderd", want de indeling en de aannames zijn niet veranderd. Doelen van een
+AI-plan meenemen naar de nieuwe indeling op basis van overlap is ook niet
+gebouwd; alleen stukken die exact gelijk bleven houden hun doel.
+
+**Verificatie.** Vitest volledig groen (1011 geslaagd, 6 overgeslagen), nieuw of
+aangepast: `pacing-route-profile` (eenheid), `pacing-plan` (rollen, klim van
+25 km, gespreid uitdunnen op een Marmotte-achtig profiel), `pacing-layout`
+(`recomputedOrigin`). `tsc --noEmit` schoon op de pacingbestanden, eslint schoon.
+Het basisvoorstel is lokaal doorgerekend op de productie-GPX van de Marmotte
+(alleen gelezen). *Niet geverifieerd:* geen ingelogde pacingpagina in de
+browser, geen echte AI-generatie met de gecorrigeerde hellingen.
+
 ### Opgeleverd — bugronde plannenboek (meldingen Jeroen, 4–13 september)
 
 **2026-09-13, commit `d69eb63` op `main`, gepusht (t/m `31c4299`).** Migratie
@@ -3242,7 +3299,10 @@ nu ook detectie op het profiel zelf (`detectProfileAccents`, ≥15 hm over ≥30
 bij ≥2,5 %), en klimmen die al een naam hebben blijven ongemoeid. Daarnaast
 worden lange stukken opgeknipt: vlak op 8 km, een klim op 4 km, met een
 bovengrens van 24 stukken zodat de lijst leesbaar blijft. Een opgeknipte klim
-heet "De Alpe (2/3)" — dat is precies waar dosering over gaat.
+heet "De Alpe (2/3)" — dat is precies waar dosering over gaat. *Achterhaald
+(13 september 2026):* een klim krijgt nu hoogstens drie delen met een eigen rol
+en doel ("De Alpe (slot)"); zie "pacingplan: hellingen, indeling en doorrekenen
+na klimwijziging".
 
 **Niet veranderd:** de tolerantie op de hoogte. Die 20 % plus 15 m absoluut blijft
 staan; het probleem zat niet daar.

@@ -107,36 +107,81 @@ function effortFor(wkg: number, cpWkg: number): PlanEffort {
  * grens levert een route met één genoemde klim precies drie stukken op, en dan
  * valt er niets te doseren: het hele vlakke deel zit op één schuifregelaar.
  *
- * Een klim mag langer blijven dan een vlak stuk — bij het opknippen van een klim
- * hoort een reden ("eerste derde ingehouden"), bij een vlak stuk is elke plek
- * even goed.
+ * Een klim wordt anders opgeknipt dan een vlak stuk. Een vlak stuk in gelijke
+ * delen is prima: elke plek is even goed om iets bij te schuiven. Een klim in
+ * zeven gelijke delen met zeven keer hetzelfde doel zegt niets; die krijgt
+ * hoogstens drie delen, elk met een eigen rol (begin, midden, slot).
  */
 const MAX_FLAT_PART_KM = 8;
-const MAX_CLIMB_PART_KM = 4;
+const CLIMB_PART_KM = 5;
+const MAX_CLIMB_PARTS = 3;
 /** Onder deze lengte heeft opknippen geen zin meer. */
 const MIN_PART_KM = 1.5;
 /** Bovengrens op het totaal; meer dan dit onthoudt niemand, en de AI mag er 30. */
 const MAX_PARTS = 24;
 
-/**
- * Knipt een stuk in gelijke delen zodat geen deel langer is dan `maxKm`.
- * Levert altijd minstens één deel op.
- */
-function chop(
+type ClimbRole = "begin" | "midden" | "slot";
+
+/** Per rol een factor op het klimdoel: rustig in, iets erbij op het slot. */
+const CLIMB_ROLE_FACTOR: Record<ClimbRole, number> = {
+  begin: 0.96,
+  midden: 1,
+  slot: 1.04,
+};
+
+const CLIMB_ROLE_TEXT: Record<ClimbRole, string> = {
+  begin: "Begin inhouden, de klim is nog lang.",
+  midden: "Gelijkmatig doorrijden.",
+  slot: "Op het slot mag er iets bij.",
+};
+
+type Part = { startKm: number; endKm: number; accent: PacingAccent | null };
+
+/** Knipt een stuk in `pieces` gelijke delen. */
+function chopInto(
   startKm: number,
   endKm: number,
-  maxKm: number,
+  pieces: number,
 ): Array<{ startKm: number; endKm: number }> {
-  const lengthKm = endKm - startKm;
-  if (lengthKm <= maxKm || lengthKm < MIN_PART_KM * 2) {
-    return [{ startKm, endKm }];
-  }
-  const pieces = Math.ceil(lengthKm / maxKm);
-  const step = lengthKm / pieces;
+  const step = (endKm - startKm) / pieces;
   return Array.from({ length: pieces }, (_, index) => ({
     startKm: startKm + index * step,
     endKm: index === pieces - 1 ? endKm : startKm + (index + 1) * step,
   }));
+}
+
+function flatPieces(startKm: number, endKm: number) {
+  const lengthKm = endKm - startKm;
+  if (lengthKm <= MAX_FLAT_PART_KM || lengthKm < MIN_PART_KM * 2) {
+    return [{ startKm, endKm }];
+  }
+  return chopInto(startKm, endKm, Math.ceil(lengthKm / MAX_FLAT_PART_KM));
+}
+
+function climbPieces(startKm: number, endKm: number) {
+  const lengthKm = endKm - startKm;
+  if (lengthKm < MIN_PART_KM * 2) return [{ startKm, endKm }];
+  const pieces = Math.min(MAX_CLIMB_PARTS, Math.ceil(lengthKm / CLIMB_PART_KM));
+  return chopInto(startKm, endKm, pieces);
+}
+
+/**
+ * Het buurpaar dat samen het kortst is en aan `canMerge` voldoet. Steeds het
+ * kortste paar samenvoegen spreidt het uitdunnen over de route; het eerste paar
+ * nemen smeedde hele stukken vlak aaneen tot één regel van 48 km.
+ */
+function shortestPair(parts: Part[], canMerge: (a: Part, b: Part) => boolean): number {
+  let best = -1;
+  let bestKm = Infinity;
+  for (let i = 0; i + 1 < parts.length; i++) {
+    if (!canMerge(parts[i], parts[i + 1])) continue;
+    const km = parts[i + 1].endKm - parts[i].startKm;
+    if (km < bestKm) {
+      best = i;
+      bestKm = km;
+    }
+  }
+  return best;
 }
 
 /**
@@ -144,12 +189,8 @@ function chop(
  * "tussenstuk". Lange stukken worden opgeknipt, zodat er genoeg plekken zijn om
  * een accent te leggen zonder dat de lijst onleesbaar wordt.
  */
-function splitIntoSegments(route: PacingRoute): Array<{
-  startKm: number;
-  endKm: number;
-  accent: PacingAccent | null;
-}> {
-  const parts: Array<{ startKm: number; endKm: number; accent: PacingAccent | null }> = [];
+function splitIntoSegments(route: PacingRoute): Part[] {
+  const parts: Part[] = [];
   const accents = [...route.accents].sort((a, b) => a.startKm - b.startKm);
 
   let cursor = 0;
@@ -158,41 +199,55 @@ function splitIntoSegments(route: PacingRoute): Array<{
     const end = Math.min(route.totalKm, accent.endKm);
     if (end <= start) continue;
     if (start > cursor + 0.2) {
-      for (const piece of chop(cursor, start, MAX_FLAT_PART_KM)) {
+      for (const piece of flatPieces(cursor, start)) {
         parts.push({ ...piece, accent: null });
       }
     }
-    for (const piece of chop(start, end, MAX_CLIMB_PART_KM)) {
+    const pieces = accent.kind === "climb" ? climbPieces(start, end) : [{ startKm: start, endKm: end }];
+    for (const piece of pieces) {
       parts.push({ ...piece, accent });
     }
     cursor = end;
   }
   if (route.totalKm > cursor + 0.2) {
-    for (const piece of chop(cursor, route.totalKm, MAX_FLAT_PART_KM)) {
+    for (const piece of flatPieces(cursor, route.totalKm)) {
       parts.push({ ...piece, accent: null });
     }
   }
   if (parts.length === 0) {
-    for (const piece of chop(0, route.totalKm, MAX_FLAT_PART_KM)) {
+    for (const piece of flatPieces(0, route.totalKm)) {
       parts.push({ ...piece, accent: null });
     }
   }
 
-  // Te veel stukken: dun de vlakke uit door ze weer samen te voegen. Accenten
-  // blijven, die zijn juist de reden dat de lijst bestaat.
+  // Te veel stukken: eerst vlakke buren samenvoegen, daarna delen van dezelfde
+  // klim. Een accent zelf verdwijnt nooit, dat is juist de reden voor de lijst.
   while (parts.length > MAX_PARTS) {
-    const index = parts.findIndex(
-      (part, i) => !part.accent && !parts[i + 1]?.accent && i + 1 < parts.length,
-    );
+    let index = shortestPair(parts, (a, b) => !a.accent && !b.accent);
+    if (index === -1) {
+      index = shortestPair(parts, (a, b) => a.accent !== null && a.accent === b.accent);
+    }
     if (index === -1) break;
     parts.splice(index, 2, {
       startKm: parts[index].startKm,
       endKm: parts[index + 1].endKm,
-      accent: null,
+      accent: parts[index].accent,
     });
   }
 
   return parts;
+}
+
+/** De rol van een klimdeel, of null als de klim uit één stuk bestaat. */
+function climbRole(parts: Part[], index: number): ClimbRole | null {
+  const accent = parts[index].accent;
+  if (!accent) return null;
+  const siblings = parts.filter((part) => part.accent === accent);
+  if (siblings.length < 2) return null;
+  const position = siblings.indexOf(parts[index]);
+  if (position === 0) return "begin";
+  if (position === siblings.length - 1) return "slot";
+  return "midden";
 }
 
 export type BaselineInput = {
@@ -224,24 +279,35 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
           ? sprintBoost(riderType)
           : climbBoost(accent, riderType)
         : 0;
+      const role = climbRole(parts, index);
       // Tussen de accenten iets onder de basis: daar valt tijd te sparen zonder
       // dat het veel kost.
-      const factor = accent ? fraction * (1 + boost) : fraction * 0.97;
+      const factor = accent
+        ? fraction * (1 + boost) * (role ? CLIMB_ROLE_FACTOR[role] : 1)
+        : fraction * 0.97;
       const wkg = Math.round(cpWkg * factor * 100) / 100;
+
+      const climbText = accent
+        ? `Klim van ${(accent.endKm - accent.startKm).toFixed(1)} km à ${(accent.avgGradient * 100).toFixed(1)}%.`
+        : "";
 
       return {
         startKm: part.startKm,
         endKm: part.endKm,
         targetWkg: wkg,
         label: accent
-          ? climbPartLabel(accent.name, parts, index)
+          ? role
+            ? `${accent.name} (${role})`
+            : accent.name
           : partLabel(index, parts.length),
         effort: effortFor(wkg, cpWkg),
         accentId: accent?.id ?? null,
         rationale: accent
           ? accent.kind === "sprint"
             ? "Korte piek op een sprintsegment."
-            : `Klim van ${(accent.endKm - accent.startKm).toFixed(1)} km à ${(accent.avgGradient * 100).toFixed(1)}%.`
+            : role
+              ? `${climbText} ${CLIMB_ROLE_TEXT[role]}`
+              : climbText
           : "Tussenstuk: tempo houden, niets forceren.",
       };
     });
@@ -258,16 +324,4 @@ function partLabel(index: number, total: number): string {
   if (index === 0) return "Start";
   if (index === total - 1) return "Naar de finish";
   return `Tussenstuk ${index}`;
-}
-
-/** "De Muur" blijft "De Muur"; opgeknipt wordt het "De Muur (2/3)". */
-function climbPartLabel(
-  name: string,
-  parts: Array<{ accent: PacingAccent | null }>,
-  index: number,
-): string {
-  const accent = parts[index].accent;
-  const siblings = parts.filter((part) => part.accent === accent);
-  if (siblings.length < 2) return name;
-  return `${name} (${siblings.indexOf(parts[index]) + 1}/${siblings.length})`;
 }

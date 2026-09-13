@@ -7,7 +7,12 @@ import {
   planLayoutMatchesRoute,
   withLayoutStaleness,
 } from "@/lib/pacing/staleness";
-import { carryTargetsOver, routeSnapshot } from "@/lib/pacing/store";
+import {
+  carryTargetsOver,
+  recomputedOrigin,
+  routeSnapshot,
+  type PlanSummary,
+} from "@/lib/pacing/store";
 import type { RouteProfile } from "@/lib/events/zwift-route-streams";
 
 // Melding 5 (plannenboek, 4 september 2026): na het samenvoegen van klimmen
@@ -113,5 +118,33 @@ describe("carryTargetsOver", () => {
     // Het vlakke begin is niet veranderd, dus daar staat het eigen doel nog.
     expect(result[0].startKm).toBe(0);
     expect(result[0].targetWkg).toBe(2.22);
+  });
+});
+
+describe("recomputedOrigin", () => {
+  const summary = {
+    strategy: "Glandon strak afronden.",
+    risks: ["Te hard op de Glandon."],
+  } as PlanSummary;
+
+  it("houdt bron en AI-strategie bij een herberekening op dezelfde indeling", () => {
+    const origin = recomputedOrigin({ source: "ai", summary, ai_generation_id: "gen-1" }, false);
+    expect(origin).toEqual({
+      source: "ai",
+      aiGenerationId: "gen-1",
+      strategy: "Glandon strak afronden.",
+      risks: ["Te hard op de Glandon."],
+    });
+  });
+
+  it("laat geen AI-tekst staan boven een nieuwe basisindeling", () => {
+    const origin = recomputedOrigin({ source: "ai", summary, ai_generation_id: "gen-1" }, true);
+    expect(origin).toEqual({ source: "baseline", aiGenerationId: null, strategy: null, risks: [] });
+  });
+
+  it("houdt een handmatig plan handmatig, zonder de oude strategie", () => {
+    const origin = recomputedOrigin({ source: "manual", summary, ai_generation_id: "gen-1" }, true);
+    expect(origin.source).toBe("manual");
+    expect(origin.strategy).toBeNull();
   });
 });
