@@ -10,6 +10,7 @@ export const EVENT_TYPES = [
   { value: "training", label: "Training" },
   { value: "zwift", label: "Zwift" },
   { value: "mywhoosh", label: "MyWhoosh" },
+  { value: "omnium", label: "ZWB Omnium" },
   { value: "overig", label: "Overig" },
 ] as const;
 

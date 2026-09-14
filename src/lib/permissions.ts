@@ -140,6 +140,13 @@ export const COMMUNITY_PERMISSIONS = [
     description: "Kan AI gebruiken voor concept-trainingsschema's.",
     category: "Training",
   },
+  {
+    id: "omnium.manage",
+    label: "Omnium beheren",
+    description:
+      "Kan Omnium-edities aanmaken en publiceren, uitslagen invoeren en prijzen toekennen.",
+    category: "Omnium",
+  },
 ] as const;
 
 export type CommunityPermission = (typeof COMMUNITY_PERMISSIONS)[number]["id"];
@@ -187,6 +194,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "training.create_plans",
     "training.publish_plans",
     "training.ai_generate",
+    "omnium.manage",
   ],
   trainer: [
     "training.view_assigned",

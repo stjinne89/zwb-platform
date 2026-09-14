@@ -52,6 +52,23 @@ test.describe("public smoke checks", () => {
     await expectHealthyPage(page);
   });
 
+  // De Omnium-pagina's zijn bedoeld voor een internationaal veld dat niet
+  // inlogt. Een regressie in PUBLIC_PATHS is stil en fataal: de site lijkt te
+  // werken zolang je zelf ingelogd bent.
+  for (const path of ["/omnium", "/omnium/klassement", "/omnium/regels"]) {
+    test(`${path} loads without authentication`, async ({ page }) => {
+      await page.goto(path);
+
+      await expect(page).not.toHaveURL(/\/login/);
+      // exact, want zodra er een seizoen gepubliceerd is staat er ook een knop
+      // "Season standings" op de homepage en matcht een substring er twee.
+      await expect(
+        page.getByRole("link", { name: "Standings", exact: true }),
+      ).toBeVisible();
+      await expectHealthyPage(page);
+    });
+  }
+
   test("story page loads without authentication", async ({ page }) => {
     test.setTimeout(60000);
     await page.goto("/verhaal", { waitUntil: "domcontentloaded", timeout: 60000 });

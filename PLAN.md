@@ -1891,7 +1891,7 @@ waarschuwing "A-doel zonder schema" verdwijnt zodra het doel er is.
 **Niet lokaal te verifiëren.** Migratie `0140` is hier niet gedraaid — er is geen
 Docker/Supabase-config in deze repo. De tabellen, constraints en RLS-policies zijn
 pas op productie te controleren. Let op de gaten `0126`-`0130` en `0134`: die zijn
-door de Omnium-ronde bezet en staan niet in de repo, vandaar `0140` en niet `0134`.
+door de Omnium-ronde bezet (tot 2026-09-14 alleen in de working tree), vandaar `0140` en niet `0134`.
 
 **Volgorde.** Deze ronde ging vóór punt 2 van de actieve lijst (de
 training-cockpit praktijktest), die daar zegt "pas daarna nieuwe trainingfeatures
@@ -2785,7 +2785,7 @@ cache-aanpak als `live/external-timing.ts`.
 
 ### Proefdraai Omnium op editie 7 (2025/26)
 
-**2026-08-20, working tree.** Migratie `0134`.
+**2026-08-20; gecommit 2026-09-14.** Migratie `0134`.
 
 **Wat.** De motor tegen een échte editie gelegd: uitslagen uit de Drive-sheet van
 Race 7 door `parseOmniumResults` → `scoreParsedRows`, en het resultaat vergeleken
@@ -2838,8 +2838,8 @@ wordt.
 
 ### Actief — ZWB Omnium als platformmodule
 
-**Ronde 1 (datamodel + puntenmotor) opgeleverd 2026-08-19, working tree, nog
-niet gecommit.** Migraties `0126`-`0130`.
+**Ronde 1 (datamodel + puntenmotor) opgeleverd 2026-08-19, gecommit
+2026-09-14.** Migraties `0126`-`0130`.
 
 **Waarom.** Het Omnium draaide op een losse statische site (bron in OneDrive,
 geen git, live op zwbomnium.netlify.app). Eén editie stond daar verspreid over
@@ -2913,7 +2913,7 @@ nagelopen. Wel groen: `npm run test` (527 tests, waarvan 45 nieuw),
 `npx tsc --noEmit`, `npm run lint` en `npm run build`.
 
 **Ronde 2 (beheerscherm + seizoensplanner + editiegenerator) opgeleverd
-2026-08-19, working tree, nog niet gecommit.** Geen migraties.
+2026-08-19, gecommit 2026-09-14.** Geen migraties.
 
 Nieuw: `/beheer/omnium` met seizoenskeuze, een seizoensplanner die de zes
 concept-edities in één keer neerzet, en een editielijst met publiceren. Plus
@@ -2953,8 +2953,8 @@ bezoeker een concept niet ziet.
 verouderd is en `proxy` heet. Raakt `src/middleware.ts` en
 `src/lib/supabase/middleware.ts`, staat los van het Omnium, apart op te pakken.
 
-**Ronde 3 (plak-import + klassement) opgeleverd 2026-08-19, working tree, nog
-niet gecommit.** Eén migratiewijziging: `0128` kreeg alsnog `wins` en
+**Ronde 3 (plak-import + klassement) opgeleverd 2026-08-19, gecommit
+2026-09-14.** Eén migratiewijziging: `0128` kreeg alsnog `wins` en
 `positions` op `omnium_edition_standings` (zie hieronder). `0128` was nog
 nergens toegepast, dus dat kon in het bestaand blijven.
 
@@ -3011,8 +3011,8 @@ ronde 2 is er **niets in een browser doorlopen**: geen sessie en de
 opslaan → stand is dus nog nooit tegen een echte database gedraaid; dat is de
 generale repetitie die vóór 11 oktober moet gebeuren.
 
-**Ronde 4 (publieke `/omnium`-pagina's) opgeleverd 2026-08-19, working tree,
-nog niet gecommit.** Geen migraties.
+**Ronde 4 (publieke `/omnium`-pagina's) opgeleverd 2026-08-19, gecommit
+2026-09-14.** Geen migraties.
 
 Nieuw: `src/app/omnium/` met een eigen Engelstalige layout en de pagina's home,
 `regels`, `inschrijven`, `klassement`, `[editie]`, `[editie]/uitslag` en
@@ -3105,8 +3105,7 @@ maar plannen, een editie vullen, publiceren en uitslagen plakken zijn nog niet
 door een mens doorgeklikt — het integratiescript spiegelt de databasestappen van
 die server actions, maar niet de React-kant. Dat blijft over voor Stijn.
 
-**Ronde 5 (livestream-basis) opgeleverd 2026-08-19, working tree, nog niet
-gecommit.** Geen migraties.
+**Ronde 5 (livestream-basis) opgeleverd 2026-08-19, gecommit 2026-09-14.** Geen migraties.
 
 Nieuw: `/omnium/[editie]/live` met de stream-embed, de aftelling naar de
 voorbeschouwing en de start, een voortgangsbalk van vier onderdelen
@@ -3153,6 +3152,27 @@ spiegelt de databasestappen van die server actions, niet de React-kant.
 **Volgende rondes:** spike Zwift-uitslagen (te testen op editie 1 zelf),
 startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
 historische import, uitfaseren van de oude site.
+
+**Review en commit, 2026-09-14.** Rondes 1–5 en de proefdraai stonden bijna vier
+weken alleen in de working tree, terwijl `0126`-`0130` en `0134` al in productie
+gedraaid waren: een verloren werkmap had de code gewist waar de database op rekent.
+Nu lokaal gecommit (niet gepusht). Tegen de huidige code opnieuw gecontroleerd:
+`tsc`, `eslint`, 74 Omnium-tests (6 live-tests standaard overgeslagen) en
+`npm run build` groen, met alle elf routes. Beveiliging nagelopen: alle zeven
+beheeracties roepen `requireOmniumAccess` aan; RLS staat op alle tabellen;
+`omnium_kit_codes` heeft geen policy; de live-test schrijft alleen met
+`OMNIUM_LIVE=1`; `omnium.manage` staat in productie bij board en community_manager,
+gelijk aan `DEFAULT_ROLE_PERMISSIONS`.
+**Opgemerkt, niet aangepast:** `omnium_riders` is voor `anon` volledig leesbaar
+(`using (true)`), inclusief Zwift-ID en renners die alleen in een concept-editie
+staan. De tabel is nu leeg; beslissen vóór de eerste import of dat beperkt moet
+worden tot renners in een gepubliceerde editie.
+**Nog open vóór editie 1 (11 oktober):** tiebreak bevestigen, of gasten meetellen,
+Engelse of Nederlandse URL's (na delen niet meer gratis te wijzigen), en de
+beheerschermen één keer met de hand doorlopen. Live zetten gebeurt pas bij push:
+dan wijst het Club-menu naar `/omnium` in plaats van zwbomnium.netlify.app.
+`package-lock.json` (npm-bijeffect) en de mappen `output/`, `outputs/` en
+`.claude/` zijn bewust niet meegecommit.
 
 ### Actief — pacingplan bij events
 

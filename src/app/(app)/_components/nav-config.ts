@@ -80,9 +80,8 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/zwblokken", label: "ZWBlokken" },
       {
         type: "link",
-        href: "https://zwbomnium.netlify.app/",
+        href: "/omnium",
         label: "ZWB Omnium",
-        external: true,
       },
       {
         type: "link",
@@ -158,6 +157,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
     href: "/beheer/zwift-routes",
     label: "Zwift-routes",
     permission: "events.manage_all",
+  },
+  {
+    type: "link",
+    href: "/beheer/omnium",
+    label: "Omnium",
+    permission: "omnium.manage",
   },
   {
     type: "link",

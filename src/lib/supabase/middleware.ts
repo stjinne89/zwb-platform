@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   "/verhaal",
   "/profielen",
   "/live",
+  "/omnium",
   "/api/live",
   "/api/team-results/sync",
   "/api/strava/sync",
