@@ -986,6 +986,77 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — oude readiness stuurt niet meer, en geen tweede training op een gereden dag
+
+**2026-09-14, commit `COMMIT_HASH` op `codex/zwb-segments-map`, lokaal, niet
+gepusht.** Geen migratie.
+
+**Aanleiding (melding Bart, 13 september).** "Na het syncen van mijn slaapscore
+kwam er wel een lange training, maar de oude werd niet vervangen: die staat op
+1200 %, de nieuwe op niet gereden." Productiedata (alleen gelezen), za 12
+september, Nederlandse tijd:
+
+- 11:04 — "pas vandaag aan" met 180 min en gevoel fris. De AI kreeg readiness
+  **30, "Readiness laag"**, status `fatigued` mee en gaf een herstelrit van 30
+  min. Die 30 was de Polar-score van **11 september** (2 = poor); die van de 12e
+  (6 = very good) was nog niet binnen. `summarizeWellness` nam de nieuwste
+  readiness van hoogstens 7 dagen oud als actueel, en de wellnesskopie wordt pas
+  na 6 uur ververst.
+- 11:12–14:00 — Bart reed 167 min. De rit werd om 14:10 gekoppeld aan de
+  herstelrit van 30 min: 1200 %.
+- 22:10 — dezelfde aanvraag, nu met readiness 90. De AI zag geen training meer
+  op de 12e (de gereden stond niet in `currentPlan`, en ritten van vandaag gingen
+  niet mee) en zette er een VO2max-sessie van 180 min op.
+- `retireSupersededWorkouts` liet de gereden training terecht staan (gereden is
+  geschiedenis), dus kwam de nieuwe ernaast.
+
+**1 — readiness van een eerdere dag.** `WellnessSummary` heeft
+`readinessDate` en `readinessCurrent`. Een meting van het apparaat telt alleen
+op de dag zelf. Een oudere meting blijft zichtbaar ("Readiness van vandaag nog
+niet binnen; laatste meting …"), maar zet `state` niet meer en weegt niet mee in
+`summarizeTrainingReadiness`. Een afgeleide readiness (Garmin e.d.) is een
+weektrend en blijft tellen zolang hij binnen `READINESS_MAX_AGE_DAYS` valt. De
+referentiedag van `summarizeWellness` is nu een Amsterdamse dag in plaats van
+UTC. De AI krijgt beide velden mee via het gedeelde `wellnessInputForAi`, en de
+basisprompt zegt niet voorzichtiger te plannen op een readiness met
+`readinessCurrent: false`. Dit geldt dus ook voor de herstelkaart en het
+ZWBeterWorden-niveau: 's ochtends vóór de sync bepaalt de readiness van gisteren
+het advies niet meer. De eerdere zin in de bugronde hieronder (melding 20,
+"oude readiness vervalt na `READINESS_MAX_AGE_DAYS`") klopt nog voor de
+weergave, niet meer voor het advies.
+
+**2 — verse hersteldata bij "pas vandaag aan".** `wellnessForAi(…, { fresh:
+true })` haalt altijd bij intervals.icu op (`refreshWellnessIfStale` met
+`force`). Alleen in die flow: één call per aanvraag van het lid. De cron en de
+schemagenerator houden de grens van 6 uur.
+
+**3 — ritten van vandaag.** `buildTodayRides` (adapt-context) geeft de
+Strava-ritten van de Amsterdamse dag met duur en TSS, als `todayRides` in de
+invoer van zowel "pas vandaag aan" als het dagvoorstel van de cron. De dagprompt
+zegt dan niets meer voor vandaag te plannen. Als harde grens blokkeert
+`insertPlanWorkouts` nu ook dagen met een training op `completed`, naast
+testdagen en overgeslagen dagen. Dat geldt voor elke generatie: ook een
+herziening zet geen training meer naast een gereden training.
+
+**Bewust niet gebouwd.** De rit achteraf aan de nieuwe training koppelen en de
+gereden training laten vervangen: de 1200 % klopt, want er stond 30 min gepland
+toen hij reed. Een dag met twee geplande sessies waarvan er één gereden is,
+krijgt bij een herziening ook geen tweede meer; dat komt in de schema's nu niet
+voor. Een aanvraag na een rit vandaag kan een schema zonder workouts opleveren;
+daar komt geen aparte melding voor.
+
+**Opruimen bij Bart: nog open.** De ZRL-prikkel van 12 september
+(`5be7b204…`, origin `member`, gepubliceerd als intervals-event `135690915`)
+staat nog als gepland. Het opruimscript op productie is in deze sessie niet
+gedraaid (geweigerd door de permissiecontrole).
+
+**Verificatie.** Vitest volledig groen (1019 geslaagd, 6 overgeslagen), nieuw:
+`wellness` (Polar-score van gisteren stuurt niet, die van vandaag wel,
+`force`), `today-rides` (Amsterdamse dag rond middernacht), `training-prompts`.
+`tsc --noEmit` en eslint schoon. *Niet geverifieerd:* geen echte AI-generatie
+met de nieuwe invoer, geen ingelogde dagpagina, en de blokkade op gereden dagen
+alleen via typecheck (de query zelf draait niet lokaal).
+
 ### Opgeleverd — pacingplan: hellingen, indeling en doorrekenen na klimwijziging
 
 **2026-09-13, commit `f98c994` op `main`, gepusht.** Geen migratie.
@@ -1175,7 +1246,8 @@ zichtbaar dat niet al in de lijst stond.
 
 **20 — hersteldata.** Keten intervals → wellness → gereedscore → herstelkaart
 nagelopen; geen aantoonbare fout gevonden (ontbrekend blijft `null`, oude
-readiness vervalt na `READINESS_MAX_AGE_DAYS`). Niets gewijzigd. *Vraag:* welke
+readiness vervalt na `READINESS_MAX_AGE_DAYS`; sinds 14 september telt een
+readiness van een eerdere dag niet meer mee in het advies, zie hierboven). Niets gewijzigd. *Vraag:* welke
 waarden ontbreken, van welk apparaat, op welk scherm, en staat de opt-in aan?
 Verificatiestap: `intervals_connections.wellness_opt_in` en de laatste
 wellness-dagen van dit lid in intervals.icu bekijken.

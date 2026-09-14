@@ -104,6 +104,10 @@ export type TrainingAiInput = {
     readiness: number | null;
     /** 'afgeleid' = door ZWB berekend uit HRV/rust-HR/slaap, geen meting. */
     readinessSource: "device" | "afgeleid" | null;
+    /** Dag van de readiness-meting. */
+    readinessDate: string | null;
+    /** false = de meting is van een eerdere dag en zegt niets over vandaag. */
+    readinessCurrent: boolean;
     note: string;
   } | null;
   /** Actuele belasting/vorm uit intervals.icu (CTL/ATL/TSB/eFTP). */
@@ -169,6 +173,8 @@ export type TrainingAiInput = {
     feeling: "tired" | "normal" | "fresh" | null;
     note: string | null;
   } | null;
+  /** Ritten die het lid vandaag al heeft gereden (dag-aanpassing en dagvoorstel). */
+  todayRides?: Array<{ name: string | null; minutes: number | null; load: number | null }>;
   /** Geplande workout van gisteren vs. wat de renner werkelijk deed. */
   yesterday?: {
     plannedTitle: string | null;

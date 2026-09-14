@@ -18,6 +18,14 @@ export type WellnessSummary = {
    * getal is geen meting.
    */
   readinessSource: "device" | "afgeleid" | null;
+  /** Dag van de meting waar de readiness op rust. */
+  readinessDate: string | null;
+  /**
+   * Zegt de readiness iets over vandaag? Een meting van het apparaat alleen als
+   * hij van vandaag is: de score van gisteren gaat over de nacht daarvóór. Een
+   * afgeleide readiness is een weektrend en telt zolang hij vers genoeg is.
+   */
+  readinessCurrent: boolean;
   /** Aftrek op de trainingsruimte door korte nachten (0 = genoeg geslapen). */
   sleepPenalty: number;
   // Trend t.o.v. eigen baseline: 'fresh' | 'normal' | 'fatigued' | 'unknown'.
@@ -159,11 +167,15 @@ export async function refreshWellnessIfStale(
   supabase: any,
   profileId: string,
   source: { apiKey: string; athleteId: string; records?: IntervalsWellness[] },
+  /** Altijd ophalen, ook bij een verse kopie. */
+  options: { force?: boolean } = {},
 ): Promise<{ refreshed: boolean; upserted: number }> {
   try {
-    const age = await wellnessCopyAgeMs(supabase, profileId);
-    if (age != null && age < WELLNESS_MAX_AGE_MS) {
-      return { refreshed: false, upserted: 0 };
+    if (!options.force) {
+      const age = await wellnessCopyAgeMs(supabase, profileId);
+      if (age != null && age < WELLNESS_MAX_AGE_MS) {
+        return { refreshed: false, upserted: 0 };
+      }
     }
     const { upserted } = source.records
       ? await persistWellnessRecords(supabase, profileId, source.records)
@@ -361,8 +373,13 @@ export const SEVERE_TSB = -40;
 export function summarizeWellness(
   rows: WellnessRow[],
   device?: WellnessDevice | null,
-  /** Referentiedag voor de recentheidsgrens; los meegeefbaar zodat dit testbaar blijft. */
-  today: string = new Date().toISOString().slice(0, 10),
+  /**
+   * Referentiedag voor de recentheidsgrens; los meegeefbaar zodat dit testbaar
+   * blijft. Een Amsterdamse dag, net als de datum van een wellness-rij: met UTC
+   * was een meting van vandaag tussen middernacht en twee uur 's nachts een dag
+   * uit de toekomst.
+   */
+  today: string = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" }),
 ): WellnessSummary | null {
   if (rows.length === 0) return null;
   const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date)); // nieuwste eerst
@@ -420,6 +437,18 @@ export function summarizeWellness(
   const readiness = deviceReadiness ?? derivedReadiness;
   const readinessSource: WellnessSummary["readinessSource"] =
     deviceReadiness != null ? "device" : derivedReadiness != null ? "afgeleid" : null;
+  const readinessDate =
+    deviceReadiness != null
+      ? (readinessRow?.date ?? null)
+      : derivedReadiness != null
+        ? (sorted[0]?.date ?? null)
+        : null;
+  // Op 12 september 2026 vroeg een lid 's ochtends om een lange training. De
+  // Polar-score van die nacht was nog niet binnen, en de "poor" van de dag
+  // ervoor las als readiness van vandaag: de AI gaf een herstelrit van een half
+  // uur. Een meting van het apparaat stuurt daarom alleen op de dag zelf.
+  const deviceReadinessCurrent = deviceReadiness != null && readinessAgeDays != null && readinessAgeDays <= 0;
+  const readinessCurrent = readiness != null && (derivedReadiness != null || deviceReadinessCurrent);
 
   let state: WellnessSummary["state"] = "unknown";
   const notes: string[] = [];
@@ -441,7 +470,12 @@ export function summarizeWellness(
       notes.push("Rust-hartslag verhoogd t.o.v. baseline.");
     }
   }
-  if (deviceReadiness != null) {
+  if (deviceReadiness != null && !deviceReadinessCurrent) {
+    // Geen oordeel op een oude meting, wel zichtbaar dat hij er is.
+    notes.push(
+      `Readiness van vandaag nog niet binnen; laatste meting ${readinessRow?.date} (${Math.round(deviceReadiness)}).`,
+    );
+  } else if (deviceReadiness != null) {
     if (deviceReadiness <= 50) {
       state = "fatigued";
       notes.push(`Readiness laag (${Math.round(deviceReadiness)}).`);
@@ -510,6 +544,8 @@ export function summarizeWellness(
     sleepHours: sleepHours != null ? Math.round(sleepHours * 10) / 10 : null,
     readiness: readiness != null ? Math.round(readiness) : null,
     readinessSource,
+    readinessDate,
+    readinessCurrent,
     sleepPenalty,
     state,
     note: notes.join(" "),
@@ -551,7 +587,9 @@ export function summarizeTrainingReadiness({
   if (!wellness) {
     notes.push("Geen gedeelde hersteldata om readiness, slaap, HRV en rust-HR mee te wegen.");
   } else {
-    const readiness = wellness.readiness;
+    // Een meting van een eerdere dag weegt niet mee; de notitie van de
+    // samenvatting noemt hem wel.
+    const readiness = wellness.readinessCurrent === false ? null : wellness.readiness;
     if (wellness.state === "fatigued" || (readiness != null && readiness <= 50)) {
       recoveryState = "recovery";
       score -= 28;
@@ -657,6 +695,12 @@ export async function wellnessForAi(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
   profileId: string,
+  /**
+   * `fresh`: altijd bij intervals.icu ophalen. Voor een aanvraag van het lid
+   * zelf: de nacht van vandaag komt vaak pas na de laatste sync binnen, en de
+   * kopie mag tot zes uur oud zijn.
+   */
+  options: { fresh?: boolean } = {},
 ): Promise<WellnessSummary | null> {
   const { data: conn } = await admin
     .from("intervals_connections")
@@ -667,11 +711,30 @@ export async function wellnessForAi(
 
   // Zelfde staleness-regel als de trainingspagina's: is de kopie vers, dan
   // slaan we de call over; is hij oud of leeg, dan halen we hem eerst in.
-  await refreshWellnessIfStale(admin, profileId, {
-    apiKey: conn.api_key,
-    athleteId: conn.athlete_id,
-  });
+  await refreshWellnessIfStale(
+    admin,
+    profileId,
+    { apiKey: conn.api_key, athleteId: conn.athlete_id },
+    { force: options.fresh },
+  );
   return getWellnessSummary(admin, profileId);
+}
+
+/** De herstelvelden zoals de AI ze krijgt; gedeeld door alle generaties. */
+export function wellnessInputForAi(wellness: WellnessSummary | null) {
+  if (!wellness) return null;
+  return {
+    days: wellness.days,
+    state: wellness.state,
+    restingHr: wellness.restingHr,
+    hrv: wellness.hrv,
+    sleepHours: wellness.sleepHours,
+    readiness: wellness.readiness,
+    readinessSource: wellness.readinessSource,
+    readinessDate: wellness.readinessDate,
+    readinessCurrent: wellness.readinessCurrent,
+    note: wellness.note,
+  };
 }
 
 /** Laadt + vat de laatste N dagen profile_wellness samen (service-role). */

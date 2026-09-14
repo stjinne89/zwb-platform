@@ -39,6 +39,15 @@ describe("training prompts", () => {
     expect(adaptiveDailyPrompt()).toContain("ook als de signalen fris zijn");
   });
 
+  it("stuurt niet op een readiness van een eerdere dag", () => {
+    expect(defaultTrainingPrompt()).toContain("wellness.readinessCurrent op false");
+  });
+
+  it("plant geen tweede training op een dag waarop al is gereden", () => {
+    expect(adaptiveDailyPrompt()).toContain("todayRides");
+    expect(adaptiveDailyPrompt()).toContain("geef geen workout met de datum van vandaag terug");
+  });
+
   it("weet bij een bijwerking dat een A-mikpunt wél een piekmoment is", () => {
     expect(planUpdatePrompt()).toContain("A-mikpunt uit seasonPlan");
   });

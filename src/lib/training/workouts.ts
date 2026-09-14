@@ -119,6 +119,7 @@ export function defaultTrainingPrompt() {
     "Maak een concept dat de trainer daarna kan redigeren; wees concreet maar niet dogmatisch.",
     "Als er herstel-data (wellness) is meegegeven, weeg die mee: bij state 'fatigued', lage readiness, weinig slaap of verhoogde rust-hartslag plan je voorzichtiger — stel zware blokken (threshold/vo2max/anaerobic) uit of vervang ze door endurance/herstel, en benoem dit kort in cautions. Bij state 'fresh' mag een zwaardere sleutelsessie.",
     "Staat wellness.readinessSource op 'afgeleid', dan is die readiness door ZWB berekend uit dezelfde HRV, rust-hartslag en slaap die je hierboven al krijgt — het apparaat van het lid levert er zelf geen. Weeg hem dan één keer mee, niet bovenop die losse waarden, en behandel hem als een indicatie: laat er geen ingrijpende keuze alleen van afhangen.",
+    "wellness.readinessDate is de dag van de readiness-meting. Staat wellness.readinessCurrent op false, dan is die meting van een eerdere dag en is die van vandaag nog niet binnen: plan dan niet voorzichtiger op dat getal. Ga uit van HRV, rust-hartslag, slaap en wat het lid zelf aangeeft.",
     "Is symptoms meegegeven, dan komt dat uit het klachtenlogboek van het lid: score 0 is geen last, 1 is veel last, over de afgelopen week. Behandel het als één herstelsignaal naast readiness en TSB, niet als een aparte regel. Bij score boven 0,65 plan je de zware sleutelsessie flexibeler — bijvoorbeeld een dag opgeschoven of vervangen door endurance — en benoem dat kort in cautions.",
     "Leid uit symptoms of profile.sex NOOIT een cyclusfase af en periodiseer daar niet op. Het onderzoek naar fase-gestuurd trainen is inconsistent, en een deel van de leden heeft door anticonceptie geen natuurlijke cyclus. Je reageert op gemelde klachten, niet op een berekende dag.",
     "Noem klachten nooit expliciet in de titel of beschrijving van een workout. Dat is privé; houd het bij cautions en in neutrale bewoording ('lagere belastbaarheid deze week').",
@@ -173,7 +174,8 @@ export function adaptiveDailyPrompt() {
     "3) Geen/weinig tijd vandaag (today.availableMinutes lager dan de geplande duur): comprimeer de sessie tot binnen de beschikbare tijd — behoud zo veel mogelijk de kernprikkel in een kortere vorm, of verschuif de sleutelsessie en plan vandaag een korte onderhoudsrit. Overschrijd de beschikbare minuten nooit.",
     "4) Frisser dan verwacht (today.feeling='fresh', hoge readiness, positieve TSB): je mág kwaliteit toevoegen of een sessie iets zwaarder maken, maar blijf binnen de weeklimiet en ga niet ten koste van de volgende geplande sleutelsessie.",
     "Valt vandaag binnen een periode uit seasonPlan.periods met kind 'rust', dan is het antwoord rust of hooguit een korte losse rit — ook als de signalen fris zijn. Het lid is er niet; frisheid is dan geen ruimte om iets in te plannen.",
-    "Combineer signalen verstandig (bv. fris maar weinig tijd = korte, scherpe sessie). Geef altijd een concreet, uitvoerbaar voorstel voor vandaag.",
+    "Staat todayRides gevuld, dan heeft het lid vandaag al gereden. Plan vandaag dan niets meer: geef geen workout met de datum van vandaag terug, ook niet bij today.feeling 'fresh' of ruime today.availableMinutes. Pas hooguit de komende dagen aan op de belasting van die rit(ten).",
+    "Combineer signalen verstandig (bv. fris maar weinig tijd = korte, scherpe sessie). Geef een concreet, uitvoerbaar voorstel voor vandaag, tenzij todayRides laat zien dat er vandaag al is gereden.",
   ].join("\n");
 }
 

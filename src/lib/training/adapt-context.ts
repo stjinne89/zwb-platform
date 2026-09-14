@@ -162,6 +162,55 @@ export function yesterdayContextFrom(input: {
   };
 }
 
+export type TodayRide = { name: string | null; minutes: number | null; load: number | null };
+
+/**
+ * De ritten van vandaag, Amsterdamse dag, langste eerst. Pure kern van
+ * buildTodayRides.
+ */
+export function todayRidesFrom(input: {
+  todayKey: string;
+  rides: StravaRideRow[];
+  ftpWatts: number | null;
+}): TodayRide[] {
+  return input.rides
+    .filter((ride) => amsterdamDayKey(new Date(ride.start_date)) === input.todayKey)
+    .sort((a, b) => (b.moving_time_seconds ?? 0) - (a.moving_time_seconds ?? 0))
+    .map((ride) => {
+      const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, input.ftpWatts);
+      return { name: ride.name, minutes: metrics.movingMinutes, load: metrics.tss };
+    });
+}
+
+/**
+ * Wat het lid vandaag al heeft gereden.
+ *
+ * Een dag-aanpassing kende alleen gisteren. Op 12 september 2026 vroeg een lid
+ * 's avonds, na een rit van bijna drie uur, om een lange training voor vandaag;
+ * de AI zag een lege dag en zette er een VO2max-sessie van 180 minuten op.
+ */
+export async function buildTodayRides(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  profileId: string,
+): Promise<TodayRide[]> {
+  const now = Date.now();
+  const [{ data: rides }, { data: profile }] = await Promise.all([
+    admin
+      .from("strava_activities")
+      .select(STRAVA_RIDE_COLUMNS)
+      .eq("profile_id", profileId)
+      .gte("start_date", new Date(now - 26 * 3600_000).toISOString())
+      .lte("start_date", new Date(now).toISOString()),
+    admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
+  ]);
+  return todayRidesFrom({
+    todayKey: amsterdamDayKey(new Date(now)),
+    rides: (rides ?? []) as StravaRideRow[],
+    ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+  });
+}
+
 export async function buildYesterdayContext(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,

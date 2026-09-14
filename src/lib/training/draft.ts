@@ -23,7 +23,7 @@ import {
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
-import { buildYesterdayContext } from "@/lib/training/adapt-context";
+import { buildTodayRides, buildYesterdayContext } from "@/lib/training/adapt-context";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import {
@@ -281,7 +281,7 @@ async function buildTrainingInput(
   ]);
   if (!profile || !goal) throw new Error("Profiel of doel niet gevonden.");
 
-  const { wellnessForAi } = await import("@/lib/training/wellness");
+  const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
   const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
   const intervalsLoad = await buildIntervalsLoad(admin, athleteId);
 
@@ -347,18 +347,7 @@ async function buildTrainingInput(
     },
     symptoms: await loadSymptomLoadForAi(admin, athleteId),
     recentLoad: recent,
-    wellness: wellness
-      ? {
-          days: wellness.days,
-          state: wellness.state,
-          restingHr: wellness.restingHr,
-          hrv: wellness.hrv,
-          sleepHours: wellness.sleepHours,
-          readiness: wellness.readiness,
-          readinessSource: wellness.readinessSource,
-          note: wellness.note,
-        }
-      : null,
+    wellness: wellnessInputForAi(wellness),
     intervalsLoad,
     upcomingEvents,
     compliance,
@@ -409,7 +398,10 @@ export async function insertPlanWorkouts(
    */
   options: { fitToAvailability?: boolean } = {},
 ) {
-  // Testdagen en dagen die het lid heeft vrijgemaakt; zie dropWorkoutsOnBlockedDays().
+  // Testdagen, dagen die het lid heeft vrijgemaakt en dagen waarop al een
+  // training is gereden; zie dropWorkoutsOnBlockedDays(). Die laatste omdat een
+  // gereden training nooit wordt vervangen: een nieuwe training kwam er dan
+  // náást te staan, als "niet gereden" (12 september 2026).
   const dates = workouts.map((workout) => workout.date).sort();
   let blockedDays = new Set<string>();
   if (dates.length > 0) {
@@ -417,7 +409,7 @@ export async function insertPlanWorkouts(
       .from("training_workouts")
       .select("scheduled_at")
       .eq("profile_id", plan.profile_id)
-      .or("test_type.not.is.null,status.eq.skipped")
+      .or("test_type.not.is.null,status.eq.skipped,status.eq.completed")
       .is("superseded_at", null)
       .gte("scheduled_at", `${dates[0]}T00:00:00`)
       .lte("scheduled_at", `${dates[dates.length - 1]}T23:59:59`);
@@ -860,11 +852,12 @@ export async function startTodayAdjustmentDraft(
     ]);
     if (!profile) return { ok: false, error: "Profiel niet gevonden." };
 
-    const { wellnessForAi } = await import("@/lib/training/wellness");
-    const [wellness, yesterday, recentLoad, intervalsLoad, availability, fixedWorkouts] =
+    const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
+    const [wellness, yesterday, todayRides, recentLoad, intervalsLoad, availability, fixedWorkouts] =
       await Promise.all([
-        wellnessForAi(admin, user.id).catch(() => null),
+        wellnessForAi(admin, user.id, { fresh: true }).catch(() => null),
         buildYesterdayContext(admin, user.id).catch(() => null),
+        buildTodayRides(admin, user.id).catch(() => []),
         buildRecentLoad(admin, user.id),
         buildIntervalsLoad(admin, user.id),
         availabilityForAi(admin, user.id, today, planTo),
@@ -891,22 +884,12 @@ export async function startTodayAdjustmentDraft(
         sex: profile.sex ?? null,
       },
       recentLoad,
-      wellness: wellness
-        ? {
-            days: wellness.days,
-            state: wellness.state,
-            restingHr: wellness.restingHr,
-            hrv: wellness.hrv,
-            sleepHours: wellness.sleepHours,
-            readiness: wellness.readiness,
-            readinessSource: wellness.readinessSource,
-            note: wellness.note,
-          }
-        : null,
+      wellness: wellnessInputForAi(wellness),
       intervalsLoad,
       availability,
       fixedWorkouts,
       today: { availableMinutes, feeling, note },
+      todayRides,
       yesterday,
       currentPlan: {
         title: (active.title as string | null) ?? "Lopend schema",

@@ -74,6 +74,27 @@ describe("summarizeWellness — readiness per apparaat", () => {
     expect(readiness.state).not.toBe("recovery");
   });
 
+  it("laat de Polar-score van gisteren niet als readiness van vandaag sturen", () => {
+    // 12 september 2026: de "poor" van de dag ervoor gaf 's ochtends een
+    // herstelrit van een half uur, terwijl die nacht "very good" was.
+    const rows = [row("2026-06-27", 2), row("2026-06-26", 5)];
+    const summary = summarizeWellness(rows, "polar", TODAY)!;
+    expect(summary.readiness).toBe(30);
+    expect(summary.readinessDate).toBe("2026-06-27");
+    expect(summary.readinessCurrent).toBe(false);
+    expect(summary.state).not.toBe("fatigued");
+    expect(summary.note).toContain("Readiness van vandaag nog niet binnen");
+    expect(summary.note).not.toContain("Readiness laag");
+    expect(summarizeTrainingReadiness({ tsb: 0, wellness: summary }).state).not.toBe("recovery");
+  });
+
+  it("de Polar-score van vandaag stuurt wel", () => {
+    const summary = summarizeWellness([row("2026-06-28", 2)], "polar", TODAY)!;
+    expect(summary.readinessCurrent).toBe(true);
+    expect(summary.readinessDate).toBe("2026-06-28");
+    expect(summary.state).toBe("fatigued");
+  });
+
   it("zonder apparaat leest een rauwe Polar-'4' nog als laag (de oorspronkelijke bug)", () => {
     // Bevestigt waarom expliciete apparaatkeuze nodig is: zonder device kan de
     // app een integer-schaal niet onderscheiden van een echte 0-100 score.
@@ -150,6 +171,18 @@ describe("refreshWellnessIfStale", () => {
     });
     expect(result.refreshed).toBe(false);
     expect(db.upserts).toHaveLength(0);
+  });
+
+  it("haalt met force ook bij een verse kopie opnieuw op", async () => {
+    const db = fakeDb(new Date().toISOString());
+    const result = await refreshWellnessIfStale(
+      db,
+      "p1",
+      { apiKey: "k", athleteId: "i1", records },
+      { force: true },
+    );
+    expect(result.refreshed).toBe(true);
+    expect(db.upserts).toHaveLength(1);
   });
 
   it("slaat dagen zonder enige herstelwaarde over", async () => {
@@ -504,6 +537,8 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
       sleepHours: 7.5,
       readiness: 95,
       readinessSource: "afgeleid",
+      readinessDate: "2026-06-28",
+      readinessCurrent: true,
       sleepPenalty: 0,
       state: "fresh",
       note: "",

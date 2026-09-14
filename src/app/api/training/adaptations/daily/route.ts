@@ -1,7 +1,7 @@
 import { loadSymptomLoadForAi } from "@/lib/training/symptoms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adaptiveDailyPrompt } from "@/lib/training/workouts";
-import { buildYesterdayContext } from "@/lib/training/adapt-context";
+import { buildTodayRides, buildYesterdayContext } from "@/lib/training/adapt-context";
 import {
   availabilityNeedsReplan,
   clearReplanPending,
@@ -516,11 +516,12 @@ export async function POST(request: Request) {
         // trainingsbelasting over 28 dagen, net als de andere flows.
         const today = amsterdamDayKey();
         const planEnd = String(plan.end_date).slice(0, 10);
-        const { wellnessForAi } = await import("@/lib/training/wellness");
-        const [wellness, yesterday, recent, intervalsLoad, availability, fixedWorkouts] =
+        const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
+        const [wellness, yesterday, todayRides, recent, intervalsLoad, availability, fixedWorkouts] =
           await Promise.all([
             wellnessForAi(admin, plan.profile_id).catch(() => null),
             buildYesterdayContext(admin, plan.profile_id).catch(() => null),
+            buildTodayRides(admin, plan.profile_id).catch(() => []),
             buildRecentLoad(admin, plan.profile_id),
             buildIntervalsLoad(admin, plan.profile_id),
             availabilityForAi(admin, plan.profile_id, today, planEnd),
@@ -561,21 +562,11 @@ export async function POST(request: Request) {
           },
           symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
           recentLoad: recent,
-          wellness: wellness
-            ? {
-                days: wellness.days,
-                state: wellness.state,
-                restingHr: wellness.restingHr,
-                hrv: wellness.hrv,
-                sleepHours: wellness.sleepHours,
-                readiness: wellness.readiness,
-                readinessSource: wellness.readinessSource,
-                note: wellness.note,
-              }
-            : null,
+          wellness: wellnessInputForAi(wellness),
           intervalsLoad,
           availability,
           fixedWorkouts,
+          todayRides,
           yesterday,
           currentPlan: {
             title: plan.title,

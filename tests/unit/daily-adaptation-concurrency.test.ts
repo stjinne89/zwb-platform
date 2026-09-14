@@ -40,9 +40,15 @@ vi.mock("@/lib/training/draft", async (importOriginal) => ({
   startPlanUpdate: async () => ({ ok: false, error: "niet in deze test" }),
 }));
 
-vi.mock("@/lib/training/adapt-context", () => ({ buildYesterdayContext: async () => null }));
+vi.mock("@/lib/training/adapt-context", () => ({
+  buildYesterdayContext: async () => null,
+  buildTodayRides: async () => [],
+}));
 vi.mock("@/lib/training/symptoms", () => ({ loadSymptomLoadForAi: async () => null }));
-vi.mock("@/lib/training/wellness", () => ({ wellnessForAi: async () => null }));
+vi.mock("@/lib/training/wellness", () => ({
+  wellnessForAi: async () => null,
+  wellnessInputForAi: () => null,
+}));
 vi.mock("@/lib/training/availability", () => ({
   availabilityForAi: async () => null,
   loadFixedWorkouts: async () => [],

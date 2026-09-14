@@ -1134,10 +1134,17 @@ export default function HelpPage() {
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
               De hersteltrend vergelijkt je HRV en rusthartslag met je eigen
-              baseline en neemt slaap en de meest recente readiness mee.
+              baseline en neemt slaap en de readiness van vandaag mee.
               Readiness is een dagsignaal uit intervals.icu; HRV, rusthartslag
               en slaap worden als zevendaagse trend bekeken. Een gunstige HRV
               kan daardoor naast een middelmatige readiness staan.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Is de readiness van vandaag nog niet binnen, dan zie je de laatste
+              meting met de datum erbij, maar die telt niet mee in je advies. Pas
+              je je training van vandaag aan, dan haalt ZWB eerst je nieuwste
+              hersteldata op. Heb je vandaag al gereden, dan komt er geen tweede
+              training op die dag bij.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Als je hersteldata deelt, gebruikt ZWB slaap, HRV en rusthartslag
