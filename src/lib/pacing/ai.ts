@@ -120,6 +120,11 @@ export type PacingAiInput = {
   }>;
   /** Wat het lid zelf van dit event wil. */
   goal?: string | null;
+  /**
+   * Gewenste eindtijd. Het basisvoorstel hierboven is dan al op die tijd gezet;
+   * `reachable` zegt of dat lukte, `fastestSeconds` wat maximaal haalbaar is.
+   */
+  targetTime?: { seconds: number; reachable: boolean; fastestSeconds: number } | null;
 };
 
 const EFFORTS = ["rustig", "duur", "tempo", "drempel", "vol"] as const;

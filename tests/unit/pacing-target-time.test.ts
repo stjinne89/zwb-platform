@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { adoptGeneratedPlan } from "@/lib/pacing/adopt";
 import { buildBaselinePlan } from "@/lib/pacing/baseline";
+import { defaultPacingPrompt } from "@/lib/pacing/prompt";
+import { targetSecondsFromPromptSummary } from "@/lib/pacing/store";
 import { evaluatePlan } from "@/lib/pacing/plan";
 import type { CpModel } from "@/lib/pacing/cp";
 import type { DurabilityModel } from "@/lib/pacing/durability";
@@ -39,6 +42,45 @@ function route(zones: Array<{ startKm: number; endKm: number }> = []): PacingRou
   });
   return { ...base, neutralZones: normalizeNeutralZones(zones, base.totalKm) };
 }
+
+describe("doeltijd en AI", () => {
+  it("leest de doeltijd terug uit de opgeslagen AI-invoer", () => {
+    expect(targetSecondsFromPromptSummary(JSON.stringify({ targetTime: { seconds: 19_800 } }))).toBe(19_800);
+    expect(targetSecondsFromPromptSummary(JSON.stringify({ targetTime: null }))).toBeNull();
+    expect(targetSecondsFromPromptSummary("geen json")).toBeNull();
+    expect(targetSecondsFromPromptSummary(null)).toBeNull();
+  });
+
+  it("verbiedt de AI niet langer over een doeltijd te praten, maar laat het rekenen bij het platform", () => {
+    const prompt = defaultPacingPrompt();
+    expect(prompt).not.toContain("Noem geen verwachte finishtijd");
+    expect(prompt).toContain("targetTime");
+    expect(prompt).toContain("fastestSeconds");
+    expect(prompt).toContain("Je rekent geen tijden of snelheden uit");
+  });
+
+  it("zet een AI-verdeling op tijd met behoud van de verhouding tussen klim en vlak", () => {
+    const r = route();
+    const adopted = adoptGeneratedPlan(
+      {
+        strategy: "",
+        risks: [],
+        segments: [
+          { startKm: 0, endKm: 30, targetWkg: 2.5, label: "Vlak", effort: "duur", rationale: "", accentId: "" },
+          { startKm: 30, endKm: 35, targetWkg: 3.6, label: "Klim", effort: "drempel", rationale: "", accentId: "klim" },
+          { startKm: 35, endKm: 40, targetWkg: 2.5, label: "Finish", effort: "duur", rationale: "", accentId: "" },
+        ],
+      },
+      r,
+      MODEL,
+    );
+    const target = adopted.evaluation.totalSeconds - 180;
+    const fitted = fitPlanToTime(adopted.plan, r, MODEL, target);
+    expect(Math.abs(fitted.evaluation.totalSeconds - target)).toBeLessThanOrEqual(TARGET_TOLERANCE_S);
+    const ratio = (plan: typeof adopted.plan) => plan[1].targetWkg / plan[0].targetWkg;
+    expect(ratio(fitted.plan)).toBeCloseTo(ratio(adopted.plan), 1);
+  });
+});
 
 describe("parseTargetTime", () => {
   it("leest u:mm, u.mm, 5u30 en losse minuten", () => {

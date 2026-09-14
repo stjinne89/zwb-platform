@@ -986,6 +986,44 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — gewenste eindtijd ook naar het AI-voorstel (wens 7, deel 2)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** De eigenaar wilde de doeltijd niet alleen rekenkundig verwerken, maar
+ook aan de AI meegeven. De promptregel "Noem geen verwachte finishtijd" en een
+`goal` die de knop nooit invulde, hielden dat tegen.
+
+**Wat er is gekomen.**
+- **Doorgeven.** `GenerateButton` stuurt de opgeslagen `summary.targetTime.seconds`
+  mee als `targetSeconds`. De API-route accepteert 60 s tot 24 uur, en
+  `startPacingDraft` geeft het door aan `buildPacingContext`.
+- **Basisvoorstel op tijd.** `buildPacingContext` zet het basisvoorstel voor de
+  AI eerst met `fitPlanToTime` op de doeltijd. De AI krijgt dan
+  `targetTime: {seconds, reachable, fastestSeconds}`.
+- **Prompt.** Nog steeds rekent de AI zelf geen tijden. Nieuw:
+  - bij een `targetTime` hetzelfde totaal slimmer verdelen, niet zwaarder of
+    lichter maken;
+  - een onhaalbare tijd noemen in `risks`, met de snelste haalbare tijd.
+- **Overnemen.** `pollGeneration` leest de doeltijd terug uit `prompt_summary`
+  (`targetSecondsFromPromptSummary`). Na `adoptGeneratedPlan` zet
+  `fitPlanToTime` de AI-verdeling op die tijd: de vorm blijft, het niveau schuift.
+  - Wijkt de AI meer dan 3 % af (`AI_TARGET_DEVIATION`), dan komt er een notitie.
+  - Het plan krijgt `summary.targetTime`.
+- `/hulp#pacing-eindtijd` noemt het.
+
+**Bewust niet gebouwd.** Geen apart doeltijdveld naast de AI-knop: de tijd komt
+uit het plan, zodat er één plek is om hem op te geven. Geen kolom voor de
+doeltijd op `event_pacing_generations`: `prompt_summary` bevat de invoer al.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (1003 geslaagd). Nieuw in
+`pacing-target-time.test.ts`: doeltijd teruglezen uit de AI-invoer, promptregels,
+en een AI-verdeling op tijd zetten met behoud van de verhouding klim/vlak.
+*Niet geverifieerd:* geen echte AI-generatie gedraaid (kost geld en vraagt een
+ingelogde sessie); hoe het model met de nieuwe regel omgaat, is dus niet bekeken.
+
 ### Opgeleverd — pacingplan voor een gewenste eindtijd, rekenkundig (wens 7, deel 1)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

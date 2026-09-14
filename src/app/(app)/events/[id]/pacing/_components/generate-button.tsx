@@ -20,7 +20,14 @@ type Payload = {
 const FIRST_DELAY_MS = 2_000;
 const INTERVAL_MS = 3_000;
 
-export function GenerateButton({ eventId }: { eventId: string }) {
+export function GenerateButton({
+  eventId,
+  targetSeconds,
+}: {
+  eventId: string;
+  /** De gewenste eindtijd bij het plan; gaat mee naar het voorstel. */
+  targetSeconds?: number | null;
+}) {
   const router = useRouter();
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -77,7 +84,7 @@ export function GenerateButton({ eventId }: { eventId: string }) {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(targetSeconds ? { targetSeconds } : {}),
       });
       const payload = (await response.json()) as Payload;
       if (!response.ok || !payload.ok || !payload.generationId) {

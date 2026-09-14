@@ -62,7 +62,9 @@ export default async function PacingPage({
 
       <PageHeader
         title="Pacingplan"
-        actions={<GenerateButton eventId={id} />}
+        actions={
+          <GenerateButton eventId={id} targetSeconds={summary?.targetTime?.seconds ?? null} />
+        }
       />
 
       <section className="rounded-lg border bg-card p-4">
@@ -100,7 +102,7 @@ export default async function PacingPage({
           </ul>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <RecomputeButton eventId={id} />
-            <GenerateButton eventId={id} />
+            <GenerateButton eventId={id} targetSeconds={summary?.targetTime?.seconds ?? null} />
           </div>
         </section>
       )}

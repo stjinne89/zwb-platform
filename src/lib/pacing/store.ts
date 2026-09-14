@@ -477,6 +477,24 @@ export async function fitStoredPlanToTime(
 
 // --- AI-generatie --------------------------------------------------------
 
+/** Boven deze afwijking melden we dat de AI-verdeling op tijd is gezet. */
+export const AI_TARGET_DEVIATION = 0.03;
+
+/**
+ * De doeltijd uit de opgeslagen AI-invoer. prompt_summary is de JSON van
+ * PacingAiInput; daar staat hij al, dus geen extra kolom nodig.
+ */
+export function targetSecondsFromPromptSummary(summary: string | null): number | null {
+  if (!summary) return null;
+  try {
+    const parsed = JSON.parse(summary) as { targetTime?: { seconds?: unknown } | null };
+    const seconds = Number(parsed.targetTime?.seconds);
+    return Number.isFinite(seconds) && seconds >= 60 ? seconds : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function startGeneration(
   admin: Admin,
   input: {
@@ -543,7 +561,7 @@ export async function pollGeneration(
 ): Promise<PollResult> {
   const { data } = await admin
     .from("event_pacing_generations")
-    .select("id, status, openai_response_id, error")
+    .select("id, status, openai_response_id, error, prompt_summary")
     .eq("id", input.generationId)
     .eq("profile_id", input.profileId)
     .maybeSingle();
@@ -552,6 +570,7 @@ export async function pollGeneration(
     status: string;
     openai_response_id: string | null;
     error: string | null;
+    prompt_summary: string | null;
   } | null;
   if (!row) return { status: "failed", error: "Generatie niet gevonden." };
   if (row.status === "completed") return { status: "completed" };
@@ -589,21 +608,43 @@ export async function pollGeneration(
     durability: input.rider.durability,
   });
 
+  // Vroeg het lid om een eindtijd, dan zetten wij de verdeling van de AI op die
+  // tijd: het model rekent geen tijden, het platform wel.
+  const targetSeconds = targetSecondsFromPromptSummary(row.prompt_summary);
+  const { fitPlanToTime } = await import("@/lib/pacing/target-time");
+  const fitted = targetSeconds
+    ? fitPlanToTime(adopted.plan, input.route, input.rider.model, targetSeconds, {
+        curve: input.rider.curve,
+        durability: input.rider.durability,
+      })
+    : null;
+  const aiDeviation = targetSeconds
+    ? Math.abs(adopted.evaluation.totalSeconds - targetSeconds) / targetSeconds
+    : 0;
+
   await savePlan(admin, {
     eventId: input.eventId,
     profileId: input.profileId,
     source: "ai",
-    segments: adopted.plan,
-    evaluation: adopted.evaluation,
+    segments: fitted?.plan ?? adopted.plan,
+    evaluation: fitted?.evaluation ?? adopted.evaluation,
     route: input.route,
     assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
     aiGenerationId: input.generationId,
     strategy: adopted.strategy,
     risks: adopted.risks,
+    targetTime: fitted
+      ? { seconds: fitted.seconds, reachable: fitted.reachable, fastestSeconds: fitted.fastestSeconds }
+      : null,
     notes: [
       ...adopted.repairs,
       ...adopted.adjustments,
       ...adopted.clampNotes.map(clampNoteText),
+      ...(fitted && aiDeviation > AI_TARGET_DEVIATION
+        ? [
+            `Het AI-voorstel week ${Math.round(aiDeviation * 100)}% af van je gewenste tijd; de doelen zijn daarop bijgesteld met dezelfde verdeling.`,
+          ]
+        : []),
     ],
   });
 

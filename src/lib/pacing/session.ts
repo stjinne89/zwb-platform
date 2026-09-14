@@ -237,6 +237,7 @@ async function loadSharedPlans(
 export async function startPacingDraft(
   eventId: string,
   goal?: string | null,
+  targetSeconds?: number | null,
 ): Promise<
   { ok: true; generationId: string } | { ok: false; error: string }
 > {
@@ -264,6 +265,7 @@ export async function startPacingDraft(
       event: ctx.event,
       route: ctx.loaded.route,
       goal,
+      targetSeconds,
     });
 
     const { generationId } = await startGeneration(ctx.admin, {

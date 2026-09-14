@@ -1646,7 +1646,10 @@ Fitness-status: Verbeterend`}
               je reserve en je drempel toelaten, dan krijg je het snelste plan dat
               de finish haalt en zie je welke tijd dat is. Het doel blijft bij je
               plan staan, zodat je na een aanpassing ziet hoe ver je ervan af zit.
-              Wind en slipstream zitten niet in de berekening.
+              Vraag je daarna een nieuw voorstel, dan krijgt de AI je doeltijd mee:
+              die kiest waar je harder en zachter rijdt, en het platform zet die
+              verdeling daarna weer op je tijd. Wind en slipstream zitten niet in
+              de berekening.
             </p>
           </article>
 

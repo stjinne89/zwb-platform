@@ -20,6 +20,7 @@ import {
   type FatigueCurve,
 } from "@/lib/pacing/durability";
 import { buildBaselinePlan } from "@/lib/pacing/baseline";
+import { fitPlanToTime } from "@/lib/pacing/target-time";
 import { scoreSimilarRides, type RideCandidate } from "@/lib/pacing/similarity";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
 import type { PacingAiInput } from "@/lib/pacing/ai";
@@ -234,6 +235,8 @@ export async function buildPacingContext(
     event: PacingEventRow;
     route: PacingRoute;
     goal?: string | null;
+    /** Gewenste eindtijd in seconden; het basisvoorstel wordt daar dan op gezet. */
+    targetSeconds?: number | null;
   },
 ): Promise<PacingContext> {
   const { route, event } = options;
@@ -244,13 +247,25 @@ export async function buildPacingContext(
     buildIntervalsLoad(admin, options.profileId),
   ]);
 
-  const baseline = buildBaselinePlan({
+  const built = buildBaselinePlan({
     route,
     model: rider.model,
     riderType: rider.riderType,
     curve: rider.curve,
     durability: rider.durability,
   });
+
+  // Met een doeltijd krijgt het model een basisvoorstel dat die tijd al haalt
+  // (of zo dicht als kan). Tijden rekenen blijft zo bij het platform.
+  const fitted = options.targetSeconds
+    ? fitPlanToTime(built.plan, route, rider.model, options.targetSeconds, {
+        curve: rider.curve,
+        durability: rider.durability,
+      })
+    : null;
+  const baseline = fitted
+    ? { ...built, plan: fitted.plan, evaluation: fitted.evaluation }
+    : built;
 
   const elevationM = totalElevation(route);
   const longestClimbKm = route.accents
@@ -338,6 +353,9 @@ export async function buildPacingContext(
       why: scored.reasons.join(", "),
     })),
     goal: options.goal ?? null,
+    targetTime: fitted
+      ? { seconds: fitted.seconds, reachable: fitted.reachable, fastestSeconds: fitted.fastestSeconds }
+      : null,
   };
 
   return { input, rider, baseline };
