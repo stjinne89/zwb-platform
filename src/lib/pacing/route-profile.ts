@@ -45,12 +45,24 @@ export type PacingSegment = {
   accentIndex: number | null;
 };
 
+/**
+ * Een stuk waar het veld achter een wagen rijdt: de beheerder zet het op de
+ * eventpagina (event_zones). Daar kiest niemand zijn eigen tempo.
+ */
+export type NeutralZone = {
+  startKm: number;
+  endKm: number;
+  label: string;
+};
+
 export type PacingRoute = {
   source: "gpx" | "zwift";
   totalKm: number;
   hasElevation: boolean;
   segments: PacingSegment[];
   accents: PacingAccent[];
+  /** Neutralisaties, op km-volgorde en binnen de route. Leeg of afwezig: geen. */
+  neutralZones?: NeutralZone[];
   /**
    * De lead-in van een Zwift-route is als constante gradiënt benaderd:
    * zwift-data geeft er wel afstand en hoogtemeters voor, maar geen profiel.
@@ -67,6 +79,42 @@ export function segmentEndKms(segments: PacingSegment[]): number[] {
     out.push(cum);
   }
   return out;
+}
+
+/**
+ * Maakt van de zones van een event bruikbare neutralisaties: binnen de route,
+ * op volgorde, zonder overlap en zonder stukjes korter dan 100 m.
+ */
+export function normalizeNeutralZones(
+  zones: Array<{ startKm: number; endKm: number; label?: string | null }>,
+  totalKm: number,
+): NeutralZone[] {
+  const out: NeutralZone[] = [];
+  const sorted = zones
+    .map((zone) => ({
+      startKm: Math.max(0, Math.min(totalKm, Number(zone.startKm))),
+      endKm: Math.max(0, Math.min(totalKm, Number(zone.endKm))),
+      label: zone.label?.trim() || "Neutralisatie",
+    }))
+    .filter((zone) => Number.isFinite(zone.startKm) && Number.isFinite(zone.endKm))
+    .sort((a, b) => a.startKm - b.startKm);
+  for (const zone of sorted) {
+    const startKm = Math.max(zone.startKm, out.at(-1)?.endKm ?? 0);
+    if (zone.endKm - startKm < 0.1) continue;
+    out.push({ ...zone, startKm });
+  }
+  return out;
+}
+
+/** Per routesegment: ligt het midden in een neutralisatie? */
+export function neutralSegmentMask(route: PacingRoute): boolean[] {
+  const zones = route.neutralZones ?? [];
+  if (zones.length === 0) return route.segments.map(() => false);
+  const endKms = segmentEndKms(route.segments);
+  return endKms.map((endKm, index) => {
+    const midKm = ((index === 0 ? 0 : endKms[index - 1]) + endKm) / 2;
+    return zones.some((zone) => midKm >= zone.startKm && midKm < zone.endKm);
+  });
 }
 
 function accentIndexForKm(accents: PacingAccent[], km: number): number | null {

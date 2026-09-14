@@ -15,6 +15,7 @@ import type { CpModel, CurvePoint } from "@/lib/pacing/cp";
 import type { DurabilityModel } from "@/lib/pacing/durability";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
 import {
+  imposeNeutralPieces,
   rebalancePlan,
   type PlanEffort,
   type PlanSegment,
@@ -171,9 +172,14 @@ export function adoptGeneratedPlan(
     generated.segments,
     route,
   );
-  const rebalanced = rebalancePlan(segments, route, model, options.curve, {
-    durability: options.durability ?? null,
-  });
+  // Een doel dat de AI op een neutralisatie legde, telt niet: daar rijdt de wagen.
+  const rebalanced = rebalancePlan(
+    imposeNeutralPieces(segments, route, model),
+    route,
+    model,
+    options.curve,
+    { durability: options.durability ?? null },
+  );
 
   return {
     ...rebalanced,

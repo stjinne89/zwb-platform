@@ -99,6 +99,28 @@ export function solveSpeedMs(
   return clampSpeed((lo + hi) / 2, gradient);
 }
 
+/**
+ * De omgekeerde vraag: hoeveel tredvermogen hoort bij een vaste snelheid op
+ * deze helling? Nooit negatief — bergaf bij lage snelheid hoeft er niet getrapt
+ * te worden.
+ */
+export function wattsForSpeed(
+  speedMs: number,
+  gradient: number,
+  massKg: number,
+  opts: Partial<Omit<SolveOpts, "massKg">> = {},
+): number {
+  const cda = opts.cda ?? DEFAULT_CDA;
+  const crr = opts.crr ?? DEFAULT_CRR;
+  const airDensity = opts.airDensity ?? AIR_DENSITY;
+  const drivetrainEff = opts.drivetrainEff ?? DRIVETRAIN_EFF;
+  const sinθ = gradient / Math.sqrt(1 + gradient * gradient);
+  const cosθ = 1 / Math.sqrt(1 + gradient * gradient);
+  const resistance =
+    0.5 * airDensity * cda * speedMs ** 3 + (crr * massKg * G * cosθ + massKg * G * sinθ) * speedMs;
+  return Math.max(0, resistance / drivetrainEff);
+}
+
 function clampSpeed(v: number, gradient: number): number {
   const cap = gradient < 0 ? MAX_DESCENT_MS : MAX_SPEED_MS;
   if (!Number.isFinite(v)) return MIN_SPEED_MS;

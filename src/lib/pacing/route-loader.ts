@@ -24,6 +24,7 @@ import { sampleRoute } from "@/lib/route-sample";
 import { accentsForRoute } from "@/lib/events/zwift-route";
 import type { RouteProfile, RouteShape } from "@/lib/events/zwift-route-streams";
 import {
+  normalizeNeutralZones,
   pacingRouteFromGpx,
   pacingRouteFromZwift,
   type PacingRoute,
@@ -84,10 +85,10 @@ export async function loadPacingRoute(
 ): Promise<LoadRouteResult> {
   const zwiftRouteId = num(event.zwift_route_id);
   if (zwiftRouteId) {
-    return loadZwiftRoute(supabase, event, zwiftRouteId);
+    return withNeutralZones(supabase, event, await loadZwiftRoute(supabase, event, zwiftRouteId));
   }
   if (event.gpx_path) {
-    return loadGpxRoute(supabase, event);
+    return withNeutralZones(supabase, event, await loadGpxRoute(supabase, event));
   }
   return {
     ok: false,
@@ -164,6 +165,46 @@ async function loadZwiftRoute(
       routeName: row.name,
       world: row.world,
       routeSyncedAt: row.synced_at,
+    },
+  };
+}
+
+/**
+ * De neutralisaties die de beheerder op de eventpagina zette. Tot 14 september
+ * 2026 stonden die alleen op de kaart en rekende het pacingplan erdoorheen.
+ */
+async function withNeutralZones(
+  supabase: SupabaseClient,
+  event: PacingEventRow,
+  result: LoadRouteResult,
+): Promise<LoadRouteResult> {
+  if (!result.ok) return result;
+  const { data } = await supabase
+    .from("event_zones")
+    .select("start_km, end_km, label")
+    .eq("event_id", event.id)
+    .order("position", { ascending: true });
+  const rows = (data ?? []) as Array<{
+    start_km: number | string;
+    end_km: number | string;
+    label: string | null;
+  }>;
+  const route = result.loaded.route;
+  return {
+    ok: true,
+    loaded: {
+      ...result.loaded,
+      route: {
+        ...route,
+        neutralZones: normalizeNeutralZones(
+          rows.map((row) => ({
+            startKm: Number(row.start_km),
+            endKm: Number(row.end_km),
+            label: row.label,
+          })),
+          route.totalKm,
+        ),
+      },
     },
   };
 }

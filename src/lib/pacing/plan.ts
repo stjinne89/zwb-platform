@@ -15,6 +15,7 @@ import {
   arrivalSecondsAtKm,
   DEFAULT_EQUIPMENT_KG,
   estimateRide,
+  wattsForSpeed,
   type RideEstimate,
   type RouteSegment,
 } from "@/lib/ride-estimate";
@@ -26,7 +27,11 @@ import {
   type WPrimeBalance,
 } from "@/lib/pacing/w-prime";
 import { cpAfterKj, type DurabilityModel } from "@/lib/pacing/durability";
-import { segmentEndKms, type PacingRoute } from "@/lib/pacing/route-profile";
+import {
+  neutralSegmentMask,
+  segmentEndKms,
+  type PacingRoute,
+} from "@/lib/pacing/route-profile";
 
 export type PlanEffort =
   | "rustig"
@@ -45,7 +50,31 @@ export type PlanSegment = {
   rationale?: string;
   /** Verwijst naar `route.accents` als dit stuk een accent is. */
   accentId?: string | null;
+  /**
+   * Een neutralisatie: vast tempo achter de wagen, geen eigen doel. Het getal in
+   * targetWkg is dan alleen het vlakke equivalent, voor weergave elders.
+   */
+  kind?: "neutral";
 };
+
+/** Het tempo achter de wagen. Keuze van de eigenaar, 14 september 2026. */
+export const NEUTRAL_SPEED_KMH = 30;
+/** Nooit meer dan dit deel van CP, ook niet op een helling in de neutralisatie. */
+export const NEUTRAL_MAX_CP_FRACTION = 0.7;
+
+/**
+ * Watt voor het neutrale tempo op deze helling, begrensd onder de drempel. Een
+ * neutralisatie kost daardoor nooit anaerobe reserve, maar het werk telt wel mee
+ * voor de vermoeidheid later in de rit.
+ */
+export function neutralWatts(
+  gradient: number,
+  model: CpModel,
+  equipmentKg = DEFAULT_EQUIPMENT_KG,
+): number {
+  const needed = wattsForSpeed(NEUTRAL_SPEED_KMH / 3.6, gradient, model.weightKg + equipmentKg);
+  return Math.min(needed, model.cpWatts * NEUTRAL_MAX_CP_FRACTION);
+}
 
 export type PlanEvaluation = {
   /** De onderliggende doorrekening, zodat doorkomsttijden per km te vragen zijn. */
@@ -143,7 +172,12 @@ export function evaluatePlan(
   options: EvaluateOptions = {},
 ): PlanEvaluation {
   const equipmentKg = options.equipmentKg ?? DEFAULT_EQUIPMENT_KG;
-  const watts = expandPlanToWatts(plan, route, model.weightKg);
+  // In een neutralisatie beslist de wagen, niet het plan: ook een plan van vóór
+  // de zones rekent daar met het neutrale tempo.
+  const neutral = neutralSegmentMask(route);
+  const watts = expandPlanToWatts(plan, route, model.weightKg).map((value, index) =>
+    neutral[index] ? neutralWatts(route.segments[index].gradient, model, equipmentKg) : value,
+  );
   const modelSegments: RouteSegment[] = route.segments.map((segment, index) => ({
     distanceM: segment.distanceM,
     gradient: segment.gradient,
@@ -245,6 +279,7 @@ export function clampPlan(
     let changed = false;
 
     const next = current.map((segment) => {
+      if (segment.kind === "neutral") return segment;
       const durationS = durationOfRange(
         evaluation,
         endKms,
@@ -331,13 +366,15 @@ export function rebalancePlan(
     if (evaluation.feasible) break;
 
     const cpWkg = model.cpWatts / model.weightKg;
-    const above = current.filter((segment) => segment.targetWkg > cpWkg);
+    const above = current.filter(
+      (segment) => segment.kind !== "neutral" && segment.targetWkg > cpWkg,
+    );
     // Niets boven CP en tóch leeg: dan zit het in de klim-gradiënten zelf en
     // valt er met terugschalen niets meer te winnen.
     if (above.length === 0) break;
 
     current = current.map((segment) => {
-      if (segment.targetWkg <= cpWkg) return segment;
+      if (segment.kind === "neutral" || segment.targetWkg <= cpWkg) return segment;
       const excess = segment.targetWkg - cpWkg;
       return {
         ...segment,
@@ -358,6 +395,81 @@ export function rebalancePlan(
   }
 
   return { plan: current, evaluation, clampNotes: clamped.notes, adjustments };
+}
+
+/** Korter dan dit na het uitknippen van een neutralisatie is geen stuk meer. */
+const MIN_PIECE_KM = 0.1;
+
+/**
+ * Knipt de neutralisaties van de route als vaste stukken in een plan. Een stuk
+ * dat erin valt verdwijnt, een stuk dat erover heen loopt wordt ingekort of in
+ * tweeën gedeeld (label met "(vervolg)"), en een snipper die overblijft gaat op
+ * in zijn buurman. Dit geldt voor elk plan — basisvoorstel, AI-voorstel,
+ * overgenomen plan — zodat nergens een doel op een neutralisatie staat.
+ */
+export function imposeNeutralPieces(
+  plan: PlanSegment[],
+  route: PacingRoute,
+  model: CpModel,
+): PlanSegment[] {
+  const zones = route.neutralZones ?? [];
+  const pieces = plan.filter((segment) => segment.kind !== "neutral");
+  if (zones.length === 0) return pieces.length === plan.length ? plan : pieces;
+
+  const flatWkg = round2(neutralWatts(0, model) / model.weightKg);
+  let out: PlanSegment[] = [...pieces].sort((a, b) => a.startKm - b.startKm);
+
+  for (const zone of zones) {
+    const next: PlanSegment[] = [];
+    for (const segment of out) {
+      if (segment.endKm <= zone.startKm || segment.startKm >= zone.endKm) {
+        next.push(segment);
+        continue;
+      }
+      if (segment.startKm < zone.startKm) {
+        next.push({ ...segment, endKm: zone.startKm });
+      }
+      if (segment.endKm > zone.endKm) {
+        next.push({
+          ...segment,
+          startKm: zone.endKm,
+          label: segment.startKm < zone.startKm ? `${segment.label} (vervolg)` : segment.label,
+        });
+      }
+    }
+    next.push({
+      startKm: zone.startKm,
+      endKm: zone.endKm,
+      targetWkg: flatWkg,
+      label: zone.label,
+      effort: "rustig",
+      rationale: `Achter de wagen, ongeveer ${NEUTRAL_SPEED_KMH} km/u.`,
+      accentId: null,
+      kind: "neutral",
+    });
+    out = next.sort((a, b) => a.startKm - b.startKm);
+  }
+
+  // Snippers gaan op in de vorige buurman als die geen neutralisatie is, anders
+  // in de volgende. Zonder zo'n buurman blijven ze staan: de route moet gedekt zijn.
+  const merged: PlanSegment[] = [];
+  let carryStartKm: number | null = null;
+  out.forEach((segment, index) => {
+    const tiny = segment.kind !== "neutral" && segment.endKm - segment.startKm < MIN_PIECE_KM;
+    const previous = merged.at(-1);
+    const following = out[index + 1];
+    if (tiny && previous && previous.kind !== "neutral") {
+      merged[merged.length - 1] = { ...previous, endKm: segment.endKm };
+      return;
+    }
+    if (tiny && following && following.kind !== "neutral") {
+      carryStartKm = segment.startKm;
+      return;
+    }
+    merged.push(carryStartKm == null ? segment : { ...segment, startKm: carryStartKm });
+    carryStartKm = null;
+  });
+  return merged;
 }
 
 /** Hoe lang een renner over het stuk tussen twee kilometerpunten doet. */

@@ -288,6 +288,11 @@ export async function buildPacingContext(
       avgGradientPct: Math.round(accent.avgGradient * 1000) / 10,
       lap: accent.lap,
     })),
+    neutralZones: (route.neutralZones ?? []).map((zone) => ({
+      startKm: round1(zone.startKm),
+      endKm: round1(zone.endKm),
+      label: zone.label,
+    })),
     rider: {
       cpWatts: rider.model.cpWatts,
       cpSource: rider.model.source,

@@ -32,13 +32,33 @@ export type StaleReason =
 const LAYOUT_TOLERANCE_KM = 0.05;
 
 type LayoutAccent = { id: string; startKm: number; endKm: number };
+type LayoutRange = { startKm: number; endKm: number };
 type LayoutSegment = { startKm: number; endKm: number; accentId?: string | null };
 export type RouteLayoutSnapshot = {
   totalKm: number;
   accentIds: string[];
   /** Sinds 13 september 2026; oudere plannen hebben alleen de id's. */
   accents?: LayoutAccent[];
+  /** Neutralisaties, sinds 14 september 2026. Afwezig: van vóór die tijd. */
+  neutral?: LayoutRange[];
 };
+
+/**
+ * Horen de neutralisaties nog bij dit plan? Een plan van vóór 14 september kent
+ * ze niet; op een route mét neutralisatie is dat plan dus verouderd — het rekende
+ * dat stuk als gewoon rijden.
+ */
+function neutralMatches(before: LayoutRange[] | undefined, now: LayoutRange[]): boolean {
+  if (!before) return now.length === 0;
+  return (
+    before.length === now.length &&
+    before.every(
+      (range, index) =>
+        Math.abs(range.startKm - now[index].startKm) <= LAYOUT_TOLERANCE_KM &&
+        Math.abs(range.endKm - now[index].endKm) <= LAYOUT_TOLERANCE_KM,
+    )
+  );
+}
 
 /**
  * Hoort de indeling van dit plan nog bij de klimmen van de route?
@@ -57,7 +77,7 @@ export type RouteLayoutSnapshot = {
 export function planLayoutMatchesRoute(
   snapshot: RouteLayoutSnapshot | null | undefined,
   segments: LayoutSegment[],
-  route: { totalKm: number; accents: LayoutAccent[] },
+  route: { totalKm: number; accents: LayoutAccent[]; neutralZones?: LayoutRange[] },
 ): boolean {
   const currentIds = new Set(route.accents.map((accent) => accent.id));
   // Een stuk dat naar een klim verwijst die er niet meer is.
@@ -66,6 +86,7 @@ export function planLayoutMatchesRoute(
   }
   if (!snapshot) return true;
   if (Math.abs(snapshot.totalKm - route.totalKm) > 0.1) return false;
+  if (!neutralMatches(snapshot.neutral, route.neutralZones ?? [])) return false;
   if (
     snapshot.accentIds.length !== route.accents.length ||
     snapshot.accentIds.some((id, index) => route.accents[index]?.id !== id)
@@ -91,7 +112,7 @@ export function withLayoutStaleness(staleness: Staleness, layoutMatches: boolean
     reasons: [...staleness.reasons, "indeling"],
     messages: [
       ...staleness.messages,
-      "De klimmen van deze route zijn gewijzigd sinds dit plan is gemaakt.",
+      "De klimmen of neutralisaties van deze route zijn gewijzigd sinds dit plan is gemaakt.",
     ],
   };
 }

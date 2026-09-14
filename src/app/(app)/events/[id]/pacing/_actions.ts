@@ -9,7 +9,12 @@ import {
   type StoredPlan,
 } from "@/lib/pacing/store";
 import { adoptSharedPlan, sharedPlanView } from "@/lib/pacing/share";
-import { rebalancePlan, type PlanEffort, type PlanSegment } from "@/lib/pacing/plan";
+import {
+  imposeNeutralPieces,
+  rebalancePlan,
+  type PlanEffort,
+  type PlanSegment,
+} from "@/lib/pacing/plan";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const EFFORTS: PlanEffort[] = ["rustig", "duur", "tempo", "drempel", "vol"];
@@ -36,6 +41,8 @@ export async function savePacingPlan(
 
   const segments: PlanSegment[] = plan.segments.map((segment, index) => {
     const update = targets.find((item) => item.index === index);
+    // Een neutralisatie heeft geen eigen doel; wat hier binnenkomt telt niet.
+    if (segment.kind === "neutral") return segment;
     if (!update || !Number.isFinite(update.targetWkg)) return segment;
     return {
       ...segment,
@@ -146,7 +153,7 @@ export async function adoptClubmatePlan(
   // Andermans plan hoeft op jouw benen niet te kloppen; rebalancePlan snijdt
   // eraf wat er niet in past voordat het wordt opgeslagen.
   const rebalanced = rebalancePlan(
-    mine,
+    imposeNeutralPieces(mine, ctx.loaded.route, ctx.rider.model),
     ctx.loaded.route,
     ctx.rider.model,
     ctx.rider.curve,

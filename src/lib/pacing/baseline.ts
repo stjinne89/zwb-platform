@@ -16,6 +16,7 @@ import type { DurabilityModel } from "@/lib/pacing/durability";
 import type { PacingAccent, PacingRoute } from "@/lib/pacing/route-profile";
 import {
   evaluatePlan,
+  imposeNeutralPieces,
   rebalancePlan,
   type PlanEffort,
   type PlanSegment,
@@ -272,6 +273,9 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
   const parts = splitIntoSegments(route);
 
   const draft = (fraction: number): PlanSegment[] =>
+    imposeNeutralPieces(draftParts(fraction), route, model);
+
+  const draftParts = (fraction: number): PlanSegment[] =>
     parts.map((part, index) => {
       const accent = part.accent;
       const boost = accent

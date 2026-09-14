@@ -1583,6 +1583,63 @@ Fitness-status: Verbeterend`}
       </section>
 
       <section
+        id="pacing"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Mountain className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Pacingplan bij een event</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een verdeling van je vermogen over het parcours, per stuk in w/kg,
+              doorgerekend op je CP, je anaerobe reserve en je gewicht.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Hoe het plan ontstaat</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Open je de pacingpagina, dan staat er een basisvoorstel: elke klim
+                  apart, lange klimmen in begin, midden en slot, en het vlakke deel
+                  in stukken van hoogstens 8 km. Met Nieuw voorstel vraag je de AI
+                  om het te verbeteren; ook dat voorstel wordt doorgerekend en
+                  teruggeschaald als je reserve het niet houdt.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Verandert je CP, je gewicht of de indeling van de route, dan heet
+                  het plan verouderd. Opnieuw doorrekenen kost niets en verandert je
+                  plan pas als jij erop drukt.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article
+            id="pacing-neutralisatie"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Neutralisatie</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Zet de organisatie een neutralisatie op het event, dan is dat in je
+              plan een vast stuk zonder schuifregelaar. Het plan rekent daar met
+              ongeveer 30 km/u achter de wagen, en nooit met meer dan 70% van je
+              CP. Dat kost je dus geen reserve, maar het werk telt wel mee voor hoe
+              vermoeid je later in de rit bent. Komt er een neutralisatie bij of
+              verschuift hij, dan wordt je plan verouderd.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section
         id="owntracks"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >

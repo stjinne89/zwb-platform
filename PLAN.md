@@ -986,6 +986,53 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — pacingplan: neutralisatie telt mee (wens 6, deel 1)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Jeroen vroeg of het pacingplan naast de neutralisatie ook andere
+stukken kan hebben. Bij het uitzoeken bleek dat de neutralisatie zelf niet eens
+meetelde: `event_zones` (0095) werd alleen op kaart, profiel en liveticker
+getekend. Het pacingplan rekende die kilometers als gewoon rijden, met een doel
+dat je daar niet kunt rijden. De eigenaar koos voor 30 km/u, begrensd op
+0,70×CP.
+
+**Wat er is gekomen.**
+- `route-loader.ts` laadt de zones voor GPX- én Zwift-events in
+  `PacingRoute.neutralZones`, via `normalizeNeutralZones` (binnen de route, op
+  volgorde, zonder overlap).
+- `evaluatePlan` rekent op elk 100 m-segment in een zone met `neutralWatts`: het
+  vermogen voor `NEUTRAL_SPEED_KMH` op die helling (`wattsForSpeed` in
+  `ride-estimate.ts`), hooguit `NEUTRAL_MAX_CP_FRACTION`×CP. Dat geldt ook voor
+  een plan zonder neutraal stuk. De zone kost dus geen W′; de kJ tellen mee voor
+  duurvermogen.
+- `imposeNeutralPieces` knipt de zones als vaste stukken (`kind: "neutral"`) in
+  elk plan: basisvoorstel, AI-voorstel (`adopt.ts`), herberekening en een
+  overgenomen clubplan. Clamp en rebalance slaan die stukken over, en
+  `savePacingPlan` negeert een doel erop.
+- `routeSnapshot` bewaart de zones. `planLayoutMatchesRoute` maakt een plan
+  verouderd als de zones veranderen. Een plan van vóór vandaag wordt dat alleen
+  op een route die nu zones heeft; dat is bedoeld, want zijn tijd klopte niet.
+- De editor toont een neutraal stuk zonder schuif ("Geneutraliseerd · ca.
+  30 km/u") en kleurt de zone cyaan in het profiel. De AI krijgt `neutralZones`
+  mee, plus een promptregel om daar niets op te leggen.
+- Nieuwe `/hulp#pacing` (er stond nog niets over pacing in de hulp) plus
+  zoekentry.
+
+**Bewust niet gebouwd.** Geen snelheid per zone door de beheerder: dat vraagt een
+migratie op `event_zones` en de eigenaar koos één vaste waarde. De rit-weerweergave
+op de eventpagina (`RouteWeather`) kent de zones niet; die toont een schatting met
+het vlakke equivalent als w/kg. Afdalingen en eigen knippen volgen in de volgende
+rondes.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (974 geslaagd). Nieuw `pacing-neutral.test.ts`:
+`wattsForSpeed`, zones normaliseren, tijd ≈ 5 km / 30 km/u, geen W′-verbruik,
+begrenzing op een helling, knippen en snippers, geen mutatie, basisvoorstel en
+AI-voorstel, en verouderd door zones. *Niet geverifieerd:* geen ingelogde
+pacingpagina in de browser; geen echte event-zones uit productie doorgerekend.
+
 ### Opgeleverd — krachtreeksen in het core-spoor (wens 19)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

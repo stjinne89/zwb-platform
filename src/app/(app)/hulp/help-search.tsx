@@ -120,6 +120,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "training intervals icu herstel form workout trainer vermogen wahoo garmin",
   },
   {
+    title: "Pacingplan bij een event",
+    text: "Vermogen per stuk van het parcours, basisvoorstel, AI en neutralisatie.",
+    href: "/hulp#pacing",
+    terms: "pacing pacingplan verdeling vermogen w/kg klim klimmen event gran fondo neutralisatie neutraal wagen verouderd doorrekenen reserve",
+  },
+  {
     title: "Krachtreeksen",
     text: "Beenkracht en eenbenige stabiliteit op een rustdag, zonder belasting.",
     href: "/hulp#kracht",

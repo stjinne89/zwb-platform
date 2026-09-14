@@ -62,6 +62,8 @@ export type PacingAiInput = {
     avgGradientPct: number;
     lap: number | null;
   }>;
+  /** Neutralisaties: vaste stukken achter de wagen, die het platform zelf invult. */
+  neutralZones?: Array<{ startKm: number; endKm: number; label: string }>;
   rider: {
     cpWatts: number;
     /**

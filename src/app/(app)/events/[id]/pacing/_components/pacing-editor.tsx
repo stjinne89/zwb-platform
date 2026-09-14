@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { ResponsiveChart } from "@/components/charts/responsive-chart";
 import { linearScale } from "@/lib/charts/scale";
 import { linePath } from "@/lib/charts/paths";
-import { evaluatePlan, type PlanSegment } from "@/lib/pacing/plan";
+import { evaluatePlan, NEUTRAL_SPEED_KMH, type PlanSegment } from "@/lib/pacing/plan";
+import { ZONE_COLOR } from "../../_components/zone";
 import type { CpModel } from "@/lib/pacing/cp";
 import { segmentEndKms, type PacingRoute } from "@/lib/pacing/route-profile";
 import { savePacingPlan } from "../_actions";
@@ -160,6 +161,7 @@ export function PacingEditor({
             startKm: accent.startKm,
             endKm: accent.endKm,
           }))}
+          zones={route.neutralZones ?? []}
           totalKm={route.totalKm}
         />
       </section>
@@ -170,6 +172,23 @@ export function PacingEditor({
             const accent = evaluation.accents.find(
               (item) => route.accents[item.accentIndex]?.id === segment.accentId,
             );
+            if (segment.kind === "neutral") {
+              return (
+                <li key={`${segment.startKm}-${index}`} className="p-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{segment.label}</p>
+                      <p className="text-sm text-muted-foreground">
+                        km {segment.startKm.toFixed(1)}–{segment.endKm.toFixed(1)}
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Geneutraliseerd · ca. {NEUTRAL_SPEED_KMH} km/u
+                    </p>
+                  </div>
+                </li>
+              );
+            }
             return (
               <li key={`${segment.startKm}-${index}`} className="p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -283,6 +302,7 @@ function ProfileChart({
   balance,
   wPrimeJoules,
   accents,
+  zones,
   totalKm,
 }: {
   endKms: number[];
@@ -290,6 +310,7 @@ function ProfileChart({
   balance: number[];
   wPrimeJoules: number;
   accents: Array<{ name: string; startKm: number; endKm: number }>;
+  zones: Array<{ startKm: number; endKm: number }>;
   totalKm: number;
 }) {
   const minEle = Math.min(...elevation, 0);
@@ -337,6 +358,18 @@ function ProfileChart({
                 height={profileHeight}
                 fill="var(--chart-4)"
                 opacity={0.16}
+              />
+            ))}
+
+            {zones.map((zone) => (
+              <rect
+                key={`zone-${zone.startKm}`}
+                x={x.forward(zone.startKm)}
+                y={0}
+                width={Math.max(1, x.forward(zone.endKm) - x.forward(zone.startKm))}
+                height={profileHeight}
+                fill={ZONE_COLOR}
+                opacity={0.14}
               />
             ))}
 

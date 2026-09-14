@@ -25,6 +25,7 @@ const RULES = [
   "De stukken moeten aaneensluiten en samen de hele route dekken, van km 0 tot de finish. Laat geen gaten.",
   "Elk genoemd accent (klim of sprint) krijgt een eigen stuk. Bij meerdere ronden mag je identieke ronden samenvatten, behalve de laatste — daar mag meer.",
   "Zet op elk stuk een doel in w/kg, een label dat het lid herkent, en één zin waarom.",
+  "Staan er `neutralZones`, dan rijdt het veld daar achter een wagen. Daar leg je geen doel en geen accent op: het platform vult die stukken zelf in op een vast rustig tempo. Houd er wel rekening mee dat het echte werk pas na de neutralisatie begint.",
   "",
   "HOE JE DE ACCENTEN LEGT",
   "Sparen aan het begin, investeren aan het eind. Wie de eerste klim vol aanrijdt betaalt dat op de laatste.",
