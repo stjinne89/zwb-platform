@@ -357,6 +357,17 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-assessment-round -->
 
+<!-- zwb-segment-nav-round -->
+- **ZWB Segments in het Club-menu** (2026-09-14; geen migratie). Op verzoek van de
+  eigenaar verplaatst van het avatarmenu naar Club, direct boven ZWBlokken: het is een
+  clubklassement, geen profielinstelling. **Bewust niet gedaan:** de URL verhuizen;
+  `/profiel/segments` blijft, zodat bestaande links, de profielkaart en de hulppagina
+  blijven werken. Getest met een unittest op volgorde, avatarmenu en actieve groep;
+  niet in de browser bekeken (het menu vereist een ingelogd lid).
+  Stand privacyakkoord op 2026-09-14: 4 van 35 goedgekeurde leden tekenden 2026-09-13,
+  waarvan 3 van de 10 leden met actieve Strava-koppeling.
+<!-- /zwb-segment-nav-round -->
+
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde
   plannenboek" bovenaan het chronologische werkplan): de 22 meldingen uit het

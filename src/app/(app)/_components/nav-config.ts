@@ -76,6 +76,7 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/achievements", label: "Achievements" },
       { type: "link", href: "/stats", label: "Stats" },
+      { type: "link", href: "/profiel/segments", label: "ZWB Segments" },
       { type: "link", href: "/zwblokken", label: "ZWBlokken" },
       {
         type: "link",
@@ -108,7 +109,6 @@ export const NAV_GROUPS: NavNode[] = [
 // Items voor de avatar-dropdown (en mobiel onderaan).
 export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
-  { type: "link", href: "/profiel/segments", label: "ZWB Segments" },
   { type: "link", href: "/mijn-garage", label: "Mijn garage" },
   { type: "link", href: "/hulp", label: "Hulp" },
 ];

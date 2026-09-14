@@ -67,4 +67,11 @@ describe("isActiveGroup", () => {
     expect(isActiveGroup(active, club)).toBe(false);
     expect(isActiveGroup(null, zwbeter)).toBe(false);
   });
+
+  it("zet ZWB Segments in Club, direct boven ZWBlokken, en niet meer in het avatarmenu", () => {
+    const hrefs = club.items.map((item) => item.href);
+    expect(hrefs.indexOf("/profiel/segments")).toBe(hrefs.indexOf("/zwblokken") - 1);
+    expect(AVATAR_NAV.map((item) => item.href)).not.toContain("/profiel/segments");
+    expect(isActiveGroup(activeHrefIn("/profiel/segments", menuHrefs), club)).toBe(true);
+  });
 });
