@@ -1472,7 +1472,7 @@ Fitness-status: Verbeterend`}
           <div>
             <h2 className="font-semibold">Core &amp; mobiliteit</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Korte series van 6 tot 12 minuten die je naast het fietsen doet.
+              Korte series van 6 tot 30 minuten die je naast het fietsen doet.
               Je vinkt ze zelf af; ze tellen niet mee in je trainingsbelasting,
               CTL of naleving.
             </p>
@@ -1542,6 +1542,27 @@ Fitness-status: Verbeterend`}
               </li>
             </ul>
           </article>
+        </div>
+
+        <div
+          id="kracht"
+          className="mt-4 scroll-mt-20 rounded-md border bg-background p-4"
+        >
+          <h3 className="text-sm font-semibold">Krachtreeksen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Naast core en mobiliteit staan er series met je eigen gewicht voor
+            beenkracht, klimmen en eenbenige stabiliteit. Ze zijn bedoeld voor een
+            rustdag: je krijgt ze alleen voorgesteld op een dag zonder training of
+            rit, minstens drie dagen na je vorige krachtsessie en hooguit twee keer
+            per week. Zo zit de spierpijn niet in je volgende sleutelsessie. Ook
+            deze series tellen niet mee in je trainingsbelasting.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Verwacht er geen extra watt van. Dat zwaar krachtwerk renners sneller
+            maakt, gaat over halters en weinig herhalingen, met begeleiding. Deze
+            series maken je benen en romp belastbaarder en je trapbeweging per
+            been stabieler.
+          </p>
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">

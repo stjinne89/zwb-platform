@@ -7,6 +7,7 @@ import { ChevronRight, Dumbbell } from "lucide-react";
 import {
   MOBILITY_SESSIONS_PER_WEEK,
   recommendSeries,
+  recommendStrength,
   sessionsLast28Days,
   shiftDayKey,
   type RecommendContext,
@@ -29,6 +30,8 @@ export async function CoreTodayCard({
 
   const suggestion = recommendSeries(series, sessions, today, context);
   if (!suggestion) return null;
+  // Kracht als tweede voorstel, alleen als het vandaag past (zie recommendStrength).
+  const strength = recommendStrength(series, sessions, today, context);
 
   const doneToday = sessions.some(
     (session) => session.series_id === suggestion.id && session.completed_on === today,
@@ -38,22 +41,36 @@ export async function CoreTodayCard({
   ).length;
 
   return (
-    <Link
-      href={`/zwbeter-worden/core/${suggestion.slug}`}
-      className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg border bg-card p-5 hover:border-primary"
-    >
-      <div className="min-w-0">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <Dumbbell className="size-5 text-primary" />
-          {suggestion.title}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {doneToday
-            ? "Vandaag al gedaan."
-            : `${suggestion.duration_minutes} min · ${thisWeek} van ${MOBILITY_SESSIONS_PER_WEEK} deze week`}
-        </p>
-      </div>
-      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-    </Link>
+    <div className="rounded-lg border bg-card">
+      <Link
+        href={`/zwbeter-worden/core/${suggestion.slug}`}
+        className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg p-5 hover:bg-accent/40"
+      >
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Dumbbell className="size-5 text-primary" />
+            {suggestion.title}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {doneToday
+              ? "Vandaag al gedaan."
+              : `${suggestion.duration_minutes} min · ${thisWeek} van ${MOBILITY_SESSIONS_PER_WEEK} deze week`}
+          </p>
+        </div>
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+      </Link>
+      {strength ? (
+        <Link
+          href={`/zwbeter-worden/core/${strength.slug}`}
+          className="flex min-h-[44px] items-center justify-between gap-3 border-t px-5 py-3 text-sm hover:bg-accent/40"
+        >
+          <span className="min-w-0 truncate">
+            Of kracht: <span className="font-medium">{strength.title}</span> ·{" "}
+            {strength.duration_minutes} min
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        </Link>
+      ) : null}
+    </div>
   );
 }

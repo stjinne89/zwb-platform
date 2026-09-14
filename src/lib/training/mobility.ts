@@ -8,9 +8,9 @@
 // todayKeyAmsterdam() in de ZWBeter Worden-pagina's. Zo hoeft geen enkele
 // functie hier een tijdzone te kennen.
 
-export type MobilityCategory = "core" | "mobiliteit" | "activatie";
-export type MobilityRegion = "lumbaal" | "heup" | "thoracaal" | "schouder" | "enkel";
-export type MobilityGoal = "stabiliteit" | "mobiliteit" | "houding";
+export type MobilityCategory = "core" | "mobiliteit" | "activatie" | "kracht";
+export type MobilityRegion = "lumbaal" | "heup" | "thoracaal" | "schouder" | "enkel" | "been";
+export type MobilityGoal = "stabiliteit" | "mobiliteit" | "houding" | "kracht";
 export type MobilityTiming = "pre_ride" | "post_ride" | "rustdag";
 
 /** Alternatief beeld per oefening. Leeg bij oplevering: het beeld zit in het
@@ -217,11 +217,56 @@ export function recommendSeries<T extends MobilitySeries>(
     if (pre) return pre;
   }
 
-  const restDay = series.filter((row) => row.timing === "rustdag");
-  if (restDay.length === 0) return series[0];
+  // Kracht draait niet mee in deze rotatie: die heeft eigen regels voor rust
+  // ertussen, zie recommendStrength.
+  const restDay = series.filter((row) => row.timing === "rustdag" && row.goal !== "kracht");
+  if (restDay.length === 0) return series.find((row) => row.goal !== "kracht") ?? null;
 
   // Nooit gedaan telt als het langst geleden.
   return restDay
     .map((row) => ({ row, last: lastDoneOn(sessions, row.id) ?? "" }))
     .sort((a, b) => a.last.localeCompare(b.last) || a.row.slug.localeCompare(b.row.slug))[0].row;
+}
+
+/** Minstens zoveel dagen tussen twee krachtsessies: spierpijn in de benen botst
+ * anders met de volgende sleutelsessie op de fiets. */
+export const STRENGTH_MIN_DAYS_BETWEEN = 3;
+/** Hooguit zoveel krachtsessies per zeven dagen, naast het fietsen. */
+export const STRENGTH_MAX_PER_WEEK = 2;
+
+/**
+ * Welke krachtserie vandaag past, of null. Alleen op een dag zonder geplande
+ * training en zonder rit, minstens drie dagen na de vorige krachtsessie en
+ * hooguit twee keer per week. Binnen die grenzen de serie die het langst
+ * geleden is.
+ *
+ * Bewust een tweede voorstel naast recommendSeries en geen vervanging: core en
+ * mobiliteit blijven de basis, kracht is een aanvulling.
+ */
+export function recommendStrength<T extends MobilitySeries>(
+  series: T[],
+  sessions: MobilitySession[],
+  today: string,
+  context: RecommendContext,
+): T | null {
+  if (context.hasPlannedWorkoutToday || context.rodeToday) return null;
+  const strength = series.filter((row) => row.goal === "kracht");
+  if (strength.length === 0) return null;
+
+  const strengthIds = new Set(strength.map((row) => row.id));
+  const strengthDays = sessions
+    .filter((session) => strengthIds.has(session.series_id) && session.completed_on <= today)
+    .map((session) => session.completed_on);
+
+  const last = strengthDays.sort().at(-1);
+  if (last && last > shiftDayKey(today, -STRENGTH_MIN_DAYS_BETWEEN)) return null;
+
+  const weekStart = shiftDayKey(today, -6);
+  const thisWeek = new Set(strengthDays.filter((day) => day >= weekStart)).size;
+  if (thisWeek >= STRENGTH_MAX_PER_WEEK) return null;
+
+  return strength
+    .map((row) => ({ row, last: lastDoneOn(sessions, row.id) ?? "" }))
+    .sort((a, b) => a.last.localeCompare(b.last) || a.row.level - b.row.level || a.row.slug.localeCompare(b.row.slug))[0]
+    .row;
 }

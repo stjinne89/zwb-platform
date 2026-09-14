@@ -12,9 +12,10 @@ const CATEGORY_LABELS: Record<MobilityCategory, string> = {
   core: "Core",
   mobiliteit: "Mobiliteit",
   activatie: "Activatie",
+  kracht: "Kracht",
 };
 
-const CATEGORY_ORDER: MobilityCategory[] = ["core", "mobiliteit", "activatie"];
+const CATEGORY_ORDER: MobilityCategory[] = ["core", "mobiliteit", "activatie", "kracht"];
 
 export default async function ExerciseLibraryPage() {
   const viewer = await requireViewer();

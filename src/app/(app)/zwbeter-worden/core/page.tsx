@@ -5,6 +5,7 @@ import {
   MOBILITY_WINDOW_DAYS,
   lastDoneOn,
   recommendSeries,
+  recommendStrength,
   sessionsLast28Days,
   weeklyStreak,
 } from "@/lib/training/mobility";
@@ -39,6 +40,8 @@ export default async function CorePage() {
   const recent = sessionsLast28Days(sessions, today);
   const streak = weeklyStreak(sessions, today);
   const suggestion = recommendSeries(series, sessions, today, dayContext);
+  const strength = recommendStrength(series, sessions, today, dayContext);
+  const suggested = (id: string) => id === suggestion?.id || id === strength?.id;
 
   const standard = series.filter((row) => row.is_standard);
   const own = series.filter((row) => !row.is_standard);
@@ -74,7 +77,7 @@ export default async function CorePage() {
               key={row.id}
               series={row}
               lastDone={lastDoneOn(sessions, row.id)}
-              suggested={row.id === suggestion?.id}
+              suggested={suggested(row.id)}
             />
           ))}
         </div>
@@ -89,7 +92,7 @@ export default async function CorePage() {
                 key={row.id}
                 series={row}
                 lastDone={lastDoneOn(sessions, row.id)}
-                suggested={row.id === suggestion?.id}
+                suggested={suggested(row.id)}
               />
             ))}
           </div>

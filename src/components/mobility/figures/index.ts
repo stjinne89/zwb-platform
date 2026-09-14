@@ -12,6 +12,7 @@
 import { ACTIVATION_POSES } from "./activatie";
 import { CORE_POSES } from "./core";
 import { MOBILITY_POSES } from "./mobiliteit";
+import { STRENGTH_POSES } from "./kracht";
 import type { Pose } from "./figure-kit";
 
 export { Figure } from "./figure-kit";
@@ -21,6 +22,7 @@ export const MOBILITY_FIGURES: Record<string, Pose[]> = {
   ...CORE_POSES,
   ...MOBILITY_POSES,
   ...ACTIVATION_POSES,
+  ...STRENGTH_POSES,
 };
 
 export function figurePoses(slug: string | null | undefined): Pose[] | null {

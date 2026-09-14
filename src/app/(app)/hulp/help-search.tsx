@@ -120,6 +120,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "training intervals icu herstel form workout trainer vermogen wahoo garmin",
   },
   {
+    title: "Krachtreeksen",
+    text: "Beenkracht en eenbenige stabiliteit op een rustdag, zonder belasting.",
+    href: "/hulp#kracht",
+    terms: "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn",
+  },
+  {
     title: "Core & mobiliteit",
     text: "Korte series naast de fiets, zelf afvinken, los van je trainingsbelasting.",
     href: "/hulp#core-mobiliteit",

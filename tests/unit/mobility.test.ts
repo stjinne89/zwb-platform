@@ -3,6 +3,7 @@ import {
   itemLabel,
   lastDoneOn,
   recommendSeries,
+  recommendStrength,
   seriesMinutes,
   sessionsLast28Days,
   shiftDayKey,
@@ -238,6 +239,63 @@ describe("recommendSeries", () => {
     expect(
       recommendSeries([], [], today, { hasPlannedWorkoutToday: false, rodeToday: false }),
     ).toBeNull();
+  });
+
+  it("neemt een krachtserie niet op in de rustdagrotatie", () => {
+    const withStrength = [
+      ...STANDARD_SERIES,
+      series({ id: "k1", slug: "kracht-basis", goal: "kracht", timing: "rustdag" }),
+    ];
+    const rows = [session("2026-08-01", "series-1"), session("2026-08-02", "series-4")];
+    const pick = recommendSeries(withStrength, rows, today, {
+      hasPlannedWorkoutToday: false,
+      rodeToday: false,
+    });
+    expect(pick?.slug).toBe("fundament");
+  });
+});
+
+describe("recommendStrength", () => {
+  const today = "2026-08-10";
+  const restDay = { hasPlannedWorkoutToday: false, rodeToday: false };
+  const STRENGTH = [
+    ...STANDARD_SERIES,
+    series({ id: "k1", slug: "kracht-basis", goal: "kracht", level: 1 }),
+    series({ id: "k2", slug: "kracht-klimmen", goal: "kracht", level: 2 }),
+  ];
+
+  it("stelt op een rustdag de krachtserie voor die het langst geleden is", () => {
+    expect(recommendStrength(STRENGTH, [], today, restDay)?.slug).toBe("kracht-basis");
+    const rows = [session("2026-08-05", "k1")];
+    expect(recommendStrength(STRENGTH, rows, today, restDay)?.slug).toBe("kracht-klimmen");
+  });
+
+  it("stelt niets voor op een dag met een training of een rit", () => {
+    expect(
+      recommendStrength(STRENGTH, [], today, { hasPlannedWorkoutToday: true, rodeToday: false }),
+    ).toBeNull();
+    expect(
+      recommendStrength(STRENGTH, [], today, { hasPlannedWorkoutToday: false, rodeToday: true }),
+    ).toBeNull();
+  });
+
+  it("wacht minstens drie dagen na de vorige krachtsessie", () => {
+    expect(recommendStrength(STRENGTH, [session("2026-08-08", "k1")], today, restDay)).toBeNull();
+    expect(recommendStrength(STRENGTH, [session("2026-08-07", "k1")], today, restDay)).not.toBeNull();
+  });
+
+  it("stopt bij twee krachtsessies in zeven dagen", () => {
+    const rows = [session("2026-08-04", "k1"), session("2026-08-07", "k2")];
+    expect(recommendStrength(STRENGTH, rows, today, restDay)).toBeNull();
+  });
+
+  it("laat core-sessies niet meetellen als krachtsessie", () => {
+    const rows = [session("2026-08-09", "series-1"), session("2026-08-08", "series-4")];
+    expect(recommendStrength(STRENGTH, rows, today, restDay)?.slug).toBe("kracht-basis");
+  });
+
+  it("geeft null zonder krachtseries", () => {
+    expect(recommendStrength(STANDARD_SERIES, [], today, restDay)).toBeNull();
   });
 });
 

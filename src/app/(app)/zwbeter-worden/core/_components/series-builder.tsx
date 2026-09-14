@@ -20,6 +20,7 @@ const GOALS = [
   { value: "stabiliteit", label: "Stabiliteit" },
   { value: "mobiliteit", label: "Mobiliteit" },
   { value: "houding", label: "Houding" },
+  { value: "kracht", label: "Kracht" },
 ];
 
 export function SeriesBuilder({

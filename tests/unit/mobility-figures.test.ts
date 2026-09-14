@@ -5,10 +5,8 @@ import { MOBILITY_FIGURES, figurePoses } from "@/components/mobility/figures";
 
 /** De slugs zoals ze in de seed-migratie staan. Uit het bestand lezen in plaats
  * van overtypen, zodat de test niet stilletjes verouderd raakt. */
-function seededIllustrationSlugs(): string[] {
-  const path = fileURLToPath(
-    new URL("../../supabase/migrations/0110_mobility_library_seed.sql", import.meta.url),
-  );
+function seededIllustrationSlugs(file: string): string[] {
+  const path = fileURLToPath(new URL(`../../supabase/migrations/${file}`, import.meta.url));
   const sql = readFileSync(path, "utf8");
   // De illustratieslug staat op een eigen regel, direct gevolgd door
   // default_hold_seconds — een getal of null. Dat patroon komt nergens anders
@@ -18,10 +16,13 @@ function seededIllustrationSlugs(): string[] {
 
 describe("figuurregister", () => {
   it("heeft voor elke meegeleverde oefening poses", () => {
-    const slugs = seededIllustrationSlugs();
-    // Vangnet: raakt de seed uit de pas met deze regex, dan valt dit om in
+    const core = seededIllustrationSlugs("0110_mobility_library_seed.sql");
+    const strength = seededIllustrationSlugs("0158_mobility_strength_seed.sql");
+    // Vangnet: raakt een seed uit de pas met deze regex, dan valt dit om in
     // plaats van dat de dekkingscontrole stilletjes over niets loopt.
-    expect(slugs).toHaveLength(18);
+    expect(core).toHaveLength(18);
+    expect(strength).toHaveLength(7);
+    const slugs = [...core, ...strength];
 
     const missing = slugs.filter((slug) => !MOBILITY_FIGURES[slug]);
     expect(missing).toEqual([]);

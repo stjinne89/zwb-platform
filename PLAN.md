@@ -986,6 +986,54 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — krachtreeksen in het core-spoor (wens 19)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Migraties `0157` (checks verruimen) en `0158` (conceptinhoud).
+
+**Waarom.** Jeroen vroeg of er naast core ook krachttraining kan komen die
+helpt voor specifieke doelen. De eigenaar koos om die in het bestaande
+core- en mobiliteitsspoor te zetten, los van het fietsschema en zonder
+belastingberekening, om dezelfde redenen als in `0109`.
+
+**Wat er is gekomen.**
+- `0157` verruimt de checks: categorie `kracht`, regio `been`, doel `kracht`.
+- `0158` (idempotent) zet zeven oefeningen met eigen gewicht of een traptrede
+  (squat, split squat, step-up, eenbenig bruggetje, kuitheffen, eenbenige
+  deadlift, muurzit) in drie series van 20-30 minuten: *Kracht: basis*,
+  *Kracht voor klimmen* en *Kracht: eenbenig*. Het haalt alleen de items van die
+  drie series leeg, niet die uit `0110`.
+- Figuren in `src/components/mobility/figures/kracht.ts`.
+- `recommendStrength()` in `mobility.ts`: alleen op een dag zonder training of
+  rit, minstens drie dagen na de vorige krachtsessie en hooguit twee per zeven
+  dagen, anders de serie die het langst geleden is. `recommendSeries` neemt
+  krachtseries niet meer mee in de rustdagrotatie. `CoreTodayCard` toont kracht
+  als tweede regel ("Of kracht: …"); op `/zwbeter-worden/core` is die serie ook
+  gemarkeerd. De bibliotheek kent de categorie Kracht en de seriebouwer het doel
+  Kracht. Een krachtsessie telt mee in de weekteller van het spoor.
+- `/hulp#kracht` plus zoekentry, met de expliciete zin dat hier geen extra watt
+  van te verwachten is.
+
+**Bewust niet gebouwd.** Krachttraining als sessie in het fietsschema of naar
+intervals.icu (`WeightTraining`): dat raakt belasting, naleving en de AI-prompt,
+en de eigenaar koos het niet. Geen zwaar krachtwerk met halters: dat vraagt
+begeleiding, en daar zou een app-schema ten onrechte een belofte over doen. De
+promptregel die off-bike werk uit het fietsschema houdt, blijft staan.
+
+**Uitrol.** De code werkt zonder de migraties: zonder `0158` bestaan er gewoon
+geen krachtseries. **`0157` mag altijd; `0158` pas nadat de eigenaar de
+oefeningen, doseringen en teksten heeft goedgekeurd** (conceptinhoud, niet door
+een fysiotherapeut of trainer nagekeken). Let op: `0110` opnieuw draaien haalt
+ook de krachtitems weg; draai daarna `0158` opnieuw.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (963 geslaagd). Nieuw: `recommendStrength` en de
+rotatie in `mobility.ts`-tests, figuurdekking voor `0158`, en
+`mobility-strength-migration.test.ts` die `0109`, `0110`, `0157` en `0158` in
+PGlite draait (aantallen, idempotent, checks). *Niet geverifieerd:* de migraties
+tegen de productie-Supabase; de figuren en de kaart niet in de browser bekeken
+(geen ingelogde sessie).
+
 ### Opgeleverd — schakelaar Watt / W/kg in de trainingsruimte (wens 13)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
