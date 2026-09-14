@@ -1047,8 +1047,10 @@ daar komt geen aparte melding voor.
 
 **Opruimen bij Bart: nog open.** De ZRL-prikkel van 12 september
 (`5be7b204…`, origin `member`, gepubliceerd als intervals-event `135690915`)
-staat nog als gepland. Het opruimscript op productie is in deze sessie niet
-gedraaid (geweigerd door de permissiecontrole).
+staat nog als gepland. Het opruimscript op productie is niet gedraaid
+(geweigerd door de permissiecontrole). Besluit eigenaar: Bart verwijdert hem zelf
+in de app. Omdat hij origin `member` draagt, wist `removePlannedWorkout` hem
+helemaal en vraagt het een herziening aan.
 
 **Verificatie.** Vitest volledig groen (1019 geslaagd, 6 overgeslagen), nieuw:
 `wellness` (Polar-score van gisteren stuurt niet, die van vandaag wel,
