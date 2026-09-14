@@ -2,6 +2,7 @@
 // kerncijfers, de hersteltrend uit intervals.icu en het ZWBeterWorden-advies.
 
 import { Activity, Mountain, ShieldCheck, TrendingUp } from "lucide-react";
+import { Power } from "@/components/power-unit";
 import type { TrainingLoadPoint } from "@/lib/training/load-points";
 import type { TrainingReadinessSummary, WellnessSummary } from "@/lib/training/wellness";
 import { zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
@@ -53,7 +54,7 @@ export function AthleteLoadPanel({
           today={todayKey}
           idSuffix="coach"
         />
-        <MetricCard icon={Mountain} label="eFTP" value={formatNumber(eftp ?? undefined, 0)} />
+        <MetricCard icon={Mountain} label="eFTP" value={eftp == null ? "-" : <Power watts={eftp} />} />
         <MetricCard
           icon={ShieldCheck}
           label="Trainingsruimte"

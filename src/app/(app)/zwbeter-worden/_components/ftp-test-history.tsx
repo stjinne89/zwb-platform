@@ -14,7 +14,9 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
+import { Power, usePowerUnit } from "@/components/power-unit";
 import { Button } from "@/components/ui/button";
+import { formatPower, type PowerUnit } from "@/lib/training/power-unit";
 import {
   FTP_TEST_LABELS,
   FTP_TEST_RESULT_LABELS,
@@ -60,14 +62,19 @@ type ChangeOutcome = {
 
 type ChangeResult = ChangeOutcome | { ok: false; error: string };
 
-function outcomeMessage(done: string, outcome: ChangeOutcome) {
+function outcomeMessage(
+  done: string,
+  outcome: ChangeOutcome,
+  power: { unit: PowerUnit; weightKg: number | null },
+) {
+  const ftp = formatPower(outcome.profileFtpWatts, power.unit, power.weightKg);
   const parts = [done];
-  if (outcome.profileChanged) parts.push(`Je FTP staat nu op ${outcome.profileFtpWatts} W.`);
+  if (outcome.profileChanged) parts.push(`Je FTP staat nu op ${ftp}.`);
   if (outcome.profileWithoutTest) {
     parts.push(
       outcome.overwrittenByIntervals
         ? "Er is geen test meer; je profiel neemt bij de eerstvolgende sync weer de FTP van intervals.icu over."
-        : `Je profiel houdt ${outcome.profileFtpWatts} W aan; pas dat zelf aan op je profiel.`,
+        : `Je profiel houdt ${ftp} aan; pas dat zelf aan op je profiel.`,
     );
   }
   if (outcome.generationId) parts.push("Je schema wordt bijgewerkt…");
@@ -76,6 +83,7 @@ function outcomeMessage(done: string, outcome: ChangeOutcome) {
 
 export function FtpTestHistory({ tests }: { tests: FtpTestHistoryRow[] }) {
   const router = useRouter();
+  const power = usePowerUnit();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -100,7 +108,7 @@ export function FtpTestHistory({ tests }: { tests: FtpTestHistoryRow[] }) {
         return;
       }
       setEditingId(null);
-      setMessage(outcomeMessage(done, outcome));
+      setMessage(outcomeMessage(done, outcome, power));
       router.refresh();
       if (outcome.generationId) poll.watch(outcome.generationId);
     } catch {
@@ -144,9 +152,11 @@ export function FtpTestHistory({ tests }: { tests: FtpTestHistoryRow[] }) {
               <span className="flex items-center gap-3">
                 <span className="tabular-nums">
                   <span className="text-muted-foreground">
-                    {Math.round(test.resultWatts)} W gemeten
+                    <Power watts={test.resultWatts} /> gemeten
                   </span>
-                  <span className="ml-3 font-medium">{test.ftpWatts} W FTP</span>
+                  <span className="ml-3 font-medium">
+                    <Power watts={test.ftpWatts} /> FTP
+                  </span>
                 </span>
                 <span className="flex items-center gap-1">
                   <button
@@ -267,7 +277,7 @@ function EditRow({
           Annuleer
         </Button>
         {preview != null ? (
-          <span className="text-sm tabular-nums text-muted-foreground">{preview} W FTP</span>
+          <span className="text-sm tabular-nums text-muted-foreground"><Power watts={preview} /> FTP</span>
         ) : null}
       </div>
     </form>

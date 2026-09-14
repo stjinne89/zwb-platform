@@ -115,6 +115,19 @@ describe("buildMetricsSnapshot", () => {
     expect(snapshot.readinessTitle).toBe("RICHT OP HERSTEL");
     expect(snapshot.loadPct).toBe(133);
     expect(snapshot.verdict).toBe("te_zwaar");
+    expect(snapshot.weightKg).toBeNull();
+  });
+
+  it("legt het gewicht van dat moment vast voor W/kg", () => {
+    const snapshot = buildMetricsSnapshot({
+      workout,
+      ride,
+      ftpWatts: 250,
+      weightKg: 83,
+      ctl: { before: null, after: null },
+      readiness: { score: null, level: null, title: null },
+    });
+    expect(snapshot.weightKg).toBe(83);
   });
 
   it("houdt ontbrekende metingen op null in plaats van 0", () => {

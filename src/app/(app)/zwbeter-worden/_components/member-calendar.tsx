@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { CircleHelp, Download, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { Power } from "@/components/power-unit";
 import { ViewOnStrava } from "@/components/strava-brand";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { COMPLIANCE_LABELS, COMPLIANCE_PILLS } from "@/lib/training/compliance";
@@ -143,11 +144,11 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
         />
         <MetricStat
           label="Gem. vermogen"
-          value={metrics.averageWatts == null ? "-" : `${nl(metrics.averageWatts)}w`}
+          value={<Power watts={metrics.averageWatts} />}
         />
         <MetricStat
           label="NP"
-          value={metrics.normalizedWatts == null ? "-" : `${nl(metrics.normalizedWatts)}w`}
+          value={<Power watts={metrics.normalizedWatts} />}
         />
       </div>
       {metrics.hasPowerMeter || metrics.movingMinutes == null ? null : (

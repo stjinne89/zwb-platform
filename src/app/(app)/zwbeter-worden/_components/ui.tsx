@@ -11,7 +11,7 @@ export function MetricCard({
 }: {
   icon: typeof Activity;
   label: string;
-  value: string;
+  value: React.ReactNode;
   hint?: string;
 }) {
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Activity, ArrowLeft, CircleHelp, Gauge, Scale, Users, Zap } from "lucide-react";
 import { PageHeader } from "@/components/app-ui";
+import { Power, PowerWeight } from "@/components/power-unit";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -40,10 +41,6 @@ const PERIODS = [
 function numberOrNull(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;
-}
-
-function formatValue(value: number | null, suffix: string) {
-  return value == null ? "-" : `${Math.round(value)}${suffix}`;
 }
 
 export default async function PowerPage({
@@ -249,39 +246,43 @@ export default async function PowerPage({
             </p>
           ) : null}
 
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Metric
-              icon={Zap}
-              label="FTP / eFTP"
-              value={formatValue(ftpWatts, " W")}
-              hint={ftpSource}
-            />
-            <Metric icon={Gauge} label="5 minuten" value={formatValue(power5m, " W")} />
-            <Metric icon={Activity} label="20 minuten" value={formatValue(power20m, " W")} />
-            {/* Zonder CP-model in intervals.icu blijven deze twee leeg; dan
-                heeft een tegel met een streepje geen waarde. */}
-            {cpWatts != null || wPrimeJoules != null ? (
-              <>
-                <Metric
-                  icon={Gauge}
-                  label="CP"
-                  value={formatValue(cpWatts, " W")}
-                  hint="Critical power uit intervals.icu"
-                />
-                <Metric
-                  icon={Zap}
-                  label="W'"
-                  value={wPrimeJoules == null ? "-" : `${Math.round(wPrimeJoules / 1000)} kJ`}
-                  hint="Anaerobe capaciteit"
-                />
-              </>
-            ) : null}
-            <Metric
-              icon={Scale}
-              label="Huidig gewicht"
-              value={ownWeightKg == null ? "-" : `${ownWeightKg.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} kg`}
-            />
-          </section>
+          {/* Het gewicht kan hier uit intervals.icu komen als het profiel er geen
+              heeft; W/kg rekent met datzelfde gewicht als de tegel eronder. */}
+          <PowerWeight weightKg={ownWeightKg}>
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Metric
+                icon={Zap}
+                label="FTP / eFTP"
+                value={<Power watts={ftpWatts} />}
+                hint={ftpSource}
+              />
+              <Metric icon={Gauge} label="5 minuten" value={<Power watts={power5m} />} />
+              <Metric icon={Activity} label="20 minuten" value={<Power watts={power20m} />} />
+              {/* Zonder CP-model in intervals.icu blijven deze twee leeg; dan
+                  heeft een tegel met een streepje geen waarde. */}
+              {cpWatts != null || wPrimeJoules != null ? (
+                <>
+                  <Metric
+                    icon={Gauge}
+                    label="CP"
+                    value={<Power watts={cpWatts} />}
+                    hint="Critical power uit intervals.icu"
+                  />
+                  <Metric
+                    icon={Zap}
+                    label="W'"
+                    value={wPrimeJoules == null ? "-" : `${Math.round(wPrimeJoules / 1000)} kJ`}
+                    hint="Anaerobe capaciteit"
+                  />
+                </>
+              ) : null}
+              <Metric
+                icon={Scale}
+                label="Huidig gewicht"
+                value={ownWeightKg == null ? "-" : `${ownWeightKg.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} kg`}
+              />
+            </section>
+          </PowerWeight>
 
           {ftpTestRows.length > 0 ? (
             <section className="rounded-lg border bg-card p-4 sm:p-5">
@@ -329,7 +330,7 @@ function Metric({
 }: {
   icon: typeof Activity;
   label: string;
-  value: string;
+  value: React.ReactNode;
   hint?: string;
 }) {
   return (

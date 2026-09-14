@@ -986,6 +986,54 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — schakelaar Watt / W/kg in de trainingsruimte (wens 13)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Jeroen vroeg om W/kg. De eigenaar koos een schakelaar tussen Watt en
+W/kg die overal in ZWBeter Worden geldt: FTP-kaarten en testuitslagen,
+workoutdoelen en gereden trainingen.
+
+**Wat er is gekomen.**
+- `src/lib/training/power-unit.ts` (puur): `formatPower` ("265 W" / "3,19 W/kg")
+  en `convertPowerText`, dat alleen wattages in een doeltekst omrekent
+  ("225-240w" → "2,8-3,0 W/kg"). Percentages van FTP blijven percentages: dat is
+  geen wattage. Zonder bruikbaar gewicht blijft het watt.
+- `src/components/power-unit.tsx`: `PowerUnitProvider` in de layout van
+  ZWBeter Worden leest de cookie `zwb-power-unit` (per apparaat, geen migratie) en
+  het eigen gewicht; `PowerUnitToggle` staat naast de hulplink en schrijft de
+  cookie, zonder herladen. `<Power>` en `<PowerText>` tonen de waarde.
+  `<PowerWeight>` zet op de trainerpagina's (overzicht, schema, beoordelen per
+  item) het gewicht van het lid, want W/kg hoort bij de renner en niet bij de
+  kijker.
+- Toegepast op: eFTP op de cockpit en in het traineroverzicht; FTP, 5 min, 20 min
+  en CP op `vermogen` (met het gewicht van die pagina, dat uit intervals.icu kan
+  komen); `ftp-test-card`, `ftp-test-history`, `ftp-test-planner`; blokchips in
+  `workout-blocks` en `block-editor`; de doelregel, gemiddeld vermogen en NP in
+  `workout-metrics-panel`, bij een losse rit in `member-calendar` en NP in
+  `activity-load-panel`. De powercurve volgt dezelfde keuze.
+- `WorkoutMetricsSnapshot.weightKg`: een momentopname legt vanaf nu het gewicht
+  van die dag vast (ook bij het verhangen van een rit, waar het oude gewicht
+  voorgaat).
+- `/hulp#watt-wkg` plus zoekentry; privacyverklaring: de keuzecookie en het
+  bewaarde gewicht bij een afgeronde training.
+
+**Bewust niet gebouwd.** Geen profielinstelling (zou een migratie vragen en is
+per apparaat goed genoeg). Oudere momentopnames en testuitslagen krijgen geen
+achteraf-gewicht: ze rekenen met het huidige gewicht, en `/hulp` zegt dat.
+Invoervelden (testuitslag, blokdoelen in de editor) blijven in watt. Het
+dashboard buiten ZWBeter Worden blijft watt. **Geen nieuwe privacyversie:** de
+trainer zag het gewicht al (W/kg-powercurve op het trainerscherm); het bewaarde
+gewicht bij een training is hetzelfde gegeven voor dezelfde ontvanger. Dat is een
+inschatting die de eigenaar moet bevestigen.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (953 geslaagd); nieuw `power-unit.test.ts` en het
+gewicht in `training-completion.test.ts`. *Niet geverifieerd:* de schakelaar niet
+ingelogd in de browser gebruikt (geen testaccount); de cookie is dus niet
+end-to-end getest.
+
 ### Opgeleverd — zonekleuren zoals in Zwift (wens 12)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

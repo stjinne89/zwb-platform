@@ -19,6 +19,7 @@ import {
   type WorkoutBlock,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { PowerText } from "@/components/power-unit";
 import { cn } from "@/lib/utils";
 
 /** Twee blokken zijn "hetzelfde" als elk veld gelijk is. */
@@ -164,7 +165,7 @@ export function BlockEditor({
                 className="size-2 rounded-full"
                 style={{ backgroundColor: blockColor(block, ftpWatts ?? null) }}
               />
-              {block.label || "Blok"} {block.durationMinutes}m {block.target}
+              {block.label || "Blok"} {block.durationMinutes}m <PowerText text={block.target} />
               {group.indexes.length > 1 ? (
                 <span className="font-medium tabular-nums">×{group.indexes.length}</span>
               ) : null}

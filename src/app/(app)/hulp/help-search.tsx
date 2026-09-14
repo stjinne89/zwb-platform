@@ -82,6 +82,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
   },
   {
+    title: "Watt of W/kg",
+    text: "Vermogen in watt of per kilo tonen in de trainingsruimte.",
+    href: "/hulp#watt-wkg",
+    terms: "w/kg wkg watt per kilo gewicht vermogen eenheid schakelaar ftp doel",
+  },
+  {
     title: "Kleuren van de blokken",
     text: "Zonekleuren zoals in Zwift, op je FTP.",
     href: "/hulp#zonekleuren",

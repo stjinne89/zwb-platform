@@ -96,7 +96,8 @@ export default function PrivacyPage() {
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
             intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
-            je eFTP en je powercurve; hersteldata blijft afgeschermd tot je de
+            je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
+            afgeronde training je gewicht van dat moment. Hersteldata blijft afgeschermd tot je de
             aparte opt-in aanzet. Je trekt die toegang zelf weer in op de
             trainingspagina.
           </li>
@@ -250,9 +251,11 @@ export default function PrivacyPage() {
 
       <Section title="8. Cookies">
         <p>
-          Dit platform gebruikt alleen functionele cookies die nodig zijn om
-          ingelogd te blijven. We gebruiken geen tracking- of advertentiecookies,
-          dus er is geen cookietoestemmingsbanner nodig.
+          Dit platform gebruikt alleen functionele cookies: om ingelogd te
+          blijven, en om te onthouden of je vermogen in watt of in W/kg wilt
+          zien. Die laatste bevat alleen die keuze en blijft op je eigen
+          apparaat. We gebruiken geen tracking- of advertentiecookies, dus er is
+          geen cookietoestemmingsbanner nodig.
         </p>
       </Section>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { RideLoad, WeeklyLoad } from "@/lib/training/ride-metrics";
 import { formatChartDate } from "@/lib/charts/format";
 import { tickIndices } from "@/lib/charts/responsive";
+import { Power } from "@/components/power-unit";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { cn } from "@/lib/utils";
 
@@ -182,7 +183,7 @@ export function ActivityLoadPanel({
                 header: "NP",
                 align: "right",
                 cell: (row) =>
-                  row.normalized_watts ? `${Math.round(row.normalized_watts)}w` : "-",
+                  row.normalized_watts ? <Power watts={row.normalized_watts} /> : "-",
               },
               {
                 key: "kj",

@@ -1,6 +1,7 @@
 // Weergave van workoutblokken (de gekleurde balk met vermogensbanden) plus de
 // vertaling van een intervals.icu workout_doc naar diezelfde blokvorm.
 
+import { PowerText } from "@/components/power-unit";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
 import type { IntervalsEvent } from "@/lib/intervals/client";
 import {
@@ -108,7 +109,7 @@ export function WorkoutBlocks({
             key={`${block.label}-label-${idx}`}
             className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
           >
-            {block.label} {block.durationMinutes}m {block.target}
+            {block.label} {block.durationMinutes}m <PowerText text={block.target} />
           </span>
         ))}
       </div>

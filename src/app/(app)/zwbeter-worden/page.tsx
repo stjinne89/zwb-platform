@@ -1,4 +1,5 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
   intensityLabel,
@@ -199,7 +200,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         <MetricCard
           icon={Mountain}
           label="eFTP"
-          value={eftpValue ? `${Math.round(eftpValue)}w` : "-"}
+          value={eftpValue ? <Power watts={eftpValue} /> : "-"}
           hint={eftpHint}
         />
         <MetricCard

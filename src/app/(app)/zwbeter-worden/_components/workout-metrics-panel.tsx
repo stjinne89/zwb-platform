@@ -6,6 +6,7 @@
 // de server-gerenderde trainerrij dit kan gebruiken.
 
 import type { ReactNode } from "react";
+import { Power, PowerText } from "@/components/power-unit";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { COMPLIANCE_LABELS, COMPLIANCE_PILLS } from "@/lib/training/compliance";
 import {
@@ -74,7 +75,7 @@ function powerNote(metrics: WorkoutMetricsSnapshot) {
 }
 
 /** Eén cijfer in het rooster; ook gebruikt voor de cijfers van een losse rit. */
-export function MetricStat({ label, value }: { label: string; value: string }) {
+export function MetricStat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-md bg-muted/50 p-3 text-center">
       <div className="text-lg font-semibold tabular-nums">{value}</div>
@@ -145,11 +146,11 @@ export function WorkoutMetricsPanel({
         />
         <MetricStat
           label="Gem. vermogen"
-          value={metrics.averageWatts == null ? "-" : `${nl(metrics.averageWatts)}w`}
+          value={<Power watts={metrics.averageWatts} weightKg={metrics.weightKg} />}
         />
         <MetricStat
           label="NP"
-          value={metrics.normalizedWatts == null ? "-" : `${nl(metrics.normalizedWatts)}w`}
+          value={<Power watts={metrics.normalizedWatts} weightKg={metrics.weightKg} />}
         />
       </div>
       {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
@@ -158,7 +159,16 @@ export function WorkoutMetricsPanel({
         <summary className="cursor-pointer text-sm font-medium">Meer details</summary>
         <div className="mt-2 divide-y">
           {description ? <DetailRow label="Doel" value={description} /> : null}
-          <DetailRow label="Target" value={metrics.targetSummary || "-"} />
+          <DetailRow
+            label="Target"
+            value={
+              metrics.targetSummary ? (
+                <PowerText text={metrics.targetSummary} weightKg={metrics.weightKg} />
+              ) : (
+                "-"
+              )
+            }
+          />
           <DetailRow
             label="Gepland"
             value={

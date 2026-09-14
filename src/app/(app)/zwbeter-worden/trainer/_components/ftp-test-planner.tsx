@@ -10,6 +10,7 @@
 
 import { useCallback, useState } from "react";
 import { Gauge } from "lucide-react";
+import { Power } from "@/components/power-unit";
 import { Button } from "@/components/ui/button";
 import {
   FTP_TEST_LABELS,
@@ -98,7 +99,7 @@ export function FtpTestPlanner({
         </h2>
         {lastTest ? (
           <span className="text-sm text-muted-foreground">
-            Laatste: {dayLabel(lastTest.testedOn)} — {lastTest.ftpWatts} W
+            Laatste: {dayLabel(lastTest.testedOn)} — <Power watts={lastTest.ftpWatts} />
           </span>
         ) : (
           <span className="text-sm text-muted-foreground">Nog geen test gedaan</span>

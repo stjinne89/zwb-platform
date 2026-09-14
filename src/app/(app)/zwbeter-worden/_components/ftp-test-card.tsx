@@ -13,7 +13,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Gauge } from "lucide-react";
+import { Power, usePowerUnit } from "@/components/power-unit";
 import { Button } from "@/components/ui/button";
+import { formatPower } from "@/lib/training/power-unit";
 import {
   FTP_TEST_LABELS,
   FTP_TEST_RESULT_LABELS,
@@ -50,6 +52,7 @@ export function FtpTestCard({ todayKey, upcoming, awaitingResult, lastTest }: Ft
   const [measured, setMeasured] = useState<number | null>(null);
   // Heeft het lid zelf iets getypt, dan overschrijft een late meting dat niet.
   const typed = useRef(false);
+  const { unit, weightKg } = usePowerUnit();
 
   const onCompleted = useCallback(() => {
     setResult("Je schema is bijgewerkt.");
@@ -105,12 +108,15 @@ export function FtpTestCard({ todayKey, upcoming, awaitingResult, lastTest }: Ft
       setWatts("");
       setLooseOpen(false);
       const changed =
-        outcome.previousFtpWatts != null ? ` (was ${outcome.previousFtpWatts} W)` : "";
+        outcome.previousFtpWatts != null
+          ? ` (was ${formatPower(outcome.previousFtpWatts, unit, weightKg)})`
+          : "";
+      const ftp = formatPower(outcome.ftpWatts, unit, weightKg);
       if (outcome.generationId) {
-        setResult(`FTP op ${outcome.ftpWatts} W${changed}. Je schema wordt bijgewerkt…`);
+        setResult(`FTP op ${ftp}${changed}. Je schema wordt bijgewerkt…`);
         poll.watch(outcome.generationId);
       } else {
-        setResult(`FTP op ${outcome.ftpWatts} W${changed}.`);
+        setResult(`FTP op ${ftp}${changed}.`);
       }
     } catch {
       poll.setError("Uitslag opslaan is mislukt.");
@@ -128,7 +134,7 @@ export function FtpTestCard({ todayKey, upcoming, awaitingResult, lastTest }: Ft
         </h2>
         {lastTest ? (
           <span className="text-sm text-muted-foreground">
-            Laatste: {dayLabel(lastTest.testedOn)} — {lastTest.ftpWatts} W
+            Laatste: {dayLabel(lastTest.testedOn)} — <Power watts={lastTest.ftpWatts} />
           </span>
         ) : null}
       </div>

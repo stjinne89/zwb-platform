@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChartTooltip, type TooltipRow } from "@/components/charts/chart-tooltip";
+import { usePowerUnit } from "@/components/power-unit";
 import { ResponsiveChart } from "@/components/charts/responsive-chart";
 import { formatDuration } from "@/lib/charts/format";
 import { defsId } from "@/lib/charts/ids";
@@ -113,7 +114,6 @@ export function PowerCurveChart({
   /** Verplicht zodra dezelfde grafiek twee keer op één pagina staat. */
   idSuffix?: string;
 }) {
-  const [metric, setMetric] = useState<Metric>("watts");
   const [comparisonIds, setComparisonIds] = useState<string[]>([MEDIAN_ID]);
   const [hoverSeconds, setHoverSeconds] = useState<number | null>(null);
   const [levelIndex, setLevelIndex] = useState(0);
@@ -123,6 +123,11 @@ export function PowerCurveChart({
       const value = Number(point.wattsPerKg);
       return Number.isFinite(value) && value > 0;
     });
+  // Dezelfde keuze als de schakelaar bovenaan de trainingspagina's: wie W/kg
+  // kiest, krijgt de curve ook in W/kg, en omgekeerd.
+  const powerUnit = usePowerUnit();
+  const metric: Metric = powerUnit.unit === "wkg" && hasOwnWkg ? "wkg" : "watts";
+  const setMetric = (value: Metric) => powerUnit.setUnit(value === "wkg" ? "wkg" : "w");
 
   const levels = useMemo<FatigueCurve[]>(
     () => [{ afterKj: 0, points: ownPoints }, ...fatigueCurves],

@@ -74,6 +74,11 @@ export type WorkoutMetricsSnapshot = {
   readinessTitle: string | null;
   loadPct: number | null;
   verdict: ComplianceVerdict;
+  /**
+   * Gewicht van het lid op het moment van de momentopname, voor W/kg. Sinds
+   * september 2026; oudere momentopnames rekenen met het huidige gewicht.
+   */
+  weightKg?: number | null;
 };
 
 export type PlannedWorkoutRow = {
@@ -137,12 +142,14 @@ export function buildMetricsSnapshot({
   workout,
   ride,
   ftpWatts,
+  weightKg = null,
   ctl,
   readiness,
 }: {
   workout: PlannedWorkoutRow;
   ride: StravaRideRow | null;
   ftpWatts: number | null;
+  weightKg?: number | null;
   ctl: { before: number | null; after: number | null };
   readiness: { score: number | null; level: number | null; title: string | null };
 }): WorkoutMetricsSnapshot {
@@ -179,6 +186,7 @@ export function buildMetricsSnapshot({
     readinessTitle: readiness.title,
     loadPct,
     verdict: complianceVerdict(loadPct, Boolean(ride)),
+    weightKg,
   };
 }
 
@@ -320,7 +328,7 @@ export async function detectCompletedWorkouts(
   const [{ data: profile }, { data: conn }] = await Promise.all([
     admin
       .from("profiles")
-      .select("ftp_watts, sex, wellness_device")
+      .select("ftp_watts, weight_kg, sex, wellness_device")
       .eq("id", profileId)
       .maybeSingle(),
     admin
@@ -340,6 +348,7 @@ export async function detectCompletedWorkouts(
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
   const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
+  const weightKg = profile?.weight_kg == null ? null : Number(profile.weight_kg);
 
   // Ook koppelingen van workouts buiten het venster: een rit die het lid aan de
   // training van een eerdere dag heeft gehangen, mag de training van de ritdag
@@ -380,6 +389,7 @@ export async function detectCompletedWorkouts(
       workout,
       ride: match,
       ftpWatts,
+      weightKg,
       ctl: ctlAround(wellness, dayKey),
       readiness: {
         score: status.readiness.score ?? null,
@@ -666,7 +676,7 @@ export async function reassignRideToWorkout(
   const previous = (fromReport?.metrics_json ?? {}) as Partial<WorkoutMetricsSnapshot>;
   const { data: profile } = await admin
     .from("profiles")
-    .select("ftp_watts")
+    .select("ftp_watts, weight_kg")
     .eq("id", profileId)
     .maybeSingle();
   const targetRow = target as PlannedWorkoutRow;
@@ -674,6 +684,9 @@ export async function reassignRideToWorkout(
     workout: targetRow,
     ride: rideRow,
     ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
+    weightKg:
+      previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
     ctl: { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null },
     readiness: {
       score: previous.readinessScore ?? null,

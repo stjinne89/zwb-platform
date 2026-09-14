@@ -4,6 +4,7 @@
 // dezelfde weergave hebben.
 
 import { ClipboardCheck } from "lucide-react";
+import { PowerWeight } from "@/components/power-unit";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import type { WorkoutBlock } from "@/lib/training/workouts";
 import { WorkoutBlocks } from "../../_components/workout-blocks";
@@ -21,6 +22,8 @@ export type ReviewQueueItem = {
   /** De geplande opbouw en de FTP van het lid om die op hoogte te zetten. */
   blocks: WorkoutBlock[];
   ftpWatts: number | null;
+  /** Huidig gewicht van het lid, voor W/kg bij momentopnames zonder gewicht. */
+  weightKg: number | null;
   athleteRpe: number | null;
   athleteFeel: string | null;
   athleteReport: string | null;
@@ -69,8 +72,10 @@ export function ReviewQueue({ items }: { items: ReviewQueueItem[] }) {
                 </p>
               </div>
 
-              <WorkoutBlocks blocks={item.blocks} ftpWatts={item.ftpWatts} />
-              <WorkoutMetricsPanel metrics={metrics} />
+              <PowerWeight weightKg={item.weightKg}>
+                <WorkoutBlocks blocks={item.blocks} ftpWatts={item.ftpWatts} />
+                <WorkoutMetricsPanel metrics={metrics} />
+              </PowerWeight>
 
               <div className="flex flex-wrap gap-1.5">
                 <AthleteInput

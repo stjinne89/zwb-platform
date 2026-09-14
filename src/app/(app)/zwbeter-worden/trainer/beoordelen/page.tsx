@@ -64,7 +64,10 @@ export default async function TrainerReviewPage() {
             reports.map((report) => report.workout_id),
           )
       : Promise.resolve({ data: [] }),
-    viewer.supabase.from("profiles").select("id, display_name, ftp_watts").in("id", athleteIds),
+    viewer.supabase
+      .from("profiles")
+      .select("id, display_name, ftp_watts, weight_kg")
+      .in("id", athleteIds),
   ]);
 
   const workouts = new Map(
@@ -84,6 +87,7 @@ export default async function TrainerReviewPage() {
         id: string;
         display_name: string | null;
         ftp_watts: number | null;
+        weight_kg: number | null;
       }>
     ).map((row) => [row.id, row]),
   );
@@ -105,6 +109,7 @@ export default async function TrainerReviewPage() {
           workout.intensity as WorkoutIntensity,
         ),
         ftpWatts: profiel?.ftp_watts == null ? null : Number(profiel.ftp_watts),
+        weightKg: profiel?.weight_kg == null ? null : Number(profiel.weight_kg),
         athleteRpe: report.athlete_rpe,
         athleteFeel: report.athlete_feel,
         athleteReport: report.athlete_report,

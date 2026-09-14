@@ -2,6 +2,7 @@
 // invoegen en de schema's van de renner beheren.
 
 import { EmptyState } from "@/components/app-ui";
+import { PowerWeight } from "@/components/power-unit";
 import { adaptationLabel, groupByRoot } from "@/lib/training/plan-tree";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { PlanActions } from "../../_components/plan-actions";
@@ -151,165 +152,168 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   );
 
   return (
-    <div className="space-y-4">
-      {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
+    // W/kg op deze pagina rekent met het gewicht van het lid, niet van de trainer.
+    <PowerWeight weightKg={athlete?.weight_kg == null ? null : Number(athlete.weight_kg)}>
+      <div className="space-y-4">
+        {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 
-      <FtpTestPlanner
-        athleteId={athleteId}
-        todayKey={todayKeyAmsterdam()}
-        hasPlan={Boolean(runningPlan)}
-        upcoming={ftpTestState.upcoming}
-        awaitingResult={ftpTestState.awaitingResult}
-        lastTest={ftpTestState.lastTest}
-      />
-
-      <WorkoutLibraryPanel
-        templates={templates}
-        planId={runningPlan?.id ?? null}
-        defaultDate={todayKeyAmsterdam()}
-        viewerId={viewer.user.id}
-      />
-
-      <CollapsibleCard
-        title="Workouts per maand"
-        subtitle="Klik een training om hem aan te passen of te vervangen"
-        defaultOpen
-      >
-        <TrainerWorkoutCalendar
-          workouts={calendarWorkouts}
-          templates={calendarTemplates}
-          reports={calendarReports}
+        <FtpTestPlanner
+          athleteId={athleteId}
           todayKey={todayKeyAmsterdam()}
-          ftpWatts={athlete?.ftp_watts}
+          hasPlan={Boolean(runningPlan)}
+          upcoming={ftpTestState.upcoming}
+          awaitingResult={ftpTestState.awaitingResult}
+          lastTest={ftpTestState.lastTest}
         />
-      </CollapsibleCard>
 
-      <CollapsibleCard
-        title="Afgewerkt en gemist"
-        subtitle={`Laatste ${COMPLETED_WINDOW_DAYS} dagen, gepland naast gereden`}
-        defaultOpen
-      >
-        <CompletedWorkouts
-          items={recentCompleted(
-            (workoutRows ?? []) as WorkoutRow[],
-            reportsByWorkout,
-            todayKeyAmsterdam(),
-          )}
-          feelingLabel="Gevoel lid"
-          ftpWatts={athlete?.ftp_watts}
+        <WorkoutLibraryPanel
+          templates={templates}
+          planId={runningPlan?.id ?? null}
+          defaultDate={todayKeyAmsterdam()}
+          viewerId={viewer.user.id}
         />
-      </CollapsibleCard>
 
-      <section className="space-y-3">
-        <h2 className="font-semibold">Schema&apos;s maken en beheren</h2>
-        {families.length === 0 ? (
-          <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-            Nog geen schema&apos;s voor dit lid.
-          </p>
-        ) : (
-          families.map(({ root: plan, derived }) => (
-            <CollapsibleCard
-              key={plan.id}
-              title={plan.title}
-              subtitle={`${formatDayMonth(plan.start_date, false)} - ${formatDayMonth(plan.end_date, false)}`}
-              defaultOpen={plan.id === openPlan?.id}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4">
-                <form
-                  action={formAction(updateTrainingPlan)}
-                  className="grid flex-1 gap-2 lg:grid-cols-[1fr_130px_130px_auto]"
-                >
-                  <input type="hidden" name="plan_id" value={plan.id} />
-                  <label className="text-xs text-muted-foreground">
-                    Schema
-                    <input
-                      name="title"
-                      defaultValue={plan.title}
-                      className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs text-muted-foreground">
-                    Start
-                    <input
-                      name="start_date"
-                      type="date"
-                      defaultValue={plan.start_date}
-                      className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs text-muted-foreground">
-                    Eind
-                    <input
-                      name="end_date"
-                      type="date"
-                      defaultValue={plan.end_date}
-                      className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                    />
-                  </label>
-                  <button className="self-end rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-                    Schema opslaan
-                  </button>
-                  <label className="lg:col-span-4 text-xs text-muted-foreground">
-                    Samenvatting
-                    <textarea
-                      name="summary"
-                      rows={3}
-                      defaultValue={plan.summary ?? ""}
-                      className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                    />
-                  </label>
-                  {plan.adaptation_reason ? (
-                    <p className="lg:col-span-4 text-xs text-muted-foreground">
-                      {plan.adaptation_reason}
-                    </p>
-                  ) : null}
-                </form>
-                <PlanBadge status={plan.status} />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 border-b p-3">
-                <PlanActions planId={plan.id} status={plan.status} mayApprove mayPublish={canPublish} />
-                <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
-              </div>
-              {derived.length > 0 ? (
-                <div className="border-b bg-muted/30 p-3">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Aanpassingen op dit schema
-                  </p>
-                  <ul className="space-y-2">
-                    {derived.map((adaptation) => (
-                      <li
-                        key={adaptation.id}
-                        className="flex flex-wrap items-center gap-2 rounded-md border bg-background p-2"
-                      >
-                        <span className="text-xs font-medium">
-                          {adaptationLabel(adaptation.adaptation_kind)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDayMonth(adaptation.adapt_from_date ?? adaptation.created_at, false)}
-                          {adaptation.adaptation_reason ? ` - ${adaptation.adaptation_reason}` : ""}
-                        </span>
-                        <PlanBadge status={adaptation.status} />
-                        <div className="ml-auto flex flex-wrap items-center gap-2">
-                          <PlanActions
-                            planId={adaptation.id}
-                            status={adaptation.status}
-                            mayApprove
-                            mayPublish={canPublish}
-                          />
-                          <DeleteTrainingPlanButton
-                            planId={adaptation.id}
-                            title={adaptation.title}
-                          />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+        <CollapsibleCard
+          title="Workouts per maand"
+          subtitle="Klik een training om hem aan te passen of te vervangen"
+          defaultOpen
+        >
+          <TrainerWorkoutCalendar
+            workouts={calendarWorkouts}
+            templates={calendarTemplates}
+            reports={calendarReports}
+            todayKey={todayKeyAmsterdam()}
+            ftpWatts={athlete?.ftp_watts}
+          />
+        </CollapsibleCard>
+
+        <CollapsibleCard
+          title="Afgewerkt en gemist"
+          subtitle={`Laatste ${COMPLETED_WINDOW_DAYS} dagen, gepland naast gereden`}
+          defaultOpen
+        >
+          <CompletedWorkouts
+            items={recentCompleted(
+              (workoutRows ?? []) as WorkoutRow[],
+              reportsByWorkout,
+              todayKeyAmsterdam(),
+            )}
+            feelingLabel="Gevoel lid"
+            ftpWatts={athlete?.ftp_watts}
+          />
+        </CollapsibleCard>
+
+        <section className="space-y-3">
+          <h2 className="font-semibold">Schema&apos;s maken en beheren</h2>
+          {families.length === 0 ? (
+            <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+              Nog geen schema&apos;s voor dit lid.
+            </p>
+          ) : (
+            families.map(({ root: plan, derived }) => (
+              <CollapsibleCard
+                key={plan.id}
+                title={plan.title}
+                subtitle={`${formatDayMonth(plan.start_date, false)} - ${formatDayMonth(plan.end_date, false)}`}
+                defaultOpen={plan.id === openPlan?.id}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4">
+                  <form
+                    action={formAction(updateTrainingPlan)}
+                    className="grid flex-1 gap-2 lg:grid-cols-[1fr_130px_130px_auto]"
+                  >
+                    <input type="hidden" name="plan_id" value={plan.id} />
+                    <label className="text-xs text-muted-foreground">
+                      Schema
+                      <input
+                        name="title"
+                        defaultValue={plan.title}
+                        className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+                      />
+                    </label>
+                    <label className="text-xs text-muted-foreground">
+                      Start
+                      <input
+                        name="start_date"
+                        type="date"
+                        defaultValue={plan.start_date}
+                        className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+                      />
+                    </label>
+                    <label className="text-xs text-muted-foreground">
+                      Eind
+                      <input
+                        name="end_date"
+                        type="date"
+                        defaultValue={plan.end_date}
+                        className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+                      />
+                    </label>
+                    <button className="self-end rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+                      Schema opslaan
+                    </button>
+                    <label className="lg:col-span-4 text-xs text-muted-foreground">
+                      Samenvatting
+                      <textarea
+                        name="summary"
+                        rows={3}
+                        defaultValue={plan.summary ?? ""}
+                        className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+                      />
+                    </label>
+                    {plan.adaptation_reason ? (
+                      <p className="lg:col-span-4 text-xs text-muted-foreground">
+                        {plan.adaptation_reason}
+                      </p>
+                    ) : null}
+                  </form>
+                  <PlanBadge status={plan.status} />
                 </div>
-              ) : null}
-            </CollapsibleCard>
-          ))
-        )}
-      </section>
-    </div>
+                <div className="flex flex-wrap items-center gap-2 border-b p-3">
+                  <PlanActions planId={plan.id} status={plan.status} mayApprove mayPublish={canPublish} />
+                  <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
+                </div>
+                {derived.length > 0 ? (
+                  <div className="border-b bg-muted/30 p-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Aanpassingen op dit schema
+                    </p>
+                    <ul className="space-y-2">
+                      {derived.map((adaptation) => (
+                        <li
+                          key={adaptation.id}
+                          className="flex flex-wrap items-center gap-2 rounded-md border bg-background p-2"
+                        >
+                          <span className="text-xs font-medium">
+                            {adaptationLabel(adaptation.adaptation_kind)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDayMonth(adaptation.adapt_from_date ?? adaptation.created_at, false)}
+                            {adaptation.adaptation_reason ? ` - ${adaptation.adaptation_reason}` : ""}
+                          </span>
+                          <PlanBadge status={adaptation.status} />
+                          <div className="ml-auto flex flex-wrap items-center gap-2">
+                            <PlanActions
+                              planId={adaptation.id}
+                              status={adaptation.status}
+                              mayApprove
+                              mayPublish={canPublish}
+                            />
+                            <DeleteTrainingPlanButton
+                              planId={adaptation.id}
+                              title={adaptation.title}
+                            />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </CollapsibleCard>
+            ))
+          )}
+        </section>
+      </div>
+    </PowerWeight>
   );
 }
