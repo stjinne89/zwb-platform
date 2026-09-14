@@ -9,6 +9,7 @@
 
 import { EmptyState } from "@/components/app-ui";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
+import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { ReviewQueue, type ReviewQueueItem } from "../_components/review-queue";
 import { loadAssignments, trainerViewer } from "../_data";
 
@@ -57,38 +58,53 @@ export default async function TrainerReviewPage() {
     reports.length
       ? viewer.supabase
           .from("training_workouts")
-          .select("id, title, scheduled_at")
+          .select("id, title, scheduled_at, intensity, structure_json")
           .in(
             "id",
             reports.map((report) => report.workout_id),
           )
       : Promise.resolve({ data: [] }),
-    viewer.supabase.from("profiles").select("id, display_name").in("id", athleteIds),
+    viewer.supabase.from("profiles").select("id, display_name, ftp_watts").in("id", athleteIds),
   ]);
 
   const workouts = new Map(
-    ((workoutRows ?? []) as Array<{ id: string; title: string; scheduled_at: string }>).map(
-      (workout) => [workout.id, workout],
-    ),
+    (
+      (workoutRows ?? []) as Array<{
+        id: string;
+        title: string;
+        scheduled_at: string;
+        intensity: string;
+        structure_json: unknown;
+      }>
+    ).map((workout) => [workout.id, workout]),
   );
-  const namen = new Map(
-    ((profileRows ?? []) as Array<{ id: string; display_name: string | null }>).map((row) => [
-      row.id,
-      row.display_name ?? "ZWB-lid",
-    ]),
+  const profielen = new Map(
+    (
+      (profileRows ?? []) as Array<{
+        id: string;
+        display_name: string | null;
+        ftp_watts: number | null;
+      }>
+    ).map((row) => [row.id, row]),
   );
 
   const items: ReviewQueueItem[] = reports.flatMap((report) => {
     const workout = workouts.get(report.workout_id);
     const metrics = report.metrics_json;
     if (!workout || !metrics) return [];
+    const profiel = profielen.get(report.profile_id);
     return [
       {
         workoutId: report.workout_id,
         title: workout.title,
-        athleteName: namen.get(report.profile_id) ?? "ZWB-lid",
+        athleteName: profiel?.display_name ?? "ZWB-lid",
         scheduledAt: workout.scheduled_at,
         metrics,
+        blocks: normalizeWorkoutBlocks(
+          workout.structure_json,
+          workout.intensity as WorkoutIntensity,
+        ),
+        ftpWatts: profiel?.ftp_watts == null ? null : Number(profiel.ftp_watts),
         athleteRpe: report.athlete_rpe,
         athleteFeel: report.athlete_feel,
         athleteReport: report.athlete_report,

@@ -196,6 +196,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
             todayKeyAmsterdam(),
           )}
           feelingLabel="Gevoel lid"
+          ftpWatts={athlete?.ftp_watts}
         />
       </CollapsibleCard>
 

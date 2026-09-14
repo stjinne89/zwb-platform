@@ -986,6 +986,33 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — voorbije trainingen tonen hun geplande opbouw (wens 16, deel 1)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Jeroen wilde bij trainingen uit het verleden net als bij komende
+trainingen de zones zien, samen met RPE en gevoel. De blokken werden al voor elke
+training geladen (`schema/page.tsx`), maar `WorkoutDetail` in
+`member-calendar.tsx` tekende ze alleen zolang de training nog gepland was. Bij
+een geweest of gemist exemplaar moest je raden welke opbouw er stond.
+
+**Wat er is gekomen.** De blokkenbalk staat nu ook bij voorbije trainingen, boven
+de cijfers en het rapportageformulier. Hetzelfde bij de trainer: in "Afgewerkt en
+gemist" (`completed-workouts.tsx`, `CompletedWorkoutItem.blocks`) en in de
+beoordelingsstapel (`review-queue.tsx`; `beoordelen/page.tsx` haalt daarvoor
+`structure_json`, `intensity` en de FTP van het lid op). `/hulp` noemt het bij
+"Feedback na een training".
+
+**Nog niet gebouwd (volgt).** De gemeten tijd per zone uit intervals.icu is deel 2
+van deze wens; die ronde begint met een controle van de intervals-velden in
+productie.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen; nieuw in `completed-workouts.test.ts`: de
+geplande opbouw van een gemiste training. *Niet geverifieerd:* geen ingelogde
+schermen in de browser (geen testaccount).
+
 ### Opgeleverd — jaarplan: event en mikpunt als één regel (wens 9)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

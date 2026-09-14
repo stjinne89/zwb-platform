@@ -8,7 +8,13 @@
 
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { COMPLIANCE_LABELS, COMPLIANCE_PILLS } from "@/lib/training/compliance";
-import { intensityLabel } from "@/lib/training/workouts";
+import {
+  intensityLabel,
+  normalizeWorkoutBlocks,
+  type WorkoutBlock,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
+import { WorkoutBlocks } from "./workout-blocks";
 import { WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { FEEL_LABELS, formatDayMonth } from "./format";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
@@ -27,6 +33,8 @@ export type CompletedWorkoutItem = {
   /** Geplande duur en type, ook als er geen momentopname is. */
   plannedMinutes: number | null;
   plannedIntensity: string;
+  /** De geplande opbouw, zodat je die naast de rit ziet. */
+  blocks: WorkoutBlock[];
   metrics: WorkoutMetricsSnapshot | null;
   rpe: number | null;
   feel: string | null;
@@ -99,6 +107,10 @@ export function recentCompleted(
           outcome,
           plannedMinutes: workout.duration_minutes ?? null,
           plannedIntensity: workout.intensity,
+          blocks: normalizeWorkoutBlocks(
+            workout.structure_json,
+            workout.intensity as WorkoutIntensity,
+          ),
           metrics: report?.metrics_json ?? null,
           rpe: report?.athlete_rpe ?? null,
           feel: report?.athlete_feel ?? null,
@@ -172,10 +184,13 @@ function feelingLines(item: CompletedWorkoutItem) {
 export function CompletedWorkouts({
   items,
   feelingLabel = "Jouw gevoel",
+  ftpWatts,
 }: {
   items: CompletedWorkoutItem[];
   /** De trainer kijkt naar het gevoel van het lid, niet naar dat van zichzelf. */
   feelingLabel?: string;
+  /** FTP van het lid, om wattdoelen in de blokken op hoogte te zetten. */
+  ftpWatts?: number | null;
 }) {
   if (items.length === 0) {
     return (
@@ -206,6 +221,8 @@ export function CompletedWorkouts({
               <Column label="Gereden" lines={riddenLines(metrics)} />
               <Column label={feelingLabel} lines={feelingLines(item)} />
             </div>
+
+            <WorkoutBlocks blocks={item.blocks} ftpWatts={ftpWatts} />
 
             {item.report ? (
               <p className="rounded-md bg-muted/40 p-3 text-sm whitespace-pre-line">

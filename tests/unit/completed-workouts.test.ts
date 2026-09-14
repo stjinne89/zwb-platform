@@ -118,4 +118,26 @@ describe("recentCompleted", () => {
     expect(items[0].metrics).toMatchObject({ tss: 71, loadPct: 84 });
     expect(items[0].plannedMinutes).toBe(60);
   });
-});
+  it("geeft de geplande opbouw mee, ook bij een gemiste training", () => {
+    const items = recentCompleted(
+      [
+        workout({
+          id: "gemist",
+          scheduled_at: "2026-08-15T09:00:00Z",
+          status: "planned",
+          intensity: "threshold",
+          structure_json: [
+            { label: "Warming-up", durationMinutes: 10, target: "55-65%", intensity: "endurance" },
+            { label: "Blok", durationMinutes: 20, target: "95-100%", intensity: "threshold" },
+          ],
+        }),
+      ],
+      undefined,
+      TODAY,
+    );
+    expect(items[0].outcome).toBe("gemist");
+    expect(items[0].blocks.map((block) => [block.label, block.durationMinutes])).toEqual([
+      ["Warming-up", 10],
+      ["Blok", 20],
+    ]);
+  });});

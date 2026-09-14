@@ -986,6 +986,11 @@ export default function HelpPage() {
               niet meteen alles; terugkerende signalen en een concrete opmerking
               wegen mee bij de eerstvolgende aanpassing.
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Klik je in de maandkalender op een training die al geweest is, dan
+              zie je de geplande opbouw naast wat je gereden hebt. Ook bij een
+              gemiste training blijft zichtbaar wat er stond.
+            </p>
           </article>
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Clubevents in je schema</h3>

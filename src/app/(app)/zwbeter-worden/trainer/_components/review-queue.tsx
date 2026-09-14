@@ -5,6 +5,8 @@
 
 import { ClipboardCheck } from "lucide-react";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
+import type { WorkoutBlock } from "@/lib/training/workouts";
+import { WorkoutBlocks } from "../../_components/workout-blocks";
 import { WorkoutMetricsPanel } from "../../_components/workout-metrics-panel";
 import { reviewWorkoutAsTrainer } from "../../_actions";
 import { formAction, formatDayMonth } from "../../_components/format";
@@ -16,6 +18,9 @@ export type ReviewQueueItem = {
   athleteName: string;
   scheduledAt: string;
   metrics: WorkoutMetricsSnapshot;
+  /** De geplande opbouw en de FTP van het lid om die op hoogte te zetten. */
+  blocks: WorkoutBlock[];
+  ftpWatts: number | null;
   athleteRpe: number | null;
   athleteFeel: string | null;
   athleteReport: string | null;
@@ -64,6 +69,7 @@ export function ReviewQueue({ items }: { items: ReviewQueueItem[] }) {
                 </p>
               </div>
 
+              <WorkoutBlocks blocks={item.blocks} ftpWatts={item.ftpWatts} />
               <WorkoutMetricsPanel metrics={metrics} />
 
               <div className="flex flex-wrap gap-1.5">
