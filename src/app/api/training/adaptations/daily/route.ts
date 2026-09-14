@@ -9,6 +9,8 @@ import {
   planIsIgnored,
 } from "@/lib/training/replan";
 import { availabilityForAi, loadFixedWorkouts, mondayKey } from "@/lib/training/availability";
+import { loadFtpTests, profileForAi } from "@/lib/training/ftp-test";
+import type { TrainingAiInput } from "@/lib/training/ai";
 import {
   buildIntervalsLoad,
   buildRecentLoad,
@@ -517,7 +519,7 @@ export async function POST(request: Request) {
         const today = amsterdamDayKey();
         const planEnd = String(plan.end_date).slice(0, 10);
         const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
-        const [wellness, yesterday, todayRides, recent, intervalsLoad, availability, fixedWorkouts] =
+        const [wellness, yesterday, todayRides, recent, intervalsLoad, availability, fixedWorkouts, ftpTests] =
           await Promise.all([
             wellnessForAi(admin, plan.profile_id).catch(() => null),
             buildYesterdayContext(admin, plan.profile_id).catch(() => null),
@@ -526,6 +528,7 @@ export async function POST(request: Request) {
             buildIntervalsLoad(admin, plan.profile_id),
             availabilityForAi(admin, plan.profile_id, today, planEnd),
             loadFixedWorkouts(admin, plan.profile_id, today, planEnd).catch(() => []),
+            loadFtpTests(admin, plan.profile_id, 1).catch(() => []),
           ]);
 
         // Wat er nog gepland staat vanaf vandaag; zonder dit verzint de AI de
@@ -541,7 +544,7 @@ export async function POST(request: Request) {
           .lte("scheduled_at", `${planEnd}T23:59:59`)
           .order("scheduled_at", { ascending: true });
 
-        const input = {
+        const input: TrainingAiInput = {
           athleteName: profile.display_name ?? "ZWB-lid",
           goal: {
             title: goal.title,
@@ -554,12 +557,7 @@ export async function POST(request: Request) {
             desiredIntensity: goal.desired_intensity,
             riskNotes: goal.risk_notes,
           },
-          profile: {
-            ftpWatts: profile.ftp_watts ?? null,
-            weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-            zrlCategory: profile.zrl_category ?? null,
-            sex: profile.sex ?? null,
-          },
+          profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
           symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
           recentLoad: recent,
           wellness: wellnessInputForAi(wellness),

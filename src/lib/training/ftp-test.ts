@@ -12,6 +12,7 @@
 // afgeleide FTP ook de ruwe meting bewaren.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
+import type { TrainingAiInput } from "@/lib/training/ai";
 import { normalizeWorkoutBlocks, type WorkoutBlock } from "@/lib/training/workouts";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -254,6 +255,33 @@ export async function recordFtpTest(
   return {
     ftpWatts,
     previousFtpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+  };
+}
+
+/**
+ * Het profielblok van de AI-input, met de datum van de laatste test.
+ *
+ * Tot september 2026 bouwden de drie flows dit blok elk zelf, en alleen het
+ * nieuwe schema gaf de testdatum mee. De dagaanpassing en de dagelijkse
+ * herziening zagen dus nooit een test, en de promptregel "geen test of ouder
+ * dan acht weken → benoem dat" zette bij elk lid een onterechte waarschuwing in
+ * het schema. Eén bouwer houdt de drie gelijk.
+ */
+export function profileForAi(
+  profile: {
+    ftp_watts: number | string | null;
+    weight_kg: number | string | null;
+    zrl_category: string | null;
+    sex: string | null;
+  },
+  lastTestedOn: string | null,
+): TrainingAiInput["profile"] {
+  return {
+    ftpWatts: profile.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ftpTestedOn: lastTestedOn,
+    weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
+    zrlCategory: profile.zrl_category ?? null,
+    sex: profile.sex ?? null,
   };
 }
 

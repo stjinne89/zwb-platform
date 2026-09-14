@@ -54,7 +54,7 @@ export type TrainingAiInput = {
      * dit weet de planner niet of hij met een verse of een jaar oude drempel
      * rekent, terwijl elk wattage eraan hangt.
      */
-    ftpTestedOn?: string | null;
+    ftpTestedOn: string | null;
     weightKg: number | null;
     zrlCategory: string | null;
     sex: string | null;

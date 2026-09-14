@@ -6,9 +6,30 @@ import {
   ftpTestDurationMinutes,
   ftpTestTitle,
   pickFtpTestState,
+  profileForAi,
   profileFtpAfterChange,
   type FtpTestWorkout,
 } from "@/lib/training/ftp-test";
+
+describe("profileForAi", () => {
+  const row = { ftp_watts: "265", weight_kg: "83.0", zrl_category: "B", sex: null };
+
+  it("geeft de datum van de laatste test mee", () => {
+    expect(profileForAi(row, "2026-09-03")).toEqual({
+      ftpWatts: 265,
+      ftpTestedOn: "2026-09-03",
+      weightKg: 83,
+      zrlCategory: "B",
+      sex: null,
+    });
+  });
+
+  it("zegt expliciet null als er nooit een test was", () => {
+    const profile = profileForAi({ ...row, ftp_watts: null, weight_kg: null }, null);
+    expect(profile).toMatchObject({ ftpWatts: null, ftpTestedOn: null, weightKg: null });
+    expect("ftpTestedOn" in profile).toBe(true);
+  });
+});
 
 function test(
   workoutId: string,

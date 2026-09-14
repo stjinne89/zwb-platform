@@ -986,6 +986,42 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — onterechte waarschuwing "FTP-test op zijn plaats" (wens 11/18)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56` (basis
+`05d3200`), niet gepusht.** Geen migratie. Eerste ronde uit de wensen van Jeroen
+(plannenboek 6, 7, 9, 11/18, 12, 13, 16, 19); de volgorde en keuzes van de
+eigenaar staan per ronde hieronder.
+
+**Waarom.** Jeroen kreeg de melding dat hij geen FTP-test had, ook toen die er
+wel was. `ftpTestedOn` werd alleen gevuld in `buildTrainingInput` (nieuw schema
+en schema bijwerken). De input van "Pas vandaag aan" en die van de dagelijkse
+herziening (`/api/training/adaptations/daily`) bouwden het profielblok zelf en
+lieten het veld weg. De promptregel in `adaptiveDailyPrompt` ("geen test of
+ouder dan acht weken → benoem in cautions") zette daardoor bij elke dag- en
+dagelijkse aanpassing een "Let op"-regel in het schema.
+
+**Wat er is gekomen.** `profileForAi()` in `ftp-test.ts` bouwt het profielblok
+voor alle drie de flows, met de laatste test via `loadFtpTests(…, 1)`.
+`TrainingAiInput.profile.ftpTestedOn` is niet meer optioneel en de input van de
+dagelijkse route is getypeerd, zodat een vierde flow het veld niet meer kan
+vergeten.
+
+**Bewust niet gebouwd.** De eigenaar koos om bij deze wens alleen de valse
+melding op te lossen: een lid plant nog steeds zelf geen test (dat blijft de
+trainer, zie de FTP-testronde van 2026-08-20). Geen filter dat de waarschuwing
+achteraf uit AI-uitvoer haalt: dat zou op tekst matchen. Een lid dat nooit een
+test deed (FTP uit intervals.icu of het profiel) krijgt de waarschuwing terecht.
+*Opgemerkt, niet opgelost:* `canCoach` geeft `true` als trainer en lid dezelfde
+persoon zijn (`zwbeter-worden/_actions.ts`), dus `planFtpTest` is voor jezelf
+aanroepbaar; alleen de UI houdt dat tegen.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint op de gewijzigde bestanden
+schoon, Vitest volledig groen (939 geslaagd), nieuw: `profileForAi` in
+`ftp-test.test.ts`. *Niet geverifieerd:* geen echte generatie. Schema's die al
+een onterechte "Let op"-regel hebben, houden die tot de volgende aanpassing of
+herziening; of die daarna echt wegblijft, is pas in productie te zien.
+
 ### Opgeleverd — oude readiness stuurt niet meer, en geen tweede training op een gereden dag
 
 **2026-09-14, commit `efb0e62` op `codex/zwb-segments-map`, lokaal, niet

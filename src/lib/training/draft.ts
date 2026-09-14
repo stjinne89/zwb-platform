@@ -39,6 +39,7 @@ import {
   ftpTestDurationMinutes,
   ftpTestTitle,
   loadFtpTests,
+  profileForAi,
   type FtpTestType,
 } from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
@@ -338,13 +339,7 @@ async function buildTrainingInput(
       desiredIntensity: goal.desired_intensity,
       riskNotes: goal.risk_notes,
     },
-    profile: {
-      ftpWatts: profile.ftp_watts ?? null,
-      ftpTestedOn: ftpTests[0]?.testedOn ?? null,
-      weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-      zrlCategory: profile.zrl_category ?? null,
-      sex: profile.sex ?? null,
-    },
+    profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
     symptoms: await loadSymptomLoadForAi(admin, athleteId),
     recentLoad: recent,
     wellness: wellnessInputForAi(wellness),
@@ -853,7 +848,7 @@ export async function startTodayAdjustmentDraft(
     if (!profile) return { ok: false, error: "Profiel niet gevonden." };
 
     const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
-    const [wellness, yesterday, todayRides, recentLoad, intervalsLoad, availability, fixedWorkouts] =
+    const [wellness, yesterday, todayRides, recentLoad, intervalsLoad, availability, fixedWorkouts, ftpTests] =
       await Promise.all([
         wellnessForAi(admin, user.id, { fresh: true }).catch(() => null),
         buildYesterdayContext(admin, user.id).catch(() => null),
@@ -862,6 +857,7 @@ export async function startTodayAdjustmentDraft(
         buildIntervalsLoad(admin, user.id),
         availabilityForAi(admin, user.id, today, planTo),
         loadFixedWorkouts(admin, user.id, today, planTo).catch(() => []),
+        loadFtpTests(admin, user.id, 1).catch(() => []),
       ]);
 
     const input: TrainingAiInput = {
@@ -877,12 +873,7 @@ export async function startTodayAdjustmentDraft(
         desiredIntensity: goal?.desired_intensity ?? "balanced",
         riskNotes: goal?.risk_notes ?? null,
       },
-      profile: {
-        ftpWatts: profile.ftp_watts ?? null,
-        weightKg: profile.weight_kg ? Number(profile.weight_kg) : null,
-        zrlCategory: profile.zrl_category ?? null,
-        sex: profile.sex ?? null,
-      },
+      profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
       recentLoad,
       wellness: wellnessInputForAi(wellness),
       intervalsLoad,
