@@ -97,6 +97,10 @@ export function routeSnapshot(route: PacingRoute): RouteLayoutSnapshot {
       startKm: km(zone.startKm),
       endKm: km(zone.endKm),
     })),
+    descents: (route.descents ?? []).map((descent) => ({
+      startKm: km(descent.startKm),
+      endKm: km(descent.endKm),
+    })),
   };
 }
 
@@ -259,9 +263,9 @@ export async function recomputePlan(
       )
     : input.plan.segments;
 
-  const { imposeNeutralPieces } = await import("@/lib/pacing/plan");
+  const { imposeFixedPieces } = await import("@/lib/pacing/plan");
   const rebalanced = rebalancePlan(
-    imposeNeutralPieces(startSegments, input.route, input.rider.model),
+    imposeFixedPieces(startSegments, input.route, input.rider.model),
     input.route,
     input.rider.model,
     input.rider.curve,

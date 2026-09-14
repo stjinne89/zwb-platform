@@ -25,6 +25,7 @@ import { accentsForRoute } from "@/lib/events/zwift-route";
 import type { RouteProfile, RouteShape } from "@/lib/events/zwift-route-streams";
 import {
   normalizeNeutralZones,
+  withDescents,
   pacingRouteFromGpx,
   pacingRouteFromZwift,
   type PacingRoute,
@@ -194,7 +195,8 @@ async function withNeutralZones(
     ok: true,
     loaded: {
       ...result.loaded,
-      route: {
+      // Afdalingen pas na de zones: een neutralisatie breekt een afdaling af.
+      route: withDescents({
         ...route,
         neutralZones: normalizeNeutralZones(
           rows.map((row) => ({
@@ -204,7 +206,7 @@ async function withNeutralZones(
           })),
           route.totalKm,
         ),
-      },
+      }),
     },
   };
 }

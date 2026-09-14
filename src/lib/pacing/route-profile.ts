@@ -63,6 +63,8 @@ export type PacingRoute = {
   accents: PacingAccent[];
   /** Neutralisaties, op km-volgorde en binnen de route. Leeg of afwezig: geen. */
   neutralZones?: NeutralZone[];
+  /** Lange afdalingen buiten klimmen en neutralisaties; zie detectDescents. */
+  descents?: PacingDescent[];
   /**
    * De lead-in van een Zwift-route is als constante gradiënt benaderd:
    * zwift-data geeft er wel afstand en hoogtemeters voor, maar geen profiel.
@@ -114,6 +116,105 @@ export function neutralSegmentMask(route: PacingRoute): boolean[] {
   return endKms.map((endKm, index) => {
     const midKm = ((index === 0 ? 0 : endKms[index - 1]) + endKm) / 2;
     return zones.some((zone) => midKm >= zone.startKm && midKm < zone.endKm);
+  });
+}
+
+/** Een afdaling waar uitrollen mag: geen doel nodig om er snel te zijn. */
+export type PacingDescent = {
+  id: string;
+  name: string;
+  startKm: number;
+  endKm: number;
+  /** rise/run, negatief. */
+  avgGradient: number;
+};
+
+/** Pas vanaf deze lengte en steilte is uitrollen de betere keuze. */
+const DESCENT_MIN_KM = 1;
+const DESCENT_MAX_AVG_GRADIENT = -0.04;
+/** Een stuk begint pas bij echt dalen… */
+const DESCENT_START_GRADIENT = -0.03;
+/** …en loopt door zolang het blijft dalen, met hooguit 200 m vlakker ertussen. */
+const DESCENT_CONTINUE_GRADIENT = -0.02;
+const DESCENT_MAX_GAP_M = 200;
+
+/**
+ * Lange afdalingen op het segmentraster. Een klim of neutralisatie breekt een
+ * afdaling af: daar geldt al een eigen regel. De vlakke stukjes aan het eind
+ * horen er niet bij.
+ */
+export function detectDescents(route: PacingRoute): PacingDescent[] {
+  const neutral = neutralSegmentMask(route);
+  const endKms = segmentEndKms(route.segments);
+  const out: PacingDescent[] = [];
+
+  let start: number | null = null;
+  let lastDown = -1;
+  let gapM = 0;
+
+  const close = () => {
+    if (start === null || lastDown < start) return;
+    let distance = 0;
+    let rise = 0;
+    for (let i = start; i <= lastDown; i++) {
+      distance += route.segments[i].distanceM;
+      rise += route.segments[i].gradient * route.segments[i].distanceM;
+    }
+    const avgGradient = distance > 0 ? rise / distance : 0;
+    if (distance / 1000 >= DESCENT_MIN_KM && avgGradient <= DESCENT_MAX_AVG_GRADIENT) {
+      const startKm = start === 0 ? 0 : endKms[start - 1];
+      out.push({
+        id: `afdaling-${out.length + 1}`,
+        name: `Afdaling km ${startKm.toFixed(1)}`,
+        startKm,
+        endKm: endKms[lastDown],
+        avgGradient,
+      });
+    }
+  };
+
+  route.segments.forEach((segment, index) => {
+    const eligible = segment.accentIndex === null && !neutral[index];
+    if (start === null) {
+      if (eligible && segment.gradient <= DESCENT_START_GRADIENT) {
+        start = index;
+        lastDown = index;
+        gapM = 0;
+      }
+      return;
+    }
+    if (eligible && segment.gradient <= DESCENT_CONTINUE_GRADIENT) {
+      lastDown = index;
+      gapM = 0;
+      return;
+    }
+    gapM += segment.distanceM;
+    if (!eligible || gapM > DESCENT_MAX_GAP_M) {
+      close();
+      start = null;
+      if (eligible && segment.gradient <= DESCENT_START_GRADIENT) {
+        start = index;
+        lastDown = index;
+        gapM = 0;
+      }
+    }
+  });
+  close();
+  return out;
+}
+
+/** De route met zijn afdalingen erbij; na de neutralisaties aanroepen. */
+export function withDescents(route: PacingRoute): PacingRoute {
+  return { ...route, descents: detectDescents(route) };
+}
+
+/** Per routesegment: de index van de afdaling waar het midden in ligt, of -1. */
+export function descentSegmentIndex(route: PacingRoute): number[] {
+  const descents = route.descents ?? [];
+  const endKms = segmentEndKms(route.segments);
+  return endKms.map((endKm, index) => {
+    const midKm = ((index === 0 ? 0 : endKms[index - 1]) + endKm) / 2;
+    return descents.findIndex((descent) => midKm >= descent.startKm && midKm < descent.endKm);
   });
 }
 

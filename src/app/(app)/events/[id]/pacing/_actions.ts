@@ -10,7 +10,7 @@ import {
 } from "@/lib/pacing/store";
 import { adoptSharedPlan, sharedPlanView } from "@/lib/pacing/share";
 import {
-  imposeNeutralPieces,
+  imposeFixedPieces,
   rebalancePlan,
   type PlanEffort,
   type PlanSegment,
@@ -46,7 +46,11 @@ export async function savePacingPlan(
     if (!update || !Number.isFinite(update.targetWkg)) return segment;
     return {
       ...segment,
-      targetWkg: Math.min(12, Math.max(0.5, Math.round(update.targetWkg * 100) / 100)),
+      // Op een afdaling mag het doel 0 zijn: uitrollen.
+      targetWkg: Math.min(
+        12,
+        Math.max(segment.kind === "descent" ? 0 : 0.5, Math.round(update.targetWkg * 100) / 100),
+      ),
       effort: EFFORTS.includes(segment.effort) ? segment.effort : "tempo",
     };
   });
@@ -153,7 +157,7 @@ export async function adoptClubmatePlan(
   // Andermans plan hoeft op jouw benen niet te kloppen; rebalancePlan snijdt
   // eraf wat er niet in past voordat het wordt opgeslagen.
   const rebalanced = rebalancePlan(
-    imposeNeutralPieces(mine, ctx.loaded.route, ctx.rider.model),
+    imposeFixedPieces(mine, ctx.loaded.route, ctx.rider.model),
     ctx.loaded.route,
     ctx.rider.model,
     ctx.rider.curve,

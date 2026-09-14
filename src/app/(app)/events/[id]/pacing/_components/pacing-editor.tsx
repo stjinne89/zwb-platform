@@ -202,6 +202,9 @@ export function PacingEditor({
                     </p>
                   </div>
                   <p className="tabular-nums">
+                    {segment.kind === "descent" && segment.targetWkg === 0 ? (
+                      <span className="text-sm text-muted-foreground">Uitrollen · </span>
+                    ) : null}
                     <span className="text-lg font-semibold">
                       {segment.targetWkg.toFixed(2)}
                     </span>{" "}
@@ -214,7 +217,7 @@ export function PacingEditor({
 
                 <input
                   type="range"
-                  min={Math.round(cpWkg * 0.3 * 100) / 100}
+                  min={segment.kind === "descent" ? 0 : Math.round(cpWkg * 0.3 * 100) / 100}
                   max={Math.round(cpWkg * 1.6 * 100) / 100}
                   step={0.05}
                   value={segment.targetWkg}

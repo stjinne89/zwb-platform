@@ -28,6 +28,7 @@ import {
 } from "@/lib/pacing/w-prime";
 import { cpAfterKj, type DurabilityModel } from "@/lib/pacing/durability";
 import {
+  descentSegmentIndex,
   neutralSegmentMask,
   segmentEndKms,
   type PacingRoute,
@@ -51,11 +52,21 @@ export type PlanSegment = {
   /** Verwijst naar `route.accents` als dit stuk een accent is. */
   accentId?: string | null;
   /**
-   * Een neutralisatie: vast tempo achter de wagen, geen eigen doel. Het getal in
-   * targetWkg is dan alleen het vlakke equivalent, voor weergave elders.
+   * "neutral": vast tempo achter de wagen, geen eigen doel; targetWkg is dan
+   * alleen het vlakke equivalent, voor weergave elders.
+   * "descent": een lange afdaling. Het doel geldt op de steile delen en mag 0 zijn
+   * (uitrollen); op vlakkere stukjes erin wordt minstens DESCENT_FLAT_CP_FRACTION
+   * getrapt.
    */
-  kind?: "neutral";
+  kind?: "neutral" | "descent";
 };
+
+/**
+ * Binnen een afdaling: steiler dan dit en je rolt vanzelf hard genoeg. Vlakker,
+ * dan trap je toch door — anders zakt het model naar wandeltempo.
+ */
+export const DESCENT_COAST_GRADIENT = -0.03;
+export const DESCENT_FLAT_CP_FRACTION = 0.4;
 
 /** Het tempo achter de wagen. Keuze van de eigenaar, 14 september 2026. */
 export const NEUTRAL_SPEED_KMH = 30;
@@ -133,8 +144,11 @@ export function wkgBySegment(plan: PlanSegment[], endKms: number[]): number[] {
   // vond; daar dan de mediaan van de pieken op loslaten maakt van een gat in het
   // plan stilzwijgend een inspanning — en trekt de W′-balans leeg zonder dat er
   // ergens staat waarom.
+  // Afdalingen en neutralisaties tellen niet mee: een afdaling op 0 zou elk gat
+  // stil laten staan.
+  const ridden = sorted.filter((item) => item.kind !== "descent" && item.kind !== "neutral");
   const fallbackWkg =
-    sorted.length > 0 ? Math.min(...sorted.map((item) => item.targetWkg)) : 2.5;
+    ridden.length > 0 ? Math.min(...ridden.map((item) => item.targetWkg)) : 2.5;
 
   return endKms.map((endKm, index) => {
     const startKm = index === 0 ? 0 : endKms[index - 1];
@@ -175,9 +189,17 @@ export function evaluatePlan(
   // In een neutralisatie beslist de wagen, niet het plan: ook een plan van vóór
   // de zones rekent daar met het neutrale tempo.
   const neutral = neutralSegmentMask(route);
-  const watts = expandPlanToWatts(plan, route, model.weightKg).map((value, index) =>
-    neutral[index] ? neutralWatts(route.segments[index].gradient, model, equipmentKg) : value,
-  );
+  const inDescent = descentSegmentIndex(route);
+  const descentFloor = model.cpWatts * DESCENT_FLAT_CP_FRACTION;
+  const watts = expandPlanToWatts(plan, route, model.weightKg).map((value, index) => {
+    const gradient = route.segments[index].gradient;
+    if (neutral[index]) return neutralWatts(gradient, model, equipmentKg);
+    // Uitrollen alleen waar het echt daalt; een vlak stukje in de afdaling trap je.
+    if (inDescent[index] >= 0 && gradient > DESCENT_COAST_GRADIENT) {
+      return Math.max(value, descentFloor);
+    }
+    return value;
+  });
   const modelSegments: RouteSegment[] = route.segments.map((segment, index) => ({
     distanceM: segment.distanceM,
     gradient: segment.gradient,
@@ -305,7 +327,8 @@ export function clampPlan(
         }
         return { ...segment, targetWkg: toWkg };
       }
-      if (targetWatts < minWatts) {
+      // Op een afdaling is uitrollen juist de bedoeling.
+      if (targetWatts < minWatts && segment.kind !== "descent") {
         changed = true;
         const toWkg = round2(minWatts / model.weightKg);
         if (pass === 0) {
@@ -397,72 +420,109 @@ export function rebalancePlan(
   return { plan: current, evaluation, clampNotes: clamped.notes, adjustments };
 }
 
-/** Korter dan dit na het uitknippen van een neutralisatie is geen stuk meer. */
+/** Korter dan dit na het uitknippen van een vast stuk is geen stuk meer. */
 const MIN_PIECE_KM = 0.1;
+/** Zelfde grenzen binnen deze marge: hetzelfde stuk, dus het eigen doel blijft. */
+const SAME_RANGE_KM = 0.05;
+
+const isFixed = (segment: PlanSegment) => segment.kind === "neutral" || segment.kind === "descent";
 
 /**
- * Knipt de neutralisaties van de route als vaste stukken in een plan. Een stuk
- * dat erin valt verdwijnt, een stuk dat erover heen loopt wordt ingekort of in
- * tweeën gedeeld (label met "(vervolg)"), en een snipper die overblijft gaat op
- * in zijn buurman. Dit geldt voor elk plan — basisvoorstel, AI-voorstel,
- * overgenomen plan — zodat nergens een doel op een neutralisatie staat.
+ * Knipt de neutralisaties en afdalingen van de route als eigen stukken in een
+ * plan. Een stuk dat erin valt verdwijnt, een stuk dat erover heen loopt wordt
+ * ingekort of in tweeën gedeeld (label met "(vervolg)"), en een snipper die
+ * overblijft gaat op in zijn buurman. Dit geldt voor elk plan — basisvoorstel,
+ * AI-voorstel, herberekening, overgenomen plan.
+ *
+ * Een neutralisatie heeft geen doel. Een afdaling wel: standaard 0 (uitrollen),
+ * maar wie er zelf een doel op zette, houdt dat zolang de afdaling dezelfde is.
  */
-export function imposeNeutralPieces(
+export function imposeFixedPieces(
   plan: PlanSegment[],
   route: PacingRoute,
   model: CpModel,
 ): PlanSegment[] {
   const zones = route.neutralZones ?? [];
-  const pieces = plan.filter((segment) => segment.kind !== "neutral");
-  if (zones.length === 0) return pieces.length === plan.length ? plan : pieces;
+  const descents = route.descents ?? [];
+  const pieces = plan.filter((segment) => !isFixed(segment));
+  if (zones.length === 0 && descents.length === 0) {
+    return pieces.length === plan.length ? plan : pieces;
+  }
 
   const flatWkg = round2(neutralWatts(0, model) / model.weightKg);
-  let out: PlanSegment[] = [...pieces].sort((a, b) => a.startKm - b.startKm);
+  const previousDescent = (startKm: number, endKm: number) =>
+    plan.find(
+      (segment) =>
+        segment.kind === "descent" &&
+        Math.abs(segment.startKm - startKm) <= SAME_RANGE_KM &&
+        Math.abs(segment.endKm - endKm) <= SAME_RANGE_KM,
+    );
 
-  for (const zone of zones) {
-    const next: PlanSegment[] = [];
-    for (const segment of out) {
-      if (segment.endKm <= zone.startKm || segment.startKm >= zone.endKm) {
-        next.push(segment);
-        continue;
-      }
-      if (segment.startKm < zone.startKm) {
-        next.push({ ...segment, endKm: zone.startKm });
-      }
-      if (segment.endKm > zone.endKm) {
-        next.push({
-          ...segment,
-          startKm: zone.endKm,
-          label: segment.startKm < zone.startKm ? `${segment.label} (vervolg)` : segment.label,
-        });
-      }
-    }
-    next.push({
+  const fixed: PlanSegment[] = [
+    ...zones.map((zone) => ({
       startKm: zone.startKm,
       endKm: zone.endKm,
       targetWkg: flatWkg,
       label: zone.label,
-      effort: "rustig",
+      effort: "rustig" as const,
       rationale: `Achter de wagen, ongeveer ${NEUTRAL_SPEED_KMH} km/u.`,
       accentId: null,
-      kind: "neutral",
-    });
+      kind: "neutral" as const,
+    })),
+    ...descents.map((descent) => {
+      const kept = previousDescent(descent.startKm, descent.endKm);
+      return {
+        startKm: descent.startKm,
+        endKm: descent.endKm,
+        targetWkg: kept?.targetWkg ?? 0,
+        label: kept?.label ?? descent.name,
+        effort: "rustig" as const,
+        rationale:
+          kept?.rationale ??
+          `${(descent.endKm - descent.startKm).toFixed(1)} km à ${(descent.avgGradient * 100).toFixed(1)}%: uitrollen mag, trappen levert hier weinig tijd op.`,
+        accentId: null,
+        kind: "descent" as const,
+      };
+    }),
+  ];
+
+  let out: PlanSegment[] = [...pieces].sort((a, b) => a.startKm - b.startKm);
+  for (const range of fixed) {
+    const next: PlanSegment[] = [];
+    for (const segment of out) {
+      if (segment.endKm <= range.startKm || segment.startKm >= range.endKm) {
+        next.push(segment);
+        continue;
+      }
+      if (isFixed(segment)) continue;
+      if (segment.startKm < range.startKm) {
+        next.push({ ...segment, endKm: range.startKm });
+      }
+      if (segment.endKm > range.endKm) {
+        next.push({
+          ...segment,
+          startKm: range.endKm,
+          label: segment.startKm < range.startKm ? `${segment.label} (vervolg)` : segment.label,
+        });
+      }
+    }
+    next.push(range);
     out = next.sort((a, b) => a.startKm - b.startKm);
   }
 
-  // Snippers gaan op in de vorige buurman als die geen neutralisatie is, anders
-  // in de volgende. Zonder zo'n buurman blijven ze staan: de route moet gedekt zijn.
+  // Snippers gaan op in de vorige buurman als die geen vast stuk is, anders in de
+  // volgende. Zonder zo'n buurman blijven ze staan: de route moet gedekt zijn.
   const merged: PlanSegment[] = [];
   let carryStartKm: number | null = null;
   out.forEach((segment, index) => {
-    const tiny = segment.kind !== "neutral" && segment.endKm - segment.startKm < MIN_PIECE_KM;
+    const tiny = !isFixed(segment) && segment.endKm - segment.startKm < MIN_PIECE_KM;
     const previous = merged.at(-1);
     const following = out[index + 1];
-    if (tiny && previous && previous.kind !== "neutral") {
+    if (tiny && previous && !isFixed(previous)) {
       merged[merged.length - 1] = { ...previous, endKm: segment.endKm };
       return;
     }
-    if (tiny && following && following.kind !== "neutral") {
+    if (tiny && following && !isFixed(following)) {
       carryStartKm = segment.startKm;
       return;
     }

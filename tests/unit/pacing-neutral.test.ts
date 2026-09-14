@@ -3,7 +3,7 @@ import { buildBaselinePlan } from "@/lib/pacing/baseline";
 import { adoptGeneratedPlan } from "@/lib/pacing/adopt";
 import {
   evaluatePlan,
-  imposeNeutralPieces,
+  imposeFixedPieces,
   NEUTRAL_MAX_CP_FRACTION,
   NEUTRAL_SPEED_KMH,
   neutralWatts,
@@ -115,11 +115,11 @@ describe("neutralisatie in de doorrekening", () => {
   });
 });
 
-describe("imposeNeutralPieces", () => {
+describe("imposeFixedPieces", () => {
   const withZone = route([{ startKm: 4, endKm: 6, label: "Neutraal" }]);
 
   it("knipt de zone uit een stuk dat erover heen loopt", () => {
-    const pieces = imposeNeutralPieces(
+    const pieces = imposeFixedPieces(
       [{ startKm: 0, endKm: 20, targetWkg: 3, label: "Alles", effort: "tempo" }],
       withZone,
       MODEL,
@@ -132,7 +132,7 @@ describe("imposeNeutralPieces", () => {
   });
 
   it("laat een stuk dat in de zone valt verdwijnen en voegt snippers samen", () => {
-    const pieces = imposeNeutralPieces(
+    const pieces = imposeFixedPieces(
       [
         { startKm: 0, endKm: 4.05, targetWkg: 2.5, label: "A", effort: "duur" },
         { startKm: 4.05, endKm: 5.9, targetWkg: 5, label: "In de zone", effort: "vol" },
@@ -148,8 +148,8 @@ describe("imposeNeutralPieces", () => {
 
   it("verandert niets zonder zones en muteert de invoer niet", () => {
     const input: PlanSegment[] = [{ startKm: 0, endKm: 20, targetWkg: 3, label: "X", effort: "tempo" }];
-    expect(imposeNeutralPieces(input, route(), MODEL)).toBe(input);
-    imposeNeutralPieces(input, withZone, MODEL);
+    expect(imposeFixedPieces(input, route(), MODEL)).toBe(input);
+    imposeFixedPieces(input, withZone, MODEL);
     expect(input[0]).toEqual({ startKm: 0, endKm: 20, targetWkg: 3, label: "X", effort: "tempo" });
   });
 

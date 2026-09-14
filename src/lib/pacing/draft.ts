@@ -293,6 +293,11 @@ export async function buildPacingContext(
       endKm: round1(zone.endKm),
       label: zone.label,
     })),
+    descents: (route.descents ?? []).map((descent) => ({
+      startKm: round1(descent.startKm),
+      endKm: round1(descent.endKm),
+      avgGradientPct: Math.round(descent.avgGradient * 1000) / 10,
+    })),
     rider: {
       cpWatts: rider.model.cpWatts,
       cpSource: rider.model.source,

@@ -1636,6 +1636,24 @@ Fitness-status: Verbeterend`}
               verschuift hij, dan wordt je plan verouderd.
             </p>
           </article>
+
+          <article
+            id="pacing-afdalingen"
+            className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
+          >
+            <h3 className="text-sm font-semibold">Afdalingen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een afdaling van minstens een kilometer die gemiddeld 4% of meer daalt,
+              is een eigen stuk. Het doel staat standaard op 0: uitrollen. Waar het
+              steiler dan 3% daalt rekent het plan dan zonder trappen; op een vlakker
+              stukje in de afdaling trap je toch licht door (40% van je CP). Uitrollen
+              vult je reserve sneller aan en kost geen werk. Het plan gaat uit van
+              hoogstens 79 km/u en houdt geen rekening met bochten of remmen, dus de
+              verwachte tijd op een technische afdaling is optimistisch. Wil je toch
+              doortrappen, schuif het doel dan omhoog; dat blijft staan zolang de
+              afdaling dezelfde is.
+            </p>
+          </article>
         </div>
       </section>
 

@@ -986,6 +986,55 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — pacingplan: afdalingen als eigen stuk (wens 6, deel 2)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Jeroen vroeg hoe het plan met afdalingen omgaat. Het antwoord was:
+slecht. Een afdaling lag in een tussenstuk op ongeveer 0,94×CP×fractie. Het model
+trapte daar dus door, met een ondergrens van 0,3×CP (en 0,5 w/kg bij opslaan). Dat
+kostte kJ, liet W′ trager herstellen en won nauwelijks tijd tegen de grens van
+79 km/u. De eigenaar koos om afdalingen een eigen stuk te geven waarop uitrollen
+mag, en de snelheidsgrens van 79 km/u te laten staan.
+
+**Wat er is gekomen.**
+- `detectDescents` in `route-profile.ts` zoekt lange afdalingen: minstens 1 km,
+  gemiddeld −4 % of steiler. Een afdaling begint bij −3 % en loopt door zolang het
+  daalt (≤ −2 %), met hooguit 200 m vlakker ertussen. Een klim of neutralisatie
+  breekt hem af. `withDescents` draait in de loader, ná de zones.
+- `PlanSegment.kind: "descent"` met standaarddoel 0. In `evaluatePlan` geldt dat
+  doel waar het steiler dan −3 % daalt. Op vlakkere stukjes binnen de afdaling
+  geldt minstens `DESCENT_FLAT_CP_FRACTION` (0,4×CP), zodat het model niet naar
+  wandeltempo zakt. Uitrollen kost geen kJ en W′ herstelt vanzelf sneller (Skiba).
+- `imposeNeutralPieces` heet nu `imposeFixedPieces` en knipt ook afdalingen in elk
+  plan. Een eigen doel op dezelfde afdaling (±50 m) blijft staan.
+- `clampPlan` legt geen ondergrens op een afdaling, de schuif begint daar bij 0 en
+  `savePacingPlan` accepteert 0.
+- `wkgBySegment` negeert afdalingen en neutralisaties als terugval: een gat in het
+  plan kreeg anders 0 W.
+- Snapshot en `planLayoutMatchesRoute` kennen de afdalingen.
+- De AI krijgt `descents` mee, met een promptregel.
+- `/hulp#pacing-afdalingen`.
+
+**Gevolg voor bestaande plannen.** Elk plan op een route met een lange afdaling
+wordt één keer verouderd, omdat zijn snapshot geen afdalingen kent. Dat is bedoeld:
+de verwachte tijd en de reserve klopten daar niet. Er verandert niets tot het lid
+zelf opnieuw doorrekent.
+
+**Bewust niet gebouwd.** Geen lagere snelheidsgrens voor technische afdalingen,
+geen bochten of remmen: keuze van de eigenaar. `/hulp` noemt dat de verwachte tijd
+daar optimistisch is. Geen aparte band voor afdalingen in het profiel.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (982 geslaagd). Nieuw `pacing-descent.test.ts`:
+detectie over een vlak stukje heen, korte afdaling genegeerd, zone breekt af,
+0 W op steil en ondergrens op vlak, geen wandeltempo, sneller W′-herstel, geen
+ondergrens bij rebalance, gat niet op 0 W, basisvoorstel, eigen doel behouden,
+verouderd. *Niet geverifieerd:* de drempels niet op echte GPX-routes nagerekend
+(ruis in GPX-hoogtes kan meer of minder afdalingen opleveren); geen ingelogde
+pacingpagina.
+
 ### Opgeleverd — pacingplan: neutralisatie telt mee (wens 6, deel 1)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

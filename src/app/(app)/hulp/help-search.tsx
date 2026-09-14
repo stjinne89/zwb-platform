@@ -123,7 +123,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Pacingplan bij een event",
     text: "Vermogen per stuk van het parcours, basisvoorstel, AI en neutralisatie.",
     href: "/hulp#pacing",
-    terms: "pacing pacingplan verdeling vermogen w/kg klim klimmen event gran fondo neutralisatie neutraal wagen verouderd doorrekenen reserve",
+    terms: "pacing pacingplan verdeling vermogen w/kg klim klimmen event gran fondo neutralisatie neutraal wagen verouderd doorrekenen reserve afdaling afdalen uitrollen",
   },
   {
     title: "Krachtreeksen",
