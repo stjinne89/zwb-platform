@@ -988,7 +988,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — oude readiness stuurt niet meer, en geen tweede training op een gereden dag
 
-**2026-09-14, commit `COMMIT_HASH` op `codex/zwb-segments-map`, lokaal, niet
+**2026-09-14, commit `efb0e62` op `codex/zwb-segments-map`, lokaal, niet
 gepusht.** Geen migratie.
 
 **Aanleiding (melding Bart, 13 september).** "Na het syncen van mijn slaapscore
