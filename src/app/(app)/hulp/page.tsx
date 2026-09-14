@@ -844,9 +844,11 @@ export default function HelpPage() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Wil je zo&apos;n clubevent als mikpunt, kies het dan bij Mikpunt
-              toevoegen onder Event; titel en datum komen van het event. De
-              prioriteit van een mikpunt wijzig je in de lijst eronder. Dat geldt
-              alleen voor jouw jaarplan, niet voor dat van andere leden.
+              toevoegen onder Event; titel en datum komen van het event. In de
+              lijst eronder staat zo&apos;n event dan als één regel met je
+              prioriteit erbij. Daar wijzig je de prioriteit, en de prullenbak
+              haalt alleen het mikpunt weg: het event en je aanmelding blijven.
+              Dat geldt alleen voor jouw jaarplan, niet voor dat van andere leden.
             </p>
           </article>
 

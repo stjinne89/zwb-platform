@@ -12,18 +12,16 @@ import {
   SEASON_PERIOD_LABELS,
   SEASON_PRIORITIES,
   SEASON_PRIORITY_LABELS,
+  seasonListRows,
   type SeasonEvent,
+  type SeasonListRow,
   type SeasonPeriod,
   type SeasonPlanBar,
   type SeasonTarget,
 } from "@/lib/training/season";
 import { deleteSeasonPeriod, deleteSeasonTarget, updateSeasonTarget } from "../_actions";
 
-type Item =
-  | { kind: "target"; date: string; target: SeasonTarget }
-  | { kind: "period"; date: string; period: SeasonPeriod }
-  | { kind: "event"; date: string; event: SeasonEvent }
-  | { kind: "plan"; date: string; plan: SeasonPlanBar; rand: "start" | "eind" };
+type Item = SeasonListRow;
 
 function maandKop(dayKey: string) {
   return new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("nl-NL", {
@@ -56,15 +54,7 @@ export function SeasonList({
   events: SeasonEvent[];
   editable: boolean;
 }) {
-  const items: Item[] = [
-    ...targets.map((target) => ({ kind: "target" as const, date: target.targetDate, target })),
-    ...periods.map((period) => ({ kind: "period" as const, date: period.startDate, period })),
-    ...events.map((event) => ({ kind: "event" as const, date: event.date, event })),
-    ...plans.flatMap((plan) => [
-      { kind: "plan" as const, date: plan.startDate, plan, rand: "start" as const },
-      { kind: "plan" as const, date: plan.endDate, plan, rand: "eind" as const },
-    ]),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  const items = seasonListRows({ targets, periods, events, plans });
 
   if (items.length === 0) {
     return (
@@ -120,6 +110,38 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
     });
   }
 
+  // Een mikpunt, los of op een event: dat is wat een prioriteit en een
+  // verwijderknop heeft. Verwijderen haalt alleen het mikpunt weg, niet het event.
+  const target = item.kind === "target" || item.kind === "event" ? item.target : null;
+
+  const prioriteit = target ? (
+    editable ? (
+      <select
+        aria-label={`Prioriteit van ${target.title}`}
+        defaultValue={target.priority}
+        key={target.priority}
+        disabled={pending}
+        onChange={(event) => {
+          const formData = new FormData();
+          formData.set("id", target.id);
+          formData.set("priority", event.target.value);
+          voerUit(() => updateSeasonTarget(formData));
+        }}
+        className="mt-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+      >
+        {SEASON_PRIORITIES.map((priority) => (
+          <option key={priority} value={priority}>
+            {SEASON_PRIORITY_LABELS[priority]}
+          </option>
+        ))}
+      </select>
+    ) : null
+  ) : null;
+
+  const notitie = target?.note ? (
+    <p className="mt-1 text-sm text-muted-foreground">{target.note}</p>
+  ) : null;
+
   return (
     <li
       className={`flex items-start gap-3 rounded-md border bg-background p-3 ${
@@ -138,30 +160,8 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
                 </span>
               )}
             </p>
-            {editable ? (
-              <select
-                aria-label={`Prioriteit van ${item.target.title}`}
-                defaultValue={item.target.priority}
-                key={item.target.priority}
-                disabled={pending}
-                onChange={(event) => {
-                  const formData = new FormData();
-                  formData.set("id", item.target.id);
-                  formData.set("priority", event.target.value);
-                  voerUit(() => updateSeasonTarget(formData));
-                }}
-                className="mt-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
-              >
-                {SEASON_PRIORITIES.map((priority) => (
-                  <option key={priority} value={priority}>
-                    {SEASON_PRIORITY_LABELS[priority]}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {item.target.note ? (
-              <p className="mt-1 text-sm text-muted-foreground">{item.target.note}</p>
-            ) : null}
+            {prioriteit}
+            {notitie}
           </>
         ) : null}
 
@@ -180,15 +180,22 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
         ) : null}
 
         {item.kind === "event" ? (
-          <p className="text-sm">
-            <Link href={`/events/${item.event.id}`} className="font-medium hover:underline">
-              {item.event.title}
-            </Link>{" "}
-            <span className="text-xs text-muted-foreground">
-              · {EVENT_TYPE_LABELS[item.event.type] ?? item.event.type} ·{" "}
-              {item.event.rsvp === "yes" ? "je doet mee" : "misschien"}
-            </span>
-          </p>
+          <>
+            <p className="text-sm">
+              <Link href={`/events/${item.event.id}`} className="font-medium hover:underline">
+                {item.event.title}
+              </Link>{" "}
+              <span className="text-xs text-muted-foreground">
+                · {EVENT_TYPE_LABELS[item.event.type] ?? item.event.type} ·{" "}
+                {item.event.rsvp === "yes" ? "je doet mee" : "misschien"}
+                {item.target && !editable
+                  ? ` · ${SEASON_PRIORITY_LABELS[item.target.priority]}`
+                  : null}
+              </span>
+            </p>
+            {prioriteit}
+            {notitie}
+          </>
         ) : null}
 
         {item.kind === "plan" ? (
@@ -200,19 +207,20 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
         {fout ? <p className="mt-1 text-sm text-destructive">{fout}</p> : null}
       </div>
 
-      {editable && (item.kind === "target" || item.kind === "period") ? (
+      {editable && (target || item.kind === "period") ? (
         <Button
           size="sm"
           variant="ghost"
-          aria-label="Verwijderen"
+          aria-label={item.kind === "event" ? "Mikpunt verwijderen" : "Verwijderen"}
           disabled={pending}
           onClick={() =>
             voerUit(() => {
               const formData = new FormData();
-              if (item.kind === "target") {
-                formData.set("id", item.target.id);
+              if (target) {
+                formData.set("id", target.id);
                 return deleteSeasonTarget(formData);
               }
+              if (item.kind !== "period") return Promise.resolve(null);
               formData.set("id", item.period.id);
               return deleteSeasonPeriod(formData);
             })

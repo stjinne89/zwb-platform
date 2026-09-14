@@ -92,7 +92,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "A-, B- en C-doelen, vakanties en drukke periodes, en wat ze met je schema doen.",
     href: "/hulp#jaarplan",
     terms:
-      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn clubevent kalender misschien event koppelen prioriteit wijzigen",
+      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn clubevent kalender misschien event koppelen prioriteit wijzigen dubbel lijst mikpunt verwijderen",
   },
   {
     title: "Doeltype en de laatste weken",

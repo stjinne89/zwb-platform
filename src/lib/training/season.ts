@@ -448,3 +448,56 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
     return a.id.localeCompare(b.id);
   });
 }
+
+// ---------------------------------------------------------------------------
+// De lijst onder de balk
+// ---------------------------------------------------------------------------
+
+export type SeasonListRow =
+  | { kind: "target"; date: string; target: SeasonTarget }
+  | { kind: "event"; date: string; event: SeasonEvent; target: SeasonTarget | null }
+  | { kind: "period"; date: string; period: SeasonPeriod }
+  | { kind: "plan"; date: string; plan: SeasonPlanBar; rand: "start" | "eind" };
+
+/**
+ * De regels van de jaarplanning, op datum.
+ *
+ * Een mikpunt op een event en dat event zelf stonden tot september 2026 als twee
+ * regels onder elkaar: de lijst werd dubbel zo lang voor precies de dingen waar
+ * het lid naartoe werkt. Nu is het één eventregel die de prioriteit van het
+ * mikpunt draagt. Koppelen gaat op event-id, nooit op datum: de eventdatum is
+ * een UTC-dag, de mikpuntdatum een Amsterdamse, en een start tussen middernacht
+ * en twee uur valt dan op twee verschillende dagen. De datum van de regel is die
+ * van het mikpunt, want daar rekent de rest van de jaarplanning mee.
+ *
+ * Een mikpunt waarvan het event niet (meer) in de lijst staat — verwijderd,
+ * afgemeld of buiten het venster — blijft een gewoon mikpunt.
+ */
+export function seasonListRows(input: {
+  targets: SeasonTarget[];
+  periods: SeasonPeriod[];
+  events: SeasonEvent[];
+  plans: SeasonPlanBar[];
+}): SeasonListRow[] {
+  const eventIds = new Set(input.events.map((event) => event.id));
+  const targetByEvent = new Map<string, SeasonTarget>();
+  for (const target of input.targets) {
+    if (target.eventId && eventIds.has(target.eventId)) targetByEvent.set(target.eventId, target);
+  }
+
+  const rows: SeasonListRow[] = [
+    ...input.targets
+      .filter((target) => !(target.eventId && targetByEvent.get(target.eventId) === target))
+      .map((target) => ({ kind: "target" as const, date: target.targetDate, target })),
+    ...input.periods.map((period) => ({ kind: "period" as const, date: period.startDate, period })),
+    ...input.events.map((event) => {
+      const target = targetByEvent.get(event.id) ?? null;
+      return { kind: "event" as const, date: target?.targetDate ?? event.date, event, target };
+    }),
+    ...input.plans.flatMap((plan) => [
+      { kind: "plan" as const, date: plan.startDate, plan, rand: "start" as const },
+      { kind: "plan" as const, date: plan.endDate, plan, rand: "eind" as const },
+    ]),
+  ];
+  return rows.sort((a, b) => a.date.localeCompare(b.date));
+}

@@ -6,6 +6,7 @@ import {
   monthsInWindow,
   PLAN_TAIL_SLACK_DAYS,
   seasonForAi,
+  seasonListRows,
   seasonWarnings,
   shiftDays,
   spanPct,
@@ -317,5 +318,58 @@ describe("seasonWarnings", () => {
     const warnings = warn({ targets: [target({ goalId: null })] });
     expect(warnings[0].severity).toBe("let_op");
     expect(warnings.at(-1)?.severity).toBe("tip");
+  });
+});
+
+describe("seasonListRows", () => {
+  function rows(input: Partial<Parameters<typeof seasonListRows>[0]>) {
+    return seasonListRows({ targets: [], periods: [], events: [], plans: [], ...input });
+  }
+
+  it("maakt van een event met een mikpunt één regel met die prioriteit", () => {
+    const result = rows({
+      targets: [target({ id: "t1", eventId: "e1", priority: "a", targetDate: "2026-07-05" })],
+      events: [event({ id: "e1", date: "2026-07-05", title: "Marmotte" })],
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ kind: "event", event: { id: "e1" }, target: { id: "t1", priority: "a" } });
+  });
+
+  it("koppelt op event-id, ook als de datums een dag verschillen", () => {
+    // Start om 01:00 Amsterdamse tijd: UTC-dag is de dag ervoor.
+    const result = rows({
+      targets: [target({ id: "t1", eventId: "e1", targetDate: "2026-07-05" })],
+      events: [event({ id: "e1", date: "2026-07-04" })],
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe("2026-07-05");
+  });
+
+  it("houdt een mikpunt zonder event in de lijst als los mikpunt", () => {
+    const result = rows({
+      targets: [
+        target({ id: "los", eventId: null }),
+        target({ id: "weg", eventId: "verwijderd-of-afgemeld" }),
+      ],
+      events: [event({ id: "e2" })],
+    });
+    expect(result.filter((row) => row.kind === "target").map((row) => row.kind === "target" && row.target.id)).toEqual(["los", "weg"]);
+    expect(result.find((row) => row.kind === "event")).toMatchObject({ target: null });
+  });
+
+  it("zet alles op datum", () => {
+    const result = rows({
+      targets: [target({ id: "t", targetDate: "2026-06-01" })],
+      periods: [period({ startDate: "2026-07-01" })],
+      events: [event({ date: "2026-05-01" })],
+      plans: [plan({ startDate: "2026-03-01", endDate: "2026-08-01" })],
+    });
+    expect(result.map((row) => row.date)).toEqual([
+      "2026-03-01",
+      "2026-05-01",
+      "2026-06-01",
+      "2026-07-01",
+      "2026-08-01",
+    ]);
   });
 });

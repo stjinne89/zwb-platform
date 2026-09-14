@@ -986,6 +986,35 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — jaarplan: event en mikpunt als één regel (wens 9)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Jeroen zag de Marmotte twee keer in de lijst onder de jaarplanbalk:
+als mikpunt én als clubevent waarvoor hij zich had aangemeld. `SeasonList` zette
+mikpunten en events los in één gesorteerde lijst; precies de events waar een lid
+naartoe werkt, stonden dus dubbel.
+
+**Wat er is gekomen.** Pure `seasonListRows()` in `src/lib/training/season.ts`
+bouwt de regels. Een mikpunt op een event dat in de lijst staat, gaat op in de
+eventregel: eventlink, type, "je doet mee"/"misschien", en de prioriteitkeuze,
+notitie en prullenbak van het mikpunt. De prullenbak haalt alleen het mikpunt
+weg. Koppelen gaat op event-id, niet op datum (eventdatum is een UTC-dag,
+`target_date` een Amsterdamse); de regel staat op de mikpuntdatum. Een mikpunt
+zonder zichtbaar event (verwijderd, afgemeld, buiten het venster) blijft een los
+mikpunt. De trainerweergave toont de prioriteit als tekst. `/hulp#jaarplan` en
+de zoekindex bijgewerkt.
+
+**Bewust niet gebouwd.** De balk erboven (`season-band.tsx`) houdt zijn aparte
+banen voor mikpunten en events: daar is het overzicht per soort juist de
+bedoeling, en Jeroens melding ging over de lijst.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, Vitest volledig
+groen (943 geslaagd), nieuw in `season.test.ts`: samenvoegen, datumverschil rond
+middernacht, losse mikpunten, sortering. *Niet geverifieerd:* de lijst niet
+ingelogd in de browser bekeken (geen testaccount).
+
 ### Opgeleverd — onterechte waarschuwing "FTP-test op zijn plaats" (wens 11/18)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56` (basis
