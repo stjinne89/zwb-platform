@@ -358,7 +358,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-assessment-round -->
 
 <!-- zwb-segment-nav-round -->
-- **ZWB Segments in het Club-menu** (2026-09-14; geen migratie). Op verzoek van de
+- **ZWB Segments in het Club-menu** (2026-09-14; `1466e5a`, gepusht; geen migratie). Op verzoek van de
   eigenaar verplaatst van het avatarmenu naar Club, direct boven ZWBlokken: het is een
   clubklassement, geen profielinstelling. **Bewust niet gedaan:** de URL verhuizen;
   `/profiel/segments` blijft, zodat bestaande links, de profielkaart en de hulppagina
@@ -3230,7 +3230,7 @@ historische import, uitfaseren van de oude site.
 **Review en commit, 2026-09-14.** Rondes 1–5 en de proefdraai stonden bijna vier
 weken alleen in de working tree, terwijl `0126`-`0130` en `0134` al in productie
 gedraaid waren: een verloren werkmap had de code gewist waar de database op rekent.
-Nu lokaal gecommit (niet gepusht). Tegen de huidige code opnieuw gecontroleerd:
+Gecommit als `c5d344d` en gepusht 2026-09-14; daarmee staat het Omnium live. Tegen de huidige code opnieuw gecontroleerd:
 `tsc`, `eslint`, 74 Omnium-tests (6 live-tests standaard overgeslagen) en
 `npm run build` groen, met alle elf routes. Beveiliging nagelopen: alle zeven
 beheeracties roepen `requireOmniumAccess` aan; RLS staat op alle tabellen;
@@ -3243,8 +3243,8 @@ staan. De tabel is nu leeg; beslissen vóór de eerste import of dat beperkt moe
 worden tot renners in een gepubliceerde editie.
 **Nog open vóór editie 1 (11 oktober):** tiebreak bevestigen, of gasten meetellen,
 Engelse of Nederlandse URL's (na delen niet meer gratis te wijzigen), en de
-beheerschermen één keer met de hand doorlopen. Live zetten gebeurt pas bij push:
-dan wijst het Club-menu naar `/omnium` in plaats van zwbomnium.netlify.app.
+beheerschermen één keer met de hand doorlopen. Het Club-menu wijst sinds de push
+naar `/omnium` in plaats van zwbomnium.netlify.app.
 `package-lock.json` (npm-bijeffect) en de mappen `output/`, `outputs/` en
 `.claude/` zijn bewust niet meegecommit.
 
