@@ -444,10 +444,26 @@ export function imposeFixedPieces(
 ): PlanSegment[] {
   const zones = route.neutralZones ?? [];
   const descents = route.descents ?? [];
-  const pieces = plan.filter((segment) => !isFixed(segment));
-  if (zones.length === 0 && descents.length === 0) {
-    return pieces.length === plan.length ? plan : pieces;
-  }
+  if (zones.length === 0 && descents.length === 0 && !plan.some(isFixed)) return plan;
+
+  // Vaste stukken uit het plan eerst terug naar gewone stukken. Valt zo'n stuk
+  // weer samen met een vast stuk van de route, dan knipt de lus hieronder het weg;
+  // hoort het niet meer bij de route (verdwenen afdaling), dan blijft de route
+  // gedekt in plaats van dat er een gat valt.
+  const ridden = plan.filter((segment) => !isFixed(segment));
+  const fallbackWkg =
+    ridden.length > 0
+      ? Math.min(...ridden.map((segment) => segment.targetWkg))
+      : round2((model.cpWatts / model.weightKg) * 0.6);
+  const pieces: PlanSegment[] = plan.map((segment) => {
+    if (!isFixed(segment)) return segment;
+    const { kind, ...rest } = segment;
+    return {
+      ...rest,
+      targetWkg: kind === "descent" ? Math.max(segment.targetWkg, fallbackWkg) : fallbackWkg,
+      effort: "duur",
+    };
+  });
 
   const flatWkg = round2(neutralWatts(0, model) / model.weightKg);
   const previousDescent = (startKm: number, endKm: number) =>
@@ -494,7 +510,12 @@ export function imposeFixedPieces(
         next.push(segment);
         continue;
       }
-      if (isFixed(segment)) continue;
+      // Twee vaste stukken van de route overlappen niet: zones gaan vóór, en een
+      // afdaling stopt bij een zone. Een eerder ingevoegd vast stuk blijft staan.
+      if (isFixed(segment)) {
+        next.push(segment);
+        continue;
+      }
       if (segment.startKm < range.startKm) {
         next.push({ ...segment, endKm: range.startKm });
       }

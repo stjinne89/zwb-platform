@@ -16,6 +16,15 @@ import { ResponsiveChart } from "@/components/charts/responsive-chart";
 import { linearScale } from "@/lib/charts/scale";
 import { linePath } from "@/lib/charts/paths";
 import { evaluatePlan, NEUTRAL_SPEED_KMH, type PlanSegment } from "@/lib/pacing/plan";
+import { effortFor } from "@/lib/pacing/baseline";
+import type { DurabilityModel } from "@/lib/pacing/durability";
+import {
+  applyMerge,
+  applySplit,
+  canMergeWithNext,
+  MAX_EDIT_PIECES,
+  splitBounds,
+} from "@/lib/pacing/edit";
 import { ZONE_COLOR } from "../../_components/zone";
 import type { CpModel } from "@/lib/pacing/cp";
 import { segmentEndKms, type PacingRoute } from "@/lib/pacing/route-profile";
@@ -54,12 +63,15 @@ export function PacingEditor({
   model,
   initialSegments,
   initialNotes,
+  durability,
 }: {
   eventId: string;
   route: PacingRoute;
   model: CpModel;
   initialSegments: PlanSegment[];
   initialNotes: string | null;
+  /** Hetzelfde duurvermogensmodel als op de server, zodat de tijden gelijk zijn. */
+  durability?: DurabilityModel | null;
 }) {
   const router = useRouter();
   const [segments, setSegments] = useState(initialSegments);
@@ -67,20 +79,21 @@ export function PacingEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [splitting, setSplitting] = useState<number | null>(null);
+  const [splitKm, setSplitKm] = useState("");
 
-  const dirty = useMemo(
-    () =>
-      segments.some(
-        (segment, index) => segment.targetWkg !== initialSegments[index]?.targetWkg,
-      ) || notes !== (initialNotes ?? ""),
-    [segments, notes, initialSegments, initialNotes],
-  );
+  // Vergelijkt de hele indeling: na knippen kloppen de indexen niet meer.
+  const dirty = useMemo(() => {
+    const shape = (list: PlanSegment[]) =>
+      JSON.stringify(list.map((s) => [s.startKm, s.endKm, s.targetWkg, s.label]));
+    return shape(segments) !== shape(initialSegments) || notes !== (initialNotes ?? "");
+  }, [segments, notes, initialSegments, initialNotes]);
 
   // Elke slider-beweging rekent het hele plan opnieuw door. Dat is goedkoop: het
   // model werkt op honderd-meter-segmenten en doet niets met I/O.
   const evaluation = useMemo(
-    () => evaluatePlan(segments, route, model),
-    [segments, route, model],
+    () => evaluatePlan(segments, route, model, { durability: durability ?? null }),
+    [segments, route, model, durability],
   );
 
   const endKms = useMemo(() => segmentEndKms(route.segments), [route.segments]);
@@ -98,14 +111,31 @@ export function PacingEditor({
     );
   }
 
+  function split(index: number) {
+    const km = Number(splitKm.replace(",", "."));
+    if (!Number.isFinite(km)) return;
+    setSaved(false);
+    setSegments((current) => applySplit(current, index, km));
+    setSplitting(null);
+  }
+
+  function merge(index: number) {
+    setSaved(false);
+    setSplitting(null);
+    setSegments((current) => applyMerge(current, index));
+  }
+
   function save() {
     setError(null);
     startTransition(async () => {
       const result = await savePacingPlan(
         eventId,
-        segments.map((segment, index) => ({
-          index,
+        segments.map((segment) => ({
+          startKm: segment.startKm,
+          endKm: segment.endKm,
           targetWkg: segment.targetWkg,
+          label: segment.label,
+          kind: segment.kind ?? null,
         })),
         notes.trim() || null,
       );
@@ -122,6 +152,7 @@ export function PacingEditor({
     setSegments(initialSegments);
     setNotes(initialNotes ?? "");
     setSaved(false);
+    setSplitting(null);
   }
 
   return (
@@ -172,6 +203,8 @@ export function PacingEditor({
             const accent = evaluation.accents.find(
               (item) => route.accents[item.accentIndex]?.id === segment.accentId,
             );
+            const bounds = splitBounds(segment);
+            const mergeable = canMergeWithNext(segments, index);
             if (segment.kind === "neutral") {
               return (
                 <li key={`${segment.startKm}-${index}`} className="p-4">
@@ -210,7 +243,7 @@ export function PacingEditor({
                     </span>{" "}
                     <span className="text-sm text-muted-foreground">
                       w/kg · {Math.round(segment.targetWkg * model.weightKg)} W ·{" "}
-                      {EFFORT_LABELS[segment.effort] ?? segment.effort}
+                      {EFFORT_LABELS[effortFor(segment.targetWkg, cpWkg)]}
                     </span>
                   </p>
                 </div>
@@ -229,6 +262,61 @@ export function PacingEditor({
                 {segment.rationale && (
                   <p className="mt-1 text-sm text-muted-foreground">{segment.rationale}</p>
                 )}
+
+                {bounds || mergeable ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    {bounds && segments.length < MAX_EDIT_PIECES ? (
+                      splitting === index ? (
+                        <>
+                          <label className="sr-only" htmlFor={`split-${index}`}>
+                            Knippen op km
+                          </label>
+                          <input
+                            id={`split-${index}`}
+                            type="number"
+                            inputMode="decimal"
+                            min={bounds.minKm}
+                            max={bounds.maxKm}
+                            step={0.1}
+                            value={splitKm}
+                            onChange={(event) => setSplitKm(event.target.value)}
+                            className="h-9 w-24 rounded-md border border-input bg-background px-2 tabular-nums"
+                          />
+                          <Button type="button" size="sm" onClick={() => split(index)}>
+                            Knip
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSplitting(null)}
+                          >
+                            Annuleren
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSplitting(index);
+                            setSplitKm(
+                              (Math.round(((segment.startKm + segment.endKm) / 2) * 10) / 10).toFixed(1),
+                            );
+                          }}
+                        >
+                          Knippen
+                        </Button>
+                      )
+                    ) : null}
+                    {mergeable && splitting !== index ? (
+                      <Button type="button" size="sm" variant="ghost" onClick={() => merge(index)}>
+                        Samenvoegen met volgende
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
               </li>
             );
           })}

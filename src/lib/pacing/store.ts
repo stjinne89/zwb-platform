@@ -288,7 +288,7 @@ export async function recomputePlan(
         ? "Opnieuw doorgerekend met je huidige gegevens."
         : input.plan.source === "ai"
           ? "Opnieuw ingedeeld op de huidige klimmen als basisvoorstel; het AI-voorstel hoorde bij de oude klimmen."
-          : "Opnieuw ingedeeld op de huidige klimmen; je eigen doelen staan nog op de stukken die gelijk bleven.",
+          : "Opnieuw ingedeeld op de huidige route; je eigen doelen staan nog op de stukken die gelijk bleven, zelf geknipte stukken zijn vervallen.",
     ],
   });
 

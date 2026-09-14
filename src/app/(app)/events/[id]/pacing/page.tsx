@@ -135,6 +135,7 @@ export default async function PacingPage({
         model={rider.model}
         initialSegments={plan.segments}
         initialNotes={plan.notes}
+        durability={rider.durability}
       />
 
       <section className="rounded-lg border bg-card p-4">

@@ -986,6 +986,52 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — pacingplan: zelf knippen en samenvoegen (wens 6, deel 3)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Het derde deel van Jeroens vraag naar extra stukken. De indeling lag
+vast bij het voorstel: `savePacingPlan` nam bewust alleen `{index, targetWkg}`
+aan. Wie halverwege een lang vlak stuk wilde versnellen, kon dat niet.
+
+**Wat er is gekomen.**
+- `src/lib/pacing/edit.ts` (puur):
+  - `applySplit` knipt op het 100 m-raster, minstens 0,5 km van beide randen;
+    labels worden "X (1)"/"X (2)".
+  - `applyMerge` voegt twee gewone stukken samen met een afstandsgewogen doel;
+    het accent blijft alleen bij gelijke accenten.
+  - Hoogstens `MAX_EDIT_PIECES` (30) stukken.
+- `validateEditedPlan` op de server:
+  - de stukken sluiten aan van 0 tot de finish, elk minstens 0,5 km;
+  - doelen tussen 0,5 en 12 w/kg (afdaling vanaf 0), labels ≤ 60 tekens;
+  - het accent volgt uit de grootste overlap (minstens de helft), de inspanning
+    uit `effortFor` (nu geëxporteerd), de toelichting uit een gelijk oud stuk;
+  - vaste stukken komen via `imposeFixedPieces` uit de route, niet uit de invoer.
+- `savePacingPlan` neemt de hele lijst aan.
+- `imposeFixedPieces` maakt van een vast stuk dat niet meer bij de route past
+  eerst een gewoon stuk, zodat er geen gat valt.
+- De editor krijgt per stuk "Knippen" (km-invoer, geen slepen) en "Samenvoegen
+  met volgende".
+  - "Gewijzigd" vergelijkt de hele indeling in plaats van per index.
+  - Het inspanningslabel loopt mee met de schuif.
+  - De editor rekent nu met het duurvermogensmodel, zoals de server: eerder
+    konden tijd en haalbaarheid op het scherm afwijken van wat werd opgeslagen.
+- `/hulp#pacing` en de melding bij herberekening: bij een gewijzigde route
+  vervallen de eigen knippen.
+
+**Bewust niet gebouwd.** Grenzen verslepen in het profiel: lastig raken op een
+telefoon, en een km-invoer doet hetzelfde. Eigen knippen overnemen op een
+gewijzigde route (`carryTargetsOver` houdt alleen gelijke stukken). Labels
+hernoemen.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (993 geslaagd). Nieuw `pacing-edit.test.ts`:
+knippen op het raster, randen, maximum, samenvoegen met gewogen doel en accent,
+geen vaste stukken samenvoegen, validatie (gat, overlap, te kort, finish gemist,
+te veel stukken), gemanipuleerd neutraal stuk, begrenzing. *Niet geverifieerd:*
+de editor niet ingelogd in de browser bediend (geen testaccount).
+
 ### Opgeleverd — pacingplan: afdalingen als eigen stuk (wens 6, deel 2)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

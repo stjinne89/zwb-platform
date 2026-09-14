@@ -94,7 +94,7 @@ function sprintBoost(riderType: RiderType): number {
   return Math.min(0.45, 0.25 * (typeFactor[riderType] ?? 1));
 }
 
-function effortFor(wkg: number, cpWkg: number): PlanEffort {
+export function effortFor(wkg: number, cpWkg: number): PlanEffort {
   const ratio = cpWkg > 0 ? wkg / cpWkg : 0;
   if (ratio < 0.62) return "rustig";
   if (ratio < 0.8) return "duur";

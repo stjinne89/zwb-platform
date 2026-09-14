@@ -1614,6 +1614,17 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Wil je ergens anders een versnelling leggen, knip een stuk dan op
+                  een kilometerpunt (minstens een halve kilometer van de randen) of
+                  voeg twee stukken samen; het doel wordt dan het gemiddelde naar
+                  afstand. Hoogstens 30 stukken. Verandert de route, dan deelt
+                  opnieuw doorrekenen de route opnieuw in en vervallen je eigen
+                  knippen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   Verandert je CP, je gewicht of de indeling van de route, dan heet
                   het plan verouderd. Opnieuw doorrekenen kost niets en verandert je
                   plan pas als jij erop drukt.

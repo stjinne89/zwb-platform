@@ -9,27 +9,22 @@ import {
   type StoredPlan,
 } from "@/lib/pacing/store";
 import { adoptSharedPlan, sharedPlanView } from "@/lib/pacing/share";
-import {
-  imposeFixedPieces,
-  rebalancePlan,
-  type PlanEffort,
-  type PlanSegment,
-} from "@/lib/pacing/plan";
+import { validateEditedPlan, type EditedSegmentInput } from "@/lib/pacing/edit";
+import { imposeFixedPieces, rebalancePlan, type PlanSegment } from "@/lib/pacing/plan";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const EFFORTS: PlanEffort[] = ["rustig", "duur", "tempo", "drempel", "vol"];
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Het lid heeft schuifregelaars verzet. We nemen alleen de doelen over, niet de
- * grenzen: de indeling van de route hoort bij het plan, niet bij de invoer van
- * het formulier. Zo kan een gemanipuleerde post geen stukken toevoegen of
- * verschuiven.
+ * Het lid heeft doelen verzet of stukken geknipt en samengevoegd. Sinds
+ * september 2026 komt de hele indeling mee, maar de server vertrouwt die niet:
+ * validateEditedPlan zet de grenzen op het raster, eist dat de route gedekt is,
+ * en leidt accent, inspanning en de vaste stukken (neutralisatie, afdaling) zelf
+ * af uit de route.
  */
 export async function savePacingPlan(
   eventId: string,
-  targets: Array<{ index: number; targetWkg: number }>,
+  input: EditedSegmentInput[],
   notes: string | null,
 ): Promise<ActionResult> {
   const result = await loadForUser(eventId);
@@ -39,21 +34,9 @@ export async function savePacingPlan(
   const plan = await readPlan(ctx.admin, eventId, ctx.userId);
   if (!plan) return { ok: false, error: "Er is nog geen plan om aan te passen." };
 
-  const segments: PlanSegment[] = plan.segments.map((segment, index) => {
-    const update = targets.find((item) => item.index === index);
-    // Een neutralisatie heeft geen eigen doel; wat hier binnenkomt telt niet.
-    if (segment.kind === "neutral") return segment;
-    if (!update || !Number.isFinite(update.targetWkg)) return segment;
-    return {
-      ...segment,
-      // Op een afdaling mag het doel 0 zijn: uitrollen.
-      targetWkg: Math.min(
-        12,
-        Math.max(segment.kind === "descent" ? 0 : 0.5, Math.round(update.targetWkg * 100) / 100),
-      ),
-      effort: EFFORTS.includes(segment.effort) ? segment.effort : "tempo",
-    };
-  });
+  const validated = validateEditedPlan(input, ctx.loaded.route, ctx.rider.model, plan.segments);
+  if (!validated.ok) return { ok: false, error: validated.error };
+  const segments: PlanSegment[] = validated.segments;
 
   await saveEditedPlan(ctx.admin, {
     eventId,
