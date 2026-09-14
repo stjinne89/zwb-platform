@@ -4,7 +4,7 @@
 import { intervalsWeekUrl } from "@/lib/intervals/links";
 import type { IntervalsEvent } from "@/lib/intervals/client";
 import {
-  INTENSITY_COLORS,
+  blockColor,
   INTENSITY_LABELS,
   intensityFromLoad,
   intensityFromPct,
@@ -74,6 +74,7 @@ export function WorkoutBlocks({
           const low = range ? Math.max(0, Math.min(maxPct, range[0])) : 0;
           const high = range ? Math.max(low, Math.min(maxPct, range[1])) : maxPct;
           const bandHeight = range ? Math.max(6, ((high - low) / maxPct) * 100) : 100;
+          const color = blockColor(block, ftpWatts ?? null);
           return (
             <div
               key={`${block.label}-${idx}`}
@@ -81,7 +82,7 @@ export function WorkoutBlocks({
               className="relative min-w-[10px] border-r border-background/60 last:border-r-0"
               style={{
                 width: `${Math.max(4, (block.durationMinutes / total) * 100)}%`,
-                backgroundColor: `${INTENSITY_COLORS[block.intensity]}26`,
+                backgroundColor: `${color}26`,
               }}
             >
               <span
@@ -89,7 +90,7 @@ export function WorkoutBlocks({
                 style={{
                   bottom: `${(low / maxPct) * 100}%`,
                   height: `${bandHeight}%`,
-                  backgroundColor: INTENSITY_COLORS[block.intensity],
+                  backgroundColor: color,
                 }}
               />
               {preview && block.durationMinutes >= total * 0.08 ? (

@@ -986,6 +986,43 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — zonekleuren zoals in Zwift (wens 12)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie.
+
+**Waarom.** Jeroen vroeg om de zonekleuren van Zwift. `INTENSITY_COLORS` had een
+eigen palet dat ongeveer een zone naast Zwift lag (duur groen, drempel oranje,
+anaeroob paars), terwijl de meeste leden hun workouts in Zwift rijden.
+
+**Wat er is gekomen.**
+- `ZWIFT_ZONES` en `zwiftZoneForPct()` in `workouts.ts`: zone 1 grijs < 60%,
+  2 blauw < 76%, 3 groen < 90%, 4 geel < 105%, 5 oranje < 119%, 6 rood.
+- `INTENSITY_COLORS` volgt die zones (herstel 1, duur 2, tempo 3, drempel 4,
+  VO2max 5, anaeroob 6). Race krijgt zone 5; rust wordt lichtgrijs `#cbd5e1`, zodat
+  het niet op zone 1 lijkt. Daarmee volgen de kalenderblokjes, de "Gereden in"-stip
+  en het dashboard vanzelf.
+- `blockColor()`: een blok in de balk en de blokeditor kleurt op het midden van
+  zijn vermogensdoel, niet op zijn label. De grenzen van `intensityFromPct`
+  (55/76/91/106/121) zijn bewust niet aangepast: de AI en de intervals-classificatie
+  hangen eraan. Een blok op 90% heet dus "Tempo" maar kleurt geel; `/hulp#zonekleuren`
+  zegt dat.
+- Een rit zonder vermogensmeter in de maandkalender was grijs en is nu een
+  gestippeld blokje zonder vulling.
+- Dode `_components/workout-list.tsx` verwijderd (werd nergens geïmporteerd).
+
+**Bewust niet gebouwd.** De nalevingspillen (te licht oranje, te zwaar rood) zijn
+niet omgekleurd: ze hebben een tekstlabel. Geen Z-nummers of legenda in de
+schermen zelf; de uitleg staat in `/hulp`.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, Vitest volledig
+groen (947 geslaagd), nieuw in `workouts-intensity.test.ts`: zonegrenzen, kleur
+per intensiteit, blokkleur op doel. *Niet geverifieerd:* de kleuren niet in de
+app bekeken (geen ingelogde sessie; ook de losse kleurproef kon hier niet als
+screenshot). De hexwaarden zijn de gangbare Zwift-kleuren en niet tegen Zwift zelf
+vergeleken; de leesbaarheid van geel in licht thema is nog door de eigenaar te
+beoordelen.
+
 ### Opgeleverd — voorbije trainingen tonen hun geplande opbouw (wens 16, deel 1)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet

@@ -82,6 +82,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
   },
   {
+    title: "Kleuren van de blokken",
+    text: "Zonekleuren zoals in Zwift, op je FTP.",
+    href: "/hulp#zonekleuren",
+    terms: "kleur kleuren zone zones zwift grijs blauw groen geel oranje rood blok balk ftp vermogensmeter",
+  },
+  {
     title: "Trainingsdoel en je schema",
     text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
     href: "/hulp#trainingsschema",

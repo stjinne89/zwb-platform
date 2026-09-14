@@ -25,10 +25,15 @@ export type CalendarWorkout = {
   missed?: boolean;
 };
 
-function colorFor(workout: CalendarWorkout) {
+/**
+ * Kleur van een blokje, of null voor een rit zonder vermogensmeter. Zo'n rit
+ * kreeg eerst grijs, maar grijs is nu zone 1 (Zwift): hij krijgt alleen een
+ * gestippelde rand, zonder vulling.
+ */
+function colorFor(workout: CalendarWorkout): string | null {
   // Bij een rit is de intensiteit afgeleid uit de belasting; zonder
-  // vermogensmeter valt daar niets over te zeggen en blijft hij neutraal.
-  if (workout.source === "rit" && !workout.intensity) return INTENSITY_COLORS.rest;
+  // vermogensmeter valt daar niets over te zeggen.
+  if (workout.source === "rit" && !workout.intensity) return null;
   const key = (workout.intensity ?? "endurance") as WorkoutIntensity;
   return INTENSITY_COLORS[key] ?? INTENSITY_COLORS.endurance;
 }
@@ -131,9 +136,11 @@ export function WorkoutCalendar({
                     selectedId === workout.id && "ring-2 ring-foreground ring-offset-1",
                   );
                   const color = colorFor(workout);
-                  const style = ridden
-                    ? { backgroundColor: `${color}33`, borderColor: color }
-                    : { backgroundColor: color };
+                  const style = !color
+                    ? { backgroundColor: "transparent", borderColor: "var(--muted-foreground)" }
+                    : ridden
+                      ? { backgroundColor: `${color}33`, borderColor: color }
+                      : { backgroundColor: color };
                   return onSelect ? (
                     <button
                       key={workout.id}

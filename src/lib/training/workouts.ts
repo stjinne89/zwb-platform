@@ -26,15 +26,47 @@ export type WorkoutPowerTarget = {
   end?: number;
 };
 
+/**
+ * De zes vermogenszones zoals Zwift ze kleurt, met de ondergrens in %FTP.
+ *
+ * Tot september 2026 had elke intensiteit een eigen kleur die ongeveer een zone
+ * naast die van Zwift lag: duur was groen, drempel oranje. Wie zijn workouts in
+ * Zwift rijdt, las de balk dus steeds verkeerd. Nu is er één kleurentaal.
+ */
+export const ZWIFT_ZONES = [
+  { zone: 1, fromPct: 0, color: "#7f7f7f" },
+  { zone: 2, fromPct: 60, color: "#338cff" },
+  { zone: 3, fromPct: 76, color: "#59bf59" },
+  { zone: 4, fromPct: 90, color: "#ffcc3f" },
+  { zone: 5, fromPct: 105, color: "#ff6639" },
+  { zone: 6, fromPct: 119, color: "#ff330c" },
+] as const;
+
+export type ZwiftZone = (typeof ZWIFT_ZONES)[number];
+
+/** De Zwift-zone van een vermogen in %FTP. */
+export function zwiftZoneForPct(pct: number): ZwiftZone {
+  let found: ZwiftZone = ZWIFT_ZONES[0];
+  for (const zone of ZWIFT_ZONES) {
+    if (pct >= zone.fromPct) found = zone;
+  }
+  return found;
+}
+
+/**
+ * Kleur per intensiteit, als de zone waar die intensiteit in valt. Race loopt
+ * over meerdere zones heen en krijgt die van zone 5. Rust is geen zone en blijft
+ * lichtgrijs, zodat hij niet op herstel (zone 1) lijkt.
+ */
 export const INTENSITY_COLORS: Record<WorkoutIntensity, string> = {
-  recovery: "#38bdf8",
-  endurance: "#22c55e",
-  tempo: "#facc15",
-  threshold: "#f97316",
-  vo2max: "#ef4444",
-  anaerobic: "#a855f7",
-  race: "#ec4899",
-  rest: "#94a3b8",
+  recovery: ZWIFT_ZONES[0].color,
+  endurance: ZWIFT_ZONES[1].color,
+  tempo: ZWIFT_ZONES[2].color,
+  threshold: ZWIFT_ZONES[3].color,
+  vo2max: ZWIFT_ZONES[4].color,
+  anaerobic: ZWIFT_ZONES[5].color,
+  race: ZWIFT_ZONES[4].color,
+  rest: "#cbd5e1",
 };
 
 export const INTENSITY_LABELS: Record<WorkoutIntensity, string> = {
@@ -530,6 +562,19 @@ export function powerRangePercentForBlock(block: WorkoutBlock, ftp: number | nul
     }
   }
   return null;
+}
+
+/**
+ * Kleur van een blok: de Zwift-zone van het midden van zijn vermogensdoel. Het
+ * label van de intensiteit volgt iets andere grenzen (intensityFromPct), dus een
+ * blok op 90% heet "Tempo" maar kleurt geel, net als in Zwift. Zonder bruikbaar
+ * doel valt het terug op de kleur van de intensiteit.
+ */
+export function blockColor(block: WorkoutBlock, ftp: number | null): string {
+  if (block.intensity === "rest") return INTENSITY_COLORS.rest;
+  const range = powerRangePercentForBlock(block, ftp);
+  if (!range) return INTENSITY_COLORS[block.intensity] ?? INTENSITY_COLORS.endurance;
+  return zwiftZoneForPct((range[0] + range[1]) / 2).color;
 }
 
 // Bouwt een NATIVE intervals.icu workout_doc uit onze blokken. Dit is de bron

@@ -12,7 +12,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
-  INTENSITY_COLORS,
+  blockColor,
   INTENSITY_LABELS,
   powerRangePercentForBlock,
   WORKOUT_INTENSITIES,
@@ -126,7 +126,7 @@ export function BlockEditor({
                 )}
                 style={{
                   width: `${Math.max(4, (block.durationMinutes / (total || 1)) * 100)}%`,
-                  backgroundColor: `${INTENSITY_COLORS[block.intensity]}26`,
+                  backgroundColor: `${blockColor(block, ftpWatts ?? null)}26`,
                 }}
               >
                 <span
@@ -134,7 +134,7 @@ export function BlockEditor({
                   style={{
                     bottom: `${(low / MAX_PCT) * 100}%`,
                     height: `${bandHeight}%`,
-                    backgroundColor: INTENSITY_COLORS[block.intensity],
+                    backgroundColor: blockColor(block, ftpWatts ?? null),
                   }}
                 />
               </button>
@@ -162,7 +162,7 @@ export function BlockEditor({
               <span
                 aria-hidden
                 className="size-2 rounded-full"
-                style={{ backgroundColor: INTENSITY_COLORS[block.intensity] }}
+                style={{ backgroundColor: blockColor(block, ftpWatts ?? null) }}
               />
               {block.label || "Blok"} {block.durationMinutes}m {block.target}
               {group.indexes.length > 1 ? (

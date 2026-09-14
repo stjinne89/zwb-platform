@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  blockColor,
   detectIntensityFromLoad,
+  INTENSITY_COLORS,
+  ZWIFT_ZONES,
+  zwiftZoneForPct,
   estimateTrainingLoad,
   intensityFromLoad,
   intensityFromPct,
@@ -131,5 +135,31 @@ describe("estimateTrainingLoad", () => {
         ]),
       ),
     ).toBe(100);
+  });
+});
+
+describe("Zwift-zonekleuren", () => {
+  it("legt de zonegrenzen van Zwift vast", () => {
+    const zones = [0, 59.9, 60, 75.9, 76, 89.9, 90, 104.9, 105, 118.9, 119, 200].map(
+      (pct) => zwiftZoneForPct(pct).zone,
+    );
+    expect(zones).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
+  });
+
+  it("kleurt elke intensiteit als de zone waar hij in valt", () => {
+    expect(INTENSITY_COLORS.recovery).toBe(ZWIFT_ZONES[0].color);
+    expect(INTENSITY_COLORS.endurance).toBe(ZWIFT_ZONES[1].color);
+    expect(INTENSITY_COLORS.tempo).toBe(ZWIFT_ZONES[2].color);
+    expect(INTENSITY_COLORS.threshold).toBe(ZWIFT_ZONES[3].color);
+    expect(INTENSITY_COLORS.vo2max).toBe(ZWIFT_ZONES[4].color);
+    expect(INTENSITY_COLORS.anaerobic).toBe(ZWIFT_ZONES[5].color);
+    expect(INTENSITY_COLORS.rest).not.toBe(ZWIFT_ZONES[0].color);
+  });
+
+  it("kleurt een blok op het midden van zijn doel, niet op zijn label", () => {
+    const block = { label: "Blok", durationMinutes: 10, target: "88-92%", notes: "", intensity: "tempo" as const };
+    expect(blockColor(block, 250)).toBe(ZWIFT_ZONES[3].color);
+    expect(blockColor({ ...block, target: "225-237w" }, 250)).toBe(ZWIFT_ZONES[3].color);
+    expect(blockColor({ ...block, target: "", intensity: "rest" }, 250)).toBe(INTENSITY_COLORS.rest);
   });
 });

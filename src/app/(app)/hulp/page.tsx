@@ -852,6 +852,21 @@ export default function HelpPage() {
             </p>
           </article>
 
+          <article
+            id="zonekleuren"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Kleuren van de blokken</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De blokken kleuren zoals in Zwift, op je FTP: grijs onder 60%,
+              blauw tot 76%, groen tot 90%, geel tot 105%, oranje tot 119% en
+              rood daarboven. Een blok krijgt de kleur van het midden van zijn
+              doel. De naam (Tempo, Drempel) volgt net iets andere grenzen, dus
+              een blok op 90% heet Tempo maar is geel. Lichtgrijs is rust; een
+              gestippeld blokje zonder kleur is een rit zonder vermogensmeter.
+            </p>
+          </article>
+
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Max. trainingsuren per week</h3>
             <p className="mt-2 text-sm text-muted-foreground">
