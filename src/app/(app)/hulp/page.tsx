@@ -1634,6 +1634,23 @@ Fitness-status: Verbeterend`}
           </article>
 
           <article
+            id="pacing-eindtijd"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Gewenste eindtijd</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Vul een tijd in als u:mm en kies Plan voor deze tijd. De verdeling van
+              je plan blijft hetzelfde; alle doelen gaan samen omhoog of omlaag tot
+              de verwachte tijd binnen een halve minuut van je doel ligt.
+              Neutralisaties en afdalingen schuiven niet mee. Is je doel sneller dan
+              je reserve en je drempel toelaten, dan krijg je het snelste plan dat
+              de finish haalt en zie je welke tijd dat is. Het doel blijft bij je
+              plan staan, zodat je na een aanpassing ziet hoe ver je ervan af zit.
+              Wind en slipstream zitten niet in de berekening.
+            </p>
+          </article>
+
+          <article
             id="pacing-neutralisatie"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >

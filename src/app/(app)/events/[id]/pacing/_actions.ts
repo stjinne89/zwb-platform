@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { loadForUser } from "@/lib/pacing/session";
 import {
+  fitStoredPlanToTime,
   readPlan,
   recomputePlan,
   saveEditedPlan,
   type StoredPlan,
 } from "@/lib/pacing/store";
+import { parseTargetTime } from "@/lib/pacing/target-time";
 import { adoptSharedPlan, sharedPlanView } from "@/lib/pacing/share";
 import { validateEditedPlan, type EditedSegmentInput } from "@/lib/pacing/edit";
 import { imposeFixedPieces, rebalancePlan, type PlanSegment } from "@/lib/pacing/plan";
@@ -78,6 +80,42 @@ export async function recomputePacingPlan(eventId: string): Promise<ActionResult
   revalidatePath(`/events/${eventId}/pacing`);
   revalidatePath(`/events/${eventId}`);
   return { ok: true };
+}
+
+/**
+ * Zet het plan op een gewenste eindtijd ("5:30"). Geen AI: dezelfde verdeling op
+ * een ander niveau, en eerlijk "niet haalbaar" als het doel sneller is dan kan.
+ */
+export async function planForTargetTime(
+  eventId: string,
+  value: string,
+): Promise<
+  | { ok: true; reachable: boolean; seconds: number; fastestSeconds: number }
+  | { ok: false; error: string }
+> {
+  const targetSeconds = parseTargetTime(String(value ?? ""));
+  if (!targetSeconds) return { ok: false, error: "Vul een tijd in als u:mm, bijvoorbeeld 5:30." };
+
+  const result = await loadForUser(eventId);
+  if (!result.ok) return { ok: false, error: result.error };
+  const { ctx } = result;
+
+  const plan = await readPlan(ctx.admin, eventId, ctx.userId);
+  if (!plan) return { ok: false, error: "Er is nog geen plan om op tijd te zetten." };
+
+  const targetTime = await fitStoredPlanToTime(ctx.admin, {
+    eventId,
+    profileId: ctx.userId,
+    plan,
+    route: ctx.loaded.route,
+    rider: ctx.rider,
+    routeSyncedAt: ctx.loaded.routeSyncedAt,
+    targetSeconds,
+  });
+
+  revalidatePath(`/events/${eventId}/pacing`);
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true, ...targetTime };
 }
 
 export async function setPacingPlanShared(

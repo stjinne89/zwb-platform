@@ -17,6 +17,7 @@ import { buildBaselinePlan } from "@/lib/pacing/baseline";
 import { evaluatePlan, type PlanEvaluation, type PlanSegment } from "@/lib/pacing/plan";
 import type { RiderContext } from "@/lib/pacing/draft";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
+import type { TargetTime } from "@/lib/pacing/target-time";
 import {
   buildAssumptions,
   planLayoutMatchesRoute,
@@ -44,6 +45,8 @@ export type PlanSummary = {
   strategy?: string | null;
   risks?: string[];
   notes?: string[];
+  /** Gewenste eindtijd, als het lid er een opgaf; sinds 14 september 2026. */
+  targetTime?: TargetTime | null;
 };
 
 export type StoredPlan = {
@@ -64,7 +67,12 @@ export type StoredPlan = {
 export function summarize(
   evaluation: PlanEvaluation,
   cpWkg: number,
-  extra: { strategy?: string | null; risks?: string[]; notes?: string[] } = {},
+  extra: {
+    strategy?: string | null;
+    risks?: string[];
+    notes?: string[];
+    targetTime?: TargetTime | null;
+  } = {},
 ): PlanSummary {
   return {
     totalSeconds: Math.round(evaluation.totalSeconds),
@@ -79,6 +87,7 @@ export function summarize(
     strategy: extra.strategy ?? null,
     risks: extra.risks ?? [],
     notes: extra.notes ?? [],
+    targetTime: extra.targetTime ?? null,
   };
 }
 
@@ -132,6 +141,7 @@ export async function savePlan(
     strategy?: string | null;
     risks?: string[];
     notes?: string[];
+    targetTime?: TargetTime | null;
     /** De route waar de stukken bij horen, als dat niet de huidige is. */
     routeSnapshot?: RouteLayoutSnapshot | null;
   },
@@ -151,6 +161,7 @@ export async function savePlan(
           strategy: input.strategy,
           risks: input.risks,
           notes: input.notes,
+          targetTime: input.targetTime,
         },
       ),
       ai_generation_id: input.aiGenerationId ?? null,
@@ -281,6 +292,8 @@ export async function recomputePlan(
     evaluation: rebalanced.evaluation,
     route: input.route,
     assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    // Het doel blijft staan; de pagina toont hoe ver de nieuwe tijd ervan af ligt.
+    targetTime: input.plan.summary?.targetTime ?? null,
     notes: [
       ...rebalanced.adjustments,
       ...rebalanced.clampNotes.map(clampNoteText),
@@ -376,6 +389,7 @@ export async function saveEditedPlan(
     aiGenerationId: input.plan.ai_generation_id,
     strategy: input.plan.summary?.strategy ?? null,
     risks: input.plan.summary?.risks ?? [],
+    targetTime: input.plan.summary?.targetTime ?? null,
     // Een schuifregelaar verzetten verandert de indeling niet. Hoorde die bij een
     // oudere route, dan blijft dat zo vastgelegd; anders verdween de melding
     // "verouderd" zodra het lid iets opsloeg, terwijl de stukken nog oud waren.
@@ -397,6 +411,68 @@ export async function saveEditedPlan(
   }
 
   return evaluation;
+}
+
+/**
+ * Zet het plan van het lid op een gewenste eindtijd: de vorm van het huidige plan
+ * blijft, het niveau schuift. Waar het plan vandaan kwam blijft staan; de
+ * AI-strategie ook, want de verdeling is dezelfde.
+ */
+export async function fitStoredPlanToTime(
+  admin: Admin,
+  input: {
+    eventId: string;
+    profileId: string;
+    plan: StoredPlan;
+    route: PacingRoute;
+    rider: RiderContext;
+    routeSyncedAt: string | null;
+    targetSeconds: number;
+  },
+) {
+  const { imposeFixedPieces } = await import("@/lib/pacing/plan");
+  const { fitPlanToTime } = await import("@/lib/pacing/target-time");
+
+  const fitted = fitPlanToTime(
+    imposeFixedPieces(input.plan.segments, input.route, input.rider.model),
+    input.route,
+    input.rider.model,
+    input.targetSeconds,
+    { curve: input.rider.curve, durability: input.rider.durability },
+  );
+  const targetTime = {
+    seconds: fitted.seconds,
+    reachable: fitted.reachable,
+    fastestSeconds: fitted.fastestSeconds,
+  };
+
+  await savePlan(admin, {
+    eventId: input.eventId,
+    profileId: input.profileId,
+    source: input.plan.source,
+    segments: fitted.plan,
+    evaluation: fitted.evaluation,
+    route: input.route,
+    assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    aiGenerationId: input.plan.ai_generation_id,
+    strategy: input.plan.summary?.strategy ?? null,
+    risks: input.plan.summary?.risks ?? [],
+    targetTime,
+    notes: [
+      fitted.reachable
+        ? "Doelen verschoven naar je gewenste eindtijd; de verhoudingen tussen de stukken zijn gelijk gebleven."
+        : "Je gewenste eindtijd is met je huidige vermogen niet haalbaar; dit is het snelste plan dat je reserve tot de finish houdt.",
+    ],
+    routeSnapshot: planLayoutMatchesRoute(
+      input.plan.route_snapshot,
+      input.plan.segments,
+      input.route,
+    )
+      ? null
+      : input.plan.route_snapshot,
+  });
+
+  return targetTime;
 }
 
 // --- AI-generatie --------------------------------------------------------

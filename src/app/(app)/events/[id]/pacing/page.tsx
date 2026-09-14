@@ -9,7 +9,12 @@ import { loadPacingPage } from "@/lib/pacing/session";
 import { PacingEditor } from "./_components/pacing-editor";
 import { RouteShape } from "./_components/route-shape";
 import { GenerateButton } from "./_components/generate-button";
-import { AdoptButton, RecomputeButton, ShareToggle } from "./_components/plan-controls";
+import {
+  AdoptButton,
+  RecomputeButton,
+  ShareToggle,
+  TargetTimeForm,
+} from "./_components/plan-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -138,7 +143,20 @@ export default async function PacingPage({
         durability={rider.durability}
       />
 
-      <section className="rounded-lg border bg-card p-4">
+      <section className="space-y-3 rounded-lg border bg-card p-4">
+        <TargetTimeForm
+          eventId={id}
+          current={summary?.targetTime ?? null}
+          manual={plan.source === "manual"}
+        />
+        {summary?.targetTime ? (
+          <p className="text-sm text-muted-foreground">
+            Doel {hhmm(summary.targetTime.seconds)}, plan {hhmm(summary.totalSeconds)}
+            {summary.targetTime.reachable
+              ? ""
+              : ` · snelste haalbare ${hhmm(summary.targetTime.fastestSeconds)}`}
+          </p>
+        ) : null}
         <ShareToggle eventId={id} shared={plan.shared} />
       </section>
 

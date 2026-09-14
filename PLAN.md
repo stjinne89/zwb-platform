@@ -986,6 +986,56 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — pacingplan voor een gewenste eindtijd, rekenkundig (wens 7, deel 1)
+
+**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie; het doel staat in de bestaande jsonb `summary`.
+
+**Waarom.** Jeroen vroeg of het plan een voorstel kan maken vanuit een gewenste
+eindtijd. Het model rekende alleen de andere kant op, van vermogen naar tijd. De
+eigenaar koos voor een rekenkundige omkering, en daarna de doeltijd ook naar de AI
+(volgende ronde).
+
+**Wat er is gekomen.**
+- `src/lib/pacing/target-time.ts`: `fitPlanToTime` zoekt één vermenigvuldiger op
+  de gewone stukken van het huidige plan. De verhoudingen blijven gelijk;
+  neutralisaties en afdalingen blijven staan.
+  - Na elke stap gaat het plan door `rebalancePlan`.
+  - Eerst zoekt het de hoogste vermenigvuldiger die ná terugschalen nog haalbaar
+    is. Daaruit volgt de snelste haalbare tijd.
+  - Daarna bisectie op de tijd tot binnen 30 s, waarbij het beste resultaat wordt
+    vastgehouden.
+  - Een doel sneller dan de snelste haalbare tijd geeft het snelste haalbare plan
+    met `reachable: false`. Een doel langzamer dan het rustigste plan telt als
+    haalbaar.
+- `parseTargetTime` leest "5:30", "5.30", "5u30" en losse minuten.
+- `fitStoredPlanToTime` bewaart het resultaat met
+  `summary.targetTime = {seconds, reachable, fastestSeconds}`. De bron, de
+  AI-strategie en een oude routesnapshot blijven staan.
+  - Herberekenen en een handmatige bewerking houden het doel vast.
+  - De pagina toont "Doel …, plan …" en bij een onhaalbaar doel de snelste
+    haalbare tijd.
+- `planForTargetTime` (serveractie) en `TargetTimeForm` (u:mm-veld). Bij een plan
+  met eigen doelen vraagt het formulier eerst om bevestiging.
+- `/hulp#pacing-eindtijd`.
+
+**Gevonden tijdens het bouwen.** Een plan dat ver boven CP ligt, krijgt
+`rebalancePlan` (hoogstens 8 rondes) niet altijd binnen de reserve. "Zo hard
+mogelijk en dan terugschalen" was daarom geen betrouwbaar snelste plan; het zoeken
+gaat op haalbaarheid. `rebalancePlan` zelf is niet aangepast.
+
+**Bewust niet gebouwd.** Geen per-stuk optimalisatie (bijvoorbeeld meer op de
+klim, minder op het vlak voor dezelfde tijd): dat is een optimalisatieprobleem met
+eigen aannames, en de vorm van het plan is aan het lid of de AI. Wind en
+slipstream blijven buiten het model.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
+geslaagd, Vitest volledig groen (1000 geslaagd). Nieuw `pacing-target-time.test.ts`:
+tijden lezen, sneller en langzamer binnen de marge met behouden verhoudingen,
+onhaalbaar met een haalbaar snelste plan, neutralisatie ongemoeid, duurvermogen
+maakt het snelste plan langzamer. *Niet geverifieerd:* het formulier niet
+ingelogd in de browser gebruikt; geen echt event doorgerekend.
+
 ### Opgeleverd — pacingplan: zelf knippen en samenvoegen (wens 6, deel 3)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
