@@ -1198,8 +1198,8 @@ hangen kon niet.
 - **De Strava-samenvatting** (`summary-writer`, `pickPlannedWorkout`) wordt geschreven
   bij binnenkomst van de rit en kijkt niet naar latere correcties.
 
-**Nazorg 2026-09-15: rit verdween na loskoppelen.** Commit `a27e5a4`, nog niet
-gepusht. Geen migratie. De eigenaar koppelde een rit los en wilde een andere rit
+**Nazorg 2026-09-15: rit verdween na loskoppelen.** Commit `a27e5a4`, gepusht
+naar `main` 2026-09-15. Geen migratie. De eigenaar koppelde een rit los en wilde een andere rit
 van die dag aan dezelfde training hangen. Die rit was toen uit de kalender
 verdwenen. De oorzaak: `unplannedRides` liet elke training die niet op
 rustdag stond ter plekke een rit van die dag opeisen, ook een training op
