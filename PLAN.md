@@ -1198,6 +1198,24 @@ hangen kon niet.
 - **De Strava-samenvatting** (`summary-writer`, `pickPlannedWorkout`) wordt geschreven
   bij binnenkomst van de rit en kijkt niet naar latere correcties.
 
+**Nazorg 2026-09-15: rit verdween na loskoppelen.** Commit volgt; nog niet
+gepusht. Geen migratie. De eigenaar koppelde een rit los en wilde een andere rit
+van die dag aan dezelfde training hangen. Die rit was toen uit de kalender
+verdwenen. De oorzaak: `unplannedRides` liet elke training die niet op
+rustdag stond ter plekke een rit van die dag opeisen, ook een training op
+`planned`. Na het loskoppelen stond de training weer op gepland en eiste hij de
+andere rit op. De kalender toonde de training als "Niet gereden" en de rit nergens.
+Nu claimt alleen een training op `completed` zonder vastgelegde rit nog ter
+plekke. Een training op gepland verbergt geen ritten meer; die staan als
+ongepland met **Hoort bij** tot de detectie ze vastlegt. Dezelfde fout trof al
+eerder gereden trainingen buiten het detectievenster van 7 dagen: die stonden als
+niet gereden met hun rit onzichtbaar. Die ritten zijn nu ook zichtbaar.
+*Niet veranderd:* `detectCompletedWorkouts` (bij de Strava-sync en bij het openen
+van Vandaag) koppelt een vrije rit van die dag nog steeds aan een training die weer
+op gepland staat, met de pushmelding "Bevestig je training". Een training
+blijvend "niet gereden" laten, ook als er die dag nog een rit is, vraagt een
+markering op de training. Die keuze ligt bij de eigenaar.
+
 ### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
 
 **2026-09-15, commit `5c686aa`, via merge naar `main` gepusht 2026-09-15** (in één
