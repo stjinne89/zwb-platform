@@ -48,10 +48,11 @@ import {
   loadPlanFamilies,
   loadProfile,
   loadScheduleEventChoices,
-  loadUnplannedRides,
+  loadScheduleRides,
   loadZrlTeamMembership,
   planUpdateDefaults,
   requireViewer,
+  rideLinkFor,
   todayKeyAmsterdam,
   upcomingIntervalsEvents,
 } from "../_data";
@@ -109,7 +110,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
   // deze regel verdween die belasting uit het schema terwijl hij in de benen
   // wel degelijk meetelde.
-  const extraRides = await loadUnplannedRides(
+  const { unplanned: extraRides, byId: ridesById } = await loadScheduleRides(
     viewer,
     memberWorkouts,
     reports,
@@ -169,6 +170,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       const report = reportsByWorkout.get(workout.id);
       const published = workout.publish_status === "published" && workout.intervals_event_id;
       const outcome = workoutOutcome(workout, report, todayKey);
+      const pairedRide = report?.paired_activity_id
+        ? ridesById.get(String(report.paired_activity_id))
+        : undefined;
       return {
         id: workout.id,
         dateKey: String(workout.scheduled_at).slice(0, 10),
@@ -178,6 +182,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         source: "zwb" as const,
         skipped: workout.status === "skipped",
         missed: outcome === "gemist",
+        rideLink: pairedRide
+          ? rideLinkFor(
+              { activityId: String(report!.paired_activity_id), ...pairedRide },
+              workout.id,
+              memberWorkouts,
+              reports,
+            )
+          : undefined,
         detail: {
           outcome,
           description: workout.description,
@@ -225,6 +237,12 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       intensity: detectIntensityFromLoad(ride.metrics.tss, ride.metrics.movingMinutes),
       source: "rit" as const,
       skipped: false,
+      rideLink: rideLinkFor(
+        { activityId: String(ride.id), dateKey: ride.dateKey, name: ride.name },
+        null,
+        memberWorkouts,
+        reports,
+      ),
       ride: {
         stravaId: ride.id,
         distanceKm: ride.distanceKm,

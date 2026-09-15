@@ -47,6 +47,15 @@ describe("unplannedRides", () => {
     expect(result).toEqual([]);
   });
 
+  it("toont een losgekoppelde rit als ongepland, ook met een training die dag", () => {
+    const result = unplannedRides(
+      [ride({ id: 1, training_excluded_at: "2026-07-21T08:00:00Z" })],
+      [workout({ id: "w1" })],
+      FTP,
+    );
+    expect(result.map((row) => row.id)).toEqual([1]);
+  });
+
   it("houdt de tweede helft over van een rit die in tweeën is geknipt", () => {
     const rides = [
       ride({ id: 1, moving_time_seconds: 3300, name: "Ochtendrit" }),

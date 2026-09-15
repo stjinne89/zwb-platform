@@ -112,6 +112,15 @@ describe("pickRideForWorkout", () => {
     const rows = [ride({ id: 1, start_date: "2026-07-19T22:30:00Z" })];
     expect(pickRideForWorkout(rows, "2026-07-20T09:00:00+02:00", 60)?.id).toBe(1);
   });
+
+  it("slaat een rit over die het lid heeft losgekoppeld", () => {
+    const rows = [
+      ride({ id: 1, moving_time_seconds: 3600, training_excluded_at: "2026-07-21T08:00:00Z" }),
+      ride({ id: 2, moving_time_seconds: 1800 }),
+    ];
+    expect(pickRideForWorkout(rows, "2026-07-20T09:00:00+02:00", 60)?.id).toBe(2);
+    expect(pickRideForWorkout([rows[0]], "2026-07-20T09:00:00+02:00", 60)).toBeNull();
+  });
 });
 
 describe("complianceForWorkouts", () => {

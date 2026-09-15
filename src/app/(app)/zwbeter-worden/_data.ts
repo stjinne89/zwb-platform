@@ -33,7 +33,11 @@ import {
 import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
 import { amsterdamDayKey, computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
-import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
+import {
+  buildComplianceContext,
+  markExcludedRides,
+  planIsBeingIgnored,
+} from "@/lib/training/compliance";
 import {
   COMPLETION_WINDOW_DAYS,
   detectCompletedWorkouts,
@@ -54,6 +58,8 @@ import type {
   WorkoutRow,
 } from "./_components/types";
 import type { PendingReview } from "./_components/workout-review-dialog";
+import { formatDayMonth } from "./_components/format";
+import type { RideLink } from "./_components/ride-link";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
 import type { AvailabilityOptions } from "./_components/availability-form";
 import type { ScheduleEventItem } from "./_components/event-choice";
@@ -292,18 +298,24 @@ export async function loadMemberWorkouts(
 /** Hoe ver de schemakalender terugkijkt voor gereden ritten. */
 export const SCHEDULE_RIDE_DAYS = 120;
 
+export type ScheduleRides = {
+  /** Ritten waar geen geplande training tegenover stond. */
+  unplanned: UnplannedRide[];
+  /** Alle ritten uit het venster, op Strava-id: dag en naam, voor het koppelen. */
+  byId: Map<string, { dateKey: string; name: string }>;
+};
+
 /**
- * De ritten van het lid waar geen geplande training tegenover stond. Zelfde
- * bron en venster als de belastingpagina, zodat een rit die daar meetelt ook in
- * het schema zichtbaar is.
+ * De ritten van het lid uit het schemavenster. Zelfde bron en venster als de
+ * belastingpagina, zodat een rit die daar meetelt ook in het schema zichtbaar is.
  */
-export async function loadUnplannedRides(
+export async function loadScheduleRides(
   viewer: Viewer,
   workouts: WorkoutRow[],
   reports: WorkoutReportRow[],
   ftpWatts: number | null,
   days = SCHEDULE_RIDE_DAYS,
-): Promise<UnplannedRide[]> {
+): Promise<ScheduleRides> {
   const since = new Date(Date.now() - days * 86400_000).toISOString();
   const { data } = await viewer.supabase
     .from("strava_activities")
@@ -313,10 +325,20 @@ export async function loadUnplannedRides(
     .order("start_date", { ascending: false })
     .limit(400);
 
-  const rides = (data ?? []) as StravaRideRow[];
-  if (rides.length === 0) return [];
+  const rides = await markExcludedRides(
+    viewer.supabase,
+    viewer.user.id,
+    (data ?? []) as StravaRideRow[],
+  );
+  if (rides.length === 0) return { unplanned: [], byId: new Map() };
 
-  return unplannedRides(
+  const byId = new Map(
+    rides.map((ride) => [
+      String(ride.id),
+      { dateKey: amsterdamDayKey(new Date(ride.start_date)), name: ride.name?.trim() || "Rit" },
+    ]),
+  );
+  const unplanned = unplannedRides(
     rides,
     workouts.map((workout) => ({
       id: workout.id,
@@ -333,6 +355,30 @@ export async function loadUnplannedRides(
       activityId: report.paired_activity_id,
     })),
   );
+  return { unplanned, byId };
+}
+
+/** De keuzes bij een rit: de training waar hij aan hangt en waar hij ook bij kan horen. */
+export function rideLinkFor(
+  ride: { activityId: string; dateKey: string; name: string },
+  workoutId: string | null,
+  workouts: WorkoutRow[],
+  reports: WorkoutReportRow[],
+): RideLink {
+  const paired = new Set(
+    reports.filter((report) => report.paired_activity_id).map((report) => report.workout_id),
+  );
+  return {
+    activityId: ride.activityId,
+    workoutId,
+    rideLabel: `${ride.name} · ${formatDayMonth(`${ride.dateKey}T12:00:00`)}`,
+    options: reassignCandidates(workouts, ride.dateKey, workoutId ?? "", paired).map(
+      (candidate) => ({
+        workoutId: candidate.id,
+        label: `${candidate.title} · ${formatDayMonth(`${candidate.dayKey}T12:00:00`)}`,
+      }),
+    ),
+  };
 }
 
 function dayLabel(iso: string) {

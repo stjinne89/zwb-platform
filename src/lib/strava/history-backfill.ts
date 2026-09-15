@@ -14,7 +14,7 @@
 //   calls. De segmentdetails van oude ritten haalt de bestaande segment-
 //   inhaalslag later op, onder diezelfde budgetgrens.
 //
-// Draait mee in de minuutjob van de webhookverwerking (migratie 0163 voor de
+// Draait mee in de 5-minutenjob van de webhookverwerking (migratie 0164 voor de
 // cursor). Uitzetten zonder deploy: `?historyBackfill=0` aan de cron-URL.
 
 import {
@@ -70,7 +70,7 @@ export type HistoryBackfillResult = {
 export type HistoryDeps = {
   now: () => number;
   loadUsage: () => Promise<StravaRateLimitUsage | null>;
-  /** null = de kolommen uit 0163 bestaan nog niet. */
+  /** null = de kolommen uit 0164 bestaan nog niet. */
   candidates: () => Promise<HistoryCandidate[] | null>;
   /** Starttijd van de oudste rit die de gewone sync van dit lid binnenhaalde. */
   oldestSyncedStart: (profileId: string) => Promise<string | null>;
@@ -213,7 +213,7 @@ function defaultDeps(
         .order("profile_id")
         .limit(CANDIDATE_LIMIT);
       if (error) {
-        // Zonder 0163 bestaat history_before niet; dan niets doen in plaats van falen.
+        // Zonder 0164 bestaat history_before niet; dan niets doen in plaats van falen.
         if (/history_(before|complete_at)/.test(error.message)) return null;
         throw new Error(error.message);
       }

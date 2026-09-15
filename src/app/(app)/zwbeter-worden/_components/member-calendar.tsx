@@ -27,6 +27,8 @@ import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { WorkoutCalendar, type CalendarWorkout } from "./workout-calendar";
 import { WorkoutReportForm } from "./workout-report-form";
 import { RemoveWorkoutButton } from "./remove-workout-button";
+import type { RideLink } from "./ride-link";
+import { RideLinkForm } from "./ride-link-form";
 import { WorkoutDurationControl } from "./workout-duration-control";
 
 export type MemberCalendarItem = {
@@ -38,6 +40,8 @@ export type MemberCalendarItem = {
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
   missed?: boolean;
+  /** Bij een gereden rit: bij welke training hij hoort, door het lid aan te passen. */
+  rideLink?: RideLink;
   /** Alleen voor een gereden rit zonder geplande training. */
   ride?: {
     /** Het Strava-id, voor de link naar de bronactiviteit. */
@@ -157,6 +161,8 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
         </p>
       )}
 
+      {item.rideLink ? <RideLinkForm key={item.id} link={item.rideLink} /> : null}
+
       <ViewOnStrava activityId={stravaId} />
     </div>
   );
@@ -261,6 +267,13 @@ function WorkoutDetail({
           <WorkoutBlocks blocks={detail.blocks} ftpWatts={ftpWatts} variant="compact" />
           {detail.metrics ? (
             <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} />
+          ) : null}
+          {item.rideLink ? (
+            <RideLinkForm
+              key={`link-${item.id}`}
+              link={item.rideLink}
+              currentLabel={`${item.title} · ${formatDayMonth(`${item.dateKey}T12:00:00`)}`}
+            />
           ) : null}
           <WorkoutReportForm
             key={item.id}

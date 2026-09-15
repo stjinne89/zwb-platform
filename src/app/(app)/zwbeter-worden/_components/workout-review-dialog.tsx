@@ -13,6 +13,7 @@ import {
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { confirmWorkoutReview } from "../_actions";
+import { NO_WORKOUT } from "./ride-link";
 
 export type PendingReview = {
   workoutId: string;
@@ -127,25 +128,24 @@ export function WorkoutReviewDialog({ review }: { review: PendingReview }) {
 
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
           <input type="hidden" name="workout_id" value={review.workoutId} />
-          {review.candidates.length > 0 ? (
-            <label className="block text-sm">
-              Training
-              <select
-                name="ridden_workout_id"
-                defaultValue={review.workoutId}
-                className={`mt-1 ${FIELD}`}
-              >
-                <option value={review.workoutId}>
-                  {review.title} · {review.dateLabel}
+          <label className="block text-sm">
+            Training
+            <select
+              name="ridden_workout_id"
+              defaultValue={review.workoutId}
+              className={`mt-1 ${FIELD}`}
+            >
+              <option value={review.workoutId}>
+                {review.title} · {review.dateLabel}
+              </option>
+              {review.candidates.map((candidate) => (
+                <option key={candidate.workoutId} value={candidate.workoutId}>
+                  {candidate.label}
                 </option>
-                {review.candidates.map((candidate) => (
-                  <option key={candidate.workoutId} value={candidate.workoutId}>
-                    {candidate.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+              ))}
+              <option value={NO_WORKOUT}>Geen training</option>
+            </select>
+          </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm">
               RPE
