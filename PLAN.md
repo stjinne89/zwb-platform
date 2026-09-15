@@ -990,7 +990,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
 
-**2026-09-15, commit `COMMIT` op branch `claude/zwblokken-gamification-titles-a65ad0`,
+**2026-09-15, commit `5c686aa` op branch `claude/zwblokken-gamification-titles-a65ad0`,
 niet gepusht.** Geen migratie. Wel een nieuwe privacyversie (`2026-09-15`).
 
 **Waarom.** ZWBlokken moest spannender worden voor alle leden. Wie in een land de
