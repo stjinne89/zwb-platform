@@ -1073,11 +1073,14 @@ iedereen, zonder dat de Strava-budgetten in één keer opgaan.
 
 **Wat er is gekomen.**
 - `src/lib/strava/history-backfill.ts` (`runStravaHistoryBackfill`):
-  - Per run hooguit één `GET /athlete/activities?before=…&per_page=100`.
-  - Bij geweigerde tokens nog hooguit twee pogingen voor andere leden.
+  - Per run hooguit **drie** `GET /athlete/activities?before=…&per_page=100`
+    (`MAX_PAGES_PER_RUN`). Eerst was dat één; zie "Opgevoerd naar drie pagina's"
+    hieronder. Een lid dat klaar is, maakt plaats voor het volgende in dezelfde run.
+  - Bij geweigerde tokens nog hooguit twee pogingen extra.
   - Dezelfde budgetgrens als de segment-inhaalslag: 50% van het kwartier, 60% van
     de dag.
-  - Stopt als er minder dan 4 s over is.
+  - Neemt geen nieuwe pagina als er minder dan 3,5 s over is (eerst 4 s, bij één
+    pagina per run).
 - De cursor staat per koppeling in `history_before` en schuift naar de oudste
   activiteit van de pagina.
   - Ook als dat geen fietsrit is; anders blijft hij hangen op hardloopjes.
@@ -1108,7 +1111,7 @@ iedereen, zonder dat de Strava-budgetten in één keer opgaan.
 
 **Bewust niet gebouwd.**
 - **Geen aparte cron-job.** Meeliften op de 5-minutenjob, zoals de
-  segment-inhaalslag. Dat is hooguit 12 overzichtscalls per uur.
+  segment-inhaalslag. Dat is hooguit 36 overzichtscalls per uur.
 - **De vijfjaarsgrens van de eerste sync blijft staan.** Die sync draait interactief
   en tegen de functie-timeout. De rest volgt via deze stap.
 - **Geen routelijn voor CSV-/GPX-imports.** Die ritten leveren nog steeds geen
@@ -1138,9 +1141,30 @@ iedereen, zonder dat de Strava-budgetten in één keer opgaan.
 - Alleen gelezen in productie: het filter `raw->>import_source=is.null` werkt.
 
 *Niet geverifieerd:*
-- Geen echte Strava-aanroep met `before` gedaan: de volgorde is een aanname, met
-  vangnet.
 - Hoeveel pagina's en detailcalls de hele historie kost, is niet gemeten.
+
+**Eerste uur in productie (alleen gelezen, 18:10–18:58 UTC).**
+- Om 18:10 kwam de eerste cursor. De volgorde van Strava klopte: het vangnet sloeg
+  niet aan en de cursor schoof elke run verder.
+- Het eerste lid in de rij (op profiel-id) ging in ~10 runs van juni 2021 terug naar
+  maart 2019. Daarbij kwamen 611 oude fietsritten binnen, allemaal met blokken
+  verwerkt, en 2.618 blokken kregen een datum van vóór juni 2021.
+- Budget: dag 1.049/4.000, kwartier 6/400.
+- Schatting bij één pagina per run:
+  - ~29 pagina's per extra jaar historie voor de acht leden tegen de grens, gemeten
+    aan fietsactiviteiten per jaar;
+  - in de praktijk ~1,5× zoveel, want Strava levert ook hardloop- en
+    wandelactiviteiten mee;
+  - samen ruim 3 uur per extra jaar, dus bij 5 jaar extra per lid ~18 uur.
+
+**Opgevoerd naar drie pagina's (2026-09-15, commit `COMMIT3`).** Op verzoek van de
+eigenaar, omdat ZWBlokken anders een dag of langer op zich liet wachten en het budget
+ruim bleef.
+- `MAX_PAGES_PER_RUN = 3`. Tijd en budget worden per pagina opnieuw gecontroleerd.
+- Een lid dat klaar is, maakt in dezelfde run plaats voor het volgende.
+- De segment-inhaalslag krijgt daardoor minder van de 8 s per run.
+- Hoeveel pagina's er echt in een run passen, hangt af van de looptijd van Strava en
+  de blokberekening. Dat is niet gemeten. Mogelijk worden het er soms twee.
 
 ### Opgeleverd — het lid koppelt zelf een rit aan een training
 

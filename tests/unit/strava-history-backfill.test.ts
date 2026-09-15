@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   HISTORY_PAGE_SIZE,
+  MAX_PAGES_PER_RUN,
   nextCursor,
   runStravaHistoryBackfill,
   type HistoryCandidate,
@@ -18,16 +19,22 @@ function candidate(profile_id: string, history_before: string | null = null): Hi
 /** n activiteiten, één per dag terug vanaf `from`. */
 function page(n: number, from = "2021-06-01T08:00:00Z", sport = "Ride") {
   return Array.from({ length: n }, (_, i) => ({
-    id: 1000 + i,
+    id: Date.parse(from) / 1000 + i,
     sport_type: sport,
     start_date: new Date(Date.parse(from) - i * 86_400_000).toISOString(),
   }));
 }
 
+const ok = (activities: ReturnType<typeof page>): PageOutcome => ({ status: "ok", activities });
+
+/**
+ * Een Strava-nabootsing: `pages[profiel]` is de reeks antwoorden op elkaar volgende
+ * aanroepen. Is de reeks op, dan geeft Strava steeds een volle pagina.
+ */
 function setup(options: {
   candidates?: HistoryCandidate[] | null;
   oldest?: Record<string, string | null>;
-  pages?: Record<string, PageOutcome>;
+  pages?: Record<string, PageOutcome[]>;
   extra?: Partial<HistoryDeps>;
 }) {
   const log = {
@@ -37,7 +44,8 @@ function setup(options: {
     afterPage: [] as string[],
     afterComplete: [] as string[],
   };
-  let current = "";
+  const tokens = new Map<string, string>();
+  const calls = new Map<string, number>();
   const deps: Partial<HistoryDeps> = {
     now: () => 0,
     loadUsage: async () => null,
@@ -45,12 +53,16 @@ function setup(options: {
     oldestSyncedStart: async (id) =>
       options.oldest && id in options.oldest ? options.oldest[id] : "2021-06-06T07:00:00Z",
     tokenFor: async (c) => {
-      current = c.profile_id;
+      tokens.set(`token-${c.profile_id}`, c.profile_id);
       return `token-${c.profile_id}`;
     },
-    fetchPage: async (_token, before) => {
-      log.fetched.push({ profile: current, before });
-      return options.pages?.[current] ?? { status: "ok", activities: page(HISTORY_PAGE_SIZE) };
+    fetchPage: async (token, before) => {
+      const profile = tokens.get(token)!;
+      const n = calls.get(profile) ?? 0;
+      calls.set(profile, n + 1);
+      log.fetched.push({ profile, before });
+      const from = new Date(before * 1000 - 3_600_000).toISOString();
+      return options.pages?.[profile]?.[n] ?? ok(page(HISTORY_PAGE_SIZE, from));
     },
     storeRides: async (_c, rides) => {
       log.stored.push(rides.length);
@@ -92,17 +104,19 @@ describe("nextCursor", () => {
 });
 
 describe("runStravaHistoryBackfill", () => {
-  it("haalt één pagina op vanaf de oudste rit van de gewone sync", async () => {
+  it("haalt drie pagina's op, elk vanaf de cursor van de vorige", async () => {
     const { deps, log } = setup({});
     const result = await runStravaHistoryBackfill({}, { deadline: 8000, deps });
-    expect(log.fetched).toEqual([{ profile: A, before: Date.parse("2021-06-06T07:00:00Z") / 1000 }]);
-    expect(log.stored).toEqual([HISTORY_PAGE_SIZE]);
-    expect(log.cursors).toEqual([
-      { profile: A, before: page(HISTORY_PAGE_SIZE).at(-1)!.start_date, complete: false },
-    ]);
-    expect(log.afterPage).toEqual([A]);
-    expect(log.afterComplete).toEqual([]);
-    expect(result).toMatchObject({ profileId: A, stored: 100, complete: false, stopped: "page" });
+    expect(MAX_PAGES_PER_RUN).toBe(3);
+    expect(log.fetched).toHaveLength(3);
+    expect(log.fetched[0].before).toBe(Date.parse("2021-06-06T07:00:00Z") / 1000);
+    for (let i = 1; i < 3; i++) {
+      expect(log.fetched[i].before).toBe(Date.parse(log.cursors[i - 1].before) / 1000);
+      expect(log.fetched[i].before).toBeLessThan(log.fetched[i - 1].before);
+    }
+    expect(log.cursors.every((c) => !c.complete)).toBe(true);
+    expect(log.afterPage).toEqual([A, A, A]);
+    expect(result).toMatchObject({ profileId: A, pages: 3, stored: 300, completed: 0, stopped: "page" });
   });
 
   it("gaat verder vanaf de opgeslagen cursor", async () => {
@@ -113,55 +127,56 @@ describe("runStravaHistoryBackfill", () => {
 
   it("slaat alleen fietsritten op, maar schuift de cursor over de hele pagina", async () => {
     const activities = [...page(50, "2021-06-01T08:00:00Z"), ...page(50, "2021-04-01T08:00:00Z", "Run")];
-    const { deps, log } = setup({ pages: { [A]: { status: "ok", activities } } });
+    const { deps, log } = setup({ pages: { [A]: [ok(activities)] } });
     await runStravaHistoryBackfill({}, { deadline: 8000, deps });
-    expect(log.stored).toEqual([50]);
+    expect(log.stored[0]).toBe(50);
     expect(log.cursors[0].before).toBe(activities.at(-1)!.start_date);
   });
 
-  it("rondt een lid af bij een onvolle pagina: eerst de stappen, dan klaar", async () => {
+  it("rondt een lid af en gaat in dezelfde run door met het volgende", async () => {
     const order: string[] = [];
     const { deps, log } = setup({
-      pages: { [A]: { status: "ok", activities: page(12) } },
+      candidates: [candidate(A), candidate(B)],
+      pages: { [A]: [ok(page(12))] },
       extra: {
-        afterComplete: async () => { order.push("afterComplete"); },
-        saveCursor: async (_p, _b, complete) => { order.push(complete ? "klaar" : "cursor"); },
+        afterComplete: async (p) => { order.push(`klaarstappen ${p.slice(-1)}`); },
+        saveCursor: async (p, _b, complete) => { order.push(`${complete ? "klaar" : "cursor"} ${p.slice(-1)}`); },
       },
     });
     const result = await runStravaHistoryBackfill({}, { deadline: 8000, deps });
-    expect(order).toEqual(["cursor", "afterComplete", "klaar"]);
-    expect(log.stored).toEqual([12]);
-    expect(result.complete).toBe(true);
+    expect(order.slice(0, 4)).toEqual(["cursor a", "klaarstappen a", "klaar a", "cursor b"]);
+    expect(log.fetched.map((f) => f.profile)).toEqual([A, B, B]);
+    expect(result).toMatchObject({ pages: 3, completed: 1, profileId: B });
   });
 
   it("rondt ook af als er niets ouder is, zonder op te slaan of blokken te rekenen", async () => {
-    const { deps, log } = setup({ pages: { [A]: { status: "ok", activities: [] } } });
+    const { deps, log } = setup({ pages: { [A]: [ok([])] } });
     const result = await runStravaHistoryBackfill({}, { deadline: 8000, deps });
     expect(log.stored).toEqual([]);
     expect(log.afterPage).toEqual([]);
     expect(log.afterComplete).toEqual([A]);
-    expect(result.complete).toBe(true);
+    expect(result).toMatchObject({ pages: 1, completed: 1, stopped: "page" });
   });
 
   it("slaat een lid zonder gesyncte ritten over", async () => {
     const { deps, log } = setup({ candidates: [candidate(A), candidate(B)], oldest: { [A]: null } });
     await runStravaHistoryBackfill({}, { deadline: 8000, deps });
-    expect(log.fetched.map((f) => f.profile)).toEqual([B]);
+    expect(new Set(log.fetched.map((f) => f.profile))).toEqual(new Set([B]));
   });
 
   it("gaat naar het volgende lid als Strava een token weigert, maar begrenst dat", async () => {
-    const refused = setup({ candidates: [candidate(A), candidate(B)], pages: { [A]: { status: "auth_failed" } } });
+    const refused = setup({ candidates: [candidate(A), candidate(B)], pages: { [A]: [{ status: "auth_failed" }] } });
     const result = await runStravaHistoryBackfill({}, { deadline: 8000, deps: refused.deps });
-    expect(refused.log.fetched.map((f) => f.profile)).toEqual([A, B]);
-    expect(result.profileId).toBe(B);
+    expect(refused.log.fetched.map((f) => f.profile)).toEqual([A, B, B, B]);
+    expect(result).toMatchObject({ profileId: B, pages: 3 });
 
-    const ids = ["1", "2", "3", "4"].map((n) => `00000000-0000-0000-0000-00000000000${n}`);
+    const ids = ["1", "2", "3", "4", "5", "6"].map((n) => `00000000-0000-0000-0000-00000000000${n}`);
     const allRefused = setup({
       candidates: ids.map((id) => candidate(id)),
-      pages: Object.fromEntries(ids.map((id) => [id, { status: "auth_failed" } as PageOutcome])),
+      pages: Object.fromEntries(ids.map((id) => [id, [{ status: "auth_failed" } as PageOutcome]])),
     });
     const capped = await runStravaHistoryBackfill({}, { deadline: 8000, deps: allRefused.deps });
-    expect(allRefused.log.fetched).toHaveLength(3);
+    expect(allRefused.log.fetched).toHaveLength(MAX_PAGES_PER_RUN + 2);
     expect(capped.stopped).toBe("failed");
   });
 
@@ -174,12 +189,26 @@ describe("runStravaHistoryBackfill", () => {
     expect(result.stopped).toBe("budget");
   });
 
-  it("stopt ruim voor de deadline, bij een rate limit en zonder migratie", async () => {
-    const late = setup({ extra: { now: () => 4500 } });
+  it("neemt geen nieuwe pagina als de run bijna om is", async () => {
+    let clock = 0;
+    const { deps, log } = setup({
+      extra: {
+        now: () => clock,
+        afterPage: async () => { clock += 2500; },
+      },
+    });
+    // Elke pagina kost 2,5 s: na de tweede is er nog 3 s, te weinig voor een derde.
+    const result = await runStravaHistoryBackfill({}, { deadline: 8000, deps });
+    expect(log.fetched).toHaveLength(2);
+    expect(result).toMatchObject({ pages: 2, stopped: "page" });
+
+    const late = setup({ extra: { now: () => 5000 } });
     expect((await runStravaHistoryBackfill({}, { deadline: 8000, deps: late.deps })).stopped).toBe("deadline");
     expect(late.log.fetched).toEqual([]);
+  });
 
-    const limited = setup({ pages: { [A]: { status: "rate_limited" } } });
+  it("stopt bij een rate limit en zonder migratie", async () => {
+    const limited = setup({ pages: { [A]: [{ status: "rate_limited" }] } });
     expect((await runStravaHistoryBackfill({}, { deadline: 8000, deps: limited.deps })).stopped).toBe("rate_limited");
     expect(limited.log.cursors).toEqual([]);
 
@@ -188,7 +217,7 @@ describe("runStravaHistoryBackfill", () => {
   });
 
   it("stopt zonder cursor als een volle pagina oud-naar-nieuw terugkomt", async () => {
-    const { deps, log } = setup({ pages: { [A]: { status: "ok", activities: page(HISTORY_PAGE_SIZE).reverse() } } });
+    const { deps, log } = setup({ pages: { [A]: [ok(page(HISTORY_PAGE_SIZE).reverse())] } });
     const result = await runStravaHistoryBackfill({}, { deadline: 8000, deps });
     expect(result.stopped).toBe("failed");
     expect(log.stored).toEqual([]);

@@ -6,8 +6,8 @@
 // op met Strava's `before`-cursor, per lid, tot Strava een onvolle pagina geeft.
 //
 // Zuinig met het budget, want Strava's limieten gelden voor de hele app:
-// - hooguit één overzichtspagina (100 activiteiten) per run, plus een paar
-//   pogingen als Strava het token van een lid weigert;
+// - hooguit drie overzichtspagina's (elk 100 activiteiten) per run, zolang de run
+//   tijd heeft, plus een paar pogingen als Strava het token van een lid weigert;
 // - dezelfde krappe budgetgrens als de segment-inhaalslag (50% van het kwartier,
 //   60% van de dag), zodat leden die net een rit uploaden nooit wachten;
 // - het ritoverzicht bevat de routelijn al: ZWBlokken en cols kosten geen extra
@@ -33,12 +33,17 @@ import type { StravaRateLimitUsage } from "@/lib/strava/activity-api";
 
 export const HISTORY_BUDGET = { shortTermRatio: 0.5, dailyRatio: 0.6 } as const;
 export const HISTORY_PAGE_SIZE = 100;
-/** Een overzichtspagina plus opslaan en blokken rekenen; zonder deze marge niet beginnen. */
-const MIN_REMAINING_MS = 4000;
+/**
+ * Pagina's per run. Was 1 (2026-09-15); op verzoek van de eigenaar 3, omdat het
+ * budget ruim bleef (dag ~25%) en ZWBlokken anders dagen op zich liet wachten.
+ */
+export const MAX_PAGES_PER_RUN = 3;
+/** Een overzichtspagina plus opslaan en blokken rekenen; zonder deze marge geen nieuwe pagina. */
+const MIN_REMAINING_MS = 3500;
 /** Hoeveel koppelingen we per run bekijken om er één met werk te vinden. */
 const CANDIDATE_LIMIT = 20;
-/** Weigert Strava een token, dan mag het volgende lid; maar nooit onbeperkt. */
-const MAX_FETCHES_PER_RUN = 3;
+/** Aanroepen naar Strava per run, geweigerde tokens meegeteld: nooit onbeperkt. */
+const MAX_FETCHES_PER_RUN = MAX_PAGES_PER_RUN + 2;
 
 export type HistoryCandidate = StravaConnection & {
   history_before: string | null;
@@ -51,10 +56,13 @@ export type PageOutcome =
   | { status: "failed"; error: string };
 
 export type HistoryBackfillResult = {
+  /** Het laatste lid waarvoor deze run een pagina ophaalde. */
   profileId: string | null;
+  pages: number;
   seen: number;
   stored: number;
-  complete: boolean;
+  /** Leden die deze run compleet werden. */
+  completed: number;
   stopped:
     | "done"
     | "page"
@@ -125,73 +133,86 @@ export async function runStravaHistoryBackfill(
   const deps = { ...defaultDeps(admin), ...options.deps };
   const result: HistoryBackfillResult = {
     profileId: null,
+    pages: 0,
     seen: 0,
     stored: 0,
-    complete: false,
+    completed: 0,
     stopped: null,
   };
-
-  if (options.deadline - deps.now() < MIN_REMAINING_MS) {
-    return { ...result, stopped: "deadline" };
-  }
-  if (shouldPauseForRateLimit(await deps.loadUsage(), HISTORY_BUDGET).pause) {
-    return { ...result, stopped: "budget" };
-  }
+  // Na minstens één pagina is stoppen gewoon "er is gewerkt".
+  const stop = (reason: HistoryBackfillResult["stopped"]) => ({
+    ...result,
+    stopped: result.pages > 0 && (reason === "deadline" || reason === "budget") ? "page" : reason,
+  });
 
   const candidates = await deps.candidates();
   if (candidates === null) return { ...result, stopped: "no_migration" };
 
   let fetches = 0;
   for (const candidate of candidates) {
-    if (fetches >= MAX_FETCHES_PER_RUN) return { ...result, stopped: "failed", error: "Te veel geweigerde tokens." };
     // Nog geen enkele rit van de gewone sync: die haalt eerst de laatste vijf jaar
     // op. Pas daarna weten we waar de historie verder moet.
-    const before = candidate.history_before ?? (await deps.oldestSyncedStart(candidate.profile_id));
+    let before = candidate.history_before ?? (await deps.oldestSyncedStart(candidate.profile_id));
     if (!before) continue;
 
-    let token: string;
-    try {
-      token = await deps.tokenFor(candidate);
-    } catch {
-      // Koppelingsproblemen lost de webhook-/lifecycle-route op; volgende lid.
-      continue;
+    let token: string | null = null;
+
+    // Pagina's van dit lid tot het klaar is, of tot de run op is.
+    while (true) {
+      if (result.pages >= MAX_PAGES_PER_RUN) return stop("page");
+      if (fetches >= MAX_FETCHES_PER_RUN) {
+        return result.pages > 0 ? stop("page") : { ...result, stopped: "failed", error: "Te veel geweigerde tokens." };
+      }
+      if (options.deadline - deps.now() < MIN_REMAINING_MS) return stop("deadline");
+      if (shouldPauseForRateLimit(await deps.loadUsage(), HISTORY_BUDGET).pause) return stop("budget");
+
+      if (!token) {
+        try {
+          token = await deps.tokenFor(candidate);
+        } catch {
+          // Koppelingsproblemen lost de webhook-/lifecycle-route op; volgende lid.
+          break;
+        }
+      }
+
+      result.profileId = candidate.profile_id;
+      fetches++;
+      const page = await deps.fetchPage(token, Math.floor(Date.parse(before) / 1000));
+      if (page.status === "rate_limited") return stop("rate_limited");
+      if (page.status === "auth_failed") break;
+      if (page.status === "failed") return { ...result, stopped: "failed", error: page.error };
+
+      // Met alleen `before` geeft Strava de nieuwste eerst. Komt een volle pagina
+      // oud-naar-nieuw terug, dan zou de cursor de tussenliggende jaren overslaan en
+      // het lid ten onrechte als klaar markeren. Liever stoppen dan data missen.
+      if (!isNewestFirst(page.activities)) {
+        return { ...result, stopped: "failed", error: "Onverwachte volgorde van Strava." };
+      }
+      result.pages++;
+      result.seen += page.activities.length;
+      const rides = page.activities.filter(
+        (a): a is StravaActivity & { start_date: string } =>
+          Boolean(a.id && a.start_date) && isCyclingSportType(a.sport_type ?? a.type),
+      );
+      if (rides.length > 0) result.stored += await deps.storeRides(candidate, rides);
+
+      const cursor = nextCursor(page.activities, before);
+      // Eerst de cursor zonder "klaar": valt de run hierna om, dan kost de volgende
+      // run één lege pagina en draaien de afsluitende stappen alsnog.
+      await deps.saveCursor(candidate.profile_id, cursor.before, false);
+      if (rides.length > 0) await deps.afterPage(candidate.profile_id);
+      before = cursor.before;
+
+      if (cursor.complete) {
+        await deps.afterComplete(candidate.profile_id, token);
+        await deps.saveCursor(candidate.profile_id, cursor.before, true);
+        result.completed++;
+        break;
+      }
     }
-
-    result.profileId = candidate.profile_id;
-    fetches++;
-    const page = await deps.fetchPage(token, Math.floor(Date.parse(before) / 1000));
-    if (page.status === "rate_limited") return { ...result, stopped: "rate_limited" };
-    if (page.status === "auth_failed") continue;
-    if (page.status === "failed") return { ...result, stopped: "failed", error: page.error };
-
-    result.seen = page.activities.length;
-    // Met alleen `before` geeft Strava de nieuwste eerst. Komt een volle pagina
-    // oud-naar-nieuw terug, dan zou de cursor de tussenliggende jaren overslaan en
-    // het lid ten onrechte als klaar markeren. Liever stoppen dan data missen.
-    if (!isNewestFirst(page.activities)) {
-      return { ...result, stopped: "failed", error: "Onverwachte volgorde van Strava." };
-    }
-    const rides = page.activities.filter(
-      (a): a is StravaActivity & { start_date: string } =>
-        Boolean(a.id && a.start_date) && isCyclingSportType(a.sport_type ?? a.type),
-    );
-    if (rides.length > 0) result.stored = await deps.storeRides(candidate, rides);
-
-    const cursor = nextCursor(page.activities, before);
-    // Eerst de cursor zonder "klaar": valt de run hierna om, dan kost de volgende
-    // run één lege pagina en draaien de afsluitende stappen alsnog.
-    await deps.saveCursor(candidate.profile_id, cursor.before, false);
-    if (rides.length > 0) await deps.afterPage(candidate.profile_id);
-
-    if (cursor.complete) {
-      await deps.afterComplete(candidate.profile_id, token);
-      await deps.saveCursor(candidate.profile_id, cursor.before, true);
-      result.complete = true;
-    }
-    return { ...result, stopped: "page" };
   }
 
-  return { ...result, stopped: "done" };
+  return result.pages > 0 ? stop("page") : { ...result, stopped: "done" };
 }
 
 function defaultDeps(
