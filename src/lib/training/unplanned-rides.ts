@@ -6,10 +6,11 @@
 // terwijl juist die kilometers verklaren waarom een week zwaarder voelde dan
 // hij op papier was.
 //
-// De koppeling is dezelfde als in compliance.ts: elke workout claimt hooguit
-// één rit van die dag, en wat overblijft is ongepland. Bij een in tweeën
-// geknipte rit pakt de workout dus de helft die het dichtst bij de geplande
-// duur ligt, en komt de andere helft hier naar boven.
+// Een rit is ongepland als hij niet vastgelegd aan een training hangt. Een
+// afgeronde training zonder vastgelegde rit claimt er nog hooguit één van die
+// dag, zoals in compliance.ts. Bij een in tweeën geknipte rit pakt de training
+// dus de helft die het dichtst bij de geplande duur ligt, en komt de andere helft
+// hier naar boven.
 //
 // Bron is strava_activities, net als bij de naleving en de belastinggrafiek:
 // intervals.icu geeft via de API niets terug voor ritten die daar via Strava
@@ -70,8 +71,16 @@ export type WorkoutPairing = {
  * pacer group ride en 41 minuten race, met één geplande training ertegenover —
  * bleef er zo niets over.
  *
- * Een als rustdag afgeschreven training claimt niets: wie op zijn rustdag toch
- * reed, hoort die rit juist te zien staan.
+ * Alleen een afgeronde training zonder vastgelegde rit claimt er nog ter plekke
+ * een. Een training die op gepland staat niet: de kalender toont die als niet
+ * gereden, dus een rit die hij opeiste was nergens meer te zien. Zo verdween op
+ * 15 september 2026 na het loskoppelen van een rit de andere rit van die dag, die
+ * het lid juist aan die training wilde hangen. Een gereden rit bij een geplande
+ * training koppelt de detectie (detectCompletedWorkouts) vast; tot die langs is
+ * geweest staat hij hier als ongepland, en kan het lid hem zelf koppelen.
+ *
+ * Een als rustdag afgeschreven training claimt dus ook niets: wie op zijn rustdag
+ * toch reed, hoort die rit juist te zien staan.
  */
 export function unplannedRides(
   rides: StravaRideRow[],
@@ -91,7 +100,7 @@ export function unplannedRides(
     .filter(
       (workout) =>
         workout.intensity !== "rest" &&
-        workout.status !== "skipped" &&
+        workout.status === "completed" &&
         !alreadyPaired.has(workout.id),
     )
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));

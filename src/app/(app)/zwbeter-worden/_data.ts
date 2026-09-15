@@ -303,7 +303,37 @@ export type ScheduleRides = {
   unplanned: UnplannedRide[];
   /** Alle ritten uit het venster, op Strava-id: dag en naam, voor het koppelen. */
   byId: Map<string, { dateKey: string; name: string }>;
+  /** Strava-id's waar een training aan hangt, maar die rit bestaat niet meer. */
+  deleted: Set<string>;
 };
+
+/**
+ * Welke gekoppelde ritten niet meer bestaan. Alleen de id's die niet al in het
+ * venster zitten worden nagevraagd, en hooguit 200: een rit buiten het venster
+ * die nog bestaat is geen probleem, alleen een die weg is.
+ */
+async function deletedPairedRides(
+  viewer: Viewer,
+  reports: WorkoutReportRow[],
+  known: ReadonlyMap<string, unknown>,
+): Promise<Set<string>> {
+  const missing = [
+    ...new Set(
+      reports
+        .map((report) => (report.paired_activity_id ? String(report.paired_activity_id) : null))
+        .filter((id): id is string => Boolean(id) && !known.has(id!)),
+    ),
+  ].slice(0, 200);
+  if (missing.length === 0) return new Set();
+  const { data, error } = await viewer.supabase
+    .from("strava_activities")
+    .select("id")
+    .eq("profile_id", viewer.user.id)
+    .in("id", missing);
+  if (error) return new Set();
+  const present = new Set((data ?? []).map((row) => String(row.id)));
+  return new Set(missing.filter((id) => !present.has(id)));
+}
 
 /**
  * De ritten van het lid uit het schemavenster. Zelfde bron en venster als de
@@ -330,14 +360,15 @@ export async function loadScheduleRides(
     viewer.user.id,
     (data ?? []) as StravaRideRow[],
   );
-  if (rides.length === 0) return { unplanned: [], byId: new Map() };
-
   const byId = new Map(
     rides.map((ride) => [
       String(ride.id),
       { dateKey: amsterdamDayKey(new Date(ride.start_date)), name: ride.name?.trim() || "Rit" },
     ]),
   );
+  const deleted = await deletedPairedRides(viewer, reports, byId);
+  if (rides.length === 0) return { unplanned: [], byId, deleted };
+
   const unplanned = unplannedRides(
     rides,
     workouts.map((workout) => ({
@@ -355,24 +386,39 @@ export async function loadScheduleRides(
       activityId: report.paired_activity_id,
     })),
   );
-  return { unplanned, byId };
+  return { unplanned, byId, deleted };
 }
 
-/** De keuzes bij een rit: de training waar hij aan hangt en waar hij ook bij kan horen. */
+/**
+ * De keuzes bij een rit: de training waar hij aan hangt en waar hij ook bij kan
+ * horen. Een training die aan een verwijderde rit hangt telt als vrij; relinkRide
+ * laat die eerst los.
+ */
 export function rideLinkFor(
   ride: { activityId: string; dateKey: string; name: string },
   workoutId: string | null,
   workouts: WorkoutRow[],
   reports: WorkoutReportRow[],
+  deleted: ReadonlySet<string> = new Set(),
 ): RideLink {
+  const orphaned = new Set(
+    reports
+      .filter((report) => report.paired_activity_id && deleted.has(String(report.paired_activity_id)))
+      .map((report) => report.workout_id),
+  );
   const paired = new Set(
-    reports.filter((report) => report.paired_activity_id).map((report) => report.workout_id),
+    reports
+      .filter((report) => report.paired_activity_id && !orphaned.has(report.workout_id))
+      .map((report) => report.workout_id),
+  );
+  const pool = workouts.map((workout) =>
+    orphaned.has(workout.id) ? { ...workout, status: "planned" } : workout,
   );
   return {
     activityId: ride.activityId,
     workoutId,
     rideLabel: `${ride.name} · ${formatDayMonth(`${ride.dateKey}T12:00:00`)}`,
-    options: reassignCandidates(workouts, ride.dateKey, workoutId ?? "", paired).map(
+    options: reassignCandidates(pool, ride.dateKey, workoutId ?? "", paired).map(
       (candidate) => ({
         workoutId: candidate.id,
         label: `${candidate.title} · ${formatDayMonth(`${candidate.dayKey}T12:00:00`)}`,

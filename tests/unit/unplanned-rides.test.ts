@@ -43,8 +43,20 @@ function workout(
 
 describe("unplannedRides", () => {
   it("laat een rit die bij een geplande training hoort weg", () => {
-    const result = unplannedRides([ride({ id: 1 })], [workout({ id: "w1" })], FTP);
+    const result = unplannedRides([ride({ id: 1 })], [workout({ id: "w1", status: "completed" })], FTP);
     expect(result).toEqual([]);
+  });
+
+  // Melding eigenaar 2026-09-15: na loskoppelen stond de training weer op gepland,
+  // eiste die ter plekke de andere rit van die dag op, en verdween die rit uit de
+  // kalender terwijl de training "Niet gereden" bleef tonen.
+  it("laat een training die nog op gepland staat geen rit verbergen", () => {
+    const rides = [
+      ride({ id: 1, training_excluded_at: "2026-07-21T08:00:00Z", name: "Losgekoppeld" }),
+      ride({ id: 2, moving_time_seconds: 1800, start_date: "2026-07-20T18:00:00Z", name: "Wil ik koppelen" }),
+    ];
+    const result = unplannedRides(rides, [workout({ id: "w1", status: "planned" })], FTP);
+    expect(result.map((row) => row.name).sort()).toEqual(["Losgekoppeld", "Wil ik koppelen"]);
   });
 
   it("toont een losgekoppelde rit als ongepland, ook met een training die dag", () => {
@@ -61,7 +73,7 @@ describe("unplannedRides", () => {
       ride({ id: 1, moving_time_seconds: 3300, name: "Ochtendrit" }),
       ride({ id: 2, moving_time_seconds: 900, start_date: "2026-07-20T10:15:00Z", name: "Ochtendrit deel 2" }),
     ];
-    const result = unplannedRides(rides, [workout({ id: "w1" })], FTP);
+    const result = unplannedRides(rides, [workout({ id: "w1", status: "completed" })], FTP);
     // De workout claimt de helft die het dichtst bij de geplande 60 min ligt.
     expect(result.map((row) => row.id)).toEqual([2]);
     expect(result[0].name).toBe("Ochtendrit deel 2");
@@ -73,7 +85,7 @@ describe("unplannedRides", () => {
       ride({ id: 1 }),
       ride({ id: 2, moving_time_seconds: 1800, start_date: "2026-07-20T18:00:00Z", name: "Herstelrondje" }),
     ];
-    const result = unplannedRides(rides, [workout({ id: "w1" })], FTP);
+    const result = unplannedRides(rides, [workout({ id: "w1", status: "completed" })], FTP);
     expect(result.map((row) => row.name)).toEqual(["Herstelrondje"]);
   });
 
@@ -124,9 +136,9 @@ describe("unplannedRides", () => {
     expect(result.map((row) => row.name)).toEqual(["Pacer Group Ride with Coco"]);
   });
 
-  it("laat een workout zonder koppeling wel gewoon een rit claimen", () => {
+  it("laat een afgeronde workout zonder koppeling wel gewoon een rit claimen", () => {
     const rides = [ride({ id: 1 }), ride({ id: 2, moving_time_seconds: 900, name: "Extra" })];
-    const result = unplannedRides(rides, [workout({ id: "w1" })], FTP, [
+    const result = unplannedRides(rides, [workout({ id: "w1", status: "completed" })], FTP, [
       { workoutId: "w-andere-dag", activityId: "999" },
     ]);
     expect(result.map((row) => row.name)).toEqual(["Extra"]);

@@ -151,6 +151,18 @@ export async function runPostSyncForProfile(
       }
     }
 
+    // Een in Strava verwijderde rit laat zijn training los, vóór de detectie: dan
+    // kan een tweede rit van die dag (vaak de dubbele upload die bleef) er meteen
+    // aan. Zie releaseDeletedRides.
+    if ((steps.removedActivityIds ?? []).length > 0) {
+      try {
+        const { releaseDeletedRides } = await import("@/lib/training/completion");
+        await releaseDeletedRides(admin, profileId, steps.removedActivityIds ?? []);
+      } catch {
+        // niet kritiek; de detectie herstelt dit later zelf
+      }
+    }
+
     // Geplande workouts afronden waar een rit bij hoort, zodat het lid het
     // bevestigscherm krijgt. Hangt alleen aan intervals.icu, dus los van de
     // Strava-scope hierboven.

@@ -1023,7 +1023,9 @@ export default function HelpPage() {
               training waar de rit eerst aan hing telt weer als niet gereden. Kies
               je <strong className="text-foreground">Geen training</strong>, dan
               blijft de rit los staan en koppelt ZWB hem niet opnieuw; wat je bij
-              die training had ingevuld vervalt dan.
+              die training had ingevuld vervalt dan. Verwijder je een rit in
+              Strava, dan komt de training vanzelf weer vrij en blijft wat je
+              invulde staan, zodat je er een andere rit aan kunt hangen.
             </p>
             <p
               id="tijd-per-zone"
