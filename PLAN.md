@@ -1052,8 +1052,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — ZWBlokken in de Zwift-werelden
 
-**2026-09-15, commit `f8eba4a` op branch `claude/zwblokken-gamification-titles-a65ad0`,
-niet gepusht.** Migratie `0165` (`profile_zwift_blocks`, view `club_zwift_blocks`,
+**2026-09-15, commit `f8eba4a`, gepusht naar `main` 2026-09-15 (19:31 UTC).** Migratie `0165` (`profile_zwift_blocks`, view `club_zwift_blocks`,
 `strava_activities.zwift_blocks_processed_at`). Geen nieuwe privacyversie.
 
 **Waarom.** Stijn wilde Watopia en de andere Zwift-werelden in ZWBlokken. Zwift-ritten
@@ -1136,8 +1135,18 @@ bleven tot nu toe bewust buiten de kaart.
   per wereld.
 - De dry-run tegen productie gaf dezelfde aantallen als het onderzoek.
 
+**Uitrol (2026-09-15).**
+- `0165` is door de eigenaar gedraaid. De tabel, de view en de kolom zijn vóór de
+  push alleen-lezend gecontroleerd.
+- De backfill `?zwift=1&limit=1&maxActivities=1000` liep in 17 aanroepen van 1 tot
+  7 s, allemaal HTTP 200.
+- Resultaat: 8.469 Zwift-blokken, 0 `VirtualRide`-ritten onverwerkt.
+- Nageteld per wereld: de club-blokken zijn **exact gelijk aan de dry-run**
+  (Watopia 321 … Crit City 4).
+- Twee profielen hadden wel `VirtualRide`-ritten, maar geen herkenbare
+  Zwift-routelijn, en kregen 0 blokken.
+
 *Niet geverifieerd:*
-- `0165` en de backfill zijn niet gedraaid; migraties zijn lokaal niet te testen.
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
 
 ### Opgeleverd — volledige Strava-historie, geleidelijk opgehaald
