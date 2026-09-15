@@ -28,19 +28,47 @@ describe("regionForBlock", () => {
     }); // Eindhoven
   });
 
-  it("herkent omringende landen zonder provincie", () => {
+  it("wijst provincies en deelstaten in de buurlanden toe", () => {
     expect(regionAt(50.8467, 4.3517)).toEqual({
       country: "BE",
-      province: null,
+      province: "BE-BRU",
     }); // Brussel
+    expect(regionAt(50.9307, 5.3378)).toEqual({
+      country: "BE",
+      province: "BE-VLI",
+    }); // Hasselt
     expect(regionAt(50.9375, 6.9603)).toEqual({
       country: "DE",
-      province: null,
+      province: "DE-NW",
     }); // Keulen
-    expect(regionAt(48.8566, 2.3522)).toEqual({
+    expect(regionAt(49.6116, 6.1319)).toEqual({
+      country: "LU",
+      province: "LU-L",
+    }); // Luxemburg-stad
+    expect(regionAt(45.9237, 6.8694)).toEqual({
       country: "FR",
-      province: null,
-    }); // Parijs
+      province: "FR-ARA",
+    }); // Chamonix
+  });
+
+  it("voegt Franse departementen samen tot regio's", () => {
+    expect(regionAt(48.8566, 2.3522).province).toBe("FR-IDF"); // Parijs
+    expect(regionAt(48.4047, 2.7016).province).toBe("FR-IDF"); // Fontainebleau
+    expect(regionAt(50.6292, 3.0573).province).toBe("FR-HDF"); // Rijsel
+    expect(regionAt(49.8941, 2.2958).province).toBe("FR-HDF"); // Amiens
+  });
+
+  it("geeft een blok alleen een provincie uit het eigen land", () => {
+    // Grensgebied Baarle en Zuid-Limburg: land- en provinciegrenzen komen uit
+    // twee lagen, maar de provincie moet altijd bij het land passen.
+    const coords: [number, number][] = [];
+    for (let lat = 50.75; lat <= 51.5; lat += 0.01) {
+      for (let lon = 4.8; lon <= 6.1; lon += 0.02) coords.push([lat, lon]);
+    }
+    for (const [lat, lon] of coords) {
+      const { country, province } = regionAt(lat, lon);
+      if (province) expect(province.startsWith(`${country}-`)).toBe(true);
+    }
   });
 
   it("rekent de Canarische Eilanden tot Spanje", () => {
@@ -59,20 +87,30 @@ describe("regionForBlock", () => {
 });
 
 describe("regio-noemers", () => {
-  it("kent alle twaalf provincies", () => {
-    const provinces = REGIONS.filter((r) => r.level === "province");
-    expect(provinces).toHaveLength(12);
-    expect(provinces.every((p) => p.blocks > 0)).toBe(true);
+  const provincesOf = (country: string) =>
+    REGIONS.filter(
+      (r) => r.level === "province" && r.code.startsWith(`${country}-`),
+    );
+
+  it("kent alle provincies, deelstaten en regio's", () => {
+    expect(provincesOf("NL")).toHaveLength(12);
+    expect(provincesOf("BE")).toHaveLength(11); // tien provincies en Brussel
+    expect(provincesOf("LU")).toHaveLength(3);
+    expect(provincesOf("DE")).toHaveLength(16);
+    expect(provincesOf("FR")).toHaveLength(13); // Europees Frankrijk, met Corsica
+    expect(
+      REGIONS.filter((r) => r.level === "province").every((p) => p.blocks > 0),
+    ).toBe(true);
   });
 
-  it("laat de provincies samen ongeveer op Nederland uitkomen", () => {
+  it("laat de provincies samen ongeveer op hun land uitkomen", () => {
     // Onafhankelijk gerasterd, dus een klein verschil op de grenzen is normaal.
-    const sum = REGIONS.filter((r) => r.level === "province").reduce(
-      (total, p) => total + p.blocks,
-      0,
-    );
-    const nl = regionByCode("NL")!.blocks;
-    expect(Math.abs(sum - nl) / nl).toBeLessThan(0.02);
+    // Frankrijk niet: het land telt de overzeese gebieden mee, de regio's niet.
+    for (const country of ["NL", "BE", "LU", "DE"]) {
+      const sum = provincesOf(country).reduce((t, p) => t + p.blocks, 0);
+      const total = regionByCode(country)!.blocks;
+      expect(Math.abs(sum - total) / total).toBeLessThan(0.02);
+    }
   });
 
   it("heeft blokaantallen die kloppen met de werkelijke oppervlakte", () => {

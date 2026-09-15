@@ -11,6 +11,7 @@
 
 import data from "./regions.json";
 import { BLOCK_ZOOM } from "./grid";
+import { countryOfProvince } from "./titles";
 
 type RawRegion = {
   code: string;
@@ -42,7 +43,21 @@ const BY_CODE = new Map(REGIONS.map((r) => [r.code, r]));
 export const regionByCode = (code: string) => BY_CODE.get(code);
 
 const COUNTRIES = RAW.filter((r) => r.level === "country");
-const PROVINCES = RAW.filter((r) => r.level === "province");
+
+/**
+ * Provincies per land. De code begint altijd met de landcode (NL-LI, BE-VLI),
+ * en we zoeken alleen binnen het land van het blok: land- en provinciegrenzen
+ * komen uit twee losse Natural Earth-lagen, en een blok op de grens mag nooit
+ * in Nederland liggen maar een Belgische provincie krijgen.
+ */
+const PROVINCES_BY_COUNTRY = new Map<string, RawRegion[]>();
+for (const region of RAW) {
+  if (region.level !== "province") continue;
+  const country = countryOfProvince(region.code);
+  const list = PROVINCES_BY_COUNTRY.get(country) ?? [];
+  list.push(region);
+  PROVINCES_BY_COUNTRY.set(country, list);
+}
 
 /** Middelpunt van een blok, in graden. */
 function blockCentre(x: number, y: number): [number, number] {
@@ -82,14 +97,15 @@ function match(list: RawRegion[], lon: number, lat: number): RawRegion | null {
 export type BlockRegion = { country: string | null; province: string | null };
 
 /**
- * Land en (voor Nederland) provincie van een blok. Buiten Europa is `country`
- * null: die regio's tonen we niet, maar het blok telt wel gewoon mee op de
- * kaart en in het totaal.
+ * Land en provincie van een blok. Provincies zijn er voor Nederland, België,
+ * Luxemburg, Duitsland (deelstaten) en Frankrijk (regio's). Buiten Europa is
+ * `country` null: die regio's tonen we niet, maar het blok telt wel gewoon mee
+ * op de kaart en in het totaal.
  */
 export function regionForBlock(x: number, y: number): BlockRegion {
   const [lon, lat] = blockCentre(x, y);
   const country = match(COUNTRIES, lon, lat);
-  // Alleen zoeken naar een provincie als het blok in Nederland ligt.
-  const province = country?.code === "NL" ? match(PROVINCES, lon, lat) : null;
+  const provinces = country ? PROVINCES_BY_COUNTRY.get(country.code) : undefined;
+  const province = provinces ? match(provinces, lon, lat) : null;
   return { country: country?.code ?? null, province: province?.code ?? null };
 }

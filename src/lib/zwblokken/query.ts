@@ -5,6 +5,7 @@
 // actief lid heeft al gauw een paar duizend blokken.
 
 import { BLOCK_ZOOM } from "./grid";
+import { addBlock, type RegionStandings, type StandingRow } from "./titles";
 
 /** x → lijst van y's. */
 export type PackedBlocks = Record<string, number[]>;
@@ -92,25 +93,35 @@ export async function fetchClubBlocks(
   return { packed, total, maxRiders, regions };
 }
 
-/** Aantal blokken per lid, voor de kiezer en de ranglijst. */
-export async function fetchBlockCounts(
+/**
+ * Aantal blokken per lid (voor de kiezer en de ranglijst) en de stand per
+ * regio (voor de titels), uit één scan over alle blokken.
+ */
+export async function fetchClubStandings(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-): Promise<Map<string, number>> {
+): Promise<{ counts: Map<string, number>; standings: RegionStandings }> {
   const counts = new Map<string, number>();
+  const standings: RegionStandings = new Map();
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("profile_blocks")
-      .select("profile_id")
+      .select("profile_id, country, province, first_seen_at")
       .eq("z", BLOCK_ZOOM)
+      // Vaste sortering: zonder die kan de paginering rijen overslaan of
+      // dubbel tellen, en dan klopt een titel net niet.
+      .order("profile_id", { ascending: true })
+      .order("x", { ascending: true })
+      .order("y", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
-    for (const row of data as { profile_id: string }[]) {
+    for (const row of data as StandingRow[]) {
       counts.set(row.profile_id, (counts.get(row.profile_id) ?? 0) + 1);
+      addBlock(standings, row);
     }
     if (data.length < PAGE) break;
   }
-  return counts;
+  return { counts, standings };
 }
 
 /** Hoeveel blokken heeft dit lid dit kalenderjaar voor het eerst aangedaan? */

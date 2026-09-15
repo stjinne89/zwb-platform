@@ -4,13 +4,14 @@
 // dekkingstabel allemaal datzelfde lid tonen.
 
 import { useEffect, useState } from "react";
-import { Grid3x3, MapPin, Sparkles } from "lucide-react";
+import { Crown, Grid3x3, Landmark, MapPin, Sparkles } from "lucide-react";
+import { countryOfProvince } from "@/lib/zwblokken/titles";
 import {
   BlocksMap,
   type PackedBlocks,
   type PackedClubBlocks,
 } from "./blocks-map";
-import { Coverage, type RegionMeta } from "./coverage";
+import { Coverage, type RegionMeta, type RulerMap } from "./coverage";
 
 export type MemberOption = { id: string; name: string; blocks: number };
 
@@ -28,6 +29,7 @@ type Props = {
   clubTotal: number;
   maxRiders: number;
   regions: RegionMeta[];
+  rulers: RulerMap;
   members: MemberOption[];
   selectedId: string;
   initial: MemberData;
@@ -62,12 +64,67 @@ function Stat({
   );
 }
 
+/**
+ * De titels van één lid: landen eerst, daarna provincies, het grootste gebied
+ * voorop. Namen die in meer landen voorkomen (Limburg, Luxemburg) krijgen de
+ * landcode erachter.
+ */
+function Titles({
+  regions,
+  rulers,
+  memberId,
+}: {
+  regions: RegionMeta[];
+  rulers: RulerMap;
+  memberId: string;
+}) {
+  const seen = new Map<string, number>();
+  for (const r of regions) seen.set(r.name, (seen.get(r.name) ?? 0) + 1);
+
+  const held = regions
+    .filter((r) => rulers[r.code]?.profileId === memberId)
+    .sort((a, b) =>
+      a.level === b.level
+        ? b.blocks - a.blocks
+        : a.level === "country"
+          ? -1
+          : 1,
+    );
+  if (held.length === 0) return null;
+
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {held.map((region) => {
+        const Icon = region.level === "country" ? Crown : Landmark;
+        const name =
+          region.level === "province" && (seen.get(region.name) ?? 0) > 1
+            ? `${region.name} (${countryOfProvince(region.code)})`
+            : region.name;
+        return (
+          <li
+            key={region.code}
+            className="flex items-center gap-1.5 rounded-full border bg-card/90 px-3 py-1 text-sm"
+          >
+            <Icon
+              aria-hidden
+              className="size-3.5"
+              style={{ color: "rgb(var(--zwblok-own-text))" }}
+            />
+            {rulers[region.code].title} van {name}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function ZwblokkenView({
   club,
   clubRegions,
   clubTotal,
   maxRiders,
   regions,
+  rulers,
   members,
   selectedId,
   initial,
@@ -161,12 +218,16 @@ export function ZwblokkenView({
         />
       </div>
 
+      <Titles regions={regions} rulers={rulers} memberId={memberId} />
+
       <BlocksMap club={club} own={data.blocks} maxRiders={maxRiders} />
 
       <Coverage
         regions={regions}
         own={data.regions}
         club={clubRegions}
+        rulers={rulers}
+        memberId={memberId}
         memberName={memberName}
       />
     </div>

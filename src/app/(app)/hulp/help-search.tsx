@@ -175,7 +175,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "De blokkenkaart: waar heb jij en waar heeft de club al gereden?",
     href: "/hulp#zwblokken",
     terms:
-      "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken",
+      "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken koning koningin vorst gouverneur titel provincie deelstaat",
   },
   {
     title: "Privacy en zichtbaarheid",

@@ -22,6 +22,7 @@ export const PRIVACY_VERSIONS = [
   "2026-08-07", // live locatie tijdens tracking, en grofmazig bereden gebied
   "2026-08-18", // gezondheidsgegevens: klachtenlogboek en herstelwaarden
   "2026-09-13", // ZWB-segmentkaart en onderling clubklassement
+  "2026-09-15", // ZWBlokken-titels tonen het opgegeven geslacht aan clubleden
 ] as const;
 
 export type PrivacyVersion = (typeof PRIVACY_VERSIONS)[number];

@@ -1877,9 +1877,23 @@ Fitness-status: Verbeterend`}
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
-              Onder de kaart staat per provincie en per Europees land hoeveel
-              procent van de blokken je gehad hebt. Ritten buiten Europa kleuren
-              wel op de kaart, maar hebben geen gebied in die tabel.
+              Onder de kaart staat per Europees land hoeveel procent van de
+              blokken je gehad hebt, en per provincie in Nederland, België,
+              Luxemburg, Duitsland (deelstaten) en Frankrijk (regio&apos;s).
+              Ritten buiten Europa kleuren wel op de kaart, maar hebben geen
+              gebied in die tabel.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Wie in een land de meeste
+              blokken heeft, is er Koning of Koningin; in een provincie
+              Gouverneur.</strong> Het gaat om verschillende blokken, niet om
+              kilometers: steeds hetzelfde rondje levert niets op. Bij een gelijk
+              aantal houdt wie dat aantal het eerst had de titel. Koning of
+              Koningin volgt het geslacht in je profiel; staat dat niet ingevuld,
+              dan word je Vorst.
             </span>
           </li>
           <li className="flex gap-2">

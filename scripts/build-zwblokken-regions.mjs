@@ -1,5 +1,6 @@
 // Bouwt src/lib/zwblokken/regions.json: de regio's waarvoor ZWBlokken dekking
-// toont (Nederlandse provincies en Europese landen), met per regio de
+// en titels toont (Europese landen, en provincies of deelstaten in Nederland,
+// België, Luxemburg, Duitsland en Frankrijk), met per regio de
 // vereenvoudigde omtrek én het totale aantal z14-blokken.
 //
 // Draaien:  node --max-old-space-size=6144 scripts/build-zwblokken-regions.mjs
@@ -205,17 +206,88 @@ for (const f of countries.features) {
 }
 console.log();
 
-console.log("Nederlandse provincies...");
+// Provincies, deelstaten en regio's: het gebied waarvan je gouverneur wordt.
+// Nederland blijft onvereenvoudigd, zoals vanaf het begin; de buurlanden zijn
+// groter en krijgen dezelfde tolerantie als de landen, anders wordt
+// regions.json onhandelbaar groot.
+const PROVINCE_COUNTRIES = {
+  Netherlands: 0,
+  Belgium: TOLERANCE,
+  Luxembourg: TOLERANCE,
+  Germany: TOLERANCE,
+  France: TOLERANCE,
+};
+
+// Natural Earth heeft hier geen (goede) Nederlandse naam voor.
+const NAME_OVERRIDES = {
+  "BE-VAN": "Antwerpen",
+  "BE-BRU": "Brussel",
+};
+
+// Frankrijk levert Natural Earth per departement; gouverneur word je van de
+// regio. Die hebben in het Nederlands grotendeels hun Franse naam.
+const FRENCH_REGIONS = {
+  "FR-ARA": "Auvergne-Rhône-Alpes",
+  "FR-BFC": "Bourgogne-Franche-Comté",
+  "FR-BRE": "Bretagne",
+  "FR-CVL": "Centre-Val de Loire",
+  "FR-COR": "Corsica",
+  "FR-GES": "Grand Est",
+  "FR-HDF": "Hauts-de-France",
+  "FR-IDF": "Île-de-France",
+  "FR-NOR": "Normandië",
+  "FR-NAQ": "Nouvelle-Aquitaine",
+  "FR-OCC": "Occitanie",
+  "FR-PDL": "Pays de la Loire",
+  "FR-PAC": "Provence-Alpes-Côte d'Azur",
+};
+
+console.log("Provincies en deelstaten...");
+// Franse departementen eerst verzamelen en daarna per regio samenvoegen. Het
+// samenvoegen is simpelweg de ringen achter elkaar zetten: departementen
+// overlappen niet, dus de even-oddregel en de scanline-telling geven voor een
+// punt binnen één departement hetzelfde antwoord als voor de hele regio.
+const frenchRings = new Map();
 for (const f of provinces.features) {
-  if (f.properties.admin !== "Netherlands") continue;
+  const tolerance = PROVINCE_COUNTRIES[f.properties.admin];
+  if (tolerance === undefined) continue;
+
+  if (f.properties.admin === "France") {
+    // De regiocode staat in de bron soms met een tab erachter.
+    const regionCode = f.properties.region_cod?.trim();
+    // Overzeese departementen hebben geen regio in FRENCH_REGIONS.
+    if (!regionCode || !FRENCH_REGIONS[regionCode]) continue;
+    const rings = prepareRings(f.geometry, tolerance);
+    if (!frenchRings.has(regionCode)) frenchRings.set(regionCode, []);
+    frenchRings.get(regionCode).push(...rings);
+    continue;
+  }
+
   const code = f.properties.iso_3166_2;
   // De Caribische bijzondere gemeenten zijn geen provincie.
   if (!code || code.startsWith("NL-BQ")) continue;
-  const rings = prepareRings(f.geometry, 0); // provincies zijn klein: niet vereenvoudigen
+  const rings = prepareRings(f.geometry, tolerance);
   if (rings.length === 0) continue;
   regions.push({
     code,
-    name: f.properties.name,
+    // Nederland houdt de naam die het altijd had; de buurlanden in het Nederlands.
+    name:
+      NAME_OVERRIDES[code] ??
+      (f.properties.admin === "Netherlands"
+        ? f.properties.name
+        : (f.properties.name_nl ?? f.properties.name)),
+    level: "province",
+    bbox: bboxOf(rings),
+    blocks: countBlocks(rings),
+    rings,
+  });
+  process.stdout.write(`  ${code} `);
+}
+for (const [code, rings] of frenchRings) {
+  if (rings.length === 0) continue;
+  regions.push({
+    code,
+    name: FRENCH_REGIONS[code],
     level: "province",
     bbox: bboxOf(rings),
     blocks: countBlocks(rings),
@@ -234,6 +306,6 @@ const kb = Math.round(readFileSync(OUT).length / 1024);
 console.log(`\n${regions.length} regio's -> ${OUT} (${kb} kB)`);
 console.table(
   regions
-    .filter((r) => r.level === "province" || ["NL", "BE", "DE", "FR", "ES"].includes(r.code))
+    .filter((r) => r.level === "province" || ["NL", "BE", "LU", "DE", "FR", "ES"].includes(r.code))
     .map((r) => ({ code: r.code, naam: r.name, blokken: r.blocks })),
 );

@@ -55,7 +55,7 @@ op cron-job.org.
 | Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
 | Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
-| ↳ regio's op bestaande blokken (eenmalig na migratie 0112): `?regions=1` | | | | |
+| ↳ regio's op bestaande blokken (na migratie 0112 én na elke nieuwe `regions.json`, laatst 2026-09-15): `?regions=1` | | | | |
 
 **Als een cron faalt**: alle routes zijn idempotent en mogen veilig opnieuw
 worden aangeroepen. Test handmatig met:

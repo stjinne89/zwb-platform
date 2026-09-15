@@ -764,7 +764,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 - **ZWBlokken** (2026-08, migr. `0111`+`0112`): kaart met verkende blokken per
   lid en voor de club (`zwblokken/_components/blocks-map.tsx`), dekking per
   provincie en per Europees land (`coverage.tsx`), en een ranglijst op aantal
-  blokken. Nav-item, dashboard- en statsintegratie, hulpsectie met zoekindex.
+  blokken. Provincies waren tot 2026-09-15 alleen Nederlands; sindsdien ook
+  België, Luxemburg, Duitsland en Frankrijk, met titels per gebied (zie
+  "ZWBlokken-titels" in het werkplan). Nav-item, dashboard- en statsintegratie, hulpsectie met zoekindex.
   Privacyregel: start- en eindblok tellen nooit mee, plus de eerste en laatste
   kilometer.
 - **Schema-herziening ZWBeter Worden** (2026-08, migr. `0113`–`0116`): het schema
@@ -985,6 +987,105 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
+
+**2026-09-15, commit `COMMIT` op branch `claude/zwblokken-gamification-titles-a65ad0`,
+niet gepusht.** Geen migratie. Wel een nieuwe privacyversie (`2026-09-15`).
+
+**Waarom.** ZWBlokken moest spannender worden voor alle leden. Wie in een land de
+meeste blokken heeft, wordt Koning of Koningin, en in een provincie Gouverneur.
+Klaar zodra per land en per provincie zichtbaar is wie de titel heeft.
+
+**Besluiten (met de eigenaar afgestemd).**
+- **Maatstaf.** Aantal verschillende blokken in het gebied, geen kilometers.
+  - De data lag er al: `profile_blocks.country/province`, zie `0112`.
+  - Het beloont verkennen, niet steeds hetzelfde rondje.
+- **Titel.** Een land geeft Koning (`sex='man'`), Koningin (`'vrouw'`) of **Vorst**
+  (leeg of `zeg_ik_liever_niet`). Een provincie geeft altijd Gouverneur.
+- **Gelijkspel.** De titel blijft bij wie het aantal het eerst bereikte. Dat moment
+  is het laatste `first_seen_at` van dat lid in de regio. Overnemen kan alleen met
+  strikt meer blokken.
+- **Provincies** nu ook buiten Nederland:
+  - België: 10 provincies plus Brussel.
+  - Luxemburg: de 3 districten die Natural Earth levert.
+  - Duitsland: 16 deelstaten.
+  - Frankrijk: de 13 Europese regio's, geen departementen en geen overzeese
+    gebieden.
+- **Toestemming.** De titel verraadt het opgegeven geslacht aan andere leden, en dat
+  was nieuw.
+  - Daarom een nieuwe privacyversie, en een tekst in het ZWBlokken-item van
+    `/privacy`.
+  - Wie `2026-09-15` nog niet tekende, blijft Vorst: `sexForTitle`,
+    `TITLE_SEX_CONSENT_VERSION`.
+  - De titel zelf (wie de meeste blokken heeft) viel al onder de bestaande
+    ZWBlokken-toestemming. Die per-lid-dekking was al zichtbaar.
+
+**Wat er is gekomen.**
+- `scripts/build-zwblokken-regions.mjs` levert provincies per land.
+  - Nederland blijft onvereenvoudigd, de buurlanden krijgen `TOLERANCE`.
+  - Franse departementen worden per `region_cod` samengevoegd door hun ringen achter
+    elkaar te zetten. Dezelfde even-oddregel geldt voor teller en noemer.
+  - Namen in het Nederlands (`name_nl`, met correcties voor Antwerpen en Brussel;
+    Franse regio's uit een vaste lijst).
+  - `regions.json` is 1,65 → 2,04 MB en heeft 62 → 105 regio's. De bestaande 62 zijn
+    byte-gelijk gebleven.
+  - Provincies tellen per land op tot binnen 0,1 % van het land. Frankrijk wijkt
+    af, want het land telt de overzeese gebieden mee.
+- `regionForBlock` zoekt een provincie alleen binnen het land van het blok. Een
+  grensblok in Nederland krijgt dus nooit een Belgische provincie.
+- Nieuw `src/lib/zwblokken/titles.ts` (puur): `addBlock`, `pickRulers`,
+  `rulerTitle`, `sexForTitle`, `countryOfProvince`.
+- `fetchBlockCounts` heet nu `fetchClubStandings`.
+  - Dezelfde ene scan levert ook de stand per regio.
+  - Nieuw is een vaste sortering op `(profile_id, x, y)`. Zonder die sortering kon de
+    paginering rijen overslaan of dubbel tellen, en dat gold ook al voor de oude
+    telling.
+- `/zwblokken`:
+  - Per gebied een regel met kroon- of landmark-icoon en de titelhouder, in goud als
+    dat het geselecteerde lid is.
+  - De provincietabel is per land opgesplitst ("Deelstaten in Duitsland").
+  - Onder de stats staan chips met de titels van het geselecteerde lid. Namen die
+    dubbel voorkomen krijgen een landcode: "Gouverneur van Limburg (BE)".
+  - Alleen goedgekeurde leden dingen mee.
+- `/hulp#zwblokken` legt de titels uit. De zoekwoorden zijn uitgebreid.
+
+**Bewust niet gebouwd.**
+- **Grotere blokken.** Titels vergelijken leden onderling. Een groter blok
+  verandert nauwelijks wie wint en geeft alleen meer gelijkspel. Het zou vooral de
+  dekkingspercentages sneller laten stijgen, en dat is een ander doel. Geparkeerd.
+- **Kilometers als maatstaf.** Daarvoor is een nieuwe berekening over alle polylines
+  nodig, plus opslag. En het beloont het vaste thuisrondje.
+- **Provincies voor andere landen.** Spanje, Italië en Oostenrijk hebben ook
+  clubblokken, maar er is om deze vijf landen gevraagd.
+- **Titel zelf kiezen.** Dat vraagt een migratie. Het geslacht uit het profiel
+  volstaat.
+
+**Stand in productie (alleen gelezen, 2026-09-15).**
+- 40.777 blokken van 10 leden. De scan kost ~3,3 s vanaf lokaal; die scan draaide
+  al bij elke paginaweergave.
+- Er zijn 28 titels vergeven, waarvan 16 aan één lid.
+- Of titels andere leden prikkelen, moet in de praktijk blijken. Dat was de open
+  vraag van deze ronde.
+
+**Uitrol — niet lokaal te verifiëren.** Na de deploy één keer
+`POST /api/zwblokken/backfill?regions=1` draaien (met `STRAVA_SYNC_SECRET`).
+Anders hebben bestaande blokken in BE/LU/DE/FR geen provincie. In een steekproef van
+1000 van zulke blokken kregen er 999 een provincie via `regionForBlock`. Nieuwe ritten
+krijgen de provincie vanzelf via de sync. Tot een lid de nieuwe privacyversie tekent,
+blijft diens landstitel Vorst.
+
+**Verificatie.**
+- `tsc --noEmit` zonder fouten, eslint schoon op de geraakte bestanden, en
+  `npm run build` geslaagd.
+- Vitest: 1098 geslaagd. Eén suite (`omnium-live.test.ts`) kon niet laden omdat de
+  worktree geen `.env.local` heeft; dat staat los van deze ronde.
+- Nieuw `zwblokken-titles.test.ts`. `zwblokken-regions.test.ts` is uitgebreid met
+  buurlandprovincies, samengevoegde Franse regio's, de landgrens en de sommen per
+  land.
+- De dekkingstabel is server-side gerenderd met testdata.
+- *Niet geverifieerd:* de pagina is niet in een ingelogde browser bekeken, en de
+  regio-backfill heeft niet in productie gedraaid.
 
 ### Opgeleverd — gewenste eindtijd ook naar het AI-voorstel (wens 7, deel 2)
 

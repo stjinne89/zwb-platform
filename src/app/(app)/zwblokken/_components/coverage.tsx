@@ -1,10 +1,14 @@
 "use client";
 
 // Dekking per provincie en per Europees land: hoeveel van de blokken die er
-// zijn, heeft dit lid (en heeft de club) al gehad?
+// zijn, heeft dit lid (en heeft de club) al gehad? En wie is er Koning(in) of
+// Gouverneur?
 //
 // Bewust geen wereldpercentage: dat blijft onder de honderdste procent hangen
 // en zegt niemand iets. Een provincie is een schaal waarop je vooruitgang ziet.
+
+import { Crown, Landmark } from "lucide-react";
+import { countryOfProvince } from "@/lib/zwblokken/titles";
 
 /** Alleen de metadata van een regio — de omtrekken blijven server-side. */
 export type RegionMeta = {
@@ -14,13 +18,27 @@ export type RegionMeta = {
   blocks: number;
 };
 
+/** Titelhouder van een regio, met de titel al ingevuld. */
+export type RulerInfo = { profileId: string; name: string; title: string };
+export type RulerMap = Record<string, RulerInfo>;
+
 type Props = {
   regions: RegionMeta[];
   own: Record<string, number>;
   club: Record<string, number>;
+  rulers: RulerMap;
+  memberId: string;
   memberName: string;
 };
 
+/** Hoe een provincie in dat land heet, voor de tabelkop. */
+const PROVINCE_LABEL: Record<string, string> = {
+  NL: "Provincies",
+  BE: "Provincies",
+  LU: "Districten",
+  DE: "Deelstaten",
+  FR: "Regio's",
+};
 type Row = { region: RegionMeta; own: number; club: number };
 
 const pct = (part: number, whole: number) => (part / whole) * 100;
@@ -68,14 +86,45 @@ function Bar({ ownPct, clubPct }: { ownPct: number; clubPct: number }) {
   );
 }
 
+function RulerLine({
+  region,
+  ruler,
+  highlight,
+}: {
+  region: RegionMeta;
+  ruler: RulerInfo | undefined;
+  highlight: boolean;
+}) {
+  if (!ruler) return null;
+  const Icon = region.level === "country" ? Crown : Landmark;
+  return (
+    <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+      <Icon aria-hidden className="size-3 shrink-0" />
+      <span>
+        {ruler.title}{" "}
+        <span
+          className={highlight ? "font-semibold" : "text-foreground"}
+          style={highlight ? { color: OWN_TEXT } : undefined}
+        >
+          {ruler.name}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 function Table({
   rows,
   caption,
   memberName,
+  memberId,
+  rulers,
 }: {
   rows: Row[];
   caption: string;
   memberName: string;
+  memberId: string;
+  rulers: RulerMap;
 }) {
   if (rows.length === 0) return null;
   return (
@@ -106,11 +155,17 @@ function Table({
             {rows.map(({ region, own, club }) => {
               const ownPct = pct(own, region.blocks);
               const clubPct = pct(club, region.blocks);
+              const ruler = rulers[region.code];
               return (
                 <tr key={region.code} className="border-b last:border-0">
                   <td className="py-1.5 pr-3">
                     {region.name}
                     <Bar ownPct={ownPct} clubPct={clubPct} />
+                    <RulerLine
+                      region={region}
+                      ruler={ruler}
+                      highlight={ruler?.profileId === memberId}
+                    />
                   </td>
                   <td
                     className="py-1.5 pr-3 text-right align-top font-medium tabular-nums"
@@ -134,7 +189,14 @@ function Table({
   );
 }
 
-export function Coverage({ regions, own, club, memberName }: Props) {
+export function Coverage({
+  regions,
+  own,
+  club,
+  rulers,
+  memberId,
+  memberName,
+}: Props) {
   const rows: Row[] = regions
     .map((region) => ({
       region,
@@ -150,18 +212,36 @@ export function Coverage({ regions, own, club, memberName }: Props) {
   const byClub = (a: Row, b: Row) =>
     pct(b.club, b.region.blocks) - pct(a.club, a.region.blocks);
 
+  const countries = rows.filter((r) => r.region.level === "country");
+
+  // Provincies per land, het land waar de club de meeste blokken heeft eerst.
+  const provinceGroups = countries
+    .filter((c) => PROVINCE_LABEL[c.region.code])
+    .sort((a, b) => b.club - a.club)
+    .map((country) => ({
+      country: country.region,
+      rows: rows
+        .filter(
+          (r) =>
+            r.region.level === "province" &&
+            countryOfProvince(r.region.code) === country.region.code,
+        )
+        .sort(byClub),
+    }));
+
+  const shared = { memberName, memberId, rulers };
+
   return (
     <section className="space-y-5 rounded-lg border bg-card/90 p-4">
-      <Table
-        rows={rows.filter((r) => r.region.level === "province").sort(byClub)}
-        caption="Provincies"
-        memberName={memberName}
-      />
-      <Table
-        rows={rows.filter((r) => r.region.level === "country").sort(byClub)}
-        caption="Landen"
-        memberName={memberName}
-      />
+      {provinceGroups.map(({ country, rows: provinceRows }) => (
+        <Table
+          key={country.code}
+          rows={provinceRows}
+          caption={`${PROVINCE_LABEL[country.code]} in ${country.name}`}
+          {...shared}
+        />
+      ))}
+      <Table rows={countries.sort(byClub)} caption="Landen" {...shared} />
     </section>
   );
 }

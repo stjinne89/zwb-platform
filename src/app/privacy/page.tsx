@@ -81,7 +81,11 @@ export default function PrivacyPage() {
             begint of eindigt telt nooit mee en de eerste en laatste kilometer
             van elke rit laten we buiten beschouwing, zodat je woonadres er niet
             uit af te leiden is. Zwift- en andere indoorritten blijven volledig
-            buiten deze kaart.
+            buiten deze kaart. Clubleden zien ook wie per land en per provincie
+            de meeste vakken heeft; die krijgt een titel. Voor een land is dat
+            Koning of Koningin als je in je profiel een geslacht hebt opgegeven,
+            en anders Vorst. Wie je titel ziet, kan daar dus je opgegeven
+            geslacht uit afleiden.
           </li>
           <li>
             <strong>ZWB Segments:</strong> ingelezen buitenritten leveren segmentnamen,

@@ -4,11 +4,13 @@ import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import {
   countNewThisYear,
-  fetchBlockCounts,
   fetchClubBlocks,
+  fetchClubStandings,
   fetchOwnBlocks,
 } from "@/lib/zwblokken/query";
-import { REGIONS } from "@/lib/zwblokken/regions";
+import { REGIONS, regionByCode } from "@/lib/zwblokken/regions";
+import { pickRulers, rulerTitle, sexForTitle } from "@/lib/zwblokken/titles";
+import type { RulerMap } from "./_components/coverage";
 import {
   ZwblokkenView,
   type MemberOption,
@@ -25,18 +27,40 @@ export default async function ZwblokkenPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [club, counts, own, newThisYear, profilesResult] = await Promise.all([
-    fetchClubBlocks(supabase),
-    fetchBlockCounts(supabase),
-    fetchOwnBlocks(supabase, user.id),
-    countNewThisYear(supabase, user.id),
-    supabase.from("profiles").select("id, display_name").eq("is_approved", true),
-  ]);
+  const [club, { counts, standings }, own, newThisYear, profilesResult] =
+    await Promise.all([
+      fetchClubBlocks(supabase),
+      fetchClubStandings(supabase),
+      fetchOwnBlocks(supabase, user.id),
+      countNewThisYear(supabase, user.id),
+      supabase
+        .from("profiles")
+        .select("id, display_name, sex, privacy_accepted_version")
+        .eq("is_approved", true),
+    ]);
 
   const profiles = (profilesResult.data ?? []) as {
     id: string;
     display_name: string | null;
+    sex: string | null;
+    privacy_accepted_version: string | null;
   }[];
+  const byId = new Map(profiles.map((p) => [p.id, p]));
+
+  const rulers: RulerMap = {};
+  for (const [code, ruler] of pickRulers(standings, new Set(byId.keys()))) {
+    const region = regionByCode(code);
+    const profile = byId.get(ruler.profileId);
+    if (!region || !profile) continue;
+    rulers[code] = {
+      profileId: ruler.profileId,
+      name: profile.display_name ?? "Naamloos lid",
+      title: rulerTitle(
+        region.level,
+        sexForTitle(profile.sex, profile.privacy_accepted_version),
+      ),
+    };
+  }
 
   // Alleen leden die daadwerkelijk blokken hebben; de kiezer moet geen lege
   // namen bevatten. De eigen naam staat altijd bovenaan.
@@ -84,6 +108,7 @@ export default async function ZwblokkenPage() {
             // Alleen de metadata; de omtrekken uit regions.json blijven op de
             // server, die zijn ruim anderhalve megabyte.
             regions={REGIONS}
+            rulers={rulers}
             members={members}
             selectedId={user.id}
             initial={{
