@@ -82,6 +82,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
   },
   {
+    title: "Tijd per zone",
+    text: "Gemeten minuten per zone bij een gereden training.",
+    href: "/hulp#tijd-per-zone",
+    terms: "tijd per zone zones gereden gemeten minuten zonedata geen zonedata intervals garmin wahoo strava vermogen",
+  },
+  {
     title: "Watt of W/kg",
     text: "Vermogen in watt of per kilo tonen in de trainingsruimte.",
     href: "/hulp#watt-wkg",

@@ -97,7 +97,9 @@ export default function PrivacyPage() {
             intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
             je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
-            afgeronde training je gewicht van dat moment. Hersteldata blijft afgeschermd tot je de
+            afgeronde training je gewicht van dat moment. Van een gereden training
+            halen we de vermogensmeting uit intervals.icu op en bewaren we alleen
+            hoeveel seconden je per zone reed, niet de meting zelf. Hersteldata blijft afgeschermd tot je de
             aparte opt-in aanzet. Je trekt die toegang zelf weer in op de
             trainingspagina.
           </li>

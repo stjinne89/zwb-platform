@@ -13,7 +13,10 @@ import {
   detectIntensityFromLoad,
   INTENSITY_COLORS,
   intensityLabel,
+  ZWIFT_ZONES,
+  type WorkoutBlock,
 } from "@/lib/training/workouts";
+import { plannedZoneSeconds } from "@/lib/training/zone-times";
 import { ZWB_LEVEL_META } from "@/lib/training/zwbeterworden";
 
 const PILL = "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium";
@@ -121,17 +124,78 @@ export function WorkoutVerdictPills({
   );
 }
 
+/**
+ * Gemeten minuten per Zwift-zone, met de geplande minuten ernaast als de opbouw
+ * bekend is. De balk is relatief aan de langste zone, gemeten of gepland.
+ */
+function ZoneTimesPanel({
+  metrics,
+  blocks,
+  ftpWatts,
+}: {
+  metrics: WorkoutMetricsSnapshot;
+  blocks?: WorkoutBlock[];
+  ftpWatts?: number | null;
+}) {
+  const zoneTimes = metrics.zoneTimes;
+  if (!zoneTimes) return null;
+  if (zoneTimes.source === "none") {
+    return <p className="text-xs text-muted-foreground">Geen zonedata</p>;
+  }
+  const planned = blocks?.length
+    ? plannedZoneSeconds(blocks, ftpWatts ?? zoneTimes.ftpWatts)
+    : null;
+  const max = Math.max(1, ...zoneTimes.seconds, ...(planned ?? []));
+  const minutes = (seconds: number) => Math.round(seconds / 60);
+
+  return (
+    <div className="space-y-1.5" aria-label="Tijd per zone">
+      {ZWIFT_ZONES.map((zone, index) => {
+        const ridden = zoneTimes.seconds[index] ?? 0;
+        const plan = planned?.[index] ?? 0;
+        if (ridden < 30 && plan < 30) return null;
+        return (
+          <div key={zone.zone} className="flex items-center gap-2 text-xs">
+            <span className="w-6 shrink-0 font-medium tabular-nums">Z{zone.zone}</span>
+            <div className="relative h-3 flex-1 overflow-hidden rounded bg-muted">
+              {planned ? (
+                <span
+                  className="absolute inset-y-0 left-0 border-r-2 border-foreground/40"
+                  style={{ width: `${(plan / max) * 100}%` }}
+                />
+              ) : null}
+              <span
+                className="absolute inset-y-0 left-0 rounded"
+                style={{ width: `${(ridden / max) * 100}%`, backgroundColor: zone.color }}
+              />
+            </div>
+            <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
+              {minutes(ridden)} min{planned ? ` / ${minutes(plan)}` : ""}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function WorkoutMetricsPanel({
   metrics,
   description,
+  blocks,
+  ftpWatts,
 }: {
   metrics: WorkoutMetricsSnapshot;
   description?: string | null;
+  /** De geplande opbouw, voor de geplande minuten per zone. */
+  blocks?: WorkoutBlock[];
+  ftpWatts?: number | null;
 }) {
   const note = powerNote(metrics);
   return (
     <div className="space-y-3">
       <WorkoutVerdictPills metrics={metrics} />
+      <ZoneTimesPanel metrics={metrics} blocks={blocks} ftpWatts={ftpWatts} />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <MetricStat label="TSS" value={nl(metrics.tss)} />

@@ -4,6 +4,7 @@
 // alles-in-één trainingspagina.
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -154,6 +155,13 @@ export async function loadIntervalsSnapshot(
 
     if (syncActivities) {
       await refreshIntervalsActivitiesIfStale(viewer, conn);
+      // Gemeten zonetijden pas na het antwoord: een watt-stream ophalen hoeft
+      // de pagina niet op te houden.
+      const { admin, user } = viewer;
+      after(async () => {
+        const { fillZoneTimes } = await import("@/lib/training/zone-times-fill");
+        await fillZoneTimes(admin, user.id, conn).catch(() => null);
+      });
     }
 
     // Zelfherstellend: de opgeslagen kopie voor de AI-planner bijwerken met de

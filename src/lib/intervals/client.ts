@@ -233,6 +233,35 @@ export async function fetchIntervalsActivities(
   );
 }
 
+export type IntervalsStream = { type: string; data: Array<number | null> };
+
+/**
+ * De tijdreeksen van één activiteit (standaard vermogen en tijd). intervals.icu
+ * geeft een lijst streams terug; een activiteit die via Strava binnenkwam heeft
+ * er geen, en dan komt er een lege lijst of een fout terug.
+ */
+export async function fetchIntervalsActivityStreams(
+  apiKey: string,
+  activityId: string,
+  types: string[] = ["time", "watts"],
+): Promise<IntervalsStream[]> {
+  const body = await intervalsFetch<unknown>(
+    apiKey,
+    `/api/v1/activity/${encodeURIComponent(activityId)}/streams.json?types=${types.join(",")}`,
+  );
+  const list = Array.isArray(body)
+    ? body
+    : body && typeof body === "object"
+      ? Object.entries(body as Record<string, unknown>).map(([type, data]) => ({ type, data }))
+      : [];
+  return list.flatMap((item) => {
+    const record = item as { type?: unknown; data?: unknown };
+    return typeof record.type === "string" && Array.isArray(record.data)
+      ? [{ type: record.type, data: record.data as Array<number | null> }]
+      : [];
+  });
+}
+
 /** Geplande events (workouts/races) voor de komende N dagen. */
 export async function fetchIntervalsEvents(
   apiKey: string,

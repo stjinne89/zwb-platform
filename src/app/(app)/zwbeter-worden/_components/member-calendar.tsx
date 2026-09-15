@@ -259,7 +259,9 @@ function WorkoutDetail({
           {/* Wat er gepland stond, naast hoe het ging: zonder de blokken moest je
               teruggokken welke opbouw je die dag had. */}
           <WorkoutBlocks blocks={detail.blocks} ftpWatts={ftpWatts} variant="compact" />
-          {detail.metrics ? <WorkoutMetricsPanel metrics={detail.metrics} /> : null}
+          {detail.metrics ? (
+            <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} />
+          ) : null}
           <WorkoutReportForm
             key={item.id}
             workoutId={item.id}

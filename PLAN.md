@@ -986,6 +986,69 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — gemeten tijd per Zwift-zone bij gereden trainingen (wens 16, deel 2)
+
+**2026-09-15, lokale commit op branch `claude/open-wensen-bb9c56`, niet
+gepusht.** Geen migratie; de zonetijden staan in `metrics_json.zoneTimes`.
+
+**Waarom.** Het tweede deel van Jeroens vraag: bij een voorbije training ook de
+gereden zones zien, niet alleen de geplande opbouw uit R3. Stap 0 (eigenaar,
+alleen lezen, 15 september) liet op 300 `intervals_activities` zien:
+- 154 activiteiten via Strava, zonder vermogen;
+- 146 rechtstreeks via Garmin, Wahoo of OAuth, waarvan 106 met `icu_zone_times`;
+- die `icu_zone_times` gaan over de eigen zones van het lid (Z1–Z7 + SS).
+
+De eigenaar koos om de watt-stream zelf in te delen in de zes Zwift-zones, gelijk
+aan de blokkleuren uit R4.
+
+**Wat er is gekomen.**
+- `src/lib/training/zone-times.ts` (puur, ook in de browser):
+  - `zoneSecondsFromStream`: 1 Hz of volgens de tijdreeks; uitval telt niet, een
+    gat van meer dan 10 s is een pauze;
+  - `plannedZoneSeconds`: op het midden van elk blokdoel;
+  - `pickIntervalsActivity`: lokale start binnen 10 min, rijtijd binnen 15 %,
+    Strava-stubs uitgesloten, dichtstbijzijnde start wint.
+- `zone-times-fill.ts` (server): `fillZoneTimes` haalt voor hooguit drie gereden
+  trainingen met vermogensmeter uit de laatste 14 dagen de streams op via
+  `fetchIntervalsActivityStreams` (nieuw in `client.ts`).
+  - Het resultaat komt in de momentopname als `{source: "intervals", intervalsId,
+    ftpWatts, seconds[6]}`.
+  - Na 2 dagen zonder passende activiteit, of bij een stream zonder vermogen:
+    `{source: "none"}`.
+  - Draait via `after()` na het verversen van intervals-activiteiten in
+    `loadIntervalsSnapshot`, zodat de pagina er niet op wacht.
+- `WorkoutMetricsPanel` toont per zone een balk met gereden minuten, een streep
+  voor de geplande minuten en "gereden / gepland". Zonder data staat er "Geen
+  zonedata". Het paneel krijgt de blokken van de kalender, de
+  "Afgewerkt en gemist"-lijst en de beoordelingsstapel.
+- `/hulp#tijd-per-zone` plus zoekentry.
+- Privacyverklaring: de vermogensmeting wordt opgehaald, alleen de seconden per
+  zone worden bewaard.
+
+**Bewust niet gebouwd.**
+- Geen Strava-streams als terugval: dat kost budget onder de atletenlimiet.
+- Geen `icu_zone_times` van intervals.icu: andere zones dan de blokken.
+- Niet opnieuw indelen na een FTP-wijziging: `ftpWatts` staat erbij.
+- Geen aanvulling voor trainingen ouder dan 14 dagen.
+- **Geen nieuwe privacyversie.** De vermogensdata kwam al binnen via de
+  intervals-koppeling en gaat naar dezelfde ontvangers (lid en trainer); nieuw is
+  alleen de afgeleide seconden per zone. Dat is een inschatting die de eigenaar kan
+  herzien.
+
+**Verificatie.** `tsc --noEmit` zonder fouten, lint zonder fouten, Vitest volledig
+groen (1093 geslaagd). Nieuw `zone-times.test.ts`: zonegrenzen, uitval en pauzes,
+tijdstappen, geplande seconden, koppeling (Strava-stub, afwijkende rijtijd of
+start, dichtstbijzijnde). `next build` compileert; het prerenderen strandt lokaal
+op de Omnium-pagina's zonder Supabase-sleutels (niet door deze ronde).
+
+*Niet geverifieerd:*
+- **Vorm van de stream.** De test in stap 0 is niet gelopen (de eigenaar had in
+  die selectie geen ritten buiten Strava). De client leest daarom zowel een lijst
+  als een object met streams.
+- **`after()` op Netlify.** Of het na het antwoord blijft draaien, is niet
+  gecontroleerd.
+- **Ingelogd.** Geen ingelogde weergave bekeken.
+
 ### Opgeleverd — gewenste eindtijd ook naar het AI-voorstel (wens 7, deel 2)
 
 **2026-09-14, commit `32a01b0` op `main`, gepusht 2026-09-15.** Geen migratie.
