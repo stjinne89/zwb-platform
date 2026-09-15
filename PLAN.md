@@ -1216,8 +1216,8 @@ op gepland staat, met de pushmelding "Bevestig je training". Een training
 blijvend "niet gereden" laten, ook als er die dag nog een rit is, vraagt een
 markering op de training. Die keuze ligt bij de eigenaar.
 
-**Nazorg 2026-09-15 (2): in Strava verwijderde rit.** Commit `5873bbd`, gepusht naar `main` 2026-09-15;
-gepusht. Geen migratie. Melding van de eigenaar: Bart verwijderde in Strava een
+**Nazorg 2026-09-15 (2): in Strava verwijderde rit.** Commit `5873bbd`, gepusht naar `main` 2026-09-15.
+Geen migratie. Melding van de eigenaar: Bart verwijderde in Strava een
 rit die aan zijn training hing. De rit ging weg uit `strava_activities`, maar
 `training_workout_reports.paired_activity_id` bleef ernaar wijzen en de training
 bleef op `completed`. De kalender toonde **Hoort bij** alleen als de rit
