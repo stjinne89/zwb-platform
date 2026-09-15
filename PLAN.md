@@ -400,7 +400,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-kom-round -->
 
 <!-- zwb-segment-qom-push-round -->
-- **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; commit volgt, lokaal,
+- **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; `cc3f2df`, lokaal,
   niet gepusht; migratie `0162`, draaien ná `0161` en vóór de deploy). Op verzoek van de
   eigenaar, met drie keuzes van de eigenaar: KOM blijft de snelste van iedereen, QOM is
   daarnaast de snelste vrouw (`profiles.sex`), de drempel blijft drie ZWB'ers op het segment
