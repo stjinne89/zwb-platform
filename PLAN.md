@@ -1151,7 +1151,7 @@ bleven tot nu toe bewust buiten de kaart.
 *Niet geverifieerd:*
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
 
-**Minimap als ondergrond (2026-09-15, commit `COMMITM`).** Stijn zag de blokken op een
+**Minimap als ondergrond (2026-09-15, commit `b5c4262`).** Stijn zag de blokken op een
 effen vlak en wilde een echte kaart. Hij had drie opties:
 - Zwifts eigen minimap;
 - OpenStreetMap voor de acht werelden op echte plekken;
