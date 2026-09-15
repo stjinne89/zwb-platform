@@ -179,11 +179,32 @@ op productie is dus niet gemeten.
   intrekken niet op de taak wacht.
 - Dashboard: KOM's met `achieved_at` in de afgelopen zeven dagen (max. 8). Profiel en
   ledenpagina: alle KOM's van het lid; op de ledenpagina onder de badge-zichtbaarheid.
-- Niet gebouwd: live berekenen (volledige doorloop liep al tegen de timeout), pushmelding
-  bij een gewonnen of verloren KOM, KOM op het publieke profiel (segmentdata is alleen
-  voor leden met akkoord), aparte QOM.
+- Niet gebouwd: live berekenen (volledige doorloop liep al tegen de timeout) en KOM op het
+  publieke profiel (segmentdata is alleen voor leden met akkoord). QOM en pushmeldingen
+  kwamen in 0162, zie hieronder.
 - Niet gemeten: looptijd van triggers en refresh op productie; de eerste doorrekening
   van alle segmenten duurt enkele runs.
+
+## ZWB QOM en pushmeldingen (0162, 2026-09-15)
+
+- Keuzes van de eigenaar: KOM blijft open (snelste van iedereen). QOM is daarnaast de
+  snelste met `profiles.sex = 'vrouw'`, ook als zij de enige vrouw is; de drempel blijft
+  drie rijders op het segment. Leeg of `zeg_ik_liever_niet` dingt alleen naar de KOM mee.
+- `zwb_segment_koms.title` (`kom`/`qom`), sleutel `(segment_id, title, profile_id)`. De
+  leesview toont een QOM alleen zolang het profiel nog `vrouw` zegt; een wijziging van
+  geslacht markeert de segmenten van dat lid.
+- Het klassement bevat geen geslacht. De detailroute voegt `qomIds` toe uit de leesview,
+  zodat alleen de QOM-houder herkenbaar is.
+- Meldingen: `refresh_segment_koms` schrijft `won`/`lost` in `zwb_segment_kom_events`
+  (alleen service_role) wanneer een nieuwe houder een recordrit van ≤ 7 dagen heeft en het
+  segment al eerder was doorgerekend (`kom_computed_at`). `lost` alleen als de nieuwe
+  houder echt sneller is; een gedeelde tijd of een verdwenen houder geeft geen verliesmelding.
+  0162 zet alle segmenten terug op nooit doorgerekend, dus de eerste ronde meldt niets.
+- `notifySegmentKomEvents` in de webhook-taak: max. 50 per run, eerst afvinken en dan
+  versturen (liever gemist dan dubbel), ouder dan een dag vervalt. KOM en QOM op dezelfde
+  rit worden één melding. Voorkeur `notification_preferences.on_segment_kom`, standaard aan.
+- Niet gebouwd: melding aan anderen dan winnaar en verliezer, melding bij verlies door
+  privacy of intrekken, QOM-drempel per categorie.
 
 ## Bewuste grenzen
 

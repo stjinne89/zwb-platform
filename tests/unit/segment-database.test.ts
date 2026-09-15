@@ -12,7 +12,8 @@ beforeAll(async () => {
     "create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;",
     "create function auth.role() returns text language sql stable as $$ select current_setting('request.jwt.claim.role',true) $$;",
     "grant usage on schema public,auth to anon,authenticated,service_role;",
-    "create table profiles(id uuid primary key,display_name text,is_approved boolean,privacy_accepted_version text);",
+    "create table profiles(id uuid primary key,display_name text,is_approved boolean,privacy_accepted_version text,sex text);",
+    "create table notification_preferences(profile_id uuid primary key references profiles(id));",
     "create table strava_connections(profile_id uuid primary key references profiles(id),revoked_at timestamptz);",
     "create table strava_activities(id bigint primary key,profile_id uuid references profiles(id),sport_type text,trainer boolean,raw jsonb,synced_at timestamptz default now());",
     "create table strava_activity_segment_efforts(effort_uid text primary key,profile_id uuid references profiles(id),activity_id bigint references strava_activities(id) on delete cascade,strava_segment_id bigint,segment_name text,elapsed_time_seconds integer,moving_time_seconds integer,distance_m numeric,elevation_gain_m numeric,average_grade numeric,start_lat numeric,start_lon numeric,end_lat numeric,end_lon numeric,started_at timestamptz,raw jsonb,created_at timestamptz default now());",
@@ -22,10 +23,11 @@ beforeAll(async () => {
   await db.exec(await readFile("supabase/migrations/0155_segment_geometry_priority.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0156_segment_geometry_priority_fast.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0161_zwb_segment_koms.sql","utf8"));
+  await db.exec(await readFile("supabase/migrations/0162_zwb_segment_qom_push.sql","utf8"));
 }, 20000);
 afterAll(async () => { await db?.close(); });
 beforeEach(async () => {
-  await db.exec("reset role; truncate strava_activity_segment_efforts,strava_activities,strava_connections,profiles,zwb_segment_maps cascade;");
+  await db.exec("reset role; truncate strava_activity_segment_efforts,strava_activities,strava_connections,profiles,zwb_segment_maps,zwb_segment_kom_events cascade;");
   for (let i=0;i<ids.length;i++) {
     await db.query("insert into profiles values($1,$2,true,'2026-09-13')",[ids[i],"Lid "+i]);
     await db.query("insert into strava_connections values($1,null)",[ids[i]]);
@@ -111,9 +113,11 @@ describe("segment migration against isolated PostgreSQL", () => {
   });
 });
 
-type KomRow = { segment_id:string; profile_id:string; seconds:number; riders:number; achieved_at:string|null };
+type KomRow = { segment_id:string; profile_id:string; seconds:number; riders:number; achieved_at:string|null; title:string };
 async function refresh(limit = 100) { return Number((await db.query<{ n:number }>("select refresh_segment_koms($1) as n",[limit])).rows[0].n); }
-async function koms() { return (await db.query<KomRow>("select segment_id,profile_id,seconds,riders,achieved_at from zwb_segment_kom_club order by segment_id,profile_id")).rows; }
+async function koms(title = "kom") { return (await db.query<KomRow>("select segment_id,profile_id,seconds,riders,achieved_at,title from zwb_segment_kom_club where title=$1 order by segment_id,profile_id",[title])).rows; }
+async function events() { return (await db.query<{ title:string; profile_id:string; kind:string; seconds:number; holder_id:string }>("select title,profile_id,kind,seconds,holder_id from zwb_segment_kom_events order by kind desc,title,profile_id")).rows; }
+const recent = () => new Date(Date.now() - 86400000).toISOString();
 async function dirty(id: number) { return (await db.query<{ kom_dirty:boolean }>("select kom_dirty from zwb_segment_maps where id=$1",[id])).rows[0].kom_dirty; }
 async function ride(profile: string, activity: number, segment: number, seconds: number, startedAt = "2026-09-10T08:00:00Z") {
   await db.query("insert into strava_activities(id,profile_id,sport_type,trainer,raw) values($1,$2,'Ride',false,'{}') on conflict do nothing",[activity,profile]);
@@ -129,6 +133,7 @@ describe("ZWB KOM migration against isolated PostgreSQL", () => {
     const rows = await koms();
     expect(rows.map((r) => [r.segment_id,r.profile_id,r.seconds,r.riders])).toEqual([["99",ids[0],100,4]]);
     await expect(db.query("select * from zwb_segment_koms")).rejects.toThrow(/permission denied/);
+    await expect(db.query("select * from zwb_segment_kom_events")).rejects.toThrow(/permission denied/);
     await expect(db.query("select refresh_segment_koms(10)")).rejects.toThrow(/permission denied/);
     await db.exec("reset role; set role anon");
     await expect(koms()).rejects.toThrow(/permission denied/);
@@ -188,5 +193,54 @@ describe("ZWB KOM migration against isolated PostgreSQL", () => {
     expect(await refresh(10)).toBe(0);
     await db.exec("update zwb_segment_maps set private=true where id=101");
     expect((await koms()).map((r) => r.segment_id)).toEqual(["102","103","99"]);
+  });
+
+  it("gives the fastest woman the QOM next to an open KOM, also as the only woman", async () => {
+    await db.query("update profiles set sex='vrouw' where id=$1",[ids[2]]);
+    await db.query("update profiles set sex='zeg_ik_liever_niet' where id=$1",[ids[1]]);
+    await refresh();
+    expect((await koms()).map((r) => r.profile_id)).toEqual([ids[0]]);
+    expect((await koms("qom")).map((r) => [r.profile_id,r.seconds,r.riders])).toEqual([[ids[2],120,4]]);
+    await db.query("update profiles set sex='vrouw' where id=$1",[ids[0]]);
+    expect(await dirty(99)).toBe(true);
+    await refresh();
+    expect((await koms()).map((r) => r.profile_id)).toEqual([ids[0]]);
+    expect((await koms("qom")).map((r) => r.profile_id)).toEqual([ids[0]]);
+    await db.query("update profiles set sex='man' where id=$1",[ids[0]]);
+    expect(await koms("qom")).toEqual([]);
+  });
+});
+
+describe("ZWB KOM notification queue", () => {
+  it("stays silent on the first computation and for old rides", async () => {
+    await refresh();
+    expect(await events()).toEqual([]);
+    await ride(ids[3],51,99,80,"2025-01-01T08:00:00Z");
+    await refresh();
+    expect((await koms()).map((r) => r.profile_id)).toEqual([ids[3]]);
+    expect(await events()).toEqual([]);
+  });
+  it("queues a win and a loss for a recent faster ride, per title", async () => {
+    await db.query("update profiles set sex='vrouw' where id=any($1)",[[ids[1],ids[3]]]);
+    await refresh();
+    await ride(ids[3],61,99,95,recent());
+    await refresh();
+    expect(await events()).toEqual([
+      { title:"kom",profile_id:ids[3],kind:"won",seconds:95,holder_id:ids[3] },
+      { title:"qom",profile_id:ids[3],kind:"won",seconds:95,holder_id:ids[3] },
+      { title:"kom",profile_id:ids[0],kind:"lost",seconds:95,holder_id:ids[3] },
+      { title:"qom",profile_id:ids[1],kind:"lost",seconds:95,holder_id:ids[3] },
+    ]);
+  });
+  it("does not report a loss when the holder disappears or a tie is shared", async () => {
+    await ride(ids[1],71,99,100,recent());
+    await refresh();
+    await ride(ids[2],72,99,100,recent());
+    await refresh();
+    expect(await events()).toEqual([{ title:"kom",profile_id:ids[2],kind:"won",seconds:100,holder_id:ids[2] }]);
+    await db.exec("truncate zwb_segment_kom_events");
+    await db.exec("update strava_activities set raw='{\"private\":true}' where id in (1,71,72)");
+    await refresh();
+    expect(await events()).toEqual([]);
   });
 });

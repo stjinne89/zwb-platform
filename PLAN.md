@@ -382,8 +382,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   recordrit in de afgelopen zeven dagen ligt, zodat de eerste doorrekening en de
   inhaalslag van oude ritten het blok niet overspoelen. Gelijke tijd = gedeelde titel.
   `zwb_segment_koms` zit ook in de data-export.
-  **Niet gebouwd:** pushmelding bij winnen/verliezen, KOM op het publieke profiel, QOM,
-  en een aparte minimale-rijdersinstelling (vast op drie in de SQL).
+  **Niet gebouwd:** KOM op het publieke profiel en een aparte minimale-rijdersinstelling
+  (vast op drie in de SQL). Pushmelding en QOM waren hier eerst ook geparkeerd, maar zijn
+  dezelfde dag gebouwd in de ronde hieronder.
   **Privacytekst:** de segmentzin noemt nu de drempel en dat de titel op dashboard en
   ledenprofiel staat. Bewust geen nieuwe privacyversie: zelfde gegevens (naam, tijd,
   positie) voor dezelfde ontvangers — de eigenaar kan dat anders beslissen.
@@ -397,6 +398,33 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Zonder 0161 geven de nieuwe queries een fout en blijven de blokken leeg; de taakstap
   meldt dan alleen een fout. Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-kom-round -->
+
+<!-- zwb-segment-qom-push-round -->
+- **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; commit volgt, lokaal,
+  niet gepusht; migratie `0162`, draaien ná `0161` en vóór de deploy). Op verzoek van de
+  eigenaar, met drie keuzes van de eigenaar: KOM blijft de snelste van iedereen, QOM is
+  daarnaast de snelste vrouw (`profiles.sex`), de drempel blijft drie ZWB'ers op het segment
+  (ook als zij de enige vrouw is), en leden zonder of met "zeg ik liever niet" dingen alleen
+  naar de KOM mee. Titel zichtbaar op profiel, ledenpagina, dashboard ("Nieuwe ZWB KOM's en
+  QOM's") en in het klassement bij de houder.
+  **Pushmelding:** via een wachtrij `zwb_segment_kom_events`, verstuurd door de webhook-taak.
+  Alleen bij een recordrit van ≤ 7 dagen en niet bij de eerste doorrekening, anders gaven
+  0162 en de inhaalslag van oude ritten honderden meldingen. Verlies alleen bij een echt
+  snellere rit. Nieuwe voorkeur "Ik win of verlies een ZWB KOM of QOM", standaard aan.
+  **Privacy:** de QOM maakt het opgegeven geslacht voor leden afleidbaar. De privacytekst zegt
+  dat nu. Het klassement zelf bevat geen geslacht; alleen de QOM-houder is herkenbaar.
+  **Of dit een nieuwe privacyversie vraagt, is aan de eigenaar**: geslacht was tot nu toe
+  alleen voor trainingsadvies en werd met niemand gedeeld.
+  **Let op volgorde:** zonder `0162` faalt het opslaan van meldingsvoorkeuren (nieuwe kolom)
+  en blijven de KOM-blokken leeg.
+  **Niet gebouwd:** melding aan andere leden, melding bij verlies door privacy of intrekken,
+  QOM-drempel per categorie.
+  Getest: PGlite met 0152–0162 (18 tests, waaronder QOM open/enige vrouw/geslacht wijzigen,
+  stilte bij eerste doorrekening en oude ritten, winst + verlies per titel, geen verlies bij
+  gelijke tijd of verdwenen houder), unittests voor berichten en afvinken, beide
+  Playwright-segmenttests, typecheck en lint. **Niet getest:** 0162 op productie, echte
+  pushaflevering en dashboard/profiel in de browser.
+<!-- /zwb-segment-qom-push-round -->
 
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde

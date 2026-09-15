@@ -115,7 +115,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_segment_kom",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -248,6 +248,7 @@ export default async function ProfielPage() {
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,
             on_strava_link_expiring: pushPrefs?.on_strava_link_expiring ?? true,
+            on_segment_kom: pushPrefs?.on_segment_kom ?? true,
             on_member_pending: pushPrefs?.on_member_pending ?? true,
           }}
           canApproveMembers={access.has("members.approve")}

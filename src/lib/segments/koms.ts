@@ -1,4 +1,5 @@
 // ZWB KOM: snelste ZWB'er op een segment met minstens drie ZWB-rijders (migratie 0161).
+// ZWB QOM: daarnaast de snelste vrouw op zo'n segment (migratie 0162).
 //
 // De titels staan in zwb_segment_koms, net als badges in achievement_awards. Triggers
 // markeren segmenten waarvan de stand kan zijn veranderd; deze stap in de
@@ -20,10 +21,16 @@ export type SegmentKom = {
   seconds: number;
   riders: number;
   achieved_at: string | null;
+  title: "kom" | "qom";
 };
 
 export const SEGMENT_KOM_COLUMNS =
-  "segment_id, segment_name, distance_m, average_grade, profile_id, display_name, seconds, riders, achieved_at";
+  "segment_id, segment_name, distance_m, average_grade, profile_id, display_name, seconds, riders, achieved_at, title";
+
+export const KOM_BADGE = {
+  kom: { label: "ZWB KOM", color: "gold" },
+  qom: { label: "ZWB QOM", color: "platinum" },
+} as const;
 
 export type KomRefreshResult = { segments: number } | { skipped: true } | { error: string };
 

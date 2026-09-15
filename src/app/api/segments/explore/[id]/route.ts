@@ -17,6 +17,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     ({ data, error } = await read());
     if (error || !data) return Response.json({ error: "Segment niet beschikbaar" }, { status: 404, headers: PRIVATE_HEADERS });
   }
-  const detail = await segmentPresenter(session, await ownPower(session), selection.when, selection.target)(data as ClubRow);
-  return Response.json(detail, { headers: PRIVATE_HEADERS });
+  const [detail, qoms] = await Promise.all([
+    segmentPresenter(session, await ownPower(session), selection.when, selection.target)(data as ClubRow),
+    session.db.from("zwb_segment_kom_club").select("profile_id").eq("segment_id", id).eq("title", "qom"),
+  ]);
+  // Geslacht staat niet in het klassement; alleen wie de QOM houdt, is hier te herkennen.
+  const qomIds = ((qoms.data ?? []) as Array<{ profile_id: string }>).map((r) => r.profile_id);
+  return Response.json({ ...detail, qomIds }, { headers: PRIVATE_HEADERS });
 }

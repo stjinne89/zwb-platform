@@ -48,7 +48,7 @@ import {
 import { hasActivityScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { formatSegmentTime } from "@/lib/segments/explorer";
-import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
+import { KOM_BADGE, SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
 
 type ProfileRef = {
   display_name: string | null;
@@ -1059,23 +1059,25 @@ export default async function DashboardPage({
       <section>
         <SectionHeader
           icon={Crown}
-          title="Nieuwe ZWB KOM’s"
+          title="Nieuwe ZWB KOM’s en QOM’s"
           action={<InlineMoreLink href="/profiel/segments">ZWB Segments</InlineMoreLink>}
         />
         {koms.length === 0 ? (
-          <EmptyState>Geen nieuwe ZWB KOM’s.</EmptyState>
+          <EmptyState>Geen nieuwe ZWB KOM’s of QOM’s.</EmptyState>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {koms.map((kom) => (
-              <li key={`${kom.segment_id}-${kom.profile_id}`}>
+              <li key={`${kom.segment_id}-${kom.title}-${kom.profile_id}`}>
                 <Link
                   href={`/leden/${kom.profile_id}`}
                   className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
                 >
-                  <AchievementBadge title="ZWB KOM" icon="crown" color="gold" size="md" />
+                  <AchievementBadge title={KOM_BADGE[kom.title].label} icon="crown" color={KOM_BADGE[kom.title].color} size="md" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{kom.display_name ?? "ZWB'er"}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{kom.segment_name}</p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                      {KOM_BADGE[kom.title].label} · {kom.segment_name}
+                    </p>
                     <p className="mt-1 text-xs tabular-nums text-muted-foreground">
                       {formatSegmentTime(kom.seconds)}
                       {kom.achieved_at

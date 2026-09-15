@@ -25,6 +25,7 @@ const PROFILE_TABLES: string[] = [
   "profile_completed_segments",
   "strava_activity_segment_efforts",
   "zwb_segment_koms",
+  "zwb_segment_kom_events",
   "notification_preferences",
   "push_subscriptions",
   "team_members",
