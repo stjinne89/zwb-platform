@@ -1151,7 +1151,7 @@ bleven tot nu toe bewust buiten de kaart.
 *Niet geverifieerd:*
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
 
-**Kilometers beslissen bij gelijke blokken (2026-09-15, commit `COMMITK`, migratie
+**Kilometers beslissen bij gelijke blokken (2026-09-15, commit `12c4749`, migratie
 `0166`).** Stijn wilde de Zwift-titel over te nemen houden als meerdere leden een
 wereld (bijna) vol hebben.
 - **Regel in de Zwift-werelden:** meeste blokken; bij gelijk aantal de meeste
