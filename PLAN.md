@@ -1253,7 +1253,7 @@ en de eigenaar koos het niet. Geen zwaar krachtwerk met halters: dat vraagt
 begeleiding, en daar zou een app-schema ten onrechte een belofte over doen. De
 promptregel die off-bike werk uit het fietsschema houdt, blijft staan.
 
-**Uitrol.** De code werkt zonder de migraties: zonder `0160` bestaan er gewoon
+**Uitrol.** `0159` en `0160` zijn op 2026-09-15 door de eigenaar in productie gedraaid (inhoud daarmee goedgekeurd); de verificatiequery is hier niet gezien. De code werkt zonder de migraties: zonder `0160` bestaan er gewoon
 geen krachtseries. **`0159` mag altijd; `0160` pas nadat de eigenaar de
 oefeningen, doseringen en teksten heeft goedgekeurd** (conceptinhoud, niet door
 een fysiotherapeut of trainer nagekeken). Let op: `0110` opnieuw draaien haalt
@@ -1306,8 +1306,8 @@ achteraf-gewicht: ze rekenen met het huidige gewicht, en `/hulp` zegt dat.
 Invoervelden (testuitslag, blokdoelen in de editor) blijven in watt. Het
 dashboard buiten ZWBeter Worden blijft watt. **Geen nieuwe privacyversie:** de
 trainer zag het gewicht al (W/kg-powercurve op het trainerscherm); het bewaarde
-gewicht bij een training is hetzelfde gegeven voor dezelfde ontvanger. Dat is een
-inschatting die de eigenaar moet bevestigen.
+gewicht bij een training is hetzelfde gegeven voor dezelfde ontvanger. De eigenaar
+heeft dat op 2026-09-15 bevestigd.
 
 **Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
 geslaagd, Vitest volledig groen (953 geslaagd); nieuw `power-unit.test.ts` en het
