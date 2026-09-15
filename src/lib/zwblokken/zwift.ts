@@ -28,13 +28,23 @@ export type ZwiftWorld = {
   name: string;
   /** [zuid, west, noord, oost], zonder marge. */
   bbox: [number, number, number, number];
+  /**
+   * Zwifts eigen minimap, precies op `bbox`. Het beeld is van Zwift en wordt
+   * rechtstreeks van hun CDN geladen, niet gekopieerd (besluit eigenaar,
+   * 2026-09-15). Alleen een https-adres van cdn.zwift.com wordt doorgegeven.
+   */
+  imageUrl: string | null;
 };
+
+const ZWIFT_CDN = /^https:\/\/cdn\.zwift\.com\//;
 
 export const ZWIFT_WORLDS: ZwiftWorld[] = worlds.map((world) => {
   const [[lat1, lon1], [lat2, lon2]] = world.bounds as [[number, number], [number, number]];
+  const imageUrl = (world as { imageUrl?: string }).imageUrl;
   return {
     slug: world.slug,
     name: world.name,
+    imageUrl: imageUrl && ZWIFT_CDN.test(imageUrl) ? imageUrl : null,
     bbox: [
       Math.min(lat1, lat2),
       Math.min(lon1, lon2),

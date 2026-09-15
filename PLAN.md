@@ -1123,7 +1123,9 @@ bleven tot nu toe bewust buiten de kaart.
 **Bewust niet gebouwd.**
 - **Andere platforms** (MyWhoosh, Rouvy, FulGaz, Kinomap): samen <100 ritten, en Rouvy
   en FulGaz rijden over echte plekken.
-- **Zwift-kaartbeelden als ondergrond**: auteursrecht van Zwift.
+- ~~**Zwift-kaartbeelden als ondergrond**: auteursrecht van Zwift.~~ **Rechtgezet
+  op 2026-09-15:** alsnog gebouwd op verzoek van de eigenaar, zie "Minimap als
+  ondergrond" hieronder.
 - **Zwift-blokken in de buitentotalen**, buitentitels, statistieken of het dashboard.
 - **Zoom 17**, ondanks de bijna volle werelden. Dat was de keuze van Stijn; mocht de
   uitdaging te klein blijken, dan is een ander zoomniveau een migratie plus opnieuw
@@ -1148,6 +1150,36 @@ bleven tot nu toe bewust buiten de kaart.
 
 *Niet geverifieerd:*
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
+
+**Minimap als ondergrond (2026-09-15, commit `COMMITM`).** Stijn zag de blokken op een
+effen vlak en wilde een echte kaart. Hij had drie opties:
+- Zwifts eigen minimap;
+- OpenStreetMap voor de acht werelden op echte plekken;
+- een zelf getekende wegenkaart uit clubritten.
+
+Hij koos **Zwifts minimap**.
+- **Bron.** `zwift-data` heeft per wereld een `imageUrl` op `cdn.zwift.com`, bedoeld
+  voor precies de `bounds` die we al gebruiken. Alle 12 gaven HTTP 200, 0,1 tot
+  2,9 MB per wereld. `img-src` in de CSP staat `https:` toe.
+- **Uitlijning.** Lokaal gecontroleerd met echte clubritten over het beeld
+  (Leaflet-testpagina):
+  - Watopia en London vallen op de wegen;
+  - met de echte club-blokken erover: London past precies;
+  - **Makuri Islands** is ouder dan de wereld: de nieuwere wegen in het noordoosten
+    liggen op het plaatje in zee;
+  - **Watopia** idem: een deel van de gereden blokken ligt noordelijk buiten het beeld,
+    op de effen achtergrond.
+- **Hoe het werkt.**
+  - `ImageOverlay` in de `tilePane` onder de blokkenlaag, met attributie
+    "Kaart © Zwift".
+  - Het beeld wordt rechtstreeks van Zwifts CDN geladen, niet gekopieerd. Alleen
+    `https://cdn.zwift.com/` wordt doorgegeven.
+  - Laadt het beeld niet, dan haalt `ZwiftView` alsnog de routelijnen op
+    (`/api/zwblokken/zwift-roads`).
+- **Kanttekening.** Het beeld is van Zwift en valt niet onder een licentie; de
+  MIT-licentie van `zwift-data` dekt alleen de gegevens. Community-kaarten
+  (zwiftmap.com) werken net zo. Alleen ingelogde leden zien het. Blijft het CDN-adres
+  niet bestaan, dan valt de kaart terug op de lijnen.
 
 ### Opgeleverd — volledige Strava-historie, geleidelijk opgehaald
 

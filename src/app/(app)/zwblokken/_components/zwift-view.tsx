@@ -13,6 +13,8 @@ export type ZwiftWorldMeta = {
   name: string;
   /** [[zuid, west], [noord, oost]] */
   bounds: [[number, number], [number, number]];
+  /** Zwifts minimap; null = alleen routelijnen. */
+  imageUrl: string | null;
   /** Bekende wegblokken: routevormen plus alles wat de club reed. */
   known: number;
   /** Blokken van de club samen. */
@@ -77,10 +79,14 @@ export function ZwiftView({
 }: Props) {
   const [slug, setSlug] = useState(worlds[0]?.slug ?? "");
   const [lines, setLines] = useState<Record<string, [number, number][][]>>({});
+  // Werelden waarvan de minimap niet laadde; die krijgen de routelijnen.
+  const [imageFailed, setImageFailed] = useState<Record<string, true>>({});
   const world = worlds.find((w) => w.slug === slug) ?? worlds[0];
+  const showImage = Boolean(world?.imageUrl) && !imageFailed[world?.slug ?? ""];
 
+  // Routelijnen alleen ophalen als er geen minimap is.
   useEffect(() => {
-    if (!world || lines[world.slug]) return;
+    if (!world || showImage || lines[world.slug]) return;
     let cancelled = false;
     fetch(`/api/zwblokken/zwift-roads?world=${encodeURIComponent(world.slug)}`)
       .then((res) => (res.ok ? res.json() : { lines: [] }))
@@ -93,7 +99,7 @@ export function ZwiftView({
     return () => {
       cancelled = true;
     };
-  }, [world, lines]);
+  }, [world, lines, showImage]);
 
   const rows: CoverageRow[] = useMemo(
     () =>
@@ -154,7 +160,9 @@ export function ZwiftView({
           world: world.slug,
           blockZoom,
           bounds: world.bounds,
-          lines: lines[world.slug] ?? NO_LINES,
+          imageUrl: showImage ? world.imageUrl : null,
+          lines: showImage ? NO_LINES : (lines[world.slug] ?? NO_LINES),
+          onImageError: () => setImageFailed((prev) => ({ ...prev, [world.slug]: true })),
         }}
       />
 

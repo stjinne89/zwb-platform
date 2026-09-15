@@ -20,8 +20,11 @@ function line(a: [number, number], b: [number, number], n = 20) {
 }
 
 describe("zwiftWorldAt", () => {
-  it("kent de twaalf werelden uit zwift-data", () => {
+  it("kent de twaalf werelden uit zwift-data, elk met een minimap van Zwifts eigen CDN", () => {
     expect(ZWIFT_WORLDS).toHaveLength(12);
+    for (const world of ZWIFT_WORLDS) {
+      expect(world.imageUrl).toMatch(/^https:\/\/cdn\.zwift\.com\//);
+    }
   });
 
   it("herkent werelden aan coördinaten uit echte clubritten", () => {

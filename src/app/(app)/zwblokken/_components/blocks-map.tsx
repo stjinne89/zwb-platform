@@ -29,6 +29,10 @@ const Polyline = dynamic(
   () => import("react-leaflet").then((m) => m.Polyline),
   { ssr: false },
 );
+const ImageOverlay = dynamic(
+  () => import("react-leaflet").then((m) => m.ImageOverlay),
+  { ssr: false },
+);
 const BlockClick = dynamic(() => import("./block-click"), { ssr: false });
 
 /** Compacte transportvorm: x → lijst van y's (plus rider_count voor de club). */
@@ -41,14 +45,17 @@ type Props = {
   maxRiders: number;
   /**
    * Zwift-wereld (slug). Dan geen OSM-ondergrond — die toont oceaan in Watopia
-   * en in London niet de Zwift-wegen — maar routelijnen, en een fijner raster.
+   * en in London niet de Zwift-wegen — maar Zwifts eigen minimap, en een fijner
+   * raster. Laadt die minimap niet, dan tonen we de routelijnen.
    */
   zwift?: {
     world: string;
     blockZoom: number;
-    /** [[zuid, west], [noord, oost]] */
+    /** [[zuid, west], [noord, oost]]: ook de plek van de minimap. */
     bounds: [[number, number], [number, number]];
+    imageUrl: string | null;
     lines: [number, number][][];
+    onImageError?: () => void;
   };
 };
 
@@ -176,11 +183,25 @@ export function BlocksMap({ club, own, maxRiders, zwift }: Props) {
       className={zwift ? "zwift-map h-full w-full" : "h-full w-full"}
     >
       {zwift ? (
-        // Kleuren in CSS (.zwift-road): een var() in een Leaflet-kleur werkt niet overal.
-        <Polyline
-          positions={zwift.lines}
-          pathOptions={{ className: "zwift-road", weight: 2, interactive: false }}
-        />
+        <>
+          {zwift.imageUrl ? (
+            // In de tegelpane, zodat de blokkenlaag er altijd boven ligt.
+            <ImageOverlay
+              url={zwift.imageUrl}
+              bounds={zwift.bounds}
+              pane="tilePane"
+              attribution="Kaart &copy; Zwift"
+              eventHandlers={{ error: () => zwift.onImageError?.() }}
+            />
+          ) : null}
+          {zwift.lines.length > 0 ? (
+            // Kleuren in CSS (.zwift-road): een var() in een Leaflet-kleur werkt niet overal.
+            <Polyline
+              positions={zwift.lines}
+              pathOptions={{ className: "zwift-road", weight: 2, interactive: false }}
+            />
+          ) : null}
+        </>
       ) : (
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
