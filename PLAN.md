@@ -1130,11 +1130,23 @@ Klaar zodra per land en per provincie zichtbaar is wie de titel heeft.
 - Of titels andere leden prikkelen, moet in de praktijk blijken. Dat was de open
   vraag van deze ronde.
 
-**Uitrol — niet lokaal te verifiëren.** Na de deploy één keer
-`POST /api/zwblokken/backfill?regions=1` draaien (met `STRAVA_SYNC_SECRET`).
-Anders hebben bestaande blokken in BE/LU/DE/FR geen provincie. In een steekproef van
-1000 van zulke blokken kregen er 999 een provincie via `regionForBlock`. Nieuwe ritten
-krijgen de provincie vanzelf via de sync. Tot een lid de nieuwe privacyversie tekent,
+**Uitrol.** Na de deploy stonden de gouverneurs in BE/LU/DE/FR nog leeg: bestaande
+blokken hadden de oude indeling (alleen NL-provincies). De regio-backfill heeft op
+2026-09-15 in productie gedraaid via
+`POST /api/zwblokken/backfill?regions=1&maxRows=5000&offset=…`, in 9 aanroepen
+(40.862 rijen). Blokken zonder provincie daarna, alleen gelezen:
+
+| Land | Blokken | Zonder provincie vóór | Na |
+|---|---|---|---|
+| NL | 21.866 | 10 | 10 |
+| BE | 2.681 | 2.681 | 1 |
+| LU | 381 | 381 | 0 |
+| DE | 4.134 | 4.134 | 0 |
+| FR | 6.184 | 6.162 | 0 |
+
+De overgebleven blokken liggen op een grens, waar de land- en provinciegrens uit
+Natural Earth niet precies samenvallen. Nieuwe ritten krijgen de provincie vanzelf
+via de sync. Een nieuwe `regions.json` vraagt voortaan dezelfde backfill. Tot een lid de nieuwe privacyversie tekent,
 blijft diens landstitel Vorst.
 
 **Verificatie.**
@@ -1146,8 +1158,7 @@ blijft diens landstitel Vorst.
   buurlandprovincies, samengevoegde Franse regio's, de landgrens en de sommen per
   land.
 - De dekkingstabel is server-side gerenderd met testdata.
-- *Niet geverifieerd:* de pagina is niet in een ingelogde browser bekeken, en de
-  regio-backfill heeft niet in productie gedraaid.
+- *Niet geverifieerd:* de pagina is niet in een ingelogde browser bekeken.
 
 ### Opgeleverd — gemeten tijd per Zwift-zone bij gereden trainingen (wens 16, deel 2)
 
