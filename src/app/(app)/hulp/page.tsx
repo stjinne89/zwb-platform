@@ -614,9 +614,10 @@ export default function HelpPage() {
               één keer via activities.csv, of losse ritten via GPX.
             </p>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              De koppeling haalt ritten tot vijf jaar terug op. Records als
-              langste rit gaan daarom over die periode; met activities.csv haal
-              je je volledige historie binnen.
+              De koppeling haalt eerst de laatste vijf jaar op en daarna, beetje
+              bij beetje, je oudere ritten. Records, badges, ZWBlokken en
+              segmenten gaan pas over je hele historie als die helemaal binnen
+              is.
             </p>
           </div>
         </header>

@@ -39,7 +39,7 @@ export type StravaConnection = {
   expires_at: number;
 };
 
-type StravaActivity = {
+export type StravaActivity = {
   id: number;
   name?: string;
   sport_type?: string;
@@ -53,6 +53,37 @@ type StravaActivity = {
   trainer?: boolean;
   commute?: boolean;
 };
+
+/**
+ * De rij in strava_activities voor een activiteit uit het ritoverzicht. Gedeeld
+ * door de gewone sync en de historie-inhaalslag, zodat een rit er hetzelfde
+ * uitziet ongeacht hoe hij binnenkwam.
+ */
+export function stravaActivityRow(
+  activity: StravaActivity & { start_date: string },
+  profileId: string,
+  stravaAthleteId: number,
+) {
+  const startDate = new Date(activity.start_date);
+  return {
+    id: activity.id,
+    profile_id: profileId,
+    strava_athlete_id: stravaAthleteId,
+    name: activity.name ?? "Strava activiteit",
+    sport_type: activity.sport_type ?? activity.type ?? null,
+    start_date: startDate.toISOString(),
+    achievement_week: dateOnly(weekStartDate(startDate)),
+    distance_m: activity.distance ?? 0,
+    total_elevation_gain_m: activity.total_elevation_gain ?? 0,
+    kudos_count: activity.kudos_count ?? 0,
+    moving_time_seconds: activity.moving_time ?? 0,
+    elapsed_time_seconds: activity.elapsed_time ?? 0,
+    trainer: Boolean(activity.trainer),
+    commute: Boolean(activity.commute),
+    raw: activity,
+    synced_at: new Date().toISOString(),
+  };
+}
 
 function stravaEnv() {
   // .trim() vangt onzichtbare whitespace/newlines vanuit .env af.
@@ -602,30 +633,16 @@ export async function syncStravaActivitiesForUser(
 
     if (cycling.length > 0) {
       const rows = cycling
-        .filter((a) => a.id && a.start_date)
-        .map((activity) => {
-          const startDate = new Date(activity.start_date!);
-          return {
-            id: activity.id,
-            profile_id: profileId,
-            strava_athlete_id: Number(
-              (connection as StravaConnection).strava_athlete_id,
-            ),
-            name: activity.name ?? "Strava activiteit",
-            sport_type: activity.sport_type ?? activity.type ?? null,
-            start_date: startDate.toISOString(),
-            achievement_week: dateOnly(weekStartDate(startDate)),
-            distance_m: activity.distance ?? 0,
-            total_elevation_gain_m: activity.total_elevation_gain ?? 0,
-            kudos_count: activity.kudos_count ?? 0,
-            moving_time_seconds: activity.moving_time ?? 0,
-            elapsed_time_seconds: activity.elapsed_time ?? 0,
-            trainer: Boolean(activity.trainer),
-            commute: Boolean(activity.commute),
-            raw: activity,
-            synced_at: new Date().toISOString(),
-          };
-        });
+        .filter((a): a is StravaActivity & { start_date: string } =>
+          Boolean(a.id && a.start_date),
+        )
+        .map((activity) =>
+          stravaActivityRow(
+            activity,
+            profileId,
+            Number((connection as StravaConnection).strava_athlete_id),
+          ),
+        );
 
       // Batch upsert: 1 supabase-call i.p.v. 100. Stuk sneller.
       if (rows.length > 0) {

@@ -1048,6 +1048,97 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — volledige Strava-historie, geleidelijk opgehaald
+
+**2026-09-15, commit `COMMIT` op branch `claude/zwblokken-gamification-titles-a65ad0`,
+niet gepusht.** Migratie `0163` (twee kolommen op `strava_connections`).
+
+**Waarom.** Bart miste ZWBlokken. De oorzaak: een eerste Strava-sync haalt maar vijf
+jaar terug op (`syncStravaActivitiesForUser`). Barts oudste rit in de database was van
+6 juni 2021, drie dagen na die grens. Alles daarna was verwerkt (647/647
+buitenritten). In productie (alleen gelezen) zaten 8 van de 10 goedgekeurde, actieve
+koppelingen precies tegen die grens aan. De eigenaar wil de volledige historie voor
+iedereen, zonder dat de Strava-budgetten in één keer opgaan.
+
+**Besluiten (met de eigenaar afgestemd).**
+- Oude ritten doen overal mee, **ook in ZWB Segments**. Hun segmentdetails komen
+  later via de bestaande segment-inhaalslag. Daardoor kunnen KOM's en QOM's
+  verschuiven, met pushmeldingen "titel verloren".
+- Badges worden per lid pas beoordeeld als diens historie compleet is. Daarop volgt
+  hooguit één melding.
+
+**Wat er is gekomen.**
+- `src/lib/strava/history-backfill.ts` (`runStravaHistoryBackfill`):
+  - Per run hooguit één `GET /athlete/activities?before=…&per_page=100`.
+  - Bij geweigerde tokens nog hooguit twee pogingen voor andere leden.
+  - Dezelfde budgetgrens als de segment-inhaalslag: 50% van het kwartier, 60% van
+    de dag.
+  - Stopt als er minder dan 4 s over is.
+- De cursor staat per koppeling in `history_before` en schuift naar de oudste
+  activiteit van de pagina.
+  - Ook als dat geen fietsrit is; anders blijft hij hangen op hardloopjes.
+  - Start bij de oudste API-rit van dat lid, niet bij CSV-rijen: die kunnen ouder
+    zijn en de tussenliggende jaren overslaan.
+- Een onvolle pagina betekent klaar. Eerst draaien cols, ZWBlokken en milestones
+  (`runPostSyncForProfile`), daarna pas `history_complete_at`. Valt de run
+  halverwege om, dan kost dat de volgende run één lege pagina.
+- Vangnet: komt een volle pagina oud-naar-nieuw terug, dan stopt de stap zonder
+  cursor.
+  - Dat Strava met alleen `before` de nieuwste eerst geeft, is gangbaar maar niet
+    gedocumenteerd.
+  - Een verkeerde volgorde zou jaren overslaan en het lid als klaar markeren.
+- Rijen via het nieuwe gedeelde `stravaActivityRow` (`client.ts`), dezelfde functie
+  als de gewone sync.
+- Aangehaakt in `/api/strava/webhook/process`: na de wachtrij en de KOM-stap, vóór de
+  segment-inhaalslag, die anders elke run tot de rand vult. Uitzetten met
+  `?historyBackfill=0`. Zonder `0163` geeft de stap `no_migration` en doet hij niets.
+- **ZWBlokken `first_seen_at`.** `processBatch` liet een bestaand blok altijd zijn
+  datum houden (`ignoreDuplicates`). Dat klopte alleen zolang ritten op volgorde
+  binnenkwamen. Oude ritten komen nu ná de recente binnen. Een oudere datum
+  overschrijft nu de bekende (`splitByExisting`). Anders telt "nieuw dit jaar" een
+  blok uit 2014 mee en klopt het gelijkspel van de titels niet.
+- `/hulp#strava-import`: de koppeling haalt eerst vijf jaar op, daarna geleidelijk
+  de rest. De oude claim "met activities.csv haal je je volledige historie binnen"
+  als enige route is weg.
+- Runbook §cron: de stap uitgelegd.
+
+**Bewust niet gebouwd.**
+- **Geen aparte cron-job.** Meeliften op de 5-minutenjob, zoals de
+  segment-inhaalslag. Dat is hooguit 12 overzichtscalls per uur.
+- **De vijfjaarsgrens van de eerste sync blijft staan.** Die sync draait interactief
+  en tegen de functie-timeout. De rest volgt via deze stap.
+- **Geen routelijn voor CSV-/GPX-imports.** Die ritten leveren nog steeds geen
+  ZWBlokken op. Dat is een apart gat voor leden zonder koppeling.
+- **Geen UI-voortgang.** De voortgang staat in de cron-JSON.
+
+**Kanttekeningen.**
+- **Badgemeldingen tussendoor.** Het webhookpad beoordeelt badges bij elke nieuwe
+  rit. Uploadt een lid tijdens de inhaalslag een rit, dan kan er tussendoor al een
+  badgemelding komen.
+- **Weekbadges van oude weken.** `awardCompletedAchievementWeeks` (cron finalize)
+  rekent over alle weken, dus straks ook over oude weken van vóór ZWB. Dat gold al
+  voor de vijf jaar. Die functie leest zonder paginering, dus mogelijk niet alle
+  rijen; niet aangepast.
+- **Segmentdetails.** Elke oude buitenrit kost één detailcall in de
+  segment-inhaalslag (nieuwste eerst). Onder de budgetgrens duurt dat dagen tot
+  weken.
+
+**Verificatie.**
+- `tsc --noEmit` zonder fouten, eslint schoon, `npm run build` geslaagd, Vitest
+  1139 geslaagd.
+- Nieuw `strava-history-backfill.test.ts` (13 tests):
+  - cursor en afronden, afronding in de juiste volgorde, lege pagina;
+  - lid zonder sync, geweigerde tokens met plafond;
+  - budget, deadline, rate limit, geen migratie, verkeerde volgorde.
+- Nieuw `zwblokken-first-seen.test.ts`.
+- Alleen gelezen in productie: het filter `raw->>import_source=is.null` werkt.
+
+*Niet geverifieerd:*
+- `0163` is niet gedraaid; migraties zijn lokaal niet te testen.
+- Geen echte Strava-aanroep met `before` gedaan: de volgorde is een aanname, met
+  vangnet.
+- Hoeveel pagina's en detailcalls de hele historie kost, is niet gemeten.
+
 ### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
 
 **2026-09-15, commit `5c686aa`, via merge naar `main` gepusht 2026-09-15** (in één

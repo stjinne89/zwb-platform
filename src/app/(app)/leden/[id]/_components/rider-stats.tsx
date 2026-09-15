@@ -288,8 +288,9 @@ export async function RiderStats({
 
   const yearLabel = now.getUTCFullYear();
   const firstLastName = displayName.split(" ")[0];
-  // Records gaan alleen over de ritten die in ZWB staan; Strava synct standaard
-  // vijf jaar terug, dus benoem vanaf wanneer de historie loopt.
+  // Records gaan alleen over de ritten die in ZWB staan; de eerste sync haalt vijf
+  // jaar op en de oudere historie volgt geleidelijk, dus benoem vanaf wanneer de
+  // historie loopt.
   const recordsSince = firstRide
     ? new Date((firstRide as ActivityRow).start_date).toLocaleDateString("nl-NL", {
         month: "short",

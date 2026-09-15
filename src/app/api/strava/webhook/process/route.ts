@@ -12,6 +12,9 @@
 // segment-inhaalslag (runScheduledSegmentBackfill). Uitzetten zonder deploy: voeg
 // `?segmentBackfill=0` toe aan de URL van de cron-job.
 //
+// Tussen die twee haalt runStravaHistoryBackfill hooguit één pagina oude ritten op
+// van vóór de vijfjaarsgrens van de koppeling. Uitzetten: `?historyBackfill=0`.
+//
 // Daarvoor rekent een korte stap de ZWB KOM's na van segmenten waarvan de stand kan
 // zijn veranderd (refreshSegmentKoms) en verstuurt de pushmeldingen voor gewonnen en
 // verloren titels (notifySegmentKomEvents). Uitzetten: `?segmentKoms=0`.
@@ -19,6 +22,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processStravaWebhookEvents } from "@/lib/strava/webhook-processor";
 import { runScheduledSegmentBackfill } from "@/lib/segments/scheduled-backfill";
+import { runStravaHistoryBackfill } from "@/lib/strava/history-backfill";
 import { refreshSegmentKoms } from "@/lib/segments/koms";
 import { notifySegmentKomEvents } from "@/lib/segments/kom-notifications";
 import { checkCronSecret } from "@/lib/cron/auth";
@@ -56,6 +60,16 @@ export async function POST(request: Request) {
           refresh: await refreshSegmentKoms(admin, { deadline: startedAt + RUN_BUDGET_MS }),
           notify: await notifySegmentKomEvents(admin, { deadline: startedAt + RUN_BUDGET_MS }),
         };
+    // Vóór de segment-inhaalslag: die vult elke run tot de rand, en dit is hooguit
+    // één overzichtspagina. De ritten die hier binnenkomen, pakt die daarna op.
+    let historyBackfill: unknown = null;
+    if (url.searchParams.get("historyBackfill") !== "0" && !result.remaining && !result.rateLimited) {
+      try {
+        historyBackfill = await runStravaHistoryBackfill(admin, { deadline: startedAt + RUN_BUDGET_MS });
+      } catch (err) {
+        historyBackfill = { error: err instanceof Error ? err.message : "Historie-inhaalslag faalde." };
+      }
+    }
     let segmentBackfill: unknown = null;
     if (url.searchParams.get("segmentBackfill") !== "0" && !result.remaining && !result.rateLimited) {
       try {
@@ -65,7 +79,7 @@ export async function POST(request: Request) {
         segmentBackfill = { error: err instanceof Error ? err.message : "Segment-inhaalslag faalde." };
       }
     }
-    return Response.json({ ok: true, ...result, segmentKoms, segmentBackfill });
+    return Response.json({ ok: true, ...result, segmentKoms, historyBackfill, segmentBackfill });
   } catch (err) {
     return Response.json(
       {

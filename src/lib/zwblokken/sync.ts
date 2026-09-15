@@ -12,7 +12,7 @@
 import polyline from "@mapbox/polyline";
 import type { GpxPoint } from "@/lib/gpx";
 import { OUTDOOR_CYCLING_SPORTS, looksVirtual } from "@/lib/strava/sports";
-import { BLOCK_ZOOM, blocksForActivity, parseBlockKey } from "./grid";
+import { BLOCK_ZOOM, blockKey, blocksForActivity, parseBlockKey } from "./grid";
 import { regionForBlock } from "./regions";
 
 type ActivityRow = {
@@ -139,17 +139,33 @@ async function processBatch(
       };
     });
 
-    // ignoreDuplicates: een blok dat al bestaat houdt zijn oorspronkelijke
-    // first_seen_at — dat is precies wat we willen.
-    const { data, error } = await supabase
-      .from("profile_blocks")
-      .upsert(rows, {
-        onConflict: "profile_id,z,x,y",
-        ignoreDuplicates: true,
-      })
-      .select("x");
-    if (error) throw new Error(error.message);
-    inserted = (data ?? []).length;
+    const existing = await existingFirstSeen(supabase, profileId, rows);
+    const { fresh, earlier } = splitByExisting(rows, existing);
+
+    // ignoreDuplicates: een blok dat al bestaat houdt zijn first_seen_at. Dat
+    // gaat alleen goed als ritten op volgorde binnenkomen; zie hieronder.
+    if (fresh.length > 0) {
+      const { data, error } = await supabase
+        .from("profile_blocks")
+        .upsert(fresh, {
+          onConflict: "profile_id,z,x,y",
+          ignoreDuplicates: true,
+        })
+        .select("x");
+      if (error) throw new Error(error.message);
+      inserted = (data ?? []).length;
+    }
+
+    // Een rit van vóór de al bekende eerste keer: de historie-inhaalslag haalt
+    // oude ritten pas binnen als de recente al verwerkt zijn. Dan hoort de
+    // oudere datum erin, anders telt "nieuw dit jaar" een blok uit 2014 mee en
+    // klopt het gelijkspel bij de ZWBlokken-titels niet.
+    if (earlier.length > 0) {
+      const { error } = await supabase
+        .from("profile_blocks")
+        .upsert(earlier, { onConflict: "profile_id,z,x,y" });
+      if (error) throw new Error(error.message);
+    }
   }
 
   const { error: markError } = await supabase
@@ -162,6 +178,70 @@ async function processBatch(
   if (markError) throw new Error(markError.message);
 
   return inserted;
+}
+
+type BlockRow = {
+  x: number;
+  y: number;
+  first_seen_at: string;
+};
+
+/** Bestaande first_seen_at van de blokken in deze batch, per blokkey. */
+async function existingFirstSeen(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+  rows: BlockRow[],
+): Promise<Map<string, string>> {
+  const wanted = new Set(rows.map((r) => blockKey(r.x, r.y)));
+  const xs = [...new Set(rows.map((r) => r.x))];
+  const found = new Map<string, string>();
+  const PAGE_SIZE = 1000;
+
+  // Op x filteren en de y's hier uitzoeken: PostgREST kent geen filter op een
+  // paar kolommen tegelijk. Een x-kolom kan veel blokken van dit lid bevatten,
+  // dus gepagineerd.
+  for (let i = 0; i < xs.length; i += 200) {
+    const chunk = xs.slice(i, i + 200);
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("profile_blocks")
+        .select("x, y, first_seen_at")
+        .eq("profile_id", profileId)
+        .eq("z", BLOCK_ZOOM)
+        .in("x", chunk)
+        .order("x", { ascending: true })
+        .order("y", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw new Error(error.message);
+      const page = (data ?? []) as BlockRow[];
+      for (const row of page) {
+        const key = blockKey(row.x, row.y);
+        if (wanted.has(key)) found.set(key, row.first_seen_at);
+      }
+      if (page.length < PAGE_SIZE) break;
+    }
+  }
+  return found;
+}
+
+/**
+ * Welke blokken zijn nieuw, en welke bestaan al maar zijn eerder bereden dan
+ * tot nu toe bekend? Blokken die al een even oude of oudere datum hebben,
+ * vallen erbuiten. Puur, voor de test.
+ */
+export function splitByExisting<T extends BlockRow>(
+  rows: T[],
+  existing: Map<string, string>,
+): { fresh: T[]; earlier: T[] } {
+  const fresh: T[] = [];
+  const earlier: T[] = [];
+  for (const row of rows) {
+    const known = existing.get(blockKey(row.x, row.y));
+    if (known === undefined) fresh.push(row);
+    else if (Date.parse(row.first_seen_at) < Date.parse(known)) earlier.push(row);
+  }
+  return { fresh, earlier };
 }
 
 function decodePolyline(encoded: string | null): GpxPoint[] | null {
