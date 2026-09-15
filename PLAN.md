@@ -988,8 +988,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — gemeten tijd per Zwift-zone bij gereden trainingen (wens 16, deel 2)
 
-**2026-09-15, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie; de zonetijden staan in `metrics_json.zoneTimes`.
+**2026-09-15, commit `3621a71` op `main`, gepusht 2026-09-15.** Geen migratie; de zonetijden staan in `metrics_json.zoneTimes`.
 
 **Waarom.** Het tweede deel van Jeroens vraag: bij een voorbije training ook de
 gereden zones zien, niet alleen de geplande opbouw uit R3. Stap 0 (eigenaar,
