@@ -1050,7 +1050,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — het lid koppelt zelf een rit aan een training
 
-**2026-09-15, lokaal gecommit, nog niet gepusht.** Migratie `0163`
+**2026-09-15, commit `4ea87ba`, lokaal, nog niet gepusht.** Migratie `0163`
 (`strava_activities.training_excluded_at`), draaien vóór de deploy. **Niet lokaal
 getest:** er is geen Docker of Supabase-config; de databasekant is alleen met de
 stub in `tests/unit/reassign-ride.test.ts` bewaakt, de UI niet in een browser gezien
