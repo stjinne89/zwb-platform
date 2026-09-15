@@ -1157,7 +1157,7 @@ iedereen, zonder dat de Strava-budgetten in één keer opgaan.
     wandelactiviteiten mee;
   - samen ruim 3 uur per extra jaar, dus bij 5 jaar extra per lid ~18 uur.
 
-**Opgevoerd naar drie pagina's (2026-09-15, commit `COMMIT3`).** Op verzoek van de
+**Opgevoerd naar drie pagina's (2026-09-15, commit `13c6dfe`).** Op verzoek van de
 eigenaar, omdat ZWBlokken anders een dag of langer op zich liet wachten en het budget
 ruim bleef.
 - `MAX_PAGES_PER_RUN = 3`. Tijd en budget worden per pagina opnieuw gecontroleerd.
