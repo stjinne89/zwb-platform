@@ -1008,6 +1008,23 @@ export default function HelpPage() {
               gemiste training blijft zichtbaar wat er stond.
             </p>
             <p
+              id="rit-koppelen"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              ZWB koppelt een rit vanzelf aan de training van die dag. Zit dat
+              ernaast, kies dan zelf bij{" "}
+              <strong className="text-foreground">Hoort bij</strong> welke training
+              het was. Dat kan bij een gereden training en bij een rit die als niet
+              gepland in de kalender staat, ook nadat je al bevestigd hebt. Je kunt
+              kiezen uit trainingen die nog open staan in de week tot en met de
+              ritdag; een training die later gepland staat niet, want die blijft in
+              je schema staan. Je RPE, gevoel en opmerking verhuizen mee, de
+              training waar de rit eerst aan hing telt weer als niet gereden. Kies
+              je <strong className="text-foreground">Geen training</strong>, dan
+              blijft de rit los staan en koppelt ZWB hem niet opnieuw; wat je bij
+              die training had ingevuld vervalt dan.
+            </p>
+            <p
               id="tijd-per-zone"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >

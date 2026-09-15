@@ -34,7 +34,8 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { fitScheduleToAvailability } from "@/lib/training/availability-fit";
-import { reassignRideToWorkout, reviewNotificationBody } from "@/lib/training/completion";
+import { relinkRide, reviewNotificationBody } from "@/lib/training/completion";
+import { NO_WORKOUT } from "./_components/ride-link";
 import {
   asFtpTestType,
   deleteFtpTest,
@@ -1867,6 +1868,32 @@ export async function dismissAdaptationProposal(formData: FormData) {
 }
 
 /**
+ * Het lid hangt een rit aan een andere training, aan een training die als gemist
+ * staat, of aan geen enkele training. Zie relinkRide.
+ */
+export async function relinkRideAction(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const activityId = mustString(formData.get("activity_id"), "Rit");
+    const workoutId = mustString(formData.get("workout_id"), "Training");
+    const admin = createAdminClient();
+    const result = await relinkRide(admin, {
+      profileId: user.id,
+      activityId,
+      toWorkoutId: workoutId === NO_WORKOUT ? null : workoutId,
+    });
+    if (!result.ok) throw new Error(result.error);
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Koppelen faalde.",
+    };
+  }
+}
+
+/**
  * Het lid bevestigt een afgeronde workout: RPE, gevoel en opmerking erbij, en
  * daarna gaat het naar de trainer. athlete_confirmed_at is het signaal waarop de
  * beoordelingsrij van de trainer filtert.
@@ -1893,19 +1920,35 @@ export async function confirmWorkoutReview(formData: FormData) {
     const confirmedAt = new Date().toISOString();
 
     // Het lid zegt dat de rit een andere training was, bijvoorbeeld die van
-    // gisteren. Dan verhuist de rit met wat het lid invulde naar die training.
+    // gisteren, of helemaal geen training. Dan verhuist de rit met wat het lid
+    // invulde naar die training, of wordt hij losgekoppeld.
     const riddenWorkoutId = optionalString(formData.get("ridden_workout_id"));
     let reviewed: { trainerId: string | null; title: string; metricsJson: unknown; workoutId: string };
     if (riddenWorkoutId && riddenWorkoutId !== workoutId) {
-      const moved = await reassignRideToWorkout(admin, {
+      const { data: current } = await admin
+        .from("training_workout_reports")
+        .select("paired_activity_id")
+        .eq("workout_id", workoutId)
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      if (!current?.paired_activity_id) throw new Error("Er hangt geen rit aan deze training.");
+      const moved = await relinkRide(admin, {
         profileId: user.id,
-        fromWorkoutId: workoutId,
-        toWorkoutId: riddenWorkoutId,
-        review: { rpe: athleteRpe, feel, report: athleteReport },
-        confirmedAt,
+        activityId: String(current.paired_activity_id),
+        toWorkoutId: riddenWorkoutId === NO_WORKOUT ? null : riddenWorkoutId,
+        review: { rpe: athleteRpe, feel, report: athleteReport, confirmedAt },
       });
       if (!moved.ok) throw new Error(moved.error);
-      reviewed = { ...moved, workoutId: riddenWorkoutId };
+      if (!moved.workoutId) {
+        revalidatePath("/zwbeter-worden", "layout");
+        return { ok: true as const };
+      }
+      reviewed = {
+        trainerId: moved.trainerId,
+        title: moved.title ?? workout.title,
+        metricsJson: moved.metricsJson,
+        workoutId: moved.workoutId,
+      };
     } else {
       const { data: report, error } = await admin
         .from("training_workout_reports")

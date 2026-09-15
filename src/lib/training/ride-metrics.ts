@@ -116,6 +116,11 @@ export type StravaRideRow = {
   moving_time_seconds: number | null;
   distance_m?: number | string | null;
   raw: unknown;
+  /**
+   * Gezet als het lid zei dat deze rit bij geen training hoort (migratie 0163).
+   * Niet in STRAVA_RIDE_COLUMNS: markExcludedRides vult hem apart in.
+   */
+  training_excluded_at?: string | null;
 };
 
 export const STRAVA_RIDE_COLUMNS = "id, name, start_date, moving_time_seconds, distance_m, raw";

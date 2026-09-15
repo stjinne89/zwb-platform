@@ -18,6 +18,7 @@ import {
   complianceVerdict,
   loadPercentage,
   loadRidePairings,
+  markExcludedRides,
   pairWorkoutsWithRides,
   type ComplianceVerdict,
 } from "@/lib/training/compliance";
@@ -274,6 +275,49 @@ type ExistingReport = {
 
 export { pairWorkoutsWithRides, type WorkoutForPairing } from "@/lib/training/compliance";
 
+type SnapshotContext = {
+  ftpWatts: number | null;
+  weightKg: number | null;
+  wellness: IntervalsWellness[];
+  readiness: { score: number | null; level: number | null; title: string | null };
+};
+
+/** FTP, gewicht, wellness en gereedscore: wat een nieuwe momentopname nodig heeft. */
+async function loadSnapshotContext(admin: Admin, profileId: string): Promise<SnapshotContext> {
+  const [{ data: profile }, { data: conn }] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("ftp_watts, weight_kg, sex, wellness_device")
+      .eq("id", profileId)
+      .maybeSingle(),
+    admin
+      .from("intervals_connections")
+      .select("api_key, athlete_id, wellness_opt_in")
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+  ]);
+
+  const wellness =
+    conn?.api_key && conn.athlete_id
+      ? await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 120).catch(() => [])
+      : [];
+  const status = computeZwbStatus(wellness, {
+    wellnessOptIn: Boolean(conn?.wellness_opt_in),
+    sex: profile?.sex ?? null,
+    wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
+  });
+  return {
+    ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    weightKg: profile?.weight_kg == null ? null : Number(profile.weight_kg),
+    wellness,
+    readiness: {
+      score: status.readiness.score ?? null,
+      level: status.advice.level || null,
+      title: status.advice.title || null,
+    },
+  };
+}
+
 /**
  * Zoekt workouts uit de afgelopen week waar een rit bij hoort, markeert die als
  * gereden en zet de cijfers klaar voor het bevestigscherm.
@@ -325,33 +369,10 @@ export async function detectCompletedWorkouts(
     // Een dag extra marge: een rit die 's avonds laat begon valt in Amsterdam-tijd
     // nog op de vorige dag.
     .gte("start_date", new Date(now - (COMPLETION_WINDOW_DAYS + 1) * 86400_000).toISOString());
-  const rides = (rideRows ?? []) as StravaRideRow[];
+  const rides = await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]);
   if (rides.length === 0) return empty;
 
-  const [{ data: profile }, { data: conn }] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("ftp_watts, weight_kg, sex, wellness_device")
-      .eq("id", profileId)
-      .maybeSingle(),
-    admin
-      .from("intervals_connections")
-      .select("api_key, athlete_id, wellness_opt_in")
-      .eq("profile_id", profileId)
-      .maybeSingle(),
-  ]);
-
-  const wellness =
-    conn?.api_key && conn.athlete_id
-      ? await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 120).catch(() => [])
-      : [];
-  const status = computeZwbStatus(wellness, {
-    wellnessOptIn: Boolean(conn?.wellness_opt_in),
-    sex: profile?.sex ?? null,
-    wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
-  });
-  const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
-  const weightKg = profile?.weight_kg == null ? null : Number(profile.weight_kg);
+  const { ftpWatts, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
 
   // Ook koppelingen van workouts buiten het venster: een rit die het lid aan de
   // training van een eerdere dag heeft gehangen, mag de training van de ritdag
@@ -394,11 +415,7 @@ export async function detectCompletedWorkouts(
       ftpWatts,
       weightKg,
       ctl: ctlAround(wellness, dayKey),
-      readiness: {
-        score: status.readiness.score ?? null,
-        level: status.advice.level || null,
-        title: status.advice.title || null,
-      },
+      readiness,
     });
 
     if (!isNew) {
@@ -583,51 +600,102 @@ export type AthleteReview = {
   rpe: number | null;
   feel: string | null;
   report: string | null;
+  confirmedAt: string | null;
 };
 
-export type ReassignResult =
-  | { ok: true; trainerId: string | null; title: string; metricsJson: WorkoutMetricsSnapshot }
+export type RelinkResult =
+  | {
+      ok: true;
+      /** De training waar de rit nu aan hangt; null na loskoppelen. */
+      workoutId: string | null;
+      trainerId: string | null;
+      title: string | null;
+      metricsJson: WorkoutMetricsSnapshot | null;
+    }
   | { ok: false; error: string };
 
+type LinkedReport = {
+  workout_id: string;
+  metrics_json: Partial<WorkoutMetricsSnapshot> | null;
+  athlete_rpe: number | null;
+  athlete_feel: string | null;
+  athlete_report: string | null;
+  athlete_confirmed_at: string | null;
+  trainer_feedback: string | null;
+};
+
 /**
- * Het lid zegt: deze rit was niet de training die we eraan hingen, maar een
- * andere. Typisch de training van donderdag, op vrijdag gereden. De rit, de
- * cijfers en wat het lid invulde verhuizen naar die training; de training van
- * de ritdag gaat terug naar gepland en telt daarmee als niet gereden, tenzij er
- * die dag nog een rit is die er wél bij past.
+ * Laat een training los van zijn rit: de rapportage weg en de training terug op
+ * gepland. Feedback van een trainer gooien we niet weg; dan blijft de rij staan,
+ * zonder rit, cijfers en beleving.
+ */
+async function releaseReport(admin: Admin, profileId: string, report: LinkedReport) {
+  if (report.trainer_feedback) {
+    await admin
+      .from("training_workout_reports")
+      .update({
+        paired_activity_id: null,
+        metrics_json: {},
+        athlete_rpe: null,
+        athlete_feel: null,
+        athlete_report: null,
+        athlete_confirmed_at: null,
+        updated_by: profileId,
+      })
+      .eq("workout_id", report.workout_id)
+      .eq("profile_id", profileId);
+  } else {
+    await admin
+      .from("training_workout_reports")
+      .delete()
+      .eq("workout_id", report.workout_id)
+      .eq("profile_id", profileId);
+  }
+  await admin
+    .from("training_workouts")
+    .update({ status: "planned" })
+    .eq("id", report.workout_id)
+    .eq("profile_id", profileId)
+    .eq("status", "completed");
+}
+
+/**
+ * Het lid herstelt de koppeling tussen een rit en een training. Drie gevallen,
+ * één pad:
+ *
+ * - de rit hing aan de verkeerde training: typisch de training van donderdag, op
+ *   vrijdag gereden;
+ * - de rit stond als ongepland, maar was een training die nu als gemist staat;
+ * - de rit was geen training (`toWorkoutId` null).
+ *
+ * Bij verhuizen gaan de rit, de cijfers en wat het lid invulde mee, ook als de
+ * training al bevestigd was. De oude training gaat terug naar gepland en telt
+ * daarmee als niet gereden, tenzij er die dag nog een rit is die er wél bij past.
+ * Bij loskoppelen krijgt de rit `training_excluded_at`, zodat de detectie hem niet
+ * terughangt; koppelt het lid hem later toch, dan gaat die markering weer weg.
  *
  * De volgorde is bewust: eerst de nieuwe training claimen (alleen zolang die nog
  * op 'planned' staat), dan de rapportage schrijven, en pas daarna de oude
  * loslaten. Faalt een stap halverwege, dan hangt de rit hooguit even aan twee
  * trainingen en nooit aan geen enkele; een gelijktijdige detectierun deelt hem
- * dan niet opnieuw uit, want vastgelegde koppelingen gaan daar voor.
+ * dan niet opnieuw uit, want vastgelegde koppelingen gaan daar voor. Bij
+ * loskoppelen komt de markering om dezelfde reden vóór het loslaten.
  *
  * CTL en gereedscore komen uit de bestaande momentopname: die horen bij de dag
- * van de rit, en die verandert niet.
+ * van de rit, en die verandert niet. Alleen een rit zonder momentopname krijgt
+ * nieuwe waarden.
  */
-export async function reassignRideToWorkout(
+export async function relinkRide(
   admin: Admin,
   input: {
     profileId: string;
-    fromWorkoutId: string;
-    toWorkoutId: string;
-    review: AthleteReview;
-    confirmedAt: string;
+    activityId: string;
+    toWorkoutId: string | null;
+    /** Uit het bevestigscherm; zonder gaat de beleving van de oude rapportage mee. */
+    review?: AthleteReview;
   },
-): Promise<ReassignResult> {
-  const { profileId, fromWorkoutId, toWorkoutId } = input;
-
-  const { data: fromReport } = await admin
-    .from("training_workout_reports")
-    .select("paired_activity_id, metrics_json, athlete_confirmed_at, trainer_feedback")
-    .eq("workout_id", fromWorkoutId)
-    .eq("profile_id", profileId)
-    .maybeSingle();
-  const activityId = fromReport?.paired_activity_id ? String(fromReport.paired_activity_id) : null;
-  if (!activityId) return { ok: false, error: "Er hangt geen rit aan deze training." };
-  if (fromReport?.athlete_confirmed_at) {
-    return { ok: false, error: "Deze training is al bevestigd." };
-  }
+): Promise<RelinkResult> {
+  const { profileId, activityId, toWorkoutId } = input;
 
   const { data: ride } = await admin
     .from("strava_activities")
@@ -638,6 +706,30 @@ export async function reassignRideToWorkout(
   if (!ride) return { ok: false, error: "De rit is niet meer gevonden." };
   const rideRow = ride as unknown as StravaRideRow;
   const rideDayKey = amsterdamDayKey(new Date(rideRow.start_date));
+
+  const { data: linkedRows } = await admin
+    .from("training_workout_reports")
+    .select(
+      "workout_id, metrics_json, athlete_rpe, athlete_feel, athlete_report, athlete_confirmed_at, trainer_feedback",
+    )
+    .eq("profile_id", profileId)
+    .eq("paired_activity_id", activityId);
+  const linked = (linkedRows ?? []) as LinkedReport[];
+
+  if (!toWorkoutId) {
+    const { error } = await admin
+      .from("strava_activities")
+      .update({ training_excluded_at: new Date().toISOString() })
+      .eq("profile_id", profileId)
+      .eq("id", activityId);
+    if (error) return { ok: false, error: error.message };
+    for (const report of linked) await releaseReport(admin, profileId, report);
+    return { ok: true, workoutId: null, trainerId: null, title: null, metricsJson: null };
+  }
+
+  if (linked.some((report) => report.workout_id === toWorkoutId)) {
+    return { ok: true, workoutId: toWorkoutId, trainerId: null, title: null, metricsJson: null };
+  }
 
   const { data: target } = await admin
     .from("training_workouts")
@@ -659,7 +751,7 @@ export async function reassignRideToWorkout(
   const allowed = reassignCandidates(
     [target as CandidateWorkout],
     rideDayKey,
-    fromWorkoutId,
+    "",
     new Set(targetReport?.paired_activity_id ? [toWorkoutId] : []),
   );
   if (allowed.length === 0) {
@@ -676,27 +768,55 @@ export async function reassignRideToWorkout(
     return { ok: false, error: "Die training is intussen al afgerond." };
   }
 
-  const previous = (fromReport?.metrics_json ?? {}) as Partial<WorkoutMetricsSnapshot>;
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("ftp_watts, weight_kg")
-    .eq("id", profileId)
-    .maybeSingle();
+  // De rapportage met cijfers is de bron; bij een dubbele koppeling uit het
+  // verleden kan er ook een lege naast staan.
+  const source = linked.find((report) => report.metrics_json?.plannedTitle) ?? linked[0];
+  const previous = (source?.metrics_json ?? {}) as Partial<WorkoutMetricsSnapshot>;
+  let context: SnapshotContext;
+  if (previous.plannedTitle) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("ftp_watts, weight_kg")
+      .eq("id", profileId)
+      .maybeSingle();
+    context = {
+      ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+      // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
+      weightKg:
+        previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
+      wellness: [],
+      readiness: {
+        score: previous.readinessScore ?? null,
+        level: previous.readinessLevel ?? null,
+        title: previous.readinessTitle ?? null,
+      },
+    };
+  } else {
+    context = await loadSnapshotContext(admin, profileId);
+  }
+
   const targetRow = target as PlannedWorkoutRow;
-  const metrics = buildMetricsSnapshot({
-    workout: targetRow,
-    ride: rideRow,
-    ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-    // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
-    weightKg:
-      previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
-    ctl: { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null },
-    readiness: {
-      score: previous.readinessScore ?? null,
-      level: previous.readinessLevel ?? null,
-      title: previous.readinessTitle ?? null,
-    },
-  });
+  const metrics: WorkoutMetricsSnapshot = {
+    ...buildMetricsSnapshot({
+      workout: targetRow,
+      ride: rideRow,
+      ftpWatts: context.ftpWatts,
+      weightKg: context.weightKg,
+      ctl: previous.plannedTitle
+        ? { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null }
+        : ctlAround(context.wellness, rideDayKey),
+      readiness: context.readiness,
+    }),
+    // Zonetijden horen bij de rit, niet bij de training.
+    ...(previous.zoneTimes ? { zoneTimes: previous.zoneTimes } : {}),
+  };
+
+  const review: AthleteReview = input.review ?? {
+    rpe: source?.athlete_rpe ?? null,
+    feel: source?.athlete_feel ?? null,
+    report: source?.athlete_report ?? null,
+    confirmedAt: source?.athlete_confirmed_at ?? null,
+  };
 
   const { error: writeError } = await admin.from("training_workout_reports").upsert(
     {
@@ -706,10 +826,10 @@ export async function reassignRideToWorkout(
       paired_activity_id: activityId,
       intervals_event_id: targetRow.intervals_event_id,
       metrics_json: metrics,
-      athlete_rpe: input.review.rpe,
-      athlete_feel: input.review.feel,
-      athlete_report: input.review.report,
-      athlete_confirmed_at: input.confirmedAt,
+      athlete_rpe: review.rpe,
+      athlete_feel: review.feel,
+      athlete_report: review.report,
+      athlete_confirmed_at: review.confirmedAt,
       created_by: profileId,
       updated_by: profileId,
     },
@@ -724,34 +844,22 @@ export async function reassignRideToWorkout(
     return { ok: false, error: writeError.message };
   }
 
-  // De oude rapportage was de automatische koppeling. Feedback van een trainer
-  // gooien we niet weg: dan blijft de rij staan, zonder rit en cijfers.
-  if (fromReport?.trainer_feedback) {
-    await admin
-      .from("training_workout_reports")
-      .update({
-        paired_activity_id: null,
-        metrics_json: {},
-        athlete_rpe: null,
-        athlete_feel: null,
-        athlete_report: null,
-        updated_by: profileId,
-      })
-      .eq("workout_id", fromWorkoutId)
-      .eq("profile_id", profileId);
-  } else {
-    await admin
-      .from("training_workout_reports")
-      .delete()
-      .eq("workout_id", fromWorkoutId)
-      .eq("profile_id", profileId)
-      .is("athlete_confirmed_at", null);
-  }
+  // Een eerder losgekoppelde rit is nu weer een training. Zonder migratie 0163
+  // bestaat de kolom niet, en dan valt er ook niets op te heffen.
   await admin
-    .from("training_workouts")
-    .update({ status: "planned" })
-    .eq("id", fromWorkoutId)
-    .eq("status", "completed");
+    .from("strava_activities")
+    .update({ training_excluded_at: null })
+    .eq("profile_id", profileId)
+    .eq("id", activityId);
 
-  return { ok: true, trainerId: targetRow.trainer_id, title: targetRow.title, metricsJson: metrics };
+  for (const report of linked) await releaseReport(admin, profileId, report);
+
+  return {
+    ok: true,
+    workoutId: toWorkoutId,
+    trainerId: targetRow.trainer_id,
+    title: targetRow.title,
+    metricsJson: metrics,
+  };
 }
+

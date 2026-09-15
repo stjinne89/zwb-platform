@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { reassignRideToWorkout } from "@/lib/training/completion";
+import { relinkRide } from "@/lib/training/completion";
 
 // Melding 17 (plannenboek, 12 september 2026): de RPE-vraag hing aan de blauwe
 // training van vrijdag, terwijl het lid de groene van donderdag had gereden. Het
-// bevestigscherm laat het lid de rit nu aan die andere training hangen; deze
-// tests bewaken wat er in de database gebeurt.
+// lid kan de rit nu zelf aan een andere training hangen, aan een gemiste
+// training, of aan geen enkele; deze tests bewaken wat er in de database gebeurt.
 
 type Row = Record<string, unknown>;
 
@@ -126,16 +126,20 @@ function world() {
 
 const input = {
   profileId: "lid",
-  fromWorkoutId: "vr",
+  activityId: "9001",
   toWorkoutId: "do",
-  review: { rpe: 7, feel: "goed", report: "Donderdag ingehaald" },
-  confirmedAt: "2026-09-12T08:00:00Z",
+  review: {
+    rpe: 7,
+    feel: "goed",
+    report: "Donderdag ingehaald",
+    confirmedAt: "2026-09-12T08:00:00Z",
+  },
 };
 
-describe("reassignRideToWorkout", () => {
+describe("relinkRide — verhuizen", () => {
   it("verhuist rit, cijfers en beleving naar donderdag en zet vrijdag terug", async () => {
     const tables = world();
-    const result = await reassignRideToWorkout(fakeAdmin(tables), input);
+    const result = await relinkRide(fakeAdmin(tables), input);
 
     expect(result.ok).toBe(true);
     const [thursday, friday] = tables.training_workouts;
@@ -161,7 +165,7 @@ describe("reassignRideToWorkout", () => {
   it("weigert een training die intussen al is afgerond, zonder iets te veranderen", async () => {
     const tables = world();
     tables.training_workouts[0].status = "completed";
-    const result = await reassignRideToWorkout(fakeAdmin(tables), input);
+    const result = await relinkRide(fakeAdmin(tables), input);
 
     expect(result).toEqual({ ok: false, error: "Deze rit kan niet bij die training horen." });
     expect(tables.training_workout_reports[0].workout_id).toBe("vr");
@@ -171,14 +175,14 @@ describe("reassignRideToWorkout", () => {
   it("weigert een training na de ritdag", async () => {
     const tables = world();
     tables.training_workouts[0].scheduled_at = "2026-09-13T16:00:00Z";
-    const result = await reassignRideToWorkout(fakeAdmin(tables), input);
+    const result = await relinkRide(fakeAdmin(tables), input);
     expect(result.ok).toBe(false);
     expect(tables.training_workouts[0].status).toBe("planned");
   });
 
   it("zet de claim terug en laat vrijdag intact als schrijven faalt", async () => {
     const tables = world();
-    const result = await reassignRideToWorkout(fakeAdmin(tables, { failUpsert: true }), input);
+    const result = await relinkRide(fakeAdmin(tables, { failUpsert: true }), input);
 
     expect(result).toEqual({ ok: false, error: "schrijven faalde" });
     expect(tables.training_workouts[0].status).toBe("planned");
@@ -189,18 +193,66 @@ describe("reassignRideToWorkout", () => {
   it("gooit trainerfeedback op de oude training niet weg", async () => {
     const tables = world();
     tables.training_workout_reports[0].trainer_feedback = "Mooi gereden";
-    await reassignRideToWorkout(fakeAdmin(tables), input);
+    tables.training_workout_reports[0].athlete_confirmed_at = "2026-09-11T20:00:00Z";
+    await relinkRide(fakeAdmin(tables), input);
 
     const old = tables.training_workout_reports.find((row) => row.workout_id === "vr");
     expect(old?.trainer_feedback).toBe("Mooi gereden");
     expect(old?.paired_activity_id).toBeNull();
+    // Anders blijft vrijdag in de beoordelingsrij van de trainer staan.
+    expect(old?.athlete_confirmed_at).toBeNull();
   });
 
-  it("weigert een al bevestigde training", async () => {
+  // Keuze van de eigenaar (2026-09-15): herstellen mag altijd, ook na bevestigen.
+  it("verhuist ook een al bevestigde training, met wat het lid toen invulde", async () => {
     const tables = world();
-    tables.training_workout_reports[0].athlete_confirmed_at = "2026-09-11T20:00:00Z";
-    const result = await reassignRideToWorkout(fakeAdmin(tables), input);
-    expect(result.ok).toBe(false);
-    expect(tables.training_workouts[0].status).toBe("planned");
+    Object.assign(tables.training_workout_reports[0], {
+      athlete_confirmed_at: "2026-09-11T20:00:00Z",
+      athlete_rpe: 6,
+      athlete_feel: "zwaar",
+      athlete_report: "Pittig",
+    });
+    const result = await relinkRide(fakeAdmin(tables), { ...input, review: undefined });
+
+    expect(result.ok).toBe(true);
+    expect(tables.training_workouts.map((row) => row.status)).toEqual(["completed", "planned"]);
+    expect(tables.training_workout_reports).toHaveLength(1);
+    expect(tables.training_workout_reports[0]).toMatchObject({
+      workout_id: "do",
+      athlete_confirmed_at: "2026-09-11T20:00:00Z",
+      athlete_rpe: 6,
+      athlete_feel: "zwaar",
+      athlete_report: "Pittig",
+    });
+  });
+});
+
+describe("relinkRide — loskoppelen", () => {
+  it("markeert de rit, gooit de rapportage weg en zet de training terug", async () => {
+    const tables = world();
+    const result = await relinkRide(fakeAdmin(tables), { ...input, toWorkoutId: null });
+
+    expect(result).toMatchObject({ ok: true, workoutId: null });
+    expect(tables.strava_activities[0].training_excluded_at).toEqual(expect.any(String));
+    expect(tables.training_workout_reports).toHaveLength(0);
+    expect(tables.training_workouts[1].status).toBe("planned");
+  });
+});
+
+describe("relinkRide — ongeplande rit koppelen", () => {
+  it("hangt een losgekoppelde rit aan een gemiste training en heft de markering op", async () => {
+    const tables = world();
+    tables.training_workouts[1].status = "planned";
+    tables.training_workout_reports = [];
+    tables.strava_activities[0].training_excluded_at = "2026-09-12T09:00:00Z";
+
+    const result = await relinkRide(fakeAdmin(tables), { ...input, toWorkoutId: "vr", review: undefined });
+
+    expect(result.ok).toBe(true);
+    expect(tables.training_workouts[1].status).toBe("completed");
+    expect(tables.strava_activities[0].training_excluded_at).toBeNull();
+    const report = tables.training_workout_reports[0];
+    expect(report).toMatchObject({ workout_id: "vr", paired_activity_id: "9001", athlete_rpe: null });
+    expect((report.metrics_json as Record<string, unknown>).plannedTitle).toBe("Rustige duurrit");
   });
 });

@@ -1048,6 +1048,60 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — het lid koppelt zelf een rit aan een training
+
+**2026-09-15, lokaal gecommit, nog niet gepusht.** Migratie `0163`
+(`strava_activities.training_excluded_at`), draaien vóór de deploy. **Niet lokaal
+getest:** er is geen Docker of Supabase-config; de databasekant is alleen met de
+stub in `tests/unit/reassign-ride.test.ts` bewaakt, de UI niet in een browser gezien
+(geen `.env.local` in deze worktree).
+
+**Waarom.** ZWBeter Worden koppelt een rit automatisch aan de training van die
+kalenderdag. Zit dat ernaast, dan kon het lid dat alleen in het bevestigscherm
+herstellen, alleen vóór bevestigen en alleen naar een andere open training. Een rit
+losmaken ("dit was geen training") of een ongeplande rit aan een gemiste training
+hangen kon niet.
+
+**Besluiten (met de eigenaar afgestemd).**
+- Alle drie de correcties: verhuizen naar een andere training, een ongeplande rit
+  koppelen, en loskoppelen.
+- **Wijzigen mag altijd**, ook na bevestigen en na trainerfeedback. De feedback
+  blijft op de oude rij staan, zonder rit, cijfers en `athlete_confirmed_at`, zodat
+  die niet in de beoordelingsrij van de trainer blijft hangen.
+
+**Wat er veranderde.**
+- `relinkRide` (completion.ts) vervangt `reassignRideToWorkout` en redeneert vanuit
+  de rit. Verhuizen neemt RPE, gevoel, opmerking, bevestigmoment en zonetijden mee;
+  CTL en gereedscore blijven die van de oorspronkelijke momentopname. Een rit zonder
+  momentopname krijgt nieuwe waarden via `loadSnapshotContext`, dat uit
+  `detectCompletedWorkouts` is gehaald. Doelen blijven `reassignCandidates`: open,
+  geen rust of clubevent, in de week tot en met de ritdag.
+- Loskoppelen zet `training_excluded_at` vóór het loslaten; weer koppelen haalt de
+  markering weg. `pickRideForWorkout` slaat gemarkeerde ritten over. Daarmee slaan
+  `pairWorkoutsWithRides` (detectie en naleving) en `unplannedRides` ze ook over; die
+  laatste toont de rit dan als ongepland.
+- De markering komt via `markExcludedRides`, een aparte query, en niet via
+  `STRAVA_RIDE_COLUMNS`. Draait `0163` nog niet, dan koppelt alles zoals voorheen
+  en faalt alleen loskoppelen, in plaats van elke ritquery.
+- UI: in de maandkalender (`/zwbeter-worden/schema`) staat bij een gereden training
+  en bij een ongeplande rit **Hoort bij** (`RideLinkForm`). Het bevestigscherm kreeg
+  de keuze **Geen training**. Uitleg staat op `/hulp#rit-koppelen`.
+  `loadUnplannedRides` heet nu `loadScheduleRides` en geeft ook dag en naam per rit.
+
+**Bewust niet gebouwd.**
+- **Ruilen in één stap.** Als twee trainingen elkaars rit hebben, gaat dat in drie
+  stappen: loskoppelen, verhuizen, koppelen. Dankzij de markering koppelt de detectie
+  tussendoor niets verkeerd terug.
+- **Een training die later gepland staat als doel.** Afvinken zou hem stilletjes uit
+  het schema halen.
+- **Koppelen door de trainer.** Daar is niet om gevraagd; de action accepteert
+  alleen het lid zelf.
+- **De AI-dagcontext** (`yesterdayContextFrom`) kijkt nog naar de langste rit van
+  gisteren, ook als die losgekoppeld is. Het is echte belasting, dus die hoort de AI
+  te zien. Alleen de vergelijking met de training van gisteren is dan scheef.
+- **De Strava-samenvatting** (`summary-writer`, `pickPlannedWorkout`) wordt geschreven
+  bij binnenkomst van de rit en kijkt niet naar latere correcties.
+
 ### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
 
 **2026-09-15, commit `5c686aa`, via merge naar `main` gepusht 2026-09-15** (in één
@@ -1822,16 +1876,17 @@ Drie breuken in dezelfde keten:
   mag wel.
 - Het bevestigscherm toont nu de werkelijk gereden rit (naam, dag, duur, km) en
   laat het lid kiezen welke training het was: de gekoppelde of een nog open
-  training uit de week tot en met de ritdag. `reassignRideToWorkout` verhuist rit,
+  training uit de week tot en met de ritdag. `reassignRideToWorkout` (sinds
+  2026-09-15 opgegaan in `relinkRide`, zie "het lid koppelt zelf een rit") verhuist rit,
   momentopname (opnieuw tegen de gekozen training gerekend; CTL/gereedscore van
   de ritdag blijven) en RPE/gevoel/opmerking; de oude training gaat terug naar
   gepland. Volgorde claim → schrijven → loslaten, met terugdraaien bij een
   schrijffout; trainerfeedback op de oude rij blijft staan.
 - In de maandkalender staat een gemiste training gedimd: historie, niet
   achterstallig. Er is niets verwijderd.
-*Bewust niet gebouwd:* "dit was geen enkele geplande training". Dat vraagt een
-blijvende markering "deze rit niet aan deze training" (anders koppelt de detectie
-hem terug), dus een migratie; eerst aan de eigenaar voorleggen. Ook geen
+*Bewust niet gebouwd (toen):* "dit was geen enkele geplande training". Dat vraagt
+een blijvende markering, anders koppelt de detectie hem terug. **Op 2026-09-15 na
+akkoord van de eigenaar alsnog gebouwd** (migratie `0163`, `relinkRide`). Ook geen
 automatische conclusie "verschoven" zonder bevestiging: de AI krijgt de gemiste
 training alleen als mogelijkheid.
 

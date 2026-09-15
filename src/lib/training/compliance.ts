@@ -275,6 +275,9 @@ export function complianceForWorkouts(
  * De rit die bij een geplande workout hoort: zelfde kalenderdag, en bij meerdere
  * ritten die dag degene met de rijtijd het dichtst bij de geplande duur.
  * Spiegelbeeld van pickPlannedWorkout, dat vanuit de rit redeneert.
+ *
+ * Een rit die het lid heeft losgekoppeld (`training_excluded_at`) doet niet mee:
+ * anders hing de volgende sync hem er gewoon weer aan.
  */
 export function pickRideForWorkout<T extends StravaRideRow>(
   rides: T[],
@@ -283,7 +286,7 @@ export function pickRideForWorkout<T extends StravaRideRow>(
 ): T | null {
   const dayKey = amsterdamDayKey(new Date(scheduledAt));
   const sameDay = rides.filter(
-    (row) => amsterdamDayKey(new Date(row.start_date)) === dayKey,
+    (row) => !row.training_excluded_at && amsterdamDayKey(new Date(row.start_date)) === dayKey,
   );
   if (sameDay.length === 0) return null;
   if (sameDay.length === 1 || plannedMinutes == null) {
@@ -348,6 +351,38 @@ export async function loadRidePairings(
   );
 }
 
+/**
+ * Zet `training_excluded_at` op de ritten die het lid heeft losgekoppeld. Een
+ * aparte, kleine query in plaats van een extra kolom in STRAVA_RIDE_COLUMNS:
+ * ontbreekt migratie 0163 nog, dan koppelt alles gewoon zoals voorheen in plaats
+ * van dat elke ritquery in ZWBeter Worden faalt.
+ */
+export async function markExcludedRides<T extends StravaRideRow>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  profileId: string,
+  rides: T[],
+): Promise<T[]> {
+  if (rides.length === 0) return rides;
+  const { data, error } = await client
+    .from("strava_activities")
+    .select("id, training_excluded_at")
+    .eq("profile_id", profileId)
+    .not("training_excluded_at", "is", null);
+  if (error || !data?.length) return rides;
+  const excluded = new Map<string, string>(
+    (data as Array<{ id: number; training_excluded_at: string }>).map((row) => [
+      String(row.id),
+      row.training_excluded_at,
+    ]),
+  );
+  return rides.map((ride) =>
+    excluded.has(String(ride.id))
+      ? { ...ride, training_excluded_at: excluded.get(String(ride.id)) }
+      : ride,
+  );
+}
+
 export async function buildComplianceContext(
   admin: Admin,
   profileId: string,
@@ -377,7 +412,7 @@ export async function buildComplianceContext(
   const workouts = (workoutRows ?? []) as PlannedWorkoutForCompliance[];
   if (workouts.length === 0) return null;
 
-  const rides = (rideRows ?? []) as StravaRideRow[];
+  const rides = await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]);
   const [{ data: reportRows }, otherPairings] = await Promise.all([
     admin
       .from("training_workout_reports")
