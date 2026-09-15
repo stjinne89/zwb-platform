@@ -86,7 +86,9 @@ export default function PrivacyPage() {
           <li>
             <strong>ZWB Segments:</strong> ingelezen buitenritten leveren segmentnamen,
             segmentlijnen en verstreken tijden voor de kaart en het klassement binnen
-            ZWB. Andere goedgekeurde leden zien je naam, tijd en positie. Je gewicht,
+            ZWB, alleen op segmenten die minstens drie leden reden. Andere goedgekeurde
+            leden zien je naam, tijd en positie. Ben je de snelste, dan zien zij die
+            ZWB KOM-titel ook op het dashboard en je ledenprofiel. Je gewicht,
             vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
             niet met andere leden gedeeld. Privéritten, ritten die alleen jij mag
             zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Bij het verbreken van je Strava-koppeling vervallen je

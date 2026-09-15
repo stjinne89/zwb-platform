@@ -16,6 +16,8 @@ import { AccountData } from "./_components/account-data";
 import { ProfileExternalLinks } from "@/components/profile-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
+import { SegmentKomsSection } from "@/components/segment-koms-section";
+import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
 
 type AwardRow = {
   id: string;
@@ -71,6 +73,7 @@ export default async function ProfielPage() {
     { data: pushSubs },
     { data: bikes },
     { data: myQuotes },
+    { data: koms },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -132,6 +135,12 @@ export default async function ProfielPage() {
       .select("id, component_type, body")
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("zwb_segment_kom_club")
+      .select(SEGMENT_KOM_COLUMNS)
+      .eq("profile_id", user.id)
+      .order("achieved_at", { ascending: false, nullsFirst: false })
+      .order("segment_name"),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -263,6 +272,8 @@ export default async function ProfielPage() {
           </Link>
         </div>
       </section>
+
+      <SegmentKomsSection koms={(koms ?? []) as SegmentKom[]} />
 
       {milestones.length > 0 && (
         <BadgeVault

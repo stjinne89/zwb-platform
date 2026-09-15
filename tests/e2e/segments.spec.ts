@@ -45,6 +45,7 @@ test("kaart en lijst delen selectie, doeltijd en Strava-link", async ({ page }) 
   await expect(details.getByRole("link",{name:"ZWB testklim"})).toHaveAttribute("href","https://www.strava.com/segments/12345");
   await expect(details.getByRole("link",{name:"ZWB testklim"})).toHaveAttribute("target","_blank");
   await expect(details.getByRole("table")).toContainText("Renner A");
+  await expect(details.getByRole("row",{name:/Renner A/})).toContainText("ZWB KOM");
   await expect(details).toContainText("5:00 – 5:30");
   await page.screenshot({path:"test-results/segments-desktop.png",fullPage:true});
   await page.getByRole("button",{name:"ZWB-podium",exact:true}).click();

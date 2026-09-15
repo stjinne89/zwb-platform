@@ -368,6 +368,36 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   waarvan 3 van de 10 leden met actieve Strava-koppeling.
 <!-- /zwb-segment-nav-round -->
 
+<!-- zwb-segment-kom-round -->
+- **ZWB KOM en minimaal drie rijders** (2026-09-15; commit volgt hieronder, lokaal niet gepusht;
+  migratie `0161`). Op verzoek van de eigenaar toont ZWB Segments alleen nog segmenten
+  waar minstens drie ZWB'ers reden, en krijgt de snelste daar de titel ZWB KOM: op het
+  eigen profiel, op de ledenpagina (onder de badge-zichtbaarheid) en als dashboardblok
+  "Nieuwe ZWB KOM's" naast de nieuwste badges. In het klassement en de lijst staat rang 1
+  nu als "ZWB KOM" in plaats van "Recordhouder".
+  **Waarom opgeslagen en niet live:** dashboard en profielen hebben alle segmenten nodig,
+  en een volledige doorloop van de pogingen liep op productie al tegen de statement
+  timeout (0155). Triggers markeren segmenten vuil; de webhook-taak rekent er per run
+  200 na (max. 1,5 s, `?segmentKoms=0` zet het uit). Het dashboard toont KOM's waarvan de
+  recordrit in de afgelopen zeven dagen ligt, zodat de eerste doorrekening en de
+  inhaalslag van oude ritten het blok niet overspoelen. Gelijke tijd = gedeelde titel.
+  `zwb_segment_koms` zit ook in de data-export.
+  **Niet gebouwd:** pushmelding bij winnen/verliezen, KOM op het publieke profiel, QOM,
+  en een aparte minimale-rijdersinstelling (vast op drie in de SQL).
+  **Privacytekst:** de segmentzin noemt nu de drempel en dat de titel op dashboard en
+  ledenprofiel staat. Bewust geen nieuwe privacyversie: zelfde gegevens (naam, tijd,
+  positie) voor dezelfde ontvangers — de eigenaar kan dat anders beslissen.
+  **Claim vervallen:** "Is er geen clubdoeltijd, bijvoorbeeld omdat je een segment als
+  enige ZWB'er rijdt" op `/hulp/segments` kan niet meer; aangepast.
+  Getest: PGlite met 0152+0154+0155+0156+0161 (14 tests: drempel, clusters, KOM, overdracht,
+  gelijke tijd, ritprivacy zonder herschreven pogingen, intrekken, akkoord, batchlimiet,
+  rechten), unittests voor de taakstap, beide Playwright-segmenttests, typecheck en lint.
+  **Niet getest:** 0161 tegen productie (geen lokale Supabase), de looptijd van triggers
+  en refresh op echte data, en dashboard/profiel in de browser (vereist ingelogd lid).
+  Zonder 0161 geven de nieuwe queries een fout en blijven de blokken leeg; de taakstap
+  meldt dan alleen een fout. Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
+<!-- /zwb-segment-kom-round -->
+
 - **Buganalyse en overdrachtsprompt plannenboek** (2026-09-13; analyse op
   basiscommit `71724b4`; geen migraties; uitgevoerd in de ronde "bugronde
   plannenboek" bovenaan het chronologische werkplan): de 22 meldingen uit het
