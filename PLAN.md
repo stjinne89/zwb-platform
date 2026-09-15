@@ -1052,7 +1052,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — ZWBlokken in de Zwift-werelden
 
-**2026-09-15, commit `COMMITZ` op branch `claude/zwblokken-gamification-titles-a65ad0`,
+**2026-09-15, commit `f8eba4a` op branch `claude/zwblokken-gamification-titles-a65ad0`,
 niet gepusht.** Migratie `0165` (`profile_zwift_blocks`, view `club_zwift_blocks`,
 `strava_activities.zwift_blocks_processed_at`). Geen nieuwe privacyversie.
 
