@@ -135,6 +135,7 @@ const GUIDES = [
     bullets: [
       "ZWB herkent cols en segmenten automatisch uit je Strava-ritten.",
       "Je recordtijd komt rechtstreeks van Strava; per segment zie je de ZWB-ranglijst.",
+      "Snelste op een ZWB Segment met minstens drie ZWB'ers? Dan krijg je de titel ZWB KOM; de snelste vrouw krijgt daarnaast de ZWB QOM. Je ziet ze op je profiel en het dashboard, en krijgt een pushmelding als je er een wint of verliest.",
       "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'.",
     ],
   },

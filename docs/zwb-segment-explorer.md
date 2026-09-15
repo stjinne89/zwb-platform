@@ -159,9 +159,57 @@ synthetische data (70.000 pogingen, 20.000 ritten met brede raw-kolommen): 0155 
 0156 52 ms, identieke uitkomst. Die data haalde de productievertraging niet; de winst
 op productie is dus niet gemeten.
 
+## ZWB KOM en minimaal drie rijders (0161, 2026-09-15)
+
+- `zwb_segment_club` toont alleen segmenten met minstens drie meetellende rijders. Kaart,
+  lijst, details en clusters volgen daaruit; een segment met twee rijders geeft bij openen 404.
+- `zwb_segment_koms` (alleen service_role) bewaart per segment de snelste rijder(s); bij
+  een gelijke tijd delen leden de titel. `achieved_at` is de starttijd van de recordpoging.
+- Vuil markeren via `zwb_segment_maps.kom_dirty`. Triggers op pogingen (insert/update/
+  delete), op ritten (sport, trainer, `raw.private`/`visibility`/`flagged`), op profielen
+  (goedkeuring, akkoord ≥ 2026-09-13) en op koppelingen (insert/delete/intrekken).
+  Een nieuw segment start vuil. Alle bestaande segmenten zijn na de migratie vuil.
+- `refresh_segment_koms(p_limit)` pakt vuile segmenten met `for update skip locked`,
+  telt eerst zonder raw-kolommen of er drie rijders zijn, en rekent alleen dan de
+  volledige privacyvoorwaarden door (dezelfde als de view). Idempotent.
+- De webhook-taak roept dit elke run aan met 200 segmenten en maximaal 1,5 s, vóór de
+  inhaalslag. Uitzetten: `?segmentKoms=0`. Een timeout laat segmenten vuil.
+- `zwb_segment_kom_club` is de leesview: zelfde kijkers als het klassement, en houder,
+  akkoord, koppeling en privésegment worden bij lezen opnieuw gecontroleerd, zodat
+  intrekken niet op de taak wacht.
+- Dashboard: KOM's met `achieved_at` in de afgelopen zeven dagen (max. 8). Profiel en
+  ledenpagina: alle KOM's van het lid; op de ledenpagina onder de badge-zichtbaarheid.
+- Niet gebouwd: live berekenen (volledige doorloop liep al tegen de timeout) en KOM op het
+  publieke profiel (segmentdata is alleen voor leden met akkoord). QOM en pushmeldingen
+  kwamen in 0162, zie hieronder.
+- Niet gemeten: looptijd van triggers en refresh op productie; de eerste doorrekening
+  van alle segmenten duurt enkele runs.
+
+## ZWB QOM en pushmeldingen (0162, 2026-09-15)
+
+- Keuzes van de eigenaar: KOM blijft open (snelste van iedereen). QOM is daarnaast de
+  snelste met `profiles.sex = 'vrouw'`, ook als zij de enige vrouw is; de drempel blijft
+  drie rijders op het segment. Leeg of `zeg_ik_liever_niet` dingt alleen naar de KOM mee.
+- `zwb_segment_koms.title` (`kom`/`qom`), sleutel `(segment_id, title, profile_id)`. De
+  leesview toont een QOM alleen zolang het profiel nog `vrouw` zegt; een wijziging van
+  geslacht markeert de segmenten van dat lid.
+- Het klassement bevat geen geslacht. De detailroute voegt `qomIds` toe uit de leesview,
+  zodat alleen de QOM-houder herkenbaar is.
+- Meldingen: `refresh_segment_koms` schrijft `won`/`lost` in `zwb_segment_kom_events`
+  (alleen service_role) wanneer een nieuwe houder een recordrit van ≤ 7 dagen heeft en het
+  segment al eerder was doorgerekend (`kom_computed_at`). `lost` alleen als de nieuwe
+  houder echt sneller is; een gedeelde tijd of een verdwenen houder geeft geen verliesmelding.
+  0162 zet alle segmenten terug op nooit doorgerekend, dus de eerste ronde meldt niets.
+- `notifySegmentKomEvents` in de webhook-taak: max. 50 per run, eerst afvinken en dan
+  versturen (liever gemist dan dubbel), ouder dan een dag vervalt. KOM en QOM op dezelfde
+  rit worden één melding. Voorkeur `notification_preferences.on_segment_kom`, standaard aan.
+- Niet gebouwd: melding aan anderen dan winnaar en verliezer, melding bij verlies door
+  privacy of intrekken, QOM-drempel per categorie.
+
 ## Bewuste grenzen
 
-- Geen algemene KOM/top 10, geen scraping en geen nieuwe handmatige doeltijden.
+- Geen algemene Strava-KOM/top 10, geen scraping en geen nieuwe handmatige doeltijden.
+  De ZWB KOM (0161) is alleen de snelste binnen het ZWB-klassement.
 - Geen geometrie verzinnen tussen begin/einde: zonder lijn alleen een startmarker.
 - Geen indoor-/e-bike-/MTB-voorspelling met het wegfietsmodel.
 - Lijstpagina bevat maximaal 40 bronsegmenten; kansenfilter selecteert binnen die batch.

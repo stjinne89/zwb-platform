@@ -14,7 +14,8 @@ export type SegmentItem = {
   riders: number; mine: number | null; rank: number | null; record: number | null;
   updatedAt: string | null; assessment: SegmentAssessment;
 };
-export type SegmentDetail = SegmentItem & { leaderboard: SegmentResult[]; hazardous: boolean };
+/** qomIds: opgeslagen ZWB QOM-houders; de KOM volgt live uit positie 1. */
+export type SegmentDetail = SegmentItem & { leaderboard: SegmentResult[]; hazardous: boolean; qomIds?: string[] };
 export type MapCluster = { lat: number; lon: number; count: number };
 export type SegmentPage = { items: SegmentItem[]; nextOffset: number | null; clusters: MapCluster[] };
 export const STATUS_LABELS: Record<SegmentStatus, string> = {

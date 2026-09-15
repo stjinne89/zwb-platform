@@ -16,6 +16,8 @@ import { AccountData } from "./_components/account-data";
 import { ProfileExternalLinks } from "@/components/profile-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
+import { SegmentKomsSection } from "@/components/segment-koms-section";
+import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
 
 type AwardRow = {
   id: string;
@@ -71,6 +73,7 @@ export default async function ProfielPage() {
     { data: pushSubs },
     { data: bikes },
     { data: myQuotes },
+    { data: koms },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -112,7 +115,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_segment_kom",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -132,6 +135,12 @@ export default async function ProfielPage() {
       .select("id, component_type, body")
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("zwb_segment_kom_club")
+      .select(SEGMENT_KOM_COLUMNS)
+      .eq("profile_id", user.id)
+      .order("achieved_at", { ascending: false, nullsFirst: false })
+      .order("segment_name"),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -239,6 +248,7 @@ export default async function ProfielPage() {
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,
             on_strava_link_expiring: pushPrefs?.on_strava_link_expiring ?? true,
+            on_segment_kom: pushPrefs?.on_segment_kom ?? true,
             on_member_pending: pushPrefs?.on_member_pending ?? true,
           }}
           canApproveMembers={access.has("members.approve")}
@@ -263,6 +273,8 @@ export default async function ProfielPage() {
           </Link>
         </div>
       </section>
+
+      <SegmentKomsSection koms={(koms ?? []) as SegmentKom[]} />
 
       {milestones.length > 0 && (
         <BadgeVault

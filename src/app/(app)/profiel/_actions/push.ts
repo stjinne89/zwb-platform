@@ -78,6 +78,7 @@ export async function updateNotificationPreferences(formData: FormData) {
     on_admin_broadcast: formData.get("on_admin_broadcast") === "on",
     on_maintenance_due: formData.get("on_maintenance_due") === "on",
     on_strava_link_expiring: formData.get("on_strava_link_expiring") === "on",
+    on_segment_kom: formData.get("on_segment_kom") === "on",
     // Alleen wie leden mag goedkeuren krijgt dit vinkje te zien. Staat het niet
     // in het formulier, dan laten we de bestaande waarde staan in plaats van
     // hem stilletjes op false te zetten.

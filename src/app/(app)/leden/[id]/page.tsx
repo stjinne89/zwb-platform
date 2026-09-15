@@ -11,6 +11,8 @@ import { type MilestoneBadgeRow } from "../../profiel/_components/badge-vault";
 import { RiderStats } from "./_components/rider-stats";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { bikeShownOnProfile, type StravaBikeRow } from "@/lib/strava/bikes";
+import { SegmentKomsSection } from "@/components/segment-koms-section";
+import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -59,6 +61,7 @@ export default async function LidProfielPage({ params }: PageProps) {
     { data: milestoneAwards },
     { data: weeklyAwards },
     { data: bikes },
+    { data: koms },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -94,6 +97,13 @@ export default async function LidProfielPage({ params }: PageProps) {
       .eq("profile_id", id)
       .order("is_primary", { ascending: false })
       .order("distance_m", { ascending: false }),
+    // Leeg zonder huidig privacyakkoord van de kijker: de view volgt het clubklassement.
+    supabase
+      .from("zwb_segment_kom_club")
+      .select(SEGMENT_KOM_COLUMNS)
+      .eq("profile_id", id)
+      .order("achieved_at", { ascending: false, nullsFirst: false })
+      .order("segment_name"),
   ]);
 
   if (!profile) notFound();
@@ -134,10 +144,13 @@ export default async function LidProfielPage({ params }: PageProps) {
         }
         extraBeforeBadges={
           showBadges ? (
-            <RiderStats
-              profileId={profileRow.id}
-              displayName={profileRow.display_name ?? "Dit lid"}
-            />
+            <>
+              <SegmentKomsSection koms={(koms ?? []) as SegmentKom[]} />
+              <RiderStats
+                profileId={profileRow.id}
+                displayName={profileRow.display_name ?? "Dit lid"}
+              />
+            </>
           ) : null
         }
       />

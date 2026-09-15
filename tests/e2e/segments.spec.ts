@@ -19,7 +19,7 @@ test.beforeAll(async () => {
 });
 
 const item = { id:"12345",name:"ZWB testklim",distance:2500,grade:4,start:[52,5],line:[[52,5],[52.02,5.01]],riders:4,mine:400,rank:3,record:350,updatedAt:"2026-09-13T12:00:00Z",assessment:{ status:"likely",reason:null,targetSeconds:349,fastSeconds:300,slowSeconds:330 } };
-const detail = { ...item,hazardous:false,leaderboard:[{profileId:"a",name:"Renner A",seconds:350,rank:1},{profileId:"b",name:"Renner B",seconds:375,rank:2},{profileId:"c",name:"Renner C",seconds:400,rank:3}] };
+const detail = { ...item,hazardous:false,qomIds:["b"],leaderboard:[{profileId:"a",name:"Renner A",seconds:350,rank:1},{profileId:"b",name:"Renner B",seconds:375,rank:2},{profileId:"c",name:"Renner C",seconds:400,rank:3}] };
 test.beforeEach(async ({ page }) => {
   await page.route("https://segment.test/**", async (route) => {
     const url = new URL(route.request().url());
@@ -45,6 +45,8 @@ test("kaart en lijst delen selectie, doeltijd en Strava-link", async ({ page }) 
   await expect(details.getByRole("link",{name:"ZWB testklim"})).toHaveAttribute("href","https://www.strava.com/segments/12345");
   await expect(details.getByRole("link",{name:"ZWB testklim"})).toHaveAttribute("target","_blank");
   await expect(details.getByRole("table")).toContainText("Renner A");
+  await expect(details.getByRole("row",{name:/Renner A/})).toContainText("ZWB KOM");
+  await expect(details.getByRole("row",{name:/Renner B/})).toContainText("ZWB QOM");
   await expect(details).toContainText("5:00 – 5:30");
   await page.screenshot({path:"test-results/segments-desktop.png",fullPage:true});
   await page.getByRole("button",{name:"ZWB-podium",exact:true}).click();

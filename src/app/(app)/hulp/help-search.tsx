@@ -67,7 +67,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Cols, segmenten en records",
     text: "Automatische herkenning, PR's en segmentranglijsten.",
     href: "/hulp#cols",
-    terms: "cols segmenten records pr ranglijst alpe ventoux stelvio",
+    terms: "cols segmenten records pr ranglijst kom qom zwb kom alpe ventoux stelvio",
   },
   {
     title: "Live tracking instellen",
