@@ -369,8 +369,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-nav-round -->
 
 <!-- zwb-segment-kom-round -->
-- **ZWB KOM en minimaal drie rijders** (2026-09-15; `ecaccab`, lokaal, niet gepusht;
-  migratie `0161`). Op verzoek van de eigenaar toont ZWB Segments alleen nog segmenten
+- **ZWB KOM en minimaal drie rijders** (2026-09-15; `ecaccab`, gepusht naar `main`
+  2026-09-15; migratie `0161`, vóór de push in productie aangetroffen). Op verzoek van de eigenaar toont ZWB Segments alleen nog segmenten
   waar minstens drie ZWB'ers reden, en krijgt de snelste daar de titel ZWB KOM: op het
   eigen profiel, op de ledenpagina (onder de badge-zichtbaarheid) en als dashboardblok
   "Nieuwe ZWB KOM's" naast de nieuwste badges. In het klassement en de lijst staat rang 1
@@ -400,8 +400,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-kom-round -->
 
 <!-- zwb-segment-qom-push-round -->
-- **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; `cc3f2df`, lokaal,
-  niet gepusht; migratie `0162`, draaien ná `0161` en vóór de deploy). Op verzoek van de
+- **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; `cc3f2df`, gepusht
+  naar `main` 2026-09-15; migratie `0162`, draaien ná `0161` en vóór de deploy — vóór de
+  push in productie aangetroffen: `zwb_segment_koms.title`, `zwb_segment_kom_events` en
+  `zwb_segment_maps.kom_computed_at` bestaan). Op verzoek van de
   eigenaar, met drie keuzes van de eigenaar: KOM blijft de snelste van iedereen, QOM is
   daarnaast de snelste vrouw (`profiles.sex`), de drempel blijft drie ZWB'ers op het segment
   (ook als zij de enige vrouw is), en leden zonder of met "zeg ik liever niet" dingen alleen
@@ -1048,8 +1050,10 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
 
-**2026-09-15, commit `5c686aa` op branch `claude/zwblokken-gamification-titles-a65ad0`,
-niet gepusht.** Geen migratie. Wel een nieuwe privacyversie (`2026-09-15`).
+**2026-09-15, commit `5c686aa`, via merge naar `main` gepusht 2026-09-15** (in één
+deploy met de KOM/QOM-ronde en de zonetijdenronde). Geen migratie. Wel een nieuwe
+privacyversie (`2026-09-15`); die dekt ook de QOM-zin in `/privacy`, maar de QOM-titel
+zelf vraagt in `0162` nog steeds alleen `>= '2026-09-13'`.
 
 **Waarom.** ZWBlokken moest spannender worden voor alle leden. Wie in een land de
 meeste blokken heeft, wordt Koning of Koningin, en in een provincie Gouverneur.
