@@ -369,7 +369,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 <!-- /zwb-segment-nav-round -->
 
 <!-- zwb-segment-kom-round -->
-- **ZWB KOM en minimaal drie rijders** (2026-09-15; commit volgt hieronder, lokaal niet gepusht;
+- **ZWB KOM en minimaal drie rijders** (2026-09-15; `ecaccab`, lokaal, niet gepusht;
   migratie `0161`). Op verzoek van de eigenaar toont ZWB Segments alleen nog segmenten
   waar minstens drie ZWB'ers reden, en krijgt de snelste daar de titel ZWB KOM: op het
   eigen profiel, op de ledenpagina (onder de badge-zichtbaarheid) en als dashboardblok
