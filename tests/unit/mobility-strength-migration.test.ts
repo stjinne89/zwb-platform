@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0157 en 0158 tegen een geïsoleerde PostgreSQL, bovenop de bestaande
+// 0159 en 0160 tegen een geïsoleerde PostgreSQL, bovenop de bestaande
 // bibliotheek uit 0109 en 0110. Zegt niets over de productiedatabase zelf.
 
 let db: PGlite;
@@ -23,8 +23,8 @@ beforeAll(async () => {
   for (const file of [
     "0109_mobility_library.sql",
     "0110_mobility_library_seed.sql",
-    "0157_mobility_strength.sql",
-    "0158_mobility_strength_seed.sql",
+    "0159_mobility_strength.sql",
+    "0160_mobility_strength_seed.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -41,7 +41,7 @@ async function itemCounts() {
   return Object.fromEntries(rows.map((row) => [row.slug, row.count]));
 }
 
-describe("krachtreeksen (0157 + 0158)", () => {
+describe("krachtreeksen (0159 + 0160)", () => {
   it("voegt drie krachtseries met elk vijf oefeningen toe en laat de rest staan", async () => {
     expect(await itemCounts()).toEqual({
       fundament: 5,
@@ -59,7 +59,7 @@ describe("krachtreeksen (0157 + 0158)", () => {
   });
 
   it("is opnieuw te draaien zonder dubbele items", async () => {
-    await db.exec(await migration("0158_mobility_strength_seed.sql"));
+    await db.exec(await migration("0160_mobility_strength_seed.sql"));
     expect((await itemCounts())["kracht-klimmen"]).toBe(5);
   });
 

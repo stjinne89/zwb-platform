@@ -1,5 +1,5 @@
 -- CONCEPTINHOUD — pas draaien nadat de eigenaar de oefeningen en series heeft
--- goedgekeurd. Vereist 0157.
+-- goedgekeurd. Vereist 0159.
 --
 -- Krachtreeksen met lichaamsgewicht of licht materiaal, voor thuis op een
 -- rustdag. Wat de literatuur ondersteunt en wat niet:
@@ -103,7 +103,7 @@ set
 --
 -- Alleen de krachtseries leeghalen: de items van de series uit 0110 blijven
 -- ongemoeid. (Let op: 0110 opnieuw draaien haalt álle standaarditems weg, ook
--- deze; draai dan 0158 erna opnieuw.)
+-- deze; draai dan 0160 erna opnieuw.)
 
 delete from public.mobility_series_items
 where series_id in (

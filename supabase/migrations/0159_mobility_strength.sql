@@ -4,7 +4,7 @@
 -- eigenaar koos om die in dit spoor te zetten en níét in het fietsschema: net als
 -- core telt een krachtsessie niet mee in TSS, CTL of naleving (zie 0109).
 --
--- Deze migratie verruimt alleen de toegestane waarden; de inhoud staat in 0158.
+-- Deze migratie verruimt alleen de toegestane waarden; de inhoud staat in 0160.
 -- De code kan vóór of na deze migratie live: zonder deze waarden bestaan er
 -- simpelweg geen krachtoefeningen of -series.
 

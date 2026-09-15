@@ -17,7 +17,7 @@ function seededIllustrationSlugs(file: string): string[] {
 describe("figuurregister", () => {
   it("heeft voor elke meegeleverde oefening poses", () => {
     const core = seededIllustrationSlugs("0110_mobility_library_seed.sql");
-    const strength = seededIllustrationSlugs("0158_mobility_strength_seed.sql");
+    const strength = seededIllustrationSlugs("0160_mobility_strength_seed.sql");
     // Vangnet: raakt een seed uit de pas met deze regex, dan valt dit om in
     // plaats van dat de dekkingscontrole stilletjes over niets loopt.
     expect(core).toHaveLength(18);

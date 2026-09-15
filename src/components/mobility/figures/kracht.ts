@@ -1,4 +1,4 @@
-// Poses voor de krachtoefeningen (0158). Net als bij activatie zijn twee poses
+// Poses voor de krachtoefeningen (0160). Net als bij activatie zijn twee poses
 // de uiteinden van de beweging; de muurzit is een hold en heeft er één.
 
 import type { Pose } from "./figure-kit";

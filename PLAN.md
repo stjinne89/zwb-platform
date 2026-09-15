@@ -1219,7 +1219,10 @@ pacingpagina in de browser; geen echte event-zones uit productie doorgerekend.
 ### Opgeleverd — krachtreeksen in het core-spoor (wens 19)
 
 **2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Migraties `0157` (checks verruimen) en `0158` (conceptinhoud).
+gepusht.** Migraties `0159` (checks verruimen) en `0160` (conceptinhoud).
+Eerst gebouwd als `0157`/`0158`, maar die nummers zijn bezet door de Omnium-ronde
+(`0157_omnium_entrants_results`, `0158_omnium_award_kit`, 14 september nog alleen
+in de working tree op `codex/omnium-editie-1`). Hernummerd vóór iets gedraaid was.
 
 **Waarom.** Jeroen vroeg of er naast core ook krachttraining kan komen die
 helpt voor specifieke doelen. De eigenaar koos om die in het bestaande
@@ -1227,8 +1230,8 @@ core- en mobiliteitsspoor te zetten, los van het fietsschema en zonder
 belastingberekening, om dezelfde redenen als in `0109`.
 
 **Wat er is gekomen.**
-- `0157` verruimt de checks: categorie `kracht`, regio `been`, doel `kracht`.
-- `0158` (idempotent) zet zeven oefeningen met eigen gewicht of een traptrede
+- `0159` verruimt de checks: categorie `kracht`, regio `been`, doel `kracht`.
+- `0160` (idempotent) zet zeven oefeningen met eigen gewicht of een traptrede
   (squat, split squat, step-up, eenbenig bruggetje, kuitheffen, eenbenige
   deadlift, muurzit) in drie series van 20-30 minuten: *Kracht: basis*,
   *Kracht voor klimmen* en *Kracht: eenbenig*. Het haalt alleen de items van die
@@ -1250,16 +1253,16 @@ en de eigenaar koos het niet. Geen zwaar krachtwerk met halters: dat vraagt
 begeleiding, en daar zou een app-schema ten onrechte een belofte over doen. De
 promptregel die off-bike werk uit het fietsschema houdt, blijft staan.
 
-**Uitrol.** De code werkt zonder de migraties: zonder `0158` bestaan er gewoon
-geen krachtseries. **`0157` mag altijd; `0158` pas nadat de eigenaar de
+**Uitrol.** De code werkt zonder de migraties: zonder `0160` bestaan er gewoon
+geen krachtseries. **`0159` mag altijd; `0160` pas nadat de eigenaar de
 oefeningen, doseringen en teksten heeft goedgekeurd** (conceptinhoud, niet door
 een fysiotherapeut of trainer nagekeken). Let op: `0110` opnieuw draaien haalt
-ook de krachtitems weg; draai daarna `0158` opnieuw.
+ook de krachtitems weg; draai daarna `0160` opnieuw.
 
 **Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
 geslaagd, Vitest volledig groen (963 geslaagd). Nieuw: `recommendStrength` en de
-rotatie in `mobility.ts`-tests, figuurdekking voor `0158`, en
-`mobility-strength-migration.test.ts` die `0109`, `0110`, `0157` en `0158` in
+rotatie in `mobility.ts`-tests, figuurdekking voor `0160`, en
+`mobility-strength-migration.test.ts` die `0109`, `0110`, `0159` en `0160` in
 PGlite draait (aantallen, idempotent, checks). *Niet geverifieerd:* de migraties
 tegen de productie-Supabase; de figuren en de kaart niet in de browser bekeken
 (geen ingelogde sessie).
