@@ -988,8 +988,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — gewenste eindtijd ook naar het AI-voorstel (wens 7, deel 2)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `32a01b0` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** De eigenaar wilde de doeltijd niet alleen rekenkundig verwerken, maar
 ook aan de AI meegeven. De promptregel "Noem geen verwachte finishtijd" en een
@@ -1026,8 +1025,7 @@ ingelogde sessie); hoe het model met de nieuwe regel omgaat, is dus niet bekeken
 
 ### Opgeleverd — pacingplan voor een gewenste eindtijd, rekenkundig (wens 7, deel 1)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie; het doel staat in de bestaande jsonb `summary`.
+**2026-09-14, commit `c3a4a63` op `main`, gepusht 2026-09-15.** Geen migratie; het doel staat in de bestaande jsonb `summary`.
 
 **Waarom.** Jeroen vroeg of het plan een voorstel kan maken vanuit een gewenste
 eindtijd. Het model rekende alleen de andere kant op, van vermogen naar tijd. De
@@ -1076,8 +1074,7 @@ ingelogd in de browser gebruikt; geen echt event doorgerekend.
 
 ### Opgeleverd — pacingplan: zelf knippen en samenvoegen (wens 6, deel 3)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `c7d67a3` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Het derde deel van Jeroens vraag naar extra stukken. De indeling lag
 vast bij het voorstel: `savePacingPlan` nam bewust alleen `{index, targetWkg}`
@@ -1122,8 +1119,7 @@ de editor niet ingelogd in de browser bediend (geen testaccount).
 
 ### Opgeleverd — pacingplan: afdalingen als eigen stuk (wens 6, deel 2)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `4adb09f` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Jeroen vroeg hoe het plan met afdalingen omgaat. Het antwoord was:
 slecht. Een afdaling lag in een tussenstuk op ongeveer 0,94×CP×fractie. Het model
@@ -1171,8 +1167,7 @@ pacingpagina.
 
 ### Opgeleverd — pacingplan: neutralisatie telt mee (wens 6, deel 1)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `d715f34` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Jeroen vroeg of het pacingplan naast de neutralisatie ook andere
 stukken kan hebben. Bij het uitzoeken bleek dat de neutralisatie zelf niet eens
@@ -1218,8 +1213,7 @@ pacingpagina in de browser; geen echte event-zones uit productie doorgerekend.
 
 ### Opgeleverd — krachtreeksen in het core-spoor (wens 19)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Migraties `0159` (checks verruimen) en `0160` (conceptinhoud).
+**2026-09-14, commit `5843017` (hernummerd in `df27e28`) op `main`, gepusht 2026-09-15.** Migraties `0159` (checks verruimen) en `0160` (conceptinhoud).
 Eerst gebouwd als `0157`/`0158`, maar die nummers zijn bezet door de Omnium-ronde
 (`0157_omnium_entrants_results`, `0158_omnium_award_kit`, 14 september nog alleen
 in de working tree op `codex/omnium-editie-1`). Hernummerd vóór iets gedraaid was.
@@ -1269,8 +1263,7 @@ tegen de productie-Supabase; de figuren en de kaart niet in de browser bekeken
 
 ### Opgeleverd — schakelaar Watt / W/kg in de trainingsruimte (wens 13)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `e9b57d5` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Jeroen vroeg om W/kg. De eigenaar koos een schakelaar tussen Watt en
 W/kg die overal in ZWBeter Worden geldt: FTP-kaarten en testuitslagen,
@@ -1317,8 +1310,7 @@ end-to-end getest.
 
 ### Opgeleverd — zonekleuren zoals in Zwift (wens 12)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `6cb47f3` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Jeroen vroeg om de zonekleuren van Zwift. `INTENSITY_COLORS` had een
 eigen palet dat ongeveer een zone naast Zwift lag (duur groen, drempel oranje,
@@ -1354,8 +1346,7 @@ beoordelen.
 
 ### Opgeleverd — voorbije trainingen tonen hun geplande opbouw (wens 16, deel 1)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `3ef9a33` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Jeroen wilde bij trainingen uit het verleden net als bij komende
 trainingen de zones zien, samen met RPE en gevoel. De blokken werden al voor elke
@@ -1381,8 +1372,7 @@ schermen in de browser (geen testaccount).
 
 ### Opgeleverd — jaarplan: event en mikpunt als één regel (wens 9)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56`, niet
-gepusht.** Geen migratie.
+**2026-09-14, commit `3c5a955` op `main`, gepusht 2026-09-15.** Geen migratie.
 
 **Waarom.** Jeroen zag de Marmotte twee keer in de lijst onder de jaarplanbalk:
 als mikpunt én als clubevent waarvoor hij zich had aangemeld. `SeasonList` zette
@@ -1410,8 +1400,7 @@ ingelogd in de browser bekeken (geen testaccount).
 
 ### Opgeleverd — onterechte waarschuwing "FTP-test op zijn plaats" (wens 11/18)
 
-**2026-09-14, lokale commit op branch `claude/open-wensen-bb9c56` (basis
-`05d3200`), niet gepusht.** Geen migratie. Eerste ronde uit de wensen van Jeroen
+**2026-09-14, commit `9c26a6b` op `main`, gepusht 2026-09-15.** Geen migratie. Eerste ronde uit de wensen van Jeroen
 (plannenboek 6, 7, 9, 11/18, 12, 13, 16, 19); de volgorde en keuzes van de
 eigenaar staan per ronde hieronder.
 
