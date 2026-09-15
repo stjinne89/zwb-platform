@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { relinkRide } from "@/lib/training/completion";
+import { relinkRide, releaseDeletedRides } from "@/lib/training/completion";
 
 // Melding 17 (plannenboek, 12 september 2026): de RPE-vraag hing aan de blauwe
 // training van vrijdag, terwijl het lid de groene van donderdag had gereden. Het
@@ -49,6 +49,11 @@ function fakeAdmin(tables: Record<string, Row[]>, options: { failUpsert?: boolea
       },
       eq: (column: string, value: unknown) => {
         filters.push((row) => String(row[column] ?? "") === String(value));
+        return builder;
+      },
+      in: (column: string, values: unknown[]) => {
+        const wanted = new Set(values.map(String));
+        filters.push((row) => wanted.has(String(row[column] ?? "")));
         return builder;
       },
       is: (column: string, value: unknown) => {
@@ -252,7 +257,89 @@ describe("relinkRide — ongeplande rit koppelen", () => {
     expect(tables.training_workouts[1].status).toBe("completed");
     expect(tables.strava_activities[0].training_excluded_at).toBeNull();
     const report = tables.training_workout_reports[0];
-    expect(report).toMatchObject({ workout_id: "vr", paired_activity_id: "9001", athlete_rpe: null });
+    expect(report).toMatchObject({ workout_id: "vr", paired_activity_id: "9001" });
+    // Niet meegestuurd: een nieuwe rij krijgt de default van de database (null).
+    expect(report.athlete_rpe ?? null).toBeNull();
     expect((report.metrics_json as Record<string, unknown>).plannedTitle).toBe("Rustige duurrit");
+  });
+});
+
+// Melding eigenaar 2026-09-15: Bart verwijderde in Strava een rit die aan zijn
+// training hing. De training bleef gereden, zonder zichtbare rit, en de andere
+// rit van die dag kon er niet aan.
+function bartsWorld() {
+  const tables = world();
+  tables.training_workouts[1].status = "completed";
+  tables.training_workout_reports[0].paired_activity_id = "8000"; // verwijderd
+  Object.assign(tables.training_workout_reports[0], {
+    athlete_rpe: 6,
+    athlete_feel: "goed",
+    athlete_confirmed_at: "2026-09-11T20:00:00Z",
+  });
+  return tables;
+}
+
+describe("releaseDeletedRides", () => {
+  it("laat een training met een verwijderde rit los en houdt de beleving", async () => {
+    const tables = bartsWorld();
+    const released = await releaseDeletedRides(fakeAdmin(tables), "lid", ["8000"]);
+
+    expect(released).toBe(1);
+    expect(tables.training_workouts[1].status).toBe("planned");
+    expect(tables.training_workout_reports[0]).toMatchObject({
+      workout_id: "vr",
+      paired_activity_id: null,
+      athlete_rpe: 6,
+      athlete_feel: "goed",
+      athlete_confirmed_at: null,
+    });
+  });
+
+  it("gooit een rapportage zonder invoer weg", async () => {
+    const tables = world();
+    tables.training_workout_reports[0].paired_activity_id = "8000";
+    await releaseDeletedRides(fakeAdmin(tables), "lid", ["8000"]);
+    expect(tables.training_workout_reports).toHaveLength(0);
+    expect(tables.training_workouts[1].status).toBe("planned");
+  });
+
+  it("laat een rit die nog bestaat ongemoeid", async () => {
+    const tables = world();
+    const released = await releaseDeletedRides(fakeAdmin(tables), "lid", ["9001"]);
+    expect(released).toBe(0);
+    expect(tables.training_workout_reports[0].paired_activity_id).toBe("9001");
+    expect(tables.training_workouts[1].status).toBe("completed");
+  });
+});
+
+describe("relinkRide — verwijderde rit", () => {
+  it("koppelt een verwijderde rit los", async () => {
+    const tables = bartsWorld();
+    const result = await relinkRide(fakeAdmin(tables), {
+      profileId: "lid",
+      activityId: "8000",
+      toWorkoutId: null,
+    });
+    expect(result).toMatchObject({ ok: true, workoutId: null });
+    expect(tables.training_workouts[1].status).toBe("planned");
+  });
+
+  it("hangt de andere rit in één stap aan de training, met de beleving erbij", async () => {
+    const tables = bartsWorld();
+    const result = await relinkRide(fakeAdmin(tables), {
+      profileId: "lid",
+      activityId: "9001",
+      toWorkoutId: "vr",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(tables.training_workouts[1].status).toBe("completed");
+    expect(tables.training_workout_reports).toHaveLength(1);
+    expect(tables.training_workout_reports[0]).toMatchObject({
+      workout_id: "vr",
+      paired_activity_id: "9001",
+      athlete_rpe: 6,
+      athlete_feel: "goed",
+    });
   });
 });

@@ -275,6 +275,78 @@ type ExistingReport = {
 
 export { pairWorkoutsWithRides, type WorkoutForPairing } from "@/lib/training/compliance";
 
+/**
+ * Laat trainingen los waarvan de rit niet meer bestaat: in Strava verwijderd, of
+ * weggevallen bij de sync. Zonder dit bleef de training op gereden staan met een
+ * rit die nergens meer te zien was, en kon het lid er geen andere rit aan hangen
+ * (melding eigenaar, 15 september 2026).
+ *
+ * Wat het lid invulde en feedback van de trainer blijven staan: vaak is de
+ * verwijderde rit een dubbele upload en hoort die beleving bij de rit die blijft.
+ * Rit, cijfers en het bevestigmoment gaan weg; koppelt de detectie of het lid er
+ * een andere rit aan, dan vraagt het bevestigscherm het opnieuw, met de oude
+ * antwoorden al ingevuld. Een rapportage zonder enige invoer verdwijnt.
+ *
+ * Alleen ritten die echt weg zijn: een id dat nog in strava_activities staat,
+ * blijft ongemoeid. Geeft het aantal losgelaten trainingen terug.
+ */
+export async function releaseDeletedRides(
+  admin: Admin,
+  profileId: string,
+  activityIds: Array<string | number>,
+): Promise<number> {
+  const ids = [...new Set(activityIds.map(String))];
+  if (ids.length === 0) return 0;
+
+  const { data: existing, error } = await admin
+    .from("strava_activities")
+    .select("id")
+    .eq("profile_id", profileId)
+    .in("id", ids);
+  if (error) return 0;
+  const present = new Set(((existing ?? []) as Array<{ id: number }>).map((row) => String(row.id)));
+  const gone = ids.filter((id) => !present.has(id));
+  if (gone.length === 0) return 0;
+
+  const { data: removed } = await admin
+    .from("training_workout_reports")
+    .delete()
+    .eq("profile_id", profileId)
+    .in("paired_activity_id", gone)
+    .is("athlete_rpe", null)
+    .is("athlete_feel", null)
+    .is("athlete_report", null)
+    .is("trainer_feedback", null)
+    .select("workout_id");
+  const { data: stripped } = await admin
+    .from("training_workout_reports")
+    .update({
+      paired_activity_id: null,
+      metrics_json: {},
+      athlete_confirmed_at: null,
+      updated_by: profileId,
+    })
+    .eq("profile_id", profileId)
+    .in("paired_activity_id", gone)
+    .select("workout_id");
+
+  const workoutIds = [
+    ...new Set(
+      [...(removed ?? []), ...(stripped ?? [])].map(
+        (row) => (row as { workout_id: string }).workout_id,
+      ),
+    ),
+  ];
+  if (workoutIds.length === 0) return 0;
+  await admin
+    .from("training_workouts")
+    .update({ status: "planned" })
+    .eq("profile_id", profileId)
+    .in("id", workoutIds)
+    .eq("status", "completed");
+  return workoutIds.length;
+}
+
 type SnapshotContext = {
   ftpWatts: number | null;
   weightKg: number | null;
@@ -330,6 +402,8 @@ async function loadSnapshotContext(admin: Admin, profileId: string): Promise<Sna
 export async function detectCompletedWorkouts(
   admin: Admin,
   profileId: string,
+  /** Intern: na het loslaten van verwijderde ritten één keer opnieuw. */
+  healed = false,
 ): Promise<CompletionResult> {
   const empty: CompletionResult = { completed: 0, refreshed: 0, notified: 0, reverted: 0 };
   const now = Date.now();
@@ -370,6 +444,22 @@ export async function detectCompletedWorkouts(
     // nog op de vorige dag.
     .gte("start_date", new Date(now - (COMPLETION_WINDOW_DAYS + 1) * 86400_000).toISOString());
   const rides = await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]);
+
+  // Een training die aan een rit hangt die er niet meer is: in Strava verwijderd
+  // voordat het loslaten bij het verwijderen bestond, of toen dat mislukte. Een
+  // koppeling in dit venster wijst altijd naar een rit uit dit venster (een doel
+  // ligt nooit na de ritdag), dus wat hier ontbreekt is kandidaat;
+  // releaseDeletedRides controleert zelf of de rit echt weg is. Daarna opnieuw,
+  // zodat een tweede rit van die dag meteen aan de training kan.
+  if (!healed) {
+    const rideIds = new Set(rides.map((ride) => String(ride.id)));
+    const orphaned = [...reports.values()]
+      .map((report) => report.paired_activity_id)
+      .filter((id): id is string => Boolean(id) && !rideIds.has(String(id)));
+    if (orphaned.length > 0 && (await releaseDeletedRides(admin, profileId, orphaned)) > 0) {
+      return detectCompletedWorkouts(admin, profileId, true);
+    }
+  }
   if (rides.length === 0) return empty;
 
   const { ftpWatts, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
@@ -703,7 +793,12 @@ export async function relinkRide(
     .eq("profile_id", profileId)
     .eq("id", activityId)
     .maybeSingle();
-  if (!ride) return { ok: false, error: "De rit is niet meer gevonden." };
+  if (!ride) {
+    // In Strava verwijderd: loskoppelen kan dan nog wel, koppelen niet.
+    if (toWorkoutId) return { ok: false, error: "De rit is niet meer gevonden." };
+    await releaseDeletedRides(admin, profileId, [activityId]);
+    return { ok: true, workoutId: null, trainerId: null, title: null, metricsJson: null };
+  }
   const rideRow = ride as unknown as StravaRideRow;
   const rideDayKey = amsterdamDayKey(new Date(rideRow.start_date));
 
@@ -748,11 +843,20 @@ export async function relinkRide(
     .eq("workout_id", toWorkoutId)
     .eq("profile_id", profileId)
     .maybeSingle();
+  let targetPaired = Boolean(targetReport?.paired_activity_id);
+  // Hangt de training aan een rit die in Strava is verwijderd, dan is hij vrij.
+  if (
+    targetPaired &&
+    (await releaseDeletedRides(admin, profileId, [String(targetReport!.paired_activity_id)])) > 0
+  ) {
+    targetPaired = false;
+    (target as CandidateWorkout).status = "planned";
+  }
   const allowed = reassignCandidates(
     [target as CandidateWorkout],
     rideDayKey,
     "",
-    new Set(targetReport?.paired_activity_id ? [toWorkoutId] : []),
+    new Set(targetPaired ? [toWorkoutId] : []),
   );
   if (allowed.length === 0) {
     return { ok: false, error: "Deze rit kan niet bij die training horen." };
@@ -811,12 +915,19 @@ export async function relinkRide(
     ...(previous.zoneTimes ? { zoneTimes: previous.zoneTimes } : {}),
   };
 
-  const review: AthleteReview = input.review ?? {
-    rpe: source?.athlete_rpe ?? null,
-    feel: source?.athlete_feel ?? null,
-    report: source?.athlete_report ?? null,
-    confirmedAt: source?.athlete_confirmed_at ?? null,
-  };
+  // Zonder bevestigscherm en zonder oude rapportage (een ongeplande rit) laten we
+  // de beleving van de doeltraining staan: die kan nog van een verwijderde rit
+  // zijn, en dan hoort hij vaak juist bij deze.
+  const review: AthleteReview | null =
+    input.review ??
+    (source
+      ? {
+          rpe: source.athlete_rpe,
+          feel: source.athlete_feel,
+          report: source.athlete_report,
+          confirmedAt: source.athlete_confirmed_at,
+        }
+      : null);
 
   const { error: writeError } = await admin.from("training_workout_reports").upsert(
     {
@@ -826,10 +937,14 @@ export async function relinkRide(
       paired_activity_id: activityId,
       intervals_event_id: targetRow.intervals_event_id,
       metrics_json: metrics,
-      athlete_rpe: review.rpe,
-      athlete_feel: review.feel,
-      athlete_report: review.report,
-      athlete_confirmed_at: review.confirmedAt,
+      ...(review
+        ? {
+            athlete_rpe: review.rpe,
+            athlete_feel: review.feel,
+            athlete_report: review.report,
+            athlete_confirmed_at: review.confirmedAt,
+          }
+        : {}),
       created_by: profileId,
       updated_by: profileId,
     },

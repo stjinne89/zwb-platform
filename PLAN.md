@@ -1216,6 +1216,41 @@ op gepland staat, met de pushmelding "Bevestig je training". Een training
 blijvend "niet gereden" laten, ook als er die dag nog een rit is, vraagt een
 markering op de training. Die keuze ligt bij de eigenaar.
 
+**Nazorg 2026-09-15 (2): in Strava verwijderde rit.** Commit volgt; nog niet
+gepusht. Geen migratie. Melding van de eigenaar: Bart verwijderde in Strava een
+rit die aan zijn training hing. De rit ging weg uit `strava_activities`, maar
+`training_workout_reports.paired_activity_id` bleef ernaar wijzen en de training
+bleef op `completed`. De kalender toonde **Hoort bij** alleen als de rit
+gevonden werd. De andere rit kon er ook niet aan, want de training gold als
+bezet. Er was geen weg terug.
+- `releaseDeletedRides` (completion.ts) laat zulke trainingen los: rit, cijfers en
+  `athlete_confirmed_at` gaan weg, de training gaat naar gepland. RPE, gevoel,
+  opmerking en trainerfeedback blijven staan. Vaak is de verwijderde rit een
+  dubbele upload; koppelt de detectie of het lid de rit die bleef, dan staat die
+  beleving al ingevuld. Een rapportage zonder enige invoer verdwijnt. De helper
+  controleert zelf dat de rit echt weg is.
+- Aangeroepen op drie plekken:
+  - in `runPostSyncForProfile` met `removedActivityIds`, vóór de detectie. Dat
+    dekt de webhook-delete en de reconcile-sync;
+  - in `detectCompletedWorkouts` als zelfherstel voor koppelingen die al wezen
+    (Barts geval), met daarna één herhaalde run;
+  - in `relinkRide`: loskoppelen van een verwijderde rit kan, en een training met
+    een verwijderde rit is een geldig doel. De andere rit gaat er dus in één
+    stap aan.
+- `relinkRide` overschrijft de beleving van de doeltraining niet meer als er geen
+  bevestigscherm en geen oude rapportage is (ongeplande rit).
+- Kalender: `loadScheduleRides` geeft `deleted` terug (gekoppelde id's buiten het
+  venster die niet meer bestaan, max. 200). Zo'n training toont **Hoort bij** met
+  "Verwijderde rit", en telt als kandidaat bij de andere ritten. Een
+  `metrics_json` zonder `plannedTitle` telt niet meer als momentopname.
+*Bewust niet:* `purgeStravaDataForProfile` (ingetrokken Strava-koppeling) laat
+trainingen niet los. De ritgeschiedenis gaat dan in één keer weg, en alle gereden
+trainingen op niet gereden zetten wist de clubhistorie die de retentieregel juist
+wil houden. Wel herstelt de detectie de laatste 7 dagen bij het volgende bezoek.
+Oudere trainingen tonen "Verwijderde rit" met de optie los te koppelen. Niet
+lokaal getest tegen de database; alleen met de stub in
+`tests/unit/reassign-ride.test.ts`.
+
 ### Opgeleverd — ZWBlokken-titels: Koning(in) van een land, Gouverneur van een provincie
 
 **2026-09-15, commit `5c686aa`, via merge naar `main` gepusht 2026-09-15** (in één

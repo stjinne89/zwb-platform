@@ -110,7 +110,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
   // deze regel verdween die belasting uit het schema terwijl hij in de benen
   // wel degelijk meetelde.
-  const { unplanned: extraRides, byId: ridesById } = await loadScheduleRides(
+  const {
+    unplanned: extraRides,
+    byId: ridesById,
+    deleted: deletedRides,
+  } = await loadScheduleRides(
     viewer,
     memberWorkouts,
     reports,
@@ -170,9 +174,20 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       const report = reportsByWorkout.get(workout.id);
       const published = workout.publish_status === "published" && workout.intervals_event_id;
       const outcome = workoutOutcome(workout, report, todayKey);
-      const pairedRide = report?.paired_activity_id
-        ? ridesById.get(String(report.paired_activity_id))
-        : undefined;
+      const pairedId = report?.paired_activity_id ? String(report.paired_activity_id) : null;
+      const pairedRide = pairedId ? ridesById.get(pairedId) : undefined;
+      // In Strava verwijderd: dan kan het lid de training nog wel loslaten.
+      const rideLink = pairedRide
+        ? rideLinkFor(
+            { activityId: pairedId!, ...pairedRide },
+            workout.id,
+            memberWorkouts,
+            reports,
+            deletedRides,
+          )
+        : pairedId && deletedRides.has(pairedId)
+          ? { activityId: pairedId, workoutId: workout.id, rideLabel: "Verwijderde rit", options: [] }
+          : undefined;
       return {
         id: workout.id,
         dateKey: String(workout.scheduled_at).slice(0, 10),
@@ -182,14 +197,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         source: "zwb" as const,
         skipped: workout.status === "skipped",
         missed: outcome === "gemist",
-        rideLink: pairedRide
-          ? rideLinkFor(
-              { activityId: String(report!.paired_activity_id), ...pairedRide },
-              workout.id,
-              memberWorkouts,
-              reports,
-            )
-          : undefined,
+        rideLink,
         detail: {
           outcome,
           description: workout.description,
@@ -205,7 +213,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           feel: report?.athlete_feel ?? null,
           report: report?.athlete_report ?? null,
           trainerFeedback: report?.trainer_feedback ?? null,
-          metrics: report?.metrics_json ?? null,
+          // Een losgelaten rapportage heeft metrics_json {}; dat is geen momentopname.
+          metrics: report?.metrics_json?.plannedTitle ? report.metrics_json : null,
           removable:
             workout.status === "planned" &&
             workout.origin !== "event" &&
@@ -242,6 +251,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         null,
         memberWorkouts,
         reports,
+        deletedRides,
       ),
       ride: {
         stravaId: ride.id,
