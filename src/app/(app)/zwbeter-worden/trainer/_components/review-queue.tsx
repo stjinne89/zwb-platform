@@ -74,7 +74,7 @@ export function ReviewQueue({ items }: { items: ReviewQueueItem[] }) {
 
               <PowerWeight weightKg={item.weightKg}>
                 <WorkoutBlocks blocks={item.blocks} ftpWatts={item.ftpWatts} />
-                <WorkoutMetricsPanel metrics={metrics} />
+                <WorkoutMetricsPanel metrics={metrics} blocks={item.blocks} ftpWatts={item.ftpWatts} />
               </PowerWeight>
 
               <div className="flex flex-wrap gap-1.5">

@@ -1006,6 +1006,18 @@ export default function HelpPage() {
               zie je de geplande opbouw naast wat je gereden hebt. Ook bij een
               gemiste training blijft zichtbaar wat er stond.
             </p>
+            <p
+              id="tijd-per-zone"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              Onder de cijfers staat ook hoeveel minuten je per zone reed, in de
+              kleuren van Zwift en op je FTP, met de geplande minuten erachter. Die
+              tijden komen uit de vermogensmeting in intervals.icu. Dat werkt alleen
+              als je rit rechtstreeks van je Garmin, Wahoo of Zwift in intervals.icu
+              staat: een rit die via Strava binnenkomt heeft daar geen meting. Dan
+              staat er Geen zonedata. Het kan na een rit even duren voordat de
+              tijden verschijnen.
+            </p>
           </article>
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Clubevents in je schema</h3>

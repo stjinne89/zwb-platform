@@ -30,6 +30,7 @@ import {
 } from "@/lib/training/ride-metrics";
 import { targetHint } from "@/lib/training/targets";
 import type { WellnessDevice } from "@/lib/training/wellness";
+import type { ZoneTimes } from "@/lib/training/zone-times";
 import {
   detectIntensityFromLoad,
   estimateTrainingLoad,
@@ -79,6 +80,8 @@ export type WorkoutMetricsSnapshot = {
    * september 2026; oudere momentopnames rekenen met het huidige gewicht.
    */
   weightKg?: number | null;
+  /** Gemeten tijd per Zwift-zone, later aangevuld uit intervals.icu; zie zone-times.ts. */
+  zoneTimes?: ZoneTimes;
 };
 
 export type PlannedWorkoutRow = {
