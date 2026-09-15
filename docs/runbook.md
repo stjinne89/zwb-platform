@@ -57,7 +57,7 @@ op cron-job.org.
 | Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
 | ↳ regio's op bestaande blokken (na migratie 0112 én na elke nieuwe `regions.json`, laatst 2026-09-15): `?regions=1` | | | | |
-| ↳ Zwift-blokken uit bestaande VirtualRide-ritten (eenmalig na migratie 0165; puur database): `?zwift=1&limit=5&maxActivities=2000`, herhalen tot `remaining` false is. Nieuwe Zwift-ritten volgen daarna vanzelf via de webhook-nasync en de historie-inhaalslag | | | | |
+| ↳ Zwift-blokken uit bestaande VirtualRide-ritten (na migratie 0165, en opnieuw na 0166 voor de wereld per rit; puur database): `?zwift=1&limit=1&maxActivities=1000`, herhalen tot `remaining` false is. Nieuwe Zwift-ritten volgen daarna vanzelf via de webhook-nasync en de historie-inhaalslag | | | | |
 
 **Als een cron faalt**: alle routes zijn idempotent en mogen veilig opnieuw
 worden aangeroepen. Test handmatig met:

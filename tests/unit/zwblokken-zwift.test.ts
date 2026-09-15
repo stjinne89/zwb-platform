@@ -10,6 +10,7 @@ import {
   zwiftWorldAt,
 } from "@/lib/zwblokken/zwift";
 import { knownRoadCounts, roadBlocksFromShapes } from "@/lib/zwblokken/zwift-query";
+import { groupByWorld } from "@/lib/zwblokken/zwift-sync";
 
 /** Een rechte lijn van a naar b in n punten. */
 function line(a: [number, number], b: [number, number], n = 20) {
@@ -115,5 +116,50 @@ describe("titels per wereld", () => {
     expect(rulers.get("zwift:watopia")?.profileId).toBe("bram");
     expect(rulers.get("zwift:london")?.profileId).toBe("anna");
     expect(rulers.has("NL")).toBe(false);
+  });
+
+  it("laat bij gelijke blokken de meeste kilometers in die wereld winnen", () => {
+    const standings: RegionStandings = new Map();
+    const add = (profile_id: string, first_seen_at: string) =>
+      addBlock(standings, { profile_id, country: "zwift:innsbruck", province: null, first_seen_at });
+    // Beiden alle (twee) blokken; Anna had ze het eerst.
+    add("anna", "2026-01-01T10:00:00Z");
+    add("anna", "2026-01-02T10:00:00Z");
+    add("bram", "2026-03-01T10:00:00Z");
+    add("bram", "2026-03-02T10:00:00Z");
+    const eligible = new Set(["anna", "bram"]);
+    const meters: Record<string, number> = { anna: 400_000, bram: 650_000 };
+
+    expect(pickRulers(standings, eligible).get("zwift:innsbruck")?.profileId).toBe("anna");
+    expect(
+      pickRulers(standings, eligible, { tieBreak: (_c, id) => meters[id] }).get("zwift:innsbruck")
+        ?.profileId,
+    ).toBe("bram");
+    // Gelijke kilometers: dan weer wie het eerst had.
+    expect(
+      pickRulers(standings, eligible, { tieBreak: () => 1 }).get("zwift:innsbruck")?.profileId,
+    ).toBe("anna");
+  });
+
+  it("laat kilometers niet winnen van meer blokken", () => {
+    const standings: RegionStandings = new Map();
+    const add = (profile_id: string, first_seen_at: string) =>
+      addBlock(standings, { profile_id, country: "zwift:watopia", province: null, first_seen_at });
+    add("anna", "2026-01-01T10:00:00Z");
+    add("anna", "2026-01-02T10:00:00Z");
+    add("bram", "2026-01-01T10:00:00Z");
+    const rulers = pickRulers(standings, new Set(["anna", "bram"]), {
+      tieBreak: (_c, id) => (id === "bram" ? 1_000_000 : 1),
+    });
+    expect(rulers.get("zwift:watopia")?.profileId).toBe("anna");
+  });
+});
+
+describe("groupByWorld", () => {
+  it("groepeert ritten per wereld, met niet-Zwift-ritten apart", () => {
+    const groups = groupByWorld(new Map([[1, "watopia"], [2, null], [3, "watopia"], [4, "london"]]));
+    expect(groups.get("watopia")).toEqual([1, 3]);
+    expect(groups.get("london")).toEqual([4]);
+    expect(groups.get(null)).toEqual([2]);
   });
 });

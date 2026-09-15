@@ -26,7 +26,8 @@ export type ZwiftOwnData = {
   counts: Record<string, number>;
 };
 
-export type ZwiftLeader = { id: string; name: string; blocks: number };
+/** `km` in deze wereld: beslist de titel bij een gelijk aantal blokken. */
+export type ZwiftLeader = { id: string; name: string; blocks: number; km: number };
 
 type Props = {
   worlds: ZwiftWorldMeta[];
@@ -186,6 +187,9 @@ export function ZwiftView({
                 <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</span>
                 <span className={m.id === memberId ? "font-semibold" : undefined}>{m.name}</span>
                 <span className="ml-auto tabular-nums text-muted-foreground">{nl(m.blocks)}</span>
+                <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                  {nl(m.km)} km
+                </span>
               </li>
             ))}
           </ol>

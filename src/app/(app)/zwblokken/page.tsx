@@ -15,6 +15,7 @@ import {
   fetchClubZwiftBlocks,
   fetchOwnZwiftBlocks,
   fetchRoadBlocks,
+  fetchZwiftDistances,
   fetchZwiftStandings,
   knownRoadCounts,
 } from "@/lib/zwblokken/zwift-query";
@@ -46,6 +47,7 @@ export default async function ZwblokkenPage() {
     zwiftOwn,
     zwiftStandings,
     roadBlocks,
+    zwiftDistances,
   ] = await Promise.all([
     fetchClubBlocks(supabase),
     fetchClubStandings(supabase),
@@ -59,6 +61,7 @@ export default async function ZwblokkenPage() {
     fetchOwnZwiftBlocks(supabase, user.id),
     fetchZwiftStandings(supabase),
     fetchRoadBlocks(supabase),
+    fetchZwiftDistances(supabase),
   ]);
 
   const profiles = (profilesResult.data ?? []) as {
@@ -103,8 +106,13 @@ export default async function ZwblokkenPage() {
     .sort((a, b) => b.club - a.club);
 
   const eligible = new Set(byId.keys());
+  // Meters in een wereld; beslist bij een gelijk aantal blokken.
+  const metersIn = (world: string, profileId: string) =>
+    zwiftDistances.get(world)?.get(profileId) ?? 0;
   const zwiftRulers: RulerMap = {};
-  for (const [code, ruler] of pickRulers(zwiftStandings.standings, eligible)) {
+  for (const [code, ruler] of pickRulers(zwiftStandings.standings, eligible, {
+    tieBreak: (code, profileId) => metersIn(code.replace(/^zwift:/, ""), profileId),
+  })) {
     const profile = byId.get(ruler.profileId);
     if (!profile) continue;
     zwiftRulers[code] = {
@@ -120,10 +128,16 @@ export default async function ZwblokkenPage() {
   const zwiftLeaderboards: Record<string, ZwiftLeader[]> = {};
   const zwiftTotals = new Map<string, number>();
   for (const [world, perMember] of zwiftStandings.counts) {
+    // Zelfde volgorde als de titel: blokken, dan kilometers in deze wereld.
     zwiftLeaderboards[world] = [...perMember]
       .filter(([id]) => eligible.has(id))
-      .map(([id, blocks]) => ({ id, name: byId.get(id)?.display_name ?? "Naamloos lid", blocks }))
-      .sort((a, b) => b.blocks - a.blocks)
+      .map(([id, blocks]) => ({
+        id,
+        name: byId.get(id)?.display_name ?? "Naamloos lid",
+        blocks,
+        km: Math.round(metersIn(world, id) / 1000),
+      }))
+      .sort((a, b) => b.blocks - a.blocks || b.km - a.km)
       .slice(0, 10);
     for (const [id, blocks] of perMember) zwiftTotals.set(id, (zwiftTotals.get(id) ?? 0) + blocks);
   }

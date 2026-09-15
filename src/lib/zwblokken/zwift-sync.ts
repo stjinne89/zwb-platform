@@ -66,6 +66,17 @@ export async function syncZwiftBlocksForUser(
   return { scanned, newBlocks, remaining };
 }
 
+/** Ritten per wereld (null = geen Zwift-rit), voor één update per groep. Puur. */
+export function groupByWorld(worldOf: Map<number, string | null>): Map<string | null, number[]> {
+  const out = new Map<string | null, number[]>();
+  for (const [id, world] of worldOf) {
+    const ids = out.get(world) ?? [];
+    ids.push(id);
+    out.set(world, ids);
+  }
+  return out;
+}
+
 async function processBatch(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -73,8 +84,11 @@ async function processBatch(
   activities: ActivityRow[],
 ): Promise<number> {
   const firstSeen = new Map<string, { world: string; activityId: number; startDate: string }>();
+  // Wereld per rit, voor de kilometers per wereld (migratie 0166). null = geen Zwift-rit.
+  const worldOf = new Map<number, string | null>();
 
   for (const activity of activities) {
+    worldOf.set(activity.id, null);
     const points = decodePolyline(activity.encoded_polyline);
     if (!points) continue;
     const ride = zwiftBlocksForRide({
@@ -84,6 +98,7 @@ async function processBatch(
       externalId: activity.external_id,
     });
     if (!ride) continue;
+    worldOf.set(activity.id, ride.world.slug);
     for (const key of ride.blocks) {
       if (!firstSeen.has(key)) {
         firstSeen.set(key, {
@@ -110,12 +125,15 @@ async function processBatch(
   const inserted = await writeBlocks(supabase, "profile_zwift_blocks", ZWIFT_BLOCK_ZOOM, profileId, rows);
 
   // Ook ritten zonder Zwift-herkenning of routelijn afvinken; anders komen ze
-  // elke run terug.
-  const { error } = await supabase
-    .from("strava_activities")
-    .update({ zwift_blocks_processed_at: new Date().toISOString() })
-    .in("id", activities.map((a) => a.id));
-  if (error) throw new Error(error.message);
+  // elke run terug. Eén update per wereld, zodat de wereld meteen meekomt.
+  const processedAt = new Date().toISOString();
+  for (const [world, ids] of groupByWorld(worldOf)) {
+    const { error } = await supabase
+      .from("strava_activities")
+      .update({ zwift_blocks_processed_at: processedAt, zwift_world: world })
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+  }
 
   return inserted;
 }

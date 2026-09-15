@@ -1881,7 +1881,9 @@ Fitness-status: Verbeterend`}
               <strong className="text-foreground">Zwift-ritten staan onder
               Zwift, los van de kaart buiten.</strong> Per Zwift-wereld kleuren
               blokken van ongeveer 600 meter in, en wie de meeste blokken in een
-              wereld heeft, draagt daar de titel. Het percentage gaat over de
+              wereld heeft, draagt daar de titel. Staan leden gelijk, bijvoorbeeld
+              omdat meerdere leden een wereld helemaal gereden hebben, dan wint
+              wie daar de meeste kilometers reed. Het percentage gaat over de
               wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,
               dan kan het iets zakken. Andere indoorplatforms, zoals MyWhoosh,
               Rouvy en FulGaz, tellen niet mee.

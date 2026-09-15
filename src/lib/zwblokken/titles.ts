@@ -51,22 +51,33 @@ export type Ruler = { profileId: string; blocks: number };
 /**
  * De titelhouder per regio. Alleen leden in `eligible` dingen mee, zodat een
  * niet-goedgekeurd of verwijderd profiel nooit een titel wegkaapt.
+ *
+ * Bij een gelijk aantal blokken beslist eerst `tieBreak` (hoger wint), als die
+ * er is, en daarna wie het aantal het eerst bereikte. De Zwift-werelden geven
+ * hier de kilometers in die wereld mee: daar hebben actieve leden al snel alle
+ * blokken, en zonder beslisser zou de titel nooit meer van eigenaar wisselen.
  */
 export function pickRulers(
   standings: RegionStandings,
   eligible: Set<string>,
+  options: { tieBreak?: (code: string, profileId: string) => number } = {},
 ): Map<string, Ruler> {
   const rulers = new Map<string, Ruler>();
+  const tie = options.tieBreak;
   for (const [code, members] of standings) {
-    let best: (Standing & { profileId: string }) | null = null;
+    let best: (Standing & { profileId: string; tie: number }) | null = null;
     for (const [profileId, standing] of members) {
       if (!eligible.has(profileId)) continue;
+      const candidate = { profileId, ...standing, tie: tie ? tie(code, profileId) : 0 };
       if (
         !best ||
-        standing.blocks > best.blocks ||
-        (standing.blocks === best.blocks && standing.reachedAt < best.reachedAt)
+        candidate.blocks > best.blocks ||
+        (candidate.blocks === best.blocks && candidate.tie > best.tie) ||
+        (candidate.blocks === best.blocks &&
+          candidate.tie === best.tie &&
+          candidate.reachedAt < best.reachedAt)
       ) {
-        best = { profileId, ...standing };
+        best = candidate;
       }
     }
     if (best) rulers.set(code, { profileId: best.profileId, blocks: best.blocks });

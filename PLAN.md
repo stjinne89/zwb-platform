@@ -1151,6 +1151,31 @@ bleven tot nu toe bewust buiten de kaart.
 *Niet geverifieerd:*
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
 
+**Kilometers beslissen bij gelijke blokken (2026-09-15, commit `COMMITK`, migratie
+`0166`).** Stijn wilde de Zwift-titel over te nemen houden als meerdere leden een
+wereld (bijna) vol hebben.
+- **Regel in de Zwift-werelden:** meeste blokken; bij gelijk aantal de meeste
+  kilometers in die wereld; bij ook gelijke kilometers wie het eerst had.
+  - Kilometers winnen nooit van meer blokken.
+  - **Buiten blijft het "wie het eerst had"**: daar is niet om gevraagd, en provincies
+    raken zelden vol.
+- **Waar de kilometers vandaan komen.** De Zwift-sync legt per rit
+  `strava_activities.zwift_world` vast. De view `zwift_world_distances` telt
+  `distance_m` op per lid en wereld.
+- **Code.** `pickRulers` kreeg een optionele `tieBreak`. De ranglijst per wereld
+  sorteert op blokken en dan kilometers, en toont de kilometers.
+- **Migratie `0166` zet `zwift_blocks_processed_at` terug** voor Zwift-ritten zonder
+  wereld. Daarna moet `/api/zwblokken/backfill?zwift=1` opnieuw: blokken en datums
+  blijven gelijk, de wereld komt erbij.
+  - **`0166` moet vóór de deploy draaien.** De sync schrijft `zwift_world`, en zonder
+    die kolom faalt de Zwift-stap. De buitenblokken merken daar niets van.
+- **Effect (alleen gelezen, met de nieuwe functies).** Gelijke toppers in vier
+  werelden:
+  - Richmond: Karen 739 km vóór Tako 645 km;
+  - Yorkshire: Bart 1.061 km vóór Femke 1.048 km;
+  - Bologna: 9 leden gelijk, Femke 161 km;
+  - Crit City: 9 leden gelijk, Karen 264 km.
+
 **Minimap als ondergrond (2026-09-15, commit `b5c4262`).** Stijn zag de blokken op een
 effen vlak en wilde een echte kaart. Hij had drie opties:
 - Zwifts eigen minimap;

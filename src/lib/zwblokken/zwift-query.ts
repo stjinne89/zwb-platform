@@ -109,6 +109,33 @@ export async function fetchZwiftStandings(
   return { counts, standings };
 }
 
+/**
+ * Meters per lid per wereld (view zwift_world_distances, migratie 0166). Leeg
+ * zonder die migratie; de titels vallen dan terug op wie het eerst had.
+ */
+export async function fetchZwiftDistances(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+): Promise<Map<string, Map<string, number>>> {
+  const out = new Map<string, Map<string, number>>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("zwift_world_distances")
+      .select("profile_id, world, distance_m")
+      .order("world", { ascending: true })
+      .order("profile_id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    for (const row of data as { profile_id: string; world: string; distance_m: number | string }[]) {
+      const perMember = out.get(row.world) ?? new Map<string, number>();
+      perMember.set(row.profile_id, Number(row.distance_m));
+      out.set(row.world, perMember);
+    }
+    if (data.length < PAGE) break;
+  }
+  return out;
+}
+
 type RouteShape = { world: string | null; shape: { lat?: number[]; lon?: number[] } | null };
 
 /** Blokken die de routevormen uit zwift_routes raken, per wereld. Puur, voor de test. */
