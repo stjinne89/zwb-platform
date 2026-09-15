@@ -828,7 +828,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   België, Luxemburg, Duitsland en Frankrijk, met titels per gebied (zie
   "ZWBlokken-titels" in het werkplan). Nav-item, dashboard- en statsintegratie, hulpsectie met zoekindex.
   Privacyregel: start- en eindblok tellen nooit mee, plus de eerste en laatste
-  kilometer.
+  kilometer. Zwift-ritten bleven tot 2026-09-15 helemaal buiten ZWBlokken;
+  sindsdien hebben ze eigen blokken per Zwift-wereld (migr. `0165`, zie
+  "ZWBlokken in de Zwift-werelden" in het werkplan), zonder die privacyregel.
 - **Schema-herziening ZWBeter Worden** (2026-08, migr. `0113`–`0116`): het schema
   beweegt mee met het lid in plaats van één keer gegenereerd te blijven
   (`root_plan_id`, `adaptation_kind`, `origin`, `event_id`). De maand is de
@@ -1047,6 +1049,96 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — ZWBlokken in de Zwift-werelden
+
+**2026-09-15, commit `COMMITZ` op branch `claude/zwblokken-gamification-titles-a65ad0`,
+niet gepusht.** Migratie `0165` (`profile_zwift_blocks`, view `club_zwift_blocks`,
+`strava_activities.zwift_blocks_processed_at`). Geen nieuwe privacyversie.
+
+**Waarom.** Stijn wilde Watopia en de andere Zwift-werelden in ZWBlokken. Zwift-ritten
+bleven tot nu toe bewust buiten de kaart.
+
+**Onderzoek (productie, alleen gelezen).**
+- **Bronnen.** 10.916 `VirtualRide`-rijen, waarvan 9.361 herkenbare Zwift-ritten met
+  een routelijn. Maar 1 Zwift-rit viel buiten een bekende wereld. `zwift-data` kent
+  12 werelden met grenzen.
+- **Werelden op echte coördinaten.** Acht werelden liggen op echte plekken: London,
+  New York, Richmond, Innsbruck, Yorkshire, Paris, Bologna en Scotland. Daarom een
+  **eigen tabel**: in `profile_blocks` zou een Zwift-rondje echte Londense blokken
+  kleuren en meetellen voor dekking en titels buiten.
+- **Blokgrootte.** Op zoom 14 is Watopia 36 blokken en Crit City 1. De punten van de
+  routelijn liggen mediaan 60 m uit elkaar (p90 ~220 m). **Zoom 16** (~600 m)
+  gekozen, na Stijns keuze uit 16, 17 of hetzelfde als buiten.
+- **Club op zoom 16** (dry-run met de nieuwe code): Watopia 321, France 310,
+  New York 127, London 109, Makuri 85, Innsbruck 61, Yorkshire 44, Paris 36,
+  Scotland 34, Richmond 29, Bologna 22, Crit City 4.
+- **Het actiefste lid heeft per wereld al bijna alles.** Watopia 302/321,
+  London 107/109, Innsbruck 61/61. Voor fanatieke Zwifters zijn de werelden op
+  zoom 16 dus vrijwel vol, en bij volle werelden beslist "wie het eerst had" de
+  titel.
+- **Noemer.** `zwift_routes.shape` dekt niet elke weg: Watopia 160 van 320
+  club-blokken. De noemer is daarom routevormen ∪ club-blokken ("bekende wegen"), en
+  komt in de praktijk bijna uit op de club-blokken.
+
+**Besluiten (Stijn).**
+- Zoom 16.
+- Titels per wereld, met dezelfde regels als buiten: Koning, Koningin of Vorst, en
+  bij gelijkspel wie het eerst had.
+- Privacy: alleen de tekst aangepast, **geen nieuwe privacyversie**.
+  - De verklaring beloofde "Zwift- en andere indoorritten blijven volledig buiten
+    deze kaart". Die zin is vervangen.
+  - Reden van Stijn: een virtuele Zwift-locatie zegt niets over waar iemand woont
+    of is.
+  - Dat wijkt af van eerdere rondes, waar een zichtbaar nieuw gegeven een nieuwe
+    versie kreeg.
+
+**Wat er is gekomen.**
+- `src/lib/zwblokken/zwift.ts` (puur): `ZWIFT_WORLDS` uit `zwift-data`,
+  `zwiftWorldAt` (grenzen + ~2 km marge), `isZwiftRide` en `zwiftBlocksForRide`
+  (zoom 16).
+  - `isZwiftRide` is strikt op "zwift" in apparaat, external-id of naam, zodat
+    MyWhoosh, Rouvy en FulGaz eruit vallen.
+  - `zwiftBlocksForRide` doet geen start/eind-maskering.
+- `src/lib/zwblokken/zwift-sync.ts`: `syncZwiftBlocksForUser`, met een eigen cursor.
+  - `writeBlocks` (in `sync.ts`, gedeeld met de buitenblokken) zet bij oude ritten
+    uit de historie-inhaalslag ook hier de vroegste datum.
+  - Aangehaakt in `runPostSyncForProfile` (stap `zwblokken`, dus ook het webhookpad)
+    en in `afterPage` van de historie-inhaalslag.
+  - Eenmalige backfill: `/api/zwblokken/backfill?zwift=1`.
+- `src/lib/zwblokken/zwift-query.ts`: blokken per wereld (eigen en club), de stand
+  voor titels (`zwift:<wereld>` via `titles.ts`), `roadBlocksFromShapes`,
+  `knownRoadCounts` en `fetchRouteLines`.
+- `/zwblokken`:
+  - Schakelaar **Buiten | Zwift**, alleen zichtbaar als er Zwift-blokken zijn.
+  - Wereldkiezer, stats (blokken, dekking, hele club), titelchips en de kaart.
+  - De kaart heeft geen OSM-ondergrond maar een effen vlak met routelijnen
+    (`/api/zwblokken/zwift-roads`, per wereld). `blockZoom` zit nu in `BlocksMap`,
+    `BlocksLayer` en `BlockClick`.
+  - Dekkingstabel per wereld (`CoverageTable`, geëxporteerd uit `coverage.tsx`) en
+    een ranglijst per wereld.
+  - Een klik op een blok gaat met `?world=`.
+  - De ledenkiezer toont nu ook leden met alleen Zwift-blokken.
+- `/hulp#zwblokken`, `/privacy` en runbook bijgewerkt.
+
+**Bewust niet gebouwd.**
+- **Andere platforms** (MyWhoosh, Rouvy, FulGaz, Kinomap): samen <100 ritten, en Rouvy
+  en FulGaz rijden over echte plekken.
+- **Zwift-kaartbeelden als ondergrond**: auteursrecht van Zwift.
+- **Zwift-blokken in de buitentotalen**, buitentitels, statistieken of het dashboard.
+- **Zoom 17**, ondanks de bijna volle werelden. Dat was de keuze van Stijn; mocht de
+  uitdaging te klein blijken, dan is een ander zoomniveau een migratie plus opnieuw
+  rekenen (`zwift_blocks_processed_at = null`).
+
+**Verificatie.**
+- Nieuw `tests/unit/zwblokken-zwift.test.ts`: wereldherkenning met echte
+  coördinaten, platformfilter, zoom-16-blokken zonder maskering, noemer, en titels
+  per wereld.
+- De dry-run tegen productie gaf dezelfde aantallen als het onderzoek.
+
+*Niet geverifieerd:*
+- `0165` en de backfill zijn niet gedraaid; migraties zijn lokaal niet te testen.
+- De Zwift-kaart is niet in een ingelogde browser bekeken.
 
 ### Opgeleverd — volledige Strava-historie, geleidelijk opgehaald
 

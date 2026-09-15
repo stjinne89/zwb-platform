@@ -80,8 +80,10 @@ export default function PrivacyPage() {
             alleen of een vak wel of niet is aangedaan. Het vak waarin een rit
             begint of eindigt telt nooit mee en de eerste en laatste kilometer
             van elke rit laten we buiten beschouwing, zodat je woonadres er niet
-            uit af te leiden is. Zwift- en andere indoorritten blijven volledig
-            buiten deze kaart. Clubleden zien ook wie per land en per provincie
+            uit af te leiden is. Zwift-ritten kleuren blokken in de
+            Zwift-werelden, los van deze kaart. Daar tellen start en einde wel
+            mee, want een virtuele wereld is geen echte plek. Andere
+            indoorritten blijven volledig buiten ZWBlokken. Clubleden zien ook wie per land en per provincie
             de meeste vakken heeft; die krijgt een titel. Voor een land is dat
             Koning of Koningin als je in je profiel een geslacht hebt opgegeven,
             en anders Vorst. Wie je titel ziet, kan daar dus je opgegeven

@@ -10,6 +10,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OUTDOOR_CYCLING_SPORTS } from "@/lib/strava/sports";
 import { backfillRegions, syncBlocksForUser } from "@/lib/zwblokken/sync";
+import { syncZwiftBlocksForUser } from "@/lib/zwblokken/zwift-sync";
 
 type ProfileResult = {
   profileId: string;
@@ -71,6 +72,33 @@ async function profilesWithPendingWork(
   return found;
 }
 
+/** Zelfde enumeratie als hierboven, voor Zwift-ritten zonder Zwift-blokken. */
+async function profilesWithPendingZwiftWork(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  max: number,
+): Promise<string[]> {
+  const found: string[] = [];
+  let after = "";
+  while (found.length < max) {
+    let query = admin
+      .from("strava_activities")
+      .select("profile_id")
+      .eq("sport_type", "VirtualRide")
+      .is("zwift_blocks_processed_at", null)
+      .order("profile_id", { ascending: true })
+      .limit(1);
+    if (after) query = query.gt("profile_id", after);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    const row = (data ?? [])[0] as { profile_id: string } | undefined;
+    if (!row?.profile_id) break;
+    found.push(row.profile_id);
+    after = row.profile_id;
+  }
+  return found;
+}
+
 export async function POST(request: Request) {
   const expected = process.env.STRAVA_SYNC_SECRET;
   const actual = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -100,6 +128,47 @@ export async function POST(request: Request) {
         startAt: nonNegativeInt(url.searchParams.get("offset"), 0, 5_000_000),
       });
       return Response.json({ ok: true, mode: "regions", ...result });
+    }
+
+    // Eenmalig na migratie 0165: Zwift-blokken uit de bestaande VirtualRide-
+    // ritten. Puur database; opnieuw aanroepen tot `remaining` false is.
+    if (url.searchParams.get("zwift")) {
+      const zwiftCandidates = only
+        ? [only]
+        : await profilesWithPendingZwiftWork(admin, limit + 1);
+      const zwiftResults: ProfileResult[] = [];
+      let reachedEndZwift = true;
+      for (const profileId of zwiftCandidates) {
+        if (zwiftResults.length >= limit) {
+          reachedEndZwift = false;
+          break;
+        }
+        try {
+          const result = await syncZwiftBlocksForUser(admin, profileId, { maxActivities });
+          zwiftResults.push({ profileId, ...result });
+        } catch (err) {
+          zwiftResults.push({
+            profileId,
+            scanned: 0,
+            newBlocks: 0,
+            remaining: true,
+            error: err instanceof Error ? err.message : "Zwift-blokken faalden.",
+          });
+        }
+      }
+      const failed = zwiftResults.some((r) => r.error);
+      return Response.json(
+        {
+          ok: !failed,
+          mode: "zwift",
+          processedProfiles: zwiftResults.length,
+          scanned: zwiftResults.reduce((sum, r) => sum + r.scanned, 0),
+          newBlocks: zwiftResults.reduce((sum, r) => sum + r.newBlocks, 0),
+          remaining: !reachedEndZwift || zwiftResults.some((r) => r.remaining),
+          results: zwiftResults,
+        },
+        { status: failed ? 207 : 200 },
+      );
     }
 
     const candidates = only

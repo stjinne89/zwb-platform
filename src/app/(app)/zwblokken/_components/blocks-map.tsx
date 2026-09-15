@@ -25,6 +25,10 @@ const Rectangle = dynamic(
 const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), {
   ssr: false,
 });
+const Polyline = dynamic(
+  () => import("react-leaflet").then((m) => m.Polyline),
+  { ssr: false },
+);
 const BlockClick = dynamic(() => import("./block-click"), { ssr: false });
 
 /** Compacte transportvorm: x → lijst van y's (plus rider_count voor de club). */
@@ -35,6 +39,17 @@ type Props = {
   club: PackedClubBlocks;
   own: PackedBlocks;
   maxRiders: number;
+  /**
+   * Zwift-wereld (slug). Dan geen OSM-ondergrond — die toont oceaan in Watopia
+   * en in London niet de Zwift-wegen — maar routelijnen, en een fijner raster.
+   */
+  zwift?: {
+    world: string;
+    blockZoom: number;
+    /** [[zuid, west], [noord, oost]] */
+    bounds: [[number, number], [number, number]];
+    lines: [number, number][][];
+  };
 };
 
 function unpackOwn(packed: PackedBlocks): BlockSet {
@@ -58,8 +73,8 @@ function unpackClub(packed: PackedClubBlocks): BlockSet {
 }
 
 /** Middelpunt van één blok, voor het plaatsen van de popup. */
-function blockCentre(x: number, y: number): [number, number] {
-  const [[south, west], [north, east]] = blockBounds(x, y);
+function blockCentre(x: number, y: number, z?: number): [number, number] {
+  const [[south, west], [north, east]] = blockBounds(x, y, z);
   return [(south + north) / 2, (west + east) / 2];
 }
 
@@ -83,7 +98,8 @@ function centerOf(blocks: BlockSet): [number, number] | null {
   return [(south + north) / 2, (west + east) / 2];
 }
 
-export function BlocksMap({ club, own, maxRiders }: Props) {
+export function BlocksMap({ club, own, maxRiders, zwift }: Props) {
+  const blockZoom = zwift?.blockZoom;
   const { resolvedTheme } = useTheme();
   const [fullscreen, setFullscreen] = useState(false);
   const [picked, setPicked] = useState<{ x: number; y: number } | null>(null);
@@ -100,7 +116,8 @@ export function BlocksMap({ club, own, maxRiders }: Props) {
   useEffect(() => {
     if (!picked || !pickedKey || ridersByBlock[pickedKey]) return;
     let cancelled = false;
-    fetch(`/api/zwblokken/block?x=${picked.x}&y=${picked.y}`)
+    const world = zwift ? `&world=${encodeURIComponent(zwift.world)}` : "";
+    fetch(`/api/zwblokken/block?x=${picked.x}&y=${picked.y}${world}`)
       .then((res) => (res.ok ? res.json() : { riders: [] }))
       .then((json) => {
         if (cancelled) return;
@@ -113,7 +130,17 @@ export function BlocksMap({ club, own, maxRiders }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [picked, pickedKey, ridersByBlock]);
+  }, [picked, pickedKey, ridersByBlock, zwift]);
+
+  // Wisselen van wereld: een gekozen blok en de opgehaalde leden horen bij de
+  // vorige wereld.
+  const worldKey = zwift?.world ?? "buiten";
+  const [shownWorld, setShownWorld] = useState(worldKey);
+  if (shownWorld !== worldKey) {
+    setShownWorld(worldKey);
+    setPicked(null);
+    setRidersByBlock({});
+  }
 
   const clubBlocks = useMemo(() => unpackClub(club), [club]);
   const ownBlocks = useMemo(() => unpackOwn(own), [own]);
@@ -140,23 +167,34 @@ export function BlocksMap({ club, own, maxRiders }: Props) {
   // Leaflet verhuist niet netjes tussen containers, dus elk krijgt een eigen key.
   const renderMap = (key: string) => (
     <MapContainer
-      key={key}
-      center={center}
-      zoom={10}
+      // Per wereld een nieuwe kaart: Leaflet neemt `bounds` alleen bij het aanmaken.
+      key={`${key}-${worldKey}`}
+      {...(zwift
+        ? { bounds: zwift.bounds, maxZoom: 18 }
+        : { center, zoom: 10 })}
       scrollWheelZoom
-      className="h-full w-full"
+      className={zwift ? "zwift-map h-full w-full" : "h-full w-full"}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {zwift ? (
+        // Kleuren in CSS (.zwift-road): een var() in een Leaflet-kleur werkt niet overal.
+        <Polyline
+          positions={zwift.lines}
+          pathOptions={{ className: "zwift-road", weight: 2, interactive: false }}
+        />
+      ) : (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+      )}
       <BlocksLayer
         club={clubBlocks}
         own={ownBlocks}
         maxRiders={maxRiders}
         theme={resolvedTheme}
+        blockZoom={blockZoom}
       />
-      <BlockClick onPick={(x, y) => setPicked({ x, y })} />
+      <BlockClick onPick={(x, y) => setPicked({ x, y })} zoom={blockZoom} />
       {picked ? (
         <>
           {/* De rand maakt zichtbaar wélk blok je geraakt hebt — bij uitzoomen
@@ -165,7 +203,7 @@ export function BlocksMap({ club, own, maxRiders }: Props) {
               in een Leaflet-strokekleur wordt niet overal opgelost. */}
           <Rectangle
             key={`${picked.x}/${picked.y}`}
-            bounds={blockBounds(picked.x, picked.y)}
+            bounds={blockBounds(picked.x, picked.y, blockZoom)}
             pathOptions={{
               className: "zwblok-picked",
               weight: 2,
@@ -177,7 +215,7 @@ export function BlocksMap({ club, own, maxRiders }: Props) {
               pas als je de rand zelf aanklikt, en je klikte op de kaart. */}
           <Popup
             key={`popup-${picked.x}/${picked.y}`}
-            position={blockCentre(picked.x, picked.y)}
+            position={blockCentre(picked.x, picked.y, blockZoom)}
             autoPan
             eventHandlers={{ remove: () => setPicked(null) }}
           >

@@ -298,6 +298,12 @@ function defaultDeps(
       } catch {
         // afterComplete en elke volgende webhookrit rekenen de blokken alsnog.
       }
+      try {
+        const { syncZwiftBlocksForUser } = await import("@/lib/zwblokken/zwift-sync");
+        await syncZwiftBlocksForUser(admin, profileId, { maxActivities: HISTORY_PAGE_SIZE });
+      } catch {
+        // Idem; zonder migratie 0165 slaat dit alleen de Zwift-blokken over.
+      }
     },
     afterComplete: async (profileId, token) => {
       const { runPostSyncForProfile } = await import("@/lib/strava/post-sync");

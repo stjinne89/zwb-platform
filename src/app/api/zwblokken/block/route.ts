@@ -6,6 +6,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { BLOCK_ZOOM } from "@/lib/zwblokken/grid";
+import { ZWIFT_BLOCK_ZOOM, zwiftWorldBySlug } from "@/lib/zwblokken/zwift";
 
 type Row = {
   profile_id: string;
@@ -21,9 +22,9 @@ function profileOf(rel: Row["profiles"]) {
   return Array.isArray(rel) ? (rel[0] ?? { display_name: null, avatar_url: null }) : rel;
 }
 
-function intParam(value: string | null): number | null {
+function intParam(value: string | null, zoom: number): number | null {
   const parsed = Number.parseInt(value ?? "", 10);
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed >= 2 ** BLOCK_ZOOM) {
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed >= 2 ** zoom) {
     return null;
   }
   return parsed;
@@ -39,20 +40,28 @@ export async function GET(request: Request) {
   }
 
   const params = new URL(request.url).searchParams;
-  const x = intParam(params.get("x"));
-  const y = intParam(params.get("y"));
+  // Met ?world= een blok in een Zwift-wereld: eigen tabel, fijner raster.
+  const worldParam = params.get("world");
+  const world = worldParam ? zwiftWorldBySlug(worldParam) : null;
+  if (worldParam && !world) {
+    return Response.json({ error: "Onbekende wereld." }, { status: 400 });
+  }
+  const zoom = world ? ZWIFT_BLOCK_ZOOM : BLOCK_ZOOM;
+  const x = intParam(params.get("x"), zoom);
+  const y = intParam(params.get("y"), zoom);
   if (x === null || y === null) {
     return Response.json({ error: "Ongeldig blok." }, { status: 400 });
   }
 
-  // RLS op profile_blocks bepaalt wat een lid mag zien.
-  const { data, error } = await supabase
-    .from("profile_blocks")
+  // RLS op profile_blocks en profile_zwift_blocks bepaalt wat een lid mag zien.
+  let query = supabase
+    .from(world ? "profile_zwift_blocks" : "profile_blocks")
     .select("profile_id, first_seen_at, profiles(display_name, avatar_url)")
-    .eq("z", BLOCK_ZOOM)
+    .eq("z", zoom)
     .eq("x", x)
-    .eq("y", y)
-    .order("first_seen_at", { ascending: true });
+    .eq("y", y);
+  if (world) query = query.eq("world", world.slug);
+  const { data, error } = await query.order("first_seen_at", { ascending: true });
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });

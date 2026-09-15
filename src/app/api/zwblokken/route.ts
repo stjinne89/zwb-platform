@@ -3,6 +3,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { countNewThisYear, fetchOwnBlocks } from "@/lib/zwblokken/query";
+import { fetchOwnZwiftBlocks } from "@/lib/zwblokken/zwift-query";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -19,9 +20,10 @@ export async function GET(request: Request) {
   }
 
   // RLS op profile_blocks bepaalt wat een lid mag zien; hier geen extra check.
-  const [{ packed, regions, total }, newThisYear] = await Promise.all([
+  const [{ packed, regions, total }, newThisYear, zwift] = await Promise.all([
     fetchOwnBlocks(supabase, profileId),
     countNewThisYear(supabase, profileId),
+    fetchOwnZwiftBlocks(supabase, profileId),
   ]);
 
   return Response.json(
@@ -30,6 +32,7 @@ export async function GET(request: Request) {
       regions: Object.fromEntries(regions),
       total,
       newThisYear,
+      zwift,
     },
     { headers: { "Cache-Control": "private, max-age=300" } },
   );

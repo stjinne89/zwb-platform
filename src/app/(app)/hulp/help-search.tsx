@@ -181,7 +181,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "De blokkenkaart: waar heb jij en waar heeft de club al gereden?",
     href: "/hulp#zwblokken",
     terms:
-      "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken koning koningin vorst gouverneur titel provincie deelstaat",
+      "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken koning koningin vorst gouverneur titel provincie deelstaat zwift watopia makuri france london new york virtueel",
   },
   {
     title: "Privacy en zichtbaarheid",

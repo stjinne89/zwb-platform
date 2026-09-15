@@ -12,6 +12,12 @@ import {
   type PackedClubBlocks,
 } from "./blocks-map";
 import { Coverage, type RegionMeta, type RulerMap } from "./coverage";
+import {
+  ZwiftView,
+  type ZwiftLeader,
+  type ZwiftOwnData,
+  type ZwiftWorldMeta,
+} from "./zwift-view";
 
 export type MemberOption = { id: string; name: string; blocks: number };
 
@@ -21,6 +27,16 @@ type MemberData = {
   regions: Record<string, number>;
   total: number;
   newThisYear: number;
+  zwift: ZwiftOwnData;
+};
+
+export type ZwiftProps = {
+  worlds: ZwiftWorldMeta[];
+  blockZoom: number;
+  club: Record<string, PackedClubBlocks>;
+  maxRiders: Record<string, number>;
+  rulers: RulerMap;
+  leaderboards: Record<string, ZwiftLeader[]>;
 };
 
 type Props = {
@@ -33,6 +49,8 @@ type Props = {
   members: MemberOption[];
   selectedId: string;
   initial: MemberData;
+  /** Leeg als nog niemand Zwift-blokken heeft (of 0165 nog niet gedraaid is). */
+  zwift: ZwiftProps;
 };
 
 const EMPTY: MemberData = {
@@ -40,6 +58,7 @@ const EMPTY: MemberData = {
   regions: {},
   total: 0,
   newThisYear: 0,
+  zwift: { blocks: {}, counts: {} },
 };
 
 const nl = (n: number) => n.toLocaleString("nl-NL");
@@ -128,8 +147,11 @@ export function ZwblokkenView({
   members,
   selectedId,
   initial,
+  zwift,
 }: Props) {
   const [memberId, setMemberId] = useState(selectedId);
+  const [mode, setMode] = useState<"buiten" | "zwift">("buiten");
+  const hasZwift = zwift.worlds.length > 0;
   // Opgehaalde sets per lid, zodat heen-en-weer wisselen niet opnieuw fetcht.
   const [fetched, setFetched] = useState<Record<string, MemberData>>({});
 
@@ -153,6 +175,7 @@ export function ZwblokkenView({
             regions: json.regions ?? {},
             total: json.total ?? 0,
             newThisYear: json.newThisYear ?? 0,
+            zwift: json.zwift ?? EMPTY.zwift,
           },
         }));
       })
@@ -167,6 +190,27 @@ export function ZwblokkenView({
 
   return (
     <div className="space-y-4">
+      {hasZwift ? (
+        <div role="tablist" className="inline-flex rounded-md border border-border bg-card p-0.5 text-sm">
+          {(["buiten", "zwift"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={mode === value}
+              onClick={() => setMode(value)}
+              className={
+                mode === value
+                  ? "rounded px-3 py-1.5 font-medium bg-primary text-primary-foreground"
+                  : "rounded px-3 py-1.5 text-muted-foreground"
+              }
+            >
+              {value === "buiten" ? "Buiten" : "Zwift"}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={memberId}
@@ -200,36 +244,52 @@ export function ZwblokkenView({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat
-          icon={<Grid3x3 className="size-3.5" />}
-          label="Blokken"
-          value={nl(data.total)}
+      {mode === "zwift" && hasZwift ? (
+        <ZwiftView
+          worlds={zwift.worlds}
+          blockZoom={zwift.blockZoom}
+          club={zwift.club}
+          maxRiders={zwift.maxRiders}
+          own={data.zwift}
+          rulers={zwift.rulers}
+          leaderboards={zwift.leaderboards}
+          memberId={memberId}
+          memberName={memberName}
         />
-        <Stat
-          icon={<Sparkles className="size-3.5" />}
-          label="Nieuw dit jaar"
-          value={nl(data.newThisYear)}
-        />
-        <Stat
-          icon={<MapPin className="size-3.5" />}
-          label="Hele club"
-          value={nl(clubTotal)}
-        />
-      </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Stat
+              icon={<Grid3x3 className="size-3.5" />}
+              label="Blokken"
+              value={nl(data.total)}
+            />
+            <Stat
+              icon={<Sparkles className="size-3.5" />}
+              label="Nieuw dit jaar"
+              value={nl(data.newThisYear)}
+            />
+            <Stat
+              icon={<MapPin className="size-3.5" />}
+              label="Hele club"
+              value={nl(clubTotal)}
+            />
+          </div>
 
-      <Titles regions={regions} rulers={rulers} memberId={memberId} />
+          <Titles regions={regions} rulers={rulers} memberId={memberId} />
 
-      <BlocksMap club={club} own={data.blocks} maxRiders={maxRiders} />
+          <BlocksMap club={club} own={data.blocks} maxRiders={maxRiders} />
 
-      <Coverage
-        regions={regions}
-        own={data.regions}
-        club={clubRegions}
-        rulers={rulers}
-        memberId={memberId}
-        memberName={memberName}
-      />
+          <Coverage
+            regions={regions}
+            own={data.regions}
+            club={clubRegions}
+            rulers={rulers}
+            memberId={memberId}
+            memberName={memberName}
+          />
+        </>
+      )}
     </div>
   );
 }

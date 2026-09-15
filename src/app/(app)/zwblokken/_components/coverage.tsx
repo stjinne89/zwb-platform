@@ -39,7 +39,8 @@ const PROVINCE_LABEL: Record<string, string> = {
   DE: "Deelstaten",
   FR: "Regio's",
 };
-type Row = { region: RegionMeta; own: number; club: number };
+
+export type CoverageRow = { region: RegionMeta; own: number; club: number };
 
 const pct = (part: number, whole: number) => (part / whole) * 100;
 
@@ -113,18 +114,21 @@ function RulerLine({
   );
 }
 
-function Table({
+/** Dekkingstabel met balk en titelhouder; ook gebruikt voor de Zwift-werelden. */
+export function CoverageTable({
   rows,
   caption,
   memberName,
   memberId,
   rulers,
+  areaLabel = "Gebied",
 }: {
-  rows: Row[];
+  rows: CoverageRow[];
   caption: string;
   memberName: string;
   memberId: string;
   rulers: RulerMap;
+  areaLabel?: string;
 }) {
   if (rows.length === 0) return null;
   return (
@@ -135,7 +139,7 @@ function Table({
           <thead>
             <tr className="border-b text-xs">
               <th className="py-1.5 pr-3 text-left font-medium text-muted-foreground">
-                Gebied
+                {areaLabel}
               </th>
               <th
                 className="py-1.5 pr-3 text-right font-medium"
@@ -197,7 +201,7 @@ export function Coverage({
   memberId,
   memberName,
 }: Props) {
-  const rows: Row[] = regions
+  const rows: CoverageRow[] = regions
     .map((region) => ({
       region,
       own: own[region.code] ?? 0,
@@ -209,7 +213,7 @@ export function Coverage({
 
   if (rows.length === 0) return null;
 
-  const byClub = (a: Row, b: Row) =>
+  const byClub = (a: CoverageRow, b: CoverageRow) =>
     pct(b.club, b.region.blocks) - pct(a.club, a.region.blocks);
 
   const countries = rows.filter((r) => r.region.level === "country");
@@ -234,14 +238,14 @@ export function Coverage({
   return (
     <section className="space-y-5 rounded-lg border bg-card/90 p-4">
       {provinceGroups.map(({ country, rows: provinceRows }) => (
-        <Table
+        <CoverageTable
           key={country.code}
           rows={provinceRows}
           caption={`${PROVINCE_LABEL[country.code]} in ${country.name}`}
           {...shared}
         />
       ))}
-      <Table rows={countries.sort(byClub)} caption="Landen" {...shared} />
+      <CoverageTable rows={countries.sort(byClub)} caption="Landen" {...shared} />
     </section>
   );
 }

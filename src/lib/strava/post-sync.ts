@@ -200,6 +200,13 @@ export async function runPostSyncForProfile(
       } catch {
         // niet kritiek voor de sync-flow
       }
+      // Los van de buitenblokken: zonder migratie 0165 faalt alleen deze stap.
+      try {
+        const { syncZwiftBlocksForUser } = await import("@/lib/zwblokken/zwift-sync");
+        await syncZwiftBlocksForUser(admin, profileId);
+      } catch {
+        // niet kritiek voor de sync-flow
+      }
     }
 
     const removedActivityIds = steps.removedActivityIds ?? [];

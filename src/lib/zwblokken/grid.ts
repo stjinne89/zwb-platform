@@ -194,7 +194,8 @@ export function blocksForPolyline(
 /**
  * Zwifts Watopia ligt in de Salomonzee, op een plek waar niemand echt fietst.
  * Dat is het laatste vangnet voor virtuele ritten die noch aan hun sport_type
- * noch aan hun naam te herkennen zijn.
+ * noch aan hun naam te herkennen zijn. Het geldt alleen voor de buitenblokken:
+ * Zwift-ritten krijgen hun eigen blokken per wereld (zwift.ts, migratie 0165).
  *
  * Alleen Watopia staat hier. De andere Zwift-werelden (Londen, New York,
  * Parijs, Innsbruck, Yorkshire, Makuri) liggen op echte plekken waar wél

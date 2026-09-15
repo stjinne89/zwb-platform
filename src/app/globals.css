@@ -185,6 +185,15 @@
   stroke: rgb(var(--zwblok-own));
 }
 
+/* Zwift-wereld zonder kaartondergrond: een effen vlak met de routes als lijnen. */
+.leaflet-container.zwift-map {
+  background: var(--muted);
+}
+.leaflet-overlay-pane .zwift-road {
+  stroke: var(--muted-foreground);
+  stroke-opacity: 0.45;
+}
+
 @layer components {
   .app-shell {
     isolation: isolate;

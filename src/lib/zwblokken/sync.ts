@@ -122,51 +122,21 @@ async function processBatch(
     }
   }
 
-  let inserted = 0;
-  if (firstSeen.size > 0) {
-    const rows = [...firstSeen].map(([key, seen]) => {
-      const { x, y } = parseBlockKey(key);
-      const { country, province } = regionForBlock(x, y);
-      return {
-        profile_id: profileId,
-        z: BLOCK_ZOOM,
-        x,
-        y,
-        country,
-        province,
-        first_activity_id: seen.activityId,
-        first_seen_at: seen.startDate,
-      };
-    });
-
-    const existing = await existingFirstSeen(supabase, profileId, rows);
-    const { fresh, earlier } = splitByExisting(rows, existing);
-
-    // ignoreDuplicates: een blok dat al bestaat houdt zijn first_seen_at. Dat
-    // gaat alleen goed als ritten op volgorde binnenkomen; zie hieronder.
-    if (fresh.length > 0) {
-      const { data, error } = await supabase
-        .from("profile_blocks")
-        .upsert(fresh, {
-          onConflict: "profile_id,z,x,y",
-          ignoreDuplicates: true,
-        })
-        .select("x");
-      if (error) throw new Error(error.message);
-      inserted = (data ?? []).length;
-    }
-
-    // Een rit van vóór de al bekende eerste keer: de historie-inhaalslag haalt
-    // oude ritten pas binnen als de recente al verwerkt zijn. Dan hoort de
-    // oudere datum erin, anders telt "nieuw dit jaar" een blok uit 2014 mee en
-    // klopt het gelijkspel bij de ZWBlokken-titels niet.
-    if (earlier.length > 0) {
-      const { error } = await supabase
-        .from("profile_blocks")
-        .upsert(earlier, { onConflict: "profile_id,z,x,y" });
-      if (error) throw new Error(error.message);
-    }
-  }
+  const rows = [...firstSeen].map(([key, seen]) => {
+    const { x, y } = parseBlockKey(key);
+    const { country, province } = regionForBlock(x, y);
+    return {
+      profile_id: profileId,
+      z: BLOCK_ZOOM,
+      x,
+      y,
+      country,
+      province,
+      first_activity_id: seen.activityId,
+      first_seen_at: seen.startDate,
+    };
+  });
+  const inserted = await writeBlocks(supabase, "profile_blocks", BLOCK_ZOOM, profileId, rows);
 
   const { error: markError } = await supabase
     .from("strava_activities")
@@ -186,10 +156,57 @@ type BlockRow = {
   first_seen_at: string;
 };
 
+/**
+ * Schrijft de blokken van een batch weg en geeft terug hoeveel er nieuw waren.
+ * Gedeeld door de buitenblokken (profile_blocks, zoom 14) en de Zwift-blokken
+ * (profile_zwift_blocks, zoom 16).
+ */
+export async function writeBlocks<T extends BlockRow & { profile_id: string; z: number }>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  table: "profile_blocks" | "profile_zwift_blocks",
+  zoom: number,
+  profileId: string,
+  rows: T[],
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const existing = await existingFirstSeen(supabase, table, zoom, profileId, rows);
+  const { fresh, earlier } = splitByExisting(rows, existing);
+
+  // ignoreDuplicates: een blok dat al bestaat houdt zijn first_seen_at. Dat
+  // gaat alleen goed als ritten op volgorde binnenkomen; zie hieronder.
+  let inserted = 0;
+  if (fresh.length > 0) {
+    const { data, error } = await supabase
+      .from(table)
+      .upsert(fresh, {
+        onConflict: "profile_id,z,x,y",
+        ignoreDuplicates: true,
+      })
+      .select("x");
+    if (error) throw new Error(error.message);
+    inserted = (data ?? []).length;
+  }
+
+  // Een rit van vóór de al bekende eerste keer: de historie-inhaalslag haalt
+  // oude ritten pas binnen als de recente al verwerkt zijn. Dan hoort de
+  // oudere datum erin, anders telt "nieuw dit jaar" een blok uit 2014 mee en
+  // klopt het gelijkspel bij de ZWBlokken-titels niet.
+  if (earlier.length > 0) {
+    const { error } = await supabase
+      .from(table)
+      .upsert(earlier, { onConflict: "profile_id,z,x,y" });
+    if (error) throw new Error(error.message);
+  }
+  return inserted;
+}
+
 /** Bestaande first_seen_at van de blokken in deze batch, per blokkey. */
 async function existingFirstSeen(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
+  table: "profile_blocks" | "profile_zwift_blocks",
+  zoom: number,
   profileId: string,
   rows: BlockRow[],
 ): Promise<Map<string, string>> {
@@ -205,10 +222,10 @@ async function existingFirstSeen(
     const chunk = xs.slice(i, i + 200);
     for (let from = 0; ; from += PAGE_SIZE) {
       const { data, error } = await supabase
-        .from("profile_blocks")
+        .from(table)
         .select("x, y, first_seen_at")
         .eq("profile_id", profileId)
-        .eq("z", BLOCK_ZOOM)
+        .eq("z", zoom)
         .in("x", chunk)
         .order("x", { ascending: true })
         .order("y", { ascending: true })
@@ -244,7 +261,7 @@ export function splitByExisting<T extends BlockRow>(
   return { fresh, earlier };
 }
 
-function decodePolyline(encoded: string | null): GpxPoint[] | null {
+export function decodePolyline(encoded: string | null): GpxPoint[] | null {
   if (!encoded) return null;
   try {
     const decoded = polyline.decode(encoded) as [number, number][];

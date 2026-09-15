@@ -1878,9 +1878,13 @@ Fitness-status: Verbeterend`}
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
-              <strong className="text-foreground">Zwift en andere
-              indoorritten tellen niet mee.</strong> Die spelen zich af in een
-              virtuele wereld en zouden een vlek midden op zee opleveren.
+              <strong className="text-foreground">Zwift-ritten staan onder
+              Zwift, los van de kaart buiten.</strong> Per Zwift-wereld kleuren
+              blokken van ongeveer 600 meter in, en wie de meeste blokken in een
+              wereld heeft, draagt daar de titel. Het percentage gaat over de
+              wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,
+              dan kan het iets zakken. Andere indoorplatforms, zoals MyWhoosh,
+              Rouvy en FulGaz, tellen niet mee.
             </span>
           </li>
           <li className="flex gap-2">

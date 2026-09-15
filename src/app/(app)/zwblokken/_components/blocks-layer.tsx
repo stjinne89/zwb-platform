@@ -4,7 +4,7 @@
 //
 // Duizenden losse <Polygon>'s zouden de browser laten kruipen. In plaats
 // daarvan tekenen we per kaarttegel één canvas. Dat kan omdat het blokraster
-// (zoom 14) exact het OSM-tegelraster is: een kaarttegel bevat óf een heel
+// (zoom 14 buiten, 16 in Zwift) exact het OSM-tegelraster is: een kaarttegel bevat óf een heel
 // aantal blokken, óf valt binnen één blok. Het werk per frame is daarmee
 // evenredig aan wat je ziet, niet aan hoeveel blokken iemand heeft.
 
@@ -23,6 +23,8 @@ type Props = {
   maxRiders: number;
   /** Hertekenen zodra het thema wisselt (de kleuren komen uit CSS). */
   theme?: string;
+  /** Zoomniveau van het blokraster: 14 buiten, 16 in de Zwift-werelden. */
+  blockZoom?: number;
 };
 
 const TILE_SIZE = 256;
@@ -87,7 +89,13 @@ function clubStyle(palette: Palette, riders: number, maxRiders: number) {
   );
 }
 
-export function BlocksLayer({ club, own, maxRiders, theme }: Props) {
+export function BlocksLayer({
+  club,
+  own,
+  maxRiders,
+  theme,
+  blockZoom = BLOCK_ZOOM,
+}: Props) {
   const map = useMap();
 
   useEffect(() => {
@@ -107,15 +115,15 @@ export function BlocksLayer({ club, own, maxRiders, theme }: Props) {
           const ctx = canvas.getContext("2d");
           if (!ctx) return canvas;
 
-          if (coords.z >= BLOCK_ZOOM) {
+          if (coords.z >= blockZoom) {
             // Ingezoomd: deze kaarttegel valt binnen één blok. Vul of laat leeg.
-            const shift = coords.z - BLOCK_ZOOM;
+            const shift = coords.z - blockZoom;
             const bx = Math.floor(coords.x / 2 ** shift);
             const by = Math.floor(coords.y / 2 ** shift);
             paint(ctx, bx, by, 0, 0, TILE_SIZE);
           } else {
             // Uitgezoomd: deze kaarttegel bevat 2^shift blokken per as.
-            const shift = BLOCK_ZOOM - coords.z;
+            const shift = blockZoom - coords.z;
             const count = 2 ** shift;
             const size = TILE_SIZE / count;
             const originX = coords.x * count;
@@ -180,7 +188,7 @@ export function BlocksLayer({ club, own, maxRiders, theme }: Props) {
       cancelled = true;
       if (layer) map.removeLayer(layer);
     };
-  }, [map, club, own, maxRiders, theme]);
+  }, [map, club, own, maxRiders, theme, blockZoom]);
 
   return null;
 }

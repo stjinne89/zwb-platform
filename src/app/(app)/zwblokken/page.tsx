@@ -10,7 +10,16 @@ import {
 } from "@/lib/zwblokken/query";
 import { REGIONS, regionByCode } from "@/lib/zwblokken/regions";
 import { pickRulers, rulerTitle, sexForTitle } from "@/lib/zwblokken/titles";
+import { ZWIFT_BLOCK_ZOOM, ZWIFT_WORLDS } from "@/lib/zwblokken/zwift";
+import {
+  fetchClubZwiftBlocks,
+  fetchOwnZwiftBlocks,
+  fetchRoadBlocks,
+  fetchZwiftStandings,
+  knownRoadCounts,
+} from "@/lib/zwblokken/zwift-query";
 import type { RulerMap } from "./_components/coverage";
+import type { ZwiftLeader, ZwiftWorldMeta } from "./_components/zwift-view";
 import {
   ZwblokkenView,
   type MemberOption,
@@ -27,17 +36,30 @@ export default async function ZwblokkenPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [club, { counts, standings }, own, newThisYear, profilesResult] =
-    await Promise.all([
-      fetchClubBlocks(supabase),
-      fetchClubStandings(supabase),
-      fetchOwnBlocks(supabase, user.id),
-      countNewThisYear(supabase, user.id),
-      supabase
-        .from("profiles")
-        .select("id, display_name, sex, privacy_accepted_version")
-        .eq("is_approved", true),
-    ]);
+  const [
+    club,
+    { counts, standings },
+    own,
+    newThisYear,
+    profilesResult,
+    zwiftClub,
+    zwiftOwn,
+    zwiftStandings,
+    roadBlocks,
+  ] = await Promise.all([
+    fetchClubBlocks(supabase),
+    fetchClubStandings(supabase),
+    fetchOwnBlocks(supabase, user.id),
+    countNewThisYear(supabase, user.id),
+    supabase
+      .from("profiles")
+      .select("id, display_name, sex, privacy_accepted_version")
+      .eq("is_approved", true),
+    fetchClubZwiftBlocks(supabase),
+    fetchOwnZwiftBlocks(supabase, user.id),
+    fetchZwiftStandings(supabase),
+    fetchRoadBlocks(supabase),
+  ]);
 
   const profiles = (profilesResult.data ?? []) as {
     id: string;
@@ -62,15 +84,58 @@ export default async function ZwblokkenPage() {
     };
   }
 
-  // Alleen leden die daadwerkelijk blokken hebben; de kiezer moet geen lege
-  // namen bevatten. De eigen naam staat altijd bovenaan.
+  // Zwift: alleen werelden waar de club reed, de meest gereden eerst.
+  const knownRoads = knownRoadCounts(roadBlocks, zwiftClub.blocks);
+  const zwiftWorlds: ZwiftWorldMeta[] = ZWIFT_WORLDS.filter(
+    (w) => (zwiftClub.counts[w.slug] ?? 0) > 0,
+  )
+    .map((w) => ({
+      slug: w.slug,
+      name: w.name,
+      bounds: [
+        [w.bbox[0], w.bbox[1]],
+        [w.bbox[2], w.bbox[3]],
+      ] as [[number, number], [number, number]],
+      known: knownRoads[w.slug] ?? zwiftClub.counts[w.slug],
+      club: zwiftClub.counts[w.slug],
+    }))
+    .sort((a, b) => b.club - a.club);
+
+  const eligible = new Set(byId.keys());
+  const zwiftRulers: RulerMap = {};
+  for (const [code, ruler] of pickRulers(zwiftStandings.standings, eligible)) {
+    const profile = byId.get(ruler.profileId);
+    if (!profile) continue;
+    zwiftRulers[code] = {
+      profileId: ruler.profileId,
+      name: profile.display_name ?? "Naamloos lid",
+      title: rulerTitle(
+        "country",
+        sexForTitle(profile.sex, profile.privacy_accepted_version),
+      ),
+    };
+  }
+
+  const zwiftLeaderboards: Record<string, ZwiftLeader[]> = {};
+  const zwiftTotals = new Map<string, number>();
+  for (const [world, perMember] of zwiftStandings.counts) {
+    zwiftLeaderboards[world] = [...perMember]
+      .filter(([id]) => eligible.has(id))
+      .map(([id, blocks]) => ({ id, name: byId.get(id)?.display_name ?? "Naamloos lid", blocks }))
+      .sort((a, b) => b.blocks - a.blocks)
+      .slice(0, 10);
+    for (const [id, blocks] of perMember) zwiftTotals.set(id, (zwiftTotals.get(id) ?? 0) + blocks);
+  }
+
+  // Alleen leden die daadwerkelijk blokken hebben (buiten of in Zwift); de
+  // kiezer moet geen lege namen bevatten. De eigen naam staat altijd bovenaan.
   const members: MemberOption[] = profiles
     .map((p) => ({
       id: p.id,
       name: p.display_name ?? "Naamloos lid",
       blocks: counts.get(p.id) ?? 0,
     }))
-    .filter((m) => m.blocks > 0 || m.id === user.id)
+    .filter((m) => m.blocks > 0 || (zwiftTotals.get(m.id) ?? 0) > 0 || m.id === user.id)
     .sort((a, b) => {
       if (a.id === user.id) return -1;
       if (b.id === user.id) return 1;
@@ -116,6 +181,15 @@ export default async function ZwblokkenPage() {
               regions: Object.fromEntries(own.regions),
               total: own.total,
               newThisYear,
+              zwift: zwiftOwn,
+            }}
+            zwift={{
+              worlds: zwiftWorlds,
+              blockZoom: ZWIFT_BLOCK_ZOOM,
+              club: zwiftClub.blocks,
+              maxRiders: zwiftClub.maxRiders,
+              rulers: zwiftRulers,
+              leaderboards: zwiftLeaderboards,
             }}
           />
 
