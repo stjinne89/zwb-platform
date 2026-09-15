@@ -1050,7 +1050,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — volledige Strava-historie, geleidelijk opgehaald
 
-**2026-09-15, commit `COMMIT` op branch `claude/zwblokken-gamification-titles-a65ad0`,
+**2026-09-15, commit `ac59813` op branch `claude/zwblokken-gamification-titles-a65ad0`,
 niet gepusht.** Migratie `0163` (twee kolommen op `strava_connections`).
 
 **Waarom.** Bart miste ZWBlokken. De oorzaak: een eerste Strava-sync haalt maar vijf
