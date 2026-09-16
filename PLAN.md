@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Omnium vastlopende seizoenknop, 2026-09-16 — opgelost.**
-> Implementatiecommit wordt na verificatie vastgelegd; geen migratie. Het
+> Implementatiecommit `97232b7`; geen migratie. Het
 > beheerformulier gebruikt een eigen laadstatus met foutafhandeling en een
 > time-out van twintig seconden. Na succes volgt één `replace`-navigatie; de
 > dubbele combinatie van transitie, `push` en `refresh` is verwijderd. Daardoor
