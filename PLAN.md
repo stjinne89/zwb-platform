@@ -1,5 +1,17 @@
 # ZWB Platform — Plan & Status
 
+> **Omnium dubbele-seizoenslug, 2026-09-16 — opgelost.**
+> Wijzigingscommit wordt na de lokale verificatie vastgelegd; er is geen
+> migratie nodig. `Seizoen toevoegen` hergebruikt voortaan een bestaand seizoen
+> met dezelfde genormaliseerde slug en vangt ook PostgreSQL-fout `23505` af als
+> twee beheerders de slug gelijktijdig aanmaken. Het formulier navigeert met de
+> slug die de server teruggeeft, zodat hoofdletters en spaties geen verkeerde
+> beheer-URL opleveren. Bestaande naam- en datumvelden worden bewust niet
+> overschreven: een herhaalde klik mag reeds ingerichte seizoensgegevens niet
+> wijzigen. Verificatie: 1.181 tests geslaagd, 6 optionele live-tests
+> overgeslagen; TypeScript, lint (0 fouten, 7 bestaande waarschuwingen) en de
+> productiebuild zijn geslaagd.
+
 > **Omnium editie-1-ronde, 2026-09-15/16 — afgerond en geïntegreerd op main.**
 > Main-integratiecommit `af0a1aa` (oorspronkelijke implementatiecommit
 > `f104302`, basis `c5d344d`); migraties `0157` en

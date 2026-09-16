@@ -24,7 +24,7 @@ export function SeasonCreateForm() {
         setError(res.error);
         return;
       }
-      router.push(`/beheer/omnium?seizoen=${slug}`);
+      router.push(`/beheer/omnium?seizoen=${res.seasonSlug}`);
       router.refresh();
     });
   }
