@@ -1186,8 +1186,24 @@ Vergeleken op dezelfde productiedata verandert er in tien van de twaalf werelden
 Alleen New York (16.467 → 105) en Makuri (485 → 94) verliezen blokken, en die lagen
 allemaal op de twee sprongen — ook de blokken vlak bij de grens.
 
-**Opruimen in productie.** De foute rijen zijn verwijderd en alle Zwift-ritten zijn
-opnieuw doorgerekend; zie de uitrolnotitie hieronder.
+**Opruimen in productie (2026-09-16).** Op verzoek van de eigenaar alles gewist en
+opnieuw opgebouwd, want de blokken zijn volledig uit de ritten af te leiden.
+- `profile_zwift_blocks` leeggemaakt (25.104 rijen) en `zwift_blocks_processed_at` +
+  `zwift_world` teruggezet voor alle 11.832 Zwift-ritten. In één PATCH liep dat op een
+  statement timeout (HTTP 500), dus per lid in stukken van 500.
+- Daarna `?zwift=1` doorgerekend: 16 aanroepen.
+- **Eén les:** mijn controle of de nieuwe code al live was, keek of er blokken meer dan
+  2 km buiten de zwift-data-grens lagen. De vorige versie hanteerde een marge van
+  0,02° — net iets méér dan 2 km — dus die test gaf een vals positief. Eén lid
+  (964 ritten) werd daardoor nog met de strenge versie doorgerekend en miste 19
+  France-blokken. Opnieuw doorgerekend.
+- **Eindcontrole:** alle 118 combinaties van lid en wereld komen exact overeen met een
+  losse herberekening uit de ritten; 0 blokken buiten hun wereldgrens; 0 onverwerkte
+  Zwift-ritten. Clubblokken: Watopia 320, France 313, London 117, New York 105,
+  Makuri 94, Innsbruck 61, Yorkshire 44, Paris 36, Scotland 34, Richmond 29,
+  Bologna 22, Crit City 4.
+- Alle titels staan nu op **Vorst**: niemand heeft privacyversie `2026-09-15` getekend,
+  dus het geslacht telt nog niet mee.
 
 **Kilometers beslissen bij gelijke blokken (2026-09-15, commit `12c4749`, migratie
 `0166`).** Stijn wilde de Zwift-titel over te nemen houden als meerdere leden een
