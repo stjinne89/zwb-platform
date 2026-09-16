@@ -76,6 +76,14 @@ export function scoreParsedRows(
   const idOf = options.idOf ?? ((row: ParsedResultRow) => nameKeyOf(row.name));
   const { scales, tiePolicy } = scoring;
 
+  // Historische sheets bevatten reeds toegekende punten, geen finishvolgorde.
+  if (options.mode === "sheet_csv") return rows.map((row) => ({
+    riderId: idOf(row), discipline: options.discipline, league: row.league ?? "", status: row.status,
+    position: null, overallPosition: null, timeSeconds: null, timeText: null, segmentSeconds: null,
+    finishPoints: row.points ?? 0, sprintPoints: 0, points: row.points ?? 0, pointsRaw: row.points ?? 0,
+    voidedReason: null, raced: row.status === "finished",
+  }));
+
   if (options.mode === "crit_detailed") {
     const finish = rows
       .filter((row) => row.block === "finish")

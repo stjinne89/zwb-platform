@@ -102,6 +102,14 @@ export type PublicEntrant = {
   discipline: Discipline;
 };
 
+export type PublicPrizeAward = {
+  id: string;
+  title: string;
+  kind: string;
+  league: string | null;
+  riderName: string;
+};
+
 type RiderJoin = { display_name: string; team_name: string | null } | null;
 
 /**
@@ -312,6 +320,32 @@ export async function loadEditionResults(
       points: num(row.points),
       pointsRaw: num(row.points_raw),
       voidedReason: (row.voided_reason as string | null) ?? null,
+    };
+  });
+}
+
+export async function loadEditionPrizeAwards(
+  editionId: string,
+): Promise<PublicPrizeAward[]> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("omnium_prize_awards")
+    .select(
+      "id, league, omnium_prizes!inner(title, kind), omnium_riders(display_name)",
+    )
+    .eq("edition_id", editionId)
+    .order("league");
+  logQueryError("prijzen van editie laden", error);
+
+  return (data ?? []).map((row) => {
+    const prize = firstJoin<{ title: string; kind: string }>(row.omnium_prizes);
+    const rider = firstJoin<NonNullable<RiderJoin>>(row.omnium_riders);
+    return {
+      id: row.id as string,
+      title: prize?.title ?? "Prize",
+      kind: prize?.kind ?? "other",
+      league: (row.league as string | null) ?? null,
+      riderName: rider?.display_name ?? "Unknown rider",
     };
   });
 }

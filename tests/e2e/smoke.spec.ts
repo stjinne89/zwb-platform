@@ -55,7 +55,7 @@ test.describe("public smoke checks", () => {
   // De Omnium-pagina's zijn bedoeld voor een internationaal veld dat niet
   // inlogt. Een regressie in PUBLIC_PATHS is stil en fataal: de site lijkt te
   // werken zolang je zelf ingelogd bent.
-  for (const path of ["/omnium", "/omnium/klassement", "/omnium/regels"]) {
+  for (const path of ["/omnium", "/omnium/standings", "/omnium/rules"]) {
     test(`${path} loads without authentication`, async ({ page }) => {
       await page.goto(path);
 
@@ -66,6 +66,21 @@ test.describe("public smoke checks", () => {
         page.getByRole("link", { name: "Standings", exact: true }),
       ).toBeVisible();
       await expectHealthyPage(page);
+    });
+  }
+
+  for (const [oldPath, newPath] of [
+    ["/omnium/regels", "/omnium/rules"],
+    ["/omnium/klassement", "/omnium/standings"],
+    ["/omnium/inschrijven", "/omnium/register"],
+    ["/omnium/editie-1/uitslag", "/omnium/editie-1/results"],
+    ["/omnium/editie-1/startlijst", "/omnium/editie-1/startlist"],
+  ]) {
+    test(`${oldPath} permanently redirects`, async ({ request }) => {
+      const response = await request.get(oldPath, { maxRedirects: 0 });
+
+      expect(response.status()).toBe(308);
+      expect(response.headers().location).toBe(newPath);
     });
   }
 

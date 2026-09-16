@@ -10,6 +10,7 @@ import {
   loadEditionBySlug,
   loadEditionParts,
   loadEditionResults,
+  loadEditionPrizeAwards,
   loadEditionStandings,
   type PublicResult,
   type PublicStanding,
@@ -55,10 +56,11 @@ export default async function OmniumResultsPage({
   if (!found) notFound();
 
   const { edition } = found;
-  const [parts, standings, results] = await Promise.all([
+  const [parts, standings, results, awards] = await Promise.all([
     loadEditionParts(edition.id),
     loadEditionStandings(edition.id),
     loadEditionResults(edition.id),
+    loadEditionPrizeAwards(edition.id),
   ]);
 
   const leagues = [...new Set(standings.map((row) => row.league))].sort();
@@ -212,13 +214,13 @@ export default async function OmniumResultsPage({
         <>
           {leagues.length > 1 && (
             <div className="flex flex-wrap gap-2">
-              <Link href={`/omnium/${edition.slug}/uitslag`} className={chip(!league)}>
+              <Link href={`/omnium/${edition.slug}/results`} className={chip(!league)}>
                 All leagues
               </Link>
               {leagues.map((value) => (
                 <Link
                   key={value}
-                  href={`/omnium/${edition.slug}/uitslag?league=${encodeURIComponent(value)}`}
+                  href={`/omnium/${edition.slug}/results?league=${encodeURIComponent(value)}`}
                   className={chip(league === value)}
                 >
                   {value}
@@ -259,11 +261,32 @@ export default async function OmniumResultsPage({
         </>
       )}
 
+      {awards.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Prize winners
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {awards
+              .filter((award) => !league || award.league === league)
+              .map((award) => (
+                <article key={award.id} className="rounded-lg border bg-card p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {award.league ?? "Overall"}
+                  </p>
+                  <h3 className="font-semibold">{award.riderName}</h3>
+                  <p className="text-sm">{award.title}</p>
+                </article>
+              ))}
+          </div>
+        </section>
+      )}
+
       <nav className="flex flex-wrap gap-3 text-sm">
         <Link href={`/omnium/${edition.slug}`} className="underline">
           Edition details
         </Link>
-        <Link href="/omnium/klassement" className="underline">
+        <Link href="/omnium/standings" className="underline">
           Season standings
         </Link>
       </nav>

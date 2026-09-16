@@ -114,7 +114,7 @@ export default async function OmniumStandingsPage({
     if (nextLeague) params.set("league", nextLeague);
     if (nextView !== "race") params.set("weergave", nextView);
     const query = params.toString();
-    return query ? `/omnium/klassement?${query}` : "/omnium/klassement";
+    return query ? `/omnium/standings?${query}` : "/omnium/standings";
   };
 
   const chip = (active: boolean) =>

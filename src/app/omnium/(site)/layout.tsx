@@ -18,9 +18,9 @@ export const metadata: Metadata = {
 
 const NAV = [
   { href: "/omnium", label: "Home" },
-  { href: "/omnium/inschrijven", label: "Register" },
-  { href: "/omnium/regels", label: "Rules" },
-  { href: "/omnium/klassement", label: "Standings" },
+  { href: "/omnium/register", label: "Register" },
+  { href: "/omnium/rules", label: "Rules" },
+  { href: "/omnium/standings", label: "Standings" },
 ];
 
 export default function OmniumLayout({

@@ -82,7 +82,7 @@ export default async function OmniumStartlistPage({ params }: PageProps) {
         <Link href={`/omnium/${edition.slug}`} className="underline">
           Edition details
         </Link>
-        <Link href={`/omnium/${edition.slug}/uitslag`} className="underline">
+        <Link href={`/omnium/${edition.slug}/results`} className="underline">
           Results
         </Link>
       </nav>

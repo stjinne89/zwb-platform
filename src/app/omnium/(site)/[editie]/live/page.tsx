@@ -13,9 +13,9 @@ import {
   loadEditionStandings,
   type PublicStanding,
 } from "@/lib/omnium/public-data";
-import { AutoRefresh } from "../../_components/auto-refresh";
-import { Countdown } from "../../_components/countdown";
-import { LocalTime } from "../../_components/local-time";
+import { AutoRefresh } from "@/app/omnium/_components/auto-refresh";
+import { Countdown } from "@/app/omnium/_components/countdown";
+import { LocalTime } from "@/app/omnium/_components/local-time";
 
 // Kort genoeg om tijdens de uitzending mee te lopen, lang genoeg om de
 // database te beschermen als er veel mensen tegelijk kijken.
@@ -186,10 +186,10 @@ export default async function OmniumLivePage({ params }: PageProps) {
         <Link href={`/omnium/${edition.slug}`} className="underline">
           Edition details
         </Link>
-        <Link href={`/omnium/${edition.slug}/uitslag`} className="underline">
+        <Link href={`/omnium/${edition.slug}/results`} className="underline">
           Full results
         </Link>
-        <Link href="/omnium/klassement" className="underline">
+        <Link href="/omnium/standings" className="underline">
           Season standings
         </Link>
       </nav>

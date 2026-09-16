@@ -6,7 +6,7 @@ import {
   loadEditionParts,
   loadUpcomingEdition,
 } from "@/lib/omnium/public-data";
-import { LocalTime } from "../_components/local-time";
+import { LocalTime } from "@/app/omnium/_components/local-time";
 
 export const revalidate = 300;
 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { EditionForm, type EditionPartRow } from "./_components/edition-form";
+import { ZwiftStartlist } from "../_components/zwift-startlist";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function OmniumEditiePage({
         }
       />
 
+      <ZwiftStartlist editionId={editie} parts={(partRows ?? []).map((p) => ({ id: p.id as string, title: p.title as string }))} />
       <EditionForm
         editionId={edition.id as string}
         startAtIso={edition.starts_at as string}

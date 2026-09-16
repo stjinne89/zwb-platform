@@ -1,0 +1,12 @@
+html:has(.omnium-overlay), body:has(.omnium-overlay) { background: transparent !important; }
+.omnium-overlay { width: 1920px; height: 1080px; padding: 56px; overflow: hidden; color: #fff; }
+.omnium-overlay-panel { width: 700px; border-left: 6px solid #59dfc8; border-radius: 0 18px 18px 0; background: rgba(0, 40, 49, .94); padding: 28px 32px; box-shadow: 0 12px 40px #0003; }
+.omnium-overlay header { display: flex; justify-content: space-between; color: #7febd8; font-size: 18px; letter-spacing: .12em; font-weight: 700; }
+.omnium-overlay h1 { font-size: 32px; font-weight: 700; margin: 16px 0 4px; }
+.omnium-overlay h2 { color: #7febd8; font-size: 24px; margin-bottom: 20px; }
+.omnium-overlay table { width: 100%; border-collapse: collapse; font-size: 24px; table-layout: fixed; }
+.omnium-overlay th { font-size: 16px; color: #a4c9ce; text-align: left; padding-bottom: 10px; }
+.omnium-overlay td { padding: 10px 0; border-top: 1px solid #ffffff20; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.omnium-overlay th:first-child, .omnium-overlay td:first-child { width: 54px; color: #7febd8; }
+.omnium-overlay th:last-child, .omnium-overlay td:last-child { width: 75px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.omnium-overlay p { font-size: 24px; padding: 20px 0; }

@@ -1,5 +1,25 @@
 # ZWB Platform — Plan & Status
 
+> **Omnium editie-1-ronde, 2026-09-15 — lokaal afgerond, nog niet gedeployd.**
+> Branch `codex/omnium-editie-1`, basiscommit `c5d344d`; migraties `0157` en
+> `0158` zijn rechtstreeks op de gekoppelde Supabase-database toegepast omdat
+> de oude CLI-migratiehistorie daar niet wordt bijgehouden. Nacontrole en een
+> volledig teruggedraaide productiesmoke bevestigen startlijst/uitslag vervangen,
+> renner samenvoegen, prijs toekennen, unieke kitcode-reservering en afgeschermde
+> codes. De applicatie bevat nu de reglement-editor, Engelse routes plus 308's,
+> Zwift-startlijsten en -uitslagen met gastenfilter, Sheet-CSV, overlay,
+> prijzenbeheer, publieke winnaars en rennersamenvoeging. Verificatie: TypeScript,
+> ESLint, productiebuild, 86 Omnium-tests geslaagd en 6 live-tests overgeslagen;
+> 8 Omnium-E2E-tests geslaagd. Echte Zwift-meting bevestigt subgroepen A–E; het
+> oude testevent gaf geen bewaarde resultaatregels meer. De historische Drive-
+> bron is geïnventariseerd, maar nog niet in productie geïmporteerd: tussen de
+> wedstrijdsheets en Master GC zitten handmatige naam- en leaguecorrecties die
+> eerst als identiteitsmapping moeten worden beoordeeld. Productie bevat nog
+> steeds 1 seizoen en 0 edities/onderdelen/renners/prijzen/kitcodes; event-ID's,
+> A–E-mapping, reglement en prijzeninhoud ontbreken. Geen push of deploy gedaan.
+> Details: [Omnium-status](docs/omnium-readiness-2026-09-15.md) en
+> [historische import](docs/omnium-historical-import.md).
+
 > Levend document. Bijwerken wanneer er een fase wordt afgerond of een
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
@@ -4276,12 +4296,12 @@ die assertie is wel handmatig bevestigd (zie hierboven). Verder is er nog geen
 enkele pagina met échte data gezien: er is nog geen gepubliceerd seizoen, dus
 alles toont de lege staat.
 
-**Openstaand punt om te beslissen vóór de links gedeeld worden.** De publieke
-pagina's zijn Engels maar de routes zijn Nederlands (`/omnium/regels`,
-`/omnium/klassement`, `/omnium/[editie]/uitslag`, `/omnium/[editie]/startlijst`).
-Dat volgt de projectconventie en het goedgekeurde plan, maar het is wringend
-voor een internationaal publiek. Wijzigen kan nu nog gratis; zodra deze URL's op
-Zwift, Discord en YouTube staan, breekt elke wijziging bestaande links.
+**URL-keuze besloten op 14 september.** De publieke routes worden Engels:
+`/omnium/rules`, `/omnium/standings`, `/omnium/register`,
+`/omnium/[editie]/results` en `/omnium/[editie]/startlist`. De Nederlandse
+paden krijgen permanente redirects zodat gedeelde links blijven werken.
+Deze omzetting staat in de afgeronde lokale ronde van 15 september; deploy volgt
+pas na de ontbrekende productie-inrichting.
 
 **Generale repetitie tegen de echte database, 2026-08-19.** De migraties
 `0126`-`0130` zijn door Stijn toegepast. Daarna is de hele keten één keer
@@ -4362,10 +4382,11 @@ overwegen waard om hem naar voren te halen: voor de eerste uitzending op
 11 oktober is een browserbron met de stand in beeld waarschijnlijk waardevoller
 dan de publieke live-pagina.
 
-**Daarmee staat alles wat vóór 11 oktober moest staan.** Wat rest is één ding
-dat ik niet kan doen: de beheerschermen één keer met de hand doorlopen
-(plannen → editie vullen → publiceren → uitslag plakken). Het integratiescript
-spiegelt de databasestappen van die server actions, niet de React-kant.
+**Daarmee stond de oorspronkelijke livestream-basis.** Dit dekt niet het op
+14 september aangeleverde uitgebreidere editie-1-plan: Zwift-startlijst en
+uitslagen, overlay, prijzen, historie en productie-inrichting ontbreken daar nog.
+Ook moet de beheerketen met de hand worden doorlopen. Het oude integratiescript
+spiegelt de databasestappen van de oorspronkelijke server actions, niet de React-kant.
 
 **Volgende rondes:** spike Zwift-uitslagen (te testen op editie 1 zelf),
 startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
@@ -4381,14 +4402,16 @@ beheeracties roepen `requireOmniumAccess` aan; RLS staat op alle tabellen;
 `omnium_kit_codes` heeft geen policy; de live-test schrijft alleen met
 `OMNIUM_LIVE=1`; `omnium.manage` staat in productie bij board en community_manager,
 gelijk aan `DEFAULT_ROLE_PERMISSIONS`.
-**Opgemerkt, niet aangepast:** `omnium_riders` is voor `anon` volledig leesbaar
-(`using (true)`), inclusief Zwift-ID en renners die alleen in een concept-editie
-staan. De tabel is nu leeg; beslissen vóór de eerste import of dat beperkt moet
-worden tot renners in een gepubliceerde editie.
-**Nog open vóór editie 1 (11 oktober):** tiebreak bevestigen, of gasten meetellen,
-Engelse of Nederlandse URL's (na delen niet meer gratis te wijzigen), en de
-beheerschermen één keer met de hand doorlopen. Het Club-menu wijst sinds de push
-naar `/omnium` in plaats van zwbomnium.netlify.app.
+**Bewust behouden, bevestigd op 14 september:** `omnium_riders` is voor `anon`
+volledig leesbaar (`using (true)`), inclusief Zwift-ID en renners die alleen in
+een concept-editie staan. Dit is volgens het aangeleverde plan de keuze van Stijn.
+**Keuzes bevestigd in het plan van 14 september:** gasten zonder inschrijving
+voor het onderdeel tellen niet mee; zonder beschikbare startlijst telt iedereen
+mee met een melding. Publieke URL's worden Engels, Nederlandse paden verwijzen
+permanent door. `omnium_riders` blijft publiek leesbaar. De basis stond volgens
+de aangeleverde productiestatus al live met het Club-menu op `/omnium`.
+Tiebreakbevestiging en productie-inrichting blijven open; zie de status van
+15 september bovenaan. De nieuwe implementatieronde is nog niet gedeployd.
 `package-lock.json` (npm-bijeffect) en de mappen `output/`, `outputs/` en
 `.claude/` zijn bewust niet meegecommit.
 

@@ -6,8 +6,8 @@ import {
   loadFeaturedEdition,
   loadSeasonEditions,
 } from "@/lib/omnium/public-data";
-import { Countdown } from "./_components/countdown";
-import { LocalTime } from "./_components/local-time";
+import { Countdown } from "@/app/omnium/_components/countdown";
+import { LocalTime } from "@/app/omnium/_components/local-time";
 
 export const revalidate = 300;
 
@@ -41,13 +41,13 @@ export default async function OmniumHomePage() {
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
-            href="/omnium/inschrijven"
+            href="/omnium/register"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             Register
           </Link>
           <Link
-            href="/omnium/klassement"
+            href="/omnium/standings"
             className="rounded-md border px-4 py-2 text-sm font-medium"
           >
             Season standings
@@ -127,12 +127,12 @@ export default async function OmniumHomePage() {
               Edition details
             </Link>
             <Link
-              href={`/omnium/${featured.slug}/startlijst`}
+              href={`/omnium/${featured.slug}/startlist`}
               className="underline"
             >
               Start list
             </Link>
-            <Link href={`/omnium/${featured.slug}/uitslag`} className="underline">
+            <Link href={`/omnium/${featured.slug}/results`} className="underline">
               Results
             </Link>
           </div>

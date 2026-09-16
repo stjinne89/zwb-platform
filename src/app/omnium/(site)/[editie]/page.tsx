@@ -8,8 +8,8 @@ import {
   loadEditionBySlug,
   loadEditionParts,
 } from "@/lib/omnium/public-data";
-import { Countdown } from "../_components/countdown";
-import { LocalTime } from "../_components/local-time";
+import { Countdown } from "@/app/omnium/_components/countdown";
+import { LocalTime } from "@/app/omnium/_components/local-time";
 
 export const revalidate = 300;
 
@@ -142,13 +142,13 @@ export default async function OmniumEditionPage({ params }: PageProps) {
         <Link href={`/omnium/${edition.slug}/live`} className="underline">
           Watch live
         </Link>
-        <Link href={`/omnium/${edition.slug}/startlijst`} className="underline">
+        <Link href={`/omnium/${edition.slug}/startlist`} className="underline">
           Start list
         </Link>
-        <Link href={`/omnium/${edition.slug}/uitslag`} className="underline">
+        <Link href={`/omnium/${edition.slug}/results`} className="underline">
           Results
         </Link>
-        <Link href="/omnium/klassement" className="underline">
+        <Link href="/omnium/standings" className="underline">
           Season standings
         </Link>
       </nav>

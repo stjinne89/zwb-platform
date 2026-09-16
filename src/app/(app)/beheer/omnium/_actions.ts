@@ -42,7 +42,8 @@ function revalidateOmnium(editionSlug?: string | null) {
   revalidatePath("/beheer/omnium");
   revalidatePath("/kalender");
   revalidatePath("/omnium");
-  revalidatePath("/omnium/klassement");
+  revalidatePath("/omnium/standings");
+  revalidatePath("/omnium", "layout");
   if (editionSlug) revalidatePath(`/omnium/${editionSlug}`);
 }
 
@@ -52,6 +53,16 @@ export type SeasonInput = {
   startsOn?: string | null;
   endsOn?: string | null;
 };
+
+export async function saveSeasonRules(seasonId: string, rules: string) {
+  const guard = await requireOmniumAccess();
+  if (!guard.ok) return guard;
+  if (typeof rules !== "string" || rules.length > 100_000) return { ok: false as const, error: "Reglement te lang." };
+  const { error } = await guard.admin.from("omnium_seasons").update({ rules_md: rules.trim() || null }).eq("id", seasonId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidateOmnium();
+  return { ok: true as const };
+}
 
 export async function createOmniumSeason(input: SeasonInput) {
   const guard = await requireOmniumAccess();
