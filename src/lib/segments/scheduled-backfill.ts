@@ -21,7 +21,9 @@ import { fetchSegmentGeometry, type GeometryOutcome } from "./geometry-sync";
 export const BACKFILL_BUDGET = { shortTermRatio: 0.5, dailyRatio: 0.6 } as const;
 /** Een ritdetail duurt meestal onder de seconde; zonder deze marge geen nieuwe call. */
 const MIN_REMAINING_MS = 2500;
-const MAX_ACTIVITIES_PER_RUN = 20;
+// Bovengrens op de wachtrij die we per run ophalen, niet op wat we halen: de klok
+// en het budget bepalen hoe ver we komen. Stond op 20 toen een run 8 s kreeg.
+const MAX_ACTIVITIES_PER_RUN = 60;
 const MAX_FAILURES_PER_RUN = 3;
 /** Segmentlijnen per run zolang er nog ritten openstaan, en daarna. */
 const GEOMETRY_WHILE_ACTIVITIES = 1;

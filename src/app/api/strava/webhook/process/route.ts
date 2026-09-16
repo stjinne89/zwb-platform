@@ -27,8 +27,19 @@ import { refreshSegmentKoms } from "@/lib/segments/koms";
 import { notifySegmentKomEvents } from "@/lib/segments/kom-notifications";
 import { checkCronSecret } from "@/lib/cron/auth";
 
-/** Netlify kapt rond 10 s af; webhook-events en inhaalslag delen dit budget. */
-const RUN_BUDGET_MS = 8000;
+/**
+ * Wandklokbudget per run; webhook-events, KOM-stap en de inhaalslagen delen het.
+ *
+ * Stond op 8 s met de aanname dat Netlify rond 10 s afkapt. Een handmatige
+ * aanroep op 2026-09-16 liep 29 s en gaf gewoon 200, dus die aanname klopte niet.
+ * Met 8 s kwamen er maar 1 tot 5 ritten per run door de segment-inhaalslag: ~30
+ * per uur, oftewel 11 dagen voor de achterstand van 8.000 ritten. Op 20 s (nog
+ * ruim onder wat de functie blijkt te mogen) gaat dat naar ~2 dagen.
+ *
+ * Elke stap kijkt zelf naar de klok, dus een langer budget verlengt alleen het
+ * nuttige werk; de budgetgrenzen op Strava (50% kwartier, 60% dag) blijven gelden.
+ */
+const RUN_BUDGET_MS = 20_000;
 
 function positiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value ?? "", 10);

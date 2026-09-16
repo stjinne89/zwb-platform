@@ -1050,6 +1050,27 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — segment-inhaalslag sneller: 20 s per run
+
+**2026-09-16, commit `COMMITB`.** Geen migratie.
+
+**Waarom.** Na de historie-inhaalslag stonden er 8.083 buitenritten zonder
+segmentdetails. Gemeten tempo: ~30 ritten per uur, oftewel 11 dagen. Niet het
+Strava-budget was de rem (333 van 4.000 op die dag), maar de klok: de cron-run gaf de
+stap 8 s, goed voor 1 tot 5 ritten.
+
+**Wat er is veranderd.**
+- `RUN_BUDGET_MS` in `/api/strava/webhook/process` van 8 s naar 20 s. De aanname dat
+  Netlify rond 10 s afkapt bleek niet te kloppen: een handmatige aanroep liep 29 s en
+  gaf gewoon 200. Elke stap kijkt zelf naar de klok, dus een langer budget verlengt
+  alleen nuttig werk.
+- `MAX_ACTIVITIES_PER_RUN` in de segment-inhaalslag van 20 naar 60; dat is de
+  wachtrij die we ophalen, niet wat we per se ophalen.
+- De budgetgrenzen blijven 50% van het kwartier en 60% van de dag, op verzoek van de
+  eigenaar. Daarmee is ~2.400 ritten per dag het plafond.
+
+**Verwachting.** ~2 dagen in plaats van 11. Niet gemeten vóór de deploy.
+
 ### Opgeleverd — ZWBlokken in de Zwift-werelden
 
 **2026-09-15, commit `f8eba4a`, gepusht naar `main` 2026-09-15 (19:31 UTC).** Migratie `0165` (`profile_zwift_blocks`, view `club_zwift_blocks`,
