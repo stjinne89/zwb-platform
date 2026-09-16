@@ -1,8 +1,8 @@
 # ZWB Platform — Plan & Status
 
-> **Omnium editie-1-ronde, 2026-09-15 — lokaal afgerond, nog niet gedeployd.**
-> Branch `codex/omnium-editie-1`, implementatiecommit `f104302` op basis van
-> `c5d344d`; migraties `0157` en
+> **Omnium editie-1-ronde, 2026-09-15/16 — afgerond en geïntegreerd op main.**
+> Main-integratiecommit `af0a1aa` (oorspronkelijke implementatiecommit
+> `f104302`, basis `c5d344d`); migraties `0157` en
 > `0158` zijn rechtstreeks op de gekoppelde Supabase-database toegepast omdat
 > de oude CLI-migratiehistorie daar niet wordt bijgehouden. Nacontrole en een
 > volledig teruggedraaide productiesmoke bevestigen startlijst/uitslag vervangen,
@@ -17,7 +17,11 @@
 > wedstrijdsheets en Master GC zitten handmatige naam- en leaguecorrecties die
 > eerst als identiteitsmapping moeten worden beoordeeld. Productie bevat nog
 > steeds 1 seizoen en 0 edities/onderdelen/renners/prijzen/kitcodes; event-ID's,
-> A–E-mapping, reglement en prijzeninhoud ontbreken. Geen push of deploy gedaan.
+> A–E-mapping, reglement en prijzeninhoud ontbreken. De actuele main-integratie
+> is opnieuw gecontroleerd met TypeScript, lint (0 fouten), productiebuild,
+> 1.178 geslaagde tests (6 optionele live-tests overgeslagen) en 8 Omnium-E2E-
+> tests. Op 16 september rechtstreeks naar `origin/main` gepusht; een Netlify-
+> deploy is niet afzonderlijk gestart of gecontroleerd.
 > Details: [Omnium-status](docs/omnium-readiness-2026-09-15.md) en
 > [historische import](docs/omnium-historical-import.md).
 

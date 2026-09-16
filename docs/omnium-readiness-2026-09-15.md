@@ -1,8 +1,9 @@
 # Omnium: oplevercontrole editie 1
 
-Datum: 15 september 2026. Branch: `codex/omnium-editie-1`, implementatiecommit
-`f104302` op basis van `c5d344d`. De code is lokaal afgerond en getest. Er is
-niet gepusht of gedeployd.
+Datum: 15–16 september 2026. Main-integratiecommit `af0a1aa`, afkomstig van
+implementatiecommit `f104302` op basis van `c5d344d`. De geïntegreerde code is
+opnieuw getest en op 16 september naar `origin/main` gepusht. Een Netlify-deploy
+is niet afzonderlijk gestart of gecontroleerd.
 
 ## Opgeleverd in de applicatie
 
@@ -70,6 +71,8 @@ werkwijze staan in [omnium-historical-import.md](omnium-historical-import.md).
 - Omnium-unit- en databasetests: 86 geslaagd, 6 live-tests overgeslagen.
 - `npm run test:e2e -- --grep omnium`: 8 geslaagd, inclusief vijf 308's.
 - `npm run build`: geslaagd; alle publieke en beheer-routes staan in de output.
+- Volledige suite na integratie op de actuele main: 1.178 geslaagd, 6 optionele
+  live-tests overgeslagen; lint gaf 0 fouten en 7 bestaande waarschuwingen.
 - Live Zwift-event `5594893`: event- en result-endpoint gaven HTTP 200;
   subgroepen A–E bevestigd. Het oude event bevat nu 0 resultaatregels, zodat
   volledigheid en vertraging tijdens een lopend event nog niet live zijn gemeten.
