@@ -1069,7 +1069,14 @@ stap 8 s, goed voor 1 tot 5 ritten.
 - De budgetgrenzen blijven 50% van het kwartier en 60% van de dag, op verzoek van de
   eigenaar. Daarmee is ~2.400 ritten per dag het plafond.
 
-**Verwachting.** ~2 dagen in plaats van 11. Niet gemeten vóór de deploy.
+**Gemeten na de deploy (2026-09-16, 07:05–07:11 UTC).** 345 ritten per uur tegen 30
+daarvoor: 30 à 33 per run in plaats van 1 à 5. Kwartierbudget 112 van 400, dus de
+grens van 50% (pauze bij 200) knelt niet.
+
+**Verwachting bijgesteld: ~3 dagen, niet ~2.** Dat uurtempo houdt het dagplafond niet
+in: bij 60% van de daglimiet passen er 2.400 per dag, en er stonden 8.009 ritten open.
+Wie sneller wil, moet die 60% verhogen — dat gaat ten koste van de marge voor leden die
+net een rit uploaden.
 
 ### Opgeleverd — ZWBlokken in de Zwift-werelden
 
