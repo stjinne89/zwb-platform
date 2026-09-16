@@ -1,5 +1,16 @@
 # ZWB Platform — Plan & Status
 
+> **Omnium vastlopende seizoenknop, 2026-09-16 — opgelost.**
+> Implementatiecommit wordt na verificatie vastgelegd; geen migratie. Het
+> beheerformulier gebruikt een eigen laadstatus met foutafhandeling en een
+> time-out van twintig seconden. Na succes volgt één `replace`-navigatie; de
+> dubbele combinatie van transitie, `push` en `refresh` is verwijderd. Daardoor
+> blijft `Bezig…` niet staan bij een Server Action-fout, trage verbinding of
+> navigatie die niet afrondt. Er is bewust geen app-brede aanpassing aan andere
+> formulieren gedaan: de gemelde fout zat in deze Omnium-flow. Verificatie:
+> 1.181 tests geslaagd, 6 optionele live-tests overgeslagen; TypeScript, lint
+> (0 fouten, 7 bestaande waarschuwingen) en de productiebuild zijn geslaagd.
+
 > **Omnium dubbele-seizoenslug, 2026-09-16 — opgelost.**
 > Implementatiecommit `e1c3474`; er is geen migratie nodig. `Seizoen
 > toevoegen` hergebruikt voortaan een bestaand seizoen

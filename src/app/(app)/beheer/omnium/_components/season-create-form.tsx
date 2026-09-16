@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createOmniumSeason } from "../_actions";
@@ -8,25 +8,45 @@ import { createOmniumSeason } from "../_actions";
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 const LABEL = "mb-1 block text-sm font-medium";
+const SAVE_TIMEOUT_MS = 20_000;
+
+async function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("Opslaan duurt te lang.")), SAVE_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
 
 export function SeasonCreateForm() {
   const [slug, setSlug] = useState("2026-27");
   const [name, setName] = useState("ZWB Omnium 2026/27");
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const router = useRouter();
 
-  function submit() {
+  async function submit() {
+    if (pending) return;
     setError(null);
-    startTransition(async () => {
-      const res = await createOmniumSeason({ slug, name });
+    setPending(true);
+
+    try {
+      const res = await withTimeout(createOmniumSeason({ slug, name }));
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      router.push(`/beheer/omnium?seizoen=${res.seasonSlug}`);
-      router.refresh();
-    });
+      router.replace(`/beheer/omnium?seizoen=${res.seasonSlug}`);
+    } catch {
+      setError("Opslaan mislukt. Ververs de pagina en probeer opnieuw.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
