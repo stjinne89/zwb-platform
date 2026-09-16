@@ -1052,7 +1052,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — segment-inhaalslag sneller: 20 s per run
 
-**2026-09-16, commit `COMMITB`.** Geen migratie.
+**2026-09-16, commit `cd0e422`.** Geen migratie.
 
 **Waarom.** Na de historie-inhaalslag stonden er 8.083 buitenritten zonder
 segmentdetails. Gemeten tempo: ~30 ritten per uur, oftewel 11 dagen. Niet het
