@@ -6,6 +6,7 @@ import {
   ZWIFT_WORLDS,
   blockInWorld,
   isZwiftRide,
+  splitOnJumps,
   zwiftBlocksForRide,
   zwiftRegionCode,
   zwiftWorldAt,
@@ -84,6 +85,19 @@ describe("zwiftBlocksForRide", () => {
     for (const key of ride!.blocks) expect(blockInWorld(ride!.world, key)).toBe(true);
   });
 
+  it("houdt wegen die net buiten de zwift-data-grens liggen", () => {
+    // De grenzen in zwift-data zijn krapper dan de werelden nu: in productie lag
+    // echt gereden weg tot ~10 km erbuiten.
+    const [south, , north, east] = ZWIFT_WORLDS.find((w) => w.slug === "france")!.bbox;
+    const netErbuiten = line([south - 0.05, east + 0.03], [north + 0.05, east + 0.05], 8);
+    const ride = zwiftBlocksForRide({
+      points: [...line([-21.7, 166.2], [-21.69, 166.21], 4), ...netErbuiten],
+      deviceName: "Zwift",
+    });
+    expect(ride?.world.slug).toBe("france");
+    expect(ride!.blocks.size).toBeGreaterThan(10);
+  });
+
   it("laat een Climb Portal op zijn echte plek buiten de wereld", () => {
     // Zwift legt Puy de Dôme op zijn echte coördinaten, midden in Frankrijk.
     const portal = [...line([-11.64, 166.93], [-11.645, 166.94], 5), ...line([45.77, 2.96], [45.78, 2.97], 5)];
@@ -96,6 +110,19 @@ describe("zwiftBlocksForRide", () => {
     expect(zwiftBlocksForRide({ points: watopia, deviceName: "MyWhoosh" })).toBeNull();
     expect(zwiftBlocksForRide({ points: line([52.0, 5.0], [52.02, 5.04]), deviceName: "Zwift" })).toBeNull();
     expect(zwiftBlocksForRide({ points: watopia.slice(0, 1), deviceName: "Zwift" })).toBeNull();
+  });
+});
+
+describe("splitOnJumps", () => {
+  it("knipt de route bij een sprong en laat gewone punten heel", () => {
+    const heel = line([-11.64, 166.93], [-11.65, 166.95], 6);
+    expect(splitOnJumps(heel)).toHaveLength(1);
+
+    const sprong = [...line([40.77, -73.97], [40.78, -73.95], 4), ...line([51.49, -0.12], [51.5, -0.1], 4)];
+    const runs = splitOnJumps(sprong);
+    expect(runs).toHaveLength(2);
+    expect(runs[0]).toHaveLength(4);
+    expect(runs[1]).toHaveLength(4);
   });
 });
 

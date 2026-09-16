@@ -1169,9 +1169,22 @@ In productie ging het om 30 van de 6.856 ritten met een wereld.
 liep, overschreef dus het wereldlabel van bestaande blokken. Londense blokken kregen zo
 het label `new-york`.
 
-**Oplossing.** `zwiftBlocksForRide` houdt alleen blokken waarvan het middelpunt binnen
-de wereldgrens (plus marge) valt: `blockInWorld`. `blockCentre` staat nu in `grid.ts` en
-wordt gedeeld met `regions.ts`. Tests dekken de wereldsprong en de Climb Portal.
+**Oplossing (in twee stappen).** Eerst alleen een begrenzing op de wereldgrens uit
+zwift-data plus 2 km. Dat bleek te krap: Watopia zakte naar 279 en France naar 225,
+want die grenzen zijn krapper dan de werelden nu zijn. Gemeten in productie ligt echt
+gereden weg tot ~10 km buiten de grens (France 3.155 punten, Watopia 799), terwijl de
+rommel meer dan 50 km buiten de wereld ligt.
+
+De uiteindelijke regels:
+- `splitOnJumps` knipt de route bij elke sprong van meer dan 10 km, zodat de
+  supercover-DDA geen spoor meer trekt. Normale punten liggen vrijwel altijd onder de
+  kilometer; in productie waren er 9 sprongen boven de 10 km, allemaal van dit soort.
+- `blockInWorld` houdt daarna alleen blokken binnen de wereldgrens plus 15 km.
+- `blockCentre` staat nu in `grid.ts` en wordt gedeeld met `regions.ts`.
+
+Vergeleken op dezelfde productiedata verandert er in tien van de twaalf werelden niets.
+Alleen New York (16.467 → 105) en Makuri (485 → 94) verliezen blokken, en die lagen
+allemaal op de twee sprongen — ook de blokken vlak bij de grens.
 
 **Opruimen in productie.** De foute rijen zijn verwijderd en alle Zwift-ritten zijn
 opnieuw doorgerekend; zie de uitrolnotitie hieronder.
