@@ -1151,6 +1151,31 @@ bleven tot nu toe bewust buiten de kaart.
 *Niet geverifieerd:*
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
 
+**Correctie: blokken buiten de wereld (2026-09-16, commit `COMMITF`).** Na de eerste
+uitrol stond New York op 16.741 clubblokken (moest 127 zijn) en daalden andere werelden.
+
+**Oorzaak.** `zwiftBlocksForRide` begrensde de blokken niet tot de wereld, terwijl een
+routelijn daar wel buiten kan komen:
+- het event "#32 Circus" (22-05-2021) start in New York en springt naar London. De
+  supercover-DDA vulde alle blokken op de rechte lijn ertussen: een spoor van ruim
+  16.000 blokken over de Atlantische Oceaan;
+- een **Climb Portal** legt een echte klim (Puy de Dôme, Tourmalet) op zijn echte
+  coördinaten, ver buiten de wereld waarin je rijdt.
+
+In productie ging het om 30 van de 6.856 ritten met een wereld.
+
+**Waarom andere werelden daalden.** De primaire sleutel van `profile_zwift_blocks` is
+`(profile_id, z, x, y)`; `world` staat er niet in. Een spoor dat door een andere wereld
+liep, overschreef dus het wereldlabel van bestaande blokken. Londense blokken kregen zo
+het label `new-york`.
+
+**Oplossing.** `zwiftBlocksForRide` houdt alleen blokken waarvan het middelpunt binnen
+de wereldgrens (plus marge) valt: `blockInWorld`. `blockCentre` staat nu in `grid.ts` en
+wordt gedeeld met `regions.ts`. Tests dekken de wereldsprong en de Climb Portal.
+
+**Opruimen in productie.** De foute rijen zijn verwijderd en alle Zwift-ritten zijn
+opnieuw doorgerekend; zie de uitrolnotitie hieronder.
+
 **Kilometers beslissen bij gelijke blokken (2026-09-15, commit `12c4749`, migratie
 `0166`).** Stijn wilde de Zwift-titel over te nemen houden als meerdere leden een
 wereld (bijna) vol hebben.

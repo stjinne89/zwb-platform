@@ -65,6 +65,18 @@ export function lonLatToBlock(
   };
 }
 
+/** Middelpunt van een blok, als [lengtegraad, breedtegraad]. */
+export function blockCentre(
+  x: number,
+  y: number,
+  z: number = BLOCK_ZOOM,
+): [number, number] {
+  const n = 2 ** z;
+  const lon = ((x + 0.5) / n) * 360 - 180;
+  const t = Math.PI * (1 - (2 * (y + 0.5)) / n);
+  return [lon, (180 / Math.PI) * Math.atan(Math.sinh(t))];
+}
+
 /** De hoekpunten van een blok, als [[zuid, west], [noord, oost]]. */
 export function blockBounds(
   x: number,

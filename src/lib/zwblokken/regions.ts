@@ -10,7 +10,7 @@
 // heeft in een clientbundle niets te zoeken.
 
 import data from "./regions.json";
-import { BLOCK_ZOOM } from "./grid";
+import { blockCentre } from "./grid";
 import { countryOfProvince } from "./titles";
 
 type RawRegion = {
@@ -57,15 +57,6 @@ for (const region of RAW) {
   const list = PROVINCES_BY_COUNTRY.get(country) ?? [];
   list.push(region);
   PROVINCES_BY_COUNTRY.set(country, list);
-}
-
-/** Middelpunt van een blok, in graden. */
-function blockCentre(x: number, y: number): [number, number] {
-  const n = 2 ** BLOCK_ZOOM;
-  const lon = ((x + 0.5) / n) * 360 - 180;
-  const t = Math.PI * (1 - (2 * (y + 0.5)) / n);
-  const lat = (180 / Math.PI) * Math.atan(Math.sinh(t));
-  return [lon, lat];
 }
 
 /** Even-oddregel: tel de randen die rechts van het punt gekruist worden. */

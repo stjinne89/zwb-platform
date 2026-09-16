@@ -11,7 +11,7 @@
 
 import { worlds } from "zwift-data";
 import type { GpxPoint } from "@/lib/gpx";
-import { blocksForPolyline } from "./grid";
+import { blockCentre, blocksForPolyline, parseBlockKey } from "./grid";
 
 /**
  * ~600 m. Op zoom 14 is Watopia 36 blokken en Crit City er één: in een paar
@@ -88,9 +88,30 @@ export function zwiftWorldAt(lat: number, lon: number): ZwiftWorld | null {
   return null;
 }
 
+/** Ligt het middelpunt van dit blok binnen de wereld (met marge)? Puur. */
+export function blockInWorld(world: ZwiftWorld, key: string): boolean {
+  const { x, y } = parseBlockKey(key);
+  const [lon, lat] = blockCentre(x, y, ZWIFT_BLOCK_ZOOM);
+  const [south, west, north, east] = world.bbox;
+  return (
+    lat >= south - BOUNDS_MARGIN &&
+    lat <= north + BOUNDS_MARGIN &&
+    lon >= west - BOUNDS_MARGIN &&
+    lon <= east + BOUNDS_MARGIN
+  );
+}
+
 /**
  * Wereld en blokken van één rit, of null als het geen herkenbare Zwift-rit is.
  * De wereld volgt het startpunt: een rit wisselt in Zwift nooit van wereld.
+ *
+ * Blokken buiten die wereld vallen af. Dat is nodig, want een routelijn blijft
+ * niet altijd binnen de wereld:
+ * - een enkel event springt halverwege naar een andere wereld. De lijn ertussen
+ *   trok anders een spoor van duizenden blokken over de oceaan, en overschreef
+ *   onderweg het wereldlabel van bestaande blokken;
+ * - een Climb Portal legt een echte klim (Puy de Dôme, Tourmalet) op zijn echte
+ *   plek, ver buiten de wereld waarin je rijdt.
  */
 export function zwiftBlocksForRide(ride: {
   points: GpxPoint[];
@@ -101,5 +122,9 @@ export function zwiftBlocksForRide(ride: {
   if (ride.points.length < 2 || !isZwiftRide(ride)) return null;
   const world = zwiftWorldAt(ride.points[0].lat, ride.points[0].lon);
   if (!world) return null;
-  return { world, blocks: blocksForPolyline(ride.points, ZWIFT_BLOCK_ZOOM) };
+  const blocks = new Set<string>();
+  for (const key of blocksForPolyline(ride.points, ZWIFT_BLOCK_ZOOM)) {
+    if (blockInWorld(world, key)) blocks.add(key);
+  }
+  return { world, blocks };
 }

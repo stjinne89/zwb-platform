@@ -4,6 +4,7 @@ import { addBlock, pickRulers, type RegionStandings } from "@/lib/zwblokken/titl
 import {
   ZWIFT_BLOCK_ZOOM,
   ZWIFT_WORLDS,
+  blockInWorld,
   isZwiftRide,
   zwiftBlocksForRide,
   zwiftRegionCode,
@@ -71,6 +72,24 @@ describe("zwiftBlocksForRide", () => {
     expect(ride?.blocks.has(blockKey(end.x, end.y))).toBe(true);
     // ~4,8 km diagonaal op ~600 m-blokken: ruim meer dan een handvol.
     expect(ride!.blocks.size).toBeGreaterThan(8);
+  });
+
+  it("houdt blokken binnen de wereld: een sprong naar een andere wereld telt niet mee", () => {
+    // Zoals het event "#32 Circus" (22-05-2021): start in New York, springt naar
+    // London. Zonder begrenzing trok de lijn duizenden blokken over de oceaan.
+    const sprong = [...line([40.77, -73.97], [40.78, -73.95], 5), ...line([51.49, -0.12], [51.5, -0.1], 5)];
+    const ride = zwiftBlocksForRide({ points: sprong, deviceName: "Zwift" });
+    expect(ride?.world.slug).toBe("new-york");
+    expect(ride!.blocks.size).toBeLessThan(20);
+    for (const key of ride!.blocks) expect(blockInWorld(ride!.world, key)).toBe(true);
+  });
+
+  it("laat een Climb Portal op zijn echte plek buiten de wereld", () => {
+    // Zwift legt Puy de Dôme op zijn echte coördinaten, midden in Frankrijk.
+    const portal = [...line([-11.64, 166.93], [-11.645, 166.94], 5), ...line([45.77, 2.96], [45.78, 2.97], 5)];
+    const ride = zwiftBlocksForRide({ points: portal, deviceName: "Zwift" });
+    expect(ride?.world.slug).toBe("watopia");
+    for (const key of ride!.blocks) expect(blockInWorld(ride!.world, key)).toBe(true);
   });
 
   it("negeert ritten die niet van Zwift komen of buiten een wereld starten", () => {
