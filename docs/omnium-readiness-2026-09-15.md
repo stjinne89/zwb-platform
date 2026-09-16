@@ -1,8 +1,8 @@
 # Omnium: oplevercontrole editie 1
 
-Datum: 15 september 2026. Branch: `codex/omnium-editie-1`, basiscommit
-`c5d344d`. De code is lokaal afgerond en getest. Er is niet gepusht of
-gedeployd.
+Datum: 15 september 2026. Branch: `codex/omnium-editie-1`, implementatiecommit
+`f104302` op basis van `c5d344d`. De code is lokaal afgerond en getest. Er is
+niet gepusht of gedeployd.
 
 ## Opgeleverd in de applicatie
 

@@ -1,7 +1,8 @@
 # ZWB Platform — Plan & Status
 
 > **Omnium editie-1-ronde, 2026-09-15 — lokaal afgerond, nog niet gedeployd.**
-> Branch `codex/omnium-editie-1`, basiscommit `c5d344d`; migraties `0157` en
+> Branch `codex/omnium-editie-1`, implementatiecommit `f104302` op basis van
+> `c5d344d`; migraties `0157` en
 > `0158` zijn rechtstreeks op de gekoppelde Supabase-database toegepast omdat
 > de oude CLI-migratiehistorie daar niet wordt bijgehouden. Nacontrole en een
 > volledig teruggedraaide productiesmoke bevestigen startlijst/uitslag vervangen,
