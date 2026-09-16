@@ -1151,7 +1151,7 @@ bleven tot nu toe bewust buiten de kaart.
 *Niet geverifieerd:*
 - De Zwift-kaart is niet in een ingelogde browser bekeken.
 
-**Correctie: blokken buiten de wereld (2026-09-16, commit `COMMITF`).** Na de eerste
+**Correctie: blokken buiten de wereld (2026-09-16, commit `c741dc7`).** Na de eerste
 uitrol stond New York op 16.741 clubblokken (moest 127 zijn) en daalden andere werelden.
 
 **Oorzaak.** `zwiftBlocksForRide` begrensde de blokken niet tot de wereld, terwijl een
