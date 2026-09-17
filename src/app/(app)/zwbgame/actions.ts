@@ -19,9 +19,10 @@ export async function refreshGame(): Promise<Reply<GameBootstrap>> {
 }
 export async function saveGamePreferences(input: GamePreferences): Promise<Reply> {
   try {
-    const data = z.object({ visible: z.boolean(), dataConsent: z.boolean() }).parse(input);
+    const data = z.object({ visible: z.boolean(), ownProfile: z.boolean() }).parse(input);
     const { client, member } = await requireGameMember();
-    const { error } = await client.from("zwbgame_preferences").upsert({ profile_id: member.id, visible: data.visible, data_consent_version: data.dataConsent ? CONSENT_VERSION : null });
+    // Turning the own profile off deletes it (trigger); the platform data takes over again.
+    const { error } = await client.from("zwbgame_preferences").upsert({ profile_id: member.id, visible: data.visible, data_consent_version: data.ownProfile ? CONSENT_VERSION : null });
     if (error) throw new Error("Spelvoorkeuren konden niet worden opgeslagen.");
     revalidatePath("/zwbgame");
     return { ok: true, data: undefined };
@@ -36,8 +37,14 @@ export async function saveGamePower(input: { source: "manual"; power: PowerInput
   try {
     const parsed = z.discriminatedUnion("source", [z.object({ source: z.literal("manual"), power: powerSchema }), z.object({ source: z.literal("intervals"), weight: z.number().min(30).max(250) })]).parse(input);
     const { client, member } = await requireGameMember();
-    const { data: pref } = await client.from("zwbgame_preferences").select("revision, data_consent_version").eq("profile_id", member.id).single();
-    if (pref?.data_consent_version !== CONSENT_VERSION) throw new Error("Geef eerst toestemming voor sportgegevens.");
+    // Saving an own profile is the consent for it; the upsert keeps visibility as it was.
+    let { data: pref } = await client.from("zwbgame_preferences").select("revision, data_consent_version").eq("profile_id", member.id).maybeSingle();
+    if (pref?.data_consent_version !== CONSENT_VERSION) {
+      const { error: consentError } = await client.from("zwbgame_preferences").upsert({ profile_id: member.id, data_consent_version: CONSENT_VERSION });
+      if (consentError) throw new Error("Spelprofiel niet opgeslagen. Probeer opnieuw.");
+      ({ data: pref } = await client.from("zwbgame_preferences").select("revision, data_consent_version").eq("profile_id", member.id).single());
+      if (pref?.data_consent_version !== CONSENT_VERSION) throw new Error("Spelprofiel niet opgeslagen. Probeer opnieuw.");
+    }
     let power: PowerInput;
     let garmin = false;
     let activityIds: string[] = [];

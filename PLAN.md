@@ -1,5 +1,29 @@
 # ZWB Platform — Plan & Status
 
+> **ZWBgame kwaliteiten uit platformdata, 2026-09-17 — gebouwd, lokaal getest.**
+> Implementatiecommit volgt. Geen migratie; privacyversie
+> `2026-09-17-zwbgame-kracht` (iedereen tekent opnieuw). Aanleiding: in de lobby
+> stond iedereen op 100/100/100. Kwaliteiten kwamen alleen na aparte opt-in plus
+> handmatige invoer, dus het veld bestond uit basisprofielen en de balansronde
+> (compensatie, kaarten, knechten) deed in de praktijk niets. De eigenaar koos uit
+> drie opties voor automatisch voor iedereen, boven opt-in met automatisch
+> invullen en alleen een betere vindbaarheid. Nu: eigen spelprofiel >
+> `rider_power_profiles` (Intervals-sync) > `profiles.ftp_watts`/`weight_kg` >
+> basisprofiel. Vlak = FTP in watts, klimmen = W/kg, sprint = 15 s-vermogen. De
+> sportdata-opt-in in de instellingen is vervangen door een formulier voor een
+> eigen spelprofiel en een knop Platformgegevens gebruiken.
+> **Bewust niet gebouwd:** een aparte opt-out voor dataverwerking (herkenbare
+> deelname uitzetten haalt je uit andermans peloton; daarvoor was geen migratie
+> nodig) en respecteren van per-veld profielzichtbaarheid van FTP/gewicht
+> (`rider_power_profiles` is al voor alle leden leesbaar).
+> **Aanvaard risico:** de platformroute filtert niet op bron; een Intervals-curve
+> kan via Strava geïmporteerde activiteiten bevatten. De eerste versie sloot dat
+> uit vanwege Strava's API-voorwaarden.
+> Verificatie: game-, server- (met mocks), database- en privacytests, 8
+> browsertests, TypeScript, ESLint en build. **Niet geverifieerd:** hoeveel leden
+> echt FTP en gewicht hebben en hoe het veld er daarna uitziet. Details:
+> [ZWBgame](docs/zwbgame.md).
+
 > **ZWBgame balans en clubkleuren, 2026-09-17 — gebouwd, lokaal getest.**
 > Implementatiecommit `b682351`. Geen migratie. De eigenaar
 > bevestigde "gelijkwaardige kans": slim spelen kan een sterkere renner verslaan,
@@ -38,10 +62,12 @@
 > (sinds de balansronde hieronder ook knechten en bonuskaarten),
 > lokale raceopslag en uitslagen. Echte kracht blijft verschil maken: beter spelen
 > kan een sterkere renner verslaan; gelijke winkansen bij gelijk spel zijn bewust
-> geen uitgangspunt. Intervals vereist herleidbare, niet-Strava-bronnen; eigen
+> geen uitgangspunt. Een eigen Intervals-spelprofiel vereist herleidbare, niet-Strava-bronnen; eigen
 > metingen zijn afzonderlijke invoer. Geen Strava, wellness, multiplayer, openbaar
 > klassement of GPX-parcoursen gebouwd, om de eerste solo-versie af te bakenen.
-> Privacyversie `2026-09-17-zwbgame` is toegevoegd; sportdata blijft afzonderlijk opt-in.
+> Privacyversie `2026-09-17-zwbgame` is toegevoegd. De toen afzonderlijke
+> sportdata-opt-in is later dezelfde dag vervangen door automatische
+> platformkwaliteiten (zie de ronde hierboven).
 > Verificatie: 34 gerichte unit/SQL/privacy-tests, 8 browserchecks op desktop- en
 > mobielviewport, TypeScript, gerichte ESLint en productiebuild geslaagd.
 > Migratie getest in PGlite; volgens de eigenaar op 2026-09-17 op Supabase

@@ -44,12 +44,14 @@ test("finishing stores only your result and removes the ongoing save", async ({ 
 test("consent, own power input and profile updates", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Spelinstellingen" }).click();
-  await expect(page.getByLabel("Gewicht (kg)")).toHaveCount(0);
-  await page.getByRole("checkbox", { name: /Mijn sportgegevens/ }).check();
+  await expect(page.getByRole("button", { name: "Platformgegevens gebruiken" })).toHaveCount(0);
   await page.getByLabel("Gewicht (kg)").fill("75");
   await page.getByLabel("FTP (W)").fill("280");
   await page.getByRole("button", { name: "Spelprofiel bijwerken" }).click();
   await expect(page.getByText(/Eigen meting/)).toBeVisible();
+  await page.getByRole("button", { name: "Spelinstellingen" }).click();
+  await page.getByRole("button", { name: "Platformgegevens gebruiken" }).click();
+  await expect(page.getByRole("button", { name: "Platformgegevens gebruiken" })).toHaveCount(0);
 });
 
 test("WebGL unavailable keeps the race playable", async ({ page }) => {

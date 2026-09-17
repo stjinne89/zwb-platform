@@ -9,7 +9,7 @@ export type GameRider = {
   flat: number;
   climb: number;
   sprint: number;
-  source: "basic" | "manual" | "intervals";
+  source: "basic" | "platform" | "manual" | "intervals";
   revision: string;
   garmin: boolean;
 };
@@ -75,7 +75,8 @@ export type RaceResult = {
   count: number;
   seconds: number;
 };
-export type GamePreferences = { visible: boolean; dataConsent: boolean };
+/** ownProfile: an own measurement or Intervals game profile overrides the platform data. */
+export type GamePreferences = { visible: boolean; ownProfile: boolean };
 export type GameBootstrap = {
   playerId: string;
   roster: GameRider[];

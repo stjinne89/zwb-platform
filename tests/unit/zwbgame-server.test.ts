@@ -35,6 +35,40 @@ beforeEach(() => {
     zwbgame_roster_exclusions: [],
   };
 });
+describe("ZWBgame platform power data", () => {
+  it("gives every member qualities from profile FTP and weight, climbing on W/kg", async () => {
+    Object.assign(tables.profiles[0], { ftp_watts: 250, weight_kg: "62.5" });
+    tables.profiles.push({ id: "heavy", display_name: "heavy", is_approved: true, zwift_id: null, ftp_watts: 250, weight_kg: 95 });
+    tables.zwbgame_riders = [];
+    const data = await loadGame();
+    const own = data.roster.find((r) => r.id === "own")!, heavy = data.roster.find((r) => r.id === "heavy")!;
+    expect([own.source, heavy.source]).toEqual(["platform", "platform"]);
+    expect(own.flat).toBe(heavy.flat);
+    expect(own.climb).toBeGreaterThan(heavy.climb);
+    expect(data.roster.find((r) => r.id === "other")!.source).toBe("basic");
+    expect(JSON.stringify(data)).not.toMatch(/ftp|weight|watts/);
+    expect(own.revision).not.toMatch(/250|62/);
+  });
+  it("prefers the synced Intervals curve and keeps an own game profile on top", async () => {
+    Object.assign(tables.profiles[1], { ftp_watts: 200, weight_kg: 80 });
+    tables.rider_power_profiles = [{ profile_id: "other", ftp_watts: 320, weight_kg: 70, watts_15s: 1100, watts_1m: 560, watts_5m: 380, watts_20m: 335 }];
+    expect((await loadGame()).roster.find((r) => r.id === "other")!.source).toBe("manual");
+    tables.zwbgame_riders = [];
+    const fromCurve = (await loadGame()).roster.find((r) => r.id === "other")!;
+    tables.rider_power_profiles = [];
+    const fromProfile = (await loadGame()).roster.find((r) => r.id === "other")!;
+    expect(fromCurve.source).toBe("platform");
+    expect(fromCurve.flat).toBeGreaterThan(fromProfile.flat);
+    expect(fromCurve.revision).not.toBe(fromProfile.revision);
+  });
+  it("keeps the game open and basic when power data is missing or unreadable", async () => {
+    Object.assign(tables.profiles[0], { ftp_watts: 250, weight_kg: null });
+    failedTable = "rider_power_profiles";
+    const data = await loadGame();
+    expect(data.available).toBe(true);
+    expect(data.roster.find((r) => r.id === "own")!.source).toBe("basic");
+  });
+});
 describe("ZWBgame server boundary", () => {
   it("rejects signed-out, unapproved and unsigned privacy accounts", async () => {
     signedIn = false; await expect(requireGameMember()).rejects.toThrow(/Log in/);

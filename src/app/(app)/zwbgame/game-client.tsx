@@ -150,9 +150,9 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     finally { setBusy(false); }
   }
   function back() { save(); setPaused(true); engine.current = null; setRace(null); }
-  async function updatePreferences(visible: boolean, dataConsent: boolean) {
+  async function updatePreferences(visible: boolean, ownProfile: boolean) {
     setBusy(true); setError("");
-    try { const result = await saveGamePreferences({ visible, dataConsent }); if (!result.ok) throw new Error(result.error); await reload(); }
+    try { const result = await saveGamePreferences({ visible, ownProfile }); if (!result.ok) throw new Error(result.error); await reload(); }
     catch (e) { setError(e instanceof Error ? e.message : "Opslaan mislukt."); }
     finally { setBusy(false); }
   }
@@ -181,17 +181,19 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     {error && <div className={styles.error} role="alert">{error}</div>}
     {!race && settings && <section className={styles.settings} aria-label="Spelinstellingen">
       <div className={styles.sectionHeading}><h2>Jouw spelprofiel</h2><Link href="/privacy">Privacy</Link></div>
-      <label className={styles.toggle}><input type="checkbox" checked={data.preferences.visible} disabled={busy} onChange={(e) => updatePreferences(e.target.checked, data.preferences.dataConsent)} />Als herkenbare renner meedoen</label>
-      <label className={styles.toggle}><input type="checkbox" checked={data.preferences.dataConsent} disabled={busy} onChange={(e) => updatePreferences(data.preferences.visible, e.target.checked)} />Mijn sportgegevens gebruiken voor spelkwaliteiten die clubleden zien</label>
-      {data.preferences.dataConsent && <form onSubmit={powerSubmit} className={styles.powerForm}>
+      <label className={styles.toggle}><input type="checkbox" checked={data.preferences.visible} disabled={busy} onChange={(e) => updatePreferences(e.target.checked, data.preferences.ownProfile)} />Als herkenbare renner meedoen</label>
+      <form onSubmit={powerSubmit} className={styles.powerForm}>
         <label>Bron<select name="source" defaultValue="manual"><option value="manual">Eigen meting</option><option value="intervals">Intervals · 90 dagen</option></select></label>
         <label>Gewicht (kg)<input name="weight" type="number" min="30" max="250" step="0.1" required /></label>
         <label>FTP (W)<input name="ftp" type="number" min="50" max="800" /></label>
         <label>15 seconden (W)<input name="sprint" type="number" min="50" max="2500" /></label>
         <label>1 minuut (W)<input name="minute" type="number" min="50" max="2500" /></label>
         <label>5 minuten (W)<input name="fiveMinutes" type="number" min="50" max="2500" /></label>
-        <button className={styles.primary} disabled={busy} type="submit"><Check size={16} />Spelprofiel bijwerken</button>
-      </form>}
+        <div className={styles.formActions}>
+          <button className={styles.primary} disabled={busy} type="submit"><Check size={16} />Spelprofiel bijwerken</button>
+          {data.preferences.ownProfile && <button type="button" className={styles.secondary} disabled={busy} onClick={() => updatePreferences(data.preferences.visible, false)}>Platformgegevens gebruiken</button>}
+        </div>
+      </form>
     </section>}
     <div className={styles.stage} data-testid="game-stage">
       <RaceScene state={active} overview={overview} lowQuality={lowQuality} />
@@ -242,7 +244,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       {me.finishTime !== null && <section className={styles.finishCard} aria-live="polite"><Flag size={30} /><div><span className={styles.eyebrow}>FINISH</span><h2>{place === 1 ? "De koers is van jou." : `Plek ${place}. Sterk gereden.`}</h2><p>{clock(me.finishTime)} · {me.attacks} aanvallen · {Math.round(me.shelteredSeconds / Math.max(1, me.finishTime) * 100)}% beschut</p></div><button className={styles.primary} onClick={back}>Nieuwe koers <ArrowUpRight size={18} /></button></section>}
     </> : <>
       <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies jouw koers</h2><span>10–15 min · {preview.riders.length} renners</span></div><div className={styles.courseGrid}>{Object.values(COURSES).map((c, i) => <button key={c.id} className={styles.courseCard} data-selected={courseId === c.id} aria-pressed={courseId === c.id} onClick={() => setCourseId(c.id)}><span className={styles.courseNumber}>0{i + 1}</span><span className={styles.courseIcon} style={{ color: c.color }}>{i === 0 ? <Wind size={28} /> : <Mountain size={28} />}</span><h3>{c.name}</h3><p>{c.subtitle}</p><div><span>{(c.length / 1000).toFixed(1)} km</span><span>{courseId === c.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
-      <section className={styles.lobbyBottom}><div className={styles.riderCard}><span className={styles.riderAvatar}><Bike size={28} /></span><div><span className={styles.eyebrow}>JOUW RENNER</span><h2>{me.rider.name}</h2><p>{labels[me.rider.kind]} · {me.rider.source === "basic" ? "Basisprofiel" : me.rider.source === "manual" ? "Eigen meting" : "Intervals"}</p></div><div className={styles.ability}><span>Vlak<strong>{Math.round(me.rider.flat * 100)}</strong></span><span>Klim<strong>{Math.round(me.rider.climb * 100)}</strong></span><span>Sprint<strong>{Math.round(me.rider.sprint * 100)}</strong></span></div></div><button className={styles.rosterButton} onClick={() => setRosterOpen(!rosterOpen)} aria-expanded={rosterOpen}><span>Het clubpeloton<strong>{data.roster.length} ZWB-renners</strong></span><ChevronRight size={22} /></button></section>
+      <section className={styles.lobbyBottom}><div className={styles.riderCard}><span className={styles.riderAvatar}><Bike size={28} /></span><div><span className={styles.eyebrow}>JOUW RENNER</span><h2>{me.rider.name}</h2><p>{labels[me.rider.kind]} · {({ basic: "Basisprofiel", platform: "Platformgegevens", manual: "Eigen meting", intervals: "Intervals" })[me.rider.source]}</p></div><div className={styles.ability}><span>Vlak<strong>{Math.round(me.rider.flat * 100)}</strong></span><span>Klim<strong>{Math.round(me.rider.climb * 100)}</strong></span><span>Sprint<strong>{Math.round(me.rider.sprint * 100)}</strong></span></div></div><button className={styles.rosterButton} onClick={() => setRosterOpen(!rosterOpen)} aria-expanded={rosterOpen}><span>Het clubpeloton<strong>{data.roster.length} ZWB-renners</strong></span><ChevronRight size={22} /></button></section>
       {rosterOpen && <section className={styles.roster} aria-label="Clubpeloton">{data.roster.map((r) => <div key={r.id}><Bike size={16} /><strong>{r.name}</strong><span>{labels[r.kind]}</span></div>)}</section>}
       {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{COURSES[r.courseId].name}</span><span>{r.place}/{r.count}</span><span>{clock(r.seconds)}</span></div>)}</section>}
     </>}

@@ -57,17 +57,23 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             <strong>ZWBgame:</strong> goedgekeurde leden en het clubroster vormen het
-            deelnemersveld van dit besloten clubspel. Je naam is zichtbaar bij een
-            fictieve basisrenner. Je kunt herkenbare deelname uitschakelen in de
-            spelinstellingen; leden zonder account kunnen dit via het bestuur doen.
-            Alleen met afzonderlijke toestemming gebruiken we je eigen vermogensmeting
-            of Intervals-gegevens met bevestigde herkomst voor spelkwaliteiten die
-            andere clubleden zien. Strava-gegevens, wellness en medische gegevens
-            worden niet gebruikt. We bewaren afgeleide spelkwaliteiten, toestemming,
-            bron en meetperiode; ingevoerd gewicht en ruwe vermogenswaarden worden
-            niet in de game opgeslagen. Spelprofielen vervallen na 30 dagen en worden
-            bij intrekking van speltoestemming verwijderd. Een Intervals-spelprofiel
-            vervalt ook bij ontkoppelen. Lopende solo-races staan maximaal zeven dagen
+            deelnemersveld van dit besloten clubspel. Je naam is zichtbaar bij je
+            renner. Voor elk lid leiden we spelkwaliteiten (vlak, klimmen, sprint en
+            rennerstype) af uit gegevens die al in het platform staan: FTP en gewicht
+            van je profiel en, als je Intervals hebt gekoppeld, je gesynchroniseerde
+            vermogenscurve. Klimmen volgt je vermogen per kilo. Clubleden zien in de
+            game alleen die afgeleide kwaliteiten, geen watts of gewicht. Zonder FTP
+            en gewicht rijd je met een basisprofiel. De Intervals-curve kan
+            activiteiten bevatten die je via Strava in Intervals hebt gezet; daarop
+            filteren we bij deze afleiding niet. Wellness en medische gegevens worden
+            niet gebruikt. Je kunt herkenbare deelname uitschakelen in de
+            spelinstellingen; dan kom je niet in het peloton van anderen. Leden zonder
+            account kunnen dit via het bestuur doen. Je kunt ook een eigen meting of
+            een Intervals-spelprofiel met bevestigde, niet-Strava herkomst opslaan dat
+            de platformgegevens vervangt. Daarvan bewaren we afgeleide spelkwaliteiten,
+            bron en meetperiode; ingevoerd gewicht en ruwe vermogenswaarden worden niet
+            in de game opgeslagen. Een eigen spelprofiel vervalt na 30 dagen, bij
+            terugzetten naar platformgegevens en bij ontkoppelen van Intervals. Lopende solo-races staan maximaal zeven dagen
             bruikbaar in je browser, zonder namen of vermogensprofielen. Bij hervatten
             controleren we deelname en toestemming opnieuw. Alleen je eigen laatste
             twintig uitslagen blijven lokaal bewaard totdat je die wist. Browserdata

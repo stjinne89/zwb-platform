@@ -157,7 +157,7 @@ describe("ZWBgame teams, cards and variation", () => {
     for (let seed = 1; seed <= 16; seed++) winners.push(strength(standings(run(createRace({ courseId: "polder", seed: seed * 7919, playerId: "r00" }, field)))[0].rider.id));
     expect(new Set(winners).size).toBeGreaterThanOrEqual(5);
     expect(winners.filter((w) => w >= 12).length).toBeGreaterThan(winners.filter((w) => w < 12).length);
-  });
+  }, 30000); // sixteen full races; slow when the whole suite runs in parallel
 });
 describe("ZWBgame roster and data boundaries", () => {
   it("deduplicates claims and Zwift ids without resurrecting hidden/pending members", () => {

@@ -84,7 +84,29 @@ de client krijgt geen sleutels, ruwe vermogenswaarden, gewicht of wellness.
 Iedere serveractie controleert login, goedgekeurd lidmaatschap en de actuele
 privacyversie. De UI verstuurt invoer alleen voor het eigen account.
 
-Sportdata heeft afzonderlijke toestemming `2026-09-17`. Wijziging van voorkeuren
+**Spelkwaliteiten uit platformdata (sinds 17 september 2026, op keuze van de
+eigenaar).** Eerder kreeg een lid pas kwaliteiten na een aparte opt-in plus
+handmatige invoer; in de praktijk reed daardoor het hele veld van 102 renners met
+basisprofielen, zodat ook compensatie, extra kaarten en knechten nooit
+aansloegen. Nu leidt `loadGame` voor elk lid kwaliteiten af, in deze volgorde:
+
+1. een geldig eigen spelprofiel (eigen meting of Intervals met bevestigde herkomst);
+2. `rider_power_profiles` (Intervals-sync van de teampagina's): FTP, gewicht,
+   15 s, 1 min, 5 min en 20 min, met gewicht uit het profiel als de curve het mist;
+3. `profiles.ftp_watts` en `profiles.weight_kg`;
+4. anders een basisprofiel (ook voor alle rosterleden zonder account).
+
+Vlak volgt FTP in watts, klimmen W/kg, sprint het 15-secondenvermogen. Ruwe
+waarden verlaten de server niet; de revisie is een hash, zodat er geen watts in
+browseropslag komen. Een onleesbare `rider_power_profiles` houdt de game open
+met profieldata. Er is geen aparte opt-out voor dataverwerking: wie niet wil dat
+anderen zijn kwaliteiten zien, zet herkenbare deelname uit. De per-veld
+zichtbaarheid van FTP en gewicht op het ledenprofiel wordt hier niet gevolgd;
+`rider_power_profiles` is sowieso voor alle leden leesbaar. Privacyversie
+`2026-09-17-zwbgame-kracht` beschrijft dit.
+
+Een eigen spelprofiel opslaan zet zelf de speltoestemming `2026-09-17`; met
+Platformgegevens gebruiken wordt die gewist. Wijziging van voorkeuren
 maakt een nieuwe revisie en wist het oude spelprofiel in dezelfde transactie.
 Een late sync wordt geweigerd als de toestemmingsrevisie is veranderd. Verwijderen
 of wijzigen van de Intervals-koppeling wist het Intervals-spelprofiel. RLS staat
@@ -95,8 +117,8 @@ Profielen vervallen na 30 dagen: verlopen rijen tellen niet mee en worden bij
 een volgende succesvolle sync vervangen. Er is geen nieuwe opruimcron toegevoegd.
 Toestemming intrekken/account verwijderen wist de rij wel direct.
 
-De game gebruikt **geen** `rider_power_profiles` of andere gemengde caches als
-bewijs van gegevensherkomst. Eigen metingen worden apart ingevuld. Bij Intervals
+Voor een **eigen Intervals-spelprofiel** gebruikt de game geen
+`rider_power_profiles` als bewijs van gegevensherkomst. Bij Intervals
 worden een 90-dagencurve en activiteiten opgehaald; elk gebruikt curvepunt moet
 een activiteit-ID hebben dat matcht op een expliciet toegestane bron (UPLOAD,
 GARMIN_CONNECT, WAHOO, ZWIFT, SUUNTO, COROS of POLAR), zonder Strava-ID. Een
@@ -111,11 +133,14 @@ Garmin-gegevens toont de game die vermelding. De herkomstcontrole is met fixture
 getest; de actuele bronvelden/volledigheid bij echte leden zijn **niet live
 geverifieerd**. Intervals-gegevens zonder bruikbare herkomst blijven uitgesloten.
 
-Strava is bewust buiten deze versie gehouden vanwege onzekerheid rond virtuele
-races en het delen/afleiden van gegevens voor andere leden. Zie
-[Strava Developers](https://developers.strava.com/) en
-[API Policy](https://www.strava.com/legal/api_policy). Dit is geen route om die
-voorwaarden via Intervals te omzeilen.
+Er is geen directe Strava-koppeling in de game. **Wel een bewust aanvaard risico:**
+de platformroute filtert niet op bron, en een Intervals-curve kan activiteiten
+bevatten die leden via Strava in Intervals hebben gezet. Strava's voorwaarden
+beperken het tonen van afgeleide gegevens aan anderen en noemen virtuele races
+(zie [API Policy](https://www.strava.com/legal/api_policy)). De eerste versie sloot
+dit daarom uit; de eigenaar koos op 17 september 2026 voor automatische kwaliteiten
+voor iedereen. Niet uitgezocht of Intervals Strava-activiteiten in de curve via zijn
+API meeneemt.
 
 ## Verificatie en uitrol
 
@@ -141,9 +166,11 @@ voorwaarden via Intervals te omzeilen.
   tabellen 'nog niet beschikbaar', zodat voorkeuren nooit worden overgeslagen.
 - Fysieke telefoons, iOS/Safari, lange sessies op echte hardware en het doel van
   minimaal 30 fps zijn niet gemeten. De mobiele browserchecks zijn emulatie.
-- Privacyversie 2026-09-17-zwbgame vraagt
-  opnieuw akkoord op de platformverklaring; dit activeert niet automatisch
-  de afzonderlijke sportdatatoestemming.
+- Privacyversie 2026-09-17-zwbgame-kracht vraagt opnieuw akkoord op de
+  platformverklaring. Daarna gelden platformkwaliteiten voor iedereen; een eigen
+  spelprofiel blijft een aparte keuze.
+- Hoeveel leden echt FTP en gewicht in het platform hebben, is niet gemeten; alleen
+  met mocks getest. Rosterleden zonder account blijven basisrenners.
 
 Geen multiplayer, publiek klassement, seizoenen, echte GPX-parcoursen,
 consolebesturing of Strava-koppeling gebouwd: de afgesproken eerste stap is
