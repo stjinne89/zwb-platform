@@ -12,6 +12,7 @@ type HelpResult = {
 };
 
 const HELP_INDEX: HelpResult[] = [
+  { title: "ZWBgame", text: "Spelregels, eten en drinken, tactiek, deelname en sportgegevens.", href: "/hulp#zwbgame", terms: "game spel wielrennen koers race peloton gel bidon energie tactiek strava intervals spelprofiel toestemming pauzeren hervatten" },
   {
     title: "FTP-test",
     text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",

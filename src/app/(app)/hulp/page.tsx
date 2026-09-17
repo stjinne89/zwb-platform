@@ -59,6 +59,23 @@ const START_STEPS = [
 
 const GUIDES = [
   {
+    id: "zwbgame",
+    icon: Bike,
+    title: "ZWBgame — jouw club, jouw koers",
+    bullets: [
+      "Speel via Club → ZWBgame als jezelf tegen maximaal 23 clubgenoten. Kies Polderkoers, Ardennenjacht of Alpenfinale; een race duurt ongeveer 10–15 minuten. Bij een klein roster vullen fictieve gasten het peloton aan.",
+      "Regel je inspanning en kies In het wiel (1), Naar voren (2), Kopwerk (3) of Aanvallen (4). Klik op een renner in het koersoverzicht om diens wiel te kiezen. Is dat wiel verder dan 14 meter weg, dan zoek je eerst beschutting dichterbij. Aanvallen verhoogt je inspanning automatisch; kies daarna een andere tactiek om te herstellen.",
+      "In het wiel spaar je energie. Kopwerk is je gekozen tempo in de wind. Naar voren kost extra inspanning; op steile hellingen verdwijnt het slipstreamvoordeel. Energie, aanvalsreserve en drinken hebben elk invloed op je prestaties.",
+      "Neem op tijd een gel (E) of bidon (D). Dat vraagt enkele seconden rustiger rijden. Een gel werkt geleidelijk; drinken vult je hydratatie aan. Je begint met twee gels en twee bidons. Halverwege, op 52% van het parcours, krijg je één gel en één bidon erbij.",
+      "Echte kwaliteiten geven krachtsverschillen. Minder sterke renners krijgen vooraf meer energie en sneller herstel. Dat verandert niet bij een achterstand. Slim spelen kan een sterkere renner verslaan; gelijke winkansen bij even goed spelen zijn niet gegarandeerd. Spelkwaliteiten zijn arcade-coëfficiënten, geen watts of trainingadvies.",
+      "Via Spelinstellingen kun je herkenbare deelname uitschakelen of afzonderlijk toestemming geven voor sportdata. Zonder toestemming speel je met een basisprofiel. Eigen meting vraagt FTP en gewicht; sprint- en korte vermogens zijn optioneel. Gebruik hiervoor je eigen metingen, geen overgenomen Strava-data.",
+      "Intervals gebruikt een 90-dagencurve, met alleen meetpunten waarvan de activiteit een bevestigde toegestane bron heeft. Vul je gewicht zelf in. Een geschikt 20-minutenpunt is nodig; de game schat FTP als 95% daarvan. Onbekende bronnen en Strava-data worden uitgesloten. Bijwerken kan maximaal drie keer per uur. Een spelprofiel vervalt na 30 dagen; werk het daarna opnieuw bij. Toestemming wijzigen wist het oude spelprofiel.",
+      "Pauzeer met de pauzeknop of spatie. Een verborgen tabblad pauzeert automatisch. Hervatten controleert het ledenroster opnieuw; afgemelde leden worden gasten en ingetrokken of gewijzigde sportprofielen worden basisrenners. Per browser en account blijft één race maximaal zeven dagen hervatbaar. Een nieuwe race vervangt de vorige. Uitslagen zijn alleen lokaal en kunnen bij Jouw laatste koersen worden gewist.",
+      "Op een telefoon zijn de knoppen hetzelfde; 3D · zuinig verlaagt de grafische belasting. Zonder WebGL blijven koersoverzicht en bediening bruikbaar. Bij een geblokkeerde browseropslag kun je wel spelen, maar niet betrouwbaar bewaren.",
+      "Beheerders kunnen ongeclaimde rosterleden uitsluiten of weer toevoegen via /zwbgame/beheer. Er is nog geen multiplayer, gedeeld klassement of koppeling met echte GPX-parcoursen.",
+    ],
+  },
+  {
     id: "profiel",
     icon: UserCircle,
     title: "Profiel en ledenlijst",

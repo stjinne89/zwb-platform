@@ -56,6 +56,24 @@ export default function PrivacyPage() {
       <Section title="2. Welke gegevens we verwerken">
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>ZWBgame:</strong> goedgekeurde leden en het clubroster vormen het
+            deelnemersveld van dit besloten clubspel. Je naam is zichtbaar bij een
+            fictieve basisrenner. Je kunt herkenbare deelname uitschakelen in de
+            spelinstellingen; leden zonder account kunnen dit via het bestuur doen.
+            Alleen met afzonderlijke toestemming gebruiken we je eigen vermogensmeting
+            of Intervals-gegevens met bevestigde herkomst voor spelkwaliteiten die
+            andere clubleden zien. Strava-gegevens, wellness en medische gegevens
+            worden niet gebruikt. We bewaren afgeleide spelkwaliteiten, toestemming,
+            bron en meetperiode; ingevoerd gewicht en ruwe vermogenswaarden worden
+            niet in de game opgeslagen. Spelprofielen vervallen na 30 dagen en worden
+            bij intrekking van speltoestemming verwijderd. Een Intervals-spelprofiel
+            vervalt ook bij ontkoppelen. Lopende solo-races staan maximaal zeven dagen
+            bruikbaar in je browser, zonder namen of vermogensprofielen. Bij hervatten
+            controleren we deelname en toestemming opnieuw. Alleen je eigen laatste
+            twintig uitslagen blijven lokaal bewaard totdat je die wist. Browserdata
+            op andere apparaten kunnen we niet op afstand wissen.
+          </li>
+          <li>
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht
             (voor zover je die invult), biografie en zichtbaarheids­voorkeuren.

@@ -1,5 +1,24 @@
 # ZWB Platform — Plan & Status
 
+> **ZWBgame, 2026-09-17 — eerste solo-versie gebouwd.**
+> Bronimplementatiecommit `1dc12ae`, geïntegreerd op main-basis `1bbca1f`.
+> Code en dit verslag staan in dezelfde integratiecommit. Migratie `0170` voegt afzonderlijke speltoestemming, afgeleide
+> rennerprofielen en rosteruitsluitingen toe. `/zwbgame` biedt drie parcoursen,
+> een instanced 3D-peloton, tactiek, voeding, hydratatie, energie-/herstelcompensatie,
+> lokale raceopslag en uitslagen. Echte kracht blijft verschil maken: beter spelen
+> kan een sterkere renner verslaan; gelijke winkansen bij gelijk spel zijn bewust
+> geen uitgangspunt. Intervals vereist herleidbare, niet-Strava-bronnen; eigen
+> metingen zijn afzonderlijke invoer. Geen Strava, wellness, multiplayer, openbaar
+> klassement of GPX-parcoursen gebouwd, om de eerste solo-versie af te bakenen.
+> Privacyversie `2026-09-17-zwbgame` is toegevoegd; sportdata blijft afzonderlijk opt-in.
+> Verificatie: 34 gerichte unit/SQL/privacy-tests, 8 browserchecks op desktop- en
+> mobielviewport, TypeScript, gerichte ESLint en productiebuild geslaagd.
+> **Migratie alleen in PGlite getest; niet op Supabase toegepast.** Echte
+> Intervals-herkomstvelden en fysieke mobiele prestaties zijn niet geverifieerd.
+> Zonder migratie blijft de ledenroute gesloten. De lokale demo werkt met
+> fictieve renners (`npm run zwbgame:preview`). Push naar `main` is op verzoek
+> van de eigenaar toegestaan; bestaande main-functionaliteit is behouden. Details en uitrolvoorwaarden: [ZWBgame](docs/zwbgame.md).
+
 > **Voedingsmodule, 2026-09-17 — gebouwd, migraties nog niet toegepast.**
 > Implementatiecommit `0d0abf3`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
 > met porties op maat (NEVO-online 2025/9.0) en een voedingstip op Vandaag.
@@ -203,7 +222,7 @@ achter dit platform — officieel project, geen experiment.
 chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 
 **Stack:**
-- Next.js 15 (App Router, TypeScript) op Vercel/Netlify
+- Next.js 16.2.6 (App Router, TypeScript) op Vercel/Netlify
 - Supabase (Postgres + Auth + Storage + Realtime + RLS)
 - Tailwind v4 + shadcn/ui
 - next-pwa + Web Push API
