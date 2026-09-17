@@ -239,7 +239,7 @@
 > verifiëren. Details: [coachchat](docs/coachchat.md).
 
 > **ZWBeterWorden-advies op geslacht, 2026-09-17 — opgelost.**
-> Implementatiecommit wordt na verificatie vastgelegd; geen migratie. De
+> Implementatiecommit `3bb65a8`; geen migratie. De
 > vandaag-pagina (`/zwbeter-worden`) riep `zwbeterWordenAdvice` nog aan met
 > `profile.zrl_division` als tweede argument. Sinds de omzetting naar
 > `profiles.sex` (2026-08-18) is dat argument het geslacht. Een divisie is
