@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **ZWBgame balans en clubkleuren, 2026-09-17 — gebouwd, lokaal getest.**
-> Implementatiecommit volgt in de commit van deze tekst. Geen migratie. De eigenaar
+> Implementatiecommit `b682351`. Geen migratie. De eigenaar
 > bevestigde "gelijkwaardige kans": slim spelen kan een sterkere renner verslaan,
 > bij gelijk spel wint de sterkere vaker. Het spel was te voorspelbaar (in de
 > simulatie won de top 3 in 64–81% van de races, de zwakste helft nooit) en
