@@ -1,5 +1,12 @@
 # ZWB Platform — Plan & Status
 
+> **Voedingsmodule, 2026-09-17 — gebouwd, migraties nog niet toegepast.**
+> Implementatiecommit `65b217a`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
+> met porties op maat (NEVO-online 2025/9.0) en een voedingstip op Vandaag.
+> Migraties `0168` en `0169` zijn alleen tegen PGlite getest, niet op de
+> gekoppelde database; tot ze daar staan, blijven de receptenlijsten leeg. Zie
+> de ronde "Opgeleverd — Voedingsmodule" en `docs/voeding-wielrennen.md`.
+
 > **Coachchat in ZWBeter Worden, 2026-09-17 — opgeleverd.**
 > Implementatiecommit `392a6b8`; migratie `0167` en privacyversie `2026-09-17`
 > (élk lid tekent opnieuw). Een lid kan nu in de trainingsruimte vragen waarom zijn schema
@@ -1109,6 +1116,124 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Voedingsmodule: kennisbank, recepten op maat en een tip op Vandaag
+
+**2026-09-17, commit volgt in de PLAN-commit hierna.** Migraties `0168` (tabellen + RLS) en
+`0169` (seed, gegenereerd). Nog niet toegepast op de gekoppelde database.
+
+**Waarom.** Stijn wilde voeding als onderdeel van ZWBasis. Het moest drie dingen
+worden: een kennisbibliotheek met actuele, navolgbare bronnen, een receptenboek
+dat zich aanpast aan lichaam, komende trainingen en herstel, en een tip op
+Vandaag. Keuzes van Stijn vooraf:
+- Een tab in ZWBeter Worden, geen eigen hoofdmenu.
+- Samengestelde recepten met NEVO-waarden, geen AI-recepten.
+- Gewicht én lengte gebruiken.
+- Alles in één ronde.
+
+**Onderzoek.** `docs/voeding-wielrennen.md`, met alle bronnen en per richtlijn de
+drempel die in de code staat.
+- De ruggengraat is het *UCI Sports Nutrition Project*: het positiestandpunt uit
+  2026 plus de onderliggende reviews.
+- Daarnaast: ACSM/AND/DC 2016, IOC REDs 2023, IOC supplementen 2018, de
+  ISSN-standpunten, en reviews over koolhydraten tijdens de rit (Morton et al.
+  2026, tot 120 g/u), darmtraining en eiwit.
+
+**Wat er is gekomen.**
+- **Pure logica in `src/lib/nutrition/`:**
+  - `library.ts`: 14 artikelen in 5 categorieën, elk met bronnen en een
+    bewijslabel.
+  - `day-type.ts`: dagtypes rust, licht, matig, zwaar, lang en wedstrijd, op duur
+    en intensiteit.
+  - `targets.ts`: g/kg per dag, per moment en per uur op de fiets, plus
+    Mifflin-St Jeor.
+  - `scale.ts`: receptschaling op rol (`kh_bron`/`eiwit_bron`/`vast`), met elke
+    factor tussen 0,5 en 2.
+  - `tips.ts`: negen regels in vaste volgorde.
+  - `recipes.ts`: recepten kiezen en schema/ritten omzetten naar sessies.
+  - `labels.ts`: client-veilige constanten.
+- **Tab Voeding** (`src/app/(app)/zwbeter-worden/voeding/`):
+  - Overzicht met dagdoelen, tip, drie recepten en de kennisbank.
+  - Artikelpagina met bronlinks.
+  - Receptenlijst met filters voor moment en dieet. Die staan alleen in de URL.
+  - Receptpagina met "jouw portie vandaag" of de standaardportie en de
+    NEVO-bronvermelding.
+  - Eigen recepten maken, bewerken en verwijderen, met ingrediënten uit NEVO.
+- **`NutritionTodayCard` op Vandaag, onder de core-kaart.** Die gebruikt
+  `memberWorkouts`, de Strava-ritten van de pagina en
+  `zwbStatus.readiness`/`recoverySummary`. Geen extra schema-queries.
+- **Data:**
+  - `nutrition_foods`: heel NEVO, 2.328 producten, ongewijzigd, lege waarden
+    `null`.
+  - `nutrition_recipes` en `nutrition_recipe_ingredients`: 24 clubrecepten.
+    Eigen recepten zijn privé; clubrecepten schrijven vraagt
+    `training.create_plans`.
+  - `nutrition_profiles`: lengte, alleen voor het lid zelf.
+- **Seed-generator.** `scripts/nutrition/generate-seed.mjs` leest het NEVO-csv en
+  `standard-recipes.json`. Het NEVO-bestand zelf staat niet in de repo. Bij een
+  nieuwe NEVO-versie maak je een nieuwe migratie; `0169` pas je niet aan.
+- **Profiel.** Veld "Lengte (cm)", opgeslagen in `nutrition_profiles`. Staat de
+  tabel er nog niet, dan blokkeert een leeg lengteveld het opslaan niet.
+- **`/hulp#voeding`**, een zoekterm in hulp, en een regel in `/privacy`.
+- **Tests:**
+  - `nutrition-logic`: dagtypes, doelen en schaling.
+  - `nutrition-tips`: volgorde, alle 9 tips, bestaande artikelen, en in 28 dagen
+    × 10 scenario's geen tekst die om minder eten vraagt.
+  - `nutrition-migration` (PGlite): tellingen, idempotentie, checks en RLS voor
+    goedgekeurd, niet-goedgekeurd, eigenaar en ander lid.
+
+**Afwijkingen van het goedgekeurde plan.**
+- **Lengte staat in `nutrition_profiles`, niet op `profiles`.** `profiles` is voor
+  elk ingelogd lid leesbaar (`profiles_select_authenticated`, 0001), dus een kolom
+  daar is via de API voor iedereen op te vragen.
+- **Geen `estimateWorkoutKj`.** De dagbanden in de bronnen zijn in uren en zwaarte
+  geformuleerd, niet in kJ. Een kJ-drempel zou een eigen verzinsel zijn, en een
+  helper die niets gebruikt hoort er niet in.
+- **Heel NEVO geseed in plaats van ~80 producten.** Anders zijn eigen recepten
+  nauwelijks te maken.
+
+**Bewust niet gedaan.**
+- **Geen AI-recepten of AI-tips.** Die kunnen macro's en richtlijnen verzinnen.
+  Dit volgt dezelfde lijn als core/mobiliteit en de pacing-prompt.
+- **Geen vetpercentage, geen kcal-doel, geen afvalfunctie, geen eetdagboek.** Het
+  IOC REDs-consensusstuk waarschuwt juist voor die focus in de wielersport. Een
+  vetpercentage is bovendien gezondheidsinformatie (AVG art. 9).
+- **Geen opgeslagen dieetvoorkeur.** "Glutenvrij" of "lactosevrij" kan een
+  aandoening verraden; het filter leeft alleen in de URL.
+- **Geen voedingsregels per cyclusfase.** Het effect op prestatie is gemiddeld
+  triviaal en verschilt sterk per persoon (McNulty et al. 2020).
+- **Geen beheerscherm voor clubrecepten.** RLS staat het toe; de 24 recepten komen
+  voorlopig uit de seed.
+- **Geen supplementadvies per lid en geen merken.**
+- **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
+  darmtrainingsschema.
+
+**Nieuwe privacytekst, geen eigen privacyversie.** Lengte en eigen recepten
+zijn alleen voor het lid zelf zichtbaar. Er gaat niets naar andere leden of
+derden. De tekst valt onder versie `2026-09-17`, die de coachchat dezelfde dag
+invoerde. Wie die versie tekende vóór deze push, zag de regel over lengte nog
+niet. `src/lib/privacy.ts` vraagt bij een "nieuwe categorie gegevens" wel een
+nieuwe versie. **Stijn beslist**: een extra versie laat elk lid opnieuw tekenen.
+
+**Beperkingen en niet geverifieerd.**
+- **Migraties.** `0168` en `0169` zijn alleen tegen PGlite getest.
+- **Inhoud.** Artikelteksten en clubrecepten zijn niet door een (sport)diëtist
+  nagekeken.
+- **UCI-positiestandpunt.** Dat zat achter een betaalmuur; de getallen komen uit
+  de open onderliggende reviews en de eerdere consensus.
+- **Eigen vertalingen.** De verdeling van koolhydraten over maaltijden (25/20/30/10%)
+  en de dagtype-drempels (60/90/180 min) zijn eigen vertalingen, zie het
+  onderzoeksdocument.
+- **Schermen niet in de browser bekeken.** Inloggen kan alleen met een account,
+  en de tabellen bestaan nog niet in de gekoppelde database.
+- **Vandaag-tip en ritten.** De tip kijkt naar ZWB-workouts en Strava-activiteiten
+  van vandaag. Events die alleen in intervals.icu staan, tellen niet mee als
+  geplande rit.
+
+**Verificatie.** 1.214 tests geslaagd (33 nieuw voor voeding), 6 optionele
+live-tests overgeslagen. TypeScript is schoon buiten verouderde
+`.next`-types; eslint op de gewijzigde bestanden is schoon; de productiebuild is
+geslaagd.
 
 ### Opgeleverd — coachchat in ZWBeter Worden
 
@@ -5159,6 +5284,12 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 ---
 
 ## Bekende open dingen
+
+- **Voedingsmodule: migraties `0168` en `0169` toepassen** op de gekoppelde
+  database (volgorde aanhouden) en de controlequery's onderaan beide bestanden
+  draaien. Daarna de voedingsschermen met een echt account nalopen. Laat
+  artikelteksten en clubrecepten nakijken door een (sport)diëtist, en beslis
+  of de privacytekst een nieuwe versie krijgt. Zie de ronde van 2026-09-17.
 
 - ~~**`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**~~
   — **opgelost 2026-09-08, commit `201d816`.** De route zet de generaties nu in de

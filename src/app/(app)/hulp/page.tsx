@@ -26,6 +26,7 @@ import {
   TrendingUp,
   UserCircle,
   Users,
+  Utensils,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -1641,6 +1642,104 @@ Fitness-status: Verbeterend`}
             className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Open Core &amp; mobiliteit
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="voeding"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Utensils className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Voeding</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een kennisbank met bronnen, recepten op maat en elke dag een tip op
+              Vandaag. Alles volgt de consensus- en positiestukken over
+              sportvoeding, met het UCI-positiestandpunt over wielervoeding
+              (2026) als basis.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Hoe je doelen tot stand komen</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Je schema en je ritten van vandaag en morgen bepalen het
+                  dagtype: rust, licht, matig, zwaar, lang of wedstrijd. Duur en
+                  intensiteit tellen, net als in de richtlijnen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Koolhydraten gaan per kilo lichaamsgewicht mee met dat dagtype,
+                  van 3–5 g/kg op een rustdag tot 8–12 g/kg op een lange dag.
+                  Eiwit blijft 1,6–1,8 g/kg. Onderweg reken we per uur, naar de
+                  duur van je rit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Er staat nergens een caloriedoel. ZWB geeft bewust geen
+                  afvaladvies: te weinig eten bij veel trainen schaadt je
+                  gezondheid en je vorm.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Recepten op maat</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Elk ingrediënt heeft een rol. De koolhydraatbron schaalt naar je
+                  koolhydraatdoel voor dat moment, de eiwitbron naar je eiwitdoel,
+                  en de rest schaalt mee met je lengte, gewicht en leeftijd. Geen
+                  onderdeel wordt kleiner dan de helft of groter dan het dubbele.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Zonder gewicht zie je de standaardportie. Je lengte vul je in op
+                  je profiel; alleen jij kunt die zien.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De voedingswaarden komen uit het Nederlands
+                  Voedingsstoffenbestand (NEVO-online 2025/9.0) van het RIVM.
+                  Ontbreekt er een waarde, dan staat er ≥ voor het totaal.
+                </span>
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Grenzen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Dit is algemene sportvoedingsinformatie, geen medisch of
+            diëtistisch advies. Heb je aanhoudende vermoeidheid, vaak blessures,
+            een onregelmatige menstruatie, maag- of darmklachten, of wil je
+            supplementen gebruiken? Ga dan naar een sportarts of
+            sportdiëtist.
+          </p>
+          <Link
+            href="/zwbeter-worden/voeding"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open Voeding
           </Link>
         </div>
       </section>

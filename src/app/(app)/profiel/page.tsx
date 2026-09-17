@@ -74,6 +74,7 @@ export default async function ProfielPage() {
     { data: bikes },
     { data: myQuotes },
     { data: koms },
+    { data: heightRow },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -141,6 +142,12 @@ export default async function ProfielPage() {
       .eq("profile_id", user.id)
       .order("achieved_at", { ascending: false, nullsFirst: false })
       .order("segment_name"),
+    // Lengte staat bewust niet op profiles: die tabel is voor alle leden leesbaar.
+    supabase
+      .from("nutrition_profiles")
+      .select("height_cm")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -201,6 +208,7 @@ export default async function ProfielPage() {
           wellness_device: profileRow?.wellness_device ?? "",
           ftp_watts: profileRow?.ftp_watts?.toString() ?? "",
           weight_kg: profileRow?.weight_kg?.toString() ?? "",
+          height_cm: heightRow?.height_cm?.toString() ?? "",
           auto_sync_physique:
             (profileRow as { auto_sync_physique?: boolean | null })?.auto_sync_physique ?? false,
           bio: profileRow?.bio ?? "",

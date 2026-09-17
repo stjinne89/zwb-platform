@@ -101,6 +101,10 @@ export async function updateProfile(formData: FormData) {
 
   const ftp = optionalNumber(formData.get("ftp_watts"));
   const weight = optionalNumber(formData.get("weight_kg"));
+  const height = optionalNumber(formData.get("height_cm"));
+  if (height !== null && (height < 120 || height > 230)) {
+    return { ok: false as const, error: "Lengte moet tussen 120 en 230 cm liggen." };
+  }
   const autoSyncPhysique = formData.get("auto_sync_physique") === "on";
   const birthDateRaw = optionalString(formData.get("birth_date"));
   const birthDate = birthDateRaw ? parseDateKey(birthDateRaw) : null;
@@ -182,7 +186,19 @@ export async function updateProfile(formData: FormData) {
 
   if (error) return { ok: false as const, error: error.message };
 
+  // Lengte in een eigen, alleen voor het lid leesbare tabel (migratie 0168).
+  const { error: heightError } = await supabase
+    .from("nutrition_profiles")
+    .upsert(
+      { profile_id: user.id, height_cm: height === null ? null : Math.round(height) },
+      { onConflict: "profile_id" },
+    );
+  // Zonder ingevulde lengte mag een ontbrekende tabel (0168 nog niet toegepast)
+  // het opslaan van de rest van het profiel niet blokkeren.
+  if (heightError && height !== null) return { ok: false as const, error: heightError.message };
+
   revalidatePath("/profiel");
+  revalidatePath("/zwbeter-worden/voeding", "layout");
   revalidatePath("/leden");
   revalidatePath("/kalender");
   revalidatePath("/teams");

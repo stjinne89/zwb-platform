@@ -138,6 +138,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn",
   },
   {
+    title: "Voeding",
+    text: "Kennisbank met bronnen, recepten op maat en een dagelijkse tip.",
+    href: "/hulp#voeding",
+    terms:
+      "voeding eten koolhydraten eiwit recept recepten gel sportdrank herstel nevo reds supplementen cafeine hydratatie drinken zout",
+  },
+  {
     title: "Core & mobiliteit",
     text: "Korte series naast de fiets, zelf afvinken, los van je trainingsbelasting.",
     href: "/hulp#core-mobiliteit",

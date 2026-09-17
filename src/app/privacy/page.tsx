@@ -61,6 +61,13 @@ export default function PrivacyPage() {
             (voor zover je die invult), biografie en zichtbaarheids­voorkeuren.
           </li>
           <li>
+            <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
+            gebruiken we die alleen om de porties in het receptenboek op jou af te
+            stemmen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
+            jou zichtbaar. Wat je eet, leggen we niet vast, en een dieetfilter in
+            het receptenboek wordt niet bewaard.
+          </li>
+          <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
             herstel-/wellnessgegevens uit intervals.icu zoals rusthartslag, HRV,
             slaap en readiness. Deze worden alléén gesynchroniseerd als je daar

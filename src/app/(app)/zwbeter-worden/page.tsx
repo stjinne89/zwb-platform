@@ -15,6 +15,8 @@ import {
 } from "@/lib/training/segment-suggestions";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { CoreTodayCard } from "./core/_components/core-today-card";
+import { NutritionTodayCard } from "./voeding/_components/nutrition-today-card";
+import { plannedSessions, ridesOnDay } from "@/lib/nutrition/recipes";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { RecoveryCard } from "./_components/recovery-card";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
@@ -315,6 +317,17 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           rodeToday: activities.some(
             (activity) => amsterdamDayKey(new Date(activity.start_date)) === todayKey,
           ),
+        }}
+      />
+
+      <NutritionTodayCard
+        viewer={viewer}
+        today={todayKey}
+        day={{
+          ...plannedSessions(memberWorkouts, todayKey),
+          ridesToday: ridesOnDay(activities, todayKey),
+          readinessState: zwbStatus.readiness.state,
+          wellnessState: zwbStatus.recoverySummary?.state ?? null,
         }}
       />
 
