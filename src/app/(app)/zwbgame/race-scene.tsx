@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { COURSES, elevationAt } from "@/lib/zwbgame/courses";
+import { STEP_SECONDS } from "@/lib/zwbgame/engine";
 import type { RaceState } from "@/lib/zwbgame/types";
 
 type Props = { state: RaceState; overview: boolean; lowQuality: boolean };
@@ -130,23 +131,47 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
     const resize = () => { const { width, height } = element.getBoundingClientRect(); renderer.setSize(width, height, false); camera.aspect = width / Math.max(1, height); camera.updateProjectionMatrix(); };
     const observer = new ResizeObserver(resize); observer.observe(element); resize();
     let frame = 0, initialized = false, disposed = false;
-    const displayed = new Map<string, { distance: number; lane: number }>();
-    let displayedTick = latest.current.state.tick;
-    const render = () => {
+    // The simulation moves in 200 ms steps. Rendering glides from where each rider was
+    // shown when a step arrived to its new position over one step, so motion is
+    // continuous at any frame rate instead of jumping five times a second.
+    type Shown = { from: number; to: number; fromLane: number; toLane: number };
+    const displayed = new Map<string, Shown & { distance: number; lane: number }>();
+    let lastTick = -1, lastRace = "", tickAt = 0, lastFrame = 0, fromTick = latest.current.state.tick, displayedTick = fromTick;
+    const cameraOffset = new THREE.Vector3(7, 7, 14);
+    const render = (now: number) => {
       if (disposed) return;
       const current = latest.current;
-      displayedTick += (current.state.tick - displayedTick) * 0.3;
-      for (const r of current.state.riders) {
-        const prior = displayed.get(r.rider.id);
-        displayed.set(r.rider.id, prior && Math.abs(prior.distance - r.distance) < 30
-          ? { distance: prior.distance + (r.distance - prior.distance) * 0.3, lane: prior.lane + (r.lane - prior.lane) * 0.3 }
-          : { distance: r.distance, lane: r.lane });
+      const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
+      lastFrame = now;
+      const race = `${current.state.config.seed}:${current.state.config.courseId}:${current.state.riders.length}`;
+      if (current.state.tick !== lastTick || race !== lastRace || current.state.riders.some((r) => !displayed.has(r.rider.id))) {
+        const jump = lastTick < 0 || race !== lastRace || current.state.tick < lastTick || current.state.tick - lastTick > 10;
+        lastRace = race;
+        for (const r of current.state.riders) {
+          const shown = displayed.get(r.rider.id);
+          const reset = jump || !shown || Math.abs(shown.distance - r.distance) > 30;
+          displayed.set(r.rider.id, {
+            from: reset ? r.distance : shown.distance, to: r.distance, fromLane: reset ? r.lane : shown.lane, toLane: r.lane,
+            distance: reset ? r.distance : shown.distance, lane: reset ? r.lane : shown.lane,
+          });
+        }
+        fromTick = jump ? current.state.tick : displayedTick;
+        lastTick = current.state.tick; tickAt = now;
+      }
+      // A little past 1: a step that lands a frame late must not freeze the picture.
+      const alpha = Math.min(1.15, (now - tickAt) / (STEP_SECONDS * 1000));
+      displayedTick = fromTick + (current.state.tick - fromTick) * alpha;
+      for (const shown of displayed.values()) {
+        shown.distance = shown.from + (shown.to - shown.from) * alpha;
+        shown.lane = shown.fromLane + (shown.toLane - shown.fromLane) * alpha;
       }
       const me = current.state.riders.find((r) => r.rider.id === current.state.config.playerId)!;
       const focus = Math.min(displayed.get(me.rider.id)!.distance, course.length + 10);
       const focusY = worldY(focus), focusX = bend(focus);
-      desiredCamera.set(focusX + (current.overview ? 20 : 7), focusY + (current.overview ? 45 : 7), -focus + (current.overview ? 40 : 14));
-      camera.position.lerp(desiredCamera, initialized ? 0.08 : 1); initialized = true;
+      // Only the camera's offset eases (switching views); following the rider is exact.
+      desiredCamera.set(current.overview ? 20 : 7, current.overview ? 45 : 7, current.overview ? 40 : 14);
+      cameraOffset.lerp(desiredCamera, initialized ? 1 - Math.exp(-dt * 4) : 1); initialized = true;
+      camera.position.set(focusX + cameraOffset.x, focusY + cameraOffset.y, -focus + cameraOffset.z);
       look.set(bend(focus + 16), worldY(focus + 16) + 1, -focus - 16); camera.lookAt(look);
       current.state.riders.forEach((r, i) => {
         const position = displayed.get(r.rider.id)!;

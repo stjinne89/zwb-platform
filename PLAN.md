@@ -1,5 +1,21 @@
 # ZWB Platform — Plan & Status
 
+> **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
+> Implementatiecommit volgt. Geen migratie. Melding van de eigenaar: het beeld schokt
+> en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%
+> naar de nieuwste simulatiestap (5 per seconde) en de camera liep daar ook nog achter;
+> nu interpoleert de weergave over elke stap en volgt de camera exact. Groep: een volger
+> kon nooit harder dan zijn directe voorganger en gaten boven 10 m gingen nooit dicht,
+> dus het veld viel in de eerste minuut uiteen en een speler die in het wiel bleef zat
+> na 7,5 minuut 16–44 s achter. Nu: sterkere slipstream, In het wiel rijdt gaten tot
+> 150 m automatisch dicht (sneller met meer renners erachter), wie sterker is rijdt om
+> een gat-latende renner heen, en iedereen start op 75%. Resultaat: 8–13 s achterstand
+> op de middelste bot in dezelfde situatie; nieuwe regressietest. **Afgewogen keerzijde:**
+> een compact peloton eindigt vaker in een sprint, dus de top 3 wint weer 46–66% (na de
+> balansronde 35–57%). Sprintgeluk is geprobeerd en weggelaten (te weinig effect,
+> onzichtbare willekeur). Niet gemeten op echte telefoons. Details:
+> [ZWBgame](docs/zwbgame.md).
+
 > **ZWBgame kwaliteiten uit platformdata, 2026-09-17 — gebouwd, lokaal getest.**
 > Implementatiecommit `101f617`. Geen migratie; privacyversie
 > `2026-09-17-zwbgame-kracht` (iedereen tekent opnieuw). Aanleiding: in de lobby
@@ -36,7 +52,8 @@
 > benen, Tweede adem, Verrassingsaanval) plus knechten: het zwakste derde krijgt
 > 1–3 clubgenoten uit de middenmoot die uit de wind houden, gaten dichtrijden en
 > een lead-out rijden; het sterkste derde rijdt altijd alleen. Energiecompensatie
-> ging van ×60 naar ×50 omdat knechten en kaarten nu meehelpen. Na afloop won de
+> ging van ×60 naar ×50 omdat knechten en kaarten nu meehelpen. Na afloop (vóór de
+> groepsronde hierboven, die dit weer deels terugdraaide) won de
 > top 3 in 35–57% van de races, de zwakste helft in 1–9%, en eindigde de zwakste
 > renner gemiddeld rond plek 11–13. Spelversie 2: lopende versie-1-races zijn
 > niet hervatbaar, uitslagen blijven. Interface in petrol en goud in plaats van

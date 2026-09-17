@@ -32,6 +32,15 @@ PGlite getest. Dit is geen end-to-end test tegen de gekoppelde Supabase-database
   selectie, parcoursen, afleiding van kwaliteiten, serveradapter en lokale opslag.
 - `src/app/(app)/zwbgame`: afzonderlijk geladen Three.js-renderer, HUD, lobby,
   voorkeuren, eigen invoer/Intervals-sync en rosterbeheer voor admins.
+- Groepsdynamiek (sinds 17 september 2026, na melding "mijn renner houdt de groep
+  niet bij"): slipstream geeft ×1,12 snelheid (was ×1,045) en werkt tot 1,3 m
+  zijdelings. In het wiel rijdt een renner zonder beschutting automatisch een gat tot
+  150 m dicht op inspanning 0,86 plus 0,03 per renner in zijn wiel (max. 0,98),
+  zonder aanvalsreserve te verbranden. Laat het wiel een gat van meer dan 6 m
+  vallen en is de volger in de wind echt sneller (+0,3 m/s), dan rijdt hij eromheen.
+  Iedereen start op 75% inspanning, gelijk aan het botgemiddelde. Oorzaak was dat
+  een volger nooit harder kon dan zijn directe voorganger en dat gaten boven 10 m
+  nooit dichtgingen: het veld viel in de eerste minuut uiteen in groepjes.
 - Bots gebruiken dezelfde commando's, energie, bevoorrading en kaarten als de speler.
   Per race krijgt elke bot een eigen karakter uit de seed: agressie en de afstand
   van de laatste aanval (per rennerstype, ×0,55–1,65). Bots volgen soms een
@@ -150,6 +159,18 @@ API meeneemt.
 - Acht Playwright-tests geslaagd op desktop- en mobielviewport: starten,
   parcourskeuze, aanvallen, eten, pauzeren, bewaren/hervatten, finish, uitslag
   wissen, eigen profiel en bediening zonder WebGL. Screenshots visueel bekeken.
+- Groepsronde (17 september 2026): een renner die alleen in het wiel blijft, zat na
+  7,5 minuut 16–44 s achter de middelste bot; nu 8–13 s in een gelijk veld en 8–10 s
+  in een gemengd veld. In een gelijk veld zitten na 5 minuten gemiddeld 20–21 van de 23
+  bots binnen 10 s van de kop (was 9–11). Keerzijde: een compact peloton eindigt vaker
+  in een sprint, dus in het brede veld wint de top 3 nu 54–66% (zwakste helft 0–3%) en
+  in het smallere veld 46–59% (0–3%). De cijfers van de balansronde hieronder gelden
+  daarom niet meer. Sprintgeluk per race is geprobeerd en weggelaten: minder dan
+  5 procentpunt effect en onzichtbaar voor de speler. De 3D-weergave interpoleert nu
+  tussen simulatiestappen (was: 30% per frame naar de nieuwste stap, wat vijf keer
+  per seconde schokte); de camera volgt de renner exact en alleen de wissel tussen
+  volg- en overzichtscamera ease-t. Headless gemeten: 60 fps zonder uitschieters;
+  op echte telefoons niet gemeten.
 - Balansronde (17 september 2026): simulatie van 80 races per parcours met
   dezelfde botstrategie voor iedereen, veld FTP 180–387. Vóór: top 3 wint 64–81%,
   zwakste helft 0%, zwakste renner gemiddeld plek 23–24. Na: top 3 wint 49–57%,

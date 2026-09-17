@@ -4,6 +4,8 @@ import { GAME_VERSION, type CardId, type GameRider, type PlayerCommand, type Rac
 
 export const STEP_SECONDS = 0.2;
 export const MAX_RACE_SECONDS = 1800;
+/** Riders in "wheel" still chase a group this far ahead; beyond it they are dropped. */
+const CHASE_RANGE = 150;
 export const CARD_IDS: CardId[] = ["tailwind", "legs", "second", "surprise"];
 /** Timed cards run for these seconds; the others apply instantly. */
 export const CARD_SECONDS: Partial<Record<CardId, number>> = { tailwind: 20, surprise: 10 };
@@ -45,7 +47,7 @@ export function createRace(config: RaceConfig, roster: GameRider[]): RaceState {
     return {
       rider, distance: -Math.floor(i / 4) * 1.8, lane: (i % 4 - 1.5) * 0.85, speed: 10,
       energy: 100 + c * 50, maxEnergy: 100 + c * 50, reserve: 100, hydration: 100, recovery: 1 + c,
-      effort: 0.72, tactic: "wheel", targetId: null, gels: 2, bottles: 2, fed: false, eating: 0, drinking: 0, digesting: 0,
+      effort: 0.75, tactic: "wheel", targetId: null, gels: 2, bottles: 2, fed: false, eating: 0, drinking: 0, digesting: 0,
       sheltered: false, finishTime: null, attacks: 0, shelteredSeconds: 0,
       form: +(0.94 + randomAt(config.seed, 3000 + i) * 0.12).toFixed(4), cards, boost: null, captainId: null,
     };
@@ -175,6 +177,16 @@ export function botCommands(state: RaceState, index: number): PlayerCommand[] {
   commands.push({ type: "effort", value: effort }, { type: "tactic", value: tactic, targetId });
   return commands;
 }
+const DRAFT = 1.12;
+/** Target speed for a rider at an effort, in the wind or in a wheel. */
+function speedFor(r: RiderState, grade: number, wind: number, effort: number, sheltered: boolean) {
+  const hill = clamp(grade * 12, 0, 1);
+  const ability = (r.rider.flat * (1 - hill) + r.rider.climb * hill) * r.form;
+  const sprint = effort > 1 ? 1 + (r.rider.sprint - 1) * (effort - 1) * 3 : 1;
+  const fatigue = (0.58 + 0.42 * clamp(r.energy / 22, 0, 1)) * (0.8 + 0.2 * clamp(r.hydration / 40, 0, 1));
+  // The draft must be strong enough that an equal rider at the same effort stays in the group.
+  return 15 * ability * sprint * Math.pow(effort / 0.78, 0.42) * fatigue / (1 + grade * 6 + Math.max(0, wind) * (sheltered ? 0.015 : 0.055) + Math.min(0, wind) * 0.03) * (sheltered ? DRAFT : 1);
+}
 /** Mutates a private simulation instance; rendering receives snapshots. No wall-clock or network. */
 export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPolicy = botCommands) {
   if (state.finished) return state;
@@ -198,22 +210,39 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
     const requested = ahead.find((p) => p.id === r.targetId);
     const wheel = requested ?? ahead[0];
     const inWheel = r.tactic === "wheel" && wheel;
+    // Don't go down with a rider who lets a gap open: move around them to the next wheel.
+    const beyond = inWheel && !requested ? positions.filter((p) => !p.finished && p.id !== r.rider.id && p.id !== wheel.id && p.distance > wheel.distance && p.distance - wheel.distance < CHASE_RANGE).sort((a, b) => a.distance - b.distance)[0] : undefined;
+    // Only come around when you are actually faster in the wind than the wheel you leave.
+    const bridging = Boolean(beyond && beyond.distance - wheel.distance > 6 && !state.riders.some((x) => x.rider.id === wheel.id && x.captainId === r.rider.id) && speedFor(r, terrain.grade, wind, 0.86, false) > wheel.speed + 0.3);
     // A helper lines up in front of its captain unless the captain is attacking.
     const captain = r.captainId ? byId.get(r.captainId) : undefined;
     const spot = 3 + 2.2 * state.riders.filter((x) => x.captainId === r.captainId && x.rider.id.localeCompare(r.rider.id) < 0).length;
     const escorting = Boolean(captain && !captain.finished && Math.abs(captain.distance - r.distance) < 30 && captain.tactic !== "attack" && captain.boost !== "surprise" && r.tactic === "pull");
-    const desiredLane = escorting ? captain!.lane : inWheel ? wheel.lane : r.tactic === "attack" || r.tactic === "front" ? 2.8 : r.lane;
-    r.lane += clamp(desiredLane - r.lane, -STEP_SECONDS * 1.2, STEP_SECONDS * 1.2);
+    const desiredLane = escorting ? captain!.lane : bridging ? wheel.lane + (wheel.lane > 0 ? -1.4 : 1.4) : inWheel ? wheel.lane : r.tactic === "attack" || r.tactic === "front" ? 2.8 : r.lane;
+    r.lane += clamp(desiredLane - r.lane, -STEP_SECONDS * 1.8, STEP_SECONDS * 1.8);
     // A teammate's wheel works harder: it holds a steady line, also on a climb.
     const teamWheel = Boolean(wheel && state.riders.some((x) => x.rider.id === wheel.id && x.captainId === r.rider.id));
-    r.sheltered = Boolean(wheel && Math.abs(wheel.lane - r.lane) < 1 && wheel.distance - r.distance < 10 && r.tactic === "wheel" && (terrain.grade < 0.05 || teamWheel));
+    r.sheltered = Boolean(wheel && !bridging && Math.abs(wheel.lane - r.lane) < 1.3 && wheel.distance - r.distance < 10 && r.tactic === "wheel" && (terrain.grade < 0.05 || teamWheel));
     if (r.sheltered) r.shelteredSeconds += STEP_SECONDS;
     let effort = r.effort;
     if (r.tactic === "attack") effort = Math.max(effort, 1.08);
     if (boost === "surprise") effort = Math.max(effort, 1.15);
     if (r.tactic === "front" && leader - r.distance > 3) effort = Math.max(effort, 0.92);
+    // "In het wiel" means staying with the group: a small gap is closed at the highest
+    // tempo that does not burn the attack reserve. That costs energy, not a free ride.
+    // A chasing group takes turns, so with more riders on the wheel it can hold a
+    // higher tempo without burning anyone's attack reserve.
+    let chasing = false;
+    if (r.tactic === "wheel" && !r.sheltered) {
+      const gap = Math.min(...positions.filter((p) => !p.finished && p.id !== r.rider.id && p.distance > r.distance).map((p) => p.distance - r.distance), Infinity);
+      if (gap > 3.5 && gap < CHASE_RANGE) {
+        const followers = positions.filter((p) => !p.finished && p.id !== r.rider.id && r.distance - p.distance > 0 && r.distance - p.distance < 15).length;
+        effort = Math.max(effort, 0.86 + 0.03 * Math.min(followers, 4));
+        chasing = true;
+      }
+    }
     if (r.eating > 0 || r.drinking > 0) effort = Math.min(effort, 0.58);
-    const requestedEffort = boost === "surprise" ? 0.86 : effort;
+    const requestedEffort = boost === "surprise" || chasing ? Math.min(effort, 0.86) : effort;
     // An exhausted rider must actually choose recovery. Otherwise an attack held
     // forever oscillates between a free sprint and automatic regeneration.
     if (r.reserve < 1 && boost !== "surprise") effort = Math.min(effort, 0.48);
@@ -227,17 +256,12 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
     r.drinking = Math.max(0, r.drinking - STEP_SECONDS);
     if (r.boost) { r.boost.left -= STEP_SECONDS; if (r.boost.left <= 1e-9) r.boost = null; }
     if (!r.fed && r.distance >= course.length * 0.52) { r.fed = true; r.gels = Math.min(3, r.gels + 1); r.bottles = Math.min(3, r.bottles + 1); }
-    const hill = clamp(terrain.grade * 12, 0, 1);
-    const ability = (r.rider.flat * (1 - hill) + r.rider.climb * hill) * r.form;
-    const sprint = effort > 1 ? 1 + (r.rider.sprint - 1) * (effort - 1) * 3 : 1;
-    const fatigue = (0.58 + 0.42 * clamp(r.energy / 22, 0, 1)) * (0.8 + 0.2 * clamp(r.hydration / 40, 0, 1));
-    let target = 15 * ability * sprint * Math.pow(effort / 0.78, 0.42) * fatigue / (1 + terrain.grade * 6 + Math.max(0, wind) * (r.sheltered ? 0.015 : 0.055) + Math.min(0, wind) * 0.03);
-    if (r.sheltered) target *= 1.045;
+    let target = speedFor(r, terrain.grade, wind, effort, r.sheltered);
     if (boost === "surprise") target *= 1.03;
     // Following a wheel controls spacing but cannot give free speed or teleport to it.
     // A teammate tows: on its wheel you go at its speed, not your own.
     if (teamWheel && r.sheltered && wheel.distance - r.distance < 6) target = Math.max(target, wheel.speed + 0.3);
-    if (inWheel && wheel.distance - r.distance < 2.5) target = Math.min(target, wheel.speed);
+    if (inWheel && !bridging && wheel.distance - r.distance < 2.5) target = Math.min(target, wheel.speed);
     // An escort that dropped its captain waits instead of riding away.
     if (escorting && r.distance - captain!.distance > spot + 3) target = Math.min(target, captain!.speed + (captain!.distance + spot - r.distance) * 0.4);
     r.speed += clamp(target - r.speed, -STEP_SECONDS * 3, STEP_SECONDS * 1.8);

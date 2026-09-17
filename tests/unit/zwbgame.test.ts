@@ -139,6 +139,8 @@ describe("ZWBgame teams, cards and variation", () => {
     const ride = (drink: boolean) => {
       const state = createRace({ courseId: "polder", seed: 9, playerId: "0" }, roster);
       const me = state.riders.find((r) => r.rider.id === "0")!;
+      // Ride alone: a group would tow a dehydrated rider along and hide the effect.
+      state.riders.forEach((r) => { if (r !== me) r.finishTime = 1; });
       while (me.finishTime === null && !state.finished) {
         const commands: PlayerCommand[] = [{ type: "effort", value: 0.8 }];
         if (drink && me.hydration < 50) commands.push({ type: "drink" });
@@ -148,6 +150,18 @@ describe("ZWBgame teams, cards and variation", () => {
     };
     expect(ride(true)).toBeLessThan(ride(false) - 5);
   });
+  it("a rider who only sits in the wheel stays with an equal group", () => {
+    const gaps: number[] = [];
+    for (const seed of [101, 202, 303, 404, 505]) {
+      const state = createRace({ courseId: "polder", seed, playerId: "0" }, roster);
+      const me = state.riders.find((r) => r.rider.id === "0")!;
+      for (let i = 0; i < 1500; i++) stepRace(state);
+      const others = state.riders.filter((r) => r !== me).map((r) => r.distance).sort((a, b) => a - b);
+      gaps.push((others[Math.floor(others.length / 2)] - me.distance) / Math.max(me.speed, 1));
+    }
+    // Seconds behind the middle of the field after five minutes, averaged over races.
+    expect(gaps.reduce((a, b) => a + b, 0) / gaps.length).toBeLessThan(10);
+  }, 30000);
   it("wind differs per race on the same course", () => {
     const winds = [1, 2, 3, 4].map((seed) => conditionsAt({ courseId: "polder", seed, playerId: "0" }, 3000).wind);
     expect(new Set(winds.map((w) => w.toFixed(2))).size).toBeGreaterThan(2);
