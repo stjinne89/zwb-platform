@@ -7,7 +7,7 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
-import { amsterdamDayKey, eftpTrend, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
+import { amsterdamDayKey, eftpTrend } from "@/lib/training/zwbeterworden";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import {
   suggestSegmentsForBlock,
@@ -99,7 +99,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   const totals7 = loadSummary(activities);
 
   const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile);
-  const advice = zwbeterWordenAdvice(zwbStatus.readiness, profile?.zrl_division);
+  const advice = zwbStatus.advice;
   const { latest: eftpLatest, delta: eftpDelta } = eftpTrend(snapshot.wellness, 90);
   const eftpValue = eftpLatest ?? snapshot.intervalsFtp ?? profile?.ftp_watts ?? null;
   const eftpHint = eftpLatest

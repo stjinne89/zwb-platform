@@ -238,6 +238,25 @@
 > en de productiebuild. Migratie, realtime, push en de OpenAI-call zijn niet lokaal te
 > verifiëren. Details: [coachchat](docs/coachchat.md).
 
+> **ZWBeterWorden-advies op geslacht, 2026-09-17 — opgelost.**
+> Implementatiecommit wordt na verificatie vastgelegd; geen migratie. De
+> vandaag-pagina (`/zwbeter-worden`) riep `zwbeterWordenAdvice` nog aan met
+> `profile.zrl_division` als tweede argument. Sinds de omzetting naar
+> `profiles.sex` (2026-08-18) is dat argument het geslacht. Een divisie is
+> `open` of `women`, nooit `man` of `vrouw`, dus ieder lid kreeg op die pagina
+> de neutrale partnertekst, ook wie een geslacht had ingevuld. De pagina gebruikt nu `zwbStatus.advice`, dat
+> `computeZwbStatus` al met `profile.sex` berekent; zo kan de pagina ook niet
+> meer uit de pas lopen met de eigen status. De andere aanroepen (trainer-
+> `_data.ts`, `AthleteLoadPanel`, `computeZwbStatus`) gaven al `sex` mee. Bewust
+> niet gedaan: `zrl_division` uit `ProfileRow` en de selects halen; de trainer-
+> data selecteert het ook en het veld is onschuldig zolang niemand het als
+> geslacht leest. Nieuwe unit-test: `computeZwbStatus` kiest de partnertekst op
+> geslacht en geeft een divisiewaarde de neutrale variant. Verificatie: 1.182
+> tests geslaagd; `omnium-live.test.ts` laadt niet in deze worktree omdat
+> `.env.local` ontbreekt. TypeScript zonder fouten buiten een verouderde
+> `.next/types/validator.ts` (oude Omnium-routes); lint 0 fouten, 7 bestaande
+> waarschuwingen. De pagina zelf is niet in de browser bekeken.
+
 > **Omnium vastlopende seizoenknop, 2026-09-16 — opgelost.**
 > Implementatiecommit `97232b7`; geen migratie. Het
 > beheerformulier gebruikt een eigen laadstatus met foutafhandeling en een
@@ -1184,7 +1203,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   voorwaardenpagina in het project.
 - **Klachtenlogboek en geslachtsveld** (2026-08-18, commit `90759a1`, migr.
   `0123`): `profiles.sex` vervangt het afleiden van geslacht uit `zrl_division`
-  — dat is een wedstrijdklasse, geen fysiologie. Nieuw logboek onder
+  — dat is een wedstrijdklasse, geen fysiologie. (De vandaag-pagina gaf het
+  advies tot 2026-09-17 nog `zrl_division` mee; zie bovenaan.) Nieuw logboek onder
   `/zwbeter-worden/logboek` (`symptom_logs`, opt-in via
   `symptom_tracking_enabled`, RLS alleen eigen rijen, trainers zien niets). Het
   schema krijgt één samengevat signaal mee naast readiness en TSB.
