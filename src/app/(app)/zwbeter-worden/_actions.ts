@@ -48,6 +48,7 @@ import { insertFtpTestWorkout } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
+import { canCoach } from "@/lib/training/coach-access";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
 const MODES = ["indoor", "outdoor", "mixed"];
@@ -102,18 +103,6 @@ async function currentUser() {
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) throw new Error("Niet ingelogd.");
   return { supabase, access, user: access.user };
-}
-
-async function canCoach(admin: ReturnType<typeof createAdminClient>, trainerId: string, athleteId: string) {
-  if (trainerId === athleteId) return true;
-  const { data } = await admin
-    .from("training_coach_assignments")
-    .select("id")
-    .eq("trainer_id", trainerId)
-    .eq("athlete_id", athleteId)
-    .eq("status", "active")
-    .maybeSingle();
-  return Boolean(data);
 }
 
 export async function connectIntervalsWithKey(apiKey: string) {

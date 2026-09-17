@@ -1,4 +1,5 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { InlineMoreLink } from "@/components/app-ui";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
@@ -256,6 +257,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 variant="preview"
               />
               <PlanCautions items={planCautions} />
+              {/* De "Let op"-regels vertellen wát er is besloten; de vervolgvraag
+                  hoort hier te kunnen beginnen en niet doodlopen. */}
+              <div className="mt-3">
+                <InlineMoreLink href="/zwbeter-worden/coach">Vraag je coach</InlineMoreLink>
+              </div>
               {segmentSuggestions.length > 0 ? (
                 <div className="mt-4 border-t pt-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

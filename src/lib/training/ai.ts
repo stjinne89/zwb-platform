@@ -558,3 +558,102 @@ export async function retrieveTrainingPlanDraftBackground(
 }
 
 export { defaultTrainingPrompt };
+
+// ---------------------------------------------------------------------------
+// Coachchat
+//
+// Een coach-antwoord is platte tekst, geen trainingsplan. De twee functies
+// hierboven zijn daarvoor niet te hergebruiken: die dwingen het json_schema van
+// een heel plan af. Wat ze wél delen is de achtergrond-aanpak — background: true
+// plus een bewaard response_id — want een reasoning-call duurt langer dan een
+// Netlify-functie mag draaien. Ze staan hier en niet in coach-chat.ts zodat
+// requireOpenAiKey() en fetchOpenAiResponse() privé kunnen blijven.
+// ---------------------------------------------------------------------------
+
+/** Welk model de coach gebruikt. Losse env-knop: uitleg mag een goedkoper model
+ * zijn dan een heel schema, zonder dat het een ander model wordt zodra iemand
+ * OPENAI_TRAINING_MODEL omzet. */
+export function getCoachModel(): string {
+  return process.env.OPENAI_COACH_MODEL?.trim() || getTrainingModel();
+}
+
+export async function startCoachAnswerBackground(
+  instructions: string,
+  userText: string,
+  options: { model?: string; timeoutMs?: number } = {},
+): Promise<{ responseId: string; status: TrainingAiResponseStatus; model: string }> {
+  const apiKey = requireOpenAiKey();
+  const model = options.model?.trim() || getCoachModel();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestBody: Record<string, any> = {
+    model,
+    instructions,
+    input: [{ role: "user", content: [{ type: "input_text", text: userText }] }],
+    background: true,
+    store: true,
+  };
+  // Een uitleg hoeft niet zo diep na te denken als een heel schema; dat scheelt
+  // wachttijd én geld.
+  if (isReasoningModel(model)) requestBody.reasoning = { effort: "low" };
+
+  const res = await fetchOpenAiResponse(
+    "https://api.openai.com/v1/responses",
+    apiKey,
+    { method: "POST", body: JSON.stringify(requestBody) },
+    options.timeoutMs ?? 20_000,
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenAI ${res.status}: ${text.slice(0, 240)}`);
+  }
+
+  const body = (await res.json()) as { id?: string; status?: TrainingAiResponseStatus };
+  if (!body.id) throw new Error("OpenAI gaf geen response-id terug.");
+  return { responseId: body.id, status: body.status ?? "queued", model };
+}
+
+export async function retrieveCoachAnswerBackground(
+  responseId: string,
+  options: { timeoutMs?: number } = {},
+): Promise<
+  | { status: "queued" | "in_progress" }
+  | { status: "completed"; text: string }
+  | { status: "failed" | "cancelled" | "incomplete"; error: string }
+> {
+  const apiKey = requireOpenAiKey();
+  const res = await fetchOpenAiResponse(
+    `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,
+    apiKey,
+    { method: "GET" },
+    options.timeoutMs ?? 15_000,
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenAI ${res.status}: ${text.slice(0, 240)}`);
+  }
+
+  const body = (await res.json()) as {
+    status?: TrainingAiResponseStatus;
+    error?: { message?: string } | null;
+    incomplete_details?: { reason?: string } | null;
+  };
+  const status = body.status ?? "in_progress";
+  if (status === "queued" || status === "in_progress") return { status };
+  if (status === "completed") {
+    const text = outputText(body).trim();
+    // Een leeg antwoord is een mislukking, geen antwoord: anders staat er straks
+    // een lege bel in het gesprek.
+    if (!text) return { status: "failed", error: "OpenAI gaf een leeg antwoord." };
+    return { status, text };
+  }
+  return {
+    status,
+    error:
+      body.error?.message ??
+      body.incomplete_details?.reason ??
+      `OpenAI response eindigde met status ${status}.`,
+  };
+}

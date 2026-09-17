@@ -16,6 +16,7 @@ const PROFILE_TABLES: string[] = [
   "training_plans",
   "training_workouts",
   "training_workout_reports",
+  "training_chat_messages",
   "profile_wellness",
   "strava_activities",
   "live_sessions",

@@ -94,6 +94,7 @@ const GUIDES = [
       "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
       "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
+      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet.",
     ],
   },
   {
@@ -1266,6 +1267,35 @@ export default function HelpPage() {
           middelmatige readiness houden je in het middensegment. Je
           ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
         </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Coachchat</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Snap je niet waarom er vandaag negentig minuten staat terwijl je twee
+            uur hebt? Vraag het in de coachchat. De coach kent je schema, je doel
+            en de &ldquo;Let op&rdquo;-regels die bij je schema horen, en legt uit
+            waarom er staat wat er staat. Hij verandert zelf niets.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
+            aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
+            de volgende versie van je schema. Handig voor dingen die de app niet
+            kan zien: een week ziek geweest, een doel dat verschuift.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Het gesprek blijft staan en de trainers die jij hebt aangewezen lezen
+            het terug en kunnen erin reageren. Het bestuur niet. Over pijn,
+            blessures of ziekte geeft de coach geen advies — daarvoor ga je naar je
+            trainer of een arts.
+          </p>
+          <Link
+            href="/zwbeter-worden/coach"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open de coachchat
+          </Link>
+        </div>
+
       </section>
 
       <section

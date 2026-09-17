@@ -5,9 +5,11 @@
 // uur beschikbaar is. De redenering hoort naast de training te staan waar hij
 // over gaat.
 //
-// Bewust tijdelijk: zolang we nog leren hoe streng die regels in de praktijk
-// uitpakken, is dit de goedkoopste manier om mee te kijken. Zit de opbouw straks
-// goed, dan kan dit blok er in één keer uit.
+// Stond hier als tijdelijke maatregel zolang we nog leerden hoe streng die regels
+// uitpakken. Sinds de coachchat (0167) is het geen eindpunt meer maar een begin:
+// de regels zeggen wát er is besloten, en de link eronder is waar de vervolgvraag
+// over het waarom naartoe kan. Weghalen kan dus niet meer zonder dat de chat zijn
+// aanleiding kwijtraakt.
 
 import { Info } from "lucide-react";
 

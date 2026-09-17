@@ -41,6 +41,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/vermogen", label: "Vermogen" },
   { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
+  { type: "link", href: "/zwbeter-worden/coach", label: "Coach" },
   {
     type: "link",
     href: "/zwbeter-worden/trainer",
@@ -58,6 +59,7 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/trainer/jaarplan", label: "Jaarplan" },
   { type: "link", href: "/zwbeter-worden/trainer/vermogen", label: "Vermogen" },
   { type: "link", href: "/zwbeter-worden/trainer/doelen", label: "Doelen" },
+  { type: "link", href: "/zwbeter-worden/trainer/coach", label: "Coachchat" },
 ];
 
 export const NAV_GROUPS: NavNode[] = [
