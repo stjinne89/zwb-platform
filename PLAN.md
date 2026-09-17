@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Coachchat in ZWBeter Worden, 2026-09-17 — opgeleverd.**
-> Implementatiecommit `COMMIT_HASH`; migratie `0167` en privacyversie `2026-09-17`
+> Implementatiecommit `392a6b8`; migratie `0167` en privacyversie `2026-09-17`
 > (élk lid tekent opnieuw). Een lid kan nu in de trainingsruimte vragen waarom zijn schema
 > eruitziet zoals het eruitziet; een AI-coach antwoordt met het schema, de "Let op"-regels en
 > de generatie-invoer als context, en de aangewezen trainer leest het gesprek terug en kan
@@ -1112,7 +1112,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — coachchat in ZWBeter Worden
 
-**2026-09-17, commit `COMMIT_HASH`.** Migratie `0167` (`training_chat_messages`,
+**2026-09-17, commit `392a6b8`.** Migratie `0167` (`training_chat_messages`,
 functie `current_user_in_training_chat`, `notification_preferences.on_training_chat`).
 Nieuwe privacyversie `2026-09-17`, dus élk lid tekent opnieuw.
 
