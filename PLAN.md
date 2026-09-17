@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Voedingsmodule, 2026-09-17 — gebouwd, migraties nog niet toegepast.**
-> Implementatiecommit `65b217a`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
+> Implementatiecommit `0d0abf3`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
 > met porties op maat (NEVO-online 2025/9.0) en een voedingstip op Vandaag.
 > Migraties `0168` en `0169` zijn alleen tegen PGlite getest, niet op de
 > gekoppelde database; tot ze daar staan, blijven de receptenlijsten leeg. Zie
@@ -1119,7 +1119,7 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 
 ### Opgeleverd — Voedingsmodule: kennisbank, recepten op maat en een tip op Vandaag
 
-**2026-09-17, commit volgt in de PLAN-commit hierna.** Migraties `0168` (tabellen + RLS) en
+**2026-09-17, commit `0d0abf3`.** Migraties `0168` (tabellen + RLS) en
 `0169` (seed, gegenereerd). Nog niet toegepast op de gekoppelde database.
 
 **Waarom.** Stijn wilde voeding als onderdeel van ZWBasis. Het moest drie dingen
