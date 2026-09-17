@@ -2,7 +2,7 @@
 
 > **ZWBgame, 2026-09-17 — eerste solo-versie gebouwd.**
 > Bronimplementatiecommit `1dc12ae`, geïntegreerd op main-basis `1bbca1f`.
-> Code en dit verslag staan in dezelfde integratiecommit. Migratie `0170` voegt afzonderlijke speltoestemming, afgeleide
+> Integratiecommit op main: `2d54ddd`. Migratie `0170` voegt afzonderlijke speltoestemming, afgeleide
 > rennerprofielen en rosteruitsluitingen toe. `/zwbgame` biedt drie parcoursen,
 > een instanced 3D-peloton, tactiek, voeding, hydratatie, energie-/herstelcompensatie,
 > lokale raceopslag en uitslagen. Echte kracht blijft verschil maken: beter spelen
