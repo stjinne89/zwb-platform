@@ -95,6 +95,11 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
                             {rider.pendingReviews} te beoordelen
                           </span>
                         ) : null}
+                        {rider.openChatMessages > 0 ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            {rider.openChatMessages} in de chat
+                          </span>
+                        ) : null}
                       </div>
                     </Link>
                   </li>

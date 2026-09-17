@@ -32,6 +32,7 @@ export type NotificationTrigger =
   | "on_new_badge"
   | "on_training_plan"
   | "on_workout_review"
+  | "on_training_chat"
   | "on_event_reminder"
   | "on_admin_broadcast"
   | "on_maintenance_due"

@@ -1,5 +1,17 @@
 # ZWB Platform — Plan & Status
 
+> **Coachchat in ZWBeter Worden, 2026-09-17 — opgeleverd.**
+> Implementatiecommit `392a6b8`; migratie `0167` en privacyversie `2026-09-17`
+> (élk lid tekent opnieuw). Een lid kan nu in de trainingsruimte vragen waarom zijn schema
+> eruitziet zoals het eruitziet; een AI-coach antwoordt met het schema, de "Let op"-regels en
+> de generatie-invoer als context, en de aangewezen trainer leest het gesprek terug en kan
+> erin reageren. Een bericht dat het lid markeert als "dit raakt mijn schema" start de
+> bestaande herziening. Inzage is bewust smaller dan de rest van de trainingsmodule: alleen
+> het lid en zijn gekoppelde trainers, niet iedereen met `training.manage_assignments`.
+> Verificatie: 1.206 tests geslaagd, TypeScript, lint (0 fouten, 7 bestaande waarschuwingen)
+> en de productiebuild. Migratie, realtime, push en de OpenAI-call zijn niet lokaal te
+> verifiëren. Details: [coachchat](docs/coachchat.md).
+
 > **Omnium vastlopende seizoenknop, 2026-09-16 — opgelost.**
 > Implementatiecommit `97232b7`; geen migratie. Het
 > beheerformulier gebruikt een eigen laadstatus met foutafhandeling en een
@@ -1097,6 +1109,93 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — coachchat in ZWBeter Worden
+
+**2026-09-17, commit `392a6b8`.** Migratie `0167` (`training_chat_messages`,
+functie `current_user_in_training_chat`, `notification_preferences.on_training_chat`).
+Nieuwe privacyversie `2026-09-17`, dus élk lid tekent opnieuw.
+
+**Waarom.** De redenering achter een schema stond alleen in `training_plans.summary`, als
+"Let op"-regels die `PlanCautions` bij de eerstvolgende workout toont. Dat is
+eenrichtingsverkeer: wie leest dat er negentig minuten staat omdat woensdag maar een uur
+beschikbaar is en wil weten waarom het dan niet naar donderdag schuift, loopt dood. En wie
+iets wéét wat het schema zou moeten weten — twee weken ziek, een doel dat verschuift — kon dat
+alleen indirect kwijt via de beschikbaarheidsschuifjes. `plan-cautions.tsx` noemde zichzelf
+niet voor niets "bewust tijdelijk".
+
+**Wat er is veranderd.**
+- Eén doorlopend gesprek per lid. Het lid vraagt, een AI-coach antwoordt met het eigen schema
+  als context, en de door het lid aangewezen trainers lezen mee en kunnen erin reageren.
+  Pagina's: `/zwbeter-worden/coach` (lid) en `/zwbeter-worden/trainer/coach` (trainer, via
+  `trainerContext()` zodat een id uit de URL nooit rechtstreeks in een query gaat). Eén gedeeld
+  component `_components/coach-chat.tsx`, gemodelleerd op de live-chat van een event: realtime
+  als gedebouncede ping → refetch, met poll als terugval.
+- `src/lib/training/chat-context.ts` bouwt de context uit loaders die `draft.ts` al gebruikt.
+  Het scharnierpunt is `training_ai_generations.prompt_summary`: de invoer die het model zág
+  toen het de keuzes maakte. Zonder dat stuk kan de coach herhalen wát er is besloten, niet
+  waaróm. `athleteName` gaat eruit voordat het opnieuw naar OpenAI gaat.
+- Het antwoord loopt in de achtergrond (`background: true` + bewaard `response_id`, zoals de
+  schema-generaties). De POST zet meteen een lege coach-rij met `status='pending'`; de
+  eerstvolgende GET vult hem. Zolang er iets openstaat pollt de client elke 3 s in plaats van
+  elke 20 s. Een netwerkfout laat de rij staan; pas na vijf minuten wordt hij `failed` met een
+  leesbare regel, zodat er nooit een bel blijft staan te denken.
+  `startTrainingPlanDraftBackground()` was niet te hergebruiken (die dwingt het plan-`json_schema`
+  af), vandaar `startCoachAnswerBackground()` / `retrieveCoachAnswerBackground()` ernaast in
+  `ai.ts`.
+- Vinkje "Dit raakt mijn schema" roept `requestReplan()` aan en bewaart de uitkomst in
+  `replan_result`. Het lid leest wat er werkelijk gebeurde: herzien, meegenomen bij de
+  volgende ronde, geen lopend schema, schema ligt stil, of niet gestart.
+- Kostenrem: 25 coach-antwoorden per lid per dag via `rateLimitHit`. Boven de limiet komt het
+  bericht er wél in — de trainer leest het — alleen het AI-antwoord blijft uit. Zelfde motief
+  als de vijf-minuten-cooldown in `replan.ts`.
+- `canCoach()` is uit `zwbeter-worden/_actions.ts` verhuisd naar
+  `src/lib/training/coach-access.ts`, omdat de route hem ook nodig heeft. Daarnaast
+  `activeTrainersOf()` voor de regel "leest mee: …" boven het gesprek en voor de meldingen.
+- Rennerkiezer van de trainer toont per renner hoeveel leden-berichten er staan ná het laatste
+  trainer-bericht. Eén extra query in `loadRiders()`, die in de layout draait en dus één keer
+  per laadbeurt.
+- Nieuwe meldingsvoorkeur `on_training_chat`, los van `on_training_plan`.
+- `/hulp#trainingsruimte` krijgt een blok over wat de coach wel en niet doet; de
+  privacyverklaring een alinea over het gesprek, en de OpenAI-ontvangerregel is gecorrigeerd nu
+  het lid zelf tekst typt. De chat is toegevoegd aan de data-export — die lijst is expliciet,
+  niet automatisch.
+
+**Bewust niet gedaan.**
+- **Inzage voor `training.manage_assignments`.** Dit is de enige tabel in de trainingsmodule
+  die niet op `current_user_can_train_profile()` leunt maar op een eigen
+  `current_user_in_training_chat()`. Schema's en belasting zijn cijfers; een chat is vrije
+  tekst waarin gezondheid en privéomstandigheden voorbijkomen, en de privacyverklaring belooft
+  dat die bij het lid en zijn aangewezen trainer blijven. Bestuur en communitybeheer lezen dus
+  niet mee.
+- **Leesbevestiging per trainer.** Zou bij meerdere trainers een tweede tabel kosten; de teller
+  in de rennerkiezer doet hetzelfde werk zonder extra opslag.
+- **Automatische opschoning** zoals de jaargrens op `event_chat_messages`. Een gesprek over de
+  opbouw van een seizoen hoort een seizoen te overleven.
+- **Bijlagen, draad per schema of per workout, en de coach zelf in het schema laten schrijven.**
+  Redenen in [docs/coachchat.md](docs/coachchat.md).
+- **`athleteName` uit de schema-generaties zelf halen.** Opgevallen tijdens deze ronde:
+  `draft.ts` stuurt de naam mee terwijl de privacyverklaring "geen directe
+  identificatiegegevens waar vermijdbaar" belooft. De chat haalt hem eruit voordat de invoer
+  opnieuw wordt verstuurd, maar de generaties zijn niet aangepast — dat verdient een eigen
+  beslissing.
+
+**Verificatie.** 1.206 tests geslaagd (1.181 bestaand + 25 nieuw); `npx tsc --noEmit` schoon;
+lint 0 fouten en de 7 bestaande waarschuwingen; productiebuild geslaagd met beide nieuwe
+pagina's en `/api/training/chat` erin.
+`tests/unit/training-chat-migration.test.ts` draait `0037` + `0167` echt tegen PGlite en
+controleert de toegangsregel: lid en gekoppelde trainer lezen het gesprek, een niet-gekoppelde
+trainer en `training.manage_assignments` niet, met als tegenproef dat bestuur `training_plans`
+wél gewoon leest. Een coach-antwoord is door niemand te verwijderen.
+
+**Niet lokaal geverifieerd.** De migratie tegen de echte Supabase-database (er is hier geen
+Docker- of Supabase-config; de PGlite-test dekt de SQL, niet de productiedatabase), de
+realtime-publicatie, de pushmeldingen en de OpenAI-achtergrondcall. De suite
+`tests/unit/omnium-live.test.ts` en de productiebuild vragen een `.env.local` die in een verse
+clone niet bestaat; de build is daarom met placeholder-Supabase-variabelen gedraaid. Niet
+gepusht en niet gedeployd.
+
+Details: [docs/coachchat.md](docs/coachchat.md).
 
 ### Opgeleverd — segment-inhaalslag sneller: 20 s per run
 
@@ -5491,6 +5590,12 @@ Ontwerp:
   = vergelijkbaar met de uitslagen-scraper qua omvang.
 
 ### E2E-chat
+
+> **Bijgewerkt 2026-09-17.** Dit stuk gaat over een *clubbrede* chat; die staat nog steeds
+> geparkeerd. Wat er sindsdien wél is gebouwd, is de coachchat in ZWBeter Worden (migratie
+> `0167`): één besloten gesprek per lid tussen het lid, een AI-coach en zijn aangewezen
+> trainer. Dat is niet E2E-versleuteld en lost geen van de vragen hieronder op — het is een
+> smalle toepassing van optie (B), zonder rooms en zonder WhatsApp-import.
 
 **Kernconclusie: geschiedenis-behoud (WhatsApp-import) en échte E2E zijn
 grotendeels onverenigbaar.** Kies dus eerst het doel.

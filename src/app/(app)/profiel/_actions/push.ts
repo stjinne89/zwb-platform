@@ -74,6 +74,7 @@ export async function updateNotificationPreferences(formData: FormData) {
     on_live_started: formData.get("on_live_started") === "on",
     on_new_badge: formData.get("on_new_badge") === "on",
     on_training_plan: formData.get("on_training_plan") === "on",
+    on_training_chat: formData.get("on_training_chat") === "on",
     on_event_reminder: formData.get("on_event_reminder") === "on",
     on_admin_broadcast: formData.get("on_admin_broadcast") === "on",
     on_maintenance_due: formData.get("on_maintenance_due") === "on",

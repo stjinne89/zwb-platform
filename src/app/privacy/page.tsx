@@ -114,6 +114,19 @@ export default function PrivacyPage() {
             trainingspagina.
           </li>
           <li>
+            <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
+            over je schema. Je vraag, het antwoord van de AI-coach en de reacties
+            van je trainer worden bewaard als één doorlopend gesprek. Alleen jij en
+            de trainers die jij hebt aangewezen kunnen het lezen — het bestuur en
+            communitybeheer niet. Je bericht gaat naar OpenAI om het antwoord te
+            maken, samen met je schema, je doel en je belasting. Vink je aan dat een
+            bericht je schema raakt, dan gaat de tekst ook mee naar de eerstvolgende
+            schemaherziening. Je eigen berichten kun je verwijderen; het gesprek
+            staat verder in je data-export en verdwijnt als je je account opheft.
+            Zet er geen gegevens in die je niet met je trainer of met OpenAI wilt
+            delen.
+          </li>
+          <li>
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
             recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
             samenvatting onderaan de omschrijving van die rit. Daarin staan je
@@ -212,8 +225,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            (alleen relevante trainingscontext, geen directe identificatiegegevens
-            waar vermijdbaar).
+            en voor de antwoorden in de coachchat. Meegestuurd worden relevante
+            trainingscontext en, bij de chat, de tekst die je zelf typt; geen
+            directe identificatiegegevens waar vermijdbaar.
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}
