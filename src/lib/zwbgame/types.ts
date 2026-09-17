@@ -1,4 +1,4 @@
-export const GAME_VERSION = 1;
+export const GAME_VERSION = 2;
 export const CONSENT_VERSION = "2026-09-17";
 export type RiderKind = "sprinter" | "puncher" | "tter" | "climber" | "allrounder";
 export type GameRider = {
@@ -24,10 +24,12 @@ export type Course = {
 };
 export type RaceConfig = { courseId: CourseId; seed: number; playerId: string };
 export type Tactic = "wheel" | "front" | "pull" | "attack";
+export type CardId = "tailwind" | "legs" | "second" | "surprise";
 export type PlayerCommand =
   | { type: "effort"; value: number }
   | { type: "tactic"; value: Tactic; targetId?: string }
-  | { type: "eat" | "drink" };
+  | { type: "eat" | "drink" }
+  | { type: "card"; card: CardId };
 export type RiderState = {
   rider: GameRider;
   distance: number;
@@ -51,6 +53,12 @@ export type RiderState = {
   finishTime: number | null;
   attacks: number;
   shelteredSeconds: number;
+  /** Seeded day form, multiplies ability. Hidden luck, not part of compensation. */
+  form: number;
+  cards: CardId[];
+  boost: { card: CardId; left: number } | null;
+  /** Set on a helper: the weaker rider this bot rides for. */
+  captainId: string | null;
 };
 export type RaceState = {
   version: number;

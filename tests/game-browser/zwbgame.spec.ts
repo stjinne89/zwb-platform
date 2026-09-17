@@ -17,7 +17,7 @@ test("full interface, tactics, food, pause and save/resume", async ({ page }, in
   await expect(page.getByRole("button", { name: /Eten/ })).toBeVisible();
   await page.getByRole("button", { name: "Pauzeren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Even op adem" })).toBeVisible();
-  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:race"));
+  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v2:demo-0:race"));
   expect(stored).toBeTruthy(); expect(stored).not.toContain("de Vries");
   await page.reload();
   await page.getByRole("button", { name: "Hervat je koers" }).click();
@@ -34,7 +34,7 @@ test("finishing stores only your result and removes the ongoing save", async ({ 
   await page.getByRole("button", { name: "Hervat je koers" }).click();
   await expect(page.getByRole("heading", { name: "De koers is van jou." })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"place":1');
-  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:race"))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v2:demo-0:race"))).toBeNull();
   await page.getByRole("button", { name: "Nieuwe koers" }).click();
   await expect(page.getByRole("heading", { name: "Jouw laatste koersen" })).toBeVisible();
   await page.getByRole("button", { name: "Wissen", exact: true }).click();

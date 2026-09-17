@@ -2,10 +2,13 @@
 
 De eerste versie is een besloten solo-spel op `/zwbgame`: zelf als renner rijden,
 maximaal 23 bots uit het clubroster, drie fictieve parcoursen, voeding, hydratatie,
-aanvalsreserve, positionering, slipstream en vooraf berekende compensatie. Lagere
-sportsterkte kan met beter spel winnen; gelijke winstkansen bij gelijk spel zijn
-bewust geen belofte. Vormgegeven met zelf opgebouwde, instanced 3D-fietsen en
-renners in donkere ZWB-kleding met oranje accenten. Er worden geen modellen of
+aanvalsreserve, positionering, slipstream, bonuskaarten, knechten en vooraf
+berekende compensatie. Lagere sportsterkte kan met beter spel winnen; bij gelijk
+spel wint de sterkere renner vaker, maar niet elke race. Die uitleg van
+"gelijkwaardige kans" is op 17 september 2026 door de eigenaar bevestigd.
+Vormgegeven met zelf opgebouwde, instanced 3D-fietsen en renners in het ZWB-clubshirt
+(wit boven met gouden streep, petrol met lichtere chevrons onder, gouden kraag en
+mouwranden), in een interface in petrol en goud. Er worden geen modellen of
 spelassets uit Flamme Rouge of Tour de France gebruikt.
 
 ## Lokale speeltest
@@ -29,22 +32,49 @@ PGlite getest. Dit is geen end-to-end test tegen de gekoppelde Supabase-database
   selectie, parcoursen, afleiding van kwaliteiten, serveradapter en lokale opslag.
 - `src/app/(app)/zwbgame`: afzonderlijk geladen Three.js-renderer, HUD, lobby,
   voorkeuren, eigen invoer/Intervals-sync en rosterbeheer voor admins.
-- Bots gebruiken dezelfde commando's, energie en bevoorrading als de speler.
+- Bots gebruiken dezelfde commando's, energie, bevoorrading en kaarten als de speler.
+  Per race krijgt elke bot een eigen karakter uit de seed: agressie en de afstand
+  van de laatste aanval (per rennerstype, ×0,55–1,65). Bots volgen soms een
+  aanval, houden een ontsnapping vast en nemen gespreid beslissingen, niet op
+  dezelfde tick.
   Een uitgeputte renner krijgt pas nieuwe aanvalsreserve bij bewust lager
   gekozen inspanning: permanent Aanvallen vasthouden regenereert geen gratis sprint.
 - Vermogensverschillen worden naar begrensde arcade-snelheidscoëfficiënten
   vertaald (vlak 0,80–1,23; klimmen 0,76–1,28; sprint 0,80–1,25), niet als ruwe
-  natuurkundige watts doorgestuurd. Compensatie geeft maximaal 54 extra
-  energiepunten en maximaal 1,9× herstel. Geen inhaalbonus op basis van achterstand.
+  natuurkundige watts doorgestuurd. Compensatie geeft maximaal 45 extra
+  energiepunten, maximaal 1,9× herstel, tot twee extra bonuskaarten en tot drie
+  knechten. Geen inhaalbonus op basis van achterstand.
+- Knechten: het zwakste derde van het veld kan knechten krijgen (1 bij
+  compensatie ≥ 0,10, 2 bij ≥ 0,22, 3 bij ≥ 0,36), het middelste derde levert ze,
+  het sterkste derde rijdt altijd alleen. Maximaal een derde van het veld is
+  knecht; de zwakste renner krijgt eerst een volledige ploeg. Een knecht rijdt
+  vóór zijn kopman op het hoogste tempo zonder aanvalsreserve (0,86), rijdt gaten
+  dicht, wacht als hij wegrijdt en rijdt de laatste 450 m een lead-out. Het wiel
+  van een eigen knecht kost 0,52 in plaats van 0,62, werkt ook bergop en trekt je
+  mee op zijn snelheid. Knechten stoppen onder 30% energie.
+- Bonuskaarten (Flamme Rouge-achtig, eenmalig): Rugwind (20 s geen wind, 15%
+  goedkoper), Goede benen (aanvalsreserve direct vol), Tweede adem (+22 energie,
+  +15 vocht), Verrassingsaanval (10 s aanvalstempo zonder reservekosten). Twee
+  getimede kaarten lopen niet tegelijk. Iedereen krijgt er twee uit de seed, bij
+  compensatie ≥ 0,3 en ≥ 0,6 één extra.
+- Dagvorm per renner per race: ×0,94–1,06 op het vermogen, zichtbaar voor de speler.
+  Wind per race: basiswind van het segment ×0,4–1,7 plus een verschuiving van
+  ±0,3; rugwind maakt sneller.
+- Hydratatie daalt met 0,07 + 0,10 × inspanning per seconde; onder 40 word je
+  tot 20% trager. Zonder drinken merk je dat in een hele race.
 - Twee gels en twee bidons; bij 52% afstand één van elk erbij, maximaal drie
   tegelijk. Een gel herstelt 30 energiepunten geleidelijk. Voeding verlaagt de
   inspanning tijdelijk. Finishvolgorde gebruikt de berekende passeertijd binnen
   een simulatiestap. Na 30 minuten stopt een vastgelopen/extreme race met DNF's.
-- Browseropslag bewaart één versiegebonden race per account, maximaal zeven dagen
+- Browseropslag bewaart één versiegebonden race per account (spelversie 2 sinds
+  de balansronde; een versie-1-race is niet meer hervatbaar), maximaal zeven dagen
   hervatbaar, zonder rennersnamen of vermogenskwaliteiten. Profielen en identiteiten
   worden bij start/hervatten vers opgehaald. Een gewijzigde of vervallen
   profielrevisie geeft een basisrenner; verdwenen identiteit wordt een gast.
-  Alleen de laatste twintig eigen uitslagen blijven lokaal bewaard.
+  Alleen de laatste twintig eigen uitslagen blijven lokaal bewaard; hun sleutel
+  bleef `v1`, zodat eerdere uitslagen de versiewissel overleven. Dagvorm, kaarten,
+  lopende kaart en kopman-ID worden in de bewaarde race meegeslagen; een kopman-ID
+  dat niet in dezelfde race voorkomt maakt de race ongeldig.
 
 ## Gegevens en toestemming
 
@@ -95,15 +125,23 @@ voorwaarden via Intervals te omzeilen.
 - Acht Playwright-tests geslaagd op desktop- en mobielviewport: starten,
   parcourskeuze, aanvallen, eten, pauzeren, bewaren/hervatten, finish, uitslag
   wissen, eigen profiel en bediening zonder WebGL. Screenshots visueel bekeken.
+- Balansronde (17 september 2026): simulatie van 80 races per parcours met
+  dezelfde botstrategie voor iedereen, veld FTP 180–387. Vóór: top 3 wint 64–81%,
+  zwakste helft 0%, zwakste renner gemiddeld plek 23–24. Na: top 3 wint 49–57%,
+  zwakste helft 1–4%, zwakste renner met knechten gemiddeld plek 13. In een
+  smaller veld (FTP 180–295): top 3 wint 35–48%, zwakste helft 4–9%. Het script
+  zat in de scratchpad en is niet gecommit; de unit-tests leggen de richting vast
+  (variatie in winnaars, sterkere helft wint vaker, knechten, kaarten, drinken, wind).
 - TypeScript, gerichte ESLint en volledige Next-productiebuild geslaagd.
   De bestaande middleware-deprecatiewaarschuwing is niet in deze ronde aangepakt.
-- Migratie 0170 is uitgevoerd in PGlite met nagebouwde noodzakelijke basistabellen;
-  **niet toegepast of getest op de gekoppelde Supabase-database**. Geen Docker
-  of volledige lokale Supabase beschikbaar. De echte game toont bij ontbrekende
+- Migratie 0170 is uitgevoerd in PGlite met nagebouwde noodzakelijke basistabellen.
+  Volgens de eigenaar is hij op 17 september 2026 op de gekoppelde
+  Supabase-database uitgevoerd; dat is niet vanuit deze repo gecontroleerd. Geen
+  Docker of volledige lokale Supabase beschikbaar. De echte game toont bij ontbrekende
   tabellen 'nog niet beschikbaar', zodat voorkeuren nooit worden overgeslagen.
 - Fysieke telefoons, iOS/Safari, lange sessies op echte hardware en het doel van
   minimaal 30 fps zijn niet gemeten. De mobiele browserchecks zijn emulatie.
-- Voer migratie 0170 uit vóór ledengebruik. Privacyversie 2026-09-17-zwbgame vraagt
+- Privacyversie 2026-09-17-zwbgame vraagt
   opnieuw akkoord op de platformverklaring; dit activeert niet automatisch
   de afzonderlijke sportdatatoestemming.
 

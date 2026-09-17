@@ -71,38 +71,60 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
     scene.add(trees);
     const finish = new THREE.Group();
     finish.position.set(bend(course.length), worldY(course.length), -course.length);
-    for (const x of [-5, 5]) { const pole = new THREE.Mesh(geometry(new THREE.BoxGeometry(0.3, 5, 0.3)), material("#ff763f")); pole.position.set(x, 2.5, 0); finish.add(pole); }
-    const banner = new THREE.Mesh(geometry(new THREE.BoxGeometry(10.3, 1, 0.35)), material("#ff763f")); banner.position.y = 5; finish.add(banner);
-    for (let i = 0; i < 20; i++) { const square = new THREE.Mesh(geometry(new THREE.PlaneGeometry(0.5, 1)), material(i % 2 ? "#ffffff" : "#152c2f")); square.rotation.x = -Math.PI / 2; square.position.set(-4.75 + i * 0.5, 0.04, 0); finish.add(square); }
+    for (const x of [-5, 5]) { const pole = new THREE.Mesh(geometry(new THREE.BoxGeometry(0.3, 5, 0.3)), material("#c9974a")); pole.position.set(x, 2.5, 0); finish.add(pole); }
+    const banner = new THREE.Mesh(geometry(new THREE.BoxGeometry(10.3, 1, 0.35)), material("#004653")); banner.position.y = 5; finish.add(banner);
+    for (let i = 0; i < 20; i++) { const square = new THREE.Mesh(geometry(new THREE.PlaneGeometry(0.5, 1)), material(i % 2 ? "#ffffff" : "#0a2b34")); square.rotation.x = -Math.PI / 2; square.position.set(-4.75 + i * 0.5, 0.04, 0); finish.add(square); }
     scene.add(finish);
     // Each anatomical/bicycle part is instanced across the peloton: ~14 draws, not 24 × 14.
     const wheelGeo = geometry(new THREE.TorusGeometry(0.34, 0.045, 5, 14));
     const bodyGeo = geometry(new THREE.BoxGeometry(0.42, 0.34, 0.65));
     const helmetGeo = geometry(new THREE.SphereGeometry(0.2, 8, 6));
     const tubeGeo = geometry(new THREE.CylinderGeometry(0.055, 0.055, 1, 5));
-    const skin = material("#d7a887"), dark = material("#172e38"), orange = material("#fa8545"), kit = material("#213c47");
+    // Club jersey: white shoulders, petrol body with slate chevrons, gold collar and cuffs.
+    const jerseyCanvas = document.createElement("canvas");
+    jerseyCanvas.width = 64; jerseyCanvas.height = 128;
+    const paint = jerseyCanvas.getContext("2d");
+    if (paint) {
+      const band = (y: number, color: string) => { paint.fillStyle = color; paint.beginPath(); paint.moveTo(0, y); paint.lineTo(32, y + 18); paint.lineTo(64, y); paint.lineTo(64, 128); paint.lineTo(0, 128); paint.fill(); };
+      paint.fillStyle = "#ffffff"; paint.fillRect(0, 0, 64, 128);
+      band(56, "#6f8f96"); band(68, "#4d767f"); band(80, "#2f6470"); band(92, "#185663"); band(104, "#0b4654");
+      paint.fillStyle = "#c9974a"; paint.fillRect(10, 40, 44, 5);
+      paint.fillStyle = "#0b3a45"; paint.fillRect(0, 64, 5, 64); paint.fillRect(59, 64, 5, 64);
+      paint.fillStyle = "#15191b"; paint.fillRect(0, 120, 64, 8);
+    }
+    const jerseyTexture = new THREE.CanvasTexture(jerseyCanvas);
+    jerseyTexture.colorSpace = THREE.SRGBColorSpace;
+    const kit = new THREE.MeshStandardMaterial({ map: jerseyTexture, roughness: 0.85 }); materials.push(kit);
+    const skin = material("#d7a887"), shorts = material("#15191b"), bikeFrame = material("#e6e9e6"), tyre = material("#1b1f22"), gold = material("#c9974a"), white = material("#f4f5f1"), helmet = material("#004653");
     type Part = { mesh: THREE.InstancedMesh; x: number; y: number; z: number; sx: number; sy: number; sz: number; rx: number; rz: number; pedal?: number };
     const parts: Part[] = [];
     const addPart = (g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0, pedal?: number) => {
       const mesh = new THREE.InstancedMesh(g, m, riderCount); mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; scene.add(mesh);
       parts.push({ mesh, x, y, z, sx, sy, sz, rx, rz, pedal });
     };
-    addPart(wheelGeo, dark, 0, 0.36, -0.58);
-    addPart(wheelGeo, dark, 0, 0.36, 0.58);
+    addPart(wheelGeo, tyre, 0, 0.36, -0.58);
+    addPart(wheelGeo, tyre, 0, 0.36, 0.58);
     // Torus default normal is Z; rotate the geometry once into bicycle wheel planes.
     wheelGeo.rotateY(Math.PI / 2);
-    addPart(tubeGeo, orange, 0, 0.55, 0, 1, 1.2, 1, Math.PI / 2);
-    addPart(tubeGeo, orange, 0, 0.65, -0.48, 1, 0.65, 1, -0.3);
-    addPart(tubeGeo, orange, 0, 0.69, 0.18, 1, 0.7, 1, 0.5);
+    addPart(tubeGeo, bikeFrame, 0, 0.55, 0, 1, 1.2, 1, Math.PI / 2);
+    addPart(tubeGeo, bikeFrame, 0, 0.65, -0.48, 1, 0.65, 1, -0.3);
+    addPart(tubeGeo, bikeFrame, 0, 0.69, 0.18, 1, 0.7, 1, 0.5);
     addPart(bodyGeo, kit, 0, 1.15, 0.04, 1, 1, 1, 0.3);
-    addPart(bodyGeo, orange, 0, 1.22, -0.14, 1.02, 0.25, 0.5, 0.3);
-    addPart(helmetGeo, orange, 0, 1.43, -0.4, 1, 0.8, 1.2);
+    addPart(bodyGeo, gold, 0, 1.3, -0.3, 0.45, 0.14, 0.1, 0.3);
+    addPart(helmetGeo, helmet, 0, 1.43, -0.4, 1, 0.8, 1.2);
+    // Arms run from the shoulder (top) down to the bars; the sleeve covers the top part.
+    const arm = -0.6, along = (t: number) => [Math.cos(arm) * t, Math.sin(arm) * t] as const;
     for (const side of [-1, 1]) {
-      addPart(tubeGeo, skin, side * 0.2, 1.0, -0.43, 1, 0.42, 1, -0.6);
-      addPart(tubeGeo, dark, side * 0.13, 0.72, 0.14, 1.6, 0.55, 1.6, 0.5, 0, side);
+      addPart(tubeGeo, skin, side * 0.2, 1.0, -0.43, 1, 0.42, 1, arm);
+      const [sy, sz] = along(0.13), [cy, cz] = along(0.05);
+      addPart(tubeGeo, white, side * 0.2, 1.0 + sy, -0.43 + sz, 1.6, 0.17, 1.6, arm);
+      addPart(tubeGeo, gold, side * 0.2, 1.0 + cy, -0.43 + cz, 1.65, 0.035, 1.65, arm);
+      addPart(tubeGeo, shorts, side * 0.13, 0.72, 0.14, 1.6, 0.55, 1.6, 0.5, 0, side);
     }
-    const playerMarker = new THREE.Mesh(geometry(new THREE.RingGeometry(0.8, 0.97, 24)), new THREE.MeshBasicMaterial({ color: "#b5ef65", side: THREE.DoubleSide }));
+    const playerMarker = new THREE.Mesh(geometry(new THREE.RingGeometry(0.8, 0.97, 24)), new THREE.MeshBasicMaterial({ color: "#d2a95f", side: THREE.DoubleSide }));
     materials.push(playerMarker.material); playerMarker.rotation.x = -Math.PI / 2; scene.add(playerMarker);
+    const helperMarkers = new THREE.InstancedMesh(geometry(new THREE.RingGeometry(0.6, 0.72, 20)), material("#8fc4cc"), riderCount);
+    helperMarkers.instanceMatrix.setUsage(THREE.DynamicDrawUsage); helperMarkers.frustumCulled = false; scene.add(helperMarkers);
     const parent = new THREE.Object3D(), local = new THREE.Object3D(), matrix = new THREE.Matrix4();
     const desiredCamera = new THREE.Vector3(), look = new THREE.Vector3();
     const resize = () => { const { width, height } = element.getBoundingClientRect(); renderer.setSize(width, height, false); camera.aspect = width / Math.max(1, height); camera.updateProjectionMatrix(); };
@@ -133,6 +155,8 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
         parent.rotation.set(-Math.atan(terrainGrade(d)), -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0);
         parent.scale.setScalar(r.rider.id === current.state.config.playerId ? 1.15 : 1);
         parent.updateMatrix();
+        const helping = r.captainId === current.state.config.playerId;
+        dummy.position.set(bend(d) + position.lane, worldY(d) + 0.035, -d); dummy.rotation.set(-Math.PI / 2, 0, 0); dummy.scale.setScalar(helping ? 1 : 0); dummy.updateMatrix(); helperMarkers.setMatrixAt(i, dummy.matrix);
         for (const part of parts) {
           local.position.set(part.x, part.y, part.z);
           local.rotation.set(part.rx + (part.pedal ? Math.sin(displayedTick * 0.5 + i) * 0.55 * part.pedal : 0), 0, part.rz);
@@ -140,6 +164,7 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
         }
       });
       for (const part of parts) part.mesh.instanceMatrix.needsUpdate = true;
+      helperMarkers.instanceMatrix.needsUpdate = true;
       playerMarker.position.set(focusX + displayed.get(me.rider.id)!.lane, focusY + 0.04, -focus);
       if (!document.hidden) renderer.render(scene, camera);
       frame = requestAnimationFrame(render);
@@ -151,12 +176,12 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
     return () => {
       disposed = true; cancelAnimationFrame(frame); observer.disconnect();
       renderer.domElement.removeEventListener("webglcontextlost", lost);
-      parts.forEach((part) => part.mesh.dispose()); markers.dispose(); trees.dispose();
+      parts.forEach((part) => part.mesh.dispose()); markers.dispose(); trees.dispose(); helperMarkers.dispose(); jerseyTexture.dispose();
       geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose());
       renderer.dispose(); renderer.domElement.remove();
     };
   }, [courseId, riderCount, lowQuality]);
   return <div ref={host} style={{ position: "absolute", inset: 0 }}>
-    {failed && <div style={{ position: "absolute", inset: 0, background: "#183b41", display: "grid", placeItems: "center", color: "white", padding: 24 }} role="status">3D is niet beschikbaar. Gebruik het koersoverzicht en de bediening.</div>}
+    {failed && <div style={{ position: "absolute", inset: 0, background: "#0b3a45", display: "grid", placeItems: "center", color: "white", padding: 24 }} role="status">3D is niet beschikbaar. Gebruik het koersoverzicht en de bediening.</div>}
   </div>;
 }

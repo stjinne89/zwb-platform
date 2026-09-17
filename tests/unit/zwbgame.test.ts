@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCommand, botCommands, createRace, standings, stepRace, STEP_SECONDS } from "@/lib/zwbgame/engine";
+import { applyCommand, botCommands, conditionsAt, createRace, helpersOf, standings, stepRace, STEP_SECONDS } from "@/lib/zwbgame/engine";
 import { COURSES } from "@/lib/zwbgame/courses";
 import { basicRider, buildRoster, deriveRider, isAllowedActivity } from "@/lib/zwbgame/roster";
 import { restoreRace, serializeRace } from "@/lib/zwbgame/storage";
@@ -90,6 +90,75 @@ describe("ZWBgame simulation", () => {
     const time = a.finishTime; stepRace(state); expect(a.finishTime).toBe(time);
   });
 });
+describe("ZWBgame teams, cards and variation", () => {
+  // 24 riders from FTP 180 to 387; "r00" is the weakest.
+  const field = Array.from({ length: 24 }, (_, i) => deriveRider(`r${String(i).padStart(2, "0")}`, `R${i}`, { ftp: 180 + i * 9, weight: 72 }, "manual", "v1"));
+  const strength = (id: string) => Number(id.slice(1));
+  it("gives the weakest riders helpers from the middle and lets the strongest ride alone", () => {
+    const state = createRace({ courseId: "polder", seed: 5, playerId: "r00" }, field);
+    expect(helpersOf(state, "r00")).toHaveLength(3);
+    const helpers = state.riders.filter((r) => r.captainId);
+    expect(helpers.length).toBeLessThanOrEqual(8);
+    for (const helper of helpers) {
+      expect(strength(helper.rider.id)).toBeLessThan(16);
+      expect(strength(helper.captainId!)).toBeLessThan(8);
+      expect(helpersOf(state, helper.rider.id)).toHaveLength(0);
+    }
+    expect(state.riders.filter((r) => strength(r.rider.id) >= 16).every((r) => !r.captainId && !helpersOf(state, r.rider.id).length)).toBe(true);
+    const equal = create();
+    expect(equal.riders.every((r) => r.captainId === null && r.cards.length === 2)).toBe(true);
+    const weakest = state.riders.find((r) => r.rider.id === "r00")!, strongest = state.riders.find((r) => r.rider.id === "r23")!;
+    expect(weakest.cards.length).toBeGreaterThan(strongest.cards.length);
+  });
+  it("a helper's wheel costs less energy than a stranger's", () => {
+    const energyBehind = (helper: boolean) => {
+      const state = createRace({ courseId: "polder", seed: 5, playerId: "r00" }, field);
+      state.riders.forEach((r, i) => { r.distance = 2000 + i * 40; r.lane = 0; r.captainId = null; });
+      const me = state.riders.find((r) => r.rider.id === "r00")!, front = state.riders.find((r) => r.rider.id === "r10")!;
+      me.distance = 500; front.distance = 504; front.tactic = "pull";
+      if (helper) front.captainId = "r00";
+      for (let i = 0; i < 50; i++) stepRace(state, [], () => []);
+      return me.maxEnergy - me.energy;
+    };
+    expect(energyBehind(true)).toBeLessThan(energyBehind(false));
+  });
+  it("cards are single use, instant cards apply at once and timed cards expire", () => {
+    const state = create(); const me = state.riders.find((r) => r.rider.id === "0")!;
+    me.cards = ["legs", "tailwind", "surprise"]; me.reserve = 10;
+    applyCommand(me, { type: "card", card: "legs" });
+    expect(me.reserve).toBe(100); expect(me.cards).toEqual(["tailwind", "surprise"]);
+    applyCommand(me, { type: "card", card: "legs" }); expect(me.cards).toHaveLength(2);
+    applyCommand(me, { type: "card", card: "tailwind" });
+    expect(me.boost?.card).toBe("tailwind");
+    applyCommand(me, { type: "card", card: "surprise" });
+    expect(me.cards).toEqual(["surprise"]);
+    for (let i = 0; i < 101; i++) stepRace(state, [], () => []);
+    expect(me.boost).toBeNull();
+  });
+  it("drinking matters over a race distance", () => {
+    const ride = (drink: boolean) => {
+      const state = createRace({ courseId: "polder", seed: 9, playerId: "0" }, roster);
+      const me = state.riders.find((r) => r.rider.id === "0")!;
+      while (me.finishTime === null && !state.finished) {
+        const commands: PlayerCommand[] = [{ type: "effort", value: 0.8 }];
+        if (drink && me.hydration < 50) commands.push({ type: "drink" });
+        stepRace(state, commands, () => []);
+      }
+      return me.finishTime!;
+    };
+    expect(ride(true)).toBeLessThan(ride(false) - 5);
+  });
+  it("wind differs per race on the same course", () => {
+    const winds = [1, 2, 3, 4].map((seed) => conditionsAt({ courseId: "polder", seed, playerId: "0" }, 3000).wind);
+    expect(new Set(winds.map((w) => w.toFixed(2))).size).toBeGreaterThan(2);
+  });
+  it("equal play favours strength without deciding every race", () => {
+    const winners: number[] = [];
+    for (let seed = 1; seed <= 16; seed++) winners.push(strength(standings(run(createRace({ courseId: "polder", seed: seed * 7919, playerId: "r00" }, field)))[0].rider.id));
+    expect(new Set(winners).size).toBeGreaterThanOrEqual(5);
+    expect(winners.filter((w) => w >= 12).length).toBeGreaterThan(winners.filter((w) => w < 12).length);
+  });
+});
 describe("ZWBgame roster and data boundaries", () => {
   it("deduplicates claims and Zwift ids without resurrecting hidden/pending members", () => {
     const members = [{ id: "a", display_name: "A", zwift_id: "1", is_approved: true }, { id: "b", display_name: "B", zwift_id: "2", is_approved: false }];
@@ -120,6 +189,8 @@ describe("ZWBgame roster and data boundaries", () => {
     expect(restoreRace(text, roster, "0", Date.now() + 8 * 86400000)).toBeNull();
     expect(restoreRace("invalid", roster, "0")).toBeNull();
     expect(restoreRace(JSON.stringify({ ...JSON.parse(text), tick: -1 }), roster, "0")).toBeNull();
+    const saved = JSON.parse(text); saved.riders[1].captainId = "nobody";
+    expect(restoreRace(JSON.stringify(saved), roster, "0")).toBeNull();
   });
   it("drops a revoked or changed sport profile when resuming", () => {
     const riders = [deriveRider("0", "Renner 0", { ftp: 350, weight: 75 }, "manual", "old"), ...roster.slice(1)];

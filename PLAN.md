@@ -1,10 +1,41 @@
 # ZWB Platform — Plan & Status
 
+> **ZWBgame balans en clubkleuren, 2026-09-17 — gebouwd, lokaal getest.**
+> Implementatiecommit volgt in de commit van deze tekst. Geen migratie. De eigenaar
+> bevestigde "gelijkwaardige kans": slim spelen kan een sterkere renner verslaan,
+> bij gelijk spel wint de sterkere vaker. Het spel was te voorspelbaar (in de
+> simulatie won de top 3 in 64–81% van de races, de zwakste helft nooit) en
+> drinken deed er nauwelijks toe. Daarom: dagvorm ±6% per renner, wind per race,
+> bots met een eigen karakter (agressie, afstand van de laatste aanval, aanvallen
+> volgen, gespreide beslissingen), hydratatie die onder 40 vertraagt, en op
+> voorstel van de eigenaar Flamme Rouge-achtige bonuskaarten (Rugwind, Goede
+> benen, Tweede adem, Verrassingsaanval) plus knechten: het zwakste derde krijgt
+> 1–3 clubgenoten uit de middenmoot die uit de wind houden, gaten dichtrijden en
+> een lead-out rijden; het sterkste derde rijdt altijd alleen. Energiecompensatie
+> ging van ×60 naar ×50 omdat knechten en kaarten nu meehelpen. Na afloop won de
+> top 3 in 35–57% van de races, de zwakste helft in 1–9%, en eindigde de zwakste
+> renner gemiddeld rond plek 11–13. Spelversie 2: lopende versie-1-races zijn
+> niet hervatbaar, uitslagen blijven. Interface in petrol en goud in plaats van
+> limoengroen, renners in het clubshirt (wit met gouden streep, petrol chevrons,
+> gouden kraag/mouwranden), witte fiets, petrol helm.
+> **Bewust niet gebouwd:** negatieve kaarten of pech (lekke band, val), omdat die
+> vooral frustreren zonder keuze voor de speler; waaiers bij zijwind, omdat de
+> slipstreamregels daarvoor eerst positie in het peloton moeten kennen; logo's
+> van sponsors op het shirt, omdat ze op deze schaal onleesbaar zijn en
+> merkrechten vragen. Bot-kopmannen winnen in de simulatie vrijwel nooit (0–3%);
+> knechten brengen ze wel van achteraan naar de middenmoot. Voor de speler is dat
+> bewust genoeg: die kan zelf timen.
+> Verificatie: 23 game-unit-tests, alle 8 browsertests (desktop en mobiel),
+> TypeScript, ESLint en productiebuild; 3D-shirt visueel gecontroleerd in de lokale
+> demo. Niet gemeten: speelgevoel op een echte telefoon en fps met de extra
+> onderdelen. Details: [ZWBgame](docs/zwbgame.md).
+
 > **ZWBgame, 2026-09-17 — eerste solo-versie gebouwd.**
 > Bronimplementatiecommit `1dc12ae`, geïntegreerd op main-basis `1bbca1f`.
 > Integratiecommit op main: `2d54ddd`. Migratie `0170` voegt afzonderlijke speltoestemming, afgeleide
 > rennerprofielen en rosteruitsluitingen toe. `/zwbgame` biedt drie parcoursen,
-> een instanced 3D-peloton, tactiek, voeding, hydratatie, energie-/herstelcompensatie,
+> een instanced 3D-peloton, tactiek, voeding, hydratatie, energie-/herstelcompensatie
+> (sinds de balansronde hieronder ook knechten en bonuskaarten),
 > lokale raceopslag en uitslagen. Echte kracht blijft verschil maken: beter spelen
 > kan een sterkere renner verslaan; gelijke winkansen bij gelijk spel zijn bewust
 > geen uitgangspunt. Intervals vereist herleidbare, niet-Strava-bronnen; eigen
@@ -13,7 +44,8 @@
 > Privacyversie `2026-09-17-zwbgame` is toegevoegd; sportdata blijft afzonderlijk opt-in.
 > Verificatie: 34 gerichte unit/SQL/privacy-tests, 8 browserchecks op desktop- en
 > mobielviewport, TypeScript, gerichte ESLint en productiebuild geslaagd.
-> **Migratie alleen in PGlite getest; niet op Supabase toegepast.** Echte
+> Migratie getest in PGlite; volgens de eigenaar op 2026-09-17 op Supabase
+> uitgevoerd (niet vanuit de repo gecontroleerd). Echte
 > Intervals-herkomstvelden en fysieke mobiele prestaties zijn niet geverifieerd.
 > Zonder migratie blijft de ledenroute gesloten. De lokale demo werkt met
 > fictieve renners (`npm run zwbgame:preview`). Push naar `main` is op verzoek
