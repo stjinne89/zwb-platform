@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **ZWBgame kwaliteiten uit platformdata, 2026-09-17 — gebouwd, lokaal getest.**
-> Implementatiecommit volgt. Geen migratie; privacyversie
+> Implementatiecommit `101f617`. Geen migratie; privacyversie
 > `2026-09-17-zwbgame-kracht` (iedereen tekent opnieuw). Aanleiding: in de lobby
 > stond iedereen op 100/100/100. Kwaliteiten kwamen alleen na aparte opt-in plus
 > handmatige invoer, dus het veld bestond uit basisprofielen en de balansronde
