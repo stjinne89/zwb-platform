@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
-> Implementatiecommit volgt. Geen migratie. Melding van de eigenaar: het beeld schokt
+> Implementatiecommit `0c67f4a`. Geen migratie. Melding van de eigenaar: het beeld schokt
 > en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%
 > naar de nieuwste simulatiestap (5 per seconde) en de camera liep daar ook nog achter;
 > nu interpoleert de weergave over elke stap en volgt de camera exact. Groep: een volger
