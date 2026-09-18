@@ -116,7 +116,7 @@ const GUIDES = [
       "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
       "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
-      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet.",
+      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
     ],
   },
   {
@@ -1310,6 +1310,15 @@ export default function HelpPage() {
             uur hebt? Vraag het in de coachchat. De coach kent je schema, je doel
             en de &ldquo;Let op&rdquo;-regels die bij je schema horen, en legt uit
             waarom er staat wat er staat. Hij verandert zelf niets.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hij kent ook je trainingsdata: je laatste ritten met hun belasting, je
+            belasting per week, je FTP, FTP-tests en vermogenscurve, wat je van je
+            schema werkelijk reed, en je CTL, ATL en TSB als je intervals.icu hebt
+            gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
+            of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
+            uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
+            (IF) rekenen we alleen uit bij een echte vermogensmeter.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}

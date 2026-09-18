@@ -1,16 +1,21 @@
 // Wat de coach van een lid weet als het een vraag stelt.
 //
-// Dit is het hart van "keuzes onderbouwen". De redenering achter een schema zit
-// op twee plekken: in de "Let op"-regels die de AI zelf bij het plan schreef
-// (training_plans.summary, uit elkaar gehaald door plan-summary.ts), en in de
+// Twee helften. De eerste is "keuzes onderbouwen": de redenering achter een
+// schema zit in de "Let op"-regels die de AI zelf bij het plan schreef
+// (training_plans.summary, uit elkaar gehaald door plan-summary.ts) en in de
 // invoer die het model zag toen het die keuzes maakte
 // (training_ai_generations.prompt_summary). Zonder dat tweede stuk kan de coach
 // alleen herhalen wát er staat, niet waaróm.
 //
-// Alles hieronder komt uit loaders die draft.ts al gebruikt. Bewust geen nieuwe
-// queries en bewust geen live intervals.icu-call: die kost bij elk chatbericht
-// een netwerkronde die kan mislukken, terwijl de CTL/TSB die ertoe doet — die
-// waarop het schema gebouwd is — al in de generatie-invoer staat.
+// De tweede helft is wat het lid werkelijk reed: `trainingsdata`, uit
+// training-data.ts. Die ontbrak in de eerste versie, en daardoor antwoordde de
+// coach op "kun je bij mijn trainingsdata" terecht nee — hij kende alleen de
+// belasting van het moment waarop het schema werd gemaakt.
+//
+// De rest komt uit loaders die draft.ts al gebruikt. Eén netwerkronde is er nu
+// wel: de actuele CTL/ATL/TSB staat nergens in onze database. Die call heeft een
+// eigen tijdbudget en mislukt stil, zodat een trage koppeling nooit het
+// coach-antwoord kost.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { activeBasePlan } from "@/lib/training/active-plan";
@@ -18,6 +23,7 @@ import { availabilityForAi } from "@/lib/training/availability";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { cautionsFromSummary, summaryWithoutCautions } from "@/lib/training/plan-summary";
 import { seasonPlanForAi } from "@/lib/training/season-data";
+import { buildCoachTrainingData, type CoachTrainingData } from "@/lib/training/training-data";
 import { getWellnessSummary } from "@/lib/training/wellness";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -79,10 +85,37 @@ export type CoachChatContext = {
     teZwaar: number;
     opSchema: number;
     gemiddeldeBelastingPct: number | null;
+    /**
+     * Gepland naast gereden, per training. De samenvatting zegt dát er twee
+     * trainingen te licht waren; dit zegt welke, met wat het lid erover schreef.
+     */
+    perTraining: Array<{
+      datum: string;
+      titel: string;
+      geplandeMinuten: number | null;
+      geplandeBelasting: number | null;
+      intensiteit: string;
+      geredenOp: string | null;
+      geredenNaam: string | null;
+      geredenMinuten: number | null;
+      geredenBelasting: number | null;
+      belastingPct: number | null;
+      oordeel: string;
+      rpe: number | null;
+      gevoel: string | null;
+      opmerking: string | null;
+    }>;
   } | null;
+  /** Wat het lid werkelijk reed: ritten, weekbelasting, vermogen en vorm. */
+  trainingsdata: CoachTrainingData | null;
   /** Alleen gevuld als het lid hersteldata deelt. */
   herstel: unknown | null;
 };
+
+/** Hoeveel trainingen er met gepland-naast-gereden meegaan. */
+const COMPLIANCE_DETAIL_LIMIT = 12;
+/** Wat een lid bij een training schreef gaat mee, maar niet onbegrensd. */
+const REPORT_CHARS = 200;
 
 function dayKeyPlus(days: number): string {
   return amsterdamDayKey(new Date(Date.now() + days * 86_400_000));
@@ -185,16 +218,25 @@ export async function buildCoachChatContext(
         .maybeSingle()
     : { data: null };
 
-  // Hersteldata alleen als het lid die deelt. wellness_opt_in staat op de
-  // intervals-koppeling; zonder koppeling is er sowieso niets.
-  const { data: connection } = await admin
+  // Eén keer de koppeling: de sleutels zijn voor de vorm (CTL/ATL/TSB) in de
+  // trainingsdata, wellness_opt_in beslist over de hersteldata daaronder.
+  const { data: connectionRow } = await admin
     .from("intervals_connections")
-    .select("wellness_opt_in")
+    .select("api_key, athlete_id, wellness_opt_in")
     .eq("profile_id", profileId)
     .maybeSingle();
-  const herstel = (connection as { wellness_opt_in: boolean | null } | null)?.wellness_opt_in
-    ? await getWellnessSummary(admin, profileId).catch(() => null)
-    : null;
+  const connection = connectionRow as {
+    api_key: string | null;
+    athlete_id: string | null;
+    wellness_opt_in: boolean | null;
+  } | null;
+
+  const [trainingsdata, herstel] = await Promise.all([
+    buildCoachTrainingData(admin, profileId, connection).catch(() => null),
+    connection?.wellness_opt_in
+      ? getWellnessSummary(admin, profileId).catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   const goal = goalRow as {
     title: string;
@@ -259,8 +301,27 @@ export async function buildCoachChatContext(
           teZwaar: naleving.summary.tooHard,
           opSchema: naleving.summary.onPlan,
           gemiddeldeBelastingPct: naleving.summary.avgLoadPct,
+          perTraining: naleving.workouts.slice(-COMPLIANCE_DETAIL_LIMIT).map((workout) => ({
+            datum: workout.date,
+            titel: workout.title,
+            geplandeMinuten: workout.plannedMinutes,
+            geplandeBelasting: workout.plannedLoad,
+            intensiteit: workout.plannedIntensity,
+            geredenOp: workout.actualDate,
+            geredenNaam: workout.actualName,
+            geredenMinuten: workout.actualMinutes,
+            geredenBelasting: workout.actualLoad,
+            belastingPct: workout.loadPct,
+            oordeel: workout.verdict,
+            rpe: workout.athleteRpe,
+            gevoel: workout.athleteFeel,
+            opmerking: workout.athleteReport
+              ? workout.athleteReport.slice(0, REPORT_CHARS)
+              : null,
+          })),
         }
       : null,
+    trainingsdata,
     herstel,
   };
 }
