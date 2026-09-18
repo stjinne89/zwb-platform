@@ -1,6 +1,7 @@
 # Coachchat in ZWBeter Worden
 
-Achtergrond bij de ronde van 17 september 2026. `PLAN.md` heeft de samenvatting;
+Achtergrond bij de ronde van 17 september 2026, bijgewerkt op 18 september 2026
+toen de coach er de trainingsdata bij kreeg. `PLAN.md` heeft de samenvatting;
 dit stuk bewaart de afwegingen die daar niet in passen.
 
 ## Waarom
@@ -50,12 +51,35 @@ tegenproef dat bestuur `training_plans` wél gewoon leest.
   CTL, de beschikbaarheid en de recente belasting waarop het model zijn keuze baseerde staan
   nergens anders. `athleteName` gaat eruit voordat het opnieuw naar OpenAI gaat.
 - De komende 21 dagen workouts met hun blokken, het actieve doel, de beschikbaarheid, het
-  seizoensplan, en de naleving uit `buildComplianceContext()`.
+  seizoensplan, en de naleving uit `buildComplianceContext()` — sinds 18 september niet meer
+  alleen de samenvatting, maar ook gepland-naast-gereden per training (twaalf stuks), met de
+  RPE en de opmerking die het lid er zelf bij schreef.
 - Hersteldata alleen bij `wellness_opt_in`.
+- **De trainingsdata zelf** (`src/lib/training/training-data.ts`, sinds 18 september 2026): de
+  laatste twaalf ritten met duur, afstand, hoogtemeters, TSS, IF, vermogen en hartslag; de
+  belasting per week over twaalf weken; het rijritme van de laatste vier weken; FTP, gewicht,
+  FTP-tests en het gesynchroniseerde vermogensprofiel; en CTL/ATL/TSB uit intervals.icu. Plus
+  `bron`: wanneer de laatste rit binnenkwam en waar de vorm vandaan komt, zodat de coach kan
+  zeggen hoe vers zijn cijfers zijn in plaats van een oud getal als vandaag te presenteren.
 
-Bewust géén live intervals.icu-call. Die kost bij elk bericht een netwerkronde die kan
-mislukken, en de CTL/TSB die ertoe doet — die waarop het schema is gebouwd — staat al in de
-generatie-invoer.
+De cijfers komen uit dezelfde bronnen als de Belasting- en Vermogen-pagina — TSS uit NP en
+FTP, en alleen bij een echte vermogensmeter — zodat coach en pagina niet uit elkaar lopen.
+
+### Waarom er nu tóch één live call is
+
+De eerste versie zei: *bewust géén live intervals.icu-call, want die kost bij elk bericht een
+netwerkronde die kan mislukken, en de CTL/TSB die ertoe doet — die waarop het schema is gebouwd
+— staat al in de generatie-invoer.* **Dat argument klopt niet meer.** Zodra het lid over zijn
+trainingsdata mag beginnen, gaat de vraag over vandaag en niet over het moment waarop het schema
+werd gemaakt; die CTL kan weken oud zijn, en hem als actueel presenteren is erger dan hem niet
+hebben. CTL/ATL/TSB staan nergens in onze database (`profile_wellness` bewaart herstelwaarden,
+geen belasting), dus de enige bron is intervals.icu.
+
+De bezwaren blijven wel staan, en daarom is de call ingekaderd: hij gebeurt alleen bij een
+koppeling met sleutels, hij heeft een eigen budget van vier seconden (`withBudget()`), en een
+mislukking of een tijdsoverschrijding levert `vorm: null` op in plaats van een fout. De
+systeemprompt zegt dat een leeg veld "we weten het niet" betekent. De POST-route kreeg
+`maxDuration = 30`, gelijk aan de andere AI-routes.
 
 ## De achtergrondcall
 
@@ -109,6 +133,16 @@ Elk antwoord kost geld. Twee remmen, met hetzelfde motief als de vijf-minuten-co
 - **De coach laten schrijven in het schema.** Hij legt uit; wijzigen loopt via `requestReplan()`
   en de bestaande knoppen, met de trainer ertussen.
 - **Clubbrede chat.** Blijft geparkeerd; zie het onderzoeksstuk achter in `PLAN.md`.
+- **Rit-voor-rit-analyse met vermogensbestanden.** De coach krijgt de samenvattende cijfers van
+  een rit, niet de vermogens- of hartslagstreams. Die streams halen we per rit alleen op om
+  zonetijden te vullen (`zone-times-fill.ts`); ze per chatbericht meesturen kost een call per
+  rit en levert een prompt die het venster vult.
+- **Een nieuwe privacyversie voor de trainingsdata in de chat.** De ontvanger (OpenAI), het doel
+  en de categorie (trainingsgegevens) veranderen niet: dezelfde gegevens gingen al mee naar
+  OpenAI bij het opbouwen van een schema. Wat verandert is de detaillering — per rit in plaats
+  van samengevat, inclusief de titel die het lid zelf aan een rit gaf. De tekst op `/privacy` is
+  daarop aangepast zonder versiebump, zodat niet élk lid opnieuw moet tekenen. Wie dat te ruim
+  vindt, zet er een versie bij in `src/lib/privacy.ts`; dat is een beslissing van de eigenaar.
 
 ## Eén ding dat opviel en niet is opgelost
 

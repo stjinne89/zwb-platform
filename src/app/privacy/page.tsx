@@ -146,13 +146,17 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
-            over je schema. Je vraag, het antwoord van de AI-coach en de reacties
-            van je trainer worden bewaard als één doorlopend gesprek. Alleen jij en
-            de trainers die jij hebt aangewezen kunnen het lezen — het bestuur en
-            communitybeheer niet. Je bericht gaat naar OpenAI om het antwoord te
-            maken, samen met je schema, je doel en je belasting. Vink je aan dat een
-            bericht je schema raakt, dan gaat de tekst ook mee naar de eerstvolgende
-            schemaherziening. Je eigen berichten kun je verwijderen; het gesprek
+            over je schema en over je trainingsdata. Je vraag, het antwoord van de
+            AI-coach en de reacties van je trainer worden bewaard als één doorlopend
+            gesprek. Alleen jij en de trainers die jij hebt aangewezen kunnen het
+            lezen — het bestuur en communitybeheer niet. Je bericht gaat naar OpenAI
+            om het antwoord te maken, samen met je schema, je doel, je belasting, je
+            gereden ritten van de laatste drie maanden (met de titel die je er zelf
+            aan gaf, duur, afstand, hoogtemeters, vermogen en hartslag), je FTP,
+            FTP-tests en vermogenscurve, en je CTL/ATL/TSB uit intervals.icu als je
+            die hebt gekoppeld. Je hersteldata gaat alleen mee als je de aparte
+            opt-in aan hebt staan. Vink je aan dat een bericht je schema raakt, dan
+            gaat de tekst ook mee naar de eerstvolgende schemaherziening. Je eigen berichten kun je verwijderen; het gesprek
             staat verder in je data-export en verdwijnt als je je account opheft.
             Zet er geen gegevens in die je niet met je trainer of met OpenAI wilt
             delen.
@@ -257,8 +261,9 @@ export default function PrivacyPage() {
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
             en voor de antwoorden in de coachchat. Meegestuurd worden relevante
-            trainingscontext en, bij de chat, de tekst die je zelf typt; geen
-            directe identificatiegegevens waar vermijdbaar.
+            trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
+            en, bij de chat, de tekst die je zelf typt; geen directe
+            identificatiegegevens waar vermijdbaar.
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}

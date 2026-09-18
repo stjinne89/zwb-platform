@@ -1,5 +1,44 @@
 # ZWB Platform — Plan & Status
 
+> **Coach bij je trainingsdata, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `PENDING`. Geen migratie, geen nieuwe privacyversie (zie hieronder).
+> Melding van de eigenaar: gevraagd of de coach bij zijn trainingsdata kon, en de coach
+> antwoordde van niet. Dat klopte: de coachchat kreeg alleen het schema, de "Let op"-regels
+> en de invoer waarop dat schema was gemaakt — wat er sindsdien gereden was, kende hij niet.
+> **Nu** krijgt de coach er `trainingsdata` bij (`src/lib/training/training-data.ts`): de
+> laatste twaalf ritten met duur, afstand, hoogtemeters, TSS, IF, vermogen en hartslag, de
+> belasting per week over twaalf weken, het rijritme van de laatste vier weken, FTP, gewicht,
+> FTP-tests en het gesynchroniseerde vermogensprofiel, en CTL/ATL/TSB uit intervals.icu. De
+> naleving gaat niet meer alleen als samenvatting mee maar ook per training (gepland naast
+> gereden, met RPE en de opmerking van het lid). De systeemprompt is herschreven: de coach
+> heeft nu twee taken, moet met de cijfers rekenen in plaats van zeggen dat hij ze niet heeft,
+> en moet een leeg veld benoemen in plaats van invullen. De cijfers komen uit dezelfde bronnen
+> als de Belasting- en Vermogen-pagina, zodat coach en pagina hetzelfde zeggen.
+> **Eerdere keuze teruggedraaid:** de coachchat deed bewust géén live intervals.icu-call, omdat
+> "de CTL/TSB die ertoe doet al in de generatie-invoer staat". Dat argument gold voor een coach
+> die alleen het plan uitlegde; bij een vraag over vandaag is die CTL weken oud en presenteren
+> als actueel erger dan hem niet hebben. CTL/ATL/TSB staan nergens in onze database. De call
+> gebeurt nu alleen bij een koppeling met sleutels, binnen een budget van vier seconden, en
+> mislukt stil naar `vorm: null`. `/api/training/chat` kreeg `maxDuration = 30`, gelijk aan de
+> andere AI-routes.
+> **Bewust niet gebouwd:** geen vermogens- of hartslagstreams per rit (een call per rit, en de
+> prompt loopt vol), en geen zelfberekende CTL uit Strava-TSS voor leden zonder intervals.icu
+> (die zou afwijken van het getal dat het lid op zijn eigen Belasting-pagina ziet).
+> **Geen nieuwe privacyversie — beslissing van de eigenaar.** Ontvanger (OpenAI), doel en
+> categorie veranderen niet: dezelfde soort trainingsgegevens ging al mee bij het opbouwen van
+> een schema. Wat verandert is de detaillering: per rit in plaats van samengevat, inclusief de
+> titel die het lid zelf aan een rit gaf. `/privacy` en `/hulp` zijn daarop aangepast zonder
+> versiebump, zodat niet élk lid opnieuw hoeft te tekenen. Wie dat te ruim vindt, zet er een
+> versie bij in `src/lib/privacy.ts`.
+> Verificatie: 1.296 tests geslaagd (16 nieuw: `coach-training-data.test.ts` plus drie in
+> `training-chat-context.test.ts`), `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7 bestaande
+> waarschuwingen, productiebuild geslaagd met placeholder-Supabase-variabelen.
+> `tests/unit/omnium-live.test.ts` draait in een verse clone niet (vraagt `.env.local`); dat is
+> onveranderd.
+> **Niet geverifieerd:** de echte OpenAI-call en de intervals.icu-call (beide niet lokaal te
+> draaien), dus hoe de coach in de praktijk over zijn cijfers praat en hoe vaak het
+> vier-secondenbudget in productie wordt gehaald. Details: [coachchat](docs/coachchat.md).
+
 > **Rustdag in plaats van korte hersteltraining, 2026-09-18 — gebouwd, lokaal getest.**
 > Implementatiecommit `cef3857`. Geen migratie. Melding van de eigenaar: de AI
 > plant vaak lichte hersteltrainingen korter dan 1,5 uur. Oorzaak: de prompt liet de
@@ -131,7 +170,8 @@
 > (élk lid tekent opnieuw). Een lid kan nu in de trainingsruimte vragen waarom zijn schema
 > eruitziet zoals het eruitziet; een AI-coach antwoordt met het schema, de "Let op"-regels en
 > de generatie-invoer als context, en de aangewezen trainer leest het gesprek terug en kan
-> erin reageren. Een bericht dat het lid markeert als "dit raakt mijn schema" start de
+> erin reageren. (Sinds 18 september 2026 krijgt de coach daarnaast de gereden trainingsdata;
+> zie de ronde "Coach bij je trainingsdata".) Een bericht dat het lid markeert als "dit raakt mijn schema" start de
 > bestaande herziening. Inzage is bewust smaller dan de rest van de trainingsmodule: alleen
 > het lid en zijn gekoppelde trainers, niet iedereen met `training.manage_assignments`.
 > Verificatie: 1.206 tests geslaagd, TypeScript, lint (0 fouten, 7 bestaande waarschuwingen)
@@ -1376,6 +1416,9 @@ niet voor niets "bewust tijdelijk".
   component `_components/coach-chat.tsx`, gemodelleerd op de live-chat van een event: realtime
   als gedebouncede ping → refetch, met poll als terugval.
 - `src/lib/training/chat-context.ts` bouwt de context uit loaders die `draft.ts` al gebruikt.
+  *(Niet meer volledig waar sinds 18 september 2026: de context bevat sindsdien ook de gereden
+  trainingsdata uit `training-data.ts`, en doet daarvoor één live intervals.icu-call met een
+  tijdbudget. Zie de ronde "Coach bij je trainingsdata" bovenaan.)*
   Het scharnierpunt is `training_ai_generations.prompt_summary`: de invoer die het model zág
   toen het de keuzes maakte. Zonder dat stuk kan de coach herhalen wát er is besloten, niet
   waaróm. `athleteName` gaat eruit voordat het opnieuw naar OpenAI gaat.

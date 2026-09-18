@@ -23,6 +23,14 @@ import { requestReplan } from "@/lib/training/replan";
 // Een route en geen server action, omdat de chat gepolld wordt — dezelfde
 // uitzondering als de live-chat op een event.
 
+/**
+ * Zelfde ruimte als de andere AI-routes. De POST doet meer dan een insert: de
+ * context lezen, eventueel de vorm bij intervals.icu opvragen en de
+ * achtergrondcall bij OpenAI starten. Zonder deze regel kapt de standaardgrens
+ * dat af, en dan staat het bericht er wél maar komt er nooit een antwoord.
+ */
+export const maxDuration = 30;
+
 /** Geen twee berichten binnen deze tijd van dezelfde afzender. */
 const THROTTLE_MS = 2000;
 /**
