@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Rustdag in plaats van korte hersteltraining, 2026-09-18 — gebouwd, lokaal getest.**
-> Implementatiecommit volgt hieronder. Geen migratie. Melding van de eigenaar: de AI
+> Implementatiecommit `cef3857`. Geen migratie. Melding van de eigenaar: de AI
 > plant vaak lichte hersteltrainingen korter dan 1,5 uur. Oorzaak: de prompt liet de
 > AI het rijritme (`recentLoad.ridesPerWeek`) volgen en herstel inbouwen, maar had
 > geen rustdagregel, dus werd elke hersteldag een korte `recovery`-workout. Zo'n rit
