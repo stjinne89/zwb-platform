@@ -1,5 +1,47 @@
 # ZWB Platform — Plan & Status
 
+> **Aanmelden voor een ZRL-race maakt je lid van dat team, 2026-09-18 — gebouwd, lokaal getest.**
+> Migratie `0171_zrl_availability_team_join.sql`. Wens van de eigenaar: wie zich
+> aanwezig meldt bij een ZRL-race hoort meteen in het team waar die race bij hoort.
+> Dat gebeurde niet. Een race hangt aan één team (`events.team_id`, gevuld door
+> `/beheer/zrl-kalender`), maar een aanmelding landde in `team_event_availability`
+> (teampagina) of `event_rsvps` (racepagina) en daarmee nergens in `team_members`.
+> Het rooster, de opstelling-planner en Voor mij op de kalender lezen juist dat
+> laatste, dus de captain moest iedereen met de hand toevoegen; de teampagina viste
+> de losse namen apart op zodat ze tenminste zichtbaar waren.
+> **Nu:** een `security definer`-trigger op beide tabellen
+> (`join_event_team_for_member`) voegt het lid bij Beschikbaar of Ja toe aan het team
+> van de race, in dezelfde transactie als de aanmelding zelf. In de database en niet
+> in de serveractie, om dezelfde reden als de categorie-seeding in `0070`: twee
+> schrijfpaden naar dezelfde bedoeling, en een lid mag `team_members` niet zelf
+> schrijven (RLS laat alleen beheer toe). De herkomst is een nieuwe
+> `assignment_source`-waarde `event_availability`, zodat de categorie-sync uit `0070`
+> — die alleen `auto_zrl_category` opruimt — deze lidmaatschappen laat staan. Het
+> team is dat van de ráce, niet dat van de pagina waar je stond: een hoofdteam toont
+> ook de races van zijn subteams. De serveracties verversen daarom beide
+> roosterpagina's. Uitleg op `/hulp` onder Teams en wedstrijden.
+> **Grenzen, met reden:** alleen ZRL-races (een Ja op een social met een team eraan
+> is geen toezegging aan een raceteam), alleen goedgekeurde leden (gelijk aan
+> `0070`), Misschien telt niet, en afmelden haalt niemand uit een team — uit een team
+> gaan doe je niet door één race te missen, dat doet een teambeheerder. Een bestaande
+> captainrol blijft staan, en wie de captain uit het team haalde komt niet vanzelf
+> terug: `removeMember()` legt dat vast als seed-override en die wint. De losse
+> namenvangst op de teampagina blijft dus nodig, voor Misschien, voor leden die nog
+> op goedkeuring wachten en voor handmatig verwijderde leden.
+> **Inhaalslag:** bestaande aanmeldingen voor races die nog gereden moeten worden.
+> Bewust niet verder terug: oude seizoenen alsnog in rosters omzetten vult teams van
+> jaren terug opnieuw, en die opstellingen zijn allang gemaakt.
+> **Bewust niet gebouwd:** geen melding bij de knop dat je nu lid bent (het rooster
+> ververst en laat het zien), geen spiegeling van een Ja op de racepagina naar
+> `team_event_availability` (de beschikbaarheidslijst blijft van de teampagina), en
+> geen tijdgrens in de trigger zelf — "je werd niet toegevoegd want de race was al
+> begonnen" is geen regel die iemand kan navertellen.
+> **Niet lokaal te verifiëren:** de migratie tegen de productiedatabase (geen Docker
+> of Supabase hier; met de hand toepassen) en hoeveel bestaande aanmeldingen de
+> inhaalslag raakt. Wel getest: 11 tests tegen PGlite
+> (`tests/unit/zrl-availability-join.test.ts`) over beide paden, de randen en opnieuw
+> draaien, plus TypeScript, ESLint en de build.
+
 > **Rustdag in plaats van korte hersteltraining, 2026-09-18 — gebouwd, lokaal getest.**
 > Implementatiecommit `cef3857`. Geen migratie. Melding van de eigenaar: de AI
 > plant vaak lichte hersteltrainingen korter dan 1,5 uur. Oorzaak: de prompt liet de
