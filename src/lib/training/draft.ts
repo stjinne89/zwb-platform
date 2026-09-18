@@ -17,6 +17,7 @@ import {
 } from "@/lib/training/ai";
 import {
   adaptiveDailyPrompt,
+  dropShortRecoveryRides,
   normalizeWorkoutBlocks,
   planUpdatePrompt,
   resizeBlocks,
@@ -391,7 +392,15 @@ export async function insertPlanWorkouts(
    * Beschikbaarheid als harde grens toepassen. Uit bij een dag-aanpassing: daar
    * geeft het lid zelf op hoeveel tijd het vandaag heeft, en dat mag meer zijn.
    */
-  options: { fitToAvailability?: boolean } = {},
+  options: {
+    fitToAvailability?: boolean;
+    /**
+     * Korte hersteltrainingen als rustdag behandelen; zie dropShortRecoveryRides().
+     * Uit bij een dag-aanpassing: vraagt het lid zelf om een rustig uurtje, dan
+     * hoort het dat ook te krijgen.
+     */
+    shortRecoveryAsRest?: boolean;
+  } = {},
 ) {
   // Testdagen, dagen die het lid heeft vrijgemaakt en dagen waarop al een
   // training is gereden; zie dropWorkoutsOnBlockedDays(). Die laatste omdat een
@@ -424,7 +433,9 @@ export async function insertPlanWorkouts(
           dates[dates.length - 1],
         ).catch(() => null);
 
-  const rows = dropWorkoutsOnBlockedDays(workouts, blockedDays)
+  const planned =
+    options.shortRecoveryAsRest === false ? workouts : dropShortRecoveryRides(workouts);
+  const rows = dropWorkoutsOnBlockedDays(planned, blockedDays)
     // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
     .filter((workout) => Math.round(workout.durationMinutes) >= 1)
     .flatMap((workout) => {
@@ -624,7 +635,7 @@ async function createPlanFromAiGeneration(
     admin,
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
     planDraft.workouts,
-    { fitToAvailability: !memberSetTime },
+    { fitToAvailability: !memberSetTime, shortRecoveryAsRest: !memberSetTime },
   );
 
   // Het openstaande herzieningsverzoek is hiermee ingelost. Alleen wat ouder is

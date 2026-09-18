@@ -957,6 +957,18 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Rustdagen in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een dag zonder training in je schema is een rustdag. Je mag dan
+              helemaal niets doen, of tot 1,5 uur rustig fietsen zonder
+              intensiteit: zone 1 tot lage zone 2, praten moet makkelijk gaan.
+              De planner rekent die rit niet mee in je weekvolume en remt er de
+              dagen erna niet om af. Losse hersteltrainingen korter dan 1,5 uur
+              plant de AI niet meer: die leveren weinig op, en een echte rustdag
+              herstelt beter.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Met <strong className="text-foreground">Aanpassen</strong> op de

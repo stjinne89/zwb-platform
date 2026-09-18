@@ -104,7 +104,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Trainingsdoel en je schema",
     text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
     href: "/hulp#trainingsschema",
-    terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag aanpassen ai",
+    terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag rustdagen hersteltraining herstelrit rustig fietsen aanpassen ai",
   },
   {
     title: "Jaarplan: mikpunten en rustperiodes",

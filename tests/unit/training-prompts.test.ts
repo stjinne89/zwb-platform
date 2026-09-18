@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adaptiveDailyPrompt,
   defaultTrainingPrompt,
+  dropShortRecoveryRides,
   planUpdatePrompt,
 } from "@/lib/training/workouts";
 
@@ -57,5 +58,30 @@ describe("training prompts", () => {
     expect(prompt).toContain("goal.type 'zrl'");
     expect(prompt).toContain("één VO2max-, anaerobe of raceprikkel");
     expect(prompt).toContain("herstelweek of concrete vermoeidheidssignalen");
+  });
+
+  it("plant een rustdag met een optionele rustige rit in plaats van een korte hersteltraining", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Plan geen losse hersteltraining korter dan 90 minuten");
+    expect(prompt).toContain("Reken die optionele rit niet mee in het weekvolume");
+    expect(prompt).toContain("Een korte duurrit is geen hersteltraining");
+  });
+
+  it("ziet de optionele rit op een rustdag niet als extra belasting", () => {
+    expect(adaptiveDailyPrompt()).toContain("de optionele rit van een rustdag");
+    expect(adaptiveDailyPrompt()).toContain("Vraagt het lid met today.availableMinutes zelf om een rit");
+  });
+});
+
+describe("dropShortRecoveryRides", () => {
+  const workout = (intensity: string, durationMinutes: number) => ({ intensity, durationMinutes });
+
+  it("maakt van een korte hersteltraining en een rust-workout een rustdag", () => {
+    expect(dropShortRecoveryRides([workout("recovery", 45), workout("rest", 30)])).toEqual([]);
+  });
+
+  it("laat langere herstelritten en korte duur- en kwaliteitssessies staan", () => {
+    const kept = [workout("recovery", 90), workout("endurance", 45), workout("threshold", 60)];
+    expect(dropShortRecoveryRides(kept)).toEqual(kept);
   });
 });

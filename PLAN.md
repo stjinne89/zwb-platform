@@ -1,5 +1,30 @@
 # ZWB Platform — Plan & Status
 
+> **Rustdag in plaats van korte hersteltraining, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit volgt hieronder. Geen migratie. Melding van de eigenaar: de AI
+> plant vaak lichte hersteltrainingen korter dan 1,5 uur. Oorzaak: de prompt liet de
+> AI het rijritme (`recentLoad.ridesPerWeek`) volgen en herstel inbouwen, maar had
+> geen rustdagregel, dus werd elke hersteldag een korte `recovery`-workout. Zo'n rit
+> geeft een amateur nauwelijks prikkel, telt als gemist wie hem overslaat, en een
+> volledige rustdag herstelt beter. **Nu:** bij opbouwen en bijwerken van een schema
+> plant de AI geen losse hersteltraining onder 90 min maar een lege dag (rustdag).
+> Daarop mag het lid naar keus tot 90 min zonder intensiteit fietsen (Z1 tot lage
+> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel,
+> en de dag-aanpassing behandelt zo'n rit niet als extra belasting. Een rustdag telt
+> als rijdag voor de ritmeregel. Korte duurritten (bijv. 60 min Z2 bij weinig tijd)
+> en openers vóór een race of test blijven: dat is training, geen herstel. Vangnet
+> in code: `dropShortRecoveryRides()` (`workouts.ts`) laat in `insertPlanWorkouts()`
+> `recovery`-workouts onder `OPTIONAL_REST_RIDE_MINUTES` (90) en `rest`-workouts
+> vallen; dat laatste dichtte ook een gat waarbij een `rest`-workout van ≥1 min als
+> training naar intervals.icu ging. Uitleg op `/hulp` (Rustdagen in je schema).
+> **Bewust niet gebouwd:** geen zichtbare rustdagrij met de optionele rit in de
+> kalender of intervals.icu. Die zou als geplande workout op Garmin/Zwift en in de
+> geplande belasting van intervals.icu staan, en maakt de optie weer een
+> opdracht. Bij een dag-aanpassing van het lid (Aanpassen) staat het vangnet uit:
+> wie zelf om een rustig halfuur vraagt, krijgt dat. **Niet geverifieerd:** of het
+> model de regel in de praktijk volgt en of weken met rustdagen het 85%-doel nog
+> halen; dat blijkt pas uit echte generaties.
+
 > **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
 > Implementatiecommit `0c67f4a`. Geen migratie. Melding van de eigenaar: het beeld schokt
 > en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%
