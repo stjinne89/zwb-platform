@@ -1,11 +1,12 @@
 # ZWB Platform — Plan & Status
 
 > **Aanmelden voor een ZRL-race maakt je lid van dat team, 2026-09-18 — gebouwd, lokaal getest.**
-> Migratie `0171_zrl_availability_team_join.sql`. Wens van de eigenaar: wie zich
-> aanwezig meldt bij een ZRL-race hoort meteen in het team waar die race bij hoort.
-> Dat gebeurde niet. Een race hangt aan één team (`events.team_id`, gevuld door
-> `/beheer/zrl-kalender`), maar een aanmelding landde in `team_event_availability`
-> (teampagina) of `event_rsvps` (racepagina) en daarmee nergens in `team_members`.
+> Implementatiecommit `aab17ad`, migratie `0171_zrl_availability_team_join.sql`.
+> Wens van de eigenaar: wie zich aanwezig meldt bij een ZRL-race hoort meteen in
+> het team waar die race bij hoort. Dat gebeurde niet. Een race hangt aan één team
+> (`events.team_id`, gevuld door `/beheer/zrl-kalender`), maar een aanmelding
+> landde in `team_event_availability` (teampagina) of `event_rsvps` (racepagina)
+> en daarmee nergens in `team_members`.
 > Het rooster, de opstelling-planner en Voor mij op de kalender lezen juist dat
 > laatste, dus de captain moest iedereen met de hand toevoegen; de teampagina viste
 > de losse namen apart op zodat ze tenminste zichtbaar waren.
