@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Coach bij je trainingsdata, 2026-09-18 — gebouwd, lokaal getest.**
-> Implementatiecommit `PENDING`. Geen migratie, geen nieuwe privacyversie (zie hieronder).
+> Implementatiecommit `0d76d32`. Geen migratie, geen nieuwe privacyversie (zie hieronder).
 > Melding van de eigenaar: gevraagd of de coach bij zijn trainingsdata kon, en de coach
 > antwoordde van niet. Dat klopte: de coachchat kreeg alleen het schema, de "Let op"-regels
 > en de invoer waarop dat schema was gemaakt — wat er sindsdien gereden was, kende hij niet.
