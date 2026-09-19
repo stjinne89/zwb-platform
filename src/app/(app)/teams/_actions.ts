@@ -85,26 +85,17 @@ export async function syncResultsNow() {
   }
 
   try {
-    const admin = createAdminClient();
-    const { data: zrlSeeded, error: zrlSeedError } = await admin.rpc(
-      "sync_all_zrl_parent_team_memberships",
-    );
-    if (zrlSeedError) throw new Error(zrlSeedError.message);
-    const { data: zrlRosterSeeded, error: zrlRosterSeedError } = await admin.rpc(
-      "sync_zrl_parent_roster_entries",
-    );
-    if (zrlRosterSeedError) throw new Error(zrlRosterSeedError.message);
+    // Geen indeling op categorie meer (migr. 0172), niet voor leden en niet voor
+    // rosternamen: lid word je door je aan te melden voor een race, door je
+    // rosternaam te claimen of doordat een teambeheerder je toevoegt. De
+    // teamkoppeling van een rosternaam komt hieronder uit de bron zelf.
     const summary = await syncTeamResults(supabase);
     revalidatePath("/teams");
     revalidatePath("/dashboard");
     revalidatePath("/");
     return {
       ok: true as const,
-      summary: {
-        ...summary,
-        zrlSeeded: Number(zrlSeeded ?? 0),
-        zrlRosterSeeded: Number(zrlRosterSeeded ?? 0),
-      },
+      summary,
     };
   } catch (err) {
     return {
