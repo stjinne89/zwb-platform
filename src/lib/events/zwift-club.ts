@@ -218,21 +218,26 @@ function entrantName(row: EntrantRow): string {
 }
 
 /** Haalt de inschrijvers per subgroep op en dedupliceert op Zwift-ID. */
-export async function fetchEntrants(subgroupIds: string[]): Promise<ClubEntrant[]> {
+export async function fetchEntrants(subgroupIds: string[], options: { strict?: boolean } = {}): Promise<ClubEntrant[]> {
   const byId = new Map<string, ClubEntrant>();
   for (const subgroupId of subgroupIds) {
     let payload: unknown;
     try {
       payload = await authedJson(entrantsUrl(subgroupId));
-    } catch {
+    } catch (error) {
+      if (options.strict) throw error;
       continue; // Een kapotte subgroep mag de rest niet breken.
     }
     const rows = Array.isArray(payload)
       ? (payload as EntrantRow[])
       : ((payload as { entrants?: EntrantRow[] })?.entrants ?? []);
+    if (options.strict && !Array.isArray(payload) && !(payload && typeof payload === "object" && Array.isArray((payload as { entrants?: unknown }).entrants))) {
+      throw new Error("Onbekend Zwift-startlijstformaat.");
+    }
     for (const row of rows) {
       const zwiftId = String(row.profileId ?? row.id ?? "").trim();
       const name = entrantName(row);
+      if (options.strict && (!/^\d+$/.test(zwiftId) || !name)) throw new Error("Onvolledige Zwift-inschrijving.");
       if (!zwiftId || !name) continue;
       if (!byId.has(zwiftId)) {
         byId.set(zwiftId, {
@@ -244,6 +249,17 @@ export async function fetchEntrants(subgroupIds: string[]): Promise<ClubEntrant[
     }
   }
   return [...byId.values()];
+}
+
+/** Alleen vaste, geautoriseerde leeseindpunten; accepteert nooit een externe URL. */
+export async function fetchZwiftEvent(eventId: string): Promise<unknown> {
+  if (!/^\d+$/.test(eventId)) throw new Error("Ongeldig Zwift-event-ID.");
+  return authedJson(`${apiBase()}/events/${eventId}`);
+}
+
+export async function fetchZwiftRaceResults(eventId: string): Promise<unknown> {
+  if (!/^\d+$/.test(eventId)) throw new Error("Ongeldig Zwift-event-ID.");
+  return authedJson(`${apiBase()}/race-results/entries?event_id=${eventId}`);
 }
 
 async function getMyProfileId(): Promise<string> {

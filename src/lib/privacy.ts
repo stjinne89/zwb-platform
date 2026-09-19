@@ -23,6 +23,9 @@ export const PRIVACY_VERSIONS = [
   "2026-08-18", // gezondheidsgegevens: klachtenlogboek en herstelwaarden
   "2026-09-13", // ZWB-segmentkaart en onderling clubklassement
   "2026-09-15", // ZWBlokken-titels tonen het opgegeven geslacht aan clubleden
+  "2026-09-17", // coachchat: vrije tekst naar OpenAI, gesprek zichtbaar voor de trainer
+  "2026-09-17-zwbgame", // tweede inhoudelijke wijziging vandaag: clubspel + sportdata-opt-in
+  "2026-09-17-zwbgame-kracht", // ZWBgame leidt spelkwaliteiten af uit FTP, gewicht en Intervals-curve van alle leden
 ] as const;
 
 export type PrivacyVersion = (typeof PRIVACY_VERSIONS)[number];

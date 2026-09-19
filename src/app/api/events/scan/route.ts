@@ -8,6 +8,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runEventScan } from "@/lib/events/scan-runner";
+import { syncUpcomingOmniumEntrants } from "@/lib/omnium/zwift-entrants";
 
 export async function POST(request: Request) {
   const expected = process.env.EVENT_SCAN_SECRET;
@@ -22,7 +23,8 @@ export async function POST(request: Request) {
   try {
     const admin = createAdminClient();
     const result = await runEventScan(admin, { follow: true });
-    return Response.json({ ok: !result.error, ...result });
+    const omnium = await syncUpcomingOmniumEntrants(admin);
+    return Response.json({ ...result, omnium, ok: !result.error && omnium.failures.length === 0 });
   } catch (err) {
     return Response.json(
       {

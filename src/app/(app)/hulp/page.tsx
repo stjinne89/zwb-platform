@@ -26,6 +26,7 @@ import {
   TrendingUp,
   UserCircle,
   Users,
+  Utensils,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -57,6 +58,27 @@ const START_STEPS = [
 ];
 
 const GUIDES = [
+  {
+    id: "zwbgame",
+    icon: Bike,
+    title: "ZWBgame — jouw club, jouw koers",
+    bullets: [
+      "Speel via Club → ZWBgame als jezelf tegen maximaal 23 clubgenoten. Kies Polderkoers, Ardennenjacht of Alpenfinale; een race duurt ongeveer 10–15 minuten. Bij een klein roster vullen fictieve gasten het peloton aan.",
+      "Regel je inspanning en kies In het wiel (1), Naar voren (2), Kopwerk (3) of Aanvallen (4). Klik op een renner in het koersoverzicht om diens wiel te kiezen. Is dat wiel verder dan 14 meter weg, dan zoek je eerst beschutting dichterbij. Aanvallen verhoogt je inspanning automatisch; kies daarna een andere tactiek om te herstellen.",
+      "In het wiel spaar je energie en blijf je bij de groep. Valt er een gat tot 150 meter, dan rijd je dat automatisch dicht op een hoger tempo dat energie kost; met meer renners achter je lukt dat sneller. Laat de renner voor je een gat vallen en ben je sterker, dan rijd je er automatisch omheen. Wie je start op 75% inspanning en In het wiel blijft, rijdt mee in het peloton, maar moet voor de finale zelf naar voren. Kopwerk is je gekozen tempo in de wind. Naar voren kost extra inspanning; op steile hellingen verdwijnt het slipstreamvoordeel. Energie, aanvalsreserve en drinken hebben elk invloed op je prestaties. De wind verschilt per race, ook op hetzelfde parcours.",
+      "Neem op tijd een gel (E) of bidon (D). Dat vraagt enkele seconden rustiger rijden. Een gel werkt geleidelijk; drinken vult je hydratatie aan. Zakt je hydratatie onder 40, dan word je langzamer, dus in een hele race moet je meestal drinken. Je begint met twee gels en twee bidons. Halverwege, op 52% van het parcours, krijg je één gel en één bidon erbij.",
+      "Bonuskaarten speel je met de knop of met 5 tot en met 8. Elke kaart werkt één keer. Rugwind haalt 20 seconden de wind weg en maakt rijden goedkoper. Goede benen vult je aanvalsreserve direct. Tweede adem geeft energie en wat vocht. Verrassingsaanval geeft 10 seconden aanvalstempo zonder aanvalsreserve te kosten. Rugwind en Verrassingsaanval lopen niet tegelijk. Iedereen krijgt twee willekeurige kaarten; minder sterke renners krijgen er een of twee extra.",
+      "Ben je duidelijk minder sterk dan de rest van het veld, dan rijden één tot drie clubgenoten als knecht voor je. Ze houden je uit de wind, rijden gaten dicht en trekken je mee zolang je In het wiel rijdt. Het wiel van een knecht spaart meer dan dat van een ander en werkt ook bergop. Knechten raken leeg en zetten in de finale een sprint voor je aan. Knechten komen uit de middenmoot; het sterkste derde van het veld rijdt altijd zonder ploeg. Je knechten staan met een schildje in het koersoverzicht.",
+      "Iedere renner heeft per race een dagvorm tussen -6% en +6%. Je ziet die van jezelf onder de bediening. Bots rijden per race met een eigen karakter: hoe aanvallend ze zijn, wanneer ze hun laatste aanval plaatsen en of ze een ontsnapping volgen.",
+      "Echte kwaliteiten geven krachtsverschillen. Minder sterke renners krijgen vooraf meer energie, sneller herstel, extra kaarten en knechten. Dat verandert niet bij een achterstand. Slim spelen kan een sterkere renner verslaan; bij even goed spelen blijft de sterkere renner vaker winnen, maar niet elke race. Spelkwaliteiten zijn arcade-coëfficiënten, geen watts of trainingadvies.",
+      "Je kwaliteiten komen automatisch uit het platform: de Intervals-vermogenscurve als je die hebt gekoppeld, anders FTP en gewicht uit je profiel. Vlak volgt je FTP in watts, klimmen je watts per kilo en sprint je 15-secondenvermogen. Zonder FTP of gewicht rijd je met een basisprofiel van 100. Rosterleden zonder account rijden altijd met een basisprofiel.",
+      "Via Spelinstellingen kun je herkenbare deelname uitschakelen; dan rijd je niet mee in het peloton van anderen. Kloppen je platformgegevens niet, sla dan een eigen spelprofiel op. Eigen meting vraagt FTP en gewicht; sprint- en korte vermogens zijn optioneel. Met Platformgegevens gebruiken zet je dat terug.",
+      "Een Intervals-spelprofiel gebruikt een 90-dagencurve, met alleen meetpunten waarvan de activiteit een bevestigde toegestane bron heeft. Vul je gewicht zelf in. Een geschikt 20-minutenpunt is nodig; de game schat FTP als 95% daarvan. Onbekende bronnen en Strava-data worden uitgesloten. Bijwerken kan maximaal drie keer per uur. Een eigen spelprofiel vervalt na 30 dagen; daarna gelden weer je platformgegevens. Herkenbare deelname wijzigen wist ook je eigen spelprofiel.",
+      "Pauzeer met de pauzeknop of spatie. Een verborgen tabblad pauzeert automatisch. Hervatten controleert het ledenroster opnieuw; afgemelde leden worden gasten en ingetrokken of gewijzigde sportprofielen worden basisrenners. Per browser en account blijft één race maximaal zeven dagen hervatbaar. Een nieuwe race vervangt de vorige. Uitslagen zijn alleen lokaal en kunnen bij Jouw laatste koersen worden gewist.",
+      "Op een telefoon zijn de knoppen hetzelfde; 3D · zuinig verlaagt de grafische belasting. Zonder WebGL blijven koersoverzicht en bediening bruikbaar. Bij een geblokkeerde browseropslag kun je wel spelen, maar niet betrouwbaar bewaren.",
+      "Beheerders kunnen ongeclaimde rosterleden uitsluiten of weer toevoegen via /zwbgame/beheer. Er is nog geen multiplayer, gedeeld klassement of koppeling met echte GPX-parcoursen.",
+    ],
+  },
   {
     id: "profiel",
     icon: UserCircle,
@@ -94,6 +116,7 @@ const GUIDES = [
       "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
       "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
+      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
     ],
   },
   {
@@ -102,6 +125,7 @@ const GUIDES = [
     title: "Teams en wedstrijden",
     bullets: [
       "Teams tonen leden, rosterkoppelingen en bekende wedstrijdstanden.",
+      "Meld je je beschikbaar voor een ZRL-race, of zeg je Ja op de racepagina, dan sta je meteen in het team waar die race bij hoort. Afmelden haalt je er niet weer uit; dat doet een teambeheerder.",
       "ZRL en Ladder-resultaten worden via bronnen gesynct waar mogelijk.",
       "Ontbrekende brondata kan handmatig worden aangevuld door beheerders.",
     ],
@@ -934,6 +958,18 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Rustdagen in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een dag zonder training in je schema is een rustdag. Je mag dan
+              helemaal niets doen, of tot 1,5 uur rustig fietsen zonder
+              intensiteit: zone 1 tot lage zone 2, praten moet makkelijk gaan.
+              De planner rekent die rit niet mee in je weekvolume en remt er de
+              dagen erna niet om af. Losse hersteltrainingen korter dan 1,5 uur
+              plant de AI niet meer: die leveren weinig op, en een echte rustdag
+              herstelt beter.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Met <strong className="text-foreground">Aanpassen</strong> op de
@@ -1266,6 +1302,44 @@ export default function HelpPage() {
           middelmatige readiness houden je in het middensegment. Je
           ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
         </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Coachchat</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Snap je niet waarom er vandaag negentig minuten staat terwijl je twee
+            uur hebt? Vraag het in de coachchat. De coach kent je schema, je doel
+            en de &ldquo;Let op&rdquo;-regels die bij je schema horen, en legt uit
+            waarom er staat wat er staat. Hij verandert zelf niets.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hij kent ook je trainingsdata: je laatste ritten met hun belasting, je
+            belasting per week, je FTP, FTP-tests en vermogenscurve, wat je van je
+            schema werkelijk reed, en je CTL, ATL en TSB als je intervals.icu hebt
+            gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
+            of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
+            uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
+            (IF) rekenen we alleen uit bij een echte vermogensmeter.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
+            aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
+            de volgende versie van je schema. Handig voor dingen die de app niet
+            kan zien: een week ziek geweest, een doel dat verschuift.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Het gesprek blijft staan en de trainers die jij hebt aangewezen lezen
+            het terug en kunnen erin reageren. Het bestuur niet. Over pijn,
+            blessures of ziekte geeft de coach geen advies — daarvoor ga je naar je
+            trainer of een arts.
+          </p>
+          <Link
+            href="/zwbeter-worden/coach"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open de coachchat
+          </Link>
+        </div>
+
       </section>
 
       <section
@@ -1611,6 +1685,104 @@ Fitness-status: Verbeterend`}
             className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Open Core &amp; mobiliteit
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="voeding"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Utensils className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Voeding</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een kennisbank met bronnen, recepten op maat en elke dag een tip op
+              Vandaag. Alles volgt de consensus- en positiestukken over
+              sportvoeding, met het UCI-positiestandpunt over wielervoeding
+              (2026) als basis.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Hoe je doelen tot stand komen</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Je schema en je ritten van vandaag en morgen bepalen het
+                  dagtype: rust, licht, matig, zwaar, lang of wedstrijd. Duur en
+                  intensiteit tellen, net als in de richtlijnen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Koolhydraten gaan per kilo lichaamsgewicht mee met dat dagtype,
+                  van 3–5 g/kg op een rustdag tot 8–12 g/kg op een lange dag.
+                  Eiwit blijft 1,6–1,8 g/kg. Onderweg reken we per uur, naar de
+                  duur van je rit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Er staat nergens een caloriedoel. ZWB geeft bewust geen
+                  afvaladvies: te weinig eten bij veel trainen schaadt je
+                  gezondheid en je vorm.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Recepten op maat</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Elk ingrediënt heeft een rol. De koolhydraatbron schaalt naar je
+                  koolhydraatdoel voor dat moment, de eiwitbron naar je eiwitdoel,
+                  en de rest schaalt mee met je lengte, gewicht en leeftijd. Geen
+                  onderdeel wordt kleiner dan de helft of groter dan het dubbele.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Zonder gewicht zie je de standaardportie. Je lengte vul je in op
+                  je profiel; alleen jij kunt die zien.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De voedingswaarden komen uit het Nederlands
+                  Voedingsstoffenbestand (NEVO-online 2025/9.0) van het RIVM.
+                  Ontbreekt er een waarde, dan staat er ≥ voor het totaal.
+                </span>
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Grenzen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Dit is algemene sportvoedingsinformatie, geen medisch of
+            diëtistisch advies. Heb je aanhoudende vermoeidheid, vaak blessures,
+            een onregelmatige menstruatie, maag- of darmklachten, of wil je
+            supplementen gebruiken? Ga dan naar een sportarts of
+            sportdiëtist.
+          </p>
+          <Link
+            href="/zwbeter-worden/voeding"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open Voeding
           </Link>
         </div>
       </section>

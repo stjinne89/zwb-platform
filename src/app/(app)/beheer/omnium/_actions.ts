@@ -42,7 +42,8 @@ function revalidateOmnium(editionSlug?: string | null) {
   revalidatePath("/beheer/omnium");
   revalidatePath("/kalender");
   revalidatePath("/omnium");
-  revalidatePath("/omnium/klassement");
+  revalidatePath("/omnium/standings");
+  revalidatePath("/omnium", "layout");
   if (editionSlug) revalidatePath(`/omnium/${editionSlug}`);
 }
 
@@ -52,6 +53,16 @@ export type SeasonInput = {
   startsOn?: string | null;
   endsOn?: string | null;
 };
+
+export async function saveSeasonRules(seasonId: string, rules: string) {
+  const guard = await requireOmniumAccess();
+  if (!guard.ok) return guard;
+  if (typeof rules !== "string" || rules.length > 100_000) return { ok: false as const, error: "Reglement te lang." };
+  const { error } = await guard.admin.from("omnium_seasons").update({ rules_md: rules.trim() || null }).eq("id", seasonId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidateOmnium();
+  return { ok: true as const };
+}
 
 export async function createOmniumSeason(input: SeasonInput) {
   const guard = await requireOmniumAccess();
@@ -65,6 +76,25 @@ export async function createOmniumSeason(input: SeasonInput) {
     return { ok: false as const, error: "Vul een naam in." };
   }
 
+  const findExisting = () =>
+    guard.admin
+      .from("omnium_seasons")
+      .select("id, slug")
+      .eq("slug", slug)
+      .maybeSingle();
+
+  // Het formulier start met de slug van het lopende seizoen. Een tweede klik
+  // hoort daarom dat seizoen te openen en geen databasefout te tonen.
+  const existing = await findExisting();
+  if (existing.error) return { ok: false as const, error: existing.error.message };
+  if (existing.data) {
+    return {
+      ok: true as const,
+      seasonId: existing.data.id as string,
+      seasonSlug: existing.data.slug as string,
+    };
+  }
+
   const { data, error } = await guard.admin
     .from("omnium_seasons")
     .insert({
@@ -73,12 +103,33 @@ export async function createOmniumSeason(input: SeasonInput) {
       starts_on: input.startsOn || null,
       ends_on: input.endsOn || null,
     })
-    .select("id")
+    .select("id, slug")
     .single();
-  if (error) return { ok: false as const, error: error.message };
+  if (error) {
+    // Twee beheerders kunnen dezelfde slug tegelijk aanmaken. Degene die de
+    // unieke index verliest, gebruikt de inmiddels bestaande rij.
+    if (error.code === "23505") {
+      const concurrent = await findExisting();
+      if (concurrent.error) {
+        return { ok: false as const, error: concurrent.error.message };
+      }
+      if (concurrent.data) {
+        return {
+          ok: true as const,
+          seasonId: concurrent.data.id as string,
+          seasonSlug: concurrent.data.slug as string,
+        };
+      }
+    }
+    return { ok: false as const, error: error.message };
+  }
 
   revalidateOmnium();
-  return { ok: true as const, seasonId: data.id as string };
+  return {
+    ok: true as const,
+    seasonId: data.id as string,
+    seasonSlug: data.slug as string,
+  };
 }
 
 /** Publiceren van het seizoen zet de GC-pagina publiek; de edities apart. */

@@ -12,6 +12,7 @@ type HelpResult = {
 };
 
 const HELP_INDEX: HelpResult[] = [
+  { title: "ZWBgame", text: "Spelregels, eten en drinken, tactiek, bonuskaarten, knechten, deelname en sportgegevens.", href: "/hulp#zwbgame", terms: "game spel wielrennen koers race peloton gel bidon energie tactiek bonuskaart kaarten knecht ploeg dagvorm wind ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
   {
     title: "FTP-test",
     text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",
@@ -103,7 +104,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Trainingsdoel en je schema",
     text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
     href: "/hulp#trainingsschema",
-    terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag aanpassen ai",
+    terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag rustdagen hersteltraining herstelrit rustig fietsen aanpassen ai",
   },
   {
     title: "Jaarplan: mikpunten en rustperiodes",
@@ -136,6 +137,13 @@ const HELP_INDEX: HelpResult[] = [
     text: "Beenkracht en eenbenige stabiliteit op een rustdag, zonder belasting.",
     href: "/hulp#kracht",
     terms: "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn",
+  },
+  {
+    title: "Voeding",
+    text: "Kennisbank met bronnen, recepten op maat en een dagelijkse tip.",
+    href: "/hulp#voeding",
+    terms:
+      "voeding eten koolhydraten eiwit recept recepten gel sportdrank herstel nevo reds supplementen cafeine hydratatie drinken zout",
   },
   {
     title: "Core & mobiliteit",

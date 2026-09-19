@@ -54,6 +54,11 @@ const nextConfig: NextConfig = {
   // pushberichten en gedeelde links met de oude URL in omloop.
   async redirects() {
     return [
+      { source: "/omnium/regels", destination: "/omnium/rules", permanent: true },
+      { source: "/omnium/klassement", destination: "/omnium/standings", permanent: true },
+      { source: "/omnium/inschrijven", destination: "/omnium/register", permanent: true },
+      { source: "/omnium/:editie/uitslag", destination: "/omnium/:editie/results", permanent: true },
+      { source: "/omnium/:editie/startlijst", destination: "/omnium/:editie/startlist", permanent: true },
       { source: "/training", destination: "/zwbeter-worden", permanent: true },
       {
         source: "/training/vermogen",

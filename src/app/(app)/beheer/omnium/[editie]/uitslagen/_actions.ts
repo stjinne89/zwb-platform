@@ -4,9 +4,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import {
+  prepareResultInput,
+  checkResultRows,
+  eligibleResultRows,
+  resultKeyResolver,
+} from "@/lib/omnium/result-input";
+import { fetchOmniumResults } from "@/lib/omnium/zwift-results";
+import { leagueMapSchema } from "@/lib/omnium/zwift-mapping";
 import { nameKeyOf, scoreParsedRows } from "@/lib/omnium/import";
 import {
-  parseOmniumResults,
   type ParseIssue,
   type ParseMode,
   type ParsedResultRow,
@@ -35,6 +42,9 @@ export type ImportInput = {
   raw: string;
   mode: ParseMode;
   defaultLeague?: string | null;
+  parsedRows?: ParsedResultRow[];
+  expectedSync?: string | null;
+  final?: boolean;
 };
 
 export type PreviewRow = {
@@ -49,10 +59,11 @@ export type PreviewRow = {
   match: "known" | "new";
   matchedVia: "zwift_id" | "name" | null;
   knownName: string | null;
+  guest: boolean;
 };
 
 export type PreviewOutcome =
-  | { ok: true; rows: PreviewRow[]; issues: ParseIssue[]; newRiders: number }
+  | { ok: true; rows: PreviewRow[]; issues: ParseIssue[]; newRiders: number; syncedAt: string | null; warnings: string[] }
   | Fail;
 
 type RiderLookup = {
@@ -64,6 +75,9 @@ type EditionEvent = {
   id: string;
   edition_id: string;
   discipline: Discipline;
+  entrants_synced_at: string | null;
+  zwift_event_id: string | null;
+  subgroup_leagues: unknown;
   omnium_editions: { season_id: string } | null;
 };
 
@@ -73,7 +87,7 @@ async function loadEditionEvent(
 ): Promise<EditionEvent | null> {
   const { data } = await admin
     .from("omnium_edition_events")
-    .select("id, edition_id, discipline, omnium_editions!inner(season_id)")
+    .select("id, edition_id, discipline, entrants_synced_at, zwift_event_id, subgroup_leagues, omnium_editions!inner(season_id)")
     .eq("id", editionEventId)
     .maybeSingle();
   return (data as unknown as EditionEvent | null) ?? null;
@@ -137,6 +151,7 @@ function matchOf(row: ParsedResultRow, lookup: RiderLookup) {
   if (row.zwiftId) {
     const known = lookup.byZwift.get(row.zwiftId);
     if (known) return { rider: known, via: "zwift_id" as const };
+    return null;
   }
   const known = lookup.byName.get(nameKeyOf(row.name));
   if (known) return { rider: known, via: "name" as const };
@@ -153,13 +168,22 @@ export async function previewOmniumResults(
   const editionEvent = await loadEditionEvent(guard.admin, input.editionEventId);
   if (!editionEvent) return { ok: false, error: "Onderdeel niet gevonden." };
 
-  const { rows, issues } = parseOmniumResults(input.raw, {
-    mode: input.mode,
-    defaultLeague: input.defaultLeague,
-  });
-  if (rows.length === 0) {
-    return { ok: true, rows: [], issues, newRiders: 0 };
-  }
+  let prepared;
+  try { prepared = prepareResultInput(input, editionEvent.discipline); checkResultRows(prepared.rows); }
+  catch (e) { return { ok: false, error: e instanceof Error ? e.message : "Ongeldige uitslag." }; }
+  const { rows, issues } = prepared;
+  const lookup = await lookupRiders(guard.admin, rows);
+  const batchKeyOf = resultKeyResolver(rows);
+  const registration = await registeredRiders(guard.admin, editionEvent);
+  if (!registration.ok) return registration;
+  const identityOf = (row: ParsedResultRow) =>
+    matchOf(row, lookup)?.rider.id ?? batchKeyOf(row);
+  const { eligible, guests } = eligibleResultRows(
+    rows,
+    registration.ids,
+    identityOf,
+  );
+  const guestLines = new Set(guests.map((r) => r.lineNumber));
 
   const { data: season } = await guard.admin
     .from("omnium_seasons")
@@ -168,20 +192,20 @@ export async function previewOmniumResults(
     .maybeSingle();
   const scoring = resolveScoring(season?.scoring);
 
-  const scored = scoreParsedRows(rows, {
+  const scored = scoreParsedRows(eligible, {
     discipline: editionEvent.discipline,
-    mode: input.mode,
+    mode: input.parsedRows ? (editionEvent.discipline === "crit" ? "crit_detailed" : "finish") : input.mode,
     scoring,
+    idOf: identityOf,
   });
   const pointsByKey = new Map(
     scored.map((result) => [result.riderId, result]),
   );
 
-  const lookup = await lookupRiders(guard.admin, rows);
   let newRiders = 0;
 
   const preview: PreviewRow[] = rows.map((row) => {
-    const key = nameKeyOf(row.name);
+    const key = identityOf(row);
     const result = pointsByKey.get(key);
     const known = matchOf(row, lookup);
     if (!known) newRiders += 1;
@@ -196,10 +220,11 @@ export async function previewOmniumResults(
       match: known ? "known" : "new",
       matchedVia: known?.via ?? null,
       knownName: known?.rider.display_name ?? null,
+      guest: guestLines.has(row.lineNumber),
     };
   });
 
-  return { ok: true, rows: preview, issues, newRiders };
+  return { ok: true, rows: preview, issues, newRiders, syncedAt: editionEvent.entrants_synced_at, warnings: registration.ids === null ? ["Geen startlijst beschikbaar: iedereen telt mee."] : [] };
 }
 
 /**
@@ -216,15 +241,17 @@ export async function saveOmniumResults(input: ImportInput) {
   const editionEvent = await loadEditionEvent(guard.admin, input.editionEventId);
   if (!editionEvent) return { ok: false as const, error: "Onderdeel niet gevonden." };
 
-  const { rows } = parseOmniumResults(input.raw, {
-    mode: input.mode,
-    defaultLeague: input.defaultLeague,
-  });
-  if (rows.length === 0) {
-    return { ok: false as const, error: "Geen bruikbare regels gevonden." };
-  }
-
-  const lookup = await lookupRiders(guard.admin, rows);
+  if (input.expectedSync !== undefined && input.expectedSync !== editionEvent.entrants_synced_at) return { ok: false as const, error: "Startlijst gewijzigd; maak opnieuw een voorbeeld." };
+  let prepared;
+  try { prepared = prepareResultInput(input, editionEvent.discipline); checkResultRows(prepared.rows); }
+  catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Ongeldige uitslag." }; }
+  if (prepared.issues.length) return { ok: false as const, error: "Corrigeer eerst de overgeslagen regels." };
+  const lookup = await lookupRiders(guard.admin, prepared.rows);
+  const batchKeyOf = resultKeyResolver(prepared.rows);
+  const registration = await registeredRiders(guard.admin, editionEvent);
+  if (!registration.ok) return registration;
+  const { eligible: rows } = eligibleResultRows(prepared.rows, registration.ids, (r) => matchOf(r, lookup)?.rider.id ?? "");
+  if (!rows.length) return { ok: false as const, error: "Geen meetellende uitslagen." };
 
   // Renners die we nog niet kennen aanmaken, gededupliceerd op naamsleutel.
   const toCreate = new Map<
@@ -233,10 +260,10 @@ export async function saveOmniumResults(input: ImportInput) {
   >();
   for (const row of rows) {
     if (matchOf(row, lookup)) continue;
-    const key = nameKeyOf(row.name);
+    const key = batchKeyOf(row);
     if (toCreate.has(key)) continue;
     toCreate.set(key, {
-      name_key: key,
+      name_key: nameKeyOf(row.name),
       display_name: row.name,
       zwift_id: row.zwiftId,
       team_name: row.teamName,
@@ -284,7 +311,7 @@ export async function saveOmniumResults(input: ImportInput) {
 
   const scored = scoreParsedRows(rows, {
     discipline: editionEvent.discipline,
-    mode: input.mode,
+    mode: input.parsedRows ? (editionEvent.discipline === "crit" ? "crit_detailed" : "finish") : input.mode,
     scoring,
     idOf: riderIdFor,
   });
@@ -297,14 +324,10 @@ export async function saveOmniumResults(input: ImportInput) {
     };
   }
 
-  const { error: clearError } = await guard.admin
-    .from("omnium_results")
-    .delete()
-    .eq("edition_event_id", editionEvent.id);
-  if (clearError) return { ok: false as const, error: clearError.message };
-
-  const { error: insertError } = await guard.admin.from("omnium_results").insert(
-    scored.map((result) => ({
+  const { error: insertError } = await guard.admin.rpc("omnium_replace_results", {
+    p_event_id: editionEvent.id, p_expected_sync: editionEvent.entrants_synced_at,
+    p_state: input.final === false || (input.parsedRows && !input.final) ? "partial" : "final",
+    p_rows:     scored.map((result) => ({
       edition_id: editionEvent.edition_id,
       edition_event_id: editionEvent.id,
       rider_id: result.riderId,
@@ -321,17 +344,11 @@ export async function saveOmniumResults(input: ImportInput) {
       points_raw: result.pointsRaw,
       voided_reason: result.voidedReason,
       matched_via: matchedViaByRider.get(result.riderId) ?? "name",
-      source: "paste",
+      source: input.parsedRows ? "zwift" : input.mode === "sheet_csv" ? "import" : "paste",
       entered_by: guard.userId,
     })),
-  );
+  });
   if (insertError) return { ok: false as const, error: insertError.message };
-
-  const { error: stateError } = await guard.admin
-    .from("omnium_edition_events")
-    .update({ results_state: "final" })
-    .eq("id", editionEvent.id);
-  if (stateError) return { ok: false as const, error: stateError.message };
 
   const recomputed = await recomputeEditionStandings(
     guard.admin,
@@ -374,69 +391,48 @@ export async function mergeRidersAction(input: {
     return { ok: false as const, error: "Kies twee verschillende renners." };
   }
 
-  // De uitslagen verhuizen. Bij een botsing op (edition_event_id, rider_id)
-  // hebben beide rijen dezelfde uitslag; dan wint de bestaande en gooien we de
-  // dubbele weg.
-  const { data: moving } = await guard.admin
-    .from("omnium_results")
-    .select("id, edition_event_id")
-    .eq("rider_id", input.fromRiderId);
-  const { data: existing } = await guard.admin
-    .from("omnium_results")
-    .select("edition_event_id")
-    .eq("rider_id", input.intoRiderId);
+  const { data, error } = await guard.admin.rpc("omnium_merge_riders", {
+    p_from_rider_id: input.fromRiderId,
+    p_into_rider_id: input.intoRiderId,
+  });
+  if (error) return { ok: false as const, error: error.message };
 
-  const taken = new Set(
-    (existing ?? []).map((row) => row.edition_event_id as string),
-  );
-  const editionEvents = new Set<string>();
-
-  for (const row of moving ?? []) {
-    const eventId = row.edition_event_id as string;
-    editionEvents.add(eventId);
-    if (taken.has(eventId)) {
-      const { error } = await guard.admin
-        .from("omnium_results")
-        .delete()
-        .eq("id", row.id as string);
-      if (error) return { ok: false as const, error: error.message };
-      continue;
-    }
-    const { error } = await guard.admin
-      .from("omnium_results")
-      .update({ rider_id: input.intoRiderId })
-      .eq("id", row.id as string);
-    if (error) return { ok: false as const, error: error.message };
+  const affected = Array.isArray(data) ? data : [];
+  for (const editionId of affected) {
+    const result = await recomputeEditionStandings(guard.admin, String(editionId));
+    if (!result.ok) return { ok: false as const, error: result.error };
+    revalidateAfterResults(String(editionId));
   }
 
-  const { error: markError } = await guard.admin
-    .from("omnium_riders")
-    .update({ merged_into_id: input.intoRiderId })
-    .eq("id", input.fromRiderId);
-  if (markError) return { ok: false as const, error: markError.message };
-
-  // Elke editie die dit raakte opnieuw doorrekenen.
-  if (editionEvents.size > 0) {
-    const { data: affected } = await guard.admin
-      .from("omnium_edition_events")
-      .select("edition_id")
-      .in("id", [...editionEvents]);
-    for (const editionId of new Set(
-      (affected ?? []).map((row) => row.edition_id as string),
-    )) {
-      const result = await recomputeEditionStandings(guard.admin, editionId);
-      if (!result.ok) return { ok: false as const, error: result.error };
-      revalidateAfterResults(editionId);
-    }
-  }
-
-  return { ok: true as const, moved: moving?.length ?? 0 };
+  revalidatePath("/beheer/omnium/renners");
+  return { ok: true as const, editions: affected.length };
 }
 
 function revalidateAfterResults(editionId: string) {
-  revalidatePath(`/beheer/omnium/${editionId}`);
-  revalidatePath(`/beheer/omnium/${editionId}/uitslagen`);
-  revalidatePath("/beheer/omnium");
-  revalidatePath("/omnium");
-  revalidatePath("/omnium/klassement");
+  revalidatePath('/beheer/omnium/' + editionId);
+  revalidatePath('/beheer/omnium/' + editionId + '/uitslagen');
+  revalidatePath('/beheer/omnium');
+  revalidatePath('/omnium', 'layout');
+}
+
+async function registeredRiders(admin: Admin, part: EditionEvent): Promise<{ ok: true; ids: Set<string> | null } | Fail> {
+  if (!part.entrants_synced_at) return { ok: true, ids: null };
+  const { data, error } = await admin.from("omnium_entrants").select("rider_id").eq("edition_event_id", part.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, ids: new Set((data ?? []).map((r) => r.rider_id as string)) };
+}
+
+export async function fetchZwiftResultsAction(partId: string) {
+  const guard = await requireOmniumAccess();
+  if (!guard.ok) return guard;
+  const part = await loadEditionEvent(guard.admin, partId);
+  if (!part?.zwift_event_id) return { ok: false as const, error: "Geen Zwift-event-ID ingesteld." };
+  if (part.discipline === "sprint") return { ok: false as const, error: "Sprint Quali blijft handwerk." };
+  try {
+    const result = await fetchOmniumResults(
+      part.zwift_event_id,
+      leagueMapSchema.parse(part.subgroup_leagues),
+    );
+    return { ok: true as const, ...result };
+  } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Zwift ophalen mislukt." }; }
 }

@@ -255,6 +255,23 @@ export async function setTeamAvailability(
   });
   if (error) return { ok: false as const, error: error.message };
 
+  // Beschikbaar melden voor een ZRL-race maakt je lid van het team van die race
+  // (migr. 0171 doet dat in dezelfde transactie). Dat is niet altijd het team
+  // waarvan je de pagina openhebt: een hoofdteam toont ook de races van zijn
+  // subteams. Daarom de rooster-pagina's van beide teams verversen.
+  if (status === "available") {
+    const { data: event } = await supabase
+      .from("events")
+      .select("type, team_id")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (event?.type === "zrl" && event.team_id && event.team_id !== teamId) {
+      revalidatePath(`/teams/${event.team_id}`);
+    }
+    revalidatePath("/teams");
+    revalidatePath("/kalender");
+  }
+
   revalidatePath(`/teams/${teamId}`);
   return { ok: true as const };
 }

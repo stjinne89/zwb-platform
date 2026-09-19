@@ -5,6 +5,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { SeasonPlanner } from "./_components/season-planner";
 import { SeasonCreateForm } from "./_components/season-create-form";
+import { SeasonRules } from "./_components/season-rules";
 import { EditionList, type EditionRow } from "./_components/edition-list";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ type SeasonRow = {
   name: string;
   is_current: boolean;
   published_at: string | null;
+  rules_md: string | null;
 };
 
 export default async function OmniumBeheerPage({
@@ -31,7 +33,7 @@ export default async function OmniumBeheerPage({
 
   const { data: seasonRows } = await supabase
     .from("omnium_seasons")
-    .select("id, slug, name, is_current, published_at")
+    .select("id, slug, name, is_current, published_at, rules_md")
     .order("slug", { ascending: false });
   const seasons = (seasonRows ?? []) as SeasonRow[];
 
@@ -91,6 +93,8 @@ export default async function OmniumBeheerPage({
         <EmptyState>Maak eerst een seizoen aan.</EmptyState>
       ) : (
         <>
+          <div className="flex gap-4"><Link href="/beheer/omnium/prijzen" className="underline">Prijzen</Link><Link href="/beheer/omnium/renners" className="underline">Renners samenvoegen</Link></div>
+          <SeasonRules key={active.id} seasonId={active.id} initial={active.rules_md ?? ""} />
           <section className="space-y-3 rounded-lg border bg-card p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Seizoen plannen

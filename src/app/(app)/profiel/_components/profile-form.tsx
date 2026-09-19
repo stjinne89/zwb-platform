@@ -19,6 +19,7 @@ type Initial = {
   wellness_device: string;
   ftp_watts: string;
   weight_kg: string;
+  height_cm: string;
   auto_sync_physique: boolean;
   bio: string;
   event_type_interests: string[];
@@ -243,6 +244,19 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
           />
           <span className="text-sm">Bijhouden vanuit intervals.icu</span>
         </label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL}>Lengte (cm)</label>
+            <input
+              type="number"
+              name="height_cm"
+              min={120}
+              max={230}
+              defaultValue={initial.height_cm}
+              className={FIELD}
+            />
+          </div>
+        </div>
         <div className="space-y-3 rounded-lg border bg-background p-3">
           <div>
             <label className={LABEL}>Geboortedatum</label>

@@ -113,8 +113,12 @@ export async function recomputeEditionStandings(
 
   // Alleen onderdelen waarvoor daadwerkelijk uitslagen zijn ingevoerd tellen
   // mee; anders zou een lege Crit Royale de stand als compleet markeren.
+  const { data: parts, error: partsError } = await admin.from("omnium_edition_events")
+    .select("discipline, results_state").eq("edition_id", editionId);
+  if (partsError) return { ok: false, error: partsError.message };
   const present = DISCIPLINES.filter((discipline) =>
-    results.some((row) => row.discipline === discipline),
+    results.some((row) => row.discipline === discipline) &&
+    parts?.some((p) => p.discipline === discipline && p.results_state === "final"),
   );
 
   const score = scoreStoredEdition(results, present, scoring);

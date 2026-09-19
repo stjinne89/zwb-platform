@@ -1,5 +1,274 @@
 # ZWB Platform — Plan & Status
 
+> **Aanmelden voor een ZRL-race maakt je lid van dat team, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `aab17ad`, migratie `0171_zrl_availability_team_join.sql`.
+> Wens van de eigenaar: wie zich aanwezig meldt bij een ZRL-race hoort meteen in
+> het team waar die race bij hoort. Dat gebeurde niet. Een race hangt aan één team
+> (`events.team_id`, gevuld door `/beheer/zrl-kalender`), maar een aanmelding
+> landde in `team_event_availability` (teampagina) of `event_rsvps` (racepagina)
+> en daarmee nergens in `team_members`.
+> Het rooster, de opstelling-planner en Voor mij op de kalender lezen juist dat
+> laatste, dus de captain moest iedereen met de hand toevoegen; de teampagina viste
+> de losse namen apart op zodat ze tenminste zichtbaar waren.
+> **Nu:** een `security definer`-trigger op beide tabellen
+> (`join_event_team_for_member`) voegt het lid bij Beschikbaar of Ja toe aan het team
+> van de race, in dezelfde transactie als de aanmelding zelf. In de database en niet
+> in de serveractie, om dezelfde reden als de categorie-seeding in `0070`: twee
+> schrijfpaden naar dezelfde bedoeling, en een lid mag `team_members` niet zelf
+> schrijven (RLS laat alleen beheer toe). De herkomst is een nieuwe
+> `assignment_source`-waarde `event_availability`, zodat de categorie-sync uit `0070`
+> — die alleen `auto_zrl_category` opruimt — deze lidmaatschappen laat staan. Het
+> team is dat van de ráce, niet dat van de pagina waar je stond: een hoofdteam toont
+> ook de races van zijn subteams. De serveracties verversen daarom beide
+> roosterpagina's. Uitleg op `/hulp` onder Teams en wedstrijden.
+> **Grenzen, met reden:** alleen ZRL-races (een Ja op een social met een team eraan
+> is geen toezegging aan een raceteam), alleen goedgekeurde leden (gelijk aan
+> `0070`), Misschien telt niet, en afmelden haalt niemand uit een team — uit een team
+> gaan doe je niet door één race te missen, dat doet een teambeheerder. Een bestaande
+> captainrol blijft staan, en wie de captain uit het team haalde komt niet vanzelf
+> terug: `removeMember()` legt dat vast als seed-override en die wint. De losse
+> namenvangst op de teampagina blijft dus nodig, voor Misschien, voor leden die nog
+> op goedkeuring wachten en voor handmatig verwijderde leden.
+> **Inhaalslag:** bestaande aanmeldingen voor races die nog gereden moeten worden.
+> Bewust niet verder terug: oude seizoenen alsnog in rosters omzetten vult teams van
+> jaren terug opnieuw, en die opstellingen zijn allang gemaakt.
+> **Bewust niet gebouwd:** geen melding bij de knop dat je nu lid bent (het rooster
+> ververst en laat het zien), geen spiegeling van een Ja op de racepagina naar
+> `team_event_availability` (de beschikbaarheidslijst blijft van de teampagina), en
+> geen tijdgrens in de trigger zelf — "je werd niet toegevoegd want de race was al
+> begonnen" is geen regel die iemand kan navertellen.
+> **Niet lokaal te verifiëren:** de migratie tegen de productiedatabase (geen Docker
+> of Supabase hier; met de hand toepassen) en hoeveel bestaande aanmeldingen de
+> inhaalslag raakt. Wel getest: 11 tests tegen PGlite
+> (`tests/unit/zrl-availability-join.test.ts`) over beide paden, de randen en opnieuw
+> draaien, plus TypeScript, ESLint en de build.
+
+> **Coach bij je trainingsdata, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `0d76d32`. Geen migratie, geen nieuwe privacyversie (zie hieronder).
+> Melding van de eigenaar: gevraagd of de coach bij zijn trainingsdata kon, en de coach
+> antwoordde van niet. Dat klopte: de coachchat kreeg alleen het schema, de "Let op"-regels
+> en de invoer waarop dat schema was gemaakt — wat er sindsdien gereden was, kende hij niet.
+> **Nu** krijgt de coach er `trainingsdata` bij (`src/lib/training/training-data.ts`): de
+> laatste twaalf ritten met duur, afstand, hoogtemeters, TSS, IF, vermogen en hartslag, de
+> belasting per week over twaalf weken, het rijritme van de laatste vier weken, FTP, gewicht,
+> FTP-tests en het gesynchroniseerde vermogensprofiel, en CTL/ATL/TSB uit intervals.icu. De
+> naleving gaat niet meer alleen als samenvatting mee maar ook per training (gepland naast
+> gereden, met RPE en de opmerking van het lid). De systeemprompt is herschreven: de coach
+> heeft nu twee taken, moet met de cijfers rekenen in plaats van zeggen dat hij ze niet heeft,
+> en moet een leeg veld benoemen in plaats van invullen. De cijfers komen uit dezelfde bronnen
+> als de Belasting- en Vermogen-pagina, zodat coach en pagina hetzelfde zeggen.
+> **Eerdere keuze teruggedraaid:** de coachchat deed bewust géén live intervals.icu-call, omdat
+> "de CTL/TSB die ertoe doet al in de generatie-invoer staat". Dat argument gold voor een coach
+> die alleen het plan uitlegde; bij een vraag over vandaag is die CTL weken oud en presenteren
+> als actueel erger dan hem niet hebben. CTL/ATL/TSB staan nergens in onze database. De call
+> gebeurt nu alleen bij een koppeling met sleutels, binnen een budget van vier seconden, en
+> mislukt stil naar `vorm: null`. `/api/training/chat` kreeg `maxDuration = 30`, gelijk aan de
+> andere AI-routes.
+> **Bewust niet gebouwd:** geen vermogens- of hartslagstreams per rit (een call per rit, en de
+> prompt loopt vol), en geen zelfberekende CTL uit Strava-TSS voor leden zonder intervals.icu
+> (die zou afwijken van het getal dat het lid op zijn eigen Belasting-pagina ziet).
+> **Geen nieuwe privacyversie — beslissing van de eigenaar.** Ontvanger (OpenAI), doel en
+> categorie veranderen niet: dezelfde soort trainingsgegevens ging al mee bij het opbouwen van
+> een schema. Wat verandert is de detaillering: per rit in plaats van samengevat, inclusief de
+> titel die het lid zelf aan een rit gaf. `/privacy` en `/hulp` zijn daarop aangepast zonder
+> versiebump, zodat niet élk lid opnieuw hoeft te tekenen. Wie dat te ruim vindt, zet er een
+> versie bij in `src/lib/privacy.ts`.
+> Verificatie: 1.296 tests geslaagd (16 nieuw: `coach-training-data.test.ts` plus drie in
+> `training-chat-context.test.ts`), `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7 bestaande
+> waarschuwingen, productiebuild geslaagd met placeholder-Supabase-variabelen.
+> `tests/unit/omnium-live.test.ts` draait in een verse clone niet (vraagt `.env.local`); dat is
+> onveranderd.
+> **Niet geverifieerd:** de echte OpenAI-call en de intervals.icu-call (beide niet lokaal te
+> draaien), dus hoe de coach in de praktijk over zijn cijfers praat en hoe vaak het
+> vier-secondenbudget in productie wordt gehaald. Details: [coachchat](docs/coachchat.md).
+
+> **Rustdag in plaats van korte hersteltraining, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `cef3857`. Geen migratie. Melding van de eigenaar: de AI
+> plant vaak lichte hersteltrainingen korter dan 1,5 uur. Oorzaak: de prompt liet de
+> AI het rijritme (`recentLoad.ridesPerWeek`) volgen en herstel inbouwen, maar had
+> geen rustdagregel, dus werd elke hersteldag een korte `recovery`-workout. Zo'n rit
+> geeft een amateur nauwelijks prikkel, telt als gemist wie hem overslaat, en een
+> volledige rustdag herstelt beter. **Nu:** bij opbouwen en bijwerken van een schema
+> plant de AI geen losse hersteltraining onder 90 min maar een lege dag (rustdag).
+> Daarop mag het lid naar keus tot 90 min zonder intensiteit fietsen (Z1 tot lage
+> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel,
+> en de dag-aanpassing behandelt zo'n rit niet als extra belasting. Een rustdag telt
+> als rijdag voor de ritmeregel. Korte duurritten (bijv. 60 min Z2 bij weinig tijd)
+> en openers vóór een race of test blijven: dat is training, geen herstel. Vangnet
+> in code: `dropShortRecoveryRides()` (`workouts.ts`) laat in `insertPlanWorkouts()`
+> `recovery`-workouts onder `OPTIONAL_REST_RIDE_MINUTES` (90) en `rest`-workouts
+> vallen; dat laatste dichtte ook een gat waarbij een `rest`-workout van ≥1 min als
+> training naar intervals.icu ging. Uitleg op `/hulp` (Rustdagen in je schema).
+> **Bewust niet gebouwd:** geen zichtbare rustdagrij met de optionele rit in de
+> kalender of intervals.icu. Die zou als geplande workout op Garmin/Zwift en in de
+> geplande belasting van intervals.icu staan, en maakt de optie weer een
+> opdracht. Bij een dag-aanpassing van het lid (Aanpassen) staat het vangnet uit:
+> wie zelf om een rustig halfuur vraagt, krijgt dat. **Niet geverifieerd:** of het
+> model de regel in de praktijk volgt en of weken met rustdagen het 85%-doel nog
+> halen; dat blijkt pas uit echte generaties.
+
+> **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
+> Implementatiecommit `0c67f4a`. Geen migratie. Melding van de eigenaar: het beeld schokt
+> en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%
+> naar de nieuwste simulatiestap (5 per seconde) en de camera liep daar ook nog achter;
+> nu interpoleert de weergave over elke stap en volgt de camera exact. Groep: een volger
+> kon nooit harder dan zijn directe voorganger en gaten boven 10 m gingen nooit dicht,
+> dus het veld viel in de eerste minuut uiteen en een speler die in het wiel bleef zat
+> na 7,5 minuut 16–44 s achter. Nu: sterkere slipstream, In het wiel rijdt gaten tot
+> 150 m automatisch dicht (sneller met meer renners erachter), wie sterker is rijdt om
+> een gat-latende renner heen, en iedereen start op 75%. Resultaat: 8–13 s achterstand
+> op de middelste bot in dezelfde situatie; nieuwe regressietest. **Afgewogen keerzijde:**
+> een compact peloton eindigt vaker in een sprint, dus de top 3 wint weer 46–66% (na de
+> balansronde 35–57%). Sprintgeluk is geprobeerd en weggelaten (te weinig effect,
+> onzichtbare willekeur). Niet gemeten op echte telefoons. Details:
+> [ZWBgame](docs/zwbgame.md).
+
+> **ZWBgame kwaliteiten uit platformdata, 2026-09-17 — gebouwd, lokaal getest.**
+> Implementatiecommit `101f617`. Geen migratie; privacyversie
+> `2026-09-17-zwbgame-kracht` (iedereen tekent opnieuw). Aanleiding: in de lobby
+> stond iedereen op 100/100/100. Kwaliteiten kwamen alleen na aparte opt-in plus
+> handmatige invoer, dus het veld bestond uit basisprofielen en de balansronde
+> (compensatie, kaarten, knechten) deed in de praktijk niets. De eigenaar koos uit
+> drie opties voor automatisch voor iedereen, boven opt-in met automatisch
+> invullen en alleen een betere vindbaarheid. Nu: eigen spelprofiel >
+> `rider_power_profiles` (Intervals-sync) > `profiles.ftp_watts`/`weight_kg` >
+> basisprofiel. Vlak = FTP in watts, klimmen = W/kg, sprint = 15 s-vermogen. De
+> sportdata-opt-in in de instellingen is vervangen door een formulier voor een
+> eigen spelprofiel en een knop Platformgegevens gebruiken.
+> **Bewust niet gebouwd:** een aparte opt-out voor dataverwerking (herkenbare
+> deelname uitzetten haalt je uit andermans peloton; daarvoor was geen migratie
+> nodig) en respecteren van per-veld profielzichtbaarheid van FTP/gewicht
+> (`rider_power_profiles` is al voor alle leden leesbaar).
+> **Aanvaard risico:** de platformroute filtert niet op bron; een Intervals-curve
+> kan via Strava geïmporteerde activiteiten bevatten. De eerste versie sloot dat
+> uit vanwege Strava's API-voorwaarden.
+> Verificatie: game-, server- (met mocks), database- en privacytests, 8
+> browsertests, TypeScript, ESLint en build. **Niet geverifieerd:** hoeveel leden
+> echt FTP en gewicht hebben en hoe het veld er daarna uitziet. Details:
+> [ZWBgame](docs/zwbgame.md).
+
+> **ZWBgame balans en clubkleuren, 2026-09-17 — gebouwd, lokaal getest.**
+> Implementatiecommit `b682351`. Geen migratie. De eigenaar
+> bevestigde "gelijkwaardige kans": slim spelen kan een sterkere renner verslaan,
+> bij gelijk spel wint de sterkere vaker. Het spel was te voorspelbaar (in de
+> simulatie won de top 3 in 64–81% van de races, de zwakste helft nooit) en
+> drinken deed er nauwelijks toe. Daarom: dagvorm ±6% per renner, wind per race,
+> bots met een eigen karakter (agressie, afstand van de laatste aanval, aanvallen
+> volgen, gespreide beslissingen), hydratatie die onder 40 vertraagt, en op
+> voorstel van de eigenaar Flamme Rouge-achtige bonuskaarten (Rugwind, Goede
+> benen, Tweede adem, Verrassingsaanval) plus knechten: het zwakste derde krijgt
+> 1–3 clubgenoten uit de middenmoot die uit de wind houden, gaten dichtrijden en
+> een lead-out rijden; het sterkste derde rijdt altijd alleen. Energiecompensatie
+> ging van ×60 naar ×50 omdat knechten en kaarten nu meehelpen. Na afloop (vóór de
+> groepsronde hierboven, die dit weer deels terugdraaide) won de
+> top 3 in 35–57% van de races, de zwakste helft in 1–9%, en eindigde de zwakste
+> renner gemiddeld rond plek 11–13. Spelversie 2: lopende versie-1-races zijn
+> niet hervatbaar, uitslagen blijven. Interface in petrol en goud in plaats van
+> limoengroen, renners in het clubshirt (wit met gouden streep, petrol chevrons,
+> gouden kraag/mouwranden), witte fiets, petrol helm.
+> **Bewust niet gebouwd:** negatieve kaarten of pech (lekke band, val), omdat die
+> vooral frustreren zonder keuze voor de speler; waaiers bij zijwind, omdat de
+> slipstreamregels daarvoor eerst positie in het peloton moeten kennen; logo's
+> van sponsors op het shirt, omdat ze op deze schaal onleesbaar zijn en
+> merkrechten vragen. Bot-kopmannen winnen in de simulatie vrijwel nooit (0–3%);
+> knechten brengen ze wel van achteraan naar de middenmoot. Voor de speler is dat
+> bewust genoeg: die kan zelf timen.
+> Verificatie: 23 game-unit-tests, alle 8 browsertests (desktop en mobiel),
+> TypeScript, ESLint en productiebuild; 3D-shirt visueel gecontroleerd in de lokale
+> demo. Niet gemeten: speelgevoel op een echte telefoon en fps met de extra
+> onderdelen. Details: [ZWBgame](docs/zwbgame.md).
+
+> **ZWBgame, 2026-09-17 — eerste solo-versie gebouwd.**
+> Bronimplementatiecommit `1dc12ae`, geïntegreerd op main-basis `1bbca1f`.
+> Integratiecommit op main: `2d54ddd`. Migratie `0170` voegt afzonderlijke speltoestemming, afgeleide
+> rennerprofielen en rosteruitsluitingen toe. `/zwbgame` biedt drie parcoursen,
+> een instanced 3D-peloton, tactiek, voeding, hydratatie, energie-/herstelcompensatie
+> (sinds de balansronde hieronder ook knechten en bonuskaarten),
+> lokale raceopslag en uitslagen. Echte kracht blijft verschil maken: beter spelen
+> kan een sterkere renner verslaan; gelijke winkansen bij gelijk spel zijn bewust
+> geen uitgangspunt. Een eigen Intervals-spelprofiel vereist herleidbare, niet-Strava-bronnen; eigen
+> metingen zijn afzonderlijke invoer. Geen Strava, wellness, multiplayer, openbaar
+> klassement of GPX-parcoursen gebouwd, om de eerste solo-versie af te bakenen.
+> Privacyversie `2026-09-17-zwbgame` is toegevoegd. De toen afzonderlijke
+> sportdata-opt-in is later dezelfde dag vervangen door automatische
+> platformkwaliteiten (zie de ronde hierboven).
+> Verificatie: 34 gerichte unit/SQL/privacy-tests, 8 browserchecks op desktop- en
+> mobielviewport, TypeScript, gerichte ESLint en productiebuild geslaagd.
+> Migratie getest in PGlite; volgens de eigenaar op 2026-09-17 op Supabase
+> uitgevoerd (niet vanuit de repo gecontroleerd). Echte
+> Intervals-herkomstvelden en fysieke mobiele prestaties zijn niet geverifieerd.
+> Zonder migratie blijft de ledenroute gesloten. De lokale demo werkt met
+> fictieve renners (`npm run zwbgame:preview`). Push naar `main` is op verzoek
+> van de eigenaar toegestaan; bestaande main-functionaliteit is behouden. Details en uitrolvoorwaarden: [ZWBgame](docs/zwbgame.md).
+
+> **Voedingsmodule, 2026-09-17 — gebouwd, migraties nog niet toegepast.**
+> Implementatiecommit `0d0abf3`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
+> met porties op maat (NEVO-online 2025/9.0) en een voedingstip op Vandaag.
+> Migraties `0168` en `0169` zijn alleen tegen PGlite getest, niet op de
+> gekoppelde database; tot ze daar staan, blijven de receptenlijsten leeg. Zie
+> de ronde "Opgeleverd — Voedingsmodule" en `docs/voeding-wielrennen.md`.
+
+> **Coachchat in ZWBeter Worden, 2026-09-17 — opgeleverd.**
+> Implementatiecommit `392a6b8`; migratie `0167` en privacyversie `2026-09-17`
+> (élk lid tekent opnieuw). Een lid kan nu in de trainingsruimte vragen waarom zijn schema
+> eruitziet zoals het eruitziet; een AI-coach antwoordt met het schema, de "Let op"-regels en
+> de generatie-invoer als context, en de aangewezen trainer leest het gesprek terug en kan
+> erin reageren. (Sinds 18 september 2026 krijgt de coach daarnaast de gereden trainingsdata;
+> zie de ronde "Coach bij je trainingsdata".) Een bericht dat het lid markeert als "dit raakt mijn schema" start de
+> bestaande herziening. Inzage is bewust smaller dan de rest van de trainingsmodule: alleen
+> het lid en zijn gekoppelde trainers, niet iedereen met `training.manage_assignments`.
+> Verificatie: 1.206 tests geslaagd, TypeScript, lint (0 fouten, 7 bestaande waarschuwingen)
+> en de productiebuild. Migratie, realtime, push en de OpenAI-call zijn niet lokaal te
+> verifiëren. Details: [coachchat](docs/coachchat.md).
+
+> **Omnium vastlopende seizoenknop, 2026-09-16 — opgelost.**
+> Implementatiecommit `97232b7`; geen migratie. Het
+> beheerformulier gebruikt een eigen laadstatus met foutafhandeling en een
+> time-out van twintig seconden. Na succes volgt één `replace`-navigatie; de
+> dubbele combinatie van transitie, `push` en `refresh` is verwijderd. Daardoor
+> blijft `Bezig…` niet staan bij een Server Action-fout, trage verbinding of
+> navigatie die niet afrondt. Er is bewust geen app-brede aanpassing aan andere
+> formulieren gedaan: de gemelde fout zat in deze Omnium-flow. Verificatie:
+> 1.181 tests geslaagd, 6 optionele live-tests overgeslagen; TypeScript, lint
+> (0 fouten, 7 bestaande waarschuwingen) en de productiebuild zijn geslaagd.
+
+> **Omnium dubbele-seizoenslug, 2026-09-16 — opgelost.**
+> Implementatiecommit `e1c3474`; er is geen migratie nodig. `Seizoen
+> toevoegen` hergebruikt voortaan een bestaand seizoen
+> met dezelfde genormaliseerde slug en vangt ook PostgreSQL-fout `23505` af als
+> twee beheerders de slug gelijktijdig aanmaken. Het formulier navigeert met de
+> slug die de server teruggeeft, zodat hoofdletters en spaties geen verkeerde
+> beheer-URL opleveren. Bestaande naam- en datumvelden worden bewust niet
+> overschreven: een herhaalde klik mag reeds ingerichte seizoensgegevens niet
+> wijzigen. Verificatie: 1.181 tests geslaagd, 6 optionele live-tests
+> overgeslagen; TypeScript, lint (0 fouten, 7 bestaande waarschuwingen) en de
+> productiebuild zijn geslaagd.
+
+> **Omnium editie-1-ronde, 2026-09-15/16 — afgerond en geïntegreerd op main.**
+> Main-integratiecommit `af0a1aa` (oorspronkelijke implementatiecommit
+> `f104302`, basis `c5d344d`); migraties `0157` en
+> `0158` zijn rechtstreeks op de gekoppelde Supabase-database toegepast omdat
+> de oude CLI-migratiehistorie daar niet wordt bijgehouden. Nacontrole en een
+> volledig teruggedraaide productiesmoke bevestigen startlijst/uitslag vervangen,
+> renner samenvoegen, prijs toekennen, unieke kitcode-reservering en afgeschermde
+> codes. De applicatie bevat nu de reglement-editor, Engelse routes plus 308's,
+> Zwift-startlijsten en -uitslagen met gastenfilter, Sheet-CSV, overlay,
+> prijzenbeheer, publieke winnaars en rennersamenvoeging. Verificatie: TypeScript,
+> ESLint, productiebuild, 86 Omnium-tests geslaagd en 6 live-tests overgeslagen;
+> 8 Omnium-E2E-tests geslaagd. Echte Zwift-meting bevestigt subgroepen A–E; het
+> oude testevent gaf geen bewaarde resultaatregels meer. De historische Drive-
+> bron is geïnventariseerd, maar nog niet in productie geïmporteerd: tussen de
+> wedstrijdsheets en Master GC zitten handmatige naam- en leaguecorrecties die
+> eerst als identiteitsmapping moeten worden beoordeeld. Productie bevat nog
+> steeds 1 seizoen en 0 edities/onderdelen/renners/prijzen/kitcodes; event-ID's,
+> A–E-mapping, reglement en prijzeninhoud ontbreken. De actuele main-integratie
+> is opnieuw gecontroleerd met TypeScript, lint (0 fouten), productiebuild,
+> 1.178 geslaagde tests (6 optionele live-tests overgeslagen) en 8 Omnium-E2E-
+> tests. Op 16 september rechtstreeks naar `origin/main` gepusht; een Netlify-
+> deploy is niet afzonderlijk gestart of gecontroleerd.
+> Details: [Omnium-status](docs/omnium-readiness-2026-09-15.md) en
+> [historische import](docs/omnium-historical-import.md).
+
 > Levend document. Bijwerken wanneer er een fase wordt afgerond of een
 > richting verandert. Bedoeld zodat zowel Claude als Codex (en eventuele
 > nieuwe contributors) snel kunnen zien wat klaar is en wat de volgorde is.
@@ -136,7 +405,7 @@ achter dit platform — officieel project, geen experiment.
 chat en kennis samenkomen. Vertrekpunt: PWA op desktop + Android + iOS.
 
 **Stack:**
-- Next.js 15 (App Router, TypeScript) op Vercel/Netlify
+- Next.js 16.2.6 (App Router, TypeScript) op Vercel/Netlify
 - Supabase (Postgres + Auth + Storage + Realtime + RLS)
 - Tailwind v4 + shadcn/ui
 - next-pwa + Web Push API
@@ -1049,6 +1318,214 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Voedingsmodule: kennisbank, recepten op maat en een tip op Vandaag
+
+**2026-09-17, commit `0d0abf3`.** Migraties `0168` (tabellen + RLS) en
+`0169` (seed, gegenereerd). Nog niet toegepast op de gekoppelde database.
+
+**Waarom.** Stijn wilde voeding als onderdeel van ZWBasis. Het moest drie dingen
+worden: een kennisbibliotheek met actuele, navolgbare bronnen, een receptenboek
+dat zich aanpast aan lichaam, komende trainingen en herstel, en een tip op
+Vandaag. Keuzes van Stijn vooraf:
+- Een tab in ZWBeter Worden, geen eigen hoofdmenu.
+- Samengestelde recepten met NEVO-waarden, geen AI-recepten.
+- Gewicht én lengte gebruiken.
+- Alles in één ronde.
+
+**Onderzoek.** `docs/voeding-wielrennen.md`, met alle bronnen en per richtlijn de
+drempel die in de code staat.
+- De ruggengraat is het *UCI Sports Nutrition Project*: het positiestandpunt uit
+  2026 plus de onderliggende reviews.
+- Daarnaast: ACSM/AND/DC 2016, IOC REDs 2023, IOC supplementen 2018, de
+  ISSN-standpunten, en reviews over koolhydraten tijdens de rit (Morton et al.
+  2026, tot 120 g/u), darmtraining en eiwit.
+
+**Wat er is gekomen.**
+- **Pure logica in `src/lib/nutrition/`:**
+  - `library.ts`: 14 artikelen in 5 categorieën, elk met bronnen en een
+    bewijslabel.
+  - `day-type.ts`: dagtypes rust, licht, matig, zwaar, lang en wedstrijd, op duur
+    en intensiteit.
+  - `targets.ts`: g/kg per dag, per moment en per uur op de fiets, plus
+    Mifflin-St Jeor.
+  - `scale.ts`: receptschaling op rol (`kh_bron`/`eiwit_bron`/`vast`), met elke
+    factor tussen 0,5 en 2.
+  - `tips.ts`: negen regels in vaste volgorde.
+  - `recipes.ts`: recepten kiezen en schema/ritten omzetten naar sessies.
+  - `labels.ts`: client-veilige constanten.
+- **Tab Voeding** (`src/app/(app)/zwbeter-worden/voeding/`):
+  - Overzicht met dagdoelen, tip, drie recepten en de kennisbank.
+  - Artikelpagina met bronlinks.
+  - Receptenlijst met filters voor moment en dieet. Die staan alleen in de URL.
+  - Receptpagina met "jouw portie vandaag" of de standaardportie en de
+    NEVO-bronvermelding.
+  - Eigen recepten maken, bewerken en verwijderen, met ingrediënten uit NEVO.
+- **`NutritionTodayCard` op Vandaag, onder de core-kaart.** Die gebruikt
+  `memberWorkouts`, de Strava-ritten van de pagina en
+  `zwbStatus.readiness`/`recoverySummary`. Geen extra schema-queries.
+- **Data:**
+  - `nutrition_foods`: heel NEVO, 2.328 producten, ongewijzigd, lege waarden
+    `null`.
+  - `nutrition_recipes` en `nutrition_recipe_ingredients`: 24 clubrecepten.
+    Eigen recepten zijn privé; clubrecepten schrijven vraagt
+    `training.create_plans`.
+  - `nutrition_profiles`: lengte, alleen voor het lid zelf.
+- **Seed-generator.** `scripts/nutrition/generate-seed.mjs` leest het NEVO-csv en
+  `standard-recipes.json`. Het NEVO-bestand zelf staat niet in de repo. Bij een
+  nieuwe NEVO-versie maak je een nieuwe migratie; `0169` pas je niet aan.
+- **Profiel.** Veld "Lengte (cm)", opgeslagen in `nutrition_profiles`. Staat de
+  tabel er nog niet, dan blokkeert een leeg lengteveld het opslaan niet.
+- **`/hulp#voeding`**, een zoekterm in hulp, en een regel in `/privacy`.
+- **Tests:**
+  - `nutrition-logic`: dagtypes, doelen en schaling.
+  - `nutrition-tips`: volgorde, alle 9 tips, bestaande artikelen, en in 28 dagen
+    × 10 scenario's geen tekst die om minder eten vraagt.
+  - `nutrition-migration` (PGlite): tellingen, idempotentie, checks en RLS voor
+    goedgekeurd, niet-goedgekeurd, eigenaar en ander lid.
+
+**Afwijkingen van het goedgekeurde plan.**
+- **Lengte staat in `nutrition_profiles`, niet op `profiles`.** `profiles` is voor
+  elk ingelogd lid leesbaar (`profiles_select_authenticated`, 0001), dus een kolom
+  daar is via de API voor iedereen op te vragen.
+- **Geen `estimateWorkoutKj`.** De dagbanden in de bronnen zijn in uren en zwaarte
+  geformuleerd, niet in kJ. Een kJ-drempel zou een eigen verzinsel zijn, en een
+  helper die niets gebruikt hoort er niet in.
+- **Heel NEVO geseed in plaats van ~80 producten.** Anders zijn eigen recepten
+  nauwelijks te maken.
+
+**Bewust niet gedaan.**
+- **Geen AI-recepten of AI-tips.** Die kunnen macro's en richtlijnen verzinnen.
+  Dit volgt dezelfde lijn als core/mobiliteit en de pacing-prompt.
+- **Geen vetpercentage, geen kcal-doel, geen afvalfunctie, geen eetdagboek.** Het
+  IOC REDs-consensusstuk waarschuwt juist voor die focus in de wielersport. Een
+  vetpercentage is bovendien gezondheidsinformatie (AVG art. 9).
+- **Geen opgeslagen dieetvoorkeur.** "Glutenvrij" of "lactosevrij" kan een
+  aandoening verraden; het filter leeft alleen in de URL.
+- **Geen voedingsregels per cyclusfase.** Het effect op prestatie is gemiddeld
+  triviaal en verschilt sterk per persoon (McNulty et al. 2020).
+- **Geen beheerscherm voor clubrecepten.** RLS staat het toe; de 24 recepten komen
+  voorlopig uit de seed.
+- **Geen supplementadvies per lid en geen merken.**
+- **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
+  darmtrainingsschema.
+
+**Nieuwe privacytekst, geen eigen privacyversie.** Lengte en eigen recepten
+zijn alleen voor het lid zelf zichtbaar. Er gaat niets naar andere leden of
+derden. De tekst valt onder versie `2026-09-17`, die de coachchat dezelfde dag
+invoerde. Wie die versie tekende vóór deze push, zag de regel over lengte nog
+niet. `src/lib/privacy.ts` vraagt bij een "nieuwe categorie gegevens" wel een
+nieuwe versie. **Stijn beslist**: een extra versie laat elk lid opnieuw tekenen.
+
+**Beperkingen en niet geverifieerd.**
+- **Migraties.** `0168` en `0169` zijn alleen tegen PGlite getest.
+- **Inhoud.** Artikelteksten en clubrecepten zijn niet door een (sport)diëtist
+  nagekeken.
+- **UCI-positiestandpunt.** Dat zat achter een betaalmuur; de getallen komen uit
+  de open onderliggende reviews en de eerdere consensus.
+- **Eigen vertalingen.** De verdeling van koolhydraten over maaltijden (25/20/30/10%)
+  en de dagtype-drempels (60/90/180 min) zijn eigen vertalingen, zie het
+  onderzoeksdocument.
+- **Schermen niet in de browser bekeken.** Inloggen kan alleen met een account,
+  en de tabellen bestaan nog niet in de gekoppelde database.
+- **Vandaag-tip en ritten.** De tip kijkt naar ZWB-workouts en Strava-activiteiten
+  van vandaag. Events die alleen in intervals.icu staan, tellen niet mee als
+  geplande rit.
+
+**Verificatie.** 1.214 tests geslaagd (33 nieuw voor voeding), 6 optionele
+live-tests overgeslagen. TypeScript is schoon buiten verouderde
+`.next`-types; eslint op de gewijzigde bestanden is schoon; de productiebuild is
+geslaagd.
+
+### Opgeleverd — coachchat in ZWBeter Worden
+
+**2026-09-17, commit `392a6b8`.** Migratie `0167` (`training_chat_messages`,
+functie `current_user_in_training_chat`, `notification_preferences.on_training_chat`).
+Nieuwe privacyversie `2026-09-17`, dus élk lid tekent opnieuw.
+
+**Waarom.** De redenering achter een schema stond alleen in `training_plans.summary`, als
+"Let op"-regels die `PlanCautions` bij de eerstvolgende workout toont. Dat is
+eenrichtingsverkeer: wie leest dat er negentig minuten staat omdat woensdag maar een uur
+beschikbaar is en wil weten waarom het dan niet naar donderdag schuift, loopt dood. En wie
+iets wéét wat het schema zou moeten weten — twee weken ziek, een doel dat verschuift — kon dat
+alleen indirect kwijt via de beschikbaarheidsschuifjes. `plan-cautions.tsx` noemde zichzelf
+niet voor niets "bewust tijdelijk".
+
+**Wat er is veranderd.**
+- Eén doorlopend gesprek per lid. Het lid vraagt, een AI-coach antwoordt met het eigen schema
+  als context, en de door het lid aangewezen trainers lezen mee en kunnen erin reageren.
+  Pagina's: `/zwbeter-worden/coach` (lid) en `/zwbeter-worden/trainer/coach` (trainer, via
+  `trainerContext()` zodat een id uit de URL nooit rechtstreeks in een query gaat). Eén gedeeld
+  component `_components/coach-chat.tsx`, gemodelleerd op de live-chat van een event: realtime
+  als gedebouncede ping → refetch, met poll als terugval.
+- `src/lib/training/chat-context.ts` bouwt de context uit loaders die `draft.ts` al gebruikt.
+  *(Niet meer volledig waar sinds 18 september 2026: de context bevat sindsdien ook de gereden
+  trainingsdata uit `training-data.ts`, en doet daarvoor één live intervals.icu-call met een
+  tijdbudget. Zie de ronde "Coach bij je trainingsdata" bovenaan.)*
+  Het scharnierpunt is `training_ai_generations.prompt_summary`: de invoer die het model zág
+  toen het de keuzes maakte. Zonder dat stuk kan de coach herhalen wát er is besloten, niet
+  waaróm. `athleteName` gaat eruit voordat het opnieuw naar OpenAI gaat.
+- Het antwoord loopt in de achtergrond (`background: true` + bewaard `response_id`, zoals de
+  schema-generaties). De POST zet meteen een lege coach-rij met `status='pending'`; de
+  eerstvolgende GET vult hem. Zolang er iets openstaat pollt de client elke 3 s in plaats van
+  elke 20 s. Een netwerkfout laat de rij staan; pas na vijf minuten wordt hij `failed` met een
+  leesbare regel, zodat er nooit een bel blijft staan te denken.
+  `startTrainingPlanDraftBackground()` was niet te hergebruiken (die dwingt het plan-`json_schema`
+  af), vandaar `startCoachAnswerBackground()` / `retrieveCoachAnswerBackground()` ernaast in
+  `ai.ts`.
+- Vinkje "Dit raakt mijn schema" roept `requestReplan()` aan en bewaart de uitkomst in
+  `replan_result`. Het lid leest wat er werkelijk gebeurde: herzien, meegenomen bij de
+  volgende ronde, geen lopend schema, schema ligt stil, of niet gestart.
+- Kostenrem: 25 coach-antwoorden per lid per dag via `rateLimitHit`. Boven de limiet komt het
+  bericht er wél in — de trainer leest het — alleen het AI-antwoord blijft uit. Zelfde motief
+  als de vijf-minuten-cooldown in `replan.ts`.
+- `canCoach()` is uit `zwbeter-worden/_actions.ts` verhuisd naar
+  `src/lib/training/coach-access.ts`, omdat de route hem ook nodig heeft. Daarnaast
+  `activeTrainersOf()` voor de regel "leest mee: …" boven het gesprek en voor de meldingen.
+- Rennerkiezer van de trainer toont per renner hoeveel leden-berichten er staan ná het laatste
+  trainer-bericht. Eén extra query in `loadRiders()`, die in de layout draait en dus één keer
+  per laadbeurt.
+- Nieuwe meldingsvoorkeur `on_training_chat`, los van `on_training_plan`.
+- `/hulp#trainingsruimte` krijgt een blok over wat de coach wel en niet doet; de
+  privacyverklaring een alinea over het gesprek, en de OpenAI-ontvangerregel is gecorrigeerd nu
+  het lid zelf tekst typt. De chat is toegevoegd aan de data-export — die lijst is expliciet,
+  niet automatisch.
+
+**Bewust niet gedaan.**
+- **Inzage voor `training.manage_assignments`.** Dit is de enige tabel in de trainingsmodule
+  die niet op `current_user_can_train_profile()` leunt maar op een eigen
+  `current_user_in_training_chat()`. Schema's en belasting zijn cijfers; een chat is vrije
+  tekst waarin gezondheid en privéomstandigheden voorbijkomen, en de privacyverklaring belooft
+  dat die bij het lid en zijn aangewezen trainer blijven. Bestuur en communitybeheer lezen dus
+  niet mee.
+- **Leesbevestiging per trainer.** Zou bij meerdere trainers een tweede tabel kosten; de teller
+  in de rennerkiezer doet hetzelfde werk zonder extra opslag.
+- **Automatische opschoning** zoals de jaargrens op `event_chat_messages`. Een gesprek over de
+  opbouw van een seizoen hoort een seizoen te overleven.
+- **Bijlagen, draad per schema of per workout, en de coach zelf in het schema laten schrijven.**
+  Redenen in [docs/coachchat.md](docs/coachchat.md).
+- **`athleteName` uit de schema-generaties zelf halen.** Opgevallen tijdens deze ronde:
+  `draft.ts` stuurt de naam mee terwijl de privacyverklaring "geen directe
+  identificatiegegevens waar vermijdbaar" belooft. De chat haalt hem eruit voordat de invoer
+  opnieuw wordt verstuurd, maar de generaties zijn niet aangepast — dat verdient een eigen
+  beslissing.
+
+**Verificatie.** 1.206 tests geslaagd (1.181 bestaand + 25 nieuw); `npx tsc --noEmit` schoon;
+lint 0 fouten en de 7 bestaande waarschuwingen; productiebuild geslaagd met beide nieuwe
+pagina's en `/api/training/chat` erin.
+`tests/unit/training-chat-migration.test.ts` draait `0037` + `0167` echt tegen PGlite en
+controleert de toegangsregel: lid en gekoppelde trainer lezen het gesprek, een niet-gekoppelde
+trainer en `training.manage_assignments` niet, met als tegenproef dat bestuur `training_plans`
+wél gewoon leest. Een coach-antwoord is door niemand te verwijderen.
+
+**Niet lokaal geverifieerd.** De migratie tegen de echte Supabase-database (er is hier geen
+Docker- of Supabase-config; de PGlite-test dekt de SQL, niet de productiedatabase), de
+realtime-publicatie, de pushmeldingen en de OpenAI-achtergrondcall. De suite
+`tests/unit/omnium-live.test.ts` en de productiebuild vragen een `.env.local` die in een verse
+clone niet bestaat; de build is daarom met placeholder-Supabase-variabelen gedraaid. Niet
+gepusht en niet gedeployd.
+
+Details: [docs/coachchat.md](docs/coachchat.md).
 
 ### Opgeleverd — segment-inhaalslag sneller: 20 s per run
 
@@ -4305,12 +4782,12 @@ die assertie is wel handmatig bevestigd (zie hierboven). Verder is er nog geen
 enkele pagina met échte data gezien: er is nog geen gepubliceerd seizoen, dus
 alles toont de lege staat.
 
-**Openstaand punt om te beslissen vóór de links gedeeld worden.** De publieke
-pagina's zijn Engels maar de routes zijn Nederlands (`/omnium/regels`,
-`/omnium/klassement`, `/omnium/[editie]/uitslag`, `/omnium/[editie]/startlijst`).
-Dat volgt de projectconventie en het goedgekeurde plan, maar het is wringend
-voor een internationaal publiek. Wijzigen kan nu nog gratis; zodra deze URL's op
-Zwift, Discord en YouTube staan, breekt elke wijziging bestaande links.
+**URL-keuze besloten op 14 september.** De publieke routes worden Engels:
+`/omnium/rules`, `/omnium/standings`, `/omnium/register`,
+`/omnium/[editie]/results` en `/omnium/[editie]/startlist`. De Nederlandse
+paden krijgen permanente redirects zodat gedeelde links blijven werken.
+Deze omzetting staat in de afgeronde lokale ronde van 15 september; deploy volgt
+pas na de ontbrekende productie-inrichting.
 
 **Generale repetitie tegen de echte database, 2026-08-19.** De migraties
 `0126`-`0130` zijn door Stijn toegepast. Daarna is de hele keten één keer
@@ -4391,10 +4868,11 @@ overwegen waard om hem naar voren te halen: voor de eerste uitzending op
 11 oktober is een browserbron met de stand in beeld waarschijnlijk waardevoller
 dan de publieke live-pagina.
 
-**Daarmee staat alles wat vóór 11 oktober moest staan.** Wat rest is één ding
-dat ik niet kan doen: de beheerschermen één keer met de hand doorlopen
-(plannen → editie vullen → publiceren → uitslag plakken). Het integratiescript
-spiegelt de databasestappen van die server actions, niet de React-kant.
+**Daarmee stond de oorspronkelijke livestream-basis.** Dit dekt niet het op
+14 september aangeleverde uitgebreidere editie-1-plan: Zwift-startlijst en
+uitslagen, overlay, prijzen, historie en productie-inrichting ontbreken daar nog.
+Ook moet de beheerketen met de hand worden doorlopen. Het oude integratiescript
+spiegelt de databasestappen van de oorspronkelijke server actions, niet de React-kant.
 
 **Volgende rondes:** spike Zwift-uitslagen (te testen op editie 1 zelf),
 startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
@@ -4410,14 +4888,16 @@ beheeracties roepen `requireOmniumAccess` aan; RLS staat op alle tabellen;
 `omnium_kit_codes` heeft geen policy; de live-test schrijft alleen met
 `OMNIUM_LIVE=1`; `omnium.manage` staat in productie bij board en community_manager,
 gelijk aan `DEFAULT_ROLE_PERMISSIONS`.
-**Opgemerkt, niet aangepast:** `omnium_riders` is voor `anon` volledig leesbaar
-(`using (true)`), inclusief Zwift-ID en renners die alleen in een concept-editie
-staan. De tabel is nu leeg; beslissen vóór de eerste import of dat beperkt moet
-worden tot renners in een gepubliceerde editie.
-**Nog open vóór editie 1 (11 oktober):** tiebreak bevestigen, of gasten meetellen,
-Engelse of Nederlandse URL's (na delen niet meer gratis te wijzigen), en de
-beheerschermen één keer met de hand doorlopen. Het Club-menu wijst sinds de push
-naar `/omnium` in plaats van zwbomnium.netlify.app.
+**Bewust behouden, bevestigd op 14 september:** `omnium_riders` is voor `anon`
+volledig leesbaar (`using (true)`), inclusief Zwift-ID en renners die alleen in
+een concept-editie staan. Dit is volgens het aangeleverde plan de keuze van Stijn.
+**Keuzes bevestigd in het plan van 14 september:** gasten zonder inschrijving
+voor het onderdeel tellen niet mee; zonder beschikbare startlijst telt iedereen
+mee met een melding. Publieke URL's worden Engels, Nederlandse paden verwijzen
+permanent door. `omnium_riders` blijft publiek leesbaar. De basis stond volgens
+de aangeleverde productiestatus al live met het Club-menu op `/omnium`.
+Tiebreakbevestiging en productie-inrichting blijven open; zie de status van
+15 september bovenaan. De nieuwe implementatieronde is nog niet gedeployd.
 `package-lock.json` (npm-bijeffect) en de mappen `output/`, `outputs/` en
 `.claude/` zijn bewust niet meegecommit.
 
@@ -5039,6 +5519,12 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
+- **Voedingsmodule: migraties `0168` en `0169` toepassen** op de gekoppelde
+  database (volgorde aanhouden) en de controlequery's onderaan beide bestanden
+  draaien. Daarna de voedingsschermen met een echt account nalopen. Laat
+  artikelteksten en clubrecepten nakijken door een (sport)diëtist, en beslis
+  of de privacytekst een nieuwe versie krijgt. Zie de ronde van 2026-09-17.
+
 - ~~**`/api/training/adaptations/daily` past niet binnen een Netlify-invocatie**~~
   — **opgelost 2026-09-08, commit `201d816`.** De route zet de generaties nu in de
   achtergrond (`startPlanUpdate` en het nieuwe `startBackgroundAdaptation`) en
@@ -5469,6 +5955,12 @@ Ontwerp:
   = vergelijkbaar met de uitslagen-scraper qua omvang.
 
 ### E2E-chat
+
+> **Bijgewerkt 2026-09-17.** Dit stuk gaat over een *clubbrede* chat; die staat nog steeds
+> geparkeerd. Wat er sindsdien wél is gebouwd, is de coachchat in ZWBeter Worden (migratie
+> `0167`): één besloten gesprek per lid tussen het lid, een AI-coach en zijn aangewezen
+> trainer. Dat is niet E2E-versleuteld en lost geen van de vragen hieronder op — het is een
+> smalle toepassing van optie (B), zonder rooms en zonder WhatsApp-import.
 
 **Kernconclusie: geschiedenis-behoud (WhatsApp-import) en échte E2E zijn
 grotendeels onverenigbaar.** Kies dus eerst het doel.

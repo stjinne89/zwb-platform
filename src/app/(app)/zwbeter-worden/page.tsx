@@ -1,4 +1,5 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { InlineMoreLink } from "@/components/app-ui";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
@@ -14,6 +15,8 @@ import {
 } from "@/lib/training/segment-suggestions";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { CoreTodayCard } from "./core/_components/core-today-card";
+import { NutritionTodayCard } from "./voeding/_components/nutrition-today-card";
+import { plannedSessions, ridesOnDay } from "@/lib/nutrition/recipes";
 import { ConnectIntervalsForm } from "./_components/connect-form";
 import { RecoveryCard } from "./_components/recovery-card";
 import { TrainingLoadMetrics } from "./_components/training-load-chart";
@@ -256,6 +259,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 variant="preview"
               />
               <PlanCautions items={planCautions} />
+              {/* De "Let op"-regels vertellen wát er is besloten; de vervolgvraag
+                  hoort hier te kunnen beginnen en niet doodlopen. */}
+              <div className="mt-3">
+                <InlineMoreLink href="/zwbeter-worden/coach">Vraag je coach</InlineMoreLink>
+              </div>
               {segmentSuggestions.length > 0 ? (
                 <div className="mt-4 border-t pt-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -309,6 +317,17 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           rodeToday: activities.some(
             (activity) => amsterdamDayKey(new Date(activity.start_date)) === todayKey,
           ),
+        }}
+      />
+
+      <NutritionTodayCard
+        viewer={viewer}
+        today={todayKey}
+        day={{
+          ...plannedSessions(memberWorkouts, todayKey),
+          ridesToday: ridesOnDay(activities, todayKey),
+          readinessState: zwbStatus.readiness.state,
+          wellnessState: zwbStatus.recoverySummary?.state ?? null,
         }}
       />
 

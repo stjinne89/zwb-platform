@@ -13,6 +13,7 @@ import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { refreshWellnessIfStale, summarizeTrainingReadiness } from "@/lib/training/wellness";
 import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
+import { unansweredCounts } from "@/lib/training/coach-chat";
 import { requireViewer, type Viewer } from "../_data";
 import { byProfile, formatKm, formatNumber, loadSummary, paramString } from "../_components/format";
 import type {
@@ -175,6 +176,8 @@ export type TrainerRider = {
   adviceLabel: string;
   advicePill: string;
   pendingReviews: number;
+  /** Berichten van het lid waar nog geen trainer op reageerde. */
+  openChatMessages: number;
 };
 
 /**
@@ -226,7 +229,10 @@ export async function loadRiders(
     pending.set(row.profile_id, (pending.get(row.profile_id) ?? 0) + 1);
   }
 
-  const status = await loadRiderStatus(viewer, athleteIds, profiles);
+  const [status, unanswered] = await Promise.all([
+    loadRiderStatus(viewer, athleteIds, profiles),
+    unansweredCounts(viewer.admin, athleteIds).catch(() => new Map<string, number>()),
+  ]);
 
   return assignments.map((assignment) => {
     const profile = profiles.get(assignment.athlete_id);
@@ -243,6 +249,7 @@ export async function loadRiders(
       adviceLabel: rider?.adviceLabel ?? "Herstel niet gedeeld",
       advicePill: rider?.advicePill ?? "bg-muted text-muted-foreground",
       pendingReviews: pending.get(assignment.athlete_id) ?? 0,
+      openChatMessages: unanswered.get(assignment.athlete_id) ?? 0,
     };
   });
 }

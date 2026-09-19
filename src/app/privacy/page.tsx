@@ -56,9 +56,40 @@ export default function PrivacyPage() {
       <Section title="2. Welke gegevens we verwerken">
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>ZWBgame:</strong> goedgekeurde leden en het clubroster vormen het
+            deelnemersveld van dit besloten clubspel. Je naam is zichtbaar bij je
+            renner. Voor elk lid leiden we spelkwaliteiten (vlak, klimmen, sprint en
+            rennerstype) af uit gegevens die al in het platform staan: FTP en gewicht
+            van je profiel en, als je Intervals hebt gekoppeld, je gesynchroniseerde
+            vermogenscurve. Klimmen volgt je vermogen per kilo. Clubleden zien in de
+            game alleen die afgeleide kwaliteiten, geen watts of gewicht. Zonder FTP
+            en gewicht rijd je met een basisprofiel. De Intervals-curve kan
+            activiteiten bevatten die je via Strava in Intervals hebt gezet; daarop
+            filteren we bij deze afleiding niet. Wellness en medische gegevens worden
+            niet gebruikt. Je kunt herkenbare deelname uitschakelen in de
+            spelinstellingen; dan kom je niet in het peloton van anderen. Leden zonder
+            account kunnen dit via het bestuur doen. Je kunt ook een eigen meting of
+            een Intervals-spelprofiel met bevestigde, niet-Strava herkomst opslaan dat
+            de platformgegevens vervangt. Daarvan bewaren we afgeleide spelkwaliteiten,
+            bron en meetperiode; ingevoerd gewicht en ruwe vermogenswaarden worden niet
+            in de game opgeslagen. Een eigen spelprofiel vervalt na 30 dagen, bij
+            terugzetten naar platformgegevens en bij ontkoppelen van Intervals. Lopende solo-races staan maximaal zeven dagen
+            bruikbaar in je browser, zonder namen of vermogensprofielen. Bij hervatten
+            controleren we deelname en toestemming opnieuw. Alleen je eigen laatste
+            twintig uitslagen blijven lokaal bewaard totdat je die wist. Browserdata
+            op andere apparaten kunnen we niet op afstand wissen.
+          </li>
+          <li>
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht
             (voor zover je die invult), biografie en zichtbaarheids­voorkeuren.
+          </li>
+          <li>
+            <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
+            gebruiken we die alleen om de porties in het receptenboek op jou af te
+            stemmen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
+            jou zichtbaar. Wat je eet, leggen we niet vast, en een dieetfilter in
+            het receptenboek wordt niet bewaard.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
@@ -112,6 +143,23 @@ export default function PrivacyPage() {
             hoeveel seconden je per zone reed, niet de meting zelf. Hersteldata blijft afgeschermd tot je de
             aparte opt-in aanzet. Je trekt die toegang zelf weer in op de
             trainingspagina.
+          </li>
+          <li>
+            <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
+            over je schema en over je trainingsdata. Je vraag, het antwoord van de
+            AI-coach en de reacties van je trainer worden bewaard als één doorlopend
+            gesprek. Alleen jij en de trainers die jij hebt aangewezen kunnen het
+            lezen — het bestuur en communitybeheer niet. Je bericht gaat naar OpenAI
+            om het antwoord te maken, samen met je schema, je doel, je belasting, je
+            gereden ritten van de laatste drie maanden (met de titel die je er zelf
+            aan gaf, duur, afstand, hoogtemeters, vermogen en hartslag), je FTP,
+            FTP-tests en vermogenscurve, en je CTL/ATL/TSB uit intervals.icu als je
+            die hebt gekoppeld. Je hersteldata gaat alleen mee als je de aparte
+            opt-in aan hebt staan. Vink je aan dat een bericht je schema raakt, dan
+            gaat de tekst ook mee naar de eerstvolgende schemaherziening. Je eigen berichten kun je verwijderen; het gesprek
+            staat verder in je data-export en verdwijnt als je je account opheft.
+            Zet er geen gegevens in die je niet met je trainer of met OpenAI wilt
+            delen.
           </li>
           <li>
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
@@ -212,8 +260,10 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            (alleen relevante trainingscontext, geen directe identificatiegegevens
-            waar vermijdbaar).
+            en voor de antwoorden in de coachchat. Meegestuurd worden relevante
+            trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
+            en, bij de chat, de tekst die je zelf typt; geen directe
+            identificatiegegevens waar vermijdbaar.
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}

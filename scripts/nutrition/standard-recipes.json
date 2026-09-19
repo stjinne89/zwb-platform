@@ -1,0 +1,482 @@
+[
+  {
+    "slug": "havermout-banaan-kwark",
+    "title": "Havermout met banaan en kwark",
+    "meal_moment": "ontbijt",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 10,
+    "steps": [
+      "Breng de melk met de havervlokken aan de kook en laat al roerend 3 minuten zacht koken.",
+      "Haal van het vuur en roer de kwark erdoor.",
+      "Snijd de banaan in plakjes, leg ze erop en maak af met de honing."
+    ],
+    "ingredients": [
+      { "nevo": 213, "grams": 70, "role": "kh_bron" },
+      { "nevo": 151, "grams": 120, "role": "kh_bron" },
+      { "nevo": 443, "grams": 10, "role": "kh_bron" },
+      { "nevo": 305, "grams": 100, "role": "eiwit_bron" },
+      { "nevo": 286, "grams": 250, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "overnight-oats-skyr",
+    "title": "Overnight oats met skyr en blauwe bessen",
+    "meal_moment": "ontbijt",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 5,
+    "steps": [
+      "Meng de havervlokken met de melk, de skyr, de honing en de kaneel in een pot.",
+      "Zet de pot een nacht afgedekt in de koelkast.",
+      "Schep 's ochtends de blauwe bessen erdoor."
+    ],
+    "ingredients": [
+      { "nevo": 213, "grams": 60, "role": "kh_bron" },
+      { "nevo": 443, "grams": 10, "role": "kh_bron" },
+      { "nevo": 5295, "grams": 150, "role": "eiwit_bron" },
+      { "nevo": 286, "grams": 100, "role": "vast" },
+      { "nevo": 152, "grams": 100, "role": "vast" },
+      { "nevo": 826, "grams": 1, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "roerei-volkorenbrood",
+    "title": "Roerei met spinazie op volkorenbrood",
+    "meal_moment": "ontbijt",
+    "fuel_profile": "eiwitrijk",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 10,
+    "steps": [
+      "Verhit de olie en laat de spinazie kort slinken.",
+      "Klop de eieren los, giet ze in de pan en roer op laag vuur tot ze net gestold zijn.",
+      "Serveer op het brood met plakjes tomaat."
+    ],
+    "ingredients": [
+      { "nevo": 2811, "grams": 70, "role": "kh_bron" },
+      { "nevo": 83, "grams": 120, "role": "eiwit_bron" },
+      { "nevo": 51, "grams": 50, "role": "vast" },
+      { "nevo": 60, "grams": 100, "role": "vast" },
+      { "nevo": 601, "grams": 5, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "wrap-kip-hummus",
+    "title": "Volkorenwrap met kip en hummus",
+    "meal_moment": "lunch",
+    "fuel_profile": "gemengd",
+    "diet_tags": [],
+    "servings": 2,
+    "prep_minutes": 15,
+    "steps": [
+      "Snijd de kipfilet in reepjes en bak ze in de olie gaar.",
+      "Snijd de paprika en de komkommer in reepjes.",
+      "Besmeer de wraps met hummus, beleg met sla, groente en kip en rol ze op."
+    ],
+    "ingredients": [
+      { "nevo": 5482, "grams": 120, "role": "kh_bron" },
+      { "nevo": 1634, "grams": 200, "role": "eiwit_bron" },
+      { "nevo": 3207, "grams": 60, "role": "vast" },
+      { "nevo": 884, "grams": 150, "role": "vast" },
+      { "nevo": 2739, "grams": 100, "role": "vast" },
+      { "nevo": 2346, "grams": 60, "role": "vast" },
+      { "nevo": 601, "grams": 5, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "linzensalade-feta",
+    "title": "Linzensalade met feta",
+    "meal_moment": "lunch",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["vegetarisch", "glutenvrij"],
+    "servings": 2,
+    "prep_minutes": 30,
+    "steps": [
+      "Kook de linzen in ruim water in ongeveer 20 minuten beetgaar en laat ze uitlekken.",
+      "Snijd de tomaat, de komkommer en de ui klein.",
+      "Meng alles met de olie en het citroensap en verkruimel de feta erover."
+    ],
+    "ingredients": [
+      { "nevo": 120, "grams": 150, "role": "kh_bron" },
+      { "nevo": 3362, "grams": 100, "role": "eiwit_bron" },
+      { "nevo": 60, "grams": 200, "role": "vast" },
+      { "nevo": 2739, "grams": 150, "role": "vast" },
+      { "nevo": 63, "grams": 50, "role": "vast" },
+      { "nevo": 601, "grams": 15, "role": "vast" },
+      { "nevo": 1127, "grams": 15, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "couscous-kikkererwten",
+    "title": "Couscous met kikkererwten en rozijnen",
+    "meal_moment": "lunch",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "vegan"],
+    "servings": 2,
+    "prep_minutes": 20,
+    "steps": [
+      "Overgiet de couscous met evenveel kokend water, dek af en laat 5 minuten staan.",
+      "Spoel de kikkererwten af en snijd de paprika en de komkommer klein.",
+      "Maak de couscous los met een vork en meng alles met de rozijnen, de olie en het citroensap."
+    ],
+    "ingredients": [
+      { "nevo": 1889, "grams": 150, "role": "kh_bron" },
+      { "nevo": 33, "grams": 30, "role": "kh_bron" },
+      { "nevo": 3185, "grams": 240, "role": "eiwit_bron" },
+      { "nevo": 884, "grams": 150, "role": "vast" },
+      { "nevo": 2739, "grams": 150, "role": "vast" },
+      { "nevo": 601, "grams": 15, "role": "vast" },
+      { "nevo": 1127, "grams": 20, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "broodjes-tonijnsalade",
+    "title": "Volkorenbrood met tonijnsalade",
+    "meal_moment": "lunch",
+    "fuel_profile": "eiwitrijk",
+    "diet_tags": [],
+    "servings": 1,
+    "prep_minutes": 10,
+    "steps": [
+      "Laat de tonijn uitlekken en prak hem met de yoghurt.",
+      "Beleg het brood met sla, tonijnsalade en plakjes tomaat."
+    ],
+    "ingredients": [
+      { "nevo": 2811, "grams": 105, "role": "kh_bron" },
+      { "nevo": 1590, "grams": 110, "role": "eiwit_bron" },
+      { "nevo": 301, "grams": 30, "role": "vast" },
+      { "nevo": 60, "grams": 100, "role": "vast" },
+      { "nevo": 2346, "grams": 30, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "pasta-kip-tomaat",
+    "title": "Pasta met kip en tomatensaus",
+    "meal_moment": "diner",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": [],
+    "servings": 2,
+    "prep_minutes": 25,
+    "steps": [
+      "Kook de pasta volgens de verpakking.",
+      "Fruit de ui en de knoflook in de olie, bak de kip in blokjes gaar en voeg de paprika toe.",
+      "Voeg de gezeefde tomaten toe en laat 10 minuten zacht koken.",
+      "Meng met de pasta en strooi de Parmezaanse kaas erover."
+    ],
+    "ingredients": [
+      { "nevo": 4, "grams": 200, "role": "kh_bron" },
+      { "nevo": 1634, "grams": 250, "role": "eiwit_bron" },
+      { "nevo": 2498, "grams": 400, "role": "vast" },
+      { "nevo": 884, "grams": 150, "role": "vast" },
+      { "nevo": 63, "grams": 100, "role": "vast" },
+      { "nevo": 830, "grams": 6, "role": "vast" },
+      { "nevo": 601, "grams": 15, "role": "vast" },
+      { "nevo": 718, "grams": 20, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "zalm-rijst-broccoli",
+    "title": "Zalm met rijst en broccoli",
+    "meal_moment": "diner",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["glutenvrij"],
+    "servings": 2,
+    "prep_minutes": 25,
+    "steps": [
+      "Kook de rijst volgens de verpakking.",
+      "Kook of stoom de broccoli in 5 minuten beetgaar.",
+      "Bak de zalm in de olie 3 tot 4 minuten per kant en besprenkel met citroensap."
+    ],
+    "ingredients": [
+      { "nevo": 5, "grams": 150, "role": "kh_bron" },
+      { "nevo": 1587, "grams": 250, "role": "eiwit_bron" },
+      { "nevo": 921, "grams": 400, "role": "vast" },
+      { "nevo": 601, "grams": 10, "role": "vast" },
+      { "nevo": 1127, "grams": 20, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "curry-zoete-aardappel-kikkererwten",
+    "title": "Curry van zoete aardappel en kikkererwten",
+    "meal_moment": "diner",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "vegan", "glutenvrij"],
+    "servings": 3,
+    "prep_minutes": 40,
+    "steps": [
+      "Kook de rijst volgens de verpakking.",
+      "Fruit de ui en de knoflook met de komijn en het paprikapoeder in een scheut water of wat kokosmelk.",
+      "Voeg de zoete aardappel in blokjes, de gezeefde tomaten en de kokosmelk toe en laat 20 minuten zacht koken.",
+      "Roer de kikkererwten en de spinazie erdoor en verwarm nog 5 minuten. Serveer met de rijst."
+    ],
+    "ingredients": [
+      { "nevo": 5, "grams": 180, "role": "kh_bron" },
+      { "nevo": 671, "grams": 400, "role": "kh_bron" },
+      { "nevo": 3185, "grams": 240, "role": "eiwit_bron" },
+      { "nevo": 2290, "grams": 200, "role": "vast" },
+      { "nevo": 2498, "grams": 250, "role": "vast" },
+      { "nevo": 51, "grams": 150, "role": "vast" },
+      { "nevo": 63, "grams": 100, "role": "vast" },
+      { "nevo": 830, "grams": 6, "role": "vast" },
+      { "nevo": 827, "grams": 3, "role": "vast" },
+      { "nevo": 1229, "grams": 3, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "aardappelen-biefstuk-sperziebonen",
+    "title": "Aardappelen met biefstuk en sperziebonen",
+    "meal_moment": "diner",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["glutenvrij"],
+    "servings": 2,
+    "prep_minutes": 30,
+    "steps": [
+      "Schil de aardappelen en kook ze in ongeveer 20 minuten gaar.",
+      "Kook de sperziebonen in 8 minuten beetgaar.",
+      "Bak het vlees in de olie op hoog vuur, 2 tot 3 minuten per kant, en laat het even rusten."
+    ],
+    "ingredients": [
+      { "nevo": 1, "grams": 600, "role": "kh_bron" },
+      { "nevo": 1663, "grams": 250, "role": "eiwit_bron" },
+      { "nevo": 50, "grams": 400, "role": "vast" },
+      { "nevo": 601, "grams": 10, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "linzenbolognese",
+    "title": "Volkorenpasta met linzenbolognese",
+    "meal_moment": "diner",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["vegetarisch", "vegan"],
+    "servings": 3,
+    "prep_minutes": 35,
+    "steps": [
+      "Fruit de ui, de knoflook en de geraspte wortel in de olie.",
+      "Voeg de linzen, de gezeefde tomaten en 300 ml water toe en laat 25 minuten zacht koken tot de linzen gaar zijn.",
+      "Kook ondertussen de pasta en serveer met de saus."
+    ],
+    "ingredients": [
+      { "nevo": 811, "grams": 270, "role": "kh_bron" },
+      { "nevo": 120, "grams": 150, "role": "eiwit_bron" },
+      { "nevo": 2498, "grams": 500, "role": "vast" },
+      { "nevo": 71, "grams": 150, "role": "vast" },
+      { "nevo": 63, "grams": 100, "role": "vast" },
+      { "nevo": 830, "grams": 6, "role": "vast" },
+      { "nevo": 601, "grams": 15, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "tofu-roerbak-rijst",
+    "title": "Roerbak met tofu en zilvervliesrijst",
+    "meal_moment": "diner",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "vegan"],
+    "servings": 2,
+    "prep_minutes": 25,
+    "steps": [
+      "Kook de rijst volgens de verpakking.",
+      "Snijd de tofu in blokjes en bak ze in de olie goudbruin. Haal ze uit de pan.",
+      "Roerbak de groente met de geraspte gember 5 minuten.",
+      "Voeg de tofu en de sojasaus toe en serveer met de rijst."
+    ],
+    "ingredients": [
+      { "nevo": 712, "grams": 160, "role": "kh_bron" },
+      { "nevo": 5519, "grams": 300, "role": "eiwit_bron" },
+      { "nevo": 921, "grams": 250, "role": "vast" },
+      { "nevo": 884, "grams": 150, "role": "vast" },
+      { "nevo": 71, "grams": 100, "role": "vast" },
+      { "nevo": 832, "grams": 10, "role": "vast" },
+      { "nevo": 5470, "grams": 30, "role": "vast" },
+      { "nevo": 601, "grams": 15, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "brood-banaan-honing",
+    "title": "Witbrood met banaan en honing",
+    "meal_moment": "voor_rit",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 5,
+    "steps": [
+      "Besmeer het brood dun met pindakaas.",
+      "Beleg met plakjes banaan en maak af met honing."
+    ],
+    "ingredients": [
+      { "nevo": 2351, "grams": 70, "role": "kh_bron" },
+      { "nevo": 151, "grams": 100, "role": "kh_bron" },
+      { "nevo": 443, "grams": 15, "role": "kh_bron" },
+      { "nevo": 455, "grams": 10, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "rijstwafels-jam",
+    "title": "Rijstwafels met jam",
+    "meal_moment": "voor_rit",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "vegan"],
+    "servings": 1,
+    "prep_minutes": 2,
+    "steps": ["Besmeer de rijstwafels met jam."],
+    "ingredients": [
+      { "nevo": 1481, "grams": 30, "role": "kh_bron" },
+      { "nevo": 445, "grams": 30, "role": "kh_bron" }
+    ]
+  },
+  {
+    "slug": "rijsttaartjes",
+    "title": "Rijsttaartjes voor onderweg",
+    "meal_moment": "tijdens_rit",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "glutenvrij"],
+    "servings": 6,
+    "prep_minutes": 40,
+    "steps": [
+      "Kook de rijst met wat extra water tot hij zacht en plakkerig is. Laat afkoelen.",
+      "Prak de banaan en meng hem met de honing en het zout door de rijst.",
+      "Druk het mengsel stevig in een ingevette bakvorm en laat een nacht opstijven in de koelkast.",
+      "Snijd in zes stukken en pak ze per stuk in folie. Eén stuk is één portie."
+    ],
+    "ingredients": [
+      { "nevo": 5, "grams": 250, "role": "kh_bron" },
+      { "nevo": 151, "grams": 200, "role": "kh_bron" },
+      { "nevo": 443, "grams": 60, "role": "kh_bron" },
+      { "nevo": 841, "grams": 2, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "sportdrank-zelfgemaakt",
+    "title": "Zelfgemaakte sportdrank",
+    "meal_moment": "tijdens_rit",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "vegan", "glutenvrij"],
+    "servings": 1,
+    "prep_minutes": 2,
+    "steps": [
+      "Los de suiker en het zout op in een scheut warm water in de bidon.",
+      "Voeg de siroop toe en vul aan met koud water tot 750 ml.",
+      "Eén bidon is één portie, voor ongeveer een uur. Gewone suiker bevat glucose en fructose in een verhouding van 1:1."
+    ],
+    "ingredients": [
+      { "nevo": 377, "grams": 60, "role": "kh_bron" },
+      { "nevo": 463, "grams": 20, "role": "kh_bron" },
+      { "nevo": 841, "grams": 1, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "dadelrepen",
+    "title": "Dadel-haverrepen",
+    "meal_moment": "tijdens_rit",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch", "vegan"],
+    "servings": 8,
+    "prep_minutes": 20,
+    "steps": [
+      "Maal de dadels in een keukenmachine tot een pasta.",
+      "Voeg de havervlokken, de pindakaas en het zout toe en maal tot een samenhangende massa.",
+      "Druk plat in een bakvorm en laat een uur opstijven in de koelkast.",
+      "Snijd in acht repen en pak ze per stuk in. Eén reep is één portie."
+    ],
+    "ingredients": [
+      { "nevo": 181, "grams": 200, "role": "kh_bron" },
+      { "nevo": 213, "grams": 100, "role": "kh_bron" },
+      { "nevo": 455, "grams": 40, "role": "vast" },
+      { "nevo": 841, "grams": 1, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "herstelshake",
+    "title": "Herstelshake met banaan en kwark",
+    "meal_moment": "na_rit",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 5,
+    "steps": ["Doe alles in een blender en mix tot een gladde shake."],
+    "ingredients": [
+      { "nevo": 151, "grams": 120, "role": "kh_bron" },
+      { "nevo": 213, "grams": 40, "role": "kh_bron" },
+      { "nevo": 443, "grams": 10, "role": "kh_bron" },
+      { "nevo": 305, "grams": 150, "role": "eiwit_bron" },
+      { "nevo": 286, "grams": 250, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "chocolademelk-krentenbol",
+    "title": "Chocolademelk met een krentenbol",
+    "meal_moment": "na_rit",
+    "fuel_profile": "hoog_kh",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 1,
+    "steps": ["Drink de chocolademelk en eet de krentenbol, het liefst binnen een uur na de rit."],
+    "ingredients": [
+      { "nevo": 1464, "grams": 500, "role": "kh_bron" },
+      { "nevo": 233, "grams": 60, "role": "kh_bron" }
+    ]
+  },
+  {
+    "slug": "kwark-walnoten-bessen",
+    "title": "Kwark met blauwe bessen en walnoten",
+    "meal_moment": "voor_slapen",
+    "fuel_profile": "eiwitrijk",
+    "diet_tags": ["vegetarisch", "glutenvrij"],
+    "servings": 1,
+    "prep_minutes": 3,
+    "steps": ["Schep de kwark in een kom en maak af met de bessen, de gehakte walnoten en de kaneel."],
+    "ingredients": [
+      { "nevo": 305, "grams": 400, "role": "eiwit_bron" },
+      { "nevo": 152, "grams": 75, "role": "vast" },
+      { "nevo": 206, "grams": 15, "role": "vast" },
+      { "nevo": 826, "grams": 1, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "huttenkase-peer",
+    "title": "Hüttenkäse met peer en kaneel",
+    "meal_moment": "voor_slapen",
+    "fuel_profile": "eiwitrijk",
+    "diet_tags": ["vegetarisch", "glutenvrij"],
+    "servings": 1,
+    "prep_minutes": 3,
+    "steps": ["Snijd de peer in blokjes en meng met de hüttenkäse. Strooi de kaneel erover."],
+    "ingredients": [
+      { "nevo": 654, "grams": 300, "role": "eiwit_bron" },
+      { "nevo": 2748, "grams": 150, "role": "vast" },
+      { "nevo": 826, "grams": 1, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "sojayoghurt-pindakaas",
+    "title": "Sojayoghurt met pindakaas en bessen",
+    "meal_moment": "voor_slapen",
+    "fuel_profile": "eiwitrijk",
+    "diet_tags": ["vegetarisch", "vegan"],
+    "servings": 1,
+    "prep_minutes": 3,
+    "steps": ["Roer de pindakaas door de sojayoghurt en maak af met de blauwe bessen."],
+    "ingredients": [
+      { "nevo": 5247, "grams": 400, "role": "eiwit_bron" },
+      { "nevo": 455, "grams": 30, "role": "eiwit_bron" },
+      { "nevo": 152, "grams": 75, "role": "vast" }
+    ]
+  },
+  {
+    "slug": "yoghurt-muesli-appel",
+    "title": "Yoghurt met muesli en appel",
+    "meal_moment": "tussendoor",
+    "fuel_profile": "gemengd",
+    "diet_tags": ["vegetarisch"],
+    "servings": 1,
+    "prep_minutes": 3,
+    "steps": ["Schep de yoghurt in een kom, snijd de appel in stukjes en strooi de muesli erover."],
+    "ingredients": [
+      { "nevo": 2809, "grams": 50, "role": "kh_bron" },
+      { "nevo": 301, "grams": 200, "role": "eiwit_bron" },
+      { "nevo": 875, "grams": 150, "role": "vast" }
+    ]
+  }
+]

@@ -74,6 +74,7 @@ export default async function ProfielPage() {
     { data: bikes },
     { data: myQuotes },
     { data: koms },
+    { data: heightRow },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -115,7 +116,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_segment_kom",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_segment_kom",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -141,6 +142,12 @@ export default async function ProfielPage() {
       .eq("profile_id", user.id)
       .order("achieved_at", { ascending: false, nullsFirst: false })
       .order("segment_name"),
+    // Lengte staat bewust niet op profiles: die tabel is voor alle leden leesbaar.
+    supabase
+      .from("nutrition_profiles")
+      .select("height_cm")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -201,6 +208,7 @@ export default async function ProfielPage() {
           wellness_device: profileRow?.wellness_device ?? "",
           ftp_watts: profileRow?.ftp_watts?.toString() ?? "",
           weight_kg: profileRow?.weight_kg?.toString() ?? "",
+          height_cm: heightRow?.height_cm?.toString() ?? "",
           auto_sync_physique:
             (profileRow as { auto_sync_physique?: boolean | null })?.auto_sync_physique ?? false,
           bio: profileRow?.bio ?? "",
@@ -244,6 +252,7 @@ export default async function ProfielPage() {
             on_live_started: pushPrefs?.on_live_started ?? true,
             on_new_badge: pushPrefs?.on_new_badge ?? false,
             on_training_plan: pushPrefs?.on_training_plan ?? true,
+            on_training_chat: pushPrefs?.on_training_chat ?? true,
             on_event_reminder: pushPrefs?.on_event_reminder ?? true,
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,
