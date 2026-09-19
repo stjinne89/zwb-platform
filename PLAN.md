@@ -1,5 +1,49 @@
 # ZWB Platform — Plan & Status
 
+> **Je ingeschaalde categorie maakt je geen teamlid meer, 2026-09-19 — gebouwd, lokaal getest.**
+> Migratie `0172_drop_zrl_category_team_seed.sql`. Melding van de eigenaar: er
+> stonden Zwiftladies in ZRL B. Oorzaak is de automatische indeling uit `0070`,
+> niet de aanmeldregel van gisteren: die zette elk goedgekeurd lid met categorie
+> A, B of C in `ZRL <categorie>`, tenzij `profiles.zrl_division` op `women` stond.
+> Die divisie werd alleen gevuld als de tekst "zwiftladies" ergens in een
+> roster- of teamnaam voorkwam, dus bij elke vrouw waar die tekst ontbrak won haar
+> categorie en kwam ze in ZRL B.
+> **De regel is nu:** lid van een ZRL-team word je door je aan te melden voor een
+> race van dat team (`0171`), door je rosternaam te claimen van een team dat WTRL
+> echt zo kent, of doordat een teambeheerder je toevoegt. Een categorie zegt hoe
+> hard je rijdt, niet voor wie.
+> **Drie paden voegden op categorie toe, alle drie eruit:** de trigger op
+> `profiles` (bij elke wijziging van categorie, divisie of goedkeuring), de knop
+> Resultaten synchroniseren op `/teams` (RPC `sync_all_zrl_parent_team_memberships`,
+> nu weg uit `syncResultsNow()` en uit de tekst onder de knop), en het claimen van
+> een rosternaam — dat riep dezelfde sync aan én nam het team van de rosternaam
+> over, terwijl `sync_zrl_parent_roster_entries()` dat team zelf ook al op
+> `pace_category` kan hebben gezet. `claim_roster_entry()` neemt dat team nu alleen
+> over als het níét op categorie is ingedeeld. De functies
+> `sync_zrl_parent_team_membership()`, `sync_all_zrl_parent_team_memberships()` en
+> `handle_zrl_parent_team_seed()` zijn verwijderd en `auto_zrl_category` is uit de
+> check op `team_members.assignment_source` gehaald, zodat geen enkel pad hem stil
+> terug kan zetten.
+> **Opruiming, en wat er niet bij mag sneuvelen:** alle lidmaatschappen met
+> herkomst `auto_zrl_category` gaan eruit, plus de `roster_claim`-rijen waarvan de
+> geclaimde rosternaam zelf op categorie bij dat team was gezet. Daarna draait de
+> inhaalslag van `0171` opnieuw, dus wie zich heeft aangemeld voor een race die nog
+> gereden moet worden, staat er meteen weer in — de opruiming kan niemand kwijtraken
+> die zich gewoon had aangemeld.
+> **Bewust niet aangeraakt:** `sync_zrl_parent_roster_entries()` blijft. Die zet
+> alléén nog niet geclaimde rosternamen onder een team, in de lijst "Nog niet
+> geregistreerd" op de teampagina. Dat zijn geen leden, en sinds deze migratie
+> wordt zo'n indeling ook geen lidmaatschap meer bij het claimen. `zrl_division`
+> blijft ook staan: die labelt leden, hij deelt ze niet meer in. En er is geen
+> automatische herindeling teruggebouwd in een andere vorm — dat is precies wat
+> niet de bedoeling was.
+> **Niet lokaal te verifiëren:** de migratie tegen de productiedatabase (geen
+> Docker of Supabase hier; met de hand toepassen) en hoeveel lidmaatschappen de
+> opruiming daar raakt — die telling is hier niet te zien. Wel getest: 13 tests
+> tegen PGlite (`tests/unit/zrl-team-membership-sources.test.ts`) die eerst met de
+> échte `0070` de melding naspelen (Zwiftlady met categorie B belandt in ZRL B) en
+> daarna `0171` + `0172` draaien, plus TypeScript, ESLint en de build.
+
 > **Aanmelden voor een ZRL-race maakt je lid van dat team, 2026-09-18 — gebouwd, lokaal getest.**
 > Implementatiecommit `aab17ad`, migratie `0171_zrl_availability_team_join.sql`.
 > Wens van de eigenaar: wie zich aanwezig meldt bij een ZRL-race hoort meteen in
@@ -17,7 +61,8 @@
 > schrijfpaden naar dezelfde bedoeling, en een lid mag `team_members` niet zelf
 > schrijven (RLS laat alleen beheer toe). De herkomst is een nieuwe
 > `assignment_source`-waarde `event_availability`, zodat de categorie-sync uit `0070`
-> — die alleen `auto_zrl_category` opruimt — deze lidmaatschappen laat staan. Het
+> — die alleen `auto_zrl_category` opruimde — deze lidmaatschappen liet staan. (Die
+> sync bestaat sinds `0172` niet meer; zie de ronde hierboven.) Het
 > team is dat van de ráce, niet dat van de pagina waar je stond: een hoofdteam toont
 > ook de races van zijn subteams. De serveracties verversen daarom beide
 > roosterpagina's. Uitleg op `/hulp` onder Teams en wedstrijden.
@@ -853,7 +898,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Supabase auth-mailtemplates gedocumenteerd in
   `docs/supabase-auth-email-templates.md`.
 - Team-roster + ZRL-seeding (migr. `0067`-`0070`): volledige roster-tabel per
-  team, automatische seeding van ZRL-divisieteams vanuit een parent-team,
+  team, automatische seeding van ZRL-divisieteams vanuit een parent-team
+  (**die seeding is in `0172` verwijderd**: een ingeschaalde categorie maakt je
+  geen teamlid meer),
   beschikbaarheidsknoppen per renner, lineup-planner en power-profiel-selectie
   (sterkste renners per categorie). Event-type-categorieën (`0067`) voor
   filterbare kalender. RLS-recursie op `team_members` gefixt (`0069`).
@@ -5305,7 +5352,8 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 9. **✅ Team-ops, segmenten & onboarding-ronde** (commits `b882987`..`f51cabd`, 2026-06-02→08)
    - **Team-roster + ZRL-seeding** (`6e8f9c5`, migr. `0067`-`0070`): roster-tabel,
-     auto-seed van ZRL-divisieteams uit een parent-team, beschikbaarheid +
+     auto-seed van ZRL-divisieteams uit een parent-team (verwijderd in `0172`),
+     beschikbaarheid +
      lineup-planner + power-selectie, event-type-categorieën, RLS-recursiefix.
    - **Automatische Strava-sync-cron** (`014f8f6`): `/api/strava/sync` houdt
      activiteiten actueel zonder handmatige knop.

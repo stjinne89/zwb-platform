@@ -52,12 +52,9 @@ export function SyncResultsButton() {
               res.summary.teamsCreated || res.summary.sourcesCreated
                 ? `${res.summary.teamsCreated} teams aangemaakt, ${res.summary.sourcesCreated} bronnen gekoppeld, `
                 : "";
-            const zrlSeeded = res.summary.zrlSeeded ?? 0;
             const zrlRosterSeeded = res.summary.zrlRosterSeeded ?? 0;
             const zrlText =
-              zrlSeeded > 0 || zrlRosterSeeded > 0
-                ? `${zrlSeeded} ZRL-lidmaatschappen, ${zrlRosterSeeded} teamleden toegevoegd, `
-                : "";
+              zrlRosterSeeded > 0 ? `${zrlRosterSeeded} rosternamen aan een team gekoppeld, ` : "";
             const resultText = `${setupText}${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden`;
             setState({
               kind: failed > 0 ? "error" : skipped > 0 ? "notice" : "success",
