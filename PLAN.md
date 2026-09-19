@@ -1,8 +1,8 @@
 # ZWB Platform — Plan & Status
 
 > **0172 viel om op productie: 0070 was daar maar half toegepast, 2026-09-19 — gebouwd, lokaal getest.**
-> Migraties `0172` (aangepast, nog niet toegepast) en
-> `0173_restore_roster_team_assignment_source.sql`. Bij het toepassen van `0172`
+> Implementatiecommit `2c0ebfa`, migraties `0172` (aangepast, nog niet
+> toegepast) en `0173_restore_roster_team_assignment_source.sql`. Bij het toepassen van `0172`
 > kwam `ERROR: 42703: column r.team_assignment_source does not exist`. De regel
 > ervóór — het opruimen van lidmaatschappen met herkomst `auto_zrl_category` —
 > liep wél, dus `team_members.assignment_source` bestaat daar gewoon. Van
