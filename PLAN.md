@@ -1,8 +1,8 @@
 # ZWB Platform — Plan & Status
 
 > **Je ingeschaalde categorie maakt je geen teamlid meer, 2026-09-19 — gebouwd, lokaal getest.**
-> Migratie `0172_drop_zrl_category_team_seed.sql`. Melding van de eigenaar: er
-> stonden Zwiftladies in ZRL B. Oorzaak is de automatische indeling uit `0070`,
+> Implementatiecommit `c19b8be`, migratie `0172_drop_zrl_category_team_seed.sql`.
+> Melding van de eigenaar: er stonden Zwiftladies in ZRL B. Oorzaak is de automatische indeling uit `0070`,
 > niet de aanmeldregel van gisteren: die zette elk goedgekeurd lid met categorie
 > A, B of C in `ZRL <categorie>`, tenzij `profiles.zrl_division` op `women` stond.
 > Die divisie werd alleen gevuld als de tekst "zwiftladies" ergens in een
