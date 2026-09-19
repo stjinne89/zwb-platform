@@ -1077,7 +1077,7 @@ grens van 50% (pauze bij 200) knelt niet.
 2.400 per dag.~~ **Rechtgezet op 2026-09-19:** die 2.400 was gerekend op de verkeerde
 limiet, zie hieronder.
 
-**Incident: Strava's leeslimiet (2026-09-19, commit `COMMITR`).** Op 19-09 lag de hele
+**Incident: Strava's leeslimiet (2026-09-19, commit `b719a79`).** Op 19-09 lag de hele
 webhookverwerking vanaf 09:50 UTC stil: nieuwe ritten van leden kwamen niet binnen, en
 de inhaalslagen stonden ook stil.
 - **Oorzaak.** Strava gaf op elk ritdetail een 429, terwijl onze boekhouding pas op
