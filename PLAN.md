@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.**
-> Implementatiecommit volgt. Geen migratie; spelversie 3 (lopende races vervallen,
+> Implementatiecommit `6675ba7`. Geen migratie; spelversie 3 (lopende races vervallen,
 > uitslagen blijven). Verzoek van de eigenaar: horizontaal spelen op mobiel,
 > parcoursen van Flamme Rouge, maximaal 5 minuten, overzichtelijker beeld en
 > intuïtievere besturing. Gebouwd: vier eigen parcoursen van 3,5–4 km uit stukken
