@@ -1073,10 +1073,32 @@ stap 8 s, goed voor 1 tot 5 ritten.
 daarvoor: 30 à 33 per run in plaats van 1 à 5. Kwartierbudget 112 van 400, dus de
 grens van 50% (pauze bij 200) knelt niet.
 
-**Verwachting bijgesteld: ~3 dagen, niet ~2.** Dat uurtempo houdt het dagplafond niet
-in: bij 60% van de daglimiet passen er 2.400 per dag, en er stonden 8.009 ritten open.
-Wie sneller wil, moet die 60% verhogen — dat gaat ten koste van de marge voor leden die
-net een rit uploaden.
+~~**Verwachting bijgesteld: ~3 dagen, niet ~2.** Bij 60% van de daglimiet passen er
+2.400 per dag.~~ **Rechtgezet op 2026-09-19:** die 2.400 was gerekend op de verkeerde
+limiet, zie hieronder.
+
+**Incident: Strava's leeslimiet (2026-09-19, commit `COMMITR`).** Op 19-09 lag de hele
+webhookverwerking vanaf 09:50 UTC stil: nieuwe ritten van leden kwamen niet binnen, en
+de inhaalslagen stonden ook stil.
+- **Oorzaak.** Strava gaf op elk ritdetail een 429, terwijl onze boekhouding pas op
+  2.032 van de 4.000 stond. `readRateLimitUsage` las alleen `x-ratelimit-*`, de
+  algemene limiet. Strava heeft daarnaast een krappere leeslimiet
+  (`x-readratelimit-*`), en bijna al ons verkeer is lezen.
+- **Hoe mijn wijziging het veroorzaakte.** De segment-inhaalslag mocht tot 60% van
+  4.000 = 2.400 aanroepen gaan, boven de leeslimiet. Met 8 s per run werd dat nooit
+  gehaald; met 20 s wel. Waarschijnlijk gebeurde dit al op 16, 17 en 18 september:
+  telkens 1.350 à 1.400 segmentritten, en met het overige verkeer komt dat rond de
+  2.000. Dan bleven nieuwe ritten van leden tot middernacht UTC liggen.
+- **Leeslimiet: 2.000 per dag**, bevestigd door de eigenaar op 2026-09-19. Dat past
+  bij de 429 op 2.032 algemene aanroepen.
+- **Reparatie.** `readRateLimitUsage` leest beide paren en kiest per venster het paar
+  dat het dichtst bij zijn limiet zit. Zo volgt elke budgetgrens (segment- en
+  historie-inhaalslag, sync) automatisch de krapste limiet; zonder leesheaders
+  verandert er niets.
+- **Nieuwe verwachting.** Bij 60% van de leeslimiet pauzeren de inhaalslagen rond
+  1.200 aanroepen per dag voor de hele app. Na het overige verkeer blijft er ongeveer
+  600 per dag voor segmentdetails over; met 3.012 open ritten is dat ~5 dagen.
+  Langzamer dan gehoopt, maar de ritten van leden krijgen weer voorrang.
 
 ### Opgeleverd — ZWBlokken in de Zwift-werelden
 
