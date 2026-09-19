@@ -3,17 +3,36 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, BatteryCharging, Bike, Check, ChevronRight, CircleHelp, Droplets, Flag, Gauge, HeartPulse, Leaf, Mountain, Pause, Play, Rocket, Settings2, Shield, Utensils, Wind, Zap } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, BatteryCharging, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Droplets, Flag, HeartPulse, Leaf, Maximize2, Minimize2, Mountain, MountainSnow, Pause, Play, Rocket, Settings2, Shield, Utensils, Wind, Zap } from "lucide-react";
 import { COURSES, elevationAt } from "@/lib/zwbgame/courses";
 import { CARD_SECONDS, conditionsAt, createRace, standings, stepRace, STEP_SECONDS } from "@/lib/zwbgame/engine";
 import { readResults, restoreRace, resultsKey, saveKey, serializeRace } from "@/lib/zwbgame/storage";
-import type { CardId, CourseId, GameBootstrap, PlayerCommand, RaceResult, RaceState, Tactic } from "@/lib/zwbgame/types";
+import type { CardId, CourseId, GameBootstrap, PlayerCommand, RaceResult, RaceState, RiderState, Tactic } from "@/lib/zwbgame/types";
 import { refreshGame, saveGamePower, saveGamePreferences } from "./actions";
 import styles from "./game.module.css";
 
 const RaceScene = dynamic(() => import("./race-scene"), { ssr: false, loading: () => <div className={styles.sceneLoading}>Peloton opstellen…</div> });
 const labels = { sprinter: "Sprinter", puncher: "Puncher", tter: "Diesel", climber: "Klimmer", allrounder: "Allrounder" };
-const tactics: { value: Tactic; label: string; key: string }[] = [{ value: "wheel", label: "In het wiel", key: "1" }, { value: "front", label: "Naar voren", key: "2" }, { value: "pull", label: "Kopwerk", key: "3" }, { value: "attack", label: "Aanvallen", key: "4" }];
+// Four riding modes replace a separate effort slider and tactic choice.
+type ModeId = "save" | "ride" | "front" | "attack";
+const modes: { id: ModeId; label: string; key: string; tactic: Tactic; effort: number; icon: React.ReactNode }[] = [
+  { id: "save", label: "Sparen", key: "1", tactic: "wheel", effort: 0.62, icon: <Leaf size={20} /> },
+  { id: "ride", label: "Meerijden", key: "2", tactic: "wheel", effort: 0.75, icon: <Bike size={20} /> },
+  { id: "front", label: "Naar voren", key: "3", tactic: "front", effort: 0.88, icon: <ChevronsUp size={20} /> },
+  { id: "attack", label: "Aanvallen", key: "4", tactic: "attack", effort: 1.2, icon: <Zap size={20} /> },
+];
+const modeOf = (r: RiderState): ModeId => r.tactic === "attack" ? "attack" : r.tactic === "front" || r.tactic === "pull" ? "front" : r.effort < 0.7 ? "save" : "ride";
+const modeCommands = (id: ModeId): PlayerCommand[] => { const mode = modes.find((m) => m.id === id)!; return [{ type: "effort", value: mode.effort }, { type: "tactic", value: mode.tactic }]; };
+/** Riders on the road in groups: less than 15 m apart counts as one group. */
+function groupsOf(order: RiderState[]) {
+  const groups: RiderState[][] = [];
+  for (const r of order.filter((x) => x.finishTime === null)) {
+    const last = groups[groups.length - 1];
+    if (last && last[last.length - 1].distance - r.distance < 15) last.push(r); else groups.push([r]);
+  }
+  return groups;
+}
+const courseIcons = { wind: <Wind size={28} />, hills: <Mountain size={28} />, mountain: <MountainSnow size={28} /> };
 const cardInfo: Record<CardId, { label: string; icon: React.ReactNode }> = {
   tailwind: { label: "Rugwind", icon: <Wind size={16} /> },
   legs: { label: "Goede benen", icon: <BatteryCharging size={16} /> },
@@ -36,6 +55,9 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const [lowQuality, setLowQuality] = useState(false);
   const [settings, setSettings] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [landscape, setLandscape] = useState(false);
+  const gameRef = useRef<HTMLDivElement>(null);
   const engine = useRef<RaceState | null>(null);
   const queue = useRef<PlayerCommand[]>([]);
   const finishedSaved = useRef<string | null>(null);
@@ -48,6 +70,9 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const terrain = conditionsAt(active.config, me.distance);
   const helpers = active.riders.filter((r) => r.captainId === data.playerId);
   const canDrive = Boolean(race && !paused && !race.finished && me.finishTime === null);
+  const mode = modeOf(me);
+  const groups = groupsOf(order);
+  const finishedCount = order.filter((r) => r.finishTime !== null).length;
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -83,6 +108,9 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       let stepped = false;
       while (accumulator >= STEP_SECONDS && !current.finished) {
         stepRace(current, queue.current.splice(0)); accumulator -= STEP_SECONDS; stepped = true;
+        // An emptied attack reserve drops you back into the wheel instead of stalling.
+        const own = current.riders.find((r) => r.rider.id === current.config.playerId);
+        if (own && own.finishTime === null && own.tactic === "attack" && own.reserve < 1 && !own.boost) queue.current.push(...modeCommands("ride"));
       }
       if (stepped) {
         setRace({ ...current, riders: current.riders.map((r) => ({ ...r })) });
@@ -114,9 +142,17 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const command = useCallback((value: PlayerCommand) => { if (canDrive) queue.current.push(value); }, [canDrive]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).matches("input, select, textarea, button, a") || event.ctrlKey || event.metaKey || event.altKey) return;
-      const tactic = tactics.find((t) => t.key === event.key);
-      if (tactic) command({ type: "tactic", value: tactic.value });
+      const target = event.target as HTMLElement;
+      // A focused button keeps Space and Enter for itself; mode keys still work after a tap.
+      if (target.matches("input, select, textarea") || (target.matches("button, a") && (event.key === " " || event.key === "Enter")) || event.ctrlKey || event.metaKey || event.altKey) return;
+      const own = engine.current?.riders.find((r) => r.rider.id === data.playerId);
+      const picked = modes.find((m) => m.key === event.key);
+      if (picked) modeCommands(picked.id).forEach(command);
+      if (own && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+        event.preventDefault();
+        const index = modes.findIndex((m) => m.id === modeOf(own)) + (event.key === "ArrowUp" ? 1 : -1);
+        if (modes[index]) modeCommands(modes[index].id).forEach(command);
+      }
       const card = /^[5-8]$/.test(event.key) ? engine.current?.riders.find((r) => r.rider.id === data.playerId)?.cards[Number(event.key) - 5] : undefined;
       if (card) command({ type: "card", card });
       if (event.key.toLowerCase() === "e") command({ type: "eat" });
@@ -169,7 +205,28 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     finally { setBusy(false); }
   }
 
-  return <div className={styles.game}>
+  useEffect(() => {
+    // Same query as the landscape layout in the stylesheet.
+    const query = window.matchMedia("(orientation: landscape) and (max-height: 540px)");
+    const update = () => setLandscape(query.matches);
+    update(); query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    const change = () => setFullscreen(document.fullscreenElement === gameRef.current);
+    document.addEventListener("fullscreenchange", change);
+    return () => document.removeEventListener("fullscreenchange", change);
+  }, []);
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) { await document.exitFullscreen(); return; }
+      await gameRef.current?.requestFullscreen();
+      // Phones that allow it turn to landscape; others keep their orientation.
+      await (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => undefined);
+    } catch { /* fullscreen is optional */ }
+  }
+
+  return <div className={styles.game} ref={gameRef} data-racing={race ? "true" : undefined}>
     <header className={styles.header}>
       <div className={styles.brand}><Bike size={26} /><span>ZWB<span className={styles.brandAccent}>game</span><small>JOUW CLUB. JOUW KOERS.</small></span></div>
       <div className={styles.headerActions}>
@@ -196,7 +253,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       </form>
     </section>}
     <div className={styles.stage} data-testid="game-stage">
-      <RaceScene state={active} overview={overview} lowQuality={lowQuality} />
+      <RaceScene state={active} overview={overview} lowQuality={lowQuality} raised={Boolean(race) && landscape} />
       <div className={styles.stageShade} />
       {!race ? <div className={styles.hero}>
         <span className={styles.eyebrow}>ZWB CYCLING • CLUBKOERS</span>
@@ -211,11 +268,22 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
           <button className={styles.glassButton} disabled={busy || race.finished} onClick={() => { if (paused) void start(true); else { setPaused(true); save(); } }} aria-label={paused ? "Hervatten" : "Pauzeren"}>{paused ? <Play size={19} /> : <Pause size={19} />}</button>
         </div>
         <div className={styles.raceNumbers}><div><strong>{place}<small>/{active.riders.length}</small></strong><span>POSITIE</span></div><div><strong>{(me.speed * 3.6).toFixed(0)}<small> km/u</small></strong><span>SNELHEID</span></div><div><strong>{(Math.max(0, course.length - me.distance) / 1000).toFixed(1)}<small> km</small></strong><span>TE GAAN</span></div></div>
-        <div className={styles.conditions}><span><Mountain size={14} />{(terrain.grade * 100).toFixed(1)}%</span><span><Wind size={14} />{windLabel(terrain.wind)}</span><span>{clock(active.tick * STEP_SECONDS)}</span>{me.boost && <span className={styles.boost}>{cardInfo[me.boost.card].icon}{cardInfo[me.boost.card].label} {Math.ceil(me.boost.left)}s</span>}</div>
-        <div className={styles.riderTag}><span className={styles.liveDot} />{me.rider.name}{helpers.length > 0 && <span className={styles.teamTag}><Shield size={12} />{helpers.length}</span>}<span>{me.sheltered ? "In de luwte" : "In de wind"}</span></div>
+        <div className={styles.conditions}><span><Mountain size={14} />{(terrain.grade * 100).toFixed(1)}%</span><span><Wind size={14} />{windLabel(terrain.wind)}</span><span>{clock(active.tick * STEP_SECONDS)}</span><span className={me.sheltered ? styles.sheltered : undefined}>{me.sheltered ? "In de luwte" : "In de wind"}</span>{me.boost && <span className={styles.boost}>{cardInfo[me.boost.card].icon}{cardInfo[me.boost.card].label} {Math.ceil(me.boost.left)}s</span>}</div>
+        <ol className={styles.groups} aria-label="Groepen">
+          {finishedCount > 0 && <li><Flag size={12} />{finishedCount}</li>}
+          {groups.map((group, i) => {
+            const mine = group.includes(me);
+            const gap = i === 0 ? 0 : (groups[0][0].distance - group[0].distance) / Math.max(group[0].speed, 5);
+            return <li key={group[0].rider.id} data-mine={mine || undefined}>
+              <span>{i === 0 && !finishedCount ? "Kop" : `+${clock(gap)}`}</span>
+              <strong>{group.length}</strong>
+              {mine && <em>Jij{helpers.length > 0 && <Shield size={11} aria-label="met ploeg" />}</em>}
+            </li>;
+          })}
+        </ol>
         {paused && !race.finished && <div className={styles.pauseOverlay}><Pause size={30} /><h2>Even op adem</h2><button className={styles.primary} disabled={busy} onClick={() => start(true)}><Play size={18} />Hervatten</button></div>}
       </>}
-      <div className={styles.sceneTools}><button onClick={() => setOverview(!overview)} aria-pressed={overview}>{overview ? "Volgcamera" : "Overzicht"}</button><button onClick={() => setLowQuality(!lowQuality)} aria-pressed={lowQuality}>{lowQuality ? "3D · zuinig" : "3D · hoog"}</button></div>
+      <div className={styles.sceneTools}><button onClick={() => setOverview(!overview)} aria-pressed={overview}>{overview ? "Volgcamera" : "Overzicht"}</button><button onClick={() => setLowQuality(!lowQuality)} aria-pressed={lowQuality}>{lowQuality ? "3D · zuinig" : "3D · hoog"}</button>{race && typeof document !== "undefined" && document.fullscreenEnabled && <button onClick={toggleFullscreen} aria-pressed={fullscreen} aria-label={fullscreen ? "Volledig scherm sluiten" : "Volledig scherm"}>{fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}</button>}</div>
       {!race && <div className={styles.heroBadge}><Shield size={20} /><span>JIJ TEGEN DE CLUB<strong>{data.roster.length} renners · solo</strong></span></div>}
     </div>
     <div className={styles.routeStrip}>
@@ -233,17 +301,16 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       <div className={styles.dashboard}>
         <section className={styles.controls} aria-label="Rennerbediening">
           <div className={styles.resources}><Meter label="Energie" value={me.energy} max={me.maxEnergy} icon={<Leaf size={15} />} /><Meter label="Aanval" value={me.reserve} max={100} icon={<Zap size={15} />} /><Meter label="Drinken" value={me.hydration} max={100} icon={<Droplets size={15} />} /></div>
-          <label className={styles.effort}><span><Gauge size={16} />Inspanning <strong>{Math.round(me.effort * 100)}%</strong></span><input aria-label="Inspanning" type="range" min="40" max="125" step="5" value={Math.round(me.effort * 100)} disabled={!canDrive} onChange={(e) => command({ type: "effort", value: Number(e.target.value) / 100 })} /></label>
-          <div className={styles.tactics}>{tactics.map((t) => <button key={t.value} disabled={!canDrive} aria-pressed={me.tactic === t.value} onClick={() => command({ type: "tactic", value: t.value })}><kbd>{t.key}</kbd>{t.label}</button>)}</div>
+          <div className={styles.modes} role="group" aria-label="Rijstand">{modes.map((m) => <button key={m.id} data-mode={m.id} disabled={!canDrive} aria-pressed={mode === m.id} onClick={() => modeCommands(m.id).forEach(command)}><kbd>{m.key}</kbd>{m.icon}{m.label}</button>)}</div>
           <div className={styles.feedButtons}><button disabled={!canDrive || !me.gels || me.eating > 0 || me.drinking > 0} onClick={() => command({ type: "eat" })}><Utensils size={17} />{me.eating > 0 ? "Eten…" : "Gel nemen"}<span>{me.gels}</span></button><button disabled={!canDrive || !me.bottles || me.eating > 0 || me.drinking > 0} onClick={() => command({ type: "drink" })}><Droplets size={17} />{me.drinking > 0 ? "Drinken…" : "Bidon pakken"}<span>{me.bottles}</span></button></div>
           {me.cards.length > 0 && <div className={styles.cards} aria-label="Bonuskaarten">{me.cards.map((card, i) => <button key={`${card}-${i}`} disabled={!canDrive || Boolean(CARD_SECONDS[card] && me.boost)} onClick={() => command({ type: "card", card })}><kbd>{i + 5}</kbd>{cardInfo[card].icon}{cardInfo[card].label}</button>)}</div>}
-          <div className={styles.quietStats}><span>Dagvorm {me.form >= 1 ? "+" : ""}{Math.round((me.form - 1) * 100)}%</span><span>{helpers.length ? `Ploeg · ${helpers.length} ${helpers.length === 1 ? "knecht" : "knechten"}` : "Zonder ploeg"}</span><span>Herstel ×{me.recovery.toFixed(2)}</span><span>Energiebudget {me.maxEnergy.toFixed(0)}</span><span>{me.fed ? "Bevoorrading gepasseerd" : "Bevoorrading op 52%"}</span></div>
+          <div className={styles.quietStats}><span>Dagvorm {me.form >= 1 ? "+" : ""}{Math.round((me.form - 1) * 100)}%</span><span>{helpers.length ? `Ploeg · ${helpers.length} ${helpers.length === 1 ? "knecht" : "knechten"}` : "Zonder ploeg"}</span><span>Herstel ×{me.recovery.toFixed(2)}</span><span>Energiebudget {me.maxEnergy.toFixed(0)}</span><span>{me.fed ? "Bevoorrading gepasseerd" : `Bevoorrading op ${(course.feedAt / 1000).toFixed(2).replace(".", ",")} km`}</span></div>
         </section>
         <section className={styles.positions} aria-label="Koersoverzicht"><div className={styles.sectionHeading}><h2>{race.finished ? "Uitslag" : "In de koers"}</h2><span>{order.length} renners</span></div><ol>{order.map((r, index) => <li key={r.rider.id} className={r.rider.id === data.playerId ? styles.ownPosition : r.captainId === data.playerId ? styles.teamPosition : ""}><button disabled={!canDrive || r.rider.id === data.playerId || r.finishTime !== null} onClick={() => command({ type: "tactic", value: "wheel", targetId: r.rider.id })} aria-label={`Volg ${r.rider.name}`}><span>{index + 1}</span><strong>{r.rider.name}</strong>{r.captainId === data.playerId && <Shield size={11} aria-label="Jouw knecht" />}<small>{r.finishTime !== null ? clock(r.finishTime) : index === 0 ? "Kop" : `+${Math.max(0, (order[0].distance - r.distance) / Math.max(r.speed, 2)).toFixed(0)}s`}</small></button></li>)}</ol></section>
       </div>
       {me.finishTime !== null && <section className={styles.finishCard} aria-live="polite"><Flag size={30} /><div><span className={styles.eyebrow}>FINISH</span><h2>{place === 1 ? "De koers is van jou." : `Plek ${place}. Sterk gereden.`}</h2><p>{clock(me.finishTime)} · {me.attacks} aanvallen · {Math.round(me.shelteredSeconds / Math.max(1, me.finishTime) * 100)}% beschut</p></div><button className={styles.primary} onClick={back}>Nieuwe koers <ArrowUpRight size={18} /></button></section>}
     </> : <>
-      <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies jouw koers</h2><span>10–15 min · {preview.riders.length} renners</span></div><div className={styles.courseGrid}>{Object.values(COURSES).map((c, i) => <button key={c.id} className={styles.courseCard} data-selected={courseId === c.id} aria-pressed={courseId === c.id} onClick={() => setCourseId(c.id)}><span className={styles.courseNumber}>0{i + 1}</span><span className={styles.courseIcon} style={{ color: c.color }}>{i === 0 ? <Wind size={28} /> : <Mountain size={28} />}</span><h3>{c.name}</h3><p>{c.subtitle}</p><div><span>{(c.length / 1000).toFixed(1)} km</span><span>{courseId === c.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
+      <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies jouw koers</h2><span>4–5 min · {preview.riders.length} renners</span></div><div className={styles.courseGrid}>{Object.values(COURSES).map((c, i) => <button key={c.id} className={styles.courseCard} data-selected={courseId === c.id} aria-pressed={courseId === c.id} onClick={() => setCourseId(c.id)}><span className={styles.courseNumber}>0{i + 1}</span><span className={styles.courseIcon} style={{ color: c.color }}>{courseIcons[c.icon]}</span><h3>{c.name}</h3><p>{c.subtitle}</p><div><span>{(c.length / 1000).toFixed(1)} km</span><span>{courseId === c.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
       <section className={styles.lobbyBottom}><div className={styles.riderCard}><span className={styles.riderAvatar}><Bike size={28} /></span><div><span className={styles.eyebrow}>JOUW RENNER</span><h2>{me.rider.name}</h2><p>{labels[me.rider.kind]} · {({ basic: "Basisprofiel", platform: "Platformgegevens", manual: "Eigen meting", intervals: "Intervals" })[me.rider.source]}</p></div><div className={styles.ability}><span>Vlak<strong>{Math.round(me.rider.flat * 100)}</strong></span><span>Klim<strong>{Math.round(me.rider.climb * 100)}</strong></span><span>Sprint<strong>{Math.round(me.rider.sprint * 100)}</strong></span></div></div><button className={styles.rosterButton} onClick={() => setRosterOpen(!rosterOpen)} aria-expanded={rosterOpen}><span>Het clubpeloton<strong>{data.roster.length} ZWB-renners</strong></span><ChevronRight size={22} /></button></section>
       {rosterOpen && <section className={styles.roster} aria-label="Clubpeloton">{data.roster.map((r) => <div key={r.id}><Bike size={16} /><strong>{r.name}</strong><span>{labels[r.kind]}</span></div>)}</section>}
       {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{COURSES[r.courseId].name}</span><span>{r.place}/{r.count}</span><span>{clock(r.seconds)}</span></div>)}</section>}

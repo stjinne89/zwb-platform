@@ -1,4 +1,4 @@
-export const GAME_VERSION = 2;
+export const GAME_VERSION = 3;
 export const CONSENT_VERSION = "2026-09-17";
 export type RiderKind = "sprinter" | "puncher" | "tter" | "climber" | "allrounder";
 export type GameRider = {
@@ -13,14 +13,18 @@ export type GameRider = {
   revision: string;
   garmin: boolean;
 };
-export type CourseId = "polder" | "ardennen" | "alpen";
+export type CourseId = "polder" | "ardennen" | "heuvelrug" | "alpen";
 export type Course = {
   id: CourseId;
   name: string;
   subtitle: string;
   color: string;
+  icon: "wind" | "hills" | "mountain";
+  /** One letter per 250 m tile; see courses.ts. */
+  tiles: string;
   segments: { end: number; grade: number; wind: number }[];
   length: number;
+  feedAt: number;
 };
 export type RaceConfig = { courseId: CourseId; seed: number; playerId: string };
 export type Tactic = "wheel" | "front" | "pull" | "attack";

@@ -3,7 +3,9 @@ import { basicRider } from "./roster";
 import { GAME_VERSION, type CardId, type GameRider, type PlayerCommand, type RaceConfig, type RaceState, type RiderState } from "./types";
 
 export const STEP_SECONDS = 0.2;
-export const MAX_RACE_SECONDS = 1800;
+export const MAX_RACE_SECONDS = 900;
+/** Races last about four to five minutes, so energy and fluids run down twice as fast as in real time. */
+const PACE = 2;
 /** Riders in "wheel" still chase a group this far ahead; beyond it they are dropped. */
 const CHASE_RANGE = 150;
 export const CARD_IDS: CardId[] = ["tailwind", "legs", "second", "surprise"];
@@ -115,7 +117,7 @@ export function personality(state: RaceState, index: number) {
   const base = { sprinter: 350, puncher: 700, climber: 900, tter: 1400, allrounder: 800 }[r.rider.kind];
   return {
     aggression: randomAt(state.config.seed, 5000 + index * 7),
-    finalAt: base * (0.55 + randomAt(state.config.seed, 6000 + index * 11) * 1.1),
+    finalAt: base * clamp(COURSES[state.config.courseId].length / 9000, 0.5, 1) * (0.55 + randomAt(state.config.seed, 6000 + index * 11) * 1.1),
   };
 }
 export function botCommands(state: RaceState, index: number): PlayerCommand[] {
@@ -245,17 +247,17 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
     const requestedEffort = boost === "surprise" || chasing ? Math.min(effort, 0.86) : effort;
     // An exhausted rider must actually choose recovery. Otherwise an attack held
     // forever oscillates between a free sprint and automatic regeneration.
-    if (r.reserve < 1 && boost !== "surprise") effort = Math.min(effort, 0.48);
+    if (r.reserve < 1 && boost !== "surprise") effort = Math.min(effort, 0.4);
     const cost = effort * (r.sheltered ? (teamWheel ? 0.52 : 0.62) : 1) * (1 + Math.max(wind, 0) * 0.1) * (boost === "tailwind" ? 0.85 : 1);
-    r.energy = clamp(r.energy - (0.03 + cost * cost * 0.2) * STEP_SECONDS, 0, r.maxEnergy);
+    r.energy = clamp(r.energy - (0.03 + cost * cost * 0.2) * PACE * STEP_SECONDS, 0, r.maxEnergy);
     r.reserve = clamp(r.reserve + (requestedEffort > 0.86 ? -(requestedEffort - 0.86) * 13 : (0.9 - cost) * 3.6 * r.recovery) * STEP_SECONDS, 0, 100);
-    r.hydration = clamp(r.hydration - (0.07 + effort * 0.1) * STEP_SECONDS, 0, 100);
-    if (r.digesting > 0) { const amount = Math.min(r.digesting, STEP_SECONDS * 0.7); r.energy = Math.min(r.maxEnergy, r.energy + amount); r.digesting -= amount; }
+    r.hydration = clamp(r.hydration - (0.07 + effort * 0.1) * PACE * STEP_SECONDS, 0, 100);
+    if (r.digesting > 0) { const amount = Math.min(r.digesting, STEP_SECONDS * 0.7 * PACE); r.energy = Math.min(r.maxEnergy, r.energy + amount); r.digesting -= amount; }
     if (r.drinking > 0) r.hydration = Math.min(100, r.hydration + 11 * STEP_SECONDS);
     r.eating = Math.max(0, r.eating - STEP_SECONDS);
     r.drinking = Math.max(0, r.drinking - STEP_SECONDS);
     if (r.boost) { r.boost.left -= STEP_SECONDS; if (r.boost.left <= 1e-9) r.boost = null; }
-    if (!r.fed && r.distance >= course.length * 0.52) { r.fed = true; r.gels = Math.min(3, r.gels + 1); r.bottles = Math.min(3, r.bottles + 1); }
+    if (!r.fed && r.distance >= course.feedAt) { r.fed = true; r.gels = Math.min(3, r.gels + 1); r.bottles = Math.min(3, r.bottles + 1); }
     let target = speedFor(r, terrain.grade, wind, effort, r.sheltered);
     if (boost === "surprise") target *= 1.03;
     // Following a wheel controls spacing but cannot give free speed or teleport to it.

@@ -1,7 +1,7 @@
 # ZWBgame — implementatie en verificatie, 17 september 2026
 
 De eerste versie is een besloten solo-spel op `/zwbgame`: zelf als renner rijden,
-maximaal 23 bots uit het clubroster, drie fictieve parcoursen, voeding, hydratatie,
+maximaal 23 bots uit het clubroster, vier eigen parcoursen van 3,5–4 km, voeding, hydratatie,
 aanvalsreserve, positionering, slipstream, bonuskaarten, knechten en vooraf
 berekende compensatie. Lagere sportsterkte kan met beter spel winnen; bij gelijk
 spel wint de sterkere renner vaker, maar niet elke race. Die uitleg van
@@ -32,6 +32,19 @@ PGlite getest. Dit is geen end-to-end test tegen de gekoppelde Supabase-database
   selectie, parcoursen, afleiding van kwaliteiten, serveradapter en lokale opslag.
 - `src/app/(app)/zwbgame`: afzonderlijk geladen Three.js-renderer, HUD, lobby,
   voorkeuren, eigen invoer/Intervals-sync en rosterbeheer voor admins.
+- Besturing (19 september 2026): de inspanningsbalk en vier taken zijn vervangen door
+  vier standen die beide tegelijk zetten: Sparen (wiel, 0,62), Meerijden (wiel, 0,75),
+  Naar voren (front, 0,88; dekt ook het oude Kopwerk) en Aanvallen (1,2). Toetsen
+  1–4 en pijltje omhoog/omlaag; toetsen werken ook nadat je op een knop tikte. Is
+  de aanvalsreserve leeg tijdens Aanvallen, dan zet de client je terug op Meerijden
+  (bots doen dat al zelf). De engine is ongewijzigd: bots houden alle tactieken.
+- Overzicht: een groepenbalk in beeld (renners minder dan 15 m uit elkaar vormen een
+  groep) met achterstand per groep, aantal renners, jouw groep en je ploeg; de
+  volledige lijst staat eronder. Liggend op een telefoon (landscape, hoogte ≤ 540 px)
+  vult de race het scherm, met standen rechts, eten/drinken/kaarten links, cijfers
+  op een donkere ondergrond en het camerabeeld 24% omhoog zodat je renner boven de
+  knoppen blijft. Optionele knop voor volledig scherm, die op Android ook naar
+  liggend draait; iOS Safari ondersteunt dat op iPhones niet.
 - Groepsdynamiek (sinds 17 september 2026, na melding "mijn renner houdt de groep
   niet bij"): slipstream geeft ×1,12 snelheid (was ×1,045) en werkt tot 1,3 m
   zijdelings. In het wiel rijdt een renner zonder beschutting automatisch een gat tot
@@ -71,10 +84,24 @@ PGlite getest. Dit is geen end-to-end test tegen de gekoppelde Supabase-database
   ±0,3; rugwind maakt sneller.
 - Hydratatie daalt met 0,07 + 0,10 × inspanning per seconde; onder 40 word je
   tot 20% trager. Zonder drinken merk je dat in een hele race.
-- Twee gels en twee bidons; bij 52% afstand één van elk erbij, maximaal drie
+- Parcoursen en spelduur (19 september 2026, op verzoek van de eigenaar: "parcoursen
+  van Flamme Rouge" en maximaal 5 minuten). Gekozen voor eigen parcoursen in
+  Flamme Rouge-stijl, niet de indelingen uit het spel: dat is inhoud van een
+  commercieel spel en die indelingen zijn hier niet betrouwbaar bekend. Een parcours
+  is een reeks stukken van 250 m (`courses.ts`): vlak, tegenwind (wind 1), klim
+  (5,5%), steile klim (8%), afdaling (−4,5%) en bevoorrading. Polderkoers 4,0 km,
+  Ardennenjacht 3,75 km, Heuvelrug 4,0 km (nieuw), Alpenfinale 3,5 km. Gemeten
+  (12 races, veld FTP 180–341): winnaar 3:49–4:10, laatste renner hooguit 5:01.
+  Energie- en vochtverbruik en de werking van een gel lopen twee keer zo snel
+  (`PACE`), zodat voeding in 4 minuten even zwaar weegt als eerst in 10. De
+  laatste aanval van bots schaalt mee met de parcourslengte (×0,5 bij 4 km). Wie
+  met lege aanvalsreserve blijft aanvallen, zakt nu naar inspanning 0,40 (was 0,48):
+  op 4 km won roekeloos aanvallen anders weer. Spelversie 3: lopende races van
+  versie 2 zijn niet hervatbaar; uitslagen blijven.
+- Twee gels en twee bidons; bij de bevoorradingsstrook van het parcours één van elk erbij, maximaal drie
   tegelijk. Een gel herstelt 30 energiepunten geleidelijk. Voeding verlaagt de
   inspanning tijdelijk. Finishvolgorde gebruikt de berekende passeertijd binnen
-  een simulatiestap. Na 30 minuten stopt een vastgelopen/extreme race met DNF's.
+  een simulatiestap. Na 15 minuten stopt een vastgelopen/extreme race met DNF's.
 - Browseropslag bewaart één versiegebonden race per account (spelversie 2 sinds
   de balansronde; een versie-1-race is niet meer hervatbaar), maximaal zeven dagen
   hervatbaar, zonder rennersnamen of vermogenskwaliteiten. Profielen en identiteiten

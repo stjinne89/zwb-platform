@@ -6,14 +6,15 @@ import { COURSES, elevationAt } from "@/lib/zwbgame/courses";
 import { STEP_SECONDS } from "@/lib/zwbgame/engine";
 import type { RaceState } from "@/lib/zwbgame/types";
 
-type Props = { state: RaceState; overview: boolean; lowQuality: boolean };
+/** raised: controls cover the lower part of the screen, so the picture shifts up. */
+type Props = { state: RaceState; overview: boolean; lowQuality: boolean; raised?: boolean };
 const bend = (d: number) => Math.sin(d / 450) * 35 + Math.sin(d / 180) * 7;
 
-export default function RaceScene({ state, overview, lowQuality }: Props) {
+export default function RaceScene({ state, overview, lowQuality, raised = false }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const latest = useRef({ state, overview });
+  const latest = useRef({ state, overview, raised });
   const [failed, setFailed] = useState(false);
-  useEffect(() => { latest.current = { state, overview }; }, [state, overview]);
+  useEffect(() => { latest.current = { state, overview, raised }; }, [state, overview, raised]);
   const courseId = state.config.courseId;
   const riderCount = state.riders.length;
   useEffect(() => {
@@ -128,7 +129,14 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
     helperMarkers.instanceMatrix.setUsage(THREE.DynamicDrawUsage); helperMarkers.frustumCulled = false; scene.add(helperMarkers);
     const parent = new THREE.Object3D(), local = new THREE.Object3D(), matrix = new THREE.Matrix4();
     const desiredCamera = new THREE.Vector3(), look = new THREE.Vector3();
-    const resize = () => { const { width, height } = element.getBoundingClientRect(); renderer.setSize(width, height, false); camera.aspect = width / Math.max(1, height); camera.updateProjectionMatrix(); };
+    let appliedRaise: boolean | null = null;
+    const frameView = () => {
+      const { width, height } = element.getBoundingClientRect();
+      appliedRaise = latest.current.raised;
+      if (appliedRaise) camera.setViewOffset(width, height, 0, height * 0.24, width, height); else camera.clearViewOffset();
+      camera.aspect = width / Math.max(1, height); camera.updateProjectionMatrix();
+    };
+    const resize = () => { const { width, height } = element.getBoundingClientRect(); renderer.setSize(width, height, false); frameView(); };
     const observer = new ResizeObserver(resize); observer.observe(element); resize();
     let frame = 0, initialized = false, disposed = false;
     // The simulation moves in 200 ms steps. Rendering glides from where each rider was
@@ -141,6 +149,7 @@ export default function RaceScene({ state, overview, lowQuality }: Props) {
     const render = (now: number) => {
       if (disposed) return;
       const current = latest.current;
+      if (current.raised !== appliedRaise) frameView();
       const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
       lastFrame = now;
       const race = `${current.state.config.seed}:${current.state.config.courseId}:${current.state.riders.length}`;

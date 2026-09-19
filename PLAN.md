@@ -1,5 +1,22 @@
 # ZWB Platform — Plan & Status
 
+> **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.**
+> Implementatiecommit volgt. Geen migratie; spelversie 3 (lopende races vervallen,
+> uitslagen blijven). Verzoek van de eigenaar: horizontaal spelen op mobiel,
+> parcoursen van Flamme Rouge, maximaal 5 minuten, overzichtelijker beeld en
+> intuïtievere besturing. Gebouwd: vier eigen parcoursen van 3,5–4 km uit stukken
+> van 250 m (vlak, tegenwind, klim, steile klim, afdaling, bevoorrading), met
+> Heuvelrug als nieuw parcours; energie en vocht lopen twee keer zo snel; vier
+> standen (Sparen, Meerijden, Naar voren, Aanvallen) vervangen inspanningsbalk en
+> taken; een groepenbalk in beeld; liggend op een telefoon vult de race het scherm.
+> Gemeten: winnaar 3:49–4:10, laatste renner hooguit 5:01; top 3 wint 41–68%.
+> **Bewust niet gebouwd:** de parcoursindelingen en -namen van Flamme Rouge zelf
+> (commerciële spelinhoud, en hier niet betrouwbaar bekend; de eigenaar koos voor
+> eigen parcoursen in die stijl) en sneller afspelen van de tijd (koos kortere
+> parcoursen). Kopwerk bestaat niet meer als aparte keuze voor de speler; Naar voren
+> dekt het. **Niet gemeten:** speelgevoel en fps op een echte telefoon, en draaien
+> naar liggend op iOS. Details: [ZWBgame](docs/zwbgame.md).
+
 > **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
 > Implementatiecommit `0c67f4a`. Geen migratie. Melding van de eigenaar: het beeld schokt
 > en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%

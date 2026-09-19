@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCommand, botCommands, conditionsAt, createRace, helpersOf, standings, stepRace, STEP_SECONDS } from "@/lib/zwbgame/engine";
+import { applyCommand, botCommands, conditionsAt, createRace, helpersOf, standings, stepRace } from "@/lib/zwbgame/engine";
 import { COURSES } from "@/lib/zwbgame/courses";
 import { basicRider, buildRoster, deriveRider, isAllowedActivity } from "@/lib/zwbgame/roster";
 import { restoreRace, serializeRace } from "@/lib/zwbgame/storage";
@@ -55,16 +55,16 @@ describe("ZWBgame simulation", () => {
   });
   it("supplies are granted only once and capped", () => {
     const state = create(); const r = state.riders[0];
-    r.distance = COURSES.polder.length * 0.52;
+    r.distance = COURSES.polder.feedAt;
     for (let i = 0; i < 50; i++) stepRace(state, [], () => []);
     expect([r.fed, r.gels, r.bottles]).toEqual([true, 3, 3]);
   });
   it.each(Object.keys(COURSES) as CourseId[])("finishes %s with finite bounded resources in the target duration", (courseId) => {
     const state = run(create(courseId));
-    expect(state.tick * STEP_SECONDS).toBeLessThan(1000);
+    // Races last at most five minutes, also for the last rider.
     const times = state.riders.map((r) => r.finishTime!);
-    expect(Math.min(...times)).toBeGreaterThan(540);
-    expect(Math.max(...times)).toBeLessThan(900);
+    expect(Math.min(...times)).toBeGreaterThan(180);
+    expect(Math.max(...times)).toBeLessThan(300);
     for (const r of state.riders) {
       expect(r.finishTime).not.toBeNull(); expect(r.energy).toBeGreaterThanOrEqual(0);
       expect(r.energy).toBeLessThanOrEqual(r.maxEnergy); expect(r.reserve).toBeGreaterThanOrEqual(0);
@@ -84,7 +84,7 @@ describe("ZWBgame simulation", () => {
   });
   it("sorts crossing times, not array update order, and never changes finish time", () => {
     const state = create(); const a = state.riders[0], b = state.riders[1];
-    a.distance = 9999.8; b.distance = 9999.9;
+    a.distance = COURSES.polder.length - 0.2; b.distance = COURSES.polder.length - 0.1;
     stepRace(state, [], () => []);
     expect(standings(state)[0].rider.id).toBe(b.rider.id);
     const time = a.finishTime; stepRace(state); expect(a.finishTime).toBe(time);
@@ -155,12 +155,12 @@ describe("ZWBgame teams, cards and variation", () => {
     for (const seed of [101, 202, 303, 404, 505]) {
       const state = createRace({ courseId: "polder", seed, playerId: "0" }, roster);
       const me = state.riders.find((r) => r.rider.id === "0")!;
-      for (let i = 0; i < 1500; i++) stepRace(state);
+      for (let i = 0; i < 750; i++) stepRace(state); // halfway through a race
       const others = state.riders.filter((r) => r !== me).map((r) => r.distance).sort((a, b) => a - b);
       gaps.push((others[Math.floor(others.length / 2)] - me.distance) / Math.max(me.speed, 1));
     }
-    // Seconds behind the middle of the field after five minutes, averaged over races.
-    expect(gaps.reduce((a, b) => a + b, 0) / gaps.length).toBeLessThan(10);
+    // Seconds behind the middle of the field halfway, averaged over races.
+    expect(gaps.reduce((a, b) => a + b, 0) / gaps.length).toBeLessThan(5);
   }, 30000);
   it("wind differs per race on the same course", () => {
     const winds = [1, 2, 3, 4].map((seed) => conditionsAt({ courseId: "polder", seed, playerId: "0" }, 3000).wind);
