@@ -89,7 +89,7 @@ test.describe("public smoke checks", () => {
     await page.goto("/verhaal", { waitUntil: "domcontentloaded", timeout: 60000 });
 
     await expect(page.getByRole("heading", { name: "Het verhaal van ZWB" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Van prototype naar echte story" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Eerst gewoon rijden" })).toBeVisible();
     await expectHealthyPage(page);
   });
 });

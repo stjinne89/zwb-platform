@@ -1,5 +1,35 @@
 # ZWB Platform — Plan & Status
 
+> **Branches opgeruimd, losse eindjes naar main, 2026-09-19 — alleen git en een testregel.**
+> Geen migratie van deze ronde zelf. Alle lokale en remote branches en worktrees
+> zijn tegen `origin/main` gelegd. Wat nog niet op main stond is erbij gekomen:
+> de advies-geslachtfix (`0a86b3b`, zie hieronder), de ZRL-teamfixes met
+> migraties `0172`/`0173` (merge van `claude/zrl-team-member-auto-add-3jznu4`),
+> de gebruiksanalyse van 17 september (stond ongecommit in een worktree) en de
+> e2e-smoketest van `/verhaal`, die nog op de oude kop "Van prototype naar echte
+> story" wachtte; de pagina heet sinds de verhaalronde "Eerst gewoon rijden".
+> **Bewust weggegooid:** `claude/duplicate-trainings-jeroen-janssen-vyudzy`
+> (19 aug, filter `withoutConceptDuplicates` en losser opruimen bij publiceren).
+> Het dubbele-trainingsprobleem is op 2026-08-25 langs een andere weg opgelost
+> (zie "dubbele trainingen: de race tussen twee publicaties"); die branch is
+> nooit gemerged en zou er nu naast komen te staan. Alle overige branches waren
+> al volledig (of patch-gelijk) op main. **Niet lokaal te verifiëren:** `0172` en
+> `0173` tegen productie; die moeten nog met de hand worden toegepast.
+
+> **Gebruiksanalyse voor het bestuur, 2026-09-17 — alleen analyse, geen code.**
+> Geen migratie. Alleen-lezende, geaggregeerde tellingen op productie. Kern:
+> 18 van 35 accounts actief in 30 dagen (14 met eigen actie), aanwas gestopt
+> (sep 0, juli-cohort 2/12 actief). Wat leeft draait automatisch op ritdata;
+> ZWBeter Worden is diep maar smal (7 leden met schema, ~25% van de code).
+> Vraag en Aanbod, Ritverslagen, Verjaardagen-sociaal, teamresultaten/TTT/
+> opstellingen, klachtenlogboek en onderhoud-slijtdelen hebben 0–1 gebruiker.
+> Bijvangst: de WTRL-resultatensync faalt sinds 3 juni terwijl de health-check
+> ok meldt, en AI-tokengebruik van trainingsgeneraties wordt niet gelogd.
+> Bewust niet gemeten: paginabezoek (bestaat niet) en inloggen per lid. Er is
+> nog niets verwijderd; de voorstellen (featurepauze, menu opschonen, keuze over
+> ZWBeter Worden, Omnium-deadline) liggen bij het bestuur.
+> Details: [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md).
+
 > **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.**
 > Implementatiecommit `6675ba7`. Geen migratie; spelversie 3 (lopende races vervallen,
 > uitslagen blijven). Verzoek van de eigenaar: horizontaal spelen op mobiel,
@@ -322,7 +352,7 @@
 > verifiëren. Details: [coachchat](docs/coachchat.md).
 
 > **ZWBeterWorden-advies op geslacht, 2026-09-17 — opgelost.**
-> Implementatiecommit `3bb65a8`; geen migratie. De
+> Implementatiecommit `0a86b3b` (cherry-pick van `3bb65a8`); geen migratie. De
 > vandaag-pagina (`/zwbeter-worden`) riep `zwbeterWordenAdvice` nog aan met
 > `profile.zrl_division` als tweede argument. Sinds de omzetting naar
 > `profiles.sex` (2026-08-18) is dat argument het geslacht. Een divisie is
