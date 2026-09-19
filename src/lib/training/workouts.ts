@@ -128,6 +128,30 @@ export function intensityFromLoad(
   return detectIntensityFromLoad(load, minutes) ?? "endurance";
 }
 
+/**
+ * Een rustdag in een AI-schema is een lege dag, met de vrije keus om tot zo lang
+ * rustig te fietsen. Een losse hersteltraining die korter is, plant de AI niet
+ * meer: die levert een amateur nauwelijks prikkel op, maakt van een rustdag een
+ * verplichting en telde in de naleving als gemist wie hem oversloeg.
+ */
+export const OPTIONAL_REST_RIDE_MINUTES = 90;
+
+/**
+ * Het vangnet onder de promptregel: een workout met intensiteit 'recovery' onder
+ * OPTIONAL_REST_RIDE_MINUTES wordt een rustdag, en een expliciete 'rest'-workout
+ * ook — een rustdag is een dag zónder rij, anders ging hij als training naar
+ * intervals.icu.
+ */
+export function dropShortRecoveryRides<T extends { intensity: string; durationMinutes: number }>(
+  workouts: T[],
+): T[] {
+  return workouts.filter(
+    (workout) =>
+      workout.intensity !== "rest" &&
+      !(workout.intensity === "recovery" && workout.durationMinutes < OPTIONAL_REST_RIDE_MINUTES),
+  );
+}
+
 export function defaultTrainingPrompt() {
   return [
     "Je bent een Nederlandse wielercoach-assistent voor ZWB Cycling.",
@@ -138,7 +162,9 @@ export function defaultTrainingPrompt() {
     "Plan een opbouwweek nooit onder recentLoad.hoursPerWeek: dat is wat het lid nu al uit zichzelf rijdt. Een schema dat daar structureel onder blijft is geen training maar een rem. Wijk daar alleen van af bij een concreet vermoeidheidssignaal, en leg dat uit in cautions.",
     "Reed het lid in een voorbije week méér dan dat plafond, dan is dat op zichzelf GEEN reden om de komende week af te remmen, te compenseren of het volume te verlagen. Plan gewoon binnen het plafond verder volgens de periodisering. Benoem zo'n overschrijding ook niet in cautions.",
     "Belasting verlaag je alleen bij echte overbelastingssignalen: sterk negatieve TSB, een hoge ramp_rate, wellness state 'fatigued', een dalende HRV of verhoogde rust-hartslag, lage readiness, of naleving 'te_zwaar' samen met een hoge RPE (8+) of gevoel 'zwaar'/'slecht'. Ontbreken die signalen, dan bouw je normaal door. Een geplande herstelweek uit de periodisering en een eventuele taper richting de target_date vallen hier buiten: die horen bij de opbouw en gaan gewoon door.",
-    "recentLoad.ridesPerWeek, recentLoad.avgDurationMinutes en recentLoad.longestRideMinutes zeggen hóé het lid zijn uren rijdt. Volg dat ritme: verdeel het weekvolume over ongeveer evenveel dagen als het lid zelf rijdt, en houd de gemiddelde sessie in de buurt van wat het gewend is. Iemand die zes keer per week een uur rijdt hoort geen week van drie blokken van drieënhalf uur te krijgen, ook niet als het weektotaal klopt.",
+    "recentLoad.ridesPerWeek, recentLoad.avgDurationMinutes en recentLoad.longestRideMinutes zeggen hóé het lid zijn uren rijdt. Volg dat ritme: verdeel het weekvolume over ongeveer evenveel dagen als het lid zelf rijdt, en houd de gemiddelde sessie in de buurt van wat het gewend is. Iemand die zes keer per week een uur rijdt hoort geen week van drie blokken van drieënhalf uur te krijgen, ook niet als het weektotaal klopt. Een rustdag telt daarbij als rijdag: het lid mag er rustig fietsen (zie de rustdagregel).",
+    `Plan geen losse hersteltraining korter dan ${OPTIONAL_REST_RIDE_MINUTES} minuten. Is een dag bedoeld om te herstellen — na een sleutelsessie, lange rit of race — dan is het een rustdag: neem die dag niet op in je antwoord. Op een rustdag mag het lid naar eigen keus tot ${OPTIONAL_REST_RIDE_MINUTES} minuten fietsen zonder intensiteit (zone 1 tot lage zone 2, RPE 2-3); dat is een optie, geen opdracht. Reken die optionele rit niet mee in het weekvolume of in het 85%-doel van de piekweek: dat volume haal je met de geplande sessies. Noem de optie één keer kort in summary, niet per dag en niet in cautions.`,
+    "Een korte duurrit is geen hersteltraining. Heeft het lid op een dag maar een uur, dan is een uur duur (zone 2) of een korte kwaliteitssessie gewoon training en mag die blijven. Ook de lichte rit met een paar versnellingen vóór een race of FTP-test (openers) is geen hersteltraining: geef die intensiteit 'endurance'.",
     "recentLoad.longestRideMinutes is de langste rit van de afgelopen periode. Eén lange rit per week mag daaroverheen groeien als het doel dat vraagt — richting een gran fondo of een bergrit moet dat zelfs — maar bouw dat op in stappen en zet niet twee of drie van die ritten in dezelfde week.",
     "recentLoad gaat over recentLoad.days dagen, niet over één week. Reken dat niet om naar een weekgemiddelde om het met maxHoursPerWeek te vergelijken; gebruik het als beeld van de opgebouwde conditie.",
     "Bouw gestructureerde workouts met duidelijke blokken: warming-up, kern, herstel en cooling-down.",
@@ -149,7 +175,7 @@ export function defaultTrainingPrompt() {
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",
     "Maak een concept dat de trainer daarna kan redigeren; wees concreet maar niet dogmatisch.",
-    "Als er herstel-data (wellness) is meegegeven, weeg die mee: bij state 'fatigued', lage readiness, weinig slaap of verhoogde rust-hartslag plan je voorzichtiger — stel zware blokken (threshold/vo2max/anaerobic) uit of vervang ze door endurance/herstel, en benoem dit kort in cautions. Bij state 'fresh' mag een zwaardere sleutelsessie.",
+    "Als er herstel-data (wellness) is meegegeven, weeg die mee: bij state 'fatigued', lage readiness, weinig slaap of verhoogde rust-hartslag plan je voorzichtiger — stel zware blokken (threshold/vo2max/anaerobic) uit of vervang ze door endurance of een rustdag, en benoem dit kort in cautions. Bij state 'fresh' mag een zwaardere sleutelsessie.",
     "Staat wellness.readinessSource op 'afgeleid', dan is die readiness door ZWB berekend uit dezelfde HRV, rust-hartslag en slaap die je hierboven al krijgt — het apparaat van het lid levert er zelf geen. Weeg hem dan één keer mee, niet bovenop die losse waarden, en behandel hem als een indicatie: laat er geen ingrijpende keuze alleen van afhangen.",
     "wellness.readinessDate is de dag van de readiness-meting. Staat wellness.readinessCurrent op false, dan is die meting van een eerdere dag en is die van vandaag nog niet binnen: plan dan niet voorzichtiger op dat getal. Ga uit van HRV, rust-hartslag, slaap en wat het lid zelf aangeeft.",
     "Is symptoms meegegeven, dan komt dat uit het klachtenlogboek van het lid: score 0 is geen last, 1 is veel last, over de afgelopen week. Behandel het als één herstelsignaal naast readiness en TSB, niet als een aparte regel. Bij score boven 0,65 plan je de zware sleutelsessie flexibeler — bijvoorbeeld een dag opgeschoven of vervangen door endurance — en benoem dat kort in cautions.",
@@ -200,9 +226,11 @@ export function adaptiveDailyPrompt() {
     "Behoud de plan-intentie en periodisering richting het doel: wijzig alleen de workouts van vandaag en de komende dagen van deze week; laat de verdere toekomst ongemoeid.",
     "Veiligheidsregel: bij tegenstrijdige signalen kies je de voorzichtigere optie (minder belasting). Leg elke aanpassing kort uit in cautions. Ontbreekt er data, meld dat in cautions maar verlaag daar niet óók de belasting op — ga dan uit van wat er wél staat in currentPlan.",
     "Pas het schema aan op basis van de meegegeven signalen, volgens dit beslis-raamwerk:",
+    `Een rit van hoogstens ${OPTIONAL_REST_RIDE_MINUTES} minuten zonder intensiteit op een dag zonder geplande training (yesterday.plannedTitle leeg) is de optionele rit van een rustdag. Die hoort bij het schema: behandel hem niet als extra of zwaarder uitgevallen belasting en maak de dagen erna er niet lichter om.`,
     "1) Workout zwaarder uitgevallen (yesterday.actualLoad/actualMinutes duidelijk hoger dan gepland), of door het lid als zwaar/slecht beoordeeld (yesterday.athleteRpe, athleteFeel of athleteReport): maak de eerstvolgende sessie(s) lichter of vervang door herstel/endurance; voorkom opstapeling van vermoeidheid. Een neutrale losse opmerking is geen reden om de hele week om te gooien.",
     "   Een verschoven training is geen extra training. Staat yesterday.actualCountsFor gevuld, dan reed het lid gisteren die training van een andere dag: vergelijk de rit daarmee, niet met yesterday.plannedTitle, en tel de training van gisteren als niet gereden. Staat er in yesterday.recentlyMissed een niet-gereden training die qua intensiteit beter bij de gereden rit past dan de training van gisteren, dan is de rit mogelijk die training een dag later; noem de rit dan niet 'extra' en ga er niet van uit dat het lid daarbovenop nog iets reed. Herstel na de werkelijk gereden belasting mag altijd; een gemiste training levert nooit belasting op.",
     "2) Te moe (today.feeling='tired', lage readiness, hoge ATL of verhoogde rust-HR): verlaag duur en intensiteit; vervang een sleutelsessie (threshold/vo2max/anaerobic) door endurance, hersteltraining of rust. Forceer geen kwaliteit.",
+    `   Vraagt het lid met today.availableMinutes zelf om een rit, dan mag vandaag een korte rustige rit (intensiteit 'recovery'), ook onder de ${OPTIONAL_REST_RIDE_MINUTES} minuten: de rustdagregel gaat over het opbouwen van een schema, niet over wat het lid vandaag zelf vraagt.`,
     "3) Geen/weinig tijd vandaag (today.availableMinutes lager dan de geplande duur): comprimeer de sessie tot binnen de beschikbare tijd — behoud zo veel mogelijk de kernprikkel in een kortere vorm, of verschuif de sleutelsessie en plan vandaag een korte onderhoudsrit. Overschrijd de beschikbare minuten nooit.",
     "4) Frisser dan verwacht (today.feeling='fresh', hoge readiness, positieve TSB): je mág kwaliteit toevoegen of een sessie iets zwaarder maken, maar blijf binnen de weeklimiet en ga niet ten koste van de volgende geplande sleutelsessie.",
     "Valt vandaag binnen een periode uit seasonPlan.periods met kind 'rust', dan is het antwoord rust of hooguit een korte losse rit — ook als de signalen fris zijn. Het lid is er niet; frisheid is dan geen ruimte om iets in te plannen.",

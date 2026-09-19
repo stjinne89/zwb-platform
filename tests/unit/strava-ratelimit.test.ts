@@ -5,6 +5,7 @@ import {
   shouldPauseForRateLimit,
 } from "@/lib/strava/rate-limit-budget";
 import { evaluateStravaWebhook } from "@/lib/health/checks";
+import { readRateLimitUsage } from "@/lib/strava/activity-api";
 
 const NOW = new Date("2026-09-05T10:00:00.000Z");
 
@@ -108,5 +109,33 @@ describe("evaluateStravaWebhook", () => {
     const result = evaluateStravaWebhook(true, "2026-09-01T10:00:00.000Z", 48, NOW);
     expect(result.ok).toBe(false);
     expect(result.detail).toBe("96u geen events");
+  });
+});
+
+describe("readRateLimitUsage", () => {
+  const headers = (entries: Record<string, string>) => new Headers(entries);
+
+  it("leest de algemene limiet als er geen leeslimiet meekomt", () => {
+    expect(
+      readRateLimitUsage(headers({ "x-ratelimit-usage": "12,300", "x-ratelimit-limit": "400,4000" })),
+    ).toEqual({ shortTermUsed: 12, shortTermLimit: 400, dailyUsed: 300, dailyLimit: 4000 });
+  });
+
+  it("kiest per venster de limiet die het dichtst bij vol zit", () => {
+    // Zoals op 19-09: algemeen 2.032 van 4.000, maar lezen al op de grens.
+    const usage = readRateLimitUsage(
+      headers({
+        "x-ratelimit-usage": "2,2032",
+        "x-ratelimit-limit": "400,4000",
+        "x-readratelimit-usage": "1,2001",
+        "x-readratelimit-limit": "200,2000",
+      }),
+    );
+    expect(usage).toEqual({ shortTermUsed: 2, shortTermLimit: 400, dailyUsed: 2001, dailyLimit: 2000 });
+    expect(shouldPauseForRateLimit(usage, { shortTermRatio: 0.5, dailyRatio: 0.6 }).pause).toBe(true);
+  });
+
+  it("geeft niets zonder rate-limitheaders", () => {
+    expect(readRateLimitUsage(headers({}))).toBeNull();
   });
 });

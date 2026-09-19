@@ -116,7 +116,7 @@ const GUIDES = [
       "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
       "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
-      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet.",
+      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
     ],
   },
   {
@@ -125,6 +125,7 @@ const GUIDES = [
     title: "Teams en wedstrijden",
     bullets: [
       "Teams tonen leden, rosterkoppelingen en bekende wedstrijdstanden.",
+      "Meld je je beschikbaar voor een ZRL-race, of zeg je Ja op de racepagina, dan sta je meteen in het team waar die race bij hoort. Afmelden haalt je er niet weer uit; dat doet een teambeheerder.",
       "ZRL en Ladder-resultaten worden via bronnen gesynct waar mogelijk.",
       "Ontbrekende brondata kan handmatig worden aangevuld door beheerders.",
     ],
@@ -957,6 +958,18 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Rustdagen in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een dag zonder training in je schema is een rustdag. Je mag dan
+              helemaal niets doen, of tot 1,5 uur rustig fietsen zonder
+              intensiteit: zone 1 tot lage zone 2, praten moet makkelijk gaan.
+              De planner rekent die rit niet mee in je weekvolume en remt er de
+              dagen erna niet om af. Losse hersteltrainingen korter dan 1,5 uur
+              plant de AI niet meer: die leveren weinig op, en een echte rustdag
+              herstelt beter.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Met <strong className="text-foreground">Aanpassen</strong> op de
@@ -1297,6 +1310,15 @@ export default function HelpPage() {
             uur hebt? Vraag het in de coachchat. De coach kent je schema, je doel
             en de &ldquo;Let op&rdquo;-regels die bij je schema horen, en legt uit
             waarom er staat wat er staat. Hij verandert zelf niets.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hij kent ook je trainingsdata: je laatste ritten met hun belasting, je
+            belasting per week, je FTP, FTP-tests en vermogenscurve, wat je van je
+            schema werkelijk reed, en je CTL, ATL en TSB als je intervals.icu hebt
+            gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
+            of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
+            uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
+            (IF) rekenen we alleen uit bij een echte vermogensmeter.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}

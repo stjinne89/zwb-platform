@@ -46,10 +46,48 @@ function parsePair(value: string | null): [number | null, number | null] {
   return [parts[0] ?? null, parts[1] ?? null];
 }
 
+/** Van twee (gebruikt, limiet)-paren: het paar dat het dichtst bij zijn limiet zit. */
+function tighter(
+  a: [number | null, number | null],
+  b: [number | null, number | null],
+): [number | null, number | null] {
+  const ratio = ([used, limit]: [number | null, number | null]) =>
+    used != null && limit ? used / limit : -1;
+  return ratio(b) > ratio(a) ? b : a;
+}
+
+/**
+ * Strava geeft twee limieten mee: de algemene (`x-ratelimit-*`) en een aparte,
+ * krappere voor leesacties (`x-readratelimit-*`). Bijna al ons verkeer is lezen.
+ *
+ * Tot 2026-09-19 lazen we alleen de algemene: die stond op 400/4.000, de leeslimiet
+ * ligt lager. De segment-inhaalslag mocht tot 60% van 4.000 = 2.400 gaan en blies
+ * zo elke dag de leeslimiet op; daarna gaf Strava tot middernacht UTC een 429, ook
+ * voor de nieuwe ritten van leden. Nu kiezen we per venster het paar dat het
+ * dichtst bij zijn limiet zit, zodat elke budgetgrens de krapste limiet volgt.
+ * Zonder leesheaders verandert er niets.
+ */
 export function readRateLimitUsage(headers: Headers): StravaRateLimitUsage | null {
-  const [shortTermUsed, dailyUsed] = parsePair(headers.get("x-ratelimit-usage"));
-  const [shortTermLimit, dailyLimit] = parsePair(headers.get("x-ratelimit-limit"));
-  if (shortTermUsed == null && dailyUsed == null) return null;
+  const [allShortUsed, allDailyUsed] = parsePair(headers.get("x-ratelimit-usage"));
+  const [allShortLimit, allDailyLimit] = parsePair(headers.get("x-ratelimit-limit"));
+  const [readShortUsed, readDailyUsed] = parsePair(headers.get("x-readratelimit-usage"));
+  const [readShortLimit, readDailyLimit] = parsePair(headers.get("x-readratelimit-limit"));
+  if (
+    allShortUsed == null &&
+    allDailyUsed == null &&
+    readShortUsed == null &&
+    readDailyUsed == null
+  ) {
+    return null;
+  }
+  const [shortTermUsed, shortTermLimit] = tighter(
+    [allShortUsed, allShortLimit],
+    [readShortUsed, readShortLimit],
+  );
+  const [dailyUsed, dailyLimit] = tighter(
+    [allDailyUsed, allDailyLimit],
+    [readDailyUsed, readDailyLimit],
+  );
   return { shortTermUsed, shortTermLimit, dailyUsed, dailyLimit };
 }
 

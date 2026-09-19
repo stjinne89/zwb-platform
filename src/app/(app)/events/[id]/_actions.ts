@@ -34,6 +34,21 @@ export async function setRsvp(eventId: string, status: Status) {
     () => ({ inserted: false, removed: false }),
   );
 
+  // Een 'ja' op een ZRL-race maakt je lid van het team waar die race bij hoort
+  // (migr. 0171 doet dat in dezelfde transactie als de RSVP). Het rooster van
+  // dat team is daarmee veranderd.
+  if (status === "yes") {
+    const { data: raceTeam } = await admin
+      .from("events")
+      .select("type, team_id")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (raceTeam?.type === "zrl" && raceTeam.team_id) {
+      revalidatePath(`/teams/${raceTeam.team_id}`);
+      revalidatePath("/teams");
+    }
+  }
+
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/kalender");

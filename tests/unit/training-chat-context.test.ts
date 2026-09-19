@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // De context die de coach meekrijgt, en de tekst die daarvan naar OpenAI gaat.
-// Twee dingen moeten hier vastliggen: de onderbouwing (de "Let op"-regels en de
-// invoer waarop het schema is gemaakt) komt mee, en wat er niet heen mag — de
-// naam van het lid, en hersteldata van wie die niet deelt — blijft weg.
+// Drie dingen moeten hier vastliggen: de onderbouwing (de "Let op"-regels en de
+// invoer waarop het schema is gemaakt) komt mee, de gereden trainingsdata komt
+// mee, en wat er niet heen mag — de naam van het lid, en hersteldata van wie die
+// niet deelt — blijft weg.
 
 type Row = Record<string, unknown>;
 
@@ -52,12 +53,44 @@ vi.mock("@/lib/training/availability", () => ({ availabilityForAi: async () => n
 vi.mock("@/lib/training/season-data", () => ({ seasonPlanForAi: async () => null }));
 vi.mock("@/lib/training/compliance", () => ({
   buildComplianceContext: async () => ({
-    workouts: [],
+    workouts: [
+      {
+        workoutId: "w-0",
+        date: "2026-09-16",
+        title: "Sweet spot 3x12",
+        actualDate: "2026-09-16",
+        actualName: "Avondrit",
+        plannedMinutes: 90,
+        plannedLoad: 95,
+        plannedIntensity: "sweetspot",
+        actualMinutes: 88,
+        actualLoad: 91,
+        actualIf: 0.82,
+        loadPct: 96,
+        verdict: "volgens_plan",
+        athleteRpe: 7,
+        athleteFeel: "goed",
+        athleteReport: "x".repeat(400),
+      },
+    ],
     summary: { planned: 6, ridden: 4, missed: 2, tooLight: 1, tooHard: 0, onPlan: 3, avgLoadPct: 92 },
   }),
 }));
 vi.mock("@/lib/training/wellness", () => ({
   getWellnessSummary: async () => ({ state: "normal", restingHr: 48 }),
+}));
+
+// De enige netwerkcall in de context: de actuele vorm. Hier vervangen, zodat de
+// test vastlegt dát hij alleen bij een koppeling met sleutels wordt gedaan.
+const wellnessCalls: string[] = [];
+vi.mock("@/lib/intervals/client", () => ({
+  fetchIntervalsWellness: async (_apiKey: string, athleteId: string) => {
+    wellnessCalls.push(athleteId);
+    return [
+      { id: "2026-09-11", ctl: 50, atl: 45 },
+      { id: "2026-09-18", ctl: 53.5, atl: 60.5, eftp: 268 },
+    ];
+  },
 }));
 
 const { buildCoachChatContext } = await import("@/lib/training/chat-context");
@@ -66,7 +99,12 @@ const { buildCoachUserText, CHAT_HISTORY_LIMIT, replanResultMessage, shapeChatMe
 
 const LID = "lid-1";
 
-function seed({ wellnessOptIn = false }: { wellnessOptIn?: boolean } = {}) {
+function seed({
+  wellnessOptIn = false,
+  intervalsKeys = true,
+}: { wellnessOptIn?: boolean; intervalsKeys?: boolean } = {}) {
+  wellnessCalls.length = 0;
+  const gisteren = new Date(Date.now() - 86_400_000).toISOString();
   tables = {
     training_plans: [
       {
@@ -120,7 +158,41 @@ function seed({ wellnessOptIn = false }: { wellnessOptIn?: boolean } = {}) {
         }),
       },
     ],
-    intervals_connections: [{ profile_id: LID, wellness_opt_in: wellnessOptIn }],
+    intervals_connections: [
+      {
+        profile_id: LID,
+        wellness_opt_in: wellnessOptIn,
+        api_key: intervalsKeys ? "sleutel" : null,
+        athlete_id: intervalsKeys ? "i123" : null,
+      },
+    ],
+    strava_activities: [
+      {
+        id: 991,
+        profile_id: LID,
+        name: "Ronde van het dorp",
+        sport_type: "Ride",
+        start_date: gisteren,
+        synced_at: gisteren,
+        moving_time_seconds: 3600,
+        distance_m: 32_000,
+        total_elevation_gain_m: 180,
+        raw: {
+          moving_time: 3600,
+          device_watts: true,
+          weighted_average_watts: 250,
+          average_watts: 235,
+          average_heartrate: 144,
+        },
+      },
+    ],
+    profiles: [{ id: LID, ftp_watts: 250, weight_kg: 74 }],
+    training_ftp_tests: [
+      { profile_id: LID, tested_on: "2026-08-20", test_type: "ramp", result_watts: 300, ftp_watts: 250 },
+    ],
+    rider_power_profiles: [
+      { profile_id: LID, period: "90d", synced_at: "2026-09-01T09:00:00Z", rider_type: "allrounder", watts_20m: 270, wkg_20m: 3.65 },
+    ],
   };
 }
 
@@ -159,6 +231,54 @@ describe("coachcontext", () => {
   it("vat de naleving samen", async () => {
     const context = await buildCoachChatContext(fakeAdmin() as never, LID);
     expect(context.naleving).toMatchObject({ gepland: 6, gereden: 4, gemiddeldeBelastingPct: 92 });
+  });
+
+  it("zet gepland naast gereden per training, met een afgekapte opmerking", async () => {
+    const context = await buildCoachChatContext(fakeAdmin() as never, LID);
+    const training = context.naleving?.perTraining[0];
+    expect(training).toMatchObject({
+      datum: "2026-09-16",
+      titel: "Sweet spot 3x12",
+      geredenNaam: "Avondrit",
+      belastingPct: 96,
+      oordeel: "volgens_plan",
+      rpe: 7,
+    });
+    expect(training?.opmerking).toHaveLength(200);
+  });
+
+  it("stuurt de gereden ritten, het vermogen en de vorm mee", async () => {
+    const context = await buildCoachChatContext(fakeAdmin() as never, LID);
+    const data = context.trainingsdata;
+
+    expect(data?.ritten[0]).toMatchObject({
+      titel: "Ronde van het dorp",
+      minuten: 60,
+      km: 32,
+      belasting: 100,
+      vermogensmeter: true,
+    });
+    expect(data?.volume).toMatchObject({ ritten: 1, dagen: 28 });
+    expect(data?.weken.at(-1)?.belasting).toBe(100);
+    expect(data?.vermogen).toMatchObject({ ftpWatts: 250, gewichtKg: 74, ftpPerKg: 3.38 });
+    expect(data?.vermogen?.curve).toMatchObject({ watt20m: 270 });
+    // TSB is CTL min ATL; de eFTP komt van de laatste dag die er een had.
+    expect(data?.vorm).toMatchObject({ ctl: 53.5, atl: 60.5, tsb: -7, eftp: 268 });
+    expect(data?.bron.vormBron).toBe("intervals.icu");
+    expect(wellnessCalls).toEqual(["i123"]);
+    // De sleutel van de koppeling wordt gebruikt om te fetchen, niet meegestuurd.
+    expect(JSON.stringify(context)).not.toContain("sleutel");
+  });
+
+  it("vraagt geen vorm op zonder intervals-koppeling", async () => {
+    seed({ intervalsKeys: false });
+    const context = await buildCoachChatContext(fakeAdmin() as never, LID);
+
+    expect(wellnessCalls).toEqual([]);
+    expect(context.trainingsdata?.vorm).toBeNull();
+    expect(context.trainingsdata?.bron.vormBron).toBeNull();
+    // De rest van de trainingsdata blijft gewoon staan.
+    expect(context.trainingsdata?.ritten).toHaveLength(1);
   });
 });
 

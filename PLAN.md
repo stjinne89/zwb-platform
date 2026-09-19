@@ -17,6 +17,113 @@
 > dekt het. **Niet gemeten:** speelgevoel en fps op een echte telefoon, en draaien
 > naar liggend op iOS. Details: [ZWBgame](docs/zwbgame.md).
 
+> **Aanmelden voor een ZRL-race maakt je lid van dat team, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `aab17ad`, migratie `0171_zrl_availability_team_join.sql`.
+> Wens van de eigenaar: wie zich aanwezig meldt bij een ZRL-race hoort meteen in
+> het team waar die race bij hoort. Dat gebeurde niet. Een race hangt aan één team
+> (`events.team_id`, gevuld door `/beheer/zrl-kalender`), maar een aanmelding
+> landde in `team_event_availability` (teampagina) of `event_rsvps` (racepagina)
+> en daarmee nergens in `team_members`.
+> Het rooster, de opstelling-planner en Voor mij op de kalender lezen juist dat
+> laatste, dus de captain moest iedereen met de hand toevoegen; de teampagina viste
+> de losse namen apart op zodat ze tenminste zichtbaar waren.
+> **Nu:** een `security definer`-trigger op beide tabellen
+> (`join_event_team_for_member`) voegt het lid bij Beschikbaar of Ja toe aan het team
+> van de race, in dezelfde transactie als de aanmelding zelf. In de database en niet
+> in de serveractie, om dezelfde reden als de categorie-seeding in `0070`: twee
+> schrijfpaden naar dezelfde bedoeling, en een lid mag `team_members` niet zelf
+> schrijven (RLS laat alleen beheer toe). De herkomst is een nieuwe
+> `assignment_source`-waarde `event_availability`, zodat de categorie-sync uit `0070`
+> — die alleen `auto_zrl_category` opruimt — deze lidmaatschappen laat staan. Het
+> team is dat van de ráce, niet dat van de pagina waar je stond: een hoofdteam toont
+> ook de races van zijn subteams. De serveracties verversen daarom beide
+> roosterpagina's. Uitleg op `/hulp` onder Teams en wedstrijden.
+> **Grenzen, met reden:** alleen ZRL-races (een Ja op een social met een team eraan
+> is geen toezegging aan een raceteam), alleen goedgekeurde leden (gelijk aan
+> `0070`), Misschien telt niet, en afmelden haalt niemand uit een team — uit een team
+> gaan doe je niet door één race te missen, dat doet een teambeheerder. Een bestaande
+> captainrol blijft staan, en wie de captain uit het team haalde komt niet vanzelf
+> terug: `removeMember()` legt dat vast als seed-override en die wint. De losse
+> namenvangst op de teampagina blijft dus nodig, voor Misschien, voor leden die nog
+> op goedkeuring wachten en voor handmatig verwijderde leden.
+> **Inhaalslag:** bestaande aanmeldingen voor races die nog gereden moeten worden.
+> Bewust niet verder terug: oude seizoenen alsnog in rosters omzetten vult teams van
+> jaren terug opnieuw, en die opstellingen zijn allang gemaakt.
+> **Bewust niet gebouwd:** geen melding bij de knop dat je nu lid bent (het rooster
+> ververst en laat het zien), geen spiegeling van een Ja op de racepagina naar
+> `team_event_availability` (de beschikbaarheidslijst blijft van de teampagina), en
+> geen tijdgrens in de trigger zelf — "je werd niet toegevoegd want de race was al
+> begonnen" is geen regel die iemand kan navertellen.
+> **Niet lokaal te verifiëren:** de migratie tegen de productiedatabase (geen Docker
+> of Supabase hier; met de hand toepassen) en hoeveel bestaande aanmeldingen de
+> inhaalslag raakt. Wel getest: 11 tests tegen PGlite
+> (`tests/unit/zrl-availability-join.test.ts`) over beide paden, de randen en opnieuw
+> draaien, plus TypeScript, ESLint en de build.
+
+> **Coach bij je trainingsdata, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `0d76d32`. Geen migratie, geen nieuwe privacyversie (zie hieronder).
+> Melding van de eigenaar: gevraagd of de coach bij zijn trainingsdata kon, en de coach
+> antwoordde van niet. Dat klopte: de coachchat kreeg alleen het schema, de "Let op"-regels
+> en de invoer waarop dat schema was gemaakt — wat er sindsdien gereden was, kende hij niet.
+> **Nu** krijgt de coach er `trainingsdata` bij (`src/lib/training/training-data.ts`): de
+> laatste twaalf ritten met duur, afstand, hoogtemeters, TSS, IF, vermogen en hartslag, de
+> belasting per week over twaalf weken, het rijritme van de laatste vier weken, FTP, gewicht,
+> FTP-tests en het gesynchroniseerde vermogensprofiel, en CTL/ATL/TSB uit intervals.icu. De
+> naleving gaat niet meer alleen als samenvatting mee maar ook per training (gepland naast
+> gereden, met RPE en de opmerking van het lid). De systeemprompt is herschreven: de coach
+> heeft nu twee taken, moet met de cijfers rekenen in plaats van zeggen dat hij ze niet heeft,
+> en moet een leeg veld benoemen in plaats van invullen. De cijfers komen uit dezelfde bronnen
+> als de Belasting- en Vermogen-pagina, zodat coach en pagina hetzelfde zeggen.
+> **Eerdere keuze teruggedraaid:** de coachchat deed bewust géén live intervals.icu-call, omdat
+> "de CTL/TSB die ertoe doet al in de generatie-invoer staat". Dat argument gold voor een coach
+> die alleen het plan uitlegde; bij een vraag over vandaag is die CTL weken oud en presenteren
+> als actueel erger dan hem niet hebben. CTL/ATL/TSB staan nergens in onze database. De call
+> gebeurt nu alleen bij een koppeling met sleutels, binnen een budget van vier seconden, en
+> mislukt stil naar `vorm: null`. `/api/training/chat` kreeg `maxDuration = 30`, gelijk aan de
+> andere AI-routes.
+> **Bewust niet gebouwd:** geen vermogens- of hartslagstreams per rit (een call per rit, en de
+> prompt loopt vol), en geen zelfberekende CTL uit Strava-TSS voor leden zonder intervals.icu
+> (die zou afwijken van het getal dat het lid op zijn eigen Belasting-pagina ziet).
+> **Geen nieuwe privacyversie — beslissing van de eigenaar.** Ontvanger (OpenAI), doel en
+> categorie veranderen niet: dezelfde soort trainingsgegevens ging al mee bij het opbouwen van
+> een schema. Wat verandert is de detaillering: per rit in plaats van samengevat, inclusief de
+> titel die het lid zelf aan een rit gaf. `/privacy` en `/hulp` zijn daarop aangepast zonder
+> versiebump, zodat niet élk lid opnieuw hoeft te tekenen. Wie dat te ruim vindt, zet er een
+> versie bij in `src/lib/privacy.ts`.
+> Verificatie: 1.296 tests geslaagd (16 nieuw: `coach-training-data.test.ts` plus drie in
+> `training-chat-context.test.ts`), `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7 bestaande
+> waarschuwingen, productiebuild geslaagd met placeholder-Supabase-variabelen.
+> `tests/unit/omnium-live.test.ts` draait in een verse clone niet (vraagt `.env.local`); dat is
+> onveranderd.
+> **Niet geverifieerd:** de echte OpenAI-call en de intervals.icu-call (beide niet lokaal te
+> draaien), dus hoe de coach in de praktijk over zijn cijfers praat en hoe vaak het
+> vier-secondenbudget in productie wordt gehaald. Details: [coachchat](docs/coachchat.md).
+
+> **Rustdag in plaats van korte hersteltraining, 2026-09-18 — gebouwd, lokaal getest.**
+> Implementatiecommit `cef3857`. Geen migratie. Melding van de eigenaar: de AI
+> plant vaak lichte hersteltrainingen korter dan 1,5 uur. Oorzaak: de prompt liet de
+> AI het rijritme (`recentLoad.ridesPerWeek`) volgen en herstel inbouwen, maar had
+> geen rustdagregel, dus werd elke hersteldag een korte `recovery`-workout. Zo'n rit
+> geeft een amateur nauwelijks prikkel, telt als gemist wie hem overslaat, en een
+> volledige rustdag herstelt beter. **Nu:** bij opbouwen en bijwerken van een schema
+> plant de AI geen losse hersteltraining onder 90 min maar een lege dag (rustdag).
+> Daarop mag het lid naar keus tot 90 min zonder intensiteit fietsen (Z1 tot lage
+> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel,
+> en de dag-aanpassing behandelt zo'n rit niet als extra belasting. Een rustdag telt
+> als rijdag voor de ritmeregel. Korte duurritten (bijv. 60 min Z2 bij weinig tijd)
+> en openers vóór een race of test blijven: dat is training, geen herstel. Vangnet
+> in code: `dropShortRecoveryRides()` (`workouts.ts`) laat in `insertPlanWorkouts()`
+> `recovery`-workouts onder `OPTIONAL_REST_RIDE_MINUTES` (90) en `rest`-workouts
+> vallen; dat laatste dichtte ook een gat waarbij een `rest`-workout van ≥1 min als
+> training naar intervals.icu ging. Uitleg op `/hulp` (Rustdagen in je schema).
+> **Bewust niet gebouwd:** geen zichtbare rustdagrij met de optionele rit in de
+> kalender of intervals.icu. Die zou als geplande workout op Garmin/Zwift en in de
+> geplande belasting van intervals.icu staan, en maakt de optie weer een
+> opdracht. Bij een dag-aanpassing van het lid (Aanpassen) staat het vangnet uit:
+> wie zelf om een rustig halfuur vraagt, krijgt dat. **Niet geverifieerd:** of het
+> model de regel in de praktijk volgt en of weken met rustdagen het 85%-doel nog
+> halen; dat blijkt pas uit echte generaties.
+
 > **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
 > Implementatiecommit `0c67f4a`. Geen migratie. Melding van de eigenaar: het beeld schokt
 > en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%
@@ -123,7 +230,8 @@
 > (élk lid tekent opnieuw). Een lid kan nu in de trainingsruimte vragen waarom zijn schema
 > eruitziet zoals het eruitziet; een AI-coach antwoordt met het schema, de "Let op"-regels en
 > de generatie-invoer als context, en de aangewezen trainer leest het gesprek terug en kan
-> erin reageren. Een bericht dat het lid markeert als "dit raakt mijn schema" start de
+> erin reageren. (Sinds 18 september 2026 krijgt de coach daarnaast de gereden trainingsdata;
+> zie de ronde "Coach bij je trainingsdata".) Een bericht dat het lid markeert als "dit raakt mijn schema" start de
 > bestaande herziening. Inzage is bewust smaller dan de rest van de trainingsmodule: alleen
 > het lid en zijn gekoppelde trainers, niet iedereen met `training.manage_assignments`.
 > Verificatie: 1.206 tests geslaagd, TypeScript, lint (0 fouten, 7 bestaande waarschuwingen)
@@ -1368,6 +1476,9 @@ niet voor niets "bewust tijdelijk".
   component `_components/coach-chat.tsx`, gemodelleerd op de live-chat van een event: realtime
   als gedebouncede ping → refetch, met poll als terugval.
 - `src/lib/training/chat-context.ts` bouwt de context uit loaders die `draft.ts` al gebruikt.
+  *(Niet meer volledig waar sinds 18 september 2026: de context bevat sindsdien ook de gereden
+  trainingsdata uit `training-data.ts`, en doet daarvoor één live intervals.icu-call met een
+  tijdbudget. Zie de ronde "Coach bij je trainingsdata" bovenaan.)*
   Het scharnierpunt is `training_ai_generations.prompt_summary`: de invoer die het model zág
   toen het de keuzes maakte. Zonder dat stuk kan de coach herhalen wát er is besloten, niet
   waaróm. `athleteName` gaat eruit voordat het opnieuw naar OpenAI gaat.
@@ -1452,7 +1563,36 @@ stap 8 s, goed voor 1 tot 5 ritten.
 - De budgetgrenzen blijven 50% van het kwartier en 60% van de dag, op verzoek van de
   eigenaar. Daarmee is ~2.400 ritten per dag het plafond.
 
-**Verwachting.** ~2 dagen in plaats van 11. Niet gemeten vóór de deploy.
+**Gemeten na de deploy (2026-09-16, 07:05–07:11 UTC).** 345 ritten per uur tegen 30
+daarvoor: 30 à 33 per run in plaats van 1 à 5. Kwartierbudget 112 van 400, dus de
+grens van 50% (pauze bij 200) knelt niet.
+
+~~**Verwachting bijgesteld: ~3 dagen, niet ~2.** Bij 60% van de daglimiet passen er
+2.400 per dag.~~ **Rechtgezet op 2026-09-19:** die 2.400 was gerekend op de verkeerde
+limiet, zie hieronder.
+
+**Incident: Strava's leeslimiet (2026-09-19, commit `b719a79`).** Op 19-09 lag de hele
+webhookverwerking vanaf 09:50 UTC stil: nieuwe ritten van leden kwamen niet binnen, en
+de inhaalslagen stonden ook stil.
+- **Oorzaak.** Strava gaf op elk ritdetail een 429, terwijl onze boekhouding pas op
+  2.032 van de 4.000 stond. `readRateLimitUsage` las alleen `x-ratelimit-*`, de
+  algemene limiet. Strava heeft daarnaast een krappere leeslimiet
+  (`x-readratelimit-*`), en bijna al ons verkeer is lezen.
+- **Hoe mijn wijziging het veroorzaakte.** De segment-inhaalslag mocht tot 60% van
+  4.000 = 2.400 aanroepen gaan, boven de leeslimiet. Met 8 s per run werd dat nooit
+  gehaald; met 20 s wel. Waarschijnlijk gebeurde dit al op 16, 17 en 18 september:
+  telkens 1.350 à 1.400 segmentritten, en met het overige verkeer komt dat rond de
+  2.000. Dan bleven nieuwe ritten van leden tot middernacht UTC liggen.
+- **Leeslimiet: 2.000 per dag**, bevestigd door de eigenaar op 2026-09-19. Dat past
+  bij de 429 op 2.032 algemene aanroepen.
+- **Reparatie.** `readRateLimitUsage` leest beide paren en kiest per venster het paar
+  dat het dichtst bij zijn limiet zit. Zo volgt elke budgetgrens (segment- en
+  historie-inhaalslag, sync) automatisch de krapste limiet; zonder leesheaders
+  verandert er niets.
+- **Nieuwe verwachting.** Bij 60% van de leeslimiet pauzeren de inhaalslagen rond
+  1.200 aanroepen per dag voor de hele app. Na het overige verkeer blijft er ongeveer
+  600 per dag voor segmentdetails over; met 3.012 open ritten is dat ~5 dagen.
+  Langzamer dan gehoopt, maar de ritten van leden krijgen weer voorrang.
 
 ### Opgeleverd — ZWBlokken in de Zwift-werelden
 
