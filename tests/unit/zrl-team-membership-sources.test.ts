@@ -247,7 +247,7 @@ describe("categorie maakt geen teamlid meer (0172)", () => {
 
   it("heeft de categorie-sync zelf niet meer", async () => {
     const { rows } = await db.query<{ count: number }>(
-      "select count(*)::int as count from pg_proc where proname in ('sync_zrl_parent_team_membership','sync_all_zrl_parent_team_memberships','handle_zrl_parent_team_seed')",
+      "select count(*)::int as count from pg_proc where proname in ('sync_zrl_parent_team_membership','sync_all_zrl_parent_team_memberships','handle_zrl_parent_team_seed','sync_zrl_parent_roster_entries')",
     );
     expect(rows[0].count).toBe(0);
   });

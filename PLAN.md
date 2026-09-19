@@ -1,5 +1,45 @@
 # ZWB Platform — Plan & Status
 
+> **0172 viel om op productie: 0070 was daar maar half toegepast, 2026-09-19 — gebouwd, lokaal getest.**
+> Migraties `0172` (aangepast, nog niet toegepast) en
+> `0173_restore_roster_team_assignment_source.sql`. Bij het toepassen van `0172`
+> kwam `ERROR: 42703: column r.team_assignment_source does not exist`. De regel
+> ervóór — het opruimen van lidmaatschappen met herkomst `auto_zrl_category` —
+> liep wél, dus `team_members.assignment_source` bestaat daar gewoon. Van
+> dezelfde migratie `0070` ontbreekt alleen de kolom op `roster_entries`.
+> **Wat dat verklaart.** plpgsql zoekt kolomnamen pas op bij uitvoering, dus
+> `sync_zrl_parent_roster_entries()` kon daar nooit draaien: geen enkele
+> rosternaam is er ooit op categorie bij een team gezet, en er viel dus ook niets
+> op te ruimen. Vervelender is de andere kant: `saveRosterEntries()` in
+> `src/lib/team-results/sync.ts` schrijft `team_assignment_source` op élke naam
+> die de WTRL-sync binnenhaalt en gooit bij een fout de hele sync om. Het
+> bijwerken van rosters is daar dus nooit gelukt, en de knop Resultaten
+> synchroniseren liep ook nog stuk op de RPC naar diezelfde functie. Twee stille
+> storingen die niemand aan deze kolom had gekoppeld.
+> **`0172` is aangepast** (hij was nog niet toegepast, dus dat mag): de herkomst
+> van het team van een rosternaam komt nu uit `roster_entry_team_source()`, die de
+> kolom via `execute` leest en `undefined_column` opvangt — bestaat de kolom niet,
+> dan heeft niets ooit op categorie ingedeeld en is null het juiste antwoord. Het
+> opruimen van omgeleide `roster_claim`-rijen draait alleen als de kolom bestaat.
+> En `sync_zrl_parent_roster_entries()` is alsnog verwijderd, met de aanroep in
+> `syncResultsNow()` en de tekst onder de knop erbij: hij is dezelfde gok op
+> niveau, hij werkte in de praktijk niet, en zijn fout blokkeerde de resultaten.
+> Rosternamen krijgen hun team voortaan alleen van de WTRL-sync.
+> **`0173` zet de ontbrekende kolom terug**, met default `manual` in plaats van
+> `auto_zrl_category` (die indeling bestaat niet meer), zodat de rostersync weer
+> kan schrijven. Waar de kolom al bestaat verandert er niets aan de gegevens.
+> Volgorde maakt niet uit, beide zijn idempotent en opnieuw te draaien.
+> **Niet lokaal te verifiëren:** waaróm die ene kolom ontbreekt — de migraties
+> gaan daar met de hand — en of er uit oudere migraties nog meer ontbreekt. Dat
+> laatste is met één query te zien: controleer of `profiles.zrl_division`,
+> `team_members.assignment_source`, `roster_entries.team_assignment_source` en de
+> tabel `team_member_seed_overrides` bestaan; dat zijn de vier dingen die `0070`
+> neerzet en waar `0171`, `0172` en de teamsync op leunen. Wel getest: 31 tests
+> tegen PGlite over drie bestanden, waaronder
+> `tests/unit/zrl-team-seed-partial-0070.test.ts`, dat `0070` draait en daarna die
+> kolom laat vallen. Het oude `0172` zakt op alle vijf die tests, het nieuwe komt
+> er doorheen.
+
 > **Je ingeschaalde categorie maakt je geen teamlid meer, 2026-09-19 — gebouwd, lokaal getest.**
 > Implementatiecommit `c19b8be`, migratie `0172_drop_zrl_category_team_seed.sql`.
 > Melding van de eigenaar: er stonden Zwiftladies in ZRL B. Oorzaak is de automatische indeling uit `0070`,
@@ -30,13 +70,11 @@
 > inhaalslag van `0171` opnieuw, dus wie zich heeft aangemeld voor een race die nog
 > gereden moet worden, staat er meteen weer in — de opruiming kan niemand kwijtraken
 > die zich gewoon had aangemeld.
-> **Bewust niet aangeraakt:** `sync_zrl_parent_roster_entries()` blijft. Die zet
-> alléén nog niet geclaimde rosternamen onder een team, in de lijst "Nog niet
-> geregistreerd" op de teampagina. Dat zijn geen leden, en sinds deze migratie
-> wordt zo'n indeling ook geen lidmaatschap meer bij het claimen. `zrl_division`
-> blijft ook staan: die labelt leden, hij deelt ze niet meer in. En er is geen
-> automatische herindeling teruggebouwd in een andere vorm — dat is precies wat
-> niet de bedoeling was.
+> **Bewust niet aangeraakt:** `zrl_division` blijft staan: die labelt leden, hij
+> deelt ze niet meer in. (`sync_zrl_parent_roster_entries()` bleef in deze ronde
+> óók staan — dat is nog dezelfde dag teruggedraaid, zie de ronde hierboven: die
+> functie is alsnog verwijderd.) En er is geen automatische herindeling
+> teruggebouwd in een andere vorm — dat is precies wat niet de bedoeling was.
 > **Niet lokaal te verifiëren:** de migratie tegen de productiedatabase (geen
 > Docker of Supabase hier; met de hand toepassen) en hoeveel lidmaatschappen de
 > opruiming daar raakt — die telling is hier niet te zien. Wel getest: 13 tests

@@ -24,6 +24,36 @@ drop function if exists public.handle_zrl_parent_team_seed();
 drop function if exists public.sync_all_zrl_parent_team_memberships();
 drop function if exists public.sync_zrl_parent_team_membership(uuid);
 
+/*
+ * Hoe het team van een rosternaam daar terecht is gekomen.
+ *
+ * Met opzet via execute: `roster_entries.team_assignment_source` komt uit 0070
+ * en blijkt niet in elke database te bestaan (in de onze niet). Een gewone
+ * select zou deze functie bij het aanmaken al laten vallen; nu vangt de
+ * uitzondering dat af. Bestaat de kolom niet, dan heeft de categorie-indeling
+ * van rosternamen er ook nooit kunnen draaien, dus is geen enkele naam op
+ * categorie ingedeeld en is null het juiste antwoord.
+ */
+create or replace function public.roster_entry_team_source(p_entry_id uuid)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_source text;
+begin
+  execute 'select team_assignment_source from public.roster_entries where id = $1'
+    into v_source
+    using p_entry_id;
+  return v_source;
+exception
+  when undefined_column then
+    return null;
+end;
+$$;
+
 -- Het claimen van een rosternaam blijft bestaan, zonder de categorie-sync. Het
 -- team van de rosternaam telt alleen mee als het uit de WTRL-sync of een
 -- handmatige keuze komt: 'auto_zrl_category' op een rosternaam is dezelfde gok
@@ -46,8 +76,8 @@ begin
   update public.roster_entries
   set claimed_by = auth.uid()
   where id = p_entry_id and claimed_by is null
-  returning name, zwift_id, pace_category, team_id, team_name, team_assignment_source
-    into v_name, v_zwift, v_pace, v_team, v_team_name, v_team_source;
+  returning name, zwift_id, pace_category, team_id, team_name
+    into v_name, v_zwift, v_pace, v_team, v_team_name;
 
   get diagnostics v_count = row_count;
   if v_count = 0 then
@@ -68,6 +98,8 @@ begin
     end
   where id = auth.uid();
 
+  v_team_source := public.roster_entry_team_source(p_entry_id);
+
   if v_team is not null and coalesce(v_team_source, '') <> 'auto_zrl_category' then
     insert into public.team_members (team_id, profile_id, role, assignment_source)
     values (v_team, auth.uid(), 'member', 'roster_claim')
@@ -86,12 +118,28 @@ grant execute on function public.claim_roster_entry(uuid) to authenticated;
 delete from public.team_members
 where assignment_source = 'auto_zrl_category';
 
-delete from public.team_members tm
-using public.roster_entries r
-where tm.assignment_source = 'roster_claim'
-  and r.claimed_by = tm.profile_id
-  and r.team_id = tm.team_id
-  and r.team_assignment_source = 'auto_zrl_category';
+-- Alleen als de kolom uit 0070 hier bestaat. Zo niet, dan heeft niets ooit een
+-- rosternaam op categorie bij een team gezet en valt er ook niets op te ruimen.
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'roster_entries'
+      and column_name = 'team_assignment_source'
+  ) then
+    execute $sql$
+      delete from public.team_members tm
+      using public.roster_entries r
+      where tm.assignment_source = 'roster_claim'
+        and r.claimed_by = tm.profile_id
+        and r.team_id = tm.team_id
+        and r.team_assignment_source = 'auto_zrl_category'
+    $sql$;
+  end if;
+end;
+$$;
 
 -- En daarna terugzetten wat wél verdiend is: wie zich heeft aangemeld voor een
 -- race die nog gereden moet worden, hoort in dat team (0171). Zo kan de opruiming
@@ -135,7 +183,14 @@ alter table public.team_members
   add constraint team_members_assignment_source_check
     check (assignment_source in ('manual', 'roster_claim', 'event_availability'));
 
--- sync_zrl_parent_roster_entries() blijft staan: die zet alleen nóg niet
--- geclaimde rosternamen onder een team, in de lijst "Nog niet geregistreerd".
--- Dat zijn geen leden, en sinds deze migratie wordt zo'n indeling ook geen
--- lidmaatschap meer bij het claimen.
+-- Tot slot de vierde categorie-indeler: sync_zrl_parent_roster_entries() zette
+-- nog niet geclaimde rosternamen op `pace_category` onder ZRL A/B/C, voor de
+-- lijst "Nog niet geregistreerd" op de teampagina. Die zou hier blijven staan —
+-- het zijn geen leden — maar hij leest en schrijft `team_assignment_source`, en
+-- die kolom uit 0070 bestaat niet in elke database. Waar hij ontbreekt heeft
+-- deze functie dus nooit kunnen draaien en liep de knop Resultaten
+-- synchroniseren er stuk op (syncResultsNow() gooit bij een RPC-fout). Hij is
+-- ook precies de gok die niemand wil: een naam onder een team op niveau. Weg dus,
+-- samen met de aanroep in de app. Rosternamen krijgen hun team voortaan alleen
+-- nog van de WTRL-sync.
+drop function if exists public.sync_zrl_parent_roster_entries();
