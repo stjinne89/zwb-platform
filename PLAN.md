@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Zwift-events als voorstel bij een geplande training, 2026-09-20 — gebouwd, lokaal getest.**
-> Implementatiecommit `COMMIT_HASH`, migratie `0172_zwift_event_cache.sql`.
+> Implementatiecommit `4d4cb47`, migratie `0172_zwift_event_cache.sql`.
 > Wens van de eigenaar: koppel een passend Zwift-event aan de geplande training als
 > voorstel voor indoortrainingen, met meerdere opties en een percentage van
 > passendheid erbij, en weeg de populariteit van een event mee.
