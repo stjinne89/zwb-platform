@@ -57,7 +57,16 @@ import type {
   WorkoutReportRow,
   WorkoutRow,
 } from "./_components/types";
+import {
+  loadChosenZwiftEvents,
+  loadZwiftSuggestions,
+} from "@/lib/training/zwift-suggestions";
+import type { ZwiftEventMatch } from "@/lib/training/zwift-match";
 import type { PendingReview } from "./_components/workout-review-dialog";
+import type {
+  ChosenZwiftEvent,
+  ZwiftSuggestionView,
+} from "./_components/zwift-event-suggestions";
 import { formatDayMonth } from "./_components/format";
 import type { RideLink } from "./_components/ride-link";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
@@ -843,4 +852,99 @@ export async function loadIgnoredStreak(viewer: Viewer): Promise<number | null> 
     streak += 1;
   }
   return streak;
+}
+
+/**
+ * Zwift-eventvoorstellen bij de geplande trainingen, plus het event dat het lid
+ * al koos.
+ *
+ * De spiegel in `zwift_events` reikt maar een paar dagen vooruit (de publieke
+ * Zwift-API geeft niet meer), dus dit levert in de praktijk alleen iets op voor
+ * vandaag en morgen. Dat is precies het moment waarop iemand beslist wat hij
+ * gaat rijden; verder vooruit voorstellen doen zou een belofte zijn die de bron
+ * niet waarmaakt.
+ *
+ * Faalt stil naar lege maps: een kalender zonder voorstellen is bruikbaar, een
+ * kalender die niet laadt niet.
+ */
+export async function loadZwiftSuggestionViews(
+  viewer: Viewer,
+  workouts: WorkoutRow[],
+): Promise<{
+  suggestions: Map<string, ZwiftSuggestionView[]>;
+  chosen: Map<string, ChosenZwiftEvent>;
+}> {
+  const empty = {
+    suggestions: new Map<string, ZwiftSuggestionView[]>(),
+    chosen: new Map<string, ChosenZwiftEvent>(),
+  };
+
+  const planned = workouts.filter(
+    (workout) => workout.status === "planned" && !workout.superseded_at,
+  );
+  if (planned.length === 0) return empty;
+
+  try {
+    const chosenIds = planned
+      .map((workout) => workout.zwift_event_id)
+      .filter((id): id is number => typeof id === "number" && id > 0);
+
+    const [matchesByWorkout, chosenEvents] = await Promise.all([
+      loadZwiftSuggestions(
+        viewer.admin,
+        viewer.user.id,
+        planned.map((workout) => ({
+          id: workout.id,
+          scheduledAt: workout.scheduled_at,
+          durationMinutes: workout.duration_minutes,
+          intensity: workout.intensity,
+          structure: workout.structure_json,
+          zwiftEventId: workout.zwift_event_id ?? null,
+          dismissedAt: workout.zwift_suggestions_dismissed_at ?? null,
+        })),
+      ),
+      loadChosenZwiftEvents(viewer.admin, chosenIds),
+    ]);
+
+    const suggestions = new Map<string, ZwiftSuggestionView[]>();
+    for (const [workoutId, matches] of matchesByWorkout) {
+      suggestions.set(workoutId, matches.map(toSuggestionView));
+    }
+
+    const chosen = new Map<string, ChosenZwiftEvent>();
+    for (const workout of planned) {
+      const eventId = workout.zwift_event_id;
+      if (!eventId) continue;
+      const event = chosenEvents.get(eventId);
+      // Het event is uit de spiegel opgeruimd (voorbij) maar de keuze staat er
+      // nog: dan tonen we niets in plaats van een lege kaart.
+      if (!event) continue;
+      chosen.set(workout.id, { eventId, ...event });
+    }
+
+    return { suggestions, chosen };
+  } catch (error) {
+    console.error(
+      "[zwbeter-worden] Zwift-voorstellen laden mislukt",
+      error instanceof Error ? error.message : error,
+    );
+    return empty;
+  }
+}
+
+/** Van het volledige oordeel naar de vier regels die de kalender toont. */
+function toSuggestionView(match: ZwiftEventMatch): ZwiftSuggestionView {
+  return {
+    eventId: match.event.eventId,
+    name: match.event.name,
+    startAt: match.event.startAt,
+    externalUrl: match.event.externalUrl,
+    scorePct: match.scorePct,
+    estimatedMinutes: match.estimatedMinutes,
+    subgroupLabel: match.subgroup?.label ?? null,
+    routeName: match.event.route?.name ?? null,
+    zwbSignups: match.event.zwbSignups ?? 0,
+    strongest: match.strongest?.note ?? null,
+    weakest: match.weakest?.note ?? null,
+  };
 }

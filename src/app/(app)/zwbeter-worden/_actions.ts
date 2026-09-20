@@ -2058,3 +2058,105 @@ export async function reviewWorkoutAsTrainer(formData: FormData) {
     };
   }
 }
+
+/**
+ * Het lid kiest een Zwift-event bij een geplande training, of klikt de
+ * voorstellen weg.
+ *
+ * Kiezen is een notitie, geen herplanning: de duur van de training blijft staan
+ * en er gaat niets naar intervals.icu. Wie het event korter of langer wil hebben
+ * dan wat er gepland stond, past de duur aan met de bestaande schuifknop. Een
+ * voorstel dat het schema zelf gaat verbouwen is een ander soort beslissing, en
+ * die hoort niet achter een knop met twee regels tekst.
+ */
+async function ownedPlannedWorkout(workoutId: string) {
+  const { user, access } = await currentUser();
+  const admin = createAdminClient();
+
+  const { data: workout } = await admin
+    .from("training_workouts")
+    .select("id, profile_id, status, superseded_at")
+    .eq("id", workoutId)
+    .maybeSingle();
+  if (!workout) throw new Error("Training niet gevonden.");
+  if (workout.superseded_at) throw new Error("Deze training is vervangen.");
+  if (workout.status !== "planned") throw new Error("Deze training staat niet meer gepland.");
+  if (
+    workout.profile_id !== user.id &&
+    !access.has("training.manage_assignments") &&
+    !(await canCoach(admin, user.id, workout.profile_id))
+  ) {
+    throw new Error("Geen toegang tot deze training.");
+  }
+
+  return { admin, workoutId: workout.id as string };
+}
+
+export async function chooseZwiftEvent(formData: FormData) {
+  try {
+    const { admin, workoutId } = await ownedPlannedWorkout(
+      mustString(formData.get("workout_id"), "Training"),
+    );
+    const eventId = Number(mustString(formData.get("event_id"), "Event"));
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) throw new Error("Ongeldig event.");
+
+    const { error } = await admin
+      .from("training_workouts")
+      .update({ zwift_event_id: eventId })
+      .eq("id", workoutId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Event kiezen faalde.",
+    };
+  }
+}
+
+/** Terug naar de voorstellen: de keuze intrekken is geen nieuwe beslissing. */
+export async function clearZwiftEvent(formData: FormData) {
+  try {
+    const { admin, workoutId } = await ownedPlannedWorkout(
+      mustString(formData.get("workout_id"), "Training"),
+    );
+
+    const { error } = await admin
+      .from("training_workouts")
+      .update({ zwift_event_id: null, zwift_suggestions_dismissed_at: null })
+      .eq("id", workoutId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Keuze intrekken faalde.",
+    };
+  }
+}
+
+export async function dismissZwiftSuggestions(formData: FormData) {
+  try {
+    const { admin, workoutId } = await ownedPlannedWorkout(
+      mustString(formData.get("workout_id"), "Training"),
+    );
+
+    const { error } = await admin
+      .from("training_workouts")
+      .update({ zwift_suggestions_dismissed_at: new Date().toISOString() })
+      .eq("id", workoutId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Voorstellen wegklikken faalde.",
+    };
+  }
+}

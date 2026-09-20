@@ -11,6 +11,7 @@ import {
   followZwbMembers,
   zwiftClubConfigured,
 } from "@/lib/events/zwift-club";
+import { probeEventWindow } from "@/lib/zwift/event-cache";
 import {
   allowedExternalUrl,
   getMemberZwiftIds,
@@ -126,6 +127,45 @@ export async function scanExternalEventCandidates() {
   } else {
     params.set("scan", result.found > 0 || result.feedEvents > 0 ? "ok" : "empty");
     if (result.notes.length > 0) params.set("message", result.notes.join(" "));
+  }
+  redirect(`/beheer/event-scan?${params.toString()}`);
+}
+
+/**
+ * Stelt vast hoe ver de publieke Zwift-eventlijst vooruit kijkt, en welke velden
+ * erin zitten.
+ *
+ * Waarom dit een beheerknop is en geen test: de endpoint geeft maximaal 200
+ * rijen zonder paginering, en of hij `eventStartsAfter`/`eventStartsBefore`
+ * honoreert staat nergens gedocumenteerd — Zwift publiceert geen API-docs. Uit
+ * een ontwikkelomgeving is zwift.com bovendien niet altijd bereikbaar. Deze knop
+ * beantwoordt de vraag dus op de plek waar het antwoord telt: productie.
+ *
+ * Leest alleen; schrijft niets en publiceert niets.
+ */
+export async function probeZwiftEventWindow() {
+  const access = await requireEventScanAccess();
+  if (!access) return;
+
+  const params = new URLSearchParams();
+  params.set("club", "window");
+
+  try {
+    const probe = await probeEventWindow();
+    const fields = Object.entries(probe.fieldsPresent)
+      .map(([name, count]) => `${name} ${count}`)
+      .join(", ");
+    params.set(
+      "message",
+      probe.rows === 0
+        ? "Zwift gaf geen enkel event terug voor een venster van morgen. Het datumvenster werkt niet of er staat niets gepland; de sync valt dan terug op de kale upcoming-lijst (enkele uren vooruit)."
+        : `${probe.rows} events, ${probe.windowHonoured ? "venster gerespecteerd" : `venster genegeerd (${probe.outsideWindow} rijen erbuiten)`}. Vroegste ${probe.earliestStart}, laatste ${probe.latestStart}. Velden aanwezig: ${fields}.`,
+    );
+  } catch (error) {
+    params.set(
+      "message",
+      error instanceof Error ? `Eventvenster testen mislukt: ${error.message}` : "Eventvenster testen mislukt.",
+    );
   }
   redirect(`/beheer/event-scan?${params.toString()}`);
 }

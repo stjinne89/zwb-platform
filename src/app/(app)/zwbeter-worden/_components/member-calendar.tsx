@@ -30,6 +30,11 @@ import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
 import { WorkoutDurationControl } from "./workout-duration-control";
+import {
+  ZwiftEventSuggestions,
+  type ChosenZwiftEvent,
+  type ZwiftSuggestionView,
+} from "./zwift-event-suggestions";
 
 export type MemberCalendarItem = {
   id: string;
@@ -64,6 +69,10 @@ export type MemberCalendarItem = {
     /** Wat het lid met een geplande training mag: verwijderen, en de duur aanpassen. */
     removable?: boolean;
     resizable?: boolean;
+    /** Zwift-events die bij deze geplande training passen. Leeg = geen voorstel. */
+    zwift?: ZwiftSuggestionView[];
+    /** Het event dat het lid al koos; dan vervallen de voorstellen. */
+    zwiftChosen?: ChosenZwiftEvent | null;
   };
 };
 
@@ -259,6 +268,14 @@ function WorkoutDetail({
               ) : null}
             </div>
           ) : null}
+          {/* Onderaan, want dit is een suggestie naast de training en niet de
+              training zelf: eerst wát je rijdt, dan pas waar je het kunt rijden. */}
+          <ZwiftEventSuggestions
+            key={`zwift-${item.id}`}
+            workoutId={item.id}
+            matches={detail.zwift ?? []}
+            chosen={detail.zwiftChosen ?? null}
+          />
         </>
       ) : (
         <>

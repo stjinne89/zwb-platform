@@ -1,5 +1,101 @@
 # ZWB Platform — Plan & Status
 
+> **Zwift-events als voorstel bij een geplande training, 2026-09-20 — gebouwd, lokaal getest.**
+> Implementatiecommit `COMMIT_HASH`, migratie `0172_zwift_event_cache.sql`.
+> Wens van de eigenaar: koppel een passend Zwift-event aan de geplande training als
+> voorstel voor indoortrainingen, met meerdere opties en een percentage van
+> passendheid erbij, en weeg de populariteit van een event mee.
+> **Waarom dit kon met weinig nieuw werk:** de bouwstenen lagen er al. De publieke
+> Zwift-event-API wordt al bevraagd door `scanZwiftEvents()`, het `zwift-data`-pakket
+> vertaalt een `routeId` al naar afstand, hoogtemeters en klimsegmenten, en het
+> clubserviceaccount ziet in de member-feed al hoeveel gevolgde ZWB'ers zich op een
+> event inschreven. Aan de trainingskant staan duur, intensiteit en de blokken met
+> `estimateTrainingLoad`. Wat ontbrak was de brug.
+> **Nu:** een uurlijkse cron (`POST /api/zwift/events/sync`, `ZWIFT_EVENT_SYNC_SECRET`)
+> spiegelt de Zwift-kalender naar de nieuwe tabel `zwift_events`. Bij een geplande
+> training staan op `/zwbeter-worden/schema` maximaal drie events met een
+> passendheidspercentage, de reden waarom ze passen en één regel over wat er niet
+> klopt ("12 min langer dan gepland"). Kiezen of negeren; kiezen is een notitie bij de
+> training en verandert het schema niet.
+> Het oordeel zit in `src/lib/training/zwift-match.ts`: puur, deterministisch en
+> zonder database, in dezelfde vorm als `eventFitsMember` (`lib/events/fit.ts`) en
+> `suggestSegmentsForBlock`. Zes dimensies met een gewicht — duur 40, intensiteit 30,
+> belasting 10, terrein 8, starttijd 7, populariteit 5 — plus harde filters die een
+> event helemaal wegsturen (geen fietsevent, andere dag, te lang voor je beschikbare
+> minuten, race bij een duurtraining, buiten elke categorie). Een afgewezen event
+> verdwijnt zonder uitleg uit de lijst; de reden zit wel als code in de uitkomst, voor
+> een latere beheerdiagnose.
+> **De regel die het ontwerp draagt:** het gewogen gemiddelde gaat alleen over de
+> dimensies die we kénnen, hergenormaliseerd. Zonder dat zou elk group workout stil
+> 30 punten verliezen puur omdat de publieke API geen vermogensband meestuurt — en
+> dat is precies de eventsoort die qua vorm het dichtst bij een geplande training
+> ligt. Onbekend verlaagt dus de dekking, niet de score; dezelfde regel als "onbekend
+> telt nooit als 'past niet'" in `fit.ts`.
+> **Eén onderscheid dat tijdens het bouwen fout zat en is rechtgezet:** een
+> `rangeAccessLabel` betekent niet overal hetzelfde. Bij een race is "B, 3.2-3.9 W/kg"
+> een toelatingseis op je FTP; bij een groepsrit is dezelfde notatie het tempo dat
+> gereden wordt. Door elkaar halen leverde onzin op — een renner van 3,3 W/kg kreeg
+> een gewone B-race als "anaeroob" gescoord. Nu: bij een race bepaalt de band alleen
+> waar je mág starten, bij een groepsrit wijzen we de pacegroep aan die het tempo van
+> jóúw training rijdt. Dat laatste is meteen de meest waardevolle stap: een
+> duurtraining krijgt de 2.0-2.5-groep van een rit aangewezen in plaats van dat de rit
+> wordt afgewezen omdat er ook een harde groep bij zit.
+> **Populariteit weegt bewust het lichtst en wordt per uur van de dag vergeleken.**
+> Zonder die bucket meet je vooral Europese primetime: een event om 20:00 heeft altijd
+> meer inschrijvingen dan hetzelfde event om 04:00. Het clubsignaal gaat voor: rijden
+> er ZWB'ers mee, dan staat dat er als feit bij.
+> **Bewust niet gebouwd:** geen automatische inschrijving op een Zwift-event (daar is
+> geen toegestane API voor; het clubserviceaccount is niet het lid); geen vergelijking
+> met de ZWO van een group workout (de publieke API geeft het blokkenschema niet mee —
+> trefwoorden uit naam en serie als terugval, en anders `null` in plaats van een gok);
+> geen pace partners (dat zijn geen events); geen pacingplan per voorgesteld event
+> (dat is `src/lib/pacing/` en wil per kandidaat een hoogteprofiel uit `zwift_routes`
+> ophalen); geen opgeslagen voorstellen (ze worden elke keer opnieuw berekend, dus er
+> kan niets verouderen); en geen MyWhoosh (dezelfde scan bestaat, maar zonder
+> route-ids en zonder vermogensbanden valt er niets te matchen).
+> **Afwijking van het werkplan, met medeweten van de eigenaar:** sectie 2.4 zegt "Pas
+> daarna pas nieuwe trainingfeatures toe; eerst stabiliseren wat er nu is" — de
+> training-cockpit praktijktest staat nog open. Deze ronde gaat daar overheen op
+> verzoek van de eigenaar.
+> **De beperking die je moet kennen voordat je hierop leunt:** de publieke endpoint
+> geeft **maximaal 200 rijen zonder paginering**. Zonder datumvenster is dat enkele
+> uren vooruit, en vaker pollen helpt niet — elke call begint weer bij "nu". De
+> `eventStartsAfter`/`eventStartsBefore`-parameters zouden dat oplossen (de
+> `zwift-mobile-api`-wrapper documenteert ze, ZwiftHacks toont zeven dagen), maar Zwift
+> publiceert geen API-documentatie en dit is **niet geverifieerd**. De sync valt
+> daarom terug op de kale upcoming-lijst en meldt dat als `windowsIgnored`. Stel het
+> vast met de nieuwe knop **Test eventvenster** op `/beheer/event-scan`, en vul de
+> uitkomst in in [zwift-mywhoosh-kalender-spike](docs/zwift-mywhoosh-kalender-spike.md).
+> **Niet lokaal te verifiëren:** de migratie (geen Docker of Supabase-config hier; met
+> de hand toepassen) en élke aanroep van de echte Zwift-API — de egress-policy van de
+> ontwikkelomgeving blokkeert `zwift.com` (403 op CONNECT). De fixture onder
+> `tests/fixtures/zwift/` is daarom met de hand geschreven uit de veldnamen die
+> `ZwiftEventApiRow` al in productie gebruikt, niet opgenomen. Of de matcher in de
+> praktijk zinnige events bovenaan zet blijkt pas uit echte kalenderdata; reken op één
+> ronde bijstellen van de gewichten nadat het een week heeft gedraaid.
+> Verificatie: 1.371 tests geslaagd (59 nieuw: `zwift-match.test.ts` 46,
+> `zwift-event-cache.test.ts` 13), `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7
+> bestaande waarschuwingen, productiebuild geslaagd met placeholder-Supabase-variabelen.
+> `tests/unit/omnium-live.test.ts` draait in een verse clone niet (vraagt `.env.local`);
+> dat is onveranderd.
+> **Buitenritten: onderzocht, niet gebouwd.** De eigenaar koos voor Zwift eerst. Het
+> onderzoek naar routevoorstellen vanaf een eigen vertrekpunt staat in
+> [buitenrit-routevoorstel-spike](docs/buitenrit-routevoorstel-spike.md). Conclusie in
+> het kort: Strava kán geen routes aanmaken via de API en de Strava-heatmap is
+> helemaal niet via de API beschikbaar — heatmaps zijn precies wat Strava met het
+> akkoord van november 2024 bij derden wil stoppen. Op de heatmap-vraag van de
+> eigenaar is het antwoord dat we er zelf al een hebben: `summary_polyline` van de
+> eigen ritten staat al in `strava_activities` (de col-detector decodeert hem al), dus
+> een persoonlijke heatmap kost nul extra API-calls. Clubbreed raakt die
+> novemberclausule en is een beslissing voor de eigenaar. Genereren kan met BRouter of
+> GraphHopper; de enige echte kostenpost is hosting, want Netlify draait geen
+> routeserver. Het onderscheidende deel ligt er al: `fetchWindForecast`,
+> `classifyWind` en `gpxBearing` maken "heen tegen de wind in, terug mee" mogelijk.
+> Vertrekpunt wordt een punt op de kaart (keuze van de eigenaar), in een eigen tabel
+> en niet op `profiles`; of daar een privacyversiebump bij hoort is nog een open
+> beslissing, want dit platform bewaarde tot nu toe bewust géén start- of eindlocatie
+> (zie `0111_zwblokken.sql`).
+
 > **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.**
 > Implementatiecommit `6675ba7`. Geen migratie; spelversie 3 (lopende races vervallen,
 > uitslagen blijven). Verzoek van de eigenaar: horizontaal spelen op mobiel,

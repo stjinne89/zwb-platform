@@ -16,6 +16,19 @@ adminactie. Automatische ZWB-deelnameherkenning wordt alleen gebruikt wanneer de
 bron betrouwbaar genoeg is; anders blijft een event een gewoon concept zonder
 deelnameclaim.
 
+**Correctie 2026-09-20.** Dit document beschreef de publieke Zwift-eventlijst als
+een bron die uitsluitend de beheer-conceptlaag voedt. Dat is sinds vandaag niet
+meer het hele verhaal: dezelfde endpoint voedt nu óók `zwift_events`, een korte
+spiegel van de hele Zwift-kalender waaruit een lid eventvoorstellen bij zijn
+geplande training krijgt (migratie `0172`, `src/lib/zwift/event-cache.ts`). Die
+spiegel publiceert nooit iets en heeft geen matchstatus; de conceptflow hieronder
+blijft onveranderd. Wat hieronder over de publieke endpoint staat geldt voor
+beide. Nieuw vastgesteld en hier van belang: de endpoint geeft **maximaal 200
+rijen zonder paginering**, wat zonder datumvenster neerkomt op enkele uren
+vooruit. Of `eventStartsAfter`/`eventStartsBefore` gehonoreerd worden stel je
+vast met de knop **Test eventvenster** op `/beheer/event-scan`; vul de uitkomst
+hieronder in zodra die op productie is gedraaid.
+
 De huidige basis is `/beheer/event-scan`: admins scannen externe bronnen,
 MyWhoosh- en Zwift-metadata wordt als concept opgeslagen in
 `external_event_candidates`, duplicaten worden herkend via

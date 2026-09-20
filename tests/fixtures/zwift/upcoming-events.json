@@ -1,0 +1,71 @@
+[
+  {
+    "id": 4812001,
+    "name": "ZHR Endurance Ride",
+    "description": "Steady endurance ride. Keep it in zone 2. Pace: 2.0-2.5 W/kg.",
+    "eventStart": "2026-09-21T18:00:00.000+0000",
+    "durationInSeconds": 5400,
+    "distanceInMeters": 0,
+    "laps": 0,
+    "routeId": 2474227587,
+    "sport": "CYCLING",
+    "eventType": "GROUP_RIDE",
+    "eventSeries": { "id": 12, "name": "ZHR Endurance Series" },
+    "totalSignedUpCount": 184,
+    "eventSubgroups": [
+      {
+        "id": 9001,
+        "subgroupLabel": "C",
+        "rangeAccessLabel": "2.5-3.1 w/kg",
+        "eventSubgroupStart": "2026-09-21T18:00:00.000+0000",
+        "distanceInMeters": 0,
+        "totalSignedUpCount": 61
+      },
+      {
+        "id": 9002,
+        "subgroupLabel": "D",
+        "rangeAccessLabel": "< 2.5 w/kg",
+        "eventSubgroupStart": "2026-09-21T18:00:00.000+0000",
+        "distanceInMeters": 0,
+        "totalSignedUpCount": 123
+      }
+    ]
+  },
+  {
+    "id": 4812002,
+    "name": "Zwift Crit Racing Club",
+    "eventStart": "2026-09-21T19:10:00.000+0000",
+    "durationInSeconds": 0,
+    "distanceInMeters": 24000,
+    "laps": 8,
+    "routeId": 1258415487,
+    "sport": "CYCLING",
+    "eventType": "RACE",
+    "eventSubgroups": [
+      { "id": 9101, "subgroupLabel": "A", "rangeAccessLabel": "4.0+ w/kg" },
+      { "id": 9102, "subgroupLabel": "B", "rangeAccessLabel": "3.2-3.9 w/kg" }
+    ]
+  },
+  {
+    "id": 4812003,
+    "name": "Private Team Session",
+    "eventStart": "2026-09-21T20:00:00.000+0000",
+    "durationInSeconds": 3600,
+    "sport": "CYCLING",
+    "eventType": "GROUP_WORKOUT",
+    "invisibleToNonParticipants": true
+  },
+  {
+    "id": 4812004,
+    "name": "Morning Run",
+    "eventStart": "2026-09-21T07:00:00.000+0000",
+    "durationInSeconds": 2700,
+    "sport": "RUNNING",
+    "eventType": "GROUP_RUN"
+  },
+  {
+    "name": "Event zonder id",
+    "eventStart": "2026-09-21T21:00:00.000+0000",
+    "sport": "CYCLING"
+  }
+]

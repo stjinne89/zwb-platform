@@ -50,6 +50,7 @@ import {
   loadScheduleEventChoices,
   loadScheduleRides,
   loadZrlTeamMembership,
+  loadZwiftSuggestionViews,
   planUpdateDefaults,
   requireViewer,
   rideLinkFor,
@@ -102,6 +103,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ]);
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
+  const zwift = await loadZwiftSuggestionViews(viewer, memberWorkouts);
   const todayKey = todayKeyAmsterdam();
   const reports = (reportRows ?? []) as WorkoutReportRow[];
   const reportsByWorkout = byWorkout(reports);
@@ -224,6 +226,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             workout.origin !== "event" &&
             !workout.test_type &&
             String(workout.scheduled_at).slice(0, 10) >= todayKey,
+          zwift: zwift.suggestions.get(workout.id) ?? [],
+          zwiftChosen: zwift.chosen.get(workout.id) ?? null,
         },
       };
     }),

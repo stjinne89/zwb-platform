@@ -34,15 +34,47 @@ export type ZwiftEventApiRow = {
   sport?: string;
   type?: string;
   eventType?: string;
+  /** Besloten event; hoort nergens als voorstel of kandidaat terecht te komen. */
+  invisibleToNonParticipants?: boolean | null;
+  /**
+   * Inschrijvingen over het hele event. Zwift is niet consequent in de naam en
+   * laat het veld soms weg, dus alle varianten optioneel en nooit als 0 lezen
+   * wanneer het ontbreekt — zie zwiftSignupCount().
+   */
+  totalSignedUpCount?: number | null;
+  totalEntrantCount?: number | null;
+  /** Gevolgde renners die zich inschreven; alleen in de geautoriseerde feed. */
+  followeeSignedUpCount?: number | null;
   eventSeries?: { id?: number | string; name?: string | null } | null;
   eventSubgroups?: Array<{
     id?: number | string;
     subgroupLabel?: string | null;
+    label?: string | null;
     eventSubgroupStart?: string | null;
     distanceInMeters?: number | null;
+    durationInSeconds?: number | null;
     rangeAccessLabel?: string | null;
+    totalSignedUpCount?: number | null;
+    totalEntrantCount?: number | null;
   }>;
 };
+
+/**
+ * Het aantal inschrijvingen uit een rij, over de namen heen die Zwift gebruikt.
+ * Geeft `null` wanneer geen enkele variant aanwezig is: "onbekend" en "nul
+ * inschrijvingen" zijn niet hetzelfde, en als ze samenvallen scoort elk event
+ * zonder dit veld als het slechtst bezochte van zijn tijdslot.
+ */
+export function zwiftSignupCount(
+  row: Pick<ZwiftEventApiRow, "totalSignedUpCount" | "totalEntrantCount">,
+): number | null {
+  for (const value of [row.totalSignedUpCount, row.totalEntrantCount]) {
+    if (value === null || value === undefined) continue;
+    const count = Number(value);
+    if (Number.isFinite(count) && count >= 0) return count;
+  }
+  return null;
+}
 
 type MyWhooshDetailApiResponse = {
   status?: boolean;

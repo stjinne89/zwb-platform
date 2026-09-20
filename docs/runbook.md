@@ -47,6 +47,9 @@ op cron-job.org.
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
+| Zwift-eventspiegel | cron-job.org | **elk uur** | `POST /api/zwift/events/sync` | `ZWIFT_EVENT_SYNC_SECRET` |
+| ↳ spiegelt de Zwift-kalender naar `zwift_events`; dat voedt de eventvoorstellen bij een geplande training. Staat los van de event-scan hierboven: die kiest ZWB-relevante events uit om te publiceren, deze bewaart álles kort en publiceert niets. Elk uur omdat de publieke endpoint per venster maximaal 200 rijen geeft en één run binnen `ZWIFT_EVENT_SYNC_BUDGET_MS` (7 s) maar een deel van de horizon haalt; wat niet past doet de volgende run. Afgelopen events worden elke run opgeruimd (een dag marge) | | | | |
+| ↳ reikwijdte hangt ervan af of Zwift `eventStartsAfter`/`eventStartsBefore` honoreert. Zo ja: `ZWIFT_EVENT_HORIZON_DAYS` (default 3). Zo nee: de kale upcoming-lijst, en dat is maar enkele uren vooruit — het antwoord meldt dan `windowsIgnored: true`. Stel het vast met de knop **Test eventvenster** op `/beheer/event-scan` | | | | |
 | Training-adaptaties (drafts) | cron-job.org | **elk uur** (sinds 2026-09-13) | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
 | ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_ai_generations`), met een noodrem van `TRAINING_ADAPTATION_MAX_PER_DAY` (25) dagvoorstellen over alle leden samen | | | | |
@@ -123,6 +126,7 @@ waarschuwing kunnen wijzigen:
 | ZRL-standings | WTRL | scraper + cookie | cookie verlopen / HTML-wijziging |
 | Club-ladder | ladder.cycleracing.club | scraper + cookie | cookie verlopen / HTML-wijziging |
 | Event-scan Zwift | Zwift publieke + member-feed API | onofficiële API | endpoint/structuur-wijziging |
+| Zwift-eventvoorstellen | Zwift publieke events-API | onofficiële API | endpoint/structuur-wijziging, of Zwift die het datumvenster niet meer honoreert |
 | Event-scan MyWhoosh | mywhoosh.com HTML + detail-API | scraper | HTML/markup-wijziging |
 | Uitslag-scraper | ChronoRace / RaceResult / generieke HTML | scraper/JSON-API | site-wijziging |
 | ZwiftPower-uitslag | zwiftpower.com | alleen link (geen scrape) | n.v.t. (link blijft werken) |
@@ -168,6 +172,13 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   gewijzigd (sectie 4). Check health-check-status.
 - **"Event-scan vindt niets"** → Zwift-serviceaccount-login mislukt; test via
   "Test clubkoppeling" op `/beheer/event-scan`.
+- **"Geen Zwift-voorstellen bij een training"** → in volgorde: staat er iets in
+  `zwift_events` (anders draait de uurcron niet of geeft hij 403 op een
+  ontbrekend `ZWIFT_EVENT_SYNC_SECRET`); reikt de spiegel tot de dag van die
+  training (druk op **Test eventvenster**, en zie `windowsIgnored` in het
+  antwoord van de sync); heeft het lid FTP én gewicht op zijn profiel staan.
+  Staat alles goed en komt er nog niets, dan paste er niets boven de ondergrens
+  van 55% — dat is bedoeld gedrag, geen storing.
 - **"Geen push-notificaties"** → VAPID-keys ontbreken of subscription verlopen
   (wordt automatisch geprunet bij 404/410).
 - **"Live-kaart loopt vol/oud"** → controleer of de `live-cleanup`-function nog

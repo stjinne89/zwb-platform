@@ -11,6 +11,7 @@ import {
   followZwbMembersAction,
   ignoreAllCandidates,
   ignoreCandidate,
+  probeZwiftEventWindow,
   publishCandidate,
   scanExternalEventCandidates,
   testZwiftClubConnection,
@@ -149,6 +150,11 @@ export default async function EventScanPage({ searchParams }: PageProps) {
                 Test clubkoppeling
               </Button>
             </form>
+            <form action={probeZwiftEventWindow}>
+              <Button type="submit" variant="outline" size="sm">
+                Test eventvenster
+              </Button>
+            </form>
             <form action={scanExternalEventCandidates}>
               <ScanButton />
             </form>
@@ -158,7 +164,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
 
       <IntegrationHealth />
 
-      {(clubStatus === "test" || clubStatus === "follow") && scanMessage && (
+      {(clubStatus === "test" || clubStatus === "follow" || clubStatus === "window") && scanMessage && (
         <section className="rounded-lg border bg-card p-4 text-xs text-muted-foreground">
           <pre className="whitespace-pre-wrap break-words font-mono">
             {scanMessage}

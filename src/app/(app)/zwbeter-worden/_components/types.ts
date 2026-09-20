@@ -102,6 +102,10 @@ export type WorkoutRow = {
   superseded_at: string | null;
   /** Gevuld bij een FTP-test; daarvan ligt de duur vast. */
   test_type?: string | null;
+  /** Het Zwift-event dat het lid bij deze training koos. */
+  zwift_event_id?: number | null;
+  /** Gezet wanneer het lid de Zwift-voorstellen wegklikte. */
+  zwift_suggestions_dismissed_at?: string | null;
 };
 
 export type WorkoutReportRow = {

@@ -14,6 +14,7 @@ import {
   Gauge,
   Grid3x3,
   HeartPulse,
+  Lightbulb,
   MapPinned,
   Medal,
   Monitor,
@@ -293,6 +294,44 @@ const ZWIFT_NOTES = [
   "Alleen de komende week wordt vooruitgestuurd, niet je hele schema.",
   "Je Zwift-ritten komen vanzelf terug in intervals.icu, dus je belasting in ZWB blijft kloppen.",
   "Dag aangepast? Publiceer opnieuw, dan gaat de nieuwe versie bij de volgende sync mee.",
+];
+
+const ZWIFT_MATCH_FACTORS = [
+  {
+    title: "Duur —",
+    text: "hoe dicht het event bij de geplande tijd zit. Weegt het zwaarst.",
+  },
+  {
+    title: "Intensiteit —",
+    text: "de W/kg van de pacegroep omgerekend naar een percentage van jóúw FTP. Dezelfde groepsrit is voor een lichtere of sterkere renner een andere training.",
+  },
+  {
+    title: "Belasting —",
+    text: "de geschatte TSS van het event naast die van je geplande training.",
+  },
+  {
+    title: "Terrein —",
+    text: "klimwerk bij tempo, drempel en VO2max; vlak bij duur en herstel.",
+  },
+  {
+    title: "Starttijd —",
+    text: "hoe ver de start afligt van het moment waarop je training staat.",
+  },
+  {
+    title: "Populariteit —",
+    text: "weegt het lichtst, en telt hoe druk een event is vergeleken met andere events op hetzelfde uur van de dag. Rijden er ZWB'ers mee, dan zie je dat erbij.",
+  },
+];
+
+const ZWIFT_MATCH_NOTES = [
+  "Voorstellen verschijnen alleen voor vandaag en de eerstvolgende dagen: verder vooruit geeft Zwift zijn kalender niet vrij.",
+  "Vul je FTP en gewicht in op je profiel. Zonder die twee kunnen we de W/kg van een pacegroep niet naar jouw intensiteit omrekenen en blijft er weinig te vergelijken over.",
+  "Bij een groepsrit wijzen we de pacegroep aan die het tempo van je training rijdt — niet de snelste groep waar je in mag.",
+  "Bij een race telt de categorie wél als toelatingseis: valt je W/kg buiten elke categorie, dan stellen we de race niet voor.",
+  "Races en tijdritten verschijnen alleen bij een geplande race of een harde sessie, nooit bij een duur- of hersteltraining.",
+  "Een event kiezen is een notitie bij je training: je duur, je blokken en wat er naar intervals.icu ging blijven ongewijzigd. Wil je de training even lang maken als het event, pas dan zelf de duur aan.",
+  "Inschrijven doe je in Zwift zelf; de knop brengt je naar de eventpagina.",
+  "Staat er niets? Dan was er niets dat goed genoeg paste. Liever geen voorstel dan een verkeerd voorstel.",
 ];
 
 const DATA_FRESHNESS_HELP = [
@@ -2394,6 +2433,63 @@ Fitness-status: Verbeterend`}
             </h3>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               {ZWIFT_NOTES.map((note) => (
+                <li key={note} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="zwift-voorstellen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Lightbulb className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Zwift-events bij je training</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bij een geplande training kunnen maximaal drie Zwift-events staan
+              die erbij passen, met een percentage erachter.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Zap className="size-4 text-primary" />
+              Waar het percentage op slaat
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {ZWIFT_MATCH_FACTORS.map((factor) => (
+                <li key={factor.title} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    <strong className="text-foreground">{factor.title}</strong>{" "}
+                    {factor.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Weten we iets niet, dan telt dat punt niet mee in plaats van dat
+              het aftrek geeft. Een event scoort dus nooit lager omdat Zwift een
+              veld niet meestuurt — het is dan alleen op minder punten
+              vergeleken.
+            </p>
+          </div>
+
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <CircleHelp className="size-4 text-primary" />
+              Goed om te weten
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {ZWIFT_MATCH_NOTES.map((note) => (
                 <li key={note} className="flex gap-2">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                   <span>{note}</span>
