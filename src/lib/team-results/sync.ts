@@ -153,6 +153,13 @@ const DEFAULT_SOURCE_SEEDS: SourceSeed[] = [
 
 const LEGACY_WTRL_SOURCE_NAMES = ["ZRL B", "ZRL C"];
 
+// WTRL verbiedt het aanroepen van hun endpoints van buiten wtrl.racing zonder
+// schriftelijke toestemming, en blokkeert de sync met HTTP 429. Tot er
+// toestemming is, blijft WTRL buiten de sync; WTRL_SYNC_ENABLED=true zet hem terug.
+function wtrlSyncEnabled() {
+  return process.env.WTRL_SYNC_ENABLED === "true";
+}
+
 class SyncSkip extends Error {
   constructor(message: string) {
     super(message);
@@ -225,6 +232,7 @@ async function ensureDefaultTeamsAndSources(supabase: any) {
   }
 
   for (const seed of DEFAULT_SOURCE_SEEDS) {
+    if (seed.provider === "wtrl" && !wtrlSyncEnabled()) continue;
     const teamId = teamIds.get(seed.teamName);
     if (!teamId) continue;
 
@@ -1024,10 +1032,12 @@ export async function syncTeamResults(
 
   if (error) throw new Error(error.message);
 
-  const sources = ((data ?? []) as SourceRow[]).sort((a, b) => {
-    if (a.provider !== b.provider) return a.provider === "wtrl" ? -1 : 1;
-    return a.match_name.localeCompare(b.match_name);
-  });
+  const sources = ((data ?? []) as SourceRow[])
+    .filter((source) => source.provider !== "wtrl" || wtrlSyncEnabled())
+    .sort((a, b) => {
+      if (a.provider !== b.provider) return a.provider === "wtrl" ? -1 : 1;
+      return a.match_name.localeCompare(b.match_name);
+    });
   const outcomes: SyncSourceOutcome[] = [];
   let insertedOrUpdated = 0;
 

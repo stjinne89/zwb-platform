@@ -83,7 +83,7 @@ vangen, maar weet hier hoe je ze ververst:
 | Credential | Gebruikt voor | Vervalt? | Vernieuwen |
 |---|---|---|---|
 | `LADDER_COOKIE` | Club-ladder/graveyard scraper (`ladder.cycleracing.club`) | Ja, sessiecookie | Inloggen, `connect.sid`-cookie kopiëren via DevTools → Application → Cookies |
-| `WTRL_COOKIE` | ZRL/WTRL-data voor sommige endpoints | Ja, sessiecookie | Inloggen bij WTRL, sessiecookie kopiëren |
+| `WTRL_COOKIE` | ZRL/WTRL-data; alleen gebruikt als `WTRL_SYNC_ENABLED=true` (staat uit sinds 2026-09-21, WTRL-voorwaarden) | Ja, sessiecookie | Inloggen bij WTRL, sessiecookie kopiëren |
 | `ZWIFT_USERNAME` / `ZWIFT_PASSWORD` | Zwift-club-serviceaccount (event-feed + entrants) | Wachtwoord/lockout | Eigen ZWB-serviceaccount; bij lockout wachtwoord resetten. Verifieer met "Test clubkoppeling" op `/beheer/event-scan` |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
 | `OPENAI_API_KEY` | Trainings-AI | Bij rotatie/quota | OpenAI-dashboard |
@@ -165,6 +165,9 @@ route een push naar admins via trigger `on_admin_broadcast`.
 `wtrl` en `ladder` meten alleen of de site bereikbaar is. Of de resultatensync
 zelf lukt, staat in `wtrl_sync` en `ladder_sync`: die lezen `last_error` van de
 actieve `team_result_sources`. Een 401 daar is vrijwel altijd een verlopen cookie.
+De WTRL-sync staat uit sinds 2026-09-21 (HTTP 429 en de WTRL-voorwaarden), dus
+`wtrl_sync` meldt "geen actieve bronnen". Een overgeslagen bron telt nu nog als
+groen: groen betekent dus niet dat er resultaten binnenkomen.
 
 Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
 (bron gewijzigd).

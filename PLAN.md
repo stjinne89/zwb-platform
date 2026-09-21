@@ -11,7 +11,7 @@ gaat stabiliteit voor nieuwe features.
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
    [Omnium-status](docs/omnium-readiness-2026-09-15.md).
-2. **Handwerk op productie.** Een verse `WTRL_COOKIE` in Netlify. De cron van
+2. **Handwerk op productie.** De cron van
    `/api/strava/sync` op 1x per dag, een week meten, dan opnieuw indienen bij
    Strava (`docs/strava-api-resubmission.md`, via het formulier en niet als
    reply op de afwijzing). De Zwift-routebibliotheek één keer volledig opnieuw
@@ -44,6 +44,34 @@ productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`.
 
 ---
+
+> **WTRL-resultatensync uitgezet, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Op productie zijn de drie WTRL-bronnen (`ZWB Cycling B1`,
+> `ZWB Cycling C1`, `ZWB Zwiftladies`) met de hand op `enabled = false` gezet.
+> **Waarom.** Met een verse `WTRL_COOKIE` en een nieuwe deploy gaf WTRL op de
+> eerste aanvraag per bron HTTP 429. Dat is een blokkade, geen echte
+> rate limit: het zijn drie aanvragen per sync. De
+> [WTRL-voorwaarden](https://www.wtrl.racing/terms-of-service.php) verbieden het
+> aanroepen van hun endpoints van buiten wtrl.racing zonder schriftelijke
+> toestemming. Ze dreigen met IP-blokkades en met het intrekken van het
+> lidmaatschap van het account achter de cookie. `team_results` en
+> `zrl_rider_results` waren op productie leeg: deze sync heeft nog nooit een
+> resultaat opgeslagen. **Nu:** `syncTeamResults()` slaat WTRL-bronnen over en
+> maakt ze niet meer automatisch aan, tenzij `WTRL_SYNC_ENABLED=true`. De
+> WTRL-code blijft staan voor het geval er toestemming komt.
+> **Gevonden, bewust niet gerepareerd** (pas relevant na toestemming):
+> `knownWtrlCandidates()` zet B1 altijd eerst op 2025/26 Round 4 Race 4, en de
+> sync stopt bij de eerste race met een resultaat. B1 kan dus nooit iets nieuws
+> ophalen. Competities worden in WTRL-volgorde doorlopen, niet van nieuw naar
+> oud. Zwiftladies zoekt in E-divisies, omdat `/[ABCDE]/i` de "e" uit "Women"
+> pakt. **Ook gevonden, niet in deze ronde:** Club Ladder vindt geen enkel team
+> op `/summary`. `fetchHeaders()` stuurt `LADDER_COOKIE` niet mee, en de pagina
+> bevat de teamnamen niet. Daarnaast wist een overgeslagen bron (`SyncSkip`)
+> `last_error`. Daardoor meldt de health-check `ladder_sync` groen terwijl er
+> niets binnenkomt. **Open:** handmatige invoer van ZRL-uitslagen. Het formulier
+> in het beheerpaneel van een team bestaat al, maar is per race te veel werk.
+> Getest: TypeScript en ESLint. **Niet lokaal te verifiëren:** het gedrag op
+> productie na de deploy.
 
 > **Zwift-eventlink: "Route niet herkend" bij ZRL 26/27, 2026-09-21 — opgelost.**
 > Implementatiecommit `875c025`. Geen migratie; `zwift-data` van 1.48.6 naar 1.50.0. De eventlink van ZRL
@@ -518,8 +546,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`
 > blijven staan. Uitleg in `docs/runbook.md` §5.
 > **Bewust niet gebouwd:** een drempel op ouderdom (`last_synced_at`). Hoe vaak
 > de sync hoort te draaien staat nergens vast, en een verkeerde drempel geeft
-> valse alarmen. **Nog te doen door de eigenaar:** een verse `WTRL_COOKIE` in
-> Netlify zetten (runbook §3) en daarna Resultaten synchroniseren op `/teams`.
+> valse alarmen. ~~Nog te doen door de eigenaar: een verse `WTRL_COOKIE` in
+> Netlify zetten.~~ Gedaan op 2026-09-21; WTRL antwoordde daarna met 429 en de
+> WTRL-sync staat nu uit (zie de ronde hierboven).
 > Getest: 2 nieuwe unit-tests, TypeScript en ESLint. **Niet lokaal te
 > verifiëren:** de echte stand van `team_result_sources` in productie en of een
 > nieuwe cookie de 401 oplost.
