@@ -1,5 +1,39 @@
 # ZWB Platform — Plan & Status
 
+## Actieve volgorde (bijgewerkt 2026-09-21)
+
+Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
+dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
+[gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
+gaat stabiliteit voor nieuwe features.
+
+1. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
+   en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
+   vastzetten. De beheerketen één keer met de hand doorklikken. Details:
+   [Omnium-status](docs/omnium-readiness-2026-09-15.md).
+2. **Handwerk op productie.** Een verse `WTRL_COOKIE` in Netlify. De cron van
+   `/api/strava/sync` op 1x per dag, een week meten, dan opnieuw indienen bij
+   Strava (`docs/strava-api-resubmission.md`, via het formulier en niet als
+   reply op de afwijzing). De Zwift-routebibliotheek één keer volledig opnieuw
+   ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
+3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
+   `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
+   met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
+   View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
+   een echte telefoon.
+4. **Trainingskwaliteit: eerst meten.** AI-wattages aan de lage kant, geen
+   FTP-historie, naleving rond 105% bij blokkige workouts. Zie "Bekende open
+   dingen"; begin met de eFTP naast `profiles.ftp_watts`.
+5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
+   testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
+   Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
+   en hoe ronden we de achievementkwaliteit af (verborgen proxy- en
+   future-badges, de handmatige flow)?
+
+Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
+
+---
+
 > **Health-check kijkt of de WTRL-sync echt lukt, 2026-09-21 — gebouwd, lokaal getest.**
 > Geen migratie. Uit de gebruiksanalyse van 17 september: de WTRL-resultatensync
 > faalt sinds 3 juni met HTTP 401, terwijl `integration_health` 306 keer ok meldde.
@@ -731,8 +765,8 @@ Spoor B en C zijn **bewust geskipt**: OwnTracks dekt outdoor af, en het
 indoor status-board is een grote bouw met onzekere adoptie. Heroverwegen
 als bestuur of leden er expliciet om vragen.
 
-Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
-(niet alleen op detail-pagina) — kalender als hub voor live-volgen.
+De liveticker is inmiddels zichtbaar op de `/kalender`-rij (live-indicator met
+link naar `/live/[eventId]`, zie de update hierboven).
 
 ---
 
@@ -4709,9 +4743,8 @@ per uitzending in plaats van vier.
 geen live event om op te testen; te bevestigen op de eerstvolgende clubrit.
 
 **Gevolg voor de planning.** De plak-import blijft nodig als terugval en als
-route voor de Sprint Quali, dus die is geen weggegooid werk. De volgende stap is
-een `omnium/zwift-results.ts` naast de bestaande `zwift-club.ts`, met dezelfde
-cache-aanpak als `live/external-timing.ts`.
+route voor de Sprint Quali, dus die is geen weggegooid werk. De volgende stap was
+een `omnium/zwift-results.ts`; die is gebouwd in de editie-1-ronde (`af0a1aa`).
 
 ### Proefdraai Omnium op editie 7 (2025/26)
 
@@ -4766,7 +4799,7 @@ productiedatabase. De tabellen bestaan inmiddels wel (`0126`-`0130` zijn
 gedraaid). Dat is de volgende stap, met een testeditie die niet gepubliceerd
 wordt.
 
-### Actief — ZWB Omnium als platformmodule
+### Opgeleverd — ZWB Omnium als platformmodule (rondes 1–5)
 
 **Ronde 1 (datamodel + puntenmotor) opgeleverd 2026-08-19, gecommit
 2026-09-14.** Migraties `0126`-`0130`.
@@ -5081,9 +5114,10 @@ uitslagen, overlay, prijzen, historie en productie-inrichting ontbreken daar nog
 Ook moet de beheerketen met de hand worden doorlopen. Het oude integratiescript
 spiegelt de databasestappen van de oorspronkelijke server actions, niet de React-kant.
 
-**Volgende rondes:** spike Zwift-uitslagen (te testen op editie 1 zelf),
-startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
-historische import, uitfaseren van de oude site.
+**Volgende rondes (stand 2026-09-21):** Zwift-uitslagen, startlijst via
+Zwift-entrants, overlay en prijzen zijn gebouwd in de editie-1-ronde (`af0a1aa`).
+Nog open: communicatie, historische import en het uitfaseren van de oude site. De
+productie-inrichting staat in "Actieve volgorde" bovenaan.
 
 **Review en commit, 2026-09-14.** Rondes 1–5 en de proefdraai stonden bijna vier
 weken alleen in de working tree, terwijl `0126`-`0130` en `0134` al in productie
@@ -5108,9 +5142,9 @@ Tiebreakbevestiging en productie-inrichting blijven open; zie de status van
 `package-lock.json` (npm-bijeffect) en de mappen `output/`, `outputs/` en
 `.claude/` zijn bewust niet meegecommit.
 
-### Actief — pacingplan bij events
+### Opgeleverd — pacingplan bij events (rondes 1–6)
 
-**2026-08-31, working tree.** Migraties `0144` en `0145`. Nieuwe bestanden:
+**2026-08-31.** (Inmiddels gecommit en live.) Migraties `0144` en `0145`. Nieuwe bestanden:
 `src/lib/events/zwift-route-streams.ts`, `src/lib/events/zwift-route.ts`,
 `src/lib/events/zwift-route-sync.ts`, `src/app/(app)/beheer/zwift-routes/`,
 `tests/unit/zwift-route-streams.test.ts`, `tests/unit/zwift-route.test.ts`,
@@ -5320,141 +5354,15 @@ dat een andere afstand beslaat — Lutscher, Lutscher CCW en Southern Coast Crui
 plus Innsbruckring met dezelfde fout bij de bron. Vier van de 263. Een event op
 een van die routes heeft een GPX nodig.
 
-### 0. Documenthygiëne en release-basis
+### Werkplan uit juni (secties 0–10) — vervangen 2026-09-21
 
-**Doel:** zorgen dat nieuwe rondes niet opnieuw door elkaar gaan lopen.
-
-1. Houd deze sectie bovenaan als enige actieve volgorde.
-2. Verplaats afgeronde rondes na push/deploy naar de historische roadmap of de
-   featurelijst.
-3. Laat detailonderzoek in losse docs staan (`docs/...`) en link alleen de
-   conclusie hier.
-4. Noteer per ronde: datum, commit, migraties, risico's en verificatie.
-
-### 1. Stabilisatie na de juni-builds
-
-**Waarom nu:** de laatste deploys raakten veel kernpaden: Strava, training,
-events/kaart, onderhoud en hulp/onboarding.
-
-1. Verifieer production-flow na deploy van `e834bc1`:
-   `/training`, `/achievements`, `/hulp`, `/welkom`, eventkaart + Street View.
-2. Controleer de Strava rate-limit na gear-throttle + lagere cronfrequentie:
-   daglimiet, 15-minutenvenster, aantal actieve profielen.
-3. ~~Verwijder het tijdelijke `/api/strava/debug-gear`.~~ Gedaan in de ronde van
-   2026-09-05.
-4. Doe de nog open iOS PWA-regressiecheck na de recente navigatie- en
-   trainingwijzigingen.
-5. Houd `npm run lint`, `npm run test`, `npm run build` als standaard
-   acceptatiecheck; breid tests alleen uit waar nieuwe pure logica bijkomt.
-
-### 2. Training-cockpit praktijktest
-
-**Waarom daarna:** training is nu functioneel rijk, maar publicatie naar
-intervals/Wahoo/Garmin is een echte gebruikersflow met externe gevolgen.
-
-1. Voer `docs/training-cockpit-praktijktest.md` uit met één trainer en één
-   renner/testaccount.
-2. Test: intake, AI-concept, traineredit, publicatie naar intervals.icu,
-   FIT-download, Wahoo/Garmin-route, dag-aanpassing en rapportage.
-3. Leg bevindingen vast in hetzelfde document: bugs, UX-frictie,
-   copy die naar `/hulp` moet, en eventuele dataverschillen met intervals.icu.
-4. Pas daarna pas nieuwe trainingfeatures toe; eerst stabiliseren wat er nu is.
-
-### 3. Strava-capaciteit: meten en opnieuw indienen
-
-**Waarom:** de aanvraag voor een hogere atletenlimiet is afgewezen. De twee
-technische eisen (webhooks, actief beheer van gedeauthoriseerde atleten) zijn
-gebouwd — zie de ronde van 2026-09-05 in de featurelijst. Wat rest is bewijs
-verzamelen en indienen.
-
-1. Zet `STRAVA_WEBHOOK_VERIFY_TOKEN`, draai migraties `0148`-`0151`, deploy, en
-   maak de subscription aan via `/beheer/strava` → Webhooks → Aanmaken.
-2. Zet de externe cron voor `/api/strava/sync` terug van elke 15-30 min naar
-   1x/dag.
-3. Laat het minstens een week draaien en vul de cijfers in
-   `docs/strava-api-resubmission.md` in: callvolume vóór/na, aantal opgeruimde
-   koppelingen, gekoppelde atleten tegenover de cap.
-4. Dien daarna opnieuw in via het formulier — **niet** via een reply op de
-   afwijzingsmail; die telt volgens Strava niet als herindiening.
-5. Houd de handmatige `activities.csv` import als fallback zolang de cap knelt.
-
-### 4. Event- en livekaart afronden
-
-**Waarom:** de eventpagina is een grote kracht van het platform en kreeg veel
-snelle upgrades.
-
-1. Praktijktest routekaart: hoogteprofiel, klim-overrides, POI's, fullscreen,
-   Street View-marker en publieke `/live`.
-2. Controleer Google Street View deep-links op meerdere GPX-routes:
-   juiste panorama, rijrichting, gedrag bij ontbrekende Street View.
-3. Beslis of POI's alleen event-detail blijven of ook prominenter in de
-   kalender/livehub moeten komen.
-4. Pas pas daarna nieuwe kaartfeatures toe; eerst regressies uit de huidige set.
-
-### 5. Achievements en importkwaliteit
-
-**Waarom:** badges zijn engagement-kern, en import maakt dit nu toegankelijker
-voor leden zonder Strava-koppeling.
-
-1. Verzamel 3-5 echte Strava `activities.csv` exports en test varianten in
-   datumformaat, delimiter, sporttype en ontbrekende velden.
-2. Voeg unit-tests toe voor elke importvariant die stukgaat.
-3. Maak admin/herbereken-flow zichtbaar genoeg voor support, maar houd de
-   leden-UI compact.
-4. Rond de testerfeedback rond achievementkwaliteit af: verborgen proxy/future
-   achievements, handmatige achievement-flow, duidelijke badgekwaliteit.
-
-### 6. Externe events en teamplanning hardenen
-
-**Waarom:** Zwift/MyWhoosh-eventscan en teamtools zijn geleverd, maar externe
-feeds en cookies zijn broos.
-
-1. Monitor eventscan-cron na de 429-fixes: volgen, matchen, publiceren,
-   ZwiftPower-link.
-2. Leg failure modes in `docs/runbook.md` vast: cookie verlopen, feed leeg,
-   publish mismatch, roster-onbekend.
-3. Verbeter pas daarna de beheer-MVP met extra automatisering of reviewfilters.
-4. Houd team-roster/TTT-planner/powerselectie stabiel voor het volgende seizoen.
-
-### 7. Club- en teamchallenges
-
-**Waarom:** dit is de eerstvolgende productmatige uitbreiding uit
-testerfeedback die direct communitywaarde kan leveren.
-
-1. Start met een eenvoudige challenge-vorm: clubbreed of per team, periode,
-   metric (km/hoogtemeters/ritten/consistentie), leaderboard.
-2. Gebruik bestaande Strava-activiteiten en teams; geen nieuwe externe koppeling.
-3. Bouw eerst beheer + read-only leaderboard, daarna pas badges/pushes.
-4. Denk aan winter- en zomerchallenge als twee templates.
-
-### 8. Visuele herziening
-
-**Waarom later:** er is al veel functionaliteit; een redesign is waardevol,
-maar moet niet door functionele stabilisatie heen lopen.
-
-1. Verzamel eerst referenties van de eigenaar: apps/sites, sfeer, do's/don'ts.
-2. Werk designsysteem bij: tokens, cards, typografie, spacing, states.
-3. Pak daarna high-impact pagina's in volgorde:
-   login, dashboard, event-detail, ritverslagen, training.
-4. Doe dit op een aparte branch/ronde zonder functionele wijzigingen.
-
-### 9. AI-agenten en kennisvragen
-
-**Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
-strak zijn.
-
-1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
-2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
-   eventueel afgeschermde ledeninformatie met expliciete grenzen.
-3. Start met read-only Q&A; geen acties namens gebruiker in v1.
-
-### 10. Bewust on-hold
-
-Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
-
-- E2E encrypted chat: WhatsApp dekt nu de behoefte; echte E2E is groot.
-- Mollie/iDEAL contributie of merch: onderzocht, niet gevraagd.
-- Native Expo/React Native app: PWA volstaat zolang iOS-push/UX niet blokkeert.
+Vervangen door "Actieve volgorde" bovenaan dit document. Wat daarbij verviel:
+de deploycontrole van `e834bc1` en de Strava-rate-limitcheck na de gear-throttle.
+Die zijn achterhaald door de webhookronde van 5 september. Het debug-endpoint was
+toen ook al weg. Wat nog gold (iOS-regressie, cockpit-praktijktest, eventkaart,
+Strava-herindiening, `activities.csv`, eventscan) staat nu in de actieve volgorde.
+Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
+"Geparkeerd — hoort in het plannenboek" onderaan.
 
 ---
 
@@ -5795,7 +5703,7 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
   ophaalt. Tot die tijd blijft de job een timeout melden en blijven openstaande
   herplanverzoeken liggen.
 
-- **Netlify scheduled functions gaan niet af** (ontdekt 2026-09-05). Netlify
+- ~~**Netlify scheduled functions gaan niet af**~~ — **opgelost 2026-09-08** (ontdekt 2026-09-05). Netlify
   toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
   is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026
   22:01, de dag dat de health-check werd uitgerold. De code klopt — dezelfde
@@ -5999,13 +5907,11 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 - ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
   scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
   reduced-motion-safe), logo's linken naar de sponsor-site.
-- **Team/club challenges + AI-agenten** — productsporen na de quick wins uit
-  testerfeedback juni 2026. Challenges richten zich op winter/zomerbinding;
-  agenten horen bij een latere/betaalversie en vragen eerst afbakening van
-  kennis, privacy en verantwoordelijkheden.
-- **E2E chat** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
-- **Mollie iDEAL** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
-- **Core & mobiliteit als eigen trainingsspoor** — aanleiding: de AI plande in
+- Challenges, AI-agenten, E2E-chat en Mollie: zie "Geparkeerd — hoort in het
+  plannenboek" onderaan.
+- ✅ **Core & mobiliteit als eigen trainingsspoor** — gebouwd (migraties
+  `0159`/`0160`, krachtreeksen uit wens 19, core-advies op het dashboard).
+  Oorspronkelijke aanleiding: de AI plande in
   augustus 2026 een "Rust + rug/mobiliteit"-sessie in een ZWB-schema. Inhoudelijk
   waardevol, maar het past niet in de fietspijplijn: geen wattages dus geen
   intervals.icu-publicatie en geen FIT-download, de duur telt via
@@ -6021,7 +5927,7 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 
 ---
 
-## Mobiele revisie (gepland, eigen ronde)
+## Mobiele revisie (uitgevoerd 2026-08-03)
 
 Aanleiding: op telefoon zijn grafieklabels onleesbaar klein, vallen detail-
 weergaven buiten het scherm en loopt de tab-balk van ZWBeter Worden net buiten
@@ -6123,7 +6029,47 @@ scrollen, op de expliciet als scrollbaar gemarkeerde tabellen na.
 
 ---
 
-## Redesign-traject (gepland, aparte ronde)
+## Geparkeerd — hoort in het plannenboek
+
+Toekomstplannen die nog geen code zijn. Volgens AGENTS.md horen ze in het
+plannenboek in Drive. De Drive-koppeling kan daar geen tekst aan toevoegen, dus
+ze staan hier gebundeld tot ze met de hand zijn overgezet (besluit eigenaar,
+2026-09-21). Het bestuur overweegt daarnaast een featurepauze; zie de
+[gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md).
+
+### Club- en teamchallenges
+
+**Waarom:** dit is de eerstvolgende productmatige uitbreiding uit
+testerfeedback die direct communitywaarde kan leveren.
+
+1. Start met een eenvoudige challenge-vorm: clubbreed of per team, periode,
+   metric (km/hoogtemeters/ritten/consistentie), leaderboard.
+2. Gebruik bestaande Strava-activiteiten en teams; geen nieuwe externe koppeling.
+3. Bouw eerst beheer + read-only leaderboard, daarna pas badges/pushes.
+4. Denk aan winter- en zomerchallenge als twee templates.
+
+### AI-agenten en kennisvragen
+
+**Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
+strak zijn.
+
+1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
+2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
+   eventueel afgeschermde ledeninformatie met expliciete grenzen.
+3. Start met read-only Q&A; geen acties namens gebruiker in v1.
+
+### Visuele herziening en redesign-traject
+
+**Waarom later:** er is al veel functionaliteit; een redesign is waardevol,
+maar moet niet door functionele stabilisatie heen lopen.
+
+1. Verzamel eerst referenties van de eigenaar: apps/sites, sfeer, do's/don'ts.
+2. Werk designsysteem bij: tokens, cards, typografie, spacing, states.
+3. Pak daarna high-impact pagina's in volgorde:
+   login, dashboard, event-detail, ritverslagen, training.
+4. Doe dit op een aparte branch/ronde zonder functionele wijzigingen.
+
+Uitgewerkt stappenplan:
 
 Ronde 3 leverde een eerste restyle-pass (merk-accent, beeld-forward cards,
 officiële store-badges). Een vólledige, op de smaak van de eigenaar afgestemde
@@ -6150,11 +6096,19 @@ visuele herziening is bewust uitgesteld naar een eigen ronde, omdat dat eerst
 
 ---
 
-## Onderzoek (iteratie-ronde 2) — Mollie & E2E-chat
+### Bewust on-hold
+
+Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
+
+- E2E encrypted chat: WhatsApp dekt nu de behoefte; echte E2E is groot.
+- Mollie/iDEAL contributie of merch: onderzocht, niet gevraagd.
+- Native Expo/React Native app: PWA volstaat zolang iOS-push/UX niet blokkeert.
+
+### Onderzoek (iteratie-ronde 2) — Mollie & E2E-chat
 
 Beide zijn deze ronde alléén onderzocht; nog niet gebouwd.
 
-### Mollie (contributie/betalingen)
+#### Mollie (contributie/betalingen)
 
 **Haalbaarheid: hoog.** `MOLLIE_API_KEY` staat al in `.env.local.example`.
 
@@ -6179,7 +6133,7 @@ Ontwerp:
 - Schatting: ~1 migratie + 1 webhook-route + 1 server-action + 2 pagina's
   = vergelijkbaar met de uitslagen-scraper qua omvang.
 
-### E2E-chat
+#### E2E-chat
 
 > **Bijgewerkt 2026-09-17.** Dit stuk gaat over een *clubbrede* chat; die staat nog steeds
 > geparkeerd. Wat er sindsdien wél is gebouwd, is de coachchat in ZWBeter Worden (migratie
