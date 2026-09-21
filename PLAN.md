@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Zwift-eventsync kwam nooit langs de middleware, 2026-09-21 — gefixt, lokaal getest.**
-> Implementatiecommit `FIX_HASH`. Geen migratie.
+> Implementatiecommit `98d33dd`. Geen migratie.
 > Melding van de eigenaar bij het inrichten van de cron: cron-job.org kreeg
 > **307 naar `/login`** in plaats van een antwoord. Oorzaak: `/api/zwift/events/sync`
 > ontbrak in `PUBLIC_PATHS` (`src/lib/supabase/middleware.ts`). Een cron wordt
