@@ -1,5 +1,28 @@
 # ZWB Platform — Plan & Status
 
+> **Zwift-eventsync kwam nooit langs de middleware, 2026-09-21 — gefixt, lokaal getest.**
+> Implementatiecommit `FIX_HASH`. Geen migratie.
+> Melding van de eigenaar bij het inrichten van de cron: cron-job.org kreeg
+> **307 naar `/login`** in plaats van een antwoord. Oorzaak: `/api/zwift/events/sync`
+> ontbrak in `PUBLIC_PATHS` (`src/lib/supabase/middleware.ts`). Een cron wordt
+> zonder cookie aangeroepen, dus de middleware stuurde hem naar de loginpagina.
+> Alle andere cron-routes stonden daar wél in; deze was bij de vorige ronde
+> vergeten. De beveiliging zit in `checkCronSecret()` en niet in de middleware, dus
+> publiek zetten verandert niets aan wie de route mag draaien.
+> **Waarom dit erger is dan een gewone 403:** cron-job.org volgt geen redirects en
+> meldt geen fout — hij kréég immers antwoord. De job zou dus stil nooit gedraaid
+> hebben, en `zwift_events` was leeg gebleven zonder dat iets dat liet zien.
+> **Vangnet in code:** `tests/unit/middleware-public-paths.test.ts` leidt de lijst
+> bearer-beveiligde routes af uit de broncode (elke `route.ts` die `checkCronSecret`
+> aanroept) en eist dat elk daarvan in `PUBLIC_PATHS` staat. Overtypen zou dezelfde
+> fout over een jaar opnieuw mogelijk maken. Dezelfde test bewaakt de spiegelfout:
+> de GPX-download van een routevoorstel en de FIT-export van een workout moeten
+> juist níét publiek zijn.
+> Verificatie: 1.424 tests geslaagd (10 nieuw), `npx tsc --noEmit` schoon, ESLint
+> 0 fouten en de 7 bestaande waarschuwingen, productiebuild geslaagd.
+> **Na deze deploy hoort de cron 403 te geven zolang `ZWIFT_EVENT_SYNC_SECRET` nog
+> niet in Netlify staat** — dat is de goede volgende foutmelding, geen nieuwe bug.
+
 > **Rondjes voor buiten bij een geplande training, 2026-09-21 — gebouwd, lokaal getest.**
 > Implementatiecommit `793c046`, migratie `0173_outdoor_route_suggestions.sql`.
 > Tweede helft van de wens van de eigenaar bij de Zwift-eventvoorstellen hierboven:

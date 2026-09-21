@@ -173,6 +173,12 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   gewijzigd (sectie 4). Check health-check-status.
 - **"Event-scan vindt niets"** → Zwift-serviceaccount-login mislukt; test via
   "Test clubkoppeling" op `/beheer/event-scan`.
+- **"Cron krijgt 307 / redirect naar /login"** → de route staat niet in
+  `PUBLIC_PATHS` in `src/lib/supabase/middleware.ts`. Een cron heeft geen cookie,
+  dus de middleware stuurt hem naar de loginpagina; cron-job.org volgt dat niet
+  en meldt geen fout, dus de job draait stil nooit. Zet het pad erbij — de
+  beveiliging zit in `checkCronSecret()`, niet in de middleware.
+  `tests/unit/middleware-public-paths.test.ts` vangt dit voortaan af.
 - **"Geen rondjes voor buiten"** → heeft het lid een vertrekpunt op `/profiel`,
   en staan FTP én gewicht op het profiel? Zonder die drie doet ZWB bewust geen
   voorstel. Komt er daarna een foutmelding bij de knop, dan komt die rechtstreeks

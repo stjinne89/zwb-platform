@@ -3,6 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PASSWORD_RECOVERY_COOKIE = "zwb-password-recovery";
 
+/**
+ * Paden die zonder sessie bereikbaar zijn.
+ *
+ * Let op bij een nieuwe cron-route: die wordt door een externe dienst aangeroepen
+ * zonder cookie, dus zonder een regel hieronder krijgt hij een 307 naar /login en
+ * draait de job nooit -- en een cron die een redirect krijgt klaagt niet. De
+ * beveiliging van zo'n route zit in checkCronSecret(), niet hier. Elke regel met
+ * /api hieronder is zo'n endpoint; zie tests/unit/middleware-public-paths.test.ts,
+ * dat controleert dat elke bearer-beveiligde route in deze lijst staat.
+ */
 const PUBLIC_PATHS = [
   "/login",
   "/wachtwoord-resetten",
@@ -25,6 +35,7 @@ const PUBLIC_PATHS = [
   "/api/training/adaptations/daily",
   "/api/health/integrations",
   "/api/zwblokken/backfill",
+  "/api/zwift/events/sync",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.
