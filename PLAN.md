@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Drie rondjes op één kaart, en het antwoord over Wahoo en Garmin, 2026-09-21 — gebouwd, lokaal getest.**
-> Implementatiecommit `MAP_HASH`. Geen migratie.
+> Implementatiecommit `e3c077d`. Geen migratie.
 > Melding van de eigenaar: de buitenrondjes worden gegenereerd, maar je kunt ze
 > niet zien. Klopte: de lijn stond wél in `geometry` en in de GPX-download, maar
 > de loader haalde die kolom niet op en er was geen kaart. Je kon dus alleen
