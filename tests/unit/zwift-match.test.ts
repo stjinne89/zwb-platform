@@ -437,6 +437,23 @@ describe("buildPopularityIndex", () => {
     expect(index.percentileFor("2026-09-21T18:30:00Z", 4)).toBe(0);
   });
 
+  it("telt hardloopevents niet mee in de verdeling", () => {
+    // Drie fietsevents om 18:00 met veel inschrijvingen, plus drie hardloopevents
+    // in hetzelfde uur met bijna niemand. Zonder het sportfilter zouden die
+    // laatste de lat omlaag trekken en zou elk fietsevent er populair uitzien.
+    const events = [
+      event({ eventId: 1, startAt: "2026-09-21T18:00:00Z", totalSignups: 100 }),
+      event({ eventId: 2, startAt: "2026-09-21T18:05:00Z", totalSignups: 120 }),
+      event({ eventId: 3, startAt: "2026-09-21T18:10:00Z", totalSignups: 140 }),
+      event({ eventId: 4, startAt: "2026-09-21T18:15:00Z", sport: "RUNNING", totalSignups: 1 }),
+      event({ eventId: 5, startAt: "2026-09-21T18:20:00Z", sport: "RUNNING", totalSignups: 2 }),
+      event({ eventId: 6, startAt: "2026-09-21T18:25:00Z", sport: "RUNNING", totalSignups: 3 }),
+    ];
+    // 110 inschrijvingen is het op één na rustigste fietsevent, niet het op drie
+    // na drukste event van het hele slot.
+    expect(buildPopularityIndex(events).percentileFor("2026-09-21T18:30:00Z", 110)).toBe(33);
+  });
+
   it("zegt niets bij te weinig events in een slot", () => {
     const index = buildPopularityIndex([event({ totalSignups: 10 })]);
     expect(index.percentileFor("2026-09-21T18:00:00Z", 10)).toBeNull();

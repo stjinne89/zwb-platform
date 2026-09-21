@@ -61,6 +61,12 @@ Wat daaruit volgt:
   eenheid (`w/kg`) verplicht — zonder die eis leest "3-4 laps" als een tempo.
 - **`signups` zit op 100%**, dus het populariteitspercentiel per uurslot heeft
   altijd materiaal.
+- **Ruim 40% van de kalender is hardlopen.** Op de eerste echte sync bleek de
+  lijst vol te staan met `GROUP_RUN`/`RUNNING`-events ("Monday Run Club" elk
+  kwartier). Die worden sinds 2026-09-21 niet meer bewaard: ze kunnen nooit
+  voorgesteld worden — de trainingsmodule plant alleen op-de-fiets werk — en ze
+  vervuilden de populariteitsverdeling per uurslot. Een event zonder sportveld
+  wordt wél bewaard; onbekend telt nooit als nee.
 
 De huidige basis is `/beheer/event-scan`: admins scannen externe bronnen,
 MyWhoosh- en Zwift-metadata wordt als concept opgeslagen in

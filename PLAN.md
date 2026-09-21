@@ -1,5 +1,35 @@
 # ZWB Platform — Plan & Status
 
+> **Alleen fietsevents in de Zwift-spiegel, 2026-09-21 — gebouwd, lokaal getest.**
+> Implementatiecommit `SPORT_HASH`. Geen migratie.
+> Melding van de eigenaar na de eerste echte sync: er staan hardloopevents in
+> `zwift_events`, is dat de bedoeling? Nee.
+> **De oorspronkelijke keuze was zwak.** In de vorige ronde bewaarde de sync alle
+> sporten, met als argument "de spiegel blijft een spiegel, zodat een latere
+> hardloopfunctie niet om een nieuwe sync vraagt". Dat is een functie die niemand
+> gevraagd heeft, terwijl `defaultTrainingPrompt()` expliciet alleen op-de-fiets
+> werk plant. Dezelfde speculatieve generalisatie die elders in deze rondes juist
+> is weggehaald.
+> **Wat het kostte, bleek pas op echte data:** ruim 40% van de kalender is
+> hardlopen ("Monday Run Club" elk kwartier). Die rijen kunnen nooit voorgesteld
+> worden — de matcher filtert ze weg — dus ze stonden er voor niets.
+> **En één stil gevolg dat bij de bouw over het hoofd is gezien:**
+> `buildPopularityIndex` vergelijkt inschrijvingen binnen hetzelfde uur van de dag,
+> en deed dat tegen een verdeling waar hardloopevents in zaten. Die hebben andere
+> aantallen, dus het percentiel van een fietsevent klopte niet. Nu filtert
+> `mapZwiftEventToRow` de sport weg bij het bewaren, én negeert
+> `buildPopularityIndex` niet-fietsevents zelf — dat laatste omdat de juistheid van
+> die functie niet van een aanname over de aanroeper mag afhangen. Een test legt
+> het verschil vast: zonder filter zou een rustig fietsevent tussen drukke
+> hardloopevents populair lijken.
+> **Onbekend telt nog steeds niet als nee:** een event zónder sportveld wordt wél
+> bewaard, gelijk aan de regel in `fit.ts`.
+> **Terug te draaien in één regel** als er ooit een hardloopfunctie komt; de
+> kalender staat dan binnen een uur weer vol. Al bewaarde hardloop-rijen verdwijnen
+> vanzelf: de sync ruimt elk uur op wat voorbij is.
+> Verificatie: 1.434 tests geslaagd (2 nieuw, 1 omgekeerd), `npx tsc --noEmit`
+> schoon, ESLint 0 fouten en de 7 bestaande waarschuwingen, productiebuild geslaagd.
+
 > **Zwift-kalender gemeten op productie, en het tempo uit de omschrijving, 2026-09-21 — gebouwd, lokaal getest.**
 > Implementatiecommit `18e2274`. Geen migratie.
 > De knop "Test eventvenster" is op productie gedraaid. Drie dingen die we nu

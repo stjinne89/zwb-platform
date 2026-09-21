@@ -51,10 +51,18 @@ describe("mapZwiftEventToRow", () => {
     expect(mapZwiftEventToRow(ROWS[2])).toBeNull();
   });
 
-  it("bewaart een hardloopevent wél, maar met zijn sport erbij", () => {
-    // Filteren op sport doet de matcher; de spiegel blijft een spiegel, zodat
-    // een latere hardloopfunctie niet om een nieuwe sync vraagt.
-    expect(mapZwiftEventToRow(ROWS[3])?.sport).toBe("RUNNING");
+  it("weigert een hardloopevent", () => {
+    // Op de eerste echte sync bleek ruim 40% van de kalender hardlopen. Die
+    // kunnen nooit voorgesteld worden -- de trainingsmodule plant alleen
+    // op-de-fiets werk -- en ze vervuilden de populariteitsverdeling per uurslot.
+    expect(mapZwiftEventToRow(ROWS[3])).toBeNull();
+  });
+
+  it("bewaart een event zonder sportveld wél", () => {
+    // Onbekend telt nooit als nee; dezelfde regel als in fit.ts.
+    const { sport, ...zonderSport } = ROWS[0];
+    void sport;
+    expect(mapZwiftEventToRow(zonderSport)).not.toBeNull();
   });
 
   it("weigert een rij zonder id", () => {

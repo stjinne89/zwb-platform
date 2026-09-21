@@ -480,6 +480,12 @@ export function buildPopularityIndex(events: ZwiftEventCandidate[]): PopularityI
   const buckets = new Map<number, number[]>();
   for (const event of events) {
     if (event.totalSignups === null || event.totalSignups === undefined) continue;
+    // Alleen fietsevents in de verdeling. De sync bewaart er inmiddels niets
+    // anders meer, maar dat is een eigenschap van de aanroeper en niet van deze
+    // functie: een hardloopevent hoort nooit mee te tellen bij de vraag hoe druk
+    // een fietsevent is voor zijn tijdslot.
+    const sport = (event.sport ?? "").toUpperCase();
+    if (sport && sport !== "CYCLING") continue;
     const hour = new Date(event.startAt).getUTCHours();
     buckets.set(hour, [...(buckets.get(hour) ?? []), event.totalSignups]);
   }

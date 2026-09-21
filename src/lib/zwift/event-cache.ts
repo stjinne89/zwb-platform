@@ -79,11 +79,26 @@ function positiveInt(value: unknown): number | null {
  * testen is — net als mapZwiftEvent in lib/events/zwift-route.ts.
  *
  * `null` bij een rij die we niet willen bewaren: zonder id, naam of starttijd is
- * er niets te matchen, en een besloten event hoort nergens als voorstel op te
- * duiken.
+ * er niets te matchen, een besloten event hoort nergens als voorstel op te duiken,
+ * en hardloopevents horen hier niet.
+ *
+ * Dat laatste was eerst andersom. Het argument was "de spiegel blijft een
+ * spiegel, zodat een latere hardloopfunctie niet om een nieuwe sync vraagt" — een
+ * functie die niemand gevraagd heeft, terwijl de trainingsmodule expliciet alleen
+ * op-de-fiets werk plant (zie defaultTrainingPrompt). Wat het wél kostte, bleek op
+ * de eerste echte sync: ruim 40% van de rijen was hardlopen, en die kunnen nooit
+ * voorgesteld worden. Erger was het stille gevolg: buildPopularityIndex vergelijkt
+ * inschrijvingen per uur van de dag, en deed dat dus tegen een verdeling waar
+ * hardloopevents in zaten. Mocht er ooit een hardloopfunctie komen, dan is dit één
+ * regel terug en staat de kalender binnen een uur weer vol.
  */
 export function mapZwiftEventToRow(row: ZwiftEventApiRow): ZwiftEventRow | null {
   if (row.invisibleToNonParticipants) return null;
+
+  // Ontbrekende sport telt niet als "niet fietsen": onbekend mag hier niet als
+  // nee gelden, net als in fit.ts en zwift-match.ts.
+  const sport = (row.sport ?? "").trim().toUpperCase();
+  if (sport && sport !== "CYCLING") return null;
 
   // Hergebruik van de bestaande mapper: die doet de id-, naam- en datumcontrole
   // en de afstandsterugval op de subgroepen al, en blijft zo de enige plek waar
