@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Zwift-kalender gemeten op productie, en het tempo uit de omschrijving, 2026-09-21 — gebouwd, lokaal getest.**
-> Implementatiecommit `MEET_HASH`. Geen migratie.
+> Implementatiecommit `18e2274`. Geen migratie.
 > De knop "Test eventvenster" is op productie gedraaid. Drie dingen die we nu
 > wéten in plaats van vermoeden, met gevolgen voor wat er beloofd werd:
 > 1. **Zwift negeert `eventStartsAfter`/`eventStartsBefore`.** Alle 200 rijen
