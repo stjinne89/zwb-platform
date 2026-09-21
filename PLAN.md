@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Rondjes voor buiten bij een geplande training, 2026-09-21 — gebouwd, lokaal getest.**
-> Implementatiecommit `OUTDOOR_HASH`, migratie `0173_outdoor_route_suggestions.sql`.
+> Implementatiecommit `793c046`, migratie `0173_outdoor_route_suggestions.sql`.
 > Tweede helft van de wens van de eigenaar bij de Zwift-eventvoorstellen hierboven:
 > stel voor buitenritten een route voor vanaf je thuisadres, meerdere opties,
 > passend bij de geplande training.
