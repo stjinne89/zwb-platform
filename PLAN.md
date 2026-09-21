@@ -1,5 +1,40 @@
 # ZWB Platform — Plan & Status
 
+> **Omnium-beheer zag het eigen conceptseizoen niet, 2026-09-21 — gebouwd, lokaal getest.**
+> Migratie `0174_omnium_manage_read_drafts.sql` (nog niet toegepast). Melding van
+> de eigenaar tijdens de doorloop van PLAN.md: "het Omnium laadt het seizoen
+> niet". Op productie (alleen-lezend gecontroleerd) staat seizoen `2026-27`
+> gewoon, maar met `published_at` leeg en 0 edities. `/beheer/omnium`,
+> `[editie]` en `[editie]/uitslagen` lezen met de RLS-client, en de leespolicies
+> uit `0126`/`0128` geven ook aan ingelogde leden alleen gepubliceerde rijen vrij.
+> De beheerder zag dus "Maak eerst een seizoen aan", en opnieuw aanmaken
+> hergebruikte stil het bestaande seizoen (sinds `e1c3474`) dat daarna net zo
+> onzichtbaar bleef. Plannen of publiceren kon nergens, want die knoppen staan
+> op diezelfde pagina.
+> **Nu:** `0174` voegt per tabel een alleen-lezende policy toe voor
+> `current_user_has_permission('omnium.manage')` op seizoenen, edities,
+> onderdelen, uitslagen en beide standen. Die komt náást de publieke policy.
+> Schrijven blijft service-role-only via de serveracties, en `omnium_kit_codes`
+> krijgt bewust niets. De beheerpagina logt voortaan een mislukte
+> seizoensquery in plaats van hem als "geen seizoenen" te tonen.
+> **Bewust niet gekozen:** de drie pagina's met `createAdminClient()` laten
+> lezen, zoals `prijzen` en `renners` al doen. Dat werkt zonder migratie, maar
+> zet de pagina buiten RLS. De eigenaar koos voor de policy.
+> **Tot `0174` is toegepast** blijft het beheerscherm leeg. Toepassen is dus de
+> eerste stap voor editie 1 (11 oktober).
+> Getest: `tests/unit/omnium-manage-read.test.ts` (4 tests tegen PGlite, met de
+> productiestand van een ongepubliceerd seizoen). Zonder `0174` zakt de
+> beheerderstest, erna slagen alle vier. Daarnaast TypeScript, ESLint en de
+> volledige suite (1.337 tests; `omnium-live.test.ts` laadt zonder `.env.local`
+> niet, dat is onveranderd). **Niet lokaal te verifiëren:** de migratie tegen
+> productie en het scherm met een echte beheerderssessie.
+>
+> **Productiestand bevestigd door de eigenaar (2026-09-21):** `0168`/`0169`
+> (voeding) en `0171`–`0173` (ZRL-teams) zijn toegepast. Bart heeft zijn
+> ZRL-prikkel zelf opgeruimd en het lid met de 31 events heeft opnieuw
+> gepubliceerd. Nog open: de cron van `/api/strava/sync` op 1x per dag zetten
+> (zie `docs/strava-api-resubmission.md`).
+
 > **Branches opgeruimd, losse eindjes naar main, 2026-09-19 — alleen git en een testregel.**
 > Geen migratie van deze ronde zelf. Alle lokale en remote branches en worktrees
 > zijn tegen `origin/main` gelegd. Wat nog niet op main stond is erbij gekomen:
@@ -13,8 +48,8 @@
 > Het dubbele-trainingsprobleem is op 2026-08-25 langs een andere weg opgelost
 > (zie "dubbele trainingen: de race tussen twee publicaties"); die branch is
 > nooit gemerged en zou er nu naast komen te staan. Alle overige branches waren
-> al volledig (of patch-gelijk) op main. **Niet lokaal te verifiëren:** `0172` en
-> `0173` tegen productie; die moeten nog met de hand worden toegepast.
+> al volledig (of patch-gelijk) op main. `0172` en `0173` zijn inmiddels met de
+> hand op productie toegepast (bevestigd door de eigenaar, 2026-09-21).
 
 > **Gebruiksanalyse voor het bestuur, 2026-09-17 — alleen analyse, geen code.**
 > Geen migratie. Alleen-lezende, geaggregeerde tellingen op productie. Kern:
@@ -331,11 +366,11 @@
 > fictieve renners (`npm run zwbgame:preview`). Push naar `main` is op verzoek
 > van de eigenaar toegestaan; bestaande main-functionaliteit is behouden. Details en uitrolvoorwaarden: [ZWBgame](docs/zwbgame.md).
 
-> **Voedingsmodule, 2026-09-17 — gebouwd, migraties nog niet toegepast.**
+> **Voedingsmodule, 2026-09-17 — gebouwd; migraties toegepast (bevestigd 2026-09-21).**
 > Implementatiecommit `0d0abf3`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
 > met porties op maat (NEVO-online 2025/9.0) en een voedingstip op Vandaag.
-> Migraties `0168` en `0169` zijn alleen tegen PGlite getest, niet op de
-> gekoppelde database; tot ze daar staan, blijven de receptenlijsten leeg. Zie
+> Migraties `0168` en `0169` zijn lokaal alleen tegen PGlite getest; volgens de
+> eigenaar staan ze inmiddels op de gekoppelde database. Zie
 > de ronde "Opgeleverd — Voedingsmodule" en `docs/voeding-wielrennen.md`.
 
 > **Coachchat in ZWBeter Worden, 2026-09-17 — opgeleverd.**
@@ -2846,7 +2881,7 @@ krijgt bij een herziening ook geen tweede meer; dat komt in de schema's nu niet
 voor. Een aanvraag na een rit vandaag kan een schema zonder workouts opleveren;
 daar komt geen aparte melding voor.
 
-**Opruimen bij Bart: nog open.** De ZRL-prikkel van 12 september
+**Opruimen bij Bart: gedaan** (Bart zelf, bevestigd 2026-09-21). De ZRL-prikkel van 12 september
 (`5be7b204…`, origin `member`, gepubliceerd als intervals-event `135690915`)
 staat nog als gepland. Het opruimscript op productie is niet gedraaid
 (geweigerd door de permissiecontrole). Besluit eigenaar: Bart verwijdert hem zelf
@@ -4043,7 +4078,7 @@ gewone publicatie repareert zo'n verlopen verwijzing daarmee vanzelf, en de knop
 aanmaakroute zelf blijft gewoon een fout — geen herhaling.
 `tests/unit/intervals-upsert.test.ts` dekt de vier gevallen af.
 
-**Nog te doen.** De 31 events van dat lid zijn nog niet teruggezet; dat vraagt
+**Gedaan (bevestigd 2026-09-21).** Het lid heeft opnieuw gepubliceerd. Oorspronkelijk: de 31 events van dat lid waren nog niet teruggezet; dat vroeg
 één klik op *Opnieuw publiceren* op zijn schema, en dat is niet iets om namens
 hem te doen.
 
@@ -5672,9 +5707,12 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
-- **Voedingsmodule: migraties `0168` en `0169` toepassen** op de gekoppelde
-  database (volgorde aanhouden) en de controlequery's onderaan beide bestanden
-  draaien. Daarna de voedingsschermen met een echt account nalopen. Laat
+- **Omnium: migratie `0174` toepassen** (beheer ziet anders het conceptseizoen
+  niet), daarna seizoen `2026-27` plannen en de productie-inrichting voor
+  editie 1 op 11 oktober. Zie de ronde van 2026-09-21 bovenaan.
+
+- **Voedingsmodule:** migraties `0168` en `0169` zijn toegepast (bevestigd
+  2026-09-21). Nog open: de voedingsschermen met een echt account nalopen. Laat
   artikelteksten en clubrecepten nakijken door een (sport)diëtist, en beslis
   of de privacytekst een nieuwe versie krijgt. Zie de ronde van 2026-09-17.
 

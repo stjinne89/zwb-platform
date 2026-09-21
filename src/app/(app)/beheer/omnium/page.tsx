@@ -31,10 +31,11 @@ export default async function OmniumBeheerPage({
 
   const { seizoen } = await searchParams;
 
-  const { data: seasonRows } = await supabase
+  const { data: seasonRows, error: seasonError } = await supabase
     .from("omnium_seasons")
     .select("id, slug, name, is_current, published_at, rules_md")
     .order("slug", { ascending: false });
+  if (seasonError) console.error("[omnium] seizoenen laden mislukt", { error: seasonError.message });
   const seasons = (seasonRows ?? []) as SeasonRow[];
 
   const active =
