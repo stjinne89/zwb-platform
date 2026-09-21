@@ -45,6 +45,19 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`
 
 ---
 
+> **Zwift-eventlink: "Route niet herkend" bij ZRL 26/27, 2026-09-21 — opgelost.**
+> Implementatiecommit `875c025`. Geen migratie; `zwift-data` van 1.48.6 naar 1.50.0. De eventlink van ZRL
+> 26/27 Race 1 (event 5711302) gaf `routeId` 1247427185. Die route
+> (Montmartre Mixer, Paris) is nieuw en stond niet in 1.48.6, dus
+> `routeFromZwiftId` gaf `null`. Omdat Zwift voor dit event ook geen afstand
+> opgeeft (`distanceInMeters: 0`), bleef er niets over om uit te rekenen. Test
+> toegevoegd in `tests/unit/zwift-route.test.ts`. **Bewust niet gebouwd:** een
+> terugval op Zwifts eigen routegegevens. Dit gebeurt opnieuw zodra Zwift routes
+> toevoegt die de package nog niet kent; de remedie is dan dezelfde upgrade.
+> **Niet lokaal geverifieerd:** de routesync (`/beheer/zwift-routes`) voor deze
+> nieuwe route. Die haalt het profiel via Strava op en moet in productie een keer
+> draaien.
+
 > **Windweging en omwegfactor bijgesteld op echte rondjes, 2026-09-21 — gebouwd, lokaal getest.**
 > Implementatiecommit `5dd7cfd`. Geen migratie.
 > De eerste echte buitenrondjes lieten twee dingen zien die niet klopten. De
