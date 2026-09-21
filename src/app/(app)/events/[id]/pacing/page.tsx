@@ -15,7 +15,7 @@ import {
 } from "@/lib/pacing/zwift-setup";
 import { RideSetupForm, type FrameOption } from "./_components/ride-setup";
 import { PacingEditor } from "./_components/pacing-editor";
-import { RouteShape } from "./_components/route-shape";
+import { RouteShape } from "../_components/route-shape";
 import { GenerateButton } from "./_components/generate-button";
 import {
   AdoptButton,

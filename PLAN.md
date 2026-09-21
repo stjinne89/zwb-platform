@@ -2175,6 +2175,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Zwift-event: aanmeldknop en parcours op de eventpagina
+
+**2026-09-21.** Geen migratie.
+
+**Waarom.** Stijn wilde dat een kalenderevent met een gekoppelde Zwift-eventlink
+leden rechtstreeks naar de aanmeldpagina op Zwift stuurt, en dat het parcours te
+zien is, zoals de kaart bij een buitenrit met een .gpx. Tot nu toe linkte alleen
+de titel naar `external_url`, en die kan ook een andere site zijn. Het parcours
+van een Zwift-route stond alleen in het pacingplan.
+
+**Wat er is gekomen.**
+- Een knop **Aanmelden op Zwift** in de kop van de eventpagina. Die verschijnt
+  zodra `events.zwift_event_id` gevuld is en het event nog niet begonnen is. Hij
+  linkt naar `zwiftEventUrl(zwift_event_id)` en hangt dus niet af van wat er in
+  `external_url` staat.
+- Een blok **Parcours** (`_components/zwift-route-section.tsx`) voor events met
+  een `zwift_route_id` en zonder eigen .gpx. Het blok toont de routenaam, de
+  wereld, het aantal ronden en de afstand, met daaronder de routevorm en een
+  hoogteprofiel over lead-in en alle ronden, met de klimmen als band. De data
+  komt uit `loadPacingRoute`, dezelfde bron als het pacingplan. Alleen voor
+  ingelogde leden, want `zwift_routes` is alleen leesbaar voor `authenticated`.
+- `RouteShape` is verhuisd van `pacing/_components` naar `events/[id]/_components`,
+  omdat de eventpagina en het pacingplan hem nu allebei gebruiken.
+
+**Bewust niet gebouwd.** Geen Leaflet-kaart voor Zwift. Er bestaat geen
+kaartlaag voor Watopia en de andere werelden. Een echte kaart zou daarom de
+route over lege oceaan bij de Salomonseilanden tekenen. Dit is hetzelfde besluit
+als bij het pacingplan (zie `route-shape.tsx`). Heeft een Zwift-event ook een
+eigen .gpx, dan blijft de bestaande GPX-kaart staan en vervalt het Zwift-blok.
+
+**Niet lokaal geverifieerd.** Typecheck en lint zijn schoon. De pagina is niet
+in de browser bekeken met een echt gekoppeld Zwift-event, omdat daarvoor een
+ingelogde sessie tegen de database nodig is. Een route waarvan het profiel nog
+niet is opgehaald (`profiel-ontbreekt`) toont geen parcoursblok.
+
 ### Opgeleverd — Voedingsmodule: kennisbank, recepten op maat en een tip op Vandaag
 
 **2026-09-17, commit `0d0abf3`.** Migraties `0168` (tabellen + RLS) en

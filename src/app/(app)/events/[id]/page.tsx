@@ -14,6 +14,9 @@ import { fetchRouteForecast, fetchWindForecast, type RoutePointForecast } from "
 import { sampleRoute, type SampledRoute } from "@/lib/route-sample";
 import { enduranceWkg } from "@/lib/teams/power-profile";
 import { RouteSection } from "./_components/route-section";
+import { ZwiftRouteSection } from "./_components/zwift-route-section";
+import { zwiftEventUrl } from "@/lib/events/external-scan";
+import { loadPacingRoute, type LoadedRoute } from "@/lib/pacing/route-loader";
 import { isPoiType, type EventPoi } from "./_components/poi";
 import type { EventZone } from "./_components/zone";
 import {
@@ -69,6 +72,10 @@ function amsterdamDateKey(date: Date) {
 
 function isAmsterdamToday(value: string) {
   return amsterdamDateKey(new Date(value)) === amsterdamDateKey(new Date());
+}
+
+function hasStarted(value: string) {
+  return new Date(value).getTime() <= Date.now();
 }
 
 async function getActiveCutoffIso() {
@@ -173,7 +180,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_route_id, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
     )
     .eq("id", id)
     .single();
@@ -501,6 +508,17 @@ export default async function EventDetailPage({
     ),
   );
 
+  // Zwift-route zonder eigen GPX: vorm en profiel uit de routebibliotheek.
+  let zwiftRoute: LoadedRoute | null = null;
+  if (event.zwift_route_id && !event.gpx_path && user) {
+    const result = await loadPacingRoute(supabase, event);
+    if (result.ok) zwiftRoute = result.loaded;
+  }
+  const zwiftSignupUrl =
+    event.zwift_event_id && !hasStarted(event.start_at)
+      ? zwiftEventUrl(event.zwift_event_id)
+      : null;
+
   let gpxUrl: string | null = null;
   // Aparte signed URL met `download`: die zet Content-Disposition op attachment,
   // zodat de browser het bestand opslaat in plaats van toont.
@@ -732,6 +750,17 @@ export default async function EventDetailPage({
           {event.distance_km ? ` · ${event.distance_km} km` : ""}
           {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
         </p>
+        {zwiftSignupUrl && (
+          <a
+            href={zwiftSignupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            Aanmelden op Zwift
+            <ArrowUpRight className="size-3.5" />
+          </a>
+        )}
       </header>
 
       <WhatsAppGroupBlock
@@ -763,6 +792,18 @@ export default async function EventDetailPage({
             </Link>
           </div>
         </section>
+      )}
+
+      {zwiftRoute && (
+        <ZwiftRouteSection
+          routeName={zwiftRoute.routeName}
+          world={zwiftRoute.world}
+          laps={event.laps}
+          totalKm={zwiftRoute.route.totalKm}
+          segments={zwiftRoute.route.segments}
+          accents={zwiftRoute.route.accents}
+          shape={zwiftRoute.shape}
+        />
       )}
 
       {gpxUrl &&
