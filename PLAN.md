@@ -4881,7 +4881,8 @@ bezoeker een concept niet ziet.
 
 **Los opgemerkt:** Next.js 16.2.6 waarschuwt dat de `middleware`-conventie
 verouderd is en `proxy` heet. Raakt `src/middleware.ts` en
-`src/lib/supabase/middleware.ts`, staat los van het Omnium, apart op te pakken.
+`src/lib/supabase/middleware.ts`, staat los van het Omnium. (Op 2026-09-21
+bewust geparkeerd; zie "Bekende open dingen".)
 
 **Ronde 3 (plak-import + klassement) opgeleverd 2026-08-19, gecommit
 2026-09-14.** Eén migratiewijziging: `0128` kreeg alsnog `wins` en
@@ -5729,6 +5730,20 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 - **Omnium: migratie `0174` toepassen** (beheer ziet anders het conceptseizoen
   niet), daarna seizoen `2026-27` plannen en de productie-inrichting voor
   editie 1 op 11 oktober. Zie de ronde van 2026-09-21 bovenaan.
+
+- **Geparkeerd 2026-09-21 (besluit eigenaar): tokengebruik van
+  trainingsgeneraties loggen.** `training_ai_generations.response_json` bewaart
+  alleen het schema, dus de AI-kosten zijn niet uit de database te halen. Bouwen
+  vraagt een migratie (kolom `usage`) plus zo'n zes schrijfpaden in `draft.ts`,
+  de adaptatieroute en de coachchat. Niet nu: de kosten zijn via het
+  OpenAI-dashboard te volgen, en het bestuur overweegt een featurepauze.
+
+- **Geparkeerd 2026-09-21 (besluit eigenaar): `src/middleware.ts` → `proxy.ts`.**
+  Next 16 noemt de naam `middleware` verouderd, maar hij werkt nog. De
+  omzetting is een hernoeming (`npx @next/codemod@canary middleware-to-proxy .`),
+  met één inhoudelijk verschil: `proxy` draait standaard op Node.js in plaats van
+  Edge. Hoe Netlify dat afhandelt, is alleen met een deploy te zien. Oppakken
+  zodra een Next-upgrade de oude naam echt laat vallen.
 
 - **Voedingsmodule:** migraties `0168` en `0169` zijn toegepast (bevestigd
   2026-09-21). Nog open: de voedingsschermen met een echt account nalopen. Laat
