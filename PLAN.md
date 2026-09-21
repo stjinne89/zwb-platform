@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Alleen fietsevents in de Zwift-spiegel, 2026-09-21 — gebouwd, lokaal getest.**
-> Implementatiecommit `SPORT_HASH`. Geen migratie.
+> Implementatiecommit `bbfff81`. Geen migratie.
 > Melding van de eigenaar na de eerste echte sync: er staan hardloopevents in
 > `zwift_events`, is dat de bedoeling? Nee.
 > **De oorspronkelijke keuze was zwak.** In de vorige ronde bewaarde de sync alle
