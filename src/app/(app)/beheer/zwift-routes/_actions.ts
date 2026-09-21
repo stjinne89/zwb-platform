@@ -15,6 +15,7 @@ import {
   type ProfileCheck,
 } from "@/lib/events/zwift-route-streams";
 import { syncZwiftRoutes } from "@/lib/events/zwift-route-sync";
+import { syncBikeParts } from "@/lib/zwift/bike-sync";
 
 /**
  * Routes voor de spike: vlak, een HC-klim, lang en gevarieerd, en rollend. Als
@@ -37,7 +38,7 @@ async function requireRouteAccess() {
   return { userId: access.user.id, admin: createAdminClient() };
 }
 
-function report(kind: "spike" | "sync", lines: string[]): never {
+function report(kind: "spike" | "sync" | "bikes", lines: string[]): never {
   const params = new URLSearchParams();
   params.set(kind, "done");
   params.set("message", lines.join("\n"));
@@ -184,4 +185,32 @@ export async function syncRouteLibrary(formData: FormData) {
   lines.push(...result.notes);
 
   report("sync", lines);
+}
+
+/**
+ * Haalt frames en wielen uit de testsheet van ZwiftInsider voor de fietskeuze in
+ * het pacingplan (migratie 0177). Eén klik vervangt de hele lijst.
+ */
+export async function syncBikeList() {
+  const access = await requireRouteAccess();
+  if (!access) return;
+
+  let result;
+  try {
+    result = await syncBikeParts(access.admin);
+  } catch (err) {
+    report("bikes", [
+      `Fietsen ophalen mislukt: ${err instanceof Error ? err.message : "onbekende fout"}`,
+    ]);
+  }
+
+  revalidatePath("/beheer/zwift-routes");
+  const base = result.catalog.baseline;
+  report("bikes", [
+    `${result.frames} frame-varianten en ${result.wheels} wielsets opgehaald.`,
+    ...(base
+      ? [`Referentiefiets in de sheet: CdA ${base.cda}, fiets ${base.bikeKg} kg (in zwift-setup.ts: zie ZWIFT_BASE_CDA).`]
+      : []),
+    ...result.catalog.skipped,
+  ]);
 }

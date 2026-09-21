@@ -16,11 +16,13 @@
 import type { CpModel, CurvePoint } from "@/lib/pacing/cp";
 import type { DurabilityModel } from "@/lib/pacing/durability";
 import {
+  isFixedPiece,
   rebalancePlan,
   type PlanEvaluation,
   type PlanSegment,
 } from "@/lib/pacing/plan";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
+import type { RidePhysics } from "@/lib/pacing/zwift-setup";
 
 export type TargetTime = {
   seconds: number;
@@ -41,7 +43,8 @@ const MIN_FACTOR = 0.4;
 const MAX_FACTOR = 2.5;
 const MAX_STEPS = 30;
 
-const isFixed = (segment: PlanSegment) => segment.kind === "neutral" || segment.kind === "descent";
+// Start en sprint van een Zwift-wedstrijd ook niet: die rijdt iedereen vol.
+const isFixed = isFixedPiece;
 
 function scaled(plan: PlanSegment[], factor: number): PlanSegment[] {
   return plan.map((segment) =>
@@ -56,11 +59,16 @@ export function fitPlanToTime(
   route: PacingRoute,
   model: CpModel,
   targetSeconds: number,
-  options: { curve?: CurvePoint[] | null; durability?: DurabilityModel | null } = {},
+  options: {
+    curve?: CurvePoint[] | null;
+    durability?: DurabilityModel | null;
+    ride?: RidePhysics | null;
+  } = {},
 ): TargetTimeResult {
   const run = (factor: number) => {
     const result = rebalancePlan(scaled(plan, factor), route, model, options.curve, {
       durability: options.durability ?? null,
+      ride: options.ride ?? null,
     });
     return { factor, plan: result.plan, evaluation: result.evaluation };
   };

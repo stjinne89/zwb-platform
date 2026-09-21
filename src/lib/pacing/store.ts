@@ -16,6 +16,7 @@ import { adoptGeneratedPlan } from "@/lib/pacing/adopt";
 import { buildBaselinePlan } from "@/lib/pacing/baseline";
 import { evaluatePlan, type PlanEvaluation, type PlanSegment } from "@/lib/pacing/plan";
 import type { RiderContext } from "@/lib/pacing/draft";
+import type { RideContext } from "@/lib/pacing/ride-context";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
 import type { TargetTime } from "@/lib/pacing/target-time";
 import {
@@ -184,6 +185,7 @@ export async function ensureBaselinePlan(
     route: PacingRoute;
     rider: RiderContext;
     routeSyncedAt: string | null;
+    ride?: RideContext | null;
   },
 ): Promise<StoredPlan> {
   const existing = await readPlan(admin, input.eventId, input.profileId);
@@ -195,6 +197,7 @@ export async function ensureBaselinePlan(
     riderType: input.rider.riderType,
     curve: input.rider.curve,
     durability: input.rider.durability,
+    ride: input.ride?.physics ?? null,
   });
 
   await savePlan(admin, {
@@ -204,7 +207,7 @@ export async function ensureBaselinePlan(
     segments: baseline.plan,
     evaluation: baseline.evaluation,
     route: input.route,
-    assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    assumptions: assumptionsFor(input.rider, input.routeSyncedAt, input.ride),
     notes: [...baseline.adjustments, ...baseline.clampNotes.map(clampNoteText)],
   });
 
@@ -214,6 +217,7 @@ export async function ensureBaselinePlan(
 export function assumptionsFor(
   rider: RiderContext,
   routeSyncedAt: string | null,
+  ride: RideContext | null = null,
 ): PlanAssumptions {
   return buildAssumptions({
     cpWatts: rider.model.cpWatts,
@@ -222,6 +226,7 @@ export function assumptionsFor(
     weightKg: rider.model.weightKg,
     cpSource: rider.model.source,
     routeSyncedAt,
+    ...(ride ? { setup: ride.setup, rideKey: ride.key } : {}),
   });
 }
 
@@ -248,9 +253,11 @@ export async function recomputePlan(
     route: PacingRoute;
     rider: RiderContext;
     routeSyncedAt: string | null;
+    ride?: RideContext | null;
   },
 ) {
   const { rebalancePlan } = await import("@/lib/pacing/plan");
+  const ride = input.ride?.physics ?? null;
 
   // Zijn de klimmen van de route veranderd, dan past de oude indeling er niet
   // meer op. Dan de indeling van de huidige route, met de eigen doelen van het
@@ -270,17 +277,18 @@ export async function recomputePlan(
           riderType: input.rider.riderType,
           curve: input.rider.curve,
           durability: input.rider.durability,
+          ride,
         }).plan,
       )
     : input.plan.segments;
 
   const { imposeFixedPieces } = await import("@/lib/pacing/plan");
   const rebalanced = rebalancePlan(
-    imposeFixedPieces(startSegments, input.route, input.rider.model),
+    imposeFixedPieces(startSegments, input.route, input.rider.model, ride),
     input.route,
     input.rider.model,
     input.rider.curve,
-    { durability: input.rider.durability },
+    { durability: input.rider.durability, ride },
   );
   const origin = recomputedOrigin(input.plan, layoutChanged);
 
@@ -291,7 +299,7 @@ export async function recomputePlan(
     segments: rebalanced.plan,
     evaluation: rebalanced.evaluation,
     route: input.route,
-    assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    assumptions: assumptionsFor(input.rider, input.routeSyncedAt, input.ride),
     // Het doel blijft staan; de pagina toont hoe ver de nieuwe tijd ervan af ligt.
     targetTime: input.plan.summary?.targetTime ?? null,
     notes: [
@@ -372,10 +380,12 @@ export async function saveEditedPlan(
     rider: RiderContext;
     routeSyncedAt: string | null;
     notes: string | null;
+    ride?: RideContext | null;
   },
 ) {
   const evaluation = evaluatePlan(input.segments, input.route, input.rider.model, {
     durability: input.rider.durability,
+    ride: input.ride?.physics ?? null,
   });
 
   await savePlan(admin, {
@@ -385,7 +395,7 @@ export async function saveEditedPlan(
     segments: input.segments,
     evaluation,
     route: input.route,
-    assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    assumptions: assumptionsFor(input.rider, input.routeSyncedAt, input.ride),
     aiGenerationId: input.plan.ai_generation_id,
     strategy: input.plan.summary?.strategy ?? null,
     risks: input.plan.summary?.risks ?? [],
@@ -428,17 +438,19 @@ export async function fitStoredPlanToTime(
     rider: RiderContext;
     routeSyncedAt: string | null;
     targetSeconds: number;
+    ride?: RideContext | null;
   },
 ) {
   const { imposeFixedPieces } = await import("@/lib/pacing/plan");
   const { fitPlanToTime } = await import("@/lib/pacing/target-time");
+  const ride = input.ride?.physics ?? null;
 
   const fitted = fitPlanToTime(
-    imposeFixedPieces(input.plan.segments, input.route, input.rider.model),
+    imposeFixedPieces(input.plan.segments, input.route, input.rider.model, ride),
     input.route,
     input.rider.model,
     input.targetSeconds,
-    { curve: input.rider.curve, durability: input.rider.durability },
+    { curve: input.rider.curve, durability: input.rider.durability, ride },
   );
   const targetTime = {
     seconds: fitted.seconds,
@@ -453,7 +465,7 @@ export async function fitStoredPlanToTime(
     segments: fitted.plan,
     evaluation: fitted.evaluation,
     route: input.route,
-    assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    assumptions: assumptionsFor(input.rider, input.routeSyncedAt, input.ride),
     aiGenerationId: input.plan.ai_generation_id,
     strategy: input.plan.summary?.strategy ?? null,
     risks: input.plan.summary?.risks ?? [],
@@ -557,6 +569,7 @@ export async function pollGeneration(
     route: PacingRoute;
     rider: RiderContext;
     routeSyncedAt: string | null;
+    ride?: RideContext | null;
   },
 ): Promise<PollResult> {
   const { data } = await admin
@@ -603,9 +616,11 @@ export async function pollGeneration(
     return { status: "failed", error: result.error };
   }
 
+  const ride = input.ride?.physics ?? null;
   const adopted = adoptGeneratedPlan(result.plan, input.route, input.rider.model, {
     curve: input.rider.curve,
     durability: input.rider.durability,
+    ride,
   });
 
   // Vroeg het lid om een eindtijd, dan zetten wij de verdeling van de AI op die
@@ -616,6 +631,7 @@ export async function pollGeneration(
     ? fitPlanToTime(adopted.plan, input.route, input.rider.model, targetSeconds, {
         curve: input.rider.curve,
         durability: input.rider.durability,
+        ride,
       })
     : null;
   const aiDeviation = targetSeconds
@@ -629,7 +645,7 @@ export async function pollGeneration(
     segments: fitted?.plan ?? adopted.plan,
     evaluation: fitted?.evaluation ?? adopted.evaluation,
     route: input.route,
-    assumptions: assumptionsFor(input.rider, input.routeSyncedAt),
+    assumptions: assumptionsFor(input.rider, input.routeSyncedAt, input.ride),
     aiGenerationId: input.generationId,
     strategy: adopted.strategy,
     risks: adopted.risks,

@@ -10,7 +10,21 @@ import {
   eventRouteTotals,
   fetchZwiftPublicEvent,
   parseZwiftEventUrl,
+  storeZwiftEventRules,
 } from "@/lib/events/zwift-route";
+
+/**
+ * De spelregels van het gekoppelde Zwift-event voor het pacingplan (drafting,
+ * powerups, tijdritfiets). Nooit blokkerend: het event is al opgeslagen.
+ */
+async function storeRulesQuietly(eventId: string, zwiftEventId: number | null | undefined) {
+  if (!zwiftEventId) return;
+  try {
+    await storeZwiftEventRules(createAdminClient(), eventId, zwiftEventId);
+  } catch {
+    // Het pacingplan haalt ze zelf op zodra een lid het opent.
+  }
+}
 
 type EventInput = {
   title: string;
@@ -94,6 +108,8 @@ export async function createEvent(input: EventInput) {
 
   if (error) return { ok: false as const, error: error.message };
 
+  await storeRulesQuietly(data.id, input.zwift_event_id);
+
   // Best-effort push-notificatie naar opt-in leden. Faalt stil als de
   // VAPID-keys nog niet zijn ingesteld op de server.
   try {
@@ -174,6 +190,8 @@ export async function updateEvent(id: string, input: EventInput) {
 
   const { error } = await supabase.from("events").update(update).eq("id", id);
   if (error) return { ok: false as const, error: error.message };
+
+  await storeRulesQuietly(id, input.zwift_event_id);
 
   revalidatePath(`/events/${id}`);
   revalidatePath("/kalender");

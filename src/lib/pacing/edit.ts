@@ -10,8 +10,14 @@
 
 import { effortFor } from "@/lib/pacing/baseline";
 import type { CpModel } from "@/lib/pacing/cp";
-import { imposeFixedPieces, type PlanSegment } from "@/lib/pacing/plan";
+import { imposeFixedPieces, isFixedPiece, type PlanSegment } from "@/lib/pacing/plan";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
+import {
+  POWERUP_IDS,
+  type PowerupId,
+  type RidePhysics,
+  type RidePosition,
+} from "@/lib/pacing/zwift-setup";
 
 /** Kleiner dan dit is geen stuk om een eigen doel op te leggen. */
 export const MIN_EDIT_PIECE_KM = 0.5;
@@ -24,7 +30,10 @@ const MAX_LABEL = 60;
 
 const snap = (km: number) => Math.round(km / GRID_KM) * GRID_KM;
 const round2 = (value: number) => Math.round(value * 100) / 100;
-const isFixed = (segment: PlanSegment) => segment.kind === "neutral" || segment.kind === "descent";
+const isFixed = isFixedPiece;
+const FIXED_KINDS = ["neutral", "descent", "start", "sprint"] as const;
+/** Vaste stukken waarop de server het doel van het lid overneemt. */
+const OWN_TARGET_KINDS = ["descent", "start", "sprint"] as const;
 
 /** Waar een stuk geknipt mag worden: op het raster, minstens 0,5 km van de randen. */
 export function splitBounds(segment: PlanSegment): { minKm: number; maxKm: number } | null {
@@ -89,18 +98,22 @@ export type EditedSegmentInput = {
   targetWkg: number;
   label: string;
   kind?: string | null;
+  position?: string | null;
+  powerup?: string | null;
 };
 
 /**
  * Van formulierinvoer naar een plan dat de server bewaart, of een foutmelding.
- * Vaste stukken komen uit de route, niet uit de invoer; alleen het doel op een
- * afdaling neemt de server over.
+ * Vaste stukken komen uit de route en het format, niet uit de invoer; alleen het
+ * doel op een afdaling, start of sprint neemt de server over. Positie en powerup
+ * gelden alleen bij Zwift, en een powerup alleen als het event hem uitdeelt.
  */
 export function validateEditedPlan(
   input: EditedSegmentInput[],
   route: PacingRoute,
   model: CpModel,
   previous: PlanSegment[],
+  ride: RidePhysics | null = null,
 ): { ok: true; segments: PlanSegment[] } | { ok: false; error: string } {
   if (!Array.isArray(input) || input.length === 0) {
     return { ok: false, error: "Het plan heeft geen stukken." };
@@ -115,7 +128,15 @@ export function validateEditedPlan(
     endKm: round2(snap(Number(item.endKm))),
     targetWkg: Number(item.targetWkg),
     label: String(item.label ?? "").trim().slice(0, MAX_LABEL) || "Stuk",
-    kind: item.kind === "descent" ? ("descent" as const) : item.kind === "neutral" ? ("neutral" as const) : undefined,
+    kind: FIXED_KINDS.find((kind) => kind === item.kind),
+    position:
+      ride?.format === "race" && (item.position === "bunch" || item.position === "alone")
+        ? (item.position as RidePosition)
+        : undefined,
+    powerup:
+      ride && POWERUP_IDS.includes(item.powerup as PowerupId) && ride.powerups.includes(item.powerup as PowerupId)
+        ? (item.powerup as PowerupId)
+        : undefined,
   }));
 
   if (pieces.some((piece) => ![piece.startKm, piece.endKm, piece.targetWkg].every(Number.isFinite))) {
@@ -132,7 +153,14 @@ export function validateEditedPlan(
     if (i > 0 && Math.abs(piece.startKm - pieces[i - 1].endKm) > 1e-6) {
       return { ok: false, error: "De stukken sluiten niet op elkaar aan." };
     }
-    if (piece.kind === undefined && piece.endKm - piece.startKm < MIN_EDIT_PIECE_KM - 1e-6) {
+    // Een kort stuk naast een vast stuk (start, sprint, afdaling) is een rest die
+    // het platform zelf liet staan; dat mag, anders valt zo'n plan niet op te slaan.
+    const besideFixed = Boolean(pieces[i - 1]?.kind || pieces[i + 1]?.kind);
+    if (
+      piece.kind === undefined &&
+      !besideFixed &&
+      piece.endKm - piece.startKm < MIN_EDIT_PIECE_KM - 1e-6
+    ) {
       return { ok: false, error: `Een stuk moet minstens ${MIN_EDIT_PIECE_KM} km zijn.` };
     }
   }
@@ -160,6 +188,7 @@ export function validateEditedPlan(
 
   const segments: PlanSegment[] = pieces.map((piece) => {
     const targetWkg = round2(Math.min(12, Math.max(piece.kind === "descent" ? 0 : 0.5, piece.targetWkg)));
+    const ownTarget = OWN_TARGET_KINDS.find((kind) => kind === piece.kind);
     return {
       startKm: piece.startKm,
       endKm: piece.endKm,
@@ -168,9 +197,11 @@ export function validateEditedPlan(
       effort: effortFor(targetWkg, cpWkg),
       rationale: rationaleFor(piece.startKm, piece.endKm),
       accentId: piece.kind ? null : accentFor(piece.startKm, piece.endKm),
-      ...(piece.kind === "descent" ? { kind: "descent" as const } : {}),
+      ...(ownTarget ? { kind: ownTarget } : {}),
+      ...(piece.position ? { position: piece.position } : {}),
+      ...(piece.powerup ? { powerup: piece.powerup } : {}),
     };
   });
 
-  return { ok: true, segments: imposeFixedPieces(segments, route, model) };
+  return { ok: true, segments: imposeFixedPieces(segments, route, model, ride) };
 }

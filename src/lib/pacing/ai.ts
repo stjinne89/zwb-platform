@@ -28,6 +28,10 @@ export type GeneratedPacingPlan = {
     rationale: string;
     /** Verwijst naar een accent uit de route, of leeg voor een tussenstuk. */
     accentId: string;
+    /** Zwift-wedstrijd: "bunch" of "alone"; leeg daarbuiten. Ontbreekt in antwoorden van vóór 21 september 2026. */
+    position?: "bunch" | "alone" | "";
+    /** Zwift: powerup aan het begin van dit stuk; leeg voor geen. */
+    powerup?: "feather" | "aero" | "draft" | "steamroller" | "anvil" | "";
   }>;
 };
 
@@ -42,12 +46,27 @@ export type PacingAiInput = {
     distanceKm: number;
     elevationM: number;
     laps: number | null;
-    /**
-     * Zwift-regels die het karakter bepalen (doubledraft, ttbikes). Puur ter
-     * informatie: het rekenmodel doet niets met slipstream.
-     */
+    /** Zwift-tags van het event, ter informatie. */
     tags?: string[];
   };
+  /**
+   * Alleen bij een Zwift-event: hoe het lid rijdt. Het platform rekent met
+   * slipstream, fiets, wegdek en powerups; het model kiest per stuk positie en
+   * powerup.
+   */
+  zwift?: {
+    format: "race" | "tt" | "ttt";
+    drafting: boolean;
+    bike: { frame: string; wheels: string | null; kind: string; stage: number };
+    /** Powerups die dit event uitdeelt; leeg = geen. */
+    powerups: string[];
+    /** Stukken zonder asfalt; een racefiets is daar traag. */
+    surfaceSections: Array<{ startKm: number; endKm: number; surface: string }>;
+    /** Start en sprint die het platform in een wedstrijd zelf invult. */
+    fixedPieces: Array<{ kind: "start" | "sprint"; startKm: number; endKm: number }>;
+    /** Wedstrijd: tot de sprint minstens dit deel van W′ over. */
+    reservePct: number | null;
+  } | null;
   /**
    * Het parcours zoals het lid het gaat tegenkomen, met absolute kilometrering.
    * `id` is waarmee het model naar een accent verwijst.
@@ -156,6 +175,8 @@ const planSchema = {
           "effort",
           "rationale",
           "accentId",
+          "position",
+          "powerup",
         ],
         properties: {
           startKm: { type: "number" },
@@ -165,6 +186,11 @@ const planSchema = {
           effort: { type: "string", enum: [...EFFORTS] },
           rationale: { type: "string" },
           accentId: { type: "string" },
+          position: { type: "string", enum: ["bunch", "alone", ""] },
+          powerup: {
+            type: "string",
+            enum: ["feather", "aero", "draft", "steamroller", "anvil", ""],
+          },
         },
       },
     },

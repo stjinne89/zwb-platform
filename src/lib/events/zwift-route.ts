@@ -52,6 +52,14 @@ export type ZwiftEventInfo = {
   externalUrl: string;
   routeId: number | null;
   route: ZwiftRouteInfo | null;
+  /** RACE, TIME_TRIAL, TEAM_TIME_TRIAL, GROUP_RIDE, … */
+  eventType: string | null;
+  /** Spelregels van het event en alle subgroepen samen. */
+  rules: string[];
+  /** Tags van het event en alle subgroepen samen, zonder tijdstempels. */
+  tags: string[];
+  /** Opgelegd frame (zwift-data-id), of null. */
+  bikeHash: number | null;
 };
 
 // --- Pure logica ---------------------------------------------------------
@@ -159,6 +167,33 @@ export function mapZwiftEvent(row: ZwiftEventApiRow): ZwiftEventInfo | null {
     externalUrl: zwiftEventUrl(eventId),
     routeId,
     route: routeId === null ? null : routeFromZwiftId(routeId),
+    ...zwiftEventRules(row),
+  };
+}
+
+/**
+ * De spelregels van een event voor het pacingplan. Zwift zet ze op het event én
+ * per subgroep, en niet altijd op beide gelijk (gemeten: NO_TT_BIKES staat
+ * vaker op de subgroep); daarom de vereniging. `timestamp=` is een wijzigings-
+ * stempel en geen regel.
+ */
+export function zwiftEventRules(
+  row: ZwiftEventApiRow,
+): Pick<ZwiftEventInfo, "eventType" | "rules" | "tags" | "bikeHash"> {
+  const groups = row.eventSubgroups ?? [];
+  const unique = (values: Array<string | null | undefined>) => [
+    ...new Set(values.map((value) => (value ?? "").trim()).filter(Boolean)),
+  ];
+  const bike = [row.bikeHash, ...groups.map((group) => group.bikeHash)]
+    .map((value) => (value == null ? NaN : Number(value)))
+    .find((value) => Number.isSafeInteger(value) && value > 0);
+  return {
+    eventType: (row.eventType ?? row.type ?? "").trim() || null,
+    rules: unique([...(row.rulesSet ?? []), ...groups.flatMap((group) => group.rulesSet ?? [])]),
+    tags: unique([...(row.tags ?? []), ...groups.flatMap((group) => group.tags ?? [])]).filter(
+      (tag) => !/^timestamp=/i.test(tag),
+    ),
+    bikeHash: bike ?? null,
   };
 }
 
@@ -192,6 +227,35 @@ export function eventRouteTotals(info: ZwiftEventInfo): {
 }
 
 // --- Netwerk -------------------------------------------------------------
+
+type EventsClient = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (table: string) => any;
+};
+
+/**
+ * Haalt de spelregels van een gekoppeld Zwift-event op en zet ze op het event
+ * (migratie 0176). Best effort: zonder regels rekent het pacingplan met een
+ * gewone wedstrijd, dus een fout hier houdt niets tegen.
+ */
+export async function storeZwiftEventRules(
+  admin: EventsClient,
+  eventId: string,
+  zwiftEventId: number,
+): Promise<boolean> {
+  const result = await fetchZwiftPublicEvent(zwiftEventId);
+  if (!result.ok) return false;
+  const { error } = await admin
+    .from("events")
+    .update({
+      zwift_event_type: result.event.eventType,
+      zwift_rules: result.event.rules,
+      zwift_tags: result.event.tags,
+      zwift_bike_hash: result.event.bikeHash,
+    })
+    .eq("id", eventId);
+  return !error;
+}
 
 export type ZwiftEventResult =
   | { ok: true; event: ZwiftEventInfo }

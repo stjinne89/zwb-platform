@@ -25,6 +25,9 @@ import { scoreSimilarRides, type RideCandidate } from "@/lib/pacing/similarity";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
 import type { PacingAiInput } from "@/lib/pacing/ai";
 import type { PacingEventRow } from "@/lib/pacing/route-loader";
+import { RACE_RESERVE_FRACTION, raceFixedRanges } from "@/lib/pacing/plan";
+import type { RideContext } from "@/lib/pacing/ride-context";
+import type { EventConstraints } from "@/lib/pacing/zwift-setup";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -237,6 +240,9 @@ export async function buildPacingContext(
     goal?: string | null;
     /** Gewenste eindtijd in seconden; het basisvoorstel wordt daar dan op gezet. */
     targetSeconds?: number | null;
+    /** Zwift: de opzet van het lid en de regels van het event. */
+    ride?: RideContext | null;
+    constraints?: EventConstraints | null;
   },
 ): Promise<PacingContext> {
   const { route, event } = options;
@@ -253,6 +259,7 @@ export async function buildPacingContext(
     riderType: rider.riderType,
     curve: rider.curve,
     durability: rider.durability,
+    ride: options.ride?.physics ?? null,
   });
 
   // Met een doeltijd krijgt het model een basisvoorstel dat die tijd al haalt
@@ -261,6 +268,7 @@ export async function buildPacingContext(
     ? fitPlanToTime(built.plan, route, rider.model, options.targetSeconds, {
         curve: rider.curve,
         durability: rider.durability,
+        ride: options.ride?.physics ?? null,
       })
     : null;
   const baseline = fitted
@@ -352,6 +360,31 @@ export async function buildPacingContext(
           : null,
       why: scored.reasons.join(", "),
     })),
+    zwift: options.ride
+      ? {
+          format: options.ride.physics.format,
+          drafting: options.constraints?.drafting ?? true,
+          bike: {
+            frame: options.ride.setup.frame ?? "Zwift Carbon",
+            wheels: options.ride.setup.wheels,
+            kind: options.ride.physics.kind,
+            stage: options.ride.setup.stage,
+          },
+          powerups: options.ride.physics.powerups,
+          surfaceSections: (route.surfaceSections ?? []).map((section) => ({
+            startKm: round1(section.startKm),
+            endKm: round1(section.endKm),
+            surface: section.surface,
+          })),
+          fixedPieces: raceFixedRanges(route, options.ride.physics).map((range) => ({
+            kind: range.kind,
+            startKm: round1(range.startKm),
+            endKm: round1(range.endKm),
+          })),
+          reservePct:
+            options.ride.physics.format === "race" ? Math.round(RACE_RESERVE_FRACTION * 100) : null,
+        }
+      : null,
     goal: options.goal ?? null,
     targetTime: fitted
       ? { seconds: fitted.seconds, reachable: fitted.reachable, fastestSeconds: fitted.fastestSeconds }

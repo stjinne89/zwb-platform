@@ -14,6 +14,13 @@ export type RouteSegment = {
   gradient: number;
   /** Beschikbaar tredvermogen op dit segment (de client vult dit per segment). */
   watts: number;
+  /**
+   * Afwijkende fysica op dit ene segment: slipstream, een ander wegdek of een
+   * powerup in Zwift. Ontbreekt het, dan gelden de waarden van de hele rit.
+   */
+  cda?: number;
+  crr?: number;
+  massKg?: number;
 };
 
 export type SegmentPace = {
@@ -140,7 +147,16 @@ export function estimateRide(input: RideEstimateInput): RideEstimate {
   const cumulativeSecondsAtSegmentEnd: number[] = [];
   let cum = 0;
   for (const seg of input.segments) {
-    const speedMs = solveSpeedMs(seg.watts, seg.gradient, opts);
+    const segmentOpts =
+      seg.cda === undefined && seg.crr === undefined && seg.massKg === undefined
+        ? opts
+        : {
+            ...opts,
+            cda: seg.cda ?? opts.cda,
+            crr: seg.crr ?? opts.crr,
+            massKg: seg.massKg ?? opts.massKg,
+          };
+    const speedMs = solveSpeedMs(seg.watts, seg.gradient, segmentOpts);
     const durationS = speedMs > 0 ? seg.distanceM / speedMs : 0;
     cum += durationS;
     segments.push({

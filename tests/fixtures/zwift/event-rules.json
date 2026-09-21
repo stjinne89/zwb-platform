@@ -1,0 +1,361 @@
+[
+  {
+    "id": 5694522,
+    "name": "Stage 2 - ZRacing - DURA-ACE - Ocean Lava Cliffside Loop",
+    "eventStart": "2026-09-21T11:10:00.000+0000",
+    "distanceInMeters": 0,
+    "durationInSeconds": 0,
+    "laps": 1,
+    "routeId": 1386460176,
+    "sport": "CYCLING",
+    "eventType": "RACE",
+    "rulesSet": [
+      "ENFORCE_NO_ZPOWER",
+      "NO_TT_BIKES",
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "ranked",
+      "showplacements",
+      "zwiftracing",
+      "zracing",
+      "zwiftracingsep2026",
+      "zwiftracingsep2026stage2",
+      "zwiftracingsep2026range2",
+      "after_party_duration=600",
+      "powerup_percent=\"0,50,8,50\"",
+      "fwheel_override=2489344011",
+      "rwheel_override=3673160473"
+    ],
+    "bikeHash": null,
+    "eventSubgroups": [
+      {
+        "id": 7328093,
+        "subgroupLabel": "A",
+        "rulesSet": [
+          "ENFORCE_NO_ZPOWER",
+          "NO_TT_BIKES",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "ranked",
+          "showplacements",
+          "zwiftracing",
+          "zracing",
+          "zwiftracingsep2026",
+          "zwiftracingsep2026stage2",
+          "zwiftracingsep2026range2",
+          "after_party_duration=600",
+          "powerup_percent=\"0,50,8,50\"",
+          "fwheel_override=2489344011",
+          "rwheel_override=3673160473"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 0,
+        "laps": 1
+      },
+      {
+        "id": 7328094,
+        "subgroupLabel": "B",
+        "rulesSet": [
+          "ENFORCE_NO_ZPOWER",
+          "NO_TT_BIKES",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "ranked",
+          "showplacements",
+          "zwiftracing",
+          "zracing",
+          "zwiftracingsep2026",
+          "zwiftracingsep2026stage2",
+          "zwiftracingsep2026range2",
+          "after_party_duration=600",
+          "powerup_percent=\"0,50,8,50\"",
+          "fwheel_override=2489344011",
+          "rwheel_override=3673160473"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 0,
+        "laps": 1
+      }
+    ]
+  },
+  {
+    "id": 5694188,
+    "name": "Stage 2 - Zwift Epic - DURA-ACE - Makuri Pretzel",
+    "eventStart": "2026-09-21T10:30:00.000+0000",
+    "distanceInMeters": 0,
+    "durationInSeconds": 0,
+    "laps": 1,
+    "routeId": 2927651296,
+    "sport": "CYCLING",
+    "eventType": "RACE",
+    "rulesSet": [
+      "NO_POWERUPS",
+      "ENFORCE_NO_ZPOWER",
+      "NO_TT_BIKES",
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "ranked",
+      "showplacements",
+      "zwiftepic",
+      "zwiftepicsep2026",
+      "zwiftracing",
+      "zracing",
+      "zwiftracingsep2026",
+      "zwiftracingsep2026stage2",
+      "after_party_duration=600",
+      "fwheel_override=2489344011",
+      "rwheel_override=3673160473"
+    ],
+    "bikeHash": null,
+    "eventSubgroups": [
+      {
+        "id": 7326470,
+        "subgroupLabel": "A",
+        "rulesSet": [
+          "NO_POWERUPS",
+          "ENFORCE_NO_ZPOWER",
+          "NO_TT_BIKES",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "ranked",
+          "showplacements",
+          "zwiftepic",
+          "zwiftepicsep2026",
+          "zwiftracing",
+          "zracing",
+          "zwiftracingsep2026",
+          "zwiftracingsep2026stage2",
+          "after_party_duration=600",
+          "fwheel_override=2489344011",
+          "rwheel_override=3673160473"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 0,
+        "laps": 1
+      },
+      {
+        "id": 7326471,
+        "subgroupLabel": "B",
+        "rulesSet": [
+          "NO_POWERUPS",
+          "ENFORCE_NO_ZPOWER",
+          "NO_TT_BIKES",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "ranked",
+          "showplacements",
+          "zwiftepic",
+          "zwiftepicsep2026",
+          "zwiftracing",
+          "zracing",
+          "zwiftracingsep2026",
+          "zwiftracingsep2026stage2",
+          "after_party_duration=600",
+          "fwheel_override=2489344011",
+          "rwheel_override=3673160473"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 0,
+        "laps": 1
+      }
+    ]
+  },
+  {
+    "id": 5693957,
+    "name": "Stage 2 - Zwift TT - DURA-ACE - Neokyo All-Nighter",
+    "eventStart": "2026-09-21T11:20:00.000+0000",
+    "distanceInMeters": 0,
+    "durationInSeconds": 0,
+    "laps": 1,
+    "routeId": 1453570384,
+    "sport": "CYCLING",
+    "eventType": "TIME_TRIAL",
+    "rulesSet": [
+      "NO_POWERUPS",
+      "ENFORCE_NO_ZPOWER",
+      "SHOW_RACE_RESULTS",
+      "NO_DRAFTING"
+    ],
+    "tags": [
+      "showplacements",
+      "zwifttt",
+      "zwiftttsep2026",
+      "zwiftracing",
+      "zracing",
+      "zwiftracingsep2026",
+      "zwiftracingsep2026stage2",
+      "after_party_duration=600",
+      "fwheel_override=1160815788",
+      "rwheel_override=827108797"
+    ],
+    "bikeHash": null,
+    "eventSubgroups": [
+      {
+        "id": 7325413,
+        "subgroupLabel": "A",
+        "rulesSet": [
+          "NO_POWERUPS",
+          "ENFORCE_NO_ZPOWER",
+          "SHOW_RACE_RESULTS",
+          "NO_DRAFTING"
+        ],
+        "tags": [
+          "showplacements",
+          "zwifttt",
+          "zwiftttsep2026",
+          "zwiftracing",
+          "zracing",
+          "zwiftracingsep2026",
+          "zwiftracingsep2026stage2",
+          "after_party_duration=600",
+          "fwheel_override=1160815788",
+          "rwheel_override=827108797"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 0,
+        "laps": 1
+      },
+      {
+        "id": 7325414,
+        "subgroupLabel": "B",
+        "rulesSet": [
+          "NO_POWERUPS",
+          "ENFORCE_NO_ZPOWER",
+          "SHOW_RACE_RESULTS",
+          "NO_DRAFTING"
+        ],
+        "tags": [
+          "showplacements",
+          "zwifttt",
+          "zwiftttsep2026",
+          "zwiftracing",
+          "zracing",
+          "zwiftracingsep2026",
+          "zwiftracingsep2026stage2",
+          "after_party_duration=600",
+          "fwheel_override=1160815788",
+          "rwheel_override=827108797"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 0,
+        "laps": 1
+      }
+    ]
+  },
+  {
+    "id": 5705929,
+    "name": "ZWC Hill Climb Battle",
+    "eventStart": "2026-09-21T10:40:00.000+0000",
+    "distanceInMeters": 12100,
+    "durationInSeconds": 0,
+    "laps": 0,
+    "routeId": 3219074012,
+    "sport": "CYCLING",
+    "eventType": "RACE",
+    "rulesSet": [
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "ranked",
+      "doubledraft",
+      "zwc",
+      "japan",
+      "created_ryan",
+      "communityevent",
+      "no_flagging"
+    ],
+    "bikeHash": null,
+    "eventSubgroups": [
+      {
+        "id": 7347094,
+        "subgroupLabel": "A",
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "ranked",
+          "doubledraft",
+          "zwc",
+          "japan",
+          "created_ryan",
+          "communityevent",
+          "no_flagging"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 12100,
+        "laps": 0
+      },
+      {
+        "id": 7347095,
+        "subgroupLabel": "B",
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "ranked",
+          "doubledraft",
+          "zwc",
+          "japan",
+          "created_ryan",
+          "communityevent",
+          "no_flagging"
+        ],
+        "bikeHash": null,
+        "distanceInMeters": 12100,
+        "laps": 0
+      }
+    ]
+  },
+  {
+    "id": 5705930,
+    "name": "GXY BANDWAGON – (CAT D)",
+    "eventStart": "2026-09-21T10:45:00.000+0000",
+    "distanceInMeters": 0,
+    "durationInSeconds": 3600,
+    "laps": 0,
+    "routeId": 553661379,
+    "sport": "CYCLING",
+    "eventType": "GROUP_RIDE",
+    "rulesSet": [
+      "ALLOWS_LATE_JOIN",
+      "TEST_BIT_10"
+    ],
+    "tags": [
+      "gxy",
+      "galaxy",
+      "after_party_duration=900",
+      "celebritysweeper",
+      "jerseyunlock",
+      "powerup_percent=\"5,100\""
+    ],
+    "bikeHash": 687998653,
+    "eventSubgroups": [
+      {
+        "id": 7347099,
+        "subgroupLabel": "E",
+        "rulesSet": [
+          "ALLOWS_LATE_JOIN",
+          "TEST_BIT_10",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "gxy",
+          "galaxy",
+          "after_party_duration=900",
+          "celebritysweeper",
+          "jerseyunlock",
+          "powerup_percent=\"5,100\""
+        ],
+        "bikeHash": 687998653,
+        "distanceInMeters": 0,
+        "laps": 0
+      }
+    ]
+  }
+]

@@ -33,8 +33,16 @@ import {
   checkStaleness,
   planLayoutMatchesRoute,
   withLayoutStaleness,
+  withRideStaleness,
   type Staleness,
 } from "@/lib/pacing/staleness";
+import {
+  loadHeightCm,
+  loadZwiftEventContext,
+  rideContextFor,
+  type RideContext,
+  type ZwiftEventContext,
+} from "@/lib/pacing/ride-context";
 import { sharedPlanView, type SharedPlanView } from "@/lib/pacing/share";
 
 const EVENT_COLUMNS =
@@ -51,7 +59,19 @@ type Loaded = {
   event: PacingEventRow;
   loaded: LoadedRoute;
   rider: RiderContext;
+  /** Zwift: spelregels van het event en de fietslijst; null bij een .gpx-route. */
+  zwift: ZwiftEventContext | null;
+  /** Uit het receptenboek; alleen voor de luchtweerstand in Zwift. */
+  heightCm: number | null;
 };
+
+/**
+ * De fysica voor dit lid op dit event: de meegegeven keuzes, anders die uit het
+ * opgeslagen plan, anders de standaard van het event. Null bij een .gpx-route.
+ */
+export function rideFor(ctx: Loaded, setup?: unknown): RideContext | null {
+  return rideContextFor(ctx.zwift, setup, ctx.rider.model.weightKg, ctx.heightCm);
+}
 
 async function loadForUser(
   eventId: string,
@@ -72,9 +92,12 @@ async function loadForUser(
   const routeResult = await loadPacingRoute(admin, event);
   if (!routeResult.ok) return { ok: false, error: routeResult.message };
 
-  const [rider, profileRow] = await Promise.all([
+  const zwiftRoute = routeResult.loaded.route.source === "zwift";
+  const [rider, profileRow, zwift, heightCm] = await Promise.all([
     loadRiderContext(admin, access.user.id),
     admin.from("profiles").select("display_name").eq("id", access.user.id).maybeSingle(),
+    loadZwiftEventContext(admin, eventId, routeResult.loaded.route),
+    zwiftRoute ? loadHeightCm(admin, access.user.id) : Promise.resolve(null),
   ]);
 
   return {
@@ -87,6 +110,8 @@ async function loadForUser(
       event,
       loaded: routeResult.loaded,
       rider,
+      zwift,
+      heightCm,
     },
   };
 }
@@ -97,6 +122,9 @@ export type PacingPageData = {
   rider: RiderContext;
   plan: StoredPlan;
   staleness: Staleness;
+  /** Zwift: regels, fietslijst en de opzet waarmee dit plan rekent. */
+  zwift: ZwiftEventContext | null;
+  ride: RideContext | null;
   sharedPlans: SharedPlanView[];
   similarRides: ScoredRide[];
   userId: string;
@@ -125,6 +153,7 @@ export async function loadPacingPage(
       route: ctx.loaded.route,
       rider: ctx.rider,
       routeSyncedAt: ctx.loaded.routeSyncedAt,
+      ride: rideFor(ctx),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
@@ -137,15 +166,20 @@ export async function loadPacingPage(
     return { ok: false, error: message || "Het pacingplan kon niet worden geladen." };
   }
 
-  const staleness = withLayoutStaleness(
-    checkStaleness(plan.assumptions, {
-      cpWatts: ctx.rider.model.cpWatts,
-      wPrimeJoules: ctx.rider.model.wPrimeJoules,
-      ftpWatts: ctx.rider.ftpWatts,
-      weightKg: ctx.rider.model.weightKg,
-      routeSyncedAt: ctx.loaded.routeSyncedAt,
-    }),
-    planLayoutMatchesRoute(plan.route_snapshot, plan.segments, ctx.loaded.route),
+  const ride = rideFor(ctx, plan.assumptions?.setup);
+  const staleness = withRideStaleness(
+    withLayoutStaleness(
+      checkStaleness(plan.assumptions, {
+        cpWatts: ctx.rider.model.cpWatts,
+        wPrimeJoules: ctx.rider.model.wPrimeJoules,
+        ftpWatts: ctx.rider.ftpWatts,
+        weightKg: ctx.rider.model.weightKg,
+        routeSyncedAt: ctx.loaded.routeSyncedAt,
+      }),
+      planLayoutMatchesRoute(plan.route_snapshot, plan.segments, ctx.loaded.route),
+    ),
+    plan.assumptions,
+    ride?.key ?? null,
   );
 
   const [sharedPlans, similarRides] = await Promise.all([
@@ -161,6 +195,8 @@ export async function loadPacingPage(
       rider: ctx.rider,
       plan,
       staleness,
+      zwift: ctx.zwift,
+      ride,
       sharedPlans,
       similarRides,
       userId: ctx.userId,
@@ -259,6 +295,7 @@ export async function startPacingDraft(
   }
 
   try {
+    const plan = await readPlan(ctx.admin, eventId, ctx.userId);
     const context = await buildPacingContext(ctx.admin, {
       profileId: ctx.userId,
       athleteName: ctx.displayName,
@@ -266,6 +303,8 @@ export async function startPacingDraft(
       route: ctx.loaded.route,
       goal,
       targetSeconds,
+      ride: rideFor(ctx, plan?.assumptions?.setup),
+      constraints: ctx.zwift?.constraints ?? null,
     });
 
     const { generationId } = await startGeneration(ctx.admin, {
@@ -294,6 +333,7 @@ export async function pollPacingDraft(
   const { ctx } = result;
 
   try {
+    const plan = await readPlan(ctx.admin, eventId, ctx.userId);
     const polled = await pollGeneration(ctx.admin, {
       generationId,
       profileId: ctx.userId,
@@ -301,6 +341,7 @@ export async function pollPacingDraft(
       route: ctx.loaded.route,
       rider: ctx.rider,
       routeSyncedAt: ctx.loaded.routeSyncedAt,
+      ride: rideFor(ctx, plan?.assumptions?.setup),
     });
     if (polled.status === "failed") return { ok: false, error: polled.error };
     return { ok: true, status: polled.status };

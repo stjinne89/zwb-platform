@@ -14,6 +14,7 @@ import type { RiderType } from "@/lib/teams/power-profile";
 import type { CpModel, CurvePoint } from "@/lib/pacing/cp";
 import type { DurabilityModel } from "@/lib/pacing/durability";
 import type { PacingAccent, PacingRoute } from "@/lib/pacing/route-profile";
+import type { RidePhysics } from "@/lib/pacing/zwift-setup";
 import {
   evaluatePlan,
   imposeFixedPieces,
@@ -258,6 +259,8 @@ export type BaselineInput = {
   curve?: CurvePoint[] | null;
   /** Duurzaamheidsmodel, als het lid vermoeidheidscurves heeft. */
   durability?: DurabilityModel | null;
+  /** Zwift: format, fiets en slipstream; zie zwift-setup.ts. */
+  ride?: RidePhysics | null;
 };
 
 /**
@@ -273,7 +276,7 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
   const parts = splitIntoSegments(route);
 
   const draft = (fraction: number): PlanSegment[] =>
-    imposeFixedPieces(draftParts(fraction), route, model);
+    imposeFixedPieces(draftParts(fraction), route, model, input.ride);
 
   const draftParts = (fraction: number): PlanSegment[] =>
     parts.map((part, index) => {
@@ -317,7 +320,7 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
     });
 
   // Eerste schatting op CP-tempo om de duur te leren kennen.
-  const options = { durability: input.durability ?? null };
+  const options = { durability: input.durability ?? null, ride: input.ride ?? null };
   const probe = evaluatePlan(draft(1), route, model, options);
   const fraction = durationIntensityFraction(probe.totalSeconds);
 

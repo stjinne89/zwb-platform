@@ -21,6 +21,7 @@ import {
   type PlanSegment,
   type RebalanceResult,
 } from "@/lib/pacing/plan";
+import type { PowerupId, RidePhysics, RidePosition } from "@/lib/pacing/zwift-setup";
 
 /** Gaten kleiner dan dit zijn afrondingsruis, geen ontbrekend stuk. */
 const GAP_TOLERANCE_KM = 0.2;
@@ -42,10 +43,17 @@ export type AdoptResult = RebalanceResult & {
 export function normalizeGeneratedSegments(
   generated: GeneratedPacingPlan["segments"],
   route: PacingRoute,
+  ride: RidePhysics | null = null,
 ): { segments: PlanSegment[]; repairs: string[] } {
   const repairs: string[] = [];
   const totalKm = route.totalKm;
   const accentIds = new Set(route.accents.map((accent) => accent.id));
+  // Positie telt alleen in een wedstrijd; een powerup alleen als het event hem
+  // uitdeelt. Wat het model daarbuiten invult, valt stil weg.
+  const positionOf = (value: unknown): RidePosition | undefined =>
+    ride?.format === "race" && (value === "bunch" || value === "alone") ? value : undefined;
+  const powerupOf = (value: unknown) =>
+    ride && ride.powerups.includes(value as PowerupId) ? (value as PowerupId) : undefined;
 
   const usable = generated
     .map((segment) => ({
@@ -58,6 +66,8 @@ export function normalizeGeneratedSegments(
         : "tempo",
       rationale: String(segment.rationale ?? "").trim() || undefined,
       accentId: accentIds.has(segment.accentId) ? segment.accentId : null,
+      ...(positionOf(segment.position) ? { position: positionOf(segment.position) } : {}),
+      ...(powerupOf(segment.powerup) ? { powerup: powerupOf(segment.powerup) } : {}),
     }))
     .filter(
       (segment) =>
@@ -166,19 +176,19 @@ export function adoptGeneratedPlan(
   options: {
     curve?: CurvePoint[] | null;
     durability?: DurabilityModel | null;
+    ride?: RidePhysics | null;
   } = {},
 ): AdoptResult {
-  const { segments, repairs } = normalizeGeneratedSegments(
-    generated.segments,
-    route,
-  );
+  const ride = options.ride ?? null;
+  const { segments, repairs } = normalizeGeneratedSegments(generated.segments, route, ride);
   // Een doel dat de AI op een neutralisatie legde, telt niet: daar rijdt de wagen.
+  // Start en sprint van een wedstrijd vult het platform zelf in.
   const rebalanced = rebalancePlan(
-    imposeFixedPieces(segments, route, model),
+    imposeFixedPieces(segments, route, model, ride),
     route,
     model,
     options.curve,
-    { durability: options.durability ?? null },
+    { durability: options.durability ?? null, ride },
   );
 
   return {

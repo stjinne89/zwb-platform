@@ -16,6 +16,8 @@ gaat stabiliteit voor nieuwe features.
    Strava (`docs/strava-api-resubmission.md`, via het formulier en niet als
    reply op de afwijzing). De Zwift-routebibliotheek één keer volledig opnieuw
    ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
+   Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
+   toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -41,12 +43,103 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0178`.
 
 ---
 
+> **Pacingplan voor Zwift: format, fiets, slipstream, wegdek en powerups, 2026-09-21 — gebouwd, lokaal getest.**
+> Commit `f805658`, gepusht naar `main` 2026-09-21. Migraties
+> `0176_event_zwift_rules.sql` (spelregels op `events`) en
+> `0177_zwift_bike_parts.sql` (fietslijst). Onderzoek en ijking:
+> [zwift-race-opzet-spike](docs/zwift-race-opzet-spike.md).
+>
+> **Waarom.** Vraag van de eigenaar: de pacingplanner is gebouwd voor buitenritten
+> en rekende een Zwift-wedstrijd als solo-inspanning met buitenfysica (CdA 0,32,
+> Crr 0,005, 9 kg), zonder slipstream, fietskeuze of powerups. Keuzes van de
+> eigenaar: het format is te kiezen en staat vooraf op de eventregels (wedstrijd,
+> tijdrit, ploegentijdrit); fietsen uit de **volledige** ZwiftInsider-testsheet,
+> hoewel daar geen licentie of API voor hergebruik bij hoort (risico genoemd,
+> eigenaar koos toch); powerups tellen mee in de tijd; gravel en ander wegdek
+> meenemen.
+>
+> **Wat er is gekomen.**
+> - `src/lib/pacing/zwift-setup.ts` (puur): format, fiets, eventregels →
+>   `RidePhysics`. Geijkt op de referentiefiets van de sheet (CdA 0,3191 en
+>   2,42 kg in ons model bij 183 cm/75 kg; vrij gefit is de rolweerstand 0,0040,
+>   Zwifts eigen asfaltwaarde). CdA schaalt met lengte en gewicht.
+> - `ride-estimate.ts`: een segment mag eigen `cda`, `crr` en `massKg` hebben.
+>   Zonder blijft alles gelijk; buitenritten rekenen exact als voorheen (alle
+>   bestaande tests ongewijzigd groen).
+> - `evaluatePlan` krijgt `ride`: per segment slipstream naar positie
+>   (`PlanSegment.position`, in de groep of alleen), rolweerstand naar wegdek en
+>   fietstype, en powerups (`PlanSegment.powerup`) over de eerste seconden van
+>   hun stuk, naar rato binnen een segment.
+> - Wedstrijd: vaste stukken `start` (700 m, 40 % van W′ over 60 s) en `sprint`
+>   (laatste 300 m, 50 % van W′ over 20 s; niet als de finish op een klim ligt)
+>   via `imposeFixedPieces`. Ze worden niet teruggeschaald; tot de sprint moet
+>   15 % van W′ over zijn (`RACE_RESERVE_FRACTION`), anders is het plan niet
+>   haalbaar. Raakt de reserve pas in de sprint op, dan zet `rebalancePlan` de
+>   sprint op wat er over is. Een ander format laat start en sprint opgaan in
+>   hun buurman. Een restje naast een vast stuk mag bij het opslaan korter zijn
+>   dan 0,5 km: dat liet het platform zelf staan.
+> - Wegdek: de vlakken van ZwiftMap (MIT, `src/lib/zwift/surfaces/`) over
+>   `zwift_routes.shape`; per segment een `surface`, en een band onder het
+>   profiel. De Crr-tabel staat apart (`crr.ts`) zodat de 33 kB aan vlakken niet
+>   in de browserbundel komt.
+> - Spelregels: `rulesSet`, `tags` en `bikeHash` van event en subgroepen
+>   (`zwiftEventRules`), bewaard bij het opslaan van een event, en voor oudere
+>   events één keer opgehaald zodra een lid het pacingplan opent.
+> - Fietsen: `bike-sheet.ts` (puur) en `bike-sync.ts`, knop "Fietsen ophalen" op
+>   `/beheer/zwift-routes`. 993 onderdelen (frames per upgradeniveau, wielen per
+>   testframe). Een verboden tijdritfiets valt terug op de referentiefiets.
+> - Opslag zonder planmigratie: de keuzes in `assumptions.setup`, een
+>   vingerafdruk van de fysica in `assumptions.rideKey`. Een Zwift-plan van vóór
+>   vandaag is één keer verouderd (`StaleReason` "opzet"), net als bij de
+>   afdalingen; daarna alleen als fietslijst of spelregels veranderen.
+> - Scherm: blok "Opzet" (format, frame, upgrade, wielen, ploeggrootte), per stuk
+>   In de groep/Alleen en een powerupkeuze. Nieuwe actie `savePacingSetup`
+>   rekent meteen door. Gedeelde plannen tonen format en fiets van de maker.
+> - AI: schema per stuk met `position` en `powerup`, context `zwift` (format,
+>   fiets, powerups, wegdek, vaste stukken, reserve), promptregels. `adopt.ts`
+>   laat alleen geldige waarden staan.
+> - `/hulp#pacing-zwift` plus zoekentry.
+>
+> **Lengte.** Zwift rekent de luchtweerstand met de lengte. Keuze van de
+> eigenaar: de lengte uit het receptenboek (`nutrition_profiles`) gebruiken, de
+> beperking "alleen voor recepten" uit de privacyverklaring halen, en **geen
+> nieuwe privacyversie**, omdat de lengte al was opgegeven. Dat wijkt bewust af
+> van de regel in `src/lib/privacy.ts`. De opmerking in migratie `0168` ("alleen
+> gebruikt om receptingrediënten te schalen") is sindsdien niet meer waar;
+> migraties zijn geschiedenis en zijn niet aangepast. De lengte gaat niet naar de
+> AI en niet mee in een gedeeld plan.
+>
+> **Aannames, niet gemeten.** Slipstream −30 % luchtweerstand (tijdritfiets
+> −15 %, `doubledraft` twee keer zoveel), draft boost ×1,5 op de besparing,
+> aambeeld +10 % lichaamsgewicht, en de Zwift-nummering van powerups buiten
+> 0 en 8. Start 700 m, sprint 300 m en de W′-aandelen zijn keuzes bij de bouw.
+>
+> **Bewust niet gebouwd.** Geen wegdek bij een .gpx-route (daar staat het niet
+> in); geen wegdek in de lead-in (geen vorm); geen voorspelling van wanneer het
+> veld breekt (positie kiest het lid of de AI); geen burrito, spook of pijlen
+> (werken niet op je eigen tijd); geen hernoeming van opgelegde wielen, want die
+> ids staan niet in `zwift-data`; geen koppeling met het TTT-plan van ZwiftGopher
+> (kopbeurten volgen uit de ploeggrootte). Geen aparte commits per ronde zoals
+> eerst gepland: het werk hangt zo aan elkaar dat losse stappen niet te testen
+> waren.
+>
+> **Verificatie.** `tsc --noEmit` schoon, eslint zonder fouten, Vitest 1537
+> geslaagd (nieuw: `pacing-zwift.test.ts` 37, `zwift-bike-sheet.test.ts` 7, met
+> echte uitsnedes van sheet en event-API in `tests/fixtures/zwift/`).
+> `tests/unit/omnium-live.test.ts` faalt in deze worktree op een ontbrekende
+> `.env.local`, los van deze ronde. `npm run build` compileert; het prerenderen
+> strandt lokaal op `/omnium` zonder Supabase-sleutels, zoals eerder.
+> **Niet lokaal geverifieerd:** migraties `0176` en `0177` (geen Docker of
+> Supabase-config), de knop "Fietsen ophalen" tegen de database, het ophalen van
+> spelregels voor een bestaand event, een ingelogde pacingpagina en een echte
+> AI-generatie.
+
 > **WTRL-resultatensync uitgezet, link naar de WTRL-uitslag, 2026-09-21 — gebouwd, lokaal getest.**
-> Geen migratie. Op productie zijn de drie WTRL-bronnen (`ZWB Cycling B1`,
+> Commits `b90153a` en `a6f4e3a`, gepusht naar `main` 2026-09-21. Geen migratie. Op productie zijn de drie WTRL-bronnen (`ZWB Cycling B1`,
 > `ZWB Cycling C1`, `ZWB Zwiftladies`) met de hand op `enabled = false` gezet.
 > **Waarom.** Met een verse `WTRL_COOKIE` en een nieuwe deploy gaf WTRL op de
 > eerste aanvraag per bron HTTP 429. Dat is een blokkade, geen echte
@@ -3023,7 +3116,9 @@ gaat op haalbaarheid. `rebalancePlan` zelf is niet aangepast.
 **Bewust niet gebouwd.** Geen per-stuk optimalisatie (bijvoorbeeld meer op de
 klim, minder op het vlak voor dezelfde tijd): dat is een optimalisatieprobleem met
 eigen aannames, en de vorm van het plan is aan het lid of de AI. Wind en
-slipstream blijven buiten het model.
+slipstream blijven buiten het model. *Achterhaald (21 september 2026):* bij een
+Zwift-event rekent het plan wel met slipstream; zie "Pacingplan voor Zwift".
+Wind blijft erbuiten.
 
 **Verificatie.** `tsc --noEmit` zonder fouten, eslint schoon, `npm run build`
 geslaagd, Vitest volledig groen (1000 geslaagd). Nieuw `pacing-target-time.test.ts`:

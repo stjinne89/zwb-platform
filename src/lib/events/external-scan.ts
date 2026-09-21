@@ -46,7 +46,16 @@ export type ZwiftEventApiRow = {
   /** Gevolgde renners die zich inschreven; alleen in de geautoriseerde feed. */
   followeeSignedUpCount?: number | null;
   eventSeries?: { id?: number | string; name?: string | null } | null;
+  /** Spelregels: NO_DRAFTING, NO_POWERUPS, NO_TT_BIKES, … Staan ook per subgroep. */
+  rulesSet?: string[] | null;
+  /** Vrije labels, o.a. `powerup_percent="0,50,8,50"`, `doubledraft`. */
+  tags?: string[] | null;
+  /** Frame dat het event oplegt, als id uit zwift-data. */
+  bikeHash?: number | string | null;
   eventSubgroups?: Array<{
+    rulesSet?: string[] | null;
+    tags?: string[] | null;
+    bikeHash?: number | string | null;
     id?: number | string;
     subgroupLabel?: string | null;
     label?: string | null;

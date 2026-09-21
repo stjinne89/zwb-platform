@@ -133,6 +133,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "pacing pacingplan verdeling vermogen w/kg klim klimmen event gran fondo neutralisatie neutraal wagen verouderd doorrekenen reserve afdaling afdalen uitrollen knippen splitsen samenvoegen stukken indeling eindtijd doeltijd finishtijd tijd haalbaar",
   },
   {
+    title: "Pacingplan voor een Zwift-wedstrijd",
+    text: "Format, fiets, slipstream, wegdek, start, sprint en powerups.",
+    href: "/hulp#pacing-zwift",
+    terms: "zwift wedstrijd race tijdrit ploegentijdrit ttt drafting slipstream groep alleen fiets frame wielen upgrade stage gravel onverhard wegdek powerup veer aerohelm draft boost stoomwals aambeeld sprint start zwiftinsider",
+  },
+  {
     title: "Krachtreeksen",
     text: "Beenkracht en eenbenige stabiliteit op een rustdag, zonder belasting.",
     href: "/hulp#kracht",
