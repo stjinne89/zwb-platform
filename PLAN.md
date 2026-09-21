@@ -1,7 +1,7 @@
 # ZWB Platform — Plan & Status
 
 > **Windweging en omwegfactor bijgesteld op echte rondjes, 2026-09-21 — gebouwd, lokaal getest.**
-> Implementatiecommit `TUNE_HASH`. Geen migratie.
+> Implementatiecommit `5dd7cfd`. Geen migratie.
 > De eerste echte buitenrondjes lieten twee dingen zien die niet klopten. De
 > eigenaar vroeg ze aan te pakken.
 >
