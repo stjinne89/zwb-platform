@@ -1,5 +1,24 @@
 # ZWB Platform — Plan & Status
 
+> **Health-check kijkt of de WTRL-sync echt lukt, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Uit de gebruiksanalyse van 17 september: de WTRL-resultatensync
+> faalt sinds 3 juni met HTTP 401, terwijl `integration_health` 306 keer ok meldde.
+> De probe `wtrl` vroeg alleen de homepage op. De oorzaak is een verlopen
+> `WTRL_COOKIE` en niet de ontbrekende kolom uit `0173`: die zou een
+> databasefout geven, geen 401. **Nu:** twee extra bronnen, `wtrl_sync` en
+> `ladder_sync` (`evaluateTeamResultSync` in `src/lib/health/checks.ts`). Die
+> lezen `last_error` van de actieve `team_result_sources` en worden rood zodra er
+> één bron faalt, met de fouttekst erbij. Omdat ze nieuw zijn, gaat bij de
+> eerste run meteen een push naar de beheerders. De bereikbaarheidsprobes
+> blijven staan. Uitleg in `docs/runbook.md` §5.
+> **Bewust niet gebouwd:** een drempel op ouderdom (`last_synced_at`). Hoe vaak
+> de sync hoort te draaien staat nergens vast, en een verkeerde drempel geeft
+> valse alarmen. **Nog te doen door de eigenaar:** een verse `WTRL_COOKIE` in
+> Netlify zetten (runbook §3) en daarna Resultaten synchroniseren op `/teams`.
+> Getest: 2 nieuwe unit-tests, TypeScript en ESLint. **Niet lokaal te
+> verifiëren:** de echte stand van `team_result_sources` in productie en of een
+> nieuwe cookie de 401 oplost.
+
 > **Omnium-beheer zag het eigen conceptseizoen niet, 2026-09-21 — gebouwd, lokaal getest.**
 > Migratie `0174_omnium_manage_read_drafts.sql` (nog niet toegepast). Melding van
 > de eigenaar tijdens de doorloop van PLAN.md: "het Omnium laadt het seizoen

@@ -157,6 +157,10 @@ route een push naar admins via trigger `on_admin_broadcast`.
   `integration_health`-dashboard is de betrouwbare bron; de push is de
   attentie-laag. Zorg dat minstens één beheerder die opt-in aan heeft.
 
+`wtrl` en `ladder` meten alleen of de site bereikbaar is. Of de resultatensync
+zelf lukt, staat in `wtrl_sync` en `ladder_sync`: die lezen `last_error` van de
+actieve `team_result_sources`. Een 401 daar is vrijwel altijd een verlopen cookie.
+
 Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
 (bron gewijzigd).
 
