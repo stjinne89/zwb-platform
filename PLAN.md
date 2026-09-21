@@ -5754,6 +5754,12 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      handmatig de powerprofiel-sync draait (`src/app/(app)/teams/_actions.ts`) —
      er is geen achtergrondsync, dus die waarde veroudert. Overwegen: eFTP laten
      voorgaan voor de AI, of de physique-sync echt periodiek laten lopen.
+     *Stand 2026-09-21: deels verholpen.* De eFTP gaat mee in `intervalsLoad`, en
+     de prompt zegt het wattage op de eFTP af te stemmen als die afwijkt
+     (`workouts.ts`). Een FTP-test in het schema werkt `profiles.ftp_watts` bij
+     (`ftp-test.ts`). Nog open: er is nog steeds geen achtergrondsync, en de
+     prompt laat eFTP ook voorgaan bij een lid met een recente testuitslag,
+     terwijl de code elders de test laat winnen.
   2. **Echte zones gaan niet mee.** `profile_sport_settings.power_zones` (+ CP,
      W', LTHR) wordt gesynct maar alleen op `/zwbeter-worden/vermogen` gebruikt.
      De AI valt terug op de generieke banden in `INTENSITY_FTP_RANGE`
@@ -5761,7 +5767,11 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      JOIN gewend zijn. Let op: sinds 2026-08-20 hangt ook `estimateTrainingLoad`
      aan die banden (als terugval zonder leesbaar blokdoel), dus wie ze verruimt
      verhoogt tegelijk de geschatte belasting van elk schema.
-  3. **RPE-tabel spreekt de prompt tegen.** Het promptvoorbeeld "RPE 6, 210-235w"
+  3. ~~**RPE-tabel spreekt de prompt tegen.**~~ **Opgelost 2026-09-21.** Het
+     promptvoorbeeld noemt nu de FTP erbij ("bij FTP 250w 'RPE 6, 200-225w'") en
+     de volledige RPE-tabel. Een test in `training-targets.test.ts` bewaakt dat
+     die tabel gelijk blijft aan `percentRangeForRpe`. Oorspronkelijk: het
+     promptvoorbeeld "RPE 6, 210-235w"
      is 72-80% FTP, terwijl `percentRangeForRpe(6)` 80-90% geeft
      (`src/lib/training/targets.ts`). Bij dezelfde RPE kan de UI-hint ~25w
      afwijken van het wattage van de AI.
