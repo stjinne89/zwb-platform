@@ -1,5 +1,48 @@
 # ZWB Platform — Plan & Status
 
+> **Drie rondjes op één kaart, en het antwoord over Wahoo en Garmin, 2026-09-21 — gebouwd, lokaal getest.**
+> Implementatiecommit `MAP_HASH`. Geen migratie.
+> Melding van de eigenaar: de buitenrondjes worden gegenereerd, maar je kunt ze
+> niet zien. Klopte: de lijn stond wél in `geometry` en in de GPX-download, maar
+> de loader haalde die kolom niet op en er was geen kaart. Je kon dus alleen
+> beoordelen wat je niet kon bekijken.
+> **Nu:** de drie voorstellen staan samen op één kaart, elk in een eigen
+> jersey-kleur, met het vertrekpunt als punt. Klik een lijn en je krijgt de
+> gegevens van dat rondje plus "Kies dit rondje" en de GPX-knop; de regels eronder
+> dragen dezelfde kleur en doen hetzelfde. Eén kaart en niet drie kaartjes, omdat
+> je niet tussen drie plaatjes kiest maar tussen drie kanten op — over elkaar heen
+> zie je in één blik welk rondje welke hoek pakt. Onder elke lijn ligt een
+> onzichtbare, brede trefzone: een lijn van vier pixels is op een telefoon niet te
+> raken.
+> De lijn wordt server-side uitgedund naar 120 punten (`lineForMap`). Opgeslagen
+> blijft hij op ~600 punten, want dat is wat een GPX op een fietscomputer
+> verdient; drie keer 600 punten naar de browser sturen voor één overzichtskaart
+> is zonde.
+> **Rechtstreeks naar Wahoo en Garmin — onderzocht, niet gebouwd.**
+> *Garmin kan niet, en niet door ons:* de Courses API is precies de goede weg,
+> maar het Garmin Connect Developer Program staat sinds voorjaar 2026 op pauze —
+> aanvraagformulier weg, geen datum, en het eist bovendien een rechtspersoon.
+> *Wahoo kan wél:* de Cloud API is self-service met OAuth 2.0 en kent een
+> routes-resource. Prijs: een FIT-encoder (de API wil FIT, geen GPX, en die zit
+> hier niet in), een OAuth-koppeling per lid zoals bij Strava, en het werkt alleen
+> voor de Wahoo-app — niet voor de oudere ELEMNT-app, dus niet voor een oude BOLT
+> of ROAM. De winst boven "open de GPX in de Wahoo-app" is één handeling.
+> **Voorstel: niet bouwen tot iemand erom vraagt.** Heropent Garmin zijn
+> programma, dan verandert die rekensom, want dan bedient één stuk werk beide
+> merken. De GPX-weg staat nu uitgelegd op `/hulp`. Details in
+> [buitenrit-routevoorstel](docs/buitenrit-routevoorstel-spike.md) sectie 8.
+> **Bewust niet aangepast:** de windweging en `DETOUR_FACTOR`, hoewel de eerste
+> echte rondjes lieten zien dat beide niet kloppen (zie de openstaande punten
+> hieronder). De eigenaar wil dat later bekijken.
+> Verificatie: 1.439 tests geslaagd (5 nieuw rond `lineForMap`),
+> `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7 bestaande waarschuwingen,
+> productiebuild geslaagd.
+> **Openstaand, met cijfers uit de praktijk:** de windscore straft élk rondje even
+> hard (~17 punten) omdat een gesloten lus per definitie geen netto meewind kan
+> hebben — het laatste been thuis is bij deze driehoek zijwind, niet meewind. De
+> dimensie onderscheidt dus niets en drukt alleen. En de rondjes vallen ~15%
+> korter uit dan gevraagd, dus `DETOUR_FACTOR` (1,25) mag omhoog.
+
 > **Alleen fietsevents in de Zwift-spiegel, 2026-09-21 — gebouwd, lokaal getest.**
 > Implementatiecommit `bbfff81`. Geen migratie.
 > Melding van de eigenaar na de eerste echte sync: er staan hardloopevents in

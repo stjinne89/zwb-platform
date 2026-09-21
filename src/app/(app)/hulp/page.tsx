@@ -340,7 +340,9 @@ const OUTDOOR_ROUTE_NOTES = [
   "Bij wind vertrekt het eerste rondje tegen de wind in, zodat je met de wind mee thuiskomt. Bij windstilte zijn het gewoon drie kanten op.",
   "Een drempel- of tempotraining krijgt een rondje met meer hoogtemeters, een duur- of hersteltraining een vlakker rondje.",
   "De rondjes komen van een routeplanner op OpenStreetMap-data, niet van ZWB: ze houden rekening met fietspad, ondergrond en drukte, maar ze zijn niet door een mens gereden. Kijk hem na voordat je vertrekt.",
-  "Met GPX zet je het rondje op je fietscomputer, in Komoot of in Strava.",
+  "De drie rondjes staan samen op één kaart, elk in een eigen kleur. Klik een lijn aan (of de regel eronder) om de gegevens te zien en dat rondje te kiezen.",
+  "Met GPX zet je het rondje op je fietscomputer. Op een telefoon open je het bestand met Delen in de Wahoo-app (ELEMNT ACE, BOLT 3 en ROAM 3 lezen FIT, GPX en TCX), of je importeert het in Garmin Connect onder Training & Planning \u2192 Banen.",
+  "Rechtstreeks naar je fietscomputer sturen kan nog niet. Garmin heeft zijn ontwikkelaarsprogramma in 2026 op pauze gezet, dus er is voor nieuwe partijen geen weg naar Garmin Connect. Voor Wahoo bestaat die weg wel; of we die bouwen is nog niet besloten.",
   "Een rondje blijft staan tot je opnieuw om een voorstel vraagt.",
 ];
 

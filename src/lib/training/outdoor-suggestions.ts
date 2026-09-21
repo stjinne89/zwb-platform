@@ -195,7 +195,40 @@ export type OutdoorRouteRow = {
   wind_note: string | null;
   chosen_at: string | null;
   start_point_id: string | null;
+  geometry?: RouteGeometry | null;
 };
+
+export type RouteGeometry = { lat: number[]; lon: number[]; ele?: Array<number | null> };
+
+/**
+ * De lijn uitdunnen voor weergave. Opgeslagen staat hij op ~600 punten, want dat
+ * is wat een GPX op je fietscomputer verdient. Een kaartje van een paar honderd
+ * pixels heeft er hooguit honderd nodig, en drie routes van 600 punten naar de
+ * browser sturen voor één overzichtskaart is zonde van de payload.
+ */
+export function lineForMap(
+  geometry: RouteGeometry | null | undefined,
+  max = 120,
+): Array<[number, number]> {
+  const lat = geometry?.lat;
+  const lon = geometry?.lon;
+  if (!Array.isArray(lat) || !Array.isArray(lon) || lat.length < 2) return [];
+
+  const count = Math.min(lat.length, lon.length);
+  if (count <= max) {
+    return lat.slice(0, count).map((value, index) => [value, lon[index]] as [number, number]);
+  }
+
+  const step = (count - 1) / (max - 1);
+  const line: Array<[number, number]> = [];
+  for (let i = 0; i < max; i += 1) {
+    const index = Math.round(i * step);
+    line.push([lat[index], lon[index]]);
+  }
+  // Het rondje moet sluiten; zonder dit blijft er een gat tot het vertrekpunt.
+  line[line.length - 1] = [lat[count - 1], lon[count - 1]];
+  return line;
+}
 
 export async function loadOutdoorSuggestions(
   admin: Admin,
@@ -208,7 +241,7 @@ export async function loadOutdoorSuggestions(
   const { data, error } = await admin
     .from("outdoor_route_suggestions")
     .select(
-      "id, workout_id, variant, distance_km, elevation_m, estimated_minutes, score_pct, summary, wind_note, chosen_at, start_point_id",
+      "id, workout_id, variant, distance_km, elevation_m, estimated_minutes, score_pct, summary, wind_note, chosen_at, start_point_id, geometry",
     )
     .eq("profile_id", profileId)
     .in("workout_id", workoutIds)

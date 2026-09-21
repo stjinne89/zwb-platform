@@ -16,6 +16,7 @@ import {
   chooseOutdoorRoute,
   generateOutdoorRoutesAction,
 } from "../_actions";
+import { OutdoorRouteMap, ROUTE_COLORS } from "./outdoor-route-map";
 
 export type OutdoorRouteView = {
   id: string;
@@ -26,6 +27,8 @@ export type OutdoorRouteView = {
   summary: string | null;
   windNote: string | null;
   chosen: boolean;
+  /** Uitgedunde lijn voor de kaart; leeg als er geen geometrie is bewaard. */
+  line: Array<[number, number]>;
 };
 
 export type StartPointOption = { id: string; label: string };
@@ -54,6 +57,15 @@ export function OutdoorRouteSuggestions({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [startPointId, setStartPointId] = useState(startPoints[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Open staat standaard het gekozen rondje, anders het best passende. Een lijst
+  // waarin niets openstaat laat de belangrijkste knop verstoppen.
+  const selected =
+    routes.find((route) => route.id === selectedId) ??
+    routes.find((route) => route.chosen) ??
+    routes[0] ??
+    null;
 
   function generate() {
     setError(null);
@@ -138,60 +150,98 @@ export function OutdoorRouteSuggestions({
       {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
 
       {routes.length > 0 ? (
-        <ul className="mt-2 space-y-2">
-          {routes.map((route) => (
-            <li
-              key={route.id}
-              className={`rounded-md border bg-background p-3 ${route.chosen ? "border-primary" : ""}`}
-            >
-              <div className="flex items-start gap-3">
-                <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums ${scoreTone(route.scorePct)}`}
-                >
-                  {route.scorePct}%
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">
-                    {route.distanceKm.toFixed(0)} km · {route.elevationM} hm ·{" "}
-                    {duration(route.estimatedMinutes)}
-                  </p>
-                  {route.windNote ? (
-                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                      <Wind className="size-3 shrink-0" />
-                      {route.windNote}
-                    </p>
-                  ) : null}
-                  {route.summary ? (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{route.summary}</p>
-                  ) : null}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {route.chosen ? (
-                      <span className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
-                        Gekozen
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => choose(route.id)}
-                        disabled={pending}
-                        className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-60"
-                      >
-                        Kies dit rondje
-                      </button>
-                    )}
-                    <a
-                      href={`/api/training/outdoor-routes/${route.id}/gpx`}
-                      className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+        <>
+          <OutdoorRouteMap
+            routes={routes.map((route) => ({ id: route.id, line: route.line }))}
+            selectedId={selected?.id ?? null}
+            onSelect={setSelectedId}
+          />
+
+          <ul className="mt-2 space-y-2">
+            {routes.map((route, index) => {
+              const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+              const isOpen = selected?.id === route.id;
+              return (
+                <li key={route.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(route.id)}
+                    aria-expanded={isOpen}
+                    className={`flex w-full items-start gap-3 rounded-md border p-3 text-left ${
+                      isOpen ? "border-primary bg-background" : "bg-background/60 hover:bg-background"
+                    }`}
+                  >
+                    {/* Dezelfde kleur als de lijn op de kaart; dat is de hele koppeling. */}
+                    <span
+                      aria-hidden
+                      className="mt-1 h-1.5 w-6 shrink-0 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums ${scoreTone(route.scorePct)}`}
                     >
-                      <Download className="size-3" />
-                      GPX
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+                      {route.scorePct}%
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium">
+                        {route.distanceKm.toFixed(0)} km · {route.elevationM} hm ·{" "}
+                        {duration(route.estimatedMinutes)}
+                        {route.chosen ? " · gekozen" : ""}
+                      </span>
+                      {isOpen ? (
+                        <>
+                          {route.windNote ? (
+                            <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                              <Wind className="size-3 shrink-0" />
+                              {route.windNote}
+                            </span>
+                          ) : null}
+                          {route.summary ? (
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              {route.summary}
+                            </span>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </span>
+                  </button>
+
+                  {isOpen ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 pl-3">
+                      {route.chosen ? (
+                        <span className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
+                          Gekozen
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => choose(route.id)}
+                          disabled={pending}
+                          className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-60"
+                        >
+                          Kies dit rondje
+                        </button>
+                      )}
+                      <a
+                        href={`/api/training/outdoor-routes/${route.id}/gpx`}
+                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                      >
+                        <Download className="size-3" />
+                        GPX
+                      </a>
+                      <Link
+                        href="/hulp#routevoorstellen"
+                        className="text-xs text-muted-foreground underline hover:text-foreground"
+                      >
+                        Op je fietscomputer
+                      </Link>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       ) : null}
     </div>
   );

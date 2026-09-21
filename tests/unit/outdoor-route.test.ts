@@ -21,7 +21,7 @@ import {
   pointsFromGeoJson,
   pointsFromGraphHopper,
 } from "@/lib/outdoor/router";
-import { routeToGpx } from "@/lib/training/outdoor-suggestions";
+import { lineForMap, routeToGpx } from "@/lib/training/outdoor-suggestions";
 import { haversineKm, type GpxPoint } from "@/lib/gpx";
 
 const ATHLETE = { ftpWatts: 250, weightKg: 75 };
@@ -385,5 +385,47 @@ describe("routeToGpx", () => {
   it("ontsnapt tekens die de XML zouden breken", () => {
     const gpx = routeToGpx('Rit <met> & tekens', { lat: [51.5], lon: [5], ele: [null] });
     expect(gpx).toContain("<name>Rit &lt;met&gt; &amp; tekens</name>");
+  });
+});
+
+
+describe("lineForMap", () => {
+  const geometry = {
+    lat: Array.from({ length: 600 }, (_, i) => 51.5 + i / 10000),
+    lon: Array.from({ length: 600 }, (_, i) => 5 + i / 10000),
+    ele: Array.from({ length: 600 }, () => 10),
+  };
+
+  it("dunt uit tot de bovengrens voor de kaart", () => {
+    expect(lineForMap(geometry)).toHaveLength(120);
+  });
+
+  it("houdt begin en eind, zodat het rondje sluit", () => {
+    const line = lineForMap(geometry);
+    expect(line[0]).toEqual([geometry.lat[0], geometry.lon[0]]);
+    expect(line[line.length - 1]).toEqual([geometry.lat[599], geometry.lon[599]]);
+  });
+
+  it("laat een korte lijn met rust", () => {
+    const short = { lat: [51.5, 51.6, 51.7], lon: [5, 5.1, 5.2] };
+    expect(lineForMap(short)).toEqual([
+      [51.5, 5],
+      [51.6, 5.1],
+      [51.7, 5.2],
+    ]);
+  });
+
+  it("geeft een lege lijn bij ontbrekende of kapotte geometrie", () => {
+    expect(lineForMap(null)).toEqual([]);
+    expect(lineForMap(undefined)).toEqual([]);
+    expect(lineForMap({ lat: [51.5], lon: [5] })).toEqual([]);
+  });
+
+  it("valt terug op het kortste van de twee reeksen", () => {
+    // Een half weggeschreven rij mag geen undefined in de kaartlijn zetten.
+    const scheef = { lat: [51.5, 51.6, 51.7], lon: [5, 5.1] };
+    const line = lineForMap(scheef);
+    expect(line).toHaveLength(2);
+    expect(line.every(([lat, lon]) => Number.isFinite(lat) && Number.isFinite(lon))).toBe(true);
   });
 });

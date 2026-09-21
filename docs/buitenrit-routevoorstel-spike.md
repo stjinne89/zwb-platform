@@ -189,7 +189,48 @@ gebeuren. Vandaar een knop, en daarna staat het er tot het lid opnieuw vraagt.
 - **Meerdere vertrekpunten slim kiezen.** Het lid kiest zelf uit zijn lijst; ZWB
   raadt niet welk vertrekpunt bij welke training hoort.
 
-## 8. Nog te beslissen
+## 8. Rechtstreeks naar de fietscomputer — onderzocht 2026-09-21
+
+Vraag van de eigenaar: kan een voorgesteld rondje direct naar een Wahoo ELEMNT of
+een Garmin?
+
+**Garmin: nee, en niet door ons.** De Garmin Connect **Courses API** is precies de
+goede weg — daarmee zetten Komoot en Strava hun routes in Garmin Connect, en van
+daar syncen ze vanzelf naar het toestel. Maar het **Garmin Connect Developer
+Program staat sinds het voorjaar van 2026 op pauze**: het aanvraagformulier is
+weg, nieuwe aanvragen voor Health, Activity, Training, Courses en Women's Health
+worden niet verwerkt, en er is geen datum. Bestaande integraties blijven werken;
+nieuwe komen er niet bij. Daarbovenop eist het programma een rechtspersoon — geen
+persoonlijk gebruik. Zolang dat zo is, is er geen bouwbare route naar Garmin.
+
+**Wahoo: technisch wél mogelijk.** De [Wahoo Cloud API](https://developers.wahooligan.com/)
+is self-service met OAuth 2.0 en kent een routes-resource: een FIT-bestand met de
+route, plus naam, omschrijving, afstand, stijging en startcoördinaat. Drie dingen
+om te weten voordat iemand hieraan begint:
+
+1. **Het moet een FIT-bestand zijn**, geen GPX. Er zit nu geen FIT-encoder in dit
+   project; een FIT-course schrijven is echt werk (binair formaat, course- en
+   record-berichten, CRC).
+2. **Per lid een OAuth-koppeling**, met dezelfde soort flow, tokenopslag en
+   verversing als bij Strava. Dat is de bestaande patronen volgen, maar het is
+   wel een koppeling erbij om te beheren.
+3. **Niet elk toestel.** Routes via de Cloud API verschijnen in de **Wahoo-app**
+   en op het toestel, maar niet in de oudere **ELEMNT-app**. Voor leden met een
+   oudere BOLT of ROAM levert het dus niets op.
+
+**Wat nu al werkt, zonder iets te bouwen:** de GPX-knop. De Wahoo-app importeert
+FIT, GPX en TCX rechtstreeks (ELEMNT ACE, BOLT 3, ROAM 3), en Garmin Connect
+importeert een GPX als baan onder Training & Planning. Op een telefoon is dat het
+deelmenu, twee tikken.
+
+**Afweging:** de Wahoo-koppeling kost een FIT-encoder plus een OAuth-koppeling, en
+bedient alleen Wahoo-rijders met een recent toestel. De winst ten opzichte van
+"open de GPX in de Wahoo-app" is één handeling. Voorstel: niet bouwen tot iemand
+er expliciet om vraagt, en de GPX-route goed uitleggen op `/hulp`. Als Garmin zijn
+programma heropent, verandert die rekensom — dan bedient één stuk werk beide
+merken via dezelfde logica.
+
+## 9. Nog te beslissen
 
 - **Privacyversie.** `src/lib/privacy.ts` is *niet* gebumpt. Argument om het niet
   te doen: het lid wijst het punt zelf aan, het gaat naar geen enkele externe

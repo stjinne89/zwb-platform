@@ -64,6 +64,7 @@ import {
 import type { ZwiftEventMatch } from "@/lib/training/zwift-match";
 import type { PendingReview } from "./_components/workout-review-dialog";
 import {
+  lineForMap,
   loadOutdoorSuggestions,
   loadStartPoints,
 } from "@/lib/training/outdoor-suggestions";
@@ -1000,6 +1001,7 @@ export async function loadOutdoorSuggestionViews(
           summary: row.summary,
           windNote: row.wind_note,
           chosen: row.chosen_at !== null,
+          line: lineForMap(row.geometry),
         })),
       );
     }
