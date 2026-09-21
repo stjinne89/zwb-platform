@@ -100,4 +100,9 @@ describe("FTP-bron in de trainingsprompt", () => {
     expect(prompt).toContain("Gebruik intervalsLoad.eftp alleen als profile.ftpWatts ontbreekt");
     expect(prompt).not.toContain("Stem het wattage af op de eFTP");
   });
+
+  it("zet duurblokken op 65-75% FTP", async () => {
+    const { defaultTrainingPrompt } = await import("@/lib/training/workouts");
+    expect(defaultTrainingPrompt()).toContain("Duurblokken (intensity 'endurance') krijgen 65-75% FTP");
+  });
 });

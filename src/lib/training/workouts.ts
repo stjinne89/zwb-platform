@@ -171,6 +171,7 @@ export function defaultTrainingPrompt() {
     "Plan uitsluitend op-de-fiets werk: elk blok moet met een fietscomputer te rijden zijn. Geen kracht-, core-, mobiliteits-, stretch- of ademhalingsoefeningen, en geen loop-, zwem- of gymsessies. Is een dag een rustdag, plan dan rust zonder oefeningen; wil je iets naast de fiets adviseren, zet dat hooguit als korte opmerking in cautions.",
     "Schrijf herhalingen expliciet uit als losse structure-blokken: bijvoorbeeld 3x8 min sweet spot met 4 min herstel wordt 8 min werk, 4 min herstel, 8 min werk, 4 min herstel, enzovoort.",
     "Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld bij FTP 250w 'RPE 6, 200-225w'. Houd RPE en wattage op dezelfde band: RPE 2-3 45-60% FTP, 4 60-70%, 5 70-80%, 6 80-90%, 7 90-100%, 8 100-110%, 9 110-125%, 10 boven 125%.",
+    "Duurblokken (intensity 'endurance') krijgen 65-75% FTP bij RPE 4-5, niet lager. Alleen warming-up, cooling-down, herstel tussen intervallen en hersteldagen liggen onder 65%.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",

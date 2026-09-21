@@ -22,9 +22,9 @@ gaat stabiliteit voor nieuwe features.
    View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
    een echte telefoon.
 4. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
-   Nog open: echte zones naar de AI (de waarschijnlijke oorzaak van lage
-   wattages), FTP-historie, en naleving rond 105% bij blokkige workouts. Zie
-   "Bekende open dingen".
+   De lage wattages zijn aangepakt (duurblokken, 2026-09-21); na een paar weken
+   opnieuw meten. Nog open: FTP-historie, en naleving rond 105% bij blokkige
+   workouts. Zie "Bekende open dingen".
 5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
    testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
    Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
@@ -34,6 +34,28 @@ gaat stabiliteit voor nieuwe features.
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 ---
+
+> **Duurblokken op 65–75% FTP; echte zones bleken geen oplossing, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Vervolg op de eFTP-meting hieronder: waar komen de "structureel
+> te lage wattages" dan wel vandaan? Alleen-lezend en anoniem gemeten over ~5.600
+> blokken uit trainingen van de afgelopen 60 dagen (steekproef: de API geeft max.
+> 1.000 trainingen). Mediaan %FTP per intensiteit: herstel 50, **duur 63**
+> (p25–p75 59–66), tempo 84, drempel 100, VO2max 116, anaeroob 144. Alleen de
+> duurblokken zitten laag, onderin zone 2; de rest ligt midden in zijn band.
+> Waarschijnlijke oorzaak: duur krijgt meestal RPE 4, en de RPE-tabel zegt 60–70%.
+> **Echte zones meegeven (punt 2 van het open punt van 4 augustus) is bewust niet
+> gebouwd.** 10 van de 11 leden met zones in intervals.icu hebben de
+> standaardgrenzen 55/75/90/105/120/150, precies de banden die de AI al volgt;
+> één lid heeft 60/80. De terugval op `INTENSITY_FTP_RANGE` doet er ook
+> nauwelijks toe: 16 van de 5.645 blokken hadden geen getal.
+> **Nu (besluit eigenaar):** een promptregel zet duurblokken op 65–75% FTP bij
+> RPE 4–5; alleen warming-up, cooling-down, herstel tussen intervallen en
+> hersteldagen liggen lager. De RPE-tabel (`percentRangeForRpe`) en de UI-hints
+> blijven gelijk. Een promptregel raakt alleen nieuwe generaties en niet de hele
+> app. **Gevolg:** de geplande belasting van duurweken stijgt licht (TSS schaalt
+> kwadratisch met de intensiteit). Test in `training-targets.test.ts`.
+> **Niet geverifieerd:** of het model de regel volgt; dat blijkt pas uit nieuwe
+> schema's. Te herhalen met dezelfde meting (mediaan duur zou naar ~70% moeten).
 
 > **eFTP en ramp rate kwamen nooit binnen; profiel-FTP blijft leidend, 2026-09-21 — gebouwd, lokaal getest.**
 > Geen migratie. Bij het meten van "eFTP tegenover `profiles.ftp_watts`" (open
@@ -5795,7 +5817,9 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      besloten dat de profiel-FTP leidt; zie de ronde bovenaan. Dit punt is daarmee
      dicht. De achtergrondsync blijft ontbreken, maar de meting laat geen
      structureel te lage profiel-FTP zien.
-  2. **Echte zones gaan niet mee.** `profile_sport_settings.power_zones` (+ CP,
+  2. ~~**Echte zones gaan niet mee.**~~ **Gesloten 2026-09-21:** gemeten; 10 van
+     de 11 leden hebben de standaardzones, dus meegeven verandert niets. De lage
+     wattages zaten in de duurblokken; zie de ronde bovenaan. Oorspronkelijk: `profile_sport_settings.power_zones` (+ CP,
      W', LTHR) wordt gesynct maar alleen op `/zwbeter-worden/vermogen` gebruikt.
      De AI valt terug op de generieke banden in `INTENSITY_FTP_RANGE`
      (`src/lib/training/workouts.ts`), die conservatiever zijn dan wat leden van
