@@ -40,7 +40,7 @@ er op 21 september 2026 bewust toch voor.
 
 | Tabblad | gid | Inhoud |
 | --- | --- | --- |
-| Frames | `0` | 295 rijen: frame, testwielen, fietstype (Road, TT, Gravel, MTB, Halo, Funny, Handcycle, Recumbent), prijs, level, 183 cm, 75 kg, 150 of 300 W, dan per stage 0–5 de gemiddelde snelheid (mph) en het tijdverschil, eerst Tempus Fugit (kolom 8 + 2·stage), dan Alpe du Zwift (kolom 20 + 2·stage). Stage 0 en 5 zijn vrijwel altijd ingevuld, 1–4 ongeveer de helft. |
+| Frames | `173681512` | 295 rijen: frame, testwielen, fietstype (Road, TT, Gravel, MTB, Halo, Funny, Handcycle, Recumbent), prijs, level, 183 cm, 75 kg, 150 of 300 W, dan per stage 0–5 de gemiddelde snelheid (mph) en het tijdverschil, eerst Tempus Fugit (kolom 8 + 2·stage), dan Alpe du Zwift (kolom 20 + 2·stage). Stage 0 en 5 zijn vrijwel altijd ingevuld, 1–4 ongeveer de helft. |
 | Wielen | `1966597556` | 214 rijen: wielset gemeten op Zwift Carbon, Zwift TT of Zwift Gravel, bij 150 en 300 W. |
 | Basis | `226321014` | Zwift Carbon + Zwift 32mm Carbon en Zwift TT, met de opmerking dat sinds juni 2026 alles 2 s trager is op het vlak. |
 

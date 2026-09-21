@@ -92,6 +92,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0178`
 > - Fietsen: `bike-sheet.ts` (puur) en `bike-sync.ts`, knop "Fietsen ophalen" op
 >   `/beheer/zwift-routes`. 993 onderdelen (frames per upgradeniveau, wielen per
 >   testframe). Een verboden tijdritfiets valt terug op de referentiefiets.
+>   *Gerepareerd na de push (2026-09-21):* de knop gaf "De sheet gaf status
+>   400". Het framestabblad heeft gid `173681512`, niet `0`; in de spike was
+>   dat tabblad zonder gid opgehaald. Nagetrokken tegen de echte sheet met een
+>   nep-database: 847 frame-varianten en 146 wielsets, allemaal een unieke
+>   sleutel, referentie CdA 0,3191 en 2,42 kg zoals in `zwift-setup.ts`.
 > - Opslag zonder planmigratie: de keuzes in `assumptions.setup`, een
 >   vingerafdruk van de fysica in `assumptions.rideKey`. Een Zwift-plan van vóór
 >   vandaag is één keer verouderd (`StaleReason` "opzet"), net als bij de

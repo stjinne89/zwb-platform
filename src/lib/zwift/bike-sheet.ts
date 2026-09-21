@@ -23,7 +23,7 @@ import type { BikeKind, BikePart } from "@/lib/pacing/zwift-setup";
 export const BIKE_SHEET_ID = "1S0pTN_hBMddX0GhCqSOd6fPlIJeWtw0xr6Y1M6PzNJY";
 /** Tabbladen van de sheet (gid), vastgesteld op 21 september 2026. */
 export const BIKE_SHEET_TABS = {
-  frames: "0",
+  frames: "173681512",
   wheels: "1966597556",
   baseline: "226321014",
 } as const;
