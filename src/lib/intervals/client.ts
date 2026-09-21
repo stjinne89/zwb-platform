@@ -141,7 +141,35 @@ export type IntervalsWellness = {
   stress?: number | null;
   soreness?: number | null;
   mood?: number | null;
+  /** Ruwe API-vorm: eFTP staat per sport, niet op de rij zelf. */
+  sportInfo?: { type?: string; eftp?: number | null }[] | null;
+  rampRate?: number;
+  ctlLoad?: number;
+  atlLoad?: number;
 };
+
+/**
+ * intervals.icu geeft camelCase (`rampRate`) en de eFTP per sport in `sportInfo`;
+ * de rest van de code leest `ramp_rate` en `eftp` op de rij. Dat verschil maakte
+ * eFTP en ramp rate overal stil `null` (vastgesteld 2026-09-21). Voor de eFTP
+ * telt `Ride`, anders de hoogste van een andere fietssport.
+ */
+export function normalizeIntervalsWellness(row: IntervalsWellness): IntervalsWellness {
+  const sports = row.sportInfo ?? [];
+  const ride = sports.find((s) => s.type === "Ride" && s.eftp)?.eftp;
+  const otherCycling = sports
+    .filter((s) => s.type?.includes("Ride") && s.eftp)
+    .map((s) => s.eftp as number);
+  const eftp =
+    row.eftp ?? ride ?? (otherCycling.length ? Math.max(...otherCycling) : undefined);
+  return {
+    ...row,
+    eftp: eftp ?? undefined,
+    ramp_rate: row.ramp_rate ?? row.rampRate,
+    ctl_load: row.ctl_load ?? row.ctlLoad,
+    atl_load: row.atl_load ?? row.atlLoad,
+  };
+}
 
 export type IntervalsEvent = {
   id: number | string;
@@ -210,10 +238,11 @@ export async function fetchIntervalsWellness(
   start.setDate(start.getDate() - days);
   const oldest = start.toISOString().slice(0, 10);
   const newest = end.toISOString().slice(0, 10);
-  return intervalsFetch<IntervalsWellness[]>(
+  const rows = await intervalsFetch<IntervalsWellness[]>(
     apiKey,
     `/api/v1/athlete/${athleteId}/wellness?oldest=${oldest}&newest=${newest}`,
   );
+  return rows.map(normalizeIntervalsWellness);
 }
 
 /** Activiteiten van de laatste N dagen, oldest first. */

@@ -86,6 +86,29 @@ export function evaluateStravaWebhook(
     : { source, ok: true, detail: `laatste event ${hours}u geleden` };
 }
 
+/**
+ * Lukt de resultatensync zelf? Bereikbaarheid van de site zegt daar niets over:
+ * WTRL gaf sinds juni 401 op een verlopen cookie terwijl de homepage gewoon 200
+ * bleef geven. De sync schrijft per bron `last_error`; die is hier de maat.
+ */
+export function evaluateTeamResultSync(
+  source: string,
+  rows: { last_error: string | null; last_synced_at: string | null }[],
+): HealthCheckResult {
+  if (rows.length === 0) {
+    return { source, ok: true, detail: "geen actieve bronnen" };
+  }
+  const failing = rows.filter((row) => row.last_error);
+  if (failing.length > 0) {
+    const first = (failing[0].last_error ?? "").slice(0, 120);
+    return { source, ok: false, detail: `${failing.length} van ${rows.length} bronnen falen: ${first}` };
+  }
+  const synced = rows.filter((row) => row.last_synced_at).length;
+  return synced === 0
+    ? { source, ok: true, detail: `${rows.length} bronnen, nog niet gesynchroniseerd` }
+    : { source, ok: true, detail: `${rows.length} bronnen zonder fout` };
+}
+
 export function evaluateEnvPresent(
   source: string,
   present: boolean,
@@ -151,6 +174,22 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
       if (!configured) return evaluateReachable("wtrl", 0, false);
       const res = await withTimeout("https://www.wtrl.racing/");
       return evaluateReachable("wtrl", res.status);
+    }),
+    ...(["wtrl", "club_ladder"] as const).map((provider) => {
+      const source = provider === "wtrl" ? "wtrl_sync" : "ladder_sync";
+      return guard(source, async () => {
+        const { createAdminClient } = await import("@/lib/supabase/admin");
+        const { data, error } = await createAdminClient()
+          .from("team_result_sources")
+          .select("last_error, last_synced_at")
+          .eq("provider", provider)
+          .eq("enabled", true);
+        if (error) return { source, ok: false, detail: error.message };
+        return evaluateTeamResultSync(
+          source,
+          (data ?? []) as { last_error: string | null; last_synced_at: string | null }[],
+        );
+      });
     }),
     guard("openai", async () =>
       evaluateEnvPresent("openai", Boolean(process.env.OPENAI_API_KEY)),

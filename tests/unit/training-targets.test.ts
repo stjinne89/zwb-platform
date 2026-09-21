@@ -78,3 +78,31 @@ describe("targetHint", () => {
     expect(targetHint({ ftpWatts: null, intensity: "endurance", target: "65%" })).toBeNull();
   });
 });
+
+describe("RPE-banden in de trainingsprompt", () => {
+  it("noemt per RPE dezelfde %FTP-band als percentRangeForRpe", async () => {
+    const { defaultTrainingPrompt } = await import("@/lib/training/workouts");
+    const prompt = defaultTrainingPrompt();
+    for (const rpe of [4, 5, 6, 7, 8, 9]) {
+      const [low, high] = percentRangeForRpe(rpe)!;
+      expect(prompt).toContain(`${rpe} ${low}-${high}%`);
+    }
+    const [low, high] = percentRangeForRpe(6)!;
+    expect(prompt).toContain(`FTP 250w 'RPE 6, ${(250 * low) / 100}-${(250 * high) / 100}w'`);
+  });
+});
+
+describe("FTP-bron in de trainingsprompt", () => {
+  it("laat de profiel-FTP leiden en gebruikt eFTP alleen als terugval", async () => {
+    const { defaultTrainingPrompt } = await import("@/lib/training/workouts");
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Reken wattages met profile.ftpWatts");
+    expect(prompt).toContain("Gebruik intervalsLoad.eftp alleen als profile.ftpWatts ontbreekt");
+    expect(prompt).not.toContain("Stem het wattage af op de eFTP");
+  });
+
+  it("zet duurblokken op 65-75% FTP", async () => {
+    const { defaultTrainingPrompt } = await import("@/lib/training/workouts");
+    expect(defaultTrainingPrompt()).toContain("Duurblokken (intensity 'endurance') krijgen 65-75% FTP");
+  });
+});

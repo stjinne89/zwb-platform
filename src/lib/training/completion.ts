@@ -40,6 +40,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { amsterdamDayKey, computeZwbStatus } from "@/lib/training/zwbeterworden";
+import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -348,7 +349,8 @@ export async function releaseDeletedRides(
 }
 
 type SnapshotContext = {
-  ftpWatts: number | null;
+  /** FTP op de dag van de training (0175): gepland en gereden met dezelfde FTP. */
+  ftpAt: FtpAt;
   weightKg: number | null;
   wellness: IntervalsWellness[];
   readiness: { score: number | null; level: number | null; title: string | null };
@@ -378,8 +380,9 @@ async function loadSnapshotContext(admin: Admin, profileId: string): Promise<Sna
     sex: profile?.sex ?? null,
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
+  const currentFtp = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
   return {
-    ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ftpAt: await loadFtpAt(admin, profileId, currentFtp),
     weightKg: profile?.weight_kg == null ? null : Number(profile.weight_kg),
     wellness,
     readiness: {
@@ -462,7 +465,7 @@ export async function detectCompletedWorkouts(
   }
   if (rides.length === 0) return empty;
 
-  const { ftpWatts, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
+  const { ftpAt, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
 
   // Ook koppelingen van workouts buiten het venster: een rit die het lid aan de
   // training van een eerdere dag heeft gehangen, mag de training van de ritdag
@@ -502,7 +505,7 @@ export async function detectCompletedWorkouts(
     const metrics = buildMetricsSnapshot({
       workout,
       ride: match,
-      ftpWatts,
+      ftpWatts: ftpAt(dayKey),
       weightKg,
       ctl: ctlAround(wellness, dayKey),
       readiness,
@@ -884,7 +887,11 @@ export async function relinkRide(
       .eq("id", profileId)
       .maybeSingle();
     context = {
-      ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+      ftpAt: await loadFtpAt(
+        admin,
+        profileId,
+        profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+      ),
       // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
       weightKg:
         previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
@@ -904,7 +911,7 @@ export async function relinkRide(
     ...buildMetricsSnapshot({
       workout: targetRow,
       ride: rideRow,
-      ftpWatts: context.ftpWatts,
+      ftpWatts: context.ftpAt(rideDayKey),
       weightKg: context.weightKg,
       ctl: previous.plannedTitle
         ? { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null }

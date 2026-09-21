@@ -8,6 +8,7 @@ import {
   type StravaRideRow,
 } from "@/lib/training/ride-metrics";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 
 /** Hoeveel dagen vóór gisteren een niet-gereden training nog meetelt als "net gemist". */
 export const RECENTLY_MISSED_DAYS = 3;
@@ -77,7 +78,8 @@ export function yesterdayContextFrom(input: {
   workouts: WorkoutRow[];
   rides: StravaRideRow[];
   pairings: PairingRow[];
-  ftpWatts: number | null;
+  /** Vaste FTP, of de FTP op de ritdag (0175). */
+  ftpWatts: number | null | FtpAt;
 }): YesterdayContext | null {
   const { yesterdayKey, ftpWatts } = input;
   const dayOf = (iso: string) => amsterdamDayKey(new Date(iso));
@@ -282,11 +284,12 @@ export async function buildYesterdayContext(
     workoutRows.push(...((extra ?? []) as WorkoutRow[]));
   }
 
+  const currentFtp = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
   return yesterdayContextFrom({
     yesterdayKey,
     workouts: workoutRows,
     rides: rideRows,
     pairings: [...pairings.values()],
-    ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ftpWatts: await loadFtpAt(admin, profileId, currentFtp),
   });
 }

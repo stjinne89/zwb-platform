@@ -1,5 +1,50 @@
 # ZWB Platform — Plan & Status
 
+## Actieve volgorde (bijgewerkt 2026-09-21)
+
+Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
+dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
+[gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
+gaat stabiliteit voor nieuwe features.
+
+1. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
+   en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
+   vastzetten. De beheerketen één keer met de hand doorklikken. Details:
+   [Omnium-status](docs/omnium-readiness-2026-09-15.md).
+2. **Handwerk op productie.** Een verse `WTRL_COOKIE` in Netlify. De cron van
+   `/api/strava/sync` op 1x per dag, een week meten, dan opnieuw indienen bij
+   Strava (`docs/strava-api-resubmission.md`, via het formulier en niet als
+   reply op de afwijzing). De Zwift-routebibliotheek één keer volledig opnieuw
+   ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
+3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
+   `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
+   met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
+   View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
+   een echte telefoon.
+4. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
+   De lage wattages (duurblokken) en de FTP-historie zijn aangepakt
+   (2026-09-21): `0175` toepassen, en na een paar weken de duurmeting herhalen.
+   Nog open: naleving rond 105% bij blokkige workouts. Zie "Bekende open dingen".
+5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
+   testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
+   Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
+   en hoe ronden we de achievementkwaliteit af (verborgen proxy- en
+   future-badges, de handmatige flow)?
+
+Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
+
+**Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
+`0172` en `0173` bestaan elk twee keer. De ZRL-teamfixes
+(`0172_drop_zrl_category_team_seed`, `0173_restore_roster_team_assignment_source`)
+en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
+`0173_outdoor_route_suggestions`) zijn los van elkaar op verschillende branches
+genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
+Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
+productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`.
+
+---
+
 > **Windweging en omwegfactor bijgesteld op echte rondjes, 2026-09-21 — gebouwd, lokaal getest.**
 > Implementatiecommit `5dd7cfd`. Geen migratie.
 > De eerste echte buitenrondjes lieten twee dingen zien die niet klopten. De
@@ -356,6 +401,181 @@
 > beslissing, want dit platform bewaarde tot nu toe bewust géén start- of eindlocatie
 > (zie `0111_zwblokken.sql`).
 
+> **FTP-historie: een rit rekent met de FTP van zijn dag, 2026-09-21 — gebouwd, lokaal getest.**
+> Migratie `0175_profile_ftp_history.sql` (nog niet toegepast). Open punt van
+> 20 augustus: TSS en IF van elke rit werden met de húídige `profiles.ftp_watts`
+> berekend. **Eerst gemeten** (alleen-lezend, anoniem): de FTP-instelling in
+> intervals veranderde sinds april bij maar 2 van de 8 leden, en er zijn 3
+> FTP-tests. Het grootste TSS-verschil met intervals is dus een vást verschil
+> tussen profiel-FTP en intervals-FTP (5–10%, bij één lid 192 tegen 125). Dat is
+> geen historieprobleem, maar volgt uit het besluit dat de profiel-FTP leidt.
+> Waarom het tóch nu: sinds de FTP-test in het schema zit, schaalt elke
+> testuitslag de belasting van het hele verleden mee. +5% FTP is ~10% minder TSS
+> met terugwerkende kracht, en de weekgrafiek en de naleving verschuiven mee.
+> **Nu:** tabel `profile_ftp_history` (`profile_id`, `effective_from`,
+> `ftp_watts`), gevuld door één trigger op `profiles.ftp_watts`. Zo tellen alle
+> schrijfpaden mee (testuitslag, correctie, intervals-sync, handmatig) zonder
+> dat code ze apart moet melden. De startwaarde is per lid de huidige FTP vanaf
+> 1900-01-01. Bij het toepassen verschuift er dus niets; pas een volgende
+> wijziging splitst het verleden. Lezen: het lid en zijn trainers
+> (`current_user_can_train_profile`), schrijven alleen de trigger.
+> `src/lib/training/ftp-history.ts` zoekt de FTP op de Amsterdamse ritdag op,
+> en `rideMetricsFromStrava` accepteert naast een getal nu zo'n resolver. Alle
+> zeven rekenplekken zijn aangesloten: de belastingpagina, de coachdata, de
+> naleving, de voltooiing (momentopname en koppelen), ongeplande ritten, de
+> context van gisteren en de rit-samenvatting naar Strava. Waar gepland en
+> gereden naast elkaar staan, gebruiken beide de FTP van die dag. Een fout bij
+> het laden (ook: `0175` nog niet toegepast) valt stil terug op de huidige FTP,
+> zoals voorheen. Uitleg in één zin op `/hulp`.
+> **Bewust niet gebouwd:** (1) Het verleden vullen uit `intervals_activities.ftp_watts`:
+> dat zou oude ritten met de intervals-FTP laten rekenen en nieuwe met de
+> profiel-FTP, twee bronnen door elkaar (besluit eigenaar). (2) De testdatum als
+> ingangsdatum: de trigger gebruikt de dag van de wijziging. Wie een test pas
+> dagen later invult, rekent de ritten daartussen nog met de oude FTP. Dat is
+> klein en houdt één bron. (3) De geplande belasting van toekomstige trainingen
+> blijft de huidige FTP gebruiken, en dat is correct.
+> Getest: `tests/unit/ftp-history.test.ts` (11: opzoeken, ritdag in Amsterdam,
+> `rideLoadRows`, en tegen PGlite de migratie met startwaarde, trigger, "laatste
+> van de dag", null en RLS). TypeScript, ESLint, de volledige suite (1.355) en de
+> productiebuild met placeholder-variabelen. **Niet lokaal te verifiëren:** `0175`
+> tegen productie, en de grafieken met echte data na een volgende FTP-wijziging.
+
+> **Duurblokken op 65–75% FTP; echte zones bleken geen oplossing, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Vervolg op de eFTP-meting hieronder: waar komen de "structureel
+> te lage wattages" dan wel vandaan? Alleen-lezend en anoniem gemeten over ~5.600
+> blokken uit trainingen van de afgelopen 60 dagen (steekproef: de API geeft max.
+> 1.000 trainingen). Mediaan %FTP per intensiteit: herstel 50, **duur 63**
+> (p25–p75 59–66), tempo 84, drempel 100, VO2max 116, anaeroob 144. Alleen de
+> duurblokken zitten laag, onderin zone 2; de rest ligt midden in zijn band.
+> Waarschijnlijke oorzaak: duur krijgt meestal RPE 4, en de RPE-tabel zegt 60–70%.
+> **Echte zones meegeven (punt 2 van het open punt van 4 augustus) is bewust niet
+> gebouwd.** 10 van de 11 leden met zones in intervals.icu hebben de
+> standaardgrenzen 55/75/90/105/120/150, precies de banden die de AI al volgt;
+> één lid heeft 60/80. De terugval op `INTENSITY_FTP_RANGE` doet er ook
+> nauwelijks toe: 16 van de 5.645 blokken hadden geen getal.
+> **Nu (besluit eigenaar):** een promptregel zet duurblokken op 65–75% FTP bij
+> RPE 4–5; alleen warming-up, cooling-down, herstel tussen intervallen en
+> hersteldagen liggen lager. De RPE-tabel (`percentRangeForRpe`) en de UI-hints
+> blijven gelijk. Een promptregel raakt alleen nieuwe generaties en niet de hele
+> app. **Gevolg:** de geplande belasting van duurweken stijgt licht (TSS schaalt
+> kwadratisch met de intensiteit). Test in `training-targets.test.ts`.
+> **Niet geverifieerd:** of het model de regel volgt; dat blijkt pas uit nieuwe
+> schema's. Te herhalen met dezelfde meting (mediaan duur zou naar ~70% moeten).
+
+> **eFTP en ramp rate kwamen nooit binnen; profiel-FTP blijft leidend, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Bij het meten van "eFTP tegenover `profiles.ftp_watts`" (open
+> punt van 4 augustus) bleek de eFTP bij alle zeven leden met een schema leeg.
+> Oorzaak: intervals.icu geeft de eFTP per sport in `sportInfo[].eftp` en de ramp
+> rate als `rampRate`, terwijl de code `eftp` en `ramp_rate` op de wellness-rij
+> las. Daardoor waren de eFTP voor de AI, de eFTP-trend op `/zwbeter-worden`, de
+> eFTP in de coachdata en de ramp rate overal stil `null`. De promptregels over
+> ramp rate en eFTP deden dus nooit iets. **Nu:** `normalizeIntervalsWellness()`
+> in `src/lib/intervals/client.ts` zet elke rij in `fetchIntervalsWellness` om
+> (eFTP van `Ride`, anders de hoogste andere fietssport). Het is het enige pad
+> naar dat endpoint.
+> **Meting** (alleen-lezend, met toestemming van de eigenaar; ook intervals.icu
+> met de sleutels van de leden): profiel-FTP tegenover eFTP was −8, −3, +1, +12,
+> −5 en −10%, en één lid heeft geen profiel-FTP. De profiel-FTP ligt dus meestal
+> *boven* de eFTP. De klacht "wattages structureel te laag" komt daarom niet uit
+> de FTP-bron, maar waarschijnlijk uit de vaste zonebanden (punt 2 van dat open
+> punt).
+> **Besluit eigenaar:** de profiel-FTP blijft leidend (een testuitslag zit daar
+> al in). De eFTP is alleen terugval als het profiel leeg is. Bij meer dan 5%
+> verschil noemt de AI dat in de cautions, zonder de wattages aan te passen. De
+> oude promptregel "stem af op de eFTP" had bij vier leden de wattages 3–10%
+> verlaagd en een recente FTP-test overschreven. Tegelijk is het RPE-voorbeeld in
+> de prompt rechtgezet (`5ff1076`).
+> **Gevolg om op te letten:** de ramp rate bereikt de AI nu wél. De bestaande
+> regels ("bij hoge ramp_rate matig je de opbouw") gaan dus voor het eerst werken.
+> Tests: `intervals-wellness-normalize.test.ts` (2, met de echte veldvorm) en 2
+> prompttests in `training-targets.test.ts`; TypeScript, ESLint en de volledige
+> suite (1.342 tests). **Niet geverifieerd:** een echte AI-generatie met de nieuwe
+> invoer, en de eFTP-trend in de browser.
+
+> **Health-check kijkt of de WTRL-sync echt lukt, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Uit de gebruiksanalyse van 17 september: de WTRL-resultatensync
+> faalt sinds 3 juni met HTTP 401, terwijl `integration_health` 306 keer ok meldde.
+> De probe `wtrl` vroeg alleen de homepage op. De oorzaak is een verlopen
+> `WTRL_COOKIE` en niet de ontbrekende kolom uit `0173`: die zou een
+> databasefout geven, geen 401. **Nu:** twee extra bronnen, `wtrl_sync` en
+> `ladder_sync` (`evaluateTeamResultSync` in `src/lib/health/checks.ts`). Die
+> lezen `last_error` van de actieve `team_result_sources` en worden rood zodra er
+> één bron faalt, met de fouttekst erbij. Omdat ze nieuw zijn, gaat bij de
+> eerste run meteen een push naar de beheerders. De bereikbaarheidsprobes
+> blijven staan. Uitleg in `docs/runbook.md` §5.
+> **Bewust niet gebouwd:** een drempel op ouderdom (`last_synced_at`). Hoe vaak
+> de sync hoort te draaien staat nergens vast, en een verkeerde drempel geeft
+> valse alarmen. **Nog te doen door de eigenaar:** een verse `WTRL_COOKIE` in
+> Netlify zetten (runbook §3) en daarna Resultaten synchroniseren op `/teams`.
+> Getest: 2 nieuwe unit-tests, TypeScript en ESLint. **Niet lokaal te
+> verifiëren:** de echte stand van `team_result_sources` in productie en of een
+> nieuwe cookie de 401 oplost.
+
+> **Omnium-beheer zag het eigen conceptseizoen niet, 2026-09-21 — gebouwd, lokaal getest.**
+> Migratie `0174_omnium_manage_read_drafts.sql` (nog niet toegepast). Melding van
+> de eigenaar tijdens de doorloop van PLAN.md: "het Omnium laadt het seizoen
+> niet". Op productie (alleen-lezend gecontroleerd) staat seizoen `2026-27`
+> gewoon, maar met `published_at` leeg en 0 edities. `/beheer/omnium`,
+> `[editie]` en `[editie]/uitslagen` lezen met de RLS-client, en de leespolicies
+> uit `0126`/`0128` geven ook aan ingelogde leden alleen gepubliceerde rijen vrij.
+> De beheerder zag dus "Maak eerst een seizoen aan", en opnieuw aanmaken
+> hergebruikte stil het bestaande seizoen (sinds `e1c3474`) dat daarna net zo
+> onzichtbaar bleef. Plannen of publiceren kon nergens, want die knoppen staan
+> op diezelfde pagina.
+> **Nu:** `0174` voegt per tabel een alleen-lezende policy toe voor
+> `current_user_has_permission('omnium.manage')` op seizoenen, edities,
+> onderdelen, uitslagen en beide standen. Die komt náást de publieke policy.
+> Schrijven blijft service-role-only via de serveracties, en `omnium_kit_codes`
+> krijgt bewust niets. De beheerpagina logt voortaan een mislukte
+> seizoensquery in plaats van hem als "geen seizoenen" te tonen.
+> **Bewust niet gekozen:** de drie pagina's met `createAdminClient()` laten
+> lezen, zoals `prijzen` en `renners` al doen. Dat werkt zonder migratie, maar
+> zet de pagina buiten RLS. De eigenaar koos voor de policy.
+> **Tot `0174` is toegepast** blijft het beheerscherm leeg. Toepassen is dus de
+> eerste stap voor editie 1 (11 oktober).
+> Getest: `tests/unit/omnium-manage-read.test.ts` (4 tests tegen PGlite, met de
+> productiestand van een ongepubliceerd seizoen). Zonder `0174` zakt de
+> beheerderstest, erna slagen alle vier. Daarnaast TypeScript, ESLint en de
+> volledige suite (1.337 tests; `omnium-live.test.ts` laadt zonder `.env.local`
+> niet, dat is onveranderd). **Niet lokaal te verifiëren:** de migratie tegen
+> productie en het scherm met een echte beheerderssessie.
+>
+> **Productiestand bevestigd door de eigenaar (2026-09-21):** `0168`/`0169`
+> (voeding) en `0171`–`0173` (ZRL-teams) zijn toegepast. Bart heeft zijn
+> ZRL-prikkel zelf opgeruimd en het lid met de 31 events heeft opnieuw
+> gepubliceerd. Nog open: de cron van `/api/strava/sync` op 1x per dag zetten
+> (zie `docs/strava-api-resubmission.md`).
+
+> **Branches opgeruimd, losse eindjes naar main, 2026-09-19 — alleen git en een testregel.**
+> Geen migratie van deze ronde zelf. Alle lokale en remote branches en worktrees
+> zijn tegen `origin/main` gelegd. Wat nog niet op main stond is erbij gekomen:
+> de advies-geslachtfix (`0a86b3b`, zie hieronder), de ZRL-teamfixes met
+> migraties `0172`/`0173` (merge van `claude/zrl-team-member-auto-add-3jznu4`),
+> de gebruiksanalyse van 17 september (stond ongecommit in een worktree) en de
+> e2e-smoketest van `/verhaal`, die nog op de oude kop "Van prototype naar echte
+> story" wachtte; de pagina heet sinds de verhaalronde "Eerst gewoon rijden".
+> **Bewust weggegooid:** `claude/duplicate-trainings-jeroen-janssen-vyudzy`
+> (19 aug, filter `withoutConceptDuplicates` en losser opruimen bij publiceren).
+> Het dubbele-trainingsprobleem is op 2026-08-25 langs een andere weg opgelost
+> (zie "dubbele trainingen: de race tussen twee publicaties"); die branch is
+> nooit gemerged en zou er nu naast komen te staan. Alle overige branches waren
+> al volledig (of patch-gelijk) op main. `0172` en `0173` zijn inmiddels met de
+> hand op productie toegepast (bevestigd door de eigenaar, 2026-09-21).
+
+> **Gebruiksanalyse voor het bestuur, 2026-09-17 — alleen analyse, geen code.**
+> Geen migratie. Alleen-lezende, geaggregeerde tellingen op productie. Kern:
+> 18 van 35 accounts actief in 30 dagen (14 met eigen actie), aanwas gestopt
+> (sep 0, juli-cohort 2/12 actief). Wat leeft draait automatisch op ritdata;
+> ZWBeter Worden is diep maar smal (7 leden met schema, ~25% van de code).
+> Vraag en Aanbod, Ritverslagen, Verjaardagen-sociaal, teamresultaten/TTT/
+> opstellingen, klachtenlogboek en onderhoud-slijtdelen hebben 0–1 gebruiker.
+> Bijvangst: de WTRL-resultatensync faalt sinds 3 juni terwijl de health-check
+> ok meldt, en AI-tokengebruik van trainingsgeneraties wordt niet gelogd.
+> Bewust niet gemeten: paginabezoek (bestaat niet) en inloggen per lid. Er is
+> nog niets verwijderd; de voorstellen (featurepauze, menu opschonen, keuze over
+> ZWBeter Worden, Omnium-deadline) liggen bij het bestuur.
+> Details: [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md).
+
 > **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.**
 > Implementatiecommit `6675ba7`. Geen migratie; spelversie 3 (lopende races vervallen,
 > uitslagen blijven). Verzoek van de eigenaar: horizontaal spelen op mobiel,
@@ -372,6 +592,88 @@
 > parcoursen). Kopwerk bestaat niet meer als aparte keuze voor de speler; Naar voren
 > dekt het. **Niet gemeten:** speelgevoel en fps op een echte telefoon, en draaien
 > naar liggend op iOS. Details: [ZWBgame](docs/zwbgame.md).
+
+> **0172 viel om op productie: 0070 was daar maar half toegepast, 2026-09-19 — gebouwd, lokaal getest.**
+> Implementatiecommit `2c0ebfa`, migraties `0172` (aangepast, nog niet
+> toegepast) en `0173_restore_roster_team_assignment_source.sql`. Bij het toepassen van `0172`
+> kwam `ERROR: 42703: column r.team_assignment_source does not exist`. De regel
+> ervóór — het opruimen van lidmaatschappen met herkomst `auto_zrl_category` —
+> liep wél, dus `team_members.assignment_source` bestaat daar gewoon. Van
+> dezelfde migratie `0070` ontbreekt alleen de kolom op `roster_entries`.
+> **Wat dat verklaart.** plpgsql zoekt kolomnamen pas op bij uitvoering, dus
+> `sync_zrl_parent_roster_entries()` kon daar nooit draaien: geen enkele
+> rosternaam is er ooit op categorie bij een team gezet, en er viel dus ook niets
+> op te ruimen. Vervelender is de andere kant: `saveRosterEntries()` in
+> `src/lib/team-results/sync.ts` schrijft `team_assignment_source` op élke naam
+> die de WTRL-sync binnenhaalt en gooit bij een fout de hele sync om. Het
+> bijwerken van rosters is daar dus nooit gelukt, en de knop Resultaten
+> synchroniseren liep ook nog stuk op de RPC naar diezelfde functie. Twee stille
+> storingen die niemand aan deze kolom had gekoppeld.
+> **`0172` is aangepast** (hij was nog niet toegepast, dus dat mag): de herkomst
+> van het team van een rosternaam komt nu uit `roster_entry_team_source()`, die de
+> kolom via `execute` leest en `undefined_column` opvangt — bestaat de kolom niet,
+> dan heeft niets ooit op categorie ingedeeld en is null het juiste antwoord. Het
+> opruimen van omgeleide `roster_claim`-rijen draait alleen als de kolom bestaat.
+> En `sync_zrl_parent_roster_entries()` is alsnog verwijderd, met de aanroep in
+> `syncResultsNow()` en de tekst onder de knop erbij: hij is dezelfde gok op
+> niveau, hij werkte in de praktijk niet, en zijn fout blokkeerde de resultaten.
+> Rosternamen krijgen hun team voortaan alleen van de WTRL-sync.
+> **`0173` zet de ontbrekende kolom terug**, met default `manual` in plaats van
+> `auto_zrl_category` (die indeling bestaat niet meer), zodat de rostersync weer
+> kan schrijven. Waar de kolom al bestaat verandert er niets aan de gegevens.
+> Volgorde maakt niet uit, beide zijn idempotent en opnieuw te draaien.
+> **Niet lokaal te verifiëren:** waaróm die ene kolom ontbreekt — de migraties
+> gaan daar met de hand — en of er uit oudere migraties nog meer ontbreekt. Dat
+> laatste is met één query te zien: controleer of `profiles.zrl_division`,
+> `team_members.assignment_source`, `roster_entries.team_assignment_source` en de
+> tabel `team_member_seed_overrides` bestaan; dat zijn de vier dingen die `0070`
+> neerzet en waar `0171`, `0172` en de teamsync op leunen. Wel getest: 31 tests
+> tegen PGlite over drie bestanden, waaronder
+> `tests/unit/zrl-team-seed-partial-0070.test.ts`, dat `0070` draait en daarna die
+> kolom laat vallen. Het oude `0172` zakt op alle vijf die tests, het nieuwe komt
+> er doorheen.
+
+> **Je ingeschaalde categorie maakt je geen teamlid meer, 2026-09-19 — gebouwd, lokaal getest.**
+> Implementatiecommit `c19b8be`, migratie `0172_drop_zrl_category_team_seed.sql`.
+> Melding van de eigenaar: er stonden Zwiftladies in ZRL B. Oorzaak is de automatische indeling uit `0070`,
+> niet de aanmeldregel van gisteren: die zette elk goedgekeurd lid met categorie
+> A, B of C in `ZRL <categorie>`, tenzij `profiles.zrl_division` op `women` stond.
+> Die divisie werd alleen gevuld als de tekst "zwiftladies" ergens in een
+> roster- of teamnaam voorkwam, dus bij elke vrouw waar die tekst ontbrak won haar
+> categorie en kwam ze in ZRL B.
+> **De regel is nu:** lid van een ZRL-team word je door je aan te melden voor een
+> race van dat team (`0171`), door je rosternaam te claimen van een team dat WTRL
+> echt zo kent, of doordat een teambeheerder je toevoegt. Een categorie zegt hoe
+> hard je rijdt, niet voor wie.
+> **Drie paden voegden op categorie toe, alle drie eruit:** de trigger op
+> `profiles` (bij elke wijziging van categorie, divisie of goedkeuring), de knop
+> Resultaten synchroniseren op `/teams` (RPC `sync_all_zrl_parent_team_memberships`,
+> nu weg uit `syncResultsNow()` en uit de tekst onder de knop), en het claimen van
+> een rosternaam — dat riep dezelfde sync aan én nam het team van de rosternaam
+> over, terwijl `sync_zrl_parent_roster_entries()` dat team zelf ook al op
+> `pace_category` kan hebben gezet. `claim_roster_entry()` neemt dat team nu alleen
+> over als het níét op categorie is ingedeeld. De functies
+> `sync_zrl_parent_team_membership()`, `sync_all_zrl_parent_team_memberships()` en
+> `handle_zrl_parent_team_seed()` zijn verwijderd en `auto_zrl_category` is uit de
+> check op `team_members.assignment_source` gehaald, zodat geen enkel pad hem stil
+> terug kan zetten.
+> **Opruiming, en wat er niet bij mag sneuvelen:** alle lidmaatschappen met
+> herkomst `auto_zrl_category` gaan eruit, plus de `roster_claim`-rijen waarvan de
+> geclaimde rosternaam zelf op categorie bij dat team was gezet. Daarna draait de
+> inhaalslag van `0171` opnieuw, dus wie zich heeft aangemeld voor een race die nog
+> gereden moet worden, staat er meteen weer in — de opruiming kan niemand kwijtraken
+> die zich gewoon had aangemeld.
+> **Bewust niet aangeraakt:** `zrl_division` blijft staan: die labelt leden, hij
+> deelt ze niet meer in. (`sync_zrl_parent_roster_entries()` bleef in deze ronde
+> óók staan — dat is nog dezelfde dag teruggedraaid, zie de ronde hierboven: die
+> functie is alsnog verwijderd.) En er is geen automatische herindeling
+> teruggebouwd in een andere vorm — dat is precies wat niet de bedoeling was.
+> **Niet lokaal te verifiëren:** de migratie tegen de productiedatabase (geen
+> Docker of Supabase hier; met de hand toepassen) en hoeveel lidmaatschappen de
+> opruiming daar raakt — die telling is hier niet te zien. Wel getest: 13 tests
+> tegen PGlite (`tests/unit/zrl-team-membership-sources.test.ts`) die eerst met de
+> échte `0070` de melding naspelen (Zwiftlady met categorie B belandt in ZRL B) en
+> daarna `0171` + `0172` draaien, plus TypeScript, ESLint en de build.
 
 > **Aanmelden voor een ZRL-race maakt je lid van dat team, 2026-09-18 — gebouwd, lokaal getest.**
 > Implementatiecommit `aab17ad`, migratie `0171_zrl_availability_team_join.sql`.
@@ -390,7 +692,8 @@
 > schrijfpaden naar dezelfde bedoeling, en een lid mag `team_members` niet zelf
 > schrijven (RLS laat alleen beheer toe). De herkomst is een nieuwe
 > `assignment_source`-waarde `event_availability`, zodat de categorie-sync uit `0070`
-> — die alleen `auto_zrl_category` opruimt — deze lidmaatschappen laat staan. Het
+> — die alleen `auto_zrl_category` opruimde — deze lidmaatschappen liet staan. (Die
+> sync bestaat sinds `0172` niet meer; zie de ronde hierboven.) Het
 > team is dat van de ráce, niet dat van de pagina waar je stond: een hoofdteam toont
 > ook de races van zijn subteams. De serveracties verversen daarom beide
 > roosterpagina's. Uitleg op `/hulp` onder Teams en wedstrijden.
@@ -574,11 +877,11 @@
 > fictieve renners (`npm run zwbgame:preview`). Push naar `main` is op verzoek
 > van de eigenaar toegestaan; bestaande main-functionaliteit is behouden. Details en uitrolvoorwaarden: [ZWBgame](docs/zwbgame.md).
 
-> **Voedingsmodule, 2026-09-17 — gebouwd, migraties nog niet toegepast.**
+> **Voedingsmodule, 2026-09-17 — gebouwd; migraties toegepast (bevestigd 2026-09-21).**
 > Implementatiecommit `0d0abf3`. Nieuwe tab Voeding in ZWBeter Worden: kennisbank met bronnen, receptenboek
 > met porties op maat (NEVO-online 2025/9.0) en een voedingstip op Vandaag.
-> Migraties `0168` en `0169` zijn alleen tegen PGlite getest, niet op de
-> gekoppelde database; tot ze daar staan, blijven de receptenlijsten leeg. Zie
+> Migraties `0168` en `0169` zijn lokaal alleen tegen PGlite getest; volgens de
+> eigenaar staan ze inmiddels op de gekoppelde database. Zie
 > de ronde "Opgeleverd — Voedingsmodule" en `docs/voeding-wielrennen.md`.
 
 > **Coachchat in ZWBeter Worden, 2026-09-17 — opgeleverd.**
@@ -593,6 +896,25 @@
 > Verificatie: 1.206 tests geslaagd, TypeScript, lint (0 fouten, 7 bestaande waarschuwingen)
 > en de productiebuild. Migratie, realtime, push en de OpenAI-call zijn niet lokaal te
 > verifiëren. Details: [coachchat](docs/coachchat.md).
+
+> **ZWBeterWorden-advies op geslacht, 2026-09-17 — opgelost.**
+> Implementatiecommit `0a86b3b` (cherry-pick van `3bb65a8`); geen migratie. De
+> vandaag-pagina (`/zwbeter-worden`) riep `zwbeterWordenAdvice` nog aan met
+> `profile.zrl_division` als tweede argument. Sinds de omzetting naar
+> `profiles.sex` (2026-08-18) is dat argument het geslacht. Een divisie is
+> `open` of `women`, nooit `man` of `vrouw`, dus ieder lid kreeg op die pagina
+> de neutrale partnertekst, ook wie een geslacht had ingevuld. De pagina gebruikt nu `zwbStatus.advice`, dat
+> `computeZwbStatus` al met `profile.sex` berekent; zo kan de pagina ook niet
+> meer uit de pas lopen met de eigen status. De andere aanroepen (trainer-
+> `_data.ts`, `AthleteLoadPanel`, `computeZwbStatus`) gaven al `sex` mee. Bewust
+> niet gedaan: `zrl_division` uit `ProfileRow` en de selects halen; de trainer-
+> data selecteert het ook en het veld is onschuldig zolang niemand het als
+> geslacht leest. Nieuwe unit-test: `computeZwbStatus` kiest de partnertekst op
+> geslacht en geeft een divisiewaarde de neutrale variant. Verificatie: 1.182
+> tests geslaagd; `omnium-live.test.ts` laadt niet in deze worktree omdat
+> `.env.local` ontbreekt. TypeScript zonder fouten buiten een verouderde
+> `.next/types/validator.ts` (oude Omnium-routes); lint 0 fouten, 7 bestaande
+> waarschuwingen. De pagina zelf is niet in de browser bekeken.
 
 > **Omnium vastlopende seizoenknop, 2026-09-16 — opgelost.**
 > Implementatiecommit `97232b7`; geen migratie. Het
@@ -901,8 +1223,8 @@ Spoor B en C zijn **bewust geskipt**: OwnTracks dekt outdoor af, en het
 indoor status-board is een grote bouw met onzekere adoptie. Heroverwegen
 als bestuur of leden er expliciet om vragen.
 
-Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
-(niet alleen op detail-pagina) — kalender als hub voor live-volgen.
+De liveticker is inmiddels zichtbaar op de `/kalender`-rij (live-indicator met
+link naar `/live/[eventId]`, zie de update hierboven).
 
 ---
 
@@ -1266,7 +1588,9 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   Supabase auth-mailtemplates gedocumenteerd in
   `docs/supabase-auth-email-templates.md`.
 - Team-roster + ZRL-seeding (migr. `0067`-`0070`): volledige roster-tabel per
-  team, automatische seeding van ZRL-divisieteams vanuit een parent-team,
+  team, automatische seeding van ZRL-divisieteams vanuit een parent-team
+  (**die seeding is in `0172` verwijderd**: een ingeschaalde categorie maakt je
+  geen teamlid meer),
   beschikbaarheidsknoppen per renner, lineup-planner en power-profiel-selectie
   (sterkste renners per categorie). Event-type-categorieën (`0067`) voor
   filterbare kalender. RLS-recursie op `team_members` gefixt (`0069`).
@@ -1540,7 +1864,8 @@ Volgende kleine stap: liveticker zichtbaar maken op `/kalender`-rij
   voorwaardenpagina in het project.
 - **Klachtenlogboek en geslachtsveld** (2026-08-18, commit `90759a1`, migr.
   `0123`): `profiles.sex` vervangt het afleiden van geslacht uit `zrl_division`
-  — dat is een wedstrijdklasse, geen fysiologie. Nieuw logboek onder
+  — dat is een wedstrijdklasse, geen fysiologie. (De vandaag-pagina gaf het
+  advies tot 2026-09-17 nog `zrl_division` mee; zie bovenaan.) Nieuw logboek onder
   `/zwbeter-worden/logboek` (`symptom_logs`, opt-in via
   `symptom_tracking_enabled`, RLS alleen eigen rijen, trainers zien niets). Het
   schema krijgt één samengevat signaal mee naast readiness en TSB.
@@ -3067,7 +3392,7 @@ krijgt bij een herziening ook geen tweede meer; dat komt in de schema's nu niet
 voor. Een aanvraag na een rit vandaag kan een schema zonder workouts opleveren;
 daar komt geen aparte melding voor.
 
-**Opruimen bij Bart: nog open.** De ZRL-prikkel van 12 september
+**Opruimen bij Bart: gedaan** (Bart zelf, bevestigd 2026-09-21). De ZRL-prikkel van 12 september
 (`5be7b204…`, origin `member`, gepubliceerd als intervals-event `135690915`)
 staat nog als gepland. Het opruimscript op productie is niet gedraaid
 (geweigerd door de permissiecontrole). Besluit eigenaar: Bart verwijdert hem zelf
@@ -4264,7 +4589,7 @@ gewone publicatie repareert zo'n verlopen verwijzing daarmee vanzelf, en de knop
 aanmaakroute zelf blijft gewoon een fout — geen herhaling.
 `tests/unit/intervals-upsert.test.ts` dekt de vier gevallen af.
 
-**Nog te doen.** De 31 events van dat lid zijn nog niet teruggezet; dat vraagt
+**Gedaan (bevestigd 2026-09-21).** Het lid heeft opnieuw gepubliceerd. Oorspronkelijk: de 31 events van dat lid waren nog niet teruggezet; dat vroeg
 één klik op *Opnieuw publiceren* op zijn schema, en dat is niet iets om namens
 hem te doen.
 
@@ -4876,9 +5201,8 @@ per uitzending in plaats van vier.
 geen live event om op te testen; te bevestigen op de eerstvolgende clubrit.
 
 **Gevolg voor de planning.** De plak-import blijft nodig als terugval en als
-route voor de Sprint Quali, dus die is geen weggegooid werk. De volgende stap is
-een `omnium/zwift-results.ts` naast de bestaande `zwift-club.ts`, met dezelfde
-cache-aanpak als `live/external-timing.ts`.
+route voor de Sprint Quali, dus die is geen weggegooid werk. De volgende stap was
+een `omnium/zwift-results.ts`; die is gebouwd in de editie-1-ronde (`af0a1aa`).
 
 ### Proefdraai Omnium op editie 7 (2025/26)
 
@@ -4933,7 +5257,7 @@ productiedatabase. De tabellen bestaan inmiddels wel (`0126`-`0130` zijn
 gedraaid). Dat is de volgende stap, met een testeditie die niet gepubliceerd
 wordt.
 
-### Actief — ZWB Omnium als platformmodule
+### Opgeleverd — ZWB Omnium als platformmodule (rondes 1–5)
 
 **Ronde 1 (datamodel + puntenmotor) opgeleverd 2026-08-19, gecommit
 2026-09-14.** Migraties `0126`-`0130`.
@@ -5048,7 +5372,8 @@ bezoeker een concept niet ziet.
 
 **Los opgemerkt:** Next.js 16.2.6 waarschuwt dat de `middleware`-conventie
 verouderd is en `proxy` heet. Raakt `src/middleware.ts` en
-`src/lib/supabase/middleware.ts`, staat los van het Omnium, apart op te pakken.
+`src/lib/supabase/middleware.ts`, staat los van het Omnium. (Op 2026-09-21
+bewust geparkeerd; zie "Bekende open dingen".)
 
 **Ronde 3 (plak-import + klassement) opgeleverd 2026-08-19, gecommit
 2026-09-14.** Eén migratiewijziging: `0128` kreeg alsnog `wins` en
@@ -5247,9 +5572,10 @@ uitslagen, overlay, prijzen, historie en productie-inrichting ontbreken daar nog
 Ook moet de beheerketen met de hand worden doorlopen. Het oude integratiescript
 spiegelt de databasestappen van de oorspronkelijke server actions, niet de React-kant.
 
-**Volgende rondes:** spike Zwift-uitslagen (te testen op editie 1 zelf),
-startlijst via Zwift-entrants, draaiboek en OBS-overlay, prijzen, communicatie,
-historische import, uitfaseren van de oude site.
+**Volgende rondes (stand 2026-09-21):** Zwift-uitslagen, startlijst via
+Zwift-entrants, overlay en prijzen zijn gebouwd in de editie-1-ronde (`af0a1aa`).
+Nog open: communicatie, historische import en het uitfaseren van de oude site. De
+productie-inrichting staat in "Actieve volgorde" bovenaan.
 
 **Review en commit, 2026-09-14.** Rondes 1–5 en de proefdraai stonden bijna vier
 weken alleen in de working tree, terwijl `0126`-`0130` en `0134` al in productie
@@ -5274,9 +5600,9 @@ Tiebreakbevestiging en productie-inrichting blijven open; zie de status van
 `package-lock.json` (npm-bijeffect) en de mappen `output/`, `outputs/` en
 `.claude/` zijn bewust niet meegecommit.
 
-### Actief — pacingplan bij events
+### Opgeleverd — pacingplan bij events (rondes 1–6)
 
-**2026-08-31, working tree.** Migraties `0144` en `0145`. Nieuwe bestanden:
+**2026-08-31.** (Inmiddels gecommit en live.) Migraties `0144` en `0145`. Nieuwe bestanden:
 `src/lib/events/zwift-route-streams.ts`, `src/lib/events/zwift-route.ts`,
 `src/lib/events/zwift-route-sync.ts`, `src/app/(app)/beheer/zwift-routes/`,
 `tests/unit/zwift-route-streams.test.ts`, `tests/unit/zwift-route.test.ts`,
@@ -5486,141 +5812,15 @@ dat een andere afstand beslaat — Lutscher, Lutscher CCW en Southern Coast Crui
 plus Innsbruckring met dezelfde fout bij de bron. Vier van de 263. Een event op
 een van die routes heeft een GPX nodig.
 
-### 0. Documenthygiëne en release-basis
+### Werkplan uit juni (secties 0–10) — vervangen 2026-09-21
 
-**Doel:** zorgen dat nieuwe rondes niet opnieuw door elkaar gaan lopen.
-
-1. Houd deze sectie bovenaan als enige actieve volgorde.
-2. Verplaats afgeronde rondes na push/deploy naar de historische roadmap of de
-   featurelijst.
-3. Laat detailonderzoek in losse docs staan (`docs/...`) en link alleen de
-   conclusie hier.
-4. Noteer per ronde: datum, commit, migraties, risico's en verificatie.
-
-### 1. Stabilisatie na de juni-builds
-
-**Waarom nu:** de laatste deploys raakten veel kernpaden: Strava, training,
-events/kaart, onderhoud en hulp/onboarding.
-
-1. Verifieer production-flow na deploy van `e834bc1`:
-   `/training`, `/achievements`, `/hulp`, `/welkom`, eventkaart + Street View.
-2. Controleer de Strava rate-limit na gear-throttle + lagere cronfrequentie:
-   daglimiet, 15-minutenvenster, aantal actieve profielen.
-3. ~~Verwijder het tijdelijke `/api/strava/debug-gear`.~~ Gedaan in de ronde van
-   2026-09-05.
-4. Doe de nog open iOS PWA-regressiecheck na de recente navigatie- en
-   trainingwijzigingen.
-5. Houd `npm run lint`, `npm run test`, `npm run build` als standaard
-   acceptatiecheck; breid tests alleen uit waar nieuwe pure logica bijkomt.
-
-### 2. Training-cockpit praktijktest
-
-**Waarom daarna:** training is nu functioneel rijk, maar publicatie naar
-intervals/Wahoo/Garmin is een echte gebruikersflow met externe gevolgen.
-
-1. Voer `docs/training-cockpit-praktijktest.md` uit met één trainer en één
-   renner/testaccount.
-2. Test: intake, AI-concept, traineredit, publicatie naar intervals.icu,
-   FIT-download, Wahoo/Garmin-route, dag-aanpassing en rapportage.
-3. Leg bevindingen vast in hetzelfde document: bugs, UX-frictie,
-   copy die naar `/hulp` moet, en eventuele dataverschillen met intervals.icu.
-4. Pas daarna pas nieuwe trainingfeatures toe; eerst stabiliseren wat er nu is.
-
-### 3. Strava-capaciteit: meten en opnieuw indienen
-
-**Waarom:** de aanvraag voor een hogere atletenlimiet is afgewezen. De twee
-technische eisen (webhooks, actief beheer van gedeauthoriseerde atleten) zijn
-gebouwd — zie de ronde van 2026-09-05 in de featurelijst. Wat rest is bewijs
-verzamelen en indienen.
-
-1. Zet `STRAVA_WEBHOOK_VERIFY_TOKEN`, draai migraties `0148`-`0151`, deploy, en
-   maak de subscription aan via `/beheer/strava` → Webhooks → Aanmaken.
-2. Zet de externe cron voor `/api/strava/sync` terug van elke 15-30 min naar
-   1x/dag.
-3. Laat het minstens een week draaien en vul de cijfers in
-   `docs/strava-api-resubmission.md` in: callvolume vóór/na, aantal opgeruimde
-   koppelingen, gekoppelde atleten tegenover de cap.
-4. Dien daarna opnieuw in via het formulier — **niet** via een reply op de
-   afwijzingsmail; die telt volgens Strava niet als herindiening.
-5. Houd de handmatige `activities.csv` import als fallback zolang de cap knelt.
-
-### 4. Event- en livekaart afronden
-
-**Waarom:** de eventpagina is een grote kracht van het platform en kreeg veel
-snelle upgrades.
-
-1. Praktijktest routekaart: hoogteprofiel, klim-overrides, POI's, fullscreen,
-   Street View-marker en publieke `/live`.
-2. Controleer Google Street View deep-links op meerdere GPX-routes:
-   juiste panorama, rijrichting, gedrag bij ontbrekende Street View.
-3. Beslis of POI's alleen event-detail blijven of ook prominenter in de
-   kalender/livehub moeten komen.
-4. Pas pas daarna nieuwe kaartfeatures toe; eerst regressies uit de huidige set.
-
-### 5. Achievements en importkwaliteit
-
-**Waarom:** badges zijn engagement-kern, en import maakt dit nu toegankelijker
-voor leden zonder Strava-koppeling.
-
-1. Verzamel 3-5 echte Strava `activities.csv` exports en test varianten in
-   datumformaat, delimiter, sporttype en ontbrekende velden.
-2. Voeg unit-tests toe voor elke importvariant die stukgaat.
-3. Maak admin/herbereken-flow zichtbaar genoeg voor support, maar houd de
-   leden-UI compact.
-4. Rond de testerfeedback rond achievementkwaliteit af: verborgen proxy/future
-   achievements, handmatige achievement-flow, duidelijke badgekwaliteit.
-
-### 6. Externe events en teamplanning hardenen
-
-**Waarom:** Zwift/MyWhoosh-eventscan en teamtools zijn geleverd, maar externe
-feeds en cookies zijn broos.
-
-1. Monitor eventscan-cron na de 429-fixes: volgen, matchen, publiceren,
-   ZwiftPower-link.
-2. Leg failure modes in `docs/runbook.md` vast: cookie verlopen, feed leeg,
-   publish mismatch, roster-onbekend.
-3. Verbeter pas daarna de beheer-MVP met extra automatisering of reviewfilters.
-4. Houd team-roster/TTT-planner/powerselectie stabiel voor het volgende seizoen.
-
-### 7. Club- en teamchallenges
-
-**Waarom:** dit is de eerstvolgende productmatige uitbreiding uit
-testerfeedback die direct communitywaarde kan leveren.
-
-1. Start met een eenvoudige challenge-vorm: clubbreed of per team, periode,
-   metric (km/hoogtemeters/ritten/consistentie), leaderboard.
-2. Gebruik bestaande Strava-activiteiten en teams; geen nieuwe externe koppeling.
-3. Bouw eerst beheer + read-only leaderboard, daarna pas badges/pushes.
-4. Denk aan winter- en zomerchallenge als twee templates.
-
-### 8. Visuele herziening
-
-**Waarom later:** er is al veel functionaliteit; een redesign is waardevol,
-maar moet niet door functionele stabilisatie heen lopen.
-
-1. Verzamel eerst referenties van de eigenaar: apps/sites, sfeer, do's/don'ts.
-2. Werk designsysteem bij: tokens, cards, typografie, spacing, states.
-3. Pak daarna high-impact pagina's in volgorde:
-   login, dashboard, event-detail, ritverslagen, training.
-4. Doe dit op een aparte branch/ronde zonder functionele wijzigingen.
-
-### 9. AI-agenten en kennisvragen
-
-**Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
-strak zijn.
-
-1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
-2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
-   eventueel afgeschermde ledeninformatie met expliciete grenzen.
-3. Start met read-only Q&A; geen acties namens gebruiker in v1.
-
-### 10. Bewust on-hold
-
-Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
-
-- E2E encrypted chat: WhatsApp dekt nu de behoefte; echte E2E is groot.
-- Mollie/iDEAL contributie of merch: onderzocht, niet gevraagd.
-- Native Expo/React Native app: PWA volstaat zolang iOS-push/UX niet blokkeert.
+Vervangen door "Actieve volgorde" bovenaan dit document. Wat daarbij verviel:
+de deploycontrole van `e834bc1` en de Strava-rate-limitcheck na de gear-throttle.
+Die zijn achterhaald door de webhookronde van 5 september. Het debug-endpoint was
+toen ook al weg. Wat nog gold (iOS-regressie, cockpit-praktijktest, eventkaart,
+Strava-herindiening, `activities.csv`, eventscan) staat nu in de actieve volgorde.
+Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
+"Geparkeerd — hoort in het plannenboek" onderaan.
 
 ---
 
@@ -5750,7 +5950,8 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 9. **✅ Team-ops, segmenten & onboarding-ronde** (commits `b882987`..`f51cabd`, 2026-06-02→08)
    - **Team-roster + ZRL-seeding** (`6e8f9c5`, migr. `0067`-`0070`): roster-tabel,
-     auto-seed van ZRL-divisieteams uit een parent-team, beschikbaarheid +
+     auto-seed van ZRL-divisieteams uit een parent-team (verwijderd in `0172`),
+     beschikbaarheid +
      lineup-planner + power-selectie, event-type-categorieën, RLS-recursiefix.
    - **Automatische Strava-sync-cron** (`014f8f6`): `/api/strava/sync` houdt
      activiteiten actueel zonder handmatige knop.
@@ -5892,9 +6093,26 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
 
 ## Bekende open dingen
 
-- **Voedingsmodule: migraties `0168` en `0169` toepassen** op de gekoppelde
-  database (volgorde aanhouden) en de controlequery's onderaan beide bestanden
-  draaien. Daarna de voedingsschermen met een echt account nalopen. Laat
+- **Omnium: migratie `0174` toepassen** (beheer ziet anders het conceptseizoen
+  niet), daarna seizoen `2026-27` plannen en de productie-inrichting voor
+  editie 1 op 11 oktober. Zie de ronde van 2026-09-21 bovenaan.
+
+- **Geparkeerd 2026-09-21 (besluit eigenaar): tokengebruik van
+  trainingsgeneraties loggen.** `training_ai_generations.response_json` bewaart
+  alleen het schema, dus de AI-kosten zijn niet uit de database te halen. Bouwen
+  vraagt een migratie (kolom `usage`) plus zo'n zes schrijfpaden in `draft.ts`,
+  de adaptatieroute en de coachchat. Niet nu: de kosten zijn via het
+  OpenAI-dashboard te volgen, en het bestuur overweegt een featurepauze.
+
+- **Geparkeerd 2026-09-21 (besluit eigenaar): `src/middleware.ts` → `proxy.ts`.**
+  Next 16 noemt de naam `middleware` verouderd, maar hij werkt nog. De
+  omzetting is een hernoeming (`npx @next/codemod@canary middleware-to-proxy .`),
+  met één inhoudelijk verschil: `proxy` draait standaard op Node.js in plaats van
+  Edge. Hoe Netlify dat afhandelt, is alleen met een deploy te zien. Oppakken
+  zodra een Next-upgrade de oude naam echt laat vallen.
+
+- **Voedingsmodule:** migraties `0168` en `0169` zijn toegepast (bevestigd
+  2026-09-21). Nog open: de voedingsschermen met een echt account nalopen. Laat
   artikelteksten en clubrecepten nakijken door een (sport)diëtist, en beslis
   of de privacytekst een nieuwe versie krijgt. Zie de ronde van 2026-09-17.
 
@@ -5943,7 +6161,7 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
   ophaalt. Tot die tijd blijft de job een timeout melden en blijven openstaande
   herplanverzoeken liggen.
 
-- **Netlify scheduled functions gaan niet af** (ontdekt 2026-09-05). Netlify
+- ~~**Netlify scheduled functions gaan niet af**~~ — **opgelost 2026-09-08** (ontdekt 2026-09-05). Netlify
   toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
   is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026
   22:01, de dag dat de health-check werd uitgerold. De code klopt — dezelfde
@@ -5994,20 +6212,37 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
      handmatig de powerprofiel-sync draait (`src/app/(app)/teams/_actions.ts`) —
      er is geen achtergrondsync, dus die waarde veroudert. Overwegen: eFTP laten
      voorgaan voor de AI, of de physique-sync echt periodiek laten lopen.
-  2. **Echte zones gaan niet mee.** `profile_sport_settings.power_zones` (+ CP,
+     *Stand 2026-09-21: deels verholpen.* De eFTP gaat mee in `intervalsLoad`, en
+     de prompt zegt het wattage op de eFTP af te stemmen als die afwijkt
+     (`workouts.ts`). Een FTP-test in het schema werkt `profiles.ftp_watts` bij
+     (`ftp-test.ts`). Nog open: er is nog steeds geen achtergrondsync, en de
+     prompt laat eFTP ook voorgaan bij een lid met een recente testuitslag,
+     terwijl de code elders de test laat winnen. *Later op 2026-09-21:* de eFTP
+     kwam in werkelijkheid nooit binnen (verkeerde veldnaam), en na het meten is
+     besloten dat de profiel-FTP leidt; zie de ronde bovenaan. Dit punt is daarmee
+     dicht. De achtergrondsync blijft ontbreken, maar de meting laat geen
+     structureel te lage profiel-FTP zien.
+  2. ~~**Echte zones gaan niet mee.**~~ **Gesloten 2026-09-21:** gemeten; 10 van
+     de 11 leden hebben de standaardzones, dus meegeven verandert niets. De lage
+     wattages zaten in de duurblokken; zie de ronde bovenaan. Oorspronkelijk: `profile_sport_settings.power_zones` (+ CP,
      W', LTHR) wordt gesynct maar alleen op `/zwbeter-worden/vermogen` gebruikt.
      De AI valt terug op de generieke banden in `INTENSITY_FTP_RANGE`
      (`src/lib/training/workouts.ts`), die conservatiever zijn dan wat leden van
      JOIN gewend zijn. Let op: sinds 2026-08-20 hangt ook `estimateTrainingLoad`
      aan die banden (als terugval zonder leesbaar blokdoel), dus wie ze verruimt
      verhoogt tegelijk de geschatte belasting van elk schema.
-  3. **RPE-tabel spreekt de prompt tegen.** Het promptvoorbeeld "RPE 6, 210-235w"
+  3. ~~**RPE-tabel spreekt de prompt tegen.**~~ **Opgelost 2026-09-21.** Het
+     promptvoorbeeld noemt nu de FTP erbij ("bij FTP 250w 'RPE 6, 200-225w'") en
+     de volledige RPE-tabel. Een test in `training-targets.test.ts` bewaakt dat
+     die tabel gelijk blijft aan `percentRangeForRpe`. Oorspronkelijk: het
+     promptvoorbeeld "RPE 6, 210-235w"
      is 72-80% FTP, terwijl `percentRangeForRpe(6)` 80-90% geeft
      (`src/lib/training/targets.ts`). Bij dezelfde RPE kan de UI-hint ~25w
      afwijken van het wattage van de AI.
 
-  Eerst meten: wat is de actuele eFTP versus de opgeslagen `profiles.ftp_watts`?
-  Dat bepaalt of dit vooral een bronprobleem (1) of een zonemodel-probleem (2/3) is.
+  ~~Eerst meten: wat is de actuele eFTP versus de opgeslagen `profiles.ftp_watts`?~~
+  Gemeten 2026-09-21: geen bronprobleem. De profiel-FTP ligt meestal boven de eFTP.
+  Wat overblijft is punt 2, de zonebanden.
 
 - **Geen FTP-historie: alle TSS wordt omgerekend met de húdige FTP**
   (2026-08-20, opvolging van de kwadratische belastingfix). `rideMetricsFromStrava`
@@ -6020,7 +6255,9 @@ Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
   terwijl intervals NP zelf uit de stream rekent, en ZWB rekent met `moving_time`
   in plaats van de volledige activiteitsduur.
 
-  Vraagt een eigen ronde: een FTP-historie per lid bijhouden (datum + waarde,
+  **Gebouwd 2026-09-21 (migratie `0175`), zie de ronde bovenaan.** De twee
+  kleinere oorzaken hieronder (NP uit Strava, `moving_time`) blijven staan.
+  Oorspronkelijk: vraagt een eigen ronde: een FTP-historie per lid bijhouden (datum + waarde,
   gevoed door de FTP-test en door de intervals-sync) en `rideMetricsFromStrava`
   de FTP van de ritdatum laten opzoeken. Raakt ook de weekgrafiek en de
   CTL-reeks, dus historische cijfers verschuiven eenmalig. Hangt samen met punt 1
@@ -6147,13 +6384,11 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 - ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
   scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
   reduced-motion-safe), logo's linken naar de sponsor-site.
-- **Team/club challenges + AI-agenten** — productsporen na de quick wins uit
-  testerfeedback juni 2026. Challenges richten zich op winter/zomerbinding;
-  agenten horen bij een latere/betaalversie en vragen eerst afbakening van
-  kennis, privacy en verantwoordelijkheden.
-- **E2E chat** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
-- **Mollie iDEAL** — onderzocht (zie hieronder); bouw alleen bij expliciete vraag.
-- **Core & mobiliteit als eigen trainingsspoor** — aanleiding: de AI plande in
+- Challenges, AI-agenten, E2E-chat en Mollie: zie "Geparkeerd — hoort in het
+  plannenboek" onderaan.
+- ✅ **Core & mobiliteit als eigen trainingsspoor** — gebouwd (migraties
+  `0159`/`0160`, krachtreeksen uit wens 19, core-advies op het dashboard).
+  Oorspronkelijke aanleiding: de AI plande in
   augustus 2026 een "Rust + rug/mobiliteit"-sessie in een ZWB-schema. Inhoudelijk
   waardevol, maar het past niet in de fietspijplijn: geen wattages dus geen
   intervals.icu-publicatie en geen FIT-download, de duur telt via
@@ -6169,7 +6404,7 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 
 ---
 
-## Mobiele revisie (gepland, eigen ronde)
+## Mobiele revisie (uitgevoerd 2026-08-03)
 
 Aanleiding: op telefoon zijn grafieklabels onleesbaar klein, vallen detail-
 weergaven buiten het scherm en loopt de tab-balk van ZWBeter Worden net buiten
@@ -6271,7 +6506,47 @@ scrollen, op de expliciet als scrollbaar gemarkeerde tabellen na.
 
 ---
 
-## Redesign-traject (gepland, aparte ronde)
+## Geparkeerd — hoort in het plannenboek
+
+Toekomstplannen die nog geen code zijn. Volgens AGENTS.md horen ze in het
+plannenboek in Drive. De Drive-koppeling kan daar geen tekst aan toevoegen, dus
+ze staan hier gebundeld tot ze met de hand zijn overgezet (besluit eigenaar,
+2026-09-21). Het bestuur overweegt daarnaast een featurepauze; zie de
+[gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md).
+
+### Club- en teamchallenges
+
+**Waarom:** dit is de eerstvolgende productmatige uitbreiding uit
+testerfeedback die direct communitywaarde kan leveren.
+
+1. Start met een eenvoudige challenge-vorm: clubbreed of per team, periode,
+   metric (km/hoogtemeters/ritten/consistentie), leaderboard.
+2. Gebruik bestaande Strava-activiteiten en teams; geen nieuwe externe koppeling.
+3. Bouw eerst beheer + read-only leaderboard, daarna pas badges/pushes.
+4. Denk aan winter- en zomerchallenge als twee templates.
+
+### AI-agenten en kennisvragen
+
+**Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
+strak zijn.
+
+1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
+2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
+   eventueel afgeschermde ledeninformatie met expliciete grenzen.
+3. Start met read-only Q&A; geen acties namens gebruiker in v1.
+
+### Visuele herziening en redesign-traject
+
+**Waarom later:** er is al veel functionaliteit; een redesign is waardevol,
+maar moet niet door functionele stabilisatie heen lopen.
+
+1. Verzamel eerst referenties van de eigenaar: apps/sites, sfeer, do's/don'ts.
+2. Werk designsysteem bij: tokens, cards, typografie, spacing, states.
+3. Pak daarna high-impact pagina's in volgorde:
+   login, dashboard, event-detail, ritverslagen, training.
+4. Doe dit op een aparte branch/ronde zonder functionele wijzigingen.
+
+Uitgewerkt stappenplan:
 
 Ronde 3 leverde een eerste restyle-pass (merk-accent, beeld-forward cards,
 officiële store-badges). Een vólledige, op de smaak van de eigenaar afgestemde
@@ -6298,11 +6573,19 @@ visuele herziening is bewust uitgesteld naar een eigen ronde, omdat dat eerst
 
 ---
 
-## Onderzoek (iteratie-ronde 2) — Mollie & E2E-chat
+### Bewust on-hold
+
+Deze punten blijven geparkeerd totdat bestuur/eigenaar ze expliciet vraagt:
+
+- E2E encrypted chat: WhatsApp dekt nu de behoefte; echte E2E is groot.
+- Mollie/iDEAL contributie of merch: onderzocht, niet gevraagd.
+- Native Expo/React Native app: PWA volstaat zolang iOS-push/UX niet blokkeert.
+
+### Onderzoek (iteratie-ronde 2) — Mollie & E2E-chat
 
 Beide zijn deze ronde alléén onderzocht; nog niet gebouwd.
 
-### Mollie (contributie/betalingen)
+#### Mollie (contributie/betalingen)
 
 **Haalbaarheid: hoog.** `MOLLIE_API_KEY` staat al in `.env.local.example`.
 
@@ -6327,7 +6610,7 @@ Ontwerp:
 - Schatting: ~1 migratie + 1 webhook-route + 1 server-action + 2 pagina's
   = vergelijkbaar met de uitslagen-scraper qua omvang.
 
-### E2E-chat
+#### E2E-chat
 
 > **Bijgewerkt 2026-09-17.** Dit stuk gaat over een *clubbrede* chat; die staat nog steeds
 > geparkeerd. Wat er sindsdien wél is gebouwd, is de coachchat in ZWBeter Worden (migratie

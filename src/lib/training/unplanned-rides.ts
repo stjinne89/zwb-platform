@@ -16,6 +16,7 @@
 // intervals.icu geeft via de API niets terug voor ritten die daar via Strava
 // zijn binnengekomen (zie ride-metrics.ts).
 
+import type { FtpAt } from "@/lib/training/ftp-history";
 import {
   pickRideForWorkout,
   type PlannedWorkoutForCompliance,
@@ -85,7 +86,8 @@ export type WorkoutPairing = {
 export function unplannedRides(
   rides: StravaRideRow[],
   workouts: PlannedWorkoutForRides[],
-  ftpWatts: number | null,
+  /** Vaste FTP, of de FTP op de ritdag (0175). */
+  ftpWatts: number | null | FtpAt,
   pairings: Iterable<WorkoutPairing> = [],
 ): UnplannedRide[] {
   const used = new Set<string>();

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ZWB_LEVEL_DESCRIPTIONS,
   amsterdamDayKey,
+  computeZwbStatus,
   ctlTrend,
   dayIndex,
   eftpTrend,
@@ -117,6 +118,39 @@ describe("dagelijkse tekstrotatie", () => {
     expect(
       zwbeterWordenAdvice(readiness("recovery", 10), "zeg_ik_liever_niet", key).description,
     ).toContain("lief");
+  });
+});
+
+describe("computeZwbStatus", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("baseert het advies op het geslachtsveld", () => {
+    // De vandaag-pagina toont dit advies; die gaf eerst zrl_division mee.
+    const withPartner = ZWB_LEVEL_DESCRIPTIONS[1].findIndex((d) => d.includes("{partner}"));
+    let key = "";
+    for (let d = 1; d <= 28; d++) {
+      const k = `2026-02-${String(d).padStart(2, "0")}`;
+      if (dayIndex(k, ZWB_LEVEL_DESCRIPTIONS[1].length) === withPartner) {
+        key = k;
+        break;
+      }
+    }
+    expect(key).not.toBe("");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(`${key}T12:00:00Z`));
+
+    // TSB -40 en readiness 20: niveau 1.
+    const wellness: IntervalsWellness[] = [{ id: key, ctl: 50, atl: 90, readiness: 20 }];
+    const status = (sex: string | null) =>
+      computeZwbStatus(wellness, { wellnessOptIn: true, sex });
+
+    expect(status("vrouw").advice.level).toBe(1);
+    expect(status("vrouw").advice.description).toContain("man");
+    expect(status("man").advice.description).toContain("vrouw");
+    // Een ZRL-divisie is geen geslacht: neutrale variant.
+    expect(status("women").advice.description).toContain("lief");
   });
 });
 

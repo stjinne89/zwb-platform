@@ -3,6 +3,7 @@ import {
   evaluateEnvPresent,
   evaluateMyWhoosh,
   evaluateReachable,
+  evaluateTeamResultSync,
   evaluateZwiftFeed,
 } from "@/lib/health/checks";
 
@@ -61,5 +62,22 @@ describe("evaluateEnvPresent", () => {
 
   it("faalt als de sleutel ontbreekt", () => {
     expect(evaluateEnvPresent("openai", false).ok).toBe(false);
+  });
+});
+
+describe("evaluateTeamResultSync", () => {
+  it("faalt als een bron een fout heeft, ook als de site bereikbaar is", () => {
+    const result = evaluateTeamResultSync("wtrl_sync", [
+      { last_error: "https://www.wtrl.racing/api gaf HTTP 401.", last_synced_at: "2026-09-20T10:00:00Z" },
+      { last_error: null, last_synced_at: "2026-09-20T10:00:00Z" },
+    ]);
+    expect(result).toMatchObject({ source: "wtrl_sync", ok: false });
+    expect(result.detail).toContain("1 van 2");
+    expect(result.detail).toContain("401");
+  });
+
+  it("is ok zonder fouten of zonder actieve bronnen", () => {
+    expect(evaluateTeamResultSync("wtrl_sync", [{ last_error: null, last_synced_at: "2026-09-20T10:00:00Z" }]).ok).toBe(true);
+    expect(evaluateTeamResultSync("ladder_sync", []).ok).toBe(true);
   });
 });
