@@ -21,9 +21,10 @@ gaat stabiliteit voor nieuwe features.
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
    View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
    een echte telefoon.
-4. **Trainingskwaliteit: eerst meten.** AI-wattages aan de lage kant, geen
-   FTP-historie, naleving rond 105% bij blokkige workouts. Zie "Bekende open
-   dingen"; begin met de eFTP naast `profiles.ftp_watts`.
+4. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
+   Nog open: echte zones naar de AI (de waarschijnlijke oorzaak van lage
+   wattages), FTP-historie, en naleving rond 105% bij blokkige workouts. Zie
+   "Bekende open dingen".
 5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
    testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
    Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
@@ -33,6 +34,36 @@ gaat stabiliteit voor nieuwe features.
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 ---
+
+> **eFTP en ramp rate kwamen nooit binnen; profiel-FTP blijft leidend, 2026-09-21 — gebouwd, lokaal getest.**
+> Geen migratie. Bij het meten van "eFTP tegenover `profiles.ftp_watts`" (open
+> punt van 4 augustus) bleek de eFTP bij alle zeven leden met een schema leeg.
+> Oorzaak: intervals.icu geeft de eFTP per sport in `sportInfo[].eftp` en de ramp
+> rate als `rampRate`, terwijl de code `eftp` en `ramp_rate` op de wellness-rij
+> las. Daardoor waren de eFTP voor de AI, de eFTP-trend op `/zwbeter-worden`, de
+> eFTP in de coachdata en de ramp rate overal stil `null`. De promptregels over
+> ramp rate en eFTP deden dus nooit iets. **Nu:** `normalizeIntervalsWellness()`
+> in `src/lib/intervals/client.ts` zet elke rij in `fetchIntervalsWellness` om
+> (eFTP van `Ride`, anders de hoogste andere fietssport). Het is het enige pad
+> naar dat endpoint.
+> **Meting** (alleen-lezend, met toestemming van de eigenaar; ook intervals.icu
+> met de sleutels van de leden): profiel-FTP tegenover eFTP was −8, −3, +1, +12,
+> −5 en −10%, en één lid heeft geen profiel-FTP. De profiel-FTP ligt dus meestal
+> *boven* de eFTP. De klacht "wattages structureel te laag" komt daarom niet uit
+> de FTP-bron, maar waarschijnlijk uit de vaste zonebanden (punt 2 van dat open
+> punt).
+> **Besluit eigenaar:** de profiel-FTP blijft leidend (een testuitslag zit daar
+> al in). De eFTP is alleen terugval als het profiel leeg is. Bij meer dan 5%
+> verschil noemt de AI dat in de cautions, zonder de wattages aan te passen. De
+> oude promptregel "stem af op de eFTP" had bij vier leden de wattages 3–10%
+> verlaagd en een recente FTP-test overschreven. Tegelijk is het RPE-voorbeeld in
+> de prompt rechtgezet (`5ff1076`).
+> **Gevolg om op te letten:** de ramp rate bereikt de AI nu wél. De bestaande
+> regels ("bij hoge ramp_rate matig je de opbouw") gaan dus voor het eerst werken.
+> Tests: `intervals-wellness-normalize.test.ts` (2, met de echte veldvorm) en 2
+> prompttests in `training-targets.test.ts`; TypeScript, ESLint en de volledige
+> suite (1.342 tests). **Niet geverifieerd:** een echte AI-generatie met de nieuwe
+> invoer, en de eFTP-trend in de browser.
 
 > **Health-check kijkt of de WTRL-sync echt lukt, 2026-09-21 — gebouwd, lokaal getest.**
 > Geen migratie. Uit de gebruiksanalyse van 17 september: de WTRL-resultatensync
@@ -5759,7 +5790,11 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      (`workouts.ts`). Een FTP-test in het schema werkt `profiles.ftp_watts` bij
      (`ftp-test.ts`). Nog open: er is nog steeds geen achtergrondsync, en de
      prompt laat eFTP ook voorgaan bij een lid met een recente testuitslag,
-     terwijl de code elders de test laat winnen.
+     terwijl de code elders de test laat winnen. *Later op 2026-09-21:* de eFTP
+     kwam in werkelijkheid nooit binnen (verkeerde veldnaam), en na het meten is
+     besloten dat de profiel-FTP leidt; zie de ronde bovenaan. Dit punt is daarmee
+     dicht. De achtergrondsync blijft ontbreken, maar de meting laat geen
+     structureel te lage profiel-FTP zien.
   2. **Echte zones gaan niet mee.** `profile_sport_settings.power_zones` (+ CP,
      W', LTHR) wordt gesynct maar alleen op `/zwbeter-worden/vermogen` gebruikt.
      De AI valt terug op de generieke banden in `INTENSITY_FTP_RANGE`
@@ -5776,8 +5811,9 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      (`src/lib/training/targets.ts`). Bij dezelfde RPE kan de UI-hint ~25w
      afwijken van het wattage van de AI.
 
-  Eerst meten: wat is de actuele eFTP versus de opgeslagen `profiles.ftp_watts`?
-  Dat bepaalt of dit vooral een bronprobleem (1) of een zonemodel-probleem (2/3) is.
+  ~~Eerst meten: wat is de actuele eFTP versus de opgeslagen `profiles.ftp_watts`?~~
+  Gemeten 2026-09-21: geen bronprobleem. De profiel-FTP ligt meestal boven de eFTP.
+  Wat overblijft is punt 2, de zonebanden.
 
 - **Geen FTP-historie: alle TSS wordt omgerekend met de húdige FTP**
   (2026-08-20, opvolging van de kwadratische belastingfix). `rideMetricsFromStrava`

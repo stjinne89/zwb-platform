@@ -91,3 +91,13 @@ describe("RPE-banden in de trainingsprompt", () => {
     expect(prompt).toContain(`FTP 250w 'RPE 6, ${(250 * low) / 100}-${(250 * high) / 100}w'`);
   });
 });
+
+describe("FTP-bron in de trainingsprompt", () => {
+  it("laat de profiel-FTP leiden en gebruikt eFTP alleen als terugval", async () => {
+    const { defaultTrainingPrompt } = await import("@/lib/training/workouts");
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Reken wattages met profile.ftpWatts");
+    expect(prompt).toContain("Gebruik intervalsLoad.eftp alleen als profile.ftpWatts ontbreekt");
+    expect(prompt).not.toContain("Stem het wattage af op de eFTP");
+  });
+});
