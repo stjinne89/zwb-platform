@@ -45,7 +45,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`
 
 ---
 
-> **WTRL-resultatensync uitgezet, 2026-09-21 — gebouwd, lokaal getest.**
+> **WTRL-resultatensync uitgezet, link naar de WTRL-uitslag, 2026-09-21 — gebouwd, lokaal getest.**
 > Geen migratie. Op productie zijn de drie WTRL-bronnen (`ZWB Cycling B1`,
 > `ZWB Cycling C1`, `ZWB Zwiftladies`) met de hand op `enabled = false` gezet.
 > **Waarom.** Met een verse `WTRL_COOKIE` en een nieuwe deploy gaf WTRL op de
@@ -68,10 +68,28 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0176`
 > op `/summary`. `fetchHeaders()` stuurt `LADDER_COOKIE` niet mee, en de pagina
 > bevat de teamnamen niet. Daarnaast wist een overgeslagen bron (`SyncSkip`)
 > `last_error`. Daardoor meldt de health-check `ladder_sync` groen terwijl er
-> niets binnenkomt. **Open:** handmatige invoer van ZRL-uitslagen. Het formulier
-> in het beheerpaneel van een team bestaat al, maar is per race te veel werk.
-> Getest: TypeScript en ESLint. **Niet lokaal te verifiëren:** het gedrag op
-> productie na de deploy.
+> niets binnenkomt.
+> **In plaats daarvan: een link naar WTRL.** De eigenaar koos ervoor om
+> uitslagen niet te verwerken, ook niet met de hand. Het blok Teamresultaten op
+> de teampagina linkt naar `https://www.wtrl.racing/zrl/results/`. Die pagina
+> heeft geen URL per team, dus per (sub)team staat eronder wat je daar moet
+> kiezen: bijvoorbeeld "Round 1 · Race 1 · Open Aqua League · Division 1". Dat
+> komt uit de naam en beschrijving van het Zwift-event dat aan het ZRL-event
+> van dat team hangt. Er wordt de laatst gestarte race gekozen, of anders de
+> eerstvolgende. De Zwift-aanvraag gaat naar de publieke event-API en wordt 6
+> uur gecachet (`src/lib/teams/wtrl-results.ts`). Een team zonder gekoppeld
+> Zwift-event krijgt geen regel.
+> **Bewust niet gebouwd:** de link via `events.results_url`. Het eventscherm
+> heeft daar een knop die die URL ophaalt en de uitslag verwerkt, en dat mag
+> bij WTRL niet. Ook geen WTRL-link op het eventscherm; de eigenaar vroeg om de
+> teampagina.
+> **Opgemerkt op productie:** de R1-W1-events van ZRL A en B1 wijzen allebei
+> naar Zwift-event 5711304 (Open Aqua League Division 1). Dat is waarschijnlijk
+> een verkeerd gekopieerd event-ID bij ZRL A.
+> Getest: TypeScript, ESLint en 4 nieuwe unit-tests
+> (`tests/unit/wtrl-results.test.ts`, met de echte eventnamen van ZRL 26/27).
+> **Niet lokaal te verifiëren:** de teampagina in de browser (daar is een
+> ingelogde sessie voor nodig) en het gedrag op productie na de deploy.
 
 > **Zwift-eventlink: "Route niet herkend" bij ZRL 26/27, 2026-09-21 — opgelost.**
 > Implementatiecommit `875c025`. Geen migratie; `zwift-data` van 1.48.6 naar 1.50.0. De eventlink van ZRL

@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Plus, Trophy, Users } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import {
+  WTRL_ZRL_RESULTS_URL,
+  fetchZrlPlacement,
+  formatZrlPlacement,
+  pickZrlEventPerTeam,
+  type ZrlTeamEvent,
+} from "@/lib/teams/wtrl-results";
 import { HelpLink } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
 import { Button } from "@/components/ui/button";
@@ -213,6 +220,25 @@ export default async function TeamDetailPage({
       .order("start_at")
       .limit(12),
   ]);
+
+  const { data: zrlEvents } = await supabase
+    .from("events")
+    .select("team_id, start_at, zwift_event_id")
+    .eq("type", "zrl")
+    .in("team_id", scopeIds)
+    .not("zwift_event_id", "is", null)
+    .order("start_at", { ascending: false })
+    .limit(50);
+  const zrlEventPerTeam = pickZrlEventPerTeam((zrlEvents ?? []) as ZrlTeamEvent[]);
+  const zrlPlacements = (
+    await Promise.all(
+      scopeTeams.map(async (row) => {
+        const eventId = zrlEventPerTeam.get(row.id)?.zwift_event_id;
+        const placement = eventId ? await fetchZrlPlacement(eventId) : null;
+        return placement ? { teamId: row.id, teamName: row.name, placement } : null;
+      }),
+    )
+  ).filter((row): row is NonNullable<typeof row> => row != null);
 
   const memberRows = (members ?? []) as unknown as MemberRow[];
   let profileIds = Array.from(new Set(memberRows.map((member) => member.profile_id)));
@@ -573,8 +599,33 @@ export default async function TeamDetailPage({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Teamresultaten
         </h2>
+        {zrlPlacements.length > 0 && (
+          <div className="space-y-1 text-sm">
+            <a
+              href={WTRL_ZRL_RESULTS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              Uitslag op WTRL
+              <ArrowUpRight className="size-3.5" />
+            </a>
+            <ul className="text-muted-foreground">
+              {zrlPlacements.map((row) => (
+                <li key={row.teamId}>
+                  {zrlPlacements.length > 1 && (
+                    <span className="font-medium text-foreground">{row.teamName}: </span>
+                  )}
+                  {formatZrlPlacement(row.placement)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {!results || results.length === 0 ? (
+          zrlPlacements.length > 0 ? null : (
           <p className="text-sm text-muted-foreground">Nog geen resultaten ingevoerd.</p>
+          )
         ) : (
           <ul className="divide-y">
             {results.map((r) => (
