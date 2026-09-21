@@ -26,8 +26,41 @@ blijft onveranderd. Wat hieronder over de publieke endpoint staat geldt voor
 beide. Nieuw vastgesteld en hier van belang: de endpoint geeft **maximaal 200
 rijen zonder paginering**, wat zonder datumvenster neerkomt op enkele uren
 vooruit. Of `eventStartsAfter`/`eventStartsBefore` gehonoreerd worden stel je
-vast met de knop **Test eventvenster** op `/beheer/event-scan`; vul de uitkomst
-hieronder in zodra die op productie is gedraaid.
+vast met de knop **Test eventvenster** op `/beheer/event-scan`.
+
+#### Uitkomst van die knop op productie (2026-09-21)
+
+Gevraagd venster: dag 2 tot dag 3 vooruit. Antwoord:
+
+```
+200 events, venster genegeerd (200 rijen erbuiten).
+Vroegste 2026-09-21T06:45:00Z, laatste 2026-09-21T17:45:00Z.
+Velden aanwezig: routeId 200, durationInSeconds 89,
+rangeAccessLabel 42, signups 200, description 200.
+```
+
+Wat daaruit volgt:
+
+- **`eventStartsAfter`/`eventStartsBefore` worden genegeerd.** Alle 200 rijen
+  vielen buiten het gevraagde venster; het is gewoon de lijst vanaf *nu*.
+  `ZWIFT_EVENT_HORIZON_DAYS` doet daardoor niets. De sync merkt dit zelf (het
+  tweede venster geeft dezelfde event-ids), stopt daar en meldt
+  `windowsIgnored: true` — twee calls per run.
+- **De reikwijdte is ~11 uur, niet de twee à drie die hierboven geschat werd.**
+  200 events over 06:45–17:45 is ongeveer 18 events per uur. Dat dekt de training
+  van vandaag en vanavond; morgen niet. Voor de eventvoorstellen is dat genoeg:
+  het moment waarop iemand kiest wat hij gaat rijden ligt binnen dat venster.
+- **`routeId` zit op 100%.** Terrein en de duurschatting uit de route werken dus
+  altijd. Dat is maar goed ook, want:
+- **`durationInSeconds` zit op maar 44%.** Voor meer dan de helft van de events
+  moet de duur uit de route worden afgeleid. De schatting in `zwift-match.ts` is
+  daarmee geen randgeval maar het normale pad.
+- **`rangeAccessLabel` zit op maar 21%, `description` op 100%.** Organisatoren
+  zetten het tempo vaker in de tekst dan in het veld. Daarom leest
+  `paceWkgFromText()` het tempo nu ook uit naam, serie en omschrijving, met de
+  eenheid (`w/kg`) verplicht — zonder die eis leest "3-4 laps" als een tempo.
+- **`signups` zit op 100%**, dus het populariteitspercentiel per uurslot heeft
+  altijd materiaal.
 
 De huidige basis is `/beheer/event-scan`: admins scannen externe bronnen,
 MyWhoosh- en Zwift-metadata wordt als concept opgeslagen in

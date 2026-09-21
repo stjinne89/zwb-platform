@@ -250,6 +250,50 @@ export function parseWkgRange(
   return null;
 }
 
+/**
+ * Zoekt een tempo in vrije tekst: "Pace: 2.0-2.5 W/kg", "riding at 3.0 w/kg".
+ *
+ * Gemeten op de echte kalender (beheerknop "Test eventvenster", 2026-09-21):
+ * maar 21% van de events vult `rangeAccessLabel` in, terwijl 100% een
+ * omschrijving heeft. Organisatoren zetten het tempo dus vaak wél in de tekst en
+ * niet in het veld. Zonder deze terugval valt de intensiteitsdimensie -- na duur
+ * de zwaarste -- bij vier van de vijf events weg.
+ *
+ * De eenheid is verplicht. Zonder die eis leest "3-4 laps" als een tempo van 3,5
+ * W/kg, en dan is een verzonnen oordeel erger dan geen oordeel. De uitkomst wordt
+ * bovendien begrensd op wat een mens levert.
+ */
+export const MIN_PLAUSIBLE_WKG = 0.5;
+export const MAX_PLAUSIBLE_WKG = 7;
+
+export function paceWkgFromText(text: string | null | undefined): number | null {
+  if (!text) return null;
+  const normalized = text.replace(/,(\d)/g, ".$1");
+  const unit = String.raw`w\s*\/?\s*kg`;
+
+  const range = new RegExp(
+    String.raw`(\d+(?:\.\d+)?)\s*(?:-|–|—|to|tot)\s*(\d+(?:\.\d+)?)\s*${unit}`,
+    "i",
+  ).exec(normalized);
+  if (range) {
+    const low = Number(range[1]);
+    const high = Number(range[2]);
+    if (Number.isFinite(low) && Number.isFinite(high)) {
+      return plausibleWkg((Math.min(low, high) + Math.max(low, high)) / 2);
+    }
+  }
+
+  const single = new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${unit}`, "i").exec(normalized);
+  if (single) return plausibleWkg(Number(single[1]));
+
+  return null;
+}
+
+function plausibleWkg(value: number): number | null {
+  if (!Number.isFinite(value)) return null;
+  return value >= MIN_PLAUSIBLE_WKG && value <= MAX_PLAUSIBLE_WKG ? value : null;
+}
+
 /** De band van een subgroep: eerst wat het event zelf zegt, anders de A-E-terugval. */
 export function subgroupBand(subgroup: ZwiftSubgroup) {
   if (subgroup.minWkg !== null || subgroup.maxWkg !== null) {
@@ -342,7 +386,12 @@ export function eventIntensity(
   event: ZwiftEventCandidate,
   subgroup: ZwiftSubgroup | null,
   athlete: MatchAthlete,
-): { intensity: WorkoutIntensity; pctFtp: number | null; source: "band" | "soort" | "naam" } | null {
+): {
+  intensity: WorkoutIntensity;
+  pctFtp: number | null;
+  /** Waar het oordeel vandaan komt: het bandveld, de omschrijving, de eventsoort of de naam. */
+  source: "band" | "tekst" | "soort" | "naam";
+} | null {
   // De soort gaat vóór de band, en dat is geen detail. Bij een race betekent
   // "B, 3.2-3.9 W/kg" dat jouw FTP in die band moet vallen -- het zegt niets
   // over hoe hard er gereden wordt. Bij een groepsrit betekent dezelfde notatie
@@ -353,13 +402,22 @@ export function eventIntensity(
 
   const band = subgroup ? subgroupBand(subgroup) : null;
   const centerWkg = band ? bandCenterWkg(band) : null;
+  const haystack = [event.name, event.seriesName, event.description].filter(Boolean).join(" ");
 
-  if (centerWkg !== null && athlete.ftpWatts && athlete.weightKg) {
-    const pctFtp = ((centerWkg * athlete.weightKg) / athlete.ftpWatts) * 100;
-    return { intensity: intensityForPct(pctFtp), pctFtp, source: "band" };
+  if (athlete.ftpWatts && athlete.weightKg) {
+    // Het veld gaat voor de tekst: een ingevulde band is een keuze van de
+    // organisator, een getal in de omschrijving is een vondst van ons.
+    const wkg = centerWkg ?? paceWkgFromText(haystack);
+    if (wkg !== null) {
+      const pctFtp = ((wkg * athlete.weightKg) / athlete.ftpWatts) * 100;
+      return {
+        intensity: intensityForPct(pctFtp),
+        pctFtp,
+        source: centerWkg !== null ? "band" : "tekst",
+      };
+    }
   }
 
-  const haystack = [event.name, event.seriesName, event.description].filter(Boolean).join(" ");
   for (const [intensity, pattern] of INTENSITY_KEYWORDS) {
     if (pattern.test(haystack)) return { intensity, pctFtp: null, source: "naam" };
   }

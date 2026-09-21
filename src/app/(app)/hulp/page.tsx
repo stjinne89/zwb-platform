@@ -324,7 +324,7 @@ const ZWIFT_MATCH_FACTORS = [
 ];
 
 const ZWIFT_MATCH_NOTES = [
-  "Voorstellen verschijnen alleen voor vandaag en de eerstvolgende dagen: verder vooruit geeft Zwift zijn kalender niet vrij.",
+  "Voorstellen gaan over ongeveer de komende elf uur: verder vooruit geeft Zwift zijn kalender niet vrij. Voor de training van vandaag of vanavond staat er dus iets, voor die van overmorgen niet.",
   "Vul je FTP en gewicht in op je profiel. Zonder die twee kunnen we de W/kg van een pacegroep niet naar jouw intensiteit omrekenen en blijft er weinig te vergelijken over.",
   "Bij een groepsrit wijzen we de pacegroep aan die het tempo van je training rijdt — niet de snelste groep waar je in mag.",
   "Bij een race telt de categorie wél als toelatingseis: valt je W/kg buiten elke categorie, dan stellen we de race niet voor.",

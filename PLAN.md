@@ -1,5 +1,41 @@
 # ZWB Platform — Plan & Status
 
+> **Zwift-kalender gemeten op productie, en het tempo uit de omschrijving, 2026-09-21 — gebouwd, lokaal getest.**
+> Implementatiecommit `MEET_HASH`. Geen migratie.
+> De knop "Test eventvenster" is op productie gedraaid. Drie dingen die we nu
+> wéten in plaats van vermoeden, met gevolgen voor wat er beloofd werd:
+> 1. **Zwift negeert `eventStartsAfter`/`eventStartsBefore`.** Alle 200 rijen
+>    vielen buiten het gevraagde venster. `ZWIFT_EVENT_HORIZON_DAYS` doet dus
+>    niets. De sync merkt dat zelf op het tweede venster, stopt daar en meldt
+>    `windowsIgnored: true` — twee calls per run, precies zoals gebouwd.
+> 2. **De reikwijdte is ~11 uur, niet "twee à drie".** 200 events over
+>    06:45–17:45 is ongeveer 18 per uur. Dat dekt de training van vandaag en
+>    vanavond, niet die van morgen. Ruimer dan bij de bouw geschat, en genoeg voor
+>    waar de feature voor is: het moment waarop je kiest wat je gaat rijden.
+> 3. **Velddekking:** `routeId` 100%, `signups` 100%, `description` 100%,
+>    `durationInSeconds` 44%, `rangeAccessLabel` **21%**.
+> **Wat dat laatste veranderde.** De intensiteitsdimensie weegt 30 — na duur de
+> zwaarste — en leunde op `rangeAccessLabel`, dat er bij vier van de vijf events
+> niet is. De omschrijving is er juist altijd, en organisatoren zetten het tempo
+> vaker in de tekst dan in het veld. `paceWkgFromText()` leest nu "Pace: 2.0-2.5
+> W/kg" uit naam, serie en omschrijving wanneer het veld ontbreekt. De eenheid is
+> verplicht en de uitkomst begrensd op 0,5–7 W/kg: zonder die eis leest "3-4 laps"
+> als een tempo van 3,5 W/kg, en dan meet de score onze eigen verzinsels in plaats
+> van het event. Het bandveld gaat vóór de tekst — een ingevulde band is een keuze
+> van de organisator, een getal in de tekst is een vondst van ons. De herkomst
+> staat als `source` in de uitkomst (`band` | `tekst` | `soort` | `naam`).
+> **Claims die niet meer kloppen en zijn gecorrigeerd:** `/hulp` beloofde leden
+> voorstellen "voor vandaag en de eerstvolgende dagen" (nu: ongeveer de komende
+> elf uur); `.env.local.example` suggereerde dat een hogere horizon zin heeft (nu:
+> die knop doet niets zolang het venster genegeerd wordt); `docs/runbook.md` en
+> `docs/zwift-mywhoosh-kalender-spike.md` dragen nu de gemeten getallen in plaats
+> van de schatting.
+> **Nog steeds niet gemeten:** of de matcher in de praktijk zinnige events bovenaan
+> zet. Daarvoor moet er eerst een week gesynct zijn.
+> Verificatie: 1.432 tests geslaagd (8 nieuw rond `paceWkgFromText`),
+> `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7 bestaande waarschuwingen,
+> productiebuild geslaagd.
+
 > **Zwift-eventsync kwam nooit langs de middleware, 2026-09-21 — gefixt, lokaal getest.**
 > Implementatiecommit `98d33dd`. Geen migratie.
 > Melding van de eigenaar bij het inrichten van de cron: cron-job.org kreeg

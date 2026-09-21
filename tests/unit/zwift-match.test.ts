@@ -6,6 +6,7 @@ import {
   eventIntensity,
   intensityForPct,
   MATCH_FLOOR_PCT,
+  paceWkgFromText,
   parseWkgRange,
   rejectReason,
   scoreEvent,
@@ -91,6 +92,39 @@ describe("parseWkgRange", () => {
   it("geeft null bij tekst zonder band", () => {
     expect(parseWkgRange("Open to all")).toBeNull();
     expect(parseWkgRange(null)).toBeNull();
+  });
+});
+
+describe("paceWkgFromText", () => {
+  it("leest het tempo uit een omschrijving", () => {
+    expect(paceWkgFromText("Steady endurance ride. Pace: 2.0-2.5 W/kg.")).toBe(2.25);
+  });
+
+  it("leest een enkel tempo", () => {
+    expect(paceWkgFromText("We ride at 3.0 w/kg, no drops")).toBe(3);
+  });
+
+  it("verdraagt schrijfwijzen", () => {
+    expect(paceWkgFromText("tempo 2,0 - 2,5 wkg")).toBe(2.25);
+    expect(paceWkgFromText("PACE 1.5 W / KG")).toBe(1.5);
+  });
+
+  it("leest GEEN tempo uit een getal zonder eenheid", () => {
+    // Zonder deze eis wordt "3-4 laps" een tempo van 3,5 W/kg, en dan meet de
+    // intensiteitsscore onze eigen verzinsels.
+    expect(paceWkgFromText("3-4 laps of the Volcano")).toBeNull();
+    expect(paceWkgFromText("Join 50-60 riders for a fun ride")).toBeNull();
+    expect(paceWkgFromText("Race starts at 19:00")).toBeNull();
+  });
+
+  it("weigert onmenselijke waarden", () => {
+    expect(paceWkgFromText("200-300 w/kg")).toBeNull();
+    expect(paceWkgFromText("0.1 w/kg")).toBeNull();
+  });
+
+  it("geeft null bij lege tekst", () => {
+    expect(paceWkgFromText(null)).toBeNull();
+    expect(paceWkgFromText("")).toBeNull();
   });
 });
 
@@ -226,6 +260,35 @@ describe("eventIntensity", () => {
       ATHLETE,
     );
     expect(result).toEqual({ intensity: "threshold", pctFtp: null, source: "naam" });
+  });
+
+  it("valt terug op het tempo in de omschrijving als de band ontbreekt", () => {
+    // Gemeten op de echte kalender: 21% vult rangeAccessLabel in, 100% heeft een
+    // omschrijving. Zonder deze terugval valt de dimensie meestal weg.
+    const result = eventIntensity(
+      event({
+        eventType: "GROUP_RIDE",
+        name: "Endurance Ride",
+        description: "Steady pace, 2.0-2.5 W/kg. All welcome.",
+      }),
+      null,
+      ATHLETE,
+    );
+    expect(result?.source).toBe("tekst");
+    expect(Math.round(result!.pctFtp!)).toBe(68);
+    expect(result?.intensity).toBe("tempo");
+  });
+
+  it("laat het bandveld vóór de omschrijving gaan", () => {
+    // Een ingevulde band is een keuze van de organisator; een getal in de tekst
+    // is een vondst van ons.
+    const group = subgroup({ label: "D", minWkg: 1.5, maxWkg: 2.5 });
+    const result = eventIntensity(
+      event({ subgroups: [group], description: "Hard ride at 5.0 W/kg" }),
+      group,
+      ATHLETE,
+    );
+    expect(result?.source).toBe("band");
   });
 
   it("gokt niet als er niets te herkennen valt", () => {
