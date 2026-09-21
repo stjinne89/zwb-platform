@@ -1,9 +1,9 @@
-# Routevoorstel voor buitenritten — onderzoek
+# Routevoorstel voor buitenritten — onderzoek en bouw
 
-Datum: 2026-09-20
-Status: onderzoek, niets gebouwd. Ronde 1 van deze feature ging over de
-Zwift-kant (eventvoorstellen bij een geplande training); dit document is de
-voorbereiding op ronde 2, zodat die niet opnieuw hoeft te beginnen.
+Datum: 2026-09-20, bijgewerkt 2026-09-21
+Status: **gebouwd** (migratie `0173`). Dit document begon als onderzoek en is bij
+de bouw bijgewerkt; wat er nu staat beschrijft wat er daadwerkelijk draait, met
+de afwegingen erbij. De keuzes die nog openstaan staan onderaan.
 
 ## De vraag
 
@@ -136,19 +136,73 @@ en geen postcode.
   vertrekpunt opslaan is een echte verschuiving ten opzichte van die lijn, ook
   als het lid het zelf aanwijst.
 
-## 6. Wat er dan nog moet gebeuren
+## 6. Wat er gebouwd is
 
-De gegenereerde GPX gaat rechtstreeks door de keten die er al staat:
-`parseGpx` → `detectClimbs` → `sampleRoute` → `fetchRouteForecast`. Wat nieuw is:
+| Onderdeel | Waar |
+|---|---|
+| Vertrekpunten (tabel, RLS, afronding in de database) | migratie `0173` |
+| Kaartkiezer op `/profiel#vertrekpunten` | `profiel/_components/start-points.tsx` |
+| Gedeeld snelheidsmodel, beide richtingen | `lib/training/ride-physics.ts` |
+| Doel + scoring van een rondje | `lib/training/outdoor-target.ts` |
+| Keerpunten van een rondje (pure meetkunde) | `lib/outdoor/roundtrip.ts` |
+| Routeplanner-client (BRouter, optioneel GraphHopper) | `lib/outdoor/router.ts` |
+| Genereren, scoren, bewaren | `lib/training/outdoor-suggestions.ts` |
+| Weergave bij de training | `zwbeter-worden/_components/outdoor-route-suggestions.tsx` |
+| GPX-download | `api/training/outdoor-routes/[id]/gpx` |
 
-1. Vertrekpunten (tabel, kaartkiezer, privacybesluit).
-2. Een routebron (hosting-besluit: GraphHopper-sleutel of eigen instance).
-3. Van geplande training naar routevraag: duur + intensiteit → afstand en
-   hoogtemeters. Hiervoor kan het snelheidsmodel uit
-   `src/lib/training/zwift-match.ts` (`estimateEventMinutes`) hergebruikt worden,
-   omgekeerd toegepast.
-4. Drie varianten scoren en tonen, in dezelfde vorm als de Zwift-voorstellen.
-5. Optioneel: de persoonlijke heatmap als voorkeurslaag over de generator.
+Drie keuzes die tijdens het bouwen anders uitpakten dan hierboven gedacht:
+
+**BRouter werd de standaard, niet GraphHopper.** GraphHopper heeft weliswaar een
+echte rondrit-stand, maar vraagt een sleutel — en dan werkt de feature niet
+zonder dat iemand eerst een account aanmaakt. BRouter is sleutelloos, dus doet
+het meteen. De rondrit die GraphHopper cadeau geeft, maken we zelf: drie
+keerpunten op een driehoek om het vertrekpunt. Dat is bovendien pure meetkunde,
+en dus zonder netwerk te testen. GraphHopper blijft beschikbaar via
+`OUTDOOR_ROUTER=graphhopper`.
+
+**Het snelheidsmodel is gedeeld met de Zwift-matcher.** Die vraagt "hoe lang
+duurt deze rit?", het routevoorstel vraagt het omgekeerde. Twee kopieën zouden na
+de eerste bijstelling uit elkaar lopen, en dan stelt ZWB een rondje van twee uur
+voor dat hij daarna zelf op anderhalf uur schat. Nu staat het één keer in
+`ride-physics.ts`, met een aparte buitenstraf (`OUTDOOR_SPEED_PENALTY`) voor
+kruisingen en verkeerslichten.
+
+**De rondjes worden bewaard, de Zwift-voorstellen niet.** Een Zwift-voorstel is
+een sortering over data die er al is en kan elke keer opnieuw; een rondje kost
+een call naar een gratis externe dienst. Dat mag niet bij elke paginaweergave
+gebeuren. Vandaar een knop, en daarna staat het er tot het lid opnieuw vraagt.
+
+## 7. Wat bewust niet is gebouwd
+
+- **De persoonlijke heatmap als voorkeurslaag.** De data ligt er
+  (`summary_polyline`), maar BRouter kiest zijn wegen al op ondergrond, fietspad
+  en drukte — dat is de eigenschap waar een heatmap een benadering van is. Eerst
+  kijken of de rondjes zonder al goed genoeg zijn; anders bouw je complexiteit
+  voor een probleem dat er niet is.
+- **Een clubbrede heatmap.** Raakt de Strava-clausule van november 2024; wacht op
+  een expliciete beslissing van de eigenaar, zoals destijds bij ZwiftPower.
+- **Fietsknooppunten als routebron.** Sterk voor een rustige duurrit, zwak voor
+  een racefiets (gedeelde en onverharde paden). Pas zinnig als blijkt dat leden
+  de gegenereerde rondjes te druk vinden.
+- **Een route terugschrijven naar Strava of Komoot.** Strava kán het niet via de
+  API en Komoot heeft geen publieke API. GPX-download dekt de behoefte.
+- **Meerdere vertrekpunten slim kiezen.** Het lid kiest zelf uit zijn lijst; ZWB
+  raadt niet welk vertrekpunt bij welke training hoort.
+
+## 8. Nog te beslissen
+
+- **Privacyversie.** `src/lib/privacy.ts` is *niet* gebumpt. Argument om het niet
+  te doen: het lid wijst het punt zelf aan, het gaat naar geen enkele externe
+  partij (alleen de coördinaten van de keerpunten gaan naar de routeplanner, niet
+  het vertrekpunt als "thuis"), het is voor niemand anders zichtbaar en het is
+  afgerond op ~110 m. Argument om het wel te doen: het platform bewaarde tot nu
+  toe principieel géén start- of eindlocatie, en dat principe verschuift hier.
+  **Dit is een beslissing van de eigenaar, niet van de bouwer.**
+- **De omwegfactor** (`DETOUR_FACTOR`, nu 1,25) bepaalt hoe groot de driehoek
+  wordt. Geeft de planner structureel te lange of te korte rondjes, dan is dat de
+  knop. Pas bij te stellen op echte routes.
+- **Het BRouter-profiel**: `fastbike` (racefiets) of `trekking` (rustiger). Nu
+  `fastbike`, instelbaar via `OUTDOOR_ROUTE_PROFILE`.
 
 ## Bronnen
 

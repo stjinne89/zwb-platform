@@ -13,6 +13,7 @@ import { MyQuotes, type MyQuote } from "./_components/my-quotes";
 import { StravaSection } from "./_components/strava-section";
 import { BikeShowcase } from "./_components/bike-showcase";
 import { AccountData } from "./_components/account-data";
+import { StartPoints, type StartPointRow } from "./_components/start-points";
 import { ProfileExternalLinks } from "@/components/profile-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
@@ -163,6 +164,25 @@ export default async function ProfielPage() {
 
   const bikeRows = (bikes ?? []) as StravaBikeRow[];
 
+  // Vertrekpunten leest het lid onder zijn eigen RLS: er is geen stand waarin
+  // een ander hierbij mag, dus ook geen admin-client (zie migratie 0173).
+  const { data: startPointRows } = await supabase
+    .from("profile_start_points")
+    .select("id, label, lat, lon")
+    .eq("profile_id", user.id)
+    .order("created_at", { ascending: true });
+  const startPoints = ((startPointRows ?? []) as Array<{
+    id: string;
+    label: string;
+    lat: number | string;
+    lon: number | string;
+  }>).map((row) => ({
+    id: row.id,
+    label: row.label,
+    lat: Number(row.lat),
+    lon: Number(row.lon),
+  })) satisfies StartPointRow[];
+
   const awardList = (awards ?? []) as unknown as AwardRow[];
   const earnedMilestoneIds = new Set(
     (milestoneAwards ?? []).map((a) => a.badge_id),
@@ -234,6 +254,10 @@ export default async function ProfielPage() {
 
       <div id="strava" className="scroll-mt-20">
         <StravaSection connection={stravaConn ?? null} />
+      </div>
+
+      <div id="vertrekpunten" className="scroll-mt-20">
+        <StartPoints points={startPoints} />
       </div>
 
       <div id="fietsen" className="scroll-mt-20">

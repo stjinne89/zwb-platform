@@ -35,6 +35,11 @@ import {
   type ChosenZwiftEvent,
   type ZwiftSuggestionView,
 } from "./zwift-event-suggestions";
+import {
+  OutdoorRouteSuggestions,
+  type OutdoorRouteView,
+  type StartPointOption,
+} from "./outdoor-route-suggestions";
 
 export type MemberCalendarItem = {
   id: string;
@@ -73,6 +78,8 @@ export type MemberCalendarItem = {
     zwift?: ZwiftSuggestionView[];
     /** Het event dat het lid al koos; dan vervallen de voorstellen. */
     zwiftChosen?: ChosenZwiftEvent | null;
+    /** Voorgestelde buitenrondjes; leeg tot het lid erom vraagt. */
+    outdoor?: OutdoorRouteView[];
   };
 };
 
@@ -180,9 +187,11 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
 function WorkoutDetail({
   item,
   ftpWatts,
+  startPoints,
 }: {
   item: MemberCalendarItem;
   ftpWatts?: number | null;
+  startPoints: StartPointOption[];
 }) {
   if (item.ride) return <RideDetail item={{ ...item, ride: item.ride }} />;
 
@@ -276,6 +285,14 @@ function WorkoutDetail({
             matches={detail.zwift ?? []}
             chosen={detail.zwiftChosen ?? null}
           />
+          {/* Binnen en buiten naast elkaar: het weer bepaalt welke van de twee
+              je die dag wilt, en dat kan het lid zelf het beste zien. */}
+          <OutdoorRouteSuggestions
+            key={`buiten-${item.id}`}
+            workoutId={item.id}
+            routes={detail.outdoor ?? []}
+            startPoints={startPoints}
+          />
         </>
       ) : (
         <>
@@ -317,11 +334,14 @@ export function MemberWorkoutCalendar({
   items,
   todayKey,
   ftpWatts,
+  startPoints = [],
 }: {
   items: MemberCalendarItem[];
   todayKey: string;
   /** Voor de vermogensbanden in de blokkenbalk. */
   ftpWatts?: number | null;
+  /** Waar het lid vandaan vertrekt, voor de routevoorstellen. */
+  startPoints?: StartPointOption[];
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = items.find((item) => item.id === selectedId) ?? null;
@@ -347,7 +367,7 @@ export function MemberWorkoutCalendar({
       />
       <div className="border-t p-4">
         {selected ? (
-          <WorkoutDetail item={selected} ftpWatts={ftpWatts} />
+          <WorkoutDetail item={selected} ftpWatts={ftpWatts} startPoints={startPoints} />
         ) : (
           <p className="text-sm text-muted-foreground">
             Klik een training voor de details of je rapportage.

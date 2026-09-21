@@ -49,6 +49,7 @@ import {
   loadProfile,
   loadScheduleEventChoices,
   loadScheduleRides,
+  loadOutdoorSuggestionViews,
   loadZrlTeamMembership,
   loadZwiftSuggestionViews,
   planUpdateDefaults,
@@ -103,7 +104,10 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ]);
 
   const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
-  const zwift = await loadZwiftSuggestionViews(viewer, memberWorkouts);
+  const [zwift, outdoor] = await Promise.all([
+    loadZwiftSuggestionViews(viewer, memberWorkouts),
+    loadOutdoorSuggestionViews(viewer, memberWorkouts),
+  ]);
   const todayKey = todayKeyAmsterdam();
   const reports = (reportRows ?? []) as WorkoutReportRow[];
   const reportsByWorkout = byWorkout(reports);
@@ -228,6 +232,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             String(workout.scheduled_at).slice(0, 10) >= todayKey,
           zwift: zwift.suggestions.get(workout.id) ?? [],
           zwiftChosen: zwift.chosen.get(workout.id) ?? null,
+          outdoor: outdoor.routes.get(workout.id) ?? [],
         },
       };
     }),
@@ -314,6 +319,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             items={calendarItems}
             todayKey={todayKey}
             ftpWatts={profile?.ftp_watts}
+            startPoints={outdoor.startPoints}
           />
         ) : upcomingEvents.length === 0 && upcomingWorkouts.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>

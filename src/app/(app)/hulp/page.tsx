@@ -334,6 +334,16 @@ const ZWIFT_MATCH_NOTES = [
   "Staat er niets? Dan was er niets dat goed genoeg paste. Liever geen voorstel dan een verkeerd voorstel.",
 ];
 
+const OUTDOOR_ROUTE_NOTES = [
+  "Zet eerst een vertrekpunt op je profiel: je prikt een punt op de kaart, je vult geen adres in. ZWB bewaart die plek afgerond op ongeveer honderd meter en geen ander lid kan erbij.",
+  "De afstand volgt uit de geplande duur en intensiteit, met je FTP en gewicht erbij. Staan die niet op je profiel, dan doet ZWB geen voorstel — elke afstand zou dan een gok zijn.",
+  "Bij wind vertrekt het eerste rondje tegen de wind in, zodat je met de wind mee thuiskomt. Bij windstilte zijn het gewoon drie kanten op.",
+  "Een drempel- of tempotraining krijgt een rondje met meer hoogtemeters, een duur- of hersteltraining een vlakker rondje.",
+  "De rondjes komen van een routeplanner op OpenStreetMap-data, niet van ZWB: ze houden rekening met fietspad, ondergrond en drukte, maar ze zijn niet door een mens gereden. Kijk hem na voordat je vertrekt.",
+  "Met GPX zet je het rondje op je fietscomputer, in Komoot of in Strava.",
+  "Een rondje blijft staan tot je opnieuw om een voorstel vraagt.",
+];
+
 const DATA_FRESHNESS_HELP = [
   "Onder Training → Belasting staat per bron wanneer er voor het laatst iets binnenkwam.",
   "Strava-ritten haal je zelf op met Sync op Achievements; nieuwe ritten kunnen tot een half uur duren.",
@@ -2498,6 +2508,32 @@ Fitness-status: Verbeterend`}
             </ul>
           </div>
         </div>
+      </section>
+
+      <section
+        id="routevoorstellen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Navigation className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Rondjes voor buiten</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bij een geplande training kun je drie rondjes laten voorstellen
+              vanaf je eigen vertrekpunt, afgestemd op de duur, de intensiteit en
+              de wind van die dag.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2">
+          {OUTDOOR_ROUTE_NOTES.map((note) => (
+            <li key={note} className="flex gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section

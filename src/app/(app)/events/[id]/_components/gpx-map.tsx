@@ -14,7 +14,7 @@ import { POI_TYPES, type EventPoi, type PoiType } from "./poi";
 import { ZONE_COLOR, ZONE_LABEL } from "./zone";
 import "leaflet/dist/leaflet.css";
 
-const MapClick = dynamic(() => import("./map-click"), { ssr: false });
+const MapClick = dynamic(() => import("@/components/map-click"), { ssr: false });
 
 // react-leaflet hits window during init — must be client-only.
 const MapContainer = dynamic(

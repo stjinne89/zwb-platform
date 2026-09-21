@@ -166,6 +166,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "fit export fietscomputer wahoo garmin elemnt bolt roam workout",
   },
   {
+    title: "Rondjes voor buiten",
+    text: "Routevoorstellen vanaf je eigen vertrekpunt, met de wind mee naar huis.",
+    href: "/hulp#routevoorstellen",
+    terms:
+      "route rondje buitenrit buiten gpx vertrekpunt thuis kaart wind tegenwind meewind komoot afstand hoogtemeters voorstel",
+  },
+  {
     title: "Zwift-events bij je training",
     text: "Passende Zwift-events bij een geplande training, met een percentage.",
     href: "/hulp#zwift-voorstellen",

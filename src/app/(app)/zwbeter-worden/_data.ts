@@ -63,10 +63,18 @@ import {
 } from "@/lib/training/zwift-suggestions";
 import type { ZwiftEventMatch } from "@/lib/training/zwift-match";
 import type { PendingReview } from "./_components/workout-review-dialog";
+import {
+  loadOutdoorSuggestions,
+  loadStartPoints,
+} from "@/lib/training/outdoor-suggestions";
 import type {
   ChosenZwiftEvent,
   ZwiftSuggestionView,
 } from "./_components/zwift-event-suggestions";
+import type {
+  OutdoorRouteView,
+  StartPointOption,
+} from "./_components/outdoor-route-suggestions";
 import { formatDayMonth } from "./_components/format";
 import type { RideLink } from "./_components/ride-link";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
@@ -947,4 +955,64 @@ function toSuggestionView(match: ZwiftEventMatch): ZwiftSuggestionView {
     strongest: match.strongest?.note ?? null,
     weakest: match.weakest?.note ?? null,
   };
+}
+
+/**
+ * Vertrekpunten van het lid, en de rondjes die er al voor zijn gemaakt.
+ *
+ * Anders dan de Zwift-voorstellen worden deze niet berekend maar gelezen: ze
+ * bestaan pas als het lid erom vroeg. Faalt de query, dan is de kalender nog
+ * steeds bruikbaar en missen alleen de rondjes.
+ */
+export async function loadOutdoorSuggestionViews(
+  viewer: Viewer,
+  workouts: WorkoutRow[],
+): Promise<{
+  startPoints: StartPointOption[];
+  routes: Map<string, OutdoorRouteView[]>;
+}> {
+  const empty = { startPoints: [] as StartPointOption[], routes: new Map<string, OutdoorRouteView[]>() };
+  const planned = workouts.filter(
+    (workout) => workout.status === "planned" && !workout.superseded_at,
+  );
+  if (planned.length === 0) return empty;
+
+  try {
+    const [startPoints, byWorkout] = await Promise.all([
+      loadStartPoints(viewer.admin, viewer.user.id),
+      loadOutdoorSuggestions(
+        viewer.admin,
+        viewer.user.id,
+        planned.map((workout) => workout.id),
+      ),
+    ]);
+
+    const routes = new Map<string, OutdoorRouteView[]>();
+    for (const [workoutId, rows] of byWorkout) {
+      routes.set(
+        workoutId,
+        rows.map((row) => ({
+          id: row.id,
+          distanceKm: Number(row.distance_km),
+          elevationM: row.elevation_m,
+          estimatedMinutes: row.estimated_minutes,
+          scorePct: row.score_pct,
+          summary: row.summary,
+          windNote: row.wind_note,
+          chosen: row.chosen_at !== null,
+        })),
+      );
+    }
+
+    return {
+      startPoints: startPoints.map((point) => ({ id: point.id, label: point.label })),
+      routes,
+    };
+  } catch (error) {
+    console.error(
+      "[zwbeter-worden] buitenrondjes laden mislukt",
+      error instanceof Error ? error.message : error,
+    );
+    return empty;
+  }
 }

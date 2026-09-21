@@ -49,6 +49,10 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
+import {
+  generateOutdoorRoutes,
+  loadStartPoints,
+} from "@/lib/training/outdoor-suggestions";
 
 const GOAL_TYPES = ["zrl", "ladder", "outdoor_event", "gran_fondo", "ftp", "base_fitness", "rebuild"];
 const MODES = ["indoor", "outdoor", "mixed"];
@@ -2157,6 +2161,114 @@ export async function dismissZwiftSuggestions(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Voorstellen wegklikken faalde.",
+    };
+  }
+}
+
+/**
+ * Een rondje laten maken bij een geplande buitentraining.
+ *
+ * Waarom dit een knop is en niet iets dat vanzelf gebeurt zoals bij de
+ * Zwift-voorstellen: elk voorstel kost een call naar een externe routeplanner.
+ * Dat mag niet bij elke keer dat iemand zijn schema opent -- niet voor onze
+ * laadtijd, en niet voor de gratis dienst die we gebruiken. Het lid vraagt
+ * erom, en daarna staat het er.
+ */
+export async function generateOutdoorRoutesAction(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const workoutId = mustString(formData.get("workout_id"), "Training");
+
+    const { data: workout } = await admin
+      .from("training_workouts")
+      .select("id, profile_id, scheduled_at, duration_minutes, intensity, status, superseded_at")
+      .eq("id", workoutId)
+      .maybeSingle();
+    if (!workout) throw new Error("Training niet gevonden.");
+    if (workout.superseded_at || workout.status !== "planned") {
+      throw new Error("Deze training staat niet meer gepland.");
+    }
+    // Strenger dan de andere trainingsacties, en met opzet: een rondje vertrekt
+    // van het vertrekpunt van het lid. Dat is de meest privacygevoelige gegevens
+    // die dit platform bewaart, en geen trainer of beheerder hoort ermee te
+    // kunnen rekenen -- ook niet indirect. Zie migratie 0173.
+    if (workout.profile_id !== user.id) {
+      throw new Error("Alleen het lid zelf kan hier een rondje laten maken.");
+    }
+
+    const startPoints = await loadStartPoints(admin, workout.profile_id);
+    if (startPoints.length === 0) {
+      throw new Error("Zet eerst een vertrekpunt op je profiel.");
+    }
+    const requested = optionalString(formData.get("start_point_id"));
+    const startPoint =
+      startPoints.find((point) => point.id === requested) ?? startPoints[0];
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("ftp_watts, weight_kg")
+      .eq("id", workout.profile_id)
+      .maybeSingle();
+
+    const result = await generateOutdoorRoutes(admin, {
+      workoutId: workout.id,
+      profileId: workout.profile_id,
+      startPoint,
+      session: {
+        scheduledAt: workout.scheduled_at,
+        durationMinutes: workout.duration_minutes,
+        intensity: workout.intensity as WorkoutIntensity,
+      },
+      athlete: {
+        ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+        weightKg: profile?.weight_kg == null ? null : Number(profile.weight_kg),
+      },
+    });
+    if (!result.ok) throw new Error(result.error);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const, message: `${result.saved} route(s) voorgesteld.` };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Routes voorstellen faalde.",
+    };
+  }
+}
+
+/** Het lid kiest één van de voorgestelde rondjes. */
+export async function chooseOutdoorRoute(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const routeId = mustString(formData.get("route_id"), "Route");
+
+    const { data: route } = await admin
+      .from("outdoor_route_suggestions")
+      .select("id, workout_id, profile_id")
+      .eq("id", routeId)
+      .maybeSingle();
+    if (!route) throw new Error("Route niet gevonden.");
+    if (route.profile_id !== user.id) throw new Error("Geen toegang tot deze route.");
+
+    // Eén gekozen rondje per training: eerst alles loslaten, dan deze zetten.
+    await admin
+      .from("outdoor_route_suggestions")
+      .update({ chosen_at: null })
+      .eq("workout_id", route.workout_id);
+    const { error } = await admin
+      .from("outdoor_route_suggestions")
+      .update({ chosen_at: new Date().toISOString() })
+      .eq("id", routeId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Route kiezen faalde.",
     };
   }
 }

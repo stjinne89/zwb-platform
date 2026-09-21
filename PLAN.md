@@ -1,5 +1,85 @@
 # ZWB Platform — Plan & Status
 
+> **Rondjes voor buiten bij een geplande training, 2026-09-21 — gebouwd, lokaal getest.**
+> Implementatiecommit `OUTDOOR_HASH`, migratie `0173_outdoor_route_suggestions.sql`.
+> Tweede helft van de wens van de eigenaar bij de Zwift-eventvoorstellen hierboven:
+> stel voor buitenritten een route voor vanaf je thuisadres, meerdere opties,
+> passend bij de geplande training.
+> **Nu:** het lid zet een vertrekpunt op `/profiel#vertrekpunten` door een punt op
+> de kaart te prikken. Bij een geplande training staat daar een knop "Stel rondjes
+> voor"; die levert maximaal drie rondjes met afstand, hoogtemeters, geschatte tijd,
+> wat de wind doet en een passendheidspercentage. Kiezen kan, en met GPX gaat het
+> rondje naar je fietscomputer, Komoot of Strava.
+> **De afstand komt uit de training, niet uit een invoerveld.** Duur en intensiteit
+> plus FTP en gewicht geven het vermogen; daaruit volgt de afstand die in de
+> geplande tijd past. Een drempel- of temposessie vraagt om hoogtemeters, een duur-
+> of hersteltraining om vlak — dezelfde regel als `prefersClimb()` en het
+> terreinoordeel aan de Zwift-kant.
+> **Het snelheidsmodel is uit `zwift-match.ts` gehaald en gedeeld** (nieuw:
+> `src/lib/training/ride-physics.ts`). De Zwift-matcher vraagt "hoe lang duurt deze
+> rit", het routevoorstel vraagt precies het omgekeerde. Twee kopieën zouden na de
+> eerste bijstelling uit elkaar lopen, en dan stelt ZWB een rondje van twee uur voor
+> dat hij daarna zelf op anderhalf uur schat. Buiten krijgt een eigen straffactor
+> (`OUTDOOR_SPEED_PENALTY`) voor kruisingen, verkeerslichten en wegdek. De 46
+> bestaande Zwift-tests bleven na die verhuizing ongewijzigd groen.
+> **Wind is waar dit beter is dan zelf een rondje verzinnen.** Het eerste voorstel
+> vertrekt tegen de wind in, zodat je met de wind mee thuiskomt. Dat leunt op
+> `fetchWindForecast` en `classifyWind`, die er al waren voor de eventkaart. Bij
+> windstilte of zonder voorspelling zeggen we dat, in plaats van een windverhaal te
+> verzinnen: de dimensie telt dan niet mee — dezelfde hernormalisatie als bij de
+> Zwift-voorstellen.
+> **Routeplanner: BRouter, sleutelloos.** Het onderzoek wees eerst naar GraphHopper
+> omdat die een echte rondrit-stand heeft, maar die vraagt een sleutel en dan werkt
+> de feature niet tot iemand een account maakt. De rondrit maken we nu zelf: drie
+> keerpunten op een driehoek om het vertrekpunt, gedraaid op de gekozen windrichting.
+> Dat is pure meetkunde en dus zonder netwerk te testen. GraphHopper blijft
+> beschikbaar via `OUTDOOR_ROUTER=graphhopper`.
+> **Anders dan de Zwift-voorstellen worden deze bewaard.** Een Zwift-voorstel is een
+> sortering over data die er al ligt; een rondje kost een call naar een gratis
+> externe dienst, en dat mag niet bij elke paginaweergave gebeuren.
+> **Privacy — lees dit voordat je hier iets aan verandert.** Dit platform bewaarde
+> tot nu toe principieel géén start- of eindlocatie van een rit; migratie `0111`
+> (ZWBlokken) laat zelfs de eerste en laatste kilometer van elke rit bewust weg. Een
+> vertrekpunt opslaan verschuift dat principe. Daarom: het lid wijst het zelf aan
+> (geen adres, geen geocoder, dus ook geen adres naar een externe partij), de
+> coördinaat wordt in de database afgerond op drie decimalen (~110 m) door een
+> trigger en niet alleen in de client, RLS laat alleen het lid zelf erbij, en
+> `profile_visibility` krijgt hier geen sleutel — er is geen stand waarin dit voor
+> een ander zichtbaar is. Ook de GPX-download is alleen voor het lid zelf, anders
+> dan de FIT-export die een trainer wél mag ophalen.
+> **Geen privacyversiebump — en dat is een openstaande beslissing, geen conclusie.**
+> `src/lib/privacy.ts` is niet gebumpt. Argument ertegen: het lid wijst het punt
+> zelf aan, het gaat naar geen enkele externe ontvanger, het is voor niemand anders
+> zichtbaar en het is grof. Argument vóór: het principe "wij bewaren geen
+> vertrekpunt" verschuift hier wél. **Dit is een keuze van de eigenaar.** Wie hem
+> anders maakt, zet er een versie bij in `src/lib/privacy.ts` en een alinea in
+> `/privacy`.
+> **Bewust niet gebouwd:** geen persoonlijke heatmap als voorkeurslaag (de data
+> ligt er via `summary_polyline`, maar BRouter kiest zijn wegen al op ondergrond,
+> fietspad en drukte — dat is precies waar een heatmap een benadering van is; eerst
+> kijken of het zonder goed genoeg is); geen clubbrede heatmap (raakt de
+> Strava-clausule van november 2024, en dat is een beslissing van de eigenaar);
+> geen fietsknooppunten als bron (mooi voor een rustige duurrit, zwak voor een
+> racefiets); geen terugschrijven naar Strava of Komoot (Strava kán het niet via de
+> API, Komoot heeft geen publieke API — GPX dekt het); en ZWB raadt niet welk
+> vertrekpunt bij welke training hoort.
+> **Claim uit de vorige ronde die niet meer klopt:** het blok "Buitenritten:
+> onderzocht, niet gebouwd" hierboven zei dat het bij onderzoek zou blijven en dat
+> hosting de blokkade was. Dat is achterhaald: met BRouter is er geen
+> hostingbesluit nodig om te beginnen. `docs/buitenrit-routevoorstel-spike.md` is
+> van onderzoeksnotitie naar bouwverslag bijgewerkt.
+> **Niet lokaal te verifiëren:** de migratie (geen Docker of Supabase-config hier)
+> en élke echte aanroep van BRouter en Open-Meteo — de egress-policy van deze
+> ontwikkelomgeving blokkeert het grootste deel van het externe web. De
+> antwoordvormen van beide planners zijn daarom op vastgelegde JSON getest, niet op
+> een opname. Of de rondjes in de praktijk rijdbaar en leuk zijn blijkt pas buiten;
+> reken op één ronde bijstellen van `DETOUR_FACTOR` (nu 1,25) en mogelijk het
+> BRouter-profiel (`fastbike` of `trekking`).
+> Verificatie: 1.414 tests geslaagd (43 nieuw in `outdoor-route.test.ts`),
+> `npx tsc --noEmit` schoon, ESLint 0 fouten en de 7 bestaande waarschuwingen,
+> productiebuild geslaagd met placeholder-Supabase-variabelen.
+> Details: [buitenrit-routevoorstel](docs/buitenrit-routevoorstel-spike.md).
+
 > **Zwift-events als voorstel bij een geplande training, 2026-09-20 — gebouwd, lokaal getest.**
 > Implementatiecommit `4d4cb47`, migratie `0172_zwift_event_cache.sql`.
 > Wens van de eigenaar: koppel een passend Zwift-event aan de geplande training als
@@ -78,8 +158,8 @@
 > bestaande waarschuwingen, productiebuild geslaagd met placeholder-Supabase-variabelen.
 > `tests/unit/omnium-live.test.ts` draait in een verse clone niet (vraagt `.env.local`);
 > dat is onveranderd.
-> **Buitenritten: onderzocht, niet gebouwd.** De eigenaar koos voor Zwift eerst. Het
-> onderzoek naar routevoorstellen vanaf een eigen vertrekpunt staat in
+> **Buitenritten: inmiddels wél gebouwd — zie de ronde hierboven.** Bij deze ronde
+> koos de eigenaar voor Zwift eerst en bleef het bij onderzoek; dat onderzoek staat in
 > [buitenrit-routevoorstel-spike](docs/buitenrit-routevoorstel-spike.md). Conclusie in
 > het kort: Strava kán geen routes aanmaken via de API en de Strava-heatmap is
 > helemaal niet via de API beschikbaar — heatmaps zijn precies wat Strava met het

@@ -127,6 +127,7 @@ waarschuwing kunnen wijzigen:
 | Club-ladder | ladder.cycleracing.club | scraper + cookie | cookie verlopen / HTML-wijziging |
 | Event-scan Zwift | Zwift publieke + member-feed API | onofficiële API | endpoint/structuur-wijziging |
 | Zwift-eventvoorstellen | Zwift publieke events-API | onofficiële API | endpoint/structuur-wijziging, of Zwift die het datumvenster niet meer honoreert |
+| Buitenrondjes | BRouter (brouter.de) | publieke API, geen sleutel | brouter.de uit de lucht of traag; wijk uit met `BROUTER_BASE_URL` of `OUTDOOR_ROUTER=graphhopper` |
 | Event-scan MyWhoosh | mywhoosh.com HTML + detail-API | scraper | HTML/markup-wijziging |
 | Uitslag-scraper | ChronoRace / RaceResult / generieke HTML | scraper/JSON-API | site-wijziging |
 | ZwiftPower-uitslag | zwiftpower.com | alleen link (geen scrape) | n.v.t. (link blijft werken) |
@@ -172,6 +173,13 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
   gewijzigd (sectie 4). Check health-check-status.
 - **"Event-scan vindt niets"** → Zwift-serviceaccount-login mislukt; test via
   "Test clubkoppeling" op `/beheer/event-scan`.
+- **"Geen rondjes voor buiten"** → heeft het lid een vertrekpunt op `/profiel`,
+  en staan FTP én gewicht op het profiel? Zonder die drie doet ZWB bewust geen
+  voorstel. Komt er daarna een foutmelding bij de knop, dan komt die rechtstreeks
+  van de routeplanner: brouter.de is een gratis dienst zonder garanties. Zet
+  `BROUTER_BASE_URL` op een eigen instance of schakel over met
+  `OUTDOOR_ROUTER=graphhopper` plus `GRAPHHOPPER_API_KEY`. Er is geen cron: de
+  rondjes worden alleen gemaakt als een lid erom vraagt.
 - **"Geen Zwift-voorstellen bij een training"** → in volgorde: staat er iets in
   `zwift_events` (anders draait de uurcron niet of geeft hij 403 op een
   ontbrekend `ZWIFT_EVENT_SYNC_SECRET`); reikt de spiegel tot de dag van die

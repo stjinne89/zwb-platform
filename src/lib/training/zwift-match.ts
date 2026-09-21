@@ -25,6 +25,7 @@
 // een geplande training ligt. Onbekend verlaagt hier dus de dekking, niet de
 // score. Dezelfde regel als "onbekend telt nooit als 'past niet'" in fit.ts.
 
+import { rideSeconds } from "@/lib/training/ride-physics";
 import {
   estimateTrainingLoad,
   INTENSITY_FTP_RANGE,
@@ -158,22 +159,6 @@ const CLIMB_GRADE_PCT = 1.5;
 /** Daaronder, maar boven dit percentage, is een route golvend in plaats van vlak. */
 const ROLLING_GRADE_PCT = 0.8;
 
-/** Fiets plus uitrusting, voor het klimdeel van de tijdschatting. */
-const BIKE_KG = 8;
-
-/**
- * Luchtweerstandsconstante voor de vlakke snelheid, geijkt op Zwift: 200 W komt
- * hiermee op ongeveer 34 km/u uit. Zwift rijdt sneller dan de weg, dus een
- * constante uit een buitenmodel zou hier structureel te traag schatten.
- */
-const FLAT_DRAG_K = 0.24;
-
-/**
- * Welk deel van het vermogen op een klim daadwerkelijk tegen de zwaartekracht
- * gaat; de rest verdwijnt in rol- en luchtweerstand.
- */
-const CLIMB_POWER_SHARE = 0.85;
-
 /** De ramp waarop we twee intensiteiten met elkaar vergelijken. */
 const INTENSITY_RAMP: WorkoutIntensity[] = [
   "recovery",
@@ -294,12 +279,10 @@ function bandCenterWkg(band: { minWkg: number | null; maxWkg: number | null }) {
  * Geschatte rijtijd in minuten. Zwift geeft óf een duur (dan is het klaar), óf
  * een afstand met een rondental — dan moeten we het zelf uitrekenen.
  *
- * Het model: vlakke tijd uit het vermogen, plus een klimtoeslag uit de
- * zwaartekrachtsarbeid. Grof, net als estimateSeconds in segment-suggestions.ts,
- * en om dezelfde reden: het is er om events op volgorde te zetten, niet om een
- * plan mee te maken. Voor een écht doorgerekende rijtijd bestaat src/lib/pacing,
- * maar dat wil per kandidaat een hoogteprofiel uit zwift_routes ophalen en dat
- * is te duur voor een lijst met tientallen events.
+ * Het model staat in ride-physics.ts en wordt gedeeld met het routevoorstel voor
+ * buitenritten, dat dezelfde som in de omgekeerde richting maakt. Twee kopieën
+ * zouden na de eerste bijstelling uit elkaar lopen, en dan stelt ZWB een rit voor
+ * die hij daarna zelf anders inschat.
  */
 export function estimateEventMinutes(
   event: ZwiftEventCandidate,
@@ -312,16 +295,10 @@ export function estimateEventMinutes(
 
   const totals = eventTotals(event);
   if (!totals || totals.distanceKm <= 0) return null;
-  if (!wattsAtEffort || wattsAtEffort <= 0 || !weightKg || weightKg <= 0) return null;
 
-  const flatSpeedKmh = Math.cbrt(wattsAtEffort / FLAT_DRAG_K) * 3.6;
-  if (!Number.isFinite(flatSpeedKmh) || flatSpeedKmh <= 0) return null;
-
-  const flatSeconds = (totals.distanceKm / flatSpeedKmh) * 3600;
-  const climbSeconds =
-    ((weightKg + BIKE_KG) * 9.81 * totals.elevationM) / (wattsAtEffort * CLIMB_POWER_SHARE);
-
-  return Math.round((flatSeconds + climbSeconds) / 60);
+  // Zwift, dus zonder de buitenstraf: geen kruisingen en geen verkeerslichten.
+  const seconds = rideSeconds(totals.distanceKm, totals.elevationM, wattsAtEffort, weightKg);
+  return seconds === null ? null : Math.round(seconds / 60);
 }
 
 /**
