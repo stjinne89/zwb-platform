@@ -122,20 +122,34 @@ export function summarizeRoute(points: GpxPoint[]): RouteSummary {
 }
 
 export type WindPayoff = {
-  /** Aandeel tegenwind in de eerste helft (0-1). */
-  headwindOut: number;
-  /** Aandeel meewind in de tweede helft (0-1). */
-  tailwindHome: number;
-  /** Aandeel tegenwind in de tweede helft (0-1) -- het vervelende geval. */
-  headwindHome: number;
+  /** Aandeel meewind op het slotstuk (0-1). */
+  tailwindFinish: number;
+  /** Aandeel tegenwind op het slotstuk (0-1). */
+  headwindFinish: number;
   note: string;
 };
 
 /**
- * Hoeveel je aan de windkeuze hebt: tegenwind op de heenweg, meewind op de
- * terugweg. Dat is het advies dat elke wielrenner kent en dat geen routeplanner
- * geeft -- dus het is ook het enige waarop dit voorstel echt beter kan zijn dan
- * zelf een rondje verzinnen.
+ * Welk deel van de rit we als "slotstuk" rekenen. Het laatste been van de
+ * driehoek is ongeveer een vijfde van het rondje; een kwart pakt dat been plus
+ * het stuk ervoor, en dat is wat je als "bijna thuis" ervaart.
+ */
+const FINISH_SHARE = 0.25;
+
+/**
+ * Hoeveel je aan de windkeuze hebt — en dat is iets anders dan wat hier eerst
+ * stond.
+ *
+ * De eerste versie mat "tegenwind heen, meewind terug" en strafte daarmee élk
+ * rondje: een gesloten lus komt terug waar hij begon, dus over de hele rit is de
+ * wind per definitie ongeveer in evenwicht. Alle drie de varianten kwamen op
+ * "vooral zijwind" uit en verloren even veel punten. Een dimensie die niets
+ * onderscheidt en iedereen straft meet niet de route maar de lusvorm.
+ *
+ * Wat een lus wél kan: het láátste stuk met de wind mee leggen. Dat is stuurbaar
+ * (zie routeVariants), het is het stuk waar je moe bent, en het verschilt echt
+ * per variant. Zijwind is hier neutraal en geen straf: als beter niet kan, hoort
+ * er geen aftrek te staan.
  *
  * Eén windvector voor de hele route, uit de forecast op het vertrekpunt op het
  * tijdstip van de training. Over een rondje van vijftig kilometer draait de wind
@@ -152,51 +166,40 @@ export function windPayoff(
   const cumulative = routeCumulativeKm(points);
   const total = cumulative[cumulative.length - 1];
   if (total <= 0) return null;
-  const halfway = total / 2;
+  const finishFrom = total * (1 - FINISH_SHARE);
 
-  let headOut = 0;
-  let outKm = 0;
-  let tailHome = 0;
-  let headHome = 0;
-  let homeKm = 0;
+  let tail = 0;
+  let head = 0;
+  let finishKm = 0;
 
   for (let i = 1; i < points.length; i += 1) {
     const legKm = cumulative[i] - cumulative[i - 1];
     if (legKm <= 0) continue;
+    if (cumulative[i] <= finishFrom) continue;
+
     const bearing = gpxBearing(points[i - 1], points[i]);
     const { category } = classifyWind(windFromDeg, bearing, windSpeedKmh);
     // Stil telt niet mee: dan valt er niets te winnen en niets te verliezen.
     if (category === "stil") continue;
 
-    if (cumulative[i] <= halfway) {
-      outKm += legKm;
-      if (category === "tegenwind") headOut += legKm;
-    } else {
-      homeKm += legKm;
-      if (category === "meewind") tailHome += legKm;
-      if (category === "tegenwind") headHome += legKm;
-    }
+    finishKm += legKm;
+    if (category === "meewind") tail += legKm;
+    if (category === "tegenwind") head += legKm;
   }
 
-  if (outKm <= 0 || homeKm <= 0) return null;
+  if (finishKm <= 0) return null;
 
-  const headwindOut = headOut / outKm;
-  const tailwindHome = tailHome / homeKm;
-  const headwindHome = headHome / homeKm;
+  const tailwindFinish = tail / finishKm;
+  const headwindFinish = head / finishKm;
 
-  // De volgorde is de volgorde waarin een renner erover denkt: eerst of het
-  // ideale rondje eruit kwam, dan of de terugweg tenminste meezit, en anders de
-  // waarschuwing die ertoe doet -- tegenwind als je al moe bent.
   const note =
-    tailwindHome >= 0.4 && headwindOut >= 0.3
-      ? "Heen tegen de wind, terug met de wind mee"
-      : tailwindHome >= 0.4
-        ? "Met de wind mee naar huis"
-        : headwindHome >= 0.4
-          ? "Tegenwind op de terugweg"
-          : "Vooral zijwind";
+    tailwindFinish >= 0.4
+      ? "Laatste kilometers met de wind mee"
+      : headwindFinish >= 0.4
+        ? "Tegenwind op de laatste kilometers"
+        : "Zijwind op het laatste stuk";
 
-  return { headwindOut, tailwindHome, headwindHome, note };
+  return { tailwindFinish, headwindFinish, note };
 }
 
 // --- Scoren ---------------------------------------------------------------
@@ -222,9 +225,13 @@ export type OutdoorRouteJudgement = {
   scorePct: number;
   estimatedMinutes: number;
   summary: RouteSummary;
+  /**
+   * De deelscores, in de volgorde waarin ze gewogen zijn. Bewust geen vooraf
+   * uitgerekende "sterkste" en "zwakste" zoals aan de Zwift-kant: daar is het
+   * zwakste punt een waarschuwing, maar hier is 50 het midden en geen klacht --
+   * zijwind hoort niet in het amber. De kaart kiest zelf welke regels hij toont.
+   */
   scores: OutdoorScore[];
-  strongest: OutdoorScore | null;
-  weakest: OutdoorScore | null;
 };
 
 function clampPct(value: number) {
@@ -281,11 +288,10 @@ export function scoreOutdoorRoute(
   if (payoff) {
     scores.push({
       dimension: "wind",
-      // Twee dingen, en ze wegen niet even zwaar. Meewind naar huis telt het
-      // meest: dat is het stuk waar je moe bent. Tegenwind op de heenweg telt
-      // mee omdat je het zware deel dan vroeg wegzet, maar het is het gevolg van
-      // de eerste keuze en niet een doel op zich.
-      scorePct: clampPct(100 * (0.6 * payoff.tailwindHome + 0.4 * payoff.headwindOut)),
+      // Zijwind is het midden, niet de bodem. Meewind op het slotstuk trekt naar
+      // 100, tegenwind naar 0, en een rondje dat niet beter kán komt op 50 uit in
+      // plaats van dat het wordt afgestraft voor het feit dat het een lus is.
+      scorePct: clampPct(50 + 50 * (payoff.tailwindFinish - payoff.headwindFinish)),
       note: payoff.note,
     });
   }
@@ -297,15 +303,5 @@ export function scoreOutdoorRoute(
       totalWeight,
   );
 
-  const ranked = [...scores].sort((a, b) => b.scorePct - a.scorePct);
-  const weakest = ranked[ranked.length - 1];
-
-  return {
-    scorePct,
-    estimatedMinutes,
-    summary,
-    scores,
-    strongest: ranked[0] ?? null,
-    weakest: weakest && weakest.scorePct < 70 ? weakest : null,
-  };
+  return { scorePct, estimatedMinutes, summary, scores };
 }

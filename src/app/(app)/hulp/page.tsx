@@ -337,7 +337,7 @@ const ZWIFT_MATCH_NOTES = [
 const OUTDOOR_ROUTE_NOTES = [
   "Zet eerst een vertrekpunt op je profiel: je prikt een punt op de kaart, je vult geen adres in. ZWB bewaart die plek afgerond op ongeveer honderd meter en geen ander lid kan erbij.",
   "De afstand volgt uit de geplande duur en intensiteit, met je FTP en gewicht erbij. Staan die niet op je profiel, dan doet ZWB geen voorstel — elke afstand zou dan een gok zijn.",
-  "Bij wind vertrekt het eerste rondje tegen de wind in, zodat je met de wind mee thuiskomt. Bij windstilte zijn het gewoon drie kanten op.",
+  "Bij wind legt het eerste rondje het láátste stuk met de wind mee — het stuk waar je moe bent. Over een heel rondje kun je de wind niet ontlopen: je komt terug waar je begon, dus je krijgt altijd een deel tegen. Bij windstilte zijn het gewoon drie kanten op.",
   "Een drempel- of tempotraining krijgt een rondje met meer hoogtemeters, een duur- of hersteltraining een vlakker rondje.",
   "De rondjes komen van een routeplanner op OpenStreetMap-data, niet van ZWB: ze houden rekening met fietspad, ondergrond en drukte, maar ze zijn niet door een mens gereden. Kijk hem na voordat je vertrekt.",
   "De drie rondjes staan samen op één kaart, elk in een eigen kleur. Klik een lijn aan (of de regel eronder) om de gegevens te zien en dat rondje te kiezen.",

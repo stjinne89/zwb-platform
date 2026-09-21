@@ -1,5 +1,53 @@
 # ZWB Platform — Plan & Status
 
+> **Windweging en omwegfactor bijgesteld op echte rondjes, 2026-09-21 — gebouwd, lokaal getest.**
+> Implementatiecommit `TUNE_HASH`. Geen migratie.
+> De eerste echte buitenrondjes lieten twee dingen zien die niet klopten. De
+> eigenaar vroeg ze aan te pakken.
+>
+> **1. De windbelofte was onmogelijk, niet verkeerd afgesteld.** Het voorstel
+> beloofde "heen tegen de wind in, terug met de wind mee". Op een *gesloten lus*
+> kan dat niet: je komt terug waar je begon, dus over de hele rit is de wind
+> ongeveer in evenwicht. Nagerekend op de meetkunde waren de vier benen bij kop
+> 270° achtereenvolgens tegenwind, meewind, zijwind en zijwind — het laatste been
+> thuis was zijwind. Alle drie de varianten kwamen daardoor op "vooral zijwind"
+> uit en verloren even veel punten: een dimensie die niets onderscheidde en elk
+> rondje ~17 punten kostte, puur omdat het een lus was. Het klassieke wieleradvies
+> gaat over een heen-en-weerrit.
+> **Nu:** we sturen op het enige wat op een lus wél stuurbaar is — welk been je
+> áls laatste rijdt, het stuk waar je moe bent. Het laatste been ligt op
+> `kop + 60°` (eigenschap van de driehoek, in een test vastgelegd), dus de
+> koersvariant voor meewind thuis staat op `windrichting + 120`. De score kijkt
+> naar het laatste kwart van de rit, met **zijwind als middenwaarde (50) in plaats
+> van als straf**: een rondje dat niet beter kán komt niet meer met aftrek weg. De
+> twee andere varianten eindigen op zijwind en zeggen dat ook.
+>
+> **2. De omwegfactor was een gok, en een verkeerde.** 1,25 gaf rondjes die ~15%
+> te kort uitvielen: BRouter volgde de driehoek strakker dan aangenomen. De
+> startwaarde staat nu op 1,12, maar de echte oplossing is dat hij zichzelf
+> corrigeert: hoeveel een route omloopt verschilt per omgeving (stad versus
+> platteland), dus één constante kan nooit overal kloppen. Na de drie varianten
+> meet `correctedDetourFactor()` wat de planner werkelijk teruggaf en doet één
+> correctieronde op de beste variant — alleen bij meer dan 12% afwijking, alleen
+> als er tijdbudget over is, en de uitkomst vervangt de oude alleen als hij
+> daadwerkelijk dichter bij de gevraagde afstand ligt. Begrensd op 0,7–2,5 zodat
+> een kapotte meting geen rondje van 300 km oplevert.
+>
+> **Opruiming die hieruit volgde:** `OutdoorRouteJudgement` had `strongest` en
+> `weakest`, die aan de buitenkant nergens gebruikt werden. Aan de Zwift-kant is
+> het zwakste punt een waarschuwing in amber, maar hier is 50 het midden en geen
+> klacht — zijwind hoort niet in het amber. De kaart kiest nu zelf welke
+> deelscores hij toont.
+> **Claims bijgesteld:** `/hulp` beloofde leden "terug met de wind mee"; dat is nu
+> "het láátste stuk met de wind mee", met de uitleg erbij dat je de wind op een
+> rondje niet kunt ontlopen. `docs/buitenrit-routevoorstel-spike.md` sectie 4 en
+> het openstaande punt over de omwegfactor zijn herschreven.
+> **Niet gemeten:** of de correctieronde in de praktijk binnen het tijdbudget
+> past. BRouter is vanuit deze omgeving niet bereikbaar, dus dat blijkt pas op
+> productie — de ronde slaat zichzelf netjes over als de tijd op is.
+> Verificatie: 1.449 tests geslaagd (10 nieuw), `npx tsc --noEmit` schoon, ESLint
+> 0 fouten en de 7 bestaande waarschuwingen, productiebuild geslaagd.
+
 > **Drie rondjes op één kaart, en het antwoord over Wahoo en Garmin, 2026-09-21 — gebouwd, lokaal getest.**
 > Implementatiecommit `e3c077d`. Geen migratie.
 > Melding van de eigenaar: de buitenrondjes worden gegenereerd, maar je kunt ze

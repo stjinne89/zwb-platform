@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  correctedDetourFactor,
   destinationPoint,
+  MAX_DETOUR_FACTOR,
+  MIN_DETOUR_FACTOR,
+  RETURN_LEG_OFFSET_DEG,
   roundTripWaypoints,
   routeVariants,
   DETOUR_FACTOR,
@@ -22,7 +26,8 @@ import {
   pointsFromGraphHopper,
 } from "@/lib/outdoor/router";
 import { lineForMap, routeToGpx } from "@/lib/training/outdoor-suggestions";
-import { haversineKm, type GpxPoint } from "@/lib/gpx";
+import { gpxBearing, haversineKm, type GpxPoint } from "@/lib/gpx";
+import { classifyWind } from "@/lib/weather";
 
 const ATHLETE = { ftpWatts: 250, weightKg: 75 };
 const START: GpxPoint = { lat: 51.56, lon: 5.09 }; // Tilburg, zoals op het profielformulier
@@ -84,12 +89,38 @@ describe("roundTripWaypoints", () => {
 });
 
 describe("routeVariants", () => {
-  it("vertrekt tegen de wind in, zodat je met de wind mee thuiskomt", () => {
-    // Wind uit het westen (270): je vertrekt naar het westen.
-    const variants = routeVariants({ directionFromDeg: 270, speedKmh: 25 });
-    expect(variants[0].key).toBe("tegenwind_heen");
-    expect(variants[0].headingDeg).toBe(270);
-    expect(variants[0].rationale).toContain("terug met de wind mee");
+  const WIND_FROM = 270; // uit het westen
+
+  /** De windcategorie van het laatste been van een rondje. */
+  function finishWind(headingDeg: number) {
+    const points = roundTripWaypoints(START, 60, headingDeg);
+    const bearing = gpxBearing(points[points.length - 2], points[points.length - 1]);
+    return classifyWind(WIND_FROM, bearing, 25).category;
+  }
+
+  it("legt het laatste been met de wind mee", () => {
+    // Dit is de hele reden dat deze functie bestaat. Op een gesloten lus kun je
+    // niet "heen tegen de wind, terug mee" krijgen -- je komt terug waar je
+    // begon -- maar je kunt wél kiezen welk been je als laatste rijdt.
+    const variants = routeVariants({ directionFromDeg: WIND_FROM, speedKmh: 25 });
+    expect(variants[0].key).toBe("meewind_thuis");
+    expect(finishWind(variants[0].headingDeg)).toBe("meewind");
+  });
+
+  it("laat de andere twee op zijwind eindigen, en zegt dat ook", () => {
+    const variants = routeVariants({ directionFromDeg: WIND_FROM, speedKmh: 25 });
+    for (const variant of variants.slice(1)) {
+      expect(finishWind(variant.headingDeg)).toBe("zijwind");
+      expect(variant.rationale).toContain("Zijwind");
+    }
+  });
+
+  it("gebruikt de gemeten koers van het laatste been", () => {
+    // RETURN_LEG_OFFSET_DEG is geen aanname maar een eigenschap van de driehoek.
+    const heading = 40;
+    const points = roundTripWaypoints(START, 60, heading);
+    const bearing = gpxBearing(points[points.length - 2], points[points.length - 1]);
+    expect(Math.round(bearing)).toBeCloseTo((heading + RETURN_LEG_OFFSET_DEG) % 360, -1);
   });
 
   it("geeft drie duidelijk verschillende richtingen", () => {
@@ -203,24 +234,66 @@ describe("summarizeRoute", () => {
 });
 
 describe("windPayoff", () => {
-  it("herkent heen tegen de wind, terug mee", () => {
-    // De route gaat eerst naar het oosten, dan terug naar het westen.
-    // Wind uit het oosten (90) = tegenwind heen, meewind terug.
+  it("kijkt naar het slotstuk en herkent meewind daar", () => {
+    // De route gaat eerst naar het oosten, dan terug naar het westen. Het
+    // slotstuk gaat dus naar het westen; wind uit het oosten (90) is daar mee.
     const payoff = windPayoff(outAndBack(40), 90, 25)!;
-    expect(payoff.headwindOut).toBeGreaterThan(0.9);
-    expect(payoff.tailwindHome).toBeGreaterThan(0.9);
-    expect(payoff.note).toBe("Heen tegen de wind, terug met de wind mee");
+    expect(payoff.tailwindFinish).toBeGreaterThan(0.9);
+    expect(payoff.note).toBe("Laatste kilometers met de wind mee");
   });
 
-  it("herkent de omgekeerde, vervelende variant", () => {
-    // Wind uit het westen: meewind heen, tegenwind als je moe bent.
+  it("waarschuwt voor tegenwind als je al moe bent", () => {
     const payoff = windPayoff(outAndBack(40), 270, 25)!;
-    expect(payoff.tailwindHome).toBeLessThan(0.1);
-    expect(payoff.note).toBe("Tegenwind op de terugweg");
+    expect(payoff.headwindFinish).toBeGreaterThan(0.9);
+    expect(payoff.note).toBe("Tegenwind op de laatste kilometers");
+  });
+
+  it("noemt zijwind gewoon zijwind", () => {
+    // Route oost-west, wind uit het noorden: dwars op de rijrichting.
+    const payoff = windPayoff(outAndBack(40), 0, 25)!;
+    expect(payoff.tailwindFinish).toBeLessThan(0.1);
+    expect(payoff.headwindFinish).toBeLessThan(0.1);
+    expect(payoff.note).toBe("Zijwind op het laatste stuk");
   });
 
   it("geeft null zonder forecast", () => {
     expect(windPayoff(outAndBack(40), null, null)).toBeNull();
+  });
+});
+
+describe("correctedDetourFactor", () => {
+  it("verhoogt de factor als de route te lang uitviel", () => {
+    // Gevraagd 60, geworden 72: de omgeving loopt meer om dan aangenomen, dus de
+    // driehoek moet kleiner en de factor hoger.
+    expect(correctedDetourFactor(1.12, 60, 72)).toBeCloseTo(1.344, 3);
+  });
+
+  it("verlaagt de factor als de route te kort uitviel", () => {
+    // Dit is wat er in de praktijk gebeurde: rondjes ~15% te kort.
+    const corrected = correctedDetourFactor(1.25, 18.5, 16)!;
+    expect(corrected).toBeLessThan(1.25);
+    expect(corrected).toBeCloseTo(1.081, 3);
+  });
+
+  it("komt na correctie op de gevraagde afstand uit", () => {
+    // De eigenlijke belofte: pas de factor toe en de volgende poging klopt.
+    const target = 60;
+    const trueRatio = 1.05; // wat de planner in dit gebied werkelijk doet
+    const first = (target / DETOUR_FACTOR) * trueRatio;
+    const corrected = correctedDetourFactor(DETOUR_FACTOR, target, first)!;
+    const second = (target / corrected) * trueRatio;
+    expect(second).toBeCloseTo(target, 5);
+  });
+
+  it("begrenst een onzinnige meting", () => {
+    expect(correctedDetourFactor(1.12, 60, 1000)).toBe(MAX_DETOUR_FACTOR);
+    expect(correctedDetourFactor(1.12, 60, 0.1)).toBe(MIN_DETOUR_FACTOR);
+  });
+
+  it("geeft null bij onbruikbare invoer", () => {
+    expect(correctedDetourFactor(1.12, 0, 60)).toBeNull();
+    expect(correctedDetourFactor(1.12, 60, 0)).toBeNull();
+    expect(correctedDetourFactor(0, 60, 60)).toBeNull();
   });
 });
 
@@ -246,7 +319,7 @@ describe("scoreOutdoorRoute", () => {
       speedKmh: 25,
     })!;
     expect(telang.scorePct).toBeLessThan(passend.scorePct);
-    expect(telang.weakest?.dimension).toBe("duur");
+    expect(telang.scores.find((s) => s.dimension === "duur")!.scorePct).toBeLessThan(60);
   });
 
   it("verlaagt de score niet als er geen windvoorspelling is", () => {
@@ -262,12 +335,41 @@ describe("scoreOutdoorRoute", () => {
     expect(zonderWind.scores.map((s) => s.dimension)).not.toContain("wind");
   });
 
-  it("noemt in het zwakste punt hoeveel langer het rondje is", () => {
+  it("straft zijwind niet — een lus kan niet beter", () => {
+    // Dit was de fout: de oude windmaat mat "tegenwind heen, meewind terug", wat
+    // een gesloten lus per definitie niet kan halen. Alle drie de varianten
+    // kwamen op zijwind uit en verloren even veel punten, dus de dimensie
+    // onderscheidde niets en drukte iedereen. Nu is zijwind het midden.
+    const route = outAndBack(target.distanceKm, ELEVATION_PER_KM.vlak * 2);
+    const zijwind = scoreOutdoorRoute(route, target, ATHLETE, {
+      directionFromDeg: 0, // dwars op een oost-westroute
+      speedKmh: 25,
+    })!;
+    const zonderWind = scoreOutdoorRoute(route, target, ATHLETE, {
+      directionFromDeg: null,
+      speedKmh: null,
+    })!;
+
+    expect(zijwind.scores.find((s) => s.dimension === "wind")!.scorePct).toBe(50);
+    // Geen wind om je aan te storen mag niet beter scoren dan wind die niets doet.
+    expect(zijwind.scorePct).toBeGreaterThan(zonderWind.scorePct - 15);
+  });
+
+  it("beloont meewind op het slotstuk boven tegenwind", () => {
+    const route = outAndBack(target.distanceKm, ELEVATION_PER_KM.vlak * 2);
+    const mee = scoreOutdoorRoute(route, target, ATHLETE, { directionFromDeg: 90, speedKmh: 25 })!;
+    const tegen = scoreOutdoorRoute(route, target, ATHLETE, { directionFromDeg: 270, speedKmh: 25 })!;
+    expect(mee.scorePct).toBeGreaterThan(tegen.scorePct);
+  });
+
+  it("noemt in de duurregel hoeveel langer het rondje is", () => {
     const judgement = scoreOutdoorRoute(outAndBack(target.distanceKm * 1.3), target, ATHLETE, {
       directionFromDeg: 90,
       speedKmh: 25,
     })!;
-    expect(judgement.weakest?.note).toContain("langer dan gepland");
+    expect(judgement.scores.find((s) => s.dimension === "duur")!.note).toContain(
+      "langer dan gepland",
+    );
   });
 
   it("gebruikt dezelfde ondergrens als de Zwift-kant", () => {

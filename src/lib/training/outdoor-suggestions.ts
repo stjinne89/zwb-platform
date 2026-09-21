@@ -14,7 +14,12 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import type { GpxPoint } from "@/lib/gpx";
 import { routeAlong } from "@/lib/outdoor/router";
-import { roundTripWaypoints, routeVariants } from "@/lib/outdoor/roundtrip";
+import {
+  correctedDetourFactor,
+  DETOUR_FACTOR,
+  roundTripWaypoints,
+  routeVariants,
+} from "@/lib/outdoor/roundtrip";
 import {
   OUTDOOR_FLOOR_PCT,
   routeTargetForSession,
@@ -28,6 +33,13 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 /** Laat ruimte voor de database-schrijfronde binnen de functietimeout. */
 export const GENERATE_BUDGET_MS = 7000;
+
+/**
+ * Vanaf deze afwijking is een correctieronde de moeite waard. Daaronder valt het
+ * binnen de ruis van waar de planner een weg vindt, en is een extra call naar een
+ * gratis dienst zonde.
+ */
+export const REFINE_DRIFT = 0.12;
 
 export type StartPoint = { id: string; label: string; lat: number; lon: number };
 
@@ -88,13 +100,19 @@ export async function generateOutdoorRoutes(
   const candidates: Candidate[] = [];
   const notes: string[] = [];
 
-  for (const variant of variants) {
-    if (Date.now() >= deadline) {
-      notes.push("Tijd op — niet alle varianten zijn geprobeerd.");
-      break;
-    }
+  const windAt = {
+    directionFromDeg: wind?.windDirectionFrom ?? null,
+    speedKmh: wind?.windSpeedKmh ?? null,
+  };
 
-    const waypoints = roundTripWaypoints(input.startPoint, target.distanceKm, variant.headingDeg);
+  /** Eén variant routeren en beoordelen. `null` als de planner niets bruikbaars gaf. */
+  const attempt = async (
+    variant: (typeof variants)[number],
+    detourFactor: number,
+  ): Promise<Candidate | null> => {
+    const waypoints = roundTripWaypoints(input.startPoint, target.distanceKm, variant.headingDeg, {
+      detourFactor,
+    });
     const route = await routeAlong(waypoints, {
       // Wat er van het budget over is, met een bovengrens zodat één trage call
       // niet alles opslokt.
@@ -102,16 +120,13 @@ export async function generateOutdoorRoutes(
     });
     if (!route.ok) {
       notes.push(`${variant.rationale || "Variant"}: ${route.error}`);
-      continue;
+      return null;
     }
 
-    const judged = scoreOutdoorRoute(route.points, target, input.athlete, {
-      directionFromDeg: wind?.windDirectionFrom ?? null,
-      speedKmh: wind?.windSpeedKmh ?? null,
-    });
-    if (!judged) continue;
+    const judged = scoreOutdoorRoute(route.points, target, input.athlete, windAt);
+    if (!judged) return null;
 
-    candidates.push({
+    return {
       variant: variant.key,
       headingDeg: Math.round(variant.headingDeg),
       rationale: variant.rationale,
@@ -128,7 +143,46 @@ export async function generateOutdoorRoutes(
       windNote:
         judged.scores.find((score) => score.dimension === "wind")?.note ??
         (variant.rationale || null),
-    });
+    };
+  };
+
+  for (const variant of variants) {
+    if (Date.now() >= deadline) {
+      notes.push("Tijd op — niet alle varianten zijn geprobeerd.");
+      break;
+    }
+    const candidate = await attempt(variant, DETOUR_FACTOR);
+    if (candidate) candidates.push(candidate);
+  }
+
+  // Correctieronde op de beste variant. Hoeveel een route omloopt verschilt per
+  // omgeving -- in de stad veel meer dan op het platteland -- dus één vaste
+  // omwegfactor kan nooit overal kloppen. Wat de planner teruggaf ís de meting,
+  // en daarmee komt een tweede poging dichter bij de gevraagde afstand.
+  //
+  // Alleen de beste, en alleen als er budget over is: liever drie bruikbare
+  // rondjes dan één perfecte en een time-out.
+  const best = [...candidates].sort((a, b) => b.scorePct - a.scorePct)[0];
+  if (best && Date.now() < deadline) {
+    const drift = Math.abs(best.distanceKm - target.distanceKm) / target.distanceKm;
+    const corrected =
+      drift > REFINE_DRIFT
+        ? correctedDetourFactor(DETOUR_FACTOR, target.distanceKm, best.distanceKm)
+        : null;
+    const variant = variants.find((item) => Math.round(item.headingDeg) === best.headingDeg);
+    const retry = corrected !== null && variant ? await attempt(variant, corrected) : null;
+    // Alleen vervangen als het écht dichterbij komt; een correctie die het erger
+    // maakt hoort niet te winnen omdat hij later kwam.
+    if (
+      retry &&
+      Math.abs(retry.distanceKm - target.distanceKm) <
+        Math.abs(best.distanceKm - target.distanceKm)
+    ) {
+      candidates[candidates.indexOf(best)] = retry;
+      notes.push(
+        `Bijgesteld: ${best.distanceKm.toFixed(1)} km -> ${retry.distanceKm.toFixed(1)} km (doel ${target.distanceKm.toFixed(1)} km).`,
+      );
+    }
   }
 
   const keepers = candidates

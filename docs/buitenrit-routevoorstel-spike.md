@@ -111,9 +111,22 @@ is de enige echte investering in deze feature.
 
 `src/lib/weather.ts` heeft `fetchWindForecast`, `fetchRouteForecast` en
 `classifyWind`; `src/lib/gpx.ts` heeft `gpxBearing`. Drie routevarianten
-genereren met `heading` op de windrichting en op ±120° daarvan levert meteen de
-"meerdere opties" die gevraagd zijn, én een reden waarom ze verschillen: heen
-tegen de wind in, terug mee. Geen enkele routeplanner op de markt doet dit goed.
+genereren met een andere `heading` levert de "meerdere opties" die gevraagd zijn,
+én een reden waarom ze verschillen.
+
+**Bijgesteld 2026-09-21, na de eerste echte rondjes.** De oorspronkelijke belofte
+was "heen tegen de wind in, terug mee". Dat kan niet op een gesloten lus: je komt
+terug waar je begon, dus over de hele rit is de wind per definitie ongeveer in
+evenwicht. Nagerekend op de echte meetkunde was het laatste been zelfs zijwind,
+en alle drie de varianten kwamen op "vooral zijwind" uit — de dimensie
+onderscheidde niets en trok elk rondje ~17 punten omlaag, puur omdat het een lus
+was. Het klassieke advies gaat over een heen-en-weerrit.
+
+Wat een lus wél kan: kiezen welk been je áls laatste rijdt. Het laatste been ligt
+op `kop + 60°`, dus voor meewind thuis staat de kop op `windrichting + 120`. De
+score kijkt nu naar het laatste kwart van de rit, met zijwind als middenwaarde
+(50) in plaats van als straf. Dat is wat er overblijft van het advies als je
+eerlijk bent over de vorm — en het is nog steeds meer dan andere planners doen.
 
 Het weer is ook de brug tussen de twee helften van deze feature: bij regen of
 harde wind is het Zwift-voorstel uit ronde 1 het betere antwoord, bij mooi weer
@@ -239,9 +252,12 @@ merken via dezelfde logica.
   afgerond op ~110 m. Argument om het wel te doen: het platform bewaarde tot nu
   toe principieel géén start- of eindlocatie, en dat principe verschuift hier.
   **Dit is een beslissing van de eigenaar, niet van de bouwer.**
-- **De omwegfactor** (`DETOUR_FACTOR`, nu 1,25) bepaalt hoe groot de driehoek
-  wordt. Geeft de planner structureel te lange of te korte rondjes, dan is dat de
-  knop. Pas bij te stellen op echte routes.
+- ~~**De omwegfactor**~~ — opgelost 2026-09-21. 1,25 bleek te hoog (rondjes ~15%
+  te kort). De startwaarde staat nu op 1,12, maar belangrijker: hoeveel een route
+  omloopt verschilt per omgeving, dus één constante kan nooit overal kloppen. De
+  generatie meet het na afloop en corrigeert zichzelf met
+  `correctedDetourFactor()` — één extra routeplanner-call op de beste variant,
+  alleen bij meer dan 12% afwijking en alleen als er tijdbudget over is.
 - **Het BRouter-profiel**: `fastbike` (racefiets) of `trekking` (rustiger). Nu
   `fastbike`, instelbaar via `OUTDOOR_ROUTE_PROFILE`.
 

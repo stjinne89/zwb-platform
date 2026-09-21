@@ -23,13 +23,42 @@ const toDeg = (rad: number) => (rad * 180) / Math.PI;
  * langer dan de omtrek van de driehoek eromheen; deze factor corrigeert daarvoor
  * bij het bepalen van de straal.
  *
- * 1,25 is een gekozen startwaarde, niet een gemeten. Hij is hier nooit tegen
- * echte routes gehouden -- de routeplanner is vanuit deze ontwikkelomgeving niet
- * bereikbaar. Geeft BRouter in de praktijk structureel te lange of te korte
- * rondjes, dan is dit de knop, en dan hoort hier het gemeten getal te staan in
- * plaats van dit getal.
+ * 1,25 was een gok en bleek te hoog: de eerste echte rondjes kwamen ~15% korter
+ * uit dan gevraagd, want BRouter volgde de driehoek strakker dan aangenomen. Een
+ * lagere factor maakt de driehoek groter en dus de route langer.
+ *
+ * 1,12 is nu de startwaarde, maar het echte antwoord staat hieronder: de
+ * omwegfactor verschilt per omgeving (in de stad loopt een route veel meer om dan
+ * op het platteland), dus één constante kan nooit overal kloppen. Daarom meet de
+ * generatie hem na afloop na en corrigeert hij zichzelf met
+ * correctedDetourFactor().
  */
-export const DETOUR_FACTOR = 1.25;
+export const DETOUR_FACTOR = 1.12;
+
+/**
+ * De omwegfactor bijstellen op wat de planner werkelijk teruggaf.
+ *
+ * De driehoek wordt gemaakt op `gevraagd / factor`, en de planner maakt daar een
+ * route van die `werkelijk` lang is. De verhouding tussen die twee ís de echte
+ * omwegfactor van dit gebied, dus die geven we terug. Eén meting is genoeg om
+ * dichter te komen; hij hoeft niet perfect te zijn, alleen beter.
+ *
+ * Begrensd, want een kapotte meting mag geen rondje van 300 km opleveren: één
+ * correctieronde mag de driehoek hooguit halveren of verdubbelen.
+ */
+export const MIN_DETOUR_FACTOR = 0.7;
+export const MAX_DETOUR_FACTOR = 2.5;
+
+export function correctedDetourFactor(
+  current: number,
+  targetKm: number,
+  actualKm: number,
+): number | null {
+  if (!(current > 0) || !(targetKm > 0) || !(actualKm > 0)) return null;
+  const corrected = current * (actualKm / targetKm);
+  if (!Number.isFinite(corrected)) return null;
+  return Math.min(MAX_DETOUR_FACTOR, Math.max(MIN_DETOUR_FACTOR, corrected));
+}
 
 /** Het punt op `distanceKm` in richting `bearingDeg` vanaf `from`. */
 export function destinationPoint(from: LatLon, bearingDeg: number, distanceKm: number): LatLon {
@@ -90,17 +119,24 @@ export function roundTripWaypoints(
 /**
  * De drie richtingen waarin we een rondje voorstellen.
  *
- * Met wind is de eerste de interessante: heen tegen de wind in, terug mee. Dat is
- * het advies dat elke wielrenner kent en dat geen enkele routeplanner geeft. De
- * andere twee draaien er ver genoeg vanaf om echt een ander rondje op te leveren
- * in plaats van drie varianten van dezelfde weg.
+ * **Dit werkte eerst niet, en het was geen afstelfout maar een denkfout.** De
+ * eerste versie vertrok tegen de wind in, met de belofte "terug met de wind mee".
+ * Op de echte meetkunde nagerekend klopt dat niet: bij een kop van 270° zijn de
+ * vier benen 270° tegenwind, 60° meewind, 180° zijwind en 330° zijwind — het
+ * laatste been thuis is zijwind. En dat is niet met een andere oriëntatie op te
+ * lossen: een *gesloten lus* moet terugkomen waar hij begon, dus over de hele rit
+ * krijg je altijd grofweg een derde tegen, een derde mee en een derde zij. Het
+ * klassieke advies "heen tegen de wind, terug mee" gaat over een heen-en-weerrit,
+ * niet over een rondje.
  *
- * Zonder wind (of zonder forecast) is er niets te sturen en zijn het gewoon drie
- * verschillende kanten op — dan zeggen we dat ook, in plaats van een windverhaal
- * te verzinnen bij windstilte.
+ * Wat wél stuurbaar is: welk been je áls laatste rijdt. Dat is het stuk waar je
+ * moe bent, en het is precies waar meewind het meest waard is. Het laatste been
+ * ligt op `kop + 60°` (het terugkeerstuk van het derde keerpunt naar het
+ * middelpunt), dus voor meewind thuis zetten we de kop op
+ * `windrichting + 180 − 60`.
  */
 export type RouteVariant = {
-  key: "tegenwind_heen" | "zijwind_links" | "zijwind_rechts" | "vrij";
+  key: "meewind_thuis" | "zijwind_thuis" | "vrij";
   headingDeg: number;
   /** Korte Nederlandse reden; leeg als er niets te zeggen valt over de wind. */
   rationale: string;
@@ -108,6 +144,13 @@ export type RouteVariant = {
 
 /** Onder deze windsnelheid valt er niets te sturen; gelijk aan classifyWind(). */
 export const CALM_WIND_KMH = 5;
+
+/**
+ * De koers van het laatste been ten opzichte van de kop van de driehoek. Volgt
+ * uit de vorm: vanaf het derde keerpunt (kop + 240°) terug naar het middelpunt is
+ * kop + 240 + 180 = kop + 60. Empirisch bevestigd in de test.
+ */
+export const RETURN_LEG_OFFSET_DEG = 60;
 
 export function routeVariants(wind: {
   directionFromDeg: number | null;
@@ -126,16 +169,27 @@ export function routeVariants(wind: {
     }));
   }
 
-  // Waar de wind vandaan komt is precies de richting waarin je moet vertrekken
-  // om hem op de terugweg mee te hebben.
-  const into = wind.directionFromDeg!;
+  // Meewind op het laatste been: koers van dat been moet windrichting + 180 zijn.
+  const downwindFinish =
+    (wind.directionFromDeg! + 180 - RETURN_LEG_OFFSET_DEG + 360) % 360;
+
+  // De andere twee zijn dezelfde driehoek, 120° gedraaid. Hun laatste been komt
+  // daarmee op zijwind uit — een echt ander rondje, en eerlijk benoemd.
   return [
     {
-      key: "tegenwind_heen",
-      headingDeg: into,
-      rationale: "Heen tegen de wind in, terug met de wind mee",
+      key: "meewind_thuis",
+      headingDeg: downwindFinish,
+      rationale: "Laatste stuk met de wind mee",
     },
-    { key: "zijwind_links", headingDeg: (into + 120) % 360, rationale: "Grotendeels zijwind" },
-    { key: "zijwind_rechts", headingDeg: (into + 240) % 360, rationale: "Grotendeels zijwind" },
+    {
+      key: "zijwind_thuis",
+      headingDeg: (downwindFinish + 120) % 360,
+      rationale: "Zijwind op het laatste stuk",
+    },
+    {
+      key: "zijwind_thuis",
+      headingDeg: (downwindFinish + 240) % 360,
+      rationale: "Zijwind op het laatste stuk",
+    },
   ];
 }
