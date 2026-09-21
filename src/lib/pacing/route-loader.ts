@@ -22,7 +22,8 @@ import {
 } from "@/lib/gpx-climbs";
 import { sampleRoute } from "@/lib/route-sample";
 import { accentsForRoute } from "@/lib/events/zwift-route";
-import type { RouteProfile, RouteShape } from "@/lib/events/zwift-route-streams";
+import { SHAPE_STEP_M, type RouteProfile, type RouteShape } from "@/lib/events/zwift-route-streams";
+import { surfacesAlongShape } from "@/lib/zwift/surfaces";
 import {
   normalizeNeutralZones,
   withDescents,
@@ -161,6 +162,10 @@ async function loadZwiftRoute(
         leadInElevationM: meta?.leadInElevation ?? 0,
         lapKm,
         laps,
+        // De vorm hoort bij hetzelfde Strava-segment als het profiel, dus ook
+        // bij dezelfde ronde; het wegdek volgt daaruit.
+        lapSurfaces: surfacesAlongShape(row.world ?? meta?.world, row.shape),
+        shapeStepM: SHAPE_STEP_M,
       }),
       shape: row.shape,
       routeName: row.name,

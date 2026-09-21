@@ -28,6 +28,13 @@ import {
 import { ZONE_COLOR } from "../../_components/zone";
 import type { CpModel } from "@/lib/pacing/cp";
 import { segmentEndKms, type PacingRoute } from "@/lib/pacing/route-profile";
+import {
+  POWERUP_LABELS,
+  type PowerupId,
+  type RidePhysics,
+  type RidePosition,
+} from "@/lib/pacing/zwift-setup";
+import { SURFACE_LABELS } from "@/lib/zwift/surfaces/crr";
 import { savePacingPlan } from "../_actions";
 
 const EFFORT_LABELS: Record<string, string> = {
@@ -64,6 +71,7 @@ export function PacingEditor({
   initialSegments,
   initialNotes,
   durability,
+  ride,
 }: {
   eventId: string;
   route: PacingRoute;
@@ -72,6 +80,8 @@ export function PacingEditor({
   initialNotes: string | null;
   /** Hetzelfde duurvermogensmodel als op de server, zodat de tijden gelijk zijn. */
   durability?: DurabilityModel | null;
+  /** Zwift: fiets, format, slipstream en powerups; zie zwift-setup.ts. */
+  ride?: RidePhysics | null;
 }) {
   const router = useRouter();
   const [segments, setSegments] = useState(initialSegments);
@@ -85,16 +95,33 @@ export function PacingEditor({
   // Vergelijkt de hele indeling: na knippen kloppen de indexen niet meer.
   const dirty = useMemo(() => {
     const shape = (list: PlanSegment[]) =>
-      JSON.stringify(list.map((s) => [s.startKm, s.endKm, s.targetWkg, s.label]));
+      JSON.stringify(
+        list.map((s) => [s.startKm, s.endKm, s.targetWkg, s.label, s.position ?? "", s.powerup ?? ""]),
+      );
     return shape(segments) !== shape(initialSegments) || notes !== (initialNotes ?? "");
   }, [segments, notes, initialSegments, initialNotes]);
 
   // Elke slider-beweging rekent het hele plan opnieuw door. Dat is goedkoop: het
   // model werkt op honderd-meter-segmenten en doet niets met I/O.
   const evaluation = useMemo(
-    () => evaluatePlan(segments, route, model, { durability: durability ?? null }),
-    [segments, route, model, durability],
+    () => evaluatePlan(segments, route, model, { durability: durability ?? null, ride: ride ?? null }),
+    [segments, route, model, durability, ride],
   );
+  const powerups = ride?.powerups ?? [];
+
+  function setPosition(index: number, position: RidePosition) {
+    setSaved(false);
+    setSegments((current) =>
+      current.map((segment, i) => (i === index ? { ...segment, position } : segment)),
+    );
+  }
+
+  function setPowerup(index: number, powerup: PowerupId | null) {
+    setSaved(false);
+    setSegments((current) =>
+      current.map((segment, i) => (i === index ? { ...segment, powerup } : segment)),
+    );
+  }
 
   const endKms = useMemo(() => segmentEndKms(route.segments), [route.segments]);
 
@@ -136,6 +163,8 @@ export function PacingEditor({
           targetWkg: segment.targetWkg,
           label: segment.label,
           kind: segment.kind ?? null,
+          position: segment.position ?? null,
+          powerup: segment.powerup ?? null,
         })),
         notes.trim() || null,
       );
@@ -175,7 +204,9 @@ export function PacingEditor({
           sub={
             evaluation.feasible
               ? undefined
-              : `leeg rond km ${evaluation.wPrime.depletedAtKm?.toFixed(1)}`
+              : evaluation.wPrime.depletedAtKm !== null
+                ? `leeg rond km ${evaluation.wPrime.depletedAtKm.toFixed(1)}`
+                : `te weinig over voor de sprint, km ${evaluation.reserveShortAtKm?.toFixed(1)}`
           }
           alarm={!evaluation.feasible}
         />
@@ -193,8 +224,21 @@ export function PacingEditor({
             endKm: accent.endKm,
           }))}
           zones={route.neutralZones ?? []}
+          surfaces={route.surfaceSections ?? []}
           totalKm={route.totalKm}
         />
+        {route.surfaceSections && route.surfaceSections.length > 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {[...new Set(route.surfaceSections.map((section) => SURFACE_LABELS[section.surface]))].join(
+              " · ",
+            )}
+            {": "}
+            {(
+              route.surfaceSections.reduce((sum, section) => sum + section.endKm - section.startKm, 0)
+            ).toFixed(1)}{" "}
+            km
+          </p>
+        )}
       </section>
 
       <section className="rounded-lg border bg-card">
@@ -251,7 +295,7 @@ export function PacingEditor({
                 <input
                   type="range"
                   min={segment.kind === "descent" ? 0 : Math.round(cpWkg * 0.3 * 100) / 100}
-                  max={Math.round(cpWkg * 1.6 * 100) / 100}
+                  max={sliderMax(segment, model)}
                   step={0.05}
                   value={segment.targetWkg}
                   onChange={(event) => setTarget(index, Number(event.target.value))}
@@ -262,6 +306,46 @@ export function PacingEditor({
                 {segment.rationale && (
                   <p className="mt-1 text-sm text-muted-foreground">{segment.rationale}</p>
                 )}
+
+                {ride && (ride.format === "race" || powerups.length > 0) ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    {ride.format === "race" && (
+                      <div className="inline-flex rounded-md border" role="group" aria-label={`Positie op ${segment.label}`}>
+                        {(["bunch", "alone"] as const).map((value) => {
+                          const active = (segment.position ?? "bunch") === value;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => setPosition(index, value)}
+                              className={`h-8 px-3 first:rounded-l-md last:rounded-r-md ${active ? "bg-muted font-medium" : "text-muted-foreground"}`}
+                            >
+                              {value === "bunch" ? "In de groep" : "Alleen"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {powerups.length > 0 && (
+                      <select
+                        value={segment.powerup ?? ""}
+                        onChange={(event) =>
+                          setPowerup(index, (event.target.value || null) as PowerupId | null)
+                        }
+                        aria-label={`Powerup op ${segment.label}`}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">Geen powerup</option>
+                        {powerups.map((id) => (
+                          <option key={id} value={id}>
+                            {POWERUP_LABELS[id]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                ) : null}
 
                 {bounds || mergeable ? (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -358,6 +442,18 @@ export function PacingEditor({
   );
 }
 
+/**
+ * Bovengrens van de schuif. Een sprint of start gaat ver boven CP; de grens is
+ * daar wat het CP/W′-model voor die duur toelaat, niet 1,6×CP.
+ */
+function sliderMax(segment: PlanSegment, model: CpModel): number {
+  const seconds = segment.kind === "sprint" ? 15 : segment.kind === "start" ? 45 : null;
+  const watts = seconds
+    ? model.cpWatts + model.wPrimeJoules / seconds
+    : model.cpWatts * 1.6;
+  return Math.round((watts / model.weightKg) * 100) / 100;
+}
+
 function Metric({
   label,
   value,
@@ -394,6 +490,7 @@ function ProfileChart({
   wPrimeJoules,
   accents,
   zones,
+  surfaces,
   totalKm,
 }: {
   endKms: number[];
@@ -402,6 +499,8 @@ function ProfileChart({
   wPrimeJoules: number;
   accents: Array<{ name: string; startKm: number; endKm: number }>;
   zones: Array<{ startKm: number; endKm: number }>;
+  /** Stukken zonder asfalt (Zwift), als band onder het profiel. */
+  surfaces: Array<{ startKm: number; endKm: number }>;
   totalKm: number;
 }) {
   const minEle = Math.min(...elevation, 0);
@@ -466,6 +565,21 @@ function ProfileChart({
 
             <path d={area} fill="var(--chart-2)" opacity={0.22} />
             <path d={profile} fill="none" stroke="var(--chart-2)" strokeWidth={1.5} />
+
+            {surfaces.map((section) => (
+              <rect
+                key={`surface-${section.startKm}`}
+                x={x.forward(section.startKm)}
+                y={profileHeight - 4}
+                width={Math.max(1, x.forward(section.endKm) - x.forward(section.startKm))}
+                height={4}
+                fill="var(--chart-5)"
+              >
+                <title>
+                  km {section.startKm.toFixed(1)}–{section.endKm.toFixed(1)}
+                </title>
+              </rect>
+            ))}
 
             <line
               x1={0}

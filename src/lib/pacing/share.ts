@@ -15,6 +15,7 @@
 
 import type { PlanSegment } from "@/lib/pacing/plan";
 import type { PlanSummary, StoredPlan } from "@/lib/pacing/store";
+import type { RideSetup } from "@/lib/pacing/zwift-setup";
 
 export type SharedPlanView = {
   planId: string;
@@ -26,6 +27,8 @@ export type SharedPlanView = {
   updatedAt: string;
   /** Het plan van de maker is verouderd; label dat mee zodat niemand erop bouwt. */
   stale: boolean;
+  /** Zwift: format en fiets van de maker. Zijn lengte gaat niet mee. */
+  setup: Pick<RideSetup, "format" | "frame" | "wheels" | "stage"> | null;
 };
 
 /**
@@ -46,6 +49,14 @@ export function sharedPlanView(
     summary: plan.summary,
     updatedAt: plan.updated_at,
     stale,
+    setup: plan.assumptions?.setup
+      ? {
+          format: plan.assumptions.setup.format,
+          frame: plan.assumptions.setup.frame,
+          wheels: plan.assumptions.setup.wheels,
+          stage: plan.assumptions.setup.stage,
+        }
+      : null,
   };
 }
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { loadForUser } from "@/lib/pacing/session";
+import { loadForUser, rideFor } from "@/lib/pacing/session";
 import {
   fitStoredPlanToTime,
   readPlan,
@@ -36,7 +36,14 @@ export async function savePacingPlan(
   const plan = await readPlan(ctx.admin, eventId, ctx.userId);
   if (!plan) return { ok: false, error: "Er is nog geen plan om aan te passen." };
 
-  const validated = validateEditedPlan(input, ctx.loaded.route, ctx.rider.model, plan.segments);
+  const ride = rideFor(ctx, plan.assumptions?.setup);
+  const validated = validateEditedPlan(
+    input,
+    ctx.loaded.route,
+    ctx.rider.model,
+    plan.segments,
+    ride?.physics ?? null,
+  );
   if (!validated.ok) return { ok: false, error: validated.error };
   const segments: PlanSegment[] = validated.segments;
 
@@ -49,6 +56,7 @@ export async function savePacingPlan(
     rider: ctx.rider,
     routeSyncedAt: ctx.loaded.routeSyncedAt,
     notes,
+    ride,
   });
 
   revalidatePath(`/events/${eventId}/pacing`);
@@ -75,6 +83,36 @@ export async function recomputePacingPlan(eventId: string): Promise<ActionResult
     route: ctx.loaded.route,
     rider: ctx.rider,
     routeSyncedAt: ctx.loaded.routeSyncedAt,
+    ride: rideFor(ctx, plan.assumptions?.setup),
+  });
+
+  revalidatePath(`/events/${eventId}/pacing`);
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true };
+}
+
+/**
+ * Zwift: het lid kiest format, fiets, upgradeniveau, ploeggrootte of lengte. Het
+ * plan wordt meteen doorgerekend met die opzet; doelen en indeling blijven, de
+ * start en sprint van een wedstrijd komen erbij of gaan eraf.
+ */
+export async function savePacingSetup(eventId: string, setup: unknown): Promise<ActionResult> {
+  const result = await loadForUser(eventId);
+  if (!result.ok) return { ok: false, error: result.error };
+  const { ctx } = result;
+  if (!ctx.zwift) return { ok: false, error: "Alleen een Zwift-event heeft een opzet." };
+
+  const plan = await readPlan(ctx.admin, eventId, ctx.userId);
+  if (!plan) return { ok: false, error: "Er is nog geen plan om aan te passen." };
+
+  await recomputePlan(ctx.admin, {
+    eventId,
+    profileId: ctx.userId,
+    plan,
+    route: ctx.loaded.route,
+    rider: ctx.rider,
+    routeSyncedAt: ctx.loaded.routeSyncedAt,
+    ride: rideFor(ctx, setup),
   });
 
   revalidatePath(`/events/${eventId}/pacing`);
@@ -111,6 +149,7 @@ export async function planForTargetTime(
     rider: ctx.rider,
     routeSyncedAt: ctx.loaded.routeSyncedAt,
     targetSeconds,
+    ride: rideFor(ctx, plan.assumptions?.setup),
   });
 
   revalidatePath(`/events/${eventId}/pacing`);
@@ -175,18 +214,20 @@ export async function adoptClubmatePlan(
     ctx.rider.model.cpWatts / ctx.rider.model.weightKg,
   );
 
+  const plan = await readPlan(ctx.admin, eventId, ctx.userId);
+  if (!plan) return { ok: false, error: "Er is nog geen eigen plan om te vervangen." };
+
   // Andermans plan hoeft op jouw benen niet te kloppen; rebalancePlan snijdt
-  // eraf wat er niet in past voordat het wordt opgeslagen.
+  // eraf wat er niet in past voordat het wordt opgeslagen. Je eigen fiets en
+  // format blijven staan: die kies je zelf.
+  const ride = rideFor(ctx, plan.assumptions?.setup);
   const rebalanced = rebalancePlan(
-    imposeFixedPieces(mine, ctx.loaded.route, ctx.rider.model),
+    imposeFixedPieces(mine, ctx.loaded.route, ctx.rider.model, ride?.physics ?? null),
     ctx.loaded.route,
     ctx.rider.model,
     ctx.rider.curve,
-    { durability: ctx.rider.durability },
+    { durability: ctx.rider.durability, ride: ride?.physics ?? null },
   );
-
-  const plan = await readPlan(ctx.admin, eventId, ctx.userId);
-  if (!plan) return { ok: false, error: "Er is nog geen eigen plan om te vervangen." };
 
   await saveEditedPlan(ctx.admin, {
     eventId,
@@ -197,6 +238,7 @@ export async function adoptClubmatePlan(
     rider: ctx.rider,
     routeSyncedAt: ctx.loaded.routeSyncedAt,
     notes: null,
+    ride,
   });
 
   revalidatePath(`/events/${eventId}/pacing`);

@@ -16,6 +16,7 @@ import type { Climb } from "@/lib/gpx-climbs";
 import type { SampledRoute } from "@/lib/route-sample";
 import type { RouteAccent } from "@/lib/events/zwift-route";
 import type { RouteProfile } from "@/lib/events/zwift-route-streams";
+import type { Surface } from "@/lib/zwift/surfaces/crr";
 
 /** Zelfde resolutie als het tempo-model in route-sample.ts. */
 export const PACING_SEGMENT_M = 100;
@@ -43,6 +44,15 @@ export type PacingSegment = {
   gradient: number;
   /** Index in `accents`, of null voor het stuk daartussen. */
   accentIndex: number | null;
+  /** Wegdek in Zwift; ontbreekt bij een .gpx-route en betekent dan asfalt. */
+  surface?: Surface;
+};
+
+/** Een aaneengesloten stuk niet-asfalt, voor profielband en AI. */
+export type SurfaceSection = {
+  startKm: number;
+  endKm: number;
+  surface: Surface;
 };
 
 /**
@@ -65,6 +75,8 @@ export type PacingRoute = {
   neutralZones?: NeutralZone[];
   /** Lange afdalingen buiten klimmen en neutralisaties; zie detectDescents. */
   descents?: PacingDescent[];
+  /** Stukken zonder asfalt (alleen Zwift). Leeg of afwezig: overal asfalt. */
+  surfaceSections?: SurfaceSection[];
   /**
    * De lead-in van een Zwift-route is als constante gradiënt benaderd:
    * zwift-data geeft er wel afstand en hoogtemeters voor, maar geen profiel.
@@ -465,6 +477,12 @@ export function pacingRouteFromZwift(input: {
   leadInElevationM: number;
   lapKm: number;
   laps: number;
+  /**
+   * Wegdek per punt van de vorm van één ronde (elke `shapeStepM` meter), uit
+   * surfacesAlongShape. Zonder: overal asfalt.
+   */
+  lapSurfaces?: Surface[];
+  shapeStepM?: number;
 }): PacingRoute {
   const expanded = expandLaps(input.profile, {
     leadInKm: input.leadInKm,
@@ -480,14 +498,79 @@ export function pacingRouteFromZwift(input: {
     (a, b) => a.startKm - b.startKm,
   );
 
+  const segments = segmentsFromProfile(expanded, accents);
+  const lapSurfaces = input.lapSurfaces ?? [];
+  const withSurface =
+    lapSurfaces.some((surface) => surface !== "tarmac")
+      ? assignLapSurfaces(segments, input.profile, lapSurfaces, {
+          leadInKm: input.leadInKm,
+          shapeStepM: input.shapeStepM ?? 100,
+        })
+      : segments;
+
   return {
     source: "zwift",
     totalKm: (expanded.distanceM[expanded.distanceM.length - 1] ?? 0) / 1000,
     hasElevation: true,
-    segments: segmentsFromProfile(expanded, accents),
+    segments: withSurface,
     accents,
+    surfaceSections: surfaceSections(withSurface),
     leadInApproximated: input.leadInKm > 0,
   };
+}
+
+/**
+ * Legt het wegdek van één ronde over alle segmenten. De lead-in heeft geen vorm
+ * en telt als asfalt; daarna herhaalt het rondepatroon zich, met dezelfde
+ * afronding van de lead-in op het profielraster als expandLaps.
+ */
+export function assignLapSurfaces(
+  segments: PacingSegment[],
+  lap: RouteProfile,
+  lapSurfaces: Surface[],
+  options: { leadInKm: number; shapeStepM: number },
+): PacingSegment[] {
+  const lapM = lap.distanceM[lap.distanceM.length - 1] ?? 0;
+  const stepM = lap.distanceM.length > 1 ? lap.distanceM[1] - lap.distanceM[0] : 25;
+  const leadInM = Math.max(0, options.leadInKm * 1000);
+  const lapStartM = leadInM >= stepM ? Math.ceil(leadInM / stepM) * stepM : 0;
+  if (lapM <= 0 || lapSurfaces.length === 0) return segments;
+
+  let cursorM = 0;
+  return segments.map((segment) => {
+    const midM = cursorM + segment.distanceM / 2;
+    cursorM += segment.distanceM;
+    if (midM < lapStartM) return { ...segment, surface: "tarmac" };
+    const inLapM = (midM - lapStartM) % lapM;
+    const index = Math.min(
+      lapSurfaces.length - 1,
+      Math.max(0, Math.round(inLapM / options.shapeStepM)),
+    );
+    return { ...segment, surface: lapSurfaces[index] };
+  });
+}
+
+/** Aaneengesloten stukken niet-asfalt; losse snippers van 100 m tellen mee. */
+export function surfaceSections(segments: PacingSegment[]): SurfaceSection[] {
+  const out: SurfaceSection[] = [];
+  let km = 0;
+  for (const segment of segments) {
+    const startKm = km;
+    km += segment.distanceM / 1000;
+    const surface = segment.surface ?? "tarmac";
+    if (surface === "tarmac") continue;
+    const previous = out[out.length - 1];
+    if (previous && previous.surface === surface && Math.abs(previous.endKm - startKm) < 1e-6) {
+      previous.endKm = km;
+      continue;
+    }
+    out.push({ startKm, endKm: km, surface });
+  }
+  return out.map((section) => ({
+    ...section,
+    startKm: Math.round(section.startKm * 1000) / 1000,
+    endKm: Math.round(section.endKm * 1000) / 1000,
+  }));
 }
 
 /**

@@ -1906,8 +1906,8 @@ Fitness-status: Verbeterend`}
               plan staan, zodat je na een aanpassing ziet hoe ver je ervan af zit.
               Vraag je daarna een nieuw voorstel, dan krijgt de AI je doeltijd mee:
               die kiest waar je harder en zachter rijdt, en het platform zet die
-              verdeling daarna weer op je tijd. Wind en slipstream zitten niet in
-              de berekening.
+              verdeling daarna weer op je tijd. Wind zit niet in de berekening;
+              slipstream alleen bij een Zwift-event (zie Zwift-wedstrijden).
             </p>
           </article>
 
@@ -1942,6 +1942,52 @@ Fitness-status: Verbeterend`}
               doortrappen, schuif het doel dan omhoog; dat blijft staan zolang de
               afdaling dezelfde is.
             </p>
+          </article>
+
+          <article
+            id="pacing-zwift"
+            className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
+          >
+            <h3 className="text-sm font-semibold">Zwift-wedstrijden</h3>
+            <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <p>
+                Bij een Zwift-event rekent het plan met de fysica van Zwift in plaats
+                van die van de weg. Onder Opzet kies je het format, je frame met
+                upgradeniveau en je wielen; het plan wordt daarna meteen
+                opnieuw doorgerekend. Het format staat vooraf op wat het event zegt:
+                een event zonder drafting is een tijdrit. Regels van het event tellen
+                mee: geen tijdritfiets waar die verboden is, geen powerups als ze uit
+                staan, opgelegde wielen en uitgeschakelde upgrades.
+              </p>
+              <p>
+                Fietsen komen uit de snelheidstests van ZwiftInsider: per frame en
+                wielset hoeveel sneller of trager je bent op het vlak en op een klim.
+                Het plan rekent ook met het wegdek. Op onverhard is een racefiets
+                veel trager dan een gravelbike, op asfalt is het omgekeerd; die
+                stukken staan als band onder het hoogteprofiel. De wegdekkaart komt
+                van ZwiftMap. Je lengte uit je profiel telt mee voor de
+                luchtweerstand; zonder lengte rekent het plan met 175 cm, zoals Zwift.
+              </p>
+              <p>
+                In een wedstrijd kies je per stuk In de groep of Alleen. In de groep
+                kost hetzelfde tempo ongeveer een derde minder luchtweerstand; op een
+                steile klim scheelt dat weinig. Een wedstrijd krijgt een vaste start
+                (de eerste 700 m gaat het veld hard weg) en een sprint over de laatste
+                300 m, behalve als de finish op een klim ligt. Tot de sprint houdt het
+                plan minstens 15% van je reserve over voor een aanval. Bij een
+                ploegentijdrit rekent het plan met je kopbeurten naar ploeggrootte.
+              </p>
+              <p>
+                Per stuk kun je een powerup inzetten die het event uitdeelt. Het plan
+                rekent de werking mee vanaf het begin van dat stuk: veer 10% lichter
+                30 s, aerohelm 25% minder luchtweerstand 15 s, draft boost meer
+                slipstream 40 s (alleen in de groep), stoomwals minder rolweerstand
+                30 s, aambeeld zwaarder op een afdaling 15 s. Je weet vooraf niet
+                welke powerup je krijgt; zorg dat je plan ook zonder werkt. Hoe groot
+                de slipstream en de draft boost precies zijn, maakt Zwift niet bekend:
+                dat zijn schattingen.
+              </p>
+            </div>
           </article>
         </div>
       </section>

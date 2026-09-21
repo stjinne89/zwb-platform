@@ -6,6 +6,14 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { CP_SOURCE_LABELS } from "@/lib/pacing/cp";
 import { loadPacingPage } from "@/lib/pacing/session";
+import {
+  FORMAT_LABELS,
+  POWERUP_LABELS,
+  wheelTestFrame,
+  type BikeKind,
+  type BikePart,
+} from "@/lib/pacing/zwift-setup";
+import { RideSetupForm, type FrameOption } from "./_components/ride-setup";
 import { PacingEditor } from "./_components/pacing-editor";
 import { RouteShape } from "./_components/route-shape";
 import { GenerateButton } from "./_components/generate-button";
@@ -52,9 +60,10 @@ export default async function PacingPage({
     );
   }
 
-  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides } =
+  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride } =
     result.data;
   const summary = plan.summary;
+  const bikes = zwift ? bikeOptions(zwift.parts) : null;
 
   return (
     <div className="space-y-6">
@@ -91,6 +100,32 @@ export default async function PacingPage({
           </p>
         )}
       </section>
+
+      {zwift && ride && bikes && (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <div>
+            <h2 className="font-semibold">Opzet</h2>
+            <p className="text-sm text-muted-foreground">
+              {[
+                FORMAT_LABELS[ride.physics.format],
+                zwift.constraints.drafting ? "met slipstream" : "zonder slipstream",
+                ride.physics.powerups.length > 0
+                  ? ride.physics.powerups.map((id) => POWERUP_LABELS[id]).join(", ")
+                  : "geen powerups",
+              ].join(" · ")}
+            </p>
+          </div>
+          <RideSetupForm
+            eventId={id}
+            setup={ride.setup}
+            frames={bikes.frames}
+            wheels={bikes.wheels}
+            ttBikesAllowed={zwift.constraints.ttBikesAllowed}
+            forcedWheels={zwift.constraints.forcedWheels}
+            upgradesDisabled={zwift.constraints.upgradesDisabled}
+          />
+        </section>
+      )}
 
       {staleness.stale && (
         <section className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
@@ -143,6 +178,7 @@ export default async function PacingPage({
         initialSegments={plan.segments}
         initialNotes={plan.notes}
         durability={rider.durability}
+        ride={ride?.physics ?? null}
       />
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
@@ -205,6 +241,13 @@ export default async function PacingPage({
                       : `${shared.segments.length} stukken`}
                     {shared.stale ? " · verouderd" : ""}
                   </p>
+                  {shared.setup && (
+                    <p className="text-sm text-muted-foreground">
+                      {FORMAT_LABELS[shared.setup.format]} · {shared.setup.frame ?? "Zwift Carbon"}
+                      {shared.setup.stage > 0 ? ` (stage ${shared.setup.stage})` : ""}
+                      {shared.setup.wheels ? ` · ${shared.setup.wheels}` : ""}
+                    </p>
+                  )}
                 </div>
                 <AdoptButton
                   eventId={id}
@@ -218,6 +261,32 @@ export default async function PacingPage({
       )}
     </div>
   );
+}
+
+/** Frames met hun upgradeniveaus en wielen per fietstype, voor de keuzelijsten. */
+function bikeOptions(parts: BikePart[]): {
+  frames: FrameOption[];
+  wheels: Partial<Record<BikeKind, string[]>>;
+} {
+  const frames = new Map<string, FrameOption>();
+  for (const part of parts) {
+    if (part.part !== "frame") continue;
+    const entry = frames.get(part.name) ?? { name: part.name, kind: part.kind, stages: [] };
+    entry.stages.push(part.stage);
+    frames.set(part.name, entry);
+  }
+  const wheels: Partial<Record<BikeKind, string[]>> = {};
+  for (const kind of ["road", "tt", "gravel"] as BikeKind[]) {
+    const testFrame = wheelTestFrame(kind);
+    wheels[kind] = parts
+      .filter((part) => part.part === "wheel" && part.testFrame === testFrame)
+      .map((part) => part.name)
+      .sort((a, b) => a.localeCompare(b));
+  }
+  return {
+    frames: [...frames.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    wheels,
+  };
 }
 
 function BackLink({ eventId }: { eventId: string }) {

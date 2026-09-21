@@ -86,8 +86,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
-            gebruiken we die alleen om de porties in het receptenboek op jou af te
-            stemmen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
+            gebruiken we die om de porties in het receptenboek op jou af te
+            stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
+            te berekenen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
             jou zichtbaar. Wat je eet, leggen we niet vast, en een dieetfilter in
             het receptenboek wordt niet bewaard.
           </li>

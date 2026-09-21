@@ -9,6 +9,8 @@
 // plan onder het lid vandaan, mogelijk vlak voor een event. Het plan meldt dat
 // het verouderd is en het lid drukt zelf op de knop.
 
+import type { RideSetup } from "@/lib/pacing/zwift-setup";
+
 export type PlanAssumptions = {
   cpWatts: number;
   wPrimeJoules: number;
@@ -18,6 +20,13 @@ export type PlanAssumptions = {
   /** ISO-tijd van de routesync waarop dit plan is gebaseerd. */
   routeSyncedAt: string | null;
   computedAt: string;
+  /**
+   * Zwift: de keuzes van het lid (format, fiets, lengte) en een vingerafdruk van
+   * de fysica waarmee is gerekend. Sinds 21 september 2026; afwezig bij een
+   * .gpx-route en bij oudere plannen.
+   */
+  setup?: RideSetup | null;
+  rideKey?: string | null;
 };
 
 export type StaleReason =
@@ -26,7 +35,32 @@ export type StaleReason =
   | "gewicht"
   | "ftp"
   | "route"
-  | "indeling";
+  | "indeling"
+  | "opzet";
+
+/**
+ * Voegt "de Zwift-opzet is veranderd" toe. Een Zwift-plan van vóór 21 september
+ * 2026 rekende met buitenfysica, zonder fiets, slipstream of wegdek: dat plan is
+ * één keer verouderd, net als toen de afdalingen erbij kwamen. Daarna alleen
+ * als de fietslijst of de spelregels van het event veranderen.
+ */
+export function withRideStaleness(
+  staleness: Staleness,
+  assumptions: PlanAssumptions | null | undefined,
+  currentKey: string | null,
+): Staleness {
+  if (!currentKey || !assumptions || assumptions.rideKey === currentKey) return staleness;
+  return {
+    stale: true,
+    reasons: [...staleness.reasons, "opzet"],
+    messages: [
+      ...staleness.messages,
+      assumptions.rideKey
+        ? "De fietsgegevens of de spelregels van dit Zwift-event zijn gewijzigd sinds dit plan is gemaakt."
+        : "Dit plan rekende nog zonder Zwift-fysica: fiets, slipstream, wegdek en powerups tellen nu mee.",
+    ],
+  };
+}
 
 /** Kleiner dan dit is afronding, geen andere klim. */
 const LAYOUT_TOLERANCE_KM = 0.05;
@@ -215,6 +249,8 @@ export function buildAssumptions(current: {
   weightKg: number;
   cpSource: string;
   routeSyncedAt: string | null;
+  setup?: RideSetup | null;
+  rideKey?: string | null;
 }): PlanAssumptions {
   return { ...current, computedAt: new Date().toISOString() };
 }

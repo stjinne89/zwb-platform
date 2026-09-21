@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { syncableRoutes } from "@/lib/events/zwift-route-sync";
-import { runRouteProfileSpike, syncRouteLibrary } from "./_actions";
+import { runRouteProfileSpike, syncBikeList, syncRouteLibrary } from "./_actions";
 import { SpikeButton, SyncButton } from "./_components/spike-button";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +59,15 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
     .order("slug", { ascending: true });
 
   const stored = (data ?? []) as RouteRow[];
+  const { count: bikeParts } = await admin
+    .from("zwift_bike_parts")
+    .select("id", { count: "exact", head: true });
+  const { data: bikeSync } = await admin
+    .from("zwift_bike_parts")
+    .select("synced_at")
+    .order("synced_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const syncable = syncableRoutes();
   const withProfile = stored.filter((row) => row.synced_at);
   const withProblem = stored.filter((row) => row.sync_error);
@@ -89,15 +98,31 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
                 label={remaining > 0 ? `Routes ophalen (${remaining})` : "Routes ophalen"}
               />
             </form>
+            <form action={syncBikeList}>
+              <SyncButton label="Fietsen ophalen" />
+            </form>
           </div>
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-4">
         <Metric label="Beschikbaar" value={syncable.length} />
         <Metric label="Met profiel" value={withProfile.length} />
         <Metric label="Segment past niet" value={withProblem.length} />
+        <Metric label="Fietsonderdelen" value={bikeParts ?? 0} />
       </section>
+
+      {bikeSync?.synced_at && (
+        <p className="text-sm text-muted-foreground">
+          Fietsen uit de testsheet van ZwiftInsider, opgehaald{" "}
+          {new Date(bikeSync.synced_at as string).toLocaleString("nl-NL", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Europe/Amsterdam",
+          })}
+          .
+        </p>
+      )}
 
       {oldestSync && (
         <p className="text-sm text-muted-foreground">
