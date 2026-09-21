@@ -1318,7 +1318,9 @@ export default function HelpPage() {
             gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
             of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
             uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
-            (IF) rekenen we alleen uit bij een echte vermogensmeter.
+            (IF) rekenen we alleen uit bij een echte vermogensmeter. Elke rit rekent
+            met de FTP die op die dag gold, dus een nieuwe FTP verandert de
+            belasting van eerdere ritten niet.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}

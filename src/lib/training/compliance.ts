@@ -14,6 +14,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -219,7 +220,8 @@ export function pairWorkoutsWithRides<T extends StravaRideRow>(
 export function complianceForWorkouts(
   workouts: PlannedWorkoutForCompliance[],
   rides: StravaRideRow[],
-  ftpWatts: number | null,
+  /** Vaste FTP, of de FTP op de trainingsdag (0175) voor gepland én gereden. */
+  ftp: number | null | FtpAt,
   reports: Map<string, ReportForCompliance> = new Map(),
   /** Koppelingen van workouts buiten `workouts`; zie pairWorkoutsWithRides. */
   otherPairings: ReadonlyMap<string, string | null | undefined> = new Map(),
@@ -236,6 +238,8 @@ export function complianceForWorkouts(
   const pairs = pairWorkoutsWithRides(sorted, rides, pairings);
 
   return sorted.map((workout) => {
+      const workoutDay = amsterdamDayKey(new Date(workout.scheduled_at));
+      const ftpWatts = typeof ftp === "function" ? ftp(workoutDay) : ftp;
       const plannedMinutes = workout.duration_minutes ?? null;
       const blocks = normalizeWorkoutBlocks(
         workout.structure_json,
@@ -427,10 +431,15 @@ export async function buildComplianceContext(
     ((reportRows ?? []) as ReportForCompliance[]).map((row) => [row.workout_id, row]),
   );
 
+  const ftpAt = await loadFtpAt(
+    admin,
+    profileId,
+    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+  );
   const result = complianceForWorkouts(
     workouts,
     rides,
-    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ftpAt,
     reports,
     otherPairings,
   );

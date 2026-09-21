@@ -9,6 +9,7 @@
 // Strava heeft alles behalve TSS en IF; dat zijn intervals/TrainingPeaks-
 // begrippen. Die rekenen we hier zelf uit met de standaardformules.
 
+import type { FtpAt } from "@/lib/training/ftp-history";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 /** Strava levert numerieke velden soms als string; alles wat niet telt wordt null. */
@@ -83,12 +84,24 @@ export const EMPTY_RIDE_METRICS: RideMetrics = {
  * Strava een geschat vermogen, en een TSS die daarop leunt is niet betrouwbaar
  * genoeg om een schema op bij te sturen — dan blijft het veld leeg.
  */
+/** De dag (Amsterdam) waarop een Strava-rit begon, of null. */
+export function rideDateKey(raw: unknown): string | null {
+  const activity = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const start = typeof activity.start_date === "string" ? new Date(activity.start_date) : null;
+  return start && Number.isFinite(start.getTime()) ? amsterdamDayKey(start) : null;
+}
+
+/**
+ * `ftp` is een vaste FTP, of een FtpAt die de FTP van de ritdag opzoekt
+ * (migratie 0175). Met een vaste waarde rekent elke rit met die ene FTP.
+ */
 export function rideMetricsFromStrava(
   raw: unknown,
   fallbackMovingSeconds: number | null,
-  ftpWatts: number | null,
+  ftp: number | null | FtpAt,
 ): RideMetrics {
   const activity = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const ftpWatts = typeof ftp === "function" ? ftp(rideDateKey(raw)) : ftp;
   const movingSeconds = positive(activity.moving_time) ?? positive(fallbackMovingSeconds);
   const hasPowerMeter = activity.device_watts === true;
   const normalizedWatts = hasPowerMeter ? positive(activity.weighted_average_watts) : null;
@@ -147,7 +160,7 @@ export type RideLoad = {
 };
 
 /** Ritten met hun belasting, nieuwste eerst. */
-export function rideLoadRows(rides: StravaRideRow[], ftpWatts: number | null): RideLoad[] {
+export function rideLoadRows(rides: StravaRideRow[], ftpWatts: number | null | FtpAt): RideLoad[] {
   return rides
     .map((ride) => {
       const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts);

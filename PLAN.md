@@ -22,9 +22,9 @@ gaat stabiliteit voor nieuwe features.
    View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
    een echte telefoon.
 4. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
-   De lage wattages zijn aangepakt (duurblokken, 2026-09-21); na een paar weken
-   opnieuw meten. Nog open: FTP-historie, en naleving rond 105% bij blokkige
-   workouts. Zie "Bekende open dingen".
+   De lage wattages (duurblokken) en de FTP-historie zijn aangepakt
+   (2026-09-21): `0175` toepassen, en na een paar weken de duurmeting herhalen.
+   Nog open: naleving rond 105% bij blokkige workouts. Zie "Bekende open dingen".
 5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
    testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
    Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
@@ -34,6 +34,45 @@ gaat stabiliteit voor nieuwe features.
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 ---
+
+> **FTP-historie: een rit rekent met de FTP van zijn dag, 2026-09-21 — gebouwd, lokaal getest.**
+> Migratie `0175_profile_ftp_history.sql` (nog niet toegepast). Open punt van
+> 20 augustus: TSS en IF van elke rit werden met de húídige `profiles.ftp_watts`
+> berekend. **Eerst gemeten** (alleen-lezend, anoniem): de FTP-instelling in
+> intervals veranderde sinds april bij maar 2 van de 8 leden, en er zijn 3
+> FTP-tests. Het grootste TSS-verschil met intervals is dus een vást verschil
+> tussen profiel-FTP en intervals-FTP (5–10%, bij één lid 192 tegen 125). Dat is
+> geen historieprobleem, maar volgt uit het besluit dat de profiel-FTP leidt.
+> Waarom het tóch nu: sinds de FTP-test in het schema zit, schaalt elke
+> testuitslag de belasting van het hele verleden mee. +5% FTP is ~10% minder TSS
+> met terugwerkende kracht, en de weekgrafiek en de naleving verschuiven mee.
+> **Nu:** tabel `profile_ftp_history` (`profile_id`, `effective_from`,
+> `ftp_watts`), gevuld door één trigger op `profiles.ftp_watts`. Zo tellen alle
+> schrijfpaden mee (testuitslag, correctie, intervals-sync, handmatig) zonder
+> dat code ze apart moet melden. De startwaarde is per lid de huidige FTP vanaf
+> 1900-01-01. Bij het toepassen verschuift er dus niets; pas een volgende
+> wijziging splitst het verleden. Lezen: het lid en zijn trainers
+> (`current_user_can_train_profile`), schrijven alleen de trigger.
+> `src/lib/training/ftp-history.ts` zoekt de FTP op de Amsterdamse ritdag op,
+> en `rideMetricsFromStrava` accepteert naast een getal nu zo'n resolver. Alle
+> zeven rekenplekken zijn aangesloten: de belastingpagina, de coachdata, de
+> naleving, de voltooiing (momentopname en koppelen), ongeplande ritten, de
+> context van gisteren en de rit-samenvatting naar Strava. Waar gepland en
+> gereden naast elkaar staan, gebruiken beide de FTP van die dag. Een fout bij
+> het laden (ook: `0175` nog niet toegepast) valt stil terug op de huidige FTP,
+> zoals voorheen. Uitleg in één zin op `/hulp`.
+> **Bewust niet gebouwd:** (1) Het verleden vullen uit `intervals_activities.ftp_watts`:
+> dat zou oude ritten met de intervals-FTP laten rekenen en nieuwe met de
+> profiel-FTP, twee bronnen door elkaar (besluit eigenaar). (2) De testdatum als
+> ingangsdatum: de trigger gebruikt de dag van de wijziging. Wie een test pas
+> dagen later invult, rekent de ritten daartussen nog met de oude FTP. Dat is
+> klein en houdt één bron. (3) De geplande belasting van toekomstige trainingen
+> blijft de huidige FTP gebruiken, en dat is correct.
+> Getest: `tests/unit/ftp-history.test.ts` (11: opzoeken, ritdag in Amsterdam,
+> `rideLoadRows`, en tegen PGlite de migratie met startwaarde, trigger, "laatste
+> van de dag", null en RLS). TypeScript, ESLint, de volledige suite (1.355) en de
+> productiebuild met placeholder-variabelen. **Niet lokaal te verifiëren:** `0175`
+> tegen productie, en de grafieken met echte data na een volgende FTP-wijziging.
 
 > **Duurblokken op 65–75% FTP; echte zones bleken geen oplossing, 2026-09-21 — gebouwd, lokaal getest.**
 > Geen migratie. Vervolg op de eFTP-meting hieronder: waar komen de "structureel
@@ -5850,7 +5889,9 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   terwijl intervals NP zelf uit de stream rekent, en ZWB rekent met `moving_time`
   in plaats van de volledige activiteitsduur.
 
-  Vraagt een eigen ronde: een FTP-historie per lid bijhouden (datum + waarde,
+  **Gebouwd 2026-09-21 (migratie `0175`), zie de ronde bovenaan.** De twee
+  kleinere oorzaken hieronder (NP uit Strava, `moving_time`) blijven staan.
+  Oorspronkelijk: vraagt een eigen ronde: een FTP-historie per lid bijhouden (datum + waarde,
   gevoed door de FTP-test en door de intervals-sync) en `rideMetricsFromStrava`
   de FTP van de ritdatum laten opzoeken. Raakt ook de weekgrafiek en de
   CTL-reeks, dus historische cijfers verschuiven eenmalig. Hangt samen met punt 1

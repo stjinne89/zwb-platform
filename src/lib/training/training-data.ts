@@ -27,6 +27,7 @@ import {
   type WeeklyCtlPoint,
 } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { ftpResolver, loadFtpHistory, type FtpHistoryEntry } from "@/lib/training/ftp-history";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -290,6 +291,8 @@ function powerFrom(input: {
 export function trainingDataFrom(input: {
   rides: CoachRideRow[];
   ftpWatts: number | null;
+  /** FTP per periode (0175); leeg = elke rit met ftpWatts. */
+  ftpHistory?: FtpHistoryEntry[];
   weightKg: number | null;
   ftpTests: FtpTestRow[];
   powerProfile: PowerProfileRow | null;
@@ -298,7 +301,8 @@ export function trainingDataFrom(input: {
 }): CoachTrainingData {
   const now = input.now ?? Date.now();
   const rides = [...input.rides].sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)));
-  const loadRows = rideLoadRows(rides, input.ftpWatts);
+  const ftpAt = ftpResolver(input.ftpHistory ?? [], input.ftpWatts);
+  const loadRows = rideLoadRows(rides, ftpAt);
 
   const volumeSince = amsterdamDayKey(new Date(now - VOLUME_DAYS * 86_400_000));
   const inVolumeWindow = rides.filter((ride) => dayKeyOf(ride.start_date) >= volumeSince);
@@ -313,7 +317,7 @@ export function trainingDataFrom(input: {
   }));
 
   const ritten: CoachRide[] = rides.slice(0, RECENT_RIDES).map((ride) => {
-    const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, input.ftpWatts);
+    const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpAt);
     const meters = num(ride.distance_m);
     return {
       datum: dayKeyOf(ride.start_date),
@@ -388,7 +392,7 @@ export async function buildCoachTrainingData(
 ): Promise<CoachTrainingData> {
   const since = new Date(Date.now() - RIDE_WINDOW_DAYS * 86_400_000).toISOString();
 
-  const [{ data: rideRows }, { data: profileRow }, { data: ftpTestRows }, { data: powerRow }, form] =
+  const [{ data: rideRows }, { data: profileRow }, { data: ftpTestRows }, { data: powerRow }, form, ftpHistory] =
     await Promise.all([
       admin
         .from("strava_activities")
@@ -415,6 +419,7 @@ export async function buildCoachTrainingData(
         .eq("profile_id", profileId)
         .maybeSingle(),
       fetchCoachForm(connection).catch(() => null),
+      loadFtpHistory(admin, profileId),
     ]);
 
   const profile = profileRow as { ftp_watts: number | null; weight_kg: number | string | null } | null;
@@ -422,6 +427,7 @@ export async function buildCoachTrainingData(
   return trainingDataFrom({
     rides: (rideRows ?? []) as CoachRideRow[],
     ftpWatts: num(profile?.ftp_watts),
+    ftpHistory,
     weightKg: num(profile?.weight_kg),
     ftpTests: (ftpTestRows ?? []) as FtpTestRow[],
     powerProfile: (powerRow ?? null) as PowerProfileRow | null,
