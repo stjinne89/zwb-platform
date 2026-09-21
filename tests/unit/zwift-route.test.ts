@@ -66,6 +66,12 @@ describe("routeFromZwiftId", () => {
     expect(route?.stravaSegmentId).toBeTypeOf("number");
   });
 
+  it("kent de ZRL 26/27-route Montmartre Mixer (zwift-data ≥ 1.50)", () => {
+    const route = routeFromZwiftId(1247427185);
+    expect(route?.name).toBe("Montmartre Mixer");
+    expect(route?.world).toBe("paris");
+  });
+
   it("geeft null voor een onbekend routeId", () => {
     expect(routeFromZwiftId(1)).toBeNull();
   });
