@@ -53,7 +53,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0181`
 ---
 
 > **zFTP, zMAP en divisieadvies per renner uit WTRL, 2026-09-22 — gebouwd, lokaal getest.**
-> Migratie `0180_wtrl_rosters.sql`. Onderzoek: de ronde hieronder ("zFTP/zMAP …
+> Implementatiecommit `749958b`, migratie `0180_wtrl_rosters.sql`. Onderzoek: de ronde hieronder ("zFTP/zMAP …
 > eerst meten").
 >
 > **Waarom.** Wens van de eigenaar: bij teams per renner zFTP, zMAP en de
