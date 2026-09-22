@@ -262,6 +262,63 @@ export async function fetchZwiftRaceResults(eventId: string): Promise<unknown> {
   return authedJson(`${apiBase()}/race-results/entries?event_id=${eventId}`);
 }
 
+/**
+ * Wat geeft Zwift terug over het vermogen van één renner? Vraag van de eigenaar:
+ * zFTP en zMAP per lid, voor de aanbevolen WTRL-divisie. Zwift documenteert dit
+ * niet; deze probe probeert de kandidaat-endpoints en meldt per endpoint de
+ * status, de velden die over vermogen of categorie gaan (met waarde) en de
+ * overige veldnamen. Gewicht, leeftijd en andere persoonsgegevens alleen als
+ * naam, nooit met waarde.
+ */
+export async function probeRiderPower(zwiftId: string): Promise<string> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const candidates = [
+    `${apiBase()}/profiles/${zwiftId}`,
+    `${apiBase()}/power-curve/power-profile?profileId=${zwiftId}`,
+    `${apiBase()}/power-curve/power-profile`,
+  ];
+  const lines: string[] = [];
+  for (const url of candidates) {
+    const path = url.slice(apiBase().length);
+    try {
+      const payload = await authedJson(url);
+      lines.push(`${path}: OK`);
+      lines.push(...describePowerFields(payload).map((line) => `  ${line}`));
+    } catch (error) {
+      lines.push(`${path}: ${error instanceof Error ? error.message : "mislukt"}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+const POWER_FIELD = /ftp|map|categor|racing|competition|power|vo2|score|cp/i;
+
+export function describePowerFields(payload: unknown, prefix = "", depth = 0): string[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return [`${prefix || "(waarde)"}: ${Array.isArray(payload) ? `lijst van ${payload.length}` : typeof payload}`];
+  }
+  const shown: string[] = [];
+  const other: string[] = [];
+  for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
+    const name = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value) && depth < 2) {
+      if (POWER_FIELD.test(key)) {
+        shown.push(...describePowerFields(value, name, depth + 1));
+      } else {
+        other.push(`${name}{…}`);
+      }
+      continue;
+    }
+    if (POWER_FIELD.test(key) && (value === null || typeof value !== "object")) {
+      shown.push(`${name} = ${JSON.stringify(value)}`);
+    } else {
+      other.push(name);
+    }
+  }
+  if (other.length > 0) shown.push(`overige velden: ${other.join(", ")}`);
+  return shown;
+}
+
 async function getMyProfileId(): Promise<string> {
   const me = await authedJson(`${apiBase()}/profiles/me`);
   return String((me as { id?: number | string })?.id ?? "");

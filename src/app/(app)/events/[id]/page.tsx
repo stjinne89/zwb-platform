@@ -34,6 +34,7 @@ import {
 import { WindSummary } from "./_components/wind-summary";
 import { RouteWeather } from "./_components/route-weather";
 import { RsvpPicker } from "./_components/rsvp-buttons";
+import { TeamAvailabilityButtons } from "../../teams/[id]/_components/team-availability-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
 import { ManualResultForm } from "./_components/manual-result-form";
@@ -57,6 +58,7 @@ import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 type RsvpStatus = "yes" | "maybe" | "no";
+type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
 const STALE_AFTER_MIN = 15;
 
 function amsterdamDateKey(date: Date) {
@@ -228,6 +230,52 @@ export default async function EventDetailPage({
     .sort((a, b) => Number(b.isMine) - Number(a.isMine));
   const isParentEvent = subEvents.length > 0;
   const sharedDescription = String(parentEvent?.description ?? "").trim();
+
+  // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
+  // subteams, migr. 0179); de captain deelt je daarna in bij een subteam.
+  const isRaceWeek =
+    event.type === "zrl" && !event.team_id && !event.parent_event_id;
+  type UmbrellaSignup = { id: string; name: string; current: TeamAvailabilityStatus | null };
+  let umbrellaSignups: UmbrellaSignup[] = [];
+  if (isRaceWeek && user) {
+    const [{ data: zrlTeams }, { data: myAvailability }] = await Promise.all([
+      supabase
+        .from("teams")
+        .select("id, name, parent_team_id, is_graveyard")
+        .eq("type", "zrl")
+        .order("name"),
+      supabase
+        .from("team_event_availability")
+        .select("team_id, status")
+        .eq("event_id", id)
+        .eq("profile_id", user.id),
+    ]);
+    const teams = ((zrlTeams ?? []) as Array<{
+      id: string;
+      name: string;
+      parent_team_id: string | null;
+      is_graveyard: boolean | null;
+    }>).filter((row) => !row.is_graveyard);
+    const umbrellas = teams.filter((row) =>
+      teams.some((child) => child.parent_team_id === row.id),
+    );
+    const mine = umbrellas.filter(
+      (row) =>
+        myTeamIds.has(row.id) ||
+        teams.some((child) => child.parent_team_id === row.id && myTeamIds.has(child.id)),
+    );
+    const statusByTeam = new Map(
+      (myAvailability ?? []).map((row) => [
+        row.team_id as string,
+        row.status as TeamAvailabilityStatus,
+      ]),
+    );
+    umbrellaSignups = (mine.length > 0 ? mine : umbrellas).map((row) => ({
+      id: row.id,
+      name: row.name,
+      current: statusByTeam.get(row.id) ?? null,
+    }));
+  }
 
   // Strip het interne "ZWB-deelnemers:"-label uit de omschrijving (gekoppelde
   // leden tonen we als RSVP-deelnemer). De namen zelf blijven leesbaar staan,
@@ -823,6 +871,31 @@ export default async function EventDetailPage({
         </section>
       )}
 
+      {umbrellaSignups.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Ben jij erbij?
+          </h2>
+          <ul className="divide-y rounded-lg border bg-card">
+            {umbrellaSignups.map((umbrella) => (
+              <li
+                key={umbrella.id}
+                className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
+              >
+                <Link href={`/teams/${umbrella.id}`} className="font-medium hover:underline">
+                  {umbrella.name}
+                </Link>
+                <TeamAvailabilityButtons
+                  teamId={umbrella.id}
+                  eventId={event.id}
+                  current={umbrella.current}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {isParentEvent && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -947,7 +1020,7 @@ export default async function EventDetailPage({
           <WindSummary forecast={windForecast} rideBearing={rideBearing} />
         ))}
 
-      {!isParentEvent && (
+      {!isParentEvent && !isRaceWeek && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Ben jij erbij?

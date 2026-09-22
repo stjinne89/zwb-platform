@@ -19,7 +19,9 @@ gaat stabiliteit voor nieuwe features.
    Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
-   `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit.
+   `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
+   op `/beheer/event-scan` **Test zFTP** met een paar Zwift-ID's, en beslissen hoe
+   zFTP/zMAP en de WTRL-divisie bij teams komen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -49,42 +51,66 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0180`
 
 ---
 
-> **ZRL: hoofdteams rijden geen races meer, 2026-09-22 — gebouwd, lokaal getest.**
-> Implementatiecommit `8c06cd4`, migratie `0179_zrl_parent_team_events.sql`. Vervolg op de hoofdevents hieronder.
+> **ZRL: hoofdteams zijn paraplu's, 2026-09-22 — gebouwd, lokaal getest.**
+> Implementatiecommits `8c06cd4` en de commit "ZRL-paraplu: aanmelden op de
+> raceweek, trigger bij eerste subteam, zFTP-probe". Migratie
+> `0179_zrl_parent_team_events.sql`. Vervolg op de hoofdevents hieronder.
 >
-> **Waarom.** De eigenaar: een hoofdteam met subteams (B met B1/B2, de Zwiftladies)
-> kan zelf niet starten in een wedstrijd, maar is wel de plek waar het team wordt
-> georganiseerd. De import zette er toch races voor neer.
+> **Waarom.** Regel van de eigenaar: een ZRL-team met subteams (B met B1/B2, de
+> Zwiftladies, en ook A en C zodra die subteams krijgen) is een paraplu. Het rijdt
+> zelf geen races, maar leden melden zich er per raceweek beschikbaar en de
+> captain deelt ze in bij een subteam. De import zette er toch races voor neer.
 >
-> **Nu.** Het organiseren hing aan de races van het hoofdteam (beschikbaarheid met
-> `team_id` = hoofdteam, opstellingen met `parent_team_id` = hoofdteam). Dat hangt nu
-> aan het hoofdevent van de raceweek:
-> - **Teampagina** van een hoofdteam met subteams (en van zijn subteams): één kaart
->   per raceweek, met de races van de subteams als links eronder. Beschikbaarheid en
->   de opstellingsplanner werken op het hoofdevent. Het hoofdteam zelf is geen
->   doel meer in de planner. Teams zonder subteams (ZRL A) houden hun eigen races
->   als eenheid.
-> - **Migratie:** verhuist beschikbaarheid, opstellingen en TTT-plannen van het
->   hoofdteam naar het hoofdevent (bij dubbele opgave wint de laatste), zet een
->   RSVP op een race van het hoofdteam om in beschikbaarheid (ja → beschikbaar,
->   misschien → misschien, nee → niet beschikbaar; een bestaande opgave wint), en
->   verwijdert daarna de races van de hoofdteams. Beschikbaar melden op een
->   hoofdevent maakt je via `0171` lid van het hoofdteam, zoals eerst ook.
-> - **Import** (`/beheer/zrl-kalender`): hoofdteams staan niet meer in de lijst, en
->   de serveractie weigert ze.
-> - **Kalender "Voor mij":** lid van een hoofdteam telt als eigen team voor de races
+> **Nu.**
+> - **Aanmelden** bij een paraplu gebeurt op het hoofdevent van de raceweek
+>   (beschikbaarheid met `team_id` = paraplu). Kan op de teampagina en op de
+>   raceweekpagina zelf ("Ben jij erbij?" per paraplu: die van jou, of alle als je
+>   er in geen zit). Een raceweek heeft geen RSVP. Aanmelden maakt je via `0171`
+>   lid van de paraplu, zoals eerst.
+> - **Teampagina** van een paraplu (en van zijn subteams): de komende zes raceweken,
+>   ook als er nog geen subteamrace onder hangt, met de races van de subteams als
+>   links. Beschikbaarheid en opstellingsplanner werken op de raceweek; de paraplu
+>   zelf is geen doel in de planner. Teams zonder subteams houden hun eigen races.
+> - **Migratie `0179`:** functie `convert_zrl_umbrella_races(team)` verhuist
+>   beschikbaarheid, opstellingen en TTT-plannen van de paraplu naar de raceweek
+>   (bij dubbele opgave wint de laatste), zet een RSVP op een race van de paraplu om
+>   in beschikbaarheid (ja → beschikbaar, misschien → misschien, nee → niet
+>   beschikbaar; een bestaande opgave wint) en verwijdert daarna de races van de
+>   paraplu. Draait één keer voor alle bestaande paraplu's, en via de trigger
+>   `teams_become_umbrella` opnieuw zodra een team een (eerste) subteam krijgt.
+>   A en C worden dus paraplu door een subteam aan te maken, daarna importeer je de
+>   races voor dat subteam.
+> - **Import** (`/beheer/zrl-kalender`): paraplu's staan niet in de lijst en de
+>   serveractie weigert ze.
+> - **Kalender "Voor mij":** lid van een paraplu telt als eigen team voor de races
 >   van zijn subteams.
 > - **Meegenomen:** `setTeamAvailability` deed een upsert zonder `onConflict`, terwijl
->   de unieke sleutel `(event_id, team_id, profile_id)` is. Een tweede klik (andere
->   status) liep daardoor waarschijnlijk op een unieke-sleutelfout; nu expliciet.
+>   de unieke sleutel `(event_id, team_id, profile_id)` is. Een andere status kiezen
+>   liep daardoor waarschijnlijk op een unieke-sleutelfout; nu expliciet.
 >
-> **Bewust niet gebouwd.** Trainingsblokken die aan een race van het hoofdteam
-> hingen, worden niet omgehangen: ze blijven in het schema staan zonder koppeling
-> (`on delete set null`). Races van hoofdteams met een met de hand hernoemde titel
-> (zonder hoofdevent, zie `0178`) raakt de migratie niet; die verwijder je met de hand.
+> **zFTP/zMAP en aanbevolen WTRL-divisie: nog niet gebouwd, eerst meten.** Wens van
+> de eigenaar: per lid zFTP en zMAP via het Zwift-ID, met de aanbevolen divisie.
+> De drempels staan op https://www.wtrl.racing/zrl/resources/ (Standard en
+> Development, Open en Women's; gelezen 2026-09-22, het lezen van die pagina met
+> de hand is geen scraping). Onbekend is of Zwift zFTP/zMAP van *andere* renners
+> geeft: de officiële API bestaat niet, en voor zover bekend geeft de onofficiële
+> alleen categorie en racing score, en zFTP/zMAP alleen van je eigen account.
+> Keuze van de eigenaar: eerst testen. Daarvoor staat op `/beheer/event-scan` de
+> knop **Test zFTP** (Zwift-ID invullen): die bevraagt met het club-serviceaccount
+> `profiles/{id}` en twee `power-curve/power-profile`-varianten, en toont per
+> endpoint de status, de velden over vermogen/categorie met waarde en de andere
+> veldnamen zonder waarde (dus geen gewicht, leeftijd of naam). Leest alleen.
+> Daarna kiezen: automatisch, zelf invullen door het lid, of allebei.
 >
-> **Niet lokaal te verifiëren:** de migratie en de teampagina tegen echte data.
-> Getest: `tsc`, ESLint, de volledige unit-suite.
+> **Bewust niet gebouwd.** Trainingsblokken die aan een race van de paraplu hingen,
+> worden niet omgehangen: ze blijven in het schema zonder koppeling
+> (`on delete set null`). Races van paraplu's met een met de hand hernoemde titel
+> (zonder hoofdevent, zie `0178`) raakt de functie niet; die verwijder je met de hand.
+>
+> **Niet lokaal te verifiëren:** de migratie, de teampagina en de raceweekpagina
+> tegen echte data, en wat Zwift teruggeeft. Getest: `tsc`, ESLint, de volledige
+> unit-suite (1558 groen), met `zwift-rider-power-probe.test.ts` voor het
+> weglaten van persoonsgegevens in de probe.
 
 ---
 

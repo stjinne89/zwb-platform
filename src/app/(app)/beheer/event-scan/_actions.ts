@@ -9,6 +9,7 @@ import { matchProfile, type MatchableProfile } from "@/lib/events/zwb-detection"
 import {
   diagnoseZwiftClub,
   followZwbMembers,
+  probeRiderPower,
   zwiftClubConfigured,
 } from "@/lib/events/zwift-club";
 import { probeEventWindow } from "@/lib/zwift/event-cache";
@@ -165,6 +166,28 @@ export async function probeZwiftEventWindow() {
     params.set(
       "message",
       error instanceof Error ? `Eventvenster testen mislukt: ${error.message}` : "Eventvenster testen mislukt.",
+    );
+  }
+  redirect(`/beheer/event-scan?${params.toString()}`);
+}
+
+/**
+ * Wat geeft Zwift over zFTP/zMAP van één renner? Leest alleen. Zie
+ * probeRiderPower; bedoeld om te beslissen of de aanbevolen WTRL-divisie per lid
+ * automatisch kan.
+ */
+export async function probeZwiftRiderPower(formData: FormData) {
+  const access = await requireEventScanAccess();
+  if (!access) return;
+  const zwiftId = String(formData.get("zwift_id") ?? "").trim();
+  const params = new URLSearchParams();
+  params.set("club", "power");
+  try {
+    params.set("message", await probeRiderPower(zwiftId));
+  } catch (error) {
+    params.set(
+      "message",
+      error instanceof Error ? `zFTP testen mislukt: ${error.message}` : "zFTP testen mislukt.",
     );
   }
   redirect(`/beheer/event-scan?${params.toString()}`);

@@ -276,6 +276,7 @@ export async function setTeamAvailability(
   }
 
   revalidatePath(`/teams/${teamId}`);
+  revalidatePath(`/events/${eventId}`);
   return { ok: true as const };
 }
 

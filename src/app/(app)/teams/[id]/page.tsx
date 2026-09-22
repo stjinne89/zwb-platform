@@ -254,6 +254,8 @@ export default async function TeamDetailPage({
   // subteams. De races van de subteams staan eronder.
   let calendarEvents = (events ?? []) as EventRow[];
   if (rootHasSubteams) {
+    // Alle komende raceweken, ook zonder race van een subteam eronder: je meldt
+    // je bij de paraplu aan voordat de races van de subteams in de kalender staan.
     const parentIds = Array.from(
       new Set(
         calendarEvents
@@ -261,34 +263,46 @@ export default async function TeamDetailPage({
           .map((event) => event.parent_event_id as string),
       ),
     );
-    const { data: raceWeeks } =
+    const [{ data: upcomingWeeks }, { data: linkedWeeks }] = await Promise.all([
+      supabase
+        .from("events")
+        .select("id, title, type, start_at, location, team_id")
+        .eq("type", "zrl")
+        .is("team_id", null)
+        .is("parent_event_id", null)
+        .gte("start_at", upcomingEventsCutoffIso())
+        .order("start_at")
+        .limit(6),
       parentIds.length > 0
-        ? await supabase
+        ? supabase
             .from("events")
             .select("id, title, type, start_at, location, team_id")
             .in("id", parentIds)
-        : { data: [] };
-    const weekById = new Map(
-      ((raceWeeks ?? []) as EventRow[]).map((week) => [week.id, { ...week, races: [] as NonNullable<EventRow["races"]> }]),
-    );
+        : Promise.resolve({ data: [] }),
+    ]);
+    const weekById = new Map<string, EventRow & { races: NonNullable<EventRow["races"]> }>();
+    for (const week of [...(upcomingWeeks ?? []), ...(linkedWeeks ?? [])] as EventRow[]) {
+      weekById.set(week.id, { ...week, races: [] });
+    }
     const teamNames = new Map(
       [team, ...((childTeams ?? []) as TeamRow[])].map((row) => [row.id, row.name]),
     );
-    const collapsed: EventRow[] = [];
+    const loose: EventRow[] = [];
     for (const event of calendarEvents) {
       const week = event.parent_event_id ? weekById.get(event.parent_event_id) : null;
       if (!week || event.type !== "zrl") {
-        collapsed.push(event);
+        loose.push(event);
         continue;
       }
-      if (week.races.length === 0) collapsed.push(week);
       week.races.push({
         id: event.id,
         teamName: (event.team_id && teamNames.get(event.team_id)) || event.title,
         startAt: event.start_at,
       });
     }
-    calendarEvents = collapsed;
+    calendarEvents = [...loose, ...weekById.values()]
+      .sort((x, y) => x.start_at.localeCompare(y.start_at))
+      .slice(0, 12);
   }
 
   const memberRows = (members ?? []) as unknown as MemberRow[];
