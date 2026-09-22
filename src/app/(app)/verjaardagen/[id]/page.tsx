@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Cake, ChevronLeft } from "lucide-react";
+import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { HelpLink } from "@/components/app-ui";
+import { BackLink, HelpLink } from "@/components/app-ui";
 import {
   ageOnBirthday,
   amsterdamDateKey,
@@ -278,13 +277,7 @@ export default async function BirthdayPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link
-        href="/kalender"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-      >
-        <ChevronLeft className="size-4" />
-        Terug naar kalender
-      </Link>
+      <BackLink href="/kalender" label="Kalender" />
 
       <header className="relative overflow-hidden rounded-2xl border border-zwb-gold/50 bg-card shadow-sm before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-zwb-gold before:content-['']">
         <div className="bg-gradient-to-br from-zwb-gold/25 via-card to-zwb-gold/5 p-6 pl-7 sm:p-8 sm:pl-9">

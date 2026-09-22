@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { EmptyState, PageHeader } from "@/components/app-ui";
+import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import type { Discipline } from "@/lib/omnium/scoring";
 import { ResultsImport } from "./_components/results-import";
 import { StandingsPanel, type StandingRow } from "./_components/standings-panel";
@@ -58,6 +57,7 @@ export default async function OmniumUitslagenPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href={`/beheer/omnium/${editie}`} label={edition.title as string} />
       <PageHeader
         eyebrow={`Editie ${edition.number as number}`}
         title={`Uitslagen — ${edition.title as string}`}
@@ -65,11 +65,6 @@ export default async function OmniumUitslagenPage({
           "nl-NL",
           { weekday: "long", day: "numeric", month: "long", year: "numeric" },
         )}
-        actions={
-          <Link href={`/beheer/omnium/${editie}`} className="text-sm underline">
-            Terug naar editie
-          </Link>
-        }
       />
 
       {parts.length === 0 ? (

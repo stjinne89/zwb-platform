@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import {
   ProfileReadonlyView,
   type ReadonlyProfile,
@@ -13,6 +11,7 @@ import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { bikeShownOnProfile, type StravaBikeRow } from "@/lib/strava/bikes";
 import { SegmentKomsSection } from "@/components/segment-koms-section";
 import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
+import { BackLink } from "@/components/app-ui";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -125,13 +124,7 @@ export default async function LidProfielPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link
-        href="/leden"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-      >
-        <ArrowLeft className="size-4" />
-        Terug naar leden
-      </Link>
+      <BackLink href="/leden" label="Leden" />
 
       <ProfileReadonlyView
         profile={visibleProfile(profileRow)}

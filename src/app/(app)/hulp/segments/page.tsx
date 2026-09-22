@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { BackLink } from "@/components/app-ui";
 export default function SegmentHelp() {
   return <article className="mx-auto max-w-3xl space-y-5">
-    <Link href="/profiel/segments" className="text-sm underline">Terug naar ZWB Segments</Link>
+    <BackLink href="/profiel/segments" label="ZWB Segments" />
     <h1 className="text-3xl font-semibold">ZWB Segments</h1>
     <p>De kaart toont buiten gereden racefietssegmenten uit de ingelezen Strava-ritten van goedgekeurde ZWB-leden met een actieve koppeling. Privéritten, privésegmenten, gemarkeerde ritten, e-bikes en indoorritten tellen niet mee. Een segment verschijnt pas als minstens drie ZWB’ers het reden. Zwift en de eerdere collecties staan in een aparte lijst.</p>
     <h2 className="text-xl font-semibold">Record en podium</h2>

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Gauge, Mountain, Repeat, Trophy } from "lucide-react";
+import { Gauge, Mountain, Repeat, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
+import { BackLink } from "@/components/app-ui";
 
 type SegmentCollection =
   | "cols"
@@ -404,13 +405,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <Link
-        href="/profiel"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-      >
-        <ArrowLeft className="size-4" />
-        Terug naar profiel
-      </Link>
+      <BackLink href="/profiel" label="Profiel" />
 
       <header>
         <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight">

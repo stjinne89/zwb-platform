@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+
 import { Markdown } from "@/components/markdown";
 import type { MobilityCategory } from "@/lib/training/mobility";
 import { ExerciseVisual } from "../_components/exercise-visual";
 import { loadExercises, requireViewer } from "../_data";
+import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,13 +24,7 @@ export default async function ExerciseLibraryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/zwbeter-worden/core"
-          className="inline-flex min-h-[44px] items-center gap-2 text-sm text-muted-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" />
-          Core &amp; mobiliteit
-        </Link>
+        <BackLink href="/zwbeter-worden/core" label="Core & mobiliteit" />
         <h2 className="mt-1 text-xl font-semibold">Oefeningen</h2>
       </div>
 

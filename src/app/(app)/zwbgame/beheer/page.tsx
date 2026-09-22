@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireGameMember } from "@/lib/zwbgame/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RosterAdmin } from "./roster-admin";
+import { BackLink } from "@/components/app-ui";
 
 export default async function GameAdminPage() {
   const { member } = await requireGameMember();
@@ -13,5 +13,5 @@ export default async function GameAdminPage() {
     admin.from("zwbgame_roster_exclusions").select("roster_id"),
   ]);
   const exclusions = new Set((excluded.data ?? []).map((r) => r.roster_id));
-  return <div className="mx-auto max-w-2xl space-y-5"><Link href="/zwbgame" className="text-sm underline">Terug naar ZWBgame</Link><h1 className="text-2xl font-bold">ZWBgame · rosterdeelname</h1>{roster.error || excluded.error ? <p role="alert">Deelnemers laden mislukt.</p> : <RosterAdmin rows={(roster.data ?? []).map((r) => ({ id: r.id, name: r.name, excluded: exclusions.has(r.id) }))} />}</div>;
+  return <div className="mx-auto max-w-2xl space-y-5"><BackLink href="/zwbgame" label="ZWBgame" /><h1 className="text-2xl font-bold">ZWBgame · rosterdeelname</h1>{roster.error || excluded.error ? <p role="alert">Deelnemers laden mislukt.</p> : <RosterAdmin rows={(roster.data ?? []).map((r) => ({ id: r.id, name: r.name, excluded: exclusions.has(r.id) }))} />}</div>;
 }

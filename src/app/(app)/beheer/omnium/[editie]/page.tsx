@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { PageHeader } from "@/components/app-ui";
+import { BackLink, PageHeader } from "@/components/app-ui";
 import { EditionForm, type EditionPartRow } from "./_components/edition-form";
 import { ZwiftStartlist } from "../_components/zwift-startlist";
 
@@ -50,6 +50,7 @@ export default async function OmniumEditiePage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/beheer/omnium" label="Omnium" />
       <PageHeader
         eyebrow={`Editie ${edition.number as number}`}
         title={edition.title as string}
@@ -58,9 +59,6 @@ export default async function OmniumEditiePage({
           <div className="flex flex-wrap gap-3 text-sm">
             <Link href={`/beheer/omnium/${editie}/uitslagen`} className="underline">
               Uitslagen
-            </Link>
-            <Link href="/beheer/omnium" className="underline">
-              Terug naar overzicht
             </Link>
           </div>
         }

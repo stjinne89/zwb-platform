@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { seriesMinutes } from "@/lib/training/mobility";
 import { formatWellnessDate } from "../../_components/format";
@@ -9,6 +7,7 @@ import { loadSeriesBySlug, loadSessions, requireViewer, todayKeyAmsterdam } from
 import { ExerciseVisual } from "../_components/exercise-visual";
 import { SeriesRunner } from "../_components/series-runner";
 import { UndoSessionButton } from "../_components/undo-session-button";
+import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -37,13 +36,7 @@ export default async function SeriesPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/zwbeter-worden/core"
-          className="inline-flex min-h-[44px] items-center gap-2 text-sm text-muted-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" />
-          Core &amp; mobiliteit
-        </Link>
+        <BackLink href="/zwbeter-worden/core" label="Core & mobiliteit" />
         <h2 className="mt-1 text-xl font-semibold">{series.title}</h2>
         {series.subtitle && (
           <p className="text-sm text-muted-foreground">{series.subtitle}</p>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { EmptyState, PageHeader } from "@/components/app-ui";
+import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -127,11 +127,8 @@ export default async function OmniumPrizesPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="ZWB Omnium"
-        title="Prijzen"
-        actions={<Link href="/beheer/omnium" className="text-sm underline">Terug</Link>}
-      />
+      <BackLink href="/beheer/omnium" label="Omnium" />
+      <PageHeader eyebrow="ZWB Omnium" title="Prijzen" />
 
       <nav className="flex flex-wrap gap-2">
         {seasons.map((row) => (

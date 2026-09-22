@@ -70,10 +70,21 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > bezoeker zou via die link op het inlogscherm landen. `/live/[eventId]` toont
 > "Inloggen" nu alleen nog aan wie niet is ingelogd.
 >
+> **Gelijkgetrokken (tweede commit, zelfde dag).** De bestaande terug-links, die
+> verschilden in opmaak ("← Kalender", "Terug naar teams", met of zonder pijl,
+> soms als knop in de paginakop), zijn nu allemaal `BackLink`, bovenaan de pagina,
+> met de naam van de bestemming als label. Het klikvlak is 44 px hoog, zoals
+> ZWBeter Worden al had. Omgezet: events (detail, bewerken, pacingplan), leden,
+> teams, TTT Planner, materiaal, media, verjaardagen, segmentcollecties, core,
+> voeding (kennis en recepten), Omnium-beheer (editie, uitslagen, prijzen,
+> renners), segmentbeheer, hulp bij segmenten, ZWBgame-beheer, privacy en
+> voorwaarden (→ ZWB Cycling). De lokale `BackLink` van het pacingplan is weg.
+>
 > **Bewust niet.** `/verhaal` en `/brochure` (losse deelpagina's zonder ingang
-> vanuit de app), de Omnium-site (eigen menu) en de OBS-overlay. De 18 bestaande
-> terug-links zijn niet gelijkgetrokken naar `BackLink`; ze verschillen in
-> opmaak ("← Kalender", "Terug naar teams"), maar werken.
+> vanuit de app), de Omnium-site (eigen menu) en de OBS-overlay. Ook niet: "Terug
+> naar inloggen" (een stap in het inlogformulier), de knop "Coach-cockpit" op
+> Vermogen (een menupagina) en de mobiele terugknop in de app-kop
+> (`back-button.tsx`, gaat via de browsergeschiedenis; een andere functie).
 >
 > Getest: `tsc`, ESLint op de gewijzigde bestanden en de unit-suite. Niet in de
 > browser bekeken.

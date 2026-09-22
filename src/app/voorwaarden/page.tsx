@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackLink } from "@/components/app-ui";
 
 export const metadata = {
   title: "Gebruikersvoorwaarden — ZWB Cycling",
@@ -144,9 +145,7 @@ export default function VoorwaardenPage() {
       </Section>
 
       <footer className="border-t pt-6 text-sm">
-        <Link href="/" className="text-primary underline">
-          ← Terug
-        </Link>
+        <BackLink href="/" label="ZWB Cycling" />
       </footer>
     </main>
   );

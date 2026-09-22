@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { DIET_TAGS, DIET_TAG_LABELS, matchesDiet, portionForRider, type DietTag } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
@@ -12,6 +12,7 @@ import {
   todayKeyAmsterdam,
 } from "../_data";
 import { RecipeCard } from "../_components/recipe-card";
+import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -71,13 +72,7 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link
-            href="/zwbeter-worden/voeding"
-            className="inline-flex min-h-[44px] items-center gap-2 text-sm text-muted-foreground hover:underline"
-          >
-            <ArrowLeft className="size-4" />
-            Voeding
-          </Link>
+          <BackLink href="/zwbeter-worden/voeding" label="Voeding" />
           <h2 className="mt-1 text-xl font-semibold">Recepten</h2>
         </div>
         <Link

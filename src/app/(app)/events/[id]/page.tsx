@@ -66,6 +66,7 @@ import {
 } from "@/lib/event-results/scrape";
 import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { BackLink } from "@/components/app-ui";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -900,12 +901,7 @@ export default async function EventDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href={parentEvent ? `/events/${parentEvent.id}` : "/kalender"}
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← {parentEvent ? parentEvent.title : "Kalender"}
-      </Link>
+      <BackLink href={parentEvent ? `/events/${parentEvent.id}` : "/kalender"} label={parentEvent ? parentEvent.title : "Kalender"} />
 
       {coverUrl && (
         <div className="overflow-hidden rounded-2xl border bg-muted/30">

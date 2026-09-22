@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
@@ -15,6 +15,7 @@ import {
 } from "../../_data";
 import { deleteOwnRecipe } from "../../_actions";
 import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
+import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -64,13 +65,7 @@ export default async function RecipePage({
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/zwbeter-worden/voeding/recepten"
-          className="inline-flex min-h-[44px] items-center gap-2 text-sm text-muted-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" />
-          Recepten
-        </Link>
+        <BackLink href="/zwbeter-worden/voeding/recepten" label="Recepten" />
         <h2 className="mt-1 text-xl font-semibold">{recipe.title}</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           {[

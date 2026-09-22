@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
+import { CheckCircle2, ExternalLink } from "lucide-react";
 import { EVIDENCE_LABELS, NUTRITION_CATEGORY_LABELS, articleBySlug } from "@/lib/nutrition/library";
 import { requireViewer } from "../../_data";
+import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +15,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   return (
     <article className="space-y-6">
       <div>
-        <Link
-          href="/zwbeter-worden/voeding"
-          className="inline-flex min-h-[44px] items-center gap-2 text-sm text-muted-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" />
-          Voeding
-        </Link>
+        <BackLink href="/zwbeter-worden/voeding" label="Voeding" />
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {NUTRITION_CATEGORY_LABELS[article.category]}
         </p>

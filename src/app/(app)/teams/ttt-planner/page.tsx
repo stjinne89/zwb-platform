@@ -1,10 +1,7 @@
-import Link from "next/link";
-import { PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
-import { buttonVariants } from "@/components/ui/button";
+import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils";
 import { DEFAULT_TTT_SETTINGS, type TttPlanInput } from "@/lib/ttt/types";
 import {
   TttPlanner,
@@ -338,18 +335,13 @@ export default async function TttPlannerPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/teams" label="Teams" />
       <PageHeader
         eyebrow="Club"
         title="TTT Planner"
         actions={
           <div className="flex items-center gap-2">
             <HelpLink href="/hulp#ttt-beheer" />
-            <Link
-              href="/teams"
-              className={cn(buttonVariants({ variant: "outline" }))}
-            >
-              Terug naar club
-            </Link>
           </div>
         }
       />

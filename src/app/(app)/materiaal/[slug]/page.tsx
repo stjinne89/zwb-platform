@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -14,6 +13,7 @@ import { LikeButton } from "./_components/like-button";
 import { CommentForm } from "./_components/comment-form";
 import { DeleteCommentButton, DeletePostButton } from "./_components/delete-buttons";
 import { StatusSelect } from "./_components/status-select";
+import { BackLink } from "@/components/app-ui";
 
 export default async function PostDetailPage({
   params,
@@ -60,12 +60,7 @@ export default async function PostDetailPage({
 
   return (
     <article className="mx-auto max-w-3xl space-y-6">
-      <Link
-        href="/materiaal"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        Terug naar Vraag en Aanbod
-      </Link>
+      <BackLink href="/materiaal" label="Vraag en Aanbod" />
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">

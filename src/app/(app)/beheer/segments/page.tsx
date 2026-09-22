@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { SegmentSyncButton } from "./sync-button";
+import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export default async function SegmentAdminPage() {
@@ -15,7 +15,7 @@ export default async function SegmentAdminPage() {
     admin.from("strava_connections").select("profile_id,profiles(display_name)").is("revoked_at", null).order("profile_id").limit(1000),
     admin.from("zwb_segment_maps").select("id,name,geometry_status,geometry_error,geometry_checked_at").in("geometry_status", ["error","unavailable"]).order("geometry_checked_at", { ascending: false }).limit(30),
   ]);
-  return <div className="space-y-5"><Link className="text-sm underline" href="/profiel/segments">Terug naar segmentkaart</Link><h1 className="text-2xl font-semibold">Segmentsynchronisatie</h1>
+  return <div className="space-y-5"><BackLink href="/profiel/segments" label="ZWB Segments" /><h1 className="text-2xl font-semibold">Segmentsynchronisatie</h1>
     {errors.error && <p role="alert">Segmentregistratie niet beschikbaar. Voer migratie 0152 uit.</p>}
     <ul className="divide-y rounded-lg border">{(connections.data ?? []).map((c) => {
       const relation = c.profiles as unknown as { display_name: string } | { display_name: string }[] | null;

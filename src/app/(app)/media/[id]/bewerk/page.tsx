@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { HelpLink } from "@/components/app-ui";
+import { BackLink, HelpLink } from "@/components/app-ui";
 import { MediaForm, type MediaInitial } from "../../_components/add-form";
 import type { MediaKind } from "@/lib/media-kinds";
 
@@ -55,12 +54,7 @@ export default async function EditMediaPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link
-        href="/media"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Media
-      </Link>
+      <BackLink href="/media" label="Media" />
       <header className="flex items-start justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">
           Media-item bewerken

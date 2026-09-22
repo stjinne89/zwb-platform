@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageHeader, EmptyState } from "@/components/app-ui";
+import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -27,11 +26,8 @@ export default async function OmniumRidersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="ZWB Omnium"
-        title="Renners samenvoegen"
-        actions={<Link href="/beheer/omnium" className="text-sm underline">Terug</Link>}
-      />
+      <BackLink href="/beheer/omnium" label="Omnium" />
+      <PageHeader eyebrow="ZWB Omnium" title="Renners samenvoegen" />
       {riders.length < 2 ? (
         <EmptyState>Er zijn nog geen dubbele renners.</EmptyState>
       ) : (

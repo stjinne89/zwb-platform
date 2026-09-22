@@ -11,7 +11,7 @@ import {
   pickZrlEventPerTeam,
   type ZrlTeamEvent,
 } from "@/lib/teams/wtrl-results";
-import { HelpLink } from "@/components/app-ui";
+import { BackLink, HelpLink } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
 import { Button } from "@/components/ui/button";
 import {
@@ -557,12 +557,7 @@ export default async function TeamDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/teams"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        Terug naar teams
-      </Link>
+      <BackLink href="/teams" label="Teams" />
 
       <header className="space-y-3 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center gap-2">

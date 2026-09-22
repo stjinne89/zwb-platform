@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { PageHeader } from "@/components/app-ui";
+import { BackLink, PageHeader } from "@/components/app-ui";
 import { CP_SOURCE_LABELS } from "@/lib/pacing/cp";
 import { loadPacingPage } from "@/lib/pacing/session";
 import {
@@ -51,7 +49,7 @@ export default async function PacingPage({
     if (result.error === "Event bestaat niet.") notFound();
     return (
       <div className="space-y-4">
-        <BackLink eventId={id} />
+        <BackLink href={`/events/${id}`} label="Event" />
         <PageHeader title="Pacingplan" />
         <section className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
           {result.error}
@@ -67,7 +65,7 @@ export default async function PacingPage({
 
   return (
     <div className="space-y-6">
-      <BackLink eventId={id} />
+      <BackLink href={`/events/${id}`} label="Event" />
 
       <PageHeader
         title="Pacingplan"
@@ -289,14 +287,3 @@ function bikeOptions(parts: BikePart[]): {
   };
 }
 
-function BackLink({ eventId }: { eventId: string }) {
-  return (
-    <Link
-      href={`/events/${eventId}`}
-      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft className="size-4" />
-      Terug naar het event
-    </Link>
-  );
-}
