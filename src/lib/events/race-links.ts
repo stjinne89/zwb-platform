@@ -40,7 +40,7 @@ const LOGO_BY_HOST: Array<[string, string]> = [
   ["youtu.be", "/logos/youtube.png"],
   ["strava.com", "/logos/strava.png"],
   ["intervals.icu", "/logos/intervals.png"],
-  ["zwbcycling.nl", "/icon-192.png"],
+  ["zwbcycling.nl", "/logos/zwb.png"],
 ];
 
 /** Het logo van de site achter deze link, of null als we er geen hebben. */

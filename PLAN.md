@@ -61,7 +61,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0187`
 > krijgen hun logo. Een onbekende site krijgt een neutraal pijltje. De Racepass-knop
 > draagt het WTRL-logo. Nieuw in `public/logos/`, met toestemming van de eigenaar
 > opgehaald van de sites zelf: `zwift.png`, `wtrl.png`, `zwiftinsider.png` en
-> `youtube.png`. De ZWB-site gebruikt ons eigen `icon-192.png`.
+> `youtube.png`. Voor de ZWB-site staat er `zwb.png`: het ZWB-merk uit `logo_nieuw.png` van
+> zwbcycling.nl, zonder de regel "Cycling Community", op een witte tegel. Zo blijft de
+> zwarte B ook in dark mode zichtbaar.
 >
 > Getest: `tsc` en ESLint. De pagina is niet in de browser bekeken.
 
