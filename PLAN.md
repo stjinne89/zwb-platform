@@ -51,6 +51,26 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 
 ---
 
+> **Niet-geregistreerde renners in de rostertabel, 2026-09-22 — gebouwd, lokaal getest.**
+> Geen migratie.
+>
+> **Waarom.** Wens van de eigenaar: rosternamen zonder account (o.a. uit de
+> WTRL-import) horen in de rennerslijst van hun team, niet in een apart blok.
+>
+> **Nu.** De teampagina zet de ongeclaimde rosternamen van de teams op de pagina
+> in de rostertabel, met het team, de categorie (`pace_category`), de WTRL-waarden
+> en het label "niet geregistreerd"; de naam linkt niet naar een ledenpagina. Het
+> blok "Nog niet geregistreerd" is weg. Ze staan niet in de opstellingsplanner (een
+> opstelling hoort bij een profiel) en tellen niet mee in "Renners". `/teams` is niet
+> aangepast: dat overzicht toont leden.
+>
+> **Vraag van de eigenaar, beantwoord zonder code:** A1 en C1 hoeven nu niet. A en C
+> hebben bij WTRL elk één team en rijden dus zelf; maak een subteam pas als er een
+> tweede team in die categorie komt (de trigger uit `0179` zet A dan om, en op
+> `/beheer/wtrl-teams` koppel je het WTRL-team aan het subteam).
+
+---
+
 > **Afzeggers verschenen als renner bij teams, 2026-09-22 — gefixt, lokaal getest.**
 > Geen migratie.
 >
@@ -99,8 +119,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 >   WTRL-lid dat weer "uitgenodigd" wordt, gaat eruit.
 > - **Eén tabel:** de rostertabel (teampagina én `/teams`) heeft een kolom
 >   "zFTP · zMAP" met categorie, W, w/kg, zMAP w/kg, advies en "Te sterk"; op de
->   telefoon als regel op de rennerkaart. "Nog niet geregistreerd" toont zFTP, zMAP
->   en advies. Het aparte WTRL-blok is weg. Staat iemand in twee WTRL-teams, dan telt
+>   telefoon als regel op de rennerkaart. Niet-geregistreerde renners staan sinds de
+>   ronde hierboven in diezelfde tabel. Het aparte WTRL-blok is weg. Staat iemand in twee WTRL-teams, dan telt
 >   "te sterk" als hij in één ervan niet past (`summarizeWtrlRiders`).
 >
 > **Bekende beperking.** Een rosternaam is uniek en hoort bij één team: een renner

@@ -205,7 +205,7 @@ export default async function TeamDetailPage({
     supabase.from("profiles").select("id, display_name").order("display_name"),
     supabase
       .from("roster_entries")
-      .select("id, name, pace_category, zwift_id")
+      .select("id, name, pace_category, zwift_id, team_id")
       .in("team_id", scopeIds)
       .is("claimed_by", null)
       .order("name"),
@@ -470,6 +470,46 @@ export default async function TeamDetailPage({
     };
   });
 
+  // Rosternamen zonder account (o.a. uit de WTRL-import) staan in dezelfde tabel,
+  // gemarkeerd als niet geregistreerd. Niet in de opstellingsplanner: een
+  // opstelling hoort bij een profiel.
+  const unregisteredRows: TeamRosterRow[] = (
+    (rosterPending ?? []) as Array<{
+      id: string;
+      name: string;
+      pace_category: string | null;
+      zwift_id: string | null;
+      team_id: string | null;
+    }>
+  ).map((entry) => {
+    const entryTeam = entry.team_id ? teamById.get(entry.team_id) : null;
+    return {
+      id: entry.id,
+      name: entry.name,
+      region: null,
+      zrlCategory: entry.pace_category,
+      ftpWatts: null,
+      weightKg: null,
+      teams: entryTeam
+        ? [
+            {
+              id: entryTeam.id,
+              name: entryTeam.name,
+              role: "member",
+              parentTeamId: entryTeam.parent_team_id,
+            },
+          ]
+        : [],
+      power: null,
+      zrlStarts: 0,
+      zrlBestPosition: null,
+      zrlAvgPoints: null,
+      wtrl: entry.zwift_id ? wtrlByZwiftId.get(entry.zwift_id.trim()) ?? null : null,
+      unregistered: true,
+    };
+  });
+  const rosterRows = [...rows, ...unregisteredRows];
+
   const candidates = (allProfiles ?? []).filter((profile) => !profileIds.includes(profile.id));
   const availabilityByEventProfile = new Map(
     ((availabilityRows ?? []) as AvailabilityRow[]).map((row) => [
@@ -578,7 +618,7 @@ export default async function TeamDetailPage({
       </section>
 
       <TeamRosterTable
-        rows={rows}
+        rows={rosterRows}
         teams={scopeTeams.map((row) => ({
           id: row.id,
           name: row.name,
@@ -679,39 +719,6 @@ export default async function TeamDetailPage({
           </div>
         )}
       </section>
-
-      {rosterPending && rosterPending.length > 0 && (
-        <section className="space-y-3 rounded-lg border bg-card p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Nog niet geregistreerd ({rosterPending.length})
-          </h2>
-          <ul className="divide-y">
-            {rosterPending.map((r) => (
-              <li key={r.id} className="flex items-center justify-between py-2 text-sm">
-                <span>
-                  {r.name}
-                  {r.pace_category && (
-                    <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                      {r.pace_category}
-                    </span>
-                  )}
-                </span>
-                <span className="text-right text-xs text-muted-foreground">
-                  {(() => {
-                    const wtrl = r.zwift_id ? wtrlByZwiftId.get(r.zwift_id) : null;
-                    return wtrl?.zftpWkg != null
-                      ? `zFTP ${wtrl.zftpWkg.toLocaleString("nl-NL", { minimumFractionDigits: 2 })} · zMAP ${
-                          wtrl.zmapWkg?.toLocaleString("nl-NL", { minimumFractionDigits: 2 }) ?? "-"
-                        } · ${wtrl.advice ?? "-"}`
-                      : null;
-                  })()}
-                  {r.zwift_id && <span className="block">Zwift {r.zwift_id}</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

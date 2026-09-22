@@ -48,6 +48,8 @@ export type TeamRosterRow = {
   zrlAvgPoints: number | null;
   /** zFTP, zMAP en divisieadvies uit de WTRL-import (migr. 0180). */
   wtrl: WtrlRiderSummary | null;
+  /** Rosternaam zonder ZWB-account; `id` is dan de rosternaam, geen profiel. */
+  unregistered?: boolean;
 };
 
 const CATEGORIES = ["A", "B", "C", "D", "E"];
@@ -208,9 +210,7 @@ export function TeamRosterTable({
           return (
             <li key={row.id} className="rounded-lg border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
-                <Link href={`/leden/${row.id}`} className="font-medium hover:underline">
-                  {row.name}
-                </Link>
+                <RiderName row={row} />
                 {row.zrlCategory && (
                   <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
                     {row.zrlCategory}
@@ -302,9 +302,7 @@ export function TeamRosterTable({
               return (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="py-2 pr-3 align-top">
-                    <Link href={`/leden/${row.id}`} className="font-medium hover:underline">
-                      {row.name}
-                    </Link>
+                    <RiderName row={row} />
                     <div className="mt-1 flex flex-wrap gap-1 text-xs text-muted-foreground">
                       {row.zrlCategory && (
                         <span className="rounded-full bg-secondary px-1.5 py-0.5 text-secondary-foreground">
@@ -406,6 +404,24 @@ function SortableHeader({
           ))}
       </button>
     </th>
+  );
+}
+
+function RiderName({ row }: { row: TeamRosterRow }) {
+  if (!row.unregistered) {
+    return (
+      <Link href={`/leden/${row.id}`} className="font-medium hover:underline">
+        {row.name}
+      </Link>
+    );
+  }
+  return (
+    <span>
+      <span className="font-medium">{row.name}</span>
+      <span className="ml-2 rounded-full border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground">
+        niet geregistreerd
+      </span>
+    </span>
   );
 }
 
