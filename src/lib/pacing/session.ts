@@ -22,6 +22,7 @@ import {
   type LoadedRoute,
   type PacingEventRow,
 } from "@/lib/pacing/route-loader";
+import { withParentRoute, type RouteFields } from "@/lib/events/route-source";
 import {
   ensureBaselinePlan,
   pollGeneration,
@@ -46,7 +47,7 @@ import {
 import { sharedPlanView, type SharedPlanView } from "@/lib/pacing/share";
 
 const EVENT_COLUMNS =
-  "id, title, type, start_at, gpx_path, distance_km, elevation_m, zwift_event_id, zwift_route_id, laps";
+  "id, title, type, start_at, gpx_path, distance_km, elevation_m, zwift_event_id, zwift_route_id, laps, parent_event_id";
 
 /** Hoogstens vijf generaties per lid per uur; een AI-call kost geld. */
 const GENERATION_LIMIT = 5;
@@ -88,7 +89,16 @@ async function loadForUser(
     .maybeSingle();
   if (!eventRow) return { ok: false, error: "Event bestaat niet." };
 
-  const event = eventRow as PacingEventRow;
+  // Een teamrace zonder eigen route rekent op de route van zijn raceweek.
+  const row = eventRow as PacingEventRow & { parent_event_id: string | null };
+  const { data: parentRow } = row.parent_event_id
+    ? await admin
+        .from("events")
+        .select("gpx_path, zwift_route_id, laps")
+        .eq("id", row.parent_event_id)
+        .maybeSingle()
+    : { data: null };
+  const event = withParentRoute(row, parentRow as RouteFields | null);
   const routeResult = await loadPacingRoute(admin, event);
   if (!routeResult.ok) return { ok: false, error: routeResult.message };
 

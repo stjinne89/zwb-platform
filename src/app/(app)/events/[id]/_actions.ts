@@ -8,6 +8,7 @@ import { scrapeEventResults } from "@/lib/event-results/scrape";
 import { rateLimitHit } from "@/lib/rate-limit";
 import { syncEventWorkout } from "@/lib/training/events";
 import { requestReplan } from "@/lib/training/replan";
+import { isEventLinkKind, normalizeLinkUrl } from "@/lib/events/race-links";
 
 type Status = "yes" | "maybe" | "no";
 
@@ -349,6 +350,58 @@ export async function saveEventZones(eventId: string, zones: ZoneInput[]) {
   }
 
   revalidatePath(`/events/${eventId}`);
+  return { ok: true as const, count: rows.length };
+}
+
+type LinkInput = {
+  kind: string;
+  label?: string | null;
+  url: string;
+};
+
+export async function saveEventLinks(eventId: string, links: LinkInput[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const guard = await guardEventManage(eventId);
+  if (!guard.ok) return guard;
+
+  const rows = (Array.isArray(links) ? links : [])
+    .map((link) => {
+      const url = normalizeLinkUrl(link.url);
+      if (!url || !isEventLinkKind(link.kind)) return null;
+      return {
+        kind: link.kind,
+        label: (link.label ?? "").trim().slice(0, 80) || null,
+        url: url.slice(0, 1000),
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+    .slice(0, 30)
+    .map((r, i) => ({ ...r, event_id: eventId, position: i, created_by: user.id }));
+
+  const admin = createAdminClient();
+  const { error: delError } = await admin
+    .from("event_links")
+    .delete()
+    .eq("event_id", eventId);
+  if (delError) return { ok: false as const, error: delError.message };
+
+  if (rows.length > 0) {
+    const { error } = await admin.from("event_links").insert(rows);
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  // Teamraces tonen de links van hun raceweek.
+  const { data: children } = await admin
+    .from("events")
+    .select("id")
+    .eq("parent_event_id", eventId);
+  revalidatePath(`/events/${eventId}`);
+  for (const child of children ?? []) revalidatePath(`/events/${child.id}`);
   return { ok: true as const, count: rows.length };
 }
 

@@ -47,7 +47,52 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0185`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0186`.
+
+---
+
+> **Raceinfo op ZRL-events: pacingplan en racelinks, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0185_event_links.sql` (nog toepassen).
+>
+> **Waarom.** De eigenaar zag op de racedag geen pacingplan op de ZRL-raceweek, en wil
+> per race veel meer links kwijt: Zwift-event, ZwiftPower, ZwiftRacing, recon-video's,
+> ZwiftInsider en de racepagina op zwbcycling.nl. Het pacingblok hing niet aan de
+> datum maar aan "dit event heeft een route", en de ZRL-import maakt raceweken en
+> teamraces zonder route aan. Dus geen route, geen pacingplan.
+>
+> **Nu.**
+> - Kaart **Raceinfo** direct onder de header (`race-info-card.tsx`). Die vervangt de
+>   oude pacingkaart en de losse knop "Aanmelden op Zwift". Erin staan de knop
+>   Pacingplan, Aanmelden op Zwift (alleen vóór de start) en de linkchips. Zwift,
+>   ZwiftPower en ZwiftRacing worden afgeleid uit `zwift_event_id`
+>   (`src/lib/events/race-links.ts`) en blijven na de start staan. Het ZwiftRacing-
+>   formaat `zwiftracing.app/events/<zwift-id>` is gecontroleerd met publieke events.
+> - Nieuwe tabel `event_links` (soort recon/zwiftinsider/zwb/overig, optioneel label,
+>   alleen https). Het is een tabel, omdat er meerdere recon-video's per race kunnen
+>   zijn. Beheer gebeurt via de sectie Links onderaan `/events/[id]/bewerk`
+>   (`saveEventLinks`, vervangt het hele setje, zoals de zones). Een teamrace toont
+>   zijn eigen links plus die van de raceweek.
+> - Op de raceweek staan in de lijst Teams per teamrace de chips Zwift, ZwiftPower en
+>   ZwiftRacing: elke divisie heeft een eigen Zwift-event.
+> - Een teamrace zonder eigen route neemt de route van de raceweek over
+>   (`withParentRoute` in `src/lib/events/route-source.ts`). Dat geldt voor de
+>   eventpagina (kaart, Zwift-routeblok) en voor `loadForUser` in
+>   `src/lib/pacing/session.ts`. Een eigen aantal rondes gaat voor.
+> - Heeft de raceweek zelf geen route, dan wijst Pacingplan naar de race van je eigen
+>   team, als die een route heeft. Een plan blijft per teamrace, omdat de Zwift-regels
+>   en het aantal rondes per divisie kunnen verschillen.
+> - De bewerkpagina geeft `zwift_event_id`, `zwift_route_id` en `laps` nu door aan het
+>   formulier, dus "Gekoppeld aan Zwift-event …" verschijnt daar weer.
+>
+> **Bewust niet.** Recon-video's en ZwiftInsider-pagina's worden niet automatisch
+> gezocht; de beheerder plakt ze. De ZRL-import vult geen links in. Dat kan later,
+> als de ZWB-site een vast URL-patroon per ronde heeft. De raceweek krijgt geen eigen
+> pacingplan dat de teamraces overschrijft.
+>
+> **Niet lokaal te verifiëren:** de migratie en de pagina met echte data. Zonder
+> `0185` levert de linkquery een fout op en blijft de linklijst leeg. De rest van de
+> pagina werkt dan gewoon. Getest: `tsc`, ESLint, `tests/unit/race-links.test.ts` en
+> de pacing-tests.
 
 ---
 

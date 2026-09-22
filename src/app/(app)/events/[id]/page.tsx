@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
@@ -17,6 +17,13 @@ import { RouteSection } from "./_components/route-section";
 import { ZwiftRouteSection } from "./_components/zwift-route-section";
 import { zwiftEventUrl } from "@/lib/events/external-scan";
 import { loadPacingRoute, type LoadedRoute } from "@/lib/pacing/route-loader";
+import { hasOwnRoute, withParentRoute } from "@/lib/events/route-source";
+import {
+  derivedZwiftLinks,
+  mergeLinks,
+  type EventLinkRow,
+} from "@/lib/events/race-links";
+import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { isPoiType, type EventPoi } from "./_components/poi";
 import type { EventZone } from "./_components/zone";
 import {
@@ -220,13 +227,13 @@ export default async function EventDetailPage({
       event.parent_event_id
         ? supabase
             .from("events")
-            .select("id, title, description")
+            .select("id, title, description, gpx_path, zwift_route_id, laps")
             .eq("id", event.parent_event_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
       supabase
         .from("events")
-        .select("id, title, start_at, team_id, teams(name)")
+        .select("id, title, start_at, team_id, zwift_event_id, gpx_path, zwift_route_id, teams(name)")
         .eq("parent_event_id", id)
         .order("start_at")
         .order("title"),
@@ -240,6 +247,9 @@ export default async function EventDetailPage({
     title: string;
     start_at: string;
     team_id: string | null;
+    zwift_event_id: number | string | null;
+    gpx_path: string | null;
+    zwift_route_id: number | string | null;
     teams: { name: string } | { name: string }[] | null;
   }>)
     .map((row) => {
@@ -250,6 +260,8 @@ export default async function EventDetailPage({
         name: team?.name ?? row.title,
         teamId: row.team_id,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
+        hasRoute: hasOwnRoute(row),
+        zwiftLinks: derivedZwiftLinks(row.zwift_event_id),
       };
     })
     .sort((a, b) => Number(b.isMine) - Number(a.isMine));
@@ -378,6 +390,7 @@ export default async function EventDetailPage({
     { data: colClimbRows },
     { data: poiRows },
     { data: zoneRows },
+    { data: linkRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -431,6 +444,12 @@ export default async function EventDetailPage({
       .from("event_zones")
       .select("label, start_km, end_km")
       .eq("event_id", id)
+      .order("position"),
+    // Eigen links plus die van de raceweek (migr. 0185).
+    supabase
+      .from("event_links")
+      .select("id, event_id, kind, label, url")
+      .in("event_id", lineupEventIds)
       .order("position"),
   ]);
 
@@ -493,8 +512,25 @@ export default async function EventDetailPage({
 
   const isCreator = user?.id === event.created_by;
   // Een pacingplan kan zodra er een parcours is: een geüploade GPX of een
-  // gekoppelde Zwift-route.
-  const hasRoute = Boolean(event.gpx_path || event.zwift_route_id);
+  // gekoppelde Zwift-route. Een teamrace zonder eigen route rijdt die van zijn
+  // raceweek.
+  const routeEvent = withParentRoute(event, parentEvent);
+  const hasRoute = hasOwnRoute(routeEvent);
+  // Op een raceweek zonder eigen route wijst het pacingplan naar de race van je
+  // eigen team: daar hangen de Zwift-regels en het aantal rondes aan.
+  const myRaceWithRoute = subEvents.find((sub) => sub.isMine && sub.hasRoute);
+  const pacingHref = !user
+    ? null
+    : hasRoute
+      ? `/events/${event.id}/pacing`
+      : myRaceWithRoute
+        ? `/events/${myRaceWithRoute.id}/pacing`
+        : null;
+  const linksOf = (eventId: string | null | undefined) =>
+    ((linkRows ?? []) as Array<EventLinkRow & { event_id: string }>).filter(
+      (row) => row.event_id === eventId,
+    );
+  const raceLinks = mergeLinks(linksOf(event.id), linksOf(event.parent_event_id));
 
   const canManage = access.has("events.manage_all") || isCreator;
 
@@ -663,8 +699,8 @@ export default async function EventDetailPage({
 
   // Zwift-route zonder eigen GPX: vorm en profiel uit de routebibliotheek.
   let zwiftRoute: LoadedRoute | null = null;
-  if (event.zwift_route_id && !event.gpx_path && user) {
-    const result = await loadPacingRoute(supabase, event);
+  if (routeEvent.zwift_route_id && !routeEvent.gpx_path && user) {
+    const result = await loadPacingRoute(supabase, routeEvent);
     if (result.ok) zwiftRoute = result.loaded;
   }
   const zwiftSignupUrl =
@@ -676,15 +712,15 @@ export default async function EventDetailPage({
   // Aparte signed URL met `download`: die zet Content-Disposition op attachment,
   // zodat de browser het bestand opslaat in plaats van toont.
   let gpxDownloadUrl: string | null = null;
-  if (event.gpx_path) {
+  if (routeEvent.gpx_path) {
     const { data } = await supabase.storage
       .from("event-gpx")
-      .createSignedUrl(event.gpx_path, 3600);
+      .createSignedUrl(routeEvent.gpx_path, 3600);
     gpxUrl = data?.signedUrl ?? null;
 
     const { data: downloadData } = await supabase.storage
       .from("event-gpx")
-      .createSignedUrl(event.gpx_path, 3600, {
+      .createSignedUrl(routeEvent.gpx_path, 3600, {
         download: `${slugify(event.title) || "route"}.gpx`,
       });
     gpxDownloadUrl = downloadData?.signedUrl ?? null;
@@ -903,18 +939,14 @@ export default async function EventDetailPage({
           {event.distance_km ? ` · ${event.distance_km} km` : ""}
           {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
         </p>
-        {zwiftSignupUrl && (
-          <a
-            href={zwiftSignupUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            Aanmelden op Zwift
-            <ArrowUpRight className="size-3.5" />
-          </a>
-        )}
       </header>
+
+      <RaceInfoCard
+        pacingHref={pacingHref}
+        signupUrl={zwiftSignupUrl}
+        zwiftLinks={derivedZwiftLinks(event.zwift_event_id)}
+        links={raceLinks}
+      />
 
       <WhatsAppGroupBlock
         scope="event"
@@ -990,6 +1022,7 @@ export default async function EventDetailPage({
                     })}
                   </span>
                 </Link>
+                <RaceLinkChips links={sub.zwiftLinks} className="px-3 pb-3" />
                 {sub.teamId && (lineupByTeam.get(sub.teamId) ?? []).length > 0 && (
                   <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
                 )}
@@ -1005,25 +1038,6 @@ export default async function EventDetailPage({
             Opstelling ({ownLineup.length})
           </h2>
           <LineupNames riders={ownLineup} className="rounded-lg border bg-card p-3" />
-        </section>
-      )}
-
-      {hasRoute && user && (
-        <section className="rounded-lg border bg-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-0">
-              <h2 className="font-semibold">Pacingplan</h2>
-              <p className="text-sm text-muted-foreground">
-                Wattverdeling over dit parcours, op jouw vermogen.
-              </p>
-            </div>
-            <Link
-              href={`/events/${event.id}/pacing`}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              Open pacingplan
-            </Link>
-          </div>
         </section>
       )}
 

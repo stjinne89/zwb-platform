@@ -5,6 +5,8 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink } from "@/components/app-ui";
 import { EventForm, type EventInitial } from "../../../kalender/nieuw/_form";
 import { DeleteEventButton } from "../_components/delete-event-button";
+import { LinkEditor } from "../_components/link-editor";
+import { isEventLinkKind, type EventLinkKind } from "@/lib/events/race-links";
 
 export default async function EditEventPage({
   params,
@@ -19,7 +21,7 @@ export default async function EditEventPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: event }, access, { data: teams }] = await Promise.all([
+  const [{ data: event }, access, { data: teams }, { data: linkRows }] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -33,6 +35,11 @@ export default async function EditEventPage({
       .select("id, name, type, parent_team_id")
       .order("type")
       .order("name"),
+    supabase
+      .from("event_links")
+      .select("kind, label, url")
+      .eq("event_id", id)
+      .order("position"),
   ]);
 
   if (!event) notFound();
@@ -62,7 +69,17 @@ export default async function EditEventPage({
     gpx_path: event.gpx_path,
     distance_km: event.distance_km,
     elevation_m: event.elevation_m,
+    zwift_event_id: event.zwift_event_id,
+    zwift_route_id: event.zwift_route_id,
+    laps: event.laps,
   };
+  const links = ((linkRows ?? []) as Array<{ kind: string; label: string | null; url: string }>)
+    .filter((row) => isEventLinkKind(row.kind))
+    .map((row) => ({
+      kind: row.kind as EventLinkKind,
+      label: row.label ?? "",
+      url: row.url,
+    }));
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -83,6 +100,7 @@ export default async function EditEventPage({
           <DeleteEventButton eventId={event.id} eventTitle={event.title} />
         }
       />
+      <LinkEditor eventId={event.id} initial={links} />
     </div>
   );
 }
