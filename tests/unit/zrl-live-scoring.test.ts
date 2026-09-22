@@ -115,7 +115,11 @@ describe("pickSubgroup", () => {
   const empty = { label: "E", entrants: [] };
 
   it("kiest de groep met eigen renners", () => {
-    expect(pickSubgroup([empty, a, b], new Set([2]))?.label).toBe("A");
+    expect(pickSubgroup([empty, a, { ...b, entrants: b.entrants.slice(2) }], new Set([2]))?.label).toBe("A");
+  });
+
+  it("laat één eigen renner elders niet winnen van meer ZWB'ers (Zwiftladies B)", () => {
+    expect(pickSubgroup([empty, a, b], new Set([1]))?.label).toBe("B");
   });
 
   it("valt zonder bekende eigen renners terug op ZWB-tags (Zwiftladies B, 2026-09-22)", () => {

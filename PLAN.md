@@ -147,13 +147,22 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > vóór de start): subgroep en starttijd goed gekozen, 18 tegenstanders met hun
 > tag in "Teams bijstellen". Nog open: de pagina tijdens een echte ZRL-race.
 >
-> **Verkeerde subgroep bij Zwiftladies B.** Het dashboard toonde de A-groep:
-> onze renners (in B, met tag "ZWB") werden niet als eigen renners herkend, en dan
-> viel de keuze op de eerste groep met inschrijvers. Nu: eigen renners komen ook
-> uit de opstelling van het event en van het hoofdevent; kent het platform er dan
-> nog geen, dan wint de groep met de meeste "ZWB"-tags, en gelden die renners als
-> ons team (anders viel het uiteen in "ZWB" en "ZWB-Synergy"). Welke bron bij
-> Zwiftladies B ontbrak, is niet nagegaan (geen databasetoegang hier).
+> **Verkeerde subgroep bij Zwiftladies B.** Het dashboard toonde de A-groep.
+> Eerste verklaring (commit `c529822`): onze renners werden niet herkend. Dat was
+> maar half waar. De echte oorzaak: Zwift geeft zonder `limit` maar **20**
+> inschrijvers per subgroep (A had er 47, het platform zag er 20), dus onze
+> renners in B vielen buiten beeld, terwijl in A één "Femke" als eigen renner
+> herkend werd. Nu:
+> - `fetchEntrants` (`src/lib/events/zwift-club.ts`) haalt per 100 op en, zoals
+>   Sauce for Zwift, ook overlappende pagina's per 20, omdat Zwift bij grote
+>   events renners overslaat bij doorbladeren. Dit raakt ook de eventscan en de
+>   Omnium-startlijst, die bij meer dan 20 inschrijvers dus ook renners misten.
+> - Eigen renners komen ook uit de opstelling van het event en van het hoofdevent.
+> - Een subgroep scoort op renners die eigen zijn óf "ZWB" in hun tag hebben (elk
+>   één keer); kent het platform in de gekozen groep niemand, dan gelden de
+>   ZWB-tags als ons team.
+> Welke databron de B-renners niet kende, is niet nagegaan (geen databasetoegang
+> hier).
 >
 > **Teamnaam.** Een team kreeg de spelling van de eerste renner ("foudre" naast
 > "Foudre"). Nu wint de vaakst getypte spelling, bij gelijkspel een met

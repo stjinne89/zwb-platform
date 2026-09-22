@@ -180,20 +180,18 @@ function hasZwbTag(name: string): boolean {
 }
 
 /**
- * Onze subgroep: waar de meeste eigen renners in staan. Zijn die (nog) niet
- * bekend, dan waar de meeste inschrijvers "ZWB" in hun teamtag hebben; anders de
- * eerste met inschrijvers. Zonder die tweede stap koos Zwiftladies B de A-groep.
+ * Onze subgroep: waar de meeste renners staan die we als eigen kennen óf die
+ * "ZWB" in hun teamtag hebben; zonder zulke renners de eerste met inschrijvers.
  */
 export function pickSubgroup<T extends { entrants: Array<{ zwiftId: string; name: string }> }>(
   subgroups: T[],
   own: Set<number>,
 ): T | undefined {
   const occupied = subgroups.filter((s) => s.entrants.length > 0);
-  const score = (s: T) => {
-    const ownCount = s.entrants.filter((e) => own.has(Number(e.zwiftId))).length;
-    const zwbTags = s.entrants.filter((e) => hasZwbTag(e.name)).length;
-    return ownCount * 1000 + zwbTags;
-  };
+  // Eigen renner of ZWB-tag, elk één keer: één verkeerd gekoppelde "Femke" in A
+  // mag niet winnen van vier ZWB'ers in B (Zwiftladies B, 2026-09-22).
+  const score = (s: T) =>
+    s.entrants.filter((e) => own.has(Number(e.zwiftId)) || hasZwbTag(e.name)).length;
   return [...occupied].sort((a, b) => score(b) - score(a))[0];
 }
 

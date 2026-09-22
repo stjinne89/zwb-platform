@@ -84,12 +84,22 @@ function isZwbClubEvent(event: unknown): boolean {
   return JSON.stringify(event).includes(clubId);
 }
 
-function entrantsUrl(subgroupId: string): string {
+// Zwift geeft zonder `limit` maar 20 inschrijvers terug (gemeten 2026-09-22: een
+// subgroep van 47 leverde er 20). Bij grote events slaat doorbladeren bovendien
+// renners over; Sauce for Zwift haalt daarom ook overlappende pagina's op, per 20.
+const ENTRANTS_LIMIT = 100;
+const ENTRANTS_OVERLAP_STEP = 20;
+const ENTRANTS_MAX_PAGES = 10;
+
+function entrantsUrl(subgroupId: string, start = 0): string {
   const template =
     process.env.ZWIFT_ENTRANTS_PATH ??
     "events/subgroups/entrants/{id}?type=all&participation=signed_up";
   const path = template.replace("{id}", encodeURIComponent(subgroupId));
-  return `${apiBase()}/${path.replace(/^\/+/, "")}`;
+  const url = new URL(`${apiBase()}/${path.replace(/^\/+/, "")}`);
+  url.searchParams.set("limit", String(ENTRANTS_LIMIT));
+  url.searchParams.set("start", String(start));
+  return url.toString();
 }
 
 // Token-cache op moduleniveau; blijft binnen dezelfde server-instance bestaan.
@@ -223,22 +233,47 @@ function entrantName(row: EntrantRow): string {
     .trim();
 }
 
+async function fetchEntrantPage(subgroupId: string, start: number, strict: boolean): Promise<EntrantRow[]> {
+  const payload = await authedJson(entrantsUrl(subgroupId, start));
+  if (Array.isArray(payload)) return payload as EntrantRow[];
+  const entrants = (payload as { entrants?: unknown } | null)?.entrants;
+  if (Array.isArray(entrants)) return entrants as EntrantRow[];
+  if (strict) throw new Error("Onbekend Zwift-startlijstformaat.");
+  return [];
+}
+
+/** Alle pagina's van één subgroep, met dubbelingen (de aanroeper ontdubbelt). */
+async function fetchAllEntrantRows(subgroupId: string, strict: boolean): Promise<EntrantRow[]> {
+  const all: EntrantRow[] = [];
+  let start = 0;
+  for (let page = 0; page < ENTRANTS_MAX_PAGES; page++) {
+    const rows = await fetchEntrantPage(subgroupId, start, strict);
+    all.push(...rows);
+    if (start > 0 || rows.length === ENTRANTS_LIMIT) {
+      const offsets: number[] = [];
+      for (let offset = ENTRANTS_OVERLAP_STEP; offset < ENTRANTS_LIMIT; offset += ENTRANTS_OVERLAP_STEP) {
+        offsets.push(start + offset);
+      }
+      for (const extra of await Promise.all(offsets.map((o) => fetchEntrantPage(subgroupId, o, strict)))) {
+        all.push(...extra);
+      }
+    }
+    if (rows.length < ENTRANTS_LIMIT) break;
+    start += rows.length;
+  }
+  return all;
+}
+
 /** Haalt de inschrijvers per subgroep op en dedupliceert op Zwift-ID. */
 export async function fetchEntrants(subgroupIds: string[], options: { strict?: boolean } = {}): Promise<ClubEntrant[]> {
   const byId = new Map<string, ClubEntrant>();
   for (const subgroupId of subgroupIds) {
-    let payload: unknown;
+    let rows: EntrantRow[];
     try {
-      payload = await authedJson(entrantsUrl(subgroupId));
+      rows = await fetchAllEntrantRows(subgroupId, Boolean(options.strict));
     } catch (error) {
       if (options.strict) throw error;
       continue; // Een kapotte subgroep mag de rest niet breken.
-    }
-    const rows = Array.isArray(payload)
-      ? (payload as EntrantRow[])
-      : ((payload as { entrants?: EntrantRow[] })?.entrants ?? []);
-    if (options.strict && !Array.isArray(payload) && !(payload && typeof payload === "object" && Array.isArray((payload as { entrants?: unknown }).entrants))) {
-      throw new Error("Onbekend Zwift-startlijstformaat.");
     }
     for (const row of rows) {
       const zwiftId = String(row.profileId ?? row.id ?? "").trim();
