@@ -282,7 +282,36 @@ export type WtrlRiderSummary = {
   /** Hetzelfde, per waarde. */
   zftpStatus: DivisionStatus | null;
   zmapStatus: DivisionStatus | null;
+  /**
+   * Per divisie waar de renner in staat ("B", "C", "B Dev"), zodat een paraplu met
+   * teams op verschillende niveaus laat zien op welk niveau het krap wordt.
+   */
+  levels: Array<{ label: string; zftp: DivisionStatus; zmap: DivisionStatus }>;
+  /** Staan er op deze pagina teams op meer niveaus? Dan hoort het niveau bij de melding. */
+  levelsVary: boolean;
 };
+
+export function divisionLabel(division: WtrlDivision): string {
+  return division.development ? `${division.category} Dev` : division.category;
+}
+
+function mergeLevel(
+  levels: WtrlRiderSummary["levels"],
+  level: WtrlRiderSummary["levels"][number] | null,
+): WtrlRiderSummary["levels"] {
+  if (!level) return levels;
+  const same = levels.find((item) => item.label === level.label);
+  if (!same) return [...levels, level];
+  return levels.map((item) =>
+    item === same
+      ? {
+          label: item.label,
+          zftp: worstStatus(item.zftp, level.zftp) ?? "ok",
+          zmap: worstStatus(item.zmap, level.zmap) ?? "ok",
+        }
+      : item,
+  );
+}
 
 /**
  * Eén regel per renner over de WTRL-teams op een pagina. Staat iemand in twee
@@ -291,6 +320,13 @@ export type WtrlRiderSummary = {
 export function summarizeWtrlRiders(
   teams: Array<{ division: string | null; riders: WtrlRider[] }>,
 ): Map<string, WtrlRiderSummary> {
+  const levelsVary =
+    new Set(
+      teams
+        .map((team) => parseDivision(team.division))
+        .filter((division): division is WtrlDivision => Boolean(division))
+        .map(divisionLabel),
+    ).size > 1;
   const byRider = new Map<string, WtrlRiderSummary>();
   for (const team of teams) {
     const division = parseDivision(team.division);
@@ -311,6 +347,12 @@ export function summarizeWtrlRiders(
         status: worstStatus(zftpStatus, zmapStatus),
         zftpStatus,
         zmapStatus,
+        levelsVary,
+        levels: mergeLevel(previous?.levels ?? [], division && metrics ? {
+          label: divisionLabel(division),
+          zftp: metrics.zftp,
+          zmap: metrics.zmap,
+        } : null),
       });
     }
   }

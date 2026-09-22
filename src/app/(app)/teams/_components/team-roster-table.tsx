@@ -358,7 +358,7 @@ export function TeamRosterTable({
                         <div>{zftpText(row.wtrl, unit)}</div>
                         <div className="text-xs text-muted-foreground">
                           {row.wtrl.category ? `Cat ${row.wtrl.category}` : "-"}
-                          <StatusNote status={row.wtrl.zftpStatus} />
+                          <StatusNote wtrl={row.wtrl} metric="zftp" />
                         </div>
                       </>
                     ) : (
@@ -371,7 +371,7 @@ export function TeamRosterTable({
                         <div>{zmapText(row.wtrl, unit)}</div>
                         <div className="text-xs text-muted-foreground">
                           {row.wtrl.advice ?? "-"}
-                          <StatusNote status={row.wtrl.zmapStatus} />
+                          <StatusNote wtrl={row.wtrl} metric="zmap" />
                         </div>
                       </>
                     ) : (
@@ -472,8 +472,8 @@ function WtrlSummary({ wtrl, unit }: { wtrl: WtrlRiderSummary; unit: PowerUnit }
     <>
       {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
       zFTP {zftpText(wtrl, unit)}
-      <StatusNote status={wtrl.zftpStatus} /> · zMAP {zmapText(wtrl, unit)}
-      <StatusNote status={wtrl.zmapStatus} /> · {wtrl.advice ?? "-"}
+      <StatusNote wtrl={wtrl} metric="zftp" /> · zMAP {zmapText(wtrl, unit)}
+      <StatusNote wtrl={wtrl} metric="zmap" /> · {wtrl.advice ?? "-"}
     </>
   );
 }

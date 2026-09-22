@@ -77,7 +77,9 @@ export function TeamLineupPlanner({
     unit === "wkg" ? fmt(wkg, 2) : watts == null ? "-" : `${fmt(watts)}w`;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const selectedIds = new Set(lineups.map((lineup) => lineup.riderId));
+  // Per team: een renner kan in dezelfde raceweek voor meer subteams rijden.
+  const selectedIds = new Set(lineups.map((lineup) => `${lineup.teamId}:${lineup.riderId}`));
+  const isSelected = (rider: PlannerRider) => selectedIds.has(`${targetTeamId}:${rider.id}`);
   const hasWtrl = riders.some((rider) => rider.wtrl);
 
   function add(rider: PlannerRider) {
@@ -189,7 +191,7 @@ export function TeamLineupPlanner({
                       <span>
                         {zftpText(rider.wtrl, unit)}
                         <span className="block text-xs">
-                          <StatusNote status={rider.wtrl.zftpStatus} />
+                          <StatusNote wtrl={rider.wtrl} metric="zftp" />
                         </span>
                       </span>
                     ) : (
@@ -205,7 +207,7 @@ export function TeamLineupPlanner({
                       <span>
                         {zmapText(rider.wtrl, unit)}
                         <span className="block text-xs">
-                          <StatusNote status={rider.wtrl.zmapStatus} />
+                          <StatusNote wtrl={rider.wtrl} metric="zmap" />
                         </span>
                       </span>
                     ) : (
@@ -238,8 +240,8 @@ export function TeamLineupPlanner({
               <Button
                 type="button"
                 size="icon-xs"
-                variant={selectedIds.has(rider.id) ? "secondary" : "outline"}
-                disabled={pending || selectedIds.has(rider.id)}
+                variant={isSelected(rider) ? "secondary" : "outline"}
+                disabled={pending || isSelected(rider)}
                 onClick={() => add(rider)}
                 aria-label={`${rider.name} toevoegen`}
               >

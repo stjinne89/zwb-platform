@@ -207,3 +207,27 @@ describe("suggestProfileLinks", () => {
     ]);
   });
 });
+
+describe("summarizeWtrlRiders per niveau", () => {
+  it("houdt bij op welk niveau het krap wordt", () => {
+    // Gina: in Womens B past ze ruim, in Womens C zit zMAP 3,90 binnen 5% van 4,1.
+    const gina = { ...rider("7", "Gina"), zftpW: 185, zftpWkg: 3.13, zmapWkg: 3.9 };
+    const summary = summarizeWtrlRiders([
+      { division: "Womens Mint League Division B1", riders: [gina] },
+      { division: "Womens Cobalt League Division C1", riders: [gina] },
+    ]).get("7");
+    expect(summary?.levels).toEqual([
+      { label: "B", zftp: "ok", zmap: "ok" },
+      { label: "C", zftp: "ok", zmap: "danger" },
+    ]);
+    expect(summary?.status).toBe("danger");
+    expect(summary?.levelsVary).toBe(true);
+  });
+
+  it("één niveau op de pagina: geen label nodig", () => {
+    const summary = summarizeWtrlRiders([
+      { division: "Open Aqua League Division B2", riders: [rider("8", "Jos")] },
+    ]).get("8");
+    expect(summary?.levelsVary).toBe(false);
+  });
+});

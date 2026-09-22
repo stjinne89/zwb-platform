@@ -328,27 +328,26 @@ export async function setTeamLineup(
     updated_at: new Date().toISOString(),
   };
 
+  // Eén regel per renner per team (migr. 0184): subteams starten op verschillende
+  // tijden, dus een renner kan in dezelfde raceweek voor twee teams rijden.
   if (rider.kind === "profile") {
-    const { data: previous } = await admin
-      .from("team_event_lineups")
-      .select("team_id")
-      .eq("event_id", eventId)
-      .eq("parent_team_id", parentTeamId)
-      .eq("profile_id", rider.id)
-      .maybeSingle();
     const { error } = await admin
       .from("team_event_lineups")
-      .upsert({ ...values, profile_id: rider.id }, { onConflict: "event_id,parent_team_id,profile_id" });
+      .upsert(
+        { ...values, profile_id: rider.id },
+        { onConflict: "event_id,parent_team_id,team_id,profile_id" },
+      );
     if (error) return { ok: false as const, error: error.message };
-    await syncLineupRsvp(admin, rider.id, eventId, targetTeamId, previous?.team_id ?? null);
+    await syncLineupRsvp(admin, rider.id, eventId, targetTeamId, null);
   } else {
     // Renner zonder account (migr. 0182). De unieke index is gedeeltelijk, dus
-    // geen upsert: eerst kijken of hij al in deze raceweek staat.
+    // geen upsert: eerst kijken of hij al voor dit team in deze raceweek staat.
     const { data: existing, error: readError } = await admin
       .from("team_event_lineups")
       .select("id")
       .eq("event_id", eventId)
       .eq("parent_team_id", parentTeamId)
+      .eq("team_id", targetTeamId)
       .eq("roster_entry_id", rider.id)
       .maybeSingle();
     if (readError) return { ok: false as const, error: readError.message };
@@ -413,8 +412,9 @@ async function raceForLineup(admin: Admin, eventId: string, teamId: string) {
 
 /**
  * Opgesteld is een "ja" op de race van dat team, ook als de renner eerder nee
- * zei (keuze van de eigenaar, 2026-09-22). Verplaatst of weggehaald: de "ja" op
- * de oude race vervalt. Net als bij een eigen ja gaat de race in of uit het
+ * zei (keuze van de eigenaar, 2026-09-22). Weggehaald: de "ja" op die race
+ * vervalt. (Sinds migr. 0184 is een tweede team een extra regel, geen
+ * verplaatsing; oldTeamId komt dan alleen nog van het weghalen.) Net als bij een eigen ja gaat de race in of uit het
  * trainingsschema. Een renner zonder account heeft geen RSVP; die slaat dit over.
  */
 async function syncLineupRsvp(

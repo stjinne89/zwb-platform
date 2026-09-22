@@ -38,11 +38,28 @@ export function zmapText(wtrl: WtrlRiderSummary, unit: PowerUnit) {
   return unit === "wkg" ? fmt(wtrl.zmapWkg, 2) : `${fmt(zmapWatts(wtrl))}w`;
 }
 
-export function StatusNote({ status }: { status: WtrlRiderSummary["zftpStatus"] }) {
-  if (status === "over") return <span className="font-medium text-destructive"> · Te sterk</span>;
-  if (status === "danger") {
-    return <span className="font-medium text-amber-600 dark:text-amber-400"> · Bijna te sterk</span>;
-  }
-  return null;
+/**
+ * "Bijna te sterk" / "Te sterk" voor één waarde, per niveau. Heeft de pagina teams
+ * op meer niveaus (paraplu met B en C), dan staat het niveau erbij.
+ */
+export function StatusNote({ wtrl, metric }: { wtrl: WtrlRiderSummary; metric: "zftp" | "zmap" }) {
+  const levels = wtrl.levels.filter((level) => level[metric] !== "ok");
+  if (levels.length === 0) return null;
+  const withLabel = wtrl.levelsVary;
+  return (
+    <>
+      {levels.map((level) => (
+        <span
+          key={level.label}
+          className={`font-medium ${
+            level[metric] === "over" ? "text-destructive" : "text-amber-600 dark:text-amber-400"
+          }`}
+        >
+          {" · "}
+          {level[metric] === "over" ? "Te sterk" : "Bijna te sterk"}
+          {withLabel ? ` (${level.label})` : ""}
+        </span>
+      ))}
+    </>
+  );
 }
-

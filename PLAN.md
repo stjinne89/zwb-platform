@@ -47,7 +47,34 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0185`.
+
+---
+
+> **Renner in meer subteams per raceweek, en gevarenzone per niveau, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0184_lineup_rider_per_team.sql`.
+>
+> **Waarom.** De eigenaar: subteams starten op verschillende tijden, dus een renner
+> kan in dezelfde raceweek voor twee teams rijden; de selectiemaker liet dat niet
+> toe. En op de paraplu van de Zwiftladies (teams op B- en C-niveau) was niet te zien
+> op welk niveau iemand in de gevarenzone zat.
+>
+> **Nu.**
+> - `team_event_lineups` is uniek per (event, paraplu, team, renner) in plaats van per
+>   (event, paraplu, renner); ook de index voor rosterregels. `claim_roster_entry`,
+>   `link_roster_by_zwift_id` en `convert_zrl_umbrella_races` houden rekening met het
+>   team. `setTeamLineup` voegt voor een tweede team een regel toe in plaats van te
+>   verplaatsen (en zet ja op die tweede race); weghalen haalt alleen de ja op de race
+>   van dat team weg. De plusknop is per gekozen team uitgeschakeld.
+> - `WtrlRiderSummary.levels`: de status per divisie ("B", "C", "B Dev"). "Bijna te
+>   sterk" / "Te sterk" staat per niveau onder de kolom, met het niveau erbij zodra de
+>   pagina teams op meer niveaus heeft (`levelsVary`; paraplu's en `/teams`). Op
+>   productie: Gina van Rossum "(C)" bij zMAP, Bo van Ruth "(B)" bij beide, Arja
+>   Snitselaar "(C)" bij zFTP; bij B: Jos Leijten en Maarten Triebels bij zFTP, Kevin
+>   Plasmans bij zMAP, elk met "(B)".
+>
+> **Niet lokaal te verifiëren:** de migratie. Getest: `tsc`, ESLint, de unit-suite,
+> en de niveaus tegen productiedata (alleen lezen).
 
 ---
 
