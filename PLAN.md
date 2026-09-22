@@ -20,9 +20,8 @@ gaat stabiliteit voor nieuwe features.
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   `0179` t/m `0182` zijn toegepast (2026-09-22). Nog toepassen:
-   `0183_link_roster_by_zwift_id`; daarna op `/beheer/wtrl-teams` de drie
-   koppelvoorstellen (Daan, Michiel, Sanneke) bevestigen.
+   `0178` t/m `0183` zijn toegepast, de WTRL-teams zijn geïmporteerd en de drie
+   koppelvoorstellen bevestigd (2026-09-22).
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -83,8 +82,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 > **Bewust niet gebouwd.** Geen automatische koppeling op naam: twee mensen kunnen
 > dezelfde naam hebben. Pims "Beschikbaar" bij B en zes oude "Niet"-opgaves van
 > niet-leden (Bart bij B en Zwiftladies, Jeroen Janssen bij Zwiftladies W1–W4, van
-> 1–14 september, door `0179` overgezet) zijn niet verwijderd; lijst voorgelegd aan
-> de eigenaar. De "Niet"-regels zijn sinds de fix "Afzeggers" onzichtbaar.
+> 1–14 september, door `0179` overgezet) zijn op verzoek van de eigenaar door hem
+> zelf verwijderd met SQL (2026-09-22); de sessie mocht geen productiedata wijzigen.
 >
 > **Niet lokaal te verifiëren:** de migratie. Getest: `tsc`, ESLint,
 > `wtrl-membership.test.ts` (13), de volledige unit-suite, en de voorstellen tegen
