@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DISCORD_URL_ERROR, isValidDiscordUrl } from "@/lib/discord";
 import { fetchWhatsAppGroupInfo, isChannelUrl, isValidInviteUrl } from "@/lib/whatsapp";
+import { syncEventWorkout } from "@/lib/training/events";
+import { requestReplan } from "@/lib/training/replan";
 
 const ROLES = ["member", "captain", "co-captain"] as const;
 type Role = (typeof ROLES)[number];
@@ -327,10 +329,18 @@ export async function setTeamLineup(
   };
 
   if (rider.kind === "profile") {
+    const { data: previous } = await admin
+      .from("team_event_lineups")
+      .select("team_id")
+      .eq("event_id", eventId)
+      .eq("parent_team_id", parentTeamId)
+      .eq("profile_id", rider.id)
+      .maybeSingle();
     const { error } = await admin
       .from("team_event_lineups")
       .upsert({ ...values, profile_id: rider.id }, { onConflict: "event_id,parent_team_id,profile_id" });
     if (error) return { ok: false as const, error: error.message };
+    await syncLineupRsvp(admin, rider.id, eventId, targetTeamId, previous?.team_id ?? null);
   } else {
     // Renner zonder account (migr. 0182). De unieke index is gedeeltelijk, dus
     // geen upsert: eerst kijken of hij al in deze raceweek staat.
@@ -358,12 +368,95 @@ export async function removeTeamLineup(parentTeamId: string, lineupId: string) {
   if (!guard.ok) return { ok: false as const, error: guard.error };
 
   const admin = createAdminClient();
+  const { data: lineup } = await admin
+    .from("team_event_lineups")
+    .select("event_id, team_id, profile_id")
+    .eq("id", lineupId)
+    .maybeSingle();
   const { error } = await admin
     .from("team_event_lineups")
     .delete()
     .eq("id", lineupId);
   if (error) return { ok: false as const, error: error.message };
+  if (lineup?.profile_id) {
+    await syncLineupRsvp(admin, lineup.profile_id, lineup.event_id, null, lineup.team_id);
+  }
 
   revalidatePath(`/teams/${parentTeamId}`);
   return { ok: true as const };
+}
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+/**
+ * De race van dit team bij deze opstelling. De opstelling staat op de raceweek
+ * (paraplu, migr. 0179) of op de race zelf (team zonder subteams).
+ */
+async function raceForLineup(admin: Admin, eventId: string, teamId: string) {
+  const { data: event } = await admin
+    .from("events")
+    .select("id, team_id, parent_event_id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!event) return null;
+  if (event.team_id === teamId) return event.id as string;
+  const { data: race } = await admin
+    .from("events")
+    .select("id")
+    .eq("parent_event_id", (event.parent_event_id ?? event.id) as string)
+    .eq("team_id", teamId)
+    .order("start_at")
+    .limit(1)
+    .maybeSingle();
+  return (race?.id as string | undefined) ?? null;
+}
+
+/**
+ * Opgesteld is een "ja" op de race van dat team, ook als de renner eerder nee
+ * zei (keuze van de eigenaar, 2026-09-22). Verplaatst of weggehaald: de "ja" op
+ * de oude race vervalt. Net als bij een eigen ja gaat de race in of uit het
+ * trainingsschema. Een renner zonder account heeft geen RSVP; die slaat dit over.
+ */
+async function syncLineupRsvp(
+  admin: Admin,
+  profileId: string,
+  eventId: string,
+  newTeamId: string | null,
+  oldTeamId: string | null,
+) {
+  try {
+    const newRace = newTeamId ? await raceForLineup(admin, eventId, newTeamId) : null;
+    const oldRace =
+      oldTeamId && oldTeamId !== newTeamId ? await raceForLineup(admin, eventId, oldTeamId) : null;
+    let changed = false;
+
+    if (newRace) {
+      await admin.from("event_rsvps").upsert(
+        {
+          event_id: newRace,
+          profile_id: profileId,
+          status: "yes",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "event_id,profile_id" },
+      );
+      const result = await syncEventWorkout(admin, profileId, newRace, "yes");
+      changed ||= result.inserted;
+      revalidatePath(`/events/${newRace}`);
+    }
+    if (oldRace && oldRace !== newRace) {
+      await admin.from("event_rsvps").delete().eq("event_id", oldRace).eq("profile_id", profileId);
+      const result = await syncEventWorkout(admin, profileId, oldRace, "no");
+      changed ||= result.removed;
+      revalidatePath(`/events/${oldRace}`);
+    }
+
+    if (changed) {
+      await requestReplan(admin, profileId, "Opstelling voor een ZRL-race gewijzigd.");
+    }
+    revalidatePath("/kalender");
+    revalidatePath("/zwbeter-worden", "layout");
+  } catch {
+    // De opstelling zelf is opgeslagen; het schema haalt een volgende sync in.
+  }
 }

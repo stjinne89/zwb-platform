@@ -69,13 +69,23 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 > PostgREST "more than one relationship" en blijft de lijst stil leeg (getoetst op
 > productie).
 >
-> **Bewust niet gebouwd.** Opgesteld worden is geen "ja" op de race: het zet niets in
-> het trainingsschema en stuurt geen herinnering (die lopen via RSVP's). Voorgelegd
-> aan de eigenaar.
+> **Opstellen is een ja (zelfde dag, commit hieronder).** Keuze van de eigenaar:
+> opgesteld worden is een "ja" op de race van dat team, ook over een eerdere "nee"
+> heen. `setTeamLineup` zet de RSVP op de race van het doelteam (op de raceweek gezocht
+> via `parent_event_id` + team, of de race zelf bij een team zonder subteams) en zet de
+> race via `syncEventWorkout` in het trainingsschema, met een herplanning als er iets
+> veranderde. Verplaatsen naar een ander subteam of weghalen haalt de RSVP en het
+> blok van de oude race weg. Via `0171` word je daarmee ook lid van dat subteam.
+> Renners zonder account hebben geen RSVP. Geen inhaalslag voor bestaande opstellingen
+> (raceweek 1 was dezelfde avond); het geldt vanaf de volgende wijziging. Staat er nog
+> geen race voor het doelteam, dan gebeurt er niets met de RSVP.
 >
 > **Opgemerkt op productie:** twee paraplu's voor de vrouwen: "ZRL Zwiftladies" (met
 > "ZRL Zwiftladies B" en "ZRL Zwiftladies C") en "ZWB Zwiftladies" (met "Zwiftladies
-> C"). Waarschijnlijk dubbel; voorgelegd aan de eigenaar.
+> C"). "ZRL Zwiftladies" is de echte. "ZWB Zwiftladies" bleek het Club Ladder-team (op
+> het kerkhof, met een actieve ladder-sync, zoals de andere drie ladderteams); alleen
+> "Zwiftladies C" is dubbel en leeg. Advies en SQL aan de eigenaar gegeven: alleen
+> "Zwiftladies C" verwijderen. De sessie mocht zelf niet verwijderen.
 
 ---
 
