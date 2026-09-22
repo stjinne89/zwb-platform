@@ -13,6 +13,7 @@ import {
   ignoreCandidate,
   probeZwiftEventWindow,
   probeZwiftRiderPower,
+  probeZwiftSegmentResults,
   publishCandidate,
   scanExternalEventCandidates,
   testZwiftClubConnection,
@@ -156,6 +157,11 @@ export default async function EventScanPage({ searchParams }: PageProps) {
                 Test eventvenster
               </Button>
             </form>
+            <form action={probeZwiftSegmentResults}>
+              <Button type="submit" variant="outline" size="sm">
+                Test segmentresultaten
+              </Button>
+            </form>
             <form action={probeZwiftRiderPower} className="flex items-center gap-1">
               <input
                 name="zwift_id"
@@ -177,7 +183,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
 
       <IntegrationHealth />
 
-      {(clubStatus === "test" || clubStatus === "follow" || clubStatus === "window" || clubStatus === "power") && scanMessage && (
+      {(clubStatus === "test" || clubStatus === "follow" || clubStatus === "window" || clubStatus === "power" || clubStatus === "segments") && scanMessage && (
         <section className="rounded-lg border bg-card p-4 text-xs text-muted-foreground">
           <pre className="whitespace-pre-wrap break-words font-mono">
             {scanMessage}

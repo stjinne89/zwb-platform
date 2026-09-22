@@ -16,6 +16,12 @@ import {
   type ExternalEventCandidate,
   type ZwiftEventApiRow,
 } from "@/lib/events/external-scan";
+import {
+  decodeSegmentResults,
+  describeProtobuf,
+  parseMessage,
+  type SegmentResult,
+} from "@/lib/zwift/segment-results-pb";
 
 const TOKEN_URL =
   "https://secure.zwift.com/auth/realms/zwift/protocol/openid-connect/token";
@@ -260,6 +266,107 @@ export async function fetchZwiftEvent(eventId: string): Promise<unknown> {
 export async function fetchZwiftRaceResults(eventId: string): Promise<unknown> {
   if (!/^\d+$/.test(eventId)) throw new Error("Ongeldig Zwift-event-ID.");
   return authedJson(`${apiBase()}/race-results/entries?event_id=${eventId}`);
+}
+
+export type SubgroupResult = { profileId: number; rank: number; durationMs: number | null };
+
+/** Finishuitslag van één subgroep, per 50 (het maximum van Zwift). */
+export async function fetchSubgroupResults(subgroupId: string): Promise<SubgroupResult[]> {
+  if (!/^\d+$/.test(subgroupId)) throw new Error("Ongeldig subgroep-ID.");
+  const results: SubgroupResult[] = [];
+  for (let start = 0; start < 1000; start += 50) {
+    const payload = await authedJson(
+      `${apiBase()}/race-results/entries?event_subgroup_id=${subgroupId}&start=${start}&limit=50`,
+    );
+    const rows = (Array.isArray(payload)
+      ? payload
+      : ((payload as { entries?: unknown[] })?.entries ?? [])) as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      const profileId = Number(row.profileId);
+      const rank = Number(row.rank);
+      if (!Number.isFinite(profileId) || !Number.isFinite(rank)) continue;
+      const duration = Number((row.activityData as Record<string, unknown> | undefined)?.durationInMilliseconds);
+      results.push({ profileId, rank, durationMs: Number.isFinite(duration) ? duration : null });
+    }
+    if (rows.length < 50) break;
+  }
+  return results.sort((a, b) => a.rank - b.rank);
+}
+
+/**
+ * Segmentpassages van iedereen in het venster (protobuf). `world_id` is bij Zwift
+ * altijd 1, ook buiten Watopia. Zonder `from` geeft Zwift het laatste uur.
+ */
+export async function fetchSegmentResultsRaw(
+  segmentId: string,
+  options: { from?: number; to?: number; athleteId?: number } = {},
+): Promise<{ status: number; contentType: string; bytes: Uint8Array }> {
+  if (!/^-?\d+$/.test(segmentId)) throw new Error("Ongeldig segment-ID.");
+  const query = new URLSearchParams({ world_id: "1", segment_id: segmentId });
+  if (options.athleteId) query.set("player_id", String(options.athleteId));
+  if (options.from) query.set("from", new Date(options.from).toISOString());
+  if (options.to) query.set("to", new Date(options.to).toISOString());
+  const token = await fetchToken();
+  const response = await safeFetch(`${apiBase()}/segment-results?${query}`, {
+    cache: "no-store",
+    headers: {
+      ...ZWIFT_DEFAULT_HEADERS,
+      accept: "application/x-protobuf-lite",
+      "Zwift-Api-Version": ZWIFT_API_VERSION,
+      authorization: `Bearer ${token}`,
+    },
+  });
+  return {
+    status: response.status,
+    contentType: response.headers.get("content-type") ?? "",
+    bytes: new Uint8Array(await response.arrayBuffer()),
+  };
+}
+
+export async function fetchSegmentResults(
+  segmentId: string,
+  options: { from?: number; to?: number; athleteId?: number } = {},
+): Promise<SegmentResult[]> {
+  const { status, bytes } = await fetchSegmentResultsRaw(segmentId, options);
+  if (status !== 200) throw new Error(`Zwift-API gaf status ${status} voor segment ${segmentId}.`);
+  return decodeSegmentResults(bytes);
+}
+
+/** Monceau Sprint (Parijs): druk bereden, en gebruikt in de meting van 2026-09-22. */
+const PROBE_SEGMENT_ID = "1059797545";
+
+/**
+ * Diagnose voor het live ZRL-dashboard: mag het serviceaccount segmentresultaten
+ * lezen, en klopt de veldindeling? Toont het ruwe eerste resultaat naast de
+ * gedecodeerde waarden.
+ */
+export async function probeSegmentResults(): Promise<string> {
+  const from = Date.now() - 60 * 60 * 1000;
+  const { status, contentType, bytes } = await fetchSegmentResultsRaw(PROBE_SEGMENT_ID, { from });
+  const lines = [`Status ${status}, ${contentType || "geen content-type"}, ${bytes.length} bytes.`];
+  if (status !== 200) {
+    lines.push(new TextDecoder().decode(bytes.subarray(0, 300)));
+    return lines.join("\n");
+  }
+  let results: SegmentResult[];
+  try {
+    results = decodeSegmentResults(bytes);
+  } catch (error) {
+    lines.push(`Decoderen mislukt: ${error instanceof Error ? error.message : "onbekend"}.`);
+    return lines.join("\n");
+  }
+  const riders = new Set(results.map((result) => result.athleteId)).size;
+  const withSubgroup = results.filter((result) => result.eventSubgroupId).length;
+  lines.push(`${results.length} passages van ${riders} renners in het laatste uur; ${withSubgroup} met een eventsubgroep.`);
+  const first = results[0];
+  if (first) {
+    lines.push(
+      `Eerste: renner ${first.athleteId}, ${new Date(first.ts).toISOString()}, ${first.elapsed} s, ${first.avgPower ?? "?"} W, segment ${first.segmentId}.`,
+    );
+    const raw = parseMessage(bytes).get(4)?.[0]?.bytes;
+    if (raw) lines.push("Ruwe velden:", ...describeProtobuf(raw).map((line) => `  ${line}`));
+  }
+  return lines.join("\n");
 }
 
 /**

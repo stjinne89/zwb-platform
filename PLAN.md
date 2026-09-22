@@ -21,7 +21,10 @@ gaat stabiliteit voor nieuwe features.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
    `0178` t/m `0183` zijn toegepast, de WTRL-teams zijn geïmporteerd en de drie
-   koppelvoorstellen bevestigd (2026-09-22).
+   koppelvoorstellen bevestigd (2026-09-22). Voor de live ZRL-stand: na de deploy
+   één keer "Test segmentresultaten" op `/beheer/event-scan` (bewijst of het
+   serviceaccount Zwifts segmentresultaten mag lezen, en of de protobufvelden
+   kloppen), en `0187_zrl_team_assignments` toepassen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -47,7 +50,54 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0187`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`.
+
+---
+
+> **Live ZRL-stand met WTRL-puntentelling, 2026-09-22 — gebouwd, lokaal getest, niet tegen Zwift gedraaid.**
+> Migratie `0187_zrl_team_assignments.sql` (nog niet toegepast). Onderzoek en
+> proefmeting: [live-zrl-dashboard](docs/live-zrl-dashboard.md).
+>
+> **Waarom.** Vraag van de eigenaar: een ZRL-race live volgen met de WTRL-punten
+> (FAL, FTS, FIN, podium) als dashboard voor ploegleiders en supporters. Codex
+> begon, liep op de tijdslimiet; Claude nam het over en mat de echte race van
+> vandaag (Zwift-event `5711259`, Open Topaz Div 1) via Sauce for Zwift op een
+> tweede computer. Uitkomst: Zwifts segmentresultaten geven de passages van
+> iedereen, niet alleen van renners in de buurt — 559 van 560 passages tijdens de
+> race, mediaan 9 s vertraging. Keuzes van de eigenaar: het platform haalt zelf op
+> met het bestaande serviceaccount (geen computer die aan moet staan), en teams
+> van tegenstanders komen uit de naamtag met handmatige bijstelling.
+>
+> **Nu.**
+> - `/live/zrl/[eventId]` (publiek, ververst elke 15 s): teamklassement, onze
+>   renners (FAL · FTS · FIN), laatste passages per segment, alle renners.
+>   "Voorlopig" tot er een uitslag is en 15 min niets meer binnenkomt; daarna een
+>   link naar de WTRL-uitslag. Knop "Live stand" in de Raceinfo van een
+>   ZRL-teamevent met Zwift-event.
+> - `src/lib/zrl-live/scoring.ts` (puur): WTRL-regels; passages vóór de start en
+>   na de eigen finish tellen niet; DNF-punten vervallen zonder doorschuiven.
+> - `src/lib/zrl-live/snapshot.ts`: Zwift-kant 15 s gecachet per Zwift-event,
+>   niets opgeslagen. Onze subgroep is die met de meeste van onze Zwift-ID's.
+> - `src/lib/zwift/segment-results-pb.ts`: protobuf-decoder zonder dependency.
+> - `src/lib/zwift/route-segments.json`: segmenten per route met Zwift-ID's (313
+>   routes), eenmalig uit Sauce geëxporteerd; `zwift-data` heeft die ID's niet.
+> - "Test segmentresultaten" op `/beheer/event-scan`.
+> - Teambijstelling ("Teams bijstellen", recht `teams.manage_results`), per
+>   seizoen + league + divisie + subgroep, dus één keer per ronde.
+>
+> **Bewust niet gebouwd.** Geen live kaart of posities van het veld: een camera
+> (Sauce, Fan View) ziet alleen renners in de buurt, en Fan View viel na 10–30 s
+> terug. Geen WTRL-uitslagen ophalen (hun voorwaarden); we rekenen zelf met hun
+> regels en linken naar hun uitslag. Geen Sauce-verzamelprogramma: de eigenaar koos
+> ophalen door de server; blijft de terugvaloptie als Zwift weigert. Geen opslag
+> van passages en geen leaguepunten (de regel voor 3 of minder starters).
+>
+> **Niet lokaal te verifiëren.** Geen `.env.local` hier: de snapshot, de pagina en
+> de testknop zijn nooit tegen Zwift of Supabase gedraaid, de pagina is niet in de
+> browser bekeken. De protobuf-veldnummers komen van Sauce/zwift-offline. Wel
+> gedraaid: de puntentelling op de volledige log van de proefmeting, unit-tests
+> (15), `tsc` en ESLint. Niet vergeleken met de WTRL-uitslag (nog niet online).
+> Uitleg op `/hulp` is nog niet geschreven.
 
 ---
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Gauge } from "lucide-react";
+import { ArrowUpRight, Gauge, Trophy } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { linkLogo, type RaceLink } from "@/lib/events/race-links";
@@ -59,19 +59,22 @@ export function RaceLinkChips({
  */
 export function RaceInfoCard({
   pacingHref,
+  liveHref,
   racepasses,
   signupUrl,
   zwiftLinks,
   links,
 }: {
   pacingHref: string | null;
+  /** ZRL: de live puntenstand. */
+  liveHref: string | null;
   /** ZRL: de WTRL-racepass(es) waarmee je je aanmeldt. */
   racepasses: RaceLink[];
   signupUrl: string | null;
   zwiftLinks: RaceLink[];
   links: RaceLink[];
 }) {
-  const hasActions = Boolean(pacingHref || signupUrl || racepasses.length > 0);
+  const hasActions = Boolean(pacingHref || liveHref || signupUrl || racepasses.length > 0);
   if (!hasActions && zwiftLinks.length === 0 && links.length === 0) {
     return null;
   }
@@ -104,6 +107,12 @@ export function RaceInfoCard({
             >
               <Gauge className="size-3.5" />
               Pacingplan
+            </Link>
+          )}
+          {liveHref && (
+            <Link href={liveHref} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+              <Trophy className="size-3.5" />
+              Live stand
             </Link>
           )}
           {signupUrl && (

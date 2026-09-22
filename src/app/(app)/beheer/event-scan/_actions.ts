@@ -10,6 +10,7 @@ import {
   diagnoseZwiftClub,
   followZwbMembers,
   probeRiderPower,
+  probeSegmentResults,
   zwiftClubConfigured,
 } from "@/lib/events/zwift-club";
 import { probeEventWindow } from "@/lib/zwift/event-cache";
@@ -188,6 +189,24 @@ export async function probeZwiftRiderPower(formData: FormData) {
     params.set(
       "message",
       error instanceof Error ? `zFTP testen mislukt: ${error.message}` : "zFTP testen mislukt.",
+    );
+  }
+  redirect(`/beheer/event-scan?${params.toString()}`);
+}
+
+export async function probeZwiftSegmentResults() {
+  const access = await requireEventScanAccess();
+  if (!access) return;
+  const params = new URLSearchParams();
+  params.set("club", "segments");
+  try {
+    params.set("message", await probeSegmentResults());
+  } catch (error) {
+    params.set(
+      "message",
+      error instanceof Error
+        ? `Segmentresultaten testen mislukt: ${error.message}`
+        : "Segmentresultaten testen mislukt.",
     );
   }
   redirect(`/beheer/event-scan?${params.toString()}`);

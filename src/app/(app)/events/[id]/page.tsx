@@ -975,6 +975,7 @@ export default async function EventDetailPage({
 
       <RaceInfoCard
         pacingHref={pacingHref}
+        liveHref={event.type === "zrl" && event.team_id && event.zwift_event_id ? `/live/zrl/${event.id}` : null}
         racepasses={ownRacepasses}
         signupUrl={event.type === "zrl" ? null : zwiftSignupUrl}
         zwiftLinks={derivedZwiftLinks(event.zwift_event_id)}
