@@ -6,6 +6,8 @@ import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
 import type { WtrlRiderSummary } from "@/lib/teams/wtrl-roster";
+import { PowerUnitToggle, usePowerUnit } from "@/components/power-unit";
+import type { PowerUnit } from "@/lib/training/power-unit";
 
 export type TeamOption = {
   id: string;
@@ -106,6 +108,7 @@ export function TeamRosterTable({
   const [riderType, setRiderType] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const { unit } = usePowerUnit();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -121,9 +124,9 @@ export function TeamRosterTable({
       if (riderType && type !== riderType) return false;
       return true;
     });
-    result.sort((a, b) => compareRows(a, b, sortKey, sortDirection));
+    result.sort((a, b) => compareRows(a, b, sortKey, sortDirection, unit));
     return result;
-  }, [rows, query, teamId, category, riderType, sortKey, sortDirection]);
+  }, [rows, query, teamId, category, riderType, sortKey, sortDirection, unit]);
 
   const hasFilters = Boolean(query || teamId || category || riderType);
 
@@ -136,6 +139,8 @@ export function TeamRosterTable({
             {filtered.length} van {rows.length} renners zichtbaar
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <PowerUnitToggle />
         {hasFilters && (
           <Button
             type="button"
@@ -152,6 +157,7 @@ export function TeamRosterTable({
             Wissen
           </Button>
         )}
+        </div>
       </header>
 
       <div className="grid gap-2 rounded-md border bg-background p-2 text-sm md:grid-cols-[1.4fr_1fr_0.7fr_1fr]">
@@ -246,19 +252,14 @@ export function TeamRosterTable({
                 ).map(([label, watts, wkg]) => (
                   <div key={label} className="flex items-baseline justify-between gap-2">
                     <dt className="text-muted-foreground">{label}</dt>
-                    <dd className="tabular-nums">
-                      {watts ? `${Math.round(watts)}w` : "-"}
-                      {wkg ? (
-                        <span className="text-muted-foreground"> · {fmt(wkg, 2)}</span>
-                      ) : null}
-                    </dd>
+                    <dd className="tabular-nums">{powerText(watts, wkg, unit)}</dd>
                   </div>
                 ))}
                 {row.wtrl && (
                   <div className="col-span-2 flex items-baseline justify-between gap-2">
                     <dt className="text-muted-foreground">WTRL</dt>
                     <dd className="tabular-nums">
-                      <WtrlSummary wtrl={row.wtrl} inline />
+                      <WtrlSummary wtrl={row.wtrl} unit={unit} inline />
                     </dd>
                   </div>
                 )}
@@ -333,16 +334,16 @@ export function TeamRosterTable({
                   <td className="py-2 pr-3 align-top">
                     {riderTypeLabel(power?.riderType)}
                   </td>
-                  <PowerCell watts={power?.watts15s} wkg={power?.wkg15s} />
-                  <PowerCell watts={power?.watts30s} wkg={power?.wkg30s} />
-                  <PowerCell watts={power?.watts1m} wkg={power?.wkg1m} />
-                  <PowerCell watts={power?.watts2m} wkg={power?.wkg2m} />
-                  <PowerCell watts={power?.watts5m} wkg={power?.wkg5m} />
-                  <PowerCell watts={power?.watts10m} wkg={power?.wkg10m} />
-                  <PowerCell watts={power?.watts20m} wkg={power?.wkg20m} />
-                  <PowerCell watts={power?.ftpWatts ?? row.ftpWatts} wkg={power?.ftpWkg} />
+                  <PowerCell unit={unit} watts={power?.watts15s} wkg={power?.wkg15s} />
+                  <PowerCell unit={unit} watts={power?.watts30s} wkg={power?.wkg30s} />
+                  <PowerCell unit={unit} watts={power?.watts1m} wkg={power?.wkg1m} />
+                  <PowerCell unit={unit} watts={power?.watts2m} wkg={power?.wkg2m} />
+                  <PowerCell unit={unit} watts={power?.watts5m} wkg={power?.wkg5m} />
+                  <PowerCell unit={unit} watts={power?.watts10m} wkg={power?.wkg10m} />
+                  <PowerCell unit={unit} watts={power?.watts20m} wkg={power?.wkg20m} />
+                  <PowerCell unit={unit} watts={power?.ftpWatts ?? row.ftpWatts} wkg={power?.ftpWkg} />
                   <td className="py-2 pr-3 align-top tabular-nums">
-                    {row.wtrl ? <WtrlSummary wtrl={row.wtrl} /> : <span className="text-muted-foreground">-</span>}
+                    {row.wtrl ? <WtrlSummary wtrl={row.wtrl} unit={unit} /> : <span className="text-muted-foreground">-</span>}
                   </td>
                   <td className="py-2 pr-3 align-top">
                     <div className="tabular-nums">{row.zrlStarts} starts</div>
@@ -425,11 +426,27 @@ function RiderName({ row }: { row: TeamRosterRow }) {
   );
 }
 
-function WtrlSummary({ wtrl, inline = false }: { wtrl: WtrlRiderSummary; inline?: boolean }) {
+/** zMAP in watt via het gewicht dat uit zFTP W en zFTP W/kg volgt. */
+function zmapWatts(wtrl: WtrlRiderSummary) {
+  if (wtrl.zmapWkg == null || !wtrl.zftpW || !wtrl.zftpWkg) return null;
+  return (wtrl.zmapWkg * wtrl.zftpW) / wtrl.zftpWkg;
+}
+
+function WtrlSummary({
+  wtrl,
+  unit,
+  inline = false,
+}: {
+  wtrl: WtrlRiderSummary;
+  unit: PowerUnit;
+  inline?: boolean;
+}) {
   const values = (
     <>
       {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
-      {fmt(wtrl.zftpW)}w · {fmt(wtrl.zftpWkg, 2)} · {fmt(wtrl.zmapWkg, 2)}
+      {unit === "wkg"
+        ? `${fmt(wtrl.zftpWkg, 2)} · ${fmt(wtrl.zmapWkg, 2)}`
+        : `${fmt(wtrl.zftpW)}w · ${fmt(zmapWatts(wtrl))}w`}
     </>
   );
   const advice = (
@@ -453,19 +470,25 @@ function WtrlSummary({ wtrl, inline = false }: { wtrl: WtrlRiderSummary; inline?
   );
 }
 
+function powerText(
+  watts: number | null | undefined,
+  wkg: number | null | undefined,
+  unit: PowerUnit,
+) {
+  if (unit === "wkg") return wkg ? fmt(wkg, 2) : "-";
+  return watts ? `${fmt(watts)}w` : "-";
+}
+
 function PowerCell({
   watts,
   wkg,
+  unit,
 }: {
   watts: number | null | undefined;
   wkg: number | null | undefined;
+  unit: PowerUnit;
 }) {
-  return (
-    <td className="py-2 pr-3 align-top tabular-nums">
-      <div>{fmt(watts)}w</div>
-      <div className="text-xs text-muted-foreground">{fmt(wkg, 2)} w/kg</div>
-    </td>
-  );
+  return <td className="py-2 pr-3 align-top tabular-nums">{powerText(watts, wkg, unit)}</td>;
 }
 
 function defaultSortDirection(key: SortKey): SortDirection {
@@ -477,10 +500,11 @@ function compareRows(
   b: TeamRosterRow,
   key: SortKey,
   direction: SortDirection,
+  unit: PowerUnit,
 ) {
   const dir = direction === "asc" ? 1 : -1;
-  const av = sortValue(a, key);
-  const bv = sortValue(b, key);
+  const av = sortValue(a, key, unit);
+  const bv = sortValue(b, key, unit);
 
   if (typeof av === "number" && typeof bv === "number") {
     if (av === bv) return a.name.localeCompare(b.name, "nl");
@@ -492,7 +516,9 @@ function compareRows(
   return String(av).localeCompare(String(bv), "nl") * dir;
 }
 
-function sortValue(row: TeamRosterRow, key: SortKey): string | number {
+function sortValue(row: TeamRosterRow, key: SortKey, unit: PowerUnit): string | number {
+  const pick = (watts: number | null | undefined, wkg: number | null | undefined) =>
+    (unit === "wkg" ? wkg : watts) ?? Number.NEGATIVE_INFINITY;
   switch (key) {
     case "name":
       return row.name;
@@ -501,23 +527,23 @@ function sortValue(row: TeamRosterRow, key: SortKey): string | number {
     case "profile":
       return riderTypeLabel(row.power?.riderType);
     case "15s":
-      return row.power?.watts15s ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts15s, row.power?.wkg15s);
     case "30s":
-      return row.power?.watts30s ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts30s, row.power?.wkg30s);
     case "1m":
-      return row.power?.watts1m ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts1m, row.power?.wkg1m);
     case "2m":
-      return row.power?.watts2m ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts2m, row.power?.wkg2m);
     case "5m":
-      return row.power?.watts5m ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts5m, row.power?.wkg5m);
     case "10m":
-      return row.power?.watts10m ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts10m, row.power?.wkg10m);
     case "20m":
-      return row.power?.watts20m ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.watts20m, row.power?.wkg20m);
     case "ftp":
-      return row.power?.ftpWatts ?? row.ftpWatts ?? Number.NEGATIVE_INFINITY;
+      return pick(row.power?.ftpWatts ?? row.ftpWatts, row.power?.ftpWkg);
     case "zftp":
-      return row.wtrl?.zftpWkg ?? Number.NEGATIVE_INFINITY;
+      return pick(row.wtrl?.zftpW, row.wtrl?.zftpWkg);
     case "zrl":
       return row.zrlStarts;
   }

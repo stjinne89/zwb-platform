@@ -20,8 +20,7 @@ gaat stabiliteit voor nieuwe features.
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   `0180_wtrl_rosters`, `0181_wtrl_team_membership` en
-   `0182_lineup_roster_entries` toepassen en op `/beheer/wtrl-teams` de
+   `0179` t/m `0182` zijn toegepast (2026-09-22); op `/beheer/wtrl-teams` de
    WTRL-teams plakken en koppelen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
@@ -49,6 +48,24 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0183`.
+
+---
+
+> **Watt/W/kg-keuze bij teams, 2026-09-22 — gebouwd, lokaal getest.**
+> Geen migratie.
+>
+> **Waarom.** De eigenaar: de teamtabellen toonden overal watt én W/kg (ook bij zFTP
+> en zMAP), dat is te veel. Dezelfde keuze als bij ZWBeter Worden.
+>
+> **Nu.** `teams/layout.tsx` zet de `PowerUnitProvider` (cookie `zwb-power-unit`,
+> dezelfde als ZWBeter Worden) om alle teampagina's. De schakelaar staat boven de
+> rennerslijst. Rostertabel (teampagina en `/teams`) en opstellingsplanner tonen één
+> eenheid; sorteren volgt de gekozen eenheid. zMAP in watt is teruggerekend via het
+> gewicht dat uit zFTP W en zFTP W/kg volgt (WTRL geeft zMAP alleen in W/kg).
+> De planner toont FTP nu in de gekozen eenheid in plaats van altijd W/kg.
+>
+> **Niet lokaal te verifiëren:** weergave tegen echte data. Getest: `tsc`, ESLint,
+> de volledige unit-suite.
 
 ---
 

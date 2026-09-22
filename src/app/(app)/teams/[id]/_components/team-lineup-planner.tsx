@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
+import { usePowerUnit } from "@/components/power-unit";
 import { removeTeamLineup, setTeamLineup } from "../_actions";
 
 export type PlannerTeam = {
@@ -18,9 +19,12 @@ export type PlannerRider = {
   category: string | null;
   availability: "available" | "maybe" | "unavailable" | null;
   riderType: string | null;
+  ftpWatts: number | null;
   ftpWkg: number | null;
   watts5m: number | null;
   watts20m: number | null;
+  wkg5m: number | null;
+  wkg20m: number | null;
   zrlStarts: number;
   bestPosition: number | null;
   /** Rosternaam zonder account: `id` is dan de rosternaam. */
@@ -59,6 +63,9 @@ export function TeamLineupPlanner({
   lineups: PlannerLineup[];
 }) {
   const [targetTeamId, setTargetTeamId] = useState(teams[0]?.id ?? "");
+  const { unit } = usePowerUnit();
+  const power = (watts: number | null, wkg: number | null) =>
+    unit === "wkg" ? fmt(wkg, 2) : watts == null ? "-" : `${fmt(watts)}w`;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const selectedIds = new Set(lineups.map((lineup) => lineup.riderId));
@@ -161,13 +168,13 @@ export function TeamLineupPlanner({
             hideOnCard: true,
             cell: (rider) => availabilityLabel(rider.availability),
           },
-          { key: "w5m", header: "5m", align: "right", cell: (rider) => `${fmt(rider.watts5m)}w` },
-          { key: "w20m", header: "20m", align: "right", cell: (rider) => `${fmt(rider.watts20m)}w` },
+          { key: "w5m", header: "5m", align: "right", cell: (rider) => power(rider.watts5m, rider.wkg5m) },
+          { key: "w20m", header: "20m", align: "right", cell: (rider) => power(rider.watts20m, rider.wkg20m) },
           {
-            key: "ftpwkg",
-            header: "FTP/kg",
+            key: "ftp",
+            header: "FTP",
             align: "right",
-            cell: (rider) => fmt(rider.ftpWkg, 2),
+            cell: (rider) => power(rider.ftpWatts, rider.ftpWkg),
           },
           {
             key: "zrl",
