@@ -50,7 +50,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0180`
 ---
 
 > **ZRL: hoofdteams rijden geen races meer, 2026-09-22 — gebouwd, lokaal getest.**
-> Migratie `0179_zrl_parent_team_events.sql`. Vervolg op de hoofdevents hieronder.
+> Implementatiecommit `8c06cd4`, migratie `0179_zrl_parent_team_events.sql`. Vervolg op de hoofdevents hieronder.
 >
 > **Waarom.** De eigenaar: een hoofdteam met subteams (B met B1/B2, de Zwiftladies)
 > kan zelf niet starten in een wedstrijd, maar is wel de plek waar het team wordt
