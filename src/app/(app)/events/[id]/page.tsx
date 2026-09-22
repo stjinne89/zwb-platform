@@ -270,7 +270,9 @@ export default async function EventDetailPage({
         row.status as TeamAvailabilityStatus,
       ]),
     );
-    umbrellaSignups = (mine.length > 0 ? mine : umbrellas).map((row) => ({
+    // Alleen je eigen paraplu's. Wie in geen enkele zit (zoals een A-renner als A
+    // geen subteams heeft), meldt zich aan bij zijn eigen race.
+    umbrellaSignups = mine.map((row) => ({
       id: row.id,
       name: row.name,
       current: statusByTeam.get(row.id) ?? null,

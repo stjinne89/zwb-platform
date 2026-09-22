@@ -343,8 +343,15 @@ export default async function TeamDetailPage({
       : Promise.resolve({ data: [] }),
   ]);
 
+  // Niet-leden die zich beschikbaar (of misschien) meldden, staan erbij zodat de
+  // captain ze kan indelen. "Niet beschikbaar" maakt je geen renner van dit team;
+  // dat zette tot 2026-09-22 ook wie afzegde in de lijst.
   const availabilityProfileIds = Array.from(
-    new Set(((availabilityRows ?? []) as AvailabilityRow[]).map((row) => row.profile_id)),
+    new Set(
+      ((availabilityRows ?? []) as AvailabilityRow[])
+        .filter((row) => row.status !== "unavailable")
+        .map((row) => row.profile_id),
+    ),
   );
   const missingAvailabilityProfileIds = availabilityProfileIds.filter(
     (profileId) => !profileIds.includes(profileId),

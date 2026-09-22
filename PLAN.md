@@ -51,6 +51,28 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 
 ---
 
+> **Afzeggers verschenen als renner bij teams, 2026-09-22 — gefixt, lokaal getest.**
+> Geen migratie.
+>
+> **Melding van de eigenaar:** Bart, Pim en Jeroen stonden bij teams waar ze geen
+> lid van zijn. Twee oorzaken. (1) De teampagina zette iedereen met een
+> beschikbaarheidsopgave voor het team in de rennerslijst, ook bij "Niet" (van vóór
+> `0171`, toen beschikbaar melden je nog geen lid maakte). (2) De raceweekpagina
+> (ronde "ZRL: hoofdteams zijn paraplu's") toonde wie in geen enkele paraplu zit de
+> knoppen van álle paraplu's; A-renners zagen zo B en de Zwiftladies en klikten
+> "Niet". Daarnaast zette `0179` een "nee" op een race van een hoofdteam om in "niet
+> beschikbaar" bij dat hoofdteam.
+>
+> **Nu.** Niet-leden staan alleen in de rennerslijst bij "beschikbaar" of
+> "misschien". De raceweekpagina toont alleen je eigen paraplu's; wie in geen enkele
+> zit, meldt zich aan op de race van zijn eigen team. De opgaves zelf blijven staan.
+>
+> **Niet opgelost door deze fix:** wie via die knoppen op "Beschikbaar" klikte, is
+> via `0171` echt lid geworden van dat hoofdteam (herkomst `event_availability`). Die
+> haalt een captain of beheerder met de hand weg; de seed-override houdt hem eruit.
+
+---
+
 > **WTRL-import deelt renners in, 2026-09-22 — gebouwd, lokaal getest.**
 > Implementatiecommit `e24c5ce`, migratie `0181_wtrl_team_membership.sql`. Vervolg op de WTRL-teams hieronder.
 >
@@ -155,8 +177,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 > **Nu.**
 > - **Aanmelden** bij een paraplu gebeurt op het hoofdevent van de raceweek
 >   (beschikbaarheid met `team_id` = paraplu). Kan op de teampagina en op de
->   raceweekpagina zelf ("Ben jij erbij?" per paraplu: die van jou, of alle als je
->   er in geen zit). Een raceweek heeft geen RSVP. Aanmelden maakt je via `0171`
+>   raceweekpagina zelf ("Ben jij erbij?" per paraplu, alleen die van jou; tot de
+>   fix "Afzeggers verschenen als renner" ook alle als je er in geen zat). Een
+>   raceweek heeft geen RSVP. Aanmelden maakt je via `0171`
 >   lid van de paraplu, zoals eerst.
 > - **Teampagina** van een paraplu (en van zijn subteams): de komende zes raceweken,
 >   ook als er nog geen subteamrace onder hangt, met de races van de subteams als
