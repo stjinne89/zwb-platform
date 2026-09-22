@@ -164,12 +164,29 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > Welke databron de B-renners niet kende, is niet nagegaan (geen databasetoegang
 > hier).
 >
-> **Oude data uit de cache.** Na die deploy bleef de pagina "bijgewerkt 15:58:53"
-> tonen, van vóór de push: Netlify bewaart de `unstable_cache` over deploys heen,
-> en het verversen op de achtergrond mislukte kennelijk stil (oorzaak niet te zien
-> zonder Netlify-logs). Nu een versie in de cachesleutel, en is de gecachete data
-> ouder dan een minuut, dan haalt de snapshot direct bij Zwift op, zodat een fout
-> als fout in beeld komt in plaats van als stille oude stand.
+> **Oude data uit de cache.** Na die deploy bleef de pagina ruim tien minuten
+> "bijgewerkt 15:58:53" tonen, van vóór de push; daarna ververste het vanzelf
+> (melding eigenaar). Netlify bewaart de `unstable_cache` over deploys heen en
+> ververst op de achtergrond, kennelijk soms traag. Toch ingebouwd: een versie in
+> de cachesleutel, en is de gecachete data ouder dan een minuut, dan haalt de
+> snapshot direct bij Zwift op (commit `852ad6e`).
+>
+> **Sauce-overlay (mod `sauce-mod/zwb-zrl-live`).** Vraag van de eigenaar, na de
+> verkenning (optie 1: de mod toont, het platform rekent). De mod volgt de renner
+> in beeld (`athlete/watching`), leidt uit diens subgroep het Zwift-event af
+> (`common.getEventSubgroup`) en haalt elke 15 s
+> `GET /api/live/zrl/[zwiftEventId]/[subgroupId]` op: teamklassement (ons team in
+> amber, het team van de renner in beeld in blauw), de punten van de renner in beeld
+> en de top 3 van het laatste segment. Het endpoint werkt alleen voor Zwift-events
+> die aan een ZWB-ZRL-event hangen (anders laat iedereen het serviceaccount
+> willekeurige events ophalen), rekent voor de gevraagde subgroep, en stuurt CORS
+> `*` omdat de mod op de lokale Sauce-webserver draait; de gegevens zijn dezelfde
+> als op de publieke pagina. Opgezet naar het voorbeeld van de Club Ladder Live-mod
+> op de Sauce-computer van de eigenaar. **Getest:** alleen lokaal, met een
+> nagebootste `common.mjs` en een API-antwoord uit de echte puntentelling op de
+> meetdata van 22 september; niet in Sauce zelf en niet tegen het echte endpoint
+> (dat moet eerst gedeployd). **Bewust niet:** zelf rekenen in de mod (optie 2),
+> instellingen in de mod, een mod-store-publicatie.
 >
 > **Teamnaam.** Een team kreeg de spelling van de eerste renner ("foudre" naast
 > "Foudre"). Nu wint de vaakst getypte spelling, bij gelijkspel een met

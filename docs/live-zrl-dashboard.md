@@ -202,3 +202,16 @@ event, niet uit het formulier.
   door de server. Blijft de terugvaloptie als Zwift de server weigert.
 - **Geen opslag van passages** tijdens de race: onnodig zolang de cache volstaat.
   Pas nodig als we achteraf willen terugkijken, en dat is niet gevraagd.
+
+## Sauce-overlay
+
+Mod in `sauce-mod/zwb-zrl-live` (installatie in de README daar). De mod rekent
+niet zelf: hij volgt de renner in beeld, vraagt Sauce welk Zwift-event bij diens
+subgroep hoort en haalt de stand op bij
+`/api/live/zrl/[zwiftEventId]/[subgroupId]`. Zo blijven de puntentelling, de
+routetabel en de teambijstelling op één plek. Het endpoint werkt alleen voor
+Zwift-events die aan een ZWB-ZRL-event hangen.
+
+Afgewogen en niet gekozen: de mod zelf laten rekenen via de Sauce-RPC's
+(onafhankelijk van de server, maar dubbele logica en geen teambijstelling), en de
+publieke pagina in een iframe (onze `frame-ancestors 'none'` verbiedt dat).

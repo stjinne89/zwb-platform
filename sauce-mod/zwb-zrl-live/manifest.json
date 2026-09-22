@@ -1,0 +1,27 @@
+{
+  "manifest_version": 1,
+  "id": "zwb-zrl-live",
+  "name": "ZWB ZRL Live",
+  "description": "Live WTRL-puntenstand van de ZRL-race die je bekijkt, van het ZWB-platform",
+  "author": "ZWB Cycling",
+  "website_url": "https://zwb-platform.netlify.app",
+  "version": "0.1.0",
+  "web_root": "pages",
+  "windows": [
+    {
+      "file": "pages/zrl-live.html",
+      "id": "zwb-zrl-live",
+      "name": "ZWB ZRL Live",
+      "description": "Teamklassement en punten van de renner in beeld",
+      "always_visible": true,
+      "overlay": true,
+      "frame": false,
+      "default_bounds": {
+        "width": 320,
+        "height": 440,
+        "x": -340,
+        "y": 80
+      }
+    }
+  ]
+}

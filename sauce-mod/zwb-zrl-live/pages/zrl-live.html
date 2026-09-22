@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <title>ZWB ZRL Live</title>
+    <script src="src/zrl-live.mjs" type="module"></script>
+    <style>
+      :root {
+        --bg: rgba(12, 18, 22, 0.78);
+        --line: rgba(255, 255, 255, 0.12);
+        --muted: rgba(255, 255, 255, 0.6);
+        --text: #fff;
+        --own: #f5b301;
+        --watch: #4fc3f7;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--text);
+        font: 13px/1.35 system-ui, "Segoe UI", Helvetica, sans-serif;
+        overflow: hidden;
+      }
+      main {
+        margin: 6px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: var(--bg);
+        -webkit-app-region: drag;
+      }
+      header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+      h1 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+      .muted { color: var(--muted); font-size: 11px; }
+      h2 {
+        margin: 8px 0 2px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      ol { list-style: none; margin: 0; padding: 0; }
+      li {
+        display: flex;
+        gap: 6px;
+        padding: 2px 0;
+        border-top: 1px solid var(--line);
+        font-variant-numeric: tabular-nums;
+      }
+      li:first-child { border-top: 0; }
+      .rank { width: 18px; color: var(--muted); }
+      .name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .pts { min-width: 34px; text-align: right; }
+      .own { color: var(--own); font-weight: 700; }
+      .watch { color: var(--watch); font-weight: 700; }
+      .rider { display: flex; justify-content: space-between; gap: 8px; }
+      .empty { padding: 10px 0; color: var(--muted); text-align: center; }
+    </style>
+  </head>
+  <body>
+    <main id="app"><p class="empty">ZWB ZRL Live</p></main>
+  </body>
+</html>

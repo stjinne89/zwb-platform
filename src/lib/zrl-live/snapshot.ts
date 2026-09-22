@@ -203,7 +203,11 @@ export function pickSubgroup<T extends { entrants: Array<{ zwiftId: string; name
   return [...occupied].sort((a, b) => score(b) - score(a))[0];
 }
 
-export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
+export async function loadZrlLive(
+  eventId: string,
+  /** Vaste Zwift-subgroep (de Sauce-overlay volgt de renner in beeld). */
+  options: { subgroupId?: string } = {},
+): Promise<ZrlLiveOutcome> {
   const admin = createAdminClient();
   const { data: event } = await admin
     .from("events")
@@ -228,8 +232,10 @@ export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
     event.team_id as string | null,
     [event.id as string, event.parent_event_id as string | null].filter((id): id is string => Boolean(id)),
   );
-  const subgroup = pickSubgroup(data.subgroups, own);
-  if (!subgroup) return { status: "no-route" };
+  const subgroup = options.subgroupId
+    ? data.subgroups.find((s) => s.id === options.subgroupId && s.entrants.length > 0)
+    : pickSubgroup(data.subgroups, own);
+  if (!subgroup) return { status: options.subgroupId ? "not-found" : "no-route" };
   // Kent het platform niemand in deze groep, dan gelden de ZWB-tags als ons team.
   if (!subgroup.entrants.some((e) => own.has(Number(e.zwiftId)))) {
     for (const e of subgroup.entrants) if (hasZwbTag(e.name)) own.add(Number(e.zwiftId));
@@ -298,4 +304,35 @@ export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
       score,
     },
   };
+}
+
+/**
+ * Het ZWB-teamevent bij een Zwift-event en -subgroep, voor de Sauce-overlay.
+ * Alleen Zwift-events die aan een ZWB-ZRL-event hangen: anders zou iedereen het
+ * serviceaccount willekeurige events laten ophalen. Hangen er meerdere teams aan
+ * hetzelfde Zwift-event, dan wint het team met de meeste eigen renners in die groep.
+ */
+export async function loadZrlLiveForZwift(
+  zwiftEventId: string,
+  subgroupId: string,
+): Promise<ZrlLiveOutcome> {
+  if (!/^\d+$/.test(zwiftEventId) || !/^\d+$/.test(subgroupId)) return { status: "not-found" };
+  const admin = createAdminClient();
+  const { data: events } = await admin
+    .from("events")
+    .select("id")
+    .eq("type", "zrl")
+    .eq("zwift_event_id", zwiftEventId)
+    .not("team_id", "is", null)
+    .limit(10);
+  let best: ZrlLiveOutcome = { status: "not-found" };
+  for (const row of events ?? []) {
+    const outcome = await loadZrlLive(row.id as string, { subgroupId });
+    if (outcome.status !== "ok") {
+      if (best.status === "not-found") best = outcome;
+      continue;
+    }
+    if (best.status !== "ok" || outcome.view.ownRiders.length > best.view.ownRiders.length) best = outcome;
+  }
+  return best;
 }
