@@ -74,6 +74,7 @@ type SortKey =
   | "20m"
   | "ftp"
   | "zftp"
+  | "zmap"
   | "zrl";
 
 type SortDirection = "asc" | "desc";
@@ -259,7 +260,7 @@ export function TeamRosterTable({
                   <div className="col-span-2 flex items-baseline justify-between gap-2">
                     <dt className="text-muted-foreground">WTRL</dt>
                     <dd className="tabular-nums">
-                      <WtrlSummary wtrl={row.wtrl} unit={unit} inline />
+                      <WtrlSummary wtrl={row.wtrl} unit={unit} />
                     </dd>
                   </div>
                 )}
@@ -292,7 +293,8 @@ export function TeamRosterTable({
               <SortableHeader label="10m" sortKey="10m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="20m" sortKey="20m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="FTP" sortKey="ftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="zFTP · zMAP" sortKey="zftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableHeader label="zFTP" sortKey="zftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableHeader label="zMAP" sortKey="zmap" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="ZRL" sortKey="zrl" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <th className="py-2 font-medium">Bijgewerkt</th>
             </tr>
@@ -314,7 +316,7 @@ export function TeamRosterTable({
                     </div>
                   </td>
                   <td className="py-2 pr-3 align-top">
-                    <div className="flex max-w-56 flex-wrap gap-1">
+                    <div className="flex max-w-36 flex-wrap gap-1">
                       {row.teams.length === 0 ? (
                         <span className="text-muted-foreground">-</span>
                       ) : (
@@ -343,7 +345,28 @@ export function TeamRosterTable({
                   <PowerCell unit={unit} watts={power?.watts20m} wkg={power?.wkg20m} />
                   <PowerCell unit={unit} watts={power?.ftpWatts ?? row.ftpWatts} wkg={power?.ftpWkg} />
                   <td className="py-2 pr-3 align-top tabular-nums">
-                    {row.wtrl ? <WtrlSummary wtrl={row.wtrl} unit={unit} /> : <span className="text-muted-foreground">-</span>}
+                    {row.wtrl ? (
+                      <>
+                        <div>{zftpText(row.wtrl, unit)}</div>
+                        {row.wtrl.category && (
+                          <div className="text-xs text-muted-foreground">Cat {row.wtrl.category}</div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-3 align-top tabular-nums">
+                    {row.wtrl ? (
+                      <>
+                        <div>{zmapText(row.wtrl, unit)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          <WtrlAdvice wtrl={row.wtrl} />
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </td>
                   <td className="py-2 pr-3 align-top">
                     <div className="tabular-nums">{row.zrlStarts} starts</div>
@@ -432,40 +455,29 @@ function zmapWatts(wtrl: WtrlRiderSummary) {
   return (wtrl.zmapWkg * wtrl.zftpW) / wtrl.zftpWkg;
 }
 
-function WtrlSummary({
-  wtrl,
-  unit,
-  inline = false,
-}: {
-  wtrl: WtrlRiderSummary;
-  unit: PowerUnit;
-  inline?: boolean;
-}) {
-  const values = (
-    <>
-      {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
-      {unit === "wkg"
-        ? `${fmt(wtrl.zftpWkg, 2)} · ${fmt(wtrl.zmapWkg, 2)}`
-        : `${fmt(wtrl.zftpW)}w · ${fmt(zmapWatts(wtrl))}w`}
-    </>
-  );
-  const advice = (
+function zftpText(wtrl: WtrlRiderSummary, unit: PowerUnit) {
+  return unit === "wkg" ? fmt(wtrl.zftpWkg, 2) : `${fmt(wtrl.zftpW)}w`;
+}
+
+function zmapText(wtrl: WtrlRiderSummary, unit: PowerUnit) {
+  return unit === "wkg" ? fmt(wtrl.zmapWkg, 2) : `${fmt(zmapWatts(wtrl))}w`;
+}
+
+function WtrlAdvice({ wtrl }: { wtrl: WtrlRiderSummary }) {
+  return (
     <>
       {wtrl.advice ?? "-"}
       {wtrl.fits === false && <span className="font-medium text-destructive"> · Te sterk</span>}
     </>
   );
-  if (inline) {
-    return (
-      <>
-        {values} · {advice}
-      </>
-    );
-  }
+}
+
+/** Op de rennerkaart (telefoon) alles op één regel. */
+function WtrlSummary({ wtrl, unit }: { wtrl: WtrlRiderSummary; unit: PowerUnit }) {
   return (
     <>
-      <div>{values}</div>
-      <div className="text-xs text-muted-foreground">{advice}</div>
+      {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
+      zFTP {zftpText(wtrl, unit)} · zMAP {zmapText(wtrl, unit)} · <WtrlAdvice wtrl={wtrl} />
     </>
   );
 }
@@ -544,6 +556,8 @@ function sortValue(row: TeamRosterRow, key: SortKey, unit: PowerUnit): string | 
       return pick(row.power?.ftpWatts ?? row.ftpWatts, row.power?.ftpWkg);
     case "zftp":
       return pick(row.wtrl?.zftpW, row.wtrl?.zftpWkg);
+    case "zmap":
+      return pick(row.wtrl ? zmapWatts(row.wtrl) : null, row.wtrl?.zmapWkg);
     case "zrl":
       return row.zrlStarts;
   }

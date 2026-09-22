@@ -103,6 +103,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 > eenheid; sorteren volgt de gekozen eenheid. zMAP in watt is teruggerekend via het
 > gewicht dat uit zFTP W en zFTP W/kg volgt (WTRL geeft zMAP alleen in W/kg).
 > De planner toont FTP nu in de gekozen eenheid in plaats van altijd W/kg.
+> **Bijgewerkt 2026-09-22:** zFTP en zMAP zijn twee kolommen (elk sorteerbaar); onder
+> zFTP de categorie, onder zMAP het advies en "Te sterk". De teamkolom is smaller
+> (`max-w-36`), er staat weinig tekst in. Op de telefoon blijft het één regel.
 >
 > **Niet lokaal te verifiëren:** weergave tegen echte data. Getest: `tsc`, ESLint,
 > de volledige unit-suite.
