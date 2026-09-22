@@ -20,8 +20,9 @@ gaat stabiliteit voor nieuwe features.
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   `0180_wtrl_rosters` en `0181_wtrl_team_membership` toepassen en op
-   `/beheer/wtrl-teams` de WTRL-teams plakken en koppelen.
+   `0180_wtrl_rosters`, `0181_wtrl_team_membership` en
+   `0182_lineup_roster_entries` toepassen en op `/beheer/wtrl-teams` de
+   WTRL-teams plakken en koppelen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -47,7 +48,30 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0183`.
+
+---
+
+> **Renners zonder account in de opstelling, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0182_lineup_roster_entries.sql`.
+>
+> **Waarom.** De eigenaar: de app is nog in opbouw, veel renners hebben nog geen
+> account, maar ze rijden wel. De captain moet ze kunnen opstellen, en na aanmelden
+> hoort de opstelling bij hun profiel.
+>
+> **Nu.** `team_event_lineups` heeft `roster_entry_id` (naar `roster_entries`,
+> `on delete cascade`); `profile_id` mag leeg zijn, met de check dat precies één van
+> beide gevuld is en een unieke index per raceweek voor rosterregels.
+> `setTeamLineup` neemt `{kind: "profile" | "roster", id}`. De opstellingsplanner
+> toont de niet-geregistreerde renners van de teams op de pagina, met het label.
+> `claim_roster_entry` zet bij claimen de rosterregels om naar het profiel; stond het
+> profiel in dezelfde raceweek al zelf opgesteld, dan wint die regel.
+> `convert_zrl_umbrella_races` (0179) neemt rosterregels mee: de oude versie kende
+> alleen profielen en zou op de nieuwe check stuklopen zodra een team een eerste
+> subteam krijgt. De TTT-planner slaat rosterregels over (geen vermogensprofiel).
+>
+> **Niet lokaal te verifiëren:** migratie en claimen tegen echte data. Getest: `tsc`,
+> ESLint, de volledige unit-suite.
 
 ---
 
@@ -60,8 +84,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 > **Nu.** De teampagina zet de ongeclaimde rosternamen van de teams op de pagina
 > in de rostertabel, met het team, de categorie (`pace_category`), de WTRL-waarden
 > en het label "niet geregistreerd"; de naam linkt niet naar een ledenpagina. Het
-> blok "Nog niet geregistreerd" is weg. Ze staan niet in de opstellingsplanner (een
-> opstelling hoort bij een profiel) en tellen niet mee in "Renners". `/teams` is niet
+> blok "Nog niet geregistreerd" is weg. Ze tellen niet mee in "Renners". (Eerst
+> stonden ze niet in de opstellingsplanner; sinds de ronde hierboven wel.) `/teams` is niet
 > aangepast: dat overzicht toont leden.
 >
 > **Vraag van de eigenaar, beantwoord zonder code:** A1 en C1 hoeven nu niet. A en C

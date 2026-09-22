@@ -196,6 +196,8 @@ export default async function TttPlannerPage({
     supabase
       .from("team_event_lineups")
       .select("event_id, team_id, profile_id")
+      // Renners zonder account (migr. 0182) hebben geen vermogensprofiel voor de TTT.
+      .not("profile_id", "is", null)
       .limit(1000),
     supabase
       .from("ttt_plans")

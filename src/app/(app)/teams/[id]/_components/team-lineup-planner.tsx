@@ -23,13 +23,16 @@ export type PlannerRider = {
   watts20m: number | null;
   zrlStarts: number;
   bestPosition: number | null;
+  /** Rosternaam zonder account: `id` is dan de rosternaam. */
+  unregistered?: boolean;
 };
 
 export type PlannerLineup = {
   id: string;
   eventId: string;
   teamId: string;
-  profileId: string;
+  /** Profiel of rosternaam, zelfde id als PlannerRider.id. */
+  riderId: string;
   riderName: string;
   teamName: string;
 };
@@ -58,13 +61,16 @@ export function TeamLineupPlanner({
   const [targetTeamId, setTargetTeamId] = useState(teams[0]?.id ?? "");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const selectedIds = new Set(lineups.map((lineup) => lineup.profileId));
+  const selectedIds = new Set(lineups.map((lineup) => lineup.riderId));
 
-  function add(profileId: string) {
+  function add(rider: PlannerRider) {
     if (!targetTeamId) return;
     setError(null);
     startTransition(async () => {
-      const res = await setTeamLineup(parentTeamId, eventId, targetTeamId, profileId);
+      const res = await setTeamLineup(parentTeamId, eventId, targetTeamId, {
+        kind: rider.unregistered ? "roster" : "profile",
+        id: rider.id,
+      });
       if (!res.ok) setError(res.error);
     });
   }
@@ -129,6 +135,11 @@ export function TeamLineupPlanner({
             cell: (rider) => (
               <span>
                 <span className="font-medium">{rider.name}</span>
+                {rider.unregistered && (
+                  <span className="ml-1 rounded-full border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground">
+                    niet geregistreerd
+                  </span>
+                )}
                 {rider.category && (
                   <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
                     {rider.category}
@@ -175,7 +186,7 @@ export function TeamLineupPlanner({
                 size="icon-xs"
                 variant={selectedIds.has(rider.id) ? "secondary" : "outline"}
                 disabled={pending || selectedIds.has(rider.id)}
-                onClick={() => add(rider.id)}
+                onClick={() => add(rider)}
                 aria-label={`${rider.name} toevoegen`}
               >
                 <Plus />

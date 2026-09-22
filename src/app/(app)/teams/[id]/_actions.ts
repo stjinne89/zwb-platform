@@ -306,28 +306,47 @@ async function canManageTeamSelection(
   return { ok: true as const, userId: access.user.id };
 }
 
+export type LineupRider = { kind: "profile" | "roster"; id: string };
+
 export async function setTeamLineup(
   parentTeamId: string,
   eventId: string,
   targetTeamId: string,
-  profileId: string,
+  rider: LineupRider,
 ) {
   const guard = await canManageTeamSelection(parentTeamId, targetTeamId);
   if (!guard.ok) return { ok: false as const, error: guard.error };
 
   const admin = createAdminClient();
-  const { error } = await admin.from("team_event_lineups").upsert(
-    {
-      parent_team_id: parentTeamId,
-      event_id: eventId,
-      team_id: targetTeamId,
-      profile_id: profileId,
-      selected_by: guard.userId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "event_id,parent_team_id,profile_id" },
-  );
-  if (error) return { ok: false as const, error: error.message };
+  const values = {
+    parent_team_id: parentTeamId,
+    event_id: eventId,
+    team_id: targetTeamId,
+    selected_by: guard.userId,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (rider.kind === "profile") {
+    const { error } = await admin
+      .from("team_event_lineups")
+      .upsert({ ...values, profile_id: rider.id }, { onConflict: "event_id,parent_team_id,profile_id" });
+    if (error) return { ok: false as const, error: error.message };
+  } else {
+    // Renner zonder account (migr. 0182). De unieke index is gedeeltelijk, dus
+    // geen upsert: eerst kijken of hij al in deze raceweek staat.
+    const { data: existing, error: readError } = await admin
+      .from("team_event_lineups")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("parent_team_id", parentTeamId)
+      .eq("roster_entry_id", rider.id)
+      .maybeSingle();
+    if (readError) return { ok: false as const, error: readError.message };
+    const { error } = existing
+      ? await admin.from("team_event_lineups").update(values).eq("id", existing.id)
+      : await admin.from("team_event_lineups").insert({ ...values, roster_entry_id: rider.id });
+    if (error) return { ok: false as const, error: error.message };
+  }
 
   revalidatePath(`/teams/${parentTeamId}`);
   revalidatePath(`/teams/${targetTeamId}`);

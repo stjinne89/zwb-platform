@@ -112,7 +112,8 @@ type LineupRow = {
   id: string;
   event_id: string;
   team_id: string;
-  profile_id: string;
+  profile_id: string | null;
+  roster_entry_id: string | null;
 };
 
 type ZrlResultRow = {
@@ -337,7 +338,7 @@ export default async function TeamDetailPage({
     eventIds.length > 0
       ? supabase
           .from("team_event_lineups")
-          .select("id, event_id, team_id, profile_id")
+          .select("id, event_id, team_id, profile_id, roster_entry_id")
           .eq("parent_team_id", rootTeamId)
           .in("event_id", eventIds)
       : Promise.resolve({ data: [] }),
@@ -518,6 +519,23 @@ export default async function TeamDetailPage({
     ]),
   );
   const lineups = (lineupRows ?? []) as LineupRow[];
+  // Namen van rosterregels in de opstelling, ook als de naam intussen niet meer
+  // bij een team op deze pagina hoort.
+  const rosterNameById = new Map(
+    ((rosterPending ?? []) as Array<{ id: string; name: string }>).map((row) => [row.id, row.name]),
+  );
+  const missingRosterIds = lineups
+    .map((lineup) => lineup.roster_entry_id)
+    .filter((rosterId): rosterId is string => Boolean(rosterId) && !rosterNameById.has(rosterId!));
+  if (missingRosterIds.length > 0) {
+    const { data: extraRoster } = await supabase
+      .from("roster_entries")
+      .select("id, name")
+      .in("id", missingRosterIds);
+    for (const row of (extraRoster ?? []) as Array<{ id: string; name: string }>) {
+      rosterNameById.set(row.id, row.name);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -641,12 +659,16 @@ export default async function TeamDetailPage({
                 id: lineup.id,
                 eventId: lineup.event_id,
                 teamId: lineup.team_id,
-                profileId: lineup.profile_id,
-                riderName: profileById.get(lineup.profile_id)?.display_name ?? "Onbekend",
+                riderId: (lineup.profile_id ?? lineup.roster_entry_id) as string,
+                riderName:
+                  (lineup.profile_id
+                    ? profileById.get(lineup.profile_id)?.display_name
+                    : rosterNameById.get(lineup.roster_entry_id ?? "")) ?? "Onbekend",
                 teamName: teamById.get(lineup.team_id)?.name ?? "Team",
               }));
-              const plannerRiders: PlannerRider[] = rows.map((row) => ({
+              const plannerRiders: PlannerRider[] = rosterRows.map((row) => ({
                 id: row.id,
+                unregistered: row.unregistered,
                 name: row.name,
                 category: row.zrlCategory,
                 availability:
