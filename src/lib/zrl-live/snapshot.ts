@@ -110,7 +110,15 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
   return { fetchedAt: Date.now(), eventName, subgroups: withRiders, passages };
 }
 
-const fetchCachedRaceData = unstable_cache(fetchRaceData, ["zrl-live-race"], { revalidate: 15 });
+// Versie in de sleutel: Netlify bewaart deze cache over deploys heen.
+const fetchCachedRaceData = unstable_cache(fetchRaceData, ["zrl-live-race", "v2"], { revalidate: 15 });
+
+/**
+ * Verversen op de achtergrond kan stil mislukken; Next blijft dan oude data geven
+ * (gezien 2026-09-22: na een deploy bleef "bijgewerkt" op één tijd staan). Is de
+ * cache ouder dan dit, dan halen we direct op, en een fout wordt zichtbaar.
+ */
+const MAX_CACHE_AGE_MS = 60 * 1000;
 
 export type ZrlLiveView = {
   event: { id: string; title: string; teamName: string | null; zwiftEventId: string };
@@ -209,6 +217,9 @@ export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
   let data: RaceData;
   try {
     data = await fetchCachedRaceData(String(event.zwift_event_id));
+    if (Date.now() - data.fetchedAt > MAX_CACHE_AGE_MS) {
+      data = await fetchRaceData(String(event.zwift_event_id));
+    }
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : undefined };
   }

@@ -164,6 +164,13 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > Welke databron de B-renners niet kende, is niet nagegaan (geen databasetoegang
 > hier).
 >
+> **Oude data uit de cache.** Na die deploy bleef de pagina "bijgewerkt 15:58:53"
+> tonen, van vóór de push: Netlify bewaart de `unstable_cache` over deploys heen,
+> en het verversen op de achtergrond mislukte kennelijk stil (oorzaak niet te zien
+> zonder Netlify-logs). Nu een versie in de cachesleutel, en is de gecachete data
+> ouder dan een minuut, dan haalt de snapshot direct bij Zwift op, zodat een fout
+> als fout in beeld komt in plaats van als stille oude stand.
+>
 > **Teamnaam.** Een team kreeg de spelling van de eerste renner ("foudre" naast
 > "Foudre"). Nu wint de vaakst getypte spelling, bij gelijkspel een met
 > hoofdletters en dan de kaalste (`pickTeamLabel` in
