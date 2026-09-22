@@ -1,8 +1,29 @@
 import Link from "next/link";
-import { ArrowUpRight, Gauge, Ticket } from "lucide-react";
+import { ArrowUpRight, Gauge } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { RaceLink } from "@/lib/events/race-links";
+import { linkLogo, type RaceLink } from "@/lib/events/race-links";
+
+function LinkLogo({ url, className }: { url: string; className?: string }) {
+  const logo = linkLogo(url);
+  if (!logo) {
+    return (
+      <span className={cn("grid size-6 shrink-0 place-items-center rounded-md bg-muted", className)}>
+        <ArrowUpRight className="size-3.5 text-muted-foreground" />
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logo}
+      alt=""
+      width={24}
+      height={24}
+      className={cn("size-6 shrink-0 rounded-md object-contain", className)}
+    />
+  );
+}
 
 export function RaceLinkChips({
   links,
@@ -20,10 +41,11 @@ export function RaceLinkChips({
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-sm hover:border-primary/50 hover:text-primary"
+            title={`${link.label} openen`}
+            className="inline-flex items-center gap-2 rounded-full border bg-background py-1 pl-1 pr-3 text-sm font-medium hover:bg-accent"
           >
+            <LinkLogo url={link.url} />
             {link.label}
-            <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
           </a>
         </li>
       ))}
@@ -68,7 +90,7 @@ export function RaceInfoCard({
               rel="noopener noreferrer"
               className={cn(buttonVariants({ size: "sm" }))}
             >
-              <Ticket className="size-3.5" />
+              <LinkLogo url={pass.url} className="size-5" />
               {pass.label}
               <ArrowUpRight className="size-3.5" />
             </a>

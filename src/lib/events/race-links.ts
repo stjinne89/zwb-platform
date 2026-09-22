@@ -28,6 +28,35 @@ export type RaceLink = {
   url: string;
 };
 
+// De logo's in public/logos/ komen van de sites zelf, net als op het profiel
+// (profile-external-links.tsx), en staan lokaal zodat we niets hotlinken.
+const LOGO_BY_HOST: Array<[string, string]> = [
+  ["zwiftpower.com", "/logos/zwiftpower.png"],
+  ["zwiftracing.app", "/logos/zwiftracing.png"],
+  ["zwiftinsider.com", "/logos/zwiftinsider.png"],
+  ["wtrl.racing", "/logos/wtrl.png"],
+  ["zwift.com", "/logos/zwift.png"],
+  ["youtube.com", "/logos/youtube.png"],
+  ["youtu.be", "/logos/youtube.png"],
+  ["strava.com", "/logos/strava.png"],
+  ["intervals.icu", "/logos/intervals.png"],
+  ["zwbcycling.nl", "/icon-192.png"],
+];
+
+/** Het logo van de site achter deze link, of null als we er geen hebben. */
+export function linkLogo(url: string): string | null {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  const match = LOGO_BY_HOST.find(
+    ([host]) => hostname === host || hostname.endsWith(`.${host}`),
+  );
+  return match?.[1] ?? null;
+}
+
 export function isEventLinkKind(value: unknown): value is EventLinkKind {
   return EVENT_LINK_KINDS.includes(value as EventLinkKind);
 }

@@ -51,6 +51,22 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0187`
 
 ---
 
+> **Logo's op de racelinks, 2026-09-22 — gebouwd, lokaal getest.**
+>
+> **Waarom.** De eigenaar wilde de logochips van het profiel ook op de racelinks.
+>
+> **Nu.** Chips in Raceinfo en in de lijst Teams hebben de vorm en het logo van
+> `profile-external-links.tsx`. `linkLogo(url)` in `src/lib/events/race-links.ts`
+> kiest het logo op hostnaam, dus ook recon-links naar YouTube of links naar Strava
+> krijgen hun logo. Een onbekende site krijgt een neutraal pijltje. De Racepass-knop
+> draagt het WTRL-logo. Nieuw in `public/logos/`, met toestemming van de eigenaar
+> opgehaald van de sites zelf: `zwift.png`, `wtrl.png`, `zwiftinsider.png` en
+> `youtube.png`. De ZWB-site gebruikt ons eigen `icon-192.png`.
+>
+> Getest: `tsc` en ESLint. De pagina is niet in de browser bekeken.
+
+---
+
 > **WTRL-racepass per team per ronde, 2026-09-22 — gebouwd, lokaal getest.**
 > Migratie `0186_team_racepasses.sql` (nog toepassen, na `0185`).
 >
