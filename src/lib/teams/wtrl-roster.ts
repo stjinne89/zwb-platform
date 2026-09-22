@@ -212,6 +212,8 @@ export const DANGER_MARGIN = 0.05;
 
 export type DivisionStatus = "ok" | "danger" | "over";
 
+const STATUS_RANK: Record<DivisionStatus, number> = { ok: 0, danger: 1, over: 2 };
+
 /**
  * De bovengrens van een divisie in W/kg. Standard: de ondergrens van de categorie
  * erboven (A heeft er geen). Development: het Dev-plafond van die categorie.
@@ -232,14 +234,38 @@ function upperLimit(division: WtrlDivision): { ftp: number; map: number } | null
  * renner daar nog onder houden, maar dat is geen reden om niet te waarschuwen.
  */
 export function divisionStatus(power: Power, division: WtrlDivision): DivisionStatus | null {
+  const perMetric = metricStatus(power, division);
+  if (!perMetric) return null;
+  return worstStatus(perMetric.zftp, perMetric.zmap);
+}
+
+export type MetricStatus = { zftp: DivisionStatus; zmap: DivisionStatus };
+
+/**
+ * Per waarde: welke van zFTP en zMAP de grens nadert of overschrijdt, zodat de
+ * melding bij de juiste kolom staat. Over de grens telt alleen als de renner ook
+ * echt niet past; bij Open kan de wattvloer iemand boven de W/kg-grens nog in de
+ * divisie houden, en dan is het een waarschuwing.
+ */
+export function metricStatus(power: Power, division: WtrlDivision): MetricStatus | null {
   const fits = fitsDivision(power, division);
   if (fits === null) return null;
-  if (!fits) return "over";
   const limit = upperLimit(division);
-  if (!limit) return "ok";
-  const near = (value: number | null, max: number) =>
-    value != null && value >= max * (1 - DANGER_MARGIN);
-  return near(power.zftpWkg, limit.ftp) || near(power.zmapWkg, limit.map) ? "danger" : "ok";
+  if (!limit) return { zftp: "ok", zmap: "ok" };
+  const judge = (value: number | null, max: number): DivisionStatus => {
+    if (value == null) return "ok";
+    if (value >= max) return fits ? "danger" : "over";
+    return value >= max * (1 - DANGER_MARGIN) ? "danger" : "ok";
+  };
+  return { zftp: judge(power.zftpWkg, limit.ftp), zmap: judge(power.zmapWkg, limit.map) };
+}
+
+function worstStatus(...statuses: Array<DivisionStatus | null | undefined>): DivisionStatus | null {
+  let worst: DivisionStatus | null = null;
+  for (const status of statuses) {
+    if (status && (!worst || STATUS_RANK[status] > STATUS_RANK[worst])) worst = status;
+  }
+  return worst;
 }
 
 export type WtrlRiderSummary = {
@@ -253,9 +279,10 @@ export type WtrlRiderSummary = {
   fits: boolean | null;
   /** Het zwaarste over zijn WTRL-teams: over > danger > ok. */
   status: DivisionStatus | null;
+  /** Hetzelfde, per waarde. */
+  zftpStatus: DivisionStatus | null;
+  zmapStatus: DivisionStatus | null;
 };
-
-const STATUS_RANK: Record<DivisionStatus, number> = { ok: 0, danger: 1, over: 2 };
 
 /**
  * Eén regel per renner over de WTRL-teams op een pagina. Staat iemand in twee
@@ -270,12 +297,10 @@ export function summarizeWtrlRiders(
     const women = division?.women ?? false;
     for (const rider of team.riders) {
       const fits = division ? fitsDivision(rider, division) : null;
-      const status = division ? divisionStatus(rider, division) : null;
+      const metrics = division ? metricStatus(rider, division) : null;
       const previous = byRider.get(rider.zwiftId);
-      const worst =
-        previous?.status && (!status || STATUS_RANK[previous.status] >= STATUS_RANK[status])
-          ? previous.status
-          : status;
+      const zftpStatus = worstStatus(previous?.zftpStatus, metrics?.zftp);
+      const zmapStatus = worstStatus(previous?.zmapStatus, metrics?.zmap);
       byRider.set(rider.zwiftId, {
         category: previous?.category ?? wtrlCategory(rider, women),
         zftpW: rider.zftpW,
@@ -283,7 +308,9 @@ export function summarizeWtrlRiders(
         zmapWkg: rider.zmapWkg,
         advice: previous?.advice ?? recommendedDivision(rider, women),
         fits: previous?.fits === false || fits === false ? false : (fits ?? previous?.fits ?? null),
-        status: worst ?? null,
+        status: worstStatus(zftpStatus, zmapStatus),
+        zftpStatus,
+        zmapStatus,
       });
     }
   }

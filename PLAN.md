@@ -111,8 +111,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 > binnen 5% onder de bovengrens (`divisionStatus`, `DANGER_MARGIN`). Bovengrens:
 > Standard = ondergrens van de categorie erboven (A heeft er geen), Development = het
 > Dev-plafond. De gevarenzone kijkt alleen naar W/kg, niet naar de wattvloer van Open.
-> Onder zMAP staat "Te sterk" of "Bijna te sterk", zodat het niet alleen aan kleur
-> hangt. Staat een renner in meerdere teams, dan telt het zwaarste. Op productie
+> "Te sterk" of "Bijna te sterk" staat onder de kolom van de waarde die de grens
+> nadert of overschrijdt (`metricStatus`; eerst altijd onder zMAP), zodat het niet
+> alleen aan kleur hangt. Boven de W/kg-grens maar onder de wattvloer van Open is een
+> waarschuwing, geen rood. Staat een renner in meerdere teams, dan telt het zwaarste. Op productie
 > (alleen lezen) nu niemand rood en zes oranje: Jos Leijten, Kevin Plasmans en Maarten
 > Triebels (B1), Bo van Ruth (Zwiftladies), Gina van Rossum en Arja Snitselaar
 > (Zwiftladies C).

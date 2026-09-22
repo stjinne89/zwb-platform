@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   divisionStatus,
+  metricStatus,
   fitsDivision,
   parseDivision,
   parseWtrlTeams,
@@ -181,5 +182,25 @@ describe("divisionStatus", () => {
     // Womens B: 3,88 / 4,8; gevarenzone vanaf 3,686 / 4,56.
     expect(divisionStatus({ zftpW: 194, zftpWkg: 3.73, zmapWkg: 4.67 }, womenB)).toBe("danger");
     expect(divisionStatus({ zftpW: 214, zftpWkg: 3.48, zmapWkg: 4.06 }, womenB)).toBe("ok");
+  });
+});
+
+describe("metricStatus", () => {
+  const b = parseDivision("Open Aqua League Division B2")!;
+
+  it("zet de melding bij de waarde die de grens nadert", () => {
+    // zFTP 4,06 nadert 4,2; zMAP 4,81 blijft onder 4,845.
+    expect(metricStatus({ zftpW: 292, zftpWkg: 4.06, zmapWkg: 4.81 }, b)).toEqual({ zftp: "danger", zmap: "ok" });
+    // zMAP 4,95 nadert 5,1; zFTP 3,94 blijft onder 3,99.
+    expect(metricStatus({ zftpW: 281, zftpWkg: 3.94, zmapWkg: 4.95 }, b)).toEqual({ zftp: "ok", zmap: "danger" });
+  });
+
+  it("te sterk bij de waarde die over de grens gaat", () => {
+    expect(metricStatus({ zftpW: 284, zftpWkg: 3.51, zmapWkg: 5.14 }, b)).toEqual({ zftp: "ok", zmap: "over" });
+  });
+
+  it("boven de W/kg-grens maar onder de wattvloer: waarschuwing, geen rood", () => {
+    // 4,3 W/kg maar 240 W: onder de A-vloer van 250 W, dus nog B.
+    expect(metricStatus({ zftpW: 240, zftpWkg: 4.3, zmapWkg: 4.9 }, b)).toEqual({ zftp: "danger", zmap: "danger" });
   });
 });

@@ -348,9 +348,10 @@ export function TeamRosterTable({
                     {row.wtrl ? (
                       <>
                         <div>{zftpText(row.wtrl, unit)}</div>
-                        {row.wtrl.category && (
-                          <div className="text-xs text-muted-foreground">Cat {row.wtrl.category}</div>
-                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {row.wtrl.category ? `Cat ${row.wtrl.category}` : "-"}
+                          <StatusNote status={row.wtrl.zftpStatus} />
+                        </div>
                       </>
                     ) : (
                       <span className="text-muted-foreground">-</span>
@@ -361,7 +362,8 @@ export function TeamRosterTable({
                       <>
                         <div>{zmapText(row.wtrl, unit)}</div>
                         <div className="text-xs text-muted-foreground">
-                          <WtrlAdvice wtrl={row.wtrl} />
+                          {row.wtrl.advice ?? "-"}
+                          <StatusNote status={row.wtrl.zmapStatus} />
                         </div>
                       </>
                     ) : (
@@ -482,16 +484,12 @@ function zmapText(wtrl: WtrlRiderSummary, unit: PowerUnit) {
   return unit === "wkg" ? fmt(wtrl.zmapWkg, 2) : `${fmt(zmapWatts(wtrl))}w`;
 }
 
-function WtrlAdvice({ wtrl }: { wtrl: WtrlRiderSummary }) {
-  return (
-    <>
-      {wtrl.advice ?? "-"}
-      {wtrl.status === "over" && <span className="font-medium text-destructive"> · Te sterk</span>}
-      {wtrl.status === "danger" && (
-        <span className="font-medium text-amber-600 dark:text-amber-400"> · Bijna te sterk</span>
-      )}
-    </>
-  );
+function StatusNote({ status }: { status: WtrlRiderSummary["zftpStatus"] }) {
+  if (status === "over") return <span className="font-medium text-destructive"> · Te sterk</span>;
+  if (status === "danger") {
+    return <span className="font-medium text-amber-600 dark:text-amber-400"> · Bijna te sterk</span>;
+  }
+  return null;
 }
 
 /** Op de rennerkaart (telefoon) alles op één regel. */
@@ -499,7 +497,9 @@ function WtrlSummary({ wtrl, unit }: { wtrl: WtrlRiderSummary; unit: PowerUnit }
   return (
     <>
       {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
-      zFTP {zftpText(wtrl, unit)} · zMAP {zmapText(wtrl, unit)} · <WtrlAdvice wtrl={wtrl} />
+      zFTP {zftpText(wtrl, unit)}
+      <StatusNote status={wtrl.zftpStatus} /> · zMAP {zmapText(wtrl, unit)}
+      <StatusNote status={wtrl.zmapStatus} /> · {wtrl.advice ?? "-"}
     </>
   );
 }
