@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, CircleHelp } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleHelp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -137,6 +137,30 @@ export function InlineMoreLink({
     >
       {children}
       <ArrowRight className="size-4" />
+    </Link>
+  );
+}
+
+/** Terug naar de bovenliggende pagina, voor pagina's die niet in het menu staan. */
+export function BackLink({
+  href,
+  label,
+  className,
+}: {
+  href: string;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary",
+        className,
+      )}
+    >
+      <ArrowLeft className="size-4" />
+      {label}
     </Link>
   );
 }

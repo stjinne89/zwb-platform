@@ -56,6 +56,30 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 
 ---
 
+> **Terug-link op pagina's buiten het menu, 2026-09-22 — gebouwd, lokaal getest.**
+>
+> **Waarom.** De eigenaar miste een terugknop op de live ZRL-stand en kwam dat in
+> de app vaker tegen. Alle 98 pagina's nagelopen: wat in het menu staat, heeft er
+> geen nodig; van de rest had 18 er al een.
+>
+> **Nu.** `BackLink` in `src/components/app-ui.tsx` (pijl + label naar de
+> bovenliggende pagina). Toegevoegd op Nieuw event (→ Kalender), Nieuw bericht in
+> Vraag en Aanbod, Nieuw team en Club Ladder (→ Teams), en een TTT-plan (→ TTT
+> Planner). Op de publieke pagina's `/live/[eventId]`, `/live/zrl/[eventId]` (→
+> Event) en `/profielen/[id]` (→ Leden) alleen voor ingelogde leden; een externe
+> bezoeker zou via die link op het inlogscherm landen. `/live/[eventId]` toont
+> "Inloggen" nu alleen nog aan wie niet is ingelogd.
+>
+> **Bewust niet.** `/verhaal` en `/brochure` (losse deelpagina's zonder ingang
+> vanuit de app), de Omnium-site (eigen menu) en de OBS-overlay. De 18 bestaande
+> terug-links zijn niet gelijkgetrokken naar `BackLink`; ze verschillen in
+> opmaak ("← Kalender", "Terug naar teams"), maar werken.
+>
+> Getest: `tsc`, ESLint op de gewijzigde bestanden en de unit-suite. Niet in de
+> browser bekeken.
+
+---
+
 > **Live ZRL-stand met WTRL-puntentelling, 2026-09-22 — gebouwd; ophalen bij Zwift op productie bewezen, dashboard nog niet in een race gezien.**
 > Commit `00f7af1`, plus een correctie op de Zwift-aanroep (zie onder). Migratie
 > `0187_zrl_team_assignments.sql` (toegepast op productie, 2026-09-22). Onderzoek en

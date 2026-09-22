@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Activity, ArrowRight, RefreshCw, Swords, Trophy, Users } from "lucide-react";
-import { EmptyState, PageHeader } from "@/components/app-ui";
+import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
@@ -234,6 +234,7 @@ export default async function ClubLadderPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/teams" label="Teams" />
       <PageHeader
         eyebrow="Club"
         title="Club Ladder"

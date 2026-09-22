@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/app/omnium/_components/auto-refresh";
+import { BackLink } from "@/components/app-ui";
 import { ZwbMark } from "@/components/zwb-logo";
 import { WTRL_ZRL_RESULTS_URL } from "@/lib/teams/wtrl-results";
 import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
@@ -96,6 +97,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
     return (
       <div className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-6">
         <AutoRefresh seconds={30} />
+        {access.user && <BackLink href={`/events/${eventId}`} label="Event" />}
         <Header title="ZRL live" />
         <p className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">{message}</p>
       </div>
@@ -112,6 +114,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
   return (
     <div className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-6">
       {!score.final && !editing && <AutoRefresh seconds={15} />}
+      {access.user && <BackLink href={`/events/${view.event.id}`} label="Event" />}
       <div className="space-y-2">
         <Header title={view.event.title} />
         <Status view={view} />

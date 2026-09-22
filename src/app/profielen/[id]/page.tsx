@@ -5,6 +5,7 @@ import {
   type WeeklyAwardView,
 } from "@/components/profile-readonly-view";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/app-ui";
 import { type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { type StravaBikeRow } from "@/lib/strava/bikes";
@@ -31,6 +32,10 @@ type PublicWeeklyRow = {
 export default async function PublicProfilePage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
+  // Leden komen hier vanaf het ledenprofiel; een externe bezoeker heeft geen terugweg nodig.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const [
     { data: profileRows },
@@ -90,6 +95,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl space-y-4">
+        {user && <BackLink href={`/leden/${id}`} label="Leden" />}
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           ZWB Cycling profiel
         </p>

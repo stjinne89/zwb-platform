@@ -12,6 +12,8 @@ import type { ColLite, ClimbRange } from "@/lib/gpx-climbs";
 import { isPoiType, type EventPoi } from "@/app/(app)/events/[id]/_components/poi";
 import type { EventZone } from "@/app/(app)/events/[id]/_components/zone";
 import { ZwbMark } from "@/components/zwb-logo";
+import { BackLink } from "@/components/app-ui";
+import { createClient } from "@/lib/supabase/server";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -93,6 +95,9 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
 
   const snapshot = await fetchEventLiveSnapshot(eventId);
   if (!snapshot.event) notFound();
+  const {
+    data: { user },
+  } = await (await createClient()).auth.getUser();
 
   const { event, sessions, positions } = snapshot;
 
@@ -246,6 +251,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto min-h-screen max-w-5xl space-y-6 px-4 py-6">
+      {user && <BackLink href={`/events/${eventId}`} label="Event" />}
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <ZwbMark className="h-10 w-10" />
@@ -258,12 +264,14 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
             </h1>
           </div>
         </div>
-        <Link
-          href="/login"
-          className="hidden rounded-md border px-3 py-1 text-xs font-medium hover:bg-accent sm:inline-block"
-        >
-          Inloggen
-        </Link>
+        {!user && (
+          <Link
+            href="/login"
+            className="hidden rounded-md border px-3 py-1 text-xs font-medium hover:bg-accent sm:inline-block"
+          >
+            Inloggen
+          </Link>
+        )}
       </header>
 
       <section className="rounded-lg border bg-card p-4 text-sm">

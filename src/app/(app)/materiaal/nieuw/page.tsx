@@ -1,8 +1,10 @@
+import { BackLink } from "@/components/app-ui";
 import { NewPostForm } from "./_form";
 
 export default function NewPostPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <BackLink href="/materiaal" label="Vraag en Aanbod" />
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Nieuw bericht plaatsen</h1>
         <p className="mt-1 text-muted-foreground">

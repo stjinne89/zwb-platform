@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
+import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { createClient } from "@/lib/supabase/server";
@@ -151,6 +151,7 @@ export default async function TttPlanDetailPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/teams/ttt-planner" label="TTT Planner" />
       <PageHeader
         eyebrow="TTT Planner"
         title={plan.name}

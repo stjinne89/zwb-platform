@@ -1,6 +1,6 @@
 import { EventForm } from "./_form";
 import { createClient } from "@/lib/supabase/server";
-import { HelpLink } from "@/components/app-ui";
+import { BackLink, HelpLink } from "@/components/app-ui";
 
 export default async function NewEventPage() {
   const supabase = await createClient();
@@ -12,6 +12,7 @@ export default async function NewEventPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <BackLink href="/kalender" label="Kalender" />
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Nieuw event</h1>
         <HelpLink href="/hulp#eventbeheer" />
