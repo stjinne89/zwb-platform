@@ -85,6 +85,15 @@ export default function PrivacyPage() {
             (voor zover je die invult), biografie en zichtbaarheids­voorkeuren.
           </li>
           <li>
+            <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
+            beheerders van WTRL over wat daar per teamlid staat: naam, Zwift-ID,
+            zFTP (in watt en per kilo), zMAP (per kilo) en de status in het team.
+            Dat gebeurt ook voor teamleden zonder ZWB-account. Ingelogde leden zien
+            deze waarden op de teampagina, met de categorie en de divisie die
+            daaruit volgen. Bij een volgende import worden de gegevens van dat team
+            vervangen.
+          </li>
+          <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand

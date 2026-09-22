@@ -21,8 +21,7 @@ gaat stabiliteit voor nieuwe features.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
    `0180_wtrl_rosters` toepassen en op `/beheer/wtrl-teams` de WTRL-teams plakken
-   en koppelen. De privacytekst over WTRL-gegevens wacht op akkoord van de
-   eigenaar (voorstel in de ronde hieronder).
+   en koppelen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -91,9 +90,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0181`
 > zit niet in "past in divisie". Geen koppeling met `profiles.zrl_category`: de
 > WTRL-waarden staan naast het profiel, ze overschrijven niets.
 >
-> **Open: privacytekst.** Nieuwe bron van gegevens over renners, ook van renners
+> **Privacytekst.** Nieuwe bron van gegevens over renners, ook van renners
 > zonder ZWB-account (naam, Zwift-ID, zFTP in W en w/kg, waaruit gewicht af te
-> leiden is). Voorstel aan de eigenaar voorgelegd, nog niet in `/privacy`.
+> leiden is). Tekst door de eigenaar akkoord bevonden (2026-09-22) en in `/privacy`
+> gezet onder "Welke gegevens we verwerken"; geen nieuwe privacyversie.
 >
 > **Niet lokaal te verifiëren:** migratie en pagina's tegen echte data. Getest: `tsc`,
 > ESLint, de volledige unit-suite.
