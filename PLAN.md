@@ -50,7 +50,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0179`
 ---
 
 > **ZRL: één hoofdevent per raceweek, de teams eronder, 2026-09-22 — gebouwd, lokaal getest.**
-> Implementatiecommit: zie de commit met deze titel op `claude/zrl-events-subevents-c0df69`.
+> Implementatiecommit `4cce2dc` (branch `claude/zrl-events-subevents-c0df69`, nog niet gepusht).
 > Migratie `0178_event_parent.sql`.
 >
 > **Waarom.** Wens van de eigenaar: informatie die voor elke ZRL-race geldt, moet
