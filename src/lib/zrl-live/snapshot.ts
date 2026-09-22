@@ -1,8 +1,11 @@
 // Live ZRL-stand voor één ZWB-teamevent: Zwift-data ophalen en doorrekenen.
 //
-// Niets wordt opgeslagen. De Zwift-kant is 15 s gecachet per Zwift-event, dus de
-// belasting op Zwift is gelijk bij één of duizend kijkers (hetzelfde patroon als
-// src/lib/live/external-timing.ts). Zie docs/live-zrl-dashboard.md.
+// Tijdens de race wordt niets opgeslagen. De Zwift-kant is 15 s gecachet per
+// Zwift-event, dus de belasting op Zwift is gelijk bij één of duizend kijkers
+// (hetzelfde patroon als src/lib/live/external-timing.ts). Is de race gereden en
+// de stand definitief, dan bevriest deze module één regel: de plaats van ons
+// team (migr. 0188), zodat de raceweekpagina die kan tonen zonder Zwift opnieuw
+// te bevragen. Zie docs/live-zrl-dashboard.md.
 
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -16,6 +19,7 @@ import {
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { scoreRace, type Passage, type Rider, type ScoreResult } from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
+import { freezeZrlTeamResult } from "@/lib/zrl-live/team-result";
 
 /** Geen nieuwe passage of uitslag meer: dan noemen we de stand definitief. */
 const QUIET_BEFORE_FINAL_MS = 15 * 60 * 1000;
@@ -294,21 +298,24 @@ export async function loadZrlLive(
     finish: { finishers: subgroup.results.map((r) => r.profileId), final },
   });
 
-  return {
-    status: "ok",
-    view: {
-      event: { id: event.id as string, title: event.title as string, teamName, zwiftEventId: String(event.zwift_event_id) },
-      subgroupLabel: subgroup.label,
-      startAt: subgroup.startAt,
-      fetchedAt: data.fetchedAt,
-      ownTeam,
-      ownRiders: riders.filter((r) => own.has(r.athleteId)).map((r) => r.athleteId),
-      leagueKey,
-      entrants: riders,
-      teamLabels,
-      score,
-    },
+  const view: ZrlLiveView = {
+    event: { id: event.id as string, title: event.title as string, teamName, zwiftEventId: String(event.zwift_event_id) },
+    subgroupLabel: subgroup.label,
+    startAt: subgroup.startAt,
+    fetchedAt: data.fetchedAt,
+    ownTeam,
+    ownRiders: riders.filter((r) => own.has(r.athleteId)).map((r) => r.athleteId),
+    leagueKey,
+    entrants: riders,
+    teamLabels,
+    score,
   };
+
+  // Race gereden en de stand staat vast: één keer wegschrijven, zodat de
+  // raceweekpagina de plaats kan tonen zonder Zwift opnieuw te bevragen.
+  await freezeZrlTeamResult(view.event.id, (event.team_id as string | null) ?? null, subgroup.startAt, view);
+
+  return { status: "ok", view };
 }
 
 /**

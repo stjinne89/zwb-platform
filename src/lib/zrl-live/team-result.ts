@@ -1,17 +1,14 @@
-// Teamuitslag van een gereden ZRL-race, voor de raceweekpagina.
+// Teamuitslag van een gereden ZRL-race, voor de raceweekpagina (migr. 0188).
 //
-// Dezelfde berekening als de live stand (`loadZrlLive`), maar dan één getal: de
-// plaats van ons team in zijn divisie. De live stand is er voor tijdens de race;
-// dit is er voor daarna, dus de uitkomst wordt een stuk langer bewaard.
-//
-// Twee wachten, want een verkeerde plaats is erger dan geen plaats:
-// - de uitslag van Zwift moet definitief zijn;
-// - de segmentpassages moeten er nog zijn. Zwift geeft die maar een tijd terug;
-//   zonder passages telt alleen FIN mee en zou de stand er kloppend uitzien
-//   terwijl hij het niet is.
+// De live stand bewaart niets: die rekent elke 15 seconden opnieuw uit
+// Zwift-data. Voor een overzicht kan dat niet — één uitslag kost 16
+// Zwift-aanroepen en ongeveer acht seconden, en zeven ploegen tegelijk knijpt
+// Zwift het serviceaccount af (gemeten 2026-09-22). Daarom bevriezen we de
+// uitslag: wie de live stand opent nadat de race is gereden, schrijft de plaats
+// van ons team één keer weg, en de raceweek leest alleen nog die rij.
 
-import { unstable_cache } from "next/cache";
-import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
 
 export type ZrlTeamResult = {
   /** Plaats van ons team in de divisie. */
@@ -25,12 +22,15 @@ export type ZrlTeamResult = {
 /** Onder deze dekking van de verwachte doorkomsten rekenen we niet. */
 const MIN_COVERAGE = 0.8;
 
-/** Een ZRL-race duurt ongeveer drie kwartier; daarna pas rekenen. */
+/** Een ZRL-race duurt ongeveer drie kwartier; daarna staat de uitslag vast. */
 export const RACE_OVER_AFTER_MS = 90 * 60 * 1000;
 
 /**
  * De plaats van ons team uit een doorgerekende stand, of null als de stand niet
- * betrouwbaar genoeg is om een plaats te tonen.
+ * betrouwbaar genoeg is om te bewaren: nog niet definitief, ons team staat er
+ * niet in, of Zwift gaf te weinig segmentpassages terug. Dat laatste is de
+ * belangrijkste: zonder passages telt alleen FIN mee en zou de stand er kloppend
+ * uitzien terwijl hij het niet is.
  */
 export function teamResultOf(view: ZrlLiveView): ZrlTeamResult | null {
   if (!view.score.final || !view.ownTeam) return null;
@@ -45,39 +45,65 @@ export function teamResultOf(view: ZrlLiveView): ZrlTeamResult | null {
   return { rank: own.rank, teams: view.score.teams.length, points: own.total, riders: own.riders };
 }
 
-async function computeTeamResult(eventId: string): Promise<ZrlTeamResult | null> {
-  const outcome = await loadZrlLive(eventId);
-  return outcome.status === "ok" ? teamResultOf(outcome.view) : null;
+/**
+ * Bevriest de uitslag van een gereden race. Stil bij een fout: het invriezen mag
+ * de live stand nooit breken, en de volgende bezoeker probeert het opnieuw.
+ */
+export async function freezeZrlTeamResult(
+  eventId: string,
+  teamId: string | null,
+  startAt: number,
+  view: ZrlLiveView,
+  now = Date.now(),
+): Promise<void> {
+  if (now - startAt < RACE_OVER_AFTER_MS) return;
+  const result = teamResultOf(view);
+  if (!result) return;
+  try {
+    await createAdminClient()
+      .from("zrl_team_results")
+      .upsert(
+        {
+          event_id: eventId,
+          team_id: teamId,
+          rank: result.rank,
+          teams: result.teams,
+          points: result.points,
+          riders: result.riders,
+          computed_at: new Date(now).toISOString(),
+        },
+        { onConflict: "event_id" },
+      );
+  } catch {
+    // Tabel nog niet toegepast of database even weg: dan blijft de plaats leeg.
+  }
 }
 
-// De race is gereden, dus de uitkomst verandert niet meer. Zes uur cache houdt
-// het aantal Zwift-aanroepen laag als meerdere leden de raceweek openen.
-const cachedTeamResult = unstable_cache(computeTeamResult, ["zrl-team-result", "v1"], {
-  revalidate: 6 * 60 * 60,
-});
-
-/**
- * De teamuitslag per gereden teamevent. Events die nog niet gereden zijn slaan
- * we over: dan valt er niets te halen en hoeven we Zwift niet te bevragen.
- */
-export async function loadZrlTeamResults(
-  events: Array<{ id: string; startAt: string }>,
-  now = Date.now(),
-): Promise<Map<string, ZrlTeamResult>> {
-  const ridden = events.filter((event) => {
-    const start = Date.parse(event.startAt);
-    return Number.isFinite(start) && now - start > RACE_OVER_AFTER_MS;
-  });
+/** De bevroren uitslagen van deze teamevents. Leest alleen; bevraagt Zwift niet. */
+export async function loadZrlTeamResults(eventIds: string[]): Promise<Map<string, ZrlTeamResult>> {
   const results = new Map<string, ZrlTeamResult>();
-  await Promise.all(
-    ridden.map(async (event) => {
-      try {
-        const result = await cachedTeamResult(event.id);
-        if (result) results.set(event.id, result);
-      } catch {
-        // Zwift plat of traag: dan toont de raceweek gewoon geen plaats.
-      }
-    }),
-  );
+  if (eventIds.length === 0) return results;
+  try {
+    const { data } = await createAdminClient()
+      .from("zrl_team_results")
+      .select("event_id, rank, teams, points, riders")
+      .in("event_id", eventIds);
+    for (const row of (data ?? []) as Array<{
+      event_id: string;
+      rank: number;
+      teams: number;
+      points: number;
+      riders: number;
+    }>) {
+      results.set(row.event_id, {
+        rank: row.rank,
+        teams: row.teams,
+        points: row.points,
+        riders: row.riders,
+      });
+    }
+  } catch {
+    // Zonder tabel toont de raceweek gewoon geen plaats.
+  }
   return results;
 }

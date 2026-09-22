@@ -25,8 +25,9 @@ gaat stabiliteit voor nieuwe features.
    één keer "Test segmentresultaten" op `/beheer/event-scan` (bewijst of het
    serviceaccount Zwifts segmentresultaten mag lezen, en of de protobufvelden
    kloppen): werkt sinds `e5cd74e` (2026-09-22). `0187_zrl_team_assignments` is
-   toegepast. Nog open: `/live/zrl/[eventId]` tijdens de volgende ZRL-race
-   bekijken.
+   toegepast. **Nog toepassen: `0188_zrl_team_results.sql`** — zonder die tabel
+   blijft de plaats van het team op de raceweekpagina leeg. Nog open:
+   `/live/zrl/[eventId]` tijdens de volgende ZRL-race bekijken.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -52,29 +53,46 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0189`.
 
 ---
 
-> **Teamuitslag op de raceweek, 2026-09-22 — gebouwd, lokaal getest.**
+> **Teamuitslag op de raceweek, 2026-09-22 — gebouwd; migratie `0188` nog toepassen.**
 >
 > **Waarom.** Vraag van de eigenaar: op de raceweekpagina bij elk team zien hoe
 > het is afgelopen, en bij winst of podium een icoontje in plaats van een cijfer.
 > Alleen de plaats, verder niets.
 >
-> **Nu.** `src/lib/zrl-live/team-result.ts` rekent dezelfde stand door als de
-> live pagina (`loadZrlLive`) en houdt er één getal aan over: de plaats van ons
-> team in zijn divisie. De lijst "Teams" op een ZRL-hoofdevent toont die achter
-> de teamnaam — `ZrlTeamRank`: beker bij 1, medaille bij 2 en 3, anders "5e",
-> met de volledige stand ("2e van 15 teams") als tooltip.
+> **Eerste poging werkte niet, en dat is gemeten.** De raceweek riep voor elk van
+> de zeven ploegen `loadZrlLive` aan. Eén zo'n berekening kost 16 Zwift-aanroepen
+> en ongeveer acht seconden, en haalt ruim 22.000 segmentpassages op: het venster
+> loopt van de start tot nu, en op dinsdagavond rijdt de halve wereld over
+> Montmartre. Zeven tegelijk knijpt Zwift het serviceaccount af — los draaien
+> lukt altijd, parallel faalt het merendeel. De pagina rendert dan netjes zonder
+> plaatsen, en omdat een fout niet gecachet wordt, ging dat bij élke weergave
+> opnieuw naar Zwift. Dat raakt ook de live stand, die op hetzelfde account
+> draait.
 >
-> **Wanneer wel en niet.** Pas 90 minuten na de start (een race duurt ongeveer
-> drie kwartier), dus een aanstaande raceweek bevraagt Zwift niet. Geen plaats
-> als de Zwift-uitslag nog niet definitief is, als ons team niet in de stand
-> staat, of als minder dan 80% van de verwachte doorkomsten terugkomt. Dat
-> laatste is de belangrijkste: Zwift geeft segmentpassages maar een tijd terug,
-> en zonder passages zou er een keurige maar verkeerde stand staan. De uitkomst
-> blijft zes uur in `unstable_cache` staan; de race is dan toch gereden.
+> **Nu: bevriezen.** De live stand bewaart uit zichzelf niets (elke 15 s opnieuw
+> uitgerekend), dus er viel niets te kopiëren. Daarom schrijft `loadZrlLive` de
+> plaats van ons team nu één keer weg zodra de race gereden is en de stand
+> definitief — migratie `0188_zrl_team_results.sql`, één rij per teamevent. De
+> raceweek leest alleen die rij: geen Zwift-aanroep, altijd snel, en de uitslag
+> blijft ook staan als Zwift de segmentpassages niet meer teruggeeft.
+> `ZrlTeamRank` toont een beker bij 1, een medaille bij 2 en 3, anders "5e", met
+> de volledige stand als tooltip.
+>
+> **Wanneer wel en niet.** Invriezen pas 90 minuten na de start (een race duurt
+> ongeveer drie kwartier), alleen bij een definitieve Zwift-uitslag, en alleen
+> als minstens 80% van de verwachte doorkomsten terugkomt. Dat laatste is de
+> belangrijkste: zonder passages telt alleen FIN mee en zou er een keurige maar
+> verkeerde stand staan. Mislukt het wegschrijven, dan blijft de plaats leeg en
+> probeert de volgende bezoeker het opnieuw.
+>
+> **Gevolg voor het vullen.** Een raceweek krijgt zijn plaatsen zodra iemand de
+> live stand van dat team opent ná de race. Wie dat niet doet, ziet niets. Als
+> dat in de praktijk tegenvalt, is de volgende stap een cron of een knop in
+> beheer; bewust nog niet gebouwd.
 >
 > **Ronde 1, week 1 als proef** (nagerekend langs dezelfde weg als `loadZrlLive`,
 > dus mét de teambijstelling van de ploegleider en de opstelling): Bdev 1e van 8,
@@ -85,22 +103,20 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > en dat verschuift de plaats van ons team fors. Wie de stand naast een andere
 > berekening legt, moet die tabel dus meenemen.
 >
-> **Let op bij het lezen.** De teams komen uit de naamtag plus de bijstelling
-> van de ploegleider, dus de plaats is zo goed als die indeling. Renners zonder
-> tag vormen geen team en tellen dus voor niemand mee; de officiële WTRL-uitslag
+> **Let op bij het lezen.** De teams komen uit de naamtag plus de bijstelling van
+> de ploegleider, dus de plaats is zo goed als die indeling. Renners zonder tag
+> vormen geen team en tellen dus voor niemand mee; de officiële WTRL-uitslag
 > blijft leidend.
 >
-> **Bewust niet.** Geen opslag van de uitslag (geen migratie, geen tabel): de
-> berekening is goedkoop genoeg met de cache erboven, en zolang niemand de week
-> opent, vraagt het platform Zwift niets. Wil je later een historisch klassement
-> over de hele ronde, dan is opslaan alsnog de volgende stap. Ook geen punten,
-> geen aantal renners en geen uitleg in het scherm: de eigenaar vroeg om de
-> plaats en verder niets.
+> **Bewust niet.** Geen punten, geen aantal renners en geen uitleg in het scherm:
+> de eigenaar vroeg om de plaats en verder niets.
 >
-> Getest: `tsc`, ESLint en de unit-suite (`tests/unit/zrl-team-result.test.ts`
-> erbij). `npm run build` compileert en typecheckt, maar haalt het einde hier
-> niet: het prerenderen van `/omnium` vraagt Supabase-sleutels en deze worktree
-> heeft geen `.env.local`. Om dezelfde reden niet in de browser bekeken.
+> Getest: `tsc`, ESLint en de unit-suite (`tests/unit/zrl-team-result.test.ts`).
+> `npm run build` compileert en typecheckt, maar haalt het einde hier niet: het
+> prerenderen van `/omnium` vraagt Supabase-sleutels en deze worktree heeft geen
+> `.env.local`. Om dezelfde reden niet in de browser bekeken. **Migratie `0188`
+> is niet lokaal getest** (geen Docker/Supabase-config hier); tot hij is
+> toegepast blijft de plaats overal leeg.
 
 ---
 

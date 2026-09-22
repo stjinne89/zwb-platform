@@ -272,10 +272,11 @@ export default async function EventDetailPage({
     })
     .sort((a, b) => Number(b.isMine) - Number(a.isMine));
   const isParentEvent = subEvents.length > 0;
-  // Gereden ZRL-raceweek: de plaats van elk team in zijn divisie.
+  // Gereden ZRL-raceweek: de bevroren plaats van elk team in zijn divisie
+  // (migr. 0188). Alleen lezen; de live stand schrijft hem weg.
   const teamResults =
     isParentEvent && event.type === "zrl"
-      ? await loadZrlTeamResults(subEvents.map((sub) => ({ id: sub.id, startAt: sub.startAt })))
+      ? await loadZrlTeamResults(subEvents.map((sub) => sub.id))
       : new Map<string, ZrlTeamResult>();
   const raceDateKey = amsterdamDateKey(new Date(event.start_at));
   const sharedDescription = String(parentEvent?.description ?? "").trim();
