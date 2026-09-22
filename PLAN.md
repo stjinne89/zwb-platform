@@ -108,8 +108,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > zitten; ze komen nu uit Sauce' `src/zwift.proto`. Commit `e5cd74e`. Daarna
 > werkte het: status 200, 213 passages van 168 renners in een uur, en de ruwe
 > velden bevestigen de indeling. Veld 6 (eventsubgroep) is altijd leeg; het
-> dashboard filtert daarom op de inschrijvers. Nog open: de pagina tijdens een
-> echte ZRL-race bekijken.
+> dashboard filtert daarom op de inschrijvers. Op productie bekeken (ZRL C,
+> vóór de start): subgroep en starttijd goed gekozen, 18 tegenstanders met hun
+> tag in "Teams bijstellen". Nog open: de pagina tijdens een echte ZRL-race.
+>
+> **Teamnaam.** Een team kreeg de spelling van de eerste renner ("foudre" naast
+> "Foudre"). Nu wint de vaakst getypte spelling, bij gelijkspel een met
+> hoofdletters en dan de kaalste (`pickTeamLabel` in
+> `src/lib/zrl-live/team-tags.ts`).
 
 ---
 

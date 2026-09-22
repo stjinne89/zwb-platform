@@ -46,3 +46,24 @@ export function zrlLeagueKey(eventName: string, subgroupLabel: string, zwiftEven
   if (!season || !division) return `event:${zwiftEventId}:${subgroupLabel}`;
   return `${season}|${teamKey(division[1])}|${division[2]}|${subgroupLabel}`;
 }
+
+/**
+ * Weergavenaam uit alle spellingen van één team: de vaakst getypte, bij
+ * gelijkspel een met hoofdletters boven alles-klein ("Foudre" boven "foudre"),
+ * dan de kaalste (zonder emoji of losse tekens).
+ */
+export function pickTeamLabel(spellings: string[]): string {
+  const counts = new Map<string, number>();
+  for (const raw of spellings) {
+    const spelling = raw.trim();
+    if (spelling) counts.set(spelling, (counts.get(spelling) ?? 0) + 1);
+  }
+  const noise = (s: string) => s.replace(/[\p{L}\p{N} ]/gu, "").length;
+  const hasCapital = (s: string) => (s !== s.toLowerCase() ? 1 : 0);
+  return (
+    [...counts].sort(
+      ([a, na], [b, nb]) =>
+        nb - na || hasCapital(b) - hasCapital(a) || noise(a) - noise(b) || a.localeCompare(b),
+    )[0]?.[0] ?? ""
+  );
+}

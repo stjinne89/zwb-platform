@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scoreRace, type Passage, type Rider, type RouteSegment } from "@/lib/zrl-live/scoring";
-import { extractTeamTag, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
+import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 
 const route: RouteSegment[] = [
   { segmentId: "S", name: "Sprint" },
@@ -82,6 +82,13 @@ describe("teamtags", () => {
     expect(extractTeamTag("M. Mendelea Ma [BMTR Racing] ")).toBe("BMTR Racing");
     expect(extractTeamTag("Ｋ えさちょ［NICO-ciel］［HZM］")).toBe("HZM");
     expect(extractTeamTag("Luke Caisley")).toBeNull();
+  });
+
+  it("kiest een nette weergavenaam", () => {
+    expect(pickTeamLabel(["foudre", "Foudre"])).toBe("Foudre");
+    expect(pickTeamLabel(["TNP", "tnp", "tnp"])).toBe("tnp"); // vaakst getypt wint
+    expect(pickTeamLabel(["BMTR Cubs 🦬", "BMTR Cubs"])).toBe("BMTR Cubs");
+    expect(pickTeamLabel([])).toBe("");
   });
 
   it("maakt spellingen vergelijkbaar", () => {

@@ -15,7 +15,7 @@ import {
 } from "@/lib/events/zwift-club";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { scoreRace, type Passage, type Rider, type ScoreResult } from "@/lib/zrl-live/scoring";
-import { extractTeamTag, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
+import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 
 /** Geen nieuwe passage of uitslag meer: dan noemen we de stand definitief. */
 const QUIET_BEFORE_FINAL_MS = 15 * 60 * 1000;
@@ -198,15 +198,19 @@ export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
   );
 
   const ownTeam = teamName ? teamKey(teamName) : null;
-  const teamLabels: Record<string, string> = ownTeam && teamName ? { [ownTeam]: teamName } : {};
+  const spellings = new Map<string, string[]>();
   const riders: Rider[] = subgroup.entrants.map((entrant) => {
     const id = Number(entrant.zwiftId);
     // Eigen renners kennen we; daarna gaat de bijstelling van de ploegleider voor de tag.
     const label = assignments.get(id) ?? extractTeamTag(entrant.name);
     const team = own.has(id) && ownTeam ? ownTeam : label ? teamKey(label) || null : null;
-    if (team && label && !teamLabels[team]) teamLabels[team] = label;
+    if (team && label) spellings.set(team, [...(spellings.get(team) ?? []), label]);
     return { athleteId: id, name: entrant.name, team };
   });
+  const teamLabels: Record<string, string> = Object.fromEntries(
+    [...spellings].map(([team, list]) => [team, pickTeamLabel(list)]),
+  );
+  if (ownTeam && teamName) teamLabels[ownTeam] = teamName;
 
   const riderIds = new Set(riders.map((r) => r.athleteId));
   const lastActivity = Math.max(
