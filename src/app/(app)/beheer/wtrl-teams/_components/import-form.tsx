@@ -50,7 +50,11 @@ export function WtrlImportForm({
         setError(res.error);
         return;
       }
-      setResult(`${res.teams} teams en ${res.riders} renners opgeslagen.`);
+      setResult(
+        `${res.teams} teams en ${res.riders} renners opgeslagen. ` +
+          `${res.added} leden toegevoegd, ${res.removed} verwijderd, ` +
+          `${res.roster} zonder account in het rooster.`,
+      );
       setText("");
       setChoices({});
       router.refresh();

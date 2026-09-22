@@ -20,8 +20,8 @@ gaat stabiliteit voor nieuwe features.
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   `0180_wtrl_rosters` toepassen en op `/beheer/wtrl-teams` de WTRL-teams plakken
-   en koppelen.
+   `0180_wtrl_rosters` en `0181_wtrl_team_membership` toepassen en op
+   `/beheer/wtrl-teams` de WTRL-teams plakken en koppelen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -47,7 +47,49 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0181`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`.
+
+---
+
+> **WTRL-import deelt renners in, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0181_wtrl_team_membership.sql`. Vervolg op de WTRL-teams hieronder.
+>
+> **Waarom.** De eigenaar zag dat de import (0180) alleen een aparte tabel vulde:
+> niemand kwam in een team, renners zonder account kwamen niet in het rooster, en de
+> waarden stonden in een tweede tabel naast de rostertabel. WTRL is leidend voor wie
+> in welk team rijdt.
+>
+> **Nu.** Per geplakt én gekoppeld WTRL-team (`lib/teams/wtrl-membership.ts`, puur):
+> - **Lid bij WTRL met ZWB-account** (Zwift-ID op het profiel, of een geclaimde
+>   rosternaam met dat Zwift-ID): lid van het ZWB-team, herkomst `wtrl` (nieuw op
+>   `team_members.assignment_source`). Een seed-override van een captain wint.
+> - **Zonder account:** rosternaam bij dat team, herkomst `wtrl` (nieuw op
+>   `roster_entries.team_assignment_source`). Bestaande namen worden hergebruikt (op
+>   Zwift-ID, anders op naam) en houden hun spelling; `manual_excluded` blijft met
+>   rust. `claim_roster_entry` geeft bij een WTRL-naam een lidmaatschap met herkomst
+>   `wtrl` in plaats van `roster_claim`, zodat de volgende import het kan opruimen.
+> - **Vertrokken bij WTRL:** lidmaatschap met herkomst `wtrl` gaat eruit; een
+>   ongeclaimde WTRL-rosternaam wordt losgekoppeld (niet verwijderd). `manual`,
+>   `roster_claim` en `event_availability` blijven altijd staan. Teams die niet in de
+>   plak staan of niet gekoppeld zijn, raakt de import niet; een team waarvan geen
+>   renners zijn gelezen, wordt niet opgeruimd.
+> - **Uitgenodigd** bij WTRL telt nog niet als lid: niet toegevoegd, en een
+>   WTRL-lid dat weer "uitgenodigd" wordt, gaat eruit.
+> - **Eén tabel:** de rostertabel (teampagina én `/teams`) heeft een kolom
+>   "zFTP · zMAP" met categorie, W, w/kg, zMAP w/kg, advies en "Te sterk"; op de
+>   telefoon als regel op de rennerkaart. "Nog niet geregistreerd" toont zFTP, zMAP
+>   en advies. Het aparte WTRL-blok is weg. Staat iemand in twee WTRL-teams, dan telt
+>   "te sterk" als hij in één ervan niet past (`summarizeWtrlRiders`).
+>
+> **Bekende beperking.** Een rosternaam is uniek en hoort bij één team: een renner
+> zonder account die bij WTRL in B1 én B2 staat, verschijnt in het rooster van het
+> laatst verwerkte team.
+>
+> **Privacy.** De tekst van 0180 noemt nog niet dat de WTRL-gegevens ook bepalen wie
+> in een ZWB-team staat. Aanvulling voorgelegd aan de eigenaar, nog niet in `/privacy`.
+>
+> **Niet lokaal te verifiëren:** migratie en import tegen echte data. Getest: `tsc`,
+> ESLint, `wtrl-membership.test.ts` (11) en de volledige unit-suite (1578 groen).
 
 ---
 
@@ -71,10 +113,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0181`
 >   ZWB-team (standaard de vorige keuze, anders gelijke naam). Opnieuw plakken
 >   vervangt de renners van dat team. Tabellen `wtrl_teams` en `wtrl_team_riders`,
 >   lezen voor ingelogde leden, schrijven via de serveractie.
-> - **Teampagina:** per gekoppeld WTRL-team (ook de subteams op de pagina van een
->   paraplu) een tabel met categorie, zFTP, w/kg, zMAP w/kg, advies ("B" of
->   "B Dev") en of de renner in de divisie van het team past ("Te sterk" in rood).
->   Namen linken naar het lid als het Zwift-ID bij een profiel hoort.
+> - **Teampagina:** eerst een aparte tabel per WTRL-team; sinds de ronde hierboven
+>   (0181) een kolom in de rostertabel.
 > - **Rekenregels** (`lib/teams/wtrl-roster.ts`), van
 >   https://www.wtrl.racing/zrl/resources/: een categorie haal je met zFTP óf zMAP
 >   (w/kg), bij Open plus een wattvloer (A 250, B 200, C 150 W), bij Womens zonder
@@ -88,7 +128,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0181`
 > verbieden scraping) en geen Zwift-login per lid (tegen de Zwift-voorwaarden en we
 > zouden wachtwoorden bewaren). De 3-race-regel voor opwaarderen midden in een ronde
 > zit niet in "past in divisie". Geen koppeling met `profiles.zrl_category`: de
-> WTRL-waarden staan naast het profiel, ze overschrijven niets.
+> WTRL-waarden overschrijven niets op het profiel. (Indelen in teams kwam er in de
+> ronde hierboven wel bij.)
 >
 > **Privacytekst.** Nieuwe bron van gegevens over renners, ook van renners
 > zonder ZWB-account (naam, Zwift-ID, zFTP in W en w/kg, waaruit gewicht af te

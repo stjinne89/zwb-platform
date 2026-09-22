@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
+import type { WtrlRiderSummary } from "@/lib/teams/wtrl-roster";
 
 export type TeamOption = {
   id: string;
@@ -45,6 +46,8 @@ export type TeamRosterRow = {
   zrlStarts: number;
   zrlBestPosition: number | null;
   zrlAvgPoints: number | null;
+  /** zFTP, zMAP en divisieadvies uit de WTRL-import (migr. 0180). */
+  wtrl: WtrlRiderSummary | null;
 };
 
 const CATEGORIES = ["A", "B", "C", "D", "E"];
@@ -66,6 +69,7 @@ type SortKey =
   | "10m"
   | "20m"
   | "ftp"
+  | "zftp"
   | "zrl";
 
 type SortDirection = "asc" | "desc";
@@ -196,7 +200,7 @@ export function TeamRosterTable({
         </select>
       </div>
 
-      {/* Op telefoonbreedte is 1180px tabel drie schermen scrollen; daar tonen
+      {/* Op telefoonbreedte is 1300px tabel drie schermen scrollen; daar tonen
           we per renner een kaart met de kerncijfers. */}
       <ul className="space-y-2 sm:hidden">
         {filtered.map((row) => {
@@ -250,6 +254,14 @@ export function TeamRosterTable({
                     </dd>
                   </div>
                 ))}
+                {row.wtrl && (
+                  <div className="col-span-2 flex items-baseline justify-between gap-2">
+                    <dt className="text-muted-foreground">WTRL</dt>
+                    <dd className="tabular-nums">
+                      <WtrlSummary wtrl={row.wtrl} inline />
+                    </dd>
+                  </div>
+                )}
                 <div className="col-span-2 flex items-baseline justify-between gap-2">
                   <dt className="text-muted-foreground">ZRL</dt>
                   <dd className="tabular-nums">
@@ -265,7 +277,7 @@ export function TeamRosterTable({
       </ul>
 
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[1180px] text-sm">
+        <table className="w-full min-w-[1300px] text-sm">
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
               <SortableHeader label="Renner" sortKey="name" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
@@ -279,6 +291,7 @@ export function TeamRosterTable({
               <SortableHeader label="10m" sortKey="10m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="20m" sortKey="20m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="FTP" sortKey="ftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableHeader label="zFTP · zMAP" sortKey="zftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="ZRL" sortKey="zrl" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <th className="py-2 font-medium">Bijgewerkt</th>
             </tr>
@@ -330,6 +343,9 @@ export function TeamRosterTable({
                   <PowerCell watts={power?.watts10m} wkg={power?.wkg10m} />
                   <PowerCell watts={power?.watts20m} wkg={power?.wkg20m} />
                   <PowerCell watts={power?.ftpWatts ?? row.ftpWatts} wkg={power?.ftpWkg} />
+                  <td className="py-2 pr-3 align-top tabular-nums">
+                    {row.wtrl ? <WtrlSummary wtrl={row.wtrl} /> : <span className="text-muted-foreground">-</span>}
+                  </td>
                   <td className="py-2 pr-3 align-top">
                     <div className="tabular-nums">{row.zrlStarts} starts</div>
                     <div className="text-xs text-muted-foreground">
@@ -390,6 +406,34 @@ function SortableHeader({
           ))}
       </button>
     </th>
+  );
+}
+
+function WtrlSummary({ wtrl, inline = false }: { wtrl: WtrlRiderSummary; inline?: boolean }) {
+  const values = (
+    <>
+      {wtrl.category && <span className="font-medium">{wtrl.category} · </span>}
+      {fmt(wtrl.zftpW)}w · {fmt(wtrl.zftpWkg, 2)} · {fmt(wtrl.zmapWkg, 2)}
+    </>
+  );
+  const advice = (
+    <>
+      {wtrl.advice ?? "-"}
+      {wtrl.fits === false && <span className="font-medium text-destructive"> · Te sterk</span>}
+    </>
+  );
+  if (inline) {
+    return (
+      <>
+        {values} · {advice}
+      </>
+    );
+  }
+  return (
+    <>
+      <div>{values}</div>
+      <div className="text-xs text-muted-foreground">{advice}</div>
+    </>
   );
 }
 
@@ -456,6 +500,8 @@ function sortValue(row: TeamRosterRow, key: SortKey): string | number {
       return row.power?.watts20m ?? Number.NEGATIVE_INFINITY;
     case "ftp":
       return row.power?.ftpWatts ?? row.ftpWatts ?? Number.NEGATIVE_INFINITY;
+    case "zftp":
+      return row.wtrl?.zftpWkg ?? Number.NEGATIVE_INFINITY;
     case "zrl":
       return row.zrlStarts;
   }

@@ -206,3 +206,41 @@ export function fitsDivision(power: Power, division: WtrlDivision): boolean | nu
   if (division.development) return fitsDevelopment(power, division.category, division.women);
   return true;
 }
+
+export type WtrlRiderSummary = {
+  category: Category | null;
+  zftpW: number | null;
+  zftpWkg: number | null;
+  zmapWkg: number | null;
+  /** "B" of "B Dev". */
+  advice: string | null;
+  /** Past in de divisie van elk WTRL-team waar de renner in staat; null = onbekend. */
+  fits: boolean | null;
+};
+
+/**
+ * Eén regel per renner over de WTRL-teams op een pagina. Staat iemand in twee
+ * teams (B1 en B2), dan telt "past niet" in één ervan.
+ */
+export function summarizeWtrlRiders(
+  teams: Array<{ division: string | null; riders: WtrlRider[] }>,
+): Map<string, WtrlRiderSummary> {
+  const byRider = new Map<string, WtrlRiderSummary>();
+  for (const team of teams) {
+    const division = parseDivision(team.division);
+    const women = division?.women ?? false;
+    for (const rider of team.riders) {
+      const fits = division ? fitsDivision(rider, division) : null;
+      const previous = byRider.get(rider.zwiftId);
+      byRider.set(rider.zwiftId, {
+        category: previous?.category ?? wtrlCategory(rider, women),
+        zftpW: rider.zftpW,
+        zftpWkg: rider.zftpWkg,
+        zmapWkg: rider.zmapWkg,
+        advice: previous?.advice ?? recommendedDivision(rider, women),
+        fits: previous?.fits === false || fits === false ? false : (fits ?? previous?.fits ?? null),
+      });
+    }
+  }
+  return byRider;
+}

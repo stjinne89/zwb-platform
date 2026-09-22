@@ -6,6 +6,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
+import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
 import { SyncGraveyardButton } from "./_components/sync-graveyard-button";
 import { SyncPowerButton } from "./_components/sync-power-button";
 import {
@@ -24,6 +25,7 @@ type ProfileRow = {
   zrl_category: string | null;
   ftp_watts: number | null;
   weight_kg: number | string | null;
+  zwift_id: string | null;
 };
 
 type TeamRow = {
@@ -134,7 +136,7 @@ export default async function TeamsPage() {
     getCurrentUserAccess(supabase),
     supabase
       .from("profiles")
-      .select("id, display_name, region, zrl_category, ftp_watts, weight_kg")
+      .select("id, display_name, region, zrl_category, ftp_watts, weight_kg, zwift_id")
       .eq("is_approved", true)
       .order("display_name"),
     supabase
@@ -225,12 +227,13 @@ export default async function TeamsPage() {
   if (access.user && !profileRows.some((profile) => profile.id === access.user?.id)) {
     const { data: myProfile } = await supabase
       .from("profiles")
-      .select("id, display_name, region, zrl_category, ftp_watts, weight_kg")
+      .select("id, display_name, region, zrl_category, ftp_watts, weight_kg, zwift_id")
       .eq("id", access.user.id)
       .maybeSingle();
     if (myProfile) profileRows = [myProfile as ProfileRow, ...profileRows];
   }
 
+  const wtrlByZwiftId = await loadWtrlSummaries(supabase, null);
   const rows: TeamRosterRow[] = profileRows.map((profile) => {
     const power = powerByProfile.get(profile.id);
     const zrl = zrlByProfile.get(profile.id);
@@ -271,6 +274,7 @@ export default async function TeamsPage() {
         zrl && zrl.points.length > 0
           ? zrl.points.reduce((sum, point) => sum + point, 0) / zrl.points.length
           : null,
+      wtrl: profile.zwift_id ? wtrlByZwiftId.get(profile.zwift_id.trim()) ?? null : null,
     };
   });
 
