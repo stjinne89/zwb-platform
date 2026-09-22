@@ -114,7 +114,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 > "Te sterk" of "Bijna te sterk" staat onder de kolom van de waarde die de grens
 > nadert of overschrijdt (`metricStatus`; eerst altijd onder zMAP), zodat het niet
 > alleen aan kleur hangt. Boven de W/kg-grens maar onder de wattvloer van Open is een
-> waarschuwing, geen rood. Staat een renner in meerdere teams, dan telt het zwaarste. Op productie
+> waarschuwing, geen rood.
+> **Bijgewerkt 2026-09-22 (3), selectiemaker per event:** de opstellingsplanner heeft
+> geen kolom "Profiel" meer; beschikbaarheid is een teken (✓ ja, ? misschien, ✗ nee,
+> - niet opgegeven, met het woord als tooltip en schermlezertekst). Zodra een renner op
+> de pagina WTRL-gegevens heeft, toont de planner zFTP en zMAP (met "Bijna te sterk" /
+> "Te sterk" per kolom en de naam in rood/oranje) in plaats van 5m, 20m en FTP; teams
+> zonder WTRL-gegevens (ladder) houden die. De categorie naast de naam komt dan uit
+> WTRL. De weergave staat gedeeld in `teams/_components/wtrl-cells.tsx`. Staat een renner in meerdere teams, dan telt het zwaarste. Op productie
 > (alleen lezen) nu niemand rood en zes oranje: Jos Leijten, Kevin Plasmans en Maarten
 > Triebels (B1), Bo van Ruth (Zwiftladies), Gina van Rossum en Arja Snitselaar
 > (Zwiftladies C).

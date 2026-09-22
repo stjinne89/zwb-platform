@@ -680,6 +680,7 @@ export default async function TeamDetailPage({
                 watts20m: row.power?.watts20m ?? null,
                 wkg5m: row.power?.wkg5m ?? null,
                 wkg20m: row.power?.wkg20m ?? null,
+                wtrl: row.wtrl,
                 zrlStarts: row.zrlStarts,
                 bestPosition: row.zrlBestPosition,
               }));

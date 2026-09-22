@@ -4,8 +4,15 @@ import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-import { riderTypeLabel } from "@/lib/teams/power-profile";
 import { usePowerUnit } from "@/components/power-unit";
+import type { WtrlRiderSummary } from "@/lib/teams/wtrl-roster";
+import {
+  STATUS_CLASS,
+  STATUS_TITLE,
+  StatusNote,
+  zftpText,
+  zmapText,
+} from "../../_components/wtrl-cells";
 import { removeTeamLineup, setTeamLineup } from "../_actions";
 
 export type PlannerTeam = {
@@ -29,6 +36,8 @@ export type PlannerRider = {
   bestPosition: number | null;
   /** Rosternaam zonder account: `id` is dan de rosternaam. */
   unregistered?: boolean;
+  /** zFTP, zMAP en divisiestatus uit de WTRL-import. */
+  wtrl: WtrlRiderSummary | null;
 };
 
 export type PlannerLineup = {
@@ -69,6 +78,7 @@ export function TeamLineupPlanner({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const selectedIds = new Set(lineups.map((lineup) => lineup.riderId));
+  const hasWtrl = riders.some((rider) => rider.wtrl);
 
   function add(rider: PlannerRider) {
     if (!targetTeamId) return;
@@ -133,49 +143,86 @@ export function TeamLineupPlanner({
       <ResponsiveTable
         rows={riders}
         rowKey={(rider) => rider.id}
-        minWidth={760}
+        minWidth={620}
         columns={[
           {
             key: "name",
             header: "Renner",
             primary: true,
-            cell: (rider) => (
-              <span>
-                <span className="font-medium">{rider.name}</span>
-                {rider.unregistered && (
-                  <span className="ml-1 rounded-full border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground">
-                    niet geregistreerd
+            cell: (rider) => {
+              const status = rider.wtrl?.status ?? "ok";
+              return (
+                <span>
+                  <span title={STATUS_TITLE[status]} className={`font-medium ${STATUS_CLASS[status]}`}>
+                    {rider.name}
                   </span>
-                )}
-                {rider.category && (
-                  <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
-                    {rider.category}
-                  </span>
-                )}
-              </span>
-            ),
-          },
-          {
-            key: "profile",
-            header: "Profiel",
-            secondary: true,
-            cell: (rider) =>
-              `${riderTypeLabel(rider.riderType)} · ${availabilityLabel(rider.availability)}`,
+                  {rider.unregistered && (
+                    <span className="ml-1 rounded-full border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground">
+                      niet geregistreerd
+                    </span>
+                  )}
+                  {(rider.wtrl?.category ?? rider.category) && (
+                    <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                      {rider.wtrl?.category ?? rider.category}
+                    </span>
+                  )}
+                </span>
+              );
+            },
           },
           {
             key: "availability",
-            header: "Beschikbaar",
-            hideOnCard: true,
-            cell: (rider) => availabilityLabel(rider.availability),
+            header: <span title="Beschikbaar">Besch.</span>,
+            secondary: true,
+            cell: (rider) => <AvailabilityMark value={rider.availability} />,
           },
-          { key: "w5m", header: "5m", align: "right", cell: (rider) => power(rider.watts5m, rider.wkg5m) },
-          { key: "w20m", header: "20m", align: "right", cell: (rider) => power(rider.watts20m, rider.wkg20m) },
-          {
-            key: "ftp",
-            header: "FTP",
-            align: "right",
-            cell: (rider) => power(rider.ftpWatts, rider.ftpWkg),
-          },
+          // ZRL: zFTP en zMAP zijn leidend. Zonder WTRL-gegevens (bijvoorbeeld
+          // een ladderteam) blijven de vermogens uit de sync staan.
+          ...(hasWtrl
+            ? [
+                {
+                  key: "zftp",
+                  header: "zFTP",
+                  align: "right" as const,
+                  cell: (rider: PlannerRider) =>
+                    rider.wtrl ? (
+                      <span>
+                        {zftpText(rider.wtrl, unit)}
+                        <span className="block text-xs">
+                          <StatusNote status={rider.wtrl.zftpStatus} />
+                        </span>
+                      </span>
+                    ) : (
+                      "-"
+                    ),
+                },
+                {
+                  key: "zmap",
+                  header: "zMAP",
+                  align: "right" as const,
+                  cell: (rider: PlannerRider) =>
+                    rider.wtrl ? (
+                      <span>
+                        {zmapText(rider.wtrl, unit)}
+                        <span className="block text-xs">
+                          <StatusNote status={rider.wtrl.zmapStatus} />
+                        </span>
+                      </span>
+                    ) : (
+                      "-"
+                    ),
+                },
+              ]
+            : [
+                { key: "w5m", header: "5m", align: "right" as const, cell: (rider: PlannerRider) => power(rider.watts5m, rider.wkg5m) },
+                { key: "w20m", header: "20m", align: "right" as const, cell: (rider: PlannerRider) => power(rider.watts20m, rider.wkg20m) },
+                {
+                  key: "ftp",
+                  header: "FTP",
+                  align: "right" as const,
+                  cell: (rider: PlannerRider) => power(rider.ftpWatts, rider.ftpWkg),
+                },
+              ]),
           {
             key: "zrl",
             header: "ZRL",
@@ -207,15 +254,27 @@ export function TeamLineupPlanner({
   );
 }
 
-function availabilityLabel(value: PlannerRider["availability"]) {
-  switch (value) {
-    case "available":
-      return "Ja";
-    case "maybe":
-      return "Misschien";
-    case "unavailable":
-      return "Nee";
-    default:
-      return "-";
+const AVAILABILITY: Record<
+  NonNullable<PlannerRider["availability"]>,
+  { mark: string; label: string; className: string }
+> = {
+  available: { mark: "✓", label: "Beschikbaar", className: "text-emerald-600 dark:text-emerald-400" },
+  maybe: { mark: "?", label: "Misschien", className: "text-amber-600 dark:text-amber-400" },
+  unavailable: { mark: "✗", label: "Niet beschikbaar", className: "text-destructive" },
+};
+
+function AvailabilityMark({ value }: { value: PlannerRider["availability"] }) {
+  if (!value) {
+    return (
+      <span className="text-muted-foreground" title="Niet opgegeven" aria-label="Niet opgegeven">
+        -
+      </span>
+    );
   }
+  const item = AVAILABILITY[value];
+  return (
+    <span className={`font-semibold ${item.className}`} title={item.label} aria-label={item.label}>
+      {item.mark}
+    </span>
+  );
 }

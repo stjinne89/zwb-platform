@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { riderTypeLabel } from "@/lib/teams/power-profile";
 import type { WtrlRiderSummary } from "@/lib/teams/wtrl-roster";
 import { PowerUnitToggle, usePowerUnit } from "@/components/power-unit";
+import {
+  STATUS_CLASS,
+  STATUS_TITLE,
+  StatusNote,
+  zftpText,
+  zmapText,
+  zmapWatts,
+} from "./wtrl-cells";
 import type { PowerUnit } from "@/lib/training/power-unit";
 
 export type TeamOption = {
@@ -433,18 +441,6 @@ function SortableHeader({
   );
 }
 
-// Rood: te sterk voor de divisie van zijn team. Oranje: binnen 5% van de grens.
-const STATUS_CLASS = {
-  over: "text-destructive",
-  danger: "text-amber-600 dark:text-amber-400",
-  ok: "",
-} as const;
-const STATUS_TITLE = {
-  over: "Te sterk voor de divisie",
-  danger: "Binnen 5% van de grens van de divisie",
-  ok: undefined,
-} as const;
-
 function RiderName({ row }: { row: TeamRosterRow }) {
   const status = row.wtrl?.status ?? "ok";
   if (!row.unregistered) {
@@ -468,28 +464,6 @@ function RiderName({ row }: { row: TeamRosterRow }) {
       </span>
     </span>
   );
-}
-
-/** zMAP in watt via het gewicht dat uit zFTP W en zFTP W/kg volgt. */
-function zmapWatts(wtrl: WtrlRiderSummary) {
-  if (wtrl.zmapWkg == null || !wtrl.zftpW || !wtrl.zftpWkg) return null;
-  return (wtrl.zmapWkg * wtrl.zftpW) / wtrl.zftpWkg;
-}
-
-function zftpText(wtrl: WtrlRiderSummary, unit: PowerUnit) {
-  return unit === "wkg" ? fmt(wtrl.zftpWkg, 2) : `${fmt(wtrl.zftpW)}w`;
-}
-
-function zmapText(wtrl: WtrlRiderSummary, unit: PowerUnit) {
-  return unit === "wkg" ? fmt(wtrl.zmapWkg, 2) : `${fmt(zmapWatts(wtrl))}w`;
-}
-
-function StatusNote({ status }: { status: WtrlRiderSummary["zftpStatus"] }) {
-  if (status === "over") return <span className="font-medium text-destructive"> · Te sterk</span>;
-  if (status === "danger") {
-    return <span className="font-medium text-amber-600 dark:text-amber-400"> · Bijna te sterk</span>;
-  }
-  return null;
 }
 
 /** Op de rennerkaart (telefoon) alles op één regel. */
