@@ -52,8 +52,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0180`
 ---
 
 > **ZRL: hoofdteams zijn paraplu's, 2026-09-22 — gebouwd, lokaal getest.**
-> Implementatiecommits `8c06cd4` en de commit "ZRL-paraplu: aanmelden op de
-> raceweek, trigger bij eerste subteam, zFTP-probe". Migratie
+> Implementatiecommits `8c06cd4` en `732f3a4` ("ZRL-paraplu: aanmelden op de
+> raceweek, trigger bij eerste subteam, zFTP-probe"). Migratie
 > `0179_zrl_parent_team_events.sql`. Vervolg op de hoofdevents hieronder.
 >
 > **Waarom.** Regel van de eigenaar: een ZRL-team met subteams (B met B1/B2, de
