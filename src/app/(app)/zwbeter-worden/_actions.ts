@@ -15,10 +15,11 @@ import {
   clearDayForTest,
   pushPlanWorkoutsToIntervals,
   pushWorkoutToIntervals,
+  removePlanEventsFromIntervals,
 } from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
 import { syncEventWorkout } from "@/lib/training/events";
-import { activeBasePlan } from "@/lib/training/active-plan";
+import { activeBasePlan, archiveOtherBasePlans } from "@/lib/training/active-plan";
 import {
   clampMinutes,
   mondayKey,
@@ -483,6 +484,11 @@ export async function deleteTrainingPlan(planId: string) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
+    const { failed } = await removePlanEventsFromIntervals(admin, planId, plan.profile_id);
+    if (failed > 0) {
+      throw new Error("Niet alle trainingen konden uit intervals.icu worden gehaald. Probeer het opnieuw.");
+    }
+
     const { error } = await admin.from("training_plans").delete().eq("id", planId);
     if (error) throw new Error(error.message);
 
@@ -741,6 +747,11 @@ export async function setPlanStatus(formData: FormData) {
     }
     const { error } = await admin.from("training_plans").update(patch).eq("id", planId);
     if (error) throw new Error(error.message);
+    // Een goedgekeurd basisplan is vanaf nu het schema; het vorige gaat naar het
+    // archief. Zie onePlanPerProfile() voor wat er misging zolang dat niet zo was.
+    if (status === "approved" && !plan.parent_plan_id) {
+      await archiveOtherBasePlans(admin, planId, plan.profile_id);
+    }
     revalidatePath("/zwbeter-worden", "layout");
     return { ok: true as const };
   } catch (err) {
@@ -793,6 +804,9 @@ export async function publishTrainingPlan(formData: FormData) {
           published_at: new Date().toISOString(),
         })
         .eq("id", planId);
+      if (!plan.parent_plan_id) {
+        await archiveOtherBasePlans(admin, planId, plan.profile_id);
+      }
       await sendNotificationToMembers(
         "on_training_plan",
         {

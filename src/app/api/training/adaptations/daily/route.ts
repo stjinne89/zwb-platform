@@ -22,6 +22,7 @@ import {
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
+import { onePlanPerProfile } from "@/lib/training/active-plan";
 
 /**
  * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
@@ -112,6 +113,8 @@ type PlanRow = {
   end_date: string;
   root_plan_id: string | null;
   created_at: string;
+  status: string;
+  updated_at: string | null;
 };
 
 function since(days: number) {
@@ -121,19 +124,21 @@ function since(days: number) {
 /**
  * Lopende schema's om een voorstel voor te maken. Alleen basisplannen: een
  * eerdere aanpassing is zelf geen schema, en zou een voorstel op een voorstel
- * opleveren.
+ * opleveren. En één per lid; zie onePlanPerProfile.
  */
 async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>) {
   const { data, error } = await admin
     .from("training_plans")
-    .select("id, profile_id, trainer_id, goal_id, title, end_date, root_plan_id, created_at")
+    .select(
+      "id, profile_id, trainer_id, goal_id, title, end_date, root_plan_id, created_at, status, updated_at",
+    )
     .is("parent_plan_id", null)
     .in("status", ["approved", "published"])
-    .gte("end_date", new Date().toISOString().slice(0, 10))
+    .gte("end_date", amsterdamDayKey())
     .order("updated_at", { ascending: false })
-    .limit(25);
+    .limit(50);
   if (error) throw new Error(error.message);
-  return (data ?? []) as PlanRow[];
+  return onePlanPerProfile((data ?? []) as PlanRow[]).slice(0, 25);
 }
 
 /**
@@ -358,11 +363,14 @@ async function finishStaleGenerations(
     if (nogBezig) continue;
 
     if (outcome.ok && outcome.planId) afgemaakt += 1;
+    // Klaar, maar zonder schema: een dagvoorstel waar niets uit kwam om neer te
+    // zetten. Dat is geen fout; zie createPlanFromAiGeneration.
+    const nietsTeDoen = outcome.ok && outcome.status === "completed" && !outcome.planId;
 
     await admin.from("training_adaptation_runs").insert({
       profile_id: row.profile_id,
       trainer_id: row.trainer_id,
-      status: outcome.ok && outcome.planId ? "completed" : "failed",
+      status: outcome.ok && outcome.planId ? "completed" : nietsTeDoen ? "skipped" : "failed",
       draft_plan_id: outcome.ok ? outcome.planId ?? null : null,
       input_json: {
         trigger: "stale_generation",
@@ -374,7 +382,12 @@ async function finishStaleGenerations(
     });
     results.push({
       profileId: row.profile_id as string,
-      status: outcome.ok && outcome.planId ? "generation_finished" : "generation_failed",
+      status:
+        outcome.ok && outcome.planId
+          ? "generation_finished"
+          : nietsTeDoen
+            ? "generation_no_change"
+            : "generation_failed",
       draftPlanId: outcome.ok ? outcome.planId : undefined,
       error: outcome.ok ? outcome.error : outcome.error,
     });
@@ -534,12 +547,17 @@ export async function POST(request: Request) {
         // Wat er nog gepland staat vanaf vandaag; zonder dit verzint de AI de
         // resterende week opnieuw in plaats van hem aan te passen. Op profiel en
         // datum, niet op plan_id: eerdere aanpassingen wonen in afgeleide plannen.
+        // Zonder de vaste afspraken: die staan al in fixedWorkouts. Stonden ze hier
+        // óók, dan gaf de AI de ZRL-race van vandaag terug als "de aangepaste
+        // training" en kwam er een kopie naast het clubevent (22 september 2026).
         const { data: planned } = await admin
           .from("training_workouts")
           .select("scheduled_at, title, duration_minutes, intensity")
           .eq("profile_id", plan.profile_id)
           .is("superseded_at", null)
           .eq("status", "planned")
+          .not("origin", "in", "(member,event)")
+          .is("test_type", null)
           .gte("scheduled_at", `${today}T00:00:00`)
           .lte("scheduled_at", `${planEnd}T23:59:59`)
           .order("scheduled_at", { ascending: true });
@@ -592,7 +610,10 @@ export async function POST(request: Request) {
           adaptationKind: "daily",
           adaptationReason: "Dagelijkse bijstelling op basis van je laatste ritten.",
           adaptFromDate: today,
-          options: { reasoningEffort: "low", minWorkouts: 1 },
+          // Geen minimum: hoeft er niets te veranderen, dan is een lege lijst
+          // het goede antwoord. Met minimaal één workout verzon de AI iets — een
+          // rustdag of een kopie van de race van vandaag.
+          options: { reasoningEffort: "low", minWorkouts: 0 },
         });
         generationsStarted += 1;
 

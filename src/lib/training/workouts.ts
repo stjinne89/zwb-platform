@@ -236,7 +236,9 @@ export function adaptiveDailyPrompt() {
     "4) Frisser dan verwacht (today.feeling='fresh', hoge readiness, positieve TSB): je mág kwaliteit toevoegen of een sessie iets zwaarder maken, maar blijf binnen de weeklimiet en ga niet ten koste van de volgende geplande sleutelsessie.",
     "Valt vandaag binnen een periode uit seasonPlan.periods met kind 'rust', dan is het antwoord rust of hooguit een korte losse rit — ook als de signalen fris zijn. Het lid is er niet; frisheid is dan geen ruimte om iets in te plannen.",
     "Staat todayRides gevuld, dan heeft het lid vandaag al gereden. Plan vandaag dan niets meer: geef geen workout met de datum van vandaag terug, ook niet bij today.feeling 'fresh' of ruime today.availableMinutes. Pas hooguit de komende dagen aan op de belasting van die rit(ten).",
-    "Combineer signalen verstandig (bv. fris maar weinig tijd = korte, scherpe sessie). Geef een concreet, uitvoerbaar voorstel voor vandaag, tenzij todayRides laat zien dat er vandaag al is gereden.",
+    "Combineer signalen verstandig (bv. fris maar weinig tijd = korte, scherpe sessie). Geef een concreet, uitvoerbaar voorstel voor vandaag, tenzij todayRides laat zien dat er vandaag al is gereden of er vandaag een fixedWorkout staat.",
+    "Een dag met een fixedWorkout neem je nooit op in je antwoord, ook niet in aangepaste vorm: die afspraak blijft hoe dan ook staan, en wat je teruggeeft komt er als tweede training naast.",
+    "Is today niet meegegeven en geven de signalen geen reden tot aanpassen, geef dan een lege workouts-lijst terug. Dat is een geldig antwoord: dan blijft currentPlan zoals het is.",
   ].join("\n");
 }
 

@@ -2219,6 +2219,100 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — lege weken en dubbele ZRL door het automatische dagvoorstel
+
+**2026-09-22.** Geen migratie. Lokaal gecommit, niet gepusht.
+
+**Aanleiding.** Jeroen Janssen en Stijn hadden op 21 september een lege week,
+en Bart had op 22 september de ZRL twee keer als training. Productiedata is
+alleen gelezen: `training_ai_generations`, `training_plans`, `training_workouts`
+met `superseded_by_plan_id`, en Barts intervals.icu-kalender.
+
+**Oorzaken, gemeten.**
+- **Twee actieve basisplannen per lid.** Een nieuw basisplan archiveerde het
+  vorige niet. Jeroen had `0b04a9a0` (approved, t/m 30 sep) naast `146f4482`,
+  en Stijn had `6c7965a4` (approved, t/m 1 okt) naast `55a5f761`. Bart had
+  hetzelfde tot `29da37f5` op 21 sep afliep. De cron nam elk basisplan, dus elk
+  lid kreeg twee dagvoorstellen per dag. Het voorstel van het oude plan werkte
+  met het oude doel.
+- **Het dagvoorstel wiste zijn hele bereik.** Sinds `201d816` (8 sep) wordt een
+  dagvoorstel via `createPlanFromAiGeneration` automatisch gepubliceerd.
+  Daarvóór was het een concept. `pushPlanWorkoutsToIntervals` gaf elk plan met
+  `adapt_from_date` een bereik tot zijn `end_date`, en die einddatum kiest de AI.
+  Het voorstel van Stijns oude plan (21 sep, bereik 21 sep – 1 okt, één
+  training) streepte 24–28 sep weg. Dat van Jeroen (bereik 21–29 sep) streepte
+  vijf trainingen weg, en op 22 sep nog eens drie (bereik 22–30 sep). Alle tien
+  dagvoorstellen sinds 13 sep met een bereik van meer dan één dag deden dit.
+  Van de 68 dagvoorstellen sinds 13 sep zijn er 68 gepubliceerd.
+- **Vaste afspraken werden gekopieerd.** De cron gaf de ZRL mee in
+  `currentPlan` en in `fixedWorkouts`. Met `minWorkouts: 1` en "geef een
+  voorstel voor vandaag" gaf de AI de race terug als training van de dag.
+  `insertPlanWorkouts` blokkeerde alleen dagen met een test, een geschrapte of
+  een gereden training. Het clubevent wordt nooit vervangen, dus er kwam een
+  kopie naast (Bart en Jeroen, 22 sep).
+- **Een verwijderd schema liet events achter in intervals.icu.** Het verwijderen
+  van een plan nam de workouts mee (cascade), maar niet hun events. Bart
+  verwijderde het voorstel met de dubbele ZRL en haalde het event zelf weg; zijn
+  kalender van 21–23 sep is nu schoon.
+
+**Wat er veranderde.**
+- `onePlanPerProfile` en `pickActiveBasePlan` (`active-plan.ts`): de cron neemt
+  per lid alleen het lopende schema. Gepubliceerd gaat voor goedgekeurd;
+  daarbinnen telt het meest recent bijgewerkte, dezelfde regel als
+  `activeBasePlan`.
+- `archiveOtherBasePlans`: bij goedkeuren of publiceren van een basisplan, en
+  bij het automatisch publiceren van een zelfgemaakt basisplan, gaan de andere
+  lopende basisplannen van dat lid naar `archived`. Alleen de status verandert;
+  workouts van het oude plan blijven waar het nieuwe ze niet vervangt.
+- `publishRange` (`publish.ts`): alleen `plan_update` krijgt een bereik. Een
+  dagvoorstel vervangt alleen de dagen waarop het zelf een training zet. Dit
+  maakt de eerdere claim in deze sectie ongeldig dat "een bijgewerkt schema"
+  met `adapt_from_date` altijd alles vanaf die datum vervangt: dat geldt nu
+  alleen voor een herziening.
+- Een dagvoorstel waar na filteren geen training overblijft, wordt geen plan
+  (`createPlanFromAiGeneration` geeft `null`). De cron logt `skipped` en
+  `generation_no_change`. Het dagvoorstel heeft `minWorkouts: 0`, en de prompt
+  staat een lege lijst toe.
+- `insertPlanWorkouts` blokkeert ook dagen met een geplande eigen rit of
+  clubevent. De cron, "pas vandaag aan" en de herziening geven vaste afspraken
+  niet meer mee in `currentPlan` of `remainingWorkouts`; ze staan al in
+  `fixedWorkouts`. Er is een promptregel bij: een dag met een fixedWorkout geef
+  je nooit terug.
+- `removePlanEventsFromIntervals`: `deleteTrainingPlan` haalt eerst de events van
+  nog niet gereden workouts uit intervals.icu. Lukt dat niet, dan blijft het
+  schema staan, zodat het spoor naar die events niet kwijtraakt.
+
+**Bewust niet gebouwd.**
+- Een dagvoorstel kan geen training meer schrappen. Een rustdag van de AI viel
+  al weg in `dropShortRecoveryRides`, en werkte vóór deze ronde alleen doordat
+  het bereik de dag toevallig mee wiste. Schrappen via het voorstel vraagt om
+  een eigen veld in het antwoord. Het lid kan een training zelf verwijderen.
+- Het dagvoorstel is niet teruggezet naar een concept dat het lid zelf toepast.
+  Automatisch doorzetten blijft, maar dan veilig.
+- Geen opschoning van de lege en overbodige voorstelplannen van de afgelopen
+  weken. Hun workouts zijn vervangen, dus het lid ziet ze niet.
+- Het verwijderen van een basisplan zet de `parent_plan_id` van zijn afgeleide
+  plannen op null, waarmee ze zelf als basisplan gaan tellen. Dat is gezien en
+  niet aangepakt. `onePlanPerProfile` houdt de cron daarbij wel op één schema
+  per lid.
+
+**Nog met de hand op productie**, want archiveren vanuit deze sessie werd
+geweigerd: de oude plannen `0b04a9a0` (Jeroen Janssen) en `6c7965a4` (Stijn) op
+`archived` zetten. Zolang deze code niet live staat, maakt de cron er elke nacht
+weer een dagvoorstel voor. Jeroens week van 22–28 sep mist sinds 22 sep 05:00
+de training van 27 sep, en 24 en 26 sep zijn ingekorte versies op basis van het
+oude doel. "Schema bijwerken" op zijn lopende schema herstelt dat.
+
+**Niet lokaal geverifieerd.** Typecheck en lint zijn schoon. Nieuwe tests staan
+in `active-base-plan.test.ts` en `training-prompts.test.ts`. Twee tests falen in
+deze worktree om een reden die hier los van staat: `zwift-route` omdat
+`node_modules` zwift-data 1.48.6 heeft terwijl `package.json` om 1.50 vraagt, en
+`omnium-live` omdat er geen `.env.local` is. De cron, het publiceren en het
+verwijderen van een schema zijn niet tegen productie gedraaid. Controleer na
+deploy dat er per lid hoogstens één `daily`-generatie per dag bijkomt, en dat
+`training_workouts.superseded_by_plan_id` van een dagvoorstel alleen dagen raakt
+waarop dat voorstel zelf iets zet.
+
 ### Opgeleverd — Zwift-event: aanmeldknop en parcours op de eventpagina
 
 **2026-09-21.** Geen migratie.

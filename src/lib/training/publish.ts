@@ -289,6 +289,60 @@ export async function retireWorkoutRows(
 }
 
 /**
+ * Haalt de nog niet gereden workouts van een schema uit intervals.icu, vóór het
+ * schema zelf wordt verwijderd.
+ *
+ * Het verwijderen van een schema nam zijn workouts mee (cascade), maar liet hun
+ * events in intervals.icu staan. Daar bleven ze als training op de
+ * fietscomputer, zonder dat ZWB ze nog kende of kon opruimen; zo moest Bart op
+ * 22 september 2026 een dubbele ZRL zelf weghalen.
+ *
+ * Gereden workouts blijven in intervals.icu staan: die horen bij de rit.
+ * Geeft terug hoeveel events níét weg konden; dan hoort het schema te blijven
+ * staan, anders is het spoor naar die events kwijt.
+ */
+export async function removePlanEventsFromIntervals(
+  admin: Admin,
+  planId: string,
+  profileId: string,
+): Promise<{ failed: number }> {
+  const { data: rows } = await admin
+    .from("training_workouts")
+    .select("id, intervals_event_id")
+    .eq("plan_id", planId)
+    .eq("status", "planned")
+    .not("intervals_event_id", "is", null);
+  if (!rows || rows.length === 0) return { failed: 0 };
+
+  const { data: conn } = await admin
+    .from("intervals_connections")
+    .select("api_key, athlete_id")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  // Zonder koppeling valt er niets op te ruimen; opnieuw koppelen levert een
+  // nieuwe kalender niet op met deze events erin.
+  if (!conn?.api_key || !conn?.athlete_id) return { failed: 0 };
+
+  let failed = 0;
+  for (const row of rows) {
+    const wiped = await deleteIntervalsWorkoutEvent(
+      conn.api_key,
+      conn.athlete_id,
+      String(row.intervals_event_id),
+    ).then(
+      () => true,
+      () => false,
+    );
+    if (wiped) {
+      await admin.from("training_workouts").update({ intervals_event_id: null }).eq("id", row.id);
+    } else {
+      failed++;
+    }
+  }
+  return { failed };
+}
+
+/**
  * Zet alle workouts van een schema in de intervals.icu-kalender. Per workout
  * wordt publish_status bijgewerkt, zodat een mislukte push zichtbaar blijft.
  */
@@ -307,7 +361,7 @@ export async function pushPlanWorkoutsToIntervals(
       admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
       admin
         .from("training_plans")
-        .select("adapt_from_date, end_date")
+        .select("adapt_from_date, end_date, adaptation_kind")
         .eq("id", planId)
         .maybeSingle(),
       // Vervangen workouts horen niet meer in de kalender. Zonder dit filter
@@ -324,14 +378,7 @@ export async function pushPlanWorkoutsToIntervals(
     return { connected: false, pushed: 0, failed: 0, superseded: 0, skipped: 0 };
   }
 
-  // Een bijgewerkt schema vervangt alles vanaf de bijwerkdatum, ook de dagen
-  // waar het nu bewust géén training meer plant.
-  const range = plan?.adapt_from_date
-    ? {
-        from: String(plan.adapt_from_date).slice(0, 10),
-        to: String(plan.end_date).slice(0, 10),
-      }
-    : null;
+  const range = publishRange(plan);
 
   // Eerst opruimen, dan pas de nieuwe workouts plaatsen: anders staan er kort
   // twee trainingen op dezelfde dag in intervals.icu.
@@ -355,6 +402,28 @@ export async function pushPlanWorkoutsToIntervals(
   }
 
   return { connected: true, pushed, failed, superseded, skipped };
+}
+
+/**
+ * Het bereik dat een publicatie als vervangen beschouwt, of null voor "alleen
+ * de dagen waar dit plan zelf iets neerzet".
+ *
+ * Alleen een herziening (plan_update) krijgt een bereik: die herplant de hele
+ * periode vanaf de bijwerkdatum en mag dus ook een trainingsdag laten vervallen.
+ * Een dagvoorstel geeft volgens zijn prompt alleen terug wat het wijzigt. Het
+ * kreeg tot 22 september 2026 tóch het bereik, omdat het ook een adapt_from_date
+ * draagt, met de door de AI gekozen einddatum als grens. Een voorstel met één
+ * training voor vandaag wiste zo de rest van de week of langer: de lege weken
+ * van Jeroen en Stijn op 21 september.
+ */
+export function publishRange(
+  plan: { adapt_from_date: string | null; end_date: string; adaptation_kind: string | null } | null,
+): { from: string; to: string } | null {
+  if (!plan?.adapt_from_date || plan.adaptation_kind !== "plan_update") return null;
+  return {
+    from: String(plan.adapt_from_date).slice(0, 10),
+    to: String(plan.end_date).slice(0, 10),
+  };
 }
 
 type PublishableWorkout = {

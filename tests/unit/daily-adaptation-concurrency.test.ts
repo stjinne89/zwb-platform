@@ -124,6 +124,7 @@ function fakeAdmin() {
         return builder;
       },
       lte: () => builder,
+      not: () => builder,
       or: () => builder,
       order: () => builder,
       limit: () => builder,

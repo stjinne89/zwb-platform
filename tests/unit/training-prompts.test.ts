@@ -84,4 +84,9 @@ describe("dropShortRecoveryRides", () => {
     const kept = [workout("recovery", 90), workout("endurance", 45), workout("threshold", 60)];
     expect(dropShortRecoveryRides(kept)).toEqual(kept);
   });
+
+  it("laat de dagaanpassing een vaste afspraak nooit teruggeven en staat een leeg antwoord toe", () => {
+    expect(adaptiveDailyPrompt()).toContain("Een dag met een fixedWorkout neem je nooit op in je antwoord");
+    expect(adaptiveDailyPrompt()).toContain("geef dan een lege workouts-lijst terug");
+  });
 });

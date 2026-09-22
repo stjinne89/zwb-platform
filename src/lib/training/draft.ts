@@ -46,6 +46,7 @@ import {
 import { committedEventsForAi } from "@/lib/training/events";
 import { seasonPlanForAi } from "@/lib/training/season-data";
 import { rootIdOf } from "@/lib/training/plan-tree";
+import { archiveOtherBasePlans } from "@/lib/training/active-plan";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
@@ -80,6 +81,8 @@ export const MAX_ADJUST_MINUTES = 480;
  * doet om hem af te maken.
  */
 export const STALE_GENERATION_MINUTES = 15;
+
+const NO_CHANGE_MESSAGE = "Geen aanpassing nodig.";
 
 type TrainingDraftResult =
   | {
@@ -402,10 +405,13 @@ export async function insertPlanWorkouts(
     shortRecoveryAsRest?: boolean;
   } = {},
 ) {
-  // Testdagen, dagen die het lid heeft vrijgemaakt en dagen waarop al een
-  // training is gereden; zie dropWorkoutsOnBlockedDays(). Die laatste omdat een
-  // gereden training nooit wordt vervangen: een nieuwe training kwam er dan
-  // náást te staan, als "niet gereden" (12 september 2026).
+  // Testdagen, dagen die het lid heeft vrijgemaakt, dagen waarop al een
+  // training is gereden en dagen met een eigen rit of clubevent; zie
+  // dropWorkoutsOnBlockedDays(). Gereden omdat een gereden training nooit wordt
+  // vervangen: een nieuwe training kwam er dan náást te staan, als "niet
+  // gereden" (12 september 2026). Eigen rit en clubevent omdat die ook nooit
+  // worden vervangen: gaf de AI de ZRL-race van vandaag terug, dan stond hij er
+  // twee keer (22 september 2026). De prompt verbood dat al; nu de code ook.
   const dates = workouts.map((workout) => workout.date).sort();
   let blockedDays = new Set<string>();
   if (dates.length > 0) {
@@ -413,7 +419,9 @@ export async function insertPlanWorkouts(
       .from("training_workouts")
       .select("scheduled_at")
       .eq("profile_id", plan.profile_id)
-      .or("test_type.not.is.null,status.eq.skipped,status.eq.completed")
+      .or(
+        "test_type.not.is.null,status.eq.skipped,status.eq.completed,origin.eq.member,origin.eq.event",
+      )
       .is("superseded_at", null)
       .gte("scheduled_at", `${dates[0]}T00:00:00`)
       .lte("scheduled_at", `${dates[dates.length - 1]}T23:59:59`);
@@ -515,6 +523,10 @@ export async function insertFtpTestWorkout(
   return data.id as string;
 }
 
+/**
+ * Maakt het schema bij een afgeronde generatie. Geeft null terug als er niets
+ * neer te zetten viel; dat kan alleen bij een dagvoorstel.
+ */
 async function createPlanFromAiGeneration(
   admin: ReturnType<typeof createAdminClient>,
   generation: Pick<
@@ -533,7 +545,7 @@ async function createPlanFromAiGeneration(
     | "prompt_summary"
   >,
   planDraft: GeneratedTrainingPlan,
-) {
+): Promise<string | null> {
   const { data: existingPlan, error: existingError } = await admin
     .from("training_plans")
     .select("id")
@@ -631,12 +643,22 @@ async function createPlanFromAiGeneration(
   // dan voor op de opgeslagen beschikbaarheid.
   const memberSetTime =
     generation.adaptation_kind === "day" || (isAdaptation && !generation.adaptation_kind);
-  await insertPlanWorkouts(
+  const inserted = await insertPlanWorkouts(
     admin,
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
     planDraft.workouts,
     { fitToAvailability: !memberSetTime, shortRecoveryAsRest: !memberSetTime },
   );
+
+  // Een dagvoorstel zonder één training om neer te zetten verandert niets: de AI
+  // vond dat er niets hoefde te veranderen, koos een rustdag, of alles viel weg
+  // op een testdag, een vaste afspraak of een dag zonder tijd. Zo'n leeg plan
+  // werd toch gepubliceerd, met een melding erbij, en is weggegooid werk. Nog
+  // niets van dit plan staat in intervals.icu, dus het kan zonder sporen weg.
+  if (isDailyProposal && inserted === 0) {
+    await admin.from("training_plans").delete().eq("id", plan.id);
+    return null;
+  }
 
   // Het openstaande herzieningsverzoek is hiermee ingelost. Alleen wat ouder is
   // dan deze generatie: wijzigde het lid iets terwijl de AI werkte, dan zat dat
@@ -667,6 +689,10 @@ async function createPlanFromAiGeneration(
         })
         .eq("id", plan.id);
       autoPublished = true;
+      // Een nieuw basisplan dat het lid zelf maakte: dit is nu het schema.
+      if (!isAdaptation) {
+        await archiveOtherBasePlans(admin, plan.id, generation.profile_id).catch(() => 0);
+      }
     }
   }
 
@@ -852,6 +878,9 @@ export async function startTodayAdjustmentDraft(
         .eq("profile_id", user.id)
         .is("superseded_at", null)
         .eq("status", "planned")
+        // Vaste afspraken staan al in fixedWorkouts; zie de cron.
+        .not("origin", "in", "(member,event)")
+        .is("test_type", null)
         .gte("scheduled_at", `${today}T00:00:00`)
         .lte("scheduled_at", `${planTo}T23:59:59`)
         .order("scheduled_at", { ascending: true }),
@@ -1223,6 +1252,10 @@ async function preparePlanUpdate({
     .eq("profile_id", plan.profile_id)
     .is("superseded_at", null)
     .eq("status", "planned")
+    // Vaste afspraken staan al in fixedWorkouts; dubbel meegegeven kopieerde de
+    // AI ze als eigen training.
+    .not("origin", "in", "(member,event)")
+    .is("test_type", null)
     .gte("scheduled_at", `${fromDate}T00:00:00`)
     .lte("scheduled_at", `${toDate}T23:59:59`)
     .order("scheduled_at", { ascending: true });
@@ -1529,6 +1562,8 @@ export async function runPlanUpdateNow(
     aiRow as unknown as AiGenerationRow,
     ai.plan,
   );
+  // Kan niet bij een herziening, alleen bij een dagvoorstel; toch netjes melden.
+  if (!newPlanId) return { ok: false, error: NO_CHANGE_MESSAGE };
   revalidatePath("/zwbeter-worden", "layout");
   return { ok: true, planId: newPlanId };
 }
@@ -1678,6 +1713,11 @@ export async function finishAiGeneration(
     if (row.status === "failed" || row.status === "cancelled") {
       return { ok: true, generationId: row.id, status: row.status, error: row.error ?? "AI-generatie is gestopt." };
     }
+    // Afgerond zonder schema: een dagvoorstel dat niets veranderde. Niet opnieuw
+    // ophalen, anders maakt elke poll het lege plan opnieuw aan en weer weg.
+    if (row.status === "completed") {
+      return { ok: true, generationId: row.id, status: "completed", message: NO_CHANGE_MESSAGE };
+    }
     if (!row.openai_response_id) throw new Error("OpenAI response-id ontbreekt voor deze AI-generatie.");
 
     const result = await retrieveTrainingPlanDraftBackground(row.openai_response_id);
@@ -1710,6 +1750,10 @@ export async function finishAiGeneration(
         completed_at: new Date().toISOString(),
       })
       .eq("id", row.id);
+
+    if (!planId) {
+      return { ok: true, generationId: row.id, status: "completed", message: NO_CHANGE_MESSAGE };
+    }
 
     return {
       ok: true,
