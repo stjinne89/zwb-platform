@@ -27,6 +27,8 @@ import {
   type RacepassRow,
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
+import { ZrlTeamRank } from "./_components/zrl-team-rank";
+import { loadZrlTeamResults, type ZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { isPoiType, type EventPoi } from "./_components/poi";
 import type { EventZone } from "./_components/zone";
 import {
@@ -270,6 +272,11 @@ export default async function EventDetailPage({
     })
     .sort((a, b) => Number(b.isMine) - Number(a.isMine));
   const isParentEvent = subEvents.length > 0;
+  // Gereden ZRL-raceweek: de plaats van elk team in zijn divisie.
+  const teamResults =
+    isParentEvent && event.type === "zrl"
+      ? await loadZrlTeamResults(subEvents.map((sub) => ({ id: sub.id, startAt: sub.startAt })))
+      : new Map<string, ZrlTeamResult>();
   const raceDateKey = amsterdamDateKey(new Date(event.start_at));
   const sharedDescription = String(parentEvent?.description ?? "").trim();
 
@@ -1041,15 +1048,23 @@ export default async function EventDetailPage({
                       </span>
                     )}
                   </span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {new Date(sub.startAt).toLocaleString("nl-NL", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "Europe/Amsterdam",
-                    })}
+                  <span className="flex items-center gap-3">
+                    {teamResults.get(sub.id) && (
+                      <ZrlTeamRank
+                        rank={teamResults.get(sub.id)!.rank}
+                        teams={teamResults.get(sub.id)!.teams}
+                      />
+                    )}
+                    <span className="tabular-nums text-muted-foreground">
+                      {new Date(sub.startAt).toLocaleString("nl-NL", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Europe/Amsterdam",
+                      })}
+                    </span>
                   </span>
                 </Link>
                 <RaceLinkChips

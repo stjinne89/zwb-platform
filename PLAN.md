@@ -56,6 +56,54 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 
 ---
 
+> **Teamuitslag op de raceweek, 2026-09-22 — gebouwd, lokaal getest.**
+>
+> **Waarom.** Vraag van de eigenaar: op de raceweekpagina bij elk team zien hoe
+> het is afgelopen, en bij winst of podium een icoontje in plaats van een cijfer.
+> Alleen de plaats, verder niets.
+>
+> **Nu.** `src/lib/zrl-live/team-result.ts` rekent dezelfde stand door als de
+> live pagina (`loadZrlLive`) en houdt er één getal aan over: de plaats van ons
+> team in zijn divisie. De lijst "Teams" op een ZRL-hoofdevent toont die achter
+> de teamnaam — `ZrlTeamRank`: beker bij 1, medaille bij 2 en 3, anders "5e",
+> met de volledige stand ("2e van 15 teams") als tooltip.
+>
+> **Wanneer wel en niet.** Pas 90 minuten na de start (een race duurt ongeveer
+> drie kwartier), dus een aanstaande raceweek bevraagt Zwift niet. Geen plaats
+> als de Zwift-uitslag nog niet definitief is, als ons team niet in de stand
+> staat, of als minder dan 80% van de verwachte doorkomsten terugkomt. Dat
+> laatste is de belangrijkste: Zwift geeft segmentpassages maar een tijd terug,
+> en zonder passages zou er een keurige maar verkeerde stand staan. De uitkomst
+> blijft zes uur in `unstable_cache` staan; de race is dan toch gereden.
+>
+> **Ronde 1, week 1 als proef** (nagerekend langs dezelfde weg als `loadZrlLive`,
+> dus mét de teambijstelling van de ploegleider en de opstelling): Bdev 1e van 8,
+> Zwiftladies C 1e van 11, Zwiftladies B 2e van 11, B1 3e van 12, B2 4e van 11,
+> A 6e van 8, C 6e van 10. Een eerste doorrekening zonder die bijstelling gaf
+> heel andere uitkomsten (A 1e van 13, B1 2e van 15): de 90 rijen in
+> `zrl_team_assignments` voegen tegenstanders samen die anders los bleven staan,
+> en dat verschuift de plaats van ons team fors. Wie de stand naast een andere
+> berekening legt, moet die tabel dus meenemen.
+>
+> **Let op bij het lezen.** De teams komen uit de naamtag plus de bijstelling
+> van de ploegleider, dus de plaats is zo goed als die indeling. Renners zonder
+> tag vormen geen team en tellen dus voor niemand mee; de officiële WTRL-uitslag
+> blijft leidend.
+>
+> **Bewust niet.** Geen opslag van de uitslag (geen migratie, geen tabel): de
+> berekening is goedkoop genoeg met de cache erboven, en zolang niemand de week
+> opent, vraagt het platform Zwift niets. Wil je later een historisch klassement
+> over de hele ronde, dan is opslaan alsnog de volgende stap. Ook geen punten,
+> geen aantal renners en geen uitleg in het scherm: de eigenaar vroeg om de
+> plaats en verder niets.
+>
+> Getest: `tsc`, ESLint en de unit-suite (`tests/unit/zrl-team-result.test.ts`
+> erbij). `npm run build` compileert en typecheckt, maar haalt het einde hier
+> niet: het prerenderen van `/omnium` vraagt Supabase-sleutels en deze worktree
+> heeft geen `.env.local`. Om dezelfde reden niet in de browser bekeken.
+
+---
+
 > **Live ZRL-stand koos de verkeerde subgroep, 2026-09-22 — gebouwd.**
 >
 > **Waarom.** Na de eerste echte race (ronde 1, week 1) zag ZWB Cycling B1 op
