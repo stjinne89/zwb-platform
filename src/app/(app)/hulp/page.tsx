@@ -129,6 +129,7 @@ const GUIDES = [
       "Een ZRL-raceweek staat als één event in de kalender, met de informatie die voor alle teams geldt. Daaronder heeft elk team zijn eigen race, met eigen starttijd, Zwift-link en opstelling.",
       "Heeft je team subteams, zoals B met B1 en B2? Dan is het hoofdteam een paraplu: je meldt je per raceweek beschikbaar bij het hoofdteam, op de teampagina of op de raceweek zelf, en de captain deelt je in bij een subteam. Het hoofdteam rijdt zelf geen races.",
       "Meld je je beschikbaar voor een ZRL-race, of zeg je Ja op de racepagina van je team, dan sta je meteen in het team waar die race bij hoort. Afmelden haalt je er niet weer uit; dat doet een teambeheerder.",
+      "Bij ZRL-teams staan zFTP, zMAP, categorie en divisieadvies per renner, zoals WTRL ze toont. Een beheerder plakt daarvoor de teams van WTRL My Teams op Beheer → WTRL-teams.",
       "ZRL en Ladder-resultaten worden via bronnen gesynct waar mogelijk.",
       "Ontbrekende brondata kan handmatig worden aangevuld door beheerders.",
     ],

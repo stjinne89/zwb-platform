@@ -21,6 +21,7 @@ import {
 import { AdminPanel, DeleteResultButton } from "./_components/admin-panel";
 import { GraveyardToggle } from "./_components/graveyard-toggle";
 import { TeamAvailabilityButtons } from "./_components/team-availability-buttons";
+import { WtrlRoster, type WtrlRosterTeam } from "./_components/wtrl-roster";
 import {
   TeamLineupPlanner,
   type PlannerLineup,
@@ -305,6 +306,60 @@ export default async function TeamDetailPage({
       .slice(0, 12);
   }
 
+  // WTRL-momentopname (migr. 0180) van de teams op deze pagina.
+  const { data: wtrlTeamRows } = await supabase
+    .from("wtrl_teams")
+    .select("trc_ref, name, division, imported_at, team_id")
+    .in("team_id", scopeIds)
+    .order("name");
+  const wtrlRefs = ((wtrlTeamRows ?? []) as Array<{ trc_ref: string }>).map((row) => row.trc_ref);
+  const { data: wtrlRiderRows } =
+    wtrlRefs.length > 0
+      ? await supabase
+          .from("wtrl_team_riders")
+          .select("trc_ref, zwift_id, name, status, zftp_w, zftp_wkg, zmap_wkg")
+          .in("trc_ref", wtrlRefs)
+      : { data: [] };
+  const wtrlZwiftIds = Array.from(
+    new Set(((wtrlRiderRows ?? []) as Array<{ zwift_id: string }>).map((row) => row.zwift_id)),
+  );
+  const { data: wtrlProfiles } =
+    wtrlZwiftIds.length > 0
+      ? await supabase.from("profiles").select("id, zwift_id").in("zwift_id", wtrlZwiftIds)
+      : { data: [] };
+  const profileByZwiftId = new Map(
+    ((wtrlProfiles ?? []) as Array<{ id: string; zwift_id: string }>).map((row) => [
+      row.zwift_id,
+      row.id,
+    ]),
+  );
+  const numberOrNull = (value: unknown) =>
+    value == null || !Number.isFinite(Number(value)) ? null : Number(value);
+  const wtrlTeams: WtrlRosterTeam[] = (
+    (wtrlTeamRows ?? []) as Array<{
+      trc_ref: string;
+      name: string;
+      division: string | null;
+      imported_at: string;
+    }>
+  ).map((row) => ({
+    trcRef: row.trc_ref,
+    name: row.name,
+    division: row.division,
+    importedAt: row.imported_at,
+    riders: ((wtrlRiderRows ?? []) as Array<Record<string, unknown>>)
+      .filter((rider) => rider.trc_ref === row.trc_ref)
+      .map((rider) => ({
+        zwiftId: rider.zwift_id as string,
+        name: rider.name as string,
+        status: rider.status === "invited" ? ("invited" as const) : ("member" as const),
+        zftpW: numberOrNull(rider.zftp_w),
+        zftpWkg: numberOrNull(rider.zftp_wkg),
+        zmapWkg: numberOrNull(rider.zmap_wkg),
+        profileId: profileByZwiftId.get(rider.zwift_id as string) ?? null,
+      })),
+  }));
+
   const memberRows = (members ?? []) as unknown as MemberRow[];
   let profileIds = Array.from(new Set(memberRows.map((member) => member.profile_id)));
   const eventIds = calendarEvents.map((event) => event.id);
@@ -561,6 +616,10 @@ export default async function TeamDetailPage({
           parentTeamId: row.parent_team_id,
         }))}
       />
+
+      {wtrlTeams.map((wtrlTeam) => (
+        <WtrlRoster key={wtrlTeam.trcRef} team={wtrlTeam} />
+      ))}
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Teamkalender en selectie</h2>

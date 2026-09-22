@@ -20,8 +20,9 @@ gaat stabiliteit voor nieuwe features.
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   op `/beheer/event-scan` **Test zFTP** met een paar Zwift-ID's, en beslissen hoe
-   zFTP/zMAP en de WTRL-divisie bij teams komen.
+   `0180_wtrl_rosters` toepassen en op `/beheer/wtrl-teams` de WTRL-teams plakken
+   en koppelen. De privacytekst over WTRL-gegevens wacht op akkoord van de
+   eigenaar (voorstel in de ronde hieronder).
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -47,7 +48,55 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0180`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0181`.
+
+---
+
+> **zFTP, zMAP en divisieadvies per renner uit WTRL, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0180_wtrl_rosters.sql`. Onderzoek: de ronde hieronder ("zFTP/zMAP …
+> eerst meten").
+>
+> **Waarom.** Wens van de eigenaar: bij teams per renner zFTP, zMAP en de
+> aanbevolen WTRL-divisie. **Gemeten met "Test zFTP":** `power-curve/power-profile`
+> negeert `profileId` en geeft altijd het eigen profiel van het serviceaccount;
+> `profiles/{id}` geeft van anderen alleen categorie, racing score en de in-game
+> FTP (geen zFTP). WTRL heeft zFTP/zMAP wel, omdat elke deelnemer sinds juni 2025
+> zijn Zwift-account aan WTRL koppelt (partnertoegang; Zwift geeft geen
+> developer-accounts aan hobbyontwikkelaars). Keuze van de eigenaar: hij plakt de
+> tekst van WTRL "My Teams".
+>
+> **Nu.**
+> - `/beheer/wtrl-teams` (recht `teams.manage_roster`): tekst plakken, ZWB leest per
+>   team TRC-referentie, seizoen, divisie en captain, en per renner Zwift-ID, status
+>   (lid/uitgenodigd), zFTP (W en w/kg) en zMAP (w/kg). Per WTRL-team kies je het
+>   ZWB-team (standaard de vorige keuze, anders gelijke naam). Opnieuw plakken
+>   vervangt de renners van dat team. Tabellen `wtrl_teams` en `wtrl_team_riders`,
+>   lezen voor ingelogde leden, schrijven via de serveractie.
+> - **Teampagina:** per gekoppeld WTRL-team (ook de subteams op de pagina van een
+>   paraplu) een tabel met categorie, zFTP, w/kg, zMAP w/kg, advies ("B" of
+>   "B Dev") en of de renner in de divisie van het team past ("Te sterk" in rood).
+>   Namen linken naar het lid als het Zwift-ID bij een profiel hoort.
+> - **Rekenregels** (`lib/teams/wtrl-roster.ts`), van
+>   https://www.wtrl.racing/zrl/resources/: een categorie haal je met zFTP óf zMAP
+>   (w/kg), bij Open plus een wattvloer (A 250, B 200, C 150 W), bij Womens zonder
+>   vloer. Development: beide waarden onder het plafond van die categorie. Hoger
+>   rijden mag; in een Dev-divisie moet je onder het plafond van de divisie blijven.
+>   **Getoetst op de echte plak** (56 renners, 7 teams, in de scratchpad, niet in
+>   de repo): de uitgerekende categorie was overal gelijk aan die van WTRL. De test
+>   in de repo (`wtrl-roster.test.ts`) gebruikt verzonnen namen met echte waarden.
+>
+> **Bewust niet gebouwd.** Geen automatische ophaal bij WTRL (hun voorwaarden
+> verbieden scraping) en geen Zwift-login per lid (tegen de Zwift-voorwaarden en we
+> zouden wachtwoorden bewaren). De 3-race-regel voor opwaarderen midden in een ronde
+> zit niet in "past in divisie". Geen koppeling met `profiles.zrl_category`: de
+> WTRL-waarden staan naast het profiel, ze overschrijven niets.
+>
+> **Open: privacytekst.** Nieuwe bron van gegevens over renners, ook van renners
+> zonder ZWB-account (naam, Zwift-ID, zFTP in W en w/kg, waaruit gewicht af te
+> leiden is). Voorstel aan de eigenaar voorgelegd, nog niet in `/privacy`.
+>
+> **Niet lokaal te verifiëren:** migratie en pagina's tegen echte data. Getest: `tsc`,
+> ESLint, de volledige unit-suite.
 
 ---
 

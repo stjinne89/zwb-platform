@@ -152,6 +152,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
   },
   {
     type: "link",
+    href: "/beheer/wtrl-teams",
+    label: "WTRL-teams",
+    permission: "teams.manage_roster",
+  },
+  {
+    type: "link",
     href: "/beheer/event-scan",
     label: "Eventscan",
     permission: "events.manage_all",
