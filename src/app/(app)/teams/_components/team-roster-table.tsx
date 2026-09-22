@@ -431,17 +431,36 @@ function SortableHeader({
   );
 }
 
+// Rood: te sterk voor de divisie van zijn team. Oranje: binnen 5% van de grens.
+const STATUS_CLASS = {
+  over: "text-destructive",
+  danger: "text-amber-600 dark:text-amber-400",
+  ok: "",
+} as const;
+const STATUS_TITLE = {
+  over: "Te sterk voor de divisie",
+  danger: "Binnen 5% van de grens van de divisie",
+  ok: undefined,
+} as const;
+
 function RiderName({ row }: { row: TeamRosterRow }) {
+  const status = row.wtrl?.status ?? "ok";
   if (!row.unregistered) {
     return (
-      <Link href={`/leden/${row.id}`} className="font-medium hover:underline">
+      <Link
+        href={`/leden/${row.id}`}
+        title={STATUS_TITLE[status]}
+        className={`font-medium hover:underline ${STATUS_CLASS[status]}`}
+      >
         {row.name}
       </Link>
     );
   }
   return (
     <span>
-      <span className="font-medium">{row.name}</span>
+      <span title={STATUS_TITLE[status]} className={`font-medium ${STATUS_CLASS[status]}`}>
+        {row.name}
+      </span>
       <span className="ml-2 rounded-full border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground">
         niet geregistreerd
       </span>
@@ -467,7 +486,10 @@ function WtrlAdvice({ wtrl }: { wtrl: WtrlRiderSummary }) {
   return (
     <>
       {wtrl.advice ?? "-"}
-      {wtrl.fits === false && <span className="font-medium text-destructive"> · Te sterk</span>}
+      {wtrl.status === "over" && <span className="font-medium text-destructive"> · Te sterk</span>}
+      {wtrl.status === "danger" && (
+        <span className="font-medium text-amber-600 dark:text-amber-400"> · Bijna te sterk</span>
+      )}
     </>
   );
 }

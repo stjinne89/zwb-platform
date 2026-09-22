@@ -207,6 +207,41 @@ export function fitsDivision(power: Power, division: WtrlDivision): boolean | nu
   return true;
 }
 
+/** Binnen deze fractie onder de bovengrens van de divisie: gevarenzone. */
+export const DANGER_MARGIN = 0.05;
+
+export type DivisionStatus = "ok" | "danger" | "over";
+
+/**
+ * De bovengrens van een divisie in W/kg. Standard: de ondergrens van de categorie
+ * erboven (A heeft er geen). Development: het Dev-plafond van die categorie.
+ */
+function upperLimit(division: WtrlDivision): { ftp: number; map: number } | null {
+  if (division.development) {
+    return (division.women ? DEV_WOMEN : DEV_OPEN)[division.category];
+  }
+  const above = ORDER[ORDER.indexOf(division.category) - 1] as Exclude<Category, "D"> | undefined;
+  if (!above) return null;
+  const table = division.women ? WOMEN : OPEN;
+  return { ftp: table[above].ftp, map: table[above].map };
+}
+
+/**
+ * "over": te sterk voor de divisie. "danger": zFTP of zMAP zit binnen 5% onder de
+ * bovengrens. De gevarenzone kijkt alleen naar W/kg; de wattvloer van Open kan een
+ * renner daar nog onder houden, maar dat is geen reden om niet te waarschuwen.
+ */
+export function divisionStatus(power: Power, division: WtrlDivision): DivisionStatus | null {
+  const fits = fitsDivision(power, division);
+  if (fits === null) return null;
+  if (!fits) return "over";
+  const limit = upperLimit(division);
+  if (!limit) return "ok";
+  const near = (value: number | null, max: number) =>
+    value != null && value >= max * (1 - DANGER_MARGIN);
+  return near(power.zftpWkg, limit.ftp) || near(power.zmapWkg, limit.map) ? "danger" : "ok";
+}
+
 export type WtrlRiderSummary = {
   category: Category | null;
   zftpW: number | null;
@@ -216,7 +251,11 @@ export type WtrlRiderSummary = {
   advice: string | null;
   /** Past in de divisie van elk WTRL-team waar de renner in staat; null = onbekend. */
   fits: boolean | null;
+  /** Het zwaarste over zijn WTRL-teams: over > danger > ok. */
+  status: DivisionStatus | null;
 };
+
+const STATUS_RANK: Record<DivisionStatus, number> = { ok: 0, danger: 1, over: 2 };
 
 /**
  * Eén regel per renner over de WTRL-teams op een pagina. Staat iemand in twee
@@ -231,7 +270,12 @@ export function summarizeWtrlRiders(
     const women = division?.women ?? false;
     for (const rider of team.riders) {
       const fits = division ? fitsDivision(rider, division) : null;
+      const status = division ? divisionStatus(rider, division) : null;
       const previous = byRider.get(rider.zwiftId);
+      const worst =
+        previous?.status && (!status || STATUS_RANK[previous.status] >= STATUS_RANK[status])
+          ? previous.status
+          : status;
       byRider.set(rider.zwiftId, {
         category: previous?.category ?? wtrlCategory(rider, women),
         zftpW: rider.zftpW,
@@ -239,6 +283,7 @@ export function summarizeWtrlRiders(
         zmapWkg: rider.zmapWkg,
         advice: previous?.advice ?? recommendedDivision(rider, women),
         fits: previous?.fits === false || fits === false ? false : (fits ?? previous?.fits ?? null),
+        status: worst ?? null,
       });
     }
   }

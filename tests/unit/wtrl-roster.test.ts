@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  divisionStatus,
   fitsDivision,
   parseDivision,
   parseWtrlTeams,
@@ -148,5 +149,37 @@ describe("prettyName", () => {
     expect(prettyName("PIM DE MEULEMEESTER")).toBe("Pim de Meulemeester");
     expect(prettyName("JAN VAN DER WOUDE")).toBe("Jan van der Woude");
     expect(prettyName("ANNE-MARIE O'BRIEN")).toBe("Anne-Marie O'Brien");
+  });
+});
+
+describe("divisionStatus", () => {
+  const b = parseDivision("Open Aqua League Division B2")!;
+  const bDev = parseDivision("Open Aqua Dev League Division B3")!;
+  const a = parseDivision("Open Aqua League Division A1")!;
+  const womenB = parseDivision("Womens Mint League Division B1")!;
+
+  it("rood boven de divisie, oranje binnen 5% van de grens", () => {
+    // B Open: grens zFTP 4,2 / zMAP 5,1 W/kg; gevarenzone vanaf 3,99 / 4,845.
+    expect(divisionStatus({ zftpW: 346, zftpWkg: 5.02, zmapWkg: 6.06 }, b)).toBe("over");
+    expect(divisionStatus({ zftpW: 292, zftpWkg: 4.06, zmapWkg: 4.81 }, b)).toBe("danger");
+    expect(divisionStatus({ zftpW: 281, zftpWkg: 3.94, zmapWkg: 4.95 }, b)).toBe("danger");
+    expect(divisionStatus({ zftpW: 274, zftpWkg: 3.34, zmapWkg: 4.57 }, b)).toBe("ok");
+  });
+
+  it("Dev kijkt naar het Dev-plafond", () => {
+    // B Dev: 3,74 / 4,53; gevarenzone vanaf 3,553 / 4,3035.
+    expect(divisionStatus({ zftpW: 260, zftpWkg: 3.17, zmapWkg: 4.21 }, bDev)).toBe("ok");
+    expect(divisionStatus({ zftpW: 244, zftpWkg: 3.09, zmapWkg: 4.35 }, bDev)).toBe("danger");
+    expect(divisionStatus({ zftpW: 243, zftpWkg: 3.74, zmapWkg: 4.42 }, bDev)).toBe("over");
+  });
+
+  it("A heeft geen bovengrens", () => {
+    expect(divisionStatus({ zftpW: 333, zftpWkg: 5.74, zmapWkg: 6.72 }, a)).toBe("ok");
+  });
+
+  it("vrouwen hebben hun eigen grens", () => {
+    // Womens B: 3,88 / 4,8; gevarenzone vanaf 3,686 / 4,56.
+    expect(divisionStatus({ zftpW: 194, zftpWkg: 3.73, zmapWkg: 4.67 }, womenB)).toBe("danger");
+    expect(divisionStatus({ zftpW: 214, zftpWkg: 3.48, zmapWkg: 4.06 }, womenB)).toBe("ok");
   });
 });
