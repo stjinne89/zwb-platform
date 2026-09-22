@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
+import { suggestProfileLinks } from "@/lib/teams/wtrl-membership";
 import { WtrlImportForm, type ZwbTeamOption } from "./_components/import-form";
+import { LinkSuggestions } from "./_components/link-suggestions";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,12 @@ export default async function WtrlTeamsPage() {
   if (!access.user) redirect("/login");
   if (!access.has("teams.manage_roster")) redirect("/dashboard");
 
-  const [{ data: teams }, { data: wtrlTeams }, { data: riderRows }] = await Promise.all([
+  const [
+    { data: teams },
+    { data: wtrlTeams },
+    { data: riderRows },
+    { data: profiles },
+  ] = await Promise.all([
     supabase
       .from("teams")
       .select("id, name, is_graveyard")
@@ -22,7 +29,8 @@ export default async function WtrlTeamsPage() {
       .from("wtrl_teams")
       .select("trc_ref, name, division, team_id, imported_at, teams(name)")
       .order("name"),
-    supabase.from("wtrl_team_riders").select("trc_ref"),
+    supabase.from("wtrl_team_riders").select("trc_ref, zwift_id, name"),
+    supabase.from("profiles").select("id, display_name, zwift_id"),
   ]);
 
   const teamOptions: ZwbTeamOption[] = (
@@ -38,10 +46,20 @@ export default async function WtrlTeamsPage() {
     imported_at: string;
     teams: { name: string } | { name: string }[] | null;
   }>;
+  const riderList = (riderRows ?? []) as Array<{ trc_ref: string; zwift_id: string; name: string }>;
   const riderCount = new Map<string, number>();
-  for (const row of (riderRows ?? []) as Array<{ trc_ref: string }>) {
+  for (const row of riderList) {
     riderCount.set(row.trc_ref, (riderCount.get(row.trc_ref) ?? 0) + 1);
   }
+  const wtrlTeamName = new Map(existing.map((row) => [row.trc_ref, row.name]));
+  const suggestions = suggestProfileLinks(
+    riderList.map((row) => ({
+      zwiftId: row.zwift_id,
+      name: row.name,
+      team: wtrlTeamName.get(row.trc_ref) ?? row.trc_ref,
+    })),
+    (profiles ?? []) as Array<{ id: string; display_name: string | null; zwift_id: string | null }>,
+  );
 
   return (
     <div className="space-y-8">
@@ -53,6 +71,15 @@ export default async function WtrlTeamsPage() {
           knownMapping={Object.fromEntries(existing.map((row) => [row.trc_ref, row.team_id]))}
         />
       </section>
+
+      {suggestions.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Koppelvoorstellen ({suggestions.length})
+          </h2>
+          <LinkSuggestions suggestions={suggestions} />
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

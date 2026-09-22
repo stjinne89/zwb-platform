@@ -20,8 +20,9 @@ gaat stabiliteit voor nieuwe features.
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
    `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
    `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   `0179` t/m `0182` zijn toegepast (2026-09-22); op `/beheer/wtrl-teams` de
-   WTRL-teams plakken en koppelen.
+   `0179` t/m `0182` zijn toegepast (2026-09-22). Nog toepassen:
+   `0183_link_roster_by_zwift_id`; daarna op `/beheer/wtrl-teams` de drie
+   koppelvoorstellen (Daan, Michiel, Sanneke) bevestigen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -47,7 +48,47 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0183`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`.
+
+---
+
+> **Rosternaam en account met hetzelfde Zwift-ID koppelen, plus koppelvoorstellen op naam, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0183_link_roster_by_zwift_id.sql`.
+>
+> **Aanleiding.** Pim stond bij A als "niet geregistreerd" én met zijn account in de
+> lijst van B. **Gemeten op productie (alleen lezen, 2026-09-22):** 35 goedgekeurde
+> accounts, 27 met Zwift-ID, geen enkel Zwift-ID in een verkeerd formaat. 8 van de 27
+> accounts met Zwift-ID claimden hun rosternaam nooit, en 8 ongeclaimde rosternamen
+> droegen het Zwift-ID van een account (4 daarvan bij een team en dus dubbel: Pim,
+> Tako Tabak, Niels Leerentveld, Maarten Smits). Van de 46 WTRL-renners waren er 23
+> via Zwift-ID gekoppeld, 3 hadden een account op naam zonder Zwift-ID (Daan Mulder,
+> Michiel van den Beuken, Sanneke Maas) en 20 hebben geen account. Oorzaak: claimen is
+> een aparte stap die leden overslaan. Pim stond bij B door "Beschikbaar" voor een
+> raceweek van B (21 september, van vóór de raceweekfix); hij is geen lid van B.
+>
+> **Nu.**
+> - `link_roster_by_zwift_id(profiel)`: een ongeclaimde rosternaam met het Zwift-ID van
+>   precies één account wordt door dat account geclaimd, met lidmaatschap van het team
+>   van de naam (herkomst `wtrl` of `roster_claim`; een seed-override wint; niet bij
+>   `auto_zrl_category` of `manual_excluded`) en de opstellingen gaan mee. Het profiel
+>   zelf wordt niet aangepast. Draait één keer voor iedereen en via een trigger zodra
+>   een profiel een Zwift-ID krijgt of wijzigt.
+> - **Koppelvoorstellen** op `/beheer/wtrl-teams`: een WTRL-renner zonder account met
+>   dat Zwift-ID, met precies één account van dezelfde naam dat nog geen Zwift-ID heeft
+>   (`suggestProfileLinks`, naamvergelijking zonder accenten, tussenvoegsels en
+>   "[ZWB]"). "Koppelen" zet het Zwift-ID op het profiel (de trigger claimt de naam) en
+>   deelt de gekoppelde WTRL-teams van die renner opnieuw in. Op productie levert dit
+>   nu precies Daan, Michiel en Sanneke op.
+>
+> **Bewust niet gebouwd.** Geen automatische koppeling op naam: twee mensen kunnen
+> dezelfde naam hebben. Pims "Beschikbaar" bij B en zes oude "Niet"-opgaves van
+> niet-leden (Bart bij B en Zwiftladies, Jeroen Janssen bij Zwiftladies W1–W4, van
+> 1–14 september, door `0179` overgezet) zijn niet verwijderd; lijst voorgelegd aan
+> de eigenaar. De "Niet"-regels zijn sinds de fix "Afzeggers" onzichtbaar.
+>
+> **Niet lokaal te verifiëren:** de migratie. Getest: `tsc`, ESLint,
+> `wtrl-membership.test.ts` (13), de volledige unit-suite, en de voorstellen tegen
+> productiedata (alleen lezen).
 
 ---
 

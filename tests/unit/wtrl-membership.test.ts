@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { planWtrlMembership, type RosterEntryRow } from "@/lib/teams/wtrl-membership";
+import {
+  personNameKey,
+  planWtrlMembership,
+  suggestProfileLinks,
+  type RosterEntryRow,
+} from "@/lib/teams/wtrl-membership";
 import { summarizeWtrlRiders, type WtrlRider } from "@/lib/teams/wtrl-roster";
 
 function rider(zwiftId: string, name: string, status: "member" | "invited" = "member"): WtrlRider {
@@ -162,5 +167,43 @@ describe("summarizeWtrlRiders", () => {
       { division: "Open Aqua Dev League Division B3", riders: [rider("6", "Gijs")] },
     ]).get("6");
     expect(summary).toMatchObject({ category: "B", advice: "B Dev", fits: true });
+  });
+});
+
+describe("personNameKey", () => {
+  it("negeert tussenvoegsels, toevoegingen en accenten", () => {
+    expect(personNameKey("Pim de Meulemeester")).toBe(personNameKey("Pim Meulemeester"));
+    expect(personNameKey("Tako Tabak [ZWB]")).toBe(personNameKey("tako tabak"));
+    expect(personNameKey("Michiel van den Beuken (ZWB)")).toBe("michiel beuken");
+    expect(personNameKey("Zoë Müller")).toBe("zoe muller");
+  });
+});
+
+describe("suggestProfileLinks", () => {
+  const riders = [
+    { zwiftId: "10", name: "Daan Mulder", team: "B2" },
+    { zwiftId: "11", name: "Anna Bakker", team: "A" },
+    { zwiftId: "12", name: "Jan Jansen", team: "C" },
+    { zwiftId: "13", name: "Kees Vos", team: "C" },
+    { zwiftId: "10", name: "Daan Mulder", team: "B1" },
+  ];
+  const profiles = [
+    { id: "p-daan", display_name: "Daan Mulder", zwift_id: null },
+    { id: "p-anna", display_name: "Anna Bakker", zwift_id: "11" },
+    { id: "p-jan1", display_name: "Jan Jansen", zwift_id: null },
+    { id: "p-jan2", display_name: "Jan Jansen", zwift_id: null },
+    { id: "p-kees", display_name: "Kees Vos", zwift_id: "999" },
+  ];
+
+  it("stelt alleen een eenduidig account zonder Zwift-ID voor", () => {
+    expect(suggestProfileLinks(riders, profiles)).toEqual([
+      {
+        zwiftId: "10",
+        riderName: "Daan Mulder",
+        wtrlTeams: ["B2", "B1"],
+        profileId: "p-daan",
+        profileName: "Daan Mulder",
+      },
+    ]);
   });
 });
