@@ -51,6 +51,25 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 
 ---
 
+> **"Niet beschikbaar" naast een ja op de subteamrace, 2026-09-22 — gefixt, lokaal getest.**
+> Geen migratie.
+>
+> **Melding van de eigenaar:** Jeroen Janssen stond in de selectiemaker op niet
+> beschikbaar, maar zei ja op Bdev. **Gemeten (alleen lezen):** hij zei begin september
+> ja op alle Bdev-races en nee op de races van de andere teams, ook die van hoofdteam B.
+> `0179` zette die "nee" op de races van het hoofdteam om in "niet beschikbaar" bij
+> paraplu B (week 2 t/m 6). Die nee betekende "niet voor dat team", niet "niet die
+> week". Alleen Jeroen had deze tegenspraak (5 regels).
+>
+> **Nu.** Op de teampagina telt een "ja" op de race van een subteam als beschikbaar
+> voor die raceweek, ook als bij de paraplu iets anders staat. De 5 regels zelf zet de
+> eigenaar recht met SQL.
+>
+> **Les voor een volgende omzetting:** een "nee" op één teamrace is geen afzegging
+> voor de week als hetzelfde lid in die week ja zei op een andere race.
+
+---
+
 > **Opstelling van de paraplu op de races van de subteams, 2026-09-22 — gebouwd, lokaal getest.**
 > Geen migratie.
 >

@@ -512,12 +512,30 @@ export default async function TeamDetailPage({
   const rosterRows = [...rows, ...unregisteredRows];
 
   const candidates = (allProfiles ?? []).filter((profile) => !profileIds.includes(profile.id));
-  const availabilityByEventProfile = new Map(
+  const availabilityByEventProfile = new Map<string, AvailabilityRow["status"]>(
     ((availabilityRows ?? []) as AvailabilityRow[]).map((row) => [
       `${row.event_id}:${row.profile_id}`,
       row.status,
     ]),
   );
+  // Een "ja" op de race van een subteam is beschikbaar voor die raceweek, ook als
+  // bij de paraplu iets anders staat. Zo'n tegenspraak ontstond toen `0179` een
+  // "nee" op de race van het hoofdteam omzette in "niet beschikbaar", terwijl het
+  // lid ja zei op de race van zijn eigen subteam.
+  const raceToWeek = new Map(
+    calendarEvents.flatMap((week) => (week.races ?? []).map((race) => [race.id, week.id] as const)),
+  );
+  if (raceToWeek.size > 0) {
+    const { data: raceYes } = await supabase
+      .from("event_rsvps")
+      .select("event_id, profile_id")
+      .in("event_id", [...raceToWeek.keys()])
+      .eq("status", "yes");
+    for (const row of (raceYes ?? []) as Array<{ event_id: string; profile_id: string }>) {
+      const weekId = raceToWeek.get(row.event_id);
+      if (weekId) availabilityByEventProfile.set(`${weekId}:${row.profile_id}`, "available");
+    }
+  }
   const lineups = (lineupRows ?? []) as LineupRow[];
   // Namen van rosterregels in de opstelling, ook als de naam intussen niet meer
   // bij een team op deze pagina hoort.
