@@ -51,6 +51,34 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0184`
 
 ---
 
+> **Opstelling van de paraplu op de races van de subteams, 2026-09-22 — gebouwd, lokaal getest.**
+> Geen migratie.
+>
+> **Melding van de eigenaar:** selecteren in paraplu B leek niet door te werken naar
+> de subteams. **Gemeten (alleen lezen):** de opstellingen stonden goed, 15 regels op
+> raceweek 1 onder B (5× B1, 5× B2, 5× Bdev), en de teampagina's van de subteams lezen
+> dezelfde regels. Wat ontbrak: de racepagina van een subteam en de raceweekpagina
+> toonden de opstelling niet (alleen RSVP's).
+>
+> **Nu.** De raceweekpagina toont onder elk team de opgestelde renners; de race van
+> een subteam heeft een blok "Opstelling" met de renners die voor dat team zijn
+> opgesteld (op de raceweek of op de race zelf), jijzelf gemarkeerd. Namen van
+> renners zonder account komen uit het rooster. De query noemt de koppeling
+> `profiles!team_event_lineups_profile_id_fkey`: `team_event_lineups` heeft twee
+> verwijzingen naar `profiles` (`profile_id`, `selected_by`), en zonder die naam geeft
+> PostgREST "more than one relationship" en blijft de lijst stil leeg (getoetst op
+> productie).
+>
+> **Bewust niet gebouwd.** Opgesteld worden is geen "ja" op de race: het zet niets in
+> het trainingsschema en stuurt geen herinnering (die lopen via RSVP's). Voorgelegd
+> aan de eigenaar.
+>
+> **Opgemerkt op productie:** twee paraplu's voor de vrouwen: "ZRL Zwiftladies" (met
+> "ZRL Zwiftladies B" en "ZRL Zwiftladies C") en "ZWB Zwiftladies" (met "Zwiftladies
+> C"). Waarschijnlijk dubbel; voorgelegd aan de eigenaar.
+
+---
+
 > **Rosternaam en account met hetzelfde Zwift-ID koppelen, plus koppelvoorstellen op naam, 2026-09-22 — gebouwd, lokaal getest.**
 > Migratie `0183_link_roster_by_zwift_id.sql`.
 >

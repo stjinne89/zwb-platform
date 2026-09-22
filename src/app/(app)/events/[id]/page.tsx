@@ -167,6 +167,30 @@ async function readRiderPower(supabase: SupabaseServer, userId: string) {
   return { weightKg, ftpWatts, curvePoints };
 }
 
+function LineupNames({
+  riders,
+  className,
+}: {
+  riders: Array<{ key: string; name: string; isMe: boolean }>;
+  className?: string;
+}) {
+  return (
+    <ul className={cn("flex flex-wrap gap-1.5 text-sm", className)}>
+      {riders.map((rider) => (
+        <li
+          key={rider.key}
+          className={cn(
+            "rounded-full border px-2 py-0.5",
+            rider.isMe && "border-primary/50 bg-primary/10 font-medium",
+          )}
+        >
+          {rider.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default async function EventDetailPage({
   params,
 }: {
@@ -224,12 +248,49 @@ export default async function EventDetailPage({
         id: row.id,
         startAt: row.start_at,
         name: team?.name ?? row.title,
+        teamId: row.team_id,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
       };
     })
     .sort((a, b) => Number(b.isMine) - Number(a.isMine));
   const isParentEvent = subEvents.length > 0;
   const sharedDescription = String(parentEvent?.description ?? "").trim();
+
+  // De opstelling die de captain op de raceweek maakt (teampagina van de
+  // paraplu of van een subteam) hoort ook op de race van het subteam te staan.
+  // Een raceweek toont hem per team, een race alleen die van zijn eigen team.
+  const lineupEventIds = [id, event.parent_event_id].filter(Boolean) as string[];
+  const { data: lineupRows } =
+    isParentEvent || (event.type === "zrl" && event.team_id)
+      ? await supabase
+          .from("team_event_lineups")
+          .select(
+            "team_id, profile_id, roster_entry_id, profiles!team_event_lineups_profile_id_fkey(display_name), roster_entries(name)",
+          )
+          .in("event_id", lineupEventIds)
+      : { data: [] };
+  const lineupByTeam = new Map<string, Array<{ key: string; name: string; isMe: boolean }>>();
+  for (const row of (lineupRows ?? []) as Array<{
+    team_id: string;
+    profile_id: string | null;
+    roster_entry_id: string | null;
+    profiles: { display_name: string } | { display_name: string }[] | null;
+    roster_entries: { name: string } | { name: string }[] | null;
+  }>) {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    const roster = Array.isArray(row.roster_entries) ? row.roster_entries[0] : row.roster_entries;
+    const key = (row.profile_id ?? row.roster_entry_id) as string;
+    const list = lineupByTeam.get(row.team_id) ?? [];
+    if (list.some((item) => item.key === key)) continue;
+    list.push({
+      key,
+      name: profile?.display_name ?? roster?.name ?? "Onbekend",
+      isMe: Boolean(user && row.profile_id === user.id),
+    });
+    lineupByTeam.set(row.team_id, list);
+  }
+  for (const list of lineupByTeam.values()) list.sort((a, b) => a.name.localeCompare(b.name, "nl"));
+  const ownLineup = event.team_id ? lineupByTeam.get(event.team_id) ?? [] : [];
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
   // subteams, migr. 0179); de captain deelt je daarna in bij een subteam.
@@ -905,7 +966,7 @@ export default async function EventDetailPage({
           </h2>
           <ul className="divide-y rounded-lg border bg-card">
             {subEvents.map((sub) => (
-              <li key={sub.id}>
+              <li key={sub.id} className="space-y-1">
                 <Link
                   href={`/events/${sub.id}`}
                   className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm hover:bg-secondary/50"
@@ -929,9 +990,21 @@ export default async function EventDetailPage({
                     })}
                   </span>
                 </Link>
+                {sub.teamId && (lineupByTeam.get(sub.teamId) ?? []).length > 0 && (
+                  <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
+                )}
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {!isParentEvent && ownLineup.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Opstelling ({ownLineup.length})
+          </h2>
+          <LineupNames riders={ownLineup} className="rounded-lg border bg-card p-3" />
         </section>
       )}
 
