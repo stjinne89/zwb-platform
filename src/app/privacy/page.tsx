@@ -91,7 +91,9 @@ export default function PrivacyPage() {
             Dat gebeurt ook voor teamleden zonder ZWB-account. Ingelogde leden zien
             deze waarden op de teampagina, met de categorie en de divisie die
             daaruit volgen. Bij een volgende import worden de gegevens van dat team
-            vervangen.
+            vervangen. Staat iemand bij WTRL in een team, dan zetten we hem ook in
+            het bijbehorende ZWB-team; zonder ZWB-account komt zijn naam in het
+            rooster van dat team, tot hij zijn naam claimt.
           </li>
           <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan

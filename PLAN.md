@@ -85,8 +85,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 > zonder account die bij WTRL in B1 én B2 staat, verschijnt in het rooster van het
 > laatst verwerkte team.
 >
-> **Privacy.** De tekst van 0180 noemt nog niet dat de WTRL-gegevens ook bepalen wie
-> in een ZWB-team staat. Aanvulling voorgelegd aan de eigenaar, nog niet in `/privacy`.
+> **Privacy.** De tekst van 0180 is aangevuld met de indeling in ZWB-teams en het
+> rooster voor renners zonder account; akkoord van de eigenaar 2026-09-22, geen
+> nieuwe privacyversie.
 >
 > **Niet lokaal te verifiëren:** migratie en import tegen echte data. Getest: `tsc`,
 > ESLint, `wtrl-membership.test.ts` (11) en de volledige unit-suite (1578 groen).
