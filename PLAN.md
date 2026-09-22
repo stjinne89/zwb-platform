@@ -80,7 +80,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0189`
 > raceweek leest alleen die rij: geen Zwift-aanroep, altijd snel, en de uitslag
 > blijft ook staan als Zwift de segmentpassages niet meer teruggeeft.
 > `ZrlTeamRank` toont een beker bij 1, een medaille bij 2 en 3, anders "5e", met
-> de volledige stand als tooltip.
+> de volledige stand als tooltip. Op verzoek van de eigenaar (2026-09-22, tweede
+> ronde) is dat geen klein badge maar een kolom rechts die zo hoog is als het
+> teamblok: het icoon schaalt mee met de hoogte van de rij (tot 6 rem), het
+> getal staat er in 3xl/4xl, en de lijst kreeg `overflow-hidden` zodat de
+> gekleurde kolom binnen de afgeronde hoek blijft.
 >
 > **Wanneer wel en niet.** Invriezen pas 90 minuten na de start (een race duurt
 > ongeveer drie kwartier), alleen bij een definitieve Zwift-uitslag, en alleen

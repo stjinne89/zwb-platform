@@ -1034,54 +1034,52 @@ export default async function EventDetailPage({
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Teams
           </h2>
-          <ul className="divide-y rounded-lg border bg-card">
-            {subEvents.map((sub) => (
-              <li key={sub.id} className="space-y-1">
-                <Link
-                  href={`/events/${sub.id}`}
-                  className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm hover:bg-secondary/50"
-                >
-                  <span className="flex items-center gap-2 font-medium">
-                    {sub.name}
-                    {sub.isMine && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        Jouw team
+          <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+            {subEvents.map((sub) => {
+              const result = teamResults.get(sub.id);
+              return (
+                <li key={sub.id} className="flex items-stretch">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Link
+                      href={`/events/${sub.id}`}
+                      className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm hover:bg-secondary/50"
+                    >
+                      <span className="flex items-center gap-2 font-medium">
+                        {sub.name}
+                        {sub.isMine && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            Jouw team
+                          </span>
+                        )}
                       </span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {new Date(sub.startAt).toLocaleString("nl-NL", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Europe/Amsterdam",
+                        })}
+                      </span>
+                    </Link>
+                    <RaceLinkChips
+                      links={[
+                        ...[racepassLink(sub.teamId, "Racepass")].filter(
+                          (link): link is RaceLink => link !== null,
+                        ),
+                        ...sub.zwiftLinks,
+                      ]}
+                      className="px-3 pb-3"
+                    />
+                    {sub.teamId && (lineupByTeam.get(sub.teamId) ?? []).length > 0 && (
+                      <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
                     )}
-                  </span>
-                  <span className="flex items-center gap-3">
-                    {teamResults.get(sub.id) && (
-                      <ZrlTeamRank
-                        rank={teamResults.get(sub.id)!.rank}
-                        teams={teamResults.get(sub.id)!.teams}
-                      />
-                    )}
-                    <span className="tabular-nums text-muted-foreground">
-                      {new Date(sub.startAt).toLocaleString("nl-NL", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "Europe/Amsterdam",
-                      })}
-                    </span>
-                  </span>
-                </Link>
-                <RaceLinkChips
-                  links={[
-                    ...[racepassLink(sub.teamId, "Racepass")].filter(
-                      (link): link is RaceLink => link !== null,
-                    ),
-                    ...sub.zwiftLinks,
-                  ]}
-                  className="px-3 pb-3"
-                />
-                {sub.teamId && (lineupByTeam.get(sub.teamId) ?? []).length > 0 && (
-                  <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
-                )}
-              </li>
-            ))}
+                  </div>
+                  {result && <ZrlTeamRank rank={result.rank} teams={result.teams} />}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
