@@ -6,9 +6,10 @@
 // docs/live-zrl-dashboard.md.
 //
 // Bewust zonder protobuf-dependency: we hebben één bericht met een handvol
-// velden nodig. De veldnummers volgen het `SegmentResult`-bericht zoals Sauce en
-// zwift-offline het gebruiken; `describeProtobuf` toont de ruwe velden, zodat de
-// indeling op productie te controleren is (diagnose op /beheer/event-scan).
+// velden nodig. De veldnummers komen uit `SegmentResult` in Sauce' zwift.proto
+// (src/zwift.proto, main, gelezen 2026-09-22); `describeProtobuf` toont de ruwe
+// velden, zodat de indeling op productie te controleren is (diagnose op
+// /beheer/event-scan).
 
 /** Zwift-wereldtijd telt in ms vanaf dit moment (Unix-ms). */
 export const ZWIFT_WORLD_TIME_EPOCH_MS = 1_414_016_074_400;
@@ -93,19 +94,21 @@ function str(msg: Message, no: number): string {
 
 export function decodeSegmentResult(buf: Uint8Array): SegmentResult {
   const msg = parseMessage(buf);
-  const worldTime = num(msg, 8) ?? 0;
-  const weightGrams = num(msg, 12);
+  // 3 = realm, 4 = worldId, 10 = finishTime (tekst), 12 = powerType.
+  const worldTime = num(msg, 9) ?? 0;
+  const weightGrams = num(msg, 13);
   return {
     id: String(msg.get(1)?.[0]?.varint ?? ""),
     athleteId: num(msg, 2) ?? 0,
-    segmentId: BigInt.asIntN(64, msg.get(4)?.[0]?.varint ?? BigInt(0)).toString(),
-    eventSubgroupId: num(msg, 5) || null,
-    firstName: str(msg, 6).trim(),
-    lastName: str(msg, 7).trim(),
+    // uint64 op de lijn; Zwift bedoelt int64 (Tchou Tchou Sprint is negatief).
+    segmentId: BigInt.asIntN(64, msg.get(5)?.[0]?.varint ?? BigInt(0)).toString(),
+    eventSubgroupId: num(msg, 6) || null,
+    firstName: str(msg, 7).trim(),
+    lastName: str(msg, 8).trim(),
     worldTime,
     ts: worldTime + ZWIFT_WORLD_TIME_EPOCH_MS,
-    elapsed: (num(msg, 10) ?? 0) / 1000,
-    avgPower: num(msg, 14),
+    elapsed: (num(msg, 11) ?? 0) / 1000,
+    avgPower: num(msg, 15),
     weightKg: weightGrams ? weightGrams / 1000 : null,
   };
 }

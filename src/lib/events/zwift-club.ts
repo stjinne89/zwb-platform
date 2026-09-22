@@ -293,6 +293,11 @@ export async function fetchSubgroupResults(subgroupId: string): Promise<Subgroup
   return results.sort((a, b) => a.rank - b.rank);
 }
 
+/** "2026-09-22T12:00:00Z": ISO zonder milliseconden, zoals Sauce het stuurt. */
+function zwiftDate(ms: number): string {
+  return new Date(ms).toISOString().slice(0, -5) + "Z";
+}
+
 /**
  * Segmentpassages van iedereen in het venster (protobuf). `world_id` is bij Zwift
  * altijd 1, ook buiten Watopia. Zonder `from` geeft Zwift het laatste uur.
@@ -304,15 +309,15 @@ export async function fetchSegmentResultsRaw(
   if (!/^-?\d+$/.test(segmentId)) throw new Error("Ongeldig segment-ID.");
   const query = new URLSearchParams({ world_id: "1", segment_id: segmentId });
   if (options.athleteId) query.set("player_id", String(options.athleteId));
-  if (options.from) query.set("from", new Date(options.from).toISOString());
-  if (options.to) query.set("to", new Date(options.to).toISOString());
+  // Zwift weigert milliseconden (400 zonder body, gemeten 2026-09-22).
+  if (options.from) query.set("from", zwiftDate(options.from));
+  if (options.to) query.set("to", zwiftDate(options.to));
   const token = await fetchToken();
   const response = await safeFetch(`${apiBase()}/segment-results?${query}`, {
     cache: "no-store",
     headers: {
       ...ZWIFT_DEFAULT_HEADERS,
       accept: "application/x-protobuf-lite",
-      "Zwift-Api-Version": ZWIFT_API_VERSION,
       authorization: `Bearer ${token}`,
     },
   });

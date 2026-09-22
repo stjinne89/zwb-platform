@@ -108,9 +108,15 @@ voor één segment in het laatste uur en toont het aantal passages.
 - Kleine protobuf-decoder voor `SegmentResults` zonder nieuwe dependency
   (varint/length-delimited, alleen de velden die we gebruiken: athleteId, namen,
   worldTime, elapsed, avgPower, segmentId, id).
-- De knop toont ook de ruwe protobufvelden van het eerste resultaat. De
-  veldnummers komen van Sauce/zwift-offline en zijn **niet** tegen een echt
-  Zwift-antwoord gecontroleerd; klopt de indeling niet, dan is dat hier te zien.
+- De knop toont ook de ruwe protobufvelden van het eerste resultaat, zodat de
+  indeling tegen een echt Zwift-antwoord te controleren is.
+- **Eerste klik op productie (2026-09-22): status 400, lege body.** Oorzaak: de
+  `from`-datum had milliseconden; Sauce stuurt `2026-09-22T12:00:00Z`
+  (`zwiftCompatDate` in Sauce' `src/zwift.mjs`). Bij het nazoeken bleek ook dat
+  de veldnummers vanaf veld 3 er één naast zaten (uit het hoofd overgenomen, niet
+  uit de bron). Nu uit `SegmentResult` in Sauce' `src/zwift.proto`: 5 segment,
+  6 subgroep, 7/8 naam, 9 wereldtijd, 11 tijd (ms), 13 gewicht, 15 vermogen.
+  Het segment-verzoek stuurt, net als Sauce, geen `Zwift-Api-Version`.
 - **Kan niet lokaal:** er zijn hier geen Zwift-inloggegevens. Pas na een deploy en
   één klik op productie is dit bewezen. Weigert Zwift, dan terug naar de
   eigenaar (de Sauce-route is dan het alternatief).

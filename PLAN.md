@@ -24,7 +24,8 @@ gaat stabiliteit voor nieuwe features.
    koppelvoorstellen bevestigd (2026-09-22). Voor de live ZRL-stand: na de deploy
    één keer "Test segmentresultaten" op `/beheer/event-scan` (bewijst of het
    serviceaccount Zwifts segmentresultaten mag lezen, en of de protobufvelden
-   kloppen), en `0187_zrl_team_assignments` toepassen.
+   kloppen). De eerste klik gaf 400, gecorrigeerd; opnieuw klikken na de deploy.
+   `0187_zrl_team_assignments` is toegepast (2026-09-22).
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -55,7 +56,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 ---
 
 > **Live ZRL-stand met WTRL-puntentelling, 2026-09-22 — gebouwd, lokaal getest, niet tegen Zwift gedraaid.**
-> Migratie `0187_zrl_team_assignments.sql` (nog niet toegepast). Onderzoek en
+> Commit `00f7af1`, plus een correctie op de Zwift-aanroep (zie onder). Migratie
+> `0187_zrl_team_assignments.sql` (toegepast op productie, 2026-09-22). Onderzoek en
 > proefmeting: [live-zrl-dashboard](docs/live-zrl-dashboard.md).
 >
 > **Waarom.** Vraag van de eigenaar: een ZRL-race live volgen met de WTRL-punten
@@ -94,10 +96,16 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 >
 > **Niet lokaal te verifiëren.** Geen `.env.local` hier: de snapshot, de pagina en
 > de testknop zijn nooit tegen Zwift of Supabase gedraaid, de pagina is niet in de
-> browser bekeken. De protobuf-veldnummers komen van Sauce/zwift-offline. Wel
+> browser bekeken. Wel
 > gedraaid: de puntentelling op de volledige log van de proefmeting, unit-tests
 > (15), `tsc` en ESLint. Niet vergeleken met de WTRL-uitslag (nog niet online).
 > Uitleg op `/hulp` is nog niet geschreven.
+>
+> **Correctie na de eerste klik op productie.** "Test segmentresultaten" gaf
+> status 400 zonder body: Zwift weigert een `from`-datum met milliseconden. Bij
+> het nazoeken bleken ook de protobuf-veldnummers vanaf veld 3 er één naast te
+> zitten; ze komen nu uit Sauce' `src/zwift.proto`. Details in de doc. Opnieuw
+> klikken na de deploy.
 
 ---
 

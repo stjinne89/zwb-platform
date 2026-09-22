@@ -21,19 +21,23 @@ const vField = (no: number, value: number | bigint) => [...varint(BigInt(no << 3
 const bField = (no: number, bytes: number[]) => [...varint(BigInt((no << 3) | 2)), ...varint(BigInt(bytes.length)), ...bytes];
 const sField = (no: number, value: string) => bField(no, [...new TextEncoder().encode(value)]);
 
-// Waarden uit de meting van 2026-09-22 (Sauce toonde ze gedecodeerd).
+// Waarden uit de meting van 2026-09-22 (Sauce toonde ze gedecodeerd), op de
+// veldnummers van Sauce' zwift.proto.
 const result = [
   ...vField(1, BigInt("2144228805324128288")),
   ...vField(2, 745097),
-  ...vField(4, 1059797545),
-  ...sField(6, "♡"),
-  ...sField(7, "HJ 🐥 [rsk]"),
-  ...vField(8, 376059917683),
-  ...vField(10, 17235),
-  ...vField(12, 67000),
-  ...vField(14, 974),
+  ...vField(3, 1),
+  ...vField(4, 1),
+  ...vField(5, 1059797545),
+  ...sField(7, "♡"),
+  ...sField(8, "HJ 🐥 [rsk]"),
+  ...vField(9, 376059917683),
+  ...sField(10, "2026-09-22T11:19:52Z"),
+  ...vField(11, 17235),
+  ...vField(13, 67000),
+  ...vField(15, 974),
 ];
-const negative = [...vField(2, 3293825), ...vField(4, BigInt("-9223372035804541048")), ...vField(5, 7354711), ...vField(10, 5000)];
+const negative = [...vField(2, 3293825), ...vField(5, BigInt("-9223372035804541048")), ...vField(6, 7354711), ...vField(11, 5000)];
 
 describe("decodeSegmentResults", () => {
   const payload = new Uint8Array([...vField(1, 1), ...bField(4, result), ...bField(4, negative)]);
@@ -69,6 +73,6 @@ describe("decodeSegmentResults", () => {
   it("beschrijft ruwe velden voor de diagnose", () => {
     const lines = describeProtobuf(new Uint8Array(result));
     expect(lines).toContain("2: 745097");
-    expect(lines).toContain('7: "HJ 🐥 [rsk]"');
+    expect(lines).toContain('8: "HJ 🐥 [rsk]"');
   });
 });
