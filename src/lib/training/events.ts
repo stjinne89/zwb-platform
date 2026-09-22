@@ -7,6 +7,7 @@
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { deleteIntervalsWorkoutEvent } from "@/lib/intervals/client";
+import { withoutParentEvents } from "@/lib/events/sub-events";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { pushWorkoutToIntervals } from "@/lib/training/publish";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
@@ -137,14 +138,19 @@ export async function loadScheduleEvents(
    */
   limit = 50,
 ): Promise<ScheduleEvent[]> {
-  const { data: events } = await admin
+  const { data: rawEvents } = await admin
     .from("events")
     .select("id, title, type, start_at, end_at, distance_km, elevation_m")
     .gte("start_at", `${from}T00:00:00`)
     .lte("start_at", `${to}T23:59:59`)
     .order("start_at", { ascending: true })
     .limit(limit);
-  if (!events || events.length === 0) return [];
+  if (!rawEvents || rawEvents.length === 0) return [];
+
+  // Een hoofdevent (migr. 0178) is geen race om ja op te zeggen; dat gebeurt op
+  // het teamevent eronder.
+  const events = await withoutParentEvents(admin, (rawEvents ?? []) as ClubEventRow[]);
+  if (events.length === 0) return [];
 
   const ids = events.map((event) => event.id as string);
   const [{ data: rsvps }, { data: workouts }] = await Promise.all([
@@ -169,7 +175,7 @@ export async function loadScheduleEvents(
     ]),
   );
 
-  return (events as ClubEventRow[]).map((event) => ({
+  return events.map((event) => ({
     ...event,
     rsvp: byEvent.get(event.id) ?? null,
     inSchedule: scheduled.has(event.id),

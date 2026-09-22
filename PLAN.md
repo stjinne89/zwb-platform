@@ -18,6 +18,8 @@ gaat stabiliteit voor nieuwe features.
    ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
    Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
+   Voor de ZRL-hoofdevents: `0178_event_parent` toepassen en daarna op
+   in de kalender één raceweek openen om te zien of de teams eronder hangen.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -43,7 +45,49 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0178`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0179`.
+
+---
+
+> **ZRL: één hoofdevent per raceweek, de teams eronder, 2026-09-22 — gebouwd, lokaal getest.**
+> Implementatiecommit: zie de commit met deze titel op `claude/zrl-events-subevents-c0df69`.
+> Migratie `0178_event_parent.sql`.
+>
+> **Waarom.** Wens van de eigenaar: informatie die voor elke ZRL-race geldt, moet
+> nu per team worden ingevuld, want de import zette per team een eigen event neer.
+> De kalender stond daardoor ook vol met dezelfde race onder vijf namen.
+>
+> **Nu.** `events.parent_event_id` (nullable, `on delete set null`). De ZRL-import
+> op `/beheer/zrl-kalender` maakt per raceweek één hoofdevent zonder team, met de
+> omschrijving (Race of Truth of "Ronde x, week y"), en hangt de teamevents eronder.
+> Hoofdevents worden herkend aan de dag, teamevents aan (team, starttijd); een
+> teamevent zonder hoofdevent wordt bij opnieuw importeren alsnog gekoppeld.
+> De migratie groepeert de bestaande teamevents op het titelpatroon
+> `ZRL <seizoen> · R<n> · W<n> · <team>`; met de hand hernoemde titels blijven los.
+> - Het **teamevent** houdt alles wat per team verschilt: starttijd, Zwift-link en
+>   parcours, RSVP, beschikbaarheid en opstelling. Het toont de omschrijving van het
+>   hoofdevent boven zijn eigen omschrijving, en linkt terug naar het hoofdevent.
+> - Het **hoofdevent** toont de teams eronder (jouw team bovenaan, gemarkeerd) en
+>   heeft geen "Ben jij erbij?": een ja hoort bij een team (migr. `0171` zet je dan
+>   in dat team).
+> - **Kalender:** alleen het hoofdevent, met een knop per team. "Voor mij" rekent
+>   het hoofdevent als passend als een van de teamevents past; de ja's van de
+>   teamevents staan samen op het hoofdevent. **Dashboard:** komende events zonder
+>   teamevents. **Schema** (`loadScheduleEvents`): zonder hoofdevents, zodat je daar
+>   niet op het geheel ja kunt zeggen.
+>
+> **Bewust niet gebouwd.** Geen overerving van parcours of Zwift-regels van hoofd-
+> naar teamevent: elk team heeft zijn eigen Zwift-event, en dat levert route en
+> regels al (`zwift_event_id` per team). Overerving zou ook de pacingpagina raken.
+> `/ritverslagen` is niet aangepast: verslagen en foto's staan op de teamevents, dus
+> daar blijven die staan; een leeg hoofdevent kan er tussen staan. Geen algemene
+> "subevent"-knop in het eventformulier: alleen de ZRL-import maakt hoofdevents.
+>
+> **Niet lokaal te verifiëren:** de migratie (geen Docker/Supabase-config), en de
+> pagina's tegen echte data (geen `.env.local` in de worktree). Getest: `tsc`,
+> ESLint op de gewijzigde bestanden, `tests/unit/event-sub-events.test.ts`
+> (groeperen, teamlabel, hoofdevents wegfilteren, groepsfit) en de volledige
+> unit-suite (1550 groen; `omnium-live` faalt alleen op de ontbrekende `.env.local`).
 
 ---
 

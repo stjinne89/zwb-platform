@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState } from "@/components/app-ui";
+import { groupSubEvents } from "@/lib/events/sub-events";
 import { ZRL_2026_27_ROUNDS } from "@/lib/teams/zrl-season";
 import { ImportForm, type TeamOption } from "./_components/import-form";
 
@@ -23,12 +25,26 @@ export default async function ZrlKalenderPage() {
       .order("name"),
     supabase
       .from("events")
-      .select("id, title, start_at, teams(name)")
+      .select("id, title, start_at, parent_event_id, teams(name)")
       .eq("type", "zrl")
       .gte("start_at", new Date().toISOString())
       .order("start_at")
-      .limit(40),
+      .limit(120),
   ]);
+
+  const { topLevel: raceWeeks, childrenByParent } = groupSubEvents(
+    (upcoming ?? []) as Array<{
+      id: string;
+      title: string;
+      start_at: string;
+      parent_event_id: string | null;
+      teams: { name: string } | { name: string }[] | null;
+    }>,
+  );
+  const teamName = (event: (typeof raceWeeks)[number]) => {
+    const team = Array.isArray(event.teams) ? event.teams[0] : event.teams;
+    return team?.name ?? null;
+  };
 
   const teamOptions = ((teams ?? []) as Array<TeamOption & { is_graveyard?: boolean }>)
     .filter((team) => !team.is_graveyard)
@@ -86,18 +102,21 @@ export default async function ZrlKalenderPage() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Komende ZRL-races in de kalender ({upcoming?.length ?? 0})
+          Komende ZRL-races in de kalender ({raceWeeks.length})
         </h2>
-        {!upcoming || upcoming.length === 0 ? (
+        {raceWeeks.length === 0 ? (
           <EmptyState>Nog geen ZRL-races in de kalender.</EmptyState>
         ) : (
           <ul className="divide-y rounded-lg border bg-card">
-            {upcoming.map((event) => {
-              const team = Array.isArray(event.teams) ? event.teams[0] : event.teams;
+            {raceWeeks.slice(0, 40).map((event) => {
+              const own = teamName(event);
+              const teams = (childrenByParent.get(event.id) ?? [])
+                .map(teamName)
+                .filter(Boolean);
               return (
-                <li key={event.id as string} className="flex flex-wrap gap-2 p-3 text-sm">
+                <li key={event.id} className="flex flex-wrap gap-2 p-3 text-sm">
                   <span className="tabular-nums text-muted-foreground">
-                    {new Date(event.start_at as string).toLocaleString("nl-NL", {
+                    {new Date(event.start_at).toLocaleString("nl-NL", {
                       weekday: "short",
                       day: "numeric",
                       month: "short",
@@ -106,9 +125,12 @@ export default async function ZrlKalenderPage() {
                       timeZone: "Europe/Amsterdam",
                     })}
                   </span>
-                  <span>{event.title as string}</span>
-                  {team?.name && (
-                    <span className="text-muted-foreground">· {team.name}</span>
+                  <Link href={`/events/${event.id}`} className="hover:underline">
+                    {event.title}
+                  </Link>
+                  {own && <span className="text-muted-foreground">· {own}</span>}
+                  {teams.length > 0 && (
+                    <span className="text-muted-foreground">· {teams.join(", ")}</span>
                   )}
                 </li>
               );

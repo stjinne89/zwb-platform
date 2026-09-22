@@ -126,7 +126,8 @@ const GUIDES = [
     title: "Teams en wedstrijden",
     bullets: [
       "Teams tonen leden, rosterkoppelingen en bekende wedstrijdstanden.",
-      "Meld je je beschikbaar voor een ZRL-race, of zeg je Ja op de racepagina, dan sta je meteen in het team waar die race bij hoort. Afmelden haalt je er niet weer uit; dat doet een teambeheerder.",
+      "Een ZRL-raceweek staat als één event in de kalender, met de informatie die voor alle teams geldt. Daaronder heeft elk team zijn eigen race, met eigen starttijd, Zwift-link en opstelling.",
+      "Meld je je beschikbaar voor een ZRL-race, of zeg je Ja op de racepagina van je team, dan sta je meteen in het team waar die race bij hoort. Afmelden haalt je er niet weer uit; dat doet een teambeheerder.",
       "ZRL en Ladder-resultaten worden via bronnen gesynct waar mogelijk.",
       "Ontbrekende brondata kan handmatig worden aangevuld door beheerders.",
     ],

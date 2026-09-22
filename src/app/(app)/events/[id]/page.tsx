@@ -180,12 +180,54 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id",
     )
     .eq("id", id)
     .single();
 
   if (!event) notFound();
+
+  // Hoofdevent en teamevents (migr. 0178): een teamevent toont de gedeelde
+  // omschrijving van zijn hoofdevent, een hoofdevent de teams eronder.
+  const [{ data: parentEvent }, { data: subEventRows }, { data: myTeamRows }] =
+    await Promise.all([
+      event.parent_event_id
+        ? supabase
+            .from("events")
+            .select("id, title, description")
+            .eq("id", event.parent_event_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("events")
+        .select("id, title, start_at, team_id, teams(name)")
+        .eq("parent_event_id", id)
+        .order("start_at")
+        .order("title"),
+      user
+        ? supabase.from("team_members").select("team_id").eq("profile_id", user.id)
+        : Promise.resolve({ data: null }),
+    ]);
+  const myTeamIds = new Set((myTeamRows ?? []).map((row) => row.team_id as string));
+  const subEvents = ((subEventRows ?? []) as Array<{
+    id: string;
+    title: string;
+    start_at: string;
+    team_id: string | null;
+    teams: { name: string } | { name: string }[] | null;
+  }>)
+    .map((row) => {
+      const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+      return {
+        id: row.id,
+        startAt: row.start_at,
+        name: team?.name ?? row.title,
+        isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
+      };
+    })
+    .sort((a, b) => Number(b.isMine) - Number(a.isMine));
+  const isParentEvent = subEvents.length > 0;
+  const sharedDescription = String(parentEvent?.description ?? "").trim();
 
   // Strip het interne "ZWB-deelnemers:"-label uit de omschrijving (gekoppelde
   // leden tonen we als RSVP-deelnemer). De namen zelf blijven leesbaar staan,
@@ -680,10 +722,10 @@ export default async function EventDetailPage({
   return (
     <div className="space-y-6">
       <Link
-        href="/kalender"
+        href={parentEvent ? `/events/${parentEvent.id}` : "/kalender"}
         className="text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Kalender
+        ← {parentEvent ? parentEvent.title : "Kalender"}
       </Link>
 
       {coverUrl && (
@@ -769,9 +811,52 @@ export default async function EventDetailPage({
         canManage={canManage}
       />
 
+      {sharedDescription && (
+        <section className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-sm">
+          {sharedDescription}
+        </section>
+      )}
+
       {eventDescription && (
         <section className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-sm">
           {eventDescription}
+        </section>
+      )}
+
+      {isParentEvent && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Teams
+          </h2>
+          <ul className="divide-y rounded-lg border bg-card">
+            {subEvents.map((sub) => (
+              <li key={sub.id}>
+                <Link
+                  href={`/events/${sub.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm hover:bg-secondary/50"
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    {sub.name}
+                    {sub.isMine && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        Jouw team
+                      </span>
+                    )}
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {new Date(sub.startAt).toLocaleString("nl-NL", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "Europe/Amsterdam",
+                    })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
@@ -862,12 +947,14 @@ export default async function EventDetailPage({
           <WindSummary forecast={windForecast} rideBearing={rideBearing} />
         ))}
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Ben jij erbij?
-        </h2>
-        <RsvpPicker eventId={event.id} current={myRsvp ?? null} groups={grouped} />
-      </section>
+      {!isParentEvent && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Ben jij erbij?
+          </h2>
+          <RsvpPicker eventId={event.id} current={myRsvp ?? null} groups={grouped} />
+        </section>
+      )}
 
       {liveTimingOutcome && (
         <LiveTimingPanel

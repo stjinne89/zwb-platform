@@ -201,3 +201,23 @@ export function fitIsInformative(member: MemberFit): boolean {
     member.maxElevationM !== null
   );
 }
+
+/**
+ * Een hoofdevent met teamevents eronder (migr. 0178) past als één van de
+ * teamevents past: je rijdt de raceweek met je eigen team. Past er geen, dan
+ * geldt de reden van het eerste teamevent.
+ */
+export function eventGroupFitsMember(
+  parent: FitEvent,
+  children: FitEvent[],
+  member: MemberFit,
+): FitResult {
+  if (children.length === 0) return eventFitsMember(parent, member);
+  let first: FitResult | null = null;
+  for (const child of children) {
+    const verdict = eventFitsMember(child, member);
+    if (verdict.fits) return verdict;
+    first ??= verdict;
+  }
+  return first ?? FITS;
+}

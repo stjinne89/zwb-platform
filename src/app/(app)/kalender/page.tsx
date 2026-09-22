@@ -5,8 +5,9 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
 import {
-  eventFitsMember,
+  eventGroupFitsMember,
   fitIsInformative,
   resolveMemberFit,
   FIT_REASON_LABELS,
@@ -91,7 +92,7 @@ export default async function KalenderPage({
       supabase
         .from("events")
         .select(
-          "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path, team_id",
+          "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path, team_id, parent_event_id",
         )
         .order("start_at", { ascending: true }),
       supabase
@@ -163,16 +164,22 @@ export default async function KalenderPage({
   // Alleen vandaag + toekomstige events op de kalender — voorbije events
   // verhuizen naar /ritverslagen. Zo staat het event van vandaag (of het
   // eerstvolgende) bovenaan.
-  const upcoming = (allEvents ?? []).filter(
+  // Teamevents staan onder hun hoofdevent (migr. 0178), niet als eigen regel.
+  const { topLevel, childrenByParent } = groupSubEvents(allEvents ?? []);
+  const upcoming = topLevel.filter(
     (event) => amsterdamDateKey(new Date(event.start_at)) >= todayKey,
   );
-  const pastCount = (allEvents?.length ?? 0) - upcoming.length;
+  const pastCount = topLevel.length - upcoming.length;
 
   // Wat past er niet, en waarom? Ook zonder actief filter berekend, zodat de
   // knop meteen zijn aantal kan tonen.
   const hiddenByReason = new Map<FitReason, number>();
   const forMe = upcoming.filter((event) => {
-    const verdict = eventFitsMember(event, member);
+    const verdict = eventGroupFitsMember(
+      event,
+      childrenByParent.get(event.id) ?? [],
+      member,
+    );
     if (verdict.fits) return true;
     hiddenByReason.set(verdict.reason, (hiddenByReason.get(verdict.reason) ?? 0) + 1);
     return false;
@@ -219,7 +226,15 @@ export default async function KalenderPage({
   // Renners die "ja" hebben gezegd, met avatar + naam onder de eventtitel.
   type YesRider = { id: string; name: string; avatarUrl: string | null };
   const yesRidersByEvent = new Map<string, YesRider[]>();
-  const upcomingEventIds = events.map((event) => event.id);
+  // Een "ja" op een teamevent telt mee op het hoofdevent.
+  const rsvpTarget = new Map<string, string>();
+  for (const event of events) {
+    rsvpTarget.set(event.id, event.id);
+    for (const child of childrenByParent.get(event.id) ?? []) {
+      rsvpTarget.set(child.id, event.id);
+    }
+  }
+  const upcomingEventIds = [...rsvpTarget.keys()];
   if (upcomingEventIds.length > 0) {
     const { data: yesRsvps } = await supabase
       .from("event_rsvps")
@@ -232,13 +247,15 @@ export default async function KalenderPage({
         ? rsvp.profiles[0]
         : rsvp.profiles;
       if (!profile) continue;
-      const current = yesRidersByEvent.get(rsvp.event_id) ?? [];
+      const target = rsvpTarget.get(rsvp.event_id) ?? rsvp.event_id;
+      const current = yesRidersByEvent.get(target) ?? [];
+      if (current.some((rider) => rider.id === profile.id)) continue;
       current.push({
         id: profile.id,
         name: profile.display_name,
         avatarUrl: profile.avatar_url,
       });
-      yesRidersByEvent.set(rsvp.event_id, current);
+      yesRidersByEvent.set(target, current);
     }
   }
 
@@ -392,6 +409,7 @@ export default async function KalenderPage({
               ?.replace(/^ZWB-deelnemers:\s*/, "")
               .trim();
             const yesRiders = yesRidersByEvent.get(event.id) ?? [];
+            const subEvents = childrenByParent.get(event.id) ?? [];
             const liveCount = liveCountsByEvent.get(event.id) ?? 0;
             const coverUrl = event.cover_image_path
               ? supabase.storage
@@ -478,6 +496,19 @@ export default async function KalenderPage({
                 </Link>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {subEvents.map((sub) => (
+                    <Link
+                      key={sub.id}
+                      href={`/events/${sub.id}`}
+                      className={`rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-secondary ${
+                        sub.team_id && member.teamIds.includes(sub.team_id)
+                          ? "border-primary/50 bg-primary/10"
+                          : "bg-background"
+                      }`}
+                    >
+                      {subEventLabel(sub.title, event.title)}
+                    </Link>
+                  ))}
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
                     {EVENT_TYPE_LABELS[event.type] ?? event.type}
                   </span>

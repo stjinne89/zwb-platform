@@ -3,18 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { amsterdamDateKey } from "@/lib/birthdays";
 import {
   generateZrlRound,
   validateRoundSpec,
+  type ZrlRaceFormat,
   type ZrlRoundSpec,
 } from "@/lib/teams/zrl-season";
 
 export type ImportInput = Omit<ZrlRoundSpec, "teamName"> & { teamIds: string[] };
 
 /**
- * Zet een hele ZRL-ronde in de kalender: per team één event per raceweek.
- * Idempotent op (team_id, start_at): opnieuw draaien voegt niets dubbel toe,
- * zodat je een ronde veilig kunt bijwerken nadat WTRL een tijd verschuift.
+ * Zet een hele ZRL-ronde in de kalender: per raceweek één hoofdevent met de
+ * gedeelde omschrijving, en daaronder per team een event. Idempotent: een
+ * hoofdevent wordt herkend aan de dag, een teamevent aan (team_id, start_at).
+ * Opnieuw draaien vult dus alleen aan, ook als er later een team bijkomt.
  */
 export async function importZrlRound(input: ImportInput) {
   const supabase = await createClient();
@@ -38,41 +41,86 @@ export async function importZrlRound(input: ImportInput) {
     return { ok: false as const, error: "Team niet gevonden." };
   }
 
+  const weeks = generateZrlRound({ ...input, teamName: undefined });
+  if (weeks.length === 0) {
+    return { ok: false as const, error: "Deze opgave levert geen races op." };
+  }
+  const starts = weeks.map((week) => week.startAtIso).sort();
+  // Hele dagen, zodat een hoofdevent waarvan de tijd met de hand is verschoven
+  // nog steeds wordt herkend.
+  const windowStart = `${weeks[0].dateKey}T00:00:00Z`;
+  const windowEnd = new Date(
+    new Date(starts[starts.length - 1]).getTime() + 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  // 1. Hoofdevents: één per raceweek, zonder team.
+  const { data: existingParents } = await supabase
+    .from("events")
+    .select("id, start_at")
+    .eq("type", "zrl")
+    .is("team_id", null)
+    .is("parent_event_id", null)
+    .gte("start_at", windowStart)
+    .lt("start_at", windowEnd);
+  const parentByDay = new Map<string, string>();
+  for (const row of existingParents ?? []) {
+    parentByDay.set(amsterdamDateKey(new Date(row.start_at as string)), row.id as string);
+  }
+
+  const missingParents = weeks.filter((week) => !parentByDay.has(week.dateKey));
+  let parentsCreated = 0;
+  if (missingParents.length > 0) {
+    const { data: inserted, error } = await supabase
+      .from("events")
+      .insert(
+        missingParents.map((week) => ({
+          type: "zrl",
+          title: week.title,
+          description: zrlDescription(week.format, input.round, week.week),
+          start_at: week.startAtIso,
+          created_by: access.user!.id,
+        })),
+      )
+      .select("id, start_at");
+    if (error) return { ok: false as const, error: error.message };
+    for (const row of inserted ?? []) {
+      parentByDay.set(amsterdamDateKey(new Date(row.start_at as string)), row.id as string);
+    }
+    parentsCreated = inserted?.length ?? 0;
+  }
+
+  // 2. Teamevents onder het hoofdevent van hun week.
   type Row = {
     type: "zrl";
     title: string;
-    description: string;
     start_at: string;
     team_id: string;
+    parent_event_id: string;
     created_by: string;
   };
   const rows: Row[] = [];
   for (const team of teams) {
     for (const event of generateZrlRound({ ...input, teamName: team.name })) {
+      const parentId = parentByDay.get(event.dateKey);
+      if (!parentId) continue;
       rows.push({
         type: "zrl",
         title: event.title,
-        description:
-          event.format === "race_of_truth"
-            ? "Race of Truth: puntenrace zonder stayeren, geen TT-fiets."
-            : `Ronde ${input.round}, week ${event.week}.`,
         start_at: event.startAtIso,
         team_id: team.id as string,
+        parent_event_id: parentId,
         created_by: access.user.id,
       });
     }
   }
-  if (rows.length === 0) {
-    return { ok: false as const, error: "Deze opgave levert geen races op." };
-  }
 
   // Bestaande races voor deze teams in dit venster ophalen, zodat we alleen
   // aanvullen. Er is geen unieke index op (team_id, start_at), dus dit gebeurt
-  // hier in plaats van met een upsert.
-  const starts = rows.map((row) => row.start_at).sort();
+  // hier in plaats van met een upsert. Een teamevent van vóór de hoofdevents
+  // wordt alsnog aan zijn week gehangen.
   const { data: existing } = await supabase
     .from("events")
-    .select("team_id, start_at")
+    .select("id, team_id, start_at, parent_event_id")
     .eq("type", "zrl")
     .in("team_id", input.teamIds)
     .gte("start_at", starts[0])
@@ -83,9 +131,29 @@ export async function importZrlRound(input: ImportInput) {
       (row) => `${row.team_id}|${new Date(row.start_at as string).toISOString()}`,
     ),
   );
-  const fresh = rows.filter((row) => !seen.has(`${row.team_id}|${row.start_at}`));
+  let linked = 0;
+  for (const row of existing ?? []) {
+    if (row.parent_event_id) continue;
+    const parentId = parentByDay.get(amsterdamDateKey(new Date(row.start_at as string)));
+    if (!parentId) continue;
+    const { error } = await supabase
+      .from("events")
+      .update({ parent_event_id: parentId })
+      .eq("id", row.id as string);
+    if (!error) linked += 1;
+  }
 
-  if (fresh.length === 0) {
+  const fresh = rows.filter((row) => !seen.has(`${row.team_id}|${row.start_at}`));
+  if (fresh.length > 0) {
+    const { error } = await supabase.from("events").insert(fresh);
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  revalidatePath("/kalender");
+  revalidatePath("/teams");
+  revalidatePath("/beheer/zrl-kalender");
+
+  if (fresh.length === 0 && parentsCreated === 0 && linked === 0) {
     return {
       ok: true as const,
       created: 0,
@@ -93,17 +161,16 @@ export async function importZrlRound(input: ImportInput) {
       message: "Deze ronde stond er al volledig in.",
     };
   }
-
-  const { error } = await supabase.from("events").insert(fresh);
-  if (error) return { ok: false as const, error: error.message };
-
-  revalidatePath("/kalender");
-  revalidatePath("/teams");
-  revalidatePath("/beheer/zrl-kalender");
   return {
     ok: true as const,
     created: fresh.length,
     skipped: rows.length - fresh.length,
     message: null,
   };
+}
+
+function zrlDescription(format: ZrlRaceFormat, round: number, week: number) {
+  return format === "race_of_truth"
+    ? "Race of Truth: puntenrace zonder stayeren, geen TT-fiets."
+    : `Ronde ${round}, week ${week}.`;
 }

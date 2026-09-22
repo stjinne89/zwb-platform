@@ -339,6 +339,8 @@ export default async function DashboardPage({
     supabase
       .from("events")
       .select("id, title, type, start_at, location, cover_image_path")
+      // Teamevents staan onder hun hoofdevent (migr. 0178).
+      .is("parent_event_id", null)
       .gte("start_at", nowIso)
       .lte("start_at", plus7Iso)
       .order("start_at", { ascending: true })
