@@ -68,7 +68,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0187`
 ---
 
 > **WTRL-racepass per team per ronde, 2026-09-22 — gebouwd, lokaal getest.**
-> Migratie `0186_team_racepasses.sql` (nog toepassen, na `0185`).
+> Migratie `0186_team_racepasses.sql` (toegepast op productie, 2026-09-22).
 >
 > **Waarom.** De eigenaar: bij de ZRL meld je je niet aan via "Aanmelden op Zwift"
 > maar met de racepass van je team, die WTRL per ronde uitgeeft. Voor ronde 1 staan
@@ -96,7 +96,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0187`
 ---
 
 > **Raceinfo op ZRL-events: pacingplan en racelinks, 2026-09-22 — gebouwd, lokaal getest.**
-> Migratie `0185_event_links.sql` (nog toepassen).
+> Migratie `0185_event_links.sql` (toegepast op productie, 2026-09-22).
 >
 > **Waarom.** De eigenaar zag op de racedag geen pacingplan op de ZRL-raceweek, en wil
 > per race veel meer links kwijt: Zwift-event, ZwiftPower, ZwiftRacing, recon-video's,
