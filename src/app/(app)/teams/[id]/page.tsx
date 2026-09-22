@@ -96,6 +96,9 @@ type EventRow = {
   start_at: string;
   location: string | null;
   team_id: string | null;
+  parent_event_id?: string | null;
+  /** Bij een raceweek: de races van de subteams eronder. */
+  races?: Array<{ id: string; teamName: string; startAt: string }>;
 };
 
 type AvailabilityRow = {
@@ -158,9 +161,15 @@ export default async function TeamDetailPage({
     team.parent_team_id == null
       ? [team, ...((childTeams ?? []) as TeamRow[])]
       : [team];
+  // Een hoofdteam met subteams start zelf niet in een wedstrijd; het verdeelt
+  // zijn leden over de subteams (migr. 0179).
+  const rootHasSubteams =
+    team.parent_team_id != null || (childTeams ?? []).length > 0;
   const lineupTeams: PlannerTeam[] =
     team.parent_team_id == null
-      ? scopeTeams.map((row) => ({ id: row.id, name: row.name }))
+      ? scopeTeams
+          .filter((row) => !rootHasSubteams || row.id !== team.id)
+          .map((row) => ({ id: row.id, name: row.name }))
       : [
           { id: team.id, name: team.name },
           ...(((childTeams ?? []) as TeamRow[])
@@ -214,7 +223,7 @@ export default async function TeamDetailPage({
       .limit(1000),
     supabase
       .from("events")
-      .select("id, title, type, start_at, location, team_id")
+      .select("id, title, type, start_at, location, team_id, parent_event_id")
       .in("team_id", calendarTeamIds)
       .gte("start_at", upcomingEventsCutoffIso())
       .order("start_at")
@@ -240,9 +249,51 @@ export default async function TeamDetailPage({
     )
   ).filter((row): row is NonNullable<typeof row> => row != null);
 
+  // Bij een hoofdteam met subteams is de raceweek (het hoofdevent, migr. 0178)
+  // de eenheid: daar meld je je beschikbaar en daar verdeelt de captain over de
+  // subteams. De races van de subteams staan eronder.
+  let calendarEvents = (events ?? []) as EventRow[];
+  if (rootHasSubteams) {
+    const parentIds = Array.from(
+      new Set(
+        calendarEvents
+          .filter((event) => event.type === "zrl" && event.parent_event_id)
+          .map((event) => event.parent_event_id as string),
+      ),
+    );
+    const { data: raceWeeks } =
+      parentIds.length > 0
+        ? await supabase
+            .from("events")
+            .select("id, title, type, start_at, location, team_id")
+            .in("id", parentIds)
+        : { data: [] };
+    const weekById = new Map(
+      ((raceWeeks ?? []) as EventRow[]).map((week) => [week.id, { ...week, races: [] as NonNullable<EventRow["races"]> }]),
+    );
+    const teamNames = new Map(
+      [team, ...((childTeams ?? []) as TeamRow[])].map((row) => [row.id, row.name]),
+    );
+    const collapsed: EventRow[] = [];
+    for (const event of calendarEvents) {
+      const week = event.parent_event_id ? weekById.get(event.parent_event_id) : null;
+      if (!week || event.type !== "zrl") {
+        collapsed.push(event);
+        continue;
+      }
+      if (week.races.length === 0) collapsed.push(week);
+      week.races.push({
+        id: event.id,
+        teamName: (event.team_id && teamNames.get(event.team_id)) || event.title,
+        startAt: event.start_at,
+      });
+    }
+    calendarEvents = collapsed;
+  }
+
   const memberRows = (members ?? []) as unknown as MemberRow[];
   let profileIds = Array.from(new Set(memberRows.map((member) => member.profile_id)));
-  const eventIds = ((events ?? []) as EventRow[]).map((event) => event.id);
+  const eventIds = calendarEvents.map((event) => event.id);
 
   const [{ data: availabilityRows }, { data: lineupRows }] = await Promise.all([
     eventIds.length > 0
@@ -483,7 +534,7 @@ export default async function TeamDetailPage({
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Metric icon={<Users className="size-4" />} label="Renners" value={rows.length} />
-        <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={(events ?? []).length} />
+        <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={calendarEvents.length} />
         <Metric icon={<Trophy className="size-4" />} label="ZRL-starts" value={rows.reduce((sum, row) => sum + row.zrlStarts, 0)} />
       </section>
 
@@ -499,13 +550,13 @@ export default async function TeamDetailPage({
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Teamkalender en selectie</h2>
-        {(events ?? []).length === 0 ? (
+        {calendarEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Geen aankomende kalenderitems gekoppeld aan dit team.
           </p>
         ) : (
           <div className="space-y-4">
-            {((events ?? []) as EventRow[]).map((event) => {
+            {calendarEvents.map((event) => {
               const eventLineups = lineups.filter((lineup) => lineup.event_id === event.id);
               const plannerLineups: PlannerLineup[] = eventLineups.map((lineup) => ({
                 id: lineup.id,
@@ -547,6 +598,26 @@ export default async function TeamDetailPage({
                         })}
                         {event.location ? ` · ${event.location}` : ""}
                       </p>
+                      {event.races && event.races.length > 0 && (
+                        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                          {event.races.map((race) => (
+                            <Link
+                              key={race.id}
+                              href={`/events/${race.id}`}
+                              className="text-primary hover:underline"
+                            >
+                              {race.teamName}{" "}
+                              <span className="tabular-nums text-muted-foreground">
+                                {new Date(race.startAt).toLocaleTimeString("nl-NL", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  timeZone: "Europe/Amsterdam",
+                                })}
+                              </span>
+                            </Link>
+                          ))}
+                        </p>
+                      )}
                     </div>
                     <TeamAvailabilityButtons
                       teamId={rootTeamId}

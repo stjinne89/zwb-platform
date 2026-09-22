@@ -40,6 +40,16 @@ export async function importZrlRound(input: ImportInput) {
   if (!teams || teams.length === 0) {
     return { ok: false as const, error: "Team niet gevonden." };
   }
+  const { data: subteams } = await supabase
+    .from("teams")
+    .select("parent_team_id")
+    .in("parent_team_id", input.teamIds);
+  if ((subteams ?? []).length > 0) {
+    return {
+      ok: false as const,
+      error: "Een hoofdteam rijdt zelf niet; kies de subteams.",
+    };
+  }
 
   const weeks = generateZrlRound({ ...input, teamName: undefined });
   if (weeks.length === 0) {

@@ -144,9 +144,16 @@ export default async function KalenderPage({
   const rideHistory =
     needsHistory && user ? await loadRideHistory(supabase, user.id) : null;
 
+  // Wie in een hoofdteam zit, rijdt voor een van zijn subteams: die races
+  // tellen als eigen team (migr. 0179).
+  const directTeamIds = (myTeams ?? []).map((row) => row.team_id as string);
+  const { data: mySubteams } =
+    directTeamIds.length > 0
+      ? await supabase.from("teams").select("id").in("parent_team_id", directTeamIds)
+      : { data: [] };
   const member = resolveMemberFit({
     interests: me?.event_type_interests ?? null,
-    teamIds: (myTeams ?? []).map((row) => row.team_id),
+    teamIds: [...directTeamIds, ...(mySubteams ?? []).map((row) => row.id as string)],
     declinedEventIds: (myRsvps ?? [])
       .filter((row) => row.status === "no")
       .map((row) => row.event_id),

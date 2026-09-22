@@ -20,7 +20,7 @@ export default async function ZrlKalenderPage() {
   const [{ data: teams }, { data: upcoming }] = await Promise.all([
     supabase
       .from("teams")
-      .select("id, name, type, is_graveyard")
+      .select("id, name, type, is_graveyard, parent_team_id")
       .eq("type", "zrl")
       .order("name"),
     supabase
@@ -46,8 +46,13 @@ export default async function ZrlKalenderPage() {
     return team?.name ?? null;
   };
 
-  const teamOptions = ((teams ?? []) as Array<TeamOption & { is_graveyard?: boolean }>)
-    .filter((team) => !team.is_graveyard)
+  type TeamRow = TeamOption & { is_graveyard?: boolean; parent_team_id: string | null };
+  // Een hoofdteam met subteams start zelf niet; zijn subteams wel (migr. 0179).
+  const hoofdteams = new Set(
+    ((teams ?? []) as TeamRow[]).map((team) => team.parent_team_id).filter(Boolean),
+  );
+  const teamOptions = ((teams ?? []) as TeamRow[])
+    .filter((team) => !team.is_graveyard && !hoofdteams.has(team.id))
     .map((team) => ({ id: team.id, name: team.name }));
 
   return (

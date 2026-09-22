@@ -246,13 +246,16 @@ export async function setTeamAvailability(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
-  const { error } = await supabase.from("team_event_availability").upsert({
-    team_id: teamId,
-    event_id: eventId,
-    profile_id: user.id,
-    status,
-    updated_at: new Date().toISOString(),
-  });
+  const { error } = await supabase.from("team_event_availability").upsert(
+    {
+      team_id: teamId,
+      event_id: eventId,
+      profile_id: user.id,
+      status,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "event_id,team_id,profile_id" },
+  );
   if (error) return { ok: false as const, error: error.message };
 
   // Beschikbaar melden voor een ZRL-race maakt je lid van het team van die race

@@ -18,8 +18,8 @@ gaat stabiliteit voor nieuwe features.
    ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
    Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
-   Voor de ZRL-hoofdevents: `0178_event_parent` toepassen en daarna op
-   in de kalender één raceweek openen om te zien of de teams eronder hangen.
+   `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
+   `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -45,7 +45,46 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0179`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0180`.
+
+---
+
+> **ZRL: hoofdteams rijden geen races meer, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0179_zrl_parent_team_events.sql`. Vervolg op de hoofdevents hieronder.
+>
+> **Waarom.** De eigenaar: een hoofdteam met subteams (B met B1/B2, de Zwiftladies)
+> kan zelf niet starten in een wedstrijd, maar is wel de plek waar het team wordt
+> georganiseerd. De import zette er toch races voor neer.
+>
+> **Nu.** Het organiseren hing aan de races van het hoofdteam (beschikbaarheid met
+> `team_id` = hoofdteam, opstellingen met `parent_team_id` = hoofdteam). Dat hangt nu
+> aan het hoofdevent van de raceweek:
+> - **Teampagina** van een hoofdteam met subteams (en van zijn subteams): één kaart
+>   per raceweek, met de races van de subteams als links eronder. Beschikbaarheid en
+>   de opstellingsplanner werken op het hoofdevent. Het hoofdteam zelf is geen
+>   doel meer in de planner. Teams zonder subteams (ZRL A) houden hun eigen races
+>   als eenheid.
+> - **Migratie:** verhuist beschikbaarheid, opstellingen en TTT-plannen van het
+>   hoofdteam naar het hoofdevent (bij dubbele opgave wint de laatste), zet een
+>   RSVP op een race van het hoofdteam om in beschikbaarheid (ja → beschikbaar,
+>   misschien → misschien, nee → niet beschikbaar; een bestaande opgave wint), en
+>   verwijdert daarna de races van de hoofdteams. Beschikbaar melden op een
+>   hoofdevent maakt je via `0171` lid van het hoofdteam, zoals eerst ook.
+> - **Import** (`/beheer/zrl-kalender`): hoofdteams staan niet meer in de lijst, en
+>   de serveractie weigert ze.
+> - **Kalender "Voor mij":** lid van een hoofdteam telt als eigen team voor de races
+>   van zijn subteams.
+> - **Meegenomen:** `setTeamAvailability` deed een upsert zonder `onConflict`, terwijl
+>   de unieke sleutel `(event_id, team_id, profile_id)` is. Een tweede klik (andere
+>   status) liep daardoor waarschijnlijk op een unieke-sleutelfout; nu expliciet.
+>
+> **Bewust niet gebouwd.** Trainingsblokken die aan een race van het hoofdteam
+> hingen, worden niet omgehangen: ze blijven in het schema staan zonder koppeling
+> (`on delete set null`). Races van hoofdteams met een met de hand hernoemde titel
+> (zonder hoofdevent, zie `0178`) raakt de migratie niet; die verwijder je met de hand.
+>
+> **Niet lokaal te verifiëren:** de migratie en de teampagina tegen echte data.
+> Getest: `tsc`, ESLint, de volledige unit-suite.
 
 ---
 
