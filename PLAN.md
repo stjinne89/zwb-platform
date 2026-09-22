@@ -147,6 +147,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > vóór de start): subgroep en starttijd goed gekozen, 18 tegenstanders met hun
 > tag in "Teams bijstellen". Nog open: de pagina tijdens een echte ZRL-race.
 >
+> **Verkeerde subgroep bij Zwiftladies B.** Het dashboard toonde de A-groep:
+> onze renners (in B, met tag "ZWB") werden niet als eigen renners herkend, en dan
+> viel de keuze op de eerste groep met inschrijvers. Nu: eigen renners komen ook
+> uit de opstelling van het event en van het hoofdevent; kent het platform er dan
+> nog geen, dan wint de groep met de meeste "ZWB"-tags, en gelden die renners als
+> ons team (anders viel het uiteen in "ZWB" en "ZWB-Synergy"). Welke bron bij
+> Zwiftladies B ontbrak, is niet nagegaan (geen databasetoegang hier).
+>
 > **Teamnaam.** Een team kreeg de spelling van de eerste renner ("foudre" naast
 > "Foudre"). Nu wint de vaakst getypte spelling, bij gelijkspel een met
 > hoofdletters en dan de kaalste (`pickTeamLabel` in

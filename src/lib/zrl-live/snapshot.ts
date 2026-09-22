@@ -133,10 +133,31 @@ export type ZrlLiveOutcome =
   | { status: "ok"; view: ZrlLiveView }
   | { status: "not-found" | "no-zwift-event" | "no-route" | "error"; message?: string };
 
-async function ownZwiftIds(teamId: string | null): Promise<Set<number>> {
+function addZwiftIds(ids: Set<number>, rows: unknown) {
+  // Supabase typeert een to-one-join soms als lijst.
+  for (const row of [rows].flat() as Array<{ zwift_id?: string | null } | null>) {
+    const id = Number(row?.zwift_id);
+    if (id) ids.add(id);
+  }
+}
+
+/**
+ * Onze renners: WTRL-renners en leden van het team, plus de opstelling van dit
+ * event of van het hoofdevent van de raceweek (daar staat die sinds migr. 0178).
+ */
+async function ownZwiftIds(teamId: string | null, eventIds: string[]): Promise<Set<number>> {
   if (!teamId) return new Set();
   const admin = createAdminClient();
   const ids = new Set<number>();
+  const { data: lineup } = await admin
+    .from("team_event_lineups")
+    .select("profiles!team_event_lineups_profile_id_fkey(zwift_id), roster_entries(zwift_id)")
+    .in("event_id", eventIds)
+    .eq("team_id", teamId);
+  for (const row of (lineup ?? []) as unknown as Array<{ profiles: unknown; roster_entries: unknown }>) {
+    addZwiftIds(ids, row.profiles);
+    addZwiftIds(ids, row.roster_entries);
+  }
   const { data: wtrl } = await admin.from("wtrl_teams").select("trc_ref").eq("team_id", teamId);
   const refs = (wtrl ?? []).map((row) => row.trc_ref as string);
   if (refs.length) {
@@ -148,21 +169,39 @@ async function ownZwiftIds(teamId: string | null): Promise<Set<number>> {
     .select("profiles(zwift_id)")
     .eq("team_id", teamId);
   for (const row of (members ?? []) as unknown as Array<{ profiles: unknown }>) {
-    // Supabase typeert een to-one-join soms als lijst.
-    const profiles = Array.isArray(row.profiles) ? row.profiles : [row.profiles];
-    for (const profile of profiles as Array<{ zwift_id?: string | null } | null>) {
-      const id = Number(profile?.zwift_id);
-      if (id) ids.add(id);
-    }
+    addZwiftIds(ids, row.profiles);
   }
   return ids;
+}
+
+/** "Linda Kuiper [ZWB]", "Femke Vaessen [ZWB-Synergy]". */
+function hasZwbTag(name: string): boolean {
+  return teamKey(extractTeamTag(name) ?? "").split(" ").includes("zwb");
+}
+
+/**
+ * Onze subgroep: waar de meeste eigen renners in staan. Zijn die (nog) niet
+ * bekend, dan waar de meeste inschrijvers "ZWB" in hun teamtag hebben; anders de
+ * eerste met inschrijvers. Zonder die tweede stap koos Zwiftladies B de A-groep.
+ */
+export function pickSubgroup<T extends { entrants: Array<{ zwiftId: string; name: string }> }>(
+  subgroups: T[],
+  own: Set<number>,
+): T | undefined {
+  const occupied = subgroups.filter((s) => s.entrants.length > 0);
+  const score = (s: T) => {
+    const ownCount = s.entrants.filter((e) => own.has(Number(e.zwiftId))).length;
+    const zwbTags = s.entrants.filter((e) => hasZwbTag(e.name)).length;
+    return ownCount * 1000 + zwbTags;
+  };
+  return [...occupied].sort((a, b) => score(b) - score(a))[0];
 }
 
 export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
   const admin = createAdminClient();
   const { data: event } = await admin
     .from("events")
-    .select("id, title, type, team_id, zwift_event_id, teams(name)")
+    .select("id, title, type, team_id, parent_event_id, zwift_event_id, teams(name)")
     .eq("id", eventId)
     .maybeSingle();
   if (!event || event.type !== "zrl") return { status: "not-found" };
@@ -176,15 +215,16 @@ export async function loadZrlLive(eventId: string): Promise<ZrlLiveOutcome> {
     return { status: "error", message: error instanceof Error ? error.message : undefined };
   }
 
-  // Onze subgroep: waar de meeste van onze renners in staan.
-  const own = await ownZwiftIds(event.team_id as string | null);
-  const occupied = data.subgroups.filter((s) => s.entrants.length > 0);
-  const subgroup = [...occupied].sort(
-    (a, b) =>
-      b.entrants.filter((e) => own.has(Number(e.zwiftId))).length -
-      a.entrants.filter((e) => own.has(Number(e.zwiftId))).length,
-  )[0];
+  const own = await ownZwiftIds(
+    event.team_id as string | null,
+    [event.id as string, event.parent_event_id as string | null].filter((id): id is string => Boolean(id)),
+  );
+  const subgroup = pickSubgroup(data.subgroups, own);
   if (!subgroup) return { status: "no-route" };
+  // Kent het platform niemand in deze groep, dan gelden de ZWB-tags als ons team.
+  if (!subgroup.entrants.some((e) => own.has(Number(e.zwiftId)))) {
+    for (const e of subgroup.entrants) if (hasZwbTag(e.name)) own.add(Number(e.zwiftId));
+  }
   const route = subgroup.routeId ? routeSegments(subgroup.routeId, subgroup.laps) : null;
   if (!route) return { status: "no-route" };
 

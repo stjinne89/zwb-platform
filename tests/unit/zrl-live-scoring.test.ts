@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pickSubgroup } from "@/lib/zrl-live/snapshot";
 import { scoreRace, type Passage, type Rider, type RouteSegment } from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 
@@ -104,5 +105,24 @@ describe("zrlLeagueKey", () => {
     expect(zrlLeagueKey(race1, "C", "1")).toBe("26/27|open topaz league|1|C");
     expect(zrlLeagueKey(race3, "C", "2")).toBe(zrlLeagueKey(race1, "C", "1"));
     expect(zrlLeagueKey("Club ride", "B", "99")).toBe("event:99:B");
+  });
+});
+
+describe("pickSubgroup", () => {
+  const e = (zwiftId: string, name: string) => ({ zwiftId, name });
+  const a = { label: "A", entrants: [e("1", "Femke de Zee [AEO]"), e("2", "Lily Vae [LEQP]")] };
+  const b = { label: "B", entrants: [e("3", "Larissa Heijboer (ZWB)"), e("4", "Femke Vaessen [ZWB-Synergy]"), e("5", "Lucy [SYN]")] };
+  const empty = { label: "E", entrants: [] };
+
+  it("kiest de groep met eigen renners", () => {
+    expect(pickSubgroup([empty, a, b], new Set([2]))?.label).toBe("A");
+  });
+
+  it("valt zonder bekende eigen renners terug op ZWB-tags (Zwiftladies B, 2026-09-22)", () => {
+    expect(pickSubgroup([empty, a, b], new Set())?.label).toBe("B");
+  });
+
+  it("neemt anders de eerste groep met inschrijvers", () => {
+    expect(pickSubgroup([empty, a], new Set())?.label).toBe("A");
   });
 });
