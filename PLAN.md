@@ -52,7 +52,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0182`
 ---
 
 > **WTRL-import deelt renners in, 2026-09-22 — gebouwd, lokaal getest.**
-> Migratie `0181_wtrl_team_membership.sql`. Vervolg op de WTRL-teams hieronder.
+> Implementatiecommit `e24c5ce`, migratie `0181_wtrl_team_membership.sql`. Vervolg op de WTRL-teams hieronder.
 >
 > **Waarom.** De eigenaar zag dat de import (0180) alleen een aparte tabel vulde:
 > niemand kwam in een team, renners zonder account kwamen niet in het rooster, en de
