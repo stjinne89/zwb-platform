@@ -56,6 +56,41 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 
 ---
 
+> **Live ZRL-stand koos de verkeerde subgroep, 2026-09-22 — gebouwd.**
+>
+> **Waarom.** Na de eerste echte race (ronde 1, week 1) zag ZWB Cycling B1 op
+> `/live/zrl/[eventId]` de stand van ZWB Cycling A. Beide ploegen rijden in
+> hetzelfde Zwift-event (`5711304`, Open Aqua League Division 1): A in groep A,
+> B1 in groep B. `pickSubgroup` telde per groep de renners die we als eigen
+> kennen *of* een ZWB-tag in hun naam hebben, en dat was voor beide groepen
+> vijf. Bij gelijkspel won de eerste groep, dus allebei kregen ze groep A.
+>
+> **Nu.** `pickSubgroup` breekt een gelijkspel op het aantal renners dat we
+> echt als eigen kennen (WTRL-plak, opstelling, teamleden). B1 telt daar vijf in
+> groep B en nul in groep A, dus de keuze klopt weer; de bestaande regel dat één
+> verkeerd gekoppelde renner niet mag winnen van meer ZWB-tags blijft primair.
+> Unit-test erbij in `tests/unit/zrl-live-scoring.test.ts`. Nagerekend op de
+> echte startlijsten van alle zeven ZWB-ploegen van 22 september: alleen B1
+> veranderde van groep, de andere zes kozen al goed.
+>
+> **Ook rechtgezet (met de hand op productie, geen code).** Het event *R1 · W1 ·
+> B2* wees naar Zwift-event `5711307` (Open Aqua League Division 5), terwijl de
+> ploeg in Division 4 reed: `zwift_event_id` en `external_url` staan nu op
+> `5711306`. De WTRL-divisienaam van de twee open B-ploegen loopt één uit de pas
+> met het Zwift-eventnummer (B1 staat als "Division B2" maar rijdt Division 1,
+> B2 als "Division B5" maar rijdt Division 4), dus koppel op de startlijst en
+> niet op het nummer.
+>
+> **Niet gedaan.** De naam "Kevin Plasmans (ZWB] YT" (haakje open, blokhaak
+> dicht) herkent `extractTeamTag` niet als tag. Dat kostte hier niets — de
+> gelijkspelregel lost het op — en de haakjesparser losser maken raakt alle
+> teamnamen, dus dat blijft staan.
+>
+> **Niet in de browser gezien.** De pagina zelf draait alleen tegen een lopende
+> race; de keuze is nagerekend op de opgehaalde startlijsten van 22 september.
+
+---
+
 > **Terug-link op pagina's buiten het menu, 2026-09-22 — gebouwd, lokaal getest.**
 >
 > **Waarom.** De eigenaar miste een terugknop op de live ZRL-stand en kwam dat in

@@ -129,4 +129,21 @@ describe("pickSubgroup", () => {
   it("neemt anders de eerste groep met inschrijvers", () => {
     expect(pickSubgroup([empty, a], new Set())?.label).toBe("A");
   });
+
+  it("kiest bij evenveel ZWB'ers de groep met eigen renners (A en B1 in één event)", () => {
+    // Open Aqua Division 1, 2026-09-22: ZWB Cycling A reed groep A en ZWB
+    // Cycling B1 groep B, allebei met vijf ZWB-tags in de naam.
+    const groepA = {
+      label: "A",
+      entrants: [e("11", "Pim Meulemeester[ZWB]"), e("12", "C asper [ZWB]"), e("13", "Bart de Groot [ZWB]")],
+    };
+    const groepB = {
+      label: "B",
+      entrants: [e("21", "R Buunk [ZWB]"), e("22", "Bas Koster (ZWB)"), e("23", "Jos Leijten[ZWB]")],
+    };
+    const b1 = new Set([21, 22, 23]);
+    const teamA = new Set([11, 12, 13]);
+    expect(pickSubgroup([groepA, groepB], b1)?.label).toBe("B");
+    expect(pickSubgroup([groepA, groepB], teamA)?.label).toBe("A");
+  });
 });

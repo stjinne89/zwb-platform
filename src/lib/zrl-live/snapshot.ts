@@ -200,7 +200,12 @@ export function pickSubgroup<T extends { entrants: Array<{ zwiftId: string; name
   // mag niet winnen van vier ZWB'ers in B (Zwiftladies B, 2026-09-22).
   const score = (s: T) =>
     s.entrants.filter((e) => own.has(Number(e.zwiftId)) || hasZwbTag(e.name)).length;
-  return [...occupied].sort((a, b) => score(b) - score(a))[0];
+  // Bij gelijkspel de groep met onze eigen renners. Twee ZWB-ploegen kunnen in
+  // hetzelfde Zwift-event zitten: A in groep A en B1 in groep B (Open Aqua
+  // Division 1, 2026-09-22), allebei vijf ZWB-tags. Zonder deze regel won de
+  // eerste groep en kreeg B1 de stand van A te zien.
+  const ourRiders = (s: T) => s.entrants.filter((e) => own.has(Number(e.zwiftId))).length;
+  return [...occupied].sort((a, b) => score(b) - score(a) || ourRiders(b) - ourRiders(a))[0];
 }
 
 export async function loadZrlLive(
