@@ -21,7 +21,10 @@ import { hasOwnRoute, withParentRoute } from "@/lib/events/route-source";
 import {
   derivedZwiftLinks,
   mergeLinks,
+  racepassFor,
   type EventLinkRow,
+  type RaceLink,
+  type RacepassRow,
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { isPoiType, type EventPoi } from "./_components/poi";
@@ -266,6 +269,7 @@ export default async function EventDetailPage({
     })
     .sort((a, b) => Number(b.isMine) - Number(a.isMine));
   const isParentEvent = subEvents.length > 0;
+  const raceDateKey = amsterdamDateKey(new Date(event.start_at));
   const sharedDescription = String(parentEvent?.description ?? "").trim();
 
   // De opstelling die de captain op de raceweek maakt (teampagina van de
@@ -391,6 +395,7 @@ export default async function EventDetailPage({
     { data: poiRows },
     { data: zoneRows },
     { data: linkRows },
+    { data: racepassRows },
   ] = await Promise.all([
     supabase
       .from("event_rsvps")
@@ -451,6 +456,18 @@ export default async function EventDetailPage({
       .select("id, event_id, kind, label, url")
       .in("event_id", lineupEventIds)
       .order("position"),
+    // WTRL-racepass van de ronde waarin deze race valt (migr. 0186).
+    event.type === "zrl"
+      ? supabase
+          .from("team_racepasses")
+          .select("team_id, url, valid_from, valid_until")
+          .in(
+            "team_id",
+            [event.team_id, ...subEvents.map((sub) => sub.teamId)].filter(Boolean) as string[],
+          )
+          .lte("valid_from", raceDateKey)
+          .gte("valid_until", raceDateKey)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const eventPois: EventPoi[] = ((poiRows ?? []) as Array<{
@@ -531,6 +548,21 @@ export default async function EventDetailPage({
       (row) => row.event_id === eventId,
     );
   const raceLinks = mergeLinks(linksOf(event.id), linksOf(event.parent_event_id));
+
+  // Bij de ZRL meld je je aan met de racepass van je team, niet op Zwift. Op de
+  // raceweek staan de passes van je eigen teams.
+  const passes = (racepassRows ?? []) as RacepassRow[];
+  const racepassLink = (teamId: string | null, label: string): RaceLink | null => {
+    const url = racepassFor(passes, teamId, raceDateKey);
+    return url ? { key: `racepass-${teamId}`, kind: "racepass", label, url } : null;
+  };
+  const ownRacepasses = (
+    event.team_id
+      ? [racepassLink(event.team_id, "Racepass")]
+      : subEvents
+          .filter((sub) => sub.isMine)
+          .map((sub) => racepassLink(sub.teamId, `Racepass ${sub.name}`))
+  ).filter((link): link is RaceLink => link !== null);
 
   const canManage = access.has("events.manage_all") || isCreator;
 
@@ -943,7 +975,8 @@ export default async function EventDetailPage({
 
       <RaceInfoCard
         pacingHref={pacingHref}
-        signupUrl={zwiftSignupUrl}
+        racepasses={ownRacepasses}
+        signupUrl={event.type === "zrl" ? null : zwiftSignupUrl}
         zwiftLinks={derivedZwiftLinks(event.zwift_event_id)}
         links={raceLinks}
       />
@@ -1022,7 +1055,15 @@ export default async function EventDetailPage({
                     })}
                   </span>
                 </Link>
-                <RaceLinkChips links={sub.zwiftLinks} className="px-3 pb-3" />
+                <RaceLinkChips
+                  links={[
+                    ...[racepassLink(sub.teamId, "Racepass")].filter(
+                      (link): link is RaceLink => link !== null,
+                    ),
+                    ...sub.zwiftLinks,
+                  ]}
+                  className="px-3 pb-3"
+                />
                 {sub.teamId && (lineupByTeam.get(sub.teamId) ?? []).length > 0 && (
                   <LineupNames riders={lineupByTeam.get(sub.teamId) ?? []} className="px-3 pb-3" />
                 )}

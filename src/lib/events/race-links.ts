@@ -23,7 +23,7 @@ export type EventLinkRow = {
 
 export type RaceLink = {
   key: string;
-  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing";
+  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "racepass";
   label: string;
   url: string;
 };
@@ -110,4 +110,37 @@ export function mergeLinks(own: EventLinkRow[], parent: EventLinkRow[]): RaceLin
     .map((link, index) => ({ link, index }))
     .sort((a, b) => order(a.link.kind) - order(b.link.kind) || a.index - b.index)
     .map(({ link }) => link);
+}
+
+// ── WTRL-racepass (migr. 0186) ──────────────────────────────────────────────
+// Bij de ZRL meld je je aan via de racepass van je team, niet op Zwift. WTRL
+// geeft er per team per ronde één uit.
+
+export type RacepassRow = {
+  team_id: string;
+  url: string;
+  valid_from: string;
+  valid_until: string;
+};
+
+/** Alleen een https-link naar wtrl.racing telt als racepass. */
+export function normalizeRacepassUrl(value: unknown): string | null {
+  const url = normalizeLinkUrl(value);
+  if (!url) return null;
+  const hostname = new URL(url).hostname;
+  return hostname === "wtrl.racing" || hostname.endsWith(".wtrl.racing") ? url : null;
+}
+
+/** De racepass van dit team voor de ronde die deze datum (yyyy-mm-dd) dekt. */
+export function racepassFor(
+  passes: RacepassRow[],
+  teamId: string | null | undefined,
+  dateKey: string,
+): string | null {
+  if (!teamId) return null;
+  const match = passes.find(
+    (pass) =>
+      pass.team_id === teamId && pass.valid_from <= dateKey && dateKey <= pass.valid_until,
+  );
+  return match?.url ?? null;
 }

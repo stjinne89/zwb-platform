@@ -4,6 +4,8 @@ import {
   linkLabel,
   mergeLinks,
   normalizeLinkUrl,
+  normalizeRacepassUrl,
+  racepassFor,
 } from "@/lib/events/race-links";
 import { withParentRoute } from "@/lib/events/route-source";
 
@@ -74,5 +76,26 @@ describe("withParentRoute", () => {
   it("laat een eigen route staan", () => {
     const event = { gpx_path: "a.gpx", zwift_route_id: null, laps: null };
     expect(withParentRoute(event, parent)).toBe(event);
+  });
+});
+
+describe("racepass", () => {
+  it("accepteert alleen WTRL-links", () => {
+    expect(normalizeRacepassUrl("https://www.wtrl.racing/RacePass/abc=")).toBe(
+      "https://www.wtrl.racing/RacePass/abc=",
+    );
+    expect(normalizeRacepassUrl("https://www.zwift.com/events/view/1")).toBeNull();
+  });
+
+  it("kiest de pass van het team voor de ronde van de racedatum", () => {
+    const passes = [
+      { team_id: "b1", url: "https://wtrl.racing/r1", valid_from: "2026-09-22", valid_until: "2026-10-27" },
+      { team_id: "b1", url: "https://wtrl.racing/r2", valid_from: "2026-11-17", valid_until: "2026-12-22" },
+      { team_id: "c", url: "https://wtrl.racing/c1", valid_from: "2026-09-22", valid_until: "2026-10-27" },
+    ];
+    expect(racepassFor(passes, "b1", "2026-10-27")).toBe("https://wtrl.racing/r1");
+    expect(racepassFor(passes, "b1", "2026-11-24")).toBe("https://wtrl.racing/r2");
+    expect(racepassFor(passes, "b1", "2026-11-03")).toBeNull();
+    expect(racepassFor(passes, null, "2026-09-22")).toBeNull();
   });
 });

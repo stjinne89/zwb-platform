@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Gauge } from "lucide-react";
+import { ArrowUpRight, Gauge, Ticket } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RaceLink } from "@/lib/events/race-links";
@@ -37,16 +37,20 @@ export function RaceLinkChips({
  */
 export function RaceInfoCard({
   pacingHref,
+  racepasses,
   signupUrl,
   zwiftLinks,
   links,
 }: {
   pacingHref: string | null;
+  /** ZRL: de WTRL-racepass(es) waarmee je je aanmeldt. */
+  racepasses: RaceLink[];
   signupUrl: string | null;
   zwiftLinks: RaceLink[];
   links: RaceLink[];
 }) {
-  if (!pacingHref && !signupUrl && zwiftLinks.length === 0 && links.length === 0) {
+  const hasActions = Boolean(pacingHref || signupUrl || racepasses.length > 0);
+  if (!hasActions && zwiftLinks.length === 0 && links.length === 0) {
     return null;
   }
   return (
@@ -54,10 +58,28 @@ export function RaceInfoCard({
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         Raceinfo
       </h2>
-      {(pacingHref || signupUrl) && (
+      {hasActions && (
         <div className="flex flex-wrap gap-2">
+          {racepasses.map((pass) => (
+            <a
+              key={pass.key}
+              href={pass.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              <Ticket className="size-3.5" />
+              {pass.label}
+              <ArrowUpRight className="size-3.5" />
+            </a>
+          ))}
           {pacingHref && (
-            <Link href={pacingHref} className={cn(buttonVariants({ size: "sm" }))}>
+            <Link
+              href={pacingHref}
+              className={cn(
+                buttonVariants({ size: "sm", variant: racepasses.length > 0 ? "outline" : "default" }),
+              )}
+            >
               <Gauge className="size-3.5" />
               Pacingplan
             </Link>

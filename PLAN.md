@@ -47,7 +47,35 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0186`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0187`.
+
+---
+
+> **WTRL-racepass per team per ronde, 2026-09-22 — gebouwd, lokaal getest.**
+> Migratie `0186_team_racepasses.sql` (nog toepassen, na `0185`).
+>
+> **Waarom.** De eigenaar: bij de ZRL meld je je niet aan via "Aanmelden op Zwift"
+> maar met de racepass van je team, die WTRL per ronde uitgeeft. Voor ronde 1 staan
+> ze ook op de racepagina van zwbcycling.nl.
+>
+> **Nu.**
+> - Tabel `team_racepasses`: per team, per seizoen en per ronde één WTRL-link, met
+>   `valid_from`/`valid_until` uit `ZRL_2026_27_ROUNDS`. Ingevuld via de sectie
+>   Racepasses op `/beheer/zrl-kalender` (ronde kiezen, een veld per racend team,
+>   een leeg veld wist de pass). Alleen links naar `wtrl.racing` worden geaccepteerd.
+> - Op een ZRL-race is "Aanmelden op Zwift" vervangen door de knop **Racepass** van
+>   het team van die race (`racepassFor` op racedatum). Op de raceweek staan de passes
+>   van je eigen teams als knop, en in de lijst Teams heeft elke teamrace een chip
+>   Racepass.
+>
+> **Bewust niet.** De passes van ronde 1 staan niet in de migratie, omdat de
+>   team-id's op productie niet vastliggen; de beheerder plakt ze. Het seizoen
+>   `2026/27` staat vast in de action, net als `ZRL_2026_27_ROUNDS`. Voor het
+>   volgende seizoen moeten beide mee. Er is geen scraping van WTRL (hun voorwaarden,
+>   zie `zrl-season.ts`).
+>
+> **Niet lokaal te verifiëren:** de migratie en de pagina's met echte data. Getest:
+> `tsc`, ESLint en de racepass-cases in `tests/unit/race-links.test.ts`.
 
 ---
 

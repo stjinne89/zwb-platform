@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/app-ui";
 import { groupSubEvents } from "@/lib/events/sub-events";
 import { ZRL_2026_27_ROUNDS } from "@/lib/teams/zrl-season";
 import { ImportForm, type TeamOption } from "./_components/import-form";
+import { RacepassForm, type RacepassMap } from "./_components/racepass-form";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function ZrlKalenderPage() {
     redirect("/dashboard");
   }
 
-  const [{ data: teams }, { data: upcoming }] = await Promise.all([
+  const [{ data: teams }, { data: upcoming }, { data: passRows }] = await Promise.all([
     supabase
       .from("teams")
       .select("id, name, type, is_graveyard, parent_team_id")
@@ -30,7 +31,19 @@ export default async function ZrlKalenderPage() {
       .gte("start_at", new Date().toISOString())
       .order("start_at")
       .limit(120),
+    supabase
+      .from("team_racepasses")
+      .select("team_id, round, url")
+      .eq("season", "2026/27"),
   ]);
+  const racepasses: RacepassMap = {};
+  for (const row of (passRows ?? []) as Array<{ team_id: string; round: number; url: string }>) {
+    (racepasses[row.round] ??= {})[row.team_id] = row.url;
+  }
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const currentRound =
+    ZRL_2026_27_ROUNDS.find((r) => r.lastRaceDate >= todayKey)?.round ??
+    ZRL_2026_27_ROUNDS[ZRL_2026_27_ROUNDS.length - 1].round;
 
   const { topLevel: raceWeeks, childrenByParent } = groupSubEvents(
     (upcoming ?? []) as Array<{
@@ -76,6 +89,19 @@ export default async function ZrlKalenderPage() {
           <ImportForm teams={teamOptions} />
         )}
       </section>
+
+      {teamOptions.length > 0 && (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Racepasses
+          </h2>
+          <RacepassForm
+            teams={teamOptions}
+            current={racepasses}
+            defaultRound={currentRound}
+          />
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeRacepassUrl } from "@/lib/events/race-links";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { amsterdamDateKey } from "@/lib/birthdays";
 import {
   generateZrlRound,
   validateRoundSpec,
+  ZRL_2026_27_ROUNDS,
   type ZrlRaceFormat,
   type ZrlRoundSpec,
 } from "@/lib/teams/zrl-season";
@@ -183,4 +186,71 @@ function zrlDescription(format: ZrlRaceFormat, round: number, week: number) {
   return format === "race_of_truth"
     ? "Race of Truth: puntenrace zonder stayeren, geen TT-fiets."
     : `Ronde ${round}, week ${week}.`;
+}
+
+/**
+ * De WTRL-racepasses van één ronde, per team (migr. 0186). Een leeg veld haalt
+ * de pass van dat team voor die ronde weg.
+ */
+export async function saveRacepasses(input: {
+  round: number;
+  passes: Array<{ teamId: string; url: string }>;
+}) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.hasAny(["teams.manage_roster", "events.manage_all", "community.manage"])) {
+    return { ok: false as const, error: "Geen recht om racepasses te zetten." };
+  }
+
+  const round = ZRL_2026_27_ROUNDS.find((r) => r.round === input.round);
+  if (!round) return { ok: false as const, error: "Onbekende ronde." };
+
+  const rows: Array<{ teamId: string; url: string | null }> = [];
+  for (const pass of input.passes ?? []) {
+    if (!pass.teamId) continue;
+    const raw = String(pass.url ?? "").trim();
+    if (!raw) {
+      rows.push({ teamId: pass.teamId, url: null });
+      continue;
+    }
+    const url = normalizeRacepassUrl(raw);
+    if (!url) return { ok: false as const, error: `Geen WTRL-racepasslink: ${raw}` };
+    rows.push({ teamId: pass.teamId, url });
+  }
+
+  const admin = createAdminClient();
+  const season = "2026/27";
+  const clear = rows.filter((row) => !row.url).map((row) => row.teamId);
+  if (clear.length > 0) {
+    const { error } = await admin
+      .from("team_racepasses")
+      .delete()
+      .eq("season", season)
+      .eq("round", round.round)
+      .in("team_id", clear);
+    if (error) return { ok: false as const, error: error.message };
+  }
+  const upserts = rows
+    .filter((row) => row.url)
+    .map((row) => ({
+      team_id: row.teamId,
+      season,
+      round: round.round,
+      valid_from: round.firstRaceDate,
+      valid_until: round.lastRaceDate,
+      url: row.url as string,
+      created_by: access.user!.id,
+      updated_at: new Date().toISOString(),
+    }));
+  if (upserts.length > 0) {
+    const { error } = await admin
+      .from("team_racepasses")
+      .upsert(upserts, { onConflict: "team_id,season,round" });
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  revalidatePath("/beheer/zrl-kalender");
+  revalidatePath("/events/[id]", "page");
+  return { ok: true as const, saved: upserts.length };
 }
