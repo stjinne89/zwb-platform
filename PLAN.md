@@ -24,8 +24,9 @@ gaat stabiliteit voor nieuwe features.
    koppelvoorstellen bevestigd (2026-09-22). Voor de live ZRL-stand: na de deploy
    één keer "Test segmentresultaten" op `/beheer/event-scan` (bewijst of het
    serviceaccount Zwifts segmentresultaten mag lezen, en of de protobufvelden
-   kloppen). De eerste klik gaf 400, gecorrigeerd; opnieuw klikken na de deploy.
-   `0187_zrl_team_assignments` is toegepast (2026-09-22).
+   kloppen): werkt sinds `e5cd74e` (2026-09-22). `0187_zrl_team_assignments` is
+   toegepast. Nog open: `/live/zrl/[eventId]` tijdens de volgende ZRL-race
+   bekijken.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -55,7 +56,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 
 ---
 
-> **Live ZRL-stand met WTRL-puntentelling, 2026-09-22 — gebouwd, lokaal getest, niet tegen Zwift gedraaid.**
+> **Live ZRL-stand met WTRL-puntentelling, 2026-09-22 — gebouwd; ophalen bij Zwift op productie bewezen, dashboard nog niet in een race gezien.**
 > Commit `00f7af1`, plus een correctie op de Zwift-aanroep (zie onder). Migratie
 > `0187_zrl_team_assignments.sql` (toegepast op productie, 2026-09-22). Onderzoek en
 > proefmeting: [live-zrl-dashboard](docs/live-zrl-dashboard.md).
@@ -104,8 +105,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0188`
 > **Correctie na de eerste klik op productie.** "Test segmentresultaten" gaf
 > status 400 zonder body: Zwift weigert een `from`-datum met milliseconden. Bij
 > het nazoeken bleken ook de protobuf-veldnummers vanaf veld 3 er één naast te
-> zitten; ze komen nu uit Sauce' `src/zwift.proto`. Details in de doc. Opnieuw
-> klikken na de deploy.
+> zitten; ze komen nu uit Sauce' `src/zwift.proto`. Commit `e5cd74e`. Daarna
+> werkte het: status 200, 213 passages van 168 renners in een uur, en de ruwe
+> velden bevestigen de indeling. Veld 6 (eventsubgroep) is altijd leeg; het
+> dashboard filtert daarom op de inschrijvers. Nog open: de pagina tijdens een
+> echte ZRL-race bekijken.
 
 ---
 

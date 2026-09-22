@@ -87,10 +87,10 @@ voorwaarden, zie `src/lib/teams/zrl-season.ts`).
 ## Bouwplan en stand
 
 Stap 0 t/m 4 zijn op 2026-09-22 gebouwd en lokaal getest (unit-tests, `tsc`,
-ESLint). **Niet** in de browser bekeken: er is hier geen `.env.local`, dus geen
-Supabase en geen Zwift-inloggegevens. De snapshot en de pagina zijn daarom nooit
-tegen echte Zwift-data gedraaid; alleen de puntentelling is dat (met de data van
-de proefmeting).
+ESLint). Stap 0 is op productie bewezen: de server leest Zwifts
+segmentresultaten. **Niet** in de browser bekeken: er is hier geen `.env.local`.
+De snapshot en de pagina zijn daarom nog niet tegen een echte race gedraaid; de
+puntentelling wel (met de data van de proefmeting).
 
 Uitgangspunt: niets opslaan tijdens de race behalve de teambijstelling. Het
 dashboard rekent bij elke aanvraag uit Zwift-data die 15 s gecachet is
@@ -117,6 +117,15 @@ voor één segment in het laatste uur en toont het aantal passages.
   uit de bron). Nu uit `SegmentResult` in Sauce' `src/zwift.proto`: 5 segment,
   6 subgroep, 7/8 naam, 9 wereldtijd, 11 tijd (ms), 13 gewicht, 15 vermogen.
   Het segment-verzoek stuurt, net als Sauce, geen `Zwift-Api-Version`.
+- **Na de correctie (2026-09-22): werkt.** Status 200, 213 passages van 168
+  renners in het laatste uur op Monceau Sprint. Het ruwe eerste resultaat
+  bevestigt de veldindeling (renner, segment, naam met teamtag, wereldtijd →
+  14:16 lokaal, 31,8 s, 79 kg, 151 W). Het serviceaccount met client-ID
+  `Zwift_Mobile_Link` volstaat. Een tweede klik vlak na de push gaf nog 400: de
+  deploy was toen nog niet klaar.
+- **Veld 6 (eventsubgroep) is altijd leeg** (0 van 213). Filteren op subgroep kan
+  dus niet via de passage zelf; het dashboard filtert op de Zwift-ID's van de
+  inschrijvers.
 - **Kan niet lokaal:** er zijn hier geen Zwift-inloggegevens. Pas na een deploy en
   één klik op productie is dit bewezen. Weigert Zwift, dan terug naar de
   eigenaar (de Sauce-route is dan het alternatief).
