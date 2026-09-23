@@ -7247,6 +7247,17 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   planning nooit gedraaid), en de reconcile deed per lid tot honderd
   segment-calls. Beide inmiddels verholpen.
 
+- **Strava-herindiening klaar op de cijfers na** (2026-09-23). De notitie in
+  `docs/strava-api-resubmission.md` is bijgewerkt naar de architectuur zoals die
+  nu draait, en er staan twee SQL-queries in die alle meetbare getallen ophalen.
+  Wat er nog in moet: client id en Strava's eigen atletentelling (van
+  `strava.com/settings/api`) plus de uitkomst van die queries.
+
+  Twee getallen blijken principieel niet meetbaar met het huidige ontwerp:
+  `strava_api_usage` overschrijft één rij en houdt dus geen historie van het
+  dagverbruik bij, en opgeruimde koppelingen worden verwijderd zodat het aantal
+  vrijgemaakte slots niet achteraf te tellen is. Beide zijn de moeite van een
+  herziening waard als de aanvraag opnieuw wordt afgewezen.
 - **Strava 1→100+ athleten cap** — **afgewezen** door Strava met twee eisen:
   webhooks in plaats van polling, en actief beheer van stale/gedeauthoriseerde
   atleten. Beide zijn gebouwd (2026-09-05). Herindienen kan pas ná deploy,

@@ -26,8 +26,12 @@ lijkt het alsof we juist verder van de cap af zijn geraakt.
       `https://zwb-platform.netlify.app/api/strava/webhook` (2026-09-05).
 - [ ] Externe cron (cron-job.org) voor `/api/strava/sync` teruggezet van elke
       15-30 minuten naar **1x per dag**.
-- [ ] Minstens **7 dagen** laten draaien.
-- [ ] Daarna invullen in de notitie hieronder:
+- [x] Externe cron teruggezet (2026-09-08/11): reconcile elk uur met `?limit=3`,
+      webhookverwerking elke 5 min, opruiming dagelijks 05:40.
+- [x] Minstens **7 dagen** laten draaien — webhooks live sinds 5 september, de
+      volledige keten sinds 11 september.
+- [ ] Cijfers ophalen met de queries onder "De cijfers ophalen" hieronder en
+      invullen in de notitie:
   - aantal gekoppelde atleten (`/beheer/strava` → *Gekoppeld*) tegenover de cap;
   - aantal opgeruimde koppelingen sinds de uitrol;
   - dagelijks callvolume vóór en na (`strava_api_usage.daily_used`, en de
@@ -36,6 +40,70 @@ lijkt het alsof we juist verder van de cap af zijn geraakt.
 - [ ] Controleren dat de health-check-bron `strava_webhook` op ok staat.
 - [ ] Indienen via het Strava-formulier. **Niet** reageren op de afwijzingsmail:
       die reactie wordt volgens Strava niet als herindiening behandeld.
+
+---
+
+## De cijfers ophalen
+
+Draai deze twee queries in de Supabase SQL-editor. De eerste geeft alle
+kerngetallen, de tweede de dagcurve voor de tabel in de notitie.
+
+```sql
+-- 1. Kerngetallen
+select 'gekoppelde atleten (actief)' as meting, count(*)::text as waarde
+  from public.strava_connections where revoked_at is null
+union all select 'wacht op opruiming', count(*)::text
+  from public.strava_connections where revoked_at is not null
+union all select 'webhook-events totaal (7d)', count(*)::text
+  from public.strava_webhook_events where received_at >= now() - interval '7 days'
+union all select 'ritdetail-calls (7d) = activity create+update', count(*)::text
+  from public.strava_webhook_events
+  where received_at >= now() - interval '7 days'
+    and object_type = 'activity' and aspect_type in ('create','update')
+union all select 'activity delete (7d, kost 0 calls)', count(*)::text
+  from public.strava_webhook_events
+  where received_at >= now() - interval '7 days'
+    and object_type = 'activity' and aspect_type = 'delete'
+union all select 'deauthorisaties via webhook (7d)', count(*)::text
+  from public.strava_webhook_events
+  where received_at >= now() - interval '7 days' and object_type = 'athlete'
+union all select 'nog onverwerkte events', count(*)::text
+  from public.strava_webhook_events where processed_at is null
+union all select 'laatst waargenomen daily_used', coalesce(daily_used::text, '-')
+  from public.strava_api_usage where id = 'strava'
+union all select 'laatst waargenomen daily_limit', coalesce(daily_limit::text, '-')
+  from public.strava_api_usage where id = 'strava'
+union all select 'usage waargenomen op', coalesce(observed_at::text, '-')
+  from public.strava_api_usage where id = 'strava';
+```
+
+```sql
+-- 2. Events per dag
+select date_trunc('day', received_at)::date as dag,
+       count(*) filter (where object_type = 'activity'
+                          and aspect_type in ('create','update')) as detail_calls,
+       count(*) as events_totaal
+  from public.strava_webhook_events
+ where received_at >= now() - interval '14 days'
+ group by 1 order by 1;
+```
+
+**Twee dingen komen niet uit de database.** Lees ze op
+`https://www.strava.com/settings/api`:
+
+- het **client id** van de app;
+- het aantal **connected athletes dat Strava zelf telt**, en de cap.
+
+Dat laatste is het belangrijkste getal van de hele aanvraag. Het is ook de toets
+op ons opruimwerk: staat Strava's telling hoger dan "gekoppelde atleten (actief)"
+uit query 1, dan zitten er nog grants vast die wij niet meer kennen.
+
+**Beperkingen van de meting, eerlijk benoemd.** `strava_api_usage` bewaart één
+rij die telkens wordt overschreven, dus er is géén historie van het dagverbruik —
+alleen de laatste waarneming. En opgeruimde koppelingen worden verwijderd, dus
+het aantal vrijgemaakte slots is achteraf niet uit de database te tellen; dat
+blijkt alleen uit Strava's eigen telling. Beide zijn ontwerpkeuzes die bij een
+volgende ronde de moeite van het herzien waard zijn.
 
 ---
 
@@ -50,8 +118,9 @@ lijkt het alsof we juist verder van de cap af zijn geraakt.
 
 Thank you for the feedback on our previous request. We have reworked our
 integration along both of the lines you described. Below is what changed, and the
-numbers we measured after `<n>` days running the new implementation in
-production.
+numbers measured in production. The push subscription has been live since
+5 September 2026 and the full pipeline — webhook processing, reconciliation and
+the deauthorization sweep — since 11 September 2026.
 
 **1. Webhooks replace polling**
 
@@ -66,18 +135,33 @@ window. Each `create`/`update` event results in exactly one
 `GET /activities/{id}` call for that specific activity; `delete` events need no
 API call at all.
 
-Polling has not been removed entirely, but it is now a **once-daily
-reconciliation** limited to a 30-day window. It exists only to catch renames and
-deletions that a missed webhook delivery would otherwise leave stale. We consider
-removing it entirely once we have a longer track record of webhook reliability.
+Polling has not been removed entirely, but it is now a **reconciliation that
+touches each athlete at most once per day**, limited to a 30-day window. It exists
+only to catch renames and deletions that a missed webhook delivery would otherwise
+leave stale. The job itself runs hourly and processes a small batch, but a
+per-athlete guard means no athlete is fetched more than once in 24 hours. We will
+consider removing it entirely once we have a longer track record of webhook
+reliability.
 
-Measured effect on daily request volume:
+We also removed a second, larger source of calls. Our reconciliation used to run a
+per-athlete segment refresh that issued up to 100 `GET /segments/{id}` requests
+each time, to keep personal records current. That work now happens only as a
+by-product of a webhook: the single `GET /activities/{id}` we already make is
+requested with `include_all_efforts=true`, so segment efforts arrive with the
+activity instead of in a separate sweep.
 
-| | Before | After |
+Effect on daily request volume:
+
+| | Before (previous configuration) | After (measured) |
 |---|---|---|
-| Activity list requests | `<before>` | `<after>` |
-| Activity detail requests | 0 (disabled to stay within budget) | `<after>` |
+| Activity list requests | every connected athlete, up to 4 pages, every 15-30 minutes | `<after>` per day |
+| Activity detail requests | 0 — we had disabled them to stay within the budget | `<after>` per day, one per actual ride |
+| Segment requests | up to 100 per athlete per reconciliation | 0 |
 | Total `/api/v3` requests per day | `<before>` | `<after>` |
+
+The "before" figures are what the previous configuration was set up to do; we did
+not instrument request volume at the time, which is part of why we are confident
+about the change but were not about the baseline.
 
 We also added an application-wide rate limit budget. We read the
 `X-RateLimit-Usage` and `X-RateLimit-Limit` headers on every response and persist
@@ -114,8 +198,11 @@ notified, and if nothing changes within 30 days the connection is deauthorized a
 removed. The intent is exactly what you describe: we do not want to hold athlete
 slots that no longer serve anyone.
 
-Since deploying this we have released `<n>` athlete slots that were previously
-occupied by connections that were no longer in use.
+Since deploying this, connections that are no longer in use are deauthorized and
+removed rather than left in place. `<n>` athlete connections have been released
+this way so far. We also expect our own count of active connections to match the
+athlete count you see for the application; if it does not, the difference is grants
+we failed to release before this change, and we will keep working it down.
 
 **3. Data handling**
 
@@ -127,8 +214,10 @@ Strava profile image reference. Aggregate club statistics that members have earn
 **4. Current capacity**
 
 We currently have `<connected>` connected athletes against a cap of `<cap>`.
-Members who cannot connect because of the cap use a manual activity export upload
-instead, which is a poor substitute for the real integration.
+Members who cannot connect because of the cap upload a manual activity export
+instead. That works, but it is a poor substitute: it is a one-off snapshot the
+member has to repeat by hand, and it carries none of the live updates, segment
+efforts or deletions that the API gives us.
 
 We confirm that our application complies with the Strava API Agreement and the
 Strava API Policy, including the brand guidelines (Powered by Strava attribution,
