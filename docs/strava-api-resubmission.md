@@ -88,6 +88,28 @@ select date_trunc('day', received_at)::date as dag,
  group by 1 order by 1;
 ```
 
+```sql
+-- 3. Waar gaan de calls heen? (diagnose bij een hoog daily_used)
+select 'segment-PRs bijgewerkt vandaag' as bron, count(*)::text as aantal
+  from public.profile_completed_segments where updated_at >= current_date
+union all select 'segment-PRs bijgewerkt (7d)', count(*)::text
+  from public.profile_completed_segments where updated_at >= now() - interval '7 days'
+union all select 'ritdetails opgehaald vandaag', count(*)::text
+  from public.strava_activities where efforts_fetched_at >= current_date
+union all select 'ritdetails opgehaald (7d)', count(*)::text
+  from public.strava_activities where efforts_fetched_at >= now() - interval '7 days'
+union all select 'coltijden bijgewerkt (7d)', count(*)::text
+  from public.profile_climbed_cols where updated_at >= now() - interval '7 days';
+```
+
+```sql
+-- 4. Zit het bij één lid? (dan is het de knop, niet een cron)
+select profile_id, count(*) as ritdetails_vandaag
+  from public.strava_activities
+ where efforts_fetched_at >= current_date
+ group by 1 order by 2 desc;
+```
+
 **Twee dingen komen niet uit de database.** Lees ze op
 `https://www.strava.com/settings/api`:
 
@@ -113,7 +135,7 @@ volgende ronde de moeite van het herzien waard zijn.
 
 ---
 
-**Application:** ZWB Cycling club platform (`<client id>`)
+**Application:** ZWB Cycling club platform (client id `222044`)
 **Requested:** increase in connected athlete capacity
 
 Thank you for the feedback on our previous request. We have reworked our
@@ -152,12 +174,12 @@ activity instead of in a separate sweep.
 
 Effect on daily request volume:
 
-| | Before (previous configuration) | After (measured) |
+| | Before (previous configuration) | After (measured 16-23 Sept 2026) |
 |---|---|---|
-| Activity list requests | every connected athlete, up to 4 pages, every 15-30 minutes | `<after>` per day |
-| Activity detail requests | 0 — we had disabled them to stay within the budget | `<after>` per day, one per actual ride |
-| Segment requests | up to 100 per athlete per reconciliation | 0 |
-| Total `/api/v3` requests per day | `<before>` | `<after>` |
+| Activity list requests | every connected athlete, up to 4 pages, every 15-30 minutes | about one page per athlete per day |
+| Activity detail requests | 0 — we had disabled them to stay within the budget | **25 per day**, one per actual ride |
+| Segment requests per reconciliation | up to 100 per athlete | 0 |
+| Webhook events received | n/a | 180 in 7 days, of which 7 deletes that cost no call at all |
 
 The "before" figures are what the previous configuration was set up to do; we did
 not instrument request volume at the time, which is part of why we are confident
@@ -199,8 +221,9 @@ removed. The intent is exactly what you describe: we do not want to hold athlete
 slots that no longer serve anyone.
 
 Since deploying this, connections that are no longer in use are deauthorized and
-removed rather than left in place. `<n>` athlete connections have been released
-this way so far. We also expect our own count of active connections to match the
+removed rather than left in place. No connection has needed releasing yet in the
+period since deployment — every one of our current connections belongs to an
+active member — but the mechanism is in place and runs nightly. We also expect our own count of active connections to match the
 athlete count you see for the application; if it does not, the difference is grants
 we failed to release before this change, and we will keep working it down.
 
@@ -213,7 +236,7 @@ Strava profile image reference. Aggregate club statistics that members have earn
 
 **4. Current capacity**
 
-We currently have `<connected>` connected athletes against a cap of `<cap>`.
+We currently have **10** connected athletes against a cap of `<cap>`.
 Members who cannot connect because of the cap upload a manual activity export
 instead. That works, but it is a poor substitute: it is a one-off snapshot the
 member has to repeat by hand, and it carries none of the live updates, segment
