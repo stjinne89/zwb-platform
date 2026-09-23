@@ -10,7 +10,10 @@ gaat stabiliteit voor nieuwe features.
 1. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
-   [Omnium-status](docs/omnium-readiness-2026-09-15.md).
+   [Omnium-status](docs/omnium-readiness-2026-09-15.md). Voor de Sprint Quali
+   uit Zwift: `0190` toepassen en bij "leagues instellen" het sprintsegment
+   kiezen (zie de ronde hieronder). Na de editie de opgehaalde tijden naast wat
+   het bestuur anders zou plakken leggen.
 2. **Handwerk op productie.** De cron van
    `/api/strava/sync` op 1x per dag, een week meten, dan opnieuw indienen bij
    Strava (`docs/strava-api-resubmission.md`, via het formulier en niet als
@@ -31,6 +34,10 @@ gaat stabiliteit voor nieuwe features.
    **Nog toepassen: `0189_member_last_seen.sql`**, vóór of samen met de deploy
    van de Strava-loginregel. Daarna op `/beheer/strava` controleren dat
    "laatst gezien" bij je eigen account vandaag is (zie de ronde hieronder).
+   **Nog toepassen: `0190_omnium_sprint_segment.sql`**, vóór of samen met de
+   deploy van de Sprint Quali uit Zwift. Zonder de kolom werken bij de Sprint
+   Quali "leagues instellen" en "Ophalen uit Zwift" niet (foutmelding); plakken
+   blijft werken, en de andere onderdelen lezen de kolom niet.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -56,7 +63,70 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0190`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`.
+
+---
+
+> **Sprint Quali uit Zwifts segmentresultaten, 2026-09-23 — gebouwd; migratie
+> `0190` nog toepassen.** Commit: de commit die dit blok toevoegt. Verslag:
+> [Sprint Quali uit segmentresultaten](docs/omnium-sprint-quali-segment.md).
+>
+> **Waarom.** Van de vier Omnium-onderdelen moest alleen de Sprint Quali nog met
+> de hand: `race-results/entries` kent geen segmenttijden. Sinds de ZRL-ronde
+> (2026-09-22) leest de server Zwifts segmentresultaten, met alle passages van
+> iedereen in een venster en de tijd in milliseconden. De Sprint Quali
+> rangschikt op precies die tijd.
+>
+> **Wat.** `bestSegmentTimes` (`src/lib/omnium/segment-results.ts`, puur): per
+> renner op de startlijst de snelste passage in het venster, ontdubbeld op
+> passage-id; league en naam uit `omnium_entrants`, want het subgroepveld in
+> een segmentresultaat is altijd leeg. Het venster is `starts_at` tot
+> `starts_at + duration_minutes`, met één minuut marge aan beide kanten.
+> Migratie `0190` voegt `omnium_edition_events.zwift_segment_id` toe (tekst,
+> want segment-ID's zijn int64 en soms negatief). Het bestuur kiest het segment
+> bij "leagues instellen" uit de segmenten van de route van het Zwift-event.
+> `fetchZwiftResultsAction` weigert de sprint niet meer. Het haalt de passages
+> op en voedt dezelfde voorbeeld-, gasten- en opslagroute als bij de andere
+> onderdelen. Ook gerepareerd: de mode bij een Zwift-uitslag was hard
+> `finish` voor alles behalve de crit. Nu is het `zwiftModeFor`, dus
+> `segment` bij de sprint. Anders was op volgorde gerangschikt, niet op tijd.
+> `prepareResultInput` laat Zwift-regels voor de sprint alleen toe met
+> segmenttijd. Het voorbeeld heeft een kolom "Tijd" gekregen, zodat het bestuur
+> de tijden kan controleren. De plakroute blijft als terugval.
+>
+> **Weigert met een melding** zonder gekozen segment, zonder duur, zonder
+> opgehaalde startlijst, vóór de start, en als het segment niet meer op de
+> route ligt (event-ID gewijzigd). **Waarschuwt** voor passages van renners
+> buiten de startlijst (geteld), ingeschreven renners zonder passage (met
+> naam), renners zonder league of Zwift-ID, en een Zwift-start die meer dan
+> twee minuten van de planning afwijkt.
+>
+> **Bewust niet gebouwd.** (a) De tussensprints van de Crit Royale uit dezelfde
+> bron: kan, maar is een eigen ronde. (b) De live overlay voor het Omnium.
+> (c) Automatisch ophalen zonder klik: de andere onderdelen gaan ook via de
+> knop. (d) Een vrij invulveld voor een segment-ID als de route niet in
+> `route-segments.json` staat: dan eerst de tabel opnieuw exporteren uit Sauce,
+> en tot die tijd plakken. (e) Het venster op Zwifts eigen starttijd zetten:
+> de opdracht noemt de planning, en een afwijking wordt nu gemeld. (f) Geen
+> privacywijziging. Er komt geen nieuw soort gegeven op de uitslag, alleen
+> dezelfde segmenttijd, nu nauwkeuriger. Passages van niet-ingeschrevenen
+> worden alleen in het geheugen gefilterd, net als bij de live ZRL-stand. Er
+> is ook geen aparte Omnium-privacytekst om bij te werken. Dit is een oordeel,
+> geen besluit van de eigenaar.
+>
+> **Niet lokaal geverifieerd.** `0190` is niet uitgevoerd (geen Docker of
+> Supabase-config) en moet met de hand op productie. Er is hier geen
+> Zwift-verbinding (`.env.local` ontbreekt). Of Zwift `to` op het
+> segment-endpoint accepteert, is niet bewezen: Sauce stuurt hem, maar
+> productie gebruikte alleen `from`. Bij een weigering volgt één poging zonder
+> `to`. De Sauce-pc (`192.168.0.134:1080`) was niet bereikbaar, dus de fixture
+> `tests/fixtures/zwift/segment-results-sprint.json` heeft de echte vorm maar
+> verzonnen waarden. De schermen zijn niet in de browser bekeken. Wel schoon:
+> `tsc`, eslint op de gewijzigde bestanden en de unit-tests
+> (`tests/unit/omnium-segment-results.test.ts`, nieuw). `npm run build`
+> compileert en typecheckt, en stopt daarna bekend op `/omnium/register`. Het
+> echte bewijs komt op 11 oktober 2026: de opgehaalde tijden naast wat het
+> bestuur anders zou plakken.
 
 ---
 
@@ -6360,13 +6430,16 @@ is er ook mee opgelost: wie niet is ingeschreven valt eruit vóór het scoren.
 `type=SEGMENT` wordt genegeerd. De **Sprint Quali** (snelste tijd op een
 KOM-segment) heeft dus geen bron; de **tussensprints van de Crit Royale** staan
 per definitie in geen enkele uitslag. Die twee blijven handwerk — twee momenten
-per uitzending in plaats van vier.
+per uitzending in plaats van vier. *Achterhaald 2026-09-23:* `segment-results`
+bleek wel te werken (protobuf, `segment_id`, `from` zonder milliseconden), en de
+Sprint Quali komt nu uit Zwift. Alleen de tussensprints blijven handwerk. Zie de
+ronde "Sprint Quali uit Zwifts segmentresultaten" bovenaan.
 
 **Nog niet bewezen:** of de uitslag al tijdens het event binnendruppelt. Er stond
 geen live event om op te testen; te bevestigen op de eerstvolgende clubrit.
 
-**Gevolg voor de planning.** De plak-import blijft nodig als terugval en als
-route voor de Sprint Quali, dus die is geen weggegooid werk. De volgende stap was
+**Gevolg voor de planning.** De plak-import blijft nodig als terugval (en was
+tot 2026-09-23 de route voor de Sprint Quali), dus die is geen weggegooid werk. De volgende stap was
 een `omnium/zwift-results.ts`; die is gebouwd in de editie-1-ronde (`af0a1aa`).
 
 ### Proefdraai Omnium op editie 7 (2025/26)

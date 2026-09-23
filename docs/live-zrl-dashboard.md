@@ -203,6 +203,12 @@ event, niet uit het formulier.
 - **Geen opslag van passages** tijdens de race: onnodig zolang de cache volstaat.
   Pas nodig als we achteraf willen terugkijken, en dat is niet gevraagd.
 
+## Hergebruik: Sprint Quali van het Omnium
+
+Dezelfde bron vult sinds 2026-09-23 de Sprint Quali: de snelste passage per
+ingeschreven renner op één gekozen segment, binnen het venster van het
+onderdeel. Zie [Sprint Quali uit segmentresultaten](omnium-sprint-quali-segment.md).
+
 ## Sauce-overlay
 
 Mod in `sauce-mod/zwb-zrl-live` (installatie in de README daar). De mod rekent

@@ -1,0 +1,199 @@
+{
+  "note": "Vorm van een gedecodeerd Zwift-segmentresultaat (src/lib/zwift/segment-results-pb.ts). Waarden naar de productiemeting van 2026-09-22, namen en ID-s verzonnen. Tchou Tchou Sprint: negatief segment-ID.",
+  "segmentId": "-9223372035804541048",
+  "startsAt": "2026-10-11T18:15:00Z",
+  "durationMinutes": 15,
+  "entrants": [
+    {
+      "zwiftId": "1001",
+      "name": "Anna Voorbeeld",
+      "league": "DIAMOND-RUBY"
+    },
+    {
+      "zwiftId": "1002",
+      "name": "Bram Testrijder",
+      "league": "DIAMOND-RUBY"
+    },
+    {
+      "zwiftId": "1003",
+      "name": "Chris Proef",
+      "league": "EMERALD-SAPPHIRE"
+    },
+    {
+      "zwiftId": "1004",
+      "name": "Dirk Nulpunt",
+      "league": "EMERALD-SAPPHIRE"
+    }
+  ],
+  "passes": [
+    {
+      "id": "781234560001",
+      "athleteId": 1003,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Chris",
+      "lastName": "Proef (ZWB)",
+      "worldTime": 377726125600,
+      "ts": 1791742200000,
+      "elapsed": 25,
+      "avgPower": 640,
+      "weightKg": 81.2
+    },
+    {
+      "id": "781234560002",
+      "athleteId": 1001,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Anna",
+      "lastName": "Voorbeeld [ZWB]",
+      "worldTime": 377726555600,
+      "ts": 1791742630000,
+      "elapsed": 28.417,
+      "avgPower": 702,
+      "weightKg": 72.5
+    },
+    {
+      "id": "781234569901",
+      "athleteId": 1002,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Bram",
+      "lastName": "Testrijder",
+      "worldTime": 377726605600,
+      "ts": 1791742680000,
+      "elapsed": 29.004,
+      "avgPower": 655,
+      "weightKg": 79
+    },
+    {
+      "id": "781234569901",
+      "athleteId": 1002,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Bram",
+      "lastName": "Testrijder",
+      "worldTime": 377726605600,
+      "ts": 1791742680000,
+      "elapsed": 29.004,
+      "avgPower": 655,
+      "weightKg": 79
+    },
+    {
+      "id": "781234560003",
+      "athleteId": 1003,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Chris",
+      "lastName": "Proef (ZWB)",
+      "worldTime": 377726695600,
+      "ts": 1791742770000,
+      "elapsed": 31.25,
+      "avgPower": 598,
+      "weightKg": 81.2
+    },
+    {
+      "id": "781234560004",
+      "athleteId": 555,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Gast",
+      "lastName": "Eén",
+      "worldTime": 377726730600,
+      "ts": 1791742805000,
+      "elapsed": 26.871,
+      "avgPower": 810,
+      "weightKg": 88
+    },
+    {
+      "id": "781234560005",
+      "athleteId": 777,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Gast",
+      "lastName": "Twee",
+      "worldTime": 377726825600,
+      "ts": 1791742900000,
+      "elapsed": 33.502,
+      "avgPower": 512,
+      "weightKg": 65.3
+    },
+    {
+      "id": "781234560006",
+      "athleteId": 1001,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Anna",
+      "lastName": "Voorbeeld [ZWB]",
+      "worldTime": 377726885600,
+      "ts": 1791742960000,
+      "elapsed": 27.983,
+      "avgPower": 719,
+      "weightKg": 72.5
+    },
+    {
+      "id": "781234560007",
+      "athleteId": 1002,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Bram",
+      "lastName": "Testrijder",
+      "worldTime": 377726995600,
+      "ts": 1791743070000,
+      "elapsed": 30.12,
+      "avgPower": 631,
+      "weightKg": 79
+    },
+    {
+      "id": "781234560008",
+      "athleteId": 555,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Gast",
+      "lastName": "Eén",
+      "worldTime": 377727100600,
+      "ts": 1791743175000,
+      "elapsed": 27.034,
+      "avgPower": 801,
+      "weightKg": 88
+    },
+    {
+      "id": "781234560009",
+      "athleteId": 1001,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Anna",
+      "lastName": "Voorbeeld [ZWB]",
+      "worldTime": 377727210600,
+      "ts": 1791743285000,
+      "elapsed": 28.102,
+      "avgPower": 705,
+      "weightKg": 72.5
+    },
+    {
+      "id": "781234560010",
+      "athleteId": 1003,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Chris",
+      "lastName": "Proef (ZWB)",
+      "worldTime": 377727475600,
+      "ts": 1791743550000,
+      "elapsed": 26,
+      "avgPower": 700,
+      "weightKg": 81.2
+    },
+    {
+      "id": "781234560011",
+      "athleteId": 555,
+      "segmentId": "-9223372035804541048",
+      "eventSubgroupId": null,
+      "firstName": "Gast",
+      "lastName": "Eén",
+      "worldTime": 377727925600,
+      "ts": 1791744000000,
+      "elapsed": 26.5,
+      "avgPower": 805,
+      "weightKg": 88
+    }
+  ]
+}

@@ -29,6 +29,13 @@ export function defaultModeFor(discipline: Discipline): ParseMode {
   return "finish";
 }
 
+/** Rangschikking voor een uitslag die uit Zwift komt in plaats van geplakt. */
+export function zwiftModeFor(discipline: Discipline): ParseMode {
+  if (discipline === "sprint") return "segment";
+  if (discipline === "crit") return "crit_detailed";
+  return "finish";
+}
+
 const SPRINT_BLOCK = /^sprint\s*(\d+)?$/i;
 
 function sortedSprintBlocks(rows: ParsedResultRow[]): string[] {

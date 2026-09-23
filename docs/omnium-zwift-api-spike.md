@@ -7,6 +7,11 @@ hoeft te worden?
 **Antwoord: ja, voor drie van de vier onderdelen.** Met milliseconden en met de
 Zwift-ID erbij. De Sprint Quali blijft handwerk.
 
+> *Achterhaald 2026-09-23:* de Sprint Quali komt nu uit Zwifts
+> segmentresultaten, zie [Sprint Quali uit segmentresultaten](omnium-sprint-quali-segment.md).
+> Wat hieronder staat over `segment-results` was een verkeerd verzoek, geen
+> ontbrekende bron. Alleen de tussensprints van de Crit Royale zijn nog handwerk.
+
 ## Hoe er is gemeten
 
 Met het bestaande ZWB-club-serviceaccount en dezelfde auth als
@@ -73,6 +78,8 @@ is informatie die de jury nu nergens ziet.
   met protobuf-accepts. Het endpoint bestaat, maar wil andere parameters
   (vermoedelijk een `segment_id`) en spreekt geen JSON. Voor de **Sprint Quali**
   — snelste tijd op een KOM-segment — is er dus geen bruikbare bron gevonden.
+  *Later opgelost (2026-09-22):* protobuf, `world_id=1`, `segment_id` en `from`
+  zonder milliseconden; zie `docs/live-zrl-dashboard.md`.
 - `race-results/entries?...&type=SEGMENT` negeert die parameter en geeft
   gewoon dezelfde finishuitslag terug.
 - `events/{id}/results`, `event-results/{id}`, `events/subgroups/{id}/results`:
@@ -96,7 +103,8 @@ is informatie die de jury nu nergens ziet.
 Prologue, Scratch en de finish van de Crit Royale komen automatisch binnen, met
 categorie en al. De Sprint Quali en de tussensprints blijven handwerk: twee
 momenten in plaats van vier, en de twee die overblijven zijn precies de twee
-waar een mens sowieso naar zit te kijken.
+waar een mens sowieso naar zit te kijken. *Sinds 2026-09-23 komt ook de Sprint
+Quali uit Zwift; alleen de tussensprints blijven over.*
 
 De pollstructuur ligt er al: `/api/live/timing/[eventId]` haalt nu elke twintig
 seconden een externe tijdregistratie op voor buitenritten. Hetzelfde patroon met

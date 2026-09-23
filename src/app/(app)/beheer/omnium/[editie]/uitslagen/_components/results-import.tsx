@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { defaultModeFor } from "@/lib/omnium/import";
+import { defaultModeFor, zwiftModeFor } from "@/lib/omnium/import";
 import type { ParseMode, ParsedResultRow } from "@/lib/omnium/parse-results";
 import { OMNIUM_LEAGUES } from "@/lib/omnium/scales";
 import type { Discipline } from "@/lib/omnium/scoring";
@@ -32,17 +32,17 @@ export function ResultsImport({ editionEventId, discipline, title, resultsState 
   return <section className="space-y-3 rounded-lg border bg-card p-4">
     <div className="flex justify-between gap-2"><h2 className="font-semibold">{title}</h2><span className="text-sm">{resultsState === "final" ? "Definitief" : resultsState === "partial" ? "Voorlopig" : "Geen uitslag"}</span></div>
     <div className="flex flex-wrap gap-2">
-      {discipline !== "sprint" && <Button variant="outline" disabled={pending} onClick={() => start(async () => {
+      <Button variant="outline" disabled={pending} onClick={() => start(async () => {
         setMessage(""); setPreview(null);
         const r = await fetchZwiftResultsAction(editionEventId);
         if (!r.ok) { setMessage(r.error); return; }
         setApiRows(r.rows); setApiWarnings(r.warnings); setFinal(false);
-        const nextMode = discipline === "crit" ? "crit_detailed" : "finish";
+        const nextMode = zwiftModeFor(discipline);
         setMode(nextMode);
         const checked = await previewOmniumResults({ ...input, raw: discipline === "crit" && mode === "crit_detailed" ? raw : "", mode: nextMode, parsedRows: r.rows });
         if (!(discipline === "crit" && mode === "crit_detailed")) setRaw("");
         if (checked.ok) setPreview(checked); else setMessage(checked.error);
-      })}>Ophalen uit Zwift</Button>}
+      })}>Ophalen uit Zwift</Button>
       {apiRows && <Button variant="outline" disabled={pending} onClick={() => { setApiRows(undefined); setApiWarnings([]); setPreview(null); setMode(defaultModeFor(discipline)); }}>Plak-import gebruiken</Button>}
     </div>
     {!apiRows && <label className="block text-sm">Invoervorm<select className={FIELD} value={mode} onChange={e => { setMode(e.target.value as ParseMode); setPreview(null); }}>{modes.map(m => <option key={m} value={m}>{LABELS[m]}</option>)}</select></label>}
@@ -51,7 +51,7 @@ export function ResultsImport({ editionEventId, discipline, title, resultsState 
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={final} onChange={e => setFinal(e.target.checked)} />Uitslag compleet en definitief</label>
     {message && <p role="status" className="text-sm">{message}</p>}
     {[...apiWarnings, ...(preview?.warnings ?? [])].map((w,i) => <p key={i} role="status" className="text-sm text-amber-700 dark:text-amber-400">{w}</p>)}
-    {groups.filter(g => g.rows.length).map(g => <div key={g.title} className="overflow-x-auto"><h3 className="mb-2 text-sm font-semibold">{g.title} ({g.rows.length})</h3><table className="w-full text-left text-sm"><thead><tr><th>#</th><th>Renner</th><th>League</th><th>Status</th><th>Punten</th><th>Match</th></tr></thead><tbody>{g.rows.map(r => <tr key={r.lineNumber} className="border-t"><td className="py-2">{r.position ?? "—"}</td><td>{r.name}</td><td>{r.league}</td><td>{r.status}</td><td>{r.points}</td><td>{r.match === "new" ? "Nieuw" : r.matchedVia === "zwift_id" ? "Zwift-ID" : "Naam"}</td></tr>)}</tbody></table></div>)}
+    {groups.filter(g => g.rows.length).map(g => <div key={g.title} className="overflow-x-auto"><h3 className="mb-2 text-sm font-semibold">{g.title} ({g.rows.length})</h3><table className="w-full text-left text-sm"><thead><tr><th>#</th><th>Renner</th><th>League</th><th>Status</th><th>Tijd</th><th>Punten</th><th>Match</th></tr></thead><tbody>{g.rows.map(r => <tr key={r.lineNumber} className="border-t"><td className="py-2">{r.position ?? "—"}</td><td>{r.name}</td><td>{r.league}</td><td>{r.status}</td><td>{r.time ?? "—"}</td><td>{r.points}</td><td>{r.match === "new" ? "Nieuw" : r.matchedVia === "zwift_id" ? "Zwift-ID" : "Naam"}</td></tr>)}</tbody></table></div>)}
     {preview?.issues.map((i,n) => <p key={n} className="text-sm text-destructive">Regel {i.lineNumber}: {i.reason}</p>)}
     <div className="flex gap-2"><Button variant="outline" disabled={pending || (!raw.trim() && !apiRows)} onClick={showPreview}>Voorbeeld</Button><Button disabled={pending || !preview || preview.issues.length > 0 || !preview.rows.some(r => !r.guest)} onClick={() => start(async () => {
       if (!preview) return;

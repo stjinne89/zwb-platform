@@ -25,8 +25,8 @@ export function prepareResultInput(input: { raw: string; mode: ParseMode; defaul
     return { rows: parsedRowsSchema.parse(rows), issues: sheet.issues };
   }
   if (input.parsedRows) {
-    if (discipline === "sprint") throw new Error("Sprint Quali vereist segmenttijden.");
     const rows = parsedRowsSchema.parse(input.parsedRows).map((r) => ({ ...r, block: discipline === "crit" ? "finish" : null }));
+    if (discipline === "sprint" && rows.some((r) => !r.segmentSeconds)) throw new Error("Sprint Quali vereist segmenttijden.");
     const extra = discipline === "crit" && input.raw.trim() ? parseOmniumResults(input.raw, { mode: "crit_detailed", defaultLeague: input.defaultLeague }) : { rows: [], issues: [] };
     if (extra.rows.some((r) => !r.block || !/^sprint\s*\d*$/i.test(r.block))) throw new Error("Plak alleen sprintblokken bij een Zwift-finishuitslag.");
     return { rows: [...rows, ...extra.rows.map((r, i) => ({ ...r, lineNumber: rows.length + i + 1 }))], issues: extra.issues };

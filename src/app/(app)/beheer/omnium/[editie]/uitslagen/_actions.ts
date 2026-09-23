@@ -12,7 +12,14 @@ import {
 } from "@/lib/omnium/result-input";
 import { fetchOmniumResults } from "@/lib/omnium/zwift-results";
 import { leagueMapSchema } from "@/lib/omnium/zwift-mapping";
-import { nameKeyOf, scoreParsedRows } from "@/lib/omnium/import";
+import { nameKeyOf, scoreParsedRows, zwiftModeFor } from "@/lib/omnium/import";
+import { fetchSegmentResults, fetchZwiftEvent } from "@/lib/events/zwift-club";
+import {
+  bestSegmentTimes,
+  segmentWindow,
+  sprintSegmentOptions,
+  zwiftEventStart,
+} from "@/lib/omnium/segment-results";
 import {
   type ParseIssue,
   type ParseMode,
@@ -54,6 +61,7 @@ export type PreviewRow = {
   league: string;
   status: string;
   position: number | null;
+  time: string | null;
   points: number;
   /** known = bestaande renner, new = wordt aangemaakt. */
   match: "known" | "new";
@@ -194,7 +202,7 @@ export async function previewOmniumResults(
 
   const scored = scoreParsedRows(eligible, {
     discipline: editionEvent.discipline,
-    mode: input.parsedRows ? (editionEvent.discipline === "crit" ? "crit_detailed" : "finish") : input.mode,
+    mode: input.parsedRows ? zwiftModeFor(editionEvent.discipline) : input.mode,
     scoring,
     idOf: identityOf,
   });
@@ -216,6 +224,7 @@ export async function previewOmniumResults(
       league: row.league ?? "",
       status: row.status,
       position: result?.position ?? row.position,
+      time: row.timeText,
       points: result?.points ?? 0,
       match: known ? "known" : "new",
       matchedVia: known?.via ?? null,
@@ -311,7 +320,7 @@ export async function saveOmniumResults(input: ImportInput) {
 
   const scored = scoreParsedRows(rows, {
     discipline: editionEvent.discipline,
-    mode: input.parsedRows ? (editionEvent.discipline === "crit" ? "crit_detailed" : "finish") : input.mode,
+    mode: input.parsedRows ? zwiftModeFor(editionEvent.discipline) : input.mode,
     scoring,
     idOf: riderIdFor,
   });
@@ -427,12 +436,66 @@ export async function fetchZwiftResultsAction(partId: string) {
   if (!guard.ok) return guard;
   const part = await loadEditionEvent(guard.admin, partId);
   if (!part?.zwift_event_id) return { ok: false as const, error: "Geen Zwift-event-ID ingesteld." };
-  if (part.discipline === "sprint") return { ok: false as const, error: "Sprint Quali blijft handwerk." };
   try {
+    if (part.discipline === "sprint") return { ok: true as const, ...(await fetchSprintQuali(guard.admin, part)) };
     const result = await fetchOmniumResults(
       part.zwift_event_id,
       leagueMapSchema.parse(part.subgroup_leagues),
     );
     return { ok: true as const, ...result };
   } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Zwift ophalen mislukt." }; }
+}
+
+/**
+ * Sprint Quali: de snelste passage per ingeschreven renner op het gekozen
+ * segment, binnen het tijdvenster van het onderdeel. De league komt uit de
+ * startlijst; Zwift laat de subgroep in een segmentresultaat altijd leeg.
+ */
+async function fetchSprintQuali(admin: Admin, part: EditionEvent) {
+  const { data: settings, error } = await admin
+    .from("omnium_edition_events")
+    .select("zwift_segment_id, starts_at, duration_minutes")
+    .eq("id", part.id)
+    .single();
+  if (error) throw new Error(error.message);
+  const segmentId = settings.zwift_segment_id as string | null;
+  if (!segmentId) throw new Error("Kies eerst het sprintsegment bij de Zwift-startlijst.");
+  if (!settings.duration_minutes) throw new Error("Geen duur ingesteld voor dit onderdeel.");
+  if (!part.entrants_synced_at) throw new Error("Haal eerst de startlijst op.");
+
+  const event = await fetchZwiftEvent(part.zwift_event_id!);
+  if (!sprintSegmentOptions(event).some((s) => s.segmentId === segmentId)) {
+    throw new Error("Het gekozen segment ligt niet op de route van dit Zwift-event. Kies opnieuw.");
+  }
+  const { windowStart, windowEnd } = segmentWindow(settings.starts_at as string, settings.duration_minutes as number);
+  if (Date.now() < windowStart) throw new Error("Het onderdeel is nog niet begonnen.");
+
+  const { data: entrantRows, error: entrantsError } = await admin
+    .from("omnium_entrants")
+    .select("league, omnium_riders!inner(zwift_id, display_name)")
+    .eq("edition_event_id", part.id);
+  if (entrantsError) throw new Error(entrantsError.message);
+  const entrants = (entrantRows ?? []).map((row) => {
+    const rider = row.omnium_riders as unknown as { zwift_id: string | null; display_name: string };
+    return { zwiftId: rider.zwift_id, name: rider.display_name, league: (row.league as string | null) ?? null };
+  });
+  const withId = entrants.filter((e): e is typeof e & { zwiftId: string } => !!e.zwiftId);
+
+  // `to` stuurt Sauce ook mee, maar is op productie nog niet bewezen. Weigert
+  // Zwift hem, dan zonder: het venster filteren we hieronder toch zelf.
+  const passes = await fetchSegmentResults(segmentId, { from: windowStart, to: windowEnd })
+    .catch(() => fetchSegmentResults(segmentId, { from: windowStart }));
+  const result = bestSegmentTimes({ passes, entrants: withId, windowStart, windowEnd });
+
+  const warnings = [...result.warnings];
+  if (withId.length < entrants.length) {
+    warnings.push(`${entrants.length - withId.length} ingeschreven renners zonder Zwift-ID.`);
+  }
+  const zwiftStart = zwiftEventStart(event);
+  const plannedStart = Date.parse(settings.starts_at as string);
+  if (zwiftStart !== null && Math.abs(zwiftStart - plannedStart) > 2 * 60_000) {
+    const hhmm = (ms: number) => new Date(ms).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
+    warnings.push(`Zwift start om ${hhmm(zwiftStart)}, gepland is ${hhmm(plannedStart)}. Het venster volgt de planning.`);
+  }
+  return { rows: result.rows, warnings };
 }
