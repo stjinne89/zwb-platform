@@ -96,13 +96,57 @@ export type InactivityDecision =
 export type InactivityInput = {
   /** Laatste rit in strava_activities. */
   lastActivityAt: string | null;
-  /** auth.users.last_sign_in_at — profiles heeft geen last-seen-kolom. */
-  lastSignInAt: string | null;
+  /** Laatst in de app gezien (`member_last_seen()`), zie migratie 0189. */
+  lastSeenAt: string | null;
+  /**
+   * Wie koppelt is op dat moment in de app. Ondergrens voor lastSeenAt, zodat een
+   * lid zonder bekende sessie niet meteen als afwezig telt.
+   */
+  connectedAt?: string | null;
   inactivityWarnedAt: string | null;
   now: Date;
   inactiveMonths: number;
   graceDays: number;
+  /**
+   * Strengere regel zolang de atletenlimiet krap is: wie `days` dagen niet in de
+   * app is geweest verliest de koppeling, ook als hij nog rijdt. De waarschuwing
+   * valt `graceDays` eerder, zodat het verlies op dag `days` zelf valt.
+   */
+  loginRule?: { days: number; graceDays: number } | null;
 };
+
+/** Beleid voor de loginregel: alleen zolang de limiet op dit aantal of lager staat. */
+export const LOGIN_RULE_MAX_CAP = 10;
+
+export type LoginRuleConfig = { days: number; graceDays: number };
+
+/**
+ * Of de loginregel geldt. Besluit van de eigenaar (2026-09-23): na 90 dagen
+ * zonder bezoek vervalt de koppeling, zolang de limiet 10 is. Gaat de limiet
+ * omhoog, dan zet STRAVA_ATHLETE_CAP de regel vanzelf uit.
+ */
+export function loginRuleFor(options: {
+  athleteCap: number;
+  days: number;
+  graceDays: number;
+}): LoginRuleConfig | null {
+  if (options.athleteCap > LOGIN_RULE_MAX_CAP) return null;
+  if (options.days < 1) return null;
+  const graceDays = Math.min(Math.max(1, options.graceDays), options.days - 1);
+  return { days: options.days, graceDays: Math.max(1, graceDays) };
+}
+
+function daysBefore(now: Date, days: number): Date {
+  return new Date(now.getTime() - days * 86400_000);
+}
+
+function laterOf(a: string | null | undefined, b: string | null | undefined) {
+  const pa = a ? Date.parse(a) : NaN;
+  const pb = b ? Date.parse(b) : NaN;
+  if (!Number.isFinite(pa)) return Number.isFinite(pb) ? (b as string) : null;
+  if (!Number.isFinite(pb)) return a as string;
+  return pa >= pb ? (a as string) : (b as string);
+}
 
 function monthsBefore(now: Date, months: number): Date {
   const cutoff = new Date(now);
@@ -123,19 +167,51 @@ function isAfter(value: string | null, cutoff: Date): boolean {
  * Bewust twee signalen: iemand kan maandenlang niet fietsen maar wel de app
  * gebruiken. Alleen wie op beide fronten stil is komt in aanmerking, en dan nog
  * pas na een waarschuwing plus respijtperiode.
+ *
+ * Daarbovenop de loginregel (`loginRule`): zolang de limiet krap is, telt alleen
+ * bezoek aan de app. Rijden zonder langs te komen houdt de plek dan niet vast.
  */
 export function decideInactivity(input: InactivityInput): InactivityDecision {
+  return evaluateInactivity(input).decision;
+}
+
+/**
+ * Zelfde beslissing, plus het respijt dat erbij hoort; de waarschuwing noemt dat
+ * aantal dagen.
+ */
+export function evaluateInactivity(input: InactivityInput): {
+  decision: InactivityDecision;
+  graceDays: number;
+} {
+  const seenAt = laterOf(input.lastSeenAt, input.connectedAt);
   const cutoff = monthsBefore(input.now, input.inactiveMonths);
-  if (isAfter(input.lastActivityAt, cutoff) || isAfter(input.lastSignInAt, cutoff)) {
-    return "active";
+  const yearRuleHits = !(
+    isAfter(input.lastActivityAt, cutoff) || isAfter(seenAt, cutoff)
+  );
+
+  const rule = input.loginRule;
+  const loginRuleHits = rule
+    ? !isAfter(seenAt, daysBefore(input.now, rule.days - rule.graceDays))
+    : false;
+
+  if (!yearRuleHits && !loginRuleHits) {
+    return { decision: "active", graceDays: input.graceDays };
   }
-  if (!input.inactivityWarnedAt) return "warn";
+
+  // Raken beide regels, dan geldt de kortste termijn.
+  const graceDays =
+    loginRuleHits && rule ? Math.min(rule.graceDays, input.graceDays) : input.graceDays;
+
+  if (!input.inactivityWarnedAt) return { decision: "warn", graceDays };
 
   const warnedAt = Date.parse(input.inactivityWarnedAt);
-  if (!Number.isFinite(warnedAt)) return "warn";
+  if (!Number.isFinite(warnedAt)) return { decision: "warn", graceDays };
 
-  const graceEnds = warnedAt + input.graceDays * 86400_000;
-  return input.now.getTime() >= graceEnds ? "revoke" : "waiting";
+  const graceEnds = warnedAt + graceDays * 86400_000;
+  return {
+    decision: input.now.getTime() >= graceEnds ? "revoke" : "waiting",
+    graceDays,
+  };
 }
 
 /**

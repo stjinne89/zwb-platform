@@ -17,7 +17,7 @@ export type SyncMember = {
   activityCount: number;
   lastActivity: string | null;
   connectedAt: string | null;
-  lastSignIn: string | null;
+  lastSeen: string | null;
   missingActivityScope: boolean;
   missingWriteScope: boolean;
 };
@@ -328,8 +328,8 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Laatste rit: {formatDate(member.lastActivity)} · laatste
-                  login: {formatDate(member.lastSignIn)} · gekoppeld{" "}
+                  Laatste rit: {formatDate(member.lastActivity)} · laatst
+                  gezien: {formatDate(member.lastSeen)} · gekoppeld{" "}
                   {formatDate(member.connectedAt)}
                 </p>
                 {state.kind !== "idle" && (

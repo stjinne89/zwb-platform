@@ -12,8 +12,10 @@
 import { accessTokenFor, type StravaConnection } from "@/lib/strava/client";
 import { deauthorizeStravaAthlete } from "@/lib/strava/deauthorize";
 import {
-  decideInactivity,
+  evaluateInactivity,
+  loginRuleFor,
   revocationPatch,
+  type LoginRuleConfig,
   StravaConnectionRevokedError,
   type RevokedReason,
 } from "@/lib/strava/lifecycle";
@@ -195,7 +197,12 @@ export async function purgeDeauthorizedConnections(
 export async function applyInactivityPolicy(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
-  options: { inactiveMonths?: number; graceDays?: number; limit?: number } = {},
+  options: {
+    inactiveMonths?: number;
+    graceDays?: number;
+    limit?: number;
+    loginRule?: LoginRuleConfig | null;
+  } = {},
 ): Promise<{ warned: number; revoked: number; errors: string[] }> {
   const inactiveMonths = Math.max(1, options.inactiveMonths ?? 12);
   const graceDays = Math.max(1, options.graceDays ?? 30);
@@ -204,7 +211,7 @@ export async function applyInactivityPolicy(
 
   const { data } = await admin
     .from("strava_connections")
-    .select("profile_id, inactivity_warned_at")
+    .select("profile_id, connected_at, inactivity_warned_at")
     .is("revoked_at", null)
     // Zonder ordening geeft Postgres bij meer koppelingen dan `limit` een
     // willekeurige greep; dan wordt er nooit een hele ronde gemaakt.
@@ -213,24 +220,36 @@ export async function applyInactivityPolicy(
 
   const rows = (data ?? []) as Array<{
     profile_id: string;
+    connected_at: string | null;
     inactivity_warned_at: string | null;
   }>;
   if (rows.length === 0) return { warned: 0, revoked: 0, errors: [] };
 
-  const lastSignIn = await lastSignInByProfile(admin);
-  if (!lastSignIn) {
+  const lastSeen = await lastSeenByProfile(admin);
+  if (!lastSeen) {
     // Eén van de twee signalen ontbreekt. Doorgaan zou betekenen dat we leden
     // waarschuwen op basis van halve informatie, en dit beleid neemt ze iets af.
     return {
       warned: 0,
       revoked: 0,
-      errors: ["Inactiviteitsbeleid overgeslagen: last_sign_in_at niet leesbaar."],
+      errors: ["Inactiviteitsbeleid overgeslagen: laatst gezien niet leesbaar."],
     };
+  }
+
+  const errors: string[] = [];
+  let loginRule = options.loginRule ?? null;
+  if (loginRule && !lastSeen.reliable) {
+    // Zonder member_last_seen() valt alleen last_sign_in_at terug, en die loopt
+    // maanden achter bij wie ingelogd blijft. De loginregel zou dan juist de
+    // trouwste bezoekers raken.
+    loginRule = null;
+    errors.push(
+      "Loginregel overgeslagen: member_last_seen() niet beschikbaar (migratie 0189).",
+    );
   }
 
   let warned = 0;
   let revoked = 0;
-  const errors: string[] = [];
 
   for (const row of rows) {
     const { data: activity } = await admin
@@ -241,13 +260,15 @@ export async function applyInactivityPolicy(
       .limit(1)
       .maybeSingle();
 
-    const decision = decideInactivity({
+    const { decision, graceDays: warnGraceDays } = evaluateInactivity({
       lastActivityAt: (activity?.start_date as string | null) ?? null,
-      lastSignInAt: lastSignIn.get(row.profile_id) ?? null,
+      lastSeenAt: lastSeen.byProfile.get(row.profile_id) ?? null,
+      connectedAt: row.connected_at,
       inactivityWarnedAt: row.inactivity_warned_at,
       now,
       inactiveMonths,
       graceDays,
+      loginRule,
     });
 
     try {
@@ -269,7 +290,7 @@ export async function applyInactivityPolicy(
           "on_strava_link_expiring",
           {
             title: "Je Strava-koppeling vervalt",
-            body: `Geen ritten of bezoek in ${inactiveMonths} maanden. Over ${graceDays} dagen koppelen we Strava los.`,
+            body: `Open ZWB binnen ${warnGraceDays} dagen om je Strava-koppeling te houden.`,
             url: "/profiel#strava",
             tag: "strava-link-expiring",
           },
@@ -293,21 +314,43 @@ export async function applyInactivityPolicy(
   return { warned, revoked, errors };
 }
 
+export type LastSeen = {
+  byProfile: Map<string, string | null>;
+  /** false = alleen last_sign_in_at gelezen; die loopt achter bij wie ingelogd blijft. */
+  reliable: boolean;
+};
+
 /**
- * last_sign_in_at staat in auth.users; profiles heeft geen last-seen-kolom. Voor
- * een club van deze omvang is de admin-API één of twee pagina's — een view op
- * auth.users zou een tabel openzetten die nu volledig dicht zit.
+ * Wanneer elk lid voor het laatst in de app was. Bron is `member_last_seen()`
+ * (migratie 0189), die ook sessieverversingen meetelt. Bestaat die functie nog
+ * niet, dan valt dit terug op auth.users.last_sign_in_at via de admin-API, met
+ * `reliable: false`.
  *
- * Geeft null terug als de bron niet te lezen was. Dat verschil is belangrijk:
- * een lege map zou betekenen "niemand logt in", en dan waarschuwen we leden die
- * dagelijks in de app zitten maar toevallig een jaar niet gereden hebben. Bij
- * null slaan we het inactiviteitsbeleid deze run gewoon over.
+ * Geeft null terug als geen van beide te lezen was. Dat verschil is belangrijk:
+ * een lege map zou betekenen "niemand komt langs", en dan waarschuwen we leden
+ * die dagelijks in de app zitten. Bij null slaan we het beleid deze run over.
  */
-export async function lastSignInByProfile(
+export async function lastSeenByProfile(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
-): Promise<Map<string, string | null> | null> {
-  const result = new Map<string, string | null>();
+): Promise<LastSeen | null> {
+  try {
+    const { data, error } = await admin.rpc("member_last_seen");
+    if (!error && Array.isArray(data)) {
+      const byProfile = new Map<string, string | null>();
+      for (const row of data as Array<{
+        profile_id: string;
+        last_seen_at: string | null;
+      }>) {
+        byProfile.set(row.profile_id, row.last_seen_at ?? null);
+      }
+      return { byProfile, reliable: true };
+    }
+  } catch {
+    // Val terug op de admin-API hieronder.
+  }
+
+  const byProfile = new Map<string, string | null>();
   try {
     for (let page = 1; page <= 5; page++) {
       const { data, error } = await admin.auth.admin.listUsers({
@@ -320,24 +363,54 @@ export async function lastSignInByProfile(
         last_sign_in_at?: string | null;
       }>;
       for (const user of users) {
-        result.set(user.id, user.last_sign_in_at ?? null);
+        byProfile.set(user.id, user.last_sign_in_at ?? null);
       }
       if (users.length < 200) break;
     }
   } catch {
     return null;
   }
-  return result;
+  return { byProfile, reliable: false };
+}
+
+function envInt(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+/** De athlete cap zoals Strava hem nu toestaat; met de hand bij te werken in de env. */
+export function stravaAthleteCap(): number {
+  return envInt("STRAVA_ATHLETE_CAP", 10);
+}
+
+/**
+ * De loginregel uit de env. STRAVA_LOGIN_INACTIVITY_DAYS=0 zet hem uit, een
+ * STRAVA_ATHLETE_CAP boven de 10 ook.
+ */
+export function loginRuleFromEnv(): LoginRuleConfig | null {
+  return loginRuleFor({
+    athleteCap: stravaAthleteCap(),
+    days: envInt("STRAVA_LOGIN_INACTIVITY_DAYS", 90),
+    graceDays: envInt("STRAVA_LOGIN_GRACE_DAYS", 14),
+  });
 }
 
 export async function runStravaSweep(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
-  options: { inactiveMonths?: number; graceDays?: number } = {},
+  options: {
+    inactiveMonths?: number;
+    graceDays?: number;
+    loginRule?: LoginRuleConfig | null;
+  } = {},
 ): Promise<SweepResult> {
   const pending = await retryPendingDeauthorizations(admin);
   const purge = await purgeDeauthorizedConnections(admin);
-  const inactivity = await applyInactivityPolicy(admin, options);
+  const inactivity = await applyInactivityPolicy(admin, {
+    ...options,
+    loginRule:
+      options.loginRule === undefined ? loginRuleFromEnv() : options.loginRule,
+  });
 
   return {
     deauthorized: pending.deauthorized,

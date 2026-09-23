@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   decideInactivity,
+  evaluateInactivity,
+  loginRuleFor,
   reconnectPatch,
   revocationPatch,
 } from "@/lib/strava/lifecycle";
@@ -60,7 +62,7 @@ describe("reconnectPatch", () => {
 describe("decideInactivity", () => {
   const base = {
     lastActivityAt: null,
-    lastSignInAt: null,
+    lastSeenAt: null,
     inactivityWarnedAt: null,
     now: AT,
     inactiveMonths: 12,
@@ -76,7 +78,7 @@ describe("decideInactivity", () => {
   it("laat een lid dat wel inlogt maar niet rijdt met rust", () => {
     // Iemand kan maandenlang niet fietsen en de app toch gebruiken.
     expect(
-      decideInactivity({ ...base, lastSignInAt: "2026-07-01T00:00:00.000Z" }),
+      decideInactivity({ ...base, lastSeenAt: "2026-07-01T00:00:00.000Z" }),
     ).toBe("active");
   });
 
@@ -85,7 +87,7 @@ describe("decideInactivity", () => {
       decideInactivity({
         ...base,
         lastActivityAt: "2024-01-01T00:00:00.000Z",
-        lastSignInAt: "2024-02-01T00:00:00.000Z",
+        lastSeenAt: "2024-02-01T00:00:00.000Z",
       }),
     ).toBe("warn");
   });
@@ -113,6 +115,101 @@ describe("decideInactivity", () => {
         inactivityWarnedAt: "2026-07-01T00:00:00.000Z",
         lastActivityAt: "2026-09-01T00:00:00.000Z",
       }),
+    ).toBe("active");
+  });
+});
+
+describe("loginRuleFor", () => {
+  it("geldt zolang de limiet 10 is", () => {
+    expect(loginRuleFor({ athleteCap: 10, days: 90, graceDays: 14 })).toEqual({
+      days: 90,
+      graceDays: 14,
+    });
+  });
+
+  it("vervalt zodra Strava de limiet verhoogt", () => {
+    expect(loginRuleFor({ athleteCap: 25, days: 90, graceDays: 14 })).toBeNull();
+  });
+
+  it("staat uit met 0 dagen", () => {
+    expect(loginRuleFor({ athleteCap: 10, days: 0, graceDays: 14 })).toBeNull();
+  });
+
+  it("houdt het respijt korter dan de termijn zelf", () => {
+    expect(loginRuleFor({ athleteCap: 10, days: 10, graceDays: 30 })?.graceDays).toBe(9);
+  });
+});
+
+describe("loginregel", () => {
+  // AT is 2026-09-05. Dag 76 zonder bezoek = 2026-06-21.
+  const rule = { days: 90, graceDays: 14 };
+  const base = {
+    // Rijdt elke dag: de jaarregel raakt dit lid nooit.
+    lastActivityAt: "2026-09-04T00:00:00.000Z",
+    lastSeenAt: null,
+    inactivityWarnedAt: null,
+    now: AT,
+    inactiveMonths: 12,
+    graceDays: 30,
+    loginRule: rule,
+  };
+
+  it("laat een lid dat binnen 76 dagen langskwam met rust", () => {
+    expect(
+      decideInactivity({ ...base, lastSeenAt: "2026-07-01T00:00:00.000Z" }),
+    ).toBe("active");
+  });
+
+  it("waarschuwt na 76 dagen zonder bezoek, ook als het lid nog rijdt", () => {
+    expect(
+      evaluateInactivity({ ...base, lastSeenAt: "2026-06-15T00:00:00.000Z" }),
+    ).toEqual({ decision: "warn", graceDays: 14 });
+  });
+
+  it("zonder loginregel houdt rijden de koppeling vast", () => {
+    expect(
+      decideInactivity({
+        ...base,
+        loginRule: null,
+        lastSeenAt: "2026-01-01T00:00:00.000Z",
+      }),
+    ).toBe("active");
+  });
+
+  it("heft op na 14 dagen respijt", () => {
+    expect(
+      decideInactivity({
+        ...base,
+        lastSeenAt: "2026-06-01T00:00:00.000Z",
+        inactivityWarnedAt: "2026-08-22T00:00:00.000Z",
+      }),
+    ).toBe("revoke");
+  });
+
+  it("wacht zolang het respijt loopt", () => {
+    expect(
+      decideInactivity({
+        ...base,
+        lastSeenAt: "2026-06-01T00:00:00.000Z",
+        inactivityWarnedAt: "2026-08-30T00:00:00.000Z",
+      }),
+    ).toBe("waiting");
+  });
+
+  it("trekt de waarschuwing in als het lid de app weer opent", () => {
+    expect(
+      decideInactivity({
+        ...base,
+        lastSeenAt: "2026-09-04T00:00:00.000Z",
+        inactivityWarnedAt: "2026-08-30T00:00:00.000Z",
+      }),
+    ).toBe("active");
+  });
+
+  it("telt koppelen als bezoek", () => {
+    // Zonder bekende sessie zou een net gekoppeld lid anders meteen afwezig zijn.
+    expect(
+      decideInactivity({ ...base, connectedAt: "2026-08-20T00:00:00.000Z" }),
     ).toBe("active");
   });
 });

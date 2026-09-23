@@ -6,7 +6,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
-import { lastSignInByProfile } from "@/lib/strava/sweep";
+import { lastSeenByProfile } from "@/lib/strava/sweep";
 import { AdminStravaSync, type SyncMember } from "./_components/admin-strava-sync";
 import {
   StravaWebhookPanel,
@@ -75,7 +75,7 @@ export default async function BeheerStravaPage() {
     { data: webhookEvents },
     { count: pendingEvents },
     { data: subscriptionRow },
-    lastSignIn,
+    lastSeen,
   ] = await Promise.all([
     admin
       .from("strava_connections")
@@ -102,7 +102,7 @@ export default async function BeheerStravaPage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    lastSignInByProfile(admin),
+    lastSeenByProfile(admin),
   ]);
 
   const allConnections = (connections ?? []) as ConnectionRow[];
@@ -135,7 +135,7 @@ export default async function BeheerStravaPage() {
       activityCount: stats?.count ?? 0,
       lastActivity: stats?.last ?? null,
       connectedAt: c.connected_at ?? c.updated_at,
-      lastSignIn: lastSignIn?.get(c.profile_id) ?? null,
+      lastSeen: lastSeen?.byProfile.get(c.profile_id) ?? null,
       missingActivityScope: !hasActivityScope(c.scope),
       // Alleen melden als het leesrecht wél in orde is, zodat deze badge de
       // urgentere "geen activiteiten-recht" niet dubbelop toont.
