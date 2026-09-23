@@ -230,6 +230,11 @@ notified, and if nothing changes within 30 days the connection is deauthorized a
 removed. The intent is exactly what you describe: we do not want to hold athlete
 slots that no longer serve anyone.
 
+While we are at our current capacity, a stricter rule applies on top of that: a
+member who has not opened our application for 90 days loses the connection even
+if they are still riding, after a warning two weeks in advance. That keeps our
+limited slots with members who actually use the integration.
+
 Since deploying this, connections that are no longer in use are deauthorized and
 removed rather than left in place. No connection has needed releasing yet in the
 period since deployment — every one of our current connections belongs to an

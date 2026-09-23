@@ -94,6 +94,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0190`
 > `/profiel` zegt dat de koppeling blijft staan nu het lid er is, want wie hem
 > leest, telt al als bezoek. `/hulp` noemt de regel voor leden en voor beheer.
 > Beheer toont nu "laatst gezien" in plaats van "laatste login".
+> De notitie in `docs/strava-api-resubmission.md` noemt de regel nu ook, als
+> extra bewijs van actief beheer.
 >
 > **Gevolg bij de eerste run.** Wie op dat moment al 76 dagen of langer weg is,
 > krijgt meteen de waarschuwing en verliest de koppeling 14 dagen later. Naar
