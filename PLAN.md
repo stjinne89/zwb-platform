@@ -28,6 +28,9 @@ gaat stabiliteit voor nieuwe features.
    toegepast. **Nog toepassen: `0188_zrl_team_results.sql`** — zonder die tabel
    blijft de plaats van het team op de raceweekpagina leeg. Nog open:
    `/live/zrl/[eventId]` tijdens de volgende ZRL-race bekijken.
+   **Nog toepassen: `0189_member_last_seen.sql`**, vóór of samen met de deploy
+   van de Strava-loginregel. Daarna op `/beheer/strava` controleren dat
+   "laatst gezien" bij je eigen account vandaag is (zie de ronde hieronder).
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -53,9 +56,114 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0189`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0190`.
 
 ---
+
+> **Strava-loginregel: 90 dagen niet in de app = koppeling kwijt, 2026-09-23 —
+> gebouwd; migratie `0189` nog toepassen.**
+>
+> **Waarom.** Besluit van de eigenaar: zolang Strava ons op 10 koppelingen houdt,
+> verliest wie 90 dagen niet in de app is geweest de koppeling, ook als hij nog
+> rijdt. De plek gaat dan naar een lid dat de app wél gebruikt. Aanleiding: alle
+> 10 plekken zijn bezet door actieve rijders, dus de jaarregel (12 maanden geen
+> rit én geen bezoek) maakt nooit een plek vrij.
+>
+> **Eerst een meetfout gerepareerd.** Het beleid en de beheerpagina lazen
+> `auth.users.last_sign_in_at` als "laatste bezoek". Supabase zet die alleen bij
+> een echte inlog, niet bij het verversen van een sessie. Wie ingelogd blijft
+> (vrijwel iedereen met de PWA) staat daar maanden stil. Het eigenaarsaccount
+> stond op 36 dagen, terwijl de eigenaar de app dagelijks gebruikt. Een regel van
+> 90 dagen op dat signaal zou juist de trouwste bezoekers raken. Migratie `0189`
+> voegt `public.member_last_seen()` toe (security definer, alleen de service
+> role): het laatste van `last_sign_in_at`, `auth.sessions.updated_at` en
+> `auth.refresh_tokens.updated_at`. De middleware ververst het access token bij
+> een bezoek na een uur, dus dit is ongeveer uur-nauwkeurig. Het raakt ook de
+> jaarregel, die daardoor alleen strenger wordt richting leden die echt weg zijn.
+>
+> **De regel.** `evaluateInactivity` in `src/lib/strava/lifecycle.ts` kreeg een
+> optionele `loginRule`. Waarschuwing op dag 76 (push plus melding op
+> `/profiel`), verlies op dag 90 (respijt `STRAVA_LOGIN_GRACE_DAYS` = 14). De
+> app openen trekt de waarschuwing in. Een koppeling telt als bezoek, zodat een
+> net gekoppeld lid zonder bekende sessie niet meteen afwezig is. De regel geldt
+> alleen zolang `STRAVA_ATHLETE_CAP` (default 10) op 10 of lager staat; dat
+> getal moet met de hand omhoog als Strava de limiet verhoogt. Zonder
+> `member_last_seen()` draait de loginregel niet en meldt de run dat. We vallen
+> dan bewust niet terug op `last_sign_in_at`. De pushtekst is nu "Open ZWB binnen
+> N dagen om je Strava-koppeling te houden", voor beide regels. De tekst op
+> `/profiel` zegt dat de koppeling blijft staan nu het lid er is, want wie hem
+> leest, telt al als bezoek. `/hulp` noemt de regel voor leden en voor beheer.
+> Beheer toont nu "laatst gezien" in plaats van "laatste login".
+> De notitie in `docs/strava-api-resubmission.md` noemt de regel nu ook, als
+> extra bewijs van actief beheer.
+>
+> **Gevolg bij de eerste run.** Wie op dat moment al 76 dagen of langer weg is,
+> krijgt meteen de waarschuwing en verliest de koppeling 14 dagen later. Naar
+> `last_sign_in_at` gemeten zijn dat nu twee leden, maar welke het echt zijn is
+> pas te zien als `0189` is toegepast.
+>
+> **Bewust niet gebouwd.** (a) De regel alleen laten gelden als alle plekken
+> bezet zijn: de eigenaar koos voor "zolang de limiet 10 is", en met 10/10 bezet
+> maakt dat nu geen verschil. (b) De limiet uitlezen bij Strava: daar is geen
+> API voor, vandaar de env-variabele. (c) Een eigen `last_seen_at`-kolom die de
+> middleware bijwerkt: dat kost een schrijfactie per bezoek en begint zonder
+> historie, terwijl de sessietabellen die historie al hebben. (d) **Geen nieuwe
+> privacyversie, bewust.** `/privacy` kreeg onder "4. Hoe lang we gegevens bewaren" een punt over
+> de regel en het bijhouden van "laatst in de app", met de tekst die de
+> eigenaar goedkeurde. Er kwam geen nieuwe versie in `src/lib/privacy.ts`, dus
+> niemand tekent opnieuw. Dat wijkt af van de regel "nieuwe verwerking = nieuwe
+> versie". Besluit van de eigenaar (2026-09-23): er wordt niets nieuws
+> verzameld, want de sessiegegevens bestaan al voor het inloggen. Het is
+> hetzelfde patroon als de lengte in het pacingplan (2026-09-21).
+>
+> **Niet lokaal geverifieerd.** `0189` is niet uitgevoerd (geen Docker of
+> Supabase-config). Of `auth.sessions.updated_at` en `auth.refresh_tokens` echt
+> meelopen met een sessieverversing, volgt uit hoe Supabase Auth werkt, maar is
+> hier niet gemeten. Controleer het na het toepassen: je eigen account moet op
+> `/beheer/strava` "laatst gezien: vandaag" tonen. `tsc`, eslint en de
+> unit-tests (nieuwe gevallen in `tests/unit/strava-lifecycle.test.ts`) zijn
+> schoon.
+
+---
+
+> **Strava-koppeling handmatig opheffen, 2026-09-23 — gebouwd, geen migratie.**
+>
+> **Waarom.** Vraag van de eigenaar: kan een beheerder de Strava-koppeling van
+> een zeer inactief lid loskoppelen, zodat een actief lid onder de atletenlimiet
+> kan koppelen? De serveractie `adminRevokeStravaConnection` bestond al sinds de
+> deauthorisatieronde (intrekken bij Strava via `POST /oauth/deauthorize`, dan de
+> ruwe Strava-data wissen), maar geen knop riep hem aan. Nu staat er per lid op
+> `/beheer/strava` een knop "Opheffen" met een bevestigingsvraag. Weigert Strava
+> de intrekking, dan blijft de koppeling op "wacht op opruiming" staan en maakt
+> de nachtrun het af. Dat gedrag zat al in `revokeAndCleanupStravaConnection`.
+> Bij elk lid staat nu ook wanneer het lid voor het laatst in de app was, het
+> tweede signaal van het inactiviteitsbeleid. *Gecorrigeerd dezelfde dag:* eerst
+> was dat `last_sign_in_at`, en die is onbruikbaar (zie de loginregel hierboven);
+> nu is het `lastSeenByProfile` op basis van migratie `0189`.
+> "Gekoppeld" toont voortaan `connected_at`. Eerder stond daar
+> `last_synced_at`, dus feitelijk de laatste sync.
+>
+> **Gebruik van de gekoppelde leden (gemeten 2026-09-23, alleen lezen,
+> geanonimiseerd).** Er zijn 10 koppelingen, 0 opgeheven, geen enkele
+> gewaarschuwd, en alle tien hebben het activiteitenrecht. Alle tien reden in de
+> afgelopen twee dagen. Per lid 20–54 ritten in 30 dagen en 169–619 in een jaar,
+> overwegend Zwift (`VirtualRide`). `last_sign_in_at` varieert van vandaag tot
+> 102 dagen geleden, maar dat zegt weinig over bezoek (zie de loginregel
+> hierboven). Zeven van de tien hebben ook intervals.icu gekoppeld. Dat
+> vervangt Strava niet: intervals-ritten voeden alleen de trainingsmodule, niet
+> stats, badges, ZWBlokken of cols. **Conclusie:** er is nu geen inactieve
+> koppeling om op te heffen. De limiet wordt gevuld door de meest actieve
+> rijders, dus ruimte komt alleen via een hogere limiet bij Strava (punt 2 van
+> de actieve volgorde). Het inactiviteitsbeleid (12 maanden geen rit én geen
+> login) zou bij deze tien niemand raken.
+>
+> **Bewust niet gedaan.** (a) De privacyverklaring noemde alleen dat het lid
+> zelf kan ontkoppelen, niet dat de club dat kan. *Bijgewerkt dezelfde dag:* de
+> aanvulling staat erin, zie de loginregel hierboven. (b) Geen strenger automatisch criterium. Bij het
+> huidige gebruik zou dat niets opleveren.
+>
+> **Niet lokaal geverifieerd.** De knop is niet in de browser doorgeklikt: dat
+> vraagt een beheerderslogin op productiedata. `tsc` en eslint zijn schoon.
 
 > **Teamuitslag op de raceweek, 2026-09-22 — gebouwd; migratie `0188` nog toepassen.**
 >

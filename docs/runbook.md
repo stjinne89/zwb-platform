@@ -298,19 +298,31 @@ CDN staat. De afgeleide clubdata blijft: badges, ZWBlokken, onderhoudsstanden en
 
 ### Inactiviteitsbeleid
 
-Geen ritten **en** geen login in `STRAVA_INACTIVITY_MONTHS` (12) →
-waarschuwing via push (`on_strava_link_expiring`) en een melding op `/profiel`.
-Blijft het daarna `STRAVA_INACTIVITY_GRACE_DAYS` (30) stil, dan wordt de
-koppeling opgeheven en gedeauthoriseerd.
+Twee regels. Beide geven eerst een waarschuwing via push
+(`on_strava_link_expiring`) en een melding op `/profiel`. Pas na het respijt
+wordt de koppeling opgeheven en gedeauthoriseerd. Wie in dat respijt de app
+opent, houdt de koppeling.
 
-Is `last_sign_in_at` niet leesbaar (Supabase admin-API faalt), dan slaat de run
-het hele inactiviteitsbeleid over en meldt dat in `errors`. Doorgaan zou leden
-waarschuwen die wél inloggen maar toevallig een jaar niet gereden hebben.
+- **Jaarregel:** geen ritten **en** geen bezoek in `STRAVA_INACTIVITY_MONTHS`
+  (12). Respijt `STRAVA_INACTIVITY_GRACE_DAYS` (30).
+- **Loginregel (sinds 2026-09-23):** geen bezoek in
+  `STRAVA_LOGIN_INACTIVITY_DAYS` (90), ook als het lid nog rijdt. Waarschuwing op
+  dag 76, verlies op dag 90 (`STRAVA_LOGIN_GRACE_DAYS` = 14). Geldt alleen zolang
+  `STRAVA_ATHLETE_CAP` 10 of lager is. **Zet `STRAVA_ATHLETE_CAP` op de nieuwe
+  limiet zodra Strava die verhoogt;** daarmee vervalt de regel.
 
-**Let op:** een lid dat twaalf maanden weg is heeft meestal geen werkende
-push-subscription meer, en de app kent geen transactionele e-mail. Daarom staat
-de teller "Waarschuwing verstuurd" op `/beheer/strava`: benader die leden binnen
-de 30 dagen via WhatsApp als je ze wilt behouden.
+"Bezoek" komt uit `member_last_seen()` (migratie `0189`): het laatste moment van
+inloggen óf sessieverversing. `auth.users.last_sign_in_at` alleen is niet
+bruikbaar, want wie ingelogd blijft staat daar maanden stil. Bestaat de functie
+niet, dan draait de jaarregel op `last_sign_in_at` en slaat de loginregel over,
+met een melding in `errors`. Is geen van beide leesbaar, dan slaat de run het hele
+beleid over.
+
+**Let op:** een lid dat lang weg is heeft vaak geen werkende push-subscription
+meer, en de app kent geen transactionele e-mail. Daarom staat de teller
+"Waarschuwing verstuurd" op `/beheer/strava`: benader die leden binnen het
+respijt via WhatsApp als je ze wilt behouden. Handmatig opheffen kan per lid met
+"Opheffen" op dezelfde pagina.
 
 ### Verwacht callvolume
 

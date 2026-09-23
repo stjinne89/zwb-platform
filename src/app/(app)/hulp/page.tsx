@@ -145,6 +145,7 @@ const GUIDES = [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
       "Zonder Strava-koppeling importeer je op Achievements je hele historie (activities.csv) of één rit (GPX).",
+      "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
     ],
@@ -429,6 +430,7 @@ const ADMIN_GUIDES = [
       "Sync een lid handmatig of start de volledige historie voor alle leden die nog niet zichtbaar zijn.",
       "Leden zonder activiteitenrecht moeten zelf opnieuw koppelen en het activiteitenvinkje aanzetten.",
       "Badges + cols herberekenen draait op bestaande ritten en doet geen extra Strava-calls.",
+      "Opheffen maakt de plek van een lid direct vrij. Na 90 dagen zonder bezoek gebeurt dat automatisch, zolang de limiet 10 koppelingen is.",
     ],
   },
   {
