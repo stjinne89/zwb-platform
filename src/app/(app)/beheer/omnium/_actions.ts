@@ -17,6 +17,7 @@ import {
   type OmniumSeasonPlanSpec,
 } from "@/lib/omnium/season-plan";
 import type { Discipline } from "@/lib/omnium/scoring";
+import { routeFromZwiftInsiderUrl } from "@/lib/zwift/zwiftinsider-route";
 
 type Fail = { ok: false; error: string };
 type Access = Awaited<ReturnType<typeof getCurrentUserAccess>>;
@@ -350,6 +351,21 @@ export type EditionDetailInput = {
     }
   >;
 };
+
+/**
+ * Route, wereld en afstand bij een geplakte ZwiftInsider-link. Server-side
+ * omdat de routecatalogus te groot is voor de browserbundel.
+ */
+export async function lookupZwiftInsiderRoute(url: string) {
+  const guard = await requireOmniumAccess();
+  if (!guard.ok) return guard;
+  if (typeof url !== "string" || url.length > 500) {
+    return { ok: false as const, error: "Ongeldige link." };
+  }
+  const route = routeFromZwiftInsiderUrl(url);
+  if (!route) return { ok: false as const, error: "Route niet gevonden." };
+  return { ok: true as const, route };
+}
 
 /** Slaat één editie op, inclusief de vier onderdelen en hun starttijden. */
 export async function updateOmniumEdition(input: EditionDetailInput) {

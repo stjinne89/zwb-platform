@@ -67,6 +67,37 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 
 ---
 
+> **Omnium-beheer: route uit de ZwiftInsider-link, 2026-09-23 — gebouwd; geen
+> migratie.** Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Per onderdeel vulde het bestuur route, wereld en afstand met de
+> hand in, terwijl de ZwiftInsider-link die al vastlegt. Dubbel werk, en een
+> kans op tikfouten die publiek op `/omnium/[editie]` staan.
+>
+> **Wat.** Plak je een `zwiftinsider.com/route/<slug>`-link, dan vult het
+> formulier route, wereld en afstand in; het linkveld staat daarom vóór die
+> drie. De velden blijven met de hand te wijzigen. Een onbekende route geeft
+> alleen "Route niet gevonden." en laat de velden staan. De afstand is één
+> ronde zonder lead-in, afgerond op 0,1 km; de wereld is de weergavenaam
+> ("Watopia"). Opzoeken in `src/lib/zwift/zwiftinsider-route.ts` (puur, test:
+> `tests/unit/zwiftinsider-route.test.ts`) via de server action
+> `lookupZwiftInsiderRoute`.
+>
+> **Bewust niet gebouwd.** (a) Scrapen van ZwiftInsider, waar de vraag om
+> vroeg: `zwift-data` zet bij 281 van de 292 fietsroutes (v1.50.0) de
+> ZwiftInsider-link al, dus de slug is een sleutel in een catalogus die we al
+> meeleveren. Geen netwerk, geen HTML die kan veranderen, en ZwiftInsider biedt
+> geen API of licentie voor hergebruik (zie `0177`). Ontbreken nu o.a. Power
+> Punches, Flat Out Fast, Urumaze en de Climb Portals; die blijven handwerk tot
+> een nieuwere `zwift-data`. (b) Opzoeken in de browser: de routecatalogus is
+> 265 KB. (c) Afstand en rondes uit de Zwift-eventlink halen: kan via
+> `fetchZwiftEvent`, maar is een eigen ronde. (d) Geen wijziging op `/hulp`:
+> daar staat geen uitleg over dit formulier.
+>
+> **Niet lokaal geverifieerd.** Het formulier is niet in de browser bekeken
+> (geen `.env.local`, dus geen login). Wel schoon: `tsc`, eslint op de
+> gewijzigde bestanden en de nieuwe unit-test.
+
 > **Sprint Quali uit Zwifts segmentresultaten, 2026-09-23 — gebouwd; migratie
 > `0190` nog toepassen.** Commit: de commit die dit blok toevoegt. Verslag:
 > [Sprint Quali uit segmentresultaten](docs/omnium-sprint-quali-segment.md).

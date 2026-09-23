@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_OMNIUM_PARTS, generateEdition } from "@/lib/omnium/edition";
 import type { Discipline } from "@/lib/omnium/scoring";
-import { updateOmniumEdition } from "../../_actions";
+import { lookupZwiftInsiderRoute, updateOmniumEdition } from "../../_actions";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -108,6 +108,8 @@ export function EditionForm({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [routeMisses, setRouteMisses] = useState<Set<Discipline>>(new Set());
+  const routeLookups = useRef(new Map<Discipline, number>());
   const router = useRouter();
 
   const preview = useMemo(
@@ -135,6 +137,39 @@ export function EditionForm({
         part.discipline === discipline ? { ...part, ...changes } : part,
       ),
     );
+  }
+
+  function setMiss(discipline: Discipline, miss: boolean) {
+    setRouteMisses((prev) => {
+      if (prev.has(discipline) === miss) return prev;
+      const next = new Set(prev);
+      if (miss) next.add(discipline);
+      else next.delete(discipline);
+      return next;
+    });
+  }
+
+  /** Vult route, wereld en afstand zodra er een ZwiftInsider-routelink staat. */
+  async function changeRouteUrl(discipline: Discipline, url: string) {
+    patch(discipline, { routeUrl: url });
+    const ticket = (routeLookups.current.get(discipline) ?? 0) + 1;
+    routeLookups.current.set(discipline, ticket);
+    if (!/zwiftinsider\.com\/route\/[^/?#\s]+/i.test(url)) {
+      setMiss(discipline, false);
+      return;
+    }
+    const res = await lookupZwiftInsiderRoute(url);
+    if (routeLookups.current.get(discipline) !== ticket) return;
+    if (!res.ok) {
+      setMiss(discipline, true);
+      return;
+    }
+    setMiss(discipline, false);
+    patch(discipline, {
+      routeName: res.route.name,
+      world: res.route.world,
+      distanceKm: String(res.route.distanceKm),
+    });
   }
 
   function submit() {
@@ -302,6 +337,24 @@ export function EditionForm({
               />
             </div>
             <div>
+              <label className={LABEL} htmlFor={`${part.discipline}-routeurl`}>
+                ZwiftInsider-link
+              </label>
+              <input
+                id={`${part.discipline}-routeurl`}
+                value={part.routeUrl}
+                onChange={(event) =>
+                  void changeRouteUrl(part.discipline, event.target.value)
+                }
+                className={FIELD}
+              />
+              {routeMisses.has(part.discipline) && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Route niet gevonden.
+                </p>
+              )}
+            </div>
+            <div>
               <label className={LABEL} htmlFor={`${part.discipline}-route`}>
                 Route
               </label>
@@ -323,19 +376,6 @@ export function EditionForm({
                 value={part.world}
                 onChange={(event) =>
                   patch(part.discipline, { world: event.target.value })
-                }
-                className={FIELD}
-              />
-            </div>
-            <div>
-              <label className={LABEL} htmlFor={`${part.discipline}-routeurl`}>
-                ZwiftInsider-link
-              </label>
-              <input
-                id={`${part.discipline}-routeurl`}
-                value={part.routeUrl}
-                onChange={(event) =>
-                  patch(part.discipline, { routeUrl: event.target.value })
                 }
                 className={FIELD}
               />
