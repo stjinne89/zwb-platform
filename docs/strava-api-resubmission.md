@@ -233,9 +233,9 @@ slots that no longer serve anyone.
 Since deploying this, connections that are no longer in use are deauthorized and
 removed rather than left in place. No connection has needed releasing yet in the
 period since deployment — every one of our current connections belongs to an
-active member — but the mechanism is in place and runs nightly. We also expect our own count of active connections to match the
-athlete count you see for the application; if it does not, the difference is grants
-we failed to release before this change, and we will keep working it down.
+active member — but the mechanism is in place and runs nightly. The check that it
+works is in section 4: our count of active connections matches the athlete count
+on your dashboard exactly.
 
 **3. Data handling**
 
