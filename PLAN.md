@@ -105,9 +105,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0190`
 > maakt dat nu geen verschil. (b) De limiet uitlezen bij Strava: daar is geen
 > API voor, vandaar de env-variabele. (c) Een eigen `last_seen_at`-kolom die de
 > middleware bijwerkt: dat kost een schrijfactie per bezoek en begint zonder
-> historie, terwijl de sessietabellen die historie al hebben. (d) De
-> privacyverklaring: die noemt deze regel en de nieuwe verwerking ("laatst in de
-> app") nog niet. De tekst ligt bij de eigenaar ter beoordeling.
+> historie, terwijl de sessietabellen die historie al hebben. (d) **Geen nieuwe
+> privacyversie, bewust.** `/privacy` kreeg onder "4. Hoe lang we gegevens bewaren" een punt over
+> de regel en het bijhouden van "laatst in de app", met de tekst die de
+> eigenaar goedkeurde. Er kwam geen nieuwe versie in `src/lib/privacy.ts`, dus
+> niemand tekent opnieuw. Dat wijkt af van de regel "nieuwe verwerking = nieuwe
+> versie". Besluit van de eigenaar (2026-09-23): er wordt niets nieuws
+> verzameld, want de sessiegegevens bestaan al voor het inloggen. Het is
+> hetzelfde patroon als de lengte in het pacingplan (2026-09-21).
 >
 > **Niet lokaal geverifieerd.** `0189` is niet uitgevoerd (geen Docker of
 > Supabase-config). Of `auth.sessions.updated_at` en `auth.refresh_tokens` echt
@@ -150,10 +155,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0190`
 > de actieve volgorde). Het inactiviteitsbeleid (12 maanden geen rit én geen
 > login) zou bij deze tien niemand raken.
 >
-> **Bewust niet gedaan.** (a) De privacyverklaring noemt alleen dat het lid zelf
-> kan ontkoppelen, niet dat de club dat kan: automatisch na inactiviteit of nu
-> handmatig. Die aanvulling ligt bij de eigenaar ter beoordeling en is niet
-> zonder overleg geschreven. (b) Geen strenger automatisch criterium. Bij het
+> **Bewust niet gedaan.** (a) De privacyverklaring noemde alleen dat het lid
+> zelf kan ontkoppelen, niet dat de club dat kan. *Bijgewerkt dezelfde dag:* de
+> aanvulling staat erin, zie de loginregel hierboven. (b) Geen strenger automatisch criterium. Bij het
 > huidige gebruik zou dat niets opleveren.
 >
 > **Niet lokaal geverifieerd.** De knop is niet in de browser doorgeklikt: dat

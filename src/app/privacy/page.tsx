@@ -247,6 +247,13 @@ export default function PrivacyPage() {
             de bijbehorende gesynchroniseerde data wordt dan opgeruimd.
           </li>
           <li>
+            Het aantal Strava-koppelingen is beperkt. Daarom houden we bij wanneer
+            je voor het laatst in de app was. Ben je 90 dagen niet geweest, dan
+            verbreken we je Strava-koppeling en ruimen we de opgehaalde ritten op;
+            twee weken vooraf krijg je een melding. Badges en ZWBlokken blijven
+            staan.
+          </li>
+          <li>
             Je klachtenlogboek blijft staan zolang jij het bewaart. Je kunt losse
             dagen verwijderen en het logboek uitzetten; bij het verwijderen van je
             account wordt alles gewist.
