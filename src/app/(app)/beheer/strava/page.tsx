@@ -6,6 +6,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { lastSignInByProfile } from "@/lib/strava/sweep";
 import { AdminStravaSync, type SyncMember } from "./_components/admin-strava-sync";
 import {
   StravaWebhookPanel,
@@ -17,6 +18,7 @@ export const revalidate = 0;
 
 type ConnectionRow = {
   profile_id: string;
+  connected_at: string | null;
   updated_at: string | null;
   last_synced_at: string | null;
   strava_athlete_id: number | string | null;
@@ -73,11 +75,12 @@ export default async function BeheerStravaPage() {
     { data: webhookEvents },
     { count: pendingEvents },
     { data: subscriptionRow },
+    lastSignIn,
   ] = await Promise.all([
     admin
       .from("strava_connections")
       .select(
-        "profile_id, updated_at, last_synced_at, strava_athlete_id, scope, revoked_at, revoked_reason, inactivity_warned_at",
+        "profile_id, connected_at, updated_at, last_synced_at, strava_athlete_id, scope, revoked_at, revoked_reason, inactivity_warned_at",
       )
       .order("updated_at", { ascending: true }),
     fetchWindowActivities(admin, windowStart.toISOString()),
@@ -99,6 +102,7 @@ export default async function BeheerStravaPage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    lastSignInByProfile(admin),
   ]);
 
   const allConnections = (connections ?? []) as ConnectionRow[];
@@ -130,7 +134,8 @@ export default async function BeheerStravaPage() {
       name: profilesById.get(c.profile_id) || "Onbekend lid",
       activityCount: stats?.count ?? 0,
       lastActivity: stats?.last ?? null,
-      connectedAt: c.last_synced_at ?? c.updated_at,
+      connectedAt: c.connected_at ?? c.updated_at,
+      lastSignIn: lastSignIn?.get(c.profile_id) ?? null,
       missingActivityScope: !hasActivityScope(c.scope),
       // Alleen melden als het leesrecht wél in orde is, zodat deze badge de
       // urgentere "geen activiteiten-recht" niet dubbelop toont.

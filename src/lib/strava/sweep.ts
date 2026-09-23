@@ -303,7 +303,7 @@ export async function applyInactivityPolicy(
  * dagelijks in de app zitten maar toevallig een jaar niet gereden hebben. Bij
  * null slaan we het inactiviteitsbeleid deze run gewoon over.
  */
-async function lastSignInByProfile(
+export async function lastSignInByProfile(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
 ): Promise<Map<string, string | null> | null> {

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Award, Check, RefreshCw } from "lucide-react";
+import { AlertTriangle, Award, Check, RefreshCw, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   adminRecomputeBadgesAndCols,
+  adminRevokeStravaConnection,
   adminSyncStravaForProfile,
   revalidateAfterRecompute,
 } from "../_actions";
@@ -16,6 +17,7 @@ export type SyncMember = {
   activityCount: number;
   lastActivity: string | null;
   connectedAt: string | null;
+  lastSignIn: string | null;
   missingActivityScope: boolean;
   missingWriteScope: boolean;
 };
@@ -47,6 +49,9 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
   const [recomputeStates, setRecomputeStates] = useState<
     Record<string, RowState>
   >({});
+  const [revokeStates, setRevokeStates] = useState<Record<string, RowState>>(
+    {},
+  );
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkRecomputeRunning, setBulkRecomputeRunning] = useState(false);
 
@@ -56,6 +61,38 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
 
   function setRecomputeRow(profileId: string, state: RowState) {
     setRecomputeStates((prev) => ({ ...prev, [profileId]: state }));
+  }
+
+  function setRevokeRow(profileId: string, state: RowState) {
+    setRevokeStates((prev) => ({ ...prev, [profileId]: state }));
+  }
+
+  // Trekt de grant bij Strava in en ruimt de ruwe Strava-data op, zodat de plek
+  // onder de atletenlimiet vrijkomt. Lukt de deauthorisatie niet, dan staat de
+  // koppeling op "wacht op opruiming" en probeert de nachtrun het opnieuw.
+  async function revokeMember(member: SyncMember) {
+    if (
+      !confirm(
+        `Strava-koppeling van ${member.name} opheffen? De toestemming bij Strava wordt ingetrokken en de opgehaalde ritten worden verwijderd. Badges en ZWBlokken blijven.`,
+      )
+    ) {
+      return;
+    }
+    setRevokeRow(member.profileId, { kind: "running", message: "Opheffen…" });
+    const res = await adminRevokeStravaConnection(member.profileId);
+    if (!res.ok) {
+      setRevokeRow(member.profileId, { kind: "error", message: res.error });
+      return;
+    }
+    if (!res.deauthorized) {
+      setRevokeRow(member.profileId, {
+        kind: "error",
+        message: `Strava weigerde de intrekking; de nachtrun probeert het opnieuw.${
+          res.error ? ` (${res.error})` : ""
+        }`,
+      });
+    }
+    router.refresh();
   }
 
   // Badges + cols herberekenen voor één lid (DB-only, geen Strava-calls).
@@ -243,6 +280,10 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
           };
           const running = state.kind === "running";
           const recomputing = recomputeState.kind === "running";
+          const revokeState = revokeStates[member.profileId] ?? {
+            kind: "idle",
+          };
+          const revoking = revokeState.kind === "running";
           const missing = member.activityCount === 0;
           return (
             <li
@@ -287,7 +328,8 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Laatste rit: {formatDate(member.lastActivity)} · gekoppeld{" "}
+                  Laatste rit: {formatDate(member.lastActivity)} · laatste
+                  login: {formatDate(member.lastSignIn)} · gekoppeld{" "}
                   {formatDate(member.connectedAt)}
                 </p>
                 {state.kind !== "idle" && (
@@ -310,6 +352,17 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
                     }`}
                   >
                     Badges/cols: {recomputeState.message}
+                  </p>
+                )}
+                {revokeState.kind !== "idle" && (
+                  <p
+                    className={`mt-1 text-xs ${
+                      revokeState.kind === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {revokeState.message}
                   </p>
                 )}
               </div>
@@ -357,6 +410,18 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
                     className={recomputing ? "animate-pulse" : undefined}
                   />
                   Badges + cols
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={
+                    revoking || running || bulkRunning || bulkRecomputeRunning
+                  }
+                  onClick={() => revokeMember(member)}
+                >
+                  <Unlink data-icon="inline-start" />
+                  {revoking ? "Opheffen…" : "Opheffen"}
                 </Button>
               </div>
             </li>

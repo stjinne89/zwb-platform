@@ -57,6 +57,44 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0189`
 
 ---
 
+> **Strava-koppeling handmatig opheffen, 2026-09-23 — gebouwd, geen migratie.**
+>
+> **Waarom.** Vraag van de eigenaar: kan een beheerder de Strava-koppeling van
+> een zeer inactief lid loskoppelen, zodat een actief lid onder de atletenlimiet
+> kan koppelen? De serveractie `adminRevokeStravaConnection` bestond al sinds de
+> deauthorisatieronde (intrekken bij Strava via `POST /oauth/deauthorize`, dan de
+> ruwe Strava-data wissen), maar geen knop riep hem aan. Nu staat er per lid op
+> `/beheer/strava` een knop "Opheffen" met een bevestigingsvraag. Weigert Strava
+> de intrekking, dan blijft de koppeling op "wacht op opruiming" staan en maakt
+> de nachtrun het af. Dat gedrag zat al in `revokeAndCleanupStravaConnection`.
+> Bij elk lid staat nu ook de laatste login, het tweede signaal van het
+> inactiviteitsbeleid. Die komt uit dezelfde `lastSignInByProfile` die de
+> nachtrun gebruikt (nu geëxporteerd uit `src/lib/strava/sweep.ts`).
+> "Gekoppeld" toont voortaan `connected_at`. Eerder stond daar
+> `last_synced_at`, dus feitelijk de laatste sync.
+>
+> **Gebruik van de gekoppelde leden (gemeten 2026-09-23, alleen lezen,
+> geanonimiseerd).** Er zijn 10 koppelingen, 0 opgeheven, geen enkele
+> gewaarschuwd, en alle tien hebben het activiteitenrecht. Alle tien reden in de
+> afgelopen twee dagen. Per lid 20–54 ritten in 30 dagen en 169–619 in een jaar,
+> overwegend Zwift (`VirtualRide`). Laatste login varieert van vandaag tot 102
+> dagen geleden. Zeven van de tien hebben ook intervals.icu gekoppeld. Dat
+> vervangt Strava niet: intervals-ritten voeden alleen de trainingsmodule, niet
+> stats, badges, ZWBlokken of cols. **Conclusie:** er is nu geen inactieve
+> koppeling om op te heffen. De limiet wordt gevuld door de meest actieve
+> rijders, dus ruimte komt alleen via een hogere limiet bij Strava (punt 2 van
+> de actieve volgorde). Het inactiviteitsbeleid (12 maanden geen rit én geen
+> login) zou bij deze tien niemand raken.
+>
+> **Bewust niet gedaan.** (a) De privacyverklaring noemt alleen dat het lid zelf
+> kan ontkoppelen, niet dat de club dat kan: automatisch na inactiviteit of nu
+> handmatig. Die aanvulling ligt bij de eigenaar ter beoordeling en is niet
+> zonder overleg geschreven. (b) Geen strenger automatisch criterium. Bij het
+> huidige gebruik zou dat niets opleveren.
+>
+> **Niet lokaal geverifieerd.** De knop is niet in de browser doorgeklikt: dat
+> vraagt een beheerderslogin op productiedata. `tsc` en eslint zijn schoon.
+
 > **Teamuitslag op de raceweek, 2026-09-22 — gebouwd; migratie `0188` nog toepassen.**
 >
 > **Waarom.** Vraag van de eigenaar: op de raceweekpagina bij elk team zien hoe
