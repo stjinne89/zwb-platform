@@ -30,14 +30,17 @@ lijkt het alsof we juist verder van de cap af zijn geraakt.
       webhookverwerking elke 5 min, opruiming dagelijks 05:40.
 - [x] Minstens **7 dagen** laten draaien — webhooks live sinds 5 september, de
       volledige keten sinds 11 september.
-- [ ] Cijfers ophalen met de queries onder "De cijfers ophalen" hieronder en
-      invullen in de notitie:
+- [x] Cijfers opgehaald en ingevuld (2026-09-23). Samenvatting:
+      10 actieve koppelingen, 0 wachtend op opruiming, 180 webhook-events in 7
+      dagen waarvan 173 ritdetail-calls, 0 onverwerkte events. Strava's eigen
+      dashboard: **10 van 10 atleten** — de cap is vol.
+- [ ] Oude bulletpunten, alleen nog relevant bij een volgende meetronde:
   - aantal gekoppelde atleten (`/beheer/strava` → *Gekoppeld*) tegenover de cap;
   - aantal opgeruimde koppelingen sinds de uitrol;
   - dagelijks callvolume vóór en na (`strava_api_usage.daily_used`, en de
     schatting uit `docs/runbook.md` §7 voor de oude situatie);
   - aantal ontvangen webhook-events (`strava_webhook_events`).
-- [ ] Controleren dat de health-check-bron `strava_webhook` op ok staat.
+- [x] Health-check-bron `strava_webhook` staat op ok (0 onverwerkte events).
 - [ ] Indienen via het Strava-formulier. **Niet** reageren op de afwijzingsmail:
       die reactie wordt volgens Strava niet als herindiening behandeld.
 
@@ -185,6 +188,13 @@ The "before" figures are what the previous configuration was set up to do; we di
 not instrument request volume at the time, which is part of why we are confident
 about the change but were not about the baseline.
 
+One caveat so the numbers you may see on your side make sense: we are separately
+running a **one-off historical backfill** of segment data for our existing
+members, which currently accounts for the large majority of our daily requests.
+That is deliberate, finite work, not steady-state traffic. The recurring cost of
+the integration is the 25 activity detail requests per day shown above, plus about
+one activity list request per athlete per day.
+
 We also added an application-wide rate limit budget. We read the
 `X-RateLimit-Usage` and `X-RateLimit-Limit` headers on every response and persist
 the latest observation, so that our scheduled jobs — which run as stateless
@@ -236,11 +246,23 @@ Strava profile image reference. Aggregate club statistics that members have earn
 
 **4. Current capacity**
 
-We currently have **10** connected athletes against a cap of `<cap>`.
-Members who cannot connect because of the cap upload a manual activity export
-instead. That works, but it is a poor substitute: it is a one-off snapshot the
-member has to repeat by hand, and it carries none of the live updates, segment
-efforts or deletions that the API gives us.
+Your own dashboard shows **10 of 10 athletes connected** — the application is at
+its cap, which we understand to be the precondition for this request.
+
+Two things about that number are worth pointing out.
+
+First, our own database counts exactly **10 active connections** as well. That
+match is the practical proof of section 2: we hold no grants that we have lost
+track of. Before this work we had no way to make that claim, because a member who
+disconnected in our app left a live grant behind on your side that we could no
+longer see or release.
+
+Second, the cap is now the binding constraint on the club. We are a cycling club
+of roughly fifty members and only ten can connect. The rest upload a manual
+activity export instead. That works, but it is a poor substitute: it is a one-off
+snapshot the member has to repeat by hand, and it carries none of the live
+updates, segment efforts or deletions that the API gives us — nor can we honour a
+deletion on your side for data that arrived by file.
 
 We confirm that our application complies with the Strava API Agreement and the
 Strava API Policy, including the brand guidelines (Powered by Strava attribution,

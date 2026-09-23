@@ -7247,28 +7247,20 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   planning nooit gedraaid), en de reconcile deed per lid tot honderd
   segment-calls. Beide inmiddels verholpen.
 
-- **Onverklaard hoog Strava-dagverbruik** (2026-09-23). Na een week meten staat
-  `strava_api_usage.daily_used` op **1115 van 2000**, gemeten om 13:01 UTC. De
-  webhooks verklaren daar maar een fractie van: 173 ritdetail-calls over zeven
-  dagen, dus zo'n 25 per dag, en de reconcile kost er met tien leden hooguit
-  enkele tientallen. Er gaat dus grofweg duizend keer per dag iets de deur uit
-  dat niet in de ontwerpbegroting zit.
+- **Ledenknop kan 150 Strava-calls kosten** (2026-09-23). Niet urgent, wel goed om
+  te weten. `recomputeMyMilestoneBadges` in
+  `src/app/(app)/achievements/_actions.ts` draait `syncColSegmentTimesForUser`
+  (40 detailcalls) én `syncZwbSegmentsForUser` (40 detailcalls plus
+  `applyAuthoritativeSegmentPrs`, tot 100 `GET /segments/{id}`). Eén klik kost dus
+  richting 150 calls, ruim 7% van de daglimiet, zonder throttle — en het is een
+  knop die elk lid kan indrukken.
 
-  Sterkste verdachte is `recomputeMyMilestoneBadges` in
-  `src/app/(app)/achievements/_actions.ts`: die knop draait
-  `syncColSegmentTimesForUser` (40 detailcalls) én `syncZwbSegmentsForUser`
-  (40 detailcalls plus `applyAuthoritativeSegmentPrs`, tot 100 `GET /segments/{id}`,
-  plus `resolveCuratedSegments`). Eén klik kost dus richting 150 calls, ruim 7% van
-  de daglimiet, zonder enige throttle — en het is een ledenknop.
-
-  Diagnosequeries 3 en 4 in `docs/strava-api-resubmission.md` wijzen het uit:
-  staan er vandaag veel rijen in `profile_completed_segments` met een verse
-  `updated_at`, dan is het die sweep. Zit het bij één profiel, dan is het de knop
-  en niet een cron.
-
-  **De herindiening bij Strava wacht hierop.** Vertellen dat we ons callvolume
-  hebben teruggebracht terwijl we op 56% van de daglimiet zitten, is precies de
-  claim waarop een aanvraag stukloopt.
+  Kwam boven bij de meetweek: `daily_used` stond op 1115 van 2000. Dat bleek géén
+  storing maar bewust werk van de eigenaar, die de segmentgeschiedenis aan het
+  bijhalen was. Zodra die inhaalslag klaar is hoort het dagverbruik terug te
+  zakken naar de ordegrootte die de webhooks laten zien (~25 ritdetails per dag).
+  De knop zelf is pas een probleem als meerdere leden hem vaak gebruiken; een
+  throttle van bijvoorbeeld 1x per dag per lid zou dat afdekken.
 - **Strava-herindiening klaar op de cijfers na** (2026-09-23). De notitie in
   `docs/strava-api-resubmission.md` is bijgewerkt naar de architectuur zoals die
   nu draait, en er staan twee SQL-queries in die alle meetbare getallen ophalen.
