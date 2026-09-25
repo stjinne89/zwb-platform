@@ -38,6 +38,9 @@ gaat stabiliteit voor nieuwe features.
    deploy van de Sprint Quali uit Zwift. Zonder de kolom werken bij de Sprint
    Quali "leagues instellen" en "Ophalen uit Zwift" niet (foutmelding); plakken
    blijft werken, en de andere onderdelen lezen de kolom niet.
+   **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
+   op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
+   Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
 3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -297,15 +300,17 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 >
 > **Wanneer wel en niet.** Invriezen pas 90 minuten na de start (een race duurt
 > ongeveer drie kwartier), alleen bij een definitieve Zwift-uitslag, en alleen
-> als minstens 80% van de verwachte doorkomsten terugkomt. Dat laatste is de
+> als minstens 80% van de verwachte doorkomsten terugkomt. *(Aangescherpt op
+> 2026-09-25, zie "ZRL-uitslag zeker bevriezen" hieronder: nu 90% per passage en
+> 95% totaal, en alleen als Zwift alles zonder fout teruggaf.)* Dat laatste is de
 > belangrijkste: zonder passages telt alleen FIN mee en zou er een keurige maar
 > verkeerde stand staan. Mislukt het wegschrijven, dan blijft de plaats leeg en
 > probeert de volgende bezoeker het opnieuw.
 >
 > **Gevolg voor het vullen.** Een raceweek krijgt zijn plaatsen zodra iemand de
-> live stand van dat team opent ná de race. Wie dat niet doet, ziet niets. Als
-> dat in de praktijk tegenvalt, is de volgende stap een cron of een knop in
-> beheer; bewust nog niet gebouwd.
+> live stand van dat team opent ná de race. Wie dat niet doet, ziet niets.
+> *(Achterhaald sinds 2026-09-25: er is nu een cron en een knop, zie "ZRL-uitslag
+> zeker bevriezen" hieronder.)*
 >
 > **Ronde 1, week 1 als proef** (nagerekend langs dezelfde weg als `loadZrlLive`,
 > dus mét de teambijstelling van de ploegleider en de opstelling): Bdev 1e van 8,
@@ -507,6 +512,55 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 > hoofdletters en dan de kaalste (`pickTeamLabel` in
 > `src/lib/zrl-live/team-tags.ts`).
 >
+> **ZRL-uitslag zeker bevriezen, 2026-09-25 — gebouwd, niet op productie gezien.**
+>
+> **Waarom.** De eigenaar wil de stand 90 minuten na de start bevriezen, maar dan
+> wel zeker weten dat alle Zwift-data binnen is; en een knop om dat eerder te
+> doen zodra de race voorbij is. Bij de WTRL-toets bleek dat "zeker" nog niet
+> klopte: een mislukt segment of een mislukte Zwift-uitslag ging stil door.
+>
+> **Gaten die dicht zijn.**
+> - Mislukte één van de segmentaanroepen, dan telde de stand zonder die punten
+>   en ging hij over de oude 80%-grens heen (6 van 7 passages is 86%). Nu is
+>   `view.complete` onwaar en wordt er niet bevroren.
+> - `fetchSubgroupResults(...).catch(() => [])` maakte van een fout "nog niemand
+>   binnen". Nu `resultsOk`; zonder uitslag is de stand niet definitief.
+> - Het venster liep van de start tot nu: dagen later reden leden weer over
+>   Montmartre, en die passages kwamen mee (ruim 22.000 per berekening, gemeten
+>   2026-09-22). Twee uur na de laatste subgroepstart is het venster nu vast
+>   (`RACE_WINDOW_MS`), dus een latere berekening geeft dezelfde uitslag.
+> - "Definitief" keek naar álle passages, ook uitrijden na de finish. Nu alleen
+>   naar passages die meetellen.
+> - Dekking per passage (90% van de finishers) naast het totaal (95%). Een lege
+>   passage houdt het bevriezen tegen, met de naam van die passage als reden.
+>
+> **Wanneer er bevroren wordt.**
+> - **Cron** `POST /api/zrl/freeze` (cron-job.org, elke 15 min, `ZRL_FREEZE_SECRET`):
+>   ZRL-teamevents vanaf 90 min tot een dag na de start, nieuwste eerst, één
+>   tegelijk binnen 18 s. Het antwoord noemt per event "bevroren" of de reden.
+> - **Knop "Uitslag vastzetten"** op de live stand, voor wie
+>   `teams.manage_results` heeft: haalt vers bij Zwift op, neemt de Zwift-uitslag
+>   direct als definitief en slaat de 90 minuten over. De controle op complete
+>   data blijft. Wie te vroeg klikt (renners nog onderweg), wordt door de cron na
+>   de 90 minuten rechtgezet: een uitslag van vóór de 90 minuten telt voor de cron
+>   niet als klaar.
+> - Een bezoek aan de live stand na 90 minuten bevriest zoals voorheen.
+>
+> **Bewust niet.** Geen extra kolom voor "handmatig" of "stabiel": het vaste
+> venster maakt twee berekeningen na de race gelijk, en het tijdstip van
+> `computed_at` zegt al of het de knop was. Na een dag stopt de cron met proberen,
+> omdat de Zwift-data dan niet meer verandert en elke poging alleen aanroepen
+> kost; de knop blijft werken. Geen uitleg in het scherm (AGENTS.md).
+>
+> **Getest.** `tsc`, ESLint en de unit-suite (`tests/unit/zrl-team-result.test.ts`
+> met een lege passage en onvolledige Zwift-data). De hele suite is groen, behalve
+> `tests/unit/omnium-live.test.ts`, dat een `.env.local` nodig heeft (die hier
+> ontbreekt, en die test staat los van deze wijziging). **Niet** gedraaid: de cron,
+> de knop en het vaste Zwift-venster tegen de echte Zwift, want hier zijn geen
+> inloggegevens. Of Zwift `to` in `/segment-results` respecteert, is dus nog niet
+> gemeten. Controle: na de race van 29 september op de live stand van één team
+> "Uitslag vastzetten" en in de cron-historie kijken.
+>
 > **Toets tegen de WTRL-uitslag, race 1 (2026-09-25) — geen codewijziging.**
 > Vraag van de eigenaar: klopt onze telling met WTRL, en zo niet, waar zit het?
 > Alle zeven ZWB-divisies van race 1 vergeleken, 308 renners per onderdeel: onze
@@ -537,8 +591,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 >   één voor één met 12 s ertussen (B1, Zwiftladies C). (b) De divisies in
 >   `/beheer/wtrl-teams` klopten niet voor B1 (staat B2, is Aqua B1) en B2 (staat
 >   B5, is Aqua B4); de live stand kiest de Zwift-groep los daarvan en klopt wel.
->   (c) Geen ronde in de sleutel van de teambijstelling (zie hierboven): voorstel
->   ligt bij de eigenaar.
+>   (c) Geen ronde in de sleutel van de teambijstelling (zie hierboven). Bewust
+>   zo gelaten: een renner kan niet van team wisselen, alleen andere renners
+>   kunnen worden ingezet (eigenaar, 2026-09-25). Dat zien we in de praktijk.
 
 ---
 

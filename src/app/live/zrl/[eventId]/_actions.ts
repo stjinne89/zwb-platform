@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -36,4 +37,22 @@ export async function saveZrlTeamAssignment(formData: FormData) {
     await admin.from("zrl_team_assignments").delete().eq("league_key", leagueKey).eq("zwift_id", zwiftId);
   }
   revalidatePath(`/live/zrl/${eventId}`);
+}
+
+/**
+ * "Uitslag vastzetten": de race is voorbij, haal de uitslag vers bij Zwift en
+ * bevries hem nu in plaats van na 90 minuten. Alleen als alle Zwift-data binnen
+ * is; anders komt de reden terug op de pagina. De cron rekent na 90 minuten
+ * nog één keer na, dus te vroeg klikken wordt vanzelf rechtgezet.
+ */
+export async function freezeZrlResultNow(formData: FormData) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user || !access.has("teams.manage_results")) return;
+
+  const eventId = String(formData.get("event_id") ?? "");
+  const outcome = await loadZrlLive(eventId, { raceOver: true });
+  const status = outcome.status === "ok" ? (outcome.freeze ?? "onbekend") : "Zwift niet bereikbaar";
+  revalidatePath(`/live/zrl/${eventId}`);
+  redirect(`/live/zrl/${eventId}?vastzetten=${encodeURIComponent(status)}`);
 }

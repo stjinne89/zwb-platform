@@ -36,6 +36,7 @@ const PUBLIC_PATHS = [
   "/api/health/integrations",
   "/api/zwblokken/backfill",
   "/api/zwift/events/sync",
+  "/api/zrl/freeze",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

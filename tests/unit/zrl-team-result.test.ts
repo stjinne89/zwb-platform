@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { teamResultOf } from "@/lib/zrl-live/team-result";
+import { checkTeamResult, teamResultOf } from "@/lib/zrl-live/team-result";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";
 
 const LIJNEN = ["Lutece Sprint", "Monceau Sprint", "Église Sprint"];
@@ -9,7 +9,16 @@ function view({
   final = true,
   ownTeam = "zwb cycling b1" as string | null,
   crossingsPerPass = 4,
-}: { final?: boolean; ownTeam?: string | null; crossingsPerPass?: number } = {}): ZrlLiveView {
+  emptyPass = -1,
+  complete = true,
+}: {
+  final?: boolean;
+  ownTeam?: string | null;
+  crossingsPerPass?: number;
+  /** Index van een passage waar Zwift niemand teruggaf (een haperend segment). */
+  emptyPass?: number;
+  complete?: boolean;
+} = {}): ZrlLiveView {
   const riders = [1, 2, 3, 4].map((athleteId) => ({
     athleteId,
     name: `Renner ${athleteId}`,
@@ -26,7 +35,7 @@ function view({
     segmentId: String(index),
     name,
     lap: 1,
-    crossings: riders.slice(0, crossingsPerPass).map((rider, i) => ({
+    crossings: riders.slice(0, index === emptyPass ? 0 : crossingsPerPass).map((rider, i) => ({
       athleteId: rider.athleteId,
       ts: 1000 + i,
       elapsed: 20 + i,
@@ -54,6 +63,7 @@ function view({
         { team: "derde ploeg", total: 10, riders: 1, rank: 3 },
       ],
     },
+    complete,
   };
 }
 
@@ -76,5 +86,21 @@ describe("teamResultOf", () => {
   it("zwijgt als ons team niet in de stand staat", () => {
     expect(teamResultOf(view({ ownTeam: null }))).toBeNull();
     expect(teamResultOf(view({ ownTeam: "ploeg zonder punten" }))).toBeNull();
+  });
+
+  it("zwijgt als Zwift een segment of de uitslag niet teruggaf", () => {
+    expect(checkTeamResult(view({ complete: false }))).toEqual({
+      ok: false,
+      reason: "Zwift gaf niet alle gegevens terug",
+    });
+  });
+
+  it("zwijgt als één passage leeg is, ook als het totaal nog ruim lijkt", () => {
+    // Twee van de drie passages volledig is 67%: vroeger bij 80% nog net niet,
+    // maar bij een route van zeven passages was één lege passage 86% en ging hij erdoor.
+    expect(checkTeamResult(view({ emptyPass: 1 }))).toEqual({
+      ok: false,
+      reason: "Monceau Sprint: 0 van 4 finishers",
+    });
   });
 });

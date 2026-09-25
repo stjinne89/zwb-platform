@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
-import { saveZrlTeamAssignment } from "./_actions";
+import { freezeZrlResultNow, saveZrlTeamAssignment } from "./_actions";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -19,6 +19,8 @@ type PageProps = {
 };
 
 export const dynamic = "force-dynamic";
+// "Uitslag vastzetten" haalt de race vers bij Zwift op: ongeveer acht seconden.
+export const maxDuration = 30;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { eventId } = await params;
@@ -85,6 +87,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
   ]);
   const canAssign = access.has("teams.manage_results");
   const editing = canAssign && query.bewerk === "1";
+  const frozenStatus = typeof query.vastzetten === "string" ? query.vastzetten : null;
   if (outcome.status === "not-found") notFound();
 
   if (outcome.status !== "ok") {
@@ -118,6 +121,19 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
       <div className="space-y-2">
         <Header title={view.event.title} />
         <Status view={view} />
+        {canAssign && !editing && view.fetchedAt >= view.startAt && (
+          <form action={freezeZrlResultNow} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="event_id" value={view.event.id} />
+            <Button type="submit" variant="outline" size="sm">
+              Uitslag vastzetten
+            </Button>
+            {frozenStatus && (
+              <span className="text-sm text-muted-foreground">
+                {frozenStatus === "bevroren" ? "Vastgezet." : `Niet vastgezet: ${frozenStatus}.`}
+              </span>
+            )}
+          </form>
+        )}
       </div>
 
       {editing && (

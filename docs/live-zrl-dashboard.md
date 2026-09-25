@@ -95,7 +95,9 @@ puntentelling wel (met de data van de proefmeting).
 Uitgangspunt: niets opslaan tijdens de race behalve de teambijstelling. Het
 dashboard rekent bij elke aanvraag uit Zwift-data die 15 s gecachet is
 (`unstable_cache`, het patroon van `src/lib/live/external-timing.ts`). Zo is de
-belasting op Zwift gelijk bij één of duizend kijkers, en er is geen cron nodig.
+belasting op Zwift gelijk bij één of duizend kijkers, en er is geen cron nodig
+voor de live stand. (Voor het bevriezen van de uitslag na de race is er sinds
+2026-09-25 wel een, zie [Uitslag bevriezen](#uitslag-bevriezen).)
 
 ### Stap 0 — bewijzen dat de server het mag (klein, eerst)
 
@@ -238,14 +240,39 @@ B2, C en Bdev overeen. Nieuwe renners worden na elke race opnieuw bijgesteld.
 
 Verder gezien:
 
-- Komt de Zwift-uitslag niet binnen, dan slikt de snapshot de fout
-  (`fetchSubgroupResults(...).catch(() => [])`) en toont de pagina FIN = 0 en
+- Komt de Zwift-uitslag niet binnen, dan slikte de snapshot de fout
+  (`fetchSubgroupResults(...).catch(() => [])`) en toonde de pagina FIN = 0 en
   "Voorlopig". Dat gebeurde met zeven pagina's tegelijk, maar ook één voor één
-  met 12 s ertussen.
+  met 12 s ertussen. Sinds dezelfde dag telt zo'n stand niet meer als
+  definitief en wordt hij niet bevroren (zie hieronder); de pagina toont hem
+  nog wel als voorlopig.
 - De divisies in `/beheer/wtrl-teams` klopten niet voor B1 en B2. De live stand
   kiest de Zwift-groep los daarvan en zat wel goed.
 - WTRL's rekenbasis voor FAL is een vast aantal renners per divisie, ook als op
   een latere passage minder renners doorkomen. Dat is hetzelfde als bij ons.
+
+## Uitslag bevriezen
+
+De raceweekpagina toont de plaats van ons team uit `zrl_team_results` (migr.
+0188). Sinds 2026-09-25 wordt die alleen weggeschreven als alle Zwift-data
+binnen is (`checkTeamResult` in `src/lib/zrl-live/team-result.ts`):
+
+- de Zwift-uitslag en álle segmenten kwamen zonder fout terug;
+- de uitslag is definitief: 15 minuten geen nieuwe passage of finish die
+  meetelt, of een ploegleider zegt dat de race voorbij is;
+- op elke passage ziet Zwift minstens 90% van de finishers, en over de hele
+  race 95%. Op 22 september was dat 559 van 560; bij WTRL zelf ontbrak hooguit
+  één renner per passage.
+
+Na twee uur na de laatste subgroepstart vraagt de snapshot een vast venster op
+(`to`), zodat een latere berekening dezelfde uitslag geeft.
+
+Momenten: de cron `/api/zrl/freeze` (elke 15 min, van 90 minuten tot een dag na
+de start), een bezoek aan de live stand na 90 minuten, of eerder de knop
+"Uitslag vastzetten" (recht `teams.manage_results`). Na zo'n vroege klik rekent
+de cron na de 90 minuten nog één keer na.
+
+Nog niet tegen Zwift gemeten: of `/segment-results` de `to`-grens respecteert.
 
 ## Hergebruik: Sprint Quali van het Omnium
 
