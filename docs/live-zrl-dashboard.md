@@ -145,8 +145,9 @@ voor één segment in het laatste uur en toont het aantal passages.
   van derden). Uitkomst: B 34 starters, passages 34/34/34/34/34/33/34, één renner
   zonder finish; C 47 starters, op alle zeven passages 47. Teamtop in C: ZIRT
   1310 (6 renners). In B stonden "Bulldozers" en "Bulldozer" als twee teams —
-  precies waarvoor de bijstelling is. Niet vergeleken met de WTRL-uitslag: die
-  stond op het moment van schrijven nog niet online.
+  precies waarvoor de bijstelling is. Op het moment van schrijven stond de
+  WTRL-uitslag nog niet online; de vergelijking volgde op 2026-09-25, zie
+  [Toets tegen de WTRL-uitslag](#toets-tegen-de-wtrl-uitslag-race-1).
 
 ### Stap 2 — data ophalen en snapshot
 
@@ -187,6 +188,10 @@ uitleg in het scherm (zie AGENTS.md). Uitleg op `/hulp` is nog niet geschreven.
 
 Migratie `0187_zrl_team_assignments.sql`: per league-sleutel (seizoen, league,
 divisie, Zwift-subgroep, uit de eventnaam) de toewijzing Zwift-ID → teamnaam.
+Geen ronde in de sleutel: een bijstelling blijft gelden in een volgende ronde
+als het team in dezelfde league en divisie blijft. Gecontroleerd op de echte
+Zwift-naam "Zwift Racing League 26/27: Fresh & Fast: Open Dev Aqua League
+Division 3 - Race 1": die geeft voor race 1 t/m 6 dezelfde sleutel.
 Volgorde: eigen renners (uit `wtrl_team_riders` en teamleden met Zwift-ID) →
 bijstelling → tag in de naam. Wie `teams.manage_results` heeft (captains, bestuur)
 ziet "Teams bijstellen" op de pagina; de server leidt de sleutel zelf af uit het
@@ -202,6 +207,45 @@ event, niet uit het formulier.
   door de server. Blijft de terugvaloptie als Zwift de server weigert.
 - **Geen opslag van passages** tijdens de race: onnodig zolang de cache volstaat.
   Pas nodig als we achteraf willen terugkijken, en dat is niet gevraagd.
+
+## Toets tegen de WTRL-uitslag, race 1
+
+2026-09-25, op verzoek van de eigenaar: alle zeven ZWB-divisies van ronde 1,
+race 1 (Montmartre Mixer, puntenrace), 308 renners. Onze live stand is per renner
+en per onderdeel naast de WTRL-uitslag gelegd. WTRL is daarvoor eenmalig
+uitgelezen in de ingelogde browser van de eigenaar, alleen ter controle; het
+platform haalt WTRL niet op. De ruwe cijfers staan niet in de repo, want ze
+bevatten namen van derden.
+
+**Uitkomst: de telregels kloppen.** FTS was voor alle renners gelijk (top 10 per
+uniek segment over de hele race, zoals wij rekenen). FAL, FIN en podium kloppen
+ook zodra je de vier oorzaken hieronder meetelt: per divisie telt het verschil
+daarmee precies op. In C en Zwiftladies B was alles gelijk, op de passage na de
+finish na.
+
+| Oorzaak | Gezien | Besluit eigenaar |
+| --- | --- | --- |
+| WTRL telt een passage ná de finish mee: wie doorrijdt en Lutece Sprint opnieuw passeert, krijgt een extra FAL-passage ("L2") met punten vanaf het volle aantal renners. | 30 renners, 6 divisies | WTRL-fout, niet nabootsen. |
+| Renner in de Zwift-groep die niet in de WTRL-uitslag staat (beide DNF). Bij ons telt hij mee in het aantal starters: +1 FIN voor iedereen, +1 FAL per passage voor wie vóór hem reed. | 2 renners | Niet uit te sluiten; foutmarge. |
+| Finisher met FIN maar 0 FAL en 0 FTS bij WTRL, terwijl Zwift zijn passages geeft. WTRL rekent FAL dan vanaf één renner minder. | 2 renners | Lijkt een WTRL-fout, niet nabootsen. |
+| Sancties: DQ (WTRL zet de renner achteraan in FIN, wie erachter finishte schuift op) of puntenaftrek, beide om ontbrekende hartslag. | 2 renners | Komen achteraf; niet in een livescore. |
+
+**Wel het grootste echte verschil: de teamindeling.** Renners zonder of met een
+afwijkende tag zetten ons team in B2 op plaats 4 in plaats van 7, en in C op 8
+in plaats van 9. Diezelfde dag zijn 17 renners in vijf divisies via "Teams
+bijstellen" ingedeeld naar de WTRL-uitslag. Daarna kwamen de teamplaatsen in
+B2, C en Bdev overeen. Nieuwe renners worden na elke race opnieuw bijgesteld.
+
+Verder gezien:
+
+- Komt de Zwift-uitslag niet binnen, dan slikt de snapshot de fout
+  (`fetchSubgroupResults(...).catch(() => [])`) en toont de pagina FIN = 0 en
+  "Voorlopig". Dat gebeurde met zeven pagina's tegelijk, maar ook één voor één
+  met 12 s ertussen.
+- De divisies in `/beheer/wtrl-teams` klopten niet voor B1 en B2. De live stand
+  kiest de Zwift-groep los daarvan en zat wel goed.
+- WTRL's rekenbasis voor FAL is een vast aantal renners per divisie, ook als op
+  een latere passage minder renners doorkomen. Dat is hetzelfde als bij ons.
 
 ## Hergebruik: Sprint Quali van het Omnium
 

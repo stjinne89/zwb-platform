@@ -433,7 +433,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 >   routes), eenmalig uit Sauce geëxporteerd; `zwift-data` heeft die ID's niet.
 > - "Test segmentresultaten" op `/beheer/event-scan`.
 > - Teambijstelling ("Teams bijstellen", recht `teams.manage_results`), per
->   seizoen + league + divisie + subgroep, dus één keer per ronde.
+>   seizoen + league + divisie + subgroep. Er zit geen ronde in de sleutel: een
+>   bijstelling geldt voor alle races van die divisie, ook in een volgende ronde
+>   als het team in dezelfde league en divisie blijft (zie de WTRL-toets hieronder).
 >
 > **Bewust niet gebouwd.** Geen live kaart of posities van het veld: een camera
 > (Sauce, Fan View) ziet alleen renners in de buurt, en Fan View viel na 10–30 s
@@ -446,8 +448,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 > de testknop zijn nooit tegen Zwift of Supabase gedraaid, de pagina is niet in de
 > browser bekeken. Wel
 > gedraaid: de puntentelling op de volledige log van de proefmeting, unit-tests
-> (15), `tsc` en ESLint. Niet vergeleken met de WTRL-uitslag (nog niet online).
-> Uitleg op `/hulp` is nog niet geschreven.
+> (15), `tsc` en ESLint. Op 2026-09-25 wel vergeleken met de WTRL-uitslag van
+> race 1, zie de toets hieronder. Uitleg op `/hulp` is nog niet geschreven.
 >
 > **Correctie na de eerste klik op productie.** "Test segmentresultaten" gaf
 > status 400 zonder body: Zwift weigert een `from`-datum met milliseconden. Bij
@@ -504,6 +506,39 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 > "Foudre"). Nu wint de vaakst getypte spelling, bij gelijkspel een met
 > hoofdletters en dan de kaalste (`pickTeamLabel` in
 > `src/lib/zrl-live/team-tags.ts`).
+>
+> **Toets tegen de WTRL-uitslag, race 1 (2026-09-25) — geen codewijziging.**
+> Vraag van de eigenaar: klopt onze telling met WTRL, en zo niet, waar zit het?
+> Alle zeven ZWB-divisies van race 1 vergeleken, 308 renners per onderdeel: onze
+> live stand naast de WTRL-uitslag en -segmentuitslag, uitgelezen via de
+> ingelogde Chrome van de eigenaar (alleen ter controle; het platform haalt WTRL
+> nog steeds niet op). Details en werkwijze:
+> [live-zrl-dashboard](docs/live-zrl-dashboard.md#toets-tegen-de-wtrl-uitslag-race-1).
+> - **De telregels kloppen.** FTS is voor alle 308 renners gelijk; FAL, FIN en
+>   podium ook, zodra je de vier oorzaken hieronder meetelt. Per divisie telt het
+>   verschil daarmee precies op.
+> - **Bewust niet nagebootst (besluit eigenaar):** (1) WTRL telt een
+>   segmentpassage ná de finish mee als extra FAL-passage (Lutece Sprint "L2",
+>   30 renners in 6 divisies) — een WTRL-fout. (2) Een renner die Zwift in de
+>   groep ziet maar die niet in de WTRL-uitslag staat (2×): kunnen we niet
+>   uitsluiten, hoort bij de foutmarge. (3) Een finisher zonder segmentpunten bij
+>   WTRL, terwijl Zwift zijn passages wel geeft (2×) — lijkt een WTRL-fout.
+>   (4) Sancties (DQ of puntenaftrek, bijv. hartslag ontbreekt) komen achteraf en
+>   passen niet in een livescore.
+> - **Grootste echte verschil: teamindeling.** In B2 en C stond ons team door
+>   ontbrekende of afwijkende tags op een andere plaats dan bij WTRL (4e i.p.v.
+>   7e, 8e i.p.v. 9e). 17 renners in vijf divisies via "Teams bijstellen"
+>   ingedeeld naar de WTRL-uitslag; daarna komen de teamplaatsen in B2, C en Bdev
+>   overeen. Nieuwe renners worden na elke race opnieuw bijgesteld (keuze
+>   eigenaar).
+> - **Gezien, niet opgelost:** (a) haalt de snapshot de Zwift-uitslag niet op,
+>   dan slikt `fetchSubgroupResults(...).catch(() => [])` de fout en toont de
+>   pagina FIN = 0 en "Voorlopig". Gezien bij zeven pagina's tegelijk, maar ook
+>   één voor één met 12 s ertussen (B1, Zwiftladies C). (b) De divisies in
+>   `/beheer/wtrl-teams` klopten niet voor B1 (staat B2, is Aqua B1) en B2 (staat
+>   B5, is Aqua B4); de live stand kiest de Zwift-groep los daarvan en klopt wel.
+>   (c) Geen ronde in de sleutel van de teambijstelling (zie hierboven): voorstel
+>   ligt bij de eigenaar.
 
 ---
 
