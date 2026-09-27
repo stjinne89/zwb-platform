@@ -25,8 +25,14 @@ const RANGES: Array<{ key: RangeKey; label: string; short: string; days: number 
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Verticale ruimte tussen het load-vlak en het form-vlak. */
-const PANEL_GAP = 14;
+/** Verticale ruimte tussen de vlakken. */
+const PANEL_GAP = 22;
+/**
+ * Hoogteverdeling van het plotvlak: CTL/ATL, dan Load, dan Form. Load krijgt
+ * een eigen vlak met eigen schaal; op één as met CTL/ATL drukte de zwaarste
+ * TSS-dag de lijnen plat.
+ */
+const PANEL_SHARE = { lines: 0.5, load: 0.2, form: 0.3 };
 
 function finite(value: number | null | undefined) {
   const n = Number(value);
@@ -136,9 +142,10 @@ export function TrainingLoadMetrics({
   const hasChart = visible.length >= 2;
   const hoverPoint = hoverIndex == null ? null : visible[hoverIndex] ?? null;
 
-  const topMax = positiveMax(
-    visible.flatMap((point) => [point.load, point.ctl, point.atl]),
-    100,
+  const loadMax = positiveMax(
+    visible.map((point) => point.load),
+    50,
+    50,
   );
   const tsbMax = absMax(
     visible.map((point) => point.tsb),
@@ -182,19 +189,31 @@ export function TrainingLoadMetrics({
               <ResponsiveChart
                 ariaLabel="Grafiek met trainingsbelasting, CTL, ATL en Form"
                 onPointerRatio={onPointerRatio}
-                heightOptions={{ compact: 0.9, comfortable: 0.42, min: 240, max: 420 }}
+                heightOptions={{ compact: 1.05, comfortable: 0.5, min: 280, max: 480 }}
               >
                 {({ width, height, metrics, plotWidth, plotHeight }) => {
                   const { margin, axisFontSize } = metrics;
-                  const topH = Math.round((plotHeight - PANEL_GAP) * 0.64);
-                  const formH = plotHeight - PANEL_GAP - topH;
+                  const panelsH = plotHeight - 2 * PANEL_GAP;
+                  const topH = Math.round(panelsH * PANEL_SHARE.lines);
+                  const loadH = Math.round(panelsH * PANEL_SHARE.load);
+                  const formH = panelsH - topH - loadH;
                   const topY = margin.top;
-                  const formY = topY + topH + PANEL_GAP;
+                  const loadY = topY + topH + PANEL_GAP;
+                  const formY = loadY + loadH + PANEL_GAP;
+
+                  // Veelvoud van 5 per tick, zodat de aslabels ronde getallen zijn.
+                  const tickSteps = Math.max(2, metrics.yTickCount - 1);
+                  const topMax = positiveMax(
+                    visible.flatMap((point) => [point.ctl, point.atl]),
+                    20,
+                    tickSteps * 5,
+                  );
 
                   const xFor = (index: number) =>
                     margin.left +
                     (visible.length <= 1 ? 0 : (index / (visible.length - 1)) * plotWidth);
                   const yTop = (value: number) => topY + topH - (value / topMax) * topH;
+                  const yLoad = (value: number) => loadY + loadH - (value / loadMax) * loadH;
                   const yForm = (value: number) =>
                     formY + formH / 2 - (value / tsbMax) * (formH / 2);
 
@@ -259,6 +278,31 @@ export function TrainingLoadMetrics({
                         </g>
                       ))}
 
+                      <line
+                        x1={margin.left}
+                        x2={width - margin.right}
+                        y1={yLoad(loadMax)}
+                        y2={yLoad(loadMax)}
+                        stroke="var(--border)"
+                        strokeDasharray="4 5"
+                      />
+                      <line
+                        x1={margin.left}
+                        x2={width - margin.right}
+                        y1={yLoad(0)}
+                        y2={yLoad(0)}
+                        stroke="var(--border)"
+                      />
+                      <text
+                        x={margin.left - 6}
+                        y={yLoad(loadMax) + axisFontSize / 3}
+                        textAnchor="end"
+                        fontSize={axisFontSize}
+                        fill="var(--muted-foreground)"
+                      >
+                        {loadMax}
+                      </text>
+
                       {[-tsbMax, 0, tsbMax].map((tick) => (
                         <g key={`form-${tick}`}>
                           <line
@@ -317,6 +361,14 @@ export function TrainingLoadMetrics({
                             fontSize={axisFontSize}
                             fill="var(--muted-foreground)"
                           >
+                            CTL / ATL
+                          </text>
+                          <text
+                            x={margin.left + 4}
+                            y={loadY + axisFontSize}
+                            fontSize={axisFontSize}
+                            fill="var(--muted-foreground)"
+                          >
                             Load
                           </text>
                           <text
@@ -332,14 +384,14 @@ export function TrainingLoadMetrics({
 
                       {visible.map((point, index) => {
                         if (point.load == null) return null;
-                        const y = yTop(point.load);
+                        const y = yLoad(point.load);
                         return (
                           <rect
                             key={`load-${point.date}`}
                             x={xFor(index) - loadBarWidth / 2}
                             y={y}
                             width={loadBarWidth}
-                            height={Math.max(0, topY + topH - y)}
+                            height={Math.max(0, loadY + loadH - y)}
                             rx="1"
                             fill="var(--chart-3)"
                             opacity="0.42"

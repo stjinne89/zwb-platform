@@ -70,6 +70,38 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 
 ---
 
+> **Load en Form: Load in een eigen vlak, 2026-09-27 — gebouwd; geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Sinds de TSS-balken kloppen, bepaalde de zwaarste rit de schaal
+> van het bovenste vlak: de balken en CTL/ATL deelden één as, dus bij een piek
+> van ~280 TSS kwamen CTL en ATL (~50–110) als vlakke strepen in het onderste
+> derde terecht. Vraag van de eigenaar: TSS op een andere schaal, zodat de
+> lijnen te lezen zijn.
+>
+> **Wat.** `training-load-chart.tsx` tekent nu drie vlakken op één datumas:
+> CTL/ATL (helft van de hoogte, schaal alleen op CTL en ATL, vanaf 0, ticks op
+> ronde getallen), Load (een vijfde, eigen schaal in stappen van 50, alleen het
+> maximum gelabeld) en Form (onveranderd). De grafiek is iets hoger (mobiel
+> 1,05× de breedte, desktop 0,5×, max 480 px) en de ruimte tussen de vlakken
+> ging van 14 naar 22 px, anders stonden "0" en "300" op elkaar. Geldt overal
+> waar `TrainingLoadMetrics` staat: `/zwbeter-worden`, `/zwbeter-worden/belasting`
+> en het trainerpaneel.
+>
+> **Bewust niet gebouwd.** (a) Een tweede y-as rechts voor Load, zoals
+> intervals.icu doet: twee schalen over elkaar laten balken en lijnen elkaar
+> schijnbaar snijden op punten die niets betekenen, en de rechtermarge heeft
+> geen ruimte voor labels. (b) Een CTL/ATL-as die niet bij 0 begint: vult het
+> vlak nog beter, maar blaast in de 42-dagenweergave een CTL-stijging van 70
+> naar 74 op tot een klim. (c) Load en Form hebben nog dezelfde kleur
+> (`--chart-3`); ze staan nu in aparte, gelabelde vlakken, dus dat is gelaten.
+>
+> **Geverifieerd.** Met synthetische data (183 dagen, pieken tot ~290 TSS) oud
+> en nieuw naast elkaar gerenderd op 390 en 1000 px breed, ook met tooltip.
+> Lint, typecheck en build groen; `npm run test` groen op
+> `omnium-live.test.ts` na, dat een `.env.local` leest die in deze omgeving
+> ontbreekt. Niet bekeken met echte intervals.icu-data of in dark mode.
+
 > **Omnium-beheer: route uit de ZwiftInsider-link, 2026-09-23 — gebouwd; geen
 > migratie.** Commit: de commit die dit blok toevoegt.
 >
