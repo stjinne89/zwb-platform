@@ -5,8 +5,8 @@ import { StravaAttribution } from "@/components/strava-brand";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
 import {
   detectIntensityFromLoad,
-  intensityLabel,
   normalizeWorkoutBlocks,
+  plannedWorkoutIntensity,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
@@ -182,6 +182,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       const outcome = workoutOutcome(workout, report, todayKey);
       const pairedId = report?.paired_activity_id ? String(report.paired_activity_id) : null;
       const pairedRide = pairedId ? ridesById.get(pairedId) : undefined;
+      const planned = plannedWorkoutIntensity(workout, profile?.ftp_watts ?? null);
       // In Strava verwijderd: dan kan het lid de training nog wel loslaten.
       const rideLink = pairedRide
         ? rideLinkFor(
@@ -199,7 +200,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         dateKey: String(workout.scheduled_at).slice(0, 10),
         title: workout.title,
         durationMinutes: workout.duration_minutes,
-        intensity: workout.intensity,
+        intensity: planned.intensity,
+        intensityLabel: planned.label,
         source: "zwb" as const,
         skipped: workout.status === "skipped",
         missed: outcome === "gemist",
@@ -335,7 +337,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                     <WorkoutTitle workout={workout} athleteId={conn?.athlete_id} />
                     <p className="text-xs text-muted-foreground">
                       ZWB-schema - {workout.duration_minutes} min -{" "}
-                      {intensityLabel(workout.intensity)}
+                      {plannedWorkoutIntensity(workout, profile?.ftp_watts ?? null).label}
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground">

@@ -11,16 +11,23 @@ export function percentRangeForIntensity(intensity: string): [number, number] | 
   return intensity === "rest" ? [0, 0] : range;
 }
 
+/**
+ * %FTP-band per RPE, gelijk aan de tabel in de trainingsprompt. Sinds 28
+ * september 2026 sluit hij aan op de trainingsvormen en Zwift-zones: RPE 5 is
+ * intensieve duur (71-80%), RPE 6 tempo tot sweet spot, RPE 7 drempel. Daarvoor
+ * liep RPE 5 van 70 tot 80% en viel het midden in zone 2 terwijl de AI zo'n
+ * blok "tempo" noemde.
+ */
 export function percentRangeForRpe(rpe: number): [number, number] | null {
   if (rpe <= 1) return [0, 45];
   if (rpe <= 3) return [45, 60];
-  if (rpe === 4) return [60, 70];
-  if (rpe === 5) return [70, 80];
-  if (rpe === 6) return [80, 90];
-  if (rpe === 7) return [90, 100];
-  if (rpe === 8) return [100, 110];
-  if (rpe === 9) return [110, 125];
-  return [125, 150];
+  if (rpe === 4) return [61, 70];
+  if (rpe === 5) return [71, 80];
+  if (rpe === 6) return [81, 89];
+  if (rpe === 7) return [90, 104];
+  if (rpe === 8) return [105, 118];
+  if (rpe === 9) return [119, 135];
+  return [136, 150];
 }
 
 export function rpeFromText(text: string) {

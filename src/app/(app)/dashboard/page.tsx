@@ -46,6 +46,7 @@ import {
   ViewOnStravaLabel,
 } from "@/components/strava-brand";
 import { hasActivityScope } from "@/lib/strava/scope";
+import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { formatSegmentTime } from "@/lib/segments/explorer";
 import { KOM_BADGE, SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
@@ -305,7 +306,7 @@ export default async function DashboardPage({
     user
       ? supabase
           .from("profiles")
-          .select("display_name, sex, wellness_device, zwift_id, zwift_opt_out")
+          .select("display_name, sex, wellness_device, zwift_id, zwift_opt_out, ftp_watts")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -397,7 +398,7 @@ export default async function DashboardPage({
     user
       ? supabase
           .from("training_workouts")
-          .select("title, scheduled_at, intensity, duration_minutes")
+          .select("title, scheduled_at, intensity, duration_minutes, structure_json, test_type")
           .is("superseded_at", null)
           .eq("profile_id", user.id)
           .gte("scheduled_at", `${todayKey}T00:00:00`)
@@ -554,8 +555,20 @@ export default async function DashboardPage({
   // heeft óf een geplande workout heeft. De trage intervals-fetch zit in het
   // gesuspende <TrainingStatus>, niet in deze pagina-render.
   const conn = (trainingConn ?? null) as TrainingStatusConn | null;
-  const nextWorkout =
-    ((nextWorkoutRows ?? [])[0] ?? null) as TrainingStatusWorkout | null;
+  const nextWorkoutRow = (nextWorkoutRows ?? [])[0] ?? null;
+  const nextWorkout: TrainingStatusWorkout | null = nextWorkoutRow
+    ? (() => {
+        const ftp = Number((profile as { ftp_watts?: number | null } | null)?.ftp_watts);
+        const planned = plannedWorkoutIntensity(nextWorkoutRow, ftp > 0 ? ftp : null);
+        return {
+          title: nextWorkoutRow.title,
+          scheduled_at: nextWorkoutRow.scheduled_at,
+          duration_minutes: nextWorkoutRow.duration_minutes,
+          intensity: planned.intensity,
+          intensityLabel: planned.label,
+        };
+      })()
+    : null;
   const sex = (profile as { sex?: string | null } | null)?.sex ?? null;
   const zwiftProfile = profile as
     | { zwift_id?: string | null; zwift_opt_out?: boolean | null }

@@ -8,6 +8,7 @@ import {
   blocksToIntervalsText,
   blocksToWorkoutDoc,
   estimateTrainingLoad,
+  intervalsWorkoutName,
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -484,7 +485,9 @@ async function pushOneWorkout(
       id: workout.intervals_event_id,
       externalId,
       startDateLocal: String(workout.scheduled_at).slice(0, 16),
-      name: workout.title,
+      // Met "ZWBeter Worden" ervoor, zodat hij in Zwift en op de fietscomputer
+      // herkenbaar is tussen workouts uit andere bronnen.
+      name: intervalsWorkoutName(workout.title),
       description: [intervalsText, workout.description].filter(Boolean).join("\n\n"),
       category: "WORKOUT",
       type: "Ride",

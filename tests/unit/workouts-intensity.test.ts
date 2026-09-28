@@ -55,16 +55,17 @@ describe("intensityFromLoad", () => {
 
 describe("intensityFromPct", () => {
   it("zit op de juiste kant van elke grens", () => {
-    expect(intensityFromPct(54)).toBe("recovery");
-    expect(intensityFromPct(55)).toBe("endurance");
-    expect(intensityFromPct(75)).toBe("endurance");
+    // Dezelfde grenzen als de Zwift-zones die de blokken kleuren.
+    expect(intensityFromPct(59.9)).toBe("recovery");
+    expect(intensityFromPct(60)).toBe("endurance");
+    expect(intensityFromPct(75.9)).toBe("endurance");
     expect(intensityFromPct(76)).toBe("tempo");
-    expect(intensityFromPct(90)).toBe("tempo");
-    expect(intensityFromPct(91)).toBe("threshold");
-    expect(intensityFromPct(105)).toBe("threshold");
-    expect(intensityFromPct(106)).toBe("vo2max");
-    expect(intensityFromPct(120)).toBe("vo2max");
-    expect(intensityFromPct(121)).toBe("anaerobic");
+    expect(intensityFromPct(89.9)).toBe("tempo");
+    expect(intensityFromPct(90)).toBe("threshold");
+    expect(intensityFromPct(104.9)).toBe("threshold");
+    expect(intensityFromPct(105)).toBe("vo2max");
+    expect(intensityFromPct(118.9)).toBe("vo2max");
+    expect(intensityFromPct(119)).toBe("anaerobic");
   });
 
   it("valt terug op endurance zonder doel", () => {
@@ -121,9 +122,9 @@ describe("estimateTrainingLoad", () => {
   });
 
   it("valt zonder leesbaar doel terug op de band van de intensiteit", () => {
-    // Zonder FTP is "200-220w" onleesbaar; drempel is dan 91-105%, midden 98%.
+    // Zonder FTP is "200-220w" onleesbaar; drempel is dan 90-104%, midden 97%.
     const block = blocks([{ durationMinutes: 60, target: "200-220w", intensity: "threshold" }]);
-    expect(estimateTrainingLoad(block, null)).toBe(96);
+    expect(estimateTrainingLoad(block, null)).toBe(94);
   });
 
   it("telt rust niet mee", () => {

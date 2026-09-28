@@ -50,6 +50,9 @@ gaat stabiliteit voor nieuwe features.
    productie, 2026-09-28). Daarna je Wahoo-link koppelen op Samen fietsen en een
    proefrit maken. De Garmin-proefrit (spikepunten 1, 2 en 4) moet een lid met
    een Edge doen, met diens toestemming.
+   **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
+   sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
+   migratie heten de standaard sweet-spotworkouts in de app Drempel.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -78,9 +81,93 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0194`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`.
 
 ---
+
+> **Intensiteit, trainingsvormen en titels in ZWBeter Worden, 2026-09-28 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Migratie `0194_workout_library_training_forms.sql`
+> (**nog toepassen**; alleen de standaardbibliotheek, los van de deploy).
+>
+> **Waarom.** De eigenaar zag in AI-schema's weinig intensieve duur, en workouts
+> die "Tempo" heetten en groen kleurden terwijl hun blokken blauw waren. Oorzaak
+> (uit de code; productiedata is niet gelezen): drie indelingen naast elkaar.
+> De intensiteit van de workout koos de AI los van zijn blokken; de blokken
+> kleuren op de Zwift-zone van hun doel; en de prompt gaf RPE 5 als 70-80%, met
+> het midden in zone 2, zonder band voor tempo. De AI noemde zo'n blok "tempo".
+> Omgekeerd kleurden sweet-spotworkouts (88-94%) groen met gele blokken.
+>
+> **Wat er is.**
+> - **Eén set grenzen.** `intensityFromPct` volgt nu de Zwift-zones
+>   (60/76/90/105/119), en `INTENSITY_FTP_RANGE` ligt per intensiteit binnen zijn
+>   zone (recovery 45-59, tempo 76-89, drempel 90-104, VO2max 105-118, anaeroob
+>   119-150). Dit maakt de claim in de ronde "zonekleuren zoals in Zwift"
+>   ongeldig dat de naamgrenzen bewust afwijken. Gevolg: de geplande belasting
+>   zonder leesbaar doel zakt iets (drempel-uur 96 → 94 TSS), en de
+>   intervals-classificatie van blokken schuift mee.
+> - **Trainingsvormen (besluit eigenaar).** `trainingFormForPct`: herstel onder
+>   60%, rustige duur tot 70%, intensieve duur 71-80%, tempo 81-86%, sweet spot
+>   87-89%, drempel, VO2max, anaeroob. Dat is taal, geen zone: een blok op 78% is
+>   groen (zone 3) maar heet intensieve duur. Randgeval: de eigenaar noemde
+>   rustige duur 61-70%; precies 60% heet in de code ook rustige duur, omdat het
+>   in Zwift al blauw is.
+> - **Prompt.** De AI krijgt de zoneband per intensity, de regel dat een blok de
+>   intensity van het midden van zijn doel krijgt en de workout die van zijn
+>   kernwerk, de trainingsvormen voor titels en labels, en een RPE-tabel die op
+>   die grenzen aansluit (`percentRangeForRpe`: 4 = 61-70, 5 = 71-80,
+>   6 = 81-89, 7 = 90-104, 8 = 105-118, 9 = 119-135, 10 vanaf 136). De
+>   duurregel van 21 september blijft: duurblokken minstens 65%, nu verdeeld over
+>   rustige duur 65-70% en intensieve duur 71-80%.
+> - **Vangnet bij opslaan.** `insertPlanWorkouts` zet elk AI-blok op de
+>   intensiteit van zijn zone (`alignBlockIntensity`) en de workout op die van
+>   het kernwerk (`keyWorkPct`: het hoogste niveau met samen minstens 5 minuten;
+>   drie openers van een minuut tellen niet, zes sprints wel). Wattdoelen worden
+>   gelezen met de profiel-FTP. `dropShortRecoveryRides` draait nog op het
+>   AI-label, vóór het rechtzetten, zodat er geen trainingen extra wegvallen.
+> - **Vangnet bij tonen.** `plannedWorkoutIntensity` geeft kleur en naam uit de
+>   blokken, ook voor bestaande schema's, bibliotheekworkouts en eigen ritten:
+>   maandkalender van lid en trainer, de schemalijst, de eerstvolgende training
+>   op `/zwbeter-worden`, de trainerpagina en het dashboard. Race, rust en
+>   FTP-tests houden hun eigen intensiteit.
+> - **Titels.** De prompt vraagt "trainingsvorm + opbouw" (hooguit 30 tekens),
+>   zonder uitleg als "ingekort" of "rustiger na ...". `conciseWorkoutTitle`
+>   haalt dat bij AI-uitvoer er alsnog af (haakjes, alles na " - ", ": " of ",",
+>   en vanaf woorden als ingekort/aangepast/lichter/rustiger/na/wegens) en kapt
+>   af op 40 tekens. Titels die een trainer of lid zelf typt, blijven staan.
+> - **ZWBeter Worden in intervals.icu.** `intervalsWorkoutName` zet
+>   "ZWBeter Worden - " voor de naam van elke workout die naar intervals.icu gaat,
+>   en zo ook naar Zwift en de fietscomputer. In ZWB zelf staat het er niet bij.
+>   De naam wordt nergens voor koppelen gebruikt (dat gaat op event-id en
+>   external_id).
+> - **Bibliotheek (`0194`).** De tempoblokken van de standaard sweet-spotworkouts
+>   gaan naar 87-89%, die van tempo en "Duur met tempoblokken" naar 81-86%.
+>   Anders heet "Sweet spot 3x10" op 88-93% nu Drempel. Eigen workouts en
+>   workouts die al in een schema staan veranderen niet.
+> - `/hulp#zonekleuren` bijgewerkt (de kalender kleurt op het kernwerk), en
+>   `/hulp#trainingsvormen` is nieuw.
+>
+> **Bewust niet gebouwd.**
+> - Geen aparte intensiteit "intensieve duur": dat vraagt een migratie van de
+>   check-constraints, het AI-schema en een kleur die Zwift niet kent. De
+>   eigenaar wilde het als taal, niet als zone.
+> - Blokintensiteiten van een trainer of lid worden bij opslaan niet
+>   overschreven; de kleur volgt al het doel, en bij tonen bepaalt het kernwerk
+>   de naam.
+> - `detectIntensityFromLoad` (TSS/uur van een gereden rit) en `intensityForPct`
+>   in `zwift-match.ts` blijven ongewijzigd: die beoordelen een hele rit, waar
+>   het gemiddelde lager ligt dan de blokken.
+> - Workouts die al in intervals.icu staan, houden hun oude naam tot ze opnieuw
+>   worden gepubliceerd of aangepast. Geen massale herpublicatie: dat kost per
+>   workout een API-call.
+> - Geen nieuwe trainingsvorm "intensieve duur" in de bibliotheek (`form`-check).
+>
+> **Verificatie.** `tsc --noEmit`, ESLint en Vitest groen (1.718 tests), op
+> `omnium-live.test.ts` na (vraagt een `.env.local`, die deze worktree niet
+> heeft). Nieuw: `workout-forms.test.ts` (vormen, zones, kernwerk, rechtzetten,
+> titels, intervals-naam) en `workout-library-forms-migration.test.ts` (`0194`
+> tegen PGlite, bovenop `0106`, `0107` en `0133`). **Niet geverifieerd:** of het
+> model de nieuwe prompt volgt (zichtbaar in de volgende schema's), `0194` tegen
+> productie, de schermen in een browser, en de namen in Zwift na een sync.
 
 > **ZRL-starttijd uit de Zwift-link, 2026-09-28 — gebouwd, geen migratie.**
 > Commit: de commit die dit blok toevoegt.
@@ -2012,7 +2099,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0194`
 > **Nu (besluit eigenaar):** een promptregel zet duurblokken op 65–75% FTP bij
 > RPE 4–5; alleen warming-up, cooling-down, herstel tussen intervallen en
 > hersteldagen liggen lager. De RPE-tabel (`percentRangeForRpe`) en de UI-hints
-> blijven gelijk. Een promptregel raakt alleen nieuwe generaties en niet de hele
+> bleven toen gelijk. *Per 2026-09-28 is de RPE-tabel aangepast aan de
+> trainingsvormen; de 65%-ondergrens voor duurblokken staat nog.* Een promptregel raakt alleen nieuwe generaties en niet de hele
 > app. **Gevolg:** de geplande belasting van duurweken stijgt licht (TSS schaalt
 > kwadratisch met de intensiteit). Test in `training-targets.test.ts`.
 > **Niet geverifieerd:** of het model de regel volgt; dat blijkt pas uit nieuwe
@@ -4971,9 +5059,9 @@ anaeroob paars), terwijl de meeste leden hun workouts in Zwift rijden.
   en het dashboard vanzelf.
 - `blockColor()`: een blok in de balk en de blokeditor kleurt op het midden van
   zijn vermogensdoel, niet op zijn label. De grenzen van `intensityFromPct`
-  (55/76/91/106/121) zijn bewust niet aangepast: de AI en de intervals-classificatie
-  hangen eraan. Een blok op 90% heet dus "Tempo" maar kleurt geel; `/hulp#zonekleuren`
-  zegt dat.
+  (55/76/91/106/121) zijn toen bewust niet aangepast. *Achterhaald per
+  2026-09-28:* ze volgen nu de Zwift-zones, zie de ronde "Intensiteit,
+  trainingsvormen en titels".
 - Een rit zonder vermogensmeter in de maandkalender was grijs en is nu een
   gestippeld blokje zonder vulling.
 - Dode `_components/workout-list.tsx` verwijderd (werd nergens geïmporteerd).

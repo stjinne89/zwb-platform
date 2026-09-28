@@ -10,8 +10,8 @@ import { summarizeTrainingReadiness, type WellnessDevice } from "@/lib/training/
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import {
   estimateTrainingLoad,
-  intensityLabel,
   normalizeWorkoutBlocks,
+  plannedWorkoutIntensity,
   projectCtl,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -112,6 +112,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
 
   // CTL-projectie over het schema dat nu loopt.
   const activePlan = plans.find((plan) => plan.status !== "archived");
+  const athleteFtp = athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts);
   const ctlProjection = projectCtl(
     status.ctl ?? undefined,
     workouts
@@ -120,7 +121,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
         date: workout.scheduled_at.slice(0, 10),
         load: estimateTrainingLoad(
           normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
-          athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts),
+          athleteFtp,
         ),
       })),
   );
@@ -186,7 +187,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
                   <span className="text-xs text-muted-foreground">
                     {workout.status === "skipped"
                       ? "Rustdag"
-                      : `${workout.duration_minutes} min - ${intensityLabel(workout.intensity)}`}
+                      : `${workout.duration_minutes} min - ${plannedWorkoutIntensity(workout, athleteFtp).label}`}
                   </span>
                 </li>
               ))}

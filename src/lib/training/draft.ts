@@ -17,6 +17,8 @@ import {
 } from "@/lib/training/ai";
 import {
   adaptiveDailyPrompt,
+  alignWorkoutIntensities,
+  conciseWorkoutTitle,
   dropShortRecoveryRides,
   normalizeWorkoutBlocks,
   planUpdatePrompt,
@@ -441,6 +443,15 @@ export async function insertPlanWorkouts(
           dates[dates.length - 1],
         ).catch(() => null);
 
+  // Met de FTP van het lid worden ook doelen in watt leesbaar voor
+  // alignWorkoutIntensities(); zonder FTP tellen alleen de %-doelen.
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("ftp_watts")
+    .eq("id", plan.profile_id)
+    .maybeSingle();
+  const ftpWatts = Number(profile?.ftp_watts) > 0 ? Number(profile?.ftp_watts) : null;
+
   const planned =
     options.shortRecoveryAsRest === false ? workouts : dropShortRecoveryRides(workouts);
   const rows = dropWorkoutsOnBlockedDays(planned, blockedDays)
@@ -449,9 +460,17 @@ export async function insertPlanWorkouts(
     .flatMap((workout) => {
       const limit = availability ? minutesForDate(availability, workout.date) : null;
       if (limit === 0) return [];
-      const intensity = workout.intensity;
-      assertWorkoutIntensity(intensity);
-      let blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+      assertWorkoutIntensity(workout.intensity);
+      // De AI noemde blokken op 70-80% "tempo" en koos de intensiteit van de
+      // workout los van zijn blokken; zie alignWorkoutIntensities().
+      const aligned = alignWorkoutIntensities(
+        workout.intensity,
+        normalizeWorkoutBlocks(workout.structure, workout.intensity),
+        ftpWatts,
+      );
+      const intensity = aligned.intensity;
+      const title = conciseWorkoutTitle(workout.title);
+      let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
       if (limit != null && durationMinutes > limit) {
         blocks = resizeBlocks(blocks, limit);
@@ -462,14 +481,14 @@ export async function insertPlanWorkouts(
         profile_id: plan.profile_id,
         trainer_id: plan.trainer_id,
         scheduled_at: `${workout.date}T09:00:00+01:00`,
-        title: workout.title,
+        title,
         description: workout.description,
         duration_minutes: durationMinutes,
         intensity,
         target_type: workout.targetType,
         structure_json: blocks,
         origin: "ai",
-        intervals_external_id: `zwb-${plan.id}-${workout.date}-${workout.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
+        intervals_external_id: `zwb-${plan.id}-${workout.date}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
       }];
     });
   if (rows.length === 0) return 0;

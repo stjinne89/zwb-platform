@@ -3,8 +3,8 @@ import { InlineMoreLink } from "@/components/app-ui";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
-  intensityLabel,
   normalizeWorkoutBlocks,
+  plannedWorkoutIntensity,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { amsterdamDayKey, eftpTrend } from "@/lib/training/zwbeterworden";
@@ -243,7 +243,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                   <WorkoutTitle workout={nextWorkout.workout} athleteId={conn?.athlete_id} />
                   <p className="text-xs text-muted-foreground">
                     ZWB-schema - {nextWorkout.workout.duration_minutes} min -{" "}
-                    {intensityLabel(nextWorkout.workout.intensity)}
+                    {plannedWorkoutIntensity(nextWorkout.workout, profile?.ftp_watts ?? null).label}
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground">

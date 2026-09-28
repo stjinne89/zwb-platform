@@ -10,7 +10,7 @@ import {
 describe("percentRangeForIntensity", () => {
   it("geeft de %FTP-band per intensiteit", () => {
     expect(percentRangeForIntensity("endurance")).toEqual([60, 75]);
-    expect(percentRangeForIntensity("threshold")).toEqual([91, 105]);
+    expect(percentRangeForIntensity("threshold")).toEqual([90, 104]);
     expect(percentRangeForIntensity("race")).toEqual([85, 115]);
   });
 
@@ -26,8 +26,28 @@ describe("percentRangeForIntensity", () => {
 describe("percentRangeForRpe", () => {
   it("loopt op met de RPE", () => {
     expect(percentRangeForRpe(1)).toEqual([0, 45]);
-    expect(percentRangeForRpe(5)).toEqual([70, 80]);
-    expect(percentRangeForRpe(10)).toEqual([125, 150]);
+    expect(percentRangeForRpe(4)).toEqual([61, 70]);
+    expect(percentRangeForRpe(5)).toEqual([71, 80]);
+    expect(percentRangeForRpe(6)).toEqual([81, 89]);
+    expect(percentRangeForRpe(7)).toEqual([90, 104]);
+    expect(percentRangeForRpe(10)).toEqual([136, 150]);
+  });
+
+  it("valt per RPE in één Zwift-zone, met RPE 5 als intensieve duur", async () => {
+    const { intensityFromPct, trainingFormForPct } = await import("@/lib/training/workouts");
+    const mid = (rpe: number) => {
+      const [low, high] = percentRangeForRpe(rpe)!;
+      return (low + high) / 2;
+    };
+    expect([4, 5, 6, 7, 8, 9].map((rpe) => intensityFromPct(mid(rpe)))).toEqual([
+      "endurance",
+      "endurance",
+      "tempo",
+      "threshold",
+      "vo2max",
+      "anaerobic",
+    ]);
+    expect(trainingFormForPct(mid(5))).toBe("Intensieve duur");
   });
 });
 
@@ -65,7 +85,7 @@ describe("targetHint", () => {
 
   it("geeft de RPE-band voorrang boven de intensiteit", () => {
     expect(targetHint({ ftpWatts: 250, intensity: "endurance", notes: "RPE 8" })).toBe(
-      "RPE 8: 250-275w",
+      "RPE 8: 263-295w",
     );
   });
 
@@ -88,7 +108,9 @@ describe("RPE-banden in de trainingsprompt", () => {
       expect(prompt).toContain(`${rpe} ${low}-${high}%`);
     }
     const [low, high] = percentRangeForRpe(6)!;
-    expect(prompt).toContain(`FTP 250w 'RPE 6, ${(250 * low) / 100}-${(250 * high) / 100}w'`);
+    expect(prompt).toContain(
+      `FTP 200w 'RPE 6, ${Math.round((200 * low) / 100)}-${Math.round((200 * high) / 100)}w'`,
+    );
   });
 });
 
@@ -101,8 +123,10 @@ describe("FTP-bron in de trainingsprompt", () => {
     expect(prompt).not.toContain("Stem het wattage af op de eFTP");
   });
 
-  it("zet duurblokken op 65-75% FTP", async () => {
+  it("houdt duurblokken op minstens 65% FTP, verdeeld over rustige en intensieve duur", async () => {
     const { defaultTrainingPrompt } = await import("@/lib/training/workouts");
-    expect(defaultTrainingPrompt()).toContain("Duurblokken (intensity 'endurance') krijgen 65-75% FTP");
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Duurblokken (rustige en intensieve duur) krijgen minstens 65% FTP");
+    expect(prompt).toContain("rustige duur 65-70% bij RPE 4, intensieve duur 71-80% bij RPE 5");
   });
 });

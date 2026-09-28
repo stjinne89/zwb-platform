@@ -47,6 +47,8 @@ export type MemberCalendarItem = {
   title: string;
   durationMinutes: number | null;
   intensity: string | null;
+  /** Trainingsvorm van een geplande training; zie plannedWorkoutIntensity(). */
+  intensityLabel?: string | null;
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
   missed?: boolean;
@@ -216,7 +218,7 @@ function WorkoutDetail({
           <p className="text-xs text-muted-foreground">
             {formatDayMonth(`${item.dateKey}T12:00:00`)}
             {item.durationMinutes ? ` - ${item.durationMinutes} min` : ""}
-            {item.intensity ? ` - ${intensityLabel(item.intensity)}` : ""}
+            {item.intensity ? ` - ${item.intensityLabel ?? intensityLabel(item.intensity)}` : ""}
           </p>
         </div>
         <OutcomePill outcome={detail.outcome} metrics={detail.metrics} />

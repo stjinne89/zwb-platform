@@ -6,7 +6,12 @@
 // door een workout uit de bibliotheek.
 
 import { useState } from "react";
-import { INTENSITY_LABELS, WORKOUT_INTENSITIES, type WorkoutBlock } from "@/lib/training/workouts";
+import {
+  INTENSITY_LABELS,
+  plannedWorkoutIntensity,
+  WORKOUT_INTENSITIES,
+  type WorkoutBlock,
+} from "@/lib/training/workouts";
 import { replaceWorkoutFromTemplate, saveTrainerFeedback, updateWorkout } from "../../_actions";
 import { BlockEditor } from "../../_components/block-editor";
 import { FEEL_LABELS, formAction } from "../../_components/format";
@@ -28,6 +33,8 @@ export type CalendarEditWorkout = {
   blocks: WorkoutBlock[];
   skipped: boolean;
   publishStatus: string;
+  /** Een FTP-test houdt zijn eigen intensiteit; zie plannedWorkoutIntensity(). */
+  testType?: string | null;
 };
 
 export type CalendarTemplate = {
@@ -216,15 +223,24 @@ export function TrainerWorkoutCalendar({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = workouts.find((workout) => workout.id === selectedId) ?? null;
 
-  const cells: CalendarWorkout[] = workouts.map((workout) => ({
-    id: workout.id,
-    dateKey: workout.dateKey,
-    title: workout.title,
-    durationMinutes: workout.durationMinutes,
-    intensity: workout.intensity,
-    source: "zwb",
-    skipped: workout.skipped,
-  }));
+  const planned = (workout: CalendarEditWorkout) =>
+    plannedWorkoutIntensity(
+      { intensity: workout.intensity, structure_json: workout.blocks, test_type: workout.testType },
+      ftpWatts ?? null,
+    );
+  const cells: CalendarWorkout[] = workouts.map((workout) => {
+    const { intensity, label } = planned(workout);
+    return {
+      id: workout.id,
+      dateKey: workout.dateKey,
+      title: workout.title,
+      durationMinutes: workout.durationMinutes,
+      intensity,
+      intensityLabel: label,
+      source: "zwb",
+      skipped: workout.skipped,
+    };
+  });
 
   return (
     <div>
@@ -241,7 +257,7 @@ export function TrainerWorkoutCalendar({
               <p className="font-medium">{selected.title}</p>
               <p className="text-xs text-muted-foreground">
                 {selected.dateKey} - {selected.durationMinutes} min -{" "}
-                {intensityName(selected.intensity)} - {selected.publishStatus}
+                {planned(selected).label} - {selected.publishStatus}
               </p>
             </div>
             <WorkoutEditor

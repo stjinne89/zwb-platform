@@ -90,16 +90,41 @@ export function intensityLabel(intensity: string | null | undefined): string {
   return INTENSITY_LABELS[intensity as WorkoutIntensity] ?? intensity;
 }
 
-/** %FTP naar intensiteit. Gebruikt om blokken uit een intervals.icu workout_doc
- * te classificeren. */
+const ZONE_INTENSITIES: Record<ZwiftZone["zone"], WorkoutIntensity> = {
+  1: "recovery",
+  2: "endurance",
+  3: "tempo",
+  4: "threshold",
+  5: "vo2max",
+  6: "anaerobic",
+};
+
+/**
+ * %FTP naar intensiteit: de Zwift-zone waar het in valt. Tot 28 september 2026
+ * lagen deze grenzen net naast die van de kleuren (55/76/91/106/121), zodat een
+ * blok de naam van de ene zone en de kleur van de andere kon krijgen.
+ */
 export function intensityFromPct(pct: number | null): WorkoutIntensity {
   if (pct == null) return "endurance";
-  if (pct < 55) return "recovery";
-  if (pct < 76) return "endurance";
-  if (pct < 91) return "tempo";
-  if (pct < 106) return "threshold";
-  if (pct < 121) return "vo2max";
-  return "anaerobic";
+  return ZONE_INTENSITIES[zwiftZoneForPct(pct).zone];
+}
+
+/**
+ * De trainingsvorm bij een %FTP: de taal van titels en labels, geen zone. Rustige
+ * en intensieve duur delen grotendeels zone 2, tempo en sweet spot zone 3; ze
+ * bestaan zodat een blok op 75% niet "Tempo" heet. Intensieve duur loopt tot 80%
+ * en dus net zone 3 in: de kleur volgt de zone, de naam de trainingsvorm.
+ * Keuze van de eigenaar, 28 september 2026.
+ */
+export function trainingFormForPct(pct: number): string {
+  if (pct < 60) return "Herstel";
+  if (pct <= 70) return "Rustige duur";
+  if (pct <= 80) return "Intensieve duur";
+  if (pct <= 86) return "Tempo";
+  if (pct < 90) return "Sweet spot";
+  if (pct < 105) return "Drempel";
+  if (pct < 119) return "VO2max";
+  return "Anaeroob";
 }
 
 /**
@@ -170,8 +195,12 @@ export function defaultTrainingPrompt() {
     "Bouw gestructureerde workouts met duidelijke blokken: warming-up, kern, herstel en cooling-down.",
     "Plan uitsluitend op-de-fiets werk: elk blok moet met een fietscomputer te rijden zijn. Geen kracht-, core-, mobiliteits-, stretch- of ademhalingsoefeningen, en geen loop-, zwem- of gymsessies. Is een dag een rustdag, plan dan rust zonder oefeningen; wil je iets naast de fiets adviseren, zet dat hooguit als korte opmerking in cautions.",
     "Schrijf herhalingen expliciet uit als losse structure-blokken: bijvoorbeeld 3x8 min sweet spot met 4 min herstel wordt 8 min werk, 4 min herstel, 8 min werk, 4 min herstel, enzovoort.",
-    "Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld bij FTP 250w 'RPE 6, 200-225w'. Houd RPE en wattage op dezelfde band: RPE 2-3 45-60% FTP, 4 60-70%, 5 70-80%, 6 80-90%, 7 90-100%, 8 100-110%, 9 110-125%, 10 boven 125%.",
-    "Duurblokken (intensity 'endurance') krijgen 65-75% FTP bij RPE 4-5, niet lager. Alleen warming-up, cooling-down, herstel tussen intervallen en hersteldagen liggen onder 65%.",
+    "De intensity van een blok is de zone waarin het midden van zijn doel valt, in %FTP: recovery onder 60%, endurance 60-75%, tempo 76-89%, threshold 90-104%, vo2max 105-118%, anaerobic vanaf 119%. Kies bij elk doel de intensity van die zone, ook als het blok anders heet.",
+    "De intensity van de hele workout is die van het kernwerk: het zwaarste niveau waarop samen minstens vijf minuten wordt gereden. Warming-up en cooling-down tellen niet mee; een paar korte versnellingen ook niet.",
+    "Gebruik in titels en bloklabels deze trainingsvormen: herstel onder 60% FTP, rustige duur 61-70%, intensieve duur 71-80%, tempo 81-86%, sweet spot 87-89%, drempel 90-104%, VO2max 105-118%, anaeroob vanaf 119%. Dat is taal, geen extra zone: een blok op 71-80% heet intensieve duur en nooit tempo, ook als het midden net in de tempozone valt.",
+    "Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld bij FTP 200w 'RPE 6, 162-178w'. Houd RPE en wattage op dezelfde band: RPE 2-3 45-60% FTP, 4 61-70%, 5 71-80%, 6 81-89%, 7 90-104%, 8 105-118%, 9 119-135%, 10 vanaf 136%.",
+    "Duurblokken (rustige en intensieve duur) krijgen minstens 65% FTP: rustige duur 65-70% bij RPE 4, intensieve duur 71-80% bij RPE 5. Alleen warming-up, cooling-down, herstel tussen intervallen en hersteldagen liggen onder 65%.",
+    "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet 'ZWBeter Worden' niet in de titel; de app voegt dat zelf toe.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",
@@ -224,6 +253,7 @@ export function adaptiveDailyPrompt() {
     "Dit is een DAGELIJKSE AANPASSING van een bestaand plan, geen nieuw plan.",
     "currentPlan bevat wat er nog gepland staat van vandaag tot en met currentPlan.toDate. Dat is je vertrekpunt: pas aan wat door de signalen niet meer klopt en laat de rest ongemoeid.",
     "Geef alleen de workouts terug die je werkelijk wijzigt — meestal is dat er één (vandaag). Neem ongewijzigde dagen niet opnieuw op: alles wat je teruggeeft vervangt de bestaande training van die dag.",
+    "Een gewijzigde workout krijgt een titel zoals elke andere: trainingsvorm en opbouw. Dat hij korter, lichter of verschoven is, zet je in description, niet in de titel.",
     "Behoud de plan-intentie en periodisering richting het doel: wijzig alleen de workouts van vandaag en de komende dagen van deze week; laat de verdere toekomst ongemoeid.",
     "Veiligheidsregel: bij tegenstrijdige signalen kies je de voorzichtigere optie (minder belasting). Leg elke aanpassing kort uit in cautions. Ontbreekt er data, meld dat in cautions maar verlaag daar niet óók de belasting op — ga dan uit van wat er wél staat in currentPlan.",
     "Pas het schema aan op basis van de meegegeven signalen, volgens dit beslis-raamwerk:",
@@ -493,14 +523,16 @@ export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
 }
 
 // Standaard %FTP per intensiteit als een blok geen leesbaar wattage/%-doel heeft.
+// Elke band ligt binnen zijn eigen Zwift-zone, zodat intensityFromPct() op het
+// midden ervan dezelfde intensiteit teruggeeft.
 export const INTENSITY_FTP_RANGE: Record<WorkoutIntensity, [number, number]> = {
   rest: [0, 40],
-  recovery: [45, 60],
+  recovery: [45, 59],
   endurance: [60, 75],
-  tempo: [76, 90],
-  threshold: [91, 105],
-  vo2max: [106, 120],
-  anaerobic: [121, 150],
+  tempo: [76, 89],
+  threshold: [90, 104],
+  vo2max: [105, 118],
+  anaerobic: [119, 150],
   race: [85, 115],
 };
 
@@ -596,16 +628,154 @@ export function powerRangePercentForBlock(block: WorkoutBlock, ftp: number | nul
 }
 
 /**
- * Kleur van een blok: de Zwift-zone van het midden van zijn vermogensdoel. Het
- * label van de intensiteit volgt iets andere grenzen (intensityFromPct), dus een
- * blok op 90% heet "Tempo" maar kleurt geel, net als in Zwift. Zonder bruikbaar
- * doel valt het terug op de kleur van de intensiteit.
+ * Kleur van een blok: de Zwift-zone van het midden van zijn vermogensdoel, net
+ * als in Zwift. Zonder bruikbaar doel valt het terug op de kleur van de
+ * intensiteit.
  */
 export function blockColor(block: WorkoutBlock, ftp: number | null): string {
   if (block.intensity === "rest") return INTENSITY_COLORS.rest;
   const range = powerRangePercentForBlock(block, ftp);
   if (!range) return INTENSITY_COLORS[block.intensity] ?? INTENSITY_COLORS.endurance;
   return zwiftZoneForPct((range[0] + range[1]) / 2).color;
+}
+
+/**
+ * Het midden van het vermogensdoel van een blok in %FTP. Zonder leesbaar doel
+ * het midden van de band van zijn intensiteit; null alleen bij een doel in watt
+ * zonder bekende FTP.
+ */
+function blockMidPct(block: WorkoutBlock, ftp: number | null): number | null {
+  const range = powerRangePercentForBlock(block, ftp);
+  return range ? (range[0] + range[1]) / 2 : null;
+}
+
+/**
+ * Een blok krijgt de intensiteit van de zone waar zijn doel in valt. De AI koos
+ * die zelf en schreef zo "tempo" bij een blok op 70-80%, dat blauw kleurde.
+ * Rust en race blijven wat ze zijn: dat zijn geen vermogenszones.
+ */
+export function alignBlockIntensity(block: WorkoutBlock, ftp: number | null): WorkoutBlock {
+  if (block.intensity === "rest" || block.intensity === "race") return block;
+  const pct = blockMidPct(block, ftp);
+  if (pct == null) return block;
+  const intensity = intensityFromPct(pct);
+  return intensity === block.intensity ? block : { ...block, intensity };
+}
+
+/**
+ * Hoeveel minuten er minstens op een niveau of hoger gereden moeten worden
+ * voordat dat niveau de workout typeert. Drie openers van een minuut maken van
+ * een duurrit geen anaerobe training; zes sprints van een minuut wel.
+ */
+const KEY_WORK_MINUTES = 5;
+
+/**
+ * Het vermogen van het kernwerk in %FTP: het hoogste niveau waarop de workout
+ * samen minstens KEY_WORK_MINUTES rijdt. Warming-up en cooling-down tellen zo
+ * niet mee, en een duurrit met tempoblokken is een tempotraining. Null zonder
+ * blokken met een bruikbaar doel.
+ */
+export function keyWorkPct(blocks: WorkoutBlock[], ftp: number | null): number | null {
+  const rated = blocks
+    .filter((block) => block.intensity !== "rest" && block.durationMinutes > 0)
+    .flatMap((block) => {
+      const pct = blockMidPct(block, ftp);
+      return pct == null ? [] : [{ pct, minutes: block.durationMinutes }];
+    })
+    .sort((a, b) => b.pct - a.pct);
+  if (rated.length === 0) return null;
+  let minutes = 0;
+  for (const block of rated) {
+    minutes += block.minutes;
+    if (minutes >= KEY_WORK_MINUTES) return block.pct;
+  }
+  return rated[rated.length - 1].pct;
+}
+
+/**
+ * Intensiteit en naam van een geplande workout, uit zijn blokken. Wat de AI of
+ * de trainer als intensiteit van de hele workout opgaf, liep niet altijd gelijk
+ * met de blokken: een workout heette "Tempo" en kleurde groen terwijl zijn
+ * blokken blauw waren. Nu bepaalt het kernwerk beide, voor oude en nieuwe
+ * schema's. Race, rust en FTP-tests houden hun eigen intensiteit: dat zijn
+ * afspraken, geen vermogensniveau.
+ */
+export function plannedWorkoutIntensity(
+  workout: { intensity: string | null; structure_json?: unknown; test_type?: string | null },
+  ftp: number | null,
+): { intensity: WorkoutIntensity; label: string } {
+  const stored = asIntensity(workout.intensity, "endurance");
+  const fallback = { intensity: stored, label: INTENSITY_LABELS[stored] };
+  if (stored === "race" || stored === "rest" || workout.test_type) return fallback;
+  const pct = keyWorkPct(normalizeWorkoutBlocks(workout.structure_json, stored), ftp);
+  if (pct == null) return fallback;
+  return { intensity: intensityFromPct(pct), label: trainingFormForPct(pct) };
+}
+
+/**
+ * AI-uitvoer rechtzetten voordat hij wordt opgeslagen: elk blok de intensiteit
+ * van zijn zone, en de workout die van zijn kernwerk.
+ */
+export function alignWorkoutIntensities(
+  intensity: WorkoutIntensity,
+  blocks: WorkoutBlock[],
+  ftp: number | null,
+): { intensity: WorkoutIntensity; blocks: WorkoutBlock[] } {
+  const aligned = blocks.map((block) => alignBlockIntensity(block, ftp));
+  if (intensity === "race" || intensity === "rest") return { intensity, blocks: aligned };
+  const pct = keyWorkPct(aligned, ftp);
+  return { intensity: pct == null ? intensity : intensityFromPct(pct), blocks: aligned };
+}
+
+/** Staat in de naam van elke workout in intervals.icu, en zo ook in Zwift. */
+export const WORKOUT_TITLE_BRAND = "ZWBeter Worden";
+
+const BRAND_PATTERN = /\bzw\s*beter\s*worden\b/gi;
+
+/**
+ * Woorden waarmee de AI uitlegt wat hij aan een workout veranderde: "ingekort",
+ * "rustiger na de race". Vanaf zo'n woord hoort de rest in de beschrijving.
+ */
+const TITLE_EXPLANATION =
+  /\s+(?:ingekort|ingekorte|verkort|verkorte|aangepast|aangepaste|lichter|lichtere|rustiger|na|wegens|vanwege|i\.?v\.?m\.?|i\.?p\.?v\.?)\b.*$/i;
+
+const TITLE_MAX_LENGTH = 40;
+
+/**
+ * Een korte AI-titel: de trainingsvorm en de opbouw, zonder uitleg. De prompt
+ * vraagt dat al; dit vangt af wat er toch doorheen komt, zoals "Duur 60 min
+ * (ingekort)" of "Tempo 3x10 – rustiger na zaterdag". Alleen voor AI-uitvoer:
+ * een titel die een trainer zelf typt, blijft zoals hij is.
+ */
+export function conciseWorkoutTitle(title: string): string {
+  const original = title.replace(BRAND_PATTERN, " ").replace(/\s+/g, " ").trim();
+  let text = original
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
+    .split(/\s+[-–—|]\s+|:\s+|,\s+/)[0]
+    .replace(/\s+/g, " ")
+    .trim();
+  text = text.replace(TITLE_EXPLANATION, "").trim();
+  if (text.length > TITLE_MAX_LENGTH) {
+    const cut = text.slice(0, TITLE_MAX_LENGTH + 1);
+    text = cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).trim();
+  }
+  text = text.replace(/^[\s\-–—|:,]+|[\s\-–—|:,]+$/g, "");
+  return text || original || "Training";
+}
+
+/**
+ * De naam van een workout in intervals.icu. Daar gaat hij naar Zwift en de
+ * fietscomputer, tussen workouts uit andere bronnen; vandaar de merknaam
+ * vooraan, waar hij ook in een smalle lijst nog te lezen is. In ZWB zelf staat
+ * hij er niet bij: daar is elke workout van ZWBeter Worden.
+ */
+export function intervalsWorkoutName(title: string): string {
+  const rest = title
+    .replace(BRAND_PATTERN, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s\-–—|:,·]+|[\s\-–—|:,·]+$/g, "")
+    .trim();
+  return rest ? `${WORKOUT_TITLE_BRAND} - ${rest}` : WORKOUT_TITLE_BRAND;
 }
 
 // Bouwt een NATIVE intervals.icu workout_doc uit onze blokken. Dit is de bron

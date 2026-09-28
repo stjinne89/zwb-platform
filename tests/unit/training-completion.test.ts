@@ -52,7 +52,7 @@ const noReadiness = { score: null, level: null, title: null };
 
 describe("targetSummaryFor", () => {
   it("beschrijft het zwaarste blok, met wattage als de FTP bekend is", () => {
-    expect(targetSummaryFor(workout, 250)).toBe("Drempel · 95-100% · 228-263w");
+    expect(targetSummaryFor(workout, 250)).toBe("Drempel · 95-100% · 225-260w");
   });
 
   it("laat het wattage weg zonder FTP", () => {

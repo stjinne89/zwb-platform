@@ -13,6 +13,11 @@ export type CalendarWorkout = {
   durationMinutes: number | null;
   intensity: string | null;
   /**
+   * Naam van de intensiteit als die niet uit `intensity` volgt: bij een geplande
+   * training de trainingsvorm van het kernwerk, zoals "Intensieve duur".
+   */
+  intensityLabel?: string | null;
+  /**
    * ZWB-schema, een event uit intervals.icu, of een gereden rit waar geen
    * training voor stond gepland.
    */
@@ -44,7 +49,7 @@ function labelFor(workout: CalendarWorkout) {
     workout.source === "rit" ? "gereden rit" : null,
     workout.missed ? "niet gereden" : null,
     workout.durationMinutes ? `${workout.durationMinutes} min` : null,
-    INTENSITY_LABELS[intensity] ?? null,
+    workout.intensityLabel ?? INTENSITY_LABELS[intensity] ?? null,
   ].filter(Boolean);
   return parts.length ? `${workout.title} - ${parts.join(" - ")}` : workout.title;
 }

@@ -133,6 +133,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
       ),
       skipped: workout.status === "skipped",
       publishStatus: workout.publish_status,
+      testType: workout.test_type ?? null,
     }),
   );
   const calendarTemplates: CalendarTemplate[] = templates.map((template) => ({

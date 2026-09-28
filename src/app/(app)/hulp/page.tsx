@@ -971,9 +971,26 @@ export default function HelpPage() {
               De blokken kleuren zoals in Zwift, op je FTP: grijs onder 60%,
               blauw tot 76%, groen tot 90%, geel tot 105%, oranje tot 119% en
               rood daarboven. Een blok krijgt de kleur van het midden van zijn
-              doel. De naam (Tempo, Drempel) volgt net iets andere grenzen, dus
-              een blok op 90% heet Tempo maar is geel. Lichtgrijs is rust; een
+              doel. Een training in de kalender krijgt de kleur van zijn
+              kernwerk: het zwaarste niveau waarop je samen minstens vijf minuten
+              rijdt, zonder warming-up en cooling-down. Lichtgrijs is rust; een
               gestippeld blokje zonder kleur is een rit zonder vermogensmeter.
+            </p>
+          </article>
+
+          <article
+            id="trainingsvormen"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Namen van trainingen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Binnen een zone onderscheiden we trainingsvormen: rustige duur
+              (61-70% van je FTP), intensieve duur (71-80%), tempo (81-86%) en
+              sweet spot (87-89%). Daarboven heet het drempel, VO2max en
+              anaeroob. Een training heet naar zijn kernwerk. Intensieve duur loopt
+              tot 80% en kleurt daardoor boven 76% al groen, zoals in Zwift. In
+              intervals.icu, en zo ook in Zwift en op je fietscomputer, staat
+              ZWBeter Worden voor de naam van elke training.
             </p>
           </article>
 

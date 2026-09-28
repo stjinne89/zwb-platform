@@ -20,6 +20,8 @@ export type TrainingStatusWorkout = {
   title: string;
   scheduled_at: string;
   intensity: string;
+  /** Trainingsvorm van het kernwerk; zie plannedWorkoutIntensity(). */
+  intensityLabel?: string;
   duration_minutes: number | null;
 };
 
@@ -150,7 +152,7 @@ export async function TrainingStatus({
                   className="inline-block size-2.5 rounded-full"
                   style={{ backgroundColor: INTENSITY_COLORS[intensity] ?? "#94a3b8" }}
                 />
-                {INTENSITY_LABELS[intensity] ?? nextWorkout.intensity}
+                {nextWorkout.intensityLabel ?? INTENSITY_LABELS[intensity] ?? nextWorkout.intensity}
               </span>
               {nextWorkout.duration_minutes != null && (
                 <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">

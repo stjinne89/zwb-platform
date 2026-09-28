@@ -107,6 +107,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "kleur kleuren zone zones zwift grijs blauw groen geel oranje rood blok balk ftp vermogensmeter",
   },
   {
+    title: "Namen van trainingen",
+    text: "Rustige en intensieve duur, tempo en sweet spot.",
+    href: "/hulp#trainingsvormen",
+    terms: "naam namen titel trainingsvorm rustige duur intensieve duur extensieve tempo sweet spot sweetspot drempel kernwerk zwbeter worden intervals zwift",
+  },
+  {
     title: "Trainingsdoel en je schema",
     text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
     href: "/hulp#trainingsschema",
