@@ -113,6 +113,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0192`
 > - Health-check `garmin_livetrack` (elk uur): 404 op een verzonnen sessie is
 >   groen, 403 betekent dat Garmin ons weigert.
 > - `/hulp#livetrack` met de stappen voor Garmin en Wahoo; runbook sectie 4 en 5.
+> - Nagekomen (`0a34b63`): `LIVE_INBOUND_DOMAIN` werd op productie gevuld met
+>   Resends voorbeeldadres `<anything>@….resend.app`, wat een adres zonder
+>   domein opleverde. De app neemt nu alleen het deel na de laatste `@`.
 >
 > **Bewuste afwijking van het onderzoek:** geen afzendercheck op de mail. Het
 > afzenderadres van Wahoo is onbekend, en doorsturen vanuit de eigen mailbox
