@@ -142,8 +142,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0192`
 >   GarminLiveTrack-Server, niet uit een eigen meting.
 > - ~~Of Garmin Netlify's IP-adressen net zo behandelt als een thuisverbinding.~~
 >   Wel: de health-check op productie gaf op 2026-09-28 "CSRF-route werkt".
-> - De Resend-webhook en de mail van Garmin/Wahoo zijn niet end-to-end getest;
->   de Svix-controle wel, met de testvector uit de Svix-documentatie.
+> - De mail van Garmin/Wahoo zelf is niet getest. De keten wel: op 2026-09-28
+>   kwam een testmail zonder link via Resend (`….resend.app`) binnen, en de
+>   webhook, de Svix-controle, het ophalen van de mail en "Laatste mail" op
+>   `/live` werkten op productie.
 > - Getest: unit-tests op de parsers, adres en handtekening; de Garmin- en
 >   Wahoo-client één keer tegen de echte endpoints (verzonnen sessie);
 >   `tsc`, `eslint` en `npm run build`.
