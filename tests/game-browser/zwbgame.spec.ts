@@ -1,40 +1,64 @@
 import { expect, test } from "@playwright/test";
 
-test("full interface, tactics, food, pause and save/resume", async ({ page }, info) => {
+test("ladder challenge, riding modes, team order, pause and save/resume", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Niet de sterkste? Wel de slimste." })).toBeVisible();
   await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Ladder" })).toHaveAttribute("aria-selected", "true");
+  const ladder = page.getByRole("region", { name: "Ladder" });
+  await expect(ladder.getByText("ZWB Demo")).toBeVisible();
+  await ladder.getByRole("button", { name: "Uitdagen" }).first().click();
+  await expect(ladder.getByRole("button", { name: "Uitgedaagd" })).toBeVisible();
   await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-lobby.png`, fullPage: true });
-  await page.getByRole("button", { name: /Ardennenjacht/ }).click();
-  await expect(page.getByRole("button", { name: /Ardennenjacht/ })).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: /Hilly Route/ }).click();
+  await expect(page.getByRole("button", { name: /Hilly Route/ })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Start de koers" }).click();
   await expect(page.getByRole("region", { name: "Rennerbediening" })).toBeVisible();
+  await expect(page.getByTestId("team-score")).toBeVisible();
   await page.getByRole("button", { name: "4 Aanvallen" }).click();
   await expect(page.getByRole("button", { name: "4 Aanvallen" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: /Gel nemen/ }).click();
-  await expect(page.getByRole("button", { name: /Eten/ })).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("button", { name: "3 Naar voren" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "6 Breng me terug" }).click();
+  await expect(page.getByRole("button", { name: "6 Breng me terug" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Pauzeren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Even op adem" })).toBeVisible();
-  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v3:demo-0:race"));
-  expect(stored).toBeTruthy(); expect(stored).not.toContain("de Vries");
+  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v4:demo-0:race"));
+  expect(stored).toBeTruthy(); expect(stored).not.toContain("de Vries"); expect(stored).not.toContain("grades");
   await page.reload();
   await page.getByRole("button", { name: "Hervat je koers" }).click();
-  await expect(page.getByRole("heading", { name: "Ardennenjacht", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hilly Route", exact: true })).toBeVisible();
   await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-race.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test("finishing stores only your result and removes the ongoing save", async ({ page }) => {
+test("the free race uses the space bar for powerups and Escape to pause", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Vrije race" }).click();
+  await expect(page.getByRole("region", { name: "Ladder" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Start de koers" }).click();
+  await expect(page.getByRole("button", { name: /powerup/i })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Ploegorder" })).toHaveCount(0);
+  await page.keyboard.press(" ");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("heading", { name: "Even op adem" })).toBeVisible();
+});
+
+test("a won ladder race scores the teams, climbs the ladder and removes the save", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => window.zwbgameFixture.nearFinish());
   await page.reload();
   await page.getByRole("button", { name: "Hervat je koers" }).click();
-  await expect(page.getByRole("heading", { name: "De koers is van jou." })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"place":1');
-  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v3:demo-0:race"))).toBeNull();
+  await expect(page.getByRole("heading", { name: /ZWB Demo wint/ })).toBeVisible();
+  await expect(page.getByText(/Ladder: plek \d+ → \d+/)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"score"');
+  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v4:demo-0:race"))).toBeNull();
+  const ladder = await page.evaluate(() => JSON.parse(localStorage.getItem("zwbgame:v4:demo-0:ladder") ?? "null"));
+  expect(ladder.order.at(-1)).not.toBe("own");
   await page.getByRole("button", { name: "Nieuwe koers" }).click();
   await expect(page.getByRole("heading", { name: "Jouw laatste koersen" })).toBeVisible();
   await page.getByRole("button", { name: "Wissen", exact: true }).click();
@@ -65,17 +89,17 @@ test("WebGL unavailable keeps the race playable", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("status")).toContainText("3D is niet beschikbaar");
   await page.getByRole("button", { name: "Start de koers" }).click();
-  await expect(page.getByRole("button", { name: /Gel nemen/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "1 Sparen" })).toBeEnabled();
   await expect(page.getByRole("region", { name: "Koersoverzicht" })).toBeVisible();
 });
 
-test("landscape phone: the race fills the screen with the modes in reach", async ({ page }, info) => {
+test("landscape phone: the race fills the screen with the controls in reach", async ({ page }, info) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto("/");
   await page.getByRole("button", { name: "Start de koers" }).click();
   await expect(page.getByRole("group", { name: "Rijstand" })).toBeVisible();
   expect(await page.locator("[data-racing=true]").boundingBox()).toMatchObject({ x: 0, y: 0, width: 844, height: 390 });
-  for (const name of ["1 Sparen", "2 Meerijden", "3 Naar voren", "4 Aanvallen", /Gel nemen/, /Bidon pakken/]) {
+  for (const name of ["1 Sparen", "2 Meerijden", "3 Naar voren", "4 Aanvallen", /powerup/i, "6 Breng me terug"]) {
     const box = (await page.getByRole("button", { name }).boundingBox())!;
     expect(box.y + box.height).toBeLessThanOrEqual(390);
     expect(box.x + box.width).toBeLessThanOrEqual(844);

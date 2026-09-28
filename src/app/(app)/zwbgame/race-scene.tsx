@@ -2,28 +2,31 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { COURSES, elevationAt } from "@/lib/zwbgame/courses";
 import { STEP_SECONDS } from "@/lib/zwbgame/engine";
+import { elevationAt } from "@/lib/zwbgame/routes";
 import type { RaceState } from "@/lib/zwbgame/types";
 
-/** raised: controls cover the lower part of the screen, so the picture shifts up. */
-type Props = { state: RaceState; overview: boolean; lowQuality: boolean; raised?: boolean };
+/**
+ * raised: controls cover the lower part of the screen, so the picture shifts up.
+ * stepTicks: simulation steps per shown step (time compression).
+ */
+type Props = { state: RaceState; overview: boolean; lowQuality: boolean; raised?: boolean; stepTicks?: number };
 const bend = (d: number) => Math.sin(d / 450) * 35 + Math.sin(d / 180) * 7;
 
-export default function RaceScene({ state, overview, lowQuality, raised = false }: Props) {
+export default function RaceScene({ state, overview, lowQuality, raised = false, stepTicks = 1 }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const latest = useRef({ state, overview, raised });
+  const latest = useRef({ state, overview, raised, stepTicks });
   const [failed, setFailed] = useState(false);
-  useEffect(() => { latest.current = { state, overview, raised }; }, [state, overview, raised]);
-  const courseId = state.config.courseId;
+  useEffect(() => { latest.current = { state, overview, raised, stepTicks }; }, [state, overview, raised, stepTicks]);
+  const route = state.route;
   const riderCount = state.riders.length;
+  const teamKey = state.riders.map((r) => r.team ?? "").join("");
   useEffect(() => {
     const element = host.current;
     if (!element) return;
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({ antialias: !lowQuality, alpha: false, powerPreference: "low-power" }); }
     catch { queueMicrotask(() => setFailed(true)); return; }
-    const course = COURSES[courseId];
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#b4d9df");
     scene.fog = new THREE.Fog("#b4d9df", 100, 420);
@@ -39,9 +42,9 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
     const geometries: THREE.BufferGeometry[] = [];
     const material = (color: string, flatShading = true) => { const m = new THREE.MeshStandardMaterial({ color, roughness: 0.9, flatShading }); materials.push(m); return m; };
     const geometry = <T extends THREE.BufferGeometry>(g: T) => { geometries.push(g); return g; };
-    const worldY = (distance: number) => elevationAt(course, Math.max(0, distance));
+    const worldY = (distance: number) => elevationAt(route, Math.max(0, distance));
     const roadVertices: number[] = [], groundVertices: number[] = [], indices: number[] = [];
-    for (let i = 0; i <= Math.ceil((course.length + 400) / 10); i++) {
+    for (let i = 0; i <= Math.ceil((route.length + 400) / 10); i++) {
       const d = i * 10 - 100, x = bend(d), y = worldY(d);
       roadVertices.push(x - 5, y, -d, x + 5, y, -d);
       groundVertices.push(x - 260, y - 0.18, -d, x + 260, y - 0.18, -d);
@@ -52,31 +55,42 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
       g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3)); g.setIndex(indices); g.computeVertexNormals();
       const mesh = new THREE.Mesh(g, material(color)); scene.add(mesh);
     };
-    strip(groundVertices, courseId === "alpen" ? "#859578" : "#92b27b");
+    strip(groundVertices, "#92b27b");
     strip(roadVertices, "#525e60");
     const dummy = new THREE.Object3D();
     const markerGeo = geometry(new THREE.BoxGeometry(0.11, 0.025, 4));
-    const markerCount = Math.ceil(course.length / 12);
+    // Time runs compressed, so the verge markers are spaced out to keep the picture calm.
+    const markerCount = Math.ceil(route.length / 24);
     const markers = new THREE.InstancedMesh(markerGeo, material("#e7e5bd"), markerCount * 2);
     for (let i = 0; i < markerCount; i++) for (let side = 0; side < 2; side++) {
-      const d = i * 12;
+      const d = i * 24;
       dummy.position.set(bend(d) + (side ? 4.5 : -4.5), worldY(d) + 0.025, -d);
       dummy.rotation.set(0, -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); markers.setMatrixAt(i * 2 + side, dummy.matrix);
     }
     scene.add(markers);
-    const trees = new THREE.InstancedMesh(geometry(new THREE.ConeGeometry(2.4, 8, 5)), material("#3f7058"), lowQuality ? 180 : 360);
+    const trees = new THREE.InstancedMesh(geometry(new THREE.ConeGeometry(2.4, 8, 5)), material("#3f7058"), Math.min(lowQuality ? 400 : 900, Math.ceil(route.length / 22)));
     for (let i = 0; i < trees.count; i++) {
-      const d = i / trees.count * course.length;
+      const d = i / trees.count * route.length;
       dummy.position.set(bend(d) + (i % 2 ? -1 : 1) * (10 + (i * 17 % 50)), worldY(d) + 3, -d);
       dummy.rotation.set(0, i, 0); dummy.scale.setScalar(0.7 + (i % 4) * 0.3); dummy.updateMatrix(); trees.setMatrixAt(i, dummy.matrix);
     }
     scene.add(trees);
     const finish = new THREE.Group();
-    finish.position.set(bend(course.length), worldY(course.length), -course.length);
+    finish.position.set(bend(route.length), worldY(route.length), -route.length);
     for (const x of [-5, 5]) { const pole = new THREE.Mesh(geometry(new THREE.BoxGeometry(0.3, 5, 0.3)), material("#c9974a")); pole.position.set(x, 2.5, 0); finish.add(pole); }
     const banner = new THREE.Mesh(geometry(new THREE.BoxGeometry(10.3, 1, 0.35)), material("#004653")); banner.position.y = 5; finish.add(banner);
     for (let i = 0; i < 20; i++) { const square = new THREE.Mesh(geometry(new THREE.PlaneGeometry(0.5, 1)), material(i % 2 ? "#ffffff" : "#0a2b34")); square.rotation.x = -Math.PI / 2; square.position.set(-4.75 + i * 0.5, 0.04, 0); finish.add(square); }
     scene.add(finish);
+    // Zwift banners: green for a sprint, red for a KOM, petrol for the lap line.
+    const arches = [...route.accents.filter((a) => a.banner).map((a) => ({ at: a.end, color: a.kind === "sprint" ? "#3fa34d" : "#c8402f" })), ...route.lapLines.map((at) => ({ at, color: "#0b6b7c" }))];
+    for (const arch of arches) {
+      const group = new THREE.Group();
+      group.position.set(bend(arch.at), worldY(arch.at), -arch.at);
+      group.rotation.y = -Math.atan((bend(arch.at + 1) - bend(arch.at - 1)) / 2);
+      for (const x of [-5, 5]) { const pole = new THREE.Mesh(geometry(new THREE.BoxGeometry(0.3, 5, 0.3)), material(arch.color)); pole.position.set(x, 2.5, 0); group.add(pole); }
+      const top = new THREE.Mesh(geometry(new THREE.BoxGeometry(10.3, 0.9, 0.3)), material(arch.color)); top.position.y = 5; group.add(top);
+      scene.add(group);
+    }
     // Each anatomical/bicycle part is instanced across the peloton: ~14 draws, not 24 × 14.
     const wheelGeo = geometry(new THREE.TorusGeometry(0.34, 0.045, 5, 14));
     const bodyGeo = geometry(new THREE.BoxGeometry(0.42, 0.34, 0.65));
@@ -97,7 +111,7 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
     const jerseyTexture = new THREE.CanvasTexture(jerseyCanvas);
     jerseyTexture.colorSpace = THREE.SRGBColorSpace;
     const kit = new THREE.MeshStandardMaterial({ map: jerseyTexture, roughness: 0.85 }); materials.push(kit);
-    const skin = material("#d7a887"), shorts = material("#15191b"), bikeFrame = material("#e6e9e6"), tyre = material("#1b1f22"), gold = material("#c9974a"), white = material("#f4f5f1"), helmet = material("#004653");
+    const skin = material("#d7a887"), shorts = material("#15191b"), bikeFrame = material("#e6e9e6"), tyre = material("#1b1f22"), gold = material("#c9974a"), white = material("#f4f5f1"), helmet = material("#ffffff");
     type Part = { mesh: THREE.InstancedMesh; x: number; y: number; z: number; sx: number; sy: number; sz: number; rx: number; rz: number; pedal?: number };
     const parts: Part[] = [];
     const addPart = (g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0, pedal?: number) => {
@@ -112,8 +126,16 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
     addPart(tubeGeo, bikeFrame, 0, 0.65, -0.48, 1, 0.65, 1, -0.3);
     addPart(tubeGeo, bikeFrame, 0, 0.69, 0.18, 1, 0.7, 1, 0.5);
     addPart(bodyGeo, kit, 0, 1.15, 0.04, 1, 1, 1, 0.3);
+    const kitPart = parts[parts.length - 1];
     addPart(bodyGeo, gold, 0, 1.3, -0.3, 0.45, 0.14, 0.1, 0.3);
     addPart(helmetGeo, helmet, 0, 1.43, -0.4, 1, 0.8, 1.2);
+    const helmetPart = parts[parts.length - 1];
+    // In a ladder race the rival team wears a warm tint over the club kit.
+    const tint = new THREE.Color();
+    latest.current.state.riders.forEach((r, i) => {
+      kitPart.mesh.setColorAt(i, tint.set(r.team === "rival" ? "#f08a5d" : "#ffffff"));
+      helmetPart.mesh.setColorAt(i, tint.set(r.team === "rival" ? "#b8452a" : "#004653"));
+    });
     // Arms run from the shoulder (top) down to the bars; the sleeve covers the top part.
     const arm = -0.6, along = (t: number) => [Math.cos(arm) * t, Math.sin(arm) * t] as const;
     for (const side of [-1, 1]) {
@@ -152,13 +174,13 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
       if (current.raised !== appliedRaise) frameView();
       const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
       lastFrame = now;
-      const race = `${current.state.config.seed}:${current.state.config.courseId}:${current.state.riders.length}`;
+      const race = `${current.state.config.seed}:${current.state.config.routeId}:${current.state.riders.length}`;
       if (current.state.tick !== lastTick || race !== lastRace || current.state.riders.some((r) => !displayed.has(r.rider.id))) {
-        const jump = lastTick < 0 || race !== lastRace || current.state.tick < lastTick || current.state.tick - lastTick > 10;
+        const jump = lastTick < 0 || race !== lastRace || current.state.tick < lastTick || current.state.tick - lastTick > 10 * current.stepTicks;
         lastRace = race;
         for (const r of current.state.riders) {
           const shown = displayed.get(r.rider.id);
-          const reset = jump || !shown || Math.abs(shown.distance - r.distance) > 30;
+          const reset = jump || !shown || Math.abs(shown.distance - r.distance) > 30 + 15 * current.stepTicks;
           displayed.set(r.rider.id, {
             from: reset ? r.distance : shown.distance, to: r.distance, fromLane: reset ? r.lane : shown.lane, toLane: r.lane,
             distance: reset ? r.distance : shown.distance, lane: reset ? r.lane : shown.lane,
@@ -175,21 +197,21 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
         shown.lane = shown.fromLane + (shown.toLane - shown.fromLane) * alpha;
       }
       const me = current.state.riders.find((r) => r.rider.id === current.state.config.playerId)!;
-      const focus = Math.min(displayed.get(me.rider.id)!.distance, course.length + 10);
+      const focus = Math.min(displayed.get(me.rider.id)!.distance, route.length + 10);
       const focusY = worldY(focus), focusX = bend(focus);
       // Only the camera's offset eases (switching views); following the rider is exact.
-      desiredCamera.set(current.overview ? 20 : 7, current.overview ? 45 : 7, current.overview ? 40 : 14);
+      desiredCamera.set(current.overview ? 20 : 8, current.overview ? 45 : 8.5, current.overview ? 40 : 17);
       cameraOffset.lerp(desiredCamera, initialized ? 1 - Math.exp(-dt * 4) : 1); initialized = true;
       camera.position.set(focusX + cameraOffset.x, focusY + cameraOffset.y, -focus + cameraOffset.z);
       look.set(bend(focus + 16), worldY(focus + 16) + 1, -focus - 16); camera.lookAt(look);
       current.state.riders.forEach((r, i) => {
         const position = displayed.get(r.rider.id)!;
-        const d = Math.min(position.distance, course.length + 6 + i * 0.1);
+        const d = Math.min(position.distance, route.length + 6 + i * 0.1);
         parent.position.set(bend(d) + position.lane, worldY(d), -d);
         parent.rotation.set(-Math.atan(terrainGrade(d)), -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0);
         parent.scale.setScalar(r.rider.id === current.state.config.playerId ? 1.15 : 1);
         parent.updateMatrix();
-        const helping = r.captainId === current.state.config.playerId;
+        const helping = r.team === "own" && r.rider.id !== current.state.config.playerId;
         dummy.position.set(bend(d) + position.lane, worldY(d) + 0.035, -d); dummy.rotation.set(-Math.PI / 2, 0, 0); dummy.scale.setScalar(helping ? 1 : 0); dummy.updateMatrix(); helperMarkers.setMatrixAt(i, dummy.matrix);
         for (const part of parts) {
           local.position.set(part.x, part.y, part.z);
@@ -214,7 +236,9 @@ export default function RaceScene({ state, overview, lowQuality, raised = false 
       geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose());
       renderer.dispose(); renderer.domElement.remove();
     };
-  }, [courseId, riderCount, lowQuality]);
+    // The scene is rebuilt per route and field, not per step.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.id, route.length, riderCount, teamKey, lowQuality]);
   return <div ref={host} style={{ position: "absolute", inset: 0 }}>
     {failed && <div style={{ position: "absolute", inset: 0, background: "#0b3a45", display: "grid", placeItems: "center", color: "white", padding: 24 }} role="status">3D is niet beschikbaar. Gebruik het koersoverzicht en de bediening.</div>}
   </div>;

@@ -1,15 +1,10 @@
-# ZWBgame — implementatie en verificatie, 17 september 2026
+# ZWBgame — Zwift-racegame, implementatie en verificatie
 
-De eerste versie is een besloten solo-spel op `/zwbgame`: zelf als renner rijden,
-maximaal 23 bots uit het clubroster, vier eigen parcoursen van 3,5–4 km, voeding, hydratatie,
-aanvalsreserve, positionering, slipstream, bonuskaarten, knechten en vooraf
-berekende compensatie. Lagere sportsterkte kan met beter spel winnen; bij gelijk
-spel wint de sterkere renner vaker, maar niet elke race. Die uitleg van
-"gelijkwaardige kans" is op 17 september 2026 door de eigenaar bevestigd.
-Vormgegeven met zelf opgebouwde, instanced 3D-fietsen en renners in het ZWB-clubshirt
-(wit boven met gouden streep, petrol met lichtere chevrons onder, gouden kraag en
-mouwranden), in een interface in petrol en goud. Er worden geen modellen of
-spelassets uit Flamme Rouge of Tour de France gebruikt.
+Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgame`:
+het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
+ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
+volgen op dezelfde engine. Versies 1–3 (17–19 september) waren een arcade-clubkoers
+in Flamme Rouge-stijl; zie "Eerdere versies" onderaan.
 
 ## Lokale speeltest
 
@@ -20,97 +15,94 @@ npm run test:zwbgame:browser
 npx vitest run tests/unit/zwbgame.test.ts tests/unit/zwbgame-database.test.ts tests/unit/zwbgame-server.test.ts tests/unit/privacy-version.test.ts
 ```
 
-De preview bundelt de echte client en simulatie met uitsluitend fictieve renners
-en vervangende serveracties. Hij luistert alleen op localhost. Deze preview is
-geen productieroute of authenticatie-bypass. Playwright test beide schermformaten
-tegen deze preview; servertoegang is afzonderlijk met mocks en echte SQL/RLS in
-PGlite getest. Dit is geen end-to-end test tegen de gekoppelde Supabase-database.
+De preview bundelt de echte client en simulatie met uitsluitend fictieve renners,
+vervangende serveracties en drie fixture-routes (`tests/fixtures/zwbgame/routes.ts`:
+Flat Route, Hilly Route en Cobbled Climbs, met lengtes, lead-ins en segmenten uit
+`zwift-data`, maar **met de hand benaderde hoogteprofielen**). Hij luistert alleen
+op localhost en is geen productieroute of authenticatie-bypass.
 
-## Architectuur en spelregels
+## Architectuur
 
-- `src/lib/zwbgame`: vaste simulatiestap van 200 ms, seed-afhankelijke bots en
-  selectie, parcoursen, afleiding van kwaliteiten, serveradapter en lokale opslag.
-- `src/app/(app)/zwbgame`: afzonderlijk geladen Three.js-renderer, HUD, lobby,
-  voorkeuren, eigen invoer/Intervals-sync en rosterbeheer voor admins.
-- Besturing (19 september 2026): de inspanningsbalk en vier taken zijn vervangen door
-  vier standen die beide tegelijk zetten: Sparen (wiel, 0,62), Meerijden (wiel, 0,75),
-  Naar voren (front, 0,88; dekt ook het oude Kopwerk) en Aanvallen (1,2). Toetsen
-  1–4 en pijltje omhoog/omlaag; toetsen werken ook nadat je op een knop tikte. Is
-  de aanvalsreserve leeg tijdens Aanvallen, dan zet de client je terug op Meerijden
-  (bots doen dat al zelf). De engine is ongewijzigd: bots houden alle tactieken.
-- Overzicht: een groepenbalk in beeld (renners minder dan 15 m uit elkaar vormen een
-  groep) met achterstand per groep, aantal renners, jouw groep en je ploeg; de
-  volledige lijst staat eronder. Liggend op een telefoon (landscape, hoogte ≤ 540 px)
-  vult de race het scherm, met standen rechts, eten/drinken/kaarten links, cijfers
-  op een donkere ondergrond en het camerabeeld 24% omhoog zodat je renner boven de
-  knoppen blijft. Optionele knop voor volledig scherm, die op Android ook naar
-  liggend draait; iOS Safari ondersteunt dat op iPhones niet.
-- Groepsdynamiek (sinds 17 september 2026, na melding "mijn renner houdt de groep
-  niet bij"): slipstream geeft ×1,12 snelheid (was ×1,045) en werkt tot 1,3 m
-  zijdelings. In het wiel rijdt een renner zonder beschutting automatisch een gat tot
-  150 m dicht op inspanning 0,86 plus 0,03 per renner in zijn wiel (max. 0,98),
-  zonder aanvalsreserve te verbranden. Laat het wiel een gat van meer dan 6 m
-  vallen en is de volger in de wind echt sneller (+0,3 m/s), dan rijdt hij eromheen.
-  Iedereen start op 75% inspanning, gelijk aan het botgemiddelde. Oorzaak was dat
-  een volger nooit harder kon dan zijn directe voorganger en dat gaten boven 10 m
-  nooit dichtgingen: het veld viel in de eerste minuut uiteen in groepjes.
-- Bots gebruiken dezelfde commando's, energie, bevoorrading en kaarten als de speler.
-  Per race krijgt elke bot een eigen karakter uit de seed: agressie en de afstand
-  van de laatste aanval (per rennerstype, ×0,55–1,65). Bots volgen soms een
-  aanval, houden een ontsnapping vast en nemen gespreid beslissingen, niet op
-  dezelfde tick.
-  Een uitgeputte renner krijgt pas nieuwe aanvalsreserve bij bewust lager
-  gekozen inspanning: permanent Aanvallen vasthouden regenereert geen gratis sprint.
-- Vermogensverschillen worden naar begrensde arcade-snelheidscoëfficiënten
-  vertaald (vlak 0,80–1,23; klimmen 0,76–1,28; sprint 0,80–1,25), niet als ruwe
-  natuurkundige watts doorgestuurd. Compensatie geeft maximaal 45 extra
-  energiepunten, maximaal 1,9× herstel, tot twee extra bonuskaarten en tot drie
-  knechten. Geen inhaalbonus op basis van achterstand.
-- Knechten: het zwakste derde van het veld kan knechten krijgen (1 bij
-  compensatie ≥ 0,10, 2 bij ≥ 0,22, 3 bij ≥ 0,36), het middelste derde levert ze,
-  het sterkste derde rijdt altijd alleen. Maximaal een derde van het veld is
-  knecht; de zwakste renner krijgt eerst een volledige ploeg. Een knecht rijdt
-  vóór zijn kopman op het hoogste tempo zonder aanvalsreserve (0,86), rijdt gaten
-  dicht, wacht als hij wegrijdt en rijdt de laatste 450 m een lead-out. Het wiel
-  van een eigen knecht kost 0,52 in plaats van 0,62, werkt ook bergop en trekt je
-  mee op zijn snelheid. Knechten stoppen onder 30% energie.
-- Bonuskaarten (Flamme Rouge-achtig, eenmalig): Rugwind (20 s geen wind, 15%
-  goedkoper), Goede benen (aanvalsreserve direct vol), Tweede adem (+22 energie,
-  +15 vocht), Verrassingsaanval (10 s aanvalstempo zonder reservekosten). Twee
-  getimede kaarten lopen niet tegelijk. Iedereen krijgt er twee uit de seed, bij
-  compensatie ≥ 0,3 en ≥ 0,6 één extra.
-- Dagvorm per renner per race: ×0,94–1,06 op het vermogen, zichtbaar voor de speler.
-  Wind per race: basiswind van het segment ×0,4–1,7 plus een verschuiving van
-  ±0,3; rugwind maakt sneller.
-- Hydratatie daalt met 0,07 + 0,10 × inspanning per seconde; onder 40 word je
-  tot 20% trager. Zonder drinken merk je dat in een hele race.
-- Parcoursen en spelduur (19 september 2026, op verzoek van de eigenaar: "parcoursen
-  van Flamme Rouge" en maximaal 5 minuten). Gekozen voor eigen parcoursen in
-  Flamme Rouge-stijl, niet de indelingen uit het spel: dat is inhoud van een
-  commercieel spel en die indelingen zijn hier niet betrouwbaar bekend. Een parcours
-  is een reeks stukken van 250 m (`courses.ts`): vlak, tegenwind (wind 1), klim
-  (5,5%), steile klim (8%), afdaling (−4,5%) en bevoorrading. Polderkoers 4,0 km,
-  Ardennenjacht 3,75 km, Heuvelrug 4,0 km (nieuw), Alpenfinale 3,5 km. Gemeten
-  (12 races, veld FTP 180–341): winnaar 3:49–4:10, laatste renner hooguit 5:01.
-  Energie- en vochtverbruik en de werking van een gel lopen twee keer zo snel
-  (`PACE`), zodat voeding in 4 minuten even zwaar weegt als eerst in 10. De
-  laatste aanval van bots schaalt mee met de parcourslengte (×0,5 bij 4 km). Wie
-  met lege aanvalsreserve blijft aanvallen, zakt nu naar inspanning 0,40 (was 0,48):
-  op 4 km won roekeloos aanvallen anders weer. Spelversie 3: lopende races van
-  versie 2 zijn niet hervatbaar; uitslagen blijven.
-- Twee gels en twee bidons; bij de bevoorradingsstrook van het parcours één van elk erbij, maximaal drie
-  tegelijk. Een gel herstelt 30 energiepunten geleidelijk. Voeding verlaagt de
-  inspanning tijdelijk. Finishvolgorde gebruikt de berekende passeertijd binnen
-  een simulatiestap. Na 15 minuten stopt een vastgelopen/extreme race met DNF's.
-- Browseropslag bewaart één versiegebonden race per account (spelversie 2 sinds
-  de balansronde; een versie-1-race is niet meer hervatbaar), maximaal zeven dagen
-  hervatbaar, zonder rennersnamen of vermogenskwaliteiten. Profielen en identiteiten
-  worden bij start/hervatten vers opgehaald. Een gewijzigde of vervallen
-  profielrevisie geeft een basisrenner; verdwenen identiteit wordt een gast.
-  Alleen de laatste twintig eigen uitslagen blijven lokaal bewaard; hun sleutel
-  bleef `v1`, zodat eerdere uitslagen de versiewissel overleven. Dagvorm, kaarten,
-  lopende kaart en kopman-ID worden in de bewaarde race meegeslagen; een kopman-ID
-  dat niet in dezelfde race voorkomt maakt de race ongeldig.
+- `src/lib/zwbgame/engine.ts`: vaste simulatiestap van 0,2 s, deterministisch uit de
+  seed. Physics, W′, frisheid, powerups, bots en ploegtaken.
+- `src/lib/zwbgame/routes.ts`: de ladderroutes (slug + ronden) en de compacte
+  spelroute: helling per 100 m, segmenten met boog-vlag, rondestrepen.
+- `src/lib/zwbgame/route-catalog.ts` (server): leest `zwift_routes.profile`, rolt het
+  met `pacingRouteFromZwift` (dezelfde code als het pacingplan) uit over lead-in en
+  ronden en voegt de sprints en KOM's uit `zwift-data` toe. Een profiel dat meer dan
+  10% van de routelengte afwijkt, of ontbreekt, laat de route weg.
+- `src/lib/zwbgame/ladder.ts`: ploegen, puntentelling, uitdagen en leapfrog.
+- `src/lib/zwbgame/server.ts`: roster en kwaliteiten zoals voorheen, plus de
+  routecatalogus en je ZWB-ladderteam (`teams.type = 'ladder'`, een actief team vóór
+  een team op het kerkhof). Geen migratie.
+- `src/app/(app)/zwbgame`: client (lobby met Ladder/Vrije race en routekeuze, HUD en
+  bediening) en de Three.js-scène met sprint- en KOM-bogen, rondestreep en een warme
+  tint voor de tegenstanders.
+
+## Spelregels en model
+
+**Physics.** Snelheid volgt uit de vermogensbalans van het pacingplan: luchtweerstand
+met `ZWIFT_BASE_CDA`, rolweerstand 0,004, zwaartekracht en een massa van 75 kg plus
+`ZWIFT_BASE_BIKE_KG`, met traagheid (versnellen kost tijd). In het wiel geldt
+`DRAFT_CDA_FACTOR` 0,7 (**aanname** uit de pacing-spike: Zwift publiceert zijn
+draftmodel niet). Beschut ben je met een renner 0,3–8 m voor je en minder dan 1,8 m
+opzij (de "blob"). Omdat het via luchtweerstand loopt, helpt het wiel op een klim
+vanzelf nauwelijks.
+
+**Privacy van de physics.** Elke renner is hetzelfde referentielichaam. Zijn vermogen
+is 250 W × coëfficiënt^2,5 (vlak mengt naar klim tussen 0 en 8% helling) × dagvorm ×
+(1 − vermoeidheid). De browser krijgt dus nog steeds alleen de dimensieloze
+coëfficiënten. De exponent 2,5 rekt de samengedrukte coëfficiënten terug: 180 W tegen
+330 W wordt ×1,5 in vermogen (echt ×1,83) in plaats van ×1,18.
+
+**Standen.** Meerijden trapt minstens 82% van de drempel (op een klim oplopend tot
+97%), volgt versnellingen tot 160% en springt over een renner die een gat laat vallen
+naar het wiel ervoor. In het wiel is 82% sneller dan het wiel zelf, dus renners
+schuiven door het blok en een groep rijdt sneller dan een solist: het blob-effect.
+Sparen trapt alleen wat nodig is om het wiel te houden, tot 110%, en zakt naar
+achteren. Naar voren rijdt 100% in de wind (130% in de eerste 90 s: de Zwift-start).
+Aanvallen is 145%, in de laatste 400 m een sprint op 650 W × sprintcoëfficiënt^1,5.
+Een lege W′ laat maximaal 97% toe. Supertuck: Sparen bij ≤ −3% en > 60 km/u geeft
+0 W en CdA ×0,7 (**aanname**; sneller dan meerijden op −6%).
+
+**W′ en frisheid.** W′ = 20 kJ × sprintcoëfficiënt², met herstel volgens Skiba via
+`recoveryTau` uit het pacingplan. Frisheid: elke volle W′ die je gebruikt kost 4%
+drempel, en werk boven 70% van de drempel telt voor een vijfde mee; maximaal 25%. Dat
+is een **spelkeuze**, geen gemeten fysiologie: zonder zou W′ onder de drempel gratis
+terugkomen en werd steeds vol gas rijden beloond.
+
+**Powerups.** Bij het passeren van het einde van een benoemd Zwift-segment of een
+rondestreep krijg je er één als je slot leeg is: veer, aerohelm of draft boost, met de
+effecten uit `POWERUP_EFFECTS` (draft boost ×1,5 op de besparing is een **aanname**).
+Zelf gedetecteerde klimmen (`klim-…`) krijgen geen boog. De spatiebalk gebruikt hem.
+
+**Tijd.** De client draait per 0,2 s beeldtijd `timeScale` simulatiestappen
+(verwachte racetijd / 390 s, naar boven afgerond, tussen 2 en 10), zodat een race van
+ruim 30 minuten in 5 tot 6,5 minuut speelt. Na je finish rekent de client de rest van
+de race in één keer uit, zodat uitslag en ploegscore compleet zijn. Een race stopt na
+1,8× de verwachte duur; wie dan niet binnen is, scoort niets.
+
+**Bots.** Harde start (een deel op kop), daarna meerijden met af en toe een beurt op
+kop; klimmers en punchers vallen soms aan op een klim; zelden een aanval op het vlak;
+een groep op meer dan 60 m halen ze met Naar voren; de finale hangt af van rennerstype
+en seed (sprinter ±230 m, diesel ±1300 m). Veer op de klim, aerohelm in de sprint,
+draft boost bij een gat.
+
+**Club Ladder** (race book gelezen op 28 september 2026, clubladder.notion.site):
+5 tegen 5, punten 10‥1 op finishplek, hoogste totaal wint, gelijkspel is verlies voor
+de uitdager, uitdagen tot 7 plekken hoger, leapfrog bij winst. **Niet overgenomen:** de
+bonusval na drie nederlagen, "friendly" onder drie starters, echte tegenstanders van
+andere clubs (hun renners hebben we niet) en het weigeren van een route door de
+verdediger. De spelladder telt tien ploegen: jouw ploeg en negen clubploegen van vijf,
+gevormd uit de 45 rosterleden die het dichtst bij jouw niveau zitten, oplopend in
+sterkte. De indeling volgt uit het roster en een vaste seed per lid en wordt niet
+bewaard; in de browser staan alleen de volgorde van ploeg-ID's en de laatste twintig
+duels. De tegenstander rijdt een lead-out voor zijn kopman (beste sprinter, of beste
+klimmer op een heuvelroute).
+
+**Ploegorders.** Breng me terug: bij een gat van 12–400 m wacht de ploeggenoot met de
+meeste reserve op 45% en sleept je dan op 105% terug. Lead-out: in de laatste 1100 m
+rijdt een ploeggenoot binnen 25 m van je op aanvalstempo voor je uit.
 
 ## Gegevens en toestemming
 
@@ -178,35 +170,49 @@ dit daarom uit; de eigenaar koos op 17 september 2026 voor automatische kwalitei
 voor iedereen. Niet uitgezocht of Intervals Strava-activiteiten in de curve via zijn
 API meeneemt.
 
-## Verificatie en uitrol
+## Verificatie en uitrol (28 september 2026)
 
-- 34 gerichte unit/database/privacy-tests geslaagd: determinisme, middelen,
-  duur/finish, drie parcoursen, zwakker profiel tegen sterkere roekeloze renners,
-  toestemmingsrevisies, intrekken, RLS, ontbrekende data en servertoegang.
-- Acht Playwright-tests geslaagd op desktop- en mobielviewport: starten,
-  parcourskeuze, aanvallen, eten, pauzeren, bewaren/hervatten, finish, uitslag
-  wissen, eigen profiel en bediening zonder WebGL. Screenshots visueel bekeken.
-- Groepsronde (17 september 2026): een renner die alleen in het wiel blijft, zat na
-  7,5 minuut 16–44 s achter de middelste bot; nu 8–13 s in een gelijk veld en 8–10 s
-  in een gemengd veld. In een gelijk veld zitten na 5 minuten gemiddeld 20–21 van de 23
-  bots binnen 10 s van de kop (was 9–11). Keerzijde: een compact peloton eindigt vaker
-  in een sprint, dus in het brede veld wint de top 3 nu 54–66% (zwakste helft 0–3%) en
-  in het smallere veld 46–59% (0–3%). De cijfers van de balansronde hieronder gelden
-  daarom niet meer. Sprintgeluk per race is geprobeerd en weggelaten: minder dan
-  5 procentpunt effect en onzichtbaar voor de speler. De 3D-weergave interpoleert nu
-  tussen simulatiestappen (was: 30% per frame naar de nieuwste stap, wat vijf keer
-  per seconde schokte); de camera volgt de renner exact en alleen de wissel tussen
-  volg- en overzichtscamera ease-t. Headless gemeten: 60 fps zonder uitschieters;
-  op echte telefoons niet gemeten.
-- Balansronde (17 september 2026): simulatie van 80 races per parcours met
-  dezelfde botstrategie voor iedereen, veld FTP 180–387. Vóór: top 3 wint 64–81%,
-  zwakste helft 0%, zwakste renner gemiddeld plek 23–24. Na: top 3 wint 49–57%,
-  zwakste helft 1–4%, zwakste renner met knechten gemiddeld plek 13. In een
-  smaller veld (FTP 180–295): top 3 wint 35–48%, zwakste helft 4–9%. Het script
-  zat in de scratchpad en is niet gecommit; de unit-tests leggen de richting vast
-  (variatie in winnaars, sterkere helft wint vaker, knechten, kaarten, drinken, wind).
-- TypeScript, gerichte ESLint en volledige Next-productiebuild geslaagd.
-  De bestaande middleware-deprecatiewaarschuwing is niet in deze ronde aangepakt.
+- Balanssimulatie (scratchpad, niet gecommit): 12 tot 16 races per route en per
+  spelerstrategie, in velden van FTP 200–340 en 220–320. Gemiddelde plek van 24:
+  meerijden en op 300 m sprinten 7,1–8,1 (in het tweede veld 13,8); aanvallen zodra
+  W′ boven 60% zit 8,8–11,3; steeds vol gas 7,4–11,8; de botstrategie 12–14; de hele
+  race sparen ±23. De les "zit in het wiel en kies je moment" is dus zichtbaar maar
+  klein (een à twee plekken): wie actief rijdt, zit vaker in de goede groep.
+  Ladderduels tegen ploegen rond je eigen niveau: 2–5 van de 12 gewonnen, meestal met
+  enkele punten verschil. Winnaar na 5,1–5,4 min, laatste renner na hooguit 6,6 min.
+- Unit-tests (`tests/unit/zwbgame.test.ts`, 23): determinisme bij opslaan en hervatten,
+  een veld rond je niveau, het wiel spaart op het vlak (< 80%) en niet op 7% (> 90%),
+  W′ en frisheid, lege W′, supertuck, powerups alleen bij een boog en één tegelijk,
+  racetijd per route, sparen vanaf de start kost de kopgroep, roekeloos aanvallen
+  maakt vermoeider, ladderpunten/gelijkspel/DNF, leapfrog en bereik, ploegtaken,
+  routecompactie, opslag zonder namen of profiel, oude uitslagen leesbaar.
+  Servertests (+2): de routecatalogus (afwijkend profiel weggelaten, geen watts of
+  gewicht in de bootstrap) en het ladderteam (actief vóór kerkhof, alleen zichtbare
+  teamgenoten).
+- Playwright (12, desktop en mobiel): ladder uitdagen, route kiezen, standen,
+  ploegorder, pauzeren en hervatten, vrije race met spatie en Esc, een gewonnen
+  ladderduel met score en ladderstijging, instellingen, zonder WebGL en liggend.
+  Screenshots bekeken; op mobiel liep de ladderlijst eerst te breed. Dat is opgelost
+  en de test controleert het nu.
+- **Niet lokaal te verifiëren:** of `zwift_routes` op productie profielen heeft voor
+  alle zeven ladderroutes (zonder profiel verschijnt een route niet; zonder enkele
+  route toont de game "Er is nog geen route beschikbaar"), de echte hoogteprofielen in
+  de game (alleen fixtures gezien), speelgevoel en fps op een echte telefoon, en de
+  draftfactor en powerup-aannames tegen echte Zwift.
+
+## Eerdere versies (1–3, 17–19 september 2026)
+
+Solo-clubkoers op eigen tegelparcoursen van 3,5–4 km in Flamme Rouge-stijl, met eten
+en drinken, bonuskaarten (Rugwind, Goede benen, Tweede adem, Verrassingsaanval),
+compensatie voor zwakkere renners (extra energie, herstel en kaarten) en knechten. Dat
+alles is met spelversie 4 vervallen, op keuze van de eigenaar: Zwift kent geen voeding,
+powerups vervangen de kaarten, en een veld rond je niveau (zoals een categorie)
+vervangt de compensatie. Uitslagen van toen blijven zichtbaar onder hun oude
+parcoursnaam; lopende v3-races zijn niet hervatbaar. Migratie **0170**, de
+toestemmingslogica en privacyversie `2026-09-17-zwbgame-kracht` zijn ongewijzigd.
+
+### Nog geldig uit de eerste ronde
+
 - Migratie 0170 is uitgevoerd in PGlite met nagebouwde noodzakelijke basistabellen.
   Volgens de eigenaar is hij op 17 september 2026 op de gekoppelde
   Supabase-database uitgevoerd; dat is niet vanuit deze repo gecontroleerd. Geen
@@ -220,7 +226,6 @@ API meeneemt.
 - Hoeveel leden echt FTP en gewicht in het platform hebben, is niet gemeten; alleen
   met mocks getest. Rosterleden zonder account blijven basisrenners.
 
-Geen multiplayer, publiek klassement, seizoenen, echte GPX-parcoursen,
-consolebesturing of Strava-koppeling gebouwd: de afgesproken eerste stap is
-een complete lokale solo-race. Uitbreidingsideeën horen in het gedeelde
+Geen multiplayer, publiek klassement, seizoenen, ZRL- of FRR-spelvorm,
+consolebesturing of Strava-koppeling gebouwd. Uitbreidingsideeën horen in het gedeelde
 plannenboek, niet in de actieve werkvoorraad van PLAN.md.

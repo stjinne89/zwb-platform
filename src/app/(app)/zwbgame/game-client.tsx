@@ -3,54 +3,52 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, BatteryCharging, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Droplets, Flag, HeartPulse, Leaf, Maximize2, Minimize2, Mountain, MountainSnow, Pause, Play, Rocket, Settings2, Shield, Utensils, Wind, Zap } from "lucide-react";
-import { COURSES, elevationAt } from "@/lib/zwbgame/courses";
-import { CARD_SECONDS, conditionsAt, createRace, standings, stepRace, STEP_SECONDS } from "@/lib/zwbgame/engine";
-import { readResults, restoreRace, resultsKey, saveKey, serializeRace } from "@/lib/zwbgame/storage";
-import type { CardId, CourseId, GameBootstrap, PlayerCommand, RaceResult, RaceState, RiderState, Tactic } from "@/lib/zwbgame/types";
+import { ArrowLeft, ArrowUpRight, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Feather, Flag, Leaf, Maximize2, Minimize2, Mountain, Pause, Play, Settings2, Shield, Swords, Trophy, Users, Wind, Zap } from "lucide-react";
+import { createRace, fatigueOf, groupsOf, MAX_FATIGUE, SPRINT_METERS, standings, stepRace, STEP_SECONDS, timeScale } from "@/lib/zwbgame/engine";
+import { applyChallenge, buildLadderTeams, challengeable, challengeWon, normalizeLadder, OWN_TEAM, teamScore, type LadderStanding } from "@/lib/zwbgame/ladder";
+import { accentAhead, elevationAt, gradeAt } from "@/lib/zwbgame/routes";
+import { ladderKey, readLadder, readResults, restoreRace, resultsKey, saveKey, serializeRace } from "@/lib/zwbgame/storage";
+import type { GameBootstrap, GameMode, GameRoute, Mode, PlayerCommand, PowerupId, RaceResult, RaceState, RiderState, TeamOrder } from "@/lib/zwbgame/types";
 import { refreshGame, saveGamePower, saveGamePreferences } from "./actions";
 import styles from "./game.module.css";
 
 const RaceScene = dynamic(() => import("./race-scene"), { ssr: false, loading: () => <div className={styles.sceneLoading}>Peloton opstellen…</div> });
 const labels = { sprinter: "Sprinter", puncher: "Puncher", tter: "Diesel", climber: "Klimmer", allrounder: "Allrounder" };
-// Four riding modes replace a separate effort slider and tactic choice.
-type ModeId = "save" | "ride" | "front" | "attack";
-const modes: { id: ModeId; label: string; key: string; tactic: Tactic; effort: number; icon: React.ReactNode }[] = [
-  { id: "save", label: "Sparen", key: "1", tactic: "wheel", effort: 0.62, icon: <Leaf size={20} /> },
-  { id: "ride", label: "Meerijden", key: "2", tactic: "wheel", effort: 0.75, icon: <Bike size={20} /> },
-  { id: "front", label: "Naar voren", key: "3", tactic: "front", effort: 0.88, icon: <ChevronsUp size={20} /> },
-  { id: "attack", label: "Aanvallen", key: "4", tactic: "attack", effort: 1.2, icon: <Zap size={20} /> },
+const modes: { id: Mode; label: string; key: string; icon: React.ReactNode }[] = [
+  { id: "save", label: "Sparen", key: "1", icon: <Leaf size={20} /> },
+  { id: "ride", label: "Meerijden", key: "2", icon: <Bike size={20} /> },
+  { id: "front", label: "Naar voren", key: "3", icon: <ChevronsUp size={20} /> },
+  { id: "attack", label: "Aanvallen", key: "4", icon: <Zap size={20} /> },
 ];
-const modeOf = (r: RiderState): ModeId => r.tactic === "attack" ? "attack" : r.tactic === "front" || r.tactic === "pull" ? "front" : r.effort < 0.7 ? "save" : "ride";
-const modeCommands = (id: ModeId): PlayerCommand[] => { const mode = modes.find((m) => m.id === id)!; return [{ type: "effort", value: mode.effort }, { type: "tactic", value: mode.tactic }]; };
-/** Riders on the road in groups: less than 15 m apart counts as one group. */
-function groupsOf(order: RiderState[]) {
-  const groups: RiderState[][] = [];
-  for (const r of order.filter((x) => x.finishTime === null)) {
-    const last = groups[groups.length - 1];
-    if (last && last[last.length - 1].distance - r.distance < 15) last.push(r); else groups.push([r]);
-  }
-  return groups;
-}
-const courseIcons = { wind: <Wind size={28} />, hills: <Mountain size={28} />, mountain: <MountainSnow size={28} /> };
-const cardInfo: Record<CardId, { label: string; icon: React.ReactNode }> = {
-  tailwind: { label: "Rugwind", icon: <Wind size={16} /> },
-  legs: { label: "Goede benen", icon: <BatteryCharging size={16} /> },
-  second: { label: "Tweede adem", icon: <HeartPulse size={16} /> },
-  surprise: { label: "Verrassingsaanval", icon: <Rocket size={16} /> },
+const orders: { id: TeamOrder; label: string; key: string }[] = [
+  { id: "free", label: "Vrij rijden", key: "5" },
+  { id: "bring", label: "Breng me terug", key: "6" },
+  { id: "leadout", label: "Lead-out", key: "7" },
+];
+const powerups: Record<PowerupId, { label: string; icon: React.ReactNode }> = {
+  feather: { label: "Veer", icon: <Feather size={16} /> },
+  aero: { label: "Aerohelm", icon: <Wind size={16} /> },
+  draft: { label: "Draft boost", icon: <Users size={16} /> },
 };
-const windLabel = (wind: number) => wind < -0.05 ? "Rugwind" : wind > 0.9 ? "Harde tegenwind" : wind > 0.4 ? "Tegenwind" : "Lichte wind";
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+const km = (meters: number) => (meters / 1000).toFixed(1).replace(".", ",");
+/** A stable ladder per member: the same club teams every visit. */
+const ladderSeed = (id: string) => [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0, 0x811c9dc5);
+const climbOf = (route: GameRoute) => Math.round(route.grades.reduce((sum, g) => sum + Math.max(0, g) * 100, 0));
 
 export function GameClient({ initial }: { initial: GameBootstrap }) {
   const [data, setData] = useState(initial);
-  const [courseId, setCourseId] = useState<CourseId>("polder");
+  const [mode, setMode] = useState<GameMode>("ladder");
+  const [routeId, setRouteId] = useState(initial.routes[0]?.id ?? "");
+  const [rivalId, setRivalId] = useState<string | null>(null);
+  const [ladder, setLadder] = useState<LadderStanding | null>(null);
   const [race, setRace] = useState<RaceState | null>(null);
   const [paused, setPaused] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [hasSave, setHasSave] = useState(false);
   const [results, setResults] = useState<RaceResult[]>([]);
+  const [outcome, setOutcome] = useState<{ score?: [number, number]; won?: boolean; from?: number; to?: number } | null>(null);
   const [overview, setOverview] = useState(false);
   const [lowQuality, setLowQuality] = useState(false);
   const [settings, setSettings] = useState(false);
@@ -61,24 +59,28 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const engine = useRef<RaceState | null>(null);
   const queue = useRef<PlayerCommand[]>([]);
   const finishedSaved = useRef<string | null>(null);
-  const preview = useMemo(() => createRace({ courseId, seed: 24, playerId: data.playerId }, data.roster), [courseId, data]);
+
+  const route = data.routes.find((r) => r.id === routeId) ?? data.routes[0];
+  const teams = useMemo(() => buildLadderTeams(data.roster, data.playerId, data.team, ladderSeed(data.playerId)), [data]);
+  const standing = useMemo(() => normalizeLadder(ladder, teams.rivals), [ladder, teams]);
+  const targets = challengeable(standing.order);
+  const rival = teams.rivals.find((t) => t.id === (rivalId && targets.includes(rivalId) ? rivalId : targets[targets.length - 1]));
+  const teamName = (id: string) => id === OWN_TEAM ? teams.own.name : teams.rivals.find((t) => t.id === id)?.name ?? id;
+  // The lobby shows the start grid; during a race the engine state takes over.
+  const preview = !race && route ? createRace({
+    mode, routeId: route.id, seed: 24, playerId: data.playerId,
+    teams: mode === "ladder" && rival ? { own: teams.own.riderIds, rival: rival.riderIds, rivalTeamId: rival.id } : undefined,
+  }, data.roster, route) : null;
   const active = race ?? preview;
-  const me = active.riders.find((r) => r.rider.id === data.playerId)!;
-  const course = COURSES[active.config.courseId];
-  const order = standings(active);
-  const place = order.findIndex((r) => r.rider.id === data.playerId) + 1;
-  const terrain = conditionsAt(active.config, me.distance);
-  const helpers = active.riders.filter((r) => r.captainId === data.playerId);
-  const canDrive = Boolean(race && !paused && !race.finished && me.finishTime === null);
-  const mode = modeOf(me);
-  const groups = groupsOf(order);
-  const finishedCount = order.filter((r) => r.finishTime !== null).length;
+  const me = active?.riders.find((r) => r.rider.id === data.playerId);
+  const nameOf = (id: string) => data.roster.find((r) => r.id === id)?.name ?? "Gast";
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       try {
         setHasSave(Boolean(localStorage.getItem(saveKey(initial.playerId))));
         setResults(readResults(localStorage.getItem(resultsKey(initial.playerId))));
+        setLadder(readLadder(localStorage.getItem(ladderKey(initial.playerId))));
       } catch { setError("Opslag is niet beschikbaar; deze race wordt niet bewaard."); }
       setLowQuality(window.matchMedia("(max-width: 760px)").matches);
     });
@@ -96,6 +98,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     window.addEventListener("pagehide", save);
     return () => { save(); document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", save); };
   }, [save]);
+  const ticks = race ? timeScale(race.route) : 1;
   useEffect(() => {
     if (!race || paused || race.finished) return;
     let frame = 0, previous = 0, accumulator = 0;
@@ -106,15 +109,19 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       if (previous) accumulator += Math.min((timestamp - previous) / 1000, 0.5);
       previous = timestamp;
       let stepped = false;
+      // Time runs compressed: each shown step covers several simulation steps.
       while (accumulator >= STEP_SECONDS && !current.finished) {
-        stepRace(current, queue.current.splice(0)); accumulator -= STEP_SECONDS; stepped = true;
-        // An emptied attack reserve drops you back into the wheel instead of stalling.
+        for (let i = 0; i < ticks && !current.finished; i++) stepRace(current, queue.current.splice(0));
+        accumulator -= STEP_SECONDS; stepped = true;
         const own = current.riders.find((r) => r.rider.id === current.config.playerId);
-        if (own && own.finishTime === null && own.tactic === "attack" && own.reserve < 1 && !own.boost) queue.current.push(...modeCommands("ride"));
+        // An emptied W′ drops you back into the wheel, except in the sprint itself.
+        if (own && own.finishTime === null && own.mode === "attack" && own.wbal < 1 && current.route.length - own.distance > SPRINT_METERS) queue.current.push({ type: "mode", value: "ride" });
+        // Once you are over the line the rest of the race is settled at once.
+        if (own && own.finishTime !== null) while (!current.finished) stepRace(current);
       }
       if (stepped) {
         setRace({ ...current, riders: current.riders.map((r) => ({ ...r })) });
-        if (current.tick % 25 === 0) save();
+        if (current.tick % (25 * ticks) < ticks) save();
       }
       if (!current.finished) frame = requestAnimationFrame(animate);
     };
@@ -122,42 +129,56 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     return () => cancelAnimationFrame(frame);
     // State snapshots must not restart the fixed-step clock.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, Boolean(race), race?.finished, save]);
+  }, [paused, Boolean(race), race?.finished, save, ticks]);
   useEffect(() => {
-    if (!race || me.finishTime === null) return;
-    const id = `${race.config.seed}:${race.config.courseId}`;
-    if (finishedSaved.current === id) return;
-    const result: RaceResult = { id, courseId: race.config.courseId, date: new Date().toISOString(), place, count: race.riders.length, seconds: me.finishTime };
+    if (!race?.finished) return;
+    const own = race.riders.find((r) => r.rider.id === data.playerId);
+    const id = `${race.config.seed}:${race.config.routeId}`;
+    if (!own || finishedSaved.current === id) return;
+    const order = standings(race);
+    const score = race.config.mode === "ladder" ? teamScore(race) : undefined;
+    const result: RaceResult = { id, mode: race.config.mode, route: race.route.name, date: new Date().toISOString(), place: order.indexOf(own) + 1, count: race.riders.length, seconds: own.finishTime ?? race.tick * STEP_SECONDS, score };
     const frame = requestAnimationFrame(() => {
       finishedSaved.current = id;
+      let next: LadderStanding | null = null;
+      let change: typeof outcome = { score };
+      if (score && race.config.teams) {
+        const won = challengeWon(score);
+        const before = standing.order.indexOf(OWN_TEAM) + 1;
+        next = { ...standing, order: applyChallenge(standing.order, OWN_TEAM, race.config.teams.rivalTeamId, won), history: [{ date: result.date, rival: race.config.teams.rivalTeamId, route: race.route.name, score, won }, ...standing.history].slice(0, 20) };
+        change = { score, won, from: before, to: next.order.indexOf(OWN_TEAM) + 1 };
+      }
+      setOutcome(change);
       try {
         const previous = readResults(localStorage.getItem(resultsKey(data.playerId)));
-        const next = [result, ...previous.filter((r) => r.id !== id)].slice(0, 20);
-        localStorage.setItem(resultsKey(data.playerId), JSON.stringify(next));
-        localStorage.removeItem(saveKey(data.playerId)); setResults(next); setHasSave(false);
-      } catch { setError("Je uitslag kon niet worden opgeslagen."); }
+        const list = [result, ...previous.filter((r) => r.id !== id)].slice(0, 20);
+        localStorage.setItem(resultsKey(data.playerId), JSON.stringify(list));
+        if (next) { localStorage.setItem(ladderKey(data.playerId), JSON.stringify(next)); setLadder(next); }
+        localStorage.removeItem(saveKey(data.playerId)); setResults(list); setHasSave(false);
+      } catch { setError("Je uitslag kon niet worden opgeslagen."); if (next) setLadder(next); }
     });
     return () => cancelAnimationFrame(frame);
-  }, [race, me.finishTime, place, data.playerId]);
+  }, [race, data.playerId, standing]);
+  const canDrive = Boolean(race && !paused && !race.finished && me && me.finishTime === null);
   const command = useCallback((value: PlayerCommand) => { if (canDrive) queue.current.push(value); }, [canDrive]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      // A focused button keeps Space and Enter for itself; mode keys still work after a tap.
-      if (target.matches("input, select, textarea") || (target.matches("button, a") && (event.key === " " || event.key === "Enter")) || event.ctrlKey || event.metaKey || event.altKey) return;
+      // A focused button keeps Enter for itself; the other keys still work after a tap.
+      if (target.matches("input, select, textarea") || (target.matches("button, a") && event.key === "Enter") || event.ctrlKey || event.metaKey || event.altKey) return;
       const own = engine.current?.riders.find((r) => r.rider.id === data.playerId);
       const picked = modes.find((m) => m.key === event.key);
-      if (picked) modeCommands(picked.id).forEach(command);
+      if (picked) command({ type: "mode", value: picked.id });
+      const order = orders.find((o) => o.key === event.key);
+      if (order && engine.current?.config.mode === "ladder") command({ type: "order", value: order.id });
       if (own && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
         event.preventDefault();
-        const index = modes.findIndex((m) => m.id === modeOf(own)) + (event.key === "ArrowUp" ? 1 : -1);
-        if (modes[index]) modeCommands(modes[index].id).forEach(command);
+        const next = modes[modes.findIndex((m) => m.id === own.mode) + (event.key === "ArrowUp" ? 1 : -1)];
+        if (next) command({ type: "mode", value: next.id });
       }
-      const card = /^[5-8]$/.test(event.key) ? engine.current?.riders.find((r) => r.rider.id === data.playerId)?.cards[Number(event.key) - 5] : undefined;
-      if (card) command({ type: "card", card });
-      if (event.key.toLowerCase() === "e") command({ type: "eat" });
-      if (event.key.toLowerCase() === "d") command({ type: "drink" });
-      if (event.key === " " && race) { event.preventDefault(); setPaused(true); save(); }
+      // As in Zwift, the space bar fires your powerup.
+      if (event.key === " " && race) { event.preventDefault(); command({ type: "powerup" }); }
+      if ((event.key === "Escape" || event.key.toLowerCase() === "p") && race) { setPaused(true); save(); }
     };
     window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
   }, [command, race, save, data.playerId]);
@@ -175,17 +196,26 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       let next: RaceState | null = null;
       if (resume) {
         const text = engine.current ? serializeRace(engine.current) : localStorage.getItem(saveKey(fresh.playerId));
-        next = text ? restoreRace(text, fresh.roster, fresh.playerId) : null;
+        next = text ? restoreRace(text, fresh.roster, fresh.routes, fresh.playerId) : null;
         if (!next) { localStorage.removeItem(saveKey(fresh.playerId)); setHasSave(false); throw new Error("Deze opgeslagen race is verlopen. Start een nieuwe koers."); }
       } else {
-        next = createRace({ courseId, seed: crypto.getRandomValues(new Uint32Array(1))[0], playerId: fresh.playerId }, fresh.roster);
+        const chosen = fresh.routes.find((r) => r.id === routeId) ?? fresh.routes[0];
+        if (!chosen) throw new Error("Er is nog geen route beschikbaar.");
+        const freshTeams = buildLadderTeams(fresh.roster, fresh.playerId, fresh.team, ladderSeed(fresh.playerId));
+        const freshRival = freshTeams.rivals.find((t) => t.id === rival?.id);
+        if (mode === "ladder" && !freshRival) throw new Error("Kies een ploeg om uit te dagen.");
+        next = createRace({
+          mode, routeId: chosen.id, seed: crypto.getRandomValues(new Uint32Array(1))[0], playerId: fresh.playerId,
+          teams: mode === "ladder" && freshRival ? { own: freshTeams.own.riderIds, rival: freshRival.riderIds, rivalTeamId: freshRival.id } : undefined,
+        }, fresh.roster, chosen);
         finishedSaved.current = null;
       }
+      setOutcome(null);
       engine.current = next; queue.current = []; setRace({ ...next }); setPaused(false); setSettings(false); save();
     } catch (e) { setError(e instanceof Error ? e.message : "Starten mislukt."); }
     finally { setBusy(false); }
   }
-  function back() { save(); setPaused(true); engine.current = null; setRace(null); }
+  function back() { save(); setPaused(true); engine.current = null; setRace(null); setOutcome(null); }
   async function updatePreferences(visible: boolean, ownProfile: boolean) {
     setBusy(true); setError("");
     try { const result = await saveGamePreferences({ visible, ownProfile }); if (!result.ok) throw new Error(result.error); await reload(); }
@@ -226,9 +256,26 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     } catch { /* fullscreen is optional */ }
   }
 
+  if (!active || !me || !route) {
+    return <div className={styles.game}><div className={styles.error} role="status">Er is nog geen route beschikbaar.</div></div>;
+  }
+  const shown = active.route;
+  const order = standings(active);
+  const place = order.indexOf(me) + 1;
+  const groups = groupsOf(order);
+  const finishedCount = order.filter((r) => r.finishTime !== null).length;
+  const remaining = Math.max(0, shown.length - me.distance);
+  const next = accentAhead(shown, me.distance);
+  const sprinting = remaining < SPRINT_METERS;
+  const score = active.config.mode === "ladder" ? teamScore(active) : null;
+  const rivalName = active.config.teams ? teamName(active.config.teams.rivalTeamId) : "";
+  const freshness = Math.round((1 - fatigueOf(me) / MAX_FATIGUE) * 100);
+  const road = me.tucked ? "Supertuck" : me.sheltered ? "In het wiel" : "In de wind";
+  const ownRank = standing.order.indexOf(OWN_TEAM) + 1;
+
   return <div className={styles.game} ref={gameRef} data-racing={race ? "true" : undefined}>
     <header className={styles.header}>
-      <div className={styles.brand}><Bike size={26} /><span>ZWB<span className={styles.brandAccent}>game</span><small>JOUW CLUB. JOUW KOERS.</small></span></div>
+      <div className={styles.brand}><Bike size={26} /><span>ZWB<span className={styles.brandAccent}>game</span><small>ZWIFT-KOERS. JOUW TACTIEK.</small></span></div>
       <div className={styles.headerActions}>
         <Link href="/hulp#zwbgame" aria-label="Spelregels" title="Spelregels"><CircleHelp size={20} /></Link>
         {!race && <button onClick={() => setSettings(!settings)} aria-expanded={settings} aria-label="Spelinstellingen"><Settings2 size={20} /></button>}
@@ -253,72 +300,105 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       </form>
     </section>}
     <div className={styles.stage} data-testid="game-stage">
-      <RaceScene state={active} overview={overview} lowQuality={lowQuality} raised={Boolean(race) && landscape} />
+      <RaceScene state={active} overview={overview} lowQuality={lowQuality} raised={Boolean(race) && landscape} stepTicks={ticks} />
       <div className={styles.stageShade} />
       {!race ? <div className={styles.hero}>
-        <span className={styles.eyebrow}>ZWB CYCLING • CLUBKOERS</span>
+        <span className={styles.eyebrow}>ZWB CYCLING • {mode === "ladder" ? "CLUB LADDER" : "VRIJE RACE"}</span>
         <h1>Niet de sterkste?<br /><em>Wel de slimste.</em></h1>
-        <p>Kies je moment. Pak je wiel. Maak het af.</p>
-        <button className={styles.primary} disabled={busy} onClick={() => start(false)}><Flag size={18} />{busy ? "Opstellen…" : "Start de koers"}<ArrowUpRight size={20} /></button>
+        <p>{mode === "ladder" && rival ? `${teams.own.name} daagt ${rival.name} uit.` : "Kies je moment. Pak je wiel. Maak het af."}</p>
+        <button className={styles.primary} disabled={busy || (mode === "ladder" && !rival)} onClick={() => start(false)}><Flag size={18} />{busy ? "Opstellen…" : "Start de koers"}<ArrowUpRight size={20} /></button>
         {hasSave && <button className={styles.resume} disabled={busy} onClick={() => start(true)}>Hervat je koers <ChevronRight size={16} /></button>}
       </div> : <>
         <div className={styles.raceTop}>
           <button className={styles.glassButton} onClick={back} aria-label="Terug naar startscherm"><ArrowLeft size={18} /></button>
-          <div><span className={styles.eyebrow}>LIVE KOERS</span><h1>{course.name}</h1></div>
+          <div><span className={styles.eyebrow}>{active.config.mode === "ladder" ? "CLUB LADDER" : "VRIJE RACE"}</span><h1>{shown.name}</h1></div>
           <button className={styles.glassButton} disabled={busy || race.finished} onClick={() => { if (paused) void start(true); else { setPaused(true); save(); } }} aria-label={paused ? "Hervatten" : "Pauzeren"}>{paused ? <Play size={19} /> : <Pause size={19} />}</button>
         </div>
-        <div className={styles.raceNumbers}><div><strong>{place}<small>/{active.riders.length}</small></strong><span>POSITIE</span></div><div><strong>{(me.speed * 3.6).toFixed(0)}<small> km/u</small></strong><span>SNELHEID</span></div><div><strong>{(Math.max(0, course.length - me.distance) / 1000).toFixed(1)}<small> km</small></strong><span>TE GAAN</span></div></div>
-        <div className={styles.conditions}><span><Mountain size={14} />{(terrain.grade * 100).toFixed(1)}%</span><span><Wind size={14} />{windLabel(terrain.wind)}</span><span>{clock(active.tick * STEP_SECONDS)}</span><span className={me.sheltered ? styles.sheltered : undefined}>{me.sheltered ? "In de luwte" : "In de wind"}</span>{me.boost && <span className={styles.boost}>{cardInfo[me.boost.card].icon}{cardInfo[me.boost.card].label} {Math.ceil(me.boost.left)}s</span>}</div>
+        <div className={styles.raceNumbers}><div><strong>{place}<small>/{active.riders.length}</small></strong><span>POSITIE</span></div><div><strong>{(me.speed * 3.6).toFixed(0)}<small> km/u</small></strong><span>SNELHEID</span></div><div><strong>{km(remaining)}<small> km</small></strong><span>TE GAAN</span></div>{score && <div data-testid="team-score"><strong>{score[0]}<small> – {score[1]}</small></strong><span>PLOEGEN</span></div>}</div>
+        <div className={styles.conditions}><span><Mountain size={14} />{(gradeAt(shown, me.distance) * 100).toFixed(1)}%</span><span><Zap size={14} />{Math.round(me.effort * 100)}% drempel</span><span className={me.sheltered || me.tucked ? styles.sheltered : undefined}>{road}</span>{next && <span>{/sprint|kom/i.test(next.name) ? next.name : `${next.kind === "sprint" ? "Sprint" : "KOM"} ${next.name}`}{next.start > me.distance ? ` · ${km(next.start - me.distance)} km` : ""}</span>}<span>{clock(active.tick * STEP_SECONDS)}</span>{me.active && <span className={styles.boost}>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</span>}</div>
         <ol className={styles.groups} aria-label="Groepen">
           {finishedCount > 0 && <li><Flag size={12} />{finishedCount}</li>}
           {groups.map((group, i) => {
             const mine = group.includes(me);
             const gap = i === 0 ? 0 : (groups[0][0].distance - group[0].distance) / Math.max(group[0].speed, 5);
+            const mates = group.filter((r) => r.team === "own").length, rivals = group.filter((r) => r.team === "rival").length;
             return <li key={group[0].rider.id} data-mine={mine || undefined}>
               <span>{i === 0 && !finishedCount ? "Kop" : `+${clock(gap)}`}</span>
               <strong>{group.length}</strong>
-              {mine && <em>Jij{helpers.length > 0 && <Shield size={11} aria-label="met ploeg" />}</em>}
+              {score && <small>{mates}–{rivals}</small>}
+              {mine && <em>Jij</em>}
             </li>;
           })}
         </ol>
         {paused && !race.finished && <div className={styles.pauseOverlay}><Pause size={30} /><h2>Even op adem</h2><button className={styles.primary} disabled={busy} onClick={() => start(true)}><Play size={18} />Hervatten</button></div>}
       </>}
       <div className={styles.sceneTools}><button onClick={() => setOverview(!overview)} aria-pressed={overview}>{overview ? "Volgcamera" : "Overzicht"}</button><button onClick={() => setLowQuality(!lowQuality)} aria-pressed={lowQuality}>{lowQuality ? "3D · zuinig" : "3D · hoog"}</button>{race && typeof document !== "undefined" && document.fullscreenEnabled && <button onClick={toggleFullscreen} aria-pressed={fullscreen} aria-label={fullscreen ? "Volledig scherm sluiten" : "Volledig scherm"}>{fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}</button>}</div>
-      {!race && <div className={styles.heroBadge}><Shield size={20} /><span>JIJ TEGEN DE CLUB<strong>{data.roster.length} renners · solo</strong></span></div>}
+      {!race && mode === "ladder" && <div className={styles.heroBadge}><Trophy size={20} /><span>{teams.own.name.toUpperCase()}<strong>Plek {ownRank} van {standing.order.length}</strong></span></div>}
     </div>
     <div className={styles.routeStrip}>
-      <span><Flag size={15} />{course.name}</span>
-      <svg viewBox="0 0 500 45" preserveAspectRatio="none" role="img" aria-label="Hoogteprofiel parcours">
+      <span><Flag size={15} />{shown.name}</span>
+      <svg viewBox="0 0 500 45" preserveAspectRatio="none" role="img" aria-label="Hoogteprofiel route">
         {(() => {
-          const samples = Array.from({ length: 101 }, (_, i) => elevationAt(course, course.length * i / 100));
+          const samples = Array.from({ length: 101 }, (_, i) => elevationAt(shown, shown.length * i / 100));
           const min = Math.min(...samples), max = Math.max(...samples);
           const points = samples.map((y, i) => `${i * 5},${37 - (y - min) / Math.max(25, max - min) * 30}`).join(" ");
-          return <><polygon points={`0,45 ${points} 500,45`} fill={`${course.color}1f`} /><polyline points={points} fill="none" stroke={course.color} strokeWidth="2" /><line x1={Math.max(0, Math.min(500, me.distance / course.length * 500))} x2={Math.max(0, Math.min(500, me.distance / course.length * 500))} y1="0" y2="45" stroke="#fff" strokeWidth="2" /></>;
+          const x = (d: number) => Math.max(0, Math.min(500, d / shown.length * 500));
+          return <><polygon points={`0,45 ${points} 500,45`} fill="#d2a95f1f" /><polyline points={points} fill="none" stroke="#d2a95f" strokeWidth="2" />
+            {shown.accents.filter((a) => a.banner).map((a) => <rect key={`${a.name}-${a.start}`} x={x(a.start)} width={Math.max(2, x(a.end) - x(a.start))} y="40" height="5" fill={a.kind === "sprint" ? "#3fa34d" : "#c8402f"} />)}
+            {shown.lapLines.map((d) => <line key={d} x1={x(d)} x2={x(d)} y1="0" y2="45" stroke="#8fc4cc" strokeDasharray="3 3" />)}
+            <line x1={x(me.distance)} x2={x(me.distance)} y1="0" y2="45" stroke="#fff" strokeWidth="2" /></>;
         })()}
-      </svg><span>{(course.length / 1000).toFixed(1)} km</span>
+      </svg><span>{km(shown.length)} km</span>
     </div>
     {race ? <>
       <div className={styles.dashboard}>
         <section className={styles.controls} aria-label="Rennerbediening">
-          <div className={styles.resources}><Meter label="Energie" value={me.energy} max={me.maxEnergy} icon={<Leaf size={15} />} /><Meter label="Aanval" value={me.reserve} max={100} icon={<Zap size={15} />} /><Meter label="Drinken" value={me.hydration} max={100} icon={<Droplets size={15} />} /></div>
-          <div className={styles.modes} role="group" aria-label="Rijstand">{modes.map((m) => <button key={m.id} data-mode={m.id} disabled={!canDrive} aria-pressed={mode === m.id} onClick={() => modeCommands(m.id).forEach(command)}><kbd>{m.key}</kbd>{m.icon}{m.label}</button>)}</div>
-          <div className={styles.feedButtons}><button disabled={!canDrive || !me.gels || me.eating > 0 || me.drinking > 0} onClick={() => command({ type: "eat" })}><Utensils size={17} />{me.eating > 0 ? "Eten…" : "Gel nemen"}<span>{me.gels}</span></button><button disabled={!canDrive || !me.bottles || me.eating > 0 || me.drinking > 0} onClick={() => command({ type: "drink" })}><Droplets size={17} />{me.drinking > 0 ? "Drinken…" : "Bidon pakken"}<span>{me.bottles}</span></button></div>
-          {me.cards.length > 0 && <div className={styles.cards} aria-label="Bonuskaarten">{me.cards.map((card, i) => <button key={`${card}-${i}`} disabled={!canDrive || Boolean(CARD_SECONDS[card] && me.boost)} onClick={() => command({ type: "card", card })}><kbd>{i + 5}</kbd>{cardInfo[card].icon}{cardInfo[card].label}</button>)}</div>}
-          <div className={styles.quietStats}><span>Dagvorm {me.form >= 1 ? "+" : ""}{Math.round((me.form - 1) * 100)}%</span><span>{helpers.length ? `Ploeg · ${helpers.length} ${helpers.length === 1 ? "knecht" : "knechten"}` : "Zonder ploeg"}</span><span>Herstel ×{me.recovery.toFixed(2)}</span><span>Energiebudget {me.maxEnergy.toFixed(0)}</span><span>{me.fed ? "Bevoorrading gepasseerd" : `Bevoorrading op ${(course.feedAt / 1000).toFixed(2).replace(".", ",")} km`}</span></div>
+          <div className={styles.resources}><Meter label="W′" value={me.wbal} max={me.wprime} icon={<Zap size={15} />} /><Meter label="Frisheid" value={freshness} max={100} icon={<Leaf size={15} />} /></div>
+          <div className={styles.modes} role="group" aria-label="Rijstand">{modes.map((m) => <button key={m.id} data-mode={m.id} disabled={!canDrive} aria-pressed={me.mode === m.id} onClick={() => command({ type: "mode", value: m.id })}><kbd>{m.key}</kbd>{m.icon}{m.id === "attack" && sprinting ? "Sprinten" : m.label}</button>)}</div>
+          <div className={styles.feedButtons}>
+            <button className={styles.powerup} disabled={!canDrive || !me.powerup || Boolean(me.active)} onClick={() => command({ type: "powerup" })} aria-label={me.powerup ? `Powerup ${powerups[me.powerup].label}` : "Geen powerup"}><kbd>Spatie</kbd>{me.active ? <>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</> : me.powerup ? <>{powerups[me.powerup].icon}{powerups[me.powerup].label}</> : "Geen powerup"}</button>
+          </div>
+          {active.config.mode === "ladder" && <div className={styles.cards} role="group" aria-label="Ploegorder">{orders.map((o) => <button key={o.id} disabled={!canDrive} aria-pressed={active.order === o.id} onClick={() => command({ type: "order", value: o.id })}><kbd>{o.key}</kbd><Shield size={14} />{o.label}</button>)}</div>}
+          <div className={styles.quietStats}><span>Dagvorm {me.form >= 1 ? "+" : ""}{Math.round((me.form - 1) * 100)}%</span><span>{me.attacks} aanvallen</span><span>{Math.round(me.shelteredSeconds / Math.max(1, active.tick * STEP_SECONDS) * 100)}% in het wiel</span>{score && <span>{teams.own.name} {score[0]} – {score[1]} {rivalName}</span>}</div>
         </section>
-        <section className={styles.positions} aria-label="Koersoverzicht"><div className={styles.sectionHeading}><h2>{race.finished ? "Uitslag" : "In de koers"}</h2><span>{order.length} renners</span></div><ol>{order.map((r, index) => <li key={r.rider.id} className={r.rider.id === data.playerId ? styles.ownPosition : r.captainId === data.playerId ? styles.teamPosition : ""}><button disabled={!canDrive || r.rider.id === data.playerId || r.finishTime !== null} onClick={() => command({ type: "tactic", value: "wheel", targetId: r.rider.id })} aria-label={`Volg ${r.rider.name}`}><span>{index + 1}</span><strong>{r.rider.name}</strong>{r.captainId === data.playerId && <Shield size={11} aria-label="Jouw knecht" />}<small>{r.finishTime !== null ? clock(r.finishTime) : index === 0 ? "Kop" : `+${Math.max(0, (order[0].distance - r.distance) / Math.max(r.speed, 2)).toFixed(0)}s`}</small></button></li>)}</ol></section>
+        <section className={styles.positions} aria-label="Koersoverzicht"><div className={styles.sectionHeading}><h2>{race.finished ? "Uitslag" : "In de koers"}</h2><span>{order.length} renners</span></div><ol>{order.map((r, index) => <li key={r.rider.id} className={r.rider.id === data.playerId ? styles.ownPosition : r.team === "own" ? styles.teamPosition : ""}><button disabled={!canDrive || r.rider.id === data.playerId || r.finishTime !== null} onClick={() => command({ type: "mode", value: "ride", targetId: r.rider.id })} aria-label={`Volg ${r.rider.name}`}><span>{index + 1}</span><strong>{r.rider.name}</strong>{r.team === "own" && r.rider.id !== data.playerId && <Shield size={11} aria-label="Ploeggenoot" />}{r.team === "rival" && <i className={styles.rivalDot} aria-label="Tegenstander" />}<small>{r.finishTime !== null ? clock(r.finishTime) : index === 0 ? "Kop" : `+${Math.max(0, (order[0].distance - r.distance) / Math.max(r.speed, 2)).toFixed(0)}s`}</small></button></li>)}</ol></section>
       </div>
-      {me.finishTime !== null && <section className={styles.finishCard} aria-live="polite"><Flag size={30} /><div><span className={styles.eyebrow}>FINISH</span><h2>{place === 1 ? "De koers is van jou." : `Plek ${place}. Sterk gereden.`}</h2><p>{clock(me.finishTime)} · {me.attacks} aanvallen · {Math.round(me.shelteredSeconds / Math.max(1, me.finishTime) * 100)}% beschut</p></div><button className={styles.primary} onClick={back}>Nieuwe koers <ArrowUpRight size={18} /></button></section>}
+      {race.finished && <FinishCard me={me} place={place} race={race} outcome={outcome} rivalName={rivalName} ownName={teams.own.name} onBack={back} />}
     </> : <>
-      <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies jouw koers</h2><span>4–5 min · {preview.riders.length} renners</span></div><div className={styles.courseGrid}>{Object.values(COURSES).map((c, i) => <button key={c.id} className={styles.courseCard} data-selected={courseId === c.id} aria-pressed={courseId === c.id} onClick={() => setCourseId(c.id)}><span className={styles.courseNumber}>0{i + 1}</span><span className={styles.courseIcon} style={{ color: c.color }}>{courseIcons[c.icon]}</span><h3>{c.name}</h3><p>{c.subtitle}</p><div><span>{(c.length / 1000).toFixed(1)} km</span><span>{courseId === c.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
+      <div className={styles.modeTabs} role="tablist" aria-label="Spelvorm">
+        <button role="tab" aria-selected={mode === "ladder"} onClick={() => setMode("ladder")}><Trophy size={16} />Ladder</button>
+        <button role="tab" aria-selected={mode === "free"} onClick={() => setMode("free")}><Bike size={16} />Vrije race</button>
+      </div>
+      {mode === "ladder" && <section className={styles.ladder} aria-label="Ladder">
+        <div className={styles.sectionHeading}><h2>Ladder</h2><span>5 tegen 5</span></div>
+        <ol>{standing.order.map((id, i) => {
+          const team = id === OWN_TEAM ? teams.own : teams.rivals.find((t) => t.id === id)!;
+          const open = targets.includes(id);
+          return <li key={id} data-own={id === OWN_TEAM || undefined} data-selected={rival?.id === id || undefined}>
+            <span>{i + 1}</span>
+            <div><strong>{team.name}</strong><small>{team.riderIds.map(nameOf).join(" · ")}</small></div>
+            {open && <button aria-pressed={rival?.id === id} onClick={() => setRivalId(id)}><Swords size={14} />{rival?.id === id ? "Uitgedaagd" : "Uitdagen"}</button>}
+          </li>;
+        })}</ol>
+        {standing.history.length > 0 && <div className={styles.ladderHistory}>{standing.history.slice(0, 3).map((h) => <span key={h.date}>{h.won ? "W" : "V"} · {teamName(h.rival)} · {h.score[0]}–{h.score[1]}</span>)}</div>}
+      </section>}
+      <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies de route</h2><span>{mode === "ladder" ? "10 renners" : `${active.riders.length} renners`}</span></div><div className={styles.courseGrid}>{data.routes.map((r, i) => <button key={r.id} className={styles.courseCard} data-selected={route.id === r.id} aria-pressed={route.id === r.id} onClick={() => setRouteId(r.id)}><span className={styles.courseNumber}>0{i + 1}</span><span className={styles.courseIcon}>{climbOf(r) / r.length * 1000 > 6 ? <Mountain size={26} /> : <Wind size={26} />}</span><h3>{r.name}</h3><p>{r.laps > 1 ? `${r.laps} ronden · ` : ""}{climbOf(r)} hm{r.accents.some((a) => a.banner) ? ` · ${r.accents.filter((a) => a.banner).length} segmenten` : ""}</p><div><span>{km(r.length)} km</span><span>{route.id === r.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
       <section className={styles.lobbyBottom}><div className={styles.riderCard}><span className={styles.riderAvatar}><Bike size={28} /></span><div><span className={styles.eyebrow}>JOUW RENNER</span><h2>{me.rider.name}</h2><p>{labels[me.rider.kind]} · {({ basic: "Basisprofiel", platform: "Platformgegevens", manual: "Eigen meting", intervals: "Intervals" })[me.rider.source]}</p></div><div className={styles.ability}><span>Vlak<strong>{Math.round(me.rider.flat * 100)}</strong></span><span>Klim<strong>{Math.round(me.rider.climb * 100)}</strong></span><span>Sprint<strong>{Math.round(me.rider.sprint * 100)}</strong></span></div></div><button className={styles.rosterButton} onClick={() => setRosterOpen(!rosterOpen)} aria-expanded={rosterOpen}><span>Het clubpeloton<strong>{data.roster.length} ZWB-renners</strong></span><ChevronRight size={22} /></button></section>
       {rosterOpen && <section className={styles.roster} aria-label="Clubpeloton">{data.roster.map((r) => <div key={r.id}><Bike size={16} /><strong>{r.name}</strong><span>{labels[r.kind]}</span></div>)}</section>}
-      {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{COURSES[r.courseId].name}</span><span>{r.place}/{r.count}</span><span>{clock(r.seconds)}</span></div>)}</section>}
+      {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{r.route}</span><span>{r.score ? `${r.score[0]}–${r.score[1]}` : `${r.place}/${r.count}`}</span><span>{clock(r.seconds)}</span></div>)}</section>}
     </>}
     <footer className={styles.footer}><span>ZWBgame <span>•</span> De club aan de start.</span><Link href="/hulp#zwbgame">Spelregels <ArrowUpRight size={13} /></Link>{active.riders.some((r) => r.rider.garmin) && <span>Spelkwaliteiten mede op basis van Garmin-gegevens</span>}</footer>
   </div>;
 }
 
+function FinishCard({ me, place, race, outcome, rivalName, ownName, onBack }: { me: RiderState; place: number; race: RaceState; outcome: { score?: [number, number]; won?: boolean; from?: number; to?: number } | null; rivalName: string; ownName: string; onBack: () => void }) {
+  const score = outcome?.score;
+  const title = score ? (outcome?.won ? `${ownName} wint ${score[0]}–${score[1]}.` : `${rivalName} houdt stand, ${score[1]}–${score[0]}.`) : place === 1 ? "De koers is van jou." : `Plek ${place}. Sterk gereden.`;
+  const ladder = score && outcome?.from && outcome.to ? (outcome.to < outcome.from ? `Ladder: plek ${outcome.from} → ${outcome.to}` : `Ladder: plek ${outcome.to}`) : null;
+  return <section className={styles.finishCard} aria-live="polite"><Flag size={30} /><div><span className={styles.eyebrow}>FINISH</span><h2>{title}</h2><p>{me.finishTime !== null ? `${clock(me.finishTime)} · plek ${place}/${race.riders.length}` : "Niet gefinisht"} · {me.attacks} aanvallen · {Math.round(me.shelteredSeconds / Math.max(1, race.tick * STEP_SECONDS) * 100)}% in het wiel{ladder ? ` · ${ladder}` : ""}</p></div><button className={styles.primary} onClick={onBack}>Nieuwe koers <ArrowUpRight size={18} /></button></section>;
+}
+
 function Meter({ label, value, max, icon }: { label: string; value: number; max: number; icon: React.ReactNode }) {
-  return <div className={styles.meter}><span>{icon}{label}<strong>{Math.round(value)}</strong></span><meter min={0} max={max} value={value} aria-label={label} /><div className={styles.meterTrack}><i style={{ width: `${value / max * 100}%`, background: value < 22 ? "#e2704f" : undefined }} /></div></div>;
+  const share = Math.max(0, Math.min(1, value / max));
+  return <div className={styles.meter}><span>{icon}{label}<strong>{Math.round(share * 100)}</strong></span><meter min={0} max={max} value={value} aria-label={label} /><div className={styles.meterTrack}><i style={{ width: `${share * 100}%`, background: share < 0.22 ? "#e2704f" : undefined }} /></div></div>;
 }

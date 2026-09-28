@@ -69,6 +69,37 @@ describe("ZWBgame platform power data", () => {
     expect(data.roster.find((r) => r.id === "own")!.source).toBe("basic");
   });
 });
+const lapProfile = (km: number) => {
+  const distanceM = Array.from({ length: Math.round(km * 40) + 1 }, (_, i) => i * 25);
+  return { distanceM, altitudeM: distanceM.map((d) => (d > 900 && d < 1800 ? (d - 900) * 0.05 : d >= 1800 ? Math.max(0, 45 - (d - 1800) * 0.04) : 0)) };
+};
+describe("ZWBgame routes and ladder team", () => {
+  it("offers ladder routes with a synced profile, rolled out over their laps", async () => {
+    tables.zwift_routes = [
+      { slug: "hilly-route", name: "Hilly Route", world: "watopia", profile: lapProfile(9.193) },
+      // A profile of another length belongs to another course and is left out.
+      { slug: "flat-route", name: "Flat Route", world: "watopia", profile: lapProfile(5) },
+    ];
+    const { routes } = await loadGame();
+    expect(routes.map((r) => r.id)).toEqual(["hilly-route"]);
+    expect(routes[0].laps).toBe(2);
+    expect(routes[0].length).toBeGreaterThan(18800);
+    expect(routes[0].accents.some((a) => a.banner && a.name === "Zwift KOM")).toBe(true);
+    expect(JSON.stringify(routes)).not.toMatch(/ftp|weight|watts/);
+  });
+  it("puts your visible Club Ladder teammates in your team", async () => {
+    tables.profiles.push({ id: "hidden", display_name: "hidden", is_approved: true, zwift_id: null });
+    tables.zwbgame_preferences.push({ profile_id: "hidden", visible: false, data_consent_version: null, revision: "r" });
+    tables.teams = [{ id: "t-old", name: "ZWBandits", type: "ladder", is_graveyard: true }, { id: "t-live", name: "ZWBeasts", type: "ladder", is_graveyard: false }, { id: "t-zrl", name: "ZRL B", type: "zrl", is_graveyard: false }];
+    tables.team_members = [
+      { team_id: "t-old", profile_id: "own" }, { team_id: "t-live", profile_id: "own" },
+      { team_id: "t-live", profile_id: "other" }, { team_id: "t-live", profile_id: "hidden" }, { team_id: "t-zrl", profile_id: "own" },
+    ];
+    expect((await loadGame()).team).toEqual({ name: "ZWBeasts", memberIds: ["other"] });
+    tables.team_members = [];
+    expect((await loadGame()).team).toBeNull();
+  });
+});
 describe("ZWBgame server boundary", () => {
   it("rejects signed-out, unapproved and unsigned privacy accounts", async () => {
     signedIn = false; await expect(requireGameMember()).rejects.toThrow(/Log in/);

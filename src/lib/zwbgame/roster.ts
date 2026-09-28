@@ -4,6 +4,10 @@ import type { GameRider } from "./types";
 export function basicRider(id: string, name: string): GameRider {
   return { id, name, kind: "allrounder", flat: 1, climb: 1, sprint: 1, source: "basic", revision: "basic-v1", garmin: false };
 }
+/** One number to rank riders, on the same power scale the race uses. */
+export function strength(r: Pick<GameRider, "flat" | "climb">) {
+  return (r.flat ** 2.5 + r.climb ** 2.5) / 2;
+}
 export type MemberRow = { id: string; display_name: string; zwift_id: string | null; is_approved: boolean };
 export type RosterRow = { id: string; name: string; zwift_id: string | null; claimed_by: string | null };
 export function buildRoster(members: MemberRow[], entries: RosterRow[], hidden: Set<string>) {

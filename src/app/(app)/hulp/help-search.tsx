@@ -12,7 +12,7 @@ type HelpResult = {
 };
 
 const HELP_INDEX: HelpResult[] = [
-  { title: "ZWBgame", text: "Spelregels, eten en drinken, tactiek, bonuskaarten, knechten, deelname en sportgegevens.", href: "/hulp#zwbgame", terms: "game spel wielrennen koers race peloton gel bidon energie tactiek bonuskaart kaarten knecht ploeg dagvorm wind liggend landschap volledig scherm standen sparen meerijden naar voren parcours ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
+  { title: "ZWBgame", text: "Zwift-racegame: ladder, routes, slipstream, W′, powerups, ploegorders, deelname en sportgegevens.", href: "/hulp#zwbgame", terms: "game spel wielrennen koers race zwift ladder club ladder uitdagen punten ploeg peloton blob slipstream draft wiel w' w-prime frisheid tactiek powerup veer aerohelm draft boost supertuck sprint kom lead-out breng me terug dagvorm route ronden liggend landschap volledig scherm standen sparen meerijden naar voren aanvallen ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
   {
     title: "FTP-test",
     text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",

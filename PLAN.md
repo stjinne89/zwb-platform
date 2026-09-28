@@ -85,6 +85,55 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 
 ---
 
+> **ZWBgame wordt een Zwift-racegame: Zwift-physics, echte routes en de Club Ladder, 2026-09-28 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie; spelversie 4 (lopende
+> v3-races vervallen, uitslagen blijven). Niet gepusht.
+>
+> **Waarom.** De eigenaar wil met de game het tactische deel van Zwift-racen leren,
+> in de spelvormen die ZWB rijdt: ladder, FRR-tours en ZRL. Keuzes van de eigenaar
+> vooraf: echte Zwift-routes, 5–8 minuten per race met versnelde tijd, clubroster en
+> platformkwaliteiten plus dagvorm houden, eten/drinken en compensatie met knechten
+> weg, en eerst de ladder.
+>
+> **Wat er is.** Een nieuwe engine op de vermogensbalans en Zwift-ijking van het
+> pacingplan (`solveSpeedMs`-vergelijking, `ZWIFT_BASE_CDA`, draft 0,7,
+> `POWERUP_EFFECTS`, `recoveryTau`), met blob-slipstream, W′, frisheid, harde start,
+> supertuck en powerups (veer, aerohelm, draft boost) onder sprint-/KOM-bogen en op
+> de rondestreep, met de spatiebalk. Zeven ladderroutes van 15–25 km uit
+> `zwift_routes`, uitgerold over lead-in en ronden met `pacingRouteFromZwift`. De
+> Club Ladder volgens het race book (gelezen 28 september): 5 tegen 5, punten 10‥1,
+> gelijkspel is verlies voor de uitdager, uitdagen tot 7 plekken hoger, leapfrog. Je
+> speelt tegen negen clubploegen rond je niveau; je echte ZWB-ladderteam rijdt mee.
+> Ploegorders: vrij rijden, breng me terug, lead-out. Daarnaast Vrije race tegen een
+> veld rond je niveau. Physics en balans: [ZWBgame](docs/zwbgame.md).
+>
+> **Onderweg gevonden (balans).** De eerste versie beloonde steeds aanvallen: een
+> peloton dat alleen het wiel volgt, is trager dan een solist. De oplossing was om
+> Meerijden minstens 82% te laten trappen, zodat renners door het blok schuiven en
+> een groep sneller rijdt dan een solist. Daarbij kwamen frisheid (elke lucifer en
+> lang hard rijden kost drempel) en rustigere bots. Nu is meerijden en je sprint
+> kiezen de beste strategie, maar het verschil is klein (een à twee plekken van 24).
+> Wie actief rijdt, zit vaker in de goede groep. Wie de hele race spaart, mist de
+> splitsing (±23e).
+>
+> **Bewust niet gebouwd.** ZRL (FAL/FTS/FIN met `scoreRace`, scratch, TTT, Race of
+> Truth) en FRR-tours (etappes, eGAP, 25‥6 punten, segmenten × moeilijkheid,
+> bezemwagen) wachten op een volgende ronde op deze engine. Uit het ladderreglement
+> niet: de bonusval na drie nederlagen, friendly's en echte tegenstanders van andere
+> clubs (hun renners hebben we niet). Geen echte watts in de HUD, want de browser
+> krijgt nog steeds alleen coëfficiënten. Geen nieuwe privacyversie: dezelfde
+> gegevens, alleen je ladderteamlidmaatschap bepaalt nu met wie je rijdt.
+>
+> **Niet meer waar.** De ZWBgame-blokken van 17 en 19 september hieronder
+> (tegelparcoursen, voeding, bonuskaarten, knechten, compensatie, 4–5 minuten) gelden
+> niet meer voor het spel; ze staan er als geschiedenis.
+>
+> **Niet lokaal te verifiëren.** Of `zwift_routes` op productie profielen heeft voor
+> alle zeven routes: zonder profiel verschijnt een route niet, en zonder enkele route
+> meldt de game "Er is nog geen route beschikbaar". Lokaal alleen met fixtures met
+> handgetekende profielen getest. Ook niet gemeten: de draftfactor en powerups tegen
+> echte Zwift, en fps en speelgevoel op een telefoon.
+
 > **Intensiteit, trainingsvormen en titels in ZWBeter Worden, 2026-09-28 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Migratie `0194_workout_library_training_forms.sql`
 > (**nog toepassen**; alleen de standaardbibliotheek, los van de deploy).
@@ -2221,7 +2270,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > ZWBeter Worden, Omnium-deadline) liggen bij het bestuur.
 > Details: [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md).
 
-> **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.**
+> **ZWBgame liggend, korte parcoursen en vier standen, 2026-09-19 — gebouwd, lokaal getest.** *Vervangen door spelversie 4 (2026-09-28): parcoursen, voeding en kaarten bestaan niet meer; de liggende weergave en de vier standen wel.*
 > Implementatiecommit `6675ba7`. Geen migratie; spelversie 3 (lopende races vervallen,
 > uitslagen blijven). Verzoek van de eigenaar: horizontaal spelen op mobiel,
 > parcoursen van Flamme Rouge, maximaal 5 minuten, overzichtelijker beeld en
@@ -2428,7 +2477,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > model de regel in de praktijk volgt en of weken met rustdagen het 85%-doel nog
 > halen; dat blijkt pas uit echte generaties.
 
-> **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.**
+> **ZWBgame groep bijhouden en vloeiend beeld, 2026-09-17 — gebouwd, lokaal getest.** *Groepsmodel vervangen door de Zwift-engine van 2026-09-28.*
 > Implementatiecommit `0c67f4a`. Geen migratie. Melding van de eigenaar: het beeld schokt
 > en de eigen renner houdt de groep niet bij. Beeld: de 3D-scène schoof elke frame 30%
 > naar de nieuwste simulatiestap (5 per seconde) en de camera liep daar ook nog achter;
@@ -2468,7 +2517,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > echt FTP en gewicht hebben en hoe het veld er daarna uitziet. Details:
 > [ZWBgame](docs/zwbgame.md).
 
-> **ZWBgame balans en clubkleuren, 2026-09-17 — gebouwd, lokaal getest.**
+> **ZWBgame balans en clubkleuren, 2026-09-17 — gebouwd, lokaal getest.** *Compensatie, kaarten en knechten vervallen met spelversie 4 (2026-09-28); de clubkleuren blijven.*
 > Implementatiecommit `b682351`. Geen migratie. De eigenaar
 > bevestigde "gelijkwaardige kans": slim spelen kan een sterkere renner verslaan,
 > bij gelijk spel wint de sterkere vaker. Het spel was te voorspelbaar (in de
