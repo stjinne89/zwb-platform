@@ -1,4 +1,4 @@
-export const GAME_VERSION = 4;
+export const GAME_VERSION = 5;
 export const CONSENT_VERSION = "2026-09-17";
 export type RiderKind = "sprinter" | "puncher" | "tter" | "climber" | "allrounder";
 export type GameRider = {
@@ -29,30 +29,39 @@ export type GameRoute = {
   /** Where a lap ends before the finish, in metres. */
   lapLines: number[];
 };
-export type GameMode = "ladder" | "free";
-export type TeamSide = "own" | "rival";
+export type GameMode = "ladder" | "free" | "zrl";
+/** WTRL ZRL formats; Race of Truth is a points race without drafting. */
+export type ZrlFormat = "points" | "rot" | "scratch" | "ttt";
+/** Your team always has this id. */
+export const OWN_TEAM = "own";
+/** A team in the race: your team first, with id "own". */
+export type Squad = { id: string; riders: string[] };
 export type RaceConfig = {
   mode: GameMode;
+  format?: ZrlFormat;
   routeId: string;
   seed: number;
   playerId: string;
-  /** Ladder: the five riders per side and the team you challenged. */
-  teams?: { own: string[]; rival: string[]; rivalTeamId: string };
+  /** Ladder and ZRL: the teams, yours first. The ladder has one opponent. */
+  squads?: Squad[];
 };
+/** A rider through a named segment: start and end in race seconds. */
+export type SegmentPass = { r: number; a: number; s: number; e: number | null };
 /** wheel: follow what is ahead; front: ride in the wind; attack: go clear or sprint. */
 export type Tactic = "wheel" | "front" | "attack";
 /** save and ride both follow the wheel; save never goes above threshold, ride follows any surge. */
 export type Mode = "save" | "ride" | "front" | "attack";
 export type PowerupId = "feather" | "aero" | "draft";
 /** Team orders from the player to the teammates. */
-export type TeamOrder = "free" | "bring" | "leadout";
+export type TeamOrder = "free" | "bring" | "leadout" | "points";
 export type PlayerCommand =
   | { type: "mode"; value: Mode; targetId?: string }
   | { type: "powerup" }
   | { type: "order"; value: TeamOrder };
 export type RiderState = {
   rider: GameRider;
-  team: TeamSide | null;
+  /** Team id: "own" for yours, otherwise the opponent's id. */
+  team: string | null;
   distance: number;
   speed: number;
   lane: number;
@@ -74,8 +83,8 @@ export type RiderState = {
   shelteredSeconds: number;
   /** Seeded day form, multiplies ability. */
   form: number;
-  /** Set on a teammate working for someone: bring back or lead out. */
-  job: { for: string; kind: "bring" | "leadout" } | null;
+  /** Set on a teammate working for someone: bring back, lead out, or hunt segment points. */
+  job: { for: string; kind: "bring" | "leadout" | "points" } | null;
 };
 export type RaceState = {
   version: number;
@@ -84,6 +93,8 @@ export type RaceState = {
   tick: number;
   riders: RiderState[];
   order: TeamOrder;
+  /** Named segments ridden, for ZRL points (FAL and FTS). */
+  passes: SegmentPass[];
   finished: boolean;
 };
 export type RaceResult = {
@@ -94,8 +105,11 @@ export type RaceResult = {
   place: number;
   count: number;
   seconds: number;
-  /** Ladder: own and rival team points. */
+  /** Ladder: own and rival team points. ZRL: your team's points and the winner's. */
   score?: [number, number];
+  format?: ZrlFormat;
+  /** ZRL: your team's place and the number of teams. */
+  teamRank?: [number, number];
 };
 /** ownProfile: an own measurement or Intervals game profile overrides the platform data. */
 export type GamePreferences = { visible: boolean; ownProfile: boolean };
@@ -107,4 +121,8 @@ export type GameBootstrap = {
   routes: GameRoute[];
   /** Your ZWB Club Ladder team, when you ride in one. */
   team: { name: string; memberIds: string[] } | null;
+  /** Your ZWB ZRL team, when you ride in one. */
+  zrlTeam: { name: string; memberIds: string[] } | null;
+  /** The next ZWB ZRL race in the club calendar with a route, to practise. */
+  zrlRace: { route: GameRoute; title: string; date: string; format: ZrlFormat | null } | null;
 };

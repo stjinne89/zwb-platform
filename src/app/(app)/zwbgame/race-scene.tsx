@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { STEP_SECONDS } from "@/lib/zwbgame/engine";
+import { teamTint } from "@/lib/zwbgame/colors";
 import { elevationAt } from "@/lib/zwbgame/routes";
 import type { RaceState } from "@/lib/zwbgame/types";
 
@@ -130,11 +131,11 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     addPart(bodyGeo, gold, 0, 1.3, -0.3, 0.45, 0.14, 0.1, 0.3);
     addPart(helmetGeo, helmet, 0, 1.43, -0.4, 1, 0.8, 1.2);
     const helmetPart = parts[parts.length - 1];
-    // In a ladder race the rival team wears a warm tint over the club kit.
+    // Opponents wear their team colour over the club kit.
     const tint = new THREE.Color();
     latest.current.state.riders.forEach((r, i) => {
-      kitPart.mesh.setColorAt(i, tint.set(r.team === "rival" ? "#f08a5d" : "#ffffff"));
-      helmetPart.mesh.setColorAt(i, tint.set(r.team === "rival" ? "#b8452a" : "#004653"));
+      kitPart.mesh.setColorAt(i, tint.set(teamTint(r.team).kit));
+      helmetPart.mesh.setColorAt(i, tint.set(teamTint(r.team).helmet));
     });
     // Arms run from the shoulder (top) down to the bars; the sleeve covers the top part.
     const arm = -0.6, along = (t: number) => [Math.cos(arm) * t, Math.sin(arm) * t] as const;

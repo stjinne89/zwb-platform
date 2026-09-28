@@ -1,6 +1,6 @@
 import { randomAt, standings } from "./engine";
 import { strength } from "./roster";
-import type { GameRider, RaceState } from "./types";
+import { OWN_TEAM, type GameRider, type RaceState } from "./types";
 
 /**
  * Club Ladder rules, from the race book (read 28 September 2026): five against
@@ -11,9 +11,9 @@ import type { GameRider, RaceState } from "./types";
 export const LADDER_POINTS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 export const CHALLENGE_RANGE = 7;
 export const TEAM_SIZE = 5;
-export const OWN_TEAM = "own";
+export { OWN_TEAM };
 const RIVAL_TEAMS = 9;
-const TEAM_NAMES = ["Polderpijlen", "Dijkdiesels", "Kasseikoppen", "Waaierwolven", "Tempobeulen", "Sprintsnoeken", "Heuvelhelden", "Klimgeiten", "Bergbokken"];
+export const TEAM_NAMES = ["Polderpijlen", "Dijkdiesels", "Kasseikoppen", "Waaierwolven", "Tempobeulen", "Sprintsnoeken", "Heuvelhelden", "Klimgeiten", "Bergbokken"];
 
 export type LadderTeam = { id: string; name: string; riderIds: string[] };
 export type LadderRecord = { date: string; rival: string; route: string; score: [number, number]; won: boolean };
@@ -25,6 +25,21 @@ export type LadderStanding = { version: 1; order: string[]; history: LadderRecor
  * you in strength. Built from the roster every time, so no names are stored.
  */
 export function buildLadderTeams(roster: GameRider[], playerId: string, club: { name: string; memberIds: string[] } | null, seed: number): { own: LadderTeam; rivals: LadderTeam[] } {
+  const { own, others } = clubPool(roster, playerId, club, seed);
+  const pool = others.slice(0, RIVAL_TEAMS * TEAM_SIZE).sort((a, b) => strength(a) - strength(b) || a.id.localeCompare(b.id));
+  const rivals: LadderTeam[] = [];
+  for (let i = 0; i + 3 <= pool.length && rivals.length < RIVAL_TEAMS; i += TEAM_SIZE) {
+    rivals.push({ id: `t${rivals.length + 1}`, name: TEAM_NAMES[rivals.length], riderIds: pool.slice(i, i + TEAM_SIZE).map((r) => r.id) });
+  }
+  // A club too small for a ladder still gets one opponent.
+  if (!rivals.length) rivals.push({ id: "t1", name: TEAM_NAMES[0], riderIds: Array.from({ length: TEAM_SIZE }, (_, i) => `guest:l${i}`) });
+  return { own, rivals };
+}
+/**
+ * Your team (your real ZWB teammates first, then riders closest to you in
+ * strength) and everyone else in the club, nearest to your level first.
+ */
+export function clubPool(roster: GameRider[], playerId: string, club: { name: string; memberIds: string[] } | null, seed: number) {
   const player = roster.find((r) => r.id === playerId);
   if (!player) throw new Error("Je renner ontbreekt.");
   const level = strength(player);
@@ -35,15 +50,8 @@ export function buildLadderTeams(roster: GameRider[], playerId: string, club: { 
   const mates = others.filter((r) => club?.memberIds.includes(r.id)).slice(0, TEAM_SIZE - 1);
   const ownIds = [playerId, ...mates.map((r) => r.id)];
   for (const rider of near(others.filter((r) => !ownIds.includes(r.id)))) { if (ownIds.length >= TEAM_SIZE) break; ownIds.push(rider.id); }
-  const pool = near(others.filter((r) => !ownIds.includes(r.id))).slice(0, RIVAL_TEAMS * TEAM_SIZE)
-    .sort((a, b) => strength(a) - strength(b) || a.id.localeCompare(b.id));
-  const rivals: LadderTeam[] = [];
-  for (let i = 0; i + 3 <= pool.length && rivals.length < RIVAL_TEAMS; i += TEAM_SIZE) {
-    rivals.push({ id: `t${rivals.length + 1}`, name: TEAM_NAMES[rivals.length], riderIds: pool.slice(i, i + TEAM_SIZE).map((r) => r.id) });
-  }
-  // A club too small for a ladder still gets one opponent.
-  if (!rivals.length) rivals.push({ id: "t1", name: TEAM_NAMES[0], riderIds: Array.from({ length: TEAM_SIZE }, (_, i) => `guest:l${i}`) });
-  return { own: { id: OWN_TEAM, name: club?.name ?? "ZWB", riderIds: ownIds }, rivals };
+  const own: LadderTeam = { id: OWN_TEAM, name: club?.name ?? "ZWB", riderIds: ownIds };
+  return { own, others: near(others.filter((r) => !ownIds.includes(r.id))) };
 }
 /** Strongest team on top, you at the bottom. */
 export function initialLadder(rivals: LadderTeam[]): LadderStanding {

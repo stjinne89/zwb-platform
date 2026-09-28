@@ -26,7 +26,7 @@ test("ladder challenge, riding modes, team order, pause and save/resume", async 
   await expect(page.getByRole("button", { name: "6 Breng me terug" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Pauzeren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Even op adem" })).toBeVisible();
-  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v4:demo-0:race"));
+  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v5:demo-0:race"));
   expect(stored).toBeTruthy(); expect(stored).not.toContain("de Vries"); expect(stored).not.toContain("grades");
   await page.reload();
   await page.getByRole("button", { name: "Hervat je koers" }).click();
@@ -56,13 +56,48 @@ test("a won ladder race scores the teams, climbs the ladder and removes the save
   await expect(page.getByRole("heading", { name: /ZWB Demo wint/ })).toBeVisible();
   await expect(page.getByText(/Ladder: plek \d+ → \d+/)).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"score"');
-  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v4:demo-0:race"))).toBeNull();
-  const ladder = await page.evaluate(() => JSON.parse(localStorage.getItem("zwbgame:v4:demo-0:ladder") ?? "null"));
+  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v5:demo-0:race"))).toBeNull();
+  const ladder = await page.evaluate(() => JSON.parse(localStorage.getItem("zwbgame:v5:demo-0:ladder") ?? "null"));
   expect(ladder.order.at(-1)).not.toBe("own");
   await page.getByRole("button", { name: "Nieuwe koers" }).click();
   await expect(page.getByRole("heading", { name: "Jouw laatste koersen" })).toBeVisible();
   await page.getByRole("button", { name: "Wissen", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Jouw laatste koersen" })).toHaveCount(0);
+});
+
+test("ZRL: the club race of the week, formats, team points and a TTT", async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await page.getByRole("tab", { name: "ZRL" }).click();
+  const zrl = page.getByRole("region", { name: "ZRL" });
+  await expect(zrl.getByText("ZRL Demo B1", { exact: true })).toBeVisible();
+  await expect(zrl.locator("li")).toHaveCount(6);
+  await expect(page.getByRole("button", { name: /Hilly Route/ }).first()).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("ZRL 2026/27 · R1 · W2 · ZRL Demo B1")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Puntenrace" })).toHaveAttribute("aria-checked", "true");
+  await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-zrl-lobby.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "Start de koers" }).click();
+  await expect(page.getByTestId("team-score")).toContainText("PLOEGPUNTEN");
+  await page.getByRole("button", { name: "8 Pak de punten" }).click();
+  await expect(page.getByRole("button", { name: "8 Pak de punten" })).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-zrl-race.png`, fullPage: true });
+  await page.getByRole("button", { name: "Terug naar startscherm" }).click();
+  await page.getByRole("radio", { name: "Ploegentijdrit" }).click();
+  await page.getByRole("button", { name: "Start de koers" }).click();
+  await expect(page.getByTestId("team-score")).toContainText("BIJ ELKAAR");
+  await expect(page.getByRole("group", { name: "Ploegorder" })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("a finished ZRL race gives the team place and league points", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => window.zwbgameFixture.nearFinishZrl());
+  await page.reload();
+  await page.getByRole("button", { name: "Hervat je koers" }).click();
+  await expect(page.getByRole("heading", { name: /ZRL Demo B1 wordt \de van 6: \d leaguepunten/ })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"teamRank"');
 });
 
 test("consent, own power input and profile updates", async ({ page }) => {

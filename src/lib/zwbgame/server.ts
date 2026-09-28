@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { basicRider, buildRoster, platformRider, type MemberRow, type PlatformPower, type RosterRow } from "./roster";
-import { loadGameRoutes } from "./route-catalog";
+import { loadGameRoutes, loadZrlRace } from "./route-catalog";
 import { CONSENT_VERSION, type GameBootstrap, type GameRider } from "./types";
 import { z } from "zod";
 
@@ -34,7 +34,7 @@ export async function loadGame(): Promise<GameBootstrap> {
   ]);
   // Fail closed: missing migrations/errors must never silently ignore opt-outs.
   if ([members, entries, preferences, profiles, exclusions].some((r) => r.error)) {
-    return { playerId: member.id, roster: [], preferences: { visible: true, ownProfile: false }, available: false, routes: [], team: null };
+    return { playerId: member.id, roster: [], preferences: { visible: true, ownProfile: false }, available: false, routes: [], team: null, zrlTeam: null, zrlRace: null };
   }
   const prefs = new Map((preferences.data ?? []).map((p) => [p.profile_id as string, p]));
   const hidden = new Set((preferences.data ?? []).filter((p) => !p.visible).map((p) => p.profile_id as string));
@@ -65,24 +65,28 @@ export async function loadGame(): Promise<GameBootstrap> {
     return platformRider(rider.id, rider.name, { profile, curve: curveRows.get(rider.id) } as PlatformPower) ?? rider;
   });
   const own = prefs.get(member.id);
-  const [routes, team] = await Promise.all([loadGameRoutes(admin), loadLadderTeam(admin, member.id, new Set(safeRoster.map((r) => r.id)))]);
-  return { playerId: member.id, roster: safeRoster, available: true, routes, team, preferences: { visible: own?.visible ?? true, ownProfile: ["manual", "intervals"].includes(safeRoster.find((r) => r.id === member.id)?.source ?? "") } };
+  const visible = new Set(safeRoster.map((r) => r.id));
+  const [routes, ladder, zrl] = await Promise.all([loadGameRoutes(admin), loadClubTeam(admin, "ladder", member.id, visible), loadClubTeam(admin, "zrl", member.id, visible)]);
+  const zrlRace = await loadZrlRace(admin, zrl?.id ?? null);
+  const plain = (team: typeof ladder) => (team ? { name: team.name, memberIds: team.memberIds } : null);
+  return { playerId: member.id, roster: safeRoster, available: true, routes, team: plain(ladder), zrlTeam: plain(zrl), zrlRace, preferences: { visible: own?.visible ?? true, ownProfile: ["manual", "intervals"].includes(safeRoster.find((r) => r.id === member.id)?.source ?? "") } };
 }
 type Admin = ReturnType<typeof createAdminClient>;
 /**
- * Your ZWB Club Ladder team, if you ride in one: an active team before one in the
- * graveyard. Only teammates who appear in the game roster ride along. Optional:
- * without it you race with the riders closest to you in strength.
+ * Your ZWB Club Ladder or ZRL team, if you ride in one: an active team before one
+ * in the graveyard and, for ZRL, a racing subteam (B1) before its umbrella (B).
+ * Only teammates who appear in the game roster ride along. Optional: without it
+ * you race with the riders closest to you in strength.
  */
-async function loadLadderTeam(admin: Admin, memberId: string, visible: Set<string>): Promise<GameBootstrap["team"]> {
-  const teams = await admin.from("teams").select("id, name, is_graveyard").eq("type", "ladder");
+async function loadClubTeam(admin: Admin, type: "ladder" | "zrl", memberId: string, visible: Set<string>): Promise<{ id: string; name: string; memberIds: string[] } | null> {
+  const teams = await admin.from("teams").select("id, name, is_graveyard, parent_team_id").eq("type", type);
   if (teams.error || !teams.data?.length) return null;
   const members = await admin.from("team_members").select("team_id, profile_id").in("team_id", teams.data.map((t) => t.id));
   if (members.error) return null;
   const mine = teams.data
     .filter((t) => (members.data ?? []).some((m) => m.team_id === t.id && m.profile_id === memberId))
-    .sort((a, b) => Number(Boolean(a.is_graveyard)) - Number(Boolean(b.is_graveyard)) || String(a.name).localeCompare(String(b.name)))[0];
+    .sort((a, b) => Number(Boolean(a.is_graveyard)) - Number(Boolean(b.is_graveyard)) || Number(!a.parent_team_id) - Number(!b.parent_team_id) || String(a.name).localeCompare(String(b.name)))[0];
   if (!mine) return null;
   const memberIds = (members.data ?? []).filter((m) => m.team_id === mine.id && m.profile_id !== memberId && visible.has(m.profile_id)).map((m) => m.profile_id as string);
-  return { name: String(mine.name), memberIds };
+  return { id: String(mine.id), name: String(mine.name), memberIds };
 }

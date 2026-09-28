@@ -4,7 +4,8 @@ import { applyChallenge, buildLadderTeams, challengeable, challengeWon, initialL
 import { basicRider, buildRoster, deriveRider, isAllowedActivity, strength } from "@/lib/zwbgame/roster";
 import { elevationAt, gameRouteFrom } from "@/lib/zwbgame/routes";
 import { readResults, restoreRace, serializeRace } from "@/lib/zwbgame/storage";
-import type { GameRoute, PlayerCommand, RaceState } from "@/lib/zwbgame/types";
+import type { GameRoute, PlayerCommand, RaceState, ZrlFormat } from "@/lib/zwbgame/types";
+import { buildZrlTeams, ownTeamResult, scoreZrl } from "@/lib/zwbgame/zrl";
 import { fixtureRoutes } from "../fixtures/zwbgame/routes";
 
 const roster = Array.from({ length: 30 }, (_, i) => basicRider(String(i), `Renner ${i}`));
@@ -158,11 +159,11 @@ describe("ZWBgame Club Ladder", () => {
   });
   it("scores 10 to 1 by finishing position, a tie is a loss and a non-finisher scores nothing", () => {
     const { own, rivals } = buildLadderTeams(club, "c30", null, 5);
-    const state = createRace({ mode: "ladder", routeId: flat.id, seed: 1, playerId: "c30", teams: { own: own.riderIds, rival: rivals[0].riderIds, rivalTeamId: rivals[0].id } }, club, flat);
+    const state = createRace({ mode: "ladder", routeId: flat.id, seed: 1, playerId: "c30", squads: [{ id: "own", riders: own.riderIds }, { id: rivals[0].id, riders: rivals[0].riderIds }] }, club, flat);
     expect(state.riders).toHaveLength(10);
     // Alternate: own, rival, own, rival…
     const ordered = [...state.riders].sort((a, b) => (a.team === b.team ? a.rider.id.localeCompare(b.rider.id) : a.team === "own" ? -1 : 1));
-    const owns = ordered.filter((r) => r.team === "own"), others = ordered.filter((r) => r.team === "rival");
+    const owns = ordered.filter((r) => r.team === "own"), others = ordered.filter((r) => r.team !== "own");
     owns.forEach((r, i) => { r.finishTime = 100 + i * 2; }); others.forEach((r, i) => { r.finishTime = 101 + i * 2; });
     state.finished = true;
     expect(teamScore(state)).toEqual([30, 25]);
@@ -183,7 +184,7 @@ describe("ZWBgame Club Ladder", () => {
   });
   it("teammates bring you back when you ask and lead you out in the final", () => {
     const { own, rivals } = buildLadderTeams(club, "c30", null, 5);
-    const state = createRace({ mode: "ladder", routeId: flat.id, seed: 2, playerId: "c30", teams: { own: own.riderIds, rival: rivals[0].riderIds, rivalTeamId: rivals[0].id } }, club, flat);
+    const state = createRace({ mode: "ladder", routeId: flat.id, seed: 2, playerId: "c30", squads: [{ id: "own", riders: own.riderIds }, { id: rivals[0].id, riders: rivals[0].riderIds }] }, club, flat);
     const me = state.riders.find((r) => r.rider.id === "c30")!;
     state.riders.forEach((r) => { r.distance = r === me ? 5000 : 5100; });
     applyCommand(state, me, { type: "order", value: "bring" });
@@ -253,3 +254,100 @@ describe("ZWBgame routes, roster and storage", () => {
     expect(results.map((r) => r.route)).toEqual(["Polderkoers", "Flat Route"]);
   });
 });
+
+describe("ZWBgame ZRL", () => {
+  const club = Array.from({ length: 60 }, (_, i) => deriveRider(`c${String(i).padStart(2, "0")}`, `C${i}`, { ftp: 170 + i * 3, weight: 75, sprint: (170 + i * 3) * (2.4 + (i % 4) * 0.3) }, "manual", "v"));
+  const hilly = fixtureRoutes[1];
+  const zrlRace = (format: ZrlFormat, seed = 5, route = hilly) => {
+    const { own, rivals } = buildZrlTeams(club, "c30", { name: "ZRL B1", memberIds: ["c10"] }, 3);
+    return createRace({ mode: "zrl", format, routeId: route.id, seed, playerId: "c30", squads: [{ id: "own", riders: own.riderIds }, ...rivals.map((t) => ({ id: t.id, riders: t.riderIds }))] }, club, route);
+  };
+  it("builds your ZRL team and five opponents of about equal strength", () => {
+    const { own, rivals } = buildZrlTeams(club, "c30", { name: "ZRL B1", memberIds: ["c10"] }, 3);
+    expect(own.name).toBe("ZRL B1");
+    expect(own.riderIds.slice(0, 2)).toEqual(["c30", "c10"]);
+    expect(rivals).toHaveLength(5);
+    const all = [own, ...rivals].flatMap((t) => t.riderIds);
+    expect(new Set(all).size).toBe(30);
+    const level = (ids: string[]) => ids.reduce((sum, id) => sum + strength(club.find((r) => r.id === id)!), 0);
+    const levels = rivals.map((t) => level(t.riderIds));
+    expect(Math.max(...levels) - Math.min(...levels)).toBeLessThan(0.2 * Math.min(...levels));
+  });
+  it("a Race of Truth has no draft; a TTT only behind your own team", () => {
+    const behind = (format: ZrlFormat, sameTeam: boolean) => {
+      const state = zrlRace(format);
+      const me = state.riders.find((r) => r.rider.id === "c30")!;
+      const lead = state.riders.find((r) => (r.team === "own") === sameTeam && r !== me)!;
+      state.riders.forEach((r) => { if (r !== me && r !== lead) r.finishTime = 1; });
+      for (const r of [me, lead]) { r.lane = 0; r.speed = 11; }
+      lead.distance = 102; me.distance = 100;
+      stepRace(state, [], idle);
+      return me.sheltered;
+    };
+    expect(behind("points", false)).toBe(true);
+    expect(behind("rot", true)).toBe(false);
+    expect(behind("ttt", true)).toBe(true);
+    expect(behind("ttt", false)).toBe(false);
+  });
+  it("scores a points race with the ZRL dashboard's rules from the segments ridden", () => {
+    const state = run(zrlRace("points"));
+    const banners = hilly.accents.filter((a) => a.banner).length;
+    // Every finisher rode every named segment once.
+    for (const [i, r] of state.riders.entries()) if (r.finishTime !== null) expect(state.passes.filter((p) => p.r === i && p.e !== null)).toHaveLength(banners);
+    const score = scoreZrl(state);
+    const riders = [...score.riders.values()];
+    const starters = state.riders.length;
+    // The first rider over each banner gets as many points as there are starters.
+    expect(Math.max(...riders.map((r) => r.fal))).toBeGreaterThanOrEqual(starters);
+    expect(riders.reduce((sum, r) => sum + r.podium, 0)).toBe(30);
+    const teamTotal = score.teams.reduce((sum, t) => sum + (t.points ?? 0), 0);
+    expect(teamTotal).toBe(riders.reduce((sum, r) => sum + r.total, 0));
+    expect(score.teams[0].league).toBe(6);
+    expect([...score.teams].sort((a, b) => a.rank - b.rank)[5].league).toBeGreaterThanOrEqual(1);
+    // Segment hunters take the points on the banners.
+    const hunters = new Set(state.riders.flatMap((r, i) => (r.team !== "own" && [...state.riders].filter((x) => x.team === r.team && x.rider.id !== r.rider.id).every((x) => x.rider.sprint <= r.rider.sprint) ? [i] : [])));
+    const falBy = (ids: Set<number>, inside: boolean) => riders.filter((r) => ids.has(state.riders.findIndex((x) => x.rider.id === r.name)) === inside).map((r) => r.fal);
+    expect(mean(falBy(hunters, true))).toBeGreaterThan(mean(falBy(hunters, false)));
+  }, 30000);
+  it("a scratch race scores only the finish; a TTT takes the fourth rider and no rider points", () => {
+    const scratch = scoreZrl(run(zrlRace("scratch")));
+    expect([...scratch.riders.values()].every((r) => r.fal === 0 && r.fts === 0)).toBe(true);
+    const state = run(zrlRace("ttt"));
+    const tttScore = scoreZrl(state);
+    expect(tttScore.riders.size).toBe(0);
+    for (const team of tttScore.teams) {
+      const times = state.riders.filter((r) => r.team === team.id).map((r) => r.finishTime!).sort((a, b) => a - b);
+      expect(team.time).toBe(times[3]);
+    }
+    // Three finishers is no result and no league points.
+    state.riders.filter((r) => r.team === "own").slice(0, 2).forEach((r) => { r.finishTime = null; });
+    const own = ownTeamResult(scoreZrl(state));
+    expect([own.time, own.league, own.rank]).toEqual([null, 0, 6]);
+  }, 30000);
+  it("sends a hunter after the points only in points formats, and yours only on your order", () => {
+    const jobs = (format: ZrlFormat, order?: "points") => {
+      const state = zrlRace(format);
+      const me = state.riders.find((r) => r.rider.id === "c30")!;
+      state.riders.forEach((r) => { r.distance = 3000; });
+      if (order) applyCommand(state, me, { type: "order", value: order });
+      stepRace(state);
+      return state.riders.filter((r) => r.job?.kind === "points");
+    };
+    expect(jobs("points").map((r) => r.team).sort()).toEqual(["z1", "z2", "z3", "z4", "z5"]);
+    expect(jobs("points", "points").some((r) => r.team === "own")).toBe(true);
+    expect(jobs("scratch")).toHaveLength(0);
+    expect(jobs("ttt")).toHaveLength(0);
+  });
+  it("saves and resumes a ZRL race with its segments", () => {
+    const a = zrlRace("points");
+    for (let i = 0; i < 3000; i++) stepRace(a);
+    expect(a.passes.length).toBeGreaterThan(0);
+    const b = restoreRace(serializeRace(a), club, fixtureRoutes, "c30")!;
+    expect(b).not.toBeNull();
+    for (let i = 0; i < 200; i++) { stepRace(a); stepRace(b); }
+    expect(b).toEqual(a);
+    const broken = JSON.parse(serializeRace(a)); broken.config.squads[1].riders = ["somebody"];
+    expect(restoreRace(JSON.stringify(broken), club, fixtureRoutes, "c30")).toBeNull();
+  }, 30000);
+});
+const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);

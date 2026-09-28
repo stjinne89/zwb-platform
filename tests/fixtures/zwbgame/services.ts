@@ -1,6 +1,7 @@
 import { basicRider, deriveRider, type PowerInput } from "../../../src/lib/zwbgame/roster";
 import { createRace } from "../../../src/lib/zwbgame/engine";
 import { buildLadderTeams } from "../../../src/lib/zwbgame/ladder";
+import { buildZrlTeams } from "../../../src/lib/zwbgame/zrl";
 import { saveKey, serializeRace } from "../../../src/lib/zwbgame/storage";
 import type { GameBootstrap, GamePreferences } from "../../../src/lib/zwbgame/types";
 import { fixtureRoutes } from "./routes";
@@ -9,6 +10,8 @@ const names = ["Jij (demo)", "Sam de Vries", "Noor Bakker", "Alex Peeters", "Rob
 export const fixture: GameBootstrap = {
   playerId: "demo-0", available: true, preferences: { visible: true, ownProfile: false }, routes: fixtureRoutes,
   team: { name: "ZWB Demo", memberIds: ["demo-2", "demo-3"] },
+  zrlTeam: { name: "ZRL Demo B1", memberIds: ["demo-4", "demo-6"] },
+  zrlRace: { route: { ...fixtureRoutes[1], id: "zrl:hilly-route:2" }, title: "ZRL 2026/27 · R1 · W2 · ZRL Demo B1", date: "2026-09-29T18:00:00Z", format: null },
   // You ride a basic profile; the fictional club around you varies in strength.
   roster: names.map((name, i) => i === 0 || i % 5 === 0 ? basicRider(`demo-${i}`, name) : deriveRider(`demo-${i}`, name, { ftp: 235 + (i * 37) % 120, weight: 64 + (i * 11) % 22, sprint: (235 + (i * 37) % 120) * (2.5 + (i % 4) * 0.3) }, "manual", "demo")),
 };
@@ -25,7 +28,17 @@ export function nearFinish() {
   const seed = [...fixture.playerId].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0, 0x811c9dc5);
   const { own, rivals } = buildLadderTeams(fixture.roster, fixture.playerId, fixture.team, seed);
   const rival = rivals[0];
-  const state = createRace({ mode: "ladder", routeId: route.id, playerId: fixture.playerId, seed: 23, teams: { own: own.riderIds, rival: rival.riderIds, rivalTeamId: rival.id } }, fixture.roster, route);
+  const state = createRace({ mode: "ladder", routeId: route.id, playerId: fixture.playerId, seed: 23, squads: [{ id: "own", riders: own.riderIds }, { id: rival.id, riders: rival.riderIds }] }, fixture.roster, route);
+  state.tick = 8000;
+  state.riders.forEach((r, i) => { r.distance = route.length - (r.rider.id === fixture.playerId ? 4 : r.team === "own" ? 12 + i : 60 + i); r.speed = 12; });
+  localStorage.setItem(saveKey(fixture.playerId), serializeRace(state));
+}
+/** A ZRL scratch race a few metres from the line, you in front. */
+export function nearFinishZrl() {
+  const route = fixture.zrlRace!.route;
+  const seed = [...fixture.playerId].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0, 0x811c9dc5);
+  const { own, rivals } = buildZrlTeams(fixture.roster, fixture.playerId, fixture.zrlTeam, seed);
+  const state = createRace({ mode: "zrl", format: "scratch", routeId: route.id, playerId: fixture.playerId, seed: 23, squads: [{ id: "own", riders: own.riderIds }, ...rivals.map((t) => ({ id: t.id, riders: t.riderIds }))] }, fixture.roster, route);
   state.tick = 8000;
   state.riders.forEach((r, i) => { r.distance = route.length - (r.rider.id === fixture.playerId ? 4 : r.team === "own" ? 12 + i : 60 + i); r.speed = 12; });
   localStorage.setItem(saveKey(fixture.playerId), serializeRace(state));

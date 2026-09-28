@@ -1,7 +1,9 @@
 # ZWBgame — bouwplannen voor ZRL en FRR-tours
 
 Opgesteld 28 september 2026, na spelversie 4 (Zwift-engine en Club Ladder, zie
-[ZWBgame](zwbgame.md)). **Status: plan, nog geen code.** Twee rondes op dezelfde
+[ZWBgame](zwbgame.md)). **Status (28 september, avond): stap 0 en ZRL zijn gebouwd
+(spelversie 5); FRR is nog plan.** Wat van stap 0 nog openstaat, staat hieronder
+per punt. Twee rondes op dezelfde
 engine, met eerst een gedeelde stap 0. Wat hier "na te lezen" heet, moet vóór de
 bouw aan de bron worden gecontroleerd; zonder dat bouwen we een eigen variant en
 zeggen we dat ook.
@@ -19,11 +21,15 @@ de meeste waarde.
 2. **Slipstreamregel per race:** `RaceConfig.draft = "all" | "none" | "team"`. `none`
    voor Race of Truth en individuele tijdrit, `team` voor de ploegentijdrit. Nu
    zit de beschutting vast in `stepRace` (`shelter`); dat wordt een filter.
-3. **Gespreide start:** `startOffset` per renner (seconden), voor TTT per ploeg en
-   voor een iTT per renner. Een renner rijdt pas als de klok zijn start passeert.
+3. **Gespreide start:** `startOffset` per renner (seconden), voor een iTT per renner.
+   Een renner rijdt pas als de klok zijn start passeert. *Nog niet gebouwd: de
+   ZRL-ploegentijdrit heeft hem niet nodig (ploegen starten samen, alleen het eigen
+   wiel telt); komt met FRR.*
 4. **Groter veld.** ZRL en FRR hebben 30 tot 60 renners. `stepRace` sorteert nu per
    renner alle renners voor zich (n² log n). Eén sortering per stap en een venster
    rond de eigen index; meten dat 60 renners onder ~2 ms per stap blijven.
+   *Gebouwd: één sortering per stap. Gemeten met 30 renners: 0,4–0,7 s per race;
+   60 renners niet gemeten.*
 5. **Routes uit de clubkalender.** Naast `LADDER_ROUTES` de route van een ZWB-event
    van het type `zrl` of `flamme_rouge` in de komende 14 dagen, met
    `events.zwift_route_id` en `laps` (dezelfde velden als het pacingplan). In de
@@ -34,7 +40,9 @@ de meeste waarde.
    blijven. Beeld controleren: de berm-markeringen staan al op 24 m.
 7. **Segmentbewuste bots.** Rollen per ploeg: een puntenjager (sprinter) rijdt voor
    FAL op sprintbogen, een klimmer voor FTS op KOM's, de rest voor de finish.
-   Bots rijden een FTS-segment op tempo (W′ doseren over de lengte).
+   Bots rijden een FTS-segment op tempo (W′ doseren over de lengte). *Gebouwd als
+   één puntenjager per ploeg; een KOM rijdt hij nu op aanvalstempo, nog niet
+   gedoseerd.*
 8. **Scoring als losse functie per spelvorm** (`ladder.ts` is het model): puur,
    testbaar, zonder React.
 
@@ -67,10 +75,12 @@ nieuwe telling schrijven.
 **Spelvormen in de game.**
 - *Puntenrace*: `scoreRace` op de engine-passages.
 - *Race of Truth*: puntenrace met `draft: "none"`.
-- *Scratch*: finishvolgorde. **Na te lezen:** de exacte scratch-telling bij WTRL.
+- *Scratch*: finishvolgorde. Nagelezen 28 september: finish plus podium.
 - *Ploegentijdrit*: `draft: "team"`, ploegen gespreid gestart. Bediening: "Op kop"
-  en "Wissel" naast de standen; bots wisselen op W′. **Na te lezen:** welke renner
-  de ploegtijd bepaalt (de vierde?) en de puntentelling per ploegplaats.
+  en "Wissel" naast de standen; bots wisselen op W′. Nagelezen: de vierde renner
+  bepaalt de tijd, er zijn geen individuele punten, en met minder dan vier finishers
+  heeft een ploeg geen uitslag. *Gebouwd zonder aparte knoppen: in het wiel is
+  Meerijden sneller dan de kop, dus de beurten wisselen vanzelf.*
 
 **Veld.** Zes tot acht ploegen van vijf, rond jouw niveau (zoals de ladder). Jouw
 ploeg is je ZWB-ZRL-team (`teams.type = 'zrl'` via `team_members`), anders
@@ -89,7 +99,8 @@ jaagt op de volgende sprintboog). Uitleg gaat naar `/hulp#zwbgame`, niet in het
 scherm.
 
 **Optioneel, eigen keuze:** een mini-ronde van vier races met een ploegenklassement
-in de browser. **Na te lezen:** de leaguepunten per ploegplaats bij WTRL.
+in de browser. Leaguepunten (nagelezen): evenveel als er ploegen zijn voor de winnaar, dan één
+minder. *Mini-ronde niet gebouwd.*
 
 **Tests.** De engine-passages door `scoreRace` geven dezelfde uitkomst als een met
 de hand uitgerekende race. Race of Truth zonder beschutting. TTT alleen achter
@@ -149,11 +160,10 @@ niet te controleren is.
 
 ## Open vragen voor de eigenaar
 
-1. Eerst ZRL, en is de route van de komende ZRL-race uit de clubkalender het
-   belangrijkste? (aanbevolen)
-2. ZRL als losse races, of ook een mini-ronde met ploegenklassement?
-3. De ploegentijdrit: zelf "Op kop"/"Wissel" doen, of het wisselen automatisch
-   laten gaan en alleen de kopbeurtlengte kiezen?
+1. ~~Eerst ZRL, met de route uit de clubkalender~~ — gedaan.
+2. ZRL als losse races (gebouwd), of ook een mini-ronde met ploegenklassement?
+3. De ploegentijdrit wisselt nu vanzelf. Zijn eigen knoppen voor "Op kop" en
+   "Wissel" gewenst?
 4. FRR: drie of vijf etappes per tour?
 5. Je ZRL-team als ploeg: gebruikt je teamlidmaatschap, zoals nu bij de ladder.
    Moet de privacyverklaring daar een zin over krijgen?

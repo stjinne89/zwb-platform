@@ -3,12 +3,14 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Feather, Flag, Leaf, Maximize2, Minimize2, Mountain, Pause, Play, Settings2, Shield, Swords, Trophy, Users, Wind, Zap } from "lucide-react";
-import { createRace, fatigueOf, groupsOf, MAX_FATIGUE, SPRINT_METERS, standings, stepRace, STEP_SECONDS, timeScale } from "@/lib/zwbgame/engine";
-import { applyChallenge, buildLadderTeams, challengeable, challengeWon, normalizeLadder, OWN_TEAM, teamScore, type LadderStanding } from "@/lib/zwbgame/ladder";
+import { ArrowLeft, ArrowUpRight, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Feather, Flag, Leaf, Maximize2, Medal, Minimize2, Mountain, Pause, Play, Settings2, Shield, Swords, Trophy, Users, Wind, Zap } from "lucide-react";
+import { teamTint } from "@/lib/zwbgame/colors";
+import { createRace, fatigueOf, groupsOf, huntsPoints, MAX_FATIGUE, SPRINT_METERS, standings, stepRace, STEP_SECONDS, timeScale } from "@/lib/zwbgame/engine";
+import { applyChallenge, buildLadderTeams, challengeable, challengeWon, normalizeLadder, teamScore, type LadderStanding, type LadderTeam } from "@/lib/zwbgame/ladder";
 import { accentAhead, elevationAt, gradeAt } from "@/lib/zwbgame/routes";
 import { ladderKey, readLadder, readResults, restoreRace, resultsKey, saveKey, serializeRace } from "@/lib/zwbgame/storage";
-import type { GameBootstrap, GameMode, GameRoute, Mode, PlayerCommand, PowerupId, RaceResult, RaceState, RiderState, TeamOrder } from "@/lib/zwbgame/types";
+import { OWN_TEAM, type GameBootstrap, type GameMode, type GameRoute, type Mode, type PlayerCommand, type PowerupId, type RaceResult, type RaceState, type RiderState, type Squad, type TeamOrder, type ZrlFormat } from "@/lib/zwbgame/types";
+import { buildZrlTeams, ownTeamResult, scoreZrl, ZRL_FORMATS, type ZrlScore } from "@/lib/zwbgame/zrl";
 import { refreshGame, saveGamePower, saveGamePreferences } from "./actions";
 import styles from "./game.module.css";
 
@@ -24,7 +26,17 @@ const orders: { id: TeamOrder; label: string; key: string }[] = [
   { id: "free", label: "Vrij rijden", key: "5" },
   { id: "bring", label: "Breng me terug", key: "6" },
   { id: "leadout", label: "Lead-out", key: "7" },
+  { id: "points", label: "Pak de punten", key: "8" },
 ];
+const formats: Record<ZrlFormat, string> = { points: "Puntenrace", rot: "Race of Truth", scratch: "Scratch", ttt: "Ploegentijdrit" };
+const modeNames: Record<GameMode, string> = { ladder: "CLUB LADDER", zrl: "ZRL", free: "VRIJE RACE" };
+/** Which team orders a race knows: none alone or in a TTT, points only where segments score. */
+function ordersFor(state: RaceState) {
+  if (state.config.mode === "free" || (state.config.mode === "zrl" && state.config.format === "ttt")) return [];
+  return orders.filter((o) => o.id !== "points" || huntsPoints(state));
+}
+const squad = (team: LadderTeam): Squad => ({ id: team.id, riders: team.riderIds });
+type Outcome = { score?: [number, number]; won?: boolean; from?: number; to?: number; zrl?: ZrlScore } | null;
 const powerups: Record<PowerupId, { label: string; icon: React.ReactNode }> = {
   feather: { label: "Veer", icon: <Feather size={16} /> },
   aero: { label: "Aerohelm", icon: <Wind size={16} /> },
@@ -40,6 +52,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const [data, setData] = useState(initial);
   const [mode, setMode] = useState<GameMode>("ladder");
   const [routeId, setRouteId] = useState(initial.routes[0]?.id ?? "");
+  const [format, setFormat] = useState<ZrlFormat>(initial.zrlRace?.format ?? "points");
   const [rivalId, setRivalId] = useState<string | null>(null);
   const [ladder, setLadder] = useState<LadderStanding | null>(null);
   const [race, setRace] = useState<RaceState | null>(null);
@@ -48,7 +61,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const [error, setError] = useState("");
   const [hasSave, setHasSave] = useState(false);
   const [results, setResults] = useState<RaceResult[]>([]);
-  const [outcome, setOutcome] = useState<{ score?: [number, number]; won?: boolean; from?: number; to?: number } | null>(null);
+  const [outcome, setOutcome] = useState<Outcome>(null);
   const [overview, setOverview] = useState(false);
   const [lowQuality, setLowQuality] = useState(false);
   const [settings, setSettings] = useState(false);
@@ -60,16 +73,21 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const queue = useRef<PlayerCommand[]>([]);
   const finishedSaved = useRef<string | null>(null);
 
-  const route = data.routes.find((r) => r.id === routeId) ?? data.routes[0];
+  // ZRL: the route of the next club race comes first when the calendar has one.
+  const routeList = mode === "zrl" && data.zrlRace ? [data.zrlRace.route, ...data.routes] : data.routes;
+  const route = routeList.find((r) => r.id === routeId) ?? routeList[0];
   const teams = useMemo(() => buildLadderTeams(data.roster, data.playerId, data.team, ladderSeed(data.playerId)), [data]);
+  const zrlTeams = useMemo(() => buildZrlTeams(data.roster, data.playerId, data.zrlTeam, ladderSeed(data.playerId)), [data]);
   const standing = useMemo(() => normalizeLadder(ladder, teams.rivals), [ladder, teams]);
   const targets = challengeable(standing.order);
   const rival = teams.rivals.find((t) => t.id === (rivalId && targets.includes(rivalId) ? rivalId : targets[targets.length - 1]));
-  const teamName = (id: string) => id === OWN_TEAM ? teams.own.name : teams.rivals.find((t) => t.id === id)?.name ?? id;
-  // The lobby shows the start grid; during a race the engine state takes over.
+  const teamName = (id: string, inMode: GameMode = mode) => id === OWN_TEAM ? (inMode === "zrl" ? zrlTeams.own.name : teams.own.name) : [...teams.rivals, ...zrlTeams.rivals].find((t) => t.id === id)?.name ?? id;
+  const squadsFor = (m: GameMode): Squad[] | undefined => m === "ladder" ? (rival ? [squad(teams.own), squad(rival)] : undefined) : m === "zrl" ? [squad(zrlTeams.own), ...zrlTeams.rivals.map(squad)] : undefined;
+  // The lobby shows the start grid; during a race the engine state takes over. At the
+  // top of the ladder there is nobody left to challenge, so the grid is a plain one.
+  const shownMode: GameMode = mode === "ladder" && !rival ? "free" : mode;
   const preview = !race && route ? createRace({
-    mode, routeId: route.id, seed: 24, playerId: data.playerId,
-    teams: mode === "ladder" && rival ? { own: teams.own.riderIds, rival: rival.riderIds, rivalTeamId: rival.id } : undefined,
+    mode: shownMode, format: shownMode === "zrl" ? format : undefined, routeId: route.id, seed: 24, playerId: data.playerId, squads: squadsFor(shownMode),
   }, data.roster, route) : null;
   const active = race ?? preview;
   const me = active?.riders.find((r) => r.rider.id === data.playerId);
@@ -136,16 +154,22 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     const id = `${race.config.seed}:${race.config.routeId}`;
     if (!own || finishedSaved.current === id) return;
     const order = standings(race);
-    const score = race.config.mode === "ladder" ? teamScore(race) : undefined;
-    const result: RaceResult = { id, mode: race.config.mode, route: race.route.name, date: new Date().toISOString(), place: order.indexOf(own) + 1, count: race.riders.length, seconds: own.finishTime ?? race.tick * STEP_SECONDS, score };
+    const zrl = race.config.mode === "zrl" ? scoreZrl(race) : undefined;
+    const mine = zrl && ownTeamResult(zrl);
+    const score: [number, number] | undefined = race.config.mode === "ladder" ? teamScore(race) : zrl && mine?.points !== null && mine ? [mine.points ?? 0, zrl.teams[0].points ?? 0] : undefined;
+    const result: RaceResult = {
+      id, mode: race.config.mode, route: race.route.name, date: new Date().toISOString(), place: order.indexOf(own) + 1, count: race.riders.length, seconds: own.finishTime ?? race.tick * STEP_SECONDS, score,
+      ...(zrl && mine ? { format: race.config.format, teamRank: [mine.rank, zrl.teams.length] as [number, number] } : {}),
+    };
     const frame = requestAnimationFrame(() => {
       finishedSaved.current = id;
       let next: LadderStanding | null = null;
-      let change: typeof outcome = { score };
-      if (score && race.config.teams) {
+      let change: Outcome = { score, zrl };
+      const rivalTeam = race.config.squads?.[1]?.id;
+      if (race.config.mode === "ladder" && score && rivalTeam) {
         const won = challengeWon(score);
         const before = standing.order.indexOf(OWN_TEAM) + 1;
-        next = { ...standing, order: applyChallenge(standing.order, OWN_TEAM, race.config.teams.rivalTeamId, won), history: [{ date: result.date, rival: race.config.teams.rivalTeamId, route: race.route.name, score, won }, ...standing.history].slice(0, 20) };
+        next = { ...standing, order: applyChallenge(standing.order, OWN_TEAM, rivalTeam, won), history: [{ date: result.date, rival: rivalTeam, route: race.route.name, score, won }, ...standing.history].slice(0, 20) };
         change = { score, won, from: before, to: next.order.indexOf(OWN_TEAM) + 1 };
       }
       setOutcome(change);
@@ -169,8 +193,8 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       const own = engine.current?.riders.find((r) => r.rider.id === data.playerId);
       const picked = modes.find((m) => m.key === event.key);
       if (picked) command({ type: "mode", value: picked.id });
-      const order = orders.find((o) => o.key === event.key);
-      if (order && engine.current?.config.mode === "ladder") command({ type: "order", value: order.id });
+      const order = engine.current ? ordersFor(engine.current).find((o) => o.key === event.key) : undefined;
+      if (order) command({ type: "order", value: order.id });
       if (own && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
         event.preventDefault();
         const next = modes[modes.findIndex((m) => m.id === own.mode) + (event.key === "ArrowUp" ? 1 : -1)];
@@ -196,17 +220,24 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       let next: RaceState | null = null;
       if (resume) {
         const text = engine.current ? serializeRace(engine.current) : localStorage.getItem(saveKey(fresh.playerId));
-        next = text ? restoreRace(text, fresh.roster, fresh.routes, fresh.playerId) : null;
+        next = text ? restoreRace(text, fresh.roster, [...fresh.routes, ...(fresh.zrlRace ? [fresh.zrlRace.route] : [])], fresh.playerId) : null;
         if (!next) { localStorage.removeItem(saveKey(fresh.playerId)); setHasSave(false); throw new Error("Deze opgeslagen race is verlopen. Start een nieuwe koers."); }
       } else {
-        const chosen = fresh.routes.find((r) => r.id === routeId) ?? fresh.routes[0];
+        const freshRoutes = mode === "zrl" && fresh.zrlRace ? [fresh.zrlRace.route, ...fresh.routes] : fresh.routes;
+        const chosen = freshRoutes.find((r) => r.id === routeId) ?? freshRoutes[0];
         if (!chosen) throw new Error("Er is nog geen route beschikbaar.");
-        const freshTeams = buildLadderTeams(fresh.roster, fresh.playerId, fresh.team, ladderSeed(fresh.playerId));
-        const freshRival = freshTeams.rivals.find((t) => t.id === rival?.id);
-        if (mode === "ladder" && !freshRival) throw new Error("Kies een ploeg om uit te dagen.");
+        let squads: Squad[] | undefined;
+        if (mode === "ladder") {
+          const freshTeams = buildLadderTeams(fresh.roster, fresh.playerId, fresh.team, ladderSeed(fresh.playerId));
+          const freshRival = freshTeams.rivals.find((t) => t.id === rival?.id);
+          if (!freshRival) throw new Error("Kies een ploeg om uit te dagen.");
+          squads = [squad(freshTeams.own), squad(freshRival)];
+        } else if (mode === "zrl") {
+          const freshTeams = buildZrlTeams(fresh.roster, fresh.playerId, fresh.zrlTeam, ladderSeed(fresh.playerId));
+          squads = [squad(freshTeams.own), ...freshTeams.rivals.map(squad)];
+        }
         next = createRace({
-          mode, routeId: chosen.id, seed: crypto.getRandomValues(new Uint32Array(1))[0], playerId: fresh.playerId,
-          teams: mode === "ladder" && freshRival ? { own: freshTeams.own.riderIds, rival: freshRival.riderIds, rivalTeamId: freshRival.id } : undefined,
+          mode, format: mode === "zrl" ? format : undefined, routeId: chosen.id, seed: crypto.getRandomValues(new Uint32Array(1))[0], playerId: fresh.playerId, squads,
         }, fresh.roster, chosen);
         finishedSaved.current = null;
       }
@@ -256,7 +287,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     } catch { /* fullscreen is optional */ }
   }
 
-  if (!active || !me || !route) {
+  if (!route || !active || !me) {
     return <div className={styles.game}><div className={styles.error} role="status">Er is nog geen route beschikbaar.</div></div>;
   }
   const shown = active.route;
@@ -267,8 +298,16 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const remaining = Math.max(0, shown.length - me.distance);
   const next = accentAhead(shown, me.distance);
   const sprinting = remaining < SPRINT_METERS;
-  const score = active.config.mode === "ladder" ? teamScore(active) : null;
-  const rivalName = active.config.teams ? teamName(active.config.teams.rivalTeamId) : "";
+  const activeMode = active.config.mode;
+  const score = activeMode === "ladder" ? teamScore(active) : null;
+  const rivalName = activeMode === "ladder" && active.config.squads?.[1] ? teamName(active.config.squads[1].id, "ladder") : "";
+  const zrl = activeMode === "zrl" ? scoreZrl(active) : null;
+  const zrlOwn = zrl && ownTeamResult(zrl);
+  const myPoints = zrl?.riders.get(me.rider.id);
+  const ttt = activeMode === "zrl" && active.config.format === "ttt";
+  const together = active.riders.filter((r) => r.team === OWN_TEAM && r.finishTime === null && Math.abs(r.distance - me.distance) < 20).length;
+  const raceOrders = ordersFor(active);
+  const ownName = teamName(OWN_TEAM, activeMode);
   const freshness = Math.round((1 - fatigueOf(me) / MAX_FATIGUE) * 100);
   const road = me.tucked ? "Supertuck" : me.sheltered ? "In het wiel" : "In de wind";
   const ownRank = standing.order.indexOf(OWN_TEAM) + 1;
@@ -303,29 +342,30 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       <RaceScene state={active} overview={overview} lowQuality={lowQuality} raised={Boolean(race) && landscape} stepTicks={ticks} />
       <div className={styles.stageShade} />
       {!race ? <div className={styles.hero}>
-        <span className={styles.eyebrow}>ZWB CYCLING • {mode === "ladder" ? "CLUB LADDER" : "VRIJE RACE"}</span>
+        <span className={styles.eyebrow}>ZWB CYCLING • {modeNames[mode]}</span>
         <h1>Niet de sterkste?<br /><em>Wel de slimste.</em></h1>
-        <p>{mode === "ladder" && rival ? `${teams.own.name} daagt ${rival.name} uit.` : "Kies je moment. Pak je wiel. Maak het af."}</p>
+        <p>{mode === "ladder" && rival ? `${teams.own.name} daagt ${rival.name} uit.` : mode === "zrl" ? `${zrlTeams.own.name} · ${formats[format]}` : "Kies je moment. Pak je wiel. Maak het af."}</p>
         <button className={styles.primary} disabled={busy || (mode === "ladder" && !rival)} onClick={() => start(false)}><Flag size={18} />{busy ? "Opstellen…" : "Start de koers"}<ArrowUpRight size={20} /></button>
         {hasSave && <button className={styles.resume} disabled={busy} onClick={() => start(true)}>Hervat je koers <ChevronRight size={16} /></button>}
       </div> : <>
         <div className={styles.raceTop}>
           <button className={styles.glassButton} onClick={back} aria-label="Terug naar startscherm"><ArrowLeft size={18} /></button>
-          <div><span className={styles.eyebrow}>{active.config.mode === "ladder" ? "CLUB LADDER" : "VRIJE RACE"}</span><h1>{shown.name}</h1></div>
+          <div><span className={styles.eyebrow}>{modeNames[activeMode]}{activeMode === "zrl" && active.config.format ? ` · ${formats[active.config.format].toUpperCase()}` : ""}</span><h1>{shown.name}</h1></div>
           <button className={styles.glassButton} disabled={busy || race.finished} onClick={() => { if (paused) void start(true); else { setPaused(true); save(); } }} aria-label={paused ? "Hervatten" : "Pauzeren"}>{paused ? <Play size={19} /> : <Pause size={19} />}</button>
         </div>
-        <div className={styles.raceNumbers}><div><strong>{place}<small>/{active.riders.length}</small></strong><span>POSITIE</span></div><div><strong>{(me.speed * 3.6).toFixed(0)}<small> km/u</small></strong><span>SNELHEID</span></div><div><strong>{km(remaining)}<small> km</small></strong><span>TE GAAN</span></div>{score && <div data-testid="team-score"><strong>{score[0]}<small> – {score[1]}</small></strong><span>PLOEGEN</span></div>}</div>
+        <div className={styles.raceNumbers}><div><strong>{place}<small>/{active.riders.length}</small></strong><span>POSITIE</span></div><div><strong>{(me.speed * 3.6).toFixed(0)}<small> km/u</small></strong><span>SNELHEID</span></div><div><strong>{km(remaining)}<small> km</small></strong><span>TE GAAN</span></div>{score && <div data-testid="team-score"><strong>{score[0]}<small> – {score[1]}</small></strong><span>PLOEGEN</span></div>}{zrlOwn && !ttt && <div data-testid="team-score"><strong>{zrlOwn.points}<small> #{zrlOwn.rank}</small></strong><span>PLOEGPUNTEN</span></div>}{ttt && <div data-testid="team-score"><strong>{together}<small>/5</small></strong><span>BIJ ELKAAR</span></div>}</div>
         <div className={styles.conditions}><span><Mountain size={14} />{(gradeAt(shown, me.distance) * 100).toFixed(1)}%</span><span><Zap size={14} />{Math.round(me.effort * 100)}% drempel</span><span className={me.sheltered || me.tucked ? styles.sheltered : undefined}>{road}</span>{next && <span>{/sprint|kom/i.test(next.name) ? next.name : `${next.kind === "sprint" ? "Sprint" : "KOM"} ${next.name}`}{next.start > me.distance ? ` · ${km(next.start - me.distance)} km` : ""}</span>}<span>{clock(active.tick * STEP_SECONDS)}</span>{me.active && <span className={styles.boost}>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</span>}</div>
         <ol className={styles.groups} aria-label="Groepen">
           {finishedCount > 0 && <li><Flag size={12} />{finishedCount}</li>}
           {groups.map((group, i) => {
             const mine = group.includes(me);
             const gap = i === 0 ? 0 : (groups[0][0].distance - group[0].distance) / Math.max(group[0].speed, 5);
-            const mates = group.filter((r) => r.team === "own").length, rivals = group.filter((r) => r.team === "rival").length;
+            const mates = group.filter((r) => r.team === OWN_TEAM).length, rivals = group.filter((r) => r.team && r.team !== OWN_TEAM).length;
             return <li key={group[0].rider.id} data-mine={mine || undefined}>
               <span>{i === 0 && !finishedCount ? "Kop" : `+${clock(gap)}`}</span>
               <strong>{group.length}</strong>
               {score && <small>{mates}–{rivals}</small>}
+              {zrl && mates > 0 && <small><Shield size={10} />{mates}</small>}
               {mine && <em>Jij</em>}
             </li>;
           })}
@@ -358,17 +398,27 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
           <div className={styles.feedButtons}>
             <button className={styles.powerup} disabled={!canDrive || !me.powerup || Boolean(me.active)} onClick={() => command({ type: "powerup" })} aria-label={me.powerup ? `Powerup ${powerups[me.powerup].label}` : "Geen powerup"}><kbd>Spatie</kbd>{me.active ? <>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</> : me.powerup ? <>{powerups[me.powerup].icon}{powerups[me.powerup].label}</> : "Geen powerup"}</button>
           </div>
-          {active.config.mode === "ladder" && <div className={styles.cards} role="group" aria-label="Ploegorder">{orders.map((o) => <button key={o.id} disabled={!canDrive} aria-pressed={active.order === o.id} onClick={() => command({ type: "order", value: o.id })}><kbd>{o.key}</kbd><Shield size={14} />{o.label}</button>)}</div>}
-          <div className={styles.quietStats}><span>Dagvorm {me.form >= 1 ? "+" : ""}{Math.round((me.form - 1) * 100)}%</span><span>{me.attacks} aanvallen</span><span>{Math.round(me.shelteredSeconds / Math.max(1, active.tick * STEP_SECONDS) * 100)}% in het wiel</span>{score && <span>{teams.own.name} {score[0]} – {score[1]} {rivalName}</span>}</div>
+          {raceOrders.length > 0 && <div className={styles.cards} role="group" aria-label="Ploegorder">{raceOrders.map((o) => <button key={o.id} disabled={!canDrive} aria-pressed={active.order === o.id} onClick={() => command({ type: "order", value: o.id })}><kbd>{o.key}</kbd><Shield size={14} />{o.label}</button>)}</div>}
+          <div className={styles.quietStats}><span>Dagvorm {me.form >= 1 ? "+" : ""}{Math.round((me.form - 1) * 100)}%</span><span>{me.attacks} aanvallen</span><span>{Math.round(me.shelteredSeconds / Math.max(1, active.tick * STEP_SECONDS) * 100)}% in het wiel</span>{score && <span>{teams.own.name} {score[0]} – {score[1]} {rivalName}</span>}{myPoints && <span>FAL {myPoints.fal} · FTS {myPoints.fts} · FIN {myPoints.fin}{myPoints.podium ? ` · podium ${myPoints.podium}` : ""}</span>}</div>
         </section>
-        <section className={styles.positions} aria-label="Koersoverzicht"><div className={styles.sectionHeading}><h2>{race.finished ? "Uitslag" : "In de koers"}</h2><span>{order.length} renners</span></div><ol>{order.map((r, index) => <li key={r.rider.id} className={r.rider.id === data.playerId ? styles.ownPosition : r.team === "own" ? styles.teamPosition : ""}><button disabled={!canDrive || r.rider.id === data.playerId || r.finishTime !== null} onClick={() => command({ type: "mode", value: "ride", targetId: r.rider.id })} aria-label={`Volg ${r.rider.name}`}><span>{index + 1}</span><strong>{r.rider.name}</strong>{r.team === "own" && r.rider.id !== data.playerId && <Shield size={11} aria-label="Ploeggenoot" />}{r.team === "rival" && <i className={styles.rivalDot} aria-label="Tegenstander" />}<small>{r.finishTime !== null ? clock(r.finishTime) : index === 0 ? "Kop" : `+${Math.max(0, (order[0].distance - r.distance) / Math.max(r.speed, 2)).toFixed(0)}s`}</small></button></li>)}</ol></section>
+        <section className={styles.positions} aria-label="Koersoverzicht"><div className={styles.sectionHeading}><h2>{race.finished ? "Uitslag" : "In de koers"}</h2><span>{order.length} renners</span></div><ol>{order.map((r, index) => <li key={r.rider.id} className={r.rider.id === data.playerId ? styles.ownPosition : r.team === OWN_TEAM ? styles.teamPosition : ""}><button disabled={!canDrive || r.rider.id === data.playerId || r.finishTime !== null} onClick={() => command({ type: "mode", value: "ride", targetId: r.rider.id })} aria-label={`Volg ${r.rider.name}`}><span>{index + 1}</span><strong>{r.rider.name}</strong>{r.team === OWN_TEAM && r.rider.id !== data.playerId && <Shield size={11} aria-label="Ploeggenoot" />}{r.team && r.team !== OWN_TEAM && <i className={styles.rivalDot} style={{ background: teamTint(r.team).helmet }} aria-label={teamName(r.team, activeMode)} />}<small>{r.finishTime !== null ? clock(r.finishTime) : index === 0 ? "Kop" : `+${Math.max(0, (order[0].distance - r.distance) / Math.max(r.speed, 2)).toFixed(0)}s`}</small></button></li>)}</ol></section>
       </div>
-      {race.finished && <FinishCard me={me} place={place} race={race} outcome={outcome} rivalName={rivalName} ownName={teams.own.name} onBack={back} />}
+      {race.finished && <FinishCard me={me} place={place} race={race} outcome={outcome} rivalName={rivalName} ownName={ownName} teamName={(id) => teamName(id, activeMode)} onBack={back} />}
     </> : <>
       <div className={styles.modeTabs} role="tablist" aria-label="Spelvorm">
         <button role="tab" aria-selected={mode === "ladder"} onClick={() => setMode("ladder")}><Trophy size={16} />Ladder</button>
+        <button role="tab" aria-selected={mode === "zrl"} onClick={() => { setMode("zrl"); if (data.zrlRace) setRouteId(data.zrlRace.route.id); }}><Medal size={16} />ZRL</button>
         <button role="tab" aria-selected={mode === "free"} onClick={() => setMode("free")}><Bike size={16} />Vrije race</button>
       </div>
+      {mode === "zrl" && <section className={styles.ladder} aria-label="ZRL">
+        {data.zrlRace && <p className={styles.zrlNext}><Medal size={15} /><span>{new Date(data.zrlRace.date).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })}</span><strong>{data.zrlRace.title}</strong></p>}
+        <div className={styles.formatPicker} role="radiogroup" aria-label="Format">{ZRL_FORMATS.map((f) => <button key={f} role="radio" aria-checked={format === f} onClick={() => setFormat(f)}>{formats[f]}</button>)}</div>
+        <div className={styles.sectionHeading}><h2>Ploegen</h2><span>{active.riders.length} renners</span></div>
+        <ol>{[zrlTeams.own, ...zrlTeams.rivals].map((team) => <li key={team.id} data-own={team.id === OWN_TEAM || undefined}>
+          <i className={styles.rivalDot} style={{ background: teamTint(team.id).helmet }} />
+          <div><strong>{team.name}</strong><small>{team.riderIds.map(nameOf).join(" · ")}</small></div>
+        </li>)}</ol>
+      </section>}
       {mode === "ladder" && <section className={styles.ladder} aria-label="Ladder">
         <div className={styles.sectionHeading}><h2>Ladder</h2><span>5 tegen 5</span></div>
         <ol>{standing.order.map((id, i) => {
@@ -382,20 +432,25 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
         })}</ol>
         {standing.history.length > 0 && <div className={styles.ladderHistory}>{standing.history.slice(0, 3).map((h) => <span key={h.date}>{h.won ? "W" : "V"} · {teamName(h.rival)} · {h.score[0]}–{h.score[1]}</span>)}</div>}
       </section>}
-      <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies de route</h2><span>{mode === "ladder" ? "10 renners" : `${active.riders.length} renners`}</span></div><div className={styles.courseGrid}>{data.routes.map((r, i) => <button key={r.id} className={styles.courseCard} data-selected={route.id === r.id} aria-pressed={route.id === r.id} onClick={() => setRouteId(r.id)}><span className={styles.courseNumber}>0{i + 1}</span><span className={styles.courseIcon}>{climbOf(r) / r.length * 1000 > 6 ? <Mountain size={26} /> : <Wind size={26} />}</span><h3>{r.name}</h3><p>{r.laps > 1 ? `${r.laps} ronden · ` : ""}{climbOf(r)} hm{r.accents.some((a) => a.banner) ? ` · ${r.accents.filter((a) => a.banner).length} segmenten` : ""}</p><div><span>{km(r.length)} km</span><span>{route.id === r.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
+      <section className={styles.courseSection}><div className={styles.sectionHeading}><h2>Kies de route</h2><span>{active.riders.length} renners</span></div><div className={styles.courseGrid}>{routeList.map((r, i) => <button key={r.id} className={styles.courseCard} data-selected={route.id === r.id} aria-pressed={route.id === r.id} onClick={() => setRouteId(r.id)}><span className={styles.courseNumber}>{mode === "zrl" && data.zrlRace?.route.id === r.id ? "ZRL" : `0${i + 1}`}</span><span className={styles.courseIcon}>{climbOf(r) / r.length * 1000 > 6 ? <Mountain size={26} /> : <Wind size={26} />}</span><h3>{r.name}</h3><p>{r.laps > 1 ? `${r.laps} ronden · ` : ""}{climbOf(r)} hm{r.accents.some((a) => a.banner) ? ` · ${r.accents.filter((a) => a.banner).length} segmenten` : ""}</p><div><span>{km(r.length)} km</span><span>{route.id === r.id ? <Check size={18} /> : <ArrowUpRight size={18} />}</span></div></button>)}</div></section>
       <section className={styles.lobbyBottom}><div className={styles.riderCard}><span className={styles.riderAvatar}><Bike size={28} /></span><div><span className={styles.eyebrow}>JOUW RENNER</span><h2>{me.rider.name}</h2><p>{labels[me.rider.kind]} · {({ basic: "Basisprofiel", platform: "Platformgegevens", manual: "Eigen meting", intervals: "Intervals" })[me.rider.source]}</p></div><div className={styles.ability}><span>Vlak<strong>{Math.round(me.rider.flat * 100)}</strong></span><span>Klim<strong>{Math.round(me.rider.climb * 100)}</strong></span><span>Sprint<strong>{Math.round(me.rider.sprint * 100)}</strong></span></div></div><button className={styles.rosterButton} onClick={() => setRosterOpen(!rosterOpen)} aria-expanded={rosterOpen}><span>Het clubpeloton<strong>{data.roster.length} ZWB-renners</strong></span><ChevronRight size={22} /></button></section>
       {rosterOpen && <section className={styles.roster} aria-label="Clubpeloton">{data.roster.map((r) => <div key={r.id}><Bike size={16} /><strong>{r.name}</strong><span>{labels[r.kind]}</span></div>)}</section>}
-      {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{r.route}</span><span>{r.score ? `${r.score[0]}–${r.score[1]}` : `${r.place}/${r.count}`}</span><span>{clock(r.seconds)}</span></div>)}</section>}
+      {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{r.route}</span><span>{r.teamRank ? `${r.teamRank[0]}e van ${r.teamRank[1]}` : r.score ? `${r.score[0]}–${r.score[1]}` : `${r.place}/${r.count}`}</span><span>{clock(r.seconds)}</span></div>)}</section>}
     </>}
     <footer className={styles.footer}><span>ZWBgame <span>•</span> De club aan de start.</span><Link href="/hulp#zwbgame">Spelregels <ArrowUpRight size={13} /></Link>{active.riders.some((r) => r.rider.garmin) && <span>Spelkwaliteiten mede op basis van Garmin-gegevens</span>}</footer>
   </div>;
 }
 
-function FinishCard({ me, place, race, outcome, rivalName, ownName, onBack }: { me: RiderState; place: number; race: RaceState; outcome: { score?: [number, number]; won?: boolean; from?: number; to?: number } | null; rivalName: string; ownName: string; onBack: () => void }) {
+function FinishCard({ me, place, race, outcome, rivalName, ownName, teamName, onBack }: { me: RiderState; place: number; race: RaceState; outcome: Outcome; rivalName: string; ownName: string; teamName: (id: string) => string; onBack: () => void }) {
   const score = outcome?.score;
-  const title = score ? (outcome?.won ? `${ownName} wint ${score[0]}–${score[1]}.` : `${rivalName} houdt stand, ${score[1]}–${score[0]}.`) : place === 1 ? "De koers is van jou." : `Plek ${place}. Sterk gereden.`;
-  const ladder = score && outcome?.from && outcome.to ? (outcome.to < outcome.from ? `Ladder: plek ${outcome.from} → ${outcome.to}` : `Ladder: plek ${outcome.to}`) : null;
-  return <section className={styles.finishCard} aria-live="polite"><Flag size={30} /><div><span className={styles.eyebrow}>FINISH</span><h2>{title}</h2><p>{me.finishTime !== null ? `${clock(me.finishTime)} · plek ${place}/${race.riders.length}` : "Niet gefinisht"} · {me.attacks} aanvallen · {Math.round(me.shelteredSeconds / Math.max(1, race.tick * STEP_SECONDS) * 100)}% in het wiel{ladder ? ` · ${ladder}` : ""}</p></div><button className={styles.primary} onClick={onBack}>Nieuwe koers <ArrowUpRight size={18} /></button></section>;
+  const zrl = outcome?.zrl;
+  const mine = zrl && ownTeamResult(zrl);
+  const title = zrl && mine
+    ? (mine.league ? `${ownName} wordt ${mine.rank}e van ${zrl.teams.length}: ${mine.league} leaguepunten.` : `${ownName} heeft geen uitslag: minder dan vier renners binnen.`)
+    : race.config.mode === "ladder" && score ? (outcome?.won ? `${ownName} wint ${score[0]}–${score[1]}.` : `${rivalName} houdt stand, ${score[1]}–${score[0]}.`) : place === 1 ? "De koers is van jou." : `Plek ${place}. Sterk gereden.`;
+  const ladder = race.config.mode === "ladder" && score && outcome?.from && outcome.to ? (outcome.to < outcome.from ? `Ladder: plek ${outcome.from} → ${outcome.to}` : `Ladder: plek ${outcome.to}`) : null;
+  const winner = zrl && zrl.teams[0].id !== "own" ? ` · winnaar ${teamName(zrl.teams[0].id)}` : "";
+  return <section className={styles.finishCard} aria-live="polite"><Flag size={30} /><div><span className={styles.eyebrow}>FINISH</span><h2>{title}</h2><p>{me.finishTime !== null ? `${clock(me.finishTime)} · plek ${place}/${race.riders.length}` : "Niet gefinisht"} · {me.attacks} aanvallen · {Math.round(me.shelteredSeconds / Math.max(1, race.tick * STEP_SECONDS) * 100)}% in het wiel{ladder ? ` · ${ladder}` : ""}{winner}</p></div><button className={styles.primary} onClick={onBack}>Nieuwe koers <ArrowUpRight size={18} /></button></section>;
 }
 
 function Meter({ label, value, max, icon }: { label: string; value: number; max: number; icon: React.ReactNode }) {

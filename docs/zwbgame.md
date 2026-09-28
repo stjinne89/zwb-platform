@@ -3,7 +3,8 @@
 Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgame`:
 het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
 ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
-volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). Versies 1–3 (17–19 september) waren een arcade-clubkoers
+volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). ZRL is
+dezelfde dag gebouwd (spelversie 5); FRR staat nog open. Versies 1–3 (17–19 september) waren een arcade-clubkoers
 in Flamme Rouge-stijl; zie "Eerdere versies" onderaan.
 
 ## Lokale speeltest
@@ -102,6 +103,30 @@ bewaard; in de browser staan alleen de volgorde van ploeg-ID's en de laatste twi
 duels. De tegenstander rijdt een lead-out voor zijn kopman (beste sprinter, of beste
 klimmer op een heuvelroute).
 
+**ZRL** (spelversie 5, 28 september 2026; regels van wtrl.racing/zrl/resources,
+gelezen op 22 en 28 september 2026). Jouw ploeg tegen vijf clubploegen, verdeeld als
+een divisie (slangverdeling over de sterkste renners, zodat de ploegen ongeveer even
+sterk zijn). Je ZRL-team rijdt mee: een subteam (B1) gaat voor zijn paraplu (B). De
+puntenrace en de Race of Truth tellen met `scoreRace` uit `src/lib/zrl-live/scoring.ts`
+(dezelfde code als het live-dashboard), gevoed met de segmentpassages van de engine
+(`RaceState.passes`). De Race of Truth kent geen slipstream. Scratch telt alleen
+finish en podium. In de ploegentijdrit geeft alleen je eigen ploeg beschutting en rijdt
+Meerijden op 95%. De vierde renner bepaalt de tijd; met minder dan vier renners binnen
+heb je geen uitslag en geen leaguepunten. Leaguepunten: evenveel als er ploegen zijn
+voor de winnaar, dan één minder per plek; bij een gelijke stand dezelfde plek.
+**Niet overgenomen:** de regel dat een ploeg met drie starters achter ploegen met vier
+eindigt (in de game starten altijd vijf), echte WTRL-tegenstanders, en een klassement
+over een hele ronde. Het format van een raceweek staat niet in onze kalender (WTRL
+maakt het per ronde bekend), dus je kiest het zelf. Alleen "Race of Truth" in de
+titel zet het vooraf.
+
+De ZRL-route van de week komt uit de clubkalender: een event van het type `zrl` in de
+komende 14 dagen met `zwift_route_id`, waarbij je eigen team voorgaat, uitgerold over
+`laps`. Zonder route of profiel valt de game terug op de ladderroutes. Elke ploeg
+stuurt in punten-formats zijn beste sprinter als puntenjager op de bogen af (sprint:
+aanvallen vanaf 350 m voor de streep, KOM: de hele klim). Die van jouw ploeg gaat
+alleen op je order "Pak de punten".
+
 **Ploegorders.** Breng me terug: bij een gat van 12–400 m wacht de ploeggenoot met de
 meeste reserve op 45% en sleept je dan op 105% terug. Lead-out: in de laatste 1100 m
 rijdt een ploeggenoot binnen 25 m van je op aanvalstempo voor je uit.
@@ -171,6 +196,25 @@ beperken het tonen van afgeleide gegevens aan anderen en noemen virtuele races
 dit daarom uit; de eigenaar koos op 17 september 2026 voor automatische kwaliteiten
 voor iedereen. Niet uitgezocht of Intervals Strava-activiteiten in de curve via zijn
 API meeneemt.
+
+## Verificatie ZRL (spelversie 5, 28 september 2026)
+
+- Simulatie van de vier formats op Hilly Route (30 renners): winnaar na 4,8–5,1
+  minuut, laatste renner na 5,2–5,7 minuut; rekentijd 0,4–0,7 s per hele race. In de
+  Race of Truth zat niemand in het wiel; in de ploegentijdrit 52% van de tijd.
+- Unit-tests (+6): ploegen van gelijke sterkte, slipstreamregels per format,
+  puntenrace via `scoreRace` (FAL voor de eerste gelijk aan het aantal starters,
+  podium 30 punten, ploegtotalen kloppen, puntenjagers pakken meer FAL), scratch
+  zonder segmentpunten, TTT met de vierde tijd en zonder uitslag bij drie
+  finishers, jagers alleen in punten-formats, opslaan en hervatten met passages.
+  Servertests (+3): subteam gaat voor paraplu, de ZRL-race van je eigen team uit de
+  kalender met zijn ronden, geen race zonder route of profiel.
+- Playwright (+2 × 2): ZRL-lobby met de race van de week, format, ploegpunten, order
+  en een TTT zonder orders; een gefinishte ZRL-race met ploegplaats en leaguepunten.
+  Op mobiel stond de race van de week eerst in een verborgen badge; nu staat hij in
+  de ZRL-sectie zelf.
+- **Niet lokaal te verifiëren:** of de ZRL-events op productie een
+  `zwift_route_id` hebben en of die route een profiel heeft.
 
 ## Verificatie en uitrol (28 september 2026)
 

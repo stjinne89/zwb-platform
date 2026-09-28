@@ -15,7 +15,10 @@ function fake() {
         select: () => builder,
         eq: (key: string, value: unknown) => { filters.push((r) => r[key] === value); return builder; },
         in: (key: string, values: unknown[]) => { filters.push((r) => values.includes(r[key])); return builder; },
+        gte: (key: string, value: string) => { filters.push((r) => String(r[key]) >= value); return builder; },
+        lte: (key: string, value: string) => { filters.push((r) => String(r[key]) <= value); return builder; },
         single: async () => ({ data: run()[0] ?? null, error: null }),
+        maybeSingle: async () => ({ data: run()[0] ?? null, error: null }),
         then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data: run(), error: failedTable === table ? { message: "unavailable" } : null }).then(resolve),
       }; return builder;
     },
@@ -98,6 +101,40 @@ describe("ZWBgame routes and ladder team", () => {
     expect((await loadGame()).team).toEqual({ name: "ZWBeasts", memberIds: ["other"] });
     tables.team_members = [];
     expect((await loadGame()).team).toBeNull();
+  });
+});
+describe("ZWBgame ZRL team and race", () => {
+  const soon = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
+  beforeEach(() => {
+    tables.teams = [
+      { id: "b", name: "ZRL B", type: "zrl", is_graveyard: false, parent_team_id: null },
+      { id: "b1", name: "ZRL B1", type: "zrl", is_graveyard: false, parent_team_id: "b" },
+    ];
+    tables.team_members = [{ team_id: "b", profile_id: "own" }, { team_id: "b1", profile_id: "own" }, { team_id: "b1", profile_id: "other" }];
+    tables.zwift_routes = [{ route_id: 2737483381, slug: "hilly-route", name: "Hilly Route", world: "watopia", profile: lapProfile(9.193) }];
+  });
+  it("rides with your racing subteam, not its umbrella", async () => {
+    expect((await loadGame()).zrlTeam).toEqual({ name: "ZRL B1", memberIds: ["other"] });
+  });
+  it("offers your team's next ZRL race from the calendar with its route and laps", async () => {
+    tables.events = [
+      { id: "e0", type: "zrl", title: "ZRL 2026/27 · R1 · W1 · ZRL A — Race of Truth", start_at: soon(1), team_id: "a", zwift_route_id: 2737483381, laps: 1 },
+      { id: "e1", type: "zrl", title: "ZRL 2026/27 · R1 · W2 · ZRL B1", start_at: soon(6), team_id: "b1", zwift_route_id: 2737483381, laps: 3 },
+      { id: "e2", type: "zrl", title: "Te ver weg", start_at: soon(30), team_id: "b1", zwift_route_id: 2737483381, laps: 1 },
+    ];
+    const { zrlRace } = await loadGame();
+    expect(zrlRace?.title).toBe("ZRL 2026/27 · R1 · W2 · ZRL B1");
+    expect(zrlRace?.route.id).toBe("zrl:hilly-route:3");
+    expect(zrlRace?.route.laps).toBe(3);
+    expect(zrlRace?.format).toBeNull();
+    tables.events = [tables.events[0]];
+    expect((await loadGame()).zrlRace?.format).toBe("rot");
+  });
+  it("has no ZRL race without a route or a synced profile", async () => {
+    tables.events = [{ id: "e1", type: "zrl", title: "ZRL", start_at: soon(2), team_id: "b1", zwift_route_id: null, laps: 1 }];
+    expect((await loadGame()).zrlRace).toBeNull();
+    tables.events = [{ id: "e1", type: "zrl", title: "ZRL", start_at: soon(2), team_id: "b1", zwift_route_id: 999, laps: 1 }];
+    expect((await loadGame()).zrlRace).toBeNull();
   });
 });
 describe("ZWBgame server boundary", () => {

@@ -85,9 +85,41 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 
 ---
 
-> **ZWBgame wordt een Zwift-racegame: Zwift-physics, echte routes en de Club Ladder, 2026-09-28 — gebouwd, lokaal getest.**
-> Commit: de commit die dit blok toevoegt. Geen migratie; spelversie 4 (lopende
-> v3-races vervallen, uitslagen blijven). Niet gepusht.
+> **ZWBgame ZRL: puntenrace, Race of Truth, scratch en ploegentijdrit, 2026-09-28 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie; spelversie 5 (lopende
+> v4-races vervallen, uitslagen en ladder blijven). Niet gepusht.
+>
+> **Waarom.** Vervolg op de ladder hieronder, op verzoek van de eigenaar ("ga dan
+> verder met het plan"): eerst ZRL, omdat de ronde nu loopt.
+>
+> **Wat er is.** De engine legt per renner de doorkomsten op benoemde segmenten vast,
+> kent een slipstreamregel per format (iedereen, niemand, alleen je eigen ploeg) en
+> sorteert het veld één keer per stap. De tijdcompressie mag nu tot 14×. Een
+> ZRL-modus met jouw ZRL-team tegen vijf clubploegen van gelijke sterkte, en de
+> ZRL-route van de week uit de clubkalender (`events.zwift_route_id` en `laps`).
+> De punten telt `scoreRace` van het live-ZRL-dashboard, zodat game en dashboard
+> dezelfde regels gebruiken. Scratch en ploegentijdrit zijn nagelezen bij WTRL (28
+> september). Puntenjagers per ploeg; jouw ploeg op de nieuwe order "Pak de punten".
+> Het ploegenmodel (`squads`) is nu gedeeld door ladder en ZRL. Details:
+> [ZWBgame](docs/zwbgame.md), plan: [ZRL en FRR](docs/zwbgame-zrl-frr.md).
+>
+> **Bewust niet gebouwd.** Een mini-ronde met ploegenklassement, echte
+> WTRL-tegenstanders, de drie-starters-regel (in de game starten er altijd vijf),
+> aparte wisselknoppen in de ploegentijdrit, de gespreide start (komt met FRR), en
+> FRR zelf. Het format van een raceweek staat niet in de kalender, dus je kiest het
+> zelf; alleen "Race of Truth" in de titel zet het vooraf.
+>
+> **Niet lokaal te verifiëren.** Of de ZRL-events op productie een route met profiel
+> hebben. Zonder route of profiel speelt ZRL op de ladderroutes.
+>
+> **Privacy.** Je ZRL-teamlidmaatschap bepaalt nu met wie je rijdt, zoals je
+> ladderteam; geen nieuwe gegevens. De vraag of de privacyverklaring daar een zin
+> over krijgt, ligt bij de eigenaar.
+
+> **ZWBgame wordt een Zwift-racegame: Zwift-physics, echte routes en de Club Ladder, 2026-09-28 — gebouwd, lokaal getest, gepusht.**
+> Commits `9cd0084` en `5f45ff9` (bouwplan en powerup-correctie), op 28 september
+> gepusht naar main. Geen migratie; spelversie 4 (lopende v3-races vervallen,
+> uitslagen blijven).
 >
 > **Waarom.** De eigenaar wil met de game het tactische deel van Zwift-racen leren,
 > in de spelvormen die ZWB rijdt: ladder, FRR-tours en ZRL. Keuzes van de eigenaar
