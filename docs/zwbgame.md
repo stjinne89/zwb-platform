@@ -4,7 +4,7 @@ Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgam
 het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
 ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
 volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). ZRL is
-dezelfde dag gebouwd (spelversie 5); FRR staat nog open. Versies 1–3 (17–19 september) waren een arcade-clubkoers
+dezelfde dag gebouwd (spelversie 5), FRR daarna. Versies 1–3 (17–19 september) waren een arcade-clubkoers
 in Flamme Rouge-stijl; zie "Eerdere versies" onderaan.
 
 ## Lokale speeltest
@@ -127,6 +127,32 @@ stuurt in punten-formats zijn beste sprinter als puntenjager op de bogen af (spr
 aanvallen vanaf 350 m voor de streep, KOM: de hele klim). Die van jouw ploeg gaat
 alleen op je order "Pak de punten".
 
+**FRR-tour** (28 september 2026; regels van flammerougeracing.com/tour-rules, gelezen
+op 28 september 2026). Vier etappes met hetzelfde veld van 24 renners rond jouw
+niveau (`newTour`, `pickOpponents`): de vlakste route, de heuvelachtigste, een
+tijdrit op de vlakste die overblijft, en een slotrit. De tijdrit is zoals een
+Zwift-tijdrit: iedereen start tegelijk, zonder slipstream en zonder powerups.
+Meerijden is er 97% van de drempel. Een gespreide start is daarom niet gebouwd.
+Klassement: opgeteld tijdverlies op de etappewinnaar (eGAP), alleen voor wie alle
+etappes uitreed. Finishpunten 25-20-16-13-11-10-9-8-7-6, dubbel in de tijdrit.
+Segmenten alleen op FTS, maal CDR (klim) of SSR (sprint per etappe).
+Truien: geel, groen, bolletjes en blauw; een puntentrui vraagt minstens één punt.
+Bezemwagen: 20 punten straf op het totaal.
+
+**Eigen keuzes, niet van FRR**, omdat de puntentabellen op de FRR-site afbeeldingen
+zijn die niet meer laden (gecontroleerd op 28 september 2026):
+- punten na plek 10: 5-4-3-2-1, daarna 1 voor elke finisher;
+- dezelfde schaal voor segmenten, voor de beste vijftien per doorkomst;
+- de CDR uit de hoogtemeters van de klim (< 30 m = 1, < 60 = 2, < 120 = 3,
+  < 250 = 4, anders 5);
+- SSR 3 (×1,3) in een vlakke rit (minder dan 0,4% gemiddeld klimmen), anders 1;
+- een bezemwagengrens van 20%.
+
+**Niet overgenomen:** klassen (het hele veld is één klasse), ploegenklassement,
+dubbele segmentpunten in koninginnenritten, straffen bij klasse-upgrades, en
+etappes uit de clubkalender. De tourstand staat in de browser, met alleen renner-id's
+en getallen (`zwbgame:v5:<lid>:tour`).
+
 **Ploegorders.** Breng me terug: bij een gat van 12–400 m wacht de ploeggenoot met de
 meeste reserve op 45% en sleept je dan op 105% terug. Lead-out: in de laatste 1100 m
 rijdt een ploeggenoot binnen 25 m van je op aanvalstempo voor je uit.
@@ -196,6 +222,22 @@ beperken het tonen van afgeleide gegevens aan anderen en noemen virtuele races
 dit daarom uit; de eigenaar koos op 17 september 2026 voor automatische kwaliteiten
 voor iedereen. Niet uitgezocht of Intervals Strava-activiteiten in de curve via zijn
 API meeneemt.
+
+## Verificatie FRR (28 september 2026)
+
+- Simulatie van een hele tour op de drie fixture-routes (24 renners): etappes van
+  4,9–6,2 minuut, 0,2–0,3 s rekentijd per etappe, geen beschutting in de tijdrit,
+  geen bezemwagen bij deze spreiding.
+- Unit-tests (+5): tourplan en vast veld, tijdrit zonder slipstream en powerups,
+  finishpunten en dubbele tijdritpunten, segmentpunten × SSR, klassement alleen voor
+  wie alles uitreed, bezemwagenstraf, geen puntentrui zonder punten, opslag zonder
+  namen en een kapotte tourstand geweigerd.
+- Playwright (+2 × 2): een nieuwe tour starten, en een gefinishte etappe die het
+  klassement bijwerkt, de tour naar etappe 2 zet en te stoppen is. Screenshots
+  bekeken: op mobiel braken de vier tabs af en plakte de tourlijst tegen de
+  rennerskaart (opgelost), en je kreeg de bolletjestrui zonder klimpunten (opgelost).
+- **Niet lokaal te verifiëren:** een tour op de echte routebibliotheek. Met de
+  fixtures kwam Cobbled Climbs twee keer voor, omdat er maar drie routes zijn.
 
 ## Verificatie ZRL (spelversie 5, 28 september 2026)
 

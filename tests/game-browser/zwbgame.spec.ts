@@ -100,6 +100,41 @@ test("a finished ZRL race gives the team place and league points", async ({ page
   await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"teamRank"');
 });
 
+test("FRR: a tour of four stages, started stage by stage", async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await page.getByRole("tab", { name: "FRR" }).click();
+  const tour = page.getByRole("region", { name: "Tour" });
+  await expect(tour.getByRole("heading", { name: "Nieuwe tour" })).toBeVisible();
+  await expect(tour.locator("li")).toHaveCount(4);
+  await expect(tour.getByText("Tijdrit")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kies de route" })).toHaveCount(0);
+  await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-frr-lobby.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "Start etappe 1" }).click();
+  await expect(page.getByTestId("team-score")).toContainText("ETAPPE");
+  await expect(page.getByRole("group", { name: "Ploegorder" })).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v5:demo-0:tour"))).toContain('"stages"');
+  expect(errors).toEqual([]);
+});
+
+test("a finished FRR stage updates the GC and moves the tour on", async ({ page }, info) => {
+  await page.goto("/");
+  await page.evaluate(() => window.zwbgameFixture.nearFinishFrr());
+  await page.reload();
+  await page.getByRole("button", { name: "Hervat je koers" }).click();
+  await expect(page.getByRole("heading", { name: "Etappe 1: plek 1." })).toBeVisible();
+  await expect(page.getByText(/Klassement: 1e/)).toBeVisible();
+  await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-frr-finish.png`, fullPage: true });
+  await page.getByRole("button", { name: /Naar de tour/ }).click();
+  await page.getByRole("tab", { name: "FRR" }).click();
+  await expect(page.getByRole("heading", { name: "Klassement" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start etappe 2" })).toBeVisible();
+  await page.getByRole("button", { name: "Tour stoppen" }).click();
+  await expect(page.getByRole("heading", { name: "Nieuwe tour" })).toBeVisible();
+});
+
 test("consent, own power input and profile updates", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Spelinstellingen" }).click();

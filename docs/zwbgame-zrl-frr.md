@@ -1,8 +1,8 @@
 # ZWBgame — bouwplannen voor ZRL en FRR-tours
 
 Opgesteld 28 september 2026, na spelversie 4 (Zwift-engine en Club Ladder, zie
-[ZWBgame](zwbgame.md)). **Status (28 september, avond): stap 0 en ZRL zijn gebouwd
-(spelversie 5); FRR is nog plan.** Wat van stap 0 nog openstaat, staat hieronder
+[ZWBgame](zwbgame.md)). **Status (28 september, avond): stap 0, ZRL en FRR zijn gebouwd
+(spelversie 5).** Hoe FRR van dit plan afwijkt, staat in de FRR-sectie. Wat van stap 0 nog openstaat, staat hieronder
 per punt. Twee rondes op dezelfde
 engine, met eerst een gedeelde stap 0. Wat hier "na te lezen" heet, moet vóór de
 bouw aan de bron worden gecontroleerd; zonder dat bouwen we een eigen variant en
@@ -158,12 +158,21 @@ niet te controleren is.
 
 **Grootte:** een eigen ronde, ongeveer anderhalve dag bouwen na stap 0 en ZRL.
 
+**Zo gebouwd (28 september).**
+- Vier etappes: vlak, heuvel, tijdrit en slotrit.
+- De tijdrit is een Zwift-tijdrit: iedereen start tegelijk, zonder slipstream en
+  zonder powerups. Een gespreide start is daardoor niet nodig.
+- De FRR-puntentabellen (afbeeldingen) laden niet op hun site. Daarom eigen punten na
+  plek 10 en voor segmenten; zie [ZWBgame](zwbgame.md).
+- **Niet gebouwd:** klassen, ploegenklassement, koninginnenritten en etappes uit de
+  clubkalender.
+
 ## Open vragen voor de eigenaar
 
 1. ~~Eerst ZRL, met de route uit de clubkalender~~ — gedaan.
 2. ZRL als losse races (gebouwd), of ook een mini-ronde met ploegenklassement?
 3. De ploegentijdrit wisselt nu vanzelf. Zijn eigen knoppen voor "Op kop" en
    "Wissel" gewenst?
-4. FRR: drie of vijf etappes per tour?
+4. ~~FRR: drie of vijf etappes per tour?~~ Gebouwd met vier. Is dat goed?
 5. Je ZRL-team als ploeg: gebruikt je teamlidmaatschap, zoals nu bij de ladder.
    Moet de privacyverklaring daar een zin over krijgen?

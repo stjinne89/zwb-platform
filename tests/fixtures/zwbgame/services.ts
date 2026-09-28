@@ -2,6 +2,8 @@ import { basicRider, deriveRider, type PowerInput } from "../../../src/lib/zwbga
 import { createRace } from "../../../src/lib/zwbgame/engine";
 import { buildLadderTeams } from "../../../src/lib/zwbgame/ladder";
 import { buildZrlTeams } from "../../../src/lib/zwbgame/zrl";
+import { newTour, stageConfig } from "../../../src/lib/zwbgame/frr";
+import { tourKey } from "../../../src/lib/zwbgame/storage";
 import { saveKey, serializeRace } from "../../../src/lib/zwbgame/storage";
 import type { GameBootstrap, GamePreferences } from "../../../src/lib/zwbgame/types";
 import { fixtureRoutes } from "./routes";
@@ -41,5 +43,16 @@ export function nearFinishZrl() {
   const state = createRace({ mode: "zrl", format: "scratch", routeId: route.id, playerId: fixture.playerId, seed: 23, squads: [{ id: "own", riders: own.riderIds }, ...rivals.map((t) => ({ id: t.id, riders: t.riderIds }))] }, fixture.roster, route);
   state.tick = 8000;
   state.riders.forEach((r, i) => { r.distance = route.length - (r.rider.id === fixture.playerId ? 4 : r.team === "own" ? 12 + i : 60 + i); r.speed = 12; });
+  localStorage.setItem(saveKey(fixture.playerId), serializeRace(state));
+}
+/** An FRR tour with stage 1 a few metres from the line, you in front. */
+export function nearFinishFrr() {
+  const tour = newTour(fixture.roster, fixture.playerId, fixture.routes, 11);
+  localStorage.setItem(tourKey(fixture.playerId), JSON.stringify(tour));
+  const config = stageConfig(tour, fixture.playerId)!;
+  const route = fixture.routes.find((r) => r.id === config.routeId)!;
+  const state = createRace(config, fixture.roster, route);
+  state.tick = 8000;
+  state.riders.forEach((r, i) => { r.distance = route.length - (r.rider.id === fixture.playerId ? 4 : 20 + i); r.speed = 12; });
   localStorage.setItem(saveKey(fixture.playerId), serializeRace(state));
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { maxRaceSeconds } from "./engine";
+import type { FrrTour } from "./frr";
 import { OWN_TEAM, type LadderStanding } from "./ladder";
 import { basicRider } from "./roster";
 import { GAME_VERSION, type GameRider, type GameRoute, type RaceResult, type RaceState } from "./types";
@@ -19,8 +20,9 @@ const riderSchema = z.object({
 const savedSchema = z.object({
   version: z.literal(GAME_VERSION), savedAt: finite,
   config: z.object({
-    mode: z.enum(["ladder", "free", "zrl"]), format: z.enum(["points", "rot", "scratch", "ttt"]).optional(), routeId: id, seed: z.number().int(), playerId: id,
+    mode: z.enum(["ladder", "free", "zrl", "frr"]), format: z.enum(["points", "rot", "scratch", "ttt"]).optional(), routeId: id, seed: z.number().int(), playerId: id,
     squads: z.array(z.object({ id, riders: z.array(id).min(1).max(5) })).min(2).max(8).optional(),
+    field: z.array(id).min(1).max(24).optional(), stage: z.object({ index: z.number().int().min(0).max(9), kind: z.enum(["road", "itt"]) }).optional(),
   }),
   routeLength: finite, tick: z.number().int().min(0).max(200000), finished: z.boolean(), order: z.enum(["free", "bring", "leadout", "points"]),
   passes: z.array(z.object({ r: z.number().int().min(0).max(40), a: z.number().int().min(0).max(200), s: finite.min(0), e: finite.min(0).nullable() })).max(4000),
@@ -43,7 +45,9 @@ export function restoreRace(json: string, roster: GameRider[], routes: GameRoute
     if (ids.size !== saved.riders.length || !ids.has(playerId)) return null;
     if (saved.riders.some((r) => (r.job && !ids.has(r.job.for)) || (r.targetId && !ids.has(r.targetId)))) return null;
     const squads = saved.config.squads;
-    const teamed = saved.config.mode !== "free";
+    const teamed = saved.config.mode === "ladder" || saved.config.mode === "zrl";
+    if ((saved.config.mode === "frr") !== Boolean(saved.config.field && saved.config.stage)) return null;
+    if (saved.config.field && (saved.config.field.length !== saved.riders.length || saved.riders.some((r) => !saved.config.field!.includes(r.id)))) return null;
     if (teamed !== Boolean(squads) || (teamed && saved.riders.some((r) => !squads!.some((s) => s.id === r.team && s.riders.includes(r.id))))) return null;
     if (!teamed && saved.riders.some((r) => r.team !== null)) return null;
     if (saved.passes.some((p) => p.r >= saved.riders.length || p.a >= route.accents.length)) return null;
@@ -64,8 +68,9 @@ export const ladderKey = (playerId: string) => `zwbgame:v${GAME_VERSION}:${playe
 const LEGACY_COURSES = { polder: "Polderkoers", ardennen: "Ardennenjacht", heuvelrug: "Heuvelrug", alpen: "Alpenfinale" } as const;
 const resultSchema = z.union([
   z.object({
-    id: z.string(), mode: z.enum(["ladder", "free", "zrl"]), route: z.string().max(80), date: z.string(), place: z.number().int().min(1).max(40), count: z.number().int().min(1).max(40), seconds: finite.min(0).max(20000),
+    id: z.string(), mode: z.enum(["ladder", "free", "zrl", "frr"]), route: z.string().max(80), date: z.string(), place: z.number().int().min(1).max(40), count: z.number().int().min(1).max(40), seconds: finite.min(0).max(20000),
     score: z.tuple([finite, finite]).optional(), format: z.enum(["points", "rot", "scratch", "ttt"]).optional(), teamRank: z.tuple([z.number().int(), z.number().int()]).optional(),
+    stage: z.tuple([z.number().int(), z.number().int()]).optional(),
   }),
   // Versions 1–3 raced on the Flamme Rouge-style courses.
   z.object({ id: z.string(), courseId: z.enum(["polder", "ardennen", "heuvelrug", "alpen"]), date: z.string(), place: z.number().int().min(1).max(24), count: z.number().int().min(1).max(24), seconds: finite.min(0).max(1800) })
@@ -82,5 +87,22 @@ export function readLadder(json: string | null): LadderStanding | null {
   try {
     const parsed = ladderSchema.parse(JSON.parse(json ?? "null"));
     return parsed.order.includes(OWN_TEAM) ? parsed : null;
+  } catch { return null; }
+}
+export const tourKey = (playerId: string) => `zwbgame:v${GAME_VERSION}:${playerId}:tour`;
+const points = z.array(finite.min(0).max(100000)).max(24);
+const tourSchema = z.object({
+  version: z.literal(1), seed: z.number().int(), field: z.array(id).min(1).max(24),
+  stages: z.array(z.object({ routeId: id, kind: z.enum(["road", "itt"]), ssr: z.number().int().min(1).max(5) })).min(1).max(9),
+  results: z.array(z.object({ times: z.array(finite.min(0).nullable()).max(24), finish: points, sprint: points, climb: points, broom: z.array(z.boolean()).max(24) })).max(9),
+});
+/** The tour in progress: rider ids and numbers only, no names. */
+export function readTour(json: string | null, playerId: string): FrrTour | null {
+  try {
+    const tour = tourSchema.parse(JSON.parse(json ?? "null"));
+    const n = tour.field.length;
+    if (!tour.field.includes(playerId) || new Set(tour.field).size !== n || tour.results.length > tour.stages.length) return null;
+    if (tour.results.some((r) => [r.times, r.finish, r.sprint, r.climb, r.broom].some((list) => list.length !== n))) return null;
+    return tour;
   } catch { return null; }
 }

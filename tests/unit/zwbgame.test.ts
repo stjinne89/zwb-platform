@@ -3,7 +3,8 @@ import { applyCommand, botCommands, createRace, fatigueOf, standings, stepRace, 
 import { applyChallenge, buildLadderTeams, challengeable, challengeWon, initialLadder, normalizeLadder, OWN_TEAM, teamScore } from "@/lib/zwbgame/ladder";
 import { basicRider, buildRoster, deriveRider, isAllowedActivity, strength } from "@/lib/zwbgame/roster";
 import { elevationAt, gameRouteFrom } from "@/lib/zwbgame/routes";
-import { readResults, restoreRace, serializeRace } from "@/lib/zwbgame/storage";
+import { readResults, readTour, restoreRace, serializeRace } from "@/lib/zwbgame/storage";
+import { newTour, scoreStage, stageConfig, tourStandings, type FrrTour } from "@/lib/zwbgame/frr";
 import type { GameRoute, PlayerCommand, RaceState, ZrlFormat } from "@/lib/zwbgame/types";
 import { buildZrlTeams, ownTeamResult, scoreZrl } from "@/lib/zwbgame/zrl";
 import { fixtureRoutes } from "../fixtures/zwbgame/routes";
@@ -351,3 +352,78 @@ describe("ZWBgame ZRL", () => {
   }, 30000);
 });
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+
+describe("ZWBgame FRR tour", () => {
+  const club = Array.from({ length: 60 }, (_, i) => deriveRider(`c${String(i).padStart(2, "0")}`, `C${i}`, { ftp: 170 + i * 3, weight: 75, sprint: (170 + i * 3) * (2.4 + (i % 4) * 0.3) }, "manual", "v"));
+  const stageRace = (tour: FrrTour) => {
+    const config = stageConfig(tour, "c30")!;
+    return createRace(config, club, fixtureRoutes.find((r) => r.id === config.routeId)!);
+  };
+  it("plans a flat stage, a hilly stage, a time trial and a final, with a fixed field", () => {
+    const tour = newTour(club, "c30", fixtureRoutes, 3);
+    expect(tour.stages.map((s) => s.kind)).toEqual(["road", "road", "itt", "road"]);
+    expect(tour.stages[0].routeId).toBe("flat-route");
+    expect(tour.stages[1].routeId).toBe("hilly-route");
+    expect(tour.stages[0].ssr).toBe(3);
+    expect(tour.stages[1].ssr).toBe(1);
+    expect(tour.field[0]).toBe("c30");
+    expect(new Set(tour.field).size).toBe(24);
+    expect(stageConfig(tour, "c30")).toMatchObject({ mode: "frr", stage: { index: 0, kind: "road" }, field: tour.field });
+  });
+  it("a time trial has no drafting and no powerups", () => {
+    const tour = newTour(club, "c30", fixtureRoutes, 3);
+    tour.results = [0, 1].map(() => ({ times: tour.field.map(() => 1), finish: tour.field.map(() => 0), sprint: tour.field.map(() => 0), climb: tour.field.map(() => 0), broom: tour.field.map(() => false) }));
+    const state = run(stageRace(tour));
+    expect(state.config.stage?.kind).toBe("itt");
+    expect(state.riders.every((r) => r.shelteredSeconds === 0 && r.powerup === null)).toBe(true);
+  }, 30000);
+  it("scores finish points 25 to 1, doubles them in a time trial and scores segments on time × rating", () => {
+    const tour = newTour(club, "c30", fixtureRoutes, 3);
+    const state = stageRace(tour);
+    const byId = new Map(state.riders.map((r, i) => [r.rider.id, i]));
+    tour.field.forEach((id, i) => { state.riders[byId.get(id)!].finishTime = 1000 + i; });
+    state.finished = true;
+    const sprint = state.route.accents.findIndex((a) => a.banner && a.kind === "sprint");
+    tour.field.forEach((id, i) => state.passes.push({ r: byId.get(id)!, a: sprint, s: 100, e: 130 + i }));
+    const result = scoreStage(state, tour);
+    expect(result.finish.slice(0, 11)).toEqual([25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5]);
+    expect(result.finish[23]).toBe(1);
+    // A flat stage: sprint rating 3, ×1,3.
+    expect(result.sprint.slice(0, 3)).toEqual([33, 26, 21]);
+    expect(result.sprint[20]).toBe(0);
+    expect(result.broom.every((b) => !b)).toBe(true);
+    state.config = { ...state.config, stage: { index: 0, kind: "itt" } };
+    tour.stages[0] = { ...tour.stages[0], kind: "itt" };
+    expect(scoreStage(state, tour).finish[0]).toBe(50);
+  });
+  it("classifies only riders who finished every stage; the broom wagon costs 20 points", () => {
+    const tour = newTour(club, "c30", fixtureRoutes, 3);
+    const n = tour.field.length;
+    const stage = (times: (number | null)[], finish: number[]) => ({ times, finish, sprint: Array(n).fill(0), climb: Array(n).fill(0), broom: times.map((t) => t !== null && t > 1000 * 1.2) });
+    tour.results = [
+      stage(tour.field.map((_, i) => 1000 + i * 10), tour.field.map((_, i) => 25 - i)),
+      stage(tour.field.map((_, i) => (i === 1 ? null : i === 2 ? 1300 : 1000 + (n - i))), tour.field.map(() => 1)),
+    ];
+    const standing = tourStandings(tour);
+    expect(standing.gc.some((r) => r.id === tour.field[1])).toBe(false);
+    const me = standing.riders[0];
+    // You won stage 1; in stage 2 you took 1000 + n against the winner's 1001.
+    expect(me.gap).toBe(n - 1);
+    const third = standing.riders[2];
+    expect(third.brooms).toBe(1);
+    expect(third.total).toBe(third.finish + third.sprint + third.climb - 20);
+    expect(standing.green).toHaveLength(0);
+    expect(standing.polka).toHaveLength(0);
+  });
+  it("stores the tour without names and rejects a broken one", () => {
+    const tour = newTour(club, "c30", fixtureRoutes, 3);
+    const text = JSON.stringify(tour);
+    expect(text).not.toMatch(/C\d|flat"|climb"/);
+    expect(readTour(text, "c30")).toEqual(tour);
+    expect(readTour(text, "someone-else")).toBeNull();
+    expect(readTour(JSON.stringify({ ...tour, results: [{ times: [1], finish: [1], sprint: [1], climb: [1], broom: [false] }] }), "c30")).toBeNull();
+    const race = stageRace(tour);
+    for (let i = 0; i < 500; i++) stepRace(race);
+    expect(restoreRace(serializeRace(race), club, fixtureRoutes, "c30")).toEqual(race);
+  });
+});

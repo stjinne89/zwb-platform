@@ -35,6 +35,8 @@ const RIDE_BASE = 0.82;
 const RIDE_BASE_CLIMB = 0.97;
 /** A team time trial rides at threshold; riders take turns because the wheel is faster. */
 const TTT_BASE = 0.95;
+/** A time trial: riding along means riding your own threshold pace. */
+const ITT_BASE = 0.97;
 const RIDE_CAP = 1.6;
 const SAVE_CAP = 1.1;
 const ATTACK = 1.45;
@@ -96,7 +98,7 @@ export function timeScale(route: GameRoute) {
 }
 export const maxRaceSeconds = (route: GameRoute) => Math.ceil(expectedSeconds(route) * 1.8);
 
-function pickOpponents(config: RaceConfig, roster: GameRider[], player: GameRider) {
+export function pickOpponents(config: Pick<RaceConfig, "seed">, roster: GameRider[], player: GameRider) {
   // Like a Zwift category: the field is drawn from riders around your level.
   const own = strength(player);
   const pool = [...new Map(roster.filter((r) => r.id !== player.id).map((r) => [r.id, r])).values()]
@@ -105,8 +107,11 @@ function pickOpponents(config: RaceConfig, roster: GameRider[], player: GameRide
   while (pool.length < 7) pool.push(basicRider(`guest:${pool.length}`, `Gast ${pool.length + 1}`));
   return pool;
 }
-/** Who gives shelter: everybody, nobody (Race of Truth) or only your own team (TTT). */
+/** An FRR time trial: as on Zwift, everyone starts together without drafting or powerups. */
+export const isItt = (config: RaceConfig) => config.mode === "frr" && config.stage?.kind === "itt";
+/** Who gives shelter: everybody, nobody (Race of Truth, time trial) or only your own team (TTT). */
 export function draftRule(config: RaceConfig): "all" | "none" | "team" {
+  if (isItt(config)) return "none";
   if (config.mode !== "zrl") return "all";
   return config.format === "rot" ? "none" : config.format === "ttt" ? "team" : "all";
 }
@@ -127,6 +132,12 @@ export function createRace(config: RaceConfig, roster: GameRider[], route: GameR
     let guest = 0;
     entries = squads.flatMap((squad) => squad.riders.map((id) => ({ rider: byId.get(id) ?? basicRider(id, `Gast ${++guest}`), team: squad.id })));
     if (new Set(entries.map((e) => e.rider.id)).size !== entries.length) throw new Error("Een renner staat in twee ploegen.");
+  } else if (config.mode === "frr") {
+    // A tour keeps its field from stage to stage; a rider who left the club rides on as a guest.
+    const field = config.field;
+    if (!field || !config.stage || !field.includes(player.id) || field.length > 24 || new Set(field).size !== field.length) throw new Error("Deze etappe heeft geen geldig veld.");
+    let guest = 0;
+    entries = field.map((id) => ({ rider: byId.get(id) ?? basicRider(id, `Gast ${++guest}`), team: null }));
   } else {
     entries = [...pickOpponents(config, roster, player), player].map((rider) => ({ rider, team: null }));
   }
@@ -224,6 +235,11 @@ export function botCommands(state: RaceState, index: number): PlayerCommand[] {
   const ahead = state.riders.filter((x) => x !== r && riding(x) && x.distance > r.distance).map((x) => x.distance - r.distance);
   const gap = ahead.length ? Math.min(...ahead) : Infinity;
   const leader = r.team ? teamLeader(state, r.team) : null;
+  if (isItt(state.config)) {
+    // A time trial is paced: threshold all the way, what is left in the final kilometre.
+    mode(remaining < 800 && reserve > 0.1 ? "attack" : reserve < 0.1 ? "save" : "ride");
+    return commands;
+  }
   if (state.config.mode === "zrl" && state.config.format === "ttt") {
     // Ride together at threshold; ease off when empty, go in the last few hundred metres.
     mode(remaining < 300 && reserve > 0.1 ? "attack" : reserve < 0.15 ? "save" : "ride");
@@ -289,6 +305,7 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
   const order = new Map(positions.map((p, i) => [p.id, i]));
   const rule = draftRule(state.config);
   const ttt = state.config.mode === "zrl" && state.config.format === "ttt";
+  const itt = isItt(state.config);
   const banners = route.accents.flatMap((a, i) => (a.banner ? [{ a, i }] : []));
   state.riders.forEach((r, index) => {
     if (!riding(r)) return;
@@ -330,7 +347,7 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
     const sinA = grade / Math.sqrt(1 + grade * grade), cosA = 1 / Math.sqrt(1 + grade * grade);
     const resist = (v: number) => 0.5 * AIR_DENSITY * cda * v * v + CRR * mass * G * cosA + mass * G * sinA;
     const v = Math.max(r.speed, 2);
-    const base = ttt ? TTT_BASE : RIDE_BASE + (RIDE_BASE_CLIMB - RIDE_BASE) * clamp((grade - 0.015) / 0.025, 0, 1);
+    const base = ttt ? TTT_BASE : itt ? ITT_BASE : RIDE_BASE + (RIDE_BASE_CLIMB - RIDE_BASE) * clamp((grade - 0.015) / 0.025, 0, 1);
 
     let power: number;
     if (job && r.job?.kind === "bring") {
@@ -338,7 +355,7 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
       power = job.distance < r.distance - 4 ? cp * 0.45 : cp * 1.05;
     } else if (tucking) power = 0;
     else if (r.mode === "attack") power = remaining < SPRINT_METERS ? sprintPower(r, cp) : cp * ATTACK;
-    else if (r.mode === "front") power = cp * (time < START_SECONDS ? 1.3 : 1);
+    else if (r.mode === "front") power = cp * (time < START_SECONDS && !itt ? 1.3 : 1);
     else if (wheel) {
       // Hold the wheel: ride the speed of the bunch just ahead, not every twitch of one
       // rider, and close the gap, up to what this mode allows.
@@ -374,7 +391,7 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
       }
     }
     // Powerups come from Zwift's banners: named sprints and KOMs, and the lap line.
-    if (!r.powerup) {
+    if (!r.powerup && !itt) {
       const arches = [...route.accents.filter((a) => a.banner).map((a) => a.end), ...route.lapLines];
       const crossed = arches.findIndex((d) => previous < d && r.distance >= d);
       if (crossed >= 0) {

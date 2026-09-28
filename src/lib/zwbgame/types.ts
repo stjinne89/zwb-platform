@@ -29,7 +29,9 @@ export type GameRoute = {
   /** Where a lap ends before the finish, in metres. */
   lapLines: number[];
 };
-export type GameMode = "ladder" | "free" | "zrl";
+export type GameMode = "ladder" | "free" | "zrl" | "frr";
+/** An FRR tour stage: a road stage, or an individual time trial (mass start, no drafting, as on Zwift). */
+export type FrrStageKind = "road" | "itt";
 /** WTRL ZRL formats; Race of Truth is a points race without drafting. */
 export type ZrlFormat = "points" | "rot" | "scratch" | "ttt";
 /** Your team always has this id. */
@@ -44,6 +46,9 @@ export type RaceConfig = {
   playerId: string;
   /** Ladder and ZRL: the teams, yours first. The ladder has one opponent. */
   squads?: Squad[];
+  /** FRR: the tour field (the same riders every stage) and this stage. */
+  field?: string[];
+  stage?: { index: number; kind: FrrStageKind };
 };
 /** A rider through a named segment: start and end in race seconds. */
 export type SegmentPass = { r: number; a: number; s: number; e: number | null };
@@ -110,6 +115,8 @@ export type RaceResult = {
   format?: ZrlFormat;
   /** ZRL: your team's place and the number of teams. */
   teamRank?: [number, number];
+  /** FRR: stage number and number of stages. */
+  stage?: [number, number];
 };
 /** ownProfile: an own measurement or Intervals game profile overrides the platform data. */
 export type GamePreferences = { visible: boolean; ownProfile: boolean };

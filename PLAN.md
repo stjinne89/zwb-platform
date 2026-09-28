@@ -85,9 +85,40 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 
 ---
 
-> **ZWBgame ZRL: puntenrace, Race of Truth, scratch en ploegentijdrit, 2026-09-28 — gebouwd, lokaal getest.**
-> Commit: de commit die dit blok toevoegt. Geen migratie; spelversie 5 (lopende
-> v4-races vervallen, uitslagen en ladder blijven). Niet gepusht.
+> **ZWBgame FRR-tour: vier etappes, klassement, truien en bezemwagen, 2026-09-28 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie; spelversie blijft 5.
+> Niet gepusht.
+>
+> **Waarom.** De laatste spelvorm uit het plan, op verzoek van de eigenaar.
+>
+> **Wat er is.**
+> - Een tour van vier etappes met een vast veld van 24 renners rond jouw niveau:
+>   vlak, heuvel, tijdrit en slotrit.
+> - Het klassement op opgeteld tijdverlies (eGAP) en finishpunten volgens FRR,
+>   dubbel in de tijdrit.
+> - Segmentpunten alleen op de snelste tijd, maal de moeilijkheid van de klim of de
+>   sprintwaardering van de etappe.
+> - Geel, groen, bolletjes, blauw, en een bezemwagenstraf van 20 punten.
+> - De tijdrit is zoals op Zwift: samen starten, geen slipstream, geen powerups.
+> - De tourstand bewaart de browser, zonder namen.
+>
+> Details: [ZWBgame](docs/zwbgame.md).
+>
+> **Eigen keuzes.** De FRR-puntentabellen staan als afbeelding op hun site en laden
+> niet (gecontroleerd op 28 september). Daarom zelf gekozen: punten na plek 10
+> (5‥1, daarna 1), dezelfde schaal voor segmenten, de klimmoeilijkheid uit
+> hoogtemeters, de sprintwaardering uit het profiel en een bezemwagengrens van 20%.
+>
+> **Bewust niet gebouwd.** Klassen, een ploegenklassement, dubbele segmentpunten in
+> koninginnenritten, straffen bij upgrades, etappes uit de clubkalender, en de
+> gespreide start uit het plan (niet nodig, want een Zwift-tijdrit start samen).
+>
+> **Niet lokaal te verifiëren.** Een tour op de echte routebibliotheek; lokaal
+> alleen met drie fixture-routes.
+
+> **ZWBgame ZRL: puntenrace, Race of Truth, scratch en ploegentijdrit, 2026-09-28 — gebouwd, lokaal getest, gepusht.**
+> Commit `5ef39e2`, op 28 september gepusht naar main. Geen migratie; spelversie 5
+> (lopende v4-races vervallen, uitslagen en ladder blijven).
 >
 > **Waarom.** Vervolg op de ladder hieronder, op verzoek van de eigenaar ("ga dan
 > verder met het plan"): eerst ZRL, omdat de ronde nu loopt.
