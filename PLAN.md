@@ -82,6 +82,41 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0194`
 
 ---
 
+> **ZRL-starttijd uit de Zwift-link, 2026-09-28 — gebouwd, geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zette de starttijden van ZRL-teamevents met de hand
+> goed. De ZRL-import geeft alle teams van een ronde één tijd, terwijl elke
+> subgroep in een ZRL-event een eigen start heeft. Gemeten op
+> `5718424` (Open Aqua Division 1, race 1): A 20:00, B 20:01, C 20:02, D 20:03,
+> en A en B rijden 4 ronden terwijl het event zelf 3 opgeeft. "Ophalen" nam die
+> 3 over, dus bij A- en B-teams klopten ronden, afstand en hoogtemeters ook niet.
+>
+> **Wat er is.**
+> - "Ophalen" bij de Zwift-eventlink in het eventformulier zet het Start-veld op
+>   de start van de eigen subgroep, en neemt ronden en afstand van die groep. De
+>   groep volgt uit de categorieletter van het gekozen ZRL-team ("ZRL A", "B1",
+>   "Bdev", "ZRL Zwiftladies C"; anders die van het hoofdteam). Zonder team of
+>   letter: de vroegste groepstart, met ronden van het event zoals voorheen. Het
+>   veld blijft aanpasbaar vóór het opslaan. Ook voor niet-ZRL-events wordt de
+>   starttijd nu ingevuld.
+> - De publieke event-API levert `eventSubgroupStart` en `laps` per groep
+>   (gecontroleerd op `5711259` en `5718424`).
+> - De ZRL-import herkent een bestaand teamevent aan team en dag in plaats van
+>   exacte starttijd. Anders maakte opnieuw importeren een dubbel teamevent zodra
+>   een tijd was aangepast (met de hand of nu uit Zwift).
+>
+> **Bewust niet gebouwd.**
+> - Geen automatisch bijwerken na het ophalen: volgens de eigenaar verschuift
+>   WTRL/Zwift de tijden achteraf niet.
+> - Geen subgroepkeuze op inschrijvers (zoals de live ZRL-stand doet): bij het
+>   plakken van de link staat er meestal nog niemand ingeschreven (`5718424` had
+>   er een dag van tevoren 0), en de teamnamen dekken alle ZRL-teams.
+>
+> **Getest.** Unit-tests in `tests/unit/zwift-route.test.ts` (teamletter,
+> groepskeuze, starttijd, met de echte groepen van `5718424`), `tsc` en ESLint.
+> Het formulier is niet in de browser doorgeklikt (inloggen nodig).
+
 > **Samen fietsen: snelheid, vermogen, cadans en hartslag per renner,
 > 2026-09-28 — gebouwd; migratie `0193_live_position_metrics.sql`.** Commit: de
 > commit die dit blok toevoegt.
@@ -3521,7 +3556,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   ronde is een Race of Truth. `src/lib/teams/zrl-season.ts` leidt daar de hele
   ronde uit af, met de regels in `tests/unit/zrl-season.test.ts`. Er is geen
   migratie nodig: `events.type` kent `'zrl'` al sinds migr. `0001`. Het vullen is
-  idempotent op (team_id, start_at) — er is geen unieke index op dat paar, dus de
+  idempotent op team en dag (tot 2026-09-28 op team en exacte starttijd, zie de
+  ronde "ZRL-starttijd uit de Zwift-link") — er is geen unieke index, dus de
   bestaande races worden eerst opgehaald in plaats van een upsert te doen.
   **Bewust niet gebouwd:** geen koppeling met WTRL zelf (hun voorwaarden), en
   geen automatisch bijstellen als WTRL een tijd verschuift — opnieuw draaien vult

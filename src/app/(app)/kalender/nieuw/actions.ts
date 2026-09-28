@@ -10,7 +10,10 @@ import {
   eventRouteTotals,
   fetchZwiftPublicEvent,
   parseZwiftEventUrl,
+  pickOwnSubgroup,
   storeZwiftEventRules,
+  zrlCategoryFromTeamName,
+  zwiftStartFor,
 } from "@/lib/events/zwift-route";
 
 /**
@@ -275,6 +278,9 @@ export type ZwiftLookupResult =
       accents: number;
       /** Het profiel van deze route staat nog niet in de bibliotheek. */
       profile_missing: boolean;
+      /** Start van de eigen subgroep, anders de vroegste (ISO). */
+      start_at: string | null;
+      subgroup_label: string | null;
     };
 
 /**
@@ -284,7 +290,10 @@ export type ZwiftLookupResult =
  * profiel zelf komt uit die sync (/beheer/zwift-routes); dit zet alleen de
  * identificerende velden.
  */
-export async function lookupZwiftEvent(link: string): Promise<ZwiftLookupResult> {
+export async function lookupZwiftEvent(
+  link: string,
+  teamId?: string | null,
+): Promise<ZwiftLookupResult> {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false, error: "Niet ingelogd." };
@@ -300,7 +309,18 @@ export async function lookupZwiftEvent(link: string): Promise<ZwiftLookupResult>
   const result = await fetchZwiftPublicEvent(eventId);
   if (!result.ok) return { ok: false, error: result.error };
 
-  const { event } = result;
+  const own = pickOwnSubgroup(
+    result.event.subgroups,
+    await zrlTeamCategory(supabase, teamId),
+  );
+  // Start, ronden en afstand van onze eigen groep, als we die kennen.
+  const event = own
+    ? {
+        ...result.event,
+        laps: own.laps ?? result.event.laps,
+        distanceKm: own.distanceKm ?? result.event.distanceKm,
+      }
+    : result.event;
   const route = event.route;
   const totals = eventRouteTotals(event);
 
@@ -342,5 +362,29 @@ export async function lookupZwiftEvent(link: string): Promise<ZwiftLookupResult>
     elevation_m: totals?.elevationM ?? null,
     accents: route?.accents.length ?? 0,
     profile_missing: profileMissing,
+    start_at: zwiftStartFor(event, own),
+    subgroup_label: own?.label ?? null,
   };
+}
+
+/** De categorieletter van een ZRL-team, uit zijn eigen naam of die van het hoofdteam. */
+async function zrlTeamCategory(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string | null | undefined,
+): Promise<string | null> {
+  if (!teamId || !/^[0-9a-f-]{36}$/i.test(teamId)) return null;
+  const { data: team } = await supabase
+    .from("teams")
+    .select("name, type, parent_team_id")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (!team || team.type !== "zrl") return null;
+  const own = zrlCategoryFromTeamName(team.name as string);
+  if (own || !team.parent_team_id) return own;
+  const { data: parent } = await supabase
+    .from("teams")
+    .select("name")
+    .eq("id", team.parent_team_id as string)
+    .maybeSingle();
+  return zrlCategoryFromTeamName((parent?.name as string | undefined) ?? null);
 }

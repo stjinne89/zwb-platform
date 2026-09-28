@@ -19,7 +19,7 @@ export type ImportInput = Omit<ZrlRoundSpec, "teamName"> & { teamIds: string[] }
 /**
  * Zet een hele ZRL-ronde in de kalender: per raceweek één hoofdevent met de
  * gedeelde omschrijving, en daaronder per team een event. Idempotent: een
- * hoofdevent wordt herkend aan de dag, een teamevent aan (team_id, start_at).
+ * hoofdevent wordt herkend aan de dag, een teamevent aan team en dag.
  * Opnieuw draaien vult dus alleen aan, ook als er later een team bijkomt.
  */
 export async function importZrlRound(input: ImportInput) {
@@ -128,21 +128,22 @@ export async function importZrlRound(input: ImportInput) {
   }
 
   // Bestaande races voor deze teams in dit venster ophalen, zodat we alleen
-  // aanvullen. Er is geen unieke index op (team_id, start_at), dus dit gebeurt
-  // hier in plaats van met een upsert. Een teamevent van vóór de hoofdevents
-  // wordt alsnog aan zijn week gehangen.
+  // aanvullen. Er is geen unieke index, dus dit gebeurt hier in plaats van met
+  // een upsert. Herkend aan team en dag: de starttijd komt later uit de
+  // Zwift-link en wijkt dan af van de importtijd. Een teamevent van vóór de
+  // hoofdevents wordt alsnog aan zijn week gehangen.
   const { data: existing } = await supabase
     .from("events")
     .select("id, team_id, start_at, parent_event_id")
     .eq("type", "zrl")
     .in("team_id", input.teamIds)
-    .gte("start_at", starts[0])
-    .lte("start_at", starts[starts.length - 1]);
+    .gte("start_at", windowStart)
+    .lt("start_at", windowEnd);
 
+  const dayKey = (teamId: string, startAt: string) =>
+    `${teamId}|${amsterdamDateKey(new Date(startAt))}`;
   const seen = new Set(
-    (existing ?? []).map(
-      (row) => `${row.team_id}|${new Date(row.start_at as string).toISOString()}`,
-    ),
+    (existing ?? []).map((row) => dayKey(row.team_id as string, row.start_at as string)),
   );
   let linked = 0;
   for (const row of existing ?? []) {
@@ -156,7 +157,7 @@ export async function importZrlRound(input: ImportInput) {
     if (!error) linked += 1;
   }
 
-  const fresh = rows.filter((row) => !seen.has(`${row.team_id}|${row.start_at}`));
+  const fresh = rows.filter((row) => !seen.has(dayKey(row.team_id, row.start_at)));
   if (fresh.length > 0) {
     const { error } = await supabase.from("events").insert(fresh);
     if (error) return { ok: false as const, error: error.message };

@@ -11,7 +11,11 @@
 
 import { routes, segments } from "zwift-data";
 import { safeFetch } from "@/lib/net/safe-fetch";
-import { zwiftEventUrl, type ZwiftEventApiRow } from "@/lib/events/external-scan";
+import {
+  parseZwiftDate,
+  zwiftEventUrl,
+  type ZwiftEventApiRow,
+} from "@/lib/events/external-scan";
 
 export const ZWIFT_PUBLIC_EVENT_BASE =
   "https://us-or-rly101.zwift.com/api/public/events";
@@ -60,6 +64,17 @@ export type ZwiftEventInfo = {
   tags: string[];
   /** Opgelegd frame (zwift-data-id), of null. */
   bikeHash: number | null;
+  /** Subgroepen met een eigen start; bij de ZRL liggen die een minuut uit elkaar. */
+  subgroups: ZwiftSubgroupStart[];
+};
+
+export type ZwiftSubgroupStart = {
+  id: string;
+  label: string;
+  startAt: string;
+  /** Per groep; bij de ZRL rijden A en B soms een ronde meer dan C en D. */
+  laps: number | null;
+  distanceKm: number | null;
 };
 
 // --- Pure logica ---------------------------------------------------------
@@ -147,28 +162,83 @@ export function mapZwiftEvent(row: ZwiftEventApiRow): ZwiftEventInfo | null {
 
   const routeId =
     row.routeId == null ? null : toEventId(String(row.routeId)) ?? null;
-  const distanceMeters = Number(row.distanceInMeters);
   const durationSeconds = Number(row.durationInSeconds);
-  const laps = Number(row.laps);
 
   return {
     eventId,
     title: (row.name ?? "").trim(),
     startAt: row.eventStart ?? null,
-    distanceKm:
-      Number.isFinite(distanceMeters) && distanceMeters > 0
-        ? distanceMeters / 1000
-        : null,
+    distanceKm: positiveKm(row.distanceInMeters),
     durationMinutes:
       Number.isFinite(durationSeconds) && durationSeconds > 0
         ? Math.round(durationSeconds / 60)
         : null,
-    laps: Number.isFinite(laps) && laps > 0 ? laps : null,
+    laps: positiveLaps(row.laps),
     externalUrl: zwiftEventUrl(eventId),
     routeId,
     route: routeId === null ? null : routeFromZwiftId(routeId),
     ...zwiftEventRules(row),
+    subgroups: (row.eventSubgroups ?? []).flatMap((group) => {
+      const startAt = parseZwiftDate(group.eventSubgroupStart ?? undefined);
+      if (group.id == null || !startAt) return [];
+      return [
+        {
+          id: String(group.id),
+          label: (group.subgroupLabel ?? group.label ?? "").trim(),
+          startAt,
+          laps: positiveLaps(group.laps),
+          distanceKm: positiveKm(group.distanceInMeters),
+        },
+      ];
+    }),
   };
+}
+
+function positiveLaps(value: unknown): number | null {
+  const laps = Number(value);
+  return Number.isFinite(laps) && laps > 0 ? laps : null;
+}
+
+function positiveKm(meters: unknown): number | null {
+  const value = Number(meters);
+  return Number.isFinite(value) && value > 0 ? value / 1000 : null;
+}
+
+/**
+ * De categorieletter van een ZRL-team: "ZRL A", "B1", "Bdev", "ZRL Zwiftladies
+ * C". Alleen het laatste woord, zodat "Zwiftladies" geen Z en "Development"
+ * geen D wordt.
+ */
+export function zrlCategoryFromTeamName(name: string | null | undefined): string | null {
+  const last = (name ?? "").trim().split(/\s+/).pop() ?? "";
+  return /^([A-E])(?:\d+|dev)?$/i.exec(last)?.[1].toUpperCase() ?? null;
+}
+
+/**
+ * De subgroep met de categorieletter van het team; null als die er niet of
+ * dubbel in staat. Bewust niet op inschrijvers: bij het plakken van de link
+ * staat er meestal nog niemand ingeschreven.
+ */
+export function pickOwnSubgroup(
+  subgroups: ZwiftSubgroupStart[],
+  category: string | null,
+): ZwiftSubgroupStart | null {
+  if (!category) return null;
+  const matches = subgroups.filter((group) => group.label.toUpperCase() === category);
+  return matches.length === 1 ? matches[0] : null;
+}
+
+/**
+ * De starttijd voor het eventformulier. Met een eigen subgroep die van die
+ * groep; anders de vroegste groepstart, en zonder groepen `eventStart`.
+ */
+export function zwiftStartFor(
+  event: Pick<ZwiftEventInfo, "startAt" | "subgroups">,
+  own: ZwiftSubgroupStart | null,
+): string | null {
+  if (own) return own.startAt;
+  const starts = event.subgroups.map((group) => group.startAt).sort();
+  return starts[0] ?? parseZwiftDate(event.startAt ?? undefined);
 }
 
 /**

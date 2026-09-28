@@ -60,6 +60,7 @@ export type ZwiftEventApiRow = {
     subgroupLabel?: string | null;
     label?: string | null;
     eventSubgroupStart?: string | null;
+    laps?: number | null;
     distanceInMeters?: number | null;
     durationInSeconds?: number | null;
     rangeAccessLabel?: string | null;

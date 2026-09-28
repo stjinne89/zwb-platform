@@ -4,7 +4,10 @@ import {
   eventRouteTotals,
   mapZwiftEvent,
   parseZwiftEventUrl,
+  pickOwnSubgroup,
   routeFromZwiftId,
+  zrlCategoryFromTeamName,
+  zwiftStartFor,
 } from "@/lib/events/zwift-route";
 
 /**
@@ -153,5 +156,69 @@ describe("eventRouteTotals", () => {
 
   it("geeft null zonder route", () => {
     expect(eventRouteTotals(mapZwiftEvent({ id: 1, name: "x" })!)).toBeNull();
+  });
+});
+
+/**
+ * Ingekort uit GET /api/public/events/5718424 (opgehaald 2026-09-28): ZRL Open
+ * Aqua Division 1, race 1. Elke groep start een minuut later, en A en B rijden
+ * een ronde meer dan het event zelf opgeeft.
+ */
+const ZRL_EVENT_JSON = {
+  id: 5718424,
+  name: "Zwift Racing League 26/27: Fast & Fresh : Open Aqua League Division 1 - Race 1",
+  eventStart: "2026-09-29T18:00:00.000+0000",
+  laps: 3,
+  routeId: 2592027600,
+  eventSubgroups: [
+    { id: 7365549, subgroupLabel: "A", eventSubgroupStart: "2026-09-29T18:00:00.000+0000", laps: 4 },
+    { id: 7365548, subgroupLabel: "B", eventSubgroupStart: "2026-09-29T18:01:00.000+0000", laps: 4 },
+    { id: 7365550, subgroupLabel: "C", eventSubgroupStart: "2026-09-29T18:02:00.000+0000", laps: 3 },
+    { id: 7365551, subgroupLabel: "D", eventSubgroupStart: "2026-09-29T18:03:00.000+0000", laps: 3 },
+  ],
+};
+
+describe("zrlCategoryFromTeamName", () => {
+  it("leest de letter uit de ZWB-teamnamen", () => {
+    expect(zrlCategoryFromTeamName("ZRL A")).toBe("A");
+    expect(zrlCategoryFromTeamName("B1")).toBe("B");
+    expect(zrlCategoryFromTeamName("Bdev")).toBe("B");
+    expect(zrlCategoryFromTeamName("ZRL Zwiftladies C")).toBe("C");
+  });
+
+  it("maakt geen letter van een gewoon woord", () => {
+    expect(zrlCategoryFromTeamName("ZRL Zwiftladies")).toBeNull();
+    expect(zrlCategoryFromTeamName("Development")).toBeNull();
+    expect(zrlCategoryFromTeamName(null)).toBeNull();
+  });
+});
+
+describe("start per subgroep", () => {
+  const event = mapZwiftEvent(ZRL_EVENT_JSON)!;
+
+  it("leest start en ronden per groep", () => {
+    expect(event.subgroups.map((group) => [group.label, group.startAt, group.laps])).toEqual([
+      ["A", "2026-09-29T18:00:00.000Z", 4],
+      ["B", "2026-09-29T18:01:00.000Z", 4],
+      ["C", "2026-09-29T18:02:00.000Z", 3],
+      ["D", "2026-09-29T18:03:00.000Z", 3],
+    ]);
+  });
+
+  it("geeft het team de start van zijn eigen groep", () => {
+    const own = pickOwnSubgroup(event.subgroups, "C");
+    expect(own?.id).toBe("7365550");
+    expect(zwiftStartFor(event, own)).toBe("2026-09-29T18:02:00.000Z");
+  });
+
+  it("valt zonder eigen groep terug op de vroegste groepstart", () => {
+    expect(pickOwnSubgroup(event.subgroups, null)).toBeNull();
+    expect(pickOwnSubgroup(event.subgroups, "E")).toBeNull();
+    expect(zwiftStartFor(event, null)).toBe("2026-09-29T18:00:00.000Z");
+  });
+
+  it("gebruikt eventStart als er geen groepen zijn", () => {
+    const bare = mapZwiftEvent({ id: 1, name: "x", eventStart: "2026-09-29T18:00:00.000+0000" })!;
+    expect(zwiftStartFor(bare, null)).toBe("2026-09-29T18:00:00.000Z");
   });
 });

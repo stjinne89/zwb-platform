@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -82,6 +82,8 @@ export function EventForm({
   const [zwift, setZwift] = useState<ZwiftLookupOk | null>(null);
   const [zwiftError, setZwiftError] = useState<string | null>(null);
   const [zwiftPending, startZwiftLookup] = useTransition();
+  const teamRef = useRef<HTMLSelectElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
 
   const hasExistingGpx = Boolean(initial?.gpx_path);
   const hasExistingZwift = Boolean(initial?.zwift_event_id);
@@ -89,13 +91,16 @@ export function EventForm({
   function handleZwiftLookup() {
     setZwiftError(null);
     startZwiftLookup(async () => {
-      const result = await lookupZwiftEvent(zwiftLink);
+      const result = await lookupZwiftEvent(zwiftLink, teamRef.current?.value || null);
       if (!result.ok) {
         setZwift(null);
         setZwiftError(result.error);
         return;
       }
       setZwift(result);
+      if (result.start_at && startRef.current) {
+        startRef.current.value = isoToLocalInput(result.start_at);
+      }
     });
   }
 
@@ -294,6 +299,7 @@ export function EventForm({
             Team (optioneel)
           </label>
           <select
+            ref={teamRef}
             name="team_id"
             defaultValue={initial?.team_id ?? ""}
             className={FIELD_CLASS}
@@ -312,6 +318,7 @@ export function EventForm({
         <div>
           <label className="mb-1 block text-sm font-medium">Start</label>
           <input
+            ref={startRef}
             type="datetime-local"
             name="start_at"
             required
@@ -457,6 +464,16 @@ export function EventForm({
         {zwift && (
           <div className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
             <p className="font-medium">{zwift.title}</p>
+            {zwift.start_at && (
+              <p className="text-muted-foreground">
+                Start{" "}
+                {new Date(zwift.start_at).toLocaleTimeString("nl-NL", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {zwift.subgroup_label ? ` · groep ${zwift.subgroup_label}` : ""}
+              </p>
+            )}
             <p className="text-muted-foreground">
               {zwift.route_name ?? "route onbekend"}
               {zwift.world ? ` · ${zwift.world}` : ""}

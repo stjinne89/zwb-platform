@@ -126,7 +126,7 @@ const GUIDES = [
     title: "Teams en wedstrijden",
     bullets: [
       "Teams tonen leden, rosterkoppelingen en bekende wedstrijdstanden.",
-      "Een ZRL-raceweek staat als één event in de kalender, met de informatie die voor alle teams geldt. Daaronder heeft elk team zijn eigen race, met eigen starttijd, Zwift-link en opstelling.",
+      "Een ZRL-raceweek staat als één event in de kalender, met de informatie die voor alle teams geldt. Daaronder heeft elk team zijn eigen race, met eigen starttijd, Zwift-link en opstelling. Plak je bij Bewerk de Zwift-eventlink en kies je Ophalen, dan komen starttijd, ronden en afstand van de Zwift-groep van dat team (A, B, C of D, uit de teamnaam).",
       "Heeft je team subteams, zoals B met B1 en B2? Dan is het hoofdteam een paraplu: je meldt je per raceweek beschikbaar bij het hoofdteam, op de teampagina of op de raceweek zelf, en de captain deelt je in bij een subteam. Het hoofdteam rijdt zelf geen races.",
       "Voor een ZRL-race meld je je niet op Zwift aan maar met de WTRL-racepass van je team. Die staat bovenaan de race van je team, en op de raceweek bij elk team. Een beheerder zet de passes per ronde op Beheer → ZRL-racekalender.",
       "Bovenaan een race staat Raceinfo: je pacingplan en links naar Zwift, ZwiftPower en ZwiftRacing, recon-video's, ZwiftInsider en de racepagina op de ZWB-site. Zwift, ZwiftPower en ZwiftRacing volgen uit de Zwift-koppeling; de andere links zet een beheerder onderaan Bewerk. De race van je team toont ook de links en de route van de raceweek, en op de raceweek wijst Pacingplan naar de race van je eigen team.",
