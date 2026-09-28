@@ -9,6 +9,7 @@ import {
   wahooPageState,
 } from "@/lib/live/external-livetrack";
 import {
+  inboundDomain,
   mailAddressForCode,
   mailCodeFromRecipients,
   newMailCode,
@@ -132,6 +133,13 @@ describe("persoonlijk clubadres", () => {
     expect(code).toMatch(/^[a-z2-7]{20}$/);
     const address = mailAddressForCode(code, "live.example.nl");
     expect(mailCodeFromRecipients([`Renner <${address.toUpperCase()}>`], "live.example.nl")).toBe(code);
+  });
+
+  it("haalt het domein uit een geplakt Resend-voorbeeldadres", () => {
+    expect(inboundDomain("<anything>@abc123.resend.app")).toBe("abc123.resend.app");
+    expect(inboundDomain(" Live.Example.nl ")).toBe("live.example.nl");
+    expect(inboundDomain("<anything>")).toBeNull();
+    expect(inboundDomain("")).toBeNull();
   });
 
   it("negeert adressen op een ander domein of zonder geldige code", () => {

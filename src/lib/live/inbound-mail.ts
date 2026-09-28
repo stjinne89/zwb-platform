@@ -21,8 +21,13 @@ export function newMailCode() {
   return Array.from(bytes, (b) => alphabet[b % 32]).join("");
 }
 
-export function inboundDomain() {
-  return process.env.LIVE_INBOUND_DOMAIN?.trim().toLowerCase() || null;
+/**
+ * Het ontvangstdomein. Resend toont het als `<anything>@xxxx.resend.app`; wie
+ * dat hele adres in de env-var plakt, krijgt toch alleen het domein.
+ */
+export function inboundDomain(value = process.env.LIVE_INBOUND_DOMAIN) {
+  const domain = (value ?? "").trim().toLowerCase().split("@").pop()!.replace(/[<>\s]/g, "");
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain) ? domain : null;
 }
 
 export function mailAddressForCode(code: string, domain: string) {
