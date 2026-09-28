@@ -42,8 +42,10 @@ gaat stabiliteit voor nieuwe features.
    **vóór** de deploy (anders weigert de database een geplakte Garmin-link op
    `/live`). Daarna Resend Receiving en de webhook instellen en
    `LIVE_INBOUND_DOMAIN`, `RESEND_INBOUND_WEBHOOK_SECRET` en `RESEND_API_KEY` in
-   Netlify zetten (runbook sectie 5). Dan één proefrit met een eigen Garmin en
-   een eigen Wahoo: de open punten 1, 2, 4, 6 en 7 van de spike.
+   Netlify zetten (runbook sectie 5); gedaan en de mailketen werkt (2026-09-28).
+   Nog open: proefritten, de punten 1, 2, 4, 6 en 7 van de spike. De eigenaar
+   test met een Wahoo ELEMNT; hij heeft geen Garmin, dus de Garmin-proefrit moet
+   een lid met een Edge doen, met diens toestemming.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
