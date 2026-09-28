@@ -122,9 +122,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0192`
 > **Privacy: alleen tekst, geen nieuwe versie.** `/privacy` noemt nu de
 > LiveTrack-mail, dat alleen de link wordt bewaard, het ophalen bij Garmin, en
 > Resend als ontvanger van die mail. Geen nieuwe versie in `src/lib/privacy.ts`:
-> het blijven locatiegegevens tijdens live tracking, al gedekt. **Nog voorleggen
-> aan de eigenaar**, want Resend als ontvanger van locatie-mail is een nieuwe
-> ontvanger.
+> het blijven locatiegegevens tijdens live tracking, al gedekt. Resend als
+> ontvanger van de LiveTrack-mail is nieuw; de eigenaar koos op 2026-09-28
+> bewust voor alleen de tekstaanpassing.
 >
 > **Bewust niet gebouwd.**
 > - Wahoo Share Forever met een RSVP-venster: eerst meten of de automatische
