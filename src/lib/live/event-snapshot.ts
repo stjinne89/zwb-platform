@@ -7,6 +7,7 @@
 
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import type {
   EventLiveSession,
   EventLivePosition,
@@ -109,10 +110,11 @@ async function _fetchEventLiveSnapshot(
     return { event: publicEvent, sessions: [], positions: [] };
   }
 
+  await refreshExternalLiveSessions({ profileIds: participantIds, admin });
   const cutoff = getActiveCutoffIso();
   const { data: sessionRows } = await admin
     .from("live_sessions")
-    .select("id, profile_id, source, started_at, last_seen_at, profiles(display_name)")
+    .select("id, profile_id, source, external_track_url, started_at, last_seen_at, profiles(display_name)")
     .in("profile_id", participantIds)
     .eq("mode", "outdoor")
     .is("ended_at", null)
@@ -126,6 +128,7 @@ async function _fetchEventLiveSnapshot(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
     source: (s.source ?? "manual") as EventLiveSession["source"],
+    externalTrackUrl: s.external_track_url ?? null,
     startedAt: s.started_at,
     lastSeenAt: s.last_seen_at,
   }));

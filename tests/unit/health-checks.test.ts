@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   evaluateEnvPresent,
+  evaluateGarminLiveTrack,
   evaluateMyWhoosh,
   evaluateReachable,
   evaluateTeamResultSync,
@@ -79,5 +80,20 @@ describe("evaluateTeamResultSync", () => {
   it("is ok zonder fouten of zonder actieve bronnen", () => {
     expect(evaluateTeamResultSync("wtrl_sync", [{ last_error: null, last_synced_at: "2026-09-20T10:00:00Z" }]).ok).toBe(true);
     expect(evaluateTeamResultSync("ladder_sync", []).ok).toBe(true);
+  });
+});
+
+describe("evaluateGarminLiveTrack", () => {
+  it("404 op een niet-bestaande sessie betekent dat de CSRF-route werkt", () => {
+    expect(evaluateGarminLiveTrack(404).ok).toBe(true);
+  });
+
+  it("403 of een andere status is een storing", () => {
+    expect(evaluateGarminLiveTrack(403)).toMatchObject({ ok: false, detail: "Garmin weigert (HTTP 403)" });
+    expect(evaluateGarminLiveTrack(500).ok).toBe(false);
+  });
+
+  it("slaat over zolang de koppeling niet is ingesteld", () => {
+    expect(evaluateGarminLiveTrack(0, false).ok).toBe(true);
   });
 });

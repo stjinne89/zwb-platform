@@ -11,7 +11,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { Clock, Gauge, MapPin, Maximize2, Route, X } from "lucide-react";
+import { ArrowUpRight, Clock, Gauge, MapPin, Maximize2, Route, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
 import {
@@ -70,14 +70,24 @@ function poiIconHtml(type: PoiType): string {
   return `<div style="width:24px;height:24px;border-radius:9999px 9999px 9999px 2px;background:${color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;">${emoji}</div>`;
 }
 
+export type EventLiveSource = "manual" | "owntracks" | "external" | "garmin" | "wahoo";
+
 export type EventLiveSession = {
   id: string;
   profileId: string;
   profileName: string;
-  source: "manual" | "owntracks" | "external";
+  source: EventLiveSource;
+  externalTrackUrl: string | null;
   startedAt: string;
   lastSeenAt: string;
 };
+
+function sourceLabel(source: EventLiveSource) {
+  if (source === "owntracks") return "OwnTracks live";
+  if (source === "garmin") return "Garmin live";
+  if (source === "wahoo") return "Wahoo live";
+  return "ZWB live";
+}
 
 export type EventLivePosition = {
   session_id: string;
@@ -93,7 +103,7 @@ type Marker = {
   sessionId: string;
   profileId: string;
   name: string;
-  source: "manual" | "owntracks" | "external";
+  source: EventLiveSource;
   lat: number;
   lng: number;
   altitude: number | null;
@@ -575,6 +585,11 @@ export function EventLiveTicker({
     return now - new Date(m.recordedAt).getTime() <= STALE_AFTER_MS;
   });
   const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now));
+  // Garmin/Wahoo-renners zonder posities: alleen de link naar hun eigen kaart.
+  const riderIds = new Set(riders.map((r) => r.sessionId));
+  const linkOnly = sessions.filter(
+    (s) => s.externalTrackUrl && !riderIds.has(s.id),
+  );
   const positions = routeStats.points.map((p) => [p.lat, p.lon] as [number, number]);
   // Zones → route-stukken (LatLng) voor de kaart-band.
   const zoneSegments = zones.map((z) => {
@@ -711,7 +726,7 @@ export function EventLiveTicker({
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="rounded-md border bg-background px-3 py-2 text-sm tabular-nums">
-          <strong>{riders.length}</strong>{" "}
+          <strong>{riders.length + linkOnly.length}</strong>{" "}
               <span className="text-muted-foreground">live</span>
         </div>
       </div>
@@ -742,12 +757,13 @@ export function EventLiveTicker({
             zones={zones}
           />
           <RiderList riders={riders} totalKm={routeStats.totalKm} />
+          <LinkOnlyList sessions={linkOnly} />
         </div>
       </div>
 
       {gpxDownloadUrl && <GpxDownloadLink href={gpxDownloadUrl} />}
 
-      {riders.length === 0 && (
+      {riders.length === 0 && linkOnly.length === 0 && (
         <div className="rounded-md border border-dashed bg-background p-4 text-sm text-muted-foreground">
           {emptyText}
         </div>
@@ -819,7 +835,7 @@ function RiderPopup({
     <div className="min-w-44 space-y-2 text-sm">
       <p className="font-semibold">{rider.name}</p>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {rider.source === "owntracks" ? "OwnTracks live" : "ZWB live"}
+        {sourceLabel(rider.source)}
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         <dt className="text-muted-foreground">Afstand</dt>
@@ -848,6 +864,34 @@ function RiderPopup({
   );
 }
 
+function LinkOnlyList({ sessions }: { sessions: EventLiveSession[] }) {
+  if (sessions.length === 0) return null;
+
+  return (
+    <ul className="divide-y rounded-lg border bg-background">
+      {sessions.map((session) => (
+        <li key={session.id} className="flex items-center justify-between gap-3 p-3">
+          <div className="min-w-0">
+            <p className="truncate font-medium">{session.profileName}</p>
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {sourceLabel(session.source)}
+            </p>
+          </div>
+          <a
+            href={session.externalTrackUrl!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-secondary"
+          >
+            Kaart
+            <ArrowUpRight className="size-3" />
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function RiderList({
   riders,
   totalKm,
@@ -867,7 +911,7 @@ function RiderList({
               <div className="min-w-0">
                 <p className="truncate font-medium">{rider.name}</p>
                 <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {rider.source === "owntracks" ? "OwnTracks live" : "ZWB live"}
+                  {sourceLabel(rider.source)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Laatste update{" "}

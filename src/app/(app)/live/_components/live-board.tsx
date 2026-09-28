@@ -108,7 +108,11 @@ export function LiveBoard({
                           rel="noopener noreferrer"
                           className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-secondary"
                         >
-                          LiveTrack
+                          {s.source === "garmin"
+                            ? "Garmin"
+                            : s.source === "wahoo"
+                              ? "Wahoo"
+                              : "LiveTrack"}
                           <ArrowUpRight className="size-3" />
                         </a>
                       )}

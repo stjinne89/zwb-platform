@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -770,11 +771,12 @@ export default async function EventDetailPage({
   let eventLiveSessions: EventLiveSession[] = [];
   let eventLivePositions: EventLivePosition[] = [];
   if (eventIsToday && liveParticipantIds.length > 0) {
+    await refreshExternalLiveSessions({ profileIds: liveParticipantIds });
     const cutoff = await getActiveCutoffIso();
     const { data: sessionRows } = await supabase
       .from("live_sessions")
       .select(
-        "id, profile_id, source, started_at, last_seen_at, profiles(display_name)",
+        "id, profile_id, source, external_track_url, started_at, last_seen_at, profiles(display_name)",
       )
       .in("profile_id", liveParticipantIds)
       .eq("mode", "outdoor")
@@ -788,6 +790,7 @@ export default async function EventDetailPage({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
       source: (s.source ?? "manual") as EventLiveSession["source"],
+      externalTrackUrl: s.external_track_url ?? null,
       startedAt: s.started_at,
       lastSeenAt: s.last_seen_at,
     }));

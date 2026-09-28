@@ -1,11 +1,13 @@
 # Live volgen via Garmin- en Wahoo-fietscomputers — onderzoek
 
 Datum: 2026-09-28
-Status: **onderzocht, niet gebouwd.** Geen migratie. Geen enkel Garmin- of
-Wahoo-endpoint is vanuit de ontwikkelomgeving aangeroepen: de egress-policy
-blokkeert die domeinen. Alles over het gedrag van die endpoints komt uit
-openbare bronnen en open-sourceprojecten (zie [Bronnen](#bronnen)) en moet met
-de spike in sectie 7 bevestigd worden.
+Status: **gebouwd op 2026-09-28** (migratie `0191`), na een gedeeltelijke spike.
+De eerste versie van dit document schreef dat geen enkel endpoint was
+aangeroepen, omdat de egress van de cloud-omgeving Garmin en Wahoo blokkeerde.
+Dezelfde dag is vanaf de ontwikkelmachine de kernvraag (punt 3) wel getest:
+Garmin's CSRF-token staat in de HTML, dus uitlezen lukt zonder browser. De
+uitkomsten staan in [sectie 7](#7-spike-checklist-voor-de-eigenaar); wat nog
+alleen uit bronnen komt, staat daar ook.
 
 ## De vraag
 
@@ -24,11 +26,12 @@ Wahoo, die de meeste leden al op het stuur hebben?
    één keer een persoonlijk clubadres ontvanger, dan weten wij bij elke rit
    vanzelf dat hij rijdt en waar de link staat. **De renner doet per rit
    niets.** Dat is het grote verschil met OwnTracks.
-3. **Het onzekere deel is de posities uitlezen.** Die komen uit
-   ongedocumenteerde endpoints. Garmin beschermt ze sinds kort met een
-   CSRF-token uit de eigen pagina-JavaScript. Een actueel open-sourceproject
-   gebruikt daarom een headless browser. Of het zonder browser lukt, moet een
-   spike met een eigen link uitwijzen.
+3. **Posities uitlezen lukt bij Garmin zonder browser.** Ze komen uit
+   ongedocumenteerde endpoints die sinds kort een CSRF-token vragen. Een
+   actueel open-sourceproject gebruikt daarvoor een headless browser, maar het
+   token staat gewoon in `<meta name="csrf-token">` van de sessiepagina, samen
+   met de cookie `livetrack_csrf` (getest 2026-09-28, zie sectie 7). Bij Wahoo
+   is het kaart-endpoint nog onbekend.
 4. **Ook als het uitlezen niet lukt, levert de mail-route iets op.** De renner
    staat dan automatisch als "live via Garmin/Wahoo" op `/live` en op de
    eventpagina, met een klikbare link naar de kaart van Garmin of Wahoo. Nu moet
@@ -93,6 +96,11 @@ Een nieuwe bron voor posities hoeft hier dus niets aan te veranderen, zolang hij
 `live_sessions` en `live_positions` vult.
 
 ### 2.4 De bestaande route met een externe link werkt maar kort
+
+> Sinds 2026-09-28 deels opgelost: een geplakte Garmin- of Wahoo-link wordt
+> uitgelezen en sluit niet meer na 15 minuten, en de eventticker toont de link
+> (sectie 8). Een andere link, en een handmatige indoorsessie, sluiten nog wel
+> na 15 minuten.
 
 Op `/live` kan een renner een sessie starten met een Garmin- of Wahoo-link
 (`start-form.tsx`, `startSession` in `_actions.ts`; dan is
@@ -363,9 +371,11 @@ zoals bij WTRL (zie de gebruiksanalyse).
 Een Connect IQ-dataveld (3.3) dat naar het ongewijzigde `/api/live/owntracks`
 post. Alleen als 4.3 voor Garmin niet werkt.
 
-## 5. Datamodel (schets, geen migratie in deze ronde)
+## 5. Datamodel (gebouwd als `0191_live_garmin_wahoo.sql`)
 
-De volgende vrije migratie is `0191`.
+Gebouwd zoals hieronder, met `external_status` (`live`, `ended`, `error`,
+`link`). `wahoo_permalink` is niet toegevoegd, omdat Share Forever nog niet
+gebouwd is (sectie 8).
 
 - `live_sessions.source`: check uitbreiden met `garmin` en `wahoo`.
 - `live_sessions`: nieuwe kolommen:
@@ -417,13 +427,71 @@ Niet met de link van een ander lid zonder diens toestemming.
 | 6 | Komt de Wahoo-mail (Share Automatically) betrouwbaar aan? | Drie ritten | Mail-route voor Wahoo | Share Forever-permalink met RSVP-venster (4.3) |
 | 7 | Wat gebeurt er aan het eind van de rit? | Status en endpoint na afloop | Sessie netjes sluiten | Maximale duur als vangnet (4.4) |
 
-Vul de uitkomsten in dit document in voordat er gebouwd wordt.
+### Uitkomsten (2026-09-28)
 
-## 8. Bewust niet gebouwd, en waarom
+Getest vanaf de ontwikkelmachine, met een verzonnen sessie-ID en zonder
+iemands echte link:
 
-- **Nog geen code.** Punt 3 van de spike bepaalt of posities uitlezen bij
-  Garmin mogelijk is, en daarmee de vorm van de bouw. Het bestuur overweegt
-  daarnaast een featurepauze (`PLAN.md`, Actieve volgorde).
+- **Punt 3: ja.** `GET livetrack.garmin.com/session/<id>/token/<token>` geeft
+  HTML met `<meta name="csrf-token" content="…">` en zet de cookie
+  `livetrack_csrf`. Met die header (`livetrack-csrf-token`) én die cookie geeft
+  `/api/sessions/<id>?token=…` een JSON-antwoord (404 "session not found" voor
+  de verzonnen sessie). Zonder header of zonder cookie: 403. Dat werkt ook met
+  een eerlijke User-Agent (`ZWB-platform live`), dus er is geen browser en geen
+  vermomming nodig. **Niet getest:** of Garmin vanaf Netlify's IP-adressen
+  hetzelfde doet. De health-check `garmin_livetrack` meet dat elk uur.
+- **Punt 4: uit de bron, niet gemeten.** De veldnamen komen uit
+  GarminLiveTrack-Server (`dateTime`, `position.lat/lon`, `speedMetersPerSec`,
+  `altitude`; sessie `start`, `end`, `viewable`). De parser probeert ook de oude
+  namen (`latitude`, `timestamp`, `metaData`). Een echte rit moet dit bevestigen.
+- **Punt 5: deels.** Een ongeldige Wahoo-link geeft een door de server
+  gerenderde pagina met "User Not Found". Wat een geldige pagina bevat, en welk
+  verzoek de kaart voedt, is zonder echte link niet te zien.
+- **Punten 1, 2, 6 en 7: open.** Die vragen een eigen Garmin en Wahoo op een
+  proefrit. De bouw vangt de onzekerheid op (zie sectie 8).
+
+## 8. Wat er gebouwd is (2026-09-28)
+
+- **Koppelen:** paneel "Garmin of Wahoo LiveTrack" op `/live` (alleen als
+  `LIVE_INBOUND_DOMAIN` is gezet). Het adres `live-<code>@<domein>` wordt één
+  keer getoond; alleen de hash van de code wordt bewaard (provider `mail`).
+- **Ontvangen:** `POST /api/live/inbound-mail`. Controleert de
+  Svix-handtekening, haalt de mail op bij Resend, zoekt de link en maakt een
+  sessie met bron `garmin` of `wahoo`. Een nieuwe link sluit de vorige externe
+  sessie van die renner.
+- **Posities:** `src/lib/live/external-refresh.ts`, aangeroepen door `/live`,
+  de eventpagina, de verjaardagsrit, de publieke eventticker, `/kalender` en de
+  cleanup-cron. Hooguit één ophaalronde per 30 s per sessie.
+- **Rit-einde:** Garmin meldt het zelf. Bij Wahoo telt
+  `data-seconds-since-update` boven 30 minuten, of "User Not Found". Anders
+  sluit de cleanup een Garmin- of Wahoo-sessie na twee uur zonder teken van
+  leven of een dag na de start. De 15-minutenregel geldt voor deze bronnen niet
+  meer: een koffiestop is geen einde van de rit.
+- **Degradatie:** lukt uitlezen niet, dan blijft de renner "live, met link" tot
+  8 uur na de start. De eventticker toont zulke renners met een knop naar de
+  kaart van Garmin of Wahoo.
+- **Geplakte link:** een Garmin- of Wahoo-link in het startformulier op `/live`
+  krijgt nu dezelfde bron, en wordt dus ook uitgelezen in plaats van na 15
+  minuten te sluiten (2.4).
+
+**Afwijking van 4.2:** er is geen afzendercheck. Het afzenderadres van Wahoo is
+onbekend (punt 2), en een renner die de mail vanuit zijn eigen mailbox
+doorstuurt moet ook werken. De code in het adres is het geheim, en alleen een
+link van de vorm `livetrack.garmin.com/session/…/token/…` of een Wahoo-link met
+"live" in het pad wordt gebruikt.
+
+**Niet gebouwd:**
+
+- **Wahoo Share Forever met RSVP-venster (4.3).** Eerst meten of de
+  automatische Wahoo-mail aankomt (punt 6). Pas als dat niet zo is, is de
+  permalink met polling het werk waard.
+- **Wahoo-posities.** Het endpoint is onbekend (punt 5).
+- **Connect IQ-dataveld (4.5).** Niet nodig zolang punt 3 werkt.
+
+## 9. Bewust niet gebouwd, en waarom
+
+- ~~Nog geen code.~~ Achterhaald: op 2026-09-28 gebouwd op verzoek van de
+  eigenaar, nadat punt 3 van de spike positief uitviel (zie sectie 8).
 - **Geen headless Chromium op Netlify.** Te zwaar, te traag bij een koude start,
   en het kost bij elke kijker credits. Liever degraderen naar "live, met link".
 - **Geen officiële partner-API's.** Ze leveren niets live; zie 3.4.

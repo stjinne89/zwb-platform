@@ -38,6 +38,12 @@ gaat stabiliteit voor nieuwe features.
    deploy van de Sprint Quali uit Zwift. Zonder de kolom werken bij de Sprint
    Quali "leagues instellen" en "Ophalen uit Zwift" niet (foutmelding); plakken
    blijft werken, en de andere onderdelen lezen de kolom niet.
+   **Live volgen via Garmin/Wahoo:** `0191_live_garmin_wahoo.sql` toepassen
+   **vóór** de deploy (anders weigert de database een geplakte Garmin-link op
+   `/live`). Daarna Resend Receiving en de webhook instellen en
+   `LIVE_INBOUND_DOMAIN`, `RESEND_INBOUND_WEBHOOK_SECRET` en `RESEND_API_KEY` in
+   Netlify zetten (runbook sectie 5). Dan één proefrit met een eigen Garmin en
+   een eigen Wahoo: de open punten 1, 2, 4, 6 en 7 van de spike.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -66,12 +72,80 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0192`.
 
 ---
 
-> **Live volgen via Garmin/Wahoo, 2026-09-28 — onderzocht, niet gebouwd; geen
-> migratie.** Commit: de commit die dit blok toevoegt. Details:
+> **Live volgen via Garmin/Wahoo, 2026-09-28 — gebouwd; migratie
+> `0191_live_garmin_wahoo.sql`.** Commit: de commit die dit blok toevoegt.
+> Bouwt het onderzoek hieronder (`3277c23`) uit, op verzoek van de eigenaar.
+> Details: sectie 7 en 8 van
+> [garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).
+>
+> **Spike eerst.** De kernvraag was of Garmin's posities zonder headless
+> browser te lezen zijn. Ja: het CSRF-token staat in `<meta name="csrf-token">`
+> van de sessiepagina, en met die header plus de cookie `livetrack_csrf` geeft
+> de API gewoon JSON. Getest met een verzonnen sessie (404 in plaats van 403),
+> ook met een eerlijke User-Agent. Wahoo: een verlopen link geeft "User Not
+> Found"; het kaart-endpoint bij een geldige link is onbekend.
+>
+> **Wat er is.**
+> - Paneel op `/live` met een persoonlijk adres `live-<code>@<domein>` voor de
+>   LiveTrack-contacten van Garmin Connect of de ELEMNT-app. Alleen de hash van
+>   de code staat in `live_tracker_tokens` (provider `mail`).
+> - `POST /api/live/inbound-mail`: Resend-webhook met Svix-controle, haalt de
+>   mail op, maakt een sessie met bron `garmin` of `wahoo` en stuurt de push.
+> - `src/lib/live/external-refresh.ts`, "pull-on-view": `/live`, de eventpagina,
+>   de verjaardagsrit, de publieke ticker, `/kalender` en de cleanup halen bij
+>   Garmin nieuwe punten op, hooguit één keer per 30 s per sessie. De kaart, ETA,
+>   Realtime en de retentie van 30 dagen werken ongewijzigd.
+> - Rit-einde: Garmin meldt het, Wahoo via `data-seconds-since-update`. Anders
+>   sluit de cleanup Garmin/Wahoo na 2 uur zonder teken van leven of 24 uur na
+>   de start. De 15-minutenregel geldt voor die bronnen niet meer.
+> - Degradatie: lukt uitlezen niet, dan "live, met link" tot 8 uur na de start.
+>   De eventticker toont die renners met een knop naar de kaart van Garmin of
+>   Wahoo; hij selecteerde `external_track_url` eerst niet.
+> - Een geplakte Garmin- of Wahoo-link op `/live` wordt nu ook uitgelezen, en
+>   sluit dus niet meer na 15 minuten. Dat lost de eerste bijvangst hieronder op
+>   voor Garmin en Wahoo. Een andere link en een handmatige indoorsessie sluiten
+>   nog wel na 15 minuten, want `heartbeat()` wordt nog steeds nergens
+>   aangeroepen.
+> - Health-check `garmin_livetrack` (elk uur): 404 op een verzonnen sessie is
+>   groen, 403 betekent dat Garmin ons weigert.
+> - `/hulp#livetrack` met de stappen voor Garmin en Wahoo; runbook sectie 4 en 5.
+>
+> **Bewuste afwijking van het onderzoek:** geen afzendercheck op de mail. Het
+> afzenderadres van Wahoo is onbekend, en doorsturen vanuit de eigen mailbox
+> moet ook kunnen. De code in het adres is het geheim, en alleen een
+> Garmin-sessielink of een Wahoo-link met "live" in het pad wordt gebruikt.
+>
+> **Privacy: alleen tekst, geen nieuwe versie.** `/privacy` noemt nu de
+> LiveTrack-mail, dat alleen de link wordt bewaard, het ophalen bij Garmin, en
+> Resend als ontvanger van die mail. Geen nieuwe versie in `src/lib/privacy.ts`:
+> het blijven locatiegegevens tijdens live tracking, al gedekt. **Nog voorleggen
+> aan de eigenaar**, want Resend als ontvanger van locatie-mail is een nieuwe
+> ontvanger.
+>
+> **Bewust niet gebouwd.**
+> - Wahoo Share Forever met een RSVP-venster: eerst meten of de automatische
+>   Wahoo-mail aankomt (spikepunt 6).
+> - Wahoo-posities: het endpoint is onbekend (spikepunt 5).
+> - Connect IQ-dataveld: niet nodig zolang de CSRF-route werkt.
+> - Geen headless Chromium en geen vermomde User-Agent.
+>
+> **Niet geverifieerd.**
+> - De migratie is niet gedraaid (geen Docker/Supabase-config hier).
+> - Geen echte rit: de veldnamen van de trackpoints komen uit
+>   GarminLiveTrack-Server, niet uit een eigen meting.
+> - Of Garmin Netlify's IP-adressen net zo behandelt als een thuisverbinding.
+> - De Resend-webhook en de mail van Garmin/Wahoo zijn niet end-to-end getest;
+>   de Svix-controle wel, met de testvector uit de Svix-documentatie.
+> - Getest: unit-tests op de parsers, adres en handtekening; de Garmin- en
+>   Wahoo-client één keer tegen de echte endpoints (verzonnen sessie);
+>   `tsc`, `eslint` en `npm run build`.
+
+> **Live volgen via Garmin/Wahoo, 2026-09-28 — onderzocht (`3277c23`); dezelfde
+> dag gebouwd, zie het blok hierboven.** Details:
 > [garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).
 >
 > **Waarom.** Live volgen op de kaart kan alleen via OwnTracks. Dat is
@@ -101,8 +175,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 > Zie sectie 2.4 en 6 van het doc.
 >
 > **Bewust niet gebouwd.**
-> - Nog geen code: de spike bepaalt de vorm, en het bestuur overweegt een
->   featurepauze.
+> - ~~Nog geen code.~~ Achterhaald: dezelfde dag gebouwd, zie hierboven.
 > - Geen headless Chromium op Netlify: te zwaar, en het kost credits bij elke
 >   kijker.
 > - Geen officiële partner-API's: die zijn niet live.
@@ -110,13 +183,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 >   een eigen toolchain en store-proces.
 > - OwnTracks blijft bestaan.
 >
-> **Niet geverifieerd.** Geen enkel Garmin- of Wahoo-endpoint is aangeroepen,
-> want de egress van de ontwikkelomgeving blokkeert die domeinen. Het gedrag
-> komt uit openbare bronnen en open-sourcecode.
+> **Niet geverifieerd (bij het onderzoek).** Vanuit de cloud-omgeving is geen
+> Garmin- of Wahoo-endpoint aangeroepen; de egress blokkeerde die domeinen. Bij
+> de bouw is de kernvraag wel vanaf de ontwikkelmachine getest (blok hierboven).
 >
-> **Open.** De spike-checklist (sectie 7 van het doc) met een eigen Garmin en
-> Wahoo, alleen als het bestuur verder wil. Het bouwvoorstel hoort daarna in het
-> plannenboek.
+> **Open.** De rest van de spike-checklist (sectie 7 van het doc) met een eigen
+> Garmin en Wahoo; zie Actieve volgorde punt 2.
 
 > **Load en Form: één figuur, Form op de CTL/ATL-as, Load op een rechteras,
 > 2026-09-28 — gebouwd; geen migratie.** Commit: de commit die dit blok toevoegt.
@@ -2538,14 +2610,15 @@ indicators op eventrijen en linkt direct naar `/live/[eventId]`.
 | Spoor | Beschrijving | Status |
 |---|---|:---:|
 | A | Outdoor GPS-tracker via OwnTracks background tracking | ✅ |
-| B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | 🔎 onderzocht 2026-09-28 |
+| B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | ✅ gebouwd 2026-09-28 |
 | C | Indoor status-board (handmatige "Ik fiets nu"-toggle) | ⏸️ skip |
 | Bonus | Event liveticker op event-pagina's + publiek deelbaar | ✅ |
 
 Spoor B werd eerst geskipt met als reden "OwnTracks dekt outdoor af". Dat
 klopt niet meer: OwnTracks blijkt omslachtig en wordt weinig gebruikt (3 leden
-in 30 dagen). Spoor B is op 2026-09-28 onderzocht. De conclusie en de
-openstaande spike staan in
+in 30 dagen). Spoor B is op 2026-09-28 onderzocht en gebouwd: LiveTrack-mail
+naar een persoonlijk clubadres, posities van Garmin via pull-on-view. De
+conclusie, de spike-uitkomsten en wat nog open is staan in
 [garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).
 Spoor C blijft **bewust geskipt**: een grote bouw met onzekere adoptie.
 Heroverwegen als het bestuur of leden er expliciet om vragen.

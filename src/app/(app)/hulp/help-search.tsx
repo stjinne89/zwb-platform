@@ -71,6 +71,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "cols segmenten records pr ranglijst kom qom zwb kom alpe ventoux stelvio",
   },
   {
+    title: "Live volgen met Garmin of Wahoo",
+    text: "Je LiveTrack-mail naar je persoonlijke clubadres, één keer instellen.",
+    href: "/hulp#livetrack",
+    terms: "garmin wahoo edge elemnt livetrack live track live volgen kaart samen fietsen mail adres",
+  },
+  {
     title: "Live tracking instellen",
     text: "OwnTracks, koppellink, locatie-instellingen en controlemodus.",
     href: "/hulp#owntracks",

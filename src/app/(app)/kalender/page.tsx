@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
@@ -267,6 +268,7 @@ export default async function KalenderPage({
   }
 
   if (todayEventIds.length > 0) {
+    await refreshExternalLiveSessions();
     const cutoff = await getActiveCutoffIso();
     const [{ data: rsvps }, { data: sessions }] = await Promise.all([
       supabase

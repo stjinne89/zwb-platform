@@ -58,6 +58,19 @@ export function evaluateReachable(
 }
 
 /**
+ * Garmin LiveTrack uitlezen zonder browser: een niet-bestaande sessie geeft
+ * 404 zolang de CSRF-aanpak werkt. 403 = Garmin weigert ons; renners staan dan
+ * alleen nog als "live, met link" op de kaart.
+ */
+export function evaluateGarminLiveTrack(status: number, configured = true): HealthCheckResult {
+  const source = "garmin_livetrack";
+  if (!configured) return { source, ok: true, detail: "overgeslagen (niet geconfigureerd)" };
+  if (status === 404) return { source, ok: true, detail: "CSRF-route werkt" };
+  if (status === 403) return { source, ok: false, detail: "Garmin weigert (HTTP 403)" };
+  return { source, ok: false, detail: `HTTP ${status}` };
+}
+
+/**
  * Komen er nog webhook-events binnen? Sinds we niet meer pollen is dit het enige
  * signaal dat de Strava-koppeling nog leeft: valt de subscription weg (Strava
  * verwijdert 'm bij herhaald falen van onze callback), dan blijft de app stil
@@ -190,6 +203,11 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
           (data ?? []) as { last_error: string | null; last_synced_at: string | null }[],
         );
       });
+    }),
+    guard("garmin_livetrack", async () => {
+      if (!process.env.LIVE_INBOUND_DOMAIN) return evaluateGarminLiveTrack(0, false);
+      const { probeGarminLiveTrack } = await import("@/lib/live/external-livetrack");
+      return evaluateGarminLiveTrack(await probeGarminLiveTrack());
     }),
     guard("openai", async () =>
       evaluateEnvPresent("openai", Boolean(process.env.OPENAI_API_KEY)),

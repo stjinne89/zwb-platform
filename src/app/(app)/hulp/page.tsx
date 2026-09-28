@@ -199,7 +199,7 @@ const GUIDES = [
 const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier synchroniseer je ook je Strava-ritten." },
   { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past." },
-  { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via OwnTracks." },
+  { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo, of via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
   { href: "/achievements", name: "Achievements", text: "Al je badges. Importeer je ritten (CSV/GPX), haal je hele historie op of herbereken badges." },
@@ -215,6 +215,26 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
   { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
+];
+
+const GARMIN_LIVETRACK_STEPS = [
+  "Maak op Samen fietsen je persoonlijke adres en kopieer het. Het wordt één keer getoond.",
+  "Open Garmin Connect en ga naar Veiligheid en tracking → LiveTrack.",
+  "Voeg het adres toe als contact en zet Automatisch starten aan.",
+  "Start een rit op je Edge terwijl je telefoon verbonden is. Je verschijnt binnen een paar minuten op de kaart.",
+];
+
+const WAHOO_LIVETRACK_STEPS = [
+  "Maak op Samen fietsen je persoonlijke adres en kopieer het. Het wordt één keer getoond.",
+  "Open de ELEMNT-app en ga naar Live Track.",
+  "Zet Share Automatically aan en voeg het adres toe als ontvanger.",
+  "Start een rit op je ELEMNT terwijl je telefoon verbonden is. Je verschijnt op Samen fietsen, met een link naar de kaart van Wahoo.",
+];
+
+const LIVETRACK_NOTES = [
+  "Per rit hoef je niets te doen. Na de rit verdwijn je vanzelf.",
+  "Laat Garmin Connect of de ELEMNT-app op de achtergrond draaien; zonder telefoonverbinding komt er niets door.",
+  "Een nieuw adres maken vervangt het oude meteen. Koppeling stoppen werkt direct; haal het adres daarna ook weg in Garmin Connect of de ELEMNT-app.",
 ];
 
 const OWNTRACKS_STEPS = [
@@ -459,6 +479,7 @@ const ADMIN_GUIDES = [
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op Achievements.",
   "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of Achievements en zet het activiteitenvinkje aan.",
+  "Verschijn je niet live met je Garmin of Wahoo? Check of Samen fietsen een laatste mail toont. Staat daar niets, controleer dan het adres en Automatisch starten (Garmin) of Share Automatically (Wahoo).",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
@@ -1998,6 +2019,46 @@ Fitness-status: Verbeterend`}
             </div>
           </article>
         </div>
+      </section>
+
+      <section
+        id="livetrack"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <MapPinned className="mt-0.5 size-5 shrink-0 text-primary" />
+          <h2 className="font-semibold">Live volgen met je Garmin of Wahoo</h2>
+        </header>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {[
+            { title: "Garmin Edge", steps: GARMIN_LIVETRACK_STEPS },
+            { title: "Wahoo ELEMNT", steps: WAHOO_LIVETRACK_STEPS },
+          ].map((device) => (
+            <div key={device.title} className="rounded-md border bg-background p-4">
+              <h3 className="text-sm font-semibold">{device.title}</h3>
+              <ol className="mt-3 space-y-3">
+                {device.steps.map((step, index) => (
+                  <li key={step} className="flex gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm text-muted-foreground">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {LIVETRACK_NOTES.map((note) => (
+            <li key={note} className="flex gap-2">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section

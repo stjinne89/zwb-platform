@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { BackLink, HelpLink } from "@/components/app-ui";
 import {
   ageOnBirthday,
@@ -239,11 +240,12 @@ export default async function BirthdayPage({
   let rideLiveSessions: EventLiveSession[] = [];
   let rideLivePositions: EventLivePosition[] = [];
   if (ride?.gpxUrl && rideIsToday && ridingParticipantIds.length > 0) {
+    await refreshExternalLiveSessions({ profileIds: ridingParticipantIds });
     const cutoff = activeCutoffIso();
     const { data: sessionRows } = await supabase
       .from("live_sessions")
       .select(
-        "id, profile_id, source, started_at, last_seen_at, profiles(display_name)",
+        "id, profile_id, source, external_track_url, started_at, last_seen_at, profiles(display_name)",
       )
       .in("profile_id", ridingParticipantIds)
       .eq("mode", "outdoor")
@@ -257,6 +259,7 @@ export default async function BirthdayPage({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       profileName: ((s.profiles as any)?.display_name as string) ?? "ZWB'er",
       source: (s.source ?? "manual") as EventLiveSession["source"],
+      externalTrackUrl: s.external_track_url ?? null,
       startedAt: s.started_at,
       lastSeenAt: s.last_seen_at,
     }));

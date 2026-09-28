@@ -114,7 +114,12 @@ export default function PrivacyPage() {
           <li>
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
             live rit start, worden je GPS-positie, snelheid en hoogte gedeeld met
-            clubleden. Dit is per rit opt-in en stopt automatisch.
+            clubleden. Dit is per rit opt-in en stopt automatisch. Koppel je je
+            Garmin of Wahoo, dan ontvangen we bij elke rit de LiveTrack-mail die
+            je zelf naar je persoonlijke clubadres laat sturen. Uit die mail
+            bewaren we alleen de link; zolang de rit loopt halen we daarmee je
+            posities op bij Garmin (bij Wahoo alleen of je nog rijdt). Stoppen
+            kan op Samen fietsen met &ldquo;Koppeling stoppen&rdquo;.
           </li>
           <li>
             <strong>Grofmazig bereden gebied (ZWBlokken):</strong> uit je
@@ -287,7 +292,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}
-            (e-mail), <strong>Mollie</strong> (eventuele betalingen),
+            (e-mail, ook het ontvangen van je LiveTrack-mail), <strong>Mollie</strong> (eventuele betalingen),
             web-push-diensten (notificaties), en embeds van YouTube/Spotify.
           </li>
         </ul>

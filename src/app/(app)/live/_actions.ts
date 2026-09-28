@@ -4,6 +4,13 @@ import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { externalProviderForUrl } from "@/lib/live/external-livetrack";
+import {
+  hashMailCode,
+  inboundDomain,
+  mailAddressForCode,
+  newMailCode,
+} from "@/lib/live/inbound-mail";
 
 const MODES = [
   "outdoor",
@@ -52,14 +59,23 @@ export async function startSession(input: StartInput) {
     .eq("profile_id", user.id)
     .is("ended_at", null);
 
+  // Een geplakte Garmin- of Wahoo-link wordt net zo gevolgd als een link uit
+  // de LiveTrack-mail; zo sluit de sessie niet na 15 minuten.
+  const externalUrl = input.external_track_url?.trim() || null;
+  const source = externalUrl
+    ? input.mode === "outdoor"
+      ? (externalProviderForUrl(externalUrl) ?? "external")
+      : "external"
+    : "manual";
+
   const { data, error } = await supabase
     .from("live_sessions")
     .insert({
       profile_id: user.id,
       mode: input.mode,
-      source: input.external_track_url?.trim() ? "external" : "manual",
+      source,
       status_text: input.status_text?.trim() || null,
-      external_track_url: input.external_track_url?.trim() || null,
+      external_track_url: externalUrl,
       visibility: "members",
     })
     .select("id")
@@ -131,6 +147,57 @@ export async function revokeOwnTracksTokens() {
 
   revalidatePath("/live");
   revalidatePath("/samen-fietsen");
+  return { ok: true as const };
+}
+
+export async function createLiveMailAddress() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const domain = inboundDomain();
+  if (!domain) return { ok: false as const, error: "Niet beschikbaar." };
+
+  const code = newMailCode();
+  const now = new Date().toISOString();
+
+  await supabase
+    .from("live_tracker_tokens")
+    .update({ enabled: false, revoked_at: now })
+    .eq("profile_id", user.id)
+    .eq("provider", "mail")
+    .is("revoked_at", null);
+
+  const { error } = await supabase.from("live_tracker_tokens").insert({
+    profile_id: user.id,
+    provider: "mail",
+    token_hash: hashMailCode(code),
+    label: "LiveTrack-mail",
+    enabled: true,
+  });
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/live");
+  return { ok: true as const, address: mailAddressForCode(code, domain) };
+}
+
+export async function revokeLiveMailAddress() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { error } = await supabase
+    .from("live_tracker_tokens")
+    .update({ enabled: false, revoked_at: new Date().toISOString() })
+    .eq("profile_id", user.id)
+    .eq("provider", "mail")
+    .is("revoked_at", null);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/live");
   return { ok: true as const };
 }
 

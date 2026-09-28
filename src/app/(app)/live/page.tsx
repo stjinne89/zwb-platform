@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
+import { inboundDomain } from "@/lib/live/inbound-mail";
 import { HelpLink, PageHeader } from "@/components/app-ui";
 import { LiveBoard } from "./_components/live-board";
 import {
   OwnTracksPanel,
   type OwnTracksTokenStatus,
 } from "./_components/owntracks-panel";
+import { LiveTrackMailPanel } from "./_components/livetrack-mail-panel";
 import { StartLiveForm } from "./_components/start-form";
 import { StopLiveButton } from "./_components/stop-button";
 import type { ActiveSession } from "./types";
@@ -34,6 +37,10 @@ export default async function LivePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Garmin/Wahoo eerst bijwerken, zodat nieuwe posities en beëindigde ritten
+  // in deze render meekomen.
+  await refreshExternalLiveSessions();
+
   // Actieve sessies = ended_at IS NULL AND last_seen_at > now() - 15min
   const cutoff = await getActiveCutoffIso();
 
@@ -41,6 +48,7 @@ export default async function LivePage() {
     { data: sessionRows },
     { data: positionRows },
     { data: trackerTokens },
+    { data: mailTokens },
   ] = await Promise.all([
     supabase
       .from("live_sessions")
@@ -62,6 +70,13 @@ export default async function LivePage() {
       .eq("provider", "owntracks")
       .order("created_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("live_tracker_tokens")
+      .select("id, enabled, last_seen_at, revoked_at, created_at")
+      .eq("profile_id", user.id)
+      .eq("provider", "mail")
+      .order("created_at", { ascending: false })
+      .limit(1),
   ]);
 
   const sessions: ActiveSession[] = (sessionRows ?? []).map((s) => ({
@@ -81,13 +96,17 @@ export default async function LivePage() {
   const outdoorSessions = sessions.filter((s) => s.mode === "outdoor");
   const trackerStatus =
     ((trackerTokens?.[0] ?? null) as OwnTracksTokenStatus | null) ?? null;
+  const mailStatus = (mailTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
+  const mailPanel = inboundDomain() ? (
+    <LiveTrackMailPanel tokenStatus={mailStatus} />
+  ) : null;
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Live"
         title="Samen fietsen"
-        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href="/hulp#owntracks" />}
+        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href={inboundDomain() ? "/hulp#livetrack" : "/hulp#owntracks"} />}
       />
 
       <LiveBoard
@@ -97,6 +116,7 @@ export default async function LivePage() {
       >
         {!mySession && (
           <div className="space-y-4">
+            {mailPanel}
             <OwnTracksPanel tokenStatus={trackerStatus} />
             <StartLiveForm />
           </div>
@@ -104,12 +124,15 @@ export default async function LivePage() {
 
         {mySession && (
           <div className="space-y-4">
+            {mailPanel}
             <OwnTracksPanel tokenStatus={trackerStatus} />
             <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
               <p className="font-medium">Je bent live als {MODE_LABELS[mySession.mode]}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {mySession.mode === "outdoor"
-                  ? "GPS via OwnTracks of LiveTrack-link."
+                  ? mySession.source === "garmin" || mySession.source === "wahoo"
+                    ? `Via ${mySession.source === "garmin" ? "Garmin" : "Wahoo"} LiveTrack.`
+                    : "GPS via OwnTracks of LiveTrack-link."
                   : "Zichtbaar voor ZWB-leden."}
               </p>
               <a

@@ -136,6 +136,9 @@ waarschuwing kunnen wijzigen:
 | TTT-planner | ZwiftGopher API | API + key | key/endpoint-wijziging |
 | Training-AI | OpenAI | API + key | quota/model-wijziging |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
+| Live volgen Garmin | livetrack.garmin.com, endpoints van de eigen webpagina | onofficieel, CSRF-token uit `<meta>` + cookie | Garmin die de CSRF-aanpak wijzigt of ons blokkeert (health-check `garmin_livetrack`); renners staan dan als "live, met link" op de kaart |
+| Live volgen Wahoo | wahooligan.com live-pagina | onofficieel, alleen status | markup-wijziging; sessie blijft dan "live, met link" tot 8 uur na de start |
+| LiveTrack-mail | Resend Receiving + webhook `email.received` | API + key | MX-record weg, webhook uit, of `RESEND_INBOUND_WEBHOOK_SECRET` gewijzigd |
 
 **Strava app-cap**: de eerste aanvraag voor een hogere atletenlimiet is
 **afgewezen**. Strava stelde twee voorwaarden: webhooks in plaats van polling, en
@@ -171,8 +174,31 @@ De WTRL-sync staat uit sinds 2026-09-21 (HTTP 429 en de WTRL-voorwaarden), dus
 `wtrl_sync` meldt "geen actieve bronnen". Een overgeslagen bron telt nu nog als
 groen: groen betekent dus niet dat er resultaten binnenkomen.
 
+`garmin_livetrack` vraagt elk uur een niet-bestaande LiveTrack-sessie op met het
+CSRF-token van Garmins pagina. Een 404 is goed (de route werkt), een 403 betekent
+dat Garmin de aanpak weigert. Zonder `LIVE_INBOUND_DOMAIN` wordt de check
+overgeslagen.
+
 Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
 (bron gewijzigd).
+
+### Live volgen via Garmin/Wahoo instellen (eenmalig)
+
+1. Resend → Emails → Receiving: een ontvangstdomein kiezen. Het
+   `<id>.resend.app`-adres werkt zonder DNS; een eigen subdomein vraagt één
+   MX-record.
+2. Resend → Webhooks → Add: URL `https://<site>/api/live/inbound-mail`, event
+   `email.received`. Het signing secret (`whsec_...`) gaat naar Netlify als
+   `RESEND_INBOUND_WEBHOOK_SECRET`.
+3. Netlify: `LIVE_INBOUND_DOMAIN` op het ontvangstdomein zetten en controleren
+   dat `RESEND_API_KEY` er staat (die haalt de mail op). Pas dan verschijnt het
+   paneel op `/live`.
+4. Migratie `0191_live_garmin_wahoo.sql` toepassen vóór de deploy: zonder die
+   migratie weigert de database een sessie met bron `garmin` of `wahoo`.
+
+Geen extra cron nodig: `/api/live/cleanup` (elke 15 min) werkt de open
+Garmin/Wahoo-sessies bij, en elke pagina die live-renners toont doet dat ook,
+hooguit één keer per 30 s per sessie.
 
 ---
 
