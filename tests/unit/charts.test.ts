@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { formatDuration } from "@/lib/charts/format";
 import { valueAt, median } from "@/lib/charts/interpolate";
 import { areaPath, lineSegments, linePath } from "@/lib/charts/paths";
-import { absMax, linearScale, logScale, positiveMax } from "@/lib/charts/scale";
+import {
+  absMax,
+  linearScale,
+  logScale,
+  niceStep,
+  positiveMax,
+  zeroAlignedAxes,
+} from "@/lib/charts/scale";
 import { MAX_SERIES, seriesColor } from "@/lib/charts/palette";
 import { defsId } from "@/lib/charts/ids";
 
@@ -30,6 +37,39 @@ describe("scale", () => {
     expect(positiveMax([12, 88, null], 100)).toBe(100);
     expect(positiveMax([12, 188, null], 100)).toBe(190);
     expect(absMax([-32, 8], 30)).toBe(35);
+  });
+
+  it("kiest ronde stappen", () => {
+    expect(niceStep(26.7)).toBe(30);
+    expect(niceStep(40)).toBe(40);
+    expect(niceStep(72.5)).toBe(80);
+    expect(niceStep(96.7)).toBe(100);
+    expect(niceStep(0)).toBe(1);
+  });
+
+  it("legt de nul van de rechteras op de nullijn links", () => {
+    const axes = zeroAlignedAxes({
+      primary: [48, 115, -46, 12],
+      secondary: [0, 290, 120],
+      intervals: 6,
+    });
+    expect(axes).toMatchObject({ min: -60, max: 120, step: 30 });
+    expect(axes.ticks).toEqual([-60, -30, 0, 30, 60, 90, 120]);
+    // Vier stappen boven nul, dus Load in vier ronde stappen tot boven 290.
+    expect(axes.secondaryStep).toBe(80);
+    expect(axes.secondaryMax).toBe(320);
+  });
+
+  it("begint bij nul zonder negatieve waarden en overleeft lege reeksen", () => {
+    expect(zeroAlignedAxes({ primary: [5, 18], secondary: [], intervals: 4 })).toMatchObject({
+      min: 0,
+      max: 20,
+      secondaryMax: 10,
+    });
+    const empty = zeroAlignedAxes({ primary: [null], secondary: [null], intervals: 4 });
+    expect(empty.min).toBe(0);
+    expect(empty.max).toBeGreaterThan(0);
+    expect(empty.secondaryMax).toBeGreaterThan(0);
   });
 });
 

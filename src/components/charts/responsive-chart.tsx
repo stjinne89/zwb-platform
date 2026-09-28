@@ -9,6 +9,7 @@ import {
   chartMetrics,
   pointerIndex,
   pointerRatio,
+  type ChartMargin,
   type ChartMetrics,
 } from "@/lib/charts/responsive";
 
@@ -36,6 +37,7 @@ export function ResponsiveChart({
   heightOptions,
   fallbackWidth = 640,
   className,
+  margin,
   onPointerRatio,
   children,
 }: {
@@ -45,12 +47,15 @@ export function ResponsiveChart({
   heightOptions?: Parameters<typeof chartHeight>[1];
   fallbackWidth?: number;
   className?: string;
+  /** Overschrijft marges per dichtheid, bv. ruimte voor een rechteras. */
+  margin?: (metrics: ChartMetrics) => Partial<ChartMargin>;
   /** Fractie 0-1 binnen het plotvlak, of null als de aanwijzer weg is. */
   onPointerRatio?: (ratio: number | null) => void;
   children: (ctx: ChartContext) => ReactNode;
 }) {
   const { ref, width } = useContainerWidth<HTMLDivElement>(fallbackWidth);
-  const metrics = chartMetrics(width);
+  const base = chartMetrics(width);
+  const metrics = margin ? { ...base, margin: { ...base.margin, ...margin(base) } } : base;
   const chartH = height ?? chartHeight(width, heightOptions);
   const plotWidth = Math.max(0, width - metrics.margin.left - metrics.margin.right);
   const plotHeight = Math.max(0, chartH - metrics.margin.top - metrics.margin.bottom);

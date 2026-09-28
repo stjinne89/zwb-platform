@@ -70,8 +70,44 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 
 ---
 
-> **Load en Form: Load in een eigen vlak, 2026-09-27 — gebouwd; geen migratie.**
-> Commit: de commit die dit blok toevoegt.
+> **Load en Form: één figuur, Form op de CTL/ATL-as, Load op een rechteras,
+> 2026-09-28 — gebouwd; geen migratie.** Commit: de commit die dit blok toevoegt.
+> Vervangt de drie vlakken van 2026-09-27 (`25c0c5d`, blok hieronder).
+>
+> **Waarom.** Keuze van de eigenaar na de drie-vlakkenversie: alles compact in
+> één figuur, Form (TSB) op dezelfde as als CTL en ATL, en TSS op een eigen
+> rechteras. Daarmee blijft het oorspronkelijke probleem opgelost (de zwaarste
+> TSS-dag bepaalt niet meer de schaal van de lijnen), zonder drie aparte vlakken.
+>
+> **Wat.** `training-load-chart.tsx` tekent één plotvlak. Linkeras: CTL, ATL en
+> Form samen, van de laagste Form (onder nul) tot de hoogste waarde, in ronde
+> stappen; het gebied onder nul is licht rood (negatieve Form). Rechteras: Load,
+> met zijn 0 precies op de nullijn links en elke rechtertick op een linkergridlijn,
+> dus één set hulplijnen. De schaalrekening staat in `zeroAlignedAxes` en
+> `niceStep` (`src/lib/charts/scale.ts`, met tests in `charts.test.ts`).
+> `ResponsiveChart` kreeg een optionele `margin`-prop voor de ruimte rechts, en de
+> aanwijzer rekent met dezelfde marge. De Load-balken zijn grijs
+> (`--muted-foreground`) in plaats van goud: in één figuur waren ze anders niet te
+> onderscheiden van de gouden Form-lijn. Legenda: "Load (rechteras)"; asnaam
+> "Load" boven de rechteras. Hoogte terug naar de oude maat (één vlak).
+>
+> **Bewust niet gebouwd.** (a) Een linkeras die niet bij 0 begint: Form moet
+> onder nul kunnen, en de nullijn is het anker voor de rechteras. (b) Losse
+> vlakken: de eigenaar koos compact boven gescheiden. Het risico van twee assen
+> (balken en lijnen lijken elkaar te snijden op punten die niets betekenen) is
+> beperkt door de gedeelde nullijn, gedeelde gridlijnen, grijze balken en de
+> asnaam.
+>
+> **Geverifieerd.** Synthetische data (183 dagen, pieken tot ~290 TSS) gerenderd
+> op 390 en 1000 px, licht en donker, met tooltip, 6 maanden en 90 dagen. Lint,
+> typecheck en build groen; `npm run test` groen op `omnium-live.test.ts` na (leest
+> een `.env.local` die hier ontbreekt). Niet bekeken met echte intervals.icu-data.
+> In dark mode ligt de ATL-kleur (`--chart-2`) dicht bij de grijze balken; ze zijn
+> te onderscheiden (lijn tegen balk), maar het contrast is laag. Dat is de
+> bestaande themakleur en is niet aangepast.
+
+> **Load en Form: Load in een eigen vlak, 2026-09-27 — gebouwd, vervangen op
+> 2026-09-28 (zie hierboven).** Commit: `25c0c5d`.
 >
 > **Waarom.** Sinds de TSS-balken kloppen, bepaalde de zwaarste rit de schaal
 > van het bovenste vlak: de balken en CTL/ATL deelden één as, dus bij een piek
@@ -79,28 +115,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 > derde terecht. Vraag van de eigenaar: TSS op een andere schaal, zodat de
 > lijnen te lezen zijn.
 >
-> **Wat.** `training-load-chart.tsx` tekent nu drie vlakken op één datumas:
-> CTL/ATL (helft van de hoogte, schaal alleen op CTL en ATL, vanaf 0, ticks op
-> ronde getallen), Load (een vijfde, eigen schaal in stappen van 50, alleen het
-> maximum gelabeld) en Form (onveranderd). De grafiek is iets hoger (mobiel
-> 1,05× de breedte, desktop 0,5×, max 480 px) en de ruimte tussen de vlakken
-> ging van 14 naar 22 px, anders stonden "0" en "300" op elkaar. Geldt overal
-> waar `TrainingLoadMetrics` staat: `/zwbeter-worden`, `/zwbeter-worden/belasting`
-> en het trainerpaneel.
->
-> **Bewust niet gebouwd.** (a) Een tweede y-as rechts voor Load, zoals
-> intervals.icu doet: twee schalen over elkaar laten balken en lijnen elkaar
-> schijnbaar snijden op punten die niets betekenen, en de rechtermarge heeft
-> geen ruimte voor labels. (b) Een CTL/ATL-as die niet bij 0 begint: vult het
-> vlak nog beter, maar blaast in de 42-dagenweergave een CTL-stijging van 70
-> naar 74 op tot een klim. (c) Load en Form hebben nog dezelfde kleur
-> (`--chart-3`); ze staan nu in aparte, gelabelde vlakken, dus dat is gelaten.
->
-> **Geverifieerd.** Met synthetische data (183 dagen, pieken tot ~290 TSS) oud
-> en nieuw naast elkaar gerenderd op 390 en 1000 px breed, ook met tooltip.
-> Lint, typecheck en build groen; `npm run test` groen op
-> `omnium-live.test.ts` na, dat een `.env.local` leest die in deze omgeving
-> ontbreekt. Niet bekeken met echte intervals.icu-data of in dark mode.
+> **Wat (niet meer actueel).** Drie vlakken op één datumas: CTL/ATL, Load met
+> eigen schaal, en Form. De eigenaar koos daarna voor één figuur met een
+> rechteras; de tweede y-as die hier als "bewust niet gebouwd" stond, is dus
+> alsnog gebouwd.
 
 > **Omnium-beheer: route uit de ZwiftInsider-link, 2026-09-23 — gebouwd; geen
 > migratie.** Commit: de commit die dit blok toevoegt.

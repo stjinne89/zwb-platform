@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { ChartTooltip } from "@/components/charts/chart-tooltip";
 import { ResponsiveChart, useChartPointer } from "@/components/charts/responsive-chart";
 import { formatChartDate, formatMetric } from "@/lib/charts/format";
-import { formatTickDate, tickIndices } from "@/lib/charts/responsive";
+import { formatTickDate, tickIndices, type ChartMetrics } from "@/lib/charts/responsive";
 import { defsId } from "@/lib/charts/ids";
 import { lineSegments } from "@/lib/charts/paths";
-import { absMax, positiveMax } from "@/lib/charts/scale";
+import { zeroAlignedAxes } from "@/lib/charts/scale";
 import type { TrainingLoadPoint } from "@/lib/training/load-points";
 
 export type { TrainingLoadPoint };
@@ -25,14 +25,13 @@ const RANGES: Array<{ key: RangeKey; label: string; short: string; days: number 
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Verticale ruimte tussen de vlakken. */
-const PANEL_GAP = 22;
 /**
- * Hoogteverdeling van het plotvlak: CTL/ATL, dan Load, dan Form. Load krijgt
- * een eigen vlak met eigen schaal; op één as met CTL/ATL drukte de zwaarste
- * TSS-dag de lijnen plat.
+ * Load (TSS) staat op een eigen rechteras. Op één as met CTL/ATL/Form drukte
+ * de zwaarste TSS-dag de lijnen plat; de marge rechts is voor die aslabels.
  */
-const PANEL_SHARE = { lines: 0.5, load: 0.2, form: 0.3 };
+const withLoadAxis = (metrics: ChartMetrics) => ({
+  right: metrics.density === "compact" ? 34 : 44,
+});
 
 function finite(value: number | null | undefined) {
   const n = Number(value);
@@ -63,12 +62,6 @@ function enrichPoints(points: TrainingLoadPoint[]) {
       tsb: finite(point.tsb) ?? (ctl != null && atl != null ? ctl - atl : null),
     };
   });
-}
-
-/** Gelijkmatige y-ticks van 0 tot max. */
-function axisTicks(max: number, count: number) {
-  const steps = Math.max(2, count - 1);
-  return Array.from({ length: steps + 1 }, (_, i) => (max / steps) * i);
 }
 
 function MetricButton({
@@ -142,15 +135,6 @@ export function TrainingLoadMetrics({
   const hasChart = visible.length >= 2;
   const hoverPoint = hoverIndex == null ? null : visible[hoverIndex] ?? null;
 
-  const loadMax = positiveMax(
-    visible.map((point) => point.load),
-    50,
-    50,
-  );
-  const tsbMax = absMax(
-    visible.map((point) => point.tsb),
-    30,
-  );
   const topGradientId = defsId("training-load-top", idSuffix);
 
   return (
@@ -189,33 +173,29 @@ export function TrainingLoadMetrics({
               <ResponsiveChart
                 ariaLabel="Grafiek met trainingsbelasting, CTL, ATL en Form"
                 onPointerRatio={onPointerRatio}
-                heightOptions={{ compact: 1.05, comfortable: 0.5, min: 280, max: 480 }}
+                heightOptions={{ compact: 0.9, comfortable: 0.42, min: 240, max: 420 }}
+                margin={withLoadAxis}
               >
                 {({ width, height, metrics, plotWidth, plotHeight }) => {
                   const { margin, axisFontSize } = metrics;
-                  const panelsH = plotHeight - 2 * PANEL_GAP;
-                  const topH = Math.round(panelsH * PANEL_SHARE.lines);
-                  const loadH = Math.round(panelsH * PANEL_SHARE.load);
-                  const formH = panelsH - topH - loadH;
-                  const topY = margin.top;
-                  const loadY = topY + topH + PANEL_GAP;
-                  const formY = loadY + loadH + PANEL_GAP;
-
-                  // Veelvoud van 5 per tick, zodat de aslabels ronde getallen zijn.
-                  const tickSteps = Math.max(2, metrics.yTickCount - 1);
-                  const topMax = positiveMax(
-                    visible.flatMap((point) => [point.ctl, point.atl]),
-                    20,
-                    tickSteps * 5,
-                  );
+                  const axes = zeroAlignedAxes({
+                    primary: visible.flatMap((point) => [point.ctl, point.atl, point.tsb]),
+                    secondary: visible.map((point) => point.load),
+                    intervals: metrics.yTickCount + 1,
+                  });
+                  const top = margin.top;
+                  const bottom = margin.top + plotHeight;
+                  const right = width - margin.right;
 
                   const xFor = (index: number) =>
                     margin.left +
                     (visible.length <= 1 ? 0 : (index / (visible.length - 1)) * plotWidth);
-                  const yTop = (value: number) => topY + topH - (value / topMax) * topH;
-                  const yLoad = (value: number) => loadY + loadH - (value / loadMax) * loadH;
-                  const yForm = (value: number) =>
-                    formY + formH / 2 - (value / tsbMax) * (formH / 2);
+                  const yFor = (value: number) =>
+                    bottom - ((value - axes.min) / (axes.max - axes.min)) * plotHeight;
+                  const zeroY = yFor(0);
+                  // Rechteras: 0 op de nullijn, secondaryMax bovenaan.
+                  const yLoad = (value: number) =>
+                    zeroY - (value / axes.secondaryMax) * (zeroY - top);
 
                   const loadBarWidth = Math.max(
                     1,
@@ -234,104 +214,71 @@ export function TrainingLoadMetrics({
 
                       <rect
                         x={margin.left}
-                        y={topY}
+                        y={top}
                         width={plotWidth}
-                        height={topH}
+                        height={zeroY - top}
                         fill={`url(#${topGradientId})`}
                       />
-                      <rect
-                        x={margin.left}
-                        y={formY}
-                        width={plotWidth}
-                        height={formH / 2}
-                        fill="var(--accent)"
-                        opacity="0.08"
-                      />
-                      <rect
-                        x={margin.left}
-                        y={formY + formH / 2}
-                        width={plotWidth}
-                        height={formH / 2}
-                        fill="var(--destructive)"
-                        opacity="0.08"
-                      />
+                      {axes.min < 0 && (
+                        <rect
+                          x={margin.left}
+                          y={zeroY}
+                          width={plotWidth}
+                          height={bottom - zeroY}
+                          fill="var(--destructive)"
+                          opacity="0.08"
+                        />
+                      )}
 
-                      {axisTicks(topMax, metrics.yTickCount).map((tick) => (
-                        <g key={`top-${tick}`}>
+                      {axes.ticks.map((tick) => (
+                        <g key={`tick-${tick}`}>
                           <line
                             x1={margin.left}
-                            x2={width - margin.right}
-                            y1={yTop(tick)}
-                            y2={yTop(tick)}
-                            stroke="var(--border)"
-                            strokeDasharray="4 5"
-                          />
-                          <text
-                            x={margin.left - 6}
-                            y={yTop(tick) + axisFontSize / 3}
-                            textAnchor="end"
-                            fontSize={axisFontSize}
-                            fill="var(--muted-foreground)"
-                          >
-                            {Math.round(tick)}
-                          </text>
-                        </g>
-                      ))}
-
-                      <line
-                        x1={margin.left}
-                        x2={width - margin.right}
-                        y1={yLoad(loadMax)}
-                        y2={yLoad(loadMax)}
-                        stroke="var(--border)"
-                        strokeDasharray="4 5"
-                      />
-                      <line
-                        x1={margin.left}
-                        x2={width - margin.right}
-                        y1={yLoad(0)}
-                        y2={yLoad(0)}
-                        stroke="var(--border)"
-                      />
-                      <text
-                        x={margin.left - 6}
-                        y={yLoad(loadMax) + axisFontSize / 3}
-                        textAnchor="end"
-                        fontSize={axisFontSize}
-                        fill="var(--muted-foreground)"
-                      >
-                        {loadMax}
-                      </text>
-
-                      {[-tsbMax, 0, tsbMax].map((tick) => (
-                        <g key={`form-${tick}`}>
-                          <line
-                            x1={margin.left}
-                            x2={width - margin.right}
-                            y1={yForm(tick)}
-                            y2={yForm(tick)}
+                            x2={right}
+                            y1={yFor(tick)}
+                            y2={yFor(tick)}
                             stroke="var(--border)"
                             strokeDasharray={tick === 0 ? undefined : "4 5"}
                           />
                           <text
                             x={margin.left - 6}
-                            y={yForm(tick) + axisFontSize / 3}
+                            y={yFor(tick) + axisFontSize / 3}
                             textAnchor="end"
                             fontSize={axisFontSize}
                             fill="var(--muted-foreground)"
                           >
-                            {tick > 0 ? `+${tick}` : tick}
+                            {tick}
                           </text>
+                          {tick >= 0 && (
+                            <text
+                              x={right + 6}
+                              y={yFor(tick) + axisFontSize / 3}
+                              textAnchor="start"
+                              fontSize={axisFontSize}
+                              fill="var(--muted-foreground)"
+                            >
+                              {(tick / axes.step) * axes.secondaryStep}
+                            </text>
+                          )}
                         </g>
                       ))}
+                      <text
+                        x={width - 2}
+                        y={top - 8}
+                        textAnchor="end"
+                        fontSize={axisFontSize}
+                        fill="var(--muted-foreground)"
+                      >
+                        Load
+                      </text>
 
                       {dateTicks.map((index) => (
                         <g key={`date-${index}`}>
                           <line
                             x1={xFor(index)}
                             x2={xFor(index)}
-                            y1={topY}
-                            y2={formY + formH}
+                            y1={top}
+                            y2={bottom}
                             stroke="var(--border)"
                             strokeOpacity="0.55"
                           />
@@ -353,35 +300,6 @@ export function TrainingLoadMetrics({
                         </g>
                       ))}
 
-                      {metrics.density === "comfortable" && (
-                        <>
-                          <text
-                            x={margin.left + 4}
-                            y={topY + axisFontSize}
-                            fontSize={axisFontSize}
-                            fill="var(--muted-foreground)"
-                          >
-                            CTL / ATL
-                          </text>
-                          <text
-                            x={margin.left + 4}
-                            y={loadY + axisFontSize}
-                            fontSize={axisFontSize}
-                            fill="var(--muted-foreground)"
-                          >
-                            Load
-                          </text>
-                          <text
-                            x={margin.left + 4}
-                            y={formY + axisFontSize}
-                            fontSize={axisFontSize}
-                            fill="var(--muted-foreground)"
-                          >
-                            Form
-                          </text>
-                        </>
-                      )}
-
                       {visible.map((point, index) => {
                         if (point.load == null) return null;
                         const y = yLoad(point.load);
@@ -391,15 +309,15 @@ export function TrainingLoadMetrics({
                             x={xFor(index) - loadBarWidth / 2}
                             y={y}
                             width={loadBarWidth}
-                            height={Math.max(0, loadY + loadH - y)}
+                            height={Math.max(0, zeroY - y)}
                             rx="1"
-                            fill="var(--chart-3)"
-                            opacity="0.42"
+                            fill="var(--muted-foreground)"
+                            opacity="0.3"
                           />
                         );
                       })}
 
-                      {lineSegments(visible, (point) => point.ctl, xFor, yTop).map((path, index) => (
+                      {lineSegments(visible, (point) => point.ctl, xFor, yFor).map((path, index) => (
                         <path
                           key={`ctl-${index}`}
                           d={path}
@@ -410,7 +328,7 @@ export function TrainingLoadMetrics({
                           strokeLinejoin="round"
                         />
                       ))}
-                      {lineSegments(visible, (point) => point.atl, xFor, yTop).map((path, index) => (
+                      {lineSegments(visible, (point) => point.atl, xFor, yFor).map((path, index) => (
                         <path
                           key={`atl-${index}`}
                           d={path}
@@ -422,7 +340,7 @@ export function TrainingLoadMetrics({
                           strokeOpacity="0.9"
                         />
                       ))}
-                      {lineSegments(visible, (point) => point.tsb, xFor, yForm).map((path, index) => (
+                      {lineSegments(visible, (point) => point.tsb, xFor, yFor).map((path, index) => (
                         <path
                           key={`tsb-${index}`}
                           d={path}
@@ -439,18 +357,18 @@ export function TrainingLoadMetrics({
                           <line
                             x1={xFor(hoverIndex)}
                             x2={xFor(hoverIndex)}
-                            y1={topY}
-                            y2={formY + formH}
+                            y1={top}
+                            y2={bottom}
                             stroke="var(--foreground)"
                             strokeOpacity="0.5"
                           />
                           <ChartTooltip
                             x={xFor(hoverIndex)}
-                            y={topY + 4}
+                            y={top + 4}
                             chartWidth={width}
                             title={formatChartDate(hoverPoint.date)}
                             rows={[
-                              { label: "Load", value: formatMetric(hoverPoint.load, 0), color: "var(--chart-3)" },
+                              { label: "Load", value: formatMetric(hoverPoint.load, 0), color: "var(--muted-foreground)" },
                               { label: "CTL", value: formatMetric(hoverPoint.ctl), color: "var(--chart-1)" },
                               { label: "ATL", value: formatMetric(hoverPoint.atl), color: "var(--chart-2)" },
                               { label: "Form", value: formatMetric(hoverPoint.tsb), color: "var(--chart-3)" },
@@ -479,8 +397,8 @@ export function TrainingLoadMetrics({
               ATL (vermoeidheid)
             </span>
             <span className="inline-flex items-center gap-2">
-              <span className="h-3 w-3 rounded-sm bg-[var(--chart-3)] opacity-60" />
-              Load
+              <span className="h-3 w-3 rounded-sm bg-[var(--muted-foreground)] opacity-40" />
+              Load (rechteras)
             </span>
             <span className="inline-flex items-center gap-2">
               <span className="h-1 w-7 rounded bg-[var(--chart-3)]" />
