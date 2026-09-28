@@ -137,7 +137,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0192`
 > - De migratie is niet gedraaid (geen Docker/Supabase-config hier).
 > - Geen echte rit: de veldnamen van de trackpoints komen uit
 >   GarminLiveTrack-Server, niet uit een eigen meting.
-> - Of Garmin Netlify's IP-adressen net zo behandelt als een thuisverbinding.
+> - ~~Of Garmin Netlify's IP-adressen net zo behandelt als een thuisverbinding.~~
+>   Wel: de health-check op productie gaf op 2026-09-28 "CSRF-route werkt".
 > - De Resend-webhook en de mail van Garmin/Wahoo zijn niet end-to-end getest;
 >   de Svix-controle wel, met de testvector uit de Svix-documentatie.
 > - Getest: unit-tests op de parsers, adres en handtekening; de Garmin- en

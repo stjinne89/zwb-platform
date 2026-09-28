@@ -438,8 +438,9 @@ iemands echte link:
   `/api/sessions/<id>?token=…` een JSON-antwoord (404 "session not found" voor
   de verzonnen sessie). Zonder header of zonder cookie: 403. Dat werkt ook met
   een eerlijke User-Agent (`ZWB-platform live`), dus er is geen browser en geen
-  vermomming nodig. **Niet getest:** of Garmin vanaf Netlify's IP-adressen
-  hetzelfde doet. De health-check `garmin_livetrack` meet dat elk uur.
+  vermomming nodig. Vanaf Netlify werkt het ook: de health-check
+  `garmin_livetrack` gaf op productie "CSRF-route werkt" (2026-09-28). Die
+  check meet het elk uur opnieuw.
 - **Punt 4: uit de bron, niet gemeten.** De veldnamen komen uit
   GarminLiveTrack-Server (`dateTime`, `position.lat/lon`, `speedMetersPerSec`,
   `altitude`; sessie `start`, `end`, `viewable`). De parser probeert ook de oude
