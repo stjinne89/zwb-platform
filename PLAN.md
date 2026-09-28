@@ -3612,6 +3612,13 @@ in plaats van elk concept apart te publiceren.
   De eerste deploy (`9746344`) faalde op Netlify's secrets-scan: de test bevatte
   het echte club-ID, dat als waarde van `ZWIFT_CLUB_ID` geheim is. Nu een
   nep-UUID. Zet dus nooit waarden van Netlify-env-variabelen in code of docs.
+- Met de extra knop liep het actieblok in de header over de titel heen (het
+  blok krimpt niet). De test- en diagnoseknoppen staan nu in een eigen rij
+  onder de header; daarin alleen hulp, clubevents en scannen.
+- Eerste druk op productie (2026-09-28 19:50): "0 aankomende clubevents
+  (clubfeed)". De clubroute is dus leesbaar voor het serviceaccount; de enige
+  clubrit was al begonnen en zwift.com toonde ook geen events. Dat de knop echt
+  publiceert, is nog niet gezien: opnieuw drukken zodra er een clubevent staat.
 
 **Bewust niet gebouwd.**
 - **Geen automatische publicatie in de cron.** Increment 5 uit de

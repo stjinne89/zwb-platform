@@ -146,44 +146,47 @@ export default async function EventScanPage({ searchParams }: PageProps) {
             <form action={publishClubEventsAction}>
               <ClubCalendarButton />
             </form>
-            <form action={followZwbMembersAction}>
-              <Button type="submit" variant="outline" size="sm">
-                ZWB-leden volgen
-              </Button>
-            </form>
-            <form action={testZwiftClubConnection}>
-              <Button type="submit" variant="outline" size="sm">
-                Test clubkoppeling
-              </Button>
-            </form>
-            <form action={probeZwiftEventWindow}>
-              <Button type="submit" variant="outline" size="sm">
-                Test eventvenster
-              </Button>
-            </form>
-            <form action={probeZwiftSegmentResults}>
-              <Button type="submit" variant="outline" size="sm">
-                Test segmentresultaten
-              </Button>
-            </form>
-            <form action={probeZwiftRiderPower} className="flex items-center gap-1">
-              <input
-                name="zwift_id"
-                inputMode="numeric"
-                placeholder="Zwift-ID"
-                aria-label="Zwift-ID"
-                className="h-8 w-28 rounded-md border border-input bg-background px-2 text-sm"
-              />
-              <Button type="submit" variant="outline" size="sm">
-                Test zFTP
-              </Button>
-            </form>
             <form action={scanExternalEventCandidates}>
               <ScanButton />
             </form>
           </div>
         }
       />
+
+      <section className="flex flex-wrap items-center gap-2">
+        <form action={followZwbMembersAction}>
+          <Button type="submit" variant="outline" size="sm">
+            ZWB-leden volgen
+          </Button>
+        </form>
+        <form action={testZwiftClubConnection}>
+          <Button type="submit" variant="outline" size="sm">
+            Test clubkoppeling
+          </Button>
+        </form>
+        <form action={probeZwiftEventWindow}>
+          <Button type="submit" variant="outline" size="sm">
+            Test eventvenster
+          </Button>
+        </form>
+        <form action={probeZwiftSegmentResults}>
+          <Button type="submit" variant="outline" size="sm">
+            Test segmentresultaten
+          </Button>
+        </form>
+        <form action={probeZwiftRiderPower} className="flex items-center gap-1">
+          <input
+            name="zwift_id"
+            inputMode="numeric"
+            placeholder="Zwift-ID"
+            aria-label="Zwift-ID"
+            className="h-8 w-28 rounded-md border border-input bg-background px-2 text-sm"
+          />
+          <Button type="submit" variant="outline" size="sm">
+            Test zFTP
+          </Button>
+        </form>
+      </section>
 
       <IntegrationHealth />
 
