@@ -70,6 +70,54 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0191`
 
 ---
 
+> **Live volgen via Garmin/Wahoo, 2026-09-28 — onderzocht, niet gebouwd; geen
+> migratie.** Commit: de commit die dit blok toevoegt. Details:
+> [garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).
+>
+> **Waarom.** Live volgen op de kaart kan alleen via OwnTracks. Dat is
+> omslachtig (aparte app, HTTP-modus, locatie "Altijd", per rit de modus
+> wisselen) en wordt weinig gebruikt: 3 leden in 30 dagen, 49 sessies ooit. De
+> eigenaar vroeg of het via de Garmin- en Wahoo-fietscomputers kan.
+>
+> **Conclusie.** Er is geen officiële live-API; de cloud-API's van beide merken
+> leveren pas na de rit. Wel bruikbaar is de ingebouwde LiveTrack van beide
+> merken. Garmin (Auto Start) en Wahoo (Share Automatically) mailen bij elke rit
+> een link naar ingestelde ontvangers, en Wahoo heeft ook een vaste "Share
+> Forever"-link. Met een persoonlijk clubadres als ontvanger, ontvangen via
+> Resend, verschijnt de renner vanzelf; per rit hoeft hij niets te doen. Het
+> onzekere deel is het uitlezen van de posities. Garmin's endpoints zijn
+> ongedocumenteerd en vragen sinds kort een CSRF-token uit de pagina-JS. Een
+> spike moet uitwijzen of dat zonder headless browser lukt. Lukt het niet, dan
+> blijft "live, met link" over. Voor Garmin is er dan nog de fallback van een
+> eigen Connect IQ-dataveld dat naar het bestaande `/api/live/owntracks` post.
+>
+> **Bijvangst (bestaande situatie, niet aangepast):**
+> - De handmatige sessie met een LiveTrack-link op `/live` sluit na 15 minuten,
+>   want `heartbeat()` wordt nergens aangeroepen.
+> - De publieke `/live/[eventId]` toont posities aan niet-leden, terwijl de
+>   privacytekst "clubleden" zegt.
+> - "Per rit opt-in" wordt niet afgedwongen.
+>
+> Zie sectie 2.4 en 6 van het doc.
+>
+> **Bewust niet gebouwd.**
+> - Nog geen code: de spike bepaalt de vorm, en het bestuur overweegt een
+>   featurepauze.
+> - Geen headless Chromium op Netlify: te zwaar, en het kost credits bij elke
+>   kijker.
+> - Geen officiële partner-API's: die zijn niet live.
+> - Geen Connect IQ-dataveld als eerste stap: het dekt alleen Garmin en vraagt
+>   een eigen toolchain en store-proces.
+> - OwnTracks blijft bestaan.
+>
+> **Niet geverifieerd.** Geen enkel Garmin- of Wahoo-endpoint is aangeroepen,
+> want de egress van de ontwikkelomgeving blokkeert die domeinen. Het gedrag
+> komt uit openbare bronnen en open-sourcecode.
+>
+> **Open.** De spike-checklist (sectie 7 van het doc) met een eigen Garmin en
+> Wahoo, alleen als het bestuur verder wil. Het bouwvoorstel hoort daarna in het
+> plannenboek.
+
 > **Load en Form: één figuur, Form op de CTL/ATL-as, Load op een rechteras,
 > 2026-09-28 — gebouwd; geen migratie.** Commit: de commit die dit blok toevoegt.
 > Vervangt de drie vlakken van 2026-09-27 (`25c0c5d`, blok hieronder).
@@ -2490,13 +2538,17 @@ indicators op eventrijen en linkt direct naar `/live/[eventId]`.
 | Spoor | Beschrijving | Status |
 |---|---|:---:|
 | A | Outdoor GPS-tracker via OwnTracks background tracking | ✅ |
-| B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | ⏸️ skip |
+| B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | 🔎 onderzocht 2026-09-28 |
 | C | Indoor status-board (handmatige "Ik fiets nu"-toggle) | ⏸️ skip |
 | Bonus | Event liveticker op event-pagina's + publiek deelbaar | ✅ |
 
-Spoor B en C zijn **bewust geskipt**: OwnTracks dekt outdoor af, en het
-indoor status-board is een grote bouw met onzekere adoptie. Heroverwegen
-als bestuur of leden er expliciet om vragen.
+Spoor B werd eerst geskipt met als reden "OwnTracks dekt outdoor af". Dat
+klopt niet meer: OwnTracks blijkt omslachtig en wordt weinig gebruikt (3 leden
+in 30 dagen). Spoor B is op 2026-09-28 onderzocht. De conclusie en de
+openstaande spike staan in
+[garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).
+Spoor C blijft **bewust geskipt**: een grote bouw met onzekere adoptie.
+Heroverwegen als het bestuur of leden er expliciet om vragen.
 
 De liveticker is inmiddels zichtbaar op de `/kalender`-rij (live-indicator met
 link naar `/live/[eventId]`, zie de update hierboven).
