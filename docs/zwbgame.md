@@ -3,7 +3,7 @@
 Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgame`:
 het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
 ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
-volgen op dezelfde engine. Versies 1–3 (17–19 september) waren een arcade-clubkoers
+volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). Versies 1–3 (17–19 september) waren een arcade-clubkoers
 in Flamme Rouge-stijl; zie "Eerdere versies" onderaan.
 
 ## Lokale speeltest
@@ -73,7 +73,9 @@ terugkomen en werd steeds vol gas rijden beloond.
 
 **Powerups.** Bij het passeren van het einde van een benoemd Zwift-segment of een
 rondestreep krijg je er één als je slot leeg is: veer, aerohelm of draft boost, met de
-effecten uit `POWERUP_EFFECTS` (draft boost ×1,5 op de besparing is een **aanname**).
+effecten uit `POWERUP_EFFECTS`: veer −10% gewicht 30 s, aerohelm −25% CdA 15 s
+(Zwift Insider), draft boost +50% op de slipstreambesparing 40 s (Zwift-forum en
+gearmashers.com).
 Zelf gedetecteerde klimmen (`klim-…`) krijgen geen boog. De spatiebalk gebruikt hem.
 
 **Tijd.** De client draait per 0,2 s beeldtijd `timeScale` simulatiestappen
@@ -198,7 +200,8 @@ API meeneemt.
   alle zeven ladderroutes (zonder profiel verschijnt een route niet; zonder enkele
   route toont de game "Er is nog geen route beschikbaar"), de echte hoogteprofielen in
   de game (alleen fixtures gezien), speelgevoel en fps op een echte telefoon, en de
-  draftfactor en powerup-aannames tegen echte Zwift.
+  draftfactor tegen echte Zwift. De powerup-effecten zijn gepubliceerd, niet door
+  ons gemeten.
 
 ## Eerdere versies (1–3, 17–19 september 2026)
 

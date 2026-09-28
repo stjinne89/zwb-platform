@@ -81,8 +81,9 @@ zonder nieuwe data. De lead-in heeft geen vorm en telt als asfalt.
 ## 4. Powerups
 
 Bron zwiftinsider.com/powerups. Veer −10 % lichaamsgewicht, 30 s. Aerohelm
-−25 % luchtweerstand, 15 s. Draft boost meer slipstream, 40 s (hoeveel: niet
-bekend, **aanname** ×1,5 op de besparing). Stoomwals lagere rolweerstand
+−25 % luchtweerstand, 15 s. Draft boost meer slipstream, 40 s: +50 % op het
+slipstreameffect (Zwift-forum en gearmashers.com; Zwift Insider zegt alleen
+"meer"; oudere bronnen noemen 30 s; nagelezen 28 september 2026). Stoomwals lagere rolweerstand
 ongeacht fiets en wegdek, 30 s (gerekend als 0,004). Aambeeld zwaarder op
 ≤ −1,5 %, 15 s (hoeveel: niet bekend, **aanname** +10 % lichaamsgewicht).
 Burrito, spook en pijlen veranderen je eigen tijd niet.

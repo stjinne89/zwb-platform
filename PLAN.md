@@ -131,8 +131,15 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > **Niet lokaal te verifiëren.** Of `zwift_routes` op productie profielen heeft voor
 > alle zeven routes: zonder profiel verschijnt een route niet, en zonder enkele route
 > meldt de game "Er is nog geen route beschikbaar". Lokaal alleen met fixtures met
-> handgetekende profielen getest. Ook niet gemeten: de draftfactor en powerups tegen
-> echte Zwift, en fps en speelgevoel op een telefoon.
+> handgetekende profielen getest. Ook niet gemeten: de draftfactor tegen echte
+> Zwift, en fps en speelgevoel op een telefoon.
+>
+> **Correctie 2026-09-28, zelfde dag.** De powerup-effecten zijn geen aanname,
+> zoals hierboven en in de pacing-ronde van 21 september stond: veer −10 % gewicht
+> 30 s en aerohelm −25 % CdA 15 s staan bij Zwift Insider, draft boost +50 %
+> slipstream (40 s) bij het Zwift-forum en gearmashers.com. De code rekende daar
+> al mee; alleen de teksten zijn rechtgezet. Het aambeeld blijft een aanname.
+> Bouwplannen voor ZRL en FRR in dit spel: [ZRL en FRR](docs/zwbgame-zrl-frr.md).
 
 > **Intensiteit, trainingsvormen en titels in ZWBeter Worden, 2026-09-28 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Migratie `0194_workout_library_training_forms.sql`
@@ -1654,8 +1661,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > AI en niet mee in een gedeeld plan.
 >
 > **Aannames, niet gemeten.** Slipstream −30 % luchtweerstand (tijdritfiets
-> −15 %, `doubledraft` twee keer zoveel), draft boost ×1,5 op de besparing,
-> aambeeld +10 % lichaamsgewicht, en de Zwift-nummering van powerups buiten
+> −15 %, `doubledraft` twee keer zoveel), aambeeld +10 % lichaamsgewicht, en de Zwift-nummering van powerups buiten
 > 0 en 8. Start 700 m, sprint 300 m en de W′-aandelen zijn keuzes bij de bouw.
 >
 > **Bewust niet gebouwd.** Geen wegdek bij een .gpx-route (daar staat het niet

@@ -16,9 +16,9 @@
 // Carbon, 183 cm, 75 kg) haalt sinds juni 2026 op Tempus Fugit 24,574 mph bij
 // 300 W en 18,964 mph bij 150 W. Met Zwifts rolweerstand op asfalt (0,004)
 // leggen die de CdA vast, de Alpe-tijden de massa; los gefit komt de
-// rolweerstand er ook op 0,0040 uit. Drie getallen hieronder zijn daarentegen aannames
-// zonder meting: de slipstreamfactoren, het effect van de draft boost en het
-// gewicht van het aambeeld. Ze staan apart en met die vermelding.
+// rolweerstand er ook op 0,0040 uit. Twee getallen hieronder zijn daarentegen aannames
+// zonder meting: de slipstreamfactoren en het gewicht van het aambeeld. Ze staan
+// apart en met die vermelding.
 
 import { crrFor, type RollingClass } from "@/lib/zwift/surfaces/crr";
 
@@ -158,8 +158,10 @@ export type PowerupEffect = {
 };
 
 /**
- * Bron: zwiftinsider.com/powerups (21 september 2026). De draft boost (factor
- * 1,5) en het aambeeld (+10 % gewicht) zijn daar niet gekwantificeerd: AANNAME.
+ * Bron: zwiftinsider.com/powerups (21 september 2026; nagelezen 28 september):
+ * veer −10 % gewicht 30 s, aerohelm −25 % CdA 15 s. De draft boost geeft 50 % meer
+ * slipstreameffect (Zwift-forum en gearmashers.com; Zwift Insider noemt alleen
+ * "meer"). Het aambeeld (+10 % gewicht) is nergens gekwantificeerd: AANNAME.
  */
 export const POWERUP_EFFECTS: Record<PowerupId, PowerupEffect> = {
   feather: { durationS: 30, riderMassFraction: -0.1 },
