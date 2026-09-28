@@ -3,11 +3,12 @@
 // De pagina zet het spoor van de huidige (of laatste) rit in
 // `window.livetrack_fit`: een lijst base64-strings, elk 4 bytes lengte (LE)
 // plus een gzip'te, complete FIT-file van een paar seconden. Wij lezen alleen
-// record-berichten (global 20): tijd, positie, hoogte en snelheid.
+// record-berichten (global 20): tijd, positie, hoogte, snelheid, afstand,
+// vermogen, cadans en hartslag.
 // Formaat: FIT SDK, "Flexible and Interoperable Data Transfer Protocol".
 
 import { gunzipSync } from "node:zlib";
-import type { LivePoint } from "./external-livetrack";
+import { sensorValue, type LiveSample } from "./external-livetrack";
 
 const FIT_EPOCH_S = 631065600; // 1989-12-31T00:00:00Z
 const SEMICIRCLE_TO_DEG = 180 / 2 ** 31;
@@ -24,9 +25,9 @@ function readUint(view: DataView, offset: number, size: number, le: boolean): nu
 }
 
 /** Records uit één FIT-file. Ongeldige of afgekapte data geeft wat er tot dan was. */
-export function parseFitRecords(buf: Uint8Array): LivePoint[] {
+export function parseFitRecords(buf: Uint8Array): LiveSample[] {
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-  const points: LivePoint[] = [];
+  const points: LiveSample[] = [];
   if (buf.length < 12) return points;
   const headerSize = buf[0];
   const dataSize = view.getUint32(4, true);
@@ -91,14 +92,20 @@ export function parseFitRecords(buf: Uint8Array): LivePoint[] {
       if (timestamp !== null) lastTimestamp = timestamp;
       if (def.global !== RECORD_MSG || timestamp === null) continue;
 
+      // Ook records zonder positie tellen: hartslag en vermogen komen elke
+      // seconde, een positie minder vaak.
       const rawLat = values.get(0);
       const rawLng = values.get(1);
-      if (rawLat == null || rawLng == null || rawLat === 0x7fffffff || rawLng === 0x7fffffff) {
-        continue;
+      let lat: number | null = null;
+      let lng: number | null = null;
+      if (rawLat != null && rawLng != null && rawLat !== 0x7fffffff && rawLng !== 0x7fffffff) {
+        const la = (rawLat | 0) * SEMICIRCLE_TO_DEG;
+        const lo = (rawLng | 0) * SEMICIRCLE_TO_DEG;
+        if (Math.abs(la) <= 90 && Math.abs(lo) <= 180 && !(la === 0 && lo === 0)) {
+          lat = Math.round(la * 1e6) / 1e6;
+          lng = Math.round(lo * 1e6) / 1e6;
+        }
       }
-      const lat = (rawLat | 0) * SEMICIRCLE_TO_DEG;
-      const lng = (rawLng | 0) * SEMICIRCLE_TO_DEG;
-      if (Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) continue;
 
       const enhancedAlt = values.get(78);
       const alt16 = values.get(2);
@@ -117,12 +124,22 @@ export function parseFitRecords(buf: Uint8Array): LivePoint[] {
             ? speed16 / 1000
             : null;
 
+      const valid = (num: number, invalid: number) => {
+        const v = values.get(num);
+        return v == null || v === invalid ? null : v;
+      };
+      const distance = valid(5, 0xffffffff);
+
       points.push({
-        lat: Math.round(lat * 1e6) / 1e6,
-        lng: Math.round(lng * 1e6) / 1e6,
+        lat,
+        lng,
         altitude: altitude === null ? null : Math.round(altitude * 100) / 100,
         speedKmh: speedMs === null ? null : Math.min(9999, Math.round(speedMs * 36) / 10),
         recordedAt: new Date((timestamp + FIT_EPOCH_S) * 1000).toISOString(),
+        powerW: sensorValue(valid(7, 0xffff), 0, 3000),
+        cadenceRpm: sensorValue(valid(4, 0xff), 0, 254),
+        heartRate: sensorValue(valid(3, 0xff), 20, 254),
+        distanceM: distance === null ? null : sensorValue(distance / 100, 0, 10_000_000),
       });
     }
   } catch {
@@ -132,7 +149,7 @@ export function parseFitRecords(buf: Uint8Array): LivePoint[] {
 }
 
 /** Eén `livetrack_fit`-chunk: 4 bytes lengte, dan gzip. */
-export function decodeWahooFitChunk(chunk: string): LivePoint[] {
+export function decodeWahooFitChunk(chunk: string): LiveSample[] {
   try {
     const raw = Buffer.from(chunk, "base64");
     return parseFitRecords(new Uint8Array(gunzipSync(raw.subarray(4))));
@@ -141,8 +158,8 @@ export function decodeWahooFitChunk(chunk: string): LivePoint[] {
   }
 }
 
-/** Alle punten uit de `window.livetrack_fit`-lijst van een Wahoo-pagina, oplopend. */
-export function wahooPagePoints(html: string): LivePoint[] {
+/** Alle metingen uit de `window.livetrack_fit`-lijst van een Wahoo-pagina, oplopend. */
+export function wahooPagePoints(html: string): LiveSample[] {
   const match = html.match(/window\.livetrack_fit\s*=\s*(\[[\s\S]*?\]);/);
   if (!match) return [];
   let chunks: unknown;
@@ -152,7 +169,7 @@ export function wahooPagePoints(html: string): LivePoint[] {
     return [];
   }
   if (!Array.isArray(chunks)) return [];
-  const byTime = new Map<string, LivePoint>();
+  const byTime = new Map<string, LiveSample>();
   for (const chunk of chunks) {
     if (typeof chunk !== "string") continue;
     for (const point of decodeWahooFitChunk(chunk)) byTime.set(point.recordedAt, point);

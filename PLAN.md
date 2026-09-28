@@ -43,8 +43,11 @@ gaat stabiliteit voor nieuwe features.
    `/live`). Daarna Resend Receiving en de webhook instellen en
    `LIVE_INBOUND_DOMAIN`, `RESEND_INBOUND_WEBHOOK_SECRET` en `RESEND_API_KEY` in
    Netlify zetten (runbook sectie 5); gedaan en de mailketen werkt (2026-09-28).
-   **Nog toepassen: `0192_live_wahoo_link.sql`**, vóór de deploy van de
-   vaste Wahoo-link. Daarna je Wahoo-link koppelen op Samen fietsen en een
+   **Nog toepassen: `0193_live_position_metrics.sql`**, vóór de deploy van
+   de sensorwaarden bij live-renners. Zonder die migratie slaat de app alleen de
+   positie op, zonder vermogen, cadans, hartslag en afstand.
+   `0192_live_wahoo_link.sql` is toegepast (de vaste Wahoo-link werkt op
+   productie, 2026-09-28). Daarna je Wahoo-link koppelen op Samen fietsen en een
    proefrit maken. De Garmin-proefrit (spikepunten 1, 2 en 4) moet een lid met
    een Edge doen, met diens toestemming.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
@@ -75,9 +78,54 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0193`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0194`.
 
 ---
+
+> **Samen fietsen: snelheid, vermogen, cadans en hartslag per renner,
+> 2026-09-28 — gebouwd; migratie `0193_live_position_metrics.sql`.** Commit: de
+> commit die dit blok toevoegt.
+>
+> **Waarom.** Op verzoek van de eigenaar, na de eerste geslaagde Wahoo-rit.
+> Zijn ELEMNT stuurde naast de positie ook snelheid, afstand, helling,
+> hartslag en calorieën. Vermogen en cadans zijn standaard-FIT-velden, maar
+> alleen aanwezig met een gekoppelde sensor.
+>
+> **Keuzes van de eigenaar.** Tonen: snelheid en afstand, vermogen en cadans,
+> en hartslag per lid opt-in. Alleen voor ingelogde leden: de publieke
+> eventticker selecteert de nieuwe kolommen niet.
+>
+> **Wat er is.**
+> - `live_positions` krijgt `power_w`, `cadence_rpm`, `heart_rate` en
+>   `distance_m`. De FIT-lezer houdt nu ook records zonder positie: hartslag en
+>   vermogen komen elke seconde, een positie minder vaak (bij de proefrit 570
+>   tegen 73). Per kaartpunt (om de 10 s) worden vermogen, cadans en hartslag
+>   gemiddeld over alle metingen sinds het vorige punt.
+> - Garmin: dezelfde velden uit de trackpoints, als de renner in LiveTrack
+>   sensordata deelt. De veldnamen komen uit GarminLiveTrack-Server en zijn niet
+>   gemeten.
+> - Samen fietsen: klik op een renner en de kaart vliegt ernaartoe, plus een
+>   uitklapblok met snelheid, gemiddelde, afstand, tijd onderweg, vermogen,
+>   cadans en hartslag. Alleen de waarden die er zijn; ververst elke 30 s mee.
+> - Hartslag: alleen opgeslagen als het lid "Hartslag delen met leden" aanzet
+>   (`profiles.live_heart_rate_consent_at`, met het moment). Uitzetten wist de
+>   opgeslagen live-hartslag van dat lid.
+>
+> **Privacy.** De tekst noemt afstand, vermogen, cadans en de opt-in voor
+> hartslag, en dat de publieke eventpagina alleen de positie toont. Geen
+> nieuwe privacyversie: hartslag is een gezondheidsgegeven, maar de toestemming
+> loopt per lid via de schakelaar, en zonder die schakelaar wordt niets
+> opgeslagen.
+>
+> **Bewust niet gebouwd.** De waarden op de eventpagina voor leden (alleen
+> Samen fietsen is gevraagd). Rondes, calorieën en helling. Het gemiddelde
+> vermogen over de hele rit.
+>
+> **Niet geverifieerd.** De migratie is niet gedraaid. Vermogen en cadans niet
+> met een echte sensor gezien. Getest: unit-tests (FIT met sensorvelden in
+> big-endian, middelen over metingen zonder positie, Garmin-veldnamen) en de
+> proefritdata van de eigenaar (571 metingen naar 9 kaartpunten, hartslag
+> gemiddeld).
 
 > **Samen fietsen: startformulier weg, 2026-09-28 — gebouwd; geen migratie.**
 > Commit: de commit die dit blok toevoegt.

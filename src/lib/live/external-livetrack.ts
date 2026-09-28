@@ -30,7 +30,23 @@ export type LivePoint = {
   altitude: number | null;
   speedKmh: number | null;
   recordedAt: string;
+  powerW?: number | null;
+  cadenceRpm?: number | null;
+  heartRate?: number | null;
+  distanceM?: number | null;
 };
+
+/** Een meting die (nog) geen positie hoeft te hebben, zoals een FIT-record. */
+export type LiveSample = Omit<LivePoint, "lat" | "lng"> & {
+  lat: number | null;
+  lng: number | null;
+};
+
+/** Sensorwaarde binnen een plausibel bereik, afgerond; anders null. */
+export function sensorValue(value: number | null | undefined, min: number, max: number) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  return value >= min && value <= max ? Math.round(value) : null;
+}
 
 const GARMIN_LINK_RE =
   /https:\/\/livetrack\.garmin\.com\/session\/([0-9a-fA-F-]{8,64})\/token\/([0-9A-Za-z]{4,128})/;
@@ -95,6 +111,8 @@ export function normalizeGarminPoint(raw: unknown): LivePoint | null {
 
   const speedMs = finiteNumber(p.speedMetersPerSec ?? p.speed ?? meta.SPEED);
   const altitude = finiteNumber(p.altitude ?? meta.ELEVATION);
+  // Sensorvelden: namen uit GarminLiveTrack-Server; alleen gevuld als de
+  // renner in LiveTrack sensordata deelt. Niet met een echte rit gemeten.
   return {
     lat,
     lng,
@@ -102,6 +120,22 @@ export function normalizeGarminPoint(raw: unknown): LivePoint | null {
     speedKmh:
       speedMs === null ? null : Math.min(9999, Math.round(speedMs * 36) / 10),
     recordedAt,
+    powerW: sensorValue(finiteNumber(p.powerWatts ?? p.power ?? meta.POWER), 0, 3000),
+    cadenceRpm: sensorValue(
+      finiteNumber(p.cadenceCyclesPerMin ?? p.cadence ?? meta.CADENCE),
+      0,
+      255,
+    ),
+    heartRate: sensorValue(
+      finiteNumber(p.heartRateBeatsPerMin ?? p.heartRate ?? meta.HEART_RATE),
+      20,
+      255,
+    ),
+    distanceM: sensorValue(
+      finiteNumber(p.totalDistanceMeters ?? meta.TOTAL_DISTANCE),
+      0,
+      10_000_000,
+    ),
   };
 }
 

@@ -29,6 +29,7 @@ import {
   type GarminAuth,
   type GarminLink,
   type LivePoint,
+  type LiveSample,
 } from "./external-livetrack";
 import { wahooPagePoints } from "./fit-records";
 
@@ -50,6 +51,7 @@ type ExternalSessionRow = {
   last_seen_at: string;
   external_last_fetch_at: string | null;
   external_last_point_at: string | null;
+  shareHeartRate?: boolean;
 };
 
 type SessionUpdate = {
@@ -59,24 +61,41 @@ type SessionUpdate = {
   external_last_point_at?: string;
 };
 
+function mean(values: (number | null | undefined)[]) {
+  const nums = values.filter((v): v is number => typeof v === "number");
+  return nums.length === 0 ? null : Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+}
+
 /**
- * Eén punt per MIN_POINT_SPACING_MS, gerekend vanaf het laatst opgeslagen punt.
- * Wahoo levert er één per seconde; dat is te veel voor de kaart en de database.
+ * Eén kaartpunt per MIN_POINT_SPACING_MS, gerekend vanaf het laatst opgeslagen
+ * punt. Wahoo levert elke seconde een meting; dat is te veel voor de kaart en
+ * de database. Vermogen, cadans en hartslag worden gemiddeld over alle
+ * metingen sinds het vorige kaartpunt, ook die zonder positie.
  */
 export function thinPoints(
-  points: LivePoint[],
+  samples: LiveSample[],
   after: string | null,
   spacingMs = MIN_POINT_SPACING_MS,
 ): LivePoint[] {
   let last = after ? Date.parse(after) : -Infinity;
+  let window: LiveSample[] = [];
   const kept: LivePoint[] = [];
-  for (const point of points) {
-    const t = Date.parse(point.recordedAt);
+  for (const sample of samples) {
+    const t = Date.parse(sample.recordedAt);
     if (t <= last) continue;
-    if (t - last >= spacingMs) {
-      kept.push(point);
-      last = t;
-    }
+    window.push(sample);
+    if (sample.lat === null || sample.lng === null || t - last < spacingMs) continue;
+    kept.push({
+      ...sample,
+      lat: sample.lat,
+      lng: sample.lng,
+      powerW: mean(window.map((s) => s.powerW)),
+      cadenceRpm: mean(window.map((s) => s.cadenceRpm)),
+      heartRate: mean(window.map((s) => s.heartRate)),
+      distanceM: sample.distanceM ?? null,
+    });
+    last = t;
+    window = [];
   }
   return kept;
 }
@@ -101,20 +120,31 @@ async function claim(admin: SupabaseClient, id: string, now: number) {
   return (data ?? []).length > 0;
 }
 
-async function storePoints(admin: SupabaseClient, row: ExternalSessionRow, points: LivePoint[]) {
-  const recent = thinPoints(points, row.external_last_point_at).slice(-MAX_POINTS_PER_FETCH);
+async function storePoints(admin: SupabaseClient, row: ExternalSessionRow, samples: LiveSample[]) {
+  const recent = thinPoints(samples, row.external_last_point_at).slice(-MAX_POINTS_PER_FETCH);
   if (recent.length === 0) return null;
-  const { error } = await admin.from("live_positions").insert(
-    recent.map((p) => ({
-      session_id: row.id,
-      profile_id: row.profile_id,
-      lat: p.lat,
-      lng: p.lng,
-      altitude: p.altitude,
-      speed_kmh: p.speedKmh,
-      recorded_at: p.recordedAt,
-    })),
-  );
+  const base = recent.map((p) => ({
+    session_id: row.id,
+    profile_id: row.profile_id,
+    lat: p.lat,
+    lng: p.lng,
+    altitude: p.altitude,
+    speed_kmh: p.speedKmh,
+    recorded_at: p.recordedAt,
+  }));
+  const withMetrics = recent.map((p, i) => ({
+    ...base[i],
+    power_w: p.powerW ?? null,
+    cadence_rpm: p.cadenceRpm ?? null,
+    // Hartslag alleen met toestemming van het lid (0193).
+    heart_rate: row.shareHeartRate ? (p.heartRate ?? null) : null,
+    distance_m: p.distanceM ?? null,
+  }));
+  let { error } = await admin.from("live_positions").insert(withMetrics);
+  if (error && /column/i.test(error.message)) {
+    // 0193 nog niet toegepast: dan in elk geval de positie.
+    ({ error } = await admin.from("live_positions").insert(base));
+  }
   if (error) throw new Error(error.message);
   return recent[recent.length - 1].recordedAt;
 }
@@ -317,6 +347,16 @@ async function refreshOpenSessions(
       now - Date.parse(row.external_last_fetch_at) >= FETCH_EVERY_MS,
   );
   if (due.length === 0) return;
+
+  // Hartslag alleen opslaan voor leden die dat hebben aangezet (0193).
+  const { data: consents } = await admin
+    .from("profiles")
+    .select("id, live_heart_rate_consent_at")
+    .in("id", [...new Set(due.map((row) => row.profile_id))]);
+  const consenting = new Set(
+    (consents ?? []).filter((p) => p.live_heart_rate_consent_at).map((p) => p.id as string),
+  );
+  for (const row of due) row.shareHeartRate = consenting.has(row.profile_id);
 
   // De vaste Wahoo-link staat alleen in live_tracker_tokens (zie 0192).
   const tokenIds = due.map((row) => row.tracker_token_id).filter((id): id is string => !!id);

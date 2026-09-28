@@ -113,8 +113,13 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
-            live rit start, worden je GPS-positie, snelheid en hoogte gedeeld met
-            clubleden. Dit is per rit opt-in en stopt automatisch. Koppel je je
+            live rit start, worden je GPS-positie, snelheid, hoogte en afstand
+            gedeeld met ingelogde clubleden, en ook je vermogen en cadans als je
+            fietscomputer die meet. Je hartslag alleen als je zelf
+            &ldquo;Hartslag delen met leden&rdquo; aanzet op Samen fietsen; zet
+            je dat uit, dan wissen we de opgeslagen live-hartslag. De publieke
+            eventpagina toont alleen je positie. Dit is per rit opt-in en stopt
+            automatisch. Koppel je je
             Garmin, dan ontvangen we bij elke rit de LiveTrack-mail die je zelf
             naar je persoonlijke clubadres laat sturen; uit die mail bewaren we
             alleen de link. Koppel je je Wahoo, dan bewaren we je vaste Live

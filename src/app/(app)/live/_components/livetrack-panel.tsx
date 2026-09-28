@@ -9,6 +9,7 @@ import {
   removeWahooLink,
   revokeLiveMailAddress,
   saveWahooLink,
+  setHeartRateSharing,
 } from "../_actions";
 import type { OwnTracksTokenStatus } from "./owntracks-panel";
 
@@ -185,14 +186,45 @@ function WahooBlock({ status }: { status: OwnTracksTokenStatus | null }) {
   );
 }
 
+function HeartRateToggle({ sharing }: { sharing: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function toggle(on: boolean) {
+    setError(null);
+    startTransition(async () => {
+      const res = await setHeartRateSharing(on);
+      if (!res.ok) setError(res.error ?? "Opslaan mislukt.");
+    });
+  }
+
+  return (
+    <div className="space-y-1 border-t pt-4">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input
+          type="checkbox"
+          checked={sharing}
+          disabled={pending}
+          onChange={(e) => toggle(e.target.checked)}
+          className="size-4"
+        />
+        Hartslag delen met leden
+      </label>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export function LiveTrackPanel({
   mailStatus,
   wahooStatus,
   mailEnabled,
+  sharingHeartRate,
 }: {
   mailStatus: OwnTracksTokenStatus | null;
   wahooStatus: OwnTracksTokenStatus | null;
   mailEnabled: boolean;
+  sharingHeartRate: boolean;
 }) {
   return (
     <section className="space-y-5 rounded-lg border bg-card p-4">
@@ -202,6 +234,7 @@ export function LiveTrackPanel({
       </div>
       {mailEnabled && <GarminBlock status={mailStatus} />}
       <WahooBlock status={wahooStatus} />
+      <HeartRateToggle sharing={sharingHeartRate} />
     </section>
   );
 }

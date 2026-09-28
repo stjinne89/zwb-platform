@@ -69,7 +69,23 @@ describe("Garmin-trackpoints", () => {
       altitude: 12.35,
       speedKmh: 30,
       recordedAt: "2026-09-28T08:00:04.000Z",
+      powerW: null,
+      cadenceRpm: null,
+      heartRate: null,
+      distanceM: null,
     });
+  });
+
+  it("leest sensordata als de renner die deelt", () => {
+    expect(
+      normalizeGarminPoint({
+        dateTime: "2026-09-28T08:00:04.000Z",
+        position: { lat: 51.5, lon: 5.05 },
+        heartRateBeatsPerMin: 141.6,
+        totalDistanceMeters: 12345.6,
+        metaData: { POWER: "215", CADENCE: "88" },
+      }),
+    ).toMatchObject({ heartRate: 142, distanceM: 12346, powerW: 215, cadenceRpm: 88 });
   });
 
   it("leest het oude formaat met metaData en een tijd in milliseconden", () => {
@@ -199,6 +215,15 @@ function fitFile(): Uint8Array {
   u32(semi(5.1));
   u16((12 + 500) * 5);
   u16(8333);
+  // Definitie lokaal type 1, big-endian: tijd, hartslag, cadans, vermogen,
+  // afstand; geen positie (zoals Wahoo tussen twee GPS-punten).
+  body.push(0x41, 0, 1, 0, 20, 5, 253, 4, 0x86, 3, 1, 0x02, 4, 1, 0x02, 7, 2, 0x84, 5, 4, 0x86);
+  body.push(0x01);
+  const be32 = (v: number) => body.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
+  be32(t0 + 1);
+  body.push(140, 90);
+  body.push(0, 250);
+  be32(1234);
   // Record 2 met gecomprimeerde tijd: t0 + 3 s (tijdveld ongeldig).
   body.push(0x80 | ((t0 + 3) & 0x1f));
   u32(0xffffffff);
@@ -214,17 +239,30 @@ function fitFile(): Uint8Array {
 }
 
 describe("Wahoo FIT-data", () => {
-  it("leest records met tijd, positie, hoogte en snelheid", () => {
+  it("leest records met tijd, positie, hoogte, snelheid en sensoren", () => {
     const points = parseFitRecords(fitFile());
-    expect(points).toHaveLength(2);
+    expect(points).toHaveLength(3);
     expect(points[0]).toEqual({
       lat: 52.1,
       lng: 5.1,
       altitude: 12,
       speedKmh: 30,
       recordedAt: "2026-09-28T10:00:00.000Z",
+      powerW: null,
+      cadenceRpm: null,
+      heartRate: null,
+      distanceM: null,
     });
-    expect(points[1]).toMatchObject({ altitude: null, speedKmh: null, recordedAt: "2026-09-28T10:00:03.000Z" });
+    expect(points[1]).toMatchObject({
+      lat: null,
+      lng: null,
+      heartRate: 140,
+      cadenceRpm: 90,
+      powerW: 250,
+      distanceM: 12,
+      recordedAt: "2026-09-28T10:00:01.000Z",
+    });
+    expect(points[2]).toMatchObject({ altitude: null, speedKmh: null, recordedAt: "2026-09-28T10:00:03.000Z" });
   });
 
   it("pakt een livetrack_fit-chunk uit (4 bytes lengte + gzip) en leest de pagina", () => {
@@ -232,13 +270,41 @@ describe("Wahoo FIT-data", () => {
     const length = Buffer.alloc(4);
     length.writeUInt32LE(fit.length);
     const chunk = Buffer.concat([length, gzipSync(fit)]).toString("base64");
-    expect(decodeWahooFitChunk(chunk)).toHaveLength(2);
+    expect(decodeWahooFitChunk(chunk)).toHaveLength(3);
     const html = `<script>window.livetrack_fit = ["${chunk}","${chunk}"];</script>`;
     expect(wahooPagePoints(html).map((p) => p.recordedAt)).toEqual([
       "2026-09-28T10:00:00.000Z",
+      "2026-09-28T10:00:01.000Z",
       "2026-09-28T10:00:03.000Z",
     ]);
     expect(decodeWahooFitChunk("geen-fit")).toEqual([]);
+  });
+});
+
+describe("thinPoints met sensoren", () => {
+  const sample = (s: number, extra: Record<string, number | null>) => ({
+    lat: null as number | null,
+    lng: null as number | null,
+    altitude: null,
+    speedKmh: null,
+    recordedAt: new Date(Date.parse("2026-09-28T10:00:00Z") + s * 1000).toISOString(),
+    ...extra,
+  });
+
+  it("middelt vermogen en hartslag over alle metingen sinds het vorige kaartpunt", () => {
+    const points = thinPoints(
+      [
+        sample(0, { lat: 52, lng: 5, powerW: 100, heartRate: 120, distanceM: 0 }),
+        sample(4, { powerW: 200, heartRate: 130 }),
+        sample(8, { powerW: 300, heartRate: 140 }),
+        sample(10, { lat: 52.001, lng: 5, powerW: 400, heartRate: 150, distanceM: 80 }),
+        sample(12, { powerW: 999 }),
+      ],
+      null,
+    );
+    expect(points).toHaveLength(2);
+    expect(points[0]).toMatchObject({ powerW: 100, heartRate: 120, distanceM: 0 });
+    expect(points[1]).toMatchObject({ powerW: 300, heartRate: 140, distanceM: 80 });
   });
 });
 

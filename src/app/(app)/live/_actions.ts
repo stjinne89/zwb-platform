@@ -3,6 +3,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   fetchWahooPage,
   parseWahooPage,
@@ -178,6 +179,37 @@ export async function removeWahooLink() {
     .eq("provider", "wahoo_link")
     .is("revoked_at", null);
   if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/live");
+  return { ok: true as const };
+}
+
+/**
+ * Hartslag delen op Samen fietsen (0193). Aan = toestemming met tijdstip;
+ * uit = geen hartslag meer opslaan en de al opgeslagen hartslag wissen.
+ */
+export async function setHeartRateSharing(on: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ live_heart_rate_consent_at: on ? new Date().toISOString() : null })
+    .eq("id", user.id);
+  if (error) return { ok: false as const, error: error.message };
+
+  if (!on) {
+    // Leden mogen live_positions niet wijzigen; wissen gaat via de admin-client.
+    const { error: wipeError } = await createAdminClient()
+      .from("live_positions")
+      .update({ heart_rate: null })
+      .eq("profile_id", user.id)
+      .not("heart_rate", "is", null);
+    if (wipeError) return { ok: false as const, error: wipeError.message };
+  }
 
   revalidatePath("/live");
   return { ok: true as const };

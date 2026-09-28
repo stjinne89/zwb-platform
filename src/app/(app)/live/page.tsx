@@ -10,7 +10,7 @@ import {
 } from "./_components/owntracks-panel";
 import { LiveTrackPanel } from "./_components/livetrack-panel";
 import { StopLiveButton } from "./_components/stop-button";
-import type { ActiveSession } from "./types";
+import type { ActiveSession, RiderStats } from "./types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,6 +25,53 @@ const STALE_AFTER_MIN = 15;
 
 async function getActiveCutoffIso() {
   return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
+}
+
+type ServerClient = Awaited<ReturnType<typeof createClient>>;
+
+const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+/**
+ * Laatste meting en eerste punt per outdoor-sessie. Zonder migratie 0193 zijn
+ * er geen sensorkolommen; dan alleen snelheid.
+ */
+async function loadRiderStats(supabase: ServerClient, sessionIds: string[]) {
+  const stats: Record<string, RiderStats> = {};
+  await Promise.all(
+    sessionIds.map(async (sessionId) => {
+      const latest = async (columns: string) =>
+        supabase
+          .from("live_positions")
+          .select(columns)
+          .eq("session_id", sessionId)
+          .order("recorded_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+      const full = await latest(
+        "recorded_at, speed_kmh, power_w, cadence_rpm, heart_rate, distance_m",
+      );
+      const last = full.error ? (await latest("recorded_at, speed_kmh")).data : full.data;
+      const { data: first } = await supabase
+        .from("live_positions")
+        .select("recorded_at")
+        .eq("session_id", sessionId)
+        .order("recorded_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!last || !first) return;
+      const row = last as unknown as Record<string, unknown>;
+      stats[sessionId] = {
+        recordedAt: row.recorded_at as string,
+        rideStartAt: first.recorded_at as string,
+        speedKmh: num(row.speed_kmh),
+        powerW: num(row.power_w),
+        cadenceRpm: num(row.cadence_rpm),
+        heartRate: num(row.heart_rate),
+        distanceM: num(row.distance_m),
+      };
+    }),
+  );
+  return stats;
 }
 
 export default async function LivePage() {
@@ -47,6 +94,7 @@ export default async function LivePage() {
     { data: trackerTokens },
     { data: mailTokens },
     { data: wahooTokens },
+    { data: ownProfile },
   ] = await Promise.all([
     supabase
       .from("live_sessions")
@@ -82,6 +130,11 @@ export default async function LivePage() {
       .eq("provider", "wahoo_link")
       .order("created_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("profiles")
+      .select("live_heart_rate_consent_at")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const sessions: ActiveSession[] = (sessionRows ?? []).map((s) => ({
@@ -108,7 +161,12 @@ export default async function LivePage() {
       mailStatus={mailStatus}
       wahooStatus={wahooStatus}
       mailEnabled={Boolean(inboundDomain())}
+      sharingHeartRate={Boolean(ownProfile?.live_heart_rate_consent_at)}
     />
+  );
+  const riderStats = await loadRiderStats(
+    supabase,
+    outdoorSessions.map((s) => s.id),
   );
 
   return (
@@ -123,6 +181,7 @@ export default async function LivePage() {
         sessions={sessions}
         outdoorSessions={outdoorSessions}
         initialPositions={positionRows ?? []}
+        riderStats={riderStats}
       >
         <div className="space-y-4">
           {mySession && (

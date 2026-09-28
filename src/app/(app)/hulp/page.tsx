@@ -233,6 +233,8 @@ const WAHOO_LIVETRACK_STEPS = [
 const LIVETRACK_NOTES = [
   "Je Wahoo-link blijft bij ons: andere leden zien je positie op de ZWB-kaart, niet de link.",
   "Per rit hoef je niets te doen. Na de rit verdwijn je vanzelf.",
+  "Klik op Samen fietsen op een renner voor snelheid, afstand, vermogen en cadans. Hartslag zie je alleen bij wie Hartslag delen met leden aanzet.",
+  "Geen bolletje op de kaart? Je fietscomputer heeft dan nog geen GPS-fix. Binnen lukt dat meestal niet.",
   "Laat Garmin Connect of de ELEMNT-app op de achtergrond draaien; zonder telefoonverbinding komt er niets door.",
   "Een nieuw adres maken vervangt het oude meteen. Koppeling stoppen of ontkoppelen werkt direct; haal het adres daarna ook weg in Garmin Connect.",
 ];
