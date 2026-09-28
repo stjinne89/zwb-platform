@@ -14,15 +14,9 @@ import {
   zwiftClubConfigured,
 } from "@/lib/events/zwift-club";
 import { probeEventWindow } from "@/lib/zwift/event-cache";
-import {
-  allowedExternalUrl,
-  getMemberZwiftIds,
-  runEventScan,
-} from "@/lib/events/scan-runner";
-import {
-  eventTypeForSource,
-  resultsUrlForSource,
-} from "@/lib/events/external-publish";
+import { getMemberZwiftIds, runEventScan } from "@/lib/events/scan-runner";
+import { publishCandidateToCalendar } from "@/lib/events/publish-candidate";
+import { publishClubEvents } from "@/lib/events/club-calendar";
 
 const MATCH_STATUSES = new Set(["unknown", "likely", "confirmed", "manual"]);
 const CATEGORY_VALUES = new Set(["A", "B", "C", "D", "E"]);
@@ -70,40 +64,6 @@ function parseParticipantLines(input: string, defaultCategory: string | null) {
       seen.add(key);
       return true;
     });
-}
-
-function participantDescription(
-  participants: Array<{ external_name: string; category: string | null }>,
-) {
-  if (participants.length === 0) return null;
-  const names = participants
-    .map((participant) =>
-      participant.category
-        ? `${participant.external_name} (${participant.category})`
-        : participant.external_name,
-    )
-    .join(", ");
-  return `ZWB-deelnemers: ${names}`;
-}
-
-// Koppelt gematchte leden als RSVP "ja" aan het gepubliceerde event, zodat ze —
-// net als bij gewone events — met avatar verschijnen. Idempotent via upsert op
-// (event_id, profile_id); bestaande antwoorden van een lid blijven ongemoeid.
-async function linkParticipantsAsRsvps(
-  admin: ReturnType<typeof createAdminClient>,
-  eventId: string,
-  profileIds: string[],
-) {
-  if (profileIds.length === 0) return;
-  await admin.from("event_rsvps").upsert(
-    profileIds.map((profileId) => ({
-      event_id: eventId,
-      profile_id: profileId,
-      status: "yes",
-      updated_at: new Date().toISOString(),
-    })),
-    { onConflict: "event_id,profile_id", ignoreDuplicates: true },
-  );
 }
 
 export async function scanExternalEventCandidates() {
@@ -212,6 +172,47 @@ export async function probeZwiftSegmentResults() {
   redirect(`/beheer/event-scan?${params.toString()}`);
 }
 
+const CLUB_ROUTE_LABELS = {
+  club: "clubfeed",
+  privileged: "clubbeheer-feed",
+  feed: "member-feed",
+} as const;
+
+export async function publishClubEventsAction() {
+  const access = await requireEventScanAccess();
+  if (!access) return;
+  const params = new URLSearchParams();
+  params.set("club", "calendar");
+
+  try {
+    const result = await publishClubEvents(access.admin, access.userId);
+    if (!result) {
+      params.set("message", "Zwift-clubkoppeling niet geconfigureerd.");
+    } else {
+      const parts = [
+        `${result.found} aankomende clubevents (${CLUB_ROUTE_LABELS[result.route]})`,
+        `${result.published} op de kalender gezet`,
+        `${result.alreadyPublished} stonden er al`,
+      ];
+      if (result.ignored > 0) parts.push(`${result.ignored} genegeerd`);
+      if (result.failed > 0) parts.push(`${result.failed} mislukt`);
+      params.set("message", `${parts.join(", ")}.`);
+    }
+  } catch (error) {
+    params.set(
+      "message",
+      error instanceof Error
+        ? `Clubevents ophalen mislukt: ${error.message}`
+        : "Clubevents ophalen mislukt.",
+    );
+  }
+
+  revalidatePath("/beheer/event-scan");
+  revalidatePath("/kalender");
+  revalidatePath("/dashboard");
+  redirect(`/beheer/event-scan?${params.toString()}`);
+}
+
 export async function testZwiftClubConnection() {
   const access = await requireEventScanAccess();
   if (!access) return;
@@ -264,99 +265,8 @@ export async function publishCandidate(formData: FormData) {
   const candidateId = String(formData.get("candidate_id") ?? "").trim();
   if (!candidateId) return;
 
-  const { data: candidate } = await access.admin
-    .from("external_event_candidates")
-    .select(
-      "id, source, external_id, title, start_at, external_url, distance_km, elevation_m, published_event_id",
-    )
-    .eq("id", candidateId)
-    .maybeSingle();
-
-  if (!candidate || candidate.published_event_id) return;
-  if (!allowedExternalUrl(candidate.external_url)) return;
-
-  const { data: participants } = await access.admin
-    .from("external_event_participants")
-    .select("external_name, category, profile_id")
-    .eq("candidate_id", candidateId)
-    .order("external_name", { ascending: true });
-  const allParticipants = (participants ?? []) as Array<{
-    external_name: string;
-    category: string | null;
-    profile_id: string | null;
-  }>;
-  // Leden met een profiel koppelen we als deelnemer (RSVP "ja"), net als bij
-  // gewone events — zij verschijnen dan met avatar in plaats van als tekstregel.
-  // Alleen niet-gekoppelde namen blijven in de beschrijving staan.
-  const linkedProfileIds = [
-    ...new Set(
-      allParticipants
-        .map((participant) => participant.profile_id)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  const description = participantDescription(
-    allParticipants.filter((participant) => !participant.profile_id),
-  );
-  const { type, location } = eventTypeForSource(candidate.source);
-  const resultsUrl = resultsUrlForSource(candidate.source, candidate.external_id);
-
-  const { data: existing } = await access.admin
-    .from("events")
-    .select("id")
-    .eq("external_url", candidate.external_url)
-    .maybeSingle();
-  if (existing) {
-    await linkParticipantsAsRsvps(access.admin, existing.id, linkedProfileIds);
-    await access.admin
-      .from("external_event_candidates")
-      .update({
-        published_event_id: existing.id,
-        published_at: new Date().toISOString(),
-        published_by: access.userId,
-      })
-      .eq("id", candidateId);
-    revalidatePath("/beheer/event-scan");
-    revalidatePath("/kalender");
-    return;
-  }
-
-  const { data: event, error } = await access.admin
-    .from("events")
-    .insert({
-      title: candidate.title,
-      type,
-      start_at: new Date(candidate.start_at).toISOString(),
-      end_at: null,
-      location,
-      description,
-      external_url: candidate.external_url,
-      live_timing_url: null,
-      results_url: resultsUrl,
-      team_id: null,
-      gpx_path: null,
-      distance_km: candidate.distance_km,
-      elevation_m: candidate.elevation_m,
-      start_lat: null,
-      start_lon: null,
-      cover_image_path: null,
-      created_by: access.userId,
-    })
-    .select("id")
-    .single();
-
-  if (error) return;
-
-  await linkParticipantsAsRsvps(access.admin, event.id, linkedProfileIds);
-
-  await access.admin
-    .from("external_event_candidates")
-    .update({
-      published_event_id: event.id,
-      published_at: new Date().toISOString(),
-      published_by: access.userId,
-    })
-    .eq("id", candidateId);
+  const eventId = await publishCandidateToCalendar(access.admin, candidateId, access.userId);
+  if (!eventId) return;
 
   revalidatePath("/beheer/event-scan");
   revalidatePath("/kalender");

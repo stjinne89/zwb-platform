@@ -3580,6 +3580,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — knop "Clubevents op kalender" op de eventscan
+
+**2026-09-28.** Geen migratie. Lokaal gecommit, niet gepusht.
+
+**Aanleiding.** Stijn wil de events van de ZWB-club op Zwift
+(`zwift.com/uk/clubs/97b0f68a-…/home`) met één knop op de kalender hebben,
+in plaats van elk concept apart te publiceren.
+
+**Wat er veranderde.**
+- **Clubroute gevonden.** De clubpagina op zwift.com leest de events via
+  `event-feed/microservice/clubs/resource/{clubId}/privileged?to=300`
+  (clubbeheerders). De webcode (v2.250.1) heeft ook een ledenroute:
+  `event-feed?from=<nu>&microservice=clubs&microserviceResourceId={clubId}`.
+  Vastgesteld in Stijns ingelogde Chrome; de API zelf is daar niet aangeroepen.
+  Het spikedocument zei dat er geen club-events-lijst bestond; dat klopte voor
+  `clubs/club/{id}/events`, maar niet in het algemeen (daar gecorrigeerd).
+- `fetchClubCalendarEvents` (`zwift-club.ts`) probeert de ledenroute, dan de
+  beheerroute, en valt terug op de member-feed gefilterd op club-ID. Op elke
+  route wordt op `microserviceExternalResourceId` gefilterd, zodat een route die
+  de query negeert geen vreemde events laat publiceren.
+- `publishClubEvents` (`club-calendar.ts`) bewaart elk aankomend clubevent als
+  bevestigd concept met de ingeschreven ZWB'ers en publiceert het meteen.
+  Wat al gepubliceerd of genegeerd is, blijft ongemoeid. De melding noemt
+  welke route werkte.
+- De publicatie zelf (`publishCandidateToCalendar`) en de ledenmatching
+  (`loadMemberIndex`, `saveConfirmedZwiftCandidate`) zijn uit de server-action
+  en `syncZwiftFeed` gehaald, zodat de losse knop, de feedsync en de clubknop
+  dezelfde code gebruiken. Gedrag van de bestaande scan is gelijk gebleven.
+- Test: `tests/unit/zwift-club-calendar.test.ts` (routevolgorde en clubfilter).
+
+**Bewust niet gebouwd.**
+- **Geen automatische publicatie in de cron.** Increment 5 uit de
+  kalenderspike (auto-publicatiebeleid) is nog een open besluit; de knop is
+  een beheeractie. Aanzetten in `/api/events/scan` is één aanroep van
+  `publishClubEvents` zodra dat besluit er is.
+- **Geen bijwerken van al gepubliceerde clubevents** (tijd, titel, nieuwe
+  inschrijvers als RSVP). Het event op de kalender is na publicatie van ZWB.
+
+**Niet lokaal te verifiëren.** Welke route het serviceaccount mag lezen, hangt
+van zijn clubrol af. Na de deploy één keer op de knop drukken; de melding
+noemt clubfeed, clubbeheer-feed of member-feed.
+
 ### Opgeleverd — lege weken en dubbele ZRL door het automatische dagvoorstel
 
 **2026-09-22.** Geen migratie. Lokaal gecommit, niet gepusht.

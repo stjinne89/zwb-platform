@@ -399,6 +399,7 @@ const ADMIN_GUIDES = [
       "De live timing-link is voor een actuele timingfeed; ZWB toont daaruit alleen herkende leden.",
       "De uitslagenlink wordt gebruikt om klasseringen en tijden van ZWB-leden op te halen.",
       "Een GPX-bestand levert route, afstand, hoogtemeters en startpunt. Een nieuwe upload vervangt de bestaande route.",
+      "Clubevents op kalender (Eventscan) zet alle aankomende events van de ZWB-club op Zwift in één keer op de kalender, met ingeschreven leden als deelnemer. Wat al op de kalender staat, blijft staan.",
     ],
   },
   {

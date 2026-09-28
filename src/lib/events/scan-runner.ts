@@ -15,6 +15,8 @@ import {
   fetchFeedEvents,
   followZwbMembers,
   zwiftClubConfigured,
+  type ClubEntrant,
+  type ClubEventResult,
 } from "@/lib/events/zwift-club";
 
 export type AdminClient = ReturnType<typeof createAdminClient>;
@@ -62,6 +64,130 @@ async function followMembers(admin: AdminClient): Promise<string | null> {
   return `Volgen: ${result.followed} nieuw, ${result.alreadyFollowing} al gevolgd, ${result.remaining} nog te gaan.`;
 }
 
+export type MemberIndex = {
+  profiles: MatchableProfile[];
+  rosterZwiftIds: Set<string>;
+};
+
+export async function loadMemberIndex(admin: AdminClient): Promise<MemberIndex> {
+  const [{ data: profileRows }, { data: rosterRows }] = await Promise.all([
+    admin.from("profiles").select("id, display_name, zwift_id, mywhoosh_id"),
+    admin
+      .from("roster_entries")
+      .select("zwift_id")
+      .not("zwift_id", "is", null),
+  ]);
+  return {
+    profiles: (profileRows ?? []) as MatchableProfile[],
+    // Zwift-ID's van (ook nog niet geclaimde) roster-leden zonder profiel.
+    rosterZwiftIds: new Set(
+      ((rosterRows ?? []) as Array<{ zwift_id: string | null }>)
+        .map((row) => row.zwift_id?.trim())
+        .filter((id): id is string => Boolean(id)),
+    ),
+  };
+}
+
+type FeedParticipantRow = {
+  source: string;
+  external_name: string;
+  category: string | null;
+  profile_id: string | null;
+  raw_text: string;
+  updated_at: string;
+};
+
+// Alleen ZWB'ers uit een Zwift-startlijst: eerst een echt profiel (ID of naam),
+// anders een roster-lid op Zwift-ID (nog niet geclaimd, dus zonder profiel).
+function memberRowsForEntrants(
+  entrants: ClubEntrant[],
+  members: MemberIndex,
+  now: string,
+): FeedParticipantRow[] {
+  const seen = new Set<string>();
+  return entrants.flatMap((entrant) => {
+    const profileId = matchProfile(entrant.name, members.profiles, {
+      zwiftId: entrant.zwiftId,
+    });
+    const isRosterMember =
+      !profileId && Boolean(entrant.zwiftId) && members.rosterZwiftIds.has(entrant.zwiftId);
+    if (!profileId && !isRosterMember) return [];
+    const key = `${normalizeName(entrant.name)}|${entrant.category ?? ""}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [
+      {
+        source: "zwift_feed",
+        external_name: entrant.name,
+        category: entrant.category,
+        profile_id: profileId,
+        raw_text: `zwift:${entrant.zwiftId}`,
+        updated_at: now,
+      },
+    ];
+  });
+}
+
+export type SavedZwiftCandidate = {
+  id: string;
+  published_event_id: string | null;
+  ignored_at: string | null;
+};
+
+/**
+ * Bewaart een Zwift-event als bevestigd concept, met de ingeschreven ZWB'ers
+ * als deelnemer. Gepubliceerde of genegeerde concepten houden hun deelnemers.
+ * Geeft het aantal gekoppelde leden terug naast het concept.
+ */
+export async function saveConfirmedZwiftCandidate(
+  admin: AdminClient,
+  event: ClubEventResult,
+  members: MemberIndex,
+  opts: { requireMembers: boolean },
+): Promise<{ saved: SavedZwiftCandidate; members: number } | null> {
+  const { candidate, subgroupIds } = event;
+  if (!allowedExternalUrl(candidate.externalUrl)) return null;
+  const now = new Date().toISOString();
+  const memberRows = memberRowsForEntrants(await fetchEntrants(subgroupIds), members, now);
+  if (opts.requireMembers && memberRows.length === 0) return null;
+
+  const { data: saved } = await admin
+    .from("external_event_candidates")
+    .upsert(
+      {
+        source: candidate.source,
+        external_id: candidate.externalId,
+        external_url: candidate.externalUrl,
+        title: candidate.title,
+        start_at: candidate.startAt,
+        distance_km: candidate.distanceKm,
+        elevation_m: candidate.elevationM,
+        raw_metadata: candidate.rawMetadata,
+        zwb_match_status: "confirmed",
+        last_seen_at: now,
+        updated_at: now,
+      },
+      { onConflict: "source,external_id" },
+    )
+    .select("id, published_event_id, ignored_at")
+    .maybeSingle();
+  if (!saved) return null;
+  if (saved.published_event_id || saved.ignored_at) return { saved, members: 0 };
+
+  // Idempotent: ververs alleen de feed-gesyncte deelnemers, handmatige blijven.
+  await admin
+    .from("external_event_participants")
+    .delete()
+    .eq("candidate_id", saved.id)
+    .eq("source", "zwift_feed");
+  if (memberRows.length > 0) {
+    await admin
+      .from("external_event_participants")
+      .insert(memberRows.map((row) => ({ ...row, candidate_id: saved.id })));
+  }
+  return { saved, members: memberRows.length };
+}
+
 // Geautoriseerde Zwift-feed-sync: ZWB-club-events plus elk ander event waar
 // minstens één ZWB'er zich op inschreef worden als bevestigd concept bewaard,
 // met de ingeschreven ZWB'ers als deelnemer (match op Zwift-ID).
@@ -71,94 +197,21 @@ async function syncZwiftFeed(admin: AdminClient) {
   const feed = await fetchFeedEvents();
   if (feed.length === 0) return { events: 0, members: 0, note: null };
 
-  const [{ data: profileRows }, { data: rosterRows }] = await Promise.all([
-    admin.from("profiles").select("id, display_name, zwift_id, mywhoosh_id"),
-    admin
-      .from("roster_entries")
-      .select("zwift_id")
-      .not("zwift_id", "is", null),
-  ]);
-  const profiles = (profileRows ?? []) as MatchableProfile[];
-  // Zwift-ID's van (ook nog niet geclaimde) roster-leden zonder profiel.
-  const rosterZwiftIds = new Set(
-    ((rosterRows ?? []) as Array<{ zwift_id: string | null }>)
-      .map((row) => row.zwift_id?.trim())
-      .filter((id): id is string => Boolean(id)),
-  );
-
-  const now = new Date().toISOString();
+  const members = await loadMemberIndex(admin);
   let savedEvents = 0;
   let totalMembers = 0;
 
-  for (const { candidate, subgroupIds, isClub } of feed) {
-    if (!allowedExternalUrl(candidate.externalUrl)) continue;
+  for (const event of feed) {
     // Haal entrants op voor elk feed-event (de member-feed is al klein en
     // persoonlijk) en bewaar alleen events met een ZWB'er. Zo werkt het ook als
     // het serviceaccount zélf is ingeschreven — er is dan geen followee-signaal.
-    const entrants = await fetchEntrants(subgroupIds);
-    const seen = new Set<string>();
-    const memberRows = entrants.flatMap((entrant) => {
-      // Eerst een echt profiel (ID of naam); anders een roster-lid op Zwift-ID
-      // (nog niet geclaimd, dus zonder profielkoppeling).
-      const profileId = matchProfile(entrant.name, profiles, {
-        zwiftId: entrant.zwiftId,
-      });
-      const isRosterMember =
-        !profileId && Boolean(entrant.zwiftId) && rosterZwiftIds.has(entrant.zwiftId);
-      if (!profileId && !isRosterMember) return [];
-      const key = `${normalizeName(entrant.name)}|${entrant.category ?? ""}`;
-      if (seen.has(key)) return [];
-      seen.add(key);
-      return [
-        {
-          source: "zwift_feed",
-          external_name: entrant.name,
-          category: entrant.category,
-          profile_id: profileId,
-          raw_text: `zwift:${entrant.zwiftId}`,
-          updated_at: now,
-        },
-      ];
-    });
-
     // Niet-club-events alleen bewaren als er echt een ZWB'er meedoet.
-    if (!isClub && memberRows.length === 0) continue;
-
-    const { data: saved } = await admin
-      .from("external_event_candidates")
-      .upsert(
-        {
-          source: candidate.source,
-          external_id: candidate.externalId,
-          external_url: candidate.externalUrl,
-          title: candidate.title,
-          start_at: candidate.startAt,
-          distance_km: candidate.distanceKm,
-          elevation_m: candidate.elevationM,
-          raw_metadata: candidate.rawMetadata,
-          zwb_match_status: "confirmed",
-          last_seen_at: now,
-          updated_at: now,
-        },
-        { onConflict: "source,external_id" },
-      )
-      .select("id, published_event_id, ignored_at")
-      .maybeSingle();
-    if (!saved || saved.published_event_id || saved.ignored_at) continue;
+    const result = await saveConfirmedZwiftCandidate(admin, event, members, {
+      requireMembers: !event.isClub,
+    });
+    if (!result || result.saved.published_event_id || result.saved.ignored_at) continue;
     savedEvents += 1;
-
-    // Idempotent: ververs alleen de feed-gesyncte deelnemers, handmatige blijven.
-    await admin
-      .from("external_event_participants")
-      .delete()
-      .eq("candidate_id", saved.id)
-      .eq("source", "zwift_feed");
-    if (memberRows.length > 0) {
-      await admin
-        .from("external_event_participants")
-        .insert(memberRows.map((row) => ({ ...row, candidate_id: saved.id })));
-      totalMembers += memberRows.length;
-    }
+    totalMembers += result.members;
   }
 
   return {

@@ -214,6 +214,55 @@ export async function fetchClubEvents(): Promise<ClubEventResult[]> {
     .map(({ candidate, subgroupIds }) => ({ candidate, subgroupIds }));
 }
 
+export type ClubEventRoute = "club" | "privileged" | "feed";
+
+function clubEventResults(payload: unknown): ClubEventResult[] {
+  return feedEventRows(payload).flatMap((row) => {
+    // Ook bij de clubroutes op club-ID filteren: negeert Zwift de query, dan
+    // komt de gewone feed terug en mag daar niets anders uit gepubliceerd worden.
+    if (!isZwbClubEvent(row)) return [];
+    const candidate = mapZwiftEventRow(row);
+    if (!candidate) return [];
+    const subgroupIds = (row.eventSubgroups ?? [])
+      .map((subgroup) => (subgroup.id == null ? null : String(subgroup.id)))
+      .filter((id): id is string => Boolean(id));
+    return [{ candidate, subgroupIds }];
+  });
+}
+
+/**
+ * De aankomende events van de ZWB-club, zoals de clubpagina op zwift.com ze
+ * toont. Routes uit de zwift.com-webcode (v2.250.1, 2026-09-28):
+ * `event-feed?microservice=clubs&microserviceResourceId=` voor clubleden en
+ * `event-feed/microservice/clubs/resource/{id}/privileged` voor clubbeheerders.
+ * Welke het serviceaccount mag, hangt van zijn clubrol af; daarom om de beurt,
+ * met de member-feed gefilterd op club-ID als laatste terugval.
+ */
+export async function fetchClubCalendarEvents(): Promise<{
+  events: ClubEventResult[];
+  route: ClubEventRoute;
+}> {
+  const clubId = process.env.ZWIFT_CLUB_ID ?? "";
+  const clubUrl = new URL(`${apiBase()}/event-feed`);
+  clubUrl.searchParams.set("from", String(Date.now()));
+  clubUrl.searchParams.set("microservice", "clubs");
+  clubUrl.searchParams.set("microserviceResourceId", clubId);
+  const privilegedUrl = `${apiBase()}/event-feed/microservice/clubs/resource/${encodeURIComponent(clubId)}/privileged?to=300`;
+
+  const routes: Array<[ClubEventRoute, string]> = [
+    ["club", clubUrl.toString()],
+    ["privileged", privilegedUrl],
+  ];
+  for (const [route, url] of routes) {
+    try {
+      return { events: clubEventResults(await authedJson(url)), route };
+    } catch {
+      // Geen toegang met deze clubrol; probeer de volgende route.
+    }
+  }
+  return { events: await fetchClubEvents(), route: "feed" };
+}
+
 type EntrantRow = {
   id?: number | string;
   profileId?: number | string;

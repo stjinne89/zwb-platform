@@ -15,11 +15,12 @@ import {
   probeZwiftRiderPower,
   probeZwiftSegmentResults,
   publishCandidate,
+  publishClubEventsAction,
   scanExternalEventCandidates,
   testZwiftClubConnection,
   updateCandidateMatchStatus,
 } from "./_actions";
-import { ScanButton } from "./_components/scan-button";
+import { ClubCalendarButton, ScanButton } from "./_components/scan-button";
 import { IntegrationHealth } from "./_components/integration-health";
 
 export const dynamic = "force-dynamic";
@@ -142,6 +143,9 @@ export default async function EventScanPage({ searchParams }: PageProps) {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <HelpLink href="/hulp#eventbeheer" />
+            <form action={publishClubEventsAction}>
+              <ClubCalendarButton />
+            </form>
             <form action={followZwbMembersAction}>
               <Button type="submit" variant="outline" size="sm">
                 ZWB-leden volgen
@@ -183,7 +187,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
 
       <IntegrationHealth />
 
-      {(clubStatus === "test" || clubStatus === "follow" || clubStatus === "window" || clubStatus === "power" || clubStatus === "segments") && scanMessage && (
+      {(clubStatus === "calendar" || clubStatus === "test" || clubStatus === "follow" || clubStatus === "window" || clubStatus === "power" || clubStatus === "segments") && scanMessage && (
         <section className="rounded-lg border bg-card p-4 text-xs text-muted-foreground">
           <pre className="whitespace-pre-wrap break-words font-mono">
             {scanMessage}

@@ -212,6 +212,10 @@ Via de "Test clubkoppeling"-prober empirisch vastgesteld op een echt account:
 - **Geen bruikbaar club-events-lijst-endpoint**: `clubs/club/{id}/events` →
   404; `clubs/events` en `clubs/event-search` → 403 (management/owner-only).
   Deze route is verlaten.
+  *Correctie 2026-09-28:* zwift.com zelf leest clubevents via
+  `event-feed?microservice=clubs&microserviceResourceId={id}` (leden) en
+  `event-feed/microservice/clubs/resource/{id}/privileged` (clubbeheerders).
+  Die routes gebruikt de knop "Clubevents op kalender"; zie PLAN.md.
 - **Wel bruikbaar — de member-feed**: `GET /api/event-feed` levert volledige
   event-objecten, inclusief `microserviceExternalResourceId` waarmee club-
   events aan de ZWB-club te koppelen zijn. Dit is nu de club-events-bron.
