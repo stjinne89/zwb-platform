@@ -79,6 +79,32 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0193`
 
 ---
 
+> **Samen fietsen: startformulier weg, 2026-09-28 — gebouwd; geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Op verzoek van de eigenaar. Garmin (mail) en Wahoo (vaste link)
+> starten nu vanzelf, en een handmatige indoorstatus (Zwift, MyWhoosh e.d.)
+> vond hij overbodig. Een live-sessie ontstaat nu alleen nog via OwnTracks, de
+> Garmin-mail of de Wahoo-link.
+>
+> **Wat er weg is.** `start-form.tsx`, de server actions `startSession`,
+> `updateStatus` en `heartbeat`, en de tellers "Indoor actief" en "Met
+> LiveTrack-link" op het bord (die eerste bleef voortaan 0). De stopknop
+> blijft: een renner kan het delen tijdens een rit stoppen. De indoormodi in de
+> check van `live_sessions.mode` blijven staan; oude rijen zijn geldig en een
+> migratie is het niet waard.
+>
+> **Achterhaald.** De bijvangst "handmatige sessie sluit na 15 minuten, want
+> `heartbeat()` wordt nergens aangeroepen" vervalt: er zijn geen handmatige
+> sessies meer.
+>
+> **Wahoo tijdens een rit (eerste proefrit, 2026-09-28).** De rit werd
+> opgemerkt: `data-workout-state` is dan `in_progress`. De FIT-data bevatte
+> alleen tijd, hartslag en calorieën, geen positie en afstand 0. Zonder GPS-fix
+> (binnen of stilstaand) verschijnt de renner dus wel als actief, maar niet op
+> de kaart. Of er posities komen zodra hij buiten rijdt, moet de proefrit nog
+> laten zien.
+
 > **Live volgen via de vaste Wahoo-link, 2026-09-28 — gebouwd; migratie
 > `0192_live_wahoo_link.sql`.** Commit: de commit die dit blok toevoegt.
 > Details: sectie 7 en 8 van
@@ -93,8 +119,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0193`
 >   hem kent en bewaart hem alleen in `live_tracker_tokens`, leesbaar voor het
 >   lid zelf. De sessie wijst ernaar via `tracker_token_id` en krijgt geen
 >   `external_track_url`: de link blijft altijd geldig, en in de sessie zouden
->   alle leden en de publieke eventpagina hem zien. Het startformulier weigert
->   een geplakte vaste link om dezelfde reden.
+>   alle leden en de publieke eventpagina hem zien. (Het startformulier
+>   weigerde een geplakte vaste link; dat formulier is inmiddels weg, zie
+>   hierboven.)
 > - Posities komen uit de FIT-data op Wahoo's pagina
 >   (`src/lib/live/fit-records.ts`, een eigen minimale FIT-lezer). Getest op de
 >   rit van de eigenaar van 27 september: 8.298 records, 67,5 km. Uitgedund tot
@@ -153,11 +180,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0193`
 > - Degradatie: lukt uitlezen niet, dan "live, met link" tot 8 uur na de start.
 >   De eventticker toont die renners met een knop naar de kaart van Garmin of
 >   Wahoo; hij selecteerde `external_track_url` eerst niet.
-> - Een geplakte Garmin- of Wahoo-link op `/live` wordt nu ook uitgelezen, en
->   sluit dus niet meer na 15 minuten. Dat lost de eerste bijvangst hieronder op
->   voor Garmin en Wahoo. Een andere link en een handmatige indoorsessie sluiten
->   nog wel na 15 minuten, want `heartbeat()` wordt nog steeds nergens
->   aangeroepen.
+> - ~~Een geplakte Garmin- of Wahoo-link op `/live` wordt nu ook uitgelezen.~~
+>   Achterhaald: het startformulier is weg (blok "startformulier weg"), dus er
+>   zijn geen handmatige sessies meer.
 > - Health-check `garmin_livetrack` (elk uur): 404 op een verzonnen sessie is
 >   groen, 403 betekent dat Garmin ons weigert.
 > - `/hulp#livetrack` met de stappen voor Garmin en Wahoo; runbook sectie 4 en 5.
@@ -220,8 +245,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0193`
 > eigen Connect IQ-dataveld dat naar het bestaande `/api/live/owntracks` post.
 >
 > **Bijvangst (bestaande situatie, niet aangepast):**
-> - De handmatige sessie met een LiveTrack-link op `/live` sluit na 15 minuten,
->   want `heartbeat()` wordt nergens aangeroepen.
+> - ~~De handmatige sessie met een LiveTrack-link op `/live` sluit na 15
+>   minuten.~~ Vervallen: het startformulier is weg.
 > - De publieke `/live/[eventId]` toont posities aan niet-leden, terwijl de
 >   privacytekst "clubleden" zegt.
 > - "Per rit opt-in" wordt niet afgedwongen.

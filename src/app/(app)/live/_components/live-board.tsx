@@ -15,8 +15,8 @@ const MODE_LABELS: Record<ActiveSession["mode"], string> = {
 };
 
 // Kaart + riderslijst delen één client-boundary, zodat een klik op een outdoor-
-// rider de kaart naar dat lid laat vliegen. De mySession-afhankelijke blokken
-// (OwnTracks, start/stop) blijven server-side en komen via children binnen.
+// rider de kaart naar dat lid laat vliegen. De koppelpanelen (Garmin/Wahoo,
+// OwnTracks) blijven server-side en komen via children binnen.
 export function LiveBoard({
   sessions,
   outdoorSessions,
@@ -30,8 +30,6 @@ export function LiveBoard({
 }) {
   const [focus, setFocus] = useState<MapFocus | null>(null);
 
-  const indoorCount = sessions.filter((s) => s.mode !== "outdoor").length;
-  const externalCount = sessions.filter((s) => s.external_track_url).length;
   const outdoorIds = new Set(outdoorSessions.map((s) => s.id));
 
   return (
@@ -122,17 +120,6 @@ export function LiveBoard({
               })}
             </ul>
           )}
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-md border bg-card p-4">
-            <p className="text-2xl font-semibold">{indoorCount}</p>
-            <p className="text-sm text-muted-foreground">Indoor actief</p>
-          </div>
-          <div className="rounded-md border bg-card p-4">
-            <p className="text-2xl font-semibold">{externalCount}</p>
-            <p className="text-sm text-muted-foreground">Met LiveTrack-link</p>
-          </div>
         </section>
 
         {children}

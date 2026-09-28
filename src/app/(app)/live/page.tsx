@@ -9,19 +9,16 @@ import {
   type OwnTracksTokenStatus,
 } from "./_components/owntracks-panel";
 import { LiveTrackPanel } from "./_components/livetrack-panel";
-import { StartLiveForm } from "./_components/start-form";
 import { StopLiveButton } from "./_components/stop-button";
 import type { ActiveSession } from "./types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const MODE_LABELS: Record<ActiveSession["mode"], string> = {
-  outdoor: "Outdoor",
-  zwift: "Zwift",
-  mywhoosh: "MyWhoosh",
-  wahoo_indoor: "Wahoo",
-  other_indoor: "Indoor",
+const SOURCE_LABELS: Partial<Record<ActiveSession["source"], string>> = {
+  owntracks: "OwnTracks",
+  garmin: "Garmin",
+  wahoo: "Wahoo",
 };
 
 const STALE_AFTER_MIN = 15;
@@ -127,26 +124,11 @@ export default async function LivePage() {
         outdoorSessions={outdoorSessions}
         initialPositions={positionRows ?? []}
       >
-        {!mySession && (
-          <div className="space-y-4">
-            {mailPanel}
-            <OwnTracksPanel tokenStatus={trackerStatus} />
-            <StartLiveForm />
-          </div>
-        )}
-
-        {mySession && (
-          <div className="space-y-4">
-            {mailPanel}
-            <OwnTracksPanel tokenStatus={trackerStatus} />
+        <div className="space-y-4">
+          {mySession && (
             <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
-              <p className="font-medium">Je bent live als {MODE_LABELS[mySession.mode]}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {mySession.mode === "outdoor"
-                  ? mySession.source === "garmin" || mySession.source === "wahoo"
-                    ? `Via ${mySession.source === "garmin" ? "Garmin" : "Wahoo"} LiveTrack.`
-                    : "GPS via OwnTracks of LiveTrack-link."
-                  : "Zichtbaar voor ZWB-leden."}
+              <p className="font-medium">
+                Je bent live via {SOURCE_LABELS[mySession.source] ?? "Samen fietsen"}
               </p>
               <a
                 href="#stop-live"
@@ -155,8 +137,10 @@ export default async function LivePage() {
                 Stop bovenaan
               </a>
             </section>
-          </div>
-        )}
+          )}
+          {mailPanel}
+          <OwnTracksPanel tokenStatus={trackerStatus} />
+        </div>
       </LiveBoard>
     </div>
   );

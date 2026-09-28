@@ -97,10 +97,9 @@ Een nieuwe bron voor posities hoeft hier dus niets aan te veranderen, zolang hij
 
 ### 2.4 De bestaande route met een externe link werkt maar kort
 
-> Sinds 2026-09-28 deels opgelost: een geplakte Garmin- of Wahoo-link wordt
-> uitgelezen en sluit niet meer na 15 minuten, en de eventticker toont de link
-> (sectie 8). Een andere link, en een handmatige indoorsessie, sluiten nog wel
-> na 15 minuten.
+> Vervallen op 2026-09-28: het startformulier en `heartbeat()` zijn weg. Een
+> sessie ontstaat alleen nog via OwnTracks, de Garmin-mail of de vaste
+> Wahoo-link. De eventticker toont de Garmin-link wel (sectie 8).
 
 Op `/live` kan een renner een sessie starten met een Garmin- of Wahoo-link
 (`start-form.tsx`, `startSession` in `_actions.ts`; dan is
@@ -454,6 +453,11 @@ iemands echte link:
   rit van 27 september gaf 8.298 records (1 per seconde, 67,5 km). Live-updates
   lopen daarnaast via Faye (`mb.wahooligan.com/faye`); die gebruiken we niet.
   Een ongeldige link geeft "User Not Found".
+- **Wahoo tijdens een rit** (eerste proefrit van de eigenaar, 2026-09-28):
+  `data-workout-state="in_progress"`, `data-seconds-since-update` een paar
+  seconden. De FIT-stukjes hadden big-endian definities en alleen tijd,
+  hartslag en calorieën: geen positie, afstand 0. Zonder GPS-fix komt er dus
+  geen bolletje; de renner staat wel als actief.
 - **Punt 6: vervalt.** De ELEMNT-app van de eigenaar heeft geen "Share
   Automatically" naar een mailadres, alleen een vaste link. De mailroute werkt
   dus niet voor Wahoo; zie sectie 8.
@@ -481,9 +485,9 @@ iemands echte link:
 - **Degradatie:** lukt uitlezen niet, dan blijft de renner "live, met link" tot
   8 uur na de start. De eventticker toont zulke renners met een knop naar de
   kaart van Garmin of Wahoo.
-- **Geplakte link:** een Garmin- of Wahoo-link in het startformulier op `/live`
-  krijgt nu dezelfde bron, en wordt dus ook uitgelezen in plaats van na 15
-  minuten te sluiten (2.4).
+- **Geplakte link:** eerst kreeg een Garmin- of Wahoo-link in het
+  startformulier dezelfde bron. Het startformulier is later dezelfde dag
+  weggehaald (2.4).
 
 **Afwijking van 4.2:** er is geen afzendercheck. Het afzenderadres van Wahoo is
 onbekend (punt 2), en een renner die de mail vanuit zijn eigen mailbox
@@ -499,8 +503,7 @@ ELEMNT-app geen mail stuurt:
   (`provider = 'wahoo_link'`, `external_url`), leesbaar voor het lid zelf. Een
   sessie wijst ernaar met `tracker_token_id` en krijgt geen
   `external_track_url`. De link blijft altijd geldig, dus in de sessie zou elk
-  lid en de publieke eventpagina hem zien. Om dezelfde reden weigert het
-  startformulier een geplakte vaste link.
+  lid en de publieke eventpagina hem zien.
 - **Wanneer er gekeken wordt: alleen bij kijken** (keuze eigenaar, 2026-09-28).
   Andere opties waren "rond clubritten" (RSVP-venster, plus cron) en "altijd"
   (cron elke 15 min voor alle leden). Opent iemand `/live`, een eventpagina of

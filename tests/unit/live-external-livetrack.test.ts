@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  externalProviderForUrl,
   extractExternalLink,
   garminPointsAfter,
   garminSessionState,
@@ -52,12 +51,6 @@ describe("LiveTrack-links", () => {
       token: "9A8B7C6D5E",
     });
     expect(parseGarminLink("https://livetrack.garmin.com/")).toBeNull();
-  });
-
-  it("bepaalt de bron van een geplakte link", () => {
-    expect(externalProviderForUrl(GARMIN_URL)).toBe("garmin");
-    expect(externalProviderForUrl("https://www.wahooligan.com/users/live/x1")).toBe("wahoo");
-    expect(externalProviderForUrl("https://www.strava.com/beacon/1")).toBeNull();
   });
 });
 

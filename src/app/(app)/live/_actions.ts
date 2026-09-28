@@ -3,9 +3,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { sendNotificationToMembers } from "@/lib/push/send";
 import {
-  externalProviderForUrl,
   fetchWahooPage,
   parseWahooPage,
   WAHOO_PERMALINK_RE,
@@ -17,98 +15,8 @@ import {
   newMailCode,
 } from "@/lib/live/inbound-mail";
 
-const MODES = [
-  "outdoor",
-  "zwift",
-  "mywhoosh",
-  "wahoo_indoor",
-  "other_indoor",
-] as const;
-type Mode = (typeof MODES)[number];
-
-type StartInput = {
-  mode: string;
-  status_text?: string | null;
-  external_track_url?: string | null;
-};
-
 function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
-}
-
-export async function startSession(input: StartInput) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  if (!MODES.includes(input.mode as Mode)) {
-    return { ok: false as const, error: "Ongeldige mode." };
-  }
-  if (input.external_track_url && !/^https?:\/\//i.test(input.external_track_url)) {
-    return { ok: false as const, error: "Externe URL moet starten met http:// of https://" };
-  }
-  if (input.mode === "outdoor" && !input.external_track_url?.trim()) {
-    return {
-      ok: false as const,
-      error:
-        "Gebruik OwnTracks voor echte outdoor GPS, of vul een Garmin/Wahoo LiveTrack-link in.",
-    };
-  }
-
-  // De vaste Wahoo-link blijft altijd geldig; in een sessie zou elk lid (en de
-  // publieke eventpagina) hem zien.
-  const pastedUrl = input.external_track_url?.trim().replace(/\/+$/, "") ?? "";
-  if (WAHOO_PERMALINK_RE.test(pastedUrl)) {
-    return { ok: false as const, error: "Koppel deze link bij Wahoo hierboven." };
-  }
-
-  // Sluit eerst bestaande actieve sessies van deze gebruiker af.
-  await supabase
-    .from("live_sessions")
-    .update({ ended_at: new Date().toISOString() })
-    .eq("profile_id", user.id)
-    .is("ended_at", null);
-
-  // Een geplakte Garmin- of Wahoo-link wordt net zo gevolgd als een link uit
-  // de LiveTrack-mail; zo sluit de sessie niet na 15 minuten.
-  const externalUrl = input.external_track_url?.trim() || null;
-  const source = externalUrl
-    ? input.mode === "outdoor"
-      ? (externalProviderForUrl(externalUrl) ?? "external")
-      : "external"
-    : "manual";
-
-  const { data, error } = await supabase
-    .from("live_sessions")
-    .insert({
-      profile_id: user.id,
-      mode: input.mode,
-      source,
-      status_text: input.status_text?.trim() || null,
-      external_track_url: externalUrl,
-      visibility: "members",
-    })
-    .select("id")
-    .single();
-
-  if (error) return { ok: false as const, error: error.message };
-
-  await sendNotificationToMembers(
-    "on_live_started",
-    {
-      title: "ZWB live",
-      body: "Er is een live rit of status gestart. Kijk mee bij Samen fietsen.",
-      url: "/live",
-      tag: `live-${data.id}`,
-    },
-    { excludeProfileId: user.id },
-  ).catch(() => null);
-
-  revalidatePath("/live");
-  revalidatePath("/samen-fietsen");
-  return { ok: true as const, sessionId: data.id };
 }
 
 export async function createOwnTracksToken() {
@@ -272,59 +180,6 @@ export async function removeWahooLink() {
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/live");
-  return { ok: true as const };
-}
-
-export async function updateStatus(
-  sessionId: string,
-  patch: { status_text?: string | null; external_track_url?: string | null },
-) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const updates: Record<string, string | null> = {};
-  if (patch.status_text !== undefined) {
-    updates.status_text = patch.status_text?.trim() || null;
-  }
-  if (patch.external_track_url !== undefined) {
-    if (
-      patch.external_track_url &&
-      !/^https?:\/\//i.test(patch.external_track_url)
-    ) {
-      return { ok: false as const, error: "Externe URL moet starten met http:// of https://" };
-    }
-    updates.external_track_url = patch.external_track_url?.trim() || null;
-  }
-
-  const { error } = await supabase
-    .from("live_sessions")
-    .update(updates)
-    .eq("id", sessionId)
-    .eq("profile_id", user.id);
-  if (error) return { ok: false as const, error: error.message };
-
-  revalidatePath("/live");
-  revalidatePath("/samen-fietsen");
-  return { ok: true as const };
-}
-
-export async function heartbeat(sessionId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { error } = await supabase
-    .from("live_sessions")
-    .update({ last_seen_at: new Date().toISOString() })
-    .eq("id", sessionId)
-    .eq("profile_id", user.id)
-    .is("ended_at", null);
-  if (error) return { ok: false as const, error: error.message };
   return { ok: true as const };
 }
 

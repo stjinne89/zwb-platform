@@ -43,13 +43,6 @@ export function parseGarminLink(url: string): GarminLink | null {
   return match ? { sessionId: match[1], token: match[2] } : null;
 }
 
-/** Herken een Garmin- of Wahoo-livelink in een URL die een lid plakt. */
-export function externalProviderForUrl(url: string): ExternalProvider | null {
-  if (GARMIN_LINK_RE.test(url)) return "garmin";
-  if (WAHOO_LINK_RE.test(url)) return "wahoo";
-  return null;
-}
-
 /**
  * De LiveTrack-link uit de tekst of HTML van een mail. Een mail bevat ook
  * links naar support of afmelden; alleen een Garmin-sessielink of een
