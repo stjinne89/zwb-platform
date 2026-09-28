@@ -8,7 +8,7 @@ import {
   OwnTracksPanel,
   type OwnTracksTokenStatus,
 } from "./_components/owntracks-panel";
-import { LiveTrackMailPanel } from "./_components/livetrack-mail-panel";
+import { LiveTrackPanel } from "./_components/livetrack-panel";
 import { StartLiveForm } from "./_components/start-form";
 import { StopLiveButton } from "./_components/stop-button";
 import type { ActiveSession } from "./types";
@@ -49,6 +49,7 @@ export default async function LivePage() {
     { data: positionRows },
     { data: trackerTokens },
     { data: mailTokens },
+    { data: wahooTokens },
   ] = await Promise.all([
     supabase
       .from("live_sessions")
@@ -77,6 +78,13 @@ export default async function LivePage() {
       .eq("provider", "mail")
       .order("created_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("live_tracker_tokens")
+      .select("id, enabled, last_seen_at, revoked_at, created_at")
+      .eq("profile_id", user.id)
+      .eq("provider", "wahoo_link")
+      .order("created_at", { ascending: false })
+      .limit(1),
   ]);
 
   const sessions: ActiveSession[] = (sessionRows ?? []).map((s) => ({
@@ -97,16 +105,21 @@ export default async function LivePage() {
   const trackerStatus =
     ((trackerTokens?.[0] ?? null) as OwnTracksTokenStatus | null) ?? null;
   const mailStatus = (mailTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
-  const mailPanel = inboundDomain() ? (
-    <LiveTrackMailPanel tokenStatus={mailStatus} />
-  ) : null;
+  const wahooStatus = (wahooTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
+  const mailPanel = (
+    <LiveTrackPanel
+      mailStatus={mailStatus}
+      wahooStatus={wahooStatus}
+      mailEnabled={Boolean(inboundDomain())}
+    />
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Live"
         title="Samen fietsen"
-        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href={inboundDomain() ? "/hulp#livetrack" : "/hulp#owntracks"} />}
+        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href="/hulp#livetrack" />}
       />
 
       <LiveBoard

@@ -115,11 +115,13 @@ export default function PrivacyPage() {
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
             live rit start, worden je GPS-positie, snelheid en hoogte gedeeld met
             clubleden. Dit is per rit opt-in en stopt automatisch. Koppel je je
-            Garmin of Wahoo, dan ontvangen we bij elke rit de LiveTrack-mail die
-            je zelf naar je persoonlijke clubadres laat sturen. Uit die mail
-            bewaren we alleen de link; zolang de rit loopt halen we daarmee je
-            posities op bij Garmin (bij Wahoo alleen of je nog rijdt). Stoppen
-            kan op Samen fietsen met &ldquo;Koppeling stoppen&rdquo;.
+            Garmin, dan ontvangen we bij elke rit de LiveTrack-mail die je zelf
+            naar je persoonlijke clubadres laat sturen; uit die mail bewaren we
+            alleen de link. Koppel je je Wahoo, dan bewaren we je vaste Live
+            Track-link, alleen zichtbaar voor jou, en kijken we daarmee of je
+            rijdt zodra iemand de live-kaart opent. Zolang de rit loopt halen we
+            je posities op bij Garmin of Wahoo. Stoppen kan op Samen fietsen met
+            &ldquo;Koppeling stoppen&rdquo; of &ldquo;Ontkoppelen&rdquo;.
           </li>
           <li>
             <strong>Grofmazig bereden gebied (ZWBlokken):</strong> uit je

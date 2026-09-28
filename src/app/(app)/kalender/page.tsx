@@ -268,7 +268,9 @@ export default async function KalenderPage({
   }
 
   if (todayEventIds.length > 0) {
-    await refreshExternalLiveSessions();
+    // Geen Wahoo-links bekijken: de kalender opent vaak en toont alleen een
+    // teller. Dat doen /live en de eventpagina.
+    await refreshExternalLiveSessions({ detect: false });
     const cutoff = await getActiveCutoffIso();
     const [{ data: rsvps }, { data: sessions }] = await Promise.all([
       supabase

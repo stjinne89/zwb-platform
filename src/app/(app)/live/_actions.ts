@@ -4,7 +4,12 @@ import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendNotificationToMembers } from "@/lib/push/send";
-import { externalProviderForUrl } from "@/lib/live/external-livetrack";
+import {
+  externalProviderForUrl,
+  fetchWahooPage,
+  parseWahooPage,
+  WAHOO_PERMALINK_RE,
+} from "@/lib/live/external-livetrack";
 import {
   hashMailCode,
   inboundDomain,
@@ -50,6 +55,13 @@ export async function startSession(input: StartInput) {
       error:
         "Gebruik OwnTracks voor echte outdoor GPS, of vul een Garmin/Wahoo LiveTrack-link in.",
     };
+  }
+
+  // De vaste Wahoo-link blijft altijd geldig; in een sessie zou elk lid (en de
+  // publieke eventpagina) hem zien.
+  const pastedUrl = input.external_track_url?.trim().replace(/\/+$/, "") ?? "";
+  if (WAHOO_PERMALINK_RE.test(pastedUrl)) {
+    return { ok: false as const, error: "Koppel deze link bij Wahoo hierboven." };
   }
 
   // Sluit eerst bestaande actieve sessies van deze gebruiker af.
@@ -194,6 +206,68 @@ export async function revokeLiveMailAddress() {
     .update({ enabled: false, revoked_at: new Date().toISOString() })
     .eq("profile_id", user.id)
     .eq("provider", "mail")
+    .is("revoked_at", null);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/live");
+  return { ok: true as const };
+}
+
+export async function saveWahooLink(rawUrl: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const url = rawUrl.trim().replace(/^http:\/\//i, "https://").replace(/\/+$/, "");
+  if (!WAHOO_PERMALINK_RE.test(url)) {
+    return { ok: false as const, error: "Dit is geen Wahoo Live Track-link." };
+  }
+  try {
+    const html = await fetchWahooPage(url);
+    if (!html || !parseWahooPage(html).found) {
+      return { ok: false as const, error: "Wahoo kent deze link niet." };
+    }
+  } catch {
+    return { ok: false as const, error: "Wahoo is nu niet bereikbaar. Probeer het later." };
+  }
+
+  const now = new Date().toISOString();
+  await supabase
+    .from("live_tracker_tokens")
+    .update({ enabled: false, revoked_at: now })
+    .eq("profile_id", user.id)
+    .eq("provider", "wahoo_link")
+    .is("revoked_at", null);
+
+  const { error } = await supabase.from("live_tracker_tokens").insert({
+    profile_id: user.id,
+    provider: "wahoo_link",
+    // token_hash is uniek en verplicht; de link zelf staat in external_url.
+    token_hash: tokenHash(randomBytes(32).toString("hex")),
+    external_url: url,
+    label: "Wahoo",
+    enabled: true,
+  });
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/live");
+  return { ok: true as const };
+}
+
+export async function removeWahooLink() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { error } = await supabase
+    .from("live_tracker_tokens")
+    .update({ enabled: false, revoked_at: new Date().toISOString() })
+    .eq("profile_id", user.id)
+    .eq("provider", "wahoo_link")
     .is("revoked_at", null);
   if (error) return { ok: false as const, error: error.message };
 

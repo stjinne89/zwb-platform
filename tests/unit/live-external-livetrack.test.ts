@@ -6,8 +6,12 @@ import {
   garminSessionState,
   normalizeGarminPoint,
   parseGarminLink,
-  wahooPageState,
+  parseWahooPage,
+  wahooIsRiding,
 } from "@/lib/live/external-livetrack";
+import { gzipSync } from "node:zlib";
+import { decodeWahooFitChunk, parseFitRecords, wahooPagePoints } from "@/lib/live/fit-records";
+import { thinPoints } from "@/lib/live/external-refresh";
 import {
   inboundDomain,
   mailAddressForCode,
@@ -117,13 +121,24 @@ describe("rit-status", () => {
     expect(garminSessionState({ viewable: false }, now).live).toBe(false);
   });
 
-  it("Wahoo: seconden sinds de laatste update, verlopen link of onbekend", () => {
-    expect(wahooPageState('<div class="livetrack" data-seconds-since-update="42">')).toEqual({
-      state: "live",
-      secondsSinceUpdate: 42,
-    });
-    expect(wahooPageState('<div class="name">User Not Found</div>')).toEqual({ state: "ended" });
-    expect(wahooPageState("<html></html>")).toEqual({ state: "unknown" });
+  it("Wahoo: status uit de data-attributen van de live-pagina", () => {
+    const riding = parseWahooPage(
+      '<div class="livetrack" data-live="true" data-seconds-since-update="42.5" data-workout-state="live">',
+    );
+    expect(riding).toEqual({ found: true, workoutState: "live", secondsSinceUpdate: 42.5 });
+    expect(wahooIsRiding(riding)).toBe(true);
+
+    const done = parseWahooPage(
+      '<div class="livetrack" data-seconds-since-update="81861.7" data-workout-state="completed">',
+    );
+    expect(wahooIsRiding(done)).toBe(false);
+
+    const stale = parseWahooPage('<div data-seconds-since-update="1200" data-workout-state="paused">');
+    expect(wahooIsRiding(stale)).toBe(false);
+
+    const gone = parseWahooPage('<div class="name">User Not Found</div>');
+    expect(gone.found).toBe(false);
+    expect(wahooIsRiding(gone)).toBe(false);
   });
 });
 
@@ -167,5 +182,89 @@ describe("Svix-handtekening", () => {
     expect(verifySvixSignature(secret, headers, '{"test": 1}', 1614265330)).toBe(false);
     expect(verifySvixSignature(secret, headers, body, 1614265330 + 3600)).toBe(false);
     expect(verifySvixSignature(secret, { ...headers, signature: null }, body, 1614265330)).toBe(false);
+  });
+});
+
+// Een minimale FIT-file: definitie van record (20) met tijd, positie, hoogte en
+// snelheid, één volledig record en één met een gecomprimeerde tijd.
+function fitFile(): Uint8Array {
+  const FIT_EPOCH_S = 631065600;
+  const t0 = Date.parse("2026-09-28T10:00:00Z") / 1000 - FIT_EPOCH_S;
+  const semi = (deg: number) => Math.round(deg * (2 ** 31 / 180));
+  const body: number[] = [];
+  const u16 = (v: number) => body.push(v & 0xff, (v >> 8) & 0xff);
+  const u32 = (v: number) => body.push(v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff);
+
+  // Definitie, lokaal type 0.
+  body.push(0x40, 0, 0);
+  u16(20);
+  body.push(5, 253, 4, 0x86, 0, 4, 0x85, 1, 4, 0x85, 2, 2, 0x84, 6, 2, 0x84);
+  // Record 1.
+  body.push(0x00);
+  u32(t0);
+  u32(semi(52.1));
+  u32(semi(5.1));
+  u16((12 + 500) * 5);
+  u16(8333);
+  // Record 2 met gecomprimeerde tijd: t0 + 3 s (tijdveld ongeldig).
+  body.push(0x80 | ((t0 + 3) & 0x1f));
+  u32(0xffffffff);
+  u32(semi(52.1001));
+  u32(semi(5.1001));
+  u16(0xffff);
+  u16(0xffff);
+
+  const header = [14, 0x10, 0xeb, 0x07, 0, 0, 0, 0, 0x2e, 0x46, 0x49, 0x54, 0, 0];
+  header[4] = body.length & 0xff;
+  header[5] = (body.length >> 8) & 0xff;
+  return new Uint8Array([...header, ...body, 0, 0]);
+}
+
+describe("Wahoo FIT-data", () => {
+  it("leest records met tijd, positie, hoogte en snelheid", () => {
+    const points = parseFitRecords(fitFile());
+    expect(points).toHaveLength(2);
+    expect(points[0]).toEqual({
+      lat: 52.1,
+      lng: 5.1,
+      altitude: 12,
+      speedKmh: 30,
+      recordedAt: "2026-09-28T10:00:00.000Z",
+    });
+    expect(points[1]).toMatchObject({ altitude: null, speedKmh: null, recordedAt: "2026-09-28T10:00:03.000Z" });
+  });
+
+  it("pakt een livetrack_fit-chunk uit (4 bytes lengte + gzip) en leest de pagina", () => {
+    const fit = fitFile();
+    const length = Buffer.alloc(4);
+    length.writeUInt32LE(fit.length);
+    const chunk = Buffer.concat([length, gzipSync(fit)]).toString("base64");
+    expect(decodeWahooFitChunk(chunk)).toHaveLength(2);
+    const html = `<script>window.livetrack_fit = ["${chunk}","${chunk}"];</script>`;
+    expect(wahooPagePoints(html).map((p) => p.recordedAt)).toEqual([
+      "2026-09-28T10:00:00.000Z",
+      "2026-09-28T10:00:03.000Z",
+    ]);
+    expect(decodeWahooFitChunk("geen-fit")).toEqual([]);
+  });
+});
+
+describe("thinPoints", () => {
+  const at = (s: number) => ({
+    lat: 52,
+    lng: 5,
+    altitude: null,
+    speedKmh: null,
+    recordedAt: new Date(Date.parse("2026-09-28T10:00:00Z") + s * 1000).toISOString(),
+  });
+
+  it("houdt één punt per 10 s, gerekend vanaf het laatst opgeslagen punt", () => {
+    const points = [0, 1, 2, 9, 10, 11, 25].map(at);
+    expect(thinPoints(points, null).map((p) => p.recordedAt)).toEqual(
+      [0, 10, 25].map((s) => at(s).recordedAt),
+    );
+    expect(thinPoints(points, at(5).recordedAt).map((p) => p.recordedAt)).toEqual(
+      [25].map((s) => at(s).recordedAt),
+    );
   });
 });

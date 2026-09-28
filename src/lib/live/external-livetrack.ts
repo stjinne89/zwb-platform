@@ -5,7 +5,8 @@
 // in <meta name="csrf-token"> van de sessiepagina en hoort bij de cookie
 // livetrack_csrf. Met die twee lukt een gewone fetch, zonder browser
 // (vastgesteld op 2026-09-28, zie docs/garmin-wahoo-live-tracking-onderzoek.md).
-// Wahoo's kaart-endpoint is onbekend; daar lezen we alleen of de rit loopt.
+// Wahoo's live-pagina bevat de status als data-attributen en het spoor als
+// FIT-data (zie fit-records.ts).
 
 const USER_AGENT = "ZWB-platform live (+https://zwb-platform.netlify.app)";
 const FETCH_TIMEOUT_MS = 6000;
@@ -140,18 +141,42 @@ export function garminSessionState(data: unknown, now = Date.now()): GarminSessi
   return { live, start };
 }
 
+/** Een vaste Wahoo-link ("Share Forever"), zoals een lid hem plakt. */
+export const WAHOO_PERMALINK_RE =
+  /^https:\/\/(?:www\.)?wahooligan\.com\/users\/live\/[A-Za-z0-9_-]{10,64}$/;
+
+export type WahooPage = {
+  found: boolean;
+  workoutState: string | null;
+  secondsSinceUpdate: number | null;
+};
+
 /**
- * Wahoo's live-pagina: `data-seconds-since-update` op het .livetrack-element
- * zegt hoe lang geleden de ELEMNT iets stuurde; een verlopen link toont
- * "User Not Found". Anders weten we het niet.
+ * Status uit de data-attributen van Wahoo's live-pagina (.livetrack):
+ * `data-workout-state` ("completed" na de rit) en `data-seconds-since-update`.
+ * Een verlopen of ingetrokken link toont "User Not Found".
  */
-export function wahooPageState(
-  html: string,
-): { state: "live"; secondsSinceUpdate: number } | { state: "ended" } | { state: "unknown" } {
-  if (/User Not Found/i.test(html)) return { state: "ended" };
-  const match = html.match(/data-seconds-since-update\s*=\s*["']?(\d+)/i);
-  if (match) return { state: "live", secondsSinceUpdate: Number(match[1]) };
-  return { state: "unknown" };
+export function parseWahooPage(html: string): WahooPage {
+  if (/User Not Found/i.test(html)) {
+    return { found: false, workoutState: null, secondsSinceUpdate: null };
+  }
+  const seconds = html.match(/data-seconds-since-update\s*=\s*["']?([\d.]+)/i)?.[1];
+  const state = html.match(/data-workout-state\s*=\s*["']([^"']*)["']/i)?.[1];
+  return {
+    found: true,
+    workoutState: state ? state.toLowerCase() : null,
+    secondsSinceUpdate: seconds !== undefined ? Number(seconds) : null,
+  };
+}
+
+/** Rijdt de renner nu: rit niet afgerond en recent data gestuurd. */
+export function wahooIsRiding(page: WahooPage, maxIdleSeconds = 15 * 60): boolean {
+  return (
+    page.found &&
+    page.workoutState !== "completed" &&
+    page.secondsSinceUpdate !== null &&
+    page.secondsSinceUpdate < maxIdleSeconds
+  );
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}) {
@@ -226,12 +251,12 @@ export async function fetchGarminSession(
   };
 }
 
-/** Status van een Wahoo-live-link. */
-export async function fetchWahooState(url: string) {
+/** De HTML van een Wahoo-live-pagina; null als de link niet (meer) bestaat. */
+export async function fetchWahooPage(url: string): Promise<string | null> {
   const res = await fetchWithTimeout(url, { headers: { Accept: "text/html" } });
-  if (res.status === 404 || res.status === 410) return { state: "ended" as const };
+  if (res.status === 404 || res.status === 410) return null;
   if (!res.ok) throw new Error(`Wahoo-pagina gaf HTTP ${res.status}.`);
-  return wahooPageState(await res.text());
+  return res.text();
 }
 
 /**

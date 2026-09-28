@@ -137,7 +137,7 @@ waarschuwing kunnen wijzigen:
 | Training-AI | OpenAI | API + key | quota/model-wijziging |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
 | Live volgen Garmin | livetrack.garmin.com, endpoints van de eigen webpagina | onofficieel, CSRF-token uit `<meta>` + cookie | Garmin die de CSRF-aanpak wijzigt of ons blokkeert (health-check `garmin_livetrack`); renners staan dan als "live, met link" op de kaart |
-| Live volgen Wahoo | wahooligan.com live-pagina | onofficieel, alleen status | markup-wijziging; sessie blijft dan "live, met link" tot 8 uur na de start |
+| Live volgen Wahoo | wahooligan.com live-pagina (vaste link van het lid) | onofficieel: status uit data-attributen, spoor uit `window.livetrack_fit` (FIT) | markup-wijziging; een rit wordt dan niet meer opgemerkt of heeft geen posities. Er is geen health-check: controleer met een eigen link |
 | LiveTrack-mail | Resend Receiving + webhook `email.received` | API + key | MX-record weg, webhook uit, of `RESEND_INBOUND_WEBHOOK_SECRET` gewijzigd |
 
 **Strava app-cap**: de eerste aanvraag voor een hogere atletenlimiet is
@@ -193,8 +193,13 @@ Een rode status betekent meestal: zie sectie 3 (credential verlopen) of sectie 4
 3. Netlify: `LIVE_INBOUND_DOMAIN` op het ontvangstdomein zetten en controleren
    dat `RESEND_API_KEY` er staat (die haalt de mail op). Pas dan verschijnt het
    paneel op `/live`.
-4. Migratie `0191_live_garmin_wahoo.sql` toepassen vóór de deploy: zonder die
-   migratie weigert de database een sessie met bron `garmin` of `wahoo`.
+4. Migraties `0191_live_garmin_wahoo.sql` en `0192_live_wahoo_link.sql`
+   toepassen vóór de deploy. Zonder `0191` weigert de database een sessie met
+   bron `garmin` of `wahoo`, zonder `0192` kan niemand een Wahoo-link koppelen.
+
+Wahoo gaat niet via de mail: het lid koppelt zijn vaste Live Track-link op
+`/live`. Die link wordt alleen bekeken als iemand een live-pagina opent
+(hooguit elke 3 minuten per link).
 
 Geen extra cron nodig: `/api/live/cleanup` (elke 15 min) werkt de open
 Garmin/Wahoo-sessies bij, en elke pagina die live-renners toont doet dat ook,

@@ -374,8 +374,9 @@ post. Alleen als 4.3 voor Garmin niet werkt.
 ## 5. Datamodel (gebouwd als `0191_live_garmin_wahoo.sql`)
 
 Gebouwd zoals hieronder, met `external_status` (`live`, `ended`, `error`,
-`link`). `wahoo_permalink` is niet toegevoegd, omdat Share Forever nog niet
-gebouwd is (sectie 8).
+`link`). De vaste Wahoo-link kwam er in `0192_live_wahoo_link.sql` bij, als
+provider `wahoo_link` met `external_url` en `last_checked_at`, plus
+`live_sessions.tracker_token_id` (sectie 8).
 
 - `live_sessions.source`: check uitbreiden met `garmin` en `wahoo`.
 - `live_sessions`: nieuwe kolommen:
@@ -445,10 +446,19 @@ iemands echte link:
   GarminLiveTrack-Server (`dateTime`, `position.lat/lon`, `speedMetersPerSec`,
   `altitude`; sessie `start`, `end`, `viewable`). De parser probeert ook de oude
   namen (`latitude`, `timestamp`, `metaData`). Een echte rit moet dit bevestigen.
-- **Punt 5: deels.** Een ongeldige Wahoo-link geeft een door de server
-  gerenderde pagina met "User Not Found". Wat een geldige pagina bevat, en welk
-  verzoek de kaart voedt, is zonder echte link niet te zien.
-- **Punten 1, 2, 6 en 7: open.** Die vragen een eigen Garmin en Wahoo op een
+- **Punt 5: ja** (met de eigen link van de eigenaar, 2026-09-28). De pagina
+  (~800 KB) zet de status in data-attributen van `.livetrack`:
+  `data-workout-state` ("completed" na de rit) en `data-seconds-since-update`.
+  Het spoor staat in `window.livetrack_fit`: een lijst base64-strings, elk 4
+  bytes lengte plus een gzip'te complete FIT-file van een paar seconden. Zijn
+  rit van 27 september gaf 8.298 records (1 per seconde, 67,5 km). Live-updates
+  lopen daarnaast via Faye (`mb.wahooligan.com/faye`); die gebruiken we niet.
+  Een ongeldige link geeft "User Not Found".
+- **Punt 6: vervalt.** De ELEMNT-app van de eigenaar heeft geen "Share
+  Automatically" naar een mailadres, alleen een vaste link. De mailroute werkt
+  dus niet voor Wahoo; zie sectie 8.
+- **Punten 1, 2, 4 en 7: open.** Garmin (1, 2, 4) vraagt een lid met een Edge;
+  de eigenaar heeft er geen. Punt 7 voor Wahoo test de eigenaar met een
   proefrit. De bouw vangt de onzekerheid op (zie sectie 8).
 
 ## 8. Wat er gebouwd is (2026-09-28)
@@ -481,12 +491,39 @@ doorstuurt moet ook werken. De code in het adres is het geheim, en alleen een
 link van de vorm `livetrack.garmin.com/session/…/token/…` of een Wahoo-link met
 "live" in het pad wordt gebruikt.
 
+**Wahoo via de vaste link (tweede ronde, migratie `0192`).** Omdat de
+ELEMNT-app geen mail stuurt:
+
+- Het lid plakt zijn vaste link op `/live`. De server controleert eerst of
+  Wahoo de link kent. De link staat alleen in `live_tracker_tokens`
+  (`provider = 'wahoo_link'`, `external_url`), leesbaar voor het lid zelf. Een
+  sessie wijst ernaar met `tracker_token_id` en krijgt geen
+  `external_track_url`. De link blijft altijd geldig, dus in de sessie zou elk
+  lid en de publieke eventpagina hem zien. Om dezelfde reden weigert het
+  startformulier een geplakte vaste link.
+- **Wanneer er gekeken wordt: alleen bij kijken** (keuze eigenaar, 2026-09-28).
+  Andere opties waren "rond clubritten" (RSVP-venster, plus cron) en "altijd"
+  (cron elke 15 min voor alle leden). Opent iemand `/live`, een eventpagina of
+  de publieke ticker, dan wordt elke gekoppelde link hooguit elke 3 minuten
+  bekeken (`last_checked_at` is het slot). `/kalender` en de cleanup-cron
+  zoeken niet: de kalender opent vaak en toont alleen een teller. Gevolg: een
+  rit verschijnt pas als iemand kijkt, en de push "X is live" komt dan ook pas.
+- Rijdt de renner (niet "completed", laatste update minder dan 15 min
+  geleden), dan komt er een sessie en halen we de punten uit de FIT-data. Die
+  dunnen we uit tot één per 10 s (Garmin ook). De sessie sluit bij
+  "completed", na 30 minuten zonder update, of als het lid ontkoppelt.
+- Kosten: één pagina van ~800 KB per link per 3 minuten zolang iemand kijkt, en
+  per 30 s tijdens een rit. Ophalen duurt ~1 s, zonder browser.
+
 **Niet gebouwd:**
 
-- **Wahoo Share Forever met RSVP-venster (4.3).** Eerst meten of de
-  automatische Wahoo-mail aankomt (punt 6). Pas als dat niet zo is, is de
-  permalink met polling het werk waard.
-- **Wahoo-posities.** Het endpoint is onbekend (punt 5).
+- **Wahoo-mail.** De mailroute blijft bestaan en herkent een Wahoo-link, maar
+  de ELEMNT-app lijkt geen mail te sturen.
+- **Zoeken naar Wahoo-ritten via een cron of een RSVP-venster.** Afgewezen
+  voor "alleen bij kijken".
+- **Faye-abonnement op Wahoo's live-updates.** Het verversen van de hele pagina
+  werkt; Faye is een langlopende verbinding die niet past in een
+  Netlify-functie.
 - **Connect IQ-dataveld (4.5).** Niet nodig zolang punt 3 werkt.
 
 ## 9. Bewust niet gebouwd, en waarom

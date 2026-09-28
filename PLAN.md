@@ -43,9 +43,10 @@ gaat stabiliteit voor nieuwe features.
    `/live`). Daarna Resend Receiving en de webhook instellen en
    `LIVE_INBOUND_DOMAIN`, `RESEND_INBOUND_WEBHOOK_SECRET` en `RESEND_API_KEY` in
    Netlify zetten (runbook sectie 5); gedaan en de mailketen werkt (2026-09-28).
-   Nog open: proefritten, de punten 1, 2, 4, 6 en 7 van de spike. De eigenaar
-   test met een Wahoo ELEMNT; hij heeft geen Garmin, dus de Garmin-proefrit moet
-   een lid met een Edge doen, met diens toestemming.
+   **Nog toepassen: `0192_live_wahoo_link.sql`**, vóór de deploy van de
+   vaste Wahoo-link. Daarna je Wahoo-link koppelen op Samen fietsen en een
+   proefrit maken. De Garmin-proefrit (spikepunten 1, 2 en 4) moet een lid met
+   een Edge doen, met diens toestemming.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -74,12 +75,57 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0192`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0193`.
 
 ---
 
+> **Live volgen via de vaste Wahoo-link, 2026-09-28 — gebouwd; migratie
+> `0192_live_wahoo_link.sql`.** Commit: de commit die dit blok toevoegt.
+> Details: sectie 7 en 8 van
+> [garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).
+>
+> **Waarom.** De ELEMNT-app stuurt geen LiveTrack-mail naar een adres; hij
+> geeft alleen één vaste link. De mailroute uit de ronde hieronder werkt dus
+> niet voor Wahoo. Wat die ronde over Wahoo en de mail zegt, is achterhaald.
+>
+> **Wat er is.**
+> - Op `/live` plakt het lid zijn vaste link. De server controleert of Wahoo
+>   hem kent en bewaart hem alleen in `live_tracker_tokens`, leesbaar voor het
+>   lid zelf. De sessie wijst ernaar via `tracker_token_id` en krijgt geen
+>   `external_track_url`: de link blijft altijd geldig, en in de sessie zouden
+>   alle leden en de publieke eventpagina hem zien. Het startformulier weigert
+>   een geplakte vaste link om dezelfde reden.
+> - Posities komen uit de FIT-data op Wahoo's pagina
+>   (`src/lib/live/fit-records.ts`, een eigen minimale FIT-lezer). Getest op de
+>   rit van de eigenaar van 27 september: 8.298 records, 67,5 km. Uitgedund tot
+>   één punt per 10 s, ook voor Garmin.
+> - **Alleen bij kijken** (keuze eigenaar; afgewezen: "rond clubritten" en
+>   "altijd"). Opent iemand `/live`, een eventpagina of de publieke ticker, dan
+>   wordt elke link hooguit elke 3 minuten bekeken. `/kalender` en de
+>   cleanup-cron zoeken niet. Een rit, en de push "X is live", verschijnt dus
+>   pas als iemand kijkt.
+> - `/hulp#livetrack` en de privacytekst noemen de vaste link.
+>
+> **Privacytekst.** Aangepast binnen de eerder goedgekeurde lijn, zonder nieuwe
+> versie: we bewaren de vaste link, alleen zichtbaar voor het lid, en kijken
+> daarmee of hij rijdt zodra iemand de kaart opent.
+>
+> **Bewust niet gebouwd.** Een cron of RSVP-venster voor Wahoo (keuze
+> eigenaar). Een Faye-abonnement op Wahoo's live-updates: een langlopende
+> verbinding past niet in een Netlify-functie. Een health-check voor Wahoo:
+> die heeft een echte link nodig.
+>
+> **Niet geverifieerd.** De migratie is niet gedraaid. Er is geen rit live
+> gevolgd: welke waarde `data-workout-state` tijdens een rit heeft, is onbekend
+> (alles behalve "completed", met een update van minder dan 15 minuten
+> geleden, telt als rijden). Getest: unit-tests (FIT-lezer met een
+> zelfgebouwde FIT-file, status, uitdunnen) en de code één keer tegen de echte
+> link van de eigenaar (gevonden, "completed", 841 punten na uitdunnen, ~1 s en
+> 800 KB).
+
 > **Live volgen via Garmin/Wahoo, 2026-09-28 — gebouwd; migratie
-> `0191_live_garmin_wahoo.sql`.** Commit: de commit die dit blok toevoegt.
+> `0191_live_garmin_wahoo.sql`.** Voor Wahoo achterhaald door het blok
+> hierboven: de ELEMNT-app stuurt geen mail. Commit: de commit die dit blok toevoegt.
 > Bouwt het onderzoek hieronder (`3277c23`) uit, op verzoek van de eigenaar.
 > Details: sectie 7 en 8 van
 > [garmin-wahoo-live-tracking-onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md).

@@ -225,16 +225,16 @@ const GARMIN_LIVETRACK_STEPS = [
 ];
 
 const WAHOO_LIVETRACK_STEPS = [
-  "Maak op Samen fietsen je persoonlijke adres en kopieer het. Het wordt één keer getoond.",
-  "Open de ELEMNT-app en ga naar Live Track.",
-  "Zet Share Automatically aan en voeg het adres toe als ontvanger.",
-  "Start een rit op je ELEMNT terwijl je telefoon verbonden is. Je verschijnt op Samen fietsen, met een link naar de kaart van Wahoo.",
+  "Open de ELEMNT-app, ga naar Live Track en kopieer je vaste link (wahooligan.com/users/live/…).",
+  "Plak de link op Samen fietsen bij Wahoo en klik Koppelen.",
+  "Start een rit op je ELEMNT terwijl je telefoon verbonden is. Je verschijnt op de kaart zodra iemand Samen fietsen of de eventpagina opent; dat kan een paar minuten duren.",
 ];
 
 const LIVETRACK_NOTES = [
+  "Je Wahoo-link blijft bij ons: andere leden zien je positie op de ZWB-kaart, niet de link.",
   "Per rit hoef je niets te doen. Na de rit verdwijn je vanzelf.",
   "Laat Garmin Connect of de ELEMNT-app op de achtergrond draaien; zonder telefoonverbinding komt er niets door.",
-  "Een nieuw adres maken vervangt het oude meteen. Koppeling stoppen werkt direct; haal het adres daarna ook weg in Garmin Connect of de ELEMNT-app.",
+  "Een nieuw adres maken vervangt het oude meteen. Koppeling stoppen of ontkoppelen werkt direct; haal het adres daarna ook weg in Garmin Connect.",
 ];
 
 const OWNTRACKS_STEPS = [
@@ -479,7 +479,8 @@ const ADMIN_GUIDES = [
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op Achievements.",
   "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of Achievements en zet het activiteitenvinkje aan.",
-  "Verschijn je niet live met je Garmin of Wahoo? Check of Samen fietsen een laatste mail toont. Staat daar niets, controleer dan het adres en Automatisch starten (Garmin) of Share Automatically (Wahoo).",
+  "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, controleer dan het adres en Automatisch starten.",
+  "Verschijn je niet live met je Wahoo? Open je Wahoo-link zelf: staat je rit daar niet, dan heeft de ELEMNT-app geen verbinding. Anders verschijn je binnen een paar minuten nadat iemand Samen fietsen opent.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",

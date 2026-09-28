@@ -27,8 +27,9 @@ export async function POST(request: NextRequest) {
   const oneYearAgo = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString();
 
   // 1. Garmin/Wahoo bijwerken: haalt posities op, sluit beëindigde ritten en
-  //    houdt "live, met link" levend tot de maximale duur.
-  await refreshExternalLiveSessions({ admin });
+  //    houdt "live, met link" levend tot de maximale duur. Zoekt geen nieuwe
+  //    Wahoo-ritten: dat gebeurt alleen bij kijken (keuze eigenaar).
+  await refreshExternalLiveSessions({ admin, detect: false });
 
   // 2. Markeer stale sessies als beeindigd. Garmin en Wahoo niet na 15 min:
   //    een koffiestop is geen einde van de rit, en die sessies sluiten al in
