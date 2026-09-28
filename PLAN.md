@@ -3585,7 +3585,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **2026-09-28.** Geen migratie. Lokaal gecommit, niet gepusht.
 
 **Aanleiding.** Stijn wil de events van de ZWB-club op Zwift
-(`zwift.com/uk/clubs/97b0f68a-…/home`) met één knop op de kalender hebben,
+(de clubpagina op zwift.com) met één knop op de kalender hebben,
 in plaats van elk concept apart te publiceren.
 
 **Wat er veranderde.**
@@ -3609,6 +3609,9 @@ in plaats van elk concept apart te publiceren.
   en `syncZwiftFeed` gehaald, zodat de losse knop, de feedsync en de clubknop
   dezelfde code gebruiken. Gedrag van de bestaande scan is gelijk gebleven.
 - Test: `tests/unit/zwift-club-calendar.test.ts` (routevolgorde en clubfilter).
+  De eerste deploy (`9746344`) faalde op Netlify's secrets-scan: de test bevatte
+  het echte club-ID, dat als waarde van `ZWIFT_CLUB_ID` geheim is. Nu een
+  nep-UUID. Zet dus nooit waarden van Netlify-env-variabelen in code of docs.
 
 **Bewust niet gebouwd.**
 - **Geen automatische publicatie in de cron.** Increment 5 uit de

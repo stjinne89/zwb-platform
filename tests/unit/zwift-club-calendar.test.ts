@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const CLUB_ID = "97b0f68a-5c7a-4d8b-91ff-7fc1b1915ea7";
+const CLUB_ID = "00000000-0000-4000-8000-000000000001";
 
 const safeFetch = vi.fn();
 vi.mock("@/lib/net/safe-fetch", () => ({ safeFetch: (...args: unknown[]) => safeFetch(...args) }));
