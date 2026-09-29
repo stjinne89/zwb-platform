@@ -174,9 +174,17 @@ export default async function KalenderPage({
   // eerstvolgende) bovenaan.
   // Teamevents staan onder hun hoofdevent (migr. 0178), niet als eigen regel.
   const { topLevel, childrenByParent } = groupSubEvents(allEvents ?? []);
-  const upcoming = topLevel.filter(
-    (event) => amsterdamDateKey(new Date(event.start_at)) >= todayKey,
-  );
+  // Een FRR-tour (migr. 0196) heeft een laag extra: tour → etappe → tijdslot.
+  // Het laatste event eronder bepaalt tot wanneer de regel blijft staan.
+  const lastDayOf = (event: { id: string; start_at: string }) => {
+    let last = amsterdamDateKey(new Date(event.start_at));
+    for (const child of childrenByParent.get(event.id) ?? []) {
+      const day = amsterdamDateKey(new Date(child.start_at));
+      if (day > last) last = day;
+    }
+    return last;
+  };
+  const upcoming = topLevel.filter((event) => lastDayOf(event) >= todayKey);
   const pastCount = topLevel.length - upcoming.length;
 
   // Wat past er niet, en waarom? Ook zonder actief filter berekend, zodat de
@@ -240,6 +248,9 @@ export default async function KalenderPage({
     rsvpTarget.set(event.id, event.id);
     for (const child of childrenByParent.get(event.id) ?? []) {
       rsvpTarget.set(child.id, event.id);
+      for (const grandchild of childrenByParent.get(child.id) ?? []) {
+        rsvpTarget.set(grandchild.id, event.id);
+      }
     }
   }
   const upcomingEventIds = [...rsvpTarget.keys()];
@@ -455,11 +466,21 @@ export default async function KalenderPage({
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(event.start_at).toLocaleString("nl-NL", {
-                      dateStyle: "full",
-                      timeStyle: "short",
-                      timeZone: "Europe/Amsterdam",
-                    })}
+                    {lastDayOf(event) !== amsterdamDateKey(new Date(event.start_at))
+                      ? `${new Date(event.start_at).toLocaleDateString("nl-NL", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          timeZone: "Europe/Amsterdam",
+                        })} t/m ${new Date(`${lastDayOf(event)}T12:00:00Z`).toLocaleDateString(
+                          "nl-NL",
+                          { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" },
+                        )}`
+                      : new Date(event.start_at).toLocaleString("nl-NL", {
+                          dateStyle: "full",
+                          timeStyle: "short",
+                          timeZone: "Europe/Amsterdam",
+                        })}
                     {event.location ? ` · ${event.location}` : ""}
                     {event.distance_km ? ` · ${event.distance_km} km` : ""}
                     {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
@@ -513,7 +534,10 @@ export default async function KalenderPage({
                       href={`/events/${sub.id}`}
                       className={`rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-secondary ${
                         (sub.team_id && member.teamIds.includes(sub.team_id)) ||
-                        member.committedEventIds.has(sub.id)
+                        member.committedEventIds.has(sub.id) ||
+                        (childrenByParent.get(sub.id) ?? []).some((slot) =>
+                          member.committedEventIds.has(slot.id),
+                        )
                           ? "border-primary/50 bg-primary/10"
                           : "bg-background"
                       }`}

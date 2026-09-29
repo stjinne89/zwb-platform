@@ -115,21 +115,40 @@ function suffixLabel(suffix: string | null) {
   return suffix.replace(/\bqueen\b/i, "Koninginnenrit");
 }
 
-/** Titel van het hoofdevent: "FRR Ignite · Etappe 3 — iTT". */
+/** Titel van het tourevent: "FRR Ignite". */
+export function frrTourTitle(tourName: string) {
+  return `FRR ${frrShortName(tourName)}`;
+}
+
+/**
+ * Titel van een etappe: "FRR Ignite · Etappe 3 · iTT". De toevoeging staat met
+ * " · " en niet met " — ", want subEventLabel knipt alles na " — " weg en dan
+ * zou de knop in de kalender "iTT" missen.
+ */
 export function frrStageTitle(tourName: string, stage: number, suffix: string | null) {
-  const base = `FRR ${frrShortName(tourName)} · Etappe ${stage}`;
+  const base = `${frrTourTitle(tourName)} · Etappe ${stage}`;
   const extra = suffixLabel(suffix);
-  return extra ? `${base} — ${extra}` : base;
+  return extra ? `${base} · ${extra}` : base;
 }
 
-/** Titel van een tijdslot: "FRR Ignite · Etappe 3 · 07:00". */
-export function frrSlotTitle(tourName: string, stage: number, label: string) {
-  return `FRR ${frrShortName(tourName)} · Etappe ${stage} · ${label}`;
+/** Titel van een tijdslot: "FRR Ignite · Etappe 3 · iTT · 07:00". */
+export function frrSlotTitle(
+  tourName: string,
+  stage: number,
+  suffix: string | null,
+  label: string,
+) {
+  return `${frrStageTitle(tourName, stage, suffix)} · ${label}`;
 }
 
-/** Een titel die de import zelf maakte, en dus bijgewerkt mag worden. */
+/**
+ * Een titel die de import zelf maakte, en dus bijgewerkt mag worden. Ook de
+ * vorm van vóór het tourevent ("… · Etappe 3 — iTT").
+ */
 export function isGeneratedFrrTitle(title: string) {
-  return /^FRR .+ · Etappe \d+( · \d{2}:\d{2}( \(\+1\))?)?( — .+)?$/.test(title);
+  return /^FRR [^·]+( · Etappe \d+( · [^·]+?)?( — [^·]+)?( · \d{2}:\d{2}( \(\+1\))?)?)?$/.test(
+    title,
+  );
 }
 
 const TIME = new Intl.DateTimeFormat("nl-NL", {

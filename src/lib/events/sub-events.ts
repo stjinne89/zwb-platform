@@ -1,10 +1,11 @@
 // Hoofdevents en teamevents (migr. 0178).
 //
 // Een ZRL-raceweek is één hoofdevent zonder team, met per team een event eronder
-// via `parent_event_id`. Een FRR-etappe (migr. 0195) werkt hetzelfde, met per
-// tijdslot een event zonder team. Overzichten (kalender, dashboard) tonen het
-// hoofdevent; alles waar een lid zich voor opgeeft of op plant (RSVP, schema,
-// verslagen) gebeurt op het event eronder.
+// via `parent_event_id`. Een FRR-tour (migr. 0195, 0196) heeft een laag meer:
+// de tour, daaronder de etappes, en onder elke etappe de tijdslots, allemaal
+// zonder team. Overzichten (kalender, dashboard) tonen het hoofdevent; alles
+// waar een lid zich voor opgeeft of op plant (RSVP, schema, verslagen) gebeurt
+// op het onderste event.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 

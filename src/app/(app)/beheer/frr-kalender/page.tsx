@@ -16,6 +16,7 @@ type EventRow = {
   parent_event_id: string | null;
   frr_tour_id: string | null;
   frr_stage: number | null;
+  zwift_event_id: number | string | null;
 };
 
 function when(iso: string | null) {
@@ -39,7 +40,7 @@ export default async function FrrKalenderPage() {
     supabase.from("frr_tours").select(FRR_TOUR_COLUMNS).order("starts_on", { ascending: false }),
     supabase
       .from("events")
-      .select("id, title, start_at, parent_event_id, frr_tour_id, frr_stage")
+      .select("id, title, start_at, parent_event_id, frr_tour_id, frr_stage, zwift_event_id")
       .not("frr_tour_id", "is", null)
       .order("start_at")
       .limit(400),
@@ -70,9 +71,13 @@ export default async function FrrKalenderPage() {
         <EmptyState>Nog geen FRR-tours.</EmptyState>
       ) : (
         tours.map((tour) => {
-          const { topLevel, childrenByParent } = groupSubEvents(
-            events.filter((event) => event.frr_tour_id === tour.id),
-          );
+          const ofTour = events.filter((event) => event.frr_tour_id === tour.id);
+          const { childrenByParent } = groupSubEvents(ofTour);
+          // Tourevent, etappes (met nummer) en tijdsloten (met Zwift-event), migr. 0196.
+          const tourEvent = ofTour.find((event) => !event.frr_stage && !event.zwift_event_id);
+          const stages = ofTour
+            .filter((event) => event.frr_stage && !event.zwift_event_id)
+            .sort((a, b) => (a.frr_stage ?? 0) - (b.frr_stage ?? 0));
           return (
             <section key={tour.id} className="space-y-3 rounded-lg border bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -102,11 +107,16 @@ export default async function FrrKalenderPage() {
                 </div>
               </dl>
               <RefreshButton tourId={tour.id} />
-              {topLevel.length === 0 ? (
+              {tourEvent && (
+                <Link href={`/events/${tourEvent.id}`} className="block font-medium hover:underline">
+                  {tourEvent.title}
+                </Link>
+              )}
+              {stages.length === 0 ? (
                 <EmptyState>Nog geen etappes in de kalender.</EmptyState>
               ) : (
                 <ul className="divide-y rounded-lg border">
-                  {topLevel.map((stage) => (
+                  {stages.map((stage) => (
                     <li key={stage.id} className="space-y-1 p-3 text-sm">
                       <Link href={`/events/${stage.id}`} className="font-medium hover:underline">
                         {stage.title}

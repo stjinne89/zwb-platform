@@ -6,6 +6,7 @@ import {
   frrSlotLabel,
   frrSlotTitle,
   frrStageTitle,
+  frrTourTitle,
   groupFrrFeed,
   isGeneratedFrrTitle,
   parseFrrStageName,
@@ -60,17 +61,24 @@ describe("groupFrrFeed (Ignite-feed van 2026-09-29)", () => {
 });
 
 describe("FRR-titels", () => {
-  it("laten subEventLabel alleen de tijd overhouden", () => {
-    const parent = frrStageTitle("Tour Ignite", 3, "iTT");
-    expect(parent).toBe("FRR Ignite · Etappe 3 — iTT");
-    const slot = frrSlotTitle("Tour Ignite", 3, "01:30 (+1)");
-    expect(subEventLabel(slot, parent)).toBe("01:30 (+1)");
-    expect(frrStageTitle("Tour Ignite", 8, "Queen")).toBe(
-      "FRR Ignite · Etappe 8 — Koninginnenrit",
+  it("geven op elk niveau via subEventLabel het korte label", () => {
+    const tour = frrTourTitle("Tour Ignite");
+    expect(tour).toBe("FRR Ignite");
+    const stage = frrStageTitle("Tour Ignite", 3, "iTT");
+    expect(stage).toBe("FRR Ignite · Etappe 3 · iTT");
+    expect(subEventLabel(stage, tour)).toBe("Etappe 3 · iTT");
+    const slot = frrSlotTitle("Tour Ignite", 3, "iTT", "01:30 (+1)");
+    expect(subEventLabel(slot, stage)).toBe("01:30 (+1)");
+    expect(subEventLabel(frrStageTitle("Tour Ignite", 8, "Queen"), tour)).toBe(
+      "Etappe 8 · Koninginnenrit",
     );
+    expect(subEventLabel(frrStageTitle("Tour Ignite", 1, null), tour)).toBe("Etappe 1");
   });
 
-  it("herkent alleen zelf gemaakte titels", () => {
+  it("herkent alleen zelf gemaakte titels, ook de vorm van vóór het tourevent", () => {
+    expect(isGeneratedFrrTitle("FRR Ignite")).toBe(true);
+    expect(isGeneratedFrrTitle("FRR Ignite · Etappe 3 · iTT")).toBe(true);
+    expect(isGeneratedFrrTitle("FRR Ignite · Etappe 3 · iTT · 07:00")).toBe(true);
     expect(isGeneratedFrrTitle("FRR Ignite · Etappe 3 — iTT")).toBe(true);
     expect(isGeneratedFrrTitle("FRR Ignite · Etappe 3 · 07:00")).toBe(true);
     expect(isGeneratedFrrTitle("FRR Ignite · Etappe 1 · 01:30 (+1)")).toBe(true);

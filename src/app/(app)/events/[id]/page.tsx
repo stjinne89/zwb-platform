@@ -252,14 +252,22 @@ export default async function EventDetailPage({
         : Promise.resolve({ data: null }),
     ]);
   const myTeamIds = new Set((myTeamRows ?? []).map((row) => row.team_id as string));
-  // FRR-tour (migr. 0195): een etappe met tijdsloten in plaats van teams. Apart
-  // opgehaald, zodat een ontbrekende migratie niet elke eventpagina breekt.
+  // FRR-tour (migr. 0195, 0196): tour → etappes → tijdsloten, in plaats van
+  // teams. Apart opgehaald, zodat een ontbrekende migratie niet elke eventpagina
+  // breekt.
   const { data: frrLink } =
     event.type === "flamme_rouge"
-      ? await supabase.from("events").select("frr_tour_id").eq("id", id).maybeSingle()
+      ? await supabase.from("events").select("frr_tour_id, frr_stage").eq("id", id).maybeSingle()
       : { data: null };
   const frrTourId = (frrLink?.frr_tour_id as string | null | undefined) ?? null;
   const isFrr = Boolean(frrTourId);
+  const frrLevel: "tour" | "stage" | "slot" | null = !frrTourId
+    ? null
+    : event.zwift_event_id
+      ? "slot"
+      : frrLink?.frr_stage
+        ? "stage"
+        : "tour";
   const subEvents = ((subEventRows ?? []) as Array<{
     id: string;
     title: string;
@@ -285,22 +293,33 @@ export default async function EventDetailPage({
     .sort((a, b) => (isFrr ? 0 : Number(b.isMine) - Number(a.isMine)));
   const isParentEvent = subEvents.length > 0;
 
-  // De tijdsloten van deze FRR-etappe, ook als je op één slot kijkt: met de
-  // ZWB'ers die in Zwift zijn ingeschreven en je eigen keuze.
+  // De etappes met hun tijdsloten: op de tour alle etappes, op een etappe of
+  // een slot alleen die etappe. Met de ZWB'ers die in Zwift zijn ingeschreven en
+  // je eigen keuze.
   type FrrSlot = { id: string; label: string; startAt: string; zwb: string[]; isMine: boolean };
-  let frrSlots: FrrSlot[] = [];
-  if (isFrr) {
-    const stageTitle = event.parent_event_id ? String(parentEvent?.title ?? "") : event.title;
-    const slotRows = event.parent_event_id
-      ? ((
-          await supabase
+  type FrrStage = { id: string; label: string; title: string; startAt: string; slots: FrrSlot[] };
+  let frrStages: FrrStage[] = [];
+  if (frrLevel) {
+    type Row = { id: string; title: string; start_at: string; parent_event_id?: string | null };
+    const stageRows: Row[] =
+      frrLevel === "tour"
+        ? ((subEventRows ?? []) as Row[])
+        : frrLevel === "stage"
+          ? [event as Row]
+          : parentEvent
+            ? [{ id: parentEvent.id as string, title: String(parentEvent.title ?? ""), start_at: event.start_at }]
+            : [];
+    const stageIds = stageRows.map((row) => row.id);
+    const { data: slotData } =
+      stageIds.length > 0
+        ? await supabase
             .from("events")
-            .select("id, title, start_at")
-            .eq("parent_event_id", event.parent_event_id)
+            .select("id, title, start_at, parent_event_id")
+            .in("parent_event_id", stageIds)
             .order("start_at")
-        ).data ?? [])
-      : (subEventRows ?? []);
-    const slotIds = (slotRows as Array<{ id: string }>).map((row) => row.id);
+        : { data: [] };
+    const slotRows = (slotData ?? []) as Row[];
+    const slotIds = slotRows.map((row) => row.id);
     const [{ data: zwbEntrants }, { data: mySlotRsvps }] = await Promise.all([
       slotIds.length > 0
         ? supabase
@@ -333,14 +352,41 @@ export default async function EventDetailPage({
         profile?.display_name ?? row.name,
       ]);
     }
-    frrSlots = (slotRows as Array<{ id: string; title: string; start_at: string }>).map((row) => ({
-      id: row.id,
-      label: subEventLabel(row.title, stageTitle),
-      startAt: row.start_at,
-      zwb: (zwbBySlot.get(row.id) ?? []).sort((a, b) => a.localeCompare(b, "nl")),
-      isMine: mine.has(row.id),
+    const tourTitle =
+      frrLevel === "tour"
+        ? event.title
+        : frrLevel === "stage"
+          ? String(parentEvent?.title ?? "")
+          : "";
+    frrStages = stageRows.map((stage) => ({
+      id: stage.id,
+      title: stage.title,
+      label: tourTitle ? subEventLabel(stage.title, tourTitle) : stage.title,
+      startAt: stage.start_at,
+      slots: slotRows
+        .filter((slot) => slot.parent_event_id === stage.id)
+        .map((slot) => ({
+          id: slot.id,
+          label: subEventLabel(slot.title, stage.title),
+          startAt: slot.start_at,
+          zwb: (zwbBySlot.get(slot.id) ?? []).sort((a, b) => a.localeCompare(b, "nl")),
+          isMine: mine.has(slot.id),
+        })),
     }));
   }
+  const frrSlots = frrStages.flatMap((stage) => stage.slots);
+  // Het rivalenblok kijkt naar één etappe: op de tour de eerstvolgende (of de
+  // laatste), met de etappe in het slotlabel.
+  const watchStage =
+    frrLevel === "tour"
+      ? (frrStages.find((stage) =>
+          stage.slots.some((slot) => new Date(slot.startAt).getTime() > Date.now() - 3 * 3600_000),
+        ) ?? frrStages[frrStages.length - 1])
+      : frrStages[0];
+  const watchSlots = (watchStage?.slots ?? []).map((slot) => ({
+    id: slot.id,
+    label: frrLevel === "tour" ? `${watchStage!.label} · ${slot.label}` : slot.label,
+  }));
   // Gereden ZRL-raceweek: de bevroren plaats van elk team in zijn divisie
   // (migr. 0188). Alleen lezen; de live stand schrijft hem weg.
   const teamResults =
@@ -1103,7 +1149,59 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {isParentEvent && isFrr && (
+      {frrLevel === "tour" && frrStages.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Etappes
+          </h2>
+          <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+            {frrStages.map((stage) => (
+              <li key={stage.id} className="space-y-2 p-3 text-sm">
+                <Link
+                  href={`/events/${stage.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 hover:underline"
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    {stage.label}
+                    {stage.slots.some((slot) => slot.isMine) && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        Jij rijdt
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {new Date(stage.startAt).toLocaleDateString("nl-NL", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      timeZone: "Europe/Amsterdam",
+                    })}
+                  </span>
+                </Link>
+                <div className="flex flex-wrap gap-1.5">
+                  {stage.slots.map((slot) => (
+                    <Link
+                      key={slot.id}
+                      href={`/events/${slot.id}`}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-xs font-medium tabular-nums hover:bg-secondary",
+                        slot.isMine ? "border-primary/50 bg-primary/10" : "bg-background",
+                      )}
+                    >
+                      {slot.label}
+                      {slot.zwb.length > 0 && (
+                        <span className="text-muted-foreground"> · {slot.zwb.length} ZWB</span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {frrLevel === "stage" && isParentEvent && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Tijdsloten
@@ -1159,7 +1257,7 @@ export default async function EventDetailPage({
           supabase={supabase}
           tourId={frrTourId}
           userId={user?.id ?? null}
-          slots={frrSlots.map((slot) => ({ id: slot.id, label: slot.label }))}
+          slots={watchSlots}
         />
       )}
 

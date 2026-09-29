@@ -1,9 +1,11 @@
-// Zet een FRR-tour in de kalender: per etappe een hoofdevent, daaronder per
-// tijdslot een event (migr. 0195). Gedeeld door de beheeractie en de cron.
+// Zet een FRR-tour in de kalender: een tourevent, daaronder per etappe een
+// event, en daaronder per tijdslot een event (migr. 0195 en 0196). Gedeeld door
+// de beheeractie en de cron.
 //
-// Idempotent. Een etappe wordt herkend aan tour en nummer, een slot aan zijn
-// Zwift-event-id. Opnieuw draaien vult aan en werkt starttijden bij; het
-// verwijdert nooit iets, want gereden slots vallen uit de feed van Zwift.
+// Idempotent. De tour wordt herkend aan tour zonder etappenummer, een etappe
+// aan tour en nummer, een slot aan zijn Zwift-event-id. Opnieuw draaien vult
+// aan en werkt starttijden bij; het verwijdert nooit iets, want gereden slots
+// vallen uit de feed van Zwift.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { safeFetch } from "@/lib/net/safe-fetch";
@@ -19,6 +21,7 @@ import {
   frrSlotLabel,
   frrSlotTitle,
   frrStageTitle,
+  frrTourTitle,
   groupFrrFeed,
   isGeneratedFrrTitle,
   type FrrStage,
@@ -70,6 +73,9 @@ export type FrrImportResult = {
   /** Zwift-event-id → subgroepen, voor de inschrijvingen-sync. */
   subgroupsByZwiftEvent: Map<number, ZwiftSubgroupStart[]>;
 };
+
+const EVENT_COLUMNS =
+  "id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage";
 
 type ExistingEvent = {
   id: string;
@@ -140,11 +146,11 @@ export async function importFrrTour(
     await Promise.all([
       admin
         .from("events")
-        .select("id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
+        .select(EVENT_COLUMNS)
         .eq("frr_tour_id", tour.id),
       admin
         .from("events")
-        .select("id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
+        .select(EVENT_COLUMNS)
         .in("zwift_event_id", zwiftIds),
     ]);
   if (tourError) throw new Error(tourError.message);
@@ -154,15 +160,40 @@ export async function importFrrTour(
   for (const row of [...(ofTour ?? []), ...(byZwift ?? [])] as ExistingEvent[]) {
     existing.set(row.id, row);
   }
-  const parentByStage = new Map<number, ExistingEvent>();
+  // Binnen een tour (migr. 0196): tourevent zonder etappenummer, etappe met
+  // nummer, tijdslot met Zwift-event-id.
+  let tourEvent: ExistingEvent | null = null;
+  const stageByNumber = new Map<number, ExistingEvent>();
   const slotByZwift = new Map<number, ExistingEvent>();
   for (const row of existing.values()) {
-    if (row.frr_tour_id === tour.id && row.parent_event_id === null && row.frr_stage) {
-      parentByStage.set(row.frr_stage, row);
-    } else if (row.zwift_event_id != null) {
+    if (row.zwift_event_id != null) {
       slotByZwift.set(Number(row.zwift_event_id), row);
+    } else if (row.frr_tour_id === tour.id && row.frr_stage) {
+      stageByNumber.set(row.frr_stage, row);
+    } else if (row.frr_tour_id === tour.id) {
+      tourEvent = row;
     }
   }
+
+  // 1. Het tourevent: één regel in de kalender, met de etappes eronder.
+  const tourTitle = frrTourTitle(tour.name);
+  if (!tourEvent) {
+    const { data, error } = await admin
+      .from("events")
+      .insert({
+        type: "flamme_rouge",
+        title: tourTitle,
+        start_at: feed.stages[0].slots[0].startAt,
+        external_url: FRR_TOURS_PAGE_URL,
+        frr_tour_id: tour.id,
+        created_by: createdBy,
+      })
+      .select(EVENT_COLUMNS)
+      .single();
+    if (error) throw new Error(error.message);
+    tourEvent = data as ExistingEvent;
+  }
+  const stageStarts: string[] = [];
 
   for (const stage of feed.stages) {
     const first = stage.slots[0];
@@ -179,48 +210,53 @@ export async function importFrrTour(
       elevation_m: totals?.elevationM ?? null,
     };
 
-    // 1. Het hoofdevent van de etappe.
-    let parent = parentByStage.get(stage.stage);
-    if (!parent) {
+    // 2. De etappe onder de tour.
+    let stageEvent = stageByNumber.get(stage.stage);
+    if (!stageEvent) {
       const { data, error } = await admin
         .from("events")
         .insert({
           type: "flamme_rouge",
           title: stageTitle,
           start_at: first.startAt,
+          parent_event_id: tourEvent.id,
           external_url: FRR_TOURS_PAGE_URL,
           frr_tour_id: tour.id,
           frr_stage: stage.stage,
           ...route,
           created_by: createdBy,
         })
-        .select("id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
+        .select(EVENT_COLUMNS)
         .single();
       if (error) throw new Error(error.message);
-      parent = data as ExistingEvent;
-      parentByStage.set(stage.stage, parent);
+      stageEvent = data as ExistingEvent;
+      stageByNumber.set(stage.stage, stageEvent);
       result.stagesCreated += 1;
     }
 
-    // 2. De tijdsloten eronder.
-    const starts: string[] = [];
-    for (const slot of stage.slots) {
-      starts.push(slot.startAt);
-    }
+    // 3. De tijdsloten onder de etappe.
+    const starts: string[] = stage.slots.map((slot) => slot.startAt);
     for (const row of existing.values()) {
-      if (row.parent_event_id === parent.id) starts.push(new Date(row.start_at).toISOString());
+      if (row.parent_event_id === stageEvent.id) starts.push(new Date(row.start_at).toISOString());
     }
-    const stageDay = amsterdamDay(starts.sort()[0]);
+    starts.sort();
+    const stageDay = amsterdamDay(starts[0]);
+    stageStarts.push(starts[0]);
 
     for (const slot of stage.slots) {
-      const title = frrSlotTitle(tour.name, stage.stage, frrSlotLabel(slot.startAt, stageDay));
+      const title = frrSlotTitle(
+        tour.name,
+        stage.stage,
+        stage.suffix,
+        frrSlotLabel(slot.startAt, stageDay),
+      );
       const known = slotByZwift.get(slot.zwiftEventId);
       if (!known) {
         const { error } = await admin.from("events").insert({
           type: "flamme_rouge",
           title,
           start_at: slot.startAt,
-          parent_event_id: parent.id,
+          parent_event_id: stageEvent.id,
           frr_tour_id: tour.id,
           frr_stage: stage.stage,
           zwift_event_id: slot.zwiftEventId,
@@ -238,7 +274,7 @@ export async function importFrrTour(
       const update: Record<string, unknown> = {};
       if (new Date(known.start_at).toISOString() !== slot.startAt) update.start_at = slot.startAt;
       if (known.title !== title && isGeneratedFrrTitle(known.title)) update.title = title;
-      if (known.parent_event_id !== parent.id) update.parent_event_id = parent.id;
+      if (known.parent_event_id !== stageEvent.id) update.parent_event_id = stageEvent.id;
       if (known.frr_tour_id !== tour.id) update.frr_tour_id = tour.id;
       if (known.frr_stage !== stage.stage) update.frr_stage = stage.stage;
       if (Object.keys(update).length === 0) continue;
@@ -247,34 +283,54 @@ export async function importFrrTour(
       result.updated += 1;
     }
 
-    const parentUpdate: Record<string, unknown> = {};
-    if (new Date(parent.start_at).toISOString() !== starts[0]) parentUpdate.start_at = starts[0];
-    if (parent.title !== stageTitle && isGeneratedFrrTitle(parent.title)) {
-      parentUpdate.title = stageTitle;
+    const stageUpdate: Record<string, unknown> = {};
+    if (new Date(stageEvent.start_at).toISOString() !== starts[0]) stageUpdate.start_at = starts[0];
+    if (stageEvent.title !== stageTitle && isGeneratedFrrTitle(stageEvent.title)) {
+      stageUpdate.title = stageTitle;
     }
+    if (stageEvent.parent_event_id !== tourEvent.id) stageUpdate.parent_event_id = tourEvent.id;
     // Tot 2026-09-29 nam de import de Engelse eventtekst van FRR over. Die staat
     // achter de links, dus een omschrijving die gelijk is aan die van Zwift gaat
     // weg; een eigen tekst van een beheerder blijft staan.
-    const ownDescription = (parent.description ?? "").trim();
+    const ownDescription = (stageEvent.description ?? "").trim();
     if (ownDescription && stage.slots.some((slot) => slot.description === ownDescription)) {
-      parentUpdate.description = null;
+      stageUpdate.description = null;
     }
-    if (Object.keys(parentUpdate).length > 0) {
-      const { error } = await admin.from("events").update(parentUpdate).eq("id", parent.id);
+    if (Object.keys(stageUpdate).length > 0) {
+      const { error } = await admin.from("events").update(stageUpdate).eq("id", stageEvent.id);
       if (error) throw new Error(error.message);
       result.updated += 1;
     }
+  }
+
+  // De tour begint bij zijn vroegste etappe. Gereden etappes staan niet meer in
+  // de feed, dus die tellen via hun opgeslagen starttijd mee.
+  for (const row of stageByNumber.values()) {
+    stageStarts.push(new Date(row.start_at).toISOString());
+  }
+  const tourStart = stageStarts.sort()[0];
+  const tourUpdate: Record<string, unknown> = {};
+  if (tourStart && new Date(tourEvent.start_at).toISOString() !== tourStart) {
+    tourUpdate.start_at = tourStart;
+  }
+  if (tourEvent.title !== tourTitle && isGeneratedFrrTitle(tourEvent.title)) {
+    tourUpdate.title = tourTitle;
+  }
+  if (Object.keys(tourUpdate).length > 0) {
+    const { error } = await admin.from("events").update(tourUpdate).eq("id", tourEvent.id);
+    if (error) throw new Error(error.message);
+    result.updated += 1;
   }
 
   // Tourdagen alleen verruimen: gereden etappes staan niet meer in de feed.
   const days = feed.stages.flatMap((stage) => stage.slots.map((slot) => amsterdamDay(slot.startAt)));
   const firstDay = feed.stages.map((stage) => amsterdamDay(stage.slots[0].startAt)).sort()[0];
   const lastDay = days.sort()[days.length - 1];
-  const tourUpdate: Record<string, string> = {};
-  if (!tour.starts_on || firstDay < tour.starts_on) tourUpdate.starts_on = firstDay;
-  if (!tour.ends_on || lastDay > tour.ends_on) tourUpdate.ends_on = lastDay;
-  if (Object.keys(tourUpdate).length > 0) {
-    await admin.from("frr_tours").update(tourUpdate).eq("id", tour.id);
+  const tourDays: Record<string, string> = {};
+  if (!tour.starts_on || firstDay < tour.starts_on) tourDays.starts_on = firstDay;
+  if (!tour.ends_on || lastDay > tour.ends_on) tourDays.ends_on = lastDay;
+  if (Object.keys(tourDays).length > 0) {
+    await admin.from("frr_tours").update(tourDays).eq("id", tour.id);
   }
 
   return result;

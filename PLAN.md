@@ -53,6 +53,9 @@ gaat stabiliteit voor nieuwe features.
    **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
    sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
    migratie heten de standaard sweet-spotworkouts in de app Drempel.
+   **FRR-tour als hoofdevent:** `0196_frr_tour_event.sql` toepassen vóór of
+   samen met de deploy; daarna op `/beheer/frr-kalender` Nu verversen (nieuwe
+   titels, omschrijving weg). Zie de ronde hieronder.
    **FRR-tours:** `0195_frr_tours.sql` toepassen **vóór** de deploy (de
    beheerpagina en de sync lezen de nieuwe tabellen; de eventpagina en de kalender
    werken zonder). Daarna `FRR_SYNC_SECRET` in Netlify, deployen, een job
@@ -87,7 +90,52 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0196`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`.
+
+---
+
+> **FRR: de tour als hoofdevent, etappes en tijdsloten eronder, 2026-09-29 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Migratie `0196_frr_tour_event.sql`.
+>
+> **Waarom.** Na de eerste import op productie wilde de eigenaar de tour zelf als
+> hoofdevent, met de etappes eronder en per etappe de tijdsloten. Gevraagd of de
+> etappes dan nog op hun eigen dag in de kalender moesten staan: nee, één regel
+> voor de tour, zoals een ZRL-raceweek.
+>
+> **Nu.**
+> - Drie lagen via `parent_event_id`: tourevent ("FRR Ignite", zonder
+>   etappenummer) → etappe (`frr_stage`) → tijdslot (`zwift_event_id`). De
+>   migratie maakt voor bestaande tours het tourevent en hangt de etappes eronder.
+>   De unieke index van 0195 op etappes zonder parent is vervangen door één op het
+>   tourevent en één op (tour, etappe).
+> - Titels: "FRR Ignite · Etappe 3 · iTT" en "… · iTT · 07:00". De toevoeging
+>   staat met " · " en niet meer met " — ", want `subEventLabel` knipt alles na
+>   " — " weg, en dan zou de etappeknop "iTT" missen. De import werkt de oude
+>   titels bij.
+> - Kalender: één regel met een knop per etappe en een datumreeks ("zaterdag
+>   3 oktober t/m zondag 11 oktober"). De regel blijft staan tot de laatste
+>   etappe voorbij is: een hoofdevent telt nu als komend zolang een event eronder
+>   dat is. Ja's op tijdsloten tellen mee op de tourregel; een etappeknop is
+>   gemarkeerd als je in een van zijn slots rijdt.
+> - Tourpagina: sectie Etappes met per etappe de datum en de tijdslotknoppen
+>   (met aantal ZWB'ers), plus klassement en rivalen voor de eerstvolgende
+>   etappe. Een etappepagina toont de tijdsloten zoals eerder; een slotpagina de
+>   gewone "Ben jij erbij?".
+> - De sync zoekt tijdsloten nu op `zwift_event_id` in plaats van op "heeft een
+>   parent", want etappes hebben er nu ook een.
+> - Schema en dashboard: zonder wijziging goed. Het tourevent en de etappes
+>   vallen weg als hoofdevent; alleen slots waar je op antwoordde, komen in het
+>   schema.
+>
+> **Bewust niet gebouwd.** De etappes staan niet meer op hun eigen dag in de
+> kalender (keuze eigenaar): wie op 7 oktober kijkt, ziet de tourregel, niet
+> "etappe 4". Het dashboardblok met komende events toont de tour alleen tot de
+> startdag, omdat dat op de starttijd van het hoofdevent filtert; "Jouw races"
+> toont je slots wel.
+>
+> **Niet lokaal te verifiëren:** migratie 0196 en de nieuwe import tegen de
+> database. Getest: `tsc`, ESLint, `next build` en de unit-suite, met nieuwe
+> titeltests (labels op elk niveau, oude titels herkend).
 
 ---
 
@@ -120,7 +168,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0196`
 >
 > **Nu.**
 > - `/beheer/frr-kalender`: naam, Zwift-tag en GC-code. Opslaan zet de tour in de
->   kalender: per etappe een hoofdevent zonder team ("FRR Ignite · Etappe 3 — iTT",
+>   kalender *(sinds `0196` met een tourevent erboven, zie de ronde hierboven)*:
+>   per etappe een hoofdevent zonder team ("FRR Ignite · Etappe 3 — iTT",
 >   route, rondes, afstand en hoogtemeters uit zwift-data) en daaronder een event
 >   per tijdslot ("… · 07:00", "… · 01:30 (+1)") met het Zwift-event-id. Opnieuw
 >   draaien vult aan, werkt starttijden en zelfgemaakte titels bij, en verwijdert

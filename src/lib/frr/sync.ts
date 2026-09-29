@@ -79,7 +79,7 @@ async function syncEntrants(
     .from("events")
     .select("id, start_at, zwift_event_id, frr_stage")
     .eq("frr_tour_id", tourId)
-    .not("parent_event_id", "is", null)
+    .not("zwift_event_id", "is", null)
     .gte("start_at", new Date(now.getTime() - 15 * 60_000).toISOString())
     .lte("start_at", new Date(now.getTime() + ENTRANTS_HORIZON_MS).toISOString())
     .order("start_at");
@@ -184,7 +184,7 @@ async function syncGc(
     .from("events")
     .select("id")
     .eq("frr_tour_id", tour.id)
-    .not("parent_event_id", "is", null)
+    .not("zwift_event_id", "is", null)
     .lte("start_at", new Date(now.getTime() - GC_AFTER_START_MS).toISOString())
     .limit(1);
   if (!force && (started ?? []).length === 0) return { stage: tour.gc_after_stage, note: null };
