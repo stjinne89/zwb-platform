@@ -6,6 +6,7 @@ import {
   Bike,
   CalendarDays,
   Camera,
+  Flag,
   Crown,
   Gift,
   HeartHandshake,
@@ -22,12 +23,13 @@ import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritve
 import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
-import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
 import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
 import { Greeting } from "./_components/greeting";
+import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { SponsorCarousel } from "./_components/sponsor-carousel";
 import {
@@ -98,6 +100,15 @@ type TeamStanding = {
   created_at: string;
   source_url: string | null;
   teams: TeamRef | TeamRef[] | null;
+};
+
+type UpcomingEvent = {
+  id: string;
+  title: string;
+  type: string;
+  start_at: string;
+  location: string | null;
+  cover_image_path: string | null;
 };
 
 type TeamStandingWithTeam = TeamStanding & { team: TeamRef };
@@ -278,6 +289,11 @@ export default async function DashboardPage({
   const plus7 = new Date();
   plus7.setDate(plus7.getDate() + 7);
   const plus7Iso = plus7.toISOString();
+  // Clubraces kijken verder vooruit dan de overige events: een ZRL-ronde wil je
+  // ruim van tevoren zien staan.
+  const plus14 = new Date();
+  plus14.setDate(plus14.getDate() + 14);
+  const plus14Iso = plus14.toISOString();
   const today = new Date().toISOString().slice(0, 10);
   // Amsterdam-datum: zo verdwijnt de workout van vandaag niet zodra het geplande
   // tijdstip voorbij is (zelfde keuze als de trainingspagina).
@@ -343,9 +359,9 @@ export default async function DashboardPage({
       // Teamevents staan onder hun hoofdevent (migr. 0178).
       .is("parent_event_id", null)
       .gte("start_at", nowIso)
-      .lte("start_at", plus7Iso)
+      .lte("start_at", plus14Iso)
       .order("start_at", { ascending: true })
-      .limit(5),
+      .limit(30),
     supabase
       .from("team_results")
       .select(
@@ -547,6 +563,25 @@ export default async function DashboardPage({
     };
   });
 
+  // Ritverslagen met een verslag of foto's eerst; drie kaarten zijn genoeg om
+  // de clubraces en events niet onder de vouw te duwen.
+  const shownReports = [...reportPreviews]
+    .sort(
+      (a, b) =>
+        Number(b.reportCount + b.photoCount > 0) - Number(a.reportCount + a.photoCount > 0),
+    )
+    .slice(0, 3);
+
+  // Clubraces krijgen een eigen blok boven de overige events, die hun venster
+  // van zeven dagen houden.
+  const upcomingEvents = (upcoming ?? []) as UpcomingEvent[];
+  const clubRaces = upcomingEvents
+    .filter((event) => CLUB_RACE_TYPES.includes(event.type))
+    .slice(0, 5);
+  const otherEvents = upcomingEvents
+    .filter((event) => !CLUB_RACE_TYPES.includes(event.type) && event.start_at <= plus7Iso)
+    .slice(0, 5);
+
   const firstName = (profile?.display_name ?? user?.email?.split("@")[0] ?? "")
     .trim()
     .split(/\s+/)[0];
@@ -586,6 +621,51 @@ export default async function DashboardPage({
   const strava = (stravaConn ?? null) as { scope?: string | null } | null;
   const canSyncStrava = hasActivityScope(strava?.scope ?? null);
 
+  function eventList(events: UpcomingEvent[]) {
+    return (
+      <ul className="divide-y rounded-lg border bg-card">
+        {events.map((event) => {
+          const coverUrl = event.cover_image_path
+            ? supabase.storage
+                .from("event-photos")
+                .getPublicUrl(event.cover_image_path).data.publicUrl
+            : null;
+          return (
+          <li key={event.id}>
+            <Link
+              href={`/events/${event.id}`}
+              className="flex items-center gap-3 p-4 transition hover:bg-muted/50"
+            >
+              {coverUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={coverUrl}
+                  alt=""
+                  className="size-12 shrink-0 rounded-md object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{event.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(event.start_at).toLocaleString("nl-NL", {
+                    dateStyle: "full",
+                    timeStyle: "short",
+                    timeZone: "Europe/Amsterdam",
+                  })}
+                  {event.location ? ` - ${event.location}` : ""}
+                </p>
+              </div>
+              <span className="w-fit shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+                {EVENT_TYPE_LABELS[event.type] ?? event.type}
+              </span>
+            </Link>
+          </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -603,6 +683,12 @@ export default async function DashboardPage({
           <AlertTriangle className="size-4 shrink-0" />
           Vul je Zwift-ID in, anders sta je niet in de ZwiftPower- en ZwiftRacing-standen.
         </Link>
+      )}
+
+      {user && (
+        <Suspense fallback={null}>
+          <MyRaces userId={user.id} />
+        </Suspense>
       )}
 
       {/* Naast elkaar op desktop: de trainingsstatus is het brede blok, het
@@ -632,7 +718,126 @@ export default async function DashboardPage({
 
       {user?.id && <MaintenanceStatus profileId={user.id} />}
 
-      {reportPreviews.length > 0 && (
+      {clubRaces.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Flag}
+            title="Clubraces"
+            action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
+          />
+          {eventList(clubRaces)}
+        </section>
+      )}
+
+      {standings.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Trophy}
+            title="Teams en scorebord"
+            action={<InlineMoreLink href="/teams">Teams</InlineMoreLink>}
+          />
+          <ul className="divide-y rounded-lg border bg-card">
+            {standings.map((standing) => (
+              <li key={standing.id}>
+                <Link
+                  href={`/teams/${standing.team_id}`}
+                  className="grid gap-3 p-4 transition hover:bg-muted/50 sm:grid-cols-[1.2fr_1fr_auto] sm:items-center"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{standing.team.name}</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {standing.team.type}
+                      {standing.team.division ? ` - ${standing.team.division}` : ""}
+                    </p>
+                  </div>
+                  <div className="min-w-0 text-sm">
+                    <p className="truncate">{standing.competition}</p>
+                    {standing.round_label && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {standing.round_label}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 sm:justify-end">
+                    <span className="inline-flex min-w-16 items-center justify-center gap-1 rounded-md bg-primary px-2 py-1 text-sm font-semibold tabular-nums text-primary-foreground">
+                      <Medal className="size-4" />
+                      #{standing.position}
+                      {standing.total_teams ? `/${standing.total_teams}` : ""}
+                    </span>
+                    {standing.points !== null && standing.points !== undefined && (
+                      <span className="text-sm tabular-nums text-muted-foreground">
+                        {standing.points} pt
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <SectionHeader
+          icon={CalendarDays}
+          title="Aankomende events"
+          action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
+        />
+        {otherEvents.length === 0 ? (
+          <EmptyState>Geen events ingepland.</EmptyState>
+        ) : (
+          eventList(otherEvents)
+        )}
+      </section>
+
+      {mediaItems.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Newspaper}
+            title="Nieuws, mededelingen en media"
+            action={<InlineMoreLink href="/media">Alles</InlineMoreLink>}
+          />
+
+          <ul className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
+            {mediaItems.map((item, index) => {
+              const author = singleProfileName(item.profiles) ?? "Bestuur";
+              const prominent = index === 0;
+              return (
+                <li
+                  key={item.id}
+                  className={`rounded-lg border bg-card p-4 ${
+                    prominent ? "lg:row-span-2" : ""
+                  } ${item.pinned ? "border-foreground/40" : ""}`}
+                >
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {item.pinned && <Pin className="size-4 text-foreground/60" />}
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+                      {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {author} -{" "}
+                      {new Date(item.published_at).toLocaleDateString("nl-NL", {
+                        dateStyle: "medium",
+                        timeZone: "Europe/Amsterdam",
+                      })}
+                    </span>
+                  </div>
+                  <h3 className={prominent ? "text-lg font-semibold" : "font-medium"}>
+                    {item.title}
+                  </h3>
+                  {prominent && item.body_md && (
+                    <div className="mt-3">
+                      <Markdown source={item.body_md} />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {shownReports.length > 0 && (
         <section>
           <SectionHeader
             icon={Camera}
@@ -646,7 +851,7 @@ export default async function DashboardPage({
             }
           />
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {reportPreviews.map((r) => (
+            {shownReports.map((r) => (
               <li key={r.id} className="relative">
                 {r.canDelete && (
                   <div className="absolute right-2 top-2 z-10">
@@ -702,46 +907,47 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {mediaItems.length > 0 && (
+      {user && <PhotoNudge userId={user.id} />}
+
+      {awards.length > 0 && (
         <section>
           <SectionHeader
-            icon={Newspaper}
-            title="Nieuws, mededelingen en media"
-            action={<InlineMoreLink href="/media">Alles</InlineMoreLink>}
+            icon={BadgeCheck}
+            title="Nieuwste badges"
+            action={<InlineMoreLink href="/achievements">Achievements</InlineMoreLink>}
           />
-
-          <ul className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
-            {mediaItems.map((item, index) => {
-              const author = singleProfileName(item.profiles) ?? "Bestuur";
-              const prominent = index === 0;
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {awards.map((award) => {
+              const badge = awardBadge(award);
+              const profileName = singleProfileName(award.profiles) ?? "ZWB'er";
               return (
-                <li
-                  key={item.id}
-                  className={`rounded-lg border bg-card p-4 ${
-                    prominent ? "lg:row-span-2" : ""
-                  } ${item.pinned ? "border-foreground/40" : ""}`}
-                >
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    {item.pinned && <Pin className="size-4 text-foreground/60" />}
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                      {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {author} -{" "}
-                      {new Date(item.published_at).toLocaleDateString("nl-NL", {
-                        dateStyle: "medium",
-                        timeZone: "Europe/Amsterdam",
-                      })}
-                    </span>
-                  </div>
-                  <h3 className={prominent ? "text-lg font-semibold" : "font-medium"}>
-                    {item.title}
-                  </h3>
-                  {prominent && item.body_md && (
-                    <div className="mt-3">
-                      <Markdown source={item.body_md} />
+                <li key={award.id}>
+                  <Link
+                    href={`/leden/${award.profile_id}`}
+                    className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
+                  >
+                    {badge && (
+                      <AchievementBadge
+                        title={badge.title}
+                        icon={badge.icon}
+                        color={badge.color}
+                        size="md"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{profileName}</p>
+                      <p className="line-clamp-2 text-sm text-muted-foreground">
+                        {badge?.title ?? "Badge behaald"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {award.award_scope === "weekly" ? "Week van " : ""}
+                        {new Date(award.period_start).toLocaleDateString("nl-NL", {
+                          dateStyle: "medium",
+                          timeZone: "Europe/Amsterdam",
+                        })}
+                      </p>
                     </div>
-                  )}
+                  </Link>
                 </li>
               );
             })}
@@ -749,181 +955,43 @@ export default async function DashboardPage({
         </section>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {koms.length > 0 && (
         <section>
           <SectionHeader
-            icon={Vote}
-            title="Polls"
-            action={<InlineMoreLink href="/polls">Stem mee</InlineMoreLink>}
+            icon={Crown}
+            title="Nieuwe ZWB KOM’s en QOM’s"
+            action={<InlineMoreLink href="/profiel/segments">ZWB Segments</InlineMoreLink>}
           />
-          {polls.length === 0 ? (
-            <EmptyState>Geen open polls.</EmptyState>
-          ) : (
-            <ul className="divide-y rounded-lg border bg-card">
-              {polls.map((poll) => {
-                const topOption = [...poll.options].sort(
-                  (a, b) => b.voteCount - a.voteCount,
-                )[0];
-                return (
-                  <li key={poll.id} className="p-3">
-                    <p className="line-clamp-2 text-sm font-medium">
-                      {poll.question}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {poll.totalVotes} {poll.totalVotes === 1 ? "stem" : "stemmen"}
-                      {topOption ? ` - bovenaan: ${topOption.label}` : ""}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <section>
-          <SectionHeader
-            icon={Gift}
-            title="Ledenvoordeel"
-            action={<InlineMoreLink href="/sponsors">Alles</InlineMoreLink>}
-          />
-          {benefits.length === 0 ? (
-            <EmptyState>Geen actief ledenvoordeel.</EmptyState>
-          ) : (
-            <ul className="divide-y rounded-lg border bg-card">
-              {benefits.map((benefit) => (
-                <li
-                  key={benefit.id}
-                  className="grid gap-2 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {koms.map((kom) => (
+              <li key={`${kom.segment_id}-${kom.title}-${kom.profile_id}`}>
+                <Link
+                  href={`/leden/${kom.profile_id}`}
+                  className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
                 >
+                  <AchievementBadge title={KOM_BADGE[kom.title].label} icon="crown" color={KOM_BADGE[kom.title].color} size="md" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{benefit.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {singleSponsorName(benefit.sponsors) ?? "ZWB Cycling"}
-                      {benefit.valid_until
-                        ? ` - geldig t/m ${new Date(
-                            benefit.valid_until,
-                          ).toLocaleDateString("nl-NL", {
+                    <p className="truncate text-sm font-medium">{kom.display_name ?? "ZWB'er"}</p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                      {KOM_BADGE[kom.title].label} · {kom.segment_name}
+                    </p>
+                    <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                      {formatSegmentTime(kom.seconds)}
+                      {kom.achieved_at
+                        ? ` - ${new Date(kom.achieved_at).toLocaleDateString("nl-NL", {
                             dateStyle: "medium",
                             timeZone: "Europe/Amsterdam",
                           })}`
                         : ""}
                     </p>
                   </div>
-                  {benefit.discount_code && (
-                    <span className="w-fit rounded-md border bg-background px-2 py-1 text-xs font-semibold tabular-nums">
-                      {benefit.discount_code}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      <section>
-        <SectionHeader
-          icon={CalendarDays}
-          title="Aankomende events"
-          action={<InlineMoreLink href="/kalender">Kalender</InlineMoreLink>}
-        />
-        {!upcoming || upcoming.length === 0 ? (
-          <EmptyState>Geen events ingepland.</EmptyState>
-        ) : (
-          <ul className="divide-y rounded-lg border bg-card">
-            {upcoming.map((event) => {
-              const coverUrl = event.cover_image_path
-                ? supabase.storage
-                    .from("event-photos")
-                    .getPublicUrl(event.cover_image_path).data.publicUrl
-                : null;
-              return (
-              <li key={event.id}>
-                <Link
-                  href={`/events/${event.id}`}
-                  className="flex items-center gap-3 p-4 transition hover:bg-muted/50"
-                >
-                  {coverUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={coverUrl}
-                      alt=""
-                      className="size-12 shrink-0 rounded-md object-cover"
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{event.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(event.start_at).toLocaleString("nl-NL", {
-                        dateStyle: "full",
-                        timeStyle: "short",
-                        timeZone: "Europe/Amsterdam",
-                      })}
-                      {event.location ? ` - ${event.location}` : ""}
-                    </p>
-                  </div>
-                  <span className="w-fit shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                    {EVENT_TYPE_LABELS[event.type] ?? event.type}
-                  </span>
-                </Link>
-              </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {user && <PhotoNudge userId={user.id} />}
-
-      {standings.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Trophy}
-            title="Teams en scorebord"
-            action={<InlineMoreLink href="/teams">Teams</InlineMoreLink>}
-          />
-          <ul className="divide-y rounded-lg border bg-card">
-            {standings.map((standing) => (
-              <li key={standing.id}>
-                <Link
-                  href={`/teams/${standing.team_id}`}
-                  className="grid gap-3 p-4 transition hover:bg-muted/50 sm:grid-cols-[1.2fr_1fr_auto] sm:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{standing.team.name}</p>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {standing.team.type}
-                      {standing.team.division ? ` - ${standing.team.division}` : ""}
-                    </p>
-                  </div>
-                  <div className="min-w-0 text-sm">
-                    <p className="truncate">{standing.competition}</p>
-                    {standing.round_label && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {standing.round_label}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 sm:justify-end">
-                    <span className="inline-flex min-w-16 items-center justify-center gap-1 rounded-md bg-primary px-2 py-1 text-sm font-semibold tabular-nums text-primary-foreground">
-                      <Medal className="size-4" />
-                      #{standing.position}
-                      {standing.total_teams ? `/${standing.total_teams}` : ""}
-                    </span>
-                    {standing.points !== null && standing.points !== undefined && (
-                      <span className="text-sm tabular-nums text-muted-foreground">
-                        {standing.points} pt
-                      </span>
-                    )}
-                  </div>
                 </Link>
               </li>
             ))}
           </ul>
+          <StravaAttribution />
         </section>
       )}
-
-      <ClubStats />
 
       <section>
         <SectionHeader
@@ -1023,93 +1091,83 @@ export default async function DashboardPage({
         <StravaAttribution />
       </section>
 
-      <section>
-        <SectionHeader
-          icon={BadgeCheck}
-          title="Nieuwste badges"
-          action={<InlineMoreLink href="/achievements">Achievements</InlineMoreLink>}
-        />
-        {awards.length === 0 ? (
-          <EmptyState>Geen vastgelegde badges.</EmptyState>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {awards.map((award) => {
-              const badge = awardBadge(award);
-              const profileName = singleProfileName(award.profiles) ?? "ZWB'er";
-              return (
-                <li key={award.id}>
-                  <Link
-                    href={`/leden/${award.profile_id}`}
-                    className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
-                  >
-                    {badge && (
-                      <AchievementBadge
-                        title={badge.title}
-                        icon={badge.icon}
-                        color={badge.color}
-                        size="md"
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{profileName}</p>
-                      <p className="line-clamp-2 text-sm text-muted-foreground">
-                        {badge?.title ?? "Badge behaald"}
+      <ClubStats />
+
+      {/* Alleen tonen wat er is: een lege poll- of voordeelkaart duwde de rest
+          omlaag zonder iets te zeggen. */}
+      {(polls.length > 0 || benefits.length > 0) && (
+        <div
+          className={
+            polls.length > 0 && benefits.length > 0 ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"
+          }
+        >
+          {polls.length > 0 && (
+            <section>
+              <SectionHeader
+                icon={Vote}
+                title="Polls"
+                action={<InlineMoreLink href="/polls">Stem mee</InlineMoreLink>}
+              />
+              <ul className="divide-y rounded-lg border bg-card">
+                {polls.map((poll) => {
+                  const topOption = [...poll.options].sort(
+                    (a, b) => b.voteCount - a.voteCount,
+                  )[0];
+                  return (
+                    <li key={poll.id} className="p-3">
+                      <p className="line-clamp-2 text-sm font-medium">
+                        {poll.question}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {award.award_scope === "weekly" ? "Week van " : ""}
-                        {new Date(award.period_start).toLocaleDateString("nl-NL", {
-                          dateStyle: "medium",
-                          timeZone: "Europe/Amsterdam",
-                        })}
+                        {poll.totalVotes} {poll.totalVotes === 1 ? "stem" : "stemmen"}
+                        {topOption ? ` - bovenaan: ${topOption.label}` : ""}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {benefits.length > 0 && (
+            <section>
+              <SectionHeader
+                icon={Gift}
+                title="Ledenvoordeel"
+                action={<InlineMoreLink href="/sponsors">Alles</InlineMoreLink>}
+              />
+              <ul className="divide-y rounded-lg border bg-card">
+                {benefits.map((benefit) => (
+                  <li
+                    key={benefit.id}
+                    className="grid gap-2 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{benefit.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {singleSponsorName(benefit.sponsors) ?? "ZWB Cycling"}
+                        {benefit.valid_until
+                          ? ` - geldig t/m ${new Date(
+                              benefit.valid_until,
+                            ).toLocaleDateString("nl-NL", {
+                              dateStyle: "medium",
+                              timeZone: "Europe/Amsterdam",
+                            })}`
+                          : ""}
                       </p>
                     </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader
-          icon={Crown}
-          title="Nieuwe ZWB KOM’s en QOM’s"
-          action={<InlineMoreLink href="/profiel/segments">ZWB Segments</InlineMoreLink>}
-        />
-        {koms.length === 0 ? (
-          <EmptyState>Geen nieuwe ZWB KOM’s of QOM’s.</EmptyState>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {koms.map((kom) => (
-              <li key={`${kom.segment_id}-${kom.title}-${kom.profile_id}`}>
-                <Link
-                  href={`/leden/${kom.profile_id}`}
-                  className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
-                >
-                  <AchievementBadge title={KOM_BADGE[kom.title].label} icon="crown" color={KOM_BADGE[kom.title].color} size="md" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{kom.display_name ?? "ZWB'er"}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">
-                      {KOM_BADGE[kom.title].label} · {kom.segment_name}
-                    </p>
-                    <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-                      {formatSegmentTime(kom.seconds)}
-                      {kom.achieved_at
-                        ? ` - ${new Date(kom.achieved_at).toLocaleDateString("nl-NL", {
-                            dateStyle: "medium",
-                            timeZone: "Europe/Amsterdam",
-                          })}`
-                        : ""}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        <StravaAttribution />
-      </section>
+                    {benefit.discount_code && (
+                      <span className="w-fit rounded-md border bg-background px-2 py-1 text-xs font-semibold tabular-nums">
+                        {benefit.discount_code}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
 
       {carouselSponsors.length > 0 && (
         <SponsorCarousel sponsors={carouselSponsors} />

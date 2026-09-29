@@ -85,6 +85,55 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 
 ---
 
+> **Dashboard: clubraces naar boven, blok "Jouw races", 2026-09-29 — gebouwd; geen migratie.**
+> Commit: de commit die dit blok toevoegt. Niet gepusht.
+>
+> **Waarom.** De eigenaar vond de volgorde van het dashboard niet meer sterk: clubraces
+> als de ZRL stonden te laag. Ze stonden op plek 8, onder ritverslagen (tot 6 grote
+> fotokaarten), nieuws en de altijd zichtbare polls en ledenvoordeel. Het scorebord
+> stond twee blokken verderop, los van de races. Het eigen teamevent, met de
+> starttijd en de opstelling, stond helemaal niet op het dashboard, want daar staan
+> alleen hoofdevents. De live ZRL-stand was er ook niet te vinden.
+>
+> **Nieuwe volgorde.** Groet · Zwift-ID-melding · **Jouw races** · trainingsstatus
+> + core · onderhoud · **Clubraces** · Teams en scorebord · Aankomende events · Nieuws
+> · Ritverslagen · foto-nudge · badges · KOM's/QOM's · Training en clubactiviteit
+> (Strava-sync, `#strava-sync` werkt nog) · clubstats · polls en ledenvoordeel ·
+> sponsors.
+>
+> - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
+>   clubraces in de komende 14 dagen. Het gaat om de races van je teams en om
+>   clubraces waarvoor je ja zei (Omnium). "Clubrace" is `CLUB_RACE_TYPES` in
+>   `event-types.ts`: ZRL, Ladder, Flamme Rouge en Omnium. Wie in een paraplu zit,
+>   telt de subteams mee (zelfde regel als de kalender). Per raceweek komt er één
+>   regel: het team waarin je bent opgesteld, anders je directe team, en anders de
+>   raceweek zelf tot de captain je indeelt. Elke regel toont je status (in de
+>   opstelling / beschikbaar / misschien / niet beschikbaar / aangemeld / nog niet
+>   opgegeven) en de opstelling van het teamevent of de raceweek. Voor een ZRL-race
+>   met Zwift-event staat er van 15 minuten vóór tot 2 uur na de start een knop
+>   "Live stand" naar `/live/zrl/[eventId]`.
+> - **Clubraces**: een eigen blok, 14 dagen vooruit (maximaal 5). "Aankomende
+>   events" toont nu alleen de overige events, in het oude venster van 7 dagen.
+> - **Ritverslagen**: maximaal 3, eerst die met een verslag of foto's.
+> - **Lege blokken verdwijnen**: polls, ledenvoordeel, badges en KOM's tonen geen
+>   lege melding meer. "Aankomende events" en de clubactiviteit houden hun melding,
+>   want daar staan ook de Strava-knoppen.
+>
+> **Bewust niet gebouwd.** Geen teamchips per raceweek in het blok Clubraces
+> (kost een extra query, en je eigen team staat al in Jouw races). Geen
+> beschikbaarheidsknoppen op het dashboard: die staan op de eventpagina en de
+> teampagina, en een tweede plek geeft twee plekken om te onderhouden. Geen
+> instelbare volgorde per lid.
+>
+> **Niet lokaal te verifiëren.** Er is geen `.env.local` in de worktree, dus het
+> dashboard is niet tegen echte data of in de browser bekeken. Dat geldt ook voor
+> de indeling van paraplu- en subteams in Jouw races. `tsc` en ESLint zijn schoon,
+> 1.734 unit-tests zijn groen (`omnium-live.test.ts` faalt zoals bekend zonder
+> `.env.local`). `next build` compileert en typecheckt, maar stopt bij het
+> prerenderen van `/omnium/rules` zonder Supabase-env.
+
+---
+
 > **Coach noemde een verouderd urenplafond, 2026-09-29 — gerepareerd; geen migratie.**
 > Commit: de commit die dit blok toevoegt. Niet gepusht.
 >
@@ -1666,7 +1715,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > - **Kalender:** alleen het hoofdevent, met een knop per team. "Voor mij" rekent
 >   het hoofdevent als passend als een van de teamevents past; de ja's van de
 >   teamevents staan samen op het hoofdevent. **Dashboard:** komende events zonder
->   teamevents. **Schema** (`loadScheduleEvents`): zonder hoofdevents, zodat je daar
+>   teamevents; sinds 2026-09-29 staan je eigen teamevents apart in "Jouw races". **Schema** (`loadScheduleEvents`): zonder hoofdevents, zodat je daar
 >   niet op het geheel ja kunt zeggen.
 >
 > **Bewust niet gebouwd.** Geen overerving van parcours of Zwift-regels van hoofd-
@@ -3553,7 +3602,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   **Rustig** naast de Android-namen, en de verbinding zit op iOS achter het
   i-icoon linksboven; Significant/Grootte wijzigingen genoemd als zuinigere maar
   minder nauwkeurige optie.
-- **Persoonlijk trainingsstatus-blok op het dashboard** (2026-06-22): bovenaan een
+- **Persoonlijk trainingsstatus-blok op het dashboard** (2026-06-22): bovenaan (sinds
+  2026-09-29 onder "Jouw races") een
   blok met het **ZWBeterWorden-advies** + de metrics **Fitness (CTL)**, **Vorm
   (TSB)** en **Herstel/readiness** plus de **eerstvolgende geplande workout**.
   Alleen zichtbaar wanneer relevant (intervals.icu gekoppeld óf een geplande

@@ -20,3 +20,8 @@ export const EVENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
   EVENT_TYPES.map((type) => [type.value, type.label]),
 );
 
+/**
+ * Clubraces: competities waar ZWB als club of in teams aan meedoet. Het
+ * dashboard zet ze boven de overige events.
+ */
+export const CLUB_RACE_TYPES: string[] = ["zrl", "ladder", "flamme_rouge", "omnium"];
