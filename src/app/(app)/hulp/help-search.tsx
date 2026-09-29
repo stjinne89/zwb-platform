@@ -14,6 +14,13 @@ type HelpResult = {
 const HELP_INDEX: HelpResult[] = [
   { title: "ZWBgame", text: "Zwift-racegame: ladder, ZRL, FRR-tour, routes, slipstream, W′, powerups, ploegorders, deelname en sportgegevens.", href: "/hulp#zwbgame", terms: "game spel wielrennen koers race zwift ladder club ladder uitdagen zrl wtrl puntenrace race of truth scratch ploegentijdrit ttt fal fts leaguepunten frr flamme rouge tour etappe tijdrit klassement egap trui groen bolletjes blauw bezemwagen punten ploeg peloton blob slipstream draft wiel w' w-prime frisheid tactiek powerup veer aerohelm draft boost supertuck sprint kom lead-out breng me terug dagvorm route ronden liggend landschap volledig scherm standen sparen meerijden naar voren aanvallen ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
   {
+    title: "FRR-tours",
+    text: "Etappes en tijdsloten van Flamme Rouge Racing, klassement en renners om in de gaten te houden.",
+    href: "/hulp#teams",
+    terms:
+      "frr flamme rouge racing tour ignite erupt oblivion etappe tijdslot slot inschrijven zwift klassement gc egap klasse rivalen tegenstanders renners volgen favoriet ster zwiftpower",
+  },
+  {
     title: "FTP-test",
     text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",
     href: "/hulp#ftp-test",

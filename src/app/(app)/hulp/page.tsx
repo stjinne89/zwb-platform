@@ -136,6 +136,8 @@ const GUIDES = [
       "Stelt de captain je op, dan sta je op ja voor de race van dat team, ook als je eerder nee zei, en komt de race in je trainingsschema. Verplaatst of haalt de captain je weg, dan vervalt die ja.",
       "Meld je je beschikbaar voor een ZRL-race, of zeg je Ja op de racepagina van je team, dan sta je meteen in het team waar die race bij hoort. Afmelden haalt je er niet weer uit; dat doet een teambeheerder.",
       "Bij ZRL-teams staan zFTP, zMAP, categorie en divisieadvies per renner, zoals WTRL ze toont. Een beheerder plakt daarvoor de teams van WTRL My Teams op Beheer → WTRL-teams. Wie daar lid is van een team, komt ook in het ZWB-team; zonder account kom je in het rooster en word je lid zodra je je naam claimt. Wie bij WTRL vertrekt en via WTRL in het team kwam, gaat er ook bij ZWB uit.",
+      "Een Flamme Rouge-tour (FRR) staat per etappe in de kalender, met daaronder elk tijdslot waarin je die etappe kunt rijden. Je schrijft je in op Zwift. ZWB haalt de inschrijvingen daar om de paar uur op en zet je op ja voor het slot waarin je staat; kies je op Zwift een ander slot, dan verhuist je ja mee. Op de etappe zie je per slot welke ZWB'ers rijden, en links naar het klassement, de truien en het reglement op de FRR-site.",
+      "Bij een FRR-etappe staan ook de ZWB'ers in het algemeen klassement van FRR, per klasse, en onder Renners om in de gaten te houden de renners die in jouw klasse tot vijf plaatsen voor of achter je staan, of binnen een minuut eGAP. Bij elke renner staat in welk slot hij deze etappe rijdt. Met de ster volg je een renner, ook van buiten je klasse; met Volgen voeg je iemand toe met zijn Zwift-ID of ZwiftPower-link. Wie je volgt, ziet alleen jij. Het klassement wordt ververst nadat een etappe is gereden, en telt alleen renners die de laatste etappe reden. Voor de eerste etappe is er nog geen klassement; dan zie je alleen je gevolgde renners. Je Zwift-ID moet op je profiel staan.",
       "ZRL en Ladder-resultaten worden via bronnen gesynct waar mogelijk.",
       "Ontbrekende brondata kan handmatig worden aangevuld door beheerders.",
     ],
@@ -403,6 +405,7 @@ const ADMIN_GUIDES = [
       "De uitslagenlink wordt gebruikt om klasseringen en tijden van ZWB-leden op te halen.",
       "Een GPX-bestand levert route, afstand, hoogtemeters en startpunt. Een nieuwe upload vervangt de bestaande route.",
       "Clubevents op kalender (Eventscan) zet alle aankomende events van de ZWB-club op Zwift in één keer op de kalender, met ingeschreven leden als deelnemer. Wat al op de kalender staat, blijft staan.",
+      "Beheer → FRR-kalender zet een hele FRR-tour in de kalender vanuit de Zwift-tag van de tour (bijvoorbeeld frrignite): een event per etappe en daaronder een event per tijdslot. Opnieuw opslaan of Nu verversen vult alleen aan. De GC-code is de code van de tour in de klassementstabel van FRR (zoals FTQ.5). Die is pas na de eerste etappe bekend; staat hij er niet, dan noemt de melding bij Klassement welke codes FRR toont.",
     ],
   },
   {

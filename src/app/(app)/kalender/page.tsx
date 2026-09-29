@@ -512,7 +512,8 @@ export default async function KalenderPage({
                       key={sub.id}
                       href={`/events/${sub.id}`}
                       className={`rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-secondary ${
-                        sub.team_id && member.teamIds.includes(sub.team_id)
+                        (sub.team_id && member.teamIds.includes(sub.team_id)) ||
+                        member.committedEventIds.has(sub.id)
                           ? "border-primary/50 bg-primary/10"
                           : "bg-background"
                       }`}

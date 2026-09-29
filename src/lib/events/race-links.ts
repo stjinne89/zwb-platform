@@ -23,7 +23,7 @@ export type EventLinkRow = {
 
 export type RaceLink = {
   key: string;
-  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "racepass";
+  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "racepass" | "frr";
   label: string;
   url: string;
 };
@@ -83,6 +83,30 @@ export function derivedZwiftLinks(zwiftEventId: number | string | null | undefin
     { key: `zp-${id}`, kind: "zwiftpower", label: "ZwiftPower", url: zwiftPowerEventUrl(id) },
     { key: `zr-${id}`, kind: "zwiftracing", label: "ZwiftRacing", url: zwiftRacingEventUrl(id) },
   ];
+}
+
+// ── Flamme Rouge Racing (migr. 0195) ────────────────────────────────────────
+// De tourpagina's op flammerougeracing.com gelden voor de lopende tour; FRR
+// heeft geen vaste URL per tour of etappe.
+
+const FRR_BASE = "https://flammerougeracing.com";
+
+/** Klassementen, inschrijvingen en regels van de lopende FRR-tour. */
+export function frrTourLinks(): RaceLink[] {
+  return [
+    ["gc", "Klassement", "/tour-results-gc/"],
+    ["stage", "Etappe-uitslag", "/tour-results-gc-stage/"],
+    ["green", "Groene trui", "/tour-results-green/"],
+    ["polka", "Bolletjestrui", "/tour-results-polka/"],
+    ["team", "Ploegen", "/tour-results-team/"],
+    ["registered", "Inschrijvingen", "/tour-registered/"],
+    ["rules", "Reglement", "/tour-rules/"],
+  ].map(([key, label, path]) => ({
+    key: `frr-${key}`,
+    kind: "frr" as const,
+    label,
+    url: `${FRR_BASE}${path}`,
+  }));
 }
 
 /** Alleen https-links; alles anders valt weg. */

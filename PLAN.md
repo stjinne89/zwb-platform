@@ -53,6 +53,12 @@ gaat stabiliteit voor nieuwe features.
    **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
    sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
    migratie heten de standaard sweet-spotworkouts in de app Drempel.
+   **FRR-tours:** `0195_frr_tours.sql` toepassen **vóór** de deploy (de
+   beheerpagina en de sync lezen de nieuwe tabellen; de eventpagina en de kalender
+   werken zonder). Daarna `FRR_SYNC_SECRET` in Netlify, deployen, een job
+   `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
+   `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
+   (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -81,7 +87,108 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0196`.
+
+---
+
+> **FRR-tours op de kalender: etappes, tijdsloten, klassement en rivalen, 2026-09-29 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt (branch
+> `claude/frr-calendar-results-participants-7ef6d4`). Migratie `0195_frr_tours.sql`.
+> Niet gepusht.
+>
+> **Waarom.** Wens van de eigenaar: de Flamme Rouge Racing-tours net zo makkelijk
+> op de kalender als de ZRL, met hoofdevents en subevents, links naar uitslagen en
+> deelnemers, en per renner wie hij in de gaten moet houden. Keuzes van de eigenaar
+> (2026-09-29): alleen de Tours; het klassement van flammerougeracing.com mag
+> worden opgehaald; rivalen zijn de GC-buren in de eigen klasse plus een eigen
+> volglijst.
+>
+> **Bronnen, live gemeten op 2026-09-29.**
+> - De publieke Zwift-API geeft met `upcoming?limit=200&tags=frrignite` alle 44
+>   tijdsloten van Ignite: 8 etappes, 5 per etappe en 7 bij de tijdritten, elk
+>   met subgroepen A–E op ZRS. Namen: "Tour Ignite - Stage 3 iTT",
+>   "Tour Ignite - Queen Stage 8". Het slot van 23:30 UTC valt in Nederland op de
+>   volgende dag, dus de import groepeert op naam en niet op datum.
+> - Het klassement staat op `/tour-results-gc/` (WordPress, wpDataTables): 25
+>   rijen in de HTML, de rest via `admin-ajax.php?action=get_wdtable&table_id=228`
+>   met de nonce uit de pagina. De tabel bevat het klassement na **elke** etappe
+>   (kolom 3), per geslacht-klasse ("M-BON"), met Zwift-ID, positie, tourtijd en
+>   eGAP. De kolommen hebben geen namen, dus `parseGcRows` leest op positie en
+>   weigert een rij die niet klopt. Filteren op kolom via de AJAX werkte niet;
+>   de sync haalt alles op (3.234 rijen, 7 verzoeken) en filtert zelf.
+> - Inschrijvingen per slot via het bestaande `fetchEntrants` (serviceaccount).
+>
+> **Nu.**
+> - `/beheer/frr-kalender`: naam, Zwift-tag en GC-code. Opslaan zet de tour in de
+>   kalender: per etappe een hoofdevent zonder team ("FRR Ignite · Etappe 3 — iTT",
+>   route, rondes, afstand en hoogtemeters uit zwift-data) en daaronder een event
+>   per tijdslot ("… · 07:00", "… · 01:30 (+1)") met het Zwift-event-id. Opnieuw
+>   draaien vult aan, werkt starttijden en zelfgemaakte titels bij, en verwijdert
+>   nooit iets (gereden slots vallen uit de feed). Knop Nu verversen. Bij een
+>   cronrun is de maker van nieuwe events de beheerder die de tour toevoegde
+>   (`events.created_by` is verplicht).
+> - Cron `POST /api/frr/sync` (`FRR_SYNC_SECRET`, elke 3 uur), van twee dagen voor
+>   tot twee dagen na een tour:
+>   - opnieuw importeren;
+>   - de inschrijvers van slots die binnen 36 uur starten naar
+>     `frr_slot_entrants`, alle renners en niet alleen ZWB;
+>   - een ja op het slot voor leden die er staan. Gematcht op Zwift-ID, niet op
+>     naam: tussen duizenden vreemden is een naammatch te riskant;
+>   - de ja op een ander slot van dezelfde etappe weg als het lid daar niet meer
+>     staat;
+>   - vanaf twee uur na het eerste slot, hooguit eens per drie uur, het klassement
+>     na de laatste etappe naar `frr_gc_standings` (RPC `frr_replace_gc`, in één
+>     transactie). Zonder GC-code, of met een code die niet in de tabel staat,
+>     noemt `gc_error` de codes die er wel staan.
+> - Etappepagina:
+>   - sectie Tijdsloten, met per slot de tijd, de ingeschreven ZWB'ers, "Jij
+>     rijdt" en de links naar Zwift, ZwiftPower en ZwiftRacing;
+>   - FRR-links bij Raceinfo: klassement, etappe-uitslag, truien, ploegen,
+>     inschrijvingen en reglement;
+>   - ZWB in het klassement;
+>   - Renners om in de gaten te houden: dezelfde klasse, tot 5 plaatsen of 60 s
+>     eGAP voor of achter je, plus je volglijst (`frr_watch_riders`, alleen voor
+>     jezelf zichtbaar), met per renner het slot van deze etappe.
+>
+>   Een slotpagina toont hetzelfde blok en de gewone "Ben jij erbij?".
+> - Kalender: een etappe met een knop per tijdslot. Je eigen slot is gemarkeerd bij
+>   een ja, beschikbaarheid of opstelling, dus nu ook bij de ZRL.
+> - Schema (`loadScheduleEvents`): FRR-tijdsloten staan niet meer in de basislijst
+>   van 50, want 44 slots zouden de rest verdringen. Alleen slots waar het lid op
+>   antwoordde, komen erbij.
+> - De FRR-kolom op `events` wordt op de eventpagina apart opgehaald. Zo breekt
+>   een deploy vóór de migratie niet elke eventpagina.
+>
+> **Bewust niet gebouwd.**
+> - 6IX Racing en PowerLeague: andere opbouw (rondes, rollen, divisies) en andere
+>   uitslagpagina's. Keuze van de eigenaar.
+> - Etappe-uitslag per slot uit Zwift (`fetchSubgroupResults`): het klassement
+>   plus de links naar FRR en ZwiftPower dekken het, en FRR rekent eGAP zelf.
+> - Klassement per etappe bewaren: FRR heeft de historie zelf, en de rivalenlijst
+>   kijkt alleen naar nu. Gevolg: wie de laatste etappe niet reed, staat niet in
+>   het opgeslagen klassement (zo staat het ook in de tabel van FRR).
+> - De inschrijflijst van FRR zelf (`/tour-registered/`, wpDataTables 105/110): die
+>   toonde op 2026-09-29 nog de vorige tour zonder rijen. De Zwift-inschrijving
+>   per slot zegt meer (welk slot).
+> - ZwiftPower en WTRL ophalen: blijft uitgesloten (voorwaarden), zoals eerder.
+> - Geen logo voor flammerougeracing.com in `public/logos/`: het icoon op hun site
+>   is niet duidelijk van FRR. De links krijgen het algemene pijltje.
+>
+> **Niet lokaal te verifiëren:** de migratie (geen Docker/Supabase-config), de
+> import en sync tegen de database, de inschrijvingen (serviceaccount), en de
+> pagina's tegen echte data (geen `.env.local` in de worktree).
+>
+> **Wel live getest tegen de echte bronnen:**
+> - `fetchFrrGcRows` haalde 3.234 rijen op (code `FTQ.5`, laatste etappe 21, 109
+>   renners).
+> - De Ignite-feed gaf de 8 etappes met routes en tijdsloten zoals hierboven.
+>
+> **Getest:**
+> - `tsc`, ESLint en `next build`;
+> - `tests/unit/frr.test.ts`: feed, titels, GC-parser en rivalenlijst, op
+>   vastgelegde echte data in `tests/fixtures/frr/`;
+> - de volledige unit-suite (`omnium-live` faalt alleen op de ontbrekende
+>   `.env.local`).
 
 ---
 
@@ -1724,6 +1831,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 > `/ritverslagen` is niet aangepast: verslagen en foto's staan op de teamevents, dus
 > daar blijven die staan; een leeg hoofdevent kan er tussen staan. Geen algemene
 > "subevent"-knop in het eventformulier: alleen de ZRL-import maakt hoofdevents.
+> *(Bijgewerkt 2026-09-29: sinds `0195` maakt ook de FRR-import hoofdevents, met
+> tijdsloten zonder team eronder.)*
 >
 > **Niet lokaal te verifiëren:** de migratie (geen Docker/Supabase-config), en de
 > pagina's tegen echte data (geen `.env.local` in de worktree). Getest: `tsc`,

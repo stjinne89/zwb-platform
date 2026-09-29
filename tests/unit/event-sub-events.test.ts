@@ -19,6 +19,19 @@ describe("groupSubEvents", () => {
     expect(childrenByParent.get("w1")?.map((e) => e.id)).toEqual(["w1-a", "w1-b1"]);
   });
 
+  it("hangt ook tijdsloten zonder team onder hun etappe (FRR)", () => {
+    const { topLevel, childrenByParent } = groupSubEvents([
+      { id: "etappe-1", parent_event_id: null, team_id: null },
+      { id: "slot-0700", parent_event_id: "etappe-1", team_id: null },
+      { id: "slot-0130", parent_event_id: "etappe-1", team_id: null },
+    ]);
+    expect(topLevel.map((e) => e.id)).toEqual(["etappe-1"]);
+    expect(childrenByParent.get("etappe-1")?.map((e) => e.id)).toEqual([
+      "slot-0700",
+      "slot-0130",
+    ]);
+  });
+
   it("laat een teamevent zonder zichtbaar hoofdevent los staan", () => {
     const { topLevel } = groupSubEvents([{ id: "w1-a", parent_event_id: "elders" }]);
     expect(topLevel.map((e) => e.id)).toEqual(["w1-a"]);

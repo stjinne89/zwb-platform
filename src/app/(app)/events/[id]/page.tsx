@@ -21,6 +21,7 @@ import { loadPacingRoute, type LoadedRoute } from "@/lib/pacing/route-loader";
 import { hasOwnRoute, withParentRoute } from "@/lib/events/route-source";
 import {
   derivedZwiftLinks,
+  frrTourLinks,
   mergeLinks,
   racepassFor,
   type EventLinkRow,
@@ -29,6 +30,8 @@ import {
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
+import { FrrStagePanel } from "./_components/frr-stage-panel";
+import { subEventLabel } from "@/lib/events/sub-events";
 import { loadZrlTeamResults, type ZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { isPoiType, type EventPoi } from "./_components/poi";
 import type { EventZone } from "./_components/zone";
@@ -249,6 +252,14 @@ export default async function EventDetailPage({
         : Promise.resolve({ data: null }),
     ]);
   const myTeamIds = new Set((myTeamRows ?? []).map((row) => row.team_id as string));
+  // FRR-tour (migr. 0195): een etappe met tijdsloten in plaats van teams. Apart
+  // opgehaald, zodat een ontbrekende migratie niet elke eventpagina breekt.
+  const { data: frrLink } =
+    event.type === "flamme_rouge"
+      ? await supabase.from("events").select("frr_tour_id").eq("id", id).maybeSingle()
+      : { data: null };
+  const frrTourId = (frrLink?.frr_tour_id as string | null | undefined) ?? null;
+  const isFrr = Boolean(frrTourId);
   const subEvents = ((subEventRows ?? []) as Array<{
     id: string;
     title: string;
@@ -264,15 +275,72 @@ export default async function EventDetailPage({
       return {
         id: row.id,
         startAt: row.start_at,
-        name: team?.name ?? row.title,
+        name: isFrr ? subEventLabel(row.title, event.title) : team?.name ?? row.title,
         teamId: row.team_id,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
         hasRoute: hasOwnRoute(row),
         zwiftLinks: derivedZwiftLinks(row.zwift_event_id),
       };
     })
-    .sort((a, b) => Number(b.isMine) - Number(a.isMine));
+    .sort((a, b) => (isFrr ? 0 : Number(b.isMine) - Number(a.isMine)));
   const isParentEvent = subEvents.length > 0;
+
+  // De tijdsloten van deze FRR-etappe, ook als je op één slot kijkt: met de
+  // ZWB'ers die in Zwift zijn ingeschreven en je eigen keuze.
+  type FrrSlot = { id: string; label: string; startAt: string; zwb: string[]; isMine: boolean };
+  let frrSlots: FrrSlot[] = [];
+  if (isFrr) {
+    const stageTitle = event.parent_event_id ? String(parentEvent?.title ?? "") : event.title;
+    const slotRows = event.parent_event_id
+      ? ((
+          await supabase
+            .from("events")
+            .select("id, title, start_at")
+            .eq("parent_event_id", event.parent_event_id)
+            .order("start_at")
+        ).data ?? [])
+      : (subEventRows ?? []);
+    const slotIds = (slotRows as Array<{ id: string }>).map((row) => row.id);
+    const [{ data: zwbEntrants }, { data: mySlotRsvps }] = await Promise.all([
+      slotIds.length > 0
+        ? supabase
+            .from("frr_slot_entrants")
+            .select("event_id, profile_id, name, profiles(display_name)")
+            .in("event_id", slotIds)
+            .not("profile_id", "is", null)
+        : Promise.resolve({ data: [] }),
+      user && slotIds.length > 0
+        ? supabase
+            .from("event_rsvps")
+            .select("event_id")
+            .eq("profile_id", user.id)
+            .eq("status", "yes")
+            .in("event_id", slotIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const mine = new Set((mySlotRsvps ?? []).map((row) => row.event_id as string));
+    const zwbBySlot = new Map<string, string[]>();
+    for (const row of (zwbEntrants ?? []) as Array<{
+      event_id: string;
+      profile_id: string | null;
+      name: string;
+      profiles: { display_name: string } | { display_name: string }[] | null;
+    }>) {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      if (user && row.profile_id === user.id) mine.add(row.event_id);
+      zwbBySlot.set(row.event_id, [
+        ...(zwbBySlot.get(row.event_id) ?? []),
+        profile?.display_name ?? row.name,
+      ]);
+    }
+    frrSlots = (slotRows as Array<{ id: string; title: string; start_at: string }>).map((row) => ({
+      id: row.id,
+      label: subEventLabel(row.title, stageTitle),
+      startAt: row.start_at,
+      zwb: (zwbBySlot.get(row.id) ?? []).sort((a, b) => a.localeCompare(b, "nl")),
+      isMine: mine.has(row.id),
+    }));
+  }
   // Gereden ZRL-raceweek: de bevroren plaats van elk team in zijn divisie
   // (migr. 0188). Alleen lezen; de live stand schrijft hem weg.
   const teamResults =
@@ -557,7 +625,10 @@ export default async function EventDetailPage({
     ((linkRows ?? []) as Array<EventLinkRow & { event_id: string }>).filter(
       (row) => row.event_id === eventId,
     );
-  const raceLinks = mergeLinks(linksOf(event.id), linksOf(event.parent_event_id));
+  const raceLinks = [
+    ...mergeLinks(linksOf(event.id), linksOf(event.parent_event_id)),
+    ...(isFrr ? frrTourLinks() : []),
+  ];
 
   // Bij de ZRL meld je je aan met de racepass van je team, niet op Zwift. Op de
   // raceweek staan de passes van je eigen teams.
@@ -1032,7 +1103,67 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {isParentEvent && (
+      {isParentEvent && isFrr && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Tijdsloten
+          </h2>
+          <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+            {frrSlots.map((slot) => {
+              const sub = subEvents.find((item) => item.id === slot.id);
+              return (
+                <li key={slot.id} className="space-y-1">
+                  <Link
+                    href={`/events/${slot.id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm hover:bg-secondary/50"
+                  >
+                    <span className="flex items-center gap-2 font-medium tabular-nums">
+                      {slot.label}
+                      {slot.isMine && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          Jij rijdt
+                        </span>
+                      )}
+                    </span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {new Date(slot.startAt).toLocaleString("nl-NL", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Europe/Amsterdam",
+                      })}
+                    </span>
+                  </Link>
+                  {slot.zwb.length > 0 && (
+                    <LineupNames
+                      riders={slot.zwb.map((name, index) => ({
+                        key: `${slot.id}-${index}`,
+                        name,
+                        isMe: false,
+                      }))}
+                      className="px-3 pb-2"
+                    />
+                  )}
+                  <RaceLinkChips links={sub?.zwiftLinks ?? []} className="px-3 pb-3" />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {frrTourId && (
+        <FrrStagePanel
+          supabase={supabase}
+          tourId={frrTourId}
+          userId={user?.id ?? null}
+          slots={frrSlots.map((slot) => ({ id: slot.id, label: slot.label }))}
+        />
+      )}
+
+      {isParentEvent && !isFrr && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Teams

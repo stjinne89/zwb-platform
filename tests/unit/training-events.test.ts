@@ -130,6 +130,8 @@ function fakeAdmin(gezien: { limit: number | null }) {
     lte: chain,
     is: chain,
     in: chain,
+    or: chain,
+    not: chain,
     order: chain,
     limit: (value: number) => {
       gezien.limit = value;

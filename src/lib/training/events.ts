@@ -138,18 +138,48 @@ export async function loadScheduleEvents(
    */
   limit = 50,
 ): Promise<ScheduleEvent[]> {
-  const { data: rawEvents } = await admin
-    .from("events")
-    .select("id, title, type, start_at, end_at, distance_km, elevation_m")
-    .gte("start_at", `${from}T00:00:00`)
-    .lte("start_at", `${to}T23:59:59`)
-    .order("start_at", { ascending: true })
-    .limit(limit);
-  if (!rawEvents || rawEvents.length === 0) return [];
+  // De tijdsloten van een FRR-etappe (migr. 0195) blijven buiten de basislijst:
+  // een tour heeft er ruim veertig, en die zouden de limiet opeten. Alleen de
+  // slots waar het lid zelf op antwoordde, komen er hieronder bij.
+  const [{ data: rawEvents }, { data: frrSlots }] = await Promise.all([
+    admin
+      .from("events")
+      .select("id, title, type, start_at, end_at, distance_km, elevation_m")
+      .gte("start_at", `${from}T00:00:00`)
+      .lte("start_at", `${to}T23:59:59`)
+      .or("type.neq.flamme_rouge,parent_event_id.is.null")
+      .order("start_at", { ascending: true })
+      .limit(limit),
+    admin
+      .from("event_rsvps")
+      .select(
+        "events!inner(id, title, type, start_at, end_at, distance_km, elevation_m, parent_event_id)",
+      )
+      .eq("profile_id", profileId)
+      .eq("events.type", "flamme_rouge")
+      .not("events.parent_event_id", "is", null)
+      .gte("events.start_at", `${from}T00:00:00`)
+      .lte("events.start_at", `${to}T23:59:59`),
+  ]);
+  const ownSlots = ((frrSlots ?? []) as Array<{ events: ClubEventRow | ClubEventRow[] | null }>)
+    .flatMap((row) => (Array.isArray(row.events) ? row.events : row.events ? [row.events] : []))
+    .map(({ id, title, type, start_at, end_at, distance_km, elevation_m }) => ({
+      id,
+      title,
+      type,
+      start_at,
+      end_at,
+      distance_km,
+      elevation_m,
+    })) as ClubEventRow[];
+  const combined = [...((rawEvents ?? []) as ClubEventRow[]), ...ownSlots].sort((a, b) =>
+    String(a.start_at).localeCompare(String(b.start_at)),
+  );
+  if (combined.length === 0) return [];
 
   // Een hoofdevent (migr. 0178) is geen race om ja op te zeggen; dat gebeurt op
   // het teamevent eronder.
-  const events = await withoutParentEvents(admin, (rawEvents ?? []) as ClubEventRow[]);
+  const events = await withoutParentEvents(admin, combined);
   if (events.length === 0) return [];
 
   const ids = events.map((event) => event.id as string);
