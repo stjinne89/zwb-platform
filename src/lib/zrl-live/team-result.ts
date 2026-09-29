@@ -59,8 +59,8 @@ export function checkTeamResult(view: ZrlLiveView): TeamResultCheck {
     points: own.total,
     riders: own.riders,
   };
-  // Scratch: alleen de finish telt, en die is er (`final`).
-  if (view.score.format === "scratch") {
+  // Scratch en TTT: alleen de finish telt, en die is er (`final`).
+  if (view.score.format !== "points") {
     return finishers.size === 0 ? { ok: false, reason: "geen finishers" } : { ok: true, result };
   }
   if (finishers.size === 0 || view.score.passes.length === 0) {

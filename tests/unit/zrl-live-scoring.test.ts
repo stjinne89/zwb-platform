@@ -88,15 +88,92 @@ describe("scoreRace", () => {
     expect(result.format).toBe("scratch");
     expect(result.starters).toBe(3);
     expect(result.passes.flatMap((pass) => pass.crossings.map((c) => c.fal))).toEqual([0, 0, 0, 0, 0, 0, 0]);
-    expect(result.riders.map((r) => [r.name, r.fal, r.fts, r.fin, r.podium, r.total])).toEqual([
-      ["Cees", 0, 0, 3, 10, 13],
-      ["Anna", 0, 0, 2, 8, 10],
+    expect(result.riders.map((r) => [r.name, r.fal, r.fts, r.fin, r.podium, r.total, r.void])).toEqual([
+      ["Cees", 0, 0, 3, 10, 13, false],
+      ["Anna", 0, 0, 2, 8, 10, false],
+      ["Bram", 0, 0, 0, 0, 0, true],
     ]);
     expect(result.teams.map((t) => [t.team, t.total])).toEqual([["bmtr", 13], ["zwb", 10]]);
   });
 });
 
+describe("teamvolgorde volgens WTRL", () => {
+  // Vier renners per team, elk één finish: FIN bepaalt alles, tenzij er gelijkspel is.
+  const team = (name: string, ids: number[]) => ids.map((athleteId) => ({ athleteId, name: `${name}${athleteId}`, team: name }));
+
+  it("zet teams met drie starters achter die met vier, en geeft onder de drie geen leaguepunten", () => {
+    const field = [...team("vier", [1, 2, 3, 4]), ...team("drie", [5, 6, 7]), ...team("twee", [8, 9])];
+    // De ploeg van drie en die van twee finishen vooraan.
+    const finishers = [5, 6, 7, 8, 9, 1, 2, 3, 4];
+    const result = scoreRace({ format: "scratch", route: [], riders: field, passages: [], startAt: 0, finish: { finishers, final: true } });
+    expect(result.teams.map((t) => [t.team, t.riders, t.rank, t.league])).toEqual([
+      ["vier", 4, 1, 3],
+      ["drie", 3, 2, 2],
+      ["twee", 2, 3, 0],
+    ]);
+    expect(result.teams.find((t) => t.team === "drie")!.total).toBeGreaterThan(result.teams[0].total);
+  });
+
+  it("beslist gelijkspel op totaal en FIN met de tijd van de eerste renner", () => {
+    // Twaalf starters. zulu: plek 1, 5, 6, 12; alfa: 2, 4, 7, 11; rest: 3, 8, 9, 10.
+    // Beide 28 FIN en 12 podium; op naam zou alfa voor gaan.
+    const field = [...team("zulu", [1, 5, 6, 12]), ...team("alfa", [2, 4, 7, 11]), ...team("rest", [3, 8, 9, 10])];
+    const finishers = Array.from({ length: 12 }, (_, i) => i + 1);
+    const times = new Map(finishers.map((id) => [id, 1_000_000 + id * 1000]));
+    const result = scoreRace({ format: "scratch", route: [], riders: field, passages: [], startAt: 0, finish: { finishers, final: true, times } });
+    const [zulu, alfa] = ["zulu", "alfa"].map((name) => result.teams.find((t) => t.team === name)!);
+    expect([zulu.total, alfa.total]).toEqual([40, 40]);
+    expect([zulu.rank, alfa.rank]).toEqual([1, 2]);
+  });
+});
+
+describe("ploegentijdrit", () => {
+  // ZRL Legends Route, Open Cherry B1, race 1 (TTT), 7 april 2026: Zwifts
+  // durationMs per renner en de WTRL-uitslag (teamtijd en leaguepunten).
+  const wtrl: Array<[string, number[]]> = [
+    ["Evo Eagles", [1737603, 1681977, 1682546, 1680566, 1862619, 1682378]],
+    ["Sunrise Racing Team B Fika", [1702954, 2123033, 1703694, 1703321, 1847468, 1703134]],
+    ["EVO Ninjas", [1789588, 1789148, 1822942, 1793432, 1786734, 1786540]],
+    ["Hercules Hermes", [1814063, 1909665, 2224271, 1817096, 1817111, 1817173]],
+    ["Sunrise Racing Team B Borg", [1847563, 1847484, 1847839, 1886000, 1848358]],
+    ["Galaxy Centaur", [1878437, 1878590, 1878696, 1878927]],
+    ["Valhalla Svalinn", [1924022]],
+  ];
+  let id = 0;
+  const entries = wtrl.flatMap(([name, list]) => list.map((time) => ({ athleteId: ++id, name: `${name} ${id}`, team: name, time })));
+  const byTime = [...entries].sort((a, b) => a.time - b.time);
+
+  it("rekent de teamtijd, de volgorde en de leaguepunten zoals WTRL", () => {
+    const result = scoreRace({
+      format: "ttt",
+      route: [],
+      riders: entries,
+      passages: [],
+      startAt: 0,
+      finish: { finishers: byTime.map((e) => e.athleteId), final: true, times: new Map(entries.map((e) => [e.athleteId, e.time])) },
+    });
+    expect(result.teams.map((t) => [t.team, t.time, t.rank, t.league])).toEqual([
+      ["Evo Eagles", 1682546, 1, 7],
+      ["Sunrise Racing Team B Fika", 1703694, 2, 6],
+      ["EVO Ninjas", 1789588, 3, 5],
+      ["Hercules Hermes", 1817173, 4, 4],
+      ["Sunrise Racing Team B Borg", 1848358, 5, 3],
+      ["Galaxy Centaur", 1878927, 6, 2],
+      ["Valhalla Svalinn", null, 7, 0],
+    ]);
+    // Geen rennerspunten in een TTT.
+    expect(result.riders.every((r) => r.total === 0)).toBe(true);
+    expect(result.riders[0]).toMatchObject({ time: 1680566, team: "Evo Eagles" });
+  });
+});
+
 describe("zrlFormatOf", () => {
+  it("herkent de ploegentijdrit (Legends Route, 7 april 2026)", () => {
+    expect(zrlFormatOf({ eventType: "TEAM_TIME_TRIAL", tags: ["wtrl", "zrl", "zrl19", "ttt", "ttbikesdraft"] })).toBe("ttt");
+    expect(zrlFormatOf({ tags: ["wtrl", "zrl", "ttt"] })).toBe("ttt");
+    expect(zrlFormatOf({ description: "Round 4 / Series 19) - Race: 1 of 4 (TTT)" })).toBe("ttt");
+  });
+
   it("herkent scratch aan de WTRL-tag of de beschrijving (R1 W2, 2026-09-29)", () => {
     expect(zrlFormatOf({ tags: ["wtrl", "zrl", "zrl20", "scr", "zrl_arch"] })).toBe("scratch");
     expect(zrlFormatOf({ tags: [], description: "Round 1 - Race: 1 of 5 (SCRATCH RACE)" })).toBe("scratch");

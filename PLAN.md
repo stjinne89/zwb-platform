@@ -94,6 +94,61 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`
 
 ---
 
+> **Live ZRL-stand: alle formats en de WTRL-teamvolgorde, 2026-09-29 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar na de scratch-fix hieronder: zorg dat elk
+> komend format herkend en volgens WTRL geteld wordt. Het schema van ronde 1
+> (wtrl.racing/zrl/schedule, 29 september): 6/10 PTS, 13/10 TTT, 20/10 SCR,
+> 27/10 PTS.
+>
+> **Hoe een ZRL-TTT in Zwift zit.** Nagelezen op de TTT van 7 april 2026 (Legends
+> Route, Open Cherry, Zwift-event `5495916`, WTRL-uitslag via de ingelogde Chrome
+> van de eigenaar, alleen ter controle): één Zwift-event per league-tijdslot,
+> type `TEAM_TIME_TRIAL`, tag `ttt`, "(TTT)" in de beschrijving, per subgroep
+> `timeTrialOptions` met startrijen van 60 s (max. 6 renners per rij, één team
+> per rij). Zwifts `durationMs` telt vanaf de eigen startrij en is precies de
+> WTRL-tijd (1680566 ms = 1680.566 s).
+>
+> **Nu.**
+> - `zrlFormatOf` herkent `ttt`/`TEAM_TIME_TRIAL`/"(TTT)", `scr`/"(SCRATCH
+>   RACE)"; al het andere (`pts`, `rot`) is een puntenrace.
+> - `scoreRace` met `format: "ttt"`: geen rennerspunten, teamtijd = vierde
+>   finisher, zonder vier finishers geen tijd en 0 leaguepunten. Renners krijgen
+>   hun `time`; de finishtijden komen uit de Zwift-uitslag.
+> - Teamvolgorde voor punten en scratch volgens WTRL: eerst teams met vier of
+>   meer starters, dan met drie, daaronder geen leaguepunten; daarbinnen totaal,
+>   FIN (zonder podium, WTRL houdt die apart), FAL, FTS en de tijd van de eerste
+>   renner. `TeamScore` heeft nu `finishers`, `time` en `league` (aantal gestarte
+>   teams − plaats + 1). `riders` telt nu de gestarte renners, ook zonder punten.
+> - Pagina: "Ploegentijdrit" in de statusregel, teamtijd en finishers/starters in
+>   het teamklassement, tijden in plaats van punten bij de renners. De JSON voor
+>   Sauce geeft `time`, `finishers` en `league`; de mod toont bij een TTT tijden.
+> - Bevriezen vraagt ook bij een TTT geen segmentdekking.
+>
+> **Getoetst.** Unit-test met de echte TTT-uitslag van april (zeven teams:
+> teamtijden, volgorde en leaguepunten gelijk aan WTRL). Scratch van vanavond
+> (Open Aqua B1) lokaal nagerekend uit Zwift en naast de WTRL-uitslag gelegd:
+> tien van de elf teams precies gelijk (totaal, plaats, leaguepunten); ZWB week
+> alleen af omdat het losse script onze eigen renners niet uit de opstelling
+> haalt. Niet in de browser bekeken: elk event van vandaag was al over de 90
+> minuten, en een bezoek had dan de uitslag op productie herschreven.
+>
+> **Gezien, niet opgelost.** Om 21:37 gaf productie voor B1 "54 gestart" maar geen
+> finishers, terwijl Zwift er lokaal 53 teruggaf: de Zwift-uitslag kwam op
+> productie niet binnen (zie de toets van 25 september, punt a). Geen rekenfout;
+> de stand blijft dan "Voorlopig" en wordt niet bevroren.
+>
+> **Bewust niet.** Tijdstraffen, DQ's en de zFTP/zMAP-sancties (achteraf, zie de
+> toets van 25 september). Geen leaguepunten in het scherm: de plaats zegt het
+> al. Races waarin WTRL maar een deel van de segmenten laat tellen ("unless
+> otherwise specified"): dat staat nergens in Zwift, dus alle segmenten tellen.
+>
+> **Niet lokaal te verifiëren.** Een TTT live: de eerste is 13 oktober. Controle
+> dan: teamtijden op de live stand naast de WTRL-uitslag.
+
+---
+
 > **Live ZRL-stand telt scratch als scratch, 2026-09-29 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -120,11 +175,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`
 > na de deploy schrijft hem wel opnieuw weg. Na de deploy de live stand van elk
 > team van vandaag één keer openen, één voor één.
 >
-> **Bewust niet.** De ploegentijdrit (tag vermoedelijk `ttt`) telt nog steeds als
-> puntenrace; die heeft geen rennerspunten maar de tijd van de vierde renner, en
-> er stond er nog geen op het programma. Ook niet: de WTRL-tiebreak (FIN, FAL,
-> FTS, tijd) en de regel dat ploegen met drie starters achter die met vier
-> komen; die zaten er bij de puntenrace ook niet in.
+> **Bewust niet (in deze commit).** De ploegentijdrit, de WTRL-tiebreak en de
+> startersregel. *Dezelfde avond alsnog gebouwd, zie het blok hierboven.*
 >
 > **Getest.** `tsc`, ESLint op de gewijzigde bestanden, unit-tests
 > (`zrl-live-scoring`, `zrl-team-result`, `zwbgame`). Lokaal op de live stand van

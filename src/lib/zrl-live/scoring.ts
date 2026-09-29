@@ -1,14 +1,21 @@
-// WTRL-puntentelling voor een ZRL-puntenrace, live uit Zwift-segmentpassages.
+// WTRL-telling voor een ZRL-race, live uit Zwift-segmentpassages en -uitslag.
 //
-// Regels (wtrl.racing/zrl/resources, gelezen 2026-09-22):
-// - FAL: per passage krijgt de eerste het aantal starters, dan telkens 1 minder.
-// - FTS: per segment over de hele race de top 10 snelste tijden,
-//   15-12-10-8-6-5-4-3-2-1; één renner kan meerdere keren scoren.
-// - FIN: de eerste finisher krijgt het aantal starters, aflopend.
-// - Podium: 10-8-6-4-2 voor de eerste vijf.
-// - DNF/DQ: punten vervallen en schuiven niet door.
+// Regels (wtrl.racing/zrl/resources, gelezen 2026-09-22 en 2026-09-29):
+// - Puntenrace en Race of Truth:
+//   - FAL: per passage krijgt de eerste het aantal starters, dan telkens 1 minder.
+//   - FTS: per segment over de hele race de top 10 snelste tijden,
+//     15-12-10-8-6-5-4-3-2-1; één renner kan meerdere keren scoren.
+//   - FIN: de eerste finisher krijgt het aantal starters, aflopend.
+//   - Podium: 10-8-6-4-2 voor de eerste vijf.
+//   - DNF/DQ: punten vervallen en schuiven niet door.
 // - Scratch: alleen FIN en podium. Segmentpassages tellen dan alleen nog om de
 //   starters te bepalen.
+// - Ploegentijdrit: geen rennerspunten. De teamtijd is die van de vierde renner
+//   over de streep; met minder dan vier finishers geen tijd en geen leaguepunten.
+// - Teamvolgorde (punten en scratch): eerst teams met vier of meer starters, dan
+//   met drie; met minder dan drie geen leaguepunten. Daarbinnen totaal, FIN, FAL,
+//   FTS en de tijd van de eerste renner van het team.
+// - Leaguepunten: de winnaar krijgt het aantal gestarte teams, dan telkens 1 minder.
 //
 // Puur: geen I/O. Tot de uitslag definitief is, is alles voorlopig: FTS kan nog
 // verschuiven en wie niet finisht, verliest zijn punten. De officiële
@@ -17,8 +24,13 @@
 export const FTS_POINTS = [15, 12, 10, 8, 6, 5, 4, 3, 2, 1];
 export const PODIUM_POINTS = [10, 8, 6, 4, 2];
 
-/** Puntenrace (ook Race of Truth) of scratch. */
-export type ZrlScoringFormat = "points" | "scratch";
+/** Van de vierde renner over de streep telt de tijd in een ploegentijdrit. */
+export const TTT_RIDERS = 4;
+/** Zoveel starters voor volle leaguepunten; met één minder achteraan, daaronder niets. */
+export const FULL_TEAM_STARTERS = 4;
+
+/** Puntenrace (ook Race of Truth), scratch of ploegentijdrit. */
+export type ZrlScoringFormat = "points" | "scratch" | "ttt";
 
 export type Passage = {
   id: string;
@@ -40,6 +52,8 @@ export type Finish = {
   finishers: number[];
   /** Zwift heeft de uitslag definitief gemaakt. */
   final: boolean;
+  /** Finishtijd per renner in ms vanaf de eigen start (in een TTT de eigen startrij). */
+  times?: Map<number, number>;
 };
 
 export type ScoreInput = {
@@ -73,11 +87,24 @@ export type RiderScore = Rider & {
   fin: number;
   podium: number;
   total: number;
+  /** Finishtijd in ms vanaf de eigen start, of null zonder finish. */
+  time: number | null;
   /** Punten vervallen: niet gefinisht terwijl de uitslag definitief is. */
   void: boolean;
 };
 
-export type TeamScore = { team: string; total: number; riders: number; rank: number };
+export type TeamScore = {
+  team: string;
+  total: number;
+  /** Gestarte renners van dit team. */
+  riders: number;
+  finishers: number;
+  /** TTT: tijd van de vierde renner (ms), anders null. */
+  time: number | null;
+  rank: number;
+  /** 0 bij te weinig starters, of in een TTT zonder vier finishers. */
+  league: number;
+};
 
 export type ScoreResult = {
   format: ZrlScoringFormat;
@@ -160,34 +187,90 @@ export function scoreRace(input: ScoreInput): ScoreResult {
   }
 
   const finishers = (input.finish?.finishers ?? []).filter((id) => riderById.has(id));
-  finishers.forEach((id, i) => {
-    add(id, "fin", Math.max(n - i, 0));
-    if (i < PODIUM_POINTS.length) add(id, "podium", PODIUM_POINTS[i]);
-  });
+  if (format !== "ttt") {
+    finishers.forEach((id, i) => {
+      add(id, "fin", Math.max(n - i, 0));
+      if (i < PODIUM_POINTS.length) add(id, "podium", PODIUM_POINTS[i]);
+    });
+  }
 
   const final = Boolean(input.finish?.final);
   const finished = new Set(finishers);
-  const riders: RiderScore[] = [...score].map(([athleteId, s]) => {
+  const times = input.finish?.times ?? new Map<number, number>();
+  const riders: RiderScore[] = [...starters].map((athleteId) => {
     const rider = riderById.get(athleteId) as Rider;
+    const s = score.get(athleteId) ?? { fal: 0, fts: 0, fin: 0, podium: 0 };
     const isVoid = final && !finished.has(athleteId);
-    return { ...rider, ...s, total: isVoid ? 0 : s.fal + s.fts + s.fin + s.podium, void: isVoid };
+    return {
+      ...rider,
+      ...s,
+      total: isVoid ? 0 : s.fal + s.fts + s.fin + s.podium,
+      time: finished.has(athleteId) ? (times.get(athleteId) ?? null) : null,
+      void: isVoid,
+    };
   });
-  riders.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  if (format === "ttt") {
+    riders.sort((a, b) => (a.time ?? Infinity) - (b.time ?? Infinity) || a.name.localeCompare(b.name));
+  } else {
+    riders.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  }
 
-  const byTeam = new Map<string, { total: number; riders: number }>();
+  return { format, starters: n, final, passes, riders, teams: rankTeams(format, riders) };
+}
+
+type TeamTally = TeamScore & { fin: number; fal: number; fts: number; first: number; times: number[] };
+
+function rankTeams(format: ZrlScoringFormat, riders: RiderScore[]): TeamScore[] {
+  const byTeam = new Map<string, TeamTally>();
   for (const rider of riders) {
     if (!rider.team) continue;
-    const team = byTeam.get(rider.team) ?? { total: 0, riders: 0 };
+    const team = byTeam.get(rider.team) ?? {
+      team: rider.team, total: 0, riders: 0, finishers: 0, time: null, rank: 0, league: 0,
+      fin: 0, fal: 0, fts: 0, first: Infinity, times: [],
+    };
     team.total += rider.total;
     team.riders += 1;
+    if (!rider.void) {
+      team.fin += rider.fin;
+      team.fal += rider.fal;
+      team.fts += rider.fts;
+    }
+    if (rider.time !== null) {
+      team.finishers += 1;
+      team.times.push(rider.time);
+      team.first = Math.min(team.first, rider.time);
+    }
     byTeam.set(rider.team, team);
   }
-  const teams = [...byTeam]
-    .map(([team, t]) => ({ team, ...t, rank: 0 }))
-    .sort((a, b) => b.total - a.total || a.team.localeCompare(b.team));
-  teams.forEach((team, i) => {
-    team.rank = i > 0 && teams[i - 1].total === team.total ? teams[i - 1].rank : i + 1;
-  });
+  const teams = [...byTeam.values()];
 
-  return { format, starters: n, final, passes, riders, teams };
+  // Volgorde volgens WTRL; `scores` zegt of een team leaguepunten kan krijgen.
+  let keys: (team: TeamTally) => number[];
+  let scores: (team: TeamTally) => boolean;
+  if (format === "ttt") {
+    for (const team of teams) {
+      team.times.sort((a, b) => a - b);
+      team.time = team.times.length >= TTT_RIDERS ? team.times[TTT_RIDERS - 1] : null;
+    }
+    keys = (t) => [t.time ?? Infinity, -t.finishers];
+    scores = (t) => t.time !== null;
+  } else {
+    const tier = (t: TeamTally) => (t.riders >= FULL_TEAM_STARTERS ? 0 : t.riders === FULL_TEAM_STARTERS - 1 ? 1 : 2);
+    keys = (t) => [tier(t), -t.total, -t.fin, -t.fal, -t.fts, t.first];
+    scores = (t) => tier(t) < 2;
+  }
+  const compare = (a: TeamTally, b: TeamTally) => {
+    const ka = keys(a);
+    const kb = keys(b);
+    for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1;
+    return 0;
+  };
+  teams.sort((a, b) => compare(a, b) || a.team.localeCompare(b.team));
+  teams.forEach((team, i) => {
+    team.rank = i > 0 && compare(teams[i - 1], team) === 0 ? teams[i - 1].rank : i + 1;
+    team.league = scores(team) ? teams.length - team.rank + 1 : 0;
+  });
+  return teams.map(({ team, total, riders, finishers, time, rank, league }) => ({
+    team, total, riders, finishers, time, rank, league,
+  }));
 }

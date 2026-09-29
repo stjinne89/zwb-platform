@@ -90,14 +90,24 @@ function parseSubgroups(event: unknown): ZwiftSubgroup[] {
 }
 
 /**
- * Het format staat niet in onze kalender, wel bij Zwift: WTRL zet een tag
- * ("scr" bij scratch, "rot" bij de Race of Truth) en het format tussen haakjes
- * in de beschrijving, "Race: 1 of 5 (SCRATCH RACE)" (gezien 2026-09-29).
+ * Het format staat niet in onze kalender, wel bij Zwift. WTRL zet een tag (`pts`,
+ * `rot`, `scr`, `ttt`) en het format tussen haakjes achter de beschrijving,
+ * "Race: 1 of 5 (SCRATCH RACE)"; een TTT is bovendien een Zwift-event van het type
+ * TEAM_TIME_TRIAL (gezien 2026-09-29, en bij de TTT van april 2026). Onbekend
+ * telt als puntenrace, net als de Race of Truth.
  */
 export function zrlFormatOf(event: unknown): ZrlScoringFormat {
-  const { tags, description } = (event ?? {}) as { tags?: unknown; description?: unknown };
-  if (Array.isArray(tags) && tags.some((tag) => String(tag).toLowerCase() === "scr")) return "scratch";
-  if (typeof description === "string" && /\(scratch race\)/i.test(description)) return "scratch";
+  const { tags, description, eventType } = (event ?? {}) as {
+    tags?: unknown;
+    description?: unknown;
+    eventType?: unknown;
+  };
+  const tagSet = new Set(Array.isArray(tags) ? tags.map((tag) => String(tag).toLowerCase()) : []);
+  const text = typeof description === "string" ? description : "";
+  if (tagSet.has("ttt") || eventType === "TEAM_TIME_TRIAL" || /\((ttt|team time trial)\)/i.test(text)) {
+    return "ttt";
+  }
+  if (tagSet.has("scr") || /\(scratch( race)?\)/i.test(text)) return "scratch";
   return "points";
 }
 
@@ -367,7 +377,13 @@ export async function loadZrlLive(
     passages: data.passages,
     startAt: subgroup.startAt,
     finishedAt,
-    finish: { finishers: subgroup.results.map((r) => r.profileId), final },
+    finish: {
+      finishers: subgroup.results.map((r) => r.profileId),
+      final,
+      times: new Map(
+        subgroup.results.flatMap((r) => (r.durationMs == null ? [] : [[r.profileId, r.durationMs] as const])),
+      ),
+    },
   });
 
   const view: ZrlLiveView = {

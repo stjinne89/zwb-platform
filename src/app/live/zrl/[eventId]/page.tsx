@@ -6,7 +6,7 @@ import { BackLink } from "@/components/app-ui";
 import { ZwbMark } from "@/components/zwb-logo";
 import { WTRL_ZRL_RESULTS_URL } from "@/lib/teams/wtrl-results";
 import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
-import type { RiderScore } from "@/lib/zrl-live/scoring";
+import type { RiderScore, ZrlScoringFormat } from "@/lib/zrl-live/scoring";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -27,6 +27,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const outcome = await loadZrlLive(eventId);
   return { title: outcome.status === "ok" ? `ZRL live — ${outcome.view.event.title}` : "ZRL live" };
 }
+
+/** Racetijd vanaf de eigen start: "28:02.5". */
+function raceTime(ms: number | null) {
+  if (ms === null) return "—";
+  const tenths = Math.floor(ms / 100);
+  const minutes = Math.floor(tenths / 600);
+  const seconds = ((tenths % 600) / 10).toFixed(1).padStart(4, "0");
+  return `${minutes}:${seconds}`;
+}
+
+const FORMAT_LABEL: Record<ZrlScoringFormat, string | null> = {
+  points: null,
+  scratch: "Scratch",
+  ttt: "Ploegentijdrit",
+};
+
+const POINTS_HEADER: Record<ZrlScoringFormat, string> = {
+  points: "FAL · FTS · FIN",
+  scratch: "FIN",
+  ttt: "Tijd",
+};
 
 function clock(ms: number) {
   return new Intl.DateTimeFormat("nl-NL", {
@@ -65,18 +86,24 @@ function Status({ view }: { view: ZrlLiveView }) {
   return (
     <p className="text-sm text-muted-foreground">
       {started ? "Voorlopig" : `Start ${clock(view.startAt).slice(0, 5)}`} · {view.subgroupLabel} ·{" "}
-      {score.format === "scratch" && "Scratch · "}
+      {FORMAT_LABEL[score.format] && `${FORMAT_LABEL[score.format]} · `}
       {score.starters} gestart · bijgewerkt {clock(view.fetchedAt)}
     </p>
   );
 }
 
-function Points({ rider, scratch }: { rider: RiderScore; scratch: boolean }) {
+function Points({ rider, format }: { rider: RiderScore; format: ZrlScoringFormat }) {
+  if (format === "ttt") return null;
   return (
     <span className="tabular-nums text-muted-foreground">
-      {scratch ? rider.fin + rider.podium : `${rider.fal} · ${rider.fts} · ${rider.fin + rider.podium}`}
+      {format === "scratch" ? rider.fin + rider.podium : `${rider.fal} · ${rider.fts} · ${rider.fin + rider.podium}`}
     </span>
   );
+}
+
+/** Wat rechts in de rij staat: punten, of in een TTT de finishtijd. */
+function riderResult(rider: RiderScore, format: ZrlScoringFormat) {
+  return format === "ttt" ? raceTime(rider.time) : rider.total;
 }
 
 export default async function ZrlLivePage({ params, searchParams }: PageProps) {
@@ -113,9 +140,10 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
   const label = (team: string | null) => (team ? view.teamLabels[team] ?? team : "—");
   const nameById = new Map(score.riders.map((r) => [r.athleteId, r.name]));
   const own = score.riders.filter((r) => view.ownRiders.includes(r.athleteId));
-  const scratch = score.format === "scratch";
-  // Bij scratch leveren segmenten geen punten op.
-  const passes = scratch ? [] : score.passes.filter((pass) => pass.crossings.length > 0).reverse();
+  const { format } = score;
+  const ttt = format === "ttt";
+  // Alleen in een puntenrace leveren segmenten punten op.
+  const passes = format === "points" ? score.passes.filter((pass) => pass.crossings.length > 0).reverse() : [];
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-6">
@@ -182,7 +210,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
       <section className="rounded-lg border bg-card">
         <h2 className="border-b px-4 py-3 text-sm font-semibold">Teams</h2>
         {score.teams.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Nog geen punten.</p>
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">{ttt ? "Nog geen tijden." : "Nog geen punten."}</p>
         ) : (
           <ol className="divide-y">
             {score.teams.map((team) => (
@@ -195,8 +223,12 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
               >
                 <span className="w-6 tabular-nums text-muted-foreground">{team.rank}</span>
                 <span className="min-w-0 flex-1 truncate">{label(team.team)}</span>
-                <span className="text-xs text-muted-foreground">{team.riders}</span>
-                <span className="w-12 text-right tabular-nums">{team.total}</span>
+                <span className="text-xs text-muted-foreground">
+                  {ttt ? `${team.finishers}/${team.riders}` : team.riders}
+                </span>
+                <span className={cn("text-right tabular-nums", ttt ? "w-16" : "w-12")}>
+                  {ttt ? raceTime(team.time) : team.total}
+                </span>
               </li>
             ))}
           </ol>
@@ -207,14 +239,16 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
         <section className="rounded-lg border bg-card">
           <h2 className="flex items-center justify-between border-b px-4 py-3 text-sm font-semibold">
             {view.event.teamName ?? "Ons team"}
-            <span className="text-xs font-normal text-muted-foreground">{scratch ? "FIN" : "FAL · FTS · FIN"}</span>
+            <span className="text-xs font-normal text-muted-foreground">{POINTS_HEADER[format]}</span>
           </h2>
           <ul className="divide-y">
             {own.map((rider) => (
               <li key={rider.athleteId} className="flex items-center gap-3 px-4 py-2 text-sm">
                 <span className={cn("min-w-0 flex-1 truncate", rider.void && "line-through")}>{rider.name}</span>
-                <Points rider={rider} scratch={scratch} />
-                <span className="w-12 text-right font-semibold tabular-nums">{rider.total}</span>
+                <Points rider={rider} format={format} />
+                <span className={cn("text-right font-semibold tabular-nums", ttt ? "w-16" : "w-12")}>
+                  {riderResult(rider, format)}
+                </span>
               </li>
             ))}
           </ul>
@@ -274,8 +308,10 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
                 {rider.name}
                 <span className="ml-2 text-xs text-muted-foreground">{label(rider.team)}</span>
               </span>
-              <Points rider={rider} scratch={scratch} />
-              <span className="w-12 text-right tabular-nums">{rider.total}</span>
+              <Points rider={rider} format={format} />
+              <span className={cn("text-right tabular-nums", ttt ? "w-16" : "w-12")}>
+                {riderResult(rider, format)}
+              </span>
             </li>
           ))}
         </ol>

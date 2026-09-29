@@ -11,7 +11,7 @@ function view({
   crossingsPerPass = 4,
   emptyPass = -1,
   complete = true,
-  format = "points" as "points" | "scratch",
+  format = "points" as "points" | "scratch" | "ttt",
 }: {
   final?: boolean;
   ownTeam?: string | null;
@@ -19,7 +19,7 @@ function view({
   /** Index van een passage waar Zwift niemand teruggaf (een haperend segment). */
   emptyPass?: number;
   complete?: boolean;
-  format?: "points" | "scratch";
+  format?: "points" | "scratch" | "ttt";
 } = {}): ZrlLiveView {
   const riders = [1, 2, 3, 4].map((athleteId) => ({
     athleteId,
@@ -30,6 +30,7 @@ function view({
     fin: 4,
     podium: 0,
     total: 14,
+    time: 1_800_000 + athleteId,
     void: false,
   }));
   const passes = LIJNEN.map((name, index) => ({
@@ -61,9 +62,9 @@ function view({
       passes,
       riders,
       teams: [
-        { team: "andere ploeg", total: 40, riders: 2, rank: 1 },
-        { team: "zwb cycling b1", total: 28, riders: 2, rank: 2 },
-        { team: "derde ploeg", total: 10, riders: 1, rank: 3 },
+        { team: "andere ploeg", total: 40, riders: 2, finishers: 2, time: null, rank: 1, league: 3 },
+        { team: "zwb cycling b1", total: 28, riders: 2, finishers: 2, time: null, rank: 2, league: 2 },
+        { team: "derde ploeg", total: 10, riders: 1, finishers: 1, time: null, rank: 3, league: 1 },
       ],
     },
     complete,
@@ -107,8 +108,9 @@ describe("teamResultOf", () => {
     });
   });
 
-  it("vraagt bij scratch geen segmentpassages: alleen de finish telt", () => {
+  it("vraagt bij scratch en TTT geen segmentpassages: alleen de finish telt", () => {
     expect(teamResultOf(view({ format: "scratch", crossingsPerPass: 0 }))?.rank).toBe(2);
+    expect(teamResultOf(view({ format: "ttt", crossingsPerPass: 0 }))?.rank).toBe(2);
     expect(teamResultOf(view({ format: "scratch", final: false }))).toBeNull();
     expect(teamResultOf(view({ format: "scratch", complete: false }))).toBeNull();
   });

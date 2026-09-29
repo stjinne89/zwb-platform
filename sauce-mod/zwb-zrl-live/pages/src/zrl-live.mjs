@@ -21,6 +21,13 @@ let timer = null;
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+// Racetijd vanaf de eigen start: "28:02.5".
+function raceTime(ms) {
+    if (ms == null) return '—';
+    const tenths = Math.floor(ms / 100);
+    return `${Math.floor(tenths / 600)}:${((tenths % 600) / 10).toFixed(1).padStart(4, '0')}`;
+}
+
 function clock(ms) {
     return new Date(ms).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
 }
@@ -42,21 +49,22 @@ function render() {
     const me = data.riders.find((r) => r.id === watchingId);
     const myRank = me ? data.riders.indexOf(me) + 1 : null;
     const started = data.fetchedAt >= data.startAt;
+    const ttt = data.format === 'ttt';
     const status = data.final ? 'Eindstand' : started ? 'Voorlopig' : `Start ${clock(data.startAt)}`;
 
     const teams = data.teams.slice(0, TEAM_ROWS).map((t) => {
         const cls = t.own ? 'own' : me && t.team === me.team ? 'watch' : '';
         return `<li class="${cls}"><span class="rank">${t.rank}</span>` +
-            `<span class="name">${esc(t.team)}</span><span class="pts">${t.total}</span></li>`;
+            `<span class="name">${esc(t.team)}</span><span class="pts">${ttt ? raceTime(t.time) : t.total}</span></li>`;
     }).join('');
 
     const rider = me ? `
         <h2>In beeld</h2>
         <div class="rider watch">
             <span class="name">${myRank}. ${esc(me.name)}</span>
-            <span class="pts">${me.total}</span>
+            <span class="pts">${ttt ? raceTime(me.time) : me.total}</span>
         </div>
-        <div class="muted">${data.format === 'scratch' ? '' : `FAL ${me.fal} · FTS ${me.fts} · `}FIN ${me.fin}${me.team ? ` · ${esc(me.team)}` : ''}</div>` : '';
+        <div class="muted">${ttt ? '' : `${data.format === 'scratch' ? '' : `FAL ${me.fal} · FTS ${me.fts} · `}FIN ${me.fin}`}${me.team ? `${ttt ? '' : ' · '}${esc(me.team)}` : ''}</div>` : '';
 
     const pass = data.lastPass ? `
         <h2>${esc(data.lastPass.name)}${data.lastPass.lap > 1 ? ` ${data.lastPass.lap}` : ''}</h2>
@@ -69,7 +77,7 @@ function render() {
             <span class="muted">${status} · ${data.starters} gestart</span>
         </header>
         <h2>Teams</h2>
-        ${teams ? `<ol>${teams}</ol>` : '<p class="empty">Nog geen punten</p>'}
+        ${teams ? `<ol>${teams}</ol>` : `<p class="empty">${ttt ? 'Nog geen tijden' : 'Nog geen punten'}</p>`}
         ${rider}
         ${pass}`;
 }
