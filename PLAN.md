@@ -156,6 +156,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0196`
 > - Schema (`loadScheduleEvents`): FRR-tijdsloten staan niet meer in de basislijst
 >   van 50, want 44 slots zouden de rest verdringen. Alleen slots waar het lid op
 >   antwoordde, komen erbij.
+> - Dashboard: de recente events van de afgelopen week (limiet 6) slaan
+>   FRR-tijdsloten over; de etappe zelf blijft staan. In "Jouw races" (`84d3dc5`)
+>   staat een slot waar je ja op zei gewoon als race.
 > - De FRR-kolom op `events` wordt op de eventpagina apart opgehaald. Zo breekt
 >   een deploy vóór de migratie niet elke eventpagina.
 >

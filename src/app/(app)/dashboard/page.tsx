@@ -402,6 +402,8 @@ export default async function DashboardPage({
       .select("id, title, start_at, location, cover_image_path, created_by")
       .gte("start_at", since7Iso)
       .lt("start_at", nowIso)
+      // FRR-tijdsloten (migr. 0195) niet: een tourweek heeft er ruim veertig.
+      .or("type.neq.flamme_rouge,parent_event_id.is.null")
       .order("start_at", { ascending: false })
       .limit(6),
     user
