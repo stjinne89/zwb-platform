@@ -24,6 +24,15 @@ describe("frrTourLinks", () => {
     expect(linkLogo(links.at(-1)!.url)).toBe("/logos/discord.svg");
     expect(linkLogo("https://discord.gg/abc")).toBe("/logos/discord.svg");
   });
+
+  it("geeft de truien hun eigen trui en de rest een icoon", () => {
+    const icons = Object.fromEntries(frrTourLinks().map((link) => [link.label, link.icon]));
+    expect(icons.Klassement).toEqual({ image: "/logos/frr-geel.svg" });
+    expect(icons["Groene trui"]).toEqual({ image: "/logos/frr-groen.svg" });
+    expect(icons.Bolletjestrui).toEqual({ image: "/logos/frr-bolletjes.svg" });
+    expect(icons.Reglement).toEqual({ glyph: "rules" });
+    expect(icons.Discord).toBeUndefined();
+  });
 });
 
 describe("derivedZwiftLinks", () => {

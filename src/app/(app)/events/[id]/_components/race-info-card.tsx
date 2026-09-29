@@ -1,11 +1,43 @@
 import Link from "next/link";
-import { ArrowUpRight, Gauge, Trophy } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookOpen,
+  ClipboardList,
+  Flag,
+  Gauge,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { linkLogo, type RaceLink } from "@/lib/events/race-links";
+import { linkLogo, type RaceLink, type RaceLinkIcon } from "@/lib/events/race-links";
 
-function LinkLogo({ url, className }: { url: string; className?: string }) {
-  const logo = linkLogo(url);
+const GLYPHS: Record<Extract<RaceLinkIcon, { glyph: string }>["glyph"], LucideIcon> = {
+  stage: Flag,
+  team: Users,
+  signups: ClipboardList,
+  rules: BookOpen,
+};
+
+function LinkLogo({
+  url,
+  icon,
+  className,
+}: {
+  url: string;
+  icon?: RaceLinkIcon;
+  className?: string;
+}) {
+  if (icon && "glyph" in icon) {
+    const Glyph = GLYPHS[icon.glyph];
+    return (
+      <span className={cn("grid size-6 shrink-0 place-items-center rounded-md bg-muted", className)}>
+        <Glyph className="size-3.5 text-foreground/80" />
+      </span>
+    );
+  }
+  const logo = icon && "image" in icon ? icon.image : linkLogo(url);
   if (!logo) {
     return (
       <span className={cn("grid size-6 shrink-0 place-items-center rounded-md bg-muted", className)}>
@@ -44,7 +76,7 @@ export function RaceLinkChips({
             title={`${link.label} openen`}
             className="inline-flex items-center gap-2 rounded-full border bg-background py-1 pl-1 pr-3 text-sm font-medium hover:bg-accent"
           >
-            <LinkLogo url={link.url} />
+            <LinkLogo url={link.url} icon={link.icon} />
             {link.label}
           </a>
         </li>

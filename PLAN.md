@@ -213,6 +213,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`
 >   meer en haalt bij de volgende sync een omschrijving weg die gelijk is aan de
 >   Zwift-tekst van een slot. Een eigen tekst van een beheerder blijft staan.
 >   Het Discord-kanaal (uit die tekst) staat nu als link bij Raceinfo.
+> - Iconen bij de FRR-links (wens eigenaar, 2026-09-29): klassement een gele trui,
+>   groene trui en bolletjestrui hun eigen trui (zelf getekende SVG's in
+>   `public/logos/frr-*.svg`), etappe-uitslag een vlag, ploegen, inschrijvingen
+>   en reglement een Lucide-icoon, Discord het Discord-logo van de teamlinks.
+>   `RaceLink` kreeg daarvoor een optioneel `icon`; zonder icoon blijft het logo
+>   van de host gelden.
 > - De einddatum van Ignite staat op 12 oktober door het nachtslot van etappe 8
 >   (01:30). Bewust zo gelaten: de sync loopt alleen een dag langer door.
 > - Dashboard: de recente events van de afgelopen week (limiet 6) slaan

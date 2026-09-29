@@ -21,11 +21,17 @@ export type EventLinkRow = {
   url: string;
 };
 
+/** Een eigen icoon voor een link zonder herkenbaar sitelogo. */
+export type RaceLinkIcon =
+  | { image: string }
+  | { glyph: "stage" | "team" | "signups" | "rules" };
+
 export type RaceLink = {
   key: string;
   kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "racepass" | "frr";
   label: string;
   url: string;
+  icon?: RaceLinkIcon;
 };
 
 // De logo's in public/logos/ komen van de sites zelf, net als op het profiel
@@ -98,22 +104,25 @@ const FRR_DISCORD_URL = "https://discord.com/invite/nQNWHQK6PS";
 
 /** Klassementen, inschrijvingen en regels van de lopende FRR-tour. */
 export function frrTourLinks(): RaceLink[] {
+  const links: Array<[string, string, string, RaceLinkIcon]> = [
+    ["gc", "Klassement", "/tour-results-gc/", { image: "/logos/frr-geel.svg" }],
+    ["stage", "Etappe-uitslag", "/tour-results-gc-stage/", { glyph: "stage" }],
+    ["green", "Groene trui", "/tour-results-green/", { image: "/logos/frr-groen.svg" }],
+    ["polka", "Bolletjestrui", "/tour-results-polka/", { image: "/logos/frr-bolletjes.svg" }],
+    ["team", "Ploegen", "/tour-results-team/", { glyph: "team" }],
+    ["registered", "Inschrijvingen", "/tour-registered/", { glyph: "signups" }],
+    ["rules", "Reglement", "/tour-rules/", { glyph: "rules" }],
+  ];
   return [
-    ["gc", "Klassement", "/tour-results-gc/"],
-    ["stage", "Etappe-uitslag", "/tour-results-gc-stage/"],
-    ["green", "Groene trui", "/tour-results-green/"],
-    ["polka", "Bolletjestrui", "/tour-results-polka/"],
-    ["team", "Ploegen", "/tour-results-team/"],
-    ["registered", "Inschrijvingen", "/tour-registered/"],
-    ["rules", "Reglement", "/tour-rules/"],
-  ]
-    .map(([key, label, path]) => ({
+    ...links.map(([key, label, path, icon]) => ({
       key: `frr-${key}`,
       kind: "frr" as const,
       label,
       url: `${FRR_BASE}${path}`,
-    }))
-    .concat({ key: "frr-discord", kind: "frr", label: "Discord", url: FRR_DISCORD_URL });
+      icon,
+    })),
+    { key: "frr-discord", kind: "frr", label: "Discord", url: FRR_DISCORD_URL },
+  ];
 }
 
 /** Alleen https-links; alles anders valt weg. */
