@@ -85,6 +85,38 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0195`
 
 ---
 
+> **Coach noemde een verouderd urenplafond, 2026-09-29 — gerepareerd; geen migratie.**
+> Commit: de commit die dit blok toevoegt. Niet gepusht.
+>
+> **Aanleiding.** Stijn had zijn doel al op 12 uur per week, en zijn schema's
+> rekenden daar ook mee (elke generatie sinds 13 september heeft
+> `maxHoursPerWeek: 12`). Toch hield de coachchat vol dat het schema op "max 6
+> uur" was gemaakt. Het schema zelf was dus goed; de coach las de verkeerde bron.
+>
+> **Oorzaak, twee keer.** In `chat-context.ts`:
+> - Het plan waarvan de coach de redenering voorleest was dat van de
+>   eerstvolgende workout. Dat was de ZRL-race van die avond, en een clubevent
+>   hangt aan het basisplan dat liep toen het werd vastgezet: Stijns
+>   juli-schema, gemaakt met 6 uur en met de let-op "8,4 uur, hoger dan de
+>   opgegeven max van 6 uur". Vaste afspraken (`origin` `member`/`event`) tellen
+>   daarvoor nu niet meer mee.
+> - Het doel was het actieve doel met de vroegste doeldatum. Afgelopen doelen
+>   blijven op `active` staan, dus dat was de Gran Fondo van mei (6 uur). Nu is
+>   het het doel van het gekozen plan, en zonder plan het eerstvolgende actieve
+>   doel dat nog niet voorbij is (`pickCoachGoal`).
+>
+> **Bewust niet gedaan.** Oude doelen automatisch op afgerond zetten, en Stijns
+> juli-plan (nog `approved`, loopt tot 1 oktober) met terugwerkende kracht
+> archiveren. Het schema, de cron en "pas vandaag aan" werken al met het doel
+> van het plan zelf; alleen de coach deed dat niet. Het opschonen van de
+> doelstatus is een productvraag (wanneer is een doel "af"?), geen bugfix.
+>
+> **Verificatie.** Nieuwe test in `training-chat-context.test.ts` met precies
+> deze situatie; 1.734 unit-tests groen, `tsc` schoon, lint schoon.
+> `omnium-live.test.ts` faalt zoals bekend zonder `.env.local`. De diagnose is
+> alleen-lezen tegen productie gedaan. Het nieuwe coachantwoord op productie is
+> niet lokaal te zien.
+
 > **ZWBgame FRR-tour: vier etappes, klassement, truien en bezemwagen, 2026-09-28 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie; spelversie blijft 5.
 > Niet gepusht.

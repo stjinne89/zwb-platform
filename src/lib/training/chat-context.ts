@@ -112,6 +112,9 @@ export type CoachChatContext = {
   herstel: unknown | null;
 };
 
+/** Vaste afspraken: die hangen aan het schema van het moment van vastzetten. */
+const FIXED_ORIGINS = new Set(["member", "event"]);
+
 /** Hoeveel trainingen er met gepland-naast-gereden meegaan. */
 const COMPLIANCE_DETAIL_LIMIT = 12;
 /** Wat een lid bij een training schreef gaat mee, maar niet onbegrensd. */
@@ -142,9 +145,45 @@ function stripIdentifiers(promptSummary: string | null): unknown | null {
   }
 }
 
+type GoalRow = {
+  id: string;
+  title: string;
+  goal_type: string;
+  target_date: string | null;
+  max_hours_per_week: number | null;
+  experience_level: string;
+  desired_intensity: string;
+  risk_notes: string | null;
+};
+
+/**
+ * Het doel waar de coach over praat: dat van het schema zelf. Zonder schema het
+ * eerstvolgende actieve doel dat nog niet voorbij is.
+ *
+ * Eerder was het simpelweg het actieve doel met de vroegste doeldatum. Een
+ * afgelopen doel wordt nergens op "afgerond" gezet, dus Stijn kreeg in
+ * september 2026 zijn Gran Fondo van mei mee — met 6 uur per week — terwijl
+ * zijn schema op een ZRL-doel van 12 uur liep.
+ */
+export function pickCoachGoal(
+  goals: GoalRow[],
+  planGoalId: string | null,
+  vandaag: string,
+): GoalRow | null {
+  const fromPlan = planGoalId ? goals.find((goal) => goal.id === planGoalId) : undefined;
+  if (fromPlan) return fromPlan;
+  const upcoming = goals
+    .filter((goal) => !goal.target_date || String(goal.target_date).slice(0, 10) >= vandaag)
+    .sort((a, b) =>
+      String(a.target_date ?? "9999").localeCompare(String(b.target_date ?? "9999")),
+    );
+  return upcoming[0] ?? null;
+}
+
 type WorkoutRow = {
   id: string;
   plan_id: string;
+  origin: string | null;
   scheduled_at: string;
   title: string;
   duration_minutes: number;
@@ -160,12 +199,12 @@ export async function buildCoachChatContext(
   const vandaag = amsterdamDayKey();
   const tot = dayKeyPlus(LOOKAHEAD_DAYS);
 
-  const [plan, { data: workoutRows }, { data: goalRow }, beschikbaarheid, seizoen, naleving] =
+  const [plan, { data: workoutRows }, { data: goalRows }, beschikbaarheid, seizoen, naleving] =
     await Promise.all([
       activeBasePlan(admin, profileId),
       admin
         .from("training_workouts")
-        .select("id, plan_id, scheduled_at, title, duration_minutes, intensity, status, structure_json")
+        .select("id, plan_id, origin, scheduled_at, title, duration_minutes, intensity, status, structure_json")
         .eq("profile_id", profileId)
         .is("superseded_at", null)
         .gte("scheduled_at", `${vandaag}T00:00:00Z`)
@@ -174,12 +213,9 @@ export async function buildCoachChatContext(
         .limit(30),
       admin
         .from("training_goals")
-        .select("title, goal_type, target_date, max_hours_per_week, experience_level, desired_intensity, risk_notes")
+        .select("id, title, goal_type, target_date, max_hours_per_week, experience_level, desired_intensity, risk_notes")
         .eq("profile_id", profileId)
-        .eq("status", "active")
-        .order("target_date", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+        .eq("status", "active"),
       availabilityForAi(admin, profileId, vandaag, tot).catch(() => null),
       seasonPlanForAi(admin, profileId, vandaag, tot).catch(() => null),
       buildComplianceContext(admin, profileId, COMPLIANCE_DAYS).catch(() => null),
@@ -191,11 +227,18 @@ export async function buildCoachChatContext(
   // die van het basisplan: een herziening maakt een nieuw plan met een nieuwe
   // redenering, en dát is de redenering achter wat er nu staat. Zelfde keuze als
   // loadPlanCautions() op de Vandaag-pagina.
-  const planId = workouts[0]?.plan_id ?? plan?.id ?? null;
+  //
+  // Vaste afspraken tellen daarbij niet mee. Een clubevent of eigen rit hangt
+  // aan het basisplan dat liep toen hij werd vastgezet, en dat kan een schema
+  // van maanden terug zijn: op 29 september 2026 was Stijns eerstvolgende
+  // workout de ZRL-race van die avond, en die hing nog aan zijn juli-schema van
+  // 6 uur per week. De coach las die redenering voor als die van nu.
+  const planned = workouts.find((workout) => !FIXED_ORIGINS.has(workout.origin ?? ""));
+  const planId = planned?.plan_id ?? plan?.id ?? null;
   const { data: planRow } = planId
     ? await admin
         .from("training_plans")
-        .select("id, title, summary, status, start_date, end_date, ai_generation_id")
+        .select("id, title, summary, status, start_date, end_date, ai_generation_id, goal_id")
         .eq("id", planId)
         .maybeSingle()
     : { data: null };
@@ -208,6 +251,7 @@ export async function buildCoachChatContext(
     start_date: string;
     end_date: string;
     ai_generation_id: string | null;
+    goal_id: string | null;
   } | null;
 
   const { data: generationRow } = planDetail?.ai_generation_id
@@ -238,15 +282,11 @@ export async function buildCoachChatContext(
       : Promise.resolve(null),
   ]);
 
-  const goal = goalRow as {
-    title: string;
-    goal_type: string;
-    target_date: string | null;
-    max_hours_per_week: number | null;
-    experience_level: string;
-    desired_intensity: string;
-    risk_notes: string | null;
-  } | null;
+  const goal = pickCoachGoal(
+    (goalRows ?? []) as GoalRow[],
+    planDetail?.goal_id ?? null,
+    vandaag,
+  );
 
   return {
     vandaag,

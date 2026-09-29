@@ -117,6 +117,7 @@ function seed({
         end_date: "2099-01-01",
         updated_at: "2026-09-10T00:00:00Z",
         ai_generation_id: "gen-1",
+        goal_id: "goal-1",
         summary:
           "Rustige opbouw naar de ZRL.\n\nLet op: je beschikbaarheid op woensdag is 60 minuten, daarom staat er geen lange duurrit.\n\nLet op: de eerste week blijft onder je gemiddelde omdat je twee weken niet reed.",
       },
@@ -137,12 +138,13 @@ function seed({
     ],
     training_goals: [
       {
+        id: "goal-1",
         profile_id: LID,
         status: "active",
         title: "ZRL winter",
         goal_type: "zrl",
         target_date: "2026-12-01",
-        max_hours_per_week: 6,
+        max_hours_per_week: 12,
         experience_level: "intermediate",
         desired_intensity: "balanced",
         risk_notes: null,
@@ -268,6 +270,73 @@ describe("coachcontext", () => {
     expect(wellnessCalls).toEqual(["i123"]);
     // De sleutel van de koppeling wordt gebruikt om te fetchen, niet meegestuurd.
     expect(JSON.stringify(context)).not.toContain("sleutel");
+  });
+
+  it("volgt het doel en de redenering van het lopende schema, niet die van een oud", async () => {
+    // Zoals bij Stijn op 29 september 2026: een verlopen doel van 6 uur staat nog
+    // op actief, en de eerstvolgende workout is een clubevent dat aan het oude
+    // schema hangt.
+    tables.training_goals.push({
+      id: "goal-oud",
+      profile_id: LID,
+      status: "active",
+      title: "Gran Fondo mei",
+      goal_type: "gran_fondo",
+      target_date: "2026-05-30",
+      max_hours_per_week: 6,
+      experience_level: "intermediate",
+      desired_intensity: "balanced",
+      risk_notes: null,
+    });
+    tables.training_plans.push({
+      id: "plan-oud",
+      profile_id: LID,
+      parent_plan_id: null,
+      title: "Zomerschema",
+      status: "approved",
+      start_date: "2026-07-01",
+      end_date: "2099-01-01",
+      updated_at: "2026-07-01T00:00:00Z",
+      ai_generation_id: null,
+      goal_id: "goal-oud",
+      summary: "Strikt binnen 6 uur.\n\nLet op: je reed meer dan de opgegeven 6 uur.",
+    });
+    const dag = (plus: number) => new Date(Date.now() + plus * 86_400_000).toISOString();
+    tables.training_workouts = [
+      {
+        id: "w-event",
+        plan_id: "plan-oud",
+        profile_id: LID,
+        origin: "event",
+        superseded_at: null,
+        scheduled_at: dag(1),
+        title: "ZRL-race",
+        duration_minutes: 60,
+        intensity: "vo2max",
+        status: "planned",
+        structure_json: [],
+      },
+      {
+        id: "w-ai",
+        plan_id: "plan-1",
+        profile_id: LID,
+        origin: "ai",
+        superseded_at: null,
+        scheduled_at: dag(2),
+        title: "Rustige duur",
+        duration_minutes: 60,
+        intensity: "endurance",
+        status: "planned",
+        structure_json: [],
+      },
+    ];
+
+    const context = await buildCoachChatContext(fakeAdmin() as never, LID);
+    expect(context.schema?.id).toBe("plan-1");
+    expect(context.doel).toMatchObject({ titel: "ZRL winter", maxUrenPerWeek: 12 });
+    expect(JSON.stringify(context.schema)).not.toContain("6 uur");
+    // Het event blijft wel gewoon in de komende workouts staan.
+    expect(context.komendeWorkouts[0]?.titel).toBe("ZRL-race");
   });
 
   it("vraagt geen vorm op zonder intervals-koppeling", async () => {
