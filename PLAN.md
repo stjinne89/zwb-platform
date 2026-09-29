@@ -94,6 +94,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`
 
 ---
 
+> **Live ZRL-stand telt scratch als scratch, 2026-09-29 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Week 2 van ronde 1 (29 september) was een scratch, en de live stand
+> telde hem als puntenrace: FAL en FTS op elk segment erbij. WTRL
+> (wtrl.racing/zrl/resources, gelezen 29 september) geeft bij scratch alleen
+> FIN (eerste = aantal starters, aflopend) en de podiumbonus 10-8-6-4-2.
+>
+> **Nu.** Het format komt uit het Zwift-event: WTRL zet de tag `scr` (en `rot`
+> bij de Race of Truth) en "(SCRATCH RACE)" in de beschrijving. `zrlFormatOf` in
+> `src/lib/zrl-live/snapshot.ts` leest dat; `scoreRace` krijgt `format` en deelt
+> bij scratch geen FAL en FTS uit. De segmentpassages worden nog wel opgehaald,
+> want daarmee tellen we de starters (en dus de FIN-punten). Bij scratch vraagt
+> het bevriezen (`checkTeamResult`) geen dekking per passage meer: alleen een
+> definitieve uitslag met finishers en complete Zwift-data. De pagina toont bij
+> scratch "Scratch" in de statusregel, alleen de FIN-kolom en geen segmentlijst;
+> de JSON voor de Sauce-overlay krijgt `format` en geen `lastPass`, en de mod
+> toont dan alleen FIN (de mod moet op de Sauce-computer opnieuw geplaatst
+> worden). Cachesleutel van de Zwift-data naar `v4`.
+>
+> **Productie-data.** De uitslag van Zwiftladies B van vandaag was al om 21:15
+> bevroren met de puntenrace-telling (1182 punten, 3e van 10). De cron rekent
+> een uitslag van na de 90 minuten niet opnieuw na; een bezoek aan de live stand
+> na de deploy schrijft hem wel opnieuw weg. Na de deploy de live stand van elk
+> team van vandaag één keer openen, één voor één.
+>
+> **Bewust niet.** De ploegentijdrit (tag vermoedelijk `ttt`) telt nog steeds als
+> puntenrace; die heeft geen rennerspunten maar de tijd van de vierde renner, en
+> er stond er nog geen op het programma. Ook niet: de WTRL-tiebreak (FIN, FAL,
+> FTS, tijd) en de regel dat ploegen met drie starters achter die met vier
+> komen; die zaten er bij de puntenrace ook niet in.
+>
+> **Getest.** `tsc`, ESLint op de gewijzigde bestanden, unit-tests
+> (`zrl-live-scoring`, `zrl-team-result`, `zwbgame`). Lokaal op de live stand van
+> Zwiftladies C tijdens de race: "Scratch · 42 gestart", winnaar 42 + 10 = 52.
+> De tags van alle zes Zwift-events van vandaag gecontroleerd: allemaal `scr`.
+
+---
+
 > **FRR: de tour als hoofdevent, etappes en tijdsloten eronder, 2026-09-29 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Migratie `0196_frr_tour_event.sql`.
 >
@@ -1223,7 +1262,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`
 >   "Voorlopig" tot er een uitslag is en 15 min niets meer binnenkomt; daarna een
 >   link naar de WTRL-uitslag. Knop "Live stand" in de Raceinfo van een
 >   ZRL-teamevent met Zwift-event.
-> - `src/lib/zrl-live/scoring.ts` (puur): WTRL-regels; passages vóór de start en
+> - `src/lib/zrl-live/scoring.ts` (puur): WTRL-regels (sinds 2026-09-29 ook
+>   scratch, zie boven); passages vóór de start en
 >   na de eigen finish tellen niet; DNF-punten vervallen zonder doorschuiven.
 > - `src/lib/zrl-live/snapshot.ts`: Zwift-kant 15 s gecachet per Zwift-event,
 >   niets opgeslagen. Onze subgroep is die met de meeste van onze Zwift-ID's.

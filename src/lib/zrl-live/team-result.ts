@@ -53,6 +53,16 @@ export function checkTeamResult(view: ZrlLiveView): TeamResultCheck {
   if (!own) return { ok: false, reason: "eigen team niet in de stand" };
 
   const finishers = new Set(view.score.riders.filter((rider) => !rider.void).map((rider) => rider.athleteId));
+  const result: ZrlTeamResult = {
+    rank: own.rank,
+    teams: view.score.teams.length,
+    points: own.total,
+    riders: own.riders,
+  };
+  // Scratch: alleen de finish telt, en die is er (`final`).
+  if (view.score.format === "scratch") {
+    return finishers.size === 0 ? { ok: false, reason: "geen finishers" } : { ok: true, result };
+  }
   if (finishers.size === 0 || view.score.passes.length === 0) {
     return { ok: false, reason: "geen finishers of geen passages op de route" };
   }
@@ -69,10 +79,7 @@ export function checkTeamResult(view: ZrlLiveView): TeamResultCheck {
     return { ok: false, reason: `${seen} van ${expected} passages van finishers` };
   }
 
-  return {
-    ok: true,
-    result: { rank: own.rank, teams: view.score.teams.length, points: own.total, riders: own.riders },
-  };
+  return { ok: true, result };
 }
 
 export function teamResultOf(view: ZrlLiveView): ZrlTeamResult | null {

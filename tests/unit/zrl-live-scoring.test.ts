@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickSubgroup } from "@/lib/zrl-live/snapshot";
+import { pickSubgroup, zrlFormatOf } from "@/lib/zrl-live/snapshot";
 import { scoreRace, type Passage, type Rider, type RouteSegment } from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 
@@ -74,6 +74,37 @@ describe("scoreRace", () => {
     const result = scoreRace({ route, riders, passages, startAt: 0 });
     expect(result.teams[0]).toMatchObject({ team: "zwb", riders: 2, rank: 1 });
     expect(result.teams[1]).toMatchObject({ team: "bmtr", rank: 2 });
+  });
+
+  it("telt bij scratch alleen FIN en podium; segmenten tellen alleen de starters", () => {
+    const result = scoreRace({
+      format: "scratch",
+      route,
+      riders,
+      passages,
+      startAt: 0,
+      finish: { finishers: [3, 1], final: true },
+    });
+    expect(result.format).toBe("scratch");
+    expect(result.starters).toBe(3);
+    expect(result.passes.flatMap((pass) => pass.crossings.map((c) => c.fal))).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(result.riders.map((r) => [r.name, r.fal, r.fts, r.fin, r.podium, r.total])).toEqual([
+      ["Cees", 0, 0, 3, 10, 13],
+      ["Anna", 0, 0, 2, 8, 10],
+    ]);
+    expect(result.teams.map((t) => [t.team, t.total])).toEqual([["bmtr", 13], ["zwb", 10]]);
+  });
+});
+
+describe("zrlFormatOf", () => {
+  it("herkent scratch aan de WTRL-tag of de beschrijving (R1 W2, 2026-09-29)", () => {
+    expect(zrlFormatOf({ tags: ["wtrl", "zrl", "zrl20", "scr", "zrl_arch"] })).toBe("scratch");
+    expect(zrlFormatOf({ tags: [], description: "Round 1 - Race: 1 of 5 (SCRATCH RACE)" })).toBe("scratch");
+  });
+
+  it("rekent de rest als puntenrace, ook de Race of Truth", () => {
+    expect(zrlFormatOf({ tags: ["wtrl", "zrl", "rot"], description: "Race: 1 of 6 (RACE OF TRUTH)" })).toBe("points");
+    expect(zrlFormatOf(null)).toBe("points");
   });
 });
 

@@ -26,7 +26,9 @@ export async function GET(
   const { view } = outcome;
   const { score } = view;
   const label = (team: string | null) => (team ? view.teamLabels[team] ?? team : null);
-  const lastPass = [...score.passes].reverse().find((pass) => pass.crossings.length > 0);
+  // Bij scratch leveren segmenten geen punten op.
+  const lastPass =
+    score.format === "scratch" ? undefined : [...score.passes].reverse().find((pass) => pass.crossings.length > 0);
   const nameById = new Map(view.entrants.map((rider) => [rider.athleteId, rider.name]));
 
   return NextResponse.json(
@@ -37,6 +39,7 @@ export async function GET(
       subgroup: view.subgroupLabel,
       startAt: view.startAt,
       fetchedAt: view.fetchedAt,
+      format: score.format,
       final: score.final,
       starters: score.starters,
       ownTeam: label(view.ownTeam),

@@ -65,15 +65,16 @@ function Status({ view }: { view: ZrlLiveView }) {
   return (
     <p className="text-sm text-muted-foreground">
       {started ? "Voorlopig" : `Start ${clock(view.startAt).slice(0, 5)}`} · {view.subgroupLabel} ·{" "}
+      {score.format === "scratch" && "Scratch · "}
       {score.starters} gestart · bijgewerkt {clock(view.fetchedAt)}
     </p>
   );
 }
 
-function Points({ rider }: { rider: RiderScore }) {
+function Points({ rider, scratch }: { rider: RiderScore; scratch: boolean }) {
   return (
     <span className="tabular-nums text-muted-foreground">
-      {rider.fal} · {rider.fts} · {rider.fin + rider.podium}
+      {scratch ? rider.fin + rider.podium : `${rider.fal} · ${rider.fts} · ${rider.fin + rider.podium}`}
     </span>
   );
 }
@@ -112,7 +113,9 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
   const label = (team: string | null) => (team ? view.teamLabels[team] ?? team : "—");
   const nameById = new Map(score.riders.map((r) => [r.athleteId, r.name]));
   const own = score.riders.filter((r) => view.ownRiders.includes(r.athleteId));
-  const passes = score.passes.filter((pass) => pass.crossings.length > 0).reverse();
+  const scratch = score.format === "scratch";
+  // Bij scratch leveren segmenten geen punten op.
+  const passes = scratch ? [] : score.passes.filter((pass) => pass.crossings.length > 0).reverse();
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-6">
@@ -204,13 +207,13 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
         <section className="rounded-lg border bg-card">
           <h2 className="flex items-center justify-between border-b px-4 py-3 text-sm font-semibold">
             {view.event.teamName ?? "Ons team"}
-            <span className="text-xs font-normal text-muted-foreground">FAL · FTS · FIN</span>
+            <span className="text-xs font-normal text-muted-foreground">{scratch ? "FIN" : "FAL · FTS · FIN"}</span>
           </h2>
           <ul className="divide-y">
             {own.map((rider) => (
               <li key={rider.athleteId} className="flex items-center gap-3 px-4 py-2 text-sm">
                 <span className={cn("min-w-0 flex-1 truncate", rider.void && "line-through")}>{rider.name}</span>
-                <Points rider={rider} />
+                <Points rider={rider} scratch={scratch} />
                 <span className="w-12 text-right font-semibold tabular-nums">{rider.total}</span>
               </li>
             ))}
@@ -271,7 +274,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
                 {rider.name}
                 <span className="ml-2 text-xs text-muted-foreground">{label(rider.team)}</span>
               </span>
-              <Points rider={rider} />
+              <Points rider={rider} scratch={scratch} />
               <span className="w-12 text-right tabular-nums">{rider.total}</span>
             </li>
           ))}

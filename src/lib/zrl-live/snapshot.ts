@@ -18,7 +18,13 @@ import {
   type SubgroupResult,
 } from "@/lib/events/zwift-club";
 import { routeSegments } from "@/lib/zwift/route-segments";
-import { scoreRace, type Passage, type Rider, type ScoreResult } from "@/lib/zrl-live/scoring";
+import {
+  scoreRace,
+  type Passage,
+  type Rider,
+  type ScoreResult,
+  type ZrlScoringFormat,
+} from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 import { freezeZrlTeamResult } from "@/lib/zrl-live/team-result";
 
@@ -45,6 +51,7 @@ type ZwiftSubgroup = {
 type RaceData = {
   fetchedAt: number;
   eventName: string;
+  format: ZrlScoringFormat;
   subgroups: Array<
     ZwiftSubgroup & {
       entrants: Array<{ zwiftId: string; name: string }>;
@@ -80,6 +87,18 @@ function parseSubgroups(event: unknown): ZwiftSubgroup[] {
       laps: Number(row.laps) || 1,
     }];
   });
+}
+
+/**
+ * Het format staat niet in onze kalender, wel bij Zwift: WTRL zet een tag
+ * ("scr" bij scratch, "rot" bij de Race of Truth) en het format tussen haakjes
+ * in de beschrijving, "Race: 1 of 5 (SCRATCH RACE)" (gezien 2026-09-29).
+ */
+export function zrlFormatOf(event: unknown): ZrlScoringFormat {
+  const { tags, description } = (event ?? {}) as { tags?: unknown; description?: unknown };
+  if (Array.isArray(tags) && tags.some((tag) => String(tag).toLowerCase() === "scr")) return "scratch";
+  if (typeof description === "string" && /\(scratch race\)/i.test(description)) return "scratch";
+  return "points";
 }
 
 async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
@@ -136,11 +155,18 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
     }
   }
   const eventName = String((zwiftEvent as { name?: unknown })?.name ?? "");
-  return { fetchedAt: Date.now(), eventName, subgroups: withRiders, passages, segmentsOk };
+  return {
+    fetchedAt: Date.now(),
+    eventName,
+    format: zrlFormatOf(zwiftEvent),
+    subgroups: withRiders,
+    passages,
+    segmentsOk,
+  };
 }
 
 // Versie in de sleutel: Netlify bewaart deze cache over deploys heen.
-const fetchCachedRaceData = unstable_cache(fetchRaceData, ["zrl-live-race", "v3"], { revalidate: 15 });
+const fetchCachedRaceData = unstable_cache(fetchRaceData, ["zrl-live-race", "v4"], { revalidate: 15 });
 
 /**
  * Verversen op de achtergrond kan stil mislukken; Next blijft dan oude data geven
@@ -335,6 +361,7 @@ export async function loadZrlLive(
     (options.raceOver || data.fetchedAt - lastActivity > QUIET_BEFORE_FINAL_MS);
 
   const score = scoreRace({
+    format: data.format,
     route: route.map(({ segmentId, name }) => ({ segmentId, name })),
     riders,
     passages: data.passages,

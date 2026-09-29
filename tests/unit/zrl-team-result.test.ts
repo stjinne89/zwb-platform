@@ -11,6 +11,7 @@ function view({
   crossingsPerPass = 4,
   emptyPass = -1,
   complete = true,
+  format = "points" as "points" | "scratch",
 }: {
   final?: boolean;
   ownTeam?: string | null;
@@ -18,6 +19,7 @@ function view({
   /** Index van een passage waar Zwift niemand teruggaf (een haperend segment). */
   emptyPass?: number;
   complete?: boolean;
+  format?: "points" | "scratch";
 } = {}): ZrlLiveView {
   const riders = [1, 2, 3, 4].map((athleteId) => ({
     athleteId,
@@ -53,6 +55,7 @@ function view({
     entrants: riders.map(({ athleteId, name, team }) => ({ athleteId, name, team })),
     teamLabels: {},
     score: {
+      format,
       starters: 4,
       final,
       passes,
@@ -102,5 +105,11 @@ describe("teamResultOf", () => {
       ok: false,
       reason: "Monceau Sprint: 0 van 4 finishers",
     });
+  });
+
+  it("vraagt bij scratch geen segmentpassages: alleen de finish telt", () => {
+    expect(teamResultOf(view({ format: "scratch", crossingsPerPass: 0 }))?.rank).toBe(2);
+    expect(teamResultOf(view({ format: "scratch", final: false }))).toBeNull();
+    expect(teamResultOf(view({ format: "scratch", complete: false }))).toBeNull();
   });
 });

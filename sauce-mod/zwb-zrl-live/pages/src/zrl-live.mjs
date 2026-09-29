@@ -56,7 +56,7 @@ function render() {
             <span class="name">${myRank}. ${esc(me.name)}</span>
             <span class="pts">${me.total}</span>
         </div>
-        <div class="muted">FAL ${me.fal} · FTS ${me.fts} · FIN ${me.fin}${me.team ? ` · ${esc(me.team)}` : ''}</div>` : '';
+        <div class="muted">${data.format === 'scratch' ? '' : `FAL ${me.fal} · FTS ${me.fts} · `}FIN ${me.fin}${me.team ? ` · ${esc(me.team)}` : ''}</div>` : '';
 
     const pass = data.lastPass ? `
         <h2>${esc(data.lastPass.name)}${data.lastPass.lap > 1 ? ` ${data.lastPass.lap}` : ''}</h2>

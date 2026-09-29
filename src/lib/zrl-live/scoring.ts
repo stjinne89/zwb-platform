@@ -7,6 +7,8 @@
 // - FIN: de eerste finisher krijgt het aantal starters, aflopend.
 // - Podium: 10-8-6-4-2 voor de eerste vijf.
 // - DNF/DQ: punten vervallen en schuiven niet door.
+// - Scratch: alleen FIN en podium. Segmentpassages tellen dan alleen nog om de
+//   starters te bepalen.
 //
 // Puur: geen I/O. Tot de uitslag definitief is, is alles voorlopig: FTS kan nog
 // verschuiven en wie niet finisht, verliest zijn punten. De officiële
@@ -14,6 +16,9 @@
 
 export const FTS_POINTS = [15, 12, 10, 8, 6, 5, 4, 3, 2, 1];
 export const PODIUM_POINTS = [10, 8, 6, 4, 2];
+
+/** Puntenrace (ook Race of Truth) of scratch. */
+export type ZrlScoringFormat = "points" | "scratch";
 
 export type Passage = {
   id: string;
@@ -38,6 +43,8 @@ export type Finish = {
 };
 
 export type ScoreInput = {
+  /** Standaard een puntenrace. */
+  format?: ZrlScoringFormat;
   route: RouteSegment[];
   riders: Rider[];
   passages: Passage[];
@@ -73,6 +80,7 @@ export type RiderScore = Rider & {
 export type TeamScore = { team: string; total: number; riders: number; rank: number };
 
 export type ScoreResult = {
+  format: ZrlScoringFormat;
   starters: number;
   final: boolean;
   passes: ScoredPass[];
@@ -81,6 +89,7 @@ export type ScoreResult = {
 };
 
 export function scoreRace(input: ScoreInput): ScoreResult {
+  const format = input.format ?? "points";
   const riderById = new Map(input.riders.map((rider) => [rider.athleteId, rider]));
   const passages = input.passages
     .filter((p) => riderById.has(p.athleteId) && p.ts >= input.startAt)
@@ -133,19 +142,21 @@ export function scoreRace(input: ScoreInput): ScoreResult {
     score.set(id, current);
   };
 
-  for (const pass of passes) {
-    pass.crossings.forEach((crossing, i) => {
-      crossing.fal = Math.max(n - i, 0);
-      add(crossing.athleteId, "fal", crossing.fal);
-    });
-  }
+  if (format === "points") {
+    for (const pass of passes) {
+      pass.crossings.forEach((crossing, i) => {
+        crossing.fal = Math.max(n - i, 0);
+        add(crossing.athleteId, "fal", crossing.fal);
+      });
+    }
 
-  for (const segmentId of slotsBySegment.keys()) {
-    const efforts = passes
-      .filter((pass) => pass.segmentId === segmentId)
-      .flatMap((pass) => pass.crossings)
-      .sort((a, b) => a.elapsed - b.elapsed || a.ts - b.ts);
-    efforts.slice(0, FTS_POINTS.length).forEach((effort, i) => add(effort.athleteId, "fts", FTS_POINTS[i]));
+    for (const segmentId of slotsBySegment.keys()) {
+      const efforts = passes
+        .filter((pass) => pass.segmentId === segmentId)
+        .flatMap((pass) => pass.crossings)
+        .sort((a, b) => a.elapsed - b.elapsed || a.ts - b.ts);
+      efforts.slice(0, FTS_POINTS.length).forEach((effort, i) => add(effort.athleteId, "fts", FTS_POINTS[i]));
+    }
   }
 
   const finishers = (input.finish?.finishers ?? []).filter((id) => riderById.has(id));
@@ -178,5 +189,5 @@ export function scoreRace(input: ScoreInput): ScoreResult {
     team.rank = i > 0 && teams[i - 1].total === team.total ? teams[i - 1].rank : i + 1;
   });
 
-  return { starters: n, final, passes, riders, teams };
+  return { format, starters: n, final, passes, riders, teams };
 }
