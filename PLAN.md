@@ -34,6 +34,9 @@ gaat stabiliteit voor nieuwe features.
    **Nog toepassen: `0189_member_last_seen.sql`**, vóór of samen met de deploy
    van de Strava-loginregel. Daarna op `/beheer/strava` controleren dat
    "laatst gezien" bij je eigen account vandaag is (zie de ronde hieronder).
+   **Nog toepassen: `0197_zrl_race_snapshots.sql`**, vóór de ZRL-race van 6
+   oktober. Zonder de tabel werkt de live stand zoals voorheen (elke kijker
+   vraagt Zwift), alleen zonder bevriezen.
    **Nog toepassen: `0190_omnium_sprint_segment.sql`**, vóór of samen met de
    deploy van de Sprint Quali uit Zwift. Zonder de kolom werken bij de Sprint
    Quali "leagues instellen" en "Ophalen uit Zwift" niet (foutmelding); plakken
@@ -90,7 +93,50 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0198`.
+
+---
+
+> **Live ZRL-stand: Zwift-data bevriezen zodra alle renners binnen zijn, 2026-09-29 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Migratie `0197_zrl_race_snapshots.sql`
+> (**nog niet toegepast**; niet lokaal te testen, geen Docker/Supabase-config).
+>
+> **Waarom.** Vermoeden van de eigenaar, en het klopt: na de finish kijkt iedereen
+> tegelijk, en elke kijker, de Sauce-overlay en de cron vroegen de hele race
+> opnieuw bij Zwift op (zo'n 16 aanroepen per Zwift-event, elke 15 s). Zwift
+> knijpt het serviceaccount dan af, de uitslag komt niet binnen en de stand
+> blijft "Voorlopig" (B1, 29 september om 21:37: 54 gestart, geen finishers,
+> terwijl Zwift er 53 had). Mislukt het verversen, dan haalt elke bezoeker na
+> 60 s zelf op, wat het afknijpen alleen erger maakt.
+>
+> **Nu.** Zodra een Zwift-event klaar is, schrijft `loadZrlLive` de ruwe
+> Zwift-data (startlijst, uitslag, passages van alle subgroepen) één keer weg in
+> `zrl_race_snapshots`. Daarna rekent de stand alleen nog uit die rij, zonder
+> Zwift. Klaar (`raceSettled`): alle Zwift-data zonder fout, en per bezette
+> subgroep een uitslag waarin iedereen die aan de race begon een tijd heeft plus
+> twee minuten stilte (voor passages die Zwift later doorgeeft), of een kwartier
+> stilte (wie niet finisht, is uitgestapt). Ruwe data en geen berekende stand,
+> zodat een teambijstelling of een correctie in de telling achteraf nog doorwerkt.
+> Uit bevroren data wordt ook de plaats van ons team direct vastgezet, zonder de
+> 90 minuten af te wachten; de cron rekent hem na 90 minuten nog één keer na, nu
+> zonder Zwift-aanroepen. De knop "Uitslag vastzetten" haalt nog steeds vers bij
+> Zwift op en overschrijft de bevroren data, voor als er toch iets veranderd is.
+>
+> **Bewust niet.** De verversing tijdens de race blijft zoals hij was (15 s cache
+> per Zwift-event). Geen aparte bevries-knop en geen tekst in het scherm.
+>
+> **Randgeval.** In een ploegentijdrit starten de teams in rijen tot ongeveer
+> twintig minuten na elkaar. Heeft een laat startend team nog geen segment
+> gereden terwijl alle eerdere renners al binnen zijn, dan zou het event te vroeg
+> bevriezen. Dat vraagt een route zonder segment in de eerste tien minuten; de
+> knop "Uitslag vastzetten" herstelt het.
+>
+> **Getest.** `tsc`, ESLint en unit-tests (`tests/unit/zrl-race-snapshot.test.ts`:
+> iedereen binnen, renner onderweg, uitgestapte renner, haperende Zwift-data,
+> uitrijden na de finish). **Niet** getest: de tabel zelf en het wegschrijven en
+> teruglezen op productie. Controle na de race van 6 oktober: een rij per
+> Zwift-event in `zrl_race_snapshots`, en de live stand blijft na de finish
+> "Eindstand" tonen.
 
 ---
 
@@ -1170,8 +1216,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0197`
 > opnieuw naar Zwift. Dat raakt ook de live stand, die op hetzelfde account
 > draait.
 >
-> **Nu: bevriezen.** De live stand bewaart uit zichzelf niets (elke 15 s opnieuw
-> uitgerekend), dus er viel niets te kopiëren. Daarom schrijft `loadZrlLive` de
+> **Nu: bevriezen.** De live stand bewaarde uit zichzelf niets (elke 15 s opnieuw
+> uitgerekend; sinds 2026-09-29 bevriest hij de Zwift-data zodra alle renners
+> binnen zijn, migr. `0197`), dus er viel niets te kopiëren. Daarom schrijft `loadZrlLive` de
 > plaats van ons team nu één keer weg zodra de race gereden is en de stand
 > definitief — migratie `0188_zrl_team_results.sql`, één rij per teamevent. De
 > raceweek leest alleen die rij: geen Zwift-aanroep, altijd snel, en de uitslag

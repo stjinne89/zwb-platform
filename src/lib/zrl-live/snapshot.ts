@@ -2,11 +2,13 @@
 //
 // Tijdens de race wordt niets opgeslagen. De Zwift-kant is 15 s gecachet per
 // Zwift-event, dus de belasting op Zwift is gelijk bij één of duizend kijkers
-// (hetzelfde patroon als src/lib/live/external-timing.ts). Is de race gereden en
-// de stand definitief, dan bevriest deze module één regel: de plaats van ons
-// team (migr. 0188), zodat de raceweekpagina die kan tonen zonder Zwift opnieuw
-// te bevragen; de cron `/api/zrl/freeze` zorgt dat dat ook gebeurt als niemand
-// kijkt. Zie docs/live-zrl-dashboard.md.
+// (hetzelfde patroon als src/lib/live/external-timing.ts). Zodra alle renners
+// binnen zijn, bevriest deze module de ruwe Zwift-data van het event (migr.
+// 0197): daarna rekent de stand alleen nog uit de database. Direct na de finish
+// kijkt iedereen tegelijk, en juist dan knijpt Zwift het serviceaccount af.
+// Daarnaast de plaats van ons team (migr. 0188), voor de raceweekpagina; de
+// cron `/api/zrl/freeze` zorgt dat beide ook gebeuren als niemand kijkt. Zie
+// docs/live-zrl-dashboard.md.
 
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,6 +32,11 @@ import { freezeZrlTeamResult } from "@/lib/zrl-live/team-result";
 
 /** Geen nieuwe passage of uitslag meer: dan noemen we de stand definitief. */
 const QUIET_BEFORE_FINAL_MS = 15 * 60 * 1000;
+/**
+ * Heeft iedereen die aan de race begon een finishtijd, dan wachten we alleen
+ * nog even op passages die Zwift later doorgeeft (mediaan 9 s, 2026-09-22).
+ */
+const ALL_IN_QUIET_MS = 2 * 60 * 1000;
 
 /**
  * Tot hoe lang na de laatste subgroepstart passages meetellen. Een ZRL-race duurt
@@ -48,7 +55,7 @@ type ZwiftSubgroup = {
   laps: number;
 };
 
-type RaceData = {
+export type RaceData = {
   fetchedAt: number;
   eventName: string;
   format: ZrlScoringFormat;
@@ -109,6 +116,81 @@ export function zrlFormatOf(event: unknown): ZrlScoringFormat {
   }
   if (tagSet.has("scr") || /\(scratch( race)?\)/i.test(text)) return "scratch";
   return "points";
+}
+
+type RaceSubgroup = RaceData["subgroups"][number];
+
+/** Finishmoment per renner (Unix-ms): doorfietsen na de finish telt niet. */
+function finishMoments(subgroup: RaceSubgroup): Map<number, number> {
+  return new Map(
+    subgroup.results
+      .filter((r) => r.durationMs != null)
+      .map((r) => [r.profileId, subgroup.startAt + (r.durationMs as number) + 1000]),
+  );
+}
+
+/**
+ * Is de uitslag van deze subgroep compleet? Alle renners die aan de race
+ * begonnen, hebben een finishtijd en er kwam even niets meer binnen; of er kwam
+ * een kwartier niets meer binnen (wie niet finisht, is uitgestapt). Alleen
+ * passages die meetellen: doorfietsen na de eigen finish houdt de stand anders
+ * "voorlopig" zolang iemand uitrijdt over een sprint.
+ */
+export function subgroupSettled(subgroup: RaceSubgroup, passages: Passage[], now: number): boolean {
+  if (!subgroup.resultsOk || subgroup.results.length === 0) return false;
+  const riderIds = new Set(subgroup.entrants.map((e) => Number(e.zwiftId)));
+  const finishedAt = finishMoments(subgroup);
+  const counted = passages.filter(
+    (p) =>
+      riderIds.has(p.athleteId) &&
+      p.ts >= subgroup.startAt &&
+      p.ts <= (finishedAt.get(p.athleteId) ?? Infinity),
+  );
+  let lastActivity = subgroup.startAt;
+  for (const p of counted) lastActivity = Math.max(lastActivity, p.ts);
+  for (const r of subgroup.results) lastActivity = Math.max(lastActivity, subgroup.startAt + (r.durationMs ?? 0));
+  const quiet = now - lastActivity;
+  if (quiet > QUIET_BEFORE_FINAL_MS) return true;
+  const allIn = counted.every((p) => finishedAt.has(p.athleteId));
+  return allIn && quiet > ALL_IN_QUIET_MS;
+}
+
+/** Alle Zwift-data compleet en elke bezette subgroep klaar: dan mag het event bevroren worden. */
+export function raceSettled(data: RaceData): boolean {
+  const occupied = data.subgroups.filter((s) => s.entrants.length > 0);
+  return (
+    data.segmentsOk &&
+    occupied.length > 0 &&
+    occupied.every((subgroup) => subgroupSettled(subgroup, data.passages, data.fetchedAt))
+  );
+}
+
+async function loadFrozenRaceData(zwiftEventId: string): Promise<RaceData | null> {
+  try {
+    const { data } = await createAdminClient()
+      .from("zrl_race_snapshots")
+      .select("data")
+      .eq("zwift_event_id", zwiftEventId)
+      .maybeSingle();
+    const frozen = data?.data as RaceData | undefined;
+    return frozen && Array.isArray(frozen.subgroups) && Array.isArray(frozen.passages) ? frozen : null;
+  } catch {
+    // Tabel nog niet toegepast of database even weg: dan gewoon bij Zwift.
+    return null;
+  }
+}
+
+async function saveFrozenRaceData(zwiftEventId: string, data: RaceData): Promise<void> {
+  try {
+    await createAdminClient()
+      .from("zrl_race_snapshots")
+      .upsert(
+        { zwift_event_id: zwiftEventId, data, frozen_at: new Date(data.fetchedAt).toISOString() },
+        { onConflict: "zwift_event_id" },
+      );
+  } catch {
+    // Bevriezen mag de live stand nooit breken; de volgende bezoeker probeert het opnieuw.
+  }
 }
 
 async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
@@ -299,16 +381,21 @@ export async function loadZrlLive(
   if (!event.zwift_event_id) return { status: "no-zwift-event" };
   const teamName = (event.teams as { name?: string } | null)?.name ?? null;
 
-  let data: RaceData;
-  try {
-    data = options.raceOver
-      ? await fetchRaceData(String(event.zwift_event_id))
-      : await fetchCachedRaceData(String(event.zwift_event_id));
-    if (Date.now() - data.fetchedAt > MAX_CACHE_AGE_MS) {
-      data = await fetchRaceData(String(event.zwift_event_id));
+  const zwiftEventId = String(event.zwift_event_id);
+  // Bevroren: geen Zwift meer. De knop haalt wel vers op, voor wie meent dat er
+  // nog iets veranderd is.
+  let data = options.raceOver ? null : await loadFrozenRaceData(zwiftEventId);
+  const frozen = data !== null;
+  if (!data) {
+    try {
+      data = options.raceOver ? await fetchRaceData(zwiftEventId) : await fetchCachedRaceData(zwiftEventId);
+      if (Date.now() - data.fetchedAt > MAX_CACHE_AGE_MS) {
+        data = await fetchRaceData(zwiftEventId);
+      }
+    } catch (error) {
+      return { status: "error", message: error instanceof Error ? error.message : undefined };
     }
-  } catch (error) {
-    return { status: "error", message: error instanceof Error ? error.message : undefined };
+    if (raceSettled(data)) await saveFrozenRaceData(zwiftEventId, data);
   }
 
   const own = await ownZwiftIds(
@@ -350,25 +437,10 @@ export async function loadZrlLive(
   );
   if (ownTeam && teamName) teamLabels[ownTeam] = teamName;
 
-  const riderIds = new Set(riders.map((r) => r.athleteId));
-  const finishedAt = new Map(
-    subgroup.results
-      .filter((r) => r.durationMs != null)
-      .map((r) => [r.profileId, subgroup.startAt + (r.durationMs as number) + 1000]),
-  );
-  // Alleen passages die meetellen: doorfietsen na de eigen finish houdt de stand
-  // anders "voorlopig" zolang iemand uitrijdt over een sprint.
-  const lastActivity = Math.max(
-    subgroup.startAt,
-    ...data.passages
-      .filter((p) => riderIds.has(p.athleteId) && p.ts <= (finishedAt.get(p.athleteId) ?? Infinity))
-      .map((p) => p.ts),
-    ...subgroup.results.map((r) => subgroup.startAt + (r.durationMs ?? 0)),
-  );
-  const final =
-    subgroup.resultsOk &&
-    subgroup.results.length > 0 &&
-    (options.raceOver || data.fetchedAt - lastActivity > QUIET_BEFORE_FINAL_MS);
+  const finishedAt = finishMoments(subgroup);
+  const final = options.raceOver
+    ? subgroup.resultsOk && subgroup.results.length > 0
+    : subgroupSettled(subgroup, data.passages, data.fetchedAt);
 
   const score = scoreRace({
     format: data.format,
@@ -401,15 +473,15 @@ export async function loadZrlLive(
   };
 
   // Race gereden en alle Zwift-data binnen: wegschrijven, zodat de raceweekpagina
-  // de plaats kan tonen zonder Zwift opnieuw te bevragen. Na het vaste venster
-  // is de data steeds dezelfde; opnieuw schrijven neemt alleen een latere
-  // teambijstelling mee.
+  // de plaats kan tonen zonder Zwift opnieuw te bevragen. Uit bevroren data mag
+  // dat direct; anders pas na 90 minuten. Opnieuw schrijven neemt alleen een
+  // latere teambijstelling mee.
   const freeze = await freezeZrlTeamResult(
     view.event.id,
     (event.team_id as string | null) ?? null,
     subgroup.startAt,
     view,
-    { raceOver: options.raceOver },
+    { raceOver: options.raceOver || frozen || raceSettled(data) },
   );
 
   return { status: "ok", view, freeze };

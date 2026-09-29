@@ -1,13 +1,14 @@
 // Teamuitslag van een gereden ZRL-race, voor de raceweekpagina (migr. 0188).
 //
-// De live stand bewaart niets: die rekent elke 15 seconden opnieuw uit
-// Zwift-data. Voor een overzicht kan dat niet — één uitslag kost 16
-// Zwift-aanroepen en ongeveer acht seconden, en zeven ploegen tegelijk knijpt
-// Zwift het serviceaccount af (gemeten 2026-09-22). Daarom bevriezen we de
-// plaats van ons team en leest de raceweek alleen nog die rij. Bevriezen
-// gebeurt 90 minuten na de start (cron `/api/zrl/freeze` of een bezoek aan de
-// live stand), of eerder met de knop "Uitslag vastzetten"; in alle gevallen
-// alleen als alle Zwift-data binnen is (`checkTeamResult`).
+// De live stand rekent tijdens de race elke 15 seconden opnieuw uit Zwift-data.
+// Voor een overzicht kan dat niet — één uitslag kost 16 Zwift-aanroepen en
+// ongeveer acht seconden, en zeven ploegen tegelijk knijpt Zwift het
+// serviceaccount af (gemeten 2026-09-22). Daarom bevriezen we de plaats van ons
+// team en leest de raceweek alleen nog die rij. Bevriezen gebeurt zodra de
+// Zwift-data van het event bevroren is (alle renners binnen, migr. 0197), anders
+// 90 minuten na de start (cron `/api/zrl/freeze` of een bezoek aan de live
+// stand), of eerder met de knop "Uitslag vastzetten"; in alle gevallen alleen als
+// alle Zwift-data binnen is (`checkTeamResult`).
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ZrlLiveView } from "@/lib/zrl-live/snapshot";

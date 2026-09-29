@@ -12,9 +12,10 @@ import { RACE_OVER_AFTER_MS } from "@/lib/zrl-live/team-result";
 // nog niet compleet is, komt de volgende run aan de beurt. Het antwoord noemt per
 // event wat er gebeurde, zodat de job-historie laat zien waarom iets wacht.
 //
-// Is de uitslag al vóór de 90 minuten vastgezet met de knop op de live pagina,
-// dan rekent deze cron hem daarna nog één keer na: wie te vroeg klikte (renners
-// nog onderweg), wordt zo vanzelf rechtgezet.
+// Is de uitslag al vóór de 90 minuten vastgezet (met de knop op de live pagina,
+// of zodra alle renners binnen waren), dan rekent deze cron hem daarna nog één
+// keer na: wie te vroeg klikte (renners nog onderweg), wordt zo vanzelf
+// rechtgezet. Uit bevroren Zwift-data (migr. 0197) kost dat geen Zwift-aanroepen.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     ? await admin.from("zrl_team_results").select("event_id, computed_at").in("event_id", ids)
     : { data: [] };
   const startById = new Map((events ?? []).map((event) => [event.id as string, Date.parse(event.start_at as string)]));
-  // Klaar is alleen een uitslag van ná de 90 minuten; een eerdere is met de knop gezet.
+  // Klaar is alleen een uitslag van ná de 90 minuten; een eerdere wordt nog één keer nagerekend.
   const done = new Set(
     (frozen ?? [])
       .filter(
