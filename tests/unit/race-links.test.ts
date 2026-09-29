@@ -3,6 +3,7 @@ import {
   derivedZwiftLinks,
   frrTourLinks,
   linkLabel,
+  linkLogo,
   mergeLinks,
   normalizeLinkUrl,
   normalizeRacepassUrl,
@@ -20,6 +21,8 @@ describe("frrTourLinks", () => {
     });
     expect(links.every((link) => link.url.startsWith("https://"))).toBe(true);
     expect(new Set(links.map((link) => link.key)).size).toBe(links.length);
+    expect(linkLogo(links.at(-1)!.url)).toBe("/logos/discord.svg");
+    expect(linkLogo("https://discord.gg/abc")).toBe("/logos/discord.svg");
   });
 });
 

@@ -41,6 +41,9 @@ const LOGO_BY_HOST: Array<[string, string]> = [
   ["strava.com", "/logos/strava.png"],
   ["intervals.icu", "/logos/intervals.png"],
   ["zwbcycling.nl", "/logos/zwb.png"],
+  ["discord.com", "/logos/discord.svg"],
+  ["discord.gg", "/logos/discord.svg"],
+  ["discordapp.com", "/logos/discord.svg"],
 ];
 
 /** Het logo van de site achter deze link, of null als we er geen hebben. */
