@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   derivedZwiftLinks,
+  frrTourLinks,
   linkLabel,
   mergeLinks,
   normalizeLinkUrl,
@@ -8,6 +9,19 @@ import {
   racepassFor,
 } from "@/lib/events/race-links";
 import { withParentRoute } from "@/lib/events/route-source";
+
+describe("frrTourLinks", () => {
+  it("geeft de FRR-pagina's en het Discord-kanaal, allemaal https", () => {
+    const links = frrTourLinks();
+    expect(links.map((link) => link.label)).toContain("Klassement");
+    expect(links.at(-1)).toMatchObject({
+      label: "Discord",
+      url: "https://discord.com/invite/nQNWHQK6PS",
+    });
+    expect(links.every((link) => link.url.startsWith("https://"))).toBe(true);
+    expect(new Set(links.map((link) => link.key)).size).toBe(links.length);
+  });
+});
 
 describe("derivedZwiftLinks", () => {
   it("maakt Zwift, ZwiftPower en ZwiftRacing uit het event-id", () => {

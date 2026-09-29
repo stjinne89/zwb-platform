@@ -74,6 +74,7 @@ export type FrrImportResult = {
 type ExistingEvent = {
   id: string;
   title: string;
+  description: string | null;
   start_at: string;
   parent_event_id: string | null;
   zwift_event_id: number | string | null;
@@ -139,11 +140,11 @@ export async function importFrrTour(
     await Promise.all([
       admin
         .from("events")
-        .select("id, title, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
+        .select("id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
         .eq("frr_tour_id", tour.id),
       admin
         .from("events")
-        .select("id, title, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
+        .select("id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
         .in("zwift_event_id", zwiftIds),
     ]);
   if (tourError) throw new Error(tourError.message);
@@ -186,7 +187,6 @@ export async function importFrrTour(
         .insert({
           type: "flamme_rouge",
           title: stageTitle,
-          description: first.description,
           start_at: first.startAt,
           external_url: FRR_TOURS_PAGE_URL,
           frr_tour_id: tour.id,
@@ -194,7 +194,7 @@ export async function importFrrTour(
           ...route,
           created_by: createdBy,
         })
-        .select("id, title, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
+        .select("id, title, description, start_at, parent_event_id, zwift_event_id, frr_tour_id, frr_stage")
         .single();
       if (error) throw new Error(error.message);
       parent = data as ExistingEvent;
@@ -251,6 +251,13 @@ export async function importFrrTour(
     if (new Date(parent.start_at).toISOString() !== starts[0]) parentUpdate.start_at = starts[0];
     if (parent.title !== stageTitle && isGeneratedFrrTitle(parent.title)) {
       parentUpdate.title = stageTitle;
+    }
+    // Tot 2026-09-29 nam de import de Engelse eventtekst van FRR over. Die staat
+    // achter de links, dus een omschrijving die gelijk is aan die van Zwift gaat
+    // weg; een eigen tekst van een beheerder blijft staan.
+    const ownDescription = (parent.description ?? "").trim();
+    if (ownDescription && stage.slots.some((slot) => slot.description === ownDescription)) {
+      parentUpdate.description = null;
     }
     if (Object.keys(parentUpdate).length > 0) {
       const { error } = await admin.from("events").update(parentUpdate).eq("id", parent.id);

@@ -90,6 +90,8 @@ export function derivedZwiftLinks(zwiftEventId: number | string | null | undefin
 // heeft geen vaste URL per tour of etappe.
 
 const FRR_BASE = "https://flammerougeracing.com";
+/** Het tourkanaal van FRR, zoals FRR het in elk Zwift-event noemt. */
+const FRR_DISCORD_URL = "https://discord.com/invite/nQNWHQK6PS";
 
 /** Klassementen, inschrijvingen en regels van de lopende FRR-tour. */
 export function frrTourLinks(): RaceLink[] {
@@ -101,12 +103,14 @@ export function frrTourLinks(): RaceLink[] {
     ["team", "Ploegen", "/tour-results-team/"],
     ["registered", "Inschrijvingen", "/tour-registered/"],
     ["rules", "Reglement", "/tour-rules/"],
-  ].map(([key, label, path]) => ({
-    key: `frr-${key}`,
-    kind: "frr" as const,
-    label,
-    url: `${FRR_BASE}${path}`,
-  }));
+  ]
+    .map(([key, label, path]) => ({
+      key: `frr-${key}`,
+      kind: "frr" as const,
+      label,
+      url: `${FRR_BASE}${path}`,
+    }))
+    .concat({ key: "frr-discord", kind: "frr", label: "Discord", url: FRR_DISCORD_URL });
 }
 
 /** Alleen https-links; alles anders valt weg. */

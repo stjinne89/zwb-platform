@@ -144,7 +144,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0196`
 >   - sectie Tijdsloten, met per slot de tijd, de ingeschreven ZWB'ers, "Jij
 >     rijdt" en de links naar Zwift, ZwiftPower en ZwiftRacing;
 >   - FRR-links bij Raceinfo: klassement, etappe-uitslag, truien, ploegen,
->     inschrijvingen en reglement;
+>     inschrijvingen, reglement en (sinds de tweede commit hieronder) het
+>     Discord-kanaal van de tour;
 >   - ZWB in het klassement;
 >   - Renners om in de gaten te houden: dezelfde klasse, tot 5 plaatsen of 60 s
 >     eGAP voor of achter je, plus je volglijst (`frr_watch_riders`, alleen voor
@@ -156,6 +157,15 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0196`
 > - Schema (`loadScheduleEvents`): FRR-tijdsloten staan niet meer in de basislijst
 >   van 50, want 44 slots zouden de rest verdringen. Alleen slots waar het lid op
 >   antwoordde, komen erbij.
+> - Geen omschrijving meer op de etappe (wens eigenaar, 2026-09-29, na de eerste
+>   import op productie). De import nam eerst de volledige Engelse eventtekst van
+>   FRR over (reglement, Discord, gedragscode), waardoor de tijdsloten ver onderaan
+>   kwamen; die informatie staat achter de links. De import zet geen omschrijving
+>   meer en haalt bij de volgende sync een omschrijving weg die gelijk is aan de
+>   Zwift-tekst van een slot. Een eigen tekst van een beheerder blijft staan.
+>   Het Discord-kanaal (uit die tekst) staat nu als link bij Raceinfo.
+> - De einddatum van Ignite staat op 12 oktober door het nachtslot van etappe 8
+>   (01:30). Bewust zo gelaten: de sync loopt alleen een dag langer door.
 > - Dashboard: de recente events van de afgelopen week (limiet 6) slaan
 >   FRR-tijdsloten over; de etappe zelf blijft staan. In "Jouw races" (`84d3dc5`)
 >   staat een slot waar je ja op zei gewoon als race.
