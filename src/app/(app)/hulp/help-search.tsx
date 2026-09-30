@@ -21,6 +21,13 @@ const HELP_INDEX: HelpResult[] = [
       "frr flamme rouge racing tour ignite erupt oblivion etappe tijdslot slot inschrijven zwift klassement gc egap klasse rivalen tegenstanders renners volgen favoriet ster zwiftpower",
   },
   {
+    title: "Sunday Race Club",
+    text: "De SRC van MyWhoosh: inschrijven, je team per maand en per zondag wie kan.",
+    href: "/hulp#teams",
+    terms:
+      "src sunday race club mywhoosh whoosh zondag finale kwalificatie inschrijven deadline categorie cat weigh-in teamnaam team maand beschikbaar",
+  },
+  {
     title: "FTP-test",
     text: "Je trainer plant de test; jij vult de uitslag in en je FTP volgt.",
     href: "/hulp#ftp-test",

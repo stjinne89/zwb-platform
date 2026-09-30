@@ -5,6 +5,10 @@
 // Idempotent. Een zondag wordt herkend aan events.src_sunday, een race aan zondag
 // en geslacht in src_races. Opnieuw draaien werkt tijden en gegevens bij; het
 // verwijdert nooit iets, want een gereden race valt uit de feed.
+//
+// Een zondag zonder races maakt alleen het hoofdevent: zo staan alle zondagen van
+// de maand al klaar voor de teamplanning (migr. 0201), ook al loopt de feed maar
+// een week vooruit.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { safeFetch } from "@/lib/net/safe-fetch";
@@ -36,7 +40,12 @@ export type SrcImportResult = {
   sundaysCreated: number;
   racesCreated: number;
   updated: number;
+  /** De races die deze run nieuw aanmaakte, voor de RSVP's uit de planning. */
+  created: Array<{ eventId: string; parentId: string; sunday: string; gender: SrcRace["gender"] }>;
 };
+
+/** Starttijd van een zondag zonder races: cat 6 van de dames. */
+export const SRC_DEFAULT_START_UTC = "07:25:00.000Z";
 
 type EventRow = {
   id: string;
@@ -82,7 +91,7 @@ export async function importSrcSundays(
   sundays: SrcSunday[],
   createdBy: string,
 ): Promise<SrcImportResult> {
-  const result: SrcImportResult = { sundaysCreated: 0, racesCreated: 0, updated: 0 };
+  const result: SrcImportResult = { sundaysCreated: 0, racesCreated: 0, updated: 0, created: [] };
   if (sundays.length === 0) return result;
 
   const days = sundays.map((sunday) => sunday.sunday);
@@ -122,7 +131,9 @@ export async function importSrcSundays(
     const known = [...childByRace.entries()]
       .filter(([key]) => key.startsWith(`${sunday.sunday}|`) && !inFeed.has(key))
       .map(([, row]) => new Date(row.start_at).toISOString());
-    const start = [...sunday.races.map((race) => race.startAt), ...known].sort()[0];
+    const start =
+      [...sunday.races.map((race) => race.startAt), ...known].sort()[0] ??
+      `${sunday.sunday}T${SRC_DEFAULT_START_UTC}`;
     const parentTitle = srcSundayTitle(sunday);
 
     // 1. De zondag: één regel in de kalender.
@@ -183,6 +194,12 @@ export async function importSrcSundays(
         if (error) throw new Error(error.message);
         child = data as EventRow;
         result.racesCreated += 1;
+        result.created.push({
+          eventId: child.id,
+          parentId: parent.id,
+          sunday: sunday.sunday,
+          gender: race.gender,
+        });
       } else {
         const update: Record<string, unknown> = {};
         if (!sameInstant(child.start_at, fields.start_at)) update.start_at = fields.start_at;

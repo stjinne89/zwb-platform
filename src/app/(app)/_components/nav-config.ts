@@ -87,6 +87,7 @@ export const NAV_GROUPS: NavNode[] = [
         href: "/omnium",
         label: "ZWB Omnium",
       },
+      { type: "link", href: "/src", label: "Sunday Race Club" },
       {
         type: "link",
         href: "https://voorzpwelbokaal.netlify.app/",

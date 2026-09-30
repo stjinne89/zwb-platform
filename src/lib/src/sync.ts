@@ -2,8 +2,10 @@
 // cron (/api/src/sync) en de knop op /beheer/src.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { groupSrcFeed, type SrcFeedRow } from "@/lib/src/feed";
+import { groupSrcFeed, type SrcFeedRow, type SrcSunday } from "@/lib/src/feed";
 import { fetchSrcFeed, importSrcSundays } from "@/lib/src/import";
+import { nextSrcMonth, srcMonthKey, srcMonthSundays } from "@/lib/src/month";
+import { rsvpNewSrcRaces } from "@/lib/src/availability";
 
 export type SrcSyncState = {
   created_by: string | null;
@@ -16,6 +18,8 @@ export type SrcSyncResult = {
   sundaysCreated: number;
   racesCreated: number;
   updated: number;
+  /** Antwoorden op nieuwe races, uit de beschikbaarheid op de zondag. */
+  rsvps: number;
   racesInFeed: number;
   warnings: string[];
   error: string | null;
@@ -30,14 +34,32 @@ export async function loadSrcSyncState(admin: SupabaseClient): Promise<SrcSyncSt
   return (data as SrcSyncState | null) ?? null;
 }
 
+/**
+ * De zondagen van deze en volgende maand, met de races die de feed al kent. Een
+ * zondag uit de feed gaat voor de berekende (ronde en titel).
+ */
+export function srcSundaysToImport(feed: SrcSunday[], now: Date): SrcSunday[] {
+  const month = srcMonthKey(now);
+  const bySunday = new Map<string, SrcSunday>();
+  for (const slot of [...srcMonthSundays(month), ...srcMonthSundays(nextSrcMonth(month))]) {
+    bySunday.set(slot.sunday, { ...slot, races: [] });
+  }
+  for (const sunday of feed) bySunday.set(sunday.sunday, sunday);
+  const today = now.toISOString().slice(0, 10);
+  return [...bySunday.values()]
+    .filter((sunday) => sunday.races.length > 0 || sunday.sunday >= today)
+    .sort((a, b) => a.sunday.localeCompare(b.sunday));
+}
+
 export async function syncSrcCalendar(
   admin: SupabaseClient,
-  options: { createdBy?: string | null; rows?: SrcFeedRow[] } = {},
+  options: { createdBy?: string | null; rows?: SrcFeedRow[]; now?: Date } = {},
 ): Promise<SrcSyncResult> {
   const result: SrcSyncResult = {
     sundaysCreated: 0,
     racesCreated: 0,
     updated: 0,
+    rsvps: 0,
     racesInFeed: 0,
     warnings: [],
     error: null,
@@ -53,7 +75,12 @@ export async function syncSrcCalendar(
     const feed = groupSrcFeed(rows);
     result.warnings = feed.warnings;
     result.racesInFeed = feed.sundays.reduce((sum, sunday) => sum + sunday.races.length, 0);
-    Object.assign(result, await importSrcSundays(admin, feed.sundays, createdBy));
+    const sundays = srcSundaysToImport(feed.sundays, options.now ?? new Date());
+    const imported = await importSrcSundays(admin, sundays, createdBy);
+    result.sundaysCreated = imported.sundaysCreated;
+    result.racesCreated = imported.racesCreated;
+    result.updated = imported.updated;
+    result.rsvps = await rsvpNewSrcRaces(admin, imported.created);
   } catch (err) {
     result.error = err instanceof Error ? err.message : "SRC-sync mislukt.";
   }

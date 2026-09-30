@@ -76,9 +76,10 @@ const TYPE_LABELS: Record<string, string> = {
   ladder: "Ladder teams",
   social: "Social teams",
   outdoor: "Outdoor teams",
+  src: "Sunday Race Club",
 };
 
-const TEAM_TYPE_ORDER = ["zrl", "ladder", "social", "outdoor"];
+const TEAM_TYPE_ORDER = ["zrl", "ladder", "social", "outdoor", "src"];
 
 function num(value: number | string | null | undefined) {
   const n = Number(value ?? NaN);

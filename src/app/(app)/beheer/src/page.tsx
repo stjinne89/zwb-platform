@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/app-ui";
 import { genderLabel, type SrcGender } from "@/lib/src/feed";
 import type { SrcSyncState } from "@/lib/src/sync";
 import { RefreshButton } from "./_components/refresh-button";
+import { SrcTeamForm } from "./_components/team-form";
 
 export const dynamic = "force-dynamic";
 
@@ -47,24 +48,35 @@ export default async function SrcKalenderPage() {
 
   // Vanaf vorige week, zodat de uitslag van afgelopen zondag nog te vinden is.
   const since = new Date(new Date().getTime() - 7 * 86400_000).toISOString().slice(0, 10);
-  const [{ data: stateRow }, { data: parentRows }, { data: raceRows }] = await Promise.all([
-    supabase
-      .from("src_sync_state")
-      .select("created_by, synced_at, sync_error, races_in_feed")
-      .eq("id", true)
-      .maybeSingle(),
-    supabase
-      .from("events")
-      .select("id, title, start_at, src_sunday")
-      .not("src_sunday", "is", null)
-      .is("parent_event_id", null)
-      .gte("src_sunday", since)
-      .order("src_sunday"),
-    supabase
-      .from("src_races")
-      .select("event_id, sunday, gender, registration_closes_at, participants, events(start_at)")
-      .gte("sunday", since),
-  ]);
+  const [{ data: stateRow }, { data: parentRows }, { data: raceRows }, { data: teamRows }] =
+    await Promise.all([
+      supabase
+        .from("src_sync_state")
+        .select("created_by, synced_at, sync_error, races_in_feed")
+        .eq("id", true)
+        .maybeSingle(),
+      supabase
+        .from("events")
+        .select("id, title, start_at, src_sunday")
+        .not("src_sunday", "is", null)
+        .is("parent_event_id", null)
+        .gte("src_sunday", since)
+        .order("src_sunday"),
+      supabase
+        .from("src_races")
+        .select("event_id, sunday, gender, registration_closes_at, participants, events(start_at)")
+        .gte("sunday", since),
+      supabase
+        .from("teams")
+        .select("id, name, mywhoosh_team_name")
+        .eq("type", "src")
+        .order("name"),
+    ]);
+  const teams = (teamRows ?? []) as Array<{
+    id: string;
+    name: string;
+    mywhoosh_team_name: string | null;
+  }>;
   const state = stateRow as SrcSyncState | null;
   const parents = (parentRows ?? []) as ParentRow[];
   const races = (raceRows ?? []) as unknown as RaceRow[];
@@ -99,6 +111,19 @@ export default async function SrcKalenderPage() {
           {state?.sync_error && <p className="text-destructive">{state.sync_error}</p>}
         </dl>
         <RefreshButton />
+      </section>
+
+      <section className="space-y-4 rounded-lg border bg-card p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Teams
+        </h2>
+        {teams.map((team) => (
+          <SrcTeamForm
+            key={team.id}
+            initial={{ id: team.id, name: team.name, mywhooshTeamName: team.mywhoosh_team_name }}
+          />
+        ))}
+        <SrcTeamForm />
       </section>
 
       {parents.length === 0 ? (

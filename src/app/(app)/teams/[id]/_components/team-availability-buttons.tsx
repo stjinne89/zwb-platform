@@ -12,14 +12,19 @@ const OPTIONS: Array<{ value: Status; label: string }> = [
   { value: "unavailable", label: "Niet" },
 ];
 
+type SaveResult = { ok: true } | { ok: false; error: string };
+
 export function TeamAvailabilityButtons({
   teamId,
   eventId,
   current,
+  save,
 }: {
   teamId: string;
   eventId: string;
   current: Status | null;
+  /** Andere opslag dan de teambeschikbaarheid, zoals een SRC-zondag. */
+  save?: (status: Status) => Promise<SaveResult>;
 }) {
   const [active, setActive] = useState<Status | null>(current);
   const [pending, startTransition] = useTransition();
@@ -30,7 +35,7 @@ export function TeamAvailabilityButtons({
     setActive(status);
     setError(null);
     startTransition(async () => {
-      const res = await setTeamAvailability(teamId, eventId, status);
+      const res = save ? await save(status) : await setTeamAvailability(teamId, eventId, status);
       if (!res.ok) {
         setActive(previous);
         setError(res.error);

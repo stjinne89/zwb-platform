@@ -27,7 +27,8 @@ function fakeAdmin(tables: Record<string, Row[]>) {
         return [{ ...row }];
       }
       if (action === "upsert") {
-        const known = rows.find((row) => row[conflict] === payload[conflict]);
+        const keys = conflict.split(",");
+        const known = rows.find((row) => keys.every((key) => row[key] === payload[key]));
         if (known) Object.assign(known, payload);
         else rows.push({ ...payload });
         return [];
@@ -86,7 +87,8 @@ describe("importSrcSundays", () => {
     const { sundays } = groupSrcFeed(rows);
 
     const first = await importSrcSundays(admin, sundays, "beheerder");
-    expect(first).toEqual({ sundaysCreated: 1, racesCreated: 2, updated: 0 });
+    expect(first).toMatchObject({ sundaysCreated: 1, racesCreated: 2, updated: 0 });
+    expect(first.created.map((race) => race.gender)).toEqual(["women", "men"]);
 
     const parent = tables.events.find((row) => row.src_sunday === "2026-10-04")!;
     expect(parent).toMatchObject({
@@ -108,7 +110,7 @@ describe("importSrcSundays", () => {
     });
 
     const again = await importSrcSundays(admin, sundays, "beheerder");
-    expect(again).toEqual({ sundaysCreated: 0, racesCreated: 0, updated: 0 });
+    expect(again).toEqual({ sundaysCreated: 0, racesCreated: 0, updated: 0, created: [] });
     expect(tables.events).toHaveLength(3);
     expect(tables.src_races).toHaveLength(2);
   });
@@ -139,19 +141,90 @@ describe("syncSrcCalendar", () => {
     const tables: Record<string, Row[]> = { events: [], src_races: [], src_sync_state: [] };
     const admin = fakeAdmin(tables);
 
-    const cron = await syncSrcCalendar(admin, { rows });
+    const now = new Date("2026-09-30T18:00:00Z");
+    const cron = await syncSrcCalendar(admin, { rows, now });
     expect(cron.error).toMatch(/beheer\/src/);
     expect(tables.events).toHaveLength(0);
 
-    const manual = await syncSrcCalendar(admin, { rows, createdBy: "beheerder" });
-    expect(manual).toMatchObject({ error: null, racesInFeed: 2, racesCreated: 2 });
+    const manual = await syncSrcCalendar(admin, { rows, now, createdBy: "beheerder" });
+    // Vier zondagen in oktober; alleen de eerste heeft al races.
+    expect(manual).toMatchObject({
+      error: null,
+      racesInFeed: 2,
+      sundaysCreated: 4,
+      racesCreated: 2,
+      rsvps: 0,
+    });
+    const final = tables.events.find((row) => row.src_sunday === "2026-10-25")!;
+    expect(final).toMatchObject({ title: "SRC oktober · Finale", start_at: "2026-10-25T07:25:00.000Z" });
 
-    const later = await syncSrcCalendar(admin, { rows });
+    const later = await syncSrcCalendar(admin, { rows, now });
     expect(later.error).toBeNull();
     expect(tables.src_sync_state[0]).toMatchObject({
       created_by: "beheerder",
       sync_error: null,
       races_in_feed: 2,
     });
+  });
+});
+
+describe("RSVP's uit de zondagplanning", () => {
+  it("zet beschikbaarheid om in een antwoord op de eigen race zodra die in de kalender komt", async () => {
+    const now = new Date("2026-09-30T18:00:00Z");
+    const tables: Record<string, Row[]> = {
+      events: [],
+      src_races: [],
+      src_sync_state: [],
+      team_event_availability: [],
+      src_month_entries: [],
+      event_rsvps: [],
+    };
+    const admin = fakeAdmin(tables);
+    // Eerst alleen de zondagen, zonder races: de feed is nog leeg.
+    await syncSrcCalendar(admin, { rows: [], now, createdBy: "beheerder" });
+    const sunday = tables.events.find((row) => row.src_sunday === "2026-10-04")!;
+    expect(tables.events.filter((row) => row.parent_event_id)).toHaveLength(0);
+
+    const entry = (profile_id: string, race: string, team_id = "zwb") => ({
+      month: "2026-10-01",
+      profile_id,
+      team_id,
+      race,
+    });
+    tables.src_month_entries.push(
+      entry("heer", "men"),
+      entry("dame", "women"),
+      entry("afwezig", "men"),
+      entry("ander-team", "men", "ander"),
+    );
+    const available = (profile_id: string, status: string, team_id = "zwb") => ({
+      event_id: sunday.id,
+      team_id,
+      profile_id,
+      status,
+    });
+    tables.team_event_availability.push(
+      available("heer", "available"),
+      available("dame", "maybe"),
+      available("afwezig", "unavailable"),
+      // Beschikbaarheid voor een team waar het lid deze maand niet in zit.
+      available("ander-team", "available", "zwb"),
+    );
+
+    // De races komen in de feed.
+    const result = await syncSrcCalendar(admin, { rows, now });
+    const men = tables.src_races.find((row) => row.gender === "men")!.event_id;
+    const women = tables.src_races.find((row) => row.gender === "women")!.event_id;
+    expect(result.racesCreated).toBe(2);
+
+    const answers = Object.fromEntries(
+      tables.event_rsvps.map((row) => [`${row.profile_id}@${row.event_id}`, row.status]),
+    );
+    expect(answers).toEqual({
+      [`heer@${men}`]: "yes",
+      [`dame@${women}`]: "maybe",
+      [`afwezig@${men}`]: "no",
+    });
+    expect(result.rsvps).toBe(3);
   });
 });

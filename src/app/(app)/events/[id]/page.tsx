@@ -4,7 +4,7 @@ import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
@@ -32,6 +32,8 @@ import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
 import { SrcPanel } from "./_components/src-panel";
+import { setSrcAvailability } from "../../src/_actions";
+import { srcMonthKey } from "@/lib/src/month";
 import { subEventLabel } from "@/lib/events/sub-events";
 import { loadZrlTeamResults, type ZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { isPoiType, type EventPoi } from "./_components/poi";
@@ -481,6 +483,40 @@ export default async function EventDetailPage({
       name: row.name,
       current: statusByTeam.get(row.id) ?? null,
     }));
+  }
+
+  // SRC-zondag (migr. 0201): je geeft per zondag op of je kunt, voor het team
+  // waarmee je deze maand rijdt. Dat wordt je antwoord op je eigen race.
+  const isSrcSunday = isSrc && !event.parent_event_id;
+  let srcSignup: { teamId: string; current: TeamAvailabilityStatus | null } | null = null;
+  if (isSrcSunday && user) {
+    const { data: sundayRow } = await supabase
+      .from("events")
+      .select("src_sunday")
+      .eq("id", id)
+      .maybeSingle();
+    const sunday = (sundayRow?.src_sunday as string | null | undefined) ?? null;
+    const { data: entry } = sunday
+      ? await supabase
+          .from("src_month_entries")
+          .select("team_id")
+          .eq("month", srcMonthKey(sunday))
+          .eq("profile_id", user.id)
+          .maybeSingle()
+      : { data: null };
+    if (entry) {
+      const { data: availability } = await supabase
+        .from("team_event_availability")
+        .select("status")
+        .eq("event_id", id)
+        .eq("team_id", entry.team_id)
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      srcSignup = {
+        teamId: entry.team_id as string,
+        current: (availability?.status as TeamAvailabilityStatus | undefined) ?? null,
+      };
+    }
   }
 
   // Strip het interne "ZWB-deelnemers:"-label uit de omschrijving (gekoppelde
@@ -1400,7 +1436,27 @@ export default async function EventDetailPage({
           <WindSummary forecast={windForecast} rideBearing={rideBearing} />
         ))}
 
-      {!isParentEvent && !isRaceWeek && (
+      {isSrcSunday && user && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Ben jij erbij?
+          </h2>
+          {srcSignup ? (
+            <TeamAvailabilityButtons
+              teamId={srcSignup.teamId}
+              eventId={event.id}
+              current={srcSignup.current}
+              save={setSrcAvailability.bind(null, event.id)}
+            />
+          ) : (
+            <Link href="/src" className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+              Meedoen deze maand
+            </Link>
+          )}
+        </section>
+      )}
+
+      {!isParentEvent && !isRaceWeek && !isSrcSunday && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Ben jij erbij?

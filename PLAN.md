@@ -80,12 +80,14 @@ gaat stabiliteit voor nieuwe features.
    `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
    `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
    (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
-   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` toepassen
-   **vóór** de deploy (beheerpagina en sync lezen de nieuwe tabellen, en het
-   eventtype `src` bestaat anders niet). Daarna `SRC_SYNC_SECRET` in Netlify,
+   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` en
+   `0201_src_month_entries.sql` toepassen **vóór** de deploy (beheerpagina, sync
+   en `/src` lezen de nieuwe tabellen, en het event- en teamtype `src` bestaan
+   anders niet). Daarna `SRC_SYNC_SECRET` in Netlify,
    deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
-   events vast), en een job `POST /api/src/sync` elk uur op cron-job.org
-   (runbook sectie 2). Zie de ronde hieronder.
+   events vast), daar het SRC-team aanmaken met de teamnaam die ZWB bij MyWhoosh
+   gebruikt, en een job `POST /api/src/sync` elk uur op cron-job.org (runbook
+   sectie 2). Zie de rondes hieronder.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -4657,6 +4659,75 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — SRC-teamplanning per maand (fase 2 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0201_src_month_entries.sql`. Niet gepusht; Stijn wil alle fasen in één keer
+pushen.
+
+**Waarom.** Bij de SRC stelt ZWB niemand op: iedereen schrijft zich zelf in en
+MyWhoosh bepaalt de categorie. Wat wel te regelen valt: wie deze maand onder de
+ZWB-teamnaam rijdt (dat ligt de hele maand vast), in welke race en categorie hij
+denkt te rijden, en per zondag wie kan. Zo is te zien of er in een categorie drie
+renners zijn voor een teamuitslag.
+
+**Nu.**
+- Teamtype `src` en `teams.mywhoosh_team_name` (uniek, hoofdletters tellen niet).
+  Teams maak je op `/beheer/src`, niet via Teams → nieuw.
+- `src_month_entries (month, profile_id)` → team, race (heren/dames) en verwachte
+  categorie. De primaire sleutel dwingt één team per lid per maand af. Schrijven
+  kan alleen via server-actions (service-role).
+- Pagina `/src` (menu Club → Sunday Race Club), voor deze en volgende maand:
+  - meedoen, aanpassen en stoppen;
+  - per zondag Beschikbaar, Misschien of Niet;
+  - per team een tabel renners × zondagen, met onderaan per race en categorie
+    hoeveel er kunnen (groen vanaf 3 zeker).
+  Teambeheerders, eventbeheerders en captains van een SRC-team voegen leden toe
+  of halen ze eruit.
+- Van team wisselen kan tot de eerste race van de maand begint; daarna weigert de
+  actie het (roadbook: niet wisselen halverwege de maand). Beheer mag het wel,
+  als correctie.
+- Beschikbaarheid staat in `team_event_availability`, op het hoofdevent van de
+  zondag. Staat de race van je geslacht al in de kalender, dan wordt het meteen
+  je antwoord op die race: beschikbaar is ja, misschien is misschien, niet is
+  nee. Het trainingsschema gaat mee, zoals bij een ZRL-opstelling. Maakt de sync
+  de race later aan, dan zet hij die antwoorden alsnog (`rsvpNewSrcRaces`).
+- De sync zet alle zondagen van deze en volgende maand vooraf klaar als
+  hoofdevent zonder races, met de laatste zondag als finale. Zo kun je vooruit
+  plannen. Een zondag uit de feed gaat voor de berekende. Een zondag zonder races
+  krijgt als starttijd 07:25 GMT (cat 6 dames).
+- Op een SRC-zondag staat "Ben jij erbij?" met die knoppen, of een knop naar
+  `/src` als je deze maand nog niet meedoet. Er is geen losse RSVP op de zondag
+  zelf.
+- `TeamAvailabilityButtons` kreeg een optionele `save`, zodat dezelfde knoppen de
+  SRC-actie gebruiken. `/hulp` (Teams en wedstrijden, Beheer) en de hulpzoeker
+  beschrijven de SRC.
+
+**Bewust niet.**
+- Geen lidmaatschap in `team_members`: het team van een SRC-renner wisselt per
+  maand, en de join-trigger uit 0171 geldt alleen voor `zrl`. De teampagina van
+  een SRC-team toont daarom geen leden; `/src` is de plek.
+- Geen controle op 3–5 renners per team. MyWhoosh telt de beste drie, en wie in
+  een andere categorie belandt, rijdt die zondag individueel.
+- De categorie is wat het lid zelf verwacht. Fase 3 vult de laatst gereden
+  categorie uit de uitslag in.
+- Niet te zien wie echt ingeschreven staat bij MyWhoosh: dat geeft de openbare
+  feed niet.
+- Een vooraf klaargezette zondag die MyWhoosh overslaat, blijft zonder races
+  staan en moet met de hand weg.
+
+**Niet lokaal te verifiëren:** migratie 0201, en de pagina's tegen de database.
+De check op `teams.type` uit 0001 heeft geen naam; de migratie zoekt hem op zijn
+definitie.
+
+**Wel getest:**
+- `tsc`, ESLint en `next build`.
+- Unit-tests `src-month`: zondagen per maand, finale, het moment waarop wisselen
+  niet meer kan, telling per categorie, klaarzetten.
+- Unit-tests `src-import`: een sync met lege feed zet vier oktoberzondagen klaar.
+  Daarna worden beschikbaar, misschien en niet een ja, misschien en nee op de
+  juiste race, en beschikbaarheid voor een ander team telt niet mee.
+
 ### Opgeleverd — SRC-kalender: de MyWhoosh Sunday Race Club als hoofdevent per zondag (fase 1 van 5)
 
 **2026-09-30.** Commit: de commit die dit blok toevoegt (branch
@@ -4735,7 +4806,9 @@ teamnaam rijdt en wie welke zondag kan.
 **Bewust niet (in deze fase).** Teams, beschikbaarheid per zondag, uitslagen,
 koppelen en herinneringen: dat zijn fase 2 tot 4. Geen maandlaag boven de
 zondagen: de feed loopt maar een week vooruit, dus een maand zou stukje voor
-stukje ontstaan. Een lid ziet niet of hij echt is ingeschreven bij MyWhoosh; de
+stukje ontstaan. *(Sinds fase 2, dezelfde dag, zet de sync wel alle zondagen van
+deze en volgende maand vooraf klaar, zonder races; zie daar.)* Een lid ziet niet
+of hij echt is ingeschreven bij MyWhoosh; de
 openbare feed geeft alleen het aantal. Bestaande MyWhoosh-events die de
 eventscan eerder als SRC publiceerde (type `mywhoosh`), worden niet omgezet.
 Kijk na de eerste sync op de kalender of er dubbele staan, en verwijder die met
