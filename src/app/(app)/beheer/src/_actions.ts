@@ -5,8 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncSrcCalendar } from "@/lib/src/sync";
-
-const MANAGERS = ["events.manage_all", "community.manage"] as const;
+import { SRC_MANAGERS as MANAGERS } from "@/lib/src/access";
 
 /** De knop "Nu verversen": haalt de SRC-agenda op en zet nieuwe zondagen erin. */
 export async function refreshSrcCalendar() {
@@ -36,7 +35,7 @@ export async function saveSrcTeam(input: { id?: string; name: string; mywhooshTe
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.hasAny(["teams.manage_roster", ...MANAGERS])) {
+  if (!access.hasAny(MANAGERS)) {
     return { ok: false as const, error: "Geen recht om SRC-teams te beheren." };
   }
 
@@ -74,7 +73,7 @@ export async function linkSrcRider(mywhooshUserId: string, profileId: string) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.hasAny(["teams.manage_roster", ...MANAGERS])) {
+  if (!access.hasAny(MANAGERS)) {
     return { ok: false as const, error: "Geen recht om renners te koppelen." };
   }
   const userId = mywhooshUserId.trim().toLowerCase();

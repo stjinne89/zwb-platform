@@ -161,7 +161,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
     type: "link",
     href: "/beheer/src",
     label: "SRC-kalender",
-    permission: "events.manage_all",
+    permission: "src.manage",
   },
   {
     type: "link",

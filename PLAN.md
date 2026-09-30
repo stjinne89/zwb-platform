@@ -4660,6 +4660,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — recht "Sunday Race Club beheren"
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0204_src_manage_permission.sql`.
+
+**Waarom.** Stijn wil dat een event-organiser de SRC kan beheren. Die rol had
+alleen `events.create`, terwijl `/beheer/src` om `events.manage_all` of
+`community.manage` vroeg. `events.manage_all` geven zou ook het bewerken en
+verwijderen van álle events toestaan.
+
+**Nu.** Nieuw recht `src.manage` ("Sunday Race Club beheren", eigen categorie op
+`/beheer/rechten`). Standaard hebben het bestuur, de community-beheerder en de
+event-organiser het; de migratie zet het ook in hun opgeslagen rijen en breidt de
+check `community_role_permissions_allowed` uit. `SRC_MANAGERS`
+(`src/lib/src/access.ts`: `src.manage`, `events.manage_all`,
+`community.manage`) bewaakt `/beheer/src` met alle acties daar: verversen,
+teams, koppelen. Voor het ledenbeheer op `/src` gelden daarnaast nog
+`teams.manage_roster` en captains van een SRC-team. Het menu-item SRC-kalender
+volgt nu `src.manage`.
+
+**Correctie op fase 3.** `saveSrcTeam` en `linkSrcRider` lieten ook
+`teams.manage_roster` toe, maar de pagina zelf niet; dat is nu gelijkgetrokken
+naar `SRC_MANAGERS`.
+
+**Niet lokaal te verifiëren:** migratie 0204. Tot die draait, zien bestuur en
+community-beheerders (niet-admins) het menu-item niet, al werkt de pagina voor
+hen nog via `events.manage_all`/`community.manage`. Getest: `tsc`, ESLint en de
+unit-suite.
+
 ### Voorbereid — SRC live: eerst meten (fase 5 van 5)
 
 **2026-09-30.** Commit: de commit die dit blok toevoegt. Alleen een script,

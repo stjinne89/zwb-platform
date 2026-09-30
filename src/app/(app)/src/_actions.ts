@@ -14,6 +14,7 @@ import {
   type SrcAvailabilityStatus,
 } from "@/lib/src/month";
 import type { SrcGender } from "@/lib/src/feed";
+import { SRC_MANAGERS } from "@/lib/src/access";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -57,7 +58,7 @@ async function canManage(teamId: string | null) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (access.hasAny(["teams.manage_roster", "events.manage_all"])) {
+  if (access.hasAny([...SRC_MANAGERS, "teams.manage_roster"])) {
     return { ok: true as const, userId: access.user.id };
   }
   if (teamId) {

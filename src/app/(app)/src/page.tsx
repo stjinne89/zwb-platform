@@ -14,6 +14,7 @@ import {
 } from "@/lib/src/month";
 import { TeamAvailabilityButtons } from "../teams/[id]/_components/team-availability-buttons";
 import { srcRiderProgress, SRC_QUALIFIERS_NEEDED, type SrcRiderRace } from "@/lib/src/results";
+import { SRC_MANAGERS } from "@/lib/src/access";
 import { setSrcAvailability } from "./_actions";
 import { SrcAddMemberForm, SrcJoinForm, SrcRemoveEntryButton } from "./_components/month-forms";
 
@@ -114,7 +115,7 @@ export default async function SrcPage({
   const sundays = (sundayRows ?? []) as Sunday[];
   const entries = (entryRows ?? []) as unknown as EntryRow[];
   const canManage =
-    access.hasAny(["teams.manage_roster", "events.manage_all"]) || (captainRows ?? []).length > 0;
+    access.hasAny([...SRC_MANAGERS, "teams.manage_roster"]) || (captainRows ?? []).length > 0;
 
   const sundayIds = sundays.map((sunday) => sunday.id);
   // Vorige maand erbij, voor de laatst gereden categorie.

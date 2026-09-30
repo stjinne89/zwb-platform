@@ -147,6 +147,13 @@ export const COMMUNITY_PERMISSIONS = [
       "Kan Omnium-edities aanmaken en publiceren, uitslagen invoeren en prijzen toekennen.",
     category: "Omnium",
   },
+  {
+    id: "src.manage",
+    label: "Sunday Race Club beheren",
+    description:
+      "Kan de SRC-kalender verversen, SRC-teams beheren, renners koppelen en leden in een maand zetten.",
+    category: "Sunday Race Club",
+  },
 ] as const;
 
 export type CommunityPermission = (typeof COMMUNITY_PERMISSIONS)[number]["id"];
@@ -174,6 +181,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "content.create_posts",
     "live.start",
     "polls.manage",
+    "src.manage",
   ],
   community_manager: [
     "events.create",
@@ -195,6 +203,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "training.publish_plans",
     "training.ai_generate",
     "omnium.manage",
+    "src.manage",
   ],
   trainer: [
     "training.view_assigned",

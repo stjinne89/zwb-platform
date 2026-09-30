@@ -5,6 +5,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState } from "@/components/app-ui";
 import { genderLabel, type SrcGender } from "@/lib/src/feed";
 import type { SrcSyncState } from "@/lib/src/sync";
+import { SRC_MANAGERS } from "@/lib/src/access";
 import { RefreshButton } from "./_components/refresh-button";
 import { SrcTeamForm } from "./_components/team-form";
 import { LinkRiders, type SrcUnlinkedRider } from "./_components/link-riders";
@@ -47,7 +48,7 @@ export default async function SrcKalenderPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.hasAny(["events.manage_all", "community.manage"])) redirect("/dashboard");
+  if (!access.hasAny(SRC_MANAGERS)) redirect("/dashboard");
 
   // Vanaf vorige week, zodat de uitslag van afgelopen zondag nog te vinden is.
   const since = new Date(new Date().getTime() - 7 * 86400_000).toISOString().slice(0, 10);
