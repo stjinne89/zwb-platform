@@ -1,8 +1,8 @@
 // Minimale Supabase-nabootsing in het geheugen, voor tests die meer dan één
 // query per tabel doen. Kent alleen wat de geteste code gebruikt: select, eq,
-// neq, gt, gte, lt, lte, in, is, not(col, "is", null), order, limit,
-// maybeSingle, single, insert, upsert (onConflict), update en delete. Filters op
-// JSON-paden kent hij niet.
+// neq, gt, gte, lt, lte, in, is, like, not(col, "is" | "like", …), order,
+// limit, range, maybeSingle, single, insert, upsert (onConflict), update en
+// delete. Filters op JSON-paden kent hij niet.
 
 type Row = Record<string, unknown>;
 type Filter = (row: Row) => boolean;
@@ -12,6 +12,11 @@ function compare(a: unknown, b: unknown): number {
   const nb = typeof b === "number" ? b : Number.NaN;
   if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
   return String(a ?? "").localeCompare(String(b ?? ""));
+}
+
+function likePattern(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped.replace(/%/g, ".*").replace(/_/g, ".")}$`);
 }
 
 export function fakeDb(tables: Record<string, Row[]>) {
@@ -26,6 +31,7 @@ export function fakeDb(tables: Record<string, Row[]>) {
     let conflict: string[] = ["id"];
     let orderBy: { column: string; ascending: boolean; nullsFirst: boolean } | null = null;
     let limitTo: number | null = null;
+    let rangeFrom: number | null = null;
     let single: "maybe" | "one" | null = null;
     let countMode = false;
 
@@ -71,7 +77,8 @@ export function fakeDb(tables: Record<string, Row[]>) {
           return ascending ? compare(va, vb) : compare(vb, va);
         });
       }
-      if (limitTo != null) data = data.slice(0, limitTo);
+      if (rangeFrom != null) data = data.slice(rangeFrom, rangeFrom + (limitTo ?? data.length));
+      else if (limitTo != null) data = data.slice(0, limitTo);
       if (single) {
         if (single === "one" && data.length !== 1) {
           return { data: null, error: { message: "not single" } };
@@ -102,8 +109,12 @@ export function fakeDb(tables: Record<string, Row[]>) {
         add(`in ${column}`, (row) => values.includes(row[column])),
       is: (column: string, value: unknown) =>
         add(`is ${column}`, (row) => (row[column] ?? null) === value),
-      not: (column: string, _operator: string, value: unknown) =>
-        add(`not ${column}`, (row) => (row[column] ?? null) !== value),
+      like: (column: string, pattern: string) =>
+        add(`like ${column}`, (row) => likePattern(pattern).test(String(row[column] ?? ""))),
+      not: (column: string, operator: string, value: unknown) =>
+        operator === "like"
+          ? add(`not like ${column}`, (row) => !likePattern(String(value)).test(String(row[column] ?? "")))
+          : add(`not ${column}`, (row) => (row[column] ?? null) !== value),
       order: (column: string, opts?: { ascending?: boolean; nullsFirst?: boolean }) => {
         orderBy = {
           column,
@@ -114,6 +125,11 @@ export function fakeDb(tables: Record<string, Row[]>) {
       },
       limit: (n: number) => {
         limitTo = n;
+        return builder;
+      },
+      range: (from: number, to: number) => {
+        rangeFrom = from;
+        limitTo = to - from + 1;
         return builder;
       },
       maybeSingle: () => {

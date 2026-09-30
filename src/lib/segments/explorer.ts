@@ -4,7 +4,9 @@ import { AIR_DENSITY, DEFAULT_CDA, DEFAULT_CRR, DEFAULT_EQUIPMENT_KG, DRIVETRAIN
 export type SegmentTarget = "record" | "podium";
 export type SegmentStatus = "likely" | "borderline" | "unreachable" | "unknown";
 export type TrackPoint = { lat: number; lon: number; distance: number; altitude: number };
-export type SegmentResult = { profileId: string; name: string; seconds: number; rank: number };
+/** source "gps": door ZWB gemeten uit een GPX of intervals.icu-rit (0199); anders Strava. */
+export type SegmentSource = "gps" | null;
+export type SegmentResult = { profileId: string; name: string; seconds: number; rank: number; source?: SegmentSource };
 /** club = tijd van een ander lid; own = eigen PR, alleen als er geen clubdoel is. */
 export type TargetKind = "club" | "own";
 export type SegmentAssessment = { status: SegmentStatus; reason: string | null; targetSeconds: number | null; targetKind?: TargetKind | null; fastSeconds: number | null; slowSeconds: number | null };
@@ -22,8 +24,8 @@ export const STATUS_LABELS: Record<SegmentStatus, string> = {
   likely: "Kansrijk", borderline: "Op de grens", unreachable: "Buiten bereik", unknown: "Onvoldoende gegevens",
 };
 
-export function leaderboard(rows: Array<{ profileId: string; name: string; seconds: number }>): SegmentResult[] {
-  const best = new Map<string, { profileId: string; name: string; seconds: number }>();
+export function leaderboard(rows: Array<{ profileId: string; name: string; seconds: number; source?: SegmentSource }>): SegmentResult[] {
+  const best = new Map<string, { profileId: string; name: string; seconds: number; source?: SegmentSource }>();
   for (const row of rows) {
     if (!Number.isFinite(row.seconds) || row.seconds <= 0) continue;
     if (!best.has(row.profileId) || row.seconds < best.get(row.profileId)!.seconds) best.set(row.profileId, row);

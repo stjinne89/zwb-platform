@@ -4,7 +4,7 @@ export default function SegmentHelp() {
   return <article className="mx-auto max-w-3xl space-y-5">
     <BackLink href="/profiel/segments" label="ZWB Segments" />
     <h1 className="text-3xl font-semibold">ZWB Segments</h1>
-    <p>De kaart toont buiten gereden racefietssegmenten uit de ingelezen Strava-ritten van goedgekeurde ZWB-leden met een actieve koppeling. Privéritten, privésegmenten, gemarkeerde ritten, e-bikes en indoorritten tellen niet mee. Een segment verschijnt pas als minstens drie ZWB’ers het reden. Zwift en de eerdere collecties staan in een aparte lijst.</p>
+    <p>De kaart toont buiten gereden racefietssegmenten uit de ingelezen Strava-ritten van goedgekeurde ZWB-leden met een actieve koppeling. Ritten via intervals.icu en geüploade GPX-bestanden tellen ook mee: daarvan meet ZWB de tijd zelf langs dezelfde segmentlijn, en die tijd staat met GPS in het klassement. Privéritten, privésegmenten, gemarkeerde ritten, e-bikes en indoorritten tellen niet mee. Een segment verschijnt pas als minstens drie ZWB’ers het reden. Zwift en de eerdere collecties staan in een aparte lijst.</p>
     <h2 className="text-xl font-semibold">Record en podium</h2>
     <p>Per lid telt de snelste verstreken tijd. Gelijke tijden delen een positie. De recorddoeltijd is één seconde sneller dan de snelste andere ZWB’er; voor een podium is dat één seconde sneller dan de derde andere ZWB’er. Is er geen clubdoeltijd, bijvoorbeeld omdat je zelf het record hebt of er minder dan drie tegenstanders zijn voor een podium, dan is het doel je eigen record met één seconde te verbeteren. In de details heet dat dan “Doel: eigen record”. Het hoogteprofiel van een segment wordt opgehaald zodra je het opent, als het er nog niet was. De stand is gebaseerd op ingelezen ritten en kan veranderen wanneer oudere ritten worden toegevoegd.</p>
     <h2 className="text-xl font-semibold">ZWB KOM</h2>
@@ -20,7 +20,7 @@ export default function SegmentHelp() {
     <p>Kaart en lijst gebruiken hetzelfde gebied en dezelfde filters. De lijst toont maximaal 40 segmenten per pagina. Met een kansenfilter worden de passende segmenten binnen die batch getoond; gebruik Volgende om verder te zoeken. Clusters tonen aantallen en zoomen in bij aanklikken. De start heeft een grotere stip dan de finish. Zonder segmentlijn is alleen de start zichtbaar.</p>
     <p>De weerverwachting geldt voor het startgebied van het segment, afgerond op 0,1 graad, en het gekozen uur. De wind wordt voor elke rijrichting langs het segment doorgerekend. Er is geen automatische terugval op windstil weer.</p>
     <h2 className="text-xl font-semibold">Gegevens bijwerken</h2>
-    <p>Nieuwe Strava-ritten leveren segmentpogingen via de bestaande synchronisatie. Beheer kan ontbrekende historische ritdetails en segmentprofielen in kleine batches aanvullen. Intrekken van de koppeling of verwijderen van een rit werkt door in het clubklassement.</p>
+    <p>Nieuwe Strava-ritten leveren segmentpogingen via de bestaande synchronisatie. Beheer kan ontbrekende historische ritdetails en segmentprofielen in kleine batches aanvullen. Intrekken van de koppeling of verwijderen van een rit werkt door in het clubklassement. Een tijd met GPS blijft staan zolang de rit er is.</p>
     <Link href="/privacy" className="inline-block underline">Privacyverklaring</Link>
   </article>;
 }

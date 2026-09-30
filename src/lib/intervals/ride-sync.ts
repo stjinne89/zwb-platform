@@ -19,6 +19,7 @@ import {
   intervalsRideId,
   latLngFromStreams,
   rideRowChanged,
+  timedTrackFromStreams,
   rideSourceFor,
   type IntervalsRideInput,
   type IntervalsRideRow,
@@ -27,6 +28,8 @@ import {
 import { visitPushDue } from "@/lib/intervals/visit-reminder";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { runPostSyncForProfile } from "@/lib/strava/post-sync";
+import type { TimedPoint } from "@/lib/segments/gps-efforts";
+import { storeGpsEfforts } from "@/lib/segments/gps-sync";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -181,6 +184,9 @@ export async function syncIntervalsRidesForProfile(
       });
       if (!row) return [];
       if (track.checked) row.raw.track_checked_at = known?.raw?.track_checked_at ?? now.toISOString();
+      // Eigen coltijden zonder segment (gps-sync.ts) staan in raw; de rij wordt
+      // hier opnieuw opgebouwd, dus meenemen.
+      if (known?.raw?.gps_col_times) row.raw.gps_col_times = known.raw.gps_col_times;
       return [row];
     });
 
@@ -191,6 +197,7 @@ export async function syncIntervalsRidesForProfile(
     // GPS heeft er nooit een; track_checked_at voorkomt dat we elke run opnieuw
     // vragen.
     const withNewTrack: number[] = [];
+    const timedTracks: Array<{ id: number; points: TimedPoint[] }> = [];
     const maxTracks = opts.maxTracks ?? MAX_TRACKS_PER_RUN;
     for (const row of keep) {
       if (result.tracks >= maxTracks) break;
@@ -205,6 +212,8 @@ export async function syncIntervalsRidesForProfile(
         row.raw.map = { summary_polyline: encoded };
         row.raw.track_checked_at = now.toISOString();
         if (encoded) withNewTrack.push(row.id);
+        const points = timedTrackFromStreams(body, Date.parse(row.start_date));
+        if (points.length >= 2) timedTracks.push({ id: row.id, points });
       } catch {
         // Volgende run opnieuw; de rit zelf telt al wel mee.
       }
@@ -220,6 +229,16 @@ export async function syncIntervalsRidesForProfile(
       if (error) throw new Error(error.message);
     }
     result.stored = changed.length;
+
+    // Eigen segment- en coltijden uit het spoor met tijden. Na de upsert, want
+    // een poging verwijst naar de rit.
+    for (const track of timedTracks) {
+      try {
+        await storeGpsEfforts(admin, profileId, track.id, track.points);
+      } catch {
+        // Niet kritiek: de rit telt al mee; de tijden ontbreken dan.
+      }
+    }
 
     // Een spoor dat later binnenkomt moet opnieuw door ZWBlokken; die werken
     // incrementeel op blocks_processed_at. De col-detector scant altijd alles.

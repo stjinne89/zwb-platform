@@ -9,6 +9,7 @@ import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
 import { runPostSyncForProfile } from "@/lib/strava/post-sync";
+import { storeGpsEfforts } from "@/lib/segments/gps-sync";
 import {
   planRideImport,
   type ExistingImportRide,
@@ -16,6 +17,7 @@ import {
 import {
   stravaActivitiesFromCsv,
   stravaActivityFromGpx,
+  timedTrackFromGpx,
   type ImportedStravaActivity,
 } from "@/lib/strava/import";
 
@@ -355,6 +357,25 @@ export async function importMyStravaFile(formData: FormData) {
       if (error) throw new Error(error.message);
     }
 
+    // Eigen segment- en coltijden uit het volledige spoor, op de rit waar de GPX
+    // in terechtkwam (nieuw, of de CSV-rit die het spoor kreeg). Alleen hier is
+    // het bestand met alle tijden er nog; bewaard wordt een uitgedunde lijn.
+    let segmentEfforts = 0;
+    const gpxRideId = withTracks ? (plan.upsert[0]?.id ?? plan.attach[0]?.id) : undefined;
+    if (gpxRideId != null) {
+      try {
+        const stored = await storeGpsEfforts(
+          createAdminClient(),
+          user.id,
+          gpxRideId,
+          timedTrackFromGpx(text),
+        );
+        segmentEfforts = stored.segments + stored.cols;
+      } catch {
+        // Niet kritiek: de rit staat er; de tijden ontbreken dan.
+      }
+    }
+
     // Een import zonder Strava-id heeft een negatief id. Zonder deze stempel
     // vraagt de segment-inhaalslag hem bij Strava op en verwijdert hij de rit
     // na de 404, als het lid ook Strava gekoppeld heeft.
@@ -370,6 +391,7 @@ export async function importMyStravaFile(formData: FormData) {
       ok: true as const,
       imported: plan.upsert.length,
       tracksAdded: plan.attach.length,
+      segmentEfforts,
       skippedRows: skippedRows + plan.duplicates,
       skippedNonCycling,
     };

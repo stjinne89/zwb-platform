@@ -52,6 +52,8 @@ type EffortRow = {
   elapsed_time_seconds: number | null;
   moving_time_seconds: number | null;
   started_at: string | null;
+  /** "gps" voor een eigen tijd (gps-sync.ts), anders null. */
+  source?: string | null;
 };
 
 async function fetchAllRows<T>(
@@ -304,7 +306,7 @@ export async function mirrorLegacyColsToSegments(
   let query = supabase
     .from("profile_climbed_cols")
     .select(
-      "profile_id, col_slug, first_activity_id, first_climbed_at, last_activity_id, last_climbed_at, times_climbed, best_time_seconds, best_time_activity_id, best_time_at, updated_at",
+      "profile_id, col_slug, first_activity_id, first_climbed_at, last_activity_id, last_climbed_at, times_climbed, best_time_seconds, best_time_activity_id, best_time_at, best_time_source, updated_at",
     );
   if (profileId) query = query.eq("profile_id", profileId);
   const { data, error } = await query;
@@ -321,6 +323,7 @@ export async function mirrorLegacyColsToSegments(
     best_time_seconds: number | null;
     best_time_activity_id: number | null;
     best_time_at: string | null;
+    best_time_source: string | null;
     updated_at: string;
   }>).map((row) => ({
     profile_id: row.profile_id,
@@ -333,6 +336,7 @@ export async function mirrorLegacyColsToSegments(
     best_time_seconds: row.best_time_seconds,
     best_time_activity_id: row.best_time_activity_id,
     best_time_at: row.best_time_at,
+    best_time_source: row.best_time_source,
     updated_at: row.updated_at,
   }));
 
@@ -356,7 +360,7 @@ export async function recomputeCompletedSegmentsForUser(
       supabase
         .from("strava_activity_segment_efforts")
         .select(
-          "profile_id, activity_id, strava_segment_id, segment_name, elapsed_time_seconds, moving_time_seconds, started_at",
+          "profile_id, activity_id, strava_segment_id, segment_name, elapsed_time_seconds, moving_time_seconds, started_at, source:raw->>source",
         )
         .eq("profile_id", profileId)
         .order("effort_uid", { ascending: true })
@@ -382,6 +386,7 @@ export async function recomputeCompletedSegmentsForUser(
     bestSeconds: number | null;
     bestActivityId: number | null;
     bestAt: string | null;
+    bestSource: string | null;
   };
   const aggregates = new Map<string, Aggregate>();
   for (const effort of effortRows) {
@@ -400,6 +405,7 @@ export async function recomputeCompletedSegmentsForUser(
         bestSeconds: seconds,
         bestActivityId: seconds == null ? null : effort.activity_id,
         bestAt: seconds == null ? null : at,
+        bestSource: seconds == null ? null : effort.source ?? null,
       });
       continue;
     }
@@ -416,6 +422,7 @@ export async function recomputeCompletedSegmentsForUser(
       current.bestSeconds = seconds;
       current.bestActivityId = effort.activity_id;
       current.bestAt = at;
+      current.bestSource = effort.source ?? null;
     }
   }
 
@@ -430,6 +437,7 @@ export async function recomputeCompletedSegmentsForUser(
     best_time_seconds: info.bestSeconds,
     best_time_activity_id: info.bestActivityId,
     best_time_at: info.bestAt,
+    best_time_source: info.bestSource,
     updated_at: new Date().toISOString(),
   }));
 
@@ -527,6 +535,7 @@ export async function applyAuthoritativeSegmentPrs(
         best_time_seconds: pr,
         best_time_activity_id: stats?.pr_activity_id ?? null,
         best_time_at: prDate,
+        best_time_source: null,
         times_completed: Math.max(
           effortCount,
           (existing as { times_completed?: number } | null)?.times_completed ?? 0,
@@ -557,6 +566,7 @@ export async function applyAuthoritativeSegmentPrs(
           best_time_seconds: pr,
           best_time_activity_id: stats?.pr_activity_id ?? null,
           best_time_at: prDate,
+          best_time_source: null,
           updated_at: new Date().toISOString(),
         })
         .eq("profile_id", profileId)

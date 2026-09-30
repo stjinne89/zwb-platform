@@ -1,6 +1,7 @@
 import { weekStartDate } from "@/lib/strava/client";
 import { haversineKm } from "@/lib/gpx";
 import { encodeTrackPolyline } from "@/lib/track-polyline";
+import type { TimedPoint } from "@/lib/segments/gps-efforts";
 
 export type ImportedStravaActivity = {
   id: number | string;
@@ -660,6 +661,13 @@ function trackPointsFromGpx(xml: string): GpxTrackPoint[] {
     points.push(point);
   }
   return points;
+}
+
+/** Het volledige spoor met tijden, voor de eigen segment- en coltijden. */
+export function timedTrackFromGpx(xml: string): TimedPoint[] {
+  return trackPointsFromGpx(xml).flatMap((point) =>
+    point.timeMs === undefined ? [] : [{ lat: point.lat, lon: point.lon, t: point.timeMs }],
+  );
 }
 
 function gpxTrackTag(xml: string, tag: string): string {

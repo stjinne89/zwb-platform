@@ -39,6 +39,7 @@ export function StravaImportForm() {
     startTransition(async () => {
       let imported = 0;
       let tracksAdded = 0;
+      let segmentEfforts = 0;
       let skippedRows = 0;
       let skippedNonCycling = 0;
       const failed: string[] = [];
@@ -62,6 +63,7 @@ export function StravaImportForm() {
         }
         imported += res.imported;
         tracksAdded += res.tracksAdded;
+        segmentEfforts += res.segmentEfforts;
         skippedRows += res.skippedRows;
         skippedNonCycling += res.skippedNonCycling;
       }
@@ -86,6 +88,7 @@ export function StravaImportForm() {
 
       const parts = [count(imported, "rit geïmporteerd", "ritten geïmporteerd")];
       if (tracksAdded > 0) parts.push(count(tracksAdded, "spoor aangevuld", "sporen aangevuld"));
+      if (segmentEfforts > 0) parts.push(count(segmentEfforts, "segmenttijd gemeten", "segmenttijden gemeten"));
       if (finish?.ok && finish.milestoneAwards > 0) {
         parts.push(count(finish.milestoneAwards, "nieuwe badge", "nieuwe badges"));
       }

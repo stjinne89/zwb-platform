@@ -11,6 +11,13 @@ Dit is dezelfde vraag als fase 3 uit [Verder zonder Strava](zonder-strava-onderz
 ("eigen segmentmatching en eigen geometrie"). Wat hier staat, geldt dus ook
 voor ritten via intervals.icu.
 
+> **Vervolg (2026-09-30):** Stijn koos in sectie 8: ook segmenten, één
+> klassement met herkomstlabel, startpunten uit een openbare bron, en meteen
+> ook intervals.icu. Daarna, op de vraag welke lijnen: de Strava-lijnen uit de
+> segmentverkenner, met het risico uit sectie 5. Gebouwd in migratie `0199`;
+> details in `PLAN.md`, ronde "eigen segment- en coltijden uit GPX en
+> intervals.icu". Het advies hieronder is dus niet gevolgd.
+
 Wat over onze code staat, is in de code nagekeken. Wat over Strava's
 voorwaarden staat, is **niet** in de beleidstekst zelf nagelezen (zie 5).
 

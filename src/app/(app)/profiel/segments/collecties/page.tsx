@@ -4,6 +4,7 @@ import { Gauge, Mountain, Repeat, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 import { BackLink } from "@/components/app-ui";
+import { GpsLabel } from "@/components/gps-label";
 
 type SegmentCollection =
   | "cols"
@@ -32,6 +33,7 @@ type MySegment = {
   first_completed_at: string;
   last_completed_at: string | null;
   best_time_seconds: number | null;
+  best_time_source?: string | null;
 };
 
 type ClubSegment = {
@@ -41,6 +43,7 @@ type ClubSegment = {
   first_completed_at: string;
   display_name: string | null;
   best_time_seconds: number | null;
+  best_time_source?: string | null;
 };
 
 type LegacyColRow = {
@@ -59,6 +62,7 @@ type LegacyMyCol = {
   first_climbed_at: string;
   last_climbed_at: string | null;
   best_time_seconds: number | null;
+  best_time_source?: string | null;
 };
 
 type LegacyClubCol = LegacyMyCol & {
@@ -273,13 +277,13 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
       supabase
         .from("profile_completed_segments")
         .select(
-          "segment_slug, times_completed, first_completed_at, last_completed_at, best_time_seconds",
+          "segment_slug, times_completed, first_completed_at, last_completed_at, best_time_seconds, best_time_source",
         )
         .eq("profile_id", user.id),
       supabase
         .from("profile_completed_segments")
         .select(
-          "segment_slug, profile_id, times_completed, first_completed_at, best_time_seconds, profiles(display_name)",
+          "segment_slug, profile_id, times_completed, first_completed_at, best_time_seconds, best_time_source, profiles(display_name)",
         ),
       supabase
         .from("cols")
@@ -289,13 +293,13 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
       supabase
         .from("profile_climbed_cols")
         .select(
-          "col_slug, times_climbed, first_climbed_at, last_climbed_at, best_time_seconds",
+          "col_slug, times_climbed, first_climbed_at, last_climbed_at, best_time_seconds, best_time_source",
         )
         .eq("profile_id", user.id),
       supabase
         .from("profile_climbed_cols")
         .select(
-          "col_slug, profile_id, times_climbed, first_climbed_at, best_time_seconds, profiles(display_name)",
+          "col_slug, profile_id, times_climbed, first_climbed_at, best_time_seconds, best_time_source, profiles(display_name)",
         ),
     ]);
 
@@ -337,6 +341,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
         first_completed_at: row.first_climbed_at,
         last_completed_at: row.last_climbed_at,
         best_time_seconds: row.best_time_seconds,
+        best_time_source: row.best_time_source,
       }));
   const myMap = new Map(mySegments.map((row) => [row.segment_slug, row]));
   const visibleSegments =
@@ -350,6 +355,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
         times_completed: number;
         first_completed_at: string;
         best_time_seconds: number | null;
+        best_time_source?: string | null;
         profiles:
           | { display_name: string | null }
           | { display_name: string | null }[]
@@ -361,6 +367,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
         times_completed: row.times_climbed,
         first_completed_at: row.first_climbed_at,
         best_time_seconds: row.best_time_seconds,
+        best_time_source: row.best_time_source,
         profiles: row.profiles,
       }));
 
@@ -374,6 +381,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
       times_completed: row.times_completed,
       first_completed_at: row.first_completed_at,
       best_time_seconds: row.best_time_seconds,
+      best_time_source: row.best_time_source,
       display_name: name,
     });
     leaderboardBySegment.set(row.segment_slug, list);
@@ -590,6 +598,7 @@ function SegmentCard({
         {myPr ? (
           <div className="rounded-md bg-primary/10 p-2 text-center">
             <div className="font-semibold tabular-nums text-primary">
+              {mySegment.best_time_source === "gps" && <GpsLabel />}
               {myPr}
             </div>
             <div className="text-muted-foreground">jouw PR</div>
@@ -639,6 +648,7 @@ function SegmentCard({
                   <span className="tabular-nums">
                     {time ? (
                       <>
+                        {entry.best_time_source === "gps" && <GpsLabel />}
                         <span className="font-semibold">{time}</span>
                         <span className="text-muted-foreground">
                           {" "}

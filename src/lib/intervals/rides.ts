@@ -18,6 +18,7 @@ import { syntheticAthleteId } from "@/lib/strava/import";
 import { intervalsRideId } from "@/lib/intervals/ride-id";
 import { CYCLING_SPORTS, isCyclingSportType } from "@/lib/strava/sports";
 import type { LatLng } from "@/lib/track-polyline";
+import type { TimedPoint } from "@/lib/segments/gps-efforts";
 
 export {
   INTERVALS_RIDE_ID_CEILING,
@@ -170,45 +171,64 @@ function validPoint(lat: unknown, lng: unknown): LatLng | null {
   return [a, b];
 }
 
-/**
- * Het spoor uit de streams-respons. Drie vormen komen voor of zijn denkbaar:
- * één `latlng`-stream met `data` (breedte) en `data2` (lengte); één stream met
- * paren; of losse `lat`- en `lng`-streams.
- */
-export function latLngFromStreams(body: unknown): LatLng[] {
+function streamsByType(body: unknown): Map<string, Record<string, unknown>> {
   const list: Array<Record<string, unknown>> = Array.isArray(body)
     ? (body as Array<Record<string, unknown>>)
     : body && typeof body === "object"
       ? Object.entries(body as Record<string, unknown>).map(([type, data]) => ({ type, data }))
       : [];
-  const byType = new Map(list.map((stream) => [String(stream.type), stream]));
+  return new Map(list.map((stream) => [String(stream.type), stream]));
+}
 
+/**
+ * Breedte en lengte per sample, nog ongefilterd, zodat de index gelijk blijft aan
+ * die van de andere streams (tijd). Drie vormen komen voor of zijn denkbaar:
+ * één `latlng`-stream met `data` (breedte) en `data2` (lengte); één stream met
+ * paren; of losse `lat`- en `lng`-streams.
+ */
+function rawLatLngs(byType: Map<string, Record<string, unknown>>): Array<[unknown, unknown]> {
   const latlng = byType.get("latlng");
   if (latlng && Array.isArray(latlng.data)) {
     const data = latlng.data as unknown[];
     if (Array.isArray(latlng.data2)) {
       const data2 = latlng.data2 as unknown[];
-      return data.flatMap((lat, i) => {
-        const point = validPoint(lat, data2[i]);
-        return point ? [point] : [];
-      });
+      return data.map((lat, i) => [lat, data2[i]]);
     }
-    return data.flatMap((pair) => {
-      const point = Array.isArray(pair) ? validPoint(pair[0], pair[1]) : null;
-      return point ? [point] : [];
-    });
+    return data.map((pair) => (Array.isArray(pair) ? [pair[0], pair[1]] : [null, null]));
   }
 
   const lat = byType.get("lat");
   const lng = byType.get("lng") ?? byType.get("lon");
   if (lat && lng && Array.isArray(lat.data) && Array.isArray(lng.data)) {
     const lngs = lng.data as unknown[];
-    return (lat.data as unknown[]).flatMap((value, i) => {
-      const point = validPoint(value, lngs[i]);
-      return point ? [point] : [];
-    });
+    return (lat.data as unknown[]).map((value, i) => [value, lngs[i]]);
   }
   return [];
+}
+
+/** Het spoor uit de streams-respons. */
+export function latLngFromStreams(body: unknown): LatLng[] {
+  return rawLatLngs(streamsByType(body)).flatMap(([lat, lng]) => {
+    const point = validPoint(lat, lng);
+    return point ? [point] : [];
+  });
+}
+
+/**
+ * Het spoor met tijden, voor de eigen segment- en coltijden. De `time`-stream
+ * telt seconden vanaf de start. Leeg als die stream ontbreekt.
+ */
+export function timedTrackFromStreams(body: unknown, startMs: number): TimedPoint[] {
+  const byType = streamsByType(body);
+  const time = byType.get("time");
+  if (!time || !Array.isArray(time.data) || !Number.isFinite(startMs)) return [];
+  const seconds = time.data as unknown[];
+  return rawLatLngs(byType).flatMap(([lat, lng], i) => {
+    const point = validPoint(lat, lng);
+    const offset = Number(seconds[i]);
+    if (!point || seconds[i] == null || !Number.isFinite(offset)) return [];
+    return [{ lat: point[0], lon: point[1], t: startMs + offset * 1000 }];
+  });
 }
 
 export type IntervalsRideRow = {

@@ -12,6 +12,7 @@
 // de tijd blijft en alleen de verwijzing naar de rit verdwijnt.
 
 import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
+import { GPS_EFFORT_PREFIX } from "@/lib/segments/gps-sync";
 
 export type PurgeResult = {
   activities: number;
@@ -45,10 +46,13 @@ export async function purgeStravaDataForProfile(
     .gt("id", INTERVALS_RIDE_ID_CEILING);
   result.activities = activityCount ?? 0;
 
+  // Eigen tijden (lib/segments/gps-sync.ts) op een intervals-rit blijven; die op
+  // een Strava-rit of import gaan hierboven al mee met hun rit.
   const { count: effortCount } = await admin
     .from("strava_activity_segment_efforts")
     .delete({ count: "exact" })
-    .eq("profile_id", profileId);
+    .eq("profile_id", profileId)
+    .not("effort_uid", "like", `${GPS_EFFORT_PREFIX}%`);
   result.efforts = effortCount ?? 0;
 
   // Handmatig toegevoegde fietsen zijn eigen invoer van het lid en blijven staan;

@@ -418,7 +418,7 @@ const INTERVALS_RIDE_NOTES = [
   "Je ritten komen elk uur binnen, of meteen met Ritten ophalen op het dashboard. De eerste keer halen we een jaar op.",
   "Zwift apart koppelen in intervals.icu: Garmin stuurt Zwift-ritten niet door.",
   "Oudere ritten: importeer het archief dat Strava je mailt (Settings → Download or delete your account) in intervals.icu, of upload activities.csv hieronder.",
-  "Wat via intervals.icu niet kan: coltijden, segmenttijden, KOM's, kudos en de kilometers per fiets in Mijn garage. Badges, weekstanden, ZWBlokken, cols en je trainingsschema werken wel.",
+  "Wat via intervals.icu niet kan: kudos en de kilometers per fiets in Mijn garage. Badges, weekstanden, ZWBlokken, cols en je trainingsschema werken wel. Segment- en coltijden meet ZWB zelf uit het spoor; die staan met GPS in het klassement.",
   "Heb je nu Strava gekoppeld? Op je profiel kun je overstappen. Je Strava-ritten verdwijnen dan en komen terug via intervals.icu, voor zover ze daar staan. Zo komt er een Strava-plek vrij voor een ander lid.",
 ];
 
@@ -889,8 +889,8 @@ export default function HelpPage() {
             <p className="mt-3 text-xs text-muted-foreground">
               Gebruik de GPX van een gereden rit (met tijden), geen route-GPX.
               Afstand, hoogtemeters en rijtijd worden uit het bestand berekend.
-              Met het spoor tellen cols, ZWB Segments en ZWBlokken mee;
-              segmenttijden en KOM&apos;s komen alleen van een Strava-koppeling.
+              Met het spoor tellen cols, ZWB Segments en ZWBlokken mee, en meet
+              ZWB je segment- en coltijden. Die staan met GPS in het klassement.
               Staat de rit al binnen via activities.csv, dan krijgt die het
               spoor erbij. Dezelfde rit twee keer uploaden is geen probleem.
             </p>

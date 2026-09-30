@@ -22,7 +22,8 @@ gaat stabiliteit voor nieuwe features.
    **Ritten via intervals.icu** (rondes hieronder, deel A t/m C gebouwd):
    1. `INTERVALS_API_KEY=… node scripts/intervals-probe.mjs --fixture` met de
       eigen sleutel, en de fixture nakijken en vervangen;
-   2. `0198_intervals_ride_source.sql` toepassen **vóór** de deploy;
+   2. `0198_intervals_ride_source.sql` en `0199_gps_segment_times.sql`
+      toepassen **vóór** de deploy (0199: de code leest `best_time_source`);
    3. `INTERVALS_RIDES_SYNC_SECRET` in Netlify;
    4. deployen. Elk lid tekent opnieuw voor privacyversie `2026-09-30`;
    5. een job elk uur op cron-job.org (runbook sectie 2);
@@ -4584,6 +4585,85 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — eigen segment- en coltijden uit GPX en intervals.icu
+
+**2026-09-30.** Migratie `0199_gps_segment_times.sql`, **nog niet toegepast**.
+Die moet vóór de deploy: de collectiepagina, de segment-herberekening en de
+coltijden lezen of schrijven `best_time_source`.
+
+**Aanleiding.** Na het [onderzoek](docs/segmenttijden-uit-gps-onderzoek.md)
+koos Stijn (sectie 8): (1) ook voor segmenten, (2) één klassement met
+herkomstlabel, (3) startpunten van cols uit een openbare bron, (4) meteen ook
+voor intervals.icu. Op de vervolgvraag welke lijnen: **de Strava-lijnen uit de
+segmentverkenner**, in de wetenschap dat dit waarschijnlijk botst met Strava's
+voorwaarden (7-dagenregel, tonen aan anderen; sectie 5 van het onderzoek). Dat
+risico is bewust genomen, niet over het hoofd gezien.
+
+**Wat er veranderde.**
+- **Matcher** (`lib/segments/gps-efforts.ts`, puur). Een doorkomst is het
+  moment van dichtste nadering, geïnterpoleerd tussen twee GPS-punten. Een
+  poging op een segment loopt van begin (35 m) tot eind (35 m) en telt alleen
+  als 90% van de lijn binnen 40 m van het spoor ligt en het spoor niet langer is
+  dan 1,5× de lijn + 200 m. Per eind telt de láátste startdoorkomst ervoor; de
+  eerste versie pakte bij heen-en-weer de doorkomst in de tegenrichting (test
+  "twee keer gereden"). Een col zonder segment: van het startpunt (250 m) naar
+  de top (straal van de col), met hooguit 3× hemelsbreed + 1 km spoor.
+- **Opslag** (`lib/segments/gps-sync.ts`). Pogingen gaan in
+  `strava_activity_segment_efforts` met `raw.source = 'gps'` en een
+  `effort_uid` die met `gps:` begint. Zo lezen het klassement, de KOM's, de
+  coltijden (`cols.strava_segment_id`) en de ZWB-segmentcollecties ze zonder
+  nieuwe tabel. Coltijden van cols zonder Strava-segment staan in
+  `raw.gps_col_times` van de rit.
+- **GPX**: gemeten in `importMyStravaFile`, uit het volledige bestand; bewaard
+  wordt alleen de uitgedunde lijn zonder tijden. **intervals.icu**: de sync
+  vraagt nu `latlng,time`; gemeten zodra het spoor wordt opgehaald.
+  `timedTrackFromStreams` houdt breedte, lengte en tijd per index gekoppeld.
+  Geen inhaalslag voor oude intervals-ritten: de ritbron is nog niet uitgerold,
+  dus die bestaan nog niet.
+- **Coltijden** (`lib/cols/gps-col-times.ts`), in `runPostSyncForProfile` na de
+  col-detector: een eigen tijd komt in `profile_climbed_cols` als er nog geen
+  staat of hij sneller is, met `best_time_source = 'gps'`. Strava-paden zetten
+  het label terug op null; `recomputeCompletedSegmentsForUser` en de mirror
+  nemen het over.
+- **Migratie 0199.** `cols.start_lat/start_lon` voor de enige twee cols zonder
+  Strava-segment: Passo Falzarego vanaf Cortina (climbfinder) en Côte du
+  Maquisard vanaf Marteau (climbfinder, OpenStreetMap). **De top van de
+  Maquisard stond ~10 km verkeerd** (50.4042, 5.8625, 480 m); nu het Monument au
+  Maquisard inconnu (OpenStreetMap, 368 m), met de straal terug van 800 naar
+  250 m. `best_time_source` op `profile_climbed_cols` en
+  `profile_completed_segments`. `zwb_segment_club`, `refresh_segment_koms` en
+  `zwb_segment_kom_club` eisten een actieve Strava-koppeling; voor een poging
+  met `source = 'gps'` niet meer. Het klassement geeft per lid de bron van de
+  snelste poging mee; bij gelijke tijd wint Strava.
+- **Label** `GPS` (`components/gps-label.tsx`) in het klassement van de
+  segmentverkenner en op de collectiepagina. Uitleg op `/hulp`,
+  `/hulp/segments` en in de privacyverklaring (alleen tekst, geen nieuwe
+  versie; zelfde lijn als de GPX-ronde hieronder).
+- **Retentie.** Ontkoppelen van Strava wist geen eigen pogingen meer op
+  ritten die blijven (intervals.icu). GPX- en CSV-imports gaan, zoals al zo
+  was, mee weg met hun pogingen; de bestaande test legt dat vast en er staat
+  geen reden bij, dus niet omgegooid.
+- `lib/fake-db` kent nu `like`, `not(…, "like", …)` en `range`.
+
+**Bekende randgevallen.**
+- Een segment zonder lijn in de registry (nog niet opgehaald) geeft geen eigen
+  tijd. Komt de lijn later, dan wordt een GPX niet opnieuw gemeten: opnieuw
+  uploaden kan altijd. Hetzelfde geldt voor een col-segment dat nog geen enkel
+  Strava-lid reed.
+- Bij een lid met Strava-koppeling overschrijft de nachtelijke
+  `applyAuthoritativeSegmentPrs` een snellere eigen coltijd met de Strava-PR.
+  Zeldzaam (Strava-lid dat óók GPX uploadt), niet opgelost.
+- Een eigen tijd telt voor col-badges (zoals sub-75) net als een Strava-tijd;
+  dat volgt uit "één klassement".
+- De `time`-stream van intervals.icu is niet tegen een echte rit gecontroleerd
+  (spikepunt 4 in het onderzoek zonder Strava). Ontbreekt hij, dan komt er
+  alleen geen tijd.
+
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config),
+de prestaties van de gewijzigde view op ~70.000 pogingen, en de matcher op
+echte GPS-ruis. De matcher is getest op synthetische sporen, ook met gaten van
+vijf seconden.
+
 ### Opgeleverd — meerdere GPX'en tegelijk, met spoor voor cols, segmenten en ZWBlokken
 
 **2026-09-30.** Geen migratie.
@@ -4636,8 +4716,9 @@ GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
   [segmenttijden uit een GPS-spoor](docs/segmenttijden-uit-gps-onderzoek.md).
   Conclusie: technisch haalbaar en voor cols nauwkeurig genoeg. De blokkade is
   de geometrie: segmentlijnen komen van Strava, en cols hebben alleen een top.
-  Advies: coltijden op eigen startpunten, eerst als persoonlijk record. Wacht op
-  Stijns keuzes (sectie 8 van dat document).
+  Advies: coltijden op eigen startpunten, eerst als persoonlijk record.
+  **Inmiddels gebouwd, anders dan dit advies:** zie de ronde "eigen segment- en
+  coltijden uit GPX en intervals.icu" hierboven.
 - **FIT- en TCX-bestanden en de ZIP van de Strava-export.** In dat archief
   staan de meeste ritten als `.fit.gz`. Niet gevraagd.
 

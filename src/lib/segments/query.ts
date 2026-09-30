@@ -23,7 +23,7 @@ export type SegmentSession = NonNullable<Awaited<ReturnType<typeof segmentSessio
 export type ClubRow = {
   id: string; name: string; distance_m: number | null; average_grade: number | null;
   start_lat: number | null; start_lon: number | null; polyline: string | null; track: TrackPoint[];
-  hazardous: boolean; updated_at: string | null; leaderboard: Array<{ profileId: string; name: string; seconds: number }>;
+  hazardous: boolean; updated_at: string | null; leaderboard: Array<{ profileId: string; name: string; seconds: number; source?: "gps" | null }>;
 };
 
 export async function ownPower(session: SegmentSession) {

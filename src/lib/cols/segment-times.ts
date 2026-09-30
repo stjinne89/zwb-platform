@@ -105,7 +105,7 @@ export async function repairDeletedColBestTimesForUser(
   const { data: effortRows } = await supabase
     .from("strava_activity_segment_efforts")
     .select(
-      "activity_id, strava_segment_id, elapsed_time_seconds, moving_time_seconds, started_at",
+      "activity_id, strava_segment_id, elapsed_time_seconds, moving_time_seconds, started_at, source:raw->>source",
     )
     .eq("profile_id", profileId)
     .in(
@@ -115,7 +115,7 @@ export async function repairDeletedColBestTimesForUser(
 
   const bestBySegmentId = new Map<
     number,
-    { seconds: number; activityId: number; at: string | null }
+    { seconds: number; activityId: number; at: string | null; source: string | null }
   >();
   for (const effort of (effortRows ?? []) as Array<{
     activity_id: number;
@@ -123,6 +123,7 @@ export async function repairDeletedColBestTimesForUser(
     elapsed_time_seconds: number | null;
     moving_time_seconds: number | null;
     started_at: string | null;
+    source: string | null;
   }>) {
     const seconds =
       effort.elapsed_time_seconds ?? effort.moving_time_seconds ?? null;
@@ -134,6 +135,7 @@ export async function repairDeletedColBestTimesForUser(
         seconds,
         activityId: Number(effort.activity_id),
         at: effort.started_at,
+        source: effort.source ?? null,
       });
     }
   }
@@ -147,11 +149,13 @@ export async function repairDeletedColBestTimesForUser(
           best_time_seconds: best.seconds,
           best_time_activity_id: best.activityId,
           best_time_at: best.at,
+          best_time_source: best.source,
         }
       : {
           best_time_seconds: null,
           best_time_activity_id: null,
           best_time_at: null,
+          best_time_source: null,
         };
     const { error } = await supabase
       .from("profile_climbed_cols")
@@ -367,6 +371,7 @@ export async function syncColSegmentTimesForUser(
           best_time_seconds: info.seconds,
           best_time_activity_id: info.activityId,
           best_time_at: info.at,
+          best_time_source: null,
         })
         .eq("profile_id", profileId)
         .eq("col_slug", slug);

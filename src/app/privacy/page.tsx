@@ -156,8 +156,8 @@ export default function PrivacyPage() {
             ZWB QOM-titel; daaruit is je opgegeven geslacht af te leiden. Je gewicht,
             vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
             niet met andere leden gedeeld. Privéritten, ritten die alleen jij mag
-            zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Bij het verbreken van je Strava-koppeling vervallen je
-            prestaties uit dit klassement.
+            zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Van ritten via intervals.icu en geüploade GPX-bestanden meet ZWB de tijd op segmenten en cols zelf uit het GPS-spoor; die tijd staat met het label GPS in hetzelfde klassement. Bij het verbreken van je Strava-koppeling vervallen je
+            Strava-tijden uit dit klassement; eigen tijden op ritten via intervals.icu blijven.
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
@@ -276,7 +276,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             Je kunt je Strava-koppeling op elk moment verbreken. We verwijderen
-            dan de opgehaalde Strava-ritten, segmenttijden en fietsen; badges en
+            dan de opgehaalde Strava-ritten, hun segmenttijden en fietsen; badges en
             ZWBlokken blijven staan. Stap je van Strava over naar intervals.icu,
             dan verdwijnen je Strava-ritten en komen je ritten voortaan via
             intervals.icu.

@@ -197,6 +197,14 @@ export async function runPostSyncForProfile(
       } catch {
         // niet kritiek voor de sync-flow
       }
+      // Eigen coltijden uit GPX en intervals.icu; pas na de detector, want die
+      // maakt de rij van een beklommen col aan.
+      try {
+        const { applyGpsColTimesForUser } = await import("@/lib/cols/gps-col-times");
+        await applyGpsColTimesForUser(admin, profileId);
+      } catch {
+        // niet kritiek voor de sync-flow
+      }
     }
 
     if (steps.zwblokken) {

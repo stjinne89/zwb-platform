@@ -205,6 +205,23 @@ describe("purgeStravaDataForProfile", () => {
     await purgeStravaDataForProfile(db, A);
     expect(db.tables.strava_activities.map((row) => row.id)).toEqual([-1_000_081_234_567, 222]);
   });
+
+  it("laat eigen tijden op een intervals-rit staan", async () => {
+    const { purgeStravaDataForProfile } = await import("@/lib/strava/retention");
+    const db = fakeDb({
+      strava_activities: [{ id: -1_000_081_234_567, profile_id: A }],
+      strava_activity_segment_efforts: [
+        { effort_uid: "strava:1", profile_id: A, activity_id: 111 },
+        { effort_uid: "gps:-1000081234567:9:0", profile_id: A, activity_id: -1_000_081_234_567 },
+      ],
+      strava_bikes: [],
+      profiles: [{ id: A, avatar_url: null }],
+    });
+    await purgeStravaDataForProfile(db, A);
+    expect(db.tables.strava_activity_segment_efforts.map((row) => row.effort_uid)).toEqual([
+      "gps:-1000081234567:9:0",
+    ]);
+  });
 });
 
 describe("loadRideHistory (pacing)", () => {
