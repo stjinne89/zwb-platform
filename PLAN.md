@@ -112,6 +112,43 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 
 ---
 
+> **Trainer krijgt bericht als een doel klaarstaat voor een concept, 2026-09-30 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Een nieuw doel betekent dat de trainer een conceptschema moet
+> draaien; het lid kan dat niet zelf. Er ging al een push uit bij het opslaan,
+> maar die was anoniem ("een toegewezen lid"), linkte naar `/zwbeter-worden` in
+> plaats van naar de Doelen-tab, en kwam alleen aan bij trainers die op dat
+> moment al gekoppeld waren. Wie eerst een doel invulde en daarna een trainer
+> aanwees, leverde een trainer op die van niets wist. In de cockpit zelf was
+> nergens te zien welk doel nog geen schema had.
+>
+> **Gebouwd.**
+> - `lib/training/goals-awaiting-plan.ts`: een doel wacht zolang het actief is,
+>   de datum niet voorbij is, er geen schema met dat `goal_id` bestaat en er geen
+>   generatie voor loopt (`queued`/`in_progress`). Een mislukte generatie telt
+>   niet: dan wacht het doel nog. Unittest in `tests/unit/goals-awaiting-plan.test.ts`.
+> - Push bij "Doel opslaan": titel "Doel klaar voor een schema", naam van het lid
+>   plus de doeltitel, link naar `/zwbeter-worden/trainer/doelen?athlete=…`. Wie
+>   zichzelf coacht krijgt hem niet.
+> - Push bij "Trainer aanwijzen": heeft het lid al doelen zonder schema, dan zegt
+>   de melding dat en linkt hij naar de Doelen-tab; anders de gewone
+>   toegangsmelding, nu met naam en link naar het overzicht van dat lid.
+> - Cockpit: badge op de Doelen-tab (gekozen renner), een pil "N doel(en) zonder
+>   schema" per renner in de kiezer, en "Nog geen schema" bij het doel zelf. De
+>   push hangt aan voorkeur `on_training_plan` en een pushabonnement; de badge
+>   vangt trainers op die geen push krijgen.
+> - `/hulp`: één regel dat de trainer een melding krijgt.
+>
+> **Bewust niet.** Geen aparte meldingsvoorkeur (het valt onder "trainingsschema"),
+> geen herinnering als een doel dagen blijft liggen, en geen mail. Eerst kijken of
+> push plus badge genoeg is.
+>
+> **Niet lokaal geverifieerd.** De pushmelding zelf (vraagt VAPID-keys en een
+> echt abonnement) en de cockpit met een ingelogde trainer. Lint, alle unittests
+> (op drie testbestanden na die in deze worktree onder last timen of `.env.local`
+> missen, los gedraaid groen) en de build zijn groen.
+
 > **Privacy: trainingsdata blijft na ontkoppelen van intervals.icu, herstelwaarden niet, 2026-09-30 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie. Geen nieuwe
 > privacyversie.

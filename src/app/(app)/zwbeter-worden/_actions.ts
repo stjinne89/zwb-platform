@@ -21,6 +21,7 @@ import {
 import { requestReplan } from "@/lib/training/replan";
 import { syncEventWorkout } from "@/lib/training/events";
 import { activeBasePlan, archiveOtherBasePlans } from "@/lib/training/active-plan";
+import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
 import {
   clampMinutes,
   mondayKey,
@@ -325,20 +326,28 @@ export async function createTrainingGoal(formData: FormData) {
       });
     }
 
-    const { data: trainers } = await admin
-      .from("training_coach_assignments")
-      .select("trainer_id")
-      .eq("athlete_id", user.id)
-      .eq("status", "active");
+    // Het doel staat nu klaar voor een conceptschema; dat draait alleen de
+    // trainer. Wie zichzelf coacht, heeft het net zelf ingevuld.
+    const [{ data: trainers }, { data: athlete }] = await Promise.all([
+      admin
+        .from("training_coach_assignments")
+        .select("trainer_id")
+        .eq("athlete_id", user.id)
+        .eq("status", "active"),
+      admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+    ]);
     await sendNotificationToMembers(
       "on_training_plan",
       {
-        title: "Nieuwe trainingsintake",
-        body: "Een toegewezen lid heeft een nieuw trainingsdoel toegevoegd.",
-        url: "/zwbeter-worden",
-        tag: `training-goal-${user.id}`,
+        title: "Doel klaar voor een schema",
+        body: `${athlete?.display_name ?? "Een lid"}: ${title}`,
+        url: `/zwbeter-worden/trainer/doelen?athlete=${user.id}`,
+        tag: `training-goal-${created?.id ?? user.id}`,
       },
-      { profileIds: (trainers ?? []).map((row) => row.trainer_id as string) },
+      {
+        profileIds: (trainers ?? []).map((row) => row.trainer_id as string),
+        excludeProfileId: user.id,
+      },
     ).catch(() => null);
 
     revalidatePath("/zwbeter-worden", "layout");
@@ -385,15 +394,32 @@ export async function grantTrainerAccess(formData: FormData) {
       : await admin.from("training_coach_assignments").insert(values);
     if (result.error) throw new Error(result.error.message);
 
+    // Had het lid al een doel ingevuld, dan ging die melding naar niemand: de
+    // trainer was toen nog niet gekoppeld. Zeg het er nu bij.
+    const [{ data: athlete }, awaiting] = await Promise.all([
+      admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+      goalsAwaitingPlan(admin, [user.id]).catch(() => new Map<string, string[]>()),
+    ]);
+    const name = athlete?.display_name ?? "Een lid";
+    const waitingGoals = awaiting.get(user.id)?.length ?? 0;
     await sendNotificationToMembers(
       "on_training_plan",
-      {
-        title: "Trainer-toegang gekregen",
-        body: "Een lid heeft jou toegang gegeven tot trainingsdata.",
-        url: "/zwbeter-worden",
-        tag: `training-access-${user.id}-${trainerId}`,
-      },
-      { profileIds: [trainerId] },
+      waitingGoals > 0
+        ? {
+            title: "Doel klaar voor een schema",
+            body: `${name} gaf je trainer-toegang en heeft ${
+              waitingGoals === 1 ? "een doel" : `${waitingGoals} doelen`
+            } zonder schema.`,
+            url: `/zwbeter-worden/trainer/doelen?athlete=${user.id}`,
+            tag: `training-access-${user.id}-${trainerId}`,
+          }
+        : {
+            title: "Trainer-toegang gekregen",
+            body: `${name} gaf je toegang tot trainingsdata.`,
+            url: `/zwbeter-worden/trainer?athlete=${user.id}`,
+            tag: `training-access-${user.id}-${trainerId}`,
+          },
+      { profileIds: [trainerId], excludeProfileId: user.id },
     ).catch(() => null);
 
     revalidatePath("/zwbeter-worden", "layout");

@@ -14,6 +14,7 @@ import type { WellnessDevice } from "@/lib/training/wellness";
 import { refreshWellnessIfStale, summarizeTrainingReadiness } from "@/lib/training/wellness";
 import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { unansweredCounts } from "@/lib/training/coach-chat";
+import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
 import { requireViewer, type Viewer } from "../_data";
 import { byProfile, formatKm, formatNumber, loadSummary, paramString } from "../_components/format";
 import type {
@@ -178,12 +179,14 @@ export type TrainerRider = {
   pendingReviews: number;
   /** Berichten van het lid waar nog geen trainer op reageerde. */
   openChatMessages: number;
+  /** Doelen zonder schema en zonder lopende generatie. */
+  goalsAwaitingPlan: number;
 };
 
 /**
  * Alle renners van de trainer met hun kerncijfers voor de kiezer: 28 dagen
  * Strava, CTL/Form uit intervals.icu (30 dagen is genoeg voor de laatste stand)
- * en het aantal workouts dat op beoordeling wacht.
+ * het aantal workouts dat op beoordeling wacht en de doelen die op een schema wachten.
  */
 export async function loadRiders(
   viewer: Viewer,
@@ -229,9 +232,10 @@ export async function loadRiders(
     pending.set(row.profile_id, (pending.get(row.profile_id) ?? 0) + 1);
   }
 
-  const [status, unanswered] = await Promise.all([
+  const [status, unanswered, awaiting] = await Promise.all([
     loadRiderStatus(viewer, athleteIds, profiles),
     unansweredCounts(viewer.admin, athleteIds).catch(() => new Map<string, number>()),
+    goalsAwaitingPlan(viewer.admin, athleteIds).catch(() => new Map<string, string[]>()),
   ]);
 
   return assignments.map((assignment) => {
@@ -250,6 +254,7 @@ export async function loadRiders(
       advicePill: rider?.advicePill ?? "bg-muted text-muted-foreground",
       pendingReviews: pending.get(assignment.athlete_id) ?? 0,
       openChatMessages: unanswered.get(assignment.athlete_id) ?? 0,
+      goalsAwaitingPlan: awaiting.get(assignment.athlete_id)?.length ?? 0,
     };
   });
 }

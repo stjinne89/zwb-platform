@@ -121,6 +121,7 @@ const GUIDES = [
       "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
       "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
+      "Sla je een doel op, dan krijgt je trainer een melding dat er een concept gedraaid kan worden.",
       "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
     ],
   },
