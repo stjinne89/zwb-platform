@@ -16,15 +16,17 @@ import { kilojoulesFromActivity } from "@/lib/intervals/activities";
 import type { IntervalsActivity } from "@/lib/intervals/client";
 import { weekStartDate } from "@/lib/strava/client";
 import { syntheticAthleteId } from "@/lib/strava/import";
+import { intervalsRideId } from "@/lib/intervals/ride-id";
 import { CYCLING_SPORTS, isCyclingSportType } from "@/lib/strava/sports";
+
+export {
+  INTERVALS_RIDE_ID_CEILING,
+  intervalsRideId,
+  isIntervalsRideId,
+} from "@/lib/intervals/ride-id";
 
 export const INTERVALS_IMPORT_SOURCE = "intervals";
 
-/**
- * Ondergrens van de id-reeks. CSV- en GPX-imports krijgen een 32-bits hash
- * (tussen −(2³²−1) en 0), echte Strava-ritten een positief id.
- */
-const INTERVALS_ID_OFFSET = 1_000_000_000_000;
 
 /** Hoeveel punten het opgeslagen spoor hooguit heeft. */
 export const TRACK_MAX_POINTS = 500;
@@ -55,18 +57,6 @@ export function rideSourceFor(opts: {
 }): RideSource {
   if (opts.hasActiveStrava) return "strava";
   return opts.hasIntervals ? "intervals" : "none";
-}
-
-/** Negatief, omkeerbaar id; null als het intervals-id niet numeriek is. */
-export function intervalsRideId(intervalsId: string | number | null | undefined): number | null {
-  const match = String(intervalsId ?? "").trim().match(/^i?(\d{1,12})$/);
-  if (!match) return null;
-  return -(INTERVALS_ID_OFFSET + Number(match[1]));
-}
-
-export function isIntervalsRideId(id: number | string | null | undefined): boolean {
-  const n = Number(id);
-  return Number.isFinite(n) && n <= -INTERVALS_ID_OFFSET;
 }
 
 function positive(value: unknown): number | null {
@@ -343,9 +333,53 @@ export function intervalsActivityToRideRow(
   };
 }
 
+function rideSignature(row: {
+  name?: unknown;
+  sport_type?: unknown;
+  start_date?: unknown;
+  distance_m?: unknown;
+  total_elevation_gain_m?: unknown;
+  moving_time_seconds?: unknown;
+  trainer?: unknown;
+  commute?: unknown;
+  raw?: unknown;
+}): string {
+  const raw = (row.raw && typeof row.raw === "object" ? row.raw : {}) as Record<string, unknown>;
+  const map = (raw.map && typeof raw.map === "object" ? raw.map : {}) as Record<string, unknown>;
+  const num = (value: unknown) => Math.round(Number(value) || 0);
+  return JSON.stringify([
+    String(row.name ?? ""),
+    String(row.sport_type ?? ""),
+    Date.parse(String(row.start_date ?? "")) || 0,
+    num(row.distance_m),
+    num(row.total_elevation_gain_m),
+    num(row.moving_time_seconds),
+    Boolean(row.trainer),
+    Boolean(row.commute),
+    raw.average_watts ?? null,
+    raw.weighted_average_watts ?? null,
+    raw.device_watts ?? null,
+    raw.average_heartrate ?? null,
+    map.summary_polyline ?? null,
+    raw.track_checked_at ? true : false,
+  ]);
+}
+
+/**
+ * Of een opgehaalde rit anders is dan wat er al staat. De cron kijkt elk uur 30
+ * dagen terug; zonder deze toets zou elke run alle ritten opnieuw schrijven en
+ * het hele nawerk (col-detector, badges) voor elk lid draaien.
+ */
+export function rideRowChanged(
+  row: IntervalsRideRow,
+  existing: Parameters<typeof rideSignature>[0] | undefined,
+): boolean {
+  return !existing || rideSignature(row) !== rideSignature(existing);
+}
+
 /** Wat dedupeRides van een rit nodig heeft. */
 export type RideFingerprint = {
-  id: number;
+  id: number | string;
   start_date: string;
   distance_m: number | string | null;
   raw?: unknown;
@@ -389,11 +423,13 @@ export function dedupeRides<T extends RideFingerprint>(
 ): { keep: T[]; skipped: T[] } {
   const keep: T[] = [];
   const skipped: T[] = [];
-  const sorted = [...incoming].sort((a, b) => richness(b) - richness(a) || b.id - a.id);
+  const sorted = [...incoming].sort(
+    (a, b) => richness(b) - richness(a) || Number(b.id) - Number(a.id),
+  );
 
   for (const ride of sorted) {
     const clash =
-      existing.some((row) => row.id !== ride.id && isSameRide(row, ride)) ||
+      existing.some((row) => Number(row.id) !== Number(ride.id) && isSameRide(row, ride)) ||
       keep.some((row) => isSameRide(row, ride));
     if (clash) skipped.push(ride);
     else keep.push(ride);

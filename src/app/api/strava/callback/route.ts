@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { createClient } from "@/lib/supabase/server";
 import {
   athleteName,
@@ -73,6 +74,21 @@ export async function GET(request: NextRequest) {
     );
 
     if (upsertError) throw new Error(upsertError.message);
+
+    // Kreeg dit lid zijn ritten tot nu toe via intervals.icu, dan gaan die weg:
+    // Strava levert dezelfde ritten opnieuw, en met intervals-rijen in de tabel
+    // zou de eerste Strava-sync denken dat hij al gedraaid heeft en maar 30
+    // dagen ophalen (lib/strava/client.ts). Stapt het lid later terug, dan haalt
+    // de intervals-sync weer een jaar op.
+    await supabase
+      .from("strava_activities")
+      .delete()
+      .eq("profile_id", user.id)
+      .lte("id", INTERVALS_RIDE_ID_CEILING);
+    await supabase
+      .from("intervals_connections")
+      .update({ rides_backfilled_at: null })
+      .eq("profile_id", user.id);
 
     // Update profiel-velden vanuit Strava: athlete-id altijd, avatar alleen
     // als de gebruiker een echte foto heeft (Strava's default-egg slaan

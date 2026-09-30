@@ -229,3 +229,14 @@ describe("dedupeRides", () => {
     expect(skipped).toHaveLength(1);
   });
 });
+
+describe("isStravaActivityId", () => {
+  it("geldt alleen voor echte Strava-ritten", async () => {
+    const { isStravaActivityId } = await import("@/lib/intervals/ride-id");
+    expect(isStravaActivityId(12345678901)).toBe(true);
+    expect(isStravaActivityId("12345678901")).toBe(true);
+    expect(isStravaActivityId(-123456)).toBe(false);
+    expect(isStravaActivityId(intervalsRideId("i81234567"))).toBe(false);
+    expect(isStravaActivityId(null)).toBe(false);
+  });
+});

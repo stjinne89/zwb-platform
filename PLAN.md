@@ -18,7 +18,12 @@ gaat stabiliteit voor nieuwe features.
    de tweede keer afgewezen (gemeld 2026-09-30); de eigenaar vraagt om uitleg.
    Niet een derde keer indienen. Volgende stap is de spike zonder code uit
    [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
-   besluit over de huidige Strava-koppeling (zie de ronde hieronder). De
+   besluit over de huidige Strava-koppeling (zie de ronde hieronder).
+   **Ritten via intervals.icu** (rondes hieronder, deel A en B gebouwd): eerst
+   `node scripts/intervals-probe.mjs --fixture` met de eigen sleutel en de
+   fixture vervangen, dan `0198_intervals_ride_source.sql` toepassen **vóór** de
+   deploy, `INTERVALS_RIDES_SYNC_SECRET` in Netlify, en een job elk uur op
+   cron-job.org (runbook sectie 2). De
    Zwift-routebibliotheek één keer volledig opnieuw
    ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
    Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
@@ -95,7 +100,71 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0198`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`.
+
+---
+
+> **Ritten via intervals.icu voor leden zonder Strava, 2026-09-30 — deel B: inname, cron en opruimen, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Migratie `0198_intervals_ride_source.sql`.
+>
+> **Gebouwd.**
+> - **Sync per lid** (`lib/intervals/ride-sync.ts`). Eén lijst-call vult zowel
+>   `intervals_activities` (zoals altijd) als `strava_activities`. De eerste run
+>   haalt 365 dagen op, daarna 30.
+>   - Alleen nieuwe of gewijzigde ritten worden geschreven en krijgen nawerk.
+>     Anders zou elke uurlijkse run voor elk lid de col-detector en de badges
+>     opnieuw draaien.
+>   - Per run hooguit 5 GPS-sporen per lid. Een trainerrit zonder GPS krijgt
+>     `track_checked_at`, zodat we niet elke run opnieuw vragen.
+>   - Een later spoor zet `blocks_processed_at` terug, want ZWBlokken werken
+>     incrementeel.
+>   - Een rit die intervals.icu niet meer kent, gaat weg; een lege lijst wist
+>     niets.
+>   - Nawerk: `runPostSyncForProfile` zonder token (naleving, cols, ZWBlokken,
+>     col-segmenten spiegelen, badges), plus de week-awards.
+> - **Nawerk zonder token.** `runPostSyncForProfile` accepteert nu een leeg
+>   token. De stappen die Strava bellen (fietsen, samenvatting,
+>   Watopia-kalibratie, coltijden, segmentgeometrie, ZWB-segmenten) slaan dan
+>   over. Voorheen gaf het webhook-pad voor verwijderingen `""` mee, waarna
+>   `syncSegmentGeometry` stil faalde; nu slaat die stap netjes over.
+> - **Cron** `POST /api/intervals/rides/sync` (`INTERVALS_RIDES_SYNC_SECRET`,
+>   elk uur, runbook sectie 2; staat in `PUBLIC_PATHS` van de middleware, anders
+>   stuurt de login-check cron-job.org weg). Wie het langst niet aan de beurt was eerst,
+>   `?limit=5`, 8 s om nieuwe leden te beginnen. `last_synced_at` wordt nu
+>   eindelijk geschreven, ook bij een fout, met die fout in
+>   `last_ride_sync_error`.
+> - **Bronregel en id-schema** in `lib/intervals/ride-id.ts`: een los bestand
+>   zonder imports, zodat de Strava-modules het kunnen gebruiken zonder
+>   kringverwijzing.
+> - **Health-bron `intervals_rides`.** Rood na 3 uur zonder run, of als alle
+>   leden falen. Eén ingetrokken sleutel staat alleen in de detail.
+>
+> **Aangepast om de nieuwe rijen heel te houden.**
+> - **Retentie** (`purgeStravaDataForProfile`): wist geen intervals-ritten meer
+>   (id-filter), anders verliest een overstapper alles.
+> - **Strava koppelen** (`api/strava/callback`): verwijdert eerst de
+>   intervals-ritten van dat lid en zet `rides_backfilled_at` terug. Anders
+>   haalt de eerste Strava-sync maar 30 dagen op en staan ritten dubbel.
+> - **Pacingplan** (`loadRideHistory`): slaat intervals-rijen in
+>   `strava_activities` over, want dezelfde rit komt al uit
+>   `intervals_activities`.
+> - **CSV/GPX-import**: slaat ritten over die al via intervals.icu binnen zijn.
+>   Ze tellen mee als overgeslagen. Tegen andere bronnen ontdubbelt de import
+>   bewust niet; dat blijft zoals het was.
+> - **"View on Strava"** verschijnt niet meer bij een negatief id. Dat
+>   repareert ook de bestaande GPX-imports, die een dode link hadden. De
+>   dashboardrij is dan geen link.
+>
+> **Verificatie.**
+> - Nieuwe tests met een kleine in-memory database (`tests/unit/fake-db.ts`):
+>   - de sync (eerste run, geen werk zonder wijziging, verwijderen, lege lijst,
+>     import-dubbeling, fout);
+>   - de bronregel, de retentie en de pacing-merge;
+>   - de health-evaluator en de cron-route (403, lege run).
+> - **Niet lokaal te verifiëren:** migratie `0198` en echte cron-runs tegen
+>   intervals.icu.
+> - **Nog niet te gebruiken:** zonder deel C ziet een lid nergens dat dit
+>   bestaat. Deploy daarom pas na deel C en de probe.
 
 ---
 

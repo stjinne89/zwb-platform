@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { isStravaActivityId } from "@/lib/intervals/ride-id";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -263,6 +264,36 @@ function formatKm(meters: number | string) {
 
 function stravaActivityUrl(activityId: number) {
   return `https://www.strava.com/activities/${activityId}`;
+}
+
+const ACTIVITY_ROW_CLASS =
+  "grid gap-2 p-4 sm:grid-cols-[1fr_auto] sm:items-center";
+
+/**
+ * Een rit uit een import of via intervals.icu heeft geen Strava-pagina (negatief
+ * id); die rij linkt nergens heen.
+ */
+function ActivityRow({
+  activityId,
+  children,
+}: {
+  activityId: number;
+  children: React.ReactNode;
+}) {
+  if (!isStravaActivityId(activityId)) {
+    return <div className={ACTIVITY_ROW_CLASS}>{children}</div>;
+  }
+  return (
+    <a
+      href={stravaActivityUrl(activityId)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${ACTIVITY_ROW_CLASS} transition hover:bg-muted/50`}
+      title="Open activiteit op Strava"
+    >
+      {children}
+    </a>
+  );
 }
 
 export default async function DashboardPage({
@@ -1039,13 +1070,7 @@ export default async function DashboardPage({
           <ul className="divide-y rounded-lg border bg-card">
             {activities.map((activity) => (
               <li key={activity.id}>
-                <a
-                  href={stravaActivityUrl(activity.id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="grid gap-2 p-4 transition hover:bg-muted/50 sm:grid-cols-[1fr_auto] sm:items-center"
-                  title="Open activiteit op Strava"
-                >
+                <ActivityRow activityId={activity.id}>
                   <div className="min-w-0">
                     <p className="truncate">
                       <span className="font-medium">{activityProfile(activity)}</span>{" "}
@@ -1083,9 +1108,9 @@ export default async function DashboardPage({
                         {activity.kudos_count}
                       </span>
                     )}
-                    <ViewOnStravaLabel />
+                    {isStravaActivityId(activity.id) ? <ViewOnStravaLabel /> : null}
                   </div>
-                </a>
+                </ActivityRow>
               </li>
             ))}
           </ul>

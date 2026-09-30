@@ -291,6 +291,22 @@ export async function fetchIntervalsActivityStreams(
   });
 }
 
+/**
+ * De ruwe streams-respons voor het GPS-spoor. Bewust niet via
+ * fetchIntervalsActivityStreams: die houdt alleen `data` over, en intervals.icu
+ * zet de lengtegraad van `latlng` vermoedelijk in `data2`. Lezen doet
+ * latLngFromStreams in intervals/rides.ts.
+ */
+export async function fetchIntervalsActivityTrack(
+  apiKey: string,
+  activityId: string,
+): Promise<unknown> {
+  return intervalsFetch<unknown>(
+    apiKey,
+    `/api/v1/activity/${encodeURIComponent(activityId)}/streams.json?types=latlng`,
+  );
+}
+
 /** Geplande events (workouts/races) voor de komende N dagen. */
 export async function fetchIntervalsEvents(
   apiKey: string,

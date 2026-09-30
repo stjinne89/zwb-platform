@@ -122,6 +122,45 @@ export function evaluateTeamResultSync(
     : { source, ok: true, detail: `${rows.length} bronnen zonder fout` };
 }
 
+/**
+ * Draait de ritten-sync via intervals.icu (lib/intervals/ride-sync.ts)? Maat is
+ * de nieuwste `last_synced_at` van de leden met die bron: de cron schrijft hem
+ * elke run, ook bij een fout. Eén lid met een ingetrokken sleutel maakt de bron
+ * niet rood; dat staat in de detail en op /beheer/strava.
+ */
+export function evaluateIntervalsRides(
+  rows: { last_synced_at: string | null; last_ride_sync_error: string | null }[],
+  maxSilentHours: number,
+  now = new Date(),
+): HealthCheckResult {
+  const source = "intervals_rides";
+  if (rows.length === 0) {
+    return { source, ok: true, detail: "geen leden met ritten via intervals.icu" };
+  }
+  const times = rows
+    .map((row) => Date.parse(row.last_synced_at ?? ""))
+    .filter((time) => Number.isFinite(time));
+  const failing = rows.filter((row) => row.last_ride_sync_error).length;
+  if (times.length === 0) {
+    return { source, ok: false, detail: `${rows.length} leden, nog nooit gesynct` };
+  }
+  const hours = Math.round((now.getTime() - Math.max(...times)) / 3600_000);
+  if (hours > maxSilentHours) {
+    return { source, ok: false, detail: `${hours}u geen sync-run` };
+  }
+  if (failing === rows.length) {
+    return { source, ok: false, detail: `alle ${rows.length} leden falen` };
+  }
+  return {
+    source,
+    ok: true,
+    detail:
+      failing > 0
+        ? `laatste run ${hours}u geleden, ${failing} van ${rows.length} leden met fout`
+        : `laatste run ${hours}u geleden, ${rows.length} leden`,
+  };
+}
+
 export function evaluateEnvPresent(
   source: string,
   present: boolean,
@@ -212,6 +251,30 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
     guard("openai", async () =>
       evaluateEnvPresent("openai", Boolean(process.env.OPENAI_API_KEY)),
     ),
+    guard("intervals_rides", async () => {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const admin = createAdminClient();
+      const [connections, strava] = await Promise.all([
+        admin
+          .from("intervals_connections")
+          .select("profile_id, last_synced_at, last_ride_sync_error"),
+        admin.from("strava_connections").select("profile_id").is("revoked_at", null),
+      ]);
+      if (connections.error) {
+        return { source: "intervals_rides", ok: false, detail: connections.error.message };
+      }
+      const withStrava = new Set(
+        ((strava.data ?? []) as { profile_id: string }[]).map((row) => row.profile_id),
+      );
+      const rows = (
+        (connections.data ?? []) as {
+          profile_id: string;
+          last_synced_at: string | null;
+          last_ride_sync_error: string | null;
+        }[]
+      ).filter((row) => !withStrava.has(row.profile_id));
+      return evaluateIntervalsRides(rows, 3);
+    }),
     guard("strava_webhook", async () => {
       const { createAdminClient } = await import("@/lib/supabase/admin");
       const admin = createAdminClient();

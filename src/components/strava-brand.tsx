@@ -3,6 +3,7 @@
    opnieuw encoderen en dat is een bewerking die de guidelines verbieden. */
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { isStravaActivityId } from "@/lib/intervals/ride-id";
 import { cn } from "@/lib/utils";
 
 /**
@@ -100,6 +101,9 @@ export function ViewOnStrava({
   activityId: number | string;
   className?: string;
 }) {
+  // Imports en ritten via intervals.icu hebben een negatief id en geen
+  // Strava-pagina.
+  if (!isStravaActivityId(activityId)) return null;
   return (
     <a
       href={`https://www.strava.com/activities/${activityId}`}

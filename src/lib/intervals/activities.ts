@@ -52,7 +52,11 @@ function toRow(profileId: string, activity: IntervalsActivity) {
   };
 }
 
-/** Haalt de laatste N dagen activiteiten op en werkt de opgeslagen rijen bij. */
+/**
+ * Haalt de laatste N dagen activiteiten op en werkt de opgeslagen rijen bij.
+ * Geeft de opgehaalde lijst ook terug, zodat de ritten-sync (ride-sync.ts) er
+ * geen tweede call voor hoeft te doen.
+ */
 export async function syncIntervalsActivities(
   admin: Admin,
   connection: { profile_id: string; athlete_id: string; api_key: string },
@@ -67,13 +71,13 @@ export async function syncIntervalsActivities(
     const row = toRow(connection.profile_id, activity);
     return row ? [row] : [];
   });
-  if (rows.length === 0) return { synced: 0 };
+  if (rows.length === 0) return { synced: 0, activities };
 
   const { error } = await admin
     .from("intervals_activities")
     .upsert(rows, { onConflict: "profile_id,intervals_id" });
   if (error) throw new Error(error.message);
-  return { synced: rows.length };
+  return { synced: rows.length, activities };
 }
 
 export type ActivityLoadRow = {

@@ -11,6 +11,8 @@
 // de FK best_time_activity_id staat op `on delete set null` (migratie 0075), dus
 // de tijd blijft en alleen de verwijzing naar de rit verdwijnt.
 
+import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
+
 export type PurgeResult = {
   activities: number;
   efforts: number;
@@ -34,10 +36,13 @@ export async function purgeStravaDataForProfile(
 ): Promise<PurgeResult> {
   const result: PurgeResult = { activities: 0, efforts: 0, bikes: 0 };
 
+  // Ritten via intervals.icu (lib/intervals/rides.ts) zijn geen Strava-data en
+  // blijven staan; anders verliest een lid dat overstapt meteen alles.
   const { count: activityCount } = await admin
     .from("strava_activities")
     .delete({ count: "exact" })
-    .eq("profile_id", profileId);
+    .eq("profile_id", profileId)
+    .gt("id", INTERVALS_RIDE_ID_CEILING);
   result.activities = activityCount ?? 0;
 
   const { count: effortCount } = await admin

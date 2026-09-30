@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
+import { isSameRide, type RideFingerprint } from "@/lib/intervals/rides";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -264,6 +266,25 @@ export async function importMyStravaFile(formData: FormData) {
       skippedNonCycling = imported.skippedNonCycling;
     }
 
+    // Ritten die al via intervals.icu binnen zijn, niet nog eens als import.
+    const times = rows.map((row) => Date.parse(row.start_date)).filter(Number.isFinite);
+    let duplicates = 0;
+    if (times.length > 0) {
+      const { data: intervalsRides } = await supabase
+        .from("strava_activities")
+        .select("id, start_date, distance_m")
+        .eq("profile_id", user.id)
+        .lte("id", INTERVALS_RIDE_ID_CEILING)
+        .gte("start_date", new Date(Math.min(...times) - 86400_000).toISOString())
+        .lte("start_date", new Date(Math.max(...times) + 86400_000).toISOString());
+      const known = (intervalsRides ?? []) as RideFingerprint[];
+      if (known.length > 0) {
+        const before = rows.length;
+        rows = rows.filter((row) => !known.some((ride) => isSameRide(ride, row)));
+        duplicates = before - rows.length;
+      }
+    }
+
     for (let index = 0; index < rows.length; index += 500) {
       const batch = rows.slice(index, index + 500);
       const { error } = await supabase
@@ -288,7 +309,7 @@ export async function importMyStravaFile(formData: FormData) {
     return {
       ok: true as const,
       imported: rows.length,
-      skippedRows,
+      skippedRows: skippedRows + duplicates,
       skippedNonCycling,
       milestoneAwards: milestones.awarded,
       milestoneErrors: milestones.errors,

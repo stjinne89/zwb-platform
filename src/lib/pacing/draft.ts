@@ -7,6 +7,7 @@
 // twee keer wordt opgeslagen overschrijft de bewerkingen van het lid.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isIntervalsRideId } from "@/lib/intervals/ride-id";
 import { buildIntervalsLoad } from "@/lib/training/draft";
 import { classifyRider, type RiderType } from "@/lib/teams/power-profile";
 import {
@@ -182,6 +183,9 @@ export async function loadRideHistory(
   const candidates: RideCandidate[] = [];
 
   for (const row of (stravaRows.data ?? []) as Array<Record<string, unknown>>) {
+    // Een rit via intervals.icu staat in beide tabellen; hij telt hieronder al
+    // mee vanuit intervals_activities.
+    if (isIntervalsRideId(row.id as number)) continue;
     const raw = (row.raw ?? {}) as Record<string, unknown>;
     const distanceKm = Number(row.distance_m ?? 0) / 1000;
     if (!(distanceKm > 0)) continue;

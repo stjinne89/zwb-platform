@@ -104,19 +104,25 @@ export async function runPostSyncForProfile(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
   profileId: string,
-  accessToken: string,
+  /**
+   * Leeg of null voor een lid zonder Strava-koppeling (ritten via intervals.icu,
+   * zie lib/intervals/ride-sync.ts). Stappen die Strava bellen slaan dan over;
+   * de rest leest alleen de database.
+   */
+  accessToken: string | null,
   steps: PostSyncSteps,
 ): Promise<PostSyncResult> {
   const result = emptyPostSyncResult();
+  const token = accessToken || null;
 
   try {
     // Onderhoud: fiets-kilometerstanden + slijtage EERST, vóór het zware werk
     // hieronder. Zo landt de gear-data altijd — ook als de col-detector of de
     // evaluators op een grote historie tegen de functietimeout aanlopen.
-    if (steps.gear) {
+    if (steps.gear && token) {
       try {
         const { syncStravaBikesForUser } = await import("@/lib/strava/client");
-        await syncStravaBikesForUser(admin, profileId, accessToken, {
+        await syncStravaBikesForUser(admin, profileId, token, {
           minIntervalHours: 24,
         });
         const { evaluateMaintenanceForProfile } = await import(
@@ -132,7 +138,7 @@ export async function runPostSyncForProfile(
     // in de scope slaan we het stil over — dat lid moet Strava eerst opnieuw
     // koppelen.
     const maxSummaryWrites = steps.summaries ?? 0;
-    if (maxSummaryWrites > 0 && steps.hasActivityWriteScope) {
+    if (maxSummaryWrites > 0 && steps.hasActivityWriteScope && token) {
       try {
         const { writeZwbSummariesForUser } = await import(
           "@/lib/strava/summary-writer"
@@ -140,7 +146,7 @@ export async function runPostSyncForProfile(
         const summaryResult = await writeZwbSummariesForUser(
           admin,
           profileId,
-          accessToken,
+          token,
           { maxWrites: maxSummaryWrites },
         );
         result.zwbSummariesWritten = summaryResult.written;
@@ -175,10 +181,10 @@ export async function runPostSyncForProfile(
       }
     }
 
-    if (steps.watopiaCalibration) {
+    if (steps.watopiaCalibration && token) {
       try {
         const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");
-        await calibrateWatopiaCols(admin, accessToken);
+        await calibrateWatopiaCols(admin, token);
       } catch {
         // niet kritiek
       }
@@ -222,14 +228,14 @@ export async function runPostSyncForProfile(
     }
 
     const maxColSegmentFetches = steps.colSegmentTimes ?? 0;
-    if (maxColSegmentFetches > 0) {
+    if (maxColSegmentFetches > 0 && token) {
       try {
         const { syncColSegmentTimesForUser } = await import(
           "@/lib/cols/segment-times"
         );
         const segmentResult = await syncColSegmentTimesForUser(
           admin,
-          accessToken,
+          token,
           profileId,
           { maxFetches: maxColSegmentFetches },
         );
@@ -242,11 +248,13 @@ export async function runPostSyncForProfile(
     }
 
     if (steps.recomputeSegments) {
-      try {
-        const { syncSegmentGeometry } = await import("@/lib/segments/geometry-sync");
-        await syncSegmentGeometry(admin, accessToken, profileId, 1);
-      } catch {
-        // Retried by the bounded segment backfill; raw efforts remain usable.
+      if (token) {
+        try {
+          const { syncSegmentGeometry } = await import("@/lib/segments/geometry-sync");
+          await syncSegmentGeometry(admin, token, profileId, 1);
+        } catch {
+          // Retried by the bounded segment backfill; raw efforts remain usable.
+        }
       }
       try {
         const { mirrorLegacyColsToSegments, recomputeCompletedSegmentsForUser } =
@@ -259,12 +267,12 @@ export async function runPostSyncForProfile(
       }
     }
 
-    if (steps.zwbSegments != null) {
+    if (steps.zwbSegments != null && token) {
       try {
         const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
         const segmentResult = await syncZwbSegmentsForUser(
           admin,
-          accessToken,
+          token,
           profileId,
           { maxFetches: steps.zwbSegments },
         );
