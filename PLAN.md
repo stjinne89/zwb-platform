@@ -4611,6 +4611,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Instagram-fotostrip op het dashboard
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn wilde meer beeld op het dashboard: de laatste drie
+Instagram-posts met #zwb, #zwbeter, #zwbcycling. Posts van leden op hashtag
+ophalen bleek niet haalbaar (zie hieronder); Stijn koos daarop voor de eigen
+posts van @zwb_cycling.
+
+**Wat er veranderde.**
+- Het dashboard toont de laatste drie `media_items` met `kind = 'instagram'` en
+  een `cover_url` als vierkante fototegels, boven "Nieuws, mededelingen en
+  media". Elke tegel linkt naar de post; de sectiekop naar @zwb_cycling
+  (`dashboard/_components/instagram-strip.tsx`). Geen leeftijdsgrens: ook een
+  oudere post blijft staan tot er een nieuwere is.
+- Instagram-items staan niet meer in de nieuwslijst van het dashboard, anders
+  stond dezelfde post er twee keer. Op `/media` blijven ze gewoon zichtbaar.
+- De bron is de bestaande handmatige sync op `/media` ("Instagram ophalen"). Er
+  komt geen nieuwe API-aanroep bij het laden van het dashboard.
+- `/hulp` (Media en imports) zegt dat de posts op het dashboard staan en dat
+  opnieuw importeren helpt als de foto's verdwenen zijn.
+
+**Instagram-afbeeldingen verlopen.** `media_url`/`thumbnail_url` van Meta zijn
+getekende CDN-links die na enige tijd niet meer laden. Een tegel waarvan de
+afbeelding faalt verdwijnt (ook als dat vóór de hydratie gebeurde); faalt alles,
+dan verdwijnt de sectie. Een nieuwe sync op `/media` ververst de links.
+
+**Bewust niet gebouwd.**
+- *Posts van leden op hashtag.* Hashtag-zoeken kan alleen via de Instagram API
+  met Facebook Login (account gekoppeld aan een Facebook-pagina) plus Meta's app
+  review voor "Instagram Public Content Access". `recent_media` geeft alleen
+  posts van de laatste 24 uur, `top_media` is Meta's eigen selectie, en de
+  gebruikersnaam komt niet mee. "De laatste drie" is daarmee niet betrouwbaar
+  te leveren. Onze koppeling gebruikt Instagram Login en kan het niet.
+- *Posts waarin @zwb_cycling getagd is.* Mogelijke tussenweg, maar
+  waarschijnlijk ook via Facebook Login; niet uitgezocht.
+- *Automatische Instagram-sync en eigen kopieën van de foto's.* Een cron kan hier
+  alleen via cron-job.org (runbook secties 2 en 8) en kopieën vragen opslag en een
+  migratie. Eerst kijken of handmatig syncen volstaat.
+
+**Niet lokaal geverifieerd.** tsc en eslint zijn schoon. Het dashboard is niet in
+de browser bekeken: daarvoor is een ingelogde sessie tegen de echte database
+nodig. Hoe snel de opgeslagen Instagram-links verlopen, is niet gemeten.
+
 ### Opgeleverd — eigen segment- en coltijden uit GPX en intervals.icu
 
 **2026-09-30.** Migratie `0199_gps_segment_times.sql`, toegepast door Stijn

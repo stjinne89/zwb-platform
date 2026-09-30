@@ -45,6 +45,7 @@ import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
 import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
+import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
 import { SponsorCarousel } from "./_components/sponsor-carousel";
 import {
   TrainingStatus,
@@ -364,6 +365,7 @@ export default async function DashboardPage({
     { data: nextWorkoutRows },
     { data: stravaConn },
     { data: komRows },
+    { data: instagramRows },
   ] = await Promise.all([
     user
       ? supabase
@@ -376,6 +378,7 @@ export default async function DashboardPage({
       .from("media_items")
       .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
       .gte("published_at", since7Iso)
+      .neq("kind", "instagram")
       .order("pinned", { ascending: false })
       .order("published_at", { ascending: false })
       .limit(5),
@@ -484,6 +487,13 @@ export default async function DashboardPage({
       .gte("achieved_at", since7Iso)
       .order("achieved_at", { ascending: false })
       .limit(8),
+    supabase
+      .from("media_items")
+      .select("id, title, web_url, cover_url")
+      .eq("kind", "instagram")
+      .not("cover_url", "is", null)
+      .order("published_at", { ascending: false })
+      .limit(3),
   ]);
 
   // Ritverslagen = voorbije events van de afgelopen 7 dagen, verrijkt met een
@@ -549,6 +559,7 @@ export default async function DashboardPage({
   }
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
+  const instagramPosts = (instagramRows ?? []) as InstagramPost[];
   const polls = dashboardPolls(
     (pollRows ?? []) as unknown as PollRow[],
     (pollOptionRows ?? []) as unknown as PollOptionRow[],
@@ -844,6 +855,8 @@ export default async function DashboardPage({
           eventList(otherEvents)
         )}
       </section>
+
+      {instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
 
       {mediaItems.length > 0 && (
         <section>

@@ -454,6 +454,7 @@ const ADMIN_GUIDES = [
       "Bij podcasts kun je per platform een link toevoegen; RSS is bedoeld voor overige podcast-apps.",
       "Automatische imports kunnen opnieuw worden uitgevoerd: bestaande items worden bijgewerkt.",
       "YouTube- en Instagram-imports werken nadat technisch beheer de bronkoppelingen heeft ingesteld.",
+      "De laatste drie Instagram-posts staan als foto's op het dashboard. Instagram-afbeeldingen verlopen na een tijd; importeer Instagram opnieuw als ze daar verdwenen zijn.",
     ],
   },
   {
