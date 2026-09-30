@@ -16,7 +16,7 @@ export function DisconnectIntervalsButton() {
         variant="outline"
         disabled={pending}
         onClick={() => {
-          if (!confirm("intervals.icu ontkoppelen? Je API-key wordt verwijderd.")) return;
+          if (!confirm("intervals.icu ontkoppelen? Je API-key en je herstelwaarden worden verwijderd; je ritten en trainingsdata blijven.")) return;
           setError(null);
           startTransition(async () => {
             const res = await disconnectIntervals();

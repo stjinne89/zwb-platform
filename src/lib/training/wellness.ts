@@ -136,6 +136,23 @@ export async function syncWellnessForUser(
   return persistWellnessRecords(supabase, profileId, records);
 }
 
+/**
+ * Wist de opgeslagen herstelwaarden van één lid. Voor ontkoppelen van
+ * intervals.icu en het uitzetten van de opt-in: deze gegevens verwerken we op
+ * grond van toestemming (AVG art. 9), en die is altijd in te trekken. De
+ * trainingsdata (ritten, belasting, zonetijden) blijft staan; zie /privacy.
+ *
+ * Met de service-role: profile_wellness heeft geen delete-policy voor leden.
+ */
+export async function purgeWellnessForProfile(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  profileId: string,
+): Promise<{ error: string | null }> {
+  const { error } = await admin.from("profile_wellness").delete().eq("profile_id", profileId);
+  return { error: error?.message ?? null };
+}
+
 /** Leeftijd van de opgeslagen kopie; null als er nog niets staat. */
 export async function wellnessCopyAgeMs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

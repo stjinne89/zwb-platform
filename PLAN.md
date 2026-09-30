@@ -110,6 +110,55 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 
 ---
 
+> **Privacy: trainingsdata blijft na ontkoppelen van intervals.icu, herstelwaarden niet, 2026-09-30 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie. Geen nieuwe
+> privacyversie.
+>
+> **Waarom.** `/privacy` beloofde dat ontkoppelen van intervals.icu de
+> gesynchroniseerde data opruimt. Dat gebeurde nooit (zie deel C hieronder). De
+> eigenaar wil dat oude trainingsgegevens blijven staan, zodat historie, schema
+> en trainer ermee kunnen blijven werken.
+>
+> **Keuzes van de eigenaar.**
+> - **Ritten, belasting, zonetijden en de gereedscore** bij afgeronde trainingen
+>   blijven staan zolang iemand lid is. Dat geldt ook voor ritten die via
+>   intervals.icu binnenkwamen; de wis-stap uit deel C is eruit.
+> - **Herstelwaarden** (`profile_wellness`: HRV, rusthartslag, slaap,
+>   readiness) gaan weg bij ontkoppelen én bij het uitzetten van de opt-in. Dat
+>   zijn gezondheidsgegevens op grond van intrekbare toestemming (AVG art. 9).
+>   Na intrekken is er geen grondslag om ze te bewaren.
+> - **Strava** verandert niet: die data gaat bij ontkoppelen weg, zoals Strava
+>   eist.
+>
+> **Gebouwd.**
+> - `purgeWellnessForProfile` in `lib/training/wellness.ts`, via de
+>   service-role, want `profile_wellness` heeft geen delete-policy voor leden.
+> - `disconnectIntervals` wist de herstelwaarden **vóór** de koppeling. Mislukt
+>   het wissen, dan blijft de koppeling staan en krijgt het lid een fout.
+> - `setWellnessOptIn(false)` wist ze ook. Weer aanzetten haalt ze opnieuw op.
+>   Alle schrijfpaden naar `profile_wellness` controleren al de opt-in, dus
+>   gewist blijft gewist.
+> - De bevestigtekst bij ontkoppelen noemt wat weggaat en wat blijft.
+> - `/privacy`:
+>   - de bewaarregel is gesplitst in Strava en intervals.icu;
+>   - de sectie over gezondheidsdata zegt dat opt-out en ontkoppelen de
+>     herstelwaarden wissen.
+>
+> **Privacyversie.** Blijft `2026-09-30`. Die staat nog niet op productie, dus
+> leden tekenen één keer voor beide wijzigingen.
+>
+> **Bewust niet.** De gereedscore in `training_workout_reports` wissen. Het is
+> één afgeleid getal per training en hoort bij de trainingshistorie. Hij staat
+> wel met name in de tekst.
+>
+> **Verificatie.**
+> - Een nieuwe test (`wellness-purge.test.ts`); volledige suite 1.827
+>   geslaagd, behalve `omnium-live` (geen `.env.local`).
+> - ESLint 0 fouten, `tsc` schoon, `next build` geslaagd met placeholder-env.
+> - **Niet lokaal te verifiëren:** het wissen tegen de echte database.
+
+---
+
 > **Ritten via intervals.icu voor leden zonder Strava, 2026-09-30 — deel C: leden-UI, overstappen, herinnering en teksten, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen nieuwe migratie (gebruikt `0198`).
 > Privacyversie `2026-09-30`.
@@ -151,14 +200,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 >     de club, Garmin-vermelding, herinnering);
 >   - de regel over overstappen;
 >   - versie `2026-09-30`. Elk lid tekent daardoor opnieuw.
-> - **intervals.icu ontkoppelen** wist nu de ritten die via intervals.icu
->   binnenkwamen, zoals `/privacy` belooft.
+> - ~~**intervals.icu ontkoppelen** wist nu de ritten die via intervals.icu
+>   binnenkwamen, zoals `/privacy` belooft.~~ Teruggedraaid in de ronde
+>   hierboven: ritten en trainingsdata blijven, herstelwaarden gaan weg.
 >
-> **Gevonden, niet opgelost.** `/privacy` belooft al langer dat ontkoppelen van
-> intervals.icu "de bijbehorende gesynchroniseerde data" opruimt, maar
-> `disconnectIntervals` liet en laat `intervals_activities`, `profile_wellness`
-> en de zonetijden staan. Die data voedt trainingshistorie en de trainer. Of dat
-> weg moet, of de tekst moet worden aangepast, is een keuze van de eigenaar.
+> ~~**Gevonden, niet opgelost.**~~ `/privacy` beloofde dat ontkoppelen van
+> intervals.icu "de bijbehorende gesynchroniseerde data" opruimt, terwijl
+> `intervals_activities`, `profile_wellness` en de zonetijden bleven staan.
+> Opgelost in de ronde hierboven: de tekst zegt nu wat er blijft.
 >
 > **Verificatie.**
 > - Tests: herinnering (vervaldatum, één push per ronde, versturen) en

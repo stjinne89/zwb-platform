@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { purgeWellnessForProfile, syncWellnessForUser } from "@/lib/training/wellness";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
@@ -159,16 +159,15 @@ export async function disconnectIntervals() {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
+  // Wat al binnen is (ritten, belasting, zonetijden) blijft staan voor historie,
+  // schema en trainer. De herstelwaarden niet: die rusten op toestemming, en
+  // ontkoppelen trekt die in. Zo staat het op /privacy. Eerst wissen: lukt dat
+  // niet, dan blijft de koppeling staan en kan het lid het opnieuw proberen.
+  const purge = await purgeWellnessForProfile(createAdminClient(), user.id);
+  if (purge.error) return { ok: false as const, error: purge.error };
+
   const { error } = await supabase.from("intervals_connections").delete().eq("profile_id", user.id);
   if (error) return { ok: false as const, error: error.message };
-
-  // Ritten die via intervals.icu binnenkwamen (lib/intervals/ride-sync.ts) gaan
-  // mee, zoals /privacy belooft. Badges en ZWBlokken blijven staan.
-  await supabase
-    .from("strava_activities")
-    .delete()
-    .eq("profile_id", user.id)
-    .lte("id", INTERVALS_RIDE_ID_CEILING);
 
   revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/profiel");
@@ -202,12 +201,18 @@ export async function setWellnessOptIn(optIn: boolean) {
     .eq("profile_id", user.id);
   if (error) return { ok: false as const, error: error.message };
 
+  // Opt-in uit = toestemming ingetrokken: de opgeslagen herstelwaarden gaan weg.
+  // Weer aanzetten haalt ze opnieuw op bij intervals.icu.
+  if (!optIn) {
+    const purge = await purgeWellnessForProfile(createAdminClient(), user.id);
+    if (purge.error) return { ok: false as const, error: purge.error };
+  }
+
   // Bij aanzetten meteen een eerste sync draaien (best-effort, service-role).
   // Mislukt die, dan is dat niet erg: elke volgende keer dat het lid een
   // trainingspagina opent haalt refreshWellnessIfStale de achterstand in.
   if (optIn && conn.api_key && conn.athlete_id) {
     const admin = createAdminClient();
-    const { syncWellnessForUser } = await import("@/lib/training/wellness");
     await syncWellnessForUser(
       admin,
       conn.api_key as string,

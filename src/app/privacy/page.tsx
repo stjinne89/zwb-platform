@@ -109,7 +109,8 @@ export default function PrivacyPage() {
             herstel-/wellnessgegevens uit intervals.icu zoals rusthartslag, HRV,
             slaap en readiness. Deze worden alléén gesynchroniseerd als je daar
             expliciet toestemming voor geeft, en zijn alleen voor jou (en een door
-            jou aangewezen trainer) zichtbaar.
+            jou aangewezen trainer) zichtbaar. Zet je de opt-in uit of ontkoppel
+            je intervals.icu, dan verwijderen we deze gegevens.
           </li>
           <li>
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
@@ -266,10 +267,22 @@ export default function PrivacyPage() {
             bent. Bij het verwijderen van je account worden deze gegevens gewist.
           </li>
           <li>
-            Je kunt je intervals.icu- of Strava-koppeling op elk moment verbreken;
-            de bijbehorende gesynchroniseerde data wordt dan opgeruimd. Stap je
-            van Strava over naar intervals.icu, dan verdwijnen je Strava-ritten
-            en komen je ritten voortaan via intervals.icu.
+            Je kunt je Strava-koppeling op elk moment verbreken. We verwijderen
+            dan de opgehaalde Strava-ritten, segmenttijden en fietsen; badges en
+            ZWBlokken blijven staan. Stap je van Strava over naar intervals.icu,
+            dan verdwijnen je Strava-ritten en komen je ritten voortaan via
+            intervals.icu.
+          </li>
+          <li>
+            Je kunt ook je intervals.icu-koppeling op elk moment verbreken. We
+            halen dan niets nieuws meer op, maar wat al binnen is blijft bewaard
+            zolang je lid bent: je ritten, je trainingsbelasting, je tijd per
+            zone en de gereedscore bij afgeronde trainingen. Zo blijven je
+            historie, je schema en je trainer ermee werken, ook als je later
+            opnieuw koppelt. Je herstelwaarden (zoals HRV, rusthartslag en slaap)
+            verwijderen we wel, zodra je ontkoppelt of de opt-in uitzet. Wil je
+            dat ook de rest weg is, verwijder dan je account of vraag het
+            bestuur (zie &ldquo;Je rechten&rdquo;).
           </li>
           <li>
             Het aantal Strava-koppelingen is beperkt. Daarom houden we bij wanneer
