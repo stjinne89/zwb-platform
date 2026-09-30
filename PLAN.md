@@ -4790,10 +4790,11 @@ prijzengeld gaat.
   (deze of vorige maand). Wijkt de gereden categorie af van de opgegeven, dan
   staat ze erachter. De telling per categorie gebruikt diezelfde categorie, en
   het meedoenformulier stelt de laatst gereden categorie voor.
-- Privacyverklaring: alinea "Sunday Race Club (MyWhoosh)". **Nog open: of dit
-  een nieuwe privacyversie wordt (iedereen tekent opnieuw) of alleen tekst.**
-  MyWhoosh-uitslagen zijn een nieuwe bron, dus de regel "alleen tekst" geldt
-  niet vanzelf; voorgelegd aan Stijn.
+- Privacyverklaring: alinea "Sunday Race Club (MyWhoosh)". **Bewust geen nieuwe
+  privacyversie** (keuze Stijn, 2026-09-30), hoewel MyWhoosh-uitslagen een nieuwe
+  bron zijn en `src/lib/privacy.ts` bij een nieuwe verwerking een versie vraagt.
+  Zijn afweging: het gaat om openbare uitslagen van een race waarvoor het lid zich
+  zelf inschreef, en we bewaren minder dan MyWhoosh publiceert.
 
 **Bewust niet.**
 - Geen eigen teller op het dashboard ("Jouw races"); de race staat er al via je
