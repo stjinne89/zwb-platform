@@ -215,13 +215,13 @@ export default async function WelkomPage() {
     },
     {
       title: "Strava koppelen of importeren",
-      text: "Koppel Strava voor automatische sync. Is er geen plek, laat je ritten dan binnenkomen via intervals.icu (zie Hulp), of importeer ze (activities.csv of GPX) op Achievements.",
-      href: strava ? "/profiel#strava" : "/achievements",
+      text: "Koppel Strava voor automatische sync. Is er geen plek, laat je ritten dan binnenkomen via intervals.icu (zie Hulp), of importeer ze (activities.csv of GPX) op het dashboard.",
+      href: strava ? "/profiel#strava" : "/dashboard#strava-sync",
       action: strava
         ? "Strava bekijken"
         : stravaActivity
           ? "Import bekijken"
-          : "Achievements openen",
+          : "Dashboard openen",
       status: strava || stravaActivity ? "done" : canUseIntegrations ? "current" : "upcoming",
       icon: Download,
     },

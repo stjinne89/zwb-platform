@@ -48,7 +48,7 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Strava-ritten importeren (CSV of GPX)",
-    text: "Importeer je hele historie (activities.csv) of één rit (GPX) op Achievements.",
+    text: "Importeer je hele historie (activities.csv) of één rit (GPX) op het dashboard.",
     href: "/hulp#strava-import",
     terms:
       "strava export csv activities importeren upload bestand geen koppeling limiet gpx een rit losse rit bulk archief taal geen fietsritten gevonden",

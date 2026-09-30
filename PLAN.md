@@ -4584,6 +4584,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — hulpteksten wijzen voor sync en import naar het dashboard
+
+**2026-09-30.** Geen migratie. Alleen tekst.
+
+**Aanleiding.** Sinds `19fbd13b` (2026-08-17) staan koppelen, syncen, hele
+historie en de CSV/GPX-import op het dashboard (`#strava-sync`); op Achievements
+bleven alleen de badges over. Die commit paste `/hulp` maar op twee plekken aan.
+De rest stuurde leden nog naar Achievements om te importeren of te syncen.
+
+**Wat er veranderde.** `/hulp` (sectie "Strava-ritten importeren zonder
+koppeling", de CSV- en GPX-stappen, "Strava opnieuw koppelen", de snelstart, de
+badge-, datavers- en probleemoplossingslijsten en de paginabeschrijvingen van
+Dashboard en Achievements), de zoekhulp op `/hulp` en de welkomstap "Strava
+koppelen of importeren" noemen en linken nu het dashboard. De knop "Naar
+Achievements" onder de importsectie is "Naar het dashboard" geworden. "Badges
+herberekenen" blijft terecht naar Achievements wijzen.
+
+**Niet lokaal geverifieerd.** De worktree had geen `node_modules`; tsc en eslint
+zijn niet gedraaid. Het gaat om tekst en één extra lucide-icoon (`Upload`).
+
 ### Opgeleverd — korte nachten zetten een Garmin-lid niet meer op "herstel voorrang"
 
 **2026-09-30.** Geen migratie. Rechtstreeks naar `main` gepusht.

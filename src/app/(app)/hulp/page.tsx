@@ -25,6 +25,7 @@ import {
   Sparkles,
   Trophy,
   TrendingUp,
+  Upload,
   UserCircle,
   Users,
   Utensils,
@@ -43,8 +44,8 @@ const START_STEPS = [
   },
   {
     title: "Strava-data toevoegen",
-    text: "Koppel Strava met activiteitenrecht of importeer je ritten (CSV of GPX) via Achievements.",
-    href: "/achievements",
+    text: "Koppel Strava met activiteitenrecht of importeer je ritten (CSV of GPX) op het dashboard.",
+    href: "/dashboard#strava-sync",
   },
   {
     title: "Zet meldingen aan",
@@ -149,7 +150,7 @@ const GUIDES = [
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
-      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op Achievements je historie (activities.csv) of één rit (GPX).",
+      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of één rit (GPX).",
       "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
@@ -202,12 +203,12 @@ const GUIDES = [
 
 // Volledige wegwijzer: wat doet elke pagina/sectie van de app.
 const OVERVIEW: { href: string; name: string; text: string }[] = [
-  { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier synchroniseer je ook je Strava-ritten." },
+  { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier koppel en synchroniseer je ook je ritten, of importeer je ze (CSV/GPX)." },
   { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past." },
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo, of via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
-  { href: "/achievements", name: "Achievements", text: "Al je badges. Importeer je ritten (CSV/GPX), haal je hele historie op of herbereken badges." },
+  { href: "/achievements", name: "Achievements", text: "Al je badges, de weekstanden en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
@@ -382,7 +383,7 @@ const OUTDOOR_ROUTE_NOTES = [
 
 const DATA_FRESHNESS_HELP = [
   "Onder Training → Belasting staat per bron wanneer er voor het laatst iets binnenkwam.",
-  "Strava-ritten haal je zelf op met Sync op Achievements; nieuwe ritten kunnen tot een half uur duren.",
+  "Strava-ritten haal je zelf op met Strava syncen op het dashboard; nieuwe ritten kunnen tot een half uur duren.",
   "Hersteldata (slaap, HRV, rust-hartslag) komt van je horloge of ring via intervals.icu. ZWB haalt op wat daar staat, maar levert je apparaat niets aan, dan blijft het leeg.",
   "De herstelwaarden zijn gemiddelden over de laatste 7 dagen. Staat je bron langer stil, dan zie je streepjes.",
   "Controleer bij lege hersteldata eerst op intervals.icu of je wellness-koppeling (Garmin, Polar, Oura, Whoop) nog actief is.",
@@ -513,8 +514,8 @@ const ADMIN_GUIDES = [
 ];
 
 const TROUBLESHOOTING = [
-  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op Achievements.",
-  "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of Achievements en zet het activiteitenvinkje aan.",
+  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op het dashboard.",
+  "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of het dashboard en zet het activiteitenvinkje aan.",
   "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, controleer dan het adres en Automatisch starten.",
   "Verschijn je niet live met je Wahoo? Open je Wahoo-link zelf: staat je rit daar niet, dan heeft de ELEMNT-app geen verbinding. Anders verschijn je binnen een paar minuten nadat iemand Samen fietsen opent.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
@@ -802,7 +803,7 @@ export default function HelpPage() {
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Geen plek voor een Strava-koppeling of wil je die niet gebruiken?
               Laat je ritten dan binnenkomen via intervals.icu (hierboven), of
-              upload ze zelf op Achievements: je hele historie in één keer via
+              upload ze zelf op het dashboard: je hele historie in één keer via
               activities.csv, of losse ritten via GPX.
             </p>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
@@ -850,7 +851,7 @@ export default function HelpPage() {
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">4.</span>
                 <span>
-                  Upload activities.csv op Achievements met Importeer CSV of
+                  Upload activities.csv op het dashboard met Importeer CSV of
                   GPX.
                 </span>
               </li>
@@ -880,7 +881,7 @@ export default function HelpPage() {
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">3.</span>
                 <span>
-                  Upload het GPX-bestand op Achievements met Importeer CSV of
+                  Upload het GPX-bestand op het dashboard met Importeer CSV of
                   GPX.
                 </span>
               </li>
@@ -904,11 +905,11 @@ export default function HelpPage() {
             Strava-data downloaden
           </a>
           <Link
-            href="/achievements"
+            href="/dashboard#strava-sync"
             className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
           >
-            <Medal className="size-4 text-primary" />
-            Naar Achievements
+            <Upload className="size-4 text-primary" />
+            Naar het dashboard
           </Link>
         </div>
       </section>
@@ -930,7 +931,7 @@ export default function HelpPage() {
         <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground">1.</span>
-            <span>Ga naar Profiel of Achievements en kies Opnieuw koppelen.</span>
+            <span>Ga naar Profiel of het dashboard en kies Opnieuw koppelen.</span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground">2.</span>
@@ -938,7 +939,7 @@ export default function HelpPage() {
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground">3.</span>
-            <span>Start daarna op Achievements een Strava-sync.</span>
+            <span>Start daarna op het dashboard een Strava-sync.</span>
           </li>
         </ol>
         <ConnectWithStrava reconnect className="mt-4" />
