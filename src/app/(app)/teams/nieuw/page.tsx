@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { BackLink, HelpLink } from "@/components/app-ui";
 import { NewTeamForm } from "./_form";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export default async function NewTeamPage({
   searchParams,
@@ -14,13 +14,11 @@ export default async function NewTeamPage({
   const parentTeamIdParam = Array.isArray(params?.parent_team_id)
     ? params?.parent_team_id[0]
     : params?.parent_team_id;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const [access, { data: parentTeams }] = await Promise.all([
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("teams")
       .select("id, name")

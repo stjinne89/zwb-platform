@@ -30,7 +30,14 @@ export async function getCurrentUserAccess(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return accessForUser(supabase, user);
+}
 
+/** Rechten van een al opgehaalde gebruiker; zie ook getRequestAccess. */
+export async function accessForUser(
+  supabase: SupabaseClient,
+  user: User | null,
+): Promise<CurrentUserAccess> {
   if (!user) {
     const empty = new Set<CommunityPermission>();
     return {

@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import type { Discipline } from "@/lib/omnium/scoring";
 import { ResultsImport } from "./_components/results-import";
 import { StandingsPanel, type StandingRow } from "./_components/standings-panel";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function OmniumUitslagenPage({
   params: Promise<{ editie: string }>;
 }) {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has("omnium.manage")) redirect("/dashboard");
 

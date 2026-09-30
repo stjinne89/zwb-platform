@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { SegmentSyncButton } from "./sync-button";
 import { BackLink } from "@/components/app-ui";
 import { adminAreaPermission } from "@/lib/admin-areas";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export default async function SegmentAdminPage() {
-  const access = await getCurrentUserAccess(await createClient());
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("segments"))) redirect("/dashboard");
   const admin = createAdminClient();

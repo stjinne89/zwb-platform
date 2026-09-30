@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink, PageHeader } from "@/components/app-ui";
 import { PowerUnitProvider, PowerUnitToggle } from "@/components/power-unit";
 import { parsePowerUnit, POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
@@ -11,6 +10,7 @@ import {
   type NavLeaf,
 } from "../_components/nav-config";
 import { SectionNav } from "./_components/section-nav";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export default async function ZwbeterWordenLayout({
   children,
@@ -18,7 +18,7 @@ export default async function ZwbeterWordenLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
 
   // Geslacht bepaalt of het logboek in de tabbalk staat; zie onlyForSex in

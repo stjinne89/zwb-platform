@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader, SectionHeader } from "@/components/app-ui";
 import { SponsorCard, type SponsorCardData } from "./_components/sponsor-card";
 import { BenefitCard, type BenefitCardData } from "./_components/benefit-card";
@@ -13,6 +12,7 @@ import {
   type BenefitAdminRow,
 } from "./_components/benefit-admin";
 import { pruneExpiredBenefits } from "./_actions";
+import { getRequestAccess } from "@/lib/auth/request";
 
 type SponsorRow = SponsorAdminRow;
 
@@ -64,7 +64,7 @@ function singleSponsor(rel: BenefitRow["sponsors"]) {
 
 export default async function SponsorsPage() {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
 
   // Best-effort opschoning: voordelen die >7 dagen verlopen zijn worden
   // hier opgeruimd. Idempotent + goedkoop (1 DELETE-statement).

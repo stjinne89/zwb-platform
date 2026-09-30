@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
@@ -76,6 +75,7 @@ import {
 import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -219,9 +219,7 @@ export default async function EventDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   const { data: event } = await supabase
     .from("events")
@@ -566,7 +564,7 @@ export default async function EventDetailPage({
         "status, profile_id, profiles(display_name, zrl_category, strava_id)",
       )
       .eq("event_id", id),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("whatsapp_groups")
       .select("id, name, invite_url, description, kind")

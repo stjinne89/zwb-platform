@@ -7,14 +7,23 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-1. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
+1. **Database slank en snel (urgent, 2026-09-30).** De database zit op 1,31 GB
+   tegen 0,5 GB op het Free-plan, disk 83%. In deze volgorde, details in
+   [prestatie-onderzoek](docs/prestatie-onderzoek-2026-09-30.md):
+   `0200_query_indexes.sql`, `0201_slim_segment_efforts.sql` en
+   `0202_rls_initplan.sql` toepassen (werken ook met de huidige code);
+   `node scripts/slim-segment-efforts.mjs`, daarna met `--full`; deployen; dan
+   `?segmentBackfill=0` weer uit de URL van de job "ZWB Strava webhooks" op
+   cron-job.org halen. Daarna beslissen: Free houden of naar Pro. De wekelijkse
+   check (`npm run db:health`, geplande taak op maandag) houdt dit bij.
+2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
    [Omnium-status](docs/omnium-readiness-2026-09-15.md). Voor de Sprint Quali
    uit Zwift: `0190` toepassen en bij "leagues instellen" het sprintsegment
    kiezen (zie de ronde hieronder). Na de editie de opgehaalde tijden naast wat
    het bestuur anders zou plakken leggen.
-2. **Handwerk op productie.** ~~Opnieuw indienen bij Strava.~~ Gedaan en voor
+3. **Handwerk op productie.** ~~Opnieuw indienen bij Strava.~~ Gedaan en voor
    de tweede keer afgewezen (gemeld 2026-09-30); de eigenaar vraagt om uitleg.
    Niet een derde keer indienen. Volgende stap is de spike zonder code uit
    [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
@@ -92,16 +101,16 @@ gaat stabiliteit voor nieuwe features.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
-3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
+4. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
    View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
    een echte telefoon.
-4. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
+5. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
    De lage wattages (duurblokken) en de FTP-historie zijn aangepakt
    (2026-09-21): `0175` toepassen, en na een paar weken de duurmeting herhalen.
    Nog open: naleving rond 105% bij blokkige workouts. Zie "Bekende open dingen".
-5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
+6. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
    testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
    Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
    en hoe ronden we de achievementkwaliteit af (verborgen proxy- en
@@ -117,9 +126,65 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`.
 
 ---
+
+> **Database slank en snel, 2026-09-30 — gebouwd, lokaal getest; productiestappen open.**
+> Commit: de commit die dit blok toevoegt. Migraties `0200_query_indexes.sql`,
+> `0201_slim_segment_efforts.sql`, `0202_rls_initplan.sql` (**nog niet toegepast**).
+>
+> **Waarom.** De app werd steeds trager. Onderzoek op productie (alleen lezen):
+> Free-plan met Nano-compute (0,5 GB geheugen), database 1,31 GB tegen een limiet
+> van 0,5 GB, disk 83%, egress 5,8 GB tegen 5 GB. Achtergrondjobs gebruikten 14×
+> zoveel databasetijd als leden; `segment_geometry_priority` (0156) alleen al ~40%,
+> met een antwoord dat de app na 2 s altijd weggooide. De segmentpogingen waren
+> 1,02 GB, waarvan ~670 MB de volledige Strava-effort in `raw`. Volledig verslag:
+> [docs/prestatie-onderzoek-2026-09-30.md](docs/prestatie-onderzoek-2026-09-30.md).
+> Direct gedaan door de eigenaar: `?segmentBackfill=0` in de job "ZWB Strava
+> webhooks" op cron-job.org (getest, het antwoord meldt `segmentBackfill: null`).
+>
+> **Wat.**
+> - `0200`: indexen op `strava_activities(start_date desc)` (dashboardfeed las
+>   25.600 ritten, 377 ms) en `live_positions(recorded_at)` (opruimjob, 0,8 s).
+> - `0201`: trigger die `raw` bij elke schrijfweg inkort tot `source`, `hidden` en
+>   `segment.private` (het enige dat functies, views en app lezen; nagekeken op
+>   productie). KOM-trigger alleen nog bij een wijziging die meetelt, anders zou het
+>   inkorten alle ~80.000 segmenten vuil maken. Voorrangslijst voor segmentlijnen
+>   leest alleen `zwb_segment_koms` (2.272 segmenten zonder lijn).
+> - `0202`: alle policies met een kale `auth.uid()`, `auth.role()` of `auth.jwt()`
+>   mechanisch omhuld als `(select …)`; 144 op productie volgens de advisor.
+> - Eventdag: het realtime-kanaal van de live-ticker hing aan `sessionById`; elke
+>   `router.refresh()` opende het opnieuw en vroeg zo weer een refresh aan (een
+>   volledige serverrender per paar seconden). Nu via een ref, en geen refresh in een
+>   verborgen tab. De eventchat luistert alleen nog naar het eigen event.
+> - `getRequestUser`/`getRequestAccess` (`src/lib/auth/request.ts`) met
+>   `React.cache()` in de app-layout en 36 pagina's: van vijf naar twee à drie
+>   `getUser()`-rondjes per klik (middleware, één gedeelde, en op een deel van de pagina's nog een eigen).
+> - 1000-rijengrens: clubstatistieken gepagineerd (op 2026-09-30 al 1.090 ritten, dus
+>   de totalen waren te laag); poll-opties en -stemmen via de poll zelf; kalender haalt
+>   events vanaf 30 dagen terug en telt oudere apart voor "Voorbije ritten".
+> - KOM-herberekening in batches van 50 in plaats van 200.
+> - `scripts/db-health.mjs` (`npm run db:health`): wekelijkse check tegen
+>   productie, met momentopnames in `.tmp/db-health/`. Draait via een geplande
+>   Claude-taak op maandag. `scripts/slim-segment-efforts.mjs`: eenmalig inkorten.
+>
+> **Niet gebouwd, en waarom.** `getClaims()` (hangt af van asymmetrische
+> JWT-sleutels, niet nagegaan); de 36 "multiple permissive policies" (per tabel een
+> keuze over rechten); `strava_activities.raw` inkorten (op veel plekken gelezen);
+> de OFFSET-paginering over segmentpogingen (wordt goedkoop zodra `raw` klein is).
+> Segmenten met één of twee rijders krijgen hun lijn niet meer vooraf, alleen bij
+> openen: bij 20–60 per dag kwam de inhaalslag daar toch nooit aan toe.
+>
+> **Getest.** Unittests (1.863), waaronder PGlite voor 0201 (inkorten, KOM-trigger,
+> voorrangslijst) en 0202 (omhullen, rechten gelijk, twee keer draaien), lint zonder
+> fouten, `npm run build`. `db-health.mjs` tegen productie gedraaid. De voorvertoning
+> van 0202 op productie telde precies de 144 policies van de advisor.
+> `tests/unit/omnium-live.test.ts` faalt in een worktree zonder `.env.local`; dat
+> staat hier los van.
+> **Niet te testen hier:** de migraties op productie, het inkortscript, de VACUUM
+> FULL (verwachting: segmentpogingen van ~1 GB naar ~0,2–0,3 GB, niet gemeten) en de
+> eventdaglus in een echte browser op een eventdag.
 
 > **Trainer krijgt bericht als een doel klaarstaat voor een concept, 2026-09-30 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -3930,7 +3995,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   eerst pas daarna; sinds de ronde hieronder begint elke run met één voorrangslijn.
   Eigen krappe Strava-budget (50% kwartier / 60% dag); onvolledige ritten worden
   afgevinkt, tijdelijke fouten blijven staan, een dode token trekt niets in.
-  `?segmentBackfill=0` zet het uit zonder deploy.
+  `?segmentBackfill=0` zet het uit zonder deploy (staat sinds 2026-09-30 uit; zie de
+  ronde "Database slank en snel").
   **Niet gebouwd:** een aparte cron-job (handmatige inrichting en extra invocaties) en
   een voortgangsscherm (het job-antwoord toont `remaining`). Oude `/api/segments/backfill`
   en de knoppen op `/beheer/segments` blijven ongewijzigd.
@@ -3949,14 +4015,16 @@ link naar `/live/[eventId]`, zie de update hierboven).
   ophaalde — die volgorde was een verkeerde keuze en is teruggedraaid. Nu: eigen PR − 1 s
   als doel zonder clubdoel ("Doel: eigen record"); ontbrekend profiel ophalen bij openen
   met de eigen koppeling; de 5-minutentaak begint elke run met één lijn uit
-  `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes.
+  `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes. Sinds
+  0201 (2026-09-30) alleen segmenten met een ZWB KOM, dus drie of meer rijders.
   **Niet gebouwd:** profiel bij openen voor leden zonder Strava-koppeling (geen token),
   en profielen voor de hele lijst in één keer (40 × 2 calls per pagina is te duur).
   Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests;
   de eigenaar bevestigde de inschatting bij openen in productie. 0155 gedraaid, maar
   bleek op productie te traag (timeout, daarna 0,6–3,1 s) en at de taaktijd op:
   vervangen door 0156 (`8200fc4`, gepusht 2026-09-13; smalle indexen, zelfde uitkomst) plus een afbreekgrens van 2 s
-  in de taak. 0156 is niet op productie gemeten en moet door de eigenaar gedraaid worden.
+  in de taak. 0156 is op 2026-09-30 wel gemeten: gemiddeld 4,6 s over 6.196 aanroepen,
+  dus altijd over de afbreekgrens heen en ~40% van alle databasetijd. Vervangen door 0201.
   Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-assessment-round -->
 
@@ -3981,7 +4049,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   **Waarom opgeslagen en niet live:** dashboard en profielen hebben alle segmenten nodig,
   en een volledige doorloop van de pogingen liep op productie al tegen de statement
   timeout (0155). Triggers markeren segmenten vuil; de webhook-taak rekent er per run
-  200 na (max. 1,5 s, `?segmentKoms=0` zet het uit). Het dashboard toont KOM's waarvan de
+  50 na (was 200 tot 2026-09-30, liep toen geregeld uit; max. 1,5 s, `?segmentKoms=0`
+  zet het uit). Het dashboard toont KOM's waarvan de
   recordrit in de afgelopen zeven dagen ligt, zodat de eerste doorrekening en de
   inhaalslag van oude ritten het blok niet overspoelen. Gelijke tijd = gedeelde titel.
   `zwb_segment_koms` zit ook in de data-export.

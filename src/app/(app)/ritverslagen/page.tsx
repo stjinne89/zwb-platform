@@ -9,10 +9,10 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { DeleteRitverslagButton } from "./_components/delete-ritverslag-button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
@@ -59,12 +59,10 @@ function amsterdamDateKey(date: Date) {
 
 export default async function RitverslagenPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   const isModerator = access.has("events.manage_all");
 
   // Voorbije events (dag vóór vandaag) verhuizen hierheen. Vandaag + toekomst

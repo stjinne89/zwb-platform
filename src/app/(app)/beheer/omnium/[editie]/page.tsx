@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { BackLink, PageHeader } from "@/components/app-ui";
 import { EditionForm, type EditionPartRow } from "./_components/edition-form";
 import { ZwiftStartlist } from "../_components/zwift-startlist";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export default async function OmniumEditiePage({
   params: Promise<{ editie: string }>;
 }) {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has("omnium.manage")) redirect("/dashboard");
 

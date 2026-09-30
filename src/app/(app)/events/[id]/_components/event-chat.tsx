@@ -101,7 +101,10 @@ export function EventChat({
       .channel(`event-chat-${eventId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "event_chat_messages" },
+        // Alleen dit event: zonder filter liet elk chatbericht bij welk event dan ook
+        // alle open chats opnieuw laden. Supabase filtert geen DELETE-events; een
+        // verwijderd bericht verdwijnt hier via de fallback-poll.
+        { event: "*", schema: "public", table: "event_chat_messages", filter: `event_id=eq.${eventId}` },
         ping,
       )
       .subscribe();

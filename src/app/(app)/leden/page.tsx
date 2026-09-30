@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
@@ -16,6 +15,7 @@ import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import type { WellnessDevice } from "@/lib/training/wellness";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type Profile = {
   id: string;
@@ -85,9 +85,7 @@ function looksLikeMe(rosterName: string, myName: string): boolean {
 
 export default async function LedenPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const [
@@ -117,7 +115,7 @@ export default async function LedenPage() {
       .select("id, profile_id, award_scope, achievement_badges(id, title, icon, color, kind, trigger_source)")
       .order("awarded_at", { ascending: false })
       .limit(120),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
   ]);
 
   const myName = me?.display_name ?? "";

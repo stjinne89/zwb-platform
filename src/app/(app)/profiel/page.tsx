@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { AvatarUpload } from "./_components/avatar-upload";
@@ -20,6 +19,7 @@ import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { SegmentKomsSection } from "@/components/segment-koms-section";
 import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type AwardRow = {
   id: string;
@@ -54,15 +54,13 @@ function awardBadge(row: AwardRow) {
 
 export default async function ProfielPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const PROFILE_COLUMNS =
     "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility, event_type_interests, fit_max_distance_km, fit_max_elevation_m";
 
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   const rideStatus = await loadRideSourceStatus(user.id).catch(() => null);
 
   const [

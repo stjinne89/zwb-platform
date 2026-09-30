@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { suggestProfileLinks } from "@/lib/teams/wtrl-membership";
 import { WtrlImportForm, type ZwbTeamOption } from "./_components/import-form";
 import { LinkSuggestions } from "./_components/link-suggestions";
 import { adminAreaPermission } from "@/lib/admin-areas";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
 export default async function WtrlTeamsPage() {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("wtrl"))) redirect("/dashboard");
 

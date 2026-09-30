@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Check, EyeOff, Plus } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import type { ExternalEventSource } from "@/lib/events/external-scan";
@@ -23,6 +21,7 @@ import {
 import { ClubCalendarButton, ScanButton } from "./_components/scan-button";
 import { IntegrationHealth } from "./_components/integration-health";
 import { adminAreaPermission } from "@/lib/admin-areas";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -107,8 +106,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
   const importMatched = firstParam(params, "matched");
   const importSaved = firstParam(params, "saved");
 
-  const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("eventScan"))) redirect("/dashboard");
 

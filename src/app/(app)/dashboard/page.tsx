@@ -19,7 +19,6 @@ import {
   Vote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritverslag-button";
 import {
   EmptyState,
@@ -67,6 +66,7 @@ import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { formatSegmentTime } from "@/lib/segments/explorer";
 import { KOM_BADGE, SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type ProfileRef = {
   display_name: string | null;
@@ -367,10 +367,8 @@ export default async function DashboardPage({
   const rawStravaError = params.strava_error;
   const stravaError = Array.isArray(rawStravaError) ? rawStravaError[0] : rawStravaError;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const access = await getCurrentUserAccess(supabase);
+  const user = await getRequestUser();
+  const access = await getRequestAccess();
   const isModerator = access.has("events.manage_all");
 
   const nowIso = new Date().toISOString();
@@ -396,8 +394,6 @@ export default async function DashboardPage({
     { data: profile },
     { data: mediaRows },
     { data: pollRows },
-    { data: pollOptionRows },
-    { data: pollVoteRows },
     { data: benefitRows },
     { data: upcoming },
     { data: standingRows },
@@ -429,16 +425,16 @@ export default async function DashboardPage({
       .limit(5),
     supabase
       .from("polls")
-      .select("id, question, description_md, multi_select, closes_at, created_at")
+      // Opties en stemmen alleen van deze twee polls; eerder kwamen alle stemmen
+      // van alle polls ooit mee (en boven 1000 rijen stilletjes afgekapt).
+      .select(
+        "id, question, description_md, multi_select, closes_at, created_at, poll_options!poll_options_poll_id_fkey(id, poll_id, label, display_order), poll_votes!poll_votes_poll_id_fkey(poll_id, option_id, profile_id)",
+      )
       .eq("scope", "free")
       .eq("active", true)
       .order("created_at", { ascending: false })
+      .order("display_order", { referencedTable: "poll_options" })
       .limit(2),
-    supabase
-      .from("poll_options")
-      .select("id, poll_id, label, display_order")
-      .order("display_order"),
-    supabase.from("poll_votes").select("poll_id, option_id, profile_id"),
     supabase
       .from("member_benefits")
       .select(
@@ -614,10 +610,13 @@ export default async function DashboardPage({
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
   const instagramPosts = (instagramRows ?? []) as InstagramPost[];
+  const pollsWithVotes = (pollRows ?? []) as unknown as Array<
+    PollRow & { poll_options: PollOptionRow[] | null; poll_votes: PollVoteRow[] | null }
+  >;
   const polls = dashboardPolls(
-    (pollRows ?? []) as unknown as PollRow[],
-    (pollOptionRows ?? []) as unknown as PollOptionRow[],
-    (pollVoteRows ?? []) as unknown as PollVoteRow[],
+    pollsWithVotes,
+    pollsWithVotes.flatMap((poll) => poll.poll_options ?? []),
+    pollsWithVotes.flatMap((poll) => poll.poll_votes ?? []),
   ).filter((poll) => !poll.closes_at || new Date(poll.closes_at) > new Date());
   const benefits = ((benefitRows ?? []) as unknown as BenefitRow[]).filter(
     (benefit) => benefit.active && (!benefit.valid_until || benefit.valid_until >= today),

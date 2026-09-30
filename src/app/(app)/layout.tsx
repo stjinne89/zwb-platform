@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CircleHelp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { looksLikeMe } from "@/lib/text/normalize";
 import { ZwbMark } from "@/components/zwb-logo";
@@ -46,10 +46,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   if (!user) redirect("/login");
 
   const [{ data: profile }, access] = await Promise.all([
@@ -58,7 +55,7 @@ export default async function AppLayout({
       .select("display_name, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
   ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";

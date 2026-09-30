@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { PollCard, type PollCardData } from "./_components/poll-card";
 import { CreatePollForm } from "./_components/create-poll-form";
+import { getRequestAccess } from "@/lib/auth/request";
 
 type PollRow = {
   id: string;
@@ -38,30 +38,27 @@ function singleName(rel: PollRow["profiles"]): string | null {
 
 export default async function PollsPage() {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
 
   if (!access.user) redirect("/login");
 
-  const [{ data: pollRows }, { data: optionRows }, { data: voteRows }] =
-    await Promise.all([
-      supabase
-        .from("polls")
-        .select(
-          "id, question, description_md, multi_select, active, closes_at, created_at, created_by, profiles(display_name)",
-        )
-        .eq("scope", "free")
-        .order("active", { ascending: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("poll_options")
-        .select("id, poll_id, label, display_order")
-        .order("display_order"),
-      supabase.from("poll_votes").select("poll_id, option_id, profile_id"),
-    ]);
+  // Opties en stemmen via de poll zelf: alleen van de vrije polls, en niet als
+  // losse tabellen die boven 1000 rijen stilletjes worden afgekapt.
+  const { data: pollRows } = await supabase
+    .from("polls")
+    .select(
+      "id, question, description_md, multi_select, active, closes_at, created_at, created_by, profiles(display_name), poll_options!poll_options_poll_id_fkey(id, poll_id, label, display_order), poll_votes!poll_votes_poll_id_fkey(poll_id, option_id, profile_id)",
+    )
+    .eq("scope", "free")
+    .order("active", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("display_order", { referencedTable: "poll_options" });
 
-  const polls = (pollRows ?? []) as PollRow[];
-  const options = (optionRows ?? []) as OptionRow[];
-  const votes = (voteRows ?? []) as VoteRow[];
+  const polls = (pollRows ?? []) as unknown as Array<
+    PollRow & { poll_options: OptionRow[] | null; poll_votes: VoteRow[] | null }
+  >;
+  const options = polls.flatMap((poll) => poll.poll_options ?? []);
+  const votes = polls.flatMap((poll) => poll.poll_votes ?? []);
 
   const canManage = access.has("polls.manage");
   const userId = access.user.id;

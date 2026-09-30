@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
@@ -14,6 +12,7 @@ import {
 } from "./_components/strava-webhook-panel";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { IntegrationHealth } from "../event-scan/_components/integration-health";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -58,8 +57,7 @@ async function fetchWindowActivities(admin: any, sinceIso: string) {
 }
 
 export default async function BeheerStravaPage() {
-  const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("strava"))) redirect("/dashboard");
 

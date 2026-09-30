@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Activity, ArrowRight, RefreshCw, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
   CLUB_LADDER_SUMMARY_URL,
   fetchClubLadderSummary,
@@ -16,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { SyncResultsButton } from "../_components/sync-results-button";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -142,7 +142,7 @@ export default async function ClubLadderPage({
     { data: sources },
     { data: results },
   ] = await Promise.all([
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("teams")
       .select("id, name, division, description, is_graveyard")

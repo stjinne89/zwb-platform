@@ -6,7 +6,12 @@
 // webhook-taak rekent ze in kleine batches na. Live berekenen over alle segmenten liep
 // op productie al tegen de statement timeout.
 
-export const KOM_REFRESH_LIMIT = 200;
+// De app wacht hooguit KOM_REFRESH_TIMEOUT_MS; de database rekent na een afbreking
+// gewoon door (tot zijn eigen timeout van 8 s). Een batch van 200 liep op productie
+// geregeld uit (2026-09-30, pieken tot 8 s), dus werk dat de app nooit terugzag.
+// 50 per run past ruim binnen de wachttijd en haalt met ~288 runs per dag nog
+// ~14.000 segmenten per dag.
+export const KOM_REFRESH_LIMIT = 50;
 const KOM_REFRESH_TIMEOUT_MS = 1500;
 /** Minder tijd over dan dit: de volgende run pakt het op. */
 const KOM_MIN_REMAINING_MS = 1000;

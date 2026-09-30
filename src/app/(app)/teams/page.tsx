@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Activity, ArrowRight, LinkIcon, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
@@ -14,6 +13,7 @@ import {
   type TeamOption,
   type TeamRosterRow,
 } from "./_components/team-roster-table";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -134,7 +134,7 @@ export default async function TeamsPage() {
     { data: powerRows },
     { data: zrlResults },
   ] = await Promise.all([
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("profiles")
       .select("id, display_name, region, zrl_category, ftp_watts, weight_kg, zwift_id")

@@ -1,3 +1,5 @@
+import { slimSegmentEffortRaw } from "./effort-raw";
+
 type SupabaseClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
@@ -281,7 +283,7 @@ export async function storeActivitySegmentEfforts(
       end_lat: endLat,
       end_lon: endLon,
       started_at: startedAt,
-      raw: effort,
+      raw: slimSegmentEffortRaw(effort),
     });
   }
 

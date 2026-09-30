@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { BackLink, HelpLink } from "@/components/app-ui";
 import { EventForm, type EventInitial } from "../../../kalender/nieuw/_form";
 import { DeleteEventButton } from "../_components/delete-event-button";
 import { LinkEditor } from "../_components/link-editor";
 import { isEventLinkKind, type EventLinkKind } from "@/lib/events/race-links";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export default async function EditEventPage({
   params,
@@ -15,9 +15,7 @@ export default async function EditEventPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const [{ data: event }, access, { data: teams }, { data: linkRows }] = await Promise.all([
@@ -28,7 +26,7 @@ export default async function EditEventPage({
       )
       .eq("id", id)
       .single(),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("teams")
       .select("id, name, type, parent_team_id")

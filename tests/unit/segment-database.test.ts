@@ -24,6 +24,7 @@ beforeAll(async () => {
   await db.exec(await readFile("supabase/migrations/0156_segment_geometry_priority_fast.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0161_zwb_segment_koms.sql","utf8"));
   await db.exec(await readFile("supabase/migrations/0162_zwb_segment_qom_push.sql","utf8"));
+  await db.exec(await readFile("supabase/migrations/0201_slim_segment_efforts.sql","utf8"));
 }, 20000);
 afterAll(async () => { await db?.close(); });
 beforeEach(async () => {
@@ -84,19 +85,39 @@ describe("segment migration against isolated PostgreSQL", () => {
     const row = (await db.query<{ leaderboard:Array<{seconds:number}> }>("select leaderboard from zwb_segment_club")).rows[0];
     expect(row.leaderboard.map((r) => r.seconds)).toEqual([100,110,130]);
   });
-  it("prioritises geometry by number of riders and hides the queue from members", async () => {
+  it("prioritises geometry of KOM segments by number of riders and hides the queue from members", async () => {
     await db.query("insert into strava_activities(id,profile_id,sport_type,trainer,raw) values(11,$1,'Ride',false,'{}'),(12,$1,'Ride',true,'{}')",[ids[0]]);
     await db.query("select replace_activity_segment_efforts($1,11,$2)",[ids[0],JSON.stringify([{effort_uid:"solo",profile_id:ids[0],activity_id:11,strava_segment_id:77,segment_name:"Solo",elapsed_time_seconds:50,raw:{}}])]);
     await db.query("select replace_activity_segment_efforts($1,12,$2)",[ids[0],JSON.stringify([{effort_uid:"indoor",profile_id:ids[0],activity_id:12,strava_segment_id:88,segment_name:"Binnen",elapsed_time_seconds:50,raw:{}}])]);
-    await db.exec("update zwb_segment_maps set geometry_status='ready' where id=99");
-    const first = await db.query<{ id:string }>("select id from segment_geometry_priority(10)");
-    expect(first.rows.map((r) => r.id)).toEqual(["77"]);
-    await db.exec("update zwb_segment_maps set geometry_status='pending' where id=99");
+    await db.query("select refresh_segment_koms(100)");
     const ranked = await db.query<{ id:string; profile_id:string }>("select * from segment_geometry_priority(10)");
-    expect(ranked.rows.map((r) => r.id)).toEqual(["99","77"]);
-    expect(ranked.rows[1].profile_id).toBe(ids[0]);
+    // Alleen segment 99 heeft drie of meer rijders; 77 (één rijder) volgt pas als een lid hem opent.
+    expect(ranked.rows.map((r) => r.id)).toEqual(["99"]);
+    expect(ids).toContain(ranked.rows[0].profile_id);
+    await db.exec("update zwb_segment_maps set geometry_status='ready' where id=99");
+    expect((await db.query("select * from segment_geometry_priority(10)")).rows).toEqual([]);
     await db.exec("set role authenticated");
     await expect(db.query("select * from segment_geometry_priority(1)")).rejects.toThrow(/permission denied/);
+  });
+  it("keeps only the raw fields the database reads, on insert and on update", async () => {
+    const full = { id: 123, athlete: { id: 9 }, activity: { id: 1 }, name: "Klim", hidden: false, average_watts: 250, segment: { id: 99, name: "Klim", private: true, city: "X" } };
+    await db.query("select replace_activity_segment_efforts($1,1,$2)",[ids[0],JSON.stringify([{effort_uid:"0",profile_id:ids[0],activity_id:1,strava_segment_id:99,segment_name:"Klim",elapsed_time_seconds:100,raw:full}])]);
+    const raw = async () => (await db.query<{ raw:unknown }>("select raw from strava_activity_segment_efforts where effort_uid='0'")).rows[0].raw;
+    expect(await raw()).toEqual({ hidden: false, segment: { private: true } });
+    await db.exec(`update strava_activity_segment_efforts set raw='{"source":"gps","gps_extra":1}' where effort_uid='0'`);
+    expect(await raw()).toEqual({ source: "gps" });
+    expect((await db.query<{ r:unknown }>("select slim_segment_effort_raw('{\"segment\":{\"name\":\"x\"}}') r")).rows[0].r).toEqual({});
+    expect((await db.query<{ r:unknown }>("select slim_segment_effort_raw(null) r")).rows[0].r).toBeNull();
+  });
+  it("only marks KOMs dirty when a field that counts changes", async () => {
+    await db.query("select refresh_segment_koms(100)");
+    await db.exec(`update strava_activity_segment_efforts set raw='{"kom_rank":1}'`);
+    expect((await db.query<{ kom_dirty:boolean }>("select kom_dirty from zwb_segment_maps where id=99")).rows[0].kom_dirty).toBe(false);
+    await db.exec(`update strava_activity_segment_efforts set raw='{"segment":{"private":true}}' where effort_uid='1'`);
+    expect((await db.query<{ kom_dirty:boolean }>("select kom_dirty from zwb_segment_maps where id=99")).rows[0].kom_dirty).toBe(true);
+    await db.query("select refresh_segment_koms(100)");
+    await db.exec("update strava_activity_segment_efforts set elapsed_time_seconds=90 where effort_uid='2'");
+    expect((await db.query<{ kom_dirty:boolean }>("select kom_dirty from zwb_segment_maps where id=99")).rows[0].kom_dirty).toBe(true);
   });
   it("replaces missing efforts and rejects mismatched owners", async () => {
     await db.query("select replace_activity_segment_efforts($1,1,'[]')",[ids[0]]);

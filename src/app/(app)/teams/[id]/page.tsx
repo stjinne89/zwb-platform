@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, CalendarDays, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
   WTRL_ZRL_RESULTS_URL,
   fetchZrlPlacement,
@@ -28,6 +27,7 @@ import {
   type PlannerRider,
   type PlannerTeam,
 } from "./_components/team-lineup-planner";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -141,9 +141,7 @@ export default async function TeamDetailPage({
   const supabase = await createClient();
   const admin = createAdminClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   const { data: team } = await supabase
     .from("teams")
@@ -202,7 +200,7 @@ export default async function TeamDetailPage({
       .in("team_id", scopeIds)
       .order("round_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase.from("profiles").select("id, display_name").order("display_name"),
     supabase
       .from("roster_entries")

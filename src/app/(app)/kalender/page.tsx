@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,17 @@ import {
 
 const STALE_AFTER_MIN = 15;
 const HISTORY_DAYS = 365;
+// De kalender toont alleen vandaag en later; voorbije events worden alleen
+// geteld. Ophalen vanaf 30 dagen terug, zodat een meerdaagse tour waarvan het
+// hoofdevent al begonnen is (FRR, migr. 0196) nog met zijn etappes meekomt. Wat
+// ouder is, telt via een losse telling mee in "Voorbije ritten".
+const PAST_WINDOW_DAYS = 30;
 type RsvpStatus = "yes" | "maybe" | "no";
 type SearchParams = Promise<{ voor?: string }>;
+
+function pastWindowStartIso() {
+  return new Date(Date.now() - PAST_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
 
 async function getActiveCutoffIso() {
   return new Date(Date.now() - STALE_AFTER_MIN * 60 * 1000).toISOString();
@@ -77,14 +86,13 @@ export default async function KalenderPage({
   const { voor } = await searchParams;
   const onlyForMe = voor === "mij";
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const canCreateEvents = (await getCurrentUserAccess(supabase)).has("events.create");
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
+  const canCreateEvents = (await getRequestAccess()).has("events.create");
+  const windowStartIso = pastWindowStartIso();
 
   const [
     { data: allEvents },
+    { count: olderTopLevelCount },
     { data: birthdayProfiles },
     { data: me },
     { data: myTeams },
@@ -97,7 +105,13 @@ export default async function KalenderPage({
         .select(
           "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path, team_id, parent_event_id",
         )
+        .gte("start_at", windowStartIso)
         .order("start_at", { ascending: true }),
+      supabase
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .is("parent_event_id", null)
+        .lt("start_at", windowStartIso),
       supabase
         .from("profiles")
         .select("id, display_name, avatar_url, birth_date")
@@ -187,7 +201,7 @@ export default async function KalenderPage({
     return last;
   };
   const upcoming = topLevel.filter((event) => lastDayOf(event) >= todayKey);
-  const pastCount = topLevel.length - upcoming.length;
+  const pastCount = (olderTopLevelCount ?? 0) + topLevel.length - upcoming.length;
 
   // Wat past er niet, en waarom? Ook zonder actief filter berekend, zodat de
   // knop meteen zijn aantal kan tonen.

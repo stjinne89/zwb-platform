@@ -9,7 +9,6 @@ import {
   Route,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
@@ -17,6 +16,7 @@ import { formatBadgeValue } from "@/lib/achievements/awards";
 import { currentAchievementWeek } from "@/lib/strava/client";
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
 import { StravaSyncButton } from "@/components/strava-sync-button";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -237,7 +237,7 @@ export default async function AchievementsPage() {
         )
         .order("period_start", { ascending: false })
         .limit(12),
-      getCurrentUserAccess(supabase),
+      getRequestAccess(),
     ]);
 
   const rows = (activityRows ?? []) as unknown as ActivityRow[];

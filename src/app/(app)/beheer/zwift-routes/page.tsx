@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { routes as zwiftRoutes } from "zwift-data";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { syncableRoutes } from "@/lib/events/zwift-route-sync";
 import { runRouteProfileSpike, syncBikeList, syncRouteLibrary } from "./_actions";
 import { SpikeButton, SyncButton } from "./_components/spike-button";
 import { adminAreaPermission } from "@/lib/admin-areas";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -46,8 +45,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const message = firstParam(params, "message");
 
-  const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("zwiftRoutes"))) redirect("/dashboard");
 

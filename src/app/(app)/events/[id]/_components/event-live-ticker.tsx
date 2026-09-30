@@ -363,6 +363,14 @@ export function EventLiveTicker({
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const sessionById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
   const activeIds = useMemo(() => new Set(sessions.map((s) => s.id)), [sessions]);
+  // Het realtime-kanaal leest de sessies via een ref. Hing het effect aan
+  // sessionById, dan opende elke router.refresh() het kanaal opnieuw, en elke nieuwe
+  // verbinding vroeg weer een refresh aan: op een eventdag een volledige
+  // serverrender per paar seconden zolang de pagina openstond.
+  const sessionByIdRef = useRef(sessionById);
+  useEffect(() => {
+    sessionByIdRef.current = sessionById;
+  }, [sessionById]);
   const routeStats = useMemo(() => buildRouteStats(points), [points]);
   const climbs = useMemo(() => {
     if (points.length < 2) return [];
@@ -421,6 +429,8 @@ export function EventLiveTicker({
   // refresh-storm en haalt de verse sessie-/positie-snapshot op na een event.
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleRefresh = useCallback(() => {
+    // Een verborgen tab haalt bij terugkeer zelf een verse snapshot (visibilitychange).
+    if (document.visibilityState !== "visible") return;
     if (refreshTimer.current) return;
     refreshTimer.current = setTimeout(() => {
       refreshTimer.current = null;
@@ -507,7 +517,7 @@ export function EventLiveTicker({
         { event: "INSERT", schema: "public", table: "live_positions" },
         (payload) => {
           const row = payload.new as EventLivePosition;
-          const session = sessionById.get(row.session_id);
+          const session = sessionByIdRef.current.get(row.session_id);
           // Onbekende sessie (nieuwe rider of na een herstart)? Verse snapshot
           // ophalen zodat de rider verschijnt i.p.v. genegeerd te worden.
           if (!session) {
@@ -562,7 +572,7 @@ export function EventLiveTicker({
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [pollUrl, activeIds, sessionById, scheduleRefresh, router, eventStartAt]);
+  }, [pollUrl, scheduleRefresh, router, eventStartAt]);
 
   if (error) {
     return (

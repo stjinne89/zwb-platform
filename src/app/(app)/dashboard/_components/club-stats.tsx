@@ -100,15 +100,26 @@ export async function ClubStats() {
   since.setUTCDate(since.getUTCDate() - WEEKS_BACK * 7);
   since.setUTCHours(0, 0, 0, 0);
 
-  const { data: rows } = await supabase
-    .from("strava_activities")
-    .select(
-      "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
-    )
-    .gte("start_date", since.toISOString())
-    .in("sport_type", CYCLING_SPORTS);
+  // Gepagineerd: Supabase geeft standaard hooguit 1000 rijen. Op 2026-09-30 vielen
+  // er al 1.090 ritten in het venster, dus de totalen misten stilletjes ritten.
+  const PAGE = 1000;
+  const activities: ActivityRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: rows } = await supabase
+      .from("strava_activities")
+      .select(
+        "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
+      )
+      .gte("start_date", since.toISOString())
+      .in("sport_type", CYCLING_SPORTS)
+      .order("start_date")
+      .order("id")
+      .range(from, from + PAGE - 1);
+    const page = (rows ?? []) as ActivityRow[];
+    activities.push(...page);
+    if (page.length < PAGE) break;
+  }
 
-  const activities = (rows ?? []) as ActivityRow[];
   if (activities.length === 0) {
     return null;
   }

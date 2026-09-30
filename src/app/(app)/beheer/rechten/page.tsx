@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink } from "@/components/app-ui";
 import {
   COMMUNITY_ROLE_META,
@@ -13,6 +12,7 @@ import {
   type CommunityPermission,
 } from "@/lib/permissions";
 import { PermissionsEditor } from "./_components/permissions-editor";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type PermissionRow = {
   role: string;
@@ -23,12 +23,10 @@ type Matrix = Record<CommunityRole, CommunityPermission[]>;
 
 export default async function RechtenPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
 
   if (!access.has("roles.manage_permissions")) {
     return (
