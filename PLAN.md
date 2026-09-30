@@ -383,8 +383,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 >   API-aanroepen als bezoek tellen, is onbekend (spikepunt 10). Opvangen kan
 >   met een melding in ZWB of met supporterschap.
 >
-> **Bijvangst, belangrijker dan de vraag zelf.** Volgens zoekresultaten over het
-> Strava-beleid van juni 2026:
+> **Bijvangst, belangrijker dan de vraag zelf.** Volgens het Strava-beleid van
+> juni 2026 (op 2026-09-30 in de beleidstekst zelf nagelezen, zie onder):
 > - Strava-data mag hooguit 7 dagen bewaard worden;
 > - de data mag alleen aan het lid zelf getoond worden;
 > - de data mag niet in een AI-prompt.
@@ -398,13 +398,15 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 > ~~Daarnaast is `segments/explore` sinds 1 september alleen voor Extended
 > Access; de segmentverkenner gebruikt het.~~ **Gecorrigeerd 2026-09-30:** de
 > verkenner leest uit de eigen database en werkt (ook gezien door de
-> eigenaar). Alleen `resolveCuratedSegments` gebruikt `explore`, om de 10
-> samengestelde `europe_flat`-kandidaten uit `0072` aan een Strava-id te
-> koppelen. Een fout wordt daar stil overgeslagen. Zie onderzoek §2.2.
+> eigenaar). Alleen `resolveCuratedSegments` gebruikt `explore`, om
+> samengestelde kandidaten aan een Strava-id te koppelen. Een fout wordt daar
+> stil overgeslagen. Zie onderzoek §2.2.
 > Controlequery (alleen lezen):
 > `select collection, source, count(*), count(*) filter (where strava_segment_id is null) as zonder_id, max(updated_at) filter (where source = 'strava-explore') as laatst_via_explore from zwb_segments group by 1, 2 order by 1, 2;`
-> Staan er kandidaten zonder id en is `laatst_via_explore` ouder dan 1
-> september, dan kan de `explore`-aanroep eruit (3 tot 20 calls per run).
+> **Uitkomst op productie, 2026-09-30:** 26 kandidaten zonder id (20
+> `europe_flat`, 6 `benelux_popular`). `laatst_via_explore` is 6 juni 2026.
+> De `explore`-aanroep kan er dus uit (3 tot 20 calls per run). Nog niet
+> gedaan: dat is een codewijziging, geen onderdeel van deze docs-ronde.
 >
 > De drie punten hierboven verklaren vermoedelijk de algemene afwijzing, en ze
 > betekenen dat ook de huidige 10 koppelingen waarschijnlijk niet in regel
@@ -430,10 +432,24 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 >
 > **Niet geverifieerd.** Alle primaire bronnen (strava.com, Wahoo, Garmin,
 > intervals.icu, Polar) waren vanuit de cloud-omgeving geblokkeerd. De externe
-> feiten komen uit zoekresultaten en samenvattingen. Spikepunten 5 en 6 laten
-> de eigenaar de beleidsteksten zelf nalezen. ~~Niet op productie
+> feiten komen uit zoekresultaten en samenvattingen. ~~Spikepunten 5 en 6 laten
+> de eigenaar de beleidsteksten zelf nalezen.~~ ~~Niet op productie
 > gecontroleerd: of de segmentverkenner echt faalt.~~ De verkenner faalt niet;
 > zie de correctie hierboven.
+>
+> **Nagelezen 2026-09-30 (lokale sessie, spikepunten 5 en 6).**
+> - *Strava API Policy (2026):* bevestigt bewaren (§5.5, §6.2), tonen (§2.3,
+>   §6.2) en AI (§5.3, "ingestion into a context window"). Twee correcties.
+>   Ten eerste: na deauthorisatie geldt 30 dagen plus een schriftelijke
+>   bevestiging (§2.5, §7.4), niet 48 uur; die 48 uur gelden voor ritten die op
+>   Strava zijn verwijderd. Ten tweede: de capaciteitsuitzondering in §6.1 geldt
+>   alleen boven 9.999 atleten en haalt §2.3 niet weg. Nieuw: §5.4 verbiedt ook
+>   analyses en aggregaties, zoals clubstatistiek. De API Agreement zelf is
+>   niet nagelezen.
+> - *intervals.icu API Terms:* geen beperking op tonen, bewaren of AI. De enige
+>   eis is Garmin-attributie, en die toont ZWB al. Het advies blijft.
+> - *Probe (spikepunt 1 t/m 4):* nog open. Die vraagt de API-sleutel van de
+>   eigenaar en draait de eigenaar zelf lokaal.
 
 ---
 

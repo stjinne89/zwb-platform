@@ -93,10 +93,10 @@ serviceaccount).
 
 ## 2. De Strava-kant: wat er sinds juni 2026 geldt
 
-Uit zoekresultaten, niet uit de beleidstekst zelf. **Zekerheid: hoog voor 2.1
-en 2.2** (meerdere onafhankelijke bronnen, onder andere heise en de
-intervals.icu-forumdraad). **Middel voor 2.3 en 2.4**: de precieze bepalingen
-moet de eigenaar op `strava.com/legal/api_policy` nalezen.
+~~Uit zoekresultaten, niet uit de beleidstekst zelf.~~ **Nagelezen
+2026-09-30** in de API Policy (2026, van kracht per 1 juni 2026) zelf, lokaal
+in de browser (spikepunt 6). Sectie 2.3 is daarop bijgewerkt; de
+paragraafnummers hieronder zijn die van de Policy.
 
 ### 2.1 Toegangsniveaus
 
@@ -121,16 +121,24 @@ moet de eigenaar op `strava.com/legal/api_policy` nalezen.
     `/segments/{id}` en de bijbehorende streams.
   - Alleen `resolveCuratedSegments` (`lib/segments/sync.ts` L933) gebruikt
     `explore`. Die koppelt samengestelde kandidaten zonder Strava-id aan een
-    segment: de 10 `europe_flat`-kandidaten uit `0072`, zoals Champs-Élysées en
-    Arenberg. Een fout wordt daar stil overgeslagen.
-  - Werkt `explore` niet meer, dan blijven alleen die kandidaten zonder id. Op
-    productie nog niet nagekeken; de query staat in `PLAN.md`.
+    segment, zoals Champs-Élysées en Arenberg. Een fout wordt daar stil
+    overgeslagen.
+  - **Op productie nagekeken 2026-09-30** (de query uit `PLAN.md`): 26
+    samengestelde kandidaten hebben geen Strava-id, 20 in `europe_flat` en 6 in
+    `benelux_popular`. De laatste koppeling via `explore` was op 6 juni 2026
+    (4 Benelux-segmenten). Sindsdien heeft `explore` niets meer gekoppeld, dus
+    de aanroep kost alleen nog calls.
 
 ### 2.3 Bewaren, tonen, AI
 
-- **Bewaren**: Strava-data mag hooguit 7 dagen in een cache staan (§6.2). Op de
-  community hub staat het antwoord dat dit ook geldt voor de eigen historie van
-  een atleet. Na een deauthorisatie moet de data binnen 48 uur weg.
+- **Bewaren**: Strava-data mag hooguit 7 dagen in een cache staan (§6.2).
+  Daarbuiten mag niets worden opgeslagen, ook niet afgeleid in een database of
+  archief (§5.5, §6.4). Op de community hub staat het antwoord dat dit ook
+  geldt voor de eigen historie van een atleet. ~~Na een deauthorisatie moet de
+  data binnen 48 uur weg.~~ Na een deauthorisatie of op verzoek moet alle
+  Strava-data van dat lid binnen 30 dagen weg, met een schriftelijke
+  bevestiging aan het lid (§2.5, §7.4). De 48 uur gelden voor ritten die het lid
+  op Strava zelf verwijdert (§6.3).
   - **Wij**: `strava_activities` bewaart alles, voor altijd, en we halen zelfs
     de volledige historie op (`history-backfill.ts`).
 - **Tonen**: sinds november 2024 mag de data van een lid alleen aan dat lid zelf
@@ -138,11 +146,14 @@ moet de eigenaar op `strava.com/legal/api_policy` nalezen.
   - **Wij**: de RLS op `strava_activities` geeft elk ingelogd lid leesrecht
     (`0010`, policy `strava_activities_select_authenticated`). Clubstatistiek,
     leaderboards, rennerpagina's, badges en KOM's tonen ritten aan andere leden.
-  - Eén zoeksamenvatting noemt een uitzondering op basis van
-    atletencapaciteit. De tekst is daar onduidelijk. Lees de beleidstekst na; ga
-    er niet van uit dat die uitzondering voor ons geldt.
-- **AI**: het beleid van 2026 verbiedt Strava-data in "een AI-toepassing",
-  uitdrukkelijk ook "in een context window". Prompts vallen daar dus onder.
+  - De uitzondering op basis van atletencapaciteit bestaat, maar helpt niet.
+    §6.1 geldt alleen voor apps boven 9.999 atleten. §2.3 ("only to that
+    user") en de laatste zin van §6.2 gelden voor iedereen, dus ook voor ons.
+  - Daarbij verbiedt §5.4 analyses en aggregaties op Strava-data, ook
+    geanonimiseerd. Clubstatistiek en klassementen vallen daar ook onder.
+- **AI**: §5.3 verbiedt Strava-data en alles wat daaruit is afgeleid in een
+  AI-toepassing, uitdrukkelijk ook "ingestion into a context window". Prompts
+  vallen daar dus onder.
   - **Wij**: de ritten van de laatste 48 uur gaan naar OpenAI, voor de
     dagaanpassing, het schema en het pacingplan.
 - **Tussenpartijen**: apps die Strava-data via een tussenplatform doorgeven,
@@ -386,7 +397,9 @@ Geen code. Met een eigen account, en met een Garmin-lid dat toestemming geeft.
 | 3 | Idem voor Zwift | Zwift koppelen in intervals.icu | Zwift gedekt | upload van de Zwift-FIT |
 | 4 | Geven de streams `latlng`, ook voor Zwift-ritten (Zwift-wereld)? | `GET /api/v1/activity/{id}/streams?types=latlng,time` met de eigen sleutel | fase 2 kan | FIT-bestand ophalen en zelf lezen |
 | 5 | Wat staat er in de intervals.icu API Terms over tonen aan anderen, bewaren en AI? | Terms nalezen op intervals.icu | geen beperking: advies blijft | advies herzien |
+| | **Beantwoord 2026-09-30:** geen beperking. De Terms (van kracht per 23 oktober 2025) geven een vrije licentie, ook commercieel; de enige eis is Garmin-attributie bij Garmin-data. Die toont ZWB al (`garminAttribution` in `lib/intervals/rides.ts`). Het advies blijft. | | | |
 | 6 | Wat zegt Strava's beleid letterlijk (§5.16, §6.2, de tonen-regel, AI)? | `strava.com/legal/api_policy` en `/legal/api` | bevestigt sectie 2 | sectie 2 corrigeren |
+| | **Beantwoord 2026-09-30:** bevestigt sectie 2 op bewaren, tonen en AI. Gecorrigeerd: de verwijdertermijn na deauthorisatie en de capaciteitsuitzondering (zie 2.3). De API Agreement zelf is niet nagelezen. | | | |
 | 7 | Haalt intervals.icu bij koppelen de Garmin-historie op? | Garmin-lid uit punt 2 | historie gedekt | Strava-bulkexport in intervals.icu importeren |
 | 8 | Kent intervals.icu fietsen (gear) met kilometers per rit? | Instellingen en API van het eigen account | garage via intervals.icu | kilometers per fiets zelf tellen |
 | 9 | Hoe staat de OAuth-registratie bij intervals.icu? | intervals.icu-account van de app | webhooks inbouwen | pollen blijft |
@@ -409,8 +422,10 @@ Geen code. Met een eigen account, en met een Garmin-lid dat toestemming geeft.
 
 ## Bronnen
 
-Alle externe bronnen zijn via zoekresultaten gelezen. De pagina's zelf waren
-vanuit de cloud-omgeving niet bereikbaar.
+De externe bronnen zijn eerst via zoekresultaten gelezen, omdat de pagina's
+vanuit de cloud-omgeving niet bereikbaar waren. Op 2026-09-30 zijn de Strava
+API Policy en de intervals.icu API Terms lokaal in de browser nagelezen. De
+overige bronnen zijn nog steeds alleen via zoekresultaten gelezen.
 
 - Strava:
   - [API Policy (2026)](https://www.strava.com/legal/api_policy) en
