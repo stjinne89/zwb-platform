@@ -99,6 +99,68 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0198`
 
 ---
 
+> **Ritten via intervals.icu voor leden zonder Strava, 2026-09-30 — deel A: probe en pure functies, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vervolg op het onderzoek hieronder. Leden zonder Strava-koppeling
+> (de cap is 10) krijgen hun ritten via intervals.icu. Ze koppelen daarvoor hun
+> Garmin, Wahoo, Zwift of ander merk rechtstreeks aan intervals.icu. Het plan
+> heeft drie delen: A (dit blok), B (inname en cron) en C (leden-UI en
+> teksten).
+>
+> **Keuzes van de eigenaar.**
+> - Leden zonder Strava krijgen deze route, en een Strava-lid kan zelf
+>   overstappen.
+> - Tegen het slapen van een gratis account komt er een vaste herinnering elke
+>   60 dagen.
+> - Ritten worden elk uur opgehaald via cron-job.org.
+>
+> **Ontwerpbesluit, bewust anders dan het onderzoek (§5).** intervals-ritten
+> landen in `strava_activities`, niet in een nieuwe tabel `rides`:
+> - negatief id `-(10¹² + n)`, met `raw.import_source = "intervals"` en
+>   Strava-veldnamen in `raw`;
+> - zo tellen alle 45 lezers ze meteen mee, net als de bestaande GPX-import
+>   (negatief hash-id);
+> - dat kan omdat alleen leden **zonder** actieve Strava-koppeling deze ritten
+>   krijgen. Per lid mengen er dus geen twee API-bronnen;
+> - verdwijnt Strava helemaal, dan blijft `rides` de juiste vorm.
+>
+> **Gebouwd.**
+> - `scripts/intervals-probe.mjs`: leest met je eigen API-sleutel de laatste
+>   ritten en de vorm van het GPS-spoor. Met `--fixture` schrijft het een
+>   geanonimiseerde fixture.
+> - `src/lib/intervals/rides.ts`, puur:
+>   - bronregel (`rideSourceFor`) en id-schema (botst niet met de 32-bits
+>     GPX/CSV-hashes);
+>   - filter op fietsritten, zonder Strava-stubs;
+>   - omzetting naar een rij in `strava_activities`;
+>   - het spoor uit de streams (drie mogelijke vormen) en uitgedund als
+>     polyline van hooguit 500 punten;
+>   - dubbelingen herkennen: start binnen 120 s en afstand binnen 5%. De rit met
+>     vermogen wint, dus Zwift boven het Garmin-bestand van dezelfde trainerrit.
+> - `raw` is een allow-list: geen `icu_*`-velden (FTP, gewicht, belasting), want
+>   de RLS op `strava_activities` laat elk lid `raw` lezen.
+> - `efforts_fetched_at` staat meteen gezet. Anders verwijdert de
+>   segment-inhaalslag de rij na een 404 van Strava.
+> - `start_date_local` krijgt, net als bij Strava, een `Z` achter de
+>   wandkloktijd. De badge-evaluators lezen het uur met `getUTCHours`.
+>
+> **Niet geverifieerd.** De veldnamen van intervals.icu komen uit de bestaande
+> code en uit bronnen, niet uit een echte rit, want de cloud-omgeving kan
+> intervals.icu niet bereiken. Onzeker zijn:
+> - `start_date` (UTC);
+> - `device_watts`;
+> - `icu_weighted_avg_watts` tegenover `weighted_average_watts`;
+> - de vorm van het `latlng`-spoor;
+> - het id-formaat (`i…`).
+>
+> De code probeert steeds de bekende varianten. **Vóór de deploy** draait de
+> eigenaar de probe en vervangt de fixture. Verificatie: 24 nieuwe tests,
+> volledige suite 1.805 geslaagd, `tsc` en ESLint schoon. `omnium-live.test.ts`
+> faalt hier zoals altijd zonder `.env.local`.
+
+---
+
 > **Verder zonder Strava, 2026-09-30 — onderzoek, geen code.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
