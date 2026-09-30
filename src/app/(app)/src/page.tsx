@@ -13,6 +13,7 @@ import {
   type SrcPlanRider,
 } from "@/lib/src/month";
 import { TeamAvailabilityButtons } from "../teams/[id]/_components/team-availability-buttons";
+import { srcRiderProgress, SRC_QUALIFIERS_NEEDED, type SrcRiderRace } from "@/lib/src/results";
 import { setSrcAvailability } from "./_actions";
 import { SrcAddMemberForm, SrcJoinForm, SrcRemoveEntryButton } from "./_components/month-forms";
 
@@ -48,6 +49,24 @@ const STATUS_MARK: Record<SrcAvailabilityStatus, { mark: string; className: stri
   },
   unavailable: { mark: "–", className: "bg-muted text-muted-foreground", label: "niet" },
 };
+
+/** Kwalificaties deze maand: twee nodig om in de finale voor het team te tellen. */
+function QualifierBadge({ done }: { done: number }) {
+  const ready = done >= SRC_QUALIFIERS_NEEDED;
+  return (
+    <span
+      title={ready ? "Telt mee voor het team in de finale" : "Uitgereden kwalificaties deze maand"}
+      className={cn(
+        "rounded-full px-1.5 text-xs tabular-nums",
+        ready
+          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+          : "bg-muted text-muted-foreground",
+      )}
+    >
+      {ready ? "finale ✓" : `${done}/${SRC_QUALIFIERS_NEEDED}`}
+    </span>
+  );
+}
 
 export default async function SrcPage({
   searchParams,
@@ -98,7 +117,10 @@ export default async function SrcPage({
     access.hasAny(["teams.manage_roster", "events.manage_all"]) || (captainRows ?? []).length > 0;
 
   const sundayIds = sundays.map((sunday) => sunday.id);
-  const [{ data: availabilityRows }, { data: memberRows }] = await Promise.all([
+  // Vorige maand erbij, voor de laatst gereden categorie.
+  const previous = new Date(`${month}T12:00:00Z`);
+  previous.setUTCMonth(previous.getUTCMonth() - 1);
+  const [{ data: availabilityRows }, { data: memberRows }, { data: raceRows }] = await Promise.all([
     sundayIds.length > 0
       ? supabase
           .from("team_event_availability")
@@ -113,7 +135,52 @@ export default async function SrcPage({
           .order("display_name")
           .limit(1000)
       : Promise.resolve({ data: [] }),
+    supabase
+      .from("src_races")
+      .select("event_id, sunday, is_final")
+      .gte("sunday", srcMonthKey(previous))
+      .lt("sunday", nextSrcMonth(month)),
   ]);
+  const raceInfo = new Map(
+    ((raceRows ?? []) as Array<{ event_id: string; sunday: string; is_final: boolean }>).map(
+      (row) => [row.event_id, row],
+    ),
+  );
+  const { data: resultRows } =
+    raceInfo.size > 0 && entries.length > 0
+      ? await supabase
+          .from("src_results")
+          .select("race_event_id, profile_id, category, finished_ms")
+          .in("race_event_id", [...raceInfo.keys()])
+          .in(
+            "profile_id",
+            entries.map((entry) => entry.profile_id),
+          )
+      : { data: [] };
+  const progress = srcRiderProgress(
+    ((resultRows ?? []) as Array<{
+      race_event_id: string;
+      profile_id: string;
+      category: number | null;
+      finished_ms: number | null;
+    }>).flatMap((row): SrcRiderRace[] => {
+      const race = raceInfo.get(row.race_event_id);
+      return race
+        ? [
+            {
+              profileId: row.profile_id,
+              sunday: race.sunday,
+              isFinal: race.is_final,
+              category: row.category,
+              finishedMs: row.finished_ms,
+            },
+          ]
+        : [];
+    }),
+    month,
+  );
+  const categoryOf = (entry: EntryRow) =>
+    entry.category ?? progress.get(entry.profile_id)?.lastCategory ?? null;
 
   const entryOf = new Map(entries.map((entry) => [entry.profile_id, entry]));
   // Alleen beschikbaarheid voor het team van deze maand telt.
@@ -133,7 +200,7 @@ export default async function SrcPage({
     profileId: entry.profile_id,
     teamId: entry.team_id,
     race: entry.race,
-    category: entry.category,
+    category: categoryOf(entry),
   }));
   const nameOf = (entry: EntryRow) =>
     (Array.isArray(entry.profiles) ? entry.profiles[0] : entry.profiles)?.display_name ?? "Onbekend";
@@ -168,12 +235,14 @@ export default async function SrcPage({
             Jij in {monthLabel(month)}
           </h2>
           <SrcJoinForm
+            key={month}
             month={month}
             monthLabel={monthLabel(month)}
             teams={joinTeams}
             initial={
               mine ? { teamId: mine.team_id, race: mine.race, category: mine.category } : null
             }
+            defaultCategory={progress.get(userId)?.lastCategory ?? null}
             defaultRace={(me?.sex as string | null) === "vrouw" ? "women" : "men"}
           />
           {mine && sundays.length > 0 && (
@@ -208,7 +277,7 @@ export default async function SrcPage({
           .sort(
             (a, b) =>
               a.race.localeCompare(b.race) ||
-              (a.category ?? 99) - (b.category ?? 99) ||
+              (categoryOf(a) ?? 99) - (categoryOf(b) ?? 99) ||
               nameOf(a).localeCompare(nameOf(b), "nl"),
           );
         return (
@@ -243,13 +312,18 @@ export default async function SrcPage({
                         <td className="p-2">
                           <span className="flex items-center gap-1">
                             {nameOf(entry)}
+                            <QualifierBadge done={progress.get(entry.profile_id)?.qualifiers ?? 0} />
                             {canManage && (
                               <SrcRemoveEntryButton month={month} profileId={entry.profile_id} />
                             )}
                           </span>
                         </td>
                         <td className="whitespace-nowrap p-2 text-muted-foreground">
-                          {genderLabel(entry.race)} · cat {entry.category ?? "?"}
+                          {genderLabel(entry.race)} · cat {categoryOf(entry) ?? "?"}
+                          {entry.category !== null &&
+                            progress.get(entry.profile_id)?.lastCategory != null &&
+                            progress.get(entry.profile_id)!.lastCategory !== entry.category &&
+                            ` (gereden ${progress.get(entry.profile_id)!.lastCategory})`}
                         </td>
                         {sundays.map((sunday) => {
                           const value = status.get(`${sunday.id}|${entry.profile_id}`);

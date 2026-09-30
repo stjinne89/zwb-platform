@@ -25,13 +25,19 @@ export function RefreshButton() {
             if (!res.ok) {
               setError(res.error);
             } else {
-              const { sundaysCreated, racesCreated, updated, warnings } = res.result;
+              const { sundaysCreated, racesCreated, updated, warnings, results, resultsError } =
+                res.result;
               setMessage(
                 [
                   `${sundaysCreated} zondagen en ${racesCreated} races toegevoegd` +
                     (updated > 0 ? `, ${updated} bijgewerkt.` : "."),
+                  results && results.synced > 0 ? `${results.synced} uitslagen opgehaald.` : null,
                   ...warnings,
-                ].join(" "),
+                  ...(results?.notes ?? []),
+                  resultsError,
+                ]
+                  .filter(Boolean)
+                  .join(" "),
               );
             }
             router.refresh();

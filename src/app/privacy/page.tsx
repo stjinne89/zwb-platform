@@ -97,6 +97,20 @@ export default function PrivacyPage() {
             rooster van dat team, tot hij zijn naam claimt.
           </li>
           <li>
+            <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
+            dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race
+            en in welke categorie je verwacht te rijden, en per zondag of je kunt.
+            Na elke race halen we de openbare uitslag van MyWhoosh op. Daaruit
+            bewaren we alleen renners onder een ZWB-teamnaam, leden die aan hun
+            MyWhoosh-account zijn gekoppeld, en renners met precies de naam van een
+            lid (als koppelvoorstel voor een beheerder): naam, MyWhoosh-ID, team,
+            categorie, plaats en tijd. Vermogen, gewicht en prijzengeld nemen we
+            niet over. Van de andere teams bewaren we alleen teamnaam, teamtijd en
+            plaats. Ingelogde leden zien dit op de SRC-pagina en bij de race. Een
+            beheerder kan je MyWhoosh-ID aan je profiel koppelen; dat ID staat dan
+            op je profiel en kun je daar zelf aanpassen.
+          </li>
+          <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand

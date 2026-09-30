@@ -103,16 +103,22 @@ export function SrcJoinForm({
   teams,
   initial,
   defaultRace,
+  defaultCategory,
 }: {
   month: string;
   monthLabel: string;
   teams: Team[];
   initial: { teamId: string; race: Race; category: number | null } | null;
   defaultRace: Race;
+  /** Laatst gereden categorie, als voorstel. */
+  defaultCategory: number | null;
 }) {
   const [teamId, setTeamId] = useState(initial?.teamId ?? teams[0]?.id ?? "");
   const [race, setRace] = useState<Race>(initial?.race ?? defaultRace);
-  const [category, setCategory] = useState(initial?.category ? String(initial.category) : "");
+  const [category, setCategory] = useState(() => {
+    const value = initial ? initial.category : defaultCategory;
+    return value ? String(value) : "";
+  });
   const { error, pending, run } = useAction();
 
   return (

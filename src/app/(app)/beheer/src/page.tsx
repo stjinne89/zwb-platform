@@ -7,6 +7,7 @@ import { genderLabel, type SrcGender } from "@/lib/src/feed";
 import type { SrcSyncState } from "@/lib/src/sync";
 import { RefreshButton } from "./_components/refresh-button";
 import { SrcTeamForm } from "./_components/team-form";
+import { LinkRiders, type SrcUnlinkedRider } from "./_components/link-riders";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ type RaceRow = {
   gender: SrcGender;
   registration_closes_at: string | null;
   participants: number | null;
+  results_status: string | null;
+  results_error: string | null;
   events: { start_at: string } | { start_at: string }[] | null;
 };
 
@@ -48,8 +51,14 @@ export default async function SrcKalenderPage() {
 
   // Vanaf vorige week, zodat de uitslag van afgelopen zondag nog te vinden is.
   const since = new Date(new Date().getTime() - 7 * 86400_000).toISOString().slice(0, 10);
-  const [{ data: stateRow }, { data: parentRows }, { data: raceRows }, { data: teamRows }] =
-    await Promise.all([
+  const [
+    { data: stateRow },
+    { data: parentRows },
+    { data: raceRows },
+    { data: teamRows },
+    { data: unlinkedRows },
+    { data: memberRows },
+  ] = await Promise.all([
       supabase
         .from("src_sync_state")
         .select("created_by, synced_at, sync_error, races_in_feed")
@@ -64,14 +73,52 @@ export default async function SrcKalenderPage() {
         .order("src_sunday"),
       supabase
         .from("src_races")
-        .select("event_id, sunday, gender, registration_closes_at, participants, events(start_at)")
+        .select(
+          "event_id, sunday, gender, registration_closes_at, participants, results_status, results_error, events(start_at)",
+        )
         .gte("sunday", since),
       supabase
         .from("teams")
         .select("id, name, mywhoosh_team_name")
         .eq("type", "src")
         .order("name"),
+      supabase
+        .from("src_results")
+        .select("mywhoosh_user_id, name, team_name, suggested_profile_id")
+        .is("profile_id", null)
+        .limit(500),
+      supabase
+        .from("profiles")
+        .select("id, display_name")
+        .eq("is_approved", true)
+        .order("display_name")
+        .limit(1000),
     ]);
+  // Per MyWhoosh-renner één regel, met het aantal races en het laatste voorstel.
+  const unlinked = new Map<string, SrcUnlinkedRider>();
+  for (const row of (unlinkedRows ?? []) as Array<{
+    mywhoosh_user_id: string;
+    name: string;
+    team_name: string | null;
+    suggested_profile_id: string | null;
+  }>) {
+    const known = unlinked.get(row.mywhoosh_user_id);
+    unlinked.set(row.mywhoosh_user_id, {
+      userId: row.mywhoosh_user_id,
+      name: row.name,
+      teamName: row.team_name ?? known?.teamName ?? null,
+      races: (known?.races ?? 0) + 1,
+      suggestedProfileId: row.suggested_profile_id ?? known?.suggestedProfileId ?? null,
+    });
+  }
+  const riders = [...unlinked.values()].sort(
+    (a, b) =>
+      Number(Boolean(b.suggestedProfileId)) - Number(Boolean(a.suggestedProfileId)) ||
+      a.name.localeCompare(b.name, "nl"),
+  );
+  const members = ((memberRows ?? []) as Array<{ id: string; display_name: string | null }>).map(
+    (row) => ({ id: row.id, name: row.display_name ?? "Onbekend" }),
+  );
   const teams = (teamRows ?? []) as Array<{
     id: string;
     name: string;
@@ -126,6 +173,15 @@ export default async function SrcKalenderPage() {
         <SrcTeamForm />
       </section>
 
+      {riders.length > 0 && (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Renners koppelen
+          </h2>
+          <LinkRiders riders={riders} members={members} />
+        </section>
+      )}
+
       {parents.length === 0 ? (
         <EmptyState>Nog geen SRC-zondagen.</EmptyState>
       ) : (
@@ -160,6 +216,10 @@ export default async function SrcKalenderPage() {
                         {event ? ` ${time(event.start_at)}` : null}
                         {count ? ` · ${count} ZWB` : null}
                         {race.participants ? ` · ${race.participants} ingeschreven` : null}
+                        {race.results_status
+                          ? ` · uitslag ${race.results_status === "official" ? "officieel" : "voorlopig"}`
+                          : null}
+                        {race.results_error ? " · uitslag mislukt" : null}
                       </Link>
                     );
                   })}

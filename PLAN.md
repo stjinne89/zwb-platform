@@ -80,8 +80,9 @@ gaat stabiliteit voor nieuwe features.
    `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
    `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
    (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
-   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` en
-   `0201_src_month_entries.sql` toepassen **vóór** de deploy (beheerpagina, sync
+   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql`,
+   `0201_src_month_entries.sql` en `0202_src_results.sql` toepassen **vóór** de
+   deploy (beheerpagina, sync
    en `/src` lezen de nieuwe tabellen, en het event- en teamtype `src` bestaan
    anders niet). Daarna `SRC_SYNC_SECRET` in Netlify,
    deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
@@ -4658,6 +4659,83 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — SRC-uitslagen, koppelen en teamklassement (fase 3 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0202_src_results.sql`. Niet gepusht.
+
+**Waarom.** Na de race wil ZWB zien hoe zijn renners en zijn team reden, en wie
+er in de finale voor het team mag tellen (twee uitgereden races in de maand).
+
+**Bron, gemeten 2026-09-30.** `POST …/public/src-events-list` geeft twee races per
+pagina, nieuwste eerst, en ook andere MyWhoosh-races (Apex Racing). Parameters
+voor een grotere pagina (`limit`, `pageSize`, `per_page`) doen niets.
+`getEventResults` geeft per renner ook vermogen, gewicht en prijzengeld.
+Renners zonder team staan er als teamnaam "Individual" met een lege `teamId`.
+Het team-leaderboard gaf een 500, ook met een categorie erbij. De Teams-tab van
+results.mywhoosh.com toont de som van de beste drie finishtijden; nagerekend op
+THE FINAL BOSSES in de finale van 27-09: 3:50:55.585, op de milliseconde. Zonder
+categoriefilter mengt die tab de categorieën; wij rekenen per categorie, zoals het
+prijzengeld gaat.
+
+**Nu.**
+- De sync (cron en Nu verversen) haalt na de agenda de uitslagen op. Hij begint
+  twee uur na de start van cat 6 en stopt als MyWhoosh de uitslag officieel
+  noemt, of na twee weken; tot dan hooguit eens per drie uur. De knop op
+  `/beheer/src` negeert die drie uur. Hij zoekt de race op zondag en geslacht in
+  de lijst: de id's verschillen van die in de agenda. Een fout per race komt in
+  `src_races.results_error`, en de agenda loopt dan gewoon door.
+- `src_results` bewaart alleen wie voor ZWB telt: renners onder een
+  ZWB-teamnaam, leden gekoppeld op MyWhoosh-id, en renners met precies de naam
+  van één lid die nog geen MyWhoosh-id heeft (als koppelvoorstel). We bewaren
+  naam, team, categorie, plaats in de categorie (MyWhoosh geeft alleen de
+  totaalplaats) en tijd. Vermogen, gewicht en prijzengeld nemen we bewust niet
+  over. `src_team_results` bevat alle teams met minstens drie finishers per
+  categorie, zonder rennersnamen. Vervangen gaat in één RPC,
+  `src_replace_results`.
+- `/beheer/src`, Renners koppelen: per MyWhoosh-renner zonder lid een keuzelijst,
+  met het naamvoorstel al ingevuld. Koppelen zet de UUID in
+  `profiles.mywhoosh_id` en koppelt de opgeslagen uitslagen; daarna matcht de
+  sync alleen nog op id. Een id dat al bij een ander lid staat, wordt geweigerd.
+  Bij de races staat of de uitslag voorlopig of officieel is.
+- Racepagina: blok Uitslag met de plaats van het ZWB-team per categorie ("2e van
+  11", tijd, achterstand) en de ZWB-renners met categorie, plaats en tijd.
+- `/src`: per renner "0/2", "1/2" of "finale ✓" (uitgereden kwalificaties deze
+  maand). Als categorie geldt de opgegeven categorie, anders de laatst gereden
+  (deze of vorige maand). Wijkt de gereden categorie af van de opgegeven, dan
+  staat ze erachter. De telling per categorie gebruikt diezelfde categorie, en
+  het meedoenformulier stelt de laatst gereden categorie voor.
+- Privacyverklaring: alinea "Sunday Race Club (MyWhoosh)". **Nog open: of dit
+  een nieuwe privacyversie wordt (iedereen tekent opnieuw) of alleen tekst.**
+  MyWhoosh-uitslagen zijn een nieuwe bron, dus de regel "alleen tekst" geldt
+  niet vanzelf; voorgelegd aan Stijn.
+
+**Bewust niet.**
+- Geen eigen teller op het dashboard ("Jouw races"); de race staat er al via je
+  ja.
+- Geen punten voor sprints en klimmen: die staan in de uitslag, maar SRC-teams
+  scoren alleen op tijd.
+- Wie geannuleerd wordt (ANL), verdwijnt volgens het roadbook uit de uitslag;
+  hoe dat er in de API uitziet, is nog niet gezien. Een renner zonder finishtijd
+  telt niet mee.
+- Geen healthcheck op de uitslagen-API; fouten staan per race op de beheerpagina.
+
+**Niet lokaal te verifiëren:** migratie 0202 en de RPC.
+
+**Wel getest:**
+- `tsc`, ESLint en `next build`.
+- Nieuwe unit-test `src-results`, met een echte lijst en een geanonimiseerde
+  steekproef uit de finale:
+  - de race zoeken in de lijst;
+  - "Individual" is geen team;
+  - de plaats per categorie;
+  - de teamtijd, op de echte winnaar;
+  - wie we bewaren, en wanneer een naam een voorstel is;
+  - de telling voor de finale;
+  - het drie-uursritme;
+  - een sync die op pagina 1 stopt en één RPC doet.
+- De stub van de SRC-tests staat nu apart in `tests/unit/src-fake-admin.ts`.
 
 ### Opgeleverd — SRC-teamplanning per maand (fase 2 van 5)
 
