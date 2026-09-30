@@ -4684,10 +4684,8 @@ volgt nu `src.manage`.
 `teams.manage_roster` toe, maar de pagina zelf niet; dat is nu gelijkgetrokken
 naar `SRC_MANAGERS`.
 
-**Niet lokaal te verifiëren:** migratie 0204. Tot die draait, zien bestuur en
-community-beheerders (niet-admins) het menu-item niet, al werkt de pagina voor
-hen nog via `events.manage_all`/`community.manage`. Getest: `tsc`, ESLint en de
-unit-suite.
+Migratie 0204 is toegepast (Stijn, 2026-09-30). Lokaal getest: `tsc`, ESLint en
+de unit-suite; de rechten op productie niet nagelopen.
 
 ### Voorbereid — SRC live: eerst meten (fase 5 van 5)
 
