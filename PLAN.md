@@ -14,10 +14,12 @@ gaat stabiliteit voor nieuwe features.
    uit Zwift: `0190` toepassen en bij "leagues instellen" het sprintsegment
    kiezen (zie de ronde hieronder). Na de editie de opgehaalde tijden naast wat
    het bestuur anders zou plakken leggen.
-2. **Handwerk op productie.** De cron van
-   `/api/strava/sync` op 1x per dag, een week meten, dan opnieuw indienen bij
-   Strava (`docs/strava-api-resubmission.md`, via het formulier en niet als
-   reply op de afwijzing). De Zwift-routebibliotheek één keer volledig opnieuw
+2. **Handwerk op productie.** ~~Opnieuw indienen bij Strava.~~ Gedaan en voor
+   de tweede keer afgewezen (gemeld 2026-09-30); de eigenaar vraagt om uitleg.
+   Niet een derde keer indienen. Volgende stap is de spike zonder code uit
+   [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
+   besluit over de huidige Strava-koppeling (zie de ronde hieronder). De
+   Zwift-routebibliotheek één keer volledig opnieuw
    ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
    Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
    toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
@@ -94,6 +96,75 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0198`.
+
+---
+
+> **Verder zonder Strava, 2026-09-30 — onderzoek, geen code.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Strava wees de tweede aanvraag voor meer dan 10 atleten af, met
+> dezelfde reactie als de eerste. De eigenaar vroeg om uitleg, en wilde intussen
+> weten of ZWB verder kan met directe koppelingen met Wahoo, Garmin, Zwift en
+> andere merken. Details en bronnen:
+> [verder zonder Strava](docs/zonder-strava-onderzoek.md).
+>
+> **Uitkomst.**
+> - **Het kan, via intervals.icu.** Die koppeling bestaat al (API-sleutel per
+>   lid). intervals.icu is officieel partner van Garmin, Wahoo, Zwift, MyWhoosh,
+>   Rouvy, Hammerhead, Polar, Suunto en Coros.
+> - **Voorwaarde:** het lid koppelt zijn toestel of Zwift rechtstreeks aan
+>   intervals.icu, niet via Strava. Ritten die via Strava binnenkomen, geeft
+>   intervals.icu niet door. Dat is nu bij de meeste leden zo.
+> - **Garmin rechtstreeks kan niet:** het developer program is sinds voorjaar
+>   2026 dicht en eist een rechtspersoon.
+> - **Zwift rechtstreeks kan niet:** alleen partners.
+> - **Wahoo rechtstreeks kan wel** (self-service, productie na review), maar
+>   voegt weinig toe boven intervals.icu.
+> - **Wat wegvalt:** Strava-segmenten, KOM's en kudos. Coltijden en
+>   ZWB-segmenttijden komen alleen terug met eigen segmentmatching op het
+>   GPS-spoor, en met eigen geometrie. Dat is het grootste werk.
+>
+> **Bijvangst, belangrijker dan de vraag zelf.** Volgens zoekresultaten over het
+> Strava-beleid van juni 2026:
+> - Strava-data mag hooguit 7 dagen bewaard worden;
+> - de data mag alleen aan het lid zelf getoond worden;
+> - de data mag niet in een AI-prompt.
+>
+> De app doet alle drie. Nagekeken in de code:
+> - `strava_activities` bewaart alles, inclusief de volledige historie;
+> - de RLS geeft elk ingelogd lid leesrecht;
+> - de ritten van de laatste 48 uur gaan naar OpenAI (`adapt-context.ts`,
+>   `draft.ts`, `pacing/draft.ts`).
+>
+> Daarnaast is `segments/explore` sinds 1 september alleen voor Extended
+> Access; de segmentverkenner gebruikt het. Dat verklaart vermoedelijk de
+> algemene afwijzing, en het betekent dat ook de huidige 10 koppelingen
+> waarschijnlijk niet in regel zijn. **Besluit van de eigenaar nodig**, los van
+> een overstap.
+>
+> **Voorstel.** Eerst een spike zonder code (sectie 8 van het onderzoek): de
+> eigenaar koppelt Wahoo en Zwift rechtstreeks aan intervals.icu, een Garmin-lid
+> met toestemming zijn Edge. Daarna in fasen:
+> 1. een bronneutrale tabel `rides`, met intervals.icu als ritbron;
+> 2. spoor voor cols en ZWBlokken;
+> 3. eigen segmentmatching;
+> 4. FIT/GPX-upload als vangnet;
+> 5. Strava beperken of ontkoppelen.
+>
+> **Bewust niet voorgesteld:**
+> - Garmin via gebruikersnaam en wachtwoord (garth): onveilig en buiten de
+>   voorwaarden.
+> - Zwift-ritten via het serviceaccount: onofficieel, terwijl intervals.icu het
+>   officieel doet.
+> - Een aggregator zoals Terra: vanaf ~$399 per maand voor ~35 leden.
+> - Nu al een eigen Wahoo-koppeling: hetzelfde werk als Strava, voor één merk.
+> - Een derde indiening bij Strava.
+>
+> **Niet geverifieerd.** Alle primaire bronnen (strava.com, Wahoo, Garmin,
+> intervals.icu, Polar) waren vanuit de cloud-omgeving geblokkeerd. De externe
+> feiten komen uit zoekresultaten en samenvattingen. Spikepunten 5 en 6 laten
+> de eigenaar de beleidsteksten zelf nalezen. Niet op productie gecontroleerd:
+> of de segmentverkenner echt faalt.
 
 ---
 
@@ -8516,9 +8587,10 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
 13. **Open punten**
    - **iOS PWA polish** — praktijktest op iPhone 16 Pro met iOS 26.5 is goed;
      mobiele terugknop toegevoegd. Nog één regressiecheck na deploy.
-   - **Strava 1→100+ athleten cap** — **afgewezen**; webhooks + koppelingbeheer
-     zijn daarop gebouwd (2026-09-05). Herindienen na een week meten, zie
-     `docs/strava-api-resubmission.md`.
+   - **Strava 1→100+ athleten cap** — **twee keer afgewezen**; webhooks +
+     koppelingbeheer zijn na de eerste afwijzing gebouwd (2026-09-05), de
+     herindiening is ook afgewezen (gemeld 2026-09-30). Niet opnieuw indienen;
+     zie `docs/zonder-strava-onderzoek.md`.
    - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval.
 
 ---
@@ -8685,7 +8757,9 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   zakken naar de ordegrootte die de webhooks laten zien (~25 ritdetails per dag).
   De knop zelf is pas een probleem als meerdere leden hem vaak gebruiken; een
   throttle van bijvoorbeeld 1x per dag per lid zou dat afdekken.
-- **Strava-herindiening klaar op de cijfers na** (2026-09-23). De notitie in
+- ~~**Strava-herindiening klaar op de cijfers na**~~ — ingediend en afgewezen
+  (gemeld 2026-09-30), zie het punt over de cap hieronder. Oorspronkelijk
+  (2026-09-23): de notitie in
   `docs/strava-api-resubmission.md` is bijgewerkt naar de architectuur zoals die
   nu draait, en er staan twee SQL-queries in die alle meetbare getallen ophalen.
   Wat er nog in moet: client id en Strava's eigen atletentelling (van
@@ -8696,11 +8770,15 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   dagverbruik bij, en opgeruimde koppelingen worden verwijderd zodat het aantal
   vrijgemaakte slots niet achteraf te tellen is. Beide zijn de moeite van een
   herziening waard als de aanvraag opnieuw wordt afgewezen.
-- **Strava 1→100+ athleten cap** — **afgewezen** door Strava met twee eisen:
-  webhooks in plaats van polling, en actief beheer van stale/gedeauthoriseerde
-  atleten. Beide zijn gebouwd (2026-09-05). Herindienen kan pas ná deploy,
-  subscription aanmaken en een week meten; checklist en conceptnotitie staan in
-  `docs/strava-api-resubmission.md`.
+- **Strava 1→100+ athleten cap** — **twee keer afgewezen.** De eerste keer met
+  twee eisen: webhooks in plaats van polling, en actief beheer van
+  stale/gedeauthoriseerde atleten. Beide zijn gebouwd (2026-09-05) en de
+  herindiening ging de deur uit (`docs/strava-api-resubmission.md`). Die is
+  met dezelfde reactie afgewezen (gemeld 2026-09-30); de eigenaar vraagt om
+  uitleg. Het Strava-beleid van 2026 (7 dagen bewaren, alleen aan het lid zelf
+  tonen, geen AI) botst met de kern van de app. Vervolg:
+  `docs/zonder-strava-onderzoek.md`, met een open besluit over de huidige 10
+  koppelingen.
 - **intervals.icu OAuth app-registratie** — ingediend, wachten op approval (extern).
 - **iOS PWA** is in de praktijk getest op iPhone 16 Pro met iOS 26.5; nog één
   regressiecheck na deploy van de mobiele terugknop.

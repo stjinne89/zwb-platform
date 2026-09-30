@@ -1,5 +1,13 @@
 # Strava — herindiening capaciteitsverhoging
 
+> **Opnieuw afgewezen (gemeld 2026-09-30),** met dezelfde reactie als de eerste
+> keer. De eigenaar heeft om uitleg gevraagd. Een derde indiening wordt
+> afgeraden: volgens het Strava-beleid van 2026 zijn bewaren langer dan 7
+> dagen, tonen aan andere leden en Strava-data in AI-prompts niet toegestaan. Dat
+> is precies wat deze notitie beschrijft. Zie
+> [verder zonder Strava](zonder-strava-onderzoek.md), sectie 2. Dit document
+> blijft staan als verslag.
+
 Dit document heeft twee delen: de **checklist** (wat er af moet vóór we opnieuw
 indienen, in het Nederlands) en de **notitie** die letterlijk naar Strava gaat, in
 het Engels.
