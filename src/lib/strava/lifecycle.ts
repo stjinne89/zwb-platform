@@ -27,6 +27,8 @@ export const REVOKED_REASONS = [
   "inactive",
   /** Beheerder ruimde de koppeling namens het lid op. */
   "admin",
+  /** Lid stapte over naar ritten via intervals.icu (lib/intervals/ride-sync.ts). */
+  "switched_to_intervals",
 ] as const;
 
 export type RevokedReason = (typeof REVOKED_REASONS)[number];

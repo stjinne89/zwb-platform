@@ -23,6 +23,7 @@ type Props = {
     on_maintenance_due: boolean;
     on_member_pending: boolean;
     on_strava_link_expiring: boolean;
+    on_intervals_visit_reminder: boolean;
     on_segment_kom: boolean;
   };
   hasSubscriptionInDb: boolean;
@@ -293,6 +294,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_strava_link_expiring}
           />
           Mijn Strava-koppeling vervalt binnenkort
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_intervals_visit_reminder"
+            defaultChecked={initialPreferences.on_intervals_visit_reminder}
+          />
+          intervals.icu even openen, zodat mijn ritten blijven komen
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

@@ -19,11 +19,17 @@ gaat stabiliteit voor nieuwe features.
    Niet een derde keer indienen. Volgende stap is de spike zonder code uit
    [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
    besluit over de huidige Strava-koppeling (zie de ronde hieronder).
-   **Ritten via intervals.icu** (rondes hieronder, deel A en B gebouwd): eerst
-   `node scripts/intervals-probe.mjs --fixture` met de eigen sleutel en de
-   fixture vervangen, dan `0198_intervals_ride_source.sql` toepassen **vóór** de
-   deploy, `INTERVALS_RIDES_SYNC_SECRET` in Netlify, en een job elk uur op
-   cron-job.org (runbook sectie 2). De
+   **Ritten via intervals.icu** (rondes hieronder, deel A t/m C gebouwd):
+   1. `INTERVALS_API_KEY=… node scripts/intervals-probe.mjs --fixture` met de
+      eigen sleutel, en de fixture nakijken en vervangen;
+   2. `0198_intervals_ride_source.sql` toepassen **vóór** de deploy;
+   3. `INTERVALS_RIDES_SYNC_SECRET` in Netlify;
+   4. deployen. Elk lid tekent opnieuw voor privacyversie `2026-09-30`;
+   5. een job elk uur op cron-job.org (runbook sectie 2);
+   6. zelf testen met Wahoo en Zwift rechtstreeks in intervals.icu, daarna één
+      vrijwillige overstapper.
+
+   De
    Zwift-routebibliotheek één keer volledig opnieuw
    ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
    Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
@@ -101,6 +107,71 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`.
+
+---
+
+> **Ritten via intervals.icu voor leden zonder Strava, 2026-09-30 — deel C: leden-UI, overstappen, herinnering en teksten, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen nieuwe migratie (gebruikt `0198`).
+> Privacyversie `2026-09-30`.
+>
+> **Gebouwd.**
+> - **Dashboard, blok `#strava-sync`:**
+>   - leden met intervals als bron zien "Ritten via intervals.icu" en de knop
+>     "Ritten ophalen" (6 keer per uur);
+>   - leden zonder bron zien "Koppel intervals.icu" en een hulplink.
+>     `ConnectWithStrava` staat er alleen nog als de cap niet vol is; voorheen
+>     klikte een lid door naar een Strava-fout;
+>   - een ingetrokken Strava-koppeling telt niet meer als "kan syncen", en
+>     krijgt ook niet meer de melding "activiteitenrecht ontbreekt".
+> - **Herinnering elke 60 dagen** (`lib/intervals/visit-reminder.ts`):
+>   - een amberkleurige balk op het dashboard met "Gedaan";
+>   - plus één push per ronde vanuit de cron (voorkeur
+>     `on_intervals_visit_reminder`, standaard aan).
+> - **Overstappen:** een knop op het profiel, alleen met een intervals-koppeling.
+>   Die trekt Strava in en ruimt meteen op (`revokeAndCleanupStravaConnection`,
+>   reden `switched_to_intervals`), en haalt dan een jaar op bij intervals.icu.
+>   Lukt het intrekken niet, dan wacht de intervals-sync tot de sweeper de rij
+>   heeft opgeruimd.
+> - **Bronregel aangescherpt:** ook een ingetrokken Strava-rij die nog op
+>   opruiming wacht, houdt intervals tegen. Anders ziet de intervals-sync de
+>   nog niet gewiste Strava-ritten als dubbel, slaat hij zijn eigen versie
+>   over, en ontbreken die ritten na de opruiming.
+> - **Garmin-naamsvermelding:** het toestel staat bij losse ritten op het
+>   dashboard en in de records op `/leden/[id]`. Dat eisen de API-voorwaarden
+>   van intervals.icu.
+> - **Teksten:**
+>   - `/hulp#ritten-via-intervals` met stappen en notities;
+>   - verwijzingen vanuit Badges en de CSV-import;
+>   - een zoekterm;
+>   - de staptekst op `/welkom`.
+> - **`/beheer/strava`:** "Gekoppeld x / 10" en "Via intervals.icu", plus een
+>   lijst met laatste rit, laatste sync en fout per lid.
+> - **Privacy:**
+>   - een nieuwe alinea "Ritten via intervals.icu" (welke velden, zichtbaar voor
+>     de club, Garmin-vermelding, herinnering);
+>   - de regel over overstappen;
+>   - versie `2026-09-30`. Elk lid tekent daardoor opnieuw.
+> - **intervals.icu ontkoppelen** wist nu de ritten die via intervals.icu
+>   binnenkwamen, zoals `/privacy` belooft.
+>
+> **Gevonden, niet opgelost.** `/privacy` belooft al langer dat ontkoppelen van
+> intervals.icu "de bijbehorende gesynchroniseerde data" opruimt, maar
+> `disconnectIntervals` liet en laat `intervals_activities`, `profile_wellness`
+> en de zonetijden staan. Die data voedt trainingshistorie en de trainer. Of dat
+> weg moet, of de tekst moet worden aangepast, is een keuze van de eigenaar.
+>
+> **Verificatie.**
+> - Tests: herinnering (vervaldatum, één push per ronde, versturen) en
+>   `garminAttribution`. Volledige suite 1.826 geslaagd, behalve
+>   `omnium-live.test.ts` (geen `.env.local`).
+> - ESLint 0 fouten, alleen de 7 bestaande waarschuwingen; `tsc` schoon.
+> - `next build` geslaagd, met placeholder-Supabase-variabelen, want `/omnium`
+>   prerendert tegen de database.
+> - Smoke-test tegen `next start`: de cron-route komt door de middleware, geeft
+>   403 zonder of met een fout secret, en gaat met het goede secret door tot de
+>   database.
+> - **Niet lokaal te verifiëren:** de dashboard- en profielstaten met een echt
+>   account (geen Supabase hier), echte ritten, de push en de Garmin-weg.
 
 ---
 

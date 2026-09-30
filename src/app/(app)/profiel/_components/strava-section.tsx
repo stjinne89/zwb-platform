@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { disconnectStrava } from "../../achievements/_actions";
+import { switchStravaToIntervals } from "../../_actions/intervals-rides";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { HelpLink } from "@/components/app-ui";
@@ -13,6 +14,7 @@ import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 
 export function StravaSection({
   connection,
+  rides,
 }: {
   connection: {
     athlete_name: string | null;
@@ -21,6 +23,12 @@ export function StravaSection({
     revoked_at?: string | null;
     revoked_reason?: string | null;
     inactivity_warned_at?: string | null;
+  } | null;
+  /** Uit loadRideSourceStatus; null als die niet te laden was. */
+  rides?: {
+    viaIntervals: boolean;
+    intervalsConnected: boolean;
+    stravaCapFull: boolean;
   } | null;
 }) {
   const [pending, startTransition] = useTransition();
@@ -152,6 +160,32 @@ export function StravaSection({
             >
               {pending ? "Ontkoppelen…" : "Ontkoppel Strava"}
             </Button>
+            {rides?.intervalsConnected ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  if (
+                    !confirm(
+                      "Overstappen naar intervals.icu? Je Strava-koppeling en je Strava-ritten verdwijnen; je ritten komen voortaan via intervals.icu, tot een jaar terug. Je badges en ZWBlokken blijven.",
+                    )
+                  )
+                    return;
+                  setError(null);
+                  setMessage(null);
+                  startTransition(async () => {
+                    const res = await switchStravaToIntervals();
+                    if (!res.ok) setError(res.error);
+                    else if (res.error) setError(res.error);
+                    else setMessage(`Overgestapt. ${res.stored} ritten opgehaald uit intervals.icu.`);
+                  });
+                }}
+              >
+                Overstappen naar intervals.icu
+              </Button>
+            ) : null}
           </div>
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -159,7 +193,20 @@ export function StravaSection({
         </div>
       ) : (
         <div className="mt-3 space-y-3">
-          <ConnectWithStrava />
+          {rides?.viaIntervals ? (
+            <p className="text-sm text-muted-foreground">Je ritten komen via intervals.icu.</p>
+          ) : null}
+          {rides?.stravaCapFull ? null : <ConnectWithStrava />}
+          {!rides?.viaIntervals && rides?.stravaCapFull ? (
+            <Link
+              href="/zwbeter-worden/doelen"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Koppel intervals.icu
+            </Link>
+          ) : null}
+          {message && <p className="text-sm text-muted-foreground">{message}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       )}
     </section>

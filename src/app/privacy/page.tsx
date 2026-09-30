@@ -170,6 +170,17 @@ export default function PrivacyPage() {
             trainingspagina.
           </li>
           <li>
+            <strong>Ritten via intervals.icu:</strong> heb je geen Strava-koppeling
+            maar wel intervals.icu, dan halen we elk uur je fietsritten daar op:
+            naam, tijd, afstand, hoogtemeters, vermogen, hartslag, cadans, het
+            toestel en een vereenvoudigd GPS-spoor. Net als Strava-ritten tellen
+            ze mee voor badges, weekstanden, clubstatistieken, cols, ZWBlokken en
+            je trainingsschema, en zien clubleden ze bij de recente ritten en op
+            je profiel. Bij een rit van een Garmin noemen we het toestel, omdat
+            intervals.icu dat van ons vraagt. Elke 60 dagen herinneren we je eraan
+            intervals.icu even te openen; we bewaren wanneer je dat afvinkt.
+          </li>
+          <li>
             <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
             over je schema en over je trainingsdata. Je vraag, het antwoord van de
             AI-coach en de reacties van je trainer worden bewaard als één doorlopend
@@ -256,7 +267,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             Je kunt je intervals.icu- of Strava-koppeling op elk moment verbreken;
-            de bijbehorende gesynchroniseerde data wordt dan opgeruimd.
+            de bijbehorende gesynchroniseerde data wordt dan opgeruimd. Stap je
+            van Strava over naar intervals.icu, dan verdwijnen je Strava-ritten
+            en komen je ritten voortaan via intervals.icu.
           </li>
           <li>
             Het aantal Strava-koppelingen is beperkt. Daarom houden we bij wanneer

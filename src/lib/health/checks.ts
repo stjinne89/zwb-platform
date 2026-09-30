@@ -258,7 +258,7 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
         admin
           .from("intervals_connections")
           .select("profile_id, last_synced_at, last_ride_sync_error"),
-        admin.from("strava_connections").select("profile_id").is("revoked_at", null),
+        admin.from("strava_connections").select("profile_id"),
       ]);
       if (connections.error) {
         return { source: "intervals_rides", ok: false, detail: connections.error.message };

@@ -149,7 +149,7 @@ const GUIDES = [
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
-      "Zonder Strava-koppeling importeer je op Achievements je hele historie (activities.csv) of één rit (GPX).",
+      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op Achievements je historie (activities.csv) of één rit (GPX).",
       "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
@@ -392,6 +392,33 @@ const INTERVALS_CONNECT_STEPS = [
   "Open in intervals.icu Settings en daarna Developer Settings.",
   "Kopieer je persoonlijke API-key.",
   "Plak de sleutel in ZWB bij Training en kies Koppelen.",
+];
+
+const INTERVALS_RIDE_STEPS = [
+  {
+    title: "Maak een gratis account op intervals.icu",
+    text: "Een gratis account is genoeg; supporter worden hoeft niet.",
+  },
+  {
+    title: "Koppel je toestel rechtstreeks",
+    text: "In intervals.icu bij Settings → Connections: Garmin, Wahoo, Zwift, MyWhoosh, Rouvy, Hammerhead, Polar, Suunto of Coros. Niet via Strava: ritten die via Strava binnenkomen, geeft intervals.icu niet aan ons door.",
+  },
+  {
+    title: "Koppel intervals.icu in ZWB",
+    text: "Open in intervals.icu Settings → Developer Settings, kopieer je API-key en plak die in ZWB bij Training → Doelen.",
+  },
+  {
+    title: "Open intervals.icu af en toe",
+    text: "Een gratis account slaapt in als je 90 dagen niet op intervals.icu bent geweest, en dan komen er geen ritten meer binnen. ZWB herinnert je elke 60 dagen.",
+  },
+];
+
+const INTERVALS_RIDE_NOTES = [
+  "Je ritten komen elk uur binnen, of meteen met Ritten ophalen op het dashboard. De eerste keer halen we een jaar op.",
+  "Zwift apart koppelen in intervals.icu: Garmin stuurt Zwift-ritten niet door.",
+  "Oudere ritten: importeer het archief dat Strava je mailt (Settings → Download or delete your account) in intervals.icu, of upload activities.csv hieronder.",
+  "Wat via intervals.icu niet kan: coltijden, segmenttijden, KOM's, kudos en de kilometers per fiets in Mijn garage. Badges, weekstanden, ZWBlokken, cols en je trainingsschema werken wel.",
+  "Heb je nu Strava gekoppeld? Op je profiel kun je overstappen. Je Strava-ritten verdwijnen dan en komen terug via intervals.icu, voor zover ze daar staan. Zo komt er een Strava-plek vrij voor een ander lid.",
 ];
 
 const ADMIN_GUIDES = [
@@ -715,6 +742,56 @@ export default function HelpPage() {
       </section>
 
       <section
+        id="ritten-via-intervals"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Bike className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Ritten via intervals.icu</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Het aantal Strava-koppelingen is beperkt. Zonder Strava komen je
+              ritten automatisch binnen via intervals.icu, gratis en voor bijna
+              elk merk fietscomputer of trainingsapp.
+            </p>
+          </div>
+        </header>
+
+        <ol className="mt-4 space-y-3">
+          {INTERVALS_RIDE_STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                {index + 1}
+              </span>
+              <div>
+                <p className="text-sm font-medium">{step.title}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{step.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {INTERVALS_RIDE_NOTES.map((note) => (
+            <li key={note} className="flex gap-2">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
+
+        <a
+          href="https://intervals.icu/settings"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          intervals.icu Settings
+          <ExternalLink className="size-3.5" />
+        </a>
+      </section>
+
+      <section
         id="strava-import"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
@@ -724,8 +801,9 @@ export default function HelpPage() {
             <h2 className="font-semibold">Strava-ritten importeren zonder koppeling</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Geen plek voor een Strava-koppeling of wil je die niet gebruiken?
-              Upload je ritten dan zelf op Achievements: je hele historie in
-              één keer via activities.csv, of losse ritten via GPX.
+              Laat je ritten dan binnenkomen via intervals.icu (hierboven), of
+              upload ze zelf op Achievements: je hele historie in één keer via
+              activities.csv, of losse ritten via GPX.
             </p>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               De koppeling haalt eerst de laatste vijf jaar op en daarna, beetje

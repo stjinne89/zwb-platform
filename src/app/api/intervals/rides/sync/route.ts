@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkCronSecret } from "@/lib/cron/auth";
 import {
   loadIntervalsRideConnections,
+  sendDueVisitReminders,
   syncIntervalsRidesForProfile,
   type RideSyncResult,
 } from "@/lib/intervals/ride-sync";
@@ -60,9 +61,12 @@ export async function POST(request: NextRequest) {
     results.push(await syncIntervalsRidesForProfile(admin, connection));
   }
 
+  const reminded = await sendDueVisitReminders(admin, connections).catch(() => 0);
+
   return NextResponse.json({
     ok: results.every((row) => !row.error),
     members: connections.length,
+    reminded,
     processed: results.length,
     stored: results.reduce((sum, row) => sum + row.stored, 0),
     removed: results.reduce((sum, row) => sum + row.removed, 0),

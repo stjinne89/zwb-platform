@@ -38,6 +38,7 @@ export type NotificationTrigger =
   | "on_maintenance_due"
   | "on_member_pending"
   | "on_strava_link_expiring"
+  | "on_intervals_visit_reminder"
   | "on_segment_kom";
 
 let vapidConfigured = false;

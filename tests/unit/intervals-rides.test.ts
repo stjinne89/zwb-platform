@@ -27,9 +27,9 @@ const now = new Date("2026-09-30T12:00:00Z");
 
 describe("rideSourceFor", () => {
   it("geeft Strava voorrang, en intervals alleen zonder Strava", () => {
-    expect(rideSourceFor({ hasActiveStrava: true, hasIntervals: true })).toBe("strava");
-    expect(rideSourceFor({ hasActiveStrava: false, hasIntervals: true })).toBe("intervals");
-    expect(rideSourceFor({ hasActiveStrava: false, hasIntervals: false })).toBe("none");
+    expect(rideSourceFor({ hasStravaConnection: true, hasIntervals: true })).toBe("strava");
+    expect(rideSourceFor({ hasStravaConnection: false, hasIntervals: true })).toBe("intervals");
+    expect(rideSourceFor({ hasStravaConnection: false, hasIntervals: false })).toBe("none");
   });
 });
 
@@ -238,5 +238,16 @@ describe("isStravaActivityId", () => {
     expect(isStravaActivityId(-123456)).toBe(false);
     expect(isStravaActivityId(intervalsRideId("i81234567"))).toBe(false);
     expect(isStravaActivityId(null)).toBe(false);
+  });
+});
+
+describe("garminAttribution", () => {
+  it("noemt het Garmin-toestel alleen bij ritten via intervals.icu", async () => {
+    const { garminAttribution } = await import("@/lib/intervals/rides");
+    expect(garminAttribution({ import_source: "intervals", device_name: "Garmin Edge 840" })).toBe(
+      "Garmin Edge 840",
+    );
+    expect(garminAttribution({ import_source: "intervals", device_name: "ELEMNT BOLT" })).toBeNull();
+    expect(garminAttribution({ import_source: null, device_name: "Garmin Edge 840" })).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
@@ -161,8 +162,17 @@ export async function disconnectIntervals() {
   const { error } = await supabase.from("intervals_connections").delete().eq("profile_id", user.id);
   if (error) return { ok: false as const, error: error.message };
 
+  // Ritten die via intervals.icu binnenkwamen (lib/intervals/ride-sync.ts) gaan
+  // mee, zoals /privacy belooft. Badges en ZWBlokken blijven staan.
+  await supabase
+    .from("strava_activities")
+    .delete()
+    .eq("profile_id", user.id)
+    .lte("id", INTERVALS_RIDE_ID_CEILING);
+
   revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/profiel");
+  revalidatePath("/dashboard");
   return { ok: true as const };
 }
 

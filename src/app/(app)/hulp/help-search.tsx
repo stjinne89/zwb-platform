@@ -40,6 +40,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "strava opnieuw koppelen activiteitenrecht activity read vinkje toestemming ritten badges stats",
   },
   {
+    title: "Ritten via intervals.icu",
+    text: "Zonder Strava: je Garmin, Wahoo of Zwift via intervals.icu koppelen.",
+    href: "/hulp#ritten-via-intervals",
+    terms:
+      "intervals intervals.icu zonder strava geen plek limiet garmin wahoo zwift mywhoosh rouvy hammerhead polar suunto coros ritten ophalen overstappen herinnering slapend account",
+  },
+  {
     title: "Strava-ritten importeren (CSV of GPX)",
     text: "Importeer je hele historie (activities.csv) of één rit (GPX) op Achievements.",
     href: "/hulp#strava-import",

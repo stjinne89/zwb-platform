@@ -14,6 +14,15 @@ beleidsteksten zelf. Wat over onze eigen code staat, is wél in de code
 nagekeken. Bij elk extern punt staat hoe zeker het is. De spike in sectie 8
 controleert de punten die de keuze bepalen.
 
+> **Vervolg (2026-09-30):** fase 1 en de handmatige upload bestaan; fase 2
+> gedeeltelijk. Leden **zonder** Strava-koppeling krijgen hun ritten via
+> intervals.icu, en een Strava-lid kan overstappen. Anders dan sectie 5
+> adviseert, landen die ritten in `strava_activities` (negatief id,
+> `raw.import_source = "intervals"`) en niet in een nieuwe tabel `rides`: per lid
+> mengen er geen twee API-bronnen. Details en reden: `PLAN.md`, rondes "Ritten
+> via intervals.icu" deel A t/m C. Het GPS-spoor voor cols en ZWBlokken zit erin
+> (fase 2); eigen segmentmatching (fase 3) niet.
+
 ## Antwoord in het kort
 
 1. **Ja, het kan, via intervals.icu als centraal punt.** Die koppeling

@@ -169,11 +169,12 @@ describe("syncIntervalsRidesForProfile", () => {
 });
 
 describe("loadIntervalsRideConnections", () => {
-  it("slaat leden met een actieve Strava-koppeling over, oudste eerst", async () => {
+  it("slaat leden met een Strava-koppeling over, ook een die op opruiming wacht", async () => {
     const db = fakeDb({
       intervals_connections: [
         connection({ profile_id: A, last_synced_at: "2026-09-30T10:00:00Z" }),
         connection({ profile_id: B, last_synced_at: null }),
+        connection({ profile_id: "e", last_synced_at: "2026-09-30T11:00:00Z" }),
         connection({ profile_id: "c", last_synced_at: "2026-09-30T09:00:00Z" }),
         connection({ profile_id: "d", athlete_id: null }),
       ],
@@ -183,7 +184,7 @@ describe("loadIntervalsRideConnections", () => {
       ],
     });
     const rows = await loadIntervalsRideConnections(db);
-    expect(rows.map((row) => row.profile_id)).toEqual([B, A]);
+    expect(rows.map((row) => row.profile_id)).toEqual([B, "e"]);
   });
 });
 

@@ -24,6 +24,8 @@ import {
   type IntervalsRideRow,
   type RideFingerprint,
 } from "@/lib/intervals/rides";
+import { visitPushDue } from "@/lib/intervals/visit-reminder";
+import { sendNotificationToMembers } from "@/lib/push/send";
 import { runPostSyncForProfile } from "@/lib/strava/post-sync";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +42,9 @@ export type IntervalsRideConnection = {
   athlete_id: string;
   api_key: string;
   rides_backfilled_at: string | null;
+  created_at?: string | null;
+  visit_confirmed_at?: string | null;
+  visit_reminded_at?: string | null;
 };
 
 export type RideSyncResult = {
@@ -77,7 +82,7 @@ function existingTrack(row: ExistingRow | undefined): {
 
 /**
  * Welke leden hun ritten via intervals.icu krijgen: een intervals-koppeling en
- * geen actieve Strava-koppeling. Gesorteerd op wie het langst niet aan de beurt
+ * geen Strava-koppeling (ook geen ingetrokken die nog op opruiming wacht). Gesorteerd op wie het langst niet aan de beurt
  * was.
  */
 export async function loadIntervalsRideConnections(
@@ -86,10 +91,12 @@ export async function loadIntervalsRideConnections(
   const [connections, strava] = await Promise.all([
     admin
       .from("intervals_connections")
-      .select("profile_id, athlete_id, api_key, rides_backfilled_at, last_synced_at")
+      .select(
+        "profile_id, athlete_id, api_key, rides_backfilled_at, last_synced_at, created_at, visit_confirmed_at, visit_reminded_at",
+      )
       .not("athlete_id", "is", null)
       .order("last_synced_at", { ascending: true, nullsFirst: true }),
-    admin.from("strava_connections").select("profile_id").is("revoked_at", null),
+    admin.from("strava_connections").select("profile_id"),
   ]);
   if (connections.error) throw new Error(connections.error.message);
   if (strava.error) throw new Error(strava.error.message);
@@ -99,7 +106,7 @@ export async function loadIntervalsRideConnections(
   return ((connections.data ?? []) as IntervalsRideConnection[]).filter(
     (row) =>
       rideSourceFor({
-        hasActiveStrava: withStrava.has(row.profile_id),
+        hasStravaConnection: withStrava.has(row.profile_id),
         hasIntervals: true,
       }) === "intervals",
   );
@@ -120,12 +127,11 @@ export async function intervalsRideSourceFor(
       .from("strava_connections")
       .select("profile_id")
       .eq("profile_id", profileId)
-      .is("revoked_at", null)
       .maybeSingle(),
   ]);
   const row = connection.data as IntervalsRideConnection | null;
   if (!row?.athlete_id) return null;
-  return rideSourceFor({ hasActiveStrava: Boolean(strava.data), hasIntervals: true }) ===
+  return rideSourceFor({ hasStravaConnection: Boolean(strava.data), hasIntervals: true }) ===
     "intervals"
     ? row
     : null;
@@ -277,4 +283,44 @@ export async function syncIntervalsRidesForProfile(
       );
     return result;
   }
+}
+
+/**
+ * Eén push "open intervals.icu even" per ronde van 60 dagen (visit-reminder.ts).
+ * De balk op het dashboard is de hoofdroute; push bereikt maar een paar leden.
+ * visit_reminded_at wordt ook gezet als het lid push uit heeft, zodat de cron
+ * niet elk uur opnieuw probeert.
+ */
+export async function sendDueVisitReminders(
+  admin: Admin,
+  connections: IntervalsRideConnection[],
+  now = new Date(),
+): Promise<number> {
+  const due = connections.filter((row) =>
+    visitPushDue(
+      {
+        created_at: row.created_at ?? null,
+        visit_confirmed_at: row.visit_confirmed_at ?? null,
+        visit_reminded_at: row.visit_reminded_at ?? null,
+      },
+      now,
+    ),
+  );
+  if (due.length === 0) return 0;
+  const profileIds = due.map((row) => row.profile_id);
+  await sendNotificationToMembers(
+    "on_intervals_visit_reminder",
+    {
+      title: "Open intervals.icu even",
+      body: "Dan blijven je ritten in ZWB binnenkomen.",
+      url: "/dashboard#strava-sync",
+      tag: "intervals-visit-reminder",
+    },
+    { profileIds },
+  ).catch(() => null);
+  await admin
+    .from("intervals_connections")
+    .update({ visit_reminded_at: now.toISOString() })
+    .in("profile_id", profileIds);
+  return due.length;
 }

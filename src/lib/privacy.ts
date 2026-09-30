@@ -26,6 +26,7 @@ export const PRIVACY_VERSIONS = [
   "2026-09-17", // coachchat: vrije tekst naar OpenAI, gesprek zichtbaar voor de trainer
   "2026-09-17-zwbgame", // tweede inhoudelijke wijziging vandaag: clubspel + sportdata-opt-in
   "2026-09-17-zwbgame-kracht", // ZWBgame leidt spelkwaliteiten af uit FTP, gewicht en Intervals-curve van alle leden
+  "2026-09-30", // ritten via intervals.icu (met GPS-spoor) tellen mee in badges, stats, cols en ZWBlokken, zichtbaar voor de club
 ] as const;
 
 export type PrivacyVersion = (typeof PRIVACY_VERSIONS)[number];

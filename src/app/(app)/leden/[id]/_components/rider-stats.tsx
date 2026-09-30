@@ -18,6 +18,7 @@ import {
   Sunrise,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { garminAttribution } from "@/lib/intervals/rides";
 import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 
@@ -31,6 +32,8 @@ type ActivityRow = {
   kudos_count: number | null;
   trainer: boolean | null;
   name: string | null;
+  import_source?: string | null;
+  device_name?: string | null;
 };
 
 const INDOOR_SPORTS = new Set(["VirtualRide"]);
@@ -146,7 +149,7 @@ export async function RiderStats({
   const { data: rows } = await supabase
     .from("strava_activities")
     .select(
-      "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name",
+      "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name, import_source:raw->>import_source, device_name:raw->>device_name",
     )
     .eq("profile_id", profileId)
     .in("sport_type", CYCLING_SPORTS)
@@ -559,6 +562,9 @@ function BestRow({
         {activity.name ? `${activity.name} · ` : ""}
         {date}
       </span>
+      {garminAttribution(activity) ? (
+        <span className="text-xs text-muted-foreground">{garminAttribution(activity)}</span>
+      ) : null}
       <ViewOnStrava activityId={activity.id} />
     </li>
   );

@@ -6,7 +6,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
-import { lastSeenByProfile } from "@/lib/strava/sweep";
+import { lastSeenByProfile, stravaAthleteCap } from "@/lib/strava/sweep";
 import { AdminStravaSync, type SyncMember } from "./_components/admin-strava-sync";
 import {
   StravaWebhookPanel,
@@ -76,6 +76,7 @@ export default async function BeheerStravaPage() {
     { count: pendingEvents },
     { data: subscriptionRow },
     lastSeen,
+    intervalsResult,
   ] = await Promise.all([
     admin
       .from("strava_connections")
@@ -103,6 +104,10 @@ export default async function BeheerStravaPage() {
       .limit(1)
       .maybeSingle(),
     lastSeenByProfile(admin),
+    // Kolommen uit migratie 0198; zonder die migratie blijft de sectie weg.
+    admin
+      .from("intervals_connections")
+      .select("profile_id, athlete_id, last_synced_at, last_ride_sync_error"),
   ]);
 
   const allConnections = (connections ?? []) as ConnectionRow[];
@@ -162,6 +167,44 @@ export default async function BeheerStravaPage() {
   const inStatsCount = members.filter((m) => m.activityCount > 0).length;
   const writeScopeIssueCount = members.filter((m) => m.missingWriteScope).length;
 
+  // Leden die hun ritten via intervals.icu krijgen: een intervals-koppeling en
+  // geen Strava-rij (lib/intervals/rides.ts, rideSourceFor).
+  const withStravaRow = new Set(allConnections.map((c) => c.profile_id));
+  const intervalsRows = intervalsResult.error
+    ? null
+    : (
+        (intervalsResult.data ?? []) as {
+          profile_id: string;
+          athlete_id: string | null;
+          last_synced_at: string | null;
+          last_ride_sync_error: string | null;
+        }[]
+      ).filter((row) => row.athlete_id && !withStravaRow.has(row.profile_id));
+  if (intervalsRows && intervalsRows.length > 0) {
+    const missing = intervalsRows
+      .map((row) => row.profile_id)
+      .filter((id) => !profilesById.has(id));
+    if (missing.length > 0) {
+      const { data: more } = await admin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", missing);
+      for (const p of (more ?? []) as { id: string; display_name: string | null }[]) {
+        profilesById.set(p.id, p.display_name ?? "");
+      }
+    }
+  }
+  const intervalsMembers = (intervalsRows ?? [])
+    .map((row) => ({
+      profileId: row.profile_id,
+      name: profilesById.get(row.profile_id) || "Onbekend lid",
+      lastActivity: windowCounts.get(row.profile_id)?.last ?? null,
+      lastSynced: row.last_synced_at,
+      error: row.last_ride_sync_error,
+    }))
+    .sort((a, b) => Number(Boolean(b.error)) - Number(Boolean(a.error)) || a.name.localeCompare(b.name, "nl"));
+  const intervalsErrorCount = intervalsMembers.filter((m) => m.error).length;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -172,7 +215,10 @@ export default async function BeheerStravaPage() {
       />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Metric label="Gekoppeld" value={members.length} />
+        <Metric label="Gekoppeld" value={`${members.length} / ${stravaAthleteCap()}`} />
+        {intervalsRows ? (
+          <Metric label="Via intervals.icu" value={intervalsMembers.length} />
+        ) : null}
         <Metric
           label="Wacht op opruiming"
           value={revokedCount}
@@ -221,8 +267,49 @@ export default async function BeheerStravaPage() {
       />
 
       <AdminStravaSync members={members} />
+
+      {intervalsMembers.length > 0 ? (
+        <section className="rounded-lg border bg-card">
+          <h2 className="border-b px-4 py-3 text-sm font-semibold">
+            Ritten via intervals.icu
+            {intervalsErrorCount > 0 ? (
+              <span className="ml-2 text-destructive">{intervalsErrorCount} met fout</span>
+            ) : null}
+          </h2>
+          <ul className="divide-y text-sm">
+            {intervalsMembers.map((member) => (
+              <li
+                key={member.profileId}
+                className="grid gap-1 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4"
+              >
+                <span className="font-medium">{member.name}</span>
+                <span className="text-muted-foreground">
+                  Laatste rit {formatDay(member.lastActivity)}
+                </span>
+                <span className="text-muted-foreground">
+                  Sync {formatDay(member.lastSynced)}
+                </span>
+                {member.error ? (
+                  <span className="text-xs text-destructive sm:col-span-3">{member.error}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
+}
+
+function formatDay(value: string | null) {
+  if (!value) return "nog nooit";
+  return new Date(value).toLocaleString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Amsterdam",
+  });
 }
 
 function Metric({
@@ -231,7 +318,7 @@ function Metric({
   highlight,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   highlight?: boolean;
 }) {
   return (

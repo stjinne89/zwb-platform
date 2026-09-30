@@ -50,12 +50,17 @@ export type IntervalsRideInput = IntervalsActivity & {
 
 export type RideSource = "strava" | "intervals" | "none";
 
-/** Een lid met een actieve Strava-koppeling krijgt nooit intervals-ritten. */
+/**
+ * Een lid met een Strava-koppeling krijgt nooit intervals-ritten. Ook een
+ * ingetrokken koppeling telt, zolang de rij er nog staat: dan zijn de
+ * Strava-ritten nog niet opgeruimd, en zou de intervals-sync ze als dubbel zien
+ * en zijn eigen versie overslaan. De sweeper wist rij en ritten samen.
+ */
 export function rideSourceFor(opts: {
-  hasActiveStrava: boolean;
+  hasStravaConnection: boolean;
   hasIntervals: boolean;
 }): RideSource {
-  if (opts.hasActiveStrava) return "strava";
+  if (opts.hasStravaConnection) return "strava";
   return opts.hasIntervals ? "intervals" : "none";
 }
 
@@ -435,4 +440,19 @@ export function dedupeRides<T extends RideFingerprint>(
     else keep.push(ride);
   }
   return { keep, skipped };
+}
+
+/**
+ * Naamsvermelding die de API-voorwaarden van intervals.icu eisen bij data van
+ * een Garmin-toestel: het toestel, zoals intervals.icu het noemt. Null voor
+ * alles wat niet via intervals.icu van een Garmin kwam.
+ */
+export function garminAttribution(ride: {
+  import_source?: string | null;
+  device_name?: string | null;
+}): string | null {
+  if (ride.import_source !== INTERVALS_IMPORT_SOURCE) return null;
+  const device = ride.device_name?.trim() ?? "";
+  if (!/garmin/i.test(device)) return null;
+  return device;
 }

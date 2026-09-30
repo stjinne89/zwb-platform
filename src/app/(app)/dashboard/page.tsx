@@ -21,7 +21,20 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritverslag-button";
-import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
+import {
+  EmptyState,
+  HelpLink,
+  InlineMoreLink,
+  PageHeader,
+  SectionHeader,
+} from "@/components/app-ui";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  IntervalsRideSyncButton,
+  IntervalsVisitReminder,
+} from "@/components/intervals-rides";
+import { loadRideSourceStatus } from "@/lib/intervals/ride-source-status";
+import { garminAttribution } from "@/lib/intervals/rides";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
@@ -69,6 +82,8 @@ type ClubActivityRow = {
   kudos_count: number;
   moving_time_seconds: number;
   trainer: boolean;
+  import_source: string | null;
+  device_name: string | null;
   profiles: ProfileRef | ProfileRef[] | null;
 };
 
@@ -406,7 +421,7 @@ export default async function DashboardPage({
     supabase
       .from("strava_activities")
       .select(
-        "id, profile_id, name, sport_type, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds, trainer, profiles(display_name)",
+        "id, profile_id, name, sport_type, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds, trainer, import_source:raw->>import_source, device_name:raw->>device_name, profiles(display_name)",
       )
       .gte("start_date", since7.toISOString())
       .in("sport_type", CYCLING_SPORTS)
@@ -652,7 +667,14 @@ export default async function DashboardPage({
   // koppelen niet — de Strava-atletenlimiet raakt niet elk lid — dan blijft de
   // CSV/GPX-import de volwaardige route, dus die staat er altijd.
   const strava = (stravaConn ?? null) as { scope?: string | null } | null;
-  const canSyncStrava = hasActivityScope(strava?.scope ?? null);
+  // Waar de ritten vandaan komen: Strava, intervals.icu (leden zonder
+  // Strava-koppeling) of nog nergens. Faalt het ophalen, dan valt het blok terug
+  // op het oude gedrag.
+  const rideStatus = user
+    ? await loadRideSourceStatus(user.id).catch(() => null)
+    : null;
+  const canSyncStrava =
+    hasActivityScope(strava?.scope ?? null) && (rideStatus?.stravaActive ?? true);
 
   function eventList(events: UpcomingEvent[]) {
     return (
@@ -1037,7 +1059,9 @@ export default async function DashboardPage({
             {stravaError}
           </p>
         ) : null}
-        {strava && !canSyncStrava ? (
+        {strava &&
+        (rideStatus?.stravaActive ?? true) &&
+        !hasActivityScope(strava.scope ?? null) ? (
           <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <p>
@@ -1047,6 +1071,7 @@ export default async function DashboardPage({
             </p>
           </div>
         ) : null}
+        {rideStatus?.visitReminderDue ? <IntervalsVisitReminder /> : null}
         {user && (
           // Op een telefoon passen de twee groepen niet naast elkaar. Ze
           // wrapten dan wel, maar hielden hun uitlijning: syncknoppen links,
@@ -1058,8 +1083,23 @@ export default async function DashboardPage({
           >
             {canSyncStrava ? (
               <StravaSyncButton variant="sync" />
+            ) : rideStatus?.source === "intervals" ? (
+              <IntervalsRideSyncButton />
             ) : (
-              <ConnectWithStrava reconnect={Boolean(strava)} />
+              <div className="flex flex-wrap items-center gap-3">
+                {rideStatus?.stravaCapFull ? null : (
+                  <ConnectWithStrava reconnect={Boolean(strava)} />
+                )}
+                {rideStatus?.intervalsConnected ? null : (
+                  <Link
+                    href="/zwbeter-worden/doelen"
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Koppel intervals.icu
+                  </Link>
+                )}
+                <HelpLink href="/hulp#ritten-via-intervals" />
+              </div>
             )}
             <StravaImportForm />
           </div>
@@ -1108,6 +1148,9 @@ export default async function DashboardPage({
                         {activity.kudos_count}
                       </span>
                     )}
+                    {garminAttribution(activity) ? (
+                      <span className="text-xs">{garminAttribution(activity)}</span>
+                    ) : null}
                     {isStravaActivityId(activity.id) ? <ViewOnStravaLabel /> : null}
                   </div>
                 </ActivityRow>
