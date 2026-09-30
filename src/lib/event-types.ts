@@ -10,6 +10,7 @@ export const EVENT_TYPES = [
   { value: "training", label: "Training" },
   { value: "zwift", label: "Zwift" },
   { value: "mywhoosh", label: "MyWhoosh" },
+  { value: "src", label: "Sunday Race Club" },
   { value: "omnium", label: "ZWB Omnium" },
   { value: "overig", label: "Overig" },
 ] as const;
@@ -24,4 +25,4 @@ export const EVENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
  * Clubraces: competities waar ZWB als club of in teams aan meedoet. Het
  * dashboard zet ze boven de overige events.
  */
-export const CLUB_RACE_TYPES: string[] = ["zrl", "ladder", "flamme_rouge", "omnium"];
+export const CLUB_RACE_TYPES: string[] = ["zrl", "ladder", "flamme_rouge", "omnium", "src"];

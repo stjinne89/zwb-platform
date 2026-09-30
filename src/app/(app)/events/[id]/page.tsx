@@ -31,6 +31,7 @@ import {
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
+import { SrcPanel } from "./_components/src-panel";
 import { subEventLabel } from "@/lib/events/sub-events";
 import { loadZrlTeamResults, type ZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { isPoiType, type EventPoi } from "./_components/poi";
@@ -261,6 +262,8 @@ export default async function EventDetailPage({
       : { data: null };
   const frrTourId = (frrLink?.frr_tour_id as string | null | undefined) ?? null;
   const isFrr = Boolean(frrTourId);
+  // Sunday Race Club (migr. 0200): een zondag met de heren- en damesrace eronder.
+  const isSrc = event.type === "src";
   const frrLevel: "tour" | "stage" | "slot" | null = !frrTourId
     ? null
     : event.zwift_event_id
@@ -283,14 +286,14 @@ export default async function EventDetailPage({
       return {
         id: row.id,
         startAt: row.start_at,
-        name: isFrr ? subEventLabel(row.title, event.title) : team?.name ?? row.title,
+        name: isFrr || isSrc ? subEventLabel(row.title, event.title) : team?.name ?? row.title,
         teamId: row.team_id,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
         hasRoute: hasOwnRoute(row),
         zwiftLinks: derivedZwiftLinks(row.zwift_event_id),
       };
     })
-    .sort((a, b) => (isFrr ? 0 : Number(b.isMine) - Number(a.isMine)));
+    .sort((a, b) => (isFrr || isSrc ? 0 : Number(b.isMine) - Number(a.isMine)));
   const isParentEvent = subEvents.length > 0;
 
   // De etappes met hun tijdsloten: op de tour alle etappes, op een etappe of
@@ -1106,6 +1109,10 @@ export default async function EventDetailPage({
         links={raceLinks}
       />
 
+      {isSrc && !isParentEvent && (
+        <SrcPanel supabase={supabase} eventId={event.id} signupUrl={event.external_url} />
+      )}
+
       <WhatsAppGroupBlock
         scope="event"
         groups={waGroups ?? []}
@@ -1264,7 +1271,7 @@ export default async function EventDetailPage({
       {isParentEvent && !isFrr && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Teams
+            {isSrc ? "Races" : "Teams"}
           </h2>
           <ul className="divide-y overflow-hidden rounded-lg border bg-card">
             {subEvents.map((sub) => {

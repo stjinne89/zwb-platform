@@ -59,6 +59,7 @@ const EVENT_DEFAULTS: Record<string, { minutes: number; intensity: WorkoutIntens
   zrl: { minutes: 50, intensity: "race" },
   ladder: { minutes: 60, intensity: "race" },
   flamme_rouge: { minutes: 60, intensity: "race" },
+  src: { minutes: 85, intensity: "race" },
   zwift: { minutes: 60, intensity: "race" },
   gran_fondo: { minutes: 300, intensity: "endurance" },
   outdoor: { minutes: 120, intensity: "endurance" },
@@ -138,7 +139,10 @@ const ZWIFT_RACE_IF = { base: 1.05, perMinute: 0.0019, min: 0.8, max: 1 };
 /** Halve breedte van het vermogensdoel rond die IF, in %FTP. */
 const ZWIFT_RACE_TARGET_SPREAD = 5;
 
-const ZWIFT_RACE_TYPES = new Set(["zrl", "ladder", "flamme_rouge"]);
+// De Sunday Race Club rijdt op MyWhoosh, maar het tempo is dat van een
+// Zwift-race: op de acht SRC-races van september 2026 zat dit model 2 tot 5%
+// van de mediane finishtijd bij de heren, en 8 tot 10% te kort bij de dames.
+const ZWIFT_RACE_TYPES = new Set(["zrl", "ladder", "flamme_rouge", "src"]);
 const ZWIFT_RACE_EVENT_TYPES = new Set(["RACE", "TIME_TRIAL", "TEAM_TIME_TRIAL"]);
 
 export type ZwiftRaceKind = "race" | "ttt";

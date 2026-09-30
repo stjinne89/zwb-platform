@@ -158,6 +158,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
   },
   {
     type: "link",
+    href: "/beheer/src",
+    label: "SRC-kalender",
+    permission: "events.manage_all",
+  },
+  {
+    type: "link",
     href: "/beheer/wtrl-teams",
     label: "WTRL-teams",
     permission: "teams.manage_roster",

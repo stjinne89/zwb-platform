@@ -38,6 +38,7 @@ const PUBLIC_PATHS = [
   "/api/zwift/events/sync",
   "/api/zrl/freeze",
   "/api/frr/sync",
+  "/api/src/sync",
   "/api/intervals/rides/sync",
 ];
 

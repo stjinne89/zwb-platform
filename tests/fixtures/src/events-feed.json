@@ -1,0 +1,202 @@
+{
+  "status": true,
+  "data": [
+    {
+      "id": "6ab4c03d2e47ad55a40d71d8",
+      "name": "Apex Racing",
+      "gender": 2,
+      "date": "Wednesday, 30th Sep 2026",
+      "time": "08:00 PM",
+      "closing_date": "2026-09-30",
+      "closing_time": "11:00",
+      "categories": [],
+      "team": false,
+      "teamCalculationSize": 3,
+      "pre_weight": false,
+      "category_pre_weight": [],
+      "pre_weight_start_datetime_epoc": null,
+      "pre_weight_closing_datetime_epoc": null,
+      "course_details": "https://mywhooshinfo.com/routes/custom-route/50238052",
+      "distance": "55.6 km",
+      "elevation": "194 m",
+      "participants": {
+        "capacity": 600,
+        "booked": 102
+      }
+    },
+    {
+      "id": "6ab8ce51d2aced3baa0c9979",
+      "name": "Sunday Race Club - Women Qualifier Race 1",
+      "gender": 1,
+      "date": "Sunday, 04th Oct 2026",
+      "time": "11:25 AM",
+      "closing_date": "2026-10-01",
+      "closing_time": "07:00",
+      "categories": {
+        "Category 1": [
+          {
+            "laps": 0,
+            "name": "Category 1",
+            "id": 1,
+            "elevation": 488,
+            "distance": 44.7,
+            "time": "11:37:30 AM"
+          }
+        ],
+        "Category 2": [
+          {
+            "laps": 0,
+            "name": "Category 2",
+            "id": 2,
+            "elevation": 488,
+            "distance": 44.7,
+            "time": "11:35:00 AM"
+          }
+        ],
+        "Category 3": [
+          {
+            "laps": 0,
+            "name": "Category 3",
+            "id": 3,
+            "elevation": 488,
+            "distance": 44.7,
+            "time": "11:32:30 AM"
+          }
+        ],
+        "Category 4": [
+          {
+            "laps": 0,
+            "name": "Category 4",
+            "id": 4,
+            "elevation": 488,
+            "distance": 44.7,
+            "time": "11:30:00 AM"
+          }
+        ],
+        "Category 5": [
+          {
+            "laps": 0,
+            "name": "Category 5",
+            "id": 5,
+            "elevation": 488,
+            "distance": 44.7,
+            "time": "11:27:30 AM"
+          }
+        ],
+        "Category 6": [
+          {
+            "laps": 0,
+            "name": "Category 6",
+            "id": 6,
+            "elevation": 488,
+            "distance": 44.7,
+            "time": "11:25:00 AM"
+          }
+        ]
+      },
+      "team": true,
+      "teamCalculationSize": 3,
+      "pre_weight": true,
+      "category_pre_weight": [
+        "Category 1",
+        "Category 2"
+      ],
+      "pre_weight_start_datetime_epoc": 1791096000,
+      "pre_weight_closing_datetime_epoc": 1791097920,
+      "course_details": "https://mywhooshinfo.com/routes/custom-route/96901055",
+      "distance": "44.7 km",
+      "elevation": "488 m",
+      "participants": {
+        "capacity": 600,
+        "booked": 203
+      }
+    },
+    {
+      "id": "6ab8fdcbd2aced3baa0c9982",
+      "name": "Sunday Race Club - Men Qualifier Race 1",
+      "gender": 0,
+      "date": "Sunday, 04th Oct 2026",
+      "time": "01:45 PM",
+      "closing_date": "2026-10-01",
+      "closing_time": "07:00",
+      "categories": {
+        "Category 1": [
+          {
+            "laps": 0,
+            "name": "Category 1",
+            "id": 1,
+            "elevation": 506,
+            "distance": 52.3,
+            "time": "01:57:30 PM"
+          }
+        ],
+        "Category 2": [
+          {
+            "laps": 0,
+            "name": "Category 2",
+            "id": 2,
+            "elevation": 506,
+            "distance": 52.3,
+            "time": "01:55:00 PM"
+          }
+        ],
+        "Category 3": [
+          {
+            "laps": 0,
+            "name": "Category 3",
+            "id": 3,
+            "elevation": 506,
+            "distance": 52.3,
+            "time": "01:52:30 PM"
+          }
+        ],
+        "Category 4": [
+          {
+            "laps": 0,
+            "name": "Category 4",
+            "id": 4,
+            "elevation": 506,
+            "distance": 52.3,
+            "time": "01:50:00 PM"
+          }
+        ],
+        "Category 5": [
+          {
+            "laps": 0,
+            "name": "Category 5",
+            "id": 5,
+            "elevation": 506,
+            "distance": 52.3,
+            "time": "01:47:30 PM"
+          }
+        ],
+        "Category 6": [
+          {
+            "laps": 0,
+            "name": "Category 6",
+            "id": 6,
+            "elevation": 506,
+            "distance": 52.3,
+            "time": "01:45:00 PM"
+          }
+        ]
+      },
+      "team": true,
+      "teamCalculationSize": 3,
+      "pre_weight": true,
+      "category_pre_weight": [
+        "Category 1",
+        "Category 2"
+      ],
+      "pre_weight_start_datetime_epoc": 1791104400,
+      "pre_weight_closing_datetime_epoc": 1791106320,
+      "course_details": "https://mywhooshinfo.com/routes/custom-route/57574449",
+      "distance": "52.3 km",
+      "elevation": "506 m",
+      "participants": {
+        "capacity": 600,
+        "booked": 406
+      }
+    }
+  ]
+}

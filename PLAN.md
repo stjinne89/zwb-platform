@@ -80,6 +80,12 @@ gaat stabiliteit voor nieuwe features.
    `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
    `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
    (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
+   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` toepassen
+   **vóór** de deploy (beheerpagina en sync lezen de nieuwe tabellen, en het
+   eventtype `src` bestaat anders niet). Daarna `SRC_SYNC_SECRET` in Netlify,
+   deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
+   events vast), en een job `POST /api/src/sync` elk uur op cron-job.org
+   (runbook sectie 2). Zie de ronde hieronder.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -880,7 +886,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 > - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
 >   clubraces in de komende 14 dagen. Het gaat om de races van je teams en om
 >   clubraces waarvoor je ja zei (Omnium). "Clubrace" is `CLUB_RACE_TYPES` in
->   `event-types.ts`: ZRL, Ladder, Flamme Rouge en Omnium. Wie in een paraplu zit,
+>   `event-types.ts`: ZRL, Ladder, Flamme Rouge, Omnium en (sinds 2026-09-30) de
+>   Sunday Race Club van MyWhoosh. Wie in een paraplu zit,
 >   telt de subteams mee (zelfde regel als de kalender). Per raceweek komt er één
 >   regel: het team waarin je bent opgesteld, anders je directe team, en anders de
 >   raceweek zelf tot de captain je indeelt. Elke regel toont je status (in de
@@ -4649,6 +4656,101 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — SRC-kalender: de MyWhoosh Sunday Race Club als hoofdevent per zondag (fase 1 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt (branch
+`claude/sunday-race-club-eventmaker-9ae9e5`). Migratie `0200_src_races.sql`.
+Niet gepusht.
+
+**Aanleiding.** Stijn wil voor de Sunday Race Club (SRC) op MyWhoosh dezelfde
+soort eventmaker als voor FRR en ZRL. ZWB rijdt er al met één teamnaam. Gekozen
+omvang (2026-09-30), in vijf fasen: (1) agenda-import, (2) teamplanning per
+maand, (3) uitslagen, koppeling en teamklassement met de teller "2 races deze
+maand → finale", (4) herinneringen voor de inschrijfdeadline en de weigh-in,
+(5) live, maar pas na een meting tijdens een echte race. Leden koppelen via
+naamvoorstellen die de beheerder bevestigt (de MyWhoosh-UUID gaat dan in
+`profiles.mywhoosh_id`). Geen botsingscontrole met het Omnium (keuze Stijn),
+hoewel de herenrace op de tweede zondag in de Omnium-tijd valt.
+
+**Hoe de SRC werkt (roadbook V7.0.7, juni 2026), en waarom dat anders is dan
+de ZRL.** Elke renner schrijft zich zelf in op MyWhoosh (maandag 07:00 tot
+donderdag 03:00 GMT). MyWhoosh deelt de categorie 1–6 zelf in; de renner hoort
+die pas 24 uur vooraf. Een team is 3–5 renners uit dezelfde categorie, de hele
+maand onder dezelfde teamnaam, en de teamtijd is de som van de beste drie. De
+laatste zondag van de maand is de finale; wie als team mee wil tellen, heeft
+twee afgeronde races in die maand nodig. ZWB heeft dus geen opstelling of
+racepass te maken. Er valt alleen te coördineren wie deze maand onder de
+teamnaam rijdt en wie welke zondag kan.
+
+**Bronnen, gemeten op 2026-09-30 (openbaar, zonder login, ongedocumenteerd).**
+- Agenda: `GET https://event.mywhoosh.com/whoosh/events`. Alle tijden in GMT+4
+  (Abu Dhabi, geen zomertijd). Cat 6 van de heren staat er als "01:45 PM" en
+  start om 09:45 GMT, wat klopt met `starting` in het detail-endpoint. De
+  inschrijving sluit om "07:00" (= 03:00 GMT). De feed loopt maar een week
+  vooruit: alleen de eerstvolgende zondag staat erin.
+- Uitslagen (voor fase 3): `POST https://service14.mywhoosh.com/v2/v3/public/src-events-list`
+  (per pagina twee races, met `event_id`, `gender`, `created_at`, `DayId`) en
+  `POST …/public/getEventResults` met `{eventId, dayId, leaderboardType:
+  "individual"}`. Per renner: MyWhoosh-`userId` (UUID), naam, `teamId`,
+  `teamName`, `categoryId`, `rank`, `finishedTime` (ms), vermogen en gewicht. Het
+  team-leaderboard gaf een 500; dat rekenen we zelf uit. De id's in de
+  uitslagen-API zijn andere dan die in de agenda, dus koppelen gaat op geslacht
+  en datum.
+- Live (voor fase 5): `POST …/public/live-events-list`, en results.mywhoosh.com
+  vraagt de uitslag elke 10 s opnieuw op zolang `isLive` aan staat. Wat er
+  tijdens een race in staat, is **nog niet gezien**. Meten tijdens de races van
+  zondag 4 oktober (dames 07:25, heren 09:45 GMT).
+
+**Nu.**
+- Per zondag één hoofdevent ("SRC oktober · Kwalificatie 1" / "SRC oktober ·
+  Finale", `events.src_sunday`, uniek), met daaronder een event per race
+  ("… · Heren", "… · Dames"). Een lid zegt ja op zijn eigen race. Nieuw eventtype
+  `src` ("Sunday Race Club"): het telt als clubrace (`CLUB_RACE_TYPES`, dus in
+  "Jouw races") en rekent in het schema met het Zwift-racemodel. Dat model zat
+  op de acht SRC-races van september 2 tot 5% van de mediane finishtijd bij de
+  heren, en 8 tot 10% te kort bij de dames. Geen eigen fit.
+- `src_races` bewaart per race wat MyWhoosh publiceert: de MyWhoosh-id, starttijd
+  per categorie, inschrijfdeadline, weigh-in-categorieën en -venster (nu cat 1
+  en 2 vóór de race), parcourslink en aantal ingeschrevenen. `result_event_id`
+  staat klaar voor fase 3.
+- `src/lib/src/feed.ts` (puur) leest de feed, `import.ts` zet hem idempotent in
+  de kalender en verwijdert nooit iets, `sync.ts` houdt de status bij in
+  `src_sync_state`. Daar staat ook wie als maker van de events geldt: de
+  beheerder die de eerste keer op "Nu verversen" drukte. Zonder die maker weigert
+  de cron.
+- `/beheer/src` (SRC-kalender in het beheermenu): laatste sync, Nu verversen, en
+  per zondag de races met starttijd, aantal ZWB-ja's en het aantal
+  ingeschrevenen bij MyWhoosh. Cron `/api/src/sync` (`SRC_SYNC_SECRET`, elk uur),
+  toegevoegd aan de publieke cronpaden in de middleware.
+- Eventpagina van een race: blok "Sunday Race Club" met de knop Inschrijven op
+  MyWhoosh tot de deadline, de deadline zelf, starttijd per categorie, het
+  weigh-in-venster en de parcourslink. Op de zondag heet de lijst eronder
+  "Races" in plaats van "Teams".
+- De eventscan slaat SRC-races over (`scanMyWhooshEvents`), anders kwamen ze er
+  als losse MyWhoosh-kandidaten nog eens bij. Health-bron `mywhoosh_src` wordt
+  rood als de feed geen eventlijst meer geeft of een SRC-race onleesbaar wordt.
+  Een lege lijst is geen storing.
+
+**Bewust niet (in deze fase).** Teams, beschikbaarheid per zondag, uitslagen,
+koppelen en herinneringen: dat zijn fase 2 tot 4. Geen maandlaag boven de
+zondagen: de feed loopt maar een week vooruit, dus een maand zou stukje voor
+stukje ontstaan. Een lid ziet niet of hij echt is ingeschreven bij MyWhoosh; de
+openbare feed geeft alleen het aantal. Bestaande MyWhoosh-events die de
+eventscan eerder als SRC publiceerde (type `mywhoosh`), worden niet omgezet.
+Kijk na de eerste sync op de kalender of er dubbele staan, en verwijder die met
+de hand.
+
+**Niet lokaal te verifiëren:** migratie 0200, en de import tegen de echte
+database. Getest: `tsc`, ESLint op de gewijzigde bestanden, `next build` (met
+dummy-Supabase-variabelen voor het prerenderen van `/omnium`), en de unit-suite
+met de nieuwe `src-feed` en `src-import`. Die laatste draait tegen een stub en
+bewijst dat twee keer importeren niets dubbel maakt en dat een verschoven
+starttijd de zondag meeneemt. Dat laatste ving een fout die er echt in zat. De
+fixture is de echte feed van 2026-09-30, zonder de HTML-teksten. In de volledige
+suite falen `omnium-live` (leest `.env.local`, die de worktree niet heeft) en
+twee tests op een timeout onder volle belasting; los gedraaid slagen die twee.
+
 
 ### Opgeleverd — Garmin-stappen op /hulp volgens de echte route in Garmin Connect
 

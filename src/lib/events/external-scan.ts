@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { isSrcName } from "@/lib/src/feed";
 
 export type ExternalEventSource = "mywhoosh" | "zwift";
 
@@ -306,6 +307,8 @@ export async function scanMyWhooshEvents(): Promise<ExternalEventCandidate[]> {
       const startAt = new Date(starting * 1000).toISOString();
       const title = compactText(event.name ?? card.title ?? "");
       if (!title) continue;
+      // De Sunday Race Club komt via /beheer/src in de kalender (migr. 0200).
+      if (isSrcName(title)) continue;
 
       candidates.push({
       source: "mywhoosh",
