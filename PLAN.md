@@ -88,7 +88,9 @@ gaat stabiliteit voor nieuwe features.
    deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
    events vast), daar het SRC-team aanmaken met de teamnaam die ZWB bij MyWhoosh
    gebruikt, en een job `POST /api/src/sync` elk uur op cron-job.org (runbook
-   sectie 2). Zie de rondes hieronder.
+   sectie 2). Zie de rondes hieronder. **Zondag 4 oktober:** tijdens de dames-
+   (07:25 GMT) en herenrace (09:45 GMT) `node scripts/src-live-probe.mjs` draaien
+   en de fixture in `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
@@ -4659,6 +4661,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Voorbereid — SRC live: eerst meten (fase 5 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Alleen een script,
+`scripts/src-live-probe.mjs`; geen migratie, geen app-code.
+
+**Waarom nog geen livepagina.** results.mywhoosh.com vraagt `getEventResults`
+elke 10 s opnieuw op zolang `isLive` aan staat, en `live-events-list` geeft de
+lopende races. Wat er tijdens een race in de uitslag staat, is niet gezien:
+alleen wie binnen is, of iedereen met tussenstand (ronde, gate, afstand). Een
+ZRL-achtige live stand hangt daarvan af, dus eerst meten (keuze Stijn).
+
+**Het script.** Wacht tot er een live SRC is (of neemt `--event=<uuid>`), meet elke
+20 s tot 110 minuten. Het meldt in de terminal `isLive`, het aantal rijen en het
+aantal finishers, en schrijft drie geanonimiseerde momentopnamen (begin, midden,
+eind) naar `tests/fixtures/src/live/`. Namen, id's, teams, gewicht, vermogen,
+hartslag en prijzengeld gaan eruit. Proefgedraaid op de finale van 27-09 (niet
+live): 359 rijen, alle gefinisht, `isLive` false. De velden van een rij zijn
+onder meer `lapNo`, `gateId`, `gateType`, `points`, `startedAt`, `endedAt` en
+`finishedTime`. Juist `lapNo` en de gates kunnen tijdens de race een tussenstand
+geven.
+
+**Daarna.** Staan renners erin vóór ze finishen: `/live/src/[raceId]` zoals
+`/live/zrl/[eventId]`, met een server-route die ~15 s cachet, de ZWB'ers per
+categorie met plaats en achterstand, en een voorlopige teamstand. Alleen
+finishers: een finishbord dat zich vult tijdens de race. Er is geen
+Sauce-tegenhanger voor MyWhoosh.
 
 ### Opgeleverd — SRC-herinneringen: inschrijven en weigh-in (fase 4 van 5)
 
