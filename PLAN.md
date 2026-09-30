@@ -22,8 +22,8 @@ gaat stabiliteit voor nieuwe features.
    **Ritten via intervals.icu** (rondes hieronder, deel A t/m C gebouwd):
    1. `INTERVALS_API_KEY=… node scripts/intervals-probe.mjs --fixture` met de
       eigen sleutel, en de fixture nakijken en vervangen;
-   2. `0198_intervals_ride_source.sql` en `0199_gps_segment_times.sql`
-      toepassen **vóór** de deploy (0199: de code leest `best_time_source`);
+   2. `0198_intervals_ride_source.sql` toepassen **vóór** de deploy
+      (`0199_gps_segment_times.sql` is toegepast, 2026-09-30);
    3. `INTERVALS_RIDES_SYNC_SECRET` in Netlify;
    4. deployen. Elk lid tekent opnieuw voor privacyversie `2026-09-30`;
    5. een job elk uur op cron-job.org (runbook sectie 2);
@@ -4587,9 +4587,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Opgeleverd — eigen segment- en coltijden uit GPX en intervals.icu
 
-**2026-09-30.** Migratie `0199_gps_segment_times.sql`, **nog niet toegepast**.
-Die moet vóór de deploy: de collectiepagina, de segment-herberekening en de
-coltijden lezen of schrijven `best_time_source`.
+**2026-09-30.** Migratie `0199_gps_segment_times.sql`, toegepast door Stijn
+op 2026-09-30, vóór de deploy (de collectiepagina, de segment-herberekening en
+de coltijden lezen of schrijven `best_time_source`).
 
 **Aanleiding.** Na het [onderzoek](docs/segmenttijden-uit-gps-onderzoek.md)
 koos Stijn (sectie 8): (1) ook voor segmenten, (2) één klassement met
