@@ -1,5 +1,6 @@
 import { weekStartDate } from "@/lib/strava/client";
 import { haversineKm } from "@/lib/gpx";
+import { encodeTrackPolyline } from "@/lib/track-polyline";
 
 export type ImportedStravaActivity = {
   id: number | string;
@@ -18,6 +19,11 @@ export type ImportedStravaActivity = {
   commute: boolean;
   raw: Record<string, unknown>;
   synced_at: string;
+  /**
+   * Alleen bij een GPX-rit: meteen gezet, anders vraagt de segment-inhaalslag
+   * het negatieve id bij Strava op en verwijdert hij de rit na de 404.
+   */
+  efforts_fetched_at?: string;
 };
 
 export type StravaCsvImportResult = {
@@ -753,6 +759,10 @@ export function stravaActivityFromGpx(
       ? sportType(typeText)
       : "Ride";
   const startIso = start.toISOString();
+  // Het spoor laat cols, ZWB-segmenten en ZWBlokken meetellen, net als bij een
+  // rit uit intervals.icu.
+  const track = encodeTrackPolyline(points.map((point) => [point.lat, point.lon]));
+  const syncedAt = new Date().toISOString();
 
   return {
     ok: true,
@@ -780,8 +790,10 @@ export function stravaActivityFromGpx(
         source_activity_id: null,
         gear: null,
         filename: null,
+        ...(track ? { map: { summary_polyline: track } } : {}),
       },
-      synced_at: new Date().toISOString(),
+      synced_at: syncedAt,
+      efforts_fetched_at: syncedAt,
     },
   };
 }

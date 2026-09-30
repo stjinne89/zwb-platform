@@ -1,10 +1,13 @@
+import polyline from "@mapbox/polyline";
 import { describe, expect, it } from "vitest";
 import {
   parseCsv,
   stravaActivitiesFromCsv,
   stravaActivityFromGpx,
   syntheticAthleteId,
+  type ImportedStravaActivity,
 } from "@/lib/strava/import";
+import { planRideImport, type ExistingImportRide } from "@/lib/strava/import-merge";
 
 const profileId = "00000000-0000-0000-0000-000000000001";
 
@@ -240,6 +243,19 @@ describe("stravaActivityFromGpx", () => {
     expect(result.row.strava_athlete_id).toBe(42);
   });
 
+  it("bewaart het spoor en slaat de segment-inhaalslag over", () => {
+    const result = stravaActivityFromGpx(rideGpx, profileId);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const map = result.row.raw.map as { summary_polyline: string };
+    expect(polyline.decode(map.summary_polyline)).toEqual([
+      [50.85, 4.35],
+      [50.86, 4.35],
+      [50.87, 4.35],
+    ]);
+    expect(result.row.efforts_fetched_at).toBe(result.row.synced_at);
+  });
+
   it("is deterministisch bij opnieuw uploaden van hetzelfde bestand", () => {
     const first = stravaActivityFromGpx(rideGpx, profileId);
     const second = stravaActivityFromGpx(rideGpx, profileId);
@@ -264,5 +280,82 @@ describe("stravaActivityFromGpx", () => {
     const runGpx = rideGpx.replace("<type>cycling</type>", "<type>running</type>");
     const result = stravaActivityFromGpx(runGpx, profileId);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("planRideImport", () => {
+  const track = polyline.encode([
+    [50.85, 4.35],
+    [50.9, 4.4],
+  ]);
+
+  function incoming(overrides: Partial<ImportedStravaActivity> = {}): ImportedStravaActivity {
+    return {
+      id: -111,
+      profile_id: profileId,
+      strava_athlete_id: 42,
+      name: "Rit",
+      sport_type: "Ride",
+      start_date: "2025-06-01T08:00:00.000Z",
+      achievement_week: "2025-05-26",
+      distance_m: 50_000,
+      total_elevation_gain_m: 300,
+      kudos_count: 0,
+      moving_time_seconds: 6000,
+      elapsed_time_seconds: 6500,
+      trainer: false,
+      commute: false,
+      raw: { import_source: "strava_gpx", map: { summary_polyline: track } },
+      synced_at: "2025-06-02T00:00:00.000Z",
+      ...overrides,
+    };
+  }
+
+  function existing(overrides: Partial<ExistingImportRide> = {}): ExistingImportRide {
+    return {
+      id: 9001,
+      start_date: "2025-06-01T08:00:30.000Z",
+      distance_m: 50_400,
+      import_source: "strava_csv",
+      has_track: false,
+      ...overrides,
+    };
+  }
+
+  it("slaat een nieuwe rit op", () => {
+    const plan = planRideImport([incoming()], [existing({ start_date: "2025-06-03T08:00:00.000Z" })]);
+    expect(plan.upsert).toHaveLength(1);
+    expect(plan.attach).toHaveLength(0);
+    expect(plan.duplicates).toBe(0);
+  });
+
+  it("vult het spoor aan van dezelfde rit uit activities.csv", () => {
+    const plan = planRideImport([incoming()], [existing()]);
+    expect(plan.upsert).toHaveLength(0);
+    expect(plan.attach).toEqual([{ id: 9001, summaryPolyline: track }]);
+  });
+
+  it("slaat een rit over die al via Strava of intervals.icu binnen is", () => {
+    const fromStrava = planRideImport([incoming()], [existing({ import_source: null, has_track: true })]);
+    const fromIntervals = planRideImport([incoming()], [existing({ import_source: "intervals" })]);
+    expect(fromStrava).toEqual({ upsert: [], attach: [], duplicates: 1 });
+    expect(fromIntervals).toEqual({ upsert: [], attach: [], duplicates: 1 });
+  });
+
+  it("overschrijft geen CSV-rit die al een spoor heeft", () => {
+    const plan = planRideImport([incoming()], [existing({ has_track: true })]);
+    expect(plan.duplicates).toBe(1);
+    expect(plan.attach).toHaveLength(0);
+  });
+
+  it("werkt dezelfde GPX opnieuw bij onder zijn eigen id", () => {
+    const plan = planRideImport([incoming()], [existing({ id: -111, import_source: "strava_gpx", has_track: true })]);
+    expect(plan.upsert).toHaveLength(1);
+  });
+
+  it("slaat een CSV-rit zonder spoor over als de GPX er al staat", () => {
+    const csvRow = incoming({ id: 9001, raw: { import_source: "strava_csv" } });
+    const plan = planRideImport([csvRow], [existing({ id: -111, import_source: "strava_gpx", has_track: true })]);
+    expect(plan.duplicates).toBe(1);
   });
 });

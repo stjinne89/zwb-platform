@@ -4584,6 +4584,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — meerdere GPX'en tegelijk, met spoor voor cols, segmenten en ZWBlokken
+
+**2026-09-30.** Geen migratie.
+
+**Aanleiding.** Stijn vroeg om een bulkupload van GPX-bestanden, zodat ook de
+segmentdata meekomt. Tot nu toe kon er één GPX per keer, en die bewaarde alleen
+de kengetallen (afstand, hoogte, tijden). Het spoor werd weggegooid, dus een
+GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
+
+**Wat er veranderde.**
+- **Meerdere bestanden.** Het importveld op het dashboard neemt meerdere
+  bestanden. De browser stuurt ze één voor één naar `importMyStravaFile`: tien
+  GPX'en passen niet in de uploadlimiet van één server action (10 MB), en één
+  kapot bestand houdt de rest zo niet tegen. Het nawerk (col-detector,
+  ZWBlokken, ZWB-segmenten uit de cols, afgeronde trainingen, badges,
+  weekbadges) draait daarna één keer via de nieuwe `finishMyStravaImport`, met
+  `runPostSyncForProfile` zonder token, net als de intervals.icu-ritten. Wat
+  ZWBlokken daarbij niet haalt, pakt de backfill-cron op.
+- **Spoor bewaren.** `stravaActivityFromGpx` zet het spoor als
+  `raw.map.summary_polyline`, uitgedund tot 500 punten zoals bij intervals.icu.
+  `encodeTrackPolyline` staat daarvoor in `src/lib/track-polyline.ts`;
+  `intervals/rides.ts` exporteert hem nog steeds.
+- **Aanvullen in plaats van verdubbelen.** Nieuw in `lib/strava/import-merge.ts`:
+  een import vergelijkt nu met álle bestaande ritten van het lid, niet alleen die
+  uit intervals.icu (zelfde start binnen 2 minuten en afstand binnen 5%, via
+  `isSameRide`). Een GPX bij een rit uit activities.csv zonder spoor vult het
+  spoor van die CSV-rit aan en zet `blocks_processed_at` terug. Elke andere
+  match telt als "al bekend". Voorheen leverde een GPX van een rit die al via
+  Strava binnen was een tweede rit op.
+- **Import niet meer wissen via de segment-inhaalslag.** GPX- en CSV-ritten
+  zonder Strava-id hebben een negatief id met `efforts_fetched_at` leeg. Had het
+  lid ook Strava gekoppeld, dan vroeg de segment-inhaalslag
+  (`scheduled-backfill.ts`) zo'n id bij Strava op en verwijderde hij de rit na
+  de 404. De GPX-rij krijgt `efforts_fetched_at` nu meteen. Na elke import
+  zetten we hem ook bij alle overige negatieve import-ids van het lid, dus ook
+  bij oudere imports.
+- `/hulp#strava-import` en de zoekhulp noemen meerdere GPX'en en wat het spoor
+  oplevert.
+- **Privacy.** In `/privacy` staat nu een bullet "Zelf geüploade ritten". Er is
+  bewust geen nieuwe versie in `privacy.ts` gekomen, op Stijns keuze: het lid
+  levert het bestand zelf aan, en de ritten vallen in dezelfde categorie als
+  Strava- en intervals.icu-ritten.
+
+**Bewust niet gebouwd.**
+- **Segmenttijden en KOM's uit een GPX.** Die komen uit Strava's
+  segment-inspanningen. Zelf tijden over een segment berekenen uit de
+  GPX-tijdstempels is technisch mogelijk, maar het is een productkeuze of zulke
+  tijden naast Strava-tijden in het klassement mogen. Stijn wil eerst onderzoek,
+  zonder te bouwen.
+- **FIT- en TCX-bestanden en de ZIP van de Strava-export.** In dat archief
+  staan de meeste ritten als `.fit.gz`. Niet gevraagd.
+
+**Niet lokaal te verifiëren.** Het nawerk op een grote historie is niet tegen
+de Netlify-timeout getest. Loopt `finishMyStravaImport` vast, dan staan de
+ritten er al wel; het lid krijgt de melding dat badges en cols later volgen.
+Cols en badges werken dan bij via "Badges herberekenen". ZWBlokken komen via de
+backfill-cron.
+
 ### Opgeleverd — hulpteksten wijzen voor sync en import naar het dashboard
 
 **2026-09-30.** Geen migratie. Alleen tekst.

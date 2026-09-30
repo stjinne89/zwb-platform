@@ -182,6 +182,14 @@ export default function PrivacyPage() {
             intervals.icu even te openen; we bewaren wanneer je dat afvinkt.
           </li>
           <li>
+            <strong>Zelf geüploade ritten:</strong> upload je activities.csv of
+            GPX-bestanden, dan bewaren we per rit naam, tijd, afstand en
+            hoogtemeters, en bij een GPX een vereenvoudigd GPS-spoor. Net als
+            Strava-ritten tellen ze mee voor badges, weekstanden,
+            clubstatistieken, cols, ZWB Segments en ZWBlokken, en zien clubleden
+            ze bij de recente ritten en op je profiel.
+          </li>
+          <li>
             <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
             over je schema en over je trainingsdata. Je vraag, het antwoord van de
             AI-coach en de reacties van je trainer worden bewaard als één doorlopend

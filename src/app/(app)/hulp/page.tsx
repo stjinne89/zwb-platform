@@ -150,7 +150,7 @@ const GUIDES = [
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
-      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of één rit (GPX).",
+      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of ritten met spoor (GPX).",
       "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
       "Milestone badges blijven permanent op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
@@ -804,7 +804,7 @@ export default function HelpPage() {
               Geen plek voor een Strava-koppeling of wil je die niet gebruiken?
               Laat je ritten dan binnenkomen via intervals.icu (hierboven), of
               upload ze zelf op het dashboard: je hele historie in één keer via
-              activities.csv, of losse ritten via GPX.
+              activities.csv, of ritten met hun spoor via GPX.
             </p>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               De koppeling haalt eerst de laatste vijf jaar op en daarna, beetje
@@ -865,7 +865,7 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Eén rit (GPX)</h3>
+            <h3 className="text-sm font-semibold">Ritten met spoor (GPX)</h3>
             <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">1.</span>
@@ -881,16 +881,18 @@ export default function HelpPage() {
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">3.</span>
                 <span>
-                  Upload het GPX-bestand op het dashboard met Importeer CSV of
-                  GPX.
+                  Upload de GPX-bestanden op het dashboard met Importeer CSV of
+                  GPX. Je kunt er meerdere tegelijk kiezen.
                 </span>
               </li>
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
               Gebruik de GPX van een gereden rit (met tijden), geen route-GPX.
               Afstand, hoogtemeters en rijtijd worden uit het bestand berekend.
-              Herhaal dit per rit; dezelfde rit twee keer uploaden is geen
-              probleem.
+              Met het spoor tellen cols, ZWB Segments en ZWBlokken mee;
+              segmenttijden en KOM&apos;s komen alleen van een Strava-koppeling.
+              Staat de rit al binnen via activities.csv, dan krijgt die het
+              spoor erbij. Dezelfde rit twee keer uploaden is geen probleem.
             </p>
           </article>
         </div>

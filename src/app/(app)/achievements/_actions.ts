@@ -2,13 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
-import { isSameRide, type RideFingerprint } from "@/lib/intervals/rides";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
+import { runPostSyncForProfile } from "@/lib/strava/post-sync";
+import {
+  planRideImport,
+  type ExistingImportRide,
+} from "@/lib/strava/import-merge";
 import {
   stravaActivitiesFromCsv,
   stravaActivityFromGpx,
@@ -203,6 +207,21 @@ export async function recomputeMyMilestoneBadges() {
   }
 }
 
+type ExistingRideRow = {
+  id: number | string;
+  start_date: string;
+  distance_m: number | string | null;
+  import_source: string | null;
+  track?: string | null;
+};
+
+const EXISTING_PAGE = 1000;
+
+/**
+ * Leest één bestand in: activities.csv of één GPX. Het nawerk (cols, ZWBlokken,
+ * segmenten, badges) doet finishMyStravaImport, één keer na alle bestanden; per
+ * bestand zou een bulkupload van GPX'en dat werk tientallen keren doen.
+ */
 export async function importMyStravaFile(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -236,6 +255,7 @@ export async function importMyStravaFile(formData: FormData) {
     let rows: ImportedStravaActivity[];
     let skippedRows = 0;
     let skippedNonCycling = 0;
+    let withTracks = false;
 
     if (isGpx || /^\s*(?:<\?xml|<gpx)/i.test(text.slice(0, 300))) {
       const result = stravaActivityFromGpx(
@@ -245,6 +265,7 @@ export async function importMyStravaFile(formData: FormData) {
       );
       if (!result.ok) return { ok: false as const, error: result.error };
       rows = [result.row];
+      withTracks = true;
     } else {
       const imported = stravaActivitiesFromCsv(
         text,
@@ -266,36 +287,125 @@ export async function importMyStravaFile(formData: FormData) {
       skippedNonCycling = imported.skippedNonCycling;
     }
 
-    // Ritten die al via intervals.icu binnen zijn, niet nog eens als import.
+    // Ritten die er al zijn onder een ander id: via Strava, intervals.icu of een
+    // eerdere import. Het spoor alleen opvragen als er een GPX binnenkomt.
     const times = rows.map((row) => Date.parse(row.start_date)).filter(Number.isFinite);
-    let duplicates = 0;
+    const existing: ExistingImportRide[] = [];
     if (times.length > 0) {
-      const { data: intervalsRides } = await supabase
-        .from("strava_activities")
-        .select("id, start_date, distance_m")
-        .eq("profile_id", user.id)
-        .lte("id", INTERVALS_RIDE_ID_CEILING)
-        .gte("start_date", new Date(Math.min(...times) - 86400_000).toISOString())
-        .lte("start_date", new Date(Math.max(...times) + 86400_000).toISOString());
-      const known = (intervalsRides ?? []) as RideFingerprint[];
-      if (known.length > 0) {
-        const before = rows.length;
-        rows = rows.filter((row) => !known.some((ride) => isSameRide(ride, row)));
-        duplicates = before - rows.length;
+      const from = new Date(Math.min(...times) - 86400_000).toISOString();
+      const to = new Date(Math.max(...times) + 86400_000).toISOString();
+      const columns = withTracks
+        ? "id, start_date, distance_m, import_source:raw->>import_source, track:raw->map->>summary_polyline"
+        : "id, start_date, distance_m, import_source:raw->>import_source";
+      for (let offset = 0; ; offset += EXISTING_PAGE) {
+        const { data, error } = await supabase
+          .from("strava_activities")
+          .select(columns)
+          .eq("profile_id", user.id)
+          .gte("start_date", from)
+          .lte("start_date", to)
+          .order("id")
+          .range(offset, offset + EXISTING_PAGE - 1);
+        if (error) throw new Error(error.message);
+        const page = (data ?? []) as unknown as ExistingRideRow[];
+        existing.push(
+          ...page.map((ride) => ({
+            id: ride.id,
+            start_date: ride.start_date,
+            distance_m: ride.distance_m,
+            import_source: ride.import_source,
+            has_track: Boolean(ride.track),
+          })),
+        );
+        if (page.length < EXISTING_PAGE) break;
       }
     }
 
-    for (let index = 0; index < rows.length; index += 500) {
-      const batch = rows.slice(index, index + 500);
+    const plan = planRideImport(rows, existing);
+
+    for (let index = 0; index < plan.upsert.length; index += 500) {
+      const batch = plan.upsert.slice(index, index + 500);
       const { error } = await supabase
         .from("strava_activities")
         .upsert(batch, { onConflict: "id" });
       if (error) throw new Error(error.message);
     }
 
+    // Een GPX bij een rit uit activities.csv: het spoor erbij, en die rit
+    // opnieuw door ZWBlokken (die werken incrementeel op blocks_processed_at).
+    for (const attachment of plan.attach) {
+      const { data: current, error: readError } = await supabase
+        .from("strava_activities")
+        .select("raw")
+        .eq("id", attachment.id)
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      if (readError) throw new Error(readError.message);
+      if (!current) continue;
+      const raw = (current.raw ?? {}) as Record<string, unknown>;
+      const { error } = await supabase
+        .from("strava_activities")
+        .update({
+          raw: { ...raw, map: { summary_polyline: attachment.summaryPolyline } },
+          blocks_processed_at: null,
+          zwift_blocks_processed_at: null,
+        })
+        .eq("id", attachment.id)
+        .eq("profile_id", user.id);
+      if (error) throw new Error(error.message);
+    }
+
+    // Een import zonder Strava-id heeft een negatief id. Zonder deze stempel
+    // vraagt de segment-inhaalslag hem bij Strava op en verwijdert hij de rit
+    // na de 404, als het lid ook Strava gekoppeld heeft.
+    await supabase
+      .from("strava_activities")
+      .update({ efforts_fetched_at: new Date().toISOString() })
+      .eq("profile_id", user.id)
+      .lt("id", 0)
+      .gt("id", INTERVALS_RIDE_ID_CEILING)
+      .is("efforts_fetched_at", null);
+
+    return {
+      ok: true as const,
+      imported: plan.upsert.length,
+      tracksAdded: plan.attach.length,
+      skippedRows: skippedRows + plan.duplicates,
+      skippedNonCycling,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error:
+        err instanceof Error ? err.message : "Strava-import faalde.",
+    };
+  }
+}
+
+/**
+ * Na het laatste bestand: cols, ZWB-segmenten (uit de cols), ZWBlokken,
+ * afgeronde trainingen en badges. Zonder Strava-token, want alles hier leest
+ * alleen de database. Wat ZWBlokken niet in één keer haalt, pakt de
+ * backfill-cron op.
+ */
+export async function finishMyStravaImport() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  try {
     const admin = createAdminClient();
-    const [milestones, weekAwards] = await Promise.all([
-      evaluateMilestonesForUser(admin, user.id),
+    const [postSync, weekAwards] = await Promise.all([
+      runPostSyncForProfile(admin, user.id, null, {
+        workoutCompletion: true,
+        colsDetector: true,
+        zwblokken: true,
+        recomputeSegments: true,
+        milestones: true,
+      }),
       awardCompletedAchievementWeeks(admin).catch(() => ({ awarded: 0 })),
     ]);
 
@@ -308,18 +418,15 @@ export async function importMyStravaFile(formData: FormData) {
 
     return {
       ok: true as const,
-      imported: rows.length,
-      skippedRows: skippedRows + duplicates,
-      skippedNonCycling,
-      milestoneAwards: milestones.awarded,
-      milestoneErrors: milestones.errors,
+      milestoneAwards: postSync.milestoneAwards,
+      milestoneErrors: postSync.milestoneErrors,
       weekAwards: weekAwards.awarded,
     };
   } catch (err) {
     return {
       ok: false as const,
       error:
-        err instanceof Error ? err.message : "Strava-import faalde.",
+        err instanceof Error ? err.message : "Badges en cols bijwerken faalde.",
     };
   }
 }

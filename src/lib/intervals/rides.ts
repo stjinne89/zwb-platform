@@ -11,25 +11,23 @@
 // (scripts/intervals-probe.mjs). Waar de naam onzeker is, proberen we de bekende
 // varianten.
 
-import polyline from "@mapbox/polyline";
 import { kilojoulesFromActivity } from "@/lib/intervals/activities";
 import type { IntervalsActivity } from "@/lib/intervals/client";
 import { weekStartDate } from "@/lib/strava/client";
 import { syntheticAthleteId } from "@/lib/strava/import";
 import { intervalsRideId } from "@/lib/intervals/ride-id";
 import { CYCLING_SPORTS, isCyclingSportType } from "@/lib/strava/sports";
+import type { LatLng } from "@/lib/track-polyline";
 
 export {
   INTERVALS_RIDE_ID_CEILING,
   intervalsRideId,
   isIntervalsRideId,
 } from "@/lib/intervals/ride-id";
+export { encodeTrackPolyline, TRACK_MAX_POINTS, type LatLng } from "@/lib/track-polyline";
 
 export const INTERVALS_IMPORT_SOURCE = "intervals";
 
-
-/** Hoeveel punten het opgeslagen spoor hooguit heeft. */
-export const TRACK_MAX_POINTS = 500;
 
 /** Wat intervals.icu over een activiteit teruggeeft; ruimer dan IntervalsActivity. */
 export type IntervalsRideInput = IntervalsActivity & {
@@ -163,8 +161,6 @@ export function startLocalStravaStyle(activity: IntervalsRideInput, start: Date)
   }
 }
 
-export type LatLng = [number, number];
-
 function validPoint(lat: unknown, lng: unknown): LatLng | null {
   const a = Number(lat);
   const b = Number(lng);
@@ -213,19 +209,6 @@ export function latLngFromStreams(body: unknown): LatLng[] {
     });
   }
   return [];
-}
-
-/**
- * Uitgedund en gecodeerd, als Strava's summary_polyline. De col-detector meet de
- * afstand tot het lijnstuk tussen twee punten, dus uitdunnen mist geen top.
- */
-export function encodeTrackPolyline(points: LatLng[], maxPoints = TRACK_MAX_POINTS): string | null {
-  if (points.length < 2) return null;
-  const stride = Math.max(1, Math.ceil(points.length / maxPoints));
-  const kept = points.filter((_, i) => i % stride === 0);
-  const last = points[points.length - 1];
-  if (kept[kept.length - 1] !== last) kept.push(last);
-  return polyline.encode(kept);
 }
 
 export type IntervalsRideRow = {
