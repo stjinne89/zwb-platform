@@ -81,8 +81,8 @@ gaat stabiliteit voor nieuwe features.
    `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
    (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
    **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql`,
-   `0201_src_month_entries.sql` en `0202_src_results.sql` toepassen **vóór** de
-   deploy (beheerpagina, sync
+   `0201_src_month_entries.sql`, `0202_src_results.sql` en
+   `0203_src_reminders.sql` toepassen **vóór** de deploy (beheerpagina, sync
    en `/src` lezen de nieuwe tabellen, en het event- en teamtype `src` bestaan
    anders niet). Daarna `SRC_SYNC_SECRET` in Netlify,
    deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
@@ -4659,6 +4659,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — SRC-herinneringen: inschrijven en weigh-in (fase 4 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0203_src_reminders.sql`. Niet gepusht.
+
+**Waarom.** De twee momenten die je bij de SRC makkelijk mist. De eerste is de
+inschrijving: die sluit donderdag 03:00 GMT, midden in de nacht, en zonder
+inschrijving geen race. De tweede is het weigh-in-venster vóór de race, voor cat
+1 en 2 (volgens de feed), dat maar ruim een half uur open is.
+
+**Nu.**
+- De bestaande cron `/api/events/reminders` (elke 15 minuten) roept ook
+  `processSrcReminders` aan. Er is geen nieuwe job nodig, en een uurlijkse cron
+  zou het weigh-in-venster missen. Een fout daar staat als `src.error` in het
+  antwoord en houdt de gewone herinneringen niet tegen.
+- Inschrijven: om 20:00 Nederlandse tijd op de avond voordat de inschrijving
+  sluit. Dat moment wordt uitgerekend uit `registration_closes_at` in de feed,
+  niet vastgezet op woensdag. Het bericht gaat naar wie deze maand meedoet
+  (`src_month_entries`) en voor die zondag niet "niet" zei. Het komt op het
+  zondag-hoofdevent.
+- Weigh-in: tien minuten voordat het venster opengaat, naar wie ja of misschien
+  zei op de race en in een categorie met weigh-in rijdt. Als categorie telt de
+  opgegeven categorie, anders de hoogste uit de races van de afgelopen vijf weken
+  (liever een bericht te veel dan een gemist weigh-in). Het bericht noemt het
+  venster ("van 11:00 tot 11:32").
+- Eén keer per lid per event, via de log `event_reminder_sends`. Die kreeg de
+  soorten `src_registration` en `src_weighin` (de check uit 0038 is naamloos; de
+  migratie zoekt hem op zijn definitie). Het bericht volgt de bestaande voorkeur
+  "herinneringen" (`on_event_reminder`).
+- `/hulp` en de runbookregel van de reminder-cron beschrijven het.
+
+**Bewust niet.**
+- Geen herinnering bij het openen van de inschrijving (maandag); de deadline is
+  wat telt.
+- Geen weigh-in-herinnering na de finale voor cat 2–6. Het roadbook vraagt die
+  binnen twee uur na de finale, maar de feed geeft daar (nog) geen venster voor
+  (`post_weight` stond op false). Staat hij er in een finale wel, dan is dat een
+  kleine uitbreiding.
+- Geen eigen voorkeursknop voor SRC-berichten.
+
+**Niet lokaal te verifiëren:** migratie 0203, en of de push echt aankomt.
+
+**Wel getest:**
+- `tsc`, ESLint en `next build`.
+- Unit-test `src-reminders`:
+  - tijdstip in zomer- en wintertijd, ook rond de klokwissel van 25 oktober (de
+    finale);
+  - het venster;
+  - de ontvangers;
+  - één keer per lid;
+  - de weigh-in voor een lid zonder opgegeven categorie dat in september cat 1
+    reed.
+- De stub in `tests/unit/src-fake-admin.ts` kan nu ook meerdere rijen tegelijk
+  invoegen en filtert met `lte` en `not is null`.
 
 ### Opgeleverd — SRC-uitslagen, koppelen en teamklassement (fase 3 van 5)
 

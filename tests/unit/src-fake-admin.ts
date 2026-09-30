@@ -12,13 +12,14 @@ export function fakeAdmin(tables: Record<string, Row[]>) {
     const filters: Array<(row: Row) => boolean> = [];
     let action: "select" | "insert" | "update" | "upsert" = "select";
     let payload: Row = {};
+    let many: Row[] | null = null;
     let conflict = "id";
 
     const run = () => {
       if (action === "insert") {
-        const row = { id: `e${nextId++}`, ...payload };
-        rows.push(row);
-        return [{ ...row }];
+        const inserted = (many ?? [payload]).map((values) => ({ id: `e${nextId++}`, ...values }));
+        rows.push(...inserted);
+        return inserted.map((row) => ({ ...row }));
       }
       if (action === "upsert") {
         const keys = conflict.split(",");
@@ -35,9 +36,10 @@ export function fakeAdmin(tables: Record<string, Row[]>) {
 
     const builder = {
       select: () => builder,
-      insert: (values: Row) => {
+      insert: (values: Row | Row[]) => {
         action = "insert";
-        payload = values;
+        if (Array.isArray(values)) many = values;
+        else payload = values;
         return builder;
       },
       update: (values: Row) => {
@@ -65,6 +67,14 @@ export function fakeAdmin(tables: Record<string, Row[]>) {
       },
       gte: (column: string, value: string) => {
         filters.push((row) => String(row[column] ?? "") >= value);
+        return builder;
+      },
+      lte: (column: string, value: string) => {
+        filters.push((row) => String(row[column] ?? "") <= value);
+        return builder;
+      },
+      not: (column: string, operator: string, value: unknown) => {
+        if (operator === "is" && value === null) filters.push((row) => (row[column] ?? null) !== null);
         return builder;
       },
       lt: (column: string, value: string) => {
