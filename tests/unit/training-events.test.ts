@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   estimateEventMinutes,
+  eventWorkoutBlocks,
   eventWorkoutDefaults,
   loadScheduleEvents,
+  zwiftRaceIntensityFactor,
+  zwiftRaceKind,
   type ClubEventRow,
 } from "@/lib/training/events";
+import { estimateTrainingLoad } from "@/lib/training/workouts";
 
 function event(over: Partial<ClubEventRow> = {}): ClubEventRow {
   return {
@@ -41,7 +45,8 @@ describe("eventWorkoutDefaults", () => {
 
   it("valt terug op een typegemiddelde zonder eindtijd en afstand", () => {
     expect(eventWorkoutDefaults(event({ type: "outdoor" })).durationMinutes).toBe(120);
-    expect(eventWorkoutDefaults(event({ type: "zrl" })).durationMinutes).toBe(60);
+    // Mediaan van de gereden ZRL-races; 60 minuten gaf elke race 100 TSS.
+    expect(eventWorkoutDefaults(event({ type: "zrl" })).durationMinutes).toBe(50);
     expect(eventWorkoutDefaults(event({ type: "training" })).durationMinutes).toBe(75);
   });
 
@@ -76,6 +81,87 @@ describe("eventWorkoutDefaults", () => {
     expect(eventWorkoutDefaults(event({ type: "gran_fondo" })).durationMinutes).toBe(300);
     expect(eventWorkoutDefaults(event({ type: "zwift" })).durationMinutes).toBe(60);
     expect(eventWorkoutDefaults(event({ type: "zwift" })).intensity).toBe("race");
+  });
+});
+
+describe("Zwift-races", () => {
+  const frrEtappe = event({
+    title: "FRR Ignite · Etappe 1 · 07:00",
+    type: "flamme_rouge",
+    distance_km: 42.9,
+    elevation_m: 333,
+    zwift_event_type: "RACE",
+  });
+
+  it("rekent een Zwift-race met racesnelheid, niet met die van een buitenrit", () => {
+    // 42,9 km bij 43 km/u plus 333 hm x 0,02 min: 67 minuten. Het buitenritmodel
+    // gaf hier 83.
+    expect(eventWorkoutDefaults(frrEtappe).durationMinutes).toBe(67);
+  });
+
+  it("geeft een Zwift-race een vermogensdoel rond de verwachte IF", () => {
+    // IF bij 67 minuten: 1,05 - 0,0019 x 67 = 0,92.
+    expect(eventWorkoutDefaults(frrEtappe).target).toBe("87-97%");
+    expect(eventWorkoutDefaults(event({ type: "outdoor" })).target).toBe("");
+  });
+
+  it("laat de geplande TSS met de race meeschalen", () => {
+    const kort = estimateTrainingLoad(
+      eventWorkoutBlocks(event({ type: "zrl", distance_km: 27.57, elevation_m: 199 })),
+    );
+    const lang = estimateTrainingLoad(
+      eventWorkoutBlocks(event({ type: "zrl", distance_km: 35.42, elevation_m: 309 })),
+    );
+    expect(kort).toBeLessThan(lang);
+    expect(kort).toBeGreaterThan(55);
+    expect(lang).toBeLessThan(90);
+  });
+
+  it("herkent een TTT aan het Zwift-type of de WTRL-tag", () => {
+    expect(zwiftRaceKind(event({ type: "zrl", zwift_event_type: "TEAM_TIME_TRIAL" }))).toBe("ttt");
+    expect(zwiftRaceKind(event({ type: "zrl", zwift_tags: ["wtrl", "zrl", "ttt"] }))).toBe("ttt");
+    expect(zwiftRaceKind(event({ type: "zrl", zwift_tags: ["wtrl", "zrl", "scr"] }))).toBe("race");
+  });
+
+  it("rijdt een TTT sneller dan een race over dezelfde route", () => {
+    const route = { type: "zrl", distance_km: 30, elevation_m: 200 };
+    const race = eventWorkoutDefaults(event(route)).durationMinutes;
+    const ttt = eventWorkoutDefaults(
+      event({ ...route, zwift_event_type: "TEAM_TIME_TRIAL" }),
+    ).durationMinutes;
+    expect(ttt).toBeLessThan(race);
+  });
+
+  it("telt een Zwift-groepsrit niet als race", () => {
+    expect(zwiftRaceKind(event({ type: "zwift", zwift_event_type: "GROUP_RIDE" }))).toBeNull();
+    expect(zwiftRaceKind(event({ type: "zwift", zwift_event_type: "RACE" }))).toBe("race");
+    expect(zwiftRaceKind(event({ type: "outdoor" }))).toBeNull();
+  });
+
+  it("rekent zonder afstand met de route en het aantal ronden", () => {
+    // Route van ZRL R1 W2; de link gaf voor drie ronden 26,62 km en 232 hm.
+    const viaRoute = eventWorkoutDefaults(
+      event({ type: "zrl", zwift_route_id: 2592027600, laps: 3 }),
+    ).durationMinutes;
+    const viaLink = eventWorkoutDefaults(
+      event({ type: "zrl", distance_km: 26.62, elevation_m: 232 }),
+    ).durationMinutes;
+    expect(viaRoute).toBe(viaLink);
+  });
+
+  it("laat een eindtijd voorgaan op de route", () => {
+    const result = eventWorkoutDefaults({
+      ...frrEtappe,
+      start_at: "2026-10-03T07:00:00+02:00",
+      end_at: "2026-10-03T08:30:00+02:00",
+    });
+    expect(result.durationMinutes).toBe(90);
+  });
+
+  it("houdt de IF tussen 0,80 en 1,00", () => {
+    expect(zwiftRaceIntensityFactor(10)).toBe(1);
+    expect(zwiftRaceIntensityFactor(55)).toBeCloseTo(0.9455, 4);
+    expect(zwiftRaceIntensityFactor(200)).toBe(0.8);
   });
 });
 

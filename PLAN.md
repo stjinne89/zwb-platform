@@ -97,6 +97,75 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0198`
 
 ---
 
+> **ZRL en FRR in het schema: duur en TSS uit de route, 2026-09-30 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar: elke ZRL-race stond in het schema op 100 TSS,
+> terwijl de FRR wel varieerde. Oorzaak: de ZRL-import maakt teamraces zonder
+> afstand of route aan, dus viel de duur terug op het typegemiddelde van 60
+> minuten, en race-intensiteit rekende met het midden van de raceband (100% FTP).
+> Een uur op FTP is precies 100 TSS. De FRR had wél afstand en hoogtemeters, maar
+> ging door het buitenritmodel (34 km/h): op de gereden Zwift-races van ZWB'ers
+> zat dat mediaan 42% te lang. FRR-etappe 1 stond zo op 91 minuten en ~151 TSS.
+> En het blok werd één keer gemaakt, bij de toezegging; een Zwift-link die er
+> later bij kwam, veranderde het blok niet meer.
+>
+> **Gemeten.** Read-only op productie (`strava_activities`, FTP van dat moment uit
+> `profile_ftp_history`): 608 ZRL- en FRR-races en -tijdritten en 135 TTT's met
+> afstand en hoogtemeters, waarvan 507 met vermogensmeter. Kleinste-kwadraten-fit
+> van de duur: race 43 km/h + 0,02 min/hm, TTT 46,5 km/h + 0,021 min/hm (mediaan
+> 7% resp. 5,5% afwijking). IF zakt met de duur: `1,05 − 0,0019 × minuten`,
+> begrensd op 0,80–1,00. Afwijking in TSS op diezelfde ritten: vast 100 mediaan
+> 33%, het buitenritmodel 66% (te hoog), het nieuwe model 12%. Alle metingen
+> komen van zeven renners met vermogensmeter; dat is een kleine groep.
+>
+> **Nu** (`lib/training/events.ts`). Voor een Zwift-race (`zrl`, `ladder`,
+> `flamme_rouge`, en `zwift` als Zwift het een race noemt):
+> 1. **Duur uit de route.** Eerst een eindtijd, dan de afstand en hoogtemeters van
+>    het event zelf (bij het plakken van de Zwift-link gevuld voor de eigen
+>    subgroep, dus A/B met een ronde meer tellen vanzelf mee), dan route plus
+>    ronden uit `zwift-data`, ook geërfd van de raceweek (`withParentRoute`). Zonder
+>    route valt ZRL nu terug op 50 minuten (mediaan gereden: 53, TTT 43).
+> 2. **Intensiteit.** Het blok krijgt een vermogensdoel van ±5% rond de verwachte
+>    IF, bijvoorbeeld `87-97%`. De belasting in ZWB en in intervals.icu rekent met
+>    het midden daarvan. Een TTT herkennen we aan Zwift-type `TEAM_TIME_TRIAL` of
+>    de WTRL-tag `ttt`.
+> 3. **Bijwerken.** `refreshEventWorkouts` rekent nog niet gereden eventblokken
+>    opnieuw uit en zet gewijzigde door naar intervals.icu. Na het opslaan van een
+>    event (met de teamraces eronder, vier seconden doorzetten) en elke run van
+>    `/api/training/adaptations/daily` (alle komende eventblokken, binnen het
+>    runbudget). Wat niet binnen de tijd doorkomt, blijft op `pending` en gaat de
+>    run erna mee. Zo worden ook de bestaande ZRL- en FRR-blokken na de deploy
+>    vanzelf rechtgezet.
+>
+> Voorbeelden: Race of Truth 27,6 km 42 min / 66 TSS (gereden 22 september: 43–49 min,
+> 55–82 TSS); ZRL vier ronden 35,4 km 56 min / 82 TSS (gereden 29 september: 54–57
+> min, 62–79 TSS); ZRL
+> zonder link 50 min / 77 TSS; FRR-etappe 1 67 min / 95 TSS; FRR-iTT 38 min / 61.
+>
+> **Afwijking van het voorstel.** Voorgesteld was een hogere intensiteit voor TTT
+> en Race of Truth. De data steunt dat niet: bij gelijke duur rijden ZWB'ers een
+> TTT of tijdrit niet met een hogere IF dan een puntenrace (per renner mediaan
+> 0,91 bij race én TTT). Het format telt daarom alleen via de snelheid; een TTT is
+> korter en krijgt zo vanzelf een hogere IF.
+>
+> **Bewust niet.** Geen IF per lid uit zijn eigen racegeschiedenis (te weinig
+> renners met vermogensmeter om het betrouwbaar te maken). Geen inrijden in het
+> eventblok, al reden renners op 22 en 29 september vaak 13–22 minuten in. Geen verschuiving van
+> de starttijd van een bestaand blok: dat raakt de datumsync met intervals.icu.
+> Een blok dat uit meer dan één stuk bestaat, blijft ongemoeid. Het
+> buitenritmodel (34 km/h) blijft voor alle niet-Zwift-events.
+>
+> **Getest.** `tsc`, ESLint, unit-tests (`tests/unit/training-events.test.ts`,
+> nieuw `tests/unit/event-workout-refresh.test.ts`), volledige suite groen op
+> `omnium-live.test.ts` na (leest `.env.local`, die in deze worktree ontbreekt).
+> **Niet** getest: de ronde op productie en het doorzetten naar intervals.icu.
+> Controle na de deploy: na een run van de dagcron staan de ZRL-blokken van 6
+> oktober niet meer op 60 minuten, en het veld `eventWorkouts` in de respons telt
+> de bijgewerkte blokken.
+
+---
+
 > **Live ZRL-stand: Zwift-data bevriezen zodra alle renners binnen zijn, 2026-09-29 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Migratie `0197_zrl_race_snapshots.sql`
 > (**nog niet toegepast**; niet lokaal te testen, geen Docker/Supabase-config).
@@ -4095,7 +4164,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
      terug op `outdoor`. Toegevoegd.
   Daarnaast is het duurmodel vervangen: was 28 km/h over de afstand met de
   hoogtemeters volledig genegeerd (Marmotte 32% te laag, vlakke ritten 17% te
-  hoog), nu `afstand / 34 km/h + hoogtemeters × 0,045 min`. Die twee constanten
+  hoog), nu `afstand / 34 km/h + hoogtemeters × 0,045 min` (sinds 2026-09-30
+  alleen nog voor niet-Zwift-events; een Zwift-race heeft een eigen model, zie de
+  ronde "ZRL en FRR in het schema"). Die twee constanten
   zijn een kleinste-kwadraten-fit op het natuurkundige model uit
   `lib/ride-estimate.ts`, gedraaid over de acht ZWB-events mét GPX; de
   ijkpunten staan als test in `tests/unit/training-events.test.ts`. Afwijking

@@ -23,6 +23,7 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { onePlanPerProfile } from "@/lib/training/active-plan";
+import { refreshEventWorkouts } from "@/lib/training/events";
 
 /**
  * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
@@ -656,11 +657,17 @@ export async function POST(request: Request) {
       }
     }
 
+    // Eventblokken bijwerken waarvan de route of Zwift-link sinds de toezegging
+    // is veranderd, en doorzetten wat na het opslaan van een event is blijven
+    // liggen. Met wat er van het budget over is; de rest volgt de run erna.
+    const eventWorkouts = await refreshEventWorkouts(admin, { deadline }).catch(() => null);
+
     return Response.json({
       ok: true,
       archived,
       finishedGenerations,
       generationsStarted,
+      eventWorkouts,
       budgetSpent: Date.now() > deadline,
       results,
     });

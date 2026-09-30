@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EVENT_TYPE_VALUES } from "@/lib/event-types";
+import { refreshEventWorkouts } from "@/lib/training/events";
 import {
   eventRouteTotals,
   fetchZwiftPublicEvent,
@@ -28,6 +29,9 @@ async function storeRulesQuietly(eventId: string, zwiftEventId: number | null | 
     // Het pacingplan haalt ze zelf op zodra een lid het opent.
   }
 }
+
+/** Zoveel tijd krijgt het doorzetten van bijgewerkte eventblokken na opslaan. */
+const EVENT_REFRESH_BUDGET_MS = 4000;
 
 type EventInput = {
   title: string;
@@ -195,6 +199,14 @@ export async function updateEvent(id: string, input: EventInput) {
   if (error) return { ok: false as const, error: error.message };
 
   await storeRulesQuietly(id, input.zwift_event_id);
+
+  // Met een route of Zwift-link erbij kan de duur van het blok in het schema
+  // veranderen. Wat niet binnen deze paar seconden doorkomt naar intervals.icu,
+  // pakt de dagelijkse ronde op.
+  await refreshEventWorkouts(createAdminClient(), {
+    eventIds: [id],
+    deadline: Date.now() + EVENT_REFRESH_BUDGET_MS,
+  }).catch(() => null);
 
   revalidatePath(`/events/${id}`);
   revalidatePath("/kalender");
