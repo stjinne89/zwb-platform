@@ -123,6 +123,13 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0198`
 > - **Wat wegvalt:** Strava-segmenten, KOM's en kudos. Coltijden en
 >   ZWB-segmenttijden komen alleen terug met eigen segmentmatching op het
 >   GPS-spoor, en met eigen geometrie. Dat is het grootste werk.
+> - **Gratis of betaald** (aangevuld op dezelfde dag). Alles wat ZWB nodig
+>   heeft, zit in het gratis account van intervals.icu: de koppelingen per merk
+>   en de API. Supporters ($4 per maand) krijgen extra's die ZWB niet gebruikt.
+>   **Maar:** een gratis account dat 90 dagen niet op intervals.icu is geweest,
+>   wordt slapend, en dan komen er geen ritten meer binnen. Of onze
+>   API-aanroepen als bezoek tellen, is onbekend (spikepunt 10). Opvangen kan
+>   met een melding in ZWB of met supporterschap.
 >
 > **Bijvangst, belangrijker dan de vraag zelf.** Volgens zoekresultaten over het
 > Strava-beleid van juni 2026:

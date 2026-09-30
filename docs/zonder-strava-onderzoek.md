@@ -188,6 +188,29 @@ moet de eigenaar op `strava.com/legal/api_policy` nalezen.
   `PLAN.md`). Tot die er is: pollen per lid. Met de bestaande
   sync-drempel van 6 uur (`ACTIVITY_SYNC_MAX_AGE_MS`) of een cron.
 
+**Gratis of supporter** (toegevoegd 2026-09-30, uit zoekresultaten; zekerheid
+middel).
+- **Gratis voor iedereen:** de koppelingen met Garmin, Wahoo, Zwift en de andere
+  merken, de API-sleutel en de analyses (CTL/ATL, vermogenscurve, intervallen).
+  Alles wat ZWB nodig heeft, zit in het gratis account.
+- **Alleen voor supporters** ($4 per maand): de volledige Strava-historie via
+  de API (gratis: 3 maanden), het jaarplan, volledig eigen zones, route
+  matching, pendelritten automatisch markeren, CSV-streams uploaden, teams en
+  coaching. ZWB gebruikt niets daarvan.
+- **Het addertje: slapende accounts.** Een gratis account wordt DORMANT als het
+  lid intervals.icu 90 dagen niet heeft bezocht. Dan verwerkt intervals.icu
+  **geen nieuwe ritten meer**, ook niet van Garmin of Wahoo. Na een bezoek
+  werkt het weer, soms pas na opnieuw koppelen met Garmin. Supporters hebben dit
+  niet.
+  - Voor ZWB weegt dit zwaar: leden gebruiken ZWB, niet intervals.icu, en
+    lopen dus juist dit risico.
+  - Onbekend: of onze API-aanroepen met de sleutel van het lid als bezoek
+    tellen. Waarschijnlijk niet; de forumdraad spreekt van "de site bezoeken".
+  - Opvangen: ZWB meldt het als een lid met een intervals-koppeling ongewoon
+    lang geen rit meer binnenkrijgt, of vraagt elke twee maanden "open
+    intervals.icu even". Of het lid wordt supporter; ongeveer €45 per jaar per
+    lid. Of de club dat voor leden kan betalen, is niet uitgezocht.
+
 **Risico's.**
 - **Eén man, door supporters betaald.** intervals.icu draait op één ontwikkelaar
   (David Tinker). Valt het weg, dan staan we weer stil. Het vangnet: het
@@ -256,7 +279,7 @@ moet de eigenaar op `strava.com/legal/api_policy` nalezen.
 | Mijn garage (km per fiets) | Strava-fietsen vallen weg | kilometers per fiets zelf optellen; handmatige fietsen bestaan al (`0091`). intervals.icu kent ook "gear"; nakijken in de spike |
 | Samenvatting in de Strava-beschrijving | weg | eventueel in de beschrijving op intervals.icu |
 | Zwift-routeprofielen | los van leden, maar valt ook onder de 7-dagenregel | aparte bron voor routes (buiten dit onderzoek) |
-| Historie | nieuwe ritten via intervals.icu. Oude: intervals.icu haalt bij koppelen historie op van Garmin en andere merken, en kan een Strava-bulkexport importeren | per lid één keer; na te gaan in de spike |
+| Historie | nieuwe ritten via intervals.icu. Oude: de Strava-bulkexport (het archief dat Strava mailt) kan het lid gratis in intervals.icu importeren; die valt niet onder de Strava-API-regels. Historie ophalen via de Strava-API is gratis maar 3 maanden, volledig alleen voor supporters. Of Garmin bij koppelen historie meestuurt: na te gaan | per lid één keer; spikepunt 7 |
 
 **Segmentgeometrie.** De geometrie van onze ZWB-segmenten komt nu van
 Strava-segmenten (`lib/segments/geometry-sync.ts`). Onder de 7-dagenregel mag
@@ -313,6 +336,11 @@ fase 1.
 | 5 | Strava: óf beperken tot "eigen data, alleen voor het lid, 7 dagen, geen AI", óf ontkoppelen (deauthorize via de bestaande sweeper). | klein | — |
 | later | intervals.icu OAuth-app + webhooks, als de registratie wordt goedgekeurd. | klein | — |
 
+**Tijdens de overgang gaat niets verloren.** Een Garmin, Wahoo of Zwift kan
+tegelijk aan Strava en aan intervals.icu hangen. Leden kunnen dus nu al
+rechtstreeks koppelen, terwijl de app nog uit Strava leest. Een functie verdwijnt
+pas als we Strava zelf beperken of loskoppelen (fase 5).
+
 **Onafhankelijk van deze fasering, en eerder:** de Strava-data die nu naar
 OpenAI gaat, en de 7-dagenregel. Zie 2.4. Dat is een besluit van de eigenaar.
 
@@ -343,6 +371,7 @@ Geen code. Met een eigen account, en met een Garmin-lid dat toestemming geeft.
 | 7 | Haalt intervals.icu bij koppelen de Garmin-historie op? | Garmin-lid uit punt 2 | historie gedekt | Strava-bulkexport in intervals.icu importeren |
 | 8 | Kent intervals.icu fietsen (gear) met kilometers per rit? | Instellingen en API van het eigen account | garage via intervals.icu | kilometers per fiets zelf tellen |
 | 9 | Hoe staat de OAuth-registratie bij intervals.icu? | intervals.icu-account van de app | webhooks inbouwen | pollen blijft |
+| 10 | Houdt een API-aanroep een gratis account wakker (geen DORMANT na 90 dagen)? | Navragen op het intervals.icu-forum of bij David Tinker | geen actie van leden nodig | slaapmelding in ZWB, of supporter |
 
 ## 9. Bewust niet voorgesteld, en waarom
 
@@ -392,7 +421,10 @@ vanuit de cloud-omgeving niet bereikbaar.
   - [API access (limieten, OAuth)](https://forum.intervals.icu/t/api-access-to-intervals-icu/609);
   - [App-integraties](https://www.intervals.icu/features/app-integrations/);
   - [FIT-bestanden downloaden](https://forum.intervals.icu/t/can-i-download-the-original-fit-file-directly-from-intervals-icu/110550);
-  - [ROUVY en intervals.icu](https://support.rouvy.com/hc/en-us/articles/35523188955793-ROUVY-and-Intervals-icu).
+  - [ROUVY en intervals.icu](https://support.rouvy.com/hc/en-us/articles/35523188955793-ROUVY-and-Intervals-icu);
+  - [Prijzen (gratis en supporter)](https://www.intervals.icu/pricing/);
+  - [Slapend account na 90 dagen](https://forum.intervals.icu/t/solved-suspended-account-no-activity-processed-ans-acc-set-dormant-if-90days-not-visit-intervals-icu-is-not-supporter/112826);
+  - [Alle data uit Strava importeren](https://forum.intervals.icu/t/import-all-data-from-strava/81068).
 - Overig:
   - [Polar AccessLink via Open Wearables](https://openwearables.io/docs/providers/polar-api-integration);
   - [Coros Partner API](https://support.coros.com/hc/en-us/articles/53181766856724-Partner-API-Access);
