@@ -65,8 +65,9 @@ gaat stabiliteit voor nieuwe features.
    positie op, zonder vermogen, cadans, hartslag en afstand.
    `0192_live_wahoo_link.sql` is toegepast (de vaste Wahoo-link werkt op
    productie, 2026-09-28). Daarna je Wahoo-link koppelen op Samen fietsen en een
-   proefrit maken. De Garmin-proefrit (spikepunten 1, 2 en 4) moet een lid met
-   een Edge doen, met diens toestemming.
+   proefrit maken. Garmin werkt met het persoonlijke adres als ontvanger
+   (Stijn, 2026-09-30; spikepunt 1). Spikepunten 2 en 4 (afzender/DKIM en de
+   echte trackpointvelden) zijn nog niet nagekeken.
    **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
    sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
    migratie heten de standaard sweet-spotworkouts in de app Drempel.
@@ -4611,6 +4612,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Garmin-stappen op /hulp volgens de echte route in Garmin Connect
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Alleen tekst: `hulp/page.tsx` en de zoektermen in
+`help-search.tsx`. Geen migratie.
+
+**Aanleiding.** Stijn volgde de oude stap "Voeg het adres toe als contact" en
+kwam uit bij Contacten in Garmin Connect. Daar stond het adres als
+telefooncontact, maar zo werd het geen LiveTrack-ontvanger. Wat wel werkt: Edge
+aan en verbonden, Veiligheid en tracking → LiveTrack → Deelinstellingen →
+Ontvangers, daar een nieuw contact met het adres maken (een telefooncontact is
+niet nodig), sessie starten en bij Sessiedetails controleren dat het adres als
+ontvanger staat. Daarmee is spikepunt 1 uit het
+[onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md) beantwoord: Garmin
+accepteert het persoonlijke `live-…`-adres.
+
+**Wat er veranderde.** De Garmin-stappen op `/hulp#livetrack` volgen nu die
+route. De probleemoplossing verwijst naar Sessiedetails in plaats van alleen
+"controleer het adres".
+
+**Niet geverifieerd.** Waar Automatisch starten precies staat, heeft Stijn niet
+beschreven; de stap noemt de instelling zonder menupad. Spikepunten 2 en 4
+blijven open. tsc en eslint niet gedraaid (geen `node_modules` in de
+worktree); de wijziging zit alleen in strings.
 
 ### Opgeleverd — ZRL-uitslagen in "Teams en scorebord", Instagram hoger
 

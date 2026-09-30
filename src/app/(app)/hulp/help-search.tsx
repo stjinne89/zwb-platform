@@ -88,7 +88,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Live volgen met Garmin of Wahoo",
     text: "Garmin: je LiveTrack-mail naar je clubadres. Wahoo: je vaste link koppelen.",
     href: "/hulp#livetrack",
-    terms: "garmin wahoo edge elemnt livetrack live track live volgen kaart samen fietsen mail adres",
+    terms: "garmin wahoo edge elemnt livetrack live track live volgen kaart samen fietsen mail adres ontvangers contact deelinstellingen veiligheid tracking sessiedetails",
   },
   {
     title: "Live tracking instellen",

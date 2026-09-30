@@ -225,9 +225,11 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
 
 const GARMIN_LIVETRACK_STEPS = [
   "Maak op Samen fietsen je persoonlijke adres en kopieer het. Het wordt één keer getoond.",
-  "Open Garmin Connect en ga naar Veiligheid en tracking → LiveTrack.",
-  "Voeg het adres toe als contact en zet Automatisch starten aan.",
-  "Start een rit op je Edge terwijl je telefoon verbonden is. Je verschijnt binnen een paar minuten op de kaart.",
+  "Zet je Edge aan, open Garmin Connect en wacht tot de Edge verbonden is.",
+  "Ga naar Veiligheid en tracking → LiveTrack → Deelinstellingen → Ontvangers.",
+  "Maak daar een nieuw contact aan met het adres. Een contact in je telefoon is niet nodig.",
+  "Start een LiveTrack-sessie en kijk bij Sessiedetails of het adres als ontvanger staat. Je verschijnt binnen een paar minuten op de kaart.",
+  "Zet Automatisch starten aan, dan start LiveTrack voortaan bij elke rit vanzelf.",
 ];
 
 const WAHOO_LIVETRACK_STEPS = [
@@ -517,7 +519,7 @@ const ADMIN_GUIDES = [
 const TROUBLESHOOTING = [
   "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op het dashboard.",
   "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of het dashboard en zet het activiteitenvinkje aan.",
-  "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, controleer dan het adres en Automatisch starten.",
+  "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, kijk dan in Garmin Connect bij LiveTrack → Sessiedetails of je adres als ontvanger staat, en of Automatisch starten aan staat.",
   "Verschijn je niet live met je Wahoo? Open je Wahoo-link zelf: staat je rit daar niet, dan heeft de ELEMNT-app geen verbinding. Anders verschijn je binnen een paar minuten nadat iemand Samen fietsen opent.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
   "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
