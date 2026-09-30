@@ -394,11 +394,20 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 > - de ritten van de laatste 48 uur gaan naar OpenAI (`adapt-context.ts`,
 >   `draft.ts`, `pacing/draft.ts`).
 >
-> Daarnaast is `segments/explore` sinds 1 september alleen voor Extended
-> Access; de segmentverkenner gebruikt het. Dat verklaart vermoedelijk de
-> algemene afwijzing, en het betekent dat ook de huidige 10 koppelingen
-> waarschijnlijk niet in regel zijn. **Besluit van de eigenaar nodig**, los van
-> een overstap.
+> ~~Daarnaast is `segments/explore` sinds 1 september alleen voor Extended
+> Access; de segmentverkenner gebruikt het.~~ **Gecorrigeerd 2026-09-30:** de
+> verkenner leest uit de eigen database en werkt (ook gezien door de
+> eigenaar). Alleen `resolveCuratedSegments` gebruikt `explore`, om de 10
+> samengestelde `europe_flat`-kandidaten uit `0072` aan een Strava-id te
+> koppelen. Een fout wordt daar stil overgeslagen. Zie onderzoek §2.2.
+> Controlequery (alleen lezen):
+> `select collection, source, count(*), count(*) filter (where strava_segment_id is null) as zonder_id, max(updated_at) filter (where source = 'strava-explore') as laatst_via_explore from zwb_segments group by 1, 2 order by 1, 2;`
+> Staan er kandidaten zonder id en is `laatst_via_explore` ouder dan 1
+> september, dan kan de `explore`-aanroep eruit (3 tot 20 calls per run).
+>
+> De drie punten hierboven verklaren vermoedelijk de algemene afwijzing, en ze
+> betekenen dat ook de huidige 10 koppelingen waarschijnlijk niet in regel
+> zijn. **Besluit van de eigenaar nodig**, los van een overstap.
 >
 > **Voorstel.** Eerst een spike zonder code (sectie 8 van het onderzoek): de
 > eigenaar koppelt Wahoo en Zwift rechtstreeks aan intervals.icu, een Garmin-lid
@@ -421,8 +430,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 > **Niet geverifieerd.** Alle primaire bronnen (strava.com, Wahoo, Garmin,
 > intervals.icu, Polar) waren vanuit de cloud-omgeving geblokkeerd. De externe
 > feiten komen uit zoekresultaten en samenvattingen. Spikepunten 5 en 6 laten
-> de eigenaar de beleidsteksten zelf nalezen. Niet op productie gecontroleerd:
-> of de segmentverkenner echt faalt.
+> de eigenaar de beleidsteksten zelf nalezen. ~~Niet op productie
+> gecontroleerd: of de segmentverkenner echt faalt.~~ De verkenner faalt niet;
+> zie de correctie hierboven.
 
 ---
 

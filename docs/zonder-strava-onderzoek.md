@@ -45,8 +45,8 @@ controleert de punten die de keuze bepalen.
    API krijgt dan alleen `{ source: "STRAVA", _note: "…not available via the
    API" }` terug (zie `src/lib/training/ride-metrics.ts`). Dat is nu bij de
    meeste leden zo.
-6. **Wat wegvalt: alles wat Strava zelf is.** Strava-segmenten, KOM's, de
-   segmentverkenner en kudos. Coltijden en ZWB-segmenttijden kunnen terugkomen
+6. **Wat wegvalt: alles wat Strava zelf is.** Strava-segmenten, KOM's, nieuwe
+   tijden in de segmentverkenner en kudos. Coltijden en ZWB-segmenttijden kunnen terugkomen
    als we ze zelf uit het GPS-spoor berekenen. Dat is het grootste bouwwerk.
 7. **Nieuw en belangrijk: ook de huidige 10 koppelingen staan onder druk.**
    Volgens de bronnen verbiedt het Strava-beleid van 2026 drie dingen die de app
@@ -78,7 +78,7 @@ gelezen.
 | Cols gepasseerd | `raw.map.summary_polyline` | `lib/cols/detector.ts` |
 | ZWBlokken (ook Zwift-werelden) | polyline, `device_name`, `external_id` | `lib/zwblokken/sync.ts` |
 | Coltijden, ZWB-segmenten, KOM's | **Strava segment efforts** (`include_all_efforts`) | `lib/segments/sync.ts`, `lib/cols/segment-times.ts` |
-| Segmentverkenner | `GET /segments/explore` | `lib/segments/sync.ts` L962 |
+| Samengestelde kandidaat-segmenten koppelen (niet de verkenner zelf, zie 2.2) | `GET /segments/explore` | `resolveCuratedSegments`, `lib/segments/sync.ts` L962 |
 | Mijn garage | fietsen en kilometers uit `/athlete` | `lib/strava/client.ts` L336 |
 | Samenvatting in de Strava-beschrijving | `activity:write` | `lib/strava/post-sync.ts`, `summary-writer.ts` |
 | Zwift-routeprofielen | streams van Strava-segmenten (app-niveau) | `lib/events/zwift-route-streams.ts` |
@@ -112,9 +112,19 @@ moet de eigenaar op `strava.com/legal/api_policy` nalezen.
 ### 2.2 Weggehaalde endpoints (1 september 2026)
 
 - Club Activities, Club Members en Club Admins zijn verwijderd.
-- `segments/explore` is alleen nog voor Extended Access. **Onze segmentverkenner
-  gebruikt dat endpoint** (`lib/segments/sync.ts` L962). Hij werkt dus
-  waarschijnlijk niet meer. Niet gecontroleerd op productie.
+- `segments/explore` is alleen nog voor Extended Access. ~~Onze
+  segmentverkenner gebruikt dat endpoint. Hij werkt dus waarschijnlijk niet
+  meer.~~ **Gecorrigeerd 2026-09-30,** na nakijken in de code op verzoek van de
+  eigenaar, die zag dat ZWB Segments gewoon werkt:
+  - De verkenner (`/profiel/segments`) leest uit onze eigen database.
+    Segmenttijden komen uit de ritdetails, records en lijnen uit
+    `/segments/{id}` en de bijbehorende streams.
+  - Alleen `resolveCuratedSegments` (`lib/segments/sync.ts` L933) gebruikt
+    `explore`. Die koppelt samengestelde kandidaten zonder Strava-id aan een
+    segment: de 10 `europe_flat`-kandidaten uit `0072`, zoals Champs-Élysées en
+    Arenberg. Een fout wordt daar stil overgeslagen.
+  - Werkt `explore` niet meer, dan blijven alleen die kandidaten zonder id. Op
+    productie nog niet nagekeken; de query staat in `PLAN.md`.
 
 ### 2.3 Bewaren, tonen, AI
 
@@ -284,7 +294,7 @@ middel).
 | ZWBlokken | blijft | idem |
 | Coltijden, ZWB-segmenttijden | alleen met **eigen segmentmatching** | fase 3, grootste werk |
 | Strava-KOM's | **weg** (dat zijn Strava-klassementen) | eventueel club-KOM's uit eigen tijden |
-| Segmentverkenner | **al weg** voor ons (explore gesloten, 2.2) | eigen geometrie |
+| Segmentverkenner | werkt; alleen het koppelen van nieuwe samengestelde kandidaten valt mogelijk weg (2.2). Zonder Strava geen nieuwe segmenttijden | eigen geometrie en matching (fase 3) |
 | Mijn garage (km per fiets) | Strava-fietsen vallen weg | kilometers per fiets zelf optellen; handmatige fietsen bestaan al (`0091`). intervals.icu kent ook "gear"; nakijken in de spike |
 | Samenvatting in de Strava-beschrijving | weg | eventueel in de beschrijving op intervals.icu |
 | Zwift-routeprofielen | los van leden, maar valt ook onder de 7-dagenregel | aparte bron voor routes (buiten dit onderzoek) |
