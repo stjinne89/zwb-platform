@@ -1096,9 +1096,10 @@ export default function HelpPage() {
               intervals.icu; die nemen we één op één over. Garmin doet dat niet —
               Body Battery en Training Readiness blijven in Garmin Connect en
               komen niet mee. Voor die horloges rekent ZWB zelf een readiness uit
-              je HRV, je rust-hartslag en je slaap, telkens afgezet tegen je eigen
-              gemiddelde van de afgelopen 30 dagen. Zo&apos;n waarde staat in de
-              app met <em>berekend door ZWB</em> erbij.
+              je HRV en je rust-hartslag, afgezet tegen je eigen gemiddelde van de
+              afgelopen 30 dagen, en je slaapscore. Korte nachten tellen daarna
+              apart mee, net als bij de andere apparaten. Zo&apos;n waarde staat in
+              de app met <em>berekend door ZWB</em> erbij.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Meet je horloge geen HRV, of is je laatste meting ouder dan een

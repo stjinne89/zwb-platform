@@ -271,6 +271,12 @@ function clamp(value: number, min: number, max: number) {
  * de wellness-API van intervals.icu; wat er wél elke dag binnenkomt is HRV,
  * rust-hartslag en slaap. Precies de bouwstenen van een herstelscore.
  *
+ * Slaapduur zit er bewust niet in. Die weegt via `sleepPenalty` als aftrek op
+ * de trainingsruimte, net als bij een apparaat dat zelf readiness levert. In
+ * dit getal kon zes uur slaap een lid met HRV en rust-HR op baseline onder de
+ * 50 duwen, en dan op "herstel voorrang" zetten, terwijl de staffel dat alleen
+ * bij structureel minder dan 5,5 uur doet.
+ *
  * De schaal volgt de bestaande drempels (≤50 laag, <70 middelmatig, ≥75 goed),
  * zodat een afgeleide waarde net zo leest als die van een Whoop of Polar.
  * Alles wordt afgezet tegen de eigen baseline, niet tegen een absolute norm:
@@ -285,13 +291,12 @@ export function deriveReadiness(input: {
   hrvBase: number | null;
   restingHr: number | null;
   rhrBase: number | null;
-  sleepHours: number | null;
   sleepScore: number | null;
   baselineDays: number;
   /** Ouderdom van de nieuwste meting; oude data mag geen vers oordeel opleveren. */
   dataAgeDays: number | null;
 }): number | null {
-  const { hrv, hrvBase, restingHr, rhrBase, sleepHours, sleepScore, baselineDays } = input;
+  const { hrv, hrvBase, restingHr, rhrBase, sleepScore, baselineDays } = input;
   if (baselineDays < MIN_BASELINE_DAYS) return null;
 
   // Zonder verse meting zegt een herstelgetal niets. Een lid van wie het
@@ -318,11 +323,6 @@ export function deriveReadiness(input: {
   // van 50 is 6% en kost hier ~18 punten — vergelijkbaar met de bestaande regel
   // die daar de status op 'fatigued' zet.
   if (hasRhr) score += clamp(((rhrBase! - restingHr!) / rhrBase!) * 300, -20, 10);
-
-  if (sleepHours != null) {
-    const step = SLEEP_STEPS.find((entry) => sleepHours < entry.below);
-    if (step) score -= step.penalty;
-  }
 
   // Slaapkwaliteit als bijstelling, niet als hoofdmoot: 75 is neutraal.
   if (sleepScore != null) score += clamp((sleepScore - 75) / 3, -8, 8);
@@ -385,9 +385,11 @@ export function summarizeWellness(
   const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date)); // nieuwste eerst
 
   // Een rij uit de toekomst is onzin (tijdzone-artefact) en telt niet mee.
+  // Vandaag telt als dag één: met `age <= days` besloeg "7 dagen" er acht en
+  // "30 dagen" er eenendertig.
   const withinDays = (row: WellnessRow, days: number) => {
     const age = daysBetween(row.date, today);
-    return age != null && age >= 0 && age <= days;
+    return age != null && age >= 0 && age < days;
   };
   const last7 = sorted.filter((row) => withinDays(row, RECENT_DAYS));
 
@@ -429,7 +431,6 @@ export function summarizeWellness(
           hrvBase,
           restingHr,
           rhrBase,
-          sleepHours,
           sleepScore,
           baselineDays: baselineWindow.length,
           dataAgeDays: sorted[0] ? daysBetween(sorted[0].date, today) : null,
@@ -613,13 +614,9 @@ export function summarizeTrainingReadiness({
     }
 
     // Korte nachten drukken de score gestaffeld; de zwaarste stap zit al in
-    // `state` verwerkt en telt daar niet nog een keer bovenop. Bij een berekende
-    // readiness zit de slaapaftrek al in dat getal, dus dan ook niet.
-    if (
-      wellness.sleepPenalty > 0 &&
-      wellness.state !== "fatigued" &&
-      wellness.readinessSource !== "afgeleid"
-    ) {
+    // `state` verwerkt en telt daar niet nog een keer bovenop. Geldt ook bij een
+    // berekende readiness: die rekent zelf geen slaapduur mee.
+    if (wellness.sleepPenalty > 0 && wellness.state !== "fatigued") {
       score -= wellness.sleepPenalty;
       if (recoveryState === "ready") recoveryState = "caution";
     }

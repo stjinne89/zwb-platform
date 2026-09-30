@@ -341,6 +341,18 @@ describe("summarizeWellness — versheidsgrens", () => {
     expect(summary.note).not.toContain("binnen de normale range");
   });
 
+  it("telt precies 7 dagen voor het weekgemiddelde, vandaag meegerekend", () => {
+    // De dag van acht dagen geleden (hrv 200) hoort er niet meer bij.
+    const rows = series("2026-06-28", 30, (i) => (i === 7 ? { hrv: 200 } : {}));
+    const summary = summarizeWellness(rows, null, "2026-06-28")!;
+    expect(summary.hrv).toBe(90);
+  });
+
+  it("telt precies 30 dagen voor de baseline", () => {
+    const summary = summarizeWellness(series("2026-06-28", 40), null, "2026-06-28")!;
+    expect(summary.days).toBe(30);
+  });
+
   it("negeert rijen met een datum in de toekomst", () => {
     const rows = [day("2026-07-05", { hrv: 200 }), ...series("2026-06-28", 20)];
     const summary = summarizeWellness(rows, null, "2026-06-28")!;
@@ -357,7 +369,6 @@ describe("deriveReadiness", () => {
     hrvBase: 90,
     restingHr: 45,
     rhrBase: 45,
-    sleepHours: 7.5,
     sleepScore: null,
     baselineDays: 30,
     dataAgeDays: 0,
@@ -383,11 +394,6 @@ describe("deriveReadiness", () => {
     expect(deriveReadiness({ ...basis, restingHr: 48 })!).toBeLessThan(60);
   });
 
-  it("verwerkt korte nachten met dezelfde staffel als de rest van de app", () => {
-    expect(deriveReadiness({ ...basis, sleepHours: 6.4 })).toBe(64);
-    expect(deriveReadiness({ ...basis, sleepHours: 5.2 })).toBe(48);
-  });
-
   it("neemt de slaapscore mee als bijstelling rond een neutrale 75", () => {
     expect(deriveReadiness({ ...basis, sleepScore: 90 })!).toBeGreaterThan(70);
     expect(deriveReadiness({ ...basis, sleepScore: 60 })!).toBeLessThan(70);
@@ -398,14 +404,12 @@ describe("deriveReadiness", () => {
       ...basis,
       hrv: 40,
       restingHr: 60,
-      sleepHours: 4,
       sleepScore: 10,
     })!;
     const plafond = deriveReadiness({
       ...basis,
       hrv: 200,
       restingHr: 35,
-      sleepHours: 9,
       sleepScore: 100,
     })!;
     expect(bodem).toBeGreaterThanOrEqual(5);
@@ -507,9 +511,18 @@ describe("summarizeWellness — readiness afleiden", () => {
     expect(summary.readinessSource).toBeNull();
   });
 
-  it("telt de slaapaftrek niet dubbel in de trainingsruimte", () => {
-    // De aftrek zit al in het berekende getal; nog eens apart aftrekken zou een
-    // korte nacht twee keer laten meetellen.
+  it("rekent slaapduur niet in het berekende getal", () => {
+    const uitgerust = summarizeWellness(series("2026-06-28", 30), "garmin", "2026-06-28")!;
+    const kortGeslapen = summarizeWellness(
+      series("2026-06-28", 30, () => ({ sleep_secs: 5.8 * 3600 })),
+      "garmin",
+      "2026-06-28",
+    )!;
+    expect(kortGeslapen.readiness).toBe(uitgerust.readiness);
+    expect(kortGeslapen.sleepPenalty).toBe(14);
+  });
+
+  it("trekt korte nachten één keer af, net als bij een apparaat", () => {
     const rows = series("2026-06-28", 30, () => ({ sleep_secs: 6.4 * 3600 }));
     const wellness = summarizeWellness(rows, "garmin", "2026-06-28")!;
     expect(wellness.readinessSource).toBe("afgeleid");
@@ -520,7 +533,30 @@ describe("summarizeWellness — readiness afleiden", () => {
       tsb: 0,
       wellness: { ...wellness, sleepPenalty: 0 },
     });
-    expect(metAftrek.score).toBe(zonderAftrek.score);
+    expect(metAftrek.score).toBe(zonderAftrek.score! - 6);
+  });
+
+  it("zet een lid met herstel op baseline niet op herstel door een paar korte nachten", () => {
+    // Een Garmin-lid met een ruime TSB, HRV en rust-HR vrijwel op baseline en
+    // een week met ~5,9 uur slaap stond op "herstel voorrang": de slaapaftrek
+    // zat in het berekende getal en duwde dat onder de 50. Met een apparaat dat
+    // zelf readiness levert was het bij een aftrek gebleven.
+    const rows = [
+      ...series("2026-06-28", 7, () => ({
+        hrv: 86,
+        resting_hr: 46,
+        sleep_secs: 5.9 * 3600,
+        sleep_score: 65,
+      })),
+      ...series("2026-06-21", 23),
+    ];
+    const wellness = summarizeWellness(rows, "garmin", "2026-06-28")!;
+    expect(wellness.state).toBe("normal");
+    expect(wellness.sleepPenalty).toBe(14);
+    expect(wellness.readiness!).toBeGreaterThan(50);
+
+    const result = summarizeTrainingReadiness({ tsb: 23, wellness });
+    expect(result.state).toBe("caution");
   });
 });
 

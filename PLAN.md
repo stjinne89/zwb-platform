@@ -4184,6 +4184,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — korte nachten zetten een Garmin-lid niet meer op "herstel voorrang"
+
+**2026-09-30.** Geen migratie. Rechtstreeks naar `main` gepusht.
+
+**Aanleiding.** Een lid met een Garmin, een ruime TSB en weinig training stond
+volgens eigen zeggen al lange tijd op ZWBeterWorden-niveau 2. Zijn
+wellness-rijen zijn alleen lezend gecontroleerd: geen gaten, geen nullen, geen
+verkeerde schaal. Met de echte code nagerekend bleek hij enkele dagen op niveau
+2 te staan, en daarvoor op niveau 4. De meetwaarden van het lid staan bewust
+niet in dit plan.
+
+**Oorzaak.** `deriveReadiness` (sinds `bcb8ed0`, 2026-08-10) trok de
+slaapstaffel van `SLEEP_STEPS` af van het berekende getal. Een weekgemiddelde
+van ongeveer zes uur slaap kostte zo 14 punten binnen de readiness. Samen met
+een HRV en rust-HR die vrijwel op baseline lagen, zakte de readiness daardoor
+onder de 50. Een readiness van 50 of lager zet `summarizeTrainingReadiness` op
+"recovery". Met een ruime TSB geeft dat altijd score 44, dus niveau 2. Bij een
+apparaat dat zelf readiness levert (Oura, Whoop, Polar) is dezelfde slaap
+alleen een aftrek van 14 op de trainingsruimte en kan hij de status niet
+omzetten. Alleen minder dan 5,5 uur slaap zet de status om. Voor Garmin-,
+Coros- en Suunto-leden woog slaap dus zwaarder dan voor de rest.
+
+**Wat er veranderde.**
+- `deriveReadiness` neemt geen slaapduur meer mee, alleen HRV, rust-HR en de
+  slaapscore als bijstelling. De parameter `sleepHours` is weg.
+- `summarizeTrainingReadiness` trekt `sleepPenalty` nu ook af bij een berekende
+  readiness. De uitzondering "zit al in het getal" is weg; de aftrek telt nog
+  steeds één keer.
+- `/hulp` ("Readiness en je apparaat") zegt nu dat korte nachten apart
+  meetellen, net als bij de andere apparaten.
+- **Vensters van 7 en 30 dagen.** `withinDays` in `summarizeWellness` telde met
+  `age <= days`. Daardoor besloeg "7 dagen" acht kalenderdagen en de baseline
+  van "30 dagen" eenendertig. Nu is het `age < days`, met vandaag als dag één.
+  Op Stijns verzoek.
+- Tests in `tests/unit/wellness.test.ts`: slaapduur verandert het berekende
+  getal niet, de aftrek landt één keer, beide vensters hebben de juiste lengte,
+  en een regressietest met verzonnen waarden die dit geval nabootst. Die faalt
+  op de oude code (readiness 41) en slaagt op de nieuwe.
+- **Effect op het lid.** Met alleen de slaapfix kwam hij van niveau 2 op 3.
+  Door het kortere venster wegen twee zeer slechte nachten in de week zwaarder,
+  en staat hij voorlopig weer op niveau 2. Dat komt nu uit zijn HRV, rust-HR en
+  slaapscore, niet uit de slaapduur. Het is dus een terecht signaal op zijn
+  eigen metingen, geen rekenfout.
+
+**Bewust niet gebouwd.**
+- **Een berekende readiness nooit zelf "herstel" laten geven.** Doorgerekend
+  zou het lid dan de hele periode op niveau 4 staan, ook na een nacht met een
+  sterk gezakte HRV. Te grof: een echt slechte nacht moet zichtbaar blijven.
+- **Een enkele slechte nacht minder laten wegen** (mediaan in plaats van
+  gemiddelde). Niet gevraagd, en het verandert ook de apparaat-route.
+
+**Niet lokaal te verifiëren.** Het niveau op productie hangt ook af van de TSB
+uit intervals.icu en van de nacht die na de sync binnenkomt. Controleer na de
+deploy de ZWBeterWorden-pagina van het lid. Vallen de slechte nachten uit het
+venster en blijven de overige waarden vergelijkbaar, dan hoort hij op niveau 3
+of 4 uit te komen.
+
 ### Opgeleverd — knop "Clubevents op kalender" op de eventscan
 
 **2026-09-28.** Geen migratie. Lokaal gecommit, niet gepusht.
