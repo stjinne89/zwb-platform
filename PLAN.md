@@ -80,11 +80,9 @@ gaat stabiliteit voor nieuwe features.
    `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
    `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
    (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
-   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql`,
-   `0201_src_month_entries.sql`, `0202_src_results.sql` en
-   `0203_src_reminders.sql` toepassen **vóór** de deploy (beheerpagina, sync
-   en `/src` lezen de nieuwe tabellen, en het event- en teamtype `src` bestaan
-   anders niet). Daarna `SRC_SYNC_SECRET` in Netlify,
+   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` t/m
+   `0203_src_reminders.sql` zijn toegepast (Stijn, 2026-09-30). Nog te doen:
+   `SRC_SYNC_SECRET` in Netlify,
    deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
    events vast), daar het SRC-team aanmaken met de teamnaam die ZWB bij MyWhoosh
    gebruikt, en een job `POST /api/src/sync` elk uur op cron-job.org (runbook
