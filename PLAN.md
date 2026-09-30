@@ -836,7 +836,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 > + core · onderhoud · **Clubraces** · Teams en scorebord · Aankomende events · Nieuws
 > · Ritverslagen · foto-nudge · badges · KOM's/QOM's · Training en clubactiviteit
 > (Strava-sync, `#strava-sync` werkt nog) · clubstats · polls en ledenvoordeel ·
-> sponsors.
+> sponsors. *(Sinds 2026-09-30 staat Instagram tussen trainingsstatus/core en
+> onderhoud; zie "ZRL-uitslagen in Teams en scorebord".)*
 >
 > - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
 >   clubraces in de komende 14 dagen. Het gaat om de races van je teams en om
@@ -4611,6 +4612,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZRL-uitslagen in "Teams en scorebord", Instagram hoger
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Geen migratie (leest
+`0188_zrl_team_results`).
+
+**Aanleiding.** Stijn zag "Teams en scorebord" niet op zijn dashboard. Het blok
+las alleen `team_results`, en die krijgt geen ZRL-uitslagen meer: de WTRL-sync
+staat sinds 2026-09-21 uit en had er op productie nooit iets in gezet. De echte
+ZRL-uitslag staat sinds `0188` in `zrl_team_results` (de freeze-job, elke 15
+min), maar werd alleen op de eventpagina getoond. Met een lege `team_results`
+verdween het blok dus altijd.
+
+**Wat er veranderde.**
+- Het dashboard leest ook `zrl_team_results` met het teamevent en het team. Een
+  regel heet "Zwift Racing League", toont de eventtitel, `#plaats/teams` en de
+  punten, en linkt naar het teamevent in plaats van de teampagina. Dezelfde
+  7-dagengrens als de rest van het blok, op de startdatum van de race;
+  `computed_at` beperkt alleen de query.
+- Eén regel per team **per competitie** (was: per team). Een team dat zowel in
+  de Club Ladder als de ZRL rijdt, krijgt dus twee regels.
+- De Instagram-strip staat nu direct onder trainingsstatus/core en boven
+  onderhoud (keuze Stijn), om het beeld hoger op de pagina te krijgen.
+
+**Niet lokaal geverifieerd.** tsc en eslint zijn schoon. De select
+(`total_teams:teams`, `team:team_id(...)`, `events(...)`) is anoniem tegen de
+productie-API gedraaid en geeft 200 (leeg, want alleen ingelogde leden mogen
+lezen), dus de syntax en de relaties kloppen. Of er deze week al bevroren
+ZRL-uitslagen zijn, en hoe het blok er met echte rijen uitziet, is niet bekeken.
+
 ### Opgeleverd — Instagram-fotostrip op het dashboard
 
 **2026-09-30.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -4622,8 +4652,8 @@ posts van @zwb_cycling.
 
 **Wat er veranderde.**
 - Het dashboard toont de laatste drie `media_items` met `kind = 'instagram'` en
-  een `cover_url` als vierkante fototegels, boven "Nieuws, mededelingen en
-  media". Elke tegel linkt naar de post; de sectiekop naar @zwb_cycling
+  een `cover_url` als vierkante fototegels, tussen trainingsstatus/core en
+  onderhoud (eerst boven het nieuws; verplaatst in de ronde hierboven). Elke tegel linkt naar de post; de sectiekop naar @zwb_cycling
   (`dashboard/_components/instagram-strip.tsx`). Geen leeftijdsgrens: ook een
   oudere post blijft staan tot er een nieuwere is.
 - Instagram-items staan niet meer in de nieuwslijst van het dashboard, anders

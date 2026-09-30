@@ -128,7 +128,20 @@ type UpcomingEvent = {
   cover_image_path: string | null;
 };
 
-type TeamStandingWithTeam = TeamStanding & { team: TeamRef };
+type TeamStandingWithTeam = TeamStanding & { team: TeamRef; href: string };
+
+// Bevroren ZRL-uitslag van een teamevent (migr. 0188), gevuld door de
+// freeze-job uit Zwift-data. Sinds de WTRL-sync uit staat de enige ZRL-bron.
+type ZrlTeamResultRow = {
+  event_id: string;
+  team_id: string | null;
+  rank: number;
+  total_teams: number;
+  points: number;
+  computed_at: string;
+  events: { title: string; start_at: string } | { title: string; start_at: string }[] | null;
+  team: TeamRef | TeamRef[] | null;
+};
 
 type AwardRow = {
   id: string;
@@ -213,13 +226,44 @@ function relatedTeam(result: TeamStanding) {
   return Array.isArray(result.teams) ? result.teams[0] : result.teams;
 }
 
+function zrlStandings(rows: ZrlTeamResultRow[], sinceIso: string): TeamStanding[] {
+  const standings: TeamStanding[] = [];
+  for (const row of rows) {
+    const event = Array.isArray(row.events) ? row.events[0] : row.events;
+    if (!row.team_id || !event || event.start_at < sinceIso) continue;
+    standings.push({
+      id: `zrl:${row.event_id}`,
+      team_id: row.team_id,
+      competition: "Zwift Racing League",
+      round_label: event.title,
+      round_at: event.start_at,
+      position: row.rank,
+      points: row.points,
+      total_teams: row.total_teams,
+      created_at: row.computed_at,
+      source_url: `/events/${row.event_id}`,
+      teams: row.team,
+    });
+  }
+  return standings;
+}
+
+// Eén regel per team per competitie: de nieuwste uitslag.
 function latestStandings(results: TeamStanding[]): TeamStandingWithTeam[] {
   const byTeam = new Map<string, TeamStandingWithTeam>();
+  const sorted = [...results].sort((a, b) =>
+    (b.round_at ?? b.created_at).localeCompare(a.round_at ?? a.created_at),
+  );
 
-  for (const result of results) {
+  for (const result of sorted) {
     const team = relatedTeam(result);
     if (!result.position || !team) continue;
-    if (!byTeam.has(result.team_id)) byTeam.set(result.team_id, { ...result, team });
+    const key = `${result.competition}|${result.team_id}`;
+    if (byTeam.has(key)) continue;
+    const href = result.id.startsWith("zrl:")
+      ? (result.source_url ?? `/teams/${result.team_id}`)
+      : `/teams/${result.team_id}`;
+    byTeam.set(key, { ...result, team, href });
   }
 
   return Array.from(byTeam.values()).sort((a, b) => {
@@ -366,6 +410,7 @@ export default async function DashboardPage({
     { data: stravaConn },
     { data: komRows },
     { data: instagramRows },
+    { data: zrlResultRows },
   ] = await Promise.all([
     user
       ? supabase
@@ -494,6 +539,15 @@ export default async function DashboardPage({
       .not("cover_url", "is", null)
       .order("published_at", { ascending: false })
       .limit(3),
+    // computed_at ligt kort na de race; de racedatum zelf filtert zrlStandings.
+    supabase
+      .from("zrl_team_results")
+      .select(
+        "event_id, team_id, rank, total_teams:teams, points, computed_at, events(title, start_at), team:team_id(id, name, type, division)",
+      )
+      .gte("computed_at", since7Iso)
+      .order("computed_at", { ascending: false })
+      .limit(40),
   ]);
 
   // Ritverslagen = voorbije events van de afgelopen 7 dagen, verrijkt met een
@@ -568,7 +622,10 @@ export default async function DashboardPage({
   const benefits = ((benefitRows ?? []) as unknown as BenefitRow[]).filter(
     (benefit) => benefit.active && (!benefit.valid_until || benefit.valid_until >= today),
   );
-  const standings = latestStandings((standingRows ?? []) as unknown as TeamStanding[]);
+  const standings = latestStandings([
+    ...((standingRows ?? []) as unknown as TeamStanding[]),
+    ...zrlStandings((zrlResultRows ?? []) as unknown as ZrlTeamResultRow[], since7Iso),
+  ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
   const koms = (komRows ?? []) as SegmentKom[];
@@ -782,6 +839,8 @@ export default async function DashboardPage({
         </Suspense>
       </div>
 
+      {instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
+
       {user?.id && <MaintenanceStatus profileId={user.id} />}
 
       {clubRaces.length > 0 && (
@@ -806,7 +865,7 @@ export default async function DashboardPage({
             {standings.map((standing) => (
               <li key={standing.id}>
                 <Link
-                  href={`/teams/${standing.team_id}`}
+                  href={standing.href}
                   className="grid gap-3 p-4 transition hover:bg-muted/50 sm:grid-cols-[1.2fr_1fr_auto] sm:items-center"
                 >
                   <div className="min-w-0">
@@ -855,8 +914,6 @@ export default async function DashboardPage({
           eventList(otherEvents)
         )}
       </section>
-
-      {instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
 
       {mediaItems.length > 0 && (
         <section>
