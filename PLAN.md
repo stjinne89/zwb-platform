@@ -4631,8 +4631,13 @@ GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
 - **Segmenttijden en KOM's uit een GPX.** Die komen uit Strava's
   segment-inspanningen. Zelf tijden over een segment berekenen uit de
   GPX-tijdstempels is technisch mogelijk, maar het is een productkeuze of zulke
-  tijden naast Strava-tijden in het klassement mogen. Stijn wil eerst onderzoek,
-  zonder te bouwen.
+  tijden naast Strava-tijden in het klassement mogen. Stijn wilde eerst
+  onderzoek, zonder te bouwen: zie
+  [segmenttijden uit een GPS-spoor](docs/segmenttijden-uit-gps-onderzoek.md).
+  Conclusie: technisch haalbaar en voor cols nauwkeurig genoeg. De blokkade is
+  de geometrie: segmentlijnen komen van Strava, en cols hebben alleen een top.
+  Advies: coltijden op eigen startpunten, eerst als persoonlijk record. Wacht op
+  Stijns keuzes (sectie 8 van dat document).
 - **FIT- en TCX-bestanden en de ZIP van de Strava-export.** In dat archief
   staan de meeste ritten als `.fit.gz`. Niet gevraagd.
 
