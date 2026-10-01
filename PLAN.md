@@ -4660,6 +4660,66 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — rechten fase B: rechten per thema en één register
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
+`0206_themed_permissions.sql`.
+
+**Waarom.** Een paar brede rechten dekten losse beheerschermen af:
+- `community.manage` gaf ook pushberichten aan iedereen, Strava-beheer en
+  segmenten;
+- `events.manage_all` gaf ook de eventscan, Zwift-routes en FRR;
+- ZRL en WTRL hingen aan `teams.manage_roster`.
+
+Menu en pagina gebruikten soms verschillende rechten. Bij ZRL liet de pagina
+drie rechten toe, terwijl het menu er één toonde. Stijn koos een indeling per
+thema.
+
+**Nu.**
+- Nieuwe rechten, elk op `/beheer/rechten`:
+
+  | Recht | Geldt voor | Gekregen door rollen met |
+  |---|---|---|
+  | `calendar.sources` | eventscan, Zwift-routes | `events.manage_all` |
+  | `competitions.manage` | ZRL-kalender, WTRL-teams, FRR | `teams.manage_roster` of `events.manage_all` |
+  | `integrations.manage` | Strava-sync, segmenten, storingsmeldingen | `community.manage` |
+  | `notifications.broadcast` | `/beheer/notificaties` | `community.manage` |
+  | `zwbgame.manage` | `/zwbgame/beheer` | alleen bestuur |
+
+  De migratie zet ze in de bestaande rolrijen, dus niemand verliest toegang.
+  `community.manage` blijft voor aankondigingen, WhatsApp-groepen en tips;
+  `events.manage_all` voor andermans events.
+- `live.manage` werd nergens gecontroleerd en is weg: uit de code, de check en
+  alle rolrijen.
+- Nieuw register `src/lib/admin-areas.ts`: per beheergebied href, label en het
+  ene recht. Daaruit komen:
+  - `ADMIN_NAV` (het beheermenu, nu ook met Segmenten en ZWBgame);
+  - de controles in de pagina's en server-actions van eventscan, Zwift-routes,
+    ZRL, FRR, WTRL, Strava, segmenten, notificaties, SRC en ZWBgame.
+- ZWBgame-beheer liep op `is_admin`; nu op `zwbgame.manage`. De SRC-fallback
+  (`events.manage_all`/`community.manage`) is weg.
+- Storingsmeldingen gingen naar `is_admin`. Nu gaan ze via
+  `profileIdsWithPermission` naar wie `integrations.manage` heeft, met een link
+  naar `/beheer/strava`. Die link wees naar `/beheer`, dat geen pagina is. Het
+  storingsoverzicht staat nu ook op `/beheer/strava`.
+
+**Bewust niet.**
+- `requireOmniumAccess` (drie kopieën) is niet samengevoegd: ze controleren al
+  precies `omnium.manage`.
+- De rest van de app (teams, kalender, training) houdt zijn eigen rechten.
+- Een rol die je op `/beheer/rechten` eerder bewust een oud recht afnam, heeft
+  het nieuwe recht ook niet. Een rol die het oude recht wél heeft, krijgt het
+  nieuwe erbij. Kijk na het draaien op `/beheer/rechten` of de verdeling klopt.
+
+**Getest.**
+- Nieuwe `tests/unit/admin-areas.test.ts`:
+  - het menu komt uit het register;
+  - elk recht in het register en in de standaardrollen bestaat;
+  - de toegestane lijst in de laatste migratie is precies `COMMUNITY_PERMISSION_IDS`;
+  - 0206 in PGlite verdeelt de nieuwe rechten goed, ruimt `live.manage` op en
+    weigert een onbekend recht.
+- Verder: `tsc`, ESLint, de unit-suite en `next build`.
+
 ### Opgeleverd — rechten fase A: beveiligingsgaten dicht
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
@@ -4734,9 +4794,10 @@ verwijderen van álle events toestaan.
 `/beheer/rechten`). Standaard hebben het bestuur, de community-beheerder en de
 event-organiser het; de migratie zet het ook in hun opgeslagen rijen en breidt de
 check `community_role_permissions_allowed` uit. `SRC_MANAGERS`
-(`src/lib/src/access.ts`: `src.manage`, `events.manage_all`,
-`community.manage`) bewaakt `/beheer/src` met alle acties daar: verversen,
-teams, koppelen. Voor het ledenbeheer op `/src` gelden daarnaast nog
+(`src/lib/src/access.ts`) bewaakt `/beheer/src` met alle acties daar:
+verversen, teams, koppelen. *(Tot de rechtenronde van 2026-10-01 telden daar
+ook `events.manage_all` en `community.manage`; sinds fase B is het alleen
+`src.manage`.)* Voor het ledenbeheer op `/src` gelden daarnaast nog
 `teams.manage_roster` en captains van een SRC-team. Het menu-item SRC-kalender
 volgt nu `src.manage`.
 

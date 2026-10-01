@@ -3,12 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { sendNotificationToMembers, isPushConfigured } from "@/lib/push/send";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export async function broadcastNotification(formData: FormData) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.has("community.manage")) {
+  if (!access.has(adminAreaPermission("notificaties"))) {
     return {
       ok: false as const,
       error: "Geen recht om aankondigingen te versturen.",

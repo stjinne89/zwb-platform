@@ -7,6 +7,7 @@ import { groupSubEvents } from "@/lib/events/sub-events";
 import { ZRL_2026_27_ROUNDS } from "@/lib/teams/zrl-season";
 import { ImportForm, type TeamOption } from "./_components/import-form";
 import { RacepassForm, type RacepassMap } from "./_components/racepass-form";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function ZrlKalenderPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.hasAny(["teams.manage_roster", "events.manage_all", "community.manage"])) {
+  if (!access.has(adminAreaPermission("zrl"))) {
     redirect("/dashboard");
   }
 

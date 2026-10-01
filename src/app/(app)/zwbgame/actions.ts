@@ -9,6 +9,8 @@ import { fetchIntervalsActivities, fetchIntervalsPowerCurve } from "@/lib/interv
 import { deriveRider, isAllowedActivity, type PowerInput } from "@/lib/zwbgame/roster";
 import { loadGame, requireGameMember } from "@/lib/zwbgame/server";
 import { CONSENT_VERSION, type GameBootstrap, type GamePreferences } from "@/lib/zwbgame/types";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 type Reply<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 function failure(error: unknown): Reply<never> {
@@ -79,8 +81,11 @@ export async function saveGamePower(input: { source: "manual"; power: PowerInput
 export async function excludeRosterRider(rosterId: string, excluded: boolean): Promise<Reply> {
   try {
     z.string().uuid().parse(rosterId); z.boolean().parse(excluded);
-    const { member } = await requireGameMember();
-    if (!member.is_admin) throw new Error("Alleen beheerders kunnen dit wijzigen.");
+    const { client, member } = await requireGameMember();
+    const access = await getCurrentUserAccess(client);
+    if (!access.has(adminAreaPermission("zwbgame"))) {
+      throw new Error("Geen recht om het ZWBgame-peloton te beheren.");
+    }
     const admin = createAdminClient();
     const result = excluded
       ? await admin.from("zwbgame_roster_exclusions").upsert({ roster_id: rosterId, excluded_by: member.id })

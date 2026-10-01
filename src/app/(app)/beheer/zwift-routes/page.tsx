@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/app-ui";
 import { syncableRoutes } from "@/lib/events/zwift-route-sync";
 import { runRouteProfileSpike, syncBikeList, syncRouteLibrary } from "./_actions";
 import { SpikeButton, SyncButton } from "./_components/spike-button";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -48,7 +49,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.has("events.manage_all")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("zwiftRoutes"))) redirect("/dashboard");
 
   const admin = createAdminClient();
   const { data, error } = await admin

@@ -17,6 +17,7 @@ import { probeEventWindow } from "@/lib/zwift/event-cache";
 import { getMemberZwiftIds, runEventScan } from "@/lib/events/scan-runner";
 import { publishCandidateToCalendar } from "@/lib/events/publish-candidate";
 import { publishClubEvents } from "@/lib/events/club-calendar";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 const MATCH_STATUSES = new Set(["unknown", "likely", "confirmed", "manual"]);
 const CATEGORY_VALUES = new Set(["A", "B", "C", "D", "E"]);
@@ -25,7 +26,7 @@ async function requireEventScanAccess() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return null;
-  if (!access.has("events.manage_all")) {
+  if (!access.has(adminAreaPermission("eventScan"))) {
     return null;
   }
   return { userId: access.user.id, admin: createAdminClient() };

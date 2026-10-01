@@ -10,6 +10,7 @@ import {
   type MembershipRow,
   type RosterEntryRow,
 } from "@/lib/teams/wtrl-membership";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export type WtrlImportInput = {
   text: string;
@@ -25,7 +26,7 @@ export async function importWtrlTeams(input: WtrlImportInput) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.has("teams.manage_roster")) {
+  if (!access.has(adminAreaPermission("wtrl"))) {
     return { ok: false as const, error: "Geen recht om teams bij te werken." };
   }
 
@@ -109,7 +110,7 @@ export async function linkWtrlRider(zwiftId: string, profileId: string) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.has("teams.manage_roster")) {
+  if (!access.has(adminAreaPermission("wtrl"))) {
     return { ok: false as const, error: "Geen recht om teams bij te werken." };
   }
   if (!/^\d+$/.test(zwiftId)) return { ok: false as const, error: "Ongeldig Zwift-ID." };

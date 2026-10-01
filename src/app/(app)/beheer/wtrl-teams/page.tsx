@@ -5,6 +5,7 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { suggestProfileLinks } from "@/lib/teams/wtrl-membership";
 import { WtrlImportForm, type ZwbTeamOption } from "./_components/import-form";
 import { LinkSuggestions } from "./_components/link-suggestions";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export default async function WtrlTeamsPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.has("teams.manage_roster")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("wtrl"))) redirect("/dashboard");
 
   const [
     { data: teams },

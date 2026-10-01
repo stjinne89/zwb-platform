@@ -16,6 +16,7 @@ import {
 } from "@/lib/events/zwift-route-streams";
 import { syncZwiftRoutes } from "@/lib/events/zwift-route-sync";
 import { syncBikeParts } from "@/lib/zwift/bike-sync";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 /**
  * Routes voor de spike: vlak, een HC-klim, lang en gevarieerd, en rollend. Als
@@ -34,7 +35,7 @@ async function requireRouteAccess() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return null;
-  if (!access.has("events.manage_all")) return null;
+  if (!access.has(adminAreaPermission("zwiftRoutes"))) return null;
   return { userId: access.user.id, admin: createAdminClient() };
 }
 

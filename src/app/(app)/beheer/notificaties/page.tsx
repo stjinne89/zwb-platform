@@ -3,12 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink } from "@/components/app-ui";
 import { BroadcastForm } from "./_components/broadcast-form";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export default async function BroadcastPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.has("community.manage")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("notificaties"))) redirect("/dashboard");
 
   const [{ count: subCount }, { count: optInCount }] = await Promise.all([
     supabase

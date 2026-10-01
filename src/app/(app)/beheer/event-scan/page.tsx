@@ -22,6 +22,7 @@ import {
 } from "./_actions";
 import { ClubCalendarButton, ScanButton } from "./_components/scan-button";
 import { IntegrationHealth } from "./_components/integration-health";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -109,7 +110,7 @@ export default async function EventScanPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.has("events.manage_all")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("eventScan"))) redirect("/dashboard");
 
   const admin = createAdminClient();
   const [{ data, error }, { data: participantRows }] = await Promise.all([

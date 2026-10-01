@@ -4,12 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { SegmentSyncButton } from "./sync-button";
 import { BackLink } from "@/components/app-ui";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export const dynamic = "force-dynamic";
 export default async function SegmentAdminPage() {
   const access = await getCurrentUserAccess(await createClient());
   if (!access.user) redirect("/login");
-  if (!access.has("community.manage")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("segments"))) redirect("/dashboard");
   const admin = createAdminClient();
   const [connections, errors] = await Promise.all([
     admin.from("strava_connections").select("profile_id,profiles(display_name)").is("revoked_at", null).order("profile_id").limit(1000),

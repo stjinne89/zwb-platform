@@ -14,6 +14,18 @@ export const COMMUNITY_PERMISSIONS = [
     category: "Kalender",
   },
   {
+    id: "calendar.sources",
+    label: "Kalenderbronnen beheren",
+    description: "Kan de eventscan en de Zwift-routebibliotheek beheren.",
+    category: "Kalender",
+  },
+  {
+    id: "competitions.manage",
+    label: "Competities beheren",
+    description: "Kan de ZRL-kalender, WTRL-teams en FRR-tours beheren.",
+    category: "Teams",
+  },
+  {
     id: "teams.create",
     label: "Teams aanmaken",
     description: "Kan formele teams aanmaken.",
@@ -58,8 +70,20 @@ export const COMMUNITY_PERMISSIONS = [
   {
     id: "community.manage",
     label: "Community beheren",
-    description: "Kan communityblokken, aankondigingen en groepen beheren.",
+    description: "Kan aankondigingen, WhatsApp-groepen en tips en citaten beheren.",
     category: "Community",
+  },
+  {
+    id: "notifications.broadcast",
+    label: "Pushberichten aan alle leden",
+    description: "Kan een pushbericht naar alle leden sturen.",
+    category: "Community",
+  },
+  {
+    id: "integrations.manage",
+    label: "Koppelingen beheren",
+    description: "Kan de Strava-sync en segmenten beheren en krijgt storingsmeldingen.",
+    category: "Koppelingen",
   },
   {
     id: "members.approve",
@@ -89,12 +113,6 @@ export const COMMUNITY_PERMISSIONS = [
     id: "live.start",
     label: "Samen fietsen starten",
     description: "Kan zichzelf zichtbaar maken in Samen fietsen.",
-    category: "Samen fietsen",
-  },
-  {
-    id: "live.manage",
-    label: "Live sessies beheren",
-    description: "Kan live sessies opschonen of beheren.",
     category: "Samen fietsen",
   },
   {
@@ -154,6 +172,12 @@ export const COMMUNITY_PERMISSIONS = [
       "Kan de SRC-kalender verversen, SRC-teams beheren, renners koppelen en leden in een maand zetten.",
     category: "Sunday Race Club",
   },
+  {
+    id: "zwbgame.manage",
+    label: "ZWBgame beheren",
+    description: "Kan renners uit het ZWBgame-peloton halen.",
+    category: "ZWBgame",
+  },
 ] as const;
 
 export type CommunityPermission = (typeof COMMUNITY_PERMISSIONS)[number]["id"];
@@ -170,6 +194,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
   board: [...COMMUNITY_PERMISSION_IDS],
   team_captain: [
     "events.create",
+    "competitions.manage",
     "teams.manage_roster",
     "teams.manage_results",
     "content.create_posts",
@@ -186,6 +211,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
   community_manager: [
     "events.create",
     "events.manage_all",
+    "calendar.sources",
+    "competitions.manage",
+    "notifications.broadcast",
+    "integrations.manage",
     "content.create_posts",
     "content.moderate_posts",
     "media.manage",
@@ -194,7 +223,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     "members.manage_roles",
     "achievements.finalize",
     "live.start",
-    "live.manage",
     "sponsors.manage",
     "polls.manage",
     "training.view_assigned",

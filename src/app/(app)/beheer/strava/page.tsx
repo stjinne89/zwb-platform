@@ -12,6 +12,8 @@ import {
   StravaWebhookPanel,
   type WebhookEventRow,
 } from "./_components/strava-webhook-panel";
+import { adminAreaPermission } from "@/lib/admin-areas";
+import { IntegrationHealth } from "../event-scan/_components/integration-health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -59,7 +61,7 @@ export default async function BeheerStravaPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) redirect("/login");
-  if (!access.has("community.manage")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("strava"))) redirect("/dashboard");
 
   const admin = createAdminClient();
 
@@ -213,6 +215,8 @@ export default async function BeheerStravaPage() {
         actions={<Link href="/beheer/segments" className="rounded-md border px-3 py-2 text-sm">Segmentsynchronisatie</Link>}
         description="Start de Strava-sync voor leden zonder ritten in de statistieken, of herbereken badges en cols — het lid hoeft niets te doen."
       />
+
+      <IntegrationHealth />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Metric label="Gekoppeld" value={`${members.length} / ${stravaAthleteCap()}`} />

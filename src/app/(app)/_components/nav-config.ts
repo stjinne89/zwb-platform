@@ -5,6 +5,7 @@
 // 'group' → dropdown-cluster (desktop) of section-header (mobiel)
 
 import type { CommunityPermission } from "@/lib/permissions";
+import { ADMIN_AREAS } from "@/lib/admin-areas";
 
 export type NavLeaf = {
   type: "link";
@@ -117,8 +118,9 @@ export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/hulp", label: "Hulp" },
 ];
 
-// Admin-items met bijbehorende permission. Filteren gebeurt in de
-// layout via getCurrentUserAccess.
+// Admin-items met bijbehorende permission, uit het register van de
+// beheergebieden (lib/admin-areas.ts). Filteren gebeurt in de layout via
+// getCurrentUserAccess.
 export type AdminNavItem = {
   type: "link";
   href: string;
@@ -126,80 +128,12 @@ export type AdminNavItem = {
   permission: CommunityPermission;
 };
 
-export const ADMIN_NAV: AdminNavItem[] = [
-  {
-    type: "link",
-    href: "/beheer/rechten",
-    label: "Rechten",
-    permission: "roles.manage_permissions",
-  },
-  {
-    type: "link",
-    href: "/beheer/achievements",
-    label: "Badgebeheer",
-    permission: "achievements.finalize",
-  },
-  {
-    type: "link",
-    href: "/beheer/citaten",
-    label: "Tips en citaten",
-    permission: "community.manage",
-  },
-  {
-    type: "link",
-    href: "/beheer/zrl-kalender",
-    label: "ZRL-kalender",
-    permission: "teams.manage_roster",
-  },
-  {
-    type: "link",
-    href: "/beheer/frr-kalender",
-    label: "FRR-kalender",
-    permission: "events.manage_all",
-  },
-  {
-    type: "link",
-    href: "/beheer/src",
-    label: "SRC-kalender",
-    permission: "src.manage",
-  },
-  {
-    type: "link",
-    href: "/beheer/wtrl-teams",
-    label: "WTRL-teams",
-    permission: "teams.manage_roster",
-  },
-  {
-    type: "link",
-    href: "/beheer/event-scan",
-    label: "Eventscan",
-    permission: "events.manage_all",
-  },
-  {
-    type: "link",
-    href: "/beheer/zwift-routes",
-    label: "Zwift-routes",
-    permission: "events.manage_all",
-  },
-  {
-    type: "link",
-    href: "/beheer/omnium",
-    label: "Omnium",
-    permission: "omnium.manage",
-  },
-  {
-    type: "link",
-    href: "/beheer/strava",
-    label: "Strava-sync",
-    permission: "community.manage",
-  },
-  {
-    type: "link",
-    href: "/beheer/notificaties",
-    label: "Notificaties",
-    permission: "community.manage",
-  },
-];
+export const ADMIN_NAV: AdminNavItem[] = Object.values(ADMIN_AREAS).map((area) => ({
+  type: "link" as const,
+  href: area.href,
+  label: area.label,
+  permission: area.permission,
+}));
 
 /**
  * Laat alleen de items over waar de gebruiker recht op heeft. Groepen zonder
