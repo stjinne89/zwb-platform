@@ -468,7 +468,9 @@ const ADMIN_GUIDES = [
     id: "rollenbeheer",
     title: "Rollen, rechten en notificaties",
     bullets: [
-      "De rechtenmatrix bepaalt per communityrol welke beheeracties zijn toegestaan.",
+      "De rechtenmatrix (Beheer → Rechten) bepaalt per communityrol welke beheeracties zijn toegestaan. Elk beheerscherm hoort bij één recht: Kalenderbronnen (eventscan, Zwift-routes), Competities (ZRL-kalender, WTRL-teams, FRR), Sunday Race Club, Omnium, Koppelingen (Strava-sync, segmenten en storingsmeldingen), Pushberichten aan alle leden, Tips en citaten (Community beheren), Badges, ZWBgame en Rechten zelf. Wie een recht niet heeft, ziet het scherm ook niet in het beheermenu.",
+      "Content modereren geeft het recht om posts, reacties, eventchat, ritverslagen, foto's en verjaardagsberichten van anderen weg te halen. Alle events beheren geeft het recht om andermans events te bewerken of te verwijderen.",
+      "Ledenrollen beheren mag rollen geven, maar de rol Bestuur (alle rechten) alleen als je ook rechten beheert. Beheerdersrechten (admin) kan alleen een admin geven.",
       "Technische admins behouden altijd volledige toegang.",
       "Een bestuursmelding gaat alleen naar apparaten van leden die aankondigingen hebben ingeschakeld.",
       "De doorkliklink van een melding opent standaard het dashboard.",

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,7 @@ export default async function KalenderPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const canCreateEvents = (await getCurrentUserAccess(supabase)).has("events.create");
 
   const [
     { data: allEvents },
@@ -315,9 +317,11 @@ export default async function KalenderPage({
       <PageHeader
         title="Kalender"
         actions={
-          <Link href="/kalender/nieuw">
-            <Button>Nieuw event</Button>
-          </Link>
+          canCreateEvents ? (
+            <Link href="/kalender/nieuw">
+              <Button>Nieuw event</Button>
+            </Link>
+          ) : null
         }
       />
 

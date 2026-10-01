@@ -230,7 +230,8 @@ export default async function ClubLadderPage({
     selectedResult?.position ?? null,
   );
   const fixtures = liveFixtures.filter((fixture) => fixtureMatches(fixture, aliases)).slice(0, 6);
-  const canSync = access.has("teams.sync_sources") || access.has("teams.manage_results");
+  // Zelfde recht als syncResultsNow; met alleen manage_results faalde de knop.
+  const canSync = access.has("teams.sync_sources");
 
   return (
     <div className="space-y-6">

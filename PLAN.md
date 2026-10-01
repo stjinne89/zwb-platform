@@ -4660,6 +4660,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — rechten fase D: kleine gaten en uitleg
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Nu.**
+- `/kalender/nieuw` en de knop "Nieuw event" vragen `events.create`. Zonder dat
+  recht zag je eerst het formulier, en weigerde pas het opslaan.
+- `/materiaal/nieuw` en "Nieuw bericht" vragen `content.create_posts`.
+- Club-ladder: de synknop verschijnt alleen bij `teams.sync_sources`, het recht
+  dat `syncResultsNow` ook vraagt. Een captain (met `teams.manage_results`) zag
+  een knop die altijd faalde.
+- `/hulp#rollenbeheer` noemt per beheerscherm het recht dat het vraagt, wat
+  Content modereren en Alle events beheren geven, en de regels voor Bestuur en
+  admin.
+
+**Rechtenronde afgerond (A t/m D).** Nog op productie, in deze volgorde:
+1. migraties `0205_permission_hardening.sql`, `0206_themed_permissions.sql` en
+   `0207_moderation_permission.sql` toepassen, vóór de deploy;
+2. deployen;
+3. `select role, permissions from community_role_permissions order by role;`
+   en `/beheer/rechten` nakijken;
+4. `select has_function_privilege('authenticated', 'public.rate_limit_cleanup()', 'execute');`
+   moet `false` geven.
+
+Zonder 0206 zien niet-admins de beheerschermen met een nieuw recht niet. Zonder
+0205 werkt alles zoals voorheen, maar staan de gaten nog open.
+
+**Getest.** `tsc`, ESLint, de unit-suite en `next build`.
+
 ### Opgeleverd — rechten fase C: moderatie via "Content modereren"
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie

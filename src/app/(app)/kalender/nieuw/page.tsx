@@ -1,9 +1,13 @@
+import { redirect } from "next/navigation";
 import { EventForm } from "./_form";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { BackLink, HelpLink } from "@/components/app-ui";
 
 export default async function NewEventPage() {
   const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.has("events.create")) redirect("/kalender");
   const { data: teams } = await supabase
     .from("teams")
     .select("id, name, type, parent_team_id")
