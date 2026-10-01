@@ -130,6 +130,73 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0211`
 
 ---
 
+> **Strava ontkoppelen met keuze: ritten bewaren of wissen, 2026-10-01 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie. Geen nieuwe
+> privacyversie.
+>
+> **Waarom.** De eigenaar wil bij het ontkoppelen van Strava zijn ritten in ZWB
+> kunnen houden. Tot nu toe wiste ontkoppelen altijd alles wat van Strava kwam,
+> plus de CSV- en GPX-imports.
+>
+> **Besluit van de eigenaar, tegen het advies in.** Strava's API-beleid eist dat
+> data binnen 30 dagen na deauthorisatie weg is (§2.5, §7.4; zie de ronde
+> "Verder zonder Strava"). Bewaren na ontkoppelen gaat daar tegenin en zet de
+> API-toegang van alle koppelingen op het spel. Voorgelegd met twee
+> alternatieven (alleen imports sparen; niets wijzigen); de eigenaar koos voor
+> de volledige keuze.
+>
+> **Gebouwd.**
+> - `/profiel`, blok Strava: "Ontkoppel Strava" opent een keuze **Ritten
+>   bewaren** / **Ritten wissen** / Annuleren, in plaats van een
+>   bevestigingsvraag.
+> - Nieuwe reden `member_keep_data` in `REVOKED_REASONS`, met
+>   `keepsStravaData()` in `lib/strava/lifecycle.ts`. De keuze zit in
+>   `revoked_reason`, dus zonder nieuwe kolom. Zo kent ook de nachtrun hem als
+>   de deauthorisatie eerst mislukte.
+> - `revokeAndCleanupStravaConnection` en `purgeDeauthorizedConnections`
+>   (`lib/strava/sweep.ts`) slaan bij die reden `purgeStravaDataForProfile`
+>   over en halen alleen de rij uit `strava_connections` weg.
+> - De toestemming bij Strava wordt in beide gevallen ingetrokken, dus de plek
+>   in de cap komt vrij.
+> - Bij bewaren blijft staan: ritten, samenvattingen, segmenttijden, fietsen uit
+>   Strava, CSV/GPX-imports, `profiles.strava_id` en een profielfoto van
+>   Strava's CDN.
+> - Teksten: `/hulp#badges` (één regel) en `/privacy` sectie 4 plus de regel
+>   over het segmentklassement.
+>
+> **Ongewijzigd.** Alle andere wegen wissen nog steeds: beheerder
+> ("Opheffen"), de 90-dagenregel, intrekken op strava.com, een afgewezen token,
+> overstappen naar intervals.icu en account verwijderen.
+>
+> **Gevolg om te kennen.** Koppelt het lid daarna intervals.icu, dan slaat de
+> intervals-sync ritten over die al als Strava-rit staan (`dedupeRides`). De
+> bewaarde Strava-versie blijft dan de rit in ZWB.
+>
+> **Bewust niet.**
+> - Geen knop om bewaarde ritten later alsnog te wissen. Dat loopt via het
+>   bestuur of account verwijderen; `/privacy` zegt dat zo.
+> - Geen keuze bij de overstap naar intervals.icu: daar komen de ritten terug
+>   uit intervals.icu.
+> - Geen nieuwe privacyversie: het lid kiest zelf en er komt geen nieuwe
+>   verwerking bij. **Nog voor te leggen aan de eigenaar** of dat klopt, en of
+>   versie `2026-09-30` al op productie staat.
+>
+> **Claims die niet meer kloppen.** `docs/strava-api-resubmission.md` sectie 3
+> ("we delete the Strava data we hold") is niet meer waar; daar staat nu een
+> waarschuwing boven. De regel "Strava verandert niet" in de privacyronde van
+> 2026-09-30 hieronder is gemarkeerd als achterhaald.
+>
+> **Verificatie.**
+> - Nieuwe test `tests/unit/strava-keep-data.test.ts`: bewaren, wissen, een
+>   geweigerde deauthorisatie gevolgd door de nachtrun, en de nachtrun bij een
+>   andere reden. Volledige suite 1.927 geslaagd, behalve `omnium-live` (geen
+>   `.env.local`). `tsc` schoon, ESLint schoon op de gewijzigde mappen.
+>   `next build` niet gedraaid.
+> - **Niet lokaal te verifiëren:** de knoppen op `/profiel` met een echt
+>   account (geen Supabase hier) en de echte deauthorize-call bij Strava.
+
+---
+
 > **Database slank en snel, 2026-09-30 — gebouwd, lokaal getest; productiestappen open.**
 > Commit: de commit die dit blok toevoegt. Migraties `0208_query_indexes.sql`,
 > `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (**nog niet toegepast**).
@@ -241,7 +308,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0211`
 >   zijn gezondheidsgegevens op grond van intrekbare toestemming (AVG art. 9).
 >   Na intrekken is er geen grondslag om ze te bewaren.
 > - **Strava** verandert niet: die data gaat bij ontkoppelen weg, zoals Strava
->   eist.
+>   eist. **Achterhaald sinds 2026-10-01:** het lid kiest nu zelf tussen bewaren
+>   en wissen (zie de ronde "Strava ontkoppelen met keuze").
 >
 > **Gebouwd.**
 > - `purgeWellnessForProfile` in `lib/training/wellness.ts`, via de

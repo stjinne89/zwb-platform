@@ -10,6 +10,10 @@
 // beklommen cols blijven staan. profile_climbed_cols degradeert daarbij netjes:
 // de FK best_time_activity_id staat op `on delete set null` (migratie 0075), dus
 // de tijd blijft en alleen de verwijzing naar de rit verdwijnt.
+//
+// Uitzondering sinds 2026-10-01: ontkoppelt een lid zelf en kiest hij "Ritten
+// bewaren", dan wordt hier niets gewist (keepsStravaData in lifecycle.ts). Dat
+// gaat tegen Strava's API-beleid in; de eigenaar heeft dat zo besloten.
 
 import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { GPS_EFFORT_PREFIX } from "@/lib/segments/gps-sync";

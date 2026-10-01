@@ -171,7 +171,7 @@ export default function PrivacyPage() {
             vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
             niet met andere leden gedeeld. Privéritten, ritten die alleen jij mag
             zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Van ritten via intervals.icu en geüploade GPX-bestanden meet ZWB de tijd op segmenten en cols zelf uit het GPS-spoor; die tijd staat met het label GPS in hetzelfde klassement. Bij het verbreken van je Strava-koppeling vervallen je
-            Strava-tijden uit dit klassement; eigen tijden op ritten via intervals.icu blijven.
+            Strava-tijden uit dit klassement, tenzij je ervoor kiest je ritten te bewaren; eigen tijden op ritten via intervals.icu blijven.
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
@@ -289,9 +289,12 @@ export default function PrivacyPage() {
             bent. Bij het verwijderen van je account worden deze gegevens gewist.
           </li>
           <li>
-            Je kunt je Strava-koppeling op elk moment verbreken. We verwijderen
-            dan de opgehaalde Strava-ritten, hun segmenttijden en fietsen; badges en
-            ZWBlokken blijven staan. Stap je van Strava over naar intervals.icu,
+            Je kunt je Strava-koppeling op elk moment verbreken. Je kiest dan
+            zelf of we de opgehaalde Strava-ritten, hun segmenttijden en fietsen
+            verwijderen of bewaren. Bewaar je ze, dan blijven ze staan zolang je
+            lid bent en zien clubleden ze zoals voorheen; wil je ze later alsnog
+            weg, vraag het bestuur (zie &ldquo;Je rechten&rdquo;). Badges en
+            ZWBlokken blijven in beide gevallen staan. Stap je van Strava over naar intervals.icu,
             dan verdwijnen je Strava-ritten en komen je ritten voortaan via
             intervals.icu.
           </li>

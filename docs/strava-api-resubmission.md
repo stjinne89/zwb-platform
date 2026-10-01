@@ -7,6 +7,11 @@
 > is precies wat deze notitie beschrijft. Zie
 > [verder zonder Strava](zonder-strava-onderzoek.md), sectie 2. Dit document
 > blijft staan als verslag.
+>
+> **Niet meer waar sinds 2026-10-01:** sectie 3 van de notitie ("Data handling")
+> zegt dat we Strava-data wissen zodra een autorisatie eindigt. Een lid dat zelf
+> ontkoppelt kan nu kiezen zijn ritten te bewaren; dan wissen we niets. Zie de
+> ronde van 2026-10-01 in `PLAN.md`. Stuur deze notitie zo niet meer naar Strava.
 
 Dit document heeft twee delen: de **checklist** (wat er af moet vóór we opnieuw
 indienen, in het Nederlands) en de **notitie** die letterlijk naar Strava gaat, in

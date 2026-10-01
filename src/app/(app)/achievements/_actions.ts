@@ -81,7 +81,7 @@ export async function syncMyStravaActivities(
  * Lukt de call bij Strava niet, dan blijft de koppeling gemarkeerd staan: de app
  * negeert 'm vanaf nu, en de nachtelijke sweeper probeert het opnieuw.
  */
-export async function disconnectStrava() {
+export async function disconnectStrava(options: { keepData?: boolean } = {}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -90,7 +90,11 @@ export async function disconnectStrava() {
 
   const admin = createAdminClient();
   const { revokeAndCleanupStravaConnection } = await import("@/lib/strava/sweep");
-  const result = await revokeAndCleanupStravaConnection(admin, user.id, "member");
+  const result = await revokeAndCleanupStravaConnection(
+    admin,
+    user.id,
+    options.keepData === true ? "member_keep_data" : "member",
+  );
 
   revalidatePath("/achievements");
   revalidatePath("/profiel");

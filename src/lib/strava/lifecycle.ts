@@ -29,9 +29,21 @@ export const REVOKED_REASONS = [
   "admin",
   /** Lid stapte over naar ritten via intervals.icu (lib/intervals/ride-sync.ts). */
   "switched_to_intervals",
+  /** Lid ontkoppelde zelf en koos ervoor zijn ritten in ZWB te houden. */
+  "member_keep_data",
 ] as const;
 
 export type RevokedReason = (typeof REVOKED_REASONS)[number];
+
+/**
+ * Of de opgehaalde Strava-data na het opheffen blijft staan. Besluit van de
+ * eigenaar (2026-10-01): alleen als het lid daar bij het ontkoppelen zelf voor
+ * kiest. De keuze zit in de reden, zodat ook de nachtrun hem kent als de
+ * deauthorisatie eerst mislukte.
+ */
+export function keepsStravaData(reason: string | null | undefined): boolean {
+  return reason === "member_keep_data";
+}
 
 export function isRevokedReason(value: unknown): value is RevokedReason {
   return (REVOKED_REASONS as readonly string[]).includes(String(value));
