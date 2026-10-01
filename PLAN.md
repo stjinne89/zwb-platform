@@ -129,6 +129,51 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
+> **Laadtijd: minder oversteken per pagina, 2026-10-01 — gebouwd, lokaal getest; effect nog niet gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Na de databaseronde zijn de queries snel (dashboardfeed 377 → 5 ms),
+> maar een ingelogde pagina deed er op de server nog 1 tot 3 seconden over (gemeten
+> in de browser, acht pagina's elk vier keer: teams ~1,0 s, dashboard 1,6–2,0 s,
+> stats 2,0–2,7 s, ZWBeter Worden 2,8–3,2 s). Oorzaak: de Netlify-functies draaien
+> in Ohio (CMH), Supabase staat in Ierland. Elke vraag aan database of Auth is een
+> oversteek, en een pagina doet er meerdere na elkaar. De regio aanpassen kan alleen
+> op een betaald Netlify-plan; de eigenaar wil eerst de gratis stappen.
+>
+> **Wat.**
+> - `getSessionUser` (`lib/auth/session-user.ts`): wie er ingelogd is komt uit het
+>   JWT zelf (`getClaims()`, lokaal gecontroleerd met de ES256-sleutel van het
+>   project) in plaats van via een rondje naar de Auth-server. Gebruikt door de
+>   middleware, `getRequestUser` en `getCurrentUserAccess`, dus ook door
+>   serveracties. Valt terug op `getUser()` als de lokale controle faalt of een fout
+>   gooit.
+> - Dashboard: rechten, ritbron en de verslagen/chat/foto's van voorbije events
+>   lopen mee in de eerste ronde in plaats van ervoor en erna (drie rondes minder).
+> - Clubstatistieken: tien minuten gedeeld gecachet (`unstable_cache`, service-rol).
+>   Veilig omdat `strava_activities` en `profiles` voor elk ingelogd lid leesbaar
+>   zijn; nagekeken in de policies op productie.
+> - `NavProgress`: een voortgangsbalk bovenaan zodra een lid op een interne link
+>   klikt. Kost de server niets.
+>
+> **Gedrag dat verandert.** Een ingetrokken sessie of verwijderd account blijft
+> geldig tot het JWT verloopt (standaard een uur); voorheen werd dat bij elke klik
+> bij de Auth-server nagevraagd. De goedkeuring van een lid wordt nog steeds bij elk
+> verzoek in de database gecontroleerd, en de database controleert het JWT zelf. Een
+> nieuwe rit telt hooguit tien minuten later mee in de clubstatistieken.
+>
+> **Niet gebouwd, en waarom.** `loading.tsx` per pagina: dat laat Next alle
+> zichtbare links voorladen, en elke voorlading is hier een functieaanroep met
+> databasevragen; de Netlify-credits zijn beperkt. De overige gedeelde gegevens op
+> het dashboard cachen: ze zitten in één parallelle ronde met de persoonlijke
+> vragen, dus dat scheelt geen oversteek. De andere trage pagina's (ZWBeter Worden,
+> stats) zijn nog niet aangepakt.
+>
+> **Getest.** 1.895 unittests (nieuw: `session-user.test.ts`), lint zonder fouten,
+> `npm run build`. **Niet getest:** het gedrag in de browser. Ingelogde pagina's zijn
+> lokaal niet te draaien zonder in te loggen, dus het effect en de voortgangsbalk
+> zijn pas na een deploy te zien. De inlogwijziging raakt elk verzoek; dat is het
+> risico van deze ronde.
+
 > **Geplande Netlify-functies verwijderd, 2026-10-01 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >

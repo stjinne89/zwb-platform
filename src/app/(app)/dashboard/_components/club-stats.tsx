@@ -1,5 +1,6 @@
 import { TrendingUp, Mountain, Clock, Bike } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import {
   RiderOfTheMonthCarousel,
@@ -94,31 +95,50 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-export async function ClubStats() {
-  const supabase = await createClient();
-  const since = new Date();
-  since.setUTCDate(since.getUTCDate() - WEEKS_BACK * 7);
-  since.setUTCHours(0, 0, 0, 0);
+/**
+ * De ritten van alle leden over het venster, tien minuten gedeeld tussen alle
+ * leden. Elke vraag aan de database is een oversteek (functies in Ohio, database
+ * in Ierland), en dit waren er twee achter elkaar per dashboardweergave. De
+ * uitkomst is voor elk lid gelijk: strava_activities en profiles zijn voor alle
+ * ingelogde leden leesbaar (RLS `using (true)`), dus de service-rol toont hier
+ * niets wat een lid niet zelf mag zien. Een nieuwe rit telt hooguit tien minuten
+ * later mee.
+ */
+const loadClubActivities = unstable_cache(
+  async (): Promise<ActivityRow[]> => {
+    const admin = createAdminClient();
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - WEEKS_BACK * 7);
+    since.setUTCHours(0, 0, 0, 0);
 
-  // Gepagineerd: Supabase geeft standaard hooguit 1000 rijen. Op 2026-09-30 vielen
-  // er al 1.090 ritten in het venster, dus de totalen misten stilletjes ritten.
-  const PAGE = 1000;
-  const activities: ActivityRow[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data: rows } = await supabase
-      .from("strava_activities")
-      .select(
-        "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
-      )
-      .gte("start_date", since.toISOString())
-      .in("sport_type", CYCLING_SPORTS)
-      .order("start_date")
-      .order("id")
-      .range(from, from + PAGE - 1);
-    const page = (rows ?? []) as ActivityRow[];
-    activities.push(...page);
-    if (page.length < PAGE) break;
-  }
+    // Gepagineerd: Supabase geeft standaard hooguit 1000 rijen. Op 2026-09-30 vielen
+    // er al 1.090 ritten in het venster, dus de totalen misten stilletjes ritten.
+    const PAGE = 1000;
+    const activities: ActivityRow[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data: rows } = await admin
+        .from("strava_activities")
+        .select(
+          "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
+        )
+        .gte("start_date", since.toISOString())
+        .in("sport_type", CYCLING_SPORTS)
+        .order("start_date")
+        .order("id")
+        .range(from, from + PAGE - 1);
+      const page = (rows ?? []) as ActivityRow[];
+      activities.push(...page);
+      if (page.length < PAGE) break;
+    }
+    return activities;
+  },
+  ["club-stats-activities", "v1"],
+  { revalidate: 600 },
+);
+
+export async function ClubStats() {
+  // Faalt de cache of de service-rol, dan geen blok in plaats van een kapot dashboard.
+  const activities = await loadClubActivities().catch(() => [] as ActivityRow[]);
 
   if (activities.length === 0) {
     return null;

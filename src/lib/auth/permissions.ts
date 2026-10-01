@@ -1,4 +1,5 @@
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSessionUser, type SessionUser } from "@/lib/auth/session-user";
 import { normalizeCommunityRoles } from "@/lib/community-roles";
 import {
   COMMUNITY_PERMISSION_IDS,
@@ -17,7 +18,7 @@ type RolePermissionRow = {
 };
 
 export type CurrentUserAccess = {
-  user: User | null;
+  user: SessionUser | null;
   isAdmin: boolean;
   permissions: Set<CommunityPermission>;
   has: (permission: CommunityPermission) => boolean;
@@ -27,16 +28,13 @@ export type CurrentUserAccess = {
 export async function getCurrentUserAccess(
   supabase: SupabaseClient,
 ): Promise<CurrentUserAccess> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return accessForUser(supabase, user);
+  return accessForUser(supabase, await getSessionUser(supabase));
 }
 
 /** Rechten van een al opgehaalde gebruiker; zie ook getRequestAccess. */
 export async function accessForUser(
   supabase: SupabaseClient,
-  user: User | null,
+  user: SessionUser | null,
 ): Promise<CurrentUserAccess> {
   if (!user) {
     const empty = new Set<CommunityPermission>();

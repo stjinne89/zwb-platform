@@ -11,6 +11,7 @@ import { DesktopNav } from "./_components/desktop-nav";
 import { AvatarMenu } from "./_components/avatar-menu";
 import { MobileMenu } from "./_components/mobile-menu";
 import { BackButton } from "./_components/back-button";
+import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
 import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
@@ -92,6 +93,7 @@ export default async function AppLayout({
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
+      <NavProgress />
       <header className="relative border-b border-border/80 bg-background/88 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 md:gap-6">
           <Link
