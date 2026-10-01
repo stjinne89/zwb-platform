@@ -7,19 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-1. **Database slank en snel (2026-09-30, bijgewerkt 2026-10-01).** Migraties
-   `0208`–`0210` zijn toegepast, de segmentpogingen zijn ingekort en de disk staat
-   rond 77%. De database is nog 1,26 GB tegen 0,5 GB op het Free-plan; de ruimte is
-   alleen terug te krijgen door de tabel te verwijderen. Besluit van de eigenaar
-   (2026-10-01): de segmentverkenner en de ZWB KOM's gaan eruit, de collecties
-   blijven (ronde hieronder). **In deze volgorde:** de code deployen; daarna
-   `0212_remove_segment_explorer.sql` toepassen (pas ná de deploy: de oude code
-   leest de tabellen nog); `vacuum full public.zwb_segment_maps;`; `npm run
-   db:health` moet daarna ~210 MB melden. `0211_drop_segment_efforts_priority_index.sql`
-   is daarmee overbodig geworden (de tabel verdwijnt), maar mag toegepast worden.
-   `?segmentBackfill=0` mag uit de URL van de job "ZWB Strava webhooks"; de parameter
-   doet niets meer. De wekelijkse check (`npm run db:health`, geplande taak op dinsdag
-   10:00) meldt of 0212 al is toegepast.
+1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
+   is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
+   Nog te doen, klein: `vacuum full public.zwb_segment_maps;`, `?segmentBackfill=0`
+   uit de URL van de job "ZWB Strava webhooks" (doet niets meer), en de Supabase CLI
+   op de pc van de eigenaar repareren (start niet meer sinds 2026-10-01; zonder CLI
+   draait `npm run db:health` en dus de wekelijkse check van dinsdag niet).
+   `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
+   Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
 2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
@@ -134,9 +129,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
-> **Segmentverkenner en ZWB KOM's verwijderd, 2026-10-01 — gebouwd, lokaal getest; migratie open.**
-> Commit: de commit die dit blok toevoegt. Migratie `0212_remove_segment_explorer.sql`
-> (**nog niet toegepast; pas ná de deploy**).
+> **Segmentverkenner en ZWB KOM's verwijderd, 2026-10-01 — gebouwd, live, migratie toegepast.**
+> Commit: `af49250`. Migratie `0212_remove_segment_explorer.sql`, door de eigenaar
+> toegepast op 2026-10-01 na de deploy. Gemeten daarna: database 200 MB (was 1.260),
+> pogingen, KOM-tabellen en views weg, 77 lijnen in het register, 514 collectierijen.
 >
 > **Waarom.** De tabel met segmentpogingen was ~1 GB van een database van 1,26 GB op
 > een Free-plan van 0,5 GB. Na het inkorten van `raw` (ronde hieronder) bleef het
@@ -194,7 +190,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 > uitgekozen lijnen, GPS-tijden in de rit, overige tabellen nog te wijzigen),
 > `segment-collections.test.ts`, en aangepaste tests voor de GPS-opslag en het
 > wissen bij ontkoppelen.
-> **Niet te testen hier:** 0212 op productie. De lijst van triggers en functies is
+> **Niet vooraf getest:** 0212 op productie. De lijst van triggers en functies is
 > niet naast productie gelegd, want de Supabase CLI startte op 2026-10-01 niet meer;
 > de migratie zoekt ze daarom op naam op en controleert zichzelf. Ook niet getest:
 > de Strava-calls, en `db-health.mjs` na de aanpassing (zelfde reden).
