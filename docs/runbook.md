@@ -264,7 +264,9 @@ hooguit één keer per 30 s per sessie.
   rondjes worden alleen gemaakt als een lid erom vraagt.
 - **"Geen Zwift-voorstellen bij een training"** → in volgorde: staat er iets in
   `zwift_events` (anders draait de uurcron niet of geeft hij 403 op een
-  ontbrekend `ZWIFT_EVENT_SYNC_SECRET`); reikt de spiegel tot de dag van die
+  ontbrekend `ZWIFT_EVENT_SYNC_SECRET`); meldt de sync bij `events` ruim honderd
+  rijen (een handvol betekent dat het filter in `mapZwiftEventToRow` te veel
+  weggooit, zoals op 2026-10-01); reikt de spiegel tot de dag van die
   training (druk op **Test eventvenster**, en zie `windowsIgnored` in het
   antwoord van de sync); heeft het lid FTP én gewicht op zijn profiel staan.
   Staat alles goed en komt er nog niets, dan paste er niets boven de ondergrens

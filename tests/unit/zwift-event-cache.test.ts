@@ -49,6 +49,17 @@ describe("mapZwiftEventToRow", () => {
 
   it("weigert een besloten event", () => {
     expect(mapZwiftEventToRow(ROWS[2])).toBeNull();
+    expect(mapZwiftEventToRow({ ...ROWS[0], unlisted: true })).toBeNull();
+    expect(mapZwiftEventToRow({ ...ROWS[0], restricted: true })).toBeNull();
+    expect(mapZwiftEventToRow({ ...ROWS[0], visible: false })).toBeNull();
+  });
+
+  it("bewaart een openbaar event met invisibleToNonParticipants", () => {
+    // Dat veld gaat over de spelwereld, niet over wie mag meedoen. Op 2026-10-01
+    // stond het bij 190 van de 200 openbare events aan; als filter gebruikt bleven
+    // er zes fietsevents over en verdwenen de voorstellen bij de training.
+    const row = { ...ROWS[0], invisibleToNonParticipants: true, privateEvent: false, visible: true };
+    expect(mapZwiftEventToRow(row)).not.toBeNull();
   });
 
   it("weigert een hardloopevent", () => {

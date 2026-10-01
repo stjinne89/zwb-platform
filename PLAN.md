@@ -266,6 +266,35 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
+> **Zwift-voorstellen verdwenen: verkeerd veld als "besloten"-filter, 2026-10-01 — gefixt, lokaal getest en gepusht.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+> Melding van de eigenaar: bij de training van vandaag staan geen Zwift-events meer.
+> **Oorzaak.** `mapZwiftEventToRow` gooide elk event met
+> `invisibleToNonParticipants` weg, in de veronderstelling dat dat "besloten"
+> betekent. Dat veld regelt wie je in de spelwereld ziet rijden. Gemeten op de
+> publieke lijst (2026-10-01, 17:55 UTC): 190 van de 200 events hebben het aan,
+> waaronder gewone openbare races en groepsritten. Er bleven 6 fietsevents over
+> voor ~16 uur, dus vrijwel nooit iets boven de ondergrens van 55%.
+> **Nu.** Het filter kijkt naar `privateEvent`, `unlisted`, `restricted` en
+> `visible === false`. Op dezelfde opname: 163 van de 200 bewaard (25 hardlopen en
+> 12 WTRL-ploegentijdritten met `restricted` vallen af), en de matcher geeft weer
+> drie voorstellen voor een duur-, tempo- en drempeltraining van een uur.
+> **Claim die niet klopte:** de fixture en het commentaar in `external-scan.ts`
+> noemden `invisibleToNonParticipants` "besloten event"; de fixture was met de hand
+> geschreven en dit veld is nooit tegen de echte payload gehouden.
+> **Niet vastgesteld:** sinds wanneer Zwift het veld zo breed aanzet, en wat er nu
+> in `zwift_events` op productie staat. De Supabase CLI start niet vanuit deze
+> sessie (geblokkeerd door Windows-toepassingsbeheer), dus de tabel is niet
+> bekeken; de diagnose rust op de publieke Zwift-lijst en de code.
+> **Ook gezien, niet aangepakt:** de publieke lijst geeft bij alle 200 events 0
+> inschrijvingen terug, dus de populariteitsdimensie zegt nu niets.
+> **Na de deploy:** de uurcron vult de spiegel vanzelf; `events` in het antwoord
+> van de sync hoort dan ruim boven de honderd te liggen.
+> Verificatie: `zwift-event-cache.test.ts` geslaagd (1 nieuwe test, 1 uitgebreid),
+> `npx tsc --noEmit` schoon. Volledige suite: 1.921 van 1.923 geslaagd; de
+> uitvallers zijn time-outs in databasetests die los wél slagen, en
+> `omnium-live.test.ts` vraagt `.env.local`.
+
 > **Database slank en snel, 2026-09-30 — gebouwd en live; inkorten afgerond op 2026-10-01, ruimte teruggeven via de ronde hierboven (0212).**
 > Commit: de commit die dit blok toevoegt. Migraties `0208_query_indexes.sql`,
 > `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (toegepast door de eigenaar,
