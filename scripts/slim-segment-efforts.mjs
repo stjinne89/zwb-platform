@@ -24,7 +24,8 @@ const full = process.argv.includes("--full");
 function sql(query) {
   const file = join(tmpdir(), `zwb-slim-${process.pid}.sql`);
   writeFileSync(file, query);
-  const res = spawnSync(`supabase db query --linked -f "${file}"`, {
+  // -o json: in een terminal geeft de CLI anders een opgemaakte tabel terug.
+  const res = spawnSync(`supabase db query --linked -o json -f "${file}"`, {
     encoding: "utf8",
     shell: true,
     maxBuffer: 16 * 1024 * 1024,

@@ -41,7 +41,8 @@ function cli(args) {
 function sql(query) {
   const file = join(tmpdir(), `zwb-db-health-${process.pid}.sql`);
   writeFileSync(file, query);
-  const out = cli(["db", "query", "--linked", "-f", `"${file}"`]);
+  // -o json: in een terminal geeft de CLI anders een opgemaakte tabel terug.
+  const out = cli(["db", "query", "--linked", "-o", "json", "-f", `"${file}"`]);
   const start = out.indexOf("{");
   const end = out.lastIndexOf("}");
   try {
@@ -54,7 +55,7 @@ function sql(query) {
 }
 
 function advisors() {
-  const out = cli(["db", "advisors", "--linked", "--type", "performance"]);
+  const out = cli(["db", "advisors", "--linked", "--type", "performance", "-o", "json"]);
   const start = out.indexOf("[");
   try {
     return JSON.parse(out.slice(start, out.lastIndexOf("]") + 1));
