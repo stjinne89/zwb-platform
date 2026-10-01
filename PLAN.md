@@ -4660,6 +4660,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — rechten fase C: moderatie via "Content modereren"
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
+`0207_moderation_permission.sql`.
+
+**Waarom.** Andermans eventchat, ritverslagen met reacties, eventfoto's en
+verjaardagsberichten, -foto's, -GPX en -aanmeldingen kon alleen een technische
+admin (`profiles.is_admin`) weghalen, in de app en in RLS. Dat stond buiten het
+rechtenbeheer.
+
+**Nu.**
+- `content.moderate_posts` heet nu "Content modereren" en dekt naast posts en
+  reacties ook al het bovenstaande. De migratie bouwt elf delete-policies
+  (0032, 0057, 0058, 0077, 0078, 0079) exact na, met
+  `current_user_has_permission('content.moderate_posts')` in plaats van de
+  `is_admin`-subquery. Admins hebben elk recht, dus voor hen verandert niets.
+  Standaard hebben het bestuur en de community-beheerder dit recht.
+- Inactieve sponsors en ledenvoordelen lezen (0030) vroeg `is_admin`, terwijl de
+  app `sponsors.manage` gebruikt. Nu vraagt de policy ook `sponsors.manage`.
+- App: de prop `isAdmin` van EventChat, EventReports en de (verjaardags)
+  fotogalerijen heet nu `canModerate` en komt uit het recht. De verjaardagspagina
+  leest `is_admin` niet meer zelf.
+
+**Bewust niet.** Ritverslag verwijderen (`ritverslagen/_actions.ts`, dashboard)
+blijft op `events.manage_all`. Het plan wilde dat naar moderatie verplaatsen,
+maar die actie verwijdert het hele event, niet alleen een verslag.
+
+**Getest.**
+- Nieuwe `tests/unit/moderation-permission-migration.test.ts` draait 0207 in
+  PGlite, met stubs voor storage en rechten:
+  - een gewoon lid haalt niets van een ander weg;
+  - de moderator haalt chat, verjaardagsberichten en eventfoto's weg;
+  - de eigenaar haalt zijn eigen bericht weg;
+  - `sponsors.manage` ziet inactieve sponsors.
+- Verder: `tsc`, ESLint en de unit-suite.
+
 ### Opgeleverd — rechten fase B: rechten per thema en één register
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie

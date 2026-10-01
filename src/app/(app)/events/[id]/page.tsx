@@ -1413,7 +1413,7 @@ export default async function EventDetailPage({
           mode="realtime"
           currentUserId={user?.id ?? null}
           isMember={Boolean(user)}
-          isAdmin={access.isAdmin}
+          canModerate={access.has("content.moderate_posts")}
           initialMessages={initialChat}
         />
       )}
@@ -1634,7 +1634,7 @@ export default async function EventDetailPage({
           eventId={event.id}
           photos={photoData}
           currentUserId={user?.id ?? null}
-          isAdmin={access.isAdmin}
+          canModerate={access.has("content.moderate_posts")}
         />
       </section>
 
@@ -1642,7 +1642,7 @@ export default async function EventDetailPage({
         eventId={event.id}
         eventTitle={event.title}
         currentUserId={user?.id ?? null}
-        isAdmin={access.isAdmin}
+        canModerate={access.has("content.moderate_posts")}
         reports={eventReports}
         myResult={myEventResult}
       />
@@ -1653,7 +1653,7 @@ export default async function EventDetailPage({
           mode="poll"
           currentUserId={user?.id ?? null}
           isMember={Boolean(user)}
-          isAdmin={access.isAdmin}
+          canModerate={access.has("content.moderate_posts")}
           initialMessages={initialChat}
           readOnly
         />

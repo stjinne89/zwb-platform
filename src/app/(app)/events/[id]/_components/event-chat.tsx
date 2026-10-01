@@ -32,7 +32,7 @@ export function EventChat({
   mode,
   currentUserId,
   isMember,
-  isAdmin,
+  canModerate,
   initialMessages,
   readOnly = false,
 }: {
@@ -40,7 +40,7 @@ export function EventChat({
   mode: "realtime" | "poll";
   currentUserId: string | null;
   isMember: boolean;
-  isAdmin: boolean;
+  canModerate: boolean;
   initialMessages: ChatMessage[];
   /** Archief-modus: alleen-lezen (geen invoer/realtime), als deel van het ritverslag. */
   readOnly?: boolean;
@@ -199,7 +199,7 @@ export function EventChat({
               )}
               <span className="text-muted-foreground"> · </span>
               <span className="whitespace-pre-wrap break-words">{m.body}</span>
-              {(isAdmin || (currentUserId && m.profileId === currentUserId)) && (
+              {(canModerate || (currentUserId && m.profileId === currentUserId)) && (
                 <button
                   type="button"
                   onClick={() => remove(m.id)}

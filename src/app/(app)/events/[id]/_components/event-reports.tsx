@@ -89,14 +89,14 @@ export function EventReports({
   eventId,
   eventTitle,
   currentUserId,
-  isAdmin,
+  canModerate,
   reports,
   myResult,
 }: {
   eventId: string;
   eventTitle: string;
   currentUserId: string | null;
-  isAdmin: boolean;
+  canModerate: boolean;
   reports: EventReport[];
   myResult?: EventResultLine | null;
 }) {
@@ -227,7 +227,7 @@ export function EventReports({
                       Bewerk
                     </button>
                   )}
-                  {(mine || isAdmin) && (
+                  {(mine || canModerate) && (
                     <DeleteButton
                       onDelete={() => deleteEventReport(report.id)}
                       confirmText="Verslag verwijderen?"
@@ -240,7 +240,7 @@ export function EventReports({
               <CommentThread
                 reportId={report.id}
                 currentUserId={currentUserId}
-                isAdmin={isAdmin}
+                canModerate={canModerate}
                 comments={report.comments}
               />
             </li>
@@ -254,12 +254,12 @@ export function EventReports({
 function CommentThread({
   reportId,
   currentUserId,
-  isAdmin,
+  canModerate,
   comments,
 }: {
   reportId: string;
   currentUserId: string | null;
-  isAdmin: boolean;
+  canModerate: boolean;
   comments: ReportComment[];
 }) {
   const router = useRouter();
@@ -292,7 +292,7 @@ function CommentThread({
                 </Link>{" "}
                 <span className="whitespace-pre-wrap">{c.body}</span>
               </p>
-              {(c.profileId === currentUserId || isAdmin) && (
+              {(c.profileId === currentUserId || canModerate) && (
                 <DeleteButton
                   onDelete={() => deleteReportComment(c.id)}
                   confirmText="Reactie verwijderen?"

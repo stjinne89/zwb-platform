@@ -57,8 +57,9 @@ export const COMMUNITY_PERMISSIONS = [
   },
   {
     id: "content.moderate_posts",
-    label: "Posts modereren",
-    description: "Kan posts en reacties van anderen verwijderen of afronden.",
+    label: "Content modereren",
+    description:
+      "Kan posts, reacties, eventchat, ritverslagen, foto's en verjaardagsberichten van anderen verwijderen.",
     category: "Content",
   },
   {

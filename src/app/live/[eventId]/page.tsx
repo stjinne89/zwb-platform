@@ -327,7 +327,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
             mode="poll"
             currentUserId={null}
             isMember={false}
-            isAdmin={false}
+            canModerate={false}
             initialMessages={initialChat}
           />
         </>
