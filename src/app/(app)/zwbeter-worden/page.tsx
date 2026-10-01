@@ -1,4 +1,5 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { InlineMoreLink } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +37,7 @@ import {
   formatSegmentTime,
   loadSummary,
 } from "./_components/format";
-import { WorkoutReviewDialog } from "./_components/workout-review-dialog";
+import { WorkoutReviewDialog, type PendingReview } from "./_components/workout-review-dialog";
 import { paramString } from "./_components/format";
 import type { SearchParamsProp, SegmentRow, StravaActivityRow } from "./_components/types";
 import {
@@ -58,6 +59,13 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 60;
+
+async function PendingReviewDialog({ review }: { review: Promise<PendingReview | null> }) {
+  const pendingReview = await review;
+  return pendingReview ? (
+    <WorkoutReviewDialog key={pendingReview.workoutId} review={pendingReview} />
+  ) : null;
+}
 
 export default async function ZwbeterWordenTodayPage({ searchParams }: SearchParamsProp) {
   const params = (await searchParams) ?? {};
@@ -103,9 +111,16 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
   // Na de intervals-sync hierboven, zodat een net gereden rit meteen als
   // afgeronde workout wordt herkend.
-  const [memberWorkouts, pendingReview, planSummaries] = await Promise.all([
+  // Het bevestigscherm van een gereden training (PendingReview, onderaan) wacht
+  // hier niet meer op mee: het herkennen van afgeronde workouts kostte 1,0-1,7 s
+  // van de 2,1 s die deze pagina nodig had (gemeten 2026-10-01), en voedt alleen
+  // dat scherm. Het start hier wel, direct na de sync van de ritten.
+  const pendingReviewPromise = timed(
+    "pendingReview",
+    loadPendingReview(viewer, paramString(params.review)),
+  ).catch(() => null);
+  const [memberWorkouts, planSummaries] = await Promise.all([
     timed("memberWorkouts", loadMemberWorkouts(viewer, snapshot.events)),
-    timed("pendingReview", loadPendingReview(viewer, paramString(params.review))),
     timed("planSummaries", loadPlanSummaries(viewer)),
   ]);
   const todayKey = todayKeyAmsterdam();
@@ -347,9 +362,9 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
       <AdjustTodayForm />
 
-      {pendingReview ? (
-        <WorkoutReviewDialog key={pendingReview.workoutId} review={pendingReview} />
-      ) : null}
+      <Suspense fallback={null}>
+        <PendingReviewDialog review={pendingReviewPromise} />
+      </Suspense>
 
       <StravaAttribution />
     </div>

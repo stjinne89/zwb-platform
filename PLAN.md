@@ -129,6 +129,43 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
+> **Laadtijd, deel 3: trainingspagina's op basis van een meting, 2026-10-01 — gebouwd, lokaal getest; effect nog niet gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Meting.** Tijdelijke logging per stap (`lib/perf/timings.ts`, regel `[perf]` in
+> de functielog van Netlify, commit `7a01d00`). Uitkomst, warme weergaven:
+> - `/zwbeter-worden` (2,1–2,3 s): rechten, profiel en koppeling ~0,2 s; alle calls
+>   naar intervals.icu samen ~0,2 s (dus **niet** de bottleneck, anders dan vermoed);
+>   workouts ~0,3 s; `detectCompletedWorkouts` 1,0–1,7 s en de rest van
+>   `loadPendingReview` nog ~0,3 s; daarna ~0,35 s voor de kaarten onderaan.
+> - `/zwbeter-worden/schema` (3,6–4,2 s): acht stappen na elkaar, waaronder
+>   `settleOwnReplans` 0,26 s, `loadIgnoredStreak` 0,7–0,9 s, `loadScheduleRides`
+>   0,6 s en `loadScheduleEventChoices` 0,6–0,8 s; daarna 0,6–0,85 s voor de
+>   onderdelen van de pagina zelf.
+> Alles is reistijd: elke databasevraag kost ~130 ms (Ohio–Ierland), en deze pagina's
+> doen er twintig tot dertig na elkaar.
+>
+> **Wat.**
+> - Vandaag: het bevestigscherm van een gereden training komt los binnen
+>   (`<Suspense>`); de pagina wacht niet meer op het herkennen van afgeronde
+>   workouts, dat alleen dat scherm voedt. Het start nog steeds direct na de sync
+>   van de ritten.
+> - Schema: elke stap vertrekt zodra zijn invoer er is. `settleOwnReplans` loopt
+>   naast rechten, profiel en koppeling; de workouts volgen op de intervals-events in
+>   plaats van op de hele ronde; suggesties en ritten volgen op de workouts; de
+>   eventkeuzes volgen op de schema's. Verwachting uit de gemeten tijden: van ~3,0 s
+>   naar ~1,5 s in de paginafunctie. Niet gemeten.
+>
+> **Niet gedaan.** `detectCompletedWorkouts` zelf versnellen (acht vragen na
+> elkaar, ook gebruikt door de cron): het staat nu niet meer in de weg van de
+> pagina. De onderdelen onderaan beide pagina's (0,35–0,85 s) zijn niet uitgesplitst.
+> De tijdelijke logging staat er nog in, om het effect van deze ronde te meten;
+> daarna weghalen.
+>
+> **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`. **Niet getest:**
+> het gedrag in de browser, waaronder of het bevestigscherm nog verschijnt na een
+> gereden training; dat is pas op productie te zien.
+
 > **Laadtijd, deel 2: Stats en ZWBeter Worden, 2026-10-01 — gebouwd en live; gemeten.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
