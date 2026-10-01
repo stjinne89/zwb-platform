@@ -35,7 +35,7 @@ describe("activeHrefIn", () => {
   });
 
   it("markeert op profiel/segments niet ook het profiel", () => {
-    expect(activeLinks("/profiel/segments", menuHrefs)).toEqual(["/profiel/segments"]);
+    expect(activeLinks("/profiel/segments/collecties", menuHrefs)).toEqual(["/profiel/segments/collecties"]);
     expect(activeLinks("/profiel", menuHrefs)).toEqual(["/profiel"]);
   });
 
@@ -70,8 +70,8 @@ describe("isActiveGroup", () => {
 
   it("zet ZWB Segments in Club, direct boven ZWBlokken, en niet meer in het avatarmenu", () => {
     const hrefs = club.items.map((item) => item.href);
-    expect(hrefs.indexOf("/profiel/segments")).toBe(hrefs.indexOf("/zwblokken") - 1);
-    expect(AVATAR_NAV.map((item) => item.href)).not.toContain("/profiel/segments");
-    expect(isActiveGroup(activeHrefIn("/profiel/segments", menuHrefs), club)).toBe(true);
+    expect(hrefs.indexOf("/profiel/segments/collecties")).toBe(hrefs.indexOf("/zwblokken") - 1);
+    expect(AVATAR_NAV.map((item) => item.href)).not.toContain("/profiel/segments/collecties");
+    expect(isActiveGroup(activeHrefIn("/profiel/segments/collecties", menuHrefs), club)).toBe(true);
   });
 });

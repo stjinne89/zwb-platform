@@ -8,7 +8,6 @@ import {
   CalendarDays,
   Camera,
   Flag,
-  Crown,
   Gift,
   HeartHandshake,
   Medal,
@@ -64,8 +63,6 @@ import {
 import { hasActivityScope } from "@/lib/strava/scope";
 import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
-import { formatSegmentTime } from "@/lib/segments/explorer";
-import { KOM_BADGE, SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type ProfileRef = {
@@ -404,7 +401,6 @@ export default async function DashboardPage({
     { data: trainingConn },
     { data: nextWorkoutRows },
     { data: stravaConn },
-    { data: komRows },
     { data: instagramRows },
     { data: zrlResultRows },
   ] = await Promise.all([
@@ -520,14 +516,6 @@ export default async function DashboardPage({
           .eq("profile_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    // Zelfde venster als de badges; achieved_at is de rit van het record, dus een oud
-    // record dat pas later meetelt, verschijnt hier niet als nieuw.
-    supabase
-      .from("zwb_segment_kom_club")
-      .select(SEGMENT_KOM_COLUMNS)
-      .gte("achieved_at", since7Iso)
-      .order("achieved_at", { ascending: false })
-      .limit(8),
     supabase
       .from("media_items")
       .select("id, title, web_url, cover_url")
@@ -627,7 +615,6 @@ export default async function DashboardPage({
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
-  const koms = (komRows ?? []) as SegmentKom[];
   const carouselSponsors = (
     (sponsorRows ?? []) as {
       name: string;
@@ -1076,44 +1063,6 @@ export default async function DashboardPage({
               );
             })}
           </ul>
-        </section>
-      )}
-
-      {koms.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Crown}
-            title="Nieuwe ZWB KOM’s en QOM’s"
-            action={<InlineMoreLink href="/profiel/segments">ZWB Segments</InlineMoreLink>}
-          />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {koms.map((kom) => (
-              <li key={`${kom.segment_id}-${kom.title}-${kom.profile_id}`}>
-                <Link
-                  href={`/leden/${kom.profile_id}`}
-                  className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
-                >
-                  <AchievementBadge title={KOM_BADGE[kom.title].label} icon="crown" color={KOM_BADGE[kom.title].color} size="md" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{kom.display_name ?? "ZWB'er"}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">
-                      {KOM_BADGE[kom.title].label} · {kom.segment_name}
-                    </p>
-                    <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-                      {formatSegmentTime(kom.seconds)}
-                      {kom.achieved_at
-                        ? ` - ${new Date(kom.achieved_at).toLocaleDateString("nl-NL", {
-                            dateStyle: "medium",
-                            timeZone: "Europe/Amsterdam",
-                          })}`
-                        : ""}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <StravaAttribution />
         </section>
       )}
 

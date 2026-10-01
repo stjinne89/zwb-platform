@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
@@ -210,7 +209,6 @@ export default async function BeheerStravaPage() {
       <PageHeader
         eyebrow="Beheer"
         title="Strava-sync"
-        actions={<Link href="/beheer/segments" className="rounded-md border px-3 py-2 text-sm">Segmentsynchronisatie</Link>}
         description="Start de Strava-sync voor leden zonder ritten in de statistieken, of herbereken badges en cols — het lid hoeft niets te doen."
       />
 

@@ -80,7 +80,7 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/achievements", label: "Achievements" },
       { type: "link", href: "/stats", label: "Stats" },
-      { type: "link", href: "/profiel/segments", label: "ZWB Segments" },
+      { type: "link", href: "/profiel/segments/collecties", label: "ZWB Segments" },
       { type: "link", href: "/zwblokken", label: "ZWBlokken" },
       { type: "link", href: "/zwbgame", label: "ZWBgame" },
       {
@@ -168,7 +168,7 @@ export function isActiveHref(pathname: string, href: string): boolean {
 
 /**
  * De ene link die in een lijst actief is: de meest specifieke href waaronder
- * pathname valt. Zo is op /profiel/segments alleen "ZWB Segments" actief en
+ * pathname valt. Zo is op /profiel/segments/collecties alleen "ZWB Segments" actief en
  * niet ook "Profiel". Null als geen enkele link past.
  */
 export function activeHrefIn(pathname: string, hrefs: readonly string[]): string | null {

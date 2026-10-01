@@ -215,7 +215,7 @@ export async function revalidateAfterRecompute() {
   revalidatePath("/dashboard");
   revalidatePath("/leden");
   revalidatePath("/stats");
-  revalidatePath("/profiel/segments");
+  revalidatePath("/profiel/segments/collecties");
 }
 
 // ──────────────────────────────────────────────────────────────────────

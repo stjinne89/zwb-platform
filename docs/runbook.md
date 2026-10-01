@@ -42,9 +42,8 @@ op cron-job.org.
 | ↳ het zware nawerk (col-detector, ZWBlokken, milestones, segmenten) staat hier **uit**: dat hoort sinds de webhooks bij het webhook-pad, per binnengekomen rit. Met `?full=1` zet je het aan voor een eenmalige inhaalslag — reken dan op minuten en veel Strava-calls, dus alleen handmatig | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
 | Strava-webhookverwerking | cron-job.org | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
-| ↳ is de wachtrij leeg, dan vult dezelfde run binnen 20 s (sinds 2026-09-16; daarvoor 8 s) eerst één segmentlijn uit de voorrangslijst (migratie 0155, meeste ZWB-rijders eerst) en daarna segmentpogingen van oude buitenritten aan (nieuwste eerst). Zijn de ritten op, dan gaat de hele run naar segmentlijnen. Stopt vanzelf onder 50% van het kwartier- en 60% van het dagbudget. Voortgang staat als `segmentBackfill` in het antwoord (`remaining` = open ritten, `geometry` = lijnen deze run, `stopped`); `stopped: "done"` betekent dat de ritten binnen zijn, niet de segmentlijnen. Uitzetten zonder deploy: `?segmentBackfill=0` in de job-URL | | | | |
-| ↳ **staat sinds 2026-09-30 uit** (`?segmentBackfill=0`): de voorrangslijst voor segmentlijnen kostte ~40% van alle databasetijd. Weer aanzetten pas nadat `0209_slim_segment_efforts.sql` is toegepast en `scripts/slim-segment-efforts.mjs` heeft gedraaid; sinds 0209 krijgen alleen segmenten met een ZWB KOM (drie of meer rijders) vooraf een lijn, de rest bij openen. Zie [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md) | | | | |
-| ↳ vóór die segmentstap haalt dezelfde run hooguit drie pagina's (elk 100 activiteiten; sinds 2026-09-15 avond, daarvoor één) oude Strava-historie op, zolang er per pagina nog 3,5 s over is, van vóór de vijfjaarsgrens, per lid tot Strava niets ouder heeft (migratie 0164, cursor `strava_connections.history_before`, klaar = `history_complete_at`). Zelfde budgetgrens (50% kwartier, 60% dag). Voortgang als `historyBackfill` in het antwoord (`stopped: "page"` = er is gewerkt, `"done"` = iedereen compleet, `"no_migration"` = 0164 ontbreekt). De segmentdetails van die oude ritten volgen via de segmentstap. Opnieuw voor iedereen: `update strava_connections set history_before = null, history_complete_at = null`. Uitzetten zonder deploy: `?historyBackfill=0` | | | | |
+| ↳ de segment-inhaalslag en de ZWB KOM-stap draaiden hier tot 2026-10-01 mee. Ze zijn met de segmentverkenner verwijderd (migratie 0212); `?segmentBackfill=0` en `?segmentKoms=0` in de job-URL doen niets meer. Zie [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md) | | | | |
+| ↳ is de wachtrij leeg, dan haalt dezelfde run hooguit drie pagina's (elk 100 activiteiten; sinds 2026-09-15 avond, daarvoor één) oude Strava-historie op, zolang er per pagina nog 3,5 s over is, van vóór de vijfjaarsgrens, per lid tot Strava niets ouder heeft (migratie 0164, cursor `strava_connections.history_before`, klaar = `history_complete_at`). Zelfde budgetgrens (50% kwartier, 60% dag). Voortgang als `historyBackfill` in het antwoord (`stopped: "page"` = er is gewerkt, `"done"` = iedereen compleet, `"no_migration"` = 0164 ontbreekt). De segmentdetails van die oude ritten volgen via de segmentstap. Opnieuw voor iedereen: `update strava_connections set history_before = null, history_complete_at = null`. Uitzetten zonder deploy: `?historyBackfill=0` | | | | |
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | ↳ stuurt ook de SRC-herinneringen (migratie 0203): om 20:00 Nederlandse tijd op de avond voordat de inschrijving bij MyWhoosh sluit, aan wie deze maand meedoet en niet "niet" zei; en tien minuten voor het weigh-in-venster, aan wie ja of misschien zei en in een categorie met weigh-in rijdt. Eén keer per lid, via `event_reminder_sends`. Een fout daar staat als `src.error` in het antwoord en houdt de gewone herinneringen niet tegen | | | | |
@@ -332,7 +331,8 @@ Callback-URL: `https://<site>/api/strava/webhook`. Die route staat in
    Die verwerkt max. 25 events per run en stopt na ~8s (Netlify-timeout). Een rit
    staat dus binnen ~5 minuten in de app.
 3. Per event: `activity` → één `GET /activities/{id}?include_all_efforts=true`
-   (ook meteen de segment-inspanningen); `athlete` met
+   (de tijden op uitgekozen segmenten en cols gaan daaruit direct naar de
+   collecties; de inspanningen zelf worden niet bewaard); `athlete` met
    `updates.authorized = "false"` → koppeling direct opheffen.
 4. Nachtelijk (`strava-lifecycle`, 03:40) → openstaande deauthorisaties afmaken,
    opgeruimde koppelingen wissen, inactiviteitsbeleid draaien.
@@ -361,7 +361,7 @@ rij gewist.
 ### Dataretentie bij ontkoppelen
 
 De ruwe Strava-data gaat weg: `strava_activities` (cascadeert
-`strava_activity_segment_efforts` en `strava_activity_summaries`), de uit Strava
+`strava_activity_summaries`), de Strava-tijden op uitgekozen segmenten, de uit Strava
 gesynchroniseerde fietsen, `profiles.strava_id` en de avatar als die op Strava's
 CDN staat. De afgeleide clubdata blijft: badges, ZWBlokken, onderhoudsstanden en
 `profile_climbed_cols` (de FK naar de rit staat op `on delete set null`).

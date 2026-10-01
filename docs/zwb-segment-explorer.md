@@ -1,5 +1,10 @@
 # ZWB-segmentkaart — lokale oplevering 2026-09-13
 
+> **Verwijderd op 2026-10-01.** De verkenner, de ZWB KOM's en de tabel met
+> segmentpogingen zijn uit de app en de database gehaald (migratie 0212; zie
+> `PLAN.md` en [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md)). Dit document
+> beschrijft hoe het werkte. Alleen `/profiel/segments/collecties` bestaat nog.
+
 De eigenaar heeft toestemming voor het gedeelde ZWB-klassement en de analyse bevestigd.
 Deze implementatie gebruikt geen algemeen Strava-leaderboard en geen Segment Explore.
 De bestaande atletenlimiet van de Strava-app staat los van die toestemming.

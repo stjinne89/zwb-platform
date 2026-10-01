@@ -24,7 +24,6 @@ type Props = {
     on_member_pending: boolean;
     on_strava_link_expiring: boolean;
     on_intervals_visit_reminder: boolean;
-    on_segment_kom: boolean;
   };
   hasSubscriptionInDb: boolean;
   /** Alleen zichtbaar voor wie leden mag goedkeuren; anders vuurt hij nooit. */
@@ -302,14 +301,6 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_intervals_visit_reminder}
           />
           intervals.icu even openen, zodat mijn ritten blijven komen
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="on_segment_kom"
-            defaultChecked={initialPreferences.on_segment_kom}
-          />
-          Ik win of verlies een ZWB KOM of QOM
         </label>
         {canApproveMembers && (
           <label className="flex items-center gap-2 text-sm">

@@ -16,10 +16,7 @@
 //   - stoppen netjes bij HTTP 429.
 
 import { detectColsInActivity, type ColRecord } from "./detector";
-import {
-  mirrorLegacyColsToSegments,
-  storeActivitySegmentEfforts,
-} from "../segments/sync";
+import { mirrorLegacyColsToSegments } from "../segments/sync";
 
 type StoredActivity = {
   id: number;
@@ -47,128 +44,43 @@ type DetailedActivity = {
   segment_efforts?: SegmentEffort[] | null;
 };
 
+/**
+ * Een verwijderde rit kan de recordrit van een col zijn. De database zet
+ * best_time_activity_id dan zelf op null (on delete set null, 0075), dus een tijd
+ * zonder rit is hier het spoor van zo'n verwijdering. Zonder pogingentabel is er
+ * niets om de op één na beste tijd uit te halen: de tijd gaat leeg en de eigen
+ * GPS-tijden worden meteen opnieuw toegepast. Voor leden met Strava vult de
+ * volgende coltijden-sync of de PR van Strava (segments/sync.ts) hem weer.
+ */
 export async function repairDeletedColBestTimesForUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   profileId: string,
   removedActivityIds: number[] = [],
 ) {
-  const climbedQueries = [
+  if (removedActivityIds.length === 0) return { repaired: 0, cleared: 0 };
+  const cleared = { best_time_seconds: null, best_time_activity_id: null, best_time_at: null, best_time_source: null };
+  const [orphaned, stillLinked] = await Promise.all([
     supabase
       .from("profile_climbed_cols")
-      .select("col_slug")
+      .update(cleared)
       .eq("profile_id", profileId)
       .is("best_time_activity_id", null)
-      .not("best_time_seconds", "is", null),
-  ];
-  if (removedActivityIds.length > 0) {
-    climbedQueries.push(
-      supabase
-        .from("profile_climbed_cols")
-        .select("col_slug")
-        .eq("profile_id", profileId)
-        .in("best_time_activity_id", removedActivityIds),
-    );
-  }
-
-  const [{ data: colsRows }, climbedResults] = await Promise.all([
+      .not("best_time_seconds", "is", null)
+      .select("col_slug"),
     supabase
-      .from("cols")
-      .select("slug, strava_segment_id")
-      .not("strava_segment_id", "is", null),
-    Promise.all(climbedQueries),
-  ]);
-
-  const segmentIdBySlug = new Map(
-    ((colsRows ?? []) as Array<{
-      slug: string;
-      strava_segment_id: number;
-    }>).map((row) => [row.slug, Number(row.strava_segment_id)]),
-  );
-  const climbedSlugs = new Set<string>();
-  for (const result of climbedResults) {
-    for (const row of (result.data ?? []) as Array<{ col_slug: string }>) {
-      climbedSlugs.add(row.col_slug);
-    }
-  }
-  const affected = [...climbedSlugs]
-    .map((colSlug) => ({
-      slug: colSlug,
-      segmentId: segmentIdBySlug.get(colSlug),
-    }))
-    .filter(
-      (row): row is { slug: string; segmentId: number } =>
-        row.segmentId != null,
-    );
-  if (affected.length === 0) return { repaired: 0, cleared: 0 };
-
-  const { data: effortRows } = await supabase
-    .from("strava_activity_segment_efforts")
-    .select(
-      "activity_id, strava_segment_id, elapsed_time_seconds, moving_time_seconds, started_at, source:raw->>source",
-    )
-    .eq("profile_id", profileId)
-    .in(
-      "strava_segment_id",
-      affected.map((row) => row.segmentId),
-    );
-
-  const bestBySegmentId = new Map<
-    number,
-    { seconds: number; activityId: number; at: string | null; source: string | null }
-  >();
-  for (const effort of (effortRows ?? []) as Array<{
-    activity_id: number;
-    strava_segment_id: number;
-    elapsed_time_seconds: number | null;
-    moving_time_seconds: number | null;
-    started_at: string | null;
-    source: string | null;
-  }>) {
-    const seconds =
-      effort.elapsed_time_seconds ?? effort.moving_time_seconds ?? null;
-    if (seconds == null || seconds <= 0) continue;
-    const segmentId = Number(effort.strava_segment_id);
-    const current = bestBySegmentId.get(segmentId);
-    if (!current || seconds < current.seconds) {
-      bestBySegmentId.set(segmentId, {
-        seconds,
-        activityId: Number(effort.activity_id),
-        at: effort.started_at,
-        source: effort.source ?? null,
-      });
-    }
-  }
-
-  let repaired = 0;
-  let cleared = 0;
-  for (const row of affected) {
-    const best = bestBySegmentId.get(row.segmentId);
-    const patch = best
-      ? {
-          best_time_seconds: best.seconds,
-          best_time_activity_id: best.activityId,
-          best_time_at: best.at,
-          best_time_source: best.source,
-        }
-      : {
-          best_time_seconds: null,
-          best_time_activity_id: null,
-          best_time_at: null,
-          best_time_source: null,
-        };
-    const { error } = await supabase
       .from("profile_climbed_cols")
-      .update(patch)
+      .update(cleared)
       .eq("profile_id", profileId)
-      .eq("col_slug", row.slug);
-    if (!error) {
-      if (best) repaired++;
-      else cleared++;
-    }
-  }
+      .in("best_time_activity_id", removedActivityIds)
+      .select("col_slug"),
+  ]);
+  const count = (orphaned.data ?? []).length + (stillLinked.data ?? []).length;
+  if (count === 0) return { repaired: 0, cleared: 0 };
 
-  return { repaired, cleared };
+  const { applyGpsColTimesForUser } = await import("./gps-col-times");
+  const { updated } = await applyGpsColTimesForUser(supabase, profileId);
+  return { repaired: updated, cleared: count - updated };
 }
 
 async function fetchAllActivitiesWithEffortsFlag(
@@ -319,7 +231,6 @@ export async function syncColSegmentTimesForUser(
 
     const detail = (await res.json()) as DetailedActivity;
     fetched++;
-    await storeActivitySegmentEfforts(supabase, profileId, act, detail);
 
     for (const eff of detail.segment_efforts ?? []) {
       const segId = eff.segment?.id;

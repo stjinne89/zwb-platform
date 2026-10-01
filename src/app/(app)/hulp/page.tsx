@@ -177,7 +177,6 @@ const GUIDES = [
     bullets: [
       "ZWB herkent cols en segmenten automatisch uit je Strava-ritten.",
       "Je recordtijd komt rechtstreeks van Strava; per segment zie je de ZWB-ranglijst.",
-      "Snelste op een ZWB Segment met minstens drie ZWB'ers? Dan krijg je de titel ZWB KOM; de snelste vrouw krijgt daarnaast de ZWB QOM. Je ziet ze op je profiel en het dashboard, en krijgt een pushmelding als je er een wint of verliest.",
       "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'.",
     ],
   },
@@ -901,7 +900,8 @@ export default function HelpPage() {
               Gebruik de GPX van een gereden rit (met tijden), geen route-GPX.
               Afstand, hoogtemeters en rijtijd worden uit het bestand berekend.
               Met het spoor tellen cols, ZWB Segments en ZWBlokken mee, en meet
-              ZWB je segment- en coltijden. Die staan met GPS in het klassement.
+              ZWB je tijd op cols en uitgekozen segmenten. Die staat met GPS in
+              de ranglijst.
               Staat de rit al binnen via activities.csv, dan krijgt die het
               spoor erbij. Dezelfde rit twee keer uploaden is geen probleem.
             </p>

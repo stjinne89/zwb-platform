@@ -32,7 +32,17 @@ function setup(connection: Record<string, unknown> = {}) {
       { id: -123, profile_id: A },
       { id: 222, profile_id: B },
     ],
-    strava_activity_segment_efforts: [{ effort_uid: "strava:1", profile_id: A, activity_id: 111 }],
+    zwb_segments: [
+      { slug: "vam", collection: "benelux_popular" },
+      { slug: "posbank", collection: "benelux_popular" },
+      { slug: "alpe", collection: "cols" },
+    ],
+    profile_completed_segments: [
+      { profile_id: A, segment_slug: "vam", best_time_seconds: 300, best_time_source: null },
+      { profile_id: A, segment_slug: "posbank", best_time_seconds: 400, best_time_source: "gps" },
+      { profile_id: A, segment_slug: "alpe", best_time_seconds: 3000, best_time_source: null },
+      { profile_id: B, segment_slug: "vam", best_time_seconds: 310, best_time_source: null },
+    ],
     strava_bikes: [{ id: "b1", profile_id: A, source: "strava" }],
     profiles: [{ id: A, strava_id: "1", avatar_url: "https://dgalywyr863hv.cloudfront.net/pictures/a.jpg" }],
   });
@@ -61,7 +71,7 @@ describe("ontkoppelen met ritten bewaren", () => {
     expect(mocks.deauthorize).toHaveBeenCalledOnce();
     expect(db.tables.strava_connections).toEqual([]);
     expect(db.tables.strava_activities.map((row) => row.id)).toEqual([111, -123, 222]);
-    expect(db.tables.strava_activity_segment_efforts).toHaveLength(1);
+    expect(db.tables.profile_completed_segments).toHaveLength(4);
     expect(db.tables.strava_bikes).toHaveLength(1);
     expect(db.tables.profiles[0].strava_id).toBe("1");
   });
@@ -73,6 +83,13 @@ describe("ontkoppelen met ritten bewaren", () => {
     expect(result).toEqual({ deauthorized: true, purged: true });
     expect(db.tables.strava_connections).toEqual([]);
     expect(db.tables.strava_activities.map((row) => row.id)).toEqual([222]);
+    // De Strava-tijd op een uitgekozen segment gaat mee; de eigen GPS-tijd, de col
+    // en de tijd van een ander lid blijven.
+    expect(db.tables.profile_completed_segments.map((row) => `${row.profile_id === A ? "A" : "B"}:${row.segment_slug}`)).toEqual([
+      "A:posbank",
+      "A:alpe",
+      "B:vam",
+    ]);
     expect(db.tables.strava_bikes).toEqual([]);
     expect(db.tables.profiles[0].strava_id).toBeNull();
   });

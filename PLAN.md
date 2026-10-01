@@ -8,19 +8,18 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 gaat stabiliteit voor nieuwe features.
 
 1. **Database slank en snel (2026-09-30, bijgewerkt 2026-10-01).** Migraties
-   `0208`–`0210` zijn toegepast en de code staat live. De database is 1,25 GB tegen
-   0,5 GB op het Free-plan; de disk (2 GB) zit krap. Op 2026-10-01 stond de database
-   ruim twintig minuten op alleen-lezen door het inkortscript; zie
-   [prestatie-onderzoek](docs/prestatie-onderzoek-2026-09-30.md), "Incident". Nog open:
-   `0211_drop_segment_efforts_priority_index.sql` toepassen (op productie is de index
-   al weg, dus een formaliteit); de resterende ~290.000 segmentpogingen inkorten met
-   `node scripts/slim-segment-efforts.mjs` (bewaakt zelf de disk en stopt bij 93,5%;
-   de disk blijft rond 91,5% hangen tot de bewaarde WAL-bestanden zijn opgemaakt);
-   `?segmentBackfill=0` weer uit de URL van de
-   job "ZWB Strava webhooks" halen. **Besluit nodig:** de ruimte teruggeven kan niet
-   veilig op deze disk (een VACUUM FULL past niet); een maand Pro, of op Free de ruimte
-   laten staan. De wekelijkse check (`npm run db:health`, geplande taak op dinsdag
-   10:00) meldt nu ook het diskgebruik.
+   `0208`–`0210` zijn toegepast, de segmentpogingen zijn ingekort en de disk staat
+   rond 77%. De database is nog 1,26 GB tegen 0,5 GB op het Free-plan; de ruimte is
+   alleen terug te krijgen door de tabel te verwijderen. Besluit van de eigenaar
+   (2026-10-01): de segmentverkenner en de ZWB KOM's gaan eruit, de collecties
+   blijven (ronde hieronder). **In deze volgorde:** de code deployen; daarna
+   `0212_remove_segment_explorer.sql` toepassen (pas ná de deploy: de oude code
+   leest de tabellen nog); `vacuum full public.zwb_segment_maps;`; `npm run
+   db:health` moet daarna ~210 MB melden. `0211_drop_segment_efforts_priority_index.sql`
+   is daarmee overbodig geworden (de tabel verdwijnt), maar mag toegepast worden.
+   `?segmentBackfill=0` mag uit de URL van de job "ZWB Strava webhooks"; de parameter
+   doet niets meer. De wekelijkse check (`npm run db:health`, geplande taak op dinsdag
+   10:00) meldt of 0212 al is toegepast.
 2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
@@ -131,9 +130,74 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0212`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`.
 
 ---
+
+> **Segmentverkenner en ZWB KOM's verwijderd, 2026-10-01 — gebouwd, lokaal getest; migratie open.**
+> Commit: de commit die dit blok toevoegt. Migratie `0212_remove_segment_explorer.sql`
+> (**nog niet toegepast; pas ná de deploy**).
+>
+> **Waarom.** De tabel met segmentpogingen was ~1 GB van een database van 1,26 GB op
+> een Free-plan van 0,5 GB. Na het inkorten van `raw` (ronde hieronder) bleef het
+> bestand even groot, en een VACUUM FULL past niet op de disk van 2 GB. Alleen een
+> tabel die helemaal weg mag, geeft de ruimte direct terug. De eigenaar koos ervoor de
+> verkenner en de KOM's op te geven en de collecties te houden. Analyse vooraf: van de
+> achtergrond-databasetijd die na 0209 overbleef was ~62% segmentwerk, en de database
+> past na het verwijderen (~210 MB) grotendeels in het geheugen van 0,5 GB. Hoeveel
+> sneller een pagina voor een lid wordt, is niet gemeten.
+>
+> **Wat verdwijnt.** `/profiel/segments` als verkenner (kaart, clubklassement op alle
+> Strava-segmenten, inschatting, hoogteprofiel; het adres stuurt nu door naar de
+> collecties), ZWB KOM/QOM op dashboard, profiel en ledenpagina, de pushmelding en de
+> voorkeur `on_segment_kom`, de segment-inhaalslag en de KOM-stap in
+> `/api/strava/webhook/process`, `/beheer/segments`, `/api/segments/*`,
+> `/hulp/segments`, en de pogingen en KOM's in de data-export.
+>
+> **Wat blijft, en hoe zonder pogingentabel.**
+> - Collecties (`/profiel/segments/collecties`), cols, coltijden en de
+>   segmentvoorstellen bij trainingen.
+> - Een binnenkomende Strava-rit bevat zijn segmentinspanningen al; daaruit gaan de
+>   tijden op uitgekozen segmenten en cols direct naar de collecties
+>   (`applyCuratedEffortsFromDetail` in `lib/segments/sync.ts`). Geen extra call.
+> - De besttijd en het aantal keren komen daarnaast van Strava's eigen PR per segment
+>   (`applyAuthoritativeSegmentPrs`, in de nachtelijke reconcile).
+> - Leden zonder Strava: de GPS-meting bewaart tijden in de rit zelf
+>   (`raw.gps_segment_times`, naast `raw.gps_col_times`) en meet alleen nog langs de
+>   lijnen van uitgekozen segmenten en cols. `applyGpsSegmentTimesForUser` zet ze in
+>   `profile_completed_segments`.
+> - `zwb_segment_maps` blijft als klein register van die lijnen;
+>   `syncSegmentGeometry` haalt een ontbrekende lijn met één Strava-call op.
+>
+> **Gedrag dat verandert.** Bij "Ritten wissen" verdwenen Strava-tijden op
+> uitgekozen segmenten vroeger vanzelf met de pogingen; `purgeStravaDataForProfile`
+> wist ze nu expliciet uit `profile_completed_segments` (cols en eigen GPS-tijden
+> blijven, zoals de privacyverklaring zegt). Wordt de recordrit van een col
+> verwijderd, dan gaat de coltijd leeg in plaats van terug naar de op één na beste;
+> de volgende sync vult hem. Privacytekst ingekort (minder verwerking, geen nieuwe
+> versie).
+>
+> **Migratie 0212.** Eén transactie: eigen GPS-tijden op uitgekozen segmenten naar
+> de rit, views en functies weg (op naam opgezocht, met de triggers op
+> `strava_activities`, `profiles` en `strava_connections` erbij), de drie tabellen
+> weg, het register via legen-en-terugzetten terug naar de uitgekozen lijnen, de
+> kolom `on_segment_kom` weg. Breekt zichzelf af als er daarna nog een functie naar
+> de verwijderde tabellen verwijst. DROP en TRUNCATE schrijven vrijwel geen WAL.
+>
+> **Niet gebouwd, en waarom.** Een variant die de pogingen op uitgekozen segmenten
+> bewaart: niet nodig, de collectie heeft alleen de besttijd per lid. De index
+> `strava_activities_outdoor_ride` (0156) blijft staan: klein, en niet nagegaan of
+> een andere query hem gebruikt.
+>
+> **Getest.** 1.889 unittests, lint zonder fouten, `npm run build`. Nieuw: PGlite-test
+> voor 0212 (`segment-removal-migration.test.ts`: objecten weg, register alleen
+> uitgekozen lijnen, GPS-tijden in de rit, overige tabellen nog te wijzigen),
+> `segment-collections.test.ts`, en aangepaste tests voor de GPS-opslag en het
+> wissen bij ontkoppelen.
+> **Niet te testen hier:** 0212 op productie. De lijst van triggers en functies is
+> niet naast productie gelegd, want de Supabase CLI startte op 2026-10-01 niet meer;
+> de migratie zoekt ze daarom op naam op en controleert zichzelf. Ook niet getest:
+> de Strava-calls, en `db-health.mjs` na de aanpassing (zelfde reden).
 
 > **Strava ontkoppelen met keuze: ritten bewaren of wissen, 2026-10-01 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie. Geen nieuwe
@@ -202,7 +266,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0212`
 
 ---
 
-> **Database slank en snel, 2026-09-30 — gebouwd en live; inkorten half gedaan, ruimte teruggeven open.**
+> **Database slank en snel, 2026-09-30 — gebouwd en live; inkorten afgerond op 2026-10-01, ruimte teruggeven via de ronde hierboven (0212).**
 > Commit: de commit die dit blok toevoegt. Migraties `0208_query_indexes.sql`,
 > `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (toegepast door de eigenaar,
 > 2026-10-01) en `0211_drop_segment_efforts_priority_index.sql` (op productie al met de
@@ -241,7 +305,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0212`
 > - KOM-herberekening in batches van 50 in plaats van 200.
 > - `scripts/db-health.mjs` (`npm run db:health`): wekelijkse check tegen
 >   productie, met momentopnames in `.tmp/db-health/`. Draait via een geplande
->   Claude-taak op dinsdag 10:00. `scripts/slim-segment-efforts.mjs`: eenmalig inkorten.
+>   Claude-taak op dinsdag 10:00. `scripts/slim-segment-efforts.mjs`: eenmalig inkorten
+>   (gedraaid en daarna verwijderd, 2026-10-01).
 >
 > **Niet gebouwd, en waarom.** `getClaims()` (hangt af van asymmetrische
 > JWT-sleutels, niet nagegaan); de 36 "multiple permissive policies" (per tabel een
@@ -4022,6 +4087,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ## Buiten oorspronkelijk plan opgeleverd
 
 <!-- zwb-segment-explorer-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB Segments: interactieve clubkaart** (2026-09-13; lokale featurecommit
   048b94f; migratie 0152): bestaande pagina omgebouwd naar
   kaart/lijst met eigen ZWB-record/podium, persoonlijke vermogen-/windinschatting,
@@ -4043,6 +4111,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-explorer-round -->
 
 <!-- zwb-segment-tiles-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentkaart: CARTO-watermerk opgelost** (2026-09-13; lokaal ongecommit,
   basiscommit ed1e230; geen migratie): CARTO bleek een API-key te vereisen,
   waardoor de eerste kaart "API key required" toonde. De segmentkaart gebruikt nu
@@ -4057,6 +4128,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-tiles-round -->
 
 <!-- zwb-segment-hidden-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentklassement: alleen de eigenaar zichtbaar** (2026-09-13; `a7dba9c`; migratie 0154;
   gepusht 2026-09-13). Leesanalyse op productie: de hoofdoorzaak is dat
   alleen de eigenaar privacyversie 2026-09-13 heeft getekend — geen bug; negen leden
@@ -4074,6 +4148,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-hidden-round -->
 
 <!-- zwb-segment-backfill-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentpogingen automatisch aanvullen** (2026-09-13; `49d286d`, gepusht
   2026-09-13; geen migratie). ~6.000 oude buitenritten misten segmentpogingen; via
   `/beheer/segments` was dat ~1.200 klikken en de eigenaar wil niets handmatig. De
@@ -4095,6 +4172,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-backfill-round -->
 
 <!-- zwb-segment-assessment-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentinschatting: eigen record, profiel bij openen, voorrangslijst**
   (2026-09-13; `71827b7`, gepusht 2026-09-13; migratie 0155). Elk segment gaf
   "Onvoldoende gegevens": geen tegenstander (de eigenaar was de enige zichtbare rijder)
@@ -4116,6 +4196,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-assessment-round -->
 
 <!-- zwb-segment-nav-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB Segments in het Club-menu** (2026-09-14; `1466e5a`, gepusht; geen migratie). Op verzoek van de
   eigenaar verplaatst van het avatarmenu naar Club, direct boven ZWBlokken: het is een
   clubklassement, geen profielinstelling. **Bewust niet gedaan:** de URL verhuizen;
@@ -4127,6 +4210,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-nav-round -->
 
 <!-- zwb-segment-kom-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB KOM en minimaal drie rijders** (2026-09-15; `ecaccab`, gepusht naar `main`
   2026-09-15; migratie `0161`, vóór de push in productie aangetroffen). Op verzoek van de eigenaar toont ZWB Segments alleen nog segmenten
   waar minstens drie ZWB'ers reden, en krijgt de snelste daar de titel ZWB KOM: op het
@@ -4159,6 +4245,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-kom-round -->
 
 <!-- zwb-segment-qom-push-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; `cc3f2df`, gepusht
   naar `main` 2026-09-15; migratie `0162`, draaien ná `0161` en vóór de deploy — vóór de
   push in productie aangetroffen: `zwb_segment_koms.title`, `zwb_segment_kom_events` en

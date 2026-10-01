@@ -90,22 +90,26 @@ function snapshot() {
       left(regexp_replace(s.query, '\\s+', ' ', 'g'), 300) as query
     from pg_stat_statements s join pg_roles r on r.oid = s.userid
     where r.rolname in ('service_role', 'authenticated', 'anon', 'authenticator')`);
+  // Uitgekozen segmenten en cols waarvan de lijn nog ontbreekt: zolang die er niet
+  // is, meet de GPS-meting dat segment niet voor leden zonder Strava.
   const [queues] = sql(`
+    with curated as (
+      select strava_segment_id as id from zwb_segments where active and strava_segment_id is not null
+      union
+      select strava_segment_id from cols where strava_segment_id is not null
+    )
     select
-      (select count(*) from zwb_segment_maps where kom_dirty) as kom_dirty,
-      (select count(distinct k.segment_id) from zwb_segment_koms k join zwb_segment_maps m on m.id = k.segment_id
-        where not m.private and m.geometry_status = 'pending') as kom_segments_without_line,
-      (select count(*) from strava_activities where sport_type = 'Ride' and not trainer and efforts_fetched_at is null)
-        as rides_without_efforts,
-      -- Steekproef van 1%: zolang raw niet is ingekort, leest een volledige telling
-      -- honderden MB aan TOAST. Dus een schatting, afgerond op honderdtallen.
-      (select count(*) * 100 from strava_activity_segment_efforts tablesample system (1) where raw ? 'id')
-        as unslimmed_efforts,
+      (select count(*) from curated c
+        where not exists (select 1 from zwb_segment_maps m where m.id = c.id and m.geometry_status in ('ready', 'unavailable')))
+        as curated_segments_without_line,
+      (select count(*) from zwb_segment_maps) as segment_lines,
       (select count(*) from live_positions) as live_positions`);
+  // 0212 haalt de segmentverkenner uit de database; tot dan staat de pogingentabel
+  // (~1 GB op 2026-10-01) er nog.
   const [migrations] = sql(`
     select
       to_regclass('public.strava_activities_start_date') is not null as m0208,
-      exists(select 1 from pg_trigger where tgname = 'slim_segment_effort_raw') as m0209`);
+      to_regclass('public.strava_activity_segment_efforts') is null as m0212`);
   const advisorList = advisors();
   const advisorCounts = {};
   for (const item of advisorList ?? []) advisorCounts[item.name] = (advisorCounts[item.name] ?? 0) + 1;
@@ -211,10 +215,10 @@ function report(now, prev) {
 
   // 2. Migraties en eenmalige stappen uit het prestatieonderzoek
   if (!now.migrations.m0208) flag("ACTIE", "Migratie 0208_query_indexes.sql is nog niet toegepast.");
-  if (!now.migrations.m0209) flag("ACTIE", "Migratie 0209_slim_segment_efforts.sql is nog niet toegepast.");
-  if (now.queues.unslimmed_efforts > 0) {
-    flag(now.migrations.m0209 ? "ACTIE" : "LET OP",
-      `${now.queues.unslimmed_efforts} segmentpogingen (schatting) hebben nog de volledige Strava-raw (inkortstap uit docs/prestatie-onderzoek-2026-09-30.md).`);
+  if (!now.migrations.m0212) {
+    flag("ACTIE", "Migratie 0212_remove_segment_explorer.sql is nog niet toegepast: de tabel met segmentpogingen staat er nog.");
+  } else if ((now.queues.segment_lines ?? 0) > 2000) {
+    flag("LET OP", `Het segmentregister telt ${now.queues.segment_lines} lijnen; na 0212 horen daar alleen de uitgekozen segmenten en cols in.`);
   }
   if (now.advisors && (now.advisors.auth_rls_initplan ?? 0) > 0) {
     flag("LET OP", `${now.advisors.auth_rls_initplan} RLS-policies met een kale auth.uid() (0210_rls_initplan.sql, of een nieuwe policy zonder (select auth.uid())).`);
@@ -277,8 +281,9 @@ function report(now, prev) {
   }
 
   // 6. Werkvoorraad
-  if (prev && now.queues.kom_dirty > 1000 && now.queues.kom_dirty >= prev.queues.kom_dirty) {
-    flag("LET OP", `KOM-herberekening loopt niet leeg: ${prev.queues.kom_dirty} → ${now.queues.kom_dirty} segmenten.`);
+  if (prev && now.queues.curated_segments_without_line > 0
+    && now.queues.curated_segments_without_line >= (prev.queues?.curated_segments_without_line ?? Infinity)) {
+    flag("LET OP", `${now.queues.curated_segments_without_line} uitgekozen segmenten of cols hebben nog geen lijn, en dat aantal daalt niet.`);
   }
 
   // ── Opmaak

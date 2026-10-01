@@ -91,11 +91,12 @@ De migraties zijn met PGlite getest (`tests/unit/segment-database.test.ts`,
    `0210_rls_initplan.sql` toepassen.~~ Gedaan door de eigenaar, 2026-10-01; de
    advisor meldt geen `auth_rls_initplan` meer.
 2. ~~De code deployen.~~ Gepusht op 2026-10-01 (`311d0b0`).
-3. `node scripts/slim-segment-efforts.mjs`: kort de bestaande rijen in. Op
-   2026-10-01 zijn de eerste 220.000 rijen gedaan; zie het incident hieronder. Nog
-   ~290.000 te gaan. Het script wacht zodra het diskgebruik oploopt en stopt bij
-   93,5%. `--status` toont de stand zonder iets te schrijven.
-4. Ruimte teruggeven: zie "Ruimte teruggeven" hieronder. Nog niet opgelost.
+3. ~~De bestaande rijen inkorten met `scripts/slim-segment-efforts.mjs`.~~ Gedaan op
+   2026-10-01, in twee keer; zie het incident hieronder. Daarna stond de WAL weer op
+   128 MB en de disk rond 77%. Het script is verwijderd, want de tabel zelf
+   verdwijnt (stap 4).
+4. Ruimte teruggeven: `0212_remove_segment_explorer.sql`, pas ná de deploy van de
+   code zonder verkenner. Zie "Ruimte teruggeven" hieronder.
 5. Op cron-job.org bij "ZWB Strava webhooks" `?segmentBackfill=0` weer uit de URL
    halen (sinds 2026-09-30 uit). De ruimte die het inkorten in de tabel vrijmaakt
    (~290 MB na de eerste 220.000 rijen) is ruim genoeg voor de 3.314 buitenritten
@@ -129,7 +130,7 @@ lees-schrijftransactie (`begin read write; … commit;`) de index
 14–19 september, die na 30 dagen toch gewist worden). Daarmee kwam de disk onder
 95% en ging de database vanzelf weer open.
 
-Wat is aangepast: het script werkt nu in batches van 2.500 met 30 s pauze (~35 MB
+Wat is aangepast: het script werkte daarna in batches van 2.500 met 30 s pauze (~35 MB
 WAL per checkpoint), meet vóór elke batch database + WAL, wacht zodra het gebruik
 boven het laagste punt tot dan toe uitkomt en stopt bij 93,5%.
 
@@ -146,26 +147,27 @@ de tabel. Reken bij een bulkupdate met de WAL die tussen twee checkpoints
 
 ## Ruimte teruggeven
 
-De heap van `strava_activity_segment_efforts` blijft 896 MB tot hij herschreven
-wordt. Na volledig inkorten is de inhoud ~150 MB. `VACUUM FULL` schrijft een
-kopie van tabel en indexen (~200 MB) en nog eens zoveel WAL, vóórdat de oude
-bestanden verdwijnen; met ~350 MB marge past dat niet veilig op 2 GB.
-`slim-segment-efforts.mjs --full` rekent dit na en weigert als het niet past.
+De heap van `strava_activity_segment_efforts` bleef na het inkorten 896 MB: de
+vrije ruimte zit ín het bestand. `VACUUM FULL` schrijft een kopie van tabel en
+indexen en nog eens zoveel WAL vóórdat de oude bestanden verdwijnen (naar schatting
+~540 MB bij ~470 MB vrij), en past dus niet veilig op 2 GB.
 
-Open keuze voor de eigenaar:
+**Besluit van de eigenaar (2026-10-01): de tabel gaat helemaal weg.** De
+segmentverkenner en de ZWB KOM's verdwijnen, de collecties blijven. `DROP TABLE`
+geeft de ruimte direct terug, zonder kopie en vrijwel zonder WAL. Migratie
+`0212_remove_segment_explorer.sql`; verwachte databasegrootte daarna ~210 MB. Wat
+er wegvalt, wat blijft en hoe de collecties zonder pogingentabel werken staat in
+`PLAN.md`, ronde "Segmentverkenner en ZWB KOM's verwijderd".
 
-- **Een maand Pro ($25).** De disk groeit dan automatisch; inkorten en VACUUM
-  FULL kunnen zonder risico. Daarna is de database naar schatting ~500 MB, dus
-  voor terug naar Free moet er nog meer af (bijvoorbeeld `strava_activities.raw`,
-  92 MB).
-- **Op Free blijven en de ruimte laten staan.** Functioneel geen probleem: de vrije
-  ruimte in de tabel wordt hergebruikt, dus hij groeit voorlopig niet. De database
-  blijft wel boven de Free-limiet van 0,5 GB staan ("Exceeding usage limits").
-  Supabase kan een organisatie die over de limiet zit een beperking opleggen; tot
-  nu toe is dat niet gebeurd.
-- **Gespreid herschrijven op Free** (kopie in stukken naar een nieuwe tabel en
-  wisselen). Kan in principe, maar raakt triggers, views, rechten en de
-  KOM-herberekening en is niet gebouwd; het risico is groter dan de $25.
+Van de databasetijd van achtergrondjobs die na 0209 overbleef (31.300 s sinds mei)
+was ~19.500 s (62%) segmentwerk: pogingen per lid doorlopen (8.800 s), ritten zoeken
+voor de inhaalslag (5.600 s), pogingen wegschrijven (2.400 s), KOM's doorrekenen
+(1.600 s) en segmentlijnen (1.100 s). Van de databasetijd van leden (4.138 s) was
+~460 s (11%) de verkenner en het KOM-blok. Niet gemeten: het effect op de laadtijd
+van een pagina.
+
+Overwogen en niet gekozen: een maand Pro (25 dollar) om de VACUUM FULL wel te
+kunnen doen, en de ruimte laten staan.
 
 ## Bewust niet gedaan
 

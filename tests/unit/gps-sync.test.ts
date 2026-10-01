@@ -1,6 +1,6 @@
 import polyline from "@mapbox/polyline";
 import { describe, expect, it } from "vitest";
-import { bestGpsColTimes } from "@/lib/cols/gps-col-times";
+import { bestGpsColTimes, gpsSegmentAggregates } from "@/lib/cols/gps-col-times";
 import { timedTrackFromStreams } from "@/lib/intervals/rides";
 import type { TimedPoint } from "@/lib/segments/gps-efforts";
 import { storeGpsEfforts } from "@/lib/segments/gps-sync";
@@ -34,12 +34,15 @@ function segment(id: number, fromM: number, toM: number, extra: Record<string, u
 }
 
 describe("storeGpsEfforts", () => {
-  it("bewaart een poging per gereden segment, met herkomst gps", async () => {
+  it("bewaart per uitgekozen segment de snelste tijd in de rit", async () => {
     const db = fakeDb({
-      zwb_segment_maps: [segment(1, 200, 1200), segment(2, 5000, 6000), segment(3, 300, 900, { private: true })],
-      strava_activity_segment_efforts: [
-        { effort_uid: "strava-1", profile_id: A, activity_id: -5, strava_segment_id: 9 },
-        { effort_uid: "gps:-5:1:0", profile_id: A, activity_id: -5, strava_segment_id: 1, elapsed_time_seconds: 999 },
+      // 1 en 2 zijn uitgekozen; 3 is privé; 4 ligt op de route maar is niet uitgekozen.
+      zwb_segment_maps: [segment(1, 200, 1200), segment(2, 5000, 6000), segment(3, 300, 900, { private: true }), segment(4, 400, 1000)],
+      zwb_segments: [
+        { slug: "een", strava_segment_id: 1, active: true },
+        { slug: "twee", strava_segment_id: 2, active: true },
+        { slug: "drie", strava_segment_id: 3, active: true },
+        { slug: "uit", strava_segment_id: 4, active: false },
       ],
       cols: [],
       strava_activities: [{ id: -5, profile_id: A, raw: { import_source: "strava_gpx" } }],
@@ -48,18 +51,43 @@ describe("storeGpsEfforts", () => {
     const result = await storeGpsEfforts(db, A, -5, ride(200));
 
     expect(result).toEqual({ segments: 1, cols: 0 });
-    const efforts = db.tables.strava_activity_segment_efforts;
-    expect(efforts.map((row) => row.effort_uid).sort()).toEqual(["gps:-5:1:0", "strava-1"]);
-    const mine = efforts.find((row) => row.effort_uid === "gps:-5:1:0")!;
-    expect(mine).toMatchObject({ strava_segment_id: 1, elapsed_time_seconds: 100, raw: { source: "gps" } });
+    const stored = db.tables.strava_activities[0].raw as { import_source: string; gps_segment_times: Array<{ segment_id: number; seconds: number; started_at: string }> };
+    expect(stored.import_source).toBe("strava_gpx");
+    expect(stored.gps_segment_times).toHaveLength(1);
+    expect(stored.gps_segment_times[0]).toMatchObject({ segment_id: 1, seconds: 100 });
     // De polyline rondt af op ~1 m; op 10 m/s is dat een tiende seconde.
-    expect(Math.abs(Date.parse(String(mine.started_at)) - (START + 20_000))).toBeLessThan(100);
+    expect(Math.abs(Date.parse(stored.gps_segment_times[0].started_at) - (START + 20_000))).toBeLessThan(100);
+  });
+
+  it("meet ook langs het segment van een col", async () => {
+    const db = fakeDb({
+      zwb_segment_maps: [segment(77, 200, 1200)],
+      zwb_segments: [],
+      cols: [{ slug: "col-met", strava_segment_id: 77, summit_lat: lat(1200), summit_lon: 5, start_lat: null, start_lon: null, detection_radius_m: 250 }],
+      strava_activities: [{ id: -5, profile_id: A, raw: {} }],
+    });
+
+    expect(await storeGpsEfforts(db, A, -5, ride(200))).toEqual({ segments: 1, cols: 0 });
+    expect(db.tables.strava_activities[0].raw).toMatchObject({ gps_segment_times: [{ segment_id: 77, seconds: 100 }] });
+  });
+
+  it("haalt een eerdere meting weg als de rit het segment niet meer raakt", async () => {
+    const db = fakeDb({
+      zwb_segment_maps: [segment(2, 5000, 6000)],
+      zwb_segments: [{ slug: "twee", strava_segment_id: 2, active: true }],
+      cols: [],
+      strava_activities: [{ id: -5, profile_id: A, raw: { gps_segment_times: [{ segment_id: 2, seconds: 90, started_at: "x" }] } }],
+    });
+
+    await storeGpsEfforts(db, A, -5, ride(200));
+
+    expect(db.tables.strava_activities[0].raw).toEqual({});
   });
 
   it("zet de tijd van een col zonder segment in de rit", async () => {
     const db = fakeDb({
       zwb_segment_maps: [],
-      strava_activity_segment_efforts: [],
+      zwb_segments: [],
       cols: [
         { slug: "col-zonder", strava_segment_id: null, summit_lat: lat(1500), summit_lon: 5, start_lat: lat(100), start_lon: 5.001, detection_radius_m: 250 },
         { slug: "col-met", strava_segment_id: 77, summit_lat: lat(1500), summit_lon: 5, start_lat: lat(100), start_lon: 5, detection_radius_m: 250 },
@@ -83,21 +111,45 @@ describe("bestGpsColTimes", () => {
         { slug: "alpe", strava_segment_id: 652851 },
         { slug: "falzarego", strava_segment_id: null },
       ],
-      efforts: [
-        { activity_id: -1, strava_segment_id: 652851, elapsed_time_seconds: 3000, started_at: "a" },
-        { activity_id: -2, strava_segment_id: "652851", elapsed_time_seconds: 2900, started_at: "b" },
-        { activity_id: -2, strava_segment_id: 123, elapsed_time_seconds: 10, started_at: "c" },
-      ],
       activities: [
+        { id: -1, segment_times: [{ segment_id: 652851, seconds: 3000, started_at: "a" }] },
+        { id: -2, segment_times: [{ segment_id: "652851", seconds: 2900, started_at: "b" }, { segment_id: 123, seconds: 10, started_at: "c" }] },
         { id: -3, col_times: [{ slug: "falzarego", seconds: 3600, started_at: "d" }] },
         { id: -4, col_times: [{ slug: "falzarego", seconds: 3500, started_at: "e" }] },
-        { id: -5, col_times: "kapot" },
+        { id: -5, col_times: "kapot", segment_times: "kapot" },
       ],
     });
     expect(Object.fromEntries(best)).toEqual({
       alpe: { seconds: 2900, activityId: -2, at: "b" },
       falzarego: { seconds: 3500, activityId: -4, at: "e" },
     });
+  });
+});
+
+describe("gpsSegmentAggregates", () => {
+  it("telt ritten per uitgekozen segment en laat cols aan de coltijden", () => {
+    const aggregates = gpsSegmentAggregates({
+      segments: [
+        { slug: "vam", collection: "benelux_popular", strava_segment_id: 10 },
+        { slug: "alpe", collection: "cols", strava_segment_id: 652851 },
+      ],
+      activities: [
+        { id: -1, segment_times: [{ segment_id: 10, seconds: 300, started_at: "2026-01-02" }] },
+        { id: -2, segment_times: [{ segment_id: "10", seconds: 280, started_at: "2026-03-01" }, { segment_id: 652851, seconds: 3000, started_at: "2026-03-01" }] },
+        { id: -3, segment_times: [{ segment_id: 10, seconds: 310, started_at: "2025-12-01" }, { segment_id: 10, seconds: 0, started_at: "x" }] },
+      ],
+    });
+    expect(aggregates).toEqual([
+      {
+        slug: "vam",
+        count: 3,
+        firstAt: "2025-12-01",
+        firstActivityId: -3,
+        lastAt: "2026-03-01",
+        lastActivityId: -2,
+        best: { seconds: 280, activityId: -2, at: "2026-03-01" },
+      },
+    ]);
   });
 });
 

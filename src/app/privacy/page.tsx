@@ -161,17 +161,14 @@ export default function PrivacyPage() {
             geslacht uit afleiden.
           </li>
           <li>
-            <strong>ZWB Segments:</strong> ingelezen buitenritten leveren segmentnamen,
-            segmentlijnen en verstreken tijden voor de kaart en het klassement binnen
-            ZWB, alleen op segmenten die minstens drie leden reden. Andere goedgekeurde
-            leden zien je naam, tijd en positie. Ben je de snelste, dan zien zij die
-            ZWB KOM-titel ook op het dashboard en je ledenprofiel. Staat op je profiel
-            dat je een vrouw bent en ben je de snelste vrouw, dan zien zij daar ook de
-            ZWB QOM-titel; daaruit is je opgegeven geslacht af te leiden. Je gewicht,
-            vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
-            niet met andere leden gedeeld. Privéritten, ritten die alleen jij mag
-            zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Van ritten via intervals.icu en geüploade GPX-bestanden meet ZWB de tijd op segmenten en cols zelf uit het GPS-spoor; die tijd staat met het label GPS in hetzelfde klassement. Bij het verbreken van je Strava-koppeling vervallen je
-            Strava-tijden uit dit klassement, tenzij je ervoor kiest je ritten te bewaren; eigen tijden op ritten via intervals.icu blijven.
+            <strong>ZWB Segments:</strong> van de segmenten en cols die ZWB heeft
+            uitgekozen bewaren we je besttijd, hoe vaak je ze reed en wanneer.
+            Andere goedgekeurde leden zien je naam, tijd en positie in de ranglijst
+            per segment. Van ritten via intervals.icu en geüploade GPX-bestanden
+            meet ZWB die tijd zelf uit het GPS-spoor; hij staat met het label GPS
+            in dezelfde ranglijst. Verbreek je je Strava-koppeling, dan vervallen
+            je Strava-tijden op de uitgekozen segmenten, tenzij je ervoor kiest je
+            ritten te bewaren; cols en eigen GPS-tijden blijven.
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en

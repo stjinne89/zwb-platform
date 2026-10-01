@@ -30,7 +30,6 @@ export const ADMIN_AREAS = {
   omnium: { href: "/beheer/omnium", label: "Omnium", permission: "omnium.manage" },
   zwbgame: { href: "/zwbgame/beheer", label: "ZWBgame", permission: "zwbgame.manage" },
   strava: { href: "/beheer/strava", label: "Strava-sync", permission: "integrations.manage" },
-  segments: { href: "/beheer/segments", label: "Segmenten", permission: "integrations.manage" },
   notificaties: {
     href: "/beheer/notificaties",
     label: "Notificaties",
