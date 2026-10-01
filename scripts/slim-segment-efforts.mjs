@@ -24,18 +24,23 @@ const full = process.argv.includes("--full");
 function sql(query) {
   const file = join(tmpdir(), `zwb-slim-${process.pid}.sql`);
   writeFileSync(file, query);
-  // -o json: in een terminal geeft de CLI anders een opgemaakte tabel terug.
-  const res = spawnSync(`supabase db query --linked -o json -f "${file}"`, {
+  // De CLI kent drie uitvoervormen: een tabel in een terminal, een kale lijst met
+  // -o json, en {rows: [...]} als hij merkt dat een agent hem aanroept. Met
+  // -o json en --agent no is het de kale lijst; de andere JSON-vorm lezen we ook.
+  const res = spawnSync(`supabase db query --linked -o json --agent no -f "${file}"`, {
     encoding: "utf8",
     shell: true,
     maxBuffer: 16 * 1024 * 1024,
   });
-  const out = `${res.stdout ?? ""}\n${res.stderr ?? ""}`;
-  const start = out.indexOf("{");
+  const out = (res.stdout ?? "").trim();
   try {
-    return JSON.parse(out.slice(start, out.lastIndexOf("}") + 1)).rows ?? [];
+    if (res.status !== 0) throw new Error(`exit ${res.status}`);
+    const start = out.search(/[[{]/);
+    if (start === -1) return [];
+    const parsed = JSON.parse(out.slice(start, Math.max(out.lastIndexOf("]"), out.lastIndexOf("}")) + 1));
+    return Array.isArray(parsed) ? parsed : (parsed.rows ?? []);
   } catch {
-    throw new Error(`Mislukt:\n${query}\n---\n${out.slice(0, 800)}`);
+    throw new Error(`Mislukt:\n${query}\n---\n${`${out}\n${res.stderr ?? ""}`.slice(0, 800)}`);
   }
 }
 

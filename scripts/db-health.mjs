@@ -35,33 +35,35 @@ function cli(args) {
     shell: true,
     maxBuffer: 64 * MB,
   });
-  return `${res.stdout ?? ""}\n${res.stderr ?? ""}`;
+  return { ok: res.status === 0, stdout: (res.stdout ?? "").trim(), stderr: res.stderr ?? "" };
+}
+
+// De CLI kent drie uitvoervormen: een tabel in een terminal, een kale lijst met
+// -o json, en {rows: [...]} als hij merkt dat een agent hem aanroept. Met -o json
+// en --agent no is het de kale lijst; de andere JSON-vorm lezen we ook.
+function jsonList({ ok, stdout }) {
+  const start = stdout.search(/[[{]/);
+  if (!ok || start === -1) return null;
+  try {
+    const parsed = JSON.parse(stdout.slice(start, Math.max(stdout.lastIndexOf("]"), stdout.lastIndexOf("}")) + 1));
+    if (Array.isArray(parsed)) return parsed;
+    return Array.isArray(parsed.rows) ? parsed.rows : null;
+  } catch {
+    return null;
+  }
 }
 
 function sql(query) {
   const file = join(tmpdir(), `zwb-db-health-${process.pid}.sql`);
   writeFileSync(file, query);
-  // -o json: in een terminal geeft de CLI anders een opgemaakte tabel terug.
-  const out = cli(["db", "query", "--linked", "-o", "json", "-f", `"${file}"`]);
-  const start = out.indexOf("{");
-  const end = out.lastIndexOf("}");
-  try {
-    const parsed = JSON.parse(out.slice(start, end + 1));
-    if (Array.isArray(parsed.rows)) return parsed.rows;
-  } catch {
-    // valt door naar de fout hieronder
-  }
-  throw new Error(`Query mislukt:\n${query.slice(0, 200)}\n---\n${out.slice(0, 800)}`);
+  const res = cli(["db", "query", "--linked", "-o", "json", "--agent", "no", "-f", `"${file}"`]);
+  const rows = jsonList(res);
+  if (rows) return rows;
+  throw new Error(`Query mislukt:\n${query.slice(0, 200)}\n---\n${`${res.stdout}\n${res.stderr}`.slice(0, 800)}`);
 }
 
 function advisors() {
-  const out = cli(["db", "advisors", "--linked", "--type", "performance", "-o", "json"]);
-  const start = out.indexOf("[");
-  try {
-    return JSON.parse(out.slice(start, out.lastIndexOf("]") + 1));
-  } catch {
-    return null;
-  }
+  return jsonList(cli(["db", "advisors", "--linked", "--type", "performance", "-o", "json", "--agent", "no"]));
 }
 
 // ── Momentopname ─────────────────────────────────────────────────────
