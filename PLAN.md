@@ -4934,6 +4934,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZWBlokken: ranglijst "Meeste blokken" toont alle leden
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn wilde in "Meeste blokken" alle leden zien, niet alleen de
+eerste tien.
+
+**Nu.** De lijst bevat ieder lid met minstens één blok en is tien rijen hoog;
+de rest scrolt binnen de kaart. Hetzelfde geldt voor "Meeste blokken in
+{wereld}" op het Zwift-tabblad, zodat beide lijsten zich gelijk gedragen. De
+`.slice(0, 10)` in `src/app/(app)/zwblokken/page.tsx` is weg; de hoogte staat
+als `max-h-[15.875rem]` op de `<ol>` daar en in `zwift-view.tsx`.
+
+**Bewust niet.** Geen vastgezette eigen rij en geen zoekveld; er is niet om
+gevraagd.
+
+**Getest.** Niets gedraaid: in deze worktree en in de hoofd-checkout staan geen
+`node_modules`, dus `tsc`, ESLint en de browser zijn overgeslagen.
+
 ### Opgeleverd — SRC: meedoen met één klik
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.

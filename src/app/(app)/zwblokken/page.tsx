@@ -137,8 +137,7 @@ export default async function ZwblokkenPage() {
         blocks,
         km: Math.round(metersIn(world, id) / 1000),
       }))
-      .sort((a, b) => b.blocks - a.blocks || b.km - a.km)
-      .slice(0, 10);
+      .sort((a, b) => b.blocks - a.blocks || b.km - a.km);
     for (const [id, blocks] of perMember) zwiftTotals.set(id, (zwiftTotals.get(id) ?? 0) + blocks);
   }
 
@@ -161,8 +160,7 @@ export default async function ZwblokkenPage() {
   // iedereen gewoon op zijn eigen plek te staan.
   const leaderboard = [...members]
     .filter((m) => m.blocks > 0)
-    .sort((a, b) => b.blocks - a.blocks)
-    .slice(0, 10);
+    .sort((a, b) => b.blocks - a.blocks);
 
   return (
     <div className="space-y-6">
@@ -211,7 +209,8 @@ export default async function ZwblokkenPage() {
           {leaderboard.length > 0 && (
             <section className="rounded-lg border bg-card/90 p-4">
               <h2 className="text-sm font-semibold">Meeste blokken</h2>
-              <ol className="mt-3 space-y-1.5">
+              {/* Tien rijen hoog (10 × 1,25rem + 9 × 0,375rem); de rest scrolt. */}
+              <ol className="mt-3 max-h-[15.875rem] space-y-1.5 overflow-y-auto pr-2">
                 {leaderboard.map((m, i) => (
                   <li key={m.id} className="flex items-baseline gap-3 text-sm">
                     <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
