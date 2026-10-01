@@ -126,7 +126,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0211`.
 
 ---
 
@@ -176,7 +176,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`
 > Segmenten met één of twee rijders krijgen hun lijn niet meer vooraf, alleen bij
 > openen: bij 20–60 per dag kwam de inhaalslag daar toch nooit aan toe.
 >
-> **Getest.** Unittests (1.863), waaronder PGlite voor 0209 (inkorten, KOM-trigger,
+> **Getest.** Unittests (1.922 na het samenvoegen met main), waaronder PGlite voor 0209 (inkorten, KOM-trigger,
 > voorrangslijst) en 0210 (omhullen, rechten gelijk, twee keer draaien), lint zonder
 > fouten, `npm run build`. `db-health.mjs` tegen productie gedraaid. De voorvertoning
 > van 0210 op productie telde precies de 144 policies van de advisor.
