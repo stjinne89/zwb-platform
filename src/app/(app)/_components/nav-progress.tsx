@@ -15,7 +15,7 @@ import { usePathname } from "next/navigation";
 const GIVE_UP_MS = 12_000;
 
 function internalTarget(event: MouseEvent): URL | null {
-  if (event.defaultPrevented || event.button !== 0) return null;
+  if (event.button !== 0) return null;
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return null;
   const anchor = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
   if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return null;
@@ -40,9 +40,11 @@ export function NavProgress() {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => setClickedOn(null), GIVE_UP_MS);
     };
-    document.addEventListener("click", onClick);
+    // In de capture-fase: next/link roept preventDefault aan op zijn eigen klik, en
+    // een gewone listener ziet die klik dus pas als "al afgehandeld".
+    document.addEventListener("click", onClick, true);
     return () => {
-      document.removeEventListener("click", onClick);
+      document.removeEventListener("click", onClick, true);
       if (timer) clearTimeout(timer);
     };
   }, []);
