@@ -15,7 +15,7 @@ gaat stabiliteit voor nieuwe features.
    `node scripts/slim-segment-efforts.mjs`, daarna met `--full`; deployen; dan
    `?segmentBackfill=0` weer uit de URL van de job "ZWB Strava webhooks" op
    cron-job.org halen. Daarna beslissen: Free houden of naar Pro. De wekelijkse
-   check (`npm run db:health`, geplande taak op maandag) houdt dit bij.
+   check (`npm run db:health`, geplande taak op dinsdag 10:00) houdt dit bij.
 2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
@@ -167,7 +167,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`
 > - KOM-herberekening in batches van 50 in plaats van 200.
 > - `scripts/db-health.mjs` (`npm run db:health`): wekelijkse check tegen
 >   productie, met momentopnames in `.tmp/db-health/`. Draait via een geplande
->   Claude-taak op maandag. `scripts/slim-segment-efforts.mjs`: eenmalig inkorten.
+>   Claude-taak op dinsdag 10:00. `scripts/slim-segment-efforts.mjs`: eenmalig inkorten.
 >
 > **Niet gebouwd, en waarom.** `getClaims()` (hangt af van asymmetrische
 > JWT-sleutels, niet nagegaan); de 36 "multiple permissive policies" (per tabel een

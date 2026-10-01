@@ -94,7 +94,8 @@ traagste queries, volledige scans op grote tabellen, de performance-advisors,
 werkvoorraden en selects die tegen de 1000-rijengrens aanlopen. Momentopnames en
 rapporten staan in `.tmp/db-health/` (niet in git). Leest alleen.
 
-Een geplande Claude-taak draait dit elke maandagochtend en meldt de ACTIE- en LET
+Een geplande Claude-taak (zwb-wekelijkse-databasecheck) draait dit elke dinsdag om
+10:00 op deze pc en meldt de ACTIE- en LET
 OP-punten. Egress en quota op de Supabase-usagepagina en de job-historie op
 cron-job.org ziet het script niet; die kijkt de taak na als Chrome beschikbaar is.
 Achtergrond: [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md).
