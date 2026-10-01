@@ -487,6 +487,9 @@ export default async function EventDetailPage({
   // waarmee je deze maand rijdt. Dat wordt je antwoord op je eigen race.
   const isSrcSunday = isSrc && !event.parent_event_id;
   let srcSignup: { teamId: string; current: TeamAvailabilityStatus | null } | null = null;
+  // Zonder inschrijving kan een klik je zelf inschrijven, tenzij er meer
+  // SRC-teams zijn om uit te kiezen.
+  let srcCanAutoJoin = false;
   if (isSrcSunday && user) {
     const { data: sundayRow } = await supabase
       .from("events")
@@ -514,6 +517,13 @@ export default async function EventDetailPage({
         teamId: entry.team_id as string,
         current: (availability?.status as TeamAvailabilityStatus | undefined) ?? null,
       };
+    } else {
+      const { data: srcTeams } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("type", "src")
+        .eq("is_graveyard", false);
+      srcCanAutoJoin = (srcTeams ?? []).length <= 1;
     }
   }
 
@@ -1439,16 +1449,16 @@ export default async function EventDetailPage({
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Ben jij erbij?
           </h2>
-          {srcSignup ? (
+          {srcSignup || srcCanAutoJoin ? (
             <TeamAvailabilityButtons
-              teamId={srcSignup.teamId}
+              teamId={srcSignup?.teamId ?? ""}
               eventId={event.id}
-              current={srcSignup.current}
+              current={srcSignup?.current ?? null}
               save={setSrcAvailability.bind(null, event.id)}
             />
           ) : (
             <Link href="/src" className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
-              Meedoen deze maand
+              Kies je team
             </Link>
           )}
         </section>

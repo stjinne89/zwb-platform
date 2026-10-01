@@ -15,6 +15,7 @@ import {
 } from "@/lib/src/month";
 import type { SrcGender } from "@/lib/src/feed";
 import { SRC_MANAGERS } from "@/lib/src/access";
+import { ensureSrcMonthEntry } from "@/lib/src/auto-join";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -160,7 +161,8 @@ export async function leaveSrcMonth(month: string) {
 
 /**
  * Kan het lid deze zondag? Staat de race van zijn geslacht al in de kalender,
- * dan wordt dat meteen zijn antwoord op die race.
+ * dan wordt dat meteen zijn antwoord op die race. Wie die maand nog niet
+ * meedoet, wordt hiermee vanzelf ingeschreven (lib/src/auto-join.ts).
  */
 export async function setSrcAvailability(sundayEventId: string, status: SrcAvailabilityStatus) {
   if (!["available", "maybe", "unavailable"].includes(status)) {
@@ -181,13 +183,14 @@ export async function setSrcAvailability(sundayEventId: string, status: SrcAvail
     .maybeSingle();
   if (!sunday?.src_sunday) return { ok: false as const, error: "Geen SRC-zondag." };
 
-  const { data: entry } = await admin
-    .from("src_month_entries")
-    .select("team_id, race")
-    .eq("month", srcMonthKey(sunday.src_sunday as string))
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  if (!entry) return { ok: false as const, error: "Doe eerst mee deze maand." };
+  // Wie nog niet meedoet deze maand, wordt met deze klik ingeschreven.
+  const joined = await ensureSrcMonthEntry(
+    admin,
+    user.id,
+    srcMonthKey(sunday.src_sunday as string),
+  );
+  if (!joined.ok) return { ok: false as const, error: joined.error };
+  const entry = joined.entry;
 
   const { error } = await supabase.from("team_event_availability").upsert(
     {

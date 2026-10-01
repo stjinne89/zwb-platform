@@ -228,15 +228,13 @@ export default async function SrcPage({
         </nav>
       </header>
 
-      {teams.length === 0 ? (
-        <EmptyState>Nog geen SRC-team.</EmptyState>
-      ) : (
-        <section className="space-y-4 rounded-lg border bg-card p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Jij in {monthLabel(month)}
-          </h2>
+      <section className="space-y-4 rounded-lg border bg-card p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Jij in {monthLabel(month)}
+        </h2>
+        {teams.length > 0 && (
           <SrcJoinForm
-            key={month}
+            key={`${month}-${mine ? "in" : "uit"}`}
             month={month}
             monthLabel={monthLabel(month)}
             teams={joinTeams}
@@ -246,31 +244,32 @@ export default async function SrcPage({
             defaultCategory={progress.get(userId)?.lastCategory ?? null}
             defaultRace={(me?.sex as string | null) === "vrouw" ? "women" : "men"}
           />
-          {mine && sundays.length > 0 && (
-            <ul className="divide-y rounded-lg border">
-              {sundays.map((sunday) => (
-                <li
-                  key={sunday.id}
-                  className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
-                >
-                  <Link href={`/events/${sunday.id}`} className="font-medium hover:underline">
-                    {sunday.title}
-                    <span className="ml-2 font-normal text-muted-foreground">
-                      {DAY.format(new Date(`${sunday.src_sunday}T12:00:00Z`))}
-                    </span>
-                  </Link>
-                  <TeamAvailabilityButtons
-                    teamId={mine.team_id}
-                    eventId={sunday.id}
-                    current={status.get(`${sunday.id}|${userId}`) ?? null}
-                    save={setSrcAvailability.bind(null, sunday.id)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+        )}
+        {/* Zonder inschrijving schrijft een klik je in, tenzij er meer teams zijn. */}
+        {(mine || teams.length <= 1) && sundays.length > 0 && (
+          <ul className="divide-y rounded-lg border">
+            {sundays.map((sunday) => (
+              <li
+                key={sunday.id}
+                className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
+              >
+                <Link href={`/events/${sunday.id}`} className="font-medium hover:underline">
+                  {sunday.title}
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    {DAY.format(new Date(`${sunday.src_sunday}T12:00:00Z`))}
+                  </span>
+                </Link>
+                <TeamAvailabilityButtons
+                  teamId={mine?.team_id ?? ""}
+                  eventId={sunday.id}
+                  current={status.get(`${sunday.id}|${userId}`) ?? null}
+                  save={setSrcAvailability.bind(null, sunday.id)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {teams.map((team) => {
         const ofTeam = entries

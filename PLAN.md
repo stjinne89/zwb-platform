@@ -4797,6 +4797,38 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — SRC: meedoen met één klik
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn op de zondag van kwalificatie 2: waarom moet er eerst een
+team worden aangemaakt, en kun je niet gewoon klikken dat je erbij bent? De
+beschikbaarheid hangt in de opslag aan het team van die maand, en zonder
+maandinschrijving toonde de pagina alleen een knop naar `/src`. Daar stond dan
+"Nog geen SRC-team".
+
+**Nu.** De knoppen Beschikbaar / Misschien / Niet staan altijd op een
+SRC-zondag en op `/src`. `ensureSrcMonthEntry` (`src/lib/src/auto-join.ts`)
+schrijft wie nog niet meedoet met die klik in:
+- bij het ene SRC-team, of, als er nog geen is, bij een nieuw standaardteam
+  "ZWB SRC" zonder MyWhoosh-teamnaam; die vult een beheerder later in op
+  `/beheer/src`;
+- heren of dames volgens het profiel (vrouw → dames, anders heren);
+- met de categorie van de laatst gereden race, als die bekend is.
+
+Zijn er meer SRC-teams, dan blijft de keuze op `/src` nodig. Op de zondag staat
+dan "Kies je team".
+
+**Bewust niet.** Geen vraag naar heren of dames bij de klik: een vrouw zonder
+ingevuld geslacht komt bij de heren terecht en zet dat zelf om op `/src`. Het
+standaardteam ontstaat door de eerste klik van een willekeurig lid; dat is een
+bewuste eenmalige uitzondering op "teams maakt een beheerder".
+
+**Getest.** `tests/unit/src-auto-join.test.ts` (standaardteam, bestaand team met
+dames en laatste categorie, bestaande inschrijving blijft, meer teams vraagt om
+een keuze), `tsc`, ESLint, de unit-suite en `next build`. Niet tegen de echte
+database geklikt.
+
 ### Opgeleverd — rechten fase D: kleine gaten en uitleg
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -5208,7 +5240,8 @@ renners zijn voor een teamuitslag.
   plannen. Een zondag uit de feed gaat voor de berekende. Een zondag zonder races
   krijgt als starttijd 07:25 GMT (cat 6 dames).
 - Op een SRC-zondag staat "Ben jij erbij?" met die knoppen, of een knop naar
-  `/src` als je deze maand nog niet meedoet. Er is geen losse RSVP op de zondag
+  `/src` als je deze maand nog niet meedoet. *(Sinds 2026-10-01 staan de knoppen
+  er altijd en schrijft een klik je zelf in; zie "SRC: meedoen met één klik".)* Er is geen losse RSVP op de zondag
   zelf.
 - `TeamAvailabilityButtons` kreeg een optionele `save`, zodat dezelfde knoppen de
   SRC-actie gebruiken. `/hulp` (Teams en wedstrijden, Beheer) en de hulpzoeker
