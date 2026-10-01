@@ -129,8 +129,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
-> **Laadtijd, deel 3: trainingspagina's op basis van een meting, 2026-10-01 — gebouwd, lokaal getest; effect nog niet gemeten.**
-> Commit: de commit die dit blok toevoegt. Geen migratie.
+> **Laadtijd, deel 3: trainingspagina's op basis van een meting, 2026-10-01 — live en gemeten.**
+> Commit `90c055d`. Geen migratie.
+>
+> **Nameting (productie, warme weergaven, zelfde avond).** Schema: 3,6–4,2 s →
+> 2,3–2,6 s; de gegevens zijn na ~1,3 s binnen (was ~3,0 s), daarna nog ~0,75 s
+> voor de onderdelen van de pagina zelf. Vandaag: de pagina verschijnt na 1,2–1,6 s
+> (was 2,1–2,3 s); het bevestigscherm volgt los en sluit het antwoord na 1,9–2,5 s
+> af, omdat `detectCompletedWorkouts` nog steeds 1,3–1,5 s duurt.
 >
 > **Meting.** Tijdelijke logging per stap (`lib/perf/timings.ts`, regel `[perf]` in
 > de functielog van Netlify, commit `7a01d00`). Uitkomst, warme weergaven:
@@ -153,8 +159,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 > - Schema: elke stap vertrekt zodra zijn invoer er is. `settleOwnReplans` loopt
 >   naast rechten, profiel en koppeling; de workouts volgen op de intervals-events in
 >   plaats van op de hele ronde; suggesties en ritten volgen op de workouts; de
->   eventkeuzes volgen op de schema's. Verwachting uit de gemeten tijden: van ~3,0 s
->   naar ~1,5 s in de paginafunctie. Niet gemeten.
+>   eventkeuzes volgen op de schema's. Gemeten: van ~3,0 s naar ~1,3 s tot alle
+>   gegevens binnen zijn.
 >
 > **Niet gedaan.** `detectCompletedWorkouts` zelf versnellen (acht vragen na
 > elkaar, ook gebruikt door de cron): het staat nu niet meer in de weg van de
