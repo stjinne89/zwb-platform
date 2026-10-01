@@ -1,3 +1,4 @@
+import { startTimings, timed } from "@/lib/perf/timings";
 import Link from "next/link";
 import { Download, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
@@ -68,12 +69,16 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Maand is de ingang: daar zie je in één blik je week én kun je een training
   // aanklikken. De lijst blijft als alternatief bestaan.
   const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
-  const viewer = await requireViewer();
+  startTimings("/zwbeter-worden/schema");
+  const viewer = await timed("viewer", requireViewer());
   // Eerst afmaken wat is blijven hangen, zodat de lijst hieronder het bijgewerkte
   // schema toont. Zie settleOwnReplans().
-  await settleOwnReplans(viewer.admin, viewer.user.id).catch(() => null);
+  await timed("settleReplans", settleOwnReplans(viewer.admin, viewer.user.id).catch(() => null));
 
-  const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
+  const [profile, conn] = await Promise.all([
+    timed("profile", loadProfile(viewer)),
+    timed("conn", loadConnection(viewer)),
+  ]);
   const [
     snapshot,
     plans,
@@ -85,8 +90,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     zrlTeamMember,
   ] =
     await Promise.all([
-      loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }),
-      loadPlanFamilies(viewer),
+      timed("snapshot", loadIntervalsSnapshot(viewer, conn, { eventDays: 14 })),
+      timed("planFamilies", loadPlanFamilies(viewer)),
       viewer.supabase
         .from("training_workout_reports")
         .select("*")
@@ -97,16 +102,16 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         .select("*")
         .eq("profile_id", viewer.user.id)
         .order("created_at", { ascending: false }),
-      loadAvailabilityOptions(viewer),
-      loadFtpTestState(viewer),
-      loadIgnoredStreak(viewer),
-      loadZrlTeamMembership(viewer),
+      timed("availability", loadAvailabilityOptions(viewer)),
+      timed("ftpTest", loadFtpTestState(viewer)),
+      timed("ignoredStreak", loadIgnoredStreak(viewer)),
+      timed("zrlTeam", loadZrlTeamMembership(viewer)),
     ]);
 
-  const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
+  const memberWorkouts = await timed("memberWorkouts", loadMemberWorkouts(viewer, snapshot.events));
   const [zwift, outdoor] = await Promise.all([
-    loadZwiftSuggestionViews(viewer, memberWorkouts),
-    loadOutdoorSuggestionViews(viewer, memberWorkouts),
+    timed("zwiftSuggestions", loadZwiftSuggestionViews(viewer, memberWorkouts)),
+    timed("outdoorSuggestions", loadOutdoorSuggestionViews(viewer, memberWorkouts)),
   ]);
   const todayKey = todayKeyAmsterdam();
   const reports = (reportRows ?? []) as WorkoutReportRow[];
@@ -120,11 +125,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     unplanned: extraRides,
     byId: ridesById,
     deleted: deletedRides,
-  } = await loadScheduleRides(
-    viewer,
-    memberWorkouts,
-    reports,
-    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+  } = await timed(
+    "scheduleRides",
+    loadScheduleRides(
+      viewer,
+      memberWorkouts,
+      reports,
+      profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    ),
   );
 
   // Een aanpassing is een afgeleid plan, maar hoort in het schema waar hij op
@@ -142,7 +150,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const canSelfManagePlans = viewer.access.has("training.create_plans");
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
   const runningPlan = activePlan(plans);
-  const eventChoices = await loadScheduleEventChoices(viewer, runningPlan);
+  const eventChoices = await timed("eventChoices", loadScheduleEventChoices(viewer, runningPlan));
   const runningGoal = runningPlan?.goal_id
     ? ((goalRows ?? []) as GoalRow[]).find((goal) => goal.id === runningPlan.goal_id) ?? null
     : null;
