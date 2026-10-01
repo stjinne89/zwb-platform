@@ -54,8 +54,8 @@ const HELP_INDEX: HelpResult[] = [
       "intervals intervals.icu zonder strava geen plek limiet garmin wahoo zwift mywhoosh rouvy hammerhead polar suunto coros ritten ophalen overstappen herinnering slapend account",
   },
   {
-    title: "Strava-ritten importeren (CSV of GPX)",
-    text: "Importeer je hele historie (activities.csv) of ritten met spoor (GPX, meerdere tegelijk) op het dashboard.",
+    title: "Strava-ritten importeren (CSV, GPX of FIT)",
+    text: "Importeer je hele historie (activities.csv) of ritten met spoor (GPX of FIT, meerdere tegelijk) op het dashboard.",
     href: "/hulp#strava-import",
     terms:
       "strava export csv activities importeren upload bestand geen koppeling limiet gpx een rit losse rit meerdere bulk archief spoor cols segmenten zwblokken taal geen fietsritten gevonden",

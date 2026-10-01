@@ -44,7 +44,7 @@ const START_STEPS = [
   },
   {
     title: "Strava-data toevoegen",
-    text: "Koppel Strava met activiteitenrecht of importeer je ritten (CSV of GPX) op het dashboard.",
+    text: "Koppel Strava met activiteitenrecht of importeer je ritten (CSV, GPX of FIT) op het dashboard.",
     href: "/dashboard#strava-sync",
   },
   {
@@ -153,7 +153,7 @@ const GUIDES = [
     bullets: [
       "Weekbadges komen uit gesyncte Strava-ritten.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
-      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of ritten met spoor (GPX).",
+      "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of ritten met spoor (GPX of FIT).",
       "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
       "Ontkoppel je Strava op je profiel, dan kies je zelf: Ritten bewaren laat je opgehaalde ritten, segmenttijden en fietsen in ZWB staan, Ritten wissen haalt ze weg. Er komt daarna niets nieuws meer binnen. Badges en ZWBlokken blijven altijd.",
       "Milestone badges blijven permanent op je profiel staan.",
@@ -524,7 +524,7 @@ const ADMIN_GUIDES = [
 ];
 
 const TROUBLESHOOTING = [
-  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv of een GPX op het dashboard.",
+  "Zie je geen badges? Koppel Strava en start een sync, of importeer activities.csv, GPX of FIT op het dashboard.",
   "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of het dashboard en zet het activiteitenvinkje aan.",
   "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, kijk dan in Garmin Connect bij LiveTrack → Sessiedetails of je adres als ontvanger staat, en of Automatisch starten aan staat.",
   "Verschijn je niet live met je Wahoo? Open je Wahoo-link zelf: staat je rit daar niet, dan heeft de ELEMNT-app geen verbinding. Anders verschijn je binnen een paar minuten nadat iemand Samen fietsen opent.",
@@ -814,7 +814,7 @@ export default function HelpPage() {
               Geen plek voor een Strava-koppeling of wil je die niet gebruiken?
               Laat je ritten dan binnenkomen via intervals.icu (hierboven), of
               upload ze zelf op het dashboard: je hele historie in één keer via
-              activities.csv, of ritten met hun spoor via GPX.
+              activities.csv, of ritten met hun spoor via GPX of FIT.
             </p>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               De koppeling haalt eerst de laatste vijf jaar op en daarna, beetje
@@ -861,8 +861,7 @@ export default function HelpPage() {
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">4.</span>
                 <span>
-                  Upload activities.csv op het dashboard met Importeer CSV of
-                  GPX.
+                  Upload activities.csv op het dashboard met Importeer ritten.
                 </span>
               </li>
             </ol>
@@ -891,8 +890,8 @@ export default function HelpPage() {
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">3.</span>
                 <span>
-                  Upload de GPX-bestanden op het dashboard met Importeer CSV of
-                  GPX. Je kunt er meerdere tegelijk kiezen.
+                  Upload de GPX-bestanden op het dashboard met Importeer
+                  ritten. Je kunt er meerdere tegelijk kiezen.
                 </span>
               </li>
             </ol>
@@ -904,6 +903,42 @@ export default function HelpPage() {
               de ranglijst.
               Staat de rit al binnen via activities.csv, dan krijgt die het
               spoor erbij. Dezelfde rit twee keer uploaden is geen probleem.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4 md:col-span-2">
+            <h3 className="text-sm font-semibold">
+              Alle ritten met spoor, ook Zwift (FIT)
+            </h3>
+            <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">1.</span>
+                <span>
+                  Upload eerst activities.csv, zoals hierboven. Daar komen de
+                  namen van je ritten uit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">2.</span>
+                <span>
+                  Open in het uitgepakte archief de map activities. Daar staat
+                  elke rit als bestand (.fit.gz of .gpx).
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">3.</span>
+                <span>
+                  Kies met Importeer ritten alle bestanden in die map. Uitpakken
+                  hoeft niet. Bij een grote map duurt dit een paar minuten; laat
+                  het tabblad open.
+                </span>
+              </li>
+            </ol>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Elke rit uit activities.csv krijgt zo zijn spoor. Zwift-ritten
+              tellen daarna mee in de Zwift-werelden van ZWBlokken, buitenritten
+              voor cols, ZWB Segments en ZWBlokken buiten. Andere sporten,
+              ritten zonder GPS en TCX-bestanden worden overgeslagen. Een los
+              FIT-bestand van Zwift, Garmin of Wahoo werkt ook.
             </p>
           </article>
         </div>

@@ -215,7 +215,7 @@ export default async function WelkomPage() {
     },
     {
       title: "Strava koppelen of importeren",
-      text: "Koppel Strava voor automatische sync. Is er geen plek, laat je ritten dan binnenkomen via intervals.icu (zie Hulp), of importeer ze (activities.csv of GPX) op het dashboard.",
+      text: "Koppel Strava voor automatische sync. Is er geen plek, laat je ritten dan binnenkomen via intervals.icu (zie Hulp), of importeer ze (activities.csv, GPX of FIT) op het dashboard.",
       href: strava ? "/profiel#strava" : "/dashboard#strava-sync",
       action: strava
         ? "Strava bekijken"

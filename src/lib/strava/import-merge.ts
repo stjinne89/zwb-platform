@@ -1,10 +1,11 @@
-// Wat een CSV- of GPX-import doet met ritten die er al zijn.
+// Wat een CSV-, GPX- of FIT-import doet met ritten die er al zijn.
 //
 // Een rit die al onder een ander id bestaat (via Strava, intervals.icu of een
-// eerdere import) wordt niet nog eens opgeslagen. Eén uitzondering: een GPX met
-// spoor bij een rit uit activities.csv vult het spoor van die CSV-rit aan. Zo kun
-// je eerst je hele historie via de CSV binnenhalen en daarna de GPX'en van de
-// ritten waar het spoor voor telt (cols, ZWB-segmenten, ZWBlokken).
+// eerdere import) wordt niet nog eens opgeslagen. Eén uitzondering: een GPX of
+// FIT met spoor bij een rit uit activities.csv vult het spoor van die CSV-rit
+// aan. Zo kun je eerst je hele historie via de CSV binnenhalen en daarna de
+// bestanden van de ritten waar het spoor voor telt (cols, ZWB-segmenten,
+// ZWBlokken).
 //
 // Puur: geen database. Los van import.ts, want intervals/rides.ts (isSameRide)
 // importeert dat bestand al.
@@ -20,6 +21,11 @@ export type ExistingImportRide = RideFingerprint & {
 export type TrackAttachment = {
   id: number | string;
   summaryPolyline: string;
+  /**
+   * Alleen bij een FIT van Zwift. De CSV-rit kent geen toestel, en een
+   * hernoemde Zwift-rit is zonder dit niet als Zwift te herkennen.
+   */
+  deviceName?: string;
 };
 
 export type ImportPlan = {
@@ -50,7 +56,12 @@ export function planRideImport(
     }
     const track = trackOf(row);
     if (track && match.import_source === "strava_csv" && !match.has_track) {
-      plan.attach.push({ id: match.id, summaryPolyline: track });
+      const deviceName = row.raw.device_name;
+      plan.attach.push({
+        id: match.id,
+        summaryPolyline: track,
+        ...(typeof deviceName === "string" && deviceName ? { deviceName } : {}),
+      });
       continue;
     }
     plan.duplicates += 1;
