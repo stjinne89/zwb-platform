@@ -129,7 +129,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
-> **Laadtijd, deel 2: Stats en ZWBeter Worden, 2026-10-01 — gebouwd, lokaal getest; effect nog niet gemeten.**
+> **Laadtijd, deel 2: Stats en ZWBeter Worden, 2026-10-01 — gebouwd en live; gemeten.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Na deel 1 (hieronder) waren dit de twee traagste pagina's: Stats
@@ -162,8 +162,17 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 > `loadPendingReview`/`detectCompletedWorkouts` is ongemoeid gelaten: die hangt aan
 > de sync van de ritten.
 >
-> **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`. **Niet getest:**
-> het gedrag in de browser; pas na een deploy te meten.
+> **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`.
+> **Gemeten na de deploy (`4185616`, in de browser, elk vijf keer):** `/stats`
+> 1,9–2,2 → **0,5 s** (eerste weergave na het verlopen van de cache 0,8 s); de
+> totalen op de pagina kloppen exact met een telling in de database (192.333 km,
+> 5.164 ritten, 19 riders). `/zwbeter-worden` 2,6–3,4 → 2,5–2,6 s: **geen
+> wezenlijke winst**. De vijf weggehaalde rondes waren dus niet waar de tijd zat;
+> waarschijnlijk zit die in de calls naar intervals.icu en in
+> `detectCompletedWorkouts`, maar dat is niet gemeten. Voor het eerst gemeten:
+> `/zwbeter-worden/schema` 3,6–4,7 s (de traagste pagina) en
+> `/zwbeter-worden/belasting` 1,0–1,3 s. Vervolg: eerst per stap tijden loggen op
+> de trainingspagina's, dan pas verder snijden.
 
 > **Laadtijd: minder oversteken per pagina, 2026-10-01 — gebouwd en live; gemeten.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
