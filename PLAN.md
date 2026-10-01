@@ -10,8 +10,8 @@ gaat stabiliteit voor nieuwe features.
 1. **Database slank en snel (urgent, 2026-09-30).** De database zit op 1,31 GB
    tegen 0,5 GB op het Free-plan, disk 83%. In deze volgorde, details in
    [prestatie-onderzoek](docs/prestatie-onderzoek-2026-09-30.md):
-   `0200_query_indexes.sql`, `0201_slim_segment_efforts.sql` en
-   `0202_rls_initplan.sql` toepassen (werken ook met de huidige code);
+   `0208_query_indexes.sql`, `0209_slim_segment_efforts.sql` en
+   `0210_rls_initplan.sql` toepassen (werken ook met de huidige code);
    `node scripts/slim-segment-efforts.mjs`, daarna met `--full`; deployen; dan
    `?segmentBackfill=0` weer uit de URL van de job "ZWB Strava webhooks" op
    cron-job.org halen. Daarna beslissen: Free houden of naar Pro. De wekelijkse
@@ -131,8 +131,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`
 ---
 
 > **Database slank en snel, 2026-09-30 — gebouwd, lokaal getest; productiestappen open.**
-> Commit: de commit die dit blok toevoegt. Migraties `0200_query_indexes.sql`,
-> `0201_slim_segment_efforts.sql`, `0202_rls_initplan.sql` (**nog niet toegepast**).
+> Commit: de commit die dit blok toevoegt. Migraties `0208_query_indexes.sql`,
+> `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (**nog niet toegepast**).
 >
 > **Waarom.** De app werd steeds trager. Onderzoek op productie (alleen lezen):
 > Free-plan met Nano-compute (0,5 GB geheugen), database 1,31 GB tegen een limiet
@@ -145,14 +145,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`
 > webhooks" op cron-job.org (getest, het antwoord meldt `segmentBackfill: null`).
 >
 > **Wat.**
-> - `0200`: indexen op `strava_activities(start_date desc)` (dashboardfeed las
+> - `0208`: indexen op `strava_activities(start_date desc)` (dashboardfeed las
 >   25.600 ritten, 377 ms) en `live_positions(recorded_at)` (opruimjob, 0,8 s).
-> - `0201`: trigger die `raw` bij elke schrijfweg inkort tot `source`, `hidden` en
+> - `0209`: trigger die `raw` bij elke schrijfweg inkort tot `source`, `hidden` en
 >   `segment.private` (het enige dat functies, views en app lezen; nagekeken op
 >   productie). KOM-trigger alleen nog bij een wijziging die meetelt, anders zou het
 >   inkorten alle ~80.000 segmenten vuil maken. Voorrangslijst voor segmentlijnen
 >   leest alleen `zwb_segment_koms` (2.272 segmenten zonder lijn).
-> - `0202`: alle policies met een kale `auth.uid()`, `auth.role()` of `auth.jwt()`
+> - `0210`: alle policies met een kale `auth.uid()`, `auth.role()` of `auth.jwt()`
 >   mechanisch omhuld als `(select …)`; 144 op productie volgens de advisor.
 > - Eventdag: het realtime-kanaal van de live-ticker hing aan `sessionById`; elke
 >   `router.refresh()` opende het opnieuw en vroeg zo weer een refresh aan (een
@@ -176,10 +176,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0203`
 > Segmenten met één of twee rijders krijgen hun lijn niet meer vooraf, alleen bij
 > openen: bij 20–60 per dag kwam de inhaalslag daar toch nooit aan toe.
 >
-> **Getest.** Unittests (1.863), waaronder PGlite voor 0201 (inkorten, KOM-trigger,
-> voorrangslijst) en 0202 (omhullen, rechten gelijk, twee keer draaien), lint zonder
+> **Getest.** Unittests (1.863), waaronder PGlite voor 0209 (inkorten, KOM-trigger,
+> voorrangslijst) en 0210 (omhullen, rechten gelijk, twee keer draaien), lint zonder
 > fouten, `npm run build`. `db-health.mjs` tegen productie gedraaid. De voorvertoning
-> van 0202 op productie telde precies de 144 policies van de advisor.
+> van 0210 op productie telde precies de 144 policies van de advisor.
 > `tests/unit/omnium-live.test.ts` faalt in een worktree zonder `.env.local`; dat
 > staat hier los van.
 > **Niet te testen hier:** de migraties op productie, het inkortscript, de VACUUM
@@ -4016,7 +4016,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   als doel zonder clubdoel ("Doel: eigen record"); ontbrekend profiel ophalen bij openen
   met de eigen koppeling; de 5-minutentaak begint elke run met één lijn uit
   `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes. Sinds
-  0201 (2026-09-30) alleen segmenten met een ZWB KOM, dus drie of meer rijders.
+  0209 (2026-09-30) alleen segmenten met een ZWB KOM, dus drie of meer rijders.
   **Niet gebouwd:** profiel bij openen voor leden zonder Strava-koppeling (geen token),
   en profielen voor de hele lijst in één keer (40 × 2 calls per pagina is te duur).
   Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests;
@@ -4024,7 +4024,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
   bleek op productie te traag (timeout, daarna 0,6–3,1 s) en at de taaktijd op:
   vervangen door 0156 (`8200fc4`, gepusht 2026-09-13; smalle indexen, zelfde uitkomst) plus een afbreekgrens van 2 s
   in de taak. 0156 is op 2026-09-30 wel gemeten: gemiddeld 4,6 s over 6.196 aanroepen,
-  dus altijd over de afbreekgrens heen en ~40% van alle databasetijd. Vervangen door 0201.
+  dus altijd over de afbreekgrens heen en ~40% van alle databasetijd. Vervangen door 0209.
   Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-assessment-round -->
 

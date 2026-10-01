@@ -73,9 +73,9 @@ three.js ruimen netjes op.
 
 ## Wat is gebouwd
 
-Zie `PLAN.md` voor de commit. Samengevat: migraties `0200` (indexen), `0201`
+Zie `PLAN.md` voor de commit. Samengevat: migraties `0208` (indexen), `0209`
 (`raw` inkorten met een trigger, de KOM-trigger alleen bij relevante wijzigingen,
-een voorrangslijst die alleen `zwb_segment_koms` leest) en `0202` (RLS mechanisch
+een voorrangslijst die alleen `zwb_segment_koms` leest) en `0210` (RLS mechanisch
 omhullen). Verder de eventdaglus, de chatfilter per event, `React.cache()` voor
 gebruiker en rechten, poll-stemmen via de poll zelf, paginering voor de
 clubstatistieken, een datumvenster op de kalender, een kleinere KOM-batch, en
@@ -87,8 +87,8 @@ Geen van deze stappen kan lokaal getest worden (geen Docker of Supabase-config).
 De migraties zijn met PGlite getest (`tests/unit/segment-database.test.ts`,
 `tests/unit/rls-initplan-migration.test.ts`).
 
-1. `0200_query_indexes.sql`, `0201_slim_segment_efforts.sql` en
-   `0202_rls_initplan.sql` toepassen. Alle drie werken ook met de code die nu live
+1. `0208_query_indexes.sql`, `0209_slim_segment_efforts.sql` en
+   `0210_rls_initplan.sql` toepassen. Alle drie werken ook met de code die nu live
    staat.
 2. `node scripts/slim-segment-efforts.mjs`: kort de bestaande rijen in batches van
    20.000 in, met een gewone VACUUM ertussen (disk op 83%).

@@ -71,7 +71,7 @@ function defaultDeps(
       // Hard begrensd: 0155 liep op een koude cache tegen de statement timeout en at zo
       // het hele runbudget op. Zonder antwoord (of zonder migratie) alleen geen lijnen.
       // Let op: afbreken stopt alleen het wachten, niet de query. 0156 duurde op
-      // productie gemiddeld 4,6 s en rekende dus elke run voor niets door; 0201 leest
+      // productie gemiddeld 4,6 s en rekende dus elke run voor niets door; 0209 leest
       // alleen zwb_segment_koms en past ruim binnen deze 2 s.
       try {
         const { data, error } = await admin.rpc("segment_geometry_priority", { p_limit: limit })

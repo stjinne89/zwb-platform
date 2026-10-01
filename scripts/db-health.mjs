@@ -94,8 +94,8 @@ function snapshot() {
       (select count(*) from live_positions) as live_positions`);
   const [migrations] = sql(`
     select
-      to_regclass('public.strava_activities_start_date') is not null as m0200,
-      exists(select 1 from pg_trigger where tgname = 'slim_segment_effort_raw') as m0201`);
+      to_regclass('public.strava_activities_start_date') is not null as m0208,
+      exists(select 1 from pg_trigger where tgname = 'slim_segment_effort_raw') as m0209`);
   const advisorList = advisors();
   const advisorCounts = {};
   for (const item of advisorList ?? []) advisorCounts[item.name] = (advisorCounts[item.name] ?? 0) + 1;
@@ -194,14 +194,14 @@ function report(now, prev) {
   if (growth != null && growth > 25 * MB) flag("LET OP", `Database groeide ${fmtMB(growth)} ${period}.`);
 
   // 2. Migraties en eenmalige stappen uit het prestatieonderzoek
-  if (!now.migrations.m0200) flag("ACTIE", "Migratie 0200_query_indexes.sql is nog niet toegepast.");
-  if (!now.migrations.m0201) flag("ACTIE", "Migratie 0201_slim_segment_efforts.sql is nog niet toegepast.");
+  if (!now.migrations.m0208) flag("ACTIE", "Migratie 0208_query_indexes.sql is nog niet toegepast.");
+  if (!now.migrations.m0209) flag("ACTIE", "Migratie 0209_slim_segment_efforts.sql is nog niet toegepast.");
   if (now.queues.unslimmed_efforts > 0) {
-    flag(now.migrations.m0201 ? "ACTIE" : "LET OP",
+    flag(now.migrations.m0209 ? "ACTIE" : "LET OP",
       `${now.queues.unslimmed_efforts} segmentpogingen (schatting) hebben nog de volledige Strava-raw (inkortstap uit docs/prestatie-onderzoek-2026-09-30.md).`);
   }
   if (now.advisors && (now.advisors.auth_rls_initplan ?? 0) > 0) {
-    flag("LET OP", `${now.advisors.auth_rls_initplan} RLS-policies met een kale auth.uid() (0202_rls_initplan.sql, of een nieuwe policy zonder (select auth.uid())).`);
+    flag("LET OP", `${now.advisors.auth_rls_initplan} RLS-policies met een kale auth.uid() (0210_rls_initplan.sql, of een nieuwe policy zonder (select auth.uid())).`);
   }
   if (now.advisors && prev?.advisors) {
     for (const [name, count] of Object.entries(now.advisors)) {

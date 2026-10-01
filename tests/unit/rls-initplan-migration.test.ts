@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0202 herschrijft policies mechanisch; deze test bewijst dat alleen de kale
+// 0210 herschrijft policies mechanisch; deze test bewijst dat alleen de kale
 // auth-aanroepen worden omhuld en dat de rechten gelijk blijven.
 let db: PGlite;
 const me = "00000000-0000-0000-0000-000000000001";
@@ -28,7 +28,7 @@ beforeAll(async () => {
     create policy notes_public on notes for select to authenticated using (id = 0);
     insert into notes values (0, null, 'publiek'), (1, '${me}', 'mijn'), (2, '${other}', 'ander'), (101, '${me}', 'groot');
   `);
-  await db.exec(await readFile("supabase/migrations/0202_rls_initplan.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/0210_rls_initplan.sql", "utf8"));
 });
 afterAll(async () => { await db?.close(); });
 
@@ -39,7 +39,7 @@ async function policy(name: string) {
 }
 const bare = /(?<!SELECT )auth\.(uid|role|jwt)\(\)/;
 
-describe("0202 RLS initplan rewrite", () => {
+describe("0210 RLS initplan rewrite", () => {
   it("wraps every bare auth call in using and with check", async () => {
     for (const name of ["notes_own", "notes_insert", "notes_update", "notes_admin", "notes_wrapped"]) {
       const p = await policy(name);
@@ -73,7 +73,7 @@ describe("0202 RLS initplan rewrite", () => {
 
   it("is safe to run twice", async () => {
     const before = await db.query("select policyname, qual, with_check from pg_policies order by 1");
-    await db.exec(await readFile("supabase/migrations/0202_rls_initplan.sql", "utf8"));
+    await db.exec(await readFile("supabase/migrations/0210_rls_initplan.sql", "utf8"));
     const after = await db.query("select policyname, qual, with_check from pg_policies order by 1");
     expect(after.rows).toEqual(before.rows);
   });

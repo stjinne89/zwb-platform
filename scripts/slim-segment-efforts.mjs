@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Eenmalig: de bestaande segmentpogingen inkorten tot de raw-velden die de
-// database leest. Draai dit pas NA migratie 0201_slim_segment_efforts.sql; de
+// database leest. Draai dit pas NA migratie 0209_slim_segment_efforts.sql; de
 // trigger uit die migratie doet het eigenlijke inkorten (set raw = raw).
 //
 //   node scripts/slim-segment-efforts.mjs          # batches + gewone VACUUM
@@ -44,7 +44,7 @@ const size = () =>
 
 const [trigger] = sql("select exists(select 1 from pg_trigger where tgname = 'slim_segment_effort_raw') as ok");
 if (!trigger?.ok) {
-  console.error("Migratie 0201_slim_segment_efforts.sql is nog niet toegepast; eerst die.");
+  console.error("Migratie 0209_slim_segment_efforts.sql is nog niet toegepast; eerst die.");
   process.exit(1);
 }
 
