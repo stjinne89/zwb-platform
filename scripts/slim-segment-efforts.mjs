@@ -18,7 +18,7 @@
 //     herbruikbaar maar geeft niets terug aan de schijf.
 // Daarom nu: kleine batches met een pauze ertussen, zodat er per checkpoint weinig
 // WAL bijkomt, en vóór elke batch een controle op het diskgebruik. Het script
-// wacht als het krap wordt en stopt ruim voor de grens.
+// wacht als het gebruik oploopt en stopt bij 93,5%.
 // Zie docs/prestatie-onderzoek-2026-09-30.md.
 
 import { spawnSync } from "node:child_process";
@@ -28,15 +28,22 @@ import { tmpdir } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const MB = 1024 ** 2;
-const BATCH = 5_000;
-const PAUSE_MS = 45_000; // ~7 MB WAL per batch; zo blijft het onder ~50 MB per checkpoint
-const VACUUM_EVERY = 4;
+const BATCH = 2_500;
+const PAUSE_MS = 30_000; // ~3,5 MB WAL per batch, dus ~35 MB per checkpoint (5 min)
+const VACUUM_EVERY = 8;
 // Supabase zet de database op slot bij 95% van de disk. Het dashboard telt database
 // + WAL + "system" (171-190 MB gemeten); wij zien alleen de eerste twee.
 const DISK_BYTES = Number(process.env.DISK_GB ?? 2) * 1024 ** 3;
 const SYSTEM_BYTES = 190 * MB;
-const WAIT_ABOVE = 0.85;
-const STOP_ABOVE = 0.9;
+// Na het incident bleef de WAL-map 432 MB: Postgres bewaart gebruikte WAL-bestanden
+// als lege bestanden voor later en ruimt ze pas op als er weer zoveel geschreven is.
+// De disk stond daardoor al op ~91,5% voordat dit script iets deed. Een vaste grens
+// van 85% zou het script dus blokkeren, terwijl juist rustig schrijfwerk die
+// bestanden opmaakt en de map laat krimpen. Daarom: wachten zodra het gebruik
+// boven het laagste punt tot nu toe uitkomt, en een harde stop ruim voor 95%.
+const DRIFT = 0.007; // ~14 MB boven het laagste punt: wachten op een checkpoint
+const HARD_STOP = 0.935;
+const FULL_PEAK_MAX = 0.9;
 const MAX_WAIT_MS = 30 * 60_000;
 
 const mode = process.argv.includes("--full") ? "full" : process.argv.includes("--status") ? "status" : "slim";
@@ -76,19 +83,21 @@ function disk() {
 const show = (d) => `database ${(d.db / MB).toFixed(0)} MB, WAL ${(d.wal / MB).toFixed(0)} MB, disk ~${(d.used * 100).toFixed(1)}%`;
 
 /** Wacht tot er ruimte is; false = stoppen. */
+let lowest = Infinity;
 async function roomToWrite() {
   const started = Date.now();
   for (;;) {
     const d = disk();
+    lowest = Math.min(lowest, d.used);
     if (d.readOnly) {
       console.error(`De database staat op alleen-lezen (${show(d)}). Gestopt.`);
       return false;
     }
-    if (d.used >= STOP_ABOVE) {
+    if (d.used >= HARD_STOP) {
       console.error(`Disk te vol om door te gaan (${show(d)}). Gestopt; probeer later opnieuw.`);
       return false;
     }
-    if (d.used < WAIT_ABOVE) return true;
+    if (d.used <= lowest + DRIFT) return true;
     if (Date.now() - started > MAX_WAIT_MS) {
       console.error(`Na een half uur wachten nog steeds krap (${show(d)}). Gestopt; probeer later opnieuw.`);
       return false;
@@ -145,7 +154,7 @@ if (mode === "full") {
   const d = disk();
   const peak = d.used + (2 * copy) / DISK_BYTES;
   console.log(`Kopie ~${(copy / MB).toFixed(0)} MB plus evenveel WAL; piek ~${(peak * 100).toFixed(0)}% van de disk.`);
-  if (peak >= STOP_ABOVE && !process.argv.includes("--force")) {
+  if (peak >= FULL_PEAK_MAX && !process.argv.includes("--force")) {
     console.error("Dat past niet veilig op deze disk (de database gaat bij 95% op slot). Niet uitgevoerd.");
     console.error("Zie docs/prestatie-onderzoek-2026-09-30.md, 'Ruimte teruggeven'.");
     process.exit(1);

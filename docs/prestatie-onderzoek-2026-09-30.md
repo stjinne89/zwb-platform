@@ -93,8 +93,8 @@ De migraties zijn met PGlite getest (`tests/unit/segment-database.test.ts`,
 2. ~~De code deployen.~~ Gepusht op 2026-10-01 (`311d0b0`).
 3. `node scripts/slim-segment-efforts.mjs`: kort de bestaande rijen in. Op
    2026-10-01 zijn de eerste 220.000 rijen gedaan; zie het incident hieronder. Nog
-   ~290.000 te gaan. Pas draaien als `--status` een disk onder 85% laat zien; het
-   script bewaakt dat zelf en stopt anders.
+   ~290.000 te gaan. Het script wacht zodra het diskgebruik oploopt en stopt bij
+   93,5%. `--status` toont de stand zonder iets te schrijven.
 4. Ruimte teruggeven: zie "Ruimte teruggeven" hieronder. Nog niet opgelost.
 5. Op cron-job.org bij "ZWB Strava webhooks" `?segmentBackfill=0` weer uit de URL
    halen (sinds 2026-09-30 uit). De ruimte die het inkorten in de tabel vrijmaakt
@@ -129,8 +129,15 @@ lees-schrijftransactie (`begin read write; … commit;`) de index
 14–19 september, die na 30 dagen toch gewist worden). Daarmee kwam de disk onder
 95% en ging de database vanzelf weer open.
 
-Wat is aangepast: het script werkt nu in batches van 5.000 met 45 s pauze, meet
-vóór elke batch database + WAL, wacht boven 85% en stopt boven 90%.
+Wat is aangepast: het script werkt nu in batches van 2.500 met 30 s pauze (~35 MB
+WAL per checkpoint), meet vóór elke batch database + WAL, wacht zodra het gebruik
+boven het laagste punt tot dan toe uitkomt en stopt bij 93,5%.
+
+Na het herstel bleef de WAL-map 432 MB, dus de disk rond 91,5%. Postgres bewaart
+gebruikte WAL-bestanden als lege bestanden voor later en ruimt ze pas op als er
+weer zoveel geschreven is; bij het gewone schrijftempo van de app duurt dat dagen.
+Rustig doorschrijven maakt die bestanden op, waarna de map krimpt. Een vaste grens
+van 85% zou het script dus blokkeren op het moment dat het juist helpt.
 `db-health.mjs` meldt het diskgebruik en de alleen-lezen-stand.
 
 Les: op deze disk is de WAL de krappe factor bij elke grote schrijfactie, niet

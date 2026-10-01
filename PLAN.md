@@ -14,8 +14,9 @@ gaat stabiliteit voor nieuwe features.
    [prestatie-onderzoek](docs/prestatie-onderzoek-2026-09-30.md), "Incident". Nog open:
    `0211_drop_segment_efforts_priority_index.sql` toepassen (op productie is de index
    al weg, dus een formaliteit); de resterende ~290.000 segmentpogingen inkorten met
-   `node scripts/slim-segment-efforts.mjs` (alleen als `--status` een disk onder 85%
-   toont; het script bewaakt dat zelf); `?segmentBackfill=0` weer uit de URL van de
+   `node scripts/slim-segment-efforts.mjs` (bewaakt zelf de disk en stopt bij 93,5%;
+   de disk blijft rond 91,5% hangen tot de bewaarde WAL-bestanden zijn opgemaakt);
+   `?segmentBackfill=0` weer uit de URL van de
    job "ZWB Strava webhooks" halen. **Besluit nodig:** de ruimte teruggeven kan niet
    veilig op deze disk (een VACUUM FULL past niet); een maand Pro, of op Free de ruimte
    laten staan. De wekelijkse check (`npm run db:health`, geplande taak op dinsdag
