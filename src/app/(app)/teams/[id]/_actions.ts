@@ -12,11 +12,19 @@ import { requestReplan } from "@/lib/training/replan";
 const ROLES = ["member", "captain", "co-captain"] as const;
 type Role = (typeof ROLES)[number];
 
-async function canManageTeamRoster(teamId: string) {
+/**
+ * Wie het recht heeft (standaard het rooster, voor uitslagen teams.manage_results),
+ * of captain/co-captain van dit team is. Gelijk aan de RLS van team_members en
+ * team_results.
+ */
+async function canManageTeamRoster(
+  teamId: string,
+  permission: "teams.manage_roster" | "teams.manage_results" = "teams.manage_roster",
+) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (access.has("teams.manage_roster")) {
+  if (access.has(permission)) {
     return { ok: true as const, userId: access.user.id };
   }
 
@@ -92,11 +100,9 @@ export async function removeMember(teamId: string, profileId: string) {
 }
 
 export async function addResult(teamId: string, formData: FormData) {
+  const guard = await canManageTeamRoster(teamId, "teams.manage_results");
+  if (!guard.ok) return guard;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
   const competition = String(formData.get("competition") ?? "").trim();
   if (!competition) return { ok: false as const, error: "Competitie is verplicht." };
@@ -119,7 +125,7 @@ export async function addResult(teamId: string, formData: FormData) {
     points: points ? Number(points) : null,
     total_teams: total_teams ? Number(total_teams) : null,
     notes,
-    created_by: user.id,
+    created_by: guard.userId,
   });
   if (error) return { ok: false as const, error: error.message };
   revalidatePath(`/teams/${teamId}`);
@@ -127,11 +133,14 @@ export async function addResult(teamId: string, formData: FormData) {
 }
 
 export async function deleteResult(teamId: string, resultId: string) {
+  const guard = await canManageTeamRoster(teamId, "teams.manage_results");
+  if (!guard.ok) return guard;
   const supabase = await createClient();
   const { error } = await supabase
     .from("team_results")
     .delete()
-    .eq("id", resultId);
+    .eq("id", resultId)
+    .eq("team_id", teamId);
   if (error) return { ok: false as const, error: error.message };
   revalidatePath(`/teams/${teamId}`);
   return { ok: true as const };

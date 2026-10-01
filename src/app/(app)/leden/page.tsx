@@ -310,6 +310,7 @@ export default async function LedenPage() {
             profiles={memberData}
             regions={regions}
             canManageRoles={canManageRoles}
+            canGrantBoard={access.has("roles.manage_permissions")}
           />
         );
       })()}

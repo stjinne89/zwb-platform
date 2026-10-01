@@ -4660,6 +4660,66 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — rechten fase A: beveiligingsgaten dicht
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
+`0205_permission_hardening.sql`.
+
+**Aanleiding.** Stijn vroeg om alle rechten na te lopen en in `/beheer/rechten`
+onder te brengen (plan in vier fasen: A beveiliging, B nieuwe rechten per thema
+met één register, C moderatie via een recht, D kleine gaten). De inventaris vond
+eerst echte gaten. Die gaan in deze fase dicht.
+
+**Nu.**
+- **Admin-escalatie.** `protect_profile_admin_fields()` (0024) liet wie
+  `members.manage_roles` heeft (standaard de community-beheerder) zichzelf
+  `is_admin` geven. Nu kan alleen een admin `is_admin` wijzigen. De rol Bestuur
+  (alle rechten) geven of afnemen vraagt ook `roles.manage_permissions`. In de
+  app staat de Bestuur-vink op `/leden` uit zonder dat recht, en
+  `updateMemberRoles` weigert hetzelfde.
+- **Andermans profiel.** `profiles_admin_update` liet goedkeurders en
+  rollenbeheerders elke kolom van een ander profiel wijzigen. De trigger staat nu
+  bij een ander profiel alleen `is_approved`, `approved_at`, `approved_by`,
+  `community_roles` en `updated_at` toe. Het eigen profiel, admins en de
+  service-role (geen `auth.uid()`) houden alles.
+- **Training.** Op `training_plans`, `training_workouts`,
+  `training_ai_generations`, `training_adaptation_runs` en
+  `training_workout_reports` was `trainer_id = auth.uid()` genoeg, dus elk lid
+  kon via de API rijen voor een ander maken. Nu moet je die renner ook mogen
+  trainen (`current_user_can_train_profile`: jezelf, een actieve koppeling of
+  `training.manage_assignments`). Een trainerkoppeling aanmaken kan alleen met
+  een profiel met de rol trainer (nieuwe definer-helper
+  `profile_has_community_role`). Intrekken mag altijd. De app schrijft dit
+  allemaal met de service-role en merkt er niets van.
+- **Definer-functies.** `sync_zrl_parent_*` (0070), `join_event_team_for_member`,
+  `link_roster_by_zwift_id`, `convert_zrl_umbrella_races` en `rate_limit_*` waren
+  via de API door ieder lid aan te roepen. Nu kunnen alleen de service-role en de
+  triggers ze aanroepen; die triggers zijn zelf definer, dus ze blijven werken.
+  `claim_roster_entry` blijft open: dat is een bewuste functie.
+- **App-checks.** Bij materiaal-posts (verwijderen, status, reactie
+  verwijderen) en teamuitslagen (toevoegen, verwijderen) stond alleen RLS. Een
+  geweigerde actie leek daardoor gelukt. Nu controleert de app eerst: auteur of
+  `content.moderate_posts`, respectievelijk `teams.manage_results` of captain.
+
+**Bewust niet.** De service-role kan nog steeds geen `community_roles` of
+`is_admin` wijzigen; dat kon hij met de oude trigger ook niet.
+
+**Getest, voor het eerst een migratie lokaal.** `tests/unit/permission-hardening-migration.test.ts`
+draait 0205 in PGlite, zoals `omnium-manage-read` dat al deed, met negen gevallen:
+- geen admin-escalatie;
+- Bestuur alleen met rechtenbeheer;
+- een goedkeurder kan geen naam of FTP van een ander wijzigen;
+- het eigen profiel en de service-role blijven vrij;
+- geen schema voor een ander zonder koppeling;
+- een ingetrokken trainer kan niet meer schrijven;
+- koppelen kan alleen aan een trainer, en intrekken mag altijd;
+- de functies zijn afgeschermd.
+
+De rechten zelf zijn daar een stub. Verder getest: `tsc`, ESLint en de
+unit-suite. Op productie na het draaien:
+`select has_function_privilege('authenticated', 'public.rate_limit_cleanup()', 'execute');`
+moet `false` geven.
+
 ### Opgeleverd — recht "Sunday Race Club beheren"
 
 **2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
