@@ -167,9 +167,7 @@ export default async function StatsPage({
     (a, b) => b[1].km - a[1].km,
   );
   const regions = Array.from(byRegion.entries()).sort((a, b) => b[1] - a[1]);
-  const topRiders = Array.from(byRider.values())
-    .sort((a, b) => b.km - a.km)
-    .slice(0, 10);
+  const topRiders = Array.from(byRider.values()).sort((a, b) => b.km - a.km);
 
   const maxMonthKm = Math.max(
     1,
@@ -381,7 +379,8 @@ export default async function StatsPage({
             {topRiders.length === 0 ? (
               <p className="text-sm text-muted-foreground">Geen ritten.</p>
             ) : (
-              <ol className="space-y-1 text-sm">
+              // Tien rijen hoog (10 × 33px + 9 × 0,25rem); de rest scrolt.
+              <ol className="max-h-[366px] space-y-1 overflow-y-auto pr-2 text-sm">
                 {topRiders.map((rider, i) => (
                   <li
                     key={rider.name + i}

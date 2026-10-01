@@ -5003,6 +5003,21 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Stats: "Top riders" toont alle riders
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn wilde hetzelfde als bij ZWBlokken (`16da436`): iedereen in
+de lijst, tien zichtbaar.
+
+**Nu.** "Top riders" op `/stats` bevat elke rider met een rit in de gekozen
+periode (laatste 12 maanden of de gekozen maand) en is tien rijen hoog; de rest
+scrolt binnen de kaart. De `.slice(0, 10)` in `src/app/(app)/stats/page.tsx` is
+weg; de hoogte staat als `max-h-[366px]` op de `<ol>`.
+
+**Getest.** Niets gedraaid: er staan geen `node_modules` in deze worktree of in
+de hoofd-checkout, dus `tsc`, ESLint en de browser zijn overgeslagen.
+
 ### Opgeleverd — ZWBlokken: ranglijst "Meeste blokken" toont alle leden
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10488,7 +10503,8 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 
 - ✅ **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
   per regio) — afgerond 2026-05-29. KPI's + km-per-maand trend (klikbaar als
-  maandfilter) + breakdowns discipline/regio + top-10 riders. In Club-nav.
+  maandfilter) + breakdowns discipline/regio + top riders (sinds 2026-10-01
+  alle riders, tien zichtbaar en scrolbaar). In Club-nav.
 - ✅ **Foto-galerij × liveticker** — afgerond 2026-05-29. `/ritverslagen`
   bundelt gereden events met foto's tot bladerbare verslagen + dashboard-nudge
   ("Deel je foto's") voor recent gereden events zonder eigen foto. In
