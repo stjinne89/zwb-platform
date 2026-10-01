@@ -361,11 +361,11 @@ function safeCallbackUrl(build: () => string): string | undefined {
 }
 
 /**
- * Draait de webhook-verwerker nu. Normaal doet de Netlify scheduled function
- * `strava-webhook-process` dit elke 5 minuten; deze knop bestaat om te kunnen
- * zien of het verwerken zélf werkt wanneer events blijven staan. Blijft de
- * wachtrij vollopen terwijl deze knop hem leegtrekt, dan ligt het aan de
- * scheduled function of aan STRAVA_SYNC_SECRET, niet aan de verwerking.
+ * Draait de webhook-verwerker nu. Normaal doet de job "ZWB Strava webhooks" op
+ * cron-job.org dit elke 5 minuten; deze knop bestaat om te kunnen zien of het
+ * verwerken zélf werkt wanneer events blijven staan. Blijft de wachtrij vollopen
+ * terwijl deze knop hem leegtrekt, dan ligt het aan de cron-job of aan
+ * STRAVA_SYNC_SECRET, niet aan de verwerking.
  */
 export async function adminProcessStravaWebhookEvents() {
   try {

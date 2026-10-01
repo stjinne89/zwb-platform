@@ -1,8 +1,8 @@
 // Verwerkt de wachtrij die de webhook-callback vult.
 //
 // De callback mag niets doen (200 binnen 2 seconden, anders raken we de
-// subscription kwijt), dus het werk gebeurt hier: elke minuut aangeschopt door de
-// Netlify scheduled function `strava-webhook-process`.
+// subscription kwijt), dus het werk gebeurt hier: elke 5 minuten aangeschopt door
+// de job "ZWB Strava webhooks" op cron-job.org.
 //
 // Twee soorten events:
 //   activity  -> één rit ophalen/bijwerken/verwijderen. Eén call per échte rit,

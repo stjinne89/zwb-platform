@@ -129,6 +129,34 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
+> **Geplande Netlify-functies verwijderd, 2026-10-01 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Het runbook zei sinds 5 september dat de vijf geplande functies in
+> `netlify/functions/` op deze site niet afgaan; daarom draait alles via
+> cron-job.org. Het functielog van Netlify liet op 2026-10-01 zien dat
+> `strava-webhook-process` wél elke 5 minuten afging, in dezelfde minuut als de
+> cron-job. De taken die op beide plekken stonden draaiden dus dubbel: per tik drie
+> Netlify-invocaties in plaats van één, en dubbele databaselast. Het verklaart ook
+> waarom de segment-inhaalslag bleef draaien nadat `?segmentBackfill=0` op
+> cron-job.org was gezet: de Netlify-functie riep de route zonder die parameter aan.
+>
+> **Wat.** De vijf bestanden in `netlify/functions/` zijn weg
+> (`integrations-healthcheck`, `live-cleanup`, `strava-lifecycle`,
+> `strava-webhook-process`, `training-adaptations`). cron-job.org is de enige
+> trigger; daar staan alle elf de jobs, met historie per run en een URL die zonder
+> deploy aan te passen is. Runbook sectie 2, 6, 7 en 8 en het commentaar bij de
+> routes zijn gecorrigeerd.
+>
+> **Niet gedaan.** De andere kant op (cron-job.org opzeggen): Netlify had maar vijf
+> van de elf taken, met afwijkende schema's (trainingsaanpassing één keer per dag
+> in plaats van elk uur).
+>
+> **Niet geverifieerd.** Alleen het log van `strava-webhook-process` is bekeken; bij
+> `live-cleanup` laadde het niet. Sinds wanneer Netlify ze uitvoert is onbekend
+> (logs gaan 24 uur terug). Of de dubbele runs na deze deploy weg zijn, is te zien
+> in Netlify bij Functions: daar horen geen geplande functies meer te staan.
+
 > **Segmentverkenner en ZWB KOM's verwijderd, 2026-10-01 — gebouwd, live, migratie toegepast.**
 > Commit: `af49250`. Migratie `0212_remove_segment_explorer.sql`, door de eigenaar
 > toegepast op 2026-10-01 na de deploy. Gemeten daarna: database 200 MB (was 1.260),
@@ -10169,7 +10197,10 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   ophaalt. Tot die tijd blijft de job een timeout melden en blijven openstaande
   herplanverzoeken liggen.
 
-- ~~**Netlify scheduled functions gaan niet af**~~ — **opgelost 2026-09-08** (ontdekt 2026-09-05). Netlify
+- ~~**Netlify scheduled functions gaan niet af**~~ — **opgelost 2026-09-08** (ontdekt 2026-09-05).
+  **Achterhaald op 2026-10-01:** ze gingen toen wel af en draaiden dubbel met
+  cron-job.org; de functies zijn verwijderd (ronde "Geplande Netlify-functies
+  verwijderd"). Netlify
   toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
   is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026
   22:01, de dag dat de health-check werd uitgerold. De code klopt — dezelfde

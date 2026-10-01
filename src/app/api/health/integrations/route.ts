@@ -1,5 +1,5 @@
-// Integratie-health-check-cron — extern getriggerd (Netlify scheduled function
-// `integrations-healthcheck`, elk uur) met `Authorization: Bearer
+// Integratie-health-check-cron — extern getriggerd (cron-job.org, elk uur) met
+// `Authorization: Bearer
 // ${HEALTHCHECK_SECRET}`. Draait lichte probes per externe bron, bewaart de
 // status in `integration_health`, en stuurt admins een push zodra een bron van
 // ok → faalt gaat. Zie docs/runbook.md.

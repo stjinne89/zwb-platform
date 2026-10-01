@@ -16,8 +16,7 @@ import {
 // opnieuw aanroepen is altijd veilig.
 //
 // Bearer-token via ZWIFT_EVENT_SYNC_SECRET. Draait op cron-job.org, niet als
-// Netlify scheduled function -- die gaan op deze site niet af (zie
-// docs/runbook.md sectie 8).
+// Netlify scheduled function (zie docs/runbook.md sectie 8).
 
 export const maxDuration = 30;
 

@@ -27,9 +27,9 @@ persoon.
 een beveiligde API-route met header `Authorization: Bearer <SECRET>`, tijdzone
 **Europe/Amsterdam**.
 
-De `netlify/functions/*.mjs` staan er nog, maar gaan op deze site niet af — zie
-sectie 8. Vertrouw er niet op en voeg er geen nieuwe aan toe; zet een nieuwe job
-op cron-job.org.
+De geplande functies in `netlify/functions/` zijn op 2026-10-01 verwijderd: ze
+bleken toch af te gaan en draaiden daardoor dubbel met cron-job.org (sectie 8).
+Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 
 | Job | Type | Schema | Endpoint | Secret-env |
 |---|---|---|---|---|
@@ -273,8 +273,8 @@ hooguit één keer per 30 s per sessie.
   van 55% — dat is bedoeld gedrag, geen storing.
 - **"Geen push-notificaties"** → VAPID-keys ontbreken of subscription verlopen
   (wordt automatisch geprunet bij 404/410).
-- **"Live-kaart loopt vol/oud"** → controleer of de `live-cleanup`-function nog
-  draait (Netlify → Functions → logs).
+- **"Live-kaart loopt vol/oud"** → controleer op cron-job.org of de job
+  "ZWB live-cleanup" nog slaagt (History).
 - **Cron draait niet** → controleer in cron-job.org of het secret en de URL nog
   kloppen; test handmatig met curl (sectie 2).
 - **"ZWBlokken-kaart is leeg of loopt achter"** → de backfill is per aanroep
@@ -465,24 +465,20 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   `attempts`, dus dit zegt dat de events **nooit zijn aangeraakt**: het probleem
   zit in de trigger, niet in de verwerking of in de events zelf.
 
-  **Loopt de Netlify-schedule überhaupt?** Kijk op `/beheer/event-scan` naar
+  **Lopen de cron-jobs überhaupt?** Kijk op `/beheer/event-scan` naar
   "laatst gecontroleerd" bij het integratie-statusblok. Dat wordt geschreven door
-  de scheduled function `integrations-healthcheck`, elk uur. Staat daar een tijd
-  van uren of dagen geleden, dan lopen de **Netlify scheduled functions
-  site-breed niet** — en dan is dit groter dan de webhookrij: ook `live-cleanup`,
-  `training-adaptations` en `strava-lifecycle` staan dan stil. Zet in dat geval
-  een cron-job.org-job op `/api/strava/webhook/process` (elke 5 min, bearer
-  `STRAVA_SYNC_SECRET`), net als bij de Strava-reconcile; dat werkt aantoonbaar
-  op deze site en kost geen Netlify-invocaties.
+  de health-check-job op cron-job.org, elk uur. Staat daar een tijd van uren of
+  dagen geleden, kijk dan op cron-job.org of de jobs nog aan staan en wat hun
+  History meldt: dan is dit groter dan de webhookrij.
 
   Isoleer het met de knop **Nu verwerken** op `/beheer/strava`. Die draait
   precies dezelfde verwerker, maar dan vanuit de app in plaats van via de
-  scheduled function:
-  1. Knop trekt de rij leeg → verwerking is in orde, de **scheduled function**
-     is de boosdoek. Kijk in Netlify → Functions → `strava-webhook-process` →
-     logs. Meestal: de function draait niet (deploy dateert van vóór de function)
-     of `STRAVA_SYNC_SECRET` ontbreekt in Netlify, waardoor hij een 401 krijgt en
-     stil niets doet.
+  cron-job:
+  1. Knop trekt de rij leeg → verwerking is in orde, de **cron-job** is de
+     boosdoener. Kijk op cron-job.org bij "ZWB Strava webhooks" → History.
+     Meestal: de job staat uit, de URL klopt niet, of `STRAVA_SYNC_SECRET` in de
+     header wijkt af van die in Netlify, waardoor hij een 401 krijgt en stil niets
+     doet.
   2. Knop geeft een foutmelding → de verwerking zelf is stuk; de melding zegt
      wat er mis is.
   3. Knop meldt 0 verwerkt terwijl er events staan → de events horen bij een
@@ -508,6 +504,17 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
 ---
 
 ## 8. Netlify scheduled functions gaan niet af (2026-09-05)
+
+> **Bijgewerkt 2026-10-01: ze gingen wél af, en zijn verwijderd.** Het functielog
+> van Netlify liet voor `strava-webhook-process` over 24 uur elke 5 minuten een
+> uitvoering zien, in dezelfde minuut als de job op cron-job.org. Wanneer Netlify
+> ze is gaan uitvoeren is niet bekend (de logs gaan 24 uur terug). Gevolg: de
+> taken die op beide plekken stonden draaiden dubbel, en een parameter die alleen
+> in de cron-job.org-URL stond (`?segmentBackfill=0`, 2026-09-30) had geen effect
+> op de Netlify-aanroep. De vijf bestanden in `netlify/functions/` zijn daarom
+> weggehaald; cron-job.org is de enige trigger. Alleen voor
+> `strava-webhook-process` is het log bekeken; bij `live-cleanup` laadde het niet.
+> Wat hieronder staat is de situatie van september.
 
 ### Wat we zeker weten
 
@@ -566,10 +573,10 @@ hele probleem was juist dat niemand merkte dat er niets draaide.
 | `/api/strava/lifecycle` | dagelijks 05:40 | `STRAVA_SYNC_SECRET` | ✅ |
 | `/api/training/adaptations/daily` | dagelijks 10:30 | `TRAINING_ADAPTATION_SECRET` | ⚠️ meldt timeout; zie "Bekende open dingen" in `PLAN.md` |
 
-De `.mjs`-bestanden blijven staan als documentatie van wat er zou moeten draaien
-als Netlify het ooit doet. Gaan die schedules alsnog lopen, dan draait alles
-dubbel — alle routes zijn idempotent, dus dat kost invocaties, geen data. Haal
-in dat geval één van de twee weg.
+De `.mjs`-bestanden bleven eerst staan als documentatie. Dat is op 2026-10-01
+misgegaan zoals hier al was voorzien: de schedules gingen lopen en alles draaide
+dubbel. De routes zijn idempotent, dus het kostte invocaties en databasetijd,
+geen data. De bestanden zijn verwijderd.
 
 ### Controleren dat het loopt
 

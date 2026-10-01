@@ -1,5 +1,5 @@
-// Verwerkt de webhook-wachtrij. Aangeschopt door de Netlify scheduled function
-// `strava-webhook-process` (elke minuut) met Authorization: Bearer
+// Verwerkt de webhook-wachtrij. Aangeschopt door de job "ZWB Strava webhooks" op
+// cron-job.org (elke 5 minuten) met Authorization: Bearer
 // ${STRAVA_SYNC_SECRET}.
 //
 // Waarom niet gewoon in de callback: Strava eist daar een 200 binnen 2 seconden en
