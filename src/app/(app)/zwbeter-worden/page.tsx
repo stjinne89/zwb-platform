@@ -1,5 +1,8 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { redirect } from "next/navigation";
 import { InlineMoreLink } from "@/components/app-ui";
+import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
@@ -42,7 +45,8 @@ import {
   loadIntervalsSnapshot,
   loadMemberWorkouts,
   loadPendingReview,
-  loadPlanCautions,
+  loadPlanSummaries,
+  planCautionsFromSummary,
   loadProfile,
   requireViewer,
   todayKeyAmsterdam,
@@ -56,11 +60,18 @@ export const maxDuration = 60;
 
 export default async function ZwbeterWordenTodayPage({ searchParams }: SearchParamsProp) {
   const params = (await searchParams) ?? {};
-  const viewer = await requireViewer();
+  // Wie het is weten we zonder de database (JWT); profiel en koppeling vertrekken
+  // daarom tegelijk met de rechten in plaats van erna.
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
+  if (!user) redirect("/login");
+  const identity = { supabase, user };
+  const [viewer, profile, conn] = await Promise.all([
+    requireViewer(),
+    loadProfile(identity),
+    loadConnection(identity),
+  ]);
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
-
-  const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
 
   const [snapshot, { data: stravaRows }, { data: segmentRows }] = await Promise.all([
     loadIntervalsSnapshot(viewer, conn, {
@@ -90,9 +101,10 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
   // Na de intervals-sync hierboven, zodat een net gereden rit meteen als
   // afgeronde workout wordt herkend.
-  const [memberWorkouts, pendingReview] = await Promise.all([
+  const [memberWorkouts, pendingReview, planSummaries] = await Promise.all([
     loadMemberWorkouts(viewer, snapshot.events),
     loadPendingReview(viewer, paramString(params.review)),
+    loadPlanSummaries(viewer),
   ]);
   const todayKey = todayKeyAmsterdam();
   const activities = (stravaRows ?? []) as StravaActivityRow[];
@@ -173,8 +185,8 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   // kijkt. Zie plan-cautions.tsx: bedoeld om mee te kijken zolang we leren hoe
   // streng de opbouwregels uitpakken.
   const planCautions =
-    nextWorkout?.kind === "zwb"
-      ? await loadPlanCautions(viewer, nextWorkout.workout.plan_id)
+    nextWorkout?.kind === "zwb" && nextWorkout.workout.plan_id
+      ? planCautionsFromSummary(planSummaries.get(nextWorkout.workout.plan_id))
       : [];
 
   return (

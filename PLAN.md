@@ -129,7 +129,43 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
-> **Laadtijd: minder oversteken per pagina, 2026-10-01 — gebouwd, lokaal getest; effect nog niet gemeten.**
+> **Laadtijd, deel 2: Stats en ZWBeter Worden, 2026-10-01 — gebouwd, lokaal getest; effect nog niet gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Na deel 1 (hieronder) waren dit de twee traagste pagina's: Stats
+> 1,9–2,2 s en ZWBeter Worden 2,6–3,4 s tot de server antwoordt.
+>
+> **Wat.**
+> - `/stats` haalde bij elke weergave alle clubritten van twaalf maanden op in
+>   pagina's van duizend, na elkaar: 5.591 ritten, dus zes oversteken, plus een
+>   rondje naar de Auth-server. Nu één gedeelde cache van tien minuten
+>   (`loadClubYear`, `unstable_cache`, service-rol) met de ritten al opgeteld per
+>   maand, lid en discipline; de pagina rekent daarmee verder zoals voorheen. Zelfde
+>   onderbouwing als bij de clubstatistieken: voor elk lid dezelfde uitkomst.
+> - `/zwbeter-worden`: `requireViewer` deelt de rechten met de layouts in plaats
+>   van ze opnieuw op te vragen; profiel en koppeling vertrekken tegelijk met de
+>   rechten; het bijwerken van de ritbelasting loopt mee met de calls naar
+>   intervals.icu in plaats van erna; de opgeslagen wellness-kopie wordt na het
+>   antwoord bijgewerkt (`after`), want de pagina leest die kopie niet; de
+>   waarschuwingen bij het schema komen mee met de workouts in plaats van in een
+>   eigen ronde. Samen vijf rondes minder. `requireViewer` en
+>   `loadIntervalsSnapshot` worden door alle trainingspagina's gebruikt, dus die
+>   profiteren mee.
+>
+> **Gedrag dat verandert.** Een nieuwe rit telt hooguit tien minuten later mee op
+> `/stats`. De wellness-kopie voor de AI-planner is na een paginaweergave een
+> ogenblik later bij dan voorheen.
+>
+> **Niet gedaan.** De wellness van intervals.icu (730 dagen per weergave) cachen:
+> dat zijn gezondheidsgegevens, en die horen niet in een tweede opslag terecht te
+> komen zonder dat de privacyverklaring dat dekt. De volgorde binnen
+> `loadPendingReview`/`detectCompletedWorkouts` is ongemoeid gelaten: die hangt aan
+> de sync van de ritten.
+>
+> **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`. **Niet getest:**
+> het gedrag in de browser; pas na een deploy te meten.
+
+> **Laadtijd: minder oversteken per pagina, 2026-10-01 — gebouwd en live; gemeten.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Na de databaseronde zijn de queries snel (dashboardfeed 377 → 5 ms),
@@ -173,6 +209,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 > lokaal niet te draaien zonder in te loggen, dus het effect en de voortgangsbalk
 > zijn pas na een deploy te zien. De inlogwijziging raakt elk verzoek; dat is het
 > risico van deze ronde.
+> **Gemeten na de deploy (`32a79af`, zelfde acht pagina's, elk vier keer):**
+> dashboard 1,6–2,0 → 1,1–1,4 s; teams 0,9–1,2 → 0,8 s; leden 1,1–2,1 → 0,9–1,3 s;
+> stats 2,0–2,7 → 1,9–2,2 s; de rest binnen de ruis. Inloggen werkt. De ondergrens
+> ligt rond 0,8 s zolang de functies in Ohio staan. De voortgangsbalk verscheen in
+> de eerste versie niet (next/link roept preventDefault aan, en de balk sloeg zulke
+> kliks over); hersteld in `f70a2b9` en daarna in de browser gezien.
 
 > **Geplande Netlify-functies verwijderd, 2026-10-01 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.

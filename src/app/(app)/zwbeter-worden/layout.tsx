@@ -10,23 +10,26 @@ import {
   type NavLeaf,
 } from "../_components/nav-config";
 import { SectionNav } from "./_components/section-nav";
-import { getRequestAccess } from "@/lib/auth/request";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export default async function ZwbeterWordenLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const access = await getRequestAccess();
-  if (!access.user) redirect("/login");
+  const [supabase, user, cookieStore] = await Promise.all([
+    createClient(),
+    getRequestUser(),
+    cookies(),
+  ]);
+  if (!user) redirect("/login");
 
   // Geslacht bepaalt of het logboek in de tabbalk staat; zie onlyForSex in
   // nav-config.
   // Het gewicht is de basis voor W/kg op alle trainingspagina's.
-  const [{ data: profile }, cookieStore] = await Promise.all([
-    supabase.from("profiles").select("sex, weight_kg").eq("id", access.user.id).maybeSingle(),
-    cookies(),
+  const [access, { data: profile }] = await Promise.all([
+    getRequestAccess(),
+    supabase.from("profiles").select("sex, weight_kg").eq("id", user.id).maybeSingle(),
   ]);
   const weightKg = profile?.weight_kg == null ? null : Number(profile.weight_kg);
 
