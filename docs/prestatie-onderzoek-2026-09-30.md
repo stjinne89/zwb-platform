@@ -75,32 +75,90 @@ three.js ruimen netjes op.
 
 Zie `PLAN.md` voor de commit. Samengevat: migraties `0208` (indexen), `0209`
 (`raw` inkorten met een trigger, de KOM-trigger alleen bij relevante wijzigingen,
-een voorrangslijst die alleen `zwb_segment_koms` leest) en `0210` (RLS mechanisch
-omhullen). Verder de eventdaglus, de chatfilter per event, `React.cache()` voor
+een voorrangslijst die alleen `zwb_segment_koms` leest), `0210` (RLS mechanisch
+omhullen) en `0211` (de index van de oude voorrangslijst weg). Verder de eventdaglus, de chatfilter per event, `React.cache()` voor
 gebruiker en rechten, poll-stemmen via de poll zelf, paginering voor de
 clubstatistieken, een datumvenster op de kalender, een kleinere KOM-batch, en
 `scripts/db-health.mjs` voor de wekelijkse check.
 
-## Productiestappen, in deze volgorde
+## Productiestappen
 
 Geen van deze stappen kan lokaal getest worden (geen Docker of Supabase-config).
 De migraties zijn met PGlite getest (`tests/unit/segment-database.test.ts`,
 `tests/unit/rls-initplan-migration.test.ts`).
 
-1. `0208_query_indexes.sql`, `0209_slim_segment_efforts.sql` en
-   `0210_rls_initplan.sql` toepassen. Alle drie werken ook met de code die nu live
-   staat.
-2. `node scripts/slim-segment-efforts.mjs`: kort de bestaande rijen in batches van
-   20.000 in, met een gewone VACUUM ertussen (disk op 83%).
-3. `node scripts/slim-segment-efforts.mjs --full`: VACUUM FULL, zodat de
-   databasegrootte echt daalt. Zet de tabel even op slot. Verwachting: van ~1 GB
-   naar ~0,2–0,3 GB. Of de hele database daarmee onder 0,5 GB komt, is nog niet
-   gemeten.
-4. De code deployen.
+1. ~~`0208_query_indexes.sql`, `0209_slim_segment_efforts.sql` en
+   `0210_rls_initplan.sql` toepassen.~~ Gedaan door de eigenaar, 2026-10-01; de
+   advisor meldt geen `auth_rls_initplan` meer.
+2. ~~De code deployen.~~ Gepusht op 2026-10-01 (`311d0b0`).
+3. `node scripts/slim-segment-efforts.mjs`: kort de bestaande rijen in. Op
+   2026-10-01 zijn de eerste 220.000 rijen gedaan; zie het incident hieronder. Nog
+   ~290.000 te gaan. Pas draaien als `--status` een disk onder 85% laat zien; het
+   script bewaakt dat zelf en stopt anders.
+4. Ruimte teruggeven: zie "Ruimte teruggeven" hieronder. Nog niet opgelost.
 5. Op cron-job.org bij "ZWB Strava webhooks" `?segmentBackfill=0` weer uit de URL
-   halen (sinds 2026-09-30 uit). Pas na stap 2: de 3.314 buitenritten zonder
-   pogingen voegen naar schatting 100.000–150.000 rijen toe.
+   halen (sinds 2026-09-30 uit). De ruimte die het inkorten in de tabel vrijmaakt
+   (~290 MB na de eerste 220.000 rijen) is ruim genoeg voor de 3.314 buitenritten
+   zonder pogingen (~150.000 rijen van ~285 bytes, ~45 MB).
 6. `npm run db:health` en het rapport nalezen.
+
+## Incident 2026-10-01: database op alleen-lezen
+
+De eerste versie van `scripts/slim-segment-efforts.mjs` deed batches van 20.000
+rijen direct achter elkaar, met een gewone VACUUM ertussen. Na elf batches
+(220.000 rijen) zette Supabase de database op alleen-lezen: de disk stond op 1,90
+van 2 GB, de grens van 95%. De app kon ruim twintig minuten niets wegschrijven
+(~07:53 tot ~08:14 UTC). Er is geen data verloren.
+
+Twee inschattingen waren fout:
+
+- **De WAL.** Er was gerekend met tijdelijk dubbele rijen, niet met het
+  schrijflogboek. De database zelf groeide niet (1.337 → 1.341 MB), de WAL wel:
+  van 128 naar 432 MB. `max_wal_size` is hier 1 GB, op een disk van 2 GB.
+- **Waar `raw` staat.** In de tabel zelf, niet in TOAST (heap 896 MB, TOAST
+  8 kB): een effort van ~1,3 kB blijft onder de TOAST-drempel. Een gewone VACUUM
+  maakt de ruimte dus herbruikbaar, maar geeft niets terug aan de schijf.
+
+Herstel: `checkpoint` mag niet (de rol heeft geen `pg_checkpoint`), en in
+alleen-lezen slaat Postgres zijn eigen checkpoints over omdat er niets geschreven
+wordt, dus de WAL kromp niet vanzelf. Met akkoord van de eigenaar is in één
+lees-schrijftransactie (`begin read write; … commit;`) de index
+`segment_efforts_priority` verwijderd (32 MB, vastgelegd in
+`0211_drop_segment_efforts_priority_index.sql`) en `live_positions` geleegd
+(57 MB; live-volgposities van afgelopen ritten, vooral een OwnTracks-test van
+14–19 september, die na 30 dagen toch gewist worden). Daarmee kwam de disk onder
+95% en ging de database vanzelf weer open.
+
+Wat is aangepast: het script werkt nu in batches van 5.000 met 45 s pauze, meet
+vóór elke batch database + WAL, wacht boven 85% en stopt boven 90%.
+`db-health.mjs` meldt het diskgebruik en de alleen-lezen-stand.
+
+Les: op deze disk is de WAL de krappe factor bij elke grote schrijfactie, niet
+de tabel. Reken bij een bulkupdate met de WAL die tussen twee checkpoints
+(5 minuten) ontstaat, en doe hem gespreid.
+
+## Ruimte teruggeven
+
+De heap van `strava_activity_segment_efforts` blijft 896 MB tot hij herschreven
+wordt. Na volledig inkorten is de inhoud ~150 MB. `VACUUM FULL` schrijft een
+kopie van tabel en indexen (~200 MB) en nog eens zoveel WAL, vóórdat de oude
+bestanden verdwijnen; met ~350 MB marge past dat niet veilig op 2 GB.
+`slim-segment-efforts.mjs --full` rekent dit na en weigert als het niet past.
+
+Open keuze voor de eigenaar:
+
+- **Een maand Pro ($25).** De disk groeit dan automatisch; inkorten en VACUUM
+  FULL kunnen zonder risico. Daarna is de database naar schatting ~500 MB, dus
+  voor terug naar Free moet er nog meer af (bijvoorbeeld `strava_activities.raw`,
+  92 MB).
+- **Op Free blijven en de ruimte laten staan.** Functioneel geen probleem: de vrije
+  ruimte in de tabel wordt hergebruikt, dus hij groeit voorlopig niet. De database
+  blijft wel boven de Free-limiet van 0,5 GB staan ("Exceeding usage limits").
+  Supabase kan een organisatie die over de limiet zit een beperking opleggen; tot
+  nu toe is dat niet gebeurd.
+- **Gespreid herschrijven op Free** (kopie in stukken naar een nieuwe tabel en
+  wisselen). Kan in principe, maar raakt triggers, views, rechten en de
+  KOM-herberekening en is niet gebouwd; het risico is groter dan de $25.
 
 ## Bewust niet gedaan
 
@@ -113,4 +171,4 @@ De migraties zijn met PGlite getest (`tests/unit/segment-database.test.ts`,
 - **OFFSET-paginering over segmentpogingen** (`src/lib/segments/sync.ts`). Wordt
   vanzelf veel goedkoper zodra `raw` klein is; opnieuw bekijken als de wekelijkse
   check hem blijft noemen.
-- **Upgrade naar Pro.** Een keuze voor de eigenaar; eerst kijken wat stap 2–3 doen.
+- **Upgrade naar Pro.** Een keuze voor de eigenaar; zie "Ruimte teruggeven".

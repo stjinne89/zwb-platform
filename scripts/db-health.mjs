@@ -22,6 +22,11 @@ const ROOT = process.cwd();
 const OUT_DIR = join(ROOT, ".tmp", "db-health");
 const FREE_DB_LIMIT = 0.5 * 1024 ** 3;
 const MB = 1024 ** 2;
+// Supabase zet de database op alleen-lezen bij 95% van de disk (gebeurd op
+// 2026-10-01). Het dashboard telt database + WAL + "system" (171-190 MB gemeten);
+// via SQL zien we alleen de eerste twee.
+const DISK_BYTES = Number(process.env.DISK_GB ?? 2) * 1024 ** 3;
+const SYSTEM_BYTES = 190 * MB;
 // Onder een minuut databasetijd zeggen verhoudingen niets (bijv. twee runs kort na elkaar).
 const MIN_LOAD_MS = 60_000;
 
@@ -68,7 +73,9 @@ function advisors() {
 
 // ── Momentopname ─────────────────────────────────────────────────────
 function snapshot() {
-  const [db] = sql("select pg_database_size(current_database())::bigint as bytes");
+  const [db] = sql(`select pg_database_size(current_database())::bigint as bytes,
+    (select sum(size) from pg_ls_waldir())::bigint as wal_bytes,
+    current_setting('default_transaction_read_only') as read_only`);
   const tables = sql(`
     select c.relname as name, pg_total_relation_size(c.oid)::bigint as bytes,
       greatest(c.reltuples, 0)::bigint as rows, coalesce(s.seq_scan, 0)::bigint as seq_scan,
@@ -106,6 +113,8 @@ function snapshot() {
   return {
     takenAt: new Date().toISOString(),
     dbBytes: Number(db.bytes),
+    walBytes: Number(db.wal_bytes),
+    readOnly: db.read_only === "on",
     tables: Object.fromEntries(tables.map((t) => [t.name, {
       bytes: Number(t.bytes), rows: Number(t.rows), seqScan: Number(t.seq_scan), seqTupRead: Number(t.seq_tup_read),
     }])),
@@ -190,7 +199,11 @@ function report(now, prev) {
   const days = prev ? (Date.parse(now.takenAt) - Date.parse(prev.takenAt)) / 86400000 : null;
   const period = prev ? `sinds ${prev.takenAt.slice(0, 10)} (${days.toFixed(1)} dagen)` : "sinds de laatste statistiekenreset (geen vorige momentopname)";
 
-  // 1. Grootte
+  // 1. Grootte en disk
+  const diskUsed = (now.dbBytes + (now.walBytes ?? 0) + SYSTEM_BYTES) / DISK_BYTES;
+  if (now.readOnly) flag("ACTIE", "De database staat op alleen-lezen: de app kan niets wegschrijven.");
+  if (diskUsed >= 0.88) flag("ACTIE", `Disk ~${Math.round(diskUsed * 100)}% vol (database ${fmtMB(now.dbBytes)}, WAL ${fmtMB(now.walBytes ?? 0)}); bij 95% gaat de database op slot.`);
+  else if (diskUsed >= 0.8) flag("LET OP", `Disk ~${Math.round(diskUsed * 100)}% vol (database ${fmtMB(now.dbBytes)}, WAL ${fmtMB(now.walBytes ?? 0)}).`);
   const growth = prev ? now.dbBytes - prev.dbBytes : null;
   if (now.dbBytes > FREE_DB_LIMIT) flag("ACTIE", `Database ${fmtMB(now.dbBytes)}, boven de Free-limiet van 512 MB.`);
   else if (now.dbBytes > 0.8 * FREE_DB_LIMIT) flag("LET OP", `Database ${fmtMB(now.dbBytes)}, boven 80% van de Free-limiet.`);
@@ -280,6 +293,7 @@ function report(now, prev) {
   for (const f of findings) lines.push(`- **${f.level}:** ${f.text}`);
   lines.push("", "## Cijfers", "");
   lines.push(`- Database: ${fmtMB(now.dbBytes)}${growth != null ? ` (${growth >= 0 ? "+" : ""}${fmtMB(growth)})` : ""}, Free-limiet 512 MB`);
+  lines.push(`- Disk: ~${Math.round(diskUsed * 100)}% van ${(DISK_BYTES / 1024 ** 3).toFixed(0)} GB (WAL ${fmtMB(now.walBytes ?? 0)}); op slot bij 95%`);
   lines.push(`- Databasetijd: achtergrond ${fmtS(service)}, leden ${fmtS(members)}`);
   lines.push(`- Werkvoorraad: ${Object.entries(now.queues).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   lines.push(`- Advisors (performance): ${now.advisors ? Object.entries(now.advisors).map(([k, v]) => `${k} ${v}`).join(", ") || "geen" : "niet opgehaald"}`);

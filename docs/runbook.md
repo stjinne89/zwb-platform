@@ -235,6 +235,17 @@ hooguit één keer per 30 s per sessie.
 
 ## 6. Veelvoorkomende storingen
 
+- **"Niets wordt meer opgeslagen" / `cannot execute … in a read-only transaction`**
+  → Supabase heeft de database op alleen-lezen gezet omdat de disk op 95% staat
+  (gebeurd op 2026-10-01). Kijk op Settings → Infrastructure: de disk telt
+  database + WAL + system. De database gaat vanzelf weer open onder 95%, maar in
+  alleen-lezen krimpt de WAL niet (Postgres slaat zijn checkpoints over, en
+  `checkpoint` mag de rol niet). Er moet dus echte ruimte vrijkomen. In de
+  SQL-editor, in één run: `begin read write; <drop index … / truncate …>; commit;`.
+  De Supabase CLI werkt op dat moment niet (hij moet een inlogrol aanmaken).
+  Voorkomen: `npm run db:health` meldt het diskgebruik; doe grote schrijfacties
+  gespreid, want de WAL is hier de krappe factor. Zie
+  [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md), "Incident".
 - **"Uitslag/standings leeg"** → cookie verlopen (sectie 3) of bron-HTML
   gewijzigd (sectie 4). Check health-check-status.
 - **"Event-scan vindt niets"** → Zwift-serviceaccount-login mislukt; test via

@@ -7,15 +7,19 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-1. **Database slank en snel (urgent, 2026-09-30).** De database zit op 1,31 GB
-   tegen 0,5 GB op het Free-plan, disk 83%. In deze volgorde, details in
-   [prestatie-onderzoek](docs/prestatie-onderzoek-2026-09-30.md):
-   `0208_query_indexes.sql`, `0209_slim_segment_efforts.sql` en
-   `0210_rls_initplan.sql` toepassen (werken ook met de huidige code);
-   `node scripts/slim-segment-efforts.mjs`, daarna met `--full`; deployen; dan
-   `?segmentBackfill=0` weer uit de URL van de job "ZWB Strava webhooks" op
-   cron-job.org halen. Daarna beslissen: Free houden of naar Pro. De wekelijkse
-   check (`npm run db:health`, geplande taak op dinsdag 10:00) houdt dit bij.
+1. **Database slank en snel (2026-09-30, bijgewerkt 2026-10-01).** Migraties
+   `0208`–`0210` zijn toegepast en de code staat live. De database is 1,25 GB tegen
+   0,5 GB op het Free-plan; de disk (2 GB) zit krap. Op 2026-10-01 stond de database
+   ruim twintig minuten op alleen-lezen door het inkortscript; zie
+   [prestatie-onderzoek](docs/prestatie-onderzoek-2026-09-30.md), "Incident". Nog open:
+   `0211_drop_segment_efforts_priority_index.sql` toepassen (op productie is de index
+   al weg, dus een formaliteit); de resterende ~290.000 segmentpogingen inkorten met
+   `node scripts/slim-segment-efforts.mjs` (alleen als `--status` een disk onder 85%
+   toont; het script bewaakt dat zelf); `?segmentBackfill=0` weer uit de URL van de
+   job "ZWB Strava webhooks" halen. **Besluit nodig:** de ruimte teruggeven kan niet
+   veilig op deze disk (een VACUUM FULL past niet); een maand Pro, of op Free de ruimte
+   laten staan. De wekelijkse check (`npm run db:health`, geplande taak op dinsdag
+   10:00) meldt nu ook het diskgebruik.
 2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
@@ -126,7 +130,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0211`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0212`.
 
 ---
 
@@ -197,9 +201,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0211`
 
 ---
 
-> **Database slank en snel, 2026-09-30 — gebouwd, lokaal getest; productiestappen open.**
+> **Database slank en snel, 2026-09-30 — gebouwd en live; inkorten half gedaan, ruimte teruggeven open.**
 > Commit: de commit die dit blok toevoegt. Migraties `0208_query_indexes.sql`,
-> `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (**nog niet toegepast**).
+> `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (toegepast door de eigenaar,
+> 2026-10-01) en `0211_drop_segment_efforts_priority_index.sql` (op productie al met de
+> hand gedaan, zie het incident hieronder).
 >
 > **Waarom.** De app werd steeds trager. Onderzoek op productie (alleen lezen):
 > Free-plan met Nano-compute (0,5 GB geheugen), database 1,31 GB tegen een limiet
@@ -249,9 +255,21 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0211`
 > van 0210 op productie telde precies de 144 policies van de advisor.
 > `tests/unit/omnium-live.test.ts` faalt in een worktree zonder `.env.local`; dat
 > staat hier los van.
-> **Niet te testen hier:** de migraties op productie, het inkortscript, de VACUUM
-> FULL (verwachting: segmentpogingen van ~1 GB naar ~0,2–0,3 GB, niet gemeten) en de
-> eventdaglus in een echte browser op een eventdag.
+> **Incident 2026-10-01.** Het inkortscript zette de productiedatabase na 220.000
+> rijen op alleen-lezen (~07:53–08:14 UTC): niet de tabel groeide, maar de WAL (128 →
+> 432 MB), en de disk kwam op 95%. Fout ingeschat: de WAL, en dat `raw` in de tabel
+> zelf staat en niet in TOAST, zodat een gewone VACUUM niets teruggeeft. Hersteld met
+> akkoord van de eigenaar door de index `segment_efforts_priority` te verwijderen
+> (32 MB) en `live_positions` te legen (57 MB). Geen dataverlies buiten die
+> live-posities. Het script werkt nu in batches van 5.000 met pauzes en een
+> diskbewaking; `db-health.mjs` meldt diskgebruik en alleen-lezen. Volledig verslag
+> en de les in het onderzoeksdocument.
+> **Niet waar gebleken:** de verwachting dat VACUUM FULL de segmentpogingen naar
+> ~0,2–0,3 GB zou brengen is niet te toetsen, want VACUUM FULL past niet op de disk
+> van 2 GB (kopie plus WAL ~400 MB bij ~350 MB marge). `--full` rekent dat na en
+> weigert.
+> **Niet getest:** het aangepaste inkortscript in schrijfmodus (alleen `--status`
+> tegen productie) en de eventdaglus in een echte browser op een eventdag.
 
 > **Trainer krijgt bericht als een doel klaarstaat voor een concept, 2026-09-30 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
