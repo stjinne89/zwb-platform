@@ -4612,6 +4612,23 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Instagram-sync toont de reden als het ophalen mislukt
+
+**2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De Instagram-strip bleef leeg. Op productie stond geen enkel
+Instagram-item: `INSTAGRAM_ACCESS_TOKEN` had nooit in Netlify gestaan. Nadat
+Stijn de token had gezet, gaf "Instagram ophalen" alleen "Instagram kon niet
+worden opgehaald." (op productie gecontroleerd, 2026-10-02). De melding van Meta
+werd weggegooid en nergens gelogd, dus de oorzaak was niet te achterhalen.
+
+**Wat er veranderde.** `syncInstagramFeed` zet de reden (de melding van Meta of
+van onze eigen controle op de accountnaam, hooguit 200 tekens) achter de
+foutmelding en logt hem met `console.error`. Alleen wie `media.manage` heeft
+kan de knop gebruiken.
+
+**Nog open.** Waarom Meta de aanroep weigert, is pas na de deploy te zien.
+
 ### Opgeleverd — ZRL-uitslagen in "Teams en scorebord", Instagram hoger
 
 **2026-09-30.** Commit: de commit die dit blok toevoegt. Geen migratie (leest

@@ -384,10 +384,16 @@ export async function syncInstagramFeed() {
   try {
     userId = userId || (await resolveInstagramUserId(accessToken));
     posts = await fetchInstagramMedia({ accessToken, userId, limit: 12 });
-  } catch {
+  } catch (err) {
+    // De melding van Meta zegt wat er mis is (verlopen token, verkeerd account).
+    // Alleen wie media beheert komt hier, dus de reden mag mee.
+    console.error("[syncInstagramFeed]", err);
+    const reason = err instanceof Error ? err.message.slice(0, 200) : "";
     return {
       ok: false as const,
-      error: "Instagram kon niet worden opgehaald.",
+      error: reason
+        ? `Instagram kon niet worden opgehaald: ${reason}`
+        : "Instagram kon niet worden opgehaald.",
     };
   }
 
