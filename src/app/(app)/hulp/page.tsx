@@ -1967,6 +1967,82 @@ Fitness-status: Verbeterend`}
                   Ontbreekt er een waarde, dan staat er ≥ voor het totaal.
                 </span>
               </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Staat er &quot;Naar:&quot; onder een recept, dan komt het
+                  gerecht van die bron. De bereiding is opnieuw beschreven en
+                  de waarden zijn met NEVO berekend.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Je menu voor vandaag</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Per moment van de dag krijg je één recept. Rond een rit komen
+                  er momenten bij: vooraf, onderweg vanaf een uur rijden, en
+                  erna.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De keuze volgt je dag. Op zware dagen koolhydraatrijk en
+                  licht verteerbaar, op rustdagen meer eiwit en vezels. Een
+                  recept waarvan de portie je doel niet haalt, zakt in de rij.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Recepten die even goed passen, wisselen per dag. Met
+                  &quot;Ander recept&quot; blader je zelf door.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Een favoriet komt vaker terug. &quot;Niet voor mij&quot; haalt
+                  een recept uit je menu; in het receptenboek vind je het terug
+                  onder het filter met die naam.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Labels en delen</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  &quot;Licht verteerbaar&quot; betekent weinig vezels en weinig
+                  vet per portie; &quot;vezelrijk&quot; minstens 3 g vezels per
+                  100 kcal.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  &quot;Rijk aan&quot; staat er als één portie minstens 30% van
+                  de dagelijkse referentie-inname levert, bijvoorbeeld van
+                  calcium, ijzer of vitamine D. Een dagtotaal rekenen we niet
+                  uit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Een eigen recept kun je aan de club voorstellen. Na
+                  goedkeuring ziet elk lid het, met jouw naam erbij. Tot die tijd
+                  zien alleen jij en de beoordelaar het.
+                </span>
+              </li>
             </ul>
           </article>
         </div>

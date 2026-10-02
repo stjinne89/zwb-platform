@@ -179,10 +179,10 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Voeding",
-    text: "Kennisbank met bronnen, recepten op maat en een dagelijkse tip.",
+    text: "Kennisbank met bronnen, een dagmenu met recepten op maat en een dagelijkse tip.",
     href: "/hulp#voeding",
     terms:
-      "voeding eten koolhydraten eiwit recept recepten gel sportdrank herstel nevo reds supplementen cafeine hydratatie drinken zout",
+      "voeding eten koolhydraten eiwit recept recepten menu dagmenu favoriet delen gel sportdrank herstel nevo reds supplementen cafeine hydratatie drinken zout calcium ijzer vezels",
   },
   {
     title: "Core & mobiliteit",

@@ -251,7 +251,11 @@ wielrenners.
     2025/9.0, RIVM, Bilthoven".
   - Eindgebruikers mogen geen kosten in rekening gebracht krijgen voor de data.
 - **Hoe ZWB dat invult:**
-  - Alle 2.328 producten staan ongewijzigd in `nutrition_foods`.
+  - Alle 2.328 producten staan ongewijzigd in `nutrition_foods`. Sinds
+    2026-10-02 ook de productgroep, calcium, ijzer, magnesium, zink, vitamine D,
+    vitamine C, EPA en DHA (bestand opnieuw gedownload na akkoord op de
+    voorwaarden). EPA en DHA staan apart, zoals NEVO ze levert; optellen gebeurt
+    in de code.
   - Lege NEVO-waarden blijven `null`.
   - Een receptportie met zo'n waarde toont "≥".
 - **Aanpak receptenboek.** Lis DM, et al. (2026). UCI Sports Nutrition Project:
@@ -325,10 +329,77 @@ Doelen per moment (`mealTarget`):
 **De verdeling over maaltijden is van ZWB, niet uit een bron.** De bronnen geven
 dagtotalen en momenten rond de rit, geen percentages per maaltijd.
 
+## Receptkeuze: het dagmenu
+
+`src/lib/nutrition/menu.ts` kiest per moment één recept. De bronnen zeggen welk
+soort eten bij welke dag hoort (§12); hoe dat in punten wordt omgezet is van ZWB.
+
+- **Momenten.** Altijd ontbijt, lunch en diner. Tussendoor vanaf een matige dag.
+  Voor de rit zolang de geplande rit nog moet komen; tijdens de rit vanaf 60
+  minuten; na de rit vanaf 60 minuten gepland of gereden; voor het slapen na een
+  avondrit en op zware, lange en wedstrijddagen.
+- **Passende portie.** De geschaalde portie wordt naast het doel van dat moment
+  gelegd. Koolhydraten tellen in beide richtingen en wegen dubbel. Eiwit telt
+  alleen als het doel niet gehaald wordt: de meeste maaltijden met vlees, vis
+  of peulvruchten zitten ruim boven 0,35 g/kg, en dat is geen slechtere keuze.
+- **Profiel.** Zware dag, of diner vóór een zware dag: koolhydraatrijk eerst.
+  Rustdag: eiwitrijk eerst. Anders gemengd eerst.
+- **Soort eten.** Licht verteerbaar telt mee vóór de rit en bij de
+  hoofdmaaltijden op zware dagen; vezelrijk op rust- en lichte dagen.
+- **Voorkeur.** Een favoriet krijgt een bonus; "niet voor mij" valt af.
+- **Afwisseling.** Alles binnen 0,2 punt van de beste telt als gelijkwaardig en
+  schuift per dag één plek op. De hoofdmaaltijden krijgen op één dag niet twee
+  keer dezelfde koolhydraatbasis, tenzij het lid zelf doorklikt.
+
+De gewichten (profiel 0,3 en 0,15; soort eten 0,15; favoriet 0,25; band 0,2)
+zijn gekozen, niet gemeten. Gemeten is wat ze opleveren: bij 55, 70 en 90 kg
+heeft elk moment op elk dagtype een clubrecept dat het doel voor minstens 85%
+haalt (test), en over veertien dagen toont het menu bij 70 kg per moment 7 tot
+14 verschillende recepten. Uitzondering: de lunch op zware, lange en
+wedstrijddagen, met 4 of 5.
+
+### Labels per portie (`traits.ts`)
+
+| Label | Regel | Herkomst |
+|---|---|---|
+| Vezelrijk | ≥ 3 g vezels per 100 kcal | Verordening (EG) 1924/2006 |
+| Licht verteerbaar | < 1,5 g vezels per 100 kcal én ≤ 25% van de energie uit vet | Vezelgrens: onder "bron van vezels" uit dezelfde verordening. Vetgrens: eigen keuze, de onderste helft van de 20–35% uit het positiestandpunt |
+| Rijk aan calcium, ijzer, magnesium, zink, vitamine D, vitamine C | ≥ 30% van de referentie-inname per portie | Verordening (EU) 1169/2011 bijlage XIII voor de referentie-innames. De verordening rekent per 100 g; per portie is onze vertaling |
+| Rijk aan omega-3 | ≥ 0,25 g EPA + DHA per portie | De dagelijkse inname die EFSA toereikend noemt |
+
+Een waarde die in NEVO ontbreekt telt als nul. Een label verschijnt dus alleen
+als de bekende waarden de grens al halen. Er is geen dagtotaal: zonder
+eetdagboek valt dat niet te berekenen.
+
+### Waar de recepten vandaan komen
+
+- **120 clubrecepten** in `scripts/nutrition/standard-recipes.json`: de 24 uit de
+  eerste ronde, 25 naar een externe bron en 71 nieuwe eigen.
+- **Externe bronnen.** 24 gerechten naar de receptenverzameling van het
+  Australian Institute of Sport (https://www.ausport.gov.au/ais/nutrition/recipes,
+  343 recepten van sportdiëtisten) en één naar het Voedingscentrum. Overgenomen
+  is het gerecht: de ingrediënten en ongeveer de verhoudingen. De bereiding is
+  opnieuw beschreven en de voedingswaarden zijn met NEVO berekend. Elk recept
+  noemt zijn bron met een link.
+- **Aangepast ten opzichte van de bron.** Producten die NEVO niet kent zijn
+  vervangen (ingedikte melk door halfvolle melk, vissaus weggelaten, hokkien
+  noodles door pasta). Bij koolhydraatrijke hoofdmaaltijden is de koolhydraatbron
+  15–25% groter gemaakt, zodat het recept op een zware of lange dag binnen de
+  schaalgrenzen blijft; bij een aantal recepten is de eiwitbron kleiner gemaakt.
+  Het recept in de app is dus niet het recept van de bron.
+- **Recepten van leden.** Een lid kan een eigen recept voorstellen; wie schema's
+  mag maken keurt goed of wijst af.
+- **Niet gedaan.** Teksten of foto's overnemen. Het Voedingscentrum vraagt
+  daarvoor schriftelijke toestemming van de afdeling Communicatie.
+
 ## Wat nog open is
 
-- **Inhoudelijke controle.** De teksten en de 24 clubrecepten zijn niet door een
+- **Inhoudelijke controle.** De teksten en de 120 clubrecepten zijn niet door een
   (sport)diëtist nagekeken. Doe dat voordat de module breed wordt aangekondigd.
+- **Dieetlabels.** Een test bewaakt dat een recept met het label vegetarisch,
+  vegan, lactosevrij of glutenvrij geen product uit de verkeerde NEVO-groep
+  bevat. Sporen en verborgen bestanddelen (melk in brood, gluten in
+  sojasaus) ziet die test niet; bij twijfel heeft een recept het label niet.
 - **Tekst van het UCI-positiestandpunt.** Afgehandeld op 2026-10-02, zie §0. De
   begeleidende reviews zelf zijn niet gelezen; wat hier uit Lis & Strobel,
   Saffioti en Wilson staat, komt uit de samenvatting in het positiestandpunt.

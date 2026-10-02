@@ -7,6 +7,7 @@ import {
   energyFactorFor,
   loadNutritionDayInput,
   loadNutritionProfile,
+  loadRecipePrefs,
   loadRecipes,
   requireViewer,
   todayKeyAmsterdam,
@@ -17,7 +18,11 @@ import { BackLink } from "@/components/app-ui";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type Search = { moment?: string | string[]; dieet?: string | string[] };
+type Search = { moment?: string | string[]; dieet?: string | string[]; toon?: string | string[] };
+
+const VIEWS = ["favorieten", "verborgen"] as const;
+type View = (typeof VIEWS)[number];
+const VIEW_LABELS: Record<View, string> = { favorieten: "Favorieten", verborgen: "Niet voor mij" };
 
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -39,12 +44,15 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   // Het dieetfilter staat alleen in de URL en wordt nergens bewaard: een
   // voorkeur als "glutenvrij" kan iets over iemands gezondheid zeggen.
   const diet = (DIET_TAGS as readonly string[]).includes(dietParam ?? "") ? (dietParam as DietTag) : null;
+  const viewParam = one(params.toon);
+  const view = (VIEWS as readonly string[]).includes(viewParam ?? "") ? (viewParam as View) : null;
 
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
-  const [profile, recipes] = await Promise.all([
+  const [profile, recipes, prefs] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
+    loadRecipePrefs(viewer),
   ]);
   const day = nutritionDay(await loadNutritionDayInput(viewer, today, profile.weightKg));
   const rider = {
@@ -54,18 +62,28 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     rideMinutes: day.rideMinutes,
   };
 
-  const href = (next: { moment?: MealMoment | null; dieet?: DietTag | null }) => {
+  const href = (next: { moment?: MealMoment | null; dieet?: DietTag | null; toon?: View | null }) => {
     const query = new URLSearchParams();
     const m = next.moment === undefined ? moment : next.moment;
     const d = next.dieet === undefined ? diet : next.dieet;
+    const v = next.toon === undefined ? view : next.toon;
     if (m) query.set("moment", m);
     if (d) query.set("dieet", d);
+    if (v) query.set("toon", v);
     const text = query.toString();
     return `/zwbeter-worden/voeding/recepten${text ? `?${text}` : ""}`;
   };
 
+  // Wat "niet voor mij" is, staat alleen nog onder zijn eigen filter.
+  const inView = (recipeId: string) => {
+    const pref = prefs.get(recipeId);
+    if (view === "verborgen") return pref === "verborgen";
+    if (view === "favorieten") return pref === "favoriet";
+    return pref !== "verborgen";
+  };
   const shown = recipes.filter(
-    (recipe) => (moment == null || recipe.meal_moment === moment) && matchesDiet(recipe, diet),
+    (recipe) =>
+      (moment == null || recipe.meal_moment === moment) && matchesDiet(recipe, diet) && inView(recipe.id),
   );
 
   return (
@@ -105,6 +123,15 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
               {DIET_TAG_LABELS[value]}
             </Link>
           ))}
+          {VIEWS.map((value) => (
+            <Link
+              key={value}
+              href={href({ toon: view === value ? null : value })}
+              className={chipClass(view === value)}
+            >
+              {VIEW_LABELS[value]}
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -113,7 +140,12 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {shown.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} portion={portionForRider(recipe, rider).perPortion} />
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              portion={portionForRider(recipe, rider).perPortion}
+              favorite={prefs.get(recipe.id) === "favoriet"}
+            />
           ))}
         </div>
       )}

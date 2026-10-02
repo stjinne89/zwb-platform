@@ -100,6 +100,10 @@ gaat stabiliteit voor nieuwe features.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
+   **Voeding, dagmenu:** `0213_nutrition_expansion.sql` en daarna
+   `0214_nutrition_seed_v2.sql` toepassen vóór de deploy van deel 2 (ronde
+   hieronder). Daarna één gedeeld recept voorstellen en goedkeuren, en de
+   privacytekst afhandelen.
 4. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -125,9 +129,91 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`.
 
 ---
+
+> **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, lokaal getest; migraties niet toegepast.**
+> Commit: de commit die dit blok toevoegt. Migraties `0213_nutrition_expansion.sql`
+> en `0214_nutrition_seed_v2.sql` (gegenereerd). Niet gepusht.
+>
+> **Waarom.** De voedingspagina toonde drie recepten van één moment uit een pool
+> van één tot zes, gekozen op moment en profiel alleen. Vandaar "weinig en steeds
+> dezelfde". Keuzes van Stijn: zelf een flinke bulk schrijven, gerechten uit
+> betrouwbare externe bronnen mogen, leden kunnen delen, favoriet en "niet voor
+> mij" opslaan (dieet niet), micronutriënten per recept, en een dagmenu per moment.
+>
+> **Wat.**
+> - **Dagmenu** (`src/lib/nutrition/menu.ts`, `voeding/page.tsx`). Per moment één
+>   recept, met "Ander recept" en het dieetfilter in de URL. De keuze weegt of de
+>   geschaalde portie het doel haalt, het profiel bij het dagtype, licht
+>   verteerbaar of vezelrijk, en de voorkeur van het lid. Gelijkwaardige recepten
+>   schuiven per dag door. `pickRecipes` is weg; de kaart op Vandaag gebruikt
+>   dezelfde rangorde.
+> - **120 clubrecepten** (was 24): 24 naar het Australian Institute of Sport, één
+>   naar het Voedingscentrum, 71 nieuwe eigen. Bij een externe bron is het gerecht
+>   overgenomen, niet de tekst; waarden komen uit NEVO en het recept toont
+>   "Naar: bron".
+> - **Labels** (`traits.ts`): licht verteerbaar, vezelrijk, en "rijk aan" voor
+>   calcium, ijzer, magnesium, zink, vitamine D, vitamine C en omega-3.
+> - **Voorkeuren**: `nutrition_recipe_prefs`, alleen voor het lid zelf.
+> - **Delen**: knop op een eigen recept, `recepten/voorstellen` voor wie schema's
+>   mag maken, en de functie `review_shared_nutrition_recipe`.
+> - **NEVO**: het bestand is opnieuw gedownload (voorwaarden geaccepteerd met
+>   akkoord van Stijn); `nutrition_foods` krijgt de productgroep en acht
+>   micronutriëntkolommen. Het csv staat niet in de repo.
+> - `/hulp#voeding` beschrijft het menu, de labels en het delen.
+>
+> **Afwijkingen van het goedgekeurde plan.**
+> - **Eén commit in plaats van drie.** Data, menu en delen grijpen in dezelfde
+>   bestanden; los committen gaf tussenstanden die niet bouwen.
+> - **"Rijk aan" (30%) in plaats van "bron van" (15%).** Een hele maaltijd haalt
+>   15% van bijna alles; het label zei dan niets.
+> - **Geen volgorde op starttijd.** `scheduled_at` wordt overal als datum gelezen;
+>   het uur is niet betrouwbaar. De ritmomenten staan in een eigen blok.
+> - **Beoordelen via een functie, niet via RLS.** Gevonden door de test: na
+>   afwijzen is het recept voor de beoordelaar onzichtbaar, en Postgres weigert
+>   een update waarvan de nieuwe rij buiten de eigen select-policy valt.
+> - **Eiwit telt in de keuze alleen bij een tekort.** Bijna elke maaltijd met
+>   vlees, vis of peulvruchten zit boven het maaltijddoel van 0,35 g/kg; dat
+>   afstraffen zou juist die recepten wegdrukken.
+>
+> **Niet gebouwd, en waarom.**
+> - Teksten of foto's van externe bronnen overnemen: het Voedingscentrum vraagt
+>   daar schriftelijke toestemming voor. Allerhande, kookboeken en blogs vallen
+>   buiten "betrouwbaar en onderbouwd".
+> - Kilojoules of vermogen als maat voor de dag: de bronnen geven g/kg naar uren
+>   en zwaarte; een kJ-drempel blijft een eigen verzinsel.
+> - Een dagtotaal micronutriënten: zonder eetdagboek niet te berekenen.
+> - Een opgeslagen dieetvoorkeur, kcal-doel, eetdagboek: ongewijzigd (REDs, AVG).
+> - Een beheerscherm om clubrecepten te bewerken: goedkeuren en afwijzen is er
+>   nu; de tekst van een clubrecept wijzigen gaat nog via de seed.
+> - Boodschappenlijst en weekmenu: blijven in het plannenboek.
+>
+> **Vóór de deploy: `0213` en daarna `0214` toepassen.** Zonder `0213` werkt de
+> pagina met de oude 24 recepten: de app vraagt dan alleen de oude kolommen op,
+> labels en bron blijven leeg, en favoriet, delen en beoordelen geven een
+> foutmelding. `0214` is 443 kB.
+>
+> **Nog open: de privacytekst.** `/privacy` noemt favorieten, "niet voor mij" en
+> de naam bij een gedeeld recept nog niet. Stijn beslist over de tekst en of het
+> een nieuwe privacyversie wordt.
+>
+> **Getest.** 1.921 unittests geslaagd; voor voeding 59, waarvan nieuw
+> `nutrition-menu` (18) en uitgebreid `nutrition-migration` (15, PGlite: tellingen,
+> idempotentie, dieetlabels tegen de NEVO-productgroep, RLS voor voorkeuren en
+> voor voorstellen/goedkeuren/afwijzen, en per gewicht, dagtype en moment een
+> recept dat het doel voor minstens 85% haalt). Lint zonder fouten, `npm run
+> build` geslaagd. Bij de volledige run laadde `omnium-live` niet (de worktree had
+> toen geen `.env.local`); bij een tweede run liep `rls-initplan-migration` in een
+> time-out en slaagde daarna los. Beide staan los van voeding.
+> Gemeten: over veertien dagen toont het menu bij 70 kg per moment 7 tot 14
+> verschillende recepten; de lunch op zware, lange en wedstrijddagen 4 of 5.
+>
+> **Niet getest.** De schermen in de browser (inloggen kan alleen met een
+> account, en de migraties staan niet op de gekoppelde database). De migraties
+> op productie. Recepten en labels zijn niet door een (sport)diëtist nagekeken;
+> geen recept is gekookt.
 
 > **Voeding, deel 1: het UCI-positiestandpunt volledig verwerkt, 2026-10-02 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -166,7 +252,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 > samenvatting in het positiestandpunt. Teksten zijn niet door een (sport)diëtist
 > nagekeken.
 >
-> **Getest.** Zie de laatste commit van deze reeks voor de volledige suite.
+> **Getest.** De voedingstests (26) bij deze commit; de volledige suite bij deel 2.
 
 > **Laadtijd, deel 3: trainingspagina's op basis van een meting, 2026-10-01 — live en gemeten.**
 > Commit `90c055d`. Geen migratie.
@@ -6288,7 +6374,8 @@ drempel die in de code staat.
 - **Data:**
   - `nutrition_foods`: heel NEVO, 2.328 producten, ongewijzigd, lege waarden
     `null`.
-  - `nutrition_recipes` en `nutrition_recipe_ingredients`: 24 clubrecepten.
+  - `nutrition_recipes` en `nutrition_recipe_ingredients`: 24 clubrecepten
+    (*120 sinds 2026-10-02, zie "Voeding, deel 2" bovenaan*).
     Eigen recepten zijn privé; clubrecepten schrijven vraagt
     `training.create_plans`.
   - `nutrition_profiles`: lengte, alleen voor het lid zelf.
@@ -6326,7 +6413,9 @@ drempel die in de code staat.
 - **Geen voedingsregels per cyclusfase.** Het effect op prestatie is gemiddeld
   triviaal en verschilt sterk per persoon (McNulty et al. 2020).
 - **Geen beheerscherm voor clubrecepten.** RLS staat het toe; de 24 recepten komen
-  voorlopig uit de seed.
+  voorlopig uit de seed. *Sinds 2026-10-02 kan een lid een eigen recept
+  voorstellen en keurt een beoordelaar het goed; bewerken van een clubrecept gaat
+  nog steeds via de seed.*
 - **Geen supplementadvies per lid en geen merken.**
 - **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
   darmtrainingsschema.

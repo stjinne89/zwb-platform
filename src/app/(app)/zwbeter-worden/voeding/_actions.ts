@@ -1,8 +1,9 @@
 "use server";
 
-// Acties voor de voedingsmodule: eigen recepten bewaren en verwijderen, en
-// voedingsmiddelen zoeken voor het receptformulier. Clubrecepten komen uit de
-// seed-migratie; daar is hier bewust geen formulier voor.
+// Acties voor de voedingsmodule: eigen recepten bewaren, verwijderen en met de
+// club delen, een voorkeur per recept, en voedingsmiddelen zoeken voor het
+// receptformulier. Clubrecepten komen uit de seed-migratie of uit een gedeeld
+// recept dat is goedgekeurd; een formulier om ze te bewerken is er bewust niet.
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -11,6 +12,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { INGREDIENT_ROLES, type IngredientRole } from "@/lib/nutrition/scale";
 import { DIET_TAGS, FUEL_PROFILES } from "@/lib/nutrition/labels";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
+import { RECIPE_PREFS } from "@/lib/nutrition/menu";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -32,7 +34,7 @@ async function currentUser() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) throw new Error("Niet ingelogd.");
-  return { supabase, user: access.user };
+  return { supabase, user: access.user, access };
 }
 
 function refresh() {
@@ -215,4 +217,97 @@ export async function deleteOwnRecipe(formData: FormData): Promise<ActionResult>
 
   refresh();
   redirect("/zwbeter-worden/voeding/recepten");
+}
+
+/** Favoriet, "niet voor mij", of geen van beide (leeg). Alleen voor het lid zelf. */
+export async function setRecipePref(formData: FormData): Promise<ActionResult> {
+  const recipeId = text(formData.get("recipe_id"));
+  const pref = text(formData.get("pref"));
+  if (!recipeId) return { ok: false, error: "Geen recept opgegeven." };
+
+  const { supabase, user } = await currentUser();
+  if (!pref) {
+    const { error } = await supabase
+      .from("nutrition_recipe_prefs")
+      .delete()
+      .eq("profile_id", user.id)
+      .eq("recipe_id", recipeId);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    if (!(RECIPE_PREFS as readonly string[]).includes(pref)) return { ok: false, error: "Onbekende keuze." };
+    const { error } = await supabase
+      .from("nutrition_recipe_prefs")
+      .upsert({ profile_id: user.id, recipe_id: recipeId, pref }, { onConflict: "profile_id,recipe_id" });
+    if (error) return { ok: false, error: error.message };
+  }
+
+  refresh();
+  return { ok: true };
+}
+
+/** Een eigen recept voorstellen aan de club, of het voorstel intrekken. */
+export async function shareOwnRecipe(formData: FormData): Promise<ActionResult> {
+  const recipeId = text(formData.get("recipe_id"));
+  if (!recipeId) return { ok: false, error: "Geen recept opgegeven." };
+  const share = text(formData.get("share")) === "1";
+
+  const { supabase, user } = await currentUser();
+  const { data, error } = await supabase
+    .from("nutrition_recipes")
+    .update({ share_status: share ? "voorgesteld" : null })
+    .eq("id", recipeId)
+    .eq("owner_id", user.id)
+    .eq("is_standard", false)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Dit recept kun je niet delen." };
+
+  refresh();
+  return { ok: true };
+}
+
+function slugify(title: string) {
+  return title
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/**
+ * Een voorgesteld recept goedkeuren of afwijzen. Goedkeuren maakt er een
+ * clubrecept van: het lid is dan geen eigenaar meer, zijn naam blijft staan.
+ */
+export async function reviewSharedRecipe(formData: FormData): Promise<ActionResult> {
+  const recipeId = text(formData.get("recipe_id"));
+  const approve = text(formData.get("decision")) === "goedkeuren";
+  if (!recipeId) return { ok: false, error: "Geen recept opgegeven." };
+
+  const { supabase, access } = await currentUser();
+  if (!access.has("training.create_plans")) return { ok: false, error: "Geen rechten om recepten te beoordelen." };
+
+  const { data: recipe, error: readError } = await supabase
+    .from("nutrition_recipes")
+    .select("id, title")
+    .eq("id", recipeId)
+    .eq("share_status", "voorgesteld")
+    .maybeSingle();
+  if (readError) return { ok: false, error: readError.message };
+  if (!recipe) return { ok: false, error: "Dit recept staat niet meer open." };
+
+  // Via de functie uit 0213: die controleert het recht zelf opnieuw.
+  const { data: done, error } = await supabase.rpc("review_shared_nutrition_recipe", {
+    p_recipe_id: recipeId,
+    p_approve: approve,
+    // De eigen slug begint met een stuk van het gebruikers-id; een clubrecept krijgt een gewone.
+    p_slug: approve ? `${slugify(recipe.title as string) || "recept"}-${Date.now().toString(36)}` : null,
+  });
+  if (error) return { ok: false, error: error.message };
+  if (!done) return { ok: false, error: "Dit recept staat niet meer open." };
+
+  refresh();
+  return { ok: true };
 }

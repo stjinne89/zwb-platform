@@ -5,16 +5,19 @@ import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
+import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
 import {
   energyFactorFor,
   loadNutritionDayInput,
   loadNutritionProfile,
   loadRecipeBySlug,
+  loadRecipePrefs,
   requireViewer,
   todayKeyAmsterdam,
 } from "../../_data";
-import { deleteOwnRecipe } from "../../_actions";
+import { deleteOwnRecipe, setRecipePref, shareOwnRecipe } from "../../_actions";
 import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
+import { RecipePrefButtons, ShareRecipeButton } from "../../_components/recipe-actions";
 import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
@@ -39,9 +42,10 @@ export default async function RecipePage({
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [recipe, profile] = await Promise.all([
+  const [recipe, profile, prefs] = await Promise.all([
     loadRecipeBySlug(viewer, slug),
     loadNutritionProfile(viewer, today),
+    loadRecipePrefs(viewer),
   ]);
   if (!recipe) notFound();
 
@@ -61,6 +65,12 @@ export default async function RecipePage({
   );
   const unitByFood = new Map(recipe.ingredients.map((item) => [item.food.id, item.food.quantity_unit]));
   const own = !recipe.is_standard && recipe.owner_id === viewer.user.id;
+  const traits = portionTraits(portion.ingredients);
+  const labels = [
+    traits.lightDigest ? "Licht verteerbaar" : null,
+    traits.fiberRich ? "Vezelrijk" : null,
+    ...traits.richIn.map((key) => `Rijk aan ${MICRONUTRIENT_LABELS[key]}`),
+  ].filter((label): label is string => label != null);
 
   return (
     <div className="space-y-6">
@@ -77,6 +87,15 @@ export default async function RecipePage({
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {labels.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {labels.map((label) => (
+              <li key={label} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {label}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
@@ -133,8 +152,11 @@ export default async function RecipePage({
         </div>
       </section>
 
+      <RecipePrefButtons recipeId={recipe.id} pref={prefs.get(recipe.id) ?? null} action={setRecipePref} />
+
       {own && (
         <div className="flex flex-wrap items-center gap-3">
+          <ShareRecipeButton recipeId={recipe.id} status={recipe.share_status} action={shareOwnRecipe} />
           <Link
             href={`/zwbeter-worden/voeding/recepten/${recipe.slug}/bewerken`}
             className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"
@@ -147,6 +169,20 @@ export default async function RecipePage({
       )}
 
       <p className="text-xs text-muted-foreground">
+        {recipe.contributor?.display_name ? `Van ${recipe.contributor.display_name}. ` : ""}
+        {recipe.source_name ? (
+          <>
+            Naar:{" "}
+            {recipe.source_url ? (
+              <a href={recipe.source_url} target="_blank" rel="noreferrer" className="underline hover:text-primary">
+                {recipe.source_name}
+              </a>
+            ) : (
+              recipe.source_name
+            )}
+            .{" "}
+          </>
+        ) : null}
         Gebaseerd op gegevens van NEVO-online versie 2025/9.0, RIVM, Bilthoven.
       </p>
     </div>

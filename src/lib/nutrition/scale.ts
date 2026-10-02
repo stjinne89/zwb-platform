@@ -29,6 +29,16 @@ export type NutritionFood = {
   fat_g: number | null;
   fiber_g: number | null;
   sodium_mg: number | null;
+  // Uit 0213/0214; alleen gebruikt voor de labels in traits.ts.
+  food_group?: string | null;
+  calcium_mg?: number | null;
+  iron_mg?: number | null;
+  magnesium_mg?: number | null;
+  zinc_mg?: number | null;
+  vitamin_d_ug?: number | null;
+  vitamin_c_mg?: number | null;
+  epa_g?: number | null;
+  dha_g?: number | null;
 };
 
 export type RecipeIngredient = {

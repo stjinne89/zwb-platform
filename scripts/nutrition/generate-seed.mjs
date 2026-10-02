@@ -1,9 +1,13 @@
 #!/usr/bin/env node
-// Genereert supabase/migrations/0169_nutrition_seed.sql uit het NEVO-bestand en
-// de clubrecepten in standard-recipes.json.
+// Genereert de seed-migratie voor voeding uit het NEVO-bestand en de
+// clubrecepten in standard-recipes.json.
 //
 // Gebruik:
-//   node scripts/nutrition/generate-seed.mjs <pad/naar/NEVO2025_v9.0.csv>
+//   node scripts/nutrition/generate-seed.mjs <pad/naar/NEVO2025_v9.0.csv> [uitvoer.sql]
+//
+// Zonder tweede argument schrijft het script 0214_nutrition_seed_v2.sql. De
+// eerste seed (0169) is toegepast en blijft zoals hij is: die kent de kolommen
+// uit 0213 niet.
 //
 // Het NEVO-bestand zelf staat niet in de repo. Je haalt het op via
 // https://www.rivm.nl/nederlands-voedingsstoffenbestand (akkoord op de
@@ -11,8 +15,9 @@
 // toe: dit script kopieert ze letterlijk, zet alleen de decimale komma om, en
 // laat een lege waarde leeg.
 //
-// Bij een nieuwe NEVO-versie: pas NEVO_VERSION aan, draai het script opnieuw en
-// maak er een nieuwe migratie van (een toegepaste migratie wijzig je niet).
+// Bij een nieuwe NEVO-versie of nieuwe recepten: pas NEVO_VERSION aan, draai het
+// script met een nieuw uitvoerpad en maak er zo een nieuwe migratie van (een
+// toegepaste migratie wijzig je niet).
 
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -21,7 +26,7 @@ import path from "node:path";
 const NEVO_VERSION = "NEVO-online 2025/9.0";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..", "..");
-const OUTPUT = path.join(root, "supabase", "migrations", "0169_nutrition_seed.sql");
+const DEFAULT_OUTPUT = path.join(root, "supabase", "migrations", "0214_nutrition_seed_v2.sql");
 
 const COLUMNS = {
   code: "NEVO-code",
@@ -34,7 +39,35 @@ const COLUMNS = {
   fat: "FAT (g)",
   fiber: "FIBT (g)",
   sodium: "NA (mg)",
+  group: "Voedingsmiddelgroep",
+  calcium: "CA (mg)",
+  iron: "FE (mg)",
+  magnesium: "MG (mg)",
+  zinc: "ZN (mg)",
+  vitaminD: "VITD (µg)",
+  vitaminC: "VITC (mg)",
+  epa: "F20:5CN3 (g)",
+  dha: "F22:6CN3 (g)",
 };
+
+// Kolom in nutrition_foods → veld hierboven, in de volgorde van de insert.
+const FOOD_NUMBERS = [
+  ["kcal", "kcal"],
+  ["carbs_g", "carbs"],
+  ["sugars_g", "sugars"],
+  ["protein_g", "protein"],
+  ["fat_g", "fat"],
+  ["fiber_g", "fiber"],
+  ["sodium_mg", "sodium"],
+  ["calcium_mg", "calcium"],
+  ["iron_mg", "iron"],
+  ["magnesium_mg", "magnesium"],
+  ["zinc_mg", "zinc"],
+  ["vitamin_d_ug", "vitaminD"],
+  ["vitamin_c_mg", "vitaminC"],
+  ["epa_g", "epa"],
+  ["dha_g", "dha"],
+];
 
 /** NEVO-csv: pipe-gescheiden, velden tussen dubbele aanhalingstekens. */
 export function parseNevoCsv(text) {
@@ -70,17 +103,17 @@ function unitOf(quantity) {
 }
 
 export function buildSeed(nevoRows, recipes) {
+  for (const column of Object.values(COLUMNS)) {
+    if (nevoRows.length > 0 && !(column in nevoRows[0])) {
+      throw new Error(`NEVO-kolom ontbreekt: "${column}"`);
+    }
+  }
   const foods = nevoRows.map((row) => ({
     code: Number(row[COLUMNS.code]),
     name: row[COLUMNS.name].trim(),
     unit: unitOf(row[COLUMNS.quantity]),
-    kcal: number(row[COLUMNS.kcal]),
-    carbs: number(row[COLUMNS.carbs]),
-    sugars: number(row[COLUMNS.sugars]),
-    protein: number(row[COLUMNS.protein]),
-    fat: number(row[COLUMNS.fat]),
-    fiber: number(row[COLUMNS.fiber]),
-    sodium: number(row[COLUMNS.sodium]),
+    group: row[COLUMNS.group].trim(),
+    ...Object.fromEntries(FOOD_NUMBERS.map(([, field]) => [field, number(row[COLUMNS[field]])])),
   }));
   const byCode = new Map(foods.map((food) => [food.code, food]));
 
@@ -104,14 +137,14 @@ export function buildSeed(nevoRows, recipes) {
     "-- recepten van leden blijven onaangeroerd.",
     "",
     "insert into public.nutrition_foods",
-    "  (nevo_code, name_nl, quantity_unit, kcal, carbs_g, sugars_g, protein_g, fat_g, fiber_g, sodium_mg, nevo_version)",
+    `  (nevo_code, name_nl, quantity_unit, food_group, ${FOOD_NUMBERS.map(([column]) => column).join(", ")}, nevo_version)`,
     "values",
   );
   out.push(
     foods
       .map(
         (food) =>
-          `  (${food.code}, ${sqlText(food.name)}, '${food.unit}', ${sqlNumber(food.kcal)}, ${sqlNumber(food.carbs)}, ${sqlNumber(food.sugars)}, ${sqlNumber(food.protein)}, ${sqlNumber(food.fat)}, ${sqlNumber(food.fiber)}, ${sqlNumber(food.sodium)}, ${sqlText(NEVO_VERSION)})`,
+          `  (${food.code}, ${sqlText(food.name)}, '${food.unit}', ${sqlText(food.group)}, ${FOOD_NUMBERS.map(([, field]) => sqlNumber(food[field])).join(", ")}, ${sqlText(NEVO_VERSION)})`,
       )
       .join(",\n"),
   );
@@ -119,17 +152,12 @@ export function buildSeed(nevoRows, recipes) {
     "on conflict (nevo_code) do update set",
     "  name_nl = excluded.name_nl,",
     "  quantity_unit = excluded.quantity_unit,",
-    "  kcal = excluded.kcal,",
-    "  carbs_g = excluded.carbs_g,",
-    "  sugars_g = excluded.sugars_g,",
-    "  protein_g = excluded.protein_g,",
-    "  fat_g = excluded.fat_g,",
-    "  fiber_g = excluded.fiber_g,",
-    "  sodium_mg = excluded.sodium_mg,",
+    "  food_group = excluded.food_group,",
+    ...FOOD_NUMBERS.map(([column]) => `  ${column} = excluded.${column},`),
     "  nevo_version = excluded.nevo_version;",
     "",
     "insert into public.nutrition_recipes",
-    "  (slug, title, meal_moment, fuel_profile, diet_tags, servings, prep_minutes, steps_md, is_standard, owner_id)",
+    "  (slug, title, meal_moment, fuel_profile, diet_tags, servings, prep_minutes, steps_md, source_name, source_url, is_standard, owner_id)",
     "values",
   );
   out.push(
@@ -137,7 +165,7 @@ export function buildSeed(nevoRows, recipes) {
       .map((recipe) => {
         const steps = recipe.steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
         const tags = `array[${recipe.diet_tags.map(sqlText).join(", ")}]::text[]`;
-        return `  (${sqlText(recipe.slug)}, ${sqlText(recipe.title)}, ${sqlText(recipe.meal_moment)}, ${sqlText(recipe.fuel_profile)}, ${tags}, ${recipe.servings}, ${sqlNumber(recipe.prep_minutes)}, ${sqlText(steps)}, true, null)`;
+        return `  (${sqlText(recipe.slug)}, ${sqlText(recipe.title)}, ${sqlText(recipe.meal_moment)}, ${sqlText(recipe.fuel_profile)}, ${tags}, ${recipe.servings}, ${sqlNumber(recipe.prep_minutes)}, ${sqlText(steps)}, ${recipe.source_name ? sqlText(recipe.source_name) : "null"}, ${recipe.source_url ? sqlText(recipe.source_url) : "null"}, true, null)`;
       })
       .join(",\n"),
   );
@@ -149,7 +177,9 @@ export function buildSeed(nevoRows, recipes) {
     "  diet_tags = excluded.diet_tags,",
     "  servings = excluded.servings,",
     "  prep_minutes = excluded.prep_minutes,",
-    "  steps_md = excluded.steps_md",
+    "  steps_md = excluded.steps_md,",
+    "  source_name = excluded.source_name,",
+    "  source_url = excluded.source_url",
     "where public.nutrition_recipes.is_standard;",
     "",
     "delete from public.nutrition_recipe_ingredients i",
@@ -191,7 +221,7 @@ export function buildSeed(nevoRows, recipes) {
 async function main() {
   const csvPath = process.argv[2];
   if (!csvPath) {
-    console.error("Gebruik: node scripts/nutrition/generate-seed.mjs <pad/naar/NEVO2025_v9.0.csv>");
+    console.error("Gebruik: node scripts/nutrition/generate-seed.mjs <pad/naar/NEVO2025_v9.0.csv> [uitvoer.sql]");
     process.exit(1);
   }
   const [csv, recipesJson] = await Promise.all([
@@ -199,8 +229,9 @@ async function main() {
     readFile(path.join(here, "standard-recipes.json"), "utf8"),
   ]);
   const sql = buildSeed(parseNevoCsv(csv), JSON.parse(recipesJson));
-  await writeFile(OUTPUT, sql, "utf8");
-  console.log(`Geschreven: ${path.relative(root, OUTPUT)}`);
+  const output = process.argv[3] ? path.resolve(process.argv[3]) : DEFAULT_OUTPUT;
+  await writeFile(output, sql, "utf8");
+  console.log(`Geschreven: ${path.relative(root, output)}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

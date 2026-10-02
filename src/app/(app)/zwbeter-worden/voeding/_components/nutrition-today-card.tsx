@@ -2,9 +2,9 @@
 // CoreTodayCard: de pagina geeft de dag door die ze al heeft (schema, ritten,
 // readiness) en de kaart haalt alleen gewicht, lengte en recepten zelf op.
 
-import { nutritionTipForToday, type NutritionDayInput } from "@/lib/nutrition/tips";
-import { pickRecipes } from "@/lib/nutrition/recipes";
-import { loadNutritionProfile, loadRecipes, type Viewer } from "../_data";
+import { nutritionDay, nutritionTipForToday, type NutritionDayInput } from "@/lib/nutrition/tips";
+import { rankRecipes } from "@/lib/nutrition/menu";
+import { energyFactorFor, loadNutritionProfile, loadRecipePrefs, loadRecipes, type Viewer } from "../_data";
 import { NutritionTip } from "./nutrition-tip";
 
 export async function NutritionTodayCard({
@@ -16,13 +16,29 @@ export async function NutritionTodayCard({
   today: string;
   day: Omit<NutritionDayInput, "today" | "weightKg">;
 }) {
-  const [profile, recipes] = await Promise.all([
+  const [profile, recipes, prefs] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
+    loadRecipePrefs(viewer),
   ]);
 
-  const tip = nutritionTipForToday({ ...day, today, weightKg: profile.weightKg });
-  const [recipe] = pickRecipes(recipes, tip, today, 1);
+  const input = { ...day, today, weightKg: profile.weightKg };
+  const tip = nutritionTipForToday(input);
+  const fuel = nutritionDay(input);
+  // Dezelfde rangorde als het dagmenu op de voedingspagina.
+  const [first] = rankRecipes(recipes, tip.mealMoment, {
+    rider: {
+      weightKg: profile.weightKg,
+      energyFactor: energyFactorFor(profile),
+      dayType: fuel.dayType,
+      rideMinutes: fuel.rideMinutes,
+    },
+    dayType: fuel.dayType,
+    tomorrowType: fuel.tomorrowType,
+    today,
+    prefs,
+    diet: null,
+  });
 
-  return <NutritionTip tip={tip} recipe={recipe ?? null} titleHref="/zwbeter-worden/voeding" />;
+  return <NutritionTip tip={tip} recipe={first?.recipe ?? null} titleHref="/zwbeter-worden/voeding" />;
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Heart } from "lucide-react";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import type { Macros } from "@/lib/nutrition/scale";
 import type { Recipe } from "@/lib/nutrition/recipes";
@@ -8,7 +8,15 @@ function grams(value: number) {
   return Math.round(value);
 }
 
-export function RecipeCard({ recipe, portion }: { recipe: Recipe; portion: Macros }) {
+export function RecipeCard({
+  recipe,
+  portion,
+  favorite = false,
+}: {
+  recipe: Recipe;
+  portion: Macros;
+  favorite?: boolean;
+}) {
   return (
     <Link
       href={`/zwbeter-worden/voeding/recepten/${recipe.slug}`}
@@ -17,6 +25,7 @@ export function RecipeCard({ recipe, portion }: { recipe: Recipe; portion: Macro
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-semibold">{recipe.title}</h3>
+          {favorite && <Heart className="size-4 shrink-0 fill-primary text-primary" aria-label="Favoriet" />}
           {!recipe.is_standard && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Eigen</span>
           )}
