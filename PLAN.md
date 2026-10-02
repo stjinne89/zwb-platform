@@ -102,8 +102,7 @@ gaat stabiliteit voor nieuwe features.
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
    **Voeding, dagmenu:** `0213_nutrition_expansion.sql` en daarna
    `0214_nutrition_seed_v2.sql` toepassen vóór de deploy van deel 2 (ronde
-   hieronder). Daarna één gedeeld recept voorstellen en goedkeuren, en de
-   privacytekst afhandelen.
+   hieronder). Daarna één gedeeld recept voorstellen en goedkeuren.
 4. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
@@ -195,9 +194,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 > labels en bron blijven leeg, en favoriet, delen en beoordelen geven een
 > foutmelding. `0214` is 443 kB.
 >
-> **Nog open: de privacytekst.** `/privacy` noemt favorieten, "niet voor mij" en
-> de naam bij een gedeeld recept nog niet. Stijn beslist over de tekst en of het
-> een nieuwe privacyversie wordt.
+> **Privacytekst (afgehandeld 2026-10-02, vervolgcommit).** `/privacy` noemt nu
+> favorieten, "niet voor mij" en de naam bij een gedeeld recept, in de alinea
+> "Lengte en eigen recepten". Besluit van Stijn: een aanvulling op de huidige
+> versie, geen nieuwe privacyversie en dus geen hertekening. Grond: een
+> receptvoorkeur is geen gevoelig gegeven, en de naam verschijnt pas na een eigen
+> actie van het lid.
 >
 > **Getest.** 1.921 unittests geslaagd; voor voeding 59, waarvan nieuw
 > `nutrition-menu` (18) en uitgebreid `nutrition-migration` (15, PGlite: tellingen,

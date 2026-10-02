@@ -115,8 +115,12 @@ export default function PrivacyPage() {
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
             te berekenen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
-            jou zichtbaar. Wat je eet, leggen we niet vast, en een dieetfilter in
-            het receptenboek wordt niet bewaard.
+            jou zichtbaar. Markeer je een recept als favoriet of als &quot;niet
+            voor mij&quot;, dan bewaren we dat; alleen jij ziet het. Stel je een
+            eigen recept voor aan de club, dan ziet een beoordelaar het. Na
+            goedkeuring ziet elk lid het, met jouw naam erbij. Wat je eet,
+            leggen we niet vast, en een dieetfilter in het receptenboek wordt
+            niet bewaard.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
