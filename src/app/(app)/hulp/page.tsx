@@ -1925,7 +1925,7 @@ Fitness-status: Verbeterend`}
                 <span>
                   Koolhydraten gaan per kilo lichaamsgewicht mee met dat dagtype,
                   van 3–5 g/kg op een rustdag tot 8–12 g/kg op een lange dag.
-                  Eiwit blijft 1,6–1,8 g/kg. Onderweg reken we per uur, naar de
+                  Eiwit blijft 1,6–2,1 g/kg. Onderweg reken we per uur, naar de
                   duur van je rit.
                 </span>
               </li>

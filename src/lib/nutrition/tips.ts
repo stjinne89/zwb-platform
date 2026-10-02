@@ -127,12 +127,14 @@ export function nutritionTipForToday(input: NutritionDayInput): NutritionTip {
   if (day.rideCarbsPerHour) {
     const minutes = totalMinutes(input.plannedToday);
     const perHour = grams(day.rideCarbsPerHour);
+    // Boven 60 g/u raakt glucose alleen verzadigd (UCI-positiestandpunt, tabel 3).
+    const mix = day.rideCarbsPerHour.max > 60 ? " Boven 60 g per uur: meng glucose en fructose." : "";
     return {
       kind: "tijdens_rit",
       title: "Eet onderweg",
       body: pick(today, "tijdens_rit", [
-        `Voor je rit van ${hours(minutes)}: ${perHour} koolhydraten per uur. Begin al in het eerste uur, in kleine porties.`,
-        `Vandaag ${hours(minutes)} op de fiets. Mik op ${perHour} koolhydraten per uur en wacht niet tot je honger krijgt.`,
+        `Voor je rit van ${hours(minutes)}: ${perHour} koolhydraten per uur. Begin al in het eerste uur, in kleine porties.${mix}`,
+        `Vandaag ${hours(minutes)} op de fiets. Mik op ${perHour} koolhydraten per uur en wacht niet tot je honger krijgt.${mix}`,
       ]),
       articleSlug: "koolhydraten-tijdens-de-rit",
       mealMoment: "tijdens_rit",
@@ -235,13 +237,13 @@ export function nutritionTipForToday(input: NutritionDayInput): NutritionTip {
 
   // 8. Rustdag: eiwit verdelen.
   if (day.dayType === "rust") {
-    const protein = day.protein ? grams(day.protein) : "1,6–1,8 g per kg";
+    const protein = day.protein ? grams(day.protein) : "1,6–2,1 g per kg";
     return {
       kind: "rustdag",
       title: "Rustdag, wel herstellen",
       body: pick(today, "rustdag", [
-        `Ook op een rustdag bouw je op. Verdeel ${protein} eiwit over vier of vijf momenten.`,
-        `Rustdag: verdeel ${protein} eiwit over de dag en eet ruim groente en fruit.`,
+        `Ook op een rustdag bouw je op. Verdeel ${protein} eiwit over vier of vijf momenten; na een zware dag de bovenkant.`,
+        `Rustdag: verdeel ${protein} eiwit over de dag en eet ruim groente, fruit en volkoren.`,
       ]),
       articleSlug: "eiwit",
       mealMoment: "lunch",

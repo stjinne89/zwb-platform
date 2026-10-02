@@ -67,7 +67,7 @@ export default async function VoedingPage() {
           icon={Beef}
           label="Eiwit"
           value={range(day.protein, "g", "-")}
-          hint={day.protein ? undefined : "1,6–1,8 g per kg"}
+          hint={day.protein ? undefined : "1,6–2,1 g per kg"}
         />
         <MetricCard
           icon={Bike}

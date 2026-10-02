@@ -24,9 +24,10 @@ export const DAILY_CARBS_G_PER_KG: Record<FuelDayType, Range> = {
   wedstrijd: { min: 8, max: 12 },
 };
 
-/** Eiwit per dag: Kato et al. 2016 (IAAO bij duursporters), begrensd door de
- * meta-analyse van Morton et al. 2018 waarboven weinig winst zit. */
-export const DAILY_PROTEIN_G_PER_KG: Range = { min: 1.6, max: 1.8 };
+/** Eiwit per dag: 1,6–2,1 g/kg volgens het UCI-positiestandpunt (Burke et al.
+ * 2026, tabel 2). De onderkant sluit aan op Kato et al. 2016; de bovenkant is
+ * voor rustdagen na zwaar werk en periodes met weinig energie of koolhydraten. */
+export const DAILY_PROTEIN_G_PER_KG: Range = { min: 1.6, max: 2.1 };
 
 /** Eiwit per maaltijd: ISSN nutrient timing (Kerksick et al. 2017). */
 export const MEAL_PROTEIN_G_PER_KG: Range = { min: 0.3, max: 0.4 };
@@ -44,8 +45,10 @@ export const PRE_RIDE_CARBS_G_PER_KG = 1;
 
 /**
  * Koolhydraten per uur op de fiets, naar ritduur. Morton et al. 2026 (J Nutr)
- * en Podlogar & Wallis 2022. De 120 g/h staat alleen in de tekst: dat vraagt
- * darmtraining en hoort niet als standaard in een rekenregel.
+ * en Podlogar & Wallis 2022. Het UCI-positiestandpunt (tabel 3) noemt boven
+ * 2,5 uur 90 g/u als doel; dat is de bovenkant van onze band, omdat meer dan
+ * 60 g/u een glucose-fructosemix en darmtraining vraagt. De 120 g/u staat
+ * alleen in de tekst: het positiestandpunt noemt het nut ervan nog onbewezen.
  */
 export function rideCarbsPerHour(durationMinutes: number): Range | null {
   if (!Number.isFinite(durationMinutes) || durationMinutes < 60) return null;

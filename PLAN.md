@@ -129,6 +129,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 
 ---
 
+> **Voeding, deel 1: het UCI-positiestandpunt volledig verwerkt, 2026-10-02 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Stijn vindt de voedingstab karig (weinig recepten, steeds dezelfde)
+> en leverde de pdf van het UCI-positiestandpunt aan (Burke et al. 2026), dat op
+> 2026-09-17 nog achter een betaalmuur zat. Dit is de eerste van vier commits;
+> het hele plan: dagmenu per moment, ~120 recepten, favoriet/"niet voor mij",
+> micronutriëntlabels, en recepten delen met de club. Deze commit zet eerst de
+> wetenschap recht, zodat de rest op de juiste getallen bouwt.
+>
+> **Wat.**
+> - `targets.ts`: eiwit per dag van 1,6–1,8 naar **1,6–2,1 g/kg** (tabel 2 van het
+>   positiestandpunt). De koolhydraatband onderweg blijft 60–90 g/u.
+> - `tips.ts`: de rit-tip noemt bij meer dan 60 g/u de glucose-fructosemix; de
+>   rustdagtip noemt de bovenkant van de eiwitband na een zware dag.
+> - `library.ts`: drie nieuwe artikelen (botgezondheid, weerstand, ouder worden
+>   als renner), zeven bijgewerkt (brandstof, voor de rit, tijdens de rit,
+>   indoor, eiwit, herstel, vrouwen). 17 artikelen in plaats van 14.
+> - `docs/voeding-wielrennen.md`: nieuwe §0 (wat het positiestandpunt veranderde),
+>   §12 (soort eten per dag) en §13 (bot, weerstand, masters).
+> - `/hulp#voeding`: de eiwitband.
+>
+> **Niet overgenomen, en waarom.**
+> - De koolhydraat-dagbanden van het positiestandpunt (5–7 licht tot 10–25
+>   extreem). Die zijn voor elite-renners en kennen geen rustdag; de ACSM-banden
+>   (3–12 g/kg) passen bij leden die naast hun werk trainen.
+> - 120 g/u als rekenregel: het positiestandpunt noemt het nut nog onbewezen.
+> - Low-residue-dieet en uitdrogen voor een weging: gewichtstrucs, botsen met het
+>   REDs-uitgangspunt. De kennisbank waarschuwt alleen tegen uitdrogen.
+> - Andere getallen voor oudere leden: het positiestandpunt geeft geen
+>   leeftijdsgrens en geen aparte waarden.
+>
+> **Beperkingen.** De begeleidende reviews (Lis & Strobel, Saffioti, Wilson,
+> Gonzalez) zijn zelf niet gelezen; wat ervan is gebruikt, komt uit de
+> samenvatting in het positiestandpunt. Teksten zijn niet door een (sport)diëtist
+> nagekeken.
+>
+> **Getest.** Zie de laatste commit van deze reeks voor de volledige suite.
+
 > **Laadtijd, deel 3: trainingspagina's op basis van een meting, 2026-10-01 — live en gemeten.**
 > Commit `90c055d`. Geen migratie.
 >
@@ -6303,8 +6342,10 @@ nieuwe versie. **Stijn beslist**: een extra versie laat elk lid opnieuw tekenen.
 - **Migraties.** `0168` en `0169` zijn alleen tegen PGlite getest.
 - **Inhoud.** Artikelteksten en clubrecepten zijn niet door een (sport)diëtist
   nagekeken.
-- **UCI-positiestandpunt.** Dat zat achter een betaalmuur; de getallen komen uit
-  de open onderliggende reviews en de eerdere consensus.
+- **UCI-positiestandpunt.** Dat zat achter een betaalmuur; de getallen kwamen uit
+  de open onderliggende reviews en de eerdere consensus. *Achterhaald sinds
+  2026-10-02: de volledige tekst is gelezen en verwerkt, eiwit ging van 1,6–1,8
+  naar 1,6–2,1 g/kg. Zie "Voeding, deel 1" bovenaan.*
 - **Eigen vertalingen.** De verdeling van koolhydraten over maaltijden (25/20/30/10%)
   en de dagtype-drempels (60/90/180 min) zijn eigen vertalingen, zie het
   onderzoeksdocument.
