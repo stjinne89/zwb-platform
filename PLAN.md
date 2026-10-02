@@ -19,89 +19,53 @@ gaat stabiliteit voor nieuwe features.
    `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
    Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
-   eigenaar, 2026-10-02; was 11 oktober). `0174` toepassen, seizoen `2026-27` plannen
-   en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
-   vastzetten. De beheerketen één keer met de hand doorklikken. Details:
-   [Omnium-status](docs/omnium-readiness-2026-09-15.md). Voor de Sprint Quali
-   uit Zwift: `0190` toepassen en bij "leagues instellen" het sprintsegment
-   kiezen (zie de ronde hieronder). Na de editie de opgehaalde tijden naast wat
-   het bestuur anders zou plakken leggen.
-3. **Handwerk op productie.** ~~Opnieuw indienen bij Strava.~~ Gedaan en voor
-   de tweede keer afgewezen (gemeld 2026-09-30); de eigenaar vraagt om uitleg.
-   Niet een derde keer indienen. Volgende stap is de spike zonder code uit
-   [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
-   besluit over de huidige Strava-koppeling (zie de ronde hieronder).
-   **Ritten via intervals.icu** (rondes hieronder, deel A t/m C): live en in
-   gebruik. De eigenaar testte het zelf en meerdere leden gebruiken het (gemeld
-   2026-10-02); op productie staan 826 ritten met bron intervals (gemeten
-   2026-10-02). Niet nagegaan: of de fixture van `scripts/intervals-probe.mjs` is
-   vervangen door een echte.
-
-   De
-   Zwift-routebibliotheek één keer volledig opnieuw
-   ophalen na het smoothing-besluit van `0147`, als dat nog niet is gebeurd.
-   Voor het Zwift-pacingplan: `0176_event_zwift_rules` en `0177_zwift_bike_parts`
-   toepassen en daarna één keer "Fietsen ophalen" op `/beheer/zwift-routes`.
-   `0178_event_parent` is toegepast (2026-09-22). Nog toepassen:
-   `0179_zrl_parent_team_events`, samen met de deploy van dezelfde commit. Daarna
-   `0178` t/m `0183` zijn toegepast, de WTRL-teams zijn geïmporteerd en de drie
-   koppelvoorstellen bevestigd (2026-09-22). Voor de live ZRL-stand: na de deploy
-   één keer "Test segmentresultaten" op `/beheer/event-scan` (bewijst of het
-   serviceaccount Zwifts segmentresultaten mag lezen, en of de protobufvelden
-   kloppen): werkt sinds `e5cd74e` (2026-09-22). `0187_zrl_team_assignments` is
-   toegepast. **Nog toepassen: `0188_zrl_team_results.sql`** — zonder die tabel
-   blijft de plaats van het team op de raceweekpagina leeg. Nog open:
-   `/live/zrl/[eventId]` tijdens de volgende ZRL-race bekijken.
-   **Nog toepassen: `0189_member_last_seen.sql`**, vóór of samen met de deploy
-   van de Strava-loginregel. Daarna op `/beheer/strava` controleren dat
-   "laatst gezien" bij je eigen account vandaag is (zie de ronde hieronder).
-   **Nog toepassen: `0197_zrl_race_snapshots.sql`**, vóór de ZRL-race van 6
-   oktober. Zonder de tabel werkt de live stand zoals voorheen (elke kijker
-   vraagt Zwift), alleen zonder bevriezen.
-   **Nog toepassen: `0190_omnium_sprint_segment.sql`**, vóór of samen met de
-   deploy van de Sprint Quali uit Zwift. Zonder de kolom werken bij de Sprint
-   Quali "leagues instellen" en "Ophalen uit Zwift" niet (foutmelding); plakken
-   blijft werken, en de andere onderdelen lezen de kolom niet.
-   **Live volgen via Garmin/Wahoo:** `0191_live_garmin_wahoo.sql` toepassen
-   **vóór** de deploy (anders weigert de database een geplakte Garmin-link op
-   `/live`). Daarna Resend Receiving en de webhook instellen en
-   `LIVE_INBOUND_DOMAIN`, `RESEND_INBOUND_WEBHOOK_SECRET` en `RESEND_API_KEY` in
-   Netlify zetten (runbook sectie 5); gedaan en de mailketen werkt (2026-09-28).
-   **Nog toepassen: `0193_live_position_metrics.sql`**, vóór de deploy van
-   de sensorwaarden bij live-renners. Zonder die migratie slaat de app alleen de
-   positie op, zonder vermogen, cadans, hartslag en afstand.
-   `0192_live_wahoo_link.sql` is toegepast (de vaste Wahoo-link werkt op
-   productie, 2026-09-28). Daarna je Wahoo-link koppelen op Samen fietsen en een
-   proefrit maken. Garmin werkt met het persoonlijke adres als ontvanger
-   (Stijn, 2026-09-30; spikepunt 1). Garmin en Wahoo zijn live getest en lijken
-   te werken (eigenaar, 2026-10-02). Spikepunten 2 en 4 (afzender/DKIM en de
-   echte trackpointvelden) zijn niet apart nagekeken; of `0193` is toegepast is
-   niet gemeld.
-   **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
-   sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
-   migratie heten de standaard sweet-spotworkouts in de app Drempel.
-   **FRR-tours:** volgens de eigenaar staat alles (2026-10-02; `0195`, `0196`,
-   de sync-job en Tour Ignite). Niet door de eigenaar genoemd en dus mogelijk
-   nog open: na etappe 1 (3 oktober) de GC-code invullen die de melding bij
-   Klassement noemt.
-   **SRC-kalender (MyWhoosh Sunday Race Club):** ingericht (eigenaar,
-   2026-10-02); open is alleen de live-meting. **Zondag 4 oktober:** tijdens de dames-
-   (07:25 GMT) en herenrace (09:45 GMT) `node scripts/src-live-probe.mjs` draaien
-   en de fixture in `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
-   **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
-   op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
-   Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
-   **Voeding, dagmenu:** `0213_nutrition_expansion.sql` en
-   `0214_nutrition_seed_v2.sql` zijn toegepast (eigenaar, 2026-10-02). Nog niet
-   gemeld: of het delen één keer is doorlopen (een lid deelt een eigen recept,
-   iemand met het recht om schema's te maken keurt het goed op
-   `recepten/voorstellen`).
+   eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
+   Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
+   A–E-mapping, reglement, prijzen en de tiebreak vastzetten, bij "leagues
+   instellen" het sprintsegment kiezen, en de beheerketen één keer met de hand
+   doorklikken. Details: [Omnium-status](docs/omnium-readiness-2026-09-15.md).
+   Na de editie de opgehaalde tijden naast wat het bestuur anders zou plakken
+   leggen.
+3. **Handwerk op productie.** **Alle migraties t/m `0214` zijn toegepast**
+   (eigenaar, 2026-10-02). Steekproef op productie dezelfde dag, alleen lezen:
+   de tabellen en kolommen van `0175`, `0176`, `0177`, `0188`, `0190`, `0193`,
+   `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
+   Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
+   apart nagekeken.
+   - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
+     eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
+     spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
+     sectie 8, plus een besluit over de huidige Strava-koppeling.
+   - **Ritten via intervals.icu:** live en in gebruik (eigenaar en meerdere
+     leden, 2026-10-02; 826 ritten met bron intervals). Niet nagegaan: of de
+     fixture van `scripts/intervals-probe.mjs` is vervangen door een echte.
+   - **ZRL.** `/live/zrl/[eventId]` tijdens de race van 6 oktober bekijken. Niet
+     gemeld: of `ZRL_FREEZE_SECRET` in Netlify staat en de job
+     `POST /api/zrl/freeze` (elke 15 min) op cron-job.org draait; kijk na een
+     race in de job-historie of er "bevroren" staat.
+   - **Strava-loginregel:** op `/beheer/strava` controleren dat "laatst gezien"
+     bij je eigen account vandaag is.
+   - **Live volgen via Garmin/Wahoo:** live getest en lijkt te werken (eigenaar,
+     2026-10-02). Spikepunten 2 en 4 (afzender/DKIM en de echte trackpointvelden)
+     zijn niet apart nagekeken.
+   - **FRR-tours:** ingericht (eigenaar, 2026-10-02). Mogelijk nog open: na
+     etappe 1 (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
+   - **SRC (MyWhoosh Sunday Race Club):** ingericht (eigenaar, 2026-10-02).
+     **Zondag 4 oktober:** tijdens de dames- (07:25 GMT) en herenrace (09:45 GMT)
+     `node scripts/src-live-probe.mjs` draaien en de fixture in
+     `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
+   - **Voeding:** het delen één keer doorlopen (een lid deelt een eigen recept,
+     iemand met het recht om schema's te maken keurt het goed op
+     `recepten/voorstellen`). De eerste poging strandde op het formulier; zie de
+     ronde van 2026-10-02 hieronder.
+   - De Zwift-routebibliotheek één keer volledig opnieuw ophalen na het
+     smoothing-besluit van `0147`, als dat nog niet is gebeurd.
 4. **Praktijktests: allemaal gedaan** (eigenaar, 2026-10-02): iOS PWA, de
    trainer-cockpit tot en met Wahoo/Garmin, de eventkaart, de voedingsschermen
    en ZWBgame op een telefoon.
 5. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
    De lage wattages (duurblokken) en de FTP-historie zijn aangepakt
-   (2026-09-21): `0175` toepassen, en na een paar weken de duurmeting herhalen.
+   (2026-09-21; `0175` is toegepast). Na een paar weken de duurmeting herhalen.
    Nog open: naleving rond 105% bij blokkige workouts. Zie "Bekende open dingen".
 6. **Beheer en import hardenen, als er tijd is.** De eventscan-cron volgen,
    failure modes aanvullen in `docs/runbook.md`. `activities.csv` is in de
@@ -125,7 +89,40 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 
 ---
 
-> **Eigen recept: het formulier zegt waarom bewaren niet kan, 2026-10-02 — gebouwd, niet in de browser gezien.**
+> **Tijd per zone: "Geen zonedata" is niet meer definitief, 2026-10-02 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar zag bij zijn Zwift-training van 1 oktober de balken per
+> zone en bij zijn buitenrit van 27 september "Geen zonedata". Op productie
+> nagekeken (alleen lezen): de app keek op 30 september 12:49 UTC, vond in
+> intervals.icu alleen de Strava-kopie zonder vermogen en zette "geen zonedata".
+> De Wahoo-activiteit met vermogen kwam 22 minuten later binnen, toen de eigenaar
+> Wahoo rechtstreeks aan intervals.icu koppelde. Dat oordeel werd nooit herzien.
+> Stand op 2 oktober: 39 rapporten met "geen zonedata", 18 met zones.
+>
+> **Wat.** `fillZoneTimes` neemt rapporten met "geen zonedata" binnen het venster
+> van 14 dagen opnieuw mee. Het zoeken naar een passende activiteit leest alleen de
+> eigen database; pas bij een treffer gaat er een verzoek naar intervals.icu. Had
+> een activiteit geen vermogen, dan staat haar id bij het oordeel
+> (`zoneTimes.intervalsId`) en wordt ze niet opnieuw opgevraagd. De grens van drie
+> telt nu verzoeken naar intervals.icu, niet rapporten.
+>
+> **Gevolg voor bestaande data.** Elk "geen zonedata" van de laatste 14 dagen
+> krijgt één nieuwe kans, ook waar de activiteit wel was bekeken (het oude oordeel
+> zegt niet waarom). Oudere rapporten blijven zoals ze zijn.
+>
+> **Niet gebouwd.** Het venster van 14 dagen oprekken, en Strava-streams als
+> terugval (ongewijzigd, zie de ronde van 2026-09-15).
+>
+> **Getest.** Nieuw `zone-times-fill.test.ts` (4): afvinken na twee dagen, alsnog
+> vullen als de activiteit later komt, niets herschrijven zolang er niets bij
+> komt, een activiteit zonder vermogen maar één keer opvragen. `tsc` en ESLint
+> zonder fouten; unit-suite 1.945 geslaagd, met dezelfde twee bekende uitvallers
+> als de ronde hieronder. **Niet getest:** tegen intervals.icu en op productie; de
+> rit van 27 september moet na de deploy bij het openen van ZWBeter Worden zones
+> krijgen.
+
+> **Eigen recept: het formulier zegt waarom bewaren niet kan, en zoeken vindt samenstellingen, 2026-10-02 — gebouwd, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** De eigenaar kon bij de eerste test van het delen geen recept bewaren.
@@ -138,11 +135,23 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 > niets geeft, en "Kies eerst een ingrediënt." naast de knop zolang de lijst leeg
 > is.
 >
-> **Niet gebouwd.** Vrije-tekstingrediënten: een recept zonder NEVO-waarden heeft
-> geen voedingswaarden, en daar rekent het dagmenu mee.
+> **Zoeken (vervolg, zelfde dag).** De eigenaar kreeg ook bij "chocolademelk"
+> geen voorstellen, en wel bij langzaam typen: dan gaf een deel van het woord
+> treffers. NEVO zet het hoofdwoord voorop ("Melk chocolade- halfvolle"), en
+> `searchFoods` zocht de hele invoer als één stuk tekst. Nu: elk woord apart, in
+> welke volgorde ook; geeft één woord niets, dan elke knip in twee stukken in één
+> extra query. De treffers (tot 200) worden gerangschikt: namen die met het eerste
+> woord beginnen eerst, daarna de kortste (`src/lib/nutrition/food-search.ts`).
+> Op productie nageteld: "chocolademelk" geeft zo 21 producten, "halfvolle melk" 13.
 >
-> **Getest.** `tsc --noEmit` en ESLint zonder fouten. **Niet getest:** het
-> formulier in de browser, en of het delen daarna tot en met goedkeuren werkt.
+> **Niet gebouwd.** Vrije-tekstingrediënten: een recept zonder NEVO-waarden heeft
+> geen voedingswaarden, en daar rekent het dagmenu mee. Merknamen en synoniemen
+> ("chocomel"): NEVO kent ze niet, en een eigen lijst is onderhoud.
+>
+> **Getest.** `tsc --noEmit` en ESLint zonder fouten; `nutrition-food-search.test.ts`
+> (7) voor woorden, knippen en volgorde. **Niet getest:** het formulier in de
+> browser, de `or`-query tegen de echte database (alleen de uitkomst is met SQL
+> nageteld), en of het delen daarna tot en met goedkeuren werkt.
 
 > **"Badges herberekenen": Strava-deel één keer per dag per lid, 2026-10-02 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10727,8 +10736,8 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
 
 ## Bekende open dingen
 
-- **Omnium: migratie `0174` toepassen** (beheer ziet anders het conceptseizoen
-  niet), daarna seizoen `2026-27` plannen en de productie-inrichting voor
+- **Omnium:** migratie `0174` is toegepast (eigenaar, 2026-10-02). Nog te doen:
+  seizoen `2026-27` plannen en de productie-inrichting voor
   editie 1 (verzet naar november, datum onzeker; was 11 oktober). Zie de ronde
   van 2026-09-21 bovenaan.
 

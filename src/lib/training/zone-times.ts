@@ -33,7 +33,13 @@ export type ZoneTimes =
       /** Seconden per Zwift-zone, Z1 tot en met Z6. */
       seconds: number[];
     }
-  | { source: "none"; checkedAt: string };
+  | {
+      source: "none";
+      checkedAt: string;
+      /** De activiteit die is bekeken en geen vermogen gaf. Zonder dit veld was er
+       *  geen passende activiteit, en kan die later nog binnenkomen. */
+      intervalsId?: string;
+    };
 
 /** Een gat in de stream langer dan dit is stilstaan, geen rijden. */
 const MAX_SAMPLE_GAP_S = 10;

@@ -21,9 +21,10 @@ const FILL_LIMIT = 3;
 
 /**
  * Vult de gemeten zonetijden aan voor de laatste gereden trainingen van een lid.
- * Hooguit drie per keer, zodat het naast het laden van de pagina niet veel
- * intervals-verzoeken kost. Een training zonder passende activiteit wordt na twee
- * dagen als "geen zonedata" afgevinkt; daarvoor kan de upload nog onderweg zijn.
+ * Hooguit drie intervals-verzoeken per keer, zodat het naast het laden van de
+ * pagina weinig kost. Een training zonder passende activiteit staat na twee dagen
+ * op "geen zonedata", maar blijft binnen het venster meedoen: wie zijn Garmin of
+ * Wahoo later rechtstreeks aan intervals.icu koppelt, krijgt de rit dan alsnog.
  */
 export async function fillZoneTimes(
   admin: Admin,
@@ -48,8 +49,11 @@ export async function fillZoneTimes(
     paired_activity_id: string;
     metrics_json: (WorkoutMetricsSnapshot & { zoneTimes?: ZoneTimes }) | null;
   }>)
-    .filter((row) => row.metrics_json?.hasPowerMeter && !row.metrics_json.zoneTimes)
-    .slice(0, FILL_LIMIT);
+    .filter((row) => {
+      const zoneTimes = row.metrics_json?.zoneTimes;
+      if (!row.metrics_json?.hasPowerMeter) return false;
+      return !zoneTimes || (zoneTimes.source === "none" && !zoneTimes.intervalsId);
+    });
   if (open.length === 0) return result;
 
   const [{ data: rides }, { data: profile }, { data: activities }] = await Promise.all([
@@ -89,9 +93,11 @@ export async function fillZoneTimes(
     }>).map((ride) => [String(ride.id), ride]),
   );
 
+  let requests = 0;
   for (const row of open) {
     const ride = rideById.get(String(row.paired_activity_id));
     if (!ride || !ftpWatts) continue;
+    const earlier = row.metrics_json?.zoneTimes ?? null;
     const match = pickIntervalsActivity(
       {
         startLocal: String(ride.raw?.start_date_local ?? ""),
@@ -102,6 +108,8 @@ export async function fillZoneTimes(
 
     let zoneTimes: ZoneTimes | null = null;
     if (match) {
+      if (requests >= FILL_LIMIT) continue;
+      requests++;
       const streams = await fetchIntervalsActivityStreams(conn.api_key, match.intervalsId).catch(
         () => null,
       );
@@ -111,8 +119,11 @@ export async function fillZoneTimes(
       if (seconds.some((value) => value > 0)) {
         zoneTimes = { source: "intervals", intervalsId: match.intervalsId, ftpWatts, seconds };
       } else if (streams) {
-        zoneTimes = { source: "none", checkedAt: now.toISOString() };
+        zoneTimes = { source: "none", checkedAt: now.toISOString(), intervalsId: match.intervalsId };
       }
+    } else if (earlier) {
+      // Stond al op "geen zonedata" en er is nog steeds niets: niet opnieuw schrijven.
+      continue;
     } else if (now.getTime() - new Date(ride.start_date).getTime() > GIVE_UP_AFTER_DAYS * 86_400_000) {
       zoneTimes = { source: "none", checkedAt: now.toISOString() };
     }
