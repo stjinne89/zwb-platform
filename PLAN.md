@@ -132,9 +132,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 
 ---
 
-> **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, lokaal getest; migraties niet toegepast.**
+> **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, gepusht; migraties nog niet toegepast.**
 > Commit: de commit die dit blok toevoegt. Migraties `0213_nutrition_expansion.sql`
-> en `0214_nutrition_seed_v2.sql` (gegenereerd). Niet gepusht.
+> en `0214_nutrition_seed_v2.sql` (gegenereerd). Gepusht naar `main` op 2026-10-02,
+> vóórdat de migraties zijn toegepast (zie "Vóór de deploy" hieronder).
 >
 > **Waarom.** De voedingspagina toonde drie recepten van één moment uit een pool
 > van één tot zes, gekozen op moment en profiel alleen. Vandaar "weinig en steeds
