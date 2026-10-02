@@ -10,12 +10,7 @@ import {
   type YouTubeVideo,
 } from "@/lib/youtube";
 import { fetchRssFeed } from "@/lib/rss";
-import {
-  fetchInstagramMedia,
-  instagramCoverUrl,
-  resolveInstagramUserId,
-  ZWB_INSTAGRAM_URL,
-} from "@/lib/instagram";
+import { syncInstagramToMedia } from "@/lib/instagram-sync";
 
 const KINDS = MEDIA_KINDS.map((k) => k.value);
 
@@ -364,15 +359,6 @@ export async function syncPodcastRss(rssUrl?: string) {
 }
 
 export async function syncInstagramFeed() {
-  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN?.trim();
-  let userId = process.env.INSTAGRAM_USER_ID?.trim();
-  if (!accessToken) {
-    return {
-      ok: false as const,
-      error: "Instagram ophalen is niet beschikbaar.",
-    };
-  }
-
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
@@ -380,81 +366,9 @@ export async function syncInstagramFeed() {
     return { ok: false as const, error: "Geen recht om media te syncen." };
   }
 
-  let posts;
-  try {
-    userId = userId || (await resolveInstagramUserId(accessToken));
-    posts = await fetchInstagramMedia({ accessToken, userId, limit: 12 });
-  } catch (err) {
-    // De melding van Meta zegt wat er mis is (verlopen token, verkeerd account).
-    // Alleen wie media beheert komt hier, dus de reden mag mee.
-    console.error("[syncInstagramFeed]", err);
-    const reason = err instanceof Error ? err.message.slice(0, 200) : "";
-    return {
-      ok: false as const,
-      error: reason
-        ? `Instagram kon niet worden opgehaald: ${reason}`
-        : "Instagram kon niet worden opgehaald.",
-    };
-  }
-
-  let inserted = 0;
-  let updated = 0;
-  const errors: string[] = [];
-
-  for (const post of posts) {
-    const caption = (post.caption ?? "").trim();
-    const firstLine = caption.split(/\r?\n/).find(Boolean)?.trim();
-    const title = firstLine ? firstLine.slice(0, 120) : "Instagram-post van ZWB Cycling";
-    const publishedAt = post.timestamp ? new Date(post.timestamp).toISOString() : new Date().toISOString();
-    const permalink = post.permalink ?? ZWB_INSTAGRAM_URL;
-    const cover = instagramCoverUrl(post);
-
-    const { data: existing } = await supabase
-      .from("media_items")
-      .select("id")
-      .eq("source", "instagram")
-      .eq("external_id", post.id)
-      .maybeSingle();
-
-    const values = {
-      kind: "instagram",
-      title,
-      body_md: caption.slice(0, 1200) || null,
-      web_url: permalink,
-      cover_url: cover,
-      published_at: publishedAt,
-      source: "instagram",
-      external_id: post.id,
-    };
-
-    if (existing) {
-      const { error } = await supabase.from("media_items").update(values).eq("id", existing.id);
-      if (error) errors.push(`update ${post.id}: ${error.message}`);
-      else updated++;
-    } else {
-      const { error } = await supabase.from("media_items").insert({
-        ...values,
-        author_id: access.user.id,
-      });
-      if (error) errors.push(`insert ${post.id}: ${error.message}`);
-      else inserted++;
-    }
-  }
-
+  // Alleen wie media beheert komt hier, dus de reden van Meta mag mee.
+  const result = await syncInstagramToMedia(supabase, { authorId: access.user.id });
   revalidatePath("/media");
   revalidatePath("/dashboard");
-
-  if (posts.length > 0 && inserted === 0 && updated === 0) {
-    return {
-      ok: false as const,
-      error: "Geen Instagram-berichten geimporteerd.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    total: posts.length,
-    inserted,
-    updated,
-  };
+  return result;
 }

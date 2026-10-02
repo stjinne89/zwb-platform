@@ -5225,6 +5225,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Instagram-stories op het dashboard, elk uur opgehaald
+
+**2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie
+(`media_items.source` is vrije tekst).
+
+**Aanleiding.** De koppeling werkt sinds vandaag: de token in Netlify was een
+Facebook-token (`EAA…`, "Cannot parse access token"); met een token uit een
+eigen Meta-app via "API setup with Instagram login" (`IGAA…`) komen de posts
+binnen. Stijn wilde daarna ook stories en koos uit drie opties voor: stories
+tonen zolang ze live zijn, met een cron.
+
+**Wat er veranderde.**
+- `lib/instagram-sync.ts` bevat nu de sync; de knop op `/media` en de nieuwe
+  cron-route `POST /api/instagram/sync` (`INSTAGRAM_SYNC_SECRET`, admin-client)
+  roepen dezelfde functie aan. De route staat bij de openbare paden in
+  `lib/supabase/middleware.ts`, anders belandt de cron op het inlogscherm.
+- Stories (`GET /{id}/stories`) komen in `media_items` met `kind = 'instagram'`
+  en `source = 'instagram_story'`. Elke run verwijdert stories die ouder zijn
+  dan 24 uur of die Instagram niet meer teruggeeft. Mislukt alleen de
+  stories-aanroep, dan gaan de posts door en staat de reden van Meta in
+  `storyError` (cron-antwoord en de melding bij de knop).
+- De cron heeft geen ingelogd lid, maar `author_id` is verplicht: hij neemt de
+  maker van het laatste Instagram-item over en weigert als er nog geen is.
+- Dashboard: de strip toont eerst hooguit drie live stories (met label "Story",
+  zelf ook op 24 uur gefilterd voor als de cron stilvalt), daarna de laatste
+  drie posts. Stories staan zolang ze live zijn ook op `/media`.
+- De cron lost ook het verlopen van de afbeeldingslinks van posts op (zie de
+  ronde "Instagram-fotostrip"): ze worden elk uur ververst. **Die ronde noemde
+  een automatische sync "bewust niet gebouwd"; dat geldt niet meer.**
+- Runbook: cron-regel en de token-uitleg (sectie 2 en 3). `/hulp` bijgewerkt.
+
+**Bewust niet gebouwd.**
+- *Stories bewaren na 24 uur* (eigen kopie van de afbeelding): vraagt opslag en
+  een migratie; Stijn koos de variant zonder.
+- *Highlights*: niet op te vragen via de API. Een story die andermans post
+  deelt en live-video komen volgens Meta ook niet mee.
+- *Token automatisch verlengen*: de token (60 dagen) staat in Netlify-env en is
+  vanuit de app niet te overschrijven; dat zou opslag in de database vragen.
+  Blijft handwerk (runbook sectie 3).
+
+**Niet geverifieerd.** tsc en eslint zijn schoon. Meta's documentatie noemt
+`/stories` alleen voor Facebook Login; of het met onze Instagram-Login-token
+werkt, blijkt pas op productie (`storyError`). Geen echte story door de sync
+gehaald. **Handwerk:** `INSTAGRAM_SYNC_SECRET` in Netlify en een job elk uur op
+cron-job.org.
+
 ### Opgeleverd — Instagram-sync toont de reden als het ophalen mislukt
 
 **2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -5937,7 +5983,8 @@ dan verdwijnt de sectie. Een nieuwe sync op `/media` ververst de links.
   te leveren. Onze koppeling gebruikt Instagram Login en kan het niet.
 - *Posts waarin @zwb_cycling getagd is.* Mogelijke tussenweg, maar
   waarschijnlijk ook via Facebook Login; niet uitgezocht.
-- *Automatische Instagram-sync en eigen kopieën van de foto's.* Een cron kan hier
+- *Automatische Instagram-sync en eigen kopieën van de foto's.* (De sync is er
+  sinds 2026-10-02 wel, zie "Instagram-stories op het dashboard".) Een cron kan hier
   alleen via cron-job.org (runbook secties 2 en 8) en kopieën vragen opslag en een
   migratie. Eerst kijken of handmatig syncen volstaat.
 

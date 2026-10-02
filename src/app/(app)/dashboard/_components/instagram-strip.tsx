@@ -10,9 +10,10 @@ export type InstagramPost = {
   title: string;
   web_url: string | null;
   cover_url: string | null;
+  story: boolean;
 };
 
-// De laatste posts van @zwb_cycling uit de /media-sync. Instagram-CDN-URL's
+// Live stories en de laatste posts van @zwb_cycling uit de Instagram-sync. Instagram-CDN-URL's
 // verlopen na verloop van tijd; een tegel waarvan de afbeelding niet meer laadt
 // verdwijnt, en zonder werkende tegels verdwijnt de hele sectie.
 export function InstagramStrip({ posts }: { posts: InstagramPost[] }) {
@@ -61,6 +62,11 @@ export function InstagramStrip({ posts }: { posts: InstagramPost[] }) {
                 onError={() => markBroken(post.id)}
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               />
+              {post.story && (
+                <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                  Story
+                </span>
+              )}
               <div className="absolute inset-x-0 bottom-0 hidden bg-gradient-to-t from-black/75 to-transparent p-2 pt-6 sm:block">
                 <p className="line-clamp-2 text-xs text-white">{post.title}</p>
               </div>

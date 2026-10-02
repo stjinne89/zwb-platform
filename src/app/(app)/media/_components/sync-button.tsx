@@ -67,7 +67,9 @@ export function SyncInstagramButton() {
             } else {
               setStatus({
                 kind: "ok",
-                msg: `${res.inserted} nieuw, ${res.updated} bijgewerkt (totaal ${res.total}).`,
+                msg:
+                  `${res.inserted} nieuw, ${res.updated} bijgewerkt (${res.total} posts, ${res.stories} stories).` +
+                  (res.storyError ? ` Stories niet opgehaald: ${res.storyError}` : ""),
               });
             }
           });

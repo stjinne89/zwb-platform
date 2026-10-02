@@ -116,3 +116,31 @@ export async function fetchInstagramMedia({
   }
   return json.data ?? [];
 }
+
+/** Stories die nu live staan (Instagram geeft ze 24 uur terug, daarna niet meer). */
+export async function fetchInstagramStories({
+  accessToken,
+  userId,
+}: {
+  accessToken: string;
+  userId: string;
+}) {
+  const url = apiUrl(`/${userId}/stories`);
+  url.searchParams.set(
+    "fields",
+    "id,media_type,media_url,thumbnail_url,permalink,timestamp",
+  );
+  url.searchParams.set("access_token", accessToken);
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  const json = (await res.json().catch(() => ({}))) as InstagramMediaResponse;
+  if (!res.ok || json.error) {
+    const message = json.error?.message || `Instagram Graph API ${res.status}`;
+    throw new Error(message);
+  }
+  return json.data ?? [];
+}

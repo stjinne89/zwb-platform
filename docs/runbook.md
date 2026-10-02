@@ -67,6 +67,8 @@ Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 | ↳ één afronding (poll bij OpenAI + schema opbouwen) kost al seconden, dus reken op 1 à 2 per run. Elke 15 min geeft ~96 runs per dag; heb je meer actieve schema's dan daar doorheen komen, verlaag dan niets maar kijk eerst of de achterstand écht oploopt | | | | |
 | ↳ maakt daarnaast AI-generaties af die zijn blijven hangen doordat niemand ze ophaalde (max. 10 per run); zonder deze stap bleef een kwart van alle generaties onafgemaakt | | | | |
 | Team-resultaten sync | cron-job.org | naar wens | `POST /api/team-results/sync` | `TEAM_RESULTS_SYNC_SECRET` |
+| Instagram ophalen | cron-job.org | elk uur | `POST /api/instagram/sync` | `INSTAGRAM_SYNC_SECRET` |
+| ↳ haalt de laatste 12 posts en de live stories van @zwb_cycling naar `media_items` (`lib/instagram-sync.ts`). Stories bestaan bij Instagram 24 uur; de run verwijdert wat ouder is of niet meer live staat, en ververst de verlopende afbeeldingslinks van de posts. Het antwoord telt `stories` en `storiesRemoved`; `storyError` is de melding van Meta als alleen de stories mislukten. Weigert tot iemand op `/media` één keer Instagram ophalen heeft gedaan (die beheerder wordt de maker van de items). Verlopen token: sectie 3 | | | | |
 | Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
 | ↳ regio's op bestaande blokken (na migratie 0112 én na elke nieuwe `regions.json`, laatst 2026-09-15): `?regions=1` | | | | |
@@ -114,7 +116,7 @@ vangen, maar weet hier hoe je ze ververst:
 | `ZWIFT_USERNAME` / `ZWIFT_PASSWORD` | Zwift-club-serviceaccount (event-feed + entrants) | Wachtwoord/lockout | Eigen ZWB-serviceaccount; bij lockout wachtwoord resetten. Verifieer met "Test clubkoppeling" op `/beheer/event-scan` |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
 | `OPENAI_API_KEY` | Trainings-AI | Bij rotatie/quota | OpenAI-dashboard |
-| `INSTAGRAM_ACCESS_TOKEN` | `/media` Instagram-sync | Ja, long-lived token (~60 dgn) | Meta/Instagram Graph API token verlengen |
+| `INSTAGRAM_ACCESS_TOKEN` | Instagram-sync (`/media` en de cron) | Ja, long-lived token (~60 dgn) | Token uit de Meta-app, "API setup with Instagram login" (begint met `IGAA`; een `EAA`-token is van Facebook en werkt niet). Verlengen: `graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=…` |
 | `ZWIFTGOPHER_API_KEY` | TTT-planner | Bij rotatie | `zwiftgopher.com/api/dashboard.php` |
 | `YOUTUBE_API_KEY` | `/media` YouTube-sync | Quota/rotatie | Google Cloud Console |
 

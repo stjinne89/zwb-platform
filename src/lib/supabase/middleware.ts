@@ -41,6 +41,7 @@ const PUBLIC_PATHS = [
   "/api/frr/sync",
   "/api/src/sync",
   "/api/intervals/rides/sync",
+  "/api/instagram/sync",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

@@ -37,6 +37,7 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
+import { INSTAGRAM_STORY_SOURCE, INSTAGRAM_STORY_TTL_MS } from "@/lib/instagram-sync";
 import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
 import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
@@ -528,11 +529,11 @@ export default async function DashboardPage({
       : Promise.resolve({ data: null }),
     supabase
       .from("media_items")
-      .select("id, title, web_url, cover_url")
+      .select("id, title, web_url, cover_url, source, published_at")
       .eq("kind", "instagram")
       .not("cover_url", "is", null)
       .order("published_at", { ascending: false })
-      .limit(3),
+      .limit(20),
     // computed_at ligt kort na de race; de racedatum zelf filtert zrlStandings.
     supabase
       .from("zrl_team_results")
@@ -610,7 +611,22 @@ export default async function DashboardPage({
   }
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
-  const instagramPosts = (instagramRows ?? []) as InstagramPost[];
+  // Live stories (hooguit 24 uur oud) eerst, daarna de laatste drie posts.
+  const instagramItems = (instagramRows ?? []) as Array<
+    Omit<InstagramPost, "story"> & { source: string | null; published_at: string }
+  >;
+  // eslint-disable-next-line react-hooks/purity
+  const storyCutoff = new Date(Date.now() - INSTAGRAM_STORY_TTL_MS).toISOString();
+  const instagramPosts: InstagramPost[] = [
+    ...instagramItems
+      .filter((i) => i.source === INSTAGRAM_STORY_SOURCE && i.published_at >= storyCutoff)
+      .slice(0, 3)
+      .map((i) => ({ ...i, story: true })),
+    ...instagramItems
+      .filter((i) => i.source !== INSTAGRAM_STORY_SOURCE)
+      .slice(0, 3)
+      .map((i) => ({ ...i, story: false })),
+  ];
   const pollsWithVotes = (pollRows ?? []) as unknown as Array<
     PollRow & { poll_options: PollOptionRow[] | null; poll_votes: PollVoteRow[] | null }
   >;
