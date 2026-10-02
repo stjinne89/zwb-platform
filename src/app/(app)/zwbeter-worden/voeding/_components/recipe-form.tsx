@@ -45,6 +45,8 @@ export function RecipeForm({
   const [rows, setRows] = useState<Row[]>(initial?.rows ?? []);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodOption[]>([]);
+  // De zoekterm waarvoor NEVO niets gaf, zodat het lid ziet dat er gezocht is.
+  const [emptyFor, setEmptyFor] = useState<string | null>(null);
   const [state, submit, pending] = useActionState(
     async (_previous: ActionResult | null, formData: FormData) => saveAction(formData),
     null,
@@ -57,10 +59,14 @@ export function RecipeForm({
     const timer = setTimeout(() => {
       searchAction(term)
         .then((found) => {
-          if (!cancelled) setResults(found);
+          if (cancelled) return;
+          setResults(found);
+          setEmptyFor(found.length === 0 ? term : null);
         })
         .catch(() => {
-          if (!cancelled) setResults([]);
+          if (cancelled) return;
+          setResults([]);
+          setEmptyFor(term);
         });
     }, 250);
     return () => {
@@ -214,6 +220,9 @@ export function RecipeForm({
           aria-label="Ingrediënt zoeken"
           className={inputClass}
         />
+        {emptyFor !== null && emptyFor === query.trim() && (
+          <p className="text-sm text-muted-foreground">Niets gevonden in NEVO.</p>
+        )}
         {results.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {results.map((food) => (
@@ -253,6 +262,9 @@ export function RecipeForm({
         <Button type="submit" className="min-h-[44px]" disabled={pending || rows.length === 0}>
           {pending ? "Bezig…" : "Recept bewaren"}
         </Button>
+        {rows.length === 0 && (
+          <span className="text-sm text-muted-foreground">Kies eerst een ingrediënt.</span>
+        )}
         {state && !state.ok && <span className="text-sm text-destructive">{state.error}</span>}
       </div>
     </form>

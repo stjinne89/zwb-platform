@@ -125,6 +125,25 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 
 ---
 
+> **Eigen recept: het formulier zegt waarom bewaren niet kan, 2026-10-02 — gebouwd, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar kon bij de eerste test van het delen geen recept bewaren.
+> Het veld onder Ingrediënten is een zoekveld in NEVO, geen tekstveld. Hij typte
+> de ingrediëntenlijst van het pak als één zin; die zoekterm gaf niets, er kwam
+> geen ingrediënt bij, en de knop blijft uit zolang er geen ingrediënt is. Het
+> formulier meldde geen van beide.
+>
+> **Wat.** `recipe-form.tsx` toont "Niets gevonden in NEVO." als een zoekterm
+> niets geeft, en "Kies eerst een ingrediënt." naast de knop zolang de lijst leeg
+> is.
+>
+> **Niet gebouwd.** Vrije-tekstingrediënten: een recept zonder NEVO-waarden heeft
+> geen voedingswaarden, en daar rekent het dagmenu mee.
+>
+> **Getest.** `tsc --noEmit` en ESLint zonder fouten. **Niet getest:** het
+> formulier in de browser, en of het delen daarna tot en met goedkeuren werkt.
+
 > **"Badges herberekenen": Strava-deel één keer per dag per lid, 2026-10-02 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
