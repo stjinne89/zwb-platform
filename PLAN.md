@@ -5261,8 +5261,9 @@ Login; een Facebook-token is niet nodig. Stijn: "bouw maar".
   in plaats van weg, zodat de volgende sync hem niet terugzet. Verborgen rijen
   staan niet op `/media` of het dashboard en verdwijnen als Instagram de post
   niet meer teruggeeft.
-- Dashboard: de strip toont na de stories en de drie eigen posts hooguit drie
-  getagde posts, met `@naam` als label.
+- Dashboard: de strip toont na de stories de drie nieuwste posts, eigen en
+  getagde door elkaar op datum; een nieuwere getagde post drukt een eigen post
+  weg (keuze Stijn). Getagde posts hebben `@naam` als label.
 - Privacyverklaring, sectie 2: nieuw punt over openbare getagde posts. **Geen
   nieuwe versie** in `lib/privacy.ts` voorgesteld: het gaat om openbare
   Instagram-inhoud die niet aan een ZWB-profiel wordt gekoppeld, niet om

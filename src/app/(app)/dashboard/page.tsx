@@ -71,11 +71,7 @@ import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
-const INSTAGRAM_OTHER_SOURCES = [
-  INSTAGRAM_STORY_SOURCE,
-  INSTAGRAM_TAG_SOURCE,
-  INSTAGRAM_TAG_HIDDEN_SOURCE,
-];
+const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
 type ProfileRef = {
   display_name: string | null;
@@ -622,8 +618,8 @@ export default async function DashboardPage({
   }
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
-  // Live stories (hooguit 24 uur oud) eerst, dan de laatste drie eigen posts,
-  // dan de laatste drie posts van anderen waarin de club is getagd.
+  // Live stories (hooguit 24 uur oud) eerst, dan de drie nieuwste posts: eigen
+  // posts en posts van anderen waarin de club is getagd door elkaar, op datum.
   const instagramItems = (instagramRows ?? []) as Array<
     Omit<InstagramPost, "story" | "tagged"> & { source: string | null; published_at: string }
   >;
@@ -635,13 +631,9 @@ export default async function DashboardPage({
       .slice(0, 3)
       .map((i) => ({ ...i, story: true, tagged: false })),
     ...instagramItems
-      .filter((i) => !INSTAGRAM_OTHER_SOURCES.includes(i.source ?? ""))
+      .filter((i) => !INSTAGRAM_NON_POST_SOURCES.includes(i.source ?? ""))
       .slice(0, 3)
-      .map((i) => ({ ...i, story: false, tagged: false })),
-    ...instagramItems
-      .filter((i) => i.source === INSTAGRAM_TAG_SOURCE)
-      .slice(0, 3)
-      .map((i) => ({ ...i, story: false, tagged: true })),
+      .map((i) => ({ ...i, story: false, tagged: i.source === INSTAGRAM_TAG_SOURCE })),
   ];
   const pollsWithVotes = (pollRows ?? []) as unknown as Array<
     PollRow & { poll_options: PollOptionRow[] | null; poll_votes: PollVoteRow[] | null }
