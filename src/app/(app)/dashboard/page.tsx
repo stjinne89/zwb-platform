@@ -37,7 +37,12 @@ import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
-import { INSTAGRAM_STORY_SOURCE, INSTAGRAM_STORY_TTL_MS } from "@/lib/instagram-sync";
+import {
+  INSTAGRAM_STORY_SOURCE,
+  INSTAGRAM_STORY_TTL_MS,
+  INSTAGRAM_TAG_HIDDEN_SOURCE,
+  INSTAGRAM_TAG_SOURCE,
+} from "@/lib/instagram-sync";
 import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
 import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
@@ -65,6 +70,12 @@ import { hasActivityScope } from "@/lib/strava/scope";
 import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+
+const INSTAGRAM_OTHER_SOURCES = [
+  INSTAGRAM_STORY_SOURCE,
+  INSTAGRAM_TAG_SOURCE,
+  INSTAGRAM_TAG_HIDDEN_SOURCE,
+];
 
 type ProfileRef = {
   display_name: string | null;
@@ -533,7 +544,7 @@ export default async function DashboardPage({
       .eq("kind", "instagram")
       .not("cover_url", "is", null)
       .order("published_at", { ascending: false })
-      .limit(20),
+      .limit(30),
     // computed_at ligt kort na de race; de racedatum zelf filtert zrlStandings.
     supabase
       .from("zrl_team_results")
@@ -611,9 +622,10 @@ export default async function DashboardPage({
   }
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
-  // Live stories (hooguit 24 uur oud) eerst, daarna de laatste drie posts.
+  // Live stories (hooguit 24 uur oud) eerst, dan de laatste drie eigen posts,
+  // dan de laatste drie posts van anderen waarin de club is getagd.
   const instagramItems = (instagramRows ?? []) as Array<
-    Omit<InstagramPost, "story"> & { source: string | null; published_at: string }
+    Omit<InstagramPost, "story" | "tagged"> & { source: string | null; published_at: string }
   >;
   // eslint-disable-next-line react-hooks/purity
   const storyCutoff = new Date(Date.now() - INSTAGRAM_STORY_TTL_MS).toISOString();
@@ -621,11 +633,15 @@ export default async function DashboardPage({
     ...instagramItems
       .filter((i) => i.source === INSTAGRAM_STORY_SOURCE && i.published_at >= storyCutoff)
       .slice(0, 3)
-      .map((i) => ({ ...i, story: true })),
+      .map((i) => ({ ...i, story: true, tagged: false })),
     ...instagramItems
-      .filter((i) => i.source !== INSTAGRAM_STORY_SOURCE)
+      .filter((i) => !INSTAGRAM_OTHER_SOURCES.includes(i.source ?? ""))
       .slice(0, 3)
-      .map((i) => ({ ...i, story: false })),
+      .map((i) => ({ ...i, story: false, tagged: false })),
+    ...instagramItems
+      .filter((i) => i.source === INSTAGRAM_TAG_SOURCE)
+      .slice(0, 3)
+      .map((i) => ({ ...i, story: false, tagged: true })),
   ];
   const pollsWithVotes = (pollRows ?? []) as unknown as Array<
     PollRow & { poll_options: PollOptionRow[] | null; poll_votes: PollVoteRow[] | null }

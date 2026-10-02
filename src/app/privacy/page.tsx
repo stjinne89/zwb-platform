@@ -241,6 +241,15 @@ export default function PrivacyPage() {
             ritverslagen, reacties, polls en geüploade foto&apos;s.
           </li>
           <li>
+            <strong>Openbare Instagram-posts waarin de club is getagd:</strong> tag
+            je @zwb_cycling op een foto in een openbare post, dan tonen we die post
+            met je Instagram-naam aan ingelogde clubleden op het dashboard en bij
+            Media. We halen dit op via Instagram en koppelen het niet aan je
+            ZWB-profiel. Haal je de tag of de post weg, of zet je je account op
+            privé, dan verdwijnt hij binnen een uur. Het bestuur kan een post ook
+            verbergen.
+          </li>
+          <li>
             <strong>Gezondheidsgegevens (alleen met jouw uitdrukkelijke toestemming):</strong>{" "}
             als je het klachtenlogboek aanzet, leggen we per dag vast hoeveel last
             je hebt, welke klachten je aanvinkt, of het de eerste dag van je

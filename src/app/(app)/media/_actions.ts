@@ -10,7 +10,11 @@ import {
   type YouTubeVideo,
 } from "@/lib/youtube";
 import { fetchRssFeed } from "@/lib/rss";
-import { syncInstagramToMedia } from "@/lib/instagram-sync";
+import {
+  INSTAGRAM_TAG_HIDDEN_SOURCE,
+  INSTAGRAM_TAG_SOURCE,
+  syncInstagramToMedia,
+} from "@/lib/instagram-sync";
 
 const KINDS = MEDIA_KINDS.map((k) => k.value);
 
@@ -152,7 +156,20 @@ export async function deleteMediaItem(id: string) {
     return { ok: false as const, error: "Geen recht om media te beheren." };
   }
 
-  const { error } = await supabase.from("media_items").delete().eq("id", id);
+  // Een getagde Instagram-post komt bij de volgende sync terug als de rij weg
+  // is; verbergen houdt hem weg.
+  const { data: item } = await supabase
+    .from("media_items")
+    .select("source")
+    .eq("id", id)
+    .maybeSingle();
+  const { error } =
+    item?.source === INSTAGRAM_TAG_SOURCE
+      ? await supabase
+          .from("media_items")
+          .update({ source: INSTAGRAM_TAG_HIDDEN_SOURCE })
+          .eq("id", id)
+      : await supabase.from("media_items").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/media");
   revalidatePath("/dashboard");

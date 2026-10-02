@@ -144,3 +144,37 @@ export async function fetchInstagramStories({
   }
   return json.data ?? [];
 }
+
+/**
+ * Openbare posts waarin @zwb_cycling op de foto is getagd. Vraagt het recht
+ * instagram_business_manage_comments; posts van privé-accounts komen niet mee.
+ */
+export async function fetchInstagramTags({
+  accessToken,
+  userId,
+  limit = 12,
+}: {
+  accessToken: string;
+  userId: string;
+  limit?: number;
+}) {
+  const url = apiUrl(`/${userId}/tags`);
+  url.searchParams.set(
+    "fields",
+    "id,username,caption,media_type,media_url,thumbnail_url,permalink,timestamp,children{media_type,media_url,thumbnail_url}",
+  );
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("access_token", accessToken);
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  const json = (await res.json().catch(() => ({}))) as InstagramMediaResponse;
+  if (!res.ok || json.error) {
+    const message = json.error?.message || `Instagram Graph API ${res.status}`;
+    throw new Error(message);
+  }
+  return json.data ?? [];
+}

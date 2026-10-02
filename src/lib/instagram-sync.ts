@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   fetchInstagramMedia,
   fetchInstagramStories,
+  fetchInstagramTags,
   instagramCoverUrl,
   resolveInstagramUserId,
   ZWB_INSTAGRAM_URL,
@@ -10,10 +11,16 @@ import {
 
 // Posts en stories van @zwb_cycling naar media_items. Posts blijven staan
 // (source 'instagram'); stories (source 'instagram_story') bestaan alleen zolang
-// Instagram ze teruggeeft en worden daarna weer verwijderd.
+// Instagram ze teruggeeft en worden daarna weer verwijderd. Posts van anderen
+// waarin de club is getagd (source 'instagram_tag') volgen wat Instagram
+// teruggeeft: haalt de plaatser de tag of de post weg, dan verdwijnt hij hier.
 
 export const INSTAGRAM_STORY_SOURCE = "instagram_story";
 export const INSTAGRAM_STORY_TTL_MS = 24 * 3600_000;
+export const INSTAGRAM_TAG_SOURCE = "instagram_tag";
+// Een getagde post die een beheerder op /media verwijderde. De rij blijft als
+// grafsteen staan, anders zet de volgende sync de post gewoon terug.
+export const INSTAGRAM_TAG_HIDDEN_SOURCE = "instagram_tag_hidden";
 
 export type InstagramSyncResult =
   | { ok: false; error: string }
@@ -26,6 +33,8 @@ export type InstagramSyncResult =
       storiesRemoved: number;
       /** Posts zijn wel opgehaald, stories niet: de reden van Meta. */
       storyError: string | null;
+      tagged: number;
+      tagError: string | null;
       errors: string[];
     };
 
@@ -64,6 +73,15 @@ export async function syncInstagramToMedia(
   } catch (err) {
     console.error("[syncInstagramToMedia] stories", err);
     storyError = reasonOf(err) || "onbekende fout";
+  }
+
+  let tagged: InstagramMedia[] | null = null;
+  let tagError: string | null = null;
+  try {
+    tagged = await fetchInstagramTags({ accessToken, userId });
+  } catch (err) {
+    console.error("[syncInstagramToMedia] tags", err);
+    tagError = reasonOf(err) || "onbekende fout";
   }
 
   // media_items.author_id is verplicht. De cron heeft geen ingelogd lid en neemt
@@ -134,6 +152,38 @@ export async function syncInstagramToMedia(
     await upsert(INSTAGRAM_STORY_SOURCE, story, "Instagram-story van ZWB Cycling", null);
   }
 
+  // Getagde posts: de accountnaam is de titel. Wat een beheerder verborg, blijft
+  // verborgen; wat Instagram niet meer teruggeeft, gaat weg (ook de grafsteen).
+  if (tagged) {
+    const { data: knownTags } = await supabase
+      .from("media_items")
+      .select("id, external_id, source")
+      .in("source", [INSTAGRAM_TAG_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE]);
+    const known = (knownTags ?? []) as Array<{
+      id: string;
+      external_id: string | null;
+      source: string;
+    }>;
+    const hidden = new Set(
+      known.filter((r) => r.source === INSTAGRAM_TAG_HIDDEN_SOURCE).map((r) => r.external_id),
+    );
+    for (const item of tagged) {
+      if (hidden.has(item.id)) continue;
+      await upsert(
+        INSTAGRAM_TAG_SOURCE,
+        item,
+        item.username ? `@${item.username}` : "Getagd op Instagram",
+        (item.caption ?? "").trim().slice(0, 1200) || null,
+      );
+    }
+    const returned = new Set(tagged.map((t) => t.id));
+    const gone = known.filter((r) => !returned.has(r.external_id ?? "")).map((r) => r.id);
+    if (gone.length > 0) {
+      const { error } = await supabase.from("media_items").delete().in("id", gone);
+      if (error) errors.push(`getagde posts opruimen: ${error.message}`);
+    }
+  }
+
   // Verlopen stories weg: alles ouder dan 24 uur, en (als Instagram antwoordde)
   // alles wat niet meer live staat, bijvoorbeeld omdat het is verwijderd.
   let storiesRemoved = 0;
@@ -174,6 +224,8 @@ export async function syncInstagramToMedia(
     stories: stories?.length ?? 0,
     storiesRemoved,
     storyError,
+    tagged: tagged?.length ?? 0,
+    tagError,
     errors,
   };
 }

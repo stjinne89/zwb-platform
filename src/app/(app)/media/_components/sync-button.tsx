@@ -69,7 +69,10 @@ export function SyncInstagramButton() {
                 kind: "ok",
                 msg:
                   `${res.inserted} nieuw, ${res.updated} bijgewerkt (${res.total} posts, ${res.stories} stories).` +
-                  (res.storyError ? ` Stories niet opgehaald: ${res.storyError}` : ""),
+                  (res.storyError ? ` Stories niet opgehaald: ${res.storyError}` : "") +
+                  (res.tagError
+                    ? ` Getagde posts niet opgehaald: ${res.tagError}`
+                    : ` ${res.tagged} getagd.`),
               });
             }
           });

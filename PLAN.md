@@ -5225,6 +5225,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Instagram: posts waarin de club is getagd
+
+**2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
+**Niet gepusht tot Stijn de privacytekst heeft gezien.**
+
+**Aanleiding.** Stories leveren weinig op: op productie gaf
+`GET /me/stories` een lege lijst terwijl er twee stories live stonden. Het zijn
+gedeelde stories en samenwerkingen, en die geeft Meta niet af (alleen een eigen,
+rechtstreeks geplaatste foto of video). Stijn vroeg daarop of alles met @ of #
+mee kan. Uitkomst van het uitzoeken:
+
+| Soort | Kan | Voorwaarde |
+|---|---|---|
+| Post met de club getagd op de foto | ja, openbare accounts | `GET /{id}/tags`, recht `instagram_business_manage_comments` |
+| @vermelding in de tekst | omslachtig | webhook per vermelding, daarna `mentioned_media` |
+| #hashtag | beperkt | Facebook Login + app review; 24 uur of Meta's selectie; geen naam |
+| Vermelding of deling in een story | nee | door Meta niet ondersteund |
+
+`/tags` gaf met de bestaande token "Application does not have permission"
+(code 10); nadat het recht `instagram_business_manage_comments` aan de Meta-app
+was toegevoegd en de token opnieuw was aangemaakt, kwam er een geldig antwoord
+(leeg, met een paging-cursor: er is minstens één getagde post die Meta niet
+teruggeeft, vermoedelijk van een privé-account). Het werkt dus met Instagram
+Login; een Facebook-token is niet nodig. Stijn: "bouw maar".
+
+**Wat er veranderde.**
+- De sync haalt ook `/{id}/tags` op (laatste 12). Getagde posts komen in
+  `media_items` met `source = 'instagram_tag'`, de accountnaam (`@naam`) als
+  titel en het bijschrift als tekst. Wat Instagram niet meer teruggeeft (tag of
+  post weg, account op privé) wordt verwijderd. Mislukt alleen deze aanroep, dan
+  staat de reden in `tagError`.
+- **Modereren.** Iedereen met een openbaar account kan de club taggen. Verwijdert
+  een beheerder zo'n post op `/media`, dan wordt de rij `instagram_tag_hidden`
+  in plaats van weg, zodat de volgende sync hem niet terugzet. Verborgen rijen
+  staan niet op `/media` of het dashboard en verdwijnen als Instagram de post
+  niet meer teruggeeft.
+- Dashboard: de strip toont na de stories en de drie eigen posts hooguit drie
+  getagde posts, met `@naam` als label.
+- Privacyverklaring, sectie 2: nieuw punt over openbare getagde posts. **Geen
+  nieuwe versie** in `lib/privacy.ts` voorgesteld: het gaat om openbare
+  Instagram-inhoud die niet aan een ZWB-profiel wordt gekoppeld, niet om
+  gegevens die een lid aan ZWB gaf. Ter beoordeling aan Stijn.
+- `/hulp` en het runbook bijgewerkt.
+
+**Bewust niet gebouwd.** @vermeldingen in tekst (webhook-infrastructuur) en
+hashtags (Facebook Login plus app review); zie de tabel. Geen goedkeuring vooraf
+per post: achteraf verbergen is gekozen omdat het zonder migratie kan.
+
+**Niet geverifieerd.** tsc en eslint zijn schoon. Er is nog geen openbare
+getagde post door de sync gekomen: of Meta die met `media_url` en `username`
+teruggeeft, blijkt pas op productie. **Handwerk:** de token met het nieuwe recht
+in Netlify. De token die Stijn tijdens het testen in de chat plakte moet eerst
+worden ingetrokken (app-toegang verwijderen in Instagram, daarna opnieuw
+genereren).
+
 ### Opgeleverd — Instagram-stories op het dashboard, elk uur opgehaald
 
 **2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie

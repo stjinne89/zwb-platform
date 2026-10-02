@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
+import { INSTAGRAM_TAG_HIDDEN_SOURCE } from "@/lib/instagram-sync";
 import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
 import { AddMediaForm } from "./_components/add-form";
 import { MediaItemActions } from "./_components/item-actions";
@@ -63,6 +64,8 @@ export default async function MediaPage({
         .select(
           "id, kind, title, body_md, apple_url, spotify_url, rss_url, youtube_url, web_url, cover_url, source, pinned, published_at, profiles(display_name)",
         )
+        // Verborgen getagde Instagram-posts (zie deleteMediaItem).
+        .or(`source.is.null,source.neq.${INSTAGRAM_TAG_HIDDEN_SOURCE}`)
         .order("pinned", { ascending: false })
         .order("published_at", { ascending: false });
       if (activeKind) q = q.eq("kind", activeKind);
@@ -242,7 +245,7 @@ export default async function MediaPage({
                           const url = item[b.key];
                           if (!url) return null;
                           const label =
-                            item.source === "instagram" && b.key === "web_url"
+                            item.kind === "instagram" && b.key === "web_url"
                               ? "Instagram"
                               : b.label;
                           return (
