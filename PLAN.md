@@ -7,13 +7,6 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-> **Bij de eerstvolgende push: tijdelijke tijdmeting weghalen.** `src/lib/perf/timings.ts`
-> en alle aanroepen van `startTimings(...)` en `timed(...)` in
-> `zwbeter-worden/page.tsx`, `zwbeter-worden/schema/page.tsx` en
-> `zwbeter-worden/_data.ts`. De meting is gebruikt (laadtijd deel 3); om
-> Netlify-credits te sparen gaat het weghalen mee met de volgende ronde in plaats
-> van in een eigen deploy (besluit eigenaar, 2026-10-02).
-
 1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
    Nog te doen, klein: `vacuum full public.zwb_segment_maps;`, `?segmentBackfill=0`
@@ -172,8 +165,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`
 > **Niet gedaan.** `detectCompletedWorkouts` zelf versnellen (acht vragen na
 > elkaar, ook gebruikt door de cron): het staat nu niet meer in de weg van de
 > pagina. De onderdelen onderaan beide pagina's (0,35–0,85 s) zijn niet uitgesplitst.
-> De tijdelijke logging staat er nog in; de nameting is gedaan, dus hij gaat er bij
-> de eerstvolgende push uit (zie bovenaan dit document).
+> De tijdelijke logging (`lib/perf/timings.ts`, commit `7a01d00`) is na de nameting
+> weer verwijderd, op 2026-10-02, in dezelfde push als deze regel.
 >
 > **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`. **Niet getest:**
 > het gedrag in de browser, waaronder of het bevestigscherm nog verschijnt na een

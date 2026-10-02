@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { InlineMoreLink } from "@/components/app-ui";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
-import { startTimings, timed } from "@/lib/perf/timings";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
@@ -69,27 +68,26 @@ async function PendingReviewDialog({ review }: { review: Promise<PendingReview |
 
 export default async function ZwbeterWordenTodayPage({ searchParams }: SearchParamsProp) {
   const params = (await searchParams) ?? {};
-  startTimings("/zwbeter-worden");
   // Wie het is weten we zonder de database (JWT); profiel en koppeling vertrekken
   // daarom tegelijk met de rechten in plaats van erna.
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   if (!user) redirect("/login");
   const identity = { supabase, user };
   const [viewer, profile, conn] = await Promise.all([
-    timed("viewer", requireViewer()),
-    timed("profile", loadProfile(identity)),
-    timed("conn", loadConnection(identity)),
+    requireViewer(),
+    loadProfile(identity),
+    loadConnection(identity),
   ]);
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
 
   const [snapshot, { data: stravaRows }, { data: segmentRows }] = await Promise.all([
-    timed("snapshot", loadIntervalsSnapshot(viewer, conn, {
+    loadIntervalsSnapshot(viewer, conn, {
       wellnessDays: 730,
       eventDays: 14,
       withAthleteFtp: true,
       syncActivities: true,
-    })),
+    }),
     viewer.supabase
       .from("strava_activities")
       .select(
@@ -115,13 +113,12 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   // hier niet meer op mee: het herkennen van afgeronde workouts kostte 1,0-1,7 s
   // van de 2,1 s die deze pagina nodig had (gemeten 2026-10-01), en voedt alleen
   // dat scherm. Het start hier wel, direct na de sync van de ritten.
-  const pendingReviewPromise = timed(
-    "pendingReview",
-    loadPendingReview(viewer, paramString(params.review)),
-  ).catch(() => null);
+  const pendingReviewPromise = loadPendingReview(viewer, paramString(params.review)).catch(
+    () => null,
+  );
   const [memberWorkouts, planSummaries] = await Promise.all([
-    timed("memberWorkouts", loadMemberWorkouts(viewer, snapshot.events)),
-    timed("planSummaries", loadPlanSummaries(viewer)),
+    loadMemberWorkouts(viewer, snapshot.events),
+    loadPlanSummaries(viewer),
   ]);
   const todayKey = todayKeyAmsterdam();
   const activities = (stravaRows ?? []) as StravaActivityRow[];

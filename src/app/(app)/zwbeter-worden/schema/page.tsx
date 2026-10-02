@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
-import { startTimings, timed } from "@/lib/perf/timings";
 import Link from "next/link";
 import { Download, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
@@ -73,7 +72,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Maand is de ingang: daar zie je in één blik je week én kun je een training
   // aanklikken. De lijst blijft als alternatief bestaan.
   const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
-  startTimings("/zwbeter-worden/schema");
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), en
   // deze pagina deed er ruim twintig na elkaar (gemeten 2026-10-01: 3,0-3,3 s in
   // deze functie). Daarom vertrekt elke stap zodra zijn invoer er is, in plaats van
@@ -84,14 +82,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Eerst afmaken wat is blijven hangen, zodat de lijst hieronder het bijgewerkte
   // schema toont. Zie settleOwnReplans(). Alles wat het schema leest, wacht hierop.
   const [viewer, profile, conn] = await Promise.all([
-    timed("viewer", requireViewer()),
-    timed("profile", loadProfile(identity)),
-    timed("conn", loadConnection(identity)),
-    timed("settleReplans", settleOwnReplans(createAdminClient(), user.id).catch(() => null)),
+    requireViewer(),
+    loadProfile(identity),
+    loadConnection(identity),
+    settleOwnReplans(createAdminClient(), user.id).catch(() => null),
   ]);
 
-  const snapshotPromise = timed("snapshot", loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }));
-  const plansPromise = timed("planFamilies", loadPlanFamilies(viewer));
+  const snapshotPromise = loadIntervalsSnapshot(viewer, conn, { eventDays: 14 });
+  const plansPromise = loadPlanFamilies(viewer);
   // Promise.resolve: een query van Supabase start bij elke `then`, en deze wordt
   // op twee plekken afgewacht.
   const reportsPromise = Promise.resolve(
@@ -102,13 +100,13 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       .order("updated_at", { ascending: false }),
   );
   const memberWorkoutsPromise = snapshotPromise.then((loaded) =>
-    timed("memberWorkouts", loadMemberWorkouts(viewer, loaded.events)),
+    loadMemberWorkouts(viewer, loaded.events),
   );
   const zwiftPromise = memberWorkoutsPromise.then((workouts) =>
-    timed("zwiftSuggestions", loadZwiftSuggestionViews(viewer, workouts)),
+    loadZwiftSuggestionViews(viewer, workouts),
   );
   const outdoorPromise = memberWorkoutsPromise.then((workouts) =>
-    timed("outdoorSuggestions", loadOutdoorSuggestionViews(viewer, workouts)),
+    loadOutdoorSuggestionViews(viewer, workouts),
   );
   // Ritten waar geen training voor stond: een extra herstelrondje, een groepsrit,
   // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
@@ -116,18 +114,15 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // wel degelijk meetelde.
   const scheduleRidesPromise = Promise.all([memberWorkoutsPromise, reportsPromise]).then(
     ([workouts, { data }]) =>
-      timed(
-        "scheduleRides",
-        loadScheduleRides(
-          viewer,
-          workouts,
-          (data ?? []) as WorkoutReportRow[],
-          profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-        ),
+      loadScheduleRides(
+        viewer,
+        workouts,
+        (data ?? []) as WorkoutReportRow[],
+        profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
       ),
   );
   const eventChoicesPromise = plansPromise.then((loaded) =>
-    timed("eventChoices", loadScheduleEventChoices(viewer, activePlan(loaded))),
+    loadScheduleEventChoices(viewer, activePlan(loaded)),
   );
 
   const [
@@ -153,10 +148,10 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       .select("*")
       .eq("profile_id", viewer.user.id)
       .order("created_at", { ascending: false }),
-    timed("availability", loadAvailabilityOptions(viewer)),
-    timed("ftpTest", loadFtpTestState(viewer)),
-    timed("ignoredStreak", loadIgnoredStreak(viewer)),
-    timed("zrlTeam", loadZrlTeamMembership(viewer)),
+    loadAvailabilityOptions(viewer),
+    loadFtpTestState(viewer),
+    loadIgnoredStreak(viewer),
+    loadZrlTeamMembership(viewer),
     memberWorkoutsPromise,
     zwiftPromise,
     outdoorPromise,

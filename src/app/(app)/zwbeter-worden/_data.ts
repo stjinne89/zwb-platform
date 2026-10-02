@@ -9,7 +9,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { getRequestAccess } from "@/lib/auth/request";
-import { timed } from "@/lib/perf/timings";
 import {
   athletePhysique,
   fetchIntervalsAthlete,
@@ -173,17 +172,17 @@ export async function loadIntervalsSnapshot(
     // Loopt mee met de calls naar intervals.icu in plaats van erna: elke vraag aan
     // de database is een oversteek (functies in Ohio, database in Ierland).
     const activitiesPromise = syncActivities
-      ? timed("iv.activitiesSync", refreshIntervalsActivitiesIfStale(viewer, conn)).catch(() => undefined)
+      ? refreshIntervalsActivitiesIfStale(viewer, conn).catch(() => undefined)
       : Promise.resolve(undefined);
     const athletePromise = withAthleteFtp
-      ? timed("iv.athlete", fetchIntervalsAthlete(conn.api_key)).catch(() => null)
+      ? fetchIntervalsAthlete(conn.api_key).catch(() => null)
       : Promise.resolve(null);
     const [wellness, events] = await Promise.all([
       wellnessDays > 0
-        ? timed("iv.wellness", fetchIntervalsWellness(conn.api_key, conn.athlete_id, wellnessDays))
+        ? fetchIntervalsWellness(conn.api_key, conn.athlete_id, wellnessDays)
         : Promise.resolve([] as IntervalsWellness[]),
       eventDays > 0
-        ? timed("iv.events", fetchIntervalsEvents(conn.api_key, conn.athlete_id, eventDays))
+        ? fetchIntervalsEvents(conn.api_key, conn.athlete_id, eventDays)
         : Promise.resolve([] as IntervalsEvent[]),
     ]);
     const intervalsFtp = withAthleteFtp
@@ -315,7 +314,7 @@ export async function loadMemberWorkouts(
   const proposalIds = new Set((proposalPlans ?? []).map((plan) => plan.id as string));
   const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !proposalIds.has(row.plan_id));
   const movedDates = events.length
-    ? await timed("mw.syncDates", syncWorkoutDatesFromIntervals(viewer.admin, rows, events)).catch(
+    ? await syncWorkoutDatesFromIntervals(viewer.admin, rows, events).catch(
         () => new Map<string, string>(),
       )
     : new Map<string, string>();
@@ -487,7 +486,7 @@ export async function loadPendingReview(
   viewer: Viewer,
   requestedWorkoutId?: string,
 ): Promise<PendingReview | null> {
-  await timed("review.detect", detectCompletedWorkouts(viewer.admin, viewer.user.id)).catch(() => null);
+  await detectCompletedWorkouts(viewer.admin, viewer.user.id).catch(() => null);
 
   let query = viewer.supabase
     .from("training_workout_reports")
