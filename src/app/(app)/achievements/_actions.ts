@@ -317,9 +317,7 @@ async function importOneFile(
       }
       rows = [result.row];
       withTracks = true;
-      // Geen eigen segmenttijden uit een virtuele rit: die tabel is de grootste
-      // van de database, en een Zwift-historie is al gauw duizend ritten.
-      if (result.row.sport_type !== "VirtualRide") timedTrack = result.track;
+      timedTrack = result.track;
     } else if (/<TrainingCenterDatabase[\s>]/.test(text.slice(0, 1000))) {
       // TCX lezen we niet. In de map van een Strava-export staan ze tussen de
       // FIT-bestanden; overslaan, niet als fout melden.

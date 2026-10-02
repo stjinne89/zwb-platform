@@ -5311,11 +5311,6 @@ Zwift-ritten als `.fit.gz`, en die las de import niet.
   het verslag van deze ronde, niet vooraf.**
 
 **Bewust niet gebouwd.**
-- **Eigen segmenttijden uit een virtuele FIT.** `storeGpsEfforts` draait alleen
-  voor buitenritten. `strava_activity_segment_efforts` is de grootste tabel en de
-  disk zit krap (zie "Database slank en snel"); een Zwift-historie van duizend
-  ritten zou er tienduizenden rijen bij zetten. Een GPX van een Zwift-rit meet
-  wel nog segmenttijden, zoals voorheen.
 - **TCX en de ZIP zelf.** Niet gevraagd. Het lid kiest de bestanden in de
   uitgepakte map.
 - **Eén FIT-lezer voor alles.** `src/lib/live/fit-records.ts` leest al
@@ -5339,9 +5334,15 @@ los slagen. `next build` compileert en doorstaat de typecheck, en stopt daarna b
 - Een echt Zwift-bestand uit een Strava-export is niet getest. Dat Zwift
   `virtual_activity` en fabrikant 260 schrijft, is een aanname uit het
   FIT-profiel.
-- **Disk.** Het spoor bij ~1.650 ritten is naar schatting 4–5 MB aan data plus
-  WAL van de updates. Met de disk rond 91,5% en alleen-lezen bij 95%: doe Kevins
-  upload pas als er marge is, en kijk tijdens de upload naar het diskgebruik.
+- **Segment- en coltijden per bestand.** Elk FIT-bestand meet ook de eigen
+  segment- en coltijden (`storeGpsEfforts`), net als een GPX en een rit uit
+  intervals.icu. Of vijf bestanden tegelijk daarmee binnen de tijdslimiet
+  blijven, moet de eerste grote upload uitwijzen.
+
+**Bijgesteld bij de push (2026-10-02).** De eerste versie van deze ronde sloeg de
+eigen segmenttijden over bij virtuele ritten en waarschuwde voor de disk. Beide
+redenen vervielen met migratie `0212`: de tabel met segmentpogingen is weg, de
+tijden staan in de rit zelf, en de database is 200 MB.
 
 ### Opgeleverd — Instagram-sync toont de reden als het ophalen mislukt
 
