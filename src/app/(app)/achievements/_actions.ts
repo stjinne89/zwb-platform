@@ -6,6 +6,7 @@ import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { rateLimitHit } from "@/lib/rate-limit";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
@@ -142,16 +143,29 @@ export async function recomputeMyMilestoneBadges() {
   try {
     const admin = createAdminClient();
 
+    // Het Strava-deel (Watopia-kalibratie, coltijden, segment-PR's) kost tot
+    // ~150 calls op een daglimiet van 2000, en elk lid kan deze knop indrukken.
+    // Daarom één keer per dag per lid; de badges zelf rekenen altijd opnieuw,
+    // want dat leest alleen de database.
+    const strava = await rateLimitHit(
+      "badges_recompute_strava",
+      user.id,
+      1,
+      24 * 60 * 60,
+    );
+
     // Strava-token (eenmalig) voor Watopia-kalibratie + segmenttijden.
     let stravaToken: string | null = null;
     try {
-      const { data: conn } = await supabase
-        .from("strava_connections")
-        .select(
-          "profile_id, strava_athlete_id, access_token, refresh_token, expires_at",
-        )
-        .eq("profile_id", user.id)
-        .maybeSingle();
+      const { data: conn } = strava.allowed
+        ? await supabase
+            .from("strava_connections")
+            .select(
+              "profile_id, strava_athlete_id, access_token, refresh_token, expires_at",
+            )
+            .eq("profile_id", user.id)
+            .maybeSingle()
+        : { data: null };
       if (conn) {
         const { accessTokenFor } = await import("@/lib/strava/client");
         const { calibrateWatopiaCols } = await import("@/lib/cols/watopia");

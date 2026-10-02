@@ -177,7 +177,7 @@ const GUIDES = [
     bullets: [
       "ZWB herkent cols en segmenten automatisch uit je Strava-ritten.",
       "Je recordtijd komt rechtstreeks van Strava; per segment zie je de ZWB-ranglijst.",
-      "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'.",
+      "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'. Recordtijden haalt de knop één keer per dag bij Strava op.",
     ],
   },
   {

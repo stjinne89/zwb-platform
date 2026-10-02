@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-09-21)
+## Actieve volgorde (bijgewerkt 2026-10-02)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -9,13 +9,17 @@ gaat stabiliteit voor nieuwe features.
 
 1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
-   Nog te doen, klein: `vacuum full public.zwb_segment_maps;`, `?segmentBackfill=0`
-   uit de URL van de job "ZWB Strava webhooks" (doet niets meer), en de Supabase CLI
-   op de pc van de eigenaar repareren (start niet meer sinds 2026-10-01; zonder CLI
-   draait `npm run db:health` en dus de wekelijkse check van dinsdag niet).
+   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` en `?segmentBackfill=0`
+   uit de URL van de job "ZWB Strava webhooks" (doet niets meer). De Supabase CLI
+   werkt weer: `npm run db:health` draaide op 2026-10-02 zonder ingreep (CLI 2.119.0,
+   database 202 MB, disk ~25%). Waarom hij op 2026-10-01 werd geblokkeerd door
+   Windows-toepassingsbeheer is niet vastgesteld. De cijfers in dat rapport tellen
+   nog vanaf de statistiekenreset van mei, dus de verwijderde segmentquery's staan
+   er nog in; pas de check van volgende week vergelijkt met een momentopname.
    `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
    Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
-2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
+2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
+   eigenaar, 2026-10-02; was 11 oktober). `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
    [Omnium-status](docs/omnium-readiness-2026-09-15.md). Voor de Sprint Quali
@@ -27,16 +31,11 @@ gaat stabiliteit voor nieuwe features.
    Niet een derde keer indienen. Volgende stap is de spike zonder code uit
    [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
    besluit over de huidige Strava-koppeling (zie de ronde hieronder).
-   **Ritten via intervals.icu** (rondes hieronder, deel A t/m C gebouwd):
-   1. `INTERVALS_API_KEY=… node scripts/intervals-probe.mjs --fixture` met de
-      eigen sleutel, en de fixture nakijken en vervangen;
-   2. `0198_intervals_ride_source.sql` toepassen **vóór** de deploy
-      (`0199_gps_segment_times.sql` is toegepast, 2026-09-30);
-   3. `INTERVALS_RIDES_SYNC_SECRET` in Netlify;
-   4. deployen. Elk lid tekent opnieuw voor privacyversie `2026-09-30`;
-   5. een job elk uur op cron-job.org (runbook sectie 2);
-   6. zelf testen met Wahoo en Zwift rechtstreeks in intervals.icu, daarna één
-      vrijwillige overstapper.
+   **Ritten via intervals.icu** (rondes hieronder, deel A t/m C): live en in
+   gebruik. De eigenaar testte het zelf en meerdere leden gebruiken het (gemeld
+   2026-10-02); op productie staan 826 ritten met bron intervals (gemeten
+   2026-10-02). Niet nagegaan: of de fixture van `scripts/intervals-probe.mjs` is
+   vervangen door een echte.
 
    De
    Zwift-routebibliotheek één keer volledig opnieuw
@@ -74,49 +73,43 @@ gaat stabiliteit voor nieuwe features.
    `0192_live_wahoo_link.sql` is toegepast (de vaste Wahoo-link werkt op
    productie, 2026-09-28). Daarna je Wahoo-link koppelen op Samen fietsen en een
    proefrit maken. Garmin werkt met het persoonlijke adres als ontvanger
-   (Stijn, 2026-09-30; spikepunt 1). Spikepunten 2 en 4 (afzender/DKIM en de
-   echte trackpointvelden) zijn nog niet nagekeken.
+   (Stijn, 2026-09-30; spikepunt 1). Garmin en Wahoo zijn live getest en lijken
+   te werken (eigenaar, 2026-10-02). Spikepunten 2 en 4 (afzender/DKIM en de
+   echte trackpointvelden) zijn niet apart nagekeken; of `0193` is toegepast is
+   niet gemeld.
    **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
    sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
    migratie heten de standaard sweet-spotworkouts in de app Drempel.
-   **FRR-tour als hoofdevent:** `0196_frr_tour_event.sql` toepassen vóór of
-   samen met de deploy; daarna op `/beheer/frr-kalender` Nu verversen (nieuwe
-   titels, omschrijving weg). Zie de ronde hieronder.
-   **FRR-tours:** `0195_frr_tours.sql` toepassen **vóór** de deploy (de
-   beheerpagina en de sync lezen de nieuwe tabellen; de eventpagina en de kalender
-   werken zonder). Daarna `FRR_SYNC_SECRET` in Netlify, deployen, een job
-   `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
-   `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
-   (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
-   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` t/m
-   `0203_src_reminders.sql` zijn toegepast (Stijn, 2026-09-30). Nog te doen:
-   `SRC_SYNC_SECRET` in Netlify,
-   deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
-   events vast), daar het SRC-team aanmaken met de teamnaam die ZWB bij MyWhoosh
-   gebruikt, en een job `POST /api/src/sync` elk uur op cron-job.org (runbook
-   sectie 2). Zie de rondes hieronder. **Zondag 4 oktober:** tijdens de dames-
+   **FRR-tours:** volgens de eigenaar staat alles (2026-10-02; `0195`, `0196`,
+   de sync-job en Tour Ignite). Niet door de eigenaar genoemd en dus mogelijk
+   nog open: na etappe 1 (3 oktober) de GC-code invullen die de melding bij
+   Klassement noemt.
+   **SRC-kalender (MyWhoosh Sunday Race Club):** ingericht (eigenaar,
+   2026-10-02); open is alleen de live-meting. **Zondag 4 oktober:** tijdens de dames-
    (07:25 GMT) en herenrace (09:45 GMT) `node scripts/src-live-probe.mjs` draaien
    en de fixture in `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
-   **Voeding, dagmenu:** `0213_nutrition_expansion.sql` en daarna
-   `0214_nutrition_seed_v2.sql` toepassen vóór de deploy van deel 2 (ronde
-   hieronder). Daarna één gedeeld recept voorstellen en goedkeuren.
-4. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
-   `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
-   met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
-   View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
-   een echte telefoon.
+   **Voeding, dagmenu:** `0213_nutrition_expansion.sql` en
+   `0214_nutrition_seed_v2.sql` zijn toegepast (eigenaar, 2026-10-02). Nog niet
+   gemeld: of het delen één keer is doorlopen (een lid deelt een eigen recept,
+   iemand met het recht om schema's te maken keurt het goed op
+   `recepten/voorstellen`).
+4. **Praktijktests: allemaal gedaan** (eigenaar, 2026-10-02): iOS PWA, de
+   trainer-cockpit tot en met Wahoo/Garmin, de eventkaart, de voedingsschermen
+   en ZWBgame op een telefoon.
 5. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
    De lage wattages (duurblokken) en de FTP-historie zijn aangepakt
    (2026-09-21): `0175` toepassen, en na een paar weken de duurmeting herhalen.
    Nog open: naleving rond 105% bij blokkige workouts. Zie "Bekende open dingen".
-6. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
-   testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
-   Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
-   en hoe ronden we de achievementkwaliteit af (verborgen proxy- en
-   future-badges, de handmatige flow)?
+6. **Beheer en import hardenen, als er tijd is.** De eventscan-cron volgen,
+   failure modes aanvullen in `docs/runbook.md`. `activities.csv` is in de
+   praktijk bewezen (5.710 ritten van echte leden, gemeten 2026-10-02); open is
+   alleen één echte `.fit.gz` uit een Strava-export (nog 0 ritten met bron
+   `strava_fit`). De twee productvragen uit juni (POI's in kalender of livehub,
+   achievementkwaliteit) zijn uitgewerkt in de ronde van 2026-10-02 hieronder;
+   het besluit ligt bij de eigenaar.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -132,7 +125,61 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 
 ---
 
-> **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, gepusht; migraties nog niet toegepast.**
+> **"Badges herberekenen": Strava-deel één keer per dag per lid, 2026-10-02 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Eén klik op de knop kon richting 150 Strava-calls kosten (40
+> ritdetails voor coltijden, tot 100 `GET /segments/{id}` voor de PR's, plus de
+> Watopia-kalibratie), zonder rem, op een daglimiet van 2000. Elk lid kan de knop
+> indrukken. Stond sinds 2026-09-23 bij "Bekende open dingen".
+>
+> **Wat.** `recomputeMyMilestoneBadges` vraagt eerst `rateLimitHit`
+> (`badges_recompute_strava`, sleutel het lid, 1 per 24 uur; de bestaande tabel uit
+> `0062`). Bij een tweede klik binnen het venster slaat de actie het Strava-deel
+> over; de col-detector en de badge-evaluatie draaien altijd, want die lezen alleen
+> de database. `/hulp` (cols) zegt dat recordtijden één keer per dag worden
+> opgehaald.
+>
+> **Keuzes.** Het venster is een vaste dag in UTC, geen 24 uur vanaf de klik: dat
+> is hoe `rate_limit_hit` werkt, en een eigen kolom zou een migratie vragen. De
+> limiter is fail-open (bestaand gedrag): faalt hij, dan draait het Strava-deel
+> gewoon. Geen melding in de knop bij een overgeslagen Strava-deel; de uitkomst
+> ("n nieuwe badges") blijft kloppen.
+>
+> **Niet gebouwd.** De 100 segment-PR's uit de knop halen (de nachtelijke
+> reconcile doet ze al): dan toont de knop een nieuw record pas de volgende dag,
+> terwijl `/hulp` hem daarvoor aanwijst.
+>
+> **Getest.** `tsc --noEmit` en ESLint op de geraakte bestanden zonder fouten.
+> Unit-suite: 1.934 geslaagd; `omnium-live` laadt niet (geen `.env.local` in de
+> worktree) en `rls-initplan-migration` geeft in de volle run een time-out, beide
+> bekend en los van deze ronde. Er is geen nieuwe test: de actie heeft geen
+> testopzet en de wijziging is één aanroep van de bestaande limiter.
+> **Niet getest:** de actie zelf tegen een database en Strava (geen lokale
+> Supabase); dat de tweede klik op productie echt geen calls doet.
+>
+> **Twee productvragen uit juni, uitgewerkt (geen code; besluit bij de eigenaar).**
+> Gemeten op productie, alleen lezen, 2026-10-02.
+> - **POI's ook in de kalender of livehub?** POI's staan al op de eventpagina, in
+>   de live-ticker en op de publieke `/live/[eventId]`. Op productie staat er in
+>   totaal één POI (water) bij één event. Voorstel: niet uitbreiden. Een icoon in
+>   de kalenderrij of een lijst op Samen fietsen toont dan bijna altijd niets.
+>   Heroverwegen als organisatoren POI's gaan zetten.
+> - **Achievementkwaliteit.** 188 automatische badges (180 minstens één keer
+>   verdiend, 4.903 toekenningen, 19 leden). 216 handmatige badges (54 codes × 4
+>   niveaus) zijn verborgen tot iemand ze krijgt; daarvan zijn er 2 toegekend, aan
+>   1 lid. `future` komt niet meer voor. Eigen bestuursbadges (`custom_`): 0
+>   aangemaakt. Voorstel: de verborgen handmatige badges laten staan (ze kosten
+>   niets en zijn onzichtbaar), de vraag sluiten, en de handmatige flow pas
+>   verder afwerken als het bestuur er een eerste eigen badge mee maakt.
+>
+> **Statusupdate eigenaar, 2026-10-02** (verwerkt in de actieve volgorde): voeding
+> `0213`/`0214` toegepast; ritten via intervals.icu live en in gebruik; FRR
+> ingericht; SRC ingericht, live-meting op 4 oktober; Garmin en Wahoo live getest;
+> Omnium naar november, onzeker; alle praktijktests gedaan. De Supabase CLI werkt
+> weer (`npm run db:health` gedraaid).
+
+> **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, gepusht; migraties toegepast (eigenaar, 2026-10-02).**
 > Commit: de commit die dit blok toevoegt. Migraties `0213_nutrition_expansion.sql`
 > en `0214_nutrition_seed_v2.sql` (gegenereerd). Gepusht naar `main` op 2026-10-02,
 > vóórdat de migraties zijn toegepast (zie "Vóór de deploy" hieronder).
@@ -10663,7 +10710,8 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
 
 - **Omnium: migratie `0174` toepassen** (beheer ziet anders het conceptseizoen
   niet), daarna seizoen `2026-27` plannen en de productie-inrichting voor
-  editie 1 op 11 oktober. Zie de ronde van 2026-09-21 bovenaan.
+  editie 1 (verzet naar november, datum onzeker; was 11 oktober). Zie de ronde
+  van 2026-09-21 bovenaan.
 
 - **Geparkeerd 2026-09-21 (besluit eigenaar): tokengebruik van
   trainingsgeneraties loggen.** `training_ai_generations.response_json` bewaart
@@ -10761,7 +10809,9 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   planning nooit gedraaid), en de reconcile deed per lid tot honderd
   segment-calls. Beide inmiddels verholpen.
 
-- **Ledenknop kan 150 Strava-calls kosten** (2026-09-23). Niet urgent, wel goed om
+- ~~**Ledenknop kan 150 Strava-calls kosten**~~ — **opgelost 2026-10-02:** het
+  Strava-deel draait één keer per dag per lid (ronde bovenaan). Oorspronkelijk
+  (2026-09-23): niet urgent, wel goed om
   te weten. `recomputeMyMilestoneBadges` in
   `src/app/(app)/achievements/_actions.ts` draait `syncColSegmentTimesForUser`
   (40 detailcalls) én `syncZwbSegmentsForUser` (40 detailcalls plus
