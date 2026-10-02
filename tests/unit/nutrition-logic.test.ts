@@ -59,7 +59,7 @@ describe("doelen", () => {
   it("rekent dagbanden om naar grammen", () => {
     expect(dailyCarbs("rust", 70)).toEqual({ min: 210, max: 350 });
     expect(dailyCarbs("lang", 70)).toEqual({ min: 560, max: 840 });
-    expect(dailyProtein(70)).toEqual({ min: 112, max: 126 });
+    expect(dailyProtein(70)).toEqual({ min: 112, max: 147 });
   });
 
   it("geeft koolhydraten per uur pas vanaf een uur rijden", () => {

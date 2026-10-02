@@ -1,6 +1,8 @@
 # Voeding voor wielrenners — onderbouwing van de voedingsmodule
 
-Onderzoek van 2026-09-17, als basis voor de tab Voeding in ZWBeter Worden. Dit
+Onderzoek van 2026-09-17, als basis voor de tab Voeding in ZWBeter Worden.
+Bijgewerkt op 2026-10-02, nadat de volledige tekst van het UCI-positiestandpunt
+is gelezen (zie §0). Dit
 document legt vast welke richtlijnen de code gebruikt, waar ze vandaan komen en
 waar het bewijs ophoudt. De samenvattingen voor leden staan in
 `src/lib/nutrition/library.ts`; de getallen in `src/lib/nutrition/targets.ts` en
@@ -19,6 +21,36 @@ waar het bewijs ophoudt. De samenvattingen voor leden staan in
   kcal-doel in beeld (zie §7).
 - **Regelgebaseerd, geen AI.** Uitlegbaar, toetsbaar, en er worden geen
   macro's of richtlijnen verzonnen.
+
+## 0. Wat de volledige tekst van het positiestandpunt veranderde (2026-10-02)
+
+Op 2026-09-17 zat het positiestandpunt (Burke et al. 2026) achter een
+betaalmuur; de getallen kwamen toen uit de open onderliggende reviews. De
+eigenaar leverde op 2026-10-02 de pdf aan. Naast elkaar gelegd:
+
+| Onderwerp | Stond in de code | Positiestandpunt | Besluit |
+|---|---|---|---|
+| Eiwit per dag | 1,6–1,8 g/kg | 1,6–2,1 g/kg (tabel 2) | Overgenomen |
+| Onderweg, > 2,5 uur | 60–90 g/u | 90 g/u (tabel 3) | Band blijft 60–90; de tekst noemt 90 als doel |
+| Onderweg, 40–75 min | niets | Mondspoelen kan helpen | Alleen in de kennisbank |
+| Herstel | 1,0–1,2 g/kg/u, 0,3 g/kg eiwit | Idem (0,3–0,4+ g/kg), plus vocht 125–150% van het verlies over 4–6 uur, met natrium | Tekst in de kennisbank |
+| Koolhydraten per dag | 3–12 g/kg (ACSM) | 5–7 licht, 6–10 matig (< 3 u/dag), > 8 intensief (> 4 u/dag), 10–25 extreem | Niet overgenomen, zie hieronder |
+| Soort eten per dag | niet | Zie §12 | Stuurt de receptkeuze |
+| Micronutriënten | niet | Calcium 800–1200 mg/dag; vitamine D > 50, liefst 75 nmol/l | Kennisbank; labels per recept |
+
+- **Waarom de dagbanden niet zijn overgenomen.** Het positiestandpunt richt zich
+  uitdrukkelijk op elite-renners ("particularly targeted to the elite levels")
+  en geeft geen band voor een rustdag. De ACSM-banden beginnen bij 3–5 g/kg en
+  passen bij leden die naast hun werk trainen. De bovenkant (8–12 g/kg op een
+  lange dag) valt binnen wat het positiestandpunt voor intensieve training
+  noemt.
+- **120 g/u.** Het positiestandpunt noemt het een waargenomen praktijk bij profs
+  waarvan het nut nog gevalideerd moet worden. Dat blijft dus tekst, geen
+  rekenregel.
+- **Niet overgenomen: gewichtstrucs.** Het low-residue-dieet (48–72 uur weinig
+  vezels voor ongeveer 0,7% minder gewicht) en bewust uitdrogen voor een weging
+  staan in het positiestandpunt als praktijk. ZWB bouwt daar niets voor: het
+  botst met §7, en het stuk waarschuwt zelf voor de weegcultuur in esports.
 
 ## 1. Brandstof volgens de training
 
@@ -101,12 +133,19 @@ Bronnen:
 
 ## 5. Eiwit
 
-- **Per dag.** 1,6–1,8 g/kg. Kato et al. maten met de IAAO-methode bij
-  duursporters een gemiddelde behoefte van 1,65 en een aanbevolen inname van
-  1,83 g/kg. Dat is hoger dan de oude 1,2–1,4 g/kg. Kanttekening: zes mannen,
-  één inspanningsdag.
-- **Bovengrens.** Boven ongeveer 1,6 g/kg voegt eiwit weinig toe aan spiermassa
-  (Morton et al. 2018, bij krachttraining).
+- **Per dag.** 1,6–2,1 g/kg (UCI-positiestandpunt, tabel 2). De onderkant sluit
+  aan op Kato et al., die met de IAAO-methode bij duursporters een gemiddelde
+  behoefte van 1,65 en een aanbevolen inname van 1,83 g/kg maten. Kanttekening
+  bij Kato: zes mannen, één inspanningsdag.
+- **Wanneer de bovenkant.** Op rustdagen na zwaar werk, en in periodes met
+  weinig energie of koolhydraten. Op dagen met heel veel koolhydraten is het
+  dagtotaal lastig te halen; het positiestandpunt raadt aan dat op hersteldagen
+  in te halen.
+- **Verdeling.** Of spreiden over de dag op lange termijn extra oplevert, noemt
+  het positiestandpunt onzeker. Het helpt wel om het dagtotaal te halen.
+- **Spiermassa.** Boven ongeveer 1,6 g/kg voegt eiwit weinig toe aan spiermassa
+  (Morton et al. 2018, bij krachttraining). De hogere band is er voor herstel
+  en behoud, niet voor meer spier.
 - **Per maaltijd.** 0,3–0,4 g/kg (ISSN). ZWB rekent met het midden, 0,35 g/kg.
 - **Voor het slapen.** Ongeveer 40 g (Snijders et al. 2019). Trommelen et al.
   (2023) vonden met 45 g na een avondrit meer mitochondriale en myofibrillaire
@@ -212,11 +251,58 @@ wielrenners.
     2025/9.0, RIVM, Bilthoven".
   - Eindgebruikers mogen geen kosten in rekening gebracht krijgen voor de data.
 - **Hoe ZWB dat invult:**
-  - Alle 2.328 producten staan ongewijzigd in `nutrition_foods`.
+  - Alle 2.328 producten staan ongewijzigd in `nutrition_foods`. Sinds
+    2026-10-02 ook de productgroep, calcium, ijzer, magnesium, zink, vitamine D,
+    vitamine C, EPA en DHA (bestand opnieuw gedownload na akkoord op de
+    voorwaarden). EPA en DHA staan apart, zoals NEVO ze levert; optellen gebeurt
+    in de code.
   - Lege NEVO-waarden blijven `null`.
   - Een receptportie met zo'n waarde toont "≥".
 - **Aanpak receptenboek.** Lis DM, et al. (2026). UCI Sports Nutrition Project:
   Plate to Performance — https://pubmed.ncbi.nlm.nih.gov/41946455/
+
+## 12. Het soort eten per dag
+
+Het positiestandpunt (thema 7, naar Lis & Strobel 2026) beschrijft hoe
+ploegkoks de richtlijnen naar het bord vertalen:
+
+- **Zware trainingsdag of wedstrijd.** Koolhydraatrijk, licht verteerbaar,
+  relatief weinig vezels en weinig volume. Zo haal je veel koolhydraten zonder
+  maagklachten.
+- **Rustdag of lichte dag.** Minder koolhydraten; meer eiwit, micronutriënten
+  en vezelrijke producten, voor herstel, afweer en darmgezondheid.
+- **Vet.** 20–35% van de energie, tegengesteld aan koolhydraten: weinig op
+  dagen met veel koolhydraten, meer op rustige dagen.
+- **Voor de rit.** In de laatste één tot drie uur geeft veel vet of eiwit bij
+  gevoelige renners sneller klachten (thema 6).
+
+De bronnen geven hier geen grammen. Waar de receptkeuze drempels gebruikt voor
+"licht verteerbaar" of "vezelrijk", zijn dat vertalingen van ZWB; ze staan bij
+de receptkeuze hieronder.
+
+Bron: Lis DM, Strobel N (2026). UCI Sports Nutrition Project: Plate to
+Performance. *IJSNEM* 36(3):335–351 — https://doi.org/10.1123/ijsnem.2025-0198
+
+## 13. Bot, weerstand en ouder worden
+
+- **Bot.** Wielrenners, vooral wegrenners, hebben een lagere botmassa dan andere
+  sporters en dan niet-sporters. Oorzaken: weinig stootbelasting, meer
+  botafbraak na lange ritten, lage energiebeschikbaarheid. Lage
+  koolhydraatbeschikbaarheid lijkt daarbij zwaarder te wegen dan energie alleen.
+  Calcium 800–1200 mg/dag; vitamine D monitoren bij risico.
+- **Weerstand.** Genoeg energie en koolhydraten zijn de kern. Voor polyfenolen
+  komt het bewijs vooral uit supplementstudies; voor probiotica is het bij
+  sporters wisselend.
+- **Masters.** Spieren reageren minder op training en eiwit; eiwit en
+  botnutriënten wegen zwaarder. De dorstprikkel neemt af. Het positiestandpunt
+  noemt geen leeftijdsgrens en geen aparte getallen, dus de code rekent voor
+  oudere leden niet anders.
+
+Bronnen:
+- Saffioti N, et al. (2026). UCI Sports Nutrition Project: Does Cycling Create a "Perfect Storm" for Bone Health? *IJSNEM* 36(3):324–334 — https://doi.org/10.1123/ijsnem.2025-0033
+- Wilson PB, Pyne DB, Rotunno A (2026). UCI Sports Nutrition Project: Illnesses and Injuries in Elite Cycling. *IJSNEM* 36(3):352–368 — https://doi.org/10.1123/ijsnem.2025-0144
+- Aragon AA, Tipton KD, Schoenfeld BJ (2023). Age-related muscle anabolic resistance. *Nutr Rev* 81(4):441–454 — https://doi.org/10.1093/nutrit/nuac062
+- Gonzalez J, et al. (2026). Nutritionally Relevant Technological Advancements in Professional Cycling. *IJSNEM* 36(3):369–381 — https://doi.org/10.1123/ijsnem.2025-0048. Vermogensmeters zijn bruikbaar om energieverbruik te schatten; glucosesensoren en zweetsensoren zijn dat voor voedingskeuzes nog niet.
 
 ## Receptschaling
 
@@ -243,13 +329,80 @@ Doelen per moment (`mealTarget`):
 **De verdeling over maaltijden is van ZWB, niet uit een bron.** De bronnen geven
 dagtotalen en momenten rond de rit, geen percentages per maaltijd.
 
+## Receptkeuze: het dagmenu
+
+`src/lib/nutrition/menu.ts` kiest per moment één recept. De bronnen zeggen welk
+soort eten bij welke dag hoort (§12); hoe dat in punten wordt omgezet is van ZWB.
+
+- **Momenten.** Altijd ontbijt, lunch en diner. Tussendoor vanaf een matige dag.
+  Voor de rit zolang de geplande rit nog moet komen; tijdens de rit vanaf 60
+  minuten; na de rit vanaf 60 minuten gepland of gereden; voor het slapen na een
+  avondrit en op zware, lange en wedstrijddagen.
+- **Passende portie.** De geschaalde portie wordt naast het doel van dat moment
+  gelegd. Koolhydraten tellen in beide richtingen en wegen dubbel. Eiwit telt
+  alleen als het doel niet gehaald wordt: de meeste maaltijden met vlees, vis
+  of peulvruchten zitten ruim boven 0,35 g/kg, en dat is geen slechtere keuze.
+- **Profiel.** Zware dag, of diner vóór een zware dag: koolhydraatrijk eerst.
+  Rustdag: eiwitrijk eerst. Anders gemengd eerst.
+- **Soort eten.** Licht verteerbaar telt mee vóór de rit en bij de
+  hoofdmaaltijden op zware dagen; vezelrijk op rust- en lichte dagen.
+- **Voorkeur.** Een favoriet krijgt een bonus; "niet voor mij" valt af.
+- **Afwisseling.** Alles binnen 0,2 punt van de beste telt als gelijkwaardig en
+  schuift per dag één plek op. De hoofdmaaltijden krijgen op één dag niet twee
+  keer dezelfde koolhydraatbasis, tenzij het lid zelf doorklikt.
+
+De gewichten (profiel 0,3 en 0,15; soort eten 0,15; favoriet 0,25; band 0,2)
+zijn gekozen, niet gemeten. Gemeten is wat ze opleveren: bij 55, 70 en 90 kg
+heeft elk moment op elk dagtype een clubrecept dat het doel voor minstens 85%
+haalt (test), en over veertien dagen toont het menu bij 70 kg per moment 7 tot
+14 verschillende recepten. Uitzondering: de lunch op zware, lange en
+wedstrijddagen, met 4 of 5.
+
+### Labels per portie (`traits.ts`)
+
+| Label | Regel | Herkomst |
+|---|---|---|
+| Vezelrijk | ≥ 3 g vezels per 100 kcal | Verordening (EG) 1924/2006 |
+| Licht verteerbaar | < 1,5 g vezels per 100 kcal én ≤ 25% van de energie uit vet | Vezelgrens: onder "bron van vezels" uit dezelfde verordening. Vetgrens: eigen keuze, de onderste helft van de 20–35% uit het positiestandpunt |
+| Rijk aan calcium, ijzer, magnesium, zink, vitamine D, vitamine C | ≥ 30% van de referentie-inname per portie | Verordening (EU) 1169/2011 bijlage XIII voor de referentie-innames. De verordening rekent per 100 g; per portie is onze vertaling |
+| Rijk aan omega-3 | ≥ 0,25 g EPA + DHA per portie | De dagelijkse inname die EFSA toereikend noemt |
+
+Een waarde die in NEVO ontbreekt telt als nul. Een label verschijnt dus alleen
+als de bekende waarden de grens al halen. Er is geen dagtotaal: zonder
+eetdagboek valt dat niet te berekenen.
+
+### Waar de recepten vandaan komen
+
+- **120 clubrecepten** in `scripts/nutrition/standard-recipes.json`: de 24 uit de
+  eerste ronde, 25 naar een externe bron en 71 nieuwe eigen.
+- **Externe bronnen.** 24 gerechten naar de receptenverzameling van het
+  Australian Institute of Sport (https://www.ausport.gov.au/ais/nutrition/recipes,
+  343 recepten van sportdiëtisten) en één naar het Voedingscentrum. Overgenomen
+  is het gerecht: de ingrediënten en ongeveer de verhoudingen. De bereiding is
+  opnieuw beschreven en de voedingswaarden zijn met NEVO berekend. Elk recept
+  noemt zijn bron met een link.
+- **Aangepast ten opzichte van de bron.** Producten die NEVO niet kent zijn
+  vervangen (ingedikte melk door halfvolle melk, vissaus weggelaten, hokkien
+  noodles door pasta). Bij koolhydraatrijke hoofdmaaltijden is de koolhydraatbron
+  15–25% groter gemaakt, zodat het recept op een zware of lange dag binnen de
+  schaalgrenzen blijft; bij een aantal recepten is de eiwitbron kleiner gemaakt.
+  Het recept in de app is dus niet het recept van de bron.
+- **Recepten van leden.** Een lid kan een eigen recept voorstellen; wie schema's
+  mag maken keurt goed of wijst af.
+- **Niet gedaan.** Teksten of foto's overnemen. Het Voedingscentrum vraagt
+  daarvoor schriftelijke toestemming van de afdeling Communicatie.
+
 ## Wat nog open is
 
-- **Inhoudelijke controle.** De teksten en de 24 clubrecepten zijn niet door een
+- **Inhoudelijke controle.** De teksten en de 120 clubrecepten zijn niet door een
   (sport)diëtist nagekeken. Doe dat voordat de module breed wordt aangekondigd.
-- **Tekst van het UCI-positiestandpunt.** Die stond achter een betaalmuur. De
-  getallen hier komen uit de onderliggende open reviews en de eerdere consensus.
-  Controleer bij toegang of het positiestandpunt ergens van afwijkt.
+- **Dieetlabels.** Een test bewaakt dat een recept met het label vegetarisch,
+  vegan, lactosevrij of glutenvrij geen product uit de verkeerde NEVO-groep
+  bevat. Sporen en verborgen bestanddelen (melk in brood, gluten in
+  sojasaus) ziet die test niet; bij twijfel heeft een recept het label niet.
+- **Tekst van het UCI-positiestandpunt.** Afgehandeld op 2026-10-02, zie §0. De
+  begeleidende reviews zelf zijn niet gelezen; wat hier uit Lis & Strobel,
+  Saffioti en Wilson staat, komt uit de samenvatting in het positiestandpunt.
 - **Dagtype-drempels.** De grenzen van 60, 90 en 180 minuten zijn een vertaling.
   Na een paar weken gebruik is het de moeite waard te kijken of de dagtypes
   kloppen met hoe leden hun dagen ervaren.

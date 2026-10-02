@@ -117,6 +117,30 @@ const REDS_2023: NutritionSource = {
   kind: "consensus",
 };
 
+const UCI_BONE: NutritionSource = {
+  citation:
+    "Saffioti N, Takarabe L, Perfeito L, Ribeiro W, Hilkens L, Van Dyk J, Dolan E. UCI Sports Nutrition Project: Does Cycling Create a “Perfect Storm” for Bone Health? Int J Sport Nutr Exerc Metab 36(3):324–334.",
+  year: 2026,
+  url: "https://doi.org/10.1123/ijsnem.2025-0033",
+  kind: "review",
+};
+
+const UCI_ILLNESS: NutritionSource = {
+  citation:
+    "Wilson PB, Pyne DB, Rotunno A. UCI Sports Nutrition Project: The Role of Nutrition in the Prevention and Management of Illnesses and Injuries in Elite Cycling. Int J Sport Nutr Exerc Metab 36(3):352–368.",
+  year: 2026,
+  url: "https://doi.org/10.1123/ijsnem.2025-0144",
+  kind: "review",
+};
+
+const UCI_PLATE: NutritionSource = {
+  citation:
+    "Lis DM, Strobel N. UCI Sports Nutrition Project: Plate to Performance—Culinary Nutrition Support for Professional Road Cycling. Int J Sport Nutr Exerc Metab 36(3):335–351.",
+  year: 2026,
+  url: "https://doi.org/10.1123/ijsnem.2025-0198",
+  kind: "review",
+};
+
 export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "brandstof-volgens-training",
@@ -130,6 +154,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Eén tot drie uur training met zwaardere blokken: 6–10 g/kg.",
       "Vier tot vijf uur of meer: 8–12 g/kg.",
       "Eiwit blijft elke dag ongeveer gelijk; koolhydraten schuiven mee met de training.",
+      "Ook het soort eten schuift mee. Zware dag: koolhydraatrijk, licht verteerbaar, weinig vezels en weinig volume. Rustdag: meer eiwit, vezels, groente en fruit.",
+      "Vet beweegt tegengesteld aan koolhydraten: weinig op zware dagen, wat meer op rustige dagen.",
       "Bewust met weinig koolhydraten trainen (train-low) kan adaptaties versterken, maar alleen gericht en niet vóór sessies waar kwaliteit telt.",
     ],
     sources: [
@@ -144,6 +170,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       },
       BURKE_2011,
       ACSM_2016,
+      UCI_PLATE,
       {
         citation:
           "Stellingwerff T, Morton JP, Burke LM. A Framework for Periodized Nutrition for Athletics. Int J Sport Nutr Exerc Metab 29(2):141.",
@@ -161,12 +188,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Een koolhydraatrijke maaltijd een paar uur vooraf vult je lever- en spierglycogeen aan. Stapelen heeft pas zin voor inspanningen van meer dan ongeveer anderhalf uur.",
     points: [
       "Eén tot vier uur voor een zware of lange rit: ongeveer 1–4 g koolhydraten per kg, hoe dichter bij de start hoe minder.",
-      "Kies dan vooral makkelijk verteerbaar: weinig vet, vezels en eiwit, zodat je maag rustig blijft.",
+      "Kies dan vooral makkelijk verteerbaar. Veel vet of eiwit in de laatste één tot drie uur vertraagt je maag en geeft sneller klachten.",
       "Stapelen voor een wedstrijd of tocht van meer dan 90 minuten: 36–48 uur lang 10–12 g/kg.",
       "Voor een korte Zwift-race is stapelen niet nodig; een gewone koolhydraatrijke maaltijd volstaat.",
       "Probeer een nieuwe aanpak eerst op een training, nooit voor het eerst op de wedstrijddag.",
     ],
-    sources: [BURKE_2011, ACSM_2016, KERKSICK_2017],
+    sources: [UCI_POSITION, BURKE_2011, ACSM_2016, KERKSICK_2017],
   },
   {
     slug: "koolhydraten-tijdens-de-rit",
@@ -175,15 +202,16 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     summary:
       "Hoe langer de rit, hoe meer koolhydraten per uur zinvol zijn. Boven de 60 g per uur heb je een mix van glucose en fructose nodig.",
     points: [
-      "Korter dan ongeveer een uur: extra koolhydraten zijn niet nodig.",
+      "Korter dan ongeveer een uur: extra koolhydraten zijn niet nodig. Bij een harde inspanning van 40–75 minuten kan spoelen met sportdrank (5–10 seconden in je mond) helpen.",
       "Eén tot tweeënhalf uur: 30–60 g per uur.",
-      "Tweeënhalf tot zes uur: 60–90 g per uur.",
-      "Tot 120 g per uur kan bij getrainde renners, maar alleen na darmtraining.",
+      "Langer dan tweeënhalf uur: 60–90 g per uur, met 90 als doel als je het verdraagt.",
+      "Tot 120 g per uur komt bij profs voor en vraagt darmtraining. Of het extra oplevert, is nog niet aangetoond.",
       "Een verhouding fructose tot glucose van ongeveer 0,6–1,0 werkt het best. Gewone suiker is 1:1.",
       "Drank, gel of reep maakt voor de opname weinig uit; afwisselen helpt je maag.",
       "Het ≥100 g per uur van het profpeloton is niet zonder meer over te zetten naar recreanten.",
     ],
     sources: [
+      UCI_POSITION,
       MORTON_2026_JNUTR,
       {
         citation:
@@ -294,8 +322,9 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Langere groepsritten of races: dezelfde richtlijnen per uur als buiten.",
       "Eten gaat binnen makkelijker dan op de weg; dat maakt de trainer een goede plek voor darmtraining.",
       "Cafeïne kan ook bij korte, intensieve races helpen (zie supplementen).",
+      "Droog jezelf niet uit voor een weging. Het vochttekort kost binnen, zonder rijwind, meer dan het lagere gewicht oplevert.",
     ],
-    sources: [UCI_ESPORTS, MORTON_2026_JNUTR],
+    sources: [UCI_ESPORTS, UCI_POSITION, MORTON_2026_JNUTR],
   },
   {
     slug: "eiwit",
@@ -304,13 +333,16 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     summary:
       "Duursporters hebben meer eiwit nodig dan het algemene advies. Verdeel het over de dag en neem een portie voor het slapen.",
     points: [
-      "Per dag: ongeveer 1,6–1,8 g eiwit per kg lichaamsgewicht.",
-      "Per maaltijd: ongeveer 0,3–0,4 g/kg, verdeeld over vier tot vijf momenten.",
-      "Meer dan ongeveer 1,6 g/kg per dag voegt weinig toe voor spiermassa.",
+      "Per dag: ongeveer 1,6–2,1 g eiwit per kg lichaamsgewicht.",
+      "De bovenkant past op een rustdag na zwaar werk en in periodes waarin je weinig koolhydraten of energie binnenkrijgt.",
+      "Per maaltijd: ongeveer 0,3–0,4 g/kg, verdeeld over vier tot vijf momenten. Of die verdeling op lange termijn extra oplevert is onzeker; het helpt wel om je dagtotaal te halen.",
+      "Op dagen met heel veel koolhydraten is het dagtotaal lastig te halen. Haal het dan in op de rustdag.",
       "Ongeveer 40 g eiwit voor het slapen, bijvoorbeeld kwark, verhoogt de eiwitaanmaak 's nachts, ook na duurtraining.",
       "Plantaardig kan ook; combineer bronnen en neem wat ruimere porties.",
     ],
     sources: [
+      UCI_POSITION,
+      UCI_PERIODIZATION,
       {
         citation:
           "Kato H, et al. Protein Requirements Are Elevated in Endurance Athletes after Exercise as Determined by the Indicator Amino Acid Oxidation Method. PLoS One 11(6):e0157406.",
@@ -353,8 +385,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Neem er eiwit bij, ongeveer 0,3 g/kg; dat helpt spierherstel en maakt snel aanvullen makkelijker.",
       "Volgende zware sessie pas morgen: gewone maaltijden met genoeg koolhydraten volstaan.",
       "Chocolademelk of kwark met fruit zijn praktische opties direct na de rit.",
+      "Meer dan 2% van je gewicht verloren aan zweet? Drink in de vier tot zes uur erna 125–150% van dat verlies.",
+      "Zout in je herstelmaaltijd of -drank helpt het vocht vast te houden.",
     ],
-    sources: [ACSM_2016, KERKSICK_2017, UCI_PERIODIZATION],
+    sources: [UCI_POSITION, ACSM_2016, KERKSICK_2017, UCI_PERIODIZATION],
   },
   {
     slug: "genoeg-eten-reds",
@@ -392,6 +426,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Een onregelmatige of uitblijvende menstruatie kan wijzen op te weinig energie. Ga daarmee naar een arts.",
       "Het effect van cyclusfase op prestatie is gemiddeld triviaal en verschilt sterk per persoon.",
       "Houd liever bij hoe jij je voelt, bijvoorbeeld in het logboek, dan algemene fase-regels te volgen.",
+      "Klachten zoals krampen, een opgeblazen gevoel of vermoeidheid lijken meer uit te maken dan de fase zelf. Pas je eten aan op de klacht, bijvoorbeeld minder vet en minder scherp gekruid bij darmklachten.",
+      "Wees voorzichtig met apps die je training of eten alleen op cyclusfase aanpassen.",
     ],
     sources: [
       {
@@ -408,6 +444,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7497427/",
         kind: "review",
       },
+      UCI_POSITION,
       REDS_2023,
     ],
   },
@@ -429,6 +466,59 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
           "Sim M, Garvican-Lewis LA, Cox GR, et al. Iron considerations for the athlete: a narrative review. Eur J Appl Physiol 119(7):1463–1478.",
         year: 2019,
         url: "https://pubmed.ncbi.nlm.nih.gov/31055680/",
+        kind: "review",
+      },
+    ],
+  },
+  {
+    slug: "botgezondheid",
+    category: "gezondheid",
+    title: "Botgezondheid",
+    summary:
+      "Wielrenners hebben gemiddeld een lagere botdichtheid dan andere sporters. Fietsen belast je botten nauwelijks, en lange ritten verhogen de botafbraak.",
+    points: [
+      "Genoeg eten is de basis: te weinig energie, en vooral te weinig koolhydraten, verstoort de botstofwisseling.",
+      "Calcium: 800–1200 mg per dag. Zuivel, verrijkte plantaardige zuivel, groene groenten en noten leveren het meeste.",
+      "Vitamine D komt uit zonlicht, vette vis en verrijkte producten. Laat bij twijfel je bloedwaarde meten; streefwaarde boven 50 en liefst 75 nmol/l.",
+      "Eiwit (1,6–2,1 g/kg per dag) is ook voor je botten nodig.",
+      "Dit geldt extra voor jonge renners, die nog botmassa opbouwen, en voor oudere renners.",
+    ],
+    sources: [UCI_BONE, UCI_POSITION, REDS_2023],
+  },
+  {
+    slug: "weerstand",
+    category: "gezondheid",
+    title: "Weerstand en ziek zijn",
+    summary:
+      "Verkoudheid en griep komen bij renners vaker voor in zware trainings- en wedstrijdperiodes. Genoeg energie en koolhydraten zijn de belangrijkste voedingsfactor.",
+    points: [
+      "Te weinig energie of koolhydraten rond zware training verzwakt je afweer.",
+      "Eiwit, ijzer, zink, vitamine C, vitamine D en omega-3-vetzuren spelen een rol. Een gevarieerd menu met groente, fruit, vis en volkoren dekt dat.",
+      "Voor probiotica is het bewijs bij sporters wisselend.",
+      "Antioxidanten als supplement kunnen trainingsaanpassing afremmen; bewaar ze voor periodes waarin snel herstel telt. Uit gewone voeding is dat geen punt.",
+      "Slaap en stress tellen mee voor je afweer.",
+    ],
+    sources: [UCI_ILLNESS, UCI_POSITION],
+  },
+  {
+    slug: "masters",
+    category: "gezondheid",
+    title: "Ouder worden als renner",
+    summary:
+      "Met de jaren reageren spieren minder sterk op training en eiwit, en nemen spier- en botmassa af. Eten kan dat afremmen.",
+    points: [
+      "Eiwit wordt belangrijker: haal je dagtotaal en verdeel het over de dag.",
+      "Genoeg energie, calcium en vitamine D tellen zwaarder, omdat veel fietsen en ouder worden allebei aan je botten trekken. Rond de overgang geldt dat extra.",
+      "Dorst wordt een minder betrouwbaar signaal. Drink in de hitte volgens plan in plaats van op gevoel.",
+    ],
+    sources: [
+      UCI_POSITION,
+      UCI_BONE,
+      {
+        citation:
+          "Aragon AA, Tipton KD, Schoenfeld BJ. Age-related muscle anabolic resistance: inevitable or preventable? Nutr Rev 81(4):441–454.",
+        year: 2023,
+        url: "https://doi.org/10.1093/nutrit/nuac062",
         kind: "review",
       },
     ],
@@ -531,13 +621,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://www.rivm.nl/nederlands-voedingsstoffenbestand",
         kind: "richtlijn",
       },
-      {
-        citation:
-          "Lis DM, et al. UCI Sports Nutrition Project: Plate to Performance—Culinary Nutrition Support for Professional Road Cycling. Int J Sport Nutr Exerc Metab.",
-        year: 2026,
-        url: "https://pubmed.ncbi.nlm.nih.gov/41946455/",
-        kind: "review",
-      },
+      UCI_PLATE,
     ],
   },
 ];

@@ -1,7 +1,8 @@
-// Recepten kiezen en de dag vertalen naar sessies. Puur, zonder database: de
-// Vandaag-pagina en de voedingspagina leveren elk hun eigen rijen aan.
+// Recepten op maat en de dag vertaald naar sessies. Puur, zonder database: de
+// Vandaag-pagina en de voedingspagina leveren elk hun eigen rijen aan. Welk
+// recept bij welk moment komt, staat in menu.ts.
 
-import { amsterdamDayKey, dayIndex } from "@/lib/training/zwbeterworden";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { shiftDayKey } from "@/lib/training/mobility";
 import type { FuelDayType, FuelSession } from "./day-type";
 import {
@@ -41,30 +42,18 @@ export type Recipe = {
   steps_md: string;
   is_standard: boolean;
   owner_id: string | null;
+  /** Het gerecht komt van een externe bron; tekst en waarden zijn van ZWB. */
+  source_name: string | null;
+  source_url: string | null;
+  /** Alleen bij een eigen recept dat met de club gedeeld is. */
+  share_status: ShareStatus | null;
+  /** Wie een clubrecept aandroeg, als dat een lid was. */
+  contributor: { display_name: string | null } | null;
   ingredients: RecipeIngredientRow[];
 };
 
-/**
- * Recepten voor een moment, met het gevraagde brandstofprofiel eerst. Binnen
- * die volgorde draait de keuze per dag door, zodat niet elke dag hetzelfde
- * recept bovenaan staat.
- */
-export function pickRecipes(
-  recipes: Recipe[],
-  want: { mealMoment: MealMoment; fuelProfile: FuelProfile | null },
-  today: string,
-  count: number,
-): Recipe[] {
-  const forMoment = recipes
-    .filter((recipe) => recipe.meal_moment === want.mealMoment)
-    .sort((a, b) => a.slug.localeCompare(b.slug));
-  if (forMoment.length === 0) return [];
-
-  const offset = dayIndex(`${today}:${want.mealMoment}`, forMoment.length);
-  const rotated = [...forMoment.slice(offset), ...forMoment.slice(0, offset)];
-  const matches = (recipe: Recipe) => want.fuelProfile != null && recipe.fuel_profile === want.fuelProfile;
-  return [...rotated.filter(matches), ...rotated.filter((recipe) => !matches(recipe))].slice(0, count);
-}
+export const SHARE_STATUSES = ["voorgesteld", "afgewezen"] as const;
+export type ShareStatus = (typeof SHARE_STATUSES)[number];
 
 export type Rider = {
   weightKg: number | null;
