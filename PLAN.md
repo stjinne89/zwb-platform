@@ -54,10 +54,8 @@ gaat stabiliteit voor nieuwe features.
      **Zondag 4 oktober:** tijdens de dames- (07:25 GMT) en herenrace (09:45 GMT)
      `node scripts/src-live-probe.mjs` draaien en de fixture in
      `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
-   - **Voeding:** het delen één keer doorlopen (een lid deelt een eigen recept,
-     iemand met het recht om schema's te maken keurt het goed op
-     `recepten/voorstellen`). De eerste poging strandde op het formulier; zie de
-     ronde van 2026-10-02 hieronder.
+   - **Voeding:** delen en goedkeuren van een eigen recept werkt op productie
+     (eigenaar, 2026-10-02). Open blijft de controle door een (sport)diëtist.
    - De Zwift-routebibliotheek één keer volledig opnieuw ophalen na het
      smoothing-besluit van `0147`, als dat nog niet is gebeurd.
 4. **Praktijktests: allemaal gedaan** (eigenaar, 2026-10-02): iOS PWA, de
@@ -151,7 +149,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 > **Getest.** `tsc --noEmit` en ESLint zonder fouten; `nutrition-food-search.test.ts`
 > (7) voor woorden, knippen en volgorde. **Niet getest:** het formulier in de
 > browser, de `or`-query tegen de echte database (alleen de uitkomst is met SQL
-> nageteld), en of het delen daarna tot en met goedkeuren werkt.
+> nageteld). Het delen tot en met goedkeuren is door de eigenaar op productie
+> doorlopen en werkt (2026-10-02, vóór deze wijzigingen live stonden).
 
 > **"Badges herberekenen": Strava-deel één keer per dag per lid, 2026-10-02 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
