@@ -486,8 +486,8 @@ async function importOneFile(
 /**
  * Na het laatste bestand: cols, ZWB-segmenten (uit de cols), ZWBlokken,
  * afgeronde trainingen en badges. Zonder Strava-token, want alles hier leest
- * alleen de database. Wat ZWBlokken niet in één keer haalt, pakt de
- * backfill-cron op.
+ * alleen de database. ZWBlokken doet hier hooguit 500 ritten; de rest haalt het
+ * formulier op met syncMyBlocks. Een cron die dat overneemt is er niet.
  */
 export async function finishMyStravaImport() {
   const supabase = await createClient();
@@ -551,6 +551,36 @@ export async function finalizeAchievementAwards() {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Badges vastleggen faalde.",
+    };
+  }
+}
+
+/**
+ * ZWBlokken verder bijwerken na een grote import: 500 ritten per aanroep, buiten
+ * en Zwift. Het formulier herhaalt dit tot `remaining` false is.
+ */
+export async function syncMyBlocks() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  try {
+    const admin = createAdminClient();
+    const { syncBlocksForUser } = await import("@/lib/zwblokken/sync");
+    const { syncZwiftBlocksForUser } = await import("@/lib/zwblokken/zwift-sync");
+    const [outside, zwift] = await Promise.all([
+      syncBlocksForUser(admin, user.id),
+      syncZwiftBlocksForUser(admin, user.id),
+    ]);
+    if (!outside.remaining && !zwift.remaining) revalidatePath("/zwblokken");
+    return { ok: true as const, remaining: outside.remaining || zwift.remaining };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "ZWBlokken bijwerken faalde.",
     };
   }
 }

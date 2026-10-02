@@ -5225,6 +5225,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZWBlokken: ritten zonder spoor houden de rij niet meer op
+
+**2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Kevin had FIT-bestanden geüpload en stond nog steeds niet in de
+Zwift-werelden. Gemeten op productie (alleen gelezen):
+- De FIT-import van 2026-10-01 (`b2d8058`) stond nog niet op `main`. Er is geen
+  enkele rit met `import_source = strava_fit`, en geen CSV-rit kreeg een spoor.
+  De oude code las een `.fit.gz` als CSV en meldde "Geen activiteiten gevonden".
+- Kevin koppelde intussen intervals.icu. Drie Zwift-ritten van 1 oktober kwamen
+  met spoor binnen (Scotland en Watopia), maar hadden een dag later nog geen
+  blokken: 1.000 van zijn virtuele ritten waren verwerkt, 658 zonder spoor
+  wachtten, en daarachter de drie mét spoor.
+
+**Oorzaak.** `syncZwiftBlocksForUser` neemt per aanroep 500 ritten, van oud naar
+nieuw, en vinkt ook ritten zonder spoor één voor één af. Een lid met 1.658
+CSV-ritten zonder spoor heeft dus vier runs nodig voordat zijn nieuwste rit aan
+de beurt is, en een run komt er alleen bij een nieuwe rit. In de hele club stond
+alleen Kevin zo te wachten.
+
+**Wat er veranderde.**
+- `syncZwiftBlocksForUser` en `syncBlocksForUser` vinken ritten zonder spoor
+  eerst in één update af. De rij bevat daarna alleen ritten die blokken kunnen
+  opleveren.
+- Nieuwe actie `syncMyBlocks`: het importformulier herhaalt die na het nawerk tot
+  ZWBlokken bij is (500 ritten per ronde, hooguit 20 rondes). Zonder dit zou een
+  upload van 1.658 FIT-bestanden na de eerste 500 blijven steken.
+
+**Claim die niet klopte.** In de GPX-ronde van 2026-09-30 en in de code stond dat
+"de backfill-cron" oppakt wat ZWBlokken niet haalt. Die cron bestaat niet:
+`/api/zwblokken/backfill` is handwerk (runbook sectie 2). De zinnen zijn
+rechtgezet.
+
+**Nog te doen op productie.** Na de deploy komen Kevins drie ritten mee bij zijn
+eerstvolgende rit via intervals.icu. Direct kan ook:
+`POST /api/zwblokken/backfill?zwift=1&profile=<zijn profiel-id>`.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-tests van ZWBlokken
+en de import. **Niet lokaal te verifiëren:** de update met het JSON-filter
+(`raw->map->>summary_polyline is null`). Hetzelfde filter is wel als leesquery
+tegen productie gedraaid en telde daar de 658 ritten.
+
 ### Opgeleverd — FIT-import: Zwift-ritten uit de Strava-export tellen mee in ZWBlokken
 
 **2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -6117,8 +6159,10 @@ GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
   gaan ze met vijf tegelijk naar `importMyStravaFiles`. Het nawerk (col-detector,
   ZWBlokken, ZWB-segmenten uit de cols, afgeronde trainingen, badges,
   weekbadges) draait daarna één keer via de nieuwe `finishMyStravaImport`, met
-  `runPostSyncForProfile` zonder token, net als de intervals.icu-ritten. Wat
-  ZWBlokken daarbij niet haalt, pakt de backfill-cron op.
+  `runPostSyncForProfile` zonder token, net als de intervals.icu-ritten.
+  ~~Wat ZWBlokken daarbij niet haalt, pakt de backfill-cron op.~~ **Rechtgezet
+  2026-10-02:** die cron bestaat niet; het formulier maakt ZWBlokken nu zelf af
+  met `syncMyBlocks`.
 - **Spoor bewaren.** `stravaActivityFromGpx` zet het spoor als
   `raw.map.summary_polyline`, uitgedund tot 500 punten zoals bij intervals.icu.
   `encodeTrackPolyline` staat daarvoor in `src/lib/track-polyline.ts`;
@@ -6163,8 +6207,9 @@ GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
 **Niet lokaal te verifiëren.** Het nawerk op een grote historie is niet tegen
 de Netlify-timeout getest. Loopt `finishMyStravaImport` vast, dan staan de
 ritten er al wel; het lid krijgt de melding dat badges en cols later volgen.
-Cols en badges werken dan bij via "Badges herberekenen". ZWBlokken komen via de
-backfill-cron.
+Cols en badges werken dan bij via "Badges herberekenen". ~~ZWBlokken komen via de
+backfill-cron.~~ **Rechtgezet 2026-10-02:** er is geen cron; ZWBlokken komen bij
+de volgende import of rit, of via de handmatige backfill.
 
 ### Opgeleverd — hulpteksten wijzen voor sync en import naar het dashboard
 

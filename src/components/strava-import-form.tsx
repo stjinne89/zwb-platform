@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   finishMyStravaImport,
   importMyStravaFiles,
+  syncMyBlocks,
 } from "@/app/(app)/achievements/_actions";
 
 type State =
@@ -21,6 +22,8 @@ type State =
 // onder de uploadlimiet van Netlify (~6 MB).
 const BATCH_FILES = 5;
 const BATCH_BYTES = 4 * 1024 * 1024;
+// 500 ritten per ronde; ruim genoeg voor een historie van tienduizend ritten.
+const MAX_BLOCK_ROUNDS = 20;
 
 function uploadBatches(files: File[]): File[][] {
   const batches: File[][] = [];
@@ -111,6 +114,16 @@ export function StravaImportForm() {
       if (files.length > 1) setState({ kind: "progress", message: "Cols en badges bijwerken..." });
       const finish = await finishMyStravaImport().catch(() => null);
 
+      // Een grote import levert meer ritten op dan ZWBlokken in één aanroep
+      // doorrekent. Hier afmaken; er is geen achtergrondtaak die het overneemt.
+      let blocksDone = false;
+      for (let round = 0; round < MAX_BLOCK_ROUNDS && !blocksDone; round++) {
+        setState({ kind: "progress", message: "ZWBlokken bijwerken..." });
+        const blocks = await syncMyBlocks().catch(() => null);
+        if (!blocks?.ok) break;
+        blocksDone = !blocks.remaining;
+      }
+
       const parts = [count(imported, "rit geïmporteerd", "ritten geïmporteerd")];
       if (tracksAdded > 0) parts.push(count(tracksAdded, "spoor aangevuld", "sporen aangevuld"));
       if (segmentEfforts > 0) parts.push(count(segmentEfforts, "segmenttijd gemeten", "segmenttijden gemeten"));
@@ -126,6 +139,7 @@ export function StravaImportForm() {
         parts.push(`badgecheck: ${finish.milestoneErrors[0]}`);
       }
       if (!finish?.ok) parts.push("badges en cols volgen later");
+      if (!blocksDone) parts.push("ZWBlokken nog niet compleet");
 
       formRef.current?.reset();
       if (failed.length > 0) {

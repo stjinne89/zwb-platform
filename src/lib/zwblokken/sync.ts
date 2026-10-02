@@ -52,6 +52,20 @@ export async function syncBlocksForUser(
   let newBlocks = 0;
   let remaining = false;
 
+  // Ritten zonder spoor (uit activities.csv) leveren nooit blokken op. Eerst in
+  // één keer afvinken, anders houden ze in de rij hieronder (oud naar nieuw) de
+  // ritten mét spoor op. Krijgt zo'n rit later een spoor, dan zet de import de
+  // cursor terug.
+  const { error: skipError } = await supabase
+    .from("strava_activities")
+    .update({ blocks_processed_at: new Date().toISOString() })
+    .eq("profile_id", profileId)
+    .is("blocks_processed_at", null)
+    .in("sport_type", OUTDOOR_CYCLING_SPORTS)
+    .not("trainer", "is", true)
+    .is("raw->map->>summary_polyline", null);
+  if (skipError) throw new Error(skipError.message);
+
   while (scanned < maxActivities) {
     const limit = Math.min(PAGE, maxActivities - scanned);
     const { data, error } = await supabase
