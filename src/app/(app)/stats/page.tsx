@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bike, Clock, Mountain, Trophy, Users, MapPin } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getRequestUser } from "@/lib/auth/request";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { StravaAttribution } from "@/components/strava-brand";
@@ -20,9 +22,11 @@ const DISCIPLINE_LABELS: Record<string, string> = {
   Handcycle: "Handbike",
 };
 
+/** Eén regel per maand, lid en discipline; `count` is het aantal ritten erin. */
 type ActivityRow = {
   profile_id: string;
   start_date: string;
+  count: number;
   sport_type: string | null;
   distance_m: number | string | null;
   total_elevation_gain_m: number | string | null;
@@ -56,26 +60,70 @@ function profileOf(rel: ActivityRow["profiles"]) {
 
 const nl = (n: number) => Math.round(n).toLocaleString("nl-NL");
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchAllActivities(supabase: any, sinceIso: string) {
-  const PAGE = 1000;
-  const all: ActivityRow[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from("strava_activities")
-      .select(
-        "profile_id, start_date, sport_type, distance_m, total_elevation_gain_m, moving_time_seconds, profiles(display_name, region)",
-      )
-      .gte("start_date", sinceIso)
-      .in("sport_type", CYCLING_SPORTS)
-      .order("start_date", { ascending: true })
-      .range(from, from + PAGE - 1);
-    if (error || !data || data.length === 0) break;
-    all.push(...(data as ActivityRow[]));
-    if (data.length < PAGE) break;
-  }
-  return all;
-}
+type RawActivity = Omit<ActivityRow, "count">;
+
+/**
+ * Alle clubritten van het venster, opgeteld per maand, lid en discipline, en tien
+ * minuten gedeeld tussen alle leden.
+ *
+ * De pagina haalde bij elke weergave alle ritten op in pagina's van duizend, na
+ * elkaar: op 2026-10-01 waren dat 5.591 ritten, dus zes vragen, en elke vraag is
+ * een oversteek (functies in Ohio, database in Ierland). De uitkomst is voor elk
+ * lid gelijk: strava_activities en profiles zijn voor alle ingelogde leden
+ * leesbaar (RLS `using (true)`), dus de service-rol toont niets wat een lid niet
+ * zelf mag zien. Opgeteld bewaren houdt de cache klein, ook als de club groeit.
+ */
+const loadClubYear = unstable_cache(
+  async (sinceIso: string): Promise<ActivityRow[]> => {
+    const admin = createAdminClient();
+    const PAGE = 1000;
+    const groups = new Map<string, ActivityRow>();
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await admin
+        .from("strava_activities")
+        .select(
+          "profile_id, start_date, sport_type, distance_m, total_elevation_gain_m, moving_time_seconds, profiles(display_name, region)",
+        )
+        .gte("start_date", sinceIso)
+        .in("sport_type", CYCLING_SPORTS)
+        .order("start_date", { ascending: true })
+        .order("id")
+        .range(from, from + PAGE - 1);
+      if (error || !data || data.length === 0) break;
+      for (const row of data as RawActivity[]) {
+        const date = new Date(row.start_date);
+        if (Number.isNaN(date.getTime())) continue;
+        const month = monthKey(date);
+        const key = `${month}|${row.profile_id}|${row.sport_type ?? ""}`;
+        const group = groups.get(key);
+        if (group) {
+          group.count += 1;
+          group.distance_m = Number(group.distance_m ?? 0) + Number(row.distance_m ?? 0);
+          group.total_elevation_gain_m =
+            Number(group.total_elevation_gain_m ?? 0) + Number(row.total_elevation_gain_m ?? 0);
+          group.moving_time_seconds =
+            Number(group.moving_time_seconds ?? 0) + Number(row.moving_time_seconds ?? 0);
+        } else {
+          groups.set(key, {
+            profile_id: row.profile_id,
+            // De eerste van de maand: de pagina leidt de maand af uit start_date.
+            start_date: `${month}-01T00:00:00.000Z`,
+            count: 1,
+            sport_type: row.sport_type,
+            distance_m: Number(row.distance_m ?? 0),
+            total_elevation_gain_m: Number(row.total_elevation_gain_m ?? 0),
+            moving_time_seconds: Number(row.moving_time_seconds ?? 0),
+            profiles: row.profiles,
+          });
+        }
+      }
+      if (data.length < PAGE) break;
+    }
+    return [...groups.values()];
+  },
+  ["club-stats-year", "v1"],
+  { revalidate: 600 },
+);
 
 export default async function StatsPage({
   searchParams,
@@ -83,10 +131,7 @@ export default async function StatsPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const { month: monthParam } = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   // Venster: laatste 12 maanden (incl. huidige).
@@ -102,7 +147,7 @@ export default async function StatsPage({
   const windowStart = new Date(monthStart);
   windowStart.setUTCMonth(windowStart.getUTCMonth() - 11);
 
-  const activities = await fetchAllActivities(supabase, windowStart.toISOString());
+  const activities = await loadClubYear(windowStart.toISOString()).catch(() => [] as ActivityRow[]);
 
   const selectedMonth =
     monthParam && months.includes(monthParam) ? monthParam : null;
@@ -118,7 +163,7 @@ export default async function StatsPage({
     t.km += Number(a.distance_m ?? 0) / 1000;
     t.hm += Number(a.total_elevation_gain_m ?? 0);
     t.uren += Number(a.moving_time_seconds ?? 0) / 3600;
-    t.count += 1;
+    t.count += a.count;
     byMonth.set(key, t);
   }
 
@@ -141,14 +186,14 @@ export default async function StatsPage({
     scopeTotals.km += km;
     scopeTotals.hm += hm;
     scopeTotals.uren += uren;
-    scopeTotals.count += 1;
+    scopeTotals.count += a.count;
 
     const disc = a.sport_type ?? "Ride";
     const dt = byDiscipline.get(disc) ?? empty();
     dt.km += km;
     dt.hm += hm;
     dt.uren += uren;
-    dt.count += 1;
+    dt.count += a.count;
     byDiscipline.set(disc, dt);
 
     const prof = profileOf(a.profiles);
@@ -167,9 +212,7 @@ export default async function StatsPage({
     (a, b) => b[1].km - a[1].km,
   );
   const regions = Array.from(byRegion.entries()).sort((a, b) => b[1] - a[1]);
-  const topRiders = Array.from(byRider.values())
-    .sort((a, b) => b.km - a.km)
-    .slice(0, 10);
+  const topRiders = Array.from(byRider.values()).sort((a, b) => b.km - a.km);
 
   const maxMonthKm = Math.max(
     1,
@@ -381,7 +424,8 @@ export default async function StatsPage({
             {topRiders.length === 0 ? (
               <p className="text-sm text-muted-foreground">Geen ritten.</p>
             ) : (
-              <ol className="space-y-1 text-sm">
+              // Tien rijen hoog (10 × 33px + 9 × 0,25rem); de rest scrolt.
+              <ol className="max-h-[366px] space-y-1 overflow-y-auto pr-2 text-sm">
                 {topRiders.map((rider, i) => (
                   <li
                     key={rider.name + i}

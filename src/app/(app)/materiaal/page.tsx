@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { PostKindBadge, PostStatusBadge } from "@/components/post-kind-badge";
@@ -45,7 +46,7 @@ export default async function MarketplacePage({
   if (activeCat) query = query.eq("category", activeCat);
   if (activeKind) query = query.eq("kind", activeKind);
 
-  const { data: posts } = await query;
+  const [{ data: posts }, access] = await Promise.all([query, getCurrentUserAccess(supabase)]);
 
   function chipUrl(overrides: { cat?: string | null; kind?: string | null }) {
     const params = new URLSearchParams();
@@ -62,9 +63,11 @@ export default async function MarketplacePage({
       <PageHeader
         title="Vraag en Aanbod"
         actions={
-          <Link href="/materiaal/nieuw">
-            <Button>Nieuw bericht</Button>
-          </Link>
+          access.has("content.create_posts") ? (
+            <Link href="/materiaal/nieuw">
+              <Button>Nieuw bericht</Button>
+            </Link>
+          ) : null
         }
       />
 

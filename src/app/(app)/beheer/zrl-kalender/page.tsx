@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState } from "@/components/app-ui";
 import { groupSubEvents } from "@/lib/events/sub-events";
 import { ZRL_2026_27_ROUNDS } from "@/lib/teams/zrl-season";
 import { ImportForm, type TeamOption } from "./_components/import-form";
 import { RacepassForm, type RacepassMap } from "./_components/racepass-form";
+import { adminAreaPermission } from "@/lib/admin-areas";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
 export default async function ZrlKalenderPage() {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
-  if (!access.hasAny(["teams.manage_roster", "events.manage_all", "community.manage"])) {
+  if (!access.has(adminAreaPermission("zrl"))) {
     redirect("/dashboard");
   }
 

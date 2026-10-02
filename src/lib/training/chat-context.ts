@@ -226,7 +226,7 @@ export async function buildCoachChatContext(
   // De samenvatting van het plan waar de eerstvolgende workout bij hoort, niet
   // die van het basisplan: een herziening maakt een nieuw plan met een nieuwe
   // redenering, en dát is de redenering achter wat er nu staat. Zelfde keuze als
-  // loadPlanCautions() op de Vandaag-pagina.
+  // planCautionsFromSummary() op de Vandaag-pagina.
   //
   // Vaste afspraken tellen daarbij niet mee. Een clubevent of eigen rit hangt
   // aan het basisplan dat liep toen hij werd vastgezet, en dat kan een schema

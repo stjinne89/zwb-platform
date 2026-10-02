@@ -309,3 +309,26 @@
     }
   }
 }
+
+/* Voortgangsbalk bij navigatie (app/(app)/_components/nav-progress.tsx). De eerste
+   150 ms onzichtbaar, zodat een snelle navigatie geen flits geeft. */
+@keyframes nav-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes nav-progress-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.nav-progress-bar {
+  opacity: 0;
+  animation:
+    nav-progress-appear 0.2s ease-out 0.15s forwards,
+    nav-progress-slide 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar {
+    width: 100%;
+    animation: nav-progress-appear 0.2s ease-out 0.15s forwards;
+  }
+}

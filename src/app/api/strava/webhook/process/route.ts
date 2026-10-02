@@ -1,5 +1,5 @@
-// Verwerkt de webhook-wachtrij. Aangeschopt door de Netlify scheduled function
-// `strava-webhook-process` (elke minuut) met Authorization: Bearer
+// Verwerkt de webhook-wachtrij. Aangeschopt door de job "ZWB Strava webhooks" op
+// cron-job.org (elke 5 minuten) met Authorization: Bearer
 // ${STRAVA_SYNC_SECRET}.
 //
 // Waarom niet gewoon in de callback: Strava eist daar een 200 binnen 2 seconden en
@@ -8,33 +8,24 @@
 // idempotent en herstartbaar; blijven er events liggen, dan pakt de volgende run
 // ze op.
 //
-// Is de wachtrij leeg, dan gebruikt dezelfde run de resterende tijd voor de
-// segment-inhaalslag (runScheduledSegmentBackfill). Uitzetten zonder deploy: voeg
-// `?segmentBackfill=0` toe aan de URL van de cron-job.
+// Is de wachtrij leeg, dan haalt runStravaHistoryBackfill hooguit één pagina oude
+// ritten op van vóór de vijfjaarsgrens van de koppeling. Uitzetten zonder deploy:
+// `?historyBackfill=0` in de URL van de cron-job.
 //
-// Tussen die twee haalt runStravaHistoryBackfill hooguit één pagina oude ritten op
-// van vóór de vijfjaarsgrens van de koppeling. Uitzetten: `?historyBackfill=0`.
-//
-// Daarvoor rekent een korte stap de ZWB KOM's na van segmenten waarvan de stand kan
-// zijn veranderd (refreshSegmentKoms) en verstuurt de pushmeldingen voor gewonnen en
-// verloren titels (notifySegmentKomEvents). Uitzetten: `?segmentKoms=0`.
+// Tot oktober 2026 draaiden hier ook de segment-inhaalslag en de ZWB KOM-stap
+// (`?segmentBackfill=0`, `?segmentKoms=0`). Die zijn met de verkenner verwijderd;
+// de parameters doen niets meer.
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processStravaWebhookEvents } from "@/lib/strava/webhook-processor";
-import { runScheduledSegmentBackfill } from "@/lib/segments/scheduled-backfill";
 import { runStravaHistoryBackfill } from "@/lib/strava/history-backfill";
-import { refreshSegmentKoms } from "@/lib/segments/koms";
-import { notifySegmentKomEvents } from "@/lib/segments/kom-notifications";
 import { checkCronSecret } from "@/lib/cron/auth";
 
 /**
- * Wandklokbudget per run; webhook-events, KOM-stap en de inhaalslagen delen het.
+ * Wandklokbudget per run; webhook-events en de historie-inhaalslag delen het.
  *
  * Stond op 8 s met de aanname dat Netlify rond 10 s afkapt. Een handmatige
  * aanroep op 2026-09-16 liep 29 s en gaf gewoon 200, dus die aanname klopte niet.
- * Met 8 s kwamen er maar 1 tot 5 ritten per run door de segment-inhaalslag: ~30
- * per uur, oftewel 11 dagen voor de achterstand van 8.000 ritten. Op 20 s (nog
- * ruim onder wat de functie blijkt te mogen) gaat dat naar ~2 dagen.
  *
  * Elke stap kijkt zelf naar de klok, dus een langer budget verlengt alleen het
  * nuttige werk; de budgetgrenzen op Strava (50% kwartier, 60% dag) blijven gelden.
@@ -64,15 +55,6 @@ export async function POST(request: Request) {
   try {
     const admin = createAdminClient();
     const result = await processStravaWebhookEvents(admin, { maxEvents, deadlineMs: RUN_BUDGET_MS });
-    // Vóór de inhaalslag: die vult het budget tot de rand, deze stap is kort en puur database.
-    const segmentKoms = url.searchParams.get("segmentKoms") === "0"
-      ? null
-      : {
-          refresh: await refreshSegmentKoms(admin, { deadline: startedAt + RUN_BUDGET_MS }),
-          notify: await notifySegmentKomEvents(admin, { deadline: startedAt + RUN_BUDGET_MS }),
-        };
-    // Vóór de segment-inhaalslag: die vult elke run tot de rand, en dit is hooguit
-    // één overzichtspagina. De ritten die hier binnenkomen, pakt die daarna op.
     let historyBackfill: unknown = null;
     if (url.searchParams.get("historyBackfill") !== "0" && !result.remaining && !result.rateLimited) {
       try {
@@ -81,16 +63,7 @@ export async function POST(request: Request) {
         historyBackfill = { error: err instanceof Error ? err.message : "Historie-inhaalslag faalde." };
       }
     }
-    let segmentBackfill: unknown = null;
-    if (url.searchParams.get("segmentBackfill") !== "0" && !result.remaining && !result.rateLimited) {
-      try {
-        segmentBackfill = await runScheduledSegmentBackfill(admin, { deadline: startedAt + RUN_BUDGET_MS });
-      } catch (err) {
-        // De webhookverwerking is gelukt; een mislukte inhaalslag probeert de volgende run.
-        segmentBackfill = { error: err instanceof Error ? err.message : "Segment-inhaalslag faalde." };
-      }
-    }
-    return Response.json({ ok: true, ...result, segmentKoms, historyBackfill, segmentBackfill });
+    return Response.json({ ok: true, ...result, historyBackfill });
   } catch (err) {
     return Response.json(
       {

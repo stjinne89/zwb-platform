@@ -27,9 +27,9 @@ persoon.
 een beveiligde API-route met header `Authorization: Bearer <SECRET>`, tijdzone
 **Europe/Amsterdam**.
 
-De `netlify/functions/*.mjs` staan er nog, maar gaan op deze site niet af — zie
-sectie 8. Vertrouw er niet op en voeg er geen nieuwe aan toe; zet een nieuwe job
-op cron-job.org.
+De geplande functies in `netlify/functions/` zijn op 2026-10-01 verwijderd: ze
+bleken toch af te gaan en draaiden daardoor dubbel met cron-job.org (sectie 8).
+Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 
 | Job | Type | Schema | Endpoint | Secret-env |
 |---|---|---|---|---|
@@ -42,10 +42,11 @@ op cron-job.org.
 | ↳ het zware nawerk (col-detector, ZWBlokken, milestones, segmenten) staat hier **uit**: dat hoort sinds de webhooks bij het webhook-pad, per binnengekomen rit. Met `?full=1` zet je het aan voor een eenmalige inhaalslag — reken dan op minuten en veel Strava-calls, dus alleen handmatig | | | | |
 | ↳ zet ook de ZWBeter Worden-samenvatting in de Strava-beschrijving van net gereden ritten (zie sectie 3) | | | | |
 | Strava-webhookverwerking | cron-job.org | elke 5 min | `POST /api/strava/webhook/process` | `STRAVA_SYNC_SECRET` |
-| ↳ is de wachtrij leeg, dan vult dezelfde run binnen 20 s (sinds 2026-09-16; daarvoor 8 s) eerst één segmentlijn uit de voorrangslijst (migratie 0155, meeste ZWB-rijders eerst) en daarna segmentpogingen van oude buitenritten aan (nieuwste eerst). Zijn de ritten op, dan gaat de hele run naar segmentlijnen. Stopt vanzelf onder 50% van het kwartier- en 60% van het dagbudget. Voortgang staat als `segmentBackfill` in het antwoord (`remaining` = open ritten, `geometry` = lijnen deze run, `stopped`); `stopped: "done"` betekent dat de ritten binnen zijn, niet de segmentlijnen. Uitzetten zonder deploy: `?segmentBackfill=0` in de job-URL | | | | |
-| ↳ vóór die segmentstap haalt dezelfde run hooguit drie pagina's (elk 100 activiteiten; sinds 2026-09-15 avond, daarvoor één) oude Strava-historie op, zolang er per pagina nog 3,5 s over is, van vóór de vijfjaarsgrens, per lid tot Strava niets ouder heeft (migratie 0164, cursor `strava_connections.history_before`, klaar = `history_complete_at`). Zelfde budgetgrens (50% kwartier, 60% dag). Voortgang als `historyBackfill` in het antwoord (`stopped: "page"` = er is gewerkt, `"done"` = iedereen compleet, `"no_migration"` = 0164 ontbreekt). De segmentdetails van die oude ritten volgen via de segmentstap. Opnieuw voor iedereen: `update strava_connections set history_before = null, history_complete_at = null`. Uitzetten zonder deploy: `?historyBackfill=0` | | | | |
+| ↳ de segment-inhaalslag en de ZWB KOM-stap draaiden hier tot 2026-10-01 mee. Ze zijn met de segmentverkenner verwijderd (migratie 0212); `?segmentBackfill=0` en `?segmentKoms=0` in de job-URL doen niets meer. Zie [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md) | | | | |
+| ↳ is de wachtrij leeg, dan haalt dezelfde run hooguit drie pagina's (elk 100 activiteiten; sinds 2026-09-15 avond, daarvoor één) oude Strava-historie op, zolang er per pagina nog 3,5 s over is, van vóór de vijfjaarsgrens, per lid tot Strava niets ouder heeft (migratie 0164, cursor `strava_connections.history_before`, klaar = `history_complete_at`). Zelfde budgetgrens (50% kwartier, 60% dag). Voortgang als `historyBackfill` in het antwoord (`stopped: "page"` = er is gewerkt, `"done"` = iedereen compleet, `"no_migration"` = 0164 ontbreekt). De segmentdetails van die oude ritten volgen via de segmentstap. Opnieuw voor iedereen: `update strava_connections set history_before = null, history_complete_at = null`. Uitzetten zonder deploy: `?historyBackfill=0` | | | | |
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
+| ↳ stuurt ook de SRC-herinneringen (migratie 0203): om 20:00 Nederlandse tijd op de avond voordat de inschrijving bij MyWhoosh sluit, aan wie deze maand meedoet en niet "niet" zei; en tien minuten voor het weigh-in-venster, aan wie ja of misschien zei en in een categorie met weigh-in rijdt. Eén keer per lid, via `event_reminder_sends`. Een fout daar staat als `src.error` in het antwoord en houdt de gewone herinneringen niet tegen | | | | |
 | Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
 | Zwift-eventspiegel | cron-job.org | **elk uur** | `POST /api/zwift/events/sync` | `ZWIFT_EVENT_SYNC_SECRET` |
 | ↳ spiegelt de Zwift-kalender naar `zwift_events`; dat voedt de eventvoorstellen bij een geplande training. Staat los van de event-scan hierboven: die kiest ZWB-relevante events uit om te publiceren, deze bewaart álles kort en publiceert niets. Elk uur omdat de publieke endpoint per venster maximaal 200 rijen geeft en één run binnen `ZWIFT_EVENT_SYNC_BUDGET_MS` (7 s) maar een deel van de horizon haalt; wat niet past doet de volgende run. Afgelopen events worden elke run opgeruimd (een dag marge) | | | | |
@@ -54,6 +55,9 @@ op cron-job.org.
 | ↳ schrijft de plaats van ons team weg voor de raceweekpagina (tabel `zrl_team_results`, migratie 0188), vanaf 90 minuten na de start en tot een dag erna, alleen als Zwift de uitslag en álle segmenten zonder fout gaf en elke passage minstens 90% van de finishers heeft. Eén teamevent per keer, binnen 18 s; de rest volgt de volgende run. Het antwoord noemt per event `bevroren` of de reden waarom niet. Een uitslag die een ploegleider eerder met "Uitslag vastzetten" zette, rekent deze job na de 90 minuten nog één keer na | | | | |
 | FRR-tours bijhouden | cron-job.org | elke 3 uur | `POST /api/frr/sync` | `FRR_SYNC_SECRET` |
 | ↳ voor tours op /beheer/frr-kalender, van twee dagen voor tot twee dagen na de tour (migratie 0195): leest de tijdsloten opnieuw uit de Zwift-tag, haalt de inschrijvers op van slots die binnen 36 uur starten (Zwift-serviceaccount nodig) en zet ingeschreven leden op "ja". Vanaf twee uur na het eerste slot haalt hij hooguit eens per drie uur het klassement van flammerougeracing.com op. Zonder GC-code op de tour meldt `gc_error` welke codes in de tabel staan | | | | |
+| SRC-kalender bijhouden | cron-job.org | elk uur | `POST /api/src/sync` | `SRC_SYNC_SECRET` |
+| ↳ zet de Sunday Race Club van MyWhoosh in de kalender (migratie 0200): per zondag een hoofdevent met de heren- en damesrace eronder, uit de openbare feed `event.mywhoosh.com/whoosh/events`. Die loopt maar een week vooruit, dus elke run vult de nieuwe zondag aan en werkt starttijden, deadline en weigh-in bij; er wordt nooit iets verwijderd. Weigert zolang niemand op `/beheer/src` één keer Nu verversen heeft gedaan (die beheerder is de maker van de events). Fout staat in `src_sync_state.sync_error` en op de beheerpagina. Zet ook alle zondagen van deze en volgende maand klaar (migratie 0201) | | | | |
+| ↳ haalt daarna de uitslagen op (migratie 0202): per race vanaf twee uur na de start, tot MyWhoosh hem officieel noemt, hooguit eens per drie uur en twee weken lang. Zoekt de race in `…/public/src-events-list` (twee per pagina, hooguit 15 pagina's) en haalt `getEventResults`. Budget 18 s per run; wat niet past, telt als `pending` en komt de volgende run. Fout per race in `src_races.results_error`; Nu verversen op `/beheer/src` haalt meteen op, ook binnen de drie uur | | | | |
 | Ritten via intervals.icu | cron-job.org | **elk uur** | `POST /api/intervals/rides/sync?limit=5` | `INTERVALS_RIDES_SYNC_SECRET` |
 | ↳ voor leden met een intervals.icu-koppeling en **zonder** actieve Strava-koppeling (migratie 0198, `lib/intervals/ride-sync.ts`). Per run hooguit `limit` leden, wie het langst niet aan de beurt was eerst; een nieuw lid begint pas als de run nog geen 8 s bezig is. De eerste run per lid haalt een jaar op, daarna 30 dagen. Alleen nieuwe of gewijzigde ritten worden geschreven en krijgen nawerk (badges, cols, ZWBlokken, naleving); per lid hooguit 5 GPS-sporen per run. Het antwoord telt `stored`, `removed`, `duplicates` en `errors`; de fout per lid staat in `intervals_connections.last_ride_sync_error`. Health-bron `intervals_rides` wordt rood na 3 uur zonder run | | | | |
 | Training-adaptaties (drafts) | cron-job.org | **elk uur** (sinds 2026-09-13) | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
@@ -77,6 +81,23 @@ curl -X POST https://<site>/api/<route> -H "Authorization: Bearer <SECRET>"
 
 (De meeste routes hebben `GET = POST` als alias zodat je ze ook in de browser
 kunt testen.)
+
+---
+
+## 2a. Wekelijkse databasecheck
+
+`npm run db:health` (vanuit de hoofdcheckout, met een ingelogde en gekoppelde
+Supabase CLI) leest de productiedatabase uit en vergelijkt met de vorige run:
+grootte tegen de Free-limiet, groei per tabel, databasetijd per rol, de zwaarste en
+traagste queries, volledige scans op grote tabellen, de performance-advisors,
+werkvoorraden en selects die tegen de 1000-rijengrens aanlopen. Momentopnames en
+rapporten staan in `.tmp/db-health/` (niet in git). Leest alleen.
+
+Een geplande Claude-taak (zwb-wekelijkse-databasecheck) draait dit elke dinsdag om
+10:00 op deze pc en meldt de ACTIE- en LET
+OP-punten. Egress en quota op de Supabase-usagepagina en de job-historie op
+cron-job.org ziet het script niet; die kijkt de taak na als Chrome beschikbaar is.
+Achtergrond: [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md).
 
 ---
 
@@ -213,6 +234,17 @@ hooguit één keer per 30 s per sessie.
 
 ## 6. Veelvoorkomende storingen
 
+- **"Niets wordt meer opgeslagen" / `cannot execute … in a read-only transaction`**
+  → Supabase heeft de database op alleen-lezen gezet omdat de disk op 95% staat
+  (gebeurd op 2026-10-01). Kijk op Settings → Infrastructure: de disk telt
+  database + WAL + system. De database gaat vanzelf weer open onder 95%, maar in
+  alleen-lezen krimpt de WAL niet (Postgres slaat zijn checkpoints over, en
+  `checkpoint` mag de rol niet). Er moet dus echte ruimte vrijkomen. In de
+  SQL-editor, in één run: `begin read write; <drop index … / truncate …>; commit;`.
+  De Supabase CLI werkt op dat moment niet (hij moet een inlogrol aanmaken).
+  Voorkomen: `npm run db:health` meldt het diskgebruik; doe grote schrijfacties
+  gespreid, want de WAL is hier de krappe factor. Zie
+  [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md), "Incident".
 - **"Uitslag/standings leeg"** → cookie verlopen (sectie 3) of bron-HTML
   gewijzigd (sectie 4). Check health-check-status.
 - **"Event-scan vindt niets"** → Zwift-serviceaccount-login mislukt; test via
@@ -232,15 +264,17 @@ hooguit één keer per 30 s per sessie.
   rondjes worden alleen gemaakt als een lid erom vraagt.
 - **"Geen Zwift-voorstellen bij een training"** → in volgorde: staat er iets in
   `zwift_events` (anders draait de uurcron niet of geeft hij 403 op een
-  ontbrekend `ZWIFT_EVENT_SYNC_SECRET`); reikt de spiegel tot de dag van die
+  ontbrekend `ZWIFT_EVENT_SYNC_SECRET`); meldt de sync bij `events` ruim honderd
+  rijen (een handvol betekent dat het filter in `mapZwiftEventToRow` te veel
+  weggooit, zoals op 2026-10-01); reikt de spiegel tot de dag van die
   training (druk op **Test eventvenster**, en zie `windowsIgnored` in het
   antwoord van de sync); heeft het lid FTP én gewicht op zijn profiel staan.
   Staat alles goed en komt er nog niets, dan paste er niets boven de ondergrens
   van 55% — dat is bedoeld gedrag, geen storing.
 - **"Geen push-notificaties"** → VAPID-keys ontbreken of subscription verlopen
   (wordt automatisch geprunet bij 404/410).
-- **"Live-kaart loopt vol/oud"** → controleer of de `live-cleanup`-function nog
-  draait (Netlify → Functions → logs).
+- **"Live-kaart loopt vol/oud"** → controleer op cron-job.org of de job
+  "ZWB live-cleanup" nog slaagt (History).
 - **Cron draait niet** → controleer in cron-job.org of het secret en de URL nog
   kloppen; test handmatig met curl (sectie 2).
 - **"ZWBlokken-kaart is leeg of loopt achter"** → de backfill is per aanroep
@@ -299,7 +333,8 @@ Callback-URL: `https://<site>/api/strava/webhook`. Die route staat in
    Die verwerkt max. 25 events per run en stopt na ~8s (Netlify-timeout). Een rit
    staat dus binnen ~5 minuten in de app.
 3. Per event: `activity` → één `GET /activities/{id}?include_all_efforts=true`
-   (ook meteen de segment-inspanningen); `athlete` met
+   (de tijden op uitgekozen segmenten en cols gaan daaruit direct naar de
+   collecties; de inspanningen zelf worden niet bewaard); `athlete` met
    `updates.authorized = "false"` → koppeling direct opheffen.
 4. Nachtelijk (`strava-lifecycle`, 03:40) → openstaande deauthorisaties afmaken,
    opgeruimde koppelingen wissen, inactiviteitsbeleid draaien.
@@ -328,7 +363,7 @@ rij gewist.
 ### Dataretentie bij ontkoppelen
 
 De ruwe Strava-data gaat weg: `strava_activities` (cascadeert
-`strava_activity_segment_efforts` en `strava_activity_summaries`), de uit Strava
+`strava_activity_summaries`), de Strava-tijden op uitgekozen segmenten, de uit Strava
 gesynchroniseerde fietsen, `profiles.strava_id` en de avatar als die op Strava's
 CDN staat. De afgeleide clubdata blijft: badges, ZWBlokken, onderhoudsstanden en
 `profile_climbed_cols` (de FK naar de rit staat op `on delete set null`).
@@ -430,24 +465,20 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
   `attempts`, dus dit zegt dat de events **nooit zijn aangeraakt**: het probleem
   zit in de trigger, niet in de verwerking of in de events zelf.
 
-  **Loopt de Netlify-schedule überhaupt?** Kijk op `/beheer/event-scan` naar
+  **Lopen de cron-jobs überhaupt?** Kijk op `/beheer/event-scan` naar
   "laatst gecontroleerd" bij het integratie-statusblok. Dat wordt geschreven door
-  de scheduled function `integrations-healthcheck`, elk uur. Staat daar een tijd
-  van uren of dagen geleden, dan lopen de **Netlify scheduled functions
-  site-breed niet** — en dan is dit groter dan de webhookrij: ook `live-cleanup`,
-  `training-adaptations` en `strava-lifecycle` staan dan stil. Zet in dat geval
-  een cron-job.org-job op `/api/strava/webhook/process` (elke 5 min, bearer
-  `STRAVA_SYNC_SECRET`), net als bij de Strava-reconcile; dat werkt aantoonbaar
-  op deze site en kost geen Netlify-invocaties.
+  de health-check-job op cron-job.org, elk uur. Staat daar een tijd van uren of
+  dagen geleden, kijk dan op cron-job.org of de jobs nog aan staan en wat hun
+  History meldt: dan is dit groter dan de webhookrij.
 
   Isoleer het met de knop **Nu verwerken** op `/beheer/strava`. Die draait
   precies dezelfde verwerker, maar dan vanuit de app in plaats van via de
-  scheduled function:
-  1. Knop trekt de rij leeg → verwerking is in orde, de **scheduled function**
-     is de boosdoek. Kijk in Netlify → Functions → `strava-webhook-process` →
-     logs. Meestal: de function draait niet (deploy dateert van vóór de function)
-     of `STRAVA_SYNC_SECRET` ontbreekt in Netlify, waardoor hij een 401 krijgt en
-     stil niets doet.
+  cron-job:
+  1. Knop trekt de rij leeg → verwerking is in orde, de **cron-job** is de
+     boosdoener. Kijk op cron-job.org bij "ZWB Strava webhooks" → History.
+     Meestal: de job staat uit, de URL klopt niet, of `STRAVA_SYNC_SECRET` in de
+     header wijkt af van die in Netlify, waardoor hij een 401 krijgt en stil niets
+     doet.
   2. Knop geeft een foutmelding → de verwerking zelf is stuk; de melding zegt
      wat er mis is.
   3. Knop meldt 0 verwerkt terwijl er events staan → de events horen bij een
@@ -473,6 +504,17 @@ Het waargenomen verbruik staat in `strava_api_usage` (één rij, uit de
 ---
 
 ## 8. Netlify scheduled functions gaan niet af (2026-09-05)
+
+> **Bijgewerkt 2026-10-01: ze gingen wél af, en zijn verwijderd.** Het functielog
+> van Netlify liet voor `strava-webhook-process` over 24 uur elke 5 minuten een
+> uitvoering zien, in dezelfde minuut als de job op cron-job.org. Wanneer Netlify
+> ze is gaan uitvoeren is niet bekend (de logs gaan 24 uur terug). Gevolg: de
+> taken die op beide plekken stonden draaiden dubbel, en een parameter die alleen
+> in de cron-job.org-URL stond (`?segmentBackfill=0`, 2026-09-30) had geen effect
+> op de Netlify-aanroep. De vijf bestanden in `netlify/functions/` zijn daarom
+> weggehaald; cron-job.org is de enige trigger. Alleen voor
+> `strava-webhook-process` is het log bekeken; bij `live-cleanup` laadde het niet.
+> Wat hieronder staat is de situatie van september.
 
 ### Wat we zeker weten
 
@@ -531,10 +573,10 @@ hele probleem was juist dat niemand merkte dat er niets draaide.
 | `/api/strava/lifecycle` | dagelijks 05:40 | `STRAVA_SYNC_SECRET` | ✅ |
 | `/api/training/adaptations/daily` | dagelijks 10:30 | `TRAINING_ADAPTATION_SECRET` | ⚠️ meldt timeout; zie "Bekende open dingen" in `PLAN.md` |
 
-De `.mjs`-bestanden blijven staan als documentatie van wat er zou moeten draaien
-als Netlify het ooit doet. Gaan die schedules alsnog lopen, dan draait alles
-dubbel — alle routes zijn idempotent, dus dat kost invocaties, geen data. Haal
-in dat geval één van de twee weg.
+De `.mjs`-bestanden bleven eerst staan als documentatie. Dat is op 2026-10-01
+misgegaan zoals hier al was voorzien: de schedules gingen lopen en alles draaide
+dubbel. De routes zijn idempotent, dus het kostte invocaties en databasetijd,
+geen data. De bestanden zijn verwijderd.
 
 ### Controleren dat het loopt
 

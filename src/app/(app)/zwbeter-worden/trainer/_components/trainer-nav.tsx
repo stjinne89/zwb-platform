@@ -13,12 +13,14 @@ import { SectionNav } from "../../_components/section-nav";
 import type { TrainerRider } from "../_data";
 
 /**
- * De enige tab met een telbadge. Die telt álle toegewezen leden, niet alleen de
- * gekozen renner: uit de doorlichting van 2026-08-20 bleek dat er 55 bevestigde
- * beoordelingen lagen met twee reacties, en de meest waarschijnlijke reden is dat
- * een trainer elk lid apart moest aanklikken om te ontdekken dat er iets wachtte.
+ * De beoordelen-badge telt álle toegewezen leden, niet alleen de gekozen renner:
+ * uit de doorlichting van 2026-08-20 bleek dat er 55 bevestigde beoordelingen
+ * lagen met twee reacties, en de meest waarschijnlijke reden is dat een trainer
+ * elk lid apart moest aanklikken om te ontdekken dat er iets wachtte.
  */
 const REVIEW_HREF = "/zwbeter-worden/trainer/beoordelen";
+/** De doelen-badge telt de gekozen renner; de kiezer toont het per renner. */
+const GOALS_HREF = "/zwbeter-worden/trainer/doelen";
 
 export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
   const pathname = usePathname();
@@ -95,6 +97,13 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
                             {rider.pendingReviews} te beoordelen
                           </span>
                         ) : null}
+                        {rider.goalsAwaitingPlan > 0 ? (
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                            {rider.goalsAwaitingPlan === 1
+                              ? "1 doel zonder schema"
+                              : `${rider.goalsAwaitingPlan} doelen zonder schema`}
+                          </span>
+                        ) : null}
                         {rider.openChatMessages > 0 ? (
                           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                             {rider.openChatMessages} in de chat
@@ -137,7 +146,11 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
             // De wachtrij gaat over alle leden; een rennerfilter zou hem juist
             // weer versmallen tot wat de trainer al niet zag.
             query: isReview ? undefined : `athlete=${selected.id}`,
-            badge: isReview ? totalPending : undefined,
+            badge: isReview
+              ? totalPending
+              : section.href === GOALS_HREF
+                ? selected.goalsAwaitingPlan
+                : undefined,
           };
         })}
       />

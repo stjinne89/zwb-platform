@@ -60,7 +60,7 @@ export async function syncMyStravaActivities(
       revalidatePath("/dashboard");
       revalidatePath("/leden");
       revalidatePath("/profiel");
-      revalidatePath("/profiel/segments");
+      revalidatePath("/profiel/segments/collecties");
     }
     return result;
   } catch (err) {
@@ -81,7 +81,7 @@ export async function syncMyStravaActivities(
  * Lukt de call bij Strava niet, dan blijft de koppeling gemarkeerd staan: de app
  * negeert 'm vanaf nu, en de nachtelijke sweeper probeert het opnieuw.
  */
-export async function disconnectStrava() {
+export async function disconnectStrava(options: { keepData?: boolean } = {}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -90,7 +90,11 @@ export async function disconnectStrava() {
 
   const admin = createAdminClient();
   const { revokeAndCleanupStravaConnection } = await import("@/lib/strava/sweep");
-  const result = await revokeAndCleanupStravaConnection(admin, user.id, "member");
+  const result = await revokeAndCleanupStravaConnection(
+    admin,
+    user.id,
+    options.keepData === true ? "member_keep_data" : "member",
+  );
 
   revalidatePath("/achievements");
   revalidatePath("/profiel");
@@ -179,7 +183,7 @@ export async function recomputeMyMilestoneBadges() {
       try {
         const { syncZwbSegmentsForUser } = await import("@/lib/segments/sync");
         await syncZwbSegmentsForUser(admin, stravaToken, user.id, {
-          maxFetches: 40,
+          resolveCandidates: 3,
         });
       } catch {
         // niet kritiek; evaluators draaien sowieso
@@ -191,7 +195,7 @@ export async function recomputeMyMilestoneBadges() {
     revalidatePath("/dashboard");
     revalidatePath("/leden");
     revalidatePath("/profiel");
-    revalidatePath("/profiel/segments");
+    revalidatePath("/profiel/segments/collecties");
     return {
       ok: true as const,
       awarded: result.awarded,
@@ -435,7 +439,7 @@ export async function finishMyStravaImport() {
     revalidatePath("/dashboard");
     revalidatePath("/leden");
     revalidatePath("/profiel");
-    revalidatePath("/profiel/segments");
+    revalidatePath("/profiel/segments/collecties");
     revalidatePath("/stats");
 
     return {

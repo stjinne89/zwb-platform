@@ -181,7 +181,8 @@ export function ZwiftView({
       {leaders.length > 0 ? (
         <section className="rounded-lg border bg-card/90 p-4">
           <h2 className="text-sm font-semibold">Meeste blokken in {world.name}</h2>
-          <ol className="mt-3 space-y-1.5">
+          {/* Tien rijen hoog (10 × 1,25rem + 9 × 0,375rem); de rest scrolt. */}
+          <ol className="mt-3 max-h-[15.875rem] space-y-1.5 overflow-y-auto pr-2">
             {leaders.map((m, i) => (
               <li key={m.id} className="flex items-baseline gap-3 text-sm">
                 <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</span>

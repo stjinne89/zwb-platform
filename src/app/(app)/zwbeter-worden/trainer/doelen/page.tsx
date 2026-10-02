@@ -2,6 +2,7 @@
 // conceptschema te laten schrijven.
 
 import { EmptyState } from "@/components/app-ui";
+import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
 import { formatDayMonth, GOAL_LABELS } from "../../_components/format";
 import type { AiGenerationRow, GoalRow, SearchParamsProp } from "../../_components/types";
@@ -24,7 +25,7 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
   }
   const { viewer, athleteId } = context;
 
-  const [{ data: goalRows }, { data: generationRows }] = await Promise.all([
+  const [{ data: goalRows }, { data: generationRows }, awaiting] = await Promise.all([
     viewer.supabase
       .from("training_goals")
       .select("*")
@@ -37,6 +38,7 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
       .in("status", ["queued", "in_progress"])
       .order("created_at", { ascending: false })
       .limit(50),
+    goalsAwaitingPlan(viewer.admin, [athleteId]).catch(() => new Map<string, string[]>()),
   ]);
 
   const goals = (goalRows ?? []) as GoalRow[];
@@ -52,6 +54,8 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
     }
   }
 
+  const waiting = new Set(awaiting.get(athleteId) ?? []);
+
   const canUseAi = Boolean(process.env.OPENAI_API_KEY);
   const canGenerateAi = viewer.access.has("training.ai_generate");
 
@@ -65,7 +69,14 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
           const pending = pendingByGoal.get(goal.id);
           return (
             <div key={goal.id} className="p-4">
-              <p className="font-medium">{goal.title}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium">{goal.title}</p>
+                {waiting.has(goal.id) ? (
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                    Nog geen schema
+                  </span>
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {GOAL_LABELS[goal.goal_type] ?? goal.goal_type}
                 {goal.target_date ? ` - ${formatDayMonth(goal.target_date, false)}` : ""}

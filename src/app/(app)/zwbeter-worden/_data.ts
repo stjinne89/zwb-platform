@@ -8,6 +8,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { getRequestAccess } from "@/lib/auth/request";
 import {
   athletePhysique,
   fetchIntervalsAthlete,
@@ -99,8 +100,10 @@ export type Viewer = {
 };
 
 export async function requireViewer(): Promise<Viewer> {
-  const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  // De rechten deelt deze pagina met de layouts erboven (React cache): één vraag
+  // per weergave in plaats van één per laag. In een serveractie doet de cache
+  // niets en is dit gewoon één vraag.
+  const [supabase, access] = await Promise.all([createClient(), getRequestAccess()]);
   if (!access.user) redirect("/login");
   return { supabase, admin: createAdminClient(), access, user: access.user };
 }
@@ -109,7 +112,10 @@ export function todayKeyAmsterdam() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
 }
 
-export async function loadProfile(viewer: Viewer): Promise<ProfileRow | null> {
+/** Genoeg om eigen gegevens te lezen; zo kan een pagina al beginnen voordat de rechten binnen zijn. */
+export type ViewerIdentity = Pick<Viewer, "supabase" | "user">;
+
+export async function loadProfile(viewer: ViewerIdentity): Promise<ProfileRow | null> {
   const { data } = await viewer.supabase
     .from("profiles")
     .select(
@@ -120,7 +126,7 @@ export async function loadProfile(viewer: Viewer): Promise<ProfileRow | null> {
   return (data ?? null) as ProfileRow | null;
 }
 
-export async function loadConnection(viewer: Viewer): Promise<IntervalsConnection | null> {
+export async function loadConnection(viewer: ViewerIdentity): Promise<IntervalsConnection | null> {
   const { data } = await viewer.supabase
     .from("intervals_connections")
     .select("athlete_id, athlete_name, api_key, updated_at, wellness_opt_in")
@@ -163,6 +169,11 @@ export async function loadIntervalsSnapshot(
     options;
 
   try {
+    // Loopt mee met de calls naar intervals.icu in plaats van erna: elke vraag aan
+    // de database is een oversteek (functies in Ohio, database in Ierland).
+    const activitiesPromise = syncActivities
+      ? refreshIntervalsActivitiesIfStale(viewer, conn).catch(() => undefined)
+      : Promise.resolve(undefined);
     const athletePromise = withAthleteFtp
       ? fetchIntervalsAthlete(conn.api_key).catch(() => null)
       : Promise.resolve(null);
@@ -178,11 +189,13 @@ export async function loadIntervalsSnapshot(
       ? athletePhysique(await athletePromise).ftpWatts
       : null;
 
+    // Wel afwachten: de pagina herkent daarna een net gereden rit als afgeronde
+    // workout (loadMemberWorkouts, loadPendingReview).
+    await activitiesPromise;
+    const { admin, user } = viewer;
     if (syncActivities) {
-      await refreshIntervalsActivitiesIfStale(viewer, conn);
       // Gemeten zonetijden pas na het antwoord: een watt-stream ophalen hoeft
       // de pagina niet op te houden.
-      const { admin, user } = viewer;
       after(async () => {
         const { fillZoneTimes } = await import("@/lib/training/zone-times-fill");
         await fillZoneTimes(admin, user.id, conn).catch(() => null);
@@ -192,12 +205,15 @@ export async function loadIntervalsSnapshot(
     // Zelfherstellend: de opgeslagen kopie voor de AI-planner bijwerken met de
     // records die we hier tóch al hebben. Voorheen gebeurde dat alleen op het
     // moment dat het lid de opt-in aanzette, dus een mislukte eerste poging
-    // bleef voorgoed een lege tabel.
+    // bleef voorgoed een lege tabel. Na het antwoord: de pagina toont de records
+    // zelf en leest de kopie niet, dus het lid hoeft er niet op te wachten.
     if (conn.wellness_opt_in && wellness.length > 0) {
-      await refreshWellnessIfStale(viewer.admin, viewer.user.id, {
-        apiKey: conn.api_key,
-        athleteId: conn.athlete_id,
-        records: wellness,
+      const apiKey = conn.api_key;
+      const athleteId = conn.athlete_id;
+      after(async () => {
+        await refreshWellnessIfStale(admin, user.id, { apiKey, athleteId, records: wellness }).catch(
+          () => null,
+        );
       });
     }
 
@@ -834,17 +850,25 @@ export async function loadFtpTestState(
  * het lopende basisplan: een herziening draagt haar eigen cautions, en dat is de
  * generatie die de duur van die dag heeft bepaald.
  */
-export async function loadPlanCautions(
-  viewer: Viewer,
-  planId: string | null | undefined,
-): Promise<string[]> {
-  if (!planId) return [];
+/**
+ * De samenvatting per schema van dit lid, om de waarschuwingen bij de
+ * eerstvolgende workout te tonen zonder er een aparte ronde voor te maken: welk
+ * schema dat is, weet de pagina pas nadat de workouts binnen zijn.
+ */
+export async function loadPlanSummaries(viewer: ViewerIdentity): Promise<Map<string, string | null>> {
   const { data } = await viewer.supabase
     .from("training_plans")
-    .select("summary")
-    .eq("id", planId)
-    .maybeSingle();
-  return memberCautions(cautionsFromSummary(data?.summary as string | null));
+    .select("id, summary")
+    .eq("profile_id", viewer.user.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return new Map(
+    ((data ?? []) as Array<{ id: string; summary: string | null }>).map((plan) => [plan.id, plan.summary]),
+  );
+}
+
+export function planCautionsFromSummary(summary: string | null | undefined): string[] {
+  return memberCautions(cautionsFromSummary(summary ?? null));
 }
 
 /**

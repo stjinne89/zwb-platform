@@ -7,14 +7,14 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { FRR_TAG_PATTERN } from "@/lib/frr/feed";
 import { FRR_TOUR_COLUMNS, type FrrTourRow } from "@/lib/frr/import";
 import { syncFrrTour } from "@/lib/frr/sync";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
-const MANAGERS = ["events.manage_all", "community.manage"] as const;
 
 async function requireManager() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.hasAny(MANAGERS)) {
+  if (!access.has(adminAreaPermission("frr"))) {
     return { ok: false as const, error: "Geen recht om de FRR-kalender te vullen." };
   }
   return { ok: true as const, userId: access.user.id };

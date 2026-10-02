@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CircleHelp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { looksLikeMe } from "@/lib/text/normalize";
 import { ZwbMark } from "@/components/zwb-logo";
@@ -11,6 +11,7 @@ import { DesktopNav } from "./_components/desktop-nav";
 import { AvatarMenu } from "./_components/avatar-menu";
 import { MobileMenu } from "./_components/mobile-menu";
 import { BackButton } from "./_components/back-button";
+import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
 import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
@@ -46,10 +47,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   if (!user) redirect("/login");
 
   const [{ data: profile }, access] = await Promise.all([
@@ -58,7 +56,7 @@ export default async function AppLayout({
       .select("display_name, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
   ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";
@@ -95,6 +93,7 @@ export default async function AppLayout({
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
+      <NavProgress />
       <header className="relative border-b border-border/80 bg-background/88 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 md:gap-6">
           <Link

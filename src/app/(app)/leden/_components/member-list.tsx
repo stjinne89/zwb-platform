@@ -51,10 +51,12 @@ export function MemberList({
   profiles,
   regions,
   canManageRoles,
+  canGrantBoard,
 }: {
   profiles: MemberListProfile[];
   regions: string[];
   canManageRoles: boolean;
+  canGrantBoard: boolean;
 }) {
   const [region, setRegion] = useState<string>("");
   const [zrlSet, setZrlSet] = useState<Set<string>>(() => new Set());
@@ -230,7 +232,11 @@ export function MemberList({
                   </span>
                 )}
                 {canManageRoles && (
-                  <RoleEditor profileId={p.id} roles={p.community_roles} />
+                  <RoleEditor
+                    profileId={p.id}
+                    roles={p.community_roles}
+                    canGrantBoard={canGrantBoard}
+                  />
                 )}
               </div>
             </li>

@@ -93,7 +93,10 @@ function positiveInt(value: unknown): number | null {
  * regel terug en staat de kalender binnen een uur weer vol.
  */
 export function mapZwiftEventToRow(row: ZwiftEventApiRow): ZwiftEventRow | null {
-  if (row.invisibleToNonParticipants) return null;
+  // Niet `invisibleToNonParticipants`: dat veld regelt wie je in de spelwereld
+  // ziet rijden en staat bij 95% van de openbare events aan (gemeten 2026-10-01,
+  // 190 van 200). Als filter gebruikt hield het de spiegel vrijwel leeg.
+  if (row.privateEvent || row.unlisted || row.restricted || row.visible === false) return null;
 
   // Ontbrekende sport telt niet als "niet fietsen": onbekend mag hier niet als
   // nee gelden, net als in fit.ts en zwift-match.ts.

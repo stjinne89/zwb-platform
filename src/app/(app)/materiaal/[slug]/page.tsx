@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Markdown } from "@/components/markdown";
 import { PostKindBadge, PostStatusBadge } from "@/components/post-kind-badge";
 import {
@@ -14,6 +13,7 @@ import { CommentForm } from "./_components/comment-form";
 import { DeleteCommentButton, DeletePostButton } from "./_components/delete-buttons";
 import { StatusSelect } from "./_components/status-select";
 import { BackLink } from "@/components/app-ui";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export default async function PostDetailPage({
   params,
@@ -23,9 +23,7 @@ export default async function PostDetailPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   const { data: post } = await supabase
     .from("posts")
@@ -44,7 +42,7 @@ export default async function PostDetailPage({
       .select("id, body, created_at, author_id, profiles(display_name)")
       .eq("post_id", post.id)
       .order("created_at"),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
   ]);
 
   const liked = !!(likes ?? []).find((l) => l.profile_id === user?.id);

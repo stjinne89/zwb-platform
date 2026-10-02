@@ -5,6 +5,7 @@
 // beoordeling testbaar is zonder netwerk.
 
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { isSrcName, parseSrcRace, SRC_EVENTS_FEED_URL, type SrcFeedRow } from "@/lib/src/feed";
 
 export type HealthCheckResult = {
   source: string;
@@ -39,6 +40,26 @@ export function evaluateMyWhoosh(status: number, html: string): HealthCheckResul
     return { source, ok: false, detail: "geen event-links in HTML (markup gewijzigd?)" };
   }
   return { source, ok: true, detail: "event-listing bereikbaar" };
+}
+
+// De agenda-feed van MyWhoosh waar de SRC-kalender op draait (migr. 0200). Geen
+// SRC-race erin is geen storing: tussen de finale en de volgende maandag kan de
+// lijst leeg zijn. Een SRC-race die we niet meer kunnen lezen wel.
+export function evaluateSrcFeed(status: number, payload: unknown): HealthCheckResult {
+  const source = "mywhoosh_src";
+  if (status !== 200) {
+    return { source, ok: false, detail: `HTTP ${status}` };
+  }
+  const rows = (payload as { data?: unknown } | null)?.data;
+  if (!Array.isArray(rows)) {
+    return { source, ok: false, detail: "geen eventlijst (structuur gewijzigd?)" };
+  }
+  const src = (rows as SrcFeedRow[]).filter((row) => isSrcName(row?.name));
+  const unreadable = src.filter((row) => !parseSrcRace(row));
+  if (unreadable.length > 0) {
+    return { source, ok: false, detail: `${unreadable.length} SRC-races onleesbaar (structuur gewijzigd?)` };
+  }
+  return { source, ok: true, detail: `${src.length} SRC-races in de feed` };
 }
 
 // Reachability-probe voor een bron waar we alleen heen linken of die we scrapen.
@@ -210,6 +231,11 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
       const res = await withTimeout("https://mywhoosh.com/events/");
       const html = res.status === 200 ? await res.text().catch(() => "") : "";
       return evaluateMyWhoosh(res.status, html);
+    }),
+    guard("mywhoosh_src", async () => {
+      const res = await withTimeout(SRC_EVENTS_FEED_URL);
+      const payload = res.status === 200 ? await res.json().catch(() => null) : null;
+      return evaluateSrcFeed(res.status, payload);
     }),
     guard("zwiftpower", async () => {
       const res = await withTimeout("https://zwiftpower.com/");

@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
 import { requireGameMember } from "@/lib/zwbgame/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { adminAreaPermission } from "@/lib/admin-areas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RosterAdmin } from "./roster-admin";
 import { BackLink } from "@/components/app-ui";
 
 export default async function GameAdminPage() {
-  const { member } = await requireGameMember();
-  if (!member.is_admin) notFound();
+  const { client } = await requireGameMember();
+  const access = await getCurrentUserAccess(client);
+  if (!access.has(adminAreaPermission("zwbgame"))) notFound();
   const admin = createAdminClient();
   const [roster, excluded] = await Promise.all([
     admin.from("roster_entries").select("id, name").is("claimed_by", null).order("name"),

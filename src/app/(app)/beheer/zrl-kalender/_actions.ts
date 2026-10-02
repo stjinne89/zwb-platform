@@ -13,6 +13,7 @@ import {
   type ZrlRaceFormat,
   type ZrlRoundSpec,
 } from "@/lib/teams/zrl-season";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export type ImportInput = Omit<ZrlRoundSpec, "teamName"> & { teamIds: string[] };
 
@@ -26,7 +27,7 @@ export async function importZrlRound(input: ImportInput) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.hasAny(["teams.manage_roster", "events.manage_all", "community.manage"])) {
+  if (!access.has(adminAreaPermission("zrl"))) {
     return { ok: false as const, error: "Geen recht om de racekalender te vullen." };
   }
 
@@ -200,7 +201,7 @@ export async function saveRacepasses(input: {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.hasAny(["teams.manage_roster", "events.manage_all", "community.manage"])) {
+  if (!access.has(adminAreaPermission("zrl"))) {
     return { ok: false as const, error: "Geen recht om racepasses te zetten." };
   }
 

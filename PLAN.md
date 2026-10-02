@@ -7,14 +7,22 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-1. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
+1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
+   is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
+   Nog te doen, klein: `vacuum full public.zwb_segment_maps;`, `?segmentBackfill=0`
+   uit de URL van de job "ZWB Strava webhooks" (doet niets meer), en de Supabase CLI
+   op de pc van de eigenaar repareren (start niet meer sinds 2026-10-01; zonder CLI
+   draait `npm run db:health` en dus de wekelijkse check van dinsdag niet).
+   `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
+   Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
+2. **Omnium editie 1 (11 oktober).** `0174` toepassen, seizoen `2026-27` plannen
    en publiceren, dan event-ID's, A–E-mapping, reglement, prijzen en de tiebreak
    vastzetten. De beheerketen één keer met de hand doorklikken. Details:
    [Omnium-status](docs/omnium-readiness-2026-09-15.md). Voor de Sprint Quali
    uit Zwift: `0190` toepassen en bij "leagues instellen" het sprintsegment
    kiezen (zie de ronde hieronder). Na de editie de opgehaalde tijden naast wat
    het bestuur anders zou plakken leggen.
-2. **Handwerk op productie.** ~~Opnieuw indienen bij Strava.~~ Gedaan en voor
+3. **Handwerk op productie.** ~~Opnieuw indienen bij Strava.~~ Gedaan en voor
    de tweede keer afgewezen (gemeld 2026-09-30); de eigenaar vraagt om uitleg.
    Niet een derde keer indienen. Volgende stap is de spike zonder code uit
    [verder zonder Strava](docs/zonder-strava-onderzoek.md) sectie 8, plus een
@@ -65,8 +73,9 @@ gaat stabiliteit voor nieuwe features.
    positie op, zonder vermogen, cadans, hartslag en afstand.
    `0192_live_wahoo_link.sql` is toegepast (de vaste Wahoo-link werkt op
    productie, 2026-09-28). Daarna je Wahoo-link koppelen op Samen fietsen en een
-   proefrit maken. De Garmin-proefrit (spikepunten 1, 2 en 4) moet een lid met
-   een Edge doen, met diens toestemming.
+   proefrit maken. Garmin werkt met het persoonlijke adres als ontvanger
+   (Stijn, 2026-09-30; spikepunt 1). Spikepunten 2 en 4 (afzender/DKIM en de
+   echte trackpointvelden) zijn nog niet nagekeken.
    **Nog toepassen: `0194_workout_library_training_forms.sql`** (tempo- en
    sweet-spotdoelen in de standaardbibliotheek). Los van de deploy; zonder de
    migratie heten de standaard sweet-spotworkouts in de app Drempel.
@@ -79,19 +88,28 @@ gaat stabiliteit voor nieuwe features.
    `POST /api/frr/sync` elke 3 uur op cron-job.org (runbook sectie 2), en op
    `/beheer/frr-kalender` Tour Ignite toevoegen met tag `frrignite`. Na etappe 1
    (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
+   **SRC-kalender (MyWhoosh Sunday Race Club):** `0200_src_races.sql` t/m
+   `0203_src_reminders.sql` zijn toegepast (Stijn, 2026-09-30). Nog te doen:
+   `SRC_SYNC_SECRET` in Netlify,
+   deployen, één keer "Nu verversen" op `/beheer/src` (dat legt de maker van de
+   events vast), daar het SRC-team aanmaken met de teamnaam die ZWB bij MyWhoosh
+   gebruikt, en een job `POST /api/src/sync` elk uur op cron-job.org (runbook
+   sectie 2). Zie de rondes hieronder. **Zondag 4 oktober:** tijdens de dames-
+   (07:25 GMT) en herenrace (09:45 GMT) `node scripts/src-live-probe.mjs` draaien
+   en de fixture in `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
    **ZRL-uitslag bevriezen:** `ZRL_FREEZE_SECRET` in Netlify zetten, deployen, en
    op cron-job.org een job `POST /api/zrl/freeze` elke 15 min (runbook sectie 2).
    Na de race van 29 september in de job-historie kijken of er "bevroren" staat.
-3. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
+4. **Praktijktests die een mens moet doen.** iOS PWA-regressiecheck;
    `docs/training-cockpit-praktijktest.md` met een trainer en een renner, tot en
    met publicatie op Wahoo/Garmin; de eventkaart (hoogteprofiel, POI's, Street
    View, publieke `/live`); de voedingsschermen met een echt account; ZWBgame op
    een echte telefoon.
-4. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
+5. **Trainingskwaliteit.** De FTP-bron is gemeten en afgehandeld (2026-09-21).
    De lage wattages (duurblokken) en de FTP-historie zijn aangepakt
    (2026-09-21): `0175` toepassen, en na een paar weken de duurmeting herhalen.
    Nog open: naleving rond 105% bij blokkige workouts. Zie "Bekende open dingen".
-5. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
+6. **Beheer en import hardenen, als er tijd is.** Echte `activities.csv`-exports
    testen, de eventscan-cron volgen, failure modes aanvullen in `docs/runbook.md`.
    Twee open productvragen uit juni: horen POI's ook in de kalender of livehub,
    en hoe ronden we de achievementkwaliteit af (verborgen proxy- en
@@ -107,9 +125,446 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0213`.
 
 ---
+
+> **Laadtijd, deel 3: trainingspagina's op basis van een meting, 2026-10-01 — live en gemeten.**
+> Commit `90c055d`. Geen migratie.
+>
+> **Nameting (productie, warme weergaven, zelfde avond).** Schema: 3,6–4,2 s →
+> 2,3–2,6 s; de gegevens zijn na ~1,3 s binnen (was ~3,0 s), daarna nog ~0,75 s
+> voor de onderdelen van de pagina zelf. Vandaag: de pagina verschijnt na 1,2–1,6 s
+> (was 2,1–2,3 s); het bevestigscherm volgt los en sluit het antwoord na 1,9–2,5 s
+> af, omdat `detectCompletedWorkouts` nog steeds 1,3–1,5 s duurt.
+>
+> **Meting.** Tijdelijke logging per stap (`lib/perf/timings.ts`, regel `[perf]` in
+> de functielog van Netlify, commit `7a01d00`). Uitkomst, warme weergaven:
+> - `/zwbeter-worden` (2,1–2,3 s): rechten, profiel en koppeling ~0,2 s; alle calls
+>   naar intervals.icu samen ~0,2 s (dus **niet** de bottleneck, anders dan vermoed);
+>   workouts ~0,3 s; `detectCompletedWorkouts` 1,0–1,7 s en de rest van
+>   `loadPendingReview` nog ~0,3 s; daarna ~0,35 s voor de kaarten onderaan.
+> - `/zwbeter-worden/schema` (3,6–4,2 s): acht stappen na elkaar, waaronder
+>   `settleOwnReplans` 0,26 s, `loadIgnoredStreak` 0,7–0,9 s, `loadScheduleRides`
+>   0,6 s en `loadScheduleEventChoices` 0,6–0,8 s; daarna 0,6–0,85 s voor de
+>   onderdelen van de pagina zelf.
+> Alles is reistijd: elke databasevraag kost ~130 ms (Ohio–Ierland), en deze pagina's
+> doen er twintig tot dertig na elkaar.
+>
+> **Wat.**
+> - Vandaag: het bevestigscherm van een gereden training komt los binnen
+>   (`<Suspense>`); de pagina wacht niet meer op het herkennen van afgeronde
+>   workouts, dat alleen dat scherm voedt. Het start nog steeds direct na de sync
+>   van de ritten.
+> - Schema: elke stap vertrekt zodra zijn invoer er is. `settleOwnReplans` loopt
+>   naast rechten, profiel en koppeling; de workouts volgen op de intervals-events in
+>   plaats van op de hele ronde; suggesties en ritten volgen op de workouts; de
+>   eventkeuzes volgen op de schema's. Gemeten: van ~3,0 s naar ~1,3 s tot alle
+>   gegevens binnen zijn.
+>
+> **Niet gedaan.** `detectCompletedWorkouts` zelf versnellen (acht vragen na
+> elkaar, ook gebruikt door de cron): het staat nu niet meer in de weg van de
+> pagina. De onderdelen onderaan beide pagina's (0,35–0,85 s) zijn niet uitgesplitst.
+> De tijdelijke logging (`lib/perf/timings.ts`, commit `7a01d00`) is na de nameting
+> weer verwijderd, op 2026-10-02, in dezelfde push als deze regel.
+>
+> **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`. **Niet getest:**
+> het gedrag in de browser, waaronder of het bevestigscherm nog verschijnt na een
+> gereden training; dat is pas op productie te zien.
+
+> **Laadtijd, deel 2: Stats en ZWBeter Worden, 2026-10-01 — gebouwd en live; gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Na deel 1 (hieronder) waren dit de twee traagste pagina's: Stats
+> 1,9–2,2 s en ZWBeter Worden 2,6–3,4 s tot de server antwoordt.
+>
+> **Wat.**
+> - `/stats` haalde bij elke weergave alle clubritten van twaalf maanden op in
+>   pagina's van duizend, na elkaar: 5.591 ritten, dus zes oversteken, plus een
+>   rondje naar de Auth-server. Nu één gedeelde cache van tien minuten
+>   (`loadClubYear`, `unstable_cache`, service-rol) met de ritten al opgeteld per
+>   maand, lid en discipline; de pagina rekent daarmee verder zoals voorheen. Zelfde
+>   onderbouwing als bij de clubstatistieken: voor elk lid dezelfde uitkomst.
+> - `/zwbeter-worden`: `requireViewer` deelt de rechten met de layouts in plaats
+>   van ze opnieuw op te vragen; profiel en koppeling vertrekken tegelijk met de
+>   rechten; het bijwerken van de ritbelasting loopt mee met de calls naar
+>   intervals.icu in plaats van erna; de opgeslagen wellness-kopie wordt na het
+>   antwoord bijgewerkt (`after`), want de pagina leest die kopie niet; de
+>   waarschuwingen bij het schema komen mee met de workouts in plaats van in een
+>   eigen ronde. Samen vijf rondes minder. `requireViewer` en
+>   `loadIntervalsSnapshot` worden door alle trainingspagina's gebruikt, dus die
+>   profiteren mee.
+>
+> **Gedrag dat verandert.** Een nieuwe rit telt hooguit tien minuten later mee op
+> `/stats`. De wellness-kopie voor de AI-planner is na een paginaweergave een
+> ogenblik later bij dan voorheen.
+>
+> **Niet gedaan.** De wellness van intervals.icu (730 dagen per weergave) cachen:
+> dat zijn gezondheidsgegevens, en die horen niet in een tweede opslag terecht te
+> komen zonder dat de privacyverklaring dat dekt. De volgorde binnen
+> `loadPendingReview`/`detectCompletedWorkouts` is ongemoeid gelaten: die hangt aan
+> de sync van de ritten.
+>
+> **Getest.** 1.895 unittests, lint zonder fouten, `npm run build`.
+> **Gemeten na de deploy (`4185616`, in de browser, elk vijf keer):** `/stats`
+> 1,9–2,2 → **0,5 s** (eerste weergave na het verlopen van de cache 0,8 s); de
+> totalen op de pagina kloppen exact met een telling in de database (192.333 km,
+> 5.164 ritten, 19 riders). `/zwbeter-worden` 2,6–3,4 → 2,5–2,6 s: **geen
+> wezenlijke winst**. De vijf weggehaalde rondes waren dus niet waar de tijd zat;
+> waarschijnlijk zit die in de calls naar intervals.icu en in
+> `detectCompletedWorkouts`, maar dat is niet gemeten. Voor het eerst gemeten:
+> `/zwbeter-worden/schema` 3,6–4,7 s (de traagste pagina) en
+> `/zwbeter-worden/belasting` 1,0–1,3 s. Vervolg: eerst per stap tijden loggen op
+> de trainingspagina's, dan pas verder snijden.
+
+> **Laadtijd: minder oversteken per pagina, 2026-10-01 — gebouwd en live; gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Na de databaseronde zijn de queries snel (dashboardfeed 377 → 5 ms),
+> maar een ingelogde pagina deed er op de server nog 1 tot 3 seconden over (gemeten
+> in de browser, acht pagina's elk vier keer: teams ~1,0 s, dashboard 1,6–2,0 s,
+> stats 2,0–2,7 s, ZWBeter Worden 2,8–3,2 s). Oorzaak: de Netlify-functies draaien
+> in Ohio (CMH), Supabase staat in Ierland. Elke vraag aan database of Auth is een
+> oversteek, en een pagina doet er meerdere na elkaar. De regio aanpassen kan alleen
+> op een betaald Netlify-plan; de eigenaar wil eerst de gratis stappen.
+>
+> **Wat.**
+> - `getSessionUser` (`lib/auth/session-user.ts`): wie er ingelogd is komt uit het
+>   JWT zelf (`getClaims()`, lokaal gecontroleerd met de ES256-sleutel van het
+>   project) in plaats van via een rondje naar de Auth-server. Gebruikt door de
+>   middleware, `getRequestUser` en `getCurrentUserAccess`, dus ook door
+>   serveracties. Valt terug op `getUser()` als de lokale controle faalt of een fout
+>   gooit.
+> - Dashboard: rechten, ritbron en de verslagen/chat/foto's van voorbije events
+>   lopen mee in de eerste ronde in plaats van ervoor en erna (drie rondes minder).
+> - Clubstatistieken: tien minuten gedeeld gecachet (`unstable_cache`, service-rol).
+>   Veilig omdat `strava_activities` en `profiles` voor elk ingelogd lid leesbaar
+>   zijn; nagekeken in de policies op productie.
+> - `NavProgress`: een voortgangsbalk bovenaan zodra een lid op een interne link
+>   klikt. Kost de server niets.
+>
+> **Gedrag dat verandert.** Een ingetrokken sessie of verwijderd account blijft
+> geldig tot het JWT verloopt (standaard een uur); voorheen werd dat bij elke klik
+> bij de Auth-server nagevraagd. De goedkeuring van een lid wordt nog steeds bij elk
+> verzoek in de database gecontroleerd, en de database controleert het JWT zelf. Een
+> nieuwe rit telt hooguit tien minuten later mee in de clubstatistieken.
+>
+> **Niet gebouwd, en waarom.** `loading.tsx` per pagina: dat laat Next alle
+> zichtbare links voorladen, en elke voorlading is hier een functieaanroep met
+> databasevragen; de Netlify-credits zijn beperkt. De overige gedeelde gegevens op
+> het dashboard cachen: ze zitten in één parallelle ronde met de persoonlijke
+> vragen, dus dat scheelt geen oversteek. De andere trage pagina's (ZWBeter Worden,
+> stats) zijn nog niet aangepakt.
+>
+> **Getest.** 1.895 unittests (nieuw: `session-user.test.ts`), lint zonder fouten,
+> `npm run build`. **Niet getest:** het gedrag in de browser. Ingelogde pagina's zijn
+> lokaal niet te draaien zonder in te loggen, dus het effect en de voortgangsbalk
+> zijn pas na een deploy te zien. De inlogwijziging raakt elk verzoek; dat is het
+> risico van deze ronde.
+> **Gemeten na de deploy (`32a79af`, zelfde acht pagina's, elk vier keer):**
+> dashboard 1,6–2,0 → 1,1–1,4 s; teams 0,9–1,2 → 0,8 s; leden 1,1–2,1 → 0,9–1,3 s;
+> stats 2,0–2,7 → 1,9–2,2 s; de rest binnen de ruis. Inloggen werkt. De ondergrens
+> ligt rond 0,8 s zolang de functies in Ohio staan. De voortgangsbalk verscheen in
+> de eerste versie niet (next/link roept preventDefault aan, en de balk sloeg zulke
+> kliks over); hersteld in `f70a2b9` en daarna in de browser gezien.
+
+> **Geplande Netlify-functies verwijderd, 2026-10-01 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Het runbook zei sinds 5 september dat de vijf geplande functies in
+> `netlify/functions/` op deze site niet afgaan; daarom draait alles via
+> cron-job.org. Het functielog van Netlify liet op 2026-10-01 zien dat
+> `strava-webhook-process` wél elke 5 minuten afging, in dezelfde minuut als de
+> cron-job. De taken die op beide plekken stonden draaiden dus dubbel: per tik drie
+> Netlify-invocaties in plaats van één, en dubbele databaselast. Het verklaart ook
+> waarom de segment-inhaalslag bleef draaien nadat `?segmentBackfill=0` op
+> cron-job.org was gezet: de Netlify-functie riep de route zonder die parameter aan.
+>
+> **Wat.** De vijf bestanden in `netlify/functions/` zijn weg
+> (`integrations-healthcheck`, `live-cleanup`, `strava-lifecycle`,
+> `strava-webhook-process`, `training-adaptations`). cron-job.org is de enige
+> trigger; daar staan alle elf de jobs, met historie per run en een URL die zonder
+> deploy aan te passen is. Runbook sectie 2, 6, 7 en 8 en het commentaar bij de
+> routes zijn gecorrigeerd.
+>
+> **Niet gedaan.** De andere kant op (cron-job.org opzeggen): Netlify had maar vijf
+> van de elf taken, met afwijkende schema's (trainingsaanpassing één keer per dag
+> in plaats van elk uur).
+>
+> **Niet geverifieerd.** Alleen het log van `strava-webhook-process` is bekeken; bij
+> `live-cleanup` laadde het niet. Sinds wanneer Netlify ze uitvoert is onbekend
+> (logs gaan 24 uur terug). Of de dubbele runs na deze deploy weg zijn, is te zien
+> in Netlify bij Functions: daar horen geen geplande functies meer te staan.
+
+> **Segmentverkenner en ZWB KOM's verwijderd, 2026-10-01 — gebouwd, live, migratie toegepast.**
+> Commit: `af49250`. Migratie `0212_remove_segment_explorer.sql`, door de eigenaar
+> toegepast op 2026-10-01 na de deploy. Gemeten daarna: database 200 MB (was 1.260),
+> pogingen, KOM-tabellen en views weg, 77 lijnen in het register, 514 collectierijen.
+>
+> **Waarom.** De tabel met segmentpogingen was ~1 GB van een database van 1,26 GB op
+> een Free-plan van 0,5 GB. Na het inkorten van `raw` (ronde hieronder) bleef het
+> bestand even groot, en een VACUUM FULL past niet op de disk van 2 GB. Alleen een
+> tabel die helemaal weg mag, geeft de ruimte direct terug. De eigenaar koos ervoor de
+> verkenner en de KOM's op te geven en de collecties te houden. Analyse vooraf: van de
+> achtergrond-databasetijd die na 0209 overbleef was ~62% segmentwerk, en de database
+> past na het verwijderen (~210 MB) grotendeels in het geheugen van 0,5 GB. Hoeveel
+> sneller een pagina voor een lid wordt, is niet gemeten.
+>
+> **Wat verdwijnt.** `/profiel/segments` als verkenner (kaart, clubklassement op alle
+> Strava-segmenten, inschatting, hoogteprofiel; het adres stuurt nu door naar de
+> collecties), ZWB KOM/QOM op dashboard, profiel en ledenpagina, de pushmelding en de
+> voorkeur `on_segment_kom`, de segment-inhaalslag en de KOM-stap in
+> `/api/strava/webhook/process`, `/beheer/segments`, `/api/segments/*`,
+> `/hulp/segments`, en de pogingen en KOM's in de data-export.
+>
+> **Wat blijft, en hoe zonder pogingentabel.**
+> - Collecties (`/profiel/segments/collecties`), cols, coltijden en de
+>   segmentvoorstellen bij trainingen.
+> - Een binnenkomende Strava-rit bevat zijn segmentinspanningen al; daaruit gaan de
+>   tijden op uitgekozen segmenten en cols direct naar de collecties
+>   (`applyCuratedEffortsFromDetail` in `lib/segments/sync.ts`). Geen extra call.
+> - De besttijd en het aantal keren komen daarnaast van Strava's eigen PR per segment
+>   (`applyAuthoritativeSegmentPrs`, in de nachtelijke reconcile).
+> - Leden zonder Strava: de GPS-meting bewaart tijden in de rit zelf
+>   (`raw.gps_segment_times`, naast `raw.gps_col_times`) en meet alleen nog langs de
+>   lijnen van uitgekozen segmenten en cols. `applyGpsSegmentTimesForUser` zet ze in
+>   `profile_completed_segments`.
+> - `zwb_segment_maps` blijft als klein register van die lijnen;
+>   `syncSegmentGeometry` haalt een ontbrekende lijn met één Strava-call op.
+>
+> **Gedrag dat verandert.** Bij "Ritten wissen" verdwenen Strava-tijden op
+> uitgekozen segmenten vroeger vanzelf met de pogingen; `purgeStravaDataForProfile`
+> wist ze nu expliciet uit `profile_completed_segments` (cols en eigen GPS-tijden
+> blijven, zoals de privacyverklaring zegt). Wordt de recordrit van een col
+> verwijderd, dan gaat de coltijd leeg in plaats van terug naar de op één na beste;
+> de volgende sync vult hem. Privacytekst ingekort (minder verwerking, geen nieuwe
+> versie).
+>
+> **Migratie 0212.** Eén transactie: eigen GPS-tijden op uitgekozen segmenten naar
+> de rit, views en functies weg (op naam opgezocht, met de triggers op
+> `strava_activities`, `profiles` en `strava_connections` erbij), de drie tabellen
+> weg, het register via legen-en-terugzetten terug naar de uitgekozen lijnen, de
+> kolom `on_segment_kom` weg. Breekt zichzelf af als er daarna nog een functie naar
+> de verwijderde tabellen verwijst. DROP en TRUNCATE schrijven vrijwel geen WAL.
+>
+> **Niet gebouwd, en waarom.** Een variant die de pogingen op uitgekozen segmenten
+> bewaart: niet nodig, de collectie heeft alleen de besttijd per lid. De index
+> `strava_activities_outdoor_ride` (0156) blijft staan: klein, en niet nagegaan of
+> een andere query hem gebruikt.
+>
+> **Getest.** 1.889 unittests, lint zonder fouten, `npm run build`. Nieuw: PGlite-test
+> voor 0212 (`segment-removal-migration.test.ts`: objecten weg, register alleen
+> uitgekozen lijnen, GPS-tijden in de rit, overige tabellen nog te wijzigen),
+> `segment-collections.test.ts`, en aangepaste tests voor de GPS-opslag en het
+> wissen bij ontkoppelen.
+> **Niet vooraf getest:** 0212 op productie. De lijst van triggers en functies is
+> niet naast productie gelegd, want de Supabase CLI startte op 2026-10-01 niet meer;
+> de migratie zoekt ze daarom op naam op en controleert zichzelf. Ook niet getest:
+> de Strava-calls, en `db-health.mjs` na de aanpassing (zelfde reden).
+
+> **Strava ontkoppelen met keuze: ritten bewaren of wissen, 2026-10-01 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie. Geen nieuwe
+> privacyversie.
+>
+> **Waarom.** De eigenaar wil bij het ontkoppelen van Strava zijn ritten in ZWB
+> kunnen houden. Tot nu toe wiste ontkoppelen altijd alles wat van Strava kwam,
+> plus de CSV- en GPX-imports.
+>
+> **Besluit van de eigenaar, tegen het advies in.** Strava's API-beleid eist dat
+> data binnen 30 dagen na deauthorisatie weg is (§2.5, §7.4; zie de ronde
+> "Verder zonder Strava"). Bewaren na ontkoppelen gaat daar tegenin en zet de
+> API-toegang van alle koppelingen op het spel. Voorgelegd met twee
+> alternatieven (alleen imports sparen; niets wijzigen); de eigenaar koos voor
+> de volledige keuze.
+>
+> **Gebouwd.**
+> - `/profiel`, blok Strava: "Ontkoppel Strava" opent een keuze **Ritten
+>   bewaren** / **Ritten wissen** / Annuleren, in plaats van een
+>   bevestigingsvraag.
+> - Nieuwe reden `member_keep_data` in `REVOKED_REASONS`, met
+>   `keepsStravaData()` in `lib/strava/lifecycle.ts`. De keuze zit in
+>   `revoked_reason`, dus zonder nieuwe kolom. Zo kent ook de nachtrun hem als
+>   de deauthorisatie eerst mislukte.
+> - `revokeAndCleanupStravaConnection` en `purgeDeauthorizedConnections`
+>   (`lib/strava/sweep.ts`) slaan bij die reden `purgeStravaDataForProfile`
+>   over en halen alleen de rij uit `strava_connections` weg.
+> - De toestemming bij Strava wordt in beide gevallen ingetrokken, dus de plek
+>   in de cap komt vrij.
+> - Bij bewaren blijft staan: ritten, samenvattingen, segmenttijden, fietsen uit
+>   Strava, CSV/GPX-imports, `profiles.strava_id` en een profielfoto van
+>   Strava's CDN.
+> - Teksten: `/hulp#badges` (één regel) en `/privacy` sectie 4 plus de regel
+>   over het segmentklassement.
+>
+> **Ongewijzigd.** Alle andere wegen wissen nog steeds: beheerder
+> ("Opheffen"), de 90-dagenregel, intrekken op strava.com, een afgewezen token,
+> overstappen naar intervals.icu en account verwijderen.
+>
+> **Gevolg om te kennen.** Koppelt het lid daarna intervals.icu, dan slaat de
+> intervals-sync ritten over die al als Strava-rit staan (`dedupeRides`). De
+> bewaarde Strava-versie blijft dan de rit in ZWB.
+>
+> **Bewust niet.**
+> - Geen knop om bewaarde ritten later alsnog te wissen. Dat loopt via het
+>   bestuur of account verwijderen; `/privacy` zegt dat zo.
+> - Geen keuze bij de overstap naar intervals.icu: daar komen de ritten terug
+>   uit intervals.icu.
+> - Geen nieuwe privacyversie: het lid kiest zelf en er komt geen nieuwe
+>   verwerking bij. **Nog voor te leggen aan de eigenaar** of dat klopt, en of
+>   versie `2026-09-30` al op productie staat.
+>
+> **Claims die niet meer kloppen.** `docs/strava-api-resubmission.md` sectie 3
+> ("we delete the Strava data we hold") is niet meer waar; daar staat nu een
+> waarschuwing boven. De regel "Strava verandert niet" in de privacyronde van
+> 2026-09-30 hieronder is gemarkeerd als achterhaald.
+>
+> **Verificatie.**
+> - Nieuwe test `tests/unit/strava-keep-data.test.ts`: bewaren, wissen, een
+>   geweigerde deauthorisatie gevolgd door de nachtrun, en de nachtrun bij een
+>   andere reden. Volledige suite 1.927 geslaagd, behalve `omnium-live` (geen
+>   `.env.local`). `tsc` schoon, ESLint schoon op de gewijzigde mappen.
+>   `next build` niet gedraaid.
+> - **Niet lokaal te verifiëren:** de knoppen op `/profiel` met een echt
+>   account (geen Supabase hier) en de echte deauthorize-call bij Strava.
+
+---
+
+> **Zwift-voorstellen verdwenen: verkeerd veld als "besloten"-filter, 2026-10-01 — gefixt, lokaal getest en gepusht.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+> Melding van de eigenaar: bij de training van vandaag staan geen Zwift-events meer.
+> **Oorzaak.** `mapZwiftEventToRow` gooide elk event met
+> `invisibleToNonParticipants` weg, in de veronderstelling dat dat "besloten"
+> betekent. Dat veld regelt wie je in de spelwereld ziet rijden. Gemeten op de
+> publieke lijst (2026-10-01, 17:55 UTC): 190 van de 200 events hebben het aan,
+> waaronder gewone openbare races en groepsritten. Er bleven 6 fietsevents over
+> voor ~16 uur, dus vrijwel nooit iets boven de ondergrens van 55%.
+> **Nu.** Het filter kijkt naar `privateEvent`, `unlisted`, `restricted` en
+> `visible === false`. Op dezelfde opname: 163 van de 200 bewaard (25 hardlopen en
+> 12 WTRL-ploegentijdritten met `restricted` vallen af), en de matcher geeft weer
+> drie voorstellen voor een duur-, tempo- en drempeltraining van een uur.
+> **Claim die niet klopte:** de fixture en het commentaar in `external-scan.ts`
+> noemden `invisibleToNonParticipants` "besloten event"; de fixture was met de hand
+> geschreven en dit veld is nooit tegen de echte payload gehouden.
+> **Niet vastgesteld:** sinds wanneer Zwift het veld zo breed aanzet, en wat er nu
+> in `zwift_events` op productie staat. De Supabase CLI start niet vanuit deze
+> sessie (geblokkeerd door Windows-toepassingsbeheer), dus de tabel is niet
+> bekeken; de diagnose rust op de publieke Zwift-lijst en de code.
+> **Ook gezien, niet aangepakt:** de publieke lijst geeft bij alle 200 events 0
+> inschrijvingen terug, dus de populariteitsdimensie zegt nu niets.
+> **Na de deploy:** de uurcron vult de spiegel vanzelf; `events` in het antwoord
+> van de sync hoort dan ruim boven de honderd te liggen.
+> Verificatie: `zwift-event-cache.test.ts` geslaagd (1 nieuwe test, 1 uitgebreid),
+> `npx tsc --noEmit` schoon. Volledige suite: 1.921 van 1.923 geslaagd; de
+> uitvallers zijn time-outs in databasetests die los wél slagen, en
+> `omnium-live.test.ts` vraagt `.env.local`.
+
+> **Database slank en snel, 2026-09-30 — gebouwd en live; inkorten afgerond op 2026-10-01, ruimte teruggeven via de ronde hierboven (0212).**
+> Commit: de commit die dit blok toevoegt. Migraties `0208_query_indexes.sql`,
+> `0209_slim_segment_efforts.sql`, `0210_rls_initplan.sql` (toegepast door de eigenaar,
+> 2026-10-01) en `0211_drop_segment_efforts_priority_index.sql` (op productie al met de
+> hand gedaan, zie het incident hieronder).
+>
+> **Waarom.** De app werd steeds trager. Onderzoek op productie (alleen lezen):
+> Free-plan met Nano-compute (0,5 GB geheugen), database 1,31 GB tegen een limiet
+> van 0,5 GB, disk 83%, egress 5,8 GB tegen 5 GB. Achtergrondjobs gebruikten 14×
+> zoveel databasetijd als leden; `segment_geometry_priority` (0156) alleen al ~40%,
+> met een antwoord dat de app na 2 s altijd weggooide. De segmentpogingen waren
+> 1,02 GB, waarvan ~670 MB de volledige Strava-effort in `raw`. Volledig verslag:
+> [docs/prestatie-onderzoek-2026-09-30.md](docs/prestatie-onderzoek-2026-09-30.md).
+> Direct gedaan door de eigenaar: `?segmentBackfill=0` in de job "ZWB Strava
+> webhooks" op cron-job.org (getest, het antwoord meldt `segmentBackfill: null`).
+>
+> **Wat.**
+> - `0208`: indexen op `strava_activities(start_date desc)` (dashboardfeed las
+>   25.600 ritten, 377 ms) en `live_positions(recorded_at)` (opruimjob, 0,8 s).
+> - `0209`: trigger die `raw` bij elke schrijfweg inkort tot `source`, `hidden` en
+>   `segment.private` (het enige dat functies, views en app lezen; nagekeken op
+>   productie). KOM-trigger alleen nog bij een wijziging die meetelt, anders zou het
+>   inkorten alle ~80.000 segmenten vuil maken. Voorrangslijst voor segmentlijnen
+>   leest alleen `zwb_segment_koms` (2.272 segmenten zonder lijn).
+> - `0210`: alle policies met een kale `auth.uid()`, `auth.role()` of `auth.jwt()`
+>   mechanisch omhuld als `(select …)`; 144 op productie volgens de advisor.
+> - Eventdag: het realtime-kanaal van de live-ticker hing aan `sessionById`; elke
+>   `router.refresh()` opende het opnieuw en vroeg zo weer een refresh aan (een
+>   volledige serverrender per paar seconden). Nu via een ref, en geen refresh in een
+>   verborgen tab. De eventchat luistert alleen nog naar het eigen event.
+> - `getRequestUser`/`getRequestAccess` (`src/lib/auth/request.ts`) met
+>   `React.cache()` in de app-layout en 36 pagina's: van vijf naar twee à drie
+>   `getUser()`-rondjes per klik (middleware, één gedeelde, en op een deel van de pagina's nog een eigen).
+> - 1000-rijengrens: clubstatistieken gepagineerd (op 2026-09-30 al 1.090 ritten, dus
+>   de totalen waren te laag); poll-opties en -stemmen via de poll zelf; kalender haalt
+>   events vanaf 30 dagen terug en telt oudere apart voor "Voorbije ritten".
+> - KOM-herberekening in batches van 50 in plaats van 200.
+> - `scripts/db-health.mjs` (`npm run db:health`): wekelijkse check tegen
+>   productie, met momentopnames in `.tmp/db-health/`. Draait via een geplande
+>   Claude-taak op dinsdag 10:00. `scripts/slim-segment-efforts.mjs`: eenmalig inkorten
+>   (gedraaid en daarna verwijderd, 2026-10-01).
+>
+> **Niet gebouwd, en waarom.** `getClaims()` (hangt af van asymmetrische
+> JWT-sleutels, niet nagegaan); de 36 "multiple permissive policies" (per tabel een
+> keuze over rechten); `strava_activities.raw` inkorten (op veel plekken gelezen);
+> de OFFSET-paginering over segmentpogingen (wordt goedkoop zodra `raw` klein is).
+> Segmenten met één of twee rijders krijgen hun lijn niet meer vooraf, alleen bij
+> openen: bij 20–60 per dag kwam de inhaalslag daar toch nooit aan toe.
+>
+> **Getest.** Unittests (1.922 na het samenvoegen met main), waaronder PGlite voor 0209 (inkorten, KOM-trigger,
+> voorrangslijst) en 0210 (omhullen, rechten gelijk, twee keer draaien), lint zonder
+> fouten, `npm run build`. `db-health.mjs` tegen productie gedraaid. De voorvertoning
+> van 0210 op productie telde precies de 144 policies van de advisor.
+> `tests/unit/omnium-live.test.ts` faalt in een worktree zonder `.env.local`; dat
+> staat hier los van.
+> **Incident 2026-10-01.** Het inkortscript zette de productiedatabase na 220.000
+> rijen op alleen-lezen (~07:53–08:14 UTC): niet de tabel groeide, maar de WAL (128 →
+> 432 MB), en de disk kwam op 95%. Fout ingeschat: de WAL, en dat `raw` in de tabel
+> zelf staat en niet in TOAST, zodat een gewone VACUUM niets teruggeeft. Hersteld met
+> akkoord van de eigenaar door de index `segment_efforts_priority` te verwijderen
+> (32 MB) en `live_positions` te legen (57 MB). Geen dataverlies buiten die
+> live-posities. Het script werkt nu in batches van 5.000 met pauzes en een
+> diskbewaking; `db-health.mjs` meldt diskgebruik en alleen-lezen. Volledig verslag
+> en de les in het onderzoeksdocument.
+> **Niet waar gebleken:** de verwachting dat VACUUM FULL de segmentpogingen naar
+> ~0,2–0,3 GB zou brengen is niet te toetsen, want VACUUM FULL past niet op de disk
+> van 2 GB (kopie plus WAL ~400 MB bij ~350 MB marge). `--full` rekent dat na en
+> weigert.
+> **Niet getest:** het aangepaste inkortscript in schrijfmodus (alleen `--status`
+> tegen productie) en de eventdaglus in een echte browser op een eventdag.
+
+> **Trainer krijgt bericht als een doel klaarstaat voor een concept, 2026-09-30 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Een nieuw doel betekent dat de trainer een conceptschema moet
+> draaien; het lid kan dat niet zelf. Er ging al een push uit bij het opslaan,
+> maar die was anoniem ("een toegewezen lid"), linkte naar `/zwbeter-worden` in
+> plaats van naar de Doelen-tab, en kwam alleen aan bij trainers die op dat
+> moment al gekoppeld waren. Wie eerst een doel invulde en daarna een trainer
+> aanwees, leverde een trainer op die van niets wist. In de cockpit zelf was
+> nergens te zien welk doel nog geen schema had.
+>
+> **Gebouwd.**
+> - `lib/training/goals-awaiting-plan.ts`: een doel wacht zolang het actief is,
+>   de datum niet voorbij is, er geen schema met dat `goal_id` bestaat en er geen
+>   generatie voor loopt (`queued`/`in_progress`). Een mislukte generatie telt
+>   niet: dan wacht het doel nog. Unittest in `tests/unit/goals-awaiting-plan.test.ts`.
+> - Push bij "Doel opslaan": titel "Doel klaar voor een schema", naam van het lid
+>   plus de doeltitel, link naar `/zwbeter-worden/trainer/doelen?athlete=…`. Wie
+>   zichzelf coacht krijgt hem niet.
+> - Push bij "Trainer aanwijzen": heeft het lid al doelen zonder schema, dan zegt
+>   de melding dat en linkt hij naar de Doelen-tab; anders de gewone
+>   toegangsmelding, nu met naam en link naar het overzicht van dat lid.
+> - Cockpit: badge op de Doelen-tab (gekozen renner), een pil "N doel(en) zonder
+>   schema" per renner in de kiezer, en "Nog geen schema" bij het doel zelf. De
+>   push hangt aan voorkeur `on_training_plan` en een pushabonnement; de badge
+>   vangt trainers op die geen push krijgen.
+> - `/hulp`: één regel dat de trainer een melding krijgt.
+>
+> **Bewust niet.** Geen aparte meldingsvoorkeur (het valt onder "trainingsschema"),
+> geen herinnering als een doel dagen blijft liggen, en geen mail. Eerst kijken of
+> push plus badge genoeg is.
+>
+> **Niet lokaal geverifieerd.** De pushmelding zelf (vraagt VAPID-keys en een
+> echt abonnement) en de cockpit met een ingelogde trainer. Lint, alle unittests
+> (op drie testbestanden na die in deze worktree onder last timen of `.env.local`
+> missen, los gedraaid groen) en de build zijn groen.
 
 > **Privacy: trainingsdata blijft na ontkoppelen van intervals.icu, herstelwaarden niet, 2026-09-30 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie. Geen nieuwe
@@ -129,7 +584,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 >   zijn gezondheidsgegevens op grond van intrekbare toestemming (AVG art. 9).
 >   Na intrekken is er geen grondslag om ze te bewaren.
 > - **Strava** verandert niet: die data gaat bij ontkoppelen weg, zoals Strava
->   eist.
+>   eist. **Achterhaald sinds 2026-10-01:** het lid kiest nu zelf tussen bewaren
+>   en wissen (zie de ronde "Strava ontkoppelen met keuze").
 >
 > **Gebouwd.**
 > - `purgeWellnessForProfile` in `lib/training/wellness.ts`, via de
@@ -842,7 +1298,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0199`
 > - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
 >   clubraces in de komende 14 dagen. Het gaat om de races van je teams en om
 >   clubraces waarvoor je ja zei (Omnium). "Clubrace" is `CLUB_RACE_TYPES` in
->   `event-types.ts`: ZRL, Ladder, Flamme Rouge en Omnium. Wie in een paraplu zit,
+>   `event-types.ts`: ZRL, Ladder, Flamme Rouge, Omnium en (sinds 2026-09-30) de
+>   Sunday Race Club van MyWhoosh. Wie in een paraplu zit,
 >   telt de subteams mee (zelfde regel als de kalender). Per raceweek komt er één
 >   regel: het team waarin je bent opgesteld, anders je directe team, en anders de
 >   raceweek zelf tot de captain je indeelt. Elke regel toont je status (in de
@@ -3822,6 +4279,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ## Buiten oorspronkelijk plan opgeleverd
 
 <!-- zwb-segment-explorer-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB Segments: interactieve clubkaart** (2026-09-13; lokale featurecommit
   048b94f; migratie 0152): bestaande pagina omgebouwd naar
   kaart/lijst met eigen ZWB-record/podium, persoonlijke vermogen-/windinschatting,
@@ -3843,6 +4303,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-explorer-round -->
 
 <!-- zwb-segment-tiles-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentkaart: CARTO-watermerk opgelost** (2026-09-13; lokaal ongecommit,
   basiscommit ed1e230; geen migratie): CARTO bleek een API-key te vereisen,
   waardoor de eerste kaart "API key required" toonde. De segmentkaart gebruikt nu
@@ -3857,6 +4320,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-tiles-round -->
 
 <!-- zwb-segment-hidden-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentklassement: alleen de eigenaar zichtbaar** (2026-09-13; `a7dba9c`; migratie 0154;
   gepusht 2026-09-13). Leesanalyse op productie: de hoofdoorzaak is dat
   alleen de eigenaar privacyversie 2026-09-13 heeft getekend — geen bug; negen leden
@@ -3874,6 +4340,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-hidden-round -->
 
 <!-- zwb-segment-backfill-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentpogingen automatisch aanvullen** (2026-09-13; `49d286d`, gepusht
   2026-09-13; geen migratie). ~6.000 oude buitenritten misten segmentpogingen; via
   `/beheer/segments` was dat ~1.200 klikken en de eigenaar wil niets handmatig. De
@@ -3882,7 +4351,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   eerst pas daarna; sinds de ronde hieronder begint elke run met één voorrangslijn.
   Eigen krappe Strava-budget (50% kwartier / 60% dag); onvolledige ritten worden
   afgevinkt, tijdelijke fouten blijven staan, een dode token trekt niets in.
-  `?segmentBackfill=0` zet het uit zonder deploy.
+  `?segmentBackfill=0` zet het uit zonder deploy (staat sinds 2026-09-30 uit; zie de
+  ronde "Database slank en snel").
   **Niet gebouwd:** een aparte cron-job (handmatige inrichting en extra invocaties) en
   een voortgangsscherm (het job-antwoord toont `remaining`). Oude `/api/segments/backfill`
   en de knoppen op `/beheer/segments` blijven ongewijzigd.
@@ -3894,6 +4364,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-backfill-round -->
 
 <!-- zwb-segment-assessment-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **Segmentinschatting: eigen record, profiel bij openen, voorrangslijst**
   (2026-09-13; `71827b7`, gepusht 2026-09-13; migratie 0155). Elk segment gaf
   "Onvoldoende gegevens": geen tegenstander (de eigenaar was de enige zichtbare rijder)
@@ -3901,18 +4374,23 @@ link naar `/live/[eventId]`, zie de update hierboven).
   ophaalde — die volgorde was een verkeerde keuze en is teruggedraaid. Nu: eigen PR − 1 s
   als doel zonder clubdoel ("Doel: eigen record"); ontbrekend profiel ophalen bij openen
   met de eigen koppeling; de 5-minutentaak begint elke run met één lijn uit
-  `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes.
+  `segment_geometry_priority` (meeste rijders eerst), zonder open ritten tot zes. Sinds
+  0209 (2026-09-30) alleen segmenten met een ZWB KOM, dus drie of meer rijders.
   **Niet gebouwd:** profiel bij openen voor leden zonder Strava-koppeling (geen token),
   en profielen voor de hele lijst in één keer (40 × 2 calls per pagina is te duur).
   Getest: 57 unittests incl. PGlite voor 0155, lint, typecheck, twee browsertests;
   de eigenaar bevestigde de inschatting bij openen in productie. 0155 gedraaid, maar
   bleek op productie te traag (timeout, daarna 0,6–3,1 s) en at de taaktijd op:
   vervangen door 0156 (`8200fc4`, gepusht 2026-09-13; smalle indexen, zelfde uitkomst) plus een afbreekgrens van 2 s
-  in de taak. 0156 is niet op productie gemeten en moet door de eigenaar gedraaid worden.
+  in de taak. 0156 is op 2026-09-30 wel gemeten: gemiddeld 4,6 s over 6.196 aanroepen,
+  dus altijd over de afbreekgrens heen en ~40% van alle databasetijd. Vervangen door 0209.
   Details: [docs/zwb-segment-explorer.md](docs/zwb-segment-explorer.md).
 <!-- /zwb-segment-assessment-round -->
 
 <!-- zwb-segment-nav-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB Segments in het Club-menu** (2026-09-14; `1466e5a`, gepusht; geen migratie). Op verzoek van de
   eigenaar verplaatst van het avatarmenu naar Club, direct boven ZWBlokken: het is een
   clubklassement, geen profielinstelling. **Bewust niet gedaan:** de URL verhuizen;
@@ -3924,6 +4402,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-nav-round -->
 
 <!-- zwb-segment-kom-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB KOM en minimaal drie rijders** (2026-09-15; `ecaccab`, gepusht naar `main`
   2026-09-15; migratie `0161`, vóór de push in productie aangetroffen). Op verzoek van de eigenaar toont ZWB Segments alleen nog segmenten
   waar minstens drie ZWB'ers reden, en krijgt de snelste daar de titel ZWB KOM: op het
@@ -3933,7 +4414,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   **Waarom opgeslagen en niet live:** dashboard en profielen hebben alle segmenten nodig,
   en een volledige doorloop van de pogingen liep op productie al tegen de statement
   timeout (0155). Triggers markeren segmenten vuil; de webhook-taak rekent er per run
-  200 na (max. 1,5 s, `?segmentKoms=0` zet het uit). Het dashboard toont KOM's waarvan de
+  50 na (was 200 tot 2026-09-30, liep toen geregeld uit; max. 1,5 s, `?segmentKoms=0`
+  zet het uit). Het dashboard toont KOM's waarvan de
   recordrit in de afgelopen zeven dagen ligt, zodat de eerste doorrekening en de
   inhaalslag van oude ritten het blok niet overspoelen. Gelijke tijd = gedeelde titel.
   `zwb_segment_koms` zit ook in de data-export.
@@ -3955,6 +4437,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 <!-- /zwb-segment-kom-round -->
 
 <!-- zwb-segment-qom-push-round -->
+- **Verwijderd op 2026-10-01.** Wat in dit blok staat is geschiedenis: de verkenner, de
+  ZWB KOM's en de segment-inhaalslag zijn uit de app en de database gehaald (ronde
+  "Segmentverkenner en ZWB KOM's verwijderd", migratie 0212). De collecties bestaan nog.
 - **ZWB QOM en pushmelding bij winnen of verliezen** (2026-09-15; `cc3f2df`, gepusht
   naar `main` 2026-09-15; migratie `0162`, draaien ná `0161` en vóór de deploy — vóór de
   push in productie aangetroffen: `zwb_segment_koms.title`, `zwb_segment_kom_events` en
@@ -4628,6 +5113,636 @@ foutmelding en logt hem met `console.error`. Alleen wie `media.manage` heeft
 kan de knop gebruiken.
 
 **Nog open.** Waarom Meta de aanroep weigert, is pas na de deploy te zien.
+
+### Opgeleverd — Stats: "Top riders" toont alle riders
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn wilde hetzelfde als bij ZWBlokken (`16da436`): iedereen in
+de lijst, tien zichtbaar.
+
+**Nu.** "Top riders" op `/stats` bevat elke rider met een rit in de gekozen
+periode (laatste 12 maanden of de gekozen maand) en is tien rijen hoog; de rest
+scrolt binnen de kaart. De `.slice(0, 10)` in `src/app/(app)/stats/page.tsx` is
+weg; de hoogte staat als `max-h-[366px]` op de `<ol>`.
+
+**Getest.** Niets gedraaid: er staan geen `node_modules` in deze worktree of in
+de hoofd-checkout, dus `tsc`, ESLint en de browser zijn overgeslagen.
+
+### Opgeleverd — ZWBlokken: ranglijst "Meeste blokken" toont alle leden
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn wilde in "Meeste blokken" alle leden zien, niet alleen de
+eerste tien.
+
+**Nu.** De lijst bevat ieder lid met minstens één blok en is tien rijen hoog;
+de rest scrolt binnen de kaart. Hetzelfde geldt voor "Meeste blokken in
+{wereld}" op het Zwift-tabblad, zodat beide lijsten zich gelijk gedragen. De
+`.slice(0, 10)` in `src/app/(app)/zwblokken/page.tsx` is weg; de hoogte staat
+als `max-h-[15.875rem]` op de `<ol>` daar en in `zwift-view.tsx`.
+
+**Bewust niet.** Geen vastgezette eigen rij en geen zoekveld; er is niet om
+gevraagd.
+
+**Getest.** Niets gedraaid: in deze worktree en in de hoofd-checkout staan geen
+`node_modules`, dus `tsc`, ESLint en de browser zijn overgeslagen.
+
+### Opgeleverd — SRC: meedoen met één klik
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn op de zondag van kwalificatie 2: waarom moet er eerst een
+team worden aangemaakt, en kun je niet gewoon klikken dat je erbij bent? De
+beschikbaarheid hangt in de opslag aan het team van die maand, en zonder
+maandinschrijving toonde de pagina alleen een knop naar `/src`. Daar stond dan
+"Nog geen SRC-team".
+
+**Nu.** De knoppen Beschikbaar / Misschien / Niet staan altijd op een
+SRC-zondag en op `/src`. `ensureSrcMonthEntry` (`src/lib/src/auto-join.ts`)
+schrijft wie nog niet meedoet met die klik in:
+- bij het ene SRC-team, of, als er nog geen is, bij een nieuw standaardteam
+  "ZWB SRC" zonder MyWhoosh-teamnaam; die vult een beheerder later in op
+  `/beheer/src`;
+- heren of dames volgens het profiel (vrouw → dames, anders heren);
+- met de categorie van de laatst gereden race, als die bekend is.
+
+Zijn er meer SRC-teams, dan blijft de keuze op `/src` nodig. Op de zondag staat
+dan "Kies je team".
+
+**Bewust niet.** Geen vraag naar heren of dames bij de klik: een vrouw zonder
+ingevuld geslacht komt bij de heren terecht en zet dat zelf om op `/src`. Het
+standaardteam ontstaat door de eerste klik van een willekeurig lid; dat is een
+bewuste eenmalige uitzondering op "teams maakt een beheerder".
+
+**Getest.** `tests/unit/src-auto-join.test.ts` (standaardteam, bestaand team met
+dames en laatste categorie, bestaande inschrijving blijft, meer teams vraagt om
+een keuze), `tsc`, ESLint, de unit-suite en `next build`. Niet tegen de echte
+database geklikt.
+
+### Opgeleverd — rechten fase D: kleine gaten en uitleg
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Nu.**
+- `/kalender/nieuw` en de knop "Nieuw event" vragen `events.create`. Zonder dat
+  recht zag je eerst het formulier, en weigerde pas het opslaan.
+- `/materiaal/nieuw` en "Nieuw bericht" vragen `content.create_posts`.
+- Club-ladder: de synknop verschijnt alleen bij `teams.sync_sources`, het recht
+  dat `syncResultsNow` ook vraagt. Een captain (met `teams.manage_results`) zag
+  een knop die altijd faalde.
+- `/hulp#rollenbeheer` noemt per beheerscherm het recht dat het vraagt, wat
+  Content modereren en Alle events beheren geven, en de regels voor Bestuur en
+  admin.
+
+**Rechtenronde afgerond (A t/m D).** Nog op productie, in deze volgorde:
+1. migraties `0205_permission_hardening.sql`, `0206_themed_permissions.sql` en
+   `0207_moderation_permission.sql` toepassen, vóór de deploy;
+2. deployen;
+3. `select role, permissions from community_role_permissions order by role;`
+   en `/beheer/rechten` nakijken;
+4. `select has_function_privilege('authenticated', 'public.rate_limit_cleanup()', 'execute');`
+   moet `false` geven.
+
+Zonder 0206 zien niet-admins de beheerschermen met een nieuw recht niet. Zonder
+0205 werkt alles zoals voorheen, maar staan de gaten nog open.
+
+**Getest.** `tsc`, ESLint, de unit-suite en `next build`.
+
+### Opgeleverd — rechten fase C: moderatie via "Content modereren"
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
+`0207_moderation_permission.sql`.
+
+**Waarom.** Andermans eventchat, ritverslagen met reacties, eventfoto's en
+verjaardagsberichten, -foto's, -GPX en -aanmeldingen kon alleen een technische
+admin (`profiles.is_admin`) weghalen, in de app en in RLS. Dat stond buiten het
+rechtenbeheer.
+
+**Nu.**
+- `content.moderate_posts` heet nu "Content modereren" en dekt naast posts en
+  reacties ook al het bovenstaande. De migratie bouwt elf delete-policies
+  (0032, 0057, 0058, 0077, 0078, 0079) exact na, met
+  `current_user_has_permission('content.moderate_posts')` in plaats van de
+  `is_admin`-subquery. Admins hebben elk recht, dus voor hen verandert niets.
+  Standaard hebben het bestuur en de community-beheerder dit recht.
+- Inactieve sponsors en ledenvoordelen lezen (0030) vroeg `is_admin`, terwijl de
+  app `sponsors.manage` gebruikt. Nu vraagt de policy ook `sponsors.manage`.
+- App: de prop `isAdmin` van EventChat, EventReports en de (verjaardags)
+  fotogalerijen heet nu `canModerate` en komt uit het recht. De verjaardagspagina
+  leest `is_admin` niet meer zelf.
+
+**Bewust niet.** Ritverslag verwijderen (`ritverslagen/_actions.ts`, dashboard)
+blijft op `events.manage_all`. Het plan wilde dat naar moderatie verplaatsen,
+maar die actie verwijdert het hele event, niet alleen een verslag.
+
+**Getest.**
+- Nieuwe `tests/unit/moderation-permission-migration.test.ts` draait 0207 in
+  PGlite, met stubs voor storage en rechten:
+  - een gewoon lid haalt niets van een ander weg;
+  - de moderator haalt chat, verjaardagsberichten en eventfoto's weg;
+  - de eigenaar haalt zijn eigen bericht weg;
+  - `sponsors.manage` ziet inactieve sponsors.
+- Verder: `tsc`, ESLint en de unit-suite.
+
+### Opgeleverd — rechten fase B: rechten per thema en één register
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
+`0206_themed_permissions.sql`.
+
+**Waarom.** Een paar brede rechten dekten losse beheerschermen af:
+- `community.manage` gaf ook pushberichten aan iedereen, Strava-beheer en
+  segmenten;
+- `events.manage_all` gaf ook de eventscan, Zwift-routes en FRR;
+- ZRL en WTRL hingen aan `teams.manage_roster`.
+
+Menu en pagina gebruikten soms verschillende rechten. Bij ZRL liet de pagina
+drie rechten toe, terwijl het menu er één toonde. Stijn koos een indeling per
+thema.
+
+**Nu.**
+- Nieuwe rechten, elk op `/beheer/rechten`:
+
+  | Recht | Geldt voor | Gekregen door rollen met |
+  |---|---|---|
+  | `calendar.sources` | eventscan, Zwift-routes | `events.manage_all` |
+  | `competitions.manage` | ZRL-kalender, WTRL-teams, FRR | `teams.manage_roster` of `events.manage_all` |
+  | `integrations.manage` | Strava-sync, segmenten, storingsmeldingen | `community.manage` |
+  | `notifications.broadcast` | `/beheer/notificaties` | `community.manage` |
+  | `zwbgame.manage` | `/zwbgame/beheer` | alleen bestuur |
+
+  De migratie zet ze in de bestaande rolrijen, dus niemand verliest toegang.
+  `community.manage` blijft voor aankondigingen, WhatsApp-groepen en tips;
+  `events.manage_all` voor andermans events.
+- `live.manage` werd nergens gecontroleerd en is weg: uit de code, de check en
+  alle rolrijen.
+- Nieuw register `src/lib/admin-areas.ts`: per beheergebied href, label en het
+  ene recht. Daaruit komen:
+  - `ADMIN_NAV` (het beheermenu, nu ook met Segmenten en ZWBgame);
+  - de controles in de pagina's en server-actions van eventscan, Zwift-routes,
+    ZRL, FRR, WTRL, Strava, segmenten, notificaties, SRC en ZWBgame.
+- ZWBgame-beheer liep op `is_admin`; nu op `zwbgame.manage`. De SRC-fallback
+  (`events.manage_all`/`community.manage`) is weg.
+- Storingsmeldingen gingen naar `is_admin`. Nu gaan ze via
+  `profileIdsWithPermission` naar wie `integrations.manage` heeft, met een link
+  naar `/beheer/strava`. Die link wees naar `/beheer`, dat geen pagina is. Het
+  storingsoverzicht staat nu ook op `/beheer/strava`.
+
+**Bewust niet.**
+- `requireOmniumAccess` (drie kopieën) is niet samengevoegd: ze controleren al
+  precies `omnium.manage`.
+- De rest van de app (teams, kalender, training) houdt zijn eigen rechten.
+- Een rol die je op `/beheer/rechten` eerder bewust een oud recht afnam, heeft
+  het nieuwe recht ook niet. Een rol die het oude recht wél heeft, krijgt het
+  nieuwe erbij. Kijk na het draaien op `/beheer/rechten` of de verdeling klopt.
+
+**Getest.**
+- Nieuwe `tests/unit/admin-areas.test.ts`:
+  - het menu komt uit het register;
+  - elk recht in het register en in de standaardrollen bestaat;
+  - de toegestane lijst in de laatste migratie is precies `COMMUNITY_PERMISSION_IDS`;
+  - 0206 in PGlite verdeelt de nieuwe rechten goed, ruimt `live.manage` op en
+    weigert een onbekend recht.
+- Verder: `tsc`, ESLint, de unit-suite en `next build`.
+
+### Opgeleverd — rechten fase A: beveiligingsgaten dicht
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Migratie
+`0205_permission_hardening.sql`.
+
+**Aanleiding.** Stijn vroeg om alle rechten na te lopen en in `/beheer/rechten`
+onder te brengen (plan in vier fasen: A beveiliging, B nieuwe rechten per thema
+met één register, C moderatie via een recht, D kleine gaten). De inventaris vond
+eerst echte gaten. Die gaan in deze fase dicht.
+
+**Nu.**
+- **Admin-escalatie.** `protect_profile_admin_fields()` (0024) liet wie
+  `members.manage_roles` heeft (standaard de community-beheerder) zichzelf
+  `is_admin` geven. Nu kan alleen een admin `is_admin` wijzigen. De rol Bestuur
+  (alle rechten) geven of afnemen vraagt ook `roles.manage_permissions`. In de
+  app staat de Bestuur-vink op `/leden` uit zonder dat recht, en
+  `updateMemberRoles` weigert hetzelfde.
+- **Andermans profiel.** `profiles_admin_update` liet goedkeurders en
+  rollenbeheerders elke kolom van een ander profiel wijzigen. De trigger staat nu
+  bij een ander profiel alleen `is_approved`, `approved_at`, `approved_by`,
+  `community_roles` en `updated_at` toe. Het eigen profiel, admins en de
+  service-role (geen `auth.uid()`) houden alles.
+- **Training.** Op `training_plans`, `training_workouts`,
+  `training_ai_generations`, `training_adaptation_runs` en
+  `training_workout_reports` was `trainer_id = auth.uid()` genoeg, dus elk lid
+  kon via de API rijen voor een ander maken. Nu moet je die renner ook mogen
+  trainen (`current_user_can_train_profile`: jezelf, een actieve koppeling of
+  `training.manage_assignments`). Een trainerkoppeling aanmaken kan alleen met
+  een profiel met de rol trainer (nieuwe definer-helper
+  `profile_has_community_role`). Intrekken mag altijd. De app schrijft dit
+  allemaal met de service-role en merkt er niets van.
+- **Definer-functies.** `sync_zrl_parent_*` (0070), `join_event_team_for_member`,
+  `link_roster_by_zwift_id`, `convert_zrl_umbrella_races` en `rate_limit_*` waren
+  via de API door ieder lid aan te roepen. Nu kunnen alleen de service-role en de
+  triggers ze aanroepen; die triggers zijn zelf definer, dus ze blijven werken.
+  `claim_roster_entry` blijft open: dat is een bewuste functie.
+- **App-checks.** Bij materiaal-posts (verwijderen, status, reactie
+  verwijderen) en teamuitslagen (toevoegen, verwijderen) stond alleen RLS. Een
+  geweigerde actie leek daardoor gelukt. Nu controleert de app eerst: auteur of
+  `content.moderate_posts`, respectievelijk `teams.manage_results` of captain.
+
+**Bewust niet.** De service-role kan nog steeds geen `community_roles` of
+`is_admin` wijzigen; dat kon hij met de oude trigger ook niet.
+
+**Getest, voor het eerst een migratie lokaal.** `tests/unit/permission-hardening-migration.test.ts`
+draait 0205 in PGlite, zoals `omnium-manage-read` dat al deed, met negen gevallen:
+- geen admin-escalatie;
+- Bestuur alleen met rechtenbeheer;
+- een goedkeurder kan geen naam of FTP van een ander wijzigen;
+- het eigen profiel en de service-role blijven vrij;
+- geen schema voor een ander zonder koppeling;
+- een ingetrokken trainer kan niet meer schrijven;
+- koppelen kan alleen aan een trainer, en intrekken mag altijd;
+- de functies zijn afgeschermd.
+
+De rechten zelf zijn daar een stub. Verder getest: `tsc`, ESLint en de
+unit-suite. Op productie na het draaien:
+`select has_function_privilege('authenticated', 'public.rate_limit_cleanup()', 'execute');`
+moet `false` geven.
+
+### Opgeleverd — recht "Sunday Race Club beheren"
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0204_src_manage_permission.sql`.
+
+**Waarom.** Stijn wil dat een event-organiser de SRC kan beheren. Die rol had
+alleen `events.create`, terwijl `/beheer/src` om `events.manage_all` of
+`community.manage` vroeg. `events.manage_all` geven zou ook het bewerken en
+verwijderen van álle events toestaan.
+
+**Nu.** Nieuw recht `src.manage` ("Sunday Race Club beheren", eigen categorie op
+`/beheer/rechten`). Standaard hebben het bestuur, de community-beheerder en de
+event-organiser het; de migratie zet het ook in hun opgeslagen rijen en breidt de
+check `community_role_permissions_allowed` uit. `SRC_MANAGERS`
+(`src/lib/src/access.ts`) bewaakt `/beheer/src` met alle acties daar:
+verversen, teams, koppelen. *(Tot de rechtenronde van 2026-10-01 telden daar
+ook `events.manage_all` en `community.manage`; sinds fase B is het alleen
+`src.manage`.)* Voor het ledenbeheer op `/src` gelden daarnaast nog
+`teams.manage_roster` en captains van een SRC-team. Het menu-item SRC-kalender
+volgt nu `src.manage`.
+
+**Correctie op fase 3.** `saveSrcTeam` en `linkSrcRider` lieten ook
+`teams.manage_roster` toe, maar de pagina zelf niet; dat is nu gelijkgetrokken
+naar `SRC_MANAGERS`.
+
+Migratie 0204 is toegepast (Stijn, 2026-09-30). Lokaal getest: `tsc`, ESLint en
+de unit-suite; de rechten op productie niet nagelopen.
+
+### Voorbereid — SRC live: eerst meten (fase 5 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Alleen een script,
+`scripts/src-live-probe.mjs`; geen migratie, geen app-code.
+
+**Waarom nog geen livepagina.** results.mywhoosh.com vraagt `getEventResults`
+elke 10 s opnieuw op zolang `isLive` aan staat, en `live-events-list` geeft de
+lopende races. Wat er tijdens een race in de uitslag staat, is niet gezien:
+alleen wie binnen is, of iedereen met tussenstand (ronde, gate, afstand). Een
+ZRL-achtige live stand hangt daarvan af, dus eerst meten (keuze Stijn).
+
+**Het script.** Wacht tot er een live SRC is (of neemt `--event=<uuid>`), meet elke
+20 s tot 110 minuten. Het meldt in de terminal `isLive`, het aantal rijen en het
+aantal finishers, en schrijft drie geanonimiseerde momentopnamen (begin, midden,
+eind) naar `tests/fixtures/src/live/`. Namen, id's, teams, gewicht, vermogen,
+hartslag en prijzengeld gaan eruit. Proefgedraaid op de finale van 27-09 (niet
+live): 359 rijen, alle gefinisht, `isLive` false. De velden van een rij zijn
+onder meer `lapNo`, `gateId`, `gateType`, `points`, `startedAt`, `endedAt` en
+`finishedTime`. Juist `lapNo` en de gates kunnen tijdens de race een tussenstand
+geven.
+
+**Daarna.** Staan renners erin vóór ze finishen: `/live/src/[raceId]` zoals
+`/live/zrl/[eventId]`, met een server-route die ~15 s cachet, de ZWB'ers per
+categorie met plaats en achterstand, en een voorlopige teamstand. Alleen
+finishers: een finishbord dat zich vult tijdens de race. Er is geen
+Sauce-tegenhanger voor MyWhoosh.
+
+### Opgeleverd — SRC-herinneringen: inschrijven en weigh-in (fase 4 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0203_src_reminders.sql`. Niet gepusht.
+
+**Waarom.** De twee momenten die je bij de SRC makkelijk mist. De eerste is de
+inschrijving: die sluit donderdag 03:00 GMT, midden in de nacht, en zonder
+inschrijving geen race. De tweede is het weigh-in-venster vóór de race, voor cat
+1 en 2 (volgens de feed), dat maar ruim een half uur open is.
+
+**Nu.**
+- De bestaande cron `/api/events/reminders` (elke 15 minuten) roept ook
+  `processSrcReminders` aan. Er is geen nieuwe job nodig, en een uurlijkse cron
+  zou het weigh-in-venster missen. Een fout daar staat als `src.error` in het
+  antwoord en houdt de gewone herinneringen niet tegen.
+- Inschrijven: om 20:00 Nederlandse tijd op de avond voordat de inschrijving
+  sluit. Dat moment wordt uitgerekend uit `registration_closes_at` in de feed,
+  niet vastgezet op woensdag. Het bericht gaat naar wie deze maand meedoet
+  (`src_month_entries`) en voor die zondag niet "niet" zei. Het komt op het
+  zondag-hoofdevent.
+- Weigh-in: tien minuten voordat het venster opengaat, naar wie ja of misschien
+  zei op de race en in een categorie met weigh-in rijdt. Als categorie telt de
+  opgegeven categorie, anders de hoogste uit de races van de afgelopen vijf weken
+  (liever een bericht te veel dan een gemist weigh-in). Het bericht noemt het
+  venster ("van 11:00 tot 11:32").
+- Eén keer per lid per event, via de log `event_reminder_sends`. Die kreeg de
+  soorten `src_registration` en `src_weighin` (de check uit 0038 is naamloos; de
+  migratie zoekt hem op zijn definitie). Het bericht volgt de bestaande voorkeur
+  "herinneringen" (`on_event_reminder`).
+- `/hulp` en de runbookregel van de reminder-cron beschrijven het.
+
+**Bewust niet.**
+- Geen herinnering bij het openen van de inschrijving (maandag); de deadline is
+  wat telt.
+- Geen weigh-in-herinnering na de finale voor cat 2–6. Het roadbook vraagt die
+  binnen twee uur na de finale, maar de feed geeft daar (nog) geen venster voor
+  (`post_weight` stond op false). Staat hij er in een finale wel, dan is dat een
+  kleine uitbreiding.
+- Geen eigen voorkeursknop voor SRC-berichten.
+
+**Niet lokaal te verifiëren:** migratie 0203, en of de push echt aankomt.
+
+**Wel getest:**
+- `tsc`, ESLint en `next build`.
+- Unit-test `src-reminders`:
+  - tijdstip in zomer- en wintertijd, ook rond de klokwissel van 25 oktober (de
+    finale);
+  - het venster;
+  - de ontvangers;
+  - één keer per lid;
+  - de weigh-in voor een lid zonder opgegeven categorie dat in september cat 1
+    reed.
+- De stub in `tests/unit/src-fake-admin.ts` kan nu ook meerdere rijen tegelijk
+  invoegen en filtert met `lte` en `not is null`.
+
+### Opgeleverd — SRC-uitslagen, koppelen en teamklassement (fase 3 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0202_src_results.sql`. Niet gepusht.
+
+**Waarom.** Na de race wil ZWB zien hoe zijn renners en zijn team reden, en wie
+er in de finale voor het team mag tellen (twee uitgereden races in de maand).
+
+**Bron, gemeten 2026-09-30.** `POST …/public/src-events-list` geeft twee races per
+pagina, nieuwste eerst, en ook andere MyWhoosh-races (Apex Racing). Parameters
+voor een grotere pagina (`limit`, `pageSize`, `per_page`) doen niets.
+`getEventResults` geeft per renner ook vermogen, gewicht en prijzengeld.
+Renners zonder team staan er als teamnaam "Individual" met een lege `teamId`.
+Het team-leaderboard gaf een 500, ook met een categorie erbij. De Teams-tab van
+results.mywhoosh.com toont de som van de beste drie finishtijden; nagerekend op
+THE FINAL BOSSES in de finale van 27-09: 3:50:55.585, op de milliseconde. Zonder
+categoriefilter mengt die tab de categorieën; wij rekenen per categorie, zoals het
+prijzengeld gaat.
+
+**Nu.**
+- De sync (cron en Nu verversen) haalt na de agenda de uitslagen op. Hij begint
+  twee uur na de start van cat 6 en stopt als MyWhoosh de uitslag officieel
+  noemt, of na twee weken; tot dan hooguit eens per drie uur. De knop op
+  `/beheer/src` negeert die drie uur. Hij zoekt de race op zondag en geslacht in
+  de lijst: de id's verschillen van die in de agenda. Een fout per race komt in
+  `src_races.results_error`, en de agenda loopt dan gewoon door.
+- `src_results` bewaart alleen wie voor ZWB telt: renners onder een
+  ZWB-teamnaam, leden gekoppeld op MyWhoosh-id, en renners met precies de naam
+  van één lid die nog geen MyWhoosh-id heeft (als koppelvoorstel). We bewaren
+  naam, team, categorie, plaats in de categorie (MyWhoosh geeft alleen de
+  totaalplaats) en tijd. Vermogen, gewicht en prijzengeld nemen we bewust niet
+  over. `src_team_results` bevat alle teams met minstens drie finishers per
+  categorie, zonder rennersnamen. Vervangen gaat in één RPC,
+  `src_replace_results`.
+- `/beheer/src`, Renners koppelen: per MyWhoosh-renner zonder lid een keuzelijst,
+  met het naamvoorstel al ingevuld. Koppelen zet de UUID in
+  `profiles.mywhoosh_id` en koppelt de opgeslagen uitslagen; daarna matcht de
+  sync alleen nog op id. Een id dat al bij een ander lid staat, wordt geweigerd.
+  Bij de races staat of de uitslag voorlopig of officieel is.
+- Racepagina: blok Uitslag met de plaats van het ZWB-team per categorie ("2e van
+  11", tijd, achterstand) en de ZWB-renners met categorie, plaats en tijd.
+- `/src`: per renner "0/2", "1/2" of "finale ✓" (uitgereden kwalificaties deze
+  maand). Als categorie geldt de opgegeven categorie, anders de laatst gereden
+  (deze of vorige maand). Wijkt de gereden categorie af van de opgegeven, dan
+  staat ze erachter. De telling per categorie gebruikt diezelfde categorie, en
+  het meedoenformulier stelt de laatst gereden categorie voor.
+- Privacyverklaring: alinea "Sunday Race Club (MyWhoosh)". **Bewust geen nieuwe
+  privacyversie** (keuze Stijn, 2026-09-30), hoewel MyWhoosh-uitslagen een nieuwe
+  bron zijn en `src/lib/privacy.ts` bij een nieuwe verwerking een versie vraagt.
+  Zijn afweging: het gaat om openbare uitslagen van een race waarvoor het lid zich
+  zelf inschreef, en we bewaren minder dan MyWhoosh publiceert.
+
+**Bewust niet.**
+- Geen eigen teller op het dashboard ("Jouw races"); de race staat er al via je
+  ja.
+- Geen punten voor sprints en klimmen: die staan in de uitslag, maar SRC-teams
+  scoren alleen op tijd.
+- Wie geannuleerd wordt (ANL), verdwijnt volgens het roadbook uit de uitslag;
+  hoe dat er in de API uitziet, is nog niet gezien. Een renner zonder finishtijd
+  telt niet mee.
+- Geen healthcheck op de uitslagen-API; fouten staan per race op de beheerpagina.
+
+**Niet lokaal te verifiëren:** migratie 0202 en de RPC.
+
+**Wel getest:**
+- `tsc`, ESLint en `next build`.
+- Nieuwe unit-test `src-results`, met een echte lijst en een geanonimiseerde
+  steekproef uit de finale:
+  - de race zoeken in de lijst;
+  - "Individual" is geen team;
+  - de plaats per categorie;
+  - de teamtijd, op de echte winnaar;
+  - wie we bewaren, en wanneer een naam een voorstel is;
+  - de telling voor de finale;
+  - het drie-uursritme;
+  - een sync die op pagina 1 stopt en één RPC doet.
+- De stub van de SRC-tests staat nu apart in `tests/unit/src-fake-admin.ts`.
+
+### Opgeleverd — SRC-teamplanning per maand (fase 2 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Migratie
+`0201_src_month_entries.sql`. Niet gepusht; Stijn wil alle fasen in één keer
+pushen.
+
+**Waarom.** Bij de SRC stelt ZWB niemand op: iedereen schrijft zich zelf in en
+MyWhoosh bepaalt de categorie. Wat wel te regelen valt: wie deze maand onder de
+ZWB-teamnaam rijdt (dat ligt de hele maand vast), in welke race en categorie hij
+denkt te rijden, en per zondag wie kan. Zo is te zien of er in een categorie drie
+renners zijn voor een teamuitslag.
+
+**Nu.**
+- Teamtype `src` en `teams.mywhoosh_team_name` (uniek, hoofdletters tellen niet).
+  Teams maak je op `/beheer/src`, niet via Teams → nieuw.
+- `src_month_entries (month, profile_id)` → team, race (heren/dames) en verwachte
+  categorie. De primaire sleutel dwingt één team per lid per maand af. Schrijven
+  kan alleen via server-actions (service-role).
+- Pagina `/src` (menu Club → Sunday Race Club), voor deze en volgende maand:
+  - meedoen, aanpassen en stoppen;
+  - per zondag Beschikbaar, Misschien of Niet;
+  - per team een tabel renners × zondagen, met onderaan per race en categorie
+    hoeveel er kunnen (groen vanaf 3 zeker).
+  Teambeheerders, eventbeheerders en captains van een SRC-team voegen leden toe
+  of halen ze eruit.
+- Van team wisselen kan tot de eerste race van de maand begint; daarna weigert de
+  actie het (roadbook: niet wisselen halverwege de maand). Beheer mag het wel,
+  als correctie.
+- Beschikbaarheid staat in `team_event_availability`, op het hoofdevent van de
+  zondag. Staat de race van je geslacht al in de kalender, dan wordt het meteen
+  je antwoord op die race: beschikbaar is ja, misschien is misschien, niet is
+  nee. Het trainingsschema gaat mee, zoals bij een ZRL-opstelling. Maakt de sync
+  de race later aan, dan zet hij die antwoorden alsnog (`rsvpNewSrcRaces`).
+- De sync zet alle zondagen van deze en volgende maand vooraf klaar als
+  hoofdevent zonder races, met de laatste zondag als finale. Zo kun je vooruit
+  plannen. Een zondag uit de feed gaat voor de berekende. Een zondag zonder races
+  krijgt als starttijd 07:25 GMT (cat 6 dames).
+- Op een SRC-zondag staat "Ben jij erbij?" met die knoppen, of een knop naar
+  `/src` als je deze maand nog niet meedoet. *(Sinds 2026-10-01 staan de knoppen
+  er altijd en schrijft een klik je zelf in; zie "SRC: meedoen met één klik".)* Er is geen losse RSVP op de zondag
+  zelf.
+- `TeamAvailabilityButtons` kreeg een optionele `save`, zodat dezelfde knoppen de
+  SRC-actie gebruiken. `/hulp` (Teams en wedstrijden, Beheer) en de hulpzoeker
+  beschrijven de SRC.
+
+**Bewust niet.**
+- Geen lidmaatschap in `team_members`: het team van een SRC-renner wisselt per
+  maand, en de join-trigger uit 0171 geldt alleen voor `zrl`. De teampagina van
+  een SRC-team toont daarom geen leden; `/src` is de plek.
+- Geen controle op 3–5 renners per team. MyWhoosh telt de beste drie, en wie in
+  een andere categorie belandt, rijdt die zondag individueel.
+- De categorie is wat het lid zelf verwacht. Fase 3 vult de laatst gereden
+  categorie uit de uitslag in.
+- Niet te zien wie echt ingeschreven staat bij MyWhoosh: dat geeft de openbare
+  feed niet.
+- Een vooraf klaargezette zondag die MyWhoosh overslaat, blijft zonder races
+  staan en moet met de hand weg.
+
+**Niet lokaal te verifiëren:** migratie 0201, en de pagina's tegen de database.
+De check op `teams.type` uit 0001 heeft geen naam; de migratie zoekt hem op zijn
+definitie.
+
+**Wel getest:**
+- `tsc`, ESLint en `next build`.
+- Unit-tests `src-month`: zondagen per maand, finale, het moment waarop wisselen
+  niet meer kan, telling per categorie, klaarzetten.
+- Unit-tests `src-import`: een sync met lege feed zet vier oktoberzondagen klaar.
+  Daarna worden beschikbaar, misschien en niet een ja, misschien en nee op de
+  juiste race, en beschikbaarheid voor een ander team telt niet mee.
+
+### Opgeleverd — SRC-kalender: de MyWhoosh Sunday Race Club als hoofdevent per zondag (fase 1 van 5)
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt (branch
+`claude/sunday-race-club-eventmaker-9ae9e5`). Migratie `0200_src_races.sql`.
+Niet gepusht.
+
+**Aanleiding.** Stijn wil voor de Sunday Race Club (SRC) op MyWhoosh dezelfde
+soort eventmaker als voor FRR en ZRL. ZWB rijdt er al met één teamnaam. Gekozen
+omvang (2026-09-30), in vijf fasen: (1) agenda-import, (2) teamplanning per
+maand, (3) uitslagen, koppeling en teamklassement met de teller "2 races deze
+maand → finale", (4) herinneringen voor de inschrijfdeadline en de weigh-in,
+(5) live, maar pas na een meting tijdens een echte race. Leden koppelen via
+naamvoorstellen die de beheerder bevestigt (de MyWhoosh-UUID gaat dan in
+`profiles.mywhoosh_id`). Geen botsingscontrole met het Omnium (keuze Stijn),
+hoewel de herenrace op de tweede zondag in de Omnium-tijd valt.
+
+**Hoe de SRC werkt (roadbook V7.0.7, juni 2026), en waarom dat anders is dan
+de ZRL.** Elke renner schrijft zich zelf in op MyWhoosh (maandag 07:00 tot
+donderdag 03:00 GMT). MyWhoosh deelt de categorie 1–6 zelf in; de renner hoort
+die pas 24 uur vooraf. Een team is 3–5 renners uit dezelfde categorie, de hele
+maand onder dezelfde teamnaam, en de teamtijd is de som van de beste drie. De
+laatste zondag van de maand is de finale; wie als team mee wil tellen, heeft
+twee afgeronde races in die maand nodig. ZWB heeft dus geen opstelling of
+racepass te maken. Er valt alleen te coördineren wie deze maand onder de
+teamnaam rijdt en wie welke zondag kan.
+
+**Bronnen, gemeten op 2026-09-30 (openbaar, zonder login, ongedocumenteerd).**
+- Agenda: `GET https://event.mywhoosh.com/whoosh/events`. Alle tijden in GMT+4
+  (Abu Dhabi, geen zomertijd). Cat 6 van de heren staat er als "01:45 PM" en
+  start om 09:45 GMT, wat klopt met `starting` in het detail-endpoint. De
+  inschrijving sluit om "07:00" (= 03:00 GMT). De feed loopt maar een week
+  vooruit: alleen de eerstvolgende zondag staat erin.
+- Uitslagen (voor fase 3): `POST https://service14.mywhoosh.com/v2/v3/public/src-events-list`
+  (per pagina twee races, met `event_id`, `gender`, `created_at`, `DayId`) en
+  `POST …/public/getEventResults` met `{eventId, dayId, leaderboardType:
+  "individual"}`. Per renner: MyWhoosh-`userId` (UUID), naam, `teamId`,
+  `teamName`, `categoryId`, `rank`, `finishedTime` (ms), vermogen en gewicht. Het
+  team-leaderboard gaf een 500; dat rekenen we zelf uit. De id's in de
+  uitslagen-API zijn andere dan die in de agenda, dus koppelen gaat op geslacht
+  en datum.
+- Live (voor fase 5): `POST …/public/live-events-list`, en results.mywhoosh.com
+  vraagt de uitslag elke 10 s opnieuw op zolang `isLive` aan staat. Wat er
+  tijdens een race in staat, is **nog niet gezien**. Meten tijdens de races van
+  zondag 4 oktober (dames 07:25, heren 09:45 GMT).
+
+**Nu.**
+- Per zondag één hoofdevent ("SRC oktober · Kwalificatie 1" / "SRC oktober ·
+  Finale", `events.src_sunday`, uniek), met daaronder een event per race
+  ("… · Heren", "… · Dames"). Een lid zegt ja op zijn eigen race. Nieuw eventtype
+  `src` ("Sunday Race Club"): het telt als clubrace (`CLUB_RACE_TYPES`, dus in
+  "Jouw races") en rekent in het schema met het Zwift-racemodel. Dat model zat
+  op de acht SRC-races van september 2 tot 5% van de mediane finishtijd bij de
+  heren, en 8 tot 10% te kort bij de dames. Geen eigen fit.
+- `src_races` bewaart per race wat MyWhoosh publiceert: de MyWhoosh-id, starttijd
+  per categorie, inschrijfdeadline, weigh-in-categorieën en -venster (nu cat 1
+  en 2 vóór de race), parcourslink en aantal ingeschrevenen. `result_event_id`
+  staat klaar voor fase 3.
+- `src/lib/src/feed.ts` (puur) leest de feed, `import.ts` zet hem idempotent in
+  de kalender en verwijdert nooit iets, `sync.ts` houdt de status bij in
+  `src_sync_state`. Daar staat ook wie als maker van de events geldt: de
+  beheerder die de eerste keer op "Nu verversen" drukte. Zonder die maker weigert
+  de cron.
+- `/beheer/src` (SRC-kalender in het beheermenu): laatste sync, Nu verversen, en
+  per zondag de races met starttijd, aantal ZWB-ja's en het aantal
+  ingeschrevenen bij MyWhoosh. Cron `/api/src/sync` (`SRC_SYNC_SECRET`, elk uur),
+  toegevoegd aan de publieke cronpaden in de middleware.
+- Eventpagina van een race: blok "Sunday Race Club" met de knop Inschrijven op
+  MyWhoosh tot de deadline, de deadline zelf, starttijd per categorie, het
+  weigh-in-venster en de parcourslink. Op de zondag heet de lijst eronder
+  "Races" in plaats van "Teams".
+- De eventscan slaat SRC-races over (`scanMyWhooshEvents`), anders kwamen ze er
+  als losse MyWhoosh-kandidaten nog eens bij. Health-bron `mywhoosh_src` wordt
+  rood als de feed geen eventlijst meer geeft of een SRC-race onleesbaar wordt.
+  Een lege lijst is geen storing.
+
+**Bewust niet (in deze fase).** Teams, beschikbaarheid per zondag, uitslagen,
+koppelen en herinneringen: dat zijn fase 2 tot 4. Geen maandlaag boven de
+zondagen: de feed loopt maar een week vooruit, dus een maand zou stukje voor
+stukje ontstaan. *(Sinds fase 2, dezelfde dag, zet de sync wel alle zondagen van
+deze en volgende maand vooraf klaar, zonder races; zie daar.)* Een lid ziet niet
+of hij echt is ingeschreven bij MyWhoosh; de
+openbare feed geeft alleen het aantal. Bestaande MyWhoosh-events die de
+eventscan eerder als SRC publiceerde (type `mywhoosh`), worden niet omgezet.
+Kijk na de eerste sync op de kalender of er dubbele staan, en verwijder die met
+de hand.
+
+**Niet lokaal te verifiëren:** migratie 0200, en de import tegen de echte
+database. Getest: `tsc`, ESLint op de gewijzigde bestanden, `next build` (met
+dummy-Supabase-variabelen voor het prerenderen van `/omnium`), en de unit-suite
+met de nieuwe `src-feed` en `src-import`. Die laatste draait tegen een stub en
+bewijst dat twee keer importeren niets dubbel maakt en dat een verschoven
+starttijd de zondag meeneemt. Dat laatste ving een fout die er echt in zat. De
+fixture is de echte feed van 2026-09-30, zonder de HTML-teksten. In de volledige
+suite falen `omnium-live` (leest `.env.local`, die de worktree niet heeft) en
+twee tests op een timeout onder volle belasting; los gedraaid slagen die twee.
+
+
+### Opgeleverd — Garmin-stappen op /hulp volgens de echte route in Garmin Connect
+
+**2026-09-30.** Commit: de commit die dit blok toevoegt. Alleen tekst: `hulp/page.tsx` en de zoektermen in
+`help-search.tsx`. Geen migratie.
+
+**Aanleiding.** Stijn volgde de oude stap "Voeg het adres toe als contact" en
+kwam uit bij Contacten in Garmin Connect. Daar stond het adres als
+telefooncontact, maar zo werd het geen LiveTrack-ontvanger. Wat wel werkt: Edge
+aan en verbonden, Veiligheid en tracking → LiveTrack → Deelinstellingen →
+Ontvangers, daar een nieuw contact met het adres maken (een telefooncontact is
+niet nodig), sessie starten en bij Sessiedetails controleren dat het adres als
+ontvanger staat. Daarmee is spikepunt 1 uit het
+[onderzoek](docs/garmin-wahoo-live-tracking-onderzoek.md) beantwoord: Garmin
+accepteert het persoonlijke `live-…`-adres.
+
+**Wat er veranderde.** De Garmin-stappen op `/hulp#livetrack` volgen nu die
+route. De probleemoplossing verwijst naar Sessiedetails in plaats van alleen
+"controleer het adres".
+
+**Niet geverifieerd.** Waar Automatisch starten precies staat, heeft Stijn niet
+beschreven; de stap noemt de instelling zonder menupad. Spikepunten 2 en 4
+blijven open. tsc en eslint niet gedraaid (geen `node_modules` in de
+worktree); de wijziging zit alleen in strings.
 
 ### Opgeleverd — ZRL-uitslagen in "Teams en scorebord", Instagram hoger
 
@@ -9253,7 +10368,10 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   ophaalt. Tot die tijd blijft de job een timeout melden en blijven openstaande
   herplanverzoeken liggen.
 
-- ~~**Netlify scheduled functions gaan niet af**~~ — **opgelost 2026-09-08** (ontdekt 2026-09-05). Netlify
+- ~~**Netlify scheduled functions gaan niet af**~~ — **opgelost 2026-09-08** (ontdekt 2026-09-05).
+  **Achterhaald op 2026-10-01:** ze gingen toen wel af en draaiden dubbel met
+  cron-job.org; de functies zijn verwijderd (ronde "Geplande Netlify-functies
+  verwijderd"). Netlify
   toont alle vijf de functions in `netlify/functions/` als *scheduled*, maar er
   is geen enkele invocatie-log en `integration_health` bevat één rij: 22-06-2026
   22:01, de dag dat de health-check werd uitgerold. De code klopt — dezelfde
@@ -9496,7 +10614,8 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
 
 - ✅ **Dedicated `/stats`-pagina** met drill-down (per maand, per discipline,
   per regio) — afgerond 2026-05-29. KPI's + km-per-maand trend (klikbaar als
-  maandfilter) + breakdowns discipline/regio + top-10 riders. In Club-nav.
+  maandfilter) + breakdowns discipline/regio + top riders (sinds 2026-10-01
+  alle riders, tien zichtbaar en scrolbaar). In Club-nav.
 - ✅ **Foto-galerij × liveticker** — afgerond 2026-05-29. `/ritverslagen`
   bundelt gereden events met foto's tot bladerbare verslagen + dashboard-nudge
   ("Deel je foto's") voor recent gereden events zonder eigen foto. In

@@ -3,7 +3,7 @@
 // Strava eist op beide methodes een 200 binnen 2 seconden en verwijdert de
 // subscription na herhaald falen. Deze route doet daarom niets meer dan het event
 // valideren en in de wachtrij zetten; het echte werk gebeurt in
-// /api/strava/webhook/process, aangestuurd door een Netlify scheduled function.
+// /api/strava/webhook/process, aangestuurd door een job op cron-job.org.
 //
 // GET  = de verificatie-handshake bij het aanmaken van de subscription.
 // POST = de events zelf (activity create/update/delete, athlete deauthorisatie).

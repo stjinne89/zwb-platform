@@ -6,12 +6,11 @@
 // uur die "niets nieuws" opleveren.
 //
 // De call gaat bewust met include_all_efforts=true. Dat kost niets extra's, maar
-// levert meteen ook de segment-inspanningen — waar syncColSegmentTimesForUser en
-// syncZwbSegmentsForUser vandaag nog hun eigen detailcall per rit voor doen. Die
-// staan in de cron daarom op 0 (STRAVA_SYNC_COL_SEGMENT_MAX_FETCHES=0): het
-// budget was op. Via dit pad komen coltijden en ZWB-segmenttijden gratis mee.
+// levert meteen ook de segment-inspanningen. Daaruit halen we de tijden op de
+// uitgekozen segmenten en cols voor de collecties (applyCuratedEffortsFromDetail);
+// de inspanningen zelf bewaren we sinds oktober 2026 niet meer (migratie 0212).
 
-import { storeActivitySegmentEfforts } from "@/lib/segments/sync";
+import { applyCuratedEffortsFromDetail } from "@/lib/segments/sync";
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { weekStartDate } from "@/lib/strava/client";
 import { recordRateLimitUsage } from "@/lib/strava/rate-limit-budget";
@@ -130,7 +129,7 @@ export type IngestTarget = {
 };
 
 /**
- * Haalt één activiteit op en zet 'm weg, inclusief segment-inspanningen.
+ * Haalt één activiteit op en zet 'm weg, en werkt de collecties bij.
  *
  * Een 404 betekent dat de rit inmiddels weg is bij Strava (verwijderd, of op privé
  * gezet tussen het event en onze call in). Dan ruimen we 'm lokaal ook op —
@@ -193,33 +192,29 @@ export async function ingestStravaActivity(
     .upsert(row, { onConflict: "id" });
   if (error) return { status: "failed", error: error.message };
 
-  // De efforts komen uit dezelfde response; geen extra call.
+  // De tijden komen uit dezelfde response; geen extra call. efforts_fetched_at
+  // blijft de markering dat het detail van deze rit al eens is gelezen
+  // (cols/segment-times.ts gebruikt hem als cache).
   let efforts = 0;
   try {
-    efforts = await storeActivitySegmentEfforts(
-      admin,
-      target.profileId,
-      { id: row.id, start_date: row.start_date, efforts_fetched_at: null },
-      detail,
-    );
+    efforts = await applyCuratedEffortsFromDetail(admin, target.profileId, row.id, detail);
     await admin
       .from("strava_activities")
       .update({ efforts_fetched_at: new Date().toISOString() })
       .eq("id", row.id);
   } catch {
     // Keep the webhook retryable after a partial write.
-    return { status: "failed", error: "Segmentpogingen opslaan mislukt; activiteit wordt opnieuw geprobeerd." };
+    return { status: "failed", error: "Collecties bijwerken mislukt; activiteit wordt opnieuw geprobeerd." };
   }
 
   return { status: "stored", activityId: row.id, efforts };
 }
 
 /**
- * Verwijdert een rit lokaal. strava_activity_segment_efforts en
- * strava_activity_summaries hangen er met `on delete cascade` aan (migraties 0072
- * en 0102), dus die gaan mee. profile_climbed_cols.best_time_activity_id staat op
- * `on delete set null` (0075) en wordt daarna door repairDeletedColBestTimesForUser
- * opnieuw berekend.
+ * Verwijdert een rit lokaal. strava_activity_summaries hangt er met
+ * `on delete cascade` aan (migratie 0102), dus die gaat mee.
+ * profile_climbed_cols.best_time_activity_id staat op `on delete set null` (0075);
+ * repairDeletedColBestTimesForUser haalt daarna de tijd weg die bij die rit hoorde.
  */
 export async function removeStravaActivity(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

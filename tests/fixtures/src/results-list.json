@@ -1,0 +1,16 @@
+{
+  "error": false,
+  "code": 200,
+  "data": {
+    "count": 416,
+    "page": 1,
+    "data": [
+      {"event_id": "c8f5e3ab-40cc-4477-a5e0-a4c5d199a685", "event_name": "Apex Racing", "gender": 2, "created_at": "2026-09-30T16:00:00.000Z", "result_status": null, "distance": 55.6, "elevation": 194, "stages": [{"StageNo": 1, "StageId": "e8396fa2-870c-45b8-9920-de3eae010a2b", "DayId": "a977ba91-bbca-4780-8e1d-5fefa12069cf", "DayNo": 1}]},
+      {"event_id": "62b8dfe8-18db-4a8d-a019-7aa9072edbcb", "event_name": "SRC - Men Finals", "gender": 0, "created_at": "2026-09-27T09:45:00.000Z", "result_status": "official", "distance": 53.5, "elevation": 984, "stages": [{"StageNo": 1, "StageId": "cf4f2fe0-7a21-4efb-bb0a-a57c5f2abe98", "DayId": "0167ebda-df9c-4031-a211-de6a84204920", "DayNo": 1}]},
+      {"event_id": "7081caae-892c-4aaa-81b4-c8d4403103f4", "event_name": "SRC - Women Finals", "gender": 1, "created_at": "2026-09-27T07:25:00.000Z", "result_status": "official", "distance": 40.1, "elevation": 738, "stages": [{"StageNo": 1, "StageId": "f8cf6619-6593-4a59-950d-4664435a1c71", "DayId": "712304b5-5611-42e0-bb3b-4f12f454e757", "DayNo": 1}]},
+      {"event_id": "77d52a63-c3dc-449a-88a9-cf80df5c8f22", "event_name": "Apex Racing", "gender": 2, "created_at": "2026-09-23T16:00:00.000Z", "result_status": null, "distance": 54, "elevation": 436, "stages": [{"StageNo": 1, "StageId": "6507ef03-558f-4d0f-b3cc-e1e9ec217d81", "DayId": "93723b67-f816-4a78-8d88-237be2bdcf84", "DayNo": 1}]},
+      {"event_id": "a90f1c74-c218-4dea-8cbd-3d9bfb7588a4", "event_name": "SRC - Men Qualifier Race 3", "gender": 0, "created_at": "2026-09-20T09:45:00.000Z", "result_status": "official", "distance": 57.1, "elevation": 471, "stages": [{"StageNo": 1, "StageId": "5d5b66ec-ac6c-4a0c-801b-47edff97a417", "DayId": "a505c789-5e38-430d-a4cc-efa9ee101ae0", "DayNo": 1}]},
+      {"event_id": "cecd754f-3017-455d-8b9d-66b65c3320d5", "event_name": "SRC - Women Qualifier Race 3", "gender": 1, "created_at": "2026-09-20T07:25:00.000Z", "result_status": "official", "distance": 45.9, "elevation": 331, "stages": [{"StageNo": 1, "StageId": "28307cc2-4ae5-450f-851f-18a4c6532e38", "DayId": "f5547a44-28c9-481e-bbd9-ee19f4ce1cc8", "DayNo": 1}]}
+    ]
+  }
+}

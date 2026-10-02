@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { AvatarUpload } from "./_components/avatar-upload";
@@ -18,8 +17,7 @@ import { StartPoints, type StartPointRow } from "./_components/start-points";
 import { ProfileExternalLinks } from "@/components/profile-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
-import { SegmentKomsSection } from "@/components/segment-koms-section";
-import { SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type AwardRow = {
   id: string;
@@ -54,15 +52,13 @@ function awardBadge(row: AwardRow) {
 
 export default async function ProfielPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const PROFILE_COLUMNS =
     "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility, event_type_interests, fit_max_distance_km, fit_max_elevation_m";
 
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   const rideStatus = await loadRideSourceStatus(user.id).catch(() => null);
 
   const [
@@ -76,7 +72,6 @@ export default async function ProfielPage() {
     { data: pushSubs },
     { data: bikes },
     { data: myQuotes },
-    { data: koms },
     { data: heightRow },
   ] = await Promise.all([
     supabase
@@ -119,7 +114,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder, on_segment_kom",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -139,12 +134,6 @@ export default async function ProfielPage() {
       .select("id, component_type, body")
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("zwb_segment_kom_club")
-      .select(SEGMENT_KOM_COLUMNS)
-      .eq("profile_id", user.id)
-      .order("achieved_at", { ascending: false, nullsFirst: false })
-      .order("segment_name"),
     // Lengte staat bewust niet op profiles: die tabel is voor alle leden leesbaar.
     supabase
       .from("nutrition_profiles")
@@ -295,7 +284,6 @@ export default async function ProfielPage() {
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,
             on_strava_link_expiring: pushPrefs?.on_strava_link_expiring ?? true,
             on_intervals_visit_reminder: pushPrefs?.on_intervals_visit_reminder ?? true,
-            on_segment_kom: pushPrefs?.on_segment_kom ?? true,
             on_member_pending: pushPrefs?.on_member_pending ?? true,
           }}
           canApproveMembers={access.has("members.approve")}
@@ -313,15 +301,13 @@ export default async function ProfielPage() {
             ZWB Segments
           </h2>
           <Link
-            href="/profiel/segments"
+            href="/profiel/segments/collecties"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
             ZWB Segments bekijken
           </Link>
         </div>
       </section>
-
-      <SegmentKomsSection koms={(koms ?? []) as SegmentKom[]} />
 
       {milestones.length > 0 && (
         <BadgeVault

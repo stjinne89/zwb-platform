@@ -1,3 +1,7 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getRequestUser } from "@/lib/auth/request";
 import Link from "next/link";
 import { Download, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
@@ -68,12 +72,59 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Maand is de ingang: daar zie je in één blik je week én kun je een training
   // aanklikken. De lijst blijft als alternatief bestaan.
   const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
-  const viewer = await requireViewer();
+  // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), en
+  // deze pagina deed er ruim twintig na elkaar (gemeten 2026-10-01: 3,0-3,3 s in
+  // deze functie). Daarom vertrekt elke stap zodra zijn invoer er is, in plaats van
+  // te wachten op een hele ronde waar hij niets van nodig heeft.
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
+  if (!user) redirect("/login");
+  const identity = { supabase, user };
   // Eerst afmaken wat is blijven hangen, zodat de lijst hieronder het bijgewerkte
-  // schema toont. Zie settleOwnReplans().
-  await settleOwnReplans(viewer.admin, viewer.user.id).catch(() => null);
+  // schema toont. Zie settleOwnReplans(). Alles wat het schema leest, wacht hierop.
+  const [viewer, profile, conn] = await Promise.all([
+    requireViewer(),
+    loadProfile(identity),
+    loadConnection(identity),
+    settleOwnReplans(createAdminClient(), user.id).catch(() => null),
+  ]);
 
-  const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
+  const snapshotPromise = loadIntervalsSnapshot(viewer, conn, { eventDays: 14 });
+  const plansPromise = loadPlanFamilies(viewer);
+  // Promise.resolve: een query van Supabase start bij elke `then`, en deze wordt
+  // op twee plekken afgewacht.
+  const reportsPromise = Promise.resolve(
+    viewer.supabase
+      .from("training_workout_reports")
+      .select("*")
+      .eq("profile_id", viewer.user.id)
+      .order("updated_at", { ascending: false }),
+  );
+  const memberWorkoutsPromise = snapshotPromise.then((loaded) =>
+    loadMemberWorkouts(viewer, loaded.events),
+  );
+  const zwiftPromise = memberWorkoutsPromise.then((workouts) =>
+    loadZwiftSuggestionViews(viewer, workouts),
+  );
+  const outdoorPromise = memberWorkoutsPromise.then((workouts) =>
+    loadOutdoorSuggestionViews(viewer, workouts),
+  );
+  // Ritten waar geen training voor stond: een extra herstelrondje, een groepsrit,
+  // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
+  // deze regel verdween die belasting uit het schema terwijl hij in de benen
+  // wel degelijk meetelde.
+  const scheduleRidesPromise = Promise.all([memberWorkoutsPromise, reportsPromise]).then(
+    ([workouts, { data }]) =>
+      loadScheduleRides(
+        viewer,
+        workouts,
+        (data ?? []) as WorkoutReportRow[],
+        profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+      ),
+  );
+  const eventChoicesPromise = plansPromise.then((loaded) =>
+    loadScheduleEventChoices(viewer, activePlan(loaded)),
+  );
+
   const [
     snapshot,
     plans,
@@ -83,49 +134,33 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ftpTestState,
     ignoredStreak,
     zrlTeamMember,
-  ] =
-    await Promise.all([
-      loadIntervalsSnapshot(viewer, conn, { eventDays: 14 }),
-      loadPlanFamilies(viewer),
-      viewer.supabase
-        .from("training_workout_reports")
-        .select("*")
-        .eq("profile_id", viewer.user.id)
-        .order("updated_at", { ascending: false }),
-      viewer.supabase
-        .from("training_goals")
-        .select("*")
-        .eq("profile_id", viewer.user.id)
-        .order("created_at", { ascending: false }),
-      loadAvailabilityOptions(viewer),
-      loadFtpTestState(viewer),
-      loadIgnoredStreak(viewer),
-      loadZrlTeamMembership(viewer),
-    ]);
-
-  const memberWorkouts = await loadMemberWorkouts(viewer, snapshot.events);
-  const [zwift, outdoor] = await Promise.all([
-    loadZwiftSuggestionViews(viewer, memberWorkouts),
-    loadOutdoorSuggestionViews(viewer, memberWorkouts),
+    memberWorkouts,
+    zwift,
+    outdoor,
+    { unplanned: extraRides, byId: ridesById, deleted: deletedRides },
+    eventChoices,
+  ] = await Promise.all([
+    snapshotPromise,
+    plansPromise,
+    reportsPromise,
+    viewer.supabase
+      .from("training_goals")
+      .select("*")
+      .eq("profile_id", viewer.user.id)
+      .order("created_at", { ascending: false }),
+    loadAvailabilityOptions(viewer),
+    loadFtpTestState(viewer),
+    loadIgnoredStreak(viewer),
+    loadZrlTeamMembership(viewer),
+    memberWorkoutsPromise,
+    zwiftPromise,
+    outdoorPromise,
+    scheduleRidesPromise,
+    eventChoicesPromise,
   ]);
   const todayKey = todayKeyAmsterdam();
   const reports = (reportRows ?? []) as WorkoutReportRow[];
   const reportsByWorkout = byWorkout(reports);
-
-  // Ritten waar geen training voor stond: een extra herstelrondje, een groepsrit,
-  // of de tweede helft van een rit die onderweg in tweeën is geknipt. Zonder
-  // deze regel verdween die belasting uit het schema terwijl hij in de benen
-  // wel degelijk meetelde.
-  const {
-    unplanned: extraRides,
-    byId: ridesById,
-    deleted: deletedRides,
-  } = await loadScheduleRides(
-    viewer,
-    memberWorkouts,
-    reports,
-    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-  );
 
   // Een aanpassing is een afgeleid plan, maar hoort in het schema waar hij op
   // ingrijpt. Vandaar de groepering per familie in plaats van per plan.
@@ -142,7 +177,6 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const canSelfManagePlans = viewer.access.has("training.create_plans");
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
   const runningPlan = activePlan(plans);
-  const eventChoices = await loadScheduleEventChoices(viewer, runningPlan);
   const runningGoal = runningPlan?.goal_id
     ? ((goalRows ?? []) as GoalRow[]).find((goal) => goal.id === runningPlan.goal_id) ?? null
     : null;

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { SeasonPlanner } from "./_components/season-planner";
 import { SeasonCreateForm } from "./_components/season-create-form";
 import { SeasonRules } from "./_components/season-rules";
 import { EditionList, type EditionRow } from "./_components/edition-list";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function OmniumBeheerPage({
   searchParams: Promise<{ seizoen?: string }>;
 }) {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has("omnium.manage")) redirect("/dashboard");
 

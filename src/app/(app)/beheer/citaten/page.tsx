@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { componentLabel } from "@/lib/maintenance/component-types";
 import { EmptyState } from "@/components/app-ui";
 import { ImportForm } from "./_components/import-form";
 import { TipForm } from "./_components/tip-form";
 import { TipList, type TipRow } from "./_components/tip-list";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export default async function CitatenPage() {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has("community.manage")) redirect("/dashboard");
 

@@ -22,12 +22,12 @@ export function EventPhotoGallery({
   eventId,
   photos,
   currentUserId,
-  isAdmin,
+  canModerate,
 }: {
   eventId: string;
   photos: EventPhotoData[];
   currentUserId: string | null;
-  isAdmin: boolean;
+  canModerate: boolean;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -96,7 +96,7 @@ export function EventPhotoGallery({
           photo={active}
           eventId={eventId}
           currentUserId={currentUserId}
-          isAdmin={isAdmin}
+          canModerate={canModerate}
           onClose={close}
           onPrev={photos.length > 1 ? prev : undefined}
           onNext={photos.length > 1 ? next : undefined}
@@ -110,7 +110,7 @@ function Lightbox({
   photo,
   eventId,
   currentUserId,
-  isAdmin,
+  canModerate,
   onClose,
   onPrev,
   onNext,
@@ -118,7 +118,7 @@ function Lightbox({
   photo: EventPhotoData;
   eventId: string;
   currentUserId: string | null;
-  isAdmin: boolean;
+  canModerate: boolean;
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
@@ -126,7 +126,7 @@ function Lightbox({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const canDelete =
-    isAdmin || (currentUserId !== null && currentUserId === photo.uploaderId);
+    canModerate || (currentUserId !== null && currentUserId === photo.uploaderId);
 
   function onDelete() {
     if (!confirm("Deze foto verwijderen?")) return;

@@ -12,9 +12,12 @@ import { updateMemberRoles } from "../_actions";
 export function RoleEditor({
   profileId,
   roles,
+  canGrantBoard,
 }: {
   profileId: string;
   roles: readonly string[] | null | undefined;
+  /** De rol Bestuur geeft alle rechten; alleen met rechtenbeheer (migr. 0205). */
+  canGrantBoard: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -68,6 +71,7 @@ export function RoleEditor({
                   <input
                     type="checkbox"
                     checked={selected.includes(role)}
+                    disabled={role === "board" && !canGrantBoard}
                     onChange={(event) => toggle(role, event.currentTarget.checked)}
                     className="mt-1 size-4"
                   />

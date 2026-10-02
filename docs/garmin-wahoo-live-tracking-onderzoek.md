@@ -461,8 +461,12 @@ iemands echte link:
 - **Punt 6: vervalt.** De ELEMNT-app van de eigenaar heeft geen "Share
   Automatically" naar een mailadres, alleen een vaste link. De mailroute werkt
   dus niet voor Wahoo; zie sectie 8.
-- **Punten 1, 2, 4 en 7: open.** Garmin (1, 2, 4) vraagt een lid met een Edge;
-  de eigenaar heeft er geen. Punt 7 voor Wahoo test de eigenaar met een
+- **Punt 1: ja** (eigenaar, 2026-09-30). Garmin Connect accepteert het
+  persoonlijke adres als ontvanger. Het moet als nieuw contact onder LiveTrack →
+  Deelinstellingen → Ontvangers; een telefooncontact in Contacten wordt geen
+  ontvanger.
+- **Punten 2, 4 en 7: open.** Afzender/DKIM (2) en de echte trackpointvelden
+  (4) zijn nog niet nagekeken. Punt 7 voor Wahoo test de eigenaar met een
   proefrit. De bouw vangt de onzekerheid op (zie sectie 8).
 
 ## 8. Wat er gebouwd is (2026-09-28)

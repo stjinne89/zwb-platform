@@ -23,14 +23,14 @@ export function BirthdayMessages({
   celebrationYear,
   birthdayName,
   currentUserId,
-  isAdmin,
+  canModerate,
   messages,
 }: {
   birthdayProfileId: string;
   celebrationYear: number;
   birthdayName: string;
   currentUserId: string;
-  isAdmin: boolean;
+  canModerate: boolean;
   messages: BirthdayMessage[];
 }) {
   const router = useRouter();
@@ -102,7 +102,7 @@ export function BirthdayMessages({
                     })}
                   </p>
                 </div>
-                {(isAdmin ||
+                {(canModerate ||
                   birthdayProfileId === currentUserId ||
                   message.authorProfileId === currentUserId) && (
                   <button

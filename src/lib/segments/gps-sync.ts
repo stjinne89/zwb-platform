@@ -1,15 +1,20 @@
 // Eigen segment- en coltijden van één rit wegschrijven (matcher: gps-efforts.ts).
 //
-// - Segmenten: elk segment uit de registry (zwb_segment_maps) met een lijn in het
-//   gebied van de rit. De lijn komt van Strava; zo meten eigen tijden over
-//   hetzelfde stuk als Strava-tijden en passen ze in één klassement (keuze
-//   Stijn, 2026-09-30). Een poging landt in strava_activity_segment_efforts met
-//   `raw.source = "gps"` en een effort_uid die met "gps:" begint, zodat het
-//   klassement en de KOM's hem zonder Strava-koppeling meetellen (0199).
-// - Cols met een Strava-segment krijgen hun tijd via dat segment. Cols zonder
-//   segment hebben een startpunt uit een openbare bron; die tijden staan in
-//   `raw.gps_col_times` van de rit en gaan via gps-col-times.ts naar
-//   profile_climbed_cols.
+// Voor leden zonder Strava (GPX-upload, intervals.icu) meet ZWB zelf de tijd, en
+// bewaart het resultaat in de rit:
+// - `raw.gps_segment_times`: de snelste tijd per uitgekozen segment of col met
+//   een Strava-segment. De lijn komt uit de registry (zwb_segment_maps) en is die
+//   van Strava, zodat een eigen tijd over hetzelfde stuk gaat als een Strava-tijd
+//   (keuze Stijn, 2026-09-30).
+// - `raw.gps_col_times`: cols zonder segment, gemeten vanaf een startpunt uit een
+//   openbare bron.
+// cols/gps-col-times.ts zet beide door naar profile_climbed_cols en
+// profile_completed_segments.
+//
+// Tot oktober 2026 landde een eigen segmenttijd als rij in
+// strava_activity_segment_efforts, voor alle Strava-segmenten in het gebied. Met
+// de verkenner en de KOM's is die tabel verdwenen (migratie 0212); alleen de
+// uitgekozen segmenten en cols worden nog gemeten.
 
 import { decode } from "@mapbox/polyline";
 import {
@@ -20,15 +25,12 @@ import {
 } from "./gps-efforts";
 
 export const GPS_SOURCE = "gps";
-export const GPS_EFFORT_PREFIX = "gps:";
 
 export type GpsColTime = { slug: string; seconds: number; started_at: string };
+export type GpsSegmentTime = { segment_id: number | string; seconds: number; started_at: string };
 
 type SegmentCandidate = {
   id: number | string;
-  name: string | null;
-  distance_m: number | null;
-  average_grade: number | null;
   polyline: string | null;
 };
 
@@ -64,16 +66,34 @@ function bboxOf(points: TimedPoint[]) {
   };
 }
 
+/** Strava-segment-ID's van de uitgekozen segmenten en van cols met een segment. */
+export async function curatedSegmentIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+): Promise<number[]> {
+  const [segments, cols] = await Promise.all([
+    admin.from("zwb_segments").select("strava_segment_id").eq("active", true).not("strava_segment_id", "is", null),
+    admin.from("cols").select("strava_segment_id").not("strava_segment_id", "is", null),
+  ]);
+  if (segments.error) throw new Error(segments.error.message);
+  if (cols.error) throw new Error(cols.error.message);
+  const rows = [...(segments.data ?? []), ...(cols.data ?? [])] as Array<{ strava_segment_id: number | string }>;
+  return [...new Set(rows.map((row) => Number(row.strava_segment_id)))].filter(Number.isFinite);
+}
+
 async function segmentsInBox(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
   box: ReturnType<typeof bboxOf>,
 ): Promise<SegmentCandidate[]> {
+  const ids = await curatedSegmentIds(admin);
+  if (ids.length === 0) return [];
   const all: SegmentCandidate[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await admin
       .from("zwb_segment_maps")
-      .select("id, name, distance_m, average_grade, polyline")
+      .select("id, polyline")
+      .in("id", ids)
       .eq("private", false)
       .not("polyline", "is", null)
       .lte("south", box.north)
@@ -100,8 +120,8 @@ function lineOf(encoded: string | null): LatLon[] {
 }
 
 /**
- * Meet en bewaart de eigen tijden van één rit. Vervangt eerdere eigen pogingen
- * van die rit; pogingen van Strava blijven staan.
+ * Meet en bewaart de eigen tijden van één rit. Vervangt wat er eerder voor die
+ * rit gemeten was.
  */
 export async function storeGpsEfforts(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,46 +132,24 @@ export async function storeGpsEfforts(
 ): Promise<{ segments: number; cols: number }> {
   const box = points.length >= 2 ? bboxOf(points) : null;
 
-  const rows: Record<string, unknown>[] = [];
+  const segmentTimes: GpsSegmentTime[] = [];
   if (box) {
     for (const segment of await segmentsInBox(admin, box)) {
       const line = lineOf(segment.polyline);
       if (line.length < 2) continue;
-      matchSegmentLine(points, line).forEach((effort, index) => {
-        const startedAt = new Date(effort.startMs).toISOString();
-        rows.push({
-          effort_uid: `${GPS_EFFORT_PREFIX}${activityId}:${segment.id}:${index}`,
-          profile_id: profileId,
-          activity_id: activityId,
-          strava_segment_id: segment.id,
-          segment_name: segment.name,
-          elapsed_time_seconds: effort.seconds,
-          moving_time_seconds: effort.seconds,
-          distance_m: segment.distance_m,
-          average_grade: segment.average_grade,
-          start_lat: line[0][0],
-          start_lon: line[0][1],
-          end_lat: line[line.length - 1][0],
-          end_lon: line[line.length - 1][1],
-          started_at: startedAt,
-          raw: { source: GPS_SOURCE },
+      const efforts = matchSegmentLine(points, line);
+      const best = efforts.reduce<(typeof efforts)[number] | null>(
+        (fastest, effort) => (!fastest || effort.seconds < fastest.seconds ? effort : fastest),
+        null,
+      );
+      if (best) {
+        segmentTimes.push({
+          segment_id: segment.id,
+          seconds: best.seconds,
+          started_at: new Date(best.startMs).toISOString(),
         });
-      });
+      }
     }
-  }
-
-  const { error: deleteError } = await admin
-    .from("strava_activity_segment_efforts")
-    .delete()
-    .eq("profile_id", profileId)
-    .eq("activity_id", activityId)
-    .like("effort_uid", `${GPS_EFFORT_PREFIX}%`);
-  if (deleteError) throw new Error(deleteError.message);
-  if (rows.length > 0) {
-    const { error } = await admin
-      .from("strava_activity_segment_efforts")
-      .upsert(rows, { onConflict: "effort_uid" });
-    if (error) throw new Error(error.message);
   }
 
   const colTimes: GpsColTime[] = [];
@@ -187,10 +185,14 @@ export async function storeGpsEfforts(
   if (readError) throw new Error(readError.message);
   if (activity) {
     const raw = { ...((activity.raw ?? {}) as Record<string, unknown>) };
-    const had = Array.isArray(raw.gps_col_times) && raw.gps_col_times.length > 0;
-    if (colTimes.length > 0 || had) {
+    const had =
+      (Array.isArray(raw.gps_col_times) && raw.gps_col_times.length > 0) ||
+      (Array.isArray(raw.gps_segment_times) && raw.gps_segment_times.length > 0);
+    if (colTimes.length > 0 || segmentTimes.length > 0 || had) {
       if (colTimes.length > 0) raw.gps_col_times = colTimes;
       else delete raw.gps_col_times;
+      if (segmentTimes.length > 0) raw.gps_segment_times = segmentTimes;
+      else delete raw.gps_segment_times;
       const { error } = await admin
         .from("strava_activities")
         .update({ raw })
@@ -200,5 +202,5 @@ export async function storeGpsEfforts(
     }
   }
 
-  return { segments: rows.length, cols: colTimes.length };
+  return { segments: segmentTimes.length, cols: colTimes.length };
 }

@@ -34,6 +34,19 @@ export function StravaSection({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  function disconnect(keepData: boolean) {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const res = await disconnectStrava({ keepData });
+      setDisconnecting(false);
+      if (!res.ok) setError(res.error);
+      else if (res.pending) setMessage(res.message);
+    });
+  }
+
   // Een opgeheven koppeling bestaat alleen nog tot de nachtelijke opruiming; voor
   // het lid is hij weg, dus tonen we de koppelknop.
   const revoked = Boolean(connection?.revoked_at);
@@ -143,22 +156,12 @@ export function StravaSection({
               variant="ghost"
               disabled={pending}
               onClick={() => {
-                if (
-                  !confirm(
-                    "Strava ontkoppelen? We trekken de toestemming bij Strava in en verwijderen je opgehaalde ritten. Je badges en ZWBlokken blijven.",
-                  )
-                )
-                  return;
                 setError(null);
                 setMessage(null);
-                startTransition(async () => {
-                  const res = await disconnectStrava();
-                  if (!res.ok) setError(res.error);
-                  else if (res.pending) setMessage(res.message);
-                });
+                setDisconnecting(true);
               }}
             >
-              {pending ? "Ontkoppelen…" : "Ontkoppel Strava"}
+              Ontkoppel Strava
             </Button>
             {rides?.intervalsConnected ? (
               <Button
@@ -187,6 +190,42 @@ export function StravaSection({
               </Button>
             ) : null}
           </div>
+          {disconnecting && (
+            <div className="space-y-2 rounded-md border p-3">
+              <p className="text-sm">
+                Strava ontkoppelen? Je badges en ZWBlokken blijven altijd.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => disconnect(true)}
+                >
+                  Ritten bewaren
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => disconnect(false)}
+                >
+                  Ritten wissen
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() => setDisconnecting(false)}
+                >
+                  Annuleren
+                </Button>
+              </div>
+            </div>
+          )}
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <StravaAttribution />

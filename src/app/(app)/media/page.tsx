@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Markdown } from "@/components/markdown";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
@@ -10,6 +9,7 @@ import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
 import { AddMediaForm } from "./_components/add-form";
 import { MediaItemActions } from "./_components/item-actions";
 import { SyncInstagramButton, SyncPodcastButton, SyncYouTubeButton } from "./_components/sync-button";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type SearchParams = Promise<{ kind?: string }>;
 
@@ -53,9 +53,7 @@ export default async function MediaPage({
   const defaultRssUrl = process.env.PODCAST_RSS_URL ?? "";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const [{ data: rawItems }, access] = await Promise.all([
@@ -70,7 +68,7 @@ export default async function MediaPage({
       if (activeKind) q = q.eq("kind", activeKind);
       return q;
     })(),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
   ]);
 
   const items = (rawItems ?? []) as unknown as MediaItem[];

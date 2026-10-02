@@ -97,6 +97,20 @@ export default function PrivacyPage() {
             rooster van dat team, tot hij zijn naam claimt.
           </li>
           <li>
+            <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
+            dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race
+            en in welke categorie je verwacht te rijden, en per zondag of je kunt.
+            Na elke race halen we de openbare uitslag van MyWhoosh op. Daaruit
+            bewaren we alleen renners onder een ZWB-teamnaam, leden die aan hun
+            MyWhoosh-account zijn gekoppeld, en renners met precies de naam van een
+            lid (als koppelvoorstel voor een beheerder): naam, MyWhoosh-ID, team,
+            categorie, plaats en tijd. Vermogen, gewicht en prijzengeld nemen we
+            niet over. Van de andere teams bewaren we alleen teamnaam, teamtijd en
+            plaats. Ingelogde leden zien dit op de SRC-pagina en bij de race. Een
+            beheerder kan je MyWhoosh-ID aan je profiel koppelen; dat ID staat dan
+            op je profiel en kun je daar zelf aanpassen.
+          </li>
+          <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
@@ -147,17 +161,14 @@ export default function PrivacyPage() {
             geslacht uit afleiden.
           </li>
           <li>
-            <strong>ZWB Segments:</strong> ingelezen buitenritten leveren segmentnamen,
-            segmentlijnen en verstreken tijden voor de kaart en het klassement binnen
-            ZWB, alleen op segmenten die minstens drie leden reden. Andere goedgekeurde
-            leden zien je naam, tijd en positie. Ben je de snelste, dan zien zij die
-            ZWB KOM-titel ook op het dashboard en je ledenprofiel. Staat op je profiel
-            dat je een vrouw bent en ben je de snelste vrouw, dan zien zij daar ook de
-            ZWB QOM-titel; daaruit is je opgegeven geslacht af te leiden. Je gewicht,
-            vermogenscurve en persoonlijke haalbaarheidsberekening worden hiervoor
-            niet met andere leden gedeeld. Privéritten, ritten die alleen jij mag
-            zien, gemarkeerde ritten en privésegmenten zijn uitgesloten. Van ritten via intervals.icu en geüploade GPX-bestanden meet ZWB de tijd op segmenten en cols zelf uit het GPS-spoor; die tijd staat met het label GPS in hetzelfde klassement. Bij het verbreken van je Strava-koppeling vervallen je
-            Strava-tijden uit dit klassement; eigen tijden op ritten via intervals.icu blijven.
+            <strong>ZWB Segments:</strong> van de segmenten en cols die ZWB heeft
+            uitgekozen bewaren we je besttijd, hoe vaak je ze reed en wanneer.
+            Andere goedgekeurde leden zien je naam, tijd en positie in de ranglijst
+            per segment. Van ritten via intervals.icu en geüploade GPX-bestanden
+            meet ZWB die tijd zelf uit het GPS-spoor; hij staat met het label GPS
+            in dezelfde ranglijst. Verbreek je je Strava-koppeling, dan vervallen
+            je Strava-tijden op de uitgekozen segmenten, tenzij je ervoor kiest je
+            ritten te bewaren; cols en eigen GPS-tijden blijven.
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
@@ -275,9 +286,12 @@ export default function PrivacyPage() {
             bent. Bij het verwijderen van je account worden deze gegevens gewist.
           </li>
           <li>
-            Je kunt je Strava-koppeling op elk moment verbreken. We verwijderen
-            dan de opgehaalde Strava-ritten, hun segmenttijden en fietsen; badges en
-            ZWBlokken blijven staan. Stap je van Strava over naar intervals.icu,
+            Je kunt je Strava-koppeling op elk moment verbreken. Je kiest dan
+            zelf of we de opgehaalde Strava-ritten, hun segmenttijden en fietsen
+            verwijderen of bewaren. Bewaar je ze, dan blijven ze staan zolang je
+            lid bent en zien clubleden ze zoals voorheen; wil je ze later alsnog
+            weg, vraag het bestuur (zie &ldquo;Je rechten&rdquo;). Badges en
+            ZWBlokken blijven in beide gevallen staan. Stap je van Strava over naar intervals.icu,
             dan verdwijnen je Strava-ritten en komen je ritten voortaan via
             intervals.icu.
           </li>

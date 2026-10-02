@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { isSrcName } from "@/lib/src/feed";
 
 export type ExternalEventSource = "mywhoosh" | "zwift";
 
@@ -34,8 +35,16 @@ export type ZwiftEventApiRow = {
   sport?: string;
   type?: string;
   eventType?: string;
-  /** Besloten event; hoort nergens als voorstel of kandidaat terecht te komen. */
-  invisibleToNonParticipants?: boolean | null;
+  /**
+   * Besloten event; hoort nergens als voorstel of kandidaat terecht te komen.
+   * Niet te verwarren met `invisibleToNonParticipants`: dat gaat over wie je in
+   * de spelwereld ziet rijden en staat bij vrijwel elk openbaar event aan.
+   */
+  privateEvent?: boolean | null;
+  unlisted?: boolean | null;
+  visible?: boolean | null;
+  /** Alleen voor wie apart is toegelaten, zoals een WTRL-ploegentijdrit. */
+  restricted?: boolean | null;
   /**
    * Inschrijvingen over het hele event. Zwift is niet consequent in de naam en
    * laat het veld soms weg, dus alle varianten optioneel en nooit als 0 lezen
@@ -306,6 +315,8 @@ export async function scanMyWhooshEvents(): Promise<ExternalEventCandidate[]> {
       const startAt = new Date(starting * 1000).toISOString();
       const title = compactText(event.name ?? card.title ?? "");
       if (!title) continue;
+      // De Sunday Race Club komt via /beheer/src in de kalender (migr. 0200).
+      if (isSrcName(title)) continue;
 
       candidates.push({
       source: "mywhoosh",

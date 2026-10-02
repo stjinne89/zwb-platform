@@ -1,5 +1,4 @@
 import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TTT_SETTINGS, type TttPlanInput } from "@/lib/ttt/types";
@@ -11,6 +10,7 @@ import {
   type PlannerTeam,
   type SavedTttPlan,
 } from "./_components/ttt-planner";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -173,7 +173,7 @@ export default async function TttPlannerPage({
     { data: lineups },
     { data: savedPlanRows },
   ] = await Promise.all([
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("teams")
       .select("id, name, type, division, parent_team_id")

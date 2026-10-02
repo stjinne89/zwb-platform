@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState } from "@/components/app-ui";
 import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
 import { FRR_TOUR_COLUMNS, type FrrTourRow } from "@/lib/frr/import";
 import { RefreshButton, TourForm } from "./_components/tour-form";
+import { adminAreaPermission } from "@/lib/admin-areas";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,9 @@ function when(iso: string | null) {
 
 export default async function FrrKalenderPage() {
   const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
-  if (!access.hasAny(["events.manage_all", "community.manage"])) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("frr"))) redirect("/dashboard");
 
   const [{ data: tourRows }, { data: eventRows }, { data: entrantRows }] = await Promise.all([
     supabase.from("frr_tours").select(FRR_TOUR_COLUMNS).order("starts_on", { ascending: false }),

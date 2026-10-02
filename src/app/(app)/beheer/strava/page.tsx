@@ -1,8 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/app-ui";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
@@ -12,6 +9,9 @@ import {
   StravaWebhookPanel,
   type WebhookEventRow,
 } from "./_components/strava-webhook-panel";
+import { adminAreaPermission } from "@/lib/admin-areas";
+import { IntegrationHealth } from "../event-scan/_components/integration-health";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -56,10 +56,9 @@ async function fetchWindowActivities(admin: any, sinceIso: string) {
 }
 
 export default async function BeheerStravaPage() {
-  const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
-  if (!access.has("community.manage")) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("strava"))) redirect("/dashboard");
 
   const admin = createAdminClient();
 
@@ -210,9 +209,10 @@ export default async function BeheerStravaPage() {
       <PageHeader
         eyebrow="Beheer"
         title="Strava-sync"
-        actions={<Link href="/beheer/segments" className="rounded-md border px-3 py-2 text-sm">Segmentsynchronisatie</Link>}
         description="Start de Strava-sync voor leden zonder ritten in de statistieken, of herbereken badges en cols — het lid hoeft niets te doen."
       />
+
+      <IntegrationHealth />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Metric label="Gekoppeld" value={`${members.length} / ${stravaAthleteCap()}`} />

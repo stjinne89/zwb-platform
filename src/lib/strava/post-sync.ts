@@ -28,15 +28,16 @@ export type PostSyncSteps = {
   /** Max. dure detailcalls voor coltijden. 0 = uit. */
   colSegmentTimes?: number;
   /**
-   * Volledige ZWB-segmentsync. Let op: ook met 0 kost dit calls, want
-   * syncZwbSegmentsForUser haalt dan alsnog de authoritatieve PR's op (tot 100x
-   * GET /segments/{id}). Alleen zetten in de nachtelijke reconcile.
+   * Collecties bijwerken met Strava's eigen PR per uitgekozen segment. Elke
+   * waarde (ook 0) kost calls: tot 100x GET /segments/{id}. Alleen zetten in de
+   * nachtelijke reconcile. Het getal zelf doet sinds oktober 2026 niets meer: de
+   * detailcalls per rit die het begrensde zijn met de pogingentabel verdwenen.
    */
   zwbSegments?: number;
   /**
-   * Alleen de doorrekening van al opgeslagen segment-inspanningen. Puur database,
-   * geen enkele Strava-call — dit is wat het webhook-pad nodig heeft, omdat de
-   * efforts daar al bij de ingest zijn meegekomen.
+   * Collecties bijwerken uit wat al in de database staat: cols spiegelen en de
+   * eigen GPS-tijden toepassen. Geen Strava-call voor de tijden zelf; met een
+   * token haalt de stap wel hooguit één ontbrekende segmentlijn op.
    */
   recomputeSegments?: boolean;
   milestones?: boolean;
@@ -90,9 +91,9 @@ export function webhookPostSyncSteps(hasWriteScope: boolean): PostSyncSteps {
     watopiaCalibration: false,
     colsDetector: true,
     zwblokken: true,
-    // De segment-inspanningen zijn bij de ingest al meegekomen in dezelfde
-    // detailcall. De volledige zwbSegments-stap blijft bewust uit: die haalt ook
-    // met maxFetches 0 de authoritatieve PR's op, en dat zijn tot 100 calls.
+    // De tijden op uitgekozen segmenten zijn bij de ingest al uit de detailcall
+    // gehaald. De zwbSegments-stap blijft bewust uit: die haalt de authoritatieve
+    // PR's op, en dat zijn tot 100 calls.
     colSegmentTimes: 0,
     zwbSegments: undefined,
     recomputeSegments: true,
@@ -259,17 +260,17 @@ export async function runPostSyncForProfile(
       if (token) {
         try {
           const { syncSegmentGeometry } = await import("@/lib/segments/geometry-sync");
-          await syncSegmentGeometry(admin, token, profileId, 1);
+          await syncSegmentGeometry(admin, token, 1);
         } catch {
-          // Retried by the bounded segment backfill; raw efforts remain usable.
+          // Niet kritiek: zonder lijn meet de GPS-meting dit segment nog niet.
         }
       }
       try {
-        const { mirrorLegacyColsToSegments, recomputeCompletedSegmentsForUser } =
-          await import("@/lib/segments/sync");
-        await mirrorLegacyColsToSegments(admin, profileId);
-        const completed = await recomputeCompletedSegmentsForUser(admin, profileId);
-        result.zwbSegmentsCompleted = completed.completed;
+        const { mirrorLegacyColsToSegments } = await import("@/lib/segments/sync");
+        const { applyGpsSegmentTimesForUser } = await import("@/lib/cols/gps-col-times");
+        const mirrored = await mirrorLegacyColsToSegments(admin, profileId);
+        const gps = await applyGpsSegmentTimesForUser(admin, profileId);
+        result.zwbSegmentsCompleted = mirrored.mirrored + gps.updated;
       } catch {
         // niet kritiek voor de sync-flow
       }
@@ -282,10 +283,8 @@ export async function runPostSyncForProfile(
           admin,
           token,
           profileId,
-          { maxFetches: steps.zwbSegments },
+          { resolveCandidates: 3 },
         );
-        result.zwbSegmentsFetched = segmentResult.fetched;
-        result.zwbSegmentEffortsStored = segmentResult.storedEfforts;
         result.zwbSegmentsCompleted = segmentResult.completed;
         result.zwbSegmentsRateLimited = segmentResult.rateLimited;
       } catch {

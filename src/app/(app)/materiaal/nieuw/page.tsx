@@ -1,7 +1,12 @@
+import { redirect } from "next/navigation";
 import { BackLink } from "@/components/app-ui";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { NewPostForm } from "./_form";
 
-export default function NewPostPage() {
+export default async function NewPostPage() {
+  const access = await getCurrentUserAccess(await createClient());
+  if (!access.has("content.create_posts")) redirect("/materiaal");
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <BackLink href="/materiaal" label="Vraag en Aanbod" />

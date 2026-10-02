@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { BackLink, HelpLink } from "@/components/app-ui";
 import {
@@ -73,19 +74,17 @@ export default async function BirthdayPage({
     notFound();
   }
 
-  const [{ data: profile }, { data: currentProfile }] = await Promise.all([
+  const [{ data: profile }, access] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, avatar_url, birth_date, share_birthday")
       .eq("id", id)
       .eq("is_approved", true)
       .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single(),
+    getCurrentUserAccess(supabase),
   ]);
+  // Berichten en foto's van anderen weghalen: wie content modereert (migr. 0207).
+  const canModerate = access.has("content.moderate_posts");
 
   if (
     !profile?.birth_date ||
@@ -362,7 +361,7 @@ export default async function BirthdayPage({
             celebrationYear={celebrationYear}
             birthdayName={profile.display_name}
             currentUserId={user.id}
-            isAdmin={currentProfile?.is_admin ?? false}
+            canModerate={canModerate}
             messages={messages}
           />
 
@@ -385,7 +384,7 @@ export default async function BirthdayPage({
               birthdayProfileId={profile.id}
               celebrationYear={celebrationYear}
               currentUserId={user.id}
-              isAdmin={currentProfile?.is_admin ?? false}
+              canModerate={canModerate}
               photos={photos}
             />
           </section>

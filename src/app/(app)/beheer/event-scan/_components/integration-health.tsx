@@ -10,6 +10,7 @@ type Row = {
 const SOURCE_LABELS: Record<string, string> = {
   zwift_feed: "Zwift-feed",
   mywhoosh: "MyWhoosh",
+  mywhoosh_src: "MyWhoosh SRC-agenda",
   zwiftpower: "ZwiftPower",
   ladder: "Club-ladder",
   wtrl: "WTRL / ZRL",

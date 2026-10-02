@@ -8,7 +8,6 @@ import {
   CalendarDays,
   Camera,
   Flag,
-  Crown,
   Gift,
   HeartHandshake,
   Medal,
@@ -19,7 +18,6 @@ import {
   Vote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritverslag-button";
 import {
   EmptyState,
@@ -65,8 +63,7 @@ import {
 import { hasActivityScope } from "@/lib/strava/scope";
 import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
-import { formatSegmentTime } from "@/lib/segments/explorer";
-import { KOM_BADGE, SEGMENT_KOM_COLUMNS, type SegmentKom } from "@/lib/segments/koms";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type ProfileRef = {
   display_name: string | null;
@@ -366,17 +363,22 @@ export default async function DashboardPage({
   const params = (await searchParams) ?? {};
   const rawStravaError = params.strava_error;
   const stravaError = Array.isArray(rawStravaError) ? rawStravaError[0] : rawStravaError;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const access = await getCurrentUserAccess(supabase);
-  const isModerator = access.has("events.manage_all");
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
+  // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), dus
+  // wat niet van elkaar afhangt, vertrekt tegelijk: de rechten en de ritbron lopen
+  // mee met de grote ronde hieronder in plaats van ervoor en erna.
+  const accessPromise = getRequestAccess();
+  const rideStatusPromise = user
+    ? loadRideSourceStatus(user.id).catch(() => null)
+    : Promise.resolve(null);
 
   const nowIso = new Date().toISOString();
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
   const since7Iso = since7.toISOString();
+  const since8 = new Date(since7);
+  since8.setDate(since8.getDate() - 1);
+  const since8Iso = since8.toISOString();
   const plus7 = new Date();
   plus7.setDate(plus7.getDate() + 7);
   const plus7Iso = plus7.toISOString();
@@ -396,8 +398,6 @@ export default async function DashboardPage({
     { data: profile },
     { data: mediaRows },
     { data: pollRows },
-    { data: pollOptionRows },
-    { data: pollVoteRows },
     { data: benefitRows },
     { data: upcoming },
     { data: standingRows },
@@ -408,9 +408,11 @@ export default async function DashboardPage({
     { data: trainingConn },
     { data: nextWorkoutRows },
     { data: stravaConn },
-    { data: komRows },
     { data: instagramRows },
     { data: zrlResultRows },
+    { data: repRows },
+    { data: chatRows },
+    { data: photoRows },
   ] = await Promise.all([
     user
       ? supabase
@@ -429,16 +431,16 @@ export default async function DashboardPage({
       .limit(5),
     supabase
       .from("polls")
-      .select("id, question, description_md, multi_select, closes_at, created_at")
+      // Opties en stemmen alleen van deze twee polls; eerder kwamen alle stemmen
+      // van alle polls ooit mee (en boven 1000 rijen stilletjes afgekapt).
+      .select(
+        "id, question, description_md, multi_select, closes_at, created_at, poll_options!poll_options_poll_id_fkey(id, poll_id, label, display_order), poll_votes!poll_votes_poll_id_fkey(poll_id, option_id, profile_id)",
+      )
       .eq("scope", "free")
       .eq("active", true)
       .order("created_at", { ascending: false })
+      .order("display_order", { referencedTable: "poll_options" })
       .limit(2),
-    supabase
-      .from("poll_options")
-      .select("id, poll_id, label, display_order")
-      .order("display_order"),
-    supabase.from("poll_votes").select("poll_id, option_id, profile_id"),
     supabase
       .from("member_benefits")
       .select(
@@ -524,14 +526,6 @@ export default async function DashboardPage({
           .eq("profile_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    // Zelfde venster als de badges; achieved_at is de rit van het record, dus een oud
-    // record dat pas later meetelt, verschijnt hier niet als nieuw.
-    supabase
-      .from("zwb_segment_kom_club")
-      .select(SEGMENT_KOM_COLUMNS)
-      .gte("achieved_at", since7Iso)
-      .order("achieved_at", { ascending: false })
-      .limit(8),
     supabase
       .from("media_items")
       .select("id, title, web_url, cover_url")
@@ -548,7 +542,24 @@ export default async function DashboardPage({
       .gte("computed_at", since7Iso)
       .order("computed_at", { ascending: false })
       .limit(40),
+    // Verslagen, chat en foto's bij de voorbije events van deze week. Op datum in
+    // plaats van op event-id, zodat ze met de rest mee kunnen in plaats van in een
+    // tweede ronde; hieronder houden we alleen over wat bij een getoond event hoort.
+    // Een dag marge: de chat van een event begint op de dag zelf, soms vóór de start.
+    supabase
+      .from("event_reports")
+      .select("event_id, body_md, created_at, profiles(display_name)")
+      .gte("created_at", since8Iso)
+      .order("created_at", { ascending: false }),
+    supabase.from("event_chat_messages").select("event_id").gte("created_at", since8Iso),
+    supabase
+      .from("event_photos")
+      .select("event_id, storage_path")
+      .gte("created_at", since8Iso)
+      .order("created_at", { ascending: false }),
   ]);
+  const access = await accessPromise;
+  const isModerator = access.has("events.manage_all");
 
   // Ritverslagen = voorbije events van de afgelopen 7 dagen, verrijkt met een
   // eventueel geschreven verslag, foto's en de live-chat.
@@ -560,35 +571,19 @@ export default async function DashboardPage({
     cover_image_path: string | null;
     created_by: string | null;
   }>;
-  const recentEventIds = recentPastEvents.map((e) => e.id);
+  const recentEventIds = new Set(recentPastEvents.map((e) => e.id));
 
   const reportByEvent = new Map<string, { count: number; author: string; snippet: string }>();
   const chatCountByEvent = new Map<string, number>();
   const photoCountByEvent = new Map<string, number>();
   const photoPathsByEvent = new Map<string, string[]>();
-  if (recentEventIds.length > 0) {
-    const [{ data: repRows }, { data: chatRows }, { data: photoRows }] =
-      await Promise.all([
-        supabase
-          .from("event_reports")
-          .select("event_id, body_md, created_at, profiles(display_name)")
-          .in("event_id", recentEventIds)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("event_chat_messages")
-          .select("event_id")
-          .in("event_id", recentEventIds),
-        supabase
-          .from("event_photos")
-          .select("event_id, storage_path")
-          .in("event_id", recentEventIds)
-          .order("created_at", { ascending: false }),
-      ]);
+  if (recentEventIds.size > 0) {
     for (const r of (repRows ?? []) as Array<{
       event_id: string;
       body_md: string;
       profiles: ProfileRef | ProfileRef[] | null;
     }>) {
+      if (!recentEventIds.has(r.event_id)) continue;
       const cur = reportByEvent.get(r.event_id);
       if (cur) {
         cur.count += 1;
@@ -602,9 +597,11 @@ export default async function DashboardPage({
       }
     }
     for (const c of (chatRows ?? []) as { event_id: string }[]) {
+      if (!recentEventIds.has(c.event_id)) continue;
       chatCountByEvent.set(c.event_id, (chatCountByEvent.get(c.event_id) ?? 0) + 1);
     }
     for (const p of (photoRows ?? []) as { event_id: string; storage_path: string }[]) {
+      if (!recentEventIds.has(p.event_id)) continue;
       photoCountByEvent.set(p.event_id, (photoCountByEvent.get(p.event_id) ?? 0) + 1);
       const list = photoPathsByEvent.get(p.event_id) ?? [];
       list.push(p.storage_path);
@@ -614,10 +611,13 @@ export default async function DashboardPage({
 
   const mediaItems = (mediaRows ?? []) as unknown as MediaItemRow[];
   const instagramPosts = (instagramRows ?? []) as InstagramPost[];
+  const pollsWithVotes = (pollRows ?? []) as unknown as Array<
+    PollRow & { poll_options: PollOptionRow[] | null; poll_votes: PollVoteRow[] | null }
+  >;
   const polls = dashboardPolls(
-    (pollRows ?? []) as unknown as PollRow[],
-    (pollOptionRows ?? []) as unknown as PollOptionRow[],
-    (pollVoteRows ?? []) as unknown as PollVoteRow[],
+    pollsWithVotes,
+    pollsWithVotes.flatMap((poll) => poll.poll_options ?? []),
+    pollsWithVotes.flatMap((poll) => poll.poll_votes ?? []),
   ).filter((poll) => !poll.closes_at || new Date(poll.closes_at) > new Date());
   const benefits = ((benefitRows ?? []) as unknown as BenefitRow[]).filter(
     (benefit) => benefit.active && (!benefit.valid_until || benefit.valid_until >= today),
@@ -628,7 +628,6 @@ export default async function DashboardPage({
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
-  const koms = (komRows ?? []) as SegmentKom[];
   const carouselSponsors = (
     (sponsorRows ?? []) as {
       name: string;
@@ -738,9 +737,7 @@ export default async function DashboardPage({
   // Waar de ritten vandaan komen: Strava, intervals.icu (leden zonder
   // Strava-koppeling) of nog nergens. Faalt het ophalen, dan valt het blok terug
   // op het oude gedrag.
-  const rideStatus = user
-    ? await loadRideSourceStatus(user.id).catch(() => null)
-    : null;
+  const rideStatus = await rideStatusPromise;
   const canSyncStrava =
     hasActivityScope(strava?.scope ?? null) && (rideStatus?.stravaActive ?? true);
 
@@ -1077,44 +1074,6 @@ export default async function DashboardPage({
               );
             })}
           </ul>
-        </section>
-      )}
-
-      {koms.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Crown}
-            title="Nieuwe ZWB KOM’s en QOM’s"
-            action={<InlineMoreLink href="/profiel/segments">ZWB Segments</InlineMoreLink>}
-          />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {koms.map((kom) => (
-              <li key={`${kom.segment_id}-${kom.title}-${kom.profile_id}`}>
-                <Link
-                  href={`/leden/${kom.profile_id}`}
-                  className="flex h-full gap-3 rounded-lg border bg-card p-3 transition hover:border-foreground/30"
-                >
-                  <AchievementBadge title={KOM_BADGE[kom.title].label} icon="crown" color={KOM_BADGE[kom.title].color} size="md" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{kom.display_name ?? "ZWB'er"}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">
-                      {KOM_BADGE[kom.title].label} · {kom.segment_name}
-                    </p>
-                    <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-                      {formatSegmentTime(kom.seconds)}
-                      {kom.achieved_at
-                        ? ` - ${new Date(kom.achieved_at).toLocaleDateString("nl-NL", {
-                            dateStyle: "medium",
-                            timeZone: "Europe/Amsterdam",
-                          })}`
-                        : ""}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <StravaAttribution />
         </section>
       )}
 

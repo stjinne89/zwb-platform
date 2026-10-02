@@ -1,5 +1,5 @@
-// Integratie-health-check-cron — extern getriggerd (Netlify scheduled function
-// `integrations-healthcheck`, elk uur) met `Authorization: Bearer
+// Integratie-health-check-cron — extern getriggerd (cron-job.org, elk uur) met
+// `Authorization: Bearer
 // ${HEALTHCHECK_SECRET}`. Draait lichte probes per externe bron, bewaart de
 // status in `integration_health`, en stuurt admins een push zodra een bron van
 // ok → faalt gaat. Zie docs/runbook.md.
@@ -8,6 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { runIntegrationHealthChecks } from "@/lib/health/checks";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { checkCronSecret } from "@/lib/cron/auth";
+import { profileIdsWithPermission } from "@/lib/auth/permissions";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export async function POST(request: Request) {
   const auth = checkCronSecret(request, "HEALTHCHECK_SECRET");
@@ -50,19 +52,18 @@ export async function POST(request: Request) {
     );
 
     if (newlyFailing.length > 0) {
-      const { data: adminRows } = await admin
-        .from("profiles")
-        .select("id")
-        .eq("is_admin", true);
-      const adminIds = (adminRows ?? []).map((row) => row.id as string);
+      // Wie koppelingen beheert (migr. 0206; admins hebben elk recht).
+      const adminIds = await profileIdsWithPermission(admin, adminAreaPermission("strava")).catch(
+        () => [] as string[],
+      );
       if (adminIds.length > 0) {
         const sources = newlyFailing.map((r) => r.source).join(", ");
         await sendNotificationToMembers(
           "on_admin_broadcast",
           {
             title: "Integratie faalt",
-            body: `Controleer: ${sources}. Zie /beheer.`,
-            url: "/beheer",
+            body: `Controleer: ${sources}.`,
+            url: "/beheer/strava",
             tag: "integration-health",
           },
           { profileIds: adminIds },

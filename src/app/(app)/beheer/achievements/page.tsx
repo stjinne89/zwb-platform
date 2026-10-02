@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { HelpLink } from "@/components/app-ui";
 import { ManualBadgeManager } from "./_components/manual-badge-manager";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -36,12 +36,10 @@ export default async function AchievementBeheerPage({ searchParams }: PageProps)
     : params.profile;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
-  const access = await getCurrentUserAccess(supabase);
+  const access = await getRequestAccess();
   if (!access.has("achievements.finalize")) {
     return (
       <div className="mx-auto max-w-2xl rounded-lg border bg-card p-6">

@@ -1,5 +1,5 @@
-// Nachtelijke opruiming van Strava-koppelingen. Aangeschopt door de Netlify
-// scheduled function `strava-lifecycle` met Authorization: Bearer
+// Nachtelijke opruiming van Strava-koppelingen. Aangeschopt door cron-job.org
+// (dagelijks 05:40) met Authorization: Bearer
 // ${STRAVA_SYNC_SECRET}. Zie src/lib/strava/sweep.ts voor wat er gebeurt en
 // docs/runbook.md voor het beleid.
 

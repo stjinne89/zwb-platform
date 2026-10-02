@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { OMNIUM_LEAGUES } from "@/lib/omnium/scales";
 import { PrizeForm } from "./prize-form";
+import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +27,7 @@ export default async function OmniumPrizesPage({
 }: {
   searchParams: Promise<{ seizoen?: string }>;
 }) {
-  const access = await getCurrentUserAccess(await createClient());
+  const access = await getRequestAccess();
   if (!access.user) redirect("/login");
   if (!access.has("omnium.manage")) redirect("/dashboard");
 

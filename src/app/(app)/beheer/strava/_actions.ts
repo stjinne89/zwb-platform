@@ -13,6 +13,7 @@ import { syncClimbedColsForUser } from "@/lib/cols/detector";
 import { syncColSegmentTimesForUser } from "@/lib/cols/segment-times";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { hasActivityScope } from "@/lib/strava/scope";
+import { adminAreaPermission } from "@/lib/admin-areas";
 
 export type AdminSyncResult =
   | { ok: false; error: string }
@@ -45,7 +46,7 @@ export async function adminSyncStravaForProfile(options: {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false, error: "Niet ingelogd." };
-  if (!access.has("community.manage")) {
+  if (!access.has(adminAreaPermission("strava"))) {
     return { ok: false, error: "Geen recht om Strava-syncs te starten." };
   }
 
@@ -126,7 +127,7 @@ export async function adminRecomputeBadgesAndCols(
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false, error: "Niet ingelogd." };
-  if (!access.has("community.manage")) {
+  if (!access.has(adminAreaPermission("strava"))) {
     return { ok: false, error: "Geen recht om badges en cols te herberekenen." };
   }
 
@@ -209,12 +210,12 @@ export async function adminRecomputeBadgesAndCols(
 export async function revalidateAfterRecompute() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
-  if (!access.has("community.manage")) return;
+  if (!access.has(adminAreaPermission("strava"))) return;
   revalidatePath("/achievements");
   revalidatePath("/dashboard");
   revalidatePath("/leden");
   revalidatePath("/stats");
-  revalidatePath("/profiel/segments");
+  revalidatePath("/profiel/segments/collecties");
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -236,7 +237,7 @@ export type SubscriptionState = {
 async function requireManager() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
-  if (!access.has("community.manage")) {
+  if (!access.has(adminAreaPermission("strava"))) {
     throw new Error("Geen rechten voor Strava-beheer.");
   }
   return supabase;
@@ -360,11 +361,11 @@ function safeCallbackUrl(build: () => string): string | undefined {
 }
 
 /**
- * Draait de webhook-verwerker nu. Normaal doet de Netlify scheduled function
- * `strava-webhook-process` dit elke 5 minuten; deze knop bestaat om te kunnen
- * zien of het verwerken zélf werkt wanneer events blijven staan. Blijft de
- * wachtrij vollopen terwijl deze knop hem leegtrekt, dan ligt het aan de
- * scheduled function of aan STRAVA_SYNC_SECRET, niet aan de verwerking.
+ * Draait de webhook-verwerker nu. Normaal doet de job "ZWB Strava webhooks" op
+ * cron-job.org dit elke 5 minuten; deze knop bestaat om te kunnen zien of het
+ * verwerken zélf werkt wanneer events blijven staan. Blijft de wachtrij vollopen
+ * terwijl deze knop hem leegtrekt, dan ligt het aan de cron-job of aan
+ * STRAVA_SYNC_SECRET, niet aan de verwerking.
  */
 export async function adminProcessStravaWebhookEvents() {
   try {

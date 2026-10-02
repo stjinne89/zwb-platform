@@ -1,5 +1,9 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { InlineMoreLink } from "@/components/app-ui";
+import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request";
 import { Power } from "@/components/power-unit";
 import { StravaAttribution } from "@/components/strava-brand";
 import {
@@ -32,7 +36,7 @@ import {
   formatSegmentTime,
   loadSummary,
 } from "./_components/format";
-import { WorkoutReviewDialog } from "./_components/workout-review-dialog";
+import { WorkoutReviewDialog, type PendingReview } from "./_components/workout-review-dialog";
 import { paramString } from "./_components/format";
 import type { SearchParamsProp, SegmentRow, StravaActivityRow } from "./_components/types";
 import {
@@ -42,7 +46,8 @@ import {
   loadIntervalsSnapshot,
   loadMemberWorkouts,
   loadPendingReview,
-  loadPlanCautions,
+  loadPlanSummaries,
+  planCautionsFromSummary,
   loadProfile,
   requireViewer,
   todayKeyAmsterdam,
@@ -54,13 +59,27 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 60;
 
+async function PendingReviewDialog({ review }: { review: Promise<PendingReview | null> }) {
+  const pendingReview = await review;
+  return pendingReview ? (
+    <WorkoutReviewDialog key={pendingReview.workoutId} review={pendingReview} />
+  ) : null;
+}
+
 export default async function ZwbeterWordenTodayPage({ searchParams }: SearchParamsProp) {
   const params = (await searchParams) ?? {};
-  const viewer = await requireViewer();
+  // Wie het is weten we zonder de database (JWT); profiel en koppeling vertrekken
+  // daarom tegelijk met de rechten in plaats van erna.
+  const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
+  if (!user) redirect("/login");
+  const identity = { supabase, user };
+  const [viewer, profile, conn] = await Promise.all([
+    requireViewer(),
+    loadProfile(identity),
+    loadConnection(identity),
+  ]);
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
-
-  const [profile, conn] = await Promise.all([loadProfile(viewer), loadConnection(viewer)]);
 
   const [snapshot, { data: stravaRows }, { data: segmentRows }] = await Promise.all([
     loadIntervalsSnapshot(viewer, conn, {
@@ -90,9 +109,16 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
   // Na de intervals-sync hierboven, zodat een net gereden rit meteen als
   // afgeronde workout wordt herkend.
-  const [memberWorkouts, pendingReview] = await Promise.all([
+  // Het bevestigscherm van een gereden training (PendingReview, onderaan) wacht
+  // hier niet meer op mee: het herkennen van afgeronde workouts kostte 1,0-1,7 s
+  // van de 2,1 s die deze pagina nodig had (gemeten 2026-10-01), en voedt alleen
+  // dat scherm. Het start hier wel, direct na de sync van de ritten.
+  const pendingReviewPromise = loadPendingReview(viewer, paramString(params.review)).catch(
+    () => null,
+  );
+  const [memberWorkouts, planSummaries] = await Promise.all([
     loadMemberWorkouts(viewer, snapshot.events),
-    loadPendingReview(viewer, paramString(params.review)),
+    loadPlanSummaries(viewer),
   ]);
   const todayKey = todayKeyAmsterdam();
   const activities = (stravaRows ?? []) as StravaActivityRow[];
@@ -173,8 +199,8 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   // kijkt. Zie plan-cautions.tsx: bedoeld om mee te kijken zolang we leren hoe
   // streng de opbouwregels uitpakken.
   const planCautions =
-    nextWorkout?.kind === "zwb"
-      ? await loadPlanCautions(viewer, nextWorkout.workout.plan_id)
+    nextWorkout?.kind === "zwb" && nextWorkout.workout.plan_id
+      ? planCautionsFromSummary(planSummaries.get(nextWorkout.workout.plan_id))
       : [];
 
   return (
@@ -333,9 +359,9 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
 
       <AdjustTodayForm />
 
-      {pendingReview ? (
-        <WorkoutReviewDialog key={pendingReview.workoutId} review={pendingReview} />
-      ) : null}
+      <Suspense fallback={null}>
+        <PendingReviewDialog review={pendingReviewPromise} />
+      </Suspense>
 
       <StravaAttribution />
     </div>

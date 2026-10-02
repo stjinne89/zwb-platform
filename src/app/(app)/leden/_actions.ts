@@ -71,6 +71,20 @@ export async function updateMemberRoles(profileId: string, roles: string[]) {
   );
   const community_roles = normalizeCommunityRoles(validRoles);
 
+  // De rol Bestuur geeft alle rechten: alleen wie rechten beheert mag hem geven
+  // of afnemen (zelfde regel als de databasetrigger, migr. 0205).
+  if (!access.has("roles.manage_permissions")) {
+    const { data: current } = await supabase
+      .from("profiles")
+      .select("community_roles")
+      .eq("id", profileId)
+      .maybeSingle();
+    const wasBoard = normalizeCommunityRoles(current?.community_roles).includes("board");
+    if (wasBoard !== community_roles.includes("board")) {
+      return { ok: false as const, error: "Geen recht om de rol Bestuur te geven of af te nemen." };
+    }
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({ community_roles })

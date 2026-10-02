@@ -18,13 +18,13 @@ export function BirthdayPhotoGallery({
   birthdayProfileId,
   celebrationYear,
   currentUserId,
-  isAdmin,
+  canModerate,
   photos,
 }: {
   birthdayProfileId: string;
   celebrationYear: number;
   currentUserId: string;
-  isAdmin: boolean;
+  canModerate: boolean;
   photos: BirthdayPhoto[];
 }) {
   const router = useRouter();
@@ -70,7 +70,7 @@ export function BirthdayPhotoGallery({
               <Link href={`/leden/${photo.uploaderProfileId}`} className="truncate hover:underline">
                 {photo.uploaderName}
               </Link>
-              {(isAdmin ||
+              {(canModerate ||
                 birthdayProfileId === currentUserId ||
                 photo.uploaderProfileId === currentUserId) && (
                 <button

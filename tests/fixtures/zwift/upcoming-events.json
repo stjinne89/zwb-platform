@@ -53,7 +53,7 @@
     "durationInSeconds": 3600,
     "sport": "CYCLING",
     "eventType": "GROUP_WORKOUT",
-    "invisibleToNonParticipants": true
+    "privateEvent": true
   },
   {
     "id": 4812004,

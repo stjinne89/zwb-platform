@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
@@ -31,6 +30,9 @@ import {
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
+import { SrcPanel } from "./_components/src-panel";
+import { setSrcAvailability } from "../../src/_actions";
+import { srcMonthKey } from "@/lib/src/month";
 import { subEventLabel } from "@/lib/events/sub-events";
 import { loadZrlTeamResults, type ZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { isPoiType, type EventPoi } from "./_components/poi";
@@ -73,6 +75,7 @@ import {
 import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -216,9 +219,7 @@ export default async function EventDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   const { data: event } = await supabase
     .from("events")
@@ -261,6 +262,8 @@ export default async function EventDetailPage({
       : { data: null };
   const frrTourId = (frrLink?.frr_tour_id as string | null | undefined) ?? null;
   const isFrr = Boolean(frrTourId);
+  // Sunday Race Club (migr. 0200): een zondag met de heren- en damesrace eronder.
+  const isSrc = event.type === "src";
   const frrLevel: "tour" | "stage" | "slot" | null = !frrTourId
     ? null
     : event.zwift_event_id
@@ -283,14 +286,14 @@ export default async function EventDetailPage({
       return {
         id: row.id,
         startAt: row.start_at,
-        name: isFrr ? subEventLabel(row.title, event.title) : team?.name ?? row.title,
+        name: isFrr || isSrc ? subEventLabel(row.title, event.title) : team?.name ?? row.title,
         teamId: row.team_id,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
         hasRoute: hasOwnRoute(row),
         zwiftLinks: derivedZwiftLinks(row.zwift_event_id),
       };
     })
-    .sort((a, b) => (isFrr ? 0 : Number(b.isMine) - Number(a.isMine)));
+    .sort((a, b) => (isFrr || isSrc ? 0 : Number(b.isMine) - Number(a.isMine)));
   const isParentEvent = subEvents.length > 0;
 
   // De etappes met hun tijdsloten: op de tour alle etappes, op een etappe of
@@ -480,6 +483,50 @@ export default async function EventDetailPage({
     }));
   }
 
+  // SRC-zondag (migr. 0201): je geeft per zondag op of je kunt, voor het team
+  // waarmee je deze maand rijdt. Dat wordt je antwoord op je eigen race.
+  const isSrcSunday = isSrc && !event.parent_event_id;
+  let srcSignup: { teamId: string; current: TeamAvailabilityStatus | null } | null = null;
+  // Zonder inschrijving kan een klik je zelf inschrijven, tenzij er meer
+  // SRC-teams zijn om uit te kiezen.
+  let srcCanAutoJoin = false;
+  if (isSrcSunday && user) {
+    const { data: sundayRow } = await supabase
+      .from("events")
+      .select("src_sunday")
+      .eq("id", id)
+      .maybeSingle();
+    const sunday = (sundayRow?.src_sunday as string | null | undefined) ?? null;
+    const { data: entry } = sunday
+      ? await supabase
+          .from("src_month_entries")
+          .select("team_id")
+          .eq("month", srcMonthKey(sunday))
+          .eq("profile_id", user.id)
+          .maybeSingle()
+      : { data: null };
+    if (entry) {
+      const { data: availability } = await supabase
+        .from("team_event_availability")
+        .select("status")
+        .eq("event_id", id)
+        .eq("team_id", entry.team_id)
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      srcSignup = {
+        teamId: entry.team_id as string,
+        current: (availability?.status as TeamAvailabilityStatus | undefined) ?? null,
+      };
+    } else {
+      const { data: srcTeams } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("type", "src")
+        .eq("is_graveyard", false);
+      srcCanAutoJoin = (srcTeams ?? []).length <= 1;
+    }
+  }
+
   // Strip het interne "ZWB-deelnemers:"-label uit de omschrijving (gekoppelde
   // leden tonen we als RSVP-deelnemer). De namen zelf blijven leesbaar staan,
   // zodat ook nog niet-gekoppelde deelnemers zichtbaar blijven.
@@ -527,7 +574,7 @@ export default async function EventDetailPage({
         "status, profile_id, profiles(display_name, zrl_category, strava_id)",
       )
       .eq("event_id", id),
-    getCurrentUserAccess(supabase),
+    getRequestAccess(),
     supabase
       .from("whatsapp_groups")
       .select("id, name, invite_url, description, kind")
@@ -1106,6 +1153,10 @@ export default async function EventDetailPage({
         links={raceLinks}
       />
 
+      {isSrc && !isParentEvent && (
+        <SrcPanel supabase={supabase} eventId={event.id} signupUrl={event.external_url} />
+      )}
+
       <WhatsAppGroupBlock
         scope="event"
         groups={waGroups ?? []}
@@ -1264,7 +1315,7 @@ export default async function EventDetailPage({
       {isParentEvent && !isFrr && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Teams
+            {isSrc ? "Races" : "Teams"}
           </h2>
           <ul className="divide-y overflow-hidden rounded-lg border bg-card">
             {subEvents.map((sub) => {
@@ -1370,7 +1421,7 @@ export default async function EventDetailPage({
           mode="realtime"
           currentUserId={user?.id ?? null}
           isMember={Boolean(user)}
-          isAdmin={access.isAdmin}
+          canModerate={access.has("content.moderate_posts")}
           initialMessages={initialChat}
         />
       )}
@@ -1393,7 +1444,27 @@ export default async function EventDetailPage({
           <WindSummary forecast={windForecast} rideBearing={rideBearing} />
         ))}
 
-      {!isParentEvent && !isRaceWeek && (
+      {isSrcSunday && user && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Ben jij erbij?
+          </h2>
+          {srcSignup || srcCanAutoJoin ? (
+            <TeamAvailabilityButtons
+              teamId={srcSignup?.teamId ?? ""}
+              eventId={event.id}
+              current={srcSignup?.current ?? null}
+              save={setSrcAvailability.bind(null, event.id)}
+            />
+          ) : (
+            <Link href="/src" className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+              Kies je team
+            </Link>
+          )}
+        </section>
+      )}
+
+      {!isParentEvent && !isRaceWeek && !isSrcSunday && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Ben jij erbij?
@@ -1571,7 +1642,7 @@ export default async function EventDetailPage({
           eventId={event.id}
           photos={photoData}
           currentUserId={user?.id ?? null}
-          isAdmin={access.isAdmin}
+          canModerate={access.has("content.moderate_posts")}
         />
       </section>
 
@@ -1579,7 +1650,7 @@ export default async function EventDetailPage({
         eventId={event.id}
         eventTitle={event.title}
         currentUserId={user?.id ?? null}
-        isAdmin={access.isAdmin}
+        canModerate={access.has("content.moderate_posts")}
         reports={eventReports}
         myResult={myEventResult}
       />
@@ -1590,7 +1661,7 @@ export default async function EventDetailPage({
           mode="poll"
           currentUserId={user?.id ?? null}
           isMember={Boolean(user)}
-          isAdmin={access.isAdmin}
+          canModerate={access.has("content.moderate_posts")}
           initialMessages={initialChat}
           readOnly
         />

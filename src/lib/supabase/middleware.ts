@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSessionUser } from "@/lib/auth/session-user";
 
 const PASSWORD_RECOVERY_COOKIE = "zwb-password-recovery";
 
@@ -38,6 +39,7 @@ const PUBLIC_PATHS = [
   "/api/zwift/events/sync",
   "/api/zrl/freeze",
   "/api/frr/sync",
+  "/api/src/sync",
   "/api/intervals/rides/sync",
 ];
 
@@ -68,9 +70,9 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Lokaal gecontroleerd in plaats van bij de Auth-server (session-user.ts); een
+  // verlopen sessie wordt hier nog steeds ververst en in de cookies teruggezet.
+  const user = await getSessionUser(supabase);
 
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));

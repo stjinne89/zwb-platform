@@ -13,6 +13,7 @@ import { accessTokenFor, type StravaConnection } from "@/lib/strava/client";
 import { deauthorizeStravaAthlete } from "@/lib/strava/deauthorize";
 import {
   evaluateInactivity,
+  keepsStravaData,
   loginRuleFor,
   revocationPatch,
   type LoginRuleConfig,
@@ -97,6 +98,8 @@ export async function revokeStravaConnection(
  * Lukt de deauthorisatie niet, dan blijft de rij (gemarkeerd) staan zodat de
  * sweeper het opnieuw probeert — de data wordt dan ook nog niet gewist, want het
  * lid is op Strava's kant nog gekoppeld.
+ *
+ * Bij een reden die de data houdt (`keepsStravaData`) gaat alleen de rij weg.
  */
 export async function revokeAndCleanupStravaConnection(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,9 +112,10 @@ export async function revokeAndCleanupStravaConnection(
     return { deauthorized: false, purged: false, error: revoked.error };
   }
 
-  await purgeStravaDataForProfile(admin, profileId);
+  const keep = keepsStravaData(reason);
+  if (!keep) await purgeStravaDataForProfile(admin, profileId);
   await admin.from("strava_connections").delete().eq("profile_id", profileId);
-  return { deauthorized: true, purged: true };
+  return { deauthorized: true, purged: !keep };
 }
 
 /** Stap 1: koppelingen die zijn opgeheven maar waar Strava nog niets van weet. */
@@ -152,7 +156,8 @@ export async function retryPendingDeauthorizations(
  * Stap 2: alles opruimen van koppelingen waarvan Strava's kant echt los is.
  *
  * Hier landt het retentiebesluit: de ruwe Strava-data gaat weg, de afgeleide
- * clubdata (badges, ZWBlokken, onderhoud, coltijden) blijft.
+ * clubdata (badges, ZWBlokken, onderhoud, coltijden) blijft. Koos het lid bij
+ * het ontkoppelen om zijn ritten te houden, dan gaat alleen de rij weg.
  */
 export async function purgeDeauthorizedConnections(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +166,7 @@ export async function purgeDeauthorizedConnections(
 ): Promise<{ purged: number; errors: string[] }> {
   const { data } = await admin
     .from("strava_connections")
-    .select("profile_id")
+    .select("profile_id, revoked_reason")
     .not("deauthorized_at", "is", null)
     .order("deauthorized_at", { ascending: true })
     .limit(limit);
@@ -169,9 +174,14 @@ export async function purgeDeauthorizedConnections(
   let purged = 0;
   const errors: string[] = [];
 
-  for (const row of (data ?? []) as Array<{ profile_id: string }>) {
+  for (const row of (data ?? []) as Array<{
+    profile_id: string;
+    revoked_reason: string | null;
+  }>) {
     try {
-      await purgeStravaDataForProfile(admin, row.profile_id);
+      if (!keepsStravaData(row.revoked_reason)) {
+        await purgeStravaDataForProfile(admin, row.profile_id);
+      }
       await admin
         .from("strava_connections")
         .delete()

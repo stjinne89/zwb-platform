@@ -32,7 +32,7 @@ export function EventChat({
   mode,
   currentUserId,
   isMember,
-  isAdmin,
+  canModerate,
   initialMessages,
   readOnly = false,
 }: {
@@ -40,7 +40,7 @@ export function EventChat({
   mode: "realtime" | "poll";
   currentUserId: string | null;
   isMember: boolean;
-  isAdmin: boolean;
+  canModerate: boolean;
   initialMessages: ChatMessage[];
   /** Archief-modus: alleen-lezen (geen invoer/realtime), als deel van het ritverslag. */
   readOnly?: boolean;
@@ -101,7 +101,10 @@ export function EventChat({
       .channel(`event-chat-${eventId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "event_chat_messages" },
+        // Alleen dit event: zonder filter liet elk chatbericht bij welk event dan ook
+        // alle open chats opnieuw laden. Supabase filtert geen DELETE-events; een
+        // verwijderd bericht verdwijnt hier via de fallback-poll.
+        { event: "*", schema: "public", table: "event_chat_messages", filter: `event_id=eq.${eventId}` },
         ping,
       )
       .subscribe();
@@ -199,7 +202,7 @@ export function EventChat({
               )}
               <span className="text-muted-foreground"> · </span>
               <span className="whitespace-pre-wrap break-words">{m.body}</span>
-              {(isAdmin || (currentUserId && m.profileId === currentUserId)) && (
+              {(canModerate || (currentUserId && m.profileId === currentUserId)) && (
                 <button
                   type="button"
                   onClick={() => remove(m.id)}

@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import {
   BulkGroupForm,
   DeleteGroupButton,
   NewGroupForm,
 } from "./_components/admin-forms";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 const CATEGORY_LABELS: Record<string, string> = {
   algemeen: "Algemeen",
@@ -22,9 +22,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default async function CommunityPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login");
 
   const [{ data: groups }, access, { data: teams }, { data: events }] =
@@ -36,7 +34,7 @@ export default async function CommunityPage() {
         )
         .order("display_order")
         .order("name"),
-      getCurrentUserAccess(supabase),
+      getRequestAccess(),
       supabase
         .from("teams")
         .select("id, name, type, division")

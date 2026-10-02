@@ -5,12 +5,16 @@
 // event-start. Idempotent: een (event_id, profile_id, kind) krijgt
 // maximaal 1 notificatie via de `event_reminder_sends`-log.
 //
+// Daarnaast de herinneringen van de Sunday Race Club (inschrijven en weigh-in,
+// migr. 0203); een fout daar houdt de gewone herinneringen niet tegen.
+//
 // Window-keuze (overlap zodat een 15-min-tick nooit mist):
 //   2u  : start_at in [now + 90min,  now + 150min]
 //   24u : start_at in [now + 23h,    now + 25h]
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { processSrcReminders } from "@/lib/src/reminders";
 
 type ReminderKind = "24h" | "2h";
 
@@ -161,10 +165,15 @@ export async function POST(request: Request) {
       window24h.end,
     );
 
+    const src = await processSrcReminders(admin, new Date(now)).catch((err) => ({
+      error: err instanceof Error ? err.message : "SRC-herinneringen faalden.",
+    }));
+
     return Response.json({
       ok: true,
       "2h": r2h,
       "24h": r24h,
+      src,
     });
   } catch (err) {
     return Response.json(
