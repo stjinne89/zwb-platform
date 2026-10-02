@@ -197,9 +197,10 @@ export default function PrivacyPage() {
             intervals.icu even te openen; we bewaren wanneer je dat afvinkt.
           </li>
           <li>
-            <strong>Zelf geüploade ritten:</strong> upload je activities.csv of
-            GPX-bestanden, dan bewaren we per rit naam, tijd, afstand en
-            hoogtemeters, en bij een GPX een vereenvoudigd GPS-spoor. Net als
+            <strong>Zelf geüploade ritten:</strong> upload je activities.csv,
+            GPX- of FIT-bestanden, dan bewaren we per rit naam, tijd, afstand en
+            hoogtemeters, en bij een GPX of FIT een vereenvoudigd GPS-spoor.
+            Vermogen en hartslag uit een FIT-bestand bewaren we niet. Net als
             Strava-ritten tellen ze mee voor badges, weekstanden,
             clubstatistieken, cols, ZWB Segments en ZWBlokken, en zien clubleden
             ze bij de recente ritten en op je profiel.

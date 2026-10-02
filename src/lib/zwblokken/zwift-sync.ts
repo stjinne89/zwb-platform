@@ -41,6 +41,20 @@ export async function syncZwiftBlocksForUser(
   let newBlocks = 0;
   let remaining = false;
 
+  // Ritten zonder spoor (uit activities.csv) leveren nooit blokken op. Eerst in
+  // één keer afvinken: de rij hieronder loopt van oud naar nieuw, en een lid met
+  // duizend zulke ritten kreeg zijn nieuwste rit mét spoor pas na een paar runs
+  // aan de beurt. Krijgt zo'n rit later een spoor, dan zet de import de cursor
+  // terug.
+  const { error: skipError } = await supabase
+    .from("strava_activities")
+    .update({ zwift_blocks_processed_at: new Date().toISOString() })
+    .eq("profile_id", profileId)
+    .eq("sport_type", "VirtualRide")
+    .is("zwift_blocks_processed_at", null)
+    .is("raw->map->>summary_polyline", null);
+  if (skipError) throw new Error(skipError.message);
+
   while (scanned < maxActivities) {
     const limit = Math.min(PAGE, maxActivities - scanned);
     const { data, error } = await supabase

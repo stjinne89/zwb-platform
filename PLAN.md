@@ -5271,6 +5271,125 @@ werkt, blijkt pas op productie (`storyError`). Geen echte story door de sync
 gehaald. **Handwerk:** `INSTAGRAM_SYNC_SECRET` in Netlify en een job elk uur op
 cron-job.org.
 
+### Opgeleverd — ZWBlokken: ritten zonder spoor houden de rij niet meer op
+
+**2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Kevin had FIT-bestanden geüpload en stond nog steeds niet in de
+Zwift-werelden. Gemeten op productie (alleen gelezen):
+- De FIT-import van 2026-10-01 (`b2d8058`) stond nog niet op `main`. Er is geen
+  enkele rit met `import_source = strava_fit`, en geen CSV-rit kreeg een spoor.
+  De oude code las een `.fit.gz` als CSV en meldde "Geen activiteiten gevonden".
+- Kevin koppelde intussen intervals.icu. Drie Zwift-ritten van 1 oktober kwamen
+  met spoor binnen (Scotland en Watopia), maar hadden een dag later nog geen
+  blokken: 1.000 van zijn virtuele ritten waren verwerkt, 658 zonder spoor
+  wachtten, en daarachter de drie mét spoor.
+
+**Oorzaak.** `syncZwiftBlocksForUser` neemt per aanroep 500 ritten, van oud naar
+nieuw, en vinkt ook ritten zonder spoor één voor één af. Een lid met 1.658
+CSV-ritten zonder spoor heeft dus vier runs nodig voordat zijn nieuwste rit aan
+de beurt is, en een run komt er alleen bij een nieuwe rit. In de hele club stond
+alleen Kevin zo te wachten.
+
+**Wat er veranderde.**
+- `syncZwiftBlocksForUser` en `syncBlocksForUser` vinken ritten zonder spoor
+  eerst in één update af. De rij bevat daarna alleen ritten die blokken kunnen
+  opleveren.
+- Nieuwe actie `syncMyBlocks`: het importformulier herhaalt die na het nawerk tot
+  ZWBlokken bij is (500 ritten per ronde, hooguit 20 rondes). Zonder dit zou een
+  upload van 1.658 FIT-bestanden na de eerste 500 blijven steken.
+
+**Claim die niet klopte.** In de GPX-ronde van 2026-09-30 en in de code stond dat
+"de backfill-cron" oppakt wat ZWBlokken niet haalt. Die cron bestaat niet:
+`/api/zwblokken/backfill` is handwerk (runbook sectie 2). De zinnen zijn
+rechtgezet.
+
+**Nog te doen op productie.** Na de deploy komen Kevins drie ritten mee bij zijn
+eerstvolgende rit via intervals.icu. Direct kan ook:
+`POST /api/zwblokken/backfill?zwift=1&profile=<zijn profiel-id>`.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-tests van ZWBlokken
+en de import. **Niet lokaal te verifiëren:** de update met het JSON-filter
+(`raw->map->>summary_polyline is null`). Hetzelfde filter is wel als leesquery
+tegen productie gedraaid en telde daar de 658 ritten.
+
+### Opgeleverd — FIT-import: Zwift-ritten uit de Strava-export tellen mee in ZWBlokken
+
+**2026-10-01.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn zag Kevin Plasmans nauwelijks in ZWBlokken, terwijl hij veel
+op Zwift rijdt. Gemeten op productie (alleen gelezen, met toestemming van Stijn):
+geen Strava-koppeling, 1.965 ritten uit zijn eigen upload. Daarvan 1.658
+`VirtualRide` uit activities.csv zonder spoor, en 205 buitenritten met een
+GPX-spoor. Resultaat: 610 buitenblokken, 0 Zwift-blokken. De herkenning was niet
+het probleem (bijna 1.500 ritten heten "Zwift - …"). In de Strava-export staan
+Zwift-ritten als `.fit.gz`, en die las de import niet.
+
+**Wat er veranderde.**
+- **FIT-lezer.** `src/lib/strava/fit.ts` (puur): leest uit een FIT-bestand de
+  punten van het spoor, de sessie (sport, start, tijden, afstand, hoogtemeters)
+  en de fabrikant. Vermogen, hartslag en ontwikkelaarsvelden worden overgeslagen.
+  Een opname die halverwege is afgebroken levert de punten tot dat moment.
+- **`stravaActivityFromFit`** in `lib/strava/import.ts`.
+  - Sport `cycling` of `e_biking`; een andere sport en een rit zonder GPS worden
+    overgeslagen en tellen niet als mislukt.
+  - `VirtualRide` bij sub-sport `virtual_activity` of fabrikant Zwift.
+  - Start en afstand komen uit het bestand zelf (eerste record, sessie-afstand),
+    niet nagemeten op de coördinaten. Dat zijn de waarden die ook in
+    activities.csv staan, en daarop herkent `isSameRide` dezelfde rit.
+  - Een FIT kent geen titel. Een nieuwe rit heet "Zwift-rit", "Virtuele rit" of
+    "Fietsrit"; bij een rit uit activities.csv blijft de naam uit de CSV staan.
+  - Bij een bestand van Zwift krijgt de rit `raw.device_name = "Zwift"`, ook als
+    het spoor bij een CSV-rit wordt gezet. Zo telt ook een hernoemde Zwift-rit
+    mee (167 van Kevins virtuele ritten hebben geen "Zwift" in de naam).
+- **Gezipt.** De upload-actie pakt gzip uit (`.fit.gz`, ook `.gpx.gz`), tot 50 MB
+  uitgepakt. TCX wordt overgeslagen.
+- **Een paar bestanden per aanroep.** `importMyStravaFile` heet nu
+  `importMyStravaFiles` en neemt meerdere bestanden; het formulier stuurt er vijf
+  per keer (hooguit 4 MB) en de server verwerkt ze tegelijk. Next handelt server
+  actions één voor één af, dus tegelijk uploaden vanuit de browser levert niets
+  op. De knop heet "Importeer ritten".
+- `/hulp#strava-import` heeft een derde blok voor de map `activities` uit de
+  Strava-export. Zoekhulp en `/welkom` noemen FIT.
+- **Privacy.** De bullet "Zelf geüploade ritten" noemt FIT en zegt dat vermogen
+  en hartslag uit het bestand niet bewaard worden. Geen nieuwe versie in
+  `privacy.ts`: zelfde gegevens als bij een GPX. **Nog aan Stijn voorgelegd in
+  het verslag van deze ronde, niet vooraf.**
+
+**Bewust niet gebouwd.**
+- **TCX en de ZIP zelf.** Niet gevraagd. Het lid kiest de bestanden in de
+  uitgepakte map.
+- **Eén FIT-lezer voor alles.** `src/lib/live/fit-records.ts` leest al
+  record-berichten voor Wahoo's live-pagina, met sensorwaarden en zonder sessie
+  of sport. Samenvoegen raakt de werkende live-keten; bewust twee lezers.
+- **Zwift-ritten herkennen aan de plek** (Watopia ligt in zee), voor een GPX met
+  type `cycling` of een hernoemde rit zonder FIT. Speelt bij Kevin niet.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, unit-tests
+(`tests/unit/strava-fit-import.test.ts`, met een zelfgebouwd FIT-bestand:
+little- en big-endian, kop van 12 bytes, ontwikkelaarsvelden, verkorte
+tijdstempelkop, afgebroken opname). Eenmalig met de hand: een bestand geschreven
+met Garmins officiële `@garmin/fitsdk` wordt goed gelezen. De hele unit-suite
+slaagt, op `omnium-live.test.ts` na (vraagt `.env.local`, die in deze worktree
+ontbreekt) en drie pglite-tests die alleen in de volle run een time-out geven en
+los slagen. `next build` compileert en doorstaat de typecheck, en stopt daarna bij het prerenderen van `/omnium` om dezelfde ontbrekende `.env.local`.
+
+**Niet lokaal te verifiëren.**
+- De upload-actie zelf (uitpakken, database, vijf bestanden tegelijk binnen de
+  Netlify-tijdslimiet): er is hier geen database.
+- Een echt Zwift-bestand uit een Strava-export is niet getest. Dat Zwift
+  `virtual_activity` en fabrikant 260 schrijft, is een aanname uit het
+  FIT-profiel.
+- **Segment- en coltijden per bestand.** Elk FIT-bestand meet ook de eigen
+  segment- en coltijden (`storeGpsEfforts`), net als een GPX en een rit uit
+  intervals.icu. Of vijf bestanden tegelijk daarmee binnen de tijdslimiet
+  blijven, moet de eerste grote upload uitwijzen.
+
+**Bijgesteld bij de push (2026-10-02).** De eerste versie van deze ronde sloeg de
+eigen segmenttijden over bij virtuele ritten en waarschuwde voor de disk. Beide
+redenen vervielen met migratie `0212`: de tabel met segmentpogingen is weg, de
+tijden staan in de rit zelf, en de database is 200 MB.
+
 ### Opgeleverd — Instagram-sync toont de reden als het ophalen mislukt
 
 **2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -6021,7 +6140,7 @@ risico is bewust genomen, niet over het hoofd gezien.
   coltijden (`cols.strava_segment_id`) en de ZWB-segmentcollecties ze zonder
   nieuwe tabel. Coltijden van cols zonder Strava-segment staan in
   `raw.gps_col_times` van de rit.
-- **GPX**: gemeten in `importMyStravaFile`, uit het volledige bestand; bewaard
+- **GPX**: gemeten in `importMyStravaFile` (nu `importMyStravaFiles`), uit het volledige bestand; bewaard
   wordt alleen de uitgedunde lijn zonder tijden. **intervals.icu**: de sync
   vraagt nu `latlng,time`; gemeten zodra het spoor wordt opgehaald.
   `timedTrackFromStreams` houdt breedte, lengte en tijd per index gekoppeld.
@@ -6082,13 +6201,16 @@ GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
 
 **Wat er veranderde.**
 - **Meerdere bestanden.** Het importveld op het dashboard neemt meerdere
-  bestanden. De browser stuurt ze één voor één naar `importMyStravaFile`: tien
+  bestanden. De browser stuurde ze één voor één naar `importMyStravaFile`: tien
   GPX'en passen niet in de uploadlimiet van één server action (10 MB), en één
-  kapot bestand houdt de rest zo niet tegen. Het nawerk (col-detector,
+  kapot bestand houdt de rest zo niet tegen. **Sinds de FIT-ronde (2026-10-01)**
+  gaan ze met vijf tegelijk naar `importMyStravaFiles`. Het nawerk (col-detector,
   ZWBlokken, ZWB-segmenten uit de cols, afgeronde trainingen, badges,
   weekbadges) draait daarna één keer via de nieuwe `finishMyStravaImport`, met
-  `runPostSyncForProfile` zonder token, net als de intervals.icu-ritten. Wat
-  ZWBlokken daarbij niet haalt, pakt de backfill-cron op.
+  `runPostSyncForProfile` zonder token, net als de intervals.icu-ritten.
+  ~~Wat ZWBlokken daarbij niet haalt, pakt de backfill-cron op.~~ **Rechtgezet
+  2026-10-02:** die cron bestaat niet; het formulier maakt ZWBlokken nu zelf af
+  met `syncMyBlocks`.
 - **Spoor bewaren.** `stravaActivityFromGpx` zet het spoor als
   `raw.map.summary_polyline`, uitgedund tot 500 punten zoals bij intervals.icu.
   `encodeTrackPolyline` staat daarvoor in `src/lib/track-polyline.ts`;
@@ -6127,13 +6249,15 @@ GPX-rit telde niet mee voor cols, ZWB Segments of ZWBlokken.
   **Inmiddels gebouwd, anders dan dit advies:** zie de ronde "eigen segment- en
   coltijden uit GPX en intervals.icu" hierboven.
 - **FIT- en TCX-bestanden en de ZIP van de Strava-export.** In dat archief
-  staan de meeste ritten als `.fit.gz`. Niet gevraagd.
+  staan de meeste ritten als `.fit.gz`. Niet gevraagd. **FIT is inmiddels
+  gebouwd** (ronde "FIT-import", 2026-10-01); TCX en de ZIP zelf niet.
 
 **Niet lokaal te verifiëren.** Het nawerk op een grote historie is niet tegen
 de Netlify-timeout getest. Loopt `finishMyStravaImport` vast, dan staan de
 ritten er al wel; het lid krijgt de melding dat badges en cols later volgen.
-Cols en badges werken dan bij via "Badges herberekenen". ZWBlokken komen via de
-backfill-cron.
+Cols en badges werken dan bij via "Badges herberekenen". ~~ZWBlokken komen via de
+backfill-cron.~~ **Rechtgezet 2026-10-02:** er is geen cron; ZWBlokken komen bij
+de volgende import of rit, of via de handmatige backfill.
 
 ### Opgeleverd — hulpteksten wijzen voor sync en import naar het dashboard
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { gunzipSync } from "node:zlib";
 import { revalidatePath } from "next/cache";
 import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
 import { createClient } from "@/lib/supabase/server";
@@ -16,13 +17,18 @@ import {
 } from "@/lib/strava/import-merge";
 import {
   stravaActivitiesFromCsv,
+  stravaActivityFromFit,
   stravaActivityFromGpx,
   timedTrackFromGpx,
   type ImportedStravaActivity,
 } from "@/lib/strava/import";
+import { looksLikeFit } from "@/lib/strava/fit";
+import type { TimedPoint } from "@/lib/segments/gps-efforts";
 
 // Gelijk aan serverActions.bodySizeLimit in next.config.ts.
 const STRAVA_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+// Een gezipt bestand mag uitgepakt niet eindeloos groot worden.
+const UNZIPPED_MAX_BYTES = 50 * 1024 * 1024;
 
 export async function syncMyStravaActivities(
   options: {
@@ -224,11 +230,13 @@ type ExistingRideRow = {
 const EXISTING_PAGE = 1000;
 
 /**
- * Leest één bestand in: activities.csv of één GPX. Het nawerk (cols, ZWBlokken,
- * segmenten, badges) doet finishMyStravaImport, één keer na alle bestanden; per
- * bestand zou een bulkupload van GPX'en dat werk tientallen keren doen.
+ * Leest de bestanden van één aanroep in: activities.csv, GPX of FIT (ook
+ * .fit.gz). De browser stuurt er een paar per keer en krijgt per bestand een
+ * uitkomst terug, zodat één kapot bestand de rest niet tegenhoudt. Het nawerk
+ * (cols, ZWBlokken, segmenten, badges) doet finishMyStravaImport, één keer na
+ * alle bestanden; per bestand zou een bulkupload dat werk tientallen keren doen.
  */
-export async function importMyStravaFile(formData: FormData) {
+export async function importMyStravaFiles(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -236,47 +244,106 @@ export async function importMyStravaFile(formData: FormData) {
 
   if (!user) return { ok: false as const, error: "Niet ingelogd." };
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
+  const files = formData
+    .getAll("file")
+    .filter((file): file is File => file instanceof File && file.size > 0);
+  if (files.length === 0) {
     return {
       ok: false as const,
-      error: "Kies activities.csv of een GPX-bestand.",
+      error: "Kies activities.csv, een GPX- of een FIT-bestand.",
     };
   }
-  const isGpx =
-    /\.gpx$/i.test(file.name) || /xml|gpx/i.test(file.type);
-  if (file.size > STRAVA_UPLOAD_MAX_BYTES) {
+  if (files.reduce((total, file) => total + file.size, 0) > STRAVA_UPLOAD_MAX_BYTES) {
     return { ok: false as const, error: "Bestand is te groot (max 10 MB)." };
   }
 
-  try {
-    const { data: connection } = await supabase
-      .from("strava_connections")
-      .select("strava_athlete_id")
-      .eq("profile_id", user.id)
-      .maybeSingle();
+  const { data: connection } = await supabase
+    .from("strava_connections")
+    .select("strava_athlete_id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
 
-    const text = await file.text();
+  // Tegelijk: de client handelt server actions één voor één af, dus hier zit de
+  // enige winst bij een map met honderden ritten.
+  const results = await Promise.all(
+    files.map((file) => importOneFile(supabase, user.id, connection?.strava_athlete_id, file)),
+  );
+  return { ok: true as const, results };
+}
+
+async function importOneFile(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+  athleteId: number | string | undefined,
+  file: File,
+) {
+  const isGpx =
+    /\.gpx$/i.test(file.name) || /xml|gpx/i.test(file.type);
+
+  try {
+    // De Strava-export bewaart de meeste ritten gezipt (.fit.gz).
+    let bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+      bytes = new Uint8Array(gunzipSync(bytes, { maxOutputLength: UNZIPPED_MAX_BYTES }));
+    }
+    const isFit = looksLikeFit(bytes);
+    const text = isFit ? "" : new TextDecoder().decode(bytes);
 
     let rows: ImportedStravaActivity[];
     let skippedRows = 0;
     let skippedNonCycling = 0;
     let withTracks = false;
+    // Het volledige spoor met tijden, voor de eigen segment- en coltijden.
+    let timedTrack: TimedPoint[] | null = null;
 
-    if (isGpx || /^\s*(?:<\?xml|<gpx)/i.test(text.slice(0, 300))) {
+    if (isFit) {
+      const result = stravaActivityFromFit(
+        bytes,
+        profileId,
+        athleteId,
+      );
+      if (!result.ok) {
+        // Een map vol exportbestanden bevat ook hardloopjes en ritten zonder
+        // GPS; die zijn geen mislukte upload.
+        if (!result.skip) return { ok: false as const, error: result.error };
+        return {
+          ok: true as const,
+          imported: 0,
+          tracksAdded: 0,
+          segmentEfforts: 0,
+          skippedRows: result.skip === "no_track" ? 1 : 0,
+          skippedNonCycling: result.skip === "non_cycling" ? 1 : 0,
+        };
+      }
+      rows = [result.row];
+      withTracks = true;
+      timedTrack = result.track;
+    } else if (/<TrainingCenterDatabase[\s>]/.test(text.slice(0, 1000))) {
+      // TCX lezen we niet. In de map van een Strava-export staan ze tussen de
+      // FIT-bestanden; overslaan, niet als fout melden.
+      return {
+        ok: true as const,
+        imported: 0,
+        tracksAdded: 0,
+        segmentEfforts: 0,
+        skippedRows: 1,
+        skippedNonCycling: 0,
+      };
+    } else if (isGpx || /^\s*(?:<\?xml|<gpx)/i.test(text.slice(0, 300))) {
       const result = stravaActivityFromGpx(
         text,
-        user.id,
-        connection?.strava_athlete_id,
+        profileId,
+        athleteId,
       );
       if (!result.ok) return { ok: false as const, error: result.error };
       rows = [result.row];
       withTracks = true;
+      timedTrack = timedTrackFromGpx(text);
     } else {
       const imported = stravaActivitiesFromCsv(
         text,
-        user.id,
-        connection?.strava_athlete_id,
+        profileId,
+        athleteId,
       );
 
       if (imported.rows.length === 0) {
@@ -307,7 +374,7 @@ export async function importMyStravaFile(formData: FormData) {
         const { data, error } = await supabase
           .from("strava_activities")
           .select(columns)
-          .eq("profile_id", user.id)
+          .eq("profile_id", profileId)
           .gte("start_date", from)
           .lte("start_date", to)
           .order("id")
@@ -337,14 +404,14 @@ export async function importMyStravaFile(formData: FormData) {
       if (error) throw new Error(error.message);
     }
 
-    // Een GPX bij een rit uit activities.csv: het spoor erbij, en die rit
+    // Een GPX of FIT bij een rit uit activities.csv: het spoor erbij, en die rit
     // opnieuw door ZWBlokken (die werken incrementeel op blocks_processed_at).
     for (const attachment of plan.attach) {
       const { data: current, error: readError } = await supabase
         .from("strava_activities")
         .select("raw")
         .eq("id", attachment.id)
-        .eq("profile_id", user.id)
+        .eq("profile_id", profileId)
         .maybeSingle();
       if (readError) throw new Error(readError.message);
       if (!current) continue;
@@ -352,27 +419,33 @@ export async function importMyStravaFile(formData: FormData) {
       const { error } = await supabase
         .from("strava_activities")
         .update({
-          raw: { ...raw, map: { summary_polyline: attachment.summaryPolyline } },
+          raw: {
+            ...raw,
+            map: { summary_polyline: attachment.summaryPolyline },
+            ...(attachment.deviceName && !raw.device_name
+              ? { device_name: attachment.deviceName }
+              : {}),
+          },
           blocks_processed_at: null,
           zwift_blocks_processed_at: null,
         })
         .eq("id", attachment.id)
-        .eq("profile_id", user.id);
+        .eq("profile_id", profileId);
       if (error) throw new Error(error.message);
     }
 
-    // Eigen segment- en coltijden uit het volledige spoor, op de rit waar de GPX
-    // in terechtkwam (nieuw, of de CSV-rit die het spoor kreeg). Alleen hier is
-    // het bestand met alle tijden er nog; bewaard wordt een uitgedunde lijn.
+    // Eigen segment- en coltijden uit het volledige spoor, op de rit waar het
+    // bestand in terechtkwam (nieuw, of de CSV-rit die het spoor kreeg). Alleen
+    // hier is het bestand met alle tijden er nog; bewaard wordt een uitgedunde lijn.
     let segmentEfforts = 0;
-    const gpxRideId = withTracks ? (plan.upsert[0]?.id ?? plan.attach[0]?.id) : undefined;
-    if (gpxRideId != null) {
+    const trackRideId = timedTrack ? (plan.upsert[0]?.id ?? plan.attach[0]?.id) : undefined;
+    if (timedTrack && trackRideId != null) {
       try {
         const stored = await storeGpsEfforts(
           createAdminClient(),
-          user.id,
-          gpxRideId,
-          timedTrackFromGpx(text),
+          profileId,
+          trackRideId,
+          timedTrack,
         );
         segmentEfforts = stored.segments + stored.cols;
       } catch {
@@ -386,7 +459,7 @@ export async function importMyStravaFile(formData: FormData) {
     await supabase
       .from("strava_activities")
       .update({ efforts_fetched_at: new Date().toISOString() })
-      .eq("profile_id", user.id)
+      .eq("profile_id", profileId)
       .lt("id", 0)
       .gt("id", INTERVALS_RIDE_ID_CEILING)
       .is("efforts_fetched_at", null);
@@ -411,8 +484,8 @@ export async function importMyStravaFile(formData: FormData) {
 /**
  * Na het laatste bestand: cols, ZWB-segmenten (uit de cols), ZWBlokken,
  * afgeronde trainingen en badges. Zonder Strava-token, want alles hier leest
- * alleen de database. Wat ZWBlokken niet in één keer haalt, pakt de
- * backfill-cron op.
+ * alleen de database. ZWBlokken doet hier hooguit 500 ritten; de rest haalt het
+ * formulier op met syncMyBlocks. Een cron die dat overneemt is er niet.
  */
 export async function finishMyStravaImport() {
   const supabase = await createClient();
@@ -476,6 +549,36 @@ export async function finalizeAchievementAwards() {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Badges vastleggen faalde.",
+    };
+  }
+}
+
+/**
+ * ZWBlokken verder bijwerken na een grote import: 500 ritten per aanroep, buiten
+ * en Zwift. Het formulier herhaalt dit tot `remaining` false is.
+ */
+export async function syncMyBlocks() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  try {
+    const admin = createAdminClient();
+    const { syncBlocksForUser } = await import("@/lib/zwblokken/sync");
+    const { syncZwiftBlocksForUser } = await import("@/lib/zwblokken/zwift-sync");
+    const [outside, zwift] = await Promise.all([
+      syncBlocksForUser(admin, user.id),
+      syncZwiftBlocksForUser(admin, user.id),
+    ]);
+    if (!outside.remaining && !zwift.remaining) revalidatePath("/zwblokken");
+    return { ok: true as const, remaining: outside.remaining || zwift.remaining };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "ZWBlokken bijwerken faalde.",
     };
   }
 }

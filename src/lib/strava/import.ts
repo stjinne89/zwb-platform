@@ -2,6 +2,17 @@ import { weekStartDate } from "@/lib/strava/client";
 import { haversineKm } from "@/lib/gpx";
 import { encodeTrackPolyline } from "@/lib/track-polyline";
 import type { TimedPoint } from "@/lib/segments/gps-efforts";
+import {
+  FIT_FILE_TYPE_ACTIVITY,
+  FIT_MANUFACTURER_ZWIFT,
+  FIT_SPORT_CYCLING,
+  FIT_SPORT_E_BIKING,
+  FIT_SUB_SPORT_GRAVEL,
+  FIT_SUB_SPORT_MOUNTAIN,
+  FIT_SUB_SPORT_VIRTUAL,
+  parseFit,
+  type FitActivity,
+} from "@/lib/strava/fit";
 
 export type ImportedStravaActivity = {
   id: number | string;
@@ -21,7 +32,7 @@ export type ImportedStravaActivity = {
   raw: Record<string, unknown>;
   synced_at: string;
   /**
-   * Alleen bij een GPX-rit: meteen gezet, anders vraagt de segment-inhaalslag
+   * Alleen bij een GPX- of FIT-rit: meteen gezet, anders vraagt de segment-inhaalslag
    * het negatieve id bij Strava op en verwijdert hij de rit na de 404.
    */
   efforts_fetched_at?: string;
@@ -739,6 +750,32 @@ export function stravaActivityFromGpx(
     return { ok: false, error: "De tijdstempels in dit GPX-bestand kloppen niet." };
   }
 
+  const measured = measureTrack(points);
+  const mappedSportType =
+    typeText && !isLegacyNumericType && isCyclingType(typeText)
+      ? sportType(typeText)
+      : "Ride";
+
+  return {
+    ok: true,
+    row: trackRideRow({
+      profileId,
+      athleteId,
+      source: "strava_gpx",
+      name: decodeXmlEntities(gpxTrackTag(xml, "name")) || "Strava rit",
+      sportType: mappedSportType,
+      start,
+      distanceM: measured.distanceM,
+      elevationGainM: measured.elevationGainM,
+      movingTime: Math.min(measured.movingSeconds, elapsedTime) || elapsedTime,
+      elapsedTime,
+      points,
+    }),
+  };
+}
+
+/** Afstand, hoogtemeters en beweegtijd, nagemeten op het spoor zelf. */
+function measureTrack(points: GpxTrackPoint[]) {
   let distanceKm = 0;
   let elevationGain = 0;
   let movingMs = 0;
@@ -758,50 +795,154 @@ export function stravaActivityFromGpx(
       if (delta > 0 && delta <= GPX_MOVING_GAP_MS) movingMs += delta;
     }
   }
+  return {
+    distanceM: Math.round(distanceKm * 1000),
+    elevationGainM: elevationGain,
+    movingSeconds: Math.round(movingMs / 1000),
+  };
+}
 
-  const distanceM = Math.round(distanceKm * 1000);
-  const movingTime = Math.min(Math.round(movingMs / 1000), elapsedTime) || elapsedTime;
-  const name = decodeXmlEntities(gpxTrackTag(xml, "name")) || "Strava rit";
-  const mappedSportType =
-    typeText && !isLegacyNumericType && isCyclingType(typeText)
-      ? sportType(typeText)
-      : "Ride";
-  const startIso = start.toISOString();
+/** De rij van een rit uit een bestand met spoor (GPX of FIT). */
+function trackRideRow(input: {
+  profileId: string;
+  athleteId: number | string;
+  source: "strava_gpx" | "strava_fit";
+  name: string;
+  sportType: string;
+  start: Date;
+  distanceM: number;
+  elevationGainM: number;
+  movingTime: number;
+  elapsedTime: number;
+  points: GpxTrackPoint[];
+  deviceName?: string;
+}): ImportedStravaActivity {
+  const startIso = input.start.toISOString();
   // Het spoor laat cols, ZWB-segmenten en ZWBlokken meetellen, net als bij een
   // rit uit intervals.icu.
-  const track = encodeTrackPolyline(points.map((point) => [point.lat, point.lon]));
+  const track = encodeTrackPolyline(input.points.map((point) => [point.lat, point.lon]));
   const syncedAt = new Date().toISOString();
 
   return {
-    ok: true,
-    row: {
-      id: -hashDigits([profileId, startIso, String(distanceM)].join("|")),
-      profile_id: profileId,
-      strava_athlete_id: athleteId,
-      name,
-      sport_type: mappedSportType,
-      start_date: startIso,
-      achievement_week: dateOnly(weekStartDate(start)),
-      distance_m: distanceM,
-      total_elevation_gain_m: Math.round(elevationGain),
-      kudos_count: 0,
-      moving_time_seconds: movingTime,
-      elapsed_time_seconds: elapsedTime,
-      trainer: mappedSportType === "VirtualRide",
-      commute: false,
-      raw: {
-        import_source: "strava_gpx",
-        name,
-        sport_type: mappedSportType,
-        type: mappedSportType,
-        start_date_local: startIso,
-        source_activity_id: null,
-        gear: null,
-        filename: null,
-        ...(track ? { map: { summary_polyline: track } } : {}),
-      },
-      synced_at: syncedAt,
-      efforts_fetched_at: syncedAt,
+    id: -hashDigits([input.profileId, startIso, String(input.distanceM)].join("|")),
+    profile_id: input.profileId,
+    strava_athlete_id: input.athleteId,
+    name: input.name,
+    sport_type: input.sportType,
+    start_date: startIso,
+    achievement_week: dateOnly(weekStartDate(input.start)),
+    distance_m: input.distanceM,
+    total_elevation_gain_m: Math.round(input.elevationGainM),
+    kudos_count: 0,
+    moving_time_seconds: input.movingTime,
+    elapsed_time_seconds: input.elapsedTime,
+    trainer: input.sportType === "VirtualRide",
+    commute: false,
+    raw: {
+      import_source: input.source,
+      name: input.name,
+      sport_type: input.sportType,
+      type: input.sportType,
+      start_date_local: startIso,
+      source_activity_id: null,
+      gear: null,
+      filename: null,
+      ...(input.deviceName ? { device_name: input.deviceName } : {}),
+      ...(track ? { map: { summary_polyline: track } } : {}),
     },
+    synced_at: syncedAt,
+    efforts_fetched_at: syncedAt,
+  };
+}
+
+// --- FIT: het bestand van Zwift, Garmin of Wahoo, ook uit de Strava-export ---
+
+export type StravaFitImportResult =
+  | { ok: true; row: ImportedStravaActivity; track: TimedPoint[] }
+  | {
+      ok: false;
+      error: string;
+      /** Geen fout van het lid: een andere sport, of een rit zonder GPS. */
+      skip?: "non_cycling" | "no_track";
+    };
+
+/** Wat ZWBlokken en de indoor-herkenning als Zwift lezen (zie isZwiftRide). */
+const ZWIFT_DEVICE_NAME = "Zwift";
+
+function fitSportType(activity: FitActivity): string {
+  if (
+    activity.subSport === FIT_SUB_SPORT_VIRTUAL ||
+    activity.manufacturer === FIT_MANUFACTURER_ZWIFT
+  ) {
+    return "VirtualRide";
+  }
+  if (activity.sport === FIT_SPORT_E_BIKING) return "EBikeRide";
+  if (activity.subSport === FIT_SUB_SPORT_GRAVEL) return "GravelRide";
+  if (activity.subSport === FIT_SUB_SPORT_MOUNTAIN) return "MountainBikeRide";
+  return "Ride";
+}
+
+export function stravaActivityFromFit(
+  bytes: Uint8Array,
+  profileId: string,
+  athleteId: number | string = syntheticAthleteId(profileId),
+): StravaFitImportResult {
+  const activity = parseFit(bytes);
+  if (!activity) {
+    return { ok: false, error: "Dit FIT-bestand is niet te lezen." };
+  }
+  if (activity.fileType !== null && activity.fileType !== FIT_FILE_TYPE_ACTIVITY) {
+    return { ok: false, error: "Dit FIT-bestand is geen gereden rit." };
+  }
+  if (
+    activity.sport !== null &&
+    activity.sport !== FIT_SPORT_CYCLING &&
+    activity.sport !== FIT_SPORT_E_BIKING
+  ) {
+    return { ok: false, error: "Dit FIT-bestand is geen fietsrit.", skip: "non_cycling" };
+  }
+
+  const { points, session } = activity;
+  const timedPoints = points.filter((point) => point.timeMs !== undefined);
+  if (timedPoints.length < 2) {
+    return { ok: false, error: "Geen GPS-spoor in dit FIT-bestand.", skip: "no_track" };
+  }
+
+  // Start en afstand zoals het toestel ze telde: die staan ook in
+  // activities.csv, en daarop herkennen we dezelfde rit. Zwift-coördinaten
+  // nameten geeft een andere afstand dan Zwift zelf rekent.
+  const startMs = activity.firstRecordMs ?? session?.startMs ?? timedPoints[0].timeMs!;
+  const endMs = activity.lastRecordMs ?? timedPoints[timedPoints.length - 1].timeMs!;
+  const elapsedTime = Math.round(session?.elapsedSeconds ?? (endMs - startMs) / 1000);
+  if (elapsedTime <= 0) {
+    return { ok: false, error: "De tijdstempels in dit FIT-bestand kloppen niet." };
+  }
+  const measured = measureTrack(points);
+  const distanceM = Math.round(
+    session?.distanceM || activity.recordDistanceM || measured.distanceM,
+  );
+  const sportType = fitSportType(activity);
+  const fromZwift = activity.manufacturer === FIT_MANUFACTURER_ZWIFT;
+
+  return {
+    ok: true,
+    row: trackRideRow({
+      profileId,
+      athleteId,
+      source: "strava_fit",
+      // Een FIT-bestand kent geen titel.
+      name: fromZwift ? "Zwift-rit" : sportType === "VirtualRide" ? "Virtuele rit" : "Fietsrit",
+      sportType,
+      start: new Date(startMs),
+      distanceM,
+      elevationGainM: session?.ascentM ?? measured.elevationGainM,
+      movingTime:
+        Math.min(Math.round(session?.timerSeconds ?? measured.movingSeconds), elapsedTime) ||
+        elapsedTime,
+      elapsedTime,
+      points,
+      deviceName: fromZwift ? ZWIFT_DEVICE_NAME : undefined,
+    }),
+    track: timedPoints.map((point) => ({ lat: point.lat, lon: point.lon, t: point.timeMs! })),
   };
 }

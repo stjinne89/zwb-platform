@@ -7,7 +7,8 @@ import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   finishMyStravaImport,
-  importMyStravaFile,
+  importMyStravaFiles,
+  syncMyBlocks,
 } from "@/app/(app)/achievements/_actions";
 
 type State =
@@ -15,6 +16,31 @@ type State =
   | { kind: "progress"; message: string }
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
+
+// De map met ritten uit een Strava-export telt al gauw meer dan duizend
+// bestanden. Vijf per aanroep blijft binnen de tijdslimiet van de server en ruim
+// onder de uploadlimiet van Netlify (~6 MB).
+const BATCH_FILES = 5;
+const BATCH_BYTES = 4 * 1024 * 1024;
+// 500 ritten per ronde; ruim genoeg voor een historie van tienduizend ritten.
+const MAX_BLOCK_ROUNDS = 20;
+
+function uploadBatches(files: File[]): File[][] {
+  const batches: File[][] = [];
+  let batch: File[] = [];
+  let bytes = 0;
+  for (const file of files) {
+    if (batch.length > 0 && (batch.length >= BATCH_FILES || bytes + file.size > BATCH_BYTES)) {
+      batches.push(batch);
+      batch = [];
+      bytes = 0;
+    }
+    batch.push(file);
+    bytes += file.size;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
+}
 
 function count(n: number, one: string, many: string) {
   return `${n} ${n === 1 ? one : many}`;
@@ -31,7 +57,7 @@ export function StravaImportForm() {
       .getAll("file")
       .filter((file): file is File => file instanceof File && file.size > 0);
     if (files.length === 0) {
-      setState({ kind: "error", message: "Kies activities.csv of een of meer GPX-bestanden." });
+      setState({ kind: "error", message: "Kies activities.csv of een of meer GPX- of FIT-bestanden." });
       return;
     }
 
@@ -44,28 +70,30 @@ export function StravaImportForm() {
       let skippedNonCycling = 0;
       const failed: string[] = [];
 
-      // Eén bestand per aanroep: een bulkupload van tientallen GPX'en past niet
-      // in de uploadlimiet van één server action, en één kapot bestand laat de
-      // rest zo gewoon doorgaan.
-      for (const [index, file] of files.entries()) {
+      // Een paar bestanden per aanroep: alles tegelijk past niet in de
+      // uploadlimiet van één server action, en per bestand komt er een eigen
+      // uitkomst terug, zodat één kapot bestand de rest niet tegenhoudt.
+      let done = 0;
+      for (const batch of uploadBatches(files)) {
         if (files.length > 1) {
-          setState({
-            kind: "progress",
-            message: `${index + 1} van ${files.length}...`,
-          });
+          setState({ kind: "progress", message: `${done + 1} van ${files.length}...` });
         }
-        const single = new FormData();
-        single.set("file", file);
-        const res = await importMyStravaFile(single).catch(() => null);
-        if (!res?.ok) {
-          failed.push(files.length > 1 ? `${file.name}: ${res?.error ?? "mislukt"}` : (res?.error ?? "Import faalde."));
-          continue;
-        }
-        imported += res.imported;
-        tracksAdded += res.tracksAdded;
-        segmentEfforts += res.segmentEfforts;
-        skippedRows += res.skippedRows;
-        skippedNonCycling += res.skippedNonCycling;
+        const formData = new FormData();
+        for (const file of batch) formData.append("file", file);
+        const res = await importMyStravaFiles(formData).catch(() => null);
+        done += batch.length;
+        batch.forEach((file, index) => {
+          const result = res?.ok ? res.results[index] : res;
+          if (!result?.ok) {
+            failed.push(files.length > 1 ? `${file.name}: ${result?.error ?? "mislukt"}` : (result?.error ?? "Import faalde."));
+            return;
+          }
+          imported += result.imported;
+          tracksAdded += result.tracksAdded;
+          segmentEfforts += result.segmentEfforts;
+          skippedRows += result.skippedRows;
+          skippedNonCycling += result.skippedNonCycling;
+        });
       }
 
       if (imported === 0 && tracksAdded === 0) {
@@ -86,6 +114,16 @@ export function StravaImportForm() {
       if (files.length > 1) setState({ kind: "progress", message: "Cols en badges bijwerken..." });
       const finish = await finishMyStravaImport().catch(() => null);
 
+      // Een grote import levert meer ritten op dan ZWBlokken in één aanroep
+      // doorrekent. Hier afmaken; er is geen achtergrondtaak die het overneemt.
+      let blocksDone = false;
+      for (let round = 0; round < MAX_BLOCK_ROUNDS && !blocksDone; round++) {
+        setState({ kind: "progress", message: "ZWBlokken bijwerken..." });
+        const blocks = await syncMyBlocks().catch(() => null);
+        if (!blocks?.ok) break;
+        blocksDone = !blocks.remaining;
+      }
+
       const parts = [count(imported, "rit geïmporteerd", "ritten geïmporteerd")];
       if (tracksAdded > 0) parts.push(count(tracksAdded, "spoor aangevuld", "sporen aangevuld"));
       if (segmentEfforts > 0) parts.push(count(segmentEfforts, "segmenttijd gemeten", "segmenttijden gemeten"));
@@ -101,6 +139,7 @@ export function StravaImportForm() {
         parts.push(`badgecheck: ${finish.milestoneErrors[0]}`);
       }
       if (!finish?.ok) parts.push("badges en cols volgen later");
+      if (!blocksDone) parts.push("ZWBlokken nog niet compleet");
 
       formRef.current?.reset();
       if (failed.length > 0) {
@@ -134,7 +173,7 @@ export function StravaImportForm() {
           type="file"
           name="file"
           multiple
-          accept=".csv,.gpx,text/csv,application/gpx+xml"
+          accept=".csv,.gpx,.fit,.gz,text/csv,application/gpx+xml"
           className="w-full min-w-0 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-xs file:font-medium sm:w-auto sm:max-w-48"
           disabled={pending}
         />
@@ -146,7 +185,7 @@ export function StravaImportForm() {
           disabled={pending}
         >
           <Upload data-icon="inline-start" />
-          {pending ? "Importeren..." : "Importeer CSV of GPX"}
+          {pending ? "Importeren..." : "Importeer ritten"}
         </Button>
       </div>
       {state.kind === "error" ? (
