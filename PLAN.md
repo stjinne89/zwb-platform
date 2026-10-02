@@ -5228,7 +5228,6 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Instagram: posts waarin de club is getagd
 
 **2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.
-**Niet gepusht tot Stijn de privacytekst heeft gezien.**
 
 **Aanleiding.** Stories leveren weinig op: op productie gaf
 `GET /me/stories` een lege lijst terwijl er twee stories live stonden. Het zijn
@@ -5265,9 +5264,11 @@ Login; een Facebook-token is niet nodig. Stijn: "bouw maar".
   getagde door elkaar op datum; een nieuwere getagde post drukt een eigen post
   weg (keuze Stijn). Getagde posts hebben `@naam` als label.
 - Privacyverklaring, sectie 2: nieuw punt over openbare getagde posts. **Geen
-  nieuwe versie** in `lib/privacy.ts` voorgesteld: het gaat om openbare
-  Instagram-inhoud die niet aan een ZWB-profiel wordt gekoppeld, niet om
-  gegevens die een lid aan ZWB gaf. Ter beoordeling aan Stijn.
+  nieuwe versie** in `lib/privacy.ts`, dus niemand tekent opnieuw (besluit
+  Stijn, 2026-10-02): het gaat om openbare Instagram-inhoud die niet aan een
+  ZWB-profiel wordt gekoppeld, niet om gegevens die een lid aan ZWB gaf.
+  "Laatst bijgewerkt" op `/privacy` komt uit de versielijst en blijft daardoor
+  op 30 september 2026 staan.
 - `/hulp` en het runbook bijgewerkt.
 
 **Bewust niet gebouwd.** @vermeldingen in tekst (webhook-infrastructuur) en
