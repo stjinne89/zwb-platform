@@ -22,6 +22,12 @@ const ENTRANTS_HORIZON_MS = 36 * 3600_000;
 const GC_INTERVAL_MS = 3 * 3600_000;
 /** Na de start van het eerste slot duurt het even voor FRR een uitslag heeft. */
 const GC_AFTER_START_MS = 2 * 3600_000;
+// De etappe-uitslagen komen als laatste en krijgen altijd eigen tijd: anders
+// blijft er na inschrijvingen en klassement te weinig over voor één slot en
+// komt de sync nooit verder (gebeurd op 2026-10-04). Samen met het budget blijft
+// dit onder de 30 seconden van de route en de beheerpagina.
+const STAGE_RESULTS_MIN_MS = 10_000;
+const STAGE_RESULTS_OVERRUN_MS = 8_000;
 
 export type FrrTourSyncResult = {
   tour: string;
@@ -227,6 +233,14 @@ async function syncGc(
   return { stage: latest.stage, note: `Klassement na etappe ${latest.stage}: ${latest.rows.length} renners.` };
 }
 
+/** Minstens tien seconden voor de uitslagen, maar nooit ver over het budget heen. */
+export function stageResultsDeadline(deadline: number, nowMs: number) {
+  return Math.min(
+    deadline + STAGE_RESULTS_OVERRUN_MS,
+    Math.max(deadline, nowMs + STAGE_RESULTS_MIN_MS),
+  );
+}
+
 export async function syncFrrTour(
   admin: SupabaseClient,
   tour: FrrTourRow,
@@ -275,14 +289,13 @@ export async function syncFrrTour(
     await admin.from("frr_tours").update({ gc_error: message }).eq("id", tour.id);
     result.notes.push(message);
   }
-  // Als laatste, met wat er van het tijdbudget over is: de uitslagen gaan één
-  // voor één en zouden anders het klassement verdringen (gebeurd op 2026-10-04:
-  // "tijd op voordat de tabel binnen was"). Zonder migratie 0215 of bij een
-  // storing van Zwift blijft de rest gewoon werken.
+  // Als laatste: de uitslagen gaan één voor één en zouden anders het klassement
+  // verdringen (gebeurd op 2026-10-04: "tijd op voordat de tabel binnen was").
+  // Zonder migratie 0215 of bij een storing van Zwift blijft de rest werken.
   try {
     const stage = await syncStageResults(admin, tour.id, {
       now,
-      deadline,
+      deadline: stageResultsDeadline(deadline, Date.now()),
       all: Boolean(options.force),
     });
     result.stageResults = stage.results;

@@ -197,6 +197,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`
 > `/beheer/frr-kalender` kreeg `maxDuration = 30`, zoals de cronroute al had;
 > de pagina had er geen, terwijl de sync 20 seconden mag duren.
 >
+> **Geen voortgang (zelfde dag, vijfde commit).** Daarna gaf Nu verversen steeds
+> "Tijd op; nog 6 slots" zonder één finishtijd: inschrijvingen (710 in 10
+> slots) en klassement lieten te weinig over voor één heel slot, en een half
+> slot wordt niet bewaard. De uitslagen krijgen nu altijd minstens tien
+> seconden, tot hooguit acht seconden over het budget (`stageResultsDeadline`),
+> dus hooguit 28 van de 30 seconden. Dat is één à twee slots per ronde. Niet
+> gemeten: hoe lang een slot echt duurt.
+>
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
 > FRR eGAP te laat rekent. ZwiftPower ophalen blijft uitgesloten.

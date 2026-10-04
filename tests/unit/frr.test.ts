@@ -22,6 +22,7 @@ import {
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
 import { isRateLimited, zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
+import { stageResultsDeadline } from "@/lib/frr/sync";
 import { subEventLabel } from "@/lib/events/sub-events";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
 
@@ -364,5 +365,16 @@ describe("isRateLimited", () => {
     expect(isRateLimited(new Error("Zwift-API gaf status 429 voor https://x/api/y."))).toBe(true);
     expect(isRateLimited(new Error("Zwift-API gaf status 404 voor https://x/api/4290."))).toBe(false);
     expect(isRateLimited("status 429")).toBe(false);
+  });
+});
+
+describe("stageResultsDeadline", () => {
+  it("geeft de uitslagen eigen tijd, tot acht seconden over het budget", () => {
+    // Ruim op tijd klaar: het gewone budget.
+    expect(stageResultsDeadline(20_000, 5_000)).toBe(20_000);
+    // Krap: tien seconden vanaf nu.
+    expect(stageResultsDeadline(20_000, 15_000)).toBe(25_000);
+    // Budget al op: niet verder dan acht seconden erover.
+    expect(stageResultsDeadline(20_000, 21_000)).toBe(28_000);
   });
 });
