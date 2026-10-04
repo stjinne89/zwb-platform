@@ -20,7 +20,7 @@ import {
   parseGcRows,
 } from "@/lib/frr/gc";
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
-import { isRateLimited, zwiftEventPens } from "@/lib/frr/stage-results";
+import { isRateLimited, slotsToFetch, zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
 import { stageResultsDeadline } from "@/lib/frr/sync";
 import { subEventLabel } from "@/lib/events/sub-events";
@@ -376,5 +376,25 @@ describe("stageResultsDeadline", () => {
     expect(stageResultsDeadline(20_000, 15_000)).toBe(25_000);
     // Budget al op: niet verder dan vijf seconden erover.
     expect(stageResultsDeadline(20_000, 21_000)).toBe(25_000);
+  });
+});
+
+describe("slotsToFetch", () => {
+  it("haalt een afgerond slot niet opnieuw op", () => {
+    const slots = [
+      { id: "nieuw", start_at: "2026-10-04T17:30:00Z" },
+      { id: "loopt", start_at: "2026-10-04T13:30:00Z" },
+      { id: "klaar", start_at: "2026-10-03T09:30:00Z" },
+    ];
+    const todo = slotsToFetch(
+      slots,
+      new Map([
+        // Opgehaald een uur na de start: er kwamen nog finishers bij.
+        ["loopt", "2026-10-04T14:30:00Z"],
+        ["klaar", "2026-10-04T15:57:00Z"],
+      ]),
+    );
+    expect(todo.missing.map((slot) => slot.id)).toEqual(["nieuw"]);
+    expect(todo.unfinished.map((slot) => slot.id)).toEqual(["loopt"]);
   });
 });

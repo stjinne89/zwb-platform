@@ -308,6 +308,24 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 > de cron van 8 naar 5 seconden (samen 25). Waar de grens van Netlify precies
 > ligt is niet gemeten; 28 seconden ging eerder die dag nog goed.
 >
+> **De melding klopte niet (zelfde dag, achtste commit).** De knop bleef "60
+> finishtijden uit 1 slots … nog 6 slots volgen" geven. Productie, alleen
+> gelezen: alle negen gereden slots hadden een uitslag (164, 247, 277, 227 en 80
+> voor etappe 1; 124, 222, 230 voor etappe 2, elk met startgroep A t/m E). Het
+> negende, het slot van 19:30 dat nog bezig was, had 60 finishers uit A en B.
+> De sync haalde elk slot van de laatste 30 uur steeds opnieuw op en telde die
+> herhalingen mee als "volgen nog". Nu: een slot waarvan de uitslag vier uur of
+> langer na de start is opgehaald, is klaar en wordt niet meer opgehaald
+> (`slotsToFetch`). De melding telt alleen slots zonder uitslag, en de knop zegt
+> het als alles binnen is. Dat scheelt ook verzoeken bij Zwift.
+> - Een slot dat tijdens de race is opgehaald, heeft tot de volgende ronde een
+>   halve uitslag; renners die nog onderweg zijn staan dan onder "Mist een
+>   etappe". Dat stond eerder niet in dit plan.
+> - De vraag van de eigenaar of er niet te veel finishtijden worden opgehaald:
+>   de sync haalt alle renners van een slot op, ook uit klassen zonder ZWB'er.
+>   Bewaren kost weinig (zo'n 1.600 rijen per etappe), en het aantal verzoeken
+>   hangt aan de startgroepen, niet aan wie we bewaren. Niet aangepast.
+>
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
 > FRR eGAP te laat rekent. ZwiftPower ophalen blijft uitgesloten.

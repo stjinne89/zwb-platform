@@ -14,8 +14,13 @@ import {
 
 /** Voor de eerste finishers binnen zijn heeft ophalen geen zin. */
 const RESULTS_AFTER_START_MS = 45 * 60_000;
-/** Zo lang na de start komen er nog finishers en correcties bij. */
+/** Zo ver terug kijken de cron en Nu verversen. */
 const RESULTS_WINDOW_MS = 30 * 3600_000;
+/**
+ * Een uitslag die zo lang na de start is opgehaald, is compleet: de laatste
+ * finishers zijn binnen. Opnieuw ophalen kost alleen verzoeken bij Zwift.
+ */
+const SETTLED_AFTER_START_MS = 4 * 3600_000;
 // Zwift begrenst de uitslag-API streng: drie slots tegelijk gaf op 2026-10-04
 // meteen status 429. Daarom één verzoek tegelijk, met een pauze ertussen.
 const REQUEST_PAUSE_MS = 300;
@@ -111,18 +116,46 @@ async function fetchSlotResults(
 }
 
 /**
+ * Welke slots nog opgehaald moeten worden: eerst die zonder uitslag, daarna die
+ * waarvan de uitslag is opgehaald terwijl de race nog liep. Een slot dat ruim
+ * na de start is opgehaald, is klaar.
+ */
+export function slotsToFetch<T extends { id: string; start_at: string }>(
+  candidates: T[],
+  /** Slot-id → tijdstip van de laatst opgeslagen uitslag. */
+  lastFetched: Map<string, string>,
+): { missing: T[]; unfinished: T[] } {
+  const missing: T[] = [];
+  const unfinished: T[] = [];
+  for (const slot of candidates) {
+    const fetched = lastFetched.get(slot.id);
+    if (!fetched) missing.push(slot);
+    else if (Date.parse(fetched) - Date.parse(slot.start_at) < SETTLED_AFTER_START_MS) {
+      unfinished.push(slot);
+    }
+  }
+  return { missing, unfinished };
+}
+
+/**
  * Haalt de uitslag op van slots die net gereden zijn. Met `all` van elk gereden
- * slot van de tour, voor de knop Nu verversen. Slots zonder uitslag gaan voor;
- * wat niet binnen het tijdbudget of de limiet van Zwift past, volgt de
- * volgende ronde.
+ * slot van de tour, voor de knop Uitslagen ophalen. Slots zonder uitslag gaan
+ * voor; wat niet binnen het tijdbudget of de limiet van Zwift past, volgt de
+ * volgende ronde. `missing` is het aantal slots dat daarna nog geen uitslag
+ * heeft.
  */
 export async function syncStageResults(
   admin: SupabaseClient,
   tourId: string,
   options: { now: Date; deadline: number; all?: boolean },
-): Promise<{ slots: number; results: number; notes: string[] }> {
+): Promise<{ slots: number; results: number; missing: number; notes: string[] }> {
   if (!zwiftClubConfigured()) {
-    return { slots: 0, results: 0, notes: ["Geen Zwift-serviceaccount: etappe-uitslagen overgeslagen."] };
+    return {
+      slots: 0,
+      results: 0,
+      missing: 0,
+      notes: ["Geen Zwift-serviceaccount: etappe-uitslagen overgeslagen."],
+    };
   }
   const now = options.now.getTime();
   let query = admin
@@ -140,32 +173,35 @@ export async function syncStageResults(
   if (error) throw new Error(error.message);
 
   const candidates = (data ?? []) as SlotRow[];
-  const known = await Promise.all(
+  const lastFetched = new Map<string, string>();
+  await Promise.all(
     candidates.map(async (slot) => {
-      const { count, error: countError } = await admin
+      const { data: latest, error: latestError } = await admin
         .from("frr_stage_results")
-        .select("zwift_id", { count: "exact", head: true })
-        .eq("slot_event_id", slot.id);
-      if (countError) throw new Error(countError.message);
-      return (count ?? 0) > 0;
+        .select("fetched_at")
+        .eq("slot_event_id", slot.id)
+        .order("fetched_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestError) throw new Error(latestError.message);
+      if (latest?.fetched_at) lastFetched.set(slot.id, latest.fetched_at as string);
     }),
   );
-  const slots = [
-    ...candidates.filter((_, index) => !known[index]),
-    // Een slot met uitslag alleen verversen zolang er nog finishers bij komen.
-    ...candidates.filter(
-      (slot, index) => known[index] && now - Date.parse(slot.start_at) <= RESULTS_WINDOW_MS,
-    ),
-  ];
+  const todo = slotsToFetch(candidates, lastFetched);
+  const slots = [...todo.missing, ...todo.unfinished];
 
   const notes: string[] = [];
   let synced = 0;
   let results = 0;
+  let missing = todo.missing.length;
+  // Alleen melden wat echt ontbreekt; een slot waarvan de race nog loopt, komt
+  // de volgende ronde vanzelf weer.
+  const stopped = (reason: string) => {
+    if (missing > 0) notes.push(`${reason}; nog ${missing} slots zonder uitslag volgen in de volgende ronde.`);
+  };
   for (const [index, slot] of slots.entries()) {
-    const left = slots.length - index;
-    const outOfTime = `Tijd op; nog ${left} slots met etappe-uitslag volgen in de volgende ronde.`;
     if (Date.now() > options.deadline) {
-      notes.push(outOfTime);
+      stopped("Tijd op");
       break;
     }
     let rows: StageResultRow[];
@@ -175,11 +211,11 @@ export async function syncStageResults(
       // Een half opgehaald slot bewaren we niet: de eerste van een klasse kan
       // in de ontbrekende startgroep zitten.
       if (err instanceof OutOfTime) {
-        notes.push(outOfTime);
+        stopped("Tijd op");
         break;
       }
       if (isRateLimited(err)) {
-        notes.push(`Zwift begrenst het ophalen; nog ${left} slots volgen in de volgende ronde.`);
+        stopped("Zwift begrenst het ophalen");
         break;
       }
       // Eén haperend slot mag de rest niet tegenhouden.
@@ -187,6 +223,7 @@ export async function syncStageResults(
       continue;
     }
     if (rows.length === 0) continue;
+    if (index < todo.missing.length) missing -= 1;
     const { error: upsertError } = await admin
       .from("frr_stage_results")
       .upsert(rows, { onConflict: "slot_event_id,zwift_id" });
@@ -194,5 +231,5 @@ export async function syncStageResults(
     synced += 1;
     results += rows.length;
   }
-  return { slots: synced, results, notes };
+  return { slots: synced, results, missing, notes };
 }

@@ -135,9 +135,14 @@ export function RefreshButton({ tourId }: { tourId: string }) {
             else {
               setMessage(
                 [
-                  `${res.result.results} finishtijden uit ${res.result.slots} slots.`,
+                  res.result.slots > 0
+                    ? `${res.result.results} finishtijden uit ${res.result.slots} slots.`
+                    : null,
                   ...res.result.notes,
-                ].join(" "),
+                  res.result.missing === 0 ? "Alle gereden slots hebben een uitslag." : null,
+                ]
+                  .filter(Boolean)
+                  .join(" "),
               );
             }
             router.refresh();
