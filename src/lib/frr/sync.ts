@@ -13,7 +13,7 @@ import {
   importFrrTour,
   type FrrTourRow,
 } from "@/lib/frr/import";
-import { fetchFrrGcRows, gcTourCodes, latestGcStage } from "@/lib/frr/gc";
+import { fetchFrrGcRows, gcStages, gcTourCodes, latestGcStage } from "@/lib/frr/gc";
 import { amsterdamDay } from "@/lib/frr/feed";
 import { syncStageResults } from "@/lib/frr/stage-results";
 
@@ -230,7 +230,32 @@ async function syncGc(
     })),
   });
   if (error) throw new Error(error.message);
-  return { stage: latest.stage, note: `Klassement na etappe ${latest.stage}: ${latest.rows.length} renners.` };
+  const note = `Klassement na etappe ${latest.stage}: ${latest.rows.length} renners.`;
+
+  // Elke etappe die FRR in de tabel heeft, voor de etappekeuze op de tourpagina
+  // (migr. 0218). Mislukt dit, dan blijft het laatste klassement gewoon staan.
+  const { error: historyError } = await admin.rpc("frr_replace_gc_history", {
+    p_tour_id: tour.id,
+    p_rows: gcStages(rows, tour.gc_code).flatMap((stage) =>
+      stage.rows.map((row) => ({
+        after_stage: stage.stage,
+        gender_class: row.genderClass,
+        class_code: row.classCode,
+        zwift_id: row.zwiftId,
+        position: row.position,
+        name: row.name,
+        club: row.club,
+        stages_ridden: row.stagesRidden,
+        tour_time_s: row.tourTimeS,
+        egap_s: row.egapS,
+        penalty_s: row.penaltyS,
+      })),
+    ),
+  });
+  return {
+    stage: latest.stage,
+    note: historyError ? `${note} Klassement per etappe niet bewaard: ${historyError.message}` : note,
+  };
 }
 
 /** Tot tien seconden voor de uitslagen, maar hooguit vijf over het budget heen. */

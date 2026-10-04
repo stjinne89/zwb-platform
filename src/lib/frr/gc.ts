@@ -155,28 +155,38 @@ export function gcTourCodes(rows: FrrGcRow[]): string[] {
   return [...new Set(rows.map((row) => row.tourCode))].sort();
 }
 
+/** Het klassement na elke etappe van één tour, oplopend op etappe. */
+export function gcStages(
+  rows: FrrGcRow[],
+  tourCode: string,
+): Array<{ stage: number; rows: FrrGcRow[] }> {
+  const byStage = new Map<number, Map<string, FrrGcRow>>();
+  for (const row of rows) {
+    if (row.tourCode !== tourCode) continue;
+    const stage = byStage.get(row.stage) ?? new Map<string, FrrGcRow>();
+    // Eén rij per renner per klasse; bij een dubbele de beste positie.
+    const key = `${row.genderClass}|${row.zwiftId}`;
+    const known = stage.get(key);
+    if (!known || row.position < known.position) stage.set(key, row);
+    byStage.set(row.stage, stage);
+  }
+  return [...byStage.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([stage, stageRows]) => ({
+      stage,
+      rows: [...stageRows.values()].sort(
+        (a, b) => a.genderClass.localeCompare(b.genderClass) || a.position - b.position,
+      ),
+    }));
+}
+
 /** Het klassement na de laatste etappe van één tour; null als de code er niet in staat. */
 export function latestGcStage(
   rows: FrrGcRow[],
   tourCode: string,
 ): { stage: number; rows: FrrGcRow[] } | null {
-  const ofTour = rows.filter((row) => row.tourCode === tourCode);
-  if (ofTour.length === 0) return null;
-  const stage = Math.max(...ofTour.map((row) => row.stage));
-  const latest = new Map<string, FrrGcRow>();
-  for (const row of ofTour) {
-    if (row.stage !== stage) continue;
-    // Eén rij per renner per klasse; bij een dubbele de beste positie.
-    const key = `${row.genderClass}|${row.zwiftId}`;
-    const known = latest.get(key);
-    if (!known || row.position < known.position) latest.set(key, row);
-  }
-  return {
-    stage,
-    rows: [...latest.values()].sort(
-      (a, b) => a.genderClass.localeCompare(b.genderClass) || a.position - b.position,
-    ),
-  };
+  const stages = gcStages(rows, tourCode);
+  return stages[stages.length - 1] ?? null;
 }
 
 const PAGE_SIZE = 500;

@@ -13,6 +13,7 @@ import {
 } from "@/lib/frr/feed";
 import {
   extractWdtTable,
+  gcStages,
   gcTourCodes,
   latestGcStage,
   parseGcDuration,
@@ -22,6 +23,7 @@ import {
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
 import { isRateLimited, slotsToFetch, zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
+import { buildZwbStageViews } from "@/lib/frr/zwb-stage-views";
 import { stageResultsDeadline } from "@/lib/frr/sync";
 import { subEventLabel } from "@/lib/events/sub-events";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
@@ -396,5 +398,70 @@ describe("slotsToFetch", () => {
     );
     expect(todo.missing.map((slot) => slot.id)).toEqual(["nieuw"]);
     expect(todo.unfinished.map((slot) => slot.id)).toEqual(["loopt"]);
+  });
+});
+
+describe("gcStages", () => {
+  it("geeft elke etappe van de tour, de laatste gelijk aan latestGcStage", () => {
+    const stages = gcStages(parseGcRows(gc.data), "FTQ.5");
+    expect(stages.map((stage) => stage.stage)).toEqual(
+      [...stages.map((stage) => stage.stage)].sort((a, b) => a - b),
+    );
+    expect(stages[stages.length - 1]).toEqual(latestGcStage(parseGcRows(gc.data), "FTQ.5"));
+    expect(gcStages(parseGcRows(gc.data), "ANDERS")).toEqual([]);
+  });
+});
+
+describe("buildZwbStageViews", () => {
+  const rider = (zwiftId: string, penaltyS = 0) => ({
+    zwiftId,
+    name: zwiftId,
+    club: null,
+    genderClass: "M-BON",
+    classCode: "BON",
+    penaltyS,
+  });
+  const views = buildZwbStageViews({
+    zwbNames: new Map([["ik", "Ik bij ZWB"]]),
+    classRiders: [rider("ik", 30), rider("buur"), rider("laat")],
+    results: [
+      { stage: 1, slotId: "s1", zwiftId: "buur", pen: "D", timeS: 4000 },
+      { stage: 1, slotId: "s1", zwiftId: "ik", pen: "D", timeS: 4009 },
+      { stage: 1, slotId: "s1", zwiftId: "laat", pen: "D", timeS: 4020 },
+      { stage: 2, slotId: "s2", zwiftId: "ik", pen: "D", timeS: 5400 },
+      { stage: 2, slotId: "s2", zwiftId: "buur", pen: "D", timeS: 5405 },
+    ],
+    history: [
+      {
+        afterStage: 1,
+        genderClass: "M-BON",
+        classCode: "BON",
+        zwiftId: "ik",
+        name: "Ik bij FRR",
+        position: 17,
+        egapS: 9.419,
+        tourTimeS: 4012.953,
+        penaltyS: 0,
+      },
+    ],
+  });
+
+  it("geeft per etappe het definitieve en het voorlopige klassement van de ZWB'ers", () => {
+    expect(views.map((view) => view.stage)).toEqual([1, 2]);
+    expect(views[0].official).toEqual([
+      expect.objectContaining({ name: "Ik bij ZWB", position: 17, egapS: 9.419 }),
+    ]);
+    // Na etappe 1: 9 s verlies plus 30 s straf, achter buur en laat.
+    expect(views[0].provisional).toEqual([
+      expect.objectContaining({ zwiftId: "ik", position: 3, egapS: 39, tourTimeS: 4009 }),
+    ]);
+  });
+
+  it("laat de bron leeg die een etappe niet heeft", () => {
+    expect(views[1].official).toBeNull();
+    // Na etappe 2: buur 5 s, ik 9 + 30; laat mist een etappe en telt niet mee.
+    expect(views[1].provisional).toEqual([
+      expect.objectContaining({ zwiftId: "ik", position: 2, egapS: 39, tourTimeS: 9409 }),
+    ]);
   });
 });

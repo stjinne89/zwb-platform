@@ -24,6 +24,8 @@ export type ProvisionalRider = {
   egapS: number;
   /** Straf die FRR de renner gaf, in seconden. */
   penaltyS: number;
+  /** Opgetelde finishtijd over de gereden etappes, zonder straf. */
+  timeS: number;
   stagesRidden: number;
   /** Startgroepen waarin hij reed die afwijken van de rest van de klasse. */
   otherPens: string[];
@@ -81,12 +83,17 @@ export function computeProvisionalGc(input: {
 
   // Per renner en etappe één uitslag; wie een etappe twee keer reed, houdt het
   // kleinste verlies.
-  const perRider = new Map<string, Map<number, { gapS: number; pen: string | null }>>();
+  const perRider = new Map<
+    string,
+    Map<number, { gapS: number; timeS: number; pen: string | null }>
+  >();
   for (const row of counted) {
     const gapS = row.timeS - slotBest.get(`${row.stage}|${row.slotId}`)!;
     const stages = perRider.get(row.zwiftId) ?? new Map();
     const known = stages.get(row.stage);
-    if (!known || gapS < known.gapS) stages.set(row.stage, { gapS, pen: row.pen });
+    if (!known || gapS < known.gapS) {
+      stages.set(row.stage, { gapS, timeS: row.timeS, pen: row.pen });
+    }
     perRider.set(row.zwiftId, stages);
   }
 
@@ -99,8 +106,10 @@ export function computeProvisionalGc(input: {
     const otherPens = new Set<string>();
     const penaltyS = rider.penaltyS ?? 0;
     let egapS = penaltyS;
+    let timeS = 0;
     for (const [stage, result] of ridden) {
       egapS += result.gapS;
+      timeS += result.timeS;
       const expected = classPen.get(stage);
       if (result.pen && expected && result.pen !== expected) otherPens.add(result.pen);
     }
@@ -111,6 +120,7 @@ export function computeProvisionalGc(input: {
       position: null,
       egapS: Math.round(egapS * 1000) / 1000,
       penaltyS,
+      timeS: Math.round(timeS * 1000) / 1000,
       stagesRidden: ridden.size,
       otherPens: [...otherPens].sort(),
     };

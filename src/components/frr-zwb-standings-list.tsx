@@ -12,7 +12,8 @@ export function FrrZwbStandingsList({
   myZwiftId,
   slotText,
 }: {
-  standings: FrrStandingRow[];
+  /** Zonder plaats: mist een etappe in het voorlopige klassement. */
+  standings: Array<Omit<FrrStandingRow, "position"> & { position: number | null }>;
   zwbNames: Map<string, string | null>;
   myZwiftId: string | null;
   /** Het tijdslot van de renner in deze etappe; zonder valt de kolom weg. */
@@ -35,7 +36,9 @@ export function FrrZwbStandingsList({
             <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground sm:w-16">
               {row.gender_class}
             </span>
-            <span className="w-7 shrink-0 tabular-nums font-semibold sm:w-8">{row.position}</span>
+            <span className="w-7 shrink-0 tabular-nums font-semibold sm:w-8">
+              {row.position ?? "—"}
+            </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
               <span className="block truncate text-xs text-muted-foreground sm:hidden">

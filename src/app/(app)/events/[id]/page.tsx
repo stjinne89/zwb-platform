@@ -1309,6 +1309,7 @@ export default async function EventDetailPage({
           tourId={frrTourId}
           userId={user?.id ?? null}
           slots={watchSlots}
+          stageSwitch={frrLevel === "tour"}
         />
       )}
 

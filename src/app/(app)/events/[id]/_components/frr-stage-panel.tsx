@@ -15,8 +15,10 @@ import {
   loadZwbFrrStandings,
   type FrrStandingRow,
 } from "@/lib/frr/zwb-standings";
+import { loadZwbStageViews } from "@/lib/frr/zwb-stage-views";
 import { FrrExcludeToggle } from "./frr-exclude";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
+import { FrrZwbStageSwitch } from "./frr-zwb-stage-switch";
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
 
@@ -88,20 +90,24 @@ export async function FrrStagePanel({
   tourId,
   userId,
   slots,
+  stageSwitch = false,
 }: {
   supabase: SupabaseServer;
   tourId: string;
   userId: string | null;
   /** De tijdsloten van deze etappe met hun korte label. */
   slots: Array<{ id: string; label: string }>;
+  /** Op de tourpagina: ZWB in het klassement per etappe, voorlopig of definitief. */
+  stageSwitch?: boolean;
 }) {
-  const [{ zwbNames, members, standings: zwbStandings }, { data: favouriteRows }] =
+  const [zwb, { data: favouriteRows }] =
     await Promise.all([
       loadZwbFrrStandings(supabase, tourId),
       userId
         ? supabase.from("frr_watch_riders").select("zwift_id, name").eq("profile_id", userId)
         : Promise.resolve({ data: [] }),
     ]);
+  const { zwbNames, members, standings: zwbStandings } = zwb;
   const myZwiftId = members.find((row) => row.id === userId)?.zwiftId ?? null;
   const favourites = ((favouriteRows ?? []) as Array<{ zwift_id: string; name: string }>).map(
     (row) => ({ zwiftId: row.zwift_id, name: row.name }),
@@ -125,7 +131,7 @@ export async function FrrStagePanel({
   }));
   const [classResults, { data: exclusionRows }] = await Promise.all([
     loadClassResults(supabase, tourId, classRiders.map((row) => row.zwiftId)),
-    mine && userId
+    userId
       ? supabase
           .from("frr_gc_exclusions")
           .select("zwift_id, name")
@@ -135,11 +141,12 @@ export async function FrrStagePanel({
       : Promise.resolve({ data: [] }),
   ]);
   const exclusions = (exclusionRows ?? []) as Array<{ zwift_id: string; name: string }>;
-  const provisional = computeProvisionalGc({
-    riders: classRiders,
-    results: classResults,
-    excluded: new Set(exclusions.map((row) => row.zwift_id)),
-  });
+  const excluded = new Set(exclusions.map((row) => row.zwift_id));
+  const provisional = computeProvisionalGc({ riders: classRiders, results: classResults, excluded });
+  const stageViews =
+    stageSwitch && zwbStandings.length > 0
+      ? await loadZwbStageViews(supabase, tourId, zwb, excluded)
+      : [];
   const myProvisional = provisional.ranked.find((row) => row.zwiftId === myZwiftId) ?? null;
 
   const standings = new Map<string, GcStanding>();
@@ -187,7 +194,9 @@ export async function FrrStagePanel({
 
   return (
     <>
-      {zwbStandings.length > 0 && (
+      {stageViews.length > 0 && <FrrZwbStageSwitch views={stageViews} myZwiftId={myZwiftId} />}
+
+      {stageViews.length === 0 && zwbStandings.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             ZWB in het klassement{afterStage ? ` · na etappe ${afterStage}` : ""}
@@ -286,7 +295,7 @@ export async function FrrStagePanel({
                 </div>
               ),
           )}
-          {exclusions.length > 0 && (
+          {mine && exclusions.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-xs font-medium text-muted-foreground">Verwijderd</h3>
               <ul className="divide-y rounded-lg border bg-card text-sm">

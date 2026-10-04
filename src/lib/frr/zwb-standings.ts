@@ -28,11 +28,12 @@ export const FRR_STANDING_COLUMNS =
 export async function loadFrrStandingRows(
   supabase: SupabaseClient,
   tourId: string,
-  filter: { zwiftIds?: string[]; genderClass?: string },
+  filter: { zwiftIds?: string[]; genderClass?: string; genderClasses?: string[] },
 ): Promise<FrrStandingRow[]> {
   const run = (columns: string) => {
     let query = supabase.from("frr_gc_standings").select(columns).eq("tour_id", tourId);
     if (filter.genderClass) query = query.eq("gender_class", filter.genderClass);
+    if (filter.genderClasses) query = query.in("gender_class", filter.genderClasses);
     if (filter.zwiftIds) query = query.in("zwift_id", filter.zwiftIds);
     return query;
   };

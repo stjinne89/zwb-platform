@@ -87,7 +87,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0219`.
 
 ---
 
@@ -172,6 +172,58 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 > databasefout; de rest werkt.
 
 ---
+
+> **FRR-tourpagina: ZWB in het klassement per etappe, voorlopig of definitief, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0218_frr_gc_history.sql`
+> (nog niet toegepast).
+>
+> **Waarom.** Wens van de eigenaar: op het hoofdevent van de tour per etappe
+> kunnen klikken, met de keuze tussen het voorlopige klassement (uit Zwift) en
+> het definitieve (van de FRR-site).
+>
+> **Wat.**
+> - `frr_gc_history`: het klassement na elke etappe die FRR in zijn tabel heeft,
+>   voor alle renners. De klassement-sync vult hem in dezelfde ronde via
+>   `frr_replace_gc_history` (`gcStages` in `src/lib/frr/gc.ts`). Mislukt dat,
+>   bijvoorbeeld vóór de migratie, dan staat het in de melding en blijft het
+>   laatste klassement gewoon werken.
+> - `frr_class_stage_results(tour, klassen)`: de finishtijden van iedereen in
+>   de klassen waarin een ZWB'er rijdt. Een functie, omdat een lijst van een
+>   paar honderd Zwift-ID's niet in een URL past.
+> - `buildZwbStageViews` (`src/lib/frr/zwb-stage-views.ts`, puur): per etappe de
+>   ZWB'ers definitief (uit de historie) en voorlopig (`computeProvisionalGc`
+>   over de etappes tot en met die etappe, per klasse). De voorlopige tourtijd
+>   is de som van de finishtijden.
+> - Tourpagina (`frr-zwb-stage-switch.tsx`): knoppen per etappe en daaronder
+>   Voorlopig en Definitief; standaard de laatste etappe en definitief als FRR
+>   die al heeft. Een bron die er niet is, is grijs. Bij voorlopig staat "Nog
+>   niet officieel." Etappe- en slotpagina houden de bestaande lijst.
+>
+> **Niet meer waar.**
+> - In de ronde van 2026-09-29 staat onder "Bewust niet gebouwd": klassement per
+>   etappe bewaren. Dat gebeurt nu wel, in een eigen tabel; `frr_gc_standings`
+>   houdt nog steeds alleen de laatste etappe.
+> - Op de tourpagina stond in "ZWB in het klassement" het tijdslot van de
+>   eerstvolgende etappe. Die kolom is daar weg; de tijdsloten staan nog in de
+>   sectie Tijdsloten en bij de rivalen.
+>
+> **Beperkingen.**
+> - De klasse en de straf van een renner komen uit het laatste klassement, ook
+>   voor een eerdere etappe. Wie na etappe 2 een straf kreeg, heeft die dus ook
+>   in het voorlopige klassement na etappe 1; het definitieve laat zien hoe het
+>   toen was.
+> - Een ZWB'er die de laatste etappe van FRR niet reed, staat niet in het
+>   voorlopige klassement; in het definitieve van eerdere etappes wel.
+> - De eigen verwijderlijst geldt ook hier, voor alle klassen.
+>
+> **Niet lokaal te verifiëren.** De migratie en de sync. De query in de functie
+> is op productie alleen gelezen gedraaid: 2 klassen met een ZWB'er, 110
+> finishtijden van 59 renners over etappe 1 en 2.
+>
+> **Na de deploy.** `0218` toepassen en Nu verversen, zodat de historie wordt
+> gevuld.
+>
+> **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite.
 
 > **FRR-klassement: de straf voor een upgrade zat niet in de eGAP, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0216_frr_gc_penalty.sql`
@@ -1894,7 +1946,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 > - Etappe-uitslag per slot uit Zwift (`fetchSubgroupResults`): het klassement
 >   plus de links naar FRR en ZwiftPower dekken het, en FRR rekent eGAP zelf.
 >   *(Sinds 2026-10-04 wel opgehaald, voor het voorlopige klassement: `0215`.)*
-> - Klassement per etappe bewaren: FRR heeft de historie zelf, en de rivalenlijst
+> - Klassement per etappe bewaren *(sinds 2026-10-04 wel, in `frr_gc_history`,
+>   `0218`)*: FRR heeft de historie zelf, en de rivalenlijst
 >   kijkt alleen naar nu. Gevolg: wie de laatste etappe niet reed, staat niet in
 >   het opgeslagen klassement (zo staat het ook in de tabel van FRR).
 > - De inschrijflijst van FRR zelf (`/tour-registered/`, wpDataTables 105/110): die
