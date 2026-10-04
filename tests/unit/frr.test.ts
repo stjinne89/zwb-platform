@@ -11,7 +11,14 @@ import {
   isGeneratedFrrTitle,
   parseFrrStageName,
 } from "@/lib/frr/feed";
-import { extractWdtTable, gcTourCodes, latestGcStage, parseGcRows } from "@/lib/frr/gc";
+import {
+  extractWdtTable,
+  gcTourCodes,
+  latestGcStage,
+  parseGcDuration,
+  parseGcPenalty,
+  parseGcRows,
+} from "@/lib/frr/gc";
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
 import { isRateLimited, zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
@@ -110,9 +117,36 @@ describe("FRR-klassement", () => {
       position: 1,
       zwiftId: "1525667",
       stagesRidden: 21,
-      egapS: 51.4,
+      // De leider: FRR toont "-", ook al is zijn opgetelde verlies 51,40 s.
+      egapS: 0,
+      penaltyS: 0,
     });
     expect(first.tourTimeS).toBeGreaterThan(10000);
+    // "4 m 39.317 s": opgeteld verlies 330,72 min de 51,40 van de leider.
+    expect(rows[1].egapS).toBe(279.317);
+  });
+
+  it("telt de straf voor een upgrade bij de eGAP", () => {
+    // Ignite na etappe 2 (2026-10-04): 9,42 s verlies, 30 s straf, leider 8,05 s.
+    const cells = [...(gc.data[0] as unknown[])];
+    cells[19] = "9.42";
+    cells[20] = "(30s)";
+    cells[21] = "8.05";
+    cells[23] = "31.373 s";
+    expect(parseGcRows([cells])[0]).toMatchObject({ egapS: 31.373, penaltyS: 30 });
+    // Zonder leesbare eGAP rekenen we hem zelf uit.
+    cells[23] = "?";
+    expect(parseGcRows([cells])[0]).toMatchObject({ egapS: 31.37, penaltyS: 30 });
+  });
+
+  it("leest straf en duur zoals FRR ze schrijft", () => {
+    expect(parseGcPenalty("(30s)")).toBe(30);
+    expect(parseGcPenalty("-")).toBe(0);
+    expect(parseGcPenalty("DQ")).toBeNull();
+    expect(parseGcDuration("31.373 s")).toBe(31.373);
+    expect(parseGcDuration("1 m 10.886 s")).toBe(70.886);
+    expect(parseGcDuration("1 hrs, 7 m 54.663 s")).toBeCloseTo(4074.663, 3);
+    expect(parseGcDuration("-")).toBeNull();
   });
 
   it("decodeert HTML-entiteiten in namen", () => {
@@ -274,6 +308,19 @@ describe("computeProvisionalGc", () => {
     const gc = computeProvisionalGc({ riders, results });
     expect(gc.ranked.find((row) => row.zwiftId === "snel")?.otherPens).toEqual(["C"]);
     expect(gc.ranked.find((row) => row.zwiftId === "ik")?.otherPens).toEqual([]);
+  });
+
+  it("telt de straf van FRR op bij het verlies", () => {
+    const gc = computeProvisionalGc({
+      riders: riders.map((rider) => (rider.zwiftId === "buur" ? { ...rider, penaltyS: 30 } : rider)),
+      results,
+      excluded: new Set(["snel"]),
+    });
+    expect(gc.ranked.map((row) => [row.zwiftId, row.egapS, row.penaltyS])).toEqual([
+      ["ander", 3.6, 0],
+      ["ik", 8.953, 0],
+      ["buur", 30, 30],
+    ]);
   });
 
   it("laat een verwijderde renner geen tijd zetten", () => {

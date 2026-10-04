@@ -87,9 +87,53 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0216`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`.
 
 ---
+
+> **FRR-klassement: de straf voor een upgrade zat niet in de eGAP, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0216_frr_gc_penalty.sql`
+> (nog niet toegepast).
+>
+> **Waarom.** De eigenaar stond na etappe 2 van Ignite op de goede plaats (5e in
+> M-BON) maar met eGAP 0:09, minder dan de renners boven hem. Live nagekeken in
+> de tabel van FRR (796 rijen, 22 met straf): kolom 20 is de straf voor een
+> upgrade, "(30s)" of "-", kolom 21 het opgetelde verlies van de nummer één van
+> de klasse, en kolom 23 de eGAP die FRR toont: kolom 19 plus de straf, min
+> kolom 21 (9,42 + 30 − 8,05 = 31,37 s). ZWB las alleen kolom 19. De positie
+> kwam wel goed door, want die rekent FRR zelf.
+>
+> **Wat.**
+> - `parseGcRows` (`src/lib/frr/gc.ts`): `egapS` is nu de eGAP die FRR toont
+>   (kolom 23); bij "-" (de leider) of een onbekende vorm rekent de parser hem
+>   zelf uit. Nieuw: `penaltyS` uit kolom 20. Een straf in een onbekende vorm
+>   telt als 0 in `penaltyS`, maar zit via kolom 23 wel in de eGAP.
+> - `frr_gc_standings.penalty_s` en `frr_replace_gc` met dat veld. De oude
+>   functie negeert het veld, dus een deploy vóór de migratie slaat gewoon op.
+> - Lezen via `loadFrrStandingRows` (`src/lib/frr/zwb-standings.ts`): probeert
+>   met `penalty_s` en valt terug zonder, zodat de lijsten vóór de migratie niet
+>   leeg raken.
+> - Weergave: "30 s straf" bij de renner in "ZWB in het klassement" (etappe en
+>   dashboard), in de rivalenlijst en in het voorlopige klassement. De tourtijd
+>   blijft zonder straf, zoals bij FRR.
+> - Voorlopig klassement: de straf uit het klassement van FRR telt mee in het
+>   verlies. Aanname: de straf geldt één keer per tour en niet per etappe; dat
+>   is op één etappe met straf niet te zien.
+>
+> **Niet meer waar.**
+> - In de ronde van 2026-09-29 staat dat kolom 19 de eGAP is. Dat is het
+>   opgetelde verlies zonder straf en zonder aftrek van de leider.
+> - De leider van een klasse had bij ZWB een eGAP groter dan nul (zijn eigen
+>   opgetelde verlies); die is nu 0, zoals bij FRR.
+> - Bestaande rijen houden de oude eGAP tot de eerstvolgende klassement-sync
+>   (elke drie uur, of Nu verversen).
+>
+> **Bewust niet.** De straf bij de tourtijd optellen: FRR doet dat ook niet.
+>
+> **Niet lokaal te verifiëren.** De migratie en de sync tegen de database.
+>
+> **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite, met de
+> echte waarden van 4 oktober in `tests/unit/frr.test.ts`.
 
 > **FRR: voorlopig klassement van je eigen klasse, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0215_frr_provisional_gc.sql`
@@ -1631,7 +1675,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0216`
 >   rijen in de HTML, de rest via `admin-ajax.php?action=get_wdtable&table_id=228`
 >   met de nonce uit de pagina. De tabel bevat het klassement na **elke** etappe
 >   (kolom 3), per geslacht-klasse ("M-BON"), met Zwift-ID, positie, tourtijd en
->   eGAP. De kolommen hebben geen namen, dus `parseGcRows` leest op positie en
+>   eGAP *(kolom 19 bleek het verlies zonder straf; zie de ronde van 2026-10-04
+>   over `0216`)*. De kolommen hebben geen namen, dus `parseGcRows` leest op positie en
 >   weigert een rij die niet klopt. Filteren op kolom via de AJAX werkte niet;
 >   de sync haalt alles op (3.234 rijen, 7 verzoeken) en filtert zelf.
 > - Inschrijvingen per slot via het bestaande `fetchEntrants` (serviceaccount).

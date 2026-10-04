@@ -1,8 +1,11 @@
 import { cn } from "@/lib/utils";
-import { formatFrrDuration } from "@/lib/frr/watch";
-import type { FrrStandingRow } from "@/lib/frr/zwb-standings";
+import { formatFrrDuration, formatFrrPenalty } from "@/lib/frr/watch";
+import { frrPenaltyS, type FrrStandingRow } from "@/lib/frr/zwb-standings";
 
-/** De ZWB'ers in het FRR-klassement: klasse, plaats, naam, tourtijd en eGAP. */
+/**
+ * De ZWB'ers in het FRR-klassement: klasse, plaats, naam, tourtijd en eGAP. Een
+ * straf zit in de eGAP en niet in de tourtijd, dus die staat er apart bij.
+ */
 export function FrrZwbStandingsList({
   standings,
   zwbNames,
@@ -20,6 +23,7 @@ export function FrrZwbStandingsList({
       {standings.map((row) => {
         const egap = `eGAP ${formatFrrDuration(row.egap_s === null ? null : Number(row.egap_s))}`;
         const slot = slotText?.(row.zwift_id) ?? null;
+        const penalty = formatFrrPenalty(frrPenaltyS(row));
         return (
           <li
             key={`${row.gender_class}-${row.zwift_id}`}
@@ -35,8 +39,13 @@ export function FrrZwbStandingsList({
             <span className="min-w-0 flex-1">
               <span className="block truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
               <span className="block truncate text-xs text-muted-foreground sm:hidden">
-                {[egap, slot].filter(Boolean).join(" · ")}
+                {[egap, penalty, slot].filter(Boolean).join(" · ")}
               </span>
+              {penalty && (
+                <span className="hidden truncate text-xs text-muted-foreground sm:block">
+                  {penalty}
+                </span>
+              )}
             </span>
             <span className="shrink-0 tabular-nums text-muted-foreground">
               {formatFrrDuration(row.tour_time_s === null ? null : Number(row.tour_time_s))}

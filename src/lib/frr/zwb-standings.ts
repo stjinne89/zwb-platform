@@ -12,12 +12,40 @@ export type FrrStandingRow = {
   class_code: string;
   position: number;
   egap_s: number | string | null;
+  /** Straf voor een upgrade (migr. 0216); ontbreekt vóór die migratie. */
+  penalty_s?: number | string | null;
   tour_time_s: number | string | null;
   after_stage: number;
 };
 
 export const FRR_STANDING_COLUMNS =
   "zwift_id, name, club, gender_class, class_code, position, egap_s, tour_time_s, after_stage";
+
+/**
+ * Rijen uit het klassement van één tour. Vóór migratie 0216 bestaat penalty_s
+ * niet; dan zonder, zodat een deploy vóór de migratie niets leegmaakt.
+ */
+export async function loadFrrStandingRows(
+  supabase: SupabaseClient,
+  tourId: string,
+  filter: { zwiftIds?: string[]; genderClass?: string },
+): Promise<FrrStandingRow[]> {
+  const run = (columns: string) => {
+    let query = supabase.from("frr_gc_standings").select(columns).eq("tour_id", tourId);
+    if (filter.genderClass) query = query.eq("gender_class", filter.genderClass);
+    if (filter.zwiftIds) query = query.in("zwift_id", filter.zwiftIds);
+    return query;
+  };
+  const withPenalty = await run(`${FRR_STANDING_COLUMNS}, penalty_s`);
+  const { data } = withPenalty.error ? await run(FRR_STANDING_COLUMNS) : withPenalty;
+  return (data ?? []) as unknown as FrrStandingRow[];
+}
+
+/** Straf in seconden; 0 zonder straf of zonder kolom. */
+export function frrPenaltyS(row: Pick<FrrStandingRow, "penalty_s">) {
+  const value = Number(row.penalty_s ?? 0);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
 
 export type ZwbFrrStandings = {
   /** Zwift-ID → naam bij ZWB (profiel gaat voor het roster). */
@@ -53,15 +81,11 @@ export async function loadZwbFrrStandings(
     zwbNames.set(id, row.display_name);
   }
 
-  const { data: rows } =
+  const rows =
     zwbNames.size > 0
-      ? await supabase
-          .from("frr_gc_standings")
-          .select(FRR_STANDING_COLUMNS)
-          .eq("tour_id", tourId)
-          .in("zwift_id", [...zwbNames.keys()])
-      : { data: [] };
-  const standings = ((rows ?? []) as FrrStandingRow[]).sort(
+      ? await loadFrrStandingRows(supabase, tourId, { zwiftIds: [...zwbNames.keys()] })
+      : [];
+  const standings = rows.sort(
     (a, b) =>
       compareFrrClass(a.class_code, b.class_code) ||
       a.gender_class.localeCompare(b.gender_class) ||

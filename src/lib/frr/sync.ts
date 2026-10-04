@@ -220,6 +220,7 @@ async function syncGc(
       stages_ridden: row.stagesRidden,
       tour_time_s: row.tourTimeS,
       egap_s: row.egapS,
+      penalty_s: row.penaltyS,
     })),
   });
   if (error) throw new Error(error.message);

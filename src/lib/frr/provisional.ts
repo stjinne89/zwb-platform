@@ -20,8 +20,10 @@ export type ProvisionalRider = {
   club: string | null;
   /** Plaats in het voorlopige klassement; null zolang een etappe ontbreekt. */
   position: number | null;
-  /** Opgeteld tijdverlies over de gereden etappes. */
+  /** Opgeteld tijdverlies over de gereden etappes, met straf. */
   egapS: number;
+  /** Straf die FRR de renner gaf, in seconden. */
+  penaltyS: number;
   stagesRidden: number;
   /** Startgroepen waarin hij reed die afwijken van de rest van de klasse. */
   otherPens: string[];
@@ -48,7 +50,7 @@ function mostCommon(values: string[]): string | null {
 
 export function computeProvisionalGc(input: {
   /** De renners van één klasse. */
-  riders: Array<{ zwiftId: string; name: string; club: string | null }>;
+  riders: Array<{ zwiftId: string; name: string; club: string | null; penaltyS?: number }>;
   results: ProvisionalResult[];
   /** Renners die niet meetellen, ook niet als snelste van hun slot. */
   excluded?: Set<string>;
@@ -95,7 +97,8 @@ export function computeProvisionalGc(input: {
     if (input.excluded?.has(rider.zwiftId)) continue;
     const ridden = perRider.get(rider.zwiftId) ?? new Map();
     const otherPens = new Set<string>();
-    let egapS = 0;
+    const penaltyS = rider.penaltyS ?? 0;
+    let egapS = penaltyS;
     for (const [stage, result] of ridden) {
       egapS += result.gapS;
       const expected = classPen.get(stage);
@@ -107,6 +110,7 @@ export function computeProvisionalGc(input: {
       club: rider.club,
       position: null,
       egapS: Math.round(egapS * 1000) / 1000,
+      penaltyS,
       stagesRidden: ridden.size,
       otherPens: [...otherPens].sort(),
     };

@@ -12,7 +12,15 @@
 //   0 tourcode   2 geslacht-klasse ("M-BON")   3 etappe   6 klasse
 //   7 positie    8 naam   9 club   10 leeftijd   11 Zwift-ID ("4,662,751")
 //   14 etappetijd (s)   15 gereden etappes   16 tourtijd (s, "26,165.40")
-//   19 eGAP (s)
+//   19 opgeteld tijdverlies (s), zonder straf
+//   20 straf voor een upgrade ("(30s)" of "-")
+//   21 opgeteld tijdverlies van de nummer één van de klasse (s)
+//   23 eGAP zoals FRR hem toont ("1 m 10.886 s", "-" voor de leider)
+//
+// De eGAP van FRR is kolom 19 plus de straf, min kolom 21 (gemeten 2026-10-04
+// op Ignite na etappe 2: 9,42 + 30 − 8,05 = 31,37 s). Tot die dag lazen we
+// alleen kolom 19, waardoor een renner met straf op de goede plaats stond met
+// een te kleine eGAP.
 
 import * as cheerio from "cheerio";
 
@@ -32,7 +40,10 @@ export type FrrGcRow = {
   zwiftId: string;
   stagesRidden: number | null;
   tourTimeS: number | null;
+  /** Achterstand op de leider van de klasse, met straf. */
   egapS: number | null;
+  /** Straf voor een upgrade, in seconden; 0 zonder straf. */
+  penaltyS: number;
 };
 
 /** Tabel-id en nonce van de eerste wpDataTable op de pagina. */
@@ -57,6 +68,21 @@ function number(value: unknown): number | null {
   if (!cleaned || cleaned === "-") return null;
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** "(30s)" → 30; "-" of leeg → 0; iets onbekends → null. */
+export function parseGcPenalty(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "-") return 0;
+  const match = /^\(?\s*(\d+(?:\.\d+)?)\s*s\s*\)?$/i.exec(trimmed);
+  return match ? Number(match[1]) : null;
+}
+
+/** "1 hrs, 7 m 54.663 s" → 4074.663; null als het geen tijd is. */
+export function parseGcDuration(value: string): number | null {
+  const match = /^(?:(\d+)\s*hrs?,?\s*)?(?:(\d+)\s*m\s*)?(\d+(?:\.\d+)?)\s*s$/i.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1] ?? 0) * 3600 + Number(match[2] ?? 0) * 60 + Number(match[3]);
 }
 
 /**
@@ -94,6 +120,16 @@ export function parseGcRows(data: unknown): FrrGcRow[] {
     if (!/^\d+$/.test(zwiftId)) fail(11, "Zwift-ID");
 
     const ridden = number(text(cells[15]));
+    const penalty = parseGcPenalty(text(cells[20]));
+    // Wat FRR toont gaat voor; "-" (de leider) en een onbekende vorm rekenen we na.
+    const shown = parseGcDuration(text(cells[23]));
+    const cumulative = number(text(cells[19]));
+    const leader = number(text(cells[21]));
+    const egapS =
+      shown ??
+      (cumulative === null
+        ? null
+        : Math.max(0, Math.round((cumulative + (penalty ?? 0) - (leader ?? 0)) * 1000) / 1000));
     return {
       tourCode,
       stage,
@@ -107,7 +143,9 @@ export function parseGcRows(data: unknown): FrrGcRow[] {
       zwiftId,
       stagesRidden: ridden !== null && Number.isSafeInteger(ridden) ? ridden : null,
       tourTimeS: number(text(cells[16])),
-      egapS: number(text(cells[19])),
+      egapS,
+      // Een onbekende straf zit dan wel in de eGAP, maar is niet te tonen.
+      penaltyS: penalty ?? 0,
     };
   });
 }

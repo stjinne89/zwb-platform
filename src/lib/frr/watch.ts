@@ -11,7 +11,10 @@ export type GcStanding = {
   genderClass: string;
   classCode: string;
   position: number;
+  /** Achterstand op de leider van de klasse, met straf. */
   egapS: number | null;
+  /** Straf voor een upgrade, in seconden. */
+  penaltyS?: number;
 };
 
 /** De FRR-klassen van hoog naar laag (flammerougeracing.com/tour-rules, FRHC naar vELO). */
@@ -40,6 +43,8 @@ export type WatchRider = {
   placesDiff: number | null;
   /** eGAP van de renner min die van het lid, in seconden. */
   gapS: number | null;
+  /** Straf voor een upgrade, in seconden; zit al in de eGAP. */
+  penaltyS: number;
   neighbour: boolean;
   favourite: boolean;
   /** Tijdslot-events waarvoor hij in deze etappe is ingeschreven. */
@@ -72,6 +77,7 @@ export function computeWatchList(input: {
       me && me.genderClass === row.genderClass && me.egapS !== null && row.egapS !== null
         ? Math.round((row.egapS - me.egapS) * 100) / 100
         : null,
+    penaltyS: row.penaltyS ?? 0,
     neighbour,
     favourite: false,
     slotIds: input.entrantSlots.get(row.zwiftId) ?? [],
@@ -107,6 +113,7 @@ export function computeWatchList(input: {
           position: null,
           placesDiff: null,
           gapS: null,
+          penaltyS: 0,
           neighbour: false,
           favourite: true,
           slotIds: input.entrantSlots.get(favourite.zwiftId) ?? [],
@@ -121,6 +128,12 @@ export function computeWatchList(input: {
     return (a.position ?? Infinity) - (b.position ?? Infinity) || a.name.localeCompare(b.name);
   });
   return { me, riders };
+}
+
+/** 30 → "30 s straf"; null zonder straf. */
+export function formatFrrPenalty(seconds: number | null | undefined) {
+  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return null;
+  return `${Math.round(seconds * 10) / 10} s straf`.replace(".", ",");
 }
 
 /** 3725.4 → "1:02:05"; met teken voor een verschil. */

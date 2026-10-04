@@ -3,9 +3,15 @@ import { cn } from "@/lib/utils";
 import type { createClient } from "@/lib/supabase/server";
 import { FrrZwbStandingsList } from "@/components/frr-zwb-standings-list";
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
-import { computeWatchList, formatFrrDuration, type GcStanding } from "@/lib/frr/watch";
 import {
-  FRR_STANDING_COLUMNS,
+  computeWatchList,
+  formatFrrDuration,
+  formatFrrPenalty,
+  type GcStanding,
+} from "@/lib/frr/watch";
+import {
+  frrPenaltyS,
+  loadFrrStandingRows,
   loadZwbFrrStandings,
   type FrrStandingRow,
 } from "@/lib/frr/zwb-standings";
@@ -23,6 +29,7 @@ function toStanding(row: FrrStandingRow): GcStanding {
     classCode: row.class_code,
     position: row.position,
     egapS: row.egap_s === null ? null : Number(row.egap_s),
+    penaltyS: frrPenaltyS(row),
   };
 }
 
@@ -101,27 +108,20 @@ export async function FrrStagePanel({
   );
   const mine = myZwiftId ? zwbStandings.find((row) => row.zwift_id === myZwiftId) : undefined;
 
-  const [{ data: classRows }, { data: favouriteStandingRows }] = await Promise.all([
-    mine
-      ? supabase
-          .from("frr_gc_standings")
-          .select(FRR_STANDING_COLUMNS)
-          .eq("tour_id", tourId)
-          .eq("gender_class", mine.gender_class)
-      : Promise.resolve({ data: [] }),
+  const [classRows, favouriteStandingRows] = await Promise.all([
+    mine ? loadFrrStandingRows(supabase, tourId, { genderClass: mine.gender_class }) : [],
     favourites.length > 0
-      ? supabase
-          .from("frr_gc_standings")
-          .select(FRR_STANDING_COLUMNS)
-          .eq("tour_id", tourId)
-          .in("zwift_id", favourites.map((row) => row.zwiftId))
-      : Promise.resolve({ data: [] }),
+      ? loadFrrStandingRows(supabase, tourId, {
+          zwiftIds: favourites.map((row) => row.zwiftId),
+        })
+      : [],
   ]);
   // Het voorlopige klassement van de eigen klasse, zonder wie het lid eruit haalde.
-  const classRiders = ((classRows ?? []) as FrrStandingRow[]).map((row) => ({
+  const classRiders = classRows.map((row) => ({
     zwiftId: row.zwift_id,
     name: row.name,
     club: row.club,
+    penaltyS: frrPenaltyS(row),
   }));
   const [classResults, { data: exclusionRows }] = await Promise.all([
     loadClassResults(supabase, tourId, classRiders.map((row) => row.zwiftId)),
@@ -143,10 +143,7 @@ export async function FrrStagePanel({
   const myProvisional = provisional.ranked.find((row) => row.zwiftId === myZwiftId) ?? null;
 
   const standings = new Map<string, GcStanding>();
-  for (const row of [
-    ...((classRows ?? []) as FrrStandingRow[]),
-    ...((favouriteStandingRows ?? []) as FrrStandingRow[]),
-  ]) {
+  for (const row of [...classRows, ...favouriteStandingRows]) {
     standings.set(`${row.gender_class}|${row.zwift_id}`, toStanding(row));
   }
 
@@ -254,6 +251,7 @@ export async function FrrStagePanel({
                             <span className="block truncate text-xs text-muted-foreground">
                               {[
                                 rider.club,
+                                formatFrrPenalty(rider.penaltyS),
                                 rider.otherPens.length > 0
                                   ? `startgroep ${rider.otherPens.join(", ")}`
                                   : null,
@@ -338,7 +336,12 @@ export async function FrrStagePanel({
                       </a>
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {[rider.classCode, rider.club, places(rider.placesDiff)]
+                      {[
+                        rider.classCode,
+                        rider.club,
+                        places(rider.placesDiff),
+                        formatFrrPenalty(rider.penaltyS),
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
