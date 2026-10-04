@@ -91,8 +91,36 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 
 ---
 
-> **FRR-klassement op het dashboard, en SRC: voorlopige uitslag bleef onzichtbaar, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> **SRC-uitslag op het dashboard, 48 uur, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Wens van de eigenaar, direct na de ronde hieronder: de SRC-uitslag
+> ook bij het scorebord, en hij mag 48 uur blijven staan.
+>
+> **Wat.** `SrcResults` (`src/app/(app)/dashboard/_components/src-results.tsx`),
+> onder het FRR-blok, in een eigen `Suspense`. Het toont de races die in de
+> afgelopen 48 uur startten en een uitslag hebben: eerst de ZWB-teams (plaats van
+> het aantal teams in de categorie, teamtijd), dan de renners met heren/dames en
+> categorie, plaats in de categorie en tijd. De kop is de titel van de zondag,
+> met "voorlopig" zolang MyWhoosh de uitslag niet officieel noemt, en linkt naar
+> de zondag; een regel linkt naar de race.
+> - De 48 uur tellen vanaf de start van de race, niet vanaf het binnenkomen van
+>   de uitslag.
+> - Wie telt, is gelijk aan de racepagina (`src-panel.tsx`): gekoppelde leden en
+>   renners onder een ZWB-teamnaam. Een koppelvoorstel op naam staat er dus niet;
+>   zonder gekoppelde renners is er geen blok.
+> - Hiermee vervalt uit fase 3 "Geen eigen teller op het dashboard": er is nu wel
+>   een SRC-blok, al is het de uitslag en geen teller in "Jouw races".
+>
+> **Bewust niet.** Koppelvoorstellen tonen (kan een naamgenoot zijn), en de
+> filterregel delen met `src-panel.tsx`: twee regels, nog niet de moeite.
+>
+> **Getest.** `tsc`, ESLint en de unit-suite. Niet in de browser gezien; op
+> productie is op dit moment nog geen renner gekoppeld, dus het blok is leeg tot
+> dat gebeurt.
+
+> **FRR-klassement op het dashboard, en SRC: voorlopige uitslag bleef onzichtbaar, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: `98cba17`. Geen migratie.
 >
 > **FRR op het dashboard (wens eigenaar).** Onder "Teams en scorebord" staat het
 > blok "FRR-klassement · na etappe N": dezelfde lijst als "ZWB in het klassement"
@@ -6106,7 +6134,8 @@ prijzengeld gaat.
 
 **Bewust niet.**
 - Geen eigen teller op het dashboard ("Jouw races"); de race staat er al via je
-  ja.
+  ja. *(Bijgewerkt 2026-10-04: de uitslag staat sindsdien wel 48 uur op het
+  dashboard, bij het scorebord.)*
 - Geen punten voor sprints en klimmen: die staan in de uitslag, maar SRC-teams
   scoren alleen op tijd.
 - Wie geannuleerd wordt (ANL), verdwijnt volgens het roadbook uit de uitslag;

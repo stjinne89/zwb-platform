@@ -52,6 +52,7 @@ import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
 import { SponsorCarousel } from "./_components/sponsor-carousel";
+import { SrcResults } from "./_components/src-results";
 import {
   TrainingStatus,
   TrainingStatusSkeleton,
@@ -926,6 +927,10 @@ export default async function DashboardPage({
 
       <Suspense fallback={null}>
         <FrrStandings userId={user?.id ?? null} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <SrcResults userId={user?.id ?? null} />
       </Suspense>
 
       <section>
