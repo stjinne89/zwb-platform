@@ -1083,7 +1083,8 @@ export default function HelpPage() {
               <li>
                 <strong className="text-foreground">Trainingskamp:</strong> dagen
                 waarop je veel meer rijdt dan normaal. Je weekplafond geldt dan
-                niet: het schema plant lange duurritten, bouwt er in de weken
+                niet: het schema plant lange ritten en volwaardige kwaliteit,
+                afgestemd op wat jij aankunt, bouwt er in de weken
                 ervoor naartoe, houdt de laatste dagen ervoor licht en plant
                 erna een herstelweek. Leg een kamp niet in de laatste tien dagen
                 voor een A-doel.

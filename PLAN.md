@@ -115,16 +115,23 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 >   `seasonPlan`. Een doel dat al op een andere datum stond blijft staan.
 > - Soort `kamp` ("Trainingskamp") in `SEASON_PERIOD_KINDS`, groen op de balk; de
 >   baan heet nu "Periodes" in plaats van "Rust".
-> - `defaultTrainingPrompt()`: in een kamp ongeveer anderhalf tot twee keer het
->   normale weekvolume, vooral lange duur; intensiteit (tot en met VO2max) is niet uitgesloten en
->   wordt per renner bekeken op doeltype, ervaring, gewenste intensiteit en
->   herstel (bijgesteld door de eigenaar, zelfde dag); de regel gaat
->   vóór `goal.maxHoursPerWeek`, `availability.default`, `goal.availableDays` en de
->   10%-groei, maar niet vóór een week die het lid apart heeft ingevuld. In de
->   weken ervoor volume en lange rit laten groeien, laatste drie dagen licht; erna
->   vijf tot zeven dagen herstel (dat is de herstelweek van het blok) en daarna
->   een stap hoger verder. `adaptiveDailyPrompt()`: in een kamp is een zwaarder
->   uitgevallen rit of hoge ATL geen reden om de volgende dag lichter te maken.
+> - `defaultTrainingPrompt()`: een kamp is de tijd waarin een amateur traint als
+>   een prof, met alle rust eromheen, en moet optimaal benut worden. Richtpunt
+>   anderhalf tot twee keer het normale weekvolume, met lange ritten én
+>   volwaardige kwaliteit (drempel, VO2max, anaeroob niet uitgesloten). De regel
+>   gaat vóór `goal.maxHoursPerWeek`, `availability.default`,
+>   `goal.availableDays` en de 10%-groei, maar niet vóór een week die het lid
+>   apart heeft ingevuld. Hoe zwaar het kamp wordt, bepaalt de planner per
+>   renner op ervaring, gewenste intensiteit, doeltype, werkelijk gereden
+>   belasting en herstelsignalen. Die ruime kijk geldt alleen in het kamp: in de
+>   gewone weken blijven plafond, groei en herstelregels onverkort gelden.
+>   Ervoor volume en lange rit binnen de gewone regels laten groeien, laatste
+>   drie dagen licht; erna vijf tot zeven dagen herstel en daarna een stap hoger
+>   verder. `adaptiveDailyPrompt()`: in een kamp is een zwaarder uitgevallen rit
+>   of hoge ATL geen reden om de volgende dag lichter te maken.
+>   *Bijgesteld op aanwijzing van de eigenaar, zelfde dag:* de eerste versie
+>   hield een kamp laag in intensiteit ("volume, niet intensiteit", geen VO2max).
+>   Dat was een aanname van de bouwer, niet gevraagd, en is geschrapt.
 > - Nieuwe signalering `kamp_vlak_voor_a_doel`: een kamp dat minder dan tien dagen
 >   (`CAMP_BEFORE_A_TARGET_DAYS`) vóór een A-doel eindigt.
 > - `/hulp#jaarplan` en de zoekindex bijgewerkt.
