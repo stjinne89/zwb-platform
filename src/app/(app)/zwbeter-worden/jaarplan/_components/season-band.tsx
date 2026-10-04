@@ -10,6 +10,7 @@ import {
   dayOffsetPct,
   spanPct,
   monthsInWindow,
+  SEASON_PERIOD_LABELS,
   SEASON_PRIORITY_LABELS,
   type SeasonEvent,
   type SeasonPeriod,
@@ -73,16 +74,18 @@ export function SeasonBand({
           ))}
         </Lane>
 
-        <Lane label="Rust">
+        <Lane label="Periodes">
           <Today pct={todayPct} />
           {periods.map((period) => (
             <span
               key={period.id}
-              title={period.title}
+              title={`${period.title} — ${SEASON_PERIOD_LABELS[period.kind]}`}
               className={`absolute inset-y-1 rounded border ${
                 period.kind === "rust"
                   ? "border-destructive/40 bg-destructive/25"
-                  : "border-amber-500/40 bg-amber-500/20"
+                  : period.kind === "kamp"
+                    ? "border-emerald-500/50 bg-emerald-500/30"
+                    : "border-amber-500/40 bg-amber-500/20"
               }`}
               style={{
                 left: `${dayOffsetPct(period.startDate, from, to)}%`,
@@ -100,10 +103,10 @@ export function SeasonBand({
               title={`${target.title} — ${SEASON_PRIORITY_LABELS[target.priority]}`}
               className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
                 target.priority === "a"
-                  ? "size-3.5 bg-[--color-zwb-gold] ring-2 ring-background"
+                  ? "size-3.5 bg-zwb-gold ring-2 ring-zwb-gold/30"
                   : target.priority === "b"
-                    ? "size-2.5 bg-foreground/70"
-                    : "size-2 bg-muted-foreground/60"
+                    ? "size-2.5 bg-foreground"
+                    : "size-2 bg-foreground/50"
               }`}
               style={{ left: `${dayOffsetPct(target.targetDate, from, to)}%` }}
             />

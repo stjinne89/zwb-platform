@@ -1,4 +1,4 @@
-// De jaarplanning: mikpunten en rustperiodes boven het trainingsschema.
+// De jaarplanning: mikpunten, rustperiodes en trainingskampen boven het trainingsschema.
 //
 // Alles in dit bestand is pure logica op 'YYYY-MM-DD'-strings, zonder Supabase.
 // Dat is een bewuste keuze: de signalering hieronder gaat over harde feiten
@@ -12,7 +12,9 @@
 export const SEASON_PRIORITIES = ["a", "b", "c"] as const;
 export type SeasonPriority = (typeof SEASON_PRIORITIES)[number];
 
-export const SEASON_PERIOD_KINDS = ["rust", "rustig"] as const;
+// 'kamp' is de tegenhanger van 'rust': dagen waarop het lid juist veel meer
+// rijdt dan normaal. De planner bouwt daar omheen (zie defaultTrainingPrompt).
+export const SEASON_PERIOD_KINDS = ["rust", "rustig", "kamp"] as const;
 export type SeasonPeriodKind = (typeof SEASON_PERIOD_KINDS)[number];
 
 export const SEASON_PRIORITY_LABELS: Record<SeasonPriority, string> = {
@@ -24,6 +26,7 @@ export const SEASON_PRIORITY_LABELS: Record<SeasonPriority, string> = {
 export const SEASON_PERIOD_LABELS: Record<SeasonPeriodKind, string> = {
   rust: "Rust",
   rustig: "Rustig",
+  kamp: "Trainingskamp",
 };
 
 /** Twee pieken dichter op elkaar dan dit zijn er in de praktijk één. */
@@ -32,6 +35,8 @@ export const A_TARGET_MIN_GAP_DAYS = 21;
 export const PLAN_TAIL_SLACK_DAYS = 7;
 /** Een rustperiode langer dan dit vraagt om heropbouw in plaats van doorgaan. */
 export const REBUILD_AFTER_REST_DAYS = 10;
+/** Zoveel dagen kost het om van een trainingskamp te herstellen vóór een piek. */
+export const CAMP_BEFORE_A_TARGET_DAYS = 10;
 /** Hoeveel losse events we hooguit als aparte waarschuwing tonen. */
 const MAX_EVENT_WARNINGS = 3;
 /** Vanaf dit aantal dagen venster verwachten we op z'n minst één rustperiode. */
@@ -248,6 +253,7 @@ export type SeasonWarningCode =
   | "schema_eindigt_voor_a_doel"
   | "toegezegd_event_niet_op_tijdlijn"
   | "rustperiode_botst_met_event"
+  | "kamp_vlak_voor_a_doel"
   | "geen_rustperiode_in_seizoen";
 
 export type SeasonWarning = {
@@ -429,7 +435,26 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
     });
   }
 
-  // 7. Een heel seizoen zonder één rustperiode.
+  // 7. Een trainingskamp dat te kort vóór een piek eindigt.
+  for (const period of periods) {
+    if (period.kind !== "kamp" || period.endDate < today) continue;
+    const doel = aDoelen.find((target) => {
+      const gat = daysBetween(period.endDate, target.targetDate);
+      return gat > 0 && gat < CAMP_BEFORE_A_TARGET_DAYS;
+    });
+    if (!doel) continue;
+    const gat = daysBetween(period.endDate, doel.targetDate);
+    warnings.push({
+      code: "kamp_vlak_voor_a_doel",
+      severity: "let_op",
+      id: `kamp_vlak_voor_a_doel:${period.id}`,
+      title: `"${period.title}" eindigt ${gat} ${gat === 1 ? "dag" : "dagen"} vóór "${doel.title}"`,
+      detail: "Van een trainingskamp ben je niet in een week hersteld: je staat dan vermoeid aan de start.",
+      action: null,
+    });
+  }
+
+  // 8. Een heel seizoen zonder één rustperiode.
   const heeftRust = periods.some((period) => period.kind === "rust");
   if (!heeftRust && daysBetween(input.from, input.to) >= SEASON_WINDOW_DAYS) {
     warnings.push({

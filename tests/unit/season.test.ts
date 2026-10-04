@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   A_TARGET_MIN_GAP_DAYS,
+  CAMP_BEFORE_A_TARGET_DAYS,
   dayOffsetPct,
   daysBetween,
   monthsInWindow,
@@ -291,6 +292,45 @@ describe("seasonWarnings", () => {
       label: "Bekijk het event",
       eventId: "e1",
     });
+  });
+
+  it("meldt een trainingskamp dat vlak vóór een A-doel eindigt", () => {
+    const kamp = period({
+      id: "k1",
+      kind: "kamp",
+      title: "Mallorca",
+      startDate: "2026-05-18",
+      endDate: "2026-05-24",
+    });
+    const dichtbij = warn({
+      periods: [kamp],
+      targets: [target({ title: "Marmotte", targetDate: "2026-06-01" })],
+    });
+    const gevonden = dichtbij.find((w) => w.code === "kamp_vlak_voor_a_doel");
+    expect(gevonden?.title).toBe('"Mallorca" eindigt 8 dagen vóór "Marmotte"');
+
+    const precies = warn({
+      periods: [kamp],
+      targets: [target({ targetDate: shiftDays("2026-05-24", CAMP_BEFORE_A_TARGET_DAYS) })],
+    });
+    expect(codes(precies)).not.toContain("kamp_vlak_voor_a_doel");
+
+    const bDoel = warn({
+      periods: [kamp],
+      targets: [target({ priority: "b", targetDate: "2026-06-01" })],
+    });
+    expect(codes(bDoel)).not.toContain("kamp_vlak_voor_a_doel");
+  });
+
+  it("ziet een trainingskamp niet als rustperiode", () => {
+    const warnings = warn({
+      periods: [period({ kind: "kamp" })],
+      plannedWorkoutDays: ["2026-07-03"],
+      events: [event({ date: "2026-07-05" })],
+    });
+    expect(codes(warnings)).not.toContain("schema_door_rustperiode");
+    expect(codes(warnings)).not.toContain("rustperiode_botst_met_event");
+    expect(codes(warnings)).toContain("geen_rustperiode_in_seizoen");
   });
 
   it("tipt over een jaar zonder enkele rustperiode, maar niet over een kort venster", () => {

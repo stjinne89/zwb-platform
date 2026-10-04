@@ -140,11 +140,11 @@ const HELP_INDEX: HelpResult[] = [
     terms: "trainingsdoel doel schema uren per week max uren beschikbare dagen rustdag rustdagen hersteltraining herstelrit rustig fietsen aanpassen ai",
   },
   {
-    title: "Jaarplan: mikpunten en rustperiodes",
-    text: "A-, B- en C-doelen, vakanties en drukke periodes, en wat ze met je schema doen.",
+    title: "Jaarplan: mikpunten en periodes",
+    text: "A-, B- en C-doelen, vakanties, drukke periodes en trainingskampen, en wat ze met je schema doen.",
     href: "/hulp#jaarplan",
     terms:
-      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn clubevent kalender misschien event koppelen prioriteit wijzigen dubbel lijst mikpunt verwijderen",
+      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn clubevent kalender misschien event koppelen prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage volume",
   },
   {
     title: "Doeltype en de laatste weken",

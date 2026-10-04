@@ -35,6 +35,27 @@ describe("training prompts", () => {
     expect(prompt).toContain("langer dan tien dagen");
   });
 
+  it("bouwt naar een trainingskamp toe en laat het weekplafond daar los", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("kind 'kamp'");
+    expect(prompt).toContain("gaat vóór goal.maxHoursPerWeek");
+    expect(prompt).toContain("Werk in de opbouw naar een trainingskamp toe");
+    // Een kamp wordt benut als door een prof: kwaliteit hoort erbij, de zwaarte
+    // hangt van de renner af, en die ruime kijk blijft binnen het kamp.
+    expect(prompt).toContain("Kwaliteit hoort bij een trainingskamp");
+    expect(prompt).toContain("bepaal je per renner op wat die aankan");
+    expect(prompt).toContain("Trek hem niet door naar de gewone weken");
+    expect(prompt).not.toContain("niet om intensiteit");
+    expect(prompt).toContain("Na een trainingskamp volgt herstel");
+    // Ontlasten ervoor en herstellen erna volgen de data van de renner, geen
+    // vast aantal dagen.
+    expect(prompt).toContain("is geen vast aantal dagen");
+    expect(prompt).toContain("niet op een vast aantal dagen");
+    expect(prompt).not.toContain("laatste drie dagen vóór het kamp");
+    expect(prompt).not.toContain("eerste vijf tot zeven dagen");
+    expect(adaptiveDailyPrompt()).toContain("dan is veel volume de bedoeling");
+  });
+
   it("houdt een rustdag ook een rustdag als het lid fris is", () => {
     expect(adaptiveDailyPrompt()).toContain("seasonPlan.periods");
     expect(adaptiveDailyPrompt()).toContain("ook als de signalen fris zijn");

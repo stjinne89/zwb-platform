@@ -87,7 +87,89 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`.
+
+---
+
+> **Jaarplan: mikpunten en periodes bewerken, en trainingskamp als soort periode, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0217_training_season_camp.sql`
+> (nog niet toegepast).
+>
+> **Waarom.** De eigenaar wil mikpunten kunnen verschuiven: tot nu toe kon in de
+> lijst alleen de prioriteit worden gewijzigd, een andere datum betekende
+> weggooien en opnieuw aanmaken (en dan was de koppeling met het doel weg).
+> Daarnaast kende een periode alleen `rust` en `rustig`. Een trainingskamp is het
+> omgekeerde: dagen waarop het volume bewust ver boven normaal gaat. Zonder eigen
+> soort plande het schema er met het gewone weekplafond doorheen.
+>
+> **Wat.**
+> - Potlood per regel in `season-list.tsx`. Mikpunt: titel, datum, notitie (de
+>   prioriteit bleef de keuzelijst ernaast). Periode: titel, van, tot en met,
+>   soort, notitie; `updateSeasonPeriod` bestond al maar had geen scherm.
+> - Een mikpunt op een clubevent houdt titel en datum van het event; daar is
+>   alleen de notitie te bewerken. `updateSeasonTarget` negeert die velden dan
+>   ook aan de serverkant.
+> - Verschuift een mikpunt waar een doel aan hangt (`goal_id`) en stond dat doel
+>   op dezelfde datum, dan schuift `training_goals.target_date` mee. Anders kreeg
+>   de planner twee piekdagen: de oude in `goal.targetDate`, de nieuwe in
+>   `seasonPlan`. Een doel dat al op een andere datum stond blijft staan.
+> - Soort `kamp` ("Trainingskamp") in `SEASON_PERIOD_KINDS`, groen op de balk; de
+>   baan heet nu "Periodes" in plaats van "Rust".
+> - `defaultTrainingPrompt()`: een kamp is de tijd waarin een amateur traint als
+>   een prof, met alle rust eromheen, en moet optimaal benut worden. Richtpunt
+>   anderhalf tot twee keer het normale weekvolume, met lange ritten én
+>   volwaardige kwaliteit (drempel, VO2max, anaeroob niet uitgesloten). De regel
+>   gaat vóór `goal.maxHoursPerWeek`, `availability.default`,
+>   `goal.availableDays` en de 10%-groei, maar niet vóór een week die het lid
+>   apart heeft ingevuld. Hoe zwaar het kamp wordt, bepaalt de planner per
+>   renner op ervaring, gewenste intensiteit, doeltype, werkelijk gereden
+>   belasting en herstelsignalen. Die ruime kijk geldt alleen in het kamp: in de
+>   gewone weken blijven plafond, groei en herstelregels onverkort gelden.
+>   Ervoor volume en lange rit binnen de gewone regels laten groeien. Hoeveel
+>   ontlasting vóór het kamp en hoeveel herstel erna nodig is, staat niet vast:
+>   de planner leest het af aan de data van de renner (TSB, ATL, ramp rate, HRV,
+>   rust-hartslag, slaap, readiness, RPE, gevoel, naleving). Bij vooruit plannen
+>   zonder die data: uitgaan van hoe de renner eerder op zware weken reageerde,
+>   en in cautions zeggen dat het wordt bijgesteld. Daarna een stap hoger
+>   verder. `adaptiveDailyPrompt()`: in een kamp is een zwaarder uitgevallen rit
+>   of hoge ATL geen reden om de volgende dag lichter te maken.
+>   *Bijgesteld op aanwijzing van de eigenaar, zelfde dag:* de eerste versie
+>   hield een kamp laag in intensiteit ("volume, niet intensiteit", geen VO2max).
+>   Dat was een aanname van de bouwer, niet gevraagd, en is geschrapt.
+>   Om dezelfde reden vervallen: "laatste drie dagen licht" en "vijf tot zeven
+>   dagen herstel" als vaste vuistregels.
+> - Nieuwe signalering `kamp_vlak_voor_a_doel`: een kamp dat minder dan tien dagen
+>   (`CAMP_BEFORE_A_TARGET_DAYS`) vóór een A-doel eindigt.
+> - `/hulp#jaarplan` en de zoekindex bijgewerkt.
+> - Balk, nagekomen (zelfde dag, na een schermafbeelding van de eigenaar): een
+>   A-doel had geen vulling. `bg-[--color-zwb-gold]` is in Tailwind 4 geen
+>   geldige klasse, dus alleen de ring in de achtergrondkleur bleef over; in
+>   dark mode een donker rondje. Nu `bg-zwb-gold`, en B- en C-doelen met meer
+>   contrast. Dit zat er al in sinds de eerste jaarplanronde.
+>
+> **Niet gebouwd.**
+> - Geen eigen urenveld per kamp: de factor "anderhalf tot twee keer" staat in de
+>   prompt. Wie precies wil sturen, vult die week in bij beschikbaarheid.
+> - De notitie van een periode gaat nog steeds niet naar de planner.
+> - Een kamp dat ná het einde van de planperiode ligt ziet de planner niet
+>   (`seasonForAi` knipt periodes af op de planperiode); er is geen tegenhanger
+>   van `nextTargetAfterPlan` voor periodes.
+> - De datum van een mikpunt op een clubevent volgt een verplaatst event niet
+>   vanzelf; dat was al zo.
+>
+> **Niet meer waar.** In de ronde "jaarplanning boven het trainingsschema" staat
+> dat een periode kind `rust` of `rustig` heeft; `kamp` is erbij gekomen. In de
+> ronde van 13 september staat dat in de lijst alleen de prioriteit te wijzigen
+> is.
+>
+> **Verificatie.** `tsc --noEmit` zonder fouten, eslint zonder fouten, nieuwe
+> tests in `season.test.ts` en `training-prompts.test.ts` groen. Volledige
+> Vitest-run: alles groen behalve `omnium-live.test.ts` (leest `.env.local`, die
+> in deze worktree ontbreekt) en wisselende time-outs die los wel slagen.
+> *Niet geverifieerd:* de migratie (geen lokale database); `npm run build` niet
+> gedraaid; het scherm niet ingelogd bekeken; of het model het kampvolume
+> werkelijk zo plant. Vóór de migratie geeft "Trainingskamp" opslaan een
+> databasefout; de rest werkt.
 
 ---
 
@@ -9232,7 +9314,7 @@ maanden (een maand terug, elf vooruit) met vier banen — schema's, rustperiodes
 mikpunten en clubevents — plus een maandlijst eronder en een blok signaleringen
 bovenaan. Migratie `0140` voegt `training_season_targets` (mikpunt met datum en
 prioriteit a/b/c, optioneel gekoppeld aan een event en aan het doel dat ervoor
-is gemaakt) en `training_season_periods` (periode met kind `rust` of `rustig`)
+is gemaakt) en `training_season_periods` (periode met kind `rust` of `rustig`; sinds 2026-10-04 ook `kamp`)
 toe. RLS spiegelt `training_availability`: lezen mag het lid én zijn trainer,
 schrijven alleen het lid zelf. De trainer heeft een eigen leesweergave op
 `/zwbeter-worden/trainer/jaarplan`.

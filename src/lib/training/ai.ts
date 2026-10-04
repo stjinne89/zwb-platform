@@ -147,7 +147,8 @@ export type TrainingAiInput = {
   } | null;
   /**
    * De jaarplanning van het lid, beperkt tot deze planperiode: de mikpunten met
-   * hun prioriteit en de periodes waarin het niet of minder traint.
+   * hun prioriteit en de periodes waarin het niet, minder of juist veel meer
+   * traint (trainingskamp).
    *
    * Dit is de laag boven het doel. `goal.targetDate` zegt waar dit schema
    * eindigt; `seasonPlan` zegt hoe het jaar eromheen loopt — dat er in juli twee
@@ -155,7 +156,7 @@ export type TrainingAiInput = {
    */
   seasonPlan?: {
     targets: Array<{ title: string; date: string; priority: "a" | "b" | "c" }>;
-    periods: Array<{ title: string; from: string; to: string; kind: "rust" | "rustig" }>;
+    periods: Array<{ title: string; from: string; to: string; kind: "rust" | "rustig" | "kamp" }>;
     /** Het eerste A- of B-mikpunt ná het einde van deze planperiode. */
     nextTargetAfterPlan: { title: string; date: string; priority: "a" | "b" } | null;
   } | null;
