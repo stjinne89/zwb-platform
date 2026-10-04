@@ -57,12 +57,19 @@ export function isRateLimited(error: unknown) {
   return error instanceof Error && /status 429\b/.test(error.message);
 }
 
-/** Eén keer wachten en opnieuw proberen bij een 429; daarna geeft hij op. */
-async function patiently<T>(request: () => Promise<T>): Promise<T> {
+class OutOfTime extends Error {}
+
+/**
+ * Eén keer wachten en opnieuw proberen bij een 429; daarna geeft hij op. Het
+ * tijdbudget geldt per verzoek en niet per slot: een slot is zes verzoeken, en
+ * op 2026-10-04 liep Nu verversen daardoor over de limiet van de functie heen.
+ */
+async function patiently<T>(request: () => Promise<T>, deadline: number): Promise<T> {
+  if (Date.now() > deadline) throw new OutOfTime();
   try {
     return await request();
   } catch (error) {
-    if (!isRateLimited(error)) throw error;
+    if (!isRateLimited(error) || Date.now() + RATE_LIMIT_WAIT_MS > deadline) throw error;
     await pause(RATE_LIMIT_WAIT_MS);
     return request();
   } finally {
@@ -74,13 +81,14 @@ async function fetchSlotResults(
   tourId: string,
   slot: SlotRow,
   fetchedAt: string,
+  deadline: number,
 ): Promise<StageResultRow[]> {
   const pens = zwiftEventPens(
-    await patiently(() => fetchZwiftEvent(String(slot.zwift_event_id))),
+    await patiently(() => fetchZwiftEvent(String(slot.zwift_event_id)), deadline),
   );
   const rows = new Map<string, StageResultRow>();
   for (const pen of pens) {
-    for (const result of await patiently(() => fetchSubgroupResults(pen.id))) {
+    for (const result of await patiently(() => fetchSubgroupResults(pen.id), deadline)) {
       if (!result.durationMs || result.durationMs <= 0) continue;
       const zwiftId = String(result.profileId);
       if (!/^\d+$/.test(zwiftId) || rows.has(zwiftId)) continue;
@@ -151,14 +159,21 @@ export async function syncStageResults(
   let results = 0;
   for (const [index, slot] of slots.entries()) {
     const left = slots.length - index;
+    const outOfTime = `Tijd op; nog ${left} slots met etappe-uitslag volgen in de volgende ronde.`;
     if (Date.now() > options.deadline) {
-      notes.push(`Tijd op; nog ${left} slots met etappe-uitslag volgen in de volgende ronde.`);
+      notes.push(outOfTime);
       break;
     }
     let rows: StageResultRow[];
     try {
-      rows = await fetchSlotResults(tourId, slot, new Date().toISOString());
+      rows = await fetchSlotResults(tourId, slot, new Date().toISOString(), options.deadline);
     } catch (err) {
+      // Een half opgehaald slot bewaren we niet: de eerste van een klasse kan
+      // in de ontbrekende startgroep zitten.
+      if (err instanceof OutOfTime) {
+        notes.push(outOfTime);
+        break;
+      }
       if (isRateLimited(err)) {
         notes.push(`Zwift begrenst het ophalen; nog ${left} slots volgen in de volgende ronde.`);
         break;

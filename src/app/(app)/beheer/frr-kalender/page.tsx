@@ -9,6 +9,9 @@ import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
+// Opslaan en Nu verversen draaien de sync met een budget van 20 seconden; de
+// cronroute heeft dezelfde ruimte.
+export const maxDuration = 30;
 
 type EventRow = {
   id: string;

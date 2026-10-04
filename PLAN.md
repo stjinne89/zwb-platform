@@ -185,6 +185,18 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`
 > daarna "tijd op voordat de tabel binnen was". Het klassement gaat nu vóór de
 > etappe-uitslagen; die krijgen wat er over is.
 >
+> **Vastlopen (zelfde dag, vierde commit).** De eigenaar zag een deel van de
+> uitslagen binnenkomen en daarna leek Nu verversen vast te lopen. Het
+> tijdbudget werd alleen tussen twee slots bekeken, terwijl één slot zes
+> verzoeken met pauzes is, plus vier seconden wachten bij een 429. Zo liep de
+> actie over de limiet van de functie heen en kwam er geen melding terug. Nu
+> geldt het budget per verzoek en wacht de sync niet meer op een 429 als dat
+> niet binnen het budget past. Een half opgehaald slot wordt niet bewaard. Niet
+> vastgesteld: of de time-out van Netlify echt de oorzaak was; er is geen log
+> bekeken.
+> `/beheer/frr-kalender` kreeg `maxDuration = 30`, zoals de cronroute al had;
+> de pagina had er geen, terwijl de sync 20 seconden mag duren.
+>
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
 > FRR eGAP te laat rekent. ZwiftPower ophalen blijft uitgesloten.
