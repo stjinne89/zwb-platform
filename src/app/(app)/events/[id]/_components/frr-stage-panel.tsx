@@ -15,7 +15,7 @@ import {
   loadZwbFrrStandings,
   type FrrStandingRow,
 } from "@/lib/frr/zwb-standings";
-import { loadZwbStageViews } from "@/lib/frr/zwb-stage-views";
+import { loadClassRiders, loadLatestClass, loadZwbStageViews } from "@/lib/frr/zwb-stage-views";
 import { FrrExcludeToggle } from "./frr-exclude";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
 import { FrrZwbStageSwitch } from "./frr-zwb-stage-switch";
@@ -122,13 +122,14 @@ export async function FrrStagePanel({
         })
       : [],
   ]);
-  // Het voorlopige klassement van de eigen klasse, zonder wie het lid eruit haalde.
-  const classRiders = classRows.map((row) => ({
-    zwiftId: row.zwift_id,
-    name: row.name,
-    club: row.club,
-    penaltyS: frrPenaltyS(row),
-  }));
+  // Het voorlopige klassement van de eigen klasse, zonder wie het lid eruit
+  // haalde. De klasse ook als FRR de laatste etappe van het lid nog niet heeft.
+  const myGenderClass =
+    mine?.gender_class ??
+    (myZwiftId ? await loadLatestClass(supabase, tourId, myZwiftId) : null);
+  const classRiders = myGenderClass
+    ? await loadClassRiders(supabase, tourId, [myGenderClass])
+    : [];
   const [classResults, { data: exclusionRows }] = await Promise.all([
     loadClassResults(supabase, tourId, classRiders.map((row) => row.zwiftId)),
     userId
@@ -144,9 +145,7 @@ export async function FrrStagePanel({
   const excluded = new Set(exclusions.map((row) => row.zwift_id));
   const provisional = computeProvisionalGc({ riders: classRiders, results: classResults, excluded });
   const stageViews =
-    stageSwitch && zwbStandings.length > 0
-      ? await loadZwbStageViews(supabase, tourId, zwb, excluded)
-      : [];
+    stageSwitch ? await loadZwbStageViews(supabase, tourId, zwb, excluded) : [];
   const myProvisional = provisional.ranked.find((row) => row.zwiftId === myZwiftId) ?? null;
 
   const standings = new Map<string, GcStanding>();
@@ -213,11 +212,11 @@ export async function FrrStagePanel({
         </section>
       )}
 
-      {mine && provisional.stages.length > 0 && (
+      {myGenderClass && provisional.stages.length > 0 && (
         <section className="space-y-3">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Voorlopig klassement {mine.gender_class} · na etappe{" "}
+              Voorlopig klassement {myGenderClass} · na etappe{" "}
               {provisional.stages[provisional.stages.length - 1]}
             </h2>
             <p className="text-xs text-muted-foreground">Nog niet officieel.</p>
@@ -295,7 +294,7 @@ export async function FrrStagePanel({
                 </div>
               ),
           )}
-          {mine && exclusions.length > 0 && (
+          {exclusions.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-xs font-medium text-muted-foreground">Verwijderd</h3>
               <ul className="divide-y rounded-lg border bg-card text-sm">

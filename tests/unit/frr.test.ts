@@ -23,7 +23,7 @@ import {
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
 import { isRateLimited, slotsToFetch, zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
-import { buildZwbStageViews } from "@/lib/frr/zwb-stage-views";
+import { buildZwbStageViews, latestClasses } from "@/lib/frr/zwb-stage-views";
 import { stageResultsDeadline } from "@/lib/frr/sync";
 import { subEventLabel } from "@/lib/events/sub-events";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
@@ -462,6 +462,24 @@ describe("buildZwbStageViews", () => {
     // Na etappe 2: buur 5 s, ik 9 + 30; laat mist een etappe en telt niet mee.
     expect(views[1].provisional).toEqual([
       expect.objectContaining({ zwiftId: "ik", position: 2, egapS: 39, tourTimeS: 9409 }),
+    ]);
+  });
+});
+
+describe("latestClasses", () => {
+  it("neemt de klasse van de laatste etappe waarin de renner staat", () => {
+    // FRR na etappe 2 op 2026-10-04: wie een later slot reed, stond er nog niet in.
+    const classes = latestClasses([
+      { afterStage: 1, zwiftId: "vroeg", genderClass: "M-BON" },
+      { afterStage: 2, zwiftId: "vroeg", genderClass: "M-BON" },
+      { afterStage: 1, zwiftId: "laat", genderClass: "M-GHT" },
+      { afterStage: 2, zwiftId: "promotie", genderClass: "M-HAB" },
+      { afterStage: 1, zwiftId: "promotie", genderClass: "M-BON" },
+    ]);
+    expect([...classes]).toEqual([
+      ["vroeg", "M-BON"],
+      ["laat", "M-GHT"],
+      ["promotie", "M-HAB"],
     ]);
   });
 });

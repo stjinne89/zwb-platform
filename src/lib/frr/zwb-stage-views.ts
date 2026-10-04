@@ -40,6 +40,22 @@ export type ClassRider = {
   penaltyS: number;
 };
 
+/**
+ * Per renner de klasse van de laatste etappe waarin hij bij FRR staat. FRR
+ * verwerkt een etappe per tijdslot, dus het laatste klassement mist wie later
+ * reed; zijn klasse uit de etappe ervoor geldt dan nog.
+ */
+export function latestClasses(
+  history: Array<{ afterStage: number; zwiftId: string; genderClass: string }>,
+): Map<string, string> {
+  const latest = new Map<string, { afterStage: number; genderClass: string }>();
+  for (const row of history) {
+    const known = latest.get(row.zwiftId);
+    if (!known || row.afterStage > known.afterStage) latest.set(row.zwiftId, row);
+  }
+  return new Map([...latest].map(([zwiftId, row]) => [zwiftId, row.genderClass]));
+}
+
 function sortRows(rows: ZwbStageRow[]) {
   return rows.sort(
     (a, b) =>
@@ -139,6 +155,67 @@ type ResultRow = {
 
 const numberOrNull = (value: number | string | null) => (value === null ? null : Number(value));
 
+type ClassRiderRow = {
+  zwift_id: string;
+  gender_class: string;
+  class_code: string;
+  name: string;
+  club: string | null;
+  penalty_s?: number | string | null;
+};
+
+/**
+ * De renners van een of meer klassen, elk met zijn laatste klasse en straf
+ * (migr. 0219). Zonder die functie of zonder historie: het laatste klassement.
+ */
+export async function loadClassRiders(
+  supabase: SupabaseClient,
+  tourId: string,
+  genderClasses: string[],
+): Promise<ClassRider[]> {
+  if (genderClasses.length === 0) return [];
+  const rows: ClassRiderRow[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data, error } = await supabase
+      .rpc("frr_class_riders", { p_tour_id: tourId, p_gender_classes: genderClasses })
+      .range(from, from + 999);
+    if (error) {
+      rows.length = 0;
+      break;
+    }
+    const page = (data ?? []) as ClassRiderRow[];
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  const source: ClassRiderRow[] =
+    rows.length > 0 ? rows : await loadFrrStandingRows(supabase, tourId, { genderClasses });
+  return source.map((row) => ({
+    zwiftId: row.zwift_id,
+    name: row.name,
+    club: row.club,
+    genderClass: row.gender_class,
+    classCode: row.class_code,
+    penaltyS: frrPenaltyS(row),
+  }));
+}
+
+/** De klasse van één renner uit de laatste etappe waarin hij bij FRR staat. */
+export async function loadLatestClass(
+  supabase: SupabaseClient,
+  tourId: string,
+  zwiftId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("frr_gc_history")
+    .select("gender_class")
+    .eq("tour_id", tourId)
+    .eq("zwift_id", zwiftId)
+    .order("after_stage", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.gender_class as string | undefined) ?? null;
+}
+
 /**
  * Leest wat de tourpagina nodig heeft. Vóór migratie 0218 geven de tabel en de
  * functie een fout; dan is de lijst leeg en toont de pagina het gewone
@@ -152,18 +229,28 @@ export async function loadZwbStageViews(
 ): Promise<ZwbStageView[]> {
   const zwbIds = [...zwb.zwbNames.keys()];
   if (zwbIds.length === 0) return [];
-  const genderClasses = [...new Set(zwb.standings.map((row) => row.gender_class))];
-
-  const [classRows, { data: historyRows }] = await Promise.all([
-    genderClasses.length > 0 ? loadFrrStandingRows(supabase, tourId, { genderClasses }) : [],
-    supabase
-      .from("frr_gc_history")
-      .select(
-        "after_stage, gender_class, class_code, zwift_id, name, position, egap_s, tour_time_s, penalty_s",
-      )
-      .eq("tour_id", tourId)
-      .in("zwift_id", zwbIds),
-  ]);
+  const { data: historyRows } = await supabase
+    .from("frr_gc_history")
+    .select(
+      "after_stage, gender_class, class_code, zwift_id, name, position, egap_s, tour_time_s, penalty_s",
+    )
+    .eq("tour_id", tourId)
+    .in("zwift_id", zwbIds);
+  const history = (historyRows ?? []) as HistoryRow[];
+  // Ook de klassen van ZWB'ers die FRR voor de laatste etappe nog niet verwerkte.
+  const genderClasses = [
+    ...new Set([
+      ...zwb.standings.map((row) => row.gender_class),
+      ...latestClasses(
+        history.map((row) => ({
+          afterStage: row.after_stage,
+          zwiftId: row.zwift_id,
+          genderClass: row.gender_class,
+        })),
+      ).values(),
+    ]),
+  ];
+  const classRiders = await loadClassRiders(supabase, tourId, genderClasses);
 
   // Per 1000, want PostgREST kapt af.
   const results: ProvisionalResult[] = [];
@@ -187,16 +274,9 @@ export async function loadZwbStageViews(
 
   return buildZwbStageViews({
     zwbNames: zwb.zwbNames,
-    classRiders: classRows.map((row) => ({
-      zwiftId: row.zwift_id,
-      name: row.name,
-      club: row.club,
-      genderClass: row.gender_class,
-      classCode: row.class_code,
-      penaltyS: frrPenaltyS(row),
-    })),
+    classRiders,
     results,
-    history: ((historyRows ?? []) as HistoryRow[]).map((row) => ({
+    history: history.map((row) => ({
       afterStage: row.after_stage,
       genderClass: row.gender_class,
       classCode: row.class_code,

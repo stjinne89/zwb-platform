@@ -87,7 +87,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0219`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0220`.
 
 ---
 
@@ -172,6 +172,41 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0219`
 > databasefout; de rest werkt.
 
 ---
+
+> **FRR voorlopig klassement: drie ZWB'ers ontbraken na etappe 2, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0219_frr_latest_class.sql`
+> (nog niet toegepast).
+>
+> **Waarom.** De eigenaar zag op de tourpagina dat drie ZWB'ers wel in het
+> definitieve klassement stonden maar niet in het voorlopige. Productie, alleen
+> gelezen: alle zes ZWB'ers hebben twee finishtijden, maar FRR had "na etappe 2"
+> pas voor drie van hen verwerkt (M-BON, M-CAP, M-DRA). FRR verwerkt een etappe
+> per tijdslot. De klasse van een renner kwam uit `frr_gc_standings`, het
+> klassement na de laatste etappe, dus wie daar nog niet in stond, had geen
+> klasse en viel uit het voorlopige klassement: precies waar het voor bedoeld is.
+>
+> **Wat.**
+> - De klasse komt nu uit `frr_gc_history`: per renner de rij van de laatste
+>   etappe waarin hij bij FRR staat. Functie `frr_class_riders(tour, klassen)`
+>   voor de renners, en `frr_class_stage_results` kijkt naar dezelfde selectie.
+> - `loadClassRiders` (`src/lib/frr/zwb-stage-views.ts`) gebruikt die functie en
+>   valt zonder `0219` of zonder historie terug op het laatste klassement.
+> - Het eigen "Voorlopig klassement" op de etappepagina gebruikt dezelfde lijst
+>   en verschijnt nu ook voor een lid dat FRR voor de laatste etappe nog niet
+>   verwerkte (`loadLatestClass`).
+> - De rivalenlijst blijft op het laatste klassement van FRR: die toont
+>   officiële plaatsen.
+>
+> **Niet meer waar.** In de twee rondes hieronder staat dat de klasse uit het
+> laatste klassement komt en dat wie de laatste etappe bij FRR mist, niet in
+> het voorlopige klassement staat. Beide gelden niet meer na `0219`. Wat blijft:
+> wie nog in geen enkele etappe bij FRR staat, heeft geen klasse.
+>
+> **Niet lokaal te verifiëren.** De migratie. De selectie is op productie alleen
+> gelezen gedraaid: 42 renners in M-BON, 66 in M-CAP, 62 in M-DRA, 84 in M-GHT,
+> 82 in M-HAB en 21 in M-PEP.
+>
+> **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite.
 
 > **FRR-tourpagina: ZWB in het klassement per etappe, voorlopig of definitief, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0218_frr_gc_history.sql`
