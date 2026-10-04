@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { refreshFrrTour, saveFrrTour } from "../_actions";
+import { fetchFrrStageResults, refreshFrrTour, saveFrrTour } from "../_actions";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -121,6 +121,31 @@ export function RefreshButton({ tourId }: { tourId: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            setError(null);
+            setMessage(null);
+            const res = await fetchFrrStageResults(tourId);
+            if (!res.ok) setError(res.error);
+            else {
+              setMessage(
+                [
+                  `${res.result.results} finishtijden uit ${res.result.slots} slots.`,
+                  ...res.result.notes,
+                ].join(" "),
+              );
+            }
+            router.refresh();
+          })
+        }
+      >
+        {pending ? "Bezig…" : "Uitslagen ophalen"}
+      </Button>
       <Button
         type="button"
         size="sm"

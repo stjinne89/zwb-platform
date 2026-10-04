@@ -7,6 +7,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { FRR_TAG_PATTERN } from "@/lib/frr/feed";
 import { FRR_TOUR_COLUMNS, type FrrTourRow } from "@/lib/frr/import";
 import { syncFrrTour } from "@/lib/frr/sync";
+import { syncStageResults } from "@/lib/frr/stage-results";
 import { adminAreaPermission } from "@/lib/admin-areas";
 
 
@@ -95,4 +96,37 @@ export async function refreshFrrTour(tourId: string) {
   revalidate();
   if (result.error) return { ok: false as const, error: result.error };
   return { ok: true as const, result };
+}
+
+/** Ruim onder de 60 seconden van de pagina. */
+const STAGE_RESULTS_BUDGET_MS = 50_000;
+
+/**
+ * De knop "Uitslagen ophalen": alleen de finishtijden per tijdslot (migr. 0215),
+ * met het hele tijdbudget. In Nu verversen gaan de inschrijvingen voor; die
+ * verbruiken zowel de tijd als de limiet van Zwift.
+ */
+export async function fetchFrrStageResults(tourId: string) {
+  const guard = await requireManager();
+  if (!guard.ok) return guard;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("frr_tours").select("id").eq("id", tourId).maybeSingle();
+  if (error) return { ok: false as const, error: error.message };
+  if (!data) return { ok: false as const, error: "Tour niet gevonden." };
+
+  try {
+    const result = await syncStageResults(admin, tourId, {
+      now: new Date(),
+      deadline: Date.now() + STAGE_RESULTS_BUDGET_MS,
+      all: true,
+    });
+    revalidatePath("/events/[id]", "page");
+    return { ok: true as const, result };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Etappe-uitslagen mislukt.",
+    };
+  }
 }

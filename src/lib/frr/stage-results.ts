@@ -19,7 +19,8 @@ const RESULTS_WINDOW_MS = 30 * 3600_000;
 // Zwift begrenst de uitslag-API streng: drie slots tegelijk gaf op 2026-10-04
 // meteen status 429. Daarom één verzoek tegelijk, met een pauze ertussen.
 const REQUEST_PAUSE_MS = 300;
-const RATE_LIMIT_WAIT_MS = 4000;
+/** Wachttijden na een 429, oplopend; daarna geeft de ronde op. */
+const RATE_LIMIT_WAITS_MS = [5000, 10000, 15000];
 
 type SlotRow = {
   id: string;
@@ -60,20 +61,23 @@ export function isRateLimited(error: unknown) {
 class OutOfTime extends Error {}
 
 /**
- * Eén keer wachten en opnieuw proberen bij een 429; daarna geeft hij op. Het
- * tijdbudget geldt per verzoek en niet per slot: een slot is zes verzoeken, en
- * op 2026-10-04 liep Nu verversen daardoor over de limiet van de functie heen.
+ * Bij een 429 wachten en opnieuw proberen, steeds langer, zolang dat binnen het
+ * tijdbudget past. Het budget geldt per verzoek en niet per slot: een slot is
+ * zes verzoeken, en op 2026-10-04 liep Nu verversen daardoor over de limiet van
+ * de functie heen.
  */
 async function patiently<T>(request: () => Promise<T>, deadline: number): Promise<T> {
-  if (Date.now() > deadline) throw new OutOfTime();
-  try {
-    return await request();
-  } catch (error) {
-    if (!isRateLimited(error) || Date.now() + RATE_LIMIT_WAIT_MS > deadline) throw error;
-    await pause(RATE_LIMIT_WAIT_MS);
-    return request();
-  } finally {
-    await pause(REQUEST_PAUSE_MS);
+  for (let attempt = 0; ; attempt += 1) {
+    if (Date.now() > deadline) throw new OutOfTime();
+    try {
+      return await request();
+    } catch (error) {
+      const wait = RATE_LIMIT_WAITS_MS[attempt];
+      if (!isRateLimited(error) || wait === undefined || Date.now() + wait > deadline) throw error;
+      await pause(wait);
+    } finally {
+      await pause(REQUEST_PAUSE_MS);
+    }
   }
 }
 

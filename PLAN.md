@@ -205,6 +205,20 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`
 > dus hooguit 28 van de 30 seconden. Dat is één à twee slots per ronde. Niet
 > gemeten: hoe lang een slot echt duurt.
 >
+> **Eigen knop (zelfde dag, zesde commit; wens eigenaar).** In de praktijk kwam
+> er één slot per klik binnen en weigerde Zwift daarna. Op
+> `/beheer/frr-kalender` staat nu naast Nu verversen de knop **Uitslagen
+> ophalen** (`fetchFrrStageResults`): alleen de finishtijden, van elk gereden
+> slot, met 50 seconden budget; de pagina kreeg `maxDuration = 60`. Zonder de
+> inschrijvingen-sync ervoor (tientallen verzoeken) blijft er meer van de
+> limiet van Zwift over. Bij een 429 wacht de sync nu 5, 10 en 15 seconden
+> voordat hij opgeeft, zolang dat in het budget past. Nu verversen en de cron
+> nemen sindsdien alleen nog slots van de laatste 30 uur; het inhalen van een
+> hele tour doet de nieuwe knop. Hiermee vervalt "Nu verversen neemt elk gereden
+> slot" uit het eerste blok van deze ronde. Niet gemeten: of Netlify de 60
+> seconden toelaat (andere pagina's in dit project vragen er ook 60) en waar de
+> limiet van Zwift ligt.
+>
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
 > FRR eGAP te laat rekent. ZwiftPower ophalen blijft uitgesloten.

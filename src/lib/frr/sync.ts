@@ -293,10 +293,11 @@ export async function syncFrrTour(
   // verdringen (gebeurd op 2026-10-04: "tijd op voordat de tabel binnen was").
   // Zonder migratie 0215 of bij een storing van Zwift blijft de rest werken.
   try {
+    // Alleen net gereden slots; een hele tour inhalen doet de knop Uitslagen
+    // ophalen op /beheer/frr-kalender, met een eigen tijdbudget.
     const stage = await syncStageResults(admin, tour.id, {
       now,
       deadline: stageResultsDeadline(deadline, Date.now()),
-      all: Boolean(options.force),
     });
     result.stageResults = stage.results;
     if (stage.slots > 0) {
