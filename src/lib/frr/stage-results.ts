@@ -16,7 +16,10 @@ import {
 const RESULTS_AFTER_START_MS = 45 * 60_000;
 /** Zo lang na de start komen er nog finishers en correcties bij. */
 const RESULTS_WINDOW_MS = 30 * 3600_000;
-const SLOTS_AT_ONCE = 3;
+// Zwift begrenst de uitslag-API streng: drie slots tegelijk gaf op 2026-10-04
+// meteen status 429. Daarom één verzoek tegelijk, met een pauze ertussen.
+const REQUEST_PAUSE_MS = 300;
+const RATE_LIMIT_WAIT_MS = 4000;
 
 type SlotRow = {
   id: string;
@@ -48,18 +51,36 @@ export function zwiftEventPens(event: unknown): Array<{ id: string; pen: string 
   });
 }
 
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function isRateLimited(error: unknown) {
+  return error instanceof Error && /status 429\b/.test(error.message);
+}
+
+/** Eén keer wachten en opnieuw proberen bij een 429; daarna geeft hij op. */
+async function patiently<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    if (!isRateLimited(error)) throw error;
+    await pause(RATE_LIMIT_WAIT_MS);
+    return request();
+  } finally {
+    await pause(REQUEST_PAUSE_MS);
+  }
+}
+
 async function fetchSlotResults(
   tourId: string,
   slot: SlotRow,
   fetchedAt: string,
 ): Promise<StageResultRow[]> {
-  const pens = zwiftEventPens(await fetchZwiftEvent(String(slot.zwift_event_id)));
-  const perPen = await Promise.all(
-    pens.map(async (pen) => ({ pen: pen.pen, results: await fetchSubgroupResults(pen.id) })),
+  const pens = zwiftEventPens(
+    await patiently(() => fetchZwiftEvent(String(slot.zwift_event_id))),
   );
   const rows = new Map<string, StageResultRow>();
-  for (const { pen, results } of perPen) {
-    for (const result of results) {
+  for (const pen of pens) {
+    for (const result of await patiently(() => fetchSubgroupResults(pen.id))) {
       if (!result.durationMs || result.durationMs <= 0) continue;
       const zwiftId = String(result.profileId);
       if (!/^\d+$/.test(zwiftId) || rows.has(zwiftId)) continue;
@@ -68,7 +89,7 @@ async function fetchSlotResults(
         zwift_id: zwiftId,
         tour_id: tourId,
         stage: slot.frr_stage as number,
-        pen,
+        pen: pen.pen,
         time_s: result.durationMs / 1000,
         fetched_at: fetchedAt,
       });
@@ -79,7 +100,9 @@ async function fetchSlotResults(
 
 /**
  * Haalt de uitslag op van slots die net gereden zijn. Met `all` van elk gereden
- * slot van de tour, voor de knop Nu verversen.
+ * slot van de tour, voor de knop Nu verversen. Slots zonder uitslag gaan voor;
+ * wat niet binnen het tijdbudget of de limiet van Zwift past, volgt de
+ * volgende ronde.
  */
 export async function syncStageResults(
   admin: SupabaseClient,
@@ -104,51 +127,53 @@ export async function syncStageResults(
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  let slots = (data ?? []) as SlotRow[];
-  if (options.all) {
-    // Slots zonder uitslag eerst, anders komt een lange tour nooit rond binnen
-    // het tijdbudget.
-    const known = await Promise.all(
-      slots.map(async (slot) => {
-        const { count } = await admin
-          .from("frr_stage_results")
-          .select("zwift_id", { count: "exact", head: true })
-          .eq("slot_event_id", slot.id);
-        return (count ?? 0) > 0;
-      }),
-    );
-    slots = [...slots.filter((_, index) => !known[index]), ...slots.filter((_, index) => known[index])];
-  }
+  const candidates = (data ?? []) as SlotRow[];
+  const known = await Promise.all(
+    candidates.map(async (slot) => {
+      const { count, error: countError } = await admin
+        .from("frr_stage_results")
+        .select("zwift_id", { count: "exact", head: true })
+        .eq("slot_event_id", slot.id);
+      if (countError) throw new Error(countError.message);
+      return (count ?? 0) > 0;
+    }),
+  );
+  const slots = [
+    ...candidates.filter((_, index) => !known[index]),
+    // Een slot met uitslag alleen verversen zolang er nog finishers bij komen.
+    ...candidates.filter(
+      (slot, index) => known[index] && now - Date.parse(slot.start_at) <= RESULTS_WINDOW_MS,
+    ),
+  ];
+
   const notes: string[] = [];
   let synced = 0;
   let results = 0;
-  for (let index = 0; index < slots.length; index += SLOTS_AT_ONCE) {
+  for (const [index, slot] of slots.entries()) {
+    const left = slots.length - index;
     if (Date.now() > options.deadline) {
-      notes.push("Tijd op; de overige etappe-uitslagen volgen in de volgende ronde.");
+      notes.push(`Tijd op; nog ${left} slots met etappe-uitslag volgen in de volgende ronde.`);
       break;
     }
-    const fetchedAt = new Date().toISOString();
-    const batch = await Promise.allSettled(
-      slots
-        .slice(index, index + SLOTS_AT_ONCE)
-        .map((slot) => fetchSlotResults(tourId, slot, fetchedAt)),
-    );
-    for (const outcome of batch) {
-      // Eén haperend slot mag de rest niet tegenhouden.
-      if (outcome.status === "rejected") {
-        notes.push(
-          outcome.reason instanceof Error ? outcome.reason.message : "Etappe-uitslag mislukt.",
-        );
-        continue;
+    let rows: StageResultRow[];
+    try {
+      rows = await fetchSlotResults(tourId, slot, new Date().toISOString());
+    } catch (err) {
+      if (isRateLimited(err)) {
+        notes.push(`Zwift begrenst het ophalen; nog ${left} slots volgen in de volgende ronde.`);
+        break;
       }
-      if (outcome.value.length === 0) continue;
-      const { error: upsertError } = await admin
-        .from("frr_stage_results")
-        .upsert(outcome.value, { onConflict: "slot_event_id,zwift_id" });
-      if (upsertError) throw new Error(upsertError.message);
-      synced += 1;
-      results += outcome.value.length;
+      // Eén haperend slot mag de rest niet tegenhouden.
+      notes.push(err instanceof Error ? err.message : "Etappe-uitslag mislukt.");
+      continue;
     }
+    if (rows.length === 0) continue;
+    const { error: upsertError } = await admin
+      .from("frr_stage_results")
+      .upsert(rows, { onConflict: "slot_event_id,zwift_id" });
+    if (upsertError) throw new Error(upsertError.message);
+    synced += 1;
+    results += rows.length;
   }
   return { slots: synced, results, notes };
 }

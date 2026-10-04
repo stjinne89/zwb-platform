@@ -13,7 +13,7 @@ import {
 } from "@/lib/frr/feed";
 import { extractWdtTable, gcTourCodes, latestGcStage, parseGcRows } from "@/lib/frr/gc";
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
-import { zwiftEventPens } from "@/lib/frr/stage-results";
+import { isRateLimited, zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
 import { subEventLabel } from "@/lib/events/sub-events";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
@@ -309,5 +309,13 @@ describe("zwiftEventPens", () => {
       { id: "102", pen: null },
     ]);
     expect(zwiftEventPens(null)).toEqual([]);
+  });
+});
+
+describe("isRateLimited", () => {
+  it("herkent de 429 van de Zwift-API", () => {
+    expect(isRateLimited(new Error("Zwift-API gaf status 429 voor https://x/api/y."))).toBe(true);
+    expect(isRateLimited(new Error("Zwift-API gaf status 404 voor https://x/api/4290."))).toBe(false);
+    expect(isRateLimited("status 429")).toBe(false);
   });
 });

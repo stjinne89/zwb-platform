@@ -109,6 +109,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0216`
 >   minuten tot 30 uur geleden startten; Nu verversen neemt elk gereden slot van
 >   de tour, slots zonder uitslag eerst. Zonder migratie of bij een storing komt
 >   er een notitie en gaan inschrijvingen en klassement gewoon door.
+>   *(Zelfde dag bijgesteld, zie "Limiet van Zwift" hieronder.)*
 > - `computeProvisionalGc` (`src/lib/frr/provisional.ts`, puur): de klasse van een
 >   renner komt uit `frr_gc_standings`, het verlies per etappe is de tijd min de
 >   snelste van de klasse in hetzelfde slot. Wie elke etappe met een uitslag
@@ -123,6 +124,17 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0216`
 > - Bij een renner staat de startgroep als die afwijkt van waar de meesten van
 >   de klasse die etappe reden. Dat is een hint, geen automatische verwijdering.
 > - `/hulp` legt de rekenregel en het verwijderen uit.
+>
+> **Limiet van Zwift (zelfde dag, tweede commit).** De eerste Nu verversen op
+> productie gaf voor acht slots status 429 op `race-results/entries`: drie slots
+> tegelijk, elk met vijf startgroepen naast elkaar, direct na de
+> inschrijvingen-sync, is te veel. Er werd niets opgeslagen. Nu gaat het één
+> verzoek tegelijk met 300 ms pauze; bij een 429 wacht de sync vier seconden en
+> probeert het één keer opnieuw, en bij een tweede 429 stopt de ronde met één
+> melding hoeveel slots nog volgen. Slots zonder uitslag gaan in elke ronde
+> voor; een slot met uitslag wordt alleen ververst binnen 30 uur na de start.
+> Inhalen van een hele tour kost dus meerdere keren Nu verversen of een paar
+> cronrondes. Niet gemeten: waar de limiet van Zwift precies ligt.
 >
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
