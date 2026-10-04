@@ -1,12 +1,15 @@
 import { Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { createClient } from "@/lib/supabase/server";
 import { FrrZwbStandingsList } from "@/components/frr-zwb-standings-list";
+import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
 import { computeWatchList, formatFrrDuration, type GcStanding } from "@/lib/frr/watch";
 import {
   FRR_STANDING_COLUMNS,
   loadZwbFrrStandings,
   type FrrStandingRow,
 } from "@/lib/frr/zwb-standings";
+import { FrrExcludeToggle } from "./frr-exclude";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
@@ -27,6 +30,45 @@ function places(diff: number | null) {
   if (diff === null) return null;
   if (diff === 0) return "gelijk";
   return diff < 0 ? `${-diff} voor je` : `${diff} achter je`;
+}
+
+type StageResultRow = {
+  slot_event_id: string;
+  zwift_id: string;
+  stage: number;
+  pen: string | null;
+  time_s: number | string;
+};
+
+/** Finishtijden van de klasse (migr. 0215), per 1000 want PostgREST kapt af. */
+async function loadClassResults(
+  supabase: SupabaseServer,
+  tourId: string,
+  zwiftIds: string[],
+): Promise<ProvisionalResult[]> {
+  const results: ProvisionalResult[] = [];
+  for (let from = 0; zwiftIds.length > 0 && from < 20000; from += 1000) {
+    const { data } = await supabase
+      .from("frr_stage_results")
+      .select("slot_event_id, zwift_id, stage, pen, time_s")
+      .eq("tour_id", tourId)
+      .in("zwift_id", zwiftIds)
+      .order("slot_event_id")
+      .order("zwift_id")
+      .range(from, from + 999);
+    const rows = (data ?? []) as StageResultRow[];
+    for (const row of rows) {
+      results.push({
+        stage: row.stage,
+        slotId: row.slot_event_id,
+        zwiftId: row.zwift_id,
+        pen: row.pen,
+        timeS: Number(row.time_s),
+      });
+    }
+    if (rows.length < 1000) break;
+  }
+  return results;
 }
 
 /**
@@ -75,6 +117,31 @@ export async function FrrStagePanel({
           .in("zwift_id", favourites.map((row) => row.zwiftId))
       : Promise.resolve({ data: [] }),
   ]);
+  // Het voorlopige klassement van de eigen klasse, zonder wie het lid eruit haalde.
+  const classRiders = ((classRows ?? []) as FrrStandingRow[]).map((row) => ({
+    zwiftId: row.zwift_id,
+    name: row.name,
+    club: row.club,
+  }));
+  const [classResults, { data: exclusionRows }] = await Promise.all([
+    loadClassResults(supabase, tourId, classRiders.map((row) => row.zwiftId)),
+    mine && userId
+      ? supabase
+          .from("frr_gc_exclusions")
+          .select("zwift_id, name")
+          .eq("profile_id", userId)
+          .eq("tour_id", tourId)
+          .order("name")
+      : Promise.resolve({ data: [] }),
+  ]);
+  const exclusions = (exclusionRows ?? []) as Array<{ zwift_id: string; name: string }>;
+  const provisional = computeProvisionalGc({
+    riders: classRiders,
+    results: classResults,
+    excluded: new Set(exclusions.map((row) => row.zwift_id)),
+  });
+  const myProvisional = provisional.ranked.find((row) => row.zwiftId === myZwiftId) ?? null;
+
   const standings = new Map<string, GcStanding>();
   for (const row of [
     ...((classRows ?? []) as FrrStandingRow[]),
@@ -137,6 +204,110 @@ export async function FrrStagePanel({
               return ids.length > 0 ? slotText(ids) : null;
             }}
           />
+        </section>
+      )}
+
+      {mine && provisional.stages.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Voorlopig klassement {mine.gender_class} · na etappe{" "}
+              {provisional.stages[provisional.stages.length - 1]}
+            </h2>
+            <p className="text-xs text-muted-foreground">Nog niet officieel.</p>
+          </div>
+          {[
+            { title: null, riders: provisional.ranked },
+            { title: "Mist een etappe", riders: provisional.pending },
+          ].map(
+            (group) =>
+              group.riders.length > 0 && (
+                <div key={group.title ?? "ranked"} className="space-y-2">
+                  {group.title && (
+                    <h3 className="text-xs font-medium text-muted-foreground">{group.title}</h3>
+                  )}
+                  <ul className="divide-y rounded-lg border bg-card text-sm">
+                    {group.riders.map((rider) => {
+                      const isMe = rider.zwiftId === myZwiftId;
+                      const egap = `eGAP ${formatFrrDuration(rider.egapS)}`;
+                      const versusMe = myProvisional !== null && !isMe && !group.title;
+                      return (
+                        <li
+                          key={rider.zwiftId}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2",
+                            isMe && "bg-primary/5",
+                          )}
+                        >
+                          <span className="w-7 shrink-0 tabular-nums font-semibold sm:w-8">
+                            {rider.position ?? "—"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <a
+                              href={`https://zwiftpower.com/profile.php?z=${rider.zwiftId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block truncate hover:underline"
+                            >
+                              {zwbNames.get(rider.zwiftId) ?? rider.name}
+                            </a>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {[
+                                rider.club,
+                                rider.otherPens.length > 0
+                                  ? `startgroep ${rider.otherPens.join(", ")}`
+                                  : null,
+                                group.title
+                                  ? `${rider.stagesRidden} van ${provisional.stages.length}`
+                                  : null,
+                                versusMe ? egap : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-right tabular-nums text-muted-foreground">
+                            {versusMe
+                              ? formatFrrDuration(rider.egapS - myProvisional.egapS, true)
+                              : egap}
+                          </span>
+                          {isMe ? (
+                            <span className="size-7 shrink-0" />
+                          ) : (
+                            <FrrExcludeToggle
+                              tourId={tourId}
+                              zwiftId={rider.zwiftId}
+                              name={rider.name}
+                              excluded={false}
+                            />
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ),
+          )}
+          {exclusions.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-medium text-muted-foreground">Verwijderd</h3>
+              <ul className="divide-y rounded-lg border bg-card text-sm">
+                {exclusions.map((row) => (
+                  <li key={row.zwift_id} className="flex items-center gap-3 px-3 py-2">
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                      {row.name}
+                    </span>
+                    <FrrExcludeToggle
+                      tourId={tourId}
+                      zwiftId={row.zwift_id}
+                      name={row.name}
+                      excluded
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       )}
 

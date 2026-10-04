@@ -15,6 +15,7 @@ import {
 } from "@/lib/frr/import";
 import { fetchFrrGcRows, gcTourCodes, latestGcStage } from "@/lib/frr/gc";
 import { amsterdamDay } from "@/lib/frr/feed";
+import { syncStageResults } from "@/lib/frr/stage-results";
 
 export const FRR_SYNC_BUDGET_MS = 20000;
 const ENTRANTS_HORIZON_MS = 36 * 3600_000;
@@ -29,6 +30,8 @@ export type FrrTourSyncResult = {
   updated: number;
   slotsSynced: number;
   entrants: number;
+  /** Finishtijden uit Zwift, voor het voorlopige klassement (migr. 0215). */
+  stageResults: number;
   gcStage: number | null;
   notes: string[];
   error: string | null;
@@ -237,6 +240,7 @@ export async function syncFrrTour(
     updated: 0,
     slotsSynced: 0,
     entrants: 0,
+    stageResults: 0,
     gcStage: tour.gc_after_stage,
     notes: [],
     error: null,
@@ -260,6 +264,23 @@ export async function syncFrrTour(
     .from("frr_tours")
     .update({ synced_at: new Date().toISOString(), sync_error: result.error })
     .eq("id", tour.id);
+
+  // Los van de rest: zonder migratie 0215 of bij een storing van Zwift blijven
+  // inschrijvingen en klassement gewoon werken.
+  try {
+    const stage = await syncStageResults(admin, tour.id, {
+      now,
+      deadline,
+      all: Boolean(options.force),
+    });
+    result.stageResults = stage.results;
+    if (stage.slots > 0) {
+      result.notes.push(`${stage.results} finishtijden uit ${stage.slots} slots.`);
+    }
+    result.notes.push(...stage.notes);
+  } catch (err) {
+    result.notes.push(err instanceof Error ? err.message : "Etappe-uitslagen mislukt.");
+  }
 
   try {
     const gc = await syncGc(admin, tour, now, deadline, Boolean(options.force));

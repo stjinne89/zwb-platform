@@ -87,9 +87,68 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0216`.
 
 ---
+
+> **FRR: voorlopig klassement van je eigen klasse, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0215_frr_provisional_gc.sql`
+> (nog niet toegepast).
+>
+> **Waarom.** Wens van de eigenaar. Na etappe 2 van Ignite stond in de tabel van
+> FRR alleen etappe 1, en daarin iedereen op positie 1 met eGAP 0. Wie wil weten
+> waar hij staat, moet het zelf uitrekenen. De eigenaar legde de regel uit: per
+> tijdslot zet de eerste renner van een klasse de tijd, de rest verliest eGAP op
+> hem, en het klassement is de som over de etappes.
+>
+> **Wat.**
+> - `frr_stage_results`: finishtijd en startgroep per renner per tijdslot. De
+>   sync (`src/lib/frr/stage-results.ts`, aangeroepen uit `syncFrrTour`) haalt
+>   het event op bij Zwift voor de startgroepen en daarna de uitslag per groep
+>   met `fetchSubgroupResults` (serviceaccount). De cron neemt slots die 45
+>   minuten tot 30 uur geleden startten; Nu verversen neemt elk gereden slot van
+>   de tour, slots zonder uitslag eerst. Zonder migratie of bij een storing komt
+>   er een notitie en gaan inschrijvingen en klassement gewoon door.
+> - `computeProvisionalGc` (`src/lib/frr/provisional.ts`, puur): de klasse van een
+>   renner komt uit `frr_gc_standings`, het verlies per etappe is de tijd min de
+>   snelste van de klasse in hetzelfde slot. Wie elke etappe met een uitslag
+>   reed, krijgt een plaats; de rest staat onder "Mist een etappe".
+> - Etappe-, slot- en tourpagina (`frr-stage-panel.tsx`): sectie "Voorlopig
+>   klassement M-BON · na etappe N" met de regel "Nog niet officieel.", voor het
+>   lid zelf in zijn eigen klasse. Rechts het verschil met het lid.
+> - Verwijderen: `frr_gc_exclusions`, per lid en tour, met RLS op het eigen
+>   profiel. Een verwijderde renner telt niet mee en zet ook geen tijd in zijn
+>   slot. Hij staat onder "Verwijderd" en is terug te zetten. Bedoeld voor wie
+>   gepromoveerd is of in een verkeerde startgroep reed.
+> - Bij een renner staat de startgroep als die afwijkt van waar de meesten van
+>   de klasse die etappe reden. Dat is een hint, geen automatische verwijdering.
+> - `/hulp` legt de rekenregel en het verwijderen uit.
+>
+> **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
+> gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
+> FRR eGAP te laat rekent. ZwiftPower ophalen blijft uitgesloten.
+>
+> **Bewust niet.**
+> - Automatisch verwijderen op startgroep: bij een kleine klasse of een tijdrit
+>   is "de meeste" geen bewijs. Het lid beslist.
+> - Gedeelde verwijderlijst per klasse: er rijdt meestal één ZWB'er per klasse,
+>   en een ander lid zou jouw stand kunnen veranderen.
+> - Een eigen klassenlijst over alle etappes: de klasse komt uit het laatste
+>   klassement van FRR. Wie pas in een latere etappe instapt, staat er dus pas in
+>   nadat FRR die etappe heeft verwerkt.
+> - Het voorlopige klassement op het dashboard en in de rivalenlijst; die tonen
+>   nog de cijfers van FRR.
+>
+> **Niet lokaal te verifiëren.** De migratie, de sync tegen Zwift en de database
+> (geen `.env.local` in de worktree), en de pagina zelf. Niet gemeten: of de
+> duur die Zwift geeft gelijk is aan de etappetijd van FRR. De rekenregel is
+> met de hand nagelopen op M-BON, etappe 1 uit de FRR-tabel en etappe 2 uit
+> ZwiftPower (via de browser van de eigenaar); de unit-test gebruikt die tijden.
+>
+> **Na de deploy.** `0215` toepassen en op `/beheer/frr-kalender` Nu verversen,
+> zodat de gereden etappes worden ingehaald.
+>
+> **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite.
 
 > **SRC-uitslag op het dashboard, 48 uur, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -1631,6 +1690,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 >   uitslagpagina's. Keuze van de eigenaar.
 > - Etappe-uitslag per slot uit Zwift (`fetchSubgroupResults`): het klassement
 >   plus de links naar FRR en ZwiftPower dekken het, en FRR rekent eGAP zelf.
+>   *(Sinds 2026-10-04 wel opgehaald, voor het voorlopige klassement: `0215`.)*
 > - Klassement per etappe bewaren: FRR heeft de historie zelf, en de rivalenlijst
 >   kijkt alleen naar nu. Gevolg: wie de laatste etappe niet reed, staat niet in
 >   het opgeslagen klassement (zo staat het ook in de tabel van FRR).

@@ -12,6 +12,8 @@ import {
   parseFrrStageName,
 } from "@/lib/frr/feed";
 import { extractWdtTable, gcTourCodes, latestGcStage, parseGcRows } from "@/lib/frr/gc";
+import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
+import { zwiftEventPens } from "@/lib/frr/stage-results";
 import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
 import { subEventLabel } from "@/lib/events/sub-events";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
@@ -218,5 +220,94 @@ describe("computeWatchList", () => {
     expect(me).toBeNull();
     expect(riders).toHaveLength(1);
     expect(riders[0].placesDiff).toBeNull();
+  });
+});
+
+// Tijden van M-BON in Tour Ignite, etappe 1 en 2 (2026-10-04), met andere namen.
+describe("computeProvisionalGc", () => {
+  const riders = ["ik", "buur", "snel", "ander", "laat", "nieuw"].map((zwiftId) => ({
+    zwiftId,
+    name: zwiftId,
+    club: null,
+  }));
+  const result = (
+    stage: number,
+    slotId: string,
+    zwiftId: string,
+    timeS: number,
+    pen = "D",
+  ): ProvisionalResult => ({ stage, slotId, zwiftId, pen, timeS });
+  const results = [
+    result(1, "s1-a", "ander", 4004.0),
+    result(1, "s1-a", "ik", 4012.953),
+    result(1, "s1-a", "laat", 4011.0),
+    result(1, "s1-b", "snel", 4026.132),
+    result(1, "s1-b", "buur", 4030.714),
+    result(2, "s2-a", "snel", 5172.8, "C"),
+    result(2, "s2-a", "ik", 5465.4),
+    result(2, "s2-a", "ander", 5469.0),
+    result(2, "s2-b", "buur", 5486.7),
+    // Niet in de klasse: mag geen tijd zetten.
+    result(2, "s2-b", "vreemd", 5000),
+  ];
+
+  it("telt per tijdslot het verlies op de eerste van de klasse op", () => {
+    const gc = computeProvisionalGc({ riders, results });
+    expect(gc.stages).toEqual([1, 2]);
+    expect(gc.ranked.map((row) => [row.zwiftId, row.position, row.egapS])).toEqual([
+      ["snel", 1, 0],
+      ["buur", 2, 4.582],
+      ["ander", 3, 296.2],
+      ["ik", 4, 301.553],
+    ]);
+  });
+
+  it("zet wie een etappe mist apart, met wat hij wel reed", () => {
+    const gc = computeProvisionalGc({ riders, results });
+    expect(gc.pending.map((row) => [row.zwiftId, row.position, row.stagesRidden, row.egapS])).toEqual([
+      ["laat", null, 1, 7],
+      ["nieuw", null, 0, 0],
+    ]);
+  });
+
+  it("noemt de startgroep die afwijkt van de rest van de klasse", () => {
+    const gc = computeProvisionalGc({ riders, results });
+    expect(gc.ranked.find((row) => row.zwiftId === "snel")?.otherPens).toEqual(["C"]);
+    expect(gc.ranked.find((row) => row.zwiftId === "ik")?.otherPens).toEqual([]);
+  });
+
+  it("laat een verwijderde renner geen tijd zetten", () => {
+    const gc = computeProvisionalGc({ riders, results, excluded: new Set(["snel"]) });
+    expect(gc.ranked.map((row) => [row.zwiftId, row.position, row.egapS])).toEqual([
+      ["buur", 1, 0],
+      ["ander", 2, 3.6],
+      ["ik", 3, 8.953],
+    ]);
+    expect(gc.pending.some((row) => row.zwiftId === "snel")).toBe(false);
+  });
+
+  it("is leeg zonder uitslagen", () => {
+    const gc = computeProvisionalGc({ riders, results: [] });
+    expect(gc.stages).toEqual([]);
+    expect(gc.ranked).toEqual([]);
+    expect(gc.pending).toHaveLength(riders.length);
+  });
+});
+
+describe("zwiftEventPens", () => {
+  it("leest id en letter van elke startgroep", () => {
+    expect(
+      zwiftEventPens({
+        eventSubgroups: [
+          { id: 101, subgroupLabel: "A" },
+          { id: "102", subgroupLabel: "" },
+          { subgroupLabel: "C" },
+        ],
+      }),
+    ).toEqual([
+      { id: "101", pen: "A" },
+      { id: "102", pen: null },
+    ]);
+    expect(zwiftEventPens(null)).toEqual([]);
   });
 });
