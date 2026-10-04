@@ -346,7 +346,8 @@ export async function lookupZwiftEvent(
         slug: route.slug,
         name: route.name,
         world: route.world,
-        strava_segment_id: route.stravaSegmentId,
+        // Zonder segment in zwift-data blijft een met de hand ingevuld id staan.
+        ...(route.stravaSegmentId ? { strava_segment_id: route.stravaSegmentId } : {}),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "route_id", ignoreDuplicates: false },

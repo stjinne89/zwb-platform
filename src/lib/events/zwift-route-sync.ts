@@ -60,13 +60,41 @@ export const DEFAULT_BUDGET_MS = 7000;
 type StoredRow = {
   route_id: number;
   synced_at: string | null;
+  strava_segment_id: number | string | null;
 };
 
+/** Route-id → Strava-segment dat een beheerder zelf invulde. */
+export type ManualSegments = ReadonlyMap<number, number>;
+
+/**
+ * zwift-data kent niet van elke route het segment (event-only routes als
+ * Urumaze); dan geldt wat in /beheer/zwift-routes is ingevuld.
+ */
+export function routeSegmentId(
+  route: (typeof routes)[number],
+  manual?: ManualSegments,
+): number | null {
+  return route.stravaSegmentId ?? manual?.get(route.id!) ?? null;
+}
+
 /** Routes waar een pacingplan iets aan heeft: fietsen, met een Strava-segment. */
-export function syncableRoutes() {
+export function syncableRoutes(manual?: ManualSegments) {
   return routes.filter(
-    (route) => route.sports.includes("cycling") && route.stravaSegmentId,
+    (route) => route.sports.includes("cycling") && routeSegmentId(route, manual),
   );
+}
+
+export function manualSegments(
+  rows: Array<{ route_id: number | string; strava_segment_id: number | string | null }>,
+): Map<number, number> {
+  const manual = new Map<number, number>();
+  for (const row of rows) {
+    const segmentId = Number(row.strava_segment_id);
+    if (row.strava_segment_id != null && segmentId > 0) {
+      manual.set(Number(row.route_id), segmentId);
+    }
+  }
+  return manual;
 }
 
 export async function syncZwiftRoutes(
@@ -77,12 +105,13 @@ export async function syncZwiftRoutes(
   const maxFetches = Math.max(1, options.maxFetches ?? DEFAULT_MAX_FETCHES);
   const budgetMs = Math.max(1000, options.budgetMs ?? DEFAULT_BUDGET_MS);
   const deadline = Date.now() + budgetMs;
-  const candidates = syncableRoutes();
-
   const { data, error } = await supabase
     .from("zwift_routes")
-    .select("route_id, synced_at");
+    .select("route_id, synced_at, strava_segment_id");
   if (error) throw new Error(error.message);
+
+  const manual = manualSegments((data ?? []) as StoredRow[]);
+  const candidates = syncableRoutes(manual);
 
   const syncedAt = new Map(
     ((data ?? []) as StoredRow[]).map((row) => [
@@ -120,7 +149,7 @@ export async function syncZwiftRoutes(
       result.budgetSpent = true;
       break;
     }
-    const segmentId = route.stravaSegmentId!;
+    const segmentId = routeSegmentId(route, manual)!;
     const streams = await fetchSegmentStreams(segmentId, accessToken);
 
     if (!streams.ok && streams.rateLimited) {
@@ -130,7 +159,7 @@ export async function syncZwiftRoutes(
     }
 
     if (!streams.ok) {
-      await writeRow(supabase, route, null, null, null, streams.error);
+      await writeRow(supabase, route, segmentId, null, null, null, streams.error);
       result.failed += 1;
       result.remaining -= 1;
       continue;
@@ -141,6 +170,7 @@ export async function syncZwiftRoutes(
       await writeRow(
         supabase,
         route,
+        segmentId,
         null,
         null,
         null,
@@ -174,7 +204,7 @@ export async function syncZwiftRoutes(
       );
     }
 
-    await writeRow(supabase, route, profile, shape, check, null, rawElevationM);
+    await writeRow(supabase, route, segmentId, profile, shape, check, null, rawElevationM);
     result.synced += 1;
     result.remaining -= 1;
 
@@ -192,6 +222,7 @@ export async function syncZwiftRoutes(
 async function writeRow(
   supabase: SupabaseClient,
   route: (typeof routes)[number],
+  segmentId: number,
   profile: { distanceM: number[]; altitudeM: number[] } | null,
   shape: { lat: number[]; lon: number[] } | null,
   check: ProfileCheck | null,
@@ -205,7 +236,7 @@ async function writeRow(
       slug: route.slug,
       name: route.name,
       world: route.world,
-      strava_segment_id: route.stravaSegmentId ?? null,
+      strava_segment_id: segmentId,
       profile,
       shape,
       profile_source: profile ? "strava_segment" : null,

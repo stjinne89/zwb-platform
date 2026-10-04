@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { syncableRoutes } from "@/lib/events/zwift-route-sync";
+import { routes } from "zwift-data";
+import {
+  manualSegments,
+  routeSegmentId,
+  syncableRoutes,
+} from "@/lib/events/zwift-route-sync";
 
 /**
  * De sync zelf praat met Strava en met de database, dus die draait hier niet.
@@ -67,5 +72,26 @@ describe("syncableRoutes", () => {
     expect(list.length).toBeGreaterThan(200);
     expect(list.every((route) => route.stravaSegmentId)).toBe(true);
     expect(list.every((route) => route.sports.includes("cycling"))).toBe(true);
+  });
+});
+
+describe("eigen segment-id", () => {
+  it("neemt een route zonder segment in zwift-data mee", () => {
+    const urumaze = routes.find((route) => route.id === 4092230492)!;
+    expect(urumaze.stravaSegmentId).toBeUndefined();
+    expect(syncableRoutes()).not.toContain(urumaze);
+
+    const manual = manualSegments([
+      { route_id: "4092230492", strava_segment_id: "41887960" },
+      { route_id: 1, strava_segment_id: null },
+    ]);
+    expect(manual.size).toBe(1);
+    expect(syncableRoutes(manual)).toContain(urumaze);
+    expect(routeSegmentId(urumaze, manual)).toBe(41887960);
+  });
+
+  it("laat het segment uit zwift-data voorgaan", () => {
+    const known = syncableRoutes()[0];
+    expect(routeSegmentId(known, new Map([[known.id!, 1]]))).toBe(known.stravaSegmentId);
   });
 });

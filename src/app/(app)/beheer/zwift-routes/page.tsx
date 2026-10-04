@@ -2,9 +2,14 @@ import { redirect } from "next/navigation";
 import { routes as zwiftRoutes } from "zwift-data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/app-ui";
-import { syncableRoutes } from "@/lib/events/zwift-route-sync";
-import { runRouteProfileSpike, syncBikeList, syncRouteLibrary } from "./_actions";
-import { SpikeButton, SyncButton } from "./_components/spike-button";
+import { manualSegments, syncableRoutes } from "@/lib/events/zwift-route-sync";
+import {
+  runRouteProfileSpike,
+  setRouteSegment,
+  syncBikeList,
+  syncRouteLibrary,
+} from "./_actions";
+import { SaveSegmentButton, SpikeButton, SyncButton } from "./_components/spike-button";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
 
@@ -20,6 +25,7 @@ type RouteRow = {
   slug: string;
   name: string;
   world: string | null;
+  strava_segment_id: number | string | null;
   profile_distance_m: number | string | null;
   profile_elevation_m: number | string | null;
   profile_raw_elevation_m: number | string | null;
@@ -53,7 +59,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
   const { data, error } = await admin
     .from("zwift_routes")
     .select(
-      "route_id, slug, name, world, profile_distance_m, profile_elevation_m, profile_raw_elevation_m, synced_at, sync_error",
+      "route_id, slug, name, world, strava_segment_id, profile_distance_m, profile_elevation_m, profile_raw_elevation_m, synced_at, sync_error",
     )
     .order("slug", { ascending: true });
 
@@ -67,7 +73,7 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
     .order("synced_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const syncable = syncableRoutes();
+  const syncable = syncableRoutes(manualSegments(stored));
   const withProfile = stored.filter((row) => row.synced_at);
   const withProblem = stored.filter((row) => row.sync_error);
   const oldestSync = stored
@@ -75,6 +81,15 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
     .filter((value): value is string => Boolean(value))
     .sort()[0];
   const remaining = syncable.length - withProfile.length;
+  // Fietsroutes waar zwift-data geen segment voor heeft en die nog niet in de
+  // bibliotheek staan; alleen met een eigen segment-id krijgen ze een profiel.
+  const storedIds = new Set(stored.map((row) => Number(row.route_id)));
+  const withoutSegment = zwiftRoutes
+    .filter(
+      (route) =>
+        route.sports.includes("cycling") && !route.stravaSegmentId && !storedIds.has(route.id!),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // Sorteer de probleemgevallen naar boven: die vragen om een beslissing, de
   // rest is achtergrond.
@@ -169,6 +184,28 @@ export default async function ZwiftRoutesPage({ searchParams }: PageProps) {
           </ul>
         )}
       </section>
+
+      {withoutSegment.length > 0 && (
+        <section className="rounded-lg border bg-card">
+          <h2 className="border-b p-4 font-semibold">Zonder Strava-segment</h2>
+          <ul className="divide-y">
+            {withoutSegment.map((route) => (
+              <li
+                key={route.id}
+                className="flex flex-wrap items-center justify-between gap-2 p-4"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{route.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {route.world} · {route.distance} km · {route.elevation} hm
+                  </p>
+                </div>
+                <SegmentForm routeId={route.id!} segmentId={null} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
@@ -179,6 +216,30 @@ function Metric({ label, value }: { label: string; value: number }) {
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
     </div>
+  );
+}
+
+function SegmentForm({
+  routeId,
+  segmentId,
+}: {
+  routeId: number;
+  segmentId: number | string | null;
+}) {
+  return (
+    <form action={setRouteSegment} className="flex items-center gap-2">
+      <input type="hidden" name="route_id" value={routeId} />
+      <input
+        type="text"
+        name="segment"
+        inputMode="numeric"
+        defaultValue={segmentId == null ? "" : String(segmentId)}
+        placeholder="Strava-segment"
+        aria-label="Strava-segment"
+        className="h-8 w-40 rounded-md border bg-background px-2 text-sm"
+      />
+      <SaveSegmentButton />
+    </form>
   );
 }
 
@@ -211,6 +272,11 @@ function RouteItem({ row }: { row: RouteRow }) {
         )}
         {row.sync_error && (
           <p className="mt-1 text-sm text-destructive">{row.sync_error}</p>
+        )}
+        {meta?.sports.includes("cycling") && !meta.stravaSegmentId && (
+          <div className="mt-2">
+            <SegmentForm routeId={Number(row.route_id)} segmentId={row.strava_segment_id} />
+          </div>
         )}
       </div>
       <span className="text-xs text-muted-foreground">

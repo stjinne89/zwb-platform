@@ -188,6 +188,61 @@ export async function syncRouteLibrary(formData: FormData) {
   report("sync", lines);
 }
 
+/** Een segment-id of een link naar het segment op Strava. */
+function parseSegmentId(value: string): number | null {
+  const match = value
+    .trim()
+    .match(/^(?:https?:\/\/(?:www\.)?strava\.com\/segments\/)?(\d{1,12})(?:[/?#].*)?$/);
+  return match && Number(match[1]) > 0 ? Number(match[1]) : null;
+}
+
+/**
+ * Het Strava-segment van een route waar zwift-data er geen voor heeft. De
+ * gewone sync haalt daarna het profiel op.
+ */
+export async function setRouteSegment(formData: FormData) {
+  const access = await requireRouteAccess();
+  if (!access) return;
+
+  const routeId = Number(formData.get("route_id"));
+  const route = routes.find((item) => item.id === routeId);
+  if (!route || !route.sports.includes("cycling")) report("sync", ["Route niet gevonden."]);
+  if (route.stravaSegmentId) report("sync", [`${route.name} heeft al een segment.`]);
+
+  const raw = String(formData.get("segment") ?? "").trim();
+  const segmentId = raw ? parseSegmentId(raw) : null;
+  if (raw && !segmentId) report("sync", ["Geen geldig Strava-segment."]);
+
+  // Een ander segment is een ander profiel: het oude gaat weg tot de sync.
+  const { error } = await access.admin.from("zwift_routes").upsert(
+    {
+      route_id: route.id,
+      slug: route.slug,
+      name: route.name,
+      world: route.world,
+      strava_segment_id: segmentId,
+      profile: null,
+      shape: null,
+      profile_source: null,
+      profile_distance_m: null,
+      profile_elevation_m: null,
+      profile_raw_elevation_m: null,
+      synced_at: null,
+      sync_error: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "route_id" },
+  );
+  if (error) report("sync", [`Bewaren mislukt: ${error.message}`]);
+
+  revalidatePath("/beheer/zwift-routes");
+  report("sync", [
+    segmentId
+      ? `Segment ${segmentId} bewaard voor ${route.name}. Klik op Routes ophalen.`
+      : `Segment van ${route.name} gewist.`,
+  ]);
+}
+
 /**
  * Haalt frames en wielen uit de testsheet van ZwiftInsider voor de fietskeuze in
  * het pacingplan (migratie 0177). Eén klik vervangt de hele lijst.

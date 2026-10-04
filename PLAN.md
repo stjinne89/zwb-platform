@@ -50,6 +50,8 @@ gaat stabiliteit voor nieuwe features.
      zijn niet apart nagekeken.
    - **FRR-tours:** ingericht (eigenaar, 2026-10-02). Mogelijk nog open: na
      etappe 1 (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
+     Voor het profiel van etappe 3: op `/beheer/zwift-routes` bij Urumaze
+     Strava-segment `41887960` invullen en Routes ophalen (ronde 2026-10-04).
    - **SRC (MyWhoosh Sunday Race Club):** ingericht (eigenaar, 2026-10-02).
      **Zondag 4 oktober:** tijdens de dames- (07:25 GMT) en herenrace (09:45 GMT)
      `node scripts/src-live-probe.mjs` draaien en de fixture in
@@ -84,6 +86,56 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`.
+
+---
+
+> **Zwift-routes: zelf een Strava-segment invullen waar zwift-data er geen heeft, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie
+> (`zwift_routes.strava_segment_id` bestaat sinds `0144_zwift_routes.sql`).
+>
+> **Waarom.** De eigenaar zag bij FRR Ignite etappe 3 (iTT, 5 oktober) dat het
+> profiel "nog niet opgehaald" was terwijl route, afstand en hoogtemeters er
+> stonden. Oorzaak: de etappe rijdt op Urumaze (Makuri Islands, event-only,
+> route-id 4092230492) en `zwift-data` 1.50.0 (de nieuwste op npm) heeft voor
+> die route geen `stravaSegmentId`. De routesync haalt het profiel alleen uit de
+> streams van dat segment en sloeg de route dus over; opnieuw klikken hielp
+> niet. Dat geldt voor 20 van de 292 fietsroutes, ook Power Punches, Flat Out
+> Fast en de Climb Portals. De andere Ignite-etappes in de feed (2, 4 t/m 8)
+> hebben wel een segment.
+>
+> **Nu.**
+> - `/beheer/zwift-routes`: bij een route zonder segment in `zwift-data` een
+>   veld Strava-segment (id of link naar het segment) met Bewaren. Routes die
+>   al in de bibliotheek staan, tonen het veld in hun regel; de rest staat in
+>   een nieuwe lijst "Zonder Strava-segment". Bewaren wist een eerder profiel
+>   van die route, want een ander segment is een ander profiel; leeg bewaren
+>   wist het segment.
+> - `syncZwiftRoutes` neemt het segment uit `zwift-data` en anders het
+>   ingevulde (`routeSegmentId`, `manualSegments`). "Routes ophalen" pakt zo'n
+>   route daarna gewoon mee, met dezelfde afstandscontrole.
+> - `lookupZwiftEvent` (eventformulier) schreef bij elke opzoeking het segment
+>   uit `zwift-data` over de kolom, dus ook leeg. Het laat de kolom nu met rust
+>   als `zwift-data` geen segment heeft.
+>
+> **Te doen door de eigenaar.** Voor Urumaze segment `41887960` invullen
+> (staat op de routepagina van ZwiftInsider, 24,8 km) en op Routes ophalen
+> klikken.
+>
+> **Bekend en niet opgelost.** `zwift-data` geeft Urumaze een lead-in van
+> 0,085 km; ZwiftInsider noemt 2 km. Het pacingplan rekent met de lead-in uit
+> `zwift-data` en komt voor deze route dus zo'n 2 km te kort uit.
+>
+> **Bewust niet gebouwd.** (a) Het profiel uit een gereden rit van een lid:
+> werkt pas na de eerste rit en vraagt een tweede profielbron met migratie.
+> (b) Een eigen lead-in per route. (c) Een aparte melding "geen profiel
+> beschikbaar" op de pacingpagina en in het eventformulier: met het veld is
+> het op te lossen. (d) ZwiftInsider automatisch uitlezen voor het segment:
+> geen API of licentie, zoals eerder besloten.
+>
+> **Niet lokaal te verifiëren:** de pagina en het bewaren (geen `.env.local`,
+> dus geen login of database), en de sync tegen Strava voor segment 41887960.
+> Getest: `tsc`, ESLint op de gewijzigde bestanden en
+> `tests/unit/zwift-route-sync.test.ts` (twee nieuwe tests).
 
 ---
 

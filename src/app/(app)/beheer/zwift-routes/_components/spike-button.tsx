@@ -31,3 +31,13 @@ export function SyncButton({ label = "Routes ophalen" }: { label?: string }) {
     </Button>
   );
 }
+
+export function SaveSegmentButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" variant="outline" size="sm" disabled={pending}>
+      {pending ? "Bewaren..." : "Bewaren"}
+    </Button>
+  );
+}
