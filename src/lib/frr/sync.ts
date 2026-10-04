@@ -266,8 +266,19 @@ export async function syncFrrTour(
     .update({ synced_at: new Date().toISOString(), sync_error: result.error })
     .eq("id", tour.id);
 
-  // Los van de rest: zonder migratie 0215 of bij een storing van Zwift blijven
-  // inschrijvingen en klassement gewoon werken.
+  try {
+    const gc = await syncGc(admin, tour, now, deadline, Boolean(options.force));
+    result.gcStage = gc.stage;
+    if (gc.note) result.notes.push(gc.note);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "FRR-klassement mislukt.";
+    await admin.from("frr_tours").update({ gc_error: message }).eq("id", tour.id);
+    result.notes.push(message);
+  }
+  // Als laatste, met wat er van het tijdbudget over is: de uitslagen gaan één
+  // voor één en zouden anders het klassement verdringen (gebeurd op 2026-10-04:
+  // "tijd op voordat de tabel binnen was"). Zonder migratie 0215 of bij een
+  // storing van Zwift blijft de rest gewoon werken.
   try {
     const stage = await syncStageResults(admin, tour.id, {
       now,
@@ -283,15 +294,6 @@ export async function syncFrrTour(
     result.notes.push(err instanceof Error ? err.message : "Etappe-uitslagen mislukt.");
   }
 
-  try {
-    const gc = await syncGc(admin, tour, now, deadline, Boolean(options.force));
-    result.gcStage = gc.stage;
-    if (gc.note) result.notes.push(gc.note);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "FRR-klassement mislukt.";
-    await admin.from("frr_tours").update({ gc_error: message }).eq("id", tour.id);
-    result.notes.push(message);
-  }
   return result;
 }
 

@@ -180,6 +180,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`
 > Inhalen van een hele tour kost dus meerdere keren Nu verversen of een paar
 > cronrondes. Niet gemeten: waar de limiet van Zwift precies ligt.
 >
+> **Volgorde (zelfde dag, derde commit).** Omdat de uitslagen nu één voor één
+> gaan, aten ze het tijdbudget van 20 seconden op en meldde de klassement-sync
+> daarna "tijd op voordat de tabel binnen was". Het klassement gaat nu vóór de
+> etappe-uitslagen; die krijgen wat er over is.
+>
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat
 > FRR eGAP te laat rekent. ZwiftPower ophalen blijft uitgesloten.
