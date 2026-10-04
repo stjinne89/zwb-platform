@@ -235,8 +235,15 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 > gaat voor. Alleen de weergave: de automatische "ja" op een tijdslot en de
 > rivalenlijst blijven aan een profiel gebonden.
 >
-> **Niet geverifieerd.** Lokaal is er geen database met het klassement; of Bas nu
-> in de lijst staat, blijkt pas op productie.
+> **Vervolg, zelfde dag: de lijsten op mobiel.** Op een telefoon bleef van de naam
+> alleen "Ke…" over en sprong het tijdslot naar een losse tweede regel: de rij
+> had vaste kolombreedtes en mocht afbreken. Onder `sm` staan eGAP en tijdslot nu
+> klein onder de naam en blijft rechts alleen de tourtijd (bij de rivalen het
+> verschil en de ster); vanaf `sm` is het de oude rij met kolommen.
+>
+> **Niet geverifieerd.** Lokaal is er geen database met het klassement. Bas staat
+> op productie in de lijst (schermafbeelding eigenaar, 2026-10-04); de mobiele
+> opmaak is niet in een browser bekeken.
 
 > **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, gepusht; migraties toegepast (eigenaar, 2026-10-02).**
 > Commit: de commit die dit blok toevoegt. Migraties `0213_nutrition_expansion.sql`

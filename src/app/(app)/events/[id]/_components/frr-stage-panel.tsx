@@ -178,27 +178,38 @@ export async function FrrStagePanel({
           </h2>
           <ul className="divide-y rounded-lg border bg-card text-sm">
             {zwbStandings.map((row) => {
+              const egap = `eGAP ${duration(row.egap_s === null ? null : Number(row.egap_s))}`;
+              const slotIds = entrantSlots.get(row.zwift_id) ?? [];
               return (
                 <li
                   key={`${row.gender_class}-${row.zwift_id}`}
                   className={cn(
-                    "flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2",
+                    "flex items-center gap-3 px-3 py-2",
                     row.zwift_id === myZwiftId && "bg-primary/5",
                   )}
                 >
-                  <span className="w-16 font-mono text-xs text-muted-foreground">
+                  <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground sm:w-16">
                     {row.gender_class}
                   </span>
-                  <span className="w-8 tabular-nums font-semibold">{row.position}</span>
-                  <span className="min-w-0 flex-1 truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
-                  <span className="tabular-nums text-muted-foreground">
+                  <span className="w-7 shrink-0 tabular-nums font-semibold sm:w-8">
+                    {row.position}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground sm:hidden">
+                      {[egap, slotIds.length > 0 ? slotText(slotIds) : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
                     {duration(row.tour_time_s === null ? null : Number(row.tour_time_s))}
                   </span>
-                  <span className="w-20 text-right tabular-nums text-muted-foreground">
-                    eGAP {duration(row.egap_s === null ? null : Number(row.egap_s))}
+                  <span className="hidden w-20 shrink-0 text-right tabular-nums text-muted-foreground sm:block">
+                    {egap}
                   </span>
-                  <span className="w-24 text-right text-xs text-muted-foreground">
-                    {slotText(entrantSlots.get(row.zwift_id) ?? [])}
+                  <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
+                    {slotText(slotIds)}
                   </span>
                 </li>
               );
@@ -215,8 +226,10 @@ export async function FrrStagePanel({
           {watch.riders.length > 0 && (
             <ul className="divide-y rounded-lg border bg-card text-sm">
               {watch.riders.map((rider) => (
-                <li key={rider.zwiftId} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
-                  <span className="w-8 tabular-nums font-semibold">{rider.position ?? "—"}</span>
+                <li key={rider.zwiftId} className="flex items-center gap-3 px-3 py-2">
+                  <span className="w-7 shrink-0 tabular-nums font-semibold sm:w-8">
+                    {rider.position ?? "—"}
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       {rider.favourite && (
@@ -231,16 +244,23 @@ export async function FrrStagePanel({
                         {rider.name}
                       </a>
                     </span>
-                    <span className="block text-xs text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {[rider.classCode, rider.club, places(rider.placesDiff)]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
+                    {rider.slotIds.length > 0 && (
+                      <span className="block truncate text-xs sm:hidden">
+                        {slotText(rider.slotIds)}
+                      </span>
+                    )}
                   </span>
-                  <span className="w-20 text-right tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-right tabular-nums text-muted-foreground sm:w-20">
                     {rider.gapS === null ? "" : duration(rider.gapS, true)}
                   </span>
-                  <span className="w-24 text-right text-xs">{slotText(rider.slotIds)}</span>
+                  <span className="hidden w-24 shrink-0 text-right text-xs sm:block">
+                    {slotText(rider.slotIds)}
+                  </span>
                   <FrrFollowToggle
                     zwiftId={rider.zwiftId}
                     name={rider.name}

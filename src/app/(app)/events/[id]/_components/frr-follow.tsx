@@ -31,7 +31,7 @@ export function FrrFollowToggle({
           if (!res.ok) setError(res.error);
         })
       }
-      className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+      className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
     >
       {following ? <X className="size-4" /> : <Star className="size-4" />}
     </button>
