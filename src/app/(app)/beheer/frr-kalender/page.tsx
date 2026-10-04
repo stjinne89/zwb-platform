@@ -10,8 +10,9 @@ import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
 // Opslaan en Nu verversen draaien de sync met een budget van 20 seconden (met
-// uitloop 28); Uitslagen ophalen mag 50 seconden duren.
-export const maxDuration = 60;
+// uitloop 25); Uitslagen ophalen krijgt er 22. Meer kan niet: een actie van 50
+// seconden gaf op Netlify "This page couldn't load" (2026-10-04).
+export const maxDuration = 30;
 
 type EventRow = {
   id: string;

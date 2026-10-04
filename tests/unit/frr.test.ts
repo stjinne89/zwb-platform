@@ -369,12 +369,12 @@ describe("isRateLimited", () => {
 });
 
 describe("stageResultsDeadline", () => {
-  it("geeft de uitslagen eigen tijd, tot acht seconden over het budget", () => {
+  it("geeft de uitslagen eigen tijd, tot vijf seconden over het budget", () => {
     // Ruim op tijd klaar: het gewone budget.
     expect(stageResultsDeadline(20_000, 5_000)).toBe(20_000);
     // Krap: tien seconden vanaf nu.
     expect(stageResultsDeadline(20_000, 15_000)).toBe(25_000);
-    // Budget al op: niet verder dan acht seconden erover.
-    expect(stageResultsDeadline(20_000, 21_000)).toBe(28_000);
+    // Budget al op: niet verder dan vijf seconden erover.
+    expect(stageResultsDeadline(20_000, 21_000)).toBe(25_000);
   });
 });

@@ -215,9 +215,16 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0217`
 > voordat hij opgeeft, zolang dat in het budget past. Nu verversen en de cron
 > nemen sindsdien alleen nog slots van de laatste 30 uur; het inhalen van een
 > hele tour doet de nieuwe knop. Hiermee vervalt "Nu verversen neemt elk gereden
-> slot" uit het eerste blok van deze ronde. Niet gemeten: of Netlify de 60
-> seconden toelaat (andere pagina's in dit project vragen er ook 60) en waar de
-> limiet van Zwift ligt.
+> slot" uit het eerste blok van deze ronde. Niet gemeten: waar de limiet van
+> Zwift ligt.
+>
+> **Netlify laat geen 50 seconden toe (zelfde dag, zevende commit).** De knop gaf
+> op productie "This page couldn't load". `maxDuration = 60` helpt daar dus
+> niet voor een server-action; de andere pagina's die 60 vragen, zijn daarmee
+> ook niet bewezen. Teruggezet: pagina op 30, Uitslagen ophalen op 22 seconden,
+> wachten bij een 429 nog 5 en 10 seconden, en de uitloop van Nu verversen en
+> de cron van 8 naar 5 seconden (samen 25). Waar de grens van Netlify precies
+> ligt is niet gemeten; 28 seconden ging eerder die dag nog goed.
 >
 > **Niet meer waar.** In de ronde van 2026-09-29 staat onder "Bewust niet
 > gebouwd": etappe-uitslag per slot uit Zwift. Die wordt nu wel opgehaald, omdat

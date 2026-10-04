@@ -98,8 +98,8 @@ export async function refreshFrrTour(tourId: string) {
   return { ok: true as const, result };
 }
 
-/** Ruim onder de 60 seconden van de pagina. */
-const STAGE_RESULTS_BUDGET_MS = 50_000;
+/** Netlify breekt een langere actie af; 50 seconden gaf een foutpagina. */
+const STAGE_RESULTS_BUDGET_MS = 22_000;
 
 /**
  * De knop "Uitslagen ophalen": alleen de finishtijden per tijdslot (migr. 0215),

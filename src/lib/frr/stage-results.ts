@@ -20,7 +20,7 @@ const RESULTS_WINDOW_MS = 30 * 3600_000;
 // meteen status 429. Daarom één verzoek tegelijk, met een pauze ertussen.
 const REQUEST_PAUSE_MS = 300;
 /** Wachttijden na een 429, oplopend; daarna geeft de ronde op. */
-const RATE_LIMIT_WAITS_MS = [5000, 10000, 15000];
+const RATE_LIMIT_WAITS_MS = [5000, 10000];
 
 type SlotRow = {
   id: string;

@@ -25,9 +25,9 @@ const GC_AFTER_START_MS = 2 * 3600_000;
 // De etappe-uitslagen komen als laatste en krijgen altijd eigen tijd: anders
 // blijft er na inschrijvingen en klassement te weinig over voor één slot en
 // komt de sync nooit verder (gebeurd op 2026-10-04). Samen met het budget blijft
-// dit onder de 30 seconden van de route en de beheerpagina.
+// dit op 25 seconden, onder de limiet van Netlify.
 const STAGE_RESULTS_MIN_MS = 10_000;
-const STAGE_RESULTS_OVERRUN_MS = 8_000;
+const STAGE_RESULTS_OVERRUN_MS = 5_000;
 
 export type FrrTourSyncResult = {
   tour: string;
@@ -233,7 +233,7 @@ async function syncGc(
   return { stage: latest.stage, note: `Klassement na etappe ${latest.stage}: ${latest.rows.length} renners.` };
 }
 
-/** Minstens tien seconden voor de uitslagen, maar nooit ver over het budget heen. */
+/** Tot tien seconden voor de uitslagen, maar hooguit vijf over het budget heen. */
 export function stageResultsDeadline(deadline: number, nowMs: number) {
   return Math.min(
     deadline + STAGE_RESULTS_OVERRUN_MS,
