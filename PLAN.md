@@ -116,7 +116,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 > - Soort `kamp` ("Trainingskamp") in `SEASON_PERIOD_KINDS`, groen op de balk; de
 >   baan heet nu "Periodes" in plaats van "Rust".
 > - `defaultTrainingPrompt()`: in een kamp ongeveer anderhalf tot twee keer het
->   normale weekvolume, vooral lange duur, geen vo2max of anaeroob; de regel gaat
+>   normale weekvolume, vooral lange duur; intensiteit (tot en met VO2max) is niet uitgesloten en
+>   wordt per renner bekeken op doeltype, ervaring, gewenste intensiteit en
+>   herstel (bijgesteld door de eigenaar, zelfde dag); de regel gaat
 >   vóór `goal.maxHoursPerWeek`, `availability.default`, `goal.availableDays` en de
 >   10%-groei, maar niet vóór een week die het lid apart heeft ingevuld. In de
 >   weken ervoor volume en lange rit laten groeien, laatste drie dagen licht; erna

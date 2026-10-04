@@ -40,6 +40,9 @@ describe("training prompts", () => {
     expect(prompt).toContain("kind 'kamp'");
     expect(prompt).toContain("gaat vóór goal.maxHoursPerWeek");
     expect(prompt).toContain("Werk in de opbouw naar een trainingskamp toe");
+    // VO2max is in een kamp niet uitgesloten: dat hangt van de renner af.
+    expect(prompt).toContain("bekijk je per renner");
+    expect(prompt).not.toContain("geen vo2max of anaeroob werk");
     expect(prompt).toContain("Na een trainingskamp volgt herstel");
     expect(adaptiveDailyPrompt()).toContain("dan is veel volume de bedoeling");
   });
