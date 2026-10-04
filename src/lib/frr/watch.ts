@@ -14,7 +14,19 @@ export type GcStanding = {
   egapS: number | null;
 };
 
-export type WatchWindow = { places: number; seconds: number };
+/** De FRR-klassen van hoog naar laag (flammerougeracing.com/tour-rules, FRHC naar vELO). */
+export const FRR_CLASS_ORDER = ["CAP", "DRA", "CRP", "GHT", "HAB", "BON", "CAY", "JLP", "PEP", "BEL"];
+
+/** Hoogste klasse eerst; een onbekende klasse achteraan. */
+export function compareFrrClass(a: string, b: string) {
+  const rank = (code: string) => {
+    const index = FRR_CLASS_ORDER.indexOf(code);
+    return index === -1 ? FRR_CLASS_ORDER.length : index;
+  };
+  return rank(a) - rank(b);
+}
+
+export type WatchWindow ={ places: number; seconds: number };
 
 export const DEFAULT_WATCH_WINDOW: WatchWindow = { places: 5, seconds: 60 };
 

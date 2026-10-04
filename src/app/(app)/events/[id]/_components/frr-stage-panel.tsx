@@ -1,7 +1,7 @@
 import { Star } from "lucide-react";
 import type { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import { computeWatchList, type GcStanding } from "@/lib/frr/watch";
+import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
@@ -93,7 +93,10 @@ export async function FrrStagePanel({
           .in("zwift_id", [...memberByZwift.keys()])
       : { data: [] };
   const zwbStandings = ((zwbRows ?? []) as StandingRow[]).sort(
-    (a, b) => a.gender_class.localeCompare(b.gender_class) || a.position - b.position,
+    (a, b) =>
+      compareFrrClass(a.class_code, b.class_code) ||
+      a.gender_class.localeCompare(b.gender_class) ||
+      a.position - b.position,
   );
   const mine = myZwiftId ? zwbStandings.find((row) => row.zwift_id === myZwiftId) : undefined;
 
