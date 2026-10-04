@@ -48,8 +48,8 @@ gaat stabiliteit voor nieuwe features.
    - **Live volgen via Garmin/Wahoo:** live getest en lijkt te werken (eigenaar,
      2026-10-02). Spikepunten 2 en 4 (afzender/DKIM en de echte trackpointvelden)
      zijn niet apart nagekeken.
-   - **FRR-tours:** ingericht (eigenaar, 2026-10-02). Mogelijk nog open: na
-     etappe 1 (3 oktober) de GC-code invullen die de melding bij Klassement noemt.
+   - **FRR-tours:** ingericht (eigenaar, 2026-10-02). De GC-code van Tour Ignite
+     is `FIG.6` (staat sinds 4 oktober in de tabel van FRR).
      Voor het profiel van etappe 3: op `/beheer/zwift-routes` bij Urumaze
      Strava-segment `41887960` invullen en Routes ophalen (ronde 2026-10-04).
    - **SRC (MyWhoosh Sunday Race Club):** ingericht (eigenaar, 2026-10-02).
@@ -257,6 +257,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 > ingericht; SRC ingericht, live-meting op 4 oktober; Garmin en Wahoo live getest;
 > Omnium naar november, onzeker; alle praktijktests gedaan. De Supabase CLI werkt
 > weer (`npm run db:health` gedraaid).
+
+> **FRR: ZWB in het klassement op klasse van hoog naar laag, 2026-10-04 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Wens van de eigenaar. De lijst stond alfabetisch op `gender_class`
+> (F-BON, M-BON, M-CAP, …), wat niets zegt over het niveau.
+>
+> **Wat.** `compareFrrClass` in `src/lib/frr/watch.ts` met de volgorde van FRR
+> zelf (tour-rules, afbeelding "FRHC to vELO"): CAP, DRA, CRP, GHT, HAB, BON,
+> CAY, JLP, PEP, BEL. `frr-stage-panel.tsx` sorteert op klasse, daarna op
+> `gender_class` en positie. Een onbekende klasse komt achteraan.
+>
+> **Vastgesteld op flammerougeracing.com (2026-10-03/04).**
+> - De GC-code van Tour Ignite is `FIG.6`. Hij verscheen pas op 4 oktober in de
+>   klassementstabel, nadat het laatste tijdslot van etappe 1 gereden was; tot dan
+>   stond er alleen `FTQ.5`.
+> - `/tour-results-2/` ("Results Tour", plugin `fr-leaderboard-tour-v3`) is een
+>   tweede weergave van dezelfde data zonder tourcode. Op 3 oktober toonde die nog
+>   de vorige tour; "Last Updated" is daar het verversmoment, niet de etappedatum.
+>
+> **Bewust niet gebouwd.** De sync ombouwen naar `/tour-results-2/`: de oude tabel
+> wordt gewoon gevuld, en de nieuwe pagina kan tours niet uit elkaar houden.
+>
+> **Vervolg, zelfde dag: ook renners van het roster.** De lijst koppelde alleen op
+> `profiles.zwift_id`. Bas Koster rijdt de tour (M-DRA) maar heeft nog geen
+> profiel; hij staat wel met zijn Zwift-ID in `roster_entries`. De lijst neemt nu
+> ook de Zwift-ID's van het roster mee en toont dan de rosternaam; een profiel
+> gaat voor. Alleen de weergave: de automatische "ja" op een tijdslot en de
+> rivalenlijst blijven aan een profiel gebonden.
+>
+> **Vervolg, zelfde dag: de lijsten op mobiel.** Op een telefoon bleef van de naam
+> alleen "Ke…" over en sprong het tijdslot naar een losse tweede regel: de rij
+> had vaste kolombreedtes en mocht afbreken. Onder `sm` staan eGAP en tijdslot nu
+> klein onder de naam en blijft rechts alleen de tourtijd (bij de rivalen het
+> verschil en de ster); vanaf `sm` is het de oude rij met kolommen.
+>
+> **Niet geverifieerd.** Lokaal is er geen database met het klassement. Bas staat
+> op productie in de lijst (schermafbeelding eigenaar, 2026-10-04); de mobiele
+> opmaak is niet in een browser bekeken.
 
 > **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, gepusht; migraties toegepast (eigenaar, 2026-10-02).**
 > Commit: de commit die dit blok toevoegt. Migraties `0213_nutrition_expansion.sql`

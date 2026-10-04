@@ -12,7 +12,7 @@ import {
   parseFrrStageName,
 } from "@/lib/frr/feed";
 import { extractWdtTable, gcTourCodes, latestGcStage, parseGcRows } from "@/lib/frr/gc";
-import { computeWatchList, type GcStanding } from "@/lib/frr/watch";
+import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
 import { subEventLabel } from "@/lib/events/sub-events";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
 
@@ -131,6 +131,19 @@ describe("FRR-klassement", () => {
     broken[0][11] = "geen id";
     expect(() => parseGcRows(broken)).toThrow(/kolom 11 \(Zwift-ID\)/);
     expect(() => parseGcRows([["te kort"]])).toThrow(/rij 1/);
+  });
+});
+
+describe("compareFrrClass", () => {
+  it("zet de hoogste klasse eerst en een onbekende achteraan", () => {
+    expect(["BEL", "XYZ", "BON", "CAP", "HAB", "DRA"].sort(compareFrrClass)).toEqual([
+      "CAP",
+      "DRA",
+      "HAB",
+      "BON",
+      "BEL",
+      "XYZ",
+    ]);
   });
 });
 
