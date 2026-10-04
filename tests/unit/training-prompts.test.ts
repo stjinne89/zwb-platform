@@ -35,6 +35,15 @@ describe("training prompts", () => {
     expect(prompt).toContain("langer dan tien dagen");
   });
 
+  it("bouwt naar een trainingskamp toe en laat het weekplafond daar los", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("kind 'kamp'");
+    expect(prompt).toContain("gaat vóór goal.maxHoursPerWeek");
+    expect(prompt).toContain("Werk in de opbouw naar een trainingskamp toe");
+    expect(prompt).toContain("Na een trainingskamp volgt herstel");
+    expect(adaptiveDailyPrompt()).toContain("dan is veel volume de bedoeling");
+  });
+
   it("houdt een rustdag ook een rustdag als het lid fris is", () => {
     expect(adaptiveDailyPrompt()).toContain("seasonPlan.periods");
     expect(adaptiveDailyPrompt()).toContain("ook als de signalen fris zijn");

@@ -1047,7 +1047,7 @@ export default function HelpPage() {
             id="jaarplan"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >
-            <h3 className="text-sm font-semibold">Jaarplan: mikpunten en rustperiodes</h3>
+            <h3 className="text-sm font-semibold">Jaarplan: mikpunten en periodes</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Je schema werkt naar één datum toe. Het jaarplan is de laag
               daarboven: het jaar eromheen. Wat je erin zet stuurt het schema.
@@ -1080,7 +1080,21 @@ export default function HelpPage() {
                 periode. Ongeveer de helft van je normale weekvolume en geen
                 zware sleutelsessies.
               </li>
+              <li>
+                <strong className="text-foreground">Trainingskamp:</strong> dagen
+                waarop je veel meer rijdt dan normaal. Je weekplafond geldt dan
+                niet: het schema plant lange duurritten, bouwt er in de weken
+                ervoor naartoe, houdt de laatste dagen ervoor licht en plant
+                erna een herstelweek. Leg een kamp niet in de laatste tien dagen
+                voor een A-doel.
+              </li>
             </ul>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Met het potlood in de lijst pas je een mikpunt of periode aan:
+              titel, datum, soort en notitie. Verschuif je een mikpunt waar al
+              een doel aan hangt, dan schuift de datum van dat doel mee en wordt
+              je schema herzien.
+            </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Clubevents waar je ja of misschien op hebt gezegd staan
               automatisch op de tijdlijn. Alleen een ja wordt een blok in je
@@ -1093,6 +1107,7 @@ export default function HelpPage() {
               lijst eronder staat zo&apos;n event dan als één regel met je
               prioriteit erbij. Daar wijzig je de prioriteit, en de prullenbak
               haalt alleen het mikpunt weg: het event en je aanmelding blijven.
+              De datum volgt het event; met het potlood wijzig je alleen de notitie.
               Dat geldt alleen voor jouw jaarplan, niet voor dat van andere leden.
             </p>
           </article>

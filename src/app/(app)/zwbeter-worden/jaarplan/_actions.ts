@@ -150,13 +150,24 @@ export async function updateSeasonTarget(formData: FormData): Promise<SeasonActi
     const admin = createAdminClient();
 
     const id = mustString(formData.get("id"), "Mikpunt");
+    const { data: huidig } = await admin
+      .from("training_season_targets")
+      .select("title, target_date, event_id, goal_id")
+      .eq("id", id)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!huidig) throw new Error("Mikpunt niet gevonden.");
+
     const patch: Record<string, unknown> = { updated_by: user.id };
 
     // Het formulier stuurt alles mee; de waarschuwing "zet op B" alleen de
-    // prioriteit. Vandaar dat elk veld optioneel is.
-    if (formData.get("title") != null) patch.title = mustString(formData.get("title"), "Titel");
-    if (formData.get("target_date") != null) {
-      patch.target_date = mustDate(formData.get("target_date"), "Datum");
+    // prioriteit. Vandaar dat elk veld optioneel is. Titel en datum van een
+    // mikpunt op een clubevent komen van het event en zijn hier niet te wijzigen.
+    if (!huidig.event_id) {
+      if (formData.get("title") != null) patch.title = mustString(formData.get("title"), "Titel");
+      if (formData.get("target_date") != null) {
+        patch.target_date = mustDate(formData.get("target_date"), "Datum");
+      }
     }
     if (formData.get("priority") != null) patch.priority = mustPriority(formData.get("priority"));
     if (formData.get("note") != null) patch.note = optionalString(formData.get("note"));
@@ -168,7 +179,29 @@ export async function updateSeasonTarget(formData: FormData): Promise<SeasonActi
       .eq("profile_id", user.id);
     if (error) throw new Error(error.message);
 
-    await afterSeasonChange(user.id, "mikpunt in de jaarplanning gewijzigd");
+    // Schuift het mikpunt en hangt er een doel aan met diezelfde datum, dan
+    // schuift het doel mee. Anders krijgt de planner twee piekdagen: de oude in
+    // goal.targetDate en de nieuwe in seasonPlan. Een doel dat het lid zelf al op
+    // een andere datum had gezet, blijft staan.
+    const oudeDatum = String(huidig.target_date).slice(0, 10);
+    const nieuweDatum = (patch.target_date as string | undefined) ?? oudeDatum;
+    const verschoven = nieuweDatum !== oudeDatum;
+    if (verschoven && huidig.goal_id) {
+      await admin
+        .from("training_goals")
+        .update({ target_date: nieuweDatum })
+        .eq("id", huidig.goal_id)
+        .eq("profile_id", user.id)
+        .eq("target_date", oudeDatum);
+    }
+
+    const titel = (patch.title as string | undefined) ?? huidig.title;
+    await afterSeasonChange(
+      user.id,
+      verschoven
+        ? `mikpunt "${titel}" verschoven van ${oudeDatum} naar ${nieuweDatum}`
+        : "mikpunt in de jaarplanning gewijzigd",
+    );
     return { ok: true };
   } catch (err) {
     return mislukt(err, "Mikpunt bijwerken faalde.");

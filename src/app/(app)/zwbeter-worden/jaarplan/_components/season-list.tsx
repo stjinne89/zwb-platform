@@ -5,10 +5,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import {
+  SEASON_PERIOD_KINDS,
   SEASON_PERIOD_LABELS,
   SEASON_PRIORITIES,
   SEASON_PRIORITY_LABELS,
@@ -19,9 +20,17 @@ import {
   type SeasonPlanBar,
   type SeasonTarget,
 } from "@/lib/training/season";
-import { deleteSeasonPeriod, deleteSeasonTarget, updateSeasonTarget } from "../_actions";
+import {
+  deleteSeasonPeriod,
+  deleteSeasonTarget,
+  updateSeasonPeriod,
+  updateSeasonTarget,
+} from "../_actions";
 
 type Item = SeasonListRow;
+
+const FIELD =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 function maandKop(dayKey: string) {
   return new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("nl-NL", {
@@ -100,14 +109,28 @@ function rowKey(item: Item) {
 function Row({ item, today, editable }: { item: Item; today: string; editable: boolean }) {
   const [pending, startTransition] = useTransition();
   const [fout, setFout] = useState<string | null>(null);
+  const [bewerken, setBewerken] = useState(false);
   const verleden = item.date < today;
 
-  function voerUit(fn: () => Promise<{ ok: boolean; error?: string } | null>) {
+  function voerUit(
+    fn: () => Promise<{ ok: boolean; error?: string } | null>,
+    klaar?: () => void,
+  ) {
     setFout(null);
     startTransition(async () => {
       const result = await fn();
       if (result && !result.ok) setFout(result.error ?? "Opslaan faalde.");
+      else klaar?.();
     });
+  }
+
+  function bewaar(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    voerUit(
+      () => (item.kind === "period" ? updateSeasonPeriod(formData) : updateSeasonTarget(formData)),
+      () => setBewerken(false),
+    );
   }
 
   // Een mikpunt, los of op een event: dat is wat een prioriteit en een
@@ -204,8 +227,109 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
           </p>
         ) : null}
 
+        {bewerken && target ? (
+          <form onSubmit={bewaar} className="mt-3 grid gap-3 sm:grid-cols-2">
+            <input type="hidden" name="id" value={target.id} />
+            {target.eventId ? null : (
+              <>
+                <label className="sm:col-span-2 text-sm">
+                  Titel
+                  <input
+                    name="title"
+                    required
+                    defaultValue={target.title}
+                    className={`mt-1 ${FIELD}`}
+                  />
+                </label>
+                <label className="text-sm">
+                  Datum
+                  <input
+                    type="date"
+                    name="target_date"
+                    required
+                    defaultValue={target.targetDate}
+                    className={`mt-1 ${FIELD}`}
+                  />
+                </label>
+              </>
+            )}
+            <label className="sm:col-span-2 text-sm">
+              Notitie
+              <input name="note" defaultValue={target.note ?? ""} className={`mt-1 ${FIELD}`} />
+            </label>
+            <EditButtons pending={pending} onCancel={() => setBewerken(false)} />
+          </form>
+        ) : null}
+
+        {bewerken && item.kind === "period" ? (
+          <form onSubmit={bewaar} className="mt-3 grid gap-3 sm:grid-cols-2">
+            <input type="hidden" name="id" value={item.period.id} />
+            <label className="sm:col-span-2 text-sm">
+              Titel
+              <input
+                name="title"
+                required
+                defaultValue={item.period.title}
+                className={`mt-1 ${FIELD}`}
+              />
+            </label>
+            <label className="text-sm">
+              Van
+              <input
+                type="date"
+                name="start_date"
+                required
+                defaultValue={item.period.startDate}
+                className={`mt-1 ${FIELD}`}
+              />
+            </label>
+            <label className="text-sm">
+              Tot en met
+              <input
+                type="date"
+                name="end_date"
+                required
+                defaultValue={item.period.endDate}
+                className={`mt-1 ${FIELD}`}
+              />
+            </label>
+            <label className="text-sm">
+              Soort
+              <select name="kind" defaultValue={item.period.kind} className={`mt-1 ${FIELD}`}>
+                {SEASON_PERIOD_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {SEASON_PERIOD_LABELS[kind]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="sm:col-span-2 text-sm">
+              Notitie
+              <input
+                name="note"
+                defaultValue={item.period.note ?? ""}
+                className={`mt-1 ${FIELD}`}
+              />
+            </label>
+            <EditButtons pending={pending} onCancel={() => setBewerken(false)} />
+          </form>
+        ) : null}
+
         {fout ? <p className="mt-1 text-sm text-destructive">{fout}</p> : null}
       </div>
+
+      {editable && (target || item.kind === "period") ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label={item.kind === "event" ? "Mikpunt bewerken" : "Bewerken"}
+          aria-expanded={bewerken}
+          disabled={pending}
+          onClick={() => setBewerken((value) => !value)}
+        >
+          <Pencil className="size-4" />
+        </Button>
+      ) : null}
 
       {editable && (target || item.kind === "period") ? (
         <Button
@@ -230,5 +354,18 @@ function Row({ item, today, editable }: { item: Item; today: string; editable: b
         </Button>
       ) : null}
     </li>
+  );
+}
+
+function EditButtons({ pending, onCancel }: { pending: boolean; onCancel: () => void }) {
+  return (
+    <div className="flex gap-2 sm:col-span-2">
+      <Button type="submit" size="sm" disabled={pending}>
+        {pending ? "Opslaan…" : "Opslaan"}
+      </Button>
+      <Button type="button" size="sm" variant="outline" disabled={pending} onClick={onCancel}>
+        Annuleren
+      </Button>
+    </div>
   );
 }
