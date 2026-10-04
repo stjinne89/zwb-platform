@@ -67,8 +67,9 @@ export async function FrrStagePanel({
   /** De tijdsloten van deze etappe met hun korte label. */
   slots: Array<{ id: string; label: string }>;
 }) {
-  const [{ data: memberRows }, { data: favouriteRows }] = await Promise.all([
+  const [{ data: memberRows }, { data: rosterRows }, { data: favouriteRows }] = await Promise.all([
     supabase.from("profiles").select("id, display_name, zwift_id").not("zwift_id", "is", null),
+    supabase.from("roster_entries").select("name, zwift_id").not("zwift_id", "is", null),
     userId
       ? supabase.from("frr_watch_riders").select("zwift_id, name").eq("profile_id", userId)
       : Promise.resolve({ data: [] }),
@@ -78,19 +79,25 @@ export async function FrrStagePanel({
     display_name: string | null;
     zwift_id: string | null;
   }>).filter((row) => /^\d+$/.test(row.zwift_id?.trim() ?? ""));
-  const memberByZwift = new Map(members.map((row) => [row.zwift_id!.trim(), row]));
+  // Ook wie nog geen profiel heeft maar wel op het roster staat.
+  const zwbNames = new Map<string, string | null>();
+  for (const row of (rosterRows ?? []) as Array<{ name: string; zwift_id: string | null }>) {
+    const id = row.zwift_id?.trim() ?? "";
+    if (/^\d+$/.test(id)) zwbNames.set(id, row.name);
+  }
+  for (const row of members) zwbNames.set(row.zwift_id!.trim(), row.display_name);
   const myZwiftId = members.find((row) => row.id === userId)?.zwift_id?.trim() ?? null;
   const favourites = ((favouriteRows ?? []) as Array<{ zwift_id: string; name: string }>).map(
     (row) => ({ zwiftId: row.zwift_id, name: row.name }),
   );
 
   const { data: zwbRows } =
-    memberByZwift.size > 0
+    zwbNames.size > 0
       ? await supabase
           .from("frr_gc_standings")
           .select(STANDING_COLUMNS)
           .eq("tour_id", tourId)
-          .in("zwift_id", [...memberByZwift.keys()])
+          .in("zwift_id", [...zwbNames.keys()])
       : { data: [] };
   const zwbStandings = ((zwbRows ?? []) as StandingRow[]).sort(
     (a, b) =>
@@ -128,7 +135,7 @@ export async function FrrStagePanel({
   const watchedIds = new Set<string>([
     ...[...standings.values()].map((row) => row.zwiftId),
     ...favourites.map((row) => row.zwiftId),
-    ...memberByZwift.keys(),
+    ...zwbNames.keys(),
   ]);
   const slotLabel = new Map(slots.map((slot) => [slot.id, slot.label]));
   const { data: entrantRows } =
@@ -171,7 +178,6 @@ export async function FrrStagePanel({
           </h2>
           <ul className="divide-y rounded-lg border bg-card text-sm">
             {zwbStandings.map((row) => {
-              const member = memberByZwift.get(row.zwift_id);
               return (
                 <li
                   key={`${row.gender_class}-${row.zwift_id}`}
@@ -184,7 +190,7 @@ export async function FrrStagePanel({
                     {row.gender_class}
                   </span>
                   <span className="w-8 tabular-nums font-semibold">{row.position}</span>
-                  <span className="min-w-0 flex-1 truncate">{member?.display_name ?? row.name}</span>
+                  <span className="min-w-0 flex-1 truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {duration(row.tour_time_s === null ? null : Number(row.tour_time_s))}
                   </span>

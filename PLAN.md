@@ -228,10 +228,15 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`
 > **Bewust niet gebouwd.** De sync ombouwen naar `/tour-results-2/`: de oude tabel
 > wordt gewoon gevuld, en de nieuwe pagina kan tours niet uit elkaar houden.
 >
-> **Niet geverifieerd.** Bas Koster staat bij FRR in het klassement (M-DRA,
-> Zwift-ID 178063) maar ontbrak in de lijst bij ZWB. De lijst koppelt op
-> `profiles.zwift_id`; of dat veld bij hem leeg of anders is, is niet in de
-> database nagekeken.
+> **Vervolg, zelfde dag: ook renners van het roster.** De lijst koppelde alleen op
+> `profiles.zwift_id`. Bas Koster rijdt de tour (M-DRA) maar heeft nog geen
+> profiel; hij staat wel met zijn Zwift-ID in `roster_entries`. De lijst neemt nu
+> ook de Zwift-ID's van het roster mee en toont dan de rosternaam; een profiel
+> gaat voor. Alleen de weergave: de automatische "ja" op een tijdslot en de
+> rivalenlijst blijven aan een profiel gebonden.
+>
+> **Niet geverifieerd.** Lokaal is er geen database met het klassement; of Bas nu
+> in de lijst staat, blijkt pas op productie.
 
 > **Voeding, deel 2: dagmenu, 120 recepten, voorkeuren en delen, 2026-10-02 — gebouwd, gepusht; migraties toegepast (eigenaar, 2026-10-02).**
 > Commit: de commit die dit blok toevoegt. Migraties `0213_nutrition_expansion.sql`
