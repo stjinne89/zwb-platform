@@ -27,6 +27,8 @@ const RESYNC_MS = 3 * 3600_000;
 const GIVE_UP_MS = 14 * 86400_000;
 const MAX_LIST_PAGES = 15;
 export const SRC_RESULTS_BUDGET_MS = 18000;
+/** Zo noemt MyWhoosh een voorlopige uitslag per renner. */
+export const SRC_PROVISIONAL_STATUS = "un-official";
 
 export type SrcPost = (path: string, body: Record<string, unknown>) => Promise<unknown>;
 
@@ -157,7 +159,9 @@ export async function syncSrcResults(
       const { error: replaceError } = await admin.rpc("src_replace_results", {
         p_event_id: race.event_id,
         p_result_event_id: event.eventId,
-        p_status: event.status,
+        // De lijst geeft pas een status als de uitslag officieel is; zonder
+        // status toont de app de uitslag niet.
+        p_status: event.status ?? SRC_PROVISIONAL_STATUS,
         p_rows: stored.map((row) => ({
           mywhoosh_user_id: row.userId,
           name: row.name,

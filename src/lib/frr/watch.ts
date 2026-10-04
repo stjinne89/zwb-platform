@@ -122,3 +122,14 @@ export function computeWatchList(input: {
   });
   return { me, riders };
 }
+
+/** 3725.4 → "1:02:05"; met teken voor een verschil. */
+export function formatFrrDuration(seconds: number | null, signed = false) {
+  if (seconds === null || !Number.isFinite(seconds)) return "—";
+  const sign = signed ? (seconds > 0 ? "+" : seconds < 0 ? "−" : "±") : "";
+  const total = Math.round(Math.abs(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, "0");
+  return h > 0 ? `${sign}${h}:${String(m).padStart(2, "0")}:${s}` : `${sign}${m}:${s}`;
+}

@@ -1,27 +1,17 @@
 import { Star } from "lucide-react";
 import type { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils";
-import { compareFrrClass, computeWatchList, type GcStanding } from "@/lib/frr/watch";
+import { FrrZwbStandingsList } from "@/components/frr-zwb-standings-list";
+import { computeWatchList, formatFrrDuration, type GcStanding } from "@/lib/frr/watch";
+import {
+  FRR_STANDING_COLUMNS,
+  loadZwbFrrStandings,
+  type FrrStandingRow,
+} from "@/lib/frr/zwb-standings";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
 
-type StandingRow = {
-  zwift_id: string;
-  name: string;
-  club: string | null;
-  gender_class: string;
-  class_code: string;
-  position: number;
-  egap_s: number | string | null;
-  tour_time_s: number | string | null;
-  after_stage: number;
-};
-
-const STANDING_COLUMNS =
-  "zwift_id, name, club, gender_class, class_code, position, egap_s, tour_time_s, after_stage";
-
-function toStanding(row: StandingRow): GcStanding {
+function toStanding(row: FrrStandingRow): GcStanding {
   return {
     zwiftId: row.zwift_id,
     name: row.name,
@@ -31,17 +21,6 @@ function toStanding(row: StandingRow): GcStanding {
     position: row.position,
     egapS: row.egap_s === null ? null : Number(row.egap_s),
   };
-}
-
-/** 3725.4 → "1:02:05"; met teken voor een verschil. */
-function duration(seconds: number | null, signed = false) {
-  if (seconds === null || !Number.isFinite(seconds)) return "—";
-  const sign = signed ? (seconds > 0 ? "+" : seconds < 0 ? "−" : "±") : "";
-  const total = Math.round(Math.abs(seconds));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = String(total % 60).padStart(2, "0");
-  return h > 0 ? `${sign}${h}:${String(m).padStart(2, "0")}:${s}` : `${sign}${m}:${s}`;
 }
 
 function places(diff: number | null) {
@@ -67,43 +46,16 @@ export async function FrrStagePanel({
   /** De tijdsloten van deze etappe met hun korte label. */
   slots: Array<{ id: string; label: string }>;
 }) {
-  const [{ data: memberRows }, { data: rosterRows }, { data: favouriteRows }] = await Promise.all([
-    supabase.from("profiles").select("id, display_name, zwift_id").not("zwift_id", "is", null),
-    supabase.from("roster_entries").select("name, zwift_id").not("zwift_id", "is", null),
-    userId
-      ? supabase.from("frr_watch_riders").select("zwift_id, name").eq("profile_id", userId)
-      : Promise.resolve({ data: [] }),
-  ]);
-  const members = ((memberRows ?? []) as Array<{
-    id: string;
-    display_name: string | null;
-    zwift_id: string | null;
-  }>).filter((row) => /^\d+$/.test(row.zwift_id?.trim() ?? ""));
-  // Ook wie nog geen profiel heeft maar wel op het roster staat.
-  const zwbNames = new Map<string, string | null>();
-  for (const row of (rosterRows ?? []) as Array<{ name: string; zwift_id: string | null }>) {
-    const id = row.zwift_id?.trim() ?? "";
-    if (/^\d+$/.test(id)) zwbNames.set(id, row.name);
-  }
-  for (const row of members) zwbNames.set(row.zwift_id!.trim(), row.display_name);
-  const myZwiftId = members.find((row) => row.id === userId)?.zwift_id?.trim() ?? null;
+  const [{ zwbNames, members, standings: zwbStandings }, { data: favouriteRows }] =
+    await Promise.all([
+      loadZwbFrrStandings(supabase, tourId),
+      userId
+        ? supabase.from("frr_watch_riders").select("zwift_id, name").eq("profile_id", userId)
+        : Promise.resolve({ data: [] }),
+    ]);
+  const myZwiftId = members.find((row) => row.id === userId)?.zwiftId ?? null;
   const favourites = ((favouriteRows ?? []) as Array<{ zwift_id: string; name: string }>).map(
     (row) => ({ zwiftId: row.zwift_id, name: row.name }),
-  );
-
-  const { data: zwbRows } =
-    zwbNames.size > 0
-      ? await supabase
-          .from("frr_gc_standings")
-          .select(STANDING_COLUMNS)
-          .eq("tour_id", tourId)
-          .in("zwift_id", [...zwbNames.keys()])
-      : { data: [] };
-  const zwbStandings = ((zwbRows ?? []) as StandingRow[]).sort(
-    (a, b) =>
-      compareFrrClass(a.class_code, b.class_code) ||
-      a.gender_class.localeCompare(b.gender_class) ||
-      a.position - b.position,
   );
   const mine = myZwiftId ? zwbStandings.find((row) => row.zwift_id === myZwiftId) : undefined;
 
@@ -111,22 +63,22 @@ export async function FrrStagePanel({
     mine
       ? supabase
           .from("frr_gc_standings")
-          .select(STANDING_COLUMNS)
+          .select(FRR_STANDING_COLUMNS)
           .eq("tour_id", tourId)
           .eq("gender_class", mine.gender_class)
       : Promise.resolve({ data: [] }),
     favourites.length > 0
       ? supabase
           .from("frr_gc_standings")
-          .select(STANDING_COLUMNS)
+          .select(FRR_STANDING_COLUMNS)
           .eq("tour_id", tourId)
           .in("zwift_id", favourites.map((row) => row.zwiftId))
       : Promise.resolve({ data: [] }),
   ]);
   const standings = new Map<string, GcStanding>();
   for (const row of [
-    ...((classRows ?? []) as StandingRow[]),
-    ...((favouriteStandingRows ?? []) as StandingRow[]),
+    ...((classRows ?? []) as FrrStandingRow[]),
+    ...((favouriteStandingRows ?? []) as FrrStandingRow[]),
   ]) {
     standings.set(`${row.gender_class}|${row.zwift_id}`, toStanding(row));
   }
@@ -176,45 +128,15 @@ export async function FrrStagePanel({
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             ZWB in het klassement{afterStage ? ` · na etappe ${afterStage}` : ""}
           </h2>
-          <ul className="divide-y rounded-lg border bg-card text-sm">
-            {zwbStandings.map((row) => {
-              const egap = `eGAP ${duration(row.egap_s === null ? null : Number(row.egap_s))}`;
-              const slotIds = entrantSlots.get(row.zwift_id) ?? [];
-              return (
-                <li
-                  key={`${row.gender_class}-${row.zwift_id}`}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2",
-                    row.zwift_id === myZwiftId && "bg-primary/5",
-                  )}
-                >
-                  <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground sm:w-16">
-                    {row.gender_class}
-                  </span>
-                  <span className="w-7 shrink-0 tabular-nums font-semibold sm:w-8">
-                    {row.position}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground sm:hidden">
-                      {[egap, slotIds.length > 0 ? slotText(slotIds) : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">
-                    {duration(row.tour_time_s === null ? null : Number(row.tour_time_s))}
-                  </span>
-                  <span className="hidden w-20 shrink-0 text-right tabular-nums text-muted-foreground sm:block">
-                    {egap}
-                  </span>
-                  <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                    {slotText(slotIds)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <FrrZwbStandingsList
+            standings={zwbStandings}
+            zwbNames={zwbNames}
+            myZwiftId={myZwiftId}
+            slotText={(zwiftId) => {
+              const ids = entrantSlots.get(zwiftId) ?? [];
+              return ids.length > 0 ? slotText(ids) : null;
+            }}
+          />
         </section>
       )}
 
@@ -256,7 +178,7 @@ export async function FrrStagePanel({
                     )}
                   </span>
                   <span className="shrink-0 text-right tabular-nums text-muted-foreground sm:w-20">
-                    {rider.gapS === null ? "" : duration(rider.gapS, true)}
+                    {rider.gapS === null ? "" : formatFrrDuration(rider.gapS, true)}
                   </span>
                   <span className="hidden w-24 shrink-0 text-right text-xs sm:block">
                     {slotText(rider.slotIds)}

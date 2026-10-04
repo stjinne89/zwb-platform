@@ -46,6 +46,7 @@ import {
 import { amsterdamHour } from "@/lib/greeting";
 import { ClubStats } from "./_components/club-stats";
 import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
+import { FrrStandings } from "./_components/frr-standings";
 import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
@@ -922,6 +923,10 @@ export default async function DashboardPage({
           </ul>
         </section>
       )}
+
+      <Suspense fallback={null}>
+        <FrrStandings userId={user?.id ?? null} />
+      </Suspense>
 
       <section>
         <SectionHeader

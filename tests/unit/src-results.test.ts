@@ -230,6 +230,45 @@ describe("syncSrcResults", () => {
     ]);
   });
 
+  it("bewaart een uitslag zonder status in de lijst als voorlopig (gemeten 2026-10-04)", async () => {
+    const tables: Record<string, Row[]> = {
+      src_races: [
+        {
+          event_id: "men-04",
+          sunday: "2026-10-04",
+          gender: "men",
+          results_status: null,
+          results_synced_at: null,
+          events: { start_at: "2026-10-04T09:45:00.000Z" },
+        },
+      ],
+    };
+    const post: SrcPost = async (path) =>
+      path === "src-events-list"
+        ? {
+            data: {
+              data: [
+                {
+                  event_id: "61957d22-5c5c-4643-abb4-8255b7657042",
+                  event_name: "SRC - Men Qualifier Race 1",
+                  gender: 0,
+                  created_at: "2026-10-04T09:45:00.000Z",
+                  result_status: null,
+                  stages: [{ DayId: "792744e8-d9a2-47a3-99f3-22f81c0124f1" }],
+                },
+              ],
+            },
+          }
+        : sample;
+    const result = await syncSrcResults(fakeAdmin(tables), {
+      now: new Date("2026-10-04T12:00:00Z"),
+      post,
+    });
+    expect(result.synced).toBe(1);
+    const [replace] = tables["rpc:src_replace_results"] as Array<{ p_status: string }>;
+    expect(replace.p_status).toBe("un-official");
+  });
+
   it("noteert een race die MyWhoosh nog niet heeft, zonder fout", async () => {
     const tables: Record<string, Row[]> = {
       src_races: [

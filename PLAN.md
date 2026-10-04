@@ -56,6 +56,8 @@ gaat stabiliteit voor nieuwe features.
      **Zondag 4 oktober:** tijdens de dames- (07:25 GMT) en herenrace (09:45 GMT)
      `node scripts/src-live-probe.mjs` draaien en de fixture in
      `tests/fixtures/src/live/` bekijken; daarop hangt fase 5.
+     Voor de uitslagen: op `/beheer/src` de MyWhoosh-teamnaam invullen en de
+     twee klaarstaande rensters koppelen (ronde 2026-10-04).
    - **Voeding:** delen en goedkeuren van een eigen recept werkt op productie
      (eigenaar, 2026-10-02). Open blijft de controle door een (sport)diëtist.
    - De Zwift-routebibliotheek één keer volledig opnieuw ophalen na het
@@ -88,6 +90,64 @@ productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0215`.
 
 ---
+
+> **FRR-klassement op het dashboard, en SRC: voorlopige uitslag bleef onzichtbaar, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **FRR op het dashboard (wens eigenaar).** Onder "Teams en scorebord" staat het
+> blok "FRR-klassement · na etappe N": dezelfde lijst als "ZWB in het klassement"
+> op de etappepagina, zonder de slotkolom, met een link naar het tourevent. Het
+> blok staat er alleen tijdens een lopende tour (`isActiveTour`: start − 2 tot
+> eind + 2 dagen) met een geladen klassement waarin ZWB'ers staan. Het laadt in
+> een eigen `Suspense`, los van de rest van het dashboard.
+> - De lijst en het ophalen zijn gedeeld: `loadZwbFrrStandings`
+>   (`src/lib/frr/zwb-standings.ts`) en `FrrZwbStandingsList`
+>   (`src/components/frr-zwb-standings-list.tsx`). `frr-stage-panel.tsx` gebruikt
+>   ze nu ook; `formatFrrDuration` staat in `src/lib/frr/watch.ts`.
+> - Productie, alleen gelezen: Tour Ignite (3–12 oktober) staat na etappe 1, met
+>   zes ZWB'ers in het klassement en één tourevent.
+> - Bewust niet: de rivalenlijst en de tijdsloten op het dashboard; die horen bij
+>   een etappe.
+>
+> **SRC: waarom er geen uitslagen doorkwamen (vraag eigenaar).** Onderzocht op de
+> eerste kwalificatie van oktober, productie alleen gelezen. De sync deed het:
+> beide races van 4 oktober zijn opgehaald (dames 10:00, heren 12:00 UTC), 45
+> teamregels en 2 rennersregels opgeslagen, geen fout. Drie dingen hielden de
+> uitslag uit beeld:
+> 1. **Fout in de code, opgelost.** `src-events-list` geeft `result_status: null`
+>    zolang de uitslag niet officieel is; de status "un-official" staat alleen per
+>    renner. De sync schreef die null door naar `src_races.results_status`, en de
+>    racepagina en `/beheer/src` tonen een uitslag pas bij een gevulde status. Een
+>    voorlopige uitslag was dus nooit te zien. De fixture van 30 september had
+>    alleen officiële races, daardoor viel het niet op. Nu:
+>    `event.status ?? "un-official"` in `src/lib/src/results-sync.ts`, met een
+>    unit-test op de lijstregel van 4 oktober. Bestaande races krijgen de status
+>    bij de eerstvolgende sync na de deploy (elke drie uur, of Nu verversen).
+> 2. **Inrichting, niet gedaan.** Het team "ZWB SRC" heeft geen MyWhoosh-teamnaam
+>    en geen enkel profiel heeft een MyWhoosh-id. Dan blijft alleen een exacte
+>    naamtreffer over, en die is een koppelvoorstel: de renner staat pas op de
+>    racepagina en telt pas op `/src` nadat een beheerder hem koppelt op
+>    `/beheer/src` (Renners koppelen). Er staan twee voorstellen klaar (dames,
+>    cat 3 en cat 5).
+> 3. **Beide rensters reden onder een andere teamnaam** (FEMME CYCLE COLLAB 3A
+>    en 5A), niet als ZWB-team. Een ZWB-teamuitslag is er dus niet, ook na
+>    koppelen. In de herenrace reed geen lid dat op naam of id te herkennen is;
+>    235 van de 354 renners staan daar als "Individual".
+>
+> **Verder gezien, niet aangepast.**
+> - Wie geen geslacht in het profiel heeft, komt via "meedoen met één klik" bij de
+>   heren (`ensureSrcMonthEntry`). Eén renster staat zo voor oktober bij de heren
+>   en heeft een "ja" op beide races. Op `/src` aan te passen.
+> - Een lid dat onder een afwijkende naam en zonder ZWB-teamnaam rijdt, komt niet
+>   in `src_results` en is dus ook niet te koppelen op `/beheer/src`. Dat lost de
+>   MyWhoosh-teamnaam of het MyWhoosh-id in het profiel op.
+> - Live-meting (fase 5): om 13:35 UTC stond de herenrace nog op `isLive: true`
+>   met 354 rijen, alle met finishtijd; de damesrace op `false`. Het script
+>   `src-live-probe.mjs` is in deze ronde niet gedraaid.
+>
+> **Getest.** `tsc`, ESLint op de geraakte mappen en de unit-suite (1953 tests;
+> `omnium-live.test.ts` laadt niet in deze worktree omdat `.env.local` ontbreekt).
+> Geen `next build` en niet in de browser gezien.
 
 > **Zwift-routes: zelf een Strava-segment invullen waar zwift-data er geen heeft, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie
@@ -6028,7 +6088,9 @@ prijzengeld gaat.
   met het naamvoorstel al ingevuld. Koppelen zet de UUID in
   `profiles.mywhoosh_id` en koppelt de opgeslagen uitslagen; daarna matcht de
   sync alleen nog op id. Een id dat al bij een ander lid staat, wordt geweigerd.
-  Bij de races staat of de uitslag voorlopig of officieel is.
+  Bij de races staat of de uitslag voorlopig of officieel is. *(Bijgewerkt
+  2026-10-04: "voorlopig" verscheen tot die dag nooit, omdat de lijst van
+  MyWhoosh dan geen status geeft; zie de ronde van 4 oktober.)*
 - Racepagina: blok Uitslag met de plaats van het ZWB-team per categorie ("2e van
   11", tijd, achterstand) en de ZWB-renners met categorie, plaats en tijd.
 - `/src`: per renner "0/2", "1/2" of "finale ✓" (uitgereden kwalificaties deze
