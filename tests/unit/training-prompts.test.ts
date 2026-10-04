@@ -47,6 +47,12 @@ describe("training prompts", () => {
     expect(prompt).toContain("Trek hem niet door naar de gewone weken");
     expect(prompt).not.toContain("niet om intensiteit");
     expect(prompt).toContain("Na een trainingskamp volgt herstel");
+    // Ontlasten ervoor en herstellen erna volgen de data van de renner, geen
+    // vast aantal dagen.
+    expect(prompt).toContain("is geen vast aantal dagen");
+    expect(prompt).toContain("niet op een vast aantal dagen");
+    expect(prompt).not.toContain("laatste drie dagen vóór het kamp");
+    expect(prompt).not.toContain("eerste vijf tot zeven dagen");
     expect(adaptiveDailyPrompt()).toContain("dan is veel volume de bedoeling");
   });
 

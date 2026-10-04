@@ -125,13 +125,19 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 >   renner op ervaring, gewenste intensiteit, doeltype, werkelijk gereden
 >   belasting en herstelsignalen. Die ruime kijk geldt alleen in het kamp: in de
 >   gewone weken blijven plafond, groei en herstelregels onverkort gelden.
->   Ervoor volume en lange rit binnen de gewone regels laten groeien, laatste
->   drie dagen licht; erna vijf tot zeven dagen herstel en daarna een stap hoger
+>   Ervoor volume en lange rit binnen de gewone regels laten groeien. Hoeveel
+>   ontlasting vóór het kamp en hoeveel herstel erna nodig is, staat niet vast:
+>   de planner leest het af aan de data van de renner (TSB, ATL, ramp rate, HRV,
+>   rust-hartslag, slaap, readiness, RPE, gevoel, naleving). Bij vooruit plannen
+>   zonder die data: uitgaan van hoe de renner eerder op zware weken reageerde,
+>   en in cautions zeggen dat het wordt bijgesteld. Daarna een stap hoger
 >   verder. `adaptiveDailyPrompt()`: in een kamp is een zwaarder uitgevallen rit
 >   of hoge ATL geen reden om de volgende dag lichter te maken.
 >   *Bijgesteld op aanwijzing van de eigenaar, zelfde dag:* de eerste versie
 >   hield een kamp laag in intensiteit ("volume, niet intensiteit", geen VO2max).
 >   Dat was een aanname van de bouwer, niet gevraagd, en is geschrapt.
+>   Om dezelfde reden vervallen: "laatste drie dagen licht" en "vijf tot zeven
+>   dagen herstel" als vaste vuistregels.
 > - Nieuwe signalering `kamp_vlak_voor_a_doel`: een kamp dat minder dan tien dagen
 >   (`CAMP_BEFORE_A_TARGET_DAYS`) vóór een A-doel eindigt.
 > - `/hulp#jaarplan` en de zoekindex bijgewerkt.
