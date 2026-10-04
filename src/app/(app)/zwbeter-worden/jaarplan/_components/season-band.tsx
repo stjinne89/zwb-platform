@@ -103,10 +103,10 @@ export function SeasonBand({
               title={`${target.title} — ${SEASON_PRIORITY_LABELS[target.priority]}`}
               className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
                 target.priority === "a"
-                  ? "size-3.5 bg-[--color-zwb-gold] ring-2 ring-background"
+                  ? "size-3.5 bg-zwb-gold ring-2 ring-zwb-gold/30"
                   : target.priority === "b"
-                    ? "size-2.5 bg-foreground/70"
-                    : "size-2 bg-muted-foreground/60"
+                    ? "size-2.5 bg-foreground"
+                    : "size-2 bg-foreground/50"
               }`}
               style={{ left: `${dayOffsetPct(target.targetDate, from, to)}%` }}
             />

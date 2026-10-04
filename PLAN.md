@@ -141,6 +141,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0218`
 > - Nieuwe signalering `kamp_vlak_voor_a_doel`: een kamp dat minder dan tien dagen
 >   (`CAMP_BEFORE_A_TARGET_DAYS`) vóór een A-doel eindigt.
 > - `/hulp#jaarplan` en de zoekindex bijgewerkt.
+> - Balk, nagekomen (zelfde dag, na een schermafbeelding van de eigenaar): een
+>   A-doel had geen vulling. `bg-[--color-zwb-gold]` is in Tailwind 4 geen
+>   geldige klasse, dus alleen de ring in de achtergrondkleur bleef over; in
+>   dark mode een donker rondje. Nu `bg-zwb-gold`, en B- en C-doelen met meer
+>   contrast. Dit zat er al in sinds de eerste jaarplanronde.
 >
 > **Niet gebouwd.**
 > - Geen eigen urenveld per kamp: de factor "anderhalf tot twee keer" staat in de
