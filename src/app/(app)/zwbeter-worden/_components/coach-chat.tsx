@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, Sparkles, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { MemberLink } from "@/components/member-link";
 import { Button } from "@/components/ui/button";
 
 export type CoachChatMessage = {
@@ -199,7 +200,9 @@ export function CoachChat({
                 >
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {message.role === "coach" ? <Sparkles className="size-3" /> : null}
-                    <span className="font-medium">{message.name}</span>
+                    <MemberLink id={message.authorId} className="font-medium">
+                      {message.name}
+                    </MemberLink>
                     <span>·</span>
                     <span>{fmtMoment(message.createdAt)}</span>
                     {mine ? (

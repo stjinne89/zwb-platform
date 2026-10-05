@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { BackLink, HelpLink } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import {
   ageOnBirthday,
   amsterdamDateKey,
@@ -301,7 +302,7 @@ export default async function BirthdayPage({
                 {isToday ? "Vandaag jarig" : "Verjaardag"}
               </p>
               <h1 className="text-3xl font-semibold tracking-tight">
-                {profile.display_name}
+                <MemberLink id={profile.id}>{profile.display_name}</MemberLink>
               </h1>
               <p className="mt-1">
                 {formatDateKey(occurrence.dateKey, { dateStyle: "full" })}

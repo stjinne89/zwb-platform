@@ -8,6 +8,7 @@
 // en zegt niemand iets. Een provincie is een schaal waarop je vooruitgang ziet.
 
 import { Crown, Landmark } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
 import { countryOfProvince } from "@/lib/zwblokken/titles";
 
 /** Alleen de metadata van een regio — de omtrekken blijven server-side. */
@@ -103,12 +104,14 @@ function RulerLine({
       <Icon aria-hidden className="size-3 shrink-0" />
       <span>
         {ruler.title}{" "}
-        <span
-          className={highlight ? "font-semibold" : "text-foreground"}
-          style={highlight ? { color: OWN_TEXT } : undefined}
-        >
-          {ruler.name}
-        </span>
+        <MemberLink id={ruler.profileId}>
+          <span
+            className={highlight ? "font-semibold" : "text-foreground"}
+            style={highlight ? { color: OWN_TEXT } : undefined}
+          >
+            {ruler.name}
+          </span>
+        </MemberLink>
       </span>
     </span>
   );

@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { MemberLink } from "@/components/member-link";
 import { formatBadgeValue } from "@/lib/achievements/awards";
 import { currentAchievementWeek } from "@/lib/strava/client";
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
@@ -51,6 +52,7 @@ type AthleteScore = {
 
 type AwardRow = {
   id: string;
+  profile_id: string;
   period_start: string;
   period_end: string;
   value: number | string;
@@ -202,7 +204,9 @@ function Leaderboard({
                 {index + 1}
               </span>
               <div className="min-w-0">
-                <p className="truncate font-medium">{row.name}</p>
+                <p className="truncate font-medium">
+                  <MemberLink id={row.profileId}>{row.name}</MemberLink>
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {row.activities} ritten · {formatHours(row.movingSeconds)}
                 </p>
@@ -233,7 +237,7 @@ export default async function AchievementsPage() {
       supabase
         .from("achievement_awards")
         .select(
-          "id, period_start, period_end, value, metadata, profiles(display_name), achievement_badges(title, icon, color)",
+          "id, profile_id, period_start, period_end, value, metadata, profiles(display_name), achievement_badges(title, icon, color)",
         )
         .order("period_start", { ascending: false })
         .limit(12),
@@ -352,7 +356,9 @@ export default async function AchievementsPage() {
                         {badge?.title ?? "Weekbadge"}
                       </p>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                        {awardProfile(award)?.display_name ?? "ZWB'er"}
+                        <MemberLink id={award.profile_id}>
+                          {awardProfile(award)?.display_name ?? "ZWB'er"}
+                        </MemberLink>
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Week van{" "}

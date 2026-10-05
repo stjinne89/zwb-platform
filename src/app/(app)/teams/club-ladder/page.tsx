@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Activity, ArrowRight, RefreshCw, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import { buttonVariants } from "@/components/ui/button";
 import {
   CLUB_LADDER_SUMMARY_URL,
@@ -346,7 +347,11 @@ export default async function ClubLadderPage({
                     key: "rider",
                     header: "Rider",
                     primary: true,
-                    cell: (member) => member.profiles?.display_name ?? "Onbekend",
+                    cell: (member) => (
+                      <MemberLink id={member.profile_id}>
+                        {member.profiles?.display_name ?? "Onbekend"}
+                      </MemberLink>
+                    ),
                     cellClassName: "font-medium",
                   },
                   {

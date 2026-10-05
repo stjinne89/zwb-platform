@@ -30,7 +30,7 @@ type ActivityRow = {
 };
 
 // Per-lid maandtotalen waarop we de "rider of the month"-top-3 baseren.
-type RiderTotals = { name: string; km: number; uren: number; hm: number; kudos: number };
+type RiderTotals = { id: string; name: string; km: number; uren: number; hm: number; kudos: number };
 
 type Totals = { km: number; hm: number; uren: number; count: number };
 
@@ -175,7 +175,7 @@ export async function ClubStats() {
     if (mKey === currentMonth) {
       const cur =
         ridersCurrentMonth.get(a.profile_id) ??
-        ({ name: displayName(a.profiles), km: 0, uren: 0, hm: 0, kudos: 0 } satisfies RiderTotals);
+        ({ id: a.profile_id, name: displayName(a.profiles), km: 0, uren: 0, hm: 0, kudos: 0 } satisfies RiderTotals);
       cur.km += km;
       cur.uren += uren;
       cur.hm += hm;
@@ -209,7 +209,7 @@ export async function ClubStats() {
     [...riders]
       .sort((a, b) => b[metric] - a[metric])
       .slice(0, 3)
-      .map((r) => ({ name: r.name, value: format(r[metric]) }));
+      .map((r) => ({ id: r.id, name: r.name, value: format(r[metric]) }));
 
   const intFmt = (v: number) => Math.round(v).toLocaleString("nl-NL");
   const slides: RiderMetricSlide[] = [

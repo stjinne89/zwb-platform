@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MemberLink } from "@/components/member-link";
 import { deleteEventPhoto } from "../_actions/photos";
 
 export type EventPhotoData = {
@@ -159,7 +160,7 @@ function Lightbox({
 
         <div className="mt-2 flex items-center justify-between text-xs text-white/80">
           <span>
-            {photo.uploaderName}
+            <MemberLink id={photo.uploaderId}>{photo.uploaderName}</MemberLink>
             {photo.takenAt && (
               <>
                 {" · "}

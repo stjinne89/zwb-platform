@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/markdown";
+import { MemberLink } from "@/components/member-link";
 import {
   castVote,
   clearMyVote,
@@ -141,7 +142,10 @@ export function PollCard({
         <div>
           <h3 className="font-semibold">{poll.question}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {poll.createdByName ?? "Onbekend"} -{" "}
+            <MemberLink id={poll.createdByName ? poll.createdBy : null}>
+              {poll.createdByName ?? "Onbekend"}
+            </MemberLink>{" "}
+            -{" "}
             {poll.totalVotes} {poll.totalVotes === 1 ? "stem" : "stemmen"}
             {poll.multiSelect && " - meerdere keuzes toegestaan"}
             {closesLabel && ` - sluit ${closesLabel}`}

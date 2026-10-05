@@ -49,6 +49,7 @@ export async function FrrStandings({ userId }: { userId: string | null }) {
       <FrrZwbStandingsList
         standings={standings}
         zwbNames={zwbNames}
+        profileIds={Object.fromEntries(members.map((row) => [row.zwiftId, row.id]))}
         myZwiftId={members.find((row) => row.id === userId)?.zwiftId ?? null}
       />
     </section>

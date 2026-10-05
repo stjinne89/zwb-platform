@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Award, Check, RefreshCw, Unlink } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
 import { Button } from "@/components/ui/button";
 import {
   adminRecomputeBadgesAndCols,
@@ -292,7 +293,9 @@ export function AdminStravaSync({ members }: { members: SyncMember[] }) {
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate font-medium">{member.name}</span>
+                  <MemberLink id={member.profileId} className="truncate font-medium">
+                    {member.name}
+                  </MemberLink>
                   {member.missingActivityScope ? (
                     <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                       <AlertTriangle className="size-3" />

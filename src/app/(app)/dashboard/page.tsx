@@ -35,6 +35,7 @@ import { loadRideSourceStatus } from "@/lib/intervals/ride-source-status";
 import { garminAttribution } from "@/lib/intervals/rides";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
+import { MemberLink } from "@/components/member-link";
 import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import {
@@ -102,6 +103,7 @@ type MediaItemRow = {
   body_md: string | null;
   pinned: boolean;
   published_at: string;
+  author_id: string | null;
   profiles: ProfileRef | ProfileRef[] | null;
 };
 
@@ -433,7 +435,7 @@ export default async function DashboardPage({
       : Promise.resolve({ data: null }),
     supabase
       .from("media_items")
-      .select("id, title, body_md, pinned, published_at, kind, profiles(display_name)")
+      .select("id, title, body_md, pinned, published_at, kind, author_id, profiles(display_name)")
       .gte("published_at", since7Iso)
       .neq("kind", "instagram")
       .order("pinned", { ascending: false })
@@ -956,7 +958,7 @@ export default async function DashboardPage({
 
           <ul className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
             {mediaItems.map((item, index) => {
-              const author = singleProfileName(item.profiles) ?? "Bestuur";
+              const authorName = singleProfileName(item.profiles);
               const prominent = index === 0;
               return (
                 <li
@@ -971,7 +973,10 @@ export default async function DashboardPage({
                       {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {author} -{" "}
+                      <MemberLink id={authorName ? item.author_id : null}>
+                        {authorName ?? "Bestuur"}
+                      </MemberLink>{" "}
+                      -{" "}
                       {new Date(item.published_at).toLocaleDateString("nl-NL", {
                         dateStyle: "medium",
                         timeZone: "Europe/Amsterdam",

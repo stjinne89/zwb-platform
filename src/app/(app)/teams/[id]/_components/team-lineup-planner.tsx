@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { usePowerUnit } from "@/components/power-unit";
@@ -46,6 +47,8 @@ export type PlannerLineup = {
   teamId: string;
   /** Profiel of rosternaam, zelfde id als PlannerRider.id. */
   riderId: string;
+  /** Leeg bij een rosternaam zonder account. */
+  profileId: string | null;
   riderName: string;
   teamName: string;
 };
@@ -127,7 +130,7 @@ export function TeamLineupPlanner({
               className="inline-flex items-center gap-1 rounded-full border bg-card px-2 py-1 text-xs"
             >
               <span className="font-medium">{lineup.teamName}</span>
-              {lineup.riderName}
+              <MemberLink id={lineup.profileId}>{lineup.riderName}</MemberLink>
               <button
                 type="button"
                 disabled={pending}
@@ -155,9 +158,12 @@ export function TeamLineupPlanner({
               const status = rider.wtrl?.status ?? "ok";
               return (
                 <span>
-                  <span title={STATUS_TITLE[status]} className={`font-medium ${STATUS_CLASS[status]}`}>
-                    {rider.name}
-                  </span>
+                  <MemberLink
+                    id={rider.unregistered ? null : rider.id}
+                    className={`font-medium ${STATUS_CLASS[status]}`}
+                  >
+                    <span title={STATUS_TITLE[status]}>{rider.name}</span>
+                  </MemberLink>
                   {rider.unregistered && (
                     <span className="ml-1 rounded-full border border-dashed px-1.5 py-0.5 text-xs text-muted-foreground">
                       niet geregistreerd

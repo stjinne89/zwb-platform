@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import { StravaAttribution } from "@/components/strava-brand";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 
@@ -177,7 +178,7 @@ export default async function StatsPage({
   const scopeTotals = empty();
   const byDiscipline = new Map<string, Totals>();
   const byRegion = new Map<string, number>();
-  const byRider = new Map<string, { km: number; name: string }>();
+  const byRider = new Map<string, { id: string; km: number; name: string }>();
 
   for (const a of inScope) {
     const km = Number(a.distance_m ?? 0) / 1000;
@@ -201,6 +202,7 @@ export default async function StatsPage({
     byRegion.set(region, (byRegion.get(region) ?? 0) + km);
 
     const rider = byRider.get(a.profile_id) ?? {
+      id: a.profile_id,
       km: 0,
       name: prof.display_name ?? "Onbekend",
     };
@@ -428,14 +430,14 @@ export default async function StatsPage({
               <ol className="max-h-[366px] space-y-1 overflow-y-auto pr-2 text-sm">
                 {topRiders.map((rider, i) => (
                   <li
-                    key={rider.name + i}
+                    key={rider.id}
                     className="flex items-center justify-between gap-3 border-b py-1.5 last:border-0"
                   >
                     <span className="flex items-center gap-2">
                       <span className="inline-block w-5 text-right tabular-nums text-muted-foreground">
                         {i + 1}.
                       </span>
-                      {rider.name}
+                      <MemberLink id={rider.id}>{rider.name}</MemberLink>
                     </span>
                     <span className="font-medium tabular-nums">
                       {nl(rider.km)} km

@@ -4,6 +4,7 @@ import { Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Markdown } from "@/components/markdown";
+import { MemberLink } from "@/components/member-link";
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import { INSTAGRAM_TAG_HIDDEN_SOURCE } from "@/lib/instagram-sync";
 import { detectGoogleDrive, detectSpotify, detectYouTube } from "@/lib/embed";
@@ -39,6 +40,7 @@ type MediaItem = {
   source: string | null;
   pinned: boolean;
   published_at: string;
+  author_id: string | null;
   profiles: { display_name: string } | { display_name: string }[] | null;
 };
 
@@ -62,7 +64,7 @@ export default async function MediaPage({
       let q = supabase
         .from("media_items")
         .select(
-          "id, kind, title, body_md, apple_url, spotify_url, rss_url, youtube_url, web_url, cover_url, source, pinned, published_at, profiles(display_name)",
+          "id, kind, title, body_md, apple_url, spotify_url, rss_url, youtube_url, web_url, cover_url, source, pinned, published_at, author_id, profiles(display_name)",
         )
         // Verborgen getagde Instagram-posts (zie deleteMediaItem).
         .or(`source.is.null,source.neq.${INSTAGRAM_TAG_HIDDEN_SOURCE}`)
@@ -129,7 +131,7 @@ export default async function MediaPage({
                       {MEDIA_KIND_LABELS[item.kind] ?? item.kind}
                     </span>
                     <p className="text-xs text-muted-foreground">
-                      {author ?? "Bestuur"} ·{" "}
+                      <MemberLink id={author ? item.author_id : null}>{author ?? "Bestuur"}</MemberLink> ·{" "}
                       {new Date(item.published_at).toLocaleDateString("nl-NL", {
                         dateStyle: "medium",
                       })}

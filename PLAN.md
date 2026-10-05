@@ -5829,6 +5829,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — lidnamen klikbaar naar het profiel
+
+**2026-10-04.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn: elk lid dat ergens in de app met naam verschijnt moet
+klikbaar zijn naar het profiel. Een stuk of twaalf plekken deden dat al
+(eventchat, ritverslagen, teamtabel, ZWBlokken "wie reed dit blok"), elk met een
+eigen `<Link href="/leden/…">`; de rest was platte tekst.
+
+**Wat er veranderde.** Eén component, `src/components/member-link.tsx`
+(`MemberLink`): met een profiel-ID een link naar `/leden/[id]`, zonder ID (gast,
+rosternaam zonder account, renner van een andere club) platte tekst. Toegepast
+op:
+
+- Dashboard: Rider of the month, auteur van mediaberichten, FRR-klassement.
+- `/achievements`: de vier ranglijsten en de weekbadges.
+- `/events/[id]`: opstelling per team, ZWB'ers per FRR-tijdslot, FRR-klassement
+  (ZWB-lijst), SRC-uitslag, fotograaf in de fotoviewer, live deelnemers.
+- `/verjaardagen/[id]`: de naam in de kop, live deelnemers.
+- `/media`, `/materiaal/[slug]` (auteur en reacties), `/polls`, `/stats` (Top
+  riders), `/src` (maandtabel), `/teams/club-ladder`, de lineup-planner op
+  `/teams/[id]`, `/zwblokken` (beide ranglijsten en de titelhouders), de
+  coach-chat en `/beheer/strava`.
+
+`FrrZwbStandingsList` kreeg daarvoor een optionele `profileIds` (Zwift-ID naar
+profiel-ID). De live ticker linkt alleen zonder `pollUrl`: met `pollUrl` kijkt
+een gast mee op `/live/[id]`, en die kan `/leden` niet in.
+
+**Bewust niet gedaan, en waarom.**
+
+- **Namen binnen een kaart of knop die zelf al klikbaar is.** Een link in een
+  link of knop is ongeldige HTML en geeft twee acties op één klik. Dat geldt
+  voor: de aanmeldlijsten Ja/Misschien/Nee op een event en een verjaardag (de
+  kolom is de stemknop), de kalenderkaarten (deelnemers, verjaardag), "Mijn
+  races" en de SRC-uitslag op het dashboard, de clubritten op het dashboard (rij
+  opent Strava), de `/materiaal`-lijst en `/live` (rij zoomt de kaart in). Dit
+  oplossen vraagt per plek een ander ontwerp; niet stilzwijgend gedaan.
+- **Keuzelijsten en beheerknoppen** (`<option>`, "lid verwijderen", koppel- en
+  importschermen): daar is de naam een bedieningselement.
+- **Publieke pagina's** (`/live/[id]`, `/live/zrl/[id]`, Omnium): bezoekers zijn
+  niet ingelogd, en Omnium-renners zijn geen leden.
+- **Namen zonder profiel-ID in de data**: de FRR-volglijst en het FRR-klassement
+  per klasse (linken al naar ZwiftPower), de TTT-planner (vrij in te vullen
+  namen), receptauteur (`contributor` wordt zonder ID geladen), ZWBgame.
+- **Wachtende aanmeldingen op `/leden`**: niet nagegaan of `/leden/[id]` een nog
+  niet goedgekeurd profiel toont.
+
+**Verificatie.** `tsc --noEmit` en eslint zijn schoon (alleen de bestaande
+`<img>`-waarschuwingen). Vitest: 1971 van 1972 tests groen; de volledige run
+gaf wisselend een time-out in `rls-initplan-migration` en `intervals-ride-sync`
+(los gedraaid beide groen) en `omnium-live` laadt niet omdat deze worktree geen
+`.env.local` heeft. Om dezelfde reden compileert `npm run build` wel (TypeScript
+klaar) maar strandt hij bij het prerenderen van `/omnium`. **Niet in een browser
+bekeken**: zonder Supabase-env draait de app hier niet, dus geen enkele link is
+aangeklikt.
+
 ### Opgeleverd — Instagram: posts waarin de club is getagd
 
 **2026-10-02.** Commit: de commit die dit blok toevoegt. Geen migratie.

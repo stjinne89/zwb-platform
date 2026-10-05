@@ -12,7 +12,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type RiderEntry = { name: string; value: string };
+import { MemberLink } from "@/components/member-link";
+
+export type RiderEntry = { id: string; name: string; value: string };
 export type RiderMetricSlide = {
   key: "km" | "uren" | "kudos" | "hm";
   label: string;
@@ -112,12 +114,12 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
         </div>
         <ol className="space-y-1 text-sm">
           {slide.riders.map((rider, idx) => (
-            <li key={rider.name + idx} className="flex items-center justify-between gap-3">
+            <li key={rider.id} className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <span className="inline-block w-5 text-right tabular-nums text-muted-foreground">
                   {idx + 1}.
                 </span>
-                {rider.name}
+                <MemberLink id={rider.id}>{rider.name}</MemberLink>
               </span>
               <span className="font-medium tabular-nums">
                 {rider.value}

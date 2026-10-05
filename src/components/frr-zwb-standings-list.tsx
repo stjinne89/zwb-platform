@@ -1,3 +1,4 @@
+import { MemberLink } from "@/components/member-link";
 import { cn } from "@/lib/utils";
 import { formatFrrDuration, formatFrrPenalty } from "@/lib/frr/watch";
 import { frrPenaltyS, type FrrStandingRow } from "@/lib/frr/zwb-standings";
@@ -9,12 +10,15 @@ import { frrPenaltyS, type FrrStandingRow } from "@/lib/frr/zwb-standings";
 export function FrrZwbStandingsList({
   standings,
   zwbNames,
+  profileIds,
   myZwiftId,
   slotText,
 }: {
   /** Zonder plaats: mist een etappe in het voorlopige klassement. */
   standings: Array<Omit<FrrStandingRow, "position"> & { position: number | null }>;
   zwbNames: Map<string, string | null>;
+  /** Zwift-ID naar profiel-ID, voor de link naar het ledenprofiel. */
+  profileIds?: Record<string, string>;
   myZwiftId: string | null;
   /** Het tijdslot van de renner in deze etappe; zonder valt de kolom weg. */
   slotText?: (zwiftId: string) => string | null;
@@ -40,7 +44,9 @@ export function FrrZwbStandingsList({
               {row.position ?? "—"}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate">{zwbNames.get(row.zwift_id) ?? row.name}</span>
+              <MemberLink id={profileIds?.[row.zwift_id]} className="block truncate">
+                {zwbNames.get(row.zwift_id) ?? row.name}
+              </MemberLink>
               <span className="block truncate text-xs text-muted-foreground sm:hidden">
                 {[egap, penalty, slot].filter(Boolean).join(" · ")}
               </span>

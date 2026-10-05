@@ -13,6 +13,7 @@ import { CommentForm } from "./_components/comment-form";
 import { DeleteCommentButton, DeletePostButton } from "./_components/delete-buttons";
 import { StatusSelect } from "./_components/status-select";
 import { BackLink } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export default async function PostDetailPage({
@@ -75,7 +76,7 @@ export default async function PostDetailPage({
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">{post.title}</h1>
         <p className="text-sm text-muted-foreground">
-          {authorName} -{" "}
+          <MemberLink id={post.author_id}>{authorName}</MemberLink> -{" "}
           {new Date(post.created_at).toLocaleDateString("nl-NL", {
             dateStyle: "long",
             timeZone: "Europe/Amsterdam",
@@ -136,7 +137,7 @@ export default async function PostDetailPage({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted-foreground">
-                        {name} -{" "}
+                        <MemberLink id={c.author_id}>{name}</MemberLink> -{" "}
                         {new Date(c.created_at).toLocaleString("nl-NL", {
                           dateStyle: "short",
                           timeStyle: "short",

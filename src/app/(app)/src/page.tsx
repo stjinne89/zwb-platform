@@ -15,6 +15,7 @@ import {
 import { TeamAvailabilityButtons } from "../teams/[id]/_components/team-availability-buttons";
 import { srcRiderProgress, SRC_QUALIFIERS_NEEDED, type SrcRiderRace } from "@/lib/src/results";
 import { SRC_MANAGERS } from "@/lib/src/access";
+import { MemberLink } from "@/components/member-link";
 import { setSrcAvailability } from "./_actions";
 import { SrcAddMemberForm, SrcJoinForm, SrcRemoveEntryButton } from "./_components/month-forms";
 
@@ -311,7 +312,7 @@ export default async function SrcPage({
                       <tr key={entry.profile_id}>
                         <td className="p-2">
                           <span className="flex items-center gap-1">
-                            {nameOf(entry)}
+                            <MemberLink id={entry.profile_id}>{nameOf(entry)}</MemberLink>
                             <QualifierBadge done={progress.get(entry.profile_id)?.qualifiers ?? 0} />
                             {canManage && (
                               <SrcRemoveEntryButton month={month} profileId={entry.profile_id} />

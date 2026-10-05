@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import {
   countNewThisYear,
   fetchClubBlocks,
@@ -216,11 +217,12 @@ export default async function ZwblokkenPage() {
                     <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                       {i + 1}
                     </span>
-                    <span
+                    <MemberLink
+                      id={m.id}
                       className={m.id === user.id ? "font-semibold" : undefined}
                     >
                       {m.name}
-                    </span>
+                    </MemberLink>
                     <span className="ml-auto tabular-nums text-muted-foreground">
                       {nl(m.blocks)}
                     </span>

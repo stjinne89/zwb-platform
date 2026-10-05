@@ -109,6 +109,7 @@ export async function FrrStagePanel({
     ]);
   const { zwbNames, members, standings: zwbStandings } = zwb;
   const myZwiftId = members.find((row) => row.id === userId)?.zwiftId ?? null;
+  const profileIds = Object.fromEntries(members.map((row) => [row.zwiftId, row.id]));
   const favourites = ((favouriteRows ?? []) as Array<{ zwift_id: string; name: string }>).map(
     (row) => ({ zwiftId: row.zwift_id, name: row.name }),
   );
@@ -193,7 +194,9 @@ export async function FrrStagePanel({
 
   return (
     <>
-      {stageViews.length > 0 && <FrrZwbStageSwitch views={stageViews} myZwiftId={myZwiftId} />}
+      {stageViews.length > 0 && (
+        <FrrZwbStageSwitch views={stageViews} profileIds={profileIds} myZwiftId={myZwiftId} />
+      )}
 
       {stageViews.length === 0 && zwbStandings.length > 0 && (
         <section className="space-y-3">
@@ -203,6 +206,7 @@ export async function FrrStagePanel({
           <FrrZwbStandingsList
             standings={zwbStandings}
             zwbNames={zwbNames}
+            profileIds={profileIds}
             myZwiftId={myZwiftId}
             slotText={(zwiftId) => {
               const ids = entrantSlots.get(zwiftId) ?? [];

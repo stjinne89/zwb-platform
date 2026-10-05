@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Clock, Gauge, MapPin, Maximize2, Route, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { MemberLink } from "@/components/member-link";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
 import {
   CLIMB_CATEGORY_HEX,
@@ -766,8 +767,9 @@ export function EventLiveTicker({
             pois={profilePois}
             zones={zones}
           />
-          <RiderList riders={riders} totalKm={routeStats.totalKm} />
-          <LinkOnlyList sessions={linkOnly} />
+          {/* Met pollUrl kijkt een gast mee (/live/[id]): die kan /leden niet in. */}
+          <RiderList riders={riders} totalKm={routeStats.totalKm} linkMembers={!pollUrl} />
+          <LinkOnlyList sessions={linkOnly} linkMembers={!pollUrl} />
         </div>
       </div>
 
@@ -874,7 +876,13 @@ function RiderPopup({
   );
 }
 
-function LinkOnlyList({ sessions }: { sessions: EventLiveSession[] }) {
+function LinkOnlyList({
+  sessions,
+  linkMembers,
+}: {
+  sessions: EventLiveSession[];
+  linkMembers: boolean;
+}) {
   if (sessions.length === 0) return null;
 
   return (
@@ -882,7 +890,11 @@ function LinkOnlyList({ sessions }: { sessions: EventLiveSession[] }) {
       {sessions.map((session) => (
         <li key={session.id} className="flex items-center justify-between gap-3 p-3">
           <div className="min-w-0">
-            <p className="truncate font-medium">{session.profileName}</p>
+            <p className="truncate font-medium">
+              <MemberLink id={linkMembers ? session.profileId : null}>
+                {session.profileName}
+              </MemberLink>
+            </p>
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {sourceLabel(session.source)}
             </p>
@@ -905,9 +917,11 @@ function LinkOnlyList({ sessions }: { sessions: EventLiveSession[] }) {
 function RiderList({
   riders,
   totalKm,
+  linkMembers,
 }: {
   riders: RiderProgress[];
   totalKm: number;
+  linkMembers: boolean;
 }) {
   if (riders.length === 0) return null;
 
@@ -919,7 +933,9 @@ function RiderList({
           <li key={rider.sessionId} className="p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate font-medium">{rider.name}</p>
+                <p className="truncate font-medium">
+                  <MemberLink id={linkMembers ? rider.profileId : null}>{rider.name}</MemberLink>
+                </p>
                 <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {sourceLabel(rider.source)}
                 </p>

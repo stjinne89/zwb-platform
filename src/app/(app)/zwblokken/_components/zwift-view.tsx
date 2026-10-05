@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Crown, Grid3x3, MapPin, Percent } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
 import { BlocksMap, type PackedBlocks, type PackedClubBlocks } from "./blocks-map";
 import { CoverageTable, type CoverageRow, type RulerMap } from "./coverage";
 
@@ -186,7 +187,9 @@ export function ZwiftView({
             {leaders.map((m, i) => (
               <li key={m.id} className="flex items-baseline gap-3 text-sm">
                 <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</span>
-                <span className={m.id === memberId ? "font-semibold" : undefined}>{m.name}</span>
+                <MemberLink id={m.id} className={m.id === memberId ? "font-semibold" : undefined}>
+                  {m.name}
+                </MemberLink>
                 <span className="ml-auto tabular-nums text-muted-foreground">{nl(m.blocks)}</span>
                 <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                   {nl(m.km)} km

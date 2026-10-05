@@ -15,9 +15,11 @@ const NO_NAMES = new Map<string, string | null>();
  */
 export function FrrZwbStageSwitch({
   views,
+  profileIds,
   myZwiftId,
 }: {
   views: ZwbStageView[];
+  profileIds: Record<string, string>;
   myZwiftId: string | null;
 }) {
   const [stage, setStage] = useState(views[views.length - 1].stage);
@@ -83,6 +85,7 @@ export function FrrZwbStageSwitch({
           after_stage: view.stage,
         }))}
         zwbNames={NO_NAMES}
+        profileIds={profileIds}
         myZwiftId={myZwiftId}
       />
     </section>

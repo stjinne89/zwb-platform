@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import type { createClient } from "@/lib/supabase/server";
+import { MemberLink } from "@/components/member-link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatRaceTime } from "@/lib/src/results";
@@ -215,7 +216,11 @@ export async function SrcPanel({
                   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
                   return (
                     <tr key={row.mywhoosh_user_id}>
-                      <td className="py-1">{profile?.display_name ?? row.name}</td>
+                      <td className="py-1">
+                        <MemberLink id={row.profile_id}>
+                          {profile?.display_name ?? row.name}
+                        </MemberLink>
+                      </td>
                       <td className="py-1">{row.category ?? "—"}</td>
                       <td className="py-1">{row.category_rank ?? "DNF"}</td>
                       <td className="py-1 text-right">

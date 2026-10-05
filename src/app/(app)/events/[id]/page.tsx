@@ -75,6 +75,7 @@ import {
 import { fetchExternalLiveTiming } from "@/lib/live/external-timing";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type RsvpStatus = "yes" | "maybe" | "no";
@@ -191,7 +192,7 @@ function LineupNames({
   riders,
   className,
 }: {
-  riders: Array<{ key: string; name: string; isMe: boolean }>;
+  riders: Array<{ key: string; profileId: string | null; name: string; isMe: boolean }>;
   className?: string;
 }) {
   return (
@@ -204,7 +205,7 @@ function LineupNames({
             rider.isMe && "border-primary/50 bg-primary/10 font-medium",
           )}
         >
-          {rider.name}
+          <MemberLink id={rider.profileId}>{rider.name}</MemberLink>
         </li>
       ))}
     </ul>
@@ -299,7 +300,13 @@ export default async function EventDetailPage({
   // De etappes met hun tijdsloten: op de tour alle etappes, op een etappe of
   // een slot alleen die etappe. Met de ZWB'ers die in Zwift zijn ingeschreven en
   // je eigen keuze.
-  type FrrSlot = { id: string; label: string; startAt: string; zwb: string[]; isMine: boolean };
+  type FrrSlot = {
+    id: string;
+    label: string;
+    startAt: string;
+    zwb: Array<{ name: string; profileId: string | null }>;
+    isMine: boolean;
+  };
   type FrrStage = { id: string; label: string; title: string; startAt: string; slots: FrrSlot[] };
   let frrStages: FrrStage[] = [];
   if (frrLevel) {
@@ -341,7 +348,7 @@ export default async function EventDetailPage({
         : Promise.resolve({ data: [] }),
     ]);
     const mine = new Set((mySlotRsvps ?? []).map((row) => row.event_id as string));
-    const zwbBySlot = new Map<string, string[]>();
+    const zwbBySlot = new Map<string, Array<{ name: string; profileId: string | null }>>();
     for (const row of (zwbEntrants ?? []) as Array<{
       event_id: string;
       profile_id: string | null;
@@ -352,7 +359,7 @@ export default async function EventDetailPage({
       if (user && row.profile_id === user.id) mine.add(row.event_id);
       zwbBySlot.set(row.event_id, [
         ...(zwbBySlot.get(row.event_id) ?? []),
-        profile?.display_name ?? row.name,
+        { name: profile?.display_name ?? row.name, profileId: row.profile_id },
       ]);
     }
     const tourTitle =
@@ -372,7 +379,7 @@ export default async function EventDetailPage({
           id: slot.id,
           label: subEventLabel(slot.title, stage.title),
           startAt: slot.start_at,
-          zwb: (zwbBySlot.get(slot.id) ?? []).sort((a, b) => a.localeCompare(b, "nl")),
+          zwb: (zwbBySlot.get(slot.id) ?? []).sort((a, b) => a.name.localeCompare(b.name, "nl")),
           isMine: mine.has(slot.id),
         })),
     }));
@@ -412,7 +419,10 @@ export default async function EventDetailPage({
           )
           .in("event_id", lineupEventIds)
       : { data: [] };
-  const lineupByTeam = new Map<string, Array<{ key: string; name: string; isMe: boolean }>>();
+  const lineupByTeam = new Map<
+    string,
+    Array<{ key: string; profileId: string | null; name: string; isMe: boolean }>
+  >();
   for (const row of (lineupRows ?? []) as Array<{
     team_id: string;
     profile_id: string | null;
@@ -427,6 +437,7 @@ export default async function EventDetailPage({
     if (list.some((item) => item.key === key)) continue;
     list.push({
       key,
+      profileId: row.profile_id,
       name: profile?.display_name ?? roster?.name ?? "Onbekend",
       isMe: Boolean(user && row.profile_id === user.id),
     });
@@ -1287,9 +1298,10 @@ export default async function EventDetailPage({
                   </Link>
                   {slot.zwb.length > 0 && (
                     <LineupNames
-                      riders={slot.zwb.map((name, index) => ({
+                      riders={slot.zwb.map((rider, index) => ({
                         key: `${slot.id}-${index}`,
-                        name,
+                        profileId: rider.profileId,
+                        name: rider.name,
                         isMe: false,
                       }))}
                       className="px-3 pb-2"

@@ -671,6 +671,7 @@ export default async function TeamDetailPage({
                 eventId: lineup.event_id,
                 teamId: lineup.team_id,
                 riderId: (lineup.profile_id ?? lineup.roster_entry_id) as string,
+                profileId: lineup.profile_id,
                 riderName:
                   (lineup.profile_id
                     ? profileById.get(lineup.profile_id)?.display_name

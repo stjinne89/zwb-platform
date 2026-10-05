@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { lastSeenByProfile, stravaAthleteCap } from "@/lib/strava/sweep";
@@ -282,7 +283,9 @@ export default async function BeheerStravaPage() {
                 key={member.profileId}
                 className="grid gap-1 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4"
               >
-                <span className="font-medium">{member.name}</span>
+                <MemberLink id={member.profileId} className="font-medium">
+                  {member.name}
+                </MemberLink>
                 <span className="text-muted-foreground">
                   Laatste rit {formatDay(member.lastActivity)}
                 </span>
