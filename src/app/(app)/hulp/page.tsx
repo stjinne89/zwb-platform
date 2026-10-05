@@ -2475,8 +2475,9 @@ Fitness-status: Verbeterend`}
               omdat meerdere leden een wereld helemaal gereden hebben, dan wint
               wie daar de meeste kilometers reed. Het percentage gaat over de
               wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,
-              dan kan het iets zakken. Andere indoorplatforms, zoals MyWhoosh,
-              Rouvy en FulGaz, tellen niet mee.
+              dan kan het iets zakken. Een Climb Portal levert geen blokken op:
+              die klim ligt buiten de kaart van de wereld. Andere
+              indoorplatforms, zoals MyWhoosh, Rouvy en FulGaz, tellen niet mee.
             </span>
           </li>
           <li className="flex gap-2">

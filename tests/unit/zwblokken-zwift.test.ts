@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockKey, lonLatToBlock } from "@/lib/zwblokken/grid";
+import { blockCentre, blockKey, lonLatToBlock } from "@/lib/zwblokken/grid";
 import { addBlock, pickRulers, type RegionStandings } from "@/lib/zwblokken/titles";
 import {
   ZWIFT_BLOCK_ZOOM,
@@ -7,6 +7,7 @@ import {
   blockInWorld,
   isZwiftRide,
   splitOnJumps,
+  worldBlockRange,
   zwiftBlocksForRide,
   zwiftRegionCode,
   zwiftWorldAt,
@@ -85,25 +86,38 @@ describe("zwiftBlocksForRide", () => {
     for (const key of ride!.blocks) expect(blockInWorld(ride!.world, key)).toBe(true);
   });
 
-  it("houdt wegen die net buiten de zwift-data-grens liggen", () => {
-    // De grenzen in zwift-data zijn krapper dan de werelden nu: in productie lag
-    // echt gereden weg tot ~10 km erbuiten.
-    const [south, , north, east] = ZWIFT_WORLDS.find((w) => w.slug === "france")!.bbox;
-    const netErbuiten = line([south - 0.05, east + 0.03], [north + 0.05, east + 0.05], 8);
-    const ride = zwiftBlocksForRide({
-      points: [...line([-21.7, 166.2], [-21.69, 166.21], 4), ...netErbuiten],
-      deviceName: "Zwift",
-    });
-    expect(ride?.world.slug).toBe("france");
-    expect(ride!.blocks.size).toBeGreaterThan(10);
+  it("laat een Climb Portal weg: de klim ligt direct naast de wereld", () => {
+    // Zoals "Climb Portal: Col du Tourmalet in Watopia" (10-12-2023): de lijn
+    // loopt vanaf de portal bij de vulkaan ruim tien kilometer de kaart uit, naar
+    // het noorden. Zonder sprong, dus alleen de wereldgrens houdt hem tegen.
+    const watopiaWorld = ZWIFT_WORLDS.find((w) => w.slug === "watopia")!;
+    const north = watopiaWorld.bbox[2];
+    const inWereld = line([-11.64, 166.943], [-11.63, 166.92], 6);
+    const klim = line([-11.62, 166.915], [-11.537, 166.909], 12);
+    const zonderKlim = zwiftBlocksForRide({ points: inWereld, deviceName: "Zwift" });
+    const metKlim = zwiftBlocksForRide({ points: [...inWereld, ...klim], deviceName: "Zwift" });
+    expect(metKlim?.world.slug).toBe("watopia");
+    expect(metKlim!.blocks.size).toBeGreaterThan(3);
+    for (const key of metKlim!.blocks) {
+      const [x, y] = key.split("/").map(Number);
+      expect(blockCentre(x, y, ZWIFT_BLOCK_ZOOM)[1]).toBeLessThanOrEqual(north);
+    }
+    // Twaalf kilometer klim levert hooguit het ene blok op waar hij de kaart verlaat.
+    expect(metKlim!.blocks.size).toBeLessThanOrEqual(zonderKlim!.blocks.size + 2);
   });
 
-  it("laat een Climb Portal op zijn echte plek buiten de wereld", () => {
-    // Zwift legt Puy de Dôme op zijn echte coördinaten, midden in Frankrijk.
-    const portal = [...line([-11.64, 166.93], [-11.645, 166.94], 5), ...line([45.77, 2.96], [45.78, 2.97], 5)];
-    const ride = zwiftBlocksForRide({ points: portal, deviceName: "Zwift" });
-    expect(ride?.world.slug).toBe("watopia");
-    for (const key of ride!.blocks) expect(blockInWorld(ride!.world, key)).toBe(true);
+  it("worldBlockRange geeft hetzelfde antwoord als blockInWorld", () => {
+    for (const world of ZWIFT_WORLDS) {
+      const range = worldBlockRange(world);
+      expect(range.maxX).toBeGreaterThanOrEqual(range.minX);
+      expect(range.maxY).toBeGreaterThanOrEqual(range.minY);
+      for (let x = range.minX - 2; x <= range.maxX + 2; x++) {
+        for (let y = range.minY - 2; y <= range.maxY + 2; y++) {
+          const inside = x >= range.minX && x <= range.maxX && y >= range.minY && y <= range.maxY;
+          expect(blockInWorld(world, blockKey(x, y))).toBe(inside);
+        }
+      }
+    }
   });
 
   it("negeert ritten die niet van Zwift komen of buiten een wereld starten", () => {

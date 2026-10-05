@@ -24,19 +24,10 @@ export const ZWIFT_BLOCK_ZOOM = 16;
 /** Marge rond de wereldgrenzen uit zwift-data, in graden (~2 km). */
 const BOUNDS_MARGIN = 0.02;
 
-/**
- * Marge voor de blokken zelf, in graden (~15 km). Ruimer dan hierboven, want de
- * grenzen in zwift-data zijn krapper dan de werelden inmiddels zijn: in
- * productie lag echt gereden weg tot ~10 km erbuiten (France 3.155 punten,
- * Watopia 799). De rommel die we juist willen weren — wereldsprongen en Climb
- * Portals — ligt meer dan 50 km buiten de wereld.
- */
-const BLOCK_MARGIN = 0.15;
 
 /**
  * Langer dan dit tussen twee punten is geen fietsen maar een sprong: een event
- * dat naar een andere wereld springt, of een Climb Portal die je op de echte
- * berg zet. Zonder deze grens vulde de supercover-DDA alle blokken op de lijn
+ * dat naar een andere wereld springt. Zonder deze grens vulde de supercover-DDA alle blokken op de lijn
  * ertussen. Normale punten liggen vrijwel altijd onder de kilometer; in
  * productie waren er 9 sprongen boven de 10 km, en die waren allemaal van dit
  * soort.
@@ -108,17 +99,41 @@ export function zwiftWorldAt(lat: number, lon: number): ZwiftWorld | null {
   return null;
 }
 
-/** Ligt het middelpunt van dit blok binnen de wereld (met marge)? Puur. */
+/**
+ * Ligt het middelpunt van dit blok binnen de wereld? Puur.
+ *
+ * Zonder marge. De grenzen uit zwift-data zijn die van Zwifts eigen minimap, en
+ * buiten die kaart ligt geen weg. Wat er in productie wel buiten lag (Watopia 79
+ * blokken, France 162) waren Climb Portals: Zwift tekent zo'n klim direct naast
+ * de wereld, als een sliert vanaf de portal de kaart uit. Tot oktober 2026 stond
+ * hier een marge van ~15 km, in de veronderstelling dat dat nieuwe wegen waren en
+ * de portals veel verder weg lagen.
+ */
 export function blockInWorld(world: ZwiftWorld, key: string): boolean {
   const { x, y } = parseBlockKey(key);
   const [lon, lat] = blockCentre(x, y, ZWIFT_BLOCK_ZOOM);
   const [south, west, north, east] = world.bbox;
-  return (
-    lat >= south - BLOCK_MARGIN &&
-    lat <= north + BLOCK_MARGIN &&
-    lon >= west - BLOCK_MARGIN &&
-    lon <= east + BLOCK_MARGIN
-  );
+  return lat >= south && lat <= north && lon >= west && lon <= east;
+}
+
+/**
+ * Het bereik van blokken (x en y, inclusief) waarvan het middelpunt binnen de
+ * wereld ligt: hetzelfde als `blockInWorld`, maar als vier getallen. Voor de
+ * migratie die oude portalblokken opruimt.
+ */
+export function worldBlockRange(world: ZwiftWorld): { minX: number; maxX: number; minY: number; maxY: number } {
+  const [south, west, north, east] = world.bbox;
+  const n = 2 ** ZWIFT_BLOCK_ZOOM;
+  // Het middelpunt van blok x ligt op lengte (x + 0,5) / n; y loopt van noord
+  // naar zuid over de Mercator-breedte.
+  const mercatorY = (lat: number) =>
+    ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * n;
+  return {
+    minX: Math.ceil(((west + 180) / 360) * n - 0.5),
+    maxX: Math.floor(((east + 180) / 360) * n - 0.5),
+    minY: Math.ceil(mercatorY(north) - 0.5),
+    maxY: Math.floor(mercatorY(south) - 0.5),
+  };
 }
 
 /**
@@ -144,12 +159,11 @@ export function splitOnJumps(points: GpxPoint[], maxKm = MAX_SEGMENT_KM): GpxPoi
  * De wereld volgt het startpunt: een rit wisselt in Zwift nooit van wereld.
  *
  * Twee vangnetten, want een routelijn blijft niet altijd binnen de wereld:
- * - een enkel event springt halverwege naar een andere wereld, en een Climb
- *   Portal legt een echte klim (Puy de Dôme, Tourmalet) op zijn echte plek. De
- *   lijn ertussen trok anders een spoor van duizenden blokken over de oceaan, en
- *   overschreef onderweg het wereldlabel van bestaande blokken. Vandaar
- *   `splitOnJumps`;
- * - wat daarna nog ver buiten de wereld ligt, valt af via `blockInWorld`.
+ * - een enkel event springt halverwege naar een andere wereld. De lijn ertussen
+ *   trok anders een spoor van duizenden blokken over de oceaan, en overschreef
+ *   onderweg het wereldlabel van bestaande blokken. Vandaar `splitOnJumps`;
+ * - een Climb Portal tekent Zwift direct naast de wereld. Die blokken, en al het
+ *   andere buiten de kaart, vallen af via `blockInWorld`.
  */
 export function zwiftBlocksForRide(ride: {
   points: GpxPoint[];

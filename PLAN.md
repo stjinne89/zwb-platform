@@ -87,7 +87,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0220`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`.
 
 ---
 
@@ -5829,6 +5829,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZWBlokken Zwift: Climb Portals tellen niet meer mee; import zegt wat hij oversloeg
+
+**2026-10-05.** Commit: de commit die dit blok toevoegt. Migratie
+`0220_zwift_blocks_inside_world.sql` (nog toepassen).
+
+**Aanleiding.** Stijn zag in Watopia blokken die bij Climb Portals horen, en zag
+Kevin Plasmans met veel minder Zwift-kilometers dan hij gereden heeft.
+
+**Climb Portals: gemeten op productie (alleen gelezen).**
+- Zwift tekent een portalklim direct naast de wereld: een sliert vanaf de portal
+  de kaart uit, zonder sprong. In Watopia naar het noorden vanaf de vulkaan, in
+  France naar het westen vanaf Mont Saint-Michel.
+- Club-blokken buiten de grens van Zwifts eigen kaart: Watopia 79 van 320,
+  France 162 van 315, Makuri 8 van 94. De ritten erachter heten vrijwel allemaal
+  "Climb Portal: …", of rijden een workout op zo'n klim.
+- `blockInWorld` liet alles binnen ~15 km van de grens toe. Die marge kwam uit de
+  ronde van 2026-09-16, die deze blokken voor nieuwe wegen aanzag en aannam dat
+  een portal op zijn echte plek ligt, meer dan 50 km verderop. Dat was fout.
+
+**Wat er veranderde.**
+- `blockInWorld` (in `src/lib/zwblokken/zwift.ts`) heeft geen marge meer: een blok
+  telt als zijn middelpunt binnen de grenzen uit zwift-data ligt. Die grenzen zijn
+  die van de minimap, waar de kaart in ZWBlokken ook op ligt.
+- `0220` wist de bestaande blokken buiten die grenzen, per wereld. De bereiken
+  komen uit de nieuwe `worldBlockRange`; een test bewaakt dat die hetzelfde
+  antwoord geeft als `blockInWorld`. Ritten hoeven niet opnieuw door de sync.
+- Na `0220` wordt de club: Watopia 241, France 153, Makuri 86. De noemer van de
+  dekking (routevormen ∪ club-blokken) en de titels volgen vanzelf.
+- De kilometers per wereld blijven de hele rit tellen, dus ook de portalklim.
+  Daar is niet om gevraagd.
+
+**Kevins FIT-upload: niet opgelost, oorzaak onbekend.** Op productie staat van
+hem geen enkele rit met bron `strava_fit`, en geen van zijn 1.658 virtuele
+CSV-ritten heeft een spoor. De kilometers die Stijn zag zijn zes ritten via
+intervals.icu (161 km, sinds 1 oktober) tegen 33.255 km uit activities.csv. De
+FIT-import staat wel live (de privacytekst op productie noemt FIT). Er is dus
+niets door de import heen gekomen: of de upload is na de deploy niet opnieuw
+gedaan, of elk bestand is overgeslagen of geweigerd. Zonder een bestand van hem
+of de melding die hij zag is dat niet te zeggen.
+- Het formulier meldde een map vol overgeslagen bestanden als "Deze ritten
+  stonden er al". Het noemt nu apart hoeveel bestanden geen fietsrit waren en
+  hoeveel geen GPS hadden, ook als er niets nieuws bij kwam.
+- **Nog nodig:** één `.fit.gz` uit zijn Strava-export, om de lezer tegen een echt
+  Zwift-bestand te draaien. Dat is sinds de bouw de open aanname.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-suite. De portaltest
+bouwt de lijn van "Col du Tourmalet in Watopia" na. **Niet lokaal te
+verifiëren:** `0220` zelf (geen database hier).
+
 ### Opgeleverd — lidnamen klikbaar naar het profiel
 
 **2026-10-04.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -7521,7 +7570,8 @@ bleven tot nu toe bewust buiten de kaart.
 - **Blokgrootte.** Op zoom 14 is Watopia 36 blokken en Crit City 1. De punten van de
   routelijn liggen mediaan 60 m uit elkaar (p90 ~220 m). **Zoom 16** (~600 m)
   gekozen, na Stijns keuze uit 16, 17 of hetzelfde als buiten.
-- **Club op zoom 16** (dry-run met de nieuwe code): Watopia 321, France 310,
+- **Club op zoom 16** (dry-run met de nieuwe code; Watopia, France en Makuri
+  bevatten hier nog de Climb Portals, zie de ronde van 2026-10-05): Watopia 321, France 310,
   New York 127, London 109, Makuri 85, Innsbruck 61, Yorkshire 44, Paris 36,
   Scotland 34, Richmond 29, Bologna 22, Crit City 4.
 - **Het actiefste lid heeft per wereld al bijna alles.** Watopia 302/321,
@@ -7611,8 +7661,10 @@ routelijn daar wel buiten kan komen:
 - het event "#32 Circus" (22-05-2021) start in New York en springt naar London. De
   supercover-DDA vulde alle blokken op de rechte lijn ertussen: een spoor van ruim
   16.000 blokken over de Atlantische Oceaan;
-- een **Climb Portal** legt een echte klim (Puy de Dôme, Tourmalet) op zijn echte
-  coördinaten, ver buiten de wereld waarin je rijdt.
+- ~~een **Climb Portal** legt een echte klim (Puy de Dôme, Tourmalet) op zijn echte
+  coördinaten, ver buiten de wereld waarin je rijdt.~~ **Rechtgezet 2026-10-05:**
+  een portalklim ligt direct naast de wereld, zonder sprong; zie de ronde
+  "Climb Portals tellen niet meer mee".
 
 In productie ging het om 30 van de 6.856 ritten met een wereld.
 
@@ -7625,13 +7677,15 @@ het label `new-york`.
 zwift-data plus 2 km. Dat bleek te krap: Watopia zakte naar 279 en France naar 225,
 want die grenzen zijn krapper dan de werelden nu zijn. Gemeten in productie ligt echt
 gereden weg tot ~10 km buiten de grens (France 3.155 punten, Watopia 799), terwijl de
-rommel meer dan 50 km buiten de wereld ligt.
+rommel meer dan 50 km buiten de wereld ligt. **Rechtgezet 2026-10-05:** die punten
+waren geen wegen maar Climb Portals. De eerste, krappe begrenzing was dus de goede.
 
 De uiteindelijke regels:
 - `splitOnJumps` knipt de route bij elke sprong van meer dan 10 km, zodat de
   supercover-DDA geen spoor meer trekt. Normale punten liggen vrijwel altijd onder de
   kilometer; in productie waren er 9 sprongen boven de 10 km, allemaal van dit soort.
 - `blockInWorld` houdt daarna alleen blokken binnen de wereldgrens plus 15 km.
+  **Sinds 2026-10-05 zonder marge.**
 - `blockCentre` staat nu in `grid.ts` en wordt gedeeld met `regions.ts`.
 
 Vergeleken op dezelfde productiedata verandert er in tien van de twaalf werelden niets.

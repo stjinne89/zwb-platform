@@ -325,7 +325,8 @@ async function importOneFile(
           imported: 0,
           tracksAdded: 0,
           segmentEfforts: 0,
-          skippedRows: result.skip === "no_track" ? 1 : 0,
+          skippedRows: 0,
+          skippedNoTrack: result.skip === "no_track" ? 1 : 0,
           skippedNonCycling: result.skip === "non_cycling" ? 1 : 0,
         };
       }
@@ -341,6 +342,7 @@ async function importOneFile(
         tracksAdded: 0,
         segmentEfforts: 0,
         skippedRows: 1,
+        skippedNoTrack: 0,
         skippedNonCycling: 0,
       };
     } else if (isGpx || /^\s*(?:<\?xml|<gpx)/i.test(text.slice(0, 300))) {
@@ -484,6 +486,7 @@ async function importOneFile(
       tracksAdded: plan.attach.length,
       segmentEfforts,
       skippedRows: skippedRows + plan.duplicates,
+      skippedNoTrack: 0,
       skippedNonCycling,
     };
   } catch (err) {

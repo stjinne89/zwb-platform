@@ -67,6 +67,7 @@ export function StravaImportForm() {
       let tracksAdded = 0;
       let segmentEfforts = 0;
       let skippedRows = 0;
+      let skippedNoTrack = 0;
       let skippedNonCycling = 0;
       const failed: string[] = [];
 
@@ -92,9 +93,17 @@ export function StravaImportForm() {
           tracksAdded += result.tracksAdded;
           segmentEfforts += result.segmentEfforts;
           skippedRows += result.skippedRows;
+          skippedNoTrack += result.skippedNoTrack;
           skippedNonCycling += result.skippedNonCycling;
         });
       }
+
+      // Wat er niet in kwam, en waarom. Zonder dit las een map vol overgeslagen
+      // bestanden als "stonden er al".
+      const skipped: string[] = [];
+      if (skippedNonCycling > 0) skipped.push(`${skippedNonCycling} niet-fiets overgeslagen`);
+      if (skippedNoTrack > 0) skipped.push(`${skippedNoTrack} zonder GPS overgeslagen`);
+      if (skippedRows > 0) skipped.push(`${skippedRows} al bekend of onleesbaar`);
 
       if (imported === 0 && tracksAdded === 0) {
         formRef.current?.reset();
@@ -103,10 +112,16 @@ export function StravaImportForm() {
         } else if (failed.length > 0) {
           setState({
             kind: "error",
-            message: `Niets nieuws. ${count(failed.length, "bestand", "bestanden")} mislukt, o.a. ${failed[0]}`,
+            message: `Niets nieuws${skipped.length > 0 ? ` (${skipped.join(" · ")})` : ""}. ${count(failed.length, "bestand", "bestanden")} mislukt, o.a. ${failed[0]}`,
           });
         } else {
-          setState({ kind: "success", message: "Deze ritten stonden er al." });
+          setState({
+            kind: "success",
+            message:
+              skippedNonCycling > 0 || skippedNoTrack > 0
+                ? `Niets nieuws: ${skipped.join(" · ")}.`
+                : "Deze ritten stonden er al.",
+          });
         }
         return;
       }
@@ -133,8 +148,7 @@ export function StravaImportForm() {
       if (finish?.ok && finish.weekAwards > 0) {
         parts.push(`${finish.weekAwards} weekbadges bijgewerkt`);
       }
-      if (skippedNonCycling > 0) parts.push(`${skippedNonCycling} niet-fiets overgeslagen`);
-      if (skippedRows > 0) parts.push(`${skippedRows} al bekend of onleesbaar`);
+      parts.push(...skipped);
       if (finish?.ok && finish.milestoneErrors.length > 0) {
         parts.push(`badgecheck: ${finish.milestoneErrors[0]}`);
       }
