@@ -5873,6 +5873,8 @@ een gast mee op `/live/[id]`, en die kan `/leden` niet in.
 - **Namen zonder profiel-ID in de data**: de FRR-volglijst en het FRR-klassement
   per klasse (linken al naar ZwiftPower), de TTT-planner (vrij in te vullen
   namen), receptauteur (`contributor` wordt zonder ID geladen), ZWBgame.
+- **Trainer-cockpit**: de beoordeelrij en de jaarplankop zijn niet aangepast;
+  de cockpit heeft al een profiellink voor de gekozen renner.
 - **Wachtende aanmeldingen op `/leden`**: niet nagegaan of `/leden/[id]` een nog
   niet goedgekeurd profiel toont.
 
