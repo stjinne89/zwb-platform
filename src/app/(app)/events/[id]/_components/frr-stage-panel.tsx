@@ -15,7 +15,12 @@ import {
   loadZwbFrrStandings,
   type FrrStandingRow,
 } from "@/lib/frr/zwb-standings";
-import { loadClassRiders, loadLatestClass, loadZwbStageViews } from "@/lib/frr/zwb-stage-views";
+import {
+  loadClassRiders,
+  loadFrrTtStages,
+  loadLatestClass,
+  loadZwbStageViews,
+} from "@/lib/frr/zwb-stage-views";
 import { FrrExcludeToggle } from "./frr-exclude";
 import { FrrFollowForm, FrrFollowToggle } from "./frr-follow";
 import { FrrZwbStageSwitch } from "./frr-zwb-stage-switch";
@@ -131,8 +136,9 @@ export async function FrrStagePanel({
   const classRiders = myGenderClass
     ? await loadClassRiders(supabase, tourId, [myGenderClass])
     : [];
-  const [classResults, { data: exclusionRows }] = await Promise.all([
+  const [classResults, ttStages, { data: exclusionRows }] = await Promise.all([
     loadClassResults(supabase, tourId, classRiders.map((row) => row.zwiftId)),
+    loadFrrTtStages(supabase, tourId),
     userId
       ? supabase
           .from("frr_gc_exclusions")
@@ -144,9 +150,14 @@ export async function FrrStagePanel({
   ]);
   const exclusions = (exclusionRows ?? []) as Array<{ zwift_id: string; name: string }>;
   const excluded = new Set(exclusions.map((row) => row.zwift_id));
-  const provisional = computeProvisionalGc({ riders: classRiders, results: classResults, excluded });
+  const provisional = computeProvisionalGc({
+    riders: classRiders,
+    results: classResults,
+    excluded,
+    ttStages,
+  });
   const stageViews =
-    stageSwitch ? await loadZwbStageViews(supabase, tourId, zwb, excluded) : [];
+    stageSwitch ? await loadZwbStageViews(supabase, tourId, zwb, excluded, ttStages) : [];
   const myProvisional = provisional.ranked.find((row) => row.zwiftId === myZwiftId) ?? null;
 
   const standings = new Map<string, GcStanding>();

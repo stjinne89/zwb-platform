@@ -131,6 +131,14 @@ export function frrStageTitle(tourName: string, stage: number, suffix: string | 
   return extra ? `${base} · ${extra}` : base;
 }
 
+/**
+ * Een individuele tijdrit: "iTT" of "TT" in de titel, of het eventtype van
+ * Zwift. Een ploegentijdrit ("TTT") niet.
+ */
+export function isFrrTimeTrial(event: { title: string | null; zwiftEventType?: string | null }) {
+  return event.zwiftEventType === "TIME_TRIAL" || /\bi?TT\b/i.test(event.title ?? "");
+}
+
 /** Titel van een tijdslot: "FRR Ignite · Etappe 3 · iTT · 07:00". */
 export function frrSlotTitle(
   tourName: string,

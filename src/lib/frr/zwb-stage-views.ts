@@ -3,6 +3,7 @@
 // van Zwift tot en met die etappe.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isFrrTimeTrial } from "@/lib/frr/feed";
 import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
 import { compareFrrClass } from "@/lib/frr/watch";
 import {
@@ -75,6 +76,7 @@ export function buildZwbStageViews(input: {
   /** De ZWB'ers in het klassement van FRR, per etappe. */
   history: Array<ZwbStageRow & { afterStage: number }>;
   excluded?: Set<string>;
+  ttStages?: Set<number>;
 }): ZwbStageView[] {
   const byClass = new Map<string, ClassRider[]>();
   for (const rider of input.classRiders) {
@@ -93,7 +95,12 @@ export function buildZwbStageViews(input: {
       const upTo = input.results.filter((row) => row.stage <= stage);
       provisional = [];
       for (const [genderClass, riders] of byClass) {
-        const gc = computeProvisionalGc({ riders, results: upTo, excluded: input.excluded });
+        const gc = computeProvisionalGc({
+          riders,
+          results: upTo,
+          excluded: input.excluded,
+          ttStages: input.ttStages,
+        });
         for (const rider of [...gc.ranked, ...gc.pending]) {
           if (!input.zwbNames.has(rider.zwiftId) || rider.stagesRidden === 0) continue;
           provisional.push({
@@ -199,6 +206,29 @@ export async function loadClassRiders(
   }));
 }
 
+/** De etappes van de tour die een individuele tijdrit zijn. */
+export async function loadFrrTtStages(
+  supabase: SupabaseClient,
+  tourId: string,
+): Promise<Set<number>> {
+  const { data } = await supabase
+    .from("events")
+    .select("frr_stage, title, zwift_event_type")
+    .eq("frr_tour_id", tourId)
+    .not("frr_stage", "is", null);
+  const stages = new Set<number>();
+  for (const row of (data ?? []) as Array<{
+    frr_stage: number;
+    title: string | null;
+    zwift_event_type: string | null;
+  }>) {
+    if (isFrrTimeTrial({ title: row.title, zwiftEventType: row.zwift_event_type })) {
+      stages.add(row.frr_stage);
+    }
+  }
+  return stages;
+}
+
 /** De klasse van één renner uit de laatste etappe waarin hij bij FRR staat. */
 export async function loadLatestClass(
   supabase: SupabaseClient,
@@ -226,6 +256,7 @@ export async function loadZwbStageViews(
   tourId: string,
   zwb: ZwbFrrStandings,
   excluded: Set<string>,
+  ttStages: Set<number>,
 ): Promise<ZwbStageView[]> {
   const zwbIds = [...zwb.zwbNames.keys()];
   if (zwbIds.length === 0) return [];
@@ -288,5 +319,6 @@ export async function loadZwbStageViews(
       penaltyS: frrPenaltyS(row),
     })),
     excluded,
+    ttStages,
   });
 }

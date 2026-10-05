@@ -1,6 +1,8 @@
 // Voorlopig klassement van één FRR-klasse (migr. 0215), uit de finishtijden per
 // tijdslot. Per etappe en tijdslot zet de eerste renner van de klasse de tijd;
-// de rest verliest eGAP op hem. Het klassement is de som over de etappes.
+// de rest verliest eGAP op hem. Een tijdrit gaat op individuele tijd: daar zet
+// de snelste van de klasse over alle tijdsloten heen de tijd. Het klassement is
+// de som over de etappes.
 //
 // FRR rekent zelf later, met straffen en correcties; dit is dus nooit officieel.
 // Puur.
@@ -56,6 +58,8 @@ export function computeProvisionalGc(input: {
   results: ProvisionalResult[];
   /** Renners die niet meetellen, ook niet als snelste van hun slot. */
   excluded?: Set<string>;
+  /** Tijdritten: één snelste tijd per klasse, over alle tijdsloten. */
+  ttStages?: Set<number>;
 }): ProvisionalGc {
   const inClass = new Set(input.riders.map((rider) => rider.zwiftId));
   const ofClass = input.results.filter(
@@ -75,9 +79,11 @@ export function computeProvisionalGc(input: {
   }
 
   const counted = ofClass.filter((row) => !input.excluded?.has(row.zwiftId));
+  const groupKey = (row: ProvisionalResult) =>
+    input.ttStages?.has(row.stage) ? `${row.stage}` : `${row.stage}|${row.slotId}`;
   const slotBest = new Map<string, number>();
   for (const row of counted) {
-    const key = `${row.stage}|${row.slotId}`;
+    const key = groupKey(row);
     slotBest.set(key, Math.min(slotBest.get(key) ?? Infinity, row.timeS));
   }
 
@@ -88,7 +94,7 @@ export function computeProvisionalGc(input: {
     Map<number, { gapS: number; timeS: number; pen: string | null }>
   >();
   for (const row of counted) {
-    const gapS = row.timeS - slotBest.get(`${row.stage}|${row.slotId}`)!;
+    const gapS = row.timeS - slotBest.get(groupKey(row))!;
     const stages = perRider.get(row.zwiftId) ?? new Map();
     const known = stages.get(row.stage);
     if (!known || gapS < known.gapS) {

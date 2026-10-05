@@ -8,6 +8,7 @@ import {
   frrStageTitle,
   frrTourTitle,
   groupFrrFeed,
+  isFrrTimeTrial,
   isGeneratedFrrTitle,
   parseFrrStageName,
 } from "@/lib/frr/feed";
@@ -299,6 +300,17 @@ describe("computeProvisionalGc", () => {
     ]);
   });
 
+  it("rekent een tijdrit op de snelste van de klasse over alle tijdsloten", () => {
+    const gc = computeProvisionalGc({ riders, results, ttStages: new Set([1]) });
+    // Etappe 1: "ander" (4004,0 in slot a) zet de tijd, ook voor slot b.
+    expect(gc.ranked.map((row) => [row.zwiftId, row.position, row.egapS])).toEqual([
+      ["snel", 1, 22.132],
+      ["buur", 2, 26.714],
+      ["ander", 3, 296.2],
+      ["ik", 4, 301.553],
+    ]);
+  });
+
   it("zet wie een etappe mist apart, met wat hij wel reed", () => {
     const gc = computeProvisionalGc({ riders, results });
     expect(gc.pending.map((row) => [row.zwiftId, row.position, row.stagesRidden, row.egapS])).toEqual([
@@ -341,6 +353,16 @@ describe("computeProvisionalGc", () => {
     expect(gc.stages).toEqual([]);
     expect(gc.ranked).toEqual([]);
     expect(gc.pending).toHaveLength(riders.length);
+  });
+});
+
+describe("isFrrTimeTrial", () => {
+  it("herkent de individuele tijdrit aan titel of eventtype, niet de ploegentijdrit", () => {
+    expect(isFrrTimeTrial({ title: "FRR Ignite · Etappe 3 · iTT" })).toBe(true);
+    expect(isFrrTimeTrial({ title: "FRR Ignite · Etappe 3 · iTT · 07:00" })).toBe(true);
+    expect(isFrrTimeTrial({ title: "FRR Ignite · Etappe 2", zwiftEventType: "TIME_TRIAL" })).toBe(true);
+    expect(isFrrTimeTrial({ title: "FRR Ignite · Etappe 2", zwiftEventType: "RACE" })).toBe(false);
+    expect(isFrrTimeTrial({ title: "FRR Ignite · Etappe 5 · TTT" })).toBe(false);
   });
 });
 

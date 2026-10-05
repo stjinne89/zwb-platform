@@ -312,7 +312,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 > FRR alleen etappe 1, en daarin iedereen op positie 1 met eGAP 0. Wie wil weten
 > waar hij staat, moet het zelf uitrekenen. De eigenaar legde de regel uit: per
 > tijdslot zet de eerste renner van een klasse de tijd, de rest verliest eGAP op
-> hem, en het klassement is de som over de etappes.
+> hem, en het klassement is de som over de etappes. *(Bijgewerkt 2026-10-05: in
+> een tijdrit zet de snelste van de klasse over alle tijdsloten de tijd; zie de
+> ronde van 5 oktober.)*
 >
 > **Wat.**
 > - `frr_stage_results`: finishtijd en startgroep per renner per tijdslot. De
@@ -438,6 +440,35 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 > zodat de gereden etappes worden ingehaald.
 >
 > **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite.
+
+> **FRR voorlopig klassement: een tijdrit rekent over alle tijdsloten, 2026-10-05 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar zag bij etappe 3 van Ignite (iTT) dat het voorlopige
+> klassement per tijdslot een eigen snelste nam. Een tijdrit gaat op individuele
+> tijd: er is per klasse één snelste over alle tijdsloten heen, en daarop wordt
+> de eGAP gerekend. De regel "per tijdslot" geldt alleen voor een gewone etappe.
+>
+> **Wat.**
+> - `computeProvisionalGc` (`src/lib/frr/provisional.ts`) kreeg `ttStages`: voor
+>   die etappes is de snelste van de klasse de snelste van de hele etappe.
+> - `isFrrTimeTrial` (`src/lib/frr/feed.ts`): "iTT" of "TT" in de titel, of
+>   eventtype `TIME_TRIAL` van Zwift; "TTT" niet. `loadFrrTtStages`
+>   (`zwb-stage-views.ts`) leest dat uit de events van de tour. Beide plekken met
+>   een voorlopig klassement gebruiken het: het eigen klassement op de etappe- en
+>   tourpagina, en "ZWB in het klassement" per etappe op de tourpagina.
+> - `/hulp` noemt de uitzondering.
+> - Productie, alleen gelezen: etappe 3 en 6 van Ignite zijn tijdritten (titel
+>   én eventtype); voor etappe 3 staan 461 finishtijden klaar.
+>
+> **Bewust niet.** Een ploegentijdrit apart rekenen: Ignite heeft er geen, en hoe
+> FRR die telt is niet nagegaan.
+>
+> **Niet nagegaan.** Of de uitkomst overeenkomt met wat FRR straks voor etappe 3
+> publiceert; dat klassement was er nog niet.
+>
+> **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite, met een
+> tijdrit-geval op de tijden van 4 oktober en een test op de herkenning.
 
 > **SRC-uitslag op het dashboard, 48 uur, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
