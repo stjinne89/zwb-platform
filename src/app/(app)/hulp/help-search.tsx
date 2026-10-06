@@ -135,9 +135,9 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Welke warming-up bij welke wedstrijd",
-    text: "Zes warming-ups, met bursts van 6 seconden.",
+    text: "Vijf warming-ups, met bursts van 6 seconden.",
     href: "/hulp#warming-up",
-    terms: "warming-up warmup warm up inrijden opwarmen burst bursts sprint opener tijdrit tt ttt ploegentijdrit scratch puntenrace race wedstrijd start",
+    terms: "warming-up warmup warm up inrijden opwarmen burst bursts sprint opener tijdrit tt ttt ploegentijdrit scratch puntenrace zrl race wedstrijd start",
   },
   {
     title: "Trainingsdoel en je schema",

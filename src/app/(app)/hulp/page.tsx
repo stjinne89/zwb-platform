@@ -1179,13 +1179,13 @@ export default function HelpPage() {
           >
             <h3 className="text-sm font-semibold">Welke warming-up bij welke wedstrijd</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Je trainer kan zes warming-ups in je schema zetten. Tijdrit en
+              Je trainer kan vijf warming-ups in je schema zetten. Tijdrit en
               ploegentijdrit (25 minuten) bouwen lang op naar wedstrijdtempo.
-              Scratch en puntenrace (20 minuten) bereiden je voor op een harde
-              start en op sprints. Lange wedstrijd (12 minuten) spaart energie,
-              en kort (10 minuten) is er voor als je weinig tijd hebt. Elke
-              warming-up eindigt met bursts van 6 seconden en een minuut
-              losdraaien ertussen: voluit voor scratch en puntenrace, een
+              ZRL lang (21 minuten) bereidt je voor op de harde start en de
+              sprints van een scratch- of puntenrace; ZRL kort (10 minuten) is
+              er voor als je weinig tijd hebt. Lange wedstrijd (12 minuten)
+              spaart energie. Elke warming-up eindigt met bursts van 6 seconden
+              en een minuut losdraaien ertussen: voluit voor ZRL, een
               versnelling voor de tijdritten. Wees een paar minuten voor de
               start klaar en trap rustig door.
             </p>

@@ -1,6 +1,6 @@
 # Warming-up per wedstrijdtype
 
-Onderzoek van 2026-10-06, bij de zes warming-ups in de workoutbibliotheek
+Onderzoek van 2026-10-06, bij de vijf warming-ups in de workoutbibliotheek
 (migratie `0221_workout_library_warmups.sql`).
 
 De studies leveren **principes**, geen ranglijst per wedstrijdtype. Er is geen
@@ -61,7 +61,7 @@ principes en uit wat de wedstrijd vraagt.
   Gevolg: in de tijdrit en ploegentijdrit submaximaal en weinig; voluit alleen
   waar start of sprint de wedstrijd beslist.
 
-## De zes warming-ups
+## De vijf warming-ups
 
 Doelen in %FTP. Een burst is een blok van een minuut dat begint met 6 seconden
 en daarna losdraait.
@@ -69,14 +69,13 @@ en daarna losdraait.
 | Warming-up | Min | Opbouw | Waarom |
 |---|---|---|---|
 | Tijdrit | 25 | 5 @50-60 · 4 @60-75 · 3 @80-90 · 2 @95-100 · 3 los · 1 @105-115 · 2 los · 3 bursts (versnelling) · 2 los | Constant hoog vermogen vanaf de eerste seconde: priming weegt het zwaarst. Bursts licht, omdat het bewijs dun is. |
-| Scratch | 20 | 5 @50-60 · 4 @65-80 · 2 @90-100 · 2 los · 1 @110-120 · 2 los · 3 bursts (voluit) · 1 los | De start is het zwaarste stuk. De laatste burst valt binnen het venster van de potentiëring. |
-| Puntenrace | 21 | als scratch, met 4 bursts | Herhaalde sprints beslissen: vier activaties, het maximum dat het herstel van fosfocreatine toelaat. |
+| ZRL lang (scratch en puntenrace) | 21 | 5 @50-60 · 4 @65-80 · 2 @90-100 · 2 los · 1 @110-120 · 2 los · 4 bursts (voluit) · 1 los | De start is het zwaarste stuk en sprints beslissen: vier activaties, het maximum dat het herstel van fosfocreatine toelaat. De laatste burst valt binnen het venster van de potentiëring. |
 | Ploegentijdrit | 25 | 5 @50-60 · 4 @60-80 · 3 @85-95 · 2 los · 2 x (1 @110-120 kop, 1 @80-85 wiel) · 3 los · 2 bursts (versnelling) · 2 los | Het ritme van de race zelf, plus twee versnellingen voor het op gang brengen van de trein. |
 | Lange wedstrijd | 12 | 5 @50-60 · 3 @65-75 · 1 @90-100 · 1 los · 1 burst · 1 los | Glycogeen en warmte sparen. Eén burst kost vrijwel niets. |
-| Kort | 10 | 3 @50-60 · 3 @65-85 · 1 @100-110 · 1 los · 2 bursts | Het minimum dat principe 1 en 2 nog raakt. |
+| ZRL kort | 10 | 3 @50-60 · 3 @65-85 · 1 @100-110 · 1 los · 2 bursts | Het minimum dat principe 1 en 2 nog raakt. |
 
-Scratch en puntenrace verschillen alleen in het aantal bursts. Een groter
-verschil is uit de literatuur niet te verdedigen.
+Scratch en puntenrace delen één warming-up: een verschil tussen die twee is
+uit de literatuur niet te verdedigen.
 
 ## Open
 

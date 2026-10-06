@@ -64,14 +64,13 @@ afterAll(async () => {
 const warmups = async () => (await templates()).filter((row) => row.form === "warmup");
 
 describe("warming-ups in de bibliotheek (0221)", () => {
-  it("voegt zes standaard warming-ups toe en laat de rest staan", async () => {
+  it("voegt vijf standaard warming-ups toe en laat de rest staan", async () => {
     const rows = await warmups();
     expect(rows.map((row) => row.title)).toEqual([
-      "Warming-up kort",
+      "Warming-up ZRL kort",
+      "Warming-up ZRL lang",
       "Warming-up lange wedstrijd",
       "Warming-up ploegentijdrit",
-      "Warming-up puntenrace",
-      "Warming-up scratch",
       "Warming-up tijdrit",
     ]);
     expect(rows.every((row) => row.is_standard)).toBe(true);

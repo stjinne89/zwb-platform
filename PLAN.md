@@ -5935,8 +5935,10 @@ na en helpt start en sprint, niet het duurvermogen.
 - Nieuwe trainingsvorm `warmup` ("Warming-up") in `training-forms.ts` en in de
   check op `training_workout_templates.form`. In de ronde van 0194 is bewust
   geen vorm toegevoegd vanwege die check; hier is de vorm het hele doel.
-- Zes standaardworkouts: tijdrit (25 min), scratch (20), puntenrace (21),
-  ploegentijdrit (25), lange wedstrijd (12) en kort (10). `intensity` is
+- Vijf standaardworkouts: tijdrit (25 min), ZRL lang (21, voor scratch en
+  puntenrace), ZRL kort (10), ploegentijdrit (25) en lange wedstrijd (12).
+  Scratch en puntenrace waren eerst twee workouts die alleen in het aantal
+  bursts verschilden; Stijn voegde ze samen. `intensity` is
   `endurance`, zodat `dropShortRecoveryRides` ze niet weggooit.
 - **Burst in een blok.** `WorkoutBlock` heeft een optioneel `burstSeconds`
   (1-30): het blok begint met zoveel seconden burst en rijdt de rest op zijn
