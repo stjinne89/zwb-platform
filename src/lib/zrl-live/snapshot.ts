@@ -201,6 +201,14 @@ async function saveFrozenRaceData(zwiftEventId: string, data: RaceData): Promise
   }
 }
 
+/**
+ * Laatste goede uitslag per subgroep, binnen deze server-instance. Hapert Zwift
+ * een ronde, dan blijven de finishers staan in plaats van dat FIN en podium
+ * terugvallen op nul. `resultsOk` blijft dan onwaar: definitief worden of
+ * bevriezen kan alleen met een verse uitslag.
+ */
+const lastResults = new Map<string, SubgroupResult[]>();
+
 async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
   const zwiftEvent = await fetchZwiftEvent(zwiftEventId);
   const subgroups = parseSubgroups(zwiftEvent);
@@ -211,8 +219,11 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
         // Een haperende uitslag mag de live stand niet breken, maar mag ook niet
         // stil als "nog niemand binnen" gelden: dan zou er bevroren worden.
         fetchSubgroupResults(subgroup.id).then(
-          (results) => ({ results, resultsOk: true }),
-          () => ({ results: [] as SubgroupResult[], resultsOk: false }),
+          (results) => {
+            lastResults.set(subgroup.id, results);
+            return { results, resultsOk: true };
+          },
+          () => ({ results: lastResults.get(subgroup.id) ?? [], resultsOk: false }),
         ),
       ]);
       return { ...subgroup, entrants: entrants.map(({ zwiftId, name }) => ({ zwiftId, name })), ...outcome };
