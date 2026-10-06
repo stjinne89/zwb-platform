@@ -21,6 +21,7 @@ export const TRAINING_FORMS = [
   { slug: "anaeroob", label: "Anaeroob", intensity: "anaerobic" },
   { slug: "sprint", label: "Sprint", intensity: "anaerobic" },
   { slug: "test", label: "Test", intensity: "threshold" },
+  { slug: "warmup", label: "Warming-up", intensity: "endurance" },
 ] as const satisfies readonly TrainingForm[];
 
 export type TrainingFormSlug = (typeof TRAINING_FORMS)[number]["slug"];

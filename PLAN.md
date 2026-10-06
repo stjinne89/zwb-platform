@@ -5917,6 +5917,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — warming-ups per wedstrijdtype, met bursts van 6 seconden
+
+**2026-10-06.** Commit: de commit die dit blok toevoegt. Migratie
+`0221_workout_library_warmups.sql` (nog toepassen).
+
+**Aanleiding.** Stijn wilde warming-ups in de workoutbibliotheek, onderbouwd per
+wedstrijdtype, en met bursts van 6 seconden als anaerobe prikkel.
+
+**Onderzoek.** Staat in `docs/warming-up-per-wedstrijdtype.md`. Conclusie: de
+literatuur geeft principes (priming boven de drempel, weinig en korte sprints,
+herstel ervoor en erna), geen ranglijst per wedstrijdtype; de koppeling aan elk
+type is onze afleiding. Een burst van 6 seconden kost weinig, werkt 4-6 minuten
+na en helpt start en sprint, niet het duurvermogen.
+
+**Wat er veranderde.**
+- Nieuwe trainingsvorm `warmup` ("Warming-up") in `training-forms.ts` en in de
+  check op `training_workout_templates.form`. In de ronde van 0194 is bewust
+  geen vorm toegevoegd vanwege die check; hier is de vorm het hele doel.
+- Zes standaardworkouts: tijdrit (25 min), scratch (20), puntenrace (21),
+  ploegentijdrit (25), lange wedstrijd (12) en kort (10). `intensity` is
+  `endurance`, zodat `dropShortRecoveryRides` ze niet weggooit.
+- **Burst in een blok.** `WorkoutBlock` heeft een optioneel `burstSeconds`
+  (1-30): het blok begint met zoveel seconden burst en rijdt de rest op zijn
+  doel. Blokken blijven daardoor hele minuten; alleen de burst is korter. Naar
+  intervals.icu gaat hij als eigen stap van 6 seconden op 150-200% FTP
+  (`blocksToWorkoutDoc`), en `eventWorkoutBlocks` vouwt zo'n stap weer terug in
+  het blok erna. De burst telt mee in de geschatte belasting, niet in het
+  kernwerk.
+- De blokeditor heeft een veld "Burst (sec)" en stuurt het veld mee, zodat een
+  burst een bewerking overleeft.
+- `/hulp#warming-up`, met een item in de zoekindex.
+
+**Bewust niet gebouwd.**
+- Blokken in seconden als algemeen begrip: dat raakt elke som en weergave van
+  minuten, en de burst in een blok doet voor dit doel hetzelfde.
+- De AI plant geen bursts; het promptschema is niet aangepast.
+- Geen automatische warming-up bij een event. Dat een eventblok geen inrijden
+  krijgt, blijft staan.
+- De bibliotheek blijft alleen voor trainers zichtbaar; leden kiezen zelf geen
+  warming-up.
+- Geen warming-ups voor de omnium-onderdelen.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-suite. `0221` draait
+tegen PGlite bovenop 0106, 0107, 0133 en 0194. **Niet lokaal te verifiëren:**
+`0221` op de echte database, en hoe de burst van 6 seconden zich in
+intervals.icu, de FIT en Zwift gedraagt. Een stap met vrij rijden (ERG uit) is
+niet geprobeerd: dat vraagt een push naar een echt account. In ERG loopt een
+trainer bij 6 seconden achter.
+
 ### Opgeleverd — ZWBlokken Zwift: Climb Portals tellen niet meer mee; import zegt wat hij oversloeg
 
 **2026-10-05.** Commit: de commit die dit blok toevoegt. Migratie

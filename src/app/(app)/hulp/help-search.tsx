@@ -134,6 +134,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "naam namen titel trainingsvorm rustige duur intensieve duur extensieve tempo sweet spot sweetspot drempel kernwerk zwbeter worden intervals zwift",
   },
   {
+    title: "Welke warming-up bij welke wedstrijd",
+    text: "Zes warming-ups, met bursts van 6 seconden.",
+    href: "/hulp#warming-up",
+    terms: "warming-up warmup warm up inrijden opwarmen burst bursts sprint opener tijdrit tt ttt ploegentijdrit scratch puntenrace race wedstrijd start",
+  },
+  {
     title: "Trainingsdoel en je schema",
     text: "Max. trainingsuren per week, beschikbare dagen en een dag aanpassen.",
     href: "/hulp#trainingsschema",

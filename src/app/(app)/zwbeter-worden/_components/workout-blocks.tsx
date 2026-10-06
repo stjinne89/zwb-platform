@@ -9,6 +9,7 @@ import {
   INTENSITY_LABELS,
   intensityFromLoad,
   intensityFromPct,
+  MAX_BURST_SECONDS,
   powerRangePercentForBlock,
   type WorkoutBlock,
 } from "@/lib/training/workouts";
@@ -110,6 +111,7 @@ export function WorkoutBlocks({
             className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
           >
             {block.label} {block.durationMinutes}m <PowerText text={block.target} />
+            {block.burstSeconds ? ` · ${block.burstSeconds}s burst` : null}
           </span>
         ))}
       </div>
@@ -164,7 +166,33 @@ function powerTargetFromStep(row: Record<string, unknown>) {
   return { target: "", pct: null as number | null };
 }
 
-function intervalStepBlocks(value: unknown): WorkoutBlock[] {
+type TimedBlock = WorkoutBlock & { seconds: number };
+
+/**
+ * Een burst gaat als eigen korte stap naar intervals.icu (blocksToWorkoutDoc).
+ * Terug wordt hij weer het begin van het blok erna, anders telt hij als minuut.
+ */
+function foldBursts(steps: TimedBlock[]): WorkoutBlock[] {
+  const blocks: WorkoutBlock[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const { seconds, ...block } = steps[i];
+    const next = steps[i + 1];
+    if (seconds <= MAX_BURST_SECONDS && next) {
+      const { seconds: nextSeconds, ...rest } = next;
+      blocks.push({
+        ...rest,
+        durationMinutes: Math.max(1, Math.round((seconds + nextSeconds) / 60)),
+        burstSeconds: Math.round(seconds),
+      });
+      i++;
+      continue;
+    }
+    blocks.push(block);
+  }
+  return blocks;
+}
+
+function intervalStepBlocks(value: unknown): TimedBlock[] {
   if (Array.isArray(value)) return value.flatMap(intervalStepBlocks);
   const row = recordValue(value);
   if (!row) return [];
@@ -189,13 +217,16 @@ function intervalStepBlocks(value: unknown): WorkoutBlock[] {
       target,
       notes: "",
       intensity: intensityFromPct(pct),
+      seconds,
     },
   ];
 }
 
 export function eventWorkoutBlocks(event: IntervalsEvent): WorkoutBlock[] {
   const doc = recordValue(event.workout_doc);
-  const docBlocks = doc ? intervalStepBlocks(doc.steps ?? doc.blocks ?? doc.children) : [];
+  const docBlocks = doc
+    ? foldBursts(intervalStepBlocks(doc.steps ?? doc.blocks ?? doc.children))
+    : [];
   if (docBlocks.length > 0) return docBlocks;
 
   const load = positiveNumber(event.icu_training_load ?? event.load_target ?? doc?.tss);

@@ -1173,6 +1173,24 @@ export default function HelpPage() {
               workouts.
             </p>
           </article>
+          <article
+            id="warming-up"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Welke warming-up bij welke wedstrijd</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je trainer kan zes warming-ups in je schema zetten. Tijdrit en
+              ploegentijdrit (25 minuten) bouwen lang op naar wedstrijdtempo.
+              Scratch en puntenrace (20 minuten) bereiden je voor op een harde
+              start en op sprints. Lange wedstrijd (12 minuten) spaart energie,
+              en kort (10 minuten) is er voor als je weinig tijd hebt. Elke
+              warming-up eindigt met bursts van 6 seconden en een minuut
+              losdraaien ertussen: voluit voor scratch en puntenrace, een
+              versnelling voor de tijdritten. Wees een paar minuten voor de
+              start klaar en trap rustig door.
+            </p>
+          </article>
+
           <article id="ftp-test" className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">FTP-test</h3>
             <p className="mt-2 text-sm text-muted-foreground">

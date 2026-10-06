@@ -13,7 +13,9 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
   blockColor,
+  burstSecondsOf,
   INTENSITY_LABELS,
+  MAX_BURST_SECONDS,
   powerRangePercentForBlock,
   WORKOUT_INTENSITIES,
   type WorkoutBlock,
@@ -24,7 +26,14 @@ import { cn } from "@/lib/utils";
 
 /** Twee blokken zijn "hetzelfde" als elk veld gelijk is. */
 function signatureOf(block: WorkoutBlock) {
-  return [block.label, block.durationMinutes, block.target, block.notes, block.intensity].join("|");
+  return [
+    block.label,
+    block.durationMinutes,
+    block.target,
+    block.notes,
+    block.intensity,
+    block.burstSeconds ?? 0,
+  ].join("|");
 }
 
 /** De posities van alle blokken die identiek zijn aan die op `index`. */
@@ -96,6 +105,7 @@ export function BlockEditor({
           <input type="hidden" name="block_target" value={block.target} />
           <input type="hidden" name="block_notes" value={block.notes} />
           <input type="hidden" name="block_intensity" value={block.intensity} />
+          <input type="hidden" name="block_burst" value={block.burstSeconds ?? ""} />
         </div>
       ))}
 
@@ -166,6 +176,7 @@ export function BlockEditor({
                 style={{ backgroundColor: blockColor(block, ftpWatts ?? null) }}
               />
               {block.label || "Blok"} {block.durationMinutes}m <PowerText text={block.target} />
+              {block.burstSeconds ? <span>{block.burstSeconds}s burst</span> : null}
               {group.indexes.length > 1 ? (
                 <span className="font-medium tabular-nums">×{group.indexes.length}</span>
               ) : null}
@@ -200,7 +211,7 @@ export function BlockEditor({
             </button>
           </div>
 
-          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_90px_1fr_140px]">
+          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_90px_90px_1fr_140px]">
             <label className="text-xs text-muted-foreground">
               Naam
               <input
@@ -218,6 +229,19 @@ export function BlockEditor({
                 value={current.durationMinutes}
                 onChange={(event) =>
                   patch({ durationMinutes: Math.max(0, Number(event.target.value) || 0) })
+                }
+                className={FIELD}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Burst (sec)
+              <input
+                type="number"
+                min="0"
+                max={MAX_BURST_SECONDS}
+                value={current.burstSeconds ?? ""}
+                onChange={(event) =>
+                  patch({ burstSeconds: burstSecondsOf(event.target.value) ?? undefined })
                 }
                 className={FIELD}
               />
@@ -247,7 +271,7 @@ export function BlockEditor({
                 ))}
               </select>
             </label>
-            <label className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">
+            <label className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-5">
               Notitie
               <input
                 value={current.notes}

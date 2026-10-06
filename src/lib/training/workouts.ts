@@ -17,7 +17,25 @@ export type WorkoutBlock = {
   target: string;
   notes: string;
   intensity: WorkoutIntensity;
+  /**
+   * Het blok begint met een burst van zoveel seconden; de rest rijdt op
+   * `target`. Zo blijft de duur van elk blok een heel aantal minuten.
+   */
+  burstSeconds?: number;
 };
+
+/** Langer dan dit is geen burst meer maar een interval. */
+export const MAX_BURST_SECONDS = 30;
+
+/** Vermogen van een burst in %FTP, voor de fietscomputer en de belasting. */
+export const BURST_FTP_RANGE: [number, number] = [150, 200];
+
+/** Een bruikbare burstlengte in hele seconden, of null. */
+export function burstSecondsOf(value: unknown): number | null {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n) || n < 1) return null;
+  return Math.min(MAX_BURST_SECONDS, n);
+}
 
 export type WorkoutPowerTarget = {
   units: "%ftp" | "w";
@@ -467,12 +485,14 @@ export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: Workou
   const blocks = value
     .map((row): WorkoutBlock => {
       const record = (row ?? {}) as Record<string, unknown>;
+      const burstSeconds = burstSecondsOf(record.burstSeconds);
       return {
         label: String(record.label ?? "Blok").trim() || "Blok",
         durationMinutes: positiveMinutes(record.durationMinutes),
         target: String(record.target ?? "").trim(),
         notes: String(record.notes ?? "").trim(),
         intensity: asIntensity(record.intensity, fallbackIntensity),
+        ...(burstSeconds ? { burstSeconds } : {}),
       };
     })
     .filter((block) => block.durationMinutes > 0);
@@ -486,6 +506,7 @@ export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutInt
   const notes = formData.getAll("block_notes").map(String);
   const intensities = formData.getAll("block_intensity").map(String);
   const deletes = formData.getAll("block_delete").map(String);
+  const bursts = formData.getAll("block_burst").map(String);
   const max = Math.max(labels.length, durations.length, targets.length, notes.length, intensities.length);
   const blocks: WorkoutBlock[] = [];
 
@@ -502,6 +523,7 @@ export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutInt
       target,
       notes: note,
       intensity: asIntensity(intensities[i], fallbackIntensity),
+      ...(burstSecondsOf(bursts[i]) ? { burstSeconds: burstSecondsOf(bursts[i])! } : {}),
     });
   }
 
@@ -521,12 +543,24 @@ function targetForIntervals(target: string) {
   return text;
 }
 
+function formatSeconds(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes ? `${minutes}m` : ""}${rest ? `${rest}s` : ""}`;
+}
+
 export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
   return blocks
     .map((block) => {
       const target = targetForIntervals(block.target);
       const suffix = [target, block.notes].filter(Boolean).join(" ");
-      return `- ${block.durationMinutes}m${suffix ? ` ${suffix}` : ""}`;
+      const rest = suffix ? ` ${suffix}` : "";
+      if (!block.burstSeconds) return `- ${block.durationMinutes}m${rest}`;
+      const remainder = block.durationMinutes * 60 - block.burstSeconds;
+      return [
+        `- ${block.burstSeconds}s ${BURST_FTP_RANGE[0]}-${BURST_FTP_RANGE[1]}% burst`,
+        `- ${formatSeconds(remainder)}${rest}`,
+      ].join("\n");
     })
     .join("\n");
 }
@@ -800,12 +834,20 @@ export function blocksToWorkoutDoc(
 ): { duration: number; steps: Array<Record<string, unknown>> } | null {
   const steps = blocks
     .filter((block) => block.durationMinutes > 0)
-    .map((block) => {
+    .flatMap((block) => {
       const power = blockToPowerTarget(block, ftp);
       const duration = Math.round(block.durationMinutes * 60);
       const step: Record<string, unknown> = { duration };
       if (power) step.power = power;
-      return step;
+      if (!block.burstSeconds) return [step];
+      // Een burst is een eigen stap vooraan; samen houden ze de duur van het blok.
+      return [
+        {
+          duration: block.burstSeconds,
+          power: rangeTarget(BURST_FTP_RANGE[0], BURST_FTP_RANGE[1], "%ftp"),
+        },
+        { ...step, duration: duration - block.burstSeconds },
+      ];
     });
   if (steps.length === 0) return null;
   const duration = steps.reduce((total, step) => total + Number(step.duration), 0);
@@ -856,7 +898,13 @@ export function estimateTrainingLoad(
   return Math.round(
     blocks.reduce((total, block) => {
       const factor = loadIntensityFactor(block, ftpWatts);
-      return total + (block.durationMinutes / 60) * factor * factor * 100;
+      const burstHours = (block.burstSeconds ?? 0) / 3600;
+      const burstFactor = (BURST_FTP_RANGE[0] + BURST_FTP_RANGE[1]) / 200;
+      return (
+        total +
+        (block.durationMinutes / 60 - burstHours) * factor * factor * 100 +
+        burstHours * burstFactor * burstFactor * 100
+      );
     }, 0),
   );
 }
