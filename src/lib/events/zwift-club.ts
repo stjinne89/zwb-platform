@@ -104,11 +104,21 @@ function entrantsUrl(subgroupId: string, start = 0): string {
 
 // Token-cache op moduleniveau; blijft binnen dezelfde server-instance bestaan.
 let tokenCache: { accessToken: string; expiresAt: number } | null = null;
+// Gelijktijdige verzoeken zonder token delen één login: vijf logins tegelijk gaf
+// bij Zwift een 400 (gemeten 2026-10-06).
+let tokenRequest: Promise<string> | null = null;
 
-async function fetchToken(): Promise<string> {
+function fetchToken(): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) {
-    return tokenCache.accessToken;
+    return Promise.resolve(tokenCache.accessToken);
   }
+  tokenRequest ??= requestToken().finally(() => {
+    tokenRequest = null;
+  });
+  return tokenRequest;
+}
+
+async function requestToken(): Promise<string> {
 
   const body = new URLSearchParams({
     client_id: ZWIFT_CLIENT_ID,

@@ -117,6 +117,16 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 >   (binnen de server-instance). Mislukt het ophalen toch, dan blijven de
 >   finishers staan; `resultsOk` blijft onwaar, dus definitief worden of
 >   bevriezen kan alleen met een verse uitslag.
+> - Tweede commit, na een melding van de eigenaar dezelfde avond: "Uitslag
+>   vastzetten" bij Bdev gaf "Zwift gaf niet alle gegevens terug". Nagemeten voor
+>   die groep alleen (21:27): 34 inschrijvers, 30 finishers en alle vijf
+>   segmenten van Makuri 40 kwamen goed terug. De weigering komt dus van dezelfde
+>   limiet, opgemaakt door de andere open standen. De reden zegt nu wat ontbrak:
+>   "Zwift gaf de uitslag niet terug" of "Zwift gaf niet alle segmenten terug"
+>   (`ZrlLiveView.missing`, `checkTeamResult`).
+> - `fetchToken` deelt één login tussen verzoeken die tegelijk beginnen. Bij de
+>   meting gaf Zwift een 400 op een van vijf gelijktijdige logins. In de live
+>   stand gaat `fetchZwiftEvent` voorop, dus daar speelde dit waarschijnlijk niet.
 >
 > **Getest.** `tsc`, ESLint, `tests/unit/zwift-subgroup-results.test.ts`
 > (wachtrij, opnieuw na 429, fout na drie pogingen). De echte functie voor acht

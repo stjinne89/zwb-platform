@@ -303,6 +303,8 @@ export type ZrlLiveView = {
   score: ScoreResult;
   /** Uitslag en alle segmenten kwamen zonder fout van Zwift; voorwaarde om te bevriezen. */
   complete: boolean;
+  /** Wat er ontbrak als `complete` onwaar is. */
+  missing?: "uitslag" | "segmenten";
 };
 
 export type ZrlLiveOutcome =
@@ -489,6 +491,7 @@ export async function loadZrlLive(
     teamLabels,
     score,
     complete: subgroup.resultsOk && data.segmentsOk,
+    missing: !subgroup.resultsOk ? "uitslag" : !data.segmentsOk ? "segmenten" : undefined,
   };
 
   // Race gereden en alle Zwift-data binnen: wegschrijven, zodat de raceweekpagina

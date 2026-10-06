@@ -74,6 +74,18 @@ describe("fetchSubgroupResults", () => {
     expect(safeFetch).toHaveBeenCalledTimes(3);
   });
 
+  it("logt één keer in voor verzoeken die tegelijk beginnen", async () => {
+    safeFetch.mockImplementation(async () => json(200, {}));
+    const { fetchZwiftEvent } = await import("@/lib/events/zwift-club");
+
+    const events = Promise.all(["1", "2", "3"].map((id) => fetchZwiftEvent(id)));
+    await vi.runAllTimersAsync();
+    await events;
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(safeFetch).toHaveBeenCalledTimes(3);
+  });
+
   it("geeft de fout door als Zwift blijft weigeren", async () => {
     safeFetch.mockImplementation(async () => json(429, {}));
     const { fetchSubgroupResults } = await import("@/lib/events/zwift-club");

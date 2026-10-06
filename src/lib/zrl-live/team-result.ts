@@ -47,7 +47,15 @@ export type TeamResultCheck =
  * stand er kloppend uitzien terwijl hij het niet is.
  */
 export function checkTeamResult(view: ZrlLiveView): TeamResultCheck {
-  if (!view.complete) return { ok: false, reason: "Zwift gaf niet alle gegevens terug" };
+  if (!view.complete) {
+    const reason =
+      view.missing === "uitslag"
+        ? "Zwift gaf de uitslag niet terug"
+        : view.missing === "segmenten"
+          ? "Zwift gaf niet alle segmenten terug"
+          : "Zwift gaf niet alle gegevens terug";
+    return { ok: false, reason };
+  }
   if (!view.score.final) return { ok: false, reason: "uitslag nog niet definitief" };
   if (!view.ownTeam) return { ok: false, reason: "geen eigen team" };
   const own = view.score.teams.find((team) => team.team === view.ownTeam);

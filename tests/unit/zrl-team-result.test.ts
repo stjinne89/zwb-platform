@@ -11,6 +11,7 @@ function view({
   crossingsPerPass = 4,
   emptyPass = -1,
   complete = true,
+  missing,
   format = "points" as "points" | "scratch" | "ttt",
 }: {
   final?: boolean;
@@ -19,6 +20,7 @@ function view({
   /** Index van een passage waar Zwift niemand teruggaf (een haperend segment). */
   emptyPass?: number;
   complete?: boolean;
+  missing?: "uitslag" | "segmenten";
   format?: "points" | "scratch" | "ttt";
 } = {}): ZrlLiveView {
   const riders = [1, 2, 3, 4].map((athleteId) => ({
@@ -68,6 +70,7 @@ function view({
       ],
     },
     complete,
+    missing,
   };
 }
 
@@ -96,6 +99,12 @@ describe("teamResultOf", () => {
     expect(checkTeamResult(view({ complete: false }))).toEqual({
       ok: false,
       reason: "Zwift gaf niet alle gegevens terug",
+    });
+    expect(checkTeamResult(view({ complete: false, missing: "uitslag" }))).toMatchObject({
+      reason: "Zwift gaf de uitslag niet terug",
+    });
+    expect(checkTeamResult(view({ complete: false, missing: "segmenten" }))).toMatchObject({
+      reason: "Zwift gaf niet alle segmenten terug",
     });
   });
 
