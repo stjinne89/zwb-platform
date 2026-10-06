@@ -69,6 +69,8 @@ export type ZwiftEventApiRow = {
     subgroupLabel?: string | null;
     label?: string | null;
     eventSubgroupStart?: string | null;
+    /** Per groep; bij de ZRL rijden A/B soms een andere route dan C/D. */
+    routeId?: number | string | null;
     laps?: number | null;
     distanceInMeters?: number | null;
     durationInSeconds?: number | null;

@@ -47,6 +47,14 @@ const ALL_IN_QUIET_MS = 2 * 60 * 1000;
  */
 export const RACE_WINDOW_MS = 2 * 60 * 60 * 1000;
 
+/**
+ * Zo lang na de eigen finishtijd telt een passage nog mee. Ligt de laatste sprint
+ * op de finishlijn (Urumaze, Tidepool Sprint, 2026-10-06), dan kan Zwift die
+ * passage net na de finishtijd stempelen. Doorfietsen levert binnen deze marge
+ * geen nieuwe sprint op, en `scoreRace` negeert passages boven het aantal op de route.
+ */
+export const FINISH_MARGIN_MS = 10 * 1000;
+
 type ZwiftSubgroup = {
   id: string;
   label: string;
@@ -125,7 +133,7 @@ function finishMoments(subgroup: RaceSubgroup): Map<number, number> {
   return new Map(
     subgroup.results
       .filter((r) => r.durationMs != null)
-      .map((r) => [r.profileId, subgroup.startAt + (r.durationMs as number) + 1000]),
+      .map((r) => [r.profileId, subgroup.startAt + (r.durationMs as number) + FINISH_MARGIN_MS]),
   );
 }
 

@@ -75,6 +75,8 @@ export type ZwiftSubgroupStart = {
   /** Per groep; bij de ZRL rijden A en B soms een ronde meer dan C en D. */
   laps: number | null;
   distanceKm: number | null;
+  /** Per groep; bij de ZRL rijden A/B soms een andere route dan C/D. */
+  routeId: number | null;
 };
 
 // --- Pure logica ---------------------------------------------------------
@@ -188,6 +190,7 @@ export function mapZwiftEvent(row: ZwiftEventApiRow): ZwiftEventInfo | null {
           startAt,
           laps: positiveLaps(group.laps),
           distanceKm: positiveKm(group.distanceInMeters),
+          routeId: group.routeId == null ? null : toEventId(String(group.routeId)),
         },
       ];
     }),
@@ -226,6 +229,26 @@ export function pickOwnSubgroup(
   if (!category) return null;
   const matches = subgroups.filter((group) => group.label.toUpperCase() === category);
   return matches.length === 1 ? matches[0] : null;
+}
+
+/**
+ * Het event zoals de eigen subgroep het rijdt: route, ronden en afstand van die
+ * groep. Het event zelf geeft bij de ZRL de route van C/D op, ook als A/B een
+ * andere rijden (gemeten 2026-10-06: event Urumaze, A en B Makuri 40).
+ */
+export function eventForSubgroup(
+  event: ZwiftEventInfo,
+  own: ZwiftSubgroupStart | null,
+): ZwiftEventInfo {
+  if (!own) return event;
+  const ownRoute = own.routeId !== null && own.routeId !== event.routeId;
+  return {
+    ...event,
+    laps: own.laps ?? event.laps,
+    distanceKm: own.distanceKm ?? event.distanceKm,
+    routeId: own.routeId ?? event.routeId,
+    route: ownRoute ? routeFromZwiftId(own.routeId as number) : event.route,
+  };
 }
 
 /**

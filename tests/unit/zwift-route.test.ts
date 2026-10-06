@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   accentsForRoute,
+  eventForSubgroup,
   eventRouteTotals,
   mapZwiftEvent,
   parseZwiftEventUrl,
@@ -220,5 +221,48 @@ describe("start per subgroep", () => {
   it("gebruikt eventStart als er geen groepen zijn", () => {
     const bare = mapZwiftEvent({ id: 1, name: "x", eventStart: "2026-09-29T18:00:00.000+0000" })!;
     expect(zwiftStartFor(bare, null)).toBe("2026-09-29T18:00:00.000Z");
+  });
+});
+
+/**
+ * Ingekort uit GET /api/public/events/upcoming (opgehaald 2026-10-06): ZRL Open
+ * Emerald Division 1, race 2. Het event geeft Urumaze op, A en B rijden Makuri 40.
+ */
+const ZRL_TWO_ROUTES_JSON = {
+  id: 5728394,
+  name: "Zwift Racing League 26/27: Fast & Fresh : Open Emerald League Division 1 - Race 2",
+  eventStart: "2026-10-06T16:30:00.000+0000",
+  laps: 1,
+  routeId: 4092230492,
+  eventSubgroups: [
+    { id: 1, subgroupLabel: "A", eventSubgroupStart: "2026-10-06T16:30:00.000+0000", laps: 1, routeId: 890800649 },
+    { id: 2, subgroupLabel: "B", eventSubgroupStart: "2026-10-06T16:31:00.000+0000", laps: 1, routeId: 890800649 },
+    { id: 3, subgroupLabel: "C", eventSubgroupStart: "2026-10-06T16:32:00.000+0000", laps: 1, routeId: 4092230492 },
+    { id: 4, subgroupLabel: "D", eventSubgroupStart: "2026-10-06T16:33:00.000+0000", laps: 1, routeId: 4092230492 },
+  ],
+};
+
+describe("route per subgroep", () => {
+  const event = mapZwiftEvent(ZRL_TWO_ROUTES_JSON)!;
+
+  it("geeft A en B hun eigen route", () => {
+    expect(event.route?.name).toBe("Urumaze");
+    const own = eventForSubgroup(event, pickOwnSubgroup(event.subgroups, "B"));
+    expect(own.route?.name).toBe("Makuri 40");
+    expect(own.routeId).toBe(890800649);
+    expect(eventRouteTotals(own)!.distanceKm).toBeCloseTo(40.25, 1);
+  });
+
+  it("laat C en D op de route van het event", () => {
+    const own = eventForSubgroup(event, pickOwnSubgroup(event.subgroups, "C"));
+    expect(own.route?.name).toBe("Urumaze");
+  });
+
+  it("houdt zonder eigen groep of route per groep de route van het event", () => {
+    expect(eventForSubgroup(event, null)).toBe(event);
+    const old = mapZwiftEvent(ZRL_EVENT_JSON)!;
+    const own = eventForSubgroup(old, pickOwnSubgroup(old.subgroups, "A"));
+    expect(own.routeId).toBe(2592027600);
+    expect(own.laps).toBe(4);
   });
 });

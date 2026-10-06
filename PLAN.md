@@ -91,6 +91,51 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 
 ---
 
+> **ZRL: route per subgroep bij "Ophalen", en ruimere finishmarge in de live stand, 2026-10-06 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar vóór race 2 van ronde 1 (puntenrace): klopt
+> de telling, en waarom staan de A/B-teams in de kalender op Urumaze? Die avond
+> rijden C/D Urumaze en A/B Makuri 40.
+>
+> **Gemeten** (publieke event-API, 6 oktober, o.a. `5728394`): het event zelf
+> geeft `routeId` 4092230492 (Urumaze); de subgroepen A en B geven 890800649
+> (Makuri 40), C en D Urumaze. Tag `pts` op event en groepen. "Ophalen" in het
+> eventformulier nam de route van het event, dus elk A/B-teamevent kreeg Urumaze.
+>
+> **Nu.**
+> - `eventForSubgroup` (`lib/events/zwift-route.ts`): route, ronden en afstand
+>   van de eigen subgroep; `lookupZwiftEvent` gebruikt die. Zonder eigen groep of
+>   zonder `routeId` op de groep blijft de route van het event gelden.
+> - `FINISH_MARGIN_MS` in `lib/zrl-live/snapshot.ts`: een passage telt tot 10 s
+>   na de eigen finishtijd (was 1 s). Op Urumaze eindigt de derde Tidepool-sprint
+>   op de finishlijn en telt hij als FAL/FTS; stempelt Zwift die passage net na
+>   de finishtijd, dan viel hij weg. Passages boven het aantal op de route
+>   negeert `scoreRace` al.
+>
+> **Nagekeken, niet gewijzigd.** De live stand koos de route al per subgroep
+> (`parseSubgroups`). De vijf sprints per route in `route-segments.json` liggen
+> op dezelfde kilometerpunten als bij Zwift Insider (week 3, A/B en C/D); de
+> klimmen staan er niet in en tellen dus niet. Zwifts interne namen in Makuri
+> zijn andersom dan die van Zwift Insider ("Tidepool Sprint Reverse" daar is
+> `TIDEPOOL SPRINT` hier); Island Hopper en Sprinter's Playground laten hetzelfde
+> patroon zien.
+>
+> **Te doen door de eigenaar.** Na de deploy bij elk A/B-teamevent van deze
+> raceweek opnieuw "Ophalen" en opslaan: bestaande events houden Urumaze tot dan.
+>
+> **Niet lokaal te verifiëren.** Of Zwift de laatste Tidepool-passage binnen de
+> marge geeft, en of de Makuri-segment-ID's passages opleveren: Makuri is nog
+> niet met deze telling gereden. Controle tijdens de race: de derde
+> Tidepool-passage bij C/D hoort ongeveer zoveel renners te tonen als er
+> finishers zijn.
+>
+> **Bewust niet gebouwd.** Bestaande events automatisch omzetten: dat vraagt een
+> Zwift-verzoek per event buiten het formulier om, voor vier events één keer.
+>
+> **Getest.** Unit-tests (`tests/unit/zwift-route.test.ts`, met de groepen van
+> `5728394`), `tsc` en ESLint op de geraakte bestanden.
+
 > **Jaarplan: mikpunten en periodes bewerken, en trainingskamp als soort periode, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0217_training_season_camp.sql`
 > (nog niet toegepast).

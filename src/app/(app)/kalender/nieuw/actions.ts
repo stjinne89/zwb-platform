@@ -8,6 +8,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EVENT_TYPE_VALUES } from "@/lib/event-types";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import {
+  eventForSubgroup,
   eventRouteTotals,
   fetchZwiftPublicEvent,
   parseZwiftEventUrl,
@@ -325,14 +326,8 @@ export async function lookupZwiftEvent(
     result.event.subgroups,
     await zrlTeamCategory(supabase, teamId),
   );
-  // Start, ronden en afstand van onze eigen groep, als we die kennen.
-  const event = own
-    ? {
-        ...result.event,
-        laps: own.laps ?? result.event.laps,
-        distanceKm: own.distanceKm ?? result.event.distanceKm,
-      }
-    : result.event;
+  // Start, route, ronden en afstand van onze eigen groep, als we die kennen.
+  const event = eventForSubgroup(result.event, own);
   const route = event.route;
   const totals = eventRouteTotals(event);
 
