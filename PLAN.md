@@ -112,6 +112,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 >   op de finishlijn en telt hij als FAL/FTS; stempelt Zwift die passage net na
 >   de finishtijd, dan viel hij weg. Passages boven het aantal op de route
 >   negeert `scoreRace` al.
+> - `syncZrlSubgroupRoutes` (`lib/events/zrl-route-sync.ts`, tweede commit van
+>   dezelfde dag, op verzoek van de eigenaar): zet bestaande ZRL-teamevents van
+>   de komende drie dagen op de route van hun eigen subgroep, met ronden en
+>   (zonder GPX) afstand en hoogtemeters. Draait mee met de uurlijkse
+>   Zwift-eventspiegel (`POST /api/zwift/events/sync`), één publiek
+>   event-verzoek per Zwift-event, en meldt in het antwoord onder `zrlRoutes`
+>   wat er is omgezet. Raakt alleen events waarvan de route afwijkt; zonder
+>   categorieletter in de teamnaam of zonder route in `zwift-data` gebeurt er niets.
 >
 > **Nagekeken, niet gewijzigd.** De live stand koos de route al per subgroep
 > (`parseSubgroups`). De vijf sprints per route in `route-segments.json` liggen
@@ -121,20 +129,24 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 > `TIDEPOOL SPRINT` hier); Island Hopper en Sprinter's Playground laten hetzelfde
 > patroon zien.
 >
-> **Te doen door de eigenaar.** Na de deploy bij elk A/B-teamevent van deze
-> raceweek opnieuw "Ophalen" en opslaan: bestaande events houden Urumaze tot dan.
+> **Te doen door de eigenaar.** Niets: binnen een uur na de deploy staan de
+> A/B-teamevents op Makuri 40. Sneller kan door de job "Zwift-eventspiegel" op
+> cron-job.org met de hand te starten. Het blok in het trainingsschema volgt
+> met de eerstvolgende run van de trainingscron.
 >
 > **Niet lokaal te verifiëren.** Of Zwift de laatste Tidepool-passage binnen de
-> marge geeft, en of de Makuri-segment-ID's passages opleveren: Makuri is nog
+> marge geeft, of de Makuri-segment-ID's passages opleveren, en het omzetten
+> tegen de productiedatabase (geen `.env.local` hier): Makuri is nog
 > niet met deze telling gereden. Controle tijdens de race: de derde
 > Tidepool-passage bij C/D hoort ongeveer zoveel renners te tonen als er
 > finishers zijn.
 >
-> **Bewust niet gebouwd.** Bestaande events automatisch omzetten: dat vraagt een
-> Zwift-verzoek per event buiten het formulier om, voor vier events één keer.
+> **Bewust niet gebouwd.** Een knop om het omzetten direct te starten: de cron
+> doet het binnen een uur. Geen eigen cronjob: de eventspiegel praat al met
+> dezelfde host.
 >
 > **Getest.** Unit-tests (`tests/unit/zwift-route.test.ts`, met de groepen van
-> `5728394`), `tsc` en ESLint op de geraakte bestanden.
+> `5728394`, ook voor het omzetten), `tsc` en ESLint op de geraakte bestanden.
 
 > **Jaarplan: mikpunten en periodes bewerken, en trainingskamp als soort periode, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0217_training_season_camp.sql`

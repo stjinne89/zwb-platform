@@ -10,6 +10,7 @@ import {
   zrlCategoryFromTeamName,
   zwiftStartFor,
 } from "@/lib/events/zwift-route";
+import { zrlRouteUpdate } from "@/lib/events/zrl-route-sync";
 
 /**
  * Ingekorte respons van GET /api/public/events/{id}, met de velden die het
@@ -264,5 +265,28 @@ describe("route per subgroep", () => {
     const own = eventForSubgroup(old, pickOwnSubgroup(old.subgroups, "A"));
     expect(own.routeId).toBe(2592027600);
     expect(own.laps).toBe(4);
+  });
+});
+
+describe("bestaande ZRL-teamevents rechtzetten", () => {
+  const event = mapZwiftEvent(ZRL_TWO_ROUTES_JSON)!;
+  const onUrumaze = { zwift_route_id: "4092230492", gpx_path: null };
+
+  it("zet een B-team van Urumaze op Makuri 40", () => {
+    const update = zrlRouteUpdate(onUrumaze, event, "B")!;
+    expect(update.zwift_route_id).toBe(890800649);
+    expect(update.laps).toBe(1);
+    expect(update.distance_km).toBeCloseTo(40.25, 1);
+  });
+
+  it("laat een C-team en een team zonder letter met rust", () => {
+    expect(zrlRouteUpdate(onUrumaze, event, "C")).toBeNull();
+    expect(zrlRouteUpdate(onUrumaze, event, null)).toBeNull();
+  });
+
+  it("vult een event zonder route, en laat afstand van een GPX staan", () => {
+    const update = zrlRouteUpdate({ zwift_route_id: null, gpx_path: "x.gpx" }, event, "A")!;
+    expect(update.zwift_route_id).toBe(890800649);
+    expect(update.distance_km).toBeUndefined();
   });
 });

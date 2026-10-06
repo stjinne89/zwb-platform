@@ -6,6 +6,10 @@ import {
   DEFAULT_HORIZON_DAYS,
   syncZwiftEventCache,
 } from "@/lib/zwift/event-cache";
+import { syncZrlSubgroupRoutes } from "@/lib/events/zrl-route-sync";
+
+/** Eén publiek event-verzoek per Zwift-event van de komende raceweek. */
+const ZRL_ROUTE_BUDGET_MS = 8000;
 
 // Uurlijkse sync van de Zwift-kalender naar `zwift_events`, de bron onder de
 // eventvoorstellen bij een geplande training.
@@ -39,7 +43,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await syncZwiftEventCache(admin, { horizonDays, budgetMs });
-    return NextResponse.json({ ok: true, ...result });
+    // ZRL-teamevents op de route van hun eigen subgroep; mag de spiegel niet breken.
+    const zrlRoutes = await syncZrlSubgroupRoutes(admin, {
+      deadline: Date.now() + ZRL_ROUTE_BUDGET_MS,
+    }).catch((err) => ({ error: err instanceof Error ? err.message : "mislukt" }));
+    return NextResponse.json({ ok: true, ...result, zrlRoutes });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "Zwift-eventsync mislukt." },
