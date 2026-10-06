@@ -1179,7 +1179,9 @@ export default function HelpPage() {
           >
             <h3 className="text-sm font-semibold">Welke warming-up bij welke wedstrijd</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Je trainer kan vijf warming-ups in je schema zetten. Tijdrit en
+              Bij een geplande race zet je in Vandaag of in je schema zelf een
+              warming-up klaar. Hij staat dan vlak voor de race in intervals.icu,
+              en zo in Zwift en op je fietscomputer. Er zijn er vijf. Tijdrit en
               ploegentijdrit (25 minuten) bouwen lang op naar wedstrijdtempo.
               ZRL lang (21 minuten) bereidt je voor op de harde start en de
               sprints van een scratch- of puntenrace; ZRL kort (10 minuten) is

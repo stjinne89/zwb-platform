@@ -50,6 +50,13 @@ import {
 import { insertFtpTestWorkout } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
+import {
+  isUpcomingRace,
+  raceWarmupExternalId,
+  removeRaceWarmup,
+  warmupRaceId,
+  warmupStart,
+} from "@/lib/training/race-warmup";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
 import {
@@ -1365,6 +1372,74 @@ export async function planOwnRide(formData: FormData) {
 }
 
 /**
+ * Een warming-up uit de bibliotheek bij een geplande race zetten. origin
+ * 'member', zodat hij een herziening overleeft, en meteen naar intervals.icu.
+ * Zonder herziening: een warming-up verandert niets aan de rest van de week.
+ */
+export async function planRaceWarmup(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const raceId = mustString(formData.get("race_workout_id"), "Race");
+    const templateId = mustString(formData.get("template_id"), "Warming-up");
+
+    const [{ data: race }, { data: template }] = await Promise.all([
+      admin
+        .from("training_workouts")
+        .select("id, plan_id, profile_id, trainer_id, scheduled_at, intensity, status, superseded_at")
+        .eq("id", raceId)
+        .maybeSingle(),
+      admin
+        .from("training_workout_templates")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json")
+        .eq("id", templateId)
+        .eq("form", "warmup")
+        .eq("is_standard", true)
+        .maybeSingle(),
+    ]);
+    if (!race || race.profile_id !== user.id) throw new Error("Deze race hoort niet bij jou.");
+    if (!isUpcomingRace(race, amsterdamDayKey(new Date()))) {
+      throw new Error("Een warming-up kan alleen bij een geplande race.");
+    }
+    if (!template) throw new Error("Warming-up niet gevonden.");
+
+    // Eén warming-up per race: een nieuwe keuze vervangt de vorige.
+    await removeRaceWarmup(admin, user.id, race.id);
+
+    const { data: created, error } = await admin
+      .from("training_workouts")
+      .insert({
+        plan_id: race.plan_id,
+        profile_id: user.id,
+        trainer_id: race.trainer_id,
+        scheduled_at: warmupStart(race.scheduled_at, template.duration_minutes),
+        title: template.title,
+        description: template.description,
+        duration_minutes: template.duration_minutes,
+        intensity: template.intensity,
+        target_type: template.target_type,
+        structure_json: template.structure_json,
+        origin: "member",
+        publish_status: "pending",
+        intervals_external_id: raceWarmupExternalId(race.id),
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    await pushWorkoutToIntervals(admin, created.id).catch(() => null);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Warming-up klaarzetten faalde.",
+    };
+  }
+}
+
+/**
  * Een FTP-test inplannen. Dezelfde vorm als een eigen rit — origin 'member', dus
  * een afspraak die elke herziening overleeft — maar met een vast protocol en een
  * test_type, zodat we er later de uitslag bij kunnen vragen.
@@ -1761,7 +1836,9 @@ export async function removePlannedWorkout(formData: FormData) {
 
     const { data: workout } = await admin
       .from("training_workouts")
-      .select("id, profile_id, origin, status, superseded_at, intervals_event_id, scheduled_at")
+      .select(
+        "id, profile_id, origin, status, superseded_at, intervals_event_id, intervals_external_id, scheduled_at",
+      )
       .eq("id", workoutId)
       .maybeSingle();
     if (!workout || workout.profile_id !== user.id) {
@@ -1803,6 +1880,8 @@ export async function removePlannedWorkout(formData: FormData) {
     if (error) throw new Error(error.message);
 
     revalidatePath("/zwbeter-worden", "layout");
+    // Een warming-up hoorde bij een race; de week verandert er niet door.
+    if (warmupRaceId(workout)) return { ok: true as const, generationId: null };
     const replan = await requestReplan(
       admin,
       user.id,

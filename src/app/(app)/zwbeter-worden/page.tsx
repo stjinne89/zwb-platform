@@ -27,6 +27,14 @@ import { TrainingLoadMetrics } from "./_components/training-load-chart";
 import { PlanCautions } from "./_components/plan-cautions";
 import { MetricCard } from "./_components/ui";
 import { WorkoutBlocks, WorkoutTitle, eventWorkoutBlocks } from "./_components/workout-blocks";
+import { RaceWarmupControl } from "./_components/race-warmup-control";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  isUpcomingRace,
+  loadWarmupOptions,
+  raceWarmupView,
+  warmupRaceId,
+} from "@/lib/training/race-warmup";
 import {
   eFTPDeltaLabel,
   formatDayMonth,
@@ -116,9 +124,10 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   const pendingReviewPromise = loadPendingReview(viewer, paramString(params.review)).catch(
     () => null,
   );
-  const [memberWorkouts, planSummaries] = await Promise.all([
+  const [memberWorkouts, planSummaries, warmupOptions] = await Promise.all([
     loadMemberWorkouts(viewer, snapshot.events),
     loadPlanSummaries(viewer),
+    loadWarmupOptions(createAdminClient()).catch(() => []),
   ]);
   const todayKey = todayKeyAmsterdam();
   const activities = (stravaRows ?? []) as StravaActivityRow[];
@@ -144,8 +153,11 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   const upcomingWorkouts = memberWorkouts.filter(
     (workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey,
   );
-  // Een rustdag telt niet als eerstvolgende workout.
-  const nextZwbWorkout = upcomingWorkouts.find((workout) => workout.status !== "skipped") ?? null;
+  // Een rustdag telt niet als eerstvolgende workout, en een warming-up ook niet:
+  // die staat bij zijn race.
+  const nextZwbWorkout =
+    upcomingWorkouts.find((workout) => workout.status !== "skipped" && !warmupRaceId(workout)) ??
+    null;
   // Zonder deze filter concurreert een gepubliceerde ZWB-workout met zijn eigen
   // intervals.icu-event om de plek van "eerstvolgende workout".
   const nextIntervalsEvent =
@@ -284,6 +296,14 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 ftpWatts={profile?.ftp_watts}
                 variant="preview"
               />
+              {isUpcomingRace(nextWorkout.workout, todayKey) ? (
+                <div className="mt-3">
+                  <RaceWarmupControl
+                    raceWorkoutId={nextWorkout.workout.id}
+                    warmup={raceWarmupView(nextWorkout.workout, memberWorkouts, warmupOptions)}
+                  />
+                </div>
+              ) : null}
               <PlanCautions items={planCautions} />
               {/* De "Let op"-regels vertellen wát er is besloten; de vervolgvraag
                   hoort hier te kunnen beginnen en niet doodlopen. */}

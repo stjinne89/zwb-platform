@@ -30,6 +30,7 @@ import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
 import { WorkoutDurationControl } from "./workout-duration-control";
+import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
 import {
   ZwiftEventSuggestions,
   type ChosenZwiftEvent,
@@ -82,6 +83,8 @@ export type MemberCalendarItem = {
     zwiftChosen?: ChosenZwiftEvent | null;
     /** Voorgestelde buitenrondjes; leeg tot het lid erom vraagt. */
     outdoor?: OutdoorRouteView[];
+    /** Bij een geplande race: de warming-up die het lid erbij kan zetten. */
+    warmup?: RaceWarmupView | null;
   };
 };
 
@@ -278,6 +281,9 @@ function WorkoutDetail({
                 <RemoveWorkoutButton workoutId={item.id} title={item.title} />
               ) : null}
             </div>
+          ) : null}
+          {detail.warmup ? (
+            <RaceWarmupControl key={`warmup-${item.id}`} raceWorkoutId={item.id} warmup={detail.warmup} />
           ) : null}
           {/* Onderaan, want dit is een suggestie naast de training en niet de
               training zelf: eerst wát je rijdt, dan pas waar je het kunt rijden. */}

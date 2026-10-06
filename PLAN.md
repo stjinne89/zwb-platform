@@ -5917,6 +5917,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — lid zet zelf een warming-up klaar bij een geplande race
+
+**2026-10-06.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Na de uitrol van de warming-ups wilde Stijn dat een renner er
+zelf een kan klaarzetten bij een geplande race, zodat hij meteen in Zwift of op
+de fietscomputer staat.
+
+**Wat er veranderde.**
+- Bij elke geplande workout met intensiteit `race` staat een keuzelijst met de
+  vijf warming-ups en de knop "Zet klaar": in Vandaag (eerstvolgende workout),
+  in de lijst op Schema en in het kalenderdetail. De voorkeuze volgt uit titel
+  en duur van de race (`suggestedWarmupTitle`): TTT, tijdrit, 90 minuten of
+  langer, anders ZRL lang.
+- `planRaceWarmup` zet de warming-up als eigen workout met origin `member` in
+  het plan van de race, zo dat hij vijf minuten voor de start klaar is, en
+  stuurt hem meteen naar intervals.icu. Er volgt geen herziening.
+- De koppeling met de race zit in `intervals_external_id`
+  (`zwb-warmup-<id van de race>`), in `src/lib/training/race-warmup.ts`. Per
+  race is er zo één warming-up; een nieuwe keuze vervangt de vorige.
+- Zegt het lid het event af, dan gaat de warming-up mee weg
+  (`syncEventWorkout`). Zelf verwijderen kan ook, zonder herziening.
+- De bibliotheek blijft door RLS voor trainers; de lijst voor leden komt via de
+  service-role en bevat alleen de standaard warming-ups. **De zin "leden kiezen
+  zelf geen warming-up" uit de ronde hieronder geldt daarmee niet meer.**
+- Vandaag toont als eerstvolgende workout de race, niet zijn warming-up.
+
+**Bewust niet gebouwd.**
+- Geen automatische warming-up bij elke race: het blijft een keuze van het lid.
+- Geen eigen kolom voor de koppeling; het externe id volstaat en scheelt een
+  migratie.
+- De voorkeuze leest het wedstrijdtype niet uit het event zelf (Zwift-type,
+  WTRL-tags), alleen uit titel en duur van de workout.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-suite (nieuw:
+`race-warmup.test.ts`). **Niet getest:** de knop in de browser, de push naar
+intervals.icu, en hoe het koppelen van gereden ritten omgaat met twee geplande
+workouts op een racedag (warming-up en race).
+
 ### Opgeleverd — warming-ups per wedstrijdtype, met bursts van 6 seconden
 
 **2026-10-06.** Commit: de commit die dit blok toevoegt. Migratie
@@ -5957,8 +5996,8 @@ na en helpt start en sprint, niet het duurvermogen.
 - De AI plant geen bursts; het promptschema is niet aangepast.
 - Geen automatische warming-up bij een event. Dat een eventblok geen inrijden
   krijgt, blijft staan.
-- De bibliotheek blijft alleen voor trainers zichtbaar; leden kiezen zelf geen
-  warming-up.
+- De bibliotheek blijft alleen voor trainers zichtbaar. (Dat leden zelf geen
+  warming-up kiezen, gold tot de ronde hierboven.)
 - Geen warming-ups voor de omnium-onderdelen.
 
 **Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-suite. `0221` draait

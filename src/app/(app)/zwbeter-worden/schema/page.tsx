@@ -22,6 +22,13 @@ import { workoutOutcome } from "../_components/completed-workouts";
 import { EventChoice } from "../_components/event-choice";
 import { FtpTestCard } from "../_components/ftp-test-card";
 import { RemoveWorkoutButton } from "../_components/remove-workout-button";
+import { RaceWarmupControl } from "../_components/race-warmup-control";
+import {
+  isUpcomingRace,
+  loadWarmupOptions,
+  raceWarmupView,
+  warmupRaceId,
+} from "@/lib/training/race-warmup";
 import { WorkoutDurationControl } from "../_components/workout-duration-control";
 import { PlanCheckCard } from "../_components/plan-check-card";
 import { PlanActions } from "../_components/plan-actions";
@@ -134,6 +141,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ftpTestState,
     ignoredStreak,
     zrlTeamMember,
+    warmupOptions,
     memberWorkouts,
     zwift,
     outdoor,
@@ -152,6 +160,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     loadFtpTestState(viewer),
     loadIgnoredStreak(viewer),
     loadZrlTeamMembership(viewer),
+    loadWarmupOptions(createAdminClient()).catch(() => []),
     memberWorkoutsPromise,
     zwiftPromise,
     outdoorPromise,
@@ -265,10 +274,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             workout.status === "planned" &&
             workout.origin !== "event" &&
             !workout.test_type &&
+            !warmupRaceId(workout) &&
             String(workout.scheduled_at).slice(0, 10) >= todayKey,
           zwift: zwift.suggestions.get(workout.id) ?? [],
           zwiftChosen: zwift.chosen.get(workout.id) ?? null,
           outdoor: outdoor.routes.get(workout.id) ?? [],
+          warmup: isUpcomingRace(workout, todayKey)
+            ? raceWarmupView(workout, memberWorkouts, warmupOptions)
+            : null,
         },
       };
     }),
@@ -400,13 +413,21 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                 )}
                 {workout.status === "planned" && workout.origin !== "event" ? (
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {!workout.test_type ? (
+                    {!workout.test_type && !warmupRaceId(workout) ? (
                       <WorkoutDurationControl
                         workoutId={workout.id}
                         minutes={workout.duration_minutes}
                       />
                     ) : null}
                     <RemoveWorkoutButton workoutId={workout.id} title={workout.title} />
+                  </div>
+                ) : null}
+                {isUpcomingRace(workout, todayKey) ? (
+                  <div className="mt-2">
+                    <RaceWarmupControl
+                      raceWorkoutId={workout.id}
+                      warmup={raceWarmupView(workout, memberWorkouts, warmupOptions)}
+                    />
                   </div>
                 ) : null}
               </li>

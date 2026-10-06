@@ -12,6 +12,7 @@ import { withoutParentEvents } from "@/lib/events/sub-events";
 import { routeFromZwiftId } from "@/lib/events/zwift-route";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { pushWorkoutToIntervals } from "@/lib/training/publish";
+import { removeRaceWarmup } from "@/lib/training/race-warmup";
 import {
   normalizeWorkoutBlocks,
   type WorkoutBlock,
@@ -473,6 +474,8 @@ export async function syncEventWorkout(
       }
     }
     await admin.from("training_workouts").delete().eq("id", existing.id);
+    // De warming-up die het lid bij deze race had klaargezet gaat mee weg.
+    await removeRaceWarmup(admin, profileId, existing.id).catch(() => null);
     return { inserted: false, removed: true, pushed: false };
   }
 
