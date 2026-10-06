@@ -104,11 +104,21 @@ function entrantsUrl(subgroupId: string, start = 0): string {
 
 // Token-cache op moduleniveau; blijft binnen dezelfde server-instance bestaan.
 let tokenCache: { accessToken: string; expiresAt: number } | null = null;
+// Gelijktijdige verzoeken zonder token delen één login: vijf logins tegelijk gaf
+// bij Zwift een 400 (gemeten 2026-10-06).
+let tokenRequest: Promise<string> | null = null;
 
-async function fetchToken(): Promise<string> {
+function fetchToken(): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) {
-    return tokenCache.accessToken;
+    return Promise.resolve(tokenCache.accessToken);
   }
+  tokenRequest ??= requestToken().finally(() => {
+    tokenRequest = null;
+  });
+  return tokenRequest;
+}
+
+async function requestToken(): Promise<string> {
 
   const body = new URLSearchParams({
     client_id: ZWIFT_CLIENT_ID,
@@ -354,12 +364,48 @@ export async function fetchZwiftRaceResults(eventId: string): Promise<unknown> {
 
 export type SubgroupResult = { profileId: number; rank: number; durationMs: number | null };
 
+/**
+ * Zwift staat op `/race-results/entries` twee verzoeken per seconde toe, voor het
+ * hele serviceaccount (`x-ratelimit-limit: 2;w=1`, gemeten 2026-10-06). Vier
+ * subgroepen tegelijk gaf telkens twee keer 429, en de live ZRL-stand toonde die
+ * groepen dan zonder FIN-punten. Daarom gaan deze verzoeken één voor één, met
+ * een pauze ertussen.
+ */
+export const RESULTS_SPACING_MS = 550;
+/** Een andere server-instance kan dezelfde limiet opmaken: dan even wachten en opnieuw. */
+const RESULTS_RETRY_WAITS_MS = [1000, 1500];
+
+let resultsQueue: Promise<unknown> = Promise.resolve();
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function resultsPage(url: string): Promise<unknown> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await authedJson(url);
+    } catch (error) {
+      const wait = RESULTS_RETRY_WAITS_MS[attempt];
+      if (wait === undefined || !(error instanceof Error) || !error.message.includes("status 429")) throw error;
+      await pause(wait);
+    }
+  }
+}
+
+function queuedResultsPage(url: string): Promise<unknown> {
+  const page = resultsQueue.then(() => resultsPage(url));
+  resultsQueue = page.then(
+    () => pause(RESULTS_SPACING_MS),
+    () => pause(RESULTS_SPACING_MS),
+  );
+  return page;
+}
+
 /** Finishuitslag van één subgroep, per 50 (het maximum van Zwift). */
 export async function fetchSubgroupResults(subgroupId: string): Promise<SubgroupResult[]> {
   if (!/^\d+$/.test(subgroupId)) throw new Error("Ongeldig subgroep-ID.");
   const results: SubgroupResult[] = [];
   for (let start = 0; start < 1000; start += 50) {
-    const payload = await authedJson(
+    const payload = await queuedResultsPage(
       `${apiBase()}/race-results/entries?event_subgroup_id=${subgroupId}&start=${start}&limit=50`,
     );
     const rows = (Array.isArray(payload)

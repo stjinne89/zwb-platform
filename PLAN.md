@@ -91,6 +91,58 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 
 ---
 
+> **Live ZRL-stand: FIN-punten vielen telkens weg door Zwifts limiet op de uitslag, 2026-10-06 — gebouwd, lokaal getest en tegen Zwift gemeten, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Melding van de eigenaar tijdens race 2 van ronde 1: in de live
+> stand verdwenen de FIN-punten steeds weer.
+>
+> **Gemeten** (serviceaccount, 6 oktober rond 21:20, events `5728436` en
+> `5728409`). `/race-results/entries` antwoordt met `x-ratelimit-limit: 2;w=1`:
+> twee verzoeken per seconde voor het hele account. `fetchRaceData` vroeg de
+> uitslag van alle subgroepen van een Zwift-event tegelijk op; bij vier groepen
+> kregen er in drie ronden telkens twee of drie een 429. Zo'n groep kreeg een
+> lege uitslag en dus FIN en podium nul, tot een volgende verversing het wel
+> haalde. Eén voor één met 400 ms ertussen kwamen alle achttien groepen van die
+> avond goed terug. Bijkomend gevolg: `raceSettled` wil van elke groep een
+> goede uitslag, dus er werd die avond geen enkel event bevroren
+> (`zrl_race_snapshots` leeg om 21:17).
+>
+> **Nu.**
+> - `fetchSubgroupResults` (`lib/events/zwift-club.ts`) stuurt zijn verzoeken
+>   één voor één door een wachtrij met 550 ms ertussen (`RESULTS_SPACING_MS`) en
+>   probeert een 429 nog twee keer, na 1 en 1,5 s. Geldt ook voor de
+>   FRR-etappe-uitslagen, die dezelfde functie gebruiken.
+> - `lib/zrl-live/snapshot.ts` onthoudt per subgroep de laatste goede uitslag
+>   (binnen de server-instance). Mislukt het ophalen toch, dan blijven de
+>   finishers staan; `resultsOk` blijft onwaar, dus definitief worden of
+>   bevriezen kan alleen met een verse uitslag.
+> - Tweede commit, na een melding van de eigenaar dezelfde avond: "Uitslag
+>   vastzetten" bij Bdev gaf "Zwift gaf niet alle gegevens terug". Nagemeten voor
+>   die groep alleen (21:27): 34 inschrijvers, 30 finishers en alle vijf
+>   segmenten van Makuri 40 kwamen goed terug. De weigering komt dus van dezelfde
+>   limiet, opgemaakt door de andere open standen. De reden zegt nu wat ontbrak:
+>   "Zwift gaf de uitslag niet terug" of "Zwift gaf niet alle segmenten terug"
+>   (`ZrlLiveView.missing`, `checkTeamResult`).
+> - `fetchToken` deelt één login tussen verzoeken die tegelijk beginnen. Bij de
+>   meting gaf Zwift een 400 op een van vijf gelijktijdige logins. In de live
+>   stand gaat `fetchZwiftEvent` voorop, dus daar speelde dit waarschijnlijk niet.
+>
+> **Getest.** `tsc`, ESLint, `tests/unit/zwift-subgroup-results.test.ts`
+> (wachtrij, opnieuw na 429, fout na drie pogingen). De echte functie voor acht
+> subgroepen tegelijk, twee ronden: alle zestien goed, ruim 10 s per ronde. Een
+> Zwift-event met vier groepen kost daarmee 3 à 4 s; de cache van 15 s vangt dat op.
+>
+> **Bewust niet gebouwd.** Alleen de uitslag van de eigen subgroep ophalen: de
+> data is per Zwift-event gecachet en bevroren voor alle teams in dat event.
+> Een wachtrij over server-instances heen (database of Blobs): de herkansing en
+> de laatste goede uitslag dekken dat, en het is niet gemeten of Netlify
+> meerdere instances tegelijk draait.
+>
+> **Niet lokaal te verifiëren.** Het gedrag op Netlify met meerdere kijkers en
+> zes Zwift-events tegelijk. Controle bij de volgende race (13 oktober, TTT):
+> finishtijden blijven staan en `zrl_race_snapshots` vult zich na de finish.
+>
 > **ZRL: route per subgroep bij "Ophalen", en ruimere finishmarge in de live stand, 2026-10-06 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >

@@ -244,8 +244,11 @@ Verder gezien:
   (`fetchSubgroupResults(...).catch(() => [])`) en toonde de pagina FIN = 0 en
   "Voorlopig". Dat gebeurde met zeven pagina's tegelijk, maar ook één voor één
   met 12 s ertussen. Sinds dezelfde dag telt zo'n stand niet meer als
-  definitief en wordt hij niet bevroren (zie hieronder); de pagina toont hem
-  nog wel als voorlopig.
+  definitief en wordt hij niet bevroren (zie hieronder). Oorzaak gevonden op
+  2026-10-06: Zwift staat op `/race-results/entries` twee verzoeken per seconde
+  toe en de subgroepen gingen tegelijk. Sindsdien gaan ze één voor één, met een
+  herkansing na een 429, en houdt de stand bij een fout de laatste goede
+  uitslag vast in plaats van FIN = 0 te tonen.
 - De divisies in `/beheer/wtrl-teams` klopten niet voor B1 en B2. De live stand
   kiest de Zwift-groep los daarvan en zat wel goed.
 - WTRL's rekenbasis voor FAL is een vast aantal renners per divisie, ook als op
