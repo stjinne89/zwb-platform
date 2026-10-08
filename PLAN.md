@@ -5969,6 +5969,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — TTT Planner neemt kopbeurten en volgorde van ZwiftGopher over
+
+**2026-10-08.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn vroeg na of de TTT Planner de API van ZwiftGopher
+gebruikt. Dat doet hij (`POST /api/optimize`), maar van het antwoord kwamen
+alleen tijd, snelheid, teamvermogen en route in beeld. "Pull w" en "Pull duur"
+bleven de eigen invoer (FTP en 30 seconden) en de volgorde bleef die van de
+captain; het advies per renner stond alleen als ruwe JSON op de deelpagina.
+
+**Wat er veranderde.**
+- Na "Optimaliseren" zet `applyZwiftGopherResult`
+  (`src/lib/ttt/zwiftgopher.ts`) per renner de kopbeurt-watts en -duur uit het
+  antwoord in het plan en sorteert het plan op de volgorde van ZwiftGopher.
+  Koppelen gaat op Zwift-ID, anders op naam. Wie niet in het antwoord staat,
+  houdt zijn waarden en sluit achteraan.
+- De velden blijven bewerkbaar; de overgenomen waarden zijn gewoon de inhoud van
+  dezelfde invoervelden en gaan zo ook de tekst- en PNG-export in.
+- "Opslaan" op een bestaand plan laat status en het antwoord van ZwiftGopher
+  staan. Voorheen zette elke opslag het plan terug op concept en wiste het
+  antwoord, zodat bijsturen na een optimalisatie de schatting weggooide.
+- Herkent de app geen kopbeurten in het antwoord, dan blijft het plan zoals het
+  was en zegt de melding dat.
+
+**Niet te verifiëren.** De documentatie van ZwiftGopher toont de kopbeurtvelden
+niet (het voorbeeld eindigt op `"...": "..."`), lokaal staat er geen API-key en
+een opgeslagen antwoord uit productie is niet ingezien. De veldnamen zijn dus
+een gok uit een lijst (`pull_power`, `pull_watts`, `pull_duration`,
+`pull_duration_seconds`, … en `order`/`position` voor de volgorde, anders de
+plek in de lijst). Na de eerste echte optimalisatie de JSON op de deelpagina
+naast die lijst leggen en de lijst terugbrengen tot wat klopt.
+
+**Bewust niet gebouwd.** Geen aparte kolommen "advies" naast de eigen invoer en
+geen knop om het advies opnieuw toe te passen; opnieuw optimaliseren doet dat.
+De status `error` en `last_error` worden nog steeds nergens gevuld.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, nieuw
+`ttt-zwiftgopher.test.ts`. **Niet getest:** de knop in de browser en een echte
+aanroep van ZwiftGopher.
+
 ### Opgeleverd — lid zet zelf een warming-up klaar bij een geplande race
 
 **2026-10-06.** Commit: de commit die dit blok toevoegt. Geen migratie.

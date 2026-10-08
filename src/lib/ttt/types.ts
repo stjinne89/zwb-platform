@@ -41,7 +41,13 @@ export type TttPlanInput = {
 };
 
 export type TttActionResult =
-  | { ok: true; planId: string; apiResponse?: unknown; message?: string }
+  | {
+      ok: true;
+      planId: string;
+      apiResponse?: unknown;
+      riders?: TttPlanRiderInput[];
+      message?: string;
+    }
   | { ok: false; error: string; statusCode?: number };
 
 export const DEFAULT_TTT_SETTINGS: TttSettings = {

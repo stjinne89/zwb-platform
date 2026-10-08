@@ -306,6 +306,7 @@ export function TttPlanner({
       if (res.ok) {
         setPlanId(res.planId);
         if (res.apiResponse !== undefined) setApiResponse(res.apiResponse);
+        if (res.riders) setRaceRiders(res.riders);
         setStatus({ kind: "optimized", message: res.message });
       } else {
         setStatus({ kind: "error", message: res.error });

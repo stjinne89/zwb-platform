@@ -108,6 +108,118 @@ export function buildZwiftGopherPayload(plan: TttPlanInput): OptimizePayload {
   return payload;
 }
 
+type ApiRider = Record<string, unknown>;
+
+// De API-documentatie toont de kopbeurtvelden niet ("...": "..."); daarom
+// meerdere schrijfwijzen, in volgorde van voorkeur.
+const PULL_WATTS_KEYS = [
+  "pull_power",
+  "pull_watts",
+  "pull_power_watts",
+  "target_power",
+  "target_watts",
+];
+const PULL_DURATION_KEYS = [
+  "pull_duration",
+  "pull_duration_seconds",
+  "pull_time",
+  "pull_seconds",
+];
+const ORDER_KEYS = ["order", "position", "pull_order", "rotation_order"];
+
+function firstNumber(row: ApiRider, keys: string[]) {
+  for (const key of keys) {
+    const raw = row[key];
+    if (raw == null || raw === "") continue;
+    const value = Number(raw);
+    if (Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+export function zwiftGopherRiders(apiResponse: unknown): ApiRider[] {
+  if (
+    typeof apiResponse === "object" &&
+    apiResponse &&
+    "data" in apiResponse &&
+    typeof apiResponse.data === "object" &&
+    apiResponse.data &&
+    "riders" in apiResponse.data &&
+    Array.isArray(apiResponse.data.riders)
+  ) {
+    return apiResponse.data.riders.filter(
+      (row): row is ApiRider => typeof row === "object" && row !== null,
+    );
+  }
+  return [];
+}
+
+function matchApiRider(
+  rider: TttPlanRiderInput,
+  apiRiders: ApiRider[],
+  taken: Set<number>,
+) {
+  const zwiftId = rider.zwiftId.trim();
+  const name = rider.name.trim().toLowerCase();
+  const free = (index: number) => !taken.has(index);
+  let index = zwiftId
+    ? apiRiders.findIndex((row, i) => free(i) && String(row.zwift_id ?? "") === zwiftId)
+    : -1;
+  if (index < 0 && name) {
+    index = apiRiders.findIndex(
+      (row, i) => free(i) && String(row.name ?? "").trim().toLowerCase() === name,
+    );
+  }
+  return index;
+}
+
+// Neemt kopbeurt-watts, kopbeurtduur en volgorde over uit het antwoord. Renners
+// die ZwiftGopher niet teruggeeft houden hun eigen waarden en sluiten achteraan.
+// Zonder herkende kopbeurten blijft het plan zoals het was.
+export function applyZwiftGopherResult(
+  riders: TttPlanRiderInput[],
+  apiResponse: unknown,
+): { riders: TttPlanRiderInput[]; applied: number } {
+  const apiRiders = zwiftGopherRiders(apiResponse);
+  const taken = new Set<number>();
+  let applied = 0;
+
+  const matched = riders
+    .slice()
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((rider, inputIndex) => {
+      const apiIndex = matchApiRider(rider, apiRiders, taken);
+      if (apiIndex < 0) {
+        return { rider, inputIndex, rank: Number.POSITIVE_INFINITY };
+      }
+      taken.add(apiIndex);
+      const row = apiRiders[apiIndex];
+      const watts = firstNumber(row, PULL_WATTS_KEYS);
+      const duration = firstNumber(row, PULL_DURATION_KEYS);
+      const hasWatts = watts != null && watts > 0;
+      const hasDuration = duration != null && duration >= 0;
+      if (hasWatts || hasDuration) applied += 1;
+      return {
+        rider: {
+          ...rider,
+          ...(hasWatts ? { pullWatts: Math.round(watts) } : {}),
+          ...(hasDuration ? { pullDurationSeconds: Math.round(duration) } : {}),
+        },
+        inputIndex,
+        rank: firstNumber(row, ORDER_KEYS) ?? apiIndex,
+      };
+    });
+
+  if (applied === 0) return { riders, applied };
+
+  return {
+    riders: matched
+      .sort((a, b) => a.rank - b.rank || a.inputIndex - b.inputIndex)
+      .map(({ rider }, index) => ({ ...rider, displayOrder: index })),
+    applied,
+  };
+}
+
 export async function optimizeWithZwiftGopher(plan: TttPlanInput) {
   const apiKey = process.env.ZWIFTGOPHER_API_KEY;
   if (!apiKey) {

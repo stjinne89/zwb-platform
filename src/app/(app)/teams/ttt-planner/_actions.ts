@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
+  applyZwiftGopherResult,
   buildZwiftGopherPayload,
   optimizeWithZwiftGopher,
 } from "@/lib/ttt/zwiftgopher";
@@ -204,8 +205,10 @@ async function savePlanRows(
     max_pull_duration: plan.settings.maxPullDuration,
     duration_interval: plan.settings.durationInterval,
     optimization_strategy: plan.settings.optimizationStrategy,
-    status,
-    api_response: apiResponse ?? null,
+    // Opslaan na een optimalisatie laat het antwoord van ZwiftGopher staan.
+    ...(status === "draft" && plan.id
+      ? {}
+      : { status, api_response: apiResponse ?? null }),
     export_snapshot: {
       settings: plan.settings,
       riders: plan.riders,
@@ -307,8 +310,18 @@ export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionRes
 
   try {
     const { body } = await optimizeWithZwiftGopher(plan);
-    const planId = await savePlanRows(plan, guard.userId, "optimized", body);
-    return { ok: true, planId, apiResponse: body, message: "TTT-plan geoptimaliseerd." };
+    const { riders, applied } = applyZwiftGopherResult(plan.riders, body);
+    const planId = await savePlanRows({ ...plan, riders }, guard.userId, "optimized", body);
+    return {
+      ok: true,
+      planId,
+      apiResponse: body,
+      riders,
+      message:
+        applied > 0
+          ? "TTT-plan geoptimaliseerd."
+          : "Geoptimaliseerd, maar ZwiftGopher gaf geen kopbeurten terug.",
+    };
   } catch (err) {
     return {
       ok: false,
