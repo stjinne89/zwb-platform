@@ -9,6 +9,7 @@ import {
   type PlannerRider,
   type PlannerTeam,
   type SavedTttPlan,
+  type TttPlanSeed,
 } from "./_components/ttt-planner";
 import { getRequestAccess } from "@/lib/auth/request";
 
@@ -48,8 +49,10 @@ type PowerRow = {
 type EventRow = {
   id: string;
   title: string;
+  type: string;
   start_at: string;
   team_id: string | null;
+  parent_event_id: string | null;
 };
 
 type LineupRow = {
@@ -75,6 +78,7 @@ type PlanRow = {
   optimization_strategy: string | null;
   status: string;
   api_response: unknown;
+  published_at?: string | null;
   updated_at: string;
 };
 
@@ -152,15 +156,16 @@ function mapInitialPlan(plan: PlanRow, riders: PlanRiderRow[]): InitialTttPlan {
       })),
     status: plan.status,
     apiResponse: plan.api_response,
+    publishedAt: plan.published_at ?? null,
   };
 }
 
 export default async function TttPlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; event?: string; team?: string }>;
 }) {
-  const { plan: planId } = await searchParams;
+  const { plan: planParam, event: seedEventId, team: seedTeamId } = await searchParams;
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -187,7 +192,7 @@ export default async function TttPlannerPage({
       .select("profile_id, watts_5m, watts_20m, ftp_watts, ftp_wkg, rider_type"),
     supabase
       .from("events")
-      .select("id, title, start_at, team_id")
+      .select("id, title, type, start_at, team_id, parent_event_id")
       .order("start_at", { ascending: false })
       .limit(100),
     supabase
@@ -214,6 +219,58 @@ export default async function TttPlannerPage({
   }));
 
   const eventRows = (events ?? []) as EventRow[];
+
+  // Vanaf een TTT-event: het bestaande plan van dat team openen, anders een
+  // nieuw plan met de opstelling van het event.
+  let planId = planParam;
+  let seed: TttPlanSeed | null = null;
+  const seedTeam = seedTeamId ? teamById.get(seedTeamId) : undefined;
+  if (!planId && seedEventId && seedTeam) {
+    let seedEvent = eventRows.find((event) => event.id === seedEventId);
+    if (!seedEvent) {
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, type, start_at, team_id, parent_event_id")
+        .eq("id", seedEventId)
+        .maybeSingle<EventRow>();
+      if (data) {
+        seedEvent = data;
+        eventRows.push(data);
+      }
+    }
+    if (seedEvent) {
+      const eventIds = [seedEvent.id, seedEvent.parent_event_id].filter(Boolean) as string[];
+      const [{ data: existing }, { data: seedLineup }] = await Promise.all([
+        supabase
+          .from("ttt_plans")
+          .select("id")
+          .in("event_id", eventIds)
+          .or(`team_id.eq.${seedTeam.id},parent_team_id.eq.${seedTeam.id}`)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle<{ id: string }>(),
+        supabase
+          .from("team_event_lineups")
+          .select("profile_id")
+          .in("event_id", eventIds)
+          .eq("team_id", seedTeam.id)
+          .not("profile_id", "is", null),
+      ]);
+      if (existing) {
+        planId = existing.id;
+      } else {
+        seed = {
+          name: seedEvent.title,
+          eventId: seedEvent.id,
+          parentTeamId: seedTeam.parent_team_id ?? seedTeam.id,
+          teamId: seedTeam.id,
+          riderIds: Array.from(
+            new Set(((seedLineup ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id)),
+          ),
+        };
+      }
+    }
+  }
   const eventById = new Map(eventRows.map((event) => [event.id, event]));
   const plannerEvents: PlannerEvent[] = eventRows
     .slice()
@@ -221,6 +278,7 @@ export default async function TttPlannerPage({
     .map((event) => ({
       id: event.id,
       title: event.title,
+      type: event.type,
       startAt: event.start_at,
       teamId: event.team_id,
     }));
@@ -350,13 +408,14 @@ export default async function TttPlannerPage({
         <EmptyState>Er zijn nog geen teams om een TTT-plan voor te maken.</EmptyState>
       ) : (
         <TttPlanner
-          key={initialPlan?.id ?? "new"}
+          key={initialPlan?.id ?? (seed ? `seed-${seed.eventId}-${seed.teamId}` : "new")}
           teams={plannerTeams}
           events={plannerEvents}
           riders={riders}
           savedPlans={savedPlans}
           manageableTeamIds={manageableTeamIds}
           initialPlan={initialPlan}
+          seed={seed}
         />
       )}
     </div>

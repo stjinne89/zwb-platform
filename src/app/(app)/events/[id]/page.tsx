@@ -225,7 +225,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id",
+      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_tags",
     )
     .eq("id", id)
     .single();
@@ -250,7 +250,7 @@ export default async function EventDetailPage({
         .order("start_at")
         .order("title"),
       user
-        ? supabase.from("team_members").select("team_id").eq("profile_id", user.id)
+        ? supabase.from("team_members").select("team_id, role").eq("profile_id", user.id)
         : Promise.resolve({ data: null }),
     ]);
   const myTeamIds = new Set((myTeamRows ?? []).map((row) => row.team_id as string));
@@ -750,6 +750,68 @@ export default async function EventDetailPage({
   ).filter((link): link is RaceLink => link !== null);
 
   const canManage = access.has("events.manage_all") || isCreator;
+
+  // TTT-plan van het team van deze race. Wie het plan beheert opent van hier
+  // de planner; de rest van het team ziet het plan zodra het gepubliceerd is
+  // (migr. 0222, RLS). Apart opgehaald, zodat een ontbrekende migratie de
+  // pagina niet breekt.
+  type TttPlanView = {
+    id: string;
+    published: boolean;
+    riders: Array<{ id: string; name: string; pullWatts: number | null; pullSeconds: number | null }>;
+  };
+  let tttPlan: TttPlanView | null = null;
+  let canManageTtt = false;
+  const isTttEvent =
+    String(event.zwift_event_type ?? "").toUpperCase() === "TEAM_TIME_TRIAL" ||
+    ((event.zwift_tags ?? []) as string[]).some((tag) => tag.toLowerCase() === "ttt") ||
+    /\bttt\b/i.test(event.title);
+  if (event.team_id && user) {
+    const [{ data: tttTeam }, { data: planRow }] = await Promise.all([
+      supabase.from("teams").select("parent_team_id").eq("id", event.team_id).maybeSingle(),
+      supabase
+        .from("ttt_plans")
+        .select("id, published_at")
+        .in("event_id", lineupEventIds)
+        .or(`team_id.eq.${event.team_id},parent_team_id.eq.${event.team_id}`)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const tttTeamIds = [event.team_id, tttTeam?.parent_team_id].filter(Boolean) as string[];
+    canManageTtt =
+      access.has("teams.manage_roster") ||
+      ((myTeamRows ?? []) as Array<{ team_id: string; role: string }>).some(
+        (row) =>
+          tttTeamIds.includes(row.team_id) &&
+          (row.role === "captain" || row.role === "co-captain"),
+      );
+    if (planRow && (planRow.published_at || canManageTtt)) {
+      const { data: planRiders } = await supabase
+        .from("ttt_plan_riders")
+        .select("id, name, pull_watts, pull_duration_seconds")
+        .eq("plan_id", planRow.id)
+        .order("display_order");
+      tttPlan = {
+        id: planRow.id as string,
+        published: Boolean(planRow.published_at),
+        riders: ((planRiders ?? []) as Array<{
+          id: string;
+          name: string;
+          pull_watts: number | null;
+          pull_duration_seconds: number | null;
+        }>).map((row) => ({
+          id: row.id,
+          name: row.name,
+          pullWatts: row.pull_watts,
+          pullSeconds: row.pull_duration_seconds,
+        })),
+      };
+    }
+  }
+  const showTttPlan = Boolean(
+    event.team_id && (tttPlan ? tttPlan.published || canManageTtt : isTttEvent && canManageTtt),
+  );
 
   // Map photo rows → public URLs voor de gallery.
   const photoData: EventPhotoData[] = (photoRows ?? []).map((row) => {
@@ -1386,6 +1448,45 @@ export default async function EventDetailPage({
             Opstelling ({ownLineup.length})
           </h2>
           <LineupNames riders={ownLineup} className="rounded-lg border bg-card p-3" />
+        </section>
+      )}
+
+      {showTttPlan && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              TTT-plan{tttPlan && !tttPlan.published ? " (concept)" : ""}
+            </h2>
+            {canManageTtt && (
+              <Link
+                href={
+                  tttPlan
+                    ? `/teams/ttt-planner?plan=${tttPlan.id}`
+                    : `/teams/ttt-planner?event=${event.id}&team=${event.team_id}`
+                }
+                className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+              >
+                {tttPlan ? "Open in planner" : "TTT-plan maken"}
+              </Link>
+            )}
+          </div>
+          {tttPlan && tttPlan.riders.length > 0 && (
+            <ol className="divide-y rounded-lg border bg-card text-sm">
+              {tttPlan.riders.map((rider, index) => (
+                <li key={rider.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="min-w-0 truncate">
+                    <span className="mr-2 tabular-nums text-muted-foreground">{index + 1}</span>
+                    {rider.name}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {rider.pullWatts != null ? `${rider.pullWatts} w` : "-"}
+                    {" · "}
+                    {rider.pullSeconds != null ? `${rider.pullSeconds} s` : "-"}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
         </section>
       )}
 

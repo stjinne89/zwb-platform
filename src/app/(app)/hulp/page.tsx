@@ -507,6 +507,10 @@ const ADMIN_GUIDES = [
     id: "ttt-beheer",
     title: "TTT Planner en exports",
     bullets: [
+      "Op de pagina van een TTT-race opent de captain de planner; team, event en de opstelling staan dan al klaar.",
+      "Een ZRL-TTT telt maximaal 5 renners, andere TTT's 8.",
+      "Optimaliseren neemt kopbeurten en volgorde van ZwiftGopher over; daarna kun je ze aanpassen.",
+      "Een plan is een concept tot de captain het publiceert. Daarna ziet het hele team het op de racepagina.",
       "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",
       "De JSON-export bewaart ook velden die ZWB niet zelf bewerkt.",
       "De tekstexport is bedoeld als leesbare racesheet; de afbeelding als deelbare opstelling.",

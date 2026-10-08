@@ -6057,6 +6057,60 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — TTT-plan vanaf de racepagina, publiceren, 5 renners bij de ZRL
+
+**2026-10-08.** Commit: de commit die dit blok toevoegt. Migratie `0222`.
+
+**Aanleiding.** Stijn wilde de planner aan een TTT-event in de kalender hangen,
+zodat de opstelling meteen in het plan staat, en dat de rest van het team het
+plan pas ziet als de captain het publiceert.
+
+**Wat er veranderde.**
+- **Racepagina.** Een race met een team toont het blok "TTT-plan" als het een
+  TTT is (Zwift-type `TEAM_TIME_TRIAL`, tag `ttt`, of "TTT" in de titel) of als
+  er al een plan voor bestaat. Captain, co-captain en wie roosters beheert
+  krijgen "TTT-plan maken" of "Open in planner"; het blok toont volgorde, naam,
+  kopbeurt-watts en -duur. Gewicht en FTP staan er niet in.
+- **Planner vanaf een event** (`/teams/ttt-planner?event=…&team=…`): bestaat er
+  al een plan voor dat event en team, dan opent dat; anders staat een nieuw plan
+  klaar met team, event en de renners uit de opstelling (`team_event_lineups`,
+  ook die van de raceweek). Rosternamen zonder account blijven overgeslagen.
+- **Publiceren.** Knop "Publiceren" / "Intrekken" in de planner; slaat eerst
+  het plan op. Migratie `0222` voegt `ttt_plans.published_at` toe en past
+  `can_read_ttt_plan` aan: een concept is alleen leesbaar voor wie het beheert,
+  een gepubliceerd plan ook voor de teamleden. **Bestaande plannen zijn na de
+  migratie dus concept en voor gewone teamleden onzichtbaar tot ze gepubliceerd
+  zijn**; voorheen kon elk teamlid elk plan lezen.
+- **Aantal renners.** `tttMaxRiders`: 5 bij een event van type `zrl`, anders 8.
+  Geldt in de planner en in de servercontrole.
+- De losse pagina onder Teams blijft voor plannen zonder event. Hulp bijgewerkt.
+
+**ZwiftGopher: "No upcoming ZRL races found".** Die melding komt van
+ZwiftGopher. De API kent alleen `next`, `next_wtrl` en `next_zrl` en zoekt de
+route in zijn eigen schema; op 2026-10-08 stond in de racelijst van hun
+calculator alleen de donderdag-TTT van WTRL (Road to Ruins, daarna R.G.V.), geen
+ZRL-race. Op de site kun je wel zelf een route kiezen; of de API een routenaam
+als `route` aanneemt is niet getest (geen key lokaal, 1 verzoek per minuut).
+`next_wtrl` staat op verzoek nog steeds niet als keuze in de planner.
+
+**Bewust niet gebouwd.**
+- Geen vulling uit beschikbaarheid: alleen uit de opstelling. Zonder opstelling
+  begint het plan leeg.
+- Geen blok op de raceweek (het hoofdevent) zelf; het plan hoort bij de race van
+  het team.
+- Geen knop voor captains op een ZRL-race die niet als TTT herkenbaar is; maak
+  het plan dan in de planner en kies het event, dan verschijnt het blok.
+
+**Niet te verifiëren.** Migratie `0222` (geen lokale database). De code leest
+`published_at` op de racepagina in een eigen query; zonder migratie toont het
+blok geen plan en geeft "Publiceren" een fout. De veldnamen van het
+ZwiftGopher-antwoord uit de ronde hieronder zijn nog steeds niet getoetst.
+
+**Getest.** `tsc`, ESLint op de geraakte bestanden, de unit-suite (2004 tests
+groen; `omnium-live.test.ts` laadt niet in deze worktree omdat `.env.local`
+ontbreekt). **Niet getest:** de racepagina, de planner en publiceren in de
+browser.
+
 ### Opgeleverd — TTT Planner neemt kopbeurten en volgorde van ZwiftGopher over
 
 **2026-10-08.** Commit: de commit die dit blok toevoegt. Geen migratie.

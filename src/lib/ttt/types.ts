@@ -50,6 +50,11 @@ export type TttActionResult =
     }
   | { ok: false; error: string; statusCode?: number };
 
+// Een ZRL-TTT rijdt met hooguit 5 renners, andere TTT's met 8.
+export function tttMaxRiders(eventType: string | null | undefined) {
+  return eventType === "zrl" ? 5 : 8;
+}
+
 export const DEFAULT_TTT_SETTINGS: TttSettings = {
   route: "next_zrl",
   targetSpeed: null,

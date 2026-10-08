@@ -9,6 +9,7 @@ import {
   buildZwiftGopherPayload,
   optimizeWithZwiftGopher,
 } from "@/lib/ttt/zwiftgopher";
+import { tttMaxRiders } from "@/lib/ttt/types";
 import type {
   TttActionResult,
   TttPlanInput,
@@ -125,10 +126,23 @@ async function guardExistingPlan(planId: string) {
   return { ok: true as const, userId: guard.userId, plan };
 }
 
-function validatePlan(plan: TttPlanInput, mode: "save" | "optimize") {
+async function maxRidersFor(eventId: string | null) {
+  if (!eventId) return tttMaxRiders(null);
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("events")
+    .select("type")
+    .eq("id", eventId)
+    .maybeSingle<{ type: string }>();
+  return tttMaxRiders(data?.type);
+}
+
+function validatePlan(plan: TttPlanInput, mode: "save" | "optimize", maxRiders: number) {
   if (!plan.parentTeamId) return "Kies eerst een team.";
   if (plan.riders.length === 0) return "Voeg minstens een rider toe.";
-  if (plan.riders.length > 8) return "Een TTT race sheet mag maximaal 8 riders bevatten.";
+  if (plan.riders.length > maxRiders) {
+    return `Een TTT race sheet mag hier maximaal ${maxRiders} riders bevatten.`;
+  }
   if (mode === "optimize" && plan.riders.length < 2) {
     return "ZwiftGopher heeft minstens 2 riders nodig.";
   }
@@ -273,9 +287,12 @@ async function savePlanRows(
   return planId;
 }
 
-export async function saveTttPlan(input: TttPlanInput): Promise<TttActionResult> {
+export async function saveTttPlan(
+  input: TttPlanInput,
+  options?: { publish?: boolean },
+): Promise<TttActionResult> {
   const plan = normalizePlan(input);
-  const validation = validatePlan(plan, "save");
+  const validation = validatePlan(plan, "save", await maxRidersFor(plan.eventId));
   if (validation) return { ok: false, error: validation };
 
   const guard = plan.id
@@ -287,7 +304,19 @@ export async function saveTttPlan(input: TttPlanInput): Promise<TttActionResult>
 
   try {
     const planId = await savePlanRows(plan, guard.userId, "draft");
-    return { ok: true, planId, message: "TTT-plan opgeslagen." };
+    if (options?.publish === undefined) {
+      return { ok: true, planId, message: "TTT-plan opgeslagen." };
+    }
+    const { error } = await createAdminClient()
+      .from("ttt_plans")
+      .update({ published_at: options.publish ? new Date().toISOString() : null })
+      .eq("id", planId);
+    if (error) throw new Error(error.message);
+    return {
+      ok: true,
+      planId,
+      message: options.publish ? "TTT-plan gepubliceerd." : "Publicatie ingetrokken.",
+    };
   } catch (err) {
     return {
       ok: false,
@@ -298,7 +327,7 @@ export async function saveTttPlan(input: TttPlanInput): Promise<TttActionResult>
 
 export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionResult> {
   const plan = normalizePlan(input);
-  const validation = validatePlan(plan, "optimize");
+  const validation = validatePlan(plan, "optimize", await maxRidersFor(plan.eventId));
   if (validation) return { ok: false, error: validation };
 
   const guard = plan.id

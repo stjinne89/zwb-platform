@@ -7,6 +7,7 @@ import {
   ArrowUp,
   Download,
   GripVertical,
+  Megaphone,
   Plus,
   Save,
   Sparkles,
@@ -15,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_TTT_SETTINGS,
+  tttMaxRiders,
   type TttPlanInput,
   type TttPlanRiderInput,
   type TttSettings,
@@ -32,6 +34,7 @@ export type PlannerTeam = {
 export type PlannerEvent = {
   id: string;
   title: string;
+  type: string;
   startAt: string;
   teamId: string | null;
 };
@@ -63,6 +66,16 @@ export type SavedTttPlan = {
 export type InitialTttPlan = TttPlanInput & {
   status: string;
   apiResponse: unknown;
+  publishedAt: string | null;
+};
+
+/** Nieuw plan vanaf een event: team, event en de opstelling staan al klaar. */
+export type TttPlanSeed = {
+  name: string;
+  eventId: string;
+  parentTeamId: string;
+  teamId: string;
+  riderIds: string[];
 };
 
 function n(value: number | null | undefined, digits = 0) {
@@ -167,6 +180,7 @@ export function TttPlanner({
   savedPlans,
   manageableTeamIds,
   initialPlan,
+  seed,
 }: {
   teams: PlannerTeam[];
   events: PlannerEvent[];
@@ -174,19 +188,32 @@ export function TttPlanner({
   savedPlans: SavedTttPlan[];
   manageableTeamIds: string[];
   initialPlan: InitialTttPlan | null;
+  seed: TttPlanSeed | null;
 }) {
   const [planId, setPlanId] = useState(initialPlan?.id ?? null);
-  const [name, setName] = useState(initialPlan?.name ?? defaultPlan(teams).name);
-  const [eventId, setEventId] = useState(initialPlan?.eventId ?? null);
-  const [parentTeamId, setParentTeamId] = useState(
-    initialPlan?.parentTeamId ?? defaultPlan(teams).parentTeamId,
+  const [name, setName] = useState(
+    initialPlan?.name ?? seed?.name ?? defaultPlan(teams).name,
   );
-  const [teamId, setTeamId] = useState(initialPlan?.teamId ?? defaultPlan(teams).teamId);
+  const [eventId, setEventId] = useState(initialPlan?.eventId ?? seed?.eventId ?? null);
+  const [parentTeamId, setParentTeamId] = useState(
+    initialPlan?.parentTeamId ?? seed?.parentTeamId ?? defaultPlan(teams).parentTeamId,
+  );
+  const [teamId, setTeamId] = useState(
+    initialPlan?.teamId ?? seed?.teamId ?? defaultPlan(teams).teamId,
+  );
+  const [publishedAt, setPublishedAt] = useState(initialPlan?.publishedAt ?? null);
   const [settings, setSettings] = useState<TttSettings>(
     initialPlan?.settings ?? DEFAULT_TTT_SETTINGS,
   );
   const [raceRiders, setRaceRiders] = useState<TttPlanRiderInput[]>(
-    initialPlan?.riders ?? [],
+    () =>
+      initialPlan?.riders ??
+      (seed
+        ? riders
+            .filter((rider) => seed.riderIds.includes(rider.id))
+            .slice(0, tttMaxRiders(events.find((e) => e.id === seed.eventId)?.type))
+            .map(toInputRider)
+        : []),
   );
   const [apiResponse, setApiResponse] = useState<unknown>(initialPlan?.apiResponse ?? null);
   const [status, setStatus] = useState<
@@ -224,6 +251,7 @@ export function TttPlanner({
   }, [riders, raceRiders, parentTeamId, teamId, eventId]);
 
   const resultData = apiData(apiResponse);
+  const maxRiders = tttMaxRiders(events.find((event) => event.id === eventId)?.type);
 
   function currentPlan(): TttPlanInput {
     return {
@@ -238,16 +266,16 @@ export function TttPlanner({
   }
 
   function addRider(rider: PlannerRider) {
-    if (raceRiders.length >= 8) {
-      setStatus({ kind: "error", message: "Maximaal 8 riders in de race sheet." });
+    if (raceRiders.length >= maxRiders) {
+      setStatus({ kind: "error", message: `Maximaal ${maxRiders} riders in de race sheet.` });
       return;
     }
     setRaceRiders((current) => [...current, toInputRider(rider, current.length)]);
   }
 
   function addManualRider() {
-    if (raceRiders.length >= 8) {
-      setStatus({ kind: "error", message: "Maximaal 8 riders in de race sheet." });
+    if (raceRiders.length >= maxRiders) {
+      setStatus({ kind: "error", message: `Maximaal ${maxRiders} riders in de race sheet.` });
       return;
     }
     setRaceRiders((current) => [
@@ -292,6 +320,20 @@ export function TttPlanner({
       const res = await saveTttPlan(currentPlan());
       if (res.ok) {
         setPlanId(res.planId);
+        setStatus({ kind: "saved", message: res.message });
+      } else {
+        setStatus({ kind: "error", message: res.error });
+      }
+    });
+  }
+
+  function publish(next: boolean) {
+    setStatus({ kind: "idle" });
+    startTransition(async () => {
+      const res = await saveTttPlan(currentPlan(), { publish: next });
+      if (res.ok) {
+        setPlanId(res.planId);
+        setPublishedAt(next ? new Date().toISOString() : null);
         setStatus({ kind: "saved", message: res.message });
       } else {
         setStatus({ kind: "error", message: res.error });
@@ -498,7 +540,7 @@ export function TttPlanner({
 
         <div className="rounded-lg border bg-card p-4" ref={imageRef}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold">Raceplan ({raceRiders.length}/8)</h2>
+            <h2 className="font-semibold">Raceplan ({raceRiders.length}/{maxRiders})</h2>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" disabled={!managed || pending} onClick={save}>
                 <Save className="size-4" />
@@ -507,6 +549,15 @@ export function TttPlanner({
               <Button size="sm" disabled={!managed || pending} onClick={optimize}>
                 <Sparkles className="size-4" />
                 Optimaliseren
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!managed || pending}
+                onClick={() => publish(!publishedAt)}
+              >
+                <Megaphone className="size-4" />
+                {publishedAt ? "Intrekken" : "Publiceren"}
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyZwiftGopherResult } from "@/lib/ttt/zwiftgopher";
-import type { TttPlanRiderInput } from "@/lib/ttt/types";
+import { tttMaxRiders, type TttPlanRiderInput } from "@/lib/ttt/types";
 
 function rider(patch: Partial<TttPlanRiderInput>): TttPlanRiderInput {
   return {
@@ -71,5 +71,13 @@ describe("kopbeurten en volgorde uit ZwiftGopher", () => {
     expect(res.applied).toBe(0);
     expect(res.riders).toEqual(riders);
     expect(applyZwiftGopherResult(riders, null).riders).toEqual(riders);
+  });
+});
+
+describe("aantal renners in een TTT-plan", () => {
+  it("is 5 bij de ZRL en anders 8", () => {
+    expect(tttMaxRiders("zrl")).toBe(5);
+    expect(tttMaxRiders("zwift")).toBe(8);
+    expect(tttMaxRiders(null)).toBe(8);
   });
 });
