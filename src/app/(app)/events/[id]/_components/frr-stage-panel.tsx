@@ -17,8 +17,9 @@ import {
 } from "@/lib/frr/zwb-standings";
 import {
   loadClassRiders,
-  loadFrrTtStages,
+  loadFrrStageInfo,
   loadLatestClass,
+  loadOfficialStages,
   loadZwbStageViews,
 } from "@/lib/frr/zwb-stage-views";
 import { FrrExcludeToggle } from "./frr-exclude";
@@ -136,9 +137,10 @@ export async function FrrStagePanel({
   const classRiders = myGenderClass
     ? await loadClassRiders(supabase, tourId, [myGenderClass])
     : [];
-  const [classResults, ttStages, { data: exclusionRows }] = await Promise.all([
+  const [classResults, officialStages, stageInfo, { data: exclusionRows }] = await Promise.all([
     loadClassResults(supabase, tourId, classRiders.map((row) => row.zwiftId)),
-    loadFrrTtStages(supabase, tourId),
+    myGenderClass ? loadOfficialStages(supabase, tourId, [myGenderClass]) : [],
+    loadFrrStageInfo(supabase, tourId),
     userId
       ? supabase
           .from("frr_gc_exclusions")
@@ -152,12 +154,19 @@ export async function FrrStagePanel({
   const excluded = new Set(exclusions.map((row) => row.zwift_id));
   const provisional = computeProvisionalGc({
     riders: classRiders,
-    results: classResults,
+    results: classResults.map((row) => ({
+      ...row,
+      startMs: stageInfo.slotStarts.get(row.slotId),
+    })),
+    official: officialStages,
     excluded,
-    ttStages,
+    ttStages: stageInfo.ttStages,
   });
+  // Wie alleen een etappe mist waarvan nog tijdsloten volgen, kan hem nog rijden.
+  const canStillRide = (rider: (typeof provisional.pending)[number]) =>
+    rider.missingStages.every((stage) => stageInfo.openStages.has(stage));
   const stageViews =
-    stageSwitch ? await loadZwbStageViews(supabase, tourId, zwb, excluded, ttStages) : [];
+    stageSwitch ? await loadZwbStageViews(supabase, tourId, zwb, excluded, stageInfo) : [];
   const myProvisional = provisional.ranked.find((row) => row.zwiftId === myZwiftId) ?? null;
 
   const standings = new Map<string, GcStanding>();
@@ -238,7 +247,11 @@ export async function FrrStagePanel({
           </div>
           {[
             { title: null, riders: provisional.ranked },
-            { title: "Mist een etappe", riders: provisional.pending },
+            { title: "Nog te rijden", riders: provisional.pending.filter(canStillRide) },
+            {
+              title: "Mist een etappe",
+              riders: provisional.pending.filter((rider) => !canStillRide(rider)),
+            },
           ].map(
             (group) =>
               group.riders.length > 0 && (

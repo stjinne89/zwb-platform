@@ -12,6 +12,7 @@
 //   0 tourcode   2 geslacht-klasse ("M-BON")   3 etappe   6 klasse
 //   7 positie    8 naam   9 club   10 leeftijd   11 Zwift-ID ("4,662,751")
 //   14 etappetijd (s)   15 gereden etappes   16 tourtijd (s, "26,165.40")
+//   18 tijdverlies in deze etappe (s)
 //   19 opgeteld tijdverlies (s), zonder straf
 //   20 straf voor een upgrade ("(30s)" of "-")
 //   21 opgeteld tijdverlies van de nummer één van de klasse (s)
@@ -40,6 +41,10 @@ export type FrrGcRow = {
   zwiftId: string;
   stagesRidden: number | null;
   tourTimeS: number | null;
+  /** Etappetijd van deze etappe, met een eventuele tijdstraf van FRR. */
+  stageTimeS: number | null;
+  /** Tijdverlies in deze etappe, zonder straf voor een upgrade. */
+  stageEgapS: number | null;
   /** Achterstand op de leider van de klasse, met straf. */
   egapS: number | null;
   /** Straf voor een upgrade, in seconden; 0 zonder straf. */
@@ -143,6 +148,8 @@ export function parseGcRows(data: unknown): FrrGcRow[] {
       zwiftId,
       stagesRidden: ridden !== null && Number.isSafeInteger(ridden) ? ridden : null,
       tourTimeS: number(text(cells[16])),
+      stageTimeS: number(text(cells[14])),
+      stageEgapS: number(text(cells[18])),
       egapS,
       // Een onbekende straf zit dan wel in de eGAP, maar is niet te tonen.
       penaltyS: penalty ?? 0,

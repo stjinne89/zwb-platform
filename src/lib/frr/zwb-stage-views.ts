@@ -4,7 +4,11 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isFrrTimeTrial } from "@/lib/frr/feed";
-import { computeProvisionalGc, type ProvisionalResult } from "@/lib/frr/provisional";
+import {
+  computeProvisionalGc,
+  type OfficialStage,
+  type ProvisionalResult,
+} from "@/lib/frr/provisional";
 import { compareFrrClass } from "@/lib/frr/watch";
 import {
   frrPenaltyS,
@@ -26,6 +30,8 @@ export type ZwbStageRow = {
 
 export type ZwbStageView = {
   stage: number;
+  /** Er moet nog een tijdslot gereden worden. */
+  open: boolean;
   /** Van de FRR-site; null als FRR de etappe nog niet heeft. */
   official: ZwbStageRow[] | null;
   /** Uit Zwift; null zonder finishtijden voor deze etappe. */
@@ -73,10 +79,13 @@ export function buildZwbStageViews(input: {
   /** Alle renners van de klassen waarin een ZWB'er rijdt, uit het laatste klassement. */
   classRiders: ClassRider[];
   results: ProvisionalResult[];
+  /** Het tijdverlies per etappe dat FRR al rekende, voor dezelfde renners. */
+  officialStages?: OfficialStage[];
   /** De ZWB'ers in het klassement van FRR, per etappe. */
   history: Array<ZwbStageRow & { afterStage: number }>;
   excluded?: Set<string>;
   ttStages?: Set<number>;
+  openStages?: Set<number>;
 }): ZwbStageView[] {
   const byClass = new Map<string, ClassRider[]>();
   for (const rider of input.classRiders) {
@@ -93,11 +102,13 @@ export function buildZwbStageViews(input: {
     let provisional: ZwbStageRow[] | null = null;
     if (resultStages.has(stage)) {
       const upTo = input.results.filter((row) => row.stage <= stage);
+      const officialUpTo = (input.officialStages ?? []).filter((row) => row.stage <= stage);
       provisional = [];
       for (const [genderClass, riders] of byClass) {
         const gc = computeProvisionalGc({
           riders,
           results: upTo,
+          official: officialUpTo,
           excluded: input.excluded,
           ttStages: input.ttStages,
         });
@@ -120,6 +131,7 @@ export function buildZwbStageViews(input: {
 
     return {
       stage,
+      open: input.openStages?.has(stage) ?? false,
       official:
         official.length > 0
           ? sortRows(
@@ -206,25 +218,90 @@ export async function loadClassRiders(
   }));
 }
 
-/** De etappes van de tour die een individuele tijdrit zijn. */
-export async function loadFrrTtStages(
+/** Zo lang na de start van het laatste tijdslot is een etappe nog bezig. */
+const STAGE_OPEN_AFTER_START_MS = 4 * 3600_000;
+
+export type FrrStageInfo = {
+  /** Etappes die een individuele tijdrit zijn. */
+  ttStages: Set<number>;
+  /** Etappes waarvan nog een tijdslot gereden moet worden of net gestart is. */
+  openStages: Set<number>;
+  /** Tijdslot → start in ms. */
+  slotStarts: Map<string, number>;
+};
+
+/** Wat het voorlopige klassement over de etappes van de tour moet weten. */
+export async function loadFrrStageInfo(
   supabase: SupabaseClient,
   tourId: string,
-): Promise<Set<number>> {
+  nowMs = Date.now(),
+): Promise<FrrStageInfo> {
   const { data } = await supabase
     .from("events")
-    .select("frr_stage, title, zwift_event_type")
+    .select("id, frr_stage, title, zwift_event_type, zwift_event_id, start_at")
     .eq("frr_tour_id", tourId)
     .not("frr_stage", "is", null);
-  const stages = new Set<number>();
+  const info: FrrStageInfo = {
+    ttStages: new Set(),
+    openStages: new Set(),
+    slotStarts: new Map(),
+  };
   for (const row of (data ?? []) as Array<{
+    id: string;
     frr_stage: number;
     title: string | null;
     zwift_event_type: string | null;
+    zwift_event_id: number | string | null;
+    start_at: string;
   }>) {
     if (isFrrTimeTrial({ title: row.title, zwiftEventType: row.zwift_event_type })) {
-      stages.add(row.frr_stage);
+      info.ttStages.add(row.frr_stage);
     }
+    if (row.zwift_event_id === null) continue;
+    const startMs = Date.parse(row.start_at);
+    info.slotStarts.set(row.id, startMs);
+    if (startMs + STAGE_OPEN_AFTER_START_MS > nowMs) info.openStages.add(row.frr_stage);
+  }
+  return info;
+}
+
+/**
+ * Het tijdverlies per etappe dat FRR voor de renners van deze klassen al
+ * rekende (migr. 0222). Zonder die kolommen is de lijst leeg en rekent het
+ * voorlopige klassement alles zelf.
+ */
+export async function loadOfficialStages(
+  supabase: SupabaseClient,
+  tourId: string,
+  genderClasses: string[],
+): Promise<OfficialStage[]> {
+  const stages: OfficialStage[] = [];
+  for (let from = 0; genderClasses.length > 0 && from < 50000; from += 1000) {
+    const { data, error } = await supabase
+      .from("frr_gc_history")
+      .select("zwift_id, after_stage, stage_time_s, stage_egap_s")
+      .eq("tour_id", tourId)
+      .in("gender_class", genderClasses)
+      .not("stage_egap_s", "is", null)
+      .order("after_stage")
+      .order("zwift_id")
+      .range(from, from + 999);
+    if (error) return [];
+    const rows = (data ?? []) as Array<{
+      zwift_id: string;
+      after_stage: number;
+      stage_time_s: number | string | null;
+      stage_egap_s: number | string;
+    }>;
+    for (const row of rows) {
+      stages.push({
+        stage: row.after_stage,
+        zwiftId: row.zwift_id,
+        gapS: Number(row.stage_egap_s),
+        timeS: numberOrNull(row.stage_time_s),
+      });
+    }
+    if (rows.length < 1000) break;
   }
   return stages;
 }
@@ -256,7 +333,7 @@ export async function loadZwbStageViews(
   tourId: string,
   zwb: ZwbFrrStandings,
   excluded: Set<string>,
-  ttStages: Set<number>,
+  info: FrrStageInfo,
 ): Promise<ZwbStageView[]> {
   const zwbIds = [...zwb.zwbNames.keys()];
   if (zwbIds.length === 0) return [];
@@ -281,7 +358,10 @@ export async function loadZwbStageViews(
       ).values(),
     ]),
   ];
-  const classRiders = await loadClassRiders(supabase, tourId, genderClasses);
+  const [classRiders, officialStages] = await Promise.all([
+    loadClassRiders(supabase, tourId, genderClasses),
+    loadOfficialStages(supabase, tourId, genderClasses),
+  ]);
 
   // Per 1000, want PostgREST kapt af.
   const results: ProvisionalResult[] = [];
@@ -298,6 +378,7 @@ export async function loadZwbStageViews(
         zwiftId: row.zwift_id,
         pen: row.pen,
         timeS: Number(row.time_s),
+        startMs: info.slotStarts.get(row.slot_event_id),
       });
     }
     if (rows.length < 1000) break;
@@ -307,6 +388,7 @@ export async function loadZwbStageViews(
     zwbNames: zwb.zwbNames,
     classRiders,
     results,
+    officialStages,
     history: history.map((row) => ({
       afterStage: row.after_stage,
       genderClass: row.gender_class,
@@ -319,6 +401,7 @@ export async function loadZwbStageViews(
       penaltyS: frrPenaltyS(row),
     })),
     excluded,
-    ttStages,
+    ttStages: info.ttStages,
+    openStages: info.openStages,
   });
 }

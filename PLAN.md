@@ -87,7 +87,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0223`.
 
 ---
 
@@ -282,6 +282,93 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 
 ---
 
+> **FRR voorlopig klassement: rekenen zoals FRR, 2026-10-08 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0222_frr_stage_egap.sql`
+> (nog niet toegepast).
+>
+> **Waarom.** Melding van de eigenaar tijdens etappe 5 van Ignite: het
+> voorlopige klassement klopte niet. Nagelopen in de browser van de eigenaar,
+> alleen gelezen: de tourpagina op productie, de GC-tabel van FRR (2045 rijen,
+> etappe 1 t/m 5), de Tour Rules van FRR en de uitslagen op ZwiftPower.
+>
+> **Wat er misging** (ZWB voorlopig tegenover FRR, opgeteld verlies):
+> - Een etappe telde mee zodra het eerste tijdslot een uitslag had. Tijdens
+>   etappe 5 hadden in M-BON vijf renners een plaats en stond de rest, ook de
+>   eigenaar, onder "Mist een etappe".
+> - De tijd werd gezet door de snelste van de klasse in het slot. FRR neemt de
+>   winnaar die *full tourist* is (elke etappe tot dan toe gereden). Is hij dat
+>   niet, of promoveert hij door die rit, dan krijgt de eerste echte renner 1 s
+>   en rekent de rest vanaf hem. Etappe 2, M-GHT, slot 15:30: FRR rekende vanaf
+>   5129,4 s, ZWB vanaf 5125,7 s. In M-CAP kostte dat één renner 42 s te veel.
+> - Een gepromoveerde renner werd voor elke etappe in zijn nieuwe klasse
+>   gerekend. FRR neemt het verlies uit de oude klasse mee: Jeroen won etappe 2
+>   als HAB (0 s) en kreeg bij ZWB 49 s tegen de snelste GHT.
+> - De eGAP was de kale som; FRR toont de achterstand op de leider.
+> - FRR gaf Bas op etappe 4 een tijdstraf van precies 10% (3089,03 s op
+>   ZwiftPower, 3397,93 s bij FRR). Dat is uit Zwift niet af te leiden.
+>
+> **Wat.**
+> - `computeProvisionalGc` (`src/lib/frr/provisional.ts`): alleen een full
+>   tourist zet de tijd, anders de eerste full tourist min 1 s; ook in een
+>   tijdrit. Wie een etappe twee keer reed, telt met zijn eerste rit (was: het
+>   kleinste verlies). De eGAP van wie een plaats heeft, is de achterstand op de
+>   leider; onder "Mist een etappe" blijft het de som over wat gereden is.
+> - Etappes die FRR voor een renner al verwerkte, gaan voor op de eigen
+>   rekensom: `frr_gc_history` bewaart nu ook de etappetijd en het verlies van
+>   die etappe (kolom 14 en 18 van de tabel, `stageTimeS` en `stageEgapS` in
+>   `parseGcRows`). Daarin zitten promoties en tijdstraffen. Alleen wat FRR nog
+>   niet heeft, komt uit Zwift. `loadOfficialStages` leest ze; zonder `0222`
+>   is die lijst leeg en rekent ZWB alles zelf, met de nieuwe regels.
+> - `loadFrrStageInfo` (`zwb-stage-views.ts`, vervangt `loadFrrTtStages`):
+>   tijdritten, starttijd per slot en welke etappes nog bezig zijn (er volgt een
+>   slot, of het laatste startte minder dan vier uur geleden).
+> - Eigen klassement op etappe- en tourpagina: een etappe die nog bezig is,
+>   telt meteen mee, ook als het lid hem zelf nog niet reed (wens eigenaar,
+>   zelfde dag). Wie alleen zo'n etappe mist, staat onder "Nog te rijden" in
+>   plaats van "Mist een etappe" (`missingStages`).
+> - Etappekeuze op de tourpagina: opent op de laatste etappe die klaar is; de
+>   etappe die bezig is, blijft aanklikbaar.
+> - `/hulp` beschrijft de regels.
+>
+> **Niet meer waar.**
+> - Ronde van 2026-10-04 ("voorlopig klassement van je eigen klasse"): "per
+>   tijdslot zet de eerste renner van een klasse de tijd". Dat is de eerste
+>   full tourist. De regel van de eigenaar was de hoofdregel zonder de
+>   uitzonderingen.
+> - Zelfde ronde: "Niet gemeten: of de duur die Zwift geeft gelijk is aan de
+>   etappetijd van FRR." Gemeten: gelijk op de milliseconde, behalve bij een
+>   tijdstraf.
+> - Ronde van 2026-10-04 (straf in de eGAP): de aanname dat de straf voor een
+>   upgrade één keer per tour geldt, klopt met de tabel: kolom 19 loopt zonder
+>   straf op en de straf staat er los naast.
+> - Ronde van 2026-10-04 (klassement per etappe), onder Beperkingen: "De klasse
+>   … uit het laatste klassement, ook voor een eerdere etappe." Voor etappes die
+>   FRR verwerkte, maakt de klasse niet meer uit; het verlies komt van FRR.
+>
+> **Bewust niet.**
+> - De klasse per etappe zelf bijhouden. FRR zet bij een promotie alle rijen
+>   van de renner op de nieuwe klasse, dus de oude klasse is achteraf niet te
+>   lezen. Het verlies per etappe overnemen lost hetzelfde op.
+> - "Promoveert door deze rit" voorspellen voor een etappe die FRR nog niet
+>   verwerkte. Dat beslist FRR; tot dan zet zo'n winnaar bij ZWB de tijd.
+> - De grens van tien plaatsen die FRR noemt bij het zoeken naar de eerste full
+>   tourist.
+> - De eigen verwijderlijst opruimen. Die werkt nog alleen op etappes die ZWB
+>   zelf rekent; het verlies van FRR verandert er niet door.
+>
+> **Niet nagegaan.** Een simpele nabouw van de full-tourist-regel op de cijfers
+> van FRR verklaart per etappe 68 tot 88% van de rijen; de rest zit vooral in
+> klassen met veel promoties. Hoe FRR een niet-full-tourist rekent die vóór de
+> eerste full tourist finisht maar niet won: hier 0 s.
+>
+> **Niet lokaal te verifiëren.** De migratie, de sync en de pagina's.
+>
+> **Na de deploy.** `0222` toepassen en op `/beheer/frr-kalender` Nu verversen,
+> zodat de historie met het verlies per etappe wordt gevuld.
+>
+> **Getest.** `tsc`, ESLint op de geraakte bestanden en de unit-suite, met de
+> tijden van Ignite in `tests/unit/frr.test.ts`.
+
 > **FRR voorlopig klassement: drie ZWB'ers ontbraken na etappe 2, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0219_frr_latest_class.sql`
 > (nog niet toegepast).
@@ -423,7 +510,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0221`
 > tijdslot zet de eerste renner van een klasse de tijd, de rest verliest eGAP op
 > hem, en het klassement is de som over de etappes. *(Bijgewerkt 2026-10-05: in
 > een tijdrit zet de snelste van de klasse over alle tijdsloten de tijd; zie de
-> ronde van 5 oktober.)*
+> ronde van 5 oktober. Bijgewerkt 2026-10-08: alleen een full tourist zet de
+> tijd, en wat FRR al verwerkte gaat voor; zie de ronde van 8 oktober.)*
 >
 > **Wat.**
 > - `frr_stage_results`: finishtijd en startgroep per renner per tijdslot. De

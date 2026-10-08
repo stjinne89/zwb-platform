@@ -130,6 +130,15 @@ describe("FRR-klassement", () => {
     expect(rows[1].egapS).toBe(279.317);
   });
 
+  it("leest de etappetijd en het verlies van de etappe zelf", () => {
+    expect(rows[0]).toMatchObject({ stageTimeS: 5877.935, stageEgapS: 0 });
+    // Ignite etappe 4 (2026-10-08): 0,81 s verloren in 3138,471 s.
+    const cells = [...(gc.data[0] as unknown[])];
+    cells[14] = "3138.471";
+    cells[18] = "0.81";
+    expect(parseGcRows([cells])[0]).toMatchObject({ stageTimeS: 3138.471, stageEgapS: 0.81 });
+  });
+
   it("telt de straf voor een upgrade bij de eGAP", () => {
     // Ignite na etappe 2 (2026-10-04): 9,42 s verlies, 30 s straf, leider 8,05 s.
     const cells = [...(gc.data[0] as unknown[])];
@@ -302,12 +311,13 @@ describe("computeProvisionalGc", () => {
 
   it("rekent een tijdrit op de snelste van de klasse over alle tijdsloten", () => {
     const gc = computeProvisionalGc({ riders, results, ttStages: new Set([1]) });
-    // Etappe 1: "ander" (4004,0 in slot a) zet de tijd, ook voor slot b.
+    // Etappe 1: "ander" (4004,0 in slot a) zet de tijd, ook voor slot b. De
+    // leider "snel" verliest daar 22,132 s; de rest staat ten opzichte van hem.
     expect(gc.ranked.map((row) => [row.zwiftId, row.position, row.egapS])).toEqual([
-      ["snel", 1, 22.132],
-      ["buur", 2, 26.714],
-      ["ander", 3, 296.2],
-      ["ik", 4, 301.553],
+      ["snel", 1, 0],
+      ["buur", 2, 4.582],
+      ["ander", 3, 274.068],
+      ["ik", 4, 279.421],
     ]);
   });
 
@@ -331,10 +341,11 @@ describe("computeProvisionalGc", () => {
       results,
       excluded: new Set(["snel"]),
     });
+    // Zoals FRR: de achterstand op de leider, die zelf 3,6 s verloor.
     expect(gc.ranked.map((row) => [row.zwiftId, row.egapS, row.penaltyS])).toEqual([
-      ["ander", 3.6, 0],
-      ["ik", 8.953, 0],
-      ["buur", 30, 30],
+      ["ander", 0, 0],
+      ["ik", 5.353, 0],
+      ["buur", 26.4, 30],
     ]);
   });
 
@@ -346,6 +357,63 @@ describe("computeProvisionalGc", () => {
       ["ik", 3, 8.953],
     ]);
     expect(gc.pending.some((row) => row.zwiftId === "snel")).toBe(false);
+  });
+
+  // Tour Rules van FRR; Ignite etappe 2, M-GHT in het slot van 15:30 (2026-10-04):
+  // de winnaar reed etappe 1 niet, de tweede kreeg 1 s en de rest rekent vanaf hem.
+  it("laat alleen een full tourist de tijd zetten", () => {
+    const gc = computeProvisionalGc({
+      riders,
+      results: [
+        result(1, "s1", "ik", 3751.9),
+        result(1, "s1", "buur", 3760.0),
+        result(1, "s1", "ander", 3770.0),
+        result(2, "s2", "nieuw", 5125.745),
+        result(2, "s2", "buur", 5130.409),
+        result(2, "s2", "ik", 5181.936),
+      ],
+    });
+    // ik: 0 + 52,527; buur: 8,1 + 1.
+    expect(gc.ranked.map((row) => [row.zwiftId, row.position, row.egapS])).toEqual([
+      ["buur", 1, 0],
+      ["ik", 2, 43.427],
+    ]);
+    // De winnaar zelf verliest niets.
+    expect(gc.pending.find((row) => row.zwiftId === "nieuw")?.egapS).toBe(0);
+  });
+
+  it("telt de eerste rit als iemand een etappe twee keer rijdt", () => {
+    const gc = computeProvisionalGc({
+      riders,
+      results: [
+        { ...result(1, "s1-a", "ander", 4000), startMs: 1000 },
+        { ...result(1, "s1-a", "ik", 4050), startMs: 1000 },
+        { ...result(1, "s1-b", "buur", 4000), startMs: 2000 },
+        { ...result(1, "s1-b", "ik", 4001), startMs: 2000 },
+      ],
+    });
+    expect(gc.ranked.find((row) => row.zwiftId === "ik")).toMatchObject({ egapS: 50, timeS: 4050 });
+  });
+
+  // Ignite etappe 2 en 4 (2026-10-08): een gepromoveerde renner hield 0 s uit
+  // zijn oude klasse, en een tijdstraf van 10% zat alleen in de etappetijd van FRR.
+  it("neemt het verlies en de etappetijd over die FRR al rekende", () => {
+    const gc = computeProvisionalGc({
+      riders,
+      results,
+      official: [
+        { stage: 1, zwiftId: "ik", gapS: 0, timeS: 4414.248 },
+        { stage: 2, zwiftId: "ik", gapS: 0.81, timeS: null },
+        // Etappe 3 heeft FRR alleen voor "ik"; de rest mist hem nog.
+        { stage: 3, zwiftId: "ik", gapS: 10, timeS: 2600 },
+        { stage: 1, zwiftId: "vreemd", gapS: 5, timeS: 4000 },
+      ],
+    });
+    expect(gc.stages).toEqual([1, 2, 3]);
+    expect(gc.ranked.map((row) => [row.zwiftId, row.egapS, row.timeS])).toEqual([
+      ["ik", 0, 4414.248 + 5465.4 + 2600],
+    ]);
+    expect(gc.pending.map((row) => [row.zwiftId, row.stagesRidden])).toContainEqual(["snel", 2]);
   });
 
   it("is leeg zonder uitslagen", () => {
@@ -466,6 +534,7 @@ describe("buildZwbStageViews", () => {
         penaltyS: 0,
       },
     ],
+    openStages: new Set([2]),
   });
 
   it("geeft per etappe het definitieve en het voorlopige klassement van de ZWB'ers", () => {
@@ -481,10 +550,15 @@ describe("buildZwbStageViews", () => {
 
   it("laat de bron leeg die een etappe niet heeft", () => {
     expect(views[1].official).toBeNull();
-    // Na etappe 2: buur 5 s, ik 9 + 30; laat mist een etappe en telt niet mee.
+    // Na etappe 2: buur 5 s, ik 9 + 30, dus 34 s achter de leider; laat mist een
+    // etappe en telt niet mee.
     expect(views[1].provisional).toEqual([
-      expect.objectContaining({ zwiftId: "ik", position: 2, egapS: 39, tourTimeS: 9409 }),
+      expect.objectContaining({ zwiftId: "ik", position: 2, egapS: 34, tourTimeS: 9409 }),
     ]);
+  });
+
+  it("merkt een etappe waarvan nog een tijdslot volgt", () => {
+    expect(views.map((view) => view.open)).toEqual([false, true]);
   });
 });
 

@@ -249,6 +249,9 @@ async function syncGc(
         tour_time_s: row.tourTimeS,
         egap_s: row.egapS,
         penalty_s: row.penaltyS,
+        // Voor het voorlopige klassement (migr. 0222); de oude functie negeert ze.
+        stage_time_s: row.stageTimeS,
+        stage_egap_s: row.stageEgapS,
       })),
     ),
   });

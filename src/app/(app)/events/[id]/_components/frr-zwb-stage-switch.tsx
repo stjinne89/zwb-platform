@@ -22,7 +22,10 @@ export function FrrZwbStageSwitch({
   profileIds: Record<string, string>;
   myZwiftId: string | null;
 }) {
-  const [stage, setStage] = useState(views[views.length - 1].stage);
+  // Een etappe die nog bezig is, staat er wel bij maar is niet de eerste keuze.
+  const [stage, setStage] = useState(
+    (views.findLast((row) => !row.open) ?? views[views.length - 1]).stage,
+  );
   const [wanted, setWanted] = useState<Source>("official");
   const view = views.find((row) => row.stage === stage) ?? views[views.length - 1];
   // Heeft de etappe de gekozen bron niet, dan de andere.
