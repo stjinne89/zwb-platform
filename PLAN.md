@@ -87,10 +87,38 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0225`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0226`.
 
 ---
 
+> **Goed doel als derde type naast Training en Social, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0225_event_kind_goed_doel.sql`.
+>
+> **Waarom.** Voorstel van de eigenaar: Goed doel zegt waaróm een rit er is, iets
+> wat categorie, Training en Social niet zeggen.
+>
+> **Nu.** `goed_doel` is een derde waarde van `events.kind` (`EVENT_KINDS`). Het
+> staat daarmee vanzelf in het eventformulier, in de dropdown Labels op de
+> kalender en bij de interesses op het profiel, en telt mee onder Voor mij. De
+> kleur blijft die van de categorie; op de kalender staat er een hartje in het
+> label. Elders is het label tekst ("Outdoor rit · Goed doel").
+>
+> **Volgorde bij uitrollen.** `0225` toepassen vóór iemand een event als Goed
+> doel opslaat; zonder de migratie weigert de database die waarde. De rest van
+> de app werkt ook zonder.
+>
+> **Getest.** `tsc`, ESLint, `tests/unit/calendar-type-filter.test.ts`. `0225` in
+> PGlite na `0223`: `goed_doel` wordt geaccepteerd, een onbekende waarde niet.
+>
+> **Bewust niet gebouwd.** Performance als type (voorstel eigenaar, zelfde
+> gesprek): "hard rijden om beter te worden" is Training, en "voor een uitslag
+> rijden" zit al in de categorie (ZRL, Ladder, Flamme Rouge, Gran Fondo, Gravel
+> race). Twee types tegelijk op één event, bijvoorbeeld Goed doel én Social: het
+> blijft bij één, anders moet de kleur twee types tegelijk aankunnen. Een eigen
+> kleurvariant voor Goed doel: feller en pastel zijn al van Training en Social.
+>
+> **Niet lokaal te verifiëren.** `0225` op de echte database.
+>
 > **Kalender: filteren op label, kleur per categorie, en Training/Social als los type, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commits: `819ed96` (filter en eerste kleuren), `0944d57` (indeling van de
 > eigenaar) en de commit die dit blok bijwerkt (filter als dropdown). Migratie `0223_event_kind.sql`.
@@ -103,7 +131,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0225`
 >
 > **Nu.**
 > - **Training en Social zijn geen eventtype meer.** `events.kind` (`training`,
->   `social` of leeg) staat naast `events.type`; hooguit één van de twee (keuze
+>   `social` of leeg; sinds `0225` ook `goed_doel`) staat naast `events.type`; hooguit één van de twee (keuze
 >   eigenaar). `0223` zet bestaande events met type social/training op type
 >   `overig` met hun oude type als `kind`, en haalt beide uit `events_type_check`.
 >   Welke categorie die events werkelijk zijn is uit de data niet af te leiden;

@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { Cake } from "lucide-react";
+import { Cake, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
@@ -641,9 +641,12 @@ export default async function KalenderPage({
                     </Link>
                   ))}
                   <span
-                    className="rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide"
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide"
                     style={color.badge}
                   >
+                    {event.kind === "goed_doel" && (
+                      <Heart className="size-3 fill-current" aria-hidden />
+                    )}
                     {eventLabel(event.type, event.kind)}
                   </span>
                   {liveCount > 0 && (

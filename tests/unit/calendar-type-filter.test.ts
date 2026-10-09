@@ -109,6 +109,12 @@ describe("kleur en label", () => {
     expect(social.wideBar).toBe(false);
   });
 
+  it("geeft een goed doel de gewone kleur van zijn categorie", () => {
+    expect(eventColorStyle("outdoor", "goed_doel")).toEqual(eventColorStyle("outdoor", null));
+    expect(eventLabel("outdoor", "goed_doel")).toBe("Outdoor rit · Goed doel");
+    expect(parseTypeFilter("goed_doel,outdoor")).toEqual(["outdoor", "goed_doel"]);
+  });
+
   it("zet het soort achter de categorie, behalve bij Overig", () => {
     expect(eventLabel("zwift", null)).toBe("Zwift");
     expect(eventLabel("zwift", "training")).toBe("Zwift · Training");

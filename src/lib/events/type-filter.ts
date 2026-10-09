@@ -2,7 +2,7 @@
  * Het labelfilter op de kalender: `?type=zrl,ladder`. Staat naast Alles/Voor
  * mij (`?voor=mij`) en versmalt die lijst; niets gekozen betekent alles tonen.
  *
- * Categorie (Zwift, Outdoor rit) en soort (Training, Social) zijn twee assen:
+ * Categorie (Zwift, Outdoor rit) en soort (Training, Social, Goed doel) zijn twee assen:
  * binnen een as is het "of", tussen de assen "en". Zwift plus Training toont
  * dus de Zwift-trainingen, Zwift plus Ladder alles van die twee.
  *

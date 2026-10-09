@@ -21,12 +21,14 @@ export const EVENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
 
 /**
  * Wat voor rit het is, los van de categorie hierboven: een Zwift-event kan een
- * training zijn, een buitenrit een social. Hooguit één van de twee (migr. 0223;
- * tot dan waren dit zelf eventtypes).
+ * training zijn, een buitenrit een social of voor een goed doel. Hooguit één
+ * per event (migr. 0223; tot dan waren training en social zelf eventtypes.
+ * Goed doel kwam erbij in 0225).
  */
 export const EVENT_KINDS = [
   { value: "training", label: "Training" },
   { value: "social", label: "Social" },
+  { value: "goed_doel", label: "Goed doel" },
 ] as const;
 
 export const EVENT_KIND_VALUES: string[] = EVENT_KINDS.map((kind) => kind.value);
@@ -84,7 +86,8 @@ export type EventColorStyle = {
 
 /**
  * De kleur van een kalenderregel. Het soort schuift de categoriekleur op: een
- * training is feller (volle kleur, brede rand), een social pastel.
+ * training is feller (volle kleur, brede rand), een social pastel. Een goed
+ * doel houdt de gewone kleur; de kalender zet er een hartje bij.
  */
 export function eventColorStyle(
   type: string | null | undefined,

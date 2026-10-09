@@ -12,7 +12,7 @@
  *   interesse, team of omvang het anders zou verbergen. "Misschien" is geen
  *   toezegging en doet hier niets.
  * - **Interesse** is wat het lid zelf aanvinkt op zijn profiel: categorieën
- *   (Zwift, Outdoor rit) en soorten (Training, Social). Een event past als zijn
+ *   (Zwift, Outdoor rit) en soorten (Training, Social, Goed doel). Een event past als zijn
  *   categorie of zijn soort is aangevinkt. Niets aangevinkt betekent "alles
  *   interessant"; we raden interesse nooit.
  * - **Geschiktheid** leidt ZWB af: hoort het event bij een team waar je in

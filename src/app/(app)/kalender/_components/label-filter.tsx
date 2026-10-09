@@ -19,7 +19,7 @@ export type LabelOption = {
   value: string;
   label: string;
   count: number;
-  /** Kleur van het bolletje; een type (Training, Social) heeft er geen. */
+  /** Kleur van het bolletje; een type (Training, Social, Goed doel) heeft er geen. */
   dot: string | null;
 };
 
