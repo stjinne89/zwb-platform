@@ -87,7 +87,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0224`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0225`.
 
 ---
 
@@ -6159,7 +6159,7 @@ bekeken.
 
 ### Opgeleverd — TTT-plan vanaf de racepagina, publiceren, 5 renners bij de ZRL
 
-**2026-10-08.** Commit: de commit die dit blok toevoegt. Migratie `0222`.
+**2026-10-08.** Commit: de commit die dit blok toevoegt. Migratie `0224` (eerst `0222` genoemd; hernummerd omdat main intussen `0222_frr_stage_egap` en `0223_event_kind` kreeg).
 
 **Aanleiding.** Stijn wilde de planner aan een TTT-event in de kalender hangen,
 zodat de opstelling meteen in het plan staat, en dat de rest van het team het
@@ -6176,7 +6176,7 @@ plan pas ziet als de captain het publiceert.
   klaar met team, event en de renners uit de opstelling (`team_event_lineups`,
   ook die van de raceweek). Rosternamen zonder account blijven overgeslagen.
 - **Publiceren.** Knop "Publiceren" / "Intrekken" in de planner; slaat eerst
-  het plan op. Migratie `0222` voegt `ttt_plans.published_at` toe en past
+  het plan op. Migratie `0224` voegt `ttt_plans.published_at` toe en past
   `can_read_ttt_plan` aan: een concept is alleen leesbaar voor wie het beheert,
   een gepubliceerd plan ook voor de teamleden. **Bestaande plannen zijn na de
   migratie dus concept en voor gewone teamleden onzichtbaar tot ze gepubliceerd
@@ -6201,7 +6201,7 @@ als `route` aanneemt is niet getest (geen key lokaal, 1 verzoek per minuut).
 - Geen knop voor captains op een ZRL-race die niet als TTT herkenbaar is; maak
   het plan dan in de planner en kies het event, dan verschijnt het blok.
 
-**Niet te verifiëren.** Migratie `0222` (geen lokale database). De code leest
+**Niet te verifiëren.** Migratie `0224` (geen lokale database). De code leest
 `published_at` op de racepagina in een eigen query; zonder migratie toont het
 blok geen plan en geeft "Publiceren" een fout. De veldnamen van het
 ZwiftGopher-antwoord uit de ronde hieronder zijn nog steeds niet getoetst.

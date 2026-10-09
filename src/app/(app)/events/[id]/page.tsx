@@ -753,7 +753,7 @@ export default async function EventDetailPage({
 
   // TTT-plan van het team van deze race. Wie het plan beheert opent van hier
   // de planner; de rest van het team ziet het plan zodra het gepubliceerd is
-  // (migr. 0222, RLS). Apart opgehaald, zodat een ontbrekende migratie de
+  // (migr. 0224, RLS). Apart opgehaald, zodat een ontbrekende migratie de
   // pagina niet breekt.
   type TttPlanView = {
     id: string;
