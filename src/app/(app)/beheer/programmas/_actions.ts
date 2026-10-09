@@ -96,24 +96,32 @@ export async function deleteProgram(id: string): Promise<Result> {
 
 export type BulkInput = {
   programId: string;
+  /** Leeg = alle categorieën. */
   type: string;
   kind: string;
   from: string;
   to: string;
 };
 
+export type BulkEvent = { id: string; title: string; type: string; kind: string | null; startAt: string };
+
+/** Meer dan dit past niet in een lijst om aan te vinken; maak de periode dan korter. */
+const BULK_LIMIT = 200;
+
 /**
- * De events die een bulkkoppeling raakt: hoofdevents en losse events van één
- * categorie in een periode. Teamevents, etappes en tijdsloten tellen op de
- * kalender via hun hoofdevent mee en worden daarom niet apart gekoppeld.
+ * De events die je aan een programma kunt hangen: hoofdevents en losse events
+ * in een periode, eventueel van één categorie of type, die er nog niet in
+ * zitten. Teamevents, etappes en tijdsloten tellen op de kalender via hun
+ * hoofdevent mee en staan daarom niet in de lijst.
  */
-async function bulkCandidates(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+export async function findBulkEvents(
   input: BulkInput,
-): Promise<{ ok: true; ids: string[] } | { ok: false; error: string }> {
+): Promise<{ ok: true; events: BulkEvent[]; more: boolean } | { ok: false; error: string }> {
+  const ctx = await manager();
+  if (!ctx) return { ok: false, error: "Geen recht om programma's te beheren." };
   if (!UUID.test(input.programId)) return { ok: false, error: "Onbekend programma." };
-  if (!(EVENT_TYPE_VALUES as string[]).includes(input.type)) {
-    return { ok: false, error: "Kies een categorie." };
+  if (input.type && !(EVENT_TYPE_VALUES as string[]).includes(input.type)) {
+    return { ok: false, error: "Ongeldige categorie." };
   }
   if (input.kind && !EVENT_KIND_VALUES.includes(input.kind)) {
     return { ok: false, error: "Ongeldig type." };
@@ -124,42 +132,58 @@ async function bulkCandidates(
   const end = new Date(`${input.to}T00:00:00Z`);
   end.setUTCDate(end.getUTCDate() + 1);
 
-  let query = supabase
+  let query = ctx.supabase
     .from("events")
-    .select("id")
-    .eq("type", input.type)
+    .select("id, title, type, kind, start_at")
     .is("parent_event_id", null)
     .gte("start_at", `${input.from}T00:00:00Z`)
-    .lt("start_at", end.toISOString());
+    .lt("start_at", end.toISOString())
+    .order("start_at")
+    .limit(BULK_LIMIT + 1);
+  if (input.type) query = query.eq("type", input.type);
   if (input.kind) query = query.eq("kind", input.kind);
-  const { data, error } = await query;
+
+  const [{ data, error }, { data: linked }] = await Promise.all([
+    query,
+    ctx.supabase.from("event_program_links").select("event_id").eq("program_id", input.programId),
+  ]);
   if (error) return { ok: false, error: error.message };
-  return { ok: true, ids: (data ?? []).map((row) => row.id as string) };
+  const already = new Set((linked ?? []).map((row) => row.event_id as string));
+  const rows = data ?? [];
+  return {
+    ok: true,
+    more: rows.length > BULK_LIMIT,
+    events: rows
+      .slice(0, BULK_LIMIT)
+      .filter((row) => !already.has(row.id as string))
+      .map((row) => ({
+        id: row.id as string,
+        title: row.title as string,
+        type: row.type as string,
+        kind: (row.kind as string | null) ?? null,
+        startAt: row.start_at as string,
+      })),
+  };
 }
 
-export async function countBulkEvents(
-  input: BulkInput,
-): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+export async function linkEvents(programId: string, eventIds: string[]): Promise<Result> {
   const ctx = await manager();
   if (!ctx) return { ok: false, error: "Geen recht om programma's te beheren." };
-  const found = await bulkCandidates(ctx.supabase, input);
-  return found.ok ? { ok: true, count: found.ids.length } : found;
-}
-
-export async function linkBulkEvents(input: BulkInput): Promise<Result> {
-  const ctx = await manager();
-  if (!ctx) return { ok: false, error: "Geen recht om programma's te beheren." };
-  const found = await bulkCandidates(ctx.supabase, input);
-  if (!found.ok) return found;
-  if (found.ids.length === 0) return { ok: false, error: "Geen events gevonden." };
+  if (!UUID.test(programId) || eventIds.some((id) => !UUID.test(id))) {
+    return { ok: false, error: "Onbekende koppeling." };
+  }
+  if (eventIds.length === 0) return { ok: false, error: "Vink minstens één event aan." };
 
   const { error } = await ctx.supabase.from("event_program_links").upsert(
-    found.ids.map((event_id) => ({ program_id: input.programId, event_id })),
+    eventIds.map((event_id) => ({ program_id: programId, event_id })),
     { onConflict: "program_id,event_id", ignoreDuplicates: true },
   );
   if (error) return { ok: false, error: error.message };
   refresh();
-  return { ok: true, message: `${found.ids.length} events gekoppeld.` };
+  return {
+    ok: true,
+    message: eventIds.length === 1 ? "1 event gekoppeld." : `${eventIds.length} events gekoppeld.`,
+  };
 }
 
 export async function unlinkEvent(programId: string, eventId: string): Promise<Result> {

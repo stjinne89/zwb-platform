@@ -92,7 +92,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 ---
 
 > **Programma's: events van verschillende soorten verbinden, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
-> Commit: de commit die dit blok toevoegt. Migratie `0226_event_programs.sql`.
+> Commits: `e44b0a5` en de commit die dit blok bijwerkt (events aanvinken bij
+> het koppelen). Migratie `0226_event_programs.sql`, toegepast op 2026-10-09
+> (eigenaar; de tabellen en hun relaties zijn die dag met een leesvraag gezien).
+> `0225` is ook toegepast.
 >
 > **Waarom.** Vraag van de eigenaar: de kalender moet een programma kunnen
 > bevatten, een reeks events die bij elkaar horen maar van verschillende
@@ -126,16 +129,16 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 >   Een gearchiveerd programma is alleen nog te zien bij een event dat erin zit.
 > - **Eventpagina:** de programma's van het event en van zijn hoofdevent in de kop.
 > - **Beheer → Programma's** (`/beheer/programmas`, in `ADMIN_AREAS`): aanmaken,
->   hernoemen, archiveren, verwijderen, en Events koppelen: categorie, eventueel
->   type, en een periode; eerst het aantal, dan koppelen. Alleen hoofdevents en
->   losse events worden gekoppeld. De slug blijft bij hernoemen gelijk, zodat
+>   hernoemen, archiveren, verwijderen, en Events koppelen: een periode
+>   (standaard vandaag tot over een jaar) en eventueel een categorie of type;
+>   Zoek events toont de events die er nog niet in zitten als lijst om aan te
+>   vinken, met Alles voor een heel seizoen. De eerste versie (`e44b0a5`) eiste
+>   een categorie en toonde alleen een aantal; voor een gemengd programma als
+>   Road to WK GF zag de eigenaar daardoor geen events. Alleen hoofdevents en
+>   losse events staan in de lijst, hooguit 200 per zoekopdracht. De slug blijft bij hernoemen gelijk, zodat
 >   gedeelde links blijven werken.
 > - `/hulp`: wat een programma is (Events en RSVP) en hoe je het beheert
 >   (Events, routes en uitslagen).
->
-> **Volgorde bij uitrollen.** `0226` toepassen vóór iemand Beheer → Programma's
-> opent. Zonder de migratie werkt de rest: de kalender en de eventpagina tonen
-> dan geen programma's en het eventformulier laat het veld weg.
 >
 > **Getest.** `tsc`, ESLint, `tests/unit/event-programs.test.ts` (slug,
 > meerdere programma's per event, hoofdevent via subevent, de derde filteras) en
