@@ -20,8 +20,8 @@ import {
   eventMatchesFilter,
   parseTypeFilter,
   splitTypeFilter,
-  toggleTypeFilter,
 } from "@/lib/events/type-filter";
+import { LabelFilter, type LabelGroup, type LabelOption } from "./_components/label-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
 import {
@@ -243,7 +243,6 @@ export default async function KalenderPage({
     typeCounts.set(event.type, (typeCounts.get(event.type) ?? 0) + 1);
     if (event.kind) kindCounts.set(event.kind, (kindCounts.get(event.kind) ?? 0) + 1);
   }
-  const filterOnType = selectedTypes.length > 0;
   const filter = splitTypeFilter(selectedTypes);
   const events = scoped.filter((event) => eventMatchesFilter(event, filter));
   const allBirthdays = (birthdayProfiles ?? []).flatMap((profile) => {
@@ -265,26 +264,40 @@ export default async function KalenderPage({
   const birthdays = birthdaysMatchFilter(filter) ? allBirthdays : [];
   // Een gekozen label blijft staan als er (onder Voor mij) niets meer van over
   // is, anders kun je het niet meer uitzetten.
-  const typeChips: { value: string; label: string; count: number; dot: string | null }[] = [
-    ...EVENT_TYPES.map((entry) => ({
-      value: entry.value,
-      label: entry.label,
-      count: typeCounts.get(entry.value) ?? 0,
-      dot: eventTypeColor(entry.value),
-    })),
-    ...EVENT_KINDS.map((entry) => ({
-      value: entry.value,
-      label: entry.label,
-      count: kindCounts.get(entry.value) ?? 0,
-      dot: null,
-    })),
+  const present = (option: LabelOption) =>
+    option.count > 0 || selectedTypes.includes(option.value);
+  const labelGroups: LabelGroup[] = [
     {
-      value: BIRTHDAY_FILTER,
-      label: "Verjaardagen",
-      count: allBirthdays.length,
-      dot: "var(--zwb-gold)",
+      title: "Categorie",
+      options: EVENT_TYPES.map((entry) => ({
+        value: entry.value,
+        label: entry.label,
+        count: typeCounts.get(entry.value) ?? 0,
+        dot: eventTypeColor(entry.value),
+      })).filter(present),
     },
-  ].filter((chip) => chip.count > 0 || selectedTypes.includes(chip.value));
+    {
+      title: "Type",
+      options: EVENT_KINDS.map((entry) => ({
+        value: entry.value,
+        label: entry.label,
+        count: kindCounts.get(entry.value) ?? 0,
+        dot: null,
+      })).filter(present),
+    },
+    {
+      title: null,
+      options: [
+        {
+          value: BIRTHDAY_FILTER,
+          label: "Verjaardagen",
+          count: allBirthdays.length,
+          dot: "var(--zwb-gold)",
+        },
+      ].filter(present),
+    },
+  ].filter((group) => group.options.length > 0);
+  const labelCount = labelGroups.reduce((sum, group) => sum + group.options.length, 0);
   const calendarItems = [
     ...events.map((event) => ({
       kind: "event" as const,
@@ -390,8 +403,9 @@ export default async function KalenderPage({
         }
       />
 
-      {user && (
-        <nav className="flex flex-wrap items-center gap-2" aria-label="Kalenderfilter">
+      <nav className="flex flex-wrap items-center gap-2" aria-label="Kalenderfilter">
+        {user && (
+          <>
           <Link
             href={calendarHref({ onlyForMe: false, types: selectedTypes })}
             aria-current={onlyForMe ? undefined : "page"}
@@ -410,6 +424,13 @@ export default async function KalenderPage({
           >
             Voor mij ({forMe.length})
           </Link>
+          </>
+        )}
+        {labelCount > 1 && (
+          <LabelFilter groups={labelGroups} selected={selectedTypes} onlyForMe={onlyForMe} />
+        )}
+        {user && (
+          <>
           {onlyForMe && hiddenCount > 0 && (
             <span className="text-xs text-muted-foreground">
               {hiddenCount} verborgen ·{" "}
@@ -423,45 +444,9 @@ export default async function KalenderPage({
               Stel je interesses in
             </Link>
           )}
-        </nav>
-      )}
-
-      {typeChips.length > 1 && (
-        <nav className="flex flex-wrap items-center gap-2" aria-label="Labelfilter">
-          {typeChips.map((chip) => {
-            const active = selectedTypes.includes(chip.value);
-            return (
-              <Link
-                key={chip.value}
-                href={calendarHref({
-                  onlyForMe,
-                  types: toggleTypeFilter(selectedTypes, chip.value),
-                })}
-                aria-current={active ? "true" : undefined}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
-                  active ? "bg-foreground text-background" : "hover:bg-secondary"
-                }`}
-              >
-                {chip.dot && (
-                  <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: chip.dot }}
-                  />
-                )}
-                {chip.label} ({chip.count})
-              </Link>
-            );
-          })}
-          {filterOnType && (
-            <Link
-              href={calendarHref({ onlyForMe, types: [] })}
-              className="text-xs underline"
-            >
-              Wis labels
-            </Link>
-          )}
-        </nav>
-      )}
+          </>
+        )}
+      </nav>
 
       {calendarItems.length === 0 ? (
         <EmptyState>

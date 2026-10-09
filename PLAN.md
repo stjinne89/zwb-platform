@@ -92,8 +92,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0225`
 ---
 
 > **Kalender: filteren op label, kleur per categorie, en Training/Social als los type, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
-> Commits: `bcd2671` (filter en eerste kleuren) en de commit die dit blok
-> bijwerkt (indeling van de eigenaar). Migratie `0223_event_kind.sql`.
+> Commits: `819ed96` (filter en eerste kleuren), `0944d57` (indeling van de
+> eigenaar) en de commit die dit blok bijwerkt (filter als dropdown). Migratie `0223_event_kind.sql`.
 >
 > **Waarom.** Vraag van de eigenaar: naast Alles en Voor mij zelf kunnen kiezen
 > welke events je ziet, en aan de kleur kunnen zien wat voor event het is. Na de
@@ -116,9 +116,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0225`
 >   `training` blijven geldige waarden en tellen tegen het `kind` van een event.
 >   Een event past onder Voor mij als zijn categorie óf zijn type is aangevinkt
 >   (`eventFitsMember`).
-> - **Filter.** `/kalender?type=zrl,ladder,training`: onder Alles/Voor mij een rij
->   labels, één per categorie die voorkomt, dan Training en Social, dan
->   Verjaardagen, elk met het aantal binnen Alles of Voor mij. Binnen een as is
+> - **Filter.** `/kalender?type=zrl,ladder,training`: naast Alles/Voor mij een
+>   dropdown Labels met vinkjes (`kalender/_components/label-filter.tsx`): de
+>   categorieën die voorkomen, dan Training en Social, dan Verjaardagen, elk met
+>   het aantal binnen Alles of Voor mij. De eerste twee versies van die dag
+>   hadden een rij knoppen eronder; die nam op een telefoon te veel ruimte in
+>   (eigenaar). Binnen een as is
 >   het "of", tussen categorie en type "en": Zwift plus Training toont de
 >   Zwift-trainingen. Verjaardagen staan er zonder keuze bij, en met een keuze
 >   alleen als hun label aanstaat (`lib/events/type-filter.ts`). Wisselen tussen

@@ -108,7 +108,7 @@ const GUIDES = [
       "Vink je geen enkel eventtype aan, dan telt alles als interessant en verbergt Voor mij niets op interesse.",
       "Vul je op je profiel geen max afstand of hoogtemeters in, dan leidt ZWB die grens af uit je langste rit van het afgelopen jaar, plus 20 procent. Zonder ritten in ZWB blijft die grens leeg en wordt er niets op omvang verborgen.",
       "Onder de knop staat wat er verborgen is en waarom; met Alles zie je de hele kalender weer.",
-      "Met de labels eronder kies je welke events je ziet, bijvoorbeeld alleen ZRL en Ladder. Je kunt er meerdere tegelijk aanzetten en ze werken samen met Alles en Voor mij; Wis labels toont alles weer.",
+      "Met Labels, naast Alles en Voor mij, kies je welke events je ziet, bijvoorbeeld alleen ZRL en Ladder. Je kunt er meerdere tegelijk aanvinken en ze werken samen met Alles en Voor mij; Wis labels toont alles weer.",
       "Training en Social zijn geen categorie maar een type dat erbij komt: een Zwift-event kan een training zijn, een buitenrit een social. Kies je Zwift en Training, dan zie je alleen de Zwift-trainingen.",
       "Elke categorie heeft een eigen kleur, als rand links van de regel en in het label: buitenritten van groen naar blauw, gravel amber, en alles wat virtueel is van rood via oranje (Zwift) naar geel (MyWhoosh). Een training is feller met een bredere rand, een social pastel.",
       "Op eventdagen kan de liveticker deelnemers tonen die live tracken.",
