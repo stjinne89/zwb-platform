@@ -13,17 +13,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { calendarHref, toggleTypeFilter } from "@/lib/events/type-filter";
+import {
+  calendarHref,
+  toggleProgramFilter,
+  toggleTypeFilter,
+} from "@/lib/events/type-filter";
 
 export type LabelOption = {
   value: string;
   label: string;
   count: number;
-  /** Kleur van het bolletje; een type (Training, Social, Goed doel) heeft er geen. */
+  /** Kleur van het bolletje; een type (Training, Social, Goed doel) of programma heeft er geen. */
   dot: string | null;
 };
 
-export type LabelGroup = { title: string | null; options: LabelOption[] };
+export type LabelGroup = {
+  title: string | null;
+  /** Programma's hebben hun eigen URL-parameter (`programma`), de rest deelt `type`. */
+  axis: "type" | "program";
+  options: LabelOption[];
+};
 
 /**
  * Het labelfilter als dropdown naast Alles en Voor mij. Het menu blijft open
@@ -32,32 +41,43 @@ export type LabelGroup = { title: string | null; options: LabelOption[] };
 export function LabelFilter({
   groups,
   selected,
+  selectedPrograms,
   onlyForMe,
 }: {
   groups: LabelGroup[];
   selected: string[];
+  selectedPrograms: string[];
   onlyForMe: boolean;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   // De vinkjes lopen voor op de server, anders voelt elke klik traag.
-  const [current, setCurrent] = useOptimistic(selected);
+  const [current, setCurrent] = useOptimistic({ types: selected, programs: selectedPrograms });
+  const total = current.types.length + current.programs.length;
 
-  function apply(next: string[]) {
+  function apply(next: { types: string[]; programs: string[] }) {
     startTransition(() => {
       setCurrent(next);
-      router.replace(calendarHref({ onlyForMe, types: next }), { scroll: false });
+      router.replace(calendarHref({ onlyForMe, ...next }), { scroll: false });
     });
+  }
+
+  function toggle(axis: LabelGroup["axis"], value: string) {
+    apply(
+      axis === "program"
+        ? { ...current, programs: toggleProgramFilter(current.programs, value) }
+        : { ...current, types: toggleTypeFilter(current.types, value) },
+    );
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs outline-none ${
-          current.length > 0 ? "bg-foreground text-background" : "hover:bg-secondary"
+          total > 0 ? "bg-foreground text-background" : "hover:bg-secondary"
         }`}
       >
-        Labels{current.length > 0 ? ` (${current.length})` : ""}
+        Labels{total > 0 ? ` (${total})` : ""}
         <ChevronDown className="size-3.5" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
@@ -68,8 +88,10 @@ export function LabelFilter({
             {group.options.map((option) => (
               <DropdownMenuCheckboxItem
                 key={option.value}
-                checked={current.includes(option.value)}
-                onCheckedChange={() => apply(toggleTypeFilter(current, option.value))}
+                checked={(group.axis === "program" ? current.programs : current.types).includes(
+                  option.value,
+                )}
+                onCheckedChange={() => toggle(group.axis, option.value)}
               >
                 {option.dot && (
                   <span
@@ -83,10 +105,12 @@ export function LabelFilter({
             ))}
           </DropdownMenuGroup>
         ))}
-        {current.length > 0 && (
+        {total > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => apply([])}>Wis labels</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => apply({ types: [], programs: [] })}>
+              Wis labels
+            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

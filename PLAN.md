@@ -87,10 +87,75 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0226`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`.
 
 ---
 
+> **Programma's: events van verschillende soorten verbinden, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Migratie `0226_event_programs.sql`.
+>
+> **Waarom.** Vraag van de eigenaar: de kalender moet een programma kunnen
+> bevatten, een reeks events die bij elkaar horen maar van verschillende
+> categorieën en types zijn. Voorbeeld: Road to WK GF, met het WK zelf, de
+> kwalificatie-GF's, trainingskampen, social rides en trainingsritten. Dezelfde
+> opzet moet de races van ZRL, FRR, SRC en Ladder blijvend kunnen verbinden.
+>
+> **Keuzes van de eigenaar.** Elk event houdt zijn eigen kalenderregel en krijgt
+> een programmalabel, met een eigen pagina per programma (niet één samengevouwen
+> regel zoals een FRR-tour). Een event kan in meerdere programma's zitten. De
+> wedstrijdreeksen worden eerst met de hand gekoppeld; de imports blijven
+> ongemoeid. Beheer ligt bij wie alle events mag beheren (`events.manage_all`).
+>
+> **Nu.**
+> - `event_programs` (slug, naam, omschrijving, `archived_at`) en
+>   `event_program_links` (programma, event). Leden lezen alles; programma's
+>   beheert `events.manage_all`; een event koppelen mag ook de aanmaker van dat
+>   event. Dit staat los van `parent_event_id`: dat blijft één raceweek of tour
+>   als één regel.
+> - **Kalender.** Naast het categorielabel staat per programma een label dat
+>   naar `/programmas/[slug]` gaat. In de dropdown Labels staat een groep
+>   Programma. Het is een derde as met een eigen parameter,
+>   `/kalender?programma=road-to-wk-gf`: "of" tussen programma's, "en" met
+>   categorie en type. Een hoofdevent telt mee als het zelf of iets eronder
+>   (teamevent, etappe, tijdslot) gekoppeld is (`programsForGroup`,
+>   `lib/events/programs.ts`). Een gekozen programma verbergt de verjaardagen.
+> - **Programmapagina** `/programmas/[slug]`: omschrijving en alle gekoppelde
+>   events, aankomend eerst en daaronder wat geweest is, met dezelfde kleur en
+>   hetzelfde label als de kalender (`kalender/_components/event-badge.tsx`).
+> - **Eventformulier:** vinkjes Programma's, alleen als er programma's bestaan.
+>   Een gearchiveerd programma is alleen nog te zien bij een event dat erin zit.
+> - **Eventpagina:** de programma's van het event en van zijn hoofdevent in de kop.
+> - **Beheer → Programma's** (`/beheer/programmas`, in `ADMIN_AREAS`): aanmaken,
+>   hernoemen, archiveren, verwijderen, en Events koppelen: categorie, eventueel
+>   type, en een periode; eerst het aantal, dan koppelen. Alleen hoofdevents en
+>   losse events worden gekoppeld. De slug blijft bij hernoemen gelijk, zodat
+>   gedeelde links blijven werken.
+> - `/hulp`: wat een programma is (Events en RSVP) en hoe je het beheert
+>   (Events, routes en uitslagen).
+>
+> **Volgorde bij uitrollen.** `0226` toepassen vóór iemand Beheer → Programma's
+> opent. Zonder de migratie werkt de rest: de kalender en de eventpagina tonen
+> dan geen programma's en het eventformulier laat het veld weg.
+>
+> **Getest.** `tsc`, ESLint, `tests/unit/event-programs.test.ts` (slug,
+> meerdere programma's per event, hoofdevent via subevent, de derde filteras) en
+> daarin `0226` twee keer gedraaid in PGlite met nagemaakte Supabase-rollen:
+> dubbele koppeling en een ongeldige slug worden geweigerd, en koppelingen
+> verdwijnen met hun programma of event. De volledige testrun: groen behalve
+> dezelfde twee als eerder vandaag (`omnium-live` mist `.env.local` in deze
+> worktree, `rls-initplan-migration` loopt in zijn timeout).
+>
+> **Bewust niet gebouwd.** Automatisch koppelen door de ZRL-, FRR- en SRC-import
+> (keuze eigenaar: eerst met de hand; een nieuwe raceweek moet dus nog aan het
+> programma worden gehangen). Een programma volgen als lid, of programma's
+> meenemen in Voor mij. Een eigen kleur per programma: kleur is van de
+> categorie. Programma's in het jaarplan van ZWBeter Worden: de trainingskampen
+> daar (`0217`) zijn persoonlijk, een kamp in een programma is een gewoon event.
+>
+> **Niet lokaal te verifiëren.** De RLS-regels van `0226` op de echte database
+> (PGlite heeft de rechtenfunctie nagemaakt, niet getest wie wat mag), en alle
+> schermen: die vragen een ingelogd lid en zijn niet in de browser bekeken.
+>
 > **Goed doel als derde type naast Training en Social, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Migratie `0225_event_kind_goed_doel.sql`.
 >

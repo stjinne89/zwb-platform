@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { Cake, Heart } from "lucide-react";
+import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
@@ -10,7 +10,6 @@ import {
   EVENT_KINDS,
   EVENT_TYPES,
   eventColorStyle,
-  eventLabel,
   eventTypeColor,
 } from "@/lib/event-types";
 import {
@@ -18,9 +17,12 @@ import {
   birthdaysMatchFilter,
   calendarHref,
   eventMatchesFilter,
+  parseProgramFilter,
   parseTypeFilter,
   splitTypeFilter,
 } from "@/lib/events/type-filter";
+import { programsByEvent, programsForGroup } from "@/lib/events/programs";
+import { EventBadge, ProgramBadges } from "./_components/event-badge";
 import { LabelFilter, type LabelGroup, type LabelOption } from "./_components/label-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
@@ -47,7 +49,11 @@ const HISTORY_DAYS = 365;
 // ouder is, telt via een losse telling mee in "Voorbije ritten".
 const PAST_WINDOW_DAYS = 30;
 type RsvpStatus = "yes" | "maybe" | "no";
-type SearchParams = Promise<{ voor?: string; type?: string | string[] }>;
+type SearchParams = Promise<{
+  voor?: string;
+  type?: string | string[];
+  programma?: string | string[];
+}>;
 
 function pastWindowStartIso() {
   return new Date(Date.now() - PAST_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -99,9 +105,10 @@ export default async function KalenderPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { voor, type } = await searchParams;
+  const { voor, type, programma } = await searchParams;
   const onlyForMe = voor === "mij";
   const selectedTypes = parseTypeFilter(type);
+  const selectedPrograms = parseProgramFilter(programma);
 
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   const canCreateEvents = (await getRequestAccess()).has("events.create");
@@ -116,6 +123,8 @@ export default async function KalenderPage({
     { data: myRsvps },
     { data: myTeamAvailability },
     { data: myLineups },
+    { data: programRows },
+    { data: programLinks },
   ] = await Promise.all([
       supabase
         .from("events")
@@ -167,6 +176,16 @@ export default async function KalenderPage({
       user
         ? supabase.from("team_event_lineups").select("event_id").eq("profile_id", user.id)
         : Promise.resolve({ data: null }),
+      supabase
+        .from("event_programs")
+        .select("id, slug, name, archived_at")
+        .order("name"),
+      // Alleen de koppelingen van events in het venster; voorbije events van
+      // een programma staan op de programmapagina.
+      supabase
+        .from("event_program_links")
+        .select("program_id, event_id, events!inner(start_at)")
+        .gte("events.start_at", windowStartIso),
     ]);
 
   // Ritgeschiedenis alleen ophalen als het lid minstens één as leeg liet; wie
@@ -237,14 +256,27 @@ export default async function KalenderPage({
   // Het labelfilter versmalt Alles of Voor mij; de aantallen op de knoppen
   // tellen dus binnen die keuze.
   const scoped = onlyForMe ? forMe : upcoming;
+  const linkedPrograms = programsByEvent(programRows ?? [], programLinks ?? []);
+  const programsOf = (event: { id: string }) =>
+    programsForGroup(event, childrenByParent, linkedPrograms);
   const typeCounts = new Map<string, number>();
   const kindCounts = new Map<string, number>();
+  const programCounts = new Map<string, number>();
   for (const event of scoped) {
     typeCounts.set(event.type, (typeCounts.get(event.type) ?? 0) + 1);
     if (event.kind) kindCounts.set(event.kind, (kindCounts.get(event.kind) ?? 0) + 1);
+    for (const program of programsOf(event)) {
+      programCounts.set(program.slug, (programCounts.get(program.slug) ?? 0) + 1);
+    }
   }
-  const filter = splitTypeFilter(selectedTypes);
-  const events = scoped.filter((event) => eventMatchesFilter(event, filter));
+  const filter = splitTypeFilter(selectedTypes, selectedPrograms);
+  const events = scoped.filter((event) =>
+    eventMatchesFilter(
+      event,
+      filter,
+      programsOf(event).map((program) => program.slug),
+    ),
+  );
   const allBirthdays = (birthdayProfiles ?? []).flatMap((profile) => {
     if (!profile.birth_date) return [];
     const occurrence = nextBirthdayOccurrence(profile.birth_date, todayKey);
@@ -268,7 +300,25 @@ export default async function KalenderPage({
     option.count > 0 || selectedTypes.includes(option.value);
   const labelGroups: LabelGroup[] = [
     {
+      title: "Programma",
+      axis: "program" as const,
+      options: (programRows ?? [])
+        // Een gearchiveerd programma is niet meer te kiezen, tenzij het al aanstaat.
+        .filter(
+          (program) =>
+            selectedPrograms.includes(program.slug) ||
+            (!program.archived_at && (programCounts.get(program.slug) ?? 0) > 0),
+        )
+        .map((program) => ({
+          value: program.slug as string,
+          label: program.name as string,
+          count: programCounts.get(program.slug) ?? 0,
+          dot: null,
+        })),
+    },
+    {
       title: "Categorie",
+      axis: "type" as const,
       options: EVENT_TYPES.map((entry) => ({
         value: entry.value,
         label: entry.label,
@@ -278,6 +328,7 @@ export default async function KalenderPage({
     },
     {
       title: "Type",
+      axis: "type" as const,
       options: EVENT_KINDS.map((entry) => ({
         value: entry.value,
         label: entry.label,
@@ -287,6 +338,7 @@ export default async function KalenderPage({
     },
     {
       title: null,
+      axis: "type" as const,
       options: [
         {
           value: BIRTHDAY_FILTER,
@@ -407,7 +459,11 @@ export default async function KalenderPage({
         {user && (
           <>
           <Link
-            href={calendarHref({ onlyForMe: false, types: selectedTypes })}
+            href={calendarHref({
+              onlyForMe: false,
+              types: selectedTypes,
+              programs: selectedPrograms,
+            })}
             aria-current={onlyForMe ? undefined : "page"}
             className={`rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "hover:bg-secondary" : "bg-foreground text-background"
@@ -416,7 +472,11 @@ export default async function KalenderPage({
             Alles ({upcoming.length})
           </Link>
           <Link
-            href={calendarHref({ onlyForMe: true, types: selectedTypes })}
+            href={calendarHref({
+              onlyForMe: true,
+              types: selectedTypes,
+              programs: selectedPrograms,
+            })}
             aria-current={onlyForMe ? "page" : undefined}
             className={`rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "bg-foreground text-background" : "hover:bg-secondary"
@@ -427,7 +487,12 @@ export default async function KalenderPage({
           </>
         )}
         {labelCount > 1 && (
-          <LabelFilter groups={labelGroups} selected={selectedTypes} onlyForMe={onlyForMe} />
+          <LabelFilter
+            groups={labelGroups}
+            selected={selectedTypes}
+            selectedPrograms={selectedPrograms}
+            onlyForMe={onlyForMe}
+          />
         )}
         {user && (
           <>
@@ -640,15 +705,8 @@ export default async function KalenderPage({
                       {subEventLabel(sub.title, event.title)}
                     </Link>
                   ))}
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide"
-                    style={color.badge}
-                  >
-                    {event.kind === "goed_doel" && (
-                      <Heart className="size-3 fill-current" aria-hidden />
-                    )}
-                    {eventLabel(event.type, event.kind)}
-                  </span>
+                  <ProgramBadges programs={programsOf(event)} />
+                  <EventBadge type={event.type} kind={event.kind} />
                   {liveCount > 0 && (
                     <Link
                       href={`/live/${event.id}`}

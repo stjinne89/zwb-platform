@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EVENT_KIND_VALUES, EVENT_TYPE_VALUES } from "@/lib/event-types";
+import { syncEventPrograms } from "@/lib/events/programs";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import {
   eventForSubgroup,
@@ -59,6 +60,8 @@ type EventInput = {
   zwift_event_id?: number | null;
   zwift_route_id?: number | null;
   laps?: number | null;
+  /** Programma's van het event; undefined = niet wijzigen. */
+  program_ids?: string[];
 };
 
 function validate(input: EventInput) {
@@ -67,6 +70,9 @@ function validate(input: EventInput) {
     return "Ongeldige categorie.";
   if (input.kind && !EVENT_KIND_VALUES.includes(input.kind)) return "Ongeldig type.";
   if (!input.start_at) return "Startdatum is verplicht.";
+  if (input.program_ids?.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) {
+    return "Onbekend programma.";
+  }
   if (input.external_url && !/^https?:\/\//i.test(input.external_url)) {
     return "Externe link moet beginnen met https:// of http://";
   }
@@ -119,6 +125,11 @@ export async function createEvent(input: EventInput) {
     .single();
 
   if (error) return { ok: false as const, error: error.message };
+
+  // Het event staat er al; een mislukte koppeling mag het aanmaken niet breken.
+  if (input.program_ids && input.program_ids.length > 0) {
+    await syncEventPrograms(supabase, data.id, input.program_ids);
+  }
 
   await storeRulesQuietly(data.id, input.zwift_event_id);
 
@@ -203,6 +214,11 @@ export async function updateEvent(id: string, input: EventInput) {
 
   const { error } = await supabase.from("events").update(update).eq("id", id);
   if (error) return { ok: false as const, error: error.message };
+
+  if (input.program_ids !== undefined) {
+    const programError = await syncEventPrograms(supabase, id, input.program_ids);
+    if (programError) return { ok: false as const, error: programError };
+  }
 
   await storeRulesQuietly(id, input.zwift_event_id);
 

@@ -8,11 +8,14 @@ export default async function NewEventPage() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.has("events.create")) redirect("/kalender");
-  const { data: teams } = await supabase
-    .from("teams")
-    .select("id, name, type, parent_team_id")
-    .order("type")
-    .order("name");
+  const [{ data: teams }, { data: programs }] = await Promise.all([
+    supabase
+      .from("teams")
+      .select("id, name, type, parent_team_id")
+      .order("type")
+      .order("name"),
+    supabase.from("event_programs").select("id, name").is("archived_at", null).order("name"),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -21,7 +24,7 @@ export default async function NewEventPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Nieuw event</h1>
         <HelpLink href="/hulp#eventbeheer" />
       </header>
-      <EventForm teams={teams ?? []} />
+      <EventForm teams={teams ?? []} programs={programs ?? []} />
     </div>
   );
 }

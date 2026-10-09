@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
 import { eventLabel } from "@/lib/event-types";
+import type { EventProgram } from "@/lib/events/programs";
+import { ProgramBadges } from "../../kalender/_components/event-badge";
 import { slugify } from "@/lib/slugify";
 import { allTrkptFromGpx, firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchRouteForecast, fetchWindForecast, type RoutePointForecast } from "@/lib/weather";
@@ -234,8 +236,12 @@ export default async function EventDetailPage({
 
   // Hoofdevent en teamevents (migr. 0178): een teamevent toont de gedeelde
   // omschrijving van zijn hoofdevent, een hoofdevent de teams eronder.
-  const [{ data: parentEvent }, { data: subEventRows }, { data: myTeamRows }] =
-    await Promise.all([
+  const [
+    { data: parentEvent },
+    { data: subEventRows },
+    { data: myTeamRows },
+    { data: programLinkRows },
+  ] = await Promise.all([
       event.parent_event_id
         ? supabase
             .from("events")
@@ -252,7 +258,20 @@ export default async function EventDetailPage({
       user
         ? supabase.from("team_members").select("team_id, role").eq("profile_id", user.id)
         : Promise.resolve({ data: null }),
+      // Programma's (migr. 0226) van het event zelf en van zijn hoofdevent.
+      supabase
+        .from("event_program_links")
+        .select("event_programs(id, slug, name)")
+        .in("event_id", event.parent_event_id ? [id, event.parent_event_id] : [id]),
     ]);
+  const programs = [
+    ...new Map(
+      (programLinkRows ?? [])
+        .flatMap((row) => row.event_programs as unknown as EventProgram | EventProgram[] | null)
+        .filter((program): program is EventProgram => Boolean(program))
+        .map((program) => [program.id, program] as const),
+    ).values(),
+  ];
   const myTeamIds = new Set((myTeamRows ?? []).map((row) => row.team_id as string));
   // FRR-tour (migr. 0195, 0196): tour → etappes → tijdsloten, in plaats van
   // teams. Apart opgehaald, zodat een ontbrekende migratie niet elke eventpagina
@@ -1164,9 +1183,12 @@ export default async function EventDetailPage({
 
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">
-          <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-            {eventLabel(event.type, event.kind)}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+              {eventLabel(event.type, event.kind)}
+            </span>
+            <ProgramBadges programs={programs} />
+          </div>
           <div className="flex items-center gap-2">
             <WhatsAppShareLink
               text={`${event.title} — ${new Date(event.start_at).toLocaleDateString("nl-NL", {

@@ -21,6 +21,11 @@ export const ADMIN_AREAS = {
   frr: { href: "/beheer/frr-kalender", label: "FRR-kalender", permission: "competitions.manage" },
   src: { href: "/beheer/src", label: "SRC-kalender", permission: "src.manage" },
   wtrl: { href: "/beheer/wtrl-teams", label: "WTRL-teams", permission: "competitions.manage" },
+  programmas: {
+    href: "/beheer/programmas",
+    label: "Programma's",
+    permission: "events.manage_all",
+  },
   eventScan: { href: "/beheer/event-scan", label: "Eventscan", permission: "calendar.sources" },
   zwiftRoutes: {
     href: "/beheer/zwift-routes",

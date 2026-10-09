@@ -37,6 +37,7 @@ export type EventInitial = {
   zwift_event_id?: number | string | null;
   zwift_route_id?: number | string | null;
   laps?: number | string | null;
+  program_ids?: string[];
 };
 
 type ZwiftLookupOk = Extract<ZwiftLookupResult, { ok: true }>;
@@ -60,10 +61,13 @@ function isoToLocalInput(iso: string | null): string {
 export function EventForm({
   initial,
   teams = [],
+  programs = [],
   deleteSlot,
 }: {
   initial?: EventInitial;
   teams?: Array<{ id: string; name: string; type: string; parent_team_id: string | null }>;
+  /** Programma's waar het event aan gehangen kan worden (migr. 0226). */
+  programs?: Array<{ id: string; name: string }>;
   /** Optionele verwijder-knop, getoond naast Opslaan/Annuleer bij bewerken. */
   deleteSlot?: ReactNode;
 }) {
@@ -233,6 +237,9 @@ export function EventForm({
         title: String(formData.get("title") ?? ""),
         type: String(formData.get("type") ?? ""),
         kind: String(formData.get("kind") ?? "") || null,
+        // Zonder programma's is er niets te kiezen en blijft de koppeling ongemoeid.
+        program_ids:
+          programs.length > 0 ? formData.getAll("program_ids").map(String) : undefined,
         start_at: new Date(String(formData.get("start_at") ?? "")).toISOString(),
         end_at: formData.get("end_at")
           ? new Date(String(formData.get("end_at"))).toISOString()
@@ -306,6 +313,31 @@ export function EventForm({
           ))}
         </select>
       </div>
+
+      {programs.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Programma&apos;s (optioneel)
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {programs.map((program) => (
+              <label
+                key={program.id}
+                className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name="program_ids"
+                  value={program.id}
+                  defaultChecked={initial?.program_ids?.includes(program.id) ?? false}
+                  className="size-4 accent-primary"
+                />
+                <span>{program.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {teams.length > 0 && (
         <div>

@@ -18,7 +18,14 @@ export default async function EditEventPage({
   const user = await getRequestUser();
   if (!user) redirect("/login");
 
-  const [{ data: event }, access, { data: teams }, { data: linkRows }] = await Promise.all([
+  const [
+    { data: event },
+    access,
+    { data: teams },
+    { data: linkRows },
+    { data: programRows },
+    { data: programLinks },
+  ] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -37,6 +44,8 @@ export default async function EditEventPage({
       .select("kind, label, url")
       .eq("event_id", id)
       .order("position"),
+    supabase.from("event_programs").select("id, name, archived_at").order("name"),
+    supabase.from("event_program_links").select("program_id").eq("event_id", id),
   ]);
 
   if (!event) notFound();
@@ -49,6 +58,13 @@ export default async function EditEventPage({
       </div>
     );
   }
+
+  const programIds = (programLinks ?? []).map((row) => row.program_id as string);
+  // Een gearchiveerd programma blijft kiesbaar zolang het event erin zit,
+  // anders valt de koppeling bij opslaan stil weg.
+  const programs = (programRows ?? []).filter(
+    (program) => !program.archived_at || programIds.includes(program.id),
+  );
 
   const initial: EventInitial = {
     id: event.id,
@@ -70,6 +86,7 @@ export default async function EditEventPage({
     zwift_event_id: event.zwift_event_id,
     zwift_route_id: event.zwift_route_id,
     laps: event.laps,
+    program_ids: programIds,
   };
   const links = ((linkRows ?? []) as Array<{ kind: string; label: string | null; url: string }>)
     .filter((row) => isEventLinkKind(row.kind))
@@ -89,6 +106,7 @@ export default async function EditEventPage({
       <EventForm
         initial={initial}
         teams={teams ?? []}
+        programs={programs}
         deleteSlot={
           <DeleteEventButton eventId={event.id} eventTitle={event.title} />
         }
