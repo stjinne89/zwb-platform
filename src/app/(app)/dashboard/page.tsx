@@ -36,7 +36,7 @@ import { garminAttribution } from "@/lib/intervals/rides";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { Markdown } from "@/components/markdown";
 import { MemberLink } from "@/components/member-link";
-import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { CLUB_RACE_TYPES, eventLabel } from "@/lib/event-types";
 import { MEDIA_KIND_LABELS } from "@/lib/media-kinds";
 import {
   INSTAGRAM_STORY_SOURCE,
@@ -132,6 +132,7 @@ type UpcomingEvent = {
   id: string;
   title: string;
   type: string;
+  kind: string | null;
   start_at: string;
   location: string | null;
   cover_image_path: string | null;
@@ -463,7 +464,7 @@ export default async function DashboardPage({
       .limit(3),
     supabase
       .from("events")
-      .select("id, title, type, start_at, location, cover_image_path")
+      .select("id, title, type, kind, start_at, location, cover_image_path")
       // Teamevents staan onder hun hoofdevent (migr. 0178).
       .is("parent_event_id", null)
       .gte("start_at", nowIso)
@@ -804,7 +805,7 @@ export default async function DashboardPage({
                 </p>
               </div>
               <span className="w-fit shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                {eventLabel(event.type, event.kind)}
               </span>
             </Link>
           </li>

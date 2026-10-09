@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
-import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { eventLabel } from "@/lib/event-types";
 import { slugify } from "@/lib/slugify";
 import { allTrkptFromGpx, firstTwoTrkptFromGpx, gpxBearing } from "@/lib/gpx";
 import { fetchRouteForecast, fetchWindForecast, type RoutePointForecast } from "@/lib/weather";
@@ -225,7 +225,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_tags",
+      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_tags",
     )
     .eq("id", id)
     .single();
@@ -1165,7 +1165,7 @@ export default async function EventDetailPage({
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-            {EVENT_TYPE_LABELS[event.type] ?? event.type}
+            {eventLabel(event.type, event.kind)}
           </span>
           <div className="flex items-center gap-2">
             <WhatsAppShareLink

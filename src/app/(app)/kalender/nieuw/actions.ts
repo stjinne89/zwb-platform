@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { EVENT_TYPE_VALUES } from "@/lib/event-types";
+import { EVENT_KIND_VALUES, EVENT_TYPE_VALUES } from "@/lib/event-types";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import {
   eventForSubgroup,
@@ -37,6 +37,8 @@ const EVENT_REFRESH_BUDGET_MS = 4000;
 type EventInput = {
   title: string;
   type: string;
+  /** Training of social; leeg = geen van beide. */
+  kind?: string | null;
   start_at: string; // ISO
   end_at?: string | null;
   location?: string | null;
@@ -62,7 +64,8 @@ type EventInput = {
 function validate(input: EventInput) {
   if (!input.title.trim()) return "Titel is verplicht.";
   if (!EVENT_TYPE_VALUES.includes(input.type as (typeof EVENT_TYPE_VALUES)[number]))
-    return "Ongeldig type.";
+    return "Ongeldige categorie.";
+  if (input.kind && !EVENT_KIND_VALUES.includes(input.kind)) return "Ongeldig type.";
   if (!input.start_at) return "Startdatum is verplicht.";
   if (input.external_url && !/^https?:\/\//i.test(input.external_url)) {
     return "Externe link moet beginnen met https:// of http://";
@@ -92,6 +95,7 @@ export async function createEvent(input: EventInput) {
     .insert({
       title: input.title.trim(),
       type: input.type,
+      kind: input.kind || null,
       start_at: input.start_at,
       end_at: input.end_at || null,
       location: input.location || null,
@@ -171,6 +175,7 @@ export async function updateEvent(id: string, input: EventInput) {
   const update: Record<string, any> = {
     title: input.title.trim(),
     type: input.type,
+    kind: input.kind || null,
     start_at: input.start_at,
     end_at: input.end_at || null,
     location: input.location || null,

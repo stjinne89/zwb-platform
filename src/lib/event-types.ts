@@ -6,8 +6,6 @@ export const EVENT_TYPES = [
   { value: "zrl", label: "ZRL race" },
   { value: "ladder", label: "Ladder race" },
   { value: "flamme_rouge", label: "Flamme Rouge" },
-  { value: "social", label: "Social" },
-  { value: "training", label: "Training" },
   { value: "zwift", label: "Zwift" },
   { value: "mywhoosh", label: "MyWhoosh" },
   { value: "src", label: "Sunday Race Club" },
@@ -21,95 +19,96 @@ export const EVENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
   EVENT_TYPES.map((type) => [type.value, type.label]),
 );
 
-export type EventTypeColor = {
-  /** Bolletje in het kalenderfilter. */
-  dot: string;
-  /** Gekleurde rand links van de kalenderregel. */
+/**
+ * Wat voor rit het is, los van de categorie hierboven: een Zwift-event kan een
+ * training zijn, een buitenrit een social. Hooguit één van de twee (migr. 0223;
+ * tot dan waren dit zelf eventtypes).
+ */
+export const EVENT_KINDS = [
+  { value: "training", label: "Training" },
+  { value: "social", label: "Social" },
+] as const;
+
+export const EVENT_KIND_VALUES: string[] = EVENT_KINDS.map((kind) => kind.value);
+
+export const EVENT_KIND_LABELS: Record<string, string> = Object.fromEntries(
+  EVENT_KINDS.map((kind) => [kind.value, kind.label]),
+);
+
+/** Wat een lid op zijn profiel als interesse kan aanvinken. */
+export const EVENT_INTEREST_OPTIONS = [...EVENT_TYPES, ...EVENT_KINDS];
+
+/**
+ * Het label van een event: "Zwift · Training". Bij Overig zegt de categorie
+ * niets, dus dan staat alleen het soort er.
+ */
+export function eventLabel(type: string, kind?: string | null): string {
+  const typeLabel = EVENT_TYPE_LABELS[type] ?? type;
+  const kindLabel = kind ? EVENT_KIND_LABELS[kind] : undefined;
+  if (!kindLabel) return typeLabel;
+  return type === "overig" ? kindLabel : `${typeLabel} · ${kindLabel}`;
+}
+
+/**
+ * Kleur per categorie op de kalender, in families: buitenritten lopen van groen
+ * naar blauw (gravel amber), alles wat virtueel is van rood via oranje naar
+ * geel, met ZRL naast Zwift en de Sunday Race Club naast MyWhoosh. `ink` is de
+ * tekstkleur op een vol gekleurd label.
+ */
+const EVENT_TYPE_COLORS: Record<string, { color: string; ink: string }> = {
+  gran_fondo: { color: "#059669", ink: "#ffffff" },
+  toertocht: { color: "#14b8a6", ink: "#0f172a" },
+  outdoor: { color: "#3b82f6", ink: "#ffffff" },
+  gravel_race: { color: "#b45309", ink: "#ffffff" },
+  flamme_rouge: { color: "#b91c1c", ink: "#ffffff" },
+  ladder: { color: "#ef4444", ink: "#ffffff" },
+  zrl: { color: "#ea580c", ink: "#ffffff" },
+  zwift: { color: "#fb923c", ink: "#0f172a" },
+  omnium: { color: "#f59e0b", ink: "#0f172a" },
+  src: { color: "#eab308", ink: "#0f172a" },
+  mywhoosh: { color: "#fde047", ink: "#0f172a" },
+  overig: { color: "#94a3b8", ink: "#0f172a" },
+};
+
+export function eventTypeColor(type: string | null | undefined): string {
+  return (EVENT_TYPE_COLORS[type ?? ""] ?? EVENT_TYPE_COLORS.overig).color;
+}
+
+export type EventColorStyle = {
+  /** Rand links van de kalenderregel. */
   bar: string;
-  /** Het typelabel zelf. */
-  badge: string;
+  /** Een training krijgt een bredere rand. */
+  wideBar: boolean;
+  badge: { backgroundColor: string; color?: string };
 };
 
 /**
- * Kleur per eventtype op de kalender. Verwante types delen een familie:
- * buitenritten groen, clubraces warm, de virtuele platforms blauw. De namen
- * staan voluit, anders vindt Tailwind de klassen niet.
+ * De kleur van een kalenderregel. Het soort schuift de categoriekleur op: een
+ * training is feller (volle kleur, brede rand), een social pastel.
  */
-export const EVENT_TYPE_COLORS: Record<string, EventTypeColor> = {
-  gran_fondo: {
-    dot: "bg-emerald-600",
-    bar: "before:bg-emerald-600",
-    badge: "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-200",
-  },
-  toertocht: {
-    dot: "bg-lime-500",
-    bar: "before:bg-lime-500",
-    badge: "bg-lime-100 text-lime-900 dark:bg-lime-500/20 dark:text-lime-200",
-  },
-  gravel_race: {
-    dot: "bg-amber-700",
-    bar: "before:bg-amber-700",
-    badge: "bg-amber-100 text-amber-900 dark:bg-amber-600/25 dark:text-amber-200",
-  },
-  outdoor: {
-    dot: "bg-teal-500",
-    bar: "before:bg-teal-500",
-    badge: "bg-teal-100 text-teal-900 dark:bg-teal-500/20 dark:text-teal-200",
-  },
-  zrl: {
-    dot: "bg-orange-500",
-    bar: "before:bg-orange-500",
-    badge: "bg-orange-100 text-orange-900 dark:bg-orange-500/20 dark:text-orange-200",
-  },
-  ladder: {
-    dot: "bg-red-500",
-    bar: "before:bg-red-500",
-    badge: "bg-red-100 text-red-900 dark:bg-red-500/20 dark:text-red-200",
-  },
-  flamme_rouge: {
-    dot: "bg-rose-600",
-    bar: "before:bg-rose-600",
-    badge: "bg-rose-100 text-rose-900 dark:bg-rose-500/20 dark:text-rose-200",
-  },
-  src: {
-    dot: "bg-pink-500",
-    bar: "before:bg-pink-500",
-    badge: "bg-pink-100 text-pink-900 dark:bg-pink-500/20 dark:text-pink-200",
-  },
-  omnium: {
-    dot: "bg-fuchsia-600",
-    bar: "before:bg-fuchsia-600",
-    badge: "bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-500/20 dark:text-fuchsia-200",
-  },
-  zwift: {
-    dot: "bg-blue-500",
-    bar: "before:bg-blue-500",
-    badge: "bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-200",
-  },
-  mywhoosh: {
-    dot: "bg-cyan-500",
-    bar: "before:bg-cyan-500",
-    badge: "bg-cyan-100 text-cyan-900 dark:bg-cyan-500/20 dark:text-cyan-200",
-  },
-  training: {
-    dot: "bg-indigo-500",
-    bar: "before:bg-indigo-500",
-    badge: "bg-indigo-100 text-indigo-900 dark:bg-indigo-500/20 dark:text-indigo-200",
-  },
-  social: {
-    dot: "bg-violet-500",
-    bar: "before:bg-violet-500",
-    badge: "bg-violet-100 text-violet-900 dark:bg-violet-500/20 dark:text-violet-200",
-  },
-  overig: {
-    dot: "bg-slate-400",
-    bar: "before:bg-slate-400",
-    badge: "bg-slate-200 text-slate-900 dark:bg-slate-500/25 dark:text-slate-200",
-  },
-};
-
-export function eventTypeColor(type: string | null | undefined): EventTypeColor {
-  return EVENT_TYPE_COLORS[type ?? ""] ?? EVENT_TYPE_COLORS.overig;
+export function eventColorStyle(
+  type: string | null | undefined,
+  kind?: string | null,
+): EventColorStyle {
+  const { color, ink } = EVENT_TYPE_COLORS[type ?? ""] ?? EVENT_TYPE_COLORS.overig;
+  if (kind === "training") {
+    return { bar: color, wideBar: true, badge: { backgroundColor: color, color: ink } };
+  }
+  if (kind === "social") {
+    return {
+      bar: `color-mix(in oklab, ${color} 45%, white)`,
+      wideBar: false,
+      badge: {
+        backgroundColor: `color-mix(in oklab, ${color} 30%, white)`,
+        color: "#0f172a",
+      },
+    };
+  }
+  return {
+    bar: color,
+    wideBar: false,
+    badge: { backgroundColor: `color-mix(in oklab, ${color} 20%, transparent)` },
+  };
 }
 
 /**

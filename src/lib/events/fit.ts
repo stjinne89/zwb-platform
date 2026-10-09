@@ -11,8 +11,10 @@
  *   is net zo expliciet, andersom: het event blijft onder Voor mij staan, ook als
  *   interesse, team of omvang het anders zou verbergen. "Misschien" is geen
  *   toezegging en doet hier niets.
- * - **Interesse** is wat het lid zelf aanvinkt op zijn profiel. Niets
- *   aangevinkt betekent "alles interessant"; we raden interesse nooit.
+ * - **Interesse** is wat het lid zelf aanvinkt op zijn profiel: categorieën
+ *   (Zwift, Outdoor rit) en soorten (Training, Social). Een event past als zijn
+ *   categorie of zijn soort is aangevinkt. Niets aangevinkt betekent "alles
+ *   interessant"; we raden interesse nooit.
  * - **Geschiktheid** leidt ZWB af: hoort het event bij een team waar je in
  *   zit, en past de omvang van de rit bij wat je rijdt. Het plafond komt uit
  *   het profiel, en anders uit je langste rit van het afgelopen jaar.
@@ -68,6 +70,8 @@ export type MemberFit = {
 export type FitEvent = {
   id?: string | null;
   type: string | null;
+  /** Training of social (migr. 0223); telt mee als interesse. */
+  kind?: string | null;
   team_id?: string | null;
   distance_km?: number | string | null;
   elevation_m?: number | null;
@@ -106,7 +110,8 @@ export function eventFitsMember(event: FitEvent, member: MemberFit): FitResult {
   }
   if (
     member.interests.length > 0 &&
-    (!event.type || !member.interests.includes(event.type))
+    !(event.type && member.interests.includes(event.type)) &&
+    !(event.kind && member.interests.includes(event.kind))
   ) {
     return { fits: false, reason: "interest" };
   }

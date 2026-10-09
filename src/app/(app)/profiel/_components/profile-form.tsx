@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateProfile } from "../actions";
 import { Button } from "@/components/ui/button";
-import { EVENT_TYPES } from "@/lib/event-types";
+import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 
 type Initial = {
   id: string;
@@ -289,7 +289,7 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
           Interesses
         </h2>
         <div className="grid gap-2 sm:grid-cols-2">
-          {EVENT_TYPES.map((type) => (
+          {EVENT_INTEREST_OPTIONS.map((type) => (
             <label
               key={type.value}
               className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"

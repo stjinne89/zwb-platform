@@ -54,6 +54,20 @@ describe("eventFitsMember", () => {
     });
   });
 
+  it("telt het soort (training, social) ook als interesse", () => {
+    const member = { ...OPEN, interests: ["training"] };
+    expect(eventFitsMember({ type: "zwift", kind: "training" }, member).fits).toBe(true);
+    expect(eventFitsMember({ type: "zwift", kind: "social" }, member)).toEqual({
+      fits: false,
+      reason: "interest",
+    });
+    expect(eventFitsMember({ type: "zwift", kind: null }, member).fits).toBe(false);
+    // De categorie alleen is ook genoeg.
+    expect(
+      eventFitsMember({ type: "zwift", kind: "social" }, { ...OPEN, interests: ["zwift"] }).fits,
+    ).toBe(true);
+  });
+
   it("houdt events van een ander team weg", () => {
     const member = { ...OPEN, teamIds: ["team-a"] };
     expect(eventFitsMember({ type: "zrl", team_id: "team-a" }, member).fits).toBe(

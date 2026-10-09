@@ -12,7 +12,7 @@ import {
   type ZwiftLookupResult,
 } from "./actions";
 import { Button } from "@/components/ui/button";
-import { EVENT_TYPES } from "@/lib/event-types";
+import { EVENT_KINDS, EVENT_TYPES } from "@/lib/event-types";
 
 const FIELD_CLASS =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -21,6 +21,7 @@ export type EventInitial = {
   id: string;
   title: string;
   type: string;
+  kind?: string | null;
   start_at: string | null; // ISO
   end_at: string | null; // ISO
   location: string | null;
@@ -231,6 +232,7 @@ export function EventForm({
       const payload = {
         title: String(formData.get("title") ?? ""),
         type: String(formData.get("type") ?? ""),
+        kind: String(formData.get("kind") ?? "") || null,
         start_at: new Date(String(formData.get("start_at") ?? "")).toISOString(),
         end_at: formData.get("end_at")
           ? new Date(String(formData.get("end_at"))).toISOString()
@@ -278,7 +280,7 @@ export function EventForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium">Type</label>
+        <label className="mb-1 block text-sm font-medium">Categorie</label>
         <select
           name="type"
           required
@@ -288,6 +290,18 @@ export function EventForm({
           {EVENT_TYPES.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">Type (optioneel)</label>
+        <select name="kind" defaultValue={initial?.kind ?? ""} className={FIELD_CLASS}>
+          <option value="">Geen</option>
+          {EVENT_KINDS.map((kind) => (
+            <option key={kind.value} value={kind.value}>
+              {kind.label}
             </option>
           ))}
         </select>

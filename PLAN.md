@@ -87,48 +87,77 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0223`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0224`.
 
 ---
 
-> **Kalender: filteren op label en een kleur per eventtype, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
-> Commit: de commit die dit blok toevoegt. Geen migratie.
+> **Kalender: filteren op label, kleur per categorie, en Training/Social als los type, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commits: `bcd2671` (filter en eerste kleuren) en de commit die dit blok
+> bijwerkt (indeling van de eigenaar). Migratie `0223_event_kind.sql`.
 >
 > **Waarom.** Vraag van de eigenaar: naast Alles en Voor mij zelf kunnen kiezen
-> welke soorten events je ziet, en aan de kleur kunnen zien wat voor event het is.
+> welke events je ziet, en aan de kleur kunnen zien wat voor event het is. Na de
+> eerste versie dezelfde dag bijgestuurd: buitenritten van groen naar blauw,
+> virtueel van rood via oranje naar geel, en Training en Social zijn geen
+> categorie maar een type dat je erbij kiest en dat de kleur bijstuurt.
 >
 > **Nu.**
-> - `/kalender?type=zrl,ladder`: onder Alles/Voor mij staat een rij labels, één
->   per eventtype dat in de lijst voorkomt, met het aantal erachter. Meerdere
->   tegelijk kan; niets gekozen toont alles. Het labelfilter versmalt Alles of
->   Voor mij, en de aantallen tellen binnen die keuze. Wisselen tussen Alles en
->   Voor mij houdt de gekozen labels vast (`lib/events/type-filter.ts`).
-> - Verjaardagen hebben een eigen label (`verjaardag`), want ze staan tussen de
->   events maar hebben geen type. Zonder gekozen label blijven ze staan zoals
->   voorheen; met een keuze alleen als Verjaardagen erbij aanstaat.
-> - Kleur per type in `EVENT_TYPE_COLORS` (`lib/event-types.ts`): een rand links
->   van de kalenderregel, het typelabel rechts en het bolletje in het filter.
->   Verwante types delen een familie: buitenritten groen (gravel amber),
->   clubraces rood, oranje en roze, Zwift en MyWhoosh blauw, training indigo,
->   social violet, overig grijs. Goud blijft van de verjaardagen.
-> - Bij een hoofdevent met teamevents of etappes telt het type van het
+> - **Training en Social zijn geen eventtype meer.** `events.kind` (`training`,
+>   `social` of leeg) staat naast `events.type`; hooguit één van de twee (keuze
+>   eigenaar). `0223` zet bestaande events met type social/training op type
+>   `overig` met hun oude type als `kind`, en haalt beide uit `events_type_check`.
+>   Welke categorie die events werkelijk zijn is uit de data niet af te leiden;
+>   dat zet de beheerder per event. In het eventformulier heet het oude veld nu
+>   Categorie en het nieuwe Type (`EVENT_KINDS` in `lib/event-types.ts`).
+> - **Label.** `eventLabel` geeft "Zwift · Training"; bij Overig alleen het type,
+>   dus een omgezet event heet nog steeds "Social". Gebruikt op de kalender, de
+>   eventpagina, het dashboard (overige events) en ritverslagen.
+> - **Interesses.** `profiles.event_type_interests` is niet omgezet: `social` en
+>   `training` blijven geldige waarden en tellen tegen het `kind` van een event.
+>   Een event past onder Voor mij als zijn categorie óf zijn type is aangevinkt
+>   (`eventFitsMember`).
+> - **Filter.** `/kalender?type=zrl,ladder,training`: onder Alles/Voor mij een rij
+>   labels, één per categorie die voorkomt, dan Training en Social, dan
+>   Verjaardagen, elk met het aantal binnen Alles of Voor mij. Binnen een as is
+>   het "of", tussen categorie en type "en": Zwift plus Training toont de
+>   Zwift-trainingen. Verjaardagen staan er zonder keuze bij, en met een keuze
+>   alleen als hun label aanstaat (`lib/events/type-filter.ts`). Wisselen tussen
+>   Alles en Voor mij houdt de keuze vast.
+> - **Kleur.** Eén kleur per categorie (`eventColorStyle`): rand links van de
+>   regel, het label rechts en het bolletje in het filter. Buitenritten: Gran
+>   Fondo groen, Toertocht teal, Outdoor rit blauw, Gravel amber. Virtueel van
+>   rood naar geel: Flamme Rouge, Ladder, ZRL, Zwift (oranje), Omnium, Sunday
+>   Race Club, MyWhoosh (geel). Overig grijs, goud blijft van de verjaardagen.
+>   Een training is feller (vol gekleurd label, bredere rand), een social pastel
+>   (kleur gemengd met wit).
+> - Bij een hoofdevent met teamevents of etappes tellen categorie en type van het
 >   hoofdevent, zoals het label op de regel al deed.
-> - `/hulp` (Events en RSVP) legt het labelfilter en de kleuren uit.
+> - `/hulp` (Events en RSVP) legt filter, type en kleuren uit.
 >
-> **Getest.** `tsc`, ESLint, `tests/unit/calendar-type-filter.test.ts` (parameter
-> lezen, aan- en uitzetten, links, elk type een eigen kleur). De volledige
-> testrun: alles groen behalve `omnium-live.test.ts`, dat `.env.local` nodig
-> heeft en die staat niet in deze worktree.
+> **Volgorde bij uitrollen.** Eerst `0223` toepassen, dan deployen: de kalender,
+> de eventpagina, het dashboard en ritverslagen vragen de kolom `kind` op en
+> blijven zonder die kolom leeg. Tussen migratie en deploy weigert de oude code
+> alleen het opslaan van een event met type Social of Training.
 >
-> **Bewust niet gebouwd.** De keuze bewaren op het profiel: daarvoor zijn de
-> interesses onder Voor mij er al, en een tweede opgeslagen filter ernaast maakt
-> onduidelijk waarom een event ontbreekt. De keuze zit in de URL, dus een
-> bladwijzer werkt. De kleuren op andere schermen (dashboard, eventpagina,
-> ritverslagen): niet gevraagd; `eventTypeColor` is er als dat later gewenst is.
+> **Getest.** `tsc`, ESLint, `tests/unit/calendar-type-filter.test.ts` (parameter,
+> de twee assen, verjaardagen, kleur en label) en `event-fit.test.ts` (type als
+> interesse). `0223` twee keer achter elkaar gedraaid in PGlite op een tabel met
+> de oude constraint: social/training worden overig met `kind`, en de oude
+> waarden worden daarna geweigerd. De volledige testrun: groen behalve
+> `omnium-live.test.ts` (heeft `.env.local` nodig, die staat niet in deze
+> worktree) en `rls-initplan-migration.test.ts` (PGlite-hook loopt in de
+> volledige run soms in zijn timeout van 10 s; los niet onderzocht).
 >
-> **Niet lokaal te verifiëren.** Hoe de kleuren er in licht en donker thema
-> uitzien op de echte kalender: de pagina vraagt een ingelogd lid, en dat is in
-> deze ronde niet in de browser bekeken.
+> **Bewust niet gebouwd.** Training en Social tegelijk op één event (keuze
+> eigenaar). De filterkeuze bewaren op het profiel: de interesses onder Voor mij
+> zijn er al, en de keuze zit in de URL. De kleuren buiten de kalender. Het type
+> in het jaarplan en de eventkeuze van ZWBeter Worden: daar staat een omgezet
+> event als "Overig" tot het een categorie krijgt.
+>
+> **Niet lokaal te verifiëren.** `0223` op de echte database, en hoe de kleuren
+> in licht en donker thema ogen: de kalender vraagt een ingelogd lid en is deze
+> ronde niet in de browser bekeken. Hoeveel events op productie type social of
+> training hebben is niet geteld.
 >
 > **Live ZRL-stand: FIN-punten vielen telkens weg door Zwifts limiet op de uitslag, 2026-10-06 — gebouwd, lokaal getest en tegen Zwift gemeten, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.

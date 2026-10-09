@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
-import { EVENT_TYPE_VALUES } from "@/lib/event-types";
+import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -125,10 +125,10 @@ export async function updateProfile(formData: FormData) {
       error: "Vul eerst je geboortedatum in om je verjaardag te delen.",
     };
   }
-  // Interesses: alleen bekende eventtypes, in de volgorde van EVENT_TYPES zodat
+  // Interesses: alleen bekende categorieën en soorten, in vaste volgorde zodat
   // de opslag stabiel is. Niets aangevinkt = geen voorkeur, en dan filtert de
   // kalender ook niet op type.
-  const event_type_interests = EVENT_TYPE_VALUES.filter(
+  const event_type_interests = EVENT_INTEREST_OPTIONS.map((option) => option.value).filter(
     (type) => formData.get(`interest_${type}`) === "on",
   );
 

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -5,11 +6,20 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
-import { EVENT_TYPES, EVENT_TYPE_LABELS, eventTypeColor } from "@/lib/event-types";
+import {
+  EVENT_KINDS,
+  EVENT_TYPES,
+  eventColorStyle,
+  eventLabel,
+  eventTypeColor,
+} from "@/lib/event-types";
 import {
   BIRTHDAY_FILTER,
+  birthdaysMatchFilter,
   calendarHref,
+  eventMatchesFilter,
   parseTypeFilter,
+  splitTypeFilter,
   toggleTypeFilter,
 } from "@/lib/events/type-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
@@ -110,7 +120,7 @@ export default async function KalenderPage({
       supabase
         .from("events")
         .select(
-          "id, title, description, type, start_at, location, distance_km, elevation_m, cover_image_path, team_id, parent_event_id",
+          "id, title, description, type, kind, start_at, location, distance_km, elevation_m, cover_image_path, team_id, parent_event_id",
         )
         .gte("start_at", windowStartIso)
         .order("start_at", { ascending: true }),
@@ -228,13 +238,14 @@ export default async function KalenderPage({
   // tellen dus binnen die keuze.
   const scoped = onlyForMe ? forMe : upcoming;
   const typeCounts = new Map<string, number>();
+  const kindCounts = new Map<string, number>();
   for (const event of scoped) {
     typeCounts.set(event.type, (typeCounts.get(event.type) ?? 0) + 1);
+    if (event.kind) kindCounts.set(event.kind, (kindCounts.get(event.kind) ?? 0) + 1);
   }
   const filterOnType = selectedTypes.length > 0;
-  const events = filterOnType
-    ? scoped.filter((event) => selectedTypes.includes(event.type))
-    : scoped;
+  const filter = splitTypeFilter(selectedTypes);
+  const events = scoped.filter((event) => eventMatchesFilter(event, filter));
   const allBirthdays = (birthdayProfiles ?? []).flatMap((profile) => {
     if (!profile.birth_date) return [];
     const occurrence = nextBirthdayOccurrence(profile.birth_date, todayKey);
@@ -251,22 +262,27 @@ export default async function KalenderPage({
       },
     ];
   });
-  const birthdays =
-    filterOnType && !selectedTypes.includes(BIRTHDAY_FILTER) ? [] : allBirthdays;
+  const birthdays = birthdaysMatchFilter(filter) ? allBirthdays : [];
   // Een gekozen label blijft staan als er (onder Voor mij) niets meer van over
   // is, anders kun je het niet meer uitzetten.
-  const typeChips = [
+  const typeChips: { value: string; label: string; count: number; dot: string | null }[] = [
     ...EVENT_TYPES.map((entry) => ({
-      value: entry.value as string,
-      label: entry.label as string,
+      value: entry.value,
+      label: entry.label,
       count: typeCounts.get(entry.value) ?? 0,
-      dot: eventTypeColor(entry.value).dot,
+      dot: eventTypeColor(entry.value),
+    })),
+    ...EVENT_KINDS.map((entry) => ({
+      value: entry.value,
+      label: entry.label,
+      count: kindCounts.get(entry.value) ?? 0,
+      dot: null,
     })),
     {
       value: BIRTHDAY_FILTER,
       label: "Verjaardagen",
       count: allBirthdays.length,
-      dot: "bg-zwb-gold",
+      dot: "var(--zwb-gold)",
     },
   ].filter((chip) => chip.count > 0 || selectedTypes.includes(chip.value));
   const calendarItems = [
@@ -426,7 +442,12 @@ export default async function KalenderPage({
                   active ? "bg-foreground text-background" : "hover:bg-secondary"
                 }`}
               >
-                <span className={`size-2 shrink-0 rounded-full ${chip.dot}`} />
+                {chip.dot && (
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: chip.dot }}
+                  />
+                )}
                 {chip.label} ({chip.count})
               </Link>
             );
@@ -510,6 +531,7 @@ export default async function KalenderPage({
             }
 
             const event = item.event;
+            const color = eventColorStyle(event.type, event.kind);
             const participantLine = String(event.description ?? "")
               .split("\n")
               .find((line) => line.startsWith("ZWB-deelnemers:"))
@@ -526,7 +548,10 @@ export default async function KalenderPage({
             return (
               <li
                 key={event.id}
-                className={`relative flex flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4 pl-5 transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[''] hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between ${eventTypeColor(event.type).bar}`}
+                className={`relative flex flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4 pl-5 transition before:absolute before:inset-y-0 before:left-0 before:bg-[var(--event-bar)] before:content-[''] hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between ${
+                  color.wideBar ? "before:w-2" : "before:w-1"
+                }`}
+                style={{ "--event-bar": color.bar } as CSSProperties}
               >
                 <Link
                   href={`/events/${event.id}`}
@@ -631,9 +656,10 @@ export default async function KalenderPage({
                     </Link>
                   ))}
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${eventTypeColor(event.type).badge}`}
+                    className="rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide"
+                    style={color.badge}
                   >
-                    {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                    {eventLabel(event.type, event.kind)}
                   </span>
                   {liveCount > 0 && (
                     <Link

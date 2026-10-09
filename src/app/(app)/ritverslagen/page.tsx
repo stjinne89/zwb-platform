@@ -11,7 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { DeleteRitverslagButton } from "./_components/delete-ritverslag-button";
-import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { eventLabel } from "@/lib/event-types";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ type EventRow = {
   id: string;
   title: string;
   type: string;
+  kind: string | null;
   start_at: string;
   location: string | null;
   distance_km: number | string | null;
@@ -71,7 +72,7 @@ export default async function RitverslagenPage() {
   const { data: eventRows } = await supabase
     .from("events")
     .select(
-      "id, title, type, start_at, location, distance_km, elevation_m, cover_image_path, created_by",
+      "id, title, type, kind, start_at, location, distance_km, elevation_m, cover_image_path, created_by",
     )
     .order("start_at", { ascending: false })
     .limit(150);
@@ -240,7 +241,7 @@ export default async function RitverslagenPage() {
                 <div className="space-y-2 p-4">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-                      {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                      {eventLabel(event.type, event.kind)}
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Camera className="size-3.5" />
