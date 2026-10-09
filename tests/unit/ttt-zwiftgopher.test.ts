@@ -52,8 +52,8 @@ describe("kopbeurten en volgorde uit ZwiftGopher", () => {
     const res = applyZwiftGopherResult(riders, {
       data: {
         riders: [
-          { zwift_id: "111", position: 2, pull_watts: 300, pull_duration_seconds: 30 },
-          { zwift_id: "222", position: 1, pull_watts: 320, pull_duration_seconds: 45 },
+          { zwift_id: 111, order: 2, pull_power: 300, pull_duration: 30 },
+          { zwift_id: 222, order: 1, pull_power: 320, pull_duration: 45 },
         ],
       },
     });

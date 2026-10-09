@@ -6057,6 +6057,38 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gemeten — ZwiftGopher: geen vrije routekeuze, kopbeurtvelden kloppen
+
+**2026-10-09.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Stijn vroeg om vrije routekeuze in de TTT Planner, omdat alle
+routes in de database staan. Eén batchverzoek aan `POST /api/optimize` met zijn
+key en vier waarden voor `route`.
+
+**Uitkomst.**
+- `route` mag alleen `next`, `next_wtrl` of `next_zrl` zijn. Een routecode van
+  hun calculator (`road-to-ruins`) en een routenaam geven
+  "route must be one of: next, next_wtrl, next_zrl". **Vrije routekeuze kan dus
+  niet via de API**, wat er ook in onze database staat; hun calculator op de
+  site kan het wel (89 routes met een vast aantal rondes).
+- `next_zrl` gaf opnieuw "No upcoming ZRL races found"; `next` rekende voor
+  R.G.V. (de donderdag-TTT van 15 oktober).
+- Per renner geeft het antwoord `order` (vanaf 1), `pull_power` (watt) en
+  `pull_duration` (seconden). `applyZwiftGopherResult` leest nu alleen die drie;
+  de lijst met gegokte namen uit de ronde van 2026-10-08 is weg. **De zinnen
+  daar dat de veldnamen een gok zijn, gelden niet meer.**
+- Het antwoord bevat meer dan de app toont: `distance_km`, `elevation_m`,
+  `team_avg_if`, per renner `avg_power`, `if_percent`, `wheel_powers` en een
+  blok `fatigue` (wie naar verwachting een beurt overslaat of lost).
+
+**Bewust niet gebouwd.** Geen routekeuze in de planner, en geen eigen
+TTT-rekenmodel op onze routedata; dat is een keuze voor de eigenaar. Navragen
+bij de maker (Discord) of `route` een routecode mag worden, is niet gedaan.
+
+**Getest.** `tsc`, ESLint, `ttt-zwiftgopher.test.ts`. De echte aanroep is
+gedaan met twee renners; het overnemen in de planner zelf is niet in de browser
+bekeken.
+
 ### Opgeleverd — TTT-plan vanaf de racepagina, publiceren, 5 renners bij de ZRL
 
 **2026-10-08.** Commit: de commit die dit blok toevoegt. Migratie `0222`.

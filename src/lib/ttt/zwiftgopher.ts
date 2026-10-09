@@ -110,31 +110,14 @@ export function buildZwiftGopherPayload(plan: TttPlanInput): OptimizePayload {
 
 type ApiRider = Record<string, unknown>;
 
-// De API-documentatie toont de kopbeurtvelden niet ("...": "..."); daarom
-// meerdere schrijfwijzen, in volgorde van voorkeur.
-const PULL_WATTS_KEYS = [
-  "pull_power",
-  "pull_watts",
-  "pull_power_watts",
-  "target_power",
-  "target_watts",
-];
-const PULL_DURATION_KEYS = [
-  "pull_duration",
-  "pull_duration_seconds",
-  "pull_time",
-  "pull_seconds",
-];
-const ORDER_KEYS = ["order", "position", "pull_order", "rotation_order"];
-
-function firstNumber(row: ApiRider, keys: string[]) {
-  for (const key of keys) {
-    const raw = row[key];
-    if (raw == null || raw === "") continue;
-    const value = Number(raw);
-    if (Number.isFinite(value)) return value;
-  }
-  return null;
+// Velden per renner in het antwoord (gemeten op 2026-10-09; de documentatie
+// noemt ze niet): `order` vanaf 1, `pull_power` in watt, `pull_duration` in
+// seconden.
+function numberField(row: ApiRider, key: string) {
+  const raw = row[key];
+  if (raw == null || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }
 
 export function zwiftGopherRiders(apiResponse: unknown): ApiRider[] {
@@ -194,8 +177,8 @@ export function applyZwiftGopherResult(
       }
       taken.add(apiIndex);
       const row = apiRiders[apiIndex];
-      const watts = firstNumber(row, PULL_WATTS_KEYS);
-      const duration = firstNumber(row, PULL_DURATION_KEYS);
+      const watts = numberField(row, "pull_power");
+      const duration = numberField(row, "pull_duration");
       const hasWatts = watts != null && watts > 0;
       const hasDuration = duration != null && duration >= 0;
       if (hasWatts || hasDuration) applied += 1;
@@ -206,7 +189,7 @@ export function applyZwiftGopherResult(
           ...(hasDuration ? { pullDurationSeconds: Math.round(duration) } : {}),
         },
         inputIndex,
-        rank: firstNumber(row, ORDER_KEYS) ?? apiIndex,
+        rank: numberField(row, "order") ?? apiIndex,
       };
     });
 
