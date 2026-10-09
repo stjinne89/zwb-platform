@@ -5,7 +5,13 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
-import { EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { EVENT_TYPES, EVENT_TYPE_LABELS, eventTypeColor } from "@/lib/event-types";
+import {
+  BIRTHDAY_FILTER,
+  calendarHref,
+  parseTypeFilter,
+  toggleTypeFilter,
+} from "@/lib/events/type-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
 import {
@@ -31,7 +37,7 @@ const HISTORY_DAYS = 365;
 // ouder is, telt via een losse telling mee in "Voorbije ritten".
 const PAST_WINDOW_DAYS = 30;
 type RsvpStatus = "yes" | "maybe" | "no";
-type SearchParams = Promise<{ voor?: string }>;
+type SearchParams = Promise<{ voor?: string; type?: string | string[] }>;
 
 function pastWindowStartIso() {
   return new Date(Date.now() - PAST_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -83,8 +89,9 @@ export default async function KalenderPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { voor } = await searchParams;
+  const { voor, type } = await searchParams;
   const onlyForMe = voor === "mij";
+  const selectedTypes = parseTypeFilter(type);
 
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   const canCreateEvents = (await getRequestAccess()).has("events.create");
@@ -217,8 +224,18 @@ export default async function KalenderPage({
     return false;
   });
   const hiddenCount = upcoming.length - forMe.length;
-  const events = onlyForMe ? forMe : upcoming;
-  const birthdays = (birthdayProfiles ?? []).flatMap((profile) => {
+  // Het labelfilter versmalt Alles of Voor mij; de aantallen op de knoppen
+  // tellen dus binnen die keuze.
+  const scoped = onlyForMe ? forMe : upcoming;
+  const typeCounts = new Map<string, number>();
+  for (const event of scoped) {
+    typeCounts.set(event.type, (typeCounts.get(event.type) ?? 0) + 1);
+  }
+  const filterOnType = selectedTypes.length > 0;
+  const events = filterOnType
+    ? scoped.filter((event) => selectedTypes.includes(event.type))
+    : scoped;
+  const allBirthdays = (birthdayProfiles ?? []).flatMap((profile) => {
     if (!profile.birth_date) return [];
     const occurrence = nextBirthdayOccurrence(profile.birth_date, todayKey);
     if (!occurrence) return [];
@@ -234,6 +251,24 @@ export default async function KalenderPage({
       },
     ];
   });
+  const birthdays =
+    filterOnType && !selectedTypes.includes(BIRTHDAY_FILTER) ? [] : allBirthdays;
+  // Een gekozen label blijft staan als er (onder Voor mij) niets meer van over
+  // is, anders kun je het niet meer uitzetten.
+  const typeChips = [
+    ...EVENT_TYPES.map((entry) => ({
+      value: entry.value as string,
+      label: entry.label as string,
+      count: typeCounts.get(entry.value) ?? 0,
+      dot: eventTypeColor(entry.value).dot,
+    })),
+    {
+      value: BIRTHDAY_FILTER,
+      label: "Verjaardagen",
+      count: allBirthdays.length,
+      dot: "bg-zwb-gold",
+    },
+  ].filter((chip) => chip.count > 0 || selectedTypes.includes(chip.value));
   const calendarItems = [
     ...events.map((event) => ({
       kind: "event" as const,
@@ -342,7 +377,7 @@ export default async function KalenderPage({
       {user && (
         <nav className="flex flex-wrap items-center gap-2" aria-label="Kalenderfilter">
           <Link
-            href="/kalender"
+            href={calendarHref({ onlyForMe: false, types: selectedTypes })}
             aria-current={onlyForMe ? undefined : "page"}
             className={`rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "hover:bg-secondary" : "bg-foreground text-background"
@@ -351,7 +386,7 @@ export default async function KalenderPage({
             Alles ({upcoming.length})
           </Link>
           <Link
-            href="/kalender?voor=mij"
+            href={calendarHref({ onlyForMe: true, types: selectedTypes })}
             aria-current={onlyForMe ? "page" : undefined}
             className={`rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "bg-foreground text-background" : "hover:bg-secondary"
@@ -370,6 +405,38 @@ export default async function KalenderPage({
           {onlyForMe && hiddenCount === 0 && !fitIsInformative(member) && (
             <Link href="/profiel#interesses" className="text-xs underline">
               Stel je interesses in
+            </Link>
+          )}
+        </nav>
+      )}
+
+      {typeChips.length > 1 && (
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Labelfilter">
+          {typeChips.map((chip) => {
+            const active = selectedTypes.includes(chip.value);
+            return (
+              <Link
+                key={chip.value}
+                href={calendarHref({
+                  onlyForMe,
+                  types: toggleTypeFilter(selectedTypes, chip.value),
+                })}
+                aria-current={active ? "true" : undefined}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+                  active ? "bg-foreground text-background" : "hover:bg-secondary"
+                }`}
+              >
+                <span className={`size-2 shrink-0 rounded-full ${chip.dot}`} />
+                {chip.label} ({chip.count})
+              </Link>
+            );
+          })}
+          {filterOnType && (
+            <Link
+              href={calendarHref({ onlyForMe, types: [] })}
+              className="text-xs underline"
+            >
+              Wis labels
             </Link>
           )}
         </nav>
@@ -459,7 +526,7 @@ export default async function KalenderPage({
             return (
               <li
                 key={event.id}
-                className="flex flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4 transition hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between"
+                className={`relative flex flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4 pl-5 transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[''] hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between ${eventTypeColor(event.type).bar}`}
               >
                 <Link
                   href={`/events/${event.id}`}
@@ -563,7 +630,9 @@ export default async function KalenderPage({
                       {subEventLabel(sub.title, event.title)}
                     </Link>
                   ))}
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${eventTypeColor(event.type).badge}`}
+                  >
                     {EVENT_TYPE_LABELS[event.type] ?? event.type}
                   </span>
                   {liveCount > 0 && (

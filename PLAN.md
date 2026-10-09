@@ -91,6 +91,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0223`
 
 ---
 
+> **Kalender: filteren op label en een kleur per eventtype, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar: naast Alles en Voor mij zelf kunnen kiezen
+> welke soorten events je ziet, en aan de kleur kunnen zien wat voor event het is.
+>
+> **Nu.**
+> - `/kalender?type=zrl,ladder`: onder Alles/Voor mij staat een rij labels, één
+>   per eventtype dat in de lijst voorkomt, met het aantal erachter. Meerdere
+>   tegelijk kan; niets gekozen toont alles. Het labelfilter versmalt Alles of
+>   Voor mij, en de aantallen tellen binnen die keuze. Wisselen tussen Alles en
+>   Voor mij houdt de gekozen labels vast (`lib/events/type-filter.ts`).
+> - Verjaardagen hebben een eigen label (`verjaardag`), want ze staan tussen de
+>   events maar hebben geen type. Zonder gekozen label blijven ze staan zoals
+>   voorheen; met een keuze alleen als Verjaardagen erbij aanstaat.
+> - Kleur per type in `EVENT_TYPE_COLORS` (`lib/event-types.ts`): een rand links
+>   van de kalenderregel, het typelabel rechts en het bolletje in het filter.
+>   Verwante types delen een familie: buitenritten groen (gravel amber),
+>   clubraces rood, oranje en roze, Zwift en MyWhoosh blauw, training indigo,
+>   social violet, overig grijs. Goud blijft van de verjaardagen.
+> - Bij een hoofdevent met teamevents of etappes telt het type van het
+>   hoofdevent, zoals het label op de regel al deed.
+> - `/hulp` (Events en RSVP) legt het labelfilter en de kleuren uit.
+>
+> **Getest.** `tsc`, ESLint, `tests/unit/calendar-type-filter.test.ts` (parameter
+> lezen, aan- en uitzetten, links, elk type een eigen kleur). De volledige
+> testrun: alles groen behalve `omnium-live.test.ts`, dat `.env.local` nodig
+> heeft en die staat niet in deze worktree.
+>
+> **Bewust niet gebouwd.** De keuze bewaren op het profiel: daarvoor zijn de
+> interesses onder Voor mij er al, en een tweede opgeslagen filter ernaast maakt
+> onduidelijk waarom een event ontbreekt. De keuze zit in de URL, dus een
+> bladwijzer werkt. De kleuren op andere schermen (dashboard, eventpagina,
+> ritverslagen): niet gevraagd; `eventTypeColor` is er als dat later gewenst is.
+>
+> **Niet lokaal te verifiëren.** Hoe de kleuren er in licht en donker thema
+> uitzien op de echte kalender: de pagina vraagt een ingelogd lid, en dat is in
+> deze ronde niet in de browser bekeken.
+>
 > **Live ZRL-stand: FIN-punten vielen telkens weg door Zwifts limiet op de uitslag, 2026-10-06 — gebouwd, lokaal getest en tegen Zwift gemeten, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >

@@ -108,6 +108,8 @@ const GUIDES = [
       "Vink je geen enkel eventtype aan, dan telt alles als interessant en verbergt Voor mij niets op interesse.",
       "Vul je op je profiel geen max afstand of hoogtemeters in, dan leidt ZWB die grens af uit je langste rit van het afgelopen jaar, plus 20 procent. Zonder ritten in ZWB blijft die grens leeg en wordt er niets op omvang verborgen.",
       "Onder de knop staat wat er verborgen is en waarom; met Alles zie je de hele kalender weer.",
+      "Met de labels eronder kies je welke soorten events je ziet, bijvoorbeeld alleen ZRL en Ladder. Je kunt er meerdere tegelijk aanzetten en ze werken samen met Alles en Voor mij; Wis labels toont alles weer.",
+      "Elk eventtype heeft een eigen kleur, als rand links van de regel en in het label: buitenritten groen, clubraces rood en oranje, Zwift en MyWhoosh blauw.",
       "Op eventdagen kan de liveticker deelnemers tonen die live tracken.",
       "GPX, routekaart en hoogteprofiel staan op de eventpagina.",
     ],
@@ -209,7 +211,7 @@ const GUIDES = [
 // Volledige wegwijzer: wat doet elke pagina/sectie van de app.
 const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier koppel en synchroniseer je ook je ritten, of importeer je ze (CSV/GPX)." },
-  { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past." },
+  { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past, of per label op soort event." },
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo, of via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
