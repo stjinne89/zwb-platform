@@ -1,0 +1,491 @@
+[
+  {
+    "id": 5735234,
+    "name": "Zwift Racing League Recon Ride (DIRT)",
+    "eventStart": "2026-10-10T11:00:00.000+0000",
+    "eventType": "GROUP_RIDE",
+    "routeId": 553661379,
+    "laps": 1,
+    "distanceInMeters": 0,
+    "rulesSet": [
+      "ALLOWS_LATE_JOIN",
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "wtrl",
+      "zrlrecon",
+      "zrl20",
+      "ttt",
+      "zrl_arch",
+      "ttbikesdraft",
+      "powerup_percent=\"1,50,5,50\"",
+      "arch_powerup=\"0,3\"",
+      "no_flagging",
+      "nobraking",
+      "new_race_results",
+      "fenced",
+      "dirt"
+    ],
+    "eventSubgroups": [
+      {
+        "id": 7394003,
+        "subgroupLabel": "E",
+        "eventSubgroupStart": "2026-10-10T11:00:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "ALLOWS_LATE_JOIN",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrlrecon",
+          "zrl20",
+          "ttt",
+          "zrl_arch",
+          "ttbikesdraft",
+          "powerup_percent=\"1,50,5,50\"",
+          "arch_powerup=\"0,3\"",
+          "no_flagging",
+          "nobraking",
+          "new_race_results",
+          "fenced",
+          "dirt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5737430,
+    "name": "Zwift Racing League 26/27: Fast & Fresh : Women's Mint League Division 1 - Race 3",
+    "eventStart": "2026-10-13T17:15:00.000+0000",
+    "eventType": "TEAM_TIME_TRIAL",
+    "routeId": 553661379,
+    "laps": 1,
+    "distanceInMeters": 0,
+    "rulesSet": [
+      "LADIES_ONLY",
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "wtrl",
+      "zrl",
+      "zrl20",
+      "zrl_arch",
+      "no_flagging",
+      "new_race_results",
+      "after_party_duration=-1",
+      "ttt",
+      "zrl_ttt",
+      "ttbikesdraft",
+      "arch_powerup=\"0,3,1,1,2,1\""
+    ],
+    "eventSubgroups": [
+      {
+        "id": 7397329,
+        "subgroupLabel": "B",
+        "eventSubgroupStart": "2026-10-13T17:16:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "LADIES_ONLY",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397330,
+        "subgroupLabel": "A",
+        "eventSubgroupStart": "2026-10-13T17:15:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "LADIES_ONLY",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397331,
+        "subgroupLabel": "C",
+        "eventSubgroupStart": "2026-10-13T17:17:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "LADIES_ONLY",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397332,
+        "subgroupLabel": "D",
+        "eventSubgroupStart": "2026-10-13T17:18:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "LADIES_ONLY",
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5737462,
+    "name": "Zwift Racing League 26/27: Fast & Fresh : Open Aqua League Division 1 - Race 3",
+    "eventStart": "2026-10-13T18:00:00.000+0000",
+    "eventType": "TEAM_TIME_TRIAL",
+    "routeId": 553661379,
+    "laps": 1,
+    "distanceInMeters": 0,
+    "rulesSet": [
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "wtrl",
+      "zrl",
+      "zrl20",
+      "zrl_arch",
+      "no_flagging",
+      "new_race_results",
+      "after_party_duration=-1",
+      "ttt",
+      "zrl_ttt",
+      "ttbikesdraft",
+      "arch_powerup=\"0,3,1,1,2,1\""
+    ],
+    "eventSubgroups": [
+      {
+        "id": 7397385,
+        "subgroupLabel": "D",
+        "eventSubgroupStart": "2026-10-13T18:03:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397386,
+        "subgroupLabel": "A",
+        "eventSubgroupStart": "2026-10-13T18:00:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397387,
+        "subgroupLabel": "C",
+        "eventSubgroupStart": "2026-10-13T18:02:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397388,
+        "subgroupLabel": "B",
+        "eventSubgroupStart": "2026-10-13T18:01:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5737452,
+    "name": "Zwift Racing League 26/27: Fast & Fresh : Open Aqua League Division 4 - Race 3",
+    "eventStart": "2026-10-13T18:03:00.000+0000",
+    "eventType": "TEAM_TIME_TRIAL",
+    "routeId": 553661379,
+    "laps": 1,
+    "distanceInMeters": 0,
+    "rulesSet": [
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "wtrl",
+      "zrl",
+      "zrl20",
+      "zrl_arch",
+      "no_flagging",
+      "new_race_results",
+      "after_party_duration=-1",
+      "ttt",
+      "zrl_ttt",
+      "ttbikesdraft",
+      "arch_powerup=\"0,3,1,1,2,1\""
+    ],
+    "eventSubgroups": [
+      {
+        "id": 7397396,
+        "subgroupLabel": "B",
+        "eventSubgroupStart": "2026-10-13T18:03:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      },
+      {
+        "id": 7397397,
+        "subgroupLabel": "C",
+        "eventSubgroupStart": "2026-10-13T18:04:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5737449,
+    "name": "Zwift Racing League 26/27: Fast & Fresh : Open Dev Aqua League Division 3 - Race 3",
+    "eventStart": "2026-10-13T18:07:00.000+0000",
+    "eventType": "TEAM_TIME_TRIAL",
+    "routeId": 553661379,
+    "laps": 1,
+    "distanceInMeters": 0,
+    "rulesSet": [
+      "SHOW_RACE_RESULTS"
+    ],
+    "tags": [
+      "wtrl",
+      "zrl",
+      "zrl20",
+      "zrl_arch",
+      "no_flagging",
+      "new_race_results",
+      "after_party_duration=-1",
+      "ttt",
+      "zrl_ttt",
+      "ttbikesdraft",
+      "arch_powerup=\"0,3,1,1,2,1\""
+    ],
+    "eventSubgroups": [
+      {
+        "id": 7397405,
+        "subgroupLabel": "B",
+        "eventSubgroupStart": "2026-10-13T18:07:00.000+0000",
+        "routeId": 553661379,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "SHOW_RACE_RESULTS"
+        ],
+        "tags": [
+          "wtrl",
+          "zrl",
+          "zrl20",
+          "zrl_arch",
+          "no_flagging",
+          "new_race_results",
+          "after_party_duration=-1",
+          "ttt",
+          "zrl_ttt",
+          "ttbikesdraft",
+          "arch_powerup=\"0,3,1,1,2,1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5735262,
+    "name": "Zwift Racing League Recon Ride (DIRT)",
+    "eventStart": "2026-10-17T11:00:00.000+0000",
+    "eventType": "GROUP_RIDE",
+    "routeId": 1178708985,
+    "laps": 1,
+    "distanceInMeters": 0,
+    "rulesSet": [
+      "ALLOWS_LATE_JOIN",
+      "SHOW_RACE_RESULTS",
+      "NO_TT_BIKES"
+    ],
+    "tags": [
+      "wtrl",
+      "zrlrecon",
+      "zrl20",
+      "zrl_arch",
+      "powerup_percent=\"0,34,1,33,5,33\"",
+      "arch_powerup=\"0,3\"",
+      "no_flagging",
+      "nobraking",
+      "new_race_results",
+      "fenced",
+      "dirt"
+    ],
+    "eventSubgroups": [
+      {
+        "id": 7394031,
+        "subgroupLabel": "E",
+        "eventSubgroupStart": "2026-10-17T11:00:00.000+0000",
+        "routeId": 1178708985,
+        "laps": 1,
+        "distanceInMeters": 0,
+        "rulesSet": [
+          "ALLOWS_LATE_JOIN",
+          "SHOW_RACE_RESULTS",
+          "NO_TT_BIKES"
+        ],
+        "tags": [
+          "wtrl",
+          "zrlrecon",
+          "zrl20",
+          "zrl_arch",
+          "powerup_percent=\"0,34,1,33,5,33\"",
+          "arch_powerup=\"0,3\"",
+          "no_flagging",
+          "nobraking",
+          "new_race_results",
+          "fenced",
+          "dirt"
+        ]
+      }
+    ]
+  }
+]

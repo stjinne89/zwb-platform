@@ -7,6 +7,7 @@ import {
   syncZwiftEventCache,
 } from "@/lib/zwift/event-cache";
 import { syncZrlSubgroupRoutes } from "@/lib/events/zrl-route-sync";
+import { linkZrlEvents } from "@/lib/events/zrl-event-link";
 
 /** Eén publiek event-verzoek per Zwift-event van de komende raceweek. */
 const ZRL_ROUTE_BUDGET_MS = 8000;
@@ -43,11 +44,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await syncZwiftEventCache(admin, { horizonDays, budgetMs });
+    // ZRL-teamraces zonder Zwift-event aan dat van hun divisie koppelen.
+    const zrlLinks = await linkZrlEvents(admin).catch((err) => ({
+      error: err instanceof Error ? err.message : "mislukt",
+    }));
     // ZRL-teamevents op de route van hun eigen subgroep; mag de spiegel niet breken.
     const zrlRoutes = await syncZrlSubgroupRoutes(admin, {
       deadline: Date.now() + ZRL_ROUTE_BUDGET_MS,
     }).catch((err) => ({ error: err instanceof Error ? err.message : "mislukt" }));
-    return NextResponse.json({ ok: true, ...result, zrlRoutes });
+    return NextResponse.json({ ok: true, ...result, zrlLinks, zrlRoutes });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "Zwift-eventsync mislukt." },

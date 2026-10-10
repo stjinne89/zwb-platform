@@ -14,6 +14,7 @@ import {
   routeFromZwiftId,
   zrlCategoryFromTeamName,
   type ZwiftEventInfo,
+  type ZwiftRouteInfo,
 } from "@/lib/events/zwift-route";
 
 /** Zo ver vooruit: de raceweek die eraan komt. */
@@ -57,6 +58,20 @@ export function zrlRouteUpdate(
     // Een geüploade GPX gaat voor, net als in het eventformulier.
     ...(stored.gpx_path ? {} : { distance_km: totals.distanceKm, elevation_m: totals.elevationM }),
   };
+}
+
+/** Alleen de identificatie, zodat de foreign key van events.zwift_route_id houdt. */
+export async function registerZwiftRoute(admin: SupabaseClient, route: ZwiftRouteInfo) {
+  await admin.from("zwift_routes").upsert(
+    {
+      route_id: route.routeId,
+      slug: route.slug,
+      name: route.name,
+      world: route.world,
+      strava_segment_id: route.stravaSegmentId,
+    },
+    { onConflict: "route_id", ignoreDuplicates: true },
+  );
 }
 
 export type ZrlRouteSyncResult = {
@@ -132,19 +147,7 @@ export async function syncZrlSubgroupRoutes(
     const update = zrlRouteUpdate(row, info, categoryByTeam.get(row.team_id) ?? null);
     if (!update) continue;
     const route = routeFromZwiftId(update.zwift_route_id);
-    if (route) {
-      // Alleen de identificatie, zodat de foreign key van events.zwift_route_id houdt.
-      await admin.from("zwift_routes").upsert(
-        {
-          route_id: route.routeId,
-          slug: route.slug,
-          name: route.name,
-          world: route.world,
-          strava_segment_id: route.stravaSegmentId,
-        },
-        { onConflict: "route_id", ignoreDuplicates: true },
-      );
-    }
+    if (route) await registerZwiftRoute(admin, route);
     const { error: updateError } = await admin.from("events").update(update).eq("id", row.id);
     if (updateError) result.notes.push(`${row.title}: ${updateError.message}`);
     else result.updated.push(`${row.title} → ${route?.name ?? update.zwift_route_id}`);

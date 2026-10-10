@@ -91,6 +91,55 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 
 ---
 
+> **ZRL-teamrace krijgt zijn Zwift-event vanzelf, 2026-10-10 — gebouwd, lokaal getest en tegen Zwift gemeten, niet op productie gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar plakte per teamrace de Zwift-link en wil per ronde
+> alleen nog de racepasses invullen. Het onderzoek staat in de ronde hieronder.
+>
+> **Nu.** `linkZrlEvents` (`src/lib/events/zrl-event-link.ts`) draait mee met de
+> uurlijkse Zwift-eventspiegel (`POST /api/zwift/events/sync`, vóór
+> `syncZrlSubgroupRoutes`; uitkomst onder `zrlLinks`).
+> - Het zoekt ZRL-teamraces van de komende zeven dagen zonder `zwift_event_id`.
+>   Zijn die er niet, of heeft geen van die teams een divisie, dan gaat er geen
+>   verzoek naar Zwift.
+> - Anders één verzoek: de publieke lijst met `tags=wtrl`. Het event is dat met
+>   dezelfde competitie (Open/Women), Development of niet, league en
+>   divisienummer als `wtrl_teams.division` van het team, op de racedag
+>   (Amsterdam), mét de subgroep van de categorieletter uit die divisie.
+> - Op de teamrace komen `zwift_event_id`, de starttijd van de eigen subgroep,
+>   route, ronden, afstand en hoogtemeters van die subgroep, en eventtype, regels
+>   en tags voor het pacingplan. `external_url` alleen als die leeg was; afstand
+>   en hoogtemeters niet bij een eigen GPX. Daarmee verschijnen ook Live stand,
+>   de Zwift-links en ZwifterBikes zonder handwerk.
+> - Een race die al een Zwift-event heeft, wordt niet aangeraakt; met de hand
+>   plakken blijft dus gaan en gaat voor.
+>
+> **Bewust niet.**
+> - Niets koppelen bij twijfel: geen divisie, geen of meer dan één passend event,
+>   of de eigen subgroep ontbreekt. De race blijft dan leeg en `zrlLinks.notes`
+>   noemt een team zonder divisie.
+> - De categorie komt uit de divisie, niet uit de teamnaam zoals bij "Ophalen":
+>   de divisie is wat WTRL zelf opgeeft.
+> - Geen knop of melding in beheer; de uitkomst staat alleen in het antwoord van
+>   de cronjob.
+> - De raceweek (het hoofdevent) krijgt geen route uit deze koppeling.
+>
+> **Risico.** Een verkeerde divisie op `/beheer/wtrl-teams` (op 25 september
+> stonden B1 en B2 fout) geeft het event van een andere divisie, met een andere
+> starttijd. Na een herindeling door WTRL dus eerst opnieuw plakken. Een fout
+> gekoppelde race herstel je door op Bewerk de goede link op te halen.
+>
+> **Getest.** `tsc`, ESLint en `tests/unit/zrl-event-link.test.ts` (7 cases) op
+> een ingekorte opname van de echte lijst van 10 oktober
+> (`tests/fixtures/zwift/wtrl-events.json`): B1, B2, B Dev en Zwiftladies krijgen
+> elk het event van hun divisie. **Niet lokaal te verifiëren:** het lezen van
+> `events` en `wtrl_teams` en het schrijven op productie. Controle na de deploy:
+> het antwoord van de eventspiegel heeft `zrlLinks.linked` met de teamraces van
+> 13 oktober, voor zover die nog geen link hadden.
+
+---
+
 > **ZwifterBikes-link bij een race, en onderzoek naar de WTRL-racepass als bron, 2026-10-10 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -135,9 +184,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 > De gegevens van een race blijven dus uit de Zwift-eventlink komen (route,
 > ronden en starttijd per subgroep, zie de rondes van 2026-09-28 en 2026-10-06).
 >
-> **Onderzocht, nog niet gebouwd: het Zwift-event van een ZRL-teamrace
-> automatisch vinden** (op verzoek van de eigenaar, zelfde dag). Het kan, zonder
-> login en zonder WTRL:
+> **Onderzocht: het Zwift-event van een ZRL-teamrace automatisch vinden** (op
+> verzoek van de eigenaar, zelfde dag; gebouwd in de ronde hierboven). Het kan,
+> zonder login en zonder WTRL:
 > - `GET /api/public/events/upcoming?limit=200&tags=wtrl` op de host die het
 >   platform al gebruikt. Het is het verzoek achter zwift.com/events/tag/wtrl.
 >   Gemeten op zaterdag 10 oktober: 183 events tot 27 oktober, waaronder alle 86
