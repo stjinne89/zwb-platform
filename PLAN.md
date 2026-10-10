@@ -135,10 +135,30 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 > De gegevens van een race blijven dus uit de Zwift-eventlink komen (route,
 > ronden en starttijd per subgroep, zie de rondes van 2026-09-28 en 2026-10-06).
 >
-> **Bewust niet gebouwd.** Het Zwift-event van een ZRL-teamrace automatisch
-> zoeken, bijvoorbeeld in de Zwift-eventspiegel op datum en divisie, zodat ook
-> de Zwift-link niet meer geplakt hoeft te worden. Dat is een ander voorstel dan
-> de vraag; eerst voorgelegd aan de eigenaar. Ook niet: WTRL uitlezen met een
+> **Onderzocht, nog niet gebouwd: het Zwift-event van een ZRL-teamrace
+> automatisch vinden** (op verzoek van de eigenaar, zelfde dag). Het kan, zonder
+> login en zonder WTRL:
+> - `GET /api/public/events/upcoming?limit=200&tags=wtrl` op de host die het
+>   platform al gebruikt. Het is het verzoek achter zwift.com/events/tag/wtrl.
+>   Gemeten op zaterdag 10 oktober: 183 events tot 27 oktober, waaronder alle 86
+>   ZRL-events van dinsdag 13 en woensdag 14 oktober. Zonder `tags` geeft dezelfde
+>   lijst alleen de eerstvolgende uren (zie de kalender-spike); mét de tag past
+>   alles ruim binnen de 200.
+> - De naam draagt league en divisie: "Zwift Racing League 26/27: Fast & Fresh :
+>   Open Dev Aqua League Division 3 - Race 3". Per subgroep (A–D) staan
+>   starttijd, route en ronden erin.
+> - `wtrl_teams.division` (geplakt op `/beheer/wtrl-teams`) heeft dezelfde
+>   gegevens in een andere volgorde: "Open Aqua Dev League Division B3" is
+>   Zwifts "Open Dev Aqua League Division 3", subgroep B; "Womens Mint League
+>   Division B1" is "Women's Mint League Division 1", subgroep B. Voor de vier
+>   teams waarvan de divisie bekend is (B1, B2, B Dev, Zwiftladies) bestaat het
+>   event met die subgroep.
+> - **Voorbehoud.** De divisies op `/beheer/wtrl-teams` klopten op 25 september
+>   niet voor B1 en B2; een verkeerde divisie geeft een verkeerd event, en dat
+>   is alleen te zien aan een subgroep die ontbreekt. Niet gemeten: hoeveel dagen
+>   voor de race WTRL de events publiceert (drie dagen ervoor stonden ze er).
+>
+> **Bewust niet gebouwd.** WTRL uitlezen met een
 > ingelogde sessie vanaf de server, om dezelfde reden als bij de uitslagen
 > (docs/live-zrl-dashboard.md). Geen logo van ZwifterBikes in `public/logos/`;
 > de chip heeft een fietsicoon.
