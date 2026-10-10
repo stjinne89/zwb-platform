@@ -36,6 +36,7 @@ import { SrcPanel } from "./_components/src-panel";
 import { setSrcAvailability } from "../../src/_actions";
 import { srcMonthKey } from "@/lib/src/month";
 import { subEventLabel } from "@/lib/events/sub-events";
+import { zwifterBikesLinks } from "@/lib/events/zwifterbikes";
 import { loadZrlTeamResults, type ZrlTeamResult } from "@/lib/zrl-live/team-result";
 import { isPoiType, type EventPoi } from "./_components/poi";
 import type { EventZone } from "./_components/zone";
@@ -310,7 +311,11 @@ export default async function EventDetailPage({
         teamId: row.team_id,
         isMine: Boolean(row.team_id && myTeamIds.has(row.team_id)),
         hasRoute: hasOwnRoute(row),
-        zwiftLinks: derivedZwiftLinks(row.zwift_event_id),
+        // Zonder eigen route rijdt een teamrace die van zijn raceweek.
+        zwiftLinks: [
+          ...derivedZwiftLinks(row.zwift_event_id),
+          ...zwifterBikesLinks(hasOwnRoute(row) ? row.zwift_route_id : event.zwift_route_id),
+        ],
       };
     })
     .sort((a, b) => (isFrr || isSrc ? 0 : Number(b.isMine) - Number(a.isMine)));
@@ -1244,7 +1249,10 @@ export default async function EventDetailPage({
         liveHref={event.type === "zrl" && event.team_id && event.zwift_event_id ? `/live/zrl/${event.id}` : null}
         racepasses={ownRacepasses}
         signupUrl={event.type === "zrl" ? null : zwiftSignupUrl}
-        zwiftLinks={derivedZwiftLinks(event.zwift_event_id)}
+        zwiftLinks={[
+          ...derivedZwiftLinks(event.zwift_event_id),
+          ...zwifterBikesLinks(routeEvent.zwift_route_id),
+        ]}
         links={raceLinks}
       />
 

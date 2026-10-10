@@ -91,6 +91,66 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 
 ---
 
+> **ZwifterBikes-link bij een race, en onderzoek naar de WTRL-racepass als bron, 2026-10-10 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Twee vragen van de eigenaar: kan alle raceinformatie van een
+> ZRL-race uit de racepass komen, zodat alleen de passes nog ingevuld hoeven te
+> worden, en kan er bij de Zwift-links een link naar zwifterbikes.web.app staan
+> met de gegevens van het lid en het parcours van het event.
+>
+> **Nu.** Een event met een Zwift-route krijgt bij de Zwift-links de chip
+> **ZwifterBikes**, naar `zwifterbikes.web.app/route/<naam>`
+> (`src/lib/events/zwifterbikes.ts`). Op de race zelf is dat de route van het
+> event of van zijn raceweek; op de raceweek heeft elk team de chip van zijn
+> eigen route, dus A/B en C/D verschillen als hun routes verschillen. De chip
+> hangt aan `zwift_route_id` en staat er dus ook zonder gekoppeld Zwift-event.
+> ZwifterBikes noemt 36 routes anders dan `zwift-data`; die staan in een tabel
+> in dat bestand, vergeleken op naam en wereld met `assets/routes.json` van de
+> site. 289 van de 292 fietsroutes hebben er een pagina; de twee Climb
+> Portal-routes en de Bologna-tijdrit niet, daar staat geen chip. `/hulp` noemt
+> de link.
+>
+> **Kan niet: de gegevens van het lid in de link.** Nagelezen in de code van
+> ZwifterBikes (Angular-bundel van 10 oktober): de routepagina kent alleen
+> `/route/:name` en leest vermogen, FTP, gewicht, lengte en het aantal ronden
+> uit de localStorage van de bezoeker (`zbb_power`, `zbb_weight_kg`,
+> `zbb_height`, `zbb_lapvalue`). Een andere site kan die niet zetten. Alleen
+> `/whatif/:data` neemt vermogen, gewicht en lengte uit de URL, maar dat is de
+> vergelijking van twee fietsen over stijgingspercentages, zonder route. Een lid
+> vult zijn gegevens dus één keer op ZwifterBikes in; het aantal ronden ook.
+>
+> **Kan niet: raceinformatie uit de racepass.** Gemeten in de ingelogde
+> WTRL-sessie van de eigenaar, met de pass van B1:
+> - Zonder WTRL-login stuurt de pass door naar `/login/`. De server van het
+>   platform kan hem dus niet lezen.
+> - Met login is de pass alleen een doorverwijzing, geen pagina met gegevens.
+>   Vier dagen na de race van 6 oktober en drie dagen voor die van 13 oktober
+>   kwam hij terug op `/zrl/myteams/` met "Your Event is not available to join
+>   yet". Er staat geen route, starttijd of Zwift-event-id in.
+> - De pass geldt voor een hele ronde, dus hij wijst hooguit naar de
+>   eerstvolgende race en pas zodra WTRL die openzet. Niet gemeten: waar hij
+>   binnen dat venster precies naartoe gaat.
+>
+> De gegevens van een race blijven dus uit de Zwift-eventlink komen (route,
+> ronden en starttijd per subgroep, zie de rondes van 2026-09-28 en 2026-10-06).
+>
+> **Bewust niet gebouwd.** Het Zwift-event van een ZRL-teamrace automatisch
+> zoeken, bijvoorbeeld in de Zwift-eventspiegel op datum en divisie, zodat ook
+> de Zwift-link niet meer geplakt hoeft te worden. Dat is een ander voorstel dan
+> de vraag; eerst voorgelegd aan de eigenaar. Ook niet: WTRL uitlezen met een
+> ingelogde sessie vanaf de server, om dezelfde reden als bij de uitslagen
+> (docs/live-zrl-dashboard.md). Geen logo van ZwifterBikes in `public/logos/`;
+> de chip heeft een fietsicoon.
+>
+> **Getest.** `tsc`, ESLint en `tests/unit/race-links.test.ts` (16 cases, drie
+> nieuw). In de browser op ZwifterBikes zelf: `/route/hilly-route-reverse` en
+> `/route/urumaze` openen de goede route; een onbekende naam geeft een lege
+> routepagina, geen foutmelding. **Niet gezien:** de chip op een eventpagina van
+> het platform.
+
+---
+
 > **Programma's: events van verschillende soorten verbinden, 2026-10-09 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commits: `e44b0a5` en de commit die dit blok bijwerkt (events aanvinken bij
 > het koppelen). Migratie `0226_event_programs.sql`, toegepast op 2026-10-09

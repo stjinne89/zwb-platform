@@ -10,6 +10,8 @@ import {
   racepassFor,
 } from "@/lib/events/race-links";
 import { withParentRoute } from "@/lib/events/route-source";
+import { zwifterBikesLinks, zwifterBikesRouteUrl } from "@/lib/events/zwifterbikes";
+import { routes } from "zwift-data";
 
 describe("frrTourLinks", () => {
   it("geeft de FRR-pagina's en het Discord-kanaal, allemaal https", () => {
@@ -123,5 +125,29 @@ describe("racepass", () => {
     expect(racepassFor(passes, "b1", "2026-11-24")).toBe("https://wtrl.racing/r2");
     expect(racepassFor(passes, "b1", "2026-11-03")).toBeNull();
     expect(racepassFor(passes, null, "2026-09-22")).toBeNull();
+  });
+});
+
+describe("ZwifterBikes", () => {
+  it("linkt naar de routepagina, ook als ZwifterBikes de route anders noemt", () => {
+    expect(zwifterBikesRouteUrl("makuri-40")).toBe("https://zwifterbikes.web.app/route/makuri-40");
+    expect(zwifterBikesRouteUrl("hilly-route-rev")).toBe(
+      "https://zwifterbikes.web.app/route/hilly-route-reverse",
+    );
+    expect(zwifterBikesRouteUrl("4092230492")).toBe("https://zwifterbikes.web.app/route/urumaze");
+  });
+
+  it("geeft niets zonder route of voor een route die ZwifterBikes niet heeft", () => {
+    expect(zwifterBikesRouteUrl(null)).toBeNull();
+    expect(zwifterBikesRouteUrl("time-trial")).toBeNull();
+    expect(zwifterBikesLinks(null)).toEqual([]);
+    expect(zwifterBikesLinks(1)).toEqual([]);
+  });
+
+  it("zoekt de route van het event op", () => {
+    const route = routes.find((item) => item.slug === "makuri-40")!;
+    expect(zwifterBikesLinks(String(route.id))).toMatchObject([
+      { kind: "zwifterbikes", label: "ZwifterBikes", url: "https://zwifterbikes.web.app/route/makuri-40" },
+    ]);
   });
 });

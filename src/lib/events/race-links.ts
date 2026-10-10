@@ -24,11 +24,11 @@ export type EventLinkRow = {
 /** Een eigen icoon voor een link zonder herkenbaar sitelogo. */
 export type RaceLinkIcon =
   | { image: string }
-  | { glyph: "stage" | "team" | "signups" | "rules" };
+  | { glyph: "stage" | "team" | "signups" | "rules" | "bike" };
 
 export type RaceLink = {
   key: string;
-  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "racepass" | "frr";
+  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "zwifterbikes" | "racepass" | "frr";
   label: string;
   url: string;
   icon?: RaceLinkIcon;

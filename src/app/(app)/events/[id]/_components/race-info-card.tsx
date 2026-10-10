@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  Bike,
   BookOpen,
   ClipboardList,
   Flag,
@@ -18,6 +19,7 @@ const GLYPHS: Record<Extract<RaceLinkIcon, { glyph: string }>["glyph"], LucideIc
   team: Users,
   signups: ClipboardList,
   rules: BookOpen,
+  bike: Bike,
 };
 
 function LinkLogo({
