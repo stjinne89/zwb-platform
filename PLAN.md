@@ -87,9 +87,56 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0228`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`.
 
 ---
+
+> **Lange ritten: cadans, golvend en alles kan, 2026-10-11 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0228_workout_library_long_rides_cadence.sql` (**nog toepassen**, na `0227`).
+>
+> **Waarom.** De eigenaar wilde meer ritten van 180 minuten en langer, en noemde
+> cadansblokken (hoog en laag) en een training die alle zones aanraakt.
+>
+> **Onderzoek.** Aangevuld in [variatie in lange ritten](docs/lange-ritten-variatie.md),
+> punt 8 tot 10. Voor lage cadans is geen sterk bewijs (Hansen & Rønnestad
+> 2017); als het iets doet, dan op hoog vermogen. Hoge cadans verschuift de
+> voorkeurscadans, niet de prestatie (Whitty 2016). "Alles kan" en "golvend"
+> hebben geen eigen studie. Deze ronde is dus variatie op verzoek, niet
+> bewezen trainingswinst; het document zegt dat per rit.
+>
+> **Wat er is.** Vijf standaardworkouts in de vorm `duur`:
+> - **Duur 180 kracht**: 6 x 5 minuten op 90-97% bij 55-65 toeren.
+> - **Duur 180 souplesse**: 6 x 5 minuten op 71-80% bij 105-115 toeren.
+> - **Duur 195 cadanswissel**: vier keer 5 minuten laag (81-86%) en 5 hoog
+>   (71-80%).
+> - **Duur 180 golvend**: elke tien minuten een minuut op 105-115%, twaalf keer.
+> - **Duur 210 alles kan**: twee sprints van 10 seconden, 2 x 1 anaeroob,
+>   2 x 3 VO2max, 8 drempel, 12 sweet spot, 15 tempo en 20 intensieve duur.
+>
+> Cadans staat in de notitie van het blok, zoals bij "Kracht 6x2 laag
+> toerental". Geen wijziging in code.
+>
+> **Niet meer waar.** De ronde hieronder noemde blokken op lage cadans als
+> bewust niet gebouwd; dat is daar rechtgezet.
+>
+> **Bewust niet gebouwd.**
+> - Geen cadansveld op een blok: dat raakt `WorkoutBlock`, de editor, de export
+>   naar intervals.icu en het teruglezen. Gevolg: Zwift en de fietscomputer
+>   tonen de cadans niet.
+> - Niets op 40 toeren: de enige proef daarmee vond geen winst.
+>
+> **Bekend.** `resizeBlocks` laat blokken met intensiteit `endurance` of
+> `recovery` meegeven. Zet een trainer een van deze ritten op een andere duur,
+> dan rekken ook de souplesseblokken en het herstel na een sprint mee.
+>
+> **Verificatie.** `tsc --noEmit`, ESLint op het nieuwe bestand en de
+> unit-suite (op `omnium-live.test.ts` na, zie hieronder). Nieuw:
+> `workout-library-long-rides-cadence-migration.test.ts` (`0228` tegen PGlite,
+> bovenop `0227`). **Niet geverifieerd:** `0228` op de echte database, en hoe
+> de ritten zich in intervals.icu, Zwift en ERG gedragen (een minuut op
+> 105-115% elke tien minuten, en lage cadans in ERG). Van de nieuwe studies is
+> alleen de samenvatting gelezen.
 
 > **Lange ritten met variatie in de workoutbibliotheek, 2026-10-11 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Migratie `0227_workout_library_long_rides.sql`
@@ -124,8 +171,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0228`
 > vorm, de burst en de blokken bestonden al.
 >
 > **Bewust niet gebouwd.**
-> - Geen blokken op lage cadans: twaalf weken op 40 toeren gaf bij getrainde
->   veteranen geen winst (Kristoffersen 2014).
+> - Blokken op lage cadans stonden hier als niet gebouwd; ze zijn er in de
+>   ronde hierboven op verzoek van de eigenaar alsnog bij gekomen.
 > - Geen nuchtere of glycogeenarme ritten: dat is voeding, geen workoutblok.
 > - Geen ritten boven vier uur.
 > - Geen eigen vorm "lange rit" (check op `form`) en geen filter op duur in de

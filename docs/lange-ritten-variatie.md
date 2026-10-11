@@ -1,15 +1,16 @@
 # Variatie in lange ritten
 
-Onderzoek van 2026-10-11, bij de zes lange duurritten in de workoutbibliotheek
-(migratie `0227_workout_library_long_rides.sql`).
+Onderzoek van 2026-10-11, bij de elf lange duurritten in de workoutbibliotheek
+(migraties `0227_workout_library_long_rides.sql` en
+`0228_workout_library_long_rides_cadence.sql`).
 
 De literatuur is hier dunner dan bij intervaltraining. Er is veel
 **beschrijvend** onderzoek (wie blijft er na uren nog hard rijden) en weinig
 **interventies** (welke lange rit maakt je daar beter in). Per workout staat
 hieronder wat gemeten is en wat onze afleiding is.
 
-Van de twee studies van Almquist en van Matomäki is de volledige tekst gelezen.
-Van de overige alleen de samenvatting. Het proefschrift van Gallo was niet te
+Van de twee studies van Almquist is de volledige tekst gelezen. Van de overige
+alleen de samenvatting. Het proefschrift van Gallo was niet te
 openen; wat hier staat komt uit de samenvatting van een zoekmachine.
 
 ## Wat de studies zeggen
@@ -60,11 +61,28 @@ openen; wat hier staat komt uit de samenvatting van een zoekmachine.
    het sprintvermogen op peil (+4% tegen -4%); het verschil op een test van 20
    minuten was niet significant, en er was geen extra mentale belasting.
    [Almquist e.a. 2020](https://www.frontiersin.org/articles/10.3389/fphys.2020.01000/full)
-8. **Lage cadans: geen bewijs.** Twaalf weken blokken op 40 toeren gaf bij
-   getrainde veteranen geen winst; de groep op vrije cadans deed het op enkele
-   punten beter. De ene studie die wel winst vond, combineerde lage cadans met
-   sprongen.
+8. **Lage cadans: geen sterk bewijs, en als het werkt dan op hoog vermogen.**
+   Een overzicht van zeven studies vond geen sterk bewijs voor winst; de
+   schrijvers raden hooguit blokken op matige tot maximale intensiteit aan.
+   [Hansen & Rønnestad 2017](https://pubmed.ncbi.nlm.nih.gov/28095074/)
+   Twaalf weken blokken op 40 toeren op matige intensiteit gaf bij getrainde
+   veteranen geen winst; de groep op vrije cadans deed het op enkele punten
+   beter.
    [Kristoffersen e.a. 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3907705/)
+   Vier weken 6 x 5 minuten op 60 toeren, bergop, op het vermogen van het
+   tweede omslagpunt gaf 4,4% meer vermogen in een klimtijdrit van 20 minuten,
+   maar de controlegroep zonder intervallen won 4,0%. Zes renners per groep.
+   [Nimmerichter e.a. 2012](https://pubmed.ncbi.nlm.nih.gov/21479957/)
+9. **Hoge cadans verschuift je voorkeur, niet je prestatie.** Zes weken
+   intervallen 20% boven de eigen cadans bracht die van 92 naar 101 toeren en
+   gaf een kleine winst in rendement. De groep op 20% eronder verbeterde meer
+   op een tijdrit van 15 minuten. Zestien renners.
+   [Whitty e.a. 2016](https://pubmed.ncbi.nlm.nih.gov/27175601/)
+10. **Wisselend vermogen is zwaarder dan zijn gemiddelde.** Bij gelijk
+    gemiddeld vermogen gaf wisselend rijden bij eliterenners een hogere
+    zuurstofopname, hartslag en lactaat dan constant rijden. Het is een meting
+    van één rit, geen trainingsstudie.
+    [Kolsung e.a. 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7481374/)
 
 ## Wat we eruit afleiden
 
@@ -76,8 +94,14 @@ openen; wat hier staat komt uit de samenvatting van een zoekmachine.
   rustige uren zelf doen ertoe (punt 3). De aanloop blijft dus op 60-70%.
 - **Hooguit één zo'n rit per week.** Het bewijs dat hard werk aan het eind beter
   werkt dan los is dun (punt 5); het kost wel meer herstel.
+- **Cadansblokken zijn variatie, geen bewezen trainingsvorm.** Ze zijn op
+  verzoek van de eigenaar opgenomen. Lage cadans staat op drempel en tempo,
+  omdat punt 8 op matige intensiteit niets vond. Hoge cadans staat op
+  intensieve duur: het doel is souplesse, niet vermogen.
+- **"Alles kan" en "golvend" hebben geen eigen studie.** Punt 10 zegt alleen
+  dat zo'n rit zwaarder is dan zijn gemiddelde vermogen doet vermoeden.
 
-## De zes ritten
+## De elf ritten
 
 Doelen in %FTP. Allemaal vorm `duur`.
 
@@ -90,12 +114,21 @@ Doelen in %FTP. Allemaal vorm `duur`.
 | Duur 180 fris en moe | 180 | 15 in · 2 x 8 @93-100 · 110 @60-70 · 2 x 8 @93-100 · 15 uit | De meting uit punt 2 als training: vergelijk het vermogen van de tweede set met de eerste. Dat dit durability verbetert is coachpraktijk, geen gemeten effect. |
 | Duur 210 drempel aan het eind | 210 | 15 in · 150 @60-70 · 3 x 8 @93-100 met 4 los · 13 uit | Punt 5: intervallen na 2,5 uur rustig rijden. De vorm van de intervallen bij Gallo kennen we niet; 3 x 8 is onze keuze. |
 
+| Duur 180 kracht | 180 | 15 in · 45 duur · 6 x 5 @90-97 op 55-65 toeren met 5 los · 50 duur · 15 uit | Punt 8, de opzet van Nimmerichter (6 x 5 op 60 toeren rond de drempel). Dun bewijs. |
+| Duur 180 souplesse | 180 | 15 in · 30 duur · 6 x 5 @71-80 op 105-115 toeren met 5 duur · 65 duur · 15 uit | Punt 9: ongeveer 20% boven een gewone cadans. Verwacht een hogere voorkeurscadans, geen sneller eindresultaat. |
+| Duur 195 cadanswissel | 195 | 15 in · 40 duur · 4 x (5 @81-86 op 55-65 toeren + 5 @71-80 op 105-115 toeren) met 5 duur · 70 duur · 15 uit | Afleiding uit punt 8 en 9; de wissel zelf is niet onderzocht. |
+| Duur 180 golvend | 180 | 15 in · 12 x (9 duur + 1 @105-115) · 30 duur · 15 uit | Punt 10. Lijkt op een groepsrit of koers; geen trainingsstudie. |
+| Duur 210 alles kan | 210 | 15 in · 2 sprints van 10 s · 2 x 1 @125-140 · 2 x 3 @108-115 · 8 @93-100 · 12 @87-89 · 15 @81-86 · 20 @71-80 · 15 uit, met duur ertussen | Geen studie. Van kort en hard naar lang en rustiger, zodat de sprints fris worden gereden. |
+
 In een schema kleuren en heten ze naar hun kernwerk: de ritten met drempel
-"Drempel", die met tempo "Tempo", de oplopende "Intensieve duur".
+"Drempel", die met tempo "Tempo", de oplopende en souplesse "Intensieve duur",
+golvend en alles kan "VO2max".
+
+Cadans staat in de notitie van een blok. Een blok heeft er geen veld voor, dus
+intervals.icu, Zwift en de fietscomputer tonen hem niet als doel.
 
 ## Niet opgenomen
 
-- **Blokken op lage cadans** (punt 8).
 - **Nuchter of met lege glycogeenvoorraad rijden.** Hoort bij voeding, niet in
   een workoutblok; zie [voeding](voeding-wielrennen.md).
 - **Ritten boven vier uur.** Zonder bewijs dat ze iets toevoegen wat 240
