@@ -87,9 +87,62 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0228`.
 
 ---
+
+> **Lange ritten met variatie in de workoutbibliotheek, 2026-10-11 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Migratie `0227_workout_library_long_rides.sql`
+> (**nog toepassen**; alleen de standaardbibliotheek, los van de deploy).
+>
+> **Waarom.** De eigenaar wilde meer variatie in langere ritten, met
+> onderbouwing. De vorm `duur` had vijf workouts, waarvan één met afwisseling
+> ("Duur met tempoblokken"), en stopte bij 180 minuten.
+>
+> **Onderzoek.** Staat in [variatie in lange ritten](docs/lange-ritten-variatie.md).
+> Conclusie: dat vermogen na uren rijden ("durability") wedstrijden beslist is
+> goed gemeten; welke lange rit je daarin beter maakt nauwelijks. Sprints van 30
+> seconden in een rustige rit zijn in twee proeven getest (Almquist 2020, 2021).
+> Hard werk aan het eind van een lange rit steunt op één proef uit een
+> proefschrift (Gallo 2024), met gemengde uitkomst. De rest is afleiding, en
+> staat per workout zo benoemd.
+>
+> **Wat er is.** Zes standaardworkouts in de vorm `duur`, `intensity`
+> `endurance`:
+> - **Duur 240**: vier uur rustig.
+> - **Duur 180 met sprints**: drie series van 3 x 30 seconden voluit met 4,5
+>   minuut los, één serie per uur. Een sprint is een blok van 5 minuten met
+>   `burstSeconds` 30, het maximum dat een burst mag zijn.
+> - **Duur 150 tempo aan het eind**: 2 x 20 minuten tempo in het laatste uur.
+> - **Duur 180 oplopend**: 60-65%, 66-70% en de laatste 40 minuten 71-80%.
+> - **Duur 180 fris en moe**: 2 x 8 minuten drempel aan het begin en nog eens na
+>   2 uur en 25 minuten, om te vergelijken.
+> - **Duur 210 drempel aan het eind**: 3 x 8 minuten drempel na 2,5 uur rustig.
+>
+> In een schema kleuren en heten ze naar hun kernwerk (`plannedWorkoutIntensity`):
+> Drempel, Tempo, Intensieve duur of Rustige duur. Geen wijziging in code: de
+> vorm, de burst en de blokken bestonden al.
+>
+> **Bewust niet gebouwd.**
+> - Geen blokken op lage cadans: twaalf weken op 40 toeren gaf bij getrainde
+>   veteranen geen winst (Kristoffersen 2014).
+> - Geen nuchtere of glycogeenarme ritten: dat is voeding, geen workoutblok.
+> - Geen ritten boven vier uur.
+> - Geen eigen vorm "lange rit" (check op `form`) en geen filter op duur in de
+>   bibliotheek: de vorm sorteert al op lengte.
+> - De AI-prompt is niet aangepast; de AI plant deze ritten niet uit zichzelf.
+>   Een trainer zet ze in een schema.
+> - Geen tekst op `/hulp`: de bibliotheek is alleen voor trainers.
+>
+> **Verificatie.** `tsc --noEmit`, ESLint op het nieuwe bestand en de
+> unit-suite (2.051 tests groen; `omnium-live.test.ts` vraagt een `.env.local`,
+> die deze worktree niet heeft). Nieuw: `workout-library-long-rides-migration.test.ts` (`0227`
+> tegen PGlite, bovenop `0106`, `0107`, `0133`, `0194` en `0221`: duur is de som
+> van de blokken, de rest van de bibliotheek blijft gelijk, opnieuw draaien
+> verandert niets). **Niet geverifieerd:** `0227` op de echte database, en hoe
+> een sprint van 30 seconden op 150-200% FTP zich in intervals.icu, Zwift en ERG
+> gedraagt. Van de meeste studies is alleen de samenvatting gelezen; het
+> proefschrift van Gallo was niet te openen.
 
 > **FRR-klassement: de sync haalde de tabel van FRR niet meer binnen, 2026-10-11 — gebouwd, lokaal getest en tegen FRR gemeten, niet op productie gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
