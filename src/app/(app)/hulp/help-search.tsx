@@ -116,10 +116,10 @@ const HELP_INDEX: HelpResult[] = [
     terms: "tijd per zone zones gereden gemeten minuten zonedata geen zonedata intervals garmin wahoo strava vermogen",
   },
   {
-    title: "Watt of W/kg",
-    text: "Vermogen in watt of per kilo tonen in de trainingsruimte.",
+    title: "Watt, W/kg of % FTP",
+    text: "Vermogen in watt, per kilo of als percentage van je FTP tonen in de trainingsruimte.",
     href: "/hulp#watt-wkg",
-    terms: "w/kg wkg watt per kilo gewicht vermogen eenheid schakelaar ftp doel",
+    terms: "w/kg wkg watt per kilo gewicht vermogen eenheid schakelaar ftp doel procent percentage %ftp weergave",
   },
   {
     title: "Kleuren van de blokken",

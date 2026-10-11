@@ -5,6 +5,7 @@ import { parsePowerUnit, POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
 
 // Watt of W/kg, dezelfde keuze (cookie) als bij ZWBeter Worden. De teamtabellen
 // hebben per renner zowel watt als W/kg, dus geen gewicht nodig in de provider.
+// De stand % FTP van ZWBeter Worden bestaat hier niet en telt als watt.
 export default async function TeamsLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   return (

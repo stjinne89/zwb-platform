@@ -26,12 +26,14 @@ export default async function ZwbeterWordenLayout({
 
   // Geslacht bepaalt of het logboek in de tabbalk staat; zie onlyForSex in
   // nav-config.
-  // Het gewicht is de basis voor W/kg op alle trainingspagina's.
+  // Het gewicht is de basis voor W/kg op alle trainingspagina's, de FTP voor het
+  // omrekenen van bloksdoelen tussen watt en % FTP.
   const [access, { data: profile }] = await Promise.all([
     getRequestAccess(),
-    supabase.from("profiles").select("sex, weight_kg").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("sex, weight_kg, ftp_watts").eq("id", user.id).maybeSingle(),
   ]);
   const weightKg = profile?.weight_kg == null ? null : Number(profile.weight_kg);
+  const ftpWatts = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
 
   const sections = filterNavForPermissions(
     ZWBETER_WORDEN_SECTIONS,
@@ -43,6 +45,7 @@ export default async function ZwbeterWordenLayout({
     <PowerUnitProvider
       initialUnit={parsePowerUnit(cookieStore.get(POWER_UNIT_COOKIE)?.value)}
       weightKg={weightKg}
+      ftpWatts={ftpWatts}
     >
       <div className="space-y-6">
         <PageHeader
@@ -50,7 +53,7 @@ export default async function ZwbeterWordenLayout({
           title="ZWBeter Worden"
           actions={
             <div className="flex items-center gap-3">
-              <PowerUnitToggle />
+              <PowerUnitToggle percent />
               <HelpLink href="/hulp#trainingsruimte" />
             </div>
           }

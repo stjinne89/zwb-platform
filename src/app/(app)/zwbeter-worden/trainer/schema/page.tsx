@@ -153,8 +153,12 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   );
 
   return (
-    // W/kg op deze pagina rekent met het gewicht van het lid, niet van de trainer.
-    <PowerWeight weightKg={athlete?.weight_kg == null ? null : Number(athlete.weight_kg)}>
+    // W/kg en % FTP op deze pagina rekenen met het gewicht en de FTP van het lid,
+    // niet van de trainer.
+    <PowerWeight
+      weightKg={athlete?.weight_kg == null ? null : Number(athlete.weight_kg)}
+      ftpWatts={athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts)}
+    >
       <div className="space-y-4">
         {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 

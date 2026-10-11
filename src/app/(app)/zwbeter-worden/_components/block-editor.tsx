@@ -175,7 +175,7 @@ export function BlockEditor({
                 className="size-2 rounded-full"
                 style={{ backgroundColor: blockColor(block, ftpWatts ?? null) }}
               />
-              {block.label || "Blok"} {block.durationMinutes}m <PowerText text={block.target} />
+              {block.label || "Blok"} {block.durationMinutes}m <PowerText text={block.target} ftpWatts={ftpWatts} />
               {block.burstSeconds ? <span>{block.burstSeconds}s burst</span> : null}
               {group.indexes.length > 1 ? (
                 <span className="font-medium tabular-nums">×{group.indexes.length}</span>

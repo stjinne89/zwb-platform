@@ -72,7 +72,7 @@ export function ReviewQueue({ items }: { items: ReviewQueueItem[] }) {
                 </p>
               </div>
 
-              <PowerWeight weightKg={item.weightKg}>
+              <PowerWeight weightKg={item.weightKg} ftpWatts={item.ftpWatts}>
                 <WorkoutBlocks blocks={item.blocks} ftpWatts={item.ftpWatts} />
                 <WorkoutMetricsPanel metrics={metrics} blocks={item.blocks} ftpWatts={item.ftpWatts} />
               </PowerWeight>

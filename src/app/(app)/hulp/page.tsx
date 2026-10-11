@@ -1730,18 +1730,21 @@ Fitness-status: Verbeterend`}
             id="watt-wkg"
             className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
           >
-            <h3 className="text-sm font-semibold">Watt of W/kg</h3>
+            <h3 className="text-sm font-semibold">Watt, W/kg of % FTP</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Met de knop Watt / W/kg bovenaan ZWBeter Worden kies je hoe
+              Met de knop Watt / W/kg / % FTP bovenaan ZWBeter Worden kies je hoe
               vermogen overal in de trainingsruimte staat: je FTP, de
               testuitslagen, de doelen in de blokken en het vermogen van gereden
               trainingen. De keuze geldt op dit apparaat. W/kg rekent met het
               gewicht uit je profiel; staat daar niets, dan blijft het watt. Een
               training die je vanaf september 2026 afrondt, onthoudt je gewicht
               van die dag; oudere trainingen en testuitslagen rekenen met je
-              huidige gewicht. Een doel in procenten van je FTP blijft een
-              percentage. Bekijkt je trainer jouw schema, dan rekent die met
-              jouw gewicht.
+              huidige gewicht. De doelen in de blokken rekenen we om met de FTP
+              uit je profiel, welke vorm de training zelf ook gebruikt; staat
+              daar geen FTP, dan zie je het doel zoals het is opgeschreven.
+              % FTP geldt alleen voor die doelen: je FTP, testuitslagen en
+              gereden vermogen staan dan in watt. Bekijkt je trainer jouw
+              schema, dan rekent die met jouw gewicht en FTP.
             </p>
           </article>
 

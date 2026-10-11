@@ -110,7 +110,7 @@ export function WorkoutBlocks({
             key={`${block.label}-label-${idx}`}
             className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
           >
-            {block.label} {block.durationMinutes}m <PowerText text={block.target} />
+            {block.label} {block.durationMinutes}m <PowerText text={block.target} ftpWatts={ftpWatts} />
             {block.burstSeconds ? ` · ${block.burstSeconds}s burst` : null}
           </span>
         ))}

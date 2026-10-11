@@ -227,7 +227,7 @@ export function WorkoutMetricsPanel({
             label="Target"
             value={
               metrics.targetSummary ? (
-                <PowerText text={metrics.targetSummary} weightKg={metrics.weightKg} />
+                <PowerText text={metrics.targetSummary} weightKg={metrics.weightKg} ftpWatts={ftpWatts} />
               ) : (
                 "-"
               )

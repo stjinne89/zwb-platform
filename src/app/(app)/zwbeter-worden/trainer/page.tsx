@@ -127,7 +127,10 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
   );
 
   return (
-    <PowerWeight weightKg={athlete?.weight_kg == null ? null : Number(athlete.weight_kg)}>
+    <PowerWeight
+      weightKg={athlete?.weight_kg == null ? null : Number(athlete.weight_kg)}
+      ftpWatts={athleteFtp}
+    >
       <div className="space-y-4">
         <AthleteLoadPanel
           loadPoints={toTrainingLoadPoints(intervals.wellness)}

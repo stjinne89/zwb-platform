@@ -191,6 +191,48 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > gedraagt. Van de meeste studies is alleen de samenvatting gelezen; het
 > proefschrift van Gallo was niet te openen.
 
+> **Bloksdoelen in watt, W/kg of % FTP, 2026-10-11 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar bij een rustige duurrit van 10 oktober: de
+> blokchips toonden "45-60% FTP", terwijl daar eerder watt of W/kg stond.
+>
+> **Wat er aan de hand was.** Een bloksdoel is vrije tekst van de AI. De prompt
+> vraagt om wattages ("RPE 6, 162-178w"), maar dwingt dat niet af, en de
+> schakelaar rekende alleen wattages om: een percentage bleef bewust een
+> percentage (ronde van 2026-09-14). Schrijft de AI een doel in % FTP, dan had
+> de schakelaar er dus geen vat op. Vermoedelijk gebeurt dat vaker sinds
+> `c989c12` (2026-09-28), dat de trainingsvormen en de zoneband per intensity in
+> % FTP in de prompt zette; "65-70%" bij rustige duur staat letterlijk in die
+> regels. **Niet gemeten:** hoe vaak de AI voor en na die datum percentages
+> schreef; daarvoor is de productiedata niet bekeken.
+>
+> **Wat er nu is.** De weergave volgt de keuze, niet de tekst.
+> `convertPowerText` (`src/lib/training/power-unit.ts`) rekent via de FTP in
+> beide richtingen: "65-70% FTP" wordt "163-175 W" of "2,0-2,2 W/kg", en
+> "225-240w" wordt "90-96% FTP". De schakelaar bovenaan ZWBeter Worden heeft een
+> derde stand **% FTP** (cookie `zwb-power-unit` = `pct`). De FTP komt uit het
+> profiel via `PowerUnitProvider`; op de trainerpagina's zet `<PowerWeight>` de
+> FTP van het lid, net als het gewicht. Staat een doel al in de gevraagde vorm
+> ("162-178w, 81-89%"), dan blijft de andere vorm staan. Zonder bruikbare FTP
+> (50-600 W) of gewicht blijft de tekst zoals hij is. "250 watt" telt nu ook als
+> wattage, en "% HFmax" niet als vermogen. `/hulp#watt-wkg` is bijgewerkt.
+>
+> **Bewust niet gebouwd.** (1) % FTP voor losse vermogens (FTP, testuitslag, NP,
+> powercurve): de FTP is per definitie 100%; die blijven dan watt. (2) % FTP bij
+> de teams: de schakelaar daar heeft twee standen en leest `pct` als watt.
+> (3) De prompt aanscherpen of opgeslagen doelen herschrijven: de weergave lost
+> het op voor bestaande en nieuwe trainingen, en de export naar intervals.icu
+> las beide vormen al. (4) Omrekenen met de FTP van de dag van de training: de
+> chips rekenen met de huidige FTP, net als de kleur van de blokken.
+>
+> **Verificatie.** `tsc --noEmit` en eslint schoon; Vitest: 2049 tests geslaagd,
+> waaronder de nieuwe gevallen in `power-unit.test.ts`. *Niet geverifieerd:*
+> `omnium-live.test.ts` laadt niet en `npm run build` strandt bij het
+> prerenderen van `/omnium`, beide omdat deze worktree geen `.env.local` heeft;
+> de schakelaar en de chips zijn niet in de browser bekeken (geen ingelogde
+> sessie).
+
 > **FRR-klassement: de sync haalde de tabel van FRR niet meer binnen, 2026-10-11 — gebouwd, lokaal getest en tegen FRR gemeten, niet op productie gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -9341,8 +9383,9 @@ workoutdoelen en gereden trainingen.
 **Wat er is gekomen.**
 - `src/lib/training/power-unit.ts` (puur): `formatPower` ("265 W" / "3,19 W/kg")
   en `convertPowerText`, dat alleen wattages in een doeltekst omrekent
-  ("225-240w" → "2,8-3,0 W/kg"). Percentages van FTP blijven percentages: dat is
-  geen wattage. Zonder bruikbaar gewicht blijft het watt.
+  ("225-240w" → "2,8-3,0 W/kg"). Percentages van FTP bleven toen percentages;
+  sinds 2026-10-11 rekent de doeltekst ook via de FTP om en is er een stand
+  % FTP (zie die ronde). Zonder bruikbaar gewicht blijft het watt.
 - `src/components/power-unit.tsx`: `PowerUnitProvider` in de layout van
   ZWBeter Worden leest de cookie `zwb-power-unit` (per apparaat, geen migratie) en
   het eigen gewicht; `PowerUnitToggle` staat naast de hulplink en schrijft de
