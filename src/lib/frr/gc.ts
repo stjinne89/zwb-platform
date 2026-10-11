@@ -196,12 +196,15 @@ export function latestGcStage(
   return stages[stages.length - 1] ?? null;
 }
 
-const PAGE_SIZE = 500;
+// Eén verzoek kost bij FRR ruim vier seconden, hoeveel rijen er ook in zitten
+// (gemeten 2026-10-11: 500 rijen 4,3 s, alle 3136 rijen 4,2 s). In stukken van
+// 500 paste de tabel vanaf etappe 7 niet meer in het tijdbudget van de sync.
+const PAGE_SIZE = 5000;
 const MAX_ROWS = 20000;
 
 /**
  * Haalt de hele GC-tabel op: pagina ophalen voor de nonce, daarna in stukken
- * van 500 via admin-ajax. Vaste host; nooit een URL van buitenaf.
+ * van 5000 via admin-ajax. Vaste host; nooit een URL van buitenaf.
  */
 export async function fetchFrrGcRows(
   options: { deadline?: number } = {},

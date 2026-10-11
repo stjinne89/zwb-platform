@@ -91,6 +91,52 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0227`
 
 ---
 
+> **FRR-klassement: de sync haalde de tabel van FRR niet meer binnen, 2026-10-11 — gebouwd, lokaal getest en tegen FRR gemeten, niet op productie gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Melding van de eigenaar tijdens etappe 8 van Ignite: het
+> voorlopige klassement klopte niet, vermoedelijk telde een renner mee die niet
+> meer reed. Nagelopen met de GC-tabel van FRR en de productiedata, alleen
+> gelezen.
+>
+> **Wat er misging.** Het vermoeden klopte niet, en de rekenregels waren niet de
+> oorzaak. `frr_tours.gc_error` stond sinds 2026-10-10 01:01 op "tijd op voordat
+> de tabel binnen was" en `frr_gc_history` liep tot en met etappe 6 (298 van de
+> 329 rijen). Etappe 7 en 8 rekende ZWB daardoor zelf uit Zwift, zonder de
+> correcties van FRR. In M-BON reed een renner etappe 7 in startgroep C
+> (3877,0 s, slot 09:30). FRR zette zijn tijd op 4035,0 s en liet de snelste
+> van startgroep D de tijd zetten; bij ZWB zette hij de tijd, en verloren de
+> vier anderen van dat slot elk 154 s te veel. De eigenaar stond daardoor 2e
+> met de nummer één van FRR 43 s achter zich, in plaats van 3e.
+>
+> De oorzaak van de mislukte sync: één verzoek aan de tabel kost bij FRR ruim
+> vier seconden, ongeacht het aantal rijen (gemeten: 500 rijen 4,3 s, alle 3136
+> rijen 4,2 s). In stukken van 500 zijn dat nu zeven verzoeken, samen 30 s,
+> tegen een budget van 20 s.
+>
+> **Wat.** `fetchFrrGcRows` (`src/lib/frr/gc.ts`) haalt 5000 rijen per verzoek
+> op, dus de hele tabel in één keer: 5,6 s gemeten, pagina en nonce inbegrepen.
+> Met de verse tabel als bron en de finishtijden van productie komt M-BON na
+> etappe 8 lokaal uit op de volgorde en het verlies van FRR.
+>
+> **Bewust niet.**
+> - Een renner uit een andere startgroep de tijd niet laten zetten. FRR deed
+>   dat hier met een eigen tijdcorrectie (precies 158 s) waarvan de regel niet
+>   bekend is; in dezelfde etappe kreeg een andere renner uit startgroep C geen
+>   correctie. Zolang FRR een slot nog niet verwerkte, kan zo'n renner bij ZWB
+>   dus nog de tijd zetten. Het lid ziet "startgroep C" bij de renner en kan hem
+>   uit zijn eigen klassement halen.
+> - Het klassement een eigen gegarandeerde tijd geven in de sync, zoals de
+>   etappe-uitslagen. Met één verzoek is dat nu niet nodig; of de
+>   inschrijvingen op een drukke etappedag het budget alleen al opmaken, is niet
+>   gemeten.
+>
+> **Niet geverifieerd.** De sync op productie: de fix werkt pas na een deploy,
+> ook voor "Nu verversen" op `/beheer/frr-kalender`. Tot dan blijft het
+> klassement op de stand van etappe 6 rekenen.
+
+---
+
 > **ZRL-teamrace krijgt zijn Zwift-event vanzelf, 2026-10-10 — gebouwd, lokaal getest en tegen Zwift gemeten, niet op productie gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
