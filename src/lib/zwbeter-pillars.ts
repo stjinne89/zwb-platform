@@ -24,15 +24,13 @@ export const ZWBETER_PILLARS: Pillar[] = [
       "/zwbeter-worden/vermogen",
       "/zwbeter-worden/doelen",
       "/zwbeter-worden/logboek",
+      // De AI-coach hoort bij het eigen trainen; coachen is voor trainers.
+      "/zwbeter-worden/coach",
     ],
   },
   { id: "voeden", word: "voeden", hrefs: ["/zwbeter-worden/voeding"] },
   { id: "kracht", word: "kracht", hrefs: ["/zwbeter-worden/core"] },
-  {
-    id: "coachen",
-    word: "coachen",
-    hrefs: ["/zwbeter-worden/coach", "/zwbeter-worden/trainer"],
-  },
+  { id: "coachen", word: "coachen", hrefs: ["/zwbeter-worden/trainer"] },
 ];
 
 /** De pijler waar dit pad onder valt; alles wat niet past is trainen. */

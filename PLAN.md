@@ -244,8 +244,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > - *ZWBeter.* In dit design heet ZWBeter Worden "ZWBeter", met vier pijlers
 >   in plaats van elf tabs op één rij (`lib/zwbeter-pillars.ts`, getest):
 >   **trainen** (Vandaag, Schema, Jaarplan, Belasting, Vermogen, Doelen,
->   Logboek), **voeden** (Voeding), **kracht** (Core & mobiliteit) en
->   **coachen** (Coach, Trainer). De paginatitel noemt de pijler, de pijlers
+>   Logboek, Coach), **voeden** (Voeding), **kracht** (Core & mobiliteit) en
+>   **coachen** (Trainer; alleen zichtbaar voor trainers). De AI-coach staat op aanwijzing van de eigenaar onder trainen. De paginatitel noemt de pijler, de pijlers
 >   staan als tegels, en de onderdelen van de actieve pijler als tabs
 >   (`zwbeter-nav.tsx`). De kerncijfers (`MetricCard`, de fitness- en
 >   vormknop) zijn teal tegels. De indeling in pijlers en de woorden "coachen"
