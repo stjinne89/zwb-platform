@@ -193,10 +193,12 @@ function WorkoutDetail({
   item,
   ftpWatts,
   startPoints,
+  suggestions = true,
 }: {
   item: MemberCalendarItem;
   ftpWatts?: number | null;
   startPoints: StartPointOption[];
+  suggestions?: boolean;
 }) {
   if (item.ride) return <RideDetail item={{ ...item, ride: item.ride }} />;
 
@@ -287,20 +289,24 @@ function WorkoutDetail({
           ) : null}
           {/* Onderaan, want dit is een suggestie naast de training en niet de
               training zelf: eerst wát je rijdt, dan pas waar je het kunt rijden. */}
-          <ZwiftEventSuggestions
-            key={`zwift-${item.id}`}
-            workoutId={item.id}
-            matches={detail.zwift ?? []}
-            chosen={detail.zwiftChosen ?? null}
-          />
+          {suggestions ? (
+            <ZwiftEventSuggestions
+              key={`zwift-${item.id}`}
+              workoutId={item.id}
+              matches={detail.zwift ?? []}
+              chosen={detail.zwiftChosen ?? null}
+            />
+          ) : null}
           {/* Binnen en buiten naast elkaar: het weer bepaalt welke van de twee
               je die dag wilt, en dat kan het lid zelf het beste zien. */}
-          <OutdoorRouteSuggestions
-            key={`buiten-${item.id}`}
-            workoutId={item.id}
-            routes={detail.outdoor ?? []}
-            startPoints={startPoints}
-          />
+          {suggestions ? (
+            <OutdoorRouteSuggestions
+              key={`buiten-${item.id}`}
+              workoutId={item.id}
+              routes={detail.outdoor ?? []}
+              startPoints={startPoints}
+            />
+          ) : null}
         </>
       ) : (
         <>
@@ -343,6 +349,7 @@ export function MemberWorkoutCalendar({
   todayKey,
   ftpWatts,
   startPoints = [],
+  suggestions = true,
 }: {
   items: MemberCalendarItem[];
   todayKey: string;
@@ -350,6 +357,9 @@ export function MemberWorkoutCalendar({
   ftpWatts?: number | null;
   /** Waar het lid vandaan vertrekt, voor de routevoorstellen. */
   startPoints?: StartPointOption[];
+  /** Zwift-events en buitenrondjes bij een training tonen. In het design
+   * "tegels" staan die op ZWBeter Vandaag en niet hier. */
+  suggestions?: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = items.find((item) => item.id === selectedId) ?? null;
@@ -375,7 +385,12 @@ export function MemberWorkoutCalendar({
       />
       <div className="border-t p-4">
         {selected ? (
-          <WorkoutDetail item={selected} ftpWatts={ftpWatts} startPoints={startPoints} />
+          <WorkoutDetail
+            item={selected}
+            ftpWatts={ftpWatts}
+            startPoints={startPoints}
+            suggestions={suggestions}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             Klik een training voor de details of je rapportage.

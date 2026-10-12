@@ -13,7 +13,7 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/leden": { tone: "club", size: "wide" },
   "/achievements": { tone: "vandaag" },
   "/stats": { tone: "zwbeter" },
-  "/zwblokken": { tone: "zwbeter", size: "wide" },
+  "/zwblokken": { tone: "zwbeter" },
   "/profiel/segments/collecties": { tone: "meer" },
   "/zwbgame": { tone: "vandaag" },
   "/omnium": { tone: "kalender" },
@@ -43,8 +43,9 @@ export default async function ClubPage() {
         href: item.href,
         label: item.label,
         external: item.external,
-        // Een link naar buiten krijgt de donkerste kleur.
-        ...(item.external ? { tone: "meer" } : {}),
+        // De link naar buiten (voorZpWelBokaal) is de donkerste tegel, en breed:
+        // de naam past niet op een smalle tegel op de telefoon.
+        ...(item.external ? { tone: "meer", size: "wide" } : {}),
         ...TILE_STYLE[item.href],
       }),
     ),

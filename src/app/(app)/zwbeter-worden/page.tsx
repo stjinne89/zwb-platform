@@ -1,4 +1,7 @@
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
+import { getDesign } from "@/lib/design";
+import { ZwiftEventSuggestions } from "./_components/zwift-event-suggestions";
+import { OutdoorRouteSuggestions } from "./_components/outdoor-route-suggestions";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { InlineMoreLink } from "@/components/app-ui";
@@ -53,7 +56,9 @@ import {
   loadConnection,
   loadIntervalsSnapshot,
   loadMemberWorkouts,
+  loadOutdoorSuggestionViews,
   loadPendingReview,
+  loadZwiftSuggestionViews,
   loadPlanSummaries,
   planCautionsFromSummary,
   loadProfile,
@@ -215,6 +220,18 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
       ? planCautionsFromSummary(planSummaries.get(nextWorkout.workout.plan_id))
       : [];
 
+  // Design "tegels": Vandaag is de hub van de dag. De Zwift-events en
+  // buitenrondjes bij de eerstvolgende training staan daarom hier in plaats van
+  // in het schema (besluit eigenaar, 2026-10-12).
+  const hubWorkout =
+    (await getDesign()) === "tegels" && nextWorkout?.kind === "zwb" ? nextWorkout.workout : null;
+  const [hubZwift, hubOutdoor] = hubWorkout
+    ? await Promise.all([
+        loadZwiftSuggestionViews(viewer, [hubWorkout]),
+        loadOutdoorSuggestionViews(viewer, [hubWorkout]),
+      ])
+    : [null, null];
+
   return (
     <div className="space-y-6">
       {snapshot.fetchError && (
@@ -296,6 +313,20 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 ftpWatts={profile?.ftp_watts}
                 variant="preview"
               />
+              {hubWorkout && hubZwift && hubOutdoor ? (
+                <div className="mt-4 grid items-start gap-3 lg:grid-cols-2">
+                  <ZwiftEventSuggestions
+                    workoutId={hubWorkout.id}
+                    matches={hubZwift.suggestions.get(hubWorkout.id) ?? []}
+                    chosen={hubZwift.chosen.get(hubWorkout.id) ?? null}
+                  />
+                  <OutdoorRouteSuggestions
+                    workoutId={hubWorkout.id}
+                    routes={hubOutdoor.routes.get(hubWorkout.id) ?? []}
+                    startPoints={hubOutdoor.startPoints}
+                  />
+                </div>
+              ) : null}
               {isUpcomingRace(nextWorkout.workout, todayKey) ? (
                 <div className="mt-3">
                   <RaceWarmupControl

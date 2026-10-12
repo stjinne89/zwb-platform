@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getDesign } from "@/lib/design";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
@@ -79,6 +80,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // Maand is de ingang: daar zie je in één blik je week én kun je een training
   // aanklikken. De lijst blijft als alternatief bestaan.
   const workoutView = paramString(params.view) === "lijst" ? "lijst" : "maand";
+  // In het design "tegels" staan de Zwift-events en buitenrondjes bij een
+  // training op ZWBeter Vandaag (besluit eigenaar, 2026-10-12), niet hier.
+  const tegels = (await getDesign()) === "tegels";
   // Elke databasevraag is een oversteek (functies in Ohio, database in Ierland), en
   // deze pagina deed er ruim twintig na elkaar (gemeten 2026-10-01: 3,0-3,3 s in
   // deze functie). Daarom vertrekt elke stap zodra zijn invoer er is, in plaats van
@@ -369,6 +373,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             todayKey={todayKey}
             ftpWatts={profile?.ftp_watts}
             startPoints={outdoor.startPoints}
+            suggestions={!tegels}
           />
         ) : upcomingEvents.length === 0 && upcomingWorkouts.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>

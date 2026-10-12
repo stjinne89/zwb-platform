@@ -281,6 +281,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   (`TILE_STYLE` in `club/page.tsx`). De regel "een tegel heeft de kleur van de
 >   plek waar hij heen leidt" geldt op deze pagina dus niet: daar is kleur
 >   afwisseling.
+> - *ZWBeter Vandaag als hub (na de push, nog niet op main).* In dit design
+>   staan de Zwift-events en de buitenrondjes bij de eerstvolgende training op
+>   ZWBeter Vandaag, naast elkaar onder de blokken van die training. In het
+>   schema zijn ze in dit design weggehaald (`MemberWorkoutCalendar` kreeg
+>   `suggestions`). Het huidige design toont ze nog in het schema. Ze horen bij
+>   de eerstvolgende training, ook als die niet vandaag is.
+> - *Club.* voorZpWelBokaal is de brede tegel geworden in plaats van ZWBlokken;
+>   de naam paste op de telefoon niet op een smalle tegel.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
