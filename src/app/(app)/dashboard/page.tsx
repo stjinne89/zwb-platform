@@ -802,10 +802,9 @@ export default async function DashboardPage({
     }),
     place,
   });
-  const tileEvents = [
-    ...clubRaces.slice(0, 2).map((event) => toTile(event, "kalender")),
-    ...otherEvents.slice(0, 2).map((event) => toTile(event, "club")),
-  ];
+  // Clubraces staan niet in deze tegels: de races waar je zelf in zit komen er
+  // direct onder (MyRaces), en alle andere staan in de kalender.
+  const tileEvents = otherEvents.slice(0, 3).map((event) => toTile(event, "club"));
   const tileStanding = standings[0] ?? null;
 
   function eventList(events: UpcomingEvent[]) {
@@ -854,7 +853,7 @@ export default async function DashboardPage({
   }
 
   return (
-    <div className="space-y-8">
+    <div className={tegels ? "tg-dash space-y-2" : "space-y-8"}>
       {tegels ? (
         <TegelsVandaag
           weekday={new Date().toLocaleDateString("nl-NL", { weekday: "long", ...amsterdam })}
@@ -911,7 +910,7 @@ export default async function DashboardPage({
 
       {user && (
         <Suspense fallback={null}>
-          <MyRaces userId={user.id} />
+          <MyRaces userId={user.id} tegels={tegels} />
         </Suspense>
       )}
 
@@ -920,7 +919,9 @@ export default async function DashboardPage({
           gewoon over de volle breedte. */}
       <div
         className={
-          showTraining
+          tegels
+            ? "grid gap-2"
+            : showTraining
             ? "grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
             : "grid items-start gap-6"
         }
@@ -928,6 +929,7 @@ export default async function DashboardPage({
         {showTraining && (
           <Suspense fallback={<TrainingStatusSkeleton />}>
             <TrainingStatus
+              tegels={tegels}
               conn={conn}
               nextWorkout={nextWorkout}
               sex={sex}
@@ -936,7 +938,7 @@ export default async function DashboardPage({
           </Suspense>
         )}
         <Suspense fallback={<CoreStatusSkeleton />}>
-          <CoreStatus />
+          <CoreStatus tegels={tegels} />
         </Suspense>
       </div>
 
@@ -1349,6 +1351,7 @@ export default async function DashboardPage({
             <section>
               <SectionHeader
                 icon={Gift}
+                place="meer"
                 title="Ledenvoordeel"
                 action={<InlineMoreLink href="/sponsors">Alles</InlineMoreLink>}
               />

@@ -572,7 +572,7 @@ export default async function KalenderPage({
           };
         }
         const event = item.event;
-        const yesCount = (yesRidersByEvent.get(event.id) ?? []).length;
+        const riders = yesRidersByEvent.get(event.id) ?? [];
         const subEvents = childrenByParent.get(event.id) ?? [];
         return {
           sortKey: item.sortKey,
@@ -592,11 +592,11 @@ export default async function KalenderPage({
               : null,
             event.location,
             event.distance_km ? `${event.distance_km} km` : null,
-            yesCount > 0 ? `${yesCount} ${yesCount === 1 ? "doet" : "doen"} mee` : null,
           ]
             .filter(Boolean)
             .join(" · "),
           time: timeOf(event.start_at),
+          riders,
           extra:
             subEvents.length > 0
               ? subEvents.map((sub) => (

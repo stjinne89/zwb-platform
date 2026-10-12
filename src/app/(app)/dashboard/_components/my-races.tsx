@@ -67,7 +67,7 @@ function statusClass(status: RaceStatus) {
   return "bg-amber-500/15 text-amber-800 dark:text-amber-300";
 }
 
-export async function MyRaces({ userId }: { userId: string }) {
+export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boolean }) {
   const supabase = await createClient();
   const now = new Date();
   const fromIso = new Date(now.getTime() - STARTED_GRACE_MS).toISOString();
@@ -263,6 +263,52 @@ export async function MyRaces({ userId }: { userId: string }) {
   const shown = races
     .sort((a, b) => a.startAt.localeCompare(b.startAt))
     .slice(0, MAX_RACES);
+
+  // Design "tegels": elke race is een tegel in de kleur van de kalender, met de
+  // starttijd groot en jouw status als label.
+  if (tegels) {
+    return (
+      <ul className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Jouw races">
+        {shown.map((race) => (
+          <li key={race.key} className="tg-tile tg-kalender">
+            <span className="tg-tile-small">
+              {new Date(race.startAt).toLocaleDateString("nl-NL", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                timeZone: "Europe/Amsterdam",
+              })}
+              {race.teamName ? ` · ${race.teamName}` : ""}
+            </span>
+            <Link href={race.href} className="tg-tile-title mt-0.5 line-clamp-2 hover:underline">
+              {race.title}
+            </Link>
+            <span className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="bg-[var(--tg-paper)] px-2 py-1 text-xs font-semibold text-[var(--tg-ink)]">
+                {race.status ? STATUS_LABELS[race.status] : "Nog niet opgegeven"}
+              </span>
+              {race.liveHref && (
+                <Link
+                  href={race.liveHref}
+                  className="inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
+                >
+                  <Radio className="size-3.5" />
+                  Live stand
+                </Link>
+              )}
+            </span>
+            <span className="tg-tile-num">
+              {new Date(race.startAt).toLocaleTimeString("nl-NL", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Europe/Amsterdam",
+              })}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <section>

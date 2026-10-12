@@ -349,8 +349,8 @@
   --tg-paper: #fbfbf7;
   --tg-band: rgb(255 255 255 / 0.1);
   --tg-panel: rgb(0 70 83 / 0.07);
-  --tg-display: var(--font-jost), var(--font-albert), system-ui, sans-serif;
-  font-family: var(--font-albert), var(--font-geist-sans), system-ui, sans-serif;
+  --tg-display: var(--font-tegels), var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-tegels), var(--font-geist-sans), system-ui, sans-serif;
 }
 
 /* Dialogen en uitklapmenu's renderen buiten de schil; via :has() krijgen ze
@@ -422,7 +422,6 @@ html.dark .app-shell[data-design="tegels"]::before {
   font-weight: 200;
   line-height: 1;
   letter-spacing: -0.03em;
-  text-transform: lowercase;
   color: var(--primary);
 }
 .dark [data-design="tegels"] header.jersey-panel h1,
@@ -448,13 +447,12 @@ html.dark .app-shell[data-design="tegels"]::before {
   font-weight: 300;
   line-height: 1.1;
   letter-spacing: -0.02em;
-  text-transform: lowercase;
 }
 [data-design="tegels"] .section-header h2 > svg {
   display: none;
 }
 [data-design="tegels"] .uppercase {
-  text-transform: lowercase;
+  text-transform: none;
   letter-spacing: 0;
 }
 
@@ -484,7 +482,6 @@ html.dark .app-shell[data-design="tegels"]::before {
 .tg-row {
   position: relative;
   overflow: hidden;
-  text-transform: lowercase;
   transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .tg-tile {
@@ -494,7 +491,6 @@ html.dark .app-shell[data-design="tegels"]::before {
   background: var(--tg-bg);
   color: var(--tg-fg);
   font-family: var(--tg-display);
-  text-transform: lowercase;
   transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .dark .tg-tile,
@@ -612,7 +608,6 @@ a.tg-row:focus-visible,
   font-family: var(--tg-display);
   font-size: 0.9375rem;
   font-weight: 500;
-  text-transform: lowercase;
   transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .tg-tabs-bottom .tg-tab {
@@ -650,7 +645,6 @@ a.tg-row:focus-visible,
 [data-design="tegels"] :is(h2, h3) {
   font-weight: 400;
   letter-spacing: -0.005em;
-  text-transform: lowercase;
 }
 [data-design="tegels"] .section-header h2 {
   font-weight: 300;
@@ -682,7 +676,6 @@ a.tg-row:focus-visible,
 [data-design="tegels"] button[type="submit"] {
   font-family: var(--tg-display);
   font-weight: 500;
-  text-transform: lowercase;
 }
 [data-design="tegels"] :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]), select, textarea) {
   border-radius: 0;
@@ -696,9 +689,120 @@ a.tg-row:focus-visible,
 [data-design="tegels"] th {
   font-weight: 500;
   letter-spacing: 0;
-  text-transform: lowercase;
 }
 [data-design="tegels"] ::selection {
   background: var(--tg-vandaag);
   color: var(--tg-ink);
+}
+
+/* Koppen, tegels en cijfers staan in dezelfde letter als de tekst, maar smaller
+   gezet (de breedte-as van Archivo): strakker, zonder een tweede lettertype. */
+[data-design="tegels"] :is(h1, h2, h3),
+.tg-display,
+.tg-tile,
+.tg-tab,
+.tg-row-day,
+.tg-row-time,
+.tg-tile-num {
+  font-stretch: 88%;
+}
+[data-design="tegels"] header.jersey-panel h1,
+.tg-display {
+  font-weight: 300;
+  letter-spacing: -0.025em;
+}
+.tg-tile-title {
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+.tg-tile-num,
+.tg-row-time,
+.tg-row-day b {
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+.tg-row-body strong {
+  font-stretch: 94%;
+}
+
+/* ---- Dashboard: elk blok is een tegel in de kleur van zijn plek ----
+   Een sectie met een SectionHeader wordt hier een gekleurd blok; de plek komt
+   van data-place op de kop (standaard Club). Alleen op het dashboard, waar de
+   inhoud van elk blok bekend is. */
+.tg-dash section:has(> .section-header) {
+  --tg-bg: var(--tg-club);
+  --tg-fg: var(--tg-ink);
+  position: relative;
+  overflow: hidden;
+  padding: 0.875rem;
+  background: var(--tg-bg);
+  color: var(--tg-fg);
+}
+.tg-dash section:has(> .section-header[data-place="kalender"]) { --tg-bg: var(--tg-kalender); --tg-fg: var(--tg-paper); }
+.tg-dash section:has(> .section-header[data-place="zwbeter"]) { --tg-bg: var(--tg-zwbeter); --tg-fg: var(--tg-paper); }
+.tg-dash section:has(> .section-header[data-place="meer"]) { --tg-bg: var(--tg-meer); --tg-fg: var(--tg-paper); }
+.tg-dash section:has(> .section-header[data-place="vandaag"]) { --tg-bg: var(--tg-vandaag); --tg-fg: var(--tg-ink); }
+.tg-dash section:has(> .section-header[data-place="geen"]) {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+.tg-dash section:has(> .section-header)::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, transparent 0 72%, var(--tg-band) 72% 86%, transparent 86%);
+}
+.tg-dash section:has(> .section-header[data-place="geen"])::before { display: none; }
+.tg-dash section:has(> .section-header) > * { position: relative; }
+.tg-dash section:has(> .section-header:not([data-place="geen"])) .section-header h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+/* Binnen een gekleurd blok volgt alle tekst de inkt van het blok. */
+.tg-dash section:has(> .section-header:not([data-place="geen"])) :is([class*="text-muted-foreground"], [class*="text-primary"], [class*="text-foreground"], a, svg) {
+  color: inherit;
+}
+.tg-dash section:has(> .section-header:not([data-place="geen"])) [class*="text-muted-foreground"] {
+  opacity: 0.82;
+}
+.tg-dash section:has(> .section-header:not([data-place="geen"])) [class*="bg-card"],
+.tg-dash section:has(> .section-header:not([data-place="geen"])) :is(ul, ol, div).divide-y > *,
+.tg-dash section:has(> .section-header:not([data-place="geen"])) .border[class*="bg-background"] {
+  background-color: color-mix(in oklab, var(--tg-fg) 9%, transparent);
+}
+.tg-dash section:has(> .section-header:not([data-place="geen"])) [data-slot="button"] {
+  border-color: transparent;
+  background: var(--tg-fg);
+  color: var(--tg-bg);
+}
+
+/* Avatars van wie meedoet, op een agendarij. */
+.tg-riders {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3125rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+.tg-riders-stack { display: flex; }
+.tg-riders-stack > * {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: -0.375rem;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px var(--background);
+  object-fit: cover;
+}
+.tg-riders-stack > :first-child { margin-left: 0; }
+.tg-riders-stack > span {
+  display: grid;
+  place-items: center;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
 }

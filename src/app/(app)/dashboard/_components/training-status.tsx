@@ -54,7 +54,9 @@ export async function TrainingStatus({
   nextWorkout,
   sex,
   wellnessDevice,
+  tegels,
 }: {
+  tegels?: boolean;
   conn: TrainingStatusConn | null;
   nextWorkout: TrainingStatusWorkout | null;
   sex: string | null;
@@ -77,6 +79,52 @@ export async function TrainingStatus({
   const { advice, ctl, tsb, recoverySummary } = status;
   const hasMetrics = ctl != null || tsb != null || recoverySummary != null;
   const intensity = (nextWorkout?.intensity ?? "endurance") as WorkoutIntensity;
+
+  // Design "tegels": het advies als brede tegel, de drie cijfers elk als tegel.
+  // De eerstvolgende workout staat daar al bovenaan het dashboard.
+  if (tegels) {
+    const recovery =
+      recoverySummary?.readiness != null
+        ? String(recoverySummary.readiness)
+        : recoverySummary
+          ? (RECOVERY_LABELS[recoverySummary.state] ?? "-")
+          : "-";
+    const stats = [
+      { label: "Fitness", value: ctl != null ? String(Math.round(ctl)) : "-", sub: "CTL" },
+      { label: "Vorm", value: formatTsb(tsb), sub: "TSB" },
+      {
+        label: "Herstel",
+        value: recovery,
+        sub:
+          recoverySummary?.readiness != null
+            ? (RECOVERY_LABELS[recoverySummary.state] ?? "")
+            : "",
+      },
+    ];
+    return (
+      <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+        <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-3 !min-h-32">
+          <span className="tg-tile-small">
+            ZWBeter Worden{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
+          </span>
+          <span className="tg-tile-title mt-0.5">{advice.title}</span>
+          <span className="mt-1 text-sm opacity-90">{advice.description}</span>
+        </Link>
+        {hasMetrics &&
+          stats.map((stat) => (
+            <Link
+              key={stat.label}
+              href="/zwbeter-worden/belasting"
+              className="tg-tile tg-zwbeter !min-h-32"
+            >
+              <span className="tg-tile-small">{stat.label}</span>
+              <span className="tg-tile-num">{stat.value}</span>
+              <span className="text-xs opacity-85">{stat.sub}</span>
+            </Link>
+          ))}
+      </div>
+    );
+  }
 
   return (
     <section>

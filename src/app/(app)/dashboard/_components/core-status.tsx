@@ -39,7 +39,7 @@ const TIMING_LABELS: Record<MobilitySeries["timing"], string> = {
 /** Hoeveel oefeningen er passen zonder dat de kaart een lijst wordt. */
 const VISIBLE_ITEMS = 5;
 
-export async function CoreStatus() {
+export async function CoreStatus({ tegels }: { tegels?: boolean } = {}) {
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
@@ -61,6 +61,29 @@ export async function CoreStatus() {
   ).length;
   const streak = weeklyStreak(sessions, today);
   const items = suggestion.items ?? [];
+
+  // Design "tegels": één tegel met de sessie van vandaag en de reeks.
+  if (tegels) {
+    return (
+      <Link href={`/zwbeter-worden/core/${suggestion.slug}`} className="tg-tile tg-zwbeter">
+        <span className="tg-tile-small">
+          Core & mobiliteit · {doneToday ? "vandaag gedaan" : "vandaag"}
+        </span>
+        <span className="tg-tile-title mt-0.5">{suggestion.title}</span>
+        <span className="mt-1 text-sm opacity-90">
+          {suggestion.duration_minutes} min · {items.length} oefeningen
+        </span>
+        <span className="mt-auto flex items-end justify-between gap-3 pt-3 text-sm">
+          <span>
+            {streak > 0 ? `${streak} ${streak === 1 ? "week" : "weken"} op rij` : "Nog geen reeks"}
+          </span>
+          <span className="tabular-nums opacity-85">
+            {thisWeek} van {MOBILITY_SESSIONS_PER_WEEK} deze week
+          </span>
+        </span>
+      </Link>
+    );
+  }
 
   return (
     <section>

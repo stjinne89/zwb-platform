@@ -31,6 +31,7 @@ export function InstagramStrip({ posts }: { posts: InstagramPost[] }) {
       <SectionHeader
         icon={Images}
         title="Instagram"
+        place="geen"
         action={
           <a
             href={ZWB_INSTAGRAM_URL}

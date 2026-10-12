@@ -176,6 +176,26 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   **Dit is een vertaling van patronen, geen herontwerp per pagina:** de
 >   opbouw van elk blok is ongewijzigd.
 >
+> **Vierde ronde dezelfde dag, op aanwijzing van de eigenaar.**
+> - *Dashboard.* De blokken onder de eerste tegels waren oude blokken in nieuwe
+>   kleuren. Nu is elk blok zelf een tegel: Jouw races als tegels per race
+>   (`MyRaces`), de trainingsstatus als adviestegel plus drie cijfertegels
+>   (`TrainingStatus`), core als één tegel (`CoreStatus`); elk met een
+>   `tegels`-prop. De overige secties worden binnen `.tg-dash` via CSS een
+>   gekleurd blok in de kleur van hun plek (`SectionHeader` kreeg daarvoor
+>   `place`; standaard Club, Mijn garage en Ledenvoordeel Meer, Instagram zonder
+>   kleur). Clubraces staan niet meer in de bovenste tegels: de eigen races
+>   staan er direct onder.
+> - *Lettertype.* Jost en Albert Sans zijn vervangen door Archivo, met koppen,
+>   tegels en cijfers smaller gezet via de breedte-as. **Niet meer waar:** de
+>   regel over Jost hierboven, en de geforceerde onderkast: hoofdletters staan
+>   weer zoals ze getypt zijn.
+> - *Kalender.* De avatars van wie meedoet staan weer op de rij, met de teller
+>   erachter.
+> - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
+>   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
+>   `.next` kwam het nieuwe.
+>
 > **Gezien met echte data** (Chrome, ingelogd als eigenaar, breed scherm, donker
 > thema): dashboard, kalender, `/meer` en `/zwbeter-worden`. **Niet gezien met
 > echte data:** het lichte thema, de telefoonbreedte, `/club`, de overige

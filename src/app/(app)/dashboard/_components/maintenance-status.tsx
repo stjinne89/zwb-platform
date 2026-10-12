@@ -81,6 +81,7 @@ export async function MaintenanceStatus({ profileId }: { profileId: string }) {
   return (
     <section>
       <SectionHeader
+        place="meer"
         icon={Wrench}
         title={
           <Link href="/mijn-garage" className="hover:text-primary hover:underline">

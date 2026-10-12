@@ -17,6 +17,8 @@ export type AgendaRow = {
   title: string;
   sub?: string;
   time?: string;
+  /** Wie "ja" zei: avatars met de teller erachter. */
+  riders?: Array<{ id: string; name: string; avatarUrl: string | null }>;
   /** Extra regels onder de rij, zoals teamevents of badges. */
   extra?: ReactNode;
 };
@@ -37,6 +39,23 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
           <strong className="block truncate text-base font-medium leading-tight">{row.title}</strong>
           {row.sub && (
             <span className="block truncate text-[0.8125rem] text-muted-foreground">{row.sub}</span>
+          )}
+          {row.riders && row.riders.length > 0 && (
+            <span className="tg-riders">
+              <span className="tg-riders-stack">
+                {row.riders.slice(0, 6).map((rider) =>
+                  rider.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={rider.id} src={rider.avatarUrl} alt="" title={rider.name} />
+                  ) : (
+                    <span key={rider.id} title={rider.name}>
+                      {rider.name.slice(0, 1).toUpperCase()}
+                    </span>
+                  ),
+                )}
+              </span>
+              {row.riders.length} {row.riders.length === 1 ? "doet" : "doen"} mee
+            </span>
           )}
         </span>
         {row.time ? <span className="tg-row-time">{row.time}</span> : <span />}

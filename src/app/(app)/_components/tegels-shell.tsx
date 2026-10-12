@@ -1,19 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Albert_Sans, Jost } from "next/font/google";
+import { Archivo } from "next/font/google";
 import { TegelsTabs } from "./tegels-tabs";
 
-// Alleen het design "tegels" gebruikt deze lettertypes; zonder preload laden ze
-// pas als dat design aanstaat. Jost voor koppen, tegels en labels; Albert Sans
-// voor lopende tekst.
-const albertSans = Albert_Sans({
-  variable: "--font-albert",
+// Alleen het design "tegels" gebruikt dit lettertype; zonder preload laadt het
+// pas als dat design aanstaat. De breedte-as zet koppen en cijfers smaller.
+const tegelsFont = Archivo({
+  variable: "--font-tegels",
   subsets: ["latin"],
-  preload: false,
-});
-const jost = Jost({
-  variable: "--font-jost",
-  subsets: ["latin"],
+  axes: ["wdth"],
   preload: false,
 });
 
@@ -35,7 +30,7 @@ export function TegelsShell({
   return (
     <div
       data-design="tegels"
-      className={`app-shell flex min-h-screen flex-col bg-background ${albertSans.variable} ${jost.variable}`}
+      className={`app-shell flex min-h-screen flex-col bg-background ${tegelsFont.variable}`}
     >
       {before}
       <header className="relative">
