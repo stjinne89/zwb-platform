@@ -63,7 +63,7 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "mb-3 flex items-center justify-between gap-3 border-b border-border/70 pb-2",
+        "section-header mb-3 flex items-center justify-between gap-3 border-b border-border/70 pb-2",
         className,
       )}
     >

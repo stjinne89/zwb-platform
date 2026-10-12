@@ -91,7 +91,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
-> **Design "tegels" als proefversie achter een schakelaar, 2026-10-12 — gebouwd, lokaal getest met voorbeelddata, niet met echte data gezien.**
+> **Design "tegels" als proefversie achter een schakelaar, 2026-10-12 — gebouwd, lokaal getest; met echte data deels gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** De eigenaar koos uit een reeks schetsen de richting "Tenuetegels"
@@ -145,11 +145,20 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > login; alleen bij lokaal ontwikkelen (`notFound()` in productie, en de
 > middleware laat het pad alleen buiten productie door).
 >
-> **Niet geverifieerd.** Ingelogd met echte data: dashboard, kalender, `/club`,
-> `/meer` en de schakelaar zelf. Gezien in de browser: alleen
-> `/ontwerp-voorbeeld` (telefoon licht en donker, breed scherm licht). Getest:
-> `tsc --noEmit`, ESLint op de gewijzigde bestanden, `npm run test` (2073
-> geslaagd), `design-places.test.ts`. `npm run build` is niet gedraaid.
+> **Bijgewerkt dezelfde dag, na een blik met echte data.** De bestaande blokken
+> onder de tegels hielden hun oude kaartstijl: de regels voor het nieuwe design
+> stonden in `@layer components` en verloren het daardoor van de
+> Tailwind-utilities. Ze staan nu buiten een layer. Binnen
+> `[data-design="tegels"]` is elke `bg-card` een vlak paneel zonder rand, zijn
+> sectiekoppen (`SectionHeader`, nu met klasse `section-header`) licht en in
+> onderkast, en is `uppercase` onderkast.
+>
+> **Gezien met echte data** (Chrome, ingelogd als eigenaar, breed scherm, donker
+> thema): dashboard, kalender en `/meer`. **Niet gezien met echte data:** het
+> lichte thema, de telefoonbreedte, `/club`, de overige pagina's en het uit- en
+> aanzetten van de schakelaar. Getest: `tsc --noEmit`, ESLint op de gewijzigde
+> bestanden, `npm run test` (2073 geslaagd), `design-places.test.ts`.
+> `npm run build` is niet gedraaid.
 
 ---
 

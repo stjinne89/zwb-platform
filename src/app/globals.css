@@ -348,6 +348,7 @@
   --tg-ink: #0a2b34;
   --tg-paper: #fbfbf7;
   --tg-band: rgb(255 255 255 / 0.1);
+  --tg-panel: rgb(0 70 83 / 0.07);
   font-family: var(--font-albert), var(--font-geist-sans), system-ui, sans-serif;
 }
 
@@ -357,6 +358,7 @@
   --tg-kalender: #00505f;
   --tg-club: #8ea39e;
   --tg-meer: #12343d;
+  --tg-panel: rgb(255 255 255 / 0.055);
   --tg-ink: #061c22;
   --tg-paper: #f5f6f0;
   --background: #061c22;
@@ -366,184 +368,220 @@
   --secondary: #17404a;
 }
 
-@layer components {
-  /* De tenuebanen, sterker dan in het huidige design. */
-  html:not(.dark) .app-shell[data-design="tegels"]::before {
-    height: 30rem;
-    background:
-      linear-gradient(132deg, transparent 0 18%, rgb(0 70 83 / 0.1) 18% 32%, transparent 32%),
-      linear-gradient(149deg, transparent 0 34%, rgb(31 96 104 / 0.12) 34% 49%, transparent 49%),
-      linear-gradient(28deg, transparent 0 45%, rgb(127 149 144 / 0.16) 45% 61%, transparent 61%),
-      linear-gradient(156deg, transparent 0 62%, rgb(184 135 61 / 0.26) 62% 66%, transparent 66%);
-  }
-  html.dark .app-shell[data-design="tegels"]::before {
-    height: 30rem;
-    background:
-      linear-gradient(132deg, transparent 0 18%, rgb(31 96 104 / 0.3) 18% 32%, transparent 32%),
-      linear-gradient(149deg, transparent 0 34%, rgb(127 149 144 / 0.13) 34% 49%, transparent 49%),
-      linear-gradient(28deg, transparent 0 45%, rgb(255 255 255 / 0.05) 45% 61%, transparent 61%),
-      linear-gradient(156deg, transparent 0 62%, rgb(196 146 63 / 0.34) 62% 66%, transparent 66%);
-  }
-  .app-shell[data-design="tegels"]::after {
-    display: none;
-  }
+/* Buiten een layer: deze regels moeten de Tailwind-utilities van de bestaande
+   schermen overschrijven, en utilities winnen het van elke layer. */
+/* De tenuebanen, sterker dan in het huidige design. */
+html:not(.dark) .app-shell[data-design="tegels"]::before {
+  height: 30rem;
+  background:
+    linear-gradient(132deg, transparent 0 18%, rgb(0 70 83 / 0.1) 18% 32%, transparent 32%),
+    linear-gradient(149deg, transparent 0 34%, rgb(31 96 104 / 0.12) 34% 49%, transparent 49%),
+    linear-gradient(28deg, transparent 0 45%, rgb(127 149 144 / 0.16) 45% 61%, transparent 61%),
+    linear-gradient(156deg, transparent 0 62%, rgb(184 135 61 / 0.26) 62% 66%, transparent 66%);
+}
+html.dark .app-shell[data-design="tegels"]::before {
+  height: 30rem;
+  background:
+    linear-gradient(132deg, transparent 0 18%, rgb(31 96 104 / 0.3) 18% 32%, transparent 32%),
+    linear-gradient(149deg, transparent 0 34%, rgb(127 149 144 / 0.13) 34% 49%, transparent 49%),
+    linear-gradient(28deg, transparent 0 45%, rgb(255 255 255 / 0.05) 45% 61%, transparent 61%),
+    linear-gradient(156deg, transparent 0 62%, rgb(196 146 63 / 0.34) 62% 66%, transparent 66%);
+}
+.app-shell[data-design="tegels"]::after {
+  display: none;
+}
 
-  /* Paginakop: geen kaart meer, de titel draagt de pagina. */
-  [data-design="tegels"] header.jersey-panel {
-    border: 0;
-    background: transparent;
-    padding: 0;
-    overflow: visible;
-  }
-  [data-design="tegels"] header.jersey-panel::before,
-  [data-design="tegels"] header.jersey-panel > span[aria-hidden] {
-    display: none;
-  }
-  [data-design="tegels"] header.jersey-panel h1,
-  .tg-display {
-    font-size: clamp(2.75rem, 13vw, 3.875rem);
-    font-weight: 200;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    text-transform: lowercase;
-    color: var(--primary);
-  }
-  .dark [data-design="tegels"] header.jersey-panel h1,
-  .dark .tg-display {
-    color: var(--foreground);
-  }
+/* Paginakop: geen kaart meer, de titel draagt de pagina. */
+[data-design="tegels"] header.jersey-panel {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  overflow: visible;
+}
+[data-design="tegels"] header.jersey-panel::before,
+[data-design="tegels"] header.jersey-panel > span[aria-hidden] {
+  display: none;
+}
+[data-design="tegels"] header.jersey-panel h1,
+.tg-display {
+  font-size: clamp(2.75rem, 13vw, 3.875rem);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: lowercase;
+  color: var(--primary);
+}
+.dark [data-design="tegels"] header.jersey-panel h1,
+.dark .tg-display {
+  color: var(--foreground);
+}
 
-  /* Het originele logo; in donker op een licht plaatje, anders valt de zwarte B weg. */
-  .tg-logo img {
-    display: block;
-    height: 2.125rem;
-    width: auto;
-  }
-  .dark .tg-logo {
-    background: var(--tg-paper);
-    padding: 0.4rem 0.8rem 0.35rem;
-    border-radius: 0.8rem;
-    box-shadow: 0 0 0 2px var(--background), 0 0 0 3.5px var(--tg-vandaag);
-  }
-  .dark .tg-logo img {
-    height: 1.75rem;
-  }
+/* De bestaande blokken onder de tegels en op de andere pagina's: geen kaart
+   met rand meer, maar een vlak paneel; koppen in dezelfde lichte onderkast
+   als de paginatitel. Zo loopt het nieuwe design over de oude opbouw heen. */
+[data-design="tegels"] [class*="bg-card"] {
+  border-color: transparent;
+  background-color: var(--tg-panel);
+  box-shadow: none;
+}
+[data-design="tegels"] .section-header {
+  margin-bottom: 0.625rem;
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+[data-design="tegels"] .section-header h2 {
+  font-size: 1.625rem;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+[data-design="tegels"] .section-header h2 > svg {
+  display: none;
+}
+[data-design="tegels"] .uppercase {
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
 
-  /* Plekkleur: zet achtergrond en inkt voor een tegel, rij of tab. */
-  .tg-vandaag { --tg-bg: var(--tg-vandaag); --tg-fg: var(--tg-ink); }
-  .tg-kalender { --tg-bg: var(--tg-kalender); --tg-fg: var(--tg-paper); }
-  .tg-zwbeter { --tg-bg: var(--tg-zwbeter); --tg-fg: var(--tg-paper); }
-  .tg-club { --tg-bg: var(--tg-club); --tg-fg: var(--tg-ink); }
-  .tg-meer { --tg-bg: var(--tg-meer); --tg-fg: var(--tg-paper); }
+/* Het originele logo; in donker op een licht plaatje, anders valt de zwarte B weg. */
+.tg-logo img {
+  display: block;
+  height: 2.125rem;
+  width: auto;
+}
+.dark .tg-logo {
+  background: var(--tg-paper);
+  padding: 0.4rem 0.8rem 0.35rem;
+  border-radius: 0.8rem;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 3.5px var(--tg-vandaag);
+}
+.dark .tg-logo img {
+  height: 1.75rem;
+}
 
-  .tg-tile,
-  .tg-row {
-    position: relative;
-    display: block;
-    overflow: hidden;
-    background: var(--tg-bg);
-    color: var(--tg-fg);
-    text-transform: lowercase;
-    transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .dark .tg-tile,
-  .dark .tg-row {
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
-  }
-  .tg-tile::before,
-  .tg-row::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(118deg, transparent 0 64%, var(--tg-band) 64% 81%, transparent 81%);
-  }
-  .tg-tile > *,
-  .tg-row > * {
-    position: relative;
-  }
-  a.tg-tile:hover,
-  a.tg-row:hover {
-    filter: brightness(1.1);
-  }
-  a.tg-tile:focus-visible,
-  a.tg-row:focus-visible,
-  .tg-tab:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-  .tg-tile {
-    display: flex;
-    flex-direction: column;
-    min-height: 10.25rem;
-    padding: 0.75rem 0.875rem;
-  }
-  .tg-tile-small { font-size: 0.8125rem; opacity: 0.9; }
-  .tg-tile-title { font-size: 1.4375rem; font-weight: 300; line-height: 1.08; letter-spacing: -0.01em; }
-  .tg-tile-num {
-    margin-top: auto;
-    padding-top: 0.5rem;
-    font-size: 3.375rem;
-    font-weight: 200;
-    line-height: 0.95;
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-  }
-  .tg-row {
-    display: grid;
-    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-    column-gap: 0.625rem;
-    align-items: center;
-    min-height: 3.875rem;
-    padding: 0.5rem 0.875rem;
-  }
-  .tg-row-past {
-    background: transparent;
-    color: var(--muted-foreground);
-    box-shadow: inset 0 0 0 1.5px var(--border);
-  }
-  .tg-row-past::before { display: none; }
-  .tg-row-past strong { color: var(--foreground); }
-  .tg-row-time { font-size: 1.625rem; font-weight: 200; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+/* Plekkleur: zet achtergrond en inkt voor een tegel, rij of tab. */
+.tg-vandaag { --tg-bg: var(--tg-vandaag); --tg-fg: var(--tg-ink); }
+.tg-kalender { --tg-bg: var(--tg-kalender); --tg-fg: var(--tg-paper); }
+.tg-zwbeter { --tg-bg: var(--tg-zwbeter); --tg-fg: var(--tg-paper); }
+.tg-club { --tg-bg: var(--tg-club); --tg-fg: var(--tg-ink); }
+.tg-meer { --tg-bg: var(--tg-meer); --tg-fg: var(--tg-paper); }
 
-  /* De vijf plekken. Onderin op de telefoon, bovenin op een breed scherm. */
+.tg-tile,
+.tg-row {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--tg-bg);
+  color: var(--tg-fg);
+  text-transform: lowercase;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dark .tg-tile,
+.dark .tg-row {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
+}
+.tg-tile::before,
+.tg-row::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, transparent 0 64%, var(--tg-band) 64% 81%, transparent 81%);
+}
+.tg-tile > *,
+.tg-row > * {
+  position: relative;
+}
+a.tg-tile:hover,
+a.tg-row:hover {
+  filter: brightness(1.1);
+}
+a.tg-tile:focus-visible,
+a.tg-row:focus-visible,
+.tg-tab:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.tg-tile {
+  display: flex;
+  flex-direction: column;
+  min-height: 10.25rem;
+  padding: 0.75rem 0.875rem;
+}
+.tg-tile-small { font-size: 0.8125rem; opacity: 0.9; }
+.tg-tile-title { font-size: 1.4375rem; font-weight: 300; line-height: 1.08; letter-spacing: -0.01em; }
+.tg-tile-num {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 3.375rem;
+  font-weight: 200;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.tg-row {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  column-gap: 0.625rem;
+  align-items: center;
+  min-height: 3.875rem;
+  padding: 0.5rem 0.875rem;
+}
+.tg-row-past {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: inset 0 0 0 1.5px var(--border);
+}
+.tg-row-past::before { display: none; }
+.tg-row-past strong { color: var(--foreground); }
+.tg-row-time { font-size: 1.625rem; font-weight: 200; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+/* De vijf plekken. Onderin op de telefoon, bovenin op een breed scherm. */
+.tg-tabs-bottom {
+  display: none;
+}
+@media (max-width: 767.98px) {
   .tg-tabs-bottom {
-    position: fixed;
-    inset: auto 0 0 0;
-    z-index: 40;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    align-items: end;
-    pointer-events: none;
-  }
-  .tg-tab {
-    pointer-events: auto;
-    display: grid;
-    place-items: center;
-    background: var(--tg-bg);
-    color: var(--tg-fg);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-transform: lowercase;
-    transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .tg-tabs-bottom .tg-tab {
-    height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .tg-tabs-bottom .tg-tab[aria-current="page"] {
-    height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-    font-weight: 700;
-  }
-  .tg-tabs-top .tg-tab {
-    height: 2.5rem;
-    padding: 0 1rem;
-  }
-  .tg-tabs-top .tg-tab[aria-current="page"] {
-    height: 3.25rem;
-    font-weight: 700;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .tg-tab, .tg-tile, .tg-row { transition: none; }
   }
 }
+.tg-tabs-bottom {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  pointer-events: none;
+}
+.tg-tab {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  background: var(--tg-bg);
+  color: var(--tg-fg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tg-tabs-bottom .tg-tab {
+  height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.tg-tabs-bottom .tg-tab[aria-current="page"] {
+  height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  font-weight: 700;
+}
+.tg-tabs-top .tg-tab {
+  height: 2.5rem;
+  padding: 0 1rem;
+}
+.tg-tabs-top .tg-tab[aria-current="page"] {
+  height: 3.25rem;
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tg-tab, .tg-tile, .tg-row { transition: none; }
+}
+
