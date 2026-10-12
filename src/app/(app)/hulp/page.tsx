@@ -515,6 +515,7 @@ const ADMIN_GUIDES = [
       "Op de pagina van een TTT-race opent de captain de planner; team, event en de opstelling staan dan al klaar.",
       "Een ZRL-TTT telt maximaal 5 renners, andere TTT's 8.",
       "Optimaliseren neemt kopbeurten en volgorde van ZwiftGopher over; daarna kun je ze aanpassen.",
+      "300s is het gemeten 5-minutenvermogen uit Intervals, anders zMAP uit WTRL. De calculator op zwiftgopher.com rekent met 130% van de FTP en komt daardoor iets sneller uit; laat je 300s leeg, dan doet de planner dat ook.",
       "Een plan is een concept tot de captain het publiceert. Daarna ziet het hele team het op de racepagina.",
       "Renners zonder account staan ook in de lijst; FTP, gewicht en 5-minutenvermogen komen dan uit WTRL.",
       "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",

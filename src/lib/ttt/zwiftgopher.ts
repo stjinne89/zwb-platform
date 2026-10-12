@@ -32,8 +32,11 @@ function numericZwiftId(value: string) {
   return /^[0-9]+$/.test(trimmed) ? trimmed : null;
 }
 
+// Zonder 300s-waarde rekent ZwiftGopher zelf met 130% van de FTP (gemeten
+// 2026-10-12, `speed_index_source: "ftp_fallback"`). De FTP meesturen als
+// 5-minutenvermogen maakte een renner zwakker dan hij is.
 function riderPower300(rider: TttPlanRiderInput) {
-  return positiveNumber(rider.power300Watts) ?? positiveNumber(rider.ftpWatts);
+  return positiveNumber(rider.power300Watts);
 }
 
 /**
@@ -91,7 +94,9 @@ export function buildZwiftGopherPayload(
     if (zwiftId && !rider.isManual) {
       idRiders.push(Number(zwiftId));
       const overrides: Record<string, string | number> = {};
-      if (rider.name.trim()) overrides.name = rider.name.trim();
+      // Geen naam: met een naam in de override schaalt ZwiftGopher de renner
+      // lager in (`training_level` recreational in plaats van pro, ruim een
+      // minuut trager op 30 km; gemeten 2026-10-12).
       if (positiveNumber(rider.ftpWatts)) overrides.ftp = rider.ftpWatts as number;
       if (positiveNumber(rider.weightKg)) overrides.weight = rider.weightKg as number;
       if (positiveNumber(rider.heightCm)) overrides.height = rider.heightCm as number;

@@ -75,8 +75,7 @@ describe("renner zonder account in de ZwiftGopher-aanvraag", () => {
     expect(payload.riders).toEqual([111, 222]);
     expect(payload.custom_riders).toBeUndefined();
     expect(payload.rider_overrides).toEqual({
-      "111": { name: "Anna", ftp: 280, weight: 80, power_300_watts: 340 },
-      "222": { name: "Bram" },
+      "111": { ftp: 280, weight: 80, power_300_watts: 340 },
     });
   });
 });

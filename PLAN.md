@@ -91,6 +91,75 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **TTT-planner rekent op de lijn van zwiftgopher.com, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Bart zag voor ZWB A (ZRL, Watopia Figure 8 Reverse, 13 oktober)
+> in de planner 39:43 en op zwiftgopher.com 37:46, met dezelfde instellingen.
+> Kopbeurtduur en volgorde waren gelijk; alle kopbeurt-watts lagen 9–12% lager.
+>
+> **Gemeten** (aanroepen van `POST /api/optimize` met een tweede key in de
+> lokale `.env.local`, zelfde team, intensity 0, efficiency 1):
+>
+> | `name` in `rider_overrides` | `power_300_watts` | `training_level` | tijd |
+> |---|---|---|---|
+> | ja (app tot nu) | gemeten | recreational / untrained | 39:43 |
+> | ja | 120% FTP | recreational / untrained | 39:31 |
+> | ja | geen | recreational / untrained | 39:01 |
+> | nee | gemeten | pro / elite | 38:12 |
+> | nee | 120% FTP | pro / elite | 38:12 |
+> | nee | 125% FTP | pro / elite | 37:50 |
+> | nee | geen | pro / elite | 37:45 (= de site) |
+>
+> - **Een meegestuurde naam** laat ZwiftGopher de renner lager inschalen en kost
+>   ruim een minuut. Waarom is niet bekend (server van ZwiftGopher); de teamnaam
+>   en de key zijn uitgesloten.
+> - **Zonder `power_300_watts`** rekent ZwiftGopher met exact 130% van de FTP
+>   (`speed_index_source: "ftp_fallback"`). De site doet dat altijd; hij heeft
+>   geen eigen 5-minutenvermogen.
+> - Intensity 1, 2 en 3 geven met gemeten 300s alle drie ±38:10; geen knop om
+>   het verschil mee te overbruggen.
+> - `rider_power_profiles.watts_5m` (Intervals, 90 dagen, alleen na een
+>   handmatige sync) en zMAP uit WTRL liggen bij zes van zeven nagekeken renners
+>   binnen 2% van elkaar; gemeten 5 min / FTP is 112–124%.
+>
+> **Nu.**
+> - `buildZwiftGopherPayload` stuurt voor renners met een Zwift-ID geen naam
+>   meer mee in `rider_overrides`.
+> - Het gemeten 300s-vermogen blijft meegaan (keuze van de eigenaar: de eigen
+>   data is de kracht van de app). Dat geeft voor dit team 38:12 tegen 37:45 op
+>   de site; die 27 seconden komen uit het verschil tussen gemeten en 130%.
+> - De FTP is geen terugval meer voor een onbekend 300s-vermogen, niet in het
+>   veld en niet in het verzoek. **Niet meer waar:** `riderPower300` viel terug
+>   op de FTP, en een lid zonder `watts_5m` kreeg de FTP in het 300s-veld.
+>   Zonder waarde rekent ZwiftGopher nu met zijn 130%.
+> - Hulp: één regel onder "TTT Planner en exports".
+>
+> **Gevolg voor de ronde hieronder.** De tweede poging "met eigen waarden"
+> stuurt renners als aangepaste renner, mét naam. Of ZwiftGopher die net zo
+> laag inschaalt als een renner met een naam in de override is niet gemeten;
+> ga ervan uit dat zo'n plan ruim een minuut voorzichtiger uitvalt. De planner
+> zegt dat niet.
+>
+> **Bewust niet gebouwd.**
+> - Geen eigen terugval (bijvoorbeeld 115% van de FTP) voor renners zonder
+>   meting; de eigenaar wil dicht bij ZwiftGopher blijven.
+> - Geen 5-minutenvermogen uit CP en W' (`profile_sport_settings`) of uit een
+>   langere periode dan 90 dagen. Kan de 27 seconden verkleinen als het
+>   90-dagenbeste geen maximale inspanning was; niet onderzocht.
+> - Bestaande plannen worden niet aangepast: een opgeslagen 300s gelijk aan de
+>   FTP blijft staan tot de captain hem leegmaakt of corrigeert.
+>
+> **Niet meer waar.** De privacynotitie bij "renners zonder account" noemt de
+> naam als gegeven dat naar ZwiftGopher gaat; die gaat nu alleen nog mee voor
+> een aangepaste renner. Daar bijgewerkt.
+>
+> **Niet geverifieerd.** De planner in de browser. Getest: `tsc --noEmit`,
+> ESLint, Vitest (`ttt-zwiftgopher.test.ts`, `ttt-wtrl-power.test.ts`,
+> `ttt-zwiftgopher-fallback.test.ts`).
+
+---
+
 > **TTT-planner: rekenen met eigen waarden als ZwiftGopher een Zwift-ID niet vindt, 2026-10-12 — gebouwd, lokaal getest, niet tegen ZwiftGopher gemeten.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -217,8 +286,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   waarden; alleen naam en Zwift-ID.
 >
 > **Open: privacytekst.** `/privacy` noemt ZwiftGopher niet, terwijl de planner
-> er Zwift-ID, naam, FTP, gewicht en 5-minutenvermogen naartoe stuurt; sinds deze
-> ronde ook van renners zonder account. Aan de eigenaar voorgelegd, tekst nog
+> er Zwift-ID, FTP, gewicht en 5-minutenvermogen naartoe stuurt (de naam alleen
+> nog voor een aangepaste renner); sinds deze ronde ook van renners zonder
+> account. Aan de eigenaar voorgelegd, tekst nog
 > niet aangepast.
 >
 > **Niet geverifieerd.** (a) De pagina in de browser en tegen echte data: lezen

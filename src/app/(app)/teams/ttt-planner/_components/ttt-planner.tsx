@@ -97,7 +97,7 @@ function toInputRider(rider: PlannerRider, displayOrder: number): TttPlanRiderIn
     ftpWatts: rider.ftpWatts,
     weightKg: rider.weightKg,
     heightCm: null,
-    power300Watts: rider.watts5m ?? rider.ftpWatts,
+    power300Watts: rider.watts5m,
     pullWatts: rider.ftpWatts,
     pullDurationSeconds: 30,
     displayOrder,
