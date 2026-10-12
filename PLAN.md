@@ -91,6 +91,22 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **PRODUCT.md: productcontext voor ontwerpwerk, 2026-10-12 — alleen documentatie.**
+> Commit: de commit die dit blok toevoegt. Geen migratie, geen code.
+>
+> **Waarom.** Ontwerpwerk begon telkens zonder vastgelegd antwoord op voor wie
+> en waarvoor. `PRODUCT.md` in de root legt dat vast.
+>
+> **Vastgelegd, bevestigd door de eigenaar.** Hoofdgebruiker is het lid op de
+> telefoon; captains, trainers en bestuur zijn secundair. Succes is één plek
+> voor alles van de club. Bindend: tenuekleuren en logo, de ZWB-woordspelingen,
+> kort Nederlands met je/jij, en licht én donker thema.
+>
+> **Bewust niet gedaan.** Geen `DESIGN.md` en geen live-modus-config: het
+> bestaande uiterlijk is niet gedocumenteerd of gewijzigd.
+
+---
+
 > **WTRL-import: uitgenodigde renners worden ook ingedeeld, 2026-10-12 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
