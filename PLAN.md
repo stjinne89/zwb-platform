@@ -323,6 +323,174 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **Achievements: weekstanden van vorige week terugkijken, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar. De vier ranglijsten op `/achievements`
+> toonden alleen de lopende week; op maandag was de stand van de week ervoor
+> weg en bleef alleen de winnaar in de Hall of fame over.
+>
+> **Nu.** Schakelaar "Deze week / Vorige week" boven de cijfers
+> (`/achievements?week=vorige`). De kaarten en de vier ranglijsten lezen dan
+> `strava_activities.achievement_week` van de maandag ervoor
+> (`previousAchievementWeek`, `lib/strava/client.ts`). Hall of fame en de
+> knoppen veranderen niet mee. Hulptekst bijgewerkt.
+>
+> **Bewust niet gebouwd.** Geen vrij bladeren door oudere weken: gevraagd was
+> één week terug. Elke andere waarde van `week` valt terug op de lopende week.
+>
+> **Niet geverifieerd.** De pagina met echte data; lokaal is er geen database.
+> Getest: `tsc --noEmit`, ESLint, Vitest (één test erbij in
+> `strava-ingest.test.ts`).
+
+---
+
+> **TTT-planner: Zwift-ID's kopiëren voor zwiftgopher.com/TTT, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien en niet bij ZwiftGopher geplakt.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar: de renners van een plan ook in de
+> calculator van ZwiftGopher zelf kunnen zetten, zonder ID's over te tikken. Dat
+> is ook de uitweg als de API weigert of de limiet van één verzoek per minuut in
+> de weg zit.
+>
+> **Nu.** Knop "Zwift-ID's" bij "Resultaat en export" kopieert de numerieke
+> Zwift-ID's van het raceplan naar het klembord, in planvolgorde, één per regel,
+> zonder dubbele (`zwiftIdExport`, `lib/ttt/zwiftgopher.ts`). Onder de knoppen
+> staat hoeveel er gekopieerd zijn en wie geen Zwift-ID heeft. Weigert de browser
+> het klembord, dan staan de ID's in die regel. Hulptekst bijgewerkt.
+>
+> **Bewust niet gebouwd.** Geen export van de hele teamlijst (alleen wie in het
+> raceplan staat; het vak bij ZwiftGopher neemt er hooguit 20) en geen
+> bestandsdownload: plakken is het doel.
+>
+> **Niet geverifieerd.** Het scheidingsteken. Het vak "Zwift IDs" op
+> zwiftgopher.com/TTT is een tekstvak van drie regels dat ongewijzigd naar hun
+> `ajax.php` gaat; hoe de server het splitst is van buiten niet te zien, en er is
+> niets ingestuurd om het te proberen. Eén per regel is de aanname. Getest:
+> `tsc --noEmit`, ESLint, Vitest (nieuw: `ttt-zwiftid-export.test.ts`, 3 tests).
+
+---
+
+> **TTT-planner rekent op de lijn van zwiftgopher.com, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Bart zag voor ZWB A (ZRL, Watopia Figure 8 Reverse, 13 oktober)
+> in de planner 39:43 en op zwiftgopher.com 37:46, met dezelfde instellingen.
+> Kopbeurtduur en volgorde waren gelijk; alle kopbeurt-watts lagen 9–12% lager.
+>
+> **Gemeten** (aanroepen van `POST /api/optimize` met een tweede key in de
+> lokale `.env.local`, zelfde team, intensity 0, efficiency 1):
+>
+> | `name` in `rider_overrides` | `power_300_watts` | `training_level` | tijd |
+> |---|---|---|---|
+> | ja (app tot nu) | gemeten | recreational / untrained | 39:43 |
+> | ja | 120% FTP | recreational / untrained | 39:31 |
+> | ja | geen | recreational / untrained | 39:01 |
+> | nee | gemeten | pro / elite | 38:12 |
+> | nee | 120% FTP | pro / elite | 38:12 |
+> | nee | 125% FTP | pro / elite | 37:50 |
+> | nee | geen | pro / elite | 37:45 (= de site) |
+>
+> - **Een meegestuurde naam** laat ZwiftGopher de renner lager inschalen en kost
+>   ruim een minuut. Waarom is niet bekend (server van ZwiftGopher); de teamnaam
+>   en de key zijn uitgesloten.
+> - **Zonder `power_300_watts`** rekent ZwiftGopher met exact 130% van de FTP
+>   (`speed_index_source: "ftp_fallback"`). De site doet dat altijd; hij heeft
+>   geen eigen 5-minutenvermogen.
+> - Intensity 1, 2 en 3 geven met gemeten 300s alle drie ±38:10; geen knop om
+>   het verschil mee te overbruggen.
+> - `rider_power_profiles.watts_5m` (Intervals, 90 dagen, alleen na een
+>   handmatige sync) en zMAP uit WTRL liggen bij zes van zeven nagekeken renners
+>   binnen 2% van elkaar; gemeten 5 min / FTP is 112–124%.
+>
+> **Nu.**
+> - `buildZwiftGopherPayload` stuurt voor renners met een Zwift-ID geen naam
+>   meer mee in `rider_overrides`.
+> - Het gemeten 300s-vermogen blijft meegaan (keuze van de eigenaar: de eigen
+>   data is de kracht van de app). Dat geeft voor dit team 38:12 tegen 37:45 op
+>   de site; die 27 seconden komen uit het verschil tussen gemeten en 130%.
+> - De FTP is geen terugval meer voor een onbekend 300s-vermogen, niet in het
+>   veld en niet in het verzoek. **Niet meer waar:** `riderPower300` viel terug
+>   op de FTP, en een lid zonder `watts_5m` kreeg de FTP in het 300s-veld.
+>   Zonder waarde rekent ZwiftGopher nu met zijn 130%.
+> - Hulp: één regel onder "TTT Planner en exports".
+>
+> **Gevolg voor de ronde hieronder.** De tweede poging "met eigen waarden"
+> stuurt renners als aangepaste renner, mét naam. Of ZwiftGopher die net zo
+> laag inschaalt als een renner met een naam in de override is niet gemeten;
+> ga ervan uit dat zo'n plan ruim een minuut voorzichtiger uitvalt. De planner
+> zegt dat niet.
+>
+> **Bewust niet gebouwd.**
+> - Geen eigen terugval (bijvoorbeeld 115% van de FTP) voor renners zonder
+>   meting; de eigenaar wil dicht bij ZwiftGopher blijven.
+> - Geen 5-minutenvermogen uit CP en W' (`profile_sport_settings`) of uit een
+>   langere periode dan 90 dagen. Kan de 27 seconden verkleinen als het
+>   90-dagenbeste geen maximale inspanning was; niet onderzocht.
+> - Bestaande plannen worden niet aangepast: een opgeslagen 300s gelijk aan de
+>   FTP blijft staan tot de captain hem leegmaakt of corrigeert.
+>
+> **Niet meer waar.** De privacynotitie bij "renners zonder account" noemt de
+> naam als gegeven dat naar ZwiftGopher gaat; die gaat nu alleen nog mee voor
+> een aangepaste renner. Daar bijgewerkt.
+>
+> **Niet geverifieerd.** De planner in de browser. Getest: `tsc --noEmit`,
+> ESLint, Vitest (`ttt-zwiftgopher.test.ts`, `ttt-wtrl-power.test.ts`,
+> `ttt-zwiftgopher-fallback.test.ts`).
+
+---
+
+> **TTT-planner: rekenen met eigen waarden als ZwiftGopher een Zwift-ID niet vindt, 2026-10-12 — gebouwd, lokaal getest, niet tegen ZwiftGopher gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Melding van de eigenaar, een dag voor de ZRL-TTT: Optimaliseren gaf
+> "Rider 1 (ID: …) not found - check that the Zwift ID is correct", en daarna bij
+> elk ID. ZwiftGopher zoekt renners op bij ZwiftRacing.app; op zwiftgopher.com/TTT
+> stond op dat moment dat die opzoeking door een limiet bij ZwiftRacing.app niet
+> altijd betrouwbaar is. Eén niet-gevonden ID weigert het hele plan, dus de
+> planner hing volledig af van een opzoeking bij een derde.
+>
+> **Nu** (`optimizeWithZwiftGopher`, `lib/ttt/zwiftgopher.ts`). *(Zelfde dag
+> herzien, zie "Limiet van ZwiftGopher" hieronder: de eerste versie probeerde
+> het binnen één klik opnieuw, tot drie verzoeken.)* Bij "not found" noemt de
+> planner de renner en het tijdstip waarop het weer mag. De volgende klik op
+> Optimaliseren stuurt iedereen met eigen FTP en gewicht mee als aangepaste
+> renner, met naam, FTP, gewicht en 300s uit het plan, zonder opzoeking. Dat
+> blijft zo tot de pagina opnieuw geladen wordt. Het Zwift-ID blijft in het
+> plan staan.
+> - **Lengte:** staat Cm leeg, dan rekent de planner met 175 cm
+>   (`FALLBACK_HEIGHT_CM`). Keuze van de eigenaar, die liever een aanname heeft
+>   dan vijf lengtes invullen; de 175 wordt niet in het plan opgeslagen.
+> - **Zonder FTP of gewicht** kan het niet: dan zegt de planner bij welke renner
+>   FTP en Kg ingevuld moeten worden.
+> - De foutmelding van ZwiftGopher wordt nu ook gelezen uit `error` en uit een
+>   200-antwoord met `success: false`; of ZwiftGopher die vormen gebruikt is niet
+>   gemeten.
+>
+> **Limiet van ZwiftGopher (zelfde dag, tweede commit).** Na de eerste versie
+> kreeg de eigenaar "API rate limit exceeded: 1 request per 60 seconds": de
+> sleutel mag één verzoek per minuut, dus het tweede verzoek binnen dezelfde
+> klik werd geweigerd. Opnieuw proberen binnen een klik is eruit; wachten in de
+> serveractie kan niet binnen de tijdslimiet van een functie. De melding toonde
+> ook het ruwe `X-RateLimit-Reset` (Unix-seconden); de serveractie geeft nu
+> `retryAt` terug en de planner toont dat als kloktijd in de tijdzone van de
+> bezoeker ("Optimaliseer opnieuw na 14:32:10"). Bij een 429 is de tekst
+> "ZwiftGopher staat één verzoek per minuut toe."
+>
+> **Niet meer waar.** "Of ZwiftGopher elk Zwift-ID kent; niet gemeten" in de
+> ronde hieronder: het antwoord is nee, zie hierboven.
+>
+> **Bewust niet gebouwd.** Geen eigen opzoeking van lengte (Zwift
+> `profiles/{id}` is daarvoor niet gemeten) en geen wachtrij of automatisch
+> later opnieuw proberen: de captain klikt na de genoemde tijd zelf opnieuw.
+>
+> **Niet geverifieerd.** De echte aanroep: de API-sleutel staat alleen op
+> Netlify. De vorm van de foutmelding komt uit de schermafdruk van de eigenaar.
+> Getest: `tsc --noEmit`, ESLint, Vitest (nieuw:
+> `ttt-zwiftgopher-fallback.test.ts`, 8 tests met een nagebootste API).
+
+---
+
 > **WTRL-import: uitgenodigde renners worden ook ingedeeld, 2026-10-12 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -398,8 +566,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   waarden; alleen naam en Zwift-ID.
 >
 > **Open: privacytekst.** `/privacy` noemt ZwiftGopher niet, terwijl de planner
-> er Zwift-ID, naam, FTP, gewicht en 5-minutenvermogen naartoe stuurt; sinds deze
-> ronde ook van renners zonder account. Aan de eigenaar voorgelegd, tekst nog
+> er Zwift-ID, FTP, gewicht en 5-minutenvermogen naartoe stuurt (de naam alleen
+> nog voor een aangepaste renner); sinds deze ronde ook van renners zonder
+> account. Aan de eigenaar voorgelegd, tekst nog
 > niet aangepast.
 >
 > **Niet geverifieerd.** (a) De pagina in de browser en tegen echte data: lezen

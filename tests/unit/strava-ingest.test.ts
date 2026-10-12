@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { weekStartDate } from "@/lib/strava/client";
+import { previousAchievementWeek, weekStartDate } from "@/lib/strava/client";
 import {
   activityRowFromDetail,
   RAW_DETAIL_DROP_KEYS,
@@ -154,6 +154,11 @@ describe("weekStartDate", () => {
         expect(week("2026-09-06T23:59:59Z")).toBe("2026-08-31");
         expect(week("2026-09-07T00:00:00Z")).toBe("2026-09-07");
         expect(week("2026-09-07T03:00:00Z")).toBe("2026-09-07");
+      });
+
+      it("geeft voor de vorige week de maandag zeven dagen eerder", () => {
+        expect(previousAchievementWeek(new Date("2026-09-05T06:12:00Z"))).toBe("2026-08-24");
+        expect(previousAchievementWeek(new Date("2026-09-07T00:00:00Z"))).toBe("2026-08-31");
       });
     });
   }

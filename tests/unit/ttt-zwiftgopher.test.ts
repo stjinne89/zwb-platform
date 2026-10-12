@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyZwiftGopherResult } from "@/lib/ttt/zwiftgopher";
-import { tttMaxRiders, type TttPlanRiderInput } from "@/lib/ttt/types";
+import { applyZwiftGopherResult, buildZwiftGopherPayload } from "@/lib/ttt/zwiftgopher";
+import {
+  DEFAULT_TTT_SETTINGS,
+  tttMaxRiders,
+  type TttPlanInput,
+  type TttPlanRiderInput,
+} from "@/lib/ttt/types";
 
 function rider(patch: Partial<TttPlanRiderInput>): TttPlanRiderInput {
   return {
@@ -71,6 +76,42 @@ describe("kopbeurten en volgorde uit ZwiftGopher", () => {
     expect(res.applied).toBe(0);
     expect(res.riders).toEqual(riders);
     expect(applyZwiftGopherResult(riders, null).riders).toEqual(riders);
+  });
+});
+
+describe("verzoek aan ZwiftGopher", () => {
+  const plan: TttPlanInput = {
+    name: "Test",
+    eventId: null,
+    parentTeamId: "team",
+    teamId: null,
+    settings: DEFAULT_TTT_SETTINGS,
+    riders: [
+      rider({ zwiftId: "111", name: "Anna", displayOrder: 0 }),
+      rider({ zwiftId: "222", name: "Bram", power300Watts: null, displayOrder: 1 }),
+      rider({ isManual: true, name: "Gast 1", power300Watts: null, displayOrder: 2 }),
+    ],
+  };
+
+  it("stuurt het gemeten 300s-vermogen mee en geen naam", () => {
+    const payload = buildZwiftGopherPayload(plan);
+
+    expect(payload.riders).toEqual([111, 222]);
+    expect(payload.rider_overrides?.["111"]).toEqual({
+      ftp: 250,
+      weight: 75,
+      height: 180,
+      power_300_watts: 320,
+    });
+  });
+
+  it("vult een onbekend 300s-vermogen niet met de FTP", () => {
+    const payload = buildZwiftGopherPayload(plan);
+
+    expect(payload.rider_overrides?.["222"]).toEqual({ ftp: 250, weight: 75, height: 180 });
+    expect(payload.custom_riders).toEqual([
+      { name: "Gast 1", ftp: 250, weight: 75, height: 180 },
+    ]);
   });
 });
 
