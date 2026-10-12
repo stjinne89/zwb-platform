@@ -49,7 +49,7 @@ export function TegelsShell({
           <div className="flex items-center gap-2">{actions}</div>
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-5 md:pb-10">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-10 pt-5">{children}</main>
       <TegelsTabs position="bottom" />
       {after}
     </div>

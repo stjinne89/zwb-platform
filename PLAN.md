@@ -289,6 +289,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   de eerstvolgende training, ook als die niet vandaag is.
 > - *Club.* voorZpWelBokaal is de brede tegel geworden in plaats van ZWBlokken;
 >   de naam paste op de telefoon niet op een smalle tegel.
+> - *Tabbalk op de iPhone (nog niet op main).* De eigenaar meldde dat de balk
+>   op de iPhone midden in de pagina bleef hangen en met de inhoud meeschoof.
+>   De balk was `position: fixed`; hij is nu `sticky` met `bottom: 0` als
+>   laatste kind van de schil. De oorzaak op iOS is niet vastgesteld. Getest in
+>   de telefoonweergave van de browser (plakt op elke scrollpositie onderaan);
+>   **niet getest op een echte iPhone.**
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

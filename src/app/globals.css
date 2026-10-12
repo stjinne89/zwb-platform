@@ -592,8 +592,11 @@ a.tg-row:focus-visible,
   }
 }
 .tg-tabs-bottom {
-  position: fixed;
-  inset: auto 0 0 0;
+  /* Sticky in plaats van fixed: op de iPhone bleef een fixed balk in de pagina
+     hangen en schoof hij met de inhoud mee. De balk is het laatste kind van de
+     schil en plakt zo aan de onderkant van het scherm. */
+  position: sticky;
+  bottom: 0;
   z-index: 40;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
