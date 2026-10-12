@@ -205,6 +205,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   rennerstabel op `/teams` ging daarmee van 1300 naar 1154px breed in een
 >   kolom van 958px, dus hij scrolt nog steeds iets zijwaarts. Een paginakop met
 >   knoppen ernaast overlapte de titel; dat is verholpen.
+> - *Vermogenscurve inklapbaar.* In de rennerstabel (`team-roster-table.tsx`)
+>   klapt een knop de kolommen 15s t/m 20m in en uit; FTP, zFTP en zMAP blijven
+>   staan. In het design "tegels" begint de tabel ingeklapt (`curveCollapsed`
+>   vanuit `/teams`) en past hij dan zonder zijwaarts scrollen. **De knop staat
+>   ook in het huidige design**, daar begint de tabel uitgeklapt zoals voorheen.
+>   De tabel op `/teams/[id]` krijgt de knop ook, maar begint uitgeklapt.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

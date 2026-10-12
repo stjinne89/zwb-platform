@@ -107,10 +107,15 @@ function syncedLabel(value: string | null | undefined) {
 export function TeamRosterTable({
   rows,
   teams,
+  curveCollapsed = false,
 }: {
   rows: TeamRosterRow[];
   teams: TeamOption[];
+  /** Begin met de vermogenscurve (15s t/m 20m) ingeklapt; FTP, zFTP en zMAP
+   * blijven staan. Het design "tegels" zet dit aan. */
+  curveCollapsed?: boolean;
 }) {
+  const [showCurve, setShowCurve] = useState(!curveCollapsed);
   const [query, setQuery] = useState("");
   const [teamId, setTeamId] = useState("");
   const [category, setCategory] = useState("");
@@ -150,6 +155,16 @@ export function TeamRosterTable({
         </div>
         <div className="flex items-center gap-2">
         <PowerUnitToggle />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="hidden sm:inline-flex"
+          aria-expanded={showCurve}
+          onClick={() => setShowCurve((shown) => !shown)}
+        >
+          {showCurve ? "Vermogenscurve verbergen" : "Vermogenscurve tonen"}
+        </Button>
         {hasFilters && (
           <Button
             type="button"
@@ -287,19 +302,23 @@ export function TeamRosterTable({
       </ul>
 
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[1300px] text-sm">
+        <table className={`w-full text-sm ${showCurve ? "min-w-[1300px]" : "min-w-[820px]"}`}>
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
               <SortableHeader label="Renner" sortKey="name" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="Teams" sortKey="teams" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="Profiel" sortKey="profile" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="15s" sortKey="15s" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="30s" sortKey="30s" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="1m" sortKey="1m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="2m" sortKey="2m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="5m" sortKey="5m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="10m" sortKey="10m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="20m" sortKey="20m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              {showCurve && (
+                <>
+                  <SortableHeader label="15s" sortKey="15s" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="30s" sortKey="30s" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="1m" sortKey="1m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="2m" sortKey="2m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="5m" sortKey="5m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="10m" sortKey="10m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="20m" sortKey="20m" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+                </>
+              )}
               <SortableHeader label="FTP" sortKey="ftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="zFTP" sortKey="zftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="zMAP" sortKey="zmap" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
@@ -344,13 +363,17 @@ export function TeamRosterTable({
                   <td className="py-2 pr-3 align-top">
                     {riderTypeLabel(power?.riderType)}
                   </td>
-                  <PowerCell unit={unit} watts={power?.watts15s} wkg={power?.wkg15s} />
-                  <PowerCell unit={unit} watts={power?.watts30s} wkg={power?.wkg30s} />
-                  <PowerCell unit={unit} watts={power?.watts1m} wkg={power?.wkg1m} />
-                  <PowerCell unit={unit} watts={power?.watts2m} wkg={power?.wkg2m} />
-                  <PowerCell unit={unit} watts={power?.watts5m} wkg={power?.wkg5m} />
-                  <PowerCell unit={unit} watts={power?.watts10m} wkg={power?.wkg10m} />
-                  <PowerCell unit={unit} watts={power?.watts20m} wkg={power?.wkg20m} />
+                  {showCurve && (
+                    <>
+                      <PowerCell unit={unit} watts={power?.watts15s} wkg={power?.wkg15s} />
+                      <PowerCell unit={unit} watts={power?.watts30s} wkg={power?.wkg30s} />
+                      <PowerCell unit={unit} watts={power?.watts1m} wkg={power?.wkg1m} />
+                      <PowerCell unit={unit} watts={power?.watts2m} wkg={power?.wkg2m} />
+                      <PowerCell unit={unit} watts={power?.watts5m} wkg={power?.wkg5m} />
+                      <PowerCell unit={unit} watts={power?.watts10m} wkg={power?.wkg10m} />
+                      <PowerCell unit={unit} watts={power?.watts20m} wkg={power?.wkg20m} />
+                    </>
+                  )}
                   <PowerCell unit={unit} watts={power?.ftpWatts ?? row.ftpWatts} wkg={power?.ftpWkg} />
                   <td className="py-2 pr-3 align-top tabular-nums">
                     {row.wtrl ? (

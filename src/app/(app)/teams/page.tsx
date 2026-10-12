@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getDesign } from "@/lib/design";
 import { Activity, ArrowRight, LinkIcon, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -123,6 +124,7 @@ function TeamToolLink({ href, label }: { href: string; label: string }) {
 }
 
 export default async function TeamsPage() {
+  const tegels = (await getDesign()) === "tegels";
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -369,7 +371,7 @@ export default async function TeamsPage() {
         </div>
       </section>
 
-      <TeamRosterTable rows={rows} teams={teamOptions} />
+      <TeamRosterTable rows={rows} teams={teamOptions} curveCollapsed={tegels} />
     </div>
   );
 }
