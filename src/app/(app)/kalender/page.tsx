@@ -567,6 +567,7 @@ export default async function KalenderPage({
             key: `birthday-${birthday.id}-${birthday.year}`,
             href: `/verjaardagen/${birthday.id}?jaar=${birthday.year}`,
             color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" },
+            image: birthday.avatarUrl,
             ...dayOf(new Date(`${birthday.dateKey}T12:00:00Z`), "UTC"),
             title: `Verjaardag van ${birthday.displayName}`,
           };

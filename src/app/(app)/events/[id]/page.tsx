@@ -434,7 +434,14 @@ export default async function EventDetailPage({
   // De opstelling die de captain op de raceweek maakt (teampagina van de
   // paraplu of van een subteam) hoort ook op de race van het subteam te staan.
   // Een raceweek toont hem per team, een race alleen die van zijn eigen team.
-  const lineupEventIds = [id, event.parent_event_id].filter(Boolean) as string[];
+  // Een hoofdteam zonder subteams (ZRL A, ZRL C) maakt zijn opstelling op zijn
+  // eigen teamevent in plaats van op de raceweek; op de raceweek tellen de
+  // teamevents daarom mee, zodat die teams hun renners net zo tonen als B1 en B2.
+  const lineupEventIds = [
+    id,
+    event.parent_event_id,
+    ...(isParentEvent ? subEvents.map((sub) => sub.id) : []),
+  ].filter(Boolean) as string[];
   const { data: lineupRows } =
     isParentEvent || (event.type === "zrl" && event.team_id)
       ? await supabase

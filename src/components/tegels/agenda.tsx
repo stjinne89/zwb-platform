@@ -11,6 +11,8 @@ export type AgendaRow = {
   /** Kleur van het dagvak: de afgesproken eventkleur, teal voor een eigen
    * training, goud voor een verjaardag. */
   color: { bg: string; ink: string };
+  /** Foto als achtergrond van het dagvak, in plaats van de kleur (verjaardag). */
+  image?: string | null;
   /** Twee letters, bijvoorbeeld "di". */
   day: string;
   dayNumber: string;
@@ -31,7 +33,16 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
         className={past ? "tg-row tg-row-past" : "tg-row"}
         style={{ "--row-bg": row.color.bg, "--row-ink": row.color.ink } as CSSProperties}
       >
-        <span className="tg-row-day">
+        <span
+          className={row.image ? "tg-row-day tg-row-day-photo" : "tg-row-day"}
+          style={
+            row.image
+              ? {
+                  backgroundImage: `linear-gradient(rgb(0 0 0 / 0.38), rgb(0 0 0 / 0.38)), url("${row.image}")`,
+                }
+              : undefined
+          }
+        >
           {row.day}
           <b>{row.dayNumber}</b>
         </span>

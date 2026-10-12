@@ -234,6 +234,13 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   Kleine koppen in hoofdletters (`h2` met `uppercase`) zijn in het hele
 >   design gewone sectiekoppen geworden. De blokken eronder (Raceinfo, Teams,
 >   uitslag, foto's) hebben alleen de patroonvertaling.
+> - *Opstelling van hoofdteams op de raceweek (beide designs).* Een team zonder
+>   subteams (ZRL A, ZRL C) slaat zijn opstelling op zijn eigen teamevent op,
+>   niet op de raceweek; de raceweekpagina las alleen de raceweek en toonde bij
+>   die teams dus geen renners. `lineupEventIds` neemt nu ook de teamevents mee.
+>   Gezien op productiedata: A en C tonen hun vijf renners, net als B1 en B2.
+> - *Verjaardag in de kalender.* Het dagvak toont de profielfoto van het lid
+>   met een donkere waas; zonder foto blijft het goud.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

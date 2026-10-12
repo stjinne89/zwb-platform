@@ -910,3 +910,12 @@ a.tg-row:focus-visible,
   letter-spacing: -0.01em;
   color: var(--foreground);
 }
+
+/* Verjaardag: de profielfoto vult het dagvak, met een donkere waas zodat de
+   datum leesbaar blijft. Zonder foto blijft het dagvak goud. */
+.tg-row-day-photo {
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
