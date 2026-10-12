@@ -91,6 +91,68 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **Design "tegels" als proefversie achter een schakelaar, 2026-10-12 — gebouwd, lokaal getest met voorbeelddata, niet met echte data gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar koos uit een reeks schetsen de richting "Tenuetegels"
+> (bestuursvoorstel: https://claude.ai/artifact/PQRJUh3jU8D3KQFgBuKF91) en wil
+> die met eigen data zien voordat hij live gaat.
+>
+> **De schakelaar.** Cookie `zwb-design=tegels` per browser, en alleen voor wie
+> `roles.manage_permissions` heeft (`lib/design.ts`). Een lid dat het cookie zelf
+> zet, houdt het huidige design. De knop staat onderaan elke pagina, alleen
+> zichtbaar voor wie het mag. Uit = alles zoals het was.
+>
+> **Nu, alleen met de schakelaar aan.**
+> - Schil (`_components/tegels-shell.tsx`): het originele logo
+>   (`public/zwb-logo.png`; in donker op een licht plaatje met gouden rand), en
+>   vijf plekken in tenuekleur: Vandaag, Kalender, ZWBeter, Club, Meer. Onderin
+>   op de telefoon, bovenin op een breed scherm. Welke route bij welke plek
+>   hoort staat in `lib/design-places.ts`.
+> - Vandaag (`/dashboard`): bovenaan tegels voor de eerstvolgende training,
+>   twee clubraces, twee andere events en de laatste teamstand. De blokken
+>   Clubraces, Teams en scorebord, Aankomende events en Ritverslagen vallen dan
+>   weg; de rest van het dashboard staat er ongewijzigd onder.
+> - Kalender: events, verjaardagen en de eigen trainingen
+>   (`training_workouts`) in één lijst, met de voorbije events van de laatste
+>   30 dagen erboven. De filters zijn dezelfde.
+> - Nieuwe pagina's `/club` en `/meer` als tegelveld. Ze bestaan ook met de
+>   schakelaar uit, maar er linkt dan niets naartoe.
+> - Alle andere pagina's krijgen alleen de nieuwe schil, kleuren, hoeken,
+>   lettertype (Albert Sans) en paginakop via CSS binnen
+>   `[data-design="tegels"]` in `globals.css`.
+>
+> **Menubesluiten van de eigenaar, in dit design verwerkt.** Community vervalt
+> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer, dus alleen
+> voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
+> ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
+> staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
+> onder Club en Samen fietsen bij de kalender (invulling van de bouwer, niet
+> bevestigd).
+>
+> **Bewust niet gebouwd.**
+> - Aan- en afmelden op een tegel, "nog 1 renner nodig" en het intervalprofiel
+>   in de trainingstegel, zoals in de schets: die data haalt het dashboard nu
+>   niet op.
+> - Uitslag, deelnemers en foto's bij een voorbij event in de kalender; er
+>   staat alleen "geweest" en de locatie.
+> - Het herontwerpen van de overige pagina's, en dialogen en dropdowns: die
+>   renderen buiten de schil en houden de oude tokens.
+> - `DESIGN.md` beschrijft nog het huidige design; herschrijven als "tegels"
+>   de standaard wordt.
+>
+> **Hulpmiddel.** `/ontwerp-voorbeeld` toont het design met voorbeelddata zonder
+> login; alleen bij lokaal ontwikkelen (`notFound()` in productie, en de
+> middleware laat het pad alleen buiten productie door).
+>
+> **Niet geverifieerd.** Ingelogd met echte data: dashboard, kalender, `/club`,
+> `/meer` en de schakelaar zelf. Gezien in de browser: alleen
+> `/ontwerp-voorbeeld` (telefoon licht en donker, breed scherm licht). Getest:
+> `tsc --noEmit`, ESLint op de gewijzigde bestanden, `npm run test` (2073
+> geslaagd), `design-places.test.ts`. `npm run build` is niet gedraaid.
+
+---
+
 > **PRODUCT.md: productcontext voor ontwerpwerk, 2026-10-12 — alleen documentatie.**
 > Commit: de commit die dit blok toevoegt. Geen migratie, geen code.
 >

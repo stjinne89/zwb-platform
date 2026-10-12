@@ -15,6 +15,9 @@ import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
 import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
+import { TegelsShell } from "./_components/tegels-shell";
+import { DesignSwitch } from "./_components/design-switch";
+import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
 
 /**
  * Ongeclaimde ledenlijst-regels die op de naam van dit lid lijken en een
@@ -91,6 +94,33 @@ export default async function AppLayout({
     (profile?.sex as string | null) ?? null,
   );
 
+  const canPreviewDesign = access.has(DESIGN_PREVIEW_PERMISSION);
+  const design = await getDesign();
+
+  if (design === "tegels") {
+    return (
+      <TegelsShell
+        before={<NavProgress />}
+        back={<BackButton />}
+        actions={
+          <>
+            <AvatarMenu displayName={displayName} adminItems={adminItems} />
+            <ThemeToggle />
+          </>
+        }
+        after={
+          <>
+            {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
+            {needsZwiftId && <ZwiftIdDialog claims={claims} />}
+          </>
+        }
+      >
+        {children}
+        <DesignSwitch design={design} />
+      </TegelsShell>
+    );
+  }
+
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <NavProgress />
@@ -126,7 +156,10 @@ export default async function AppLayout({
           </div>
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
+        {children}
+        {canPreviewDesign && <DesignSwitch design={design} />}
+      </main>
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
     </div>

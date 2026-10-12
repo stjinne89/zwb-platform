@@ -73,6 +73,8 @@ import { hasActivityScope } from "@/lib/strava/scope";
 import { plannedWorkoutIntensity } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { getDesign } from "@/lib/design";
+import { TegelsVandaag, type VandaagEvent } from "@/components/tegels/vandaag";
 
 const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
@@ -770,6 +772,42 @@ export default async function DashboardPage({
   const canSyncStrava =
     hasActivityScope(strava?.scope ?? null) && (rideStatus?.stravaActive ?? true);
 
+  // Design "tegels" (achter de schakelaar, lib/design.ts): dezelfde data, bovenaan
+  // als tegels. Clubraces, scorebord en aankomende events staan dan in de tegels
+  // en in de kalender; ritverslagen vervalt daar als los blok.
+  const tegels = (await getDesign()) === "tegels";
+  const amsterdam = { timeZone: "Europe/Amsterdam" } as const;
+  const dayKeyOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", amsterdam);
+  // eslint-disable-next-line react-hooks/purity
+  const tomorrowKey = dayKeyOf(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+  const whenLabel = (iso: string) => {
+    const key = dayKeyOf(iso);
+    if (key === todayKey) return "vandaag";
+    if (key === tomorrowKey) return "morgen";
+    return new Date(iso).toLocaleDateString("nl-NL", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      ...amsterdam,
+    });
+  };
+  const toTile = (event: UpcomingEvent, place: VandaagEvent["place"]): VandaagEvent => ({
+    id: event.id,
+    title: event.title,
+    when: whenLabel(event.start_at),
+    time: new Date(event.start_at).toLocaleTimeString("nl-NL", {
+      hour: "2-digit",
+      minute: "2-digit",
+      ...amsterdam,
+    }),
+    place,
+  });
+  const tileEvents = [
+    ...clubRaces.slice(0, 2).map((event) => toTile(event, "kalender")),
+    ...otherEvents.slice(0, 2).map((event) => toTile(event, "club")),
+  ];
+  const tileStanding = standings[0] ?? null;
+
   function eventList(events: UpcomingEvent[]) {
     return (
       <ul className="divide-y rounded-lg border bg-card">
@@ -817,10 +855,47 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow={<Greeting name={firstName || null} serverHour={amsterdamHour()} />}
-        title="Welkom thuis op ZWBasis"
-      />
+      {tegels ? (
+        <TegelsVandaag
+          weekday={new Date().toLocaleDateString("nl-NL", { weekday: "long", ...amsterdam })}
+          date={new Date().toLocaleDateString("nl-NL", {
+            day: "numeric",
+            month: "long",
+            ...amsterdam,
+          })}
+          workout={
+            nextWorkout
+              ? {
+                  title: nextWorkout.title,
+                  when: whenLabel(nextWorkout.scheduled_at),
+                  meta: [
+                    nextWorkout.duration_minutes ? `${nextWorkout.duration_minutes} min` : null,
+                    nextWorkout.intensityLabel ?? null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
+                }
+              : null
+          }
+          events={tileEvents}
+          standing={
+            tileStanding && tileStanding.position
+              ? {
+                  href: tileStanding.href,
+                  team: tileStanding.team.name,
+                  competition: tileStanding.competition,
+                  position: tileStanding.position,
+                  totalTeams: tileStanding.total_teams ?? null,
+                }
+              : null
+          }
+        />
+      ) : (
+        <PageHeader
+          eyebrow={<Greeting name={firstName || null} serverHour={amsterdamHour()} />}
+          title="Welkom thuis op ZWBasis"
+        />
+      )}
 
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
           worden, maar dan moet het ergens zichtbaar blijven. */}
@@ -869,7 +944,7 @@ export default async function DashboardPage({
 
       {user?.id && <MaintenanceStatus profileId={user.id} />}
 
-      {clubRaces.length > 0 && (
+      {!tegels && clubRaces.length > 0 && (
         <section>
           <SectionHeader
             icon={Flag}
@@ -880,7 +955,7 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {standings.length > 0 && (
+      {!tegels && standings.length > 0 && (
         <section>
           <SectionHeader
             icon={Trophy}
@@ -936,6 +1011,7 @@ export default async function DashboardPage({
         <SrcResults userId={user?.id ?? null} />
       </Suspense>
 
+      {!tegels && (
       <section>
         <SectionHeader
           icon={CalendarDays}
@@ -948,6 +1024,7 @@ export default async function DashboardPage({
           eventList(otherEvents)
         )}
       </section>
+      )}
 
       {mediaItems.length > 0 && (
         <section>
@@ -999,7 +1076,7 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {shownReports.length > 0 && (
+      {!tegels && shownReports.length > 0 && (
         <section>
           <SectionHeader
             icon={Camera}

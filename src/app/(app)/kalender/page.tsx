@@ -5,12 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { EmptyState, PageHeader } from "@/components/app-ui";
+import { getDesign } from "@/lib/design";
+import { TegelsAgenda, type AgendaRow } from "@/components/tegels/agenda";
 import { Button } from "@/components/ui/button";
 import {
   EVENT_KINDS,
   EVENT_TYPES,
   eventColorStyle,
   eventTypeColor,
+  CLUB_RACE_TYPES,
 } from "@/lib/event-types";
 import {
   BIRTHDAY_FILTER,
@@ -442,19 +445,7 @@ export default async function KalenderPage({
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Kalender"
-        actions={
-          canCreateEvents ? (
-            <Link href="/kalender/nieuw">
-              <Button>Nieuw event</Button>
-            </Link>
-          ) : null
-        }
-      />
-
+  const filterNav = (
       <nav className="flex flex-wrap items-center gap-2" aria-label="Kalenderfilter">
         {user && (
           <>
@@ -512,6 +503,152 @@ export default async function KalenderPage({
           </>
         )}
       </nav>
+  );
+
+  // Design "tegels" (achter de schakelaar, lib/design.ts): events en de eigen
+  // trainingen in één lijst, met wat geweest is erboven. Ritverslagen vervalt
+  // daar als los onderdeel; een voorbij event open je vanuit deze lijst.
+  if ((await getDesign()) === "tegels") {
+    const zone = { timeZone: "Europe/Amsterdam" } as const;
+    const dayOf = (date: Date, timeZone: string = zone.timeZone) => ({
+      day: date.toLocaleDateString("nl-NL", { weekday: "short", timeZone }).slice(0, 2),
+      dayNumber: date.toLocaleDateString("nl-NL", { day: "numeric", timeZone }),
+    });
+    const timeOf = (iso: string) =>
+      new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", ...zone });
+
+    const { data: workoutRows } = user
+      ? await supabase
+          .from("training_workouts")
+          .select("id, title, scheduled_at, duration_minutes")
+          .is("superseded_at", null)
+          .eq("profile_id", user.id)
+          .gte("scheduled_at", `${todayKey}T00:00:00`)
+          .order("scheduled_at", { ascending: true })
+          .limit(21)
+      : { data: null };
+
+    const pastRows: AgendaRow[] = topLevel
+      .filter((event) => lastDayOf(event) < todayKey)
+      .slice(-5)
+      .map((event) => ({
+        key: `past-${event.id}`,
+        href: `/events/${event.id}`,
+        place: "club",
+        ...dayOf(new Date(event.start_at)),
+        title: event.title,
+        sub: ["geweest", event.location].filter(Boolean).join(" · "),
+      }));
+
+    const upcomingRows: Array<AgendaRow & { sortKey: string }> = [
+      ...calendarItems.map((item) => {
+        if (item.kind === "birthday") {
+          const birthday = item.birthday;
+          return {
+            sortKey: item.sortKey,
+            key: `birthday-${birthday.id}-${birthday.year}`,
+            href: `/verjaardagen/${birthday.id}?jaar=${birthday.year}`,
+            place: "vandaag" as const,
+            ...dayOf(new Date(`${birthday.dateKey}T12:00:00Z`), "UTC"),
+            title: `Verjaardag van ${birthday.displayName}`,
+          };
+        }
+        const event = item.event;
+        const yesCount = (yesRidersByEvent.get(event.id) ?? []).length;
+        const subEvents = childrenByParent.get(event.id) ?? [];
+        return {
+          sortKey: item.sortKey,
+          key: `event-${event.id}`,
+          href: `/events/${event.id}`,
+          place: CLUB_RACE_TYPES.includes(event.type) ? ("kalender" as const) : ("club" as const),
+          ...dayOf(new Date(event.start_at)),
+          title: event.title,
+          sub: [
+            event.location,
+            event.distance_km ? `${event.distance_km} km` : null,
+            yesCount > 0 ? `${yesCount} ${yesCount === 1 ? "gaat" : "gaan"} mee` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          time: timeOf(event.start_at),
+          extra:
+            subEvents.length > 0
+              ? subEvents.map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={`/events/${sub.id}`}
+                    className="inline-flex min-h-9 items-center border bg-card px-3 text-xs font-medium hover:bg-muted"
+                  >
+                    {subEventLabel(sub.title, event.title)}
+                  </Link>
+                ))
+              : undefined,
+        };
+      }),
+      ...(workoutRows ?? []).map((workout) => ({
+        sortKey:
+          `${amsterdamDateKey(new Date(workout.scheduled_at))}|` +
+          `${workout.scheduled_at}|training|${workout.id}`,
+        key: `training-${workout.id}`,
+        href: "/zwbeter-worden/schema",
+        place: "zwbeter" as const,
+        ...dayOf(new Date(workout.scheduled_at)),
+        title: workout.title as string,
+        sub: ["training", workout.duration_minutes ? `${workout.duration_minutes} min` : null]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    ].sort((x, y) => x.sortKey.localeCompare(y.sortKey));
+
+    return (
+      <div className="space-y-4">
+        <header className="flex items-end justify-between gap-3">
+          <h1 className="tg-display">Kalender</h1>
+          <div className="flex items-center gap-2 pb-1">
+            <Link
+              href="/samen-fietsen"
+              className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground hover:text-primary"
+            >
+              Samen fietsen
+            </Link>
+            {canCreateEvents && (
+              <Link href="/kalender/nieuw">
+                <Button>Nieuw event</Button>
+              </Link>
+            )}
+          </div>
+        </header>
+        {filterNav}
+        {(olderTopLevelCount ?? 0) > 0 && (
+          <p className="text-sm">
+            <Link href="/ritverslagen" className="font-medium text-muted-foreground hover:text-primary">
+              Ouder ({olderTopLevelCount})
+            </Link>
+          </p>
+        )}
+        <TegelsAgenda
+          past={pastRows}
+          upcoming={upcomingRows}
+          empty="Geen aankomende events of trainingen."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Kalender"
+        actions={
+          canCreateEvents ? (
+            <Link href="/kalender/nieuw">
+              <Button>Nieuw event</Button>
+            </Link>
+          ) : null
+        }
+      />
+
+      {filterNav}
 
       {calendarItems.length === 0 ? (
         <EmptyState>
