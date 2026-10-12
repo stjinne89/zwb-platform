@@ -91,6 +91,69 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **TTT-planner: renners zonder account, met vermogen uit WTRL, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar: kunnen we via het Zwift-ID de gegevens van
+> leden ophalen? Nog niet geregistreerde leden blijven zonder gegevens, en dat
+> maakt een TTT-plan lastig. De planner laadde alleen leden met een profiel; een
+> renner zonder account moest als "Gast", met FTP, gewicht en lengte met de hand.
+>
+> **Antwoord op de vraag.** Zwift zelf geeft via een Zwift-ID te weinig (gemeten
+> 2026-09-22, zie "zFTP, zMAP en divisieadvies per renner uit WTRL"): van een
+> ander alleen categorie, racing score en de in-game FTP, geen zFTP, zMAP of
+> vermogenscurve. Wat de planner nodig heeft staat al in ZWB: de WTRL-plak
+> (`wtrl_team_riders`) heeft per Zwift-ID zFTP in watt en W/kg en zMAP in W/kg,
+> ook van renners zonder account, en ZwiftGopher zoekt een renner zelf op als hij
+> met zijn Zwift-ID wordt aangeboden.
+>
+> **Nu.**
+> - De lijst "Teamleden" in de planner toont ook de ongeclaimde rosternamen van
+>   het team, met "niet geregistreerd". Een rosternaam met hetzelfde Zwift-ID als
+>   een lid in de lijst blijft weg.
+> - FTP = zFTP, gewicht = zFTP W / zFTP W/kg (op 0,1 kg), 300s = zMAP W/kg ×
+>   dat gewicht (`lib/ttt/wtrl-power.ts`). zMAP dient dus als schatting van het
+>   5-minutenvermogen.
+> - Een lid mét account dat zelf geen FTP, gewicht of 5-minutenvermogen heeft,
+>   krijgt dezelfde WTRL-waarden als terugval. Eigen waarden gaan altijd voor.
+> - Een renner zonder account gaat met zijn Zwift-ID naar ZwiftGopher (geen
+>   lengte nodig). Zonder Zwift-ID blijft hij een aangepaste renner en vraagt
+>   Optimaliseren om FTP, gewicht en lengte, zoals bij een gast.
+> - De opstelling van het event neemt rosterregels mee: een plan vanaf de
+>   racepagina staat klaar met alle opgestelde renners, en "lineup" staat ook bij
+>   renners zonder account.
+> - Een rosternaam hoort bij één team (bekende beperking van `0181`); de planner
+>   telt daarnaast de ZWB-teams mee waar het Zwift-ID via WTRL in staat, zodat
+>   een renner die bij WTRL in B1 én B2 staat bij beide te kiezen is.
+>
+> **Niet meer waar.** "De TTT-planner slaat rosterregels over (geen
+> vermogensprofiel)" in de ronde "Renners zonder account in de opstelling"
+> (2026-09-22); daar bijgewerkt.
+>
+> **Bewust niet gebouwd.**
+> - In-game FTP en racing score uit Zwift ophalen per Zwift-ID: voegt naast WTRL
+>   weinig toe, kost een sync en een nieuwe gegevensbron in de privacytekst.
+> - Een kolom `roster_entry_id` op `ttt_plan_riders`: een planregel zonder
+>   profiel wordt herkend aan Zwift-ID, anders aan naam. Claimt de renner later
+>   zijn naam, dan blijft de regel in een bestaand plan zonder profiel staan.
+> - Renners buiten de WTRL-plak (ladder, gasten) krijgen geen voorgevulde
+>   waarden; alleen naam en Zwift-ID.
+>
+> **Open: privacytekst.** `/privacy` noemt ZwiftGopher niet, terwijl de planner
+> er Zwift-ID, naam, FTP, gewicht en 5-minutenvermogen naartoe stuurt; sinds deze
+> ronde ook van renners zonder account. Aan de eigenaar voorgelegd, tekst nog
+> niet aangepast.
+>
+> **Niet geverifieerd.** (a) De pagina in de browser en tegen echte data: lezen
+> van `roster_entries`, `wtrl_teams` en `wtrl_team_riders` door een captain
+> zonder beheerrecht. (b) Of ZwiftGopher elk Zwift-ID kent; niet gemeten om hun
+> daglimiet te sparen. Getest: `tsc --noEmit`, ESLint op de gewijzigde mappen,
+> Vitest (nieuw: `ttt-wtrl-power.test.ts`, 4 tests). In de volledige suite faalt
+> in deze worktree `omnium-live.test.ts` op een ontbrekende `.env.local`; dat
+> staat los van deze ronde.
+
+---
+
 > **Lange ritten: cadans, golvend en alles kan, 2026-10-11 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0228_workout_library_long_rides_cadence.sql` (**nog toepassen**, na `0227`).
@@ -4128,7 +4191,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > profiel in dezelfde raceweek al zelf opgesteld, dan wint die regel.
 > `convert_zrl_umbrella_races` (0179) neemt rosterregels mee: de oude versie kende
 > alleen profielen en zou op de nieuwe check stuklopen zodra een team een eerste
-> subteam krijgt. De TTT-planner slaat rosterregels over (geen vermogensprofiel).
+> subteam krijgt. De TTT-planner sloeg rosterregels toen over (geen
+> vermogensprofiel); sinds 2026-10-12 neemt hij ze mee, met vermogen uit WTRL.
 >
 > **Niet lokaal te verifiëren:** migratie en claimen tegen echte data. Getest: `tsc`,
 > ESLint, de volledige unit-suite.

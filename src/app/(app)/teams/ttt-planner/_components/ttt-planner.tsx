@@ -40,7 +40,9 @@ export type PlannerEvent = {
 };
 
 export type PlannerRider = {
+  /** Profiel-id, of `roster:<id>` bij een renner zonder account. */
   id: string;
+  unregistered: boolean;
   name: string;
   zwiftId: string | null;
   zrlCategory: string | null;
@@ -88,7 +90,7 @@ function n(value: number | null | undefined, digits = 0) {
 
 function toInputRider(rider: PlannerRider, displayOrder: number): TttPlanRiderInput {
   return {
-    profileId: rider.id,
+    profileId: rider.unregistered ? null : rider.id,
     isManual: false,
     zwiftId: rider.zwiftId ?? "",
     name: rider.name,
@@ -102,6 +104,18 @@ function toInputRider(rider: PlannerRider, displayOrder: number): TttPlanRiderIn
     role: null,
     notes: null,
   };
+}
+
+/** Staat deze renner zonder account al in het plan? Op Zwift-ID, anders op naam. */
+function inPlan(rider: PlannerRider, planRiders: TttPlanRiderInput[]) {
+  const name = rider.name.trim().toLowerCase();
+  return planRiders.some(
+    (row) =>
+      !row.profileId &&
+      (rider.zwiftId
+        ? row.zwiftId.trim() === rider.zwiftId
+        : row.name.trim().toLowerCase() === name),
+  );
 }
 
 function defaultPlan(teams: PlannerTeam[]): TttPlanInput {
@@ -241,7 +255,9 @@ export function TttPlanner({
     const selectedIds = new Set(raceRiders.map((rider) => rider.profileId).filter(Boolean));
     return riders
       .filter((rider) => rider.teamIds.some((id) => ids.has(id)))
-      .filter((rider) => !selectedIds.has(rider.id))
+      .filter((rider) =>
+        rider.unregistered ? !inPlan(rider, raceRiders) : !selectedIds.has(rider.id),
+      )
       .sort((a, b) => {
         const aLineup = eventId && a.lineupEventIds.includes(eventId) ? 0 : 1;
         const bLineup = eventId && b.lineupEventIds.includes(eventId) ? 0 : 1;
@@ -524,6 +540,7 @@ export function TttPlanner({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{rider.name}</p>
                     <p className="text-xs text-muted-foreground">
+                      {rider.unregistered ? "niet geregistreerd - " : ""}
                       {rider.zrlCategory ? `Cat ${rider.zrlCategory} - ` : ""}
                       FTP {rider.ftpWatts ?? "-"}w - 5m {rider.watts5m ?? "-"}w
                       {eventId && rider.lineupEventIds.includes(eventId) ? " - lineup" : ""}

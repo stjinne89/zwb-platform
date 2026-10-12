@@ -2,6 +2,7 @@ import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui"
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TTT_SETTINGS, type TttPlanInput } from "@/lib/ttt/types";
+import { wtrlTttPower, type WtrlTttRow } from "@/lib/ttt/wtrl-power";
 import {
   TttPlanner,
   type InitialTttPlan,
@@ -58,8 +59,27 @@ type EventRow = {
 type LineupRow = {
   event_id: string;
   team_id: string;
-  profile_id: string;
+  profile_id: string | null;
+  roster_entry_id: string | null;
 };
+
+type RosterEntryRow = {
+  id: string;
+  name: string;
+  pace_category: string | null;
+  zwift_id: string | null;
+  team_id: string;
+};
+
+/** Een renner zonder account heeft geen profiel; zijn rosterregel is dan de sleutel. */
+function rosterRiderId(rosterEntryId: string) {
+  return `roster:${rosterEntryId}`;
+}
+
+function lineupRiderId(row: Pick<LineupRow, "profile_id" | "roster_entry_id">) {
+  if (row.profile_id) return row.profile_id;
+  return row.roster_entry_id ? rosterRiderId(row.roster_entry_id) : null;
+}
 
 type PlanRow = {
   id: string;
@@ -177,6 +197,9 @@ export default async function TttPlannerPage({
     { data: events },
     { data: lineups },
     { data: savedPlanRows },
+    { data: rosterEntries },
+    { data: wtrlTeams },
+    { data: wtrlRiders },
   ] = await Promise.all([
     getRequestAccess(),
     supabase
@@ -197,15 +220,22 @@ export default async function TttPlannerPage({
       .limit(100),
     supabase
       .from("team_event_lineups")
-      .select("event_id, team_id, profile_id")
-      // Renners zonder account (migr. 0182) hebben geen vermogensprofiel voor de TTT.
-      .not("profile_id", "is", null)
+      .select("event_id, team_id, profile_id, roster_entry_id")
       .limit(1000),
     supabase
       .from("ttt_plans")
       .select("id, event_id, parent_team_id, team_id, name, status, updated_at")
       .order("updated_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("roster_entries")
+      .select("id, name, pace_category, zwift_id, team_id")
+      .is("claimed_by", null)
+      .not("team_id", "is", null),
+    supabase.from("wtrl_teams").select("trc_ref, team_id").not("team_id", "is", null),
+    supabase
+      .from("wtrl_team_riders")
+      .select("trc_ref, zwift_id, zftp_w, zftp_wkg, zmap_wkg"),
   ]);
 
   const teamRows = (teams ?? []) as TeamRow[];
@@ -251,10 +281,9 @@ export default async function TttPlannerPage({
           .maybeSingle<{ id: string }>(),
         supabase
           .from("team_event_lineups")
-          .select("profile_id")
+          .select("profile_id, roster_entry_id")
           .in("event_id", eventIds)
-          .eq("team_id", seedTeam.id)
-          .not("profile_id", "is", null),
+          .eq("team_id", seedTeam.id),
       ]);
       if (existing) {
         planId = existing.id;
@@ -265,7 +294,11 @@ export default async function TttPlannerPage({
           parentTeamId: seedTeam.parent_team_id ?? seedTeam.id,
           teamId: seedTeam.id,
           riderIds: Array.from(
-            new Set(((seedLineup ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id)),
+            new Set(
+              ((seedLineup ?? []) as Array<Pick<LineupRow, "profile_id" | "roster_entry_id">>)
+                .map(lineupRiderId)
+                .filter((id): id is string => Boolean(id)),
+            ),
           ),
         };
       }
@@ -285,10 +318,22 @@ export default async function TttPlannerPage({
 
   const lineupsByProfile = new Map<string, Set<string>>();
   for (const lineup of ((lineups ?? []) as LineupRow[])) {
-    const current = lineupsByProfile.get(lineup.profile_id) ?? new Set<string>();
+    const riderId = lineupRiderId(lineup);
+    if (!riderId) continue;
+    const current = lineupsByProfile.get(riderId) ?? new Set<string>();
     current.add(lineup.event_id);
-    lineupsByProfile.set(lineup.profile_id, current);
+    lineupsByProfile.set(riderId, current);
   }
+
+  const wtrlByZwiftId = wtrlTttPower(
+    (wtrlRiders ?? []) as WtrlTttRow[],
+    new Map(
+      ((wtrlTeams ?? []) as Array<{ trc_ref: string; team_id: string }>).map((row) => [
+        row.trc_ref,
+        row.team_id,
+      ]),
+    ),
+  );
 
   const powerByProfile = new Map(
     ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
@@ -320,25 +365,58 @@ export default async function TttPlannerPage({
     profileMap.set(member.profile_id, next);
   }
 
-  const riders: PlannerRider[] = Array.from(profileMap.entries())
-    .map(([id, profile]) => {
-      const power = powerByProfile.get(id);
+  const memberRiders: PlannerRider[] = Array.from(profileMap.entries()).map(([id, profile]) => {
+    const power = powerByProfile.get(id);
+    // Wat het lid zelf niet heeft ingevuld of gekoppeld, komt uit WTRL.
+    const wtrl = profile.zwiftId ? wtrlByZwiftId.get(profile.zwiftId.trim()) : undefined;
+    return {
+      id,
+      unregistered: false,
+      name: profile.name,
+      zwiftId: profile.zwiftId,
+      zrlCategory: profile.zrlCategory,
+      ftpWatts: power?.ftp_watts ?? profile.ftpWatts ?? wtrl?.ftpWatts ?? null,
+      weightKg: profile.weightKg ?? wtrl?.weightKg ?? null,
+      teamIds: Array.from(profile.teamIds),
+      lineupEventIds: Array.from(lineupsByProfile.get(id) ?? []),
+      watts5m: power?.watts_5m ?? wtrl?.power300Watts ?? null,
+      watts20m: power?.watts_20m ?? null,
+      ftpWkg: num(power?.ftp_wkg),
+      riderType: power?.rider_type ?? null,
+    };
+  });
+
+  // Renners zonder account (migr. 0182): naam en Zwift-ID uit het rooster,
+  // vermogen en gewicht uit WTRL. Met het Zwift-ID zoekt ZwiftGopher de rest op.
+  const memberZwiftIds = new Set(
+    memberRiders.map((rider) => rider.zwiftId?.trim()).filter(Boolean),
+  );
+  const rosterRiders: PlannerRider[] = ((rosterEntries ?? []) as RosterEntryRow[])
+    .filter((entry) => !entry.zwift_id || !memberZwiftIds.has(entry.zwift_id.trim()))
+    .map((entry) => {
+      const id = rosterRiderId(entry.id);
+      const zwiftId = entry.zwift_id?.trim() || null;
+      const wtrl = zwiftId ? wtrlByZwiftId.get(zwiftId) : undefined;
       return {
         id,
-        name: profile.name,
-        zwiftId: profile.zwiftId,
-        zrlCategory: profile.zrlCategory,
-        ftpWatts: power?.ftp_watts ?? profile.ftpWatts,
-        weightKg: profile.weightKg,
-        teamIds: Array.from(profile.teamIds),
+        unregistered: true,
+        name: entry.name,
+        zwiftId,
+        zrlCategory: entry.pace_category,
+        ftpWatts: wtrl?.ftpWatts ?? null,
+        weightKg: wtrl?.weightKg ?? null,
+        teamIds: Array.from(new Set([entry.team_id, ...(wtrl?.teamIds ?? [])])),
         lineupEventIds: Array.from(lineupsByProfile.get(id) ?? []),
-        watts5m: power?.watts_5m ?? null,
-        watts20m: power?.watts_20m ?? null,
-        ftpWkg: num(power?.ftp_wkg),
-        riderType: power?.rider_type ?? null,
+        watts5m: wtrl?.power300Watts ?? null,
+        watts20m: null,
+        ftpWkg: null,
+        riderType: null,
       };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, "nl"));
+    });
+
+  const riders = [...memberRiders, ...rosterRiders].sort((a, b) =>
+    a.name.localeCompare(b.name, "nl"),
+  );
 
   let manageableTeamIds: string[] = [];
   if (access.has("teams.manage_roster")) {
