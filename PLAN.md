@@ -199,6 +199,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   eigenaar **Barlow Semi Condensed**. Die staat nu in `tegels-shell.tsx` voor
 >   het hele design; de proefpagina is weer verwijderd. **Niet meer waar:**
 >   Archivo en de breedte-as hierboven.
+> - *Maten bij de smalle letter.* Kleine tekst staat binnen het design een stap
+>   groter (`text-xs` 14px, `text-sm` 16px). Tabellen: 16px, tabelcijfers, en
+>   een vaste minimumbreedte (`min-w-[…]`) wordt `max(100%, 56rem)`; de
+>   rennerstabel op `/teams` ging daarmee van 1300 naar 1154px breed in een
+>   kolom van 958px, dus hij scrolt nog steeds iets zijwaarts. Een paginakop met
+>   knoppen ernaast overlapte de titel; dat is verholpen.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
