@@ -592,7 +592,7 @@ export default async function KalenderPage({
               : null,
             event.location,
             event.distance_km ? `${event.distance_km} km` : null,
-            yesCount > 0 ? `${yesCount} ${yesCount === 1 ? "gaat" : "gaan"} mee` : null,
+            yesCount > 0 ? `${yesCount} ${yesCount === 1 ? "doet" : "doen"} mee` : null,
           ]
             .filter(Boolean)
             .join(" · "),
