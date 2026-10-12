@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T12:00:00.000Z",
+  "title": "Design System: ZWB Cycling Platform",
+  "extensions": {
+    "colorMeta": {
+      "jersey-petrol": {
+        "role": "primary",
+        "displayName": "Jersey Petrol",
+        "canonical": "oklch(0.34 0.071 209)",
+        "tonalRamp": ["oklch(0.15 0.071 209)", "oklch(0.26 0.071 209)", "oklch(0.34 0.071 209)", "oklch(0.48 0.071 209)", "oklch(0.6 0.071 209)", "oklch(0.72 0.06 209)", "oklch(0.85 0.04 209)", "oklch(0.95 0.02 209)"]
+      },
+      "night-gold": {
+        "role": "primary",
+        "displayName": "Night Gold",
+        "canonical": "oklch(0.72 0.08 80)",
+        "tonalRamp": ["oklch(0.15 0.08 80)", "oklch(0.27 0.08 80)", "oklch(0.39 0.08 80)", "oklch(0.5 0.08 80)", "oklch(0.61 0.08 80)", "oklch(0.72 0.08 80)", "oklch(0.84 0.06 80)", "oklch(0.95 0.03 80)"]
+      },
+      "jersey-gold": {
+        "role": "secondary",
+        "displayName": "Jersey Gold",
+        "canonical": "oklch(0.63 0.101 77)",
+        "tonalRamp": ["oklch(0.15 0.101 77)", "oklch(0.27 0.101 77)", "oklch(0.39 0.101 77)", "oklch(0.51 0.101 77)", "oklch(0.63 0.101 77)", "oklch(0.74 0.09 77)", "oklch(0.85 0.06 77)", "oklch(0.95 0.03 77)"]
+      },
+      "night-sage": {
+        "role": "secondary",
+        "displayName": "Night Sage",
+        "canonical": "oklch(0.55 0.04 210)",
+        "tonalRamp": ["oklch(0.15 0.04 210)", "oklch(0.27 0.04 210)", "oklch(0.39 0.04 210)", "oklch(0.55 0.04 210)", "oklch(0.66 0.04 210)", "oklch(0.76 0.04 210)", "oklch(0.86 0.03 210)", "oklch(0.95 0.02 210)"]
+      },
+      "jersey-sage-pale": {
+        "role": "tertiary",
+        "displayName": "Pale Sage",
+        "canonical": "oklch(0.9 0.026 178)",
+        "tonalRamp": ["oklch(0.15 0.026 178)", "oklch(0.27 0.026 178)", "oklch(0.4 0.026 178)", "oklch(0.53 0.026 178)", "oklch(0.66 0.026 178)", "oklch(0.78 0.026 178)", "oklch(0.9 0.026 178)", "oklch(0.95 0.02 178)"]
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Cream",
+        "canonical": "oklch(0.965 0.011 103)",
+        "tonalRamp": ["oklch(0.15 0.011 103)", "oklch(0.28 0.011 103)", "oklch(0.42 0.011 103)", "oklch(0.56 0.011 103)", "oklch(0.7 0.011 103)", "oklch(0.83 0.011 103)", "oklch(0.92 0.011 103)", "oklch(0.965 0.011 103)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.22 0.034 215)",
+        "tonalRamp": ["oklch(0.15 0.034 215)", "oklch(0.22 0.034 215)", "oklch(0.36 0.034 215)", "oklch(0.5 0.034 215)", "oklch(0.64 0.03 215)", "oklch(0.77 0.025 215)", "oklch(0.88 0.02 215)", "oklch(0.95 0.01 215)"]
+      },
+      "night-petrol": {
+        "role": "neutral",
+        "displayName": "Night Petrol",
+        "canonical": "oklch(0.16 0.025 220)",
+        "tonalRamp": ["oklch(0.16 0.025 220)", "oklch(0.22 0.025 220)", "oklch(0.3 0.035 220)", "oklch(0.44 0.03 220)", "oklch(0.58 0.025 220)", "oklch(0.72 0.02 220)", "oklch(0.85 0.015 220)", "oklch(0.95 0.01 220)"]
+      },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "oklch(0.86 0.022 157)" },
+      "danger": { "role": "neutral", "displayName": "Danger", "canonical": "oklch(0.577 0.245 27.325)" }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "De paginatitel in de paginakop. Eén per scherm." },
+      "title": { "displayName": "Title", "purpose": "Sectiekoppen, met een dunne lijn eronder." },
+      "body": { "displayName": "Body", "purpose": "Vrijwel alle tekst in de app." },
+      "label": { "displayName": "Label", "purpose": "Bovenkopjes, groepskoppen in het menu, chips. Hoofdletters." },
+      "mono": { "displayName": "Mono", "purpose": "Code en ID's." }
+    },
+    "shadows": [
+      { "name": "zweeflaag", "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)", "purpose": "Mobiel menu, dropdowns en dialogen." },
+      { "name": "lichte-tilt", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "Spaarzaam, voor een element boven een kaart of afbeelding." }
+    ],
+    "motion": [
+      { "name": "nav-progress-appear", "value": "0.2s ease-out 0.15s", "purpose": "Voortgangsbalk bij navigatie; de eerste 150 ms onzichtbaar tegen flitsen." },
+      { "name": "press", "value": "translateY(1px)", "purpose": "Indrukken van een knop." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "container", "value": "80rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primaire knop",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "De ene hoofdactie van een blok.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Aanmelden</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--radius-lg, 0.5rem); font: 500 0.875rem/1 var(--font-geist-sans, system-ui, sans-serif); white-space: nowrap; cursor: pointer; transition: all 0.15s; } .ds-btn:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); } .ds-btn:active { transform: translateY(1px); } .ds-btn-primary { background: var(--primary); color: var(--primary-foreground); } .ds-btn-primary:hover { background: color-mix(in oklch, var(--primary) 80%, transparent); }"
+    },
+    {
+      "name": "Outline-knop",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secundaire actie naast een primaire knop.",
+      "html": "<button class=\"ds-btn-outline\">Afmelden</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-lg, 0.5rem); background: var(--background); color: var(--foreground); font: 500 0.875rem/1 var(--font-geist-sans, system-ui, sans-serif); cursor: pointer; transition: all 0.15s; } .ds-btn-outline:hover { background: var(--muted); } .ds-btn-outline:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); } .ds-btn-outline:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Secundaire knop",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Rustige actie in tenue-sage.",
+      "html": "<button class=\"ds-btn-secondary\">Bekijk route</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--radius-lg, 0.5rem); background: var(--secondary); color: var(--secondary-foreground); font: 500 0.875rem/1 var(--font-geist-sans, system-ui, sans-serif); cursor: pointer; transition: all 0.15s; } .ds-btn-secondary:hover { background: color-mix(in oklch, var(--secondary) 80%, transparent); } .ds-btn-secondary:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); } .ds-btn-secondary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Tekstveld",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Compact veld met het label erboven.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">FTP</span><input class=\"ds-input\" type=\"text\" inputmode=\"numeric\" value=\"265\" /></label>",
+      "css": ".ds-field { display: block; font: 400 0.875rem/1.43 var(--font-geist-sans, system-ui, sans-serif); color: var(--foreground); } .ds-field-label { display: block; font-weight: 500; } .ds-input { margin-top: 4px; width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-md, 0.4rem); background: var(--background); color: var(--foreground); font: inherit; font-variant-numeric: tabular-nums; } .ds-input:focus-visible { outline: 2px solid color-mix(in oklch, var(--ring) 50%, transparent); outline-offset: 0; border-color: var(--ring); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Categorie (sage) en status (tint van de actiekleur).",
+      "html": "<span class=\"ds-chip\">ZRL</span> <span class=\"ds-chip ds-chip-status\">Aangemeld</span>",
+      "css": ".ds-chip { display: inline-block; padding: 2px 8px; border-radius: 9999px; background: var(--secondary); color: var(--secondary-foreground); font: 500 0.75rem/1.33 var(--font-geist-sans, system-ui, sans-serif); letter-spacing: 0.025em; text-transform: uppercase; } .ds-chip-status { background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); text-transform: none; letter-spacing: normal; }"
+    },
+    {
+      "name": "Kaart met rijen",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Lijst als rijen met een scheidingslijn in één platte kaart.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-row\"><span>Clubrit Veluwe</span><span class=\"ds-card-num\">za 09:00</span></div><div class=\"ds-card-row\"><span>ZRL ronde 3</span><span class=\"ds-card-num\">di 19:45</span></div></div>",
+      "css": ".ds-card { border: 1px solid var(--border); border-radius: var(--radius-lg, 0.5rem); background: var(--card); color: var(--card-foreground); font: 400 0.875rem/1.43 var(--font-geist-sans, system-ui, sans-serif); } .ds-card-row { display: flex; justify-content: space-between; gap: 12px; min-height: 44px; align-items: center; padding: 0 16px; } .ds-card-row + .ds-card-row { border-top: 1px solid var(--border); } .ds-card-num { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Paginakop",
+      "kind": "custom",
+      "refersTo": "page-header",
+      "description": "Het herkenningspunt van elk scherm: tenuemotief, merkbalk links, bovenkopje en titel.",
+      "html": "<header class=\"ds-pagehead\"><span class=\"ds-pagehead-bar\" aria-hidden=\"true\"></span><div><p class=\"ds-pagehead-eyebrow\">Goedemorgen</p><h1 class=\"ds-pagehead-title\">Kalender</h1></div></header>",
+      "css": ".ds-pagehead { position: relative; overflow: hidden; padding: 16px 16px 16px 20px; border: 1px solid var(--border); border-radius: var(--radius-lg, 0.5rem); background: color-mix(in oklch, var(--card) 90%, transparent); color: var(--foreground); font-family: var(--font-geist-sans, system-ui, sans-serif); } .ds-pagehead::before { content: \"\"; position: absolute; inset: 0; opacity: 0.75; pointer-events: none; background: linear-gradient(132deg, transparent 0 58%, rgb(0 70 83 / 0.08) 58% 72%, transparent 72%), linear-gradient(28deg, transparent 0 70%, rgb(184 135 61 / 0.12) 70% 74%, transparent 74%); } .ds-pagehead > * { position: relative; } .ds-pagehead-bar { position: absolute !important; inset: 0 auto 0 0; width: 6px; background: linear-gradient(to bottom, var(--primary), var(--zwb-gold, #b8873d)); } .ds-pagehead-eyebrow { margin: 0; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; color: color-mix(in oklch, var(--primary) 80%, transparent); } .ds-pagehead-title { margin: 0; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.25; }"
+    },
+    {
+      "name": "Menurij (telefoon)",
+      "kind": "nav",
+      "description": "Groepskop en item uit het mobiele menu.",
+      "html": "<nav class=\"ds-nav\"><p class=\"ds-nav-group\">Club</p><a class=\"ds-nav-item\" href=\"#\">Teams</a><a class=\"ds-nav-item\" href=\"#\">Leden</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-geist-sans, system-ui, sans-serif); } .ds-nav-group { margin: 12px 0 4px; padding: 0 12px 0 11px; border-left: 2px solid color-mix(in oklch, var(--primary) 50%, transparent); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; color: var(--muted-foreground); } .ds-nav-item { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-md, 0.4rem); color: var(--foreground); font-size: 0.875rem; text-decoration: none; transition: background 0.15s; } .ds-nav-item:hover { background: var(--muted); } .ds-nav-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Het Clubhuis",
+    "overview": "Dit is de plek waar een lid even binnenloopt. Rustig, vertrouwd en overzichtelijk: je ziet in één blik wat er vandaag speelt en bent zo weer weg. Niets schreeuwt. Het tenue hangt aan de muur en zit in de details, het is de aankleding van de ruimte en niet het onderwerp.\n\nHet systeem is plat en compact. Crème papier of diep petrol als ondergrond, kaarten die zich met een dunne rand en een fractie lichtere toon aftekenen, kleine afrondingen, één schreefloos lettertype in een smal bereik van maten. Veel informatie past op een telefoonscherm zonder dat het druk wordt, omdat bijna alles dezelfde rustige toon heeft en alleen de actie petrol of goud is.",
+    "keyCharacteristics": [
+      "Plat, met dunne randen in plaats van schaduw.",
+      "Compact, maar met tikdoelen die een duim haalt.",
+      "Tenuekleuren als accent op een neutrale, licht getinte ondergrond.",
+      "Licht en donker zijn twee volwaardige thema's, geen afgeleide van elkaar.",
+      "Cijfers in tabelcijfers, zodat kolommen en tijden recht onder elkaar staan."
+    ],
+    "rules": [
+      { "name": "De Wisselregel", "body": "Licht en donker ruilen de actiekleur: petrol bij licht, goud bij donker. Gebruik daarom altijd de semantische token (`primary`, `accent`) en nooit een vaste tenuekleur voor iets waar je op kunt tikken.", "section": "colors" },
+      { "name": "De Goudregel", "body": "Het tenuegoud haalt als kleine tekst op licht maar 3,1:1. Goud is op licht voor vlakken, balken en ringen; voor cijfers en labels bestaat de diepere tint `--zwblok-own-text` (4,9:1).", "section": "colors" },
+      { "name": "De Kolomregel", "body": "Elk getal dat vergeleken wordt (tijden, watt, W/kg, standen, afstanden) staat in `tabular-nums`.", "section": "typography" },
+      { "name": "De Smalle-ladderregel", "body": "De app leeft tussen 0.75rem en 0.875rem. Groter dan de paginatitel komt in de app niet voor; `font-bold` en zwaarder zijn uitzonderingen, 600 is het zwaarste werkgewicht.", "section": "typography" },
+      { "name": "De Duimregel", "body": "Alles waar je op de telefoon op tikt is minstens 44px hoog (`min-h-11`), ook als het er compact uitziet. De standaardknop van 32px is voor desktop en voor dichte rijen met genoeg ruimte eromheen; op de telefoon krijgt een losse actie de ruimte.", "section": "layout" },
+      { "name": "De Platte-vloerregel", "body": "Een kaart in rust heeft geen schaduw. Wie diepte wil, gebruikt de toon van het vlak of een rand.", "section": "elevation" },
+      { "name": "De Motiefregel", "body": "De schuine banen horen bij de schil en de paginakop. Niet achter lijsten, formulieren of tabellen, en nooit op hogere dekking.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do gebruik semantische tokens (`primary`, `accent`, `card`, `muted`, `border`), zodat licht en donker beide kloppen.",
+      "Do controleer elk nieuw scherm in beide thema's en op een staande telefoon.",
+      "Do geef tikdoelen op de telefoon minstens 44px hoogte.",
+      "Do zet getallen in `tabular-nums`.",
+      "Do begin een scherm met de paginakop en verdeel het met sectiekoppen.",
+      "Do respecteer `prefers-reduced-motion`; beweging is kort en functioneel, zoals de voortgangsbalk bij navigatie."
+    ],
+    "donts": [
+      "Don't maak er een Strava- of Zwift-kloon van: geen oranje, neon of game-achtige glans. Merkkleuren van derden alleen waar hun richtlijnen dat eisen.",
+      "Don't bouw een generiek SaaS-dashboard: geen paarse gradiënten, glaseffecten of rijen identieke statistiekkaarten.",
+      "Don't maak er een drukke sportsite van: geen schreeuwende koppen, schuine sporttypografie of foto's achter alles.",
+      "Don't geef een kaart in rust een schaduw.",
+      "Don't gebruik goud als kleine tekst op een lichte ondergrond.",
+      "Don't zet uitlegtekst in schermen of formulieren; die hoort op `/hulp`."
+    ]
+  }
+}

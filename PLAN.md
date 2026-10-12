@@ -102,8 +102,22 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > voor alles van de club. Bindend: tenuekleuren en logo, de ZWB-woordspelingen,
 > kort Nederlands met je/jij, en licht én donker thema.
 >
-> **Bewust niet gedaan.** Geen `DESIGN.md` en geen live-modus-config: het
-> bestaande uiterlijk is niet gedocumenteerd of gewijzigd.
+> **Bewust niet gedaan.** Geen live-modus-config; het bestaande uiterlijk is
+> niet gewijzigd.
+>
+> **Vervolg dezelfde dag: `DESIGN.md` en `.impeccable/design.json`.** Het
+> bestaande uiterlijk is vastgelegd uit `globals.css`, `components/ui` en
+> `components/app-ui.tsx`: tokens, typografie, vormen en de vaste onderdelen
+> (paginakop, sectiekop, kaart, chip, veld, navigatie). Geen code gewijzigd.
+> Door de eigenaar gekozen: leidraad "Het Clubhuis"; compact maar tikdoelen op
+> de telefoon minstens 44px; geen Strava-/Zwift-kloon, geen generiek
+> SaaS-dashboard, geen drukke sportsite.
+>
+> **Let op.** De 44px-regel is een afspraak voor nieuw werk. De standaardknop
+> is nog 32px en bestaande schermen zijn er niet op nagelopen.
+>
+> **Niet geverifieerd.** De documenten zijn uit de code afgeleid, niet uit de
+> draaiende app in de browser.
 
 ---
 
