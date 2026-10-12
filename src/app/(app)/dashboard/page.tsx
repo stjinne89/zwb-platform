@@ -1148,7 +1148,8 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {user && <PhotoNudge userId={user.id} />}
+      {/* In het design "tegels" vervalt dit blok (besluit eigenaar, 2026-10-12). */}
+      {user && !tegels && <PhotoNudge userId={user.id} />}
 
       {awards.length > 0 && (
         <section>

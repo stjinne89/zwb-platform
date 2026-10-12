@@ -704,7 +704,7 @@ a.tg-row:focus-visible,
 .tg-row-day,
 .tg-row-time,
 .tg-tile-num {
-  font-stretch: 88%;
+  font-stretch: var(--tg-stretch, 88%);
 }
 [data-design="tegels"] header.jersey-panel h1,
 .tg-display {
