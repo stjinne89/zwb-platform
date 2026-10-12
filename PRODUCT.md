@@ -92,7 +92,10 @@ Bindend (bevestigd door de eigenaar, 2026-10-12):
   schuine vlakken in de app en in `public/icon.svg` zijn een benadering en
   worden daardoor vervangen (eigenaar, 2026-10-12).
 - **ZWB-woordspelingen.** ZWBeter Worden, ZWBlokken, ZWBasis en ZWBgame zijn
-  vaste productnamen; het patroon mag worden doorgezet.
+  vaste productnamen; het patroon mag worden doorgezet. ZWBeter Worden wordt
+  ZWBeter, met een woord erachter per onderdeel: ZWBeter trainen, ZWBeter
+  voeden, ZWBeter kracht, ZWBeter coachen (eigenaar, 2026-10-12). Die naam
+  geldt nu alleen in het design "tegels"; elders staat nog ZWBeter Worden.
 - **Stem.** Kort, informeel Nederlands met je/jij.
 - **Licht én donker thema** blijven beide volwaardig.
 

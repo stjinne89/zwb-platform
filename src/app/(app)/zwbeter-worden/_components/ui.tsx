@@ -15,7 +15,7 @@ export function MetricCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-md border bg-card p-4">
+    <div className="tg-metric rounded-md border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
@@ -39,7 +39,7 @@ export function RecoveryStat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-md bg-muted/50 p-3 text-center">
+    <div className="tg-stat rounded-md bg-muted/50 p-3 text-center">
       <div className="text-lg font-semibold tabular-nums">{value}</div>
       <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
       {hint ? <div className="mt-0.5 text-[0.65rem] text-muted-foreground">{hint}</div> : null}

@@ -919,3 +919,65 @@ a.tg-row:focus-visible,
   color: #fff;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
 }
+
+/* ---- ZWBeter ----
+   De vier pijlers als tegels; de actieve is vol teal, de andere een rustig vlak.
+   Kerncijfers op de trainingspagina's zijn tegels zoals op het dashboard. */
+.tg-pillar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 4.75rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--tg-panel);
+  color: var(--foreground);
+  font-family: var(--tg-display);
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tg-pillar:hover {
+  background: color-mix(in oklab, var(--tg-zwbeter) 22%, transparent);
+}
+.tg-pillar[aria-current="page"] {
+  background: var(--tg-zwbeter);
+  color: var(--tg-paper);
+}
+.tg-pillar:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+[data-design="tegels"] .tg-metric {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background: var(--tg-zwbeter);
+  color: var(--tg-paper);
+}
+[data-design="tegels"] .tg-metric::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, transparent 0 64%, var(--tg-band) 64% 81%, transparent 81%);
+}
+[data-design="tegels"] .tg-metric :is([class*="text-muted-foreground"], [class*="text-primary"], svg) {
+  color: inherit;
+}
+[data-design="tegels"] .tg-metric [class*="text-muted-foreground"] {
+  opacity: 0.88;
+}
+[data-design="tegels"] .tg-metric .text-2xl {
+  font-family: var(--tg-display);
+  font-size: 2.5rem;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+[data-design="tegels"] .tg-stat {
+  background: var(--tg-panel);
+}
+[data-design="tegels"] .tg-stat .text-lg {
+  font-family: var(--tg-display);
+  font-size: 1.75rem;
+  font-weight: 300;
+  line-height: 1.1;
+}

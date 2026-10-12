@@ -67,7 +67,7 @@ export async function CoreStatus({ tegels }: { tegels?: boolean } = {}) {
     return (
       <Link href={`/zwbeter-worden/core/${suggestion.slug}`} className="tg-tile tg-zwbeter">
         <span className="tg-tile-small">
-          Core & mobiliteit · {doneToday ? "vandaag gedaan" : "vandaag"}
+          ZWBeter kracht · {doneToday ? "vandaag gedaan" : "vandaag"}
         </span>
         <span className="tg-tile-title mt-0.5">{suggestion.title}</span>
         <span className="mt-1 text-sm opacity-90">

@@ -83,7 +83,7 @@ function MetricButton({
       aria-expanded={active}
       onClick={onClick}
       className={cn(
-        "rounded-md border bg-card p-4 text-left transition hover:border-primary/40 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-ring",
+        "tg-metric rounded-md border bg-card p-4 text-left transition hover:border-primary/40 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-ring",
         active && "border-primary/40 bg-primary/5",
       )}
     >

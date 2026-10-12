@@ -241,6 +241,19 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   Gezien op productiedata: A en C tonen hun vijf renners, net als B1 en B2.
 > - *Verjaardag in de kalender.* Het dagvak toont de profielfoto van het lid
 >   met een donkere waas; zonder foto blijft het goud.
+> - *ZWBeter.* In dit design heet ZWBeter Worden "ZWBeter", met vier pijlers
+>   in plaats van elf tabs op één rij (`lib/zwbeter-pillars.ts`, getest):
+>   **trainen** (Vandaag, Schema, Jaarplan, Belasting, Vermogen, Doelen,
+>   Logboek), **voeden** (Voeding), **kracht** (Core & mobiliteit) en
+>   **coachen** (Coach, Trainer). De paginatitel noemt de pijler, de pijlers
+>   staan als tegels, en de onderdelen van de actieve pijler als tabs
+>   (`zwbeter-nav.tsx`). De kerncijfers (`MetricCard`, de fitness- en
+>   vormknop) zijn teal tegels. De indeling in pijlers en de woorden "coachen"
+>   en de plek van Logboek zijn een invulling van de bouwer; de eigenaar noemde
+>   trainen, voeden en kracht. **Niet hernoemd:** de routes
+>   (`/zwbeter-worden/...`), het huidige design, pushberichten, de
+>   Strava-beschrijving, de privacyverklaring, `/hulp` en de tekst
+>   "ZWBeterWorden" in het adviesblok.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

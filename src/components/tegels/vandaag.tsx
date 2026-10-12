@@ -62,7 +62,7 @@ export function TegelsVandaag({
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {workout && (
             <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-2">
-              <span className="tg-tile-small">ZWBeter Worden · training {workout.when}</span>
+              <span className="tg-tile-small">ZWBeter trainen · {workout.when}</span>
               <span className="mt-0.5 line-clamp-2 text-[2rem] font-light leading-[1.05] tracking-tight">
                 {workout.title}
               </span>

@@ -10,6 +10,9 @@ import {
   type NavLeaf,
 } from "../_components/nav-config";
 import { SectionNav } from "./_components/section-nav";
+import { ZwbeterNav } from "./_components/zwbeter-nav";
+import { getDesign } from "@/lib/design";
+import { ZWBETER_PILLARS } from "@/lib/zwbeter-pillars";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 export default async function ZwbeterWordenLayout({
@@ -41,26 +44,53 @@ export default async function ZwbeterWordenLayout({
     (profile?.sex as string | null) ?? null,
   ) as NavLeaf[];
 
+  // Design "tegels": ZWBeter Worden heet daar ZWBeter, met vier pijlers
+  // (lib/zwbeter-pillars.ts) in plaats van één rij van elf tabs.
+  const tegels = (await getDesign()) === "tegels";
+  const pillars = ZWBETER_PILLARS.map((pillar) => ({
+    id: pillar.id,
+    word: pillar.word,
+    sections: pillar.hrefs
+      .map((href) => sections.find((section) => section.href === href))
+      .filter((section): section is NavLeaf => Boolean(section))
+      .map(({ href, label }) => ({ href, label })),
+  })).filter((pillar) => pillar.sections.length > 0);
+
   return (
     <PowerUnitProvider
       initialUnit={parsePowerUnit(cookieStore.get(POWER_UNIT_COOKIE)?.value)}
       weightKg={weightKg}
       ftpWatts={ftpWatts}
     >
-      <div className="space-y-6">
-        <PageHeader
-          eyebrow="ZWB Training"
-          title="ZWBeter Worden"
-          actions={
-            <div className="flex items-center gap-3">
-              <PowerUnitToggle percent />
-              <HelpLink href="/hulp#trainingsruimte" />
-            </div>
-          }
-        />
-        <SectionNav items={sections.map(({ href, label }) => ({ href, label }))} />
-        {children}
-      </div>
+      {tegels ? (
+        <div className="tg-zwbeter-area space-y-5">
+          <ZwbeterNav
+            pillars={pillars}
+            actions={
+              <div className="flex items-center gap-3">
+                <PowerUnitToggle percent />
+                <HelpLink href="/hulp#trainingsruimte" />
+              </div>
+            }
+          />
+          {children}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <PageHeader
+            eyebrow="ZWB Training"
+            title="ZWBeter Worden"
+            actions={
+              <div className="flex items-center gap-3">
+                <PowerUnitToggle percent />
+                <HelpLink href="/hulp#trainingsruimte" />
+              </div>
+            }
+          />
+          <SectionNav items={sections.map(({ href, label }) => ({ href, label }))} />
+          {children}
+        </div>
+      )}
     </PowerUnitProvider>
   );
 }
