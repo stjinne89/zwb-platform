@@ -32,6 +32,22 @@ function numericZwiftId(value: string) {
   return /^[0-9]+$/.test(trimmed) ? trimmed : null;
 }
 
+/**
+ * De Zwift-ID's van het plan in planvolgorde, één per regel, om te plakken in
+ * het vak "Zwift IDs" op zwiftgopher.com/TTT. `missing` noemt wie geen
+ * (numeriek) Zwift-ID heeft.
+ */
+export function zwiftIdExport(riders: TttPlanRiderInput[]) {
+  const ids: string[] = [];
+  const missing: string[] = [];
+  for (const rider of riders.slice().sort((a, b) => a.displayOrder - b.displayOrder)) {
+    const zwiftId = numericZwiftId(rider.zwiftId);
+    if (!zwiftId) missing.push(rider.name.trim() || "Naamloos");
+    else if (!ids.includes(zwiftId)) ids.push(zwiftId);
+  }
+  return { text: ids.join("\n"), count: ids.length, missing };
+}
+
 // Zonder 300s-waarde rekent ZwiftGopher zelf met 130% van de FTP (gemeten
 // 2026-10-12, `speed_index_source: "ftp_fallback"`). De FTP meesturen als
 // 5-minutenvermogen maakte een renner zwakker dan hij is.

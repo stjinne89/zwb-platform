@@ -91,6 +91,32 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **TTT-planner: Zwift-ID's kopiëren voor zwiftgopher.com/TTT, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien en niet bij ZwiftGopher geplakt.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar: de renners van een plan ook in de
+> calculator van ZwiftGopher zelf kunnen zetten, zonder ID's over te tikken. Dat
+> is ook de uitweg als de API weigert of de limiet van één verzoek per minuut in
+> de weg zit.
+>
+> **Nu.** Knop "Zwift-ID's" bij "Resultaat en export" kopieert de numerieke
+> Zwift-ID's van het raceplan naar het klembord, in planvolgorde, één per regel,
+> zonder dubbele (`zwiftIdExport`, `lib/ttt/zwiftgopher.ts`). Onder de knoppen
+> staat hoeveel er gekopieerd zijn en wie geen Zwift-ID heeft. Weigert de browser
+> het klembord, dan staan de ID's in die regel. Hulptekst bijgewerkt.
+>
+> **Bewust niet gebouwd.** Geen export van de hele teamlijst (alleen wie in het
+> raceplan staat; het vak bij ZwiftGopher neemt er hooguit 20) en geen
+> bestandsdownload: plakken is het doel.
+>
+> **Niet geverifieerd.** Het scheidingsteken. Het vak "Zwift IDs" op
+> zwiftgopher.com/TTT is een tekstvak van drie regels dat ongewijzigd naar hun
+> `ajax.php` gaat; hoe de server het splitst is van buiten niet te zien, en er is
+> niets ingestuurd om het te proberen. Eén per regel is de aanname. Getest:
+> `tsc --noEmit`, ESLint, Vitest (nieuw: `ttt-zwiftid-export.test.ts`, 3 tests).
+
+---
+
 > **TTT-planner rekent op de lijn van zwiftgopher.com, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >

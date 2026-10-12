@@ -520,6 +520,7 @@ const ADMIN_GUIDES = [
       "Renners zonder account staan ook in de lijst; FTP, gewicht en 5-minutenvermogen komen dan uit WTRL.",
       "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",
       "Vindt ZwiftGopher een Zwift-ID niet, dan rekent het plan bij de volgende keer Optimaliseren met de FTP en het gewicht uit het plan, en met 175 cm als Cm leeg is. ZwiftGopher staat één verzoek per minuut toe.",
+      "De knop Zwift-ID's kopieert de ID's van het raceplan, één per regel, om te plakken in het vak Zwift IDs op zwiftgopher.com/TTT.",
       "De JSON-export bewaart ook velden die ZWB niet zelf bewerkt.",
       "De tekstexport is bedoeld als leesbare racesheet; de afbeelding als deelbare opstelling.",
     ],

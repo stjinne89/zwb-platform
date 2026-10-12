@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Copy,
   Download,
   GripVertical,
   Megaphone,
@@ -21,6 +22,7 @@ import {
   type TttPlanRiderInput,
   type TttSettings,
 } from "@/lib/ttt/types";
+import { zwiftIdExport } from "@/lib/ttt/zwiftgopher";
 import { optimizeTttPlan, saveTttPlan } from "../_actions";
 
 export type PlannerTeam = {
@@ -238,6 +240,7 @@ export function TttPlanner({
   const [useOwnValues, setUseOwnValues] = useState(false);
   const [pending, startTransition] = useTransition();
   const [dragId, setDragId] = useState<string | null>(null);
+  const [idExport, setIdExport] = useState<string | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
   const managed = manageableTeamIds.includes(parentTeamId) || (teamId ? manageableTeamIds.includes(teamId) : false);
@@ -379,6 +382,21 @@ export function TttPlanner({
         });
       }
     });
+  }
+
+  async function copyZwiftIds() {
+    const { text, count, missing } = zwiftIdExport(currentPlan().riders);
+    const without = missing.length > 0 ? ` Zonder Zwift-ID: ${missing.join(", ")}.` : "";
+    if (count === 0) {
+      setIdExport(`Geen Zwift-ID's in het plan.${without}`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setIdExport(`${count} Zwift-ID's gekopieerd.${without}`);
+    } catch {
+      setIdExport(`Kopiëren lukte niet: ${text.replace(/\n/g, ", ")}.${without}`);
+    }
   }
 
   function exportImage() {
@@ -691,8 +709,13 @@ export function TttPlanner({
               <Download className="size-4" />
               PNG
             </Button>
+            <Button size="sm" variant="outline" onClick={copyZwiftIds}>
+              <Copy className="size-4" />
+              Zwift-ID&apos;s
+            </Button>
           </div>
         </div>
+        {idExport && <p className="mt-3 text-sm text-muted-foreground">{idExport}</p>}
 
         {resultData ? (
           <div className="mt-4 grid gap-3 md:grid-cols-4">
