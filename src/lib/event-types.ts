@@ -76,6 +76,11 @@ export function eventTypeColor(type: string | null | undefined): string {
   return (EVENT_TYPE_COLORS[type ?? ""] ?? EVENT_TYPE_COLORS.overig).color;
 }
 
+/** De tekstkleur die op de volle categoriekleur leesbaar is. */
+export function eventTypeInk(type: string | null | undefined): string {
+  return (EVENT_TYPE_COLORS[type ?? ""] ?? EVENT_TYPE_COLORS.overig).ink;
+}
+
 export type EventColorStyle = {
   /** Rand links van de kalenderregel. */
   bar: string;

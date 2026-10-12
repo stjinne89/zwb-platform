@@ -153,10 +153,33 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > sectiekoppen (`SectionHeader`, nu met klasse `section-header`) licht en in
 > onderkast, en is `uppercase` onderkast.
 >
+> **Derde ronde dezelfde dag, op aanwijzing van de eigenaar.**
+> - *Kalenderkleuren.* De agenda gebruikte de plekkleuren van het nieuwe design
+>   (koers petrol, clubrit sage). Dat was niet de afspraak: de kleur per
+>   categorie uit `lib/event-types.ts` blijft gelden. Elke rij is nu een vlak
+>   paneel met vooraan een dagvak in die categoriekleur (`eventTypeInk()` is
+>   nieuw, voor de tekstkleur erop); een eigen training is teal, een verjaardag
+>   goud. **Niet meer waar:** "koers petrol, training teal, clubrit sage" in de
+>   schetsen en in het bestuursvoorstel.
+> - *Dubbele trainingen.* Een training met `training_workouts.event_id` (migr.
+>   0116) stond naast zijn event. Hij staat nu niet meer als eigen regel als het
+>   event (of het hoofdevent van een teamevent) in de lijst staat; de duur staat
+>   bij dat event als "jouw training 44 min".
+> - *Lettertype.* Jost voor koppen, tegels, tabs, knoppen en cijfers; Albert
+>   Sans alleen nog voor lopende tekst. Vet is binnen het design teruggebracht
+>   tot 600, halfvet tot 500.
+> - *Bestaande onderdelen.* Binnen `[data-design="tegels"]` worden de
+>   terugkerende Tailwind-patronen vertaald: lijsten met `divide-y` zijn losse
+>   paneelrijen, omkaderde vlakken zijn vlakke panelen, ronde labels zijn recht,
+>   knoppen en tabelkoppen zijn onderkast, velden zijn vlak. Dialogen en
+>   uitklapmenu's krijgen via `:has()` dezelfde hoeken en donkere vlakken.
+>   **Dit is een vertaling van patronen, geen herontwerp per pagina:** de
+>   opbouw van elk blok is ongewijzigd.
+>
 > **Gezien met echte data** (Chrome, ingelogd als eigenaar, breed scherm, donker
-> thema): dashboard, kalender en `/meer`. **Niet gezien met echte data:** het
-> lichte thema, de telefoonbreedte, `/club`, de overige pagina's en het uit- en
-> aanzetten van de schakelaar. Getest: `tsc --noEmit`, ESLint op de gewijzigde
+> thema): dashboard, kalender, `/meer` en `/zwbeter-worden`. **Niet gezien met
+> echte data:** het lichte thema, de telefoonbreedte, `/club`, de overige
+> pagina's, dialogen en het uit- en aanzetten van de schakelaar. Getest: `tsc --noEmit`, ESLint op de gewijzigde
 > bestanden, `npm run test` (2073 geslaagd), `design-places.test.ts`.
 > `npm run build` is niet gedraaid.
 

@@ -349,7 +349,21 @@
   --tg-paper: #fbfbf7;
   --tg-band: rgb(255 255 255 / 0.1);
   --tg-panel: rgb(0 70 83 / 0.07);
+  --tg-display: var(--font-jost), var(--font-albert), system-ui, sans-serif;
   font-family: var(--font-albert), var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Dialogen en uitklapmenu's renderen buiten de schil; via :has() krijgen ze
+   dezelfde hoeken en donkere vlakken. */
+:root:has([data-design="tegels"]) {
+  --radius: 0.125rem;
+}
+.dark:has([data-design="tegels"]) {
+  --background: #061c22;
+  --card: #0d2a32;
+  --popover: #0d2a32;
+  --muted: #12343d;
+  --secondary: #17404a;
 }
 
 .dark [data-design="tegels"] {
@@ -467,13 +481,19 @@ html.dark .app-shell[data-design="tegels"]::before {
 .tg-club { --tg-bg: var(--tg-club); --tg-fg: var(--tg-ink); }
 .tg-meer { --tg-bg: var(--tg-meer); --tg-fg: var(--tg-paper); }
 
-.tg-tile,
 .tg-row {
+  position: relative;
+  overflow: hidden;
+  text-transform: lowercase;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tg-tile {
   position: relative;
   display: block;
   overflow: hidden;
   background: var(--tg-bg);
   color: var(--tg-fg);
+  font-family: var(--tg-display);
   text-transform: lowercase;
   transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -510,7 +530,7 @@ a.tg-row:focus-visible,
   padding: 0.75rem 0.875rem;
 }
 .tg-tile-small { font-size: 0.8125rem; opacity: 0.9; }
-.tg-tile-title { font-size: 1.4375rem; font-weight: 300; line-height: 1.08; letter-spacing: -0.01em; }
+.tg-tile-title { font-size: 1.5rem; font-weight: 300; line-height: 1.08; letter-spacing: -0.01em; }
 .tg-tile-num {
   margin-top: auto;
   padding-top: 0.5rem;
@@ -520,22 +540,51 @@ a.tg-row:focus-visible,
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
+/* Agendarij: een vlak paneel met vooraan een dagvak in de afgesproken
+   eventkleur (lib/event-types.ts). */
 .tg-row {
   display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-  column-gap: 0.625rem;
-  align-items: center;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: stretch;
   min-height: 3.875rem;
-  padding: 0.5rem 0.875rem;
+  background: var(--tg-panel);
+  color: var(--foreground);
 }
-.tg-row-past {
-  background: transparent;
-  color: var(--muted-foreground);
-  box-shadow: inset 0 0 0 1.5px var(--border);
+.tg-row::before { display: none; }
+.dark .tg-row { box-shadow: none; }
+.tg-row-day {
+  display: grid;
+  place-content: center;
+  background: var(--row-bg);
+  color: var(--row-ink);
+  text-align: center;
+  font-family: var(--tg-display);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.1;
 }
-.tg-row-past::before { display: none; }
-.tg-row-past strong { color: var(--foreground); }
-.tg-row-time { font-size: 1.625rem; font-weight: 200; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tg-row-day b {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+.tg-row-body {
+  min-width: 0;
+  align-self: center;
+  padding: 0.5rem 0.75rem;
+}
+.tg-row-time {
+  align-self: center;
+  padding-right: 0.875rem;
+  font-family: var(--tg-display);
+  font-size: 1.625rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.tg-row-past { color: var(--muted-foreground); }
+.tg-row-past .tg-row-day { opacity: 0.45; }
 
 /* De vijf plekken. Onderin op de telefoon, bovenin op een breed scherm. */
 .tg-tabs-bottom {
@@ -560,8 +609,9 @@ a.tg-row:focus-visible,
   place-items: center;
   background: var(--tg-bg);
   color: var(--tg-fg);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-family: var(--tg-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
   text-transform: lowercase;
   transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -571,7 +621,7 @@ a.tg-row:focus-visible,
 }
 .tg-tabs-bottom .tg-tab[aria-current="page"] {
   height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-  font-weight: 700;
+  font-weight: 600;
 }
 .tg-tabs-top .tg-tab {
   height: 2.5rem;
@@ -579,9 +629,76 @@ a.tg-row:focus-visible,
 }
 .tg-tabs-top .tg-tab[aria-current="page"] {
   height: 3.25rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 @media (prefers-reduced-motion: reduce) {
   .tg-tab, .tg-tile, .tg-row { transition: none; }
 }
 
+
+/* ---- Bestaande onderdelen in de nieuwe stijl ----
+   De schermen onder de tegels en alle andere pagina's zijn met Tailwind-klassen
+   opgebouwd. Deze regels vertalen de terugkerende patronen: lijsten worden losse
+   paneelrijen, labels en knoppen worden recht en onderkast, velden worden vlak. */
+[data-design="tegels"] :is(h1, h2, h3),
+[data-design="tegels"] header.jersey-panel h1,
+[data-design="tegels"] .section-header h2,
+.tg-display,
+.tg-tile-num {
+  font-family: var(--tg-display);
+}
+[data-design="tegels"] :is(h2, h3) {
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  text-transform: lowercase;
+}
+[data-design="tegels"] .section-header h2 {
+  font-weight: 300;
+}
+[data-design="tegels"] :is(.font-bold, .font-black, .font-extrabold) {
+  font-weight: 600;
+}
+[data-design="tegels"] .font-semibold {
+  font-weight: 500;
+}
+[data-design="tegels"] :is(ul, ol, div).divide-y {
+  display: grid;
+  gap: 0.375rem;
+  border: 0;
+  background: transparent;
+}
+[data-design="tegels"] :is(ul, ol, div).divide-y > * {
+  border-width: 0;
+  background-color: var(--tg-panel);
+}
+[data-design="tegels"] .border[class*="bg-background"]:not([data-slot], input, select, textarea, button) {
+  border-color: transparent;
+  background-color: var(--tg-panel);
+}
+[data-design="tegels"] :is(span, a, p, li).rounded-full:not([class*="size-"]) {
+  border-radius: 0;
+}
+[data-design="tegels"] [data-slot="button"],
+[data-design="tegels"] button[type="submit"] {
+  font-family: var(--tg-display);
+  font-weight: 500;
+  text-transform: lowercase;
+}
+[data-design="tegels"] :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]), select, textarea) {
+  border-radius: 0;
+  border-color: transparent;
+  background-color: var(--tg-panel);
+}
+[data-design="tegels"] :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+[data-design="tegels"] th {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: lowercase;
+}
+[data-design="tegels"] ::selection {
+  background: var(--tg-vandaag);
+  color: var(--tg-ink);
+}

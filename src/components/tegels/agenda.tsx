@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { EmptyState } from "@/components/app-ui";
 
 // De agenda van het design "tegels": events en eigen trainingen in één lijst,
@@ -8,8 +8,9 @@ import { EmptyState } from "@/components/app-ui";
 export type AgendaRow = {
   key: string;
   href: string;
-  /** Kleur van de rij: koers petrol, training teal, clubrit sage, verjaardag goud. */
-  place: "kalender" | "zwbeter" | "club" | "vandaag";
+  /** Kleur van het dagvak: de afgesproken eventkleur, teal voor een eigen
+   * training, goud voor een verjaardag. */
+  color: { bg: string; ink: string };
   /** Twee letters, bijvoorbeeld "di". */
   day: string;
   dayNumber: string;
@@ -25,17 +26,18 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
     <li>
       <Link
         href={row.href}
-        className={past ? "tg-row tg-row-past" : `tg-row tg-${row.place}`}
+        className={past ? "tg-row tg-row-past" : "tg-row"}
+        style={{ "--row-bg": row.color.bg, "--row-ink": row.color.ink } as CSSProperties}
       >
-        <span className="text-xs font-bold leading-tight">
+        <span className="tg-row-day">
           {row.day}
-          <span className="block text-[1.375rem] font-light tabular-nums">{row.dayNumber}</span>
+          <b>{row.dayNumber}</b>
         </span>
-        <span className="min-w-0">
-          <strong className="block truncate text-base font-semibold leading-tight">
-            {row.title}
-          </strong>
-          {row.sub && <span className="block truncate text-[0.8125rem] opacity-90">{row.sub}</span>}
+        <span className="tg-row-body">
+          <strong className="block truncate text-base font-medium leading-tight">{row.title}</strong>
+          {row.sub && (
+            <span className="block truncate text-[0.8125rem] text-muted-foreground">{row.sub}</span>
+          )}
         </span>
         {row.time ? <span className="tg-row-time">{row.time}</span> : <span />}
       </Link>

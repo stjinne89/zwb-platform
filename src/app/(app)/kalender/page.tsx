@@ -12,8 +12,9 @@ import {
   EVENT_KINDS,
   EVENT_TYPES,
   eventColorStyle,
+  eventLabel,
   eventTypeColor,
-  CLUB_RACE_TYPES,
+  eventTypeInk,
 } from "@/lib/event-types";
 import {
   BIRTHDAY_FILTER,
@@ -520,7 +521,7 @@ export default async function KalenderPage({
     const { data: workoutRows } = user
       ? await supabase
           .from("training_workouts")
-          .select("id, title, scheduled_at, duration_minutes")
+          .select("id, title, scheduled_at, duration_minutes, event_id")
           .is("superseded_at", null)
           .eq("profile_id", user.id)
           .gte("scheduled_at", `${todayKey}T00:00:00`)
@@ -528,16 +529,33 @@ export default async function KalenderPage({
           .limit(21)
       : { data: null };
 
+    // Een training die bij een event hoort (training_workouts.event_id, migr.
+    // 0116) staat niet als eigen regel: het event staat er al. De duur komt dan
+    // bij dat event te staan. Een teamevent telt mee via zijn hoofdevent.
+    const shownEventIds = new Set(events.map((event) => event.id));
+    const workoutByEvent = new Map<string, { duration_minutes: number | null }>();
+    const looseWorkouts = (workoutRows ?? []).filter((workout) => {
+      const target = workout.event_id
+        ? (rsvpTarget.get(workout.event_id as string) ?? (workout.event_id as string))
+        : null;
+      if (!target || !shownEventIds.has(target)) return true;
+      workoutByEvent.set(target, { duration_minutes: workout.duration_minutes });
+      return false;
+    });
+    const eventColor = (type: string) => ({ bg: eventTypeColor(type), ink: eventTypeInk(type) });
+
     const pastRows: AgendaRow[] = topLevel
       .filter((event) => lastDayOf(event) < todayKey)
       .slice(-5)
       .map((event) => ({
         key: `past-${event.id}`,
         href: `/events/${event.id}`,
-        place: "club",
+        color: eventColor(event.type),
         ...dayOf(new Date(event.start_at)),
         title: event.title,
-        sub: ["geweest", event.location].filter(Boolean).join(" · "),
+        sub: ["geweest", eventLabel(event.type, event.kind), event.location]
+          .filter(Boolean)
+          .join(" · "),
       }));
 
     const upcomingRows: Array<AgendaRow & { sortKey: string }> = [
@@ -548,7 +566,7 @@ export default async function KalenderPage({
             sortKey: item.sortKey,
             key: `birthday-${birthday.id}-${birthday.year}`,
             href: `/verjaardagen/${birthday.id}?jaar=${birthday.year}`,
-            place: "vandaag" as const,
+            color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" },
             ...dayOf(new Date(`${birthday.dateKey}T12:00:00Z`), "UTC"),
             title: `Verjaardag van ${birthday.displayName}`,
           };
@@ -560,10 +578,18 @@ export default async function KalenderPage({
           sortKey: item.sortKey,
           key: `event-${event.id}`,
           href: `/events/${event.id}`,
-          place: CLUB_RACE_TYPES.includes(event.type) ? ("kalender" as const) : ("club" as const),
+          color: eventColor(event.type),
           ...dayOf(new Date(event.start_at)),
           title: event.title,
           sub: [
+            eventLabel(event.type, event.kind),
+            workoutByEvent.has(event.id)
+              ? `jouw training${
+                  workoutByEvent.get(event.id)?.duration_minutes
+                    ? ` ${workoutByEvent.get(event.id)?.duration_minutes} min`
+                    : ""
+                }`
+              : null,
             event.location,
             event.distance_km ? `${event.distance_km} km` : null,
             yesCount > 0 ? `${yesCount} ${yesCount === 1 ? "gaat" : "gaan"} mee` : null,
@@ -585,13 +611,13 @@ export default async function KalenderPage({
               : undefined,
         };
       }),
-      ...(workoutRows ?? []).map((workout) => ({
+      ...looseWorkouts.map((workout) => ({
         sortKey:
           `${amsterdamDateKey(new Date(workout.scheduled_at))}|` +
           `${workout.scheduled_at}|training|${workout.id}`,
         key: `training-${workout.id}`,
         href: "/zwbeter-worden/schema",
-        place: "zwbeter" as const,
+        color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" },
         ...dayOf(new Date(workout.scheduled_at)),
         title: workout.title as string,
         sub: ["training", workout.duration_minutes ? `${workout.duration_minutes} min` : null]

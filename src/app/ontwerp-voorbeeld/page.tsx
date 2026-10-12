@@ -14,18 +14,18 @@ import { TegelsShell } from "../(app)/_components/tegels-shell";
 const SCREENS = ["vandaag", "kalender", "club"] as const;
 
 const PAST: AgendaRow[] = [
-  { key: "p1", href: "#", place: "club", day: "di", dayNumber: "6", title: "ZRL ronde 3", sub: "geweest · Zwift" },
-  { key: "p2", href: "#", place: "club", day: "za", dayNumber: "10", title: "Clubrit Posbank", sub: "geweest · Velp" },
+  { key: "p1", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "di", dayNumber: "6", title: "ZRL ronde 3", sub: "geweest · Zwift" },
+  { key: "p2", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "10", title: "Clubrit Posbank", sub: "geweest · Velp" },
 ];
 
 const UPCOMING: AgendaRow[] = [
-  { key: "u1", href: "#", place: "zwbeter", day: "ma", dayNumber: "12", title: "Sweet spot 3 × 12 min", sub: "training · 75 min" },
-  { key: "u2", href: "#", place: "kalender", day: "di", dayNumber: "13", title: "ZRL ronde 4 · TTT", sub: "Zwift · 5 gaan mee", time: "19:45" },
-  { key: "u3", href: "#", place: "zwbeter", day: "wo", dayNumber: "14", title: "Herstelrit", sub: "training · 45 min" },
-  { key: "u4", href: "#", place: "kalender", day: "do", dayNumber: "15", title: "Tour Ignite · etappe 3", sub: "Zwift", time: "20:00" },
-  { key: "u5", href: "#", place: "vandaag", day: "vr", dayNumber: "16", title: "Verjaardag van Sanne" },
-  { key: "u6", href: "#", place: "club", day: "za", dayNumber: "17", title: "Clubrit Veluwezoom", sub: "Rheden · 82 km · 12 gaan mee", time: "09:00" },
-  { key: "u7", href: "#", place: "kalender", day: "zo", dayNumber: "18", title: "Sunday Race Club", sub: "MyWhoosh", time: "10:45" },
+  { key: "u1", href: "#", color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" }, day: "ma", dayNumber: "12", title: "Sweet spot 3 × 12 min", sub: "training · 75 min" },
+  { key: "u2", href: "#", color: { bg: "#ea580c", ink: "#ffffff" }, day: "di", dayNumber: "13", title: "ZRL ronde 4 · TTT", sub: "Zwift · 5 gaan mee", time: "19:45" },
+  { key: "u3", href: "#", color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" }, day: "wo", dayNumber: "14", title: "Herstelrit", sub: "training · 45 min" },
+  { key: "u4", href: "#", color: { bg: "#ea580c", ink: "#ffffff" }, day: "do", dayNumber: "15", title: "Tour Ignite · etappe 3", sub: "Zwift", time: "20:00" },
+  { key: "u5", href: "#", color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" }, day: "vr", dayNumber: "16", title: "Verjaardag van Sanne" },
+  { key: "u6", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "17", title: "Clubrit Veluwezoom", sub: "Rheden · 82 km · 12 gaan mee", time: "09:00" },
+  { key: "u7", href: "#", color: { bg: "#ea580c", ink: "#ffffff" }, day: "zo", dayNumber: "18", title: "Sunday Race Club", sub: "MyWhoosh", time: "10:45" },
 ];
 
 export default async function OntwerpVoorbeeldPage({
