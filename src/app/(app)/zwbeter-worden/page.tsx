@@ -314,7 +314,10 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                 variant="preview"
               />
               {hubWorkout && hubZwift && hubOutdoor ? (
-                <div className="mt-4 grid items-start gap-3 lg:grid-cols-2">
+                // grid-cols-1 en niet het kale raster: zonder minmax(0, 1fr) rekt de
+                // kolom op tot de breedste regel en schuift de pagina op de telefoon
+                // zijwaarts.
+                <div className="mt-4 grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
                   <ZwiftEventSuggestions
                     workoutId={hubWorkout.id}
                     matches={hubZwift.suggestions.get(hubWorkout.id) ?? []}
