@@ -58,11 +58,11 @@ export default async function OntwerpVoorbeeldPage({
           <TegelsVandaag
             weekday="maandag"
             date="12 oktober"
-            workout={{ title: "Sweet spot 3 × 12 min", when: "vandaag", meta: "75 min · sweet spot" }}
+            workout={{ title: "Sweet spot 3 × 12 min", when: "vandaag", today: true, meta: "75 min · sweet spot" }}
             events={[
               { id: "1", title: "ZRL ronde 4 · TTT", when: "morgen", time: "19:45", place: "kalender" },
               { id: "2", title: "Tour Ignite · etappe 3", when: "do 15 okt", time: "20:00", place: "kalender" },
-              { id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "club" },
+              { id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "kalender" },
             ]}
             standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
           />

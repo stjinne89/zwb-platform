@@ -295,6 +295,18 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   laatste kind van de schil. De oorzaak op iOS is niet vastgesteld. Getest in
 >   de telefoonweergave van de browser (plakt op elke scrollpositie onderaan);
 >   **niet getest op een echte iPhone.**
+> - *Kleurbeleid voor tegels (besluit eigenaar, 2026-10-12; nog niet op main).*
+>   Kleur zegt wat voor soort ding het is, formaat hoe belangrijk het is.
+>   **Goud**: jij, nu, iets wat vandaag je aandacht vraagt (schaars). **Petrol**:
+>   wedstrijden en events, ook teams en hun uitslagen. **Teal**: training en je
+>   eigen cijfers. **Sage**: de club en de mensen. **Donker petrol**: spel en
+>   ontdekken. De kalender houdt in het dagvak zijn kleur per eventsoort. De
+>   regel staat als commentaar bij de kleuren in `globals.css`. Doorgevoerd op
+>   het dashboard (training goud alleen als hij vandaag is, anders teal; een
+>   race zonder opgave goud; events, teamuitslag, FRR en SRC petrol; badges
+>   teal; Mijn garage goud; ledenvoordeel sage) en op Club (`TILE_STYLE`).
+>   **Niet meer waar:** "een tegel heeft de kleur van de plek waar hij heen
+>   leidt" en "op Club is kleur afwisseling" hierboven.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

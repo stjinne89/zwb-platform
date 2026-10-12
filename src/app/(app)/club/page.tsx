@@ -6,19 +6,23 @@ import { NAV_GROUPS, filterNavForPermissions } from "../_components/nav-config";
 // De plek "Club" van het design "tegels": alles van de club als tegels. In het
 // huidige design staat dit in het menu en linkt er niets naar deze pagina.
 
-// Kleur en formaat per onderdeel, zodat het veld geen egaal rooster is. Wat hier
-// niet staat, krijgt de kleur van de plek en het gewone formaat.
+// Kleur volgt het kleurbeleid (zie globals.css): de soort inhoud bepaalt de
+// kleur, het formaat het belang.
 const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
+  // petrol: wedstrijden en events
   "/teams": { tone: "kalender", size: "big" },
-  "/leden": { tone: "club", size: "wide" },
-  "/achievements": { tone: "vandaag" },
-  "/stats": { tone: "zwbeter" },
-  "/zwblokken": { tone: "zwbeter" },
-  "/profiel/segments/collecties": { tone: "meer" },
-  "/zwbgame": { tone: "vandaag" },
   "/omnium": { tone: "kalender" },
-  "/src": { tone: "club" },
-  "/polls": { tone: "zwbeter" },
+  "/src": { tone: "kalender" },
+  // sage: de club en de mensen
+  "/leden": { tone: "club", size: "wide" },
+  "/polls": { tone: "club" },
+  // teal: prestaties en cijfers
+  "/achievements": { tone: "zwbeter" },
+  "/stats": { tone: "zwbeter" },
+  // donker petrol: spel en ontdekken
+  "/zwblokken": { tone: "meer" },
+  "/profiel/segments/collecties": { tone: "meer" },
+  "/zwbgame": { tone: "meer" },
 };
 
 export default async function ClubPage() {
@@ -43,9 +47,9 @@ export default async function ClubPage() {
         href: item.href,
         label: item.label,
         external: item.external,
-        // De link naar buiten (voorZpWelBokaal) is de donkerste tegel, en breed:
-        // de naam past niet op een smalle tegel op de telefoon.
-        ...(item.external ? { tone: "meer", size: "wide" } : {}),
+        // De link naar buiten (voorZpWelBokaal) is een competitie, dus petrol, en
+        // breed: de naam past niet op een smalle tegel op de telefoon.
+        ...(item.external ? { tone: "kalender", size: "wide" } : {}),
         ...TILE_STYLE[item.href],
       }),
     ),

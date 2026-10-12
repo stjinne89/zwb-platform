@@ -113,6 +113,7 @@ export async function SrcResults({ userId }: { userId: string | null }) {
   return (
     <section>
       <SectionHeader
+        place="kalender"
         icon={Trophy}
         title={`${sunday?.title ?? "Sunday Race Club"}${official ? "" : " · voorlopig"}`}
         action={sunday ? <InlineMoreLink href={`/events/${sunday.id}`}>Race</InlineMoreLink> : null}

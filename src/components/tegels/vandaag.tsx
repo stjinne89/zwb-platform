@@ -9,6 +9,8 @@ export type VandaagWorkout = {
   title: string;
   /** Bijvoorbeeld "vandaag" of "morgen". */
   when: string;
+  /** Staat de training vandaag gepland? Dan is de tegel goud: jij, nu. */
+  today: boolean;
   /** Bijvoorbeeld "75 min · sweet spot". */
   meta: string;
   /** De blokken van de training: duur en doelvermogen als % van de FTP. */
@@ -56,8 +58,8 @@ export type VandaagEvent = {
   /** Bijvoorbeeld "morgen" of "za 17 okt". */
   when: string;
   time: string;
-  /** Koers hoort bij Kalender (petrol), een clubrit kleurt sage. */
-  place: "kalender" | "club";
+  /** Events zijn petrol; zie het kleurbeleid in globals.css. */
+  place: "kalender";
 };
 
 export type VandaagStanding = {
@@ -98,7 +100,10 @@ export function TegelsVandaag({
       ) : (
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {workout && (
-            <Link href="/zwbeter-worden" className="tg-tile tg-zwbeter col-span-2">
+            <Link
+              href="/zwbeter-worden"
+              className={`tg-tile col-span-2 ${workout.today ? "tg-vandaag" : "tg-zwbeter"}`}
+            >
               <span className="tg-tile-small">ZWBeter trainen · {workout.when}</span>
               <span className="mt-0.5 line-clamp-2 text-[2rem] font-light leading-[1.05] tracking-tight">
                 {workout.title}
@@ -122,7 +127,7 @@ export function TegelsVandaag({
           ))}
 
           {standing && (
-            <Link href={standing.href} className="tg-tile tg-meer">
+            <Link href={standing.href} className="tg-tile tg-kalender">
               <span className="tg-tile-small line-clamp-1">Club · {standing.competition}</span>
               <span className="tg-tile-title mt-0.5 line-clamp-2">{standing.team}</span>
               <span className="tg-tile-num">

@@ -472,7 +472,15 @@ html.dark .app-shell[data-design="tegels"]::before {
   height: 1.75rem;
 }
 
-/* Plekkleur: zet achtergrond en inkt voor een tegel, rij of tab. */
+/* Kleurbeleid (eigenaar, 2026-10-12): kleur zegt wat voor soort ding het is,
+   formaat zegt hoe belangrijk het is.
+   - goud (tg-vandaag): jij, nu. Iets wat vandaag jouw aandacht vraagt. Schaars:
+     hooguit een of twee per scherm.
+   - petrol (tg-kalender): wedstrijden en events, ook teams en hun uitslagen.
+   - teal (tg-zwbeter): training en je eigen cijfers.
+   - sage (tg-club): de club en de mensen.
+   - donker petrol (tg-meer): spel en ontdekken.
+   De kalender houdt in het dagvak zijn eigen kleur per eventsoort. */
 .tg-vandaag { --tg-bg: var(--tg-vandaag); --tg-fg: var(--tg-ink); }
 .tg-kalender { --tg-bg: var(--tg-kalender); --tg-fg: var(--tg-paper); }
 .tg-zwbeter { --tg-bg: var(--tg-zwbeter); --tg-fg: var(--tg-paper); }

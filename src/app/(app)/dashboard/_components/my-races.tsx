@@ -270,7 +270,11 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
     return (
       <ul className="contents" aria-label="Jouw races">
         {shown.map((race) => (
-          <li key={race.key} className="tg-tile tg-kalender">
+          <li
+            key={race.key}
+            // Nog niets opgegeven vraagt om actie: goud. Anders petrol, zoals elk event.
+            className={`tg-tile ${race.status ? "tg-kalender" : "tg-vandaag"}`}
+          >
             <span className="tg-tile-small">
               {new Date(race.startAt).toLocaleDateString("nl-NL", {
                 weekday: "short",

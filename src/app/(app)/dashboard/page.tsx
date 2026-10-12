@@ -835,7 +835,7 @@ export default async function DashboardPage({
           return { minutes: block.durationMinutes, pct: (low + high) / 2 };
         })
       : undefined;
-  const tileEvents = otherEvents.slice(0, 3).map((event) => toTile(event, "club"));
+  const tileEvents = otherEvents.slice(0, 3).map((event) => toTile(event, "kalender"));
   // De uitslagtegel toont de nieuwste uitslag van een eigen team. Wie in een
   // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
   // kalender, migr. 0179). Geen eigen team met een uitslag: geen tegel.
@@ -923,6 +923,7 @@ export default async function DashboardPage({
                   title: nextWorkout.title,
                   profile: workoutProfile,
                   when: whenLabel(nextWorkout.scheduled_at),
+                  today: dayKeyOf(nextWorkout.scheduled_at) === todayKey,
                   meta: [
                     nextWorkout.duration_minutes ? `${nextWorkout.duration_minutes} min` : null,
                     nextWorkout.intensityLabel ?? null,
@@ -1226,6 +1227,7 @@ export default async function DashboardPage({
         <section>
           <SectionHeader
             icon={BadgeCheck}
+            place="zwbeter"
             title="Nieuwste badges"
             action={<InlineMoreLink href="/achievements">Achievements</InlineMoreLink>}
           />
@@ -1423,7 +1425,6 @@ export default async function DashboardPage({
             <section>
               <SectionHeader
                 icon={Gift}
-                place="meer"
                 title="Ledenvoordeel"
                 action={<InlineMoreLink href="/sponsors">Alles</InlineMoreLink>}
               />
