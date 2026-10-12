@@ -338,7 +338,7 @@ export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionRes
   }
 
   try {
-    const { body } = await optimizeWithZwiftGopher(plan);
+    const { body, ownValueRiders } = await optimizeWithZwiftGopher(plan);
     const { riders, applied } = applyZwiftGopherResult(plan.riders, body);
     const planId = await savePlanRows({ ...plan, riders }, guard.userId, "optimized", body);
     return {
@@ -347,9 +347,11 @@ export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionRes
       apiResponse: body,
       riders,
       message:
-        applied > 0
-          ? "TTT-plan geoptimaliseerd."
-          : "Geoptimaliseerd, maar ZwiftGopher gaf geen kopbeurten terug.",
+        applied === 0
+          ? "Geoptimaliseerd, maar ZwiftGopher gaf geen kopbeurten terug."
+          : ownValueRiders.length > 0
+            ? `TTT-plan geoptimaliseerd. Niet gevonden bij ZwiftGopher: ${ownValueRiders.join(", ")}; gerekend met de waarden uit het plan.`
+            : "TTT-plan geoptimaliseerd.",
     };
   } catch (err) {
     return {

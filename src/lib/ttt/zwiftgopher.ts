@@ -36,6 +36,19 @@ function riderPower300(rider: TttPlanRiderInput) {
   return positiveNumber(rider.power300Watts) ?? positiveNumber(rider.ftpWatts);
 }
 
+/**
+ * Lengte voor een renner die ZwiftGopher niet kan opzoeken en van wie ZWB geen
+ * lengte heeft (keuze van de eigenaar, 2026-10-12).
+ */
+export const FALLBACK_HEIGHT_CM = 175;
+
+/** Genoeg eigen waarden om zonder opzoeking bij ZwiftGopher te rekenen? */
+function hasOwnValues(rider: TttPlanRiderInput) {
+  return Boolean(
+    rider.name.trim() && positiveNumber(rider.ftpWatts) && positiveNumber(rider.weightKg),
+  );
+}
+
 function validateCustomRider(rider: TttPlanRiderInput) {
   const missing: string[] = [];
   if (!rider.name.trim()) missing.push("naam");
@@ -45,7 +58,14 @@ function validateCustomRider(rider: TttPlanRiderInput) {
   return missing;
 }
 
-export function buildZwiftGopherPayload(plan: TttPlanInput): OptimizePayload {
+/**
+ * `ownValues`: Zwift-ID's die ZwiftGopher niet vond. Die renners gaan mee als
+ * aangepaste renner met de waarden uit het plan, in plaats van met hun ID.
+ */
+export function buildZwiftGopherPayload(
+  plan: TttPlanInput,
+  ownValues: ReadonlySet<string> = new Set(),
+): OptimizePayload {
   const riders = plan.riders
     .slice()
     .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -56,6 +76,17 @@ export function buildZwiftGopherPayload(plan: TttPlanInput): OptimizePayload {
   for (const rider of riders) {
     const zwiftId = numericZwiftId(rider.zwiftId);
     const power300 = riderPower300(rider);
+
+    if (zwiftId && !rider.isManual && ownValues.has(zwiftId) && hasOwnValues(rider)) {
+      customRiders.push({
+        name: rider.name.trim(),
+        ftp: rider.ftpWatts as number,
+        weight: rider.weightKg as number,
+        height: positiveNumber(rider.heightCm) ?? FALLBACK_HEIGHT_CM,
+        ...(power300 ? { power_300_watts: power300 } : {}),
+      });
+      continue;
+    }
 
     if (zwiftId && !rider.isManual) {
       idRiders.push(Number(zwiftId));
@@ -203,7 +234,53 @@ export function applyZwiftGopherResult(
   };
 }
 
+/** Het Zwift-ID uit "Rider 1 (ID: 123) not found - check that the Zwift ID is correct". */
+export function notFoundZwiftId(message: string) {
+  return /\(ID:\s*(\d+)\)\s*not found/i.exec(message)?.[1] ?? null;
+}
+
+/**
+ * ZwiftGopher zoekt een renner op bij ZwiftRacing.app; kent die hem niet, of
+ * loopt de opzoeking daar tegen een limiet, dan weigert ZwiftGopher het hele
+ * plan. Dan rekenen we met de waarden uit het plan: eerst alleen de genoemde
+ * renner, bij een tweede weigering iedereen met eigen waarden. Hooguit drie
+ * verzoeken.
+ */
 export async function optimizeWithZwiftGopher(plan: TttPlanInput) {
+  const candidates = plan.riders.filter(
+    (rider) => numericZwiftId(rider.zwiftId) && !rider.isManual,
+  );
+  const ownValues = new Set<string>();
+  for (;;) {
+    try {
+      const result = await requestZwiftGopher(buildZwiftGopherPayload(plan, ownValues));
+      return {
+        ...result,
+        ownValueRiders: candidates
+          .filter((rider) => ownValues.has(rider.zwiftId.trim()))
+          .map((rider) => rider.name),
+      };
+    } catch (err) {
+      const zwiftId = err instanceof Error ? notFoundZwiftId(err.message) : null;
+      const rider = zwiftId
+        ? candidates.find((row) => row.zwiftId.trim() === zwiftId)
+        : undefined;
+      if (!zwiftId || !rider || ownValues.has(zwiftId)) throw err;
+      if (!hasOwnValues(rider)) {
+        throw new Error(`ZwiftGopher vindt ${rider.name} niet. Vul FTP en Kg in.`);
+      }
+      if (ownValues.size === 0) {
+        ownValues.add(zwiftId);
+      } else {
+        for (const row of candidates) {
+          if (hasOwnValues(row)) ownValues.add(row.zwiftId.trim());
+        }
+      }
+    }
+  }
+}
+
+async function requestZwiftGopher(payload: OptimizePayload) {
   const apiKey = process.env.ZWIFTGOPHER_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -214,7 +291,6 @@ export async function optimizeWithZwiftGopher(plan: TttPlanInput) {
   const baseUrl =
     process.env.ZWIFTGOPHER_API_BASE_URL?.replace(/\/$/, "") ??
     "https://zwiftgopher.com";
-  const payload = buildZwiftGopherPayload(plan);
   const res = await fetch(`${baseUrl}/api/optimize`, {
     method: "POST",
     headers: {
@@ -232,19 +308,22 @@ export async function optimizeWithZwiftGopher(plan: TttPlanInput) {
     body = await res.text().catch(() => null);
   }
 
-  if (!res.ok) {
+  // Een geweigerd plan kan ook als 200 met `success: false` terugkomen.
+  const refused =
+    typeof body === "object" && body && "success" in body && body.success === false;
+  if (!res.ok || refused) {
     const reset = res.headers.get("X-RateLimit-Reset");
     const rateText =
       res.status === 429
         ? ` Rate limit bereikt${reset ? `; probeer opnieuw na ${reset}.` : "."}`
         : "";
+    const fields = (typeof body === "object" && body ? body : {}) as Record<string, unknown>;
     const message =
-      typeof body === "object" &&
-      body &&
-      "message" in body &&
-      typeof body.message === "string"
-        ? body.message
-        : `ZwiftGopher API gaf HTTP ${res.status}.`;
+      typeof fields.message === "string"
+        ? fields.message
+        : typeof fields.error === "string"
+          ? fields.error
+          : `ZwiftGopher API gaf HTTP ${res.status}.`;
     const error = new Error(`${message}${rateText}`);
     (error as Error & { statusCode?: number }).statusCode = res.status;
     throw error;

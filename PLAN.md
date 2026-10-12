@@ -91,6 +91,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **TTT-planner: rekenen met eigen waarden als ZwiftGopher een Zwift-ID niet vindt, 2026-10-12 — gebouwd, lokaal getest, niet tegen ZwiftGopher gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Melding van de eigenaar, een dag voor de ZRL-TTT: Optimaliseren gaf
+> "Rider 1 (ID: …) not found - check that the Zwift ID is correct", en daarna bij
+> elk ID. ZwiftGopher zoekt renners op bij ZwiftRacing.app; op zwiftgopher.com/TTT
+> stond op dat moment dat die opzoeking door een limiet bij ZwiftRacing.app niet
+> altijd betrouwbaar is. Eén niet-gevonden ID weigert het hele plan, dus de
+> planner hing volledig af van een opzoeking bij een derde.
+>
+> **Nu** (`optimizeWithZwiftGopher`, `lib/ttt/zwiftgopher.ts`). Bij "not found"
+> gaat de genoemde renner opnieuw mee als aangepaste renner, met naam, FTP,
+> gewicht en 300s uit het plan. Komt er daarna nog een weigering, dan gaat
+> iedereen met eigen FTP en gewicht zo mee. Hooguit drie verzoeken per klik.
+> Het Zwift-ID blijft in het plan staan; de volgende keer probeert de planner
+> de opzoeking weer. Na afloop noemt de melding wie niet gevonden is.
+> - **Lengte:** staat Cm leeg, dan rekent de planner met 175 cm
+>   (`FALLBACK_HEIGHT_CM`). Keuze van de eigenaar, die liever een aanname heeft
+>   dan vijf lengtes invullen; de 175 wordt niet in het plan opgeslagen.
+> - **Zonder FTP of gewicht** kan het niet: dan zegt de planner bij welke renner
+>   FTP en Kg ingevuld moeten worden.
+> - De foutmelding van ZwiftGopher wordt nu ook gelezen uit `error` en uit een
+>   200-antwoord met `success: false`; of ZwiftGopher die vormen gebruikt is niet
+>   gemeten.
+>
+> **Niet meer waar.** "Of ZwiftGopher elk Zwift-ID kent; niet gemeten" in de
+> ronde hieronder: het antwoord is nee, zie hierboven.
+>
+> **Bewust niet gebouwd.** Geen eigen opzoeking van lengte (Zwift
+> `profiles/{id}` is daarvoor niet gemeten) en geen wachtrij of automatisch
+> later opnieuw proberen.
+>
+> **Niet geverifieerd.** De echte aanroep: de API-sleutel staat alleen op
+> Netlify. De vorm van de foutmelding komt uit de schermafdruk van de eigenaar.
+> Getest: `tsc --noEmit`, ESLint, Vitest (nieuw:
+> `ttt-zwiftgopher-fallback.test.ts`, 7 tests met een nagebootste API).
+
+---
+
 > **WTRL-import: uitgenodigde renners worden ook ingedeeld, 2026-10-12 — gebouwd, lokaal getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
