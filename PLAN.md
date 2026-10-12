@@ -94,6 +94,16 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > **Design "tegels" als proefversie achter een schakelaar, 2026-10-12 — gebouwd, lokaal getest; met echte data deels gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
+> **Naar main gepusht op 2026-10-12, op verzoek van de eigenaar,** zodat het
+> bestuur het met eigen gegevens kan bekijken. Het huidige design blijft voor
+> alle leden staan; het nieuwe gaat alleen aan via de knop onderaan de pagina,
+> en die ziet alleen wie `roles.manage_permissions` heeft. Vooraf gedraaid, na
+> het samenvoegen van main: `tsc --noEmit`, `npm run lint` (0 fouten), `npm run
+> test` (2092 geslaagd) en `npm run build`. In de productiebuild leidt
+> `/ontwerp-voorbeeld` zonder login naar `/login`. **Wat voor alle leden wél
+> verandert:** de knop "Vermogenscurve verbergen" boven de rennerstabel, en de
+> opstelling van ZRL A en C op de raceweekpagina.
+>
 > **Waarom.** De eigenaar koos uit een reeks schetsen de richting "Tenuetegels"
 > (bestuursvoorstel: https://claude.ai/artifact/PQRJUh3jU8D3KQFgBuKF91) en wil
 > die met eigen data zien voordat hij live gaat.
