@@ -1,8 +1,8 @@
 // Wat een WTRL-import aan één ZWB-team verandert (migr. 0181).
 //
 // Puur: de serveractie haalt de rijen op en voert het plan uit. Regels:
-// - Alleen renners met status "lid" bij WTRL tellen; een uitnodiging is nog geen
-//   teamlid.
+// - Elke renner in de plak telt, ook wie bij WTRL nog "uitgenodigd" is: de
+//   captain heeft hem voor dit team gekozen (keuze van de eigenaar, 2026-10-12).
 // - Met ZWB-account (Zwift-ID op het profiel, of een geclaimde rosternaam met dat
 //   Zwift-ID): lid van het team, herkomst 'wtrl'. Wie een captain eerder uit dit
 //   team haalde (seed-override), blijft eruit.
@@ -60,12 +60,11 @@ export function planWtrlMembership(input: {
     upsertRoster: [],
     detachRoster: [],
   };
-  const current = input.riders.filter((rider) => rider.status === "member");
   const memberIds = new Set(input.members.map((row) => row.profile_id));
   const keepProfiles = new Set<string>();
   const keepRoster = new Set<string>();
 
-  for (const rider of current) {
+  for (const rider of input.riders) {
     const byZwift = input.roster.find((entry) => entry.zwift_id?.trim() === rider.zwiftId);
     const entry = byZwift ?? input.roster.find((row) => sameName(row.name, rider.name));
     const profileId =

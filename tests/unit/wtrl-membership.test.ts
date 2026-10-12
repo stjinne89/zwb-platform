@@ -37,17 +37,18 @@ describe("planWtrlMembership", () => {
     expect(plan.upsertRoster).toEqual([{ id: null, name: "Bert", zwiftId: "2", category: "B" }]);
   });
 
-  it("voegt een uitnodiging niet toe", () => {
+  it("deelt ook een uitgenodigde renner in", () => {
     const plan = planWtrlMembership({
       teamId: TEAM,
-      riders: [rider("1", "Anna", "invited")],
+      riders: [rider("1", "Anna", "invited"), rider("2", "Bert", "invited")],
       profileByZwiftId: new Map([["1", "p-anna"]]),
       roster: [],
-      members: [],
+      members: [{ profile_id: "p-weg", assignment_source: "wtrl" }],
       excluded: new Set(),
     });
-    expect(plan.addMembers).toEqual([]);
-    expect(plan.upsertRoster).toEqual([]);
+    expect(plan.addMembers).toEqual(["p-anna"]);
+    expect(plan.upsertRoster).toEqual([{ id: null, name: "Bert", zwiftId: "2", category: "B" }]);
+    expect(plan.removeMembers).toEqual(["p-weg"]);
   });
 
   it("respecteert een captain die iemand uit het team haalde", () => {

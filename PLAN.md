@@ -91,6 +91,32 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **WTRL-import: uitgenodigde renners worden ook ingedeeld, 2026-10-12 — gebouwd, lokaal getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar werkte de teams bij met de WTRL-plak en miste renners
+> in de ZWB-teams: het waren de renners die bij WTRL nog op "invited" staan. Aan
+> het begin van een ronde is dat een groot deel van een team, en de captain heeft
+> ze juist voor dat team gekozen.
+>
+> **Nu.** `planWtrlMembership` deelt elke renner uit de plak in, ongeacht de
+> status: met account lid van het ZWB-team (herkomst `wtrl`), zonder account een
+> rosternaam bij dat team. Opruimen is ongewijzigd: wie niet meer in de plak van
+> dat team staat en via WTRL binnenkwam, gaat eruit. De status blijft in
+> `wtrl_team_riders` staan. Hulptekst bijgewerkt.
+>
+> **Niet meer waar.** "Uitgenodigd bij WTRL telt nog niet als lid" in de ronde
+> van `0181` (2026-09-22); daar bijgewerkt.
+>
+> **Bewust niet gebouwd.** Geen label "uitgenodigd" in de rostertabel, en geen
+> herberekening van bestaande teams: de indeling verandert pas bij de volgende
+> plak.
+>
+> **Niet geverifieerd.** De import tegen echte data. Getest: `tsc --noEmit`,
+> ESLint, `wtrl-membership.test.ts`.
+
+---
+
 > **TTT-planner: renners zonder account, met vermogen uit WTRL, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -4263,8 +4289,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   `roster_claim` en `event_availability` blijven altijd staan. Teams die niet in de
 >   plak staan of niet gekoppeld zijn, raakt de import niet; een team waarvan geen
 >   renners zijn gelezen, wordt niet opgeruimd.
-> - **Uitgenodigd** bij WTRL telt nog niet als lid: niet toegevoegd, en een
->   WTRL-lid dat weer "uitgenodigd" wordt, gaat eruit.
+> - **Uitgenodigd** bij WTRL telde toen nog niet als lid. Sinds 2026-10-12 wel:
+>   zie "WTRL-import: uitgenodigde renners worden ook ingedeeld".
 > - **Eén tabel:** de rostertabel (teampagina én `/teams`) heeft een kolom
 >   "zFTP · zMAP" met categorie, W, w/kg, zMAP w/kg, advies en "Te sterk"; op de
 >   telefoon als regel op de rennerkaart. Niet-geregistreerde renners staan sinds de
