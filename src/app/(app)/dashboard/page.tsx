@@ -647,6 +647,10 @@ export default async function DashboardPage({
       .slice(0, 3)
       .map((i) => ({ ...i, story: false, tagged: i.source === INSTAGRAM_TAG_SOURCE })),
   ];
+  // Het design "tegels" toont alleen posts van de laatste zeven dagen.
+  const instagramRecentIds = new Set(
+    instagramItems.filter((item) => item.published_at >= since7Iso).map((item) => item.id),
+  );
   const pollsWithVotes = (pollRows ?? []) as unknown as Array<
     PollRow & { poll_options: PollOptionRow[] | null; poll_votes: PollVoteRow[] | null }
   >;
@@ -971,7 +975,14 @@ export default async function DashboardPage({
         </Suspense>
       </div>
 
-      {instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
+      {tegels ? (
+        <InstagramStrip
+          tegels
+          posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
+        />
+      ) : (
+        instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />
+      )}
 
       {user?.id && <MaintenanceStatus profileId={user.id} />}
 

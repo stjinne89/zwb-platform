@@ -215,8 +215,13 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   hoofdevent van het teamevent, `round_url`) in plaats van naar het teamevent.
 >   Andere competities linken nog naar de teampagina. De tegel toont de nieuwste
 >   uitslag van een eigen team (lid van het team of van de paraplu erboven);
->   zonder eigen uitslag in de laatste zeven dagen is er geen tegel. Het
->   scorebord van de andere teams staat in dit design nog nergens.
+>   zonder eigen uitslag in de laatste zeven dagen is er geen tegel. De
+>   uitslagen van de andere teams staan op de rondepagina waar de tegel naar
+>   linkt: het blok Teams toont daar per team de plaats (`ZrlTeamRank`,
+>   bestond al). Een eerdere bewering dat ze daar ontbraken was fout.
+> - *Instagram.* In dit design alleen posts van de laatste zeven dagen, elk als
+>   tegel met de foto erin (`InstagramStrip` met `tegels`); zonder recente post
+>   geen blok. Het huidige design toont nog de laatste drie, ongeacht de datum.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
