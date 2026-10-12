@@ -4,6 +4,7 @@ import {
   buildZwiftGopherPayload,
   notFoundZwiftId,
   optimizeWithZwiftGopher,
+  type ZwiftGopherError,
 } from "@/lib/ttt/zwiftgopher";
 import { DEFAULT_TTT_SETTINGS, type TttPlanInput, type TttPlanRiderInput } from "@/lib/ttt/types";
 
@@ -78,7 +79,7 @@ describe("optimizeWithZwiftGopher", () => {
   const riders = [
     rider({ zwiftId: "111", name: "Anna", displayOrder: 0 }),
     rider({ zwiftId: "222", name: "Bram", displayOrder: 1 }),
-    rider({ zwiftId: "333", name: "Cas", displayOrder: 2 }),
+    rider({ zwiftId: "333", name: "Cas", ftpWatts: null, displayOrder: 2 }),
   ];
   let sent: Array<{ riders?: number[]; custom_riders?: Array<{ name: string }> }>;
 
@@ -103,40 +104,67 @@ describe("optimizeWithZwiftGopher", () => {
     );
   }
 
+  async function failure(run: Promise<unknown>) {
+    return run.then(
+      () => {
+        throw new Error("had moeten falen");
+      },
+      (err: ZwiftGopherError) => err,
+    );
+  }
+
   beforeEach(() => {
     vi.stubEnv("ZWIFTGOPHER_API_KEY", "test-key");
+    vi.useFakeTimers({ now: new Date("2026-10-12T12:00:00Z") });
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
 
-  it("stuurt één onbekende renner opnieuw met eigen waarden", async () => {
+  it("noemt de renner die niet gevonden is, zonder tweede verzoek", async () => {
     stubZwiftGopher(["222"]);
-    const result = await optimizeWithZwiftGopher(plan(riders));
+    const error = await failure(optimizeWithZwiftGopher(plan(riders)));
 
-    expect(sent).toHaveLength(2);
-    expect(sent[1].riders).toEqual([111, 333]);
-    expect(sent[1].custom_riders?.map((row) => row.name)).toEqual(["Bram"]);
-    expect(result.ownValueRiders).toEqual(["Bram"]);
-  });
-
-  it("rekent bij een tweede weigering voor iedereen met eigen waarden", async () => {
-    stubZwiftGopher(["111", "222", "333"]);
-    const result = await optimizeWithZwiftGopher(plan(riders));
-
-    expect(sent).toHaveLength(3);
-    expect(sent[2].riders).toBeUndefined();
-    expect(sent[2].custom_riders?.map((row) => row.name)).toEqual(["Anna", "Bram", "Cas"]);
-    expect(result.ownValueRiders).toEqual(["Anna", "Bram", "Cas"]);
-  });
-
-  it("vraagt om FTP en Kg als die ontbreken", async () => {
-    stubZwiftGopher(["111"]);
-    await expect(
-      optimizeWithZwiftGopher(plan([rider({ zwiftId: "111", name: "Anna", ftpWatts: null }), riders[1]])),
-    ).rejects.toThrow("ZwiftGopher vindt Anna niet. Vul FTP en Kg in.");
     expect(sent).toHaveLength(1);
+    expect(error.notFound?.name).toBe("Bram");
+    expect(error.retryAt).toBe(Date.parse("2026-10-12T12:01:00Z"));
+  });
+
+  it("rekent met eigen waarden voor wie FTP en gewicht heeft", async () => {
+    stubZwiftGopher(["111", "222"]);
+    const result = await optimizeWithZwiftGopher(plan(riders), { ownValues: true });
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].riders).toEqual([333]);
+    expect(sent[0].custom_riders?.map((row) => row.name)).toEqual(["Anna", "Bram"]);
+    expect(result.ownValueRiders).toBe(2);
+  });
+
+  it("meldt een renner zonder eigen waarden die ook dan niet gevonden wordt", async () => {
+    stubZwiftGopher(["333"]);
+    const error = await failure(optimizeWithZwiftGopher(plan(riders), { ownValues: true }));
+    expect(error.notFound?.name).toBe("Cas");
+  });
+
+  it("zet de limiet van ZwiftGopher om in een tijdstip", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ message: "API rate limit exceeded: 1 request per 60 seconds" }),
+            { status: 429, headers: { "X-RateLimit-Reset": "1791804452" } },
+          ),
+      ),
+    );
+    const error = await failure(optimizeWithZwiftGopher(plan(riders)));
+
+    expect(error.message).toBe("ZwiftGopher staat één verzoek per minuut toe.");
+    expect(error.statusCode).toBe(429);
+    expect(error.retryAt).toBe(1791804452000);
+    expect(error.notFound).toBeUndefined();
   });
 
   it("geeft andere fouten ongewijzigd door", async () => {
@@ -144,6 +172,8 @@ describe("optimizeWithZwiftGopher", () => {
       "fetch",
       vi.fn(async () => new Response(JSON.stringify({ message: "No upcoming ZRL races found" }), { status: 404 })),
     );
-    await expect(optimizeWithZwiftGopher(plan(riders))).rejects.toThrow("No upcoming ZRL races found");
+    const error = await failure(optimizeWithZwiftGopher(plan(riders)));
+    expect(error.message).toBe("No upcoming ZRL races found");
+    expect(error.retryAt).toBeUndefined();
   });
 });

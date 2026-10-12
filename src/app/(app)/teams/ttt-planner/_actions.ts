@@ -8,6 +8,7 @@ import {
   applyZwiftGopherResult,
   buildZwiftGopherPayload,
   optimizeWithZwiftGopher,
+  type ZwiftGopherError,
 } from "@/lib/ttt/zwiftgopher";
 import { tttMaxRiders } from "@/lib/ttt/types";
 import type {
@@ -325,7 +326,10 @@ export async function saveTttPlan(
   }
 }
 
-export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionResult> {
+export async function optimizeTttPlan(
+  input: TttPlanInput,
+  options?: { ownValues?: boolean },
+): Promise<TttActionResult> {
   const plan = normalizePlan(input);
   const validation = validatePlan(plan, "optimize", await maxRidersFor(plan.eventId));
   if (validation) return { ok: false, error: validation };
@@ -338,7 +342,9 @@ export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionRes
   }
 
   try {
-    const { body, ownValueRiders } = await optimizeWithZwiftGopher(plan);
+    const { body, ownValueRiders } = await optimizeWithZwiftGopher(plan, {
+      ownValues: options?.ownValues === true,
+    });
     const { riders, applied } = applyZwiftGopherResult(plan.riders, body);
     const planId = await savePlanRows({ ...plan, riders }, guard.userId, "optimized", body);
     return {
@@ -349,21 +355,25 @@ export async function optimizeTttPlan(input: TttPlanInput): Promise<TttActionRes
       message:
         applied === 0
           ? "Geoptimaliseerd, maar ZwiftGopher gaf geen kopbeurten terug."
-          : ownValueRiders.length > 0
-            ? `TTT-plan geoptimaliseerd. Niet gevonden bij ZwiftGopher: ${ownValueRiders.join(", ")}; gerekend met de waarden uit het plan.`
+          : ownValueRiders > 0
+            ? "TTT-plan geoptimaliseerd met de waarden uit het plan."
             : "TTT-plan geoptimaliseerd.",
     };
   } catch (err) {
+    if (!(err instanceof Error)) {
+      return { ok: false, error: "ZwiftGopher optimalisatie faalde." };
+    }
+    const { notFound, retryAt, statusCode } = err as ZwiftGopherError;
+    if (!notFound) return { ok: false, error: err.message, statusCode, retryAt };
+    const complete = Boolean(notFound.ftpWatts && notFound.weightKg);
     return {
       ok: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "ZwiftGopher optimalisatie faalde.",
-      statusCode:
-        err instanceof Error && "statusCode" in err
-          ? Number((err as Error & { statusCode?: number }).statusCode)
-          : undefined,
+      error: complete
+        ? `ZwiftGopher vindt ${notFound.name} niet.`
+        : `ZwiftGopher vindt ${notFound.name} niet. Vul FTP en Kg in.`,
+      statusCode,
+      retryAt,
+      useOwnValues: complete,
     };
   }
 }

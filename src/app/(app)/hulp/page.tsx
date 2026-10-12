@@ -518,7 +518,7 @@ const ADMIN_GUIDES = [
       "Een plan is een concept tot de captain het publiceert. Daarna ziet het hele team het op de racepagina.",
       "Renners zonder account staan ook in de lijst; FTP, gewicht en 5-minutenvermogen komen dan uit WTRL.",
       "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",
-      "Vindt ZwiftGopher een Zwift-ID niet, dan rekent het plan met de FTP en het gewicht uit het plan, en met 175 cm als Cm leeg is.",
+      "Vindt ZwiftGopher een Zwift-ID niet, dan rekent het plan bij de volgende keer Optimaliseren met de FTP en het gewicht uit het plan, en met 175 cm als Cm leeg is. ZwiftGopher staat één verzoek per minuut toe.",
       "De JSON-export bewaart ook velden die ZWB niet zelf bewerkt.",
       "De tekstexport is bedoeld als leesbare racesheet; de afbeelding als deelbare opstelling.",
     ],

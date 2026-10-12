@@ -231,8 +231,11 @@ export function TttPlanner({
   );
   const [apiResponse, setApiResponse] = useState<unknown>(initialPlan?.apiResponse ?? null);
   const [status, setStatus] = useState<
-    { kind: "idle" | "saved" | "optimized"; message?: string } | { kind: "error"; message: string }
+    | { kind: "idle" | "saved" | "optimized"; message?: string }
+    | { kind: "error"; message: string; retryAt?: number; useOwnValues?: boolean }
   >({ kind: "idle" });
+  // ZwiftGopher vond een Zwift-ID niet: de volgende poging rekent met eigen waarden.
+  const [useOwnValues, setUseOwnValues] = useState(false);
   const [pending, startTransition] = useTransition();
   const [dragId, setDragId] = useState<string | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -360,14 +363,20 @@ export function TttPlanner({
   function optimize() {
     setStatus({ kind: "idle" });
     startTransition(async () => {
-      const res = await optimizeTttPlan(currentPlan());
+      const res = await optimizeTttPlan(currentPlan(), { ownValues: useOwnValues });
       if (res.ok) {
         setPlanId(res.planId);
         if (res.apiResponse !== undefined) setApiResponse(res.apiResponse);
         if (res.riders) setRaceRiders(res.riders);
         setStatus({ kind: "optimized", message: res.message });
       } else {
-        setStatus({ kind: "error", message: res.error });
+        if (res.useOwnValues) setUseOwnValues(true);
+        setStatus({
+          kind: "error",
+          message: res.error,
+          retryAt: res.retryAt,
+          useOwnValues: res.useOwnValues,
+        });
       }
     });
   }
@@ -634,6 +643,12 @@ export function TttPlanner({
           {status.kind === "error" && (
             <p className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {status.message}
+              {status.retryAt ? ` Optimaliseer opnieuw na ${clockTime(status.retryAt)}` : ""}
+              {status.retryAt
+                ? status.useOwnValues
+                  ? "; dan rekent het plan met eigen waarden."
+                  : "."
+                : ""}
             </p>
           )}
           {(status.kind === "saved" || status.kind === "optimized") && (
@@ -694,6 +709,15 @@ export function TttPlanner({
       </section>
     </div>
   );
+}
+
+/** Kloktijd in de tijdzone van de bezoeker. */
+function clockTime(ms: number) {
+  return new Date(ms).toLocaleTimeString("nl-NL", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function formatSeconds(value: unknown) {

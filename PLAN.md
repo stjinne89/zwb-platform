@@ -101,12 +101,14 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > altijd betrouwbaar is. Eén niet-gevonden ID weigert het hele plan, dus de
 > planner hing volledig af van een opzoeking bij een derde.
 >
-> **Nu** (`optimizeWithZwiftGopher`, `lib/ttt/zwiftgopher.ts`). Bij "not found"
-> gaat de genoemde renner opnieuw mee als aangepaste renner, met naam, FTP,
-> gewicht en 300s uit het plan. Komt er daarna nog een weigering, dan gaat
-> iedereen met eigen FTP en gewicht zo mee. Hooguit drie verzoeken per klik.
-> Het Zwift-ID blijft in het plan staan; de volgende keer probeert de planner
-> de opzoeking weer. Na afloop noemt de melding wie niet gevonden is.
+> **Nu** (`optimizeWithZwiftGopher`, `lib/ttt/zwiftgopher.ts`). *(Zelfde dag
+> herzien, zie "Limiet van ZwiftGopher" hieronder: de eerste versie probeerde
+> het binnen één klik opnieuw, tot drie verzoeken.)* Bij "not found" noemt de
+> planner de renner en het tijdstip waarop het weer mag. De volgende klik op
+> Optimaliseren stuurt iedereen met eigen FTP en gewicht mee als aangepaste
+> renner, met naam, FTP, gewicht en 300s uit het plan, zonder opzoeking. Dat
+> blijft zo tot de pagina opnieuw geladen wordt. Het Zwift-ID blijft in het
+> plan staan.
 > - **Lengte:** staat Cm leeg, dan rekent de planner met 175 cm
 >   (`FALLBACK_HEIGHT_CM`). Keuze van de eigenaar, die liever een aanname heeft
 >   dan vijf lengtes invullen; de 175 wordt niet in het plan opgeslagen.
@@ -116,17 +118,27 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   200-antwoord met `success: false`; of ZwiftGopher die vormen gebruikt is niet
 >   gemeten.
 >
+> **Limiet van ZwiftGopher (zelfde dag, tweede commit).** Na de eerste versie
+> kreeg de eigenaar "API rate limit exceeded: 1 request per 60 seconds": de
+> sleutel mag één verzoek per minuut, dus het tweede verzoek binnen dezelfde
+> klik werd geweigerd. Opnieuw proberen binnen een klik is eruit; wachten in de
+> serveractie kan niet binnen de tijdslimiet van een functie. De melding toonde
+> ook het ruwe `X-RateLimit-Reset` (Unix-seconden); de serveractie geeft nu
+> `retryAt` terug en de planner toont dat als kloktijd in de tijdzone van de
+> bezoeker ("Optimaliseer opnieuw na 14:32:10"). Bij een 429 is de tekst
+> "ZwiftGopher staat één verzoek per minuut toe."
+>
 > **Niet meer waar.** "Of ZwiftGopher elk Zwift-ID kent; niet gemeten" in de
 > ronde hieronder: het antwoord is nee, zie hierboven.
 >
 > **Bewust niet gebouwd.** Geen eigen opzoeking van lengte (Zwift
 > `profiles/{id}` is daarvoor niet gemeten) en geen wachtrij of automatisch
-> later opnieuw proberen.
+> later opnieuw proberen: de captain klikt na de genoemde tijd zelf opnieuw.
 >
 > **Niet geverifieerd.** De echte aanroep: de API-sleutel staat alleen op
 > Netlify. De vorm van de foutmelding komt uit de schermafdruk van de eigenaar.
 > Getest: `tsc --noEmit`, ESLint, Vitest (nieuw:
-> `ttt-zwiftgopher-fallback.test.ts`, 7 tests met een nagebootste API).
+> `ttt-zwiftgopher-fallback.test.ts`, 8 tests met een nagebootste API).
 
 ---
 

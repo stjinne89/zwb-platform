@@ -59,8 +59,8 @@ function validateCustomRider(rider: TttPlanRiderInput) {
 }
 
 /**
- * `ownValues`: Zwift-ID's die ZwiftGopher niet vond. Die renners gaan mee als
- * aangepaste renner met de waarden uit het plan, in plaats van met hun ID.
+ * `ownValues`: Zwift-ID's van renners die als aangepaste renner meegaan, met de
+ * waarden uit het plan, in plaats van met hun ID.
  */
 export function buildZwiftGopherPayload(
   plan: TttPlanInput,
@@ -239,44 +239,58 @@ export function notFoundZwiftId(message: string) {
   return /\(ID:\s*(\d+)\)\s*not found/i.exec(message)?.[1] ?? null;
 }
 
+/** Eén verzoek per 60 seconden per sleutel (melding van de API, 2026-10-12). */
+const RATE_LIMIT_MS = 60_000;
+
+export type ZwiftGopherError = Error & {
+  statusCode?: number;
+  /** Vanaf wanneer een nieuw verzoek zin heeft, in ms sinds 1970. */
+  retryAt?: number;
+  /** De renner die ZwiftGopher niet vond. */
+  notFound?: TttPlanRiderInput;
+};
+
+/** `X-RateLimit-Reset` is een Unix-tijd in seconden. */
+function resetTime(header: string | null) {
+  const value = Number(header ?? NaN);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return value < 1e12 ? value * 1000 : value;
+}
+
 /**
  * ZwiftGopher zoekt een renner op bij ZwiftRacing.app; kent die hem niet, of
  * loopt de opzoeking daar tegen een limiet, dan weigert ZwiftGopher het hele
- * plan. Dan rekenen we met de waarden uit het plan: eerst alleen de genoemde
- * renner, bij een tweede weigering iedereen met eigen waarden. Hooguit drie
- * verzoeken.
+ * plan. Opnieuw proberen binnen dezelfde klik kan niet (één verzoek per
+ * minuut), dus de fout noemt de renner en het moment waarop het weer mag. Met
+ * `ownValues` gaat iedereen met eigen FTP en gewicht mee als aangepaste renner,
+ * zonder opzoeking.
  */
-export async function optimizeWithZwiftGopher(plan: TttPlanInput) {
+export async function optimizeWithZwiftGopher(
+  plan: TttPlanInput,
+  options: { ownValues?: boolean } = {},
+) {
   const candidates = plan.riders.filter(
     (rider) => numericZwiftId(rider.zwiftId) && !rider.isManual,
   );
-  const ownValues = new Set<string>();
-  for (;;) {
-    try {
-      const result = await requestZwiftGopher(buildZwiftGopherPayload(plan, ownValues));
-      return {
-        ...result,
-        ownValueRiders: candidates
-          .filter((rider) => ownValues.has(rider.zwiftId.trim()))
-          .map((rider) => rider.name),
-      };
-    } catch (err) {
-      const zwiftId = err instanceof Error ? notFoundZwiftId(err.message) : null;
-      const rider = zwiftId
-        ? candidates.find((row) => row.zwiftId.trim() === zwiftId)
-        : undefined;
-      if (!zwiftId || !rider || ownValues.has(zwiftId)) throw err;
-      if (!hasOwnValues(rider)) {
-        throw new Error(`ZwiftGopher vindt ${rider.name} niet. Vul FTP en Kg in.`);
-      }
-      if (ownValues.size === 0) {
-        ownValues.add(zwiftId);
-      } else {
-        for (const row of candidates) {
-          if (hasOwnValues(row)) ownValues.add(row.zwiftId.trim());
-        }
-      }
+  const ownValues = new Set(
+    options.ownValues
+      ? candidates.filter(hasOwnValues).map((rider) => rider.zwiftId.trim())
+      : [],
+  );
+  try {
+    const result = await requestZwiftGopher(buildZwiftGopherPayload(plan, ownValues));
+    return { ...result, ownValueRiders: ownValues.size };
+  } catch (err) {
+    const error = err as ZwiftGopherError;
+    const zwiftId = err instanceof Error ? notFoundZwiftId(err.message) : null;
+    const rider = zwiftId
+      ? candidates.find((row) => row.zwiftId.trim() === zwiftId)
+      : undefined;
+    if (rider) {
+      error.notFound = rider;
+      error.retryAt ??= Date.now() + RATE_LIMIT_MS;
     }
+    throw error;
   }
 }
 
@@ -312,11 +326,7 @@ async function requestZwiftGopher(payload: OptimizePayload) {
   const refused =
     typeof body === "object" && body && "success" in body && body.success === false;
   if (!res.ok || refused) {
-    const reset = res.headers.get("X-RateLimit-Reset");
-    const rateText =
-      res.status === 429
-        ? ` Rate limit bereikt${reset ? `; probeer opnieuw na ${reset}.` : "."}`
-        : "";
+    const retryAt = resetTime(res.headers.get("X-RateLimit-Reset"));
     const fields = (typeof body === "object" && body ? body : {}) as Record<string, unknown>;
     const message =
       typeof fields.message === "string"
@@ -324,8 +334,12 @@ async function requestZwiftGopher(payload: OptimizePayload) {
         : typeof fields.error === "string"
           ? fields.error
           : `ZwiftGopher API gaf HTTP ${res.status}.`;
-    const error = new Error(`${message}${rateText}`);
-    (error as Error & { statusCode?: number }).statusCode = res.status;
+    const error: ZwiftGopherError = new Error(
+      res.status === 429 ? "ZwiftGopher staat één verzoek per minuut toe." : message,
+    );
+    error.statusCode = res.status;
+    if (retryAt) error.retryAt = retryAt;
+    else if (res.status === 429) error.retryAt = Date.now() + RATE_LIMIT_MS;
     throw error;
   }
 
