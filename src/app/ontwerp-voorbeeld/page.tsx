@@ -5,14 +5,13 @@ import { TegelsAgenda, type AgendaRow } from "@/components/tegels/agenda";
 import { TegelsLinkGrid } from "@/components/tegels/link-grid";
 import { TegelsVandaag } from "@/components/tegels/vandaag";
 import { TegelsShell } from "../(app)/_components/tegels-shell";
-import { Letterproef } from "./letters";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "letters"] as const;
+const SCREENS = ["vandaag", "kalender", "club"] as const;
 
 const PAST: AgendaRow[] = [
   { key: "p1", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "di", dayNumber: "6", title: "ZRL ronde 3", sub: "geweest · Zwift" },
@@ -40,9 +39,7 @@ export default async function OntwerpVoorbeeldPage({
   return (
     <TegelsShell actions={<ThemeToggle />}>
       <div className="space-y-6">
-        {scherm === "letters" ? (
-          <Letterproef />
-        ) : scherm === "kalender" ? (
+        {scherm === "kalender" ? (
           <div className="space-y-4">
             <h1 className="tg-display">Kalender</h1>
             <TegelsAgenda past={PAST} upcoming={UPCOMING} empty="Geen aankomende events of trainingen." />

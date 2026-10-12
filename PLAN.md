@@ -194,10 +194,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   erachter.
 > - *Deel je foto's.* Het blok (`PhotoNudge`) staat niet meer op het dashboard
 >   in dit design (besluit eigenaar). In het huidige design staat het er nog.
-> - *Letterproef.* `/ontwerp-voorbeeld?scherm=letters` toont dezelfde tegels in
->   vijf letters (Archivo, Schibsted Grotesk, Barlow Semi Condensed, Red Hat
->   Display, Sofia Sans). De eigenaar kiest; de keuze komt daarna in
->   `tegels-shell.tsx` en `letters.tsx` kan dan weg.
+> - *Lettertype, definitief.* Uit een proef van vijf (Archivo, Schibsted
+>   Grotesk, Barlow Semi Condensed, Red Hat Display, Sofia Sans) koos de
+>   eigenaar **Barlow Semi Condensed**. Die staat nu in `tegels-shell.tsx` voor
+>   het hele design; de proefpagina is weer verwijderd. **Niet meer waar:**
+>   Archivo en de breedte-as hierboven.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
