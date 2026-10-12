@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PLACES, placeForPath } from "@/lib/design-places";
 
-/** De vijf plekken van het design "tegels": onderin op de telefoon, bovenin op
+/** De vier plekken van het design "tegels": onderin op de telefoon, bovenin op
  * een breed scherm. De actieve tab steekt uit. */
 export function TegelsTabs({ position }: { position: "bottom" | "top" }) {
   const active = placeForPath(usePathname());

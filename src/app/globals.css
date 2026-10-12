@@ -595,7 +595,7 @@ a.tg-row:focus-visible,
   position: fixed;
   inset: auto 0 0 0;
   z-index: 40;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
   pointer-events: none;
 }
@@ -980,4 +980,10 @@ a.tg-row:focus-visible,
   font-size: 1.75rem;
   font-weight: 300;
   line-height: 1.1;
+}
+
+/* Uitklapmenu's en dialogen renderen buiten de schil en erfden de oude letter. */
+:root:has([data-design="tegels"]) :is([role="menu"], [role="dialog"], [role="listbox"]) {
+  font-family: "Barlow Semi Condensed", var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 1.0625rem;
 }

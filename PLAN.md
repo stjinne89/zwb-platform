@@ -259,6 +259,18 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   het doelvermogen in % FTP, of van de zone als een blok geen eigen doel
 >   heeft). Een training van één blok krijgt geen lijn. **Niet meer waar:** "het
 >   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
+> - *Meer is weg: vier plekken.* De plek Meer dubbelde met het persoonlijke
+>   menu rechtsboven en is verwijderd (`/meer` bestaat niet meer). Het menu
+>   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media; het
+>   toont de letter van het design. Routes als `/profiel` en `/beheer` horen bij
+>   geen plek meer, dus dan is geen tab actief (`placeForPath` geeft `null`).
+>   **Niet meer waar:** "vijf plekken" en "Meer" overal hierboven, in
+>   `DESIGN`-schetsen en in het bestuursvoorstel.
+> - *Club als tegelveld met eigen kleuren en formaten.* Teams is groot, Leden
+>   en ZWBlokken zijn breed, en de tegels wisselen tussen de vijf tenuekleuren
+>   (`TILE_STYLE` in `club/page.tsx`). De regel "een tegel heeft de kleur van de
+>   plek waar hij heen leidt" geldt op deze pagina dus niet: daar is kleur
+>   afwisseling.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

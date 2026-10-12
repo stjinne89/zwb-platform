@@ -18,6 +18,7 @@ export function AvatarMenu({
   adminItems,
   avatarUrl,
   showOnMobile = false,
+  extraItems = [],
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
@@ -25,6 +26,8 @@ export function AvatarMenu({
   avatarUrl?: string | null;
   /** Design "tegels": het menu staat ook op de telefoon in de balk. */
   showOnMobile?: boolean;
+  /** Design "tegels": extra eigen items, zoals Sponsors. */
+  extraItems?: Array<{ href: string; label: string }>;
 }) {
   return (
     <DropdownMenu>
@@ -43,7 +46,7 @@ export function AvatarMenu({
         <ChevronDown className="size-3.5" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
-        {AVATAR_NAV.map((item) => (
+        {[...AVATAR_NAV, ...extraItems].map((item) => (
           <DropdownMenuItem
             key={item.href}
             render={<Link href={item.href} />}

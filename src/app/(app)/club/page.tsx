@@ -6,6 +6,21 @@ import { NAV_GROUPS, filterNavForPermissions } from "../_components/nav-config";
 // De plek "Club" van het design "tegels": alles van de club als tegels. In het
 // huidige design staat dit in het menu en linkt er niets naar deze pagina.
 
+// Kleur en formaat per onderdeel, zodat het veld geen egaal rooster is. Wat hier
+// niet staat, krijgt de kleur van de plek en het gewone formaat.
+const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
+  "/teams": { tone: "kalender", size: "big" },
+  "/leden": { tone: "club", size: "wide" },
+  "/achievements": { tone: "vandaag" },
+  "/stats": { tone: "zwbeter" },
+  "/zwblokken": { tone: "zwbeter", size: "wide" },
+  "/profiel/segments/collecties": { tone: "meer" },
+  "/zwbgame": { tone: "vandaag" },
+  "/omnium": { tone: "kalender" },
+  "/src": { tone: "club" },
+  "/polls": { tone: "zwbeter" },
+};
+
 export default async function ClubPage() {
   const [supabase, user, access] = await Promise.all([
     createClient(),
@@ -23,12 +38,17 @@ export default async function ClubPage() {
   );
   const club = nodes.find((node) => node.type === "group" && node.label === "Club");
   const links: PlaceLink[] = [
-    ...(club?.type === "group" ? club.items : []).map((item) => ({
-      href: item.href,
-      label: item.label,
-      external: item.external,
-    })),
-    { href: "/polls", label: "Polls" },
+    ...(club?.type === "group" ? club.items : []).map(
+      (item): PlaceLink => ({
+        href: item.href,
+        label: item.label,
+        external: item.external,
+        // Een link naar buiten krijgt de donkerste kleur.
+        ...(item.external ? { tone: "meer" } : {}),
+        ...TILE_STYLE[item.href],
+      }),
+    ),
+    { href: "/polls", label: "Polls", ...TILE_STYLE["/polls"] },
   ];
 
   return (

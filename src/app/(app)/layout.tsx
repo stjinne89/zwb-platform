@@ -113,9 +113,34 @@ export default async function AppLayout({
             </Link>
             <AvatarMenu
               displayName={displayName}
-              adminItems={adminItems}
+              adminItems={[
+                ...adminItems,
+                // WhatsApp-groepen en Media staan in dit design onder beheer
+                // (besluit eigenaar, 2026-10-12).
+                ...(access.has("community.manage")
+                  ? [
+                      {
+                        type: "link" as const,
+                        href: "/community",
+                        label: "WhatsApp-groepen",
+                        permission: "community.manage" as const,
+                      },
+                    ]
+                  : []),
+                ...(access.has("media.manage")
+                  ? [
+                      {
+                        type: "link" as const,
+                        href: "/media",
+                        label: "Media",
+                        permission: "media.manage" as const,
+                      },
+                    ]
+                  : []),
+              ]}
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
+              extraItems={[{ href: "/sponsors", label: "Sponsors" }]}
             />
             <ThemeToggle />
           </>
