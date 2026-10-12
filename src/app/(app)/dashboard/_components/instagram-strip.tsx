@@ -29,14 +29,14 @@ export function InstagramStrip({ posts, tegels }: { posts: InstagramPost[]; tege
   // Design "tegels": elke post is een tegel, de foto vult hem helemaal.
   if (tegels) {
     return (
-      <ul className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Instagram">
+      <ul className="contents" aria-label="Instagram">
         {shown.map((post) => (
-          <li key={post.id}>
+          <li key={post.id} className="flex">
             <a
               href={post.web_url ?? ZWB_INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="tg-tile tg-meer group aspect-square !p-0"
+              className="tg-tile tg-meer group w-full !p-0"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

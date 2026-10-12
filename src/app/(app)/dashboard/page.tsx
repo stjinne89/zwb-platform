@@ -941,10 +941,25 @@ export default async function DashboardPage({
         </Link>
       )}
 
-      {user && (
-        <Suspense fallback={null}>
-          <MyRaces userId={user.id} tegels={tegels} />
-        </Suspense>
+      {tegels ? (
+        // Eén tegelrij: jouw races, met de Instagram-posts van deze week ernaast.
+        <div className="grid grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
+          {user && (
+            <Suspense fallback={null}>
+              <MyRaces userId={user.id} tegels />
+            </Suspense>
+          )}
+          <InstagramStrip
+            tegels
+            posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
+          />
+        </div>
+      ) : (
+        user && (
+          <Suspense fallback={null}>
+            <MyRaces userId={user.id} />
+          </Suspense>
+        )
       )}
 
       {/* Naast elkaar op desktop: de trainingsstatus is het brede blok, het
@@ -975,14 +990,7 @@ export default async function DashboardPage({
         </Suspense>
       </div>
 
-      {tegels ? (
-        <InstagramStrip
-          tegels
-          posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
-        />
-      ) : (
-        instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />
-      )}
+      {!tegels && instagramPosts.length > 0 && <InstagramStrip posts={instagramPosts} />}
 
       {user?.id && <MaintenanceStatus profileId={user.id} />}
 

@@ -56,7 +56,7 @@ export default async function AppLayout({
   const [{ data: profile }, access] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
+      .select("display_name, avatar_url, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
     getRequestAccess(),
@@ -104,7 +104,19 @@ export default async function AppLayout({
         back={<BackButton />}
         actions={
           <>
-            <AvatarMenu displayName={displayName} adminItems={adminItems} />
+            <Link
+              href="/hulp"
+              className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
+              aria-label="Hulp"
+            >
+              <CircleHelp className="size-5" />
+            </Link>
+            <AvatarMenu
+              displayName={displayName}
+              adminItems={adminItems}
+              avatarUrl={(profile?.avatar_url as string | null) ?? null}
+              showOnMobile
+            />
             <ThemeToggle />
           </>
         }

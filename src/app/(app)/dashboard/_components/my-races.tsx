@@ -268,7 +268,7 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
   // starttijd groot en jouw status als label.
   if (tegels) {
     return (
-      <ul className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Jouw races">
+      <ul className="contents" aria-label="Jouw races">
         {shown.map((race) => (
           <li key={race.key} className="tg-tile tg-kalender">
             <span className="tg-tile-small">

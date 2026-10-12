@@ -222,6 +222,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > - *Instagram.* In dit design alleen posts van de laatste zeven dagen, elk als
 >   tegel met de foto erin (`InstagramStrip` met `tegels`); zonder recente post
 >   geen blok. Het huidige design toont nog de laatste drie, ongeacht de datum.
+>   De Instagram-tegels staan in dezelfde rij als de tegels van Jouw races
+>   (beide leveren hun tegels met `display: contents` aan één raster).
+> - *Balk.* Rechtsboven staat weer het vraagteken naar `/hulp`, en het
+>   persoonlijke menu toont de profielfoto (`profiles.avatar_url`) in plaats van
+>   de naam; zonder foto blijft de naam staan. Het menu staat in dit design ook
+>   op de telefoon in de balk.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

@@ -16,17 +16,30 @@ import { AVATAR_NAV, type AdminNavItem } from "./nav-config";
 export function AvatarMenu({
   displayName,
   adminItems,
+  avatarUrl,
+  showOnMobile = false,
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
+  /** Design "tegels": toon de profielfoto in plaats van de naam. */
+  avatarUrl?: string | null;
+  /** Design "tegels": het menu staat ook op de telefoon in de balk. */
+  showOnMobile?: boolean;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="hidden items-center gap-1 text-sm text-muted-foreground outline-none hover:text-primary md:inline-flex"
-        aria-label="Persoonlijk menu"
+        className={`${
+          showOnMobile ? "inline-flex min-h-11" : "hidden md:inline-flex"
+        } items-center gap-1 text-sm text-muted-foreground outline-none hover:text-primary`}
+        aria-label={`Persoonlijk menu van ${displayName}`}
       >
-        {displayName}
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt="" className="size-9 rounded-full object-cover" />
+        ) : (
+          displayName
+        )}
         <ChevronDown className="size-3.5" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
