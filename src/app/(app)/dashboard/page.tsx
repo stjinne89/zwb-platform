@@ -810,7 +810,31 @@ export default async function DashboardPage({
   // Clubraces staan niet in deze tegels: de races waar je zelf in zit komen er
   // direct onder (MyRaces), en alle andere staan in de kalender.
   const tileEvents = otherEvents.slice(0, 3).map((event) => toTile(event, "club"));
-  const tileStanding = standings[0] ?? null;
+  // De uitslagtegel toont de nieuwste uitslag van een eigen team. Wie in een
+  // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
+  // kalender, migr. 0179). Geen eigen team met een uitslag: geen tegel.
+  let tileStanding: TeamStandingWithTeam | null = null;
+  if (tegels && user && standings.length > 0) {
+    const { data: memberRows } = await supabase
+      .from("team_members")
+      .select("team_id")
+      .eq("profile_id", user.id);
+    const directTeamIds = (memberRows ?? []).map((row) => row.team_id as string);
+    const { data: subteamRows } =
+      directTeamIds.length > 0
+        ? await supabase.from("teams").select("id").in("parent_team_id", directTeamIds)
+        : { data: [] };
+    const ownTeamIds = new Set([
+      ...directTeamIds,
+      ...(subteamRows ?? []).map((row) => row.id as string),
+    ]);
+    tileStanding =
+      standings
+        .filter((standing) => ownTeamIds.has(standing.team_id))
+        .sort((x, y) =>
+          (y.round_at ?? y.created_at).localeCompare(x.round_at ?? x.created_at),
+        )[0] ?? null;
+  }
 
   function eventList(events: UpcomingEvent[]) {
     return (

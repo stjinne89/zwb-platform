@@ -213,8 +213,10 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   De tabel op `/teams/[id]` krijgt de knop ook, maar begint uitgeklapt.
 > - *Uitslagtegel op Vandaag.* Een ZRL-uitslag linkt nu naar de hele ronde (het
 >   hoofdevent van het teamevent, `round_url`) in plaats van naar het teamevent.
->   Andere competities linken nog naar de teampagina. Open: de tegel toont de
->   nieuwste uitslag van de club, niet per se van het eigen team.
+>   Andere competities linken nog naar de teampagina. De tegel toont de nieuwste
+>   uitslag van een eigen team (lid van het team of van de paraplu erboven);
+>   zonder eigen uitslag in de laatste zeven dagen is er geen tegel. Het
+>   scorebord van de andere teams staat in dit design nog nergens.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
