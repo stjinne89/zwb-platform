@@ -11,7 +11,44 @@ export type VandaagWorkout = {
   when: string;
   /** Bijvoorbeeld "75 min · sweet spot". */
   meta: string;
+  /** De blokken van de training: duur en doelvermogen als % van de FTP. */
+  profile?: Array<{ minutes: number; pct: number }>;
 };
+
+/** Het verloop van een training als trapjeslijn: breedte is tijd, hoogte is
+ * vermogen. Een training van één blok heeft geen verloop om te tonen. */
+function WorkoutProfile({ blocks }: { blocks: Array<{ minutes: number; pct: number }> }) {
+  const total = blocks.reduce((sum, block) => sum + block.minutes, 0);
+  if (blocks.length < 2 || total <= 0) return null;
+  const low = Math.min(40, ...blocks.map((block) => block.pct));
+  const high = Math.max(110, ...blocks.map((block) => block.pct));
+  const y = (pct: number) => (36 - ((pct - low) / (high - low)) * 32).toFixed(1);
+  let x = 0;
+  let path = "";
+  for (const block of blocks) {
+    const end = x + (block.minutes / total) * 100;
+    path += `${path ? " L" : "M"}${x.toFixed(1)} ${y(block.pct)} L${end.toFixed(1)} ${y(block.pct)}`;
+    x = end;
+  }
+  return (
+    <svg
+      viewBox="0 0 100 40"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label="Verloop van de training"
+      className="mt-3 h-11 w-full"
+    >
+      <path
+        d={path}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
 
 export type VandaagEvent = {
   id: string;
@@ -66,6 +103,7 @@ export function TegelsVandaag({
               <span className="mt-0.5 line-clamp-2 text-[2rem] font-light leading-[1.05] tracking-tight">
                 {workout.title}
               </span>
+              {workout.profile && <WorkoutProfile blocks={workout.profile} />}
               <span className="mt-auto flex items-end justify-between gap-3 pt-4">
                 <span className="text-[0.9375rem] tabular-nums">{workout.meta}</span>
                 <span className="grid min-h-11 place-items-center bg-[var(--tg-paper)] px-5 text-[0.9375rem] font-bold text-[var(--tg-ink)]">

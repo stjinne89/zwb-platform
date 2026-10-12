@@ -70,7 +70,13 @@ import {
   ViewOnStravaLabel,
 } from "@/components/strava-brand";
 import { hasActivityScope } from "@/lib/strava/scope";
-import { plannedWorkoutIntensity } from "@/lib/training/workouts";
+import {
+  INTENSITY_FTP_RANGE,
+  normalizeWorkoutBlocks,
+  plannedWorkoutIntensity,
+  powerRangePercentForBlock,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
@@ -813,6 +819,22 @@ export default async function DashboardPage({
   });
   // Clubraces staan niet in deze tegels: de races waar je zelf in zit komen er
   // direct onder (MyRaces), en alle andere staan in de kalender.
+  // Het verloop van de eerstvolgende training voor de lijn in de tegel: per blok
+  // de duur en het midden van het doelvermogen, of van de zone als het blok geen
+  // eigen doel heeft.
+  const workoutProfile =
+    tegels && nextWorkoutRow
+      ? normalizeWorkoutBlocks(
+          nextWorkoutRow.structure_json,
+          nextWorkoutRow.intensity as WorkoutIntensity,
+        ).map((block) => {
+          const ftp = Number((profile as { ftp_watts?: number | null } | null)?.ftp_watts);
+          const [low, high] =
+            powerRangePercentForBlock(block, ftp > 0 ? ftp : null) ??
+            INTENSITY_FTP_RANGE[block.intensity];
+          return { minutes: block.durationMinutes, pct: (low + high) / 2 };
+        })
+      : undefined;
   const tileEvents = otherEvents.slice(0, 3).map((event) => toTile(event, "club"));
   // De uitslagtegel toont de nieuwste uitslag van een eigen team. Wie in een
   // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
@@ -899,6 +921,7 @@ export default async function DashboardPage({
             nextWorkout
               ? {
                   title: nextWorkout.title,
+                  profile: workoutProfile,
                   when: whenLabel(nextWorkout.scheduled_at),
                   meta: [
                     nextWorkout.duration_minutes ? `${nextWorkout.duration_minutes} min` : null,

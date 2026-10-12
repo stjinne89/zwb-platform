@@ -254,6 +254,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   (`/zwbeter-worden/...`), het huidige design, pushberichten, de
 >   Strava-beschrijving, de privacyverklaring, `/hulp` en de tekst
 >   "ZWBeterWorden" in het adviesblok.
+> - *Verloop in de trainingstegel.* De tegel van de eerstvolgende training
+>   tekent de blokken als trapjeslijn (breedte is duur, hoogte is het midden van
+>   het doelvermogen in % FTP, of van de zone als een blok geen eigen doel
+>   heeft). Een training van één blok krijgt geen lijn. **Niet meer waar:** "het
+>   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
