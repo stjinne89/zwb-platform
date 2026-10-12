@@ -843,3 +843,70 @@ a.tg-row:focus-visible,
   flex-shrink: 1;
   min-width: 0;
 }
+
+/* ---- Eventpagina ----
+   De kop is een tegel in de kleur van de kalender, met vooraan het dagvak in de
+   afgesproken eventkleur, zoals op een agendarij. */
+[data-design="tegels"] .tg-event-head {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.25rem minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--tg-kalender);
+  color: var(--tg-paper);
+}
+[data-design="tegels"] .tg-event-head > :not(.tg-event-day) {
+  grid-column: 2;
+  margin: 0;
+  padding: 0 0.875rem;
+}
+[data-design="tegels"] .tg-event-head > :nth-child(2) { padding-top: 0.75rem; }
+[data-design="tegels"] .tg-event-head > :last-child { padding-bottom: 0.875rem; }
+[data-design="tegels"] .tg-event-day {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  place-content: center;
+  background: var(--row-bg);
+  color: var(--row-ink);
+  text-align: center;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.1;
+}
+[data-design="tegels"] .tg-event-day b {
+  display: block;
+  font-size: 2.75rem;
+  font-weight: 300;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+[data-design="tegels"] .tg-event-head h1 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+[data-design="tegels"] .tg-event-head :is([class*="text-muted-foreground"], a, svg) {
+  color: inherit;
+}
+[data-design="tegels"] .tg-event-head p[class*="text-muted-foreground"] {
+  opacity: 0.9;
+}
+[data-design="tegels"] .tg-event-head :is(span, a)[class*="rounded-full"],
+[data-design="tegels"] .tg-event-head [data-slot="button"] {
+  border-color: transparent;
+  background: var(--tg-paper);
+  color: var(--tg-ink);
+}
+
+/* Kleine koppen in hoofdletters boven een blok worden gewone sectiekoppen. */
+[data-design="tegels"] h2[class*="uppercase"] {
+  font-size: 1.375rem;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}

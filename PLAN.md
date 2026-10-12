@@ -228,6 +228,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   persoonlijke menu toont de profielfoto (`profiles.avatar_url`) in plaats van
 >   de naam; zonder foto blijft de naam staan. Het menu staat in dit design ook
 >   op de telefoon in de balk.
+> - *Eventpagina.* De kop is in dit design een tegel in de kalenderkleur met
+>   vooraan het dagvak in de categoriekleur (`.tg-event-head`, `.tg-event-day`;
+>   het dagvak staat ook in de markup van het huidige design, daar verborgen).
+>   Kleine koppen in hoofdletters (`h2` met `uppercase`) zijn in het hele
+>   design gewone sectiekoppen geworden. De blokken eronder (Raceinfo, Teams,
+>   uitslag, foto's) hebben alleen de patroonvertaling.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.

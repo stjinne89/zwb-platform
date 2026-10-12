@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, Pencil } from "lucide-react";
@@ -7,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WhatsAppGroupBlock } from "@/components/whatsapp-link";
 import { WhatsAppShareLink } from "@/components/whatsapp-share-link";
-import { eventLabel } from "@/lib/event-types";
+import { eventLabel, eventTypeColor, eventTypeInk } from "@/lib/event-types";
 import type { EventProgram } from "@/lib/events/programs";
 import { ProgramBadges } from "../../kalender/_components/event-badge";
 import { slugify } from "@/lib/slugify";
@@ -1186,7 +1187,32 @@ export default async function EventDetailPage({
         </div>
       )}
 
-      <header className="space-y-2">
+      <header
+        className="tg-event-head space-y-2"
+        style={
+          {
+            "--row-bg": eventTypeColor(event.type),
+            "--row-ink": eventTypeInk(event.type),
+          } as CSSProperties
+        }
+      >
+        {/* Alleen zichtbaar in het design "tegels": het dagvak in de eventkleur. */}
+        <span className="tg-event-day hidden" aria-hidden>
+          {new Date(event.start_at).toLocaleDateString("nl-NL", {
+            weekday: "short",
+            timeZone: "Europe/Amsterdam",
+          })}
+          <b>
+            {new Date(event.start_at).toLocaleDateString("nl-NL", {
+              day: "numeric",
+              timeZone: "Europe/Amsterdam",
+            })}
+          </b>
+          {new Date(event.start_at).toLocaleDateString("nl-NL", {
+            month: "short",
+            timeZone: "Europe/Amsterdam",
+          })}
+        </span>
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
