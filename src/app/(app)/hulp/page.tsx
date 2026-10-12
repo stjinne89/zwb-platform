@@ -218,7 +218,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
-  { href: "/achievements", name: "Achievements", text: "Al je badges, de weekstanden en het herberekenen van badges." },
+  { href: "/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },

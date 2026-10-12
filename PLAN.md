@@ -91,6 +91,28 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **Achievements: weekstanden van vorige week terugkijken, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar. De vier ranglijsten op `/achievements`
+> toonden alleen de lopende week; op maandag was de stand van de week ervoor
+> weg en bleef alleen de winnaar in de Hall of fame over.
+>
+> **Nu.** Schakelaar "Deze week / Vorige week" boven de cijfers
+> (`/achievements?week=vorige`). De kaarten en de vier ranglijsten lezen dan
+> `strava_activities.achievement_week` van de maandag ervoor
+> (`previousAchievementWeek`, `lib/strava/client.ts`). Hall of fame en de
+> knoppen veranderen niet mee. Hulptekst bijgewerkt.
+>
+> **Bewust niet gebouwd.** Geen vrij bladeren door oudere weken: gevraagd was
+> één week terug. Elke andere waarde van `week` valt terug op de lopende week.
+>
+> **Niet geverifieerd.** De pagina met echte data; lokaal is er geen database.
+> Getest: `tsc --noEmit`, ESLint, Vitest (één test erbij in
+> `strava-ingest.test.ts`).
+
+---
+
 > **TTT-planner: Zwift-ID's kopiëren voor zwiftgopher.com/TTT, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien en niet bij ZwiftGopher geplakt.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >

@@ -8,13 +8,17 @@ import {
   RefreshCw,
   Route,
 } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { MemberLink } from "@/components/member-link";
 import { formatBadgeValue } from "@/lib/achievements/awards";
-import { currentAchievementWeek } from "@/lib/strava/client";
+import {
+  currentAchievementWeek,
+  previousAchievementWeek,
+} from "@/lib/strava/client";
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
 import { StravaSyncButton } from "@/components/strava-sync-button";
 import { getRequestAccess } from "@/lib/auth/request";
@@ -220,10 +224,16 @@ function Leaderboard({
   );
 }
 
-export default async function AchievementsPage() {
+export default async function AchievementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string | string[] }>;
+}) {
   const supabase = await createClient();
 
-  const week = currentAchievementWeek();
+  const showPrevious = (await searchParams).week === "vorige";
+  const week = showPrevious ? previousAchievementWeek() : currentAchievementWeek();
+  const weekLabel = showPrevious ? "vorige week" : "deze week";
 
   const [{ data: activityRows }, { data: awardRows }, access] =
     await Promise.all([
@@ -271,11 +281,32 @@ export default async function AchievementsPage() {
         }
       />
 
+      <nav className="flex flex-wrap gap-2">
+        <Link
+          href="/achievements"
+          aria-current={showPrevious ? undefined : "page"}
+          className={`rounded-full border px-3 py-1 text-xs ${
+            showPrevious ? "hover:bg-secondary" : "bg-foreground text-background"
+          }`}
+        >
+          Deze week
+        </Link>
+        <Link
+          href="/achievements?week=vorige"
+          aria-current={showPrevious ? "page" : undefined}
+          className={`rounded-full border px-3 py-1 text-xs ${
+            showPrevious ? "bg-foreground text-background" : "hover:bg-secondary"
+          }`}
+        >
+          Vorige week
+        </Link>
+      </nav>
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="ZWB kilometers"
           value={formatKm(totalDistance)}
-          detail={`${activeAthletes} actieve Strava-atleten deze week`}
+          detail={`${activeAthletes} actieve Strava-atleten ${weekLabel}`}
           icon={Route}
         />
         <MetricCard
@@ -290,7 +321,7 @@ export default async function AchievementsPage() {
         <MetricCard
           title="Activiteiten"
           value={String(totalActivities)}
-          detail="Alle gesyncte fietsritten deze week"
+          detail={`Alle gesyncte fietsritten ${weekLabel}`}
           icon={Bike}
         />
         <MetricCard

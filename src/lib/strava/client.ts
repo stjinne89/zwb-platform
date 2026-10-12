@@ -224,6 +224,12 @@ export function currentAchievementWeek() {
   return dateOnly(weekStartDate());
 }
 
+export function previousAchievementWeek(value = new Date()) {
+  const date = weekStartDate(value);
+  date.setUTCDate(date.getUTCDate() - 7);
+  return dateOnly(date);
+}
+
 export async function accessTokenFor(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
