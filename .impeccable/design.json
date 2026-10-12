@@ -8,72 +8,192 @@
         "role": "primary",
         "displayName": "Jersey Petrol",
         "canonical": "oklch(0.34 0.071 209)",
-        "tonalRamp": ["oklch(0.15 0.071 209)", "oklch(0.26 0.071 209)", "oklch(0.34 0.071 209)", "oklch(0.48 0.071 209)", "oklch(0.6 0.071 209)", "oklch(0.72 0.06 209)", "oklch(0.85 0.04 209)", "oklch(0.95 0.02 209)"]
+        "tonalRamp": [
+          "oklch(0.15 0.071 209)",
+          "oklch(0.26 0.071 209)",
+          "oklch(0.34 0.071 209)",
+          "oklch(0.48 0.071 209)",
+          "oklch(0.6 0.071 209)",
+          "oklch(0.72 0.06 209)",
+          "oklch(0.85 0.04 209)",
+          "oklch(0.95 0.02 209)"
+        ]
       },
       "night-gold": {
         "role": "primary",
         "displayName": "Night Gold",
         "canonical": "oklch(0.72 0.08 80)",
-        "tonalRamp": ["oklch(0.15 0.08 80)", "oklch(0.27 0.08 80)", "oklch(0.39 0.08 80)", "oklch(0.5 0.08 80)", "oklch(0.61 0.08 80)", "oklch(0.72 0.08 80)", "oklch(0.84 0.06 80)", "oklch(0.95 0.03 80)"]
+        "tonalRamp": [
+          "oklch(0.15 0.08 80)",
+          "oklch(0.27 0.08 80)",
+          "oklch(0.39 0.08 80)",
+          "oklch(0.5 0.08 80)",
+          "oklch(0.61 0.08 80)",
+          "oklch(0.72 0.08 80)",
+          "oklch(0.84 0.06 80)",
+          "oklch(0.95 0.03 80)"
+        ]
       },
       "jersey-gold": {
         "role": "secondary",
         "displayName": "Jersey Gold",
         "canonical": "oklch(0.63 0.101 77)",
-        "tonalRamp": ["oklch(0.15 0.101 77)", "oklch(0.27 0.101 77)", "oklch(0.39 0.101 77)", "oklch(0.51 0.101 77)", "oklch(0.63 0.101 77)", "oklch(0.74 0.09 77)", "oklch(0.85 0.06 77)", "oklch(0.95 0.03 77)"]
+        "tonalRamp": [
+          "oklch(0.15 0.101 77)",
+          "oklch(0.27 0.101 77)",
+          "oklch(0.39 0.101 77)",
+          "oklch(0.51 0.101 77)",
+          "oklch(0.63 0.101 77)",
+          "oklch(0.74 0.09 77)",
+          "oklch(0.85 0.06 77)",
+          "oklch(0.95 0.03 77)"
+        ]
       },
       "night-sage": {
         "role": "secondary",
         "displayName": "Night Sage",
         "canonical": "oklch(0.55 0.04 210)",
-        "tonalRamp": ["oklch(0.15 0.04 210)", "oklch(0.27 0.04 210)", "oklch(0.39 0.04 210)", "oklch(0.55 0.04 210)", "oklch(0.66 0.04 210)", "oklch(0.76 0.04 210)", "oklch(0.86 0.03 210)", "oklch(0.95 0.02 210)"]
+        "tonalRamp": [
+          "oklch(0.15 0.04 210)",
+          "oklch(0.27 0.04 210)",
+          "oklch(0.39 0.04 210)",
+          "oklch(0.55 0.04 210)",
+          "oklch(0.66 0.04 210)",
+          "oklch(0.76 0.04 210)",
+          "oklch(0.86 0.03 210)",
+          "oklch(0.95 0.02 210)"
+        ]
       },
       "jersey-sage-pale": {
         "role": "tertiary",
         "displayName": "Pale Sage",
         "canonical": "oklch(0.9 0.026 178)",
-        "tonalRamp": ["oklch(0.15 0.026 178)", "oklch(0.27 0.026 178)", "oklch(0.4 0.026 178)", "oklch(0.53 0.026 178)", "oklch(0.66 0.026 178)", "oklch(0.78 0.026 178)", "oklch(0.9 0.026 178)", "oklch(0.95 0.02 178)"]
+        "tonalRamp": [
+          "oklch(0.15 0.026 178)",
+          "oklch(0.27 0.026 178)",
+          "oklch(0.4 0.026 178)",
+          "oklch(0.53 0.026 178)",
+          "oklch(0.66 0.026 178)",
+          "oklch(0.78 0.026 178)",
+          "oklch(0.9 0.026 178)",
+          "oklch(0.95 0.02 178)"
+        ]
       },
       "cream": {
         "role": "neutral",
         "displayName": "Cream",
         "canonical": "oklch(0.965 0.011 103)",
-        "tonalRamp": ["oklch(0.15 0.011 103)", "oklch(0.28 0.011 103)", "oklch(0.42 0.011 103)", "oklch(0.56 0.011 103)", "oklch(0.7 0.011 103)", "oklch(0.83 0.011 103)", "oklch(0.92 0.011 103)", "oklch(0.965 0.011 103)"]
+        "tonalRamp": [
+          "oklch(0.15 0.011 103)",
+          "oklch(0.28 0.011 103)",
+          "oklch(0.42 0.011 103)",
+          "oklch(0.56 0.011 103)",
+          "oklch(0.7 0.011 103)",
+          "oklch(0.83 0.011 103)",
+          "oklch(0.92 0.011 103)",
+          "oklch(0.965 0.011 103)"
+        ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
         "canonical": "oklch(0.22 0.034 215)",
-        "tonalRamp": ["oklch(0.15 0.034 215)", "oklch(0.22 0.034 215)", "oklch(0.36 0.034 215)", "oklch(0.5 0.034 215)", "oklch(0.64 0.03 215)", "oklch(0.77 0.025 215)", "oklch(0.88 0.02 215)", "oklch(0.95 0.01 215)"]
+        "tonalRamp": [
+          "oklch(0.15 0.034 215)",
+          "oklch(0.22 0.034 215)",
+          "oklch(0.36 0.034 215)",
+          "oklch(0.5 0.034 215)",
+          "oklch(0.64 0.03 215)",
+          "oklch(0.77 0.025 215)",
+          "oklch(0.88 0.02 215)",
+          "oklch(0.95 0.01 215)"
+        ]
       },
       "night-petrol": {
         "role": "neutral",
         "displayName": "Night Petrol",
         "canonical": "oklch(0.16 0.025 220)",
-        "tonalRamp": ["oklch(0.16 0.025 220)", "oklch(0.22 0.025 220)", "oklch(0.3 0.035 220)", "oklch(0.44 0.03 220)", "oklch(0.58 0.025 220)", "oklch(0.72 0.02 220)", "oklch(0.85 0.015 220)", "oklch(0.95 0.01 220)"]
+        "tonalRamp": [
+          "oklch(0.16 0.025 220)",
+          "oklch(0.22 0.025 220)",
+          "oklch(0.3 0.035 220)",
+          "oklch(0.44 0.03 220)",
+          "oklch(0.58 0.025 220)",
+          "oklch(0.72 0.02 220)",
+          "oklch(0.85 0.015 220)",
+          "oklch(0.95 0.01 220)"
+        ]
       },
-      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "oklch(0.86 0.022 157)" },
-      "danger": { "role": "neutral", "displayName": "Danger", "canonical": "oklch(0.577 0.245 27.325)" }
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(0.86 0.022 157)"
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "Danger",
+        "canonical": "oklch(0.577 0.245 27.325)"
+      }
     },
     "typographyMeta": {
-      "headline": { "displayName": "Headline", "purpose": "De paginatitel in de paginakop. Eén per scherm." },
-      "title": { "displayName": "Title", "purpose": "Sectiekoppen, met een dunne lijn eronder." },
-      "body": { "displayName": "Body", "purpose": "Vrijwel alle tekst in de app." },
-      "label": { "displayName": "Label", "purpose": "Bovenkopjes, groepskoppen in het menu, chips. Hoofdletters." },
-      "mono": { "displayName": "Mono", "purpose": "Code en ID's." }
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "De paginatitel in de paginakop. Eén per scherm."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sectiekoppen, met een dunne lijn eronder."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Vrijwel alle tekst in de app."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Bovenkopjes, groepskoppen in het menu, chips. Hoofdletters."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Code en ID's."
+      }
     },
     "shadows": [
-      { "name": "zweeflaag", "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)", "purpose": "Mobiel menu, dropdowns en dialogen." },
-      { "name": "lichte-tilt", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "Spaarzaam, voor een element boven een kaart of afbeelding." }
+      {
+        "name": "zweeflaag",
+        "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        "purpose": "Mobiel menu, dropdowns en dialogen."
+      },
+      {
+        "name": "lichte-tilt",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Spaarzaam, voor een element boven een kaart of afbeelding."
+      }
     ],
     "motion": [
-      { "name": "nav-progress-appear", "value": "0.2s ease-out 0.15s", "purpose": "Voortgangsbalk bij navigatie; de eerste 150 ms onzichtbaar tegen flitsen." },
-      { "name": "press", "value": "translateY(1px)", "purpose": "Indrukken van een knop." }
+      {
+        "name": "nav-progress-appear",
+        "value": "0.2s ease-out 0.15s",
+        "purpose": "Voortgangsbalk bij navigatie; de eerste 150 ms onzichtbaar tegen flitsen."
+      },
+      {
+        "name": "press",
+        "value": "translateY(1px)",
+        "purpose": "Indrukken van een knop."
+      }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "container", "value": "80rem" }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "container",
+        "value": "80rem"
+      }
     ]
   },
   "components": [
@@ -152,13 +272,46 @@
       "Cijfers in tabelcijfers, zodat kolommen en tijden recht onder elkaar staan."
     ],
     "rules": [
-      { "name": "De Wisselregel", "body": "Licht en donker ruilen de actiekleur: petrol bij licht, goud bij donker. Gebruik daarom altijd de semantische token (`primary`, `accent`) en nooit een vaste tenuekleur voor iets waar je op kunt tikken.", "section": "colors" },
-      { "name": "De Goudregel", "body": "Het tenuegoud haalt als kleine tekst op licht maar 3,1:1. Goud is op licht voor vlakken, balken en ringen; voor cijfers en labels bestaat de diepere tint `--zwblok-own-text` (4,9:1).", "section": "colors" },
-      { "name": "De Kolomregel", "body": "Elk getal dat vergeleken wordt (tijden, watt, W/kg, standen, afstanden) staat in `tabular-nums`.", "section": "typography" },
-      { "name": "De Smalle-ladderregel", "body": "De app leeft tussen 0.75rem en 0.875rem. Groter dan de paginatitel komt in de app niet voor; `font-bold` en zwaarder zijn uitzonderingen, 600 is het zwaarste werkgewicht.", "section": "typography" },
-      { "name": "De Duimregel", "body": "Alles waar je op de telefoon op tikt is minstens 44px hoog (`min-h-11`), ook als het er compact uitziet. De standaardknop van 32px is voor desktop en voor dichte rijen met genoeg ruimte eromheen; op de telefoon krijgt een losse actie de ruimte.", "section": "layout" },
-      { "name": "De Platte-vloerregel", "body": "Een kaart in rust heeft geen schaduw. Wie diepte wil, gebruikt de toon van het vlak of een rand.", "section": "elevation" },
-      { "name": "De Motiefregel", "body": "De schuine banen horen bij de schil en de paginakop. Niet achter lijsten, formulieren of tabellen, en nooit op hogere dekking.", "section": "shapes" }
+      {
+        "name": "De Wisselregel",
+        "body": "Licht en donker ruilen de actiekleur: petrol bij licht, goud bij donker. Gebruik daarom altijd de semantische token (`primary`, `accent`) en nooit een vaste tenuekleur voor iets waar je op kunt tikken.",
+        "section": "colors"
+      },
+      {
+        "name": "De Goudregel",
+        "body": "Het tenuegoud haalt als kleine tekst op licht maar 3,1:1. Goud is op licht voor vlakken, balken en ringen; voor cijfers en labels bestaat de diepere tint `--zwblok-own-text` (4,9:1).",
+        "section": "colors"
+      },
+      {
+        "name": "De Kolomregel",
+        "body": "Elk getal dat vergeleken wordt (tijden, watt, W/kg, standen, afstanden) staat in `tabular-nums`.",
+        "section": "typography"
+      },
+      {
+        "name": "De Smalle-ladderregel",
+        "body": "De app leeft tussen 0.75rem en 0.875rem. Groter dan de paginatitel komt in de app niet voor; `font-bold` en zwaarder zijn uitzonderingen, 600 is het zwaarste werkgewicht.",
+        "section": "typography"
+      },
+      {
+        "name": "De Duimregel",
+        "body": "Alles waar je op de telefoon op tikt is minstens 44px hoog (`min-h-11`), ook als het er compact uitziet. De standaardknop van 32px is voor desktop en voor dichte rijen met genoeg ruimte eromheen; op de telefoon krijgt een losse actie de ruimte.",
+        "section": "layout"
+      },
+      {
+        "name": "De Platte-vloerregel",
+        "body": "Een kaart in rust heeft geen schaduw. Wie diepte wil, gebruikt de toon van het vlak of een rand.",
+        "section": "elevation"
+      },
+      {
+        "name": "De Motiefregel",
+        "body": "De schuine banen horen bij de schil en de paginakop. Niet achter lijsten, formulieren of tabellen, en nooit op hogere dekking.",
+        "section": "shapes"
+      },
+      {
+        "name": "De Origineelregel",
+        "body": "Het logo wordt niet nagetekend, bijgekleurd of vereenvoudigd. Past het ergens niet, dan verandert de omgeving, niet het logo.",
+        "section": "components"
+      }
     ],
     "dos": [
       "Do gebruik semantische tokens (`primary`, `accent`, `card`, `muted`, `border`), zodat licht en donker beide kloppen.",
@@ -166,12 +319,14 @@
       "Do geef tikdoelen op de telefoon minstens 44px hoogte.",
       "Do zet getallen in `tabular-nums`.",
       "Do begin een scherm met de paginakop en verdeel het met sectiekoppen.",
+      "Do gebruik het originele ZWB-logo als merkteken, op een licht vlak in het donkere thema.",
       "Do respecteer `prefers-reduced-motion`; beweging is kort en functioneel, zoals de voortgangsbalk bij navigatie."
     ],
     "donts": [
       "Don't maak er een Strava- of Zwift-kloon van: geen oranje, neon of game-achtige glans. Merkkleuren van derden alleen waar hun richtlijnen dat eisen.",
       "Don't bouw een generiek SaaS-dashboard: geen paarse gradiënten, glaseffecten of rijen identieke statistiekkaarten.",
       "Don't maak er een drukke sportsite van: geen schreeuwende koppen, schuine sporttypografie of foto's achter alles.",
+      "Don't gebruik de drie schuine vlakken nog als logo, en teken het logo niet na.",
       "Don't geef een kaart in rust een schaduw.",
       "Don't gebruik goud als kleine tekst op een lichte ondergrond.",
       "Don't zet uitlegtekst in schermen of formulieren; die hoort op `/hulp`."

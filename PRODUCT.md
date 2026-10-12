@@ -88,7 +88,9 @@ nu de API-aanvraag twee keer is afgewezen.
 Bindend (bevestigd door de eigenaar, 2026-10-12):
 
 - **Tenuekleuren en logo.** Petrol, teal, sage, goud en crème uit het
-  ZWB-tenue, en het bestaande logo (`public/zwb-logo.png`, `public/icon.svg`).
+  ZWB-tenue, en het originele ZWB-logo (`public/zwb-logo.png`). De drie
+  schuine vlakken in de app en in `public/icon.svg` zijn een benadering en
+  worden daardoor vervangen (eigenaar, 2026-10-12).
 - **ZWB-woordspelingen.** ZWBeter Worden, ZWBlokken, ZWBasis en ZWBgame zijn
   vaste productnamen; het patroon mag worden doorgezet.
 - **Stem.** Kort, informeel Nederlands met je/jij.

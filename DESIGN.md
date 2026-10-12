@@ -318,13 +318,31 @@ dat een duim misgrijpt.
   `/hulp`.
 
 ### Navigation
-- **Balk:** 1px haarlijn onderaan, ondergrond op 88% met vervaging. Logo
-  links, 28px hoog.
+- **Balk:** 1px haarlijn onderaan, ondergrond op 88% met vervaging. Het
+  originele logo links (zie Logo).
 - **Desktop:** tekstlinks van 14px met 20px tussenruimte; groepen openen een
   dropdown.
 - **Telefoon:** een paneel over de volle breedte onder de balk, op een
   gedimde achtergrond. Items zijn rijen met een rand (0.4rem, 14px);
   groepskoppen in labeltypografie met een 2px streep in de actiekleur links.
+
+### Logo
+Het merkteken is het originele ZWB-logo (`public/zwb-logo.png`): de letters
+Z, W en B in goud, petrol en zwart, met "Cycling Community" eronder. De drie
+schuine vlakken van `ZwbLogo`/`ZwbMark` (`src/components/zwb-logo.tsx`) en van
+`public/icon.svg` zijn een benadering en worden vervangen door het origineel:
+in de balk, op de publieke pagina's en in het app-icoon.
+
+- **In de balk:** het logo zonder ondertitel is te smal om te lezen op 28px;
+  gebruik het volledige logo op een hoogte waarop de letters herkenbaar zijn.
+- **Donker thema:** de B en de ondertitel zijn zwart en vallen weg op diep
+  petrol. Zet het logo daar op een licht vlak (Paper), zoals de loginpagina
+  al doet, tot er een lichte variant van de club is.
+- **Bron:** het bestand is 300 bij 104 pixels. Voor groot gebruik en voor het
+  app-icoon is een vectorbestand of een grotere export van de club nodig.
+
+**De Origineelregel.** Het logo wordt niet nagetekend, bijgekleurd of
+vereenvoudigd. Past het ergens niet, dan verandert de omgeving, niet het logo.
 
 ### Paginakop
 Het herkenningspunt van elk scherm: een kaart met het tenuemotief, links een
@@ -349,6 +367,8 @@ Gestreepte rand, Paper op 70%, één gedempte zin en hooguit één actie.
 - **Do** geef tikdoelen op de telefoon minstens 44px hoogte.
 - **Do** zet getallen in `tabular-nums`.
 - **Do** begin een scherm met de paginakop en verdeel het met sectiekoppen.
+- **Do** gebruik het originele ZWB-logo als merkteken, op een licht vlak in
+  het donkere thema.
 - **Do** respecteer `prefers-reduced-motion`; beweging is kort en
   functioneel, zoals de voortgangsbalk bij navigatie.
 
@@ -360,6 +380,8 @@ Gestreepte rand, Paper op 70%, één gedempte zin en hooguit één actie.
   glaseffecten of rijen identieke statistiekkaarten.
 - **Don't** maak er een drukke sportsite van: geen schreeuwende koppen,
   schuine sporttypografie of foto's achter alles.
+- **Don't** gebruik de drie schuine vlakken nog als logo, en teken het logo
+  niet na.
 - **Don't** geef een kaart in rust een schaduw.
 - **Don't** gebruik goud als kleine tekst op een lichte ondergrond.
 - **Don't** zet uitlegtekst in schermen of formulieren; die hoort op `/hulp`.

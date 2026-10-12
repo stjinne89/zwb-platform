@@ -118,6 +118,15 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >
 > **Niet geverifieerd.** De documenten zijn uit de code afgeleid, niet uit de
 > draaiende app in de browser.
+>
+> **Logo: het origineel vervangt de drie schuine vlakken (besluit eigenaar,
+> 2026-10-12) — vastgelegd, nog niet gebouwd.** `DESIGN.md` en `PRODUCT.md`
+> noemen `public/zwb-logo.png` als merkteken; `ZwbLogo`/`ZwbMark` en
+> `public/icon.svg` zijn een benadering en moeten eruit (balk, publieke
+> pagina's, app-icoon). Open voor de bouw: de B en de ondertitel zijn zwart en
+> vallen weg in het donkere thema (tot er een lichte variant is: op een licht
+> vlak), en het bestand is maar 300 bij 104 pixels, te klein voor het
+> app-icoon.
 
 ---
 
