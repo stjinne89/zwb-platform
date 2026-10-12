@@ -127,6 +127,8 @@ type TeamStanding = {
   total_teams: number | null;
   created_at: string;
   source_url: string | null;
+  /** Alleen ZRL: de hele ronde in plaats van het teamevent. */
+  round_url?: string;
   teams: TeamRef | TeamRef[] | null;
 };
 
@@ -151,9 +153,10 @@ type ZrlTeamResultRow = {
   total_teams: number;
   points: number;
   computed_at: string;
-  events: { title: string; start_at: string } | { title: string; start_at: string }[] | null;
+  events: ZrlResultEvent | ZrlResultEvent[] | null;
   team: TeamRef | TeamRef[] | null;
 };
+type ZrlResultEvent = { title: string; start_at: string; parent_event_id: string | null };
 
 type AwardRow = {
   id: string;
@@ -254,6 +257,8 @@ function zrlStandings(rows: ZrlTeamResultRow[], sinceIso: string): TeamStanding[
       total_teams: row.total_teams,
       created_at: row.computed_at,
       source_url: `/events/${row.event_id}`,
+      // De raceweek zelf (het hoofdevent, migr. 0178), met alle teams van die ronde.
+      round_url: `/events/${event.parent_event_id ?? row.event_id}`,
       teams: row.team,
     });
   }
@@ -552,7 +557,7 @@ export default async function DashboardPage({
     supabase
       .from("zrl_team_results")
       .select(
-        "event_id, team_id, rank, total_teams:teams, points, computed_at, events(title, start_at), team:team_id(id, name, type, division)",
+        "event_id, team_id, rank, total_teams:teams, points, computed_at, events(title, start_at, parent_event_id), team:team_id(id, name, type, division)",
       )
       .gte("computed_at", since7Iso)
       .order("computed_at", { ascending: false })
@@ -880,7 +885,7 @@ export default async function DashboardPage({
           standing={
             tileStanding && tileStanding.position
               ? {
-                  href: tileStanding.href,
+                  href: tileStanding.round_url ?? tileStanding.href,
                   team: tileStanding.team.name,
                   competition: tileStanding.competition,
                   position: tileStanding.position,
