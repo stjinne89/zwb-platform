@@ -58,12 +58,11 @@ describe("rotatie op de klok", () => {
     ]);
   });
 
-  it("telt af op 30, 15, 10 en 5 seconden en noemt de volgende", () => {
+  it("telt af op 30, 10 en 5 seconden en noemt de volgende", () => {
     const { events } = run(createRotation(RIDERS, 0), 0, 59 * S);
     const marks = events.filter((e) => e.type === "countdown");
     expect(marks.map((e) => [e.seconds, e.at / S, e.next])).toEqual([
       [30, 30, 1],
-      [15, 45, 1],
       [10, 50, 1],
       [5, 55, 1],
     ]);
@@ -72,7 +71,7 @@ describe("rotatie op de klok", () => {
   it("roept niet 'nog 30' aan het begin van een kopbeurt van 30 seconden", () => {
     const { events } = run(createRotation(RIDERS, 0), 105 * S, 134 * S);
     const marks = events.filter((e) => e.type === "countdown").map((e) => e.seconds);
-    expect(marks).toEqual([15, 10, 5]);
+    expect(marks).toEqual([10, 5]);
   });
 
   it("meldt na een stilstand alleen de laatste wissel", () => {
@@ -110,7 +109,6 @@ describe("ingrijpen", () => {
     expect(longer.endsAt).toBe(75 * S);
     const marks = run(longer, 50 * S, 74 * S).events.filter((e) => e.type === "countdown");
     expect(marks.map((e) => [e.seconds, e.at / S])).toEqual([
-      [15, 60],
       [10, 65],
       [5, 70],
     ]);

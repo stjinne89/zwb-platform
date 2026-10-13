@@ -4,7 +4,7 @@
 import type { PlanRider } from "./plan.ts";
 
 /** Seconden voor een wissel waarop de bot aftelt. */
-export const COUNTDOWN = [30, 15, 10, 5];
+export const COUNTDOWN = [30, 10, 5];
 /** Seconden voor de start waarop de bot aftelt. */
 export const START_COUNTDOWN = [60, 30, 10, 5];
 /** Zo lang na een wissel mag Sauce het begin van de kopbeurt nog verleggen. */

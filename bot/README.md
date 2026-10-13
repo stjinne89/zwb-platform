@@ -13,7 +13,7 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 
 ## Wat hij doet
 
-- **Klok**: wie op kop rijdt, hoe lang nog, wie volgt. Aftellen op 30, 15, 10 en
+- **Klok**: wie op kop rijdt, hoe lang nog, wie volgt. Aftellen op 30, 10 en
   5 seconden; bij de wissel naam, watt en duur.
 - **Sauce** (optioneel):
   - wisselt de ploeg eerder of later dan de klok, dan schuift de rotatie mee;
