@@ -110,6 +110,20 @@ Het script schrijft per bericht Zwift-ID, gat, vermogen, snelheid en draft naar
 Valt punt 3 tegen, dan blijft de bot een timer met watts. Dat eerst melden, geen
 ander databron erachter bouwen.
 
+## Een race in delen
+
+Op verzoek van de eigenaar (2026-10-13): een tweede plan voor een vlakker deel,
+met een andere indeling. `/ttt plan deel:2` zet een plan klaar zonder de lopende
+rit te storen; `/ttt deel 2` of de knop Deel 2 schakelt over (`replan` in
+`rotation.ts`, `usePart` in `session.ts`). De koprijder maakt zijn kopbeurt af,
+daarna gelden volgorde, watt en duur van het nieuwe plan. Gelost blijft gelost en
+de coach houdt wat hij al zag, met de nieuwe doelen. Staat de koprijder niet in
+het nieuwe plan, dan begint de eerste renner daarvan meteen. Tot drie delen.
+
+Overschakelen gaat met de hand. Sauce geeft per renner wel de afstand in het
+event (`state.eventDistance`), dus automatisch op een kilometerpunt kan later;
+dat is niet gebouwd en niet gemeten.
+
 ## Logboek en meekijkstand
 
 De bot schrijft per dag `bot/.cache/ttt-<datum>.log`: elke klokmelding (`klok`),

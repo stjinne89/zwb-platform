@@ -188,6 +188,18 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > krijgt geen tempomelding. De deellink van het platform blijft bestaan; of de
 > planner zelf nog nodig is, is aan de eigenaar.
 >
+> **Ook dezelfde middag, na de eerste oefening in Discord** (de bot logt in,
+> komt in het spraakkanaal en spreekt; de coach is nog niet in een race gehoord):
+> - `/ttt plan` zonder opties leest het klembord van de pc waar de bot draait.
+>   Een link van ZwiftGopher is ruim 5000 tekens en liet zich niet in Discord
+>   plakken.
+> - Aftellen op 30, 10 en 5 seconden; de 15 is eruit (te druk bij kopbeurten
+>   van 30 seconden). Het vermogen wordt op 5 watt afgerond uitgesproken.
+> - Een race in delen: `/ttt plan deel:2` zet een tweede plan klaar, de knop
+>   Deel 2 of `/ttt deel 2` schakelt over. De koprijder maakt zijn kopbeurt af,
+>   daarna geldt het nieuwe plan. Met de hand; automatisch op een kilometerpunt
+>   is niet gebouwd. Zie `docs/ttt-discord-bot.md`, "Een race in delen".
+>
 > **Bewust niet gebouwd.** Live data naar het platform of een pushende
 > Sauce-mod (de bot leest lokaal). Hosting in de cloud (keuze eigenaar).
 > Zwift-tussentijden in de bot (staan al op `/live/zrl` en in de mod). Meerdere

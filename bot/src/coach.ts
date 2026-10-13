@@ -75,7 +75,14 @@ export class Coach {
   private speed = { sum: 0, count: 0 };
   private lastPaceAt = 0;
 
-  constructor(private readonly plan: Plan) {
+  constructor(private plan: Plan) {
+    this.setPlan(plan);
+  }
+
+  /** Ander plan voor het volgende deel: nieuwe doelen, wat al gezien is blijft. */
+  setPlan(plan: Plan) {
+    this.plan = plan;
+    this.targets.clear();
     for (const rider of plan.riders) {
       if (rider.zwiftId) this.targets.set(rider.zwiftId, rider.pullWatts);
     }

@@ -24,6 +24,7 @@ import {
   type Message,
 } from "discord.js";
 import { clockPhrases } from "./phrases.ts";
+import { createRotation } from "./rotation.ts";
 import { fetchPlan, parsePlan } from "./plan.ts";
 import { SauceClient } from "./sauce.ts";
 import { Session } from "./session.ts";
@@ -36,6 +37,8 @@ import { CACHE_DIR, piperEngine, Tts, windowsEngine } from "./tts.ts";
 
 const DEFAULT_DELAY_S = 10;
 const PLUS_BUTTON_S = 10;
+/** Zoveel delen passen als knop naast +10 s, Volgende en Stop. */
+const MAX_PARTS = 3;
 /** Het statusbericht wordt hooguit zo vaak bijgewerkt, en minstens elke REFRESH_MS. */
 const RENDER_MS = 2_000;
 const REFRESH_MS = 6_000;
@@ -123,6 +126,14 @@ function controls(session: Session) {
       new ButtonBuilder().setCustomId("ttt:plus").setLabel(`+${PLUS_BUTTON_S} s`).setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId("ttt:skip").setLabel("Volgende").setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId("ttt:stop").setLabel("Stop").setStyle(ButtonStyle.Danger),
+      ...session.partNumbers
+        .filter((number) => number !== session.partNumber)
+        .map((number) =>
+          new ButtonBuilder()
+            .setCustomId(`ttt:part:${number}`)
+            .setLabel(`Deel ${number}`)
+            .setStyle(ButtonStyle.Success),
+        ),
     ),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
@@ -169,6 +180,21 @@ const command = new SlashCommandBuilder()
       )
       .addAttachmentOption((option) =>
         option.setName("bestand").setDescription("Het JSON-bestand uit ZwiftGopher"),
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("deel")
+          .setDescription("Voor welk deel van de race; leeg = deel 1")
+          .setMinValue(1)
+          .setMaxValue(MAX_PARTS),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("deel")
+      .setDescription("Ga over op het plan van een ander deel")
+      .addIntegerOption((option) =>
+        option.setName("nummer").setDescription("Deel").setRequired(true).setMinValue(1).setMaxValue(MAX_PARTS),
       ),
   )
   .addSubcommand((sub) =>
@@ -242,6 +268,7 @@ async function handle(interaction: Interaction) {
     if (interaction.customId === "ttt:plus") session.plus(PLUS_BUTTON_S);
     if (interaction.customId === "ttt:skip") session.skip();
     if (interaction.customId === "ttt:stop") stop(state);
+    if (interaction.customId.startsWith("ttt:part:")) session.usePart(Number(interaction.customId.slice(9)));
     if (interaction.isStringSelectMenu() && interaction.customId === "ttt:out") {
       const index = Number(interaction.values[0]);
       session.setOut(index, !session.rotation.riders[index]?.out);
@@ -268,6 +295,19 @@ async function handle(interaction: Interaction) {
       const plan = file
         ? parsePlan(await fetch(file.url, { signal: AbortSignal.timeout(10_000) }).then((r) => r.json()))
         : await fetchPlan(link ?? (await clipboard()), origins);
+      const riders = plan.riders
+        .map((r) => `${r.order}. ${r.name} · ${r.pullWatts ?? "-"} W · ${r.pullSeconds} s`)
+        .join("\n");
+      const part = interaction.options.getInteger("deel") ?? 1;
+      log(`plan deel ${part} ${plan.name}: ${plan.riders.map((r) => `${r.name} ${r.pullWatts ?? "-"}W ${r.pullSeconds}s`).join(", ")}`);
+      if (part > 1) {
+        // Een later deel komt erbij; wat loopt, loopt door.
+        if (!session) throw new Error("Laad eerst het plan voor deel 1.");
+        session.addPart(part, plan);
+        void tts?.prepare([`Deel ${part}.`, ...clockPhrases(createRotation(plan.riders, 0))]);
+        await interaction.editReply(`Deel ${part} klaargezet: **${plan.name}**\n${riders}`);
+        return;
+      }
       stop(state);
       state.message = null;
       const loaded = new Session(
@@ -282,12 +322,8 @@ async function handle(interaction: Interaction) {
         Date.now,
         coachMode,
       );
-      log(`plan ${plan.name}: ${plan.riders.map((r) => `${r.name} ${r.pullWatts ?? "-"}W ${r.pullSeconds}s`).join(", ")}`);
       state.session = loaded;
-      void tts?.prepare(clockPhrases(loaded.rotation));
-      const riders = plan.riders
-        .map((r) => `${r.order}. ${r.name} · ${r.pullWatts ?? "-"} W · ${r.pullSeconds} s`)
-        .join("\n");
+      void tts?.prepare(["Deel 1.", ...clockPhrases(loaded.rotation)]);
       await interaction.editReply(`Plan geladen: **${plan.name}**\n${riders}`);
     } catch (error) {
       await interaction.editReply(error instanceof Error ? error.message : "Plan laden mislukte.");
@@ -322,6 +358,16 @@ async function handle(interaction: Interaction) {
     // Een eigen bericht, geen antwoord: een antwoord is na een kwartier niet meer te wijzigen.
     state.message = await channel.send({ content: session.status(), components: controls(session) });
     await reply("Gestart.");
+    return;
+  }
+
+  if (sub === "deel") {
+    const number = interaction.options.getInteger("nummer", true);
+    await reply(
+      session.usePart(number)
+        ? `Deel ${number}: ${session.plan.name}.`
+        : `Voor deel ${number} staat geen ander plan klaar. Laad het met /ttt plan deel:${number}.`,
+    );
     return;
   }
 

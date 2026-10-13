@@ -156,6 +156,38 @@ export function setOut(input: Rotation, index: number, out: boolean, now: number
   return out && index === rotation.current ? skip(rotation, now) : { rotation, events: [] };
 }
 
+export function sameRider(a: PlanRider, b: PlanRider) {
+  return a.zwiftId && b.zwiftId ? a.zwiftId === b.zwiftId : a.name === b.name;
+}
+
+/**
+ * Ander plan voor het volgende deel van de race: andere volgorde, watt en duur.
+ * De koprijder maakt zijn kopbeurt af; daarna geldt het nieuwe plan. Wie gelost
+ * is, blijft gelost. Staat de koprijder niet in het nieuwe plan, dan begint de
+ * eerste renner daarvan meteen.
+ */
+export function replan(rotation: Rotation, riders: PlanRider[], now: number): Step {
+  const next: Rotation = {
+    ...rotation,
+    riders: riders.map((rider) => ({
+      ...rider,
+      out: rotation.riders.some((old) => old.out && sameRider(old, rider)),
+    })),
+  };
+  if (rotation.current === -1) return { rotation: next, events: [] };
+
+  const leader = rotation.riders[rotation.current];
+  const current = next.riders.findIndex((rider) => !rider.out && sameRider(leader, rider));
+  if (current !== -1) return { rotation: { ...next, current }, events: [] };
+
+  const first = nextIndex(next, -1);
+  if (first === -1) return { rotation, events: [] };
+  return {
+    rotation: lead(next, first, now),
+    events: [{ type: "change", rider: first, previous: first, synced: false }],
+  };
+}
+
 /**
  * Sauce ziet deze renner op kop komen. Is dat een ander dan de klok dacht, dan
  * volgt de rotatie de ploeg. Is het dezelfde en is de wissel net geweest, dan

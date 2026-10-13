@@ -63,6 +63,8 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 |---|---|
 | `/ttt plan [link] [bestand]` | Plan laden; zonder opties van het klembord van de bot-pc |
 | `/ttt start [vertraging]` | Starten in jouw spraakkanaal (standaard na 10 s) |
+| `/ttt plan deel:2` | Een plan klaarzetten voor een later deel van de race (tot deel 3) |
+| `/ttt deel <nummer>` | Overgaan op het plan van dat deel; kan ook met de knop Deel 2 |
 | `/ttt stop` | Stoppen en het kanaal verlaten |
 | `/ttt skip` | Meteen de volgende renner |
 | `/ttt plus <seconden>` | De huidige kopbeurt verlengen |
@@ -70,6 +72,15 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 | `/ttt terug <renner>` | Renner draait weer mee |
 
 Eén bot bedient één spraakkanaal per server tegelijk, en Sauce volgt één ploeg.
+
+**Een race in delen.** Wil je op een vlakker stuk een andere volgorde, watt of
+duur, zet dan vooraf een tweede plan klaar: maak het in ZwiftGopher, Export Link,
+en geef `/ttt plan deel:2`. Dat kan voor of tijdens de race; wat loopt, loopt
+door. Onder het statusbericht komt een knop **Deel 2**. Druk je daarop, dan zegt
+de bot "Deel 2", maakt de koprijder zijn kopbeurt af en geldt daarna het nieuwe
+plan. Wie gelost is, blijft gelost. Overschakelen gaat met de hand; de bot weet
+niet waar op de route jullie zijn. `/ttt plan` zonder `deel` begint opnieuw en
+wist de klaargezette delen.
 
 Met `COACH=log` in `.env` spreekt alleen de klok; wat de coach zou zeggen of doen
 komt dan alleen in het logboek. Dat logboek staat per dag in `.cache/ttt-<datum>.log`:

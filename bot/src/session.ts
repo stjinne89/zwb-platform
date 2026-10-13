@@ -8,6 +8,8 @@ import {
   createRotation,
   nextIndex,
   plus,
+  replan,
+  sameRider,
   setOut,
   skip,
   syncLeader,
@@ -45,20 +47,68 @@ export class Session {
   /** Met de hand gelost gezet; de coach beslist daar niet meer over. */
   private readonly manualOut = new Set<number>();
   private sauce = { at: 0, visible: 0 };
+  /** Het plan per deel van de race; deel 1 staat op plek 0. */
+  private readonly parts: Plan[];
+  private part = 0;
 
   constructor(
-    readonly plan: Plan,
+    plan: Plan,
     private readonly io: SessionIo,
     private readonly now: () => number = Date.now,
     private readonly coachMode: CoachMode = "speak",
   ) {
+    this.parts = [plan];
     this.rotation = createRotation(plan.riders, Infinity);
     this.coach = new Coach(plan);
+  }
+
+  /** Het plan van het deel dat nu geldt. */
+  get plan(): Plan {
+    return this.parts[this.part];
+  }
+
+  /** Het nummer van het deel dat nu geldt, vanaf 1. */
+  get partNumber() {
+    return this.part + 1;
+  }
+
+  /** De nummers van de delen waarvoor een plan klaarstaat. */
+  get partNumbers() {
+    return this.parts.flatMap((plan, index) => (plan ? [index + 1] : []));
+  }
+
+  /** Zet een plan klaar voor een later deel van de race. */
+  addPart(number: number, plan: Plan) {
+    this.parts[number - 1] = plan;
+    this.io.changed();
+  }
+
+  /**
+   * Ga over op het plan van een ander deel. De koprijder maakt zijn kopbeurt
+   * af; daarna gelden volgorde, watt en duur van het nieuwe plan.
+   */
+  usePart(number: number) {
+    const plan = this.parts[number - 1];
+    if (!plan || number === this.partNumber) return false;
+    const manual = [...this.manualOut].map((index) => this.rotation.riders[index]);
+    this.part = number - 1;
+    this.coach.setPlan(plan);
+    const step = replan(this.rotation, plan.riders, this.now());
+    this.manualOut.clear();
+    step.rotation.riders.forEach((rider, index) => {
+      if (manual.some((old) => old && sameRider(old, rider))) this.manualOut.add(index);
+    });
+    this.io.log(`deel ${number}: ${plan.name}`);
+    if (this.running) this.io.say(`Deel ${number}.`, "clock");
+    this.apply(step);
+    this.io.changed();
+    return true;
   }
 
   start(delaySeconds: number) {
     this.stop();
     this.manualOut.clear();
+    this.part = 0;
     this.rotation = createRotation(this.plan.riders, this.now() + delaySeconds * 1000);
     this.coach = new Coach(this.plan);
     this.running = true;
@@ -127,7 +177,8 @@ export class Session {
   /** Tekst van het statusbericht. */
   status(): string {
     const { riders, current, endsAt } = this.rotation;
-    const lines = [`**${this.plan.name}**`];
+    const part = this.partNumbers.length > 1 ? ` · deel ${this.partNumber}` : "";
+    const lines = [`**${this.plan.name}**${part}`];
     const describe = (index: number) => {
       const rider = riders[index];
       return `${rider.name}${rider.pullWatts ? ` · ${rider.pullWatts} W` : ""}`;
