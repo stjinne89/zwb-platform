@@ -5,7 +5,8 @@ import { COUNTDOWN, START_COUNTDOWN, type Rotation, type RotationEvent } from ".
 
 function target(rotation: Rotation, index: number) {
   const rider = rotation.riders[index];
-  return rider.pullWatts ? `${rider.name}, ${rider.pullWatts} watt` : rider.name;
+  // Op 5 watt: "315" zegt en onthoudt makkelijker dan "317".
+  return rider.pullWatts ? `${rider.name}, ${Math.round(rider.pullWatts / 5) * 5} watt` : rider.name;
 }
 
 export function eventPhrase(event: RotationEvent, rotation: Rotation): string {

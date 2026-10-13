@@ -127,6 +127,13 @@ describe("zinnen", () => {
     );
   });
 
+  it("rondt het uitgesproken vermogen af op 5 watt", () => {
+    const odd = createRotation([{ order: 1, name: "Koen", zwiftId: "1", pullWatts: 317, pullSeconds: 30 }], 0);
+    expect(eventPhrase({ type: "change", rider: 0, previous: 0, synced: false }, odd)).toBe(
+      "Wissel. Koen, 315 watt, 30 seconden.",
+    );
+  });
+
   it("zet voor elke renner met een kopbeurt de klokzinnen klaar", () => {
     const phrases = clockPhrases(rotation);
     expect(phrases).toContain("Nog 30 seconden. Daarna Piet.");
