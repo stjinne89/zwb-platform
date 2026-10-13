@@ -7174,6 +7174,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — `/hulp`: blokken in een logische volgorde, in zes groepen
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De pagina was gegroeid in de volgorde waarin features kwamen:
+elk nieuw blok ging onderaan of ergens tussenin. Daardoor stond de ZWBgame als
+eerste gids, Mijn garage tussen live tracking en de FIT-export, het logboek
+tussen schema en herstel, en de Strava-samenvatting tussen herstel en vermogen.
+
+**Wat veranderde.** Alleen de volgorde, geen tekst. De pagina heeft nu zes
+groepen met een kop en een rij sprongknoppen onder de zoekbalk:
+
+1. *Beginnen*: de vier startstappen, welkomstrondleiding, app installeren,
+   Wat vind je waar.
+2. *Koppelen en ritten binnenhalen*: Strava opnieuw koppelen, ritten via
+   intervals.icu, importeren, externe profielen.
+3. *De club*: de gidskaarten (profiel, privacy, events, teams, badges, cols,
+   garage, community, training, ZWBgame als laatste omdat hij het langst is),
+   verjaardagsrondje, live volgen, OwnTracks, ZWBlokken, fietsen en onderhoud.
+4. *Trainen met ZWBeter Worden*: eerst intervals.icu en herstel, dan doel en
+   schema, de workout op fietscomputer of Zwift, Zwift-events, rondjes buiten,
+   vermogen, pacing, Strava-samenvatting, logboek, core en kracht, voeding.
+5. *Meldingen en problemen*.
+6. *Voor beheerders*, onderaan, omdat de meeste leden het niet nodig hebben.
+
+Binnen *Trainingsdoel en je schema* volgen de zeventien kaarten nu de weg van
+een lid: doel instellen (doeltype, jaarplan, uren, beschikbaarheid), FTP
+(intervals, FTP-test), het schema lezen (kleuren, namen, rustdagen), het
+aanpassen (clubevents, eigen rit, dag aanpassen, voorstellen, verwijderen),
+warming-up, en na de rit (feedback, readiness).
+
+Alle bestaande ankers zijn gelijk gebleven. De zoekindex wees al naar
+`/hulp#problemen`, maar dat anker bestond niet; het staat nu op het blok
+Problemen oplossen.
+
+**Bewust niet gebouwd.** Geen herschrijving of inkorting van teksten, geen
+splitsing in subpagina's en geen inklapbare blokken: de vraag was de volgorde.
+De volgorde van de zoekindex en van de bullets binnen een gidskaart is niet
+aangeraakt.
+
+**Niet lokaal te verifiëren.** De pagina is niet in de browser bekeken: deze
+worktree heeft geen `.env.local`, dus inloggen kan niet. Gecontroleerd is dat
+de gesorteerde regels van voor en na gelijk zijn op de nieuwe koppen na, plus
+`tsc` en ESLint.
+
 ### Opgeleverd — NEVO-zoeken: alle treffers wegen mee, niet de eerste 200 op alfabet
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
