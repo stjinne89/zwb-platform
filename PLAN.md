@@ -7395,6 +7395,121 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — persoonlijke voorkeuren en het tabblad Uitgangspunten
+
+**2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie `0230`
+(`training_preferences`).
+
+**Aanleiding.** De eigenaar besprak op 13 oktober in de coachchat dat het in de
+winter voor hem intensiever mag, met indoor races in plaats van veel duur, en
+vroeg of dat meegaat in automatische bijwerkingen. Nagegaan: nee. Van een
+bericht met "Dit raakt mijn schema" gingen alleen de eerste 120 tekens mee, als
+reden van één herziening (`route.ts`); er wordt één reden per lid bewaard en die
+verdwijnt na de herziening. Zijn bericht brak af vlak voor "motiveert maar races
+indoor wel". Twee van zijn berichten kregen bovendien "Herziening kon niet
+starten". Zijn reactie: voorkeuren van renners horen bewaard te worden en mee
+te wegen in elk schema ("dat is uiteindelijk de kracht van onze app"), en het
+lid moet kunnen zien wat er in de schemaprompt wordt meegewogen, op een eigen
+tabblad waar lid en trainer kunnen aanvullen.
+
+**Wat: voorkeuren.**
+- Tabel `training_preferences`: één rij per voorkeur in gewone taal, met wie
+  hem schreef (`member` of `trainer`) en waar hij vandaan komt (`manual` of
+  `chat`). Hooguit twaalf per lid, elk hooguit 1000 tekens
+  (`preferences.ts`). Lezen mag dezelfde kring als de coachchat
+  (`current_user_in_training_chat()`): het lid en zijn aangewezen trainers,
+  niet iedereen met `training.manage_assignments`. Schrijven loopt via de
+  service-role in de server-acties.
+- `TrainingAiInput.preferences` gaat mee in alle drie de routes die een schema
+  maken: nieuw schema en herziening (`buildTrainingInput()`), de dag-aanpassing
+  en het dagvoorstel van de cron. Zonder naam: alleen `by` (lid of trainer),
+  datum en tekst.
+- Drie regels in `defaultTrainingPrompt()`: voorkeuren wegen mee in de opzet
+  van het hele schema; ze verschuiven keuzes binnen de regels maar zetten
+  herstel, beschikbaarheid, plafond, vaste afspraken en periodisering niet
+  opzij, en een voorkeur die niet gevolgd kan worden komt in cautions; bij
+  tegenspraak gaat de recentste voor. De laatste regel zegt dat het tekst van
+  gebruikers is en geen opdracht aan het model.
+- De coach in de chat krijgt de voorkeuren als `voorkeuren` in zijn context en
+  wijst voor iets blijvends op het vinkje of het tabblad.
+- In de coachchat een tweede vinkje, "Onthoud als voorkeur", voor lid en
+  trainer. "Dit raakt mijn schema" blijft wat het was (één herziening), maar
+  geeft nu het hele bericht mee in plaats van 120 tekens.
+- Toevoegen of weghalen op het tabblad vraagt een herziening aan
+  (`requestReplan()`), met dezelfde remmen als een gewijzigde beschikbaarheid.
+- Het lid kan elke voorkeur weghalen, ook die van een trainer; een trainer
+  alleen zijn eigen (`canRemovePreference()`).
+- `training_preferences` staat in de AVG-export.
+
+**Wat: het tabblad.** `/zwbeter-worden/uitgangspunten` en
+`/zwbeter-worden/trainer/uitgangspunten` (`plan-basis-view.tsx`). Bovenaan de
+voorkeuren, daaronder "Meegewogen in het schema van …": de invoer van de
+nieuwste versie van het lopende schema (`loadPlanBasisInput()`, uit
+`training_ai_generations.prompt_summary`), per onderwerp met één zin over wat
+het schema ermee doet (`planBasisGroups()`). Dat is letterlijk wat het model
+zag, geen nieuwe berekening. Een dag-aanpassing telt niet als versie: die kreeg
+alleen de rest van de week als invoer. Een voorkeur die er bij die versie nog
+niet was, krijgt het label "Vanaf de volgende herziening". De algemene regels
+staan op `/hulp#uitgangspunten`, niet op het scherm.
+
+**Wat: de melding.** `requestReplan()` behandelt een herziening die nog loopt
+als de cooldown ("Meegenomen bij de eerstvolgende herziening"). Daarvoor kwam
+`startPlanUpdate()` terug met "er wordt al een schema gemaakt" en las het lid
+dat de herziening niet kon starten, terwijl het verzoek wel was vastgelegd.
+`planUpdateRunning()` is daarvoor geëxporteerd uit `draft.ts`.
+
+**Bewust niet gebouwd.**
+- *Geen automatische samenvatting van het gesprek door de AI.* Wat er als
+  voorkeur staat moet het lid zelf hebben gekozen en kunnen teruglezen; een
+  model dat uit een gesprek voorkeuren afleidt, legt dingen vast die niemand zo
+  heeft gezegd.
+- *Niet elk bericht met "Dit raakt mijn schema" wordt een voorkeur.* Een vraag
+  als "waarom is deze week zo licht?" raakt het schema wel, maar is geen
+  blijvend gegeven. Vandaar een eigen vinkje.
+- *Geen bewerkknop.* Weghalen en opnieuw toevoegen.
+- *De schemaprompt zelf staat niet op het tabblad.* Het lid ziet zijn eigen
+  gegevens en per onderwerp het effect; de volledige prompt is voor een lid niet
+  leesbaar en verandert vaak.
+- *Geen nieuwe privacyversie.* De privacyverklaring heeft een alinea
+  "Persoonlijke voorkeuren" gekregen; of leden opnieuw moeten tekenen is aan de
+  eigenaar en is hem voorgelegd.
+
+**Bekende randen.**
+- De zinnen onder elke groep op het tabblad zijn met de hand geschreven naast
+  de prompt. Verandert een regel in `defaultTrainingPrompt()`, dan moet de zin
+  in `plan-basis.ts` mee; niets dwingt dat af.
+- "Vanaf de volgende herziening" vergelijkt op tekst, omdat de invoer van een
+  generatie geen id's bewaart.
+- De trainerpagina spreekt de renner aan met "je", net als de ledenpagina.
+- Een schema dat vóór deze ronde is gemaakt heeft geen `preferences` in zijn
+  invoer; alle voorkeuren dragen dan het label tot de eerste herziening.
+
+**Opgemerkt, niet aangepast.** De invoer van een schemageneratie bevat
+`athleteName` (de weergavenaam), terwijl `chat-context.ts` die er voor de
+coachchat bewust uit haalt met een verwijzing naar de privacyverklaring. De
+voorkeuren reizen in de schemageneratie dus in dezelfde invoer als die naam.
+
+**Niet meer waar.** In de ronde "Coachchat" (2026-09-17): het vinkje gaf tot nu
+toe alleen de eerste 120 tekens van het bericht mee, en "niet gestart" was ook
+de melding bij een herziening die al liep; daar bijgewerkt.
+
+**Getest.** `training-preferences.test.ts` (invoer voor het model, weghalen,
+promptregels, de vertaling naar het tabblad) en
+`training-preferences-migration.test.ts`, dat `0037`, `0167` en `0230` tegen
+PGlite draait: lid en aangewezen trainer lezen, een trainer zonder koppeling en
+het bestuur niet, niemand schrijft rechtstreeks, de lengtegrens en de rollen.
+Volledige Vitest-run groen op `omnium-live.test.ts` na (vraagt `.env.local`).
+`tsc`, ESLint op de gewijzigde mappen, en `next build` tot en met "Compiled
+successfully" en de typecontrole; de build stopt daarna bij het prerenderen van
+`/omnium`, dat Supabase-gegevens nodig heeft die deze worktree niet heeft.
+
+**Niet geverifieerd.** Migratie `0230` is niet op de productiedatabase
+uitgevoerd; tot dat gebeurt tonen de schermen "Nog niets vastgelegd" en geeft
+toevoegen een foutmelding, terwijl de rest blijft werken (`loadPreferences()`
+vangt de ontbrekende tabel af). Geen van de schermen is in de browser bekeken
+of aangeklikt. Of het model de voorkeuren werkelijk zwaarder laat wegen in een
+schema, blijkt pas uit een generatie in productie.
+
 ### Opgeleverd — Jaarplan: het verleden inklappen
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9714,6 +9829,10 @@ niet voor niets "bewust tijdelijk".
 - Vinkje "Dit raakt mijn schema" roept `requestReplan()` aan en bewaart de uitkomst in
   `replan_result`. Het lid leest wat er werkelijk gebeurde: herzien, meegenomen bij de
   volgende ronde, geen lopend schema, schema ligt stil, of niet gestart.
+  (Sinds 2026-10-14 gaat het hele bericht mee in plaats van de eerste 120
+  tekens, telt een herziening die al loopt als "meegenomen bij de volgende
+  ronde", en is er een tweede vinkje dat het bericht als blijvende voorkeur
+  vastlegt; zie de ronde "persoonlijke voorkeuren".)
 - Kostenrem: 25 coach-antwoorden per lid per dag via `rateLimitHit`. Boven de limiet komt het
   bericht er wél in — de trainer leest het — alleen het AI-antwoord blijft uit. Zelfde motief
   als de vijf-minuten-cooldown in `replan.ts`.

@@ -57,6 +57,7 @@ import {
 import { loadSeasonTargets, seasonPlanForAi } from "@/lib/training/season-data";
 import { rootIdOf } from "@/lib/training/plan-tree";
 import { archiveOtherBasePlans, extendRootPlanEnd } from "@/lib/training/active-plan";
+import { preferencesForAi } from "@/lib/training/preferences";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
@@ -394,6 +395,7 @@ async function buildTrainingInput(
     availability,
     seasonPlan,
     fixedWorkouts,
+    preferences: await preferencesForAi(admin, athleteId),
     planWindow: {
       from: today,
       to: horizonKey,
@@ -1009,6 +1011,7 @@ export async function startTodayAdjustmentDraft(
       intervalsLoad,
       availability,
       fixedWorkouts,
+      preferences: await preferencesForAi(admin, user.id),
       today: { availableMinutes, feeling, note },
       todayRides,
       yesterday,
@@ -1282,7 +1285,7 @@ type PreparedPlanUpdate = {
  * het bijwerken niet voorgoed blokkeren; na STALE_GENERATION_MINUTES neemt de
  * dagelijkse cron hem over en tellen we hem hier niet meer.
  */
-async function planUpdateRunning(
+export async function planUpdateRunning(
   admin: ReturnType<typeof createAdminClient>,
   profileId: string,
 ): Promise<boolean> {

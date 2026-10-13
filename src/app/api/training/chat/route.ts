@@ -11,6 +11,7 @@ import {
   settlePendingCoachAnswers,
   startCoachAnswer,
 } from "@/lib/training/coach-chat";
+import { addPreference } from "@/lib/training/preferences";
 import { requestReplan } from "@/lib/training/replan";
 
 // De coachchat van ZWBeter Worden. Eén doorlopend gesprek per lid:
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let payload: { body?: string; affectsPlan?: boolean };
+  let payload: { body?: string; affectsPlan?: boolean; remember?: boolean };
   try {
     payload = await req.json();
   } catch {
@@ -150,11 +151,26 @@ export async function POST(req: Request) {
   // het schema wil wijzigen doet dat in de schema-tab.
   const affectsPlan = isMember && payload.affectsPlan === true;
 
+  // Vastleggen als blijvende voorkeur: die gaat in elke volgende generatie mee,
+  // waar "dit raakt mijn schema" alleen de eerstvolgende herziening aanstuurt.
+  // Vóór de herziening, zodat die hem al ziet.
+  let preferenceNote: string | null = null;
+  if (payload.remember === true) {
+    const saved = await addPreference(admin, {
+      profileId,
+      authorId: userId,
+      authorRole: isMember ? "member" : "trainer",
+      body,
+      source: "chat",
+    }).catch(() => ({ ok: false as const, error: "Voorkeur vastleggen faalde." }));
+    preferenceNote = saved.ok ? "Vastgelegd als voorkeur." : saved.error;
+  }
+
+  // Het hele bericht als reden. Tot oktober 2026 waren dat de eerste 120
+  // tekens, en viel de kern van een langere uitleg er net af.
   let replanResult: string | null = null;
   if (affectsPlan) {
-    const result = await requestReplan(admin, profileId, `Chatbericht: ${body.slice(0, 120)}`).catch(
-      () => null,
-    );
+    const result = await requestReplan(admin, profileId, `Chatbericht: ${body}`).catch(() => null);
     replanResult = result ? (result.started ? "started" : result.reason) : "failed";
   }
 
@@ -218,7 +234,11 @@ export async function POST(req: Request) {
     ).catch(() => null);
   }
 
-  return NextResponse.json({ ok: true, planNote: affectsPlan ? replanResultMessage(replanResult) : null });
+  return NextResponse.json({
+    ok: true,
+    planNote: affectsPlan ? replanResultMessage(replanResult) : null,
+    preferenceNote,
+  });
 }
 
 // Moderatie: alleen de auteur, en dus nooit een coach-antwoord. RLS op de

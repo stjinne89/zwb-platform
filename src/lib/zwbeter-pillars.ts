@@ -23,6 +23,7 @@ export const ZWBETER_PILLARS: Pillar[] = [
       "/zwbeter-worden/belasting",
       "/zwbeter-worden/vermogen",
       "/zwbeter-worden/doelen",
+      "/zwbeter-worden/uitgangspunten",
       "/zwbeter-worden/logboek",
       // De AI-coach hoort bij het eigen trainen; coachen is voor trainers.
       "/zwbeter-worden/coach",

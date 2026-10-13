@@ -15,7 +15,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
-import { finishAiGeneration, startPlanUpdate } from "@/lib/training/draft";
+import { finishAiGeneration, planUpdateRunning, startPlanUpdate } from "@/lib/training/draft";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -83,7 +83,11 @@ export async function requestReplan(
       return { started: false, reason: "ignored" };
     }
 
-    if (await withinCooldown(admin, profileId)) {
+    // Loopt er nog een herziening, dan is dat hetzelfde als de cooldown: het
+    // verzoek ligt vast en gaat mee met de volgende. Zonder deze regel kwam
+    // startPlanUpdate() met "er wordt al een schema gemaakt" terug en las het
+    // lid in de chat dat de herziening niet kon starten (13 oktober 2026).
+    if ((await withinCooldown(admin, profileId)) || (await planUpdateRunning(admin, profileId))) {
       return { started: false, reason: "cooldown" };
     }
 

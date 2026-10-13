@@ -1649,6 +1649,15 @@ export default function HelpPage() {
             kan zien: een week ziek geweest, een doel dat verschuift.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
+            Met <strong className="text-foreground">Onthoud als voorkeur</strong>{" "}
+            leg je je bericht blijvend vast: het gaat dan in elk volgend schema
+            mee. Zie{" "}
+            <Link href="/hulp#uitgangspunten" className="underline hover:text-primary">
+              uitgangspunten
+            </Link>
+            .
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
             Het gesprek blijft staan en de trainers die jij hebt aangewezen lezen
             het terug en kunnen erin reageren. Het bestuur niet. Over pijn,
             blessures of ziekte geeft de coach geen advies — daarvoor ga je naar je
@@ -1839,6 +1848,91 @@ export default function HelpPage() {
                 met structuur.
               </li>
             </ul>
+          </article>
+          <article
+            id="uitgangspunten"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Uitgangspunten: wat je schema meeweegt</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Op het tabblad{" "}
+              <Link href="/zwbeter-worden/uitgangspunten" className="underline hover:text-primary">
+                Uitgangspunten
+              </Link>{" "}
+              staat waarop je lopende schema is gemaakt: je doel, je
+              beschikbaarheid, wat je reed, je vorm, je herstelwaarden als je
+              die deelt, je jaarplan en je vaste afspraken. Het zijn de
+              gegevens van het moment waarop die versie van je schema werd
+              gemaakt; de datum staat erboven.
+            </p>
+            <h4 className="mt-3 text-sm font-medium">Persoonlijke voorkeuren</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bovenaan leg je vast wat de app niet uit je data kan halen: wat
+              je motiveert, waar je goed op reageert, wat je liever niet doet.
+              Jij en de trainers die je hebt aangewezen kunnen aanvullen. Elke
+              voorkeur gaat mee in elk volgend schema, ook in de automatische
+              bijwerkingen. In de coachchat doet het vinkje{" "}
+              <strong className="text-foreground">Onthoud als voorkeur</strong>{" "}
+              hetzelfde met je bericht.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een voorkeur verschuift de keuzes, maar gaat niet boven je
+              herstel, je beschikbaarheid of je vaste afspraken. Kan het schema
+              een voorkeur niet volgen, dan staat de reden bij &ldquo;Let
+              op&rdquo;. Na toevoegen of weghalen wordt je schema herzien; een
+              voorkeur die er nog niet in zit, heeft het label &ldquo;Vanaf de
+              volgende herziening&rdquo;.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je kunt er hooguit twaalf vastleggen. Jij kunt alles weghalen,
+              een trainer alleen wat hij zelf schreef. Het bestuur leest ze
+              niet.
+            </p>
+            <h4 className="mt-3 text-sm font-medium">De vaste regels</h4>
+            <ul className="mt-1 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+              <li>
+                Opbouw in golven: twee tot vier opbouwweken, dan een
+                herstelweek op ongeveer 60 tot 70% van de week ervoor. Het
+                weekvolume groeit met ongeveer 10% per opbouwweek.
+              </li>
+              <li>
+                Je uren per week zijn het volume waar de zwaarste week van een
+                blok naartoe werkt, niet een grens die je niet mag
+                overschrijden. Een opbouwweek komt niet onder wat je nu al
+                rijdt.
+              </li>
+              <li>
+                Lichter wordt het alleen bij een signaal van overbelasting: een
+                sterk negatieve vorm (TSB), een snelle stijging van je
+                belasting, een dalende HRV, een hogere rusthartslag, een lage
+                readiness, of trainingen die zwaarder uitvielen én zwaar
+                voelden.
+              </li>
+              <li>
+                Een afbouw naar een piek komt er alleen bij een doel met één
+                piekmoment of een A-doel in je jaarplan; zie{" "}
+                <Link href="/hulp#doeltype" className="underline hover:text-primary">
+                  doeltype en de laatste weken
+                </Link>
+                .
+              </li>
+              <li>
+                Vaste afspraken, dagen zonder tijd en rustperiodes liggen vast;
+                het schema plant eromheen.
+              </li>
+            </ul>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Deze regels komen uit de coachpraktijk en waar het kan uit
+              onderzoek. De bronnen staan bij{" "}
+              <Link href="/hulp#blokken" className="underline hover:text-primary">
+                de blokken
+              </Link>{" "}
+              en{" "}
+              <Link href="/hulp#jaarplan" className="underline hover:text-primary">
+                het jaarplan
+              </Link>
+              .
+            </p>
           </article>
           <article
             id="jaarplan"

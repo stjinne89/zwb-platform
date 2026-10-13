@@ -1,5 +1,6 @@
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
 import type { ComplianceContext } from "@/lib/training/compliance";
+import type { PreferenceForAi } from "@/lib/training/preferences";
 import { PLAN_BLOCK_DAYS } from "@/lib/training/season";
 
 export type GeneratedWorkout = {
@@ -175,6 +176,12 @@ export type TrainingAiInput = {
     intensity: string;
     kind: "eigen_rit" | "clubevent" | "ftp_test";
   }>;
+  /**
+   * Persoonlijke voorkeuren (0230): wat het lid van zichzelf weet en wat een
+   * trainer over hem weet, in hun eigen woorden. Blijvend, anders dan
+   * planUpdate.reason: ze gaan in elke generatie mee.
+   */
+  preferences?: PreferenceForAi[];
   /** Renner-signaal voor vandaag (dag-aanpassing): tijd + gevoel. */
   today?: {
     availableMinutes: number | null;

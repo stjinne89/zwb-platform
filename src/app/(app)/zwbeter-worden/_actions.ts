@@ -63,6 +63,12 @@ import {
 } from "@/lib/training/race-warmup";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
+import { replanResultMessage } from "@/lib/training/coach-chat";
+import {
+  addPreference,
+  canRemovePreference,
+  preferenceRoleFor,
+} from "@/lib/training/preferences";
 import {
   generateOutdoorRoutes,
   loadStartPoints,
@@ -2409,6 +2415,75 @@ export async function chooseOutdoorRoute(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Route kiezen faalde.",
+    };
+  }
+}
+
+/**
+ * Wat er na een gewijzigde voorkeur met het schema gebeurt, in leesbare taal.
+ * Zonder lopend schema valt er niets te herzien; dan is opslaan het hele verhaal.
+ */
+async function replanForPreferences(admin: ReturnType<typeof createAdminClient>, profileId: string) {
+  const replan = await requestReplan(admin, profileId, "Persoonlijke voorkeuren gewijzigd.");
+  if (replan.started) return replanResultMessage("started");
+  return replan.reason === "no_plan" ? null : replanResultMessage(replan.reason);
+}
+
+/**
+ * Een persoonlijke voorkeur vastleggen (0230). Het lid voor zichzelf, of een
+ * aangewezen trainer voor zijn renner; `profile_id` zegt over wie het gaat.
+ */
+export async function addTrainingPreference(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const profileId = optionalString(formData.get("profile_id")) ?? user.id;
+
+    const role = await preferenceRoleFor(admin, user.id, profileId);
+    if (!role) throw new Error("Geen toegang tot dit lid.");
+
+    const saved = await addPreference(admin, {
+      profileId,
+      authorId: user.id,
+      authorRole: role,
+      body: mustString(formData.get("body"), "Voorkeur"),
+    });
+    if (!saved.ok) throw new Error(saved.error);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const, note: await replanForPreferences(admin, profileId) };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Voorkeur opslaan faalde.",
+    };
+  }
+}
+
+export async function removeTrainingPreference(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const id = mustString(formData.get("preference_id"), "Voorkeur");
+
+    const { data: row } = await admin
+      .from("training_preferences")
+      .select("id, profile_id, author_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (!row) throw new Error("Voorkeur niet gevonden.");
+    const preference = { profileId: row.profile_id as string, authorId: row.author_id as string | null };
+    if (!canRemovePreference(user.id, preference)) throw new Error("Deze voorkeur kun jij niet weghalen.");
+
+    const { error } = await admin.from("training_preferences").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const, note: await replanForPreferences(admin, preference.profileId) };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Voorkeur weghalen faalde.",
     };
   }
 }

@@ -102,6 +102,7 @@ test.describe("auth guard smoke checks", () => {
     "/zwbeter-worden/belasting",
     "/zwbeter-worden/vermogen",
     "/zwbeter-worden/doelen",
+    "/zwbeter-worden/uitgangspunten",
     "/zwbeter-worden/trainer",
     "/profiel",
   ]) {

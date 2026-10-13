@@ -19,6 +19,7 @@ import {
   startPlanUpdate,
   STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
+import { preferencesForAi } from "@/lib/training/preferences";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
@@ -583,6 +584,7 @@ export async function POST(request: Request) {
           intervalsLoad,
           availability,
           fixedWorkouts,
+          preferences: await preferencesForAi(admin, plan.profile_id),
           todayRides,
           yesterday,
           currentPlan: {

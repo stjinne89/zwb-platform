@@ -2,7 +2,8 @@
 
 // Het gesprek zelf. Eén component voor het lid en voor de trainer; wie kijkt
 // bepaalt alleen of het vinkje "dit raakt mijn schema" er staat en wiens
-// berechten rechts uitlijnen.
+// berechten rechts uitlijnen. "Onthoud als voorkeur" hebben beiden: dat legt het
+// bericht vast als persoonlijke voorkeur (0230), zie het tabblad Uitgangspunten.
 //
 // Realtime werkt hier net als bij de live-chat op een event: de melding is
 // alleen een seintje, de client haalt daarna zelf op. Nieuw is de snelle poll:
@@ -61,6 +62,8 @@ export function CoachChat({
   const [messages, setMessages] = useState<CoachChatMessage[]>(initialMessages);
   const [body, setBody] = useState("");
   const [affectsPlan, setAffectsPlan] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -124,17 +127,24 @@ export function CoachChat({
     if (!text || sending) return;
     setSending(true);
     setError(null);
+    setNote(null);
     try {
       const res = await fetch(base, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ body: text, affectsPlan }),
+        body: JSON.stringify({ body: text, affectsPlan, remember }),
       });
-      const data = (await res.json()) as { ok: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        preferenceNote?: string | null;
+      };
       if (data.ok) {
         setBody("");
         setAffectsPlan(false);
+        setRemember(false);
+        setNote(data.preferenceNote ?? null);
         refetch();
       } else {
         setError(data.error ?? "Versturen faalde.");
@@ -259,17 +269,28 @@ export function CoachChat({
         </Button>
       </div>
 
-      {viewerRole === "member" ? (
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
+        {viewerRole === "member" ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={affectsPlan}
+              onChange={(event) => setAffectsPlan(event.target.checked)}
+            />
+            Dit raakt mijn schema
+          </label>
+        ) : null}
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={affectsPlan}
-            onChange={(event) => setAffectsPlan(event.target.checked)}
+            checked={remember}
+            onChange={(event) => setRemember(event.target.checked)}
           />
-          Dit raakt mijn schema
+          Onthoud als voorkeur
         </label>
-      ) : null}
+      </div>
 
+      {note ? <p className="text-xs font-medium text-primary">{note}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </section>
   );

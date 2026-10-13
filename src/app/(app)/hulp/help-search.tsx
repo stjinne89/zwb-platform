@@ -160,6 +160,13 @@ const HELP_INDEX: HelpResult[] = [
       "blok blokken twaalf weken 12 weken drie maanden 3 maanden schema lengte duur kort stopt eindigt einde afgelopen volgend blok klaarzetten verlengen doorgaan doel ver weg start schema nieuw schema trainer a-doel intervals intervals.icu koppelen concept opbouw periodisering bron bronnen onderzoek friel waarom",
   },
   {
+    title: "Uitgangspunten: wat je schema meeweegt",
+    text: "Waarop je schema is gemaakt, je persoonlijke voorkeuren en de vaste regels.",
+    href: "/hulp#uitgangspunten",
+    terms:
+      "uitgangspunten voorkeur voorkeuren persoonlijk meegewogen meewegen waarom schema prompt regels vaste regels onthoud onthouden motivatie intensief intensiever races duur trainer aanvullen coachchat herziening tsb herstel opbouw herstelweek",
+  },
+  {
     title: "Doeltype en de laatste weken",
     text: "Waarom een gran fondo wel een taper krijgt en basisconditie of ZRL niet.",
     href: "/hulp#doeltype",

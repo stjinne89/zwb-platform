@@ -22,6 +22,7 @@ import { activeBasePlan } from "@/lib/training/active-plan";
 import { availabilityForAi } from "@/lib/training/availability";
 import { buildComplianceContext } from "@/lib/training/compliance";
 import { cautionsFromSummary, summaryWithoutCautions } from "@/lib/training/plan-summary";
+import { preferencesForAi, type PreferenceForAi } from "@/lib/training/preferences";
 import { seasonPlanForAi } from "@/lib/training/season-data";
 import { buildCoachTrainingData, type CoachTrainingData } from "@/lib/training/training-data";
 import { getWellnessSummary } from "@/lib/training/wellness";
@@ -110,6 +111,8 @@ export type CoachChatContext = {
   trainingsdata: CoachTrainingData | null;
   /** Alleen gevuld als het lid hersteldata deelt. */
   herstel: unknown | null;
+  /** Persoonlijke voorkeuren zoals ze nu vastliggen; gaan mee in elk schema. */
+  voorkeuren: PreferenceForAi[];
 };
 
 /** Vaste afspraken: die hangen aan het schema van het moment van vastzetten. */
@@ -275,11 +278,12 @@ export async function buildCoachChatContext(
     wellness_opt_in: boolean | null;
   } | null;
 
-  const [trainingsdata, herstel] = await Promise.all([
+  const [trainingsdata, herstel, voorkeuren] = await Promise.all([
     buildCoachTrainingData(admin, profileId, connection).catch(() => null),
     connection?.wellness_opt_in
       ? getWellnessSummary(admin, profileId).catch(() => null)
       : Promise.resolve(null),
+    preferencesForAi(admin, profileId),
   ]);
 
   const goal = pickCoachGoal(
@@ -363,5 +367,6 @@ export async function buildCoachChatContext(
       : null,
     trainingsdata,
     herstel,
+    voorkeuren,
   };
 }

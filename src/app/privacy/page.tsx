@@ -229,6 +229,19 @@ export default function PrivacyPage() {
             delen.
           </li>
           <li>
+            <strong>Persoonlijke voorkeuren:</strong> op het tabblad
+            Uitgangspunten, of met het vinkje &ldquo;Onthoud als voorkeur&rdquo; in
+            de coachchat, kun je vastleggen wat je schema over jou moet weten. De
+            trainers die jij hebt aangewezen kunnen dat ook voor jou doen. We
+            bewaren de tekst, wie hem schreef en wanneer. Alleen jij en die
+            trainers kunnen de voorkeuren lezen — het bestuur en communitybeheer
+            niet. Ze gaan mee naar OpenAI bij elke schemageneratie en bij
+            antwoorden in de coachchat. Je kunt elke voorkeur weghalen, ook
+            een die je trainer schreef; ze staan in je data-export en verdwijnen
+            als je je account opheft. Zet er geen gegevens in die je niet met je
+            trainer of met OpenAI wilt delen.
+          </li>
+          <li>
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
             recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
             samenvatting onderaan de omschrijving van die rit. Daarin staan je
