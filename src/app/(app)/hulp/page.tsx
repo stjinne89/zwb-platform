@@ -32,7 +32,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import { PageHeader } from "@/components/app-ui";
+import { PageHeader, SectionHeader } from "@/components/app-ui";
 import { ConnectWithStrava } from "@/components/strava-brand";
 import { HelpSearch } from "./help-search";
 
@@ -61,30 +61,6 @@ const START_STEPS = [
 
 const GUIDES = [
   {
-    id: "zwbgame",
-    icon: Bike,
-    title: "ZWBgame — Zwift-koers, jouw tactiek",
-    bullets: [
-      "Speel via Club → ZWBgame een Zwift-race tegen clubgenoten, op echte Zwift-routes van 15 tot 25 km: Flat Route, Hilly Route, Cobbled Climbs, Greater London Loop, Tempus Fugit, Innsbruckring en Glasgow Crit Circuit, met hun eigen ronden, sprints en KOM's. Een route staat er pas als het hoogteprofiel in de routebibliotheek zit. Een race van 30 tot 40 minuten speelt in ongeveer zes minuten: de tijd loopt versneld.",
-      "Club Ladder: jouw ploeg van vijf tegen een andere clubploeg van vijf, zoals op ladder.cycleracing.club. De finishplekken 1 tot en met 10 krijgen 10, 9, 8 … 1 punt; de ploeg met de meeste punten wint. Jij bent altijd de uitdager, dus een gelijke stand is verlies. Je daagt een ploeg uit tot zeven plekken boven je. Win je, dan neem je hun plek in en schuift iedereen daartussen één plek omlaag. Rij je in een ZWB-ladderteam, dan rijden je herkenbare teamgenoten mee; open plekken gaan naar clubgenoten van jouw niveau. De tegenstanders zijn negen clubploegen rond jouw niveau, de zwakste onderaan. De ladder bewaart je browser.",
-      "ZRL: jouw ploeg tegen vijf clubploegen van gelijke sterkte, volgens de WTRL-regels. Staat er een ZWB-ZRL-race met route in de clubkalender, dan staat die route bovenaan: zo oefen je de race van de week. Rij je in een ZRL-team, dan rijden je herkenbare teamgenoten mee (bij B1 of B2 dat subteam). Kies het format. Puntenrace: FAL (eerste over de streep van een sprint of KOM: evenveel punten als starters, dan één minder per plek), FTS (de tien snelste tijden over een segment: 15, 12, 10, 8, 6, 5, 4, 3, 2, 1), finish (evenveel punten als starters, aflopend) en podium (10, 8, 6, 4, 2). Race of Truth: dezelfde punten, zonder slipstream. Scratch: alleen finish en podium. Ploegentijdrit: alleen het wiel van je eigen ploeg, de tijd van je vierde renner telt, met minder dan vier binnen heeft je ploeg geen uitslag. De ploeg met de meeste punten (of de snelste tijd) krijgt evenveel leaguepunten als er ploegen zijn, dan één minder per plek.",
-      "FRR-tour: vier etappes na elkaar met hetzelfde veld van 24 renners rond jouw niveau: een vlakke rit, een heuvelrit, een tijdrit en een slotrit. De tijdrit is zoals op Zwift: iedereen start tegelijk, zonder slipstream en zonder powerups. Het klassement (geel) telt je tijdverlies op de winnaar per etappe op; alleen wie elke etappe uitrijdt, staat erin. Finishpunten per etappe: 25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, daarna 1 punt; in de tijdrit dubbel. Sprints en klimmen scoren alleen op de snelste tijd over het segment (geen punten voor wie eerst boven is), met dezelfde schaal voor de beste vijftien: een klim maal zijn moeilijkheid (1 tot 5, naar de hoogtemeters), sprints in een vlakke rit maal 1,3. Groen gaat naar de meeste sprintpunten, de bolletjes naar de meeste klimpunten, blauw naar alle punten samen. Kom je meer dan 20% na de winnaar binnen, dan kost de bezemwagen je 20 punten op het totaal. Je tour blijft in je browser tot je hem stopt of uitrijdt.",
-      "Vrije race: jij tegen maximaal 23 clubgenoten rond jouw niveau, zoals een Zwift-categorie. Bij een klein roster vullen fictieve gasten het veld aan.",
-      "Je rijdt in een van vier standen: Sparen (1), Meerijden (2), Naar voren (3) of Aanvallen (4); ook met pijltje omhoog en omlaag. Meerijden houdt je in het wiel, volgt elke versnelling en schuift door het blok naar voren. Sparen trapt niet meer dan nodig, zakt naar achteren en laat een versnelling boven je drempel gaan. Naar voren rijdt op je drempel in de wind. Aanvallen gaat erboven en wordt in de laatste 400 meter Sprinten. Tik op een renner in het koersoverzicht om diens wiel te volgen.",
-      "Zoals in Zwift: in het wiel heb je ongeveer 30% minder luchtweerstand. Op het vlak scheelt dat veel, op een steile klim bijna niets; daar telt vermogen per kilo. Een groep rijdt sneller dan een renner alleen. De start gaat hard: wie dan spaart, mist de kopgroep. Op een steile afdaling brengt Sparen je in supertuck, sneller dan zacht doortrappen en zonder moeite.",
-      "W′ is je reserve boven je drempel: aanvallen, gaten dichtrijden en sprinten kosten W′. Onder je drempel vult hij weer, langzaam. Is hij leeg, dan kom je niet meer boven je drempel en zet het spel je terug op Meerijden. Frisheid daalt met elke lucifer die je afsteekt en met lang hard rijden; minder frisheid kost drempel en sprint voor de rest van de race. In het wiel sparen houdt je fris voor de finale.",
-      "Powerups krijg je onder een sprint- of KOM-boog en op de rondestreep, één tegelijk. Gebruik ze met de spatiebalk, net als in Zwift. Veer maakt je 30 seconden lichter (klimmen), Aerohelm geeft 15 seconden minder luchtweerstand (sprint, aanval), Draft boost geeft 40 seconden meer slipstream (gat dichten).",
-      "Ploegorders in de ladder en de ZRL (5, 6, 7, 8): Vrij rijden laat je ploeggenoten hun eigen koers rijden. Breng me terug laat een ploeggenoot met de meeste reserve op je wachten en je terugslepen naar de groep. Lead-out laat een ploeggenoot in de laatste kilometer de sprint voor je aantrekken. Pak de punten (alleen in een ZRL-puntenrace en Race of Truth) stuurt je snelste ploeggenoot op de FAL- en FTS-punten af; de tegenstanders doen dat altijd. In een ploegentijdrit zijn er geen orders: je rijdt samen, en wie in het wiel zit, neemt vanzelf een beurt over. De tussenstand van de ploegen staat bovenin, ook per groep.",
-      "Iedere renner heeft per race een dagvorm tussen -6% en +6%; die van jezelf zie je onder de bediening. Bots rijden per race met een eigen karakter: hoe aanvallend ze zijn en hoe ver van de streep ze hun finale inzetten.",
-      "Je kwaliteiten komen automatisch uit het platform: de Intervals-vermogenscurve als je die hebt gekoppeld, anders FTP en gewicht uit je profiel. Vlak volgt je FTP in watts, klimmen je watts per kilo en sprint je 15-secondenvermogen. In de race rekent iedereen met hetzelfde referentielichaam, dus de game laat geen echte watts zien. Zonder FTP of gewicht rijd je met een basisprofiel van 100. Rosterleden zonder account rijden altijd met een basisprofiel.",
-      "Via Spelinstellingen kun je herkenbare deelname uitschakelen; dan rijd je niet mee in het peloton of de ploeg van anderen. Kloppen je platformgegevens niet, sla dan een eigen spelprofiel op. Eigen meting vraagt FTP en gewicht; sprint- en korte vermogens zijn optioneel. Met Platformgegevens gebruiken zet je dat terug.",
-      "Een Intervals-spelprofiel gebruikt een 90-dagencurve, met alleen meetpunten waarvan de activiteit een bevestigde toegestane bron heeft. Vul je gewicht zelf in. Een geschikt 20-minutenpunt is nodig; de game schat FTP als 95% daarvan. Onbekende bronnen en Strava-data worden uitgesloten. Bijwerken kan maximaal drie keer per uur. Een eigen spelprofiel vervalt na 30 dagen; daarna gelden weer je platformgegevens. Herkenbare deelname wijzigen wist ook je eigen spelprofiel.",
-      "Pauzeer met de pauzeknop, Esc of P. Een verborgen tabblad pauzeert automatisch. Hervatten controleert het ledenroster opnieuw; afgemelde leden worden gasten en ingetrokken of gewijzigde sportprofielen worden basisrenners. Per browser en account blijft één race maximaal zeven dagen hervatbaar. Een nieuwe race vervangt de vorige. Uitslagen en ladder zijn alleen lokaal; uitslagen wis je bij Jouw laatste koersen.",
-      "Draai je telefoon liggend: tijdens de race vult het spel dan het hele scherm, met de standen onder je rechterduim en powerup en ploegorders links. Met de knop voor volledig scherm verdwijnt ook de adresbalk; op telefoons die het toestaan draait het beeld mee. 3D · zuinig verlaagt de grafische belasting. Zonder WebGL blijven koersoverzicht en bediening bruikbaar. Bij een geblokkeerde browseropslag kun je wel spelen, maar niet betrouwbaar bewaren.",
-      "Beheerders kunnen ongeclaimde rosterleden uitsluiten of weer toevoegen via /zwbgame/beheer. Er is nog geen multiplayer of gedeeld klassement.",
-    ],
-  },
-  {
     id: "profiel",
     icon: UserCircle,
     title: "Profiel en ledenlijst",
@@ -94,6 +70,16 @@ const GUIDES = [
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
       "Bestuur of beheerders keuren nieuwe leden goed.",
+    ],
+  },
+  {
+    id: "privacy",
+    icon: ShieldCheck,
+    title: "Privacy en zichtbaarheid",
+    bullets: [
+      "Live tracking is per rit opt-in en verdwijnt bij inactiviteit.",
+      "Je profielvelden hebben eigen zichtbaarheidsschakelaars.",
+      "Trainer-data wordt alleen gedeeld na expliciete toestemming.",
     ],
   },
   {
@@ -114,19 +100,6 @@ const GUIDES = [
       "Elke categorie heeft een eigen kleur, als rand links van de regel en in het label: buitenritten van groen naar blauw, gravel amber, en alles wat virtueel is van rood via oranje (Zwift) naar geel (MyWhoosh). Een training is feller met een bredere rand, een social pastel, en een goed doel heeft een hartje in het label.",
       "Op eventdagen kan de liveticker deelnemers tonen die live tracken.",
       "GPX, routekaart en hoogteprofiel staan op de eventpagina.",
-    ],
-  },
-  {
-    id: "training",
-    icon: Bike,
-    title: "Training en trainer-toegang",
-    bullets: [
-      "Koppel intervals.icu voor geplande workouts en trainingsbelasting.",
-      "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
-      "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
-      "AI maakt conceptschema's; de trainer keurt publicatie goed.",
-      "Sla je een doel op, dan krijgt je trainer een melding dat er een concept gedraaid kan worden.",
-      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
     ],
   },
   {
@@ -167,16 +140,6 @@ const GUIDES = [
     ],
   },
   {
-    id: "onderhoud",
-    icon: Wrench,
-    title: "Mijn garage",
-    bullets: [
-      "Houd slijtbare onderdelen (ketting, cassette, banden, remblokken …) bij op basis van je Strava-kilometers.",
-      "Kies per onderdeel een slijtage-range — enige, normale of hoge slijtage — of vul een eigen kilometerdrempel in.",
-      "Je krijgt een melding zodra een onderdeel toe is aan vervanging; op het dashboard zie je wat bijna of over de drempel is.",
-    ],
-  },
-  {
     id: "cols",
     icon: Mountain,
     title: "Cols, segmenten en records",
@@ -184,6 +147,16 @@ const GUIDES = [
       "ZWB herkent cols en segmenten automatisch uit je Strava-ritten.",
       "Je recordtijd komt rechtstreeks van Strava; per segment zie je de ZWB-ranglijst.",
       "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'. Recordtijden haalt de knop één keer per dag bij Strava op.",
+    ],
+  },
+  {
+    id: "onderhoud",
+    icon: Wrench,
+    title: "Mijn garage",
+    bullets: [
+      "Houd slijtbare onderdelen (ketting, cassette, banden, remblokken …) bij op basis van je Strava-kilometers.",
+      "Kies per onderdeel een slijtage-range — enige, normale of hoge slijtage — of vul een eigen kilometerdrempel in.",
+      "Je krijgt een melding zodra een onderdeel toe is aan vervanging; op het dashboard zie je wat bijna of over de drempel is.",
     ],
   },
   {
@@ -199,13 +172,40 @@ const GUIDES = [
     ],
   },
   {
-    id: "privacy",
-    icon: ShieldCheck,
-    title: "Privacy en zichtbaarheid",
+    id: "training",
+    icon: Bike,
+    title: "Training en trainer-toegang",
     bullets: [
-      "Live tracking is per rit opt-in en verdwijnt bij inactiviteit.",
-      "Je profielvelden hebben eigen zichtbaarheidsschakelaars.",
-      "Trainer-data wordt alleen gedeeld na expliciete toestemming.",
+      "Koppel intervals.icu voor geplande workouts en trainingsbelasting.",
+      "Je doeltype bepaalt of het schema naar één piekdag toewerkt of doorbouwt tot het eind.",
+      "Je kiest zelf welke trainer jouw trainingsdata mag zien.",
+      "AI maakt conceptschema's; de trainer keurt publicatie goed.",
+      "Sla je een doel op, dan krijgt je trainer een melding dat er een concept gedraaid kan worden.",
+      "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
+    ],
+  },
+  {
+    id: "zwbgame",
+    icon: Bike,
+    title: "ZWBgame — Zwift-koers, jouw tactiek",
+    bullets: [
+      "Speel via Club → ZWBgame een Zwift-race tegen clubgenoten, op echte Zwift-routes van 15 tot 25 km: Flat Route, Hilly Route, Cobbled Climbs, Greater London Loop, Tempus Fugit, Innsbruckring en Glasgow Crit Circuit, met hun eigen ronden, sprints en KOM's. Een route staat er pas als het hoogteprofiel in de routebibliotheek zit. Een race van 30 tot 40 minuten speelt in ongeveer zes minuten: de tijd loopt versneld.",
+      "Club Ladder: jouw ploeg van vijf tegen een andere clubploeg van vijf, zoals op ladder.cycleracing.club. De finishplekken 1 tot en met 10 krijgen 10, 9, 8 … 1 punt; de ploeg met de meeste punten wint. Jij bent altijd de uitdager, dus een gelijke stand is verlies. Je daagt een ploeg uit tot zeven plekken boven je. Win je, dan neem je hun plek in en schuift iedereen daartussen één plek omlaag. Rij je in een ZWB-ladderteam, dan rijden je herkenbare teamgenoten mee; open plekken gaan naar clubgenoten van jouw niveau. De tegenstanders zijn negen clubploegen rond jouw niveau, de zwakste onderaan. De ladder bewaart je browser.",
+      "ZRL: jouw ploeg tegen vijf clubploegen van gelijke sterkte, volgens de WTRL-regels. Staat er een ZWB-ZRL-race met route in de clubkalender, dan staat die route bovenaan: zo oefen je de race van de week. Rij je in een ZRL-team, dan rijden je herkenbare teamgenoten mee (bij B1 of B2 dat subteam). Kies het format. Puntenrace: FAL (eerste over de streep van een sprint of KOM: evenveel punten als starters, dan één minder per plek), FTS (de tien snelste tijden over een segment: 15, 12, 10, 8, 6, 5, 4, 3, 2, 1), finish (evenveel punten als starters, aflopend) en podium (10, 8, 6, 4, 2). Race of Truth: dezelfde punten, zonder slipstream. Scratch: alleen finish en podium. Ploegentijdrit: alleen het wiel van je eigen ploeg, de tijd van je vierde renner telt, met minder dan vier binnen heeft je ploeg geen uitslag. De ploeg met de meeste punten (of de snelste tijd) krijgt evenveel leaguepunten als er ploegen zijn, dan één minder per plek.",
+      "FRR-tour: vier etappes na elkaar met hetzelfde veld van 24 renners rond jouw niveau: een vlakke rit, een heuvelrit, een tijdrit en een slotrit. De tijdrit is zoals op Zwift: iedereen start tegelijk, zonder slipstream en zonder powerups. Het klassement (geel) telt je tijdverlies op de winnaar per etappe op; alleen wie elke etappe uitrijdt, staat erin. Finishpunten per etappe: 25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, daarna 1 punt; in de tijdrit dubbel. Sprints en klimmen scoren alleen op de snelste tijd over het segment (geen punten voor wie eerst boven is), met dezelfde schaal voor de beste vijftien: een klim maal zijn moeilijkheid (1 tot 5, naar de hoogtemeters), sprints in een vlakke rit maal 1,3. Groen gaat naar de meeste sprintpunten, de bolletjes naar de meeste klimpunten, blauw naar alle punten samen. Kom je meer dan 20% na de winnaar binnen, dan kost de bezemwagen je 20 punten op het totaal. Je tour blijft in je browser tot je hem stopt of uitrijdt.",
+      "Vrije race: jij tegen maximaal 23 clubgenoten rond jouw niveau, zoals een Zwift-categorie. Bij een klein roster vullen fictieve gasten het veld aan.",
+      "Je rijdt in een van vier standen: Sparen (1), Meerijden (2), Naar voren (3) of Aanvallen (4); ook met pijltje omhoog en omlaag. Meerijden houdt je in het wiel, volgt elke versnelling en schuift door het blok naar voren. Sparen trapt niet meer dan nodig, zakt naar achteren en laat een versnelling boven je drempel gaan. Naar voren rijdt op je drempel in de wind. Aanvallen gaat erboven en wordt in de laatste 400 meter Sprinten. Tik op een renner in het koersoverzicht om diens wiel te volgen.",
+      "Zoals in Zwift: in het wiel heb je ongeveer 30% minder luchtweerstand. Op het vlak scheelt dat veel, op een steile klim bijna niets; daar telt vermogen per kilo. Een groep rijdt sneller dan een renner alleen. De start gaat hard: wie dan spaart, mist de kopgroep. Op een steile afdaling brengt Sparen je in supertuck, sneller dan zacht doortrappen en zonder moeite.",
+      "W′ is je reserve boven je drempel: aanvallen, gaten dichtrijden en sprinten kosten W′. Onder je drempel vult hij weer, langzaam. Is hij leeg, dan kom je niet meer boven je drempel en zet het spel je terug op Meerijden. Frisheid daalt met elke lucifer die je afsteekt en met lang hard rijden; minder frisheid kost drempel en sprint voor de rest van de race. In het wiel sparen houdt je fris voor de finale.",
+      "Powerups krijg je onder een sprint- of KOM-boog en op de rondestreep, één tegelijk. Gebruik ze met de spatiebalk, net als in Zwift. Veer maakt je 30 seconden lichter (klimmen), Aerohelm geeft 15 seconden minder luchtweerstand (sprint, aanval), Draft boost geeft 40 seconden meer slipstream (gat dichten).",
+      "Ploegorders in de ladder en de ZRL (5, 6, 7, 8): Vrij rijden laat je ploeggenoten hun eigen koers rijden. Breng me terug laat een ploeggenoot met de meeste reserve op je wachten en je terugslepen naar de groep. Lead-out laat een ploeggenoot in de laatste kilometer de sprint voor je aantrekken. Pak de punten (alleen in een ZRL-puntenrace en Race of Truth) stuurt je snelste ploeggenoot op de FAL- en FTS-punten af; de tegenstanders doen dat altijd. In een ploegentijdrit zijn er geen orders: je rijdt samen, en wie in het wiel zit, neemt vanzelf een beurt over. De tussenstand van de ploegen staat bovenin, ook per groep.",
+      "Iedere renner heeft per race een dagvorm tussen -6% en +6%; die van jezelf zie je onder de bediening. Bots rijden per race met een eigen karakter: hoe aanvallend ze zijn en hoe ver van de streep ze hun finale inzetten.",
+      "Je kwaliteiten komen automatisch uit het platform: de Intervals-vermogenscurve als je die hebt gekoppeld, anders FTP en gewicht uit je profiel. Vlak volgt je FTP in watts, klimmen je watts per kilo en sprint je 15-secondenvermogen. In de race rekent iedereen met hetzelfde referentielichaam, dus de game laat geen echte watts zien. Zonder FTP of gewicht rijd je met een basisprofiel van 100. Rosterleden zonder account rijden altijd met een basisprofiel.",
+      "Via Spelinstellingen kun je herkenbare deelname uitschakelen; dan rijd je niet mee in het peloton of de ploeg van anderen. Kloppen je platformgegevens niet, sla dan een eigen spelprofiel op. Eigen meting vraagt FTP en gewicht; sprint- en korte vermogens zijn optioneel. Met Platformgegevens gebruiken zet je dat terug.",
+      "Een Intervals-spelprofiel gebruikt een 90-dagencurve, met alleen meetpunten waarvan de activiteit een bevestigde toegestane bron heeft. Vul je gewicht zelf in. Een geschikt 20-minutenpunt is nodig; de game schat FTP als 95% daarvan. Onbekende bronnen en Strava-data worden uitgesloten. Bijwerken kan maximaal drie keer per uur. Een eigen spelprofiel vervalt na 30 dagen; daarna gelden weer je platformgegevens. Herkenbare deelname wijzigen wist ook je eigen spelprofiel.",
+      "Pauzeer met de pauzeknop, Esc of P. Een verborgen tabblad pauzeert automatisch. Hervatten controleert het ledenroster opnieuw; afgemelde leden worden gasten en ingetrokken of gewijzigde sportprofielen worden basisrenners. Per browser en account blijft één race maximaal zeven dagen hervatbaar. Een nieuwe race vervangt de vorige. Uitslagen en ladder zijn alleen lokaal; uitslagen wis je bij Jouw laatste koersen.",
+      "Draai je telefoon liggend: tijdens de race vult het spel dan het hele scherm, met de standen onder je rechterduim en powerup en ploegorders links. Met de knop voor volledig scherm verdwijnt ook de adresbalk; op telefoons die het toestaan draait het beeld mee. 3D · zuinig verlaagt de grafische belasting. Zonder WebGL blijven koersoverzicht en bediening bruikbaar. Bij een geblokkeerde browseropslag kun je wel spelen, maar niet betrouwbaar bewaren.",
+      "Beheerders kunnen ongeclaimde rosterleden uitsluiten of weer toevoegen via /zwbgame/beheer. Er is nog geen multiplayer of gedeeld klassement.",
     ],
   },
 ];
@@ -552,6 +552,40 @@ const TROUBLESHOOTING = [
   "Werkt iets niet meer zoals vlak na de installatie? Loop de welkomstrondleiding op /welkom opnieuw door.",
 ];
 
+// De groepen waarin de pagina is ingedeeld, in de volgorde van de pagina.
+const HELP_GROUPS = [
+  { id: "beginnen", label: "Beginnen" },
+  { id: "koppelen", label: "Koppelen" },
+  { id: "club", label: "De club" },
+  { id: "trainen", label: "Trainen" },
+  { id: "meldingen-problemen", label: "Problemen" },
+  { id: "voor-beheerders", label: "Beheer" },
+];
+
+function HelpGroupNav() {
+  return (
+    <nav aria-label="Onderdelen van deze pagina" className="flex flex-wrap gap-2">
+      {HELP_GROUPS.map((group) => (
+        <a
+          key={group.id}
+          href={`#${group.id}`}
+          className="rounded-md border bg-card/90 px-3 py-1.5 text-sm font-medium transition hover:border-primary/40"
+        >
+          {group.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+function HelpGroupHeading({ id, title }: { id: string; title: string }) {
+  return (
+    <div id={id} className="scroll-mt-20 pt-2">
+      <SectionHeader title={title} className="mb-0" />
+    </div>
+  );
+}
+
 export default function HelpPage() {
   return (
     <div className="space-y-8">
@@ -562,6 +596,26 @@ export default function HelpPage() {
       />
 
       <HelpSearch />
+
+      <HelpGroupNav />
+
+      <HelpGroupHeading id="beginnen" title="Beginnen" />
+
+      <section className="grid gap-3 md:grid-cols-4">
+        {START_STEPS.map((step, index) => (
+          <Link
+            key={step.title}
+            href={step.href}
+            className="jersey-panel rounded-lg border bg-card/90 p-4 transition hover:border-primary/40"
+          >
+            <span className="flex size-7 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
+              {index + 1}
+            </span>
+            <h2 className="mt-3 font-semibold">{step.title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+          </Link>
+        ))}
+      </section>
 
       <section className="rounded-lg border bg-card/90 p-5">
         <div className="flex items-start gap-3">
@@ -638,22 +692,6 @@ export default function HelpPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-4">
-        {START_STEPS.map((step, index) => (
-          <Link
-            key={step.title}
-            href={step.href}
-            className="jersey-panel rounded-lg border bg-card/90 p-4 transition hover:border-primary/40"
-          >
-            <span className="flex size-7 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-              {index + 1}
-            </span>
-            <h2 className="mt-3 font-semibold">{step.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
-          </Link>
-        ))}
-      </section>
-
       <section className="space-y-3">
         <h2 className="font-semibold">Wat vind je waar?</h2>
         <p className="text-sm text-muted-foreground">
@@ -674,98 +712,37 @@ export default function HelpPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        {GUIDES.map((guide) => {
-          const Icon = guide.icon;
-          return (
-            <article
-              key={guide.id}
-              id={guide.id}
-              className="rounded-lg border bg-card/90 p-4 scroll-mt-20"
-            >
-              <h2 className="flex items-center gap-2 font-semibold">
-                <Icon className="size-5 text-primary" />
-                {guide.title}
-              </h2>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                {guide.bullets.map((bullet) => (
-                  <li key={bullet} className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                    <span>{bullet}</span>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          );
-        })}
-      </section>
+      <HelpGroupHeading id="koppelen" title="Koppelen en ritten binnenhalen" />
 
       <section
-        id="externe-profielen"
+        id="strava-rechten"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
         <header className="flex items-start gap-2">
-          <ExternalLink className="mt-0.5 size-5 shrink-0 text-primary" />
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">Doorklikken naar je andere profielen</h2>
+            <h2 className="font-semibold">Strava opnieuw koppelen</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Vul je ID&apos;s in op Profiel en er verschijnen knoppen naar
-              ZwiftPower, ZwiftRacing.app, Strava en intervals.icu — op jouw
-              profiel en op je ledenprofiel. Per ID kies je zelf of het zichtbaar
-              is.
+              ZWB heeft activiteitenrecht nodig om je ritten, badges, cols,
+              fietsen en statistieken bij te werken.
             </p>
           </div>
         </header>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <article
-            id="zwift-id"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Zwift-ID</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Log in op my.zwift.com en open je profiel: het nummer in de
-              adresbalk is je Zwift-ID. Staat ook in je ZwiftPower-adres, achter
-              z=. Dit ene nummer verzorgt zowel ZwiftPower als
-              ZwiftRacing.app.
-            </p>
-          </article>
-
-          <article
-            id="strava-id"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Strava</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Open je Strava-profiel in een browser. Het laatste stuk van het
-              adres — strava.com/athletes/… — is wat je invult. Zowel het nummer
-              als je gebruikersnaam werkt.
-            </p>
-          </article>
-
-          <article
-            id="intervals-id"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">intervals.icu</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Open in intervals.icu <strong className="text-foreground">Settings</strong>
-              {" "}en daarna <strong className="text-foreground">Developer Settings</strong>.
-              Daar staat je Athlete ID: een i gevolgd door cijfers. Vul dat
-              i-nummer in. In de adresbalk staat het bij je eigen account niet
-              altijd. Je gegevens daar zijn standaard privé, dus anderen zien
-              alleen wat je vrijgeeft.
-            </p>
-          </article>
-        </div>
-
-        <Link
-          href="/profiel"
-          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
-        >
-          <UserCircle className="size-4 text-primary" />
-          Naar je profiel
-        </Link>
+        <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">1.</span>
+            <span>Ga naar Profiel of het dashboard en kies Opnieuw koppelen.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">2.</span>
+            <span>Zet bij Strava het vinkje voor activiteiten aan.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground">3.</span>
+            <span>Start daarna op het dashboard een Strava-sync.</span>
+          </li>
+        </ol>
+        <ConnectWithStrava reconnect className="mt-4" />
       </section>
 
       <section
@@ -979,34 +956,711 @@ export default function HelpPage() {
       </section>
 
       <section
-        id="strava-rechten"
+        id="externe-profielen"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
         <header className="flex items-start gap-2">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-primary" />
+          <ExternalLink className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">Strava opnieuw koppelen</h2>
+            <h2 className="font-semibold">Doorklikken naar je andere profielen</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              ZWB heeft activiteitenrecht nodig om je ritten, badges, cols,
-              fietsen en statistieken bij te werken.
+              Vul je ID&apos;s in op Profiel en er verschijnen knoppen naar
+              ZwiftPower, ZwiftRacing.app, Strava en intervals.icu — op jouw
+              profiel en op je ledenprofiel. Per ID kies je zelf of het zichtbaar
+              is.
             </p>
           </div>
         </header>
-        <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <article
+            id="zwift-id"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Zwift-ID</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Log in op my.zwift.com en open je profiel: het nummer in de
+              adresbalk is je Zwift-ID. Staat ook in je ZwiftPower-adres, achter
+              z=. Dit ene nummer verzorgt zowel ZwiftPower als
+              ZwiftRacing.app.
+            </p>
+          </article>
+
+          <article
+            id="strava-id"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Strava</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Open je Strava-profiel in een browser. Het laatste stuk van het
+              adres — strava.com/athletes/… — is wat je invult. Zowel het nummer
+              als je gebruikersnaam werkt.
+            </p>
+          </article>
+
+          <article
+            id="intervals-id"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">intervals.icu</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Open in intervals.icu <strong className="text-foreground">Settings</strong>
+              {" "}en daarna <strong className="text-foreground">Developer Settings</strong>.
+              Daar staat je Athlete ID: een i gevolgd door cijfers. Vul dat
+              i-nummer in. In de adresbalk staat het bij je eigen account niet
+              altijd. Je gegevens daar zijn standaard privé, dus anderen zien
+              alleen wat je vrijgeeft.
+            </p>
+          </article>
+        </div>
+
+        <Link
+          href="/profiel"
+          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+        >
+          <UserCircle className="size-4 text-primary" />
+          Naar je profiel
+        </Link>
+      </section>
+
+      <HelpGroupHeading id="club" title="De club" />
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        {GUIDES.map((guide) => {
+          const Icon = guide.icon;
+          return (
+            <article
+              key={guide.id}
+              id={guide.id}
+              className="rounded-lg border bg-card/90 p-4 scroll-mt-20"
+            >
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Icon className="size-5 text-primary" />
+                {guide.title}
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {guide.bullets.map((bullet) => (
+                  <li key={bullet} className="flex gap-2">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          );
+        })}
+      </section>
+
+      <section
+        id="verjaardagsrondje"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Cake className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Verjaardagsrondje en aanmelden</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Deel je je verjaardag, dan kun je een verjaardagsrondje plannen met
+              datum, tijd, startplek en een GPX-route. Andere leden melden zich
+              daar aan.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground">1.</span>
-            <span>Ga naar Profiel of het dashboard en kies Opnieuw koppelen.</span>
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Aanmelden doe je onder <strong className="text-foreground">Rijd
+              je mee?</strong> — tik op het vak{" "}
+              <strong className="text-foreground">Rijdt mee</strong>,{" "}
+              <strong className="text-foreground">Misschien</strong> of{" "}
+              <strong className="text-foreground">Niet</strong>. Je keuze is
+              meteen zichtbaar en je kunt later wisselen.
+            </span>
           </li>
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground">2.</span>
-            <span>Zet bij Strava het vinkje voor activiteiten aan.</span>
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Op de dag van het rondje verschijnen de aangemelde renners
+              (Rijdt mee of Misschien) live op de kaart en het hoogteprofiel,
+              net als bij events — mits ze outdoor delen op Samen fietsen.
+            </span>
           </li>
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground">3.</span>
-            <span>Start daarna op het dashboard een Strava-sync.</span>
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Alleen de jarige beheert het rondje zelf; aanmelden kan elk
+              goedgekeurd lid.
+            </span>
           </li>
+        </ul>
+      </section>
+
+      <section
+        id="livetrack"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <MapPinned className="mt-0.5 size-5 shrink-0 text-primary" />
+          <h2 className="font-semibold">Live volgen met je Garmin of Wahoo</h2>
+        </header>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {[
+            { title: "Garmin Edge", steps: GARMIN_LIVETRACK_STEPS },
+            { title: "Wahoo ELEMNT", steps: WAHOO_LIVETRACK_STEPS },
+          ].map((device) => (
+            <div key={device.title} className="rounded-md border bg-background p-4">
+              <h3 className="text-sm font-semibold">{device.title}</h3>
+              <ol className="mt-3 space-y-3">
+                {device.steps.map((step, index) => (
+                  <li key={step} className="flex gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm text-muted-foreground">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {LIVETRACK_NOTES.map((note) => (
+            <li key={note} className="flex gap-2">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section
+        id="owntracks"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <MapPinned className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Live tracking instellen (OwnTracks)</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Volg deze stappen één keer goed, dan zie je elkaar betrouwbaar op
+              de kaart tijdens een rit.
+            </p>
+          </div>
+        </header>
+
+        <ol className="mt-4 space-y-3">
+          {OWNTRACKS_STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                {index + 1}
+              </span>
+              <div>
+                <p className="text-sm font-medium">{step.title}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {step.text}
+                </p>
+              </div>
+            </li>
+          ))}
         </ol>
-        <ConnectWithStrava reconnect className="mt-4" />
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Zap className="size-4 text-primary" />
+              Voor een strak spoor zonder gaten
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              {OWNTRACKS_QUALITY_TIPS.map((tip) => (
+                <li key={tip} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-md border bg-background p-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Smartphone className="size-4 text-primary" />
+                Belangrijkste instellingen
+              </h3>
+              <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Mode:</strong> Private HTTP
+                </li>
+                <li>
+                  <strong className="text-foreground">URL:</strong> je
+                  persoonlijke koppellink van Samen fietsen
+                </li>
+                <li>
+                  <strong className="text-foreground">Locatie:</strong> Altijd +
+                  precies/nauwkeurig
+                </li>
+                <li>
+                  <strong className="text-foreground">Modus tijdens rit:</strong>{" "}
+                  iPhone Actie · Android Beweging (strak spoor). Significant /
+                  Grootte wijzigingen mag ook: zuiniger, iets minder nauwkeurig.
+                </li>
+              </ul>
+            </div>
+            <Link
+              href="/live"
+              className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+            >
+              <Navigation className="size-4 text-primary" />
+              Naar Samen fietsen
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="zwblokken"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Grid3x3 className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBlokken</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              De kaart is verdeeld in blokken van ongeveer anderhalve kilometer.
+              Rijd je door een blok, dan kleurt het in — voor jou én voor de
+              club. Zo zie je in één oogopslag welke hoeken je nog nooit gehad
+              hebt.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              De blokken komen uit je Strava-ritten. Zonder Strava-koppeling
+              blijft je eigen laag leeg; de clubkaart zie je wel.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Zwift-ritten staan onder
+              Zwift, los van de kaart buiten.</strong> Per Zwift-wereld kleuren
+              blokken van ongeveer 600 meter in, en wie de meeste blokken in een
+              wereld heeft, draagt daar de titel. Staan leden gelijk, bijvoorbeeld
+              omdat meerdere leden een wereld helemaal gereden hebben, dan wint
+              wie daar de meeste kilometers reed. Het percentage gaat over de
+              wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,
+              dan kan het iets zakken. Een Climb Portal levert geen blokken op:
+              die klim ligt buiten de kaart van de wereld. Andere
+              indoorplatforms, zoals MyWhoosh, Rouvy en FulGaz, tellen niet mee.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Uit privacy-overweging telt het blok waar een rit begint of
+              eindigt nooit mee, en laten we ook de eerste en laatste kilometer
+              van elke rit buiten beschouwing. Je woonadres komt dus niet als
+              opgelicht blok op de kaart.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Hoe donkerder een clubblok, hoe meer verschillende leden er
+              geweest zijn. De goudkleurige blokken zijn die van het lid dat je
+              in de kiezer hebt staan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Tik op een blok om te zien welke leden er geweest zijn, met de
+              datum waarop ze er voor het eerst reden.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Onder de kaart staat per Europees land hoeveel procent van de
+              blokken je gehad hebt, en per provincie in Nederland, België,
+              Luxemburg, Duitsland (deelstaten) en Frankrijk (regio&apos;s).
+              Ritten buiten Europa kleuren wel op de kaart, maar hebben geen
+              gebied in die tabel.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Wie in een land de meeste
+              blokken heeft, is er Koning of Koningin; in een provincie
+              Gouverneur.</strong> Het gaat om verschillende blokken, niet om
+              kilometers: steeds hetzelfde rondje levert niets op. Bij een gelijk
+              aantal houdt wie dat aantal het eerst had de titel. Koning of
+              Koningin volgt het geslacht in je profiel; staat dat niet ingevuld,
+              dan word je Vorst.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Nieuwe ritten komen erbij zodra de Strava-sync gedraaid heeft,
+              meestal binnen een half uur.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/zwblokken"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Grid3x3 className="size-4 text-primary" />
+            Naar ZWBlokken
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="mijn-garage"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Wrench className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Mijn fietsen en onderhoud</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Zodra je Strava gekoppeld en gesynchroniseerd hebt, kent ZWB je
+              fietsen met hun totale kilometerstand. Daarmee toon je je fietsen
+              op je profiel en houd je de slijtage van onderdelen bij.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Bike className="size-4 text-primary" />
+              Fietsen op je profiel
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Naam en kilometers komen rechtstreeks uit Strava (
+                  <em>Mijn uitrusting</em>). Koppel daar je fiets aan je ritten,
+                  anders blijft de lijst leeg.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Geen fietsen na een sync? Klik op je profiel bij Strava op{" "}
+                  <strong className="text-foreground">Opnieuw koppelen</strong> —
+                  voor je uitrusting hebben we eenmalig extra toestemming nodig.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Geen Strava? Voeg met{" "}
+                  <strong className="text-foreground">Fiets handmatig
+                  toevoegen</strong> zelf een fiets toe met naam, merk/model en
+                  eventueel afstand. Handmatige fietsen tonen we wel op je
+                  profiel, maar doen niet mee in de onderhoudsfunctie.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Onder <strong className="text-foreground">Mijn fietsen</strong>{" "}
+                  op je profiel kies je per fiets of die zichtbaar is en zet je
+                  er een eigen foto bij. Virtuele fietsen staan standaard aan;
+                  gearchiveerde fietsen standaard uit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Zichtbare fietsen verschijnen ook op je ledenprofiel, zodat
+                  clubgenoten zien waarop je rijdt.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Wrench className="size-4 text-primary" />
+              Slijtage bijhouden
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Voeg in <strong className="text-foreground">Mijn garage</strong>{" "}
+                  een onderdeel toe (ketting, cassette, banden, remblokken …) en
+                  kies een slijtage-range: <em>enige</em>, <em>normale</em> of{" "}
+                  <em>hoge</em> slijtage. Elke range heeft een richt-aantal
+                  kilometers dat je mag overschrijven met een eigen drempel.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De gereden kilometers van een onderdeel = de stand van de fiets
+                  nu min de stand bij montage. Monteer je een al gebruikt
+                  onderdeel, vul dan &ldquo;al gereden km&rdquo; in.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De balk kleurt groen, oranje (bijna) en rood (toe aan
+                  vervanging). Onderdelen die opvallen verschijnen ook op je
+                  dashboard.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Vervangen? Klik op <strong className="text-foreground">Vervangen</strong>{" "}
+                  — de teller begint opnieuw vanaf de huidige stand.
+                </span>
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/mijn-garage"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Wrench className="size-4 text-primary" />
+            Naar Mijn garage
+          </Link>
+          <Link
+            href="/profiel#fietsen"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Bike className="size-4 text-primary" />
+            Mijn fietsen
+          </Link>
+        </div>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Zet onder Profiel → Meldingen de optie{" "}
+          <strong className="text-foreground">Mijn garage: onderdeel toe aan
+          vervanging</strong> aan om hierover een pushmelding te krijgen.
+        </p>
+      </section>
+
+      <HelpGroupHeading id="trainen" title="Trainen met ZWBeter Worden" />
+
+      <section
+        id="trainingsruimte"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <HeartPulse className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">
+              Form, herstel en je ZWBeterWorden-advies
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Deze waarden beantwoorden verschillende vragen. Daarom kunnen ze
+              van elkaar afwijken zonder dat de data fout is. ZWB voegt ze samen
+              in één praktisch advies:{" "}
+              <strong className="text-foreground">ZWBeterWorden</strong>, met vijf
+              niveaus van &ldquo;doe niks&rdquo; tot topvorm.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">intervals.icu koppelen</h3>
+          <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {INTERVALS_CONNECT_STEPS.map((step, index) => (
+              <li key={step} className="flex gap-2">
+                <span className="font-semibold text-foreground">{index + 1}.</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <a
+            href="https://intervals.icu/settings#api"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open intervals.icu API-instellingen
+          </a>
+        </div>
+
+        <div className="mt-5 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Data blijft achter of komt niet binnen</h3>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {DATA_FRESHNESS_HELP.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span aria-hidden>·</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/zwbeter-worden/belasting"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Bekijk wanneer je data voor het laatst is opgehaald
+          </Link>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <TrendingUp className="size-4 text-primary" />
+              Form
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Form is de trainingsbalans uit intervals.icu:
+              <strong className="text-foreground"> CTL min ATL</strong>. CTL is
+              je belasting over langere tijd en ATL je recente belasting.
+              Negatief betekent dus dat je recent relatief veel hebt getraind.
+              Het zegt niet rechtstreeks hoe je hebt geslapen of hoe je lichaam
+              vandaag reageert.
+            </p>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <HeartPulse className="size-4 text-primary" />
+              Hersteltrend en readiness
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De hersteltrend vergelijkt je HRV en rusthartslag met je eigen
+              baseline en neemt slaap en de readiness van vandaag mee.
+              Readiness is een dagsignaal uit intervals.icu; HRV, rusthartslag
+              en slaap worden als zevendaagse trend bekeken. Een gunstige HRV
+              kan daardoor naast een middelmatige readiness staan.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Is de readiness van vandaag nog niet binnen, dan zie je de laatste
+              meting met de datum erbij, maar die telt niet mee in je advies. Pas
+              je je training van vandaag aan, dan haalt ZWB eerst je nieuwste
+              hersteldata op. Heb je vandaag al gereden, dan komt er geen tweede
+              training op die dag bij.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Als je hersteldata deelt, gebruikt ZWB slaap, HRV en rusthartslag
+              uit intervals.icu voor trainingsplanning. Alleen jij en je trainer
+              zien deze data.
+            </p>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Gauge className="size-4 text-primary" />
+              ZWBeterWorden
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              ZWB combineert belasting en herstel tot één advies in vijf
+              niveaus. Een sterk negatieve Form of readiness van 50 of lager duwt
+              je naar een laag niveau (rust/herstel). Readiness 51-69 telt als
+              matig. Pas wanneer belasting én herstel gunstig zijn, klim je naar
+              de hoogste niveaus met ruimte voor kwaliteit.
+            </p>
+          </article>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+            <p className="text-sm font-semibold">DOE NIKS</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Je bent aan het overtrainen, geef je partner even wat aandacht
+              ofzo.
+            </p>
+          </div>
+          <div className="rounded-md border border-orange-500/40 bg-orange-500/10 p-3">
+            <p className="text-sm font-semibold">RICHT OP HERSTEL</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ga maar lekker vogeltjes kijken.
+            </p>
+          </div>
+          <div className="rounded-md border border-zwb-petrol/50 bg-zwb-petrol/10 p-3">
+            <p className="text-sm font-semibold">ALLEEN DUUR</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Je mag wel gaan fietsen, maar geen heftige intervallen.
+            </p>
+          </div>
+          <div className="rounded-md border border-zwb-teal/50 bg-zwb-teal/10 p-3">
+            <p className="text-sm font-semibold">FRIS GENOEG</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ga er maar lekker op uit en blokjes mogen ook, vergeet de chocomelk
+              niet na afloop.
+            </p>
+          </div>
+          <div className="rounded-md border border-zwb-gold/50 bg-zwb-gold/10 p-3">
+            <p className="text-sm font-semibold">BETER WORDT HET NIET</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Alles mag, probeer die andere ZWB&apos;ers er vandaag maar vanaf te
+              rijden.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4 text-sm text-muted-foreground">
+          <strong className="text-foreground">Voorbeeld:</strong> Form -14,
+          readiness 66 en een goede HRV-trend betekent niet dat je volledig fris
+          bent. De HRV is positief, maar recente trainingsbelasting en
+          middelmatige readiness houden je in het middensegment. Je
+          ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Coachchat</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Snap je niet waarom er vandaag negentig minuten staat terwijl je twee
+            uur hebt? Vraag het in de coachchat. De coach kent je schema, je doel
+            en de &ldquo;Let op&rdquo;-regels die bij je schema horen, en legt uit
+            waarom er staat wat er staat. Hij verandert zelf niets.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hij kent ook je trainingsdata: je laatste ritten met hun belasting, je
+            belasting per week, je FTP, FTP-tests en vermogenscurve, wat je van je
+            schema werkelijk reed, en je CTL, ATL en TSB als je intervals.icu hebt
+            gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
+            of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
+            uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
+            (IF) rekenen we alleen uit bij een echte vermogensmeter. Elke rit rekent
+            met de FTP die op die dag gold, dus een nieuwe FTP verandert de
+            belasting van eerdere ritten niet.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
+            aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
+            de volgende versie van je schema. Handig voor dingen die de app niet
+            kan zien: een week ziek geweest, een doel dat verschuift.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Het gesprek blijft staan en de trainers die jij hebt aangewezen lezen
+            het terug en kunnen erin reageren. Het bestuur niet. Over pijn,
+            blessures of ziekte geeft de coach geen advies — daarvoor ga je naar je
+            trainer of een arts.
+          </p>
+          <Link
+            href="/zwbeter-worden/coach"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open de coachchat
+          </Link>
+        </div>
+
       </section>
 
       <section
@@ -1274,39 +1928,6 @@ export default function HelpPage() {
               niet voor dat van andere leden.
             </p>
           </article>
-
-          <article
-            id="zonekleuren"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Kleuren van de blokken</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              De blokken kleuren zoals in Zwift, op je FTP: grijs onder 60%,
-              blauw tot 76%, groen tot 90%, geel tot 105%, oranje tot 119% en
-              rood daarboven. Een blok krijgt de kleur van het midden van zijn
-              doel. Een training in de kalender krijgt de kleur van zijn
-              kernwerk: het zwaarste niveau waarop je samen minstens vijf minuten
-              rijdt, zonder warming-up en cooling-down. Lichtgrijs is rust; een
-              gestippeld blokje zonder kleur is een rit zonder vermogensmeter.
-            </p>
-          </article>
-
-          <article
-            id="trainingsvormen"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Namen van trainingen</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Binnen een zone onderscheiden we trainingsvormen: rustige duur
-              (61-70% van je FTP), intensieve duur (71-80%), tempo (81-86%) en
-              sweet spot (87-89%). Daarboven heet het drempel, VO2max en
-              anaeroob. Een training heet naar zijn kernwerk. Intensieve duur loopt
-              tot 80% en kleurt daardoor boven 76% al groen, zoals in Zwift. In
-              intervals.icu, en zo ook in Zwift en op je fietscomputer, staat
-              ZWBeter Worden voor de naam van elke training.
-            </p>
-          </article>
-
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Max. trainingsuren per week</h3>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -1322,117 +1943,6 @@ export default function HelpPage() {
               compenseren. Het schema gaat pas voorzichtiger plannen bij echte
               signalen: een sterk negatieve form, een te snelle opbouw, slechte
               herstelwaarden, of trainingen die je zwaar reed én zwaar vond.
-            </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">FTP en gewicht uit intervals.icu</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Zet je onder Profiel &rarr; Fysiek{" "}
-              <strong className="text-foreground">Bijhouden vanuit intervals.icu</strong>{" "}
-              aan, dan nemen we bij elke sync je eFTP en gewicht over en vervalt
-              de handmatige invoer. Die FTP bepaalt ook de targetwatts in je
-              workouts.
-            </p>
-          </article>
-          <article
-            id="warming-up"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Welke warming-up bij welke wedstrijd</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Bij een geplande race zet je in Vandaag of in je schema zelf een
-              warming-up klaar. Hij staat dan vlak voor de race in intervals.icu,
-              en zo in Zwift en op je fietscomputer. Er zijn er vijf. Tijdrit en
-              ploegentijdrit (25 minuten) bouwen lang op naar wedstrijdtempo.
-              ZRL lang (21 minuten) bereidt je voor op de harde start en de
-              sprints van een scratch- of puntenrace; ZRL kort (10 minuten) is
-              er voor als je weinig tijd hebt. Lange wedstrijd (12 minuten)
-              spaart energie. Elke warming-up eindigt met bursts van 6 seconden
-              en een minuut losdraaien ertussen: voluit voor ZRL, een
-              versnelling voor de tijdritten. Wees een paar minuten voor de
-              start klaar en trap rustig door.
-            </p>
-          </article>
-
-          <article id="ftp-test" className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">FTP-test</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Je trainer zet een ramptest (40 minuten, oplopend tot je stukgaat)
-              of een 20-minutentest (65 minuten, met opener) in je schema. De test
-              ligt daarna vast: er wordt omheen gepland en de dag ervoor blijft
-              licht. Na afloop vul je op je schemapagina onder{" "}
-              <strong className="text-foreground">FTP-test</strong> je resultaat
-              in — het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
-              een 20-minutentest. Met een intervals.icu-koppeling staat daar al
-              het vermogen dat intervals die dag heeft gemeten; klopt het niet,
-              typ dan je eigen waarde. ZWB rekent daar je FTP uit (75%
-              respectievelijk 95%), zet die in je profiel en werkt de targetwatts
-              van de rest van je schema bij. Typte je het verkeerde vermogen in,
-              dan pas je de uitslag aan of verwijder je hem bij{" "}
-              <strong className="text-foreground">Mijn vermogen</strong> onder
-              FTP-tests; je FTP en de targetwatts volgen die correctie.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Een test die niet in je schema stond, vul je in via{" "}
-              <strong className="text-foreground">Test invullen</strong>. Voor je
-              FTP geldt deze volgorde: je laatste test, dan intervals.icu, dan wat
-              je zelf in je profiel invulde. Heb je een test gedaan, dan houdt je
-              profiel die uitslag vast, ook als het intervals.icu volgt; de
-              volgende test werkt hem weer bij.
-            </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Een training verwijderen</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Met <strong className="text-foreground">Verwijder</strong> bij een
-              geplande training haal je die uit je schema en uit intervals.icu.
-              Een voorgestelde training komt daarna niet terug: de planner laat
-              die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt
-              eromheen bijgewerkt. Een clubevent zeg je af bij de events.
-            </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Rustdagen in je schema</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Een dag zonder training in je schema is een rustdag. Je mag dan
-              helemaal niets doen, of tot 1,5 uur rustig fietsen zonder
-              intensiteit: zone 1 tot lage zone 2, praten moet makkelijk gaan.
-              De planner rekent die rit niet mee in je weekvolume en remt er de
-              dagen erna niet om af. Losse hersteltrainingen korter dan 1,5 uur
-              plant de AI niet meer: die leveren weinig op, en een echte rustdag
-              herstelt beter.
-            </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Met <strong className="text-foreground">Aanpassen</strong> op de
-              trainingspagina geef je door hoeveel tijd je vandaag hebt en hoe je
-              je voelt; de AI herschrijft de sessie van vandaag. Die gaat direct
-              naar intervals.icu — de oude training van die dag verdwijnt daar —
-              en je kunt meteen doorklikken. Je trainer krijgt bericht en kijkt
-              achteraf of de rest van de week nog past. Heb je helemaal geen
-              tijd, kies dan <strong className="text-foreground">Rustdag</strong>:
-              de training van vandaag vervalt en verdwijnt ook uit intervals.icu.
-            </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Readiness en je apparaat</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Whoop, Oura en Polar sturen een eigen readiness of herstelscore naar
-              intervals.icu; die nemen we één op één over. Garmin doet dat niet —
-              Body Battery en Training Readiness blijven in Garmin Connect en
-              komen niet mee. Voor die horloges rekent ZWB zelf een readiness uit
-              je HRV en je rust-hartslag, afgezet tegen je eigen gemiddelde van de
-              afgelopen 30 dagen, en je slaapscore. Korte nachten tellen daarna
-              apart mee, net als bij de andere apparaten. Zo&apos;n waarde staat in
-              de app met <em>berekend door ZWB</em> erbij.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Meet je horloge geen HRV, of is je laatste meting ouder dan een
-              week, dan blijft het bewust een streepje. Een herstelscore op alleen
-              je rust-hartslag zou vooral meetruis zijn, en dat wil je niet terug
-              zien in je trainingsadvies.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -1464,6 +1974,164 @@ export default function HelpPage() {
               <strong className="text-foreground">Duur aanpassen</strong> bij die
               training. De intervallen blijven gelijk; in- en uitrijden en
               duurblokken schuiven mee. Daarna ligt die training vast.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">FTP en gewicht uit intervals.icu</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Zet je onder Profiel &rarr; Fysiek{" "}
+              <strong className="text-foreground">Bijhouden vanuit intervals.icu</strong>{" "}
+              aan, dan nemen we bij elke sync je eFTP en gewicht over en vervalt
+              de handmatige invoer. Die FTP bepaalt ook de targetwatts in je
+              workouts.
+            </p>
+          </article>
+          <article id="ftp-test" className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">FTP-test</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je trainer zet een ramptest (40 minuten, oplopend tot je stukgaat)
+              of een 20-minutentest (65 minuten, met opener) in je schema. De test
+              ligt daarna vast: er wordt omheen gepland en de dag ervoor blijft
+              licht. Na afloop vul je op je schemapagina onder{" "}
+              <strong className="text-foreground">FTP-test</strong> je resultaat
+              in — het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
+              een 20-minutentest. Met een intervals.icu-koppeling staat daar al
+              het vermogen dat intervals die dag heeft gemeten; klopt het niet,
+              typ dan je eigen waarde. ZWB rekent daar je FTP uit (75%
+              respectievelijk 95%), zet die in je profiel en werkt de targetwatts
+              van de rest van je schema bij. Typte je het verkeerde vermogen in,
+              dan pas je de uitslag aan of verwijder je hem bij{" "}
+              <strong className="text-foreground">Mijn vermogen</strong> onder
+              FTP-tests; je FTP en de targetwatts volgen die correctie.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een test die niet in je schema stond, vul je in via{" "}
+              <strong className="text-foreground">Test invullen</strong>. Voor je
+              FTP geldt deze volgorde: je laatste test, dan intervals.icu, dan wat
+              je zelf in je profiel invulde. Heb je een test gedaan, dan houdt je
+              profiel die uitslag vast, ook als het intervals.icu volgt; de
+              volgende test werkt hem weer bij.
+            </p>
+          </article>
+          <article
+            id="zonekleuren"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Kleuren van de blokken</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De blokken kleuren zoals in Zwift, op je FTP: grijs onder 60%,
+              blauw tot 76%, groen tot 90%, geel tot 105%, oranje tot 119% en
+              rood daarboven. Een blok krijgt de kleur van het midden van zijn
+              doel. Een training in de kalender krijgt de kleur van zijn
+              kernwerk: het zwaarste niveau waarop je samen minstens vijf minuten
+              rijdt, zonder warming-up en cooling-down. Lichtgrijs is rust; een
+              gestippeld blokje zonder kleur is een rit zonder vermogensmeter.
+            </p>
+          </article>
+          <article
+            id="trainingsvormen"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Namen van trainingen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Binnen een zone onderscheiden we trainingsvormen: rustige duur
+              (61-70% van je FTP), intensieve duur (71-80%), tempo (81-86%) en
+              sweet spot (87-89%). Daarboven heet het drempel, VO2max en
+              anaeroob. Een training heet naar zijn kernwerk. Intensieve duur loopt
+              tot 80% en kleurt daardoor boven 76% al groen, zoals in Zwift. In
+              intervals.icu, en zo ook in Zwift en op je fietscomputer, staat
+              ZWBeter Worden voor de naam van elke training.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Rustdagen in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een dag zonder training in je schema is een rustdag. Je mag dan
+              helemaal niets doen, of tot 1,5 uur rustig fietsen zonder
+              intensiteit: zone 1 tot lage zone 2, praten moet makkelijk gaan.
+              De planner rekent die rit niet mee in je weekvolume en remt er de
+              dagen erna niet om af. Losse hersteltrainingen korter dan 1,5 uur
+              plant de AI niet meer: die leveren weinig op, en een echte rustdag
+              herstelt beter.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Clubevents in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bij je schema staan de clubevents die binnen de looptijd vallen. Ze
+              komen er pas in als je <strong className="text-foreground">Ik doe mee</strong>{" "}
+              kiest: dan wordt het event een vast blok, met een duur uit de
+              eindtijd of de afstand, en werkt het schema de week eromheen bij —
+              geen zware sessie vlak ervoor of erna. Kies je{" "}
+              <strong className="text-foreground">Nee</strong>, dan verdwijnt het
+              uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
+              telt als nog niet beslist, dus dat blijft gewoon staan.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Zelf een rit inplannen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Weet je dat je zaterdag met de club rijdt? Zet hem met{" "}
+              <strong className="text-foreground">Rit inplannen</strong> in je
+              schema: soort, datum, duur en zwaarte. Die rit ligt daarna vast — de
+              planner verplaatst of vervangt hem niet, maar zet de rest van de week
+              eromheen en telt de belasting mee. Zo&apos;n rit heeft geen
+              blokkenstructuur en dus geen FIT-bestand; hij staat alleen in ZWB.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Een dag aanpassen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Met <strong className="text-foreground">Aanpassen</strong> op de
+              trainingspagina geef je door hoeveel tijd je vandaag hebt en hoe je
+              je voelt; de AI herschrijft de sessie van vandaag. Die gaat direct
+              naar intervals.icu — de oude training van die dag verdwijnt daar —
+              en je kunt meteen doorklikken. Je trainer krijgt bericht en kijkt
+              achteraf of de rest van de week nog past. Heb je helemaal geen
+              tijd, kies dan <strong className="text-foreground">Rustdag</strong>:
+              de training van vandaag vervalt en verdwijnt ook uit intervals.icu.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Voorstellen in je schema</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Op basis van je laatste ritten kan er iedere ochtend een{" "}
+              <strong className="text-foreground">voorstel</strong> in je schema
+              verschijnen, bijvoorbeeld om woensdag korter te maken. Het is een
+              regel bovenin je schema, geen nieuw programma:{" "}
+              <strong className="text-foreground">Toepassen</strong> zet het door
+              naar intervals.icu, <strong className="text-foreground">Negeren</strong>{" "}
+              laat je schema zoals het was. Doe je niets, dan verdwijnt het voorstel
+              vanzelf zodra het over een voorbije dag gaat.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Een training verwijderen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Met <strong className="text-foreground">Verwijder</strong> bij een
+              geplande training haal je die uit je schema en uit intervals.icu.
+              Een voorgestelde training komt daarna niet terug: de planner laat
+              die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt
+              eromheen bijgewerkt. Een clubevent zeg je af bij de events.
+            </p>
+          </article>
+          <article
+            id="warming-up"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Welke warming-up bij welke wedstrijd</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bij een geplande race zet je in Vandaag of in je schema zelf een
+              warming-up klaar. Hij staat dan vlak voor de race in intervals.icu,
+              en zo in Zwift en op je fietscomputer. Er zijn er vijf. Tijdrit en
+              ploegentijdrit (25 minuten) bouwen lang op naar wedstrijdtempo.
+              ZRL lang (21 minuten) bereidt je voor op de harde start en de
+              sprints van een scratch- of puntenrace; ZRL kort (10 minuten) is
+              er voor als je weinig tijd hebt. Lange wedstrijd (12 minuten)
+              spaart energie. Elke warming-up eindigt met bursts van 6 seconden
+              en een minuut losdraaien ertussen: voluit voor ZRL, een
+              versnelling voor de tijdritten. Wees een paar minuten voor de
+              start klaar en trap rustig door.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -1512,353 +2180,250 @@ export default function HelpPage() {
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Clubevents in je schema</h3>
+            <h3 className="text-sm font-semibold">Readiness en je apparaat</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Bij je schema staan de clubevents die binnen de looptijd vallen. Ze
-              komen er pas in als je <strong className="text-foreground">Ik doe mee</strong>{" "}
-              kiest: dan wordt het event een vast blok, met een duur uit de
-              eindtijd of de afstand, en werkt het schema de week eromheen bij —
-              geen zware sessie vlak ervoor of erna. Kies je{" "}
-              <strong className="text-foreground">Nee</strong>, dan verdwijnt het
-              uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
-              telt als nog niet beslist, dus dat blijft gewoon staan.
+              Whoop, Oura en Polar sturen een eigen readiness of herstelscore naar
+              intervals.icu; die nemen we één op één over. Garmin doet dat niet —
+              Body Battery en Training Readiness blijven in Garmin Connect en
+              komen niet mee. Voor die horloges rekent ZWB zelf een readiness uit
+              je HRV en je rust-hartslag, afgezet tegen je eigen gemiddelde van de
+              afgelopen 30 dagen, en je slaapscore. Korte nachten tellen daarna
+              apart mee, net als bij de andere apparaten. Zo&apos;n waarde staat in
+              de app met <em>berekend door ZWB</em> erbij.
             </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Zelf een rit inplannen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Weet je dat je zaterdag met de club rijdt? Zet hem met{" "}
-              <strong className="text-foreground">Rit inplannen</strong> in je
-              schema: soort, datum, duur en zwaarte. Die rit ligt daarna vast — de
-              planner verplaatst of vervangt hem niet, maar zet de rest van de week
-              eromheen en telt de belasting mee. Zo&apos;n rit heeft geen
-              blokkenstructuur en dus geen FIT-bestand; hij staat alleen in ZWB.
-            </p>
-          </article>
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Voorstellen in je schema</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Op basis van je laatste ritten kan er iedere ochtend een{" "}
-              <strong className="text-foreground">voorstel</strong> in je schema
-              verschijnen, bijvoorbeeld om woensdag korter te maken. Het is een
-              regel bovenin je schema, geen nieuw programma:{" "}
-              <strong className="text-foreground">Toepassen</strong> zet het door
-              naar intervals.icu, <strong className="text-foreground">Negeren</strong>{" "}
-              laat je schema zoals het was. Doe je niets, dan verdwijnt het voorstel
-              vanzelf zodra het over een voorbije dag gaat.
+              Meet je horloge geen HRV, of is je laatste meting ouder dan een
+              week, dan blijft het bewust een streepje. Een herstelscore op alleen
+              je rust-hartslag zou vooral meetruis zijn, en dat wil je niet terug
+              zien in je trainingsadvies.
             </p>
           </article>
         </div>
       </section>
 
       <section
-        id="logboek"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <h2 className="text-lg font-semibold">Logboek: hoe je je voelt</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Onder ZWBeter Worden staat een logboek waarin je per dag bijhoudt
-          hoeveel last je hebt en waarvan — buikpijn, slecht geslapen, stemming,
-          darmen. Je kunt er ook de eerste dag van je menstruatie markeren; de
-          cycluslengte volgt dan vanzelf. De vragen zijn daarop geschreven, dus
-          het logboek staat alleen bij leden met{" "}
-          <strong className="text-foreground">Vrouw</strong> bij geslacht in hun
-          profiel. Een versie voor mannen kan later volgen.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Het logboek staat standaard uit en doet niets tot je het zelf aanzet.
-          Alleen jij ziet wat erin staat: je trainer niet en het bestuur niet.
-          Het schema krijgt hooguit een samengevat signaal mee, nooit losse
-          klachten.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Waarom klachten en geen cyclusfase? Onderzoek naar trainen per
-          cyclusfase levert wisselende en zwakke uitkomsten op, terwijl klachten
-          wél samenhangen met wat je die week aankunt. Bovendien heeft niet
-          iedereen een natuurlijke cyclus. Zo werkt het ook zonder.
-        </p>
-      </section>
-
-      <section
-        id="trainingsruimte"
+        id="fit-export"
         className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
       >
         <header className="flex items-start gap-2">
-          <HeartPulse className="mt-0.5 size-5 shrink-0 text-primary" />
+          <Download className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
             <h2 className="font-semibold">
-              Form, herstel en je ZWBeterWorden-advies
+              Workout op je fietscomputer (Wahoo / Garmin)
             </h2>
-            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Deze waarden beantwoorden verschillende vragen. Daarom kunnen ze
-              van elkaar afwijken zonder dat de data fout is. ZWB voegt ze samen
-              in één praktisch advies:{" "}
-              <strong className="text-foreground">ZWBeterWorden</strong>, met vijf
-              niveaus van &ldquo;doe niks&rdquo; tot topvorm.
+            <p className="mt-1 text-sm text-muted-foreground">
+              Een gepubliceerd schema staat automatisch in intervals.icu. Hoe je
+              het op je fietscomputer krijgt, verschilt per merk.
             </p>
           </div>
         </header>
 
-        <div className="mt-5 rounded-md border bg-background p-4">
-          <h3 className="text-sm font-semibold">intervals.icu koppelen</h3>
-          <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
-            {INTERVALS_CONNECT_STEPS.map((step, index) => (
-              <li key={step} className="flex gap-2">
-                <span className="font-semibold text-foreground">{index + 1}.</span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-          <a
-            href="https://intervals.icu/settings#api"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
-          >
-            Open intervals.icu API-instellingen
-          </a>
-        </div>
-
-        <div className="mt-5 rounded-md border bg-background p-4">
-          <h3 className="text-sm font-semibold">Data blijft achter of komt niet binnen</h3>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            {DATA_FRESHNESS_HELP.map((item) => (
-              <li key={item} className="flex gap-2">
-                <span aria-hidden>·</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/zwbeter-worden/belasting"
-            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
-          >
-            Bekijk wanneer je data voor het laatst is opgehaald
-          </Link>
-        </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-3">
-          <article className="rounded-md border bg-background p-4">
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <TrendingUp className="size-4 text-primary" />
-              Form
+              <Bike className="size-4 text-primary" />
+              Wahoo ELEMNT / BOLT / ROAM
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Form is de trainingsbalans uit intervals.icu:
-              <strong className="text-foreground"> CTL min ATL</strong>. CTL is
-              je belasting over langere tijd en ATL je recente belasting.
-              Negatief betekent dus dat je recent relatief veel hebt getraind.
-              Het zegt niet rechtstreeks hoe je hebt geslapen of hoe je lichaam
-              vandaag reageert.
+              Wahoo importeert geplande workouts <strong>niet</strong> uit een
+              los bestand — dan krijg je de melding &ldquo;geen geldige
+              GPX&rdquo;, omdat de app het als route probeert te lezen. Geplande
+              workouts komen binnen via een koppeling. Koppel intervals.icu één
+              keer aan Wahoo, daarna synct het schema vanzelf:
             </p>
-          </article>
-
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <HeartPulse className="size-4 text-primary" />
-              Hersteltrend en readiness
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              De hersteltrend vergelijkt je HRV en rusthartslag met je eigen
-              baseline en neemt slaap en de readiness van vandaag mee.
-              Readiness is een dagsignaal uit intervals.icu; HRV, rusthartslag
-              en slaap worden als zevendaagse trend bekeken. Een gunstige HRV
-              kan daardoor naast een middelmatige readiness staan.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Is de readiness van vandaag nog niet binnen, dan zie je de laatste
-              meting met de datum erbij, maar die telt niet mee in je advies. Pas
-              je je training van vandaag aan, dan haalt ZWB eerst je nieuwste
-              hersteldata op. Heb je vandaag al gereden, dan komt er geen tweede
-              training op die dag bij.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Als je hersteldata deelt, gebruikt ZWB slaap, HRV en rusthartslag
-              uit intervals.icu voor trainingsplanning. Alleen jij en je trainer
-              zien deze data.
-            </p>
-          </article>
-
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Gauge className="size-4 text-primary" />
-              ZWBeterWorden
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              ZWB combineert belasting en herstel tot één advies in vijf
-              niveaus. Een sterk negatieve Form of readiness van 50 of lager duwt
-              je naar een laag niveau (rust/herstel). Readiness 51-69 telt als
-              matig. Pas wanneer belasting én herstel gunstig zijn, klim je naar
-              de hoogste niveaus met ruimte voor kwaliteit.
-            </p>
-          </article>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
-            <p className="text-sm font-semibold">DOE NIKS</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Je bent aan het overtrainen, geef je partner even wat aandacht
-              ofzo.
-            </p>
-          </div>
-          <div className="rounded-md border border-orange-500/40 bg-orange-500/10 p-3">
-            <p className="text-sm font-semibold">RICHT OP HERSTEL</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Ga maar lekker vogeltjes kijken.
-            </p>
-          </div>
-          <div className="rounded-md border border-zwb-petrol/50 bg-zwb-petrol/10 p-3">
-            <p className="text-sm font-semibold">ALLEEN DUUR</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Je mag wel gaan fietsen, maar geen heftige intervallen.
-            </p>
-          </div>
-          <div className="rounded-md border border-zwb-teal/50 bg-zwb-teal/10 p-3">
-            <p className="text-sm font-semibold">FRIS GENOEG</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Ga er maar lekker op uit en blokjes mogen ook, vergeet de chocomelk
-              niet na afloop.
-            </p>
-          </div>
-          <div className="rounded-md border border-zwb-gold/50 bg-zwb-gold/10 p-3">
-            <p className="text-sm font-semibold">BETER WORDT HET NIET</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Alles mag, probeer die andere ZWB&apos;ers er vandaag maar vanaf te
-              rijden.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-md border bg-background p-4 text-sm text-muted-foreground">
-          <strong className="text-foreground">Voorbeeld:</strong> Form -14,
-          readiness 66 en een goede HRV-trend betekent niet dat je volledig fris
-          bent. De HRV is positief, maar recente trainingsbelasting en
-          middelmatige readiness houden je in het middensegment. Je
-          ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
-        </div>
-
-        <div className="mt-4 rounded-md border bg-background p-4">
-          <h3 className="text-sm font-semibold">Coachchat</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Snap je niet waarom er vandaag negentig minuten staat terwijl je twee
-            uur hebt? Vraag het in de coachchat. De coach kent je schema, je doel
-            en de &ldquo;Let op&rdquo;-regels die bij je schema horen, en legt uit
-            waarom er staat wat er staat. Hij verandert zelf niets.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Hij kent ook je trainingsdata: je laatste ritten met hun belasting, je
-            belasting per week, je FTP, FTP-tests en vermogenscurve, wat je van je
-            schema werkelijk reed, en je CTL, ATL en TSB als je intervals.icu hebt
-            gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
-            of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
-            uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
-            (IF) rekenen we alleen uit bij een echte vermogensmeter. Elke rit rekent
-            met de FTP die op die dag gold, dus een nieuwe FTP verandert de
-            belasting van eerdere ritten niet.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
-            aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
-            de volgende versie van je schema. Handig voor dingen die de app niet
-            kan zien: een week ziek geweest, een doel dat verschuift.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Het gesprek blijft staan en de trainers die jij hebt aangewezen lezen
-            het terug en kunnen erin reageren. Het bestuur niet. Over pijn,
-            blessures of ziekte geeft de coach geen advies — daarvoor ga je naar je
-            trainer of een arts.
-          </p>
-          <Link
-            href="/zwbeter-worden/coach"
-            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
-          >
-            Open de coachchat
-          </Link>
-        </div>
-
-      </section>
-
-      <section
-        id="strava-samenvatting"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <FileText className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">
-              ZWBeter Worden-samenvatting in je Strava-omschrijving
-            </h2>
-            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Na een rit zet ZWB automatisch een blokje onderaan de omschrijving
-              van die rit op Strava. Je ziet in één oogopslag wat er gepland
-              stond, wat je er werkelijk van maakte en hoe je ervoor staat.
-            </p>
-          </div>
-        </header>
-
-        <div className="mt-5 rounded-md border bg-background p-4">
-          <pre className="overflow-x-auto whitespace-pre text-xs text-muted-foreground">
-{`📊 ZWBeter Worden
-Gepland: 3x10 min drempel
-Geplande duur: 75 min
-Gedetecteerd type: Drempel
-Workout score: +8% (82 vs 76 TSS)
-📈 Progressie
-CTL: 49,9
-Gereedscore: 72 (niveau 4 – FRIS GENOEG)
-Fitness-status: Verbeterend`}
-          </pre>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Wat je ervoor moet doen</h3>
-            <ol className="mt-2 space-y-2 text-sm text-muted-foreground">
-              <li>
-                1. Koppel Strava opnieuw via{" "}
-                <Link href="/profiel" className="underline">
-                  je profiel
-                </Link>{" "}
-                en laat het vinkje staan waarmee ZWB je activiteiten mag
-                bijwerken. Zonder dat recht blijft de omschrijving leeg.
-              </li>
-              <li>
-                2. Koppel intervals.icu op de{" "}
-                <Link href="/zwbeter-worden/doelen" className="underline">
-                  Doelen-pagina
-                </Link>
-                . Daar komen de belasting, CTL en gereedscore vandaan.
-              </li>
-              <li>
-                3. Zet een schema klaar. Zonder geplande workout blijven
-                &ldquo;Gepland&rdquo; en &ldquo;Workout score&rdquo; op
-                &ldquo;-&rdquo;.
-              </li>
+            <ol className="mt-3 space-y-3">
+              {WAHOO_STEPS.map((step, index) => (
+                <li key={step.title} className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {step.text}
+                    </p>
+                  </div>
+                </li>
+              ))}
             </ol>
-          </article>
+          </div>
 
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Goed om te weten</h3>
-            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-              <li>
-                Je eigen tekst blijft staan; de samenvatting komt eronder.
-              </li>
-              <li>
-                Haal je de samenvatting weg, dan zetten we hem niet terug.
-              </li>
-              <li>
-                Het blokje verschijnt pas als intervals.icu je rit heeft
-                verwerkt — meestal binnen een uur.
-              </li>
-              <li>
-                Wie jouw Strava-rit kan zien, ziet ook deze samenvatting. Je
-                slaap- en HRV-data komen er nooit in, alleen de score die daaruit
-                volgt.
-              </li>
-            </ul>
-          </article>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-background p-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Download className="size-4 text-primary" />
+                Garmin
+              </h3>
+              <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+                <li className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    Klik bij de workout op <strong>Download FIT</strong> en
+                    importeer het bestand in Garmin Connect (of zet het in de
+                    map NewFiles op het toestel).
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    Of koppel intervals.icu aan Garmin Connect in de
+                    intervals-instellingen, dan synct het schema ook automatisch.
+                  </span>
+                </li>
+              </ul>
+            </div>
+            <div className="rounded-md border bg-background p-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <CircleHelp className="size-4 text-primary" />
+                Goed om te weten
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                De <strong>Download FIT</strong>-knop is bedoeld voor Garmin en
+                andere apparaten die losse workout-bestanden accepteren. Voor
+                Wahoo gebruik je de cloudkoppeling hierboven. Pas je een schema
+                aan? Publiceer opnieuw, dan staat de nieuwste versie klaar.
+              </p>
+            </div>
+          </div>
         </div>
+      </section>
+
+      <section
+        id="zwift-workout"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Monitor className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Workout in Zwift</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Koppel Zwift één keer aan intervals.icu, daarna staat de training
+              van de dag vanzelf in Zwift klaar.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Zap className="size-4 text-primary" />
+              Zwift koppelen
+            </h3>
+            <ol className="mt-3 space-y-3">
+              {ZWIFT_STEPS.map((step, index) => (
+                <li key={step.title} className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {step.text}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <CircleHelp className="size-4 text-primary" />
+              Goed om te weten
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {ZWIFT_NOTES.map((note) => (
+                <li key={note} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="zwift-voorstellen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Lightbulb className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Zwift-events bij je training</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bij een geplande training kunnen maximaal drie Zwift-events staan
+              die erbij passen, met een percentage erachter.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Zap className="size-4 text-primary" />
+              Waar het percentage op slaat
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {ZWIFT_MATCH_FACTORS.map((factor) => (
+                <li key={factor.title} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    <strong className="text-foreground">{factor.title}</strong>{" "}
+                    {factor.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Weten we iets niet, dan telt dat punt niet mee in plaats van dat
+              het aftrek geeft. Een event scoort dus nooit lager omdat Zwift een
+              veld niet meestuurt — het is dan alleen op minder punten
+              vergeleken.
+            </p>
+          </div>
+
+          <div className="rounded-md border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <CircleHelp className="size-4 text-primary" />
+              Goed om te weten
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {ZWIFT_MATCH_NOTES.map((note) => (
+                <li key={note} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="routevoorstellen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Navigation className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Rondjes voor buiten</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bij een geplande training kun je drie rondjes laten voorstellen
+              vanaf je eigen vertrekpunt, afgestemd op de duur, de intensiteit en
+              de wind van die dag.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2">
+          {OUTDOOR_ROUTE_NOTES.map((note) => (
+            <li key={note} className="flex gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section
@@ -2008,6 +2573,268 @@ Fitness-status: Verbeterend`}
             Open Mijn vermogen
           </Link>
         </div>
+      </section>
+
+      <section
+        id="pacing"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Mountain className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Pacingplan bij een event</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een verdeling van je vermogen over het parcours, per stuk in w/kg,
+              doorgerekend op je CP, je anaerobe reserve en je gewicht.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Hoe het plan ontstaat</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Open je de pacingpagina, dan staat er een basisvoorstel: elke klim
+                  apart, lange klimmen in begin, midden en slot, en het vlakke deel
+                  in stukken van hoogstens 8 km. Met Nieuw voorstel vraag je de AI
+                  om het te verbeteren; ook dat voorstel wordt doorgerekend en
+                  teruggeschaald als je reserve het niet houdt.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Wil je ergens anders een versnelling leggen, knip een stuk dan op
+                  een kilometerpunt (minstens een halve kilometer van de randen) of
+                  voeg twee stukken samen; het doel wordt dan het gemiddelde naar
+                  afstand. Hoogstens 30 stukken. Verandert de route, dan deelt
+                  opnieuw doorrekenen de route opnieuw in en vervallen je eigen
+                  knippen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Verandert je CP, je gewicht of de indeling van de route, dan heet
+                  het plan verouderd. Opnieuw doorrekenen kost niets en verandert je
+                  plan pas als jij erop drukt.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article
+            id="pacing-eindtijd"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Gewenste eindtijd</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Vul een tijd in als u:mm en kies Plan voor deze tijd. De verdeling van
+              je plan blijft hetzelfde; alle doelen gaan samen omhoog of omlaag tot
+              de verwachte tijd binnen een halve minuut van je doel ligt.
+              Neutralisaties en afdalingen schuiven niet mee. Is je doel sneller dan
+              je reserve en je drempel toelaten, dan krijg je het snelste plan dat
+              de finish haalt en zie je welke tijd dat is. Het doel blijft bij je
+              plan staan, zodat je na een aanpassing ziet hoe ver je ervan af zit.
+              Vraag je daarna een nieuw voorstel, dan krijgt de AI je doeltijd mee:
+              die kiest waar je harder en zachter rijdt, en het platform zet die
+              verdeling daarna weer op je tijd. Wind zit niet in de berekening;
+              slipstream alleen bij een Zwift-event (zie Zwift-wedstrijden).
+            </p>
+          </article>
+
+          <article
+            id="pacing-neutralisatie"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Neutralisatie</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Zet de organisatie een neutralisatie op het event, dan is dat in je
+              plan een vast stuk zonder schuifregelaar. Het plan rekent daar met
+              ongeveer 30 km/u achter de wagen, en nooit met meer dan 70% van je
+              CP. Dat kost je dus geen reserve, maar het werk telt wel mee voor hoe
+              vermoeid je later in de rit bent. Komt er een neutralisatie bij of
+              verschuift hij, dan wordt je plan verouderd.
+            </p>
+          </article>
+
+          <article
+            id="pacing-afdalingen"
+            className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
+          >
+            <h3 className="text-sm font-semibold">Afdalingen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een afdaling van minstens een kilometer die gemiddeld 4% of meer daalt,
+              is een eigen stuk. Het doel staat standaard op 0: uitrollen. Waar het
+              steiler dan 3% daalt rekent het plan dan zonder trappen; op een vlakker
+              stukje in de afdaling trap je toch licht door (40% van je CP). Uitrollen
+              vult je reserve sneller aan en kost geen werk. Het plan gaat uit van
+              hoogstens 79 km/u en houdt geen rekening met bochten of remmen, dus de
+              verwachte tijd op een technische afdaling is optimistisch. Wil je toch
+              doortrappen, schuif het doel dan omhoog; dat blijft staan zolang de
+              afdaling dezelfde is.
+            </p>
+          </article>
+
+          <article
+            id="pacing-zwift"
+            className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
+          >
+            <h3 className="text-sm font-semibold">Zwift-wedstrijden</h3>
+            <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <p>
+                Bij een Zwift-event rekent het plan met de fysica van Zwift in plaats
+                van die van de weg. Onder Opzet kies je het format, je frame met
+                upgradeniveau en je wielen; het plan wordt daarna meteen
+                opnieuw doorgerekend. Het format staat vooraf op wat het event zegt:
+                een event zonder drafting is een tijdrit. Regels van het event tellen
+                mee: geen tijdritfiets waar die verboden is, geen powerups als ze uit
+                staan, opgelegde wielen en uitgeschakelde upgrades.
+              </p>
+              <p>
+                Fietsen komen uit de snelheidstests van ZwiftInsider: per frame en
+                wielset hoeveel sneller of trager je bent op het vlak en op een klim.
+                Het plan rekent ook met het wegdek. Op onverhard is een racefiets
+                veel trager dan een gravelbike, op asfalt is het omgekeerd; die
+                stukken staan als band onder het hoogteprofiel. De wegdekkaart komt
+                van ZwiftMap. Je lengte uit je profiel telt mee voor de
+                luchtweerstand; zonder lengte rekent het plan met 175 cm, zoals Zwift.
+              </p>
+              <p>
+                In een wedstrijd kies je per stuk In de groep of Alleen. In de groep
+                kost hetzelfde tempo ongeveer een derde minder luchtweerstand; op een
+                steile klim scheelt dat weinig. Een wedstrijd krijgt een vaste start
+                (de eerste 700 m gaat het veld hard weg) en een sprint over de laatste
+                300 m, behalve als de finish op een klim ligt. Tot de sprint houdt het
+                plan minstens 15% van je reserve over voor een aanval. Bij een
+                ploegentijdrit rekent het plan met je kopbeurten naar ploeggrootte.
+              </p>
+              <p>
+                Per stuk kun je een powerup inzetten die het event uitdeelt. Het plan
+                rekent de werking mee vanaf het begin van dat stuk: veer 10% lichter
+                30 s, aerohelm 25% minder luchtweerstand 15 s, draft boost meer
+                slipstream 40 s (alleen in de groep), stoomwals minder rolweerstand
+                30 s, aambeeld zwaarder op een afdaling 15 s. Je weet vooraf niet
+                welke powerup je krijgt; zorg dat je plan ook zonder werkt. Hoe groot
+                de slipstream en de draft boost precies zijn, maakt Zwift niet bekend:
+                dat zijn schattingen.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section
+        id="strava-samenvatting"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <FileText className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">
+              ZWBeter Worden-samenvatting in je Strava-omschrijving
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Na een rit zet ZWB automatisch een blokje onderaan de omschrijving
+              van die rit op Strava. Je ziet in één oogopslag wat er gepland
+              stond, wat je er werkelijk van maakte en hoe je ervoor staat.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 rounded-md border bg-background p-4">
+          <pre className="overflow-x-auto whitespace-pre text-xs text-muted-foreground">
+{`📊 ZWBeter Worden
+Gepland: 3x10 min drempel
+Geplande duur: 75 min
+Gedetecteerd type: Drempel
+Workout score: +8% (82 vs 76 TSS)
+📈 Progressie
+CTL: 49,9
+Gereedscore: 72 (niveau 4 – FRIS GENOEG)
+Fitness-status: Verbeterend`}
+          </pre>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Wat je ervoor moet doen</h3>
+            <ol className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                1. Koppel Strava opnieuw via{" "}
+                <Link href="/profiel" className="underline">
+                  je profiel
+                </Link>{" "}
+                en laat het vinkje staan waarmee ZWB je activiteiten mag
+                bijwerken. Zonder dat recht blijft de omschrijving leeg.
+              </li>
+              <li>
+                2. Koppel intervals.icu op de{" "}
+                <Link href="/zwbeter-worden/doelen" className="underline">
+                  Doelen-pagina
+                </Link>
+                . Daar komen de belasting, CTL en gereedscore vandaan.
+              </li>
+              <li>
+                3. Zet een schema klaar. Zonder geplande workout blijven
+                &ldquo;Gepland&rdquo; en &ldquo;Workout score&rdquo; op
+                &ldquo;-&rdquo;.
+              </li>
+            </ol>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Goed om te weten</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                Je eigen tekst blijft staan; de samenvatting komt eronder.
+              </li>
+              <li>
+                Haal je de samenvatting weg, dan zetten we hem niet terug.
+              </li>
+              <li>
+                Het blokje verschijnt pas als intervals.icu je rit heeft
+                verwerkt — meestal binnen een uur.
+              </li>
+              <li>
+                Wie jouw Strava-rit kan zien, ziet ook deze samenvatting. Je
+                slaap- en HRV-data komen er nooit in, alleen de score die daaruit
+                volgt.
+              </li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section
+        id="logboek"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <h2 className="text-lg font-semibold">Logboek: hoe je je voelt</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Onder ZWBeter Worden staat een logboek waarin je per dag bijhoudt
+          hoeveel last je hebt en waarvan — buikpijn, slecht geslapen, stemming,
+          darmen. Je kunt er ook de eerste dag van je menstruatie markeren; de
+          cycluslengte volgt dan vanzelf. De vragen zijn daarop geschreven, dus
+          het logboek staat alleen bij leden met{" "}
+          <strong className="text-foreground">Vrouw</strong> bij geslacht in hun
+          profiel. Een versie voor mannen kan later volgen.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Het logboek staat standaard uit en doet niets tot je het zelf aanzet.
+          Alleen jij ziet wat erin staat: je trainer niet en het bestuur niet.
+          Het schema krijgt hooguit een samengevat signaal mee, nooit losse
+          klachten.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Waarom klachten en geen cyclusfase? Onderzoek naar trainen per
+          cyclusfase levert wisselende en zwakke uitkomsten op, terwijl klachten
+          wél samenhangen met wat je die week aankunt. Bovendien heeft niet
+          iedereen een natuurlijke cyclus. Zo werkt het ook zonder.
+        </p>
       </section>
 
       <section
@@ -2303,792 +3130,46 @@ Fitness-status: Verbeterend`}
         </div>
       </section>
 
-      <section
-        id="pacing"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Mountain className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Pacingplan bij een event</h2>
-            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Een verdeling van je vermogen over het parcours, per stuk in w/kg,
-              doorgerekend op je CP, je anaerobe reserve en je gewicht.
-            </p>
-          </div>
-        </header>
+      <HelpGroupHeading id="meldingen-problemen" title="Meldingen en problemen" />
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Hoe het plan ontstaat</h3>
-            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Open je de pacingpagina, dan staat er een basisvoorstel: elke klim
-                  apart, lange klimmen in begin, midden en slot, en het vlakke deel
-                  in stukken van hoogstens 8 km. Met Nieuw voorstel vraag je de AI
-                  om het te verbeteren; ook dat voorstel wordt doorgerekend en
-                  teruggeschaald als je reserve het niet houdt.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Wil je ergens anders een versnelling leggen, knip een stuk dan op
-                  een kilometerpunt (minstens een halve kilometer van de randen) of
-                  voeg twee stukken samen; het doel wordt dan het gemiddelde naar
-                  afstand. Hoogstens 30 stukken. Verandert de route, dan deelt
-                  opnieuw doorrekenen de route opnieuw in en vervallen je eigen
-                  knippen.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Verandert je CP, je gewicht of de indeling van de route, dan heet
-                  het plan verouderd. Opnieuw doorrekenen kost niets en verandert je
-                  plan pas als jij erop drukt.
-                </span>
-              </li>
-            </ul>
-          </article>
-
-          <article
-            id="pacing-eindtijd"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Gewenste eindtijd</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Vul een tijd in als u:mm en kies Plan voor deze tijd. De verdeling van
-              je plan blijft hetzelfde; alle doelen gaan samen omhoog of omlaag tot
-              de verwachte tijd binnen een halve minuut van je doel ligt.
-              Neutralisaties en afdalingen schuiven niet mee. Is je doel sneller dan
-              je reserve en je drempel toelaten, dan krijg je het snelste plan dat
-              de finish haalt en zie je welke tijd dat is. Het doel blijft bij je
-              plan staan, zodat je na een aanpassing ziet hoe ver je ervan af zit.
-              Vraag je daarna een nieuw voorstel, dan krijgt de AI je doeltijd mee:
-              die kiest waar je harder en zachter rijdt, en het platform zet die
-              verdeling daarna weer op je tijd. Wind zit niet in de berekening;
-              slipstream alleen bij een Zwift-event (zie Zwift-wedstrijden).
-            </p>
-          </article>
-
-          <article
-            id="pacing-neutralisatie"
-            className="scroll-mt-20 rounded-md border bg-background p-4"
-          >
-            <h3 className="text-sm font-semibold">Neutralisatie</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Zet de organisatie een neutralisatie op het event, dan is dat in je
-              plan een vast stuk zonder schuifregelaar. Het plan rekent daar met
-              ongeveer 30 km/u achter de wagen, en nooit met meer dan 70% van je
-              CP. Dat kost je dus geen reserve, maar het werk telt wel mee voor hoe
-              vermoeid je later in de rit bent. Komt er een neutralisatie bij of
-              verschuift hij, dan wordt je plan verouderd.
-            </p>
-          </article>
-
-          <article
-            id="pacing-afdalingen"
-            className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
-          >
-            <h3 className="text-sm font-semibold">Afdalingen</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Een afdaling van minstens een kilometer die gemiddeld 4% of meer daalt,
-              is een eigen stuk. Het doel staat standaard op 0: uitrollen. Waar het
-              steiler dan 3% daalt rekent het plan dan zonder trappen; op een vlakker
-              stukje in de afdaling trap je toch licht door (40% van je CP). Uitrollen
-              vult je reserve sneller aan en kost geen werk. Het plan gaat uit van
-              hoogstens 79 km/u en houdt geen rekening met bochten of remmen, dus de
-              verwachte tijd op een technische afdaling is optimistisch. Wil je toch
-              doortrappen, schuif het doel dan omhoog; dat blijft staan zolang de
-              afdaling dezelfde is.
-            </p>
-          </article>
-
-          <article
-            id="pacing-zwift"
-            className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2"
-          >
-            <h3 className="text-sm font-semibold">Zwift-wedstrijden</h3>
-            <div className="mt-2 space-y-2 text-sm text-muted-foreground">
-              <p>
-                Bij een Zwift-event rekent het plan met de fysica van Zwift in plaats
-                van die van de weg. Onder Opzet kies je het format, je frame met
-                upgradeniveau en je wielen; het plan wordt daarna meteen
-                opnieuw doorgerekend. Het format staat vooraf op wat het event zegt:
-                een event zonder drafting is een tijdrit. Regels van het event tellen
-                mee: geen tijdritfiets waar die verboden is, geen powerups als ze uit
-                staan, opgelegde wielen en uitgeschakelde upgrades.
-              </p>
-              <p>
-                Fietsen komen uit de snelheidstests van ZwiftInsider: per frame en
-                wielset hoeveel sneller of trager je bent op het vlak en op een klim.
-                Het plan rekent ook met het wegdek. Op onverhard is een racefiets
-                veel trager dan een gravelbike, op asfalt is het omgekeerd; die
-                stukken staan als band onder het hoogteprofiel. De wegdekkaart komt
-                van ZwiftMap. Je lengte uit je profiel telt mee voor de
-                luchtweerstand; zonder lengte rekent het plan met 175 cm, zoals Zwift.
-              </p>
-              <p>
-                In een wedstrijd kies je per stuk In de groep of Alleen. In de groep
-                kost hetzelfde tempo ongeveer een derde minder luchtweerstand; op een
-                steile klim scheelt dat weinig. Een wedstrijd krijgt een vaste start
-                (de eerste 700 m gaat het veld hard weg) en een sprint over de laatste
-                300 m, behalve als de finish op een klim ligt. Tot de sprint houdt het
-                plan minstens 15% van je reserve over voor een aanval. Bij een
-                ploegentijdrit rekent het plan met je kopbeurten naar ploeggrootte.
-              </p>
-              <p>
-                Per stuk kun je een powerup inzetten die het event uitdeelt. Het plan
-                rekent de werking mee vanaf het begin van dat stuk: veer 10% lichter
-                30 s, aerohelm 25% minder luchtweerstand 15 s, draft boost meer
-                slipstream 40 s (alleen in de groep), stoomwals minder rolweerstand
-                30 s, aambeeld zwaarder op een afdaling 15 s. Je weet vooraf niet
-                welke powerup je krijgt; zorg dat je plan ook zonder werkt. Hoe groot
-                de slipstream en de draft boost precies zijn, maakt Zwift niet bekend:
-                dat zijn schattingen.
-              </p>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section
-        id="livetrack"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <MapPinned className="mt-0.5 size-5 shrink-0 text-primary" />
-          <h2 className="font-semibold">Live volgen met je Garmin of Wahoo</h2>
-        </header>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {[
-            { title: "Garmin Edge", steps: GARMIN_LIVETRACK_STEPS },
-            { title: "Wahoo ELEMNT", steps: WAHOO_LIVETRACK_STEPS },
-          ].map((device) => (
-            <div key={device.title} className="rounded-md border bg-background p-4">
-              <h3 className="text-sm font-semibold">{device.title}</h3>
-              <ol className="mt-3 space-y-3">
-                {device.steps.map((step, index) => (
-                  <li key={step} className="flex gap-3">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-                      {index + 1}
-                    </span>
-                    <p className="text-sm text-muted-foreground">{step}</p>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
-
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          {LIVETRACK_NOTES.map((note) => (
-            <li key={note} className="flex gap-2">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>{note}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section
-        id="owntracks"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <MapPinned className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Live tracking instellen (OwnTracks)</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Volg deze stappen één keer goed, dan zie je elkaar betrouwbaar op
-              de kaart tijdens een rit.
-            </p>
-          </div>
-        </header>
-
-        <ol className="mt-4 space-y-3">
-          {OWNTRACKS_STEPS.map((step, index) => (
-            <li key={step.title} className="flex gap-3">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-                {index + 1}
-              </span>
-              <div>
-                <p className="text-sm font-medium">{step.title}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {step.text}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Zap className="size-4 text-primary" />
-              Voor een strak spoor zonder gaten
-            </h3>
-            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-              {OWNTRACKS_QUALITY_TIPS.map((tip) => (
-                <li key={tip} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-md border bg-background p-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Smartphone className="size-4 text-primary" />
-                Belangrijkste instellingen
-              </h3>
-              <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-                <li>
-                  <strong className="text-foreground">Mode:</strong> Private HTTP
-                </li>
-                <li>
-                  <strong className="text-foreground">URL:</strong> je
-                  persoonlijke koppellink van Samen fietsen
-                </li>
-                <li>
-                  <strong className="text-foreground">Locatie:</strong> Altijd +
-                  precies/nauwkeurig
-                </li>
-                <li>
-                  <strong className="text-foreground">Modus tijdens rit:</strong>{" "}
-                  iPhone Actie · Android Beweging (strak spoor). Significant /
-                  Grootte wijzigingen mag ook: zuiniger, iets minder nauwkeurig.
-                </li>
-              </ul>
-            </div>
-            <Link
-              href="/live"
-              className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
-            >
-              <Navigation className="size-4 text-primary" />
-              Naar Samen fietsen
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="verjaardagsrondje"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Cake className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Verjaardagsrondje en aanmelden</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Deel je je verjaardag, dan kun je een verjaardagsrondje plannen met
-              datum, tijd, startplek en een GPX-route. Andere leden melden zich
-              daar aan.
-            </p>
-          </div>
-        </header>
-
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Aanmelden doe je onder <strong className="text-foreground">Rijd
-              je mee?</strong> — tik op het vak{" "}
-              <strong className="text-foreground">Rijdt mee</strong>,{" "}
-              <strong className="text-foreground">Misschien</strong> of{" "}
-              <strong className="text-foreground">Niet</strong>. Je keuze is
-              meteen zichtbaar en je kunt later wisselen.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Op de dag van het rondje verschijnen de aangemelde renners
-              (Rijdt mee of Misschien) live op de kaart en het hoogteprofiel,
-              net als bij events — mits ze outdoor delen op Samen fietsen.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Alleen de jarige beheert het rondje zelf; aanmelden kan elk
-              goedgekeurd lid.
-            </span>
-          </li>
-        </ul>
-      </section>
-
-      <section
-        id="zwblokken"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Grid3x3 className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">ZWBlokken</h2>
-            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              De kaart is verdeeld in blokken van ongeveer anderhalve kilometer.
-              Rijd je door een blok, dan kleurt het in — voor jou én voor de
-              club. Zo zie je in één oogopslag welke hoeken je nog nooit gehad
-              hebt.
-            </p>
-          </div>
-        </header>
-
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              De blokken komen uit je Strava-ritten. Zonder Strava-koppeling
-              blijft je eigen laag leeg; de clubkaart zie je wel.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              <strong className="text-foreground">Zwift-ritten staan onder
-              Zwift, los van de kaart buiten.</strong> Per Zwift-wereld kleuren
-              blokken van ongeveer 600 meter in, en wie de meeste blokken in een
-              wereld heeft, draagt daar de titel. Staan leden gelijk, bijvoorbeeld
-              omdat meerdere leden een wereld helemaal gereden hebben, dan wint
-              wie daar de meeste kilometers reed. Het percentage gaat over de
-              wegen die we van die wereld kennen: rijdt iemand een nieuwe weg,
-              dan kan het iets zakken. Een Climb Portal levert geen blokken op:
-              die klim ligt buiten de kaart van de wereld. Andere
-              indoorplatforms, zoals MyWhoosh, Rouvy en FulGaz, tellen niet mee.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Uit privacy-overweging telt het blok waar een rit begint of
-              eindigt nooit mee, en laten we ook de eerste en laatste kilometer
-              van elke rit buiten beschouwing. Je woonadres komt dus niet als
-              opgelicht blok op de kaart.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Hoe donkerder een clubblok, hoe meer verschillende leden er
-              geweest zijn. De goudkleurige blokken zijn die van het lid dat je
-              in de kiezer hebt staan.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Tik op een blok om te zien welke leden er geweest zijn, met de
-              datum waarop ze er voor het eerst reden.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Onder de kaart staat per Europees land hoeveel procent van de
-              blokken je gehad hebt, en per provincie in Nederland, België,
-              Luxemburg, Duitsland (deelstaten) en Frankrijk (regio&apos;s).
-              Ritten buiten Europa kleuren wel op de kaart, maar hebben geen
-              gebied in die tabel.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              <strong className="text-foreground">Wie in een land de meeste
-              blokken heeft, is er Koning of Koningin; in een provincie
-              Gouverneur.</strong> Het gaat om verschillende blokken, niet om
-              kilometers: steeds hetzelfde rondje levert niets op. Bij een gelijk
-              aantal houdt wie dat aantal het eerst had de titel. Koning of
-              Koningin volgt het geslacht in je profiel; staat dat niet ingevuld,
-              dan word je Vorst.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Nieuwe ritten komen erbij zodra de Strava-sync gedraaid heeft,
-              meestal binnen een half uur.
-            </span>
-          </li>
-        </ul>
-
-        <div className="mt-4">
+      <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <article className="rounded-lg border bg-card/90 p-4">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Bell className="size-5 text-primary" />
+            Meldingen
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Pushmeldingen werken als je browser toestemming geeft en je voorkeuren
+            onder Profiel aanstaan.
+          </p>
           <Link
-            href="/zwblokken"
-            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+            href="/profiel#meldingen"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
-            <Grid3x3 className="size-4 text-primary" />
-            Naar ZWBlokken
+            Meldingen instellen
           </Link>
-        </div>
+        </article>
+
+        <article
+          id="problemen"
+          className="scroll-mt-20 rounded-lg border bg-card/90 p-4"
+        >
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Sparkles className="size-5 text-primary" />
+            Problemen oplossen
+          </h2>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {TROUBLESHOOTING.map((item) => (
+              <li key={item} className="flex gap-2">
+                <CircleHelp className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
       </section>
 
-      <section
-        id="mijn-garage"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Wrench className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Mijn fietsen en onderhoud</h2>
-            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Zodra je Strava gekoppeld en gesynchroniseerd hebt, kent ZWB je
-              fietsen met hun totale kilometerstand. Daarmee toon je je fietsen
-              op je profiel en houd je de slijtage van onderdelen bij.
-            </p>
-          </div>
-        </header>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Bike className="size-4 text-primary" />
-              Fietsen op je profiel
-            </h3>
-            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Naam en kilometers komen rechtstreeks uit Strava (
-                  <em>Mijn uitrusting</em>). Koppel daar je fiets aan je ritten,
-                  anders blijft de lijst leeg.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Geen fietsen na een sync? Klik op je profiel bij Strava op{" "}
-                  <strong className="text-foreground">Opnieuw koppelen</strong> —
-                  voor je uitrusting hebben we eenmalig extra toestemming nodig.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Geen Strava? Voeg met{" "}
-                  <strong className="text-foreground">Fiets handmatig
-                  toevoegen</strong> zelf een fiets toe met naam, merk/model en
-                  eventueel afstand. Handmatige fietsen tonen we wel op je
-                  profiel, maar doen niet mee in de onderhoudsfunctie.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Onder <strong className="text-foreground">Mijn fietsen</strong>{" "}
-                  op je profiel kies je per fiets of die zichtbaar is en zet je
-                  er een eigen foto bij. Virtuele fietsen staan standaard aan;
-                  gearchiveerde fietsen standaard uit.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Zichtbare fietsen verschijnen ook op je ledenprofiel, zodat
-                  clubgenoten zien waarop je rijdt.
-                </span>
-              </li>
-            </ul>
-          </article>
-
-          <article className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Wrench className="size-4 text-primary" />
-              Slijtage bijhouden
-            </h3>
-            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Voeg in <strong className="text-foreground">Mijn garage</strong>{" "}
-                  een onderdeel toe (ketting, cassette, banden, remblokken …) en
-                  kies een slijtage-range: <em>enige</em>, <em>normale</em> of{" "}
-                  <em>hoge</em> slijtage. Elke range heeft een richt-aantal
-                  kilometers dat je mag overschrijven met een eigen drempel.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  De gereden kilometers van een onderdeel = de stand van de fiets
-                  nu min de stand bij montage. Monteer je een al gebruikt
-                  onderdeel, vul dan &ldquo;al gereden km&rdquo; in.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  De balk kleurt groen, oranje (bijna) en rood (toe aan
-                  vervanging). Onderdelen die opvallen verschijnen ook op je
-                  dashboard.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  Vervangen? Klik op <strong className="text-foreground">Vervangen</strong>{" "}
-                  — de teller begint opnieuw vanaf de huidige stand.
-                </span>
-              </li>
-            </ul>
-          </article>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            href="/mijn-garage"
-            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
-          >
-            <Wrench className="size-4 text-primary" />
-            Naar Mijn garage
-          </Link>
-          <Link
-            href="/profiel#fietsen"
-            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
-          >
-            <Bike className="size-4 text-primary" />
-            Mijn fietsen
-          </Link>
-        </div>
-
-        <p className="mt-4 text-xs text-muted-foreground">
-          Zet onder Profiel → Meldingen de optie{" "}
-          <strong className="text-foreground">Mijn garage: onderdeel toe aan
-          vervanging</strong> aan om hierover een pushmelding te krijgen.
-        </p>
-      </section>
-
-      <section
-        id="fit-export"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Download className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">
-              Workout op je fietscomputer (Wahoo / Garmin)
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Een gepubliceerd schema staat automatisch in intervals.icu. Hoe je
-              het op je fietscomputer krijgt, verschilt per merk.
-            </p>
-          </div>
-        </header>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Bike className="size-4 text-primary" />
-              Wahoo ELEMNT / BOLT / ROAM
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Wahoo importeert geplande workouts <strong>niet</strong> uit een
-              los bestand — dan krijg je de melding &ldquo;geen geldige
-              GPX&rdquo;, omdat de app het als route probeert te lezen. Geplande
-              workouts komen binnen via een koppeling. Koppel intervals.icu één
-              keer aan Wahoo, daarna synct het schema vanzelf:
-            </p>
-            <ol className="mt-3 space-y-3">
-              {WAHOO_STEPS.map((step, index) => (
-                <li key={step.title} className="flex gap-3">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium">{step.title}</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {step.text}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-md border bg-background p-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Download className="size-4 text-primary" />
-                Garmin
-              </h3>
-              <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-                <li className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>
-                    Klik bij de workout op <strong>Download FIT</strong> en
-                    importeer het bestand in Garmin Connect (of zet het in de
-                    map NewFiles op het toestel).
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>
-                    Of koppel intervals.icu aan Garmin Connect in de
-                    intervals-instellingen, dan synct het schema ook automatisch.
-                  </span>
-                </li>
-              </ul>
-            </div>
-            <div className="rounded-md border bg-background p-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <CircleHelp className="size-4 text-primary" />
-                Goed om te weten
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                De <strong>Download FIT</strong>-knop is bedoeld voor Garmin en
-                andere apparaten die losse workout-bestanden accepteren. Voor
-                Wahoo gebruik je de cloudkoppeling hierboven. Pas je een schema
-                aan? Publiceer opnieuw, dan staat de nieuwste versie klaar.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="zwift-workout"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Monitor className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Workout in Zwift</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Koppel Zwift één keer aan intervals.icu, daarna staat de training
-              van de dag vanzelf in Zwift klaar.
-            </p>
-          </div>
-        </header>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Zap className="size-4 text-primary" />
-              Zwift koppelen
-            </h3>
-            <ol className="mt-3 space-y-3">
-              {ZWIFT_STEPS.map((step, index) => (
-                <li key={step.title} className="flex gap-3">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium">{step.title}</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {step.text}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <CircleHelp className="size-4 text-primary" />
-              Goed om te weten
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {ZWIFT_NOTES.map((note) => (
-                <li key={note} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{note}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="zwift-voorstellen"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Lightbulb className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Zwift-events bij je training</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Bij een geplande training kunnen maximaal drie Zwift-events staan
-              die erbij passen, met een percentage erachter.
-            </p>
-          </div>
-        </header>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Zap className="size-4 text-primary" />
-              Waar het percentage op slaat
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {ZWIFT_MATCH_FACTORS.map((factor) => (
-                <li key={factor.title} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>
-                    <strong className="text-foreground">{factor.title}</strong>{" "}
-                    {factor.text}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Weten we iets niet, dan telt dat punt niet mee in plaats van dat
-              het aftrek geeft. Een event scoort dus nooit lager omdat Zwift een
-              veld niet meestuurt — het is dan alleen op minder punten
-              vergeleken.
-            </p>
-          </div>
-
-          <div className="rounded-md border bg-background p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <CircleHelp className="size-4 text-primary" />
-              Goed om te weten
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {ZWIFT_MATCH_NOTES.map((note) => (
-                <li key={note} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{note}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="routevoorstellen"
-        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
-      >
-        <header className="flex items-start gap-2">
-          <Navigation className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div>
-            <h2 className="font-semibold">Rondjes voor buiten</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Bij een geplande training kun je drie rondjes laten voorstellen
-              vanaf je eigen vertrekpunt, afgestemd op de duur, de intensiteit en
-              de wind van die dag.
-            </p>
-          </div>
-        </header>
-
-        <ul className="mt-4 space-y-2">
-          {OUTDOOR_ROUTE_NOTES.map((note) => (
-            <li key={note} className="flex gap-2 text-sm text-muted-foreground">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>{note}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <HelpGroupHeading id="voor-beheerders" title="Voor beheerders" />
 
       <section
         id="beheer"
@@ -3123,40 +3204,6 @@ Fitness-status: Verbeterend`}
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-lg border bg-card/90 p-4">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <Bell className="size-5 text-primary" />
-            Meldingen
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Pushmeldingen werken als je browser toestemming geeft en je voorkeuren
-            onder Profiel aanstaan.
-          </p>
-          <Link
-            href="/profiel#meldingen"
-            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
-          >
-            Meldingen instellen
-          </Link>
-        </article>
-
-        <article className="rounded-lg border bg-card/90 p-4">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <Sparkles className="size-5 text-primary" />
-            Problemen oplossen
-          </h2>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            {TROUBLESHOOTING.map((item) => (
-              <li key={item} className="flex gap-2">
-                <CircleHelp className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
       </section>
     </div>
   );

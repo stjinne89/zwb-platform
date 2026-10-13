@@ -67,6 +67,8 @@ export type ScoreInput = {
   /** Finishmoment per renner (Unix-ms): doorfietsen na de finish telt niet. */
   finishedAt?: Map<number, number>;
   finish?: Finish | null;
+  /** TTT: tijd tussen twee startrijen in ms (Zwifts `timeGapBetweenRowsMs`). */
+  rowGapMs?: number;
 };
 
 export type Crossing = { athleteId: number; ts: number; elapsed: number; fal: number };
@@ -106,6 +108,25 @@ export type TeamScore = {
   league: number;
 };
 
+export type TeamSplit = {
+  /** Meest voorkomende teamsleutel in de startrij, of "Rij 3" zonder één tag. */
+  team: string;
+  /** Startrij, geteld vanaf de eerste rij met renners. */
+  row: number;
+  /** Achterstand op de snelste ploeg op dit punt, in ms. */
+  gap: number;
+};
+
+/** Tussentijd in een ploegentijdrit: de ploegen aan het einde van één segment. */
+export type SplitPoint = {
+  /** Index in de route. */
+  index: number;
+  name: string;
+  lap: number;
+  /** Snelste eerst; alleen ploegen waarvan de vierde renner voorbij is. */
+  teams: TeamSplit[];
+};
+
 export type ScoreResult = {
   format: ZrlScoringFormat;
   starters: number;
@@ -113,6 +134,8 @@ export type ScoreResult = {
   passes: ScoredPass[];
   riders: RiderScore[];
   teams: TeamScore[];
+  /** Alleen in een ploegentijdrit, in routevolgorde. */
+  splits: SplitPoint[];
 };
 
 export function scoreRace(input: ScoreInput): ScoreResult {
@@ -215,7 +238,185 @@ export function scoreRace(input: ScoreInput): ScoreResult {
     riders.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
   }
 
-  return { format, starters: n, final, passes, riders, teams: rankTeams(format, riders) };
+  const splits =
+    format === "ttt" ? tttSplits(passes, riderById, input.startAt, input.rowGapMs ?? DEFAULT_ROW_GAP_MS) : [];
+  return { format, starters: n, final, passes, riders, teams: rankTeams(format, riders), splits };
+}
+
+const DEFAULT_ROW_GAP_MS = 60_000;
+/** Renners die zo kort na elkaar het eerste segment oprijden, rijden samen. */
+const PACK_MS = 3_000;
+/**
+ * Zoveel van een rijtijd moet de beste indeling beter passen dan de op één na
+ * beste, zolang alleen het eerste segment bekend is; anders geen tussentijden.
+ */
+const AMBIGUITY = 1 / 3;
+/**
+ * Zoveel van een rijtijd mag een ploeg afwijken van wat haar tempo naar het
+ * tweede segment voorspelt (gemeten 2026-10-13: goed hooguit 6 s, fout ruim 20 s).
+ */
+const PACE_TOLERANCE = 1 / 5;
+
+type Pack = { entry: number; teams: Set<string>; /** Rijtijd van segment 1 naar 2, ms. */ pace: number | null };
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[sorted.length >> 1];
+}
+
+/**
+ * Hoe ver ligt de traagste of snelste ploeg van de lijn "wie langzamer naar het
+ * tweede segment rijdt, deed ook langer over de aanloop"? Een ploeg die een rij
+ * te vroeg of te laat is ingedeeld, valt daar een halve rijtijd buiten.
+ */
+function paceMisfit(points: Array<[pace: number, delay: number]>): number {
+  const n = points.length;
+  const meanPace = points.reduce((sum, [pace]) => sum + pace, 0) / n;
+  const meanDelay = points.reduce((sum, [, delay]) => sum + delay, 0) / n;
+  const spread = points.reduce((sum, [pace]) => sum + (pace - meanPace) ** 2, 0);
+  const together = points.reduce((sum, [pace, delay]) => sum + (pace - meanPace) * (delay - meanDelay), 0);
+  // Trager rijden en toch eerder bij het segment bestaat niet.
+  const slope = spread > 0 ? Math.max(0, together / spread) : 0;
+  return Math.max(...points.map(([pace, delay]) => Math.abs(delay - meanDelay - slope * (pace - meanPace))));
+}
+
+/**
+ * Startrij per renner, ten opzichte van elkaar. Zwift geeft de startrij niet
+ * door, maar ploegen starten precies één rijtijd na elkaar. Het moment waarop
+ * een ploeg het eerste segment oprijdt, is dus rij × rijtijd plus de tijd over de
+ * aanloop, en die laatste scheelt tussen ploegen minder dan één rijtijd (gemeten
+ * 2026-10-13, Open Pink: hooguit 30 s op vier minuten). We zoeken de aanlooptijd
+ * van de snelste ploeg waarbij geen twee ploegen in dezelfde rij vallen. Zodra
+ * drie ploegen het tweede segment voorbij zijn, moet de indeling ook bij hun
+ * tempo passen. Alleen verschillen kloppen: of de eerste ploeg in rij 0 of 1
+ * stond, is hieruit niet te halen. Leeg als de rijen niet eenduidig zijn.
+ */
+export function tttRows(
+  passes: ScoredPass[],
+  riderById: Map<number, Rider>,
+  startAt: number,
+  rowGapMs: number,
+): Map<number, number> {
+  const first = passes[0];
+  if (!first) return new Map();
+  const second = new Map((passes[1]?.crossings ?? []).map((c) => [c.athleteId, c.ts]));
+  const entries = first.crossings
+    .map((c) => ({ athleteId: c.athleteId, entry: c.ts - c.elapsed * 1000 - startAt, ts: c.ts }))
+    .sort((a, b) => a.entry - b.entry);
+  const packs: Pack[] = [];
+  let current: typeof entries = [];
+  const close = () => {
+    // Een eenling is een losgereden renner, geen ploeg.
+    if (current.length < 2) return;
+    packs.push({
+      entry: current[0].entry,
+      teams: new Set(current.flatMap((e) => riderById.get(e.athleteId)?.team ?? [])),
+      pace: median(current.flatMap((e) => (second.has(e.athleteId) ? [(second.get(e.athleteId) as number) - e.ts] : []))),
+    });
+  };
+  for (const e of entries) {
+    if (current.length && e.entry - current[current.length - 1].entry > PACK_MS) {
+      close();
+      current = [];
+    }
+    current.push(e);
+  }
+  close();
+  if (packs.length === 0) return new Map();
+
+  // Speling: ploeggenoten rijden het segment niet op dezelfde milliseconde op.
+  const rowOf = (entry: number, lead: number) => Math.floor((entry - lead + PACK_MS) / rowGapMs);
+  // Elke ploeg als mogelijke snelste; `rows` zegt welke indeling daaruit volgt.
+  const options = packs.map((candidate) => {
+    const lead = candidate.entry % rowGapMs;
+    const packRows = packs.map((pack) => rowOf(pack.entry, lead));
+    const delays = packs.map((pack, i) => pack.entry - lead - packRows[i] * rowGapMs);
+    let clash = false;
+    packs.forEach((pack, i) => {
+      // Twee groepen in één rij mag alleen als het dezelfde ploeg kan zijn.
+      for (let j = 0; j < i; j++) {
+        const other = packs[j];
+        if (packRows[j] !== packRows[i] || pack.teams.size === 0 || other.teams.size === 0) continue;
+        if (![...pack.teams].some((team) => other.teams.has(team))) clash = true;
+      }
+    });
+    const paced = packs.flatMap((pack, i) => (pack.pace === null ? [] : [[pack.pace, delays[i]] as [number, number]]));
+    return {
+      lead,
+      clash,
+      spread: Math.max(...delays),
+      misfit: paced.length >= 3 ? paceMisfit(paced) : null,
+      rows: packRows.map((row) => row - packRows[0]).join(),
+    };
+  });
+  const fitting = options.filter((option) => !option.clash);
+  let best: (typeof options)[number] | undefined;
+  if (fitting.some((option) => option.misfit !== null)) {
+    best = [...fitting].sort((a, b) => (a.misfit as number) - (b.misfit as number))[0];
+    if ((best.misfit as number) > rowGapMs * PACE_TOLERANCE) return new Map();
+  } else {
+    fitting.sort((a, b) => a.spread - b.spread);
+    best = fitting[0];
+    if (!best) return new Map();
+    // Past een andere indeling bijna even goed, dan is het gokken.
+    const chosen = best;
+    const rival = fitting.find((option) => option.rows !== chosen.rows);
+    if (rival && rival.spread - chosen.spread < rowGapMs * AMBIGUITY) return new Map();
+  }
+  const lead = best.lead;
+  return new Map(entries.map((e) => [e.athleteId, rowOf(e.entry, lead)]));
+}
+
+/** Meest voorkomende ploeg onder de renners van een rij; null zonder één teamtag. */
+function rowTeam(athletes: number[], riderById: Map<number, Rider>): string | null {
+  const counts = new Map<string, number>();
+  for (const id of athletes) {
+    const team = riderById.get(id)?.team;
+    if (team) counts.set(team, (counts.get(team) ?? 0) + 1);
+  }
+  return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+
+/**
+ * Een ploeg is hier een startrij, niet een teamtag: wie samen start, rijdt samen,
+ * ook de renners zonder tag of met een andere spelling.
+ */
+function tttSplits(
+  passes: ScoredPass[],
+  riderById: Map<number, Rider>,
+  startAt: number,
+  rowGapMs: number,
+): SplitPoint[] {
+  if (passes.length === 0) return [];
+  const rows = tttRows(passes, riderById, startAt, rowGapMs);
+  const athletesByRow = new Map<number, number[]>();
+  for (const [athleteId, row] of rows) athletesByRow.set(row, [...(athletesByRow.get(row) ?? []), athleteId]);
+  const firstRow = Math.min(...athletesByRow.keys());
+  const teamByRow = new Map(
+    [...athletesByRow].map(([row, athletes]) => [row, rowTeam(athletes, riderById) ?? `Rij ${row - firstRow + 1}`]),
+  );
+  return passes.map((pass) => {
+    const byRow = new Map<number, number[]>();
+    for (const crossing of pass.crossings) {
+      const row = rows.get(crossing.athleteId);
+      if (row !== undefined) byRow.set(row, [...(byRow.get(row) ?? []), crossing.ts]);
+    }
+    const times = [...byRow].flatMap(([row, list]) => {
+      if (list.length < TTT_RIDERS) return [];
+      list.sort((a, b) => a - b);
+      return [{ row, time: list[TTT_RIDERS - 1] - row * rowGapMs }];
+    });
+    const fastest = Math.min(...times.map((t) => t.time));
+    return {
+      index: pass.index,
+      name: pass.name,
+      lap: pass.lap,
+      teams: times
+        .map(({ row, time }) => ({ team: teamByRow.get(row) as string, row: row - firstRow + 1, gap: time - fastest }))
+        .sort((a, b) => a.gap - b.gap || a.row - b.row),
+    };
+  });
 }
 
 type TeamTally = TeamScore & { fin: number; fal: number; fts: number; first: number; times: number[] };

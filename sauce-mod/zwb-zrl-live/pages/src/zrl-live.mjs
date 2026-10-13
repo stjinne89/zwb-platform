@@ -28,6 +28,31 @@ function raceTime(ms) {
     return `${Math.floor(tenths / 600)}:${((tenths % 600) / 10).toFixed(1).padStart(4, '0')}`;
 }
 
+// Verschil met de ploeg waarmee vergeleken wordt: "+0:12", "-0:05".
+function gapTime(ms) {
+    const seconds = Math.round(Math.abs(ms) / 1000);
+    return `${ms < 0 ? '-' : '+'}${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+// Laatste tussentijd waar de eigen ploeg (anders de ploeg in beeld) doorheen is,
+// met de andere ploegen ten opzichte daarvan. Zonder zo'n ploeg: de snelste.
+function splitBlock(splits, watchTeam) {
+    const isRef = (t) => t.own || (watchTeam && t.team === watchTeam);
+    const split = [...splits].reverse().find((s) => s.teams.some((t) => t.own)) ||
+        [...splits].reverse().find((s) => s.teams.some(isRef)) || splits.at(-1);
+    if (!split) return '';
+    const ref = split.teams.find((t) => t.own) || split.teams.find(isRef) || split.teams[0];
+    const refAt = split.teams.indexOf(ref);
+    // Rond de eigen ploeg, als die buiten de bovenste rijen valt.
+    const from = Math.max(0, Math.min(refAt - TEAM_ROWS + 2, split.teams.length - TEAM_ROWS));
+    const rows = split.teams.slice(from, from + TEAM_ROWS).map((t) => {
+        const cls = t.own ? 'own' : t === ref ? 'watch' : '';
+        return `<li class="${cls}"><span class="rank">${split.teams.indexOf(t) + 1}</span>` +
+            `<span class="name">${esc(t.team)}</span><span class="pts">${t === ref ? '' : gapTime(t.gap - ref.gap)}</span></li>`;
+    }).join('');
+    return `<h2>Tussentijd · ${esc(split.name)}${split.lap > 1 ? ` ${split.lap}` : ''}</h2><ol>${rows}</ol>`;
+}
+
 function clock(ms) {
     return new Date(ms).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
 }
@@ -52,11 +77,14 @@ function render() {
     const ttt = data.format === 'ttt';
     const status = data.final ? 'Eindstand' : started ? 'Voorlopig' : `Start ${clock(data.startAt)}`;
 
-    const teams = data.teams.slice(0, TEAM_ROWS).map((t) => {
+    // In een TTT heeft een ploeg pas een tijd als de vierde renner binnen is.
+    const teams = data.teams.filter((t) => !ttt || t.time != null).slice(0, TEAM_ROWS).map((t) => {
         const cls = t.own ? 'own' : me && t.team === me.team ? 'watch' : '';
         return `<li class="${cls}"><span class="rank">${t.rank}</span>` +
             `<span class="name">${esc(t.team)}</span><span class="pts">${ttt ? raceTime(t.time) : t.total}</span></li>`;
     }).join('');
+
+    const splits = data.final ? '' : splitBlock(data.splits || [], me?.team);
 
     const rider = me ? `
         <h2>In beeld</h2>
@@ -76,8 +104,8 @@ function render() {
             <h1>ZRL · ${esc(data.subgroup)}</h1>
             <span class="muted">${status} · ${data.starters} gestart</span>
         </header>
-        <h2>Teams</h2>
-        ${teams ? `<ol>${teams}</ol>` : `<p class="empty">${ttt ? 'Nog geen tijden' : 'Nog geen punten'}</p>`}
+        ${teams ? `<h2>Teams</h2><ol>${teams}</ol>` : splits ? '' : `<p class="empty">${ttt ? 'Nog geen tijden' : 'Nog geen punten'}</p>`}
+        ${splits}
         ${rider}
         ${pass}`;
 }

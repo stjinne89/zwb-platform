@@ -121,6 +121,53 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **Live ZRL-stand: tussentijden in een ploegentijdrit, 2026-10-13 — gebouwd, getoetst op een echte TTT van die ochtend; niet in de browser en niet in Sauce gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Vraag van de eigenaar op de dag van de eerste ZRL-TTT: tussentijden
+> in de Sauce-overlay, en het verschil met de eigen ploeg. De overlay toonde in
+> een TTT tot de finish alleen streepjes.
+>
+> **Nu.**
+> - `scoreRace` geeft bij een TTT `splits`: per segment de ploegen met hun
+>   achterstand op de snelste, zodra de vierde renner voorbij is.
+> - Zwift geeft de startrij niet. `tttRows` leidt die af uit het moment waarop
+>   een groep renners het eerste segment oprijdt, en toetst de indeling vanaf
+>   het tweede segment aan het tempo. Is de indeling niet eenduidig, dan zijn er
+>   geen tussentijden. Meting en regels: `docs/live-zrl-dashboard.md`,
+>   "Tussentijden in een ploegentijdrit".
+> - Een ploeg is hier een startrij, niet een teamtag; de naam is de meest
+>   voorkomende tag in de rij. Het teamklassement met eindtijden rekent nog op
+>   teamtags. De twee lijsten kunnen dus andere ploegnamen tonen.
+> - Pagina `/live/zrl/[eventId]`: blok "Tussentijden". JSON voor Sauce: `splits`.
+>   Mod: de laatste tussentijd van de eigen ploeg, anderen als verschil daarmee;
+>   ploegen zonder eindtijd staan niet meer als streepje in "Teams".
+> - `RaceData` bewaart per subgroep `rowGapMs`; ontbreekt die (oude cache,
+>   bevroren races), dan geldt 60 s.
+>
+> **Getoetst.** Open Pink League Division 1 van 13 oktober, 08:31 UTC (zelfde
+> route als de ZWB-races van die avond): in groep A, B en C klopt de startrij
+> van alle 19 ploegen met de eindtijden. Groep D paste niet en krijgt vanaf het
+> tweede segment geen tussentijden. Unit-tests (`zrl-live-scoring.test.ts`, zes
+> nieuw), `tsc`, ESLint. De mod alleen buiten Sauce nagebootst met voorbeelddata.
+>
+> **Niet meer waar.** "Geen tussenstand onderweg" in een TTT. De regel van
+> 2026-09-29 dat een TTT-stand alleen uit de Zwift-uitslag komt, geldt nog voor
+> de eindtijden.
+>
+> **Bewust niet gebouwd.** Absolute tussentijden (de rij van de eerste ploeg is
+> niet te bepalen). Het teamklassement op startrij: dat verandert een getoetste
+> telling op de racedag. Een regel op `/hulp`: het blok spreekt voor zich.
+>
+> **Niet geverifieerd.** De pagina in de browser en de mod in Sauce. Het gedrag
+> in de eerste minuten, vóór het tweede segment: in groep D stonden daar vijf
+> ploegen met een tussentijd die later werd ingetrokken. De full suite gaf in
+> deze worktree vier mislukte bestanden die dit werk niet raken (geen
+> `.env.local`, time-outs van PGlite). Controle na de race van die avond:
+> tussenverschillen bij het laatste segment naast de WTRL-eindtijden.
+
+---
+
 > **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; effect op productie niet gemeten.**
 > Commit: `f80b1c3` (op de onderzoeksbranch `bff6209`). Geen migratie. Gepusht naar
 > `main` op 2026-10-13, samen met de zoekfix `8e53553`.
@@ -7297,6 +7344,51 @@ design (het voorbeeldscherm toont alleen "tegels"). Het aanmaken van een
 volgend blok is niet uitgevoerd: of het model binnen `planWindow` blijft en
 een volgend blok goed laat aansluiten, blijkt pas in productie. De formulieren
 op de weg zijn niet aangeklikt.
+
+### Opgeleverd — `/hulp`: blokken in een logische volgorde, in zes groepen
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De pagina was gegroeid in de volgorde waarin features kwamen:
+elk nieuw blok ging onderaan of ergens tussenin. Daardoor stond de ZWBgame als
+eerste gids, Mijn garage tussen live tracking en de FIT-export, het logboek
+tussen schema en herstel, en de Strava-samenvatting tussen herstel en vermogen.
+
+**Wat veranderde.** Alleen de volgorde, geen tekst. De pagina heeft nu zes
+groepen met een kop en een rij sprongknoppen onder de zoekbalk:
+
+1. *Beginnen*: de vier startstappen, welkomstrondleiding, app installeren,
+   Wat vind je waar.
+2. *Koppelen en ritten binnenhalen*: Strava opnieuw koppelen, ritten via
+   intervals.icu, importeren, externe profielen.
+3. *De club*: de gidskaarten (profiel, privacy, events, teams, badges, cols,
+   garage, community, training, ZWBgame als laatste omdat hij het langst is),
+   verjaardagsrondje, live volgen, OwnTracks, ZWBlokken, fietsen en onderhoud.
+4. *Trainen met ZWBeter Worden*: eerst intervals.icu en herstel, dan doel en
+   schema, de workout op fietscomputer of Zwift, Zwift-events, rondjes buiten,
+   vermogen, pacing, Strava-samenvatting, logboek, core en kracht, voeding.
+5. *Meldingen en problemen*.
+6. *Voor beheerders*, onderaan, omdat de meeste leden het niet nodig hebben.
+
+Binnen *Trainingsdoel en je schema* volgen de zeventien kaarten nu de weg van
+een lid: doel instellen (doeltype, jaarplan, uren, beschikbaarheid), FTP
+(intervals, FTP-test), het schema lezen (kleuren, namen, rustdagen), het
+aanpassen (clubevents, eigen rit, dag aanpassen, voorstellen, verwijderen),
+warming-up, en na de rit (feedback, readiness).
+
+Alle bestaande ankers zijn gelijk gebleven. De zoekindex wees al naar
+`/hulp#problemen`, maar dat anker bestond niet; het staat nu op het blok
+Problemen oplossen.
+
+**Bewust niet gebouwd.** Geen herschrijving of inkorting van teksten, geen
+splitsing in subpagina's en geen inklapbare blokken: de vraag was de volgorde.
+De volgorde van de zoekindex en van de bullets binnen een gidskaart is niet
+aangeraakt.
+
+**Niet lokaal te verifiëren.** De pagina is niet in de browser bekeken: deze
+worktree heeft geen `.env.local`, dus inloggen kan niet. Gecontroleerd is dat
+de gesorteerde regels van voor en na gelijk zijn op de nieuwe koppen na, plus
+`tsc` en ESLint.
 
 ### Opgeleverd — NEVO-zoeken: alle treffers wegen mee, niet de eerste 200 op alfabet
 

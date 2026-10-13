@@ -37,6 +37,12 @@ function raceTime(ms: number | null) {
   return `${minutes}:${seconds}`;
 }
 
+/** Achterstand op de snelste ploeg: "+0:12". */
+function gapTime(ms: number) {
+  const seconds = Math.round(ms / 1000);
+  return `+${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 const FORMAT_LABEL: Record<ZrlScoringFormat, string | null> = {
   points: null,
   scratch: "Scratch",
@@ -144,6 +150,7 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
   const ttt = format === "ttt";
   // Alleen in een puntenrace leveren segmenten punten op.
   const passes = format === "points" ? score.passes.filter((pass) => pass.crossings.length > 0).reverse() : [];
+  const splits = score.splits.filter((split) => split.teams.length > 0).reverse();
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-6">
@@ -234,6 +241,37 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
           </ol>
         )}
       </section>
+
+      {splits.length > 0 && (
+        <section className="rounded-lg border bg-card">
+          <h2 className="border-b px-4 py-3 text-sm font-semibold">Tussentijden</h2>
+          <ul className="divide-y">
+            {splits.map((split) => (
+              <li key={split.index} className="px-4 py-2 text-sm">
+                <div className="font-medium">
+                  {split.name}
+                  {score.splits.filter((s) => s.name === split.name).length > 1 && ` ${split.lap}`}
+                </div>
+                <ol className="mt-1 space-y-0.5">
+                  {split.teams.map((team, i) => (
+                    <li
+                      key={team.row}
+                      className={cn(
+                        "flex gap-3",
+                        team.team === view.ownTeam ? "font-semibold" : "text-muted-foreground",
+                      )}
+                    >
+                      <span className="w-6 tabular-nums">{i + 1}</span>
+                      <span className="min-w-0 flex-1 truncate">{label(team.team)}</span>
+                      <span className="tabular-nums">{gapTime(team.gap)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {own.length > 0 && (
         <section className="rounded-lg border bg-card">

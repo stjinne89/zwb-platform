@@ -167,6 +167,85 @@ describe("ploegentijdrit", () => {
   });
 });
 
+describe("tussentijden in een ploegentijdrit", () => {
+  const tttRoute: RouteSegment[] = [
+    { segmentId: "S", name: "Sprint" },
+    { segmentId: "K", name: "KOM" },
+  ];
+  const START = 1_000_000;
+  // Per ploeg: startrij, na hoeveel seconden rijden de kop de sprint oprijdt en
+  // bij de KOM boven is, en de teamtag per renner (null = geen tag).
+  type Plan = { row: number; sprint: number; kom: number; tags: Array<string | null> };
+  const five = (tag: string) => [tag, tag, tag, tag, tag];
+  const alfa: Plan = { row: 1, sprint: 200, kom: 600, tags: five("alfa") };
+  const bravo: Plan = { row: 2, sprint: 210, kom: 590, tags: five("bravo") };
+  // Rommelige tags, zoals in het echt: twee spellingen en een renner zonder.
+  const charlie: Plan = { row: 4, sprint: 195, kom: 640, tags: ["charlie", "charlie", "charlie cc", null] };
+  let athlete = 100;
+  const build = (teams: Plan[]) => {
+    const tttRiders: Rider[] = [];
+    const tttPassages: Passage[] = [];
+    for (const t of teams) {
+      t.tags.forEach((team, i) => {
+        const id = ++athlete;
+        tttRiders.push({ athleteId: id, name: `renner ${id}`, team });
+        const started = START + t.row * 60_000;
+        // Elke renner 0,2 s na de vorige; de sprint duurt 20 s.
+        tttPassages.push(p(id, "S", started + (t.sprint + 20 + i * 0.2) * 1000, 20));
+        tttPassages.push(p(id, "K", started + (t.kom + i) * 1000, 150));
+      });
+    }
+    return scoreRace({ format: "ttt", route: tttRoute, riders: tttRiders, passages: tttPassages, startAt: START });
+  };
+  const gaps = (result: ReturnType<typeof build>) =>
+    result.splits.map((s) => [s.name, s.teams.map((t) => [t.team, t.row, t.gap])]);
+
+  it("rekent het verschil vanaf de eigen startrij, op de vierde renner", () => {
+    expect(gaps(build([alfa, bravo, charlie]))).toEqual([
+      ["Sprint", [["charlie", 4, 0], ["alfa", 1, 5000], ["bravo", 2, 15000]]],
+      ["KOM", [["bravo", 2, 0], ["alfa", 1, 10000], ["charlie", 4, 50000]]],
+    ]);
+  });
+
+  it("houdt ploegen uit elkaar die bijna een rijtijd in snelheid schelen", () => {
+    // Echt gezien (Open Pink D, 2026-10-13): de traagste ploeg 39 s achter de
+    // snelste bij het eerste segment, 21 s vóór de ploeg die een rij later startte.
+    const traag: Plan = { row: 3, sprint: 239, kom: 700, tags: five("traag") };
+    const snel: Plan = { row: 4, sprint: 200, kom: 580, tags: five("snel") };
+    expect(gaps(build([alfa, traag, snel]))[0]).toEqual([
+      "Sprint",
+      [["alfa", 1, 0], ["snel", 4, 0], ["traag", 3, 39000]],
+    ]);
+  });
+
+  it("geeft niets als de indeling niet bij het tempo naar het tweede segment past", () => {
+    // 39 s later bij de sprint, maar daarna even snel als de rest: dat is geen
+    // trage ploeg uit rij 3. Echt gezien in Open Pink D, 2026-10-13.
+    const raar: Plan = { row: 3, sprint: 239, kom: 239 + 400, tags: five("raar") };
+    const snel: Plan = { row: 4, sprint: 200, kom: 600, tags: five("snel") };
+    expect(build([alfa, raar, snel]).splits.every((s) => s.teams.length === 0)).toBe(true);
+  });
+
+  it("geeft geen tussentijd zonder vier renners, en noemt een rij zonder tags naar de rij", () => {
+    const result = build([
+      alfa,
+      { row: 3, sprint: 200, kom: 600, tags: ["drie", "drie", "drie"] },
+      { row: 5, sprint: 205, kom: 610, tags: [null, null, null, null] },
+    ]);
+    expect(result.splits[1].teams.map((t) => t.team)).toEqual(["alfa", "Rij 5"]);
+  });
+
+  it("geeft niets als de startrijen niet eenduidig zijn", () => {
+    // Een halve rijtijd verschil: is "zoek" 30 s trager uit rij 3, of 30 s sneller uit rij 4?
+    const result = build([alfa, { row: 3, sprint: 230, kom: 600, tags: five("zoek") }]);
+    expect(result.splits.every((s) => s.teams.length === 0)).toBe(true);
+  });
+
+  it("geeft buiten een ploegentijdrit geen tussentijden", () => {
+    expect(scoreRace({ route, riders, passages: [], startAt: 0 }).splits).toEqual([]);
+  });
+});
+
 describe("zrlFormatOf", () => {
   it("herkent de ploegentijdrit (Legends Route, 7 april 2026)", () => {
     expect(zrlFormatOf({ eventType: "TEAM_TIME_TRIAL", tags: ["wtrl", "zrl", "zrl19", "ttt", "ttbikesdraft"] })).toBe("ttt");

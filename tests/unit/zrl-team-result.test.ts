@@ -68,6 +68,7 @@ function view({
         { team: "zwb cycling b1", total: 28, riders: 2, finishers: 2, time: null, rank: 2, league: 2 },
         { team: "derde ploeg", total: 10, riders: 1, finishers: 1, time: null, rank: 3, league: 1 },
       ],
+      splits: [],
     },
     complete,
     missing,

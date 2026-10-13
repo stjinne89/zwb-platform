@@ -65,6 +65,18 @@ export async function GET(
         time: rider.time,
         void: rider.void,
       })),
+      /** TTT: per segment de achterstand op de snelste ploeg in ms. */
+      splits: score.splits
+        .filter((split) => split.teams.length > 0)
+        .map((split) => ({
+          name: split.name,
+          lap: split.lap,
+          teams: split.teams.map((team) => ({
+            team: label(team.team),
+            gap: team.gap,
+            own: team.team === view.ownTeam,
+          })),
+        })),
       lastPass: lastPass && {
         name: lastPass.name,
         lap: lastPass.lap,
