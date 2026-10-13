@@ -104,7 +104,7 @@ export const EXERCISE_MUSCLES: Record<string, ExerciseMuscles> = {
   "single-leg-rdl": m(["hamstrings", "bilspieren"], ["onderrug"]),
   "wall-sit": m(["quadriceps"], ["bilspieren"]),
 
-  // Kracht met gewicht (0230)
+  // Kracht met gewicht (0232)
   "barbell-half-squat": m(["quadriceps", "bilspieren"], ["hamstrings", "adductoren", "onderrug"]),
   "single-leg-press": m(["quadriceps", "bilspieren"], ["hamstrings", "adductoren"]),
   "standing-hip-flexion": m(["heupbuigers"], ["quadriceps", "buik"]),

@@ -1,4 +1,4 @@
-// Poses voor de krachtoefeningen met gewicht (0230): de vier uit het
+// Poses voor de krachtoefeningen met gewicht (0232): de vier uit het
 // gymprogramma en hun thuisversies. Het materiaal zit als `gear` aan het
 // lichaam vast, zodat het met de beweging meegaat.
 

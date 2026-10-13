@@ -1,8 +1,8 @@
 # Krachttraining voor wielrenners: wat de literatuur draagt
 
-Opgesteld 2026-10-14 als onderbouwing van migratie `0230` (nieuwe
+Opgesteld 2026-10-14 als onderbouwing van migratie `0232` (nieuwe
 krachtoefeningen en -series). **Niet nagekeken door een trainer, fysiotherapeut
-of bewegingswetenschapper.** De eigenaar keurt de inhoud goed door `0230` te
+of bewegingswetenschapper.** De eigenaar keurt de inhoud goed door `0232` te
 draaien.
 
 ## Hoe dit is gecontroleerd

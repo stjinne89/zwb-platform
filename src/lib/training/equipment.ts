@@ -15,7 +15,7 @@ export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   machine: "Apparaat",
 };
 
-/** Per oefening-slug uit mobility_exercises (0230). */
+/** Per oefening-slug uit mobility_exercises (0232). */
 export const EXERCISE_EQUIPMENT: Record<string, Equipment[]> = {
   "barbell-half-squat": ["halter"],
   "single-leg-press": ["machine"],

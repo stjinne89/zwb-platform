@@ -75,7 +75,7 @@ describe("spiergroepen per oefening", () => {
     // Vangnet: raakt een seed uit de pas met deze regex, dan valt dit om in
     // plaats van dat de dekkingscontrole stilletjes over niets loopt.
     expect(core).toHaveLength(18);
-    const weighted = seededExerciseSlugs("0230_mobility_strength_seed_v2.sql");
+    const weighted = seededExerciseSlugs("0232_mobility_strength_seed_v2.sql");
     expect(strength).toHaveLength(7);
     expect(weighted).toHaveLength(8);
 

@@ -25,7 +25,7 @@ beforeAll(async () => {
     "0110_mobility_library_seed.sql",
     "0159_mobility_strength.sql",
     "0160_mobility_strength_seed.sql",
-    "0230_mobility_strength_seed_v2.sql",
+    "0232_mobility_strength_seed_v2.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -64,8 +64,8 @@ describe("krachtreeksen (0159 + 0160)", () => {
     expect(rows[0].count).toBe(15);
   });
 
-  it("draait 0230 opnieuw zonder dubbele items en laat 0160 staan", async () => {
-    await db.exec(await migration("0230_mobility_strength_seed_v2.sql"));
+  it("draait 0232 opnieuw zonder dubbele items en laat 0160 staan", async () => {
+    await db.exec(await migration("0232_mobility_strength_seed_v2.sql"));
     const counts = await itemCounts();
     expect(counts["gym-opbouw-3"]).toBe(4);
     expect(counts["kracht-basis"]).toBe(5);

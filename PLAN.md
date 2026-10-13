@@ -117,7 +117,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0232`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0233`.
 
 ---
 
@@ -7512,8 +7512,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Opgeleverd — kracht-tabblad fase B: gymseries en thuis met gewicht
 
-**2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie `0230`
-(conceptinhoud, nog niet gedraaid).
+**2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie `0232`
+(conceptinhoud). Eerst gebouwd als `0230`; dat nummer en `0231` waren op `main` intussen vergeven (`0230_training_preferences`, `0231_nutrition_log`), dus hernummerd vóór het pushen.
 
 **Aanleiding.** De eigenaar wil de bibliotheek uitbreiden nu de oefeningen
 duidelijker in beeld zijn (fase A), op voorwaarde dat nieuwe oefeningen en
@@ -7527,7 +7527,7 @@ series met literatuur onderbouwd zijn. Op de vraag welk materiaal mag, koos hij
   serie de bron. Conclusie: het bewijs voor fietsprestatie zit bij zwaar werk
   met vier beenoefeningen; een overzichtsstudie uit 2026 noemt de zekerheid
   zelf laag.
-- `0230_mobility_strength_seed_v2.sql` (idempotent): acht oefeningen en vijf
+- `0232_mobility_strength_seed_v2.sql` (idempotent): acht oefeningen en vijf
   series. Gym: halve squat met halter, eenbenige leg press, staande heupbuiging
   met kabel en kuitheffen met gewicht, in *Gym: opbouw 1, 2, 3* (3 × 10, 8, 6)
   en *Gym: onderhoud* (2 × 5). Thuis: goblet squat, Bulgaarse split squat,
@@ -7581,7 +7581,7 @@ dat `recommendStrength` elke krachtserie kan voorstellen. Alle drie daar
 bijgewerkt.
 
 **Getest.** `tsc`, eslint zonder fouten. `mobility-strength-migration.test.ts`
-draait `0230` in PGlite bovenop `0109`, `0110`, `0159` en `0160`: vijf series
+draait `0232` in PGlite bovenop `0109`, `0110`, `0159` en `0160`: vijf series
 met elk vier oefeningen, opnieuw te draaien zonder dubbelen, `0160` blijft
 staan, en de herhalingen per blok kloppen met de bron. Die test ving een echte
 fout: zonder cast had de kolom met alleen `null` geen type. Verder: figuur- en
@@ -7590,7 +7590,7 @@ gymserie nooit wordt voorgesteld maar wel meetelt voor de rust.
 
 **Niet geverifieerd.**
 
-- `0230` tegen de productiedatabase. **Pas draaien nadat de eigenaar
+- `0232` tegen de productiedatabase. **Pas draaien nadat de eigenaar
   `docs/kracht-literatuur.md`, de oefeningen en de teksten heeft goedgekeurd.**
   De code werkt zonder: dan bestaan de series gewoon niet.
 - De inhoud is niet door een trainer, fysiotherapeut of bewegingswetenschapper

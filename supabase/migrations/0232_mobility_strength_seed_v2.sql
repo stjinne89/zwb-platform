@@ -121,7 +121,7 @@ set
 -- ──────────────────────────────────────────────────────────────────────
 --
 -- Alleen deze vijf series leeghalen. (Let op: 0110 opnieuw draaien haalt álle
--- standaarditems weg, ook deze; draai dan 0160 en 0230 erna opnieuw.)
+-- standaarditems weg, ook deze; draai dan 0160 en 0232 erna opnieuw.)
 
 delete from public.mobility_series_items
 where series_id in (
