@@ -1,10 +1,10 @@
 "use client";
 
-// Een mikpunt of een periode toevoegen. Twee knoppen naast elkaar; het formulier
+// Een mikpunt of een periode toevoegen. Eén knop; het formulier met de keuze
 // klapt eronder open, zodat de pagina begint met de weg en niet met invulvelden.
 
 import { useState } from "react";
-import { CalendarRange, Flag } from "lucide-react";
+import { CalendarRange, Flag, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SEASON_PERIOD_LABELS,
@@ -24,36 +24,54 @@ export function SeasonForms({
   /** Clubevents waar het lid ja of misschien op zei en die nog geen mikpunt zijn. */
   events: SeasonEvent[];
 }) {
-  const [open, setOpen] = useState<"mikpunt" | "periode" | null>(null);
-  const kies = (soort: "mikpunt" | "periode") =>
-    setOpen((huidig) => (huidig === soort ? null : soort));
+  const [open, setOpen] = useState(false);
+  const [soort, setSoort] = useState<"mikpunt" | "periode">("mikpunt");
+
+  if (!open) {
+    return (
+      <Button onClick={() => setOpen(true)} className="min-h-11 w-full sm:w-auto">
+        <Plus className="size-4" />
+        Toevoegen
+      </Button>
+    );
+  }
 
   return (
     <section className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          variant={open === "mikpunt" ? "default" : "outline"}
-          aria-expanded={open === "mikpunt"}
-          onClick={() => kies("mikpunt")}
-          className="min-h-11"
-        >
-          <Flag className="size-4" />
-          Mikpunt
-        </Button>
-        <Button
-          variant={open === "periode" ? "default" : "outline"}
-          aria-expanded={open === "periode"}
-          onClick={() => kies("periode")}
-          className="min-h-11"
-        >
-          <CalendarRange className="size-4" />
-          Periode
+      <div className="flex items-center justify-between gap-3">
+        {/* Dezelfde schakelaar als Lijst/Maand op de schemapagina. */}
+        <div className="flex rounded-md border bg-background p-0.5 text-sm">
+          {(
+            [
+              { value: "mikpunt", label: "Mikpunt", icon: Flag },
+              { value: "periode", label: "Periode", icon: CalendarRange },
+            ] as const
+          ).map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={soort === value}
+              onClick={() => setSoort(value)}
+              className={`flex min-h-10 items-center gap-1.5 rounded px-3 font-medium ${
+                soort === value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="size-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+        <Button variant="ghost" onClick={() => setOpen(false)} className="min-h-10">
+          Sluiten
         </Button>
       </div>
-      {open === "mikpunt" ? (
-        <TargetForm todayKey={todayKey} events={events} onDone={() => setOpen(null)} />
-      ) : null}
-      {open === "periode" ? <PeriodForm todayKey={todayKey} onDone={() => setOpen(null)} /> : null}
+      {soort === "mikpunt" ? (
+        <TargetForm todayKey={todayKey} events={events} onDone={() => setOpen(false)} />
+      ) : (
+        <PeriodForm todayKey={todayKey} onDone={() => setOpen(false)} />
+      )}
     </section>
   );
 }

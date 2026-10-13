@@ -1245,7 +1245,7 @@ export default function HelpPage() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Wil je zo&apos;n clubevent als mikpunt, tik dan op het vlaggetje
-              op die regel, of kies het bij Mikpunt onder Event; titel en datum
+              op die regel, of kies het via Toevoegen bij Mikpunt onder Event; titel en datum
               komen van het event. Met het vlaggetje begint het als C-doel. Het
               event staat dan als één regel met je prioriteit erbij. Met het
               potlood wijzig je de prioriteit en de notitie; de datum volgt het

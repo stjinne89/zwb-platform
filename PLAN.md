@@ -7228,7 +7228,7 @@ alleen route is, grind bij rust, een smalle strook bij rustig, klimstrepen bij
 een kamp, een geblokte streep bij een A-doel. Maanden zijn bermpaaltjes, lege
 maanden één regel. Twaalf weken voor een A-doel staat "Opbouw naar …" zolang
 dat blok er nog niet is. Bovenaan twee getallen in weken (`season-stand.tsx`).
-Mikpunt en Periode toevoegen zijn twee knoppen naast elkaar; bewerken,
+Toevoegen is één knop, met daarachter de keuze Mikpunt of Periode; bewerken,
 prioriteit en verwijderen zitten in één formulier achter het potlood. De
 tekening staat in `globals.css` onder "Jaarplan: de weg" en geldt in beide
 designs, met eigen regels voor "tegels". De trainerweergave gebruikt dezelfde
