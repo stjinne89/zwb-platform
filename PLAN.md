@@ -167,6 +167,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > tussenverschillen bij het laatste segment naast de WTRL-eindtijden.
 
 ---
+
 > **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; effect op productie niet gemeten.**
 > Commit: `f80b1c3` (op de onderzoeksbranch `bff6209`). Geen migratie. Gepusht naar
 > `main` op 2026-10-13, samen met de zoekfix `8e53553`.
