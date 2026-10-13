@@ -63,7 +63,9 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 |---|---|
 | `/ttt plan [link] [bestand]` | Plan laden; zonder opties van het klembord van de bot-pc |
 | `/ttt start [vertraging]` | Starten in jouw spraakkanaal (standaard na 10 s) |
-| `/ttt plan deel:2` | Een plan klaarzetten voor een later deel van de race (tot deel 3) |
+| `/ttt klim` | Vrij rijden: klok en coach zwijgen; kan ook met de knop Klim |
+| `/ttt hervat` | De rotatie weer oppakken; kan ook met de knop Hervat rotatie |
+| `/ttt plan deel:2` | Een plan klaarzetten voor het tweede deel van de race |
 | `/ttt deel <nummer>` | Overgaan op het plan van dat deel; kan ook met de knop Deel 2 |
 | `/ttt stop` | Stoppen en het kanaal verlaten |
 | `/ttt skip` | Meteen de volgende renner |
@@ -72,6 +74,12 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 | `/ttt terug <renner>` | Renner draait weer mee |
 
 Eén bot bedient één spraakkanaal per server tegelijk, en Sauce volgt één ploeg.
+
+**Een klim.** Op een klim rijdt iedereen zijn eigen tempo en klopt de rotatie
+niet meer. Druk aan de voet op **Klim**: de bot zegt "Klim. Eigen tempo." en
+zwijgt daarna, ook over watt en lossen. Druk boven op **Hervat rotatie**: de
+rotatie begint opnieuw met wie Sauce op dat moment vooraan ziet, of zonder Sauce
+met de volgende in het plan. De bot herkent een klim niet zelf.
 
 **Een race in delen.** Wil je op een vlakker stuk een andere volgorde, watt of
 duur, zet dan vooraf een tweede plan klaar: maak het in ZwiftGopher, Export Link,

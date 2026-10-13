@@ -199,6 +199,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 >   Deel 2 of `/ttt deel 2` schakelt over. De koprijder maakt zijn kopbeurt af,
 >   daarna geldt het nieuwe plan. Met de hand; automatisch op een kilometerpunt
 >   is niet gebouwd. Zie `docs/ttt-discord-bot.md`, "Een race in delen".
+> - Vrij rijden op een klim: de knop Klim zet klok en coach stil, Hervat
+>   rotatie begint opnieuw met wie Sauce vooraan ziet. Met de hand: of
+>   `state.grade` uit Sauce bruikbaar is om een klim zelf te herkennen, is niet
+>   gemeten (de Sauce-pc stond uit); het proefscript neemt het veld nu wel op.
+>   Door de extra knop zijn het twee delen in plaats van drie.
 >
 > **Bewust niet gebouwd.** Live data naar het platform of een pushende
 > Sauce-mod (de bot leest lokaal). Hosting in de cloud (keuze eigenaar).

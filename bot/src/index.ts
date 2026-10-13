@@ -37,8 +37,8 @@ import { CACHE_DIR, piperEngine, Tts, windowsEngine } from "./tts.ts";
 
 const DEFAULT_DELAY_S = 10;
 const PLUS_BUTTON_S = 10;
-/** Zoveel delen passen als knop naast +10 s, Volgende en Stop. */
-const MAX_PARTS = 3;
+/** Een rij telt vijf knoppen: +10 s, Volgende, Klim, Stop en één ander deel. */
+const MAX_PARTS = 2;
 /** Het statusbericht wordt hooguit zo vaak bijgewerkt, en minstens elke REFRESH_MS. */
 const RENDER_MS = 2_000;
 const REFRESH_MS = 6_000;
@@ -125,7 +125,9 @@ function controls(session: Session) {
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId("ttt:plus").setLabel(`+${PLUS_BUTTON_S} s`).setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId("ttt:skip").setLabel("Volgende").setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId("ttt:stop").setLabel("Stop").setStyle(ButtonStyle.Danger),
+      session.free
+        ? new ButtonBuilder().setCustomId("ttt:free").setLabel("Hervat rotatie").setStyle(ButtonStyle.Success)
+        : new ButtonBuilder().setCustomId("ttt:free").setLabel("Klim").setStyle(ButtonStyle.Secondary),
       ...session.partNumbers
         .filter((number) => number !== session.partNumber)
         .map((number) =>
@@ -134,6 +136,7 @@ function controls(session: Session) {
             .setLabel(`Deel ${number}`)
             .setStyle(ButtonStyle.Success),
         ),
+      new ButtonBuilder().setCustomId("ttt:stop").setLabel("Stop").setStyle(ButtonStyle.Danger),
     ),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
@@ -207,6 +210,8 @@ const command = new SlashCommandBuilder()
   )
   .addSubcommand((sub) => sub.setName("stop").setDescription("Stop en verlaat het spraakkanaal"))
   .addSubcommand((sub) => sub.setName("skip").setDescription("Meteen naar de volgende renner"))
+  .addSubcommand((sub) => sub.setName("klim").setDescription("Vrij rijden: klok en coach zwijgen"))
+  .addSubcommand((sub) => sub.setName("hervat").setDescription("Na de klim: de rotatie weer oppakken"))
   .addSubcommand((sub) =>
     sub
       .setName("plus")
@@ -268,6 +273,7 @@ async function handle(interaction: Interaction) {
     if (interaction.customId === "ttt:plus") session.plus(PLUS_BUTTON_S);
     if (interaction.customId === "ttt:skip") session.skip();
     if (interaction.customId === "ttt:stop") stop(state);
+    if (interaction.customId === "ttt:free") session.setFree(!session.free);
     if (interaction.customId.startsWith("ttt:part:")) session.usePart(Number(interaction.customId.slice(9)));
     if (interaction.isStringSelectMenu() && interaction.customId === "ttt:out") {
       const index = Number(interaction.values[0]);
@@ -378,6 +384,13 @@ async function handle(interaction: Interaction) {
   }
   if (!session.running) {
     await reply("De timer loopt niet. Start met /ttt start.");
+    return;
+  }
+  if (sub === "klim" || sub === "hervat") {
+    const done = session.setFree(sub === "klim");
+    await reply(
+      !done ? "Dat staat al zo." : sub === "klim" ? "Vrij rijden. De klok staat stil." : "De rotatie loopt weer.",
+    );
     return;
   }
   if (sub === "skip") {

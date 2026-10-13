@@ -8,8 +8,9 @@
 // Het script luistert op het `nearby`-kanaal en vat samen wat bot/src/sauce.ts
 // moet weten: welke velden er zijn, hoeveel renners tegelijk in beeld zijn en of
 // de ploeggenoten uit --ids erbij zitten. Per bericht bewaart het in .tmp/ (staat
-// in .gitignore) alleen wat de coach gebruikt: Zwift-ID, gat, vermogen, snelheid
-// en draft. Geen namen; een ruw bericht is al gauw 400 kB per seconde.
+// in .gitignore) alleen wat de coach gebruikt of kan gaan gebruiken: Zwift-ID,
+// gat, vermogen, snelheid, draft, stijgingspercentage en afstand in het event.
+// Geen namen; een ruw bericht is al gauw 400 kB per seconde.
 
 import { mkdirSync, createWriteStream } from "node:fs";
 import { join } from "node:path";
@@ -76,6 +77,8 @@ socket.addEventListener("message", (message) => {
       power: entry?.state?.power,
       speed: entry?.state?.speed,
       draft: entry?.state?.draft,
+      grade: entry?.state?.grade,
+      eventDistance: entry?.state?.eventDistance,
       watching: entry?.watching || undefined,
     })),
   };

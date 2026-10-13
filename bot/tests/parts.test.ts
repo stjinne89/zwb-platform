@@ -51,6 +51,65 @@ describe("ander plan voor het volgende deel", () => {
   });
 });
 
+describe("vrij rijden op een klim", () => {
+  function session() {
+    const said: string[] = [];
+    const clock = { now: 0 };
+    const created = new Session(
+      { name: "Klim", eventTitle: null, estimatedSpeedKmh: null, riders: PART_1 },
+      { say: (text) => said.push(text), changed: () => undefined, log: () => undefined },
+      () => clock.now,
+    );
+    created.start(0);
+    created.skip();
+    return { created, said, clock };
+  }
+  // Op de klim rijdt Marc (3) vooraan en Jeroen (2) ver achter, met veel vermogen.
+  const climb = (at: number) => ({
+    at,
+    riders: [
+      { zwiftId: "3", power: 420, speedKmh: 20, gap: -4 },
+      { zwiftId: "1", power: 400, speedKmh: 19, gap: 0 },
+      { zwiftId: "2", power: 380, speedKmh: 17, gap: 12 },
+    ],
+  });
+
+  it("zwijgt tijdens de klim en begint daarna met wie vooraan rijdt", () => {
+    const { created, said, clock } = session();
+    expect(created.setFree(true)).toBe(true);
+    expect(said.at(-1)).toBe("Klim. Eigen tempo.");
+    expect(created.status()).toContain("Vrij rijden");
+
+    const before = said.length;
+    for (let second = 1; second <= 120; second += 1) {
+      clock.now = second * S;
+      created.onSample(climb(clock.now));
+    }
+    // Geen wissels, geen "watt eraf", geen "lost".
+    expect(said.length).toBe(before);
+    expect(created.rotation.riders.some((rider) => rider.out)).toBe(false);
+
+    expect(created.setFree(false)).toBe(true);
+    expect(said.at(-1)).toBe("Rotatie. Marc, 295 watt, 30 seconden.");
+    expect(created.rotation.endsAt).toBe(150 * S);
+    created.stop();
+  });
+
+  it("pakt zonder Sauce de volgende in het plan en doet niets vóór de start", () => {
+    const { created, said, clock } = session();
+    created.setFree(true);
+    clock.now = 60 * S;
+    created.skip();
+    expect(created.free).toBe(false);
+    expect(said.at(-1)).toBe("Rotatie. Jeroen, 350 watt, 30 seconden.");
+    created.stop();
+
+    created.start(60);
+    expect(created.setFree(true)).toBe(false);
+    created.stop();
+  });
+});
+
 describe("sessie in delen", () => {
   const plan = (name: string, riders: PlanRider[]): Plan => ({
     name,

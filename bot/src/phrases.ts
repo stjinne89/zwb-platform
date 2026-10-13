@@ -29,6 +29,14 @@ export function eventPhrase(event: RotationEvent, rotation: Rotation): string {
   return event.previous === -1 ? `Start. ${lead}` : `Wissel. ${lead}`;
 }
 
+export const FREE_PHRASE = "Klim. Eigen tempo.";
+
+/** Na vrij rijden: wie de rotatie weer oppakt. */
+export function resumePhrase(rotation: Rotation): string {
+  const seconds = rotation.riders[rotation.current].pullSeconds;
+  return `Rotatie. ${target(rotation, rotation.current)}, ${seconds} seconden.`;
+}
+
 /** Decimalen uitgeschreven, zodat de stem "43 komma 2" zegt. */
 function spoken(kmh: number) {
   return kmh.toFixed(1).replace(".", " komma ").replace(" komma 0", "");
@@ -53,9 +61,10 @@ export function advicePhrase(advice: Advice, name: (zwiftId: string) => string):
 
 /** Alles wat de klok kan zeggen, om vooraf klaar te zetten. */
 export function clockPhrases(rotation: Rotation): string[] {
-  const phrases = new Set<string>();
+  const phrases = new Set<string>([FREE_PHRASE]);
   rotation.riders.forEach((rider, index) => {
     if (rider.pullSeconds === 0) return;
+    phrases.add(resumePhrase({ ...rotation, current: index }));
     for (const seconds of START_COUNTDOWN) {
       phrases.add(eventPhrase({ type: "start-countdown", seconds, first: index }, rotation));
     }

@@ -118,7 +118,23 @@ rit te storen; `/ttt deel 2` of de knop Deel 2 schakelt over (`replan` in
 `rotation.ts`, `usePart` in `session.ts`). De koprijder maakt zijn kopbeurt af,
 daarna gelden volgorde, watt en duur van het nieuwe plan. Gelost blijft gelost en
 de coach houdt wat hij al zag, met de nieuwe doelen. Staat de koprijder niet in
-het nieuwe plan, dan begint de eerste renner daarvan meteen. Tot drie delen.
+het nieuwe plan, dan begint de eerste renner daarvan meteen. Twee delen: meer
+knoppen passen niet naast Klim in één rij.
+
+## Vrij rijden op een klim
+
+Op verzoek van de eigenaar (2026-10-13): op een flinke klim rijdt iedereen zijn
+eigen tempo. Zonder ingreep zou de coach daar onzin roepen: wissels bij elke
+inhaalactie, "watt eraf" voor wie boven zijn plan klimt, "lost" voor wie een gat
+laat. De knop Klim (`/ttt klim`, `setFree` in `session.ts`) zet klok en coach
+stil. Hervat rotatie (`/ttt hervat`, of Volgende) begint de rotatie opnieuw met
+de voorste renner uit de laatste Sauce-meting, als die hooguit 5 s oud is, en
+anders met de volgende in het plan (`resume` in `rotation.ts`).
+
+De bot herkent een klim niet zelf. Sauce geeft per renner `state.grade`, maar de
+eenheid en het gedrag zijn niet gemeten; het proefscript neemt het sinds deze
+ronde wel op, samen met `state.eventDistance`. Daarmee kan automatisch herkennen
+later, net als automatisch overschakelen op deel 2.
 
 Overschakelen gaat met de hand. Sauce geeft per renner wel de afstand in het
 event (`state.eventDistance`), dus automatisch op een kilometerpunt kan later;

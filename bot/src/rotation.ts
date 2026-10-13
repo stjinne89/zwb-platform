@@ -189,6 +189,18 @@ export function replan(rotation: Rotation, riders: PlanRider[], now: number): St
 }
 
 /**
+ * Na een stuk vrij rijden (een klim) begint de rotatie opnieuw: met de renner
+ * die nu vooraan rijdt als die bekend is en een kopbeurt doet, anders met de
+ * volgende in het plan. De kopbeurt begint op dit moment.
+ */
+export function resume(rotation: Rotation, index: number, now: number): Rotation {
+  const rider = rotation.riders[index];
+  const eligible = rider && !rider.out && rider.pullSeconds > 0;
+  const target = eligible ? index : nextIndex(rotation);
+  return lead(rotation, target === -1 ? rotation.current : target, now);
+}
+
+/**
  * Sauce ziet deze renner op kop komen. Is dat een ander dan de klok dacht, dan
  * volgt de rotatie de ploeg. Is het dezelfde en is de wissel net geweest, dan
  * begint de kopbeurt pas nu: de ploeg wisselde later dan de klok.

@@ -2,13 +2,14 @@
 // Weet niets van Discord; spreken en tonen gaan via `SessionIo`.
 
 import { Coach, type Sample } from "./coach.ts";
-import { advicePhrase, eventPhrase } from "./phrases.ts";
+import { advicePhrase, eventPhrase, FREE_PHRASE, resumePhrase } from "./phrases.ts";
 import type { Plan } from "./plan.ts";
 import {
   createRotation,
   nextIndex,
   plus,
   replan,
+  resume,
   sameRider,
   setOut,
   skip,
@@ -20,6 +21,8 @@ import {
 import type { Priority } from "./speech.ts";
 
 const TICK_MS = 250;
+/** Zo vers moet een meting zijn om er de koprijder uit af te lezen. */
+const FRONT_FRESH_MS = 5_000;
 /** Zonder meting in deze tijd geldt Sauce als weg. */
 const SAUCE_STALE_MS = 10_000;
 
@@ -47,6 +50,9 @@ export class Session {
   /** Met de hand gelost gezet; de coach beslist daar niet meer over. */
   private readonly manualOut = new Set<number>();
   private sauce = { at: 0, visible: 0 };
+  private lastSample: Sample | null = null;
+  /** Vrij rijden, bijvoorbeeld op een klim: klok en coach zwijgen. */
+  free = false;
   /** Het plan per deel van de race; deel 1 staat op plek 0. */
   private readonly parts: Plan[];
   private part = 0;
@@ -109,10 +115,13 @@ export class Session {
     this.stop();
     this.manualOut.clear();
     this.part = 0;
+    this.free = false;
     this.rotation = createRotation(this.plan.riders, this.now() + delaySeconds * 1000);
     this.coach = new Coach(this.plan);
     this.running = true;
-    this.timer = setInterval(() => this.apply(tick(this.rotation, this.now())), TICK_MS);
+    this.timer = setInterval(() => {
+      if (!this.free) this.apply(tick(this.rotation, this.now()));
+    }, TICK_MS);
     this.io.changed();
   }
 
@@ -123,11 +132,46 @@ export class Session {
   }
 
   skip() {
-    if (this.running) this.apply(skip(this.rotation, this.now()));
+    if (this.free) this.setFree(false);
+    else if (this.running) this.apply(skip(this.rotation, this.now()));
+  }
+
+  /**
+   * Vrij rijden aan of uit. Aan: klok en coach zwijgen, iedereen rijdt zijn
+   * eigen tempo. Uit: de rotatie begint opnieuw met wie Sauce nu vooraan ziet,
+   * of anders met de volgende in het plan.
+   */
+  setFree(on: boolean) {
+    if (!this.running || this.rotation.current === -1 || on === this.free) return false;
+    this.free = on;
+    if (on) {
+      this.io.log("vrij rijden aan");
+      this.io.say(FREE_PHRASE, "clock");
+    } else {
+      this.rotation = resume(this.rotation, this.frontIndex(), this.now());
+      const phrase = resumePhrase(this.rotation);
+      this.io.log(`vrij rijden uit: ${phrase}`);
+      this.io.say(phrase, "clock");
+    }
+    this.io.changed();
+    return true;
+  }
+
+  /** De voorste renner van de ploeg volgens de laatste meting, of -1. */
+  private frontIndex() {
+    const sample = this.lastSample;
+    if (!sample || this.now() - sample.at > FRONT_FRESH_MS) return -1;
+    const seen = sample.riders
+      .map((rider) => ({
+        gap: rider.gap,
+        index: this.rotation.riders.findIndex((r) => r.zwiftId === rider.zwiftId && !r.out),
+      }))
+      .filter((rider) => rider.index !== -1);
+    return seen.length === 0 ? -1 : seen.reduce((a, b) => (b.gap < a.gap ? b : a)).index;
   }
 
   plus(seconds: number) {
-    if (!this.running) return;
+    if (!this.running || this.free) return;
     this.rotation = plus(this.rotation, seconds, this.now());
     this.io.changed();
   }
@@ -147,7 +191,8 @@ export class Session {
 
   onSample(sample: Sample) {
     this.sauce = { at: sample.at, visible: this.coach.visible(sample) };
-    if (!this.running || this.rotation.current === -1) return;
+    this.lastSample = sample;
+    if (!this.running || this.free || this.rotation.current === -1) return;
 
     const riders = this.rotation.riders;
     const byZwiftId = (zwiftId: string) => riders.findIndex((rider) => rider.zwiftId === zwiftId);
@@ -186,6 +231,8 @@ export class Session {
 
     if (!this.running) {
       lines.push("Gestopt");
+    } else if (this.free) {
+      lines.push("Vrij rijden · de klok staat stil");
     } else if (current === -1) {
       const first = nextIndex(this.rotation, -1);
       lines.push(`Start over ${clock(endsAt - this.now())}`);
