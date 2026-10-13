@@ -17,7 +17,9 @@ gaat stabiliteit voor nieuwe features.
    database 202 MB, disk ~25%). Waarom hij op 2026-10-01 werd geblokkeerd door
    Windows-toepassingsbeheer is niet vastgesteld. De cijfers in dat rapport tellen
    nog vanaf de statistiekenreset van mei, dus de verwijderde segmentquery's staan
-   er nog in; pas de check van volgende week vergelijkt met een momentopname.
+   er nog in. De check van 2026-10-13 vergelijkt wel met een momentopname (die van
+   2026-10-01; van de run op 2026-10-02 staat geen rapport of momentopname in
+   `.tmp/db-health`).
    `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
    Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
    **Check 2026-10-13:** database 215 MB (Supabase telt 229,75 MB), disk 26%,
@@ -28,8 +30,20 @@ gaat stabiliteit voor nieuwe features.
    ongefilterd opgehaald en de grens van 1000 rijen werd niet geraakt; wel kapte
    het zoeken zelf af op 200 treffers (verholpen, zie de ronde "NEVO-zoeken" van
    2026-10-13). Egress in de nieuwe cyclus
-   (vanaf 2026-10-11): na ruim twee dagen 0,704 GB tegen een limiet van 5 GB; de
-   oorzaak wordt nog onderzocht.
+   (vanaf 2026-10-11): na ruim twee dagen 0,704 GB tegen een limiet van 5 GB. De
+   oorzaak is gevonden en dezelfde als de zwaarste query: het nawerk na een
+   Strava-webhook haalt twee keer de hele rithistorie met `raw` op (mijlpalen en
+   cols). De fix staat in commit `bff6209` op branch
+   `claude/zwb-supabase-egress-investigation-5ed4cd`, nog niet op `main` en niet
+   gedeployed; het effect is dus niet gemeten.
+   `live_positions` ging van 0 naar 9.327 rijen en dat klopt: de tabel is op
+   2026-10-01 met de hand geleegd en de bewaartermijn is 30 dagen, dus tot
+   ongeveer 2026-10-31 wordt er niets gewist. Wel negeert `/api/live/cleanup` een
+   fout bij het wissen en antwoordt altijd `ok: true`; pas na die datum is te zien
+   of het wissen echt werkt.
+   De regel "wordt zonder filter opgehaald" in `scripts/db-health.mjs` gaf bij
+   `nutrition_foods` vals alarm en doet dat volgende week weer zolang de
+   herkenning niet is aangepast.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
