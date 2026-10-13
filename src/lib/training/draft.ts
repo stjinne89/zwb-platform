@@ -46,8 +46,15 @@ import {
   type FtpTestType,
 } from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
-import { blockEndDate, daysBetween, NEXT_BLOCK_LEAD_DAYS } from "@/lib/training/season";
-import { seasonPlanForAi } from "@/lib/training/season-data";
+import {
+  blockEndBeforeBuild,
+  blockEndDate,
+  daysBetween,
+  NEXT_BLOCK_LEAD_DAYS,
+  PLAN_BLOCK_DAYS,
+  shiftDays,
+} from "@/lib/training/season";
+import { loadSeasonTargets, seasonPlanForAi } from "@/lib/training/season-data";
 import { rootIdOf } from "@/lib/training/plan-tree";
 import { archiveOtherBasePlans, extendRootPlanEnd } from "@/lib/training/active-plan";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
@@ -261,6 +268,28 @@ export async function buildIntervalsLoad(
   }
 }
 
+/**
+ * Het einde van een blok, ingekort waar de opbouw naar een A-doel van een ander
+ * schema begint; zie blockEndBeforeBuild(). Lukt het ophalen van de jaarplanning
+ * niet, dan blijft het einde staan: liever een blok dat iets te ver loopt dan
+ * geen schema.
+ */
+async function blockEndForGoal(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+  goalId: string,
+  from: string,
+  end: string,
+): Promise<string> {
+  const targets = await loadSeasonTargets(
+    admin,
+    profileId,
+    from,
+    shiftDays(end, PLAN_BLOCK_DAYS),
+  ).catch(() => []);
+  return blockEndBeforeBuild({ from, end, planGoalId: goalId, targets });
+}
+
 async function buildTrainingInput(
   admin: ReturnType<typeof createAdminClient>,
   athleteId: string,
@@ -304,7 +333,9 @@ async function buildTrainingInput(
   // doel over negen maanden gaf negen maanden uitgewerkte trainingen, waarvan
   // de laatste zeven nergens meer op sloegen tegen de tijd dat het lid er was.
   const today = amsterdamDayKey();
-  const horizonKey = horizonOverride ?? blockEndDate(today, goal.target_date);
+  const horizonKey =
+    horizonOverride ??
+    (await blockEndForGoal(admin, athleteId, goalId, today, blockEndDate(today, goal.target_date)));
 
   // Naleving van het lopende schema: hiermee kan de AI het volgende blok
   // afstemmen op wat het lid werkelijk rijdt in plaats van op wat er stond.
@@ -595,7 +626,12 @@ async function createPlanFromAiGeneration(
   // app toont zelf al dat het een voorstel is, en "(aanpassing vandaag)" hoort bij
   // de knop van de renner.
   const isDailyProposal = generation.adaptation_kind === "daily";
-  const title = isPlanUpdate
+  // Een volgend blok is een herziening die voorbij het oude einde loopt. Het is
+  // geen bijstelling van wat er stond, dus het krijgt geen "(bijgewerkt)".
+  const isNextBlock = isPlanUpdate && isNextBlockGeneration(generation.prompt_summary);
+  const title = isNextBlock
+    ? planDraft.title
+    : isPlanUpdate
     ? `${planDraft.title} (bijgewerkt)`
     : isDailyProposal
       ? planDraft.title
@@ -766,10 +802,22 @@ async function createPlanFromAiGeneration(
     await sendNotificationToMembers(
       "on_training_plan",
       {
-        title: "Aanpassing om te beoordelen",
-        body: autoPublished
-          ? `${name} paste de training van vandaag aan. Die staat al in intervals.icu — bekijk of de rest van de week nog past.`
-          : `${name} maakte een aanpassing voor vandaag. Bekijk het concept.`,
+        title: isNextBlock
+          ? "Volgend blok klaargezet"
+          : isPlanUpdate
+            ? "Schema bijgewerkt"
+            : "Aanpassing om te beoordelen",
+        body: isNextBlock
+          ? autoPublished
+            ? `${name} zette het volgende blok van het schema klaar. Het staat al in intervals.icu — bekijk of de opzet klopt.`
+            : `${name} zette het volgende blok van het schema klaar. Bekijk het concept.`
+          : isPlanUpdate
+            ? autoPublished
+              ? `Het schema van ${name} is bijgewerkt en staat al in intervals.icu — bekijk of het nog klopt.`
+              : `Het schema van ${name} is bijgewerkt. Bekijk het concept.`
+            : autoPublished
+              ? `${name} paste de training van vandaag aan. Die staat al in intervals.icu — bekijk of de rest van de week nog past.`
+              : `${name} maakte een aanpassing voor vandaag. Bekijk het concept.`,
         url: "/zwbeter-worden",
         tag: `training-adaptation-${plan.id}`,
       },
@@ -1043,6 +1091,18 @@ export function planUpdateEndDate(aiEndDate: string, promptSummary: string | nul
   return requested > String(aiEndDate).slice(0, 10) ? requested : aiEndDate;
 }
 
+/** Is deze herziening een volgend blok? Leest planUpdate.nextBlock uit de AI-invoer. */
+export function isNextBlockGeneration(promptSummary: string | null): boolean {
+  try {
+    return (
+      (JSON.parse(promptSummary ?? "") as { planUpdate?: { nextBlock?: unknown } }).planUpdate
+        ?.nextBlock === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Einddatum van een nieuw schema: nooit voorbij het blok waarvoor het is
  * gevraagd (planWindow.to in de AI-invoer). Geeft null als die invoer er niet
@@ -1311,7 +1371,13 @@ async function preparePlanUpdate({
   // meer: daarna gaat het schema gewoon een blok verder.
   const goalDate = updates.target_date ? String(updates.target_date).slice(0, 10) : null;
   const toDate = nextBlock
-    ? blockEndDate(fromDate, goalDate && goalDate > planEnd ? goalDate : null)
+    ? await blockEndForGoal(
+        admin,
+        plan.profile_id,
+        plan.goal_id,
+        fromDate,
+        blockEndDate(fromDate, goalDate && goalDate > planEnd ? goalDate : null),
+      )
     : planEnd;
 
   // Doel bijwerken vóór de generatie, zodat buildTrainingInput en elke volgende

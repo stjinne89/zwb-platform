@@ -3,6 +3,7 @@ import {
   applyGoalUpdates,
   changedSinceSchedule,
   goalUpdatesFromForm,
+  isNextBlockGeneration,
   planUpdateEndDate,
   planWindowEndDate,
 } from "@/lib/training/draft";
@@ -109,6 +110,16 @@ describe("planUpdatePrompt", () => {
     const prompt = planUpdatePrompt();
     expect(prompt).toContain("UITSLUITEND in goal.type");
     expect(prompt).toContain("niet het einde van dit schema");
+  });
+});
+
+describe("isNextBlockGeneration", () => {
+  it("herkent een volgend blok aan de AI-invoer", () => {
+    expect(isNextBlockGeneration(JSON.stringify({ planUpdate: { nextBlock: true } }))).toBe(true);
+    expect(isNextBlockGeneration(JSON.stringify({ planUpdate: { toDate: "2026-12-20" } }))).toBe(
+      false,
+    );
+    expect(isNextBlockGeneration(null)).toBe(false);
   });
 });
 

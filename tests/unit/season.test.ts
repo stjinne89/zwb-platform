@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   A_TARGET_MIN_GAP_DAYS,
+  blockEndBeforeBuild,
   blockEndDate,
   CAMP_BEFORE_A_TARGET_DAYS,
   daysBetween,
   NEXT_BLOCK_LEAD_DAYS,
   nextBlockDue,
   PLAN_BLOCK_DAYS,
+  schemaStartTarget,
   seasonForAi,
   seasonRoad,
   seasonStand,
@@ -344,6 +346,72 @@ describe("seasonWarnings", () => {
     });
     expect(codes(warnings)).not.toContain("schema_door_rustperiode");
     expect(warnings).toEqual([]);
+  });
+});
+
+describe("schema of blok", () => {
+  // Marmotte op 4 juli 2027: de opbouw begint twaalf weken eerder, op 11 april.
+  const marmotte = target({ id: "a", targetDate: "2027-07-04", goalId: null });
+  const opbouw = shiftDays("2027-07-04", -PLAN_BLOCK_DAYS);
+
+  it("laat een blok stoppen op de dag voordat de opbouw naar een A-doel begint", () => {
+    expect(
+      blockEndBeforeBuild({
+        from: "2027-02-01",
+        end: "2027-04-26",
+        planGoalId: "winter",
+        targets: [marmotte],
+      }),
+    ).toBe(shiftDays(opbouw, -1));
+  });
+
+  it("kort een blok niet in voor het doel van het schema zelf of voor een B-doel", () => {
+    const eigen = blockEndBeforeBuild({
+      from: "2027-02-01",
+      end: "2027-04-26",
+      planGoalId: "g-marmotte",
+      targets: [{ ...marmotte, goalId: "g-marmotte" }],
+    });
+    expect(eigen).toBe("2027-04-26");
+    const bDoel = blockEndBeforeBuild({
+      from: "2027-02-01",
+      end: "2027-04-26",
+      planGoalId: "winter",
+      targets: [{ ...marmotte, priority: "b" }],
+    });
+    expect(bDoel).toBe("2027-04-26");
+  });
+
+  it("maakt geen stompje van minder dan twee weken", () => {
+    const from = shiftDays(opbouw, -(NEXT_BLOCK_LEAD_DAYS - 1));
+    const end = shiftDays(from, PLAN_BLOCK_DAYS);
+    expect(blockEndBeforeBuild({ from, end, planGoalId: "winter", targets: [marmotte] })).toBe(
+      end,
+    );
+  });
+
+  it("biedt het nieuwe schema aan vanaf twee weken voor de opbouw, niet eerder", () => {
+    const vraag = (today: string, planEnd: string) =>
+      schemaStartTarget({ today, planEnd, planGoalId: "winter", targets: [marmotte] })?.id ??
+      null;
+    const eind = shiftDays(opbouw, -1);
+    expect(vraag(shiftDays(opbouw, -NEXT_BLOCK_LEAD_DAYS), eind)).toBe("a");
+    expect(vraag(shiftDays(opbouw, -NEXT_BLOCK_LEAD_DAYS - 1), eind)).toBeNull();
+    // Een schema dat nog weken doorloopt tot ver voor de opbouw: nog niet.
+    expect(vraag("2027-01-10", "2027-01-20")).toBeNull();
+    // Ook als de opbouw al is begonnen, zolang het doel nog komt.
+    expect(vraag("2027-05-01", "2027-05-10")).toBe("a");
+  });
+
+  it("biedt geen nieuw schema aan voor het doel waar het schema al naartoe werkt", () => {
+    expect(
+      schemaStartTarget({
+        today: "2027-05-01",
+        planEnd: "2027-05-10",
+        planGoalId: "g-marmotte",
+        targets: [{ ...marmotte, goalId: "g-marmotte" }],
+      }),
+    ).toBeNull();
   });
 });
 

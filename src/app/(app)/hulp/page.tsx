@@ -1673,7 +1673,8 @@ export default function HelpPage() {
             <h2 className="font-semibold">Trainingsdoel en je schema</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Een schema begint bij een doel. Daarin leg je vast waar je naartoe
-              werkt en hoeveel ruimte je hebt.
+              werkt en hoeveel ruimte je hebt. Het trainingsdeel werkt alleen
+              goed met intervals.icu gekoppeld.
             </p>
           </div>
         </header>
@@ -1738,9 +1739,29 @@ export default function HelpPage() {
               <strong className="text-foreground">Volgend blok klaarzetten</strong>.
               Het nieuwe blok bouwt voort op wat je hebt gereden en loopt weer
               twaalf weken vooruit. Het gaat niet vanzelf: jij kiest of en
-              wanneer je verder wilt. Ligt er een A-doel verder weg, dan zie je
-              in je jaarplan twaalf weken ervoor waar de opbouw ernaartoe
-              begint.
+              wanneer je verder wilt.
+            </p>
+            <h4 className="mt-3 text-sm font-medium">Schema of blok</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Een schema hoort bij één doel, bijvoorbeeld je winter of de ZRL,
+              en loopt zo lang als dat doel loopt. Een blok is een stuk van
+              hooguit twaalf weken daarbinnen: zelfde doel, zelfde opzet. Een
+              volgend blok zet je zelf klaar.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Twaalf weken voor een A-doel begint een nieuw schema, speciaal
+              naar dat doel toe. Een blok van je lopende schema stopt daar dus
+              ook. Vanaf twee weken daarvoor staat in je jaarplan de knop{" "}
+              <strong className="text-foreground">Start schema naar …</strong>.
+              Daarmee maak je van het mikpunt een trainingsdoel; je trainer zet
+              daarna het schema klaar. Een nieuw schema komt altijd van je
+              trainer.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Het trainingsdeel werkt alleen goed met intervals.icu gekoppeld.
+              Zonder koppeling komt een volgend blok of een bijgewerkt schema
+              niet door: het blijft als concept staan en je oude trainingen
+              worden niet vervangen. Koppelen doe je bij Training → Doelen.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Een schema dat al langer liep toen dit is ingevoerd, houdt zijn

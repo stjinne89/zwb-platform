@@ -1364,6 +1364,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > `5728394`, ook voor het omzetten), `tsc` en ESLint op de geraakte bestanden.
 
 > **Jaarplan: mikpunten en periodes bewerken, en trainingskamp als soort periode, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> *(Migratie `0217` is inmiddels toegepast; gecontroleerd op 2026-10-13.)*
 > Commit: de commit die dit blok toevoegt. Migratie `0217_training_season_camp.sql`
 > (nog niet toegepast).
 >
@@ -7223,6 +7224,75 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — schema of blok: een nieuw schema begint twaalf weken voor een A-doel
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De ronde hieronder voerde "volgend blok" in als verlenging van het
+lopende schema, zonder dat het onderscheid tussen een blok en een schema was
+afgesproken. De eigenaar legde het vast: een schema hoort bij één doel (winter,
+ZRL) en loopt in blokken van hooguit twaalf weken; twaalf weken voor een A-doel
+begint een nieuw schema, specifiek naar dat doel. Een nieuw schema komt altijd
+van de trainer: het lid maakt het doel, de trainer zet het AI-concept klaar.
+Een blok zet het lid zelf klaar.
+
+**Wat.**
+- `blockEndBeforeBuild()` (`season.ts`): een blok eindigt uiterlijk de dag
+  voordat de opbouw naar een A-doel van een ander schema begint (A-doel min
+  twaalf weken). Blijft er dan minder dan twee weken over, dan wordt er niet
+  ingekort. Toegepast op een volgend blok en op een nieuw schema
+  (`blockEndForGoal()` in `draft.ts`). Een A-doel hoort bij het schema zelf als
+  het mikpunt aan hetzelfde doel hangt (`goal_id`).
+- `schemaStartTarget()`: het A-doel waarvoor het tijd is. Geldt vanaf twee
+  weken voor het begin van de opbouw, en alleen als die opbouw uiterlijk twee
+  weken na het einde van het schema begint.
+- Op de weg staat bij het hek dan "Start schema naar …" in plaats van "Volgend
+  blok klaarzetten". De knop gaat naar `/zwbeter-worden/doelen?mikpunt=…`, de
+  bestaande route waar het doelformulier met titel en datum van het mikpunt
+  begint; daarna wacht het doel op de trainer (`goalsAwaitingPlan`). Hangt er
+  al een doel aan het mikpunt, dan staat er "Het doel voor … ligt bij je
+  trainer" en blijft "Volgend blok" beschikbaar, zodat het lid niet zonder
+  schema valt als het nieuwe er nog niet is.
+- De melding "A-doel heeft nog geen schema" kreeg dezelfde knoptekst ("Start
+  schema naar …" in plaats van "Maak hier een doel van").
+- Een volgend blok heet geen "(bijgewerkt)" meer, en de trainer krijgt een
+  passende melding. Die melding zei bij elke herziening dat het lid "de training
+  van vandaag" had aangepast, ook bij een automatische herziening van het hele
+  schema; dat is nu "Schema bijgewerkt" of "Volgend blok klaargezet".
+- `/hulp#blokken`: schema of blok, de route via de trainer, en dat het
+  trainingsdeel alleen goed werkt met intervals.icu gekoppeld.
+
+**Bewust niet gebouwd.**
+- *Geen oplossing voor leden zonder intervals.icu.* Een volgend blok of een
+  herziening blijft dan als concept staan: de oude trainingen worden niet
+  vervangen en de einddatum schuift niet op, omdat dat allemaal bij het
+  doorzetten naar intervals.icu gebeurt. Besluit van de eigenaar: het
+  trainingsdeel werkt zonder koppeling niet naar behoren, en dat staat op
+  `/hulp`.
+- *Geen wissel van schema bij het begin van een ZRL-seizoen.* Dat is geen datum
+  in het jaarplan.
+- *Het lid kan geen nieuw schema zelf starten*, ook niet wie zichzelf coacht via
+  deze knop: die loopt voor iedereen via een doel.
+
+**Bekende rand.** Werkt een lopend schema al naar een A-doel toe terwijl het
+mikpunt niet aan dat doel is gekoppeld (`goal_id` leeg), dan ziet het systeem
+dat niet en biedt het toch "Start schema naar …" aan.
+
+**Niet meer waar.** In de ronde hieronder: "Loopt een schema af zonder dat dat
+gebeurt, dan is er geen schema en maakt het lid (of de trainer) een nieuw" (een
+nieuw schema komt van de trainer) en "het volgende blok loopt twaalf weken
+vanaf vandaag" (het stopt eerder als de opbouw naar een A-doel begint). In de
+ronde van 2026-10-04: migratie `0217` is toegepast; in productie staan
+periodes met soort `kamp` (gecontroleerd 2026-10-13).
+
+**Getest.** `season.test.ts` (blok stopt voor de opbouw, geen stompje, eigen
+doel en B-doel tellen niet, het moment van "Start schema"),
+`plan-update-goal.test.ts` (`isNextBlockGeneration`), `tsc`, ESLint.
+
+**Niet geverifieerd.** Niets hiervan is in de browser aangeklikt: niet de knop
+"Start schema naar …", niet het doelformulier dat erachter opent, niet de
+meldingen aan de trainer.
 
 ### Bijgesteld — trainingskamp vóór een A-doel: grens van tien naar zeven dagen
 

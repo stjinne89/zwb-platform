@@ -48,6 +48,10 @@ const FIELD =
 const LINK_BUTTON =
   "inline-flex min-h-9 shrink-0 items-center justify-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-3 text-[0.8rem] font-medium whitespace-nowrap transition-all hover:bg-muted hover:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50";
 
+/** Dezelfde link, als de ene actie van een halte. */
+const LINK_PRIMARY =
+  "mt-2 inline-flex min-h-11 items-center justify-center rounded-[min(var(--radius-md),12px)] bg-primary px-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/80";
+
 function datum(dayKey: string, options: Intl.DateTimeFormatOptions) {
   return new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("nl-NL", {
     ...options,
@@ -667,11 +671,27 @@ function SchemaEinde({
             Naar je schema
           </Link>
         </p>
-      ) : editable && stop.nextBlockDue ? (
-        <Button type="button" disabled={loopt} onClick={start} className="mt-2 min-h-11">
-          {loopt ? "Blok wordt gemaakt…" : "Volgend blok klaarzetten"}
-        </Button>
-      ) : null}
+      ) : editable && stop.startTarget && !stop.startTarget.goalId ? (
+        // Vanaf hier hoort een nieuw schema, naar het A-doel toe. Dat maakt de
+        // trainer; het lid zet er het doel voor klaar.
+        <Link
+          href={`/zwbeter-worden/doelen?mikpunt=${stop.startTarget.id}`}
+          className={LINK_PRIMARY}
+        >
+          Start schema naar {stop.startTarget.title}
+        </Link>
+      ) : (
+        <>
+          {stop.startTarget ? (
+            <p className="jp-meta">Het doel voor {stop.startTarget.title} ligt bij je trainer.</p>
+          ) : null}
+          {editable && stop.nextBlockDue ? (
+            <Button type="button" disabled={loopt} onClick={start} className="mt-2 min-h-11">
+              {loopt ? "Blok wordt gemaakt…" : "Volgend blok klaarzetten"}
+            </Button>
+          ) : null}
+        </>
+      )}
       {poll.error ? <p className="jp-fout">{poll.error}</p> : null}
     </div>
   );

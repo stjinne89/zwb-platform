@@ -147,6 +147,62 @@ export function nextBlockDue(
   return rest >= 0 && rest <= NEXT_BLOCK_LEAD_DAYS;
 }
 
+/**
+ * Een schema hoort bij één doel en loopt in blokken. Twaalf weken vóór een
+ * A-doel begint een nieuw schema, specifiek naar dat doel toe; dat maakt de
+ * trainer, via een doel dat het lid aanmaakt. Dit is het A-doel waarvoor dat
+ * moment er is of eraan komt: zijn opbouw begint uiterlijk twee weken na
+ * `planEnd` én uiterlijk over twee weken. Dat laatste houdt de knop weg zolang
+ * het nog te vroeg is om de trainer te vragen. Een A-doel waar dit schema zelf
+ * al naartoe werkt telt niet mee.
+ */
+export function schemaStartTarget(input: {
+  today: string;
+  planEnd: string;
+  planGoalId: string | null;
+  targets: SeasonTarget[];
+}): SeasonTarget | null {
+  const eind = shiftDays(input.planEnd, NEXT_BLOCK_LEAD_DAYS);
+  const nu = shiftDays(input.today, NEXT_BLOCK_LEAD_DAYS);
+  const grens = eind < nu ? eind : nu;
+  return (
+    input.targets
+      .filter(
+        (target) =>
+          target.priority === "a" &&
+          target.targetDate >= input.today &&
+          !(target.goalId && target.goalId === input.planGoalId) &&
+          shiftDays(target.targetDate, -PLAN_BLOCK_DAYS) <= grens,
+      )
+      .sort((a, b) => a.targetDate.localeCompare(b.targetDate))[0] ?? null
+  );
+}
+
+/**
+ * Het einde van een blok, ingekort tot de dag voordat de opbouw naar een A-doel
+ * van een ander schema begint. Zo loopt een winterblok niet door in de twaalf
+ * weken die bij de Marmotte horen. Zou er dan minder dan twee weken overblijven,
+ * dan blijft het einde staan: zo'n stompje is geen blok, en dan is het tijd voor
+ * het nieuwe schema.
+ */
+export function blockEndBeforeBuild(input: {
+  from: string;
+  end: string;
+  planGoalId: string | null;
+  targets: SeasonTarget[];
+}): string {
+  let end = input.end;
+  for (const target of input.targets) {
+    if (target.priority !== "a") continue;
+    if (target.goalId && target.goalId === input.planGoalId) continue;
+    const opbouw = shiftDays(target.targetDate, -PLAN_BLOCK_DAYS);
+    if (daysBetween(input.from, opbouw) < NEXT_BLOCK_LEAD_DAYS) continue;
+    const laatste = shiftDays(opbouw, -1);
+    if (laatste < end) end = laatste;
+  }
+  return end;
+}
+
 // ---------------------------------------------------------------------------
 // Wat de planner van de jaarplanning te zien krijgt
 // ---------------------------------------------------------------------------
@@ -360,7 +416,7 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
         target.goalId == null
           ? {
               kind: "maak_doel",
-              label: "Maak hier een doel van",
+              label: `Start schema naar ${target.title}`,
               targetId: target.id,
             }
           : { kind: "open_schema", label: "Naar je schema" },
@@ -442,7 +498,13 @@ export type SeasonRoadStop = {
   | { kind: "periode"; period: SeasonPeriod; days: number }
   | { kind: "schema_start"; plan: SeasonPlanBar }
   /** Tot hier is het schema uitgewerkt. */
-  | { kind: "schema_eind"; plan: SeasonPlanBar; nextBlockDue: boolean }
+  | {
+      kind: "schema_eind";
+      plan: SeasonPlanBar;
+      nextBlockDue: boolean;
+      /** Het A-doel waarvoor hierna een nieuw schema begint, als dat zo is. */
+      startTarget: SeasonTarget | null;
+    }
   /** Twaalf weken vóór een A-doel: hier begint het blok dat ernaartoe werkt. */
   | { kind: "opbouw"; target: SeasonTarget }
 );
@@ -562,6 +624,12 @@ export function seasonRoad(input: {
         surface: "schema",
         plan,
         nextBlockDue: nextBlockDue(today, plan),
+        startTarget: schemaStartTarget({
+          today,
+          planEnd: plan.endDate,
+          planGoalId: plan.goalId,
+          targets,
+        }),
       });
     }
   }

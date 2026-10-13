@@ -157,7 +157,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Blokken van twaalf weken, het volgende blok klaarzetten, en de bronnen.",
     href: "/hulp#blokken",
     terms:
-      "blok blokken twaalf weken 12 weken drie maanden 3 maanden schema lengte duur kort stopt eindigt einde afgelopen volgend blok klaarzetten verlengen doorgaan doel ver weg opbouw periodisering bron bronnen onderzoek friel waarom",
+      "blok blokken twaalf weken 12 weken drie maanden 3 maanden schema lengte duur kort stopt eindigt einde afgelopen volgend blok klaarzetten verlengen doorgaan doel ver weg start schema nieuw schema trainer a-doel intervals intervals.icu koppelen concept opbouw periodisering bron bronnen onderzoek friel waarom",
   },
   {
     title: "Doeltype en de laatste weken",
