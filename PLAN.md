@@ -7471,8 +7471,8 @@ dat de herziening niet kon starten, terwijl het verzoek wel was vastgelegd.
   gegevens en per onderwerp het effect; de volledige prompt is voor een lid niet
   leesbaar en verandert vaak.
 - *Geen nieuwe privacyversie.* De privacyverklaring heeft een alinea
-  "Persoonlijke voorkeuren" gekregen; of leden opnieuw moeten tekenen is aan de
-  eigenaar en is hem voorgelegd.
+  "Persoonlijke voorkeuren" gekregen. Besluit van de eigenaar (2026-10-14):
+  leden hoeven niet opnieuw te tekenen.
 
 **Bekende randen.**
 - De zinnen onder elke groep op het tabblad zijn met de hand geschreven naast
@@ -7503,10 +7503,12 @@ Volledige Vitest-run groen op `omnium-live.test.ts` na (vraagt `.env.local`).
 successfully" en de typecontrole; de build stopt daarna bij het prerenderen van
 `/omnium`, dat Supabase-gegevens nodig heeft die deze worktree niet heeft.
 
-**Niet geverifieerd.** Migratie `0230` is niet op de productiedatabase
-uitgevoerd; tot dat gebeurt tonen de schermen "Nog niets vastgelegd" en geeft
-toevoegen een foutmelding, terwijl de rest blijft werken (`loadPreferences()`
-vangt de ontbrekende tabel af). Geen van de schermen is in de browser bekeken
+**Migratie.** `0230` is volgens de eigenaar op 2026-10-14 op productie
+uitgevoerd; niet zelf nagekeken. Ontbreekt de tabel toch, dan tonen de schermen
+"Nog niets vastgelegd" en geeft toevoegen een foutmelding, terwijl de rest
+blijft werken (`loadPreferences()` vangt dat af).
+
+**Niet geverifieerd.** Geen van de schermen is in de browser bekeken
 of aangeklikt. Of het model de voorkeuren werkelijk zwaarder laat wegen in een
 schema, blijkt pas uit een generatie in productie.
 
