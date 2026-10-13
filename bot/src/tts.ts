@@ -9,6 +9,8 @@ import { rename, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline";
 
+const PREPARE_WORKERS = 4;
+
 export const CACHE_DIR = join(import.meta.dirname, "..", ".cache");
 
 /** Maakt van een zin een wav-bestand op `path`. */
@@ -108,8 +110,17 @@ export class Tts {
     return job;
   }
 
-  /** Zet zinnen vooraf klaar, zodat aftellen niet op de stem wacht. */
+  /**
+   * Zet zinnen vooraf klaar, zodat aftellen niet op de stem wacht. In de
+   * opgegeven volgorde, een paar tegelijk: Piper laadt per zin zijn hele stem.
+   */
   async prepare(texts: string[]) {
-    await Promise.all(texts.map((text) => this.file(text).catch(() => undefined)));
+    const queue = [...texts];
+    const worker = async () => {
+      for (let text = queue.shift(); text !== undefined; text = queue.shift()) {
+        await this.file(text).catch(() => undefined);
+      }
+    };
+    await Promise.all(Array.from({ length: PREPARE_WORKERS }, worker));
   }
 }

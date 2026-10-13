@@ -117,10 +117,15 @@ positief.
 - Eén renner zat niet in Discord en hoorde de bot niet. Dat verklaart mogelijk
   een deel van de onrust; de bot kan daar niets aan doen.
 
-**Open.** De wens van de ploeg voor een vrouwenstem: Windows heeft voor het
-Nederlands alleen Frank. Het kan met Piper (bijvoorbeeld de Vlaamse stem
-Nathalie); dat vraagt een download en is niet getest. De nieuwe drempels zijn
-niet in een race gehoord. Bij de volgende ploegentijdrit de meting wel starten.
+**Vrouwenstem.** Wens van de ploeg. Windows heeft voor het Nederlands alleen
+Frank; de bot spreekt daarom sinds dezelfde avond met Piper en de Vlaamse stem
+`nl_BE-nathalie-medium`, na een luisterfragment gekozen door de eigenaar. Piper
+is daarmee voor het eerst getest: een zin kost ongeveer een seconde (Frank: een
+paar milliseconden), dus de bot zet nu ook de coachmeldingen vooraf klaar.
+
+**Open.** De nieuwe drempels en de nieuwe stem zijn niet in een race gehoord. De
+tragere rotatie is bewust niet aangeraakt: één renner reed zonder Discord en kan
+de oorzaak zijn. Bij de volgende ploegentijdrit de meting wel starten.
 
 ## Proef: wat ziet Sauce van een ploeg?
 

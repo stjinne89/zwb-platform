@@ -60,6 +60,27 @@ export function advicePhrase(advice: Advice, name: (zwiftId: string) => string):
   }
 }
 
+/**
+ * Wat de coach kan zeggen, om vooraf klaar te zetten: met Piper kost een nieuwe
+ * zin een seconde, en een wattmelding moet niet te laat komen.
+ */
+export function coachPhrases(rotation: Rotation): string[] {
+  const phrases = new Set<string>(["Nog vier renners. Niemand mag meer lossen."]);
+  for (const rider of rotation.riders) {
+    const name = () => rider.name;
+    const zwiftId = rider.zwiftId ?? "";
+    for (const kind of ["dropped", "back"] as const) {
+      phrases.add(advicePhrase({ kind, zwiftId }, name)!);
+    }
+    if (!rider.pullWatts || rider.pullSeconds === 0) continue;
+    for (let delta = 15; delta <= 60; delta += 5) {
+      phrases.add(advicePhrase({ kind: "power", zwiftId, delta }, name)!);
+      phrases.add(advicePhrase({ kind: "power", zwiftId, delta: -delta }, name)!);
+    }
+  }
+  return [...phrases];
+}
+
 /** Alles wat de klok kan zeggen, om vooraf klaar te zetten. */
 export function clockPhrases(rotation: Rotation): string[] {
   const phrases = new Set<string>([FREE_PHRASE]);

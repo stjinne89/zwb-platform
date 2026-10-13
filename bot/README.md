@@ -34,11 +34,20 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
    Spreken.
 4. Kopieer `.env.example` naar `.env` en vul `DISCORD_TOKEN` in. Het token blijft
    op deze pc; het hoort niet in de repo of in Netlify.
-5. Spraak: op Windows gebruikt de bot de Nederlandse stem van Windows (Frank),
-   zonder iets te installeren. Ontbreekt die, voeg dan Nederlands toe onder
-   Instellingen > Tijd en taal > Spraak. Liever [Piper](https://github.com/rhasspy/piper/releases)?
-   Zet `PIPER_PATH` (naar `piper.exe`) en `PIPER_MODEL` (een `nl_NL-….onnx`) in
-   `.env`. Piper is niet getest.
+5. Spraak, twee mogelijkheden:
+   - **Piper** (aanbevolen, zo draait de bot nu): download
+     `piper_windows_amd64.zip` van <https://github.com/rhasspy/piper/releases> en
+     de stem `nl_BE-nathalie-medium.onnx` met het bijbehorende `.onnx.json` van
+     <https://huggingface.co/rhasspy/piper-voices> (map `nl/nl_BE/nathalie/medium`).
+     Pak ze uit in `bot/.piper/` (staat buiten git) en zet `PIPER_PATH` (naar
+     `piper.exe`) en `PIPER_MODEL` (naar het `.onnx`-bestand) in `.env`. De ploeg
+     koos deze Vlaamse vrouwenstem na de eerste race.
+   - **Windows-stem** (Frank): laat beide leeg. Niets te installeren. Ontbreekt
+     hij, voeg dan Nederlands toe onder Instellingen > Tijd en taal > Spraak.
+
+   Een zin kost met Piper ongeveer een seconde. Daarom zet de bot bij
+   `/ttt plan` alle zinnen vooraf klaar: eerst de klok, dan de coachmeldingen.
+   Dat duurt bij vijf renners ruim een halve minuut.
 6. Sauce: zet in Sauce for Zwift de webserver aan. `SAUCE_URL` is
    `http://localhost:1080` op de Sauce-pc zelf, of `http://<ip van die pc>:1080`
    vanaf een andere pc. Leeg laten = alleen de klok.

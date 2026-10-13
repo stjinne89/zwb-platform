@@ -164,9 +164,17 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > zo bedoeld en geen klacht. De drempel voor wattmeldingen (34 in de race):
 > zonder meting niet te zeggen of het er te veel waren.
 >
-> **Open.** Een vrouwenstem (wens van de ploeg): Windows heeft voor Nederlands
-> alleen Frank; met Piper kan het, na een download. De stemtypes
-> (plannenboek/planbestand) wachten daarop.
+> **Vrouwenstem** (wens van de ploeg, zelfde avond). Windows heeft voor
+> Nederlands alleen Frank. De bot spreekt nu met Piper en de Vlaamse stem
+> `nl_BE-nathalie-medium`, door de eigenaar gekozen na een luisterfragment.
+> Piper en de stem staan in `bot/.piper/`, buiten git; de paden in `bot/.env`.
+> Piper is daarmee voor het eerst getest (een zin in ongeveer een seconde);
+> de coachmeldingen worden daarom nu ook vooraf klaargezet, vier tegelijk.
+> Niet in Discord gehoord.
+>
+> **Open.** De tragere rotatie blijft staan tot er een race is waarin iedereen
+> in Discord zit. De stemtypes (stoïcijn, nuchter, Vlaams, Italiaans) zijn een
+> plan, niet gebouwd.
 
 ---
 

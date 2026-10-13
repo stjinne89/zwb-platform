@@ -23,7 +23,7 @@ import {
   type Interaction,
   type Message,
 } from "discord.js";
-import { clockPhrases } from "./phrases.ts";
+import { clockPhrases, coachPhrases } from "./phrases.ts";
 import { createRotation } from "./rotation.ts";
 import { fetchPlan, parsePlan, type Plan } from "./plan.ts";
 import { SauceClient } from "./sauce.ts";
@@ -147,13 +147,15 @@ function load(state: GuildState, plan: Plan) {
     coachMode,
   );
   state.session = session;
-  void tts?.prepare(["Deel 1.", ...clockPhrases(session.rotation)]);
+  // De klok eerst: die is als eerste nodig.
+  void tts?.prepare(["Deel 1.", ...clockPhrases(session.rotation), ...coachPhrases(session.rotation)]);
   return session;
 }
 
 function addPart(session: Session, part: number, plan: Plan) {
   session.addPart(part, plan);
-  void tts?.prepare([`Deel ${part}.`, ...clockPhrases(createRotation(plan.riders, 0))]);
+  const rotation = createRotation(plan.riders, 0);
+  void tts?.prepare([`Deel ${part}.`, ...clockPhrases(rotation), ...coachPhrases(rotation)]);
 }
 
 function controls(session: Session) {
