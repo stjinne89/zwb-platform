@@ -7469,9 +7469,9 @@ vandaag gold voor de einddatum, niet voor de trainingen.
 2026-10-13) staan van 15 oktober tot en met 8 december precies 42
 AI-trainingen; de ZRL-races zijn vaste afspraken en tellen niet mee.
 
-**Niet geverifieerd.** Of het model met de ruimere grens een heel blok van
-twaalf weken vult, blijkt
-pas bij een nieuwe generatie in productie.
+**In productie bevestigd.** Na de push heeft de eigenaar het schema bijgewerkt;
+de trainingen lopen nu door tot 2 januari (melding van de eigenaar,
+2026-10-13; niet zelf nageteld).
 
 ### Opgeleverd — Kalender: maandscheiders in de lijst
 
