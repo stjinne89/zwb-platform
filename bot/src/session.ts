@@ -21,6 +21,14 @@ import {
 import type { Priority } from "./speech.ts";
 
 const TICK_MS = 250;
+/** Zo lang na de start of na een klim verlegt Sauce de rotatie niet: de ploeg zoekt elkaar nog. */
+const SETTLE_MS = 30_000;
+/** In de laatste seconden van een kopbeurt heeft een wattmelding geen zin en zit hij het aftellen in de weg. */
+const QUIET_BEFORE_CHANGE_MS = 12_000;
+/** Zo lang stilvallen (geen vermogen, geen snelheid) telt als gefinisht. */
+const IDLE_MS = 15_000;
+const IDLE_WATTS = 50;
+const IDLE_KMH = 20;
 /** Zo vers moet een meting zijn om er de koprijder uit af te lezen. */
 const FRONT_FRESH_MS = 5_000;
 /** Zonder meting in deze tijd geldt Sauce als weg. */
@@ -30,6 +38,8 @@ export type SessionIo = {
   say(text: string, priority: Priority): void;
   /** Het statusbericht is verouderd. */
   changed(): void;
+  /** De renners zijn binnen; de sessie heeft zichzelf gestopt. */
+  finished(): void;
   /** Voor het logboek: wat de bot zei en wat de coach zag. */
   log(line: string): void;
 };
@@ -51,6 +61,8 @@ export class Session {
   private readonly manualOut = new Set<number>();
   private sauce = { at: 0, visible: 0 };
   private lastSample: Sample | null = null;
+  private settleUntil = 0;
+  private idleSince: number | null = null;
   /** Vrij rijden, bijvoorbeeld op een klim: klok en coach zwijgen. */
   free = false;
   /** Het plan per deel van de race; deel 1 staat op plek 0. */
@@ -116,6 +128,8 @@ export class Session {
     this.manualOut.clear();
     this.part = 0;
     this.free = false;
+    this.idleSince = null;
+    this.settleUntil = 0;
     this.rotation = createRotation(this.plan.riders, this.now() + delaySeconds * 1000);
     this.coach = new Coach(this.plan);
     this.running = true;
@@ -149,6 +163,7 @@ export class Session {
       this.io.say(FREE_PHRASE, "clock");
     } else {
       this.rotation = resume(this.rotation, this.frontIndex(), this.now());
+      this.settleUntil = this.now() + SETTLE_MS;
       const phrase = resumePhrase(this.rotation);
       this.io.log(`vrij rijden uit: ${phrase}`);
       this.io.say(phrase, "clock");
@@ -196,8 +211,22 @@ export class Session {
 
     const riders = this.rotation.riders;
     const byZwiftId = (zwiftId: string) => riders.findIndex((rider) => rider.zwiftId === zwiftId);
+
+    // Iedereen in beeld valt stil: de ploeg is binnen.
+    const team = sample.riders.filter((rider) => byZwiftId(rider.zwiftId) !== -1);
+    const idle = team.length > 0 && team.every((r) => r.power < IDLE_WATTS && r.speedKmh < IDLE_KMH);
+    this.idleSince = idle ? (this.idleSince ?? sample.at) : null;
+    if (this.idleSince !== null && sample.at - this.idleSince >= IDLE_MS) {
+      this.io.log("gestopt: de renners staan stil");
+      this.stop();
+      this.io.finished();
+      return;
+    }
+
+    const next = nextIndex(this.rotation);
     const advice = this.coach.observe(sample, {
       leaderZwiftId: riders[this.rotation.current].zwiftId,
+      nextZwiftId: next === -1 ? null : riders[next].zwiftId,
       pullStartedAt: this.rotation.startedAt,
       out: [...this.manualOut].flatMap((index) => riders[index].zwiftId ?? []),
     });
@@ -206,9 +235,12 @@ export class Session {
       this.io.log(`coach ${JSON.stringify(item)}`);
       if (this.coachMode === "log") continue;
       if (item.kind === "leader") {
-        this.apply(syncLeader(this.rotation, byZwiftId(item.zwiftId), sample.at));
+        const index = byZwiftId(item.zwiftId);
+        if (index !== this.rotation.current && sample.at < this.settleUntil) continue;
+        this.apply(syncLeader(this.rotation, index, sample.at));
         continue;
       }
+      if (item.kind === "power" && this.rotation.endsAt - sample.at < QUIET_BEFORE_CHANGE_MS) continue;
       if (item.kind === "dropped" || item.kind === "back") {
         this.apply(setOut(this.rotation, byZwiftId(item.zwiftId), item.kind === "dropped", sample.at));
         this.io.changed();
@@ -259,6 +291,7 @@ export class Session {
   private apply(step: { rotation: Rotation; events: RotationEvent[] }) {
     this.rotation = step.rotation;
     for (const event of step.events) {
+      if (event.type === "change" && event.previous === -1) this.settleUntil = this.now() + SETTLE_MS;
       const phrase = eventPhrase(event, this.rotation);
       this.io.log(`klok ${phrase}`);
       this.io.say(phrase, "clock");

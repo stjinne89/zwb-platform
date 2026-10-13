@@ -54,7 +54,9 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
    - **ZwiftGopher**, vanaf een andere pc: klik op Export JSON, sla de pagina op
      en geef het bestand mee bij `bestand`.
    - **TTT Planner** van het platform: klik op Botlink en plak die bij `link`.
-2. Alleen jij ziet het antwoord, met de renners, watt en duur.
+2. Alleen jij ziet het antwoord, met het deel, de renners, watt en duur. Laad je
+   een tweede plan zonder `deel` op te geven, dan vervangt het deel 1; onder het
+   antwoord staat dan de knop **Dit is deel 2** om dat recht te zetten.
 3. Ga in het spraakkanaal zitten en geef `/ttt start`, eventueel met
    `vertraging` in seconden tot de start van de eigen ploeg.
 4. Laat Zwift op de Sauce-pc meekijken met een ploeglid.

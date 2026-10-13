@@ -19,7 +19,8 @@ export function eventPhrase(event: RotationEvent, rotation: Rotation): string {
   if (event.type === "countdown") {
     const next = rotation.riders[event.next].name;
     if (event.seconds === 30) return `Nog 30 seconden. Daarna ${next}.`;
-    if (event.seconds === 10) return `${next} klaarmaken. Nog 10.`;
+    // Het getal eerst: anders klinkt "tien" pas een paar tellen na het moment.
+    if (event.seconds === 10) return `Nog 10. ${next} klaarmaken.`;
     return event.seconds === 5 ? "Vijf." : `Nog ${event.seconds}.`;
   }
   // De ploeg wisselde zelf al: alleen nog het doel.

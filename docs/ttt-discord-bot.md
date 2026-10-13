@@ -1,9 +1,10 @@
 # TTT-bot voor Discord
 
-Stand: 2026-10-13. Gebouwd en met unit-tests gedekt; **niet** in Discord gedraaid
-en niet tegen Sauce in een ploegentijdrit. De stem en de weg van zin naar geluid
-zijn lokaal geprobeerd. Wat hieronder "niet gemeten" heet, is een
-aanname tot de proef is gedaan.
+Stand: 2026-10-13, na de eerste race. De bot heeft een ZRL-ploegentijdrit
+meegepraat (B-development, 20:08-20:50). Klok, Klim en de stem werkten; de coach
+zag de ploeg, maar wees te vaak de verkeerde koprijder aan. Dat is dezelfde avond
+bijgesteld op het logboek, zie "De eerste race". Een meting van Sauce naast het
+logboek ontbreekt nog; wat hieronder "niet gemeten" heet, is een aanname.
 
 Aanleiding: de [TTT-Timer van Andi Pätzold](https://andipaetzold.github.io/tttt-discord/)
 (MIT). Die roept in een spraakkanaal om wie op kop moet en hoe lang, met namen en
@@ -68,10 +69,12 @@ niet afgeleid uit een meting.**
 
 | Regel | Drempel |
 |---|---|
-| Koprijder | de voorste renner van de ploeg, zodra hij daar 3 s ligt |
+| Koprijder | de voorste renner van de ploeg. Wie aan de beurt is of als volgende komt: zodra hij daar 3 s ligt. Ieder ander: na 8 s en alleen als hij minstens 85% van zijn kopbeurtvermogen trapt |
+| Rust na start en klim | de eerste 30 s na de start en na Hervat rotatie verlegt Sauce de rotatie niet |
 | Vroege wissel | een andere koprijder dan de klok dacht: de rotatie gaat mee, de bot noemt alleen naam en watt |
 | Late wissel | de verwachte koprijder komt binnen 20 s na de klokwissel op kop: zijn kopbeurt begint pas dan |
-| Vermogen op kop | gemiddelde over 10 s, de eerste 5 s niet meegeteld; melding vanaf 15 W of 6% afwijking, afgerond op 5 W, hooguit eens per 20 s per renner; alleen als klok en Sauce het over de koprijder eens zijn |
+| Vermogen op kop | gemiddelde over hooguit 10 s, de eerste 4 s niet meegeteld en minstens 4 s gemeten; melding vanaf 15 W of 6% afwijking, afgerond op 5 W, hooguit eens per 20 s per renner; alleen als klok en Sauce het over de koprijder eens zijn. Niet in de laatste 12 s van een kopbeurt, en niet als iemand meer dan 25% onder zijn doel zit (dan rijdt hij niet op kop) |
+| Finish | iedereen in beeld 15 s lang onder 50 W en onder 20 km/u: de bot stopt en verlaat het kanaal |
 | Lossen | meer dan 3 s achter de voorste, 10 s lang, of 10 s uit beeld. De renner krijgt geen kopbeurt meer |
 | Terug | binnen 1,5 s van de voorste, 5 s lang |
 | Vier over | één keer, als er van een grotere ploeg vier renners over zijn (de ploegentijd is de vierde renner) |
@@ -79,6 +82,45 @@ niet afgeleid uit een meting.**
 
 Een renner die met de hand gelost is gezet, beoordeelt de coach niet meer.
 Renners die Sauce nooit zag en renners zonder Zwift-ID blijven buiten de regels.
+
+## De eerste race: 13 oktober 2026
+
+ZRL-ploegentijdrit, vijf renners, plan uit ZwiftGopher. Bron: het logboek
+(`bot/.cache/ttt-2026-10-13.log`, 299 regels in het race-uur). De meting met
+`sauce-ttt-probe.mjs` is niet gestart, dus er zijn geen ruwe metingen om de
+drempels op te ijken.
+
+**Werkte.** 42 wissels op de klok. Alle vijf renners zijn als koprijder gezien en
+niemand is als "uit beeld" gelost: Sauce hield de ploeg in beeld. De knop Klim is
+twee keer gebruikt (4 en 3 minuten); de bot zweeg en pakte daarna op met de
+renner die vooraan reed. Eén losmelding, terecht: Jeroen loste aan de voet van de
+tweede klim, de bot meldde het tien seconden na het hervatten. De ploeg was
+positief.
+
+**Ging mis, en wat eraan gedaan is.**
+
+| Wat | Hoe het bleek | Aanpassing |
+|---|---|---|
+| Vooraan rijden gold als op kop rijden | 23 keer verlegde Sauce de rotatie. Om 20:31:39 werd Wouter koprijder in Jeroens beurt, gevolgd door "Wouter, 75 watt erbij"; Marc werd die ronde overgeslagen. Zelfde patroon bij -70 en -95 watt | Wie niet aan de beurt is, moet 8 s vooraan liggen en 85% van zijn doel trappen |
+| Onrust na start en klim | "Wouter" vijf seconden na de start; drie wissels in 20 s na de eerste klim | 30 s rust na start en na Hervat rotatie |
+| "Nog 10" en "vijf" klonken te dicht op elkaar | Melding van de ploeg. De zin begon met de naam, dus "tien" klonk pas twee à drie tellen na het moment | Het getal eerst: "Nog 10. Marc klaarmaken." Wattmeldingen zwijgen in de laatste 12 s, zodat ze het aftellen niet ophouden |
+| Meldingen na de finish | "Marc, 295 watt erbij" om 20:50 | Geen wattmelding meer dan 25% onder het doel; de bot stopt als de ploeg stilvalt |
+| Deel 2 over deel 1 heen geladen | De optie `deel` vergeten; de hele race reed op het plan van deel 2 | Het antwoord zegt welk deel is geladen en wat het vervangt, met een knop "Dit is deel 2" |
+
+**Waargenomen, niet aangepast.**
+
+- Een renner reed mediaan 14 s na "Wissel" echt vooraan. Omdat zijn kopbeurt dan
+  pas begint, zat er 40 tot 48 s tussen twee wissels in plaats van 30. Dat is zo
+  bedoeld, en de ploeg klaagde er niet over.
+- 34 wattmeldingen, ongeveer één per kopbeurt, meestal 20 tot 40 W. Of dat te
+  veel is of dat het plan te laag stond, is zonder meting niet te zeggen.
+- Eén renner zat niet in Discord en hoorde de bot niet. Dat verklaart mogelijk
+  een deel van de onrust; de bot kan daar niets aan doen.
+
+**Open.** De wens van de ploeg voor een vrouwenstem: Windows heeft voor het
+Nederlands alleen Frank. Het kan met Piper (bijvoorbeeld de Vlaamse stem
+Nathalie); dat vraagt een download en is niet getest. De nieuwe drempels zijn
+niet in een race gehoord. Bij de volgende ploegentijdrit de meting wel starten.
 
 ## Proef: wat ziet Sauce van een ploeg?
 

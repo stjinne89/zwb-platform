@@ -25,7 +25,7 @@ import {
 } from "discord.js";
 import { clockPhrases } from "./phrases.ts";
 import { createRotation } from "./rotation.ts";
-import { fetchPlan, parsePlan } from "./plan.ts";
+import { fetchPlan, parsePlan, type Plan } from "./plan.ts";
 import { SauceClient } from "./sauce.ts";
 import { Session } from "./session.ts";
 import { SpeechQueue } from "./speech.ts";
@@ -76,6 +76,8 @@ type GuildState = {
   player: AudioPlayer;
   connection: VoiceConnection | null;
   message: Message | null;
+  /** Het plan dat door de laatste `/ttt plan` is vervangen, voor "Dit is deel 2". */
+  replaced: Plan | null;
   dirty: boolean;
   renderedAt: number;
 };
@@ -111,6 +113,7 @@ function stateOf(guildId: string): GuildState {
       }),
       connection: null,
       message: null,
+      replaced: null,
       dirty: false,
       renderedAt: 0,
     };
@@ -118,6 +121,39 @@ function stateOf(guildId: string): GuildState {
     guilds.set(guildId, state);
   }
   return state;
+}
+
+function planLines(plan: Plan) {
+  return plan.riders
+    .map((r) => `${r.order}. ${r.name} · ${r.pullWatts ?? "-"} W · ${r.pullSeconds} s`)
+    .join("\n");
+}
+
+/** Nieuwe sessie voor dit plan; wat liep, stopt. */
+function load(state: GuildState, plan: Plan) {
+  stop(state);
+  state.message = null;
+  const session = new Session(
+    plan,
+    {
+      say: (text, priority) => state.speech.say(text, priority),
+      changed: () => {
+        state.dirty = true;
+      },
+      finished: () => stop(state),
+      log,
+    },
+    Date.now,
+    coachMode,
+  );
+  state.session = session;
+  void tts?.prepare(["Deel 1.", ...clockPhrases(session.rotation)]);
+  return session;
+}
+
+function addPart(session: Session, part: number, plan: Plan) {
+  session.addPart(part, plan);
+  void tts?.prepare([`Deel ${part}.`, ...clockPhrases(createRotation(plan.riders, 0))]);
 }
 
 function controls(session: Session) {
@@ -265,6 +301,24 @@ async function handle(interaction: Interaction) {
     return;
   }
 
+  if (interaction.isButton() && interaction.customId === "ttt:aspart2") {
+    // Het zojuist geladen plan was voor deel 2: het vorige plan komt terug als deel 1.
+    if (!session || !state.replaced || session.running) {
+      await interaction.update({ content: "Dat kan niet meer. Laad de plannen opnieuw.", components: [] });
+      return;
+    }
+    const second = session.plan;
+    const first = state.replaced;
+    state.replaced = null;
+    addPart(load(state, first), 2, second);
+    log(`plan: het laatste plan is deel 2 geworden, deel 1 is weer ${first.name}`);
+    await interaction.update({
+      content: `**Deel 1** · ${first.name}\n${planLines(first)}\n\n**Deel 2** · ${second.name}\n${planLines(second)}`,
+      components: [],
+    });
+    return;
+  }
+
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     if (!session?.running) {
       await interaction.deferUpdate();
@@ -301,36 +355,32 @@ async function handle(interaction: Interaction) {
       const plan = file
         ? parsePlan(await fetch(file.url, { signal: AbortSignal.timeout(10_000) }).then((r) => r.json()))
         : await fetchPlan(link ?? (await clipboard()), origins);
-      const riders = plan.riders
-        .map((r) => `${r.order}. ${r.name} · ${r.pullWatts ?? "-"} W · ${r.pullSeconds} s`)
-        .join("\n");
+      const riders = planLines(plan);
       const part = interaction.options.getInteger("deel") ?? 1;
       log(`plan deel ${part} ${plan.name}: ${plan.riders.map((r) => `${r.name} ${r.pullWatts ?? "-"}W ${r.pullSeconds}s`).join(", ")}`);
       if (part > 1) {
         // Een later deel komt erbij; wat loopt, loopt door.
         if (!session) throw new Error("Laad eerst het plan voor deel 1.");
-        session.addPart(part, plan);
-        void tts?.prepare([`Deel ${part}.`, ...clockPhrases(createRotation(plan.riders, 0))]);
-        await interaction.editReply(`Deel ${part} klaargezet: **${plan.name}**\n${riders}`);
+        addPart(session, part, plan);
+        await interaction.editReply(`**Deel ${part}** klaargezet · ${plan.name}\n${riders}`);
         return;
       }
-      stop(state);
-      state.message = null;
-      const loaded = new Session(
-        plan,
-        {
-          say: (text, priority) => state.speech.say(text, priority),
-          changed: () => {
-            state.dirty = true;
-          },
-          log,
-        },
-        Date.now,
-        coachMode,
-      );
-      state.session = loaded;
-      void tts?.prepare(["Deel 1.", ...clockPhrases(loaded.rotation)]);
-      await interaction.editReply(`Plan geladen: **${plan.name}**\n${riders}`);
+      // Stond er al een plan klaar, dan is dit vaak het plan voor deel 2 waarbij
+      // `deel` vergeten is. Eén knop zet dat recht.
+      state.replaced = session && !session.running ? session.plan : null;
+      load(state, plan);
+      await interaction.editReply({
+        content: state.replaced
+          ? `**Deel 1** geladen · ${plan.name}\n${riders}\n\nDit vervangt het plan dat er stond (${state.replaced.name}).`
+          : `**Deel 1** geladen · ${plan.name}\n${riders}`,
+        components: state.replaced
+          ? [
+              new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder().setCustomId("ttt:aspart2").setLabel("Dit is deel 2").setStyle(ButtonStyle.Primary),
+              ),
+            ]
+          : [],
+      });
     } catch (error) {
       await interaction.editReply(error instanceof Error ? error.message : "Plan laden mislukte.");
     }

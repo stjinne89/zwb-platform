@@ -42,7 +42,7 @@ function run(
     riders.push({ zwiftId: "999", power: 500, speedKmh: 50, gap: -5 });
     const result = coach.observe(
       { at: second * S, riders },
-      { leaderZwiftId: "1", pullStartedAt: 0, out: [], ...context },
+      { leaderZwiftId: "1", nextZwiftId: "2", pullStartedAt: 0, out: [], ...context },
     );
     for (const item of result) advice.push({ ...item, at: second });
   }
@@ -78,9 +78,9 @@ describe("vermogen op kop", () => {
   it("meldt te hard rijden, afgerond op 5 watt, en herhaalt niet meteen", () => {
     const advice = run(new Coach(PLAN), [0, 45], () => ({ "1": { power: 338 } }));
     const power = advice.filter((a) => a.kind === "power");
-    // Koprijder vanaf 3 s, 5 s op gang komen, dan 5 s meten.
-    expect(power[0]).toEqual({ kind: "power", zwiftId: "1", delta: 40, at: 13 });
-    expect(power.map((a) => a.at)).toEqual([13, 33]);
+    // Koprijder vanaf 3 s, 4 s op gang komen, dan 4 s meten.
+    expect(power[0]).toEqual({ kind: "power", zwiftId: "1", delta: 40, at: 11 });
+    expect(power.map((a) => a.at)).toEqual([11, 31]);
   });
 
   it("meldt te zacht rijden als een negatief verschil", () => {

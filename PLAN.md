@@ -121,6 +121,55 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 
 ---
 
+> **TTT-bot: bijgesteld op de eerste race, 2026-10-13 (avond) — gebouwd op het logboek, unit-getest; de nieuwe regels zijn niet in een race gehoord.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De bot praatte mee in de ZRL-ploegentijdrit van B-development
+> (20:08-20:50). De ploeg was positief. Het logboek liet vijf fouten zien; de
+> eigenaar vroeg ze uit te zoeken en de voorgestelde aanpassingen te maken.
+>
+> **Gezien.** Klok (42 wissels), Klim (twee keer) en de stem werkten. Sauce hield
+> alle vijf renners in beeld. Eén losmelding, terecht. Maar 23 keer verlegde
+> Sauce de rotatie, vaak naar iemand die alleen even voor lag ("Wouter, 75 watt
+> erbij"), en na de finish riep de bot "Marc, 295 watt erbij". Het plan voor
+> deel 2 was over deel 1 heen geladen. Volledig: `docs/ttt-discord-bot.md`,
+> "De eerste race".
+>
+> **Nu** (`bot/src/coach.ts`, `session.ts`, `phrases.ts`, `index.ts`).
+> - Koprijder: wie niet aan de beurt is, telt pas na 8 s vooraan en bij 85% van
+>   zijn kopbeurtvermogen. De eerste 30 s na de start en na een klim verlegt
+>   Sauce niets.
+> - Aftellen: "Nog 10. Marc klaarmaken." in plaats van de naam eerst; de ploeg
+>   hoorde tien en vijf te dicht op elkaar.
+> - Wattmeldingen: eerder in de kopbeurt (na 8 s in plaats van 10), niet in de
+>   laatste 12 s, en niet meer dan 25% onder het doel.
+> - De bot stopt als de ploeg 15 s stilvalt.
+> - `/ttt plan` zegt welk deel het laadde en wat het verving; de knop "Dit is
+>   deel 2" zet een vergeten `deel` recht.
+>
+> **Niet meer waar.** "De coach is nog niet in een race gehoord" en "alle
+> drempels zijn een eerste inschatting" in het blok hieronder: de drempels voor
+> de koprijder zijn nu op één race bijgesteld. Ze blijven zonder meting.
+>
+> **Getoetst.** Bot: `tsc`, Vitest (62 tests, waarvan negen nieuwe die de fouten
+> van die avond naspelen, `race-13-oktober.test.ts`).
+>
+> **Niet geverifieerd.** De nieuwe regels in een race. De waarden 8 s en 85%:
+> gekozen tussen de valse gevallen (67 tot 78% van het doel) en de echte (88% en
+> hoger) uit het logboek, zonder ruwe metingen. De meting met
+> `sauce-ttt-probe.mjs` is die avond niet gestart.
+>
+> **Bewust niet gedaan.** De tragere rotatie (40 tot 48 s tussen wissels bij
+> kopbeurten van 30 s, omdat een beurt pas telt als de renner vooraan rijdt):
+> zo bedoeld en geen klacht. De drempel voor wattmeldingen (34 in de race):
+> zonder meting niet te zeggen of het er te veel waren.
+>
+> **Open.** Een vrouwenstem (wens van de ploeg): Windows heeft voor Nederlands
+> alleen Frank; met Piper kan het, na een download. De stemtypes
+> (plannenboek/planbestand) wachten daarop.
+
+---
+
 > **TTT-bot voor Discord: plan als JSON-deellink en een spraakbot met Sauce-coaching, 2026-10-13 — gebouwd, unit-getest; niet in Discord, niet met Piper en niet tegen Sauce gedraaid.**
 > Commit: de commit die dit blok toevoegt. Migratie `0229_ttt_plan_share_token.sql`.
 >

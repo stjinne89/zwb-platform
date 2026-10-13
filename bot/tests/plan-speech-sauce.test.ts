@@ -137,7 +137,7 @@ describe("zinnen", () => {
   it("zet voor elke renner met een kopbeurt de klokzinnen klaar", () => {
     const phrases = clockPhrases(rotation);
     expect(phrases).toContain("Nog 30 seconden. Daarna Piet.");
-    expect(phrases).toContain("Stijn klaarmaken. Nog 10.");
+    expect(phrases).toContain("Nog 10. Stijn klaarmaken.");
     expect(phrases.some((phrase) => phrase.includes("Gast"))).toBe(false);
   });
 
@@ -227,7 +227,7 @@ describe("sessie", () => {
     const clock = { now: 0 };
     const created = new Session(
       parsePlan(PLAN_JSON),
-      { say: (text) => said.push(text), changed: () => undefined, log: () => undefined },
+      { say: (text) => said.push(text), changed: () => undefined, finished: () => undefined, log: () => undefined },
       () => clock.now,
     );
     return { created, said, clock };
@@ -246,9 +246,9 @@ describe("sessie", () => {
     created.skip();
     expect(created.rotation.current).toBe(0);
 
-    for (let second = 0; second <= 26; second += 1) {
+    for (let second = 0; second <= 50; second += 1) {
       clock.now = second * 1000;
-      created.onSample(sample(clock.now, second < 16 ? "111" : "222", 360));
+      created.onSample(sample(clock.now, second < 40 ? "111" : "222", 360));
     }
     expect(created.rotation.current).toBe(1);
     expect(said).toContain("Piet, 310 watt.");

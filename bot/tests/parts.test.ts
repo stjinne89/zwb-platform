@@ -57,7 +57,7 @@ describe("vrij rijden op een klim", () => {
     const clock = { now: 0 };
     const created = new Session(
       { name: "Klim", eventTitle: null, estimatedSpeedKmh: null, riders: PART_1 },
-      { say: (text) => said.push(text), changed: () => undefined, log: () => undefined },
+      { say: (text) => said.push(text), changed: () => undefined, finished: () => undefined, log: () => undefined },
       () => clock.now,
     );
     created.start(0);
@@ -123,7 +123,7 @@ describe("sessie in delen", () => {
     const clock = { now: 0 };
     const session = new Session(
       plan("Klim", PART_1),
-      { say: (text) => said.push(text), changed: () => undefined, log: () => undefined },
+      { say: (text) => said.push(text), changed: () => undefined, finished: () => undefined, log: () => undefined },
       () => clock.now,
     );
     expect(session.usePart(2)).toBe(false);

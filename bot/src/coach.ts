@@ -1,17 +1,26 @@
 // Coachregels op de live metingen uit Sauce. Geen I/O: elke meting draagt zijn
 // eigen tijd, dus hetzelfde verloop geeft altijd hetzelfde advies.
 //
-// De drempels hieronder zijn een eerste inschatting. Ze zijn niet aan een echte
-// ploegentijdrit getoetst; zie docs/ttt-discord-bot.md in de hoofdrepo.
+// De drempels hieronder zijn een inschatting, bijgesteld op het logboek van de
+// ZRL-ploegentijdrit van 13 oktober 2026 (zonder meting ernaast); zie
+// docs/ttt-discord-bot.md in de hoofdrepo.
 
 import type { Plan } from "./plan.ts";
 
-/** Zo lang moet een renner vooraan liggen voor hij als koprijder telt. */
+/** Zo lang moet de renner die aan de beurt is (of de volgende) vooraan liggen. */
 export const LEADER_STABLE_MS = 3_000;
+/** Ieder ander moet er langer liggen: vooraan rijden is nog niet op kop rijden. */
+export const LEADER_OTHER_MS = 8_000;
+/** En moet minstens dit deel van zijn kopbeurtvermogen trappen. */
+export const LEADER_MIN_SHARE = 0.85;
 /** Venster waarover het vermogen op kop gemiddeld wordt. */
 export const POWER_WINDOW_MS = 10_000;
 /** De eerste seconden van een kopbeurt tellen niet mee: de renner komt nog op gang. */
-export const POWER_SETTLE_MS = 5_000;
+export const POWER_SETTLE_MS = 4_000;
+/** Zoveel meettijd is nodig voor een oordeel over het vermogen. */
+export const POWER_MIN_SPAN_MS = 4_000;
+/** Zo ver onder het doel rijdt iemand niet te zacht: hij rijdt niet op kop. */
+export const NOT_PULLING_SHARE = 0.25;
 /** Kleinste afwijking die een melding waard is: dit aantal watt of dit deel van het doel. */
 export const POWER_MIN_WATTS = 15;
 export const POWER_MIN_SHARE = 0.06;
@@ -50,6 +59,8 @@ export type Advice =
 /** Wat de rotatie op dit moment denkt. */
 export type CoachContext = {
   leaderZwiftId: string | null;
+  /** Wie volgens het plan hierna op kop komt. */
+  nextZwiftId: string | null;
   pullStartedAt: number;
   /** Renners die met de hand als gelost zijn gezet. */
   out: string[];
@@ -142,14 +153,26 @@ export class Coach {
       advice.push({ kind: "four-left" });
     }
 
-    // Koprijder: de voorste, zodra hij daar even ligt.
+    // Koprijder: de voorste, zodra hij daar even ligt. Wie niet aan de beurt is,
+    // moet er langer liggen en ook echt trappen: in een waaier schuift er
+    // geregeld iemand even voorbij zonder de kop te nemen.
     if (this.candidate?.zwiftId !== front.zwiftId) {
       this.candidate = { zwiftId: front.zwiftId, since: at };
     }
-    if (this.candidate.zwiftId !== this.leader && at - this.candidate.since >= LEADER_STABLE_MS) {
-      this.leader = this.candidate.zwiftId;
-      this.leaderSince = at;
-      advice.push({ kind: "leader", zwiftId: this.leader });
+    if (this.candidate.zwiftId !== this.leader) {
+      const id = this.candidate.zwiftId;
+      const current = id === context.leaderZwiftId;
+      const expected = current || id === context.nextZwiftId;
+      const held = at - this.candidate.since >= (expected ? LEADER_STABLE_MS : LEADER_OTHER_MS);
+      const target = this.targets.get(id);
+      const recent = this.track(id, at).power.filter((point) => point.at >= at - LEADER_STABLE_MS);
+      const avg = recent.reduce((sum, point) => sum + point.watts, 0) / Math.max(1, recent.length);
+      const pulling = current || !target || avg >= target * LEADER_MIN_SHARE;
+      if (held && pulling) {
+        this.leader = id;
+        this.leaderSince = at;
+        advice.push({ kind: "leader", zwiftId: id });
+      }
     }
 
     // Vermogen op kop, alleen als klok en Sauce het over de koprijder eens zijn.
@@ -158,11 +181,12 @@ export class Coach {
       const track = this.track(this.leader, at);
       const from = Math.max(context.pullStartedAt, this.leaderSince) + POWER_SETTLE_MS;
       const window = track.power.filter((point) => point.at >= from);
-      const full = window.length > 0 && at - window[0].at >= POWER_WINDOW_MS - POWER_SETTLE_MS;
+      const full = window.length > 0 && at - window[0].at >= POWER_MIN_SPAN_MS;
       if (full && at - track.lastPowerAdviceAt >= POWER_COOLDOWN_MS) {
         const avg = window.reduce((sum, point) => sum + point.watts, 0) / window.length;
         const delta = avg - target;
-        if (Math.abs(delta) >= Math.max(POWER_MIN_WATTS, target * POWER_MIN_SHARE)) {
+        const pulling = delta > -target * NOT_PULLING_SHARE;
+        if (pulling && Math.abs(delta) >= Math.max(POWER_MIN_WATTS, target * POWER_MIN_SHARE)) {
           track.lastPowerAdviceAt = at;
           advice.push({ kind: "power", zwiftId: this.leader, delta: Math.round(delta / 5) * 5 });
         }
