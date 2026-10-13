@@ -42,8 +42,12 @@ gaat stabiliteit voor nieuwe features.
    fout bij het wissen en antwoordt altijd `ok: true`; pas na die datum is te zien
    of het wissen echt werkt.
    De regel "wordt zonder filter opgehaald" in `scripts/db-health.mjs` gaf bij
-   `nutrition_foods` vals alarm en doet dat volgende week weer zolang de
-   herkenning niet is aangepast.
+   `nutrition_foods` vals alarm: de query stond in een variabele en kreeg zijn
+   filter pas op de regels eronder. Verholpen op 2026-10-13: de controle
+   (`unboundedSelects`) volgt nu ook de ketens die verderop op die variabele
+   beginnen. Nagelopen op de hele codebase: van de 73 meldingen verdween alleen
+   deze ene. Bewust niet gedaan: de overige 72 plekken nalopen; die tellen pas
+   mee als hun tabel boven de 800 rijen komt.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
