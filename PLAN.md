@@ -150,6 +150,11 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > - Een telbadge voor voorstellen op de tab: de layout zou dan op elke
 >   voedingspagina de voorstellen laden.
 >
+> **Naleving (eetdagboek, foto's scannen): niet gebouwd, besluit open.** De
+> eigenaar vroeg wat er maximaal kan. De afweging staat in
+> [naleving-voeding-plan.md](docs/naleving-voeding-plan.md). Tot er een besluit
+> is, gelden "geen eetdagboek" en "geen AI-macro's" uit de voedingsrondes.
+>
 > **Getest.** TypeScript en eslint schoon; `nav-active` heeft een nieuwe test
 > voor de voedingstabs. Volledige suite: 2.132 geslaagd, 2 mislukt, beide los
 > van deze ronde: `omnium-live` (leest `.env.local`, die in de worktree
