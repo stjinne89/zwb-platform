@@ -7425,6 +7425,54 @@ alleen als er iets geweest is. Alles zit in
 herladen. Het donkere thema en het klassieke design niet; het echte jaarplan
 vraagt een login en deze worktree heeft geen Supabase-gegevens.
 
+### Hersteld — volgend blok hield na acht weken op
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar zette een volgend blok klaar. Het schema liep
+daarna volgens de app tot 2 januari, maar de trainingen stopten op 8 december.
+
+**Oorzaak.** Het uitvoerschema van de AI (`planSchema()` in `ai.ts`) liet
+hooguit 42 trainingen toe. Die grens stamt uit de tijd dat een concept drie
+weken besloeg en een herziening de rest van een kort schema. Een blok van
+twaalf weken heeft er meer nodig; het model vult tot 42 en stopt. De einddatum
+komt niet uit de trainingen maar uit de gevraagde periode
+(`planUpdateEndDate()`), en `extendRootPlanEnd()` schuift het basisplan
+daarnaartoe. Zo stond het einde op het blok en hielden de trainingen eerder op.
+
+**Wijziging.** De grens is `PLAN_BLOCK_DAYS + 1` (85): één training per dag van
+een heel blok. Hij volgt de bloklengte, zodat hij niet opnieuw achterloopt als
+die verandert.
+
+**Bewust niet gebouwd.**
+- *De einddatum laten volgen op de laatste geleverde training.* Voor een gewone
+  herziening moet het einde op de gevraagde periode blijven, anders vervangt
+  publiceren niet alle oude trainingen tot dat einde. Alleen voor een volgend
+  blok afwijken is een tweede regel voor een geval dat met de ruimere grens
+  niet meer hoort voor te komen.
+- *Het bestaande schema van de eigenaar aanvullen.* Dat staat in productie; de
+  weken na 8 december komen er pas met een nieuwe herziening.
+
+**Bekende rand.** Levert het model om een andere reden minder weken dan
+gevraagd, dan staat de einddatum nog steeds verder dan de trainingen, en
+"Volgend blok" komt pas twee weken voor die einddatum terug.
+
+**Niet meer waar.** In ronde 3 van "gewijzigde doeldatum": "AI-uitvoer is
+begrensd op 42 workouts"; daar bijgewerkt. In de ronde "schema's als blokken
+van twaalf weken": dat een volgend blok doorloopt tot twaalf weken vanaf
+vandaag gold voor de einddatum, niet voor de trainingen.
+
+**Getest.** `tsc`, en `season.test.ts`, `plan-update-goal.test.ts` en
+`training-prompts.test.ts`.
+
+**Nageteld.** In het schema van de eigenaar in productie (maandweergave,
+2026-10-13) staan van 15 oktober tot en met 8 december precies 42
+AI-trainingen; de ZRL-races zijn vaste afspraken en tellen niet mee.
+
+**Niet geverifieerd.** Of het model met de ruimere grens een heel blok van
+twaalf weken vult, blijkt
+pas bij een nieuwe generatie in productie.
+
 ### Opgeleverd — Kalender: maandscheiders in de lijst
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -11057,8 +11105,9 @@ en onderhoud; ligt hij erna, geen taper. Een bijgewerkt schema eindigt nooit vó
 de gevraagde periode (`planUpdateEndDate`), zodat publiceren alle oude workouts
 tot dat einde vervangt. Formulier: "Targetdatum" heet "Doeldatum" en de kop toont
 tot wanneer het schema loopt. *Bewust niet gebouwd:* de schemahorizon automatisch
-verlengen naar een latere doeldatum (AI-uitvoer is begrensd op 42 workouts, en
-horizon ≠ doeldatum). Voorleggen aan de eigenaar.
+verlengen naar een latere doeldatum (AI-uitvoer was toen begrensd op 42
+workouts, sinds 2026-10-13 op een blok van twaalf weken, en horizon ≠
+doeldatum). Voorleggen aan de eigenaar.
 
 **10 — annuleren doet raar.** Niet gereproduceerd; de melding is te vaag.
 Annuleren vóór verzenden deed al geen request. Aangepast: na annuleren schuift de

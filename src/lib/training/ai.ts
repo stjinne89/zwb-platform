@@ -1,5 +1,6 @@
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
 import type { ComplianceContext } from "@/lib/training/compliance";
+import { PLAN_BLOCK_DAYS } from "@/lib/training/season";
 
 export type GeneratedWorkout = {
   date: string;
@@ -265,9 +266,10 @@ const planSchema = (minWorkouts: number) => ({
     workouts: {
       type: "array",
       minItems: minWorkouts,
-      // Een bijwerking beslaat de rest van het lopende schema en kan daarmee
-      // meer weken omvatten dan een nieuw concept van drie weken.
-      maxItems: 42,
+      // Eén training per dag van een heel blok. Stond op 42: een volgend blok
+      // van twaalf weken hield dan na acht weken op, terwijl de einddatum van
+      // het schema wel op het einde van het blok kwam te staan.
+      maxItems: PLAN_BLOCK_DAYS + 1,
       items: {
         type: "object",
         additionalProperties: false,
