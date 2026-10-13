@@ -1,6 +1,7 @@
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { EmptyState } from "@/components/app-ui";
+import { groupByMonth } from "@/lib/events/month-groups";
 
 // De agenda van het design "tegels": events en eigen trainingen in één lijst,
 // met wat geweest is erboven. Puur weergave; de kalenderpagina levert de rijen.
@@ -8,6 +9,8 @@ import { EmptyState } from "@/components/app-ui";
 export type AgendaRow = {
   key: string;
   href: string;
+  /** Dag in Amsterdam, "2026-11-02"; bepaalt onder welke maand de rij valt. */
+  dateKey: string;
   /** Kleur van het dagvak: de afgesproken eventkleur, teal voor een eigen
    * training, goud voor een verjaardag. */
   color: { bg: string; ink: string };
@@ -79,10 +82,12 @@ function Row({ row, past }: { row: AgendaRow; past?: boolean }) {
 export function TegelsAgenda({
   past,
   upcoming,
+  todayKey,
   empty,
 }: {
   past: AgendaRow[];
   upcoming: AgendaRow[];
+  todayKey: string;
   empty: string;
 }) {
   return (
@@ -100,11 +105,23 @@ export function TegelsAgenda({
       {upcoming.length === 0 ? (
         <EmptyState>{empty}</EmptyState>
       ) : (
-        <ul className="space-y-1.5" aria-label="Komend">
-          {upcoming.map((row) => (
-            <Row key={row.key} row={row} />
-          ))}
-        </ul>
+        groupByMonth(upcoming, (row) => row.dateKey, todayKey).map((group) => (
+          <Fragment key={group.monthKey ?? "nu"}>
+            {group.label && (
+              <p
+                aria-hidden
+                className="flex items-center gap-2 pt-3 pb-0.5 text-xs font-bold lowercase text-muted-foreground after:h-px after:flex-1 after:bg-border after:content-['']"
+              >
+                {group.label}
+              </p>
+            )}
+            <ul className="space-y-1.5" aria-label={group.label ?? "Komend"}>
+              {group.items.map((row) => (
+                <Row key={row.key} row={row} />
+              ))}
+            </ul>
+          </Fragment>
+        ))
       )}
     </div>
   );

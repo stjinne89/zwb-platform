@@ -7395,6 +7395,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Kalender: maandscheiders in de lijst
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Vraag van de eigenaar: op de kalender ontbrak een
+maandaanduiding. In het design "tegels" toont het dagvak alleen "di 14", dus
+verder in de lijst was niet te zien in welke maand je zat; de klassieke lijst
+noemt de maand wel per regel, maar had geen indeling.
+
+**Wijziging.** Bij elke maandwissel staat een scheider: de maandnaam met een
+haarlijn erachter, in dezelfde vorm als de "vandaag"-lijn van de tegels-agenda
+maar gedempt. Het jaar staat erbij zodra het afwijkt van nu ("januari 2027").
+De lopende maand krijgt geen kopje; een tour die in een eerdere maand begon en
+nog loopt, blijft daar bovenaan bij. De indeling komt uit
+`lib/events/month-groups.ts` en geldt voor beide designs
+(`components/tegels/agenda.tsx` en de klassieke lijst in `kalender/page.tsx`).
+`AgendaRow` heeft daarvoor een `dateKey` gekregen.
+
+**Keuze van de eigenaar.** Voorgelegd naast twee alternatieven; gekozen is de
+gewone scheider, in beide designs.
+
+**Bewust niet gebouwd.**
+
+- Een scheider die onder de bovenbalk blijft plakken tijdens het scrollen: neemt
+  op de telefoon blijvend een strook scherm in.
+- De maand als derde regel in het dagvak: maakt elke rij hoger en drukker en
+  geeft de lijst geen ritme per maand.
+- Een scheider in het blok "geweest" boven de vandaag-lijn: dat zijn hooguit
+  vijf rijen uit de laatste dertig dagen.
+
+**Niet lokaal te verifiëren.** De tegels-agenda is bekeken op
+`/ontwerp-voorbeeld?scherm=kalender` (staande telefoon, licht thema); het donkere
+thema en de klassieke lijst niet, want de echte kalender vraagt een login en
+deze worktree heeft geen Supabase-gegevens. Typecheck, lint en de unit-test
+(`tests/unit/month-groups.test.ts`) wel.
+
 ### Opgeleverd — ZRL-beheer: racekalender en WTRL-teams onder één menu-item
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.

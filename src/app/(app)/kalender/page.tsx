@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import Link from "next/link";
 import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -30,6 +30,7 @@ import { EventBadge, ProgramBadges } from "./_components/event-badge";
 import { LabelFilter, type LabelGroup, type LabelOption } from "./_components/label-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
+import { groupByMonth } from "@/lib/events/month-groups";
 import {
   eventGroupFitsMember,
   fitIsInformative,
@@ -550,6 +551,7 @@ export default async function KalenderPage({
       .map((event) => ({
         key: `past-${event.id}`,
         href: `/events/${event.id}`,
+        dateKey: amsterdamDateKey(new Date(event.start_at)),
         color: eventColor(event.type),
         ...dayOf(new Date(event.start_at)),
         title: event.title,
@@ -566,6 +568,7 @@ export default async function KalenderPage({
             sortKey: item.sortKey,
             key: `birthday-${birthday.id}-${birthday.year}`,
             href: `/verjaardagen/${birthday.id}?jaar=${birthday.year}`,
+            dateKey: birthday.dateKey,
             color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" },
             image: birthday.avatarUrl,
             ...dayOf(new Date(`${birthday.dateKey}T12:00:00Z`), "UTC"),
@@ -579,6 +582,7 @@ export default async function KalenderPage({
           sortKey: item.sortKey,
           key: `event-${event.id}`,
           href: `/events/${event.id}`,
+          dateKey: amsterdamDateKey(new Date(event.start_at)),
           color: eventColor(event.type),
           ...dayOf(new Date(event.start_at)),
           title: event.title,
@@ -618,6 +622,7 @@ export default async function KalenderPage({
           `${workout.scheduled_at}|training|${workout.id}`,
         key: `training-${workout.id}`,
         href: "/zwbeter-worden/schema",
+        dateKey: amsterdamDateKey(new Date(workout.scheduled_at)),
         color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" },
         ...dayOf(new Date(workout.scheduled_at)),
         title: workout.title as string,
@@ -656,6 +661,7 @@ export default async function KalenderPage({
         <TegelsAgenda
           past={pastRows}
           upcoming={upcomingRows}
+          todayKey={todayKey}
           empty="Geen aankomende events of trainingen."
         />
       </div>
@@ -691,8 +697,16 @@ export default async function KalenderPage({
           )}
         </EmptyState>
       ) : (
-        <ul className="space-y-2">
-          {calendarItems.map((item) => {
+        <div className="space-y-2">
+          {groupByMonth(calendarItems, (item) => item.sortKey, todayKey).map((group) => (
+          <Fragment key={group.monthKey ?? "nu"}>
+          {group.label && (
+            <h2 className="flex items-center gap-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground after:h-px after:flex-1 after:bg-border after:content-['']">
+              {group.label}
+            </h2>
+          )}
+          <ul className="space-y-2">
+          {group.items.map((item) => {
             if (item.kind === "birthday") {
               const birthday = item.birthday;
               const age = ageOnBirthday(birthday.birthDate, birthday.year);
@@ -883,7 +897,10 @@ export default async function KalenderPage({
               </li>
             );
           })}
-        </ul>
+          </ul>
+          </Fragment>
+          ))}
+        </div>
       )}
 
       {calendarItems.length > 0 && pastCount > 0 && (

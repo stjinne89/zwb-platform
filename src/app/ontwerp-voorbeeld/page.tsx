@@ -44,18 +44,21 @@ const SEASON: SeasonWarningInput = {
 };
 
 const PAST: AgendaRow[] = [
-  { key: "p1", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "di", dayNumber: "6", title: "ZRL ronde 3", sub: "geweest · Zwift" },
-  { key: "p2", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "10", title: "Clubrit Posbank", sub: "geweest · Velp" },
+  { key: "p1", href: "#", dateKey: "2026-10-06", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "di", dayNumber: "6", title: "ZRL ronde 3", sub: "geweest · Zwift" },
+  { key: "p2", href: "#", dateKey: "2026-10-10", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "10", title: "Clubrit Posbank", sub: "geweest · Velp" },
 ];
 
 const UPCOMING: AgendaRow[] = [
-  { key: "u1", href: "#", color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" }, day: "ma", dayNumber: "12", title: "Sweet spot 3 × 12 min", sub: "training · 75 min" },
-  { key: "u2", href: "#", color: { bg: "#ea580c", ink: "#ffffff" }, day: "di", dayNumber: "13", title: "ZRL ronde 4 · TTT", sub: "Zwift · 5 gaan mee", time: "19:45" },
-  { key: "u3", href: "#", color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" }, day: "wo", dayNumber: "14", title: "Herstelrit", sub: "training · 45 min" },
-  { key: "u4", href: "#", color: { bg: "#ea580c", ink: "#ffffff" }, day: "do", dayNumber: "15", title: "Tour Ignite · etappe 3", sub: "Zwift", time: "20:00" },
-  { key: "u5", href: "#", color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" }, day: "vr", dayNumber: "16", title: "Verjaardag van Sanne" },
-  { key: "u6", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "17", title: "Clubrit Veluwezoom", sub: "Rheden · 82 km · 12 gaan mee", time: "09:00" },
-  { key: "u7", href: "#", color: { bg: "#ea580c", ink: "#ffffff" }, day: "zo", dayNumber: "18", title: "Sunday Race Club", sub: "MyWhoosh", time: "10:45" },
+  { key: "u1", href: "#", dateKey: "2026-10-12", color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" }, day: "ma", dayNumber: "12", title: "Sweet spot 3 × 12 min", sub: "training · 75 min" },
+  { key: "u2", href: "#", dateKey: "2026-10-13", color: { bg: "#ea580c", ink: "#ffffff" }, day: "di", dayNumber: "13", title: "ZRL ronde 4 · TTT", sub: "Zwift · 5 gaan mee", time: "19:45" },
+  { key: "u3", href: "#", dateKey: "2026-10-14", color: { bg: "var(--tg-zwbeter)", ink: "var(--tg-paper)" }, day: "wo", dayNumber: "14", title: "Herstelrit", sub: "training · 45 min" },
+  { key: "u4", href: "#", dateKey: "2026-10-15", color: { bg: "#ea580c", ink: "#ffffff" }, day: "do", dayNumber: "15", title: "Tour Ignite · etappe 3", sub: "Zwift", time: "20:00" },
+  { key: "u5", href: "#", dateKey: "2026-10-16", color: { bg: "var(--tg-vandaag)", ink: "var(--tg-ink)" }, day: "vr", dayNumber: "16", title: "Verjaardag van Sanne" },
+  { key: "u6", href: "#", dateKey: "2026-10-17", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "17", title: "Clubrit Veluwezoom", sub: "Rheden · 82 km · 12 gaan mee", time: "09:00" },
+  { key: "u7", href: "#", dateKey: "2026-10-18", color: { bg: "#ea580c", ink: "#ffffff" }, day: "zo", dayNumber: "18", title: "Sunday Race Club", sub: "MyWhoosh", time: "10:45" },
+  { key: "u8", href: "#", dateKey: "2026-11-15", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "zo", dayNumber: "15", title: "Clubrit Veluwezoom", sub: "Rheden · 82 km", time: "09:00" },
+  { key: "u9", href: "#", dateKey: "2026-11-28", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "za", dayNumber: "28", title: "Clubkampioenschap tijdrit", sub: "Dronten", time: "13:00" },
+  { key: "u10", href: "#", dateKey: "2027-01-03", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "zo", dayNumber: "3", title: "Nieuwjaarsrit", sub: "Zwolle · 60 km", time: "11:00" },
 ];
 
 export default async function OntwerpVoorbeeldPage({
@@ -72,7 +75,7 @@ export default async function OntwerpVoorbeeldPage({
         {scherm === "kalender" ? (
           <div className="space-y-4">
             <h1 className="tg-display">Kalender</h1>
-            <TegelsAgenda past={PAST} upcoming={UPCOMING} empty="Geen aankomende events of trainingen." />
+            <TegelsAgenda past={PAST} upcoming={UPCOMING} todayKey="2026-10-12" empty="Geen aankomende events of trainingen." />
           </div>
         ) : scherm === "club" ? (
           <div className="space-y-5">
