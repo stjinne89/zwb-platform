@@ -10,6 +10,7 @@ import {
   weeklyStreak,
 } from "@/lib/training/mobility";
 import { MetricCard } from "../_components/ui";
+import { weekLoad } from "@/lib/training/muscles";
 import { formatWellnessDate } from "../_components/format";
 import { saveOwnSeries } from "./_actions";
 import {
@@ -21,6 +22,7 @@ import {
   todayKeyAmsterdam,
 } from "./_data";
 import { SeriesBuilder } from "./_components/series-builder";
+import { MuscleSummary } from "./_components/muscle-summary";
 import { SeriesCard } from "./_components/series-card";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +44,8 @@ export default async function CorePage() {
   const suggestion = recommendSeries(series, sessions, today, dayContext);
   const strength = recommendStrength(series, sessions, today, dayContext);
   const suggested = (id: string) => id === suggestion?.id || id === strength?.id;
+  const week = weekLoad(sessions, series, today);
+  const trainedThisWeek = Object.keys(week).length > 0;
 
   const standard = series.filter((row) => row.is_standard);
   const own = series.filter((row) => !row.is_standard);
@@ -69,6 +73,13 @@ export default async function CorePage() {
         />
       </div>
 
+      {trainedThisWeek && (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <h2 className="font-semibold">Deze week getraind</h2>
+          <MuscleSummary load={week} size="lg" limit={5} />
+        </section>
+      )}
+
       <section className="space-y-3">
         <h2 className="font-semibold">Series</h2>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -76,6 +87,7 @@ export default async function CorePage() {
             <SeriesCard
               key={row.id}
               series={row}
+              items={row.items}
               lastDone={lastDoneOn(sessions, row.id)}
               suggested={suggested(row.id)}
             />
@@ -91,6 +103,7 @@ export default async function CorePage() {
               <SeriesCard
                 key={row.id}
                 series={row}
+              items={row.items}
                 lastDone={lastDoneOn(sessions, row.id)}
                 suggested={suggested(row.id)}
               />

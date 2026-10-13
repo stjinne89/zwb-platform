@@ -1,474 +1,247 @@
 // Poses voor de mobiliteitsoefeningen. De gouden lijn wijst hier de
-// bewegingsrichting aan, of markeert het hulpmiddel (bank, muur, blok).
+// bewegingsrichting aan, of markeert waar je op let.
 
-import type { Pose } from "./figure-kit";
+import { ANKLE_Y, arrow, guide, type Pose } from "./figure-kit";
+
+// De bank krijgt poten, anders leest het blad als een streep door het lichaam.
+const BENCH = ["M 62 138 L 132 138", "M 72 138 L 72 190", "M 122 138 L 122 190"];
+// Het blok moet ruim onder heuphoogte blijven, anders leest de figuur als
+// zittend.
+const BLOCK = ["M 214 172 L 262 172", "M 222 172 L 222 190", "M 254 172 L 254 190"];
+const WALL = "M 268 30 L 268 192";
 
 export const MOBILITY_POSES: Record<string, Pose[]> = {
   "cat-camel": [
     {
       // Bolle rug, kin naar de borst.
-      head: [84, 142],
-      neck: [108, 138],
-      hip: [196, 138],
-      torsoPath: "M 108 138 Q 152 104 196 138",
-      arm: [
-        [106, 164],
-        [104, 188],
-      ],
-      farArm: [
-        [124, 164],
-        [122, 188],
-      ],
-      leg: [
-        [198, 164],
-        [196, 188],
-      ],
-      farLeg: [
-        [214, 164],
-        [212, 188],
-      ],
-      accent: {
-        d: "M 152 96 L 152 72",
-        arrow: [
-          [152, 62],
-          [145, 77],
-          [159, 77],
-        ],
-      },
+      facing: -1,
+      hip: [163, 141],
+      shoulder: [110, 132],
+      arch: 13,
+      nod: 40,
+      hand: [114, 184],
+      farHand: [126, 184],
+      foot: [204, 186],
+      farFoot: [216, 186],
+      accent: arrow([137, 100], [137, 74]),
     },
     {
       // Holle rug, borst open.
-      head: [80, 118],
-      neck: [108, 134],
-      hip: [196, 134],
-      torsoPath: "M 108 134 Q 152 166 196 134",
-      arm: [
-        [106, 162],
-        [104, 188],
-      ],
-      farArm: [
-        [124, 162],
-        [122, 188],
-      ],
-      leg: [
-        [198, 162],
-        [196, 188],
-      ],
-      farLeg: [
-        [214, 162],
-        [212, 188],
-      ],
-      accent: {
-        d: "M 152 94 L 152 118",
-        arrow: [
-          [152, 128],
-          [145, 113],
-          [159, 113],
-        ],
-      },
+      facing: -1,
+      hip: [163, 141],
+      shoulder: [110, 130],
+      arch: -9,
+      nod: -30,
+      hand: [114, 184],
+      farHand: [126, 184],
+      foot: [204, 186],
+      farFoot: [216, 186],
+      accent: arrow([137, 86], [137, 112]),
     },
   ],
 
   "thoracic-rotation": [
     {
-      // Elleboog naar de mat toe.
-      head: [86, 132],
-      neck: [110, 136],
-      hip: [196, 136],
-      arm: [
-        [126, 166],
-        [98, 144],
-      ],
-      farArm: [
-        [122, 164],
-        [120, 188],
-      ],
-      leg: [
-        [198, 164],
-        [196, 188],
-      ],
-      farLeg: [
-        [214, 164],
-        [212, 188],
-      ],
-      accent: { d: "M 136 172 Q 178 142 158 100", dashed: true },
+      // Hand achter het hoofd, elleboog naar de mat toe.
+      facing: -1,
+      hip: [163, 141],
+      shoulder: [110, 130],
+      hand: [92, 126],
+      elbow: -1,
+      farHand: [126, 184],
+      foot: [204, 186],
+      farFoot: [216, 186],
     },
     {
       // Elleboog naar het plafond, blik volgt.
-      head: [84, 126],
-      neck: [110, 134],
-      hip: [196, 134],
-      arm: [
-        [128, 92],
-        [100, 118],
-      ],
-      farArm: [
-        [122, 162],
-        [120, 188],
-      ],
-      leg: [
-        [198, 162],
-        [196, 188],
-      ],
-      farLeg: [
-        [214, 162],
-        [212, 188],
-      ],
-      accent: {
-        d: "M 142 84 Q 160 66 182 66",
-        arrow: [
-          [192, 66],
-          [178, 59],
-          [178, 73],
-        ],
-      },
+      facing: -1,
+      hip: [163, 141],
+      shoulder: [110, 128],
+      nod: -20,
+      hand: [92, 122],
+      elbow: 1,
+      farHand: [126, 184],
+      foot: [204, 186],
+      farFoot: [216, 186],
+      accent: arrow([122, 100], [122, 72]),
     },
   ],
 
   "thoracic-extension": [
     {
-      // Op de knieën met de onderarmen op een bank. De bank krijgt poten, anders
-      // leest het blad als een streep dwars door het lichaam.
-      props: ["M 30 138 L 128 138", "M 42 138 L 42 190", "M 116 138 L 116 190"],
-      head: [62, 116],
-      neck: [92, 126],
-      hip: [178, 140],
-      arm: [
-        [66, 138],
-        [38, 138],
-      ],
-      farArm: [
-        [80, 140],
-        [52, 140],
-      ],
-      leg: [
-        [184, 188],
-        [214, 190],
-      ],
-      accent: {
-        d: "M 126 106 L 126 130",
-        arrow: [
-          [126, 140],
-          [119, 125],
-          [133, 125],
-        ],
-      },
+      // Op de knieën met de onderarmen op een bank.
+      props: BENCH,
+      facing: -1,
+      hip: [196, 141],
+      shoulder: [143, 130],
+      hand: [96, 124],
+      farHand: [104, 126],
+      foot: [238, 186],
+      accent: arrow([170, 96], [170, 122]),
     },
     {
       // Borst zakt tussen de armen door: de rug krijgt extensie.
-      props: ["M 30 138 L 128 138", "M 42 138 L 42 190", "M 116 138 L 116 190"],
-      head: [60, 132],
-      neck: [92, 142],
-      hip: [178, 146],
-      torsoPath: "M 92 142 Q 134 170 178 148",
-      arm: [
-        [66, 140],
-        [38, 140],
-      ],
-      farArm: [
-        [80, 142],
-        [52, 142],
-      ],
-      leg: [
-        [184, 188],
-        [214, 190],
-      ],
-      accent: { d: "M 100 162 Q 134 186 170 164", dashed: true },
+      props: BENCH,
+      facing: -1,
+      hip: [196, 141],
+      shoulder: [143, 138],
+      arch: -10,
+      nod: -10,
+      hand: [96, 124],
+      farHand: [104, 126],
+      foot: [238, 186],
     },
   ],
 
   "child-pose": [
     {
-      // Zit op de hielen, gezicht naar links: knie naar voren, voet ónder de
-      // zitbotten terug. Beide poses kijken dezelfde kant op, anders klapt de
-      // figuur tijdens de lus 180 graden om.
-      head: [180, 108],
-      neck: [178, 134],
-      hip: [178, 172],
-      arm: [
-        [162, 154],
-        [146, 168],
-      ],
-      leg: [
-        [136, 186],
-        [174, 190],
-      ],
+      // Zit op de hielen. Beide poses kijken dezelfde kant op, anders klapt de
+      // figuur tijdens de lus om.
+      facing: -1,
+      hip: [178, 160],
+      shoulder: [176, 106],
+      hand: [150, 158],
+      foot: [182, 186],
+      accent: arrow([150, 98], [118, 128]),
     },
     {
-      // Vanuit diezelfde zit naar voren gevouwen: knieën blijven links liggen,
-      // de romp zakt eroverheen.
-      // Zitbotten blijven hoog op de hielen, borst zakt naar de mat: die
-      // schuine lijn is wat de houding herkenbaar maakt.
-      head: [88, 178],
-      neck: [112, 180],
+      // Zitbotten blijven op de hielen, borst zakt naar de mat: die schuine
+      // lijn is wat de houding herkenbaar maakt.
+      facing: -1,
       hip: [178, 160],
-      torsoPath: "M 112 180 Q 146 176 178 160",
-      arm: [
-        [76, 184],
-        [44, 188],
-      ],
-      leg: [
-        [136, 184],
-        [176, 190],
-      ],
-      accent: { d: "M 44 180 L 182 154", dashed: true },
+      shoulder: [125, 171],
+      arch: 6,
+      hand: [72, 184],
+      foot: [182, 186],
     },
   ],
 
   "shoulder-opener": [
     {
-      // De stok voor het lichaam, handen ruim uit elkaar.
-      head: [150, 62],
-      neck: [152, 90],
-      hip: [154, 146],
-      arm: [
-        [138, 120],
-        [128, 144],
-      ],
-      farArm: [
-        [168, 120],
-        [178, 144],
-      ],
-      leg: [
-        [150, 170],
-        [148, 190],
-      ],
-      farLeg: [
-        [162, 170],
-        [164, 190],
-      ],
-      accent: { d: "M 112 146 L 194 146" },
+      // De stok voor het lichaam, armen gestrekt.
+      zoom: 0.86,
+      hip: [150, 104],
+      shoulder: [150, 50],
+      hand: [166, 108],
+      foot: [150, ANKLE_Y],
+      farFoot: [160, ANKLE_Y],
+      accent: arrow([200, 110], [200, 76]),
     },
     {
-      head: [150, 70],
-      neck: [152, 96],
-      hip: [154, 150],
-      arm: [
-        [128, 72],
-        [116, 44],
-      ],
-      farArm: [
-        [176, 72],
-        [188, 44],
-      ],
-      leg: [
-        [150, 172],
-        [148, 190],
-      ],
-      farLeg: [
-        [162, 172],
-        [164, 190],
-      ],
-      accent: { d: "M 102 44 L 202 44" },
+      // Tussenstand: zonder deze pose zou de hand in een rechte lijn door de
+      // schouder omhoog gaan in plaats van in een boog.
+      zoom: 0.86,
+      hip: [150, 104],
+      shoulder: [150, 50],
+      hand: [206, 56],
+      foot: [150, ANKLE_Y],
+      farFoot: [160, ANKLE_Y],
+    },
+    {
+      zoom: 0.86,
+      hip: [150, 104],
+      shoulder: [150, 50],
+      hand: [144, -1],
+      foot: [150, ANKLE_Y],
+      farFoot: [160, ANKLE_Y],
     },
   ],
 
   "hip-flexor-stretch": [
     {
-      head: [148, 70],
-      neck: [150, 98],
-      hip: [152, 148],
-      arm: [
-        [146, 122],
-        [142, 146],
-      ],
-      leg: [
-        [110, 168],
-        [96, 190],
-      ],
-      farLeg: [
-        [188, 186],
-        [224, 190],
-      ],
-      accent: {
-        // Eerst het bekken kantelen, dán pas de heup naar voren.
-        d: "M 166 128 L 130 128",
-        arrow: [
-          [120, 128],
-          [135, 121],
-          [135, 135],
-        ],
-      },
+      // Half geknield; het geknielde been is de kant die je rekt.
+      hip: [150, 142],
+      shoulder: [150, 88],
+      hand: [158, 138],
+      foot: [100, 186],
+      farFoot: [200, ANKLE_Y],
+      farToes: 0,
+      // Eerst het bekken kantelen, dán pas de heup naar voren.
+      accent: arrow([100, 122], [134, 122]),
     },
     {
-      head: [140, 76],
-      neck: [144, 104],
-      hip: [148, 152],
-      arm: [
-        [140, 126],
-        [136, 150],
-      ],
-      leg: [
-        [104, 170],
-        [92, 190],
-      ],
-      farLeg: [
-        [192, 188],
-        [230, 190],
-      ],
-      accent: {
-        d: "M 162 132 L 118 132",
-        arrow: [
-          [108, 132],
-          [123, 125],
-          [123, 139],
-        ],
-      },
+      hip: [164, 146],
+      shoulder: [162, 92],
+      hand: [172, 142],
+      foot: [100, 186],
+      farFoot: [200, ANKLE_Y],
+      farToes: 0,
+      accent: arrow([112, 126], [146, 126]),
     },
   ],
 
   "hamstring-stretch": [
     {
-      // Staand, hiel op een láge verhoging. Het blok moet ruim onder heuphoogte
-      // blijven, anders leest de hele figuur als zittend.
-      props: ["M 44 166 L 100 166", "M 54 166 L 54 190", "M 90 166 L 90 190"],
-      head: [178, 48],
-      neck: [178, 76],
-      hip: [180, 126],
-      arm: [
-        [172, 100],
-        [168, 124],
-      ],
-      leg: [
-        [140, 146],
-        [104, 164],
-      ],
-      farLeg: [
-        [180, 158],
-        [178, 190],
-      ],
+      // Staand, hiel op een lage verhoging.
+      props: BLOCK,
+      hip: [172, 105],
+      shoulder: [172, 51],
+      hand: [178, 108],
+      foot: [232, 162],
+      toes: -62,
+      farFoot: [170, ANKLE_Y],
+      farToes: 0,
     },
     {
-      props: ["M 44 166 L 100 166", "M 54 166 L 54 190", "M 90 166 L 90 190"],
-      head: [128, 84],
-      neck: [148, 98],
-      hip: [182, 130],
-      arm: [
-        [136, 124],
-        [126, 142],
-      ],
-      leg: [
-        [142, 148],
-        [104, 164],
-      ],
-      farLeg: [
-        [182, 160],
-        [180, 190],
-      ],
+      props: BLOCK,
+      hip: [168, 105],
+      shoulder: [210, 71],
+      hand: [226, 130],
+      foot: [232, 162],
+      toes: -62,
+      farFoot: [170, ANKLE_Y],
+      farToes: 0,
       // Rechte rug: kantel vanuit de heup, rond je rug niet.
-      accent: { d: "M 124 78 L 186 126", dashed: true },
+      accent: guide([156, 88], [208, 46]),
     },
   ],
 
   "figure-four": [
     {
-      head: [86, 172],
-      neck: [110, 176],
+      // Enkel op de andere knie. De knie van het gekruiste been wijst naar de
+      // kijker, vandaar de verkorte tekening.
       hip: [186, 180],
-      arm: [
-        [148, 160],
-        [196, 152],
-      ],
-      leg: [
-        [216, 148],
-        [222, 190],
-      ],
-      farLeg: [
-        [198, 146],
-        [224, 150],
-      ],
-      accent: {
-        d: "M 240 138 L 208 126",
-        arrow: [
-          [198, 122],
-          [213, 118],
-          [208, 132],
-        ],
-      },
+      shoulder: [132, 181],
+      hand: [184, 150],
+      foot: [194, 134],
+      knee: 0.4,
+      farFoot: [228, 134],
+      accent: arrow([252, 112], [222, 104]),
     },
     {
-      head: [86, 172],
-      neck: [110, 176],
       hip: [186, 180],
-      arm: [
-        [142, 154],
-        [192, 140],
-      ],
-      leg: [
-        [206, 136],
-        [214, 180],
-      ],
-      farLeg: [
-        [190, 134],
-        [218, 138],
-      ],
-      accent: {
-        d: "M 232 126 L 202 114",
-        arrow: [
-          [192, 110],
-          [207, 106],
-          [202, 120],
-        ],
-      },
+      shoulder: [132, 181],
+      hand: [176, 140],
+      foot: [182, 122],
+      knee: 0.4,
+      farFoot: [216, 120],
+      accent: arrow([240, 98], [210, 90]),
     },
   ],
 
   "ankle-rock": [
     {
-      // Half geknield: de heup moet duidelijk bóven de knieën liggen, anders
-      // leest de houding als zitten op de grond.
-      props: ["M 58 56 L 58 190"],
-      head: [180, 60],
-      neck: [180, 90],
-      hip: [188, 142],
-      arm: [
-        [168, 118],
-        [156, 142],
-      ],
-      // Voorste voet plat, scheenbeen nog verticaal: dit is de startpositie.
-      leg: [
-        [140, 158],
-        [138, 190],
-      ],
-      farLeg: [
-        [194, 188],
-        [226, 190],
-      ],
-      accent: {
-        d: "M 130 158 L 104 158",
-        arrow: [
-          [94, 158],
-          [109, 151],
-          [109, 165],
-        ],
-      },
+      // Half geknield voor een muur. Voorste voet plat, scheenbeen nog
+      // verticaal: dit is de startpositie.
+      props: [WALL],
+      hip: [171, 146],
+      shoulder: [171, 92],
+      hand: [206, 138],
+      foot: [214, ANKLE_Y],
+      toes: 0,
+      farFoot: [118, 186],
+      accent: arrow([214, 124], [244, 124]),
     },
     {
-      props: ["M 58 56 L 58 190"],
-      head: [174, 64],
-      neck: [176, 94],
-      hip: [186, 146],
-      arm: [
-        [164, 122],
-        [152, 146],
-      ],
       // Knie ver over de tenen; de voet blijft op dezelfde plek staan.
-      leg: [
-        [118, 156],
-        [138, 190],
-      ],
-      farLeg: [
-        [192, 188],
-        [224, 190],
-      ],
-      accent: {
-        d: "M 108 156 L 82 156",
-        arrow: [
-          [72, 156],
-          [87, 149],
-          [87, 163],
-        ],
-      },
+      props: [WALL],
+      hip: [188, 148],
+      shoulder: [190, 94],
+      hand: [222, 140],
+      foot: [214, ANKLE_Y],
+      toes: 0,
+      farFoot: [118, 186],
+      accent: arrow([228, 124], [256, 124]),
     },
   ],
 };

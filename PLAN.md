@@ -7510,6 +7510,109 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — kracht-tabblad fase A: silhouetfiguren en spierkaart
+
+**2026-10-14.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Vraag van de eigenaar: de poppetjes bij de oefeningen zijn te
+simpel, en Strava laat bij een krachtsessie zien welke spiergroepen getraind
+zijn. Hij wil de bibliotheek uitbreiden, maar pas als een oefening duidelijk in
+beeld te brengen is. Fase A is daarom alleen beeld; fase B (nieuwe oefeningen en
+series, met literatuur) volgt als eigen ronde.
+
+**Keuzes van de eigenaar.** Het eigen figuur verbeteren, geen ingekocht beeld.
+De spierkaart per oefening, per serie en als weekoverzicht.
+
+**Wijziging.**
+
+- *Figuur.* `figure-kit.tsx` tekent een silhouet in zijaanzicht in plaats van
+  lijnen: gevulde, taps toelopende ledematen, romp, nek, hoofd, handen en
+  voeten. Een pose is nog steeds data, maar anders dan eerst: je geeft heup,
+  schouder, handen en voeten op, en de kit rekent ellebogen en knieën uit met
+  vaste segmentlengtes. Daardoor heeft elke figuur dezelfde verhoudingen. Alle
+  25 oefeningen zijn in die vorm opnieuw ingevoerd (`core.ts`, `mobiliteit.ts`,
+  `activatie.ts`, `kracht.ts`).
+- *Beweging.* `exercise-visual.tsx` laat de figuur vloeiend tussen de houdingen
+  bewegen (`blendPose`, heen en terug met een rust op de uiteinden). Gemengd
+  worden de opgegeven punten, niet de uitgerekende gewrichten, zodat een arm of
+  been onderweg niet krimpt. Tikken zet de beweging stil en bladert per houding;
+  bij "minder beweging" staat hij stil. Alleen figuren in beeld bewegen. Plank,
+  zijplank en hollow hold wisselen als losse beelden: daar zijn de poses een
+  makkelijke en een volledige variant, geen beweging.
+- *Werkende spieren.* In het figuur zijn de spieren gekleurd waar de oefening om
+  draait (vol) en wat meehelpt (lichter): voor- of achterkant van het bovenbeen,
+  kuit, bil, heupbuiger, buik, borst, onder- en bovenrug, schouder, arm.
+- *Spiergroepen als data.* `src/lib/training/muscles.ts`: zestien groepen en per
+  oefening-slug de hoofd- en hulpspieren, plus het optellen per serie
+  (`seriesLoad`, gewogen naar sets) en per week (`weekLoad`).
+- *Spierkaart.* `components/mobility/muscle-map.tsx`: lichaam van voren en van
+  achteren. Te zien bij elke oefening (bibliotheek, seriepagina, tijdens het
+  doorlopen), op de seriekaart en bovenaan de seriepagina, en op het tabblad als
+  "Deze week getraind". Die laatste sectie staat er alleen als er in zeven dagen
+  een core- of krachtserie is afgevinkt.
+- `/hulp#spiergroepen`: wat de kleuren betekenen en wat de week telt.
+
+**Onderweg besloten.**
+
+- *De poses zijn opnieuw ingevoerd, niet omgezet.* Het plan ging ervan uit dat
+  alleen de tekenaar hoefde te veranderen. De oude coördinaten hadden benen
+  korter dan de romp; als lijnfiguur viel dat niet op, als silhouet wel.
+- *Spiergroepen in code, niet in de database.* Zelfde opzet als het
+  figuurregister: een nieuwe oefening vraagt toch al code voor zijn figuur, en
+  zo is er geen migratie nodig die hier niet te testen is.
+- *Het weekoverzicht telt alleen core en kracht.* Bij een rekoefening staat wat
+  je rekt; dat hoort op de oefening en de serie, maar is geen training.
+- *De vlakken van de spierkaart komen uit `react-body-highlighter` 2.0.5* (MIT,
+  © 2020 GV79), alleen de polygonen, met bronvermelding in
+  `muscle-map-data.ts`. Geen dependency. De heupbuigers zijn zelf toegevoegd.
+- *In de bibliotheek staat de regio (`heup`, `been`) niet meer onder de titel;*
+  de spiergroepen zeggen hetzelfde preciezer. De kolom `region` blijft bestaan.
+- *Kleur.* Lichaam in `text-primary` (donker thema: de tekstkleur), spieren en
+  aanwijslijn in `--figure-hot`: goud in beide thema's (`--accent` licht,
+  `--primary` donker). Eerder was de aanwijslijn in het donkere thema saliegroen.
+
+**Bewust niet gebouwd.**
+
+- Extern beeld (foto, video). `media_json` blijft de naad daarvoor.
+- Een databasekolom voor spiergroepen; zie hierboven.
+- Spierbelasting in TSS, CTL of het fietsschema. Dit spoor blijft los.
+- Adductoren en nek in het figuur: in zijaanzicht zitten die achter andere
+  delen. De spierkaart toont ze wel.
+- De schouderopener met stok en het beenzwaaien met muur: de stok en de muur
+  zijn niet meer getekend. De tekst noemt ze.
+
+**Niet meer waar.** Niets in dit document: eerdere rondes noemen alleen waar de
+figuren staan, niet hoe ze getekend zijn.
+
+**Getest.** `tsc` en eslint zonder fouten. `npm run build` compileert ("Compiled
+successfully") maar maakt de build niet af: het voorrenderen van `/omnium` stopt
+op "Supabase-URL en anon key zijn nodig", omdat deze worktree geen `.env.local`
+heeft. Vitest: nieuw
+`muscles.test.ts` (elke geseede oefening heeft spiergroepen, elke groep heeft een
+vlak op de kaart, weging, zevendagenvenster, verdwenen serie) en uitgebreid
+`mobility-figures.test.ts` (elke pose en tussenstand tekent zonder kapotte
+coördinaten). Twee suites vallen in deze worktree om en hebben hier niets mee te
+maken: `omnium-live.test.ts` leest een `.env.local` die er niet is, en
+`rls-initplan-migration.test.ts` liep in de volledige run tegen zijn time-out.
+
+**Bekeken.** Alle 25 figuren, de spierkaart en de samenvatting op een losse
+testpagina buiten de app, licht en donker, op 375 en 1000 pixels breed.
+
+**Niet geverifieerd.**
+
+- De echte pagina's (`/zwbeter-worden/core`, een serie, de bibliotheek): die
+  vragen een login en deze worktree heeft geen Supabase-gegevens. De testpagina
+  gebruikt dezelfde componenten maar eigen CSS, dus de Tailwind-klassen
+  (breedtes, `dark:`-varianten) zijn niet in het echt gezien.
+- De vloeiende beweging zoals een browser hem tekent. De testbrowser tekende
+  geen frames; de beweging is daar nagelopen met een nagebootste klok en
+  nagebootste zichtbaarheid (de heup van de squat gaat van 104 naar 143 en
+  terug, met rust op de uiteinden). Hoe soepel het op een telefoon loopt, moet
+  de eigenaar zien.
+- Of de houdingen anatomisch goed genoeg zijn. Ze zijn op het oog ingevoerd en
+  niet door een trainer of fysiotherapeut bekeken; het bilspierrek (gekruist
+  been) en de thoracale rotatie zijn in zijaanzicht het minst duidelijk.
+
 ### Opgeleverd — persoonlijke voorkeuren en het tabblad Uitgangspunten
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie `0230`

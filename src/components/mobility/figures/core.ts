@@ -1,41 +1,33 @@
-// Poses voor de core-oefeningen. Twee poses per oefening: de eerste is de
-// makkelijkere of de startpositie, de tweede de volledige uitvoering. Zo laat de
-// lus meteen de progressie zien.
+// Poses voor de core-oefeningen. Bij plank, zijplank en hollow hold is de eerste
+// pose de makkelijkere variant en de tweede de volledige uitvoering; bij de rest
+// zijn het de uiteinden van de beweging.
 //
-// Coördinaten in de 320×220-ruimte van figure-kit; de grondlijn ligt op y=192.
+// Coördinaten in de 320×220-ruimte van figure-kit; de grond ligt op y=192. Op
+// de buik is `facing` -1 (borst naar de mat), op de rug 1.
 
-import type { Pose } from "./figure-kit";
+import { ANKLE_Y, arrow, guide, type Pose } from "./figure-kit";
+
+/** Gouden streep op de mat: de onderrug blijft daar liggen. */
+const LOW_BACK_DOWN = { d: "M 150 192 L 198 192" };
 
 export const CORE_POSES: Record<string, Pose[]> = {
   plank: [
     {
       // Knieplank: zelfde rechte lijn, kortere hefboom.
-      head: [76, 132],
-      neck: [100, 140],
-      hip: [178, 152],
-      arm: [
-        [96, 186],
-        [124, 186],
-      ],
-      leg: [
-        [222, 186],
-        [252, 164],
-      ],
-      accent: { d: "M 92 130 L 226 178", dashed: true },
+      facing: -1,
+      hip: [156, 172],
+      shoulder: [104, 156],
+      hand: [80, 186],
+      foot: [232, 163],
+      accent: guide([96, 136], [204, 164]),
     },
     {
-      head: [72, 138],
-      neck: [98, 146],
-      hip: [180, 160],
-      arm: [
-        [94, 186],
-        [122, 186],
-      ],
-      leg: [
-        [222, 172],
-        [258, 186],
-      ],
-      accent: { d: "M 88 136 L 258 180", dashed: true },
+      facing: -1,
+      hip: [157, 164],
+      shoulder: [104, 156],
+      hand: [80, 186],
+      foot: [240, 176],
+      accent: guide([96, 136], [246, 158]),
     },
   ],
 
@@ -43,232 +35,116 @@ export const CORE_POSES: Record<string, Pose[]> = {
     {
       // De bovenste arm recht omhoog is het duidelijkste teken dat dit een
       // zijplank is en geen gewone plank; de steunende onderarm staat lichter.
-      head: [80, 128],
-      neck: [104, 138],
-      hip: [186, 148],
-      arm: [
-        [110, 104],
-        [114, 74],
-      ],
-      farArm: [
-        [100, 186],
-        [128, 186],
-      ],
-      leg: [
-        [230, 186],
-        [258, 164],
-      ],
-      accent: {
-        d: "M 186 176 L 186 146",
-        arrow: [
-          [186, 136],
-          [179, 151],
-          [193, 151],
-        ],
-      },
+      facing: -1,
+      hip: [156, 172],
+      shoulder: [104, 156],
+      hand: [112, 100],
+      farHand: [80, 186],
+      foot: [232, 163],
+      accent: arrow([170, 150], [170, 122]),
     },
     {
-      head: [76, 134],
-      neck: [100, 144],
-      hip: [188, 156],
-      arm: [
-        [106, 110],
-        [110, 80],
-      ],
-      farArm: [
-        [96, 186],
-        [124, 186],
-      ],
-      leg: [
-        [232, 170],
-        [262, 186],
-      ],
-      accent: { d: "M 90 134 L 262 178", dashed: true },
+      facing: -1,
+      hip: [157, 164],
+      shoulder: [104, 156],
+      hand: [112, 100],
+      farHand: [80, 186],
+      foot: [240, 176],
+      accent: guide([124, 138], [246, 158]),
     },
   ],
 
   "bird-dog": [
     {
-      head: [84, 124],
-      neck: [108, 136],
-      hip: [196, 136],
-      arm: [
-        [106, 164],
-        [104, 188],
-      ],
-      farArm: [
-        [124, 164],
-        [122, 188],
-      ],
-      leg: [
-        [198, 164],
-        [196, 188],
-      ],
-      farLeg: [
-        [214, 164],
-        [212, 188],
-      ],
+      facing: -1,
+      hip: [163, 141],
+      shoulder: [110, 130],
+      hand: [114, 184],
+      farHand: [126, 184],
+      foot: [204, 186],
+      farFoot: [216, 186],
     },
     {
-      // Hoofd hangt onder de schouder: neutrale nek, blik naar de mat. Het
-      // houdt de kop ook los van de gestrekte arm, anders lopen ze in elkaar.
-      head: [86, 152],
-      neck: [108, 134],
-      hip: [196, 134],
       // De gestrekte arm en het gestrekte been zijn de hoofdlijnen; de
       // steunende ledematen staan lichter.
-      arm: [
-        [76, 118],
-        [46, 110],
-      ],
-      farArm: [
-        [124, 162],
-        [122, 188],
-      ],
-      leg: [
-        [232, 126],
-        [268, 118],
-      ],
-      farLeg: [
-        [212, 162],
-        [210, 188],
-      ],
-      accent: { d: "M 46 106 L 268 110", dashed: true },
+      facing: -1,
+      hip: [163, 139],
+      shoulder: [110, 130],
+      hand: [58, 124],
+      farHand: [126, 184],
+      foot: [246, 134],
+      farFoot: [216, 186],
+      accent: guide([54, 106], [250, 116]),
     },
   ],
 
   "dead-bug": [
     {
-      head: [92, 172],
-      neck: [116, 176],
-      hip: [190, 182],
-      arm: [
-        [118, 142],
-        [120, 116],
-      ],
-      farArm: [
-        [132, 144],
-        [134, 118],
-      ],
-      leg: [
-        [190, 144],
-        [222, 142],
-      ],
-      farLeg: [
-        [204, 146],
-        [236, 144],
-      ],
+      hip: [190, 180],
+      shoulder: [136, 181],
+      hand: [141, 125],
+      farHand: [152, 127],
+      foot: [231, 137],
+      farFoot: [239, 141],
       // Onderrug tegen de mat: dat is de hele oefening.
-      accent: { d: "M 148 190 L 196 190" },
+      accent: LOW_BACK_DOWN,
     },
     {
-      head: [92, 172],
-      neck: [116, 176],
-      hip: [190, 182],
-      arm: [
-        [92, 150],
-        [66, 142],
-      ],
-      farArm: [
-        [132, 144],
-        [134, 118],
-      ],
-      leg: [
-        [228, 168],
-        [264, 166],
-      ],
-      farLeg: [
-        [204, 146],
-        [236, 144],
-      ],
-      accent: { d: "M 148 190 L 196 190" },
+      hip: [190, 180],
+      shoulder: [136, 181],
+      hand: [86, 174],
+      farHand: [152, 127],
+      foot: [272, 170],
+      farFoot: [239, 141],
+      accent: LOW_BACK_DOWN,
     },
   ],
 
   "hollow-hold": [
     {
       // Knieën gebogen: de instapvariant als de onderrug loskomt.
-      head: [100, 152],
-      neck: [122, 160],
       hip: [186, 180],
-      arm: [
-        [98, 140],
-        [74, 132],
-      ],
-      leg: [
-        [216, 152],
-        [244, 150],
-      ],
-      farLeg: [
-        [228, 156],
-        [256, 154],
-      ],
-      accent: { d: "M 154 190 L 192 190" },
+      shoulder: [136, 160],
+      arch: 6,
+      nod: 10,
+      hand: [88, 141],
+      foot: [228, 150],
+      farFoot: [236, 154],
+      accent: LOW_BACK_DOWN,
     },
     {
-      head: [96, 146],
-      neck: [120, 156],
       hip: [186, 180],
-      arm: [
-        [92, 132],
-        [66, 124],
-      ],
-      leg: [
-        [222, 160],
-        [258, 144],
-      ],
-      farLeg: [
-        [232, 164],
-        [268, 148],
-      ],
-      accent: { d: "M 154 190 L 192 190" },
+      shoulder: [136, 160],
+      arch: 6,
+      nod: 10,
+      hand: [88, 141],
+      foot: [264, 150],
+      farFoot: [266, 156],
+      accent: LOW_BACK_DOWN,
     },
   ],
 
   "glute-bridge": [
     {
-      head: [78, 178],
-      neck: [102, 182],
-      hip: [176, 184],
-      arm: [
-        [130, 188],
-        [158, 190],
-      ],
-      leg: [
-        [214, 158],
-        [220, 190],
-      ],
-      farLeg: [
-        [226, 160],
-        [232, 190],
-      ],
-      accent: {
-        d: "M 176 174 L 176 148",
-        arrow: [
-          [176, 138],
-          [169, 153],
-          [183, 153],
-        ],
-      },
+      hip: [176, 180],
+      shoulder: [122, 181],
+      hand: [182, 187],
+      foot: [222, ANKLE_Y],
+      farFoot: [232, ANKLE_Y],
+      toes: 0,
+      farToes: 0,
+      accent: arrow([176, 164], [176, 134]),
     },
     {
-      head: [78, 182],
-      neck: [102, 186],
-      hip: [178, 152],
-      arm: [
-        [132, 190],
-        [160, 190],
-      ],
-      leg: [
-        [216, 152],
-        [222, 190],
-      ],
-      farLeg: [
-        [228, 154],
-        [234, 190],
-      ],
+      hip: [175, 161],
+      shoulder: [124, 180],
+      hand: [182, 187],
+      foot: [222, ANKLE_Y],
+      farFoot: [232, ANKLE_Y],
+      toes: 0,
+      farToes: 0,
       // Schouder, heup en knie op één lijn: het eindpunt van de beweging.
-      accent: { d: "M 102 184 L 216 152", dashed: true },
+      accent: guide([120, 162], [216, 128]),
     },
   ],
 };

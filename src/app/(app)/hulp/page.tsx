@@ -3035,6 +3035,22 @@ Fitness-status: Verbeterend`}
         </div>
 
         <div
+          id="spiergroepen"
+          className="mt-4 scroll-mt-20 rounded-md border bg-background p-4"
+        >
+          <h3 className="text-sm font-semibold">Figuur en spierkaart</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Het figuur laat de beweging zien; tik erop om hem stil te zetten en
+            per houding te bladeren. De gekleurde delen zijn de spieren waar de
+            oefening om draait, lichter gekleurd is wat meehelpt. Bij een
+            rekoefening is dat wat je rekt. De spierkaart bij een serie telt
+            alle oefeningen van die serie op. &quot;Deze week getraind&quot; telt
+            alleen de core- en krachtseries die je in de afgelopen zeven dagen
+            hebt afgevinkt; rekken en losmaken tellen daar niet als training.
+          </p>
+        </div>
+
+        <div
           id="kracht"
           className="mt-4 scroll-mt-20 rounded-md border bg-background p-4"
         >

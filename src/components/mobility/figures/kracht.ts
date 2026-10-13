@@ -1,294 +1,161 @@
 // Poses voor de krachtoefeningen (0160). Net als bij activatie zijn twee poses
 // de uiteinden van de beweging; de muurzit is een hold en heeft er één.
 
-import type { Pose } from "./figure-kit";
+import { ANKLE_Y, arrow, guide, type Pose } from "./figure-kit";
 
-const ARROW_DOWN = (x: number, y: number): Pose["accent"] => ({
-  d: `M ${x} ${y - 50} L ${x} ${y - 10}`,
-  arrow: [
-    [x, y],
-    [x - 7, y - 14],
-    [x + 7, y - 14],
-  ],
-});
-
-const ARROW_UP = (x: number, y: number): Pose["accent"] => ({
-  d: `M ${x} ${y + 50} L ${x} ${y + 10}`,
-  arrow: [
-    [x, y],
-    [x - 7, y + 14],
-    [x + 7, y + 14],
-  ],
-});
+const STEP = "M 184 192 L 184 162 L 262 162 L 262 192";
+const WALL_RIGHT = "M 262 30 L 262 192";
+const WALL_LEFT = "M 104 30 L 104 192";
 
 export const STRENGTH_POSES: Record<string, Pose[]> = {
   squat: [
     {
-      head: [150, 62],
-      neck: [152, 90],
-      hip: [154, 146],
-      arm: [
-        [180, 104],
-        [210, 106],
-      ],
-      leg: [
-        [156, 170],
-        [156, 190],
-      ],
-      farLeg: [
-        [166, 170],
-        [166, 190],
-      ],
-      accent: ARROW_DOWN(96, 160),
+      hip: [150, 104],
+      shoulder: [150, 50],
+      hand: [200, 62],
+      foot: [150, ANKLE_Y],
+      farFoot: [162, ANKLE_Y],
+      accent: arrow([92, 96], [92, 146]),
     },
     {
-      head: [168, 94],
-      neck: [158, 118],
-      hip: [122, 152],
-      arm: [
-        [190, 124],
-        [222, 126],
-      ],
-      leg: [
-        [168, 158],
-        [158, 190],
-      ],
-      farLeg: [
-        [178, 160],
-        [170, 190],
-      ],
-      accent: ARROW_UP(96, 110),
+      // Bovenbenen horizontaal, borst omhoog, knieën boven de tenen.
+      hip: [116, 148],
+      shoulder: [140, 100],
+      hand: [190, 106],
+      foot: [150, ANKLE_Y],
+      farFoot: [162, ANKLE_Y],
+      accent: arrow([92, 146], [92, 96]),
     },
   ],
 
   "split-squat": [
     {
-      head: [150, 62],
-      neck: [152, 90],
-      hip: [154, 146],
-      arm: [
-        [150, 118],
-        [148, 142],
-      ],
-      leg: [
-        [186, 166],
-        [196, 190],
-      ],
-      farLeg: [
-        [124, 168],
-        [98, 186],
-      ],
-      accent: ARROW_DOWN(250, 150),
+      hip: [150, 116],
+      shoulder: [150, 62],
+      hand: [160, 112],
+      foot: [192, ANKLE_Y],
+      farFoot: [104, 180],
+      toes: 0,
+      farToes: 55,
+      accent: arrow([250, 100], [250, 150]),
     },
     {
-      head: [150, 88],
-      neck: [152, 116],
-      hip: [154, 160],
-      arm: [
-        [150, 142],
-        [148, 164],
-      ],
-      leg: [
-        [196, 160],
-        [196, 190],
-      ],
-      farLeg: [
-        [140, 186],
-        [100, 188],
-      ],
-      accent: ARROW_UP(250, 110),
+      // Achterste knie net boven de grond, voorste knie boven de voet.
+      hip: [150, 144],
+      shoulder: [150, 90],
+      hand: [160, 140],
+      foot: [192, ANKLE_Y],
+      farFoot: [104, 180],
+      toes: 0,
+      farToes: 55,
+      accent: arrow([250, 150], [250, 100]),
     },
   ],
 
   "step-up": [
     {
-      props: ["M 180 190 L 180 150 L 262 150 L 262 190"],
-      head: [134, 62],
-      neck: [136, 90],
-      hip: [138, 146],
-      arm: [
-        [136, 118],
-        [134, 142],
-      ],
-      leg: [
-        [180, 130],
-        [196, 150],
-      ],
-      farLeg: [
-        [134, 170],
-        [130, 190],
-      ],
-      accent: ARROW_UP(96, 100),
+      props: [STEP],
+      zoom: 0.84,
+      hip: [146, 106],
+      shoulder: [150, 52],
+      hand: [152, 108],
+      foot: [206, 157],
+      farFoot: [140, ANKLE_Y],
+      toes: 0,
+      farToes: 0,
+      accent: arrow([92, 150], [92, 100]),
     },
     {
-      props: ["M 180 190 L 180 150 L 262 150 L 262 190"],
-      head: [206, 22],
-      neck: [208, 50],
-      hip: [210, 106],
-      arm: [
-        [208, 78],
-        [206, 102],
-      ],
-      leg: [
-        [212, 128],
-        [212, 150],
-      ],
-      farLeg: [
-        [194, 130],
-        [182, 150],
-      ],
-      accent: ARROW_UP(96, 60),
+      props: [STEP],
+      zoom: 0.84,
+      hip: [212, 73],
+      shoulder: [212, 19],
+      hand: [214, 75],
+      foot: [210, 157],
+      farFoot: [196, 157],
+      toes: 0,
+      farToes: 0,
+      accent: arrow([92, 100], [92, 150]),
     },
   ],
 
   "single-leg-bridge": [
     {
-      head: [78, 178],
-      neck: [102, 182],
-      hip: [176, 184],
-      arm: [
-        [130, 188],
-        [158, 190],
-      ],
-      leg: [
-        [214, 158],
-        [220, 190],
-      ],
-      farLeg: [
-        [220, 172],
-        [262, 162],
-      ],
-      accent: {
-        d: "M 176 174 L 176 148",
-        arrow: [
-          [176, 138],
-          [169, 153],
-          [183, 153],
-        ],
-      },
+      hip: [176, 180],
+      shoulder: [122, 181],
+      hand: [182, 187],
+      foot: [222, ANKLE_Y],
+      farFoot: [235, 119],
+      accent: arrow([176, 164], [176, 134]),
     },
     {
-      head: [78, 182],
-      neck: [102, 186],
-      hip: [178, 152],
-      arm: [
-        [132, 190],
-        [160, 190],
-      ],
-      leg: [
-        [216, 152],
-        [222, 190],
-      ],
-      farLeg: [
-        [220, 140],
-        [262, 128],
-      ],
+      hip: [175, 161],
+      shoulder: [124, 180],
+      hand: [182, 187],
+      foot: [222, ANKLE_Y],
+      farFoot: [253, 132],
       // Schouder, heup en gestrekt been op één lijn.
-      accent: { d: "M 102 184 L 262 128", dashed: true },
+      accent: guide([120, 162], [258, 114]),
     },
   ],
 
   "calf-raise": [
     {
-      props: ["M 256 54 L 256 190"],
-      head: [180, 62],
-      neck: [182, 90],
-      hip: [184, 146],
-      arm: [
-        [214, 104],
-        [248, 100],
-      ],
-      leg: [
-        [184, 170],
-        [186, 190],
-      ],
-      farLeg: [
-        [194, 170],
-        [196, 190],
-      ],
-      accent: ARROW_UP(150, 150),
+      props: [WALL_RIGHT],
+      hip: [196, 104],
+      shoulder: [198, 50],
+      hand: [254, 72],
+      foot: [196, ANKLE_Y],
+      farFoot: [206, ANKLE_Y],
+      toes: 0,
+      farToes: 0,
+      accent: arrow([140, 150], [140, 100]),
     },
     {
-      props: ["M 256 54 L 256 190"],
-      head: [180, 48],
-      neck: [182, 76],
-      hip: [184, 132],
-      arm: [
-        [214, 92],
-        [248, 90],
-      ],
-      leg: [
-        [184, 156],
-        [190, 180],
-      ],
-      farLeg: [
-        [194, 156],
-        [200, 180],
-      ],
-      accent: ARROW_DOWN(150, 180),
+      props: [WALL_RIGHT],
+      hip: [198, 93],
+      shoulder: [200, 39],
+      hand: [254, 62],
+      foot: [198, 176],
+      farFoot: [208, 176],
+      toes: 42,
+      farToes: 42,
+      accent: arrow([140, 100], [140, 150]),
     },
   ],
 
   "single-leg-rdl": [
     {
-      head: [150, 62],
-      neck: [152, 90],
-      hip: [154, 146],
-      arm: [
-        [150, 118],
-        [148, 142],
-      ],
-      leg: [
-        [156, 170],
-        [154, 190],
-      ],
-      farLeg: [
-        [148, 168],
-        [140, 186],
-      ],
+      hip: [150, 104],
+      shoulder: [150, 50],
+      hand: [152, 108],
+      foot: [150, ANKLE_Y],
+      farFoot: [142, 185],
+      toes: 0,
     },
     {
-      head: [90, 108],
-      neck: [116, 118],
-      hip: [160, 146],
-      arm: [
-        [116, 142],
-        [114, 166],
-      ],
-      leg: [
-        [162, 170],
-        [158, 190],
-      ],
-      farLeg: [
-        [204, 138],
-        [248, 130],
-      ],
+      hip: [158, 106],
+      shoulder: [106, 92],
+      hand: [114, 150],
+      foot: [156, ANKLE_Y],
+      farFoot: [240, 126],
+      toes: 0,
       // Romp en achterste been één rechte lijn.
-      accent: { d: "M 84 110 L 254 128", dashed: true },
+      accent: guide([92, 70], [250, 108]),
     },
   ],
 
   "wall-sit": [
     {
-      props: ["M 108 40 L 108 190"],
-      ground: true,
-      head: [124, 76],
-      neck: [124, 104],
-      hip: [126, 156],
-      arm: [
-        [146, 132],
-        [172, 150],
-      ],
-      leg: [
-        [176, 156],
-        [178, 190],
-      ],
-      farLeg: [
-        [186, 158],
-        [188, 190],
-      ],
+      props: [WALL_LEFT],
+      hip: [120, 146],
+      shoulder: [120, 92],
+      hand: [158, 136],
+      foot: [164, ANKLE_Y],
+      farFoot: [174, ANKLE_Y],
       // Bovenbeen horizontaal: knie in een hoek van 90 graden.
-      accent: { d: "M 126 146 L 178 146", dashed: true },
+      accent: guide([120, 128], [172, 128]),
     },
   ],
 };
+

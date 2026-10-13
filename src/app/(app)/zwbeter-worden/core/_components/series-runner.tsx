@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/markdown";
 import type { MobilitySeriesItem } from "@/lib/training/mobility";
 import { ExerciseVisual } from "./exercise-visual";
+import { ExerciseMuscleSummary } from "./muscle-summary";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -220,6 +221,7 @@ export function SeriesRunner({
         </p>
 
         <ExerciseVisual exercise={nextStep.item.exercise} />
+        <ExerciseMuscleSummary slug={nextStep.item.exercise.slug} />
 
         <p className="text-sm text-muted-foreground">{doseLabel(nextStep)}</p>
         <Markdown source={nextStep.item.exercise.cue_md} />
@@ -262,6 +264,7 @@ export function SeriesRunner({
       </div>
 
       <ExerciseVisual exercise={step.item.exercise} />
+      <ExerciseMuscleSummary slug={step.item.exercise.slug} />
 
       <p className="text-sm text-muted-foreground">{doseLabel(step)}</p>
 

@@ -8,36 +8,48 @@
 // media_json is bij oplevering leeg. Vullen we die later met foto's, video of
 // ingekochte animaties, dan verandert er aan de pagina's niets.
 
-import { useEffect, useState } from "react";
-import { Figure, figurePoses } from "@/components/mobility/figures";
+import { useEffect, useRef, useState } from "react";
+import {
+  Figure,
+  blendPose,
+  figureIsVariants,
+  figurePoses,
+  type Pose,
+} from "@/components/mobility/figures";
 import type { MobilityExercise } from "@/lib/training/mobility";
+import { exerciseMuscles } from "@/lib/training/muscles";
 
-const FRAME_MS = 1200;
+const FRAME_MS = 1800;
+/** Rust op de uiteinden van de beweging, en de tijd van pose naar pose. */
+const HOLD_MS = 650;
+const MOVE_MS = 1000;
 
 type VisualExercise = Pick<
   MobilityExercise,
-  "title" | "illustration_slug" | "media_json"
+  "slug" | "title" | "illustration_slug" | "media_json"
 >;
 
-/** Wisselt automatisch door de frames, tenzij het systeem minder beweging
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/** Wisselt automatisch door losse beelden, tenzij het systeem minder beweging
  * vraagt. Tikken werkt altijd — dat is ook de toegankelijke bediening. */
-function useFrameLoop(count: number) {
+function useFrameLoop(count: number, enabled: boolean) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (count < 2 || paused) return;
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-
+    if (!enabled || count < 2 || paused || prefersReducedMotion()) return;
     const timer = window.setInterval(
       () => setIndex((current) => (current + 1) % count),
       FRAME_MS,
     );
     return () => window.clearInterval(timer);
-  }, [count, paused]);
+  }, [count, paused, enabled]);
 
   function next() {
     // Handmatig wisselen zet de lus stil: wie zelf bladert, wil niet dat het
@@ -46,7 +58,77 @@ function useFrameLoop(count: number) {
     setIndex((current) => (current + 1) % Math.max(1, count));
   }
 
-  return { index: Math.min(index, Math.max(0, count - 1)), next };
+  return { index: Math.min(index, Math.max(0, count - 1)), next, paused };
+}
+
+/**
+ * Plaats in de beweging op `elapsed` ms: 0 is de eerste pose, `count - 1` de
+ * laatste. Heen en terug, met een rust op beide uiteinden en een zachte aanzet.
+ */
+function motionPosition(elapsed: number, count: number): number {
+  const travel = (count - 1) * MOVE_MS;
+  let time = elapsed % (2 * (HOLD_MS + travel));
+  if (time < HOLD_MS) return 0;
+  time -= HOLD_MS;
+  if (time < travel) return eased(time / MOVE_MS);
+  time -= travel;
+  if (time < HOLD_MS) return count - 1;
+  time -= HOLD_MS;
+  return count - 1 - eased(time / MOVE_MS);
+}
+
+/** Zachte aanzet en uitloop per stap van pose naar pose. */
+function eased(steps: number): number {
+  const whole = Math.floor(steps);
+  const part = steps - whole;
+  return whole + part * part * (3 - 2 * part);
+}
+
+/**
+ * Laat de figuur vloeiend tussen de poses bewegen zolang hij in beeld is. Op een
+ * pagina met de hele bibliotheek staan tientallen figuren; wat buiten beeld
+ * staat, rekent niet mee.
+ */
+function useMotion(count: number, enabled: boolean, target: React.RefObject<Element | null>) {
+  const [position, setPosition] = useState(0);
+
+  useEffect(() => {
+    const element = target.current;
+    if (!enabled || count < 2 || !element || prefersReducedMotion()) return;
+
+    let frame = 0;
+    let start: number | null = null;
+    let last = -1;
+
+    const tick = (now: number) => {
+      start ??= now;
+      const next = motionPosition(now - start, count);
+      if (next !== last) {
+        last = next;
+        setPosition(next);
+      }
+      frame = window.requestAnimationFrame(tick);
+    };
+
+    const observer = new IntersectionObserver(([entry]) => {
+      window.cancelAnimationFrame(frame);
+      if (entry.isIntersecting) frame = window.requestAnimationFrame(tick);
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frame);
+    };
+  }, [count, enabled, target]);
+
+  return position;
+}
+
+function poseAt(poses: Pose[], position: number): Pose {
+  const index = Math.min(poses.length - 1, Math.max(0, Math.floor(position)));
+  const next = Math.min(poses.length - 1, index + 1);
+  return blendPose(poses[index], poses[next], position - index);
 }
 
 export function ExerciseVisual({
@@ -61,7 +143,13 @@ export function ExerciseVisual({
   );
   const poses = media.length > 0 ? null : figurePoses(exercise.illustration_slug);
   const frameCount = media.length > 0 ? media.length : (poses?.length ?? 0);
-  const { index, next } = useFrameLoop(frameCount);
+  // Een beweging loopt vloeiend; losse beelden (media, of varianten van een
+  // hold) wisselen per stuk.
+  const moves = Boolean(poses) && !figureIsVariants(exercise.illustration_slug);
+
+  const ref = useRef<HTMLButtonElement>(null);
+  const { index, next, paused } = useFrameLoop(frameCount, !moves);
+  const position = useMotion(frameCount, moves && !paused, ref);
 
   if (frameCount === 0) return null;
 
@@ -72,6 +160,7 @@ export function ExerciseVisual({
 
   return (
     <button
+      ref={ref}
       type="button"
       onClick={next}
       aria-label={label}
@@ -80,7 +169,10 @@ export function ExerciseVisual({
       {media.length > 0 ? (
         <MediaFrame media={media[index]} />
       ) : (
-        <Figure pose={poses![index]} />
+        <Figure
+          pose={moves && !paused ? poseAt(poses!, position) : poses![index]}
+          muscles={exerciseMuscles(exercise.slug) ?? undefined}
+        />
       )}
     </button>
   );

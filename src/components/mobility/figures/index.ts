@@ -6,7 +6,7 @@
 // meegeleverde set wél compleet is.
 //
 // Gegroepeerd per categorie in plaats van één bestand per oefening: een pose is
-// pure data van een paar regels, dus achttien losse bestanden zouden meer
+// pure data van een paar regels, dus een los bestand per oefening zou meer
 // ceremonie dan inhoud zijn.
 
 import { ACTIVATION_POSES } from "./activatie";
@@ -15,7 +15,7 @@ import { MOBILITY_POSES } from "./mobiliteit";
 import { STRENGTH_POSES } from "./kracht";
 import type { Pose } from "./figure-kit";
 
-export { Figure } from "./figure-kit";
+export { Figure, blendPose } from "./figure-kit";
 export type { Pose } from "./figure-kit";
 
 export const MOBILITY_FIGURES: Record<string, Pose[]> = {
@@ -25,7 +25,16 @@ export const MOBILITY_FIGURES: Record<string, Pose[]> = {
   ...STRENGTH_POSES,
 };
 
+/** Figuren waarvan de poses varianten van een hold zijn (makkelijk en volledig)
+ * en geen beweging. Die wisselen als losse beelden: een vloeiende overgang zou
+ * suggereren dat je van de ene naar de andere variant beweegt. */
+const VARIANT_FIGURES = new Set(["plank", "side-plank", "hollow-hold"]);
+
 export function figurePoses(slug: string | null | undefined): Pose[] | null {
   if (!slug) return null;
   return MOBILITY_FIGURES[slug] ?? null;
+}
+
+export function figureIsVariants(slug: string | null | undefined): boolean {
+  return Boolean(slug) && VARIANT_FIGURES.has(slug as string);
 }

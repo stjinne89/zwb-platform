@@ -4,7 +4,9 @@ import { seriesMinutes } from "@/lib/training/mobility";
 import { formatWellnessDate } from "../../_components/format";
 import { completeSeries, undoSession } from "../_actions";
 import { loadSeriesBySlug, loadSessions, requireViewer, todayKeyAmsterdam } from "../_data";
+import { seriesLoad } from "@/lib/training/muscles";
 import { ExerciseVisual } from "../_components/exercise-visual";
+import { ExerciseMuscleSummary, MuscleSummary } from "../_components/muscle-summary";
 import { SeriesRunner } from "../_components/series-runner";
 import { UndoSessionButton } from "../_components/undo-session-button";
 import { BackLink } from "@/components/app-ui";
@@ -45,6 +47,12 @@ export default async function SeriesPage({
           {minutes} min · {series.items.length} oefeningen
           {lastDone ? ` · laatst ${formatWellnessDate(lastDone.completed_on)}` : ""}
         </p>
+        <MuscleSummary
+          load={seriesLoad(series.items)}
+          size="lg"
+          limit={4}
+          className="mt-3"
+        />
       </div>
 
       {doneToday ? (
@@ -79,6 +87,7 @@ export default async function SeriesPage({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                <ExerciseMuscleSummary slug={item.exercise.slug} className="mt-2" />
                 <div className="mt-2">
                   <Markdown source={item.exercise.cue_md} />
                 </div>

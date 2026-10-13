@@ -2,6 +2,7 @@
 import { Markdown } from "@/components/markdown";
 import type { MobilityCategory } from "@/lib/training/mobility";
 import { ExerciseVisual } from "../_components/exercise-visual";
+import { ExerciseMuscleSummary } from "../_components/muscle-summary";
 import { loadExercises, requireViewer } from "../_data";
 import { BackLink } from "@/components/app-ui";
 
@@ -44,7 +45,6 @@ export default async function ExerciseLibraryPage() {
                   <h4 className="mt-2 font-semibold">{exercise.title}</h4>
                   <p className="text-xs text-muted-foreground">
                     {[
-                      exercise.region,
                       exercise.default_hold_seconds
                         ? `${exercise.default_hold_seconds} sec`
                         : null,
@@ -54,6 +54,7 @@ export default async function ExerciseLibraryPage() {
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
+                  <ExerciseMuscleSummary slug={exercise.slug} className="mt-2" />
                   <div className="mt-2">
                     <Markdown source={exercise.cue_md} />
                   </div>

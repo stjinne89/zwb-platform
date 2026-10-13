@@ -212,6 +212,13 @@ const HELP_INDEX: HelpResult[] = [
       "core mobiliteit stabiliteit rug rugpijn onderrug plank stretchen rekken heup hamstring houding zithouding oefeningen serie afvinken",
   },
   {
+    title: "Figuur en spierkaart",
+    text: "Wat de kleuren in het figuur en op de spierkaart betekenen.",
+    href: "/hulp#spiergroepen",
+    terms:
+      "spiergroep spiergroepen spieren spierkaart figuur poppetje animatie kleur getraind deze week bilspieren quadriceps hamstrings kuiten buik",
+  },
+  {
     title: "ZWBeter Worden-samenvatting in Strava",
     text: "Het blokje dat na een rit onderaan je Strava-omschrijving komt.",
     href: "/hulp#strava-samenvatting",

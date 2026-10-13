@@ -3,7 +3,9 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import type { MobilitySeries } from "@/lib/training/mobility";
+import { MuscleMap } from "@/components/mobility/muscle-map";
+import type { MobilitySeries, MobilitySeriesItem } from "@/lib/training/mobility";
+import { normalizeLoad, seriesLoad } from "@/lib/training/muscles";
 import { formatWellnessDate } from "../../_components/format";
 
 const TIMING_LABELS: Record<MobilitySeries["timing"], string> = {
@@ -14,10 +16,12 @@ const TIMING_LABELS: Record<MobilitySeries["timing"], string> = {
 
 export function SeriesCard({
   series,
+  items,
   lastDone,
   suggested,
 }: {
   series: MobilitySeries;
+  items: MobilitySeriesItem[];
   lastDone: string | null;
   suggested?: boolean;
 }) {
@@ -45,7 +49,10 @@ export function SeriesCard({
           {lastDone ? ` · laatst ${formatWellnessDate(lastDone)}` : ""}
         </p>
       </div>
-      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+      <div className="flex shrink-0 items-center gap-2">
+        <MuscleMap load={normalizeLoad(seriesLoad(items))} className="w-14" />
+        <ChevronRight className="size-5 text-muted-foreground" />
+      </div>
     </Link>
   );
 }
