@@ -78,6 +78,27 @@ export function onePlanPerProfile<
 }
 
 /**
+ * Een gepubliceerde herziening die voorbij het einde van haar schema loopt (een
+ * volgend blok) schuift dat einde mee. "Het lopende schema" wordt overal
+ * afgelezen aan de einddatum van het basisplan; zonder dit zou een schema met
+ * een tweede blok na het eerste als afgelopen gelden, terwijl de trainingen er
+ * staan.
+ */
+export async function extendRootPlanEnd(admin: Admin, planId: string): Promise<void> {
+  const { data: plan } = await admin
+    .from("training_plans")
+    .select("root_plan_id, parent_plan_id, end_date, adaptation_kind")
+    .eq("id", planId)
+    .maybeSingle();
+  if (!plan?.parent_plan_id || plan.adaptation_kind !== "plan_update" || !plan.root_plan_id) return;
+  await admin
+    .from("training_plans")
+    .update({ end_date: plan.end_date })
+    .eq("id", plan.root_plan_id)
+    .lt("end_date", plan.end_date);
+}
+
+/**
  * Een nieuw schema neemt het over: de andere lopende basisplannen van dit lid
  * gaan naar het archief. Aanroepen zodra een basisplan goedgekeurd of
  * gepubliceerd wordt.

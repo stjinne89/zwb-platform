@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -376,6 +377,49 @@ export async function optimizeTttPlan(
       useOwnValues: complete,
     };
   }
+}
+
+/** Deellink voor de Discord-bot. Een bestaand token blijft staan: de bot kent het al. */
+export async function shareTttPlan(
+  planId: string,
+): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  const guard = await guardExistingPlan(planId);
+  if (!guard.ok) {
+    return { ok: false, error: guard.error ?? "Geen recht om dit TTT-plan te beheren." };
+  }
+
+  const admin = createAdminClient();
+  const { data: current, error: readError } = await admin
+    .from("ttt_plans")
+    .select("share_token")
+    .eq("id", planId)
+    .maybeSingle<{ share_token: string | null }>();
+  if (readError) return { ok: false, error: readError.message };
+  if (current?.share_token) return { ok: true, token: current.share_token };
+
+  const token = randomBytes(24).toString("base64url");
+  const { error } = await admin
+    .from("ttt_plans")
+    .update({ share_token: token })
+    .eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, token };
+}
+
+export async function revokeTttPlanShare(
+  planId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const guard = await guardExistingPlan(planId);
+  if (!guard.ok) {
+    return { ok: false, error: guard.error ?? "Geen recht om dit TTT-plan te beheren." };
+  }
+
+  const { error } = await createAdminClient()
+    .from("ttt_plans")
+    .update({ share_token: null })
+    .eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function deleteTttPlan(planId: string): Promise<TttActionResult> {

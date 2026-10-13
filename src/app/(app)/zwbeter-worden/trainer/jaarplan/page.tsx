@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/app-ui";
 import type { SearchParamsProp } from "../../_components/types";
 import { todayKeyAmsterdam } from "../../_data";
 import { loadSeason } from "../../jaarplan/_data";
-import { SeasonBand } from "../../jaarplan/_components/season-band";
-import { SeasonList } from "../../jaarplan/_components/season-list";
+import { SeasonRoad } from "../../jaarplan/_components/season-road";
+import { SeasonStand } from "../../jaarplan/_components/season-stand";
 import { loadAthlete, trainerContext } from "../_data";
 
 export const dynamic = "force-dynamic";
@@ -33,28 +33,19 @@ export default async function TrainerJaarplanPage({ searchParams }: SearchParams
   ]);
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-lg border bg-card p-5">
-        <h2 className="font-semibold">Jaarplan van {athlete?.display_name ?? "de renner"}</h2>
-        <div className="mt-4">
-          <SeasonBand
-            from={season.from}
-            to={season.to}
-            today={season.today}
-            plans={season.plans}
-            periods={season.periods}
-            targets={season.targets}
-            events={season.events}
-          />
-        </div>
-      </section>
+    <div className="max-w-2xl space-y-4">
+      <h2 className="font-semibold">Jaarplan van {athlete?.display_name ?? "de renner"}</h2>
 
-      <SeasonList
+      <SeasonStand today={season.today} targets={season.targets} plans={season.plans} />
+
+      <SeasonRoad
         today={season.today}
+        from={season.from}
         targets={season.targets}
         periods={season.periods}
         plans={season.plans}
         events={season.events}
+        warnings={season.warnings}
         editable={false}
       />
     </div>

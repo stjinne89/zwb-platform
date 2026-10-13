@@ -22,8 +22,14 @@ import {
   type TttPlanRiderInput,
   type TttSettings,
 } from "@/lib/ttt/types";
+import { formatSeconds, routeLabel, zwiftGopherData } from "@/lib/ttt/plan-export";
 import { zwiftIdExport } from "@/lib/ttt/zwiftgopher";
-import { optimizeTttPlan, saveTttPlan } from "../_actions";
+import {
+  optimizeTttPlan,
+  revokeTttPlanShare,
+  saveTttPlan,
+  shareTttPlan,
+} from "../_actions";
 
 export type PlannerTeam = {
   id: string;
@@ -71,6 +77,8 @@ export type InitialTttPlan = TttPlanInput & {
   status: string;
   apiResponse: unknown;
   publishedAt: string | null;
+  /** Er staat een deellink voor de Discord-bot open. */
+  shared: boolean;
 };
 
 /** Nieuw plan vanaf een event: team, event en de opstelling staan al klaar. */
@@ -173,22 +181,6 @@ function downloadFile(name: string, type: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-function apiData(apiResponse: unknown) {
-  return typeof apiResponse === "object" &&
-    apiResponse &&
-    "data" in apiResponse &&
-    typeof apiResponse.data === "object" &&
-    apiResponse.data
-    ? (apiResponse.data as Record<string, unknown>)
-    : null;
-}
-
-function routeLabel(value: unknown) {
-  if (value === "next_wtrl" || value === "next_zrl") return "Next ZRL";
-  if (value === "next") return "Next";
-  return String(value ?? "-");
-}
-
 export function TttPlanner({
   teams,
   events,
@@ -241,6 +233,7 @@ export function TttPlanner({
   const [pending, startTransition] = useTransition();
   const [dragId, setDragId] = useState<string | null>(null);
   const [idExport, setIdExport] = useState<string | null>(null);
+  const [shared, setShared] = useState(initialPlan?.shared ?? false);
   const imageRef = useRef<HTMLDivElement>(null);
 
   const managed = manageableTeamIds.includes(parentTeamId) || (teamId ? manageableTeamIds.includes(teamId) : false);
@@ -272,7 +265,7 @@ export function TttPlanner({
       });
   }, [riders, raceRiders, parentTeamId, teamId, eventId]);
 
-  const resultData = apiData(apiResponse);
+  const resultData = zwiftGopherData(apiResponse);
   const maxRiders = tttMaxRiders(events.find((event) => event.id === eventId)?.type);
 
   function currentPlan(): TttPlanInput {
@@ -397,6 +390,34 @@ export function TttPlanner({
     } catch {
       setIdExport(`Kopiëren lukte niet: ${text.replace(/\n/g, ", ")}.${without}`);
     }
+  }
+
+  function copyBotLink() {
+    if (!planId) return;
+    startTransition(async () => {
+      const res = await shareTttPlan(planId);
+      if (!res.ok) {
+        setIdExport(res.error);
+        return;
+      }
+      setShared(true);
+      const link = `${window.location.origin}/api/ttt/plan/${res.token}`;
+      try {
+        await navigator.clipboard.writeText(link);
+        setIdExport("Botlink gekopieerd.");
+      } catch {
+        setIdExport(`Kopiëren lukte niet: ${link}`);
+      }
+    });
+  }
+
+  function revokeBotLink() {
+    if (!planId) return;
+    startTransition(async () => {
+      const res = await revokeTttPlanShare(planId);
+      if (res.ok) setShared(false);
+      setIdExport(res.ok ? "Botlink ingetrokken." : res.error);
+    });
   }
 
   function exportImage() {
@@ -713,6 +734,26 @@ export function TttPlanner({
               <Copy className="size-4" />
               Zwift-ID&apos;s
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!managed || !planId || pending}
+              onClick={copyBotLink}
+            >
+              <Copy className="size-4" />
+              Botlink
+            </Button>
+            {shared && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!managed || !planId || pending}
+                onClick={revokeBotLink}
+              >
+                <X className="size-4" />
+                Link intrekken
+              </Button>
+            )}
           </div>
         </div>
         {idExport && <p className="mt-3 text-sm text-muted-foreground">{idExport}</p>}
@@ -741,18 +782,6 @@ function clockTime(ms: number) {
     minute: "2-digit",
     second: "2-digit",
   });
-}
-
-function formatSeconds(value: unknown) {
-  const seconds = Number(value);
-  if (!Number.isFinite(seconds) || seconds <= 0) return "-";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.round(seconds % 60);
-  return [h, m, s]
-    .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
-    .filter((part, index) => index > 0 || part !== "0")
-    .join(":");
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

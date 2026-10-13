@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { activeBasePlan } from "@/lib/training/active-plan";
+import { startPlanUpdate } from "@/lib/training/draft";
 import { requestReplan } from "@/lib/training/replan";
 import { SEASON_PERIOD_KINDS, SEASON_PRIORITIES } from "@/lib/training/season";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -311,6 +313,50 @@ export async function deleteSeasonPeriod(formData: FormData): Promise<SeasonActi
     return { ok: true };
   } catch (err) {
     return mislukt(err, "Periode verwijderen faalde.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Het volgende blok
+// ---------------------------------------------------------------------------
+
+/**
+ * Zet het volgende blok van twaalf weken klaar. Het lid kiest zelf wanneer:
+ * een schema loopt niet vanzelf door, want of en hoe iemand verder wil is na
+ * drie maanden een nieuwe vraag.
+ *
+ * Onder water is het een herziening die voorbij het einde van het lopende
+ * schema doorloopt (zie preparePlanUpdate). De generatie draait in de
+ * achtergrond; de knop haalt hem op via /api/training/ai-draft/[id].
+ */
+export async function startNextBlock(): Promise<
+  { ok: true; generationId: string } | { ok: false; error: string }
+> {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const plan = await activeBasePlan(admin, user.id);
+    if (!plan) return { ok: false, error: "Je hebt geen lopend schema." };
+
+    const result = await startPlanUpdate({
+      admin,
+      planId: plan.id,
+      actorId: user.id,
+      reason: "Volgend blok klaargezet vanuit het jaarplan.",
+      nextBlock: true,
+    });
+    if (!result.ok || !result.generationId) {
+      return {
+        ok: false,
+        error: result.error ?? "Volgend blok klaarzetten faalde.",
+      };
+    }
+    return { ok: true, generationId: result.generationId };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Volgend blok klaarzetten faalde.",
+    };
   }
 }
 

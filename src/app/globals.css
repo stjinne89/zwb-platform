@@ -431,8 +431,10 @@ html.dark .app-shell[data-design="tegels"]::before {
 
 /* De bestaande blokken onder de tegels en op de andere pagina's: geen kaart
    met rand meer, maar een vlak paneel; koppen in dezelfde lichte onderkast
-   als de paginatitel. Zo loopt het nieuwe design over de oude opbouw heen. */
-[data-design="tegels"] [class*="bg-card"] {
+   als de paginatitel. Zo loopt het nieuwe design over de oude opbouw heen.
+   Zwevende lagen (uitklapmenu, volledig scherm) blijven dekkend: daar zou de
+   pagina eronder doorheen schijnen. */
+[data-design="tegels"] [class*="bg-card"]:not(:is(.absolute, .fixed).bg-card) {
   border-color: transparent;
   background-color: var(--tg-panel);
   box-shadow: none;
@@ -939,4 +941,365 @@ a.tg-row:focus-visible,
    lucht erboven. */
 .tg-dash > section:not(:first-child) {
   margin-top: 1.75rem;
+}
+
+/* ---------- Jaarplan: de weg ----------
+   Het jaar van boven naar beneden, als een weg van bovenaf gezien. Links het
+   wegdek, rechts wat er langs ligt. Het wegdek draagt de boodschap:
+   - asfalt met belijning: tot hier is het schema uitgewerkt (blok van 12 weken);
+   - twee stippellijnen: verder weg, alleen nog een route;
+   - grind: een rustperiode; een smalle strook: een rustige periode;
+   - teal met klimstrepen: een trainingskamp;
+   - een geblokte finishstreep: een A-doel; een witte streep: een B-doel;
+   - een geel-donker hek: het einde van het uitgewerkte schema.
+   De maanden staan er als bermpaaltjes langs. Geldt in beide designs; onderaan
+   staat wat "tegels" anders doet. */
+.jp-weg {
+  --jp-asfalt: var(--zwb-petrol-dark);
+  --jp-streep: #f3f1e4;
+  --jp-berm: color-mix(in oklab, var(--foreground) 38%, transparent);
+  --jp-paal: var(--foreground);
+  --jp-baan: 3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dark .jp-weg {
+  --jp-asfalt: #1d4d58;
+  --jp-berm: rgb(255 255 255 / 0.32);
+  --jp-paal: #f3f1e4;
+}
+.jp-halte {
+  --jp-merk: var(--jp-streep);
+  display: grid;
+  grid-template-columns: var(--jp-baan) minmax(0, 1fr);
+  column-gap: 0.875rem;
+}
+.jp-halte:is([data-dek="open"], [data-dek="rust"]) {
+  --jp-merk: var(--foreground);
+}
+
+/* Het wegdek. Kantlijnen, een onderbroken middenstreep, asfalt. */
+.jp-baan {
+  position: relative;
+  background:
+    linear-gradient(rgb(243 241 228 / 0.45) 0 0) 4px 0 / 1px 100% no-repeat,
+    linear-gradient(rgb(243 241 228 / 0.45) 0 0) calc(100% - 4px) 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--jp-streep) 0 0.625rem, transparent 0.625rem 1.5rem)
+      center / 2px 100% no-repeat,
+    var(--jp-asfalt);
+}
+.jp-halte:first-child .jp-baan {
+  border-radius: 2px 2px 0 0;
+}
+.jp-halte:last-child .jp-baan {
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+[data-dek="voorbij"] > .jp-baan {
+  background: color-mix(in oklab, var(--jp-asfalt) 28%, transparent);
+}
+[data-dek="open"] > .jp-baan,
+[data-dek="einde"] > .jp-baan {
+  background:
+    repeating-linear-gradient(to bottom, var(--jp-berm) 0 0.4rem, transparent 0.4rem 0.8rem) left /
+      2px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--jp-berm) 0 0.4rem, transparent 0.4rem 0.8rem) right /
+      2px 100% no-repeat;
+}
+/* Het asfalt loopt nog tot aan het hek. */
+[data-dek="einde"] > .jp-baan::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1.75rem;
+  background: var(--jp-asfalt);
+}
+[data-dek="rust"] > .jp-baan {
+  background:
+    radial-gradient(circle, var(--jp-berm) 1.5px, transparent 2px) 0 0 / 0.75rem 0.75rem,
+    radial-gradient(circle, var(--jp-berm) 1px, transparent 1.5px) 0.375rem 0.375rem / 0.75rem
+      0.75rem;
+}
+[data-dek="rustig"] > .jp-baan {
+  background: linear-gradient(var(--jp-asfalt) 0 0) center / 46% 100% no-repeat;
+}
+[data-dek="kamp"] > .jp-baan {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='18' viewBox='0 0 48 18'%3E%3Cpath d='M12 13 24 5l12 8' fill='none' stroke='%23f3f1e4' stroke-opacity='.7' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E")
+      center top / 100% 1.125rem repeat-y,
+    var(--tg-zwbeter, var(--zwb-teal));
+}
+
+/* Wat er op de weg staat. Het midden van een teken ligt op het midden van de
+   eerste regel van de halte ernaast. */
+.jp-teken {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  translate: -50% -50%;
+}
+.jp-finish {
+  width: 100%;
+  height: 0.75rem;
+  background: repeating-conic-gradient(var(--jp-streep) 0 25%, #0a2b34 0 50%) 0 0 / 0.75rem 0.75rem;
+  box-shadow: 0 0 0 1px rgb(10 43 52 / 0.35);
+}
+.jp-lijn {
+  width: 100%;
+  height: 0.25rem;
+  background: var(--jp-merk);
+}
+.jp-stip {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: var(--jp-merk);
+  box-shadow: 0 0 0 3px var(--jp-stip-rand, var(--jp-asfalt));
+}
+:is([data-dek="open"], [data-dek="rust"], [data-dek="voorbij"]) .jp-stip {
+  --jp-stip-rand: var(--background);
+}
+.jp-stip-open {
+  background: var(--jp-stip-rand, var(--jp-asfalt));
+  box-shadow: 0 0 0 2px var(--jp-merk);
+}
+.jp-start {
+  width: 100%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--jp-merk) 0 0.25rem, transparent 0.25rem 0.5rem);
+}
+.jp-hek {
+  top: 1.75rem;
+  width: calc(100% + 0.75rem);
+  height: 0.625rem;
+  border-radius: 1px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--zwb-gold) 0 0.4375rem,
+    #0a2b34 0.4375rem 0.875rem
+  );
+  box-shadow: 0 0 0 2px var(--background);
+}
+/* Vandaag: de stip van "u bevindt zich hier". Goud is jij, nu. */
+.jp-nu {
+  top: 50%;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #0a2b34 0 22%, var(--zwb-gold) 24%);
+  box-shadow: 0 0 0 3px var(--jp-streep);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .jp-nu::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 2px solid var(--zwb-gold);
+    animation: jp-puls 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+}
+@keyframes jp-puls {
+  from { opacity: 0.9; scale: 1; }
+  to { opacity: 0; scale: 1.9; }
+}
+/* Bermpaaltje: paaltje met reflector, rechts van de weg. */
+.jp-paal {
+  position: absolute;
+  bottom: 0.5rem;
+  left: calc(100% + 0.1875rem);
+  width: 0.3125rem;
+  height: 1.125rem;
+  border-radius: 1.5px 1.5px 0 0;
+  background: linear-gradient(var(--zwb-gold) 0 38%, var(--jp-paal) 38%);
+}
+
+/* Wat er langs de weg staat. */
+.jp-maand-naam {
+  align-self: end;
+  padding: 1.375rem 0 0.375rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.jp-leeg-naam {
+  padding: 0.875rem 0 0.875rem 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+.jp-vandaag > p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.5rem;
+  padding: 0.875rem 0;
+}
+.jp-vandaag strong {
+  font-weight: 600;
+}
+.jp-vandaag span {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+.jp-inhoud {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+  padding-block: 0.25rem;
+}
+.jp-kaart {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  min-height: 3.5rem;
+  overflow: hidden;
+}
+.jp-dag {
+  display: grid;
+  place-content: center;
+  background: var(--row-bg, var(--muted));
+  color: var(--row-ink, var(--foreground));
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.jp-dag b {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.jp-tekst {
+  align-self: center;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+}
+.jp-regel {
+  min-height: 3.5rem;
+  padding: 0.75rem 0 0.5rem 0.25rem;
+}
+.jp-titel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.jp-meta {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+.jp-acties {
+  display: flex;
+  align-items: center;
+}
+.jp-knop {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 100%;
+  min-height: 2.75rem;
+  color: var(--muted-foreground);
+  transition: background-color 0.15s, color 0.15s;
+}
+.jp-knop:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.jp-knop:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.jp-knop:disabled {
+  opacity: 0.5;
+}
+[data-voorbij] .jp-kaart,
+[data-voorbij] .jp-regel {
+  opacity: 0.6;
+}
+.jp-formulier {
+  padding: 0.75rem 0 0.5rem;
+}
+.jp-fout {
+  font-size: 0.8125rem;
+  color: var(--destructive);
+}
+.jp-let {
+  display: flex;
+  gap: 0.5rem;
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--destructive) 9%, transparent);
+  padding: 0.625rem 0.75rem;
+  color: var(--destructive);
+}
+.jp-let-titel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.jp-let :is(a, button) {
+  color: var(--foreground);
+}
+.jp-stand {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.jp-stand dd {
+  line-height: 1.1;
+}
+
+/* Design "tegels": de lichte smalle letter, grote cijfers, vlakke panelen. */
+[data-design="tegels"] .jp-weg {
+  --jp-baan: 3.25rem;
+}
+[data-design="tegels"] .jp-maand-naam {
+  padding-top: 1.5rem;
+  font-family: var(--tg-display);
+  font-size: 1.625rem;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--foreground);
+}
+[data-design="tegels"] .jp-maand-naam::first-letter {
+  text-transform: uppercase;
+}
+[data-design="tegels"] .jp-vandaag strong {
+  font-family: var(--tg-display);
+  font-size: 1.625rem;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+[data-design="tegels"] :is(.jp-leeg-naam, .jp-vandaag span) {
+  font-size: 0.9375rem;
+}
+[data-design="tegels"] .jp-kaart {
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  min-height: 3.875rem;
+}
+[data-design="tegels"] .jp-dag {
+  font-family: var(--tg-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+[data-design="tegels"] .jp-dag b {
+  font-size: 1.625rem;
+  font-weight: 300;
+}
+[data-design="tegels"] .jp-dag:not([style]) {
+  background: var(--tg-panel);
+}
+[data-design="tegels"] :is(.jp-titel, .jp-let-titel) {
+  font-size: 1.0625rem;
+}
+[data-design="tegels"] .jp-meta {
+  font-size: 0.875rem;
+}
+[data-design="tegels"] .jp-teken:not(.jp-hek, .jp-nu) {
+  top: 2.1875rem;
 }

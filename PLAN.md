@@ -117,7 +117,109 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`.
+
+---
+
+> **TTT-bot voor Discord: plan als JSON-deellink en een spraakbot met Sauce-coaching, 2026-10-13 — gebouwd, unit-getest; niet in Discord, niet met Piper en niet tegen Sauce gedraaid.**
+> Commit: de commit die dit blok toevoegt. Migratie `0229_ttt_plan_share_token.sql`.
+>
+> **Waarom.** Vraag van de eigenaar na het zien van de TTT-Timer van Andi
+> Pätzold (tttt-discord): een eigen versie die het Gopherplan als JSON krijgt en
+> met live data coacht. Die bot kent alleen met de hand ingetypte namen en
+> seconden en loopt blind op de klok.
+>
+> **Keuzes van de eigenaar.** De bot draait op een eigen pc (niet in de cloud),
+> de live data komt uit Sauce, en alles in één ronde.
+>
+> **Nu.**
+> - Platform: `ttt_plans.share_token`, knoppen Botlink en Link intrekken in de
+>   planner (`shareTttPlan`, `revokeTttPlanShare`), en
+>   `GET /api/ttt/plan/[token]` zonder sessie (in `PUBLIC_PATHS`). Het antwoord is
+>   `tttPlanExport` (`lib/ttt/plan-export.ts`): naam, event, schatting en per
+>   renner volgorde, naam, Zwift-ID, kopbeurt-watts en -duur. FTP, gewicht en
+>   lengte gaan niet mee. Een bestaand token blijft bij opnieuw kopiëren staan.
+> - `bot/`: eigen pakket (discord.js, eigen `package.json`, buiten de
+>   Next-build, `tsconfig` en ESLint). Rotatie op de klok met watts, in het
+>   Nederlands; statusbericht met knoppen; spraak lokaal met Piper.
+> - Coach op Sauce (`bot/src/coach.ts`): de rotatie volgt een vroege of late
+>   wissel, vermogen op kop naast het plan, lossen en terugkomen, "nog vier",
+>   tempo naast de schatting. Regels en drempels: `docs/ttt-discord-bot.md`.
+> - De bot leest Sauce op dezelfde pc. Er gaat geen live data naar het platform.
+> - `scripts/sauce-ttt-probe.mjs`: de proef die nog moet gebeuren.
+> - Opruiming: `apiData`, `routeLabel` en `formatSeconds` stonden dubbel in de
+>   planner en de deelpagina en staan nu in `plan-export.ts`.
+> - Hulp: één regel onder "TTT Planner en exports". Runbook: de bot als
+>   onderdeel buiten Netlify.
+>
+> **Getoetst.** Platform: `tsc --noEmit`, ESLint, Vitest (nieuw:
+> `ttt-plan-export.test.ts`, 6 tests). Bot: `tsc`, Vitest (42 tests: rotatie,
+> coach, plan, zinnen, wachtrij, sessie). De coach-tests draaien op nagebootste
+> metingen, niet op opgenomen Sauce-data. In de volledige suite falen in deze
+> worktree twee bestanden die dit werk niet raken (`omnium-live`: geen
+> `.env.local`; `intervals-ride-sync`: time-out). `npm run build` compileert en
+> komt door TypeScript, en stopt daarna bij het prerenderen van `/omnium` om
+> dezelfde ontbrekende `.env.local`.
+>
+> **Niet geverifieerd.**
+> - De migratie (geen Docker of Supabase-config lokaal).
+> - De planner in de browser en de JSON-route tegen een echte database.
+> - De bot in Discord: inloggen, commando's, spraakkanaal, knoppen.
+> - Piper. Sinds dezelfde middag spreekt de bot op Windows standaard met de
+>   Nederlandse Windows-stem (`bot/src/windows-voice.ps1`), omdat de eigenaar de
+>   bot die avond al wil laten meepraten en die stem er al staat. Lokaal
+>   geprobeerd: 38 klokzinnen in een seconde, en een zin via ffmpeg naar opus.
+>   Erbij gekomen: een logboek per dag (`bot/.cache/`) en `COACH=log`, waarmee
+>   de coach alleen opschrijft wat hij zou doen.
+> - **Sauce in een ploegentijdrit.** Later op 13 oktober buiten een race
+>   gemeten (15 s, 61 renners): het adres van de websocket, het verzoek, de
+>   veldnamen, het teken van `gap` en km/u kloppen met `bot/src/sauce.ts`.
+>   Onbekend blijft of Sauce in een ploegentijdrit de hele ploeg ziet en of de
+>   koprijder uit `gap` af te leiden is. Alle drempels zijn een inschatting.
+>   Ziet Sauce de ploeg niet, dan blijft de bot een timer met watts.
+>
+> **Bijgesteld dezelfde middag: plan rechtstreeks uit ZwiftGopher.** De eigenaar
+> vindt de calculator op zwiftgopher.com/TTT handiger dan de planner. `/ttt plan`
+> neemt nu ook de link van Export JSON of Export Link aan, of het JSON als
+> bestand (`parseGopherPlan`, `bot/src/plan.ts`). Getoetst op het echte plan van
+> die avond (vijf renners, volgorde, watt en duur kloppen) en met drie nieuwe
+> tests. De bot haalt dus niet meer alleen bij het platform op, maar ook bij
+> zwiftgopher.com. Een plan uit ZwiftGopher heeft geen verwacht gemiddelde en
+> krijgt geen tempomelding. De deellink van het platform blijft bestaan; of de
+> planner zelf nog nodig is, is aan de eigenaar.
+>
+> **Ook dezelfde middag, na de eerste oefening in Discord** (de bot logt in,
+> komt in het spraakkanaal en spreekt; de coach is nog niet in een race gehoord):
+> - `/ttt plan` zonder opties leest het klembord van de pc waar de bot draait.
+>   Een link van ZwiftGopher is ruim 5000 tekens en liet zich niet in Discord
+>   plakken.
+> - Aftellen op 30, 10 en 5 seconden; de 15 is eruit (te druk bij kopbeurten
+>   van 30 seconden). Het vermogen wordt op 5 watt afgerond uitgesproken.
+> - Een race in delen: `/ttt plan deel:2` zet een tweede plan klaar, de knop
+>   Deel 2 of `/ttt deel 2` schakelt over. De koprijder maakt zijn kopbeurt af,
+>   daarna geldt het nieuwe plan. Met de hand; automatisch op een kilometerpunt
+>   is niet gebouwd. Zie `docs/ttt-discord-bot.md`, "Een race in delen".
+> - Vrij rijden op een klim: de knop Klim zet klok en coach stil, Hervat
+>   rotatie begint opnieuw met wie Sauce vooraan ziet. Met de hand: of
+>   `state.grade` uit Sauce bruikbaar is om een klim zelf te herkennen, is niet
+>   gemeten (de Sauce-pc stond uit); het proefscript neemt het veld nu wel op.
+>   Door de extra knop zijn het twee delen in plaats van drie.
+>
+> **Bewust niet gebouwd.** Live data naar het platform of een pushende
+> Sauce-mod (de bot leest lokaal). Hosting in de cloud (keuze eigenaar).
+> Zwift-tussentijden in de bot (staan al op `/live/zrl` en in de mod). Meerdere
+> ploegen tegelijk (één spraakkanaal per server, Sauce volgt één renner).
+> Automatisch starten (Zwift geeft de startrij niet). Koppeling
+> Discord-gebruiker ↔ renner (geen Discord-ID in het platform). Een fork van
+> tttt-discord (Redis, Google Translate voor de stem, geen plek voor watts).
+>
+> **Privacy.** `/privacy` noemt de deellink onder "TTT-plannen" (tekst akkoord
+> van de eigenaar, 2026-10-13; geen nieuwe versie). ZwiftGopher staat daar nog
+> niet (zie de ronde van 2026-10-12 hieronder).
+>
+> **Gepusht naar `main` op 2026-10-13**, vóór de proef. Tot migratie `0229` op
+> productie is toegepast, geeft Botlink een fout; de rest van de planner werkt.
+> De proef met Sauce is die avond, tijdens de ZRL-TTT.
 
 ---
 
@@ -1375,6 +1477,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > `5728394`, ook voor het omzetten), `tsc` en ESLint op de geraakte bestanden.
 
 > **Jaarplan: mikpunten en periodes bewerken, en trainingskamp als soort periode, 2026-10-04 — gebouwd, lokaal getest, niet in de browser gezien.**
+> *(Migratie `0217` is inmiddels toegepast; gecontroleerd op 2026-10-13.)*
 > Commit: de commit die dit blok toevoegt. Migratie `0217_training_season_camp.sql`
 > (nog niet toegepast).
 >
@@ -1386,6 +1489,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > soort plande het schema er met het gewone weekplafond doorheen.
 >
 > **Wat.**
+> - *(Sinds 2026-10-13: het potlood staat op de weg in `season-road.tsx`, de
+>   prioriteit zit in hetzelfde formulier, en een kamp is teal met klimstrepen.)*
 > - Potlood per regel in `season-list.tsx`. Mikpunt: titel, datum, notitie (de
 >   prioriteit bleef de keuzelijst ernaast). Periode: titel, van, tot en met,
 >   soort, notitie; `updateSeasonPeriod` bestond al maar had geen scherm.
@@ -1421,6 +1526,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   Dat was een aanname van de bouwer, niet gevraagd, en is geschrapt.
 >   Om dezelfde reden vervallen: "laatste drie dagen licht" en "vijf tot zeven
 >   dagen herstel" als vaste vuistregels.
+> - *(Sinds 2026-10-13 is de grens hieronder zeven dagen, niet tien.)*
 > - Nieuwe signalering `kamp_vlak_voor_a_doel`: een kamp dat minder dan tien dagen
 >   (`CAMP_BEFORE_A_TARGET_DAYS`) vóór een A-doel eindigt.
 > - `/hulp#jaarplan` en de zoekindex bijgewerkt.
@@ -7232,6 +7338,226 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — schema of blok: een nieuw schema begint twaalf weken voor een A-doel
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De ronde hieronder voerde "volgend blok" in als verlenging van het
+lopende schema, zonder dat het onderscheid tussen een blok en een schema was
+afgesproken. De eigenaar legde het vast: een schema hoort bij één doel (winter,
+ZRL) en loopt in blokken van hooguit twaalf weken; twaalf weken voor een A-doel
+begint een nieuw schema, specifiek naar dat doel. Een nieuw schema komt altijd
+van de trainer: het lid maakt het doel, de trainer zet het AI-concept klaar.
+Een blok zet het lid zelf klaar.
+
+**Wat.**
+- `blockEndBeforeBuild()` (`season.ts`): een blok eindigt uiterlijk de dag
+  voordat de opbouw naar een A-doel van een ander schema begint (A-doel min
+  twaalf weken). Blijft er dan minder dan twee weken over, dan wordt er niet
+  ingekort. Toegepast op een volgend blok en op een nieuw schema
+  (`blockEndForGoal()` in `draft.ts`). Een A-doel hoort bij het schema zelf als
+  het mikpunt aan hetzelfde doel hangt (`goal_id`).
+- `schemaStartTarget()`: het A-doel waarvoor het tijd is. Geldt vanaf twee
+  weken voor het begin van de opbouw, en alleen als die opbouw uiterlijk twee
+  weken na het einde van het schema begint.
+- Op de weg staat bij het hek dan "Start schema naar …" in plaats van "Volgend
+  blok klaarzetten". De knop gaat naar `/zwbeter-worden/doelen?mikpunt=…`, de
+  bestaande route waar het doelformulier met titel en datum van het mikpunt
+  begint; daarna wacht het doel op de trainer (`goalsAwaitingPlan`). Hangt er
+  al een doel aan het mikpunt, dan staat er "Het doel voor … ligt bij je
+  trainer" en blijft "Volgend blok" beschikbaar, zodat het lid niet zonder
+  schema valt als het nieuwe er nog niet is.
+- De melding "A-doel heeft nog geen schema" kreeg dezelfde knoptekst ("Start
+  schema naar …" in plaats van "Maak hier een doel van").
+- Een volgend blok heet geen "(bijgewerkt)" meer, en de trainer krijgt een
+  passende melding. Die melding zei bij elke herziening dat het lid "de training
+  van vandaag" had aangepast, ook bij een automatische herziening van het hele
+  schema; dat is nu "Schema bijgewerkt" of "Volgend blok klaargezet".
+- `/hulp#blokken`: schema of blok, de route via de trainer, en dat het
+  trainingsdeel alleen goed werkt met intervals.icu gekoppeld.
+
+**Bewust niet gebouwd.**
+- *Geen oplossing voor leden zonder intervals.icu.* Een volgend blok of een
+  herziening blijft dan als concept staan: de oude trainingen worden niet
+  vervangen en de einddatum schuift niet op, omdat dat allemaal bij het
+  doorzetten naar intervals.icu gebeurt. Besluit van de eigenaar: het
+  trainingsdeel werkt zonder koppeling niet naar behoren, en dat staat op
+  `/hulp`.
+- *Geen wissel van schema bij het begin van een ZRL-seizoen.* Dat is geen datum
+  in het jaarplan.
+- *Het lid kan geen nieuw schema zelf starten*, ook niet wie zichzelf coacht via
+  deze knop: die loopt voor iedereen via een doel.
+
+**Bekende rand.** Werkt een lopend schema al naar een A-doel toe terwijl het
+mikpunt niet aan dat doel is gekoppeld (`goal_id` leeg), dan ziet het systeem
+dat niet en biedt het toch "Start schema naar …" aan.
+
+**Niet meer waar.** In de ronde hieronder: "Loopt een schema af zonder dat dat
+gebeurt, dan is er geen schema en maakt het lid (of de trainer) een nieuw" (een
+nieuw schema komt van de trainer) en "het volgende blok loopt twaalf weken
+vanaf vandaag" (het stopt eerder als de opbouw naar een A-doel begint). In de
+ronde van 2026-10-04: migratie `0217` is toegepast; in productie staan
+periodes met soort `kamp` (gecontroleerd 2026-10-13).
+
+**Getest.** `season.test.ts` (blok stopt voor de opbouw, geen stompje, eigen
+doel en B-doel tellen niet, het moment van "Start schema"),
+`plan-update-goal.test.ts` (`isNextBlockGeneration`), `tsc`, ESLint.
+
+**Niet geverifieerd.** Niets hiervan is in de browser aangeklikt: niet de knop
+"Start schema naar …", niet het doelformulier dat erachter opent, niet de
+meldingen aan de trainer.
+
+### Opgeleverd — Tegels: zwevende lagen zijn weer ondoorzichtig
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In het uitklapmenu van de rennerkiezer op de trainerpagina's
+schenen de tabbalk en de pagina eronder door de namen heen.
+
+**Oorzaak en wijziging.** Het tegels-design zet elk element met `bg-card` op
+het halftransparante `--tg-panel`. Dat klopt voor vlakke panelen in de pagina,
+maar niet voor een laag die erboven zweeft. Twee wijzigingen:
+
+- De regel in `globals.css` slaat elementen over die `absolute` of `fixed`
+  zijn en precies de klasse `bg-card` hebben. Die houden hun dekkende
+  kaartkleur, rand en schaduw. Dat is de vaste regel voor nieuwe menu's.
+- De rennerkiezer in `trainer-nav.tsx` gebruikt `bg-popover`, zoals de
+  dropdown-menu's.
+
+Daarmee zijn ook de schermvullende weergaven in `event-live-ticker.tsx`,
+`elevation-profile.tsx` en `gpx-map.tsx` dekkend; die stonden binnen de schil
+met `bg-card` als achtergrond.
+
+**Bewust niet gebouwd.** De kaartknoppen met `bg-card/80` en `bg-card/90`
+blijven licht doorschijnend: de uitzondering geldt alleen voor de kale klasse
+`bg-card`. Een zwevende laag waarvan `absolute` op een omhullend element staat
+en `bg-card` op een kind valt er niet onder; zo'n geval is nu niet gevonden.
+
+**Niet lokaal te verifiëren.** Niet in de browser bekeken: deze worktree heeft
+geen `.env.local`, dus inloggen kan niet. Dat de drie schermvullende weergaven
+eerder doorschenen is uit de CSS afgeleid, niet gezien.
+
+### Bijgesteld — trainingskamp vóór een A-doel: grens van tien naar zeven dagen
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De eigenaar kreeg een waarschuwing bij een kamp dat acht dagen vóór
+een event eindigt en vond dat juist vrijwel ideaal. Nagezocht: dat klopt met de
+literatuur. Een taper van zeven dagen tot drie weken geeft winst (Wang e.a.
+2023, meta-analyse; Bosquet e.a. 2007 komt op twee weken uit), en na een zware
+periode valt de piek meestal in de eerste twee weken van de taper, zonder
+vertraging door zwaar trainen vlak ervoor (Aubry e.a. 2014, 33 triatleten).
+Een kamp dat een tot twee weken vóór de piek eindigt is dus de gewone opzet. De
+grens van tien dagen (2026-10-04) was een vuistregel van de bouwer, geen bron.
+
+**Wat.** `CAMP_BEFORE_A_TARGET_DAYS` van 10 naar 7: de melding komt alleen nog
+als het kamp minder dan zeven dagen vóór een A-doel eindigt. De promptregel
+zegt nu dat een kamp een tot twee weken vóór een A-mikpunt volledig benut wordt
+en dat de dagen erna de taper zijn; pas onder de zeven dagen gaat de taper
+voor. `/hulp#jaarplan` bijgewerkt, met de twee bronnen.
+
+**Kanttekening.** Een onderzoek dat rechtstreeks meet hoeveel dagen er tussen
+een trainingskamp en een wedstrijd horen te liggen is niet gevonden; zeven is
+afgeleid van de taperliteratuur. Aubry e.a. vonden ook dat wie door de zware
+periode echt overbelast raakte minder won en vaker ziek werd; dat hangt af van
+de renner en regelt de planner op herstelwaarden, niet deze datumgrens.
+
+**Niet meer waar.** In de ronde van 2026-10-04: "minder dan tien dagen" bij
+`kamp_vlak_voor_a_doel`.
+
+**Getest.** `season.test.ts` (vijf dagen meldt, acht dagen niet, precies zeven
+niet), `tsc`, ESLint.
+
+### Opgeleverd — schema's als blokken van twaalf weken, en het jaarplan als weg
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De eigenaar stelde dat een schema voor een amateur niet langer dan
+drie maanden vooruit gepland hoort te worden, omdat het leven ertussen komt, en
+vond het jaarplan op de telefoon niet werken: de seizoensbalk scrolde zijwaarts
+en "Wat opvalt" stond vol. Nagegaan: een schema liep altijd tot de doeldatum
+(`buildTrainingInput()` in `draft.ts`), dus een doel over negen maanden gaf
+negen maanden uitgewerkte trainingen. De helft van de meldingen ging er
+bovendien van uit dat elk A-doel nu al een schema tot de piek heeft. De
+onderbouwing en de bronnen staan op `/hulp#blokken`; kort: coachpraktijk
+(blokken van 8 tot 12 weken), geen hard bewijs voor precies twaalf.
+
+**Wat veranderde: blokken.**
+- `blockEndDate()` in `season.ts`: een nieuw schema loopt tot de doeldatum als
+  die binnen twaalf weken (`PLAN_BLOCK_DAYS` = 84) valt, anders twaalf weken.
+- De AI-invoer kreeg `planWindow` (`from`, `to`, `goalBeyond`).
+  `defaultTrainingPrompt()` kreeg twee regels: plannen binnen `planWindow`, en
+  bij `goalBeyond` geen taper naar een doel dat na het blok ligt. De regel over
+  `seasonPlan.nextTargetAfterPlan` vroeg om een waarschuwing dat het schema
+  verlengd moest worden; een mikpunt na het blok is nu de gewone gang van zaken.
+- Afgedwongen, niet alleen gevraagd: `planWindowEndDate()` knipt de einddatum
+  van een nieuw basisplan af op het blok, en trainingen daarna worden niet
+  opgeslagen.
+- Volgend blok: `startNextBlock()` (`jaarplan/_actions.ts`) start een herziening
+  met `nextBlock`, die doorloopt tot twaalf weken vanaf vandaag in plaats van
+  tot het einde van het schema. Mag vanaf twee weken voor het einde
+  (`NEXT_BLOCK_LEAD_DAYS`), en alleen het lid zelf vanuit zijn jaarplan.
+  `planUpdatePrompt()` kreeg een regel: voortbouwen, niet opnieuw onderaan
+  beginnen.
+- `extendRootPlanEnd()` (`active-plan.ts`): wordt zo'n herziening gepubliceerd,
+  dan schuift de einddatum van het basisplan mee. "Het lopende schema" wordt
+  overal aan die datum afgelezen; zonder dit gold een schema met een tweede blok
+  na het eerste als afgelopen.
+
+**Wat veranderde: meldingen.** `seasonWarnings()` houdt vijf gevallen over, elk
+met een `anchor` zodat de melding op de weg staat bij het punt waar het speelt.
+Vervallen: "schema stopt vóór A-doel" (met blokken altijd waar), "toegezegd
+event is nog geen mikpunt" (ging af op elke clubrit; is nu een vlaggetje op de
+eventregel, dat begint als C-doel) en de tip "geen rustperiode in je jaar" (had
+geen handeling). "A-doel zonder schema" geldt alleen nog binnen twaalf weken.
+
+**Wat veranderde: het scherm.** `season-road.tsx` vervangt `season-band.tsx`,
+`season-list.tsx` en `season-warnings.tsx`; `seasonRoad()` vervangt
+`seasonListRows()`. Eén weg van boven naar beneden, niet op schaal. Het wegdek
+draagt de boodschap: asfalt tot waar het schema is uitgewerkt, een hek op het
+einde (met daar de knop voor het volgende blok), stippellijnen voor wat nog
+alleen route is, grind bij rust, een smalle strook bij rustig, klimstrepen bij
+een kamp, een geblokte streep bij een A-doel. Maanden zijn bermpaaltjes, lege
+maanden één regel. Twaalf weken voor een A-doel staat "Opbouw naar …" zolang
+dat blok er nog niet is. Bovenaan twee getallen in weken (`season-stand.tsx`).
+Toevoegen is één knop, met daarachter de keuze Mikpunt of Periode; bewerken,
+prioriteit en verwijderen zitten in één formulier achter het potlood. De
+tekening staat in `globals.css` onder "Jaarplan: de weg" en geldt in beide
+designs, met eigen regels voor "tegels". De trainerweergave gebruikt dezelfde
+weg, alleen-lezen. `/ontwerp-voorbeeld?scherm=jaarplan` toont hem met
+voorbeelddata.
+
+**Bewust niet gebouwd.**
+- *Bestaande lange schema's worden niet ingekort.* Een schema dat al tot een
+  doel ver weg loopt houdt zijn einddatum, en een gewone herziening herplant
+  nog steeds tot dat einde. Inkorten zou trainingen weghalen die leden al zien.
+- *Geen automatisch volgend blok.* Keuze van de eigenaar: het lid zet het zelf
+  klaar. Loopt een schema af zonder dat dat gebeurt, dan is er geen schema en
+  maakt het lid (of de trainer) een nieuw.
+- *Geen knop voor het volgende blok bij de trainer of op de schemapagina.*
+  Alleen in het jaarplan van het lid.
+- *De weg is niet op schaal* en heeft geen horizontale variant op desktop.
+
+**Niet meer waar.** In "jaarplanning boven het trainingsschema" (2026-08-31):
+de seizoensbalk met vier banen, de maandlijst, het blok signaleringen bovenaan
+en "zeven gevallen". In de ronde van 2026-10-04: het potlood "per regel in
+`season-list.tsx`", de prioriteit als keuzelijst ernaast, en "groen op de
+balk". In "event en mikpunt als één regel" (2026-09-14): `seasonListRows()`,
+de prullenbak en de aparte balk. Die drie blokken zijn hieronder bijgewerkt.
+
+**Getest.** `season.test.ts` (herschreven: blokken, volgend blok, de weg, de
+stand, de vijf meldingen), `plan-update-goal.test.ts` (`planWindowEndDate`),
+`training-prompts.test.ts`, `tsc` en ESLint. Volledige Vitest-run groen op
+`omnium-live.test.ts` na (vraagt een echte service-role key) en een time-out
+in `admin-areas.test.ts` die los wel slaagt. De weg is in de browser bekeken op
+telefoonbreedte, licht en donker, via het voorbeeldscherm in design "tegels".
+
+**Niet geverifieerd.** Het ingelogde scherm met echte data, en het klassieke
+design (het voorbeeldscherm toont alleen "tegels"). Het aanmaken van een
+volgend blok is niet uitgevoerd: of het model binnen `planWindow` blijft en
+een volgend blok goed laat aansluiten, blijkt pas in productie. De formulieren
+op de weg zijn niet aangeklikt.
+
 ### Opgeleverd — `/hulp`: blokken in een logische volgorde, in zes groepen
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10299,6 +10625,9 @@ als mikpunt én als clubevent waarvoor hij zich had aangemeld. `SeasonList` zett
 mikpunten en events los in één gesorteerde lijst; precies de events waar een lid
 naartoe werkt, stonden dus dubbel.
 
+*(Sinds 2026-10-13 doet `seasonRoad()` dit; de prullenbak is "Mikpunt weghalen"
+in het bewerkformulier en de balk bestaat niet meer.)*
+
 **Wat er is gekomen.** Pure `seasonListRows()` in `src/lib/training/season.ts`
 bouwt de regels. Een mikpunt op een event dat in de lijst staat, gaat op in de
 eventregel: eventlink, type, "je doet mee"/"misschien", en de prioriteitkeuze,
@@ -11263,6 +11592,11 @@ hun jaar wordt niet gestuurd door een piek maar door vakanties en drukke weken.
 Een schema dat daar niets van weet plant een opbouwblok dwars door de vakantie,
 het lid haalt het niet, en de nalevingslogica concludeert vervolgens dat het
 schema te zwaar was — precies de verkeerde conclusie.
+
+*(Sinds 2026-10-13 is het scherm een verticale weg en zijn er vijf signaleringen
+in plaats van zeven, elk op de plek waar ze spelen; zie "schema's als blokken van
+twaalf weken, en het jaarplan als weg". De alinea's hieronder beschrijven de
+eerste versie.)*
 
 **Wat er is gekomen.** `/zwbeter-worden/jaarplan`: een seizoensbalk van twaalf
 maanden (een maand terug, elf vooruit) met vier banen — schema's, rustperiodes,

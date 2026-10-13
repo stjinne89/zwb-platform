@@ -4,6 +4,7 @@ import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui"
 import { buttonVariants } from "@/components/ui/button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { createClient } from "@/lib/supabase/server";
+import { formatSeconds, routeLabel, zwiftGopherData } from "@/lib/ttt/plan-export";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -62,34 +63,6 @@ function n(value: number | string | null | undefined, digits = 0) {
   });
 }
 
-function apiData(apiResponse: unknown) {
-  return typeof apiResponse === "object" &&
-    apiResponse &&
-    "data" in apiResponse &&
-    typeof apiResponse.data === "object" &&
-    apiResponse.data
-    ? (apiResponse.data as Record<string, unknown>)
-    : null;
-}
-
-function routeLabel(value: unknown) {
-  if (value === "next_wtrl" || value === "next_zrl") return "Next ZRL";
-  if (value === "next") return "Next";
-  return String(value ?? "-");
-}
-
-function formatSeconds(value: unknown) {
-  const seconds = Number(value);
-  if (!Number.isFinite(seconds) || seconds <= 0) return "-";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.round(seconds % 60);
-  return [h, m, s]
-    .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, "0")))
-    .filter((part, index) => index > 0 || part !== "0")
-    .join(":");
-}
-
 function exportText(plan: PlanRow, riders: RiderRow[]) {
   const rows = riders
     .slice()
@@ -133,7 +106,7 @@ export default async function TttPlanDetailPage({
   const riderRows = ((riders ?? []) as RiderRow[]).sort(
     (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
   );
-  const result = apiData(plan.api_response);
+  const result = zwiftGopherData(plan.api_response);
   const teamIds = Array.from(
     new Set([plan.parent_team_id, plan.team_id].filter(Boolean) as string[]),
   );

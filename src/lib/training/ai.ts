@@ -160,6 +160,12 @@ export type TrainingAiInput = {
     /** Het eerste A- of B-mikpunt ná het einde van deze planperiode. */
     nextTargetAfterPlan: { title: string; date: string; priority: "a" | "b" } | null;
   } | null;
+  /**
+   * De periode van dit schema: een blok van hooguit twaalf weken. `goalBeyond`
+   * zegt dat goal.targetDate ná dit blok ligt, zodat de planner er niet naartoe
+   * tapert. Bij een herziening is planUpdate.toDate het einde.
+   */
+  planWindow?: { from: string; to: string; goalBeyond: boolean };
   /** Zelf ingeplande ritten, toegezegde clubevents en tests: die liggen vast. */
   fixedWorkouts?: Array<{
     date: string;
@@ -220,6 +226,8 @@ export type TrainingAiInput = {
     reason: string;
     fromDate: string;
     toDate: string;
+    /** Het volgende blok: toDate ligt voorbij het einde van het oude schema. */
+    nextBlock?: boolean;
     previousTitle: string;
     previousSummary: string | null;
     changed: {

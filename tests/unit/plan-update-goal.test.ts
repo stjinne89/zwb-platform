@@ -3,7 +3,9 @@ import {
   applyGoalUpdates,
   changedSinceSchedule,
   goalUpdatesFromForm,
+  isNextBlockGeneration,
   planUpdateEndDate,
+  planWindowEndDate,
 } from "@/lib/training/draft";
 import { planUpdatePrompt } from "@/lib/training/workouts";
 
@@ -108,5 +110,33 @@ describe("planUpdatePrompt", () => {
     const prompt = planUpdatePrompt();
     expect(prompt).toContain("UITSLUITEND in goal.type");
     expect(prompt).toContain("niet het einde van dit schema");
+  });
+});
+
+describe("isNextBlockGeneration", () => {
+  it("herkent een volgend blok aan de AI-invoer", () => {
+    expect(isNextBlockGeneration(JSON.stringify({ planUpdate: { nextBlock: true } }))).toBe(true);
+    expect(isNextBlockGeneration(JSON.stringify({ planUpdate: { toDate: "2026-12-20" } }))).toBe(
+      false,
+    );
+    expect(isNextBlockGeneration(null)).toBe(false);
+  });
+});
+
+describe("planWindowEndDate", () => {
+  const summary = JSON.stringify({ planWindow: { from: "2026-10-13", to: "2027-01-05" } });
+
+  it("laat een nieuw schema niet voorbij zijn blok van twaalf weken lopen", () => {
+    // Het model plant door tot de doeldatum in juli; het blok eindigt in januari.
+    expect(planWindowEndDate("2027-07-04", summary)).toBe("2027-01-05");
+  });
+
+  it("houdt een eerdere einddatum van de AI aan", () => {
+    expect(planWindowEndDate("2026-12-20", summary)).toBe("2026-12-20");
+  });
+
+  it("geeft niets terug voor een generatie van vóór de blokken", () => {
+    expect(planWindowEndDate("2027-07-04", JSON.stringify({ goal: {} }))).toBeNull();
+    expect(planWindowEndDate("2027-07-04", null)).toBeNull();
   });
 });
