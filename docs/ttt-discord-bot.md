@@ -70,21 +70,24 @@ Renners die Sauce nooit zag en renners zonder Zwift-ID blijven buiten de regels.
 
 ## Proef: wat ziet Sauce van een ploeg?
 
-Niet gedaan. Op 2026-10-13 gaf de Sauce-pc (`192.168.0.134:1080`) geen verbinding.
+Deels gedaan. Op 2026-10-13, buiten een race (15 s, 61 renners in beeld), klopten
+punt 1 en 2 hieronder. Punt 3 en 4 kunnen alleen in een ploegentijdrit.
 
 ```bash
 node scripts/sauce-ttt-probe.mjs --url http://192.168.0.134:1080 --seconds 120 --ids <zwift-id's van de ploeg>
 ```
 
 Laat Zwift daarbij meekijken met een ploeglid in een ploegentijdrit of groepsrit.
-Het script schrijft de ruwe berichten naar `.tmp/` (niet in git: er staan namen
-en vermogens van anderen in) en vat samen wat nog onbekend is:
+Het script schrijft per bericht Zwift-ID, gat, vermogen, snelheid en draft naar
+`.tmp/` (niet in git, zonder namen) en vat samen:
 
-1. **Adres en verzoek.** `bot/src/sauce.ts` gaat uit van `ws://<pc>:1080/api/ws/events`
-   en een `subscribe` op `nearby`. Dat is uit het hoofd overgenomen.
-2. **Veldnamen.** Aangenomen: per renner `athleteId`, `gap` (seconden ten opzichte
-   van de gevolgde renner) en `state.power`, `state.speed` (km/u). Klopt een
-   eenheid of het teken van `gap` niet, pas dan alleen `toSample` aan.
+1. **Adres en verzoek. Gemeten: klopt.** `ws://<pc>:1080/api/ws/events` met een
+   `subscribe` op `nearby` geeft één bericht per seconde.
+2. **Veldnamen. Gemeten: kloppen.** Per renner `athleteId`, `gap` in seconden ten
+   opzichte van de gevolgde renner, en `state.power`, `state.speed`. Een negatief
+   gat is ervoor (57 van 57 renners op dezelfde weg, vergeleken met hun positie).
+   De snelheid is in km/u. `gap` verloopt vloeiend, tot op honderdsten. Er is ook
+   `state.draft`; de bot gebruikt dat nog niet.
 3. **Ziet Sauce de hele ploeg?** In een massarace waren het hooguit drie renners
    tegelijk (`live-zrl-dashboard.md`). In een ploegentijdrit rijdt de ploeg bij
    elkaar, maar dat is niet gemeten.

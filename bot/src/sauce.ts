@@ -2,9 +2,9 @@
 // in beeld heeft en geeft de renners in de buurt; in een ploegentijdrit zijn dat
 // de ploeggenoten.
 //
-// Niet geverifieerd: het adres van de websocket, de vorm van het verzoek en de
-// veldnamen hieronder zijn uit het hoofd overgenomen. Draai eerst
-// scripts/sauce-ttt-probe.mjs (hoofdrepo) en pas `toSample` aan op wat die laat zien.
+// Gemeten op 2026-10-13 met scripts/sauce-ttt-probe.mjs (hoofdrepo): één bericht
+// per seconde, `gap` in seconden ten opzichte van de gevolgde renner (negatief is
+// ervoor), `state.speed` in km/u. Niet gemeten in een ploegentijdrit.
 
 import type { RiderSample, Sample } from "./coach.ts";
 

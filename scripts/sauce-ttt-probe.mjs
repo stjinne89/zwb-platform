@@ -5,10 +5,11 @@
 //
 //   node scripts/sauce-ttt-probe.mjs --url http://192.168.0.134:1080 --seconds 120 --ids 111,222,333
 //
-// Het script luistert op het `nearby`-kanaal, schrijft de ruwe berichten naar
-// .tmp/ (staat in .gitignore: er zitten namen en vermogens van anderen in) en
-// vat samen wat bot/src/sauce.ts moet weten: welke velden er zijn, hoeveel
-// renners tegelijk in beeld zijn en of de ploeggenoten uit --ids erbij zitten.
+// Het script luistert op het `nearby`-kanaal en vat samen wat bot/src/sauce.ts
+// moet weten: welke velden er zijn, hoeveel renners tegelijk in beeld zijn en of
+// de ploeggenoten uit --ids erbij zitten. Per bericht bewaart het in .tmp/ (staat
+// in .gitignore) alleen wat de coach gebruikt: Zwift-ID, gat, vermogen, snelheid
+// en draft. Geen namen; een ruw bericht is al gauw 400 kB per seconde.
 
 import { mkdirSync, createWriteStream } from "node:fs";
 import { join } from "node:path";
@@ -53,7 +54,6 @@ socket.addEventListener("open", () => {
 });
 
 socket.addEventListener("message", (message) => {
-  out.write(`${message.data}\n`);
   let body;
   try {
     body = JSON.parse(String(message.data));
@@ -67,6 +67,19 @@ socket.addEventListener("message", (message) => {
     return;
   }
   stats.messages += 1;
+  const slim = {
+    at: Date.now(),
+    riders: body.data.map((entry) => ({
+      id: entry?.athleteId,
+      gap: entry?.gap,
+      gapDistance: entry?.gapDistance,
+      power: entry?.state?.power,
+      speed: entry?.state?.speed,
+      draft: entry?.state?.draft,
+      watching: entry?.watching || undefined,
+    })),
+  };
+  out.write(`${JSON.stringify(slim)}\n`);
   stats.maxRiders = Math.max(stats.maxRiders, body.data.length);
   for (const entry of body.data) {
     for (const key of Object.keys(entry ?? {})) stats.entryKeys.add(key);
@@ -95,5 +108,5 @@ socket.addEventListener("close", () => {
     console.log(`Renner ${id}: in ${count} van ${stats.messages} berichten`);
   }
   for (const [text, count] of stats.other) console.log(`Ander bericht (${count}x): ${text}`);
-  console.log(`\nRuwe berichten: ${file}`);
+  console.log(`\nMetingen: ${file}`);
 });

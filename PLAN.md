@@ -166,11 +166,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > - De planner in de browser en de JSON-route tegen een echte database.
 > - De bot in Discord: inloggen, commando's, spraakkanaal, knoppen.
 > - Piper: de aanroep en de Nederlandse stem.
-> - **Sauce.** De Sauce-pc gaf op 13 oktober geen verbinding. Het adres van de
->   websocket, het verzoek en de veldnamen in `bot/src/sauce.ts` zijn uit het
->   hoofd overgenomen. Onbekend is of Sauce in een ploegentijdrit de hele ploeg
->   ziet en of de koprijder uit `gap` af te leiden is. Alle drempels zijn een
->   inschatting. Ziet Sauce de ploeg niet, dan blijft de bot een timer met watts.
+> - **Sauce in een ploegentijdrit.** Later op 13 oktober buiten een race
+>   gemeten (15 s, 61 renners): het adres van de websocket, het verzoek, de
+>   veldnamen, het teken van `gap` en km/u kloppen met `bot/src/sauce.ts`.
+>   Onbekend blijft of Sauce in een ploegentijdrit de hele ploeg ziet en of de
+>   koprijder uit `gap` af te leiden is. Alle drempels zijn een inschatting.
+>   Ziet Sauce de ploeg niet, dan blijft de bot een timer met watts.
 >
 > **Bewust niet gebouwd.** Live data naar het platform of een pushende
 > Sauce-mod (de bot leest lokaal). Hosting in de cloud (keuze eigenaar).
