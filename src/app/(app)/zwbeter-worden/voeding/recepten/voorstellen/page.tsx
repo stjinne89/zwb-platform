@@ -21,7 +21,7 @@ export default async function ProposedRecipesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <BackLink href="/zwbeter-worden/voeding" label="Voeding" />
+        <BackLink href="/zwbeter-worden/voeding/recepten" label="Receptenboek" />
         <h2 className="mt-1 text-xl font-semibold">Voorgestelde recepten</h2>
       </div>
 

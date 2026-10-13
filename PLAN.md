@@ -121,6 +121,42 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 
 ---
 
+> **Voeding in drie tabs, 2026-10-14 — gebouwd, lokaal getest; niet in de browser bekeken.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Sinds het tegeldesign is "ZWBeter voeden" een eigen pijler, maar
+> die had één pagina met alles onder elkaar: kerncijfers, tip, dagmenu en de
+> hele kennisbank. De eigenaar vroeg om subtabs zoals bij trainen.
+>
+> **Wat.**
+> - Eigen tabbalk onder Voeding (`voeding/layout.tsx`, `VOEDING_SECTIONS` in
+>   `nav-config.ts`): **Dagmenu**, **Receptenboek**, **Kennisbank**. De balk
+>   staat in de voedingslayout en niet in de pijlers, zodat hij in beide designs
+>   werkt; in het huidige design is het een tweede rij, net als bij de trainer.
+>   In het hoofdmenu blijft Voeding één item.
+> - Dagmenu (`/zwbeter-worden/voeding`): dagtype, kerncijfers, tip en menu. De
+>   kennisbanklijst en de links "Alle recepten", "Eigen recept" en "voorstellen"
+>   zijn hier weg.
+> - Receptenboek (`/voeding/recepten`): ongewijzigd, plus de link naar de
+>   voorstellen voor wie mag beoordelen.
+> - Kennisbank (`/voeding/kennis`): nieuwe overzichtspagina; de artikelen
+>   bestonden al.
+>
+> **Bewust niet gebouwd.**
+> - Een vierde tab "Macro's". Het dagtype en de drie doelen zijn vier tegels,
+>   en het menu wordt eruit berekend; los van elkaar zie je het menu zonder de
+>   reden. Een eigen tab heeft pas zin met meer inhoud, zoals een
+>   weekvooruitblik.
+> - Een telbadge voor voorstellen op de tab: de layout zou dan op elke
+>   voedingspagina de voorstellen laden.
+>
+> **Getest.** TypeScript en eslint schoon; `nav-active` heeft een nieuwe test
+> voor de voedingstabs. Volledige suite: 2.132 geslaagd, 2 mislukt, beide los
+> van deze ronde: `omnium-live` (leest `.env.local`, die in de worktree
+> ontbreekt) en `admin-areas` 0206 (PGlite-time-out, slaagt los). De build
+> compileert en typecheckt, maar stopt bij het prerenderen van
+> `/omnium/register` om dezelfde ontbrekende `.env.local`.
+
 > **TTT-bot: bijgesteld op de eerste race, 2026-10-13 (avond) — gebouwd op het logboek, unit-getest; de nieuwe regels zijn niet in een race gehoord.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -562,7 +598,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > - *ZWBeter.* In dit design heet ZWBeter Worden "ZWBeter", met vier pijlers
 >   in plaats van elf tabs op één rij (`lib/zwbeter-pillars.ts`, getest):
 >   **trainen** (Vandaag, Schema, Jaarplan, Belasting, Vermogen, Doelen,
->   Logboek, Coach), **voeden** (Voeding), **kracht** (Core & mobiliteit) en
+>   Logboek, Coach), **voeden** (Voeding; *sinds 2026-10-14 met een eigen
+>   tabbalk Dagmenu, Receptenboek, Kennisbank*), **kracht** (Core & mobiliteit) en
 >   **coachen** (Trainer; alleen zichtbaar voor trainers). De AI-coach staat op aanwijzing van de eigenaar onder trainen. De paginatitel noemt de pijler, de pijlers
 >   staan als tegels, en de onderdelen van de actieve pijler als tabs
 >   (`zwbeter-nav.tsx`). De kerncijfers (`MetricCard`, de fitness- en

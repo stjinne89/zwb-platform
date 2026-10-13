@@ -12,7 +12,7 @@ export default async function NewRecipePage() {
   return (
     <div className="space-y-6">
       <div>
-        <BackLink href="/zwbeter-worden/voeding/recepten" label="Recepten" />
+        <BackLink href="/zwbeter-worden/voeding/recepten" label="Receptenboek" />
         <h2 className="mt-1 text-xl font-semibold">Eigen recept</h2>
       </div>
       <RecipeForm saveAction={saveOwnRecipe} searchAction={searchFoods} />

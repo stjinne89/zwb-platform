@@ -75,7 +75,7 @@ export default async function RecipePage({
   return (
     <div className="space-y-6">
       <div>
-        <BackLink href="/zwbeter-worden/voeding/recepten" label="Recepten" />
+        <BackLink href="/zwbeter-worden/voeding/recepten" label="Receptenboek" />
         <h2 className="mt-1 text-xl font-semibold">{recipe.title}</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           {[

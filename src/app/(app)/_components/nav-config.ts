@@ -66,6 +66,14 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/trainer/coach", label: "Coachchat" },
 ];
 
+/** De tabs binnen Voeding. Net als bij de trainer niet in het hoofdmenu: daar
+ * blijft het één "Voeding"-item. */
+export const VOEDING_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/voeding", label: "Dagmenu" },
+  { type: "link", href: "/zwbeter-worden/voeding/recepten", label: "Receptenboek" },
+  { type: "link", href: "/zwbeter-worden/voeding/kennis", label: "Kennisbank" },
+];
+
 export const NAV_GROUPS: NavNode[] = [
   { type: "link", href: "/kalender", label: "Kalender" },
   { type: "link", href: "/samen-fietsen", label: "Samen fietsen" },

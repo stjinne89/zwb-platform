@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Inbox, Plus } from "lucide-react";
 import { DIET_TAGS, DIET_TAG_LABELS, matchesDiet, portionForRider, type DietTag } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
@@ -7,13 +7,13 @@ import {
   energyFactorFor,
   loadNutritionDayInput,
   loadNutritionProfile,
+  loadProposedRecipes,
   loadRecipePrefs,
   loadRecipes,
   requireViewer,
   todayKeyAmsterdam,
 } from "../_data";
 import { RecipeCard } from "../_components/recipe-card";
-import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -49,10 +49,11 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
 
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
-  const [profile, recipes, prefs] = await Promise.all([
+  const [profile, recipes, prefs, proposed] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
+    viewer.access.has("training.create_plans") ? loadProposedRecipes(viewer) : Promise.resolve([]),
   ]);
   const day = nutritionDay(await loadNutritionDayInput(viewer, today, profile.weightKg));
   const rider = {
@@ -88,18 +89,26 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <BackLink href="/zwbeter-worden/voeding" label="Voeding" />
-          <h2 className="mt-1 text-xl font-semibold">Recepten</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Receptenboek</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          {proposed.length > 0 && (
+            <Link
+              href="/zwbeter-worden/voeding/recepten/voorstellen"
+              className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:underline"
+            >
+              <Inbox className="size-4" />
+              {proposed.length} {proposed.length === 1 ? "voorstel" : "voorstellen"}
+            </Link>
+          )}
+          <Link
+            href="/zwbeter-worden/voeding/recepten/nieuw"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"
+          >
+            <Plus className="size-4" />
+            Eigen recept
+          </Link>
         </div>
-        <Link
-          href="/zwbeter-worden/voeding/recepten/nieuw"
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"
-        >
-          <Plus className="size-4" />
-          Eigen recept
-        </Link>
       </div>
 
       <div className="space-y-2">

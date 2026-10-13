@@ -3,6 +3,7 @@ import {
   AVATAR_NAV,
   NAV_GROUPS,
   TRAINER_SECTIONS,
+  VOEDING_SECTIONS,
   activeHrefIn,
   isActiveGroup,
   navHrefs,
@@ -32,6 +33,17 @@ describe("activeHrefIn", () => {
     expect(activeLinks("/zwbeter-worden/trainer/schema", trainer)).toEqual([
       "/zwbeter-worden/trainer/schema",
     ]);
+  });
+
+  it("houdt bij een recept of artikel de eigen voedingstab actief", () => {
+    const voeding = VOEDING_SECTIONS.map((item) => item.href);
+    expect(activeLinks("/zwbeter-worden/voeding/recepten/havermout", voeding)).toEqual([
+      "/zwbeter-worden/voeding/recepten",
+    ]);
+    expect(activeLinks("/zwbeter-worden/voeding/kennis/koolhydraten", voeding)).toEqual([
+      "/zwbeter-worden/voeding/kennis",
+    ]);
+    expect(activeLinks("/zwbeter-worden/voeding/recepten", menuHrefs)).toEqual(["/zwbeter-worden/voeding"]);
   });
 
   it("markeert op profiel/segments niet ook het profiel", () => {

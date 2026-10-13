@@ -15,7 +15,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   return (
     <article className="space-y-6">
       <div>
-        <BackLink href="/zwbeter-worden/voeding" label="Voeding" />
+        <BackLink href="/zwbeter-worden/voeding/kennis" label="Kennisbank" />
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {NUTRITION_CATEGORY_LABELS[article.category]}
         </p>

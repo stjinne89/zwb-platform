@@ -1,10 +1,6 @@
 import Link from "next/link";
-import { Beef, BookOpen, Bike, CalendarDays, ChevronRight, Inbox, Plus, RefreshCw, Wheat } from "lucide-react";
+import { Beef, Bike, CalendarDays, RefreshCw, Wheat } from "lucide-react";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
-import {
-  NUTRITION_CATEGORY_LABELS,
-  articlesByCategory,
-} from "@/lib/nutrition/library";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
 import {
   DAY_MOMENTS,
@@ -23,7 +19,6 @@ import {
   energyFactorFor,
   loadNutritionDayInput,
   loadNutritionProfile,
-  loadProposedRecipes,
   loadRecipePrefs,
   loadRecipes,
   requireViewer,
@@ -61,13 +56,11 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
 
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
-  const canReview = viewer.access.has("training.create_plans");
 
-  const [profile, recipes, prefs, proposed] = await Promise.all([
+  const [profile, recipes, prefs] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
-    canReview ? loadProposedRecipes(viewer) : Promise.resolve([]),
   ]);
   const input = await loadNutritionDayInput(viewer, today, profile.weightKg);
 
@@ -204,60 +197,6 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-4 text-sm">
-          <Link
-            href="/zwbeter-worden/voeding/recepten"
-            className="inline-flex min-h-[44px] items-center gap-1 font-medium text-primary hover:underline"
-          >
-            Alle recepten
-            <ChevronRight className="size-4" />
-          </Link>
-          <Link
-            href="/zwbeter-worden/voeding/recepten/nieuw"
-            className="inline-flex min-h-[44px] items-center gap-1 text-muted-foreground hover:underline"
-          >
-            <Plus className="size-4" />
-            Eigen recept
-          </Link>
-          {proposed.length > 0 && (
-            <Link
-              href="/zwbeter-worden/voeding/recepten/voorstellen"
-              className="inline-flex min-h-[44px] items-center gap-1 text-muted-foreground hover:underline"
-            >
-              <Inbox className="size-4" />
-              {proposed.length} {proposed.length === 1 ? "voorstel" : "voorstellen"}
-            </Link>
-          )}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <BookOpen className="size-5 text-primary" />
-          Kennisbank
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {articlesByCategory().map(({ category, articles }) => (
-            <div key={category} className="rounded-lg border bg-card p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {NUTRITION_CATEGORY_LABELS[category]}
-              </h3>
-              <ul className="mt-2 divide-y">
-                {articles.map((article) => (
-                  <li key={article.slug}>
-                    <Link
-                      href={`/zwbeter-worden/voeding/kennis/${article.slug}`}
-                      className="flex min-h-[44px] items-center justify-between gap-3 text-sm hover:text-primary"
-                    >
-                      {article.title}
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
       </section>
 
       <Link
