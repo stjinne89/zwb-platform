@@ -33,9 +33,9 @@ gaat stabiliteit voor nieuwe features.
    (vanaf 2026-10-11): na ruim twee dagen 0,704 GB tegen een limiet van 5 GB. De
    oorzaak is gevonden en dezelfde als de zwaarste query: het nawerk na een
    Strava-webhook haalt twee keer de hele rithistorie met `raw` op (mijlpalen en
-   cols). De fix staat in commit `bff6209` op branch
-   `claude/zwb-supabase-egress-investigation-5ed4cd`, nog niet op `main` en niet
-   gedeployed; het effect is dus niet gemeten.
+   cols). De fix staat op `main` als `f80b1c3` en is op 2026-10-13 gepusht (zie de
+   ronde "Supabase-egress" hieronder); het effect op productie is nog niet
+   gemeten, dat moet uit de usagepagina en de volgende wekelijkse check blijken.
    `live_positions` ging van 0 naar 9.327 rijen en dat klopt: de tabel is op
    2026-10-01 met de hand geleegd en de bewaartermijn is 30 dagen, dus tot
    ongeveer 2026-10-31 wordt er niets gewist. Wel negeert `/api/live/cleanup` een
@@ -118,7 +118,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 ---
 
 > **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; effect op productie niet gemeten.**
-> Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+> Commit: `f80b1c3` (op de onderzoeksbranch `bff6209`). Geen migratie. Gepusht naar
+> `main` op 2026-10-13, samen met de zoekfix `8e53553`.
 >
 > **Waarom.** De egress-cyclus begon op 2026-10-11 en stond op 2026-10-13 rond
 > 10:00 op 0,704 GB; doorgerekend ±9 GB per maand tegen 5 GB op het Free-plan.
