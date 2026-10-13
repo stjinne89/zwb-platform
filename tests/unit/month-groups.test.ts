@@ -5,9 +5,9 @@ const group = (keys: string[], today = "2026-10-13") =>
   groupByMonth(keys, (key) => key, today).map((entry) => [entry.label, entry.items.length]);
 
 describe("groupByMonth", () => {
-  it("geeft de lopende maand geen kopje en elke volgende maand wel", () => {
+  it("geeft elke maand een kopje, ook de lopende", () => {
     expect(group(["2026-10-14", "2026-10-25", "2026-11-02", "2026-12-06"])).toEqual([
-      [null, 2],
+      ["oktober", 2],
       ["november", 1],
       ["december", 1],
     ]);
@@ -21,7 +21,7 @@ describe("groupByMonth", () => {
   });
 
   it("houdt een al lopende tour uit een eerdere maand bij de lopende maand", () => {
-    expect(group(["2026-09-28", "2026-10-14"])).toEqual([[null, 2]]);
+    expect(group(["2026-09-28", "2026-10-14"])).toEqual([["oktober", 2]]);
   });
 
   it("begint met een kopje als er deze maand niets meer is", () => {

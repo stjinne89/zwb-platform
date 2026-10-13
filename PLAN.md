@@ -7395,6 +7395,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Jaarplan: het verleden inklappen
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Vraag van de eigenaar: op het jaarplan moet het verleden
+ingeklapt kunnen worden. De weg begint bij `from`, dus boven Vandaag staat alles
+wat al geweest is, en op de telefoon scrol je daar eerst langs.
+
+**Wijziging.** Bovenaan de weg staat een knop "Verleden inklappen"; ingeklapt
+heet hij "Verleden tonen" met het aantal verborgen haltes. Ingeklapt verdwijnen
+de haltes boven Vandaag die voorbij zijn, met hun maandpaaltjes en lege maanden.
+Wat blijft staan: een periode die nu nog loopt en het paaltje van de lopende
+maand. De keuze wordt per apparaat onthouden (`localStorage`, sleutel
+`zwb:jaarplan-verleden`); standaard staat het verleden open. De knop verschijnt
+alleen als er iets geweest is. Alles zit in
+`jaarplan/_components/season-road.tsx`, de stijl onder `.jp-verleden` in
+`globals.css`.
+
+**Bewust niet gebouwd.**
+
+- Standaard ingeklapt: de vraag was het mogelijk te maken, niet om het verleden
+  weg te halen.
+- De keuze op het profiel bewaren: een voorkeur per apparaat volstaat en kost
+  geen migratie.
+
+**Niet lokaal te verifiëren.** Bekeken op `/ontwerp-voorbeeld?scherm=jaarplan`
+(staande telefoon, licht thema, design "tegels"), inclusief onthouden na
+herladen. Het donkere thema en het klassieke design niet; het echte jaarplan
+vraagt een login en deze worktree heeft geen Supabase-gegevens.
+
 ### Opgeleverd — Kalender: maandscheiders in de lijst
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -7407,8 +7437,9 @@ noemt de maand wel per regel, maar had geen indeling.
 **Wijziging.** Bij elke maandwissel staat een scheider: de maandnaam met een
 haarlijn erachter, in dezelfde vorm als de "vandaag"-lijn van de tegels-agenda
 maar gedempt. Het jaar staat erbij zodra het afwijkt van nu ("januari 2027").
-De lopende maand krijgt geen kopje; een tour die in een eerdere maand begon en
-nog loopt, blijft daar bovenaan bij. De indeling komt uit
+Ook de lopende maand heeft een kopje (eerst niet; op verzoek van de eigenaar
+dezelfde dag toegevoegd); een tour die in een eerdere maand begon en nog loopt,
+valt onder de lopende maand. De indeling komt uit
 `lib/events/month-groups.ts` en geldt voor beide designs
 (`components/tegels/agenda.tsx` en de klassieke lijst in `kalender/page.tsx`).
 `AgendaRow` heeft daarvoor een `dateKey` gekregen.

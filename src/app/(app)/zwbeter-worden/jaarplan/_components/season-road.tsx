@@ -9,9 +9,15 @@
 // De tekening zelf staat in globals.css onder "Jaarplan: de weg"; hier staat
 // alleen wat er op welke halte hoort.
 
-import { useCallback, useState, useTransition, type CSSProperties } from "react";
+import {
+  useCallback,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
-import { AlertTriangle, Flag, Pencil } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Flag, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EVENT_TYPE_LABELS, eventTypeColor, eventTypeInk } from "@/lib/event-types";
 import {
@@ -71,6 +77,35 @@ function afstand(today: string, dayKey: string): string | null {
   return `over ${Math.round(dagen / 7)} weken`;
 }
 
+// Of het verleden dichtgeklapt is, onthouden per apparaat.
+const VERLEDEN_KEY = "zwb:jaarplan-verleden";
+
+function volgVerleden(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(VERLEDEN_KEY, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(VERLEDEN_KEY, onChange);
+  };
+}
+
+function verledenDicht() {
+  try {
+    return window.localStorage.getItem(VERLEDEN_KEY) === "dicht";
+  } catch {
+    return false;
+  }
+}
+
+function zetVerleden(dicht: boolean) {
+  try {
+    window.localStorage.setItem(VERLEDEN_KEY, dicht ? "dicht" : "open");
+  } catch {
+    // Zonder opslag klapt het alleen deze keer niet in.
+  }
+  window.dispatchEvent(new Event(VERLEDEN_KEY));
+}
+
 export function SeasonRoad({
   today,
   from,
@@ -91,6 +126,25 @@ export function SeasonRoad({
   editable: boolean;
 }) {
   const stops = seasonRoad({ today, from, targets, periods, events, plans });
+  const dicht = useSyncExternalStore(volgVerleden, verledenDicht, () => false);
+
+  // Alles boven Vandaag is geweest, op een periode na die nu nog loopt.
+  const nu = stops.findIndex((stop) => stop.kind === "vandaag");
+  const loopt = (stop: SeasonRoadStop) =>
+    stop.surface !== "voorbij" && stop.kind !== "maand" && stop.kind !== "leeg";
+  const geweest = stops
+    .slice(0, nu)
+    .filter((stop) => stop.surface === "voorbij" && stop.kind !== "maand" && stop.kind !== "leeg");
+  const zichtbaar =
+    dicht && geweest.length > 0
+      ? stops.filter(
+          (stop, index) =>
+            index >= nu ||
+            loopt(stop) ||
+            // Het paaltje van de lopende maand blijft boven Vandaag staan.
+            (stop.kind === "maand" && stop.date.slice(0, 7) === today.slice(0, 7)),
+        )
+      : stops;
 
   if (targets.length + periods.length + events.length + plans.length === 0) {
     return (
@@ -119,7 +173,21 @@ export function SeasonRoad({
 
   return (
     <ol className="jp-weg">
-      {stops.map((stop) => (
+      {geweest.length > 0 ? (
+        <li className="jp-halte" data-dek="voorbij">
+          <div className="jp-baan" aria-hidden />
+          <button
+            type="button"
+            className="jp-verleden"
+            aria-expanded={!dicht}
+            onClick={() => zetVerleden(!dicht)}
+          >
+            {dicht ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+            {dicht ? `Verleden tonen (${geweest.length})` : "Verleden inklappen"}
+          </button>
+        </li>
+      ) : null}
+      {zichtbaar.map((stop) => (
         <Halte
           key={stop.key}
           stop={stop}

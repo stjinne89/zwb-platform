@@ -1129,6 +1129,24 @@ a.tg-row:focus-visible,
   font-size: 0.8125rem;
   color: var(--muted-foreground);
 }
+.jp-verleden {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.375rem;
+  justify-self: start;
+  padding: 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.jp-verleden:hover {
+  color: var(--foreground);
+}
+.jp-verleden:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 .jp-vandaag > p {
   display: flex;
   flex-wrap: wrap;

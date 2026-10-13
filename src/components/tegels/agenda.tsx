@@ -105,17 +105,17 @@ export function TegelsAgenda({
       {upcoming.length === 0 ? (
         <EmptyState>{empty}</EmptyState>
       ) : (
-        groupByMonth(upcoming, (row) => row.dateKey, todayKey).map((group) => (
-          <Fragment key={group.monthKey ?? "nu"}>
-            {group.label && (
-              <p
-                aria-hidden
-                className="flex items-center gap-2 pt-3 pb-0.5 text-xs font-bold lowercase text-muted-foreground after:h-px after:flex-1 after:bg-border after:content-['']"
-              >
-                {group.label}
-              </p>
-            )}
-            <ul className="space-y-1.5" aria-label={group.label ?? "Komend"}>
+        groupByMonth(upcoming, (row) => row.dateKey, todayKey).map((group, index) => (
+          <Fragment key={group.monthKey}>
+            <p
+              aria-hidden
+              className={`flex items-center gap-2 pb-0.5 text-xs font-bold lowercase text-muted-foreground after:h-px after:flex-1 after:bg-border after:content-[''] ${
+                index === 0 ? "pt-0.5" : "pt-3"
+              }`}
+            >
+              {group.label}
+            </p>
+            <ul className="space-y-1.5" aria-label={group.label}>
               {group.items.map((row) => (
                 <Row key={row.key} row={row} />
               ))}

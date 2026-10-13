@@ -699,12 +699,10 @@ export default async function KalenderPage({
       ) : (
         <div className="space-y-2">
           {groupByMonth(calendarItems, (item) => item.sortKey, todayKey).map((group) => (
-          <Fragment key={group.monthKey ?? "nu"}>
-          {group.label && (
-            <h2 className="flex items-center gap-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground after:h-px after:flex-1 after:bg-border after:content-['']">
-              {group.label}
-            </h2>
-          )}
+          <Fragment key={group.monthKey}>
+          <h2 className="flex items-center gap-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:pt-0 after:h-px after:flex-1 after:bg-border after:content-['']">
+            {group.label}
+          </h2>
           <ul className="space-y-2">
           {group.items.map((item) => {
             if (item.kind === "birthday") {
