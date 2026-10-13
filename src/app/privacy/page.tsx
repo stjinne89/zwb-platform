@@ -97,6 +97,12 @@ export default function PrivacyPage() {
             rooster van dat team, tot hij zijn naam claimt.
           </li>
           <li>
+            <strong>TTT-plannen:</strong> een ploegleider kan een plan delen met
+            de TTT-bot in Discord via een geheime link. Wie die link heeft, ziet de
+            plannaam en per renner naam, Zwift-ID, kopbeurtvermogen en -duur. De
+            ploegleider kan de link intrekken.
+          </li>
+          <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
             dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race
             en in welke categorie je verwacht te rijden, en per zondag of je kunt.

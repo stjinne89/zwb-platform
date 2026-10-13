@@ -521,6 +521,7 @@ const ADMIN_GUIDES = [
       "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",
       "Vindt ZwiftGopher een Zwift-ID niet, dan rekent het plan bij de volgende keer Optimaliseren met de FTP en het gewicht uit het plan, en met 175 cm als Cm leeg is. ZwiftGopher staat één verzoek per minuut toe.",
       "De knop Zwift-ID's kopieert de ID's van het raceplan, één per regel, om te plakken in het vak Zwift IDs op zwiftgopher.com/TTT.",
+      "De knop Botlink kopieert een link waarmee de TTT-bot in Discord het plan ophaalt: plak hem achter /ttt plan. Wie de link heeft, ziet namen, Zwift-ID's en kopbeurten; met Link intrekken werkt hij niet meer.",
       "De JSON-export bewaart ook velden die ZWB niet zelf bewerkt.",
       "De tekstexport is bedoeld als leesbare racesheet; de afbeelding als deelbare opstelling.",
     ],

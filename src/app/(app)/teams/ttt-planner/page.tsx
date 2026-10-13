@@ -99,6 +99,7 @@ type PlanRow = {
   status: string;
   api_response: unknown;
   published_at?: string | null;
+  share_token?: string | null;
   updated_at: string;
 };
 
@@ -177,6 +178,7 @@ function mapInitialPlan(plan: PlanRow, riders: PlanRiderRow[]): InitialTttPlan {
     status: plan.status,
     apiResponse: plan.api_response,
     publishedAt: plan.published_at ?? null,
+    shared: Boolean(plan.share_token),
   };
 }
 

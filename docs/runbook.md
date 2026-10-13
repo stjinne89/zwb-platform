@@ -163,6 +163,7 @@ waarschuwing kunnen wijzigen:
 | Uitslag-scraper | ChronoRace / RaceResult / generieke HTML | scraper/JSON-API | site-wijziging |
 | ZwiftPower-uitslag | zwiftpower.com | alleen link (geen scrape) | n.v.t. (link blijft werken) |
 | TTT-planner | ZwiftGopher API | API + key | key/endpoint-wijziging |
+| TTT-bot (Discord) | eigen proces in `bot/` op de pc met Zwift en Sauce; **draait niet op Netlify**. Haalt het plan op via `/api/ttt/plan/<token>` | Discord-bot + Sauce-websocket + Piper | pc uit, Discord-token ingetrokken, deellink ingetrokken, of Sauce die zijn API wijzigt. Het token staat alleen in `bot/.env` op die pc. Zie [ttt-discord-bot](ttt-discord-bot.md) |
 | Training-AI | OpenAI | API + key | quota/model-wijziging |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
 | Live volgen Garmin | livetrack.garmin.com, endpoints van de eigen webpagina | onofficieel, CSRF-token uit `<meta>` + cookie | Garmin die de CSRF-aanpak wijzigt of ons blokkeert (health-check `garmin_livetrack`); renners staan dan als "live, met link" op de kaart |

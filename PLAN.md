@@ -117,7 +117,76 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`.
+
+---
+
+> **TTT-bot voor Discord: plan als JSON-deellink en een spraakbot met Sauce-coaching, 2026-10-13 — gebouwd, unit-getest; niet in Discord, niet met Piper en niet tegen Sauce gedraaid.**
+> Commit: de commit die dit blok toevoegt. Migratie `0229_ttt_plan_share_token.sql`.
+>
+> **Waarom.** Vraag van de eigenaar na het zien van de TTT-Timer van Andi
+> Pätzold (tttt-discord): een eigen versie die het Gopherplan als JSON krijgt en
+> met live data coacht. Die bot kent alleen met de hand ingetypte namen en
+> seconden en loopt blind op de klok.
+>
+> **Keuzes van de eigenaar.** De bot draait op een eigen pc (niet in de cloud),
+> de live data komt uit Sauce, en alles in één ronde.
+>
+> **Nu.**
+> - Platform: `ttt_plans.share_token`, knoppen Botlink en Link intrekken in de
+>   planner (`shareTttPlan`, `revokeTttPlanShare`), en
+>   `GET /api/ttt/plan/[token]` zonder sessie (in `PUBLIC_PATHS`). Het antwoord is
+>   `tttPlanExport` (`lib/ttt/plan-export.ts`): naam, event, schatting en per
+>   renner volgorde, naam, Zwift-ID, kopbeurt-watts en -duur. FTP, gewicht en
+>   lengte gaan niet mee. Een bestaand token blijft bij opnieuw kopiëren staan.
+> - `bot/`: eigen pakket (discord.js, eigen `package.json`, buiten de
+>   Next-build, `tsconfig` en ESLint). Rotatie op de klok met watts, in het
+>   Nederlands; statusbericht met knoppen; spraak lokaal met Piper.
+> - Coach op Sauce (`bot/src/coach.ts`): de rotatie volgt een vroege of late
+>   wissel, vermogen op kop naast het plan, lossen en terugkomen, "nog vier",
+>   tempo naast de schatting. Regels en drempels: `docs/ttt-discord-bot.md`.
+> - De bot leest Sauce op dezelfde pc. Er gaat geen live data naar het platform.
+> - `scripts/sauce-ttt-probe.mjs`: de proef die nog moet gebeuren.
+> - Opruiming: `apiData`, `routeLabel` en `formatSeconds` stonden dubbel in de
+>   planner en de deelpagina en staan nu in `plan-export.ts`.
+> - Hulp: één regel onder "TTT Planner en exports". Runbook: de bot als
+>   onderdeel buiten Netlify.
+>
+> **Getoetst.** Platform: `tsc --noEmit`, ESLint, Vitest (nieuw:
+> `ttt-plan-export.test.ts`, 6 tests). Bot: `tsc`, Vitest (42 tests: rotatie,
+> coach, plan, zinnen, wachtrij, sessie). De coach-tests draaien op nagebootste
+> metingen, niet op opgenomen Sauce-data. In de volledige suite falen in deze
+> worktree twee bestanden die dit werk niet raken (`omnium-live`: geen
+> `.env.local`; `intervals-ride-sync`: time-out). `npm run build` compileert en
+> komt door TypeScript, en stopt daarna bij het prerenderen van `/omnium` om
+> dezelfde ontbrekende `.env.local`.
+>
+> **Niet geverifieerd.**
+> - De migratie (geen Docker of Supabase-config lokaal).
+> - De planner in de browser en de JSON-route tegen een echte database.
+> - De bot in Discord: inloggen, commando's, spraakkanaal, knoppen.
+> - Piper: de aanroep en de Nederlandse stem.
+> - **Sauce.** De Sauce-pc gaf op 13 oktober geen verbinding. Het adres van de
+>   websocket, het verzoek en de veldnamen in `bot/src/sauce.ts` zijn uit het
+>   hoofd overgenomen. Onbekend is of Sauce in een ploegentijdrit de hele ploeg
+>   ziet en of de koprijder uit `gap` af te leiden is. Alle drempels zijn een
+>   inschatting. Ziet Sauce de ploeg niet, dan blijft de bot een timer met watts.
+>
+> **Bewust niet gebouwd.** Live data naar het platform of een pushende
+> Sauce-mod (de bot leest lokaal). Hosting in de cloud (keuze eigenaar).
+> Zwift-tussentijden in de bot (staan al op `/live/zrl` en in de mod). Meerdere
+> ploegen tegelijk (één spraakkanaal per server, Sauce volgt één renner).
+> Automatisch starten (Zwift geeft de startrij niet). Koppeling
+> Discord-gebruiker ↔ renner (geen Discord-ID in het platform). Een fork van
+> tttt-discord (Redis, Google Translate voor de stem, geen plek voor watts).
+>
+> **Privacy.** `/privacy` noemt de deellink onder "TTT-plannen" (tekst akkoord
+> van de eigenaar, 2026-10-13; geen nieuwe versie). ZwiftGopher staat daar nog
+> niet (zie de ronde van 2026-10-12 hieronder).
+>
+> **Gepusht naar `main` op 2026-10-13**, vóór de proef. Tot migratie `0229` op
+> productie is toegepast, geeft Botlink een fout; de rest van de planner werkt.
+> De proef met Sauce is die avond, tijdens de ZRL-TTT.
 
 ---
 
