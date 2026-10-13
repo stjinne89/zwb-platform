@@ -7294,6 +7294,36 @@ doel en B-doel tellen niet, het moment van "Start schema"),
 "Start schema naar …", niet het doelformulier dat erachter opent, niet de
 meldingen aan de trainer.
 
+### Opgeleverd — Tegels: zwevende lagen zijn weer ondoorzichtig
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In het uitklapmenu van de rennerkiezer op de trainerpagina's
+schenen de tabbalk en de pagina eronder door de namen heen.
+
+**Oorzaak en wijziging.** Het tegels-design zet elk element met `bg-card` op
+het halftransparante `--tg-panel`. Dat klopt voor vlakke panelen in de pagina,
+maar niet voor een laag die erboven zweeft. Twee wijzigingen:
+
+- De regel in `globals.css` slaat elementen over die `absolute` of `fixed`
+  zijn en precies de klasse `bg-card` hebben. Die houden hun dekkende
+  kaartkleur, rand en schaduw. Dat is de vaste regel voor nieuwe menu's.
+- De rennerkiezer in `trainer-nav.tsx` gebruikt `bg-popover`, zoals de
+  dropdown-menu's.
+
+Daarmee zijn ook de schermvullende weergaven in `event-live-ticker.tsx`,
+`elevation-profile.tsx` en `gpx-map.tsx` dekkend; die stonden binnen de schil
+met `bg-card` als achtergrond.
+
+**Bewust niet gebouwd.** De kaartknoppen met `bg-card/80` en `bg-card/90`
+blijven licht doorschijnend: de uitzondering geldt alleen voor de kale klasse
+`bg-card`. Een zwevende laag waarvan `absolute` op een omhullend element staat
+en `bg-card` op een kind valt er niet onder; zo'n geval is nu niet gevonden.
+
+**Niet lokaal te verifiëren.** Niet in de browser bekeken: deze worktree heeft
+geen `.env.local`, dus inloggen kan niet. Dat de drie schermvullende weergaven
+eerder doorschenen is uit de CSS afgeleid, niet gezien.
+
 ### Bijgesteld — trainingskamp vóór een A-doel: grens van tien naar zeven dagen
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.

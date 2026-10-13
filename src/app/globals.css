@@ -431,8 +431,10 @@ html.dark .app-shell[data-design="tegels"]::before {
 
 /* De bestaande blokken onder de tegels en op de andere pagina's: geen kaart
    met rand meer, maar een vlak paneel; koppen in dezelfde lichte onderkast
-   als de paginatitel. Zo loopt het nieuwe design over de oude opbouw heen. */
-[data-design="tegels"] [class*="bg-card"] {
+   als de paginatitel. Zo loopt het nieuwe design over de oude opbouw heen.
+   Zwevende lagen (uitklapmenu, volledig scherm) blijven dekkend: daar zou de
+   pagina eronder doorheen schijnen. */
+[data-design="tegels"] [class*="bg-card"]:not(:is(.absolute, .fixed).bg-card) {
   border-color: transparent;
   background-color: var(--tg-panel);
   box-shadow: none;
