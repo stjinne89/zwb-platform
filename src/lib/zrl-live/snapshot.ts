@@ -61,6 +61,8 @@ type ZwiftSubgroup = {
   startAt: number;
   routeId: string | null;
   laps: number;
+  /** TTT: tijd tussen twee startrijen. Ontbreekt in data van vóór 2026-10-13. */
+  rowGapMs?: number;
 };
 
 export type RaceData = {
@@ -94,7 +96,9 @@ function parseSubgroups(event: unknown): ZwiftSubgroup[] {
   return rows.flatMap((row) => {
     const startAt = toMs(row.eventSubgroupStart);
     if (row.id == null || startAt == null) return [];
+    const rowGapMs = Number((row.timeTrialOptions as { timeGapBetweenRowsMs?: unknown } | null)?.timeGapBetweenRowsMs);
     return [{
+      ...(rowGapMs > 0 ? { rowGapMs } : {}),
       id: String(row.id),
       label: String(row.subgroupLabel ?? ""),
       startAt,
@@ -470,6 +474,7 @@ export async function loadZrlLive(
     passages: data.passages,
     startAt: subgroup.startAt,
     finishedAt,
+    rowGapMs: subgroup.rowGapMs,
     finish: {
       finishers: subgroup.results.map((r) => r.profileId),
       final,

@@ -12,6 +12,10 @@ platform staan.
 2. Start Sauce opnieuw en zet de mod aan onder Instellingen → Mods.
 3. Open het venster "ZWB ZRL Live" en sleep het naar een plek naast Zwift.
 
+Bij een ploegentijdrit toont de overlay de laatste tussentijd van de eigen ploeg,
+met de andere ploegen als verschil daarmee ("-0:25" is sneller dan wij). Na een
+wijziging van de mod: de map opnieuw kopiëren en Sauce herstarten.
+
 Kijk naar een renner in een ZRL-race (eigen renner of via Fan View); de overlay
 volgt vanzelf de subgroep van die renner.
 

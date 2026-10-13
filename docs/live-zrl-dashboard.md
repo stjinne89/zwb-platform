@@ -295,3 +295,63 @@ Zwift-events die aan een ZWB-ZRL-event hangen.
 Afgewogen en niet gekozen: de mod zelf laten rekenen via de Sauce-RPC's
 (onafhankelijk van de server, maar dubbele logica en geen teambijstelling), en de
 publieke pagina in een iframe (onze `frame-ancestors 'none'` verbiedt dat).
+
+## Tussentijden in een ploegentijdrit
+
+Vraag van de eigenaar op 13 oktober 2026, de dag van de eerste ZRL-TTT van het
+seizoen: tussentijden in de overlay, en het verschil met de eigen ploeg.
+
+**Wat Zwift geeft.** De segmentpassages komen ook in een TTT binnen, met het
+tijdstip aan het einde van het segment. Wat ontbreekt is de startrij: ploegen
+starten 60 s na elkaar (`timeGapBetweenRowsMs`), en noch het event noch de
+inschrijvingen zeggen wie in welke rij staat. Zonder rij is een passage geen
+tussentijd.
+
+**Meting.** Open Pink League Division 1 (Zwift-event `5737365`, Watopia Figure 8
+Reverse, vier groepen, start 08:31 UTC), vastgelegd om 08:44, 09:24 en 09:27 UTC
+met een alleen-lezen script.
+
+- Ploeggenoten rijden het eerste segment binnen 0,1 tot 1,3 s na elkaar op; een
+  groep renners die zo dicht op elkaar zit, is dus één startrij.
+- De aanloop naar het eerste segment (ruim 3 km) duurt 3,5 tot 5 minuten.
+  Ploegen in één groep schelen daarin tot 30 s (B), in D tot 39 s. Afronden op
+  hele minuten rond het gemiddelde werkt daardoor niet.
+- Teamtags zijn onbruikbaar als ploegindeling: in C reed één ploeg als "tbr",
+  "tbr evitos" en "tbr 46t", en een kwart tot een derde van de renners had geen
+  tag. Met tags had één van de zeven ploegen in C vier herkende renners.
+
+**Aanpak** (`tttRows` in `src/lib/zrl-live/scoring.ts`).
+
+1. Renners die het eerste segment binnen 3 s na elkaar oprijden, vormen een
+   groep. Een eenling is een losgereden renner.
+2. Elke groep is een kandidaat voor "snelste aanloop". Bij een kandidaat volgt
+   voor elke groep een rij. Een kandidaat valt af als twee groepen met
+   verschillende teamtags in dezelfde rij vallen.
+3. Zolang minder dan drie groepen het tweede segment voorbij zijn: de kandidaat
+   met het kleinste verschil tussen snelste en traagste aanloop, mits de
+   eerstvolgende andere indeling minstens 20 s slechter past.
+4. Daarna moet de indeling bij het tempo passen: wie langzamer van segment 1
+   naar 2 rijdt, deed ook langer over de aanloop. Wijkt een groep meer dan 12 s
+   van die lijn af, dan zijn er geen tussentijden.
+5. Een ploeg is een startrij. De naam is de meest voorkomende teamsleutel in de
+   rij, of "Rij 3" zonder één tag. De tussentijd is het moment van de vierde
+   renner, min rij × 60 s. Alleen verschillen kloppen: of de eerste ploeg in
+   rij 0 of 1 stond, is niet te bepalen.
+
+**Getoetst.** `durationMs` telt vanaf de eigen startrij. Klopt de rij, dan ligt
+het einde van het laatste segment voor elke ploeg op hetzelfde deel van de
+eindtijd. A (3 ploegen): 70,0 tot 70,5 procent. B (8): 70,6 tot 71,6. C (6): 70,6
+tot 71,4. Een rij ernaast geeft ruim 2 procentpunt verschil. Teruggerekend uit
+de eindtijd starten de ploegen in B en C in rij 0 tot en met 8 en 0 tot en met 6,
+zonder gaten; in A in rij 0, 2 en 5.
+
+**Groep D paste niet.** Eén ploeg kwam 38 s na de snelste aanloop bij het eerste
+segment en reed daarna gewoon tempo. Regel 4 keurt de indeling dan af: om 08:44
+stonden er vijf ploegen met een tussentijd, vanaf het tweede segment geen. De
+terugrekening uit de eindtijd is in D te grof (andere verdeling over de route)
+om te zeggen of de vroege indeling goed was.
+
+**Bewust niet.** Absolute tussentijden. Het teamklassement met eindtijden op
+startrij in plaats van teamtag: dat verandert een getoetste telling op de dag
+van de race. Een doorlopend verschil tussen de segmenten: Zwift geeft alleen
+passages, geen posities.
