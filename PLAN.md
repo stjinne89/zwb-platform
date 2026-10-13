@@ -165,7 +165,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > - De migratie (geen Docker of Supabase-config lokaal).
 > - De planner in de browser en de JSON-route tegen een echte database.
 > - De bot in Discord: inloggen, commando's, spraakkanaal, knoppen.
-> - Piper: de aanroep en de Nederlandse stem.
+> - Piper. Sinds dezelfde middag spreekt de bot op Windows standaard met de
+>   Nederlandse Windows-stem (`bot/src/windows-voice.ps1`), omdat de eigenaar de
+>   bot die avond al wil laten meepraten en die stem er al staat. Lokaal
+>   geprobeerd: 38 klokzinnen in een seconde, en een zin via ffmpeg naar opus.
+>   Erbij gekomen: een logboek per dag (`bot/.cache/`) en `COACH=log`, waarmee
+>   de coach alleen opschrijft wat hij zou doen.
 > - **Sauce in een ploegentijdrit.** Later op 13 oktober buiten een race
 >   gemeten (15 s, 61 renners): het adres van de websocket, het verzoek, de
 >   veldnamen, het teken van `gap` en km/u kloppen met `bot/src/sauce.ts`.

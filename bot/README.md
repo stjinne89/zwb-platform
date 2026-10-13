@@ -6,8 +6,8 @@ met het doelvermogen. Draait Sauce for Zwift op dezelfde pc, dan volgt hij wat d
 ploeg echt doet.
 
 De bot is een eigen pakket en draait niet op Netlify: een spraakbot heeft een
-proces nodig dat blijft draaien. Hij is bedoeld voor de pc waar Zwift en Sauce op
-staan.
+proces nodig dat blijft draaien. Hij draait op een eigen pc: die met Zwift en
+Sauce, of een andere in hetzelfde netwerk.
 
 Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 
@@ -34,13 +34,15 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
    Spreken.
 4. Kopieer `.env.example` naar `.env` en vul `DISCORD_TOKEN` in. Het token blijft
    op deze pc; het hoort niet in de repo of in Netlify.
-5. Spraak: download de Windows-versie van [Piper](https://github.com/rhasspy/piper/releases)
-   (`piper.exe`) en een Nederlandse stem (`nl_NL-….onnx` met het bijbehorende
-   `.onnx.json`) en zet `PIPER_PATH` en `PIPER_MODEL` in `.env`. De bot roept
-   `piper --model <stem> --output_file <wav>` aan met de zin op de invoer. Zonder
-   die twee werkt alleen het statusbericht. Nog niet met een echte Piper getest.
-6. Sauce: zet in Sauce for Zwift de webserver aan en laat `SAUCE_URL` op
-   `http://localhost:1080` staan. Leeg laten = alleen de klok.
+5. Spraak: op Windows gebruikt de bot de Nederlandse stem van Windows (Frank),
+   zonder iets te installeren. Ontbreekt die, voeg dan Nederlands toe onder
+   Instellingen > Tijd en taal > Spraak. Liever [Piper](https://github.com/rhasspy/piper/releases)?
+   Zet `PIPER_PATH` (naar `piper.exe`) en `PIPER_MODEL` (een `nl_NL-….onnx`) in
+   `.env`. Piper is niet getest.
+6. Sauce: zet in Sauce for Zwift de webserver aan. `SAUCE_URL` is
+   `http://localhost:1080` op de Sauce-pc zelf, of `http://<ip van die pc>:1080`
+   vanaf een andere pc. Leeg laten = alleen de klok.
+7. Start de bot met `npm start` en laat het venster open.
 
 ## Gebruiken
 
@@ -61,6 +63,10 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 | `/ttt terug <renner>` | Renner draait weer mee |
 
 Eén bot bedient één spraakkanaal per server tegelijk, en Sauce volgt één ploeg.
+
+Met `COACH=log` in `.env` spreekt alleen de klok; wat de coach zou zeggen of doen
+komt dan alleen in het logboek. Dat logboek staat per dag in `.cache/ttt-<datum>.log`:
+elke klokmelding, elk advies van de coach en wat de bot daarvan uitsprak.
 
 ## Ontwikkelen
 

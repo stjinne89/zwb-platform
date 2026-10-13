@@ -1,7 +1,8 @@
 # TTT-bot voor Discord
 
-Stand: 2026-10-13. Gebouwd en met unit-tests gedekt; **niet** in Discord, niet met
-Piper en niet tegen Sauce gedraaid. Wat hieronder "niet gemeten" heet, is een
+Stand: 2026-10-13. Gebouwd en met unit-tests gedekt; **niet** in Discord gedraaid
+en niet tegen Sauce in een ploegentijdrit. De stem en de weg van zin naar geluid
+zijn lokaal geprobeerd. Wat hieronder "niet gemeten" heet, is een
 aanname tot de proef is gedaan.
 
 Aanleiding: de [TTT-Timer van Andi Pätzold](https://andipaetzold.github.io/tttt-discord/)
@@ -45,7 +46,7 @@ overgenomen.
 | `coach.ts` | De regels op Sauce-metingen, zonder I/O. |
 | `sauce.ts` | Websocket naar Sauce; `toSample` is de enige plek die de vorm van de data kent. |
 | `speech.ts` | Wachtrij: één stem tegelijk, een wissel gaat voor op coaching, wat te lang wacht vervalt (klok 3 s, coaching 8 s). |
-| `tts.ts` | Piper, lokaal, met een cache per zin. De klokzinnen worden bij `/ttt plan` klaargezet. |
+| `tts.ts` | De stem, lokaal, met een cache per zin: op Windows de Nederlandse Windows-stem (`windows-voice.ps1`, één PowerShell-proces dat blijft draaien), anders Piper. De klokzinnen worden bij `/ttt plan` klaargezet. Gemeten: 38 zinnen in een seconde; een nieuwe zin in minder dan 10 ms. Piper is niet getest. |
 | `session.ts` | Eén ploegentijdrit: verbindt rotatie, coach en spraak. |
 | `index.ts` | Discord: commando's, knoppen, spraakkanaal, statusbericht. |
 
@@ -97,6 +98,14 @@ Het script schrijft per bericht Zwift-ID, gat, vermogen, snelheid en draft naar
 
 Valt punt 3 tegen, dan blijft de bot een timer met watts. Dat eerst melden, geen
 ander databron erachter bouwen.
+
+## Logboek en meekijkstand
+
+De bot schrijft per dag `bot/.cache/ttt-<datum>.log`: elke klokmelding (`klok`),
+elk advies van de coach (`coach`, als JSON) en wat hij daarvan uitsprak (`zegt`).
+Met `COACH=log` spreekt alleen de klok en grijpt de coach niet in; het logboek
+laat dan zien wat hij gedaan zou hebben. Leg het naast de opname van
+`sauce-ttt-probe.mjs` om de drempels af te stellen.
 
 ## Bewust niet gebouwd
 

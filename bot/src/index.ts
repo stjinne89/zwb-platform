@@ -28,7 +28,9 @@ import { fetchPlan } from "./plan.ts";
 import { SauceClient } from "./sauce.ts";
 import { Session } from "./session.ts";
 import { SpeechQueue } from "./speech.ts";
-import { Tts } from "./tts.ts";
+import { appendFile } from "node:fs/promises";
+import { join } from "node:path";
+import { CACHE_DIR, piperEngine, Tts, windowsEngine } from "./tts.ts";
 
 const DEFAULT_DELAY_S = 10;
 const PLUS_BUTTON_S = 10;
@@ -47,9 +49,21 @@ const origins = (process.env.PLAN_ORIGINS ?? "https://zwb-platform.netlify.app")
   .filter(Boolean);
 const tts =
   process.env.PIPER_PATH && process.env.PIPER_MODEL
-    ? new Tts(process.env.PIPER_PATH, process.env.PIPER_MODEL)
-    : null;
-if (!tts) console.warn("Geen PIPER_PATH/PIPER_MODEL: de bot spreekt niet, alleen het statusbericht werkt.");
+    ? new Tts(piperEngine(process.env.PIPER_PATH, process.env.PIPER_MODEL))
+    : process.platform === "win32"
+      ? new Tts(windowsEngine(process.env.VOICE_LANGUAGE ?? "nl-NL"))
+      : null;
+if (!tts) console.warn("Geen stem ingesteld: de bot spreekt niet, alleen het statusbericht werkt.");
+const coachMode = process.env.COACH === "log" ? "log" : "speak";
+
+/** Logboek per dag in .cache/, om na een race na te lezen wat er gebeurde. */
+function log(line: string) {
+  const now = new Date();
+  const entry = `${now.toISOString()} ${line}`;
+  console.log(entry);
+  const file = join(CACHE_DIR, `ttt-${now.toISOString().slice(0, 10)}.log`);
+  void appendFile(file, `${entry}\n`).catch(() => undefined);
+}
 
 type GuildState = {
   session: Session | null;
@@ -72,7 +86,11 @@ function stateOf(guildId: string): GuildState {
       player,
       speech: new SpeechQueue(async (text) => {
         if (!tts || !created.connection) return;
-        player.play(createAudioResource(await tts.file(text)));
+        const file = await tts.file(text).catch((error) => {
+          log(`stem mislukte: ${error instanceof Error ? error.message : error}`);
+          throw error;
+        });
+        player.play(createAudioResource(file));
         await entersState(player, AudioPlayerStatus.Playing, 5_000);
         await entersState(player, AudioPlayerStatus.Idle, 30_000);
       }),
@@ -231,12 +249,19 @@ async function handle(interaction: Interaction) {
       const plan = await fetchPlan(interaction.options.getString("link", true), origins);
       stop(state);
       state.message = null;
-      const loaded = new Session(plan, {
-        say: (text, priority) => state.speech.say(text, priority),
-        changed: () => {
-          state.dirty = true;
+      const loaded = new Session(
+        plan,
+        {
+          say: (text, priority) => state.speech.say(text, priority),
+          changed: () => {
+            state.dirty = true;
+          },
+          log,
         },
-      });
+        Date.now,
+        coachMode,
+      );
+      log(`plan ${plan.name}: ${plan.riders.map((r) => `${r.name} ${r.pullWatts ?? "-"}W ${r.pullSeconds}s`).join(", ")}`);
       state.session = loaded;
       void tts?.prepare(clockPhrases(loaded.rotation));
       const riders = plan.riders

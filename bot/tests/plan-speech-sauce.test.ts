@@ -168,7 +168,7 @@ describe("sessie", () => {
     const clock = { now: 0 };
     const created = new Session(
       parsePlan(PLAN_JSON),
-      { say: (text) => said.push(text), changed: () => undefined },
+      { say: (text) => said.push(text), changed: () => undefined, log: () => undefined },
       () => clock.now,
     );
     return { created, said, clock };

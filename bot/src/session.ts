@@ -25,7 +25,12 @@ export type SessionIo = {
   say(text: string, priority: Priority): void;
   /** Het statusbericht is verouderd. */
   changed(): void;
+  /** Voor het logboek: wat de bot zei en wat de coach zag. */
+  log(line: string): void;
 };
+
+/** `log`: de coach schrijft alleen op wat hij zou doen, zonder te spreken of in te grijpen. */
+export type CoachMode = "speak" | "log";
 
 function clock(ms: number) {
   const seconds = Math.max(0, Math.ceil(ms / 1000));
@@ -45,6 +50,7 @@ export class Session {
     readonly plan: Plan,
     private readonly io: SessionIo,
     private readonly now: () => number = Date.now,
+    private readonly coachMode: CoachMode = "speak",
   ) {
     this.rotation = createRotation(plan.riders, Infinity);
     this.coach = new Coach(plan);
@@ -102,6 +108,8 @@ export class Session {
     });
 
     for (const item of advice) {
+      this.io.log(`coach ${JSON.stringify(item)}`);
+      if (this.coachMode === "log") continue;
       if (item.kind === "leader") {
         this.apply(syncLeader(this.rotation, byZwiftId(item.zwiftId), sample.at));
         continue;
@@ -112,6 +120,7 @@ export class Session {
       }
       const phrase = advicePhrase(item, (zwiftId) => riders[byZwiftId(zwiftId)]?.name ?? "");
       if (phrase) this.io.say(phrase, "coach");
+      if (phrase) this.io.log(`zegt ${phrase}`);
     }
   }
 
@@ -151,7 +160,11 @@ export class Session {
 
   private apply(step: { rotation: Rotation; events: RotationEvent[] }) {
     this.rotation = step.rotation;
-    for (const event of step.events) this.io.say(eventPhrase(event, this.rotation), "clock");
+    for (const event of step.events) {
+      const phrase = eventPhrase(event, this.rotation);
+      this.io.log(`klok ${phrase}`);
+      this.io.say(phrase, "clock");
+    }
     if (step.events.length > 0) this.io.changed();
   }
 }
