@@ -7083,6 +7083,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Captain-selectie: namen van zusterteams op de subteampagina
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Op de pagina van een subteam (Bdev) stond in de Captain-selectie
+een rij chips "Team Onbekend". Stijn meldde het met een schermafbeelding.
+
+**Oorzaak.** De opstelling wordt per hoofdteam opgehaald
+(`team_event_lineups.parent_team_id`), dus ook de renners van zusterteams komen
+mee. De namen kwamen echter uit `teamById` en `profileById`, en die bevatten op
+een subteampagina alleen het eigen team en zijn leden. Een renner van een
+zusterteam kreeg daardoor de terugvalwaarden "Team" en "Onbekend"; alleen wie
+zich toevallig ook beschikbaar had gemeld, had wel een naam.
+
+**Wat veranderde.** `teams/[id]/page.tsx` zoekt de teamnaam van een chip nu in
+het hoofdteam plus alle subteams, en de rennernaam valt terug op de al geladen
+lijst van alle profielen. Geen extra query.
+
+**Bewust niet gebouwd.** De chips van zusterteams zijn niet verborgen: de
+keuzelijst op een subteampagina biedt die teams ook aan, dus de captain moet
+zien wie daar al staat.
+
+**Getest.** `tsc` en ESLint. Niet in de browser bekeken; er is lokaal geen
+database met deze opstelling.
+
 ### Gemeten — ZwiftGopher: geen vrije routekeuze, kopbeurtvelden kloppen
 
 **2026-10-09.** Commit: de commit die dit blok toevoegt. Geen migratie.

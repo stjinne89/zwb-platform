@@ -535,6 +535,17 @@ export default async function TeamDetailPage({
     }
   }
   const lineups = (lineupRows ?? []) as LineupRow[];
+  // De opstelling geldt voor het hele hoofdteam. Op de pagina van een subteam
+  // staan dus ook renners van zusterteams, die niet in `scopeTeams` zitten.
+  const lineupTeamNameById = new Map(
+    [team, ...((childTeams ?? []) as TeamRow[])].map((row) => [row.id, row.name]),
+  );
+  const profileNameById = new Map(
+    ((allProfiles ?? []) as Array<{ id: string; display_name: string | null }>).map((row) => [
+      row.id,
+      row.display_name,
+    ]),
+  );
   // Namen van rosterregels in de opstelling, ook als de naam intussen niet meer
   // bij een team op deze pagina hoort.
   const rosterNameById = new Map(
@@ -674,9 +685,10 @@ export default async function TeamDetailPage({
                 profileId: lineup.profile_id,
                 riderName:
                   (lineup.profile_id
-                    ? profileById.get(lineup.profile_id)?.display_name
+                    ? (profileById.get(lineup.profile_id)?.display_name ??
+                      profileNameById.get(lineup.profile_id))
                     : rosterNameById.get(lineup.roster_entry_id ?? "")) ?? "Onbekend",
-                teamName: teamById.get(lineup.team_id)?.name ?? "Team",
+                teamName: lineupTeamNameById.get(lineup.team_id) ?? "Team",
               }));
               const plannerRiders: PlannerRider[] = rosterRows.map((row) => ({
                 id: row.id,
