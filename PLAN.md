@@ -178,6 +178,16 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 >   koprijder uit `gap` af te leiden is. Alle drempels zijn een inschatting.
 >   Ziet Sauce de ploeg niet, dan blijft de bot een timer met watts.
 >
+> **Bijgesteld dezelfde middag: plan rechtstreeks uit ZwiftGopher.** De eigenaar
+> vindt de calculator op zwiftgopher.com/TTT handiger dan de planner. `/ttt plan`
+> neemt nu ook de link van Export JSON of Export Link aan, of het JSON als
+> bestand (`parseGopherPlan`, `bot/src/plan.ts`). Getoetst op het echte plan van
+> die avond (vijf renners, volgorde, watt en duur kloppen) en met drie nieuwe
+> tests. De bot haalt dus niet meer alleen bij het platform op, maar ook bij
+> zwiftgopher.com. Een plan uit ZwiftGopher heeft geen verwacht gemiddelde en
+> krijgt geen tempomelding. De deellink van het platform blijft bestaan; of de
+> planner zelf nog nodig is, is aan de eigenaar.
+>
 > **Bewust niet gebouwd.** Live data naar het platform of een pushende
 > Sauce-mod (de bot leest lokaal). Hosting in de cloud (keuze eigenaar).
 > Zwift-tussentijden in de bot (staan al op `/live/zrl` en in de mod). Meerdere

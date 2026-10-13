@@ -46,15 +46,20 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
 
 ## Gebruiken
 
-1. Captain: in de TTT Planner op **Botlink** klikken. De link staat op het klembord.
-2. In Discord: `/ttt plan` en de link plakken. Alleen jij ziet het antwoord.
+1. Haal de link van het plan op, uit een van de twee:
+   - **ZwiftGopher** (zwiftgopher.com/TTT): klik op Export JSON en kopieer het
+     adres van het tabblad dat opent, of klik op Export Link.
+   - **TTT Planner** van het platform: klik op Botlink.
+2. In Discord: `/ttt plan` en de link plakken bij `link`. Alleen jij ziet het
+   antwoord. Is een ZwiftGopher-link te lang voor Discord (meer dan 6000 tekens,
+   bij grote ploegen), sla dan de JSON op en geef die mee bij `bestand`.
 3. Ga in het spraakkanaal zitten en geef `/ttt start`, eventueel met
    `vertraging` in seconden tot de start van de eigen ploeg.
 4. Laat Zwift op de Sauce-pc meekijken met een ploeglid.
 
 | Commando | |
 |---|---|
-| `/ttt plan <link>` | Plan laden |
+| `/ttt plan <link of bestand>` | Plan laden uit ZwiftGopher of de TTT Planner |
 | `/ttt start [vertraging]` | Starten in jouw spraakkanaal (standaard na 10 s) |
 | `/ttt stop` | Stoppen en het kanaal verlaten |
 | `/ttt skip` | Meteen de volgende renner |

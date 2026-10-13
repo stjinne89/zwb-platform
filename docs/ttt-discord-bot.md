@@ -32,6 +32,17 @@ Platform (Netlify)                         Pc met Zwift + Sauce
 - **Geen live data naar het platform.** De bot leest Sauce lokaal; er is geen
   ingest-endpoint en er wordt geen vermogen opgeslagen.
 
+- **Plan rechtstreeks uit ZwiftGopher** (2026-10-13, op verzoek van de eigenaar:
+  de calculator op zwiftgopher.com/TTT werkt handiger dan de planner). Export
+  JSON en Export Link geven daar een link `…/TTT/?save=<blob>`; met `&json=true`
+  geeft die het plan als JSON. `/ttt plan` neemt zo'n link aan, of het JSON als
+  bestand. Gemeten vorm (versie 1.14.0): `riders` als object per Zwift-ID met
+  `name`, `alt_name`, `order` (vanaf 0), `pull_power`, `pull_duration`. De bot
+  spreekt de voornaam uit, zonder teamtag, of `alt_name` als die is ingevuld.
+  `target_speed` is de snelheid op het vlakke en geen verwacht gemiddelde: een
+  plan uit ZwiftGopher krijgt daarom geen tempomelding. De deellink van het
+  platform blijft werken; daar is de migratie voor nodig, hier niet.
+
 Waarom eigen bouw en geen fork: tttt-discord hangt aan Redis en aan Google
 Translate voor de stem (namen gaan dan naar Google), en heeft geen plek voor
 watts of live data. De commando's, het statusbericht en de aftelmomenten zijn
@@ -41,7 +52,7 @@ overgenomen.
 
 | Bestand | Wat |
 |---|---|
-| `plan.ts` | Plan ophalen en valideren. Haalt alleen `/api/ttt/plan/<token>` op bij een toegestane herkomst (`PLAN_ORIGINS`), niet zomaar een adres uit Discord. |
+| `plan.ts` | Plan ophalen en valideren, in de vorm van het platform of die van ZwiftGopher. Haalt alleen `/api/ttt/plan/<token>` bij een toegestane herkomst (`PLAN_ORIGINS`) en `zwiftgopher.com/TTT/?save=…` op, niet zomaar een adres uit Discord. |
 | `rotation.ts` | De rotatie, puur: wie rijdt, hoe lang nog, wie volgt; `skip`, `plus`, gelost/terug, en `syncLeader` voor wat Sauce ziet. |
 | `coach.ts` | De regels op Sauce-metingen, zonder I/O. |
 | `sauce.ts` | Websocket naar Sauce; `toSample` is de enige plek die de vorm van de data kent. |

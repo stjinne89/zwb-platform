@@ -54,6 +54,58 @@ describe("plan", () => {
     expect(() => planUrl("zomaar tekst", ORIGINS)).toThrow();
   });
 
+  it("leest een export van ZwiftGopher: volgorde, voornaam, watt en duur", () => {
+    const rider = (name: string, order: number, pull_power: number, extra = {}) => ({
+      name,
+      alt_name: "",
+      order,
+      pull_power,
+      pull_duration: "30",
+      zr: true,
+      ftp: "270",
+      weight: "75.0",
+      ...extra,
+    });
+    const plan = parsePlan({
+      roster: [],
+      riders: {
+        "111": rider("Koen Jansen [ZWB] ", 0, 316.55),
+        "444": rider("Stijn  Martens(ZWB)", 3, 326.5, { pull_duration: "45" }),
+        "222": rider("Jeroen Janssen (ZWB)", 1, 348.57),
+        "333": rider("Marc   Kremer (ZWB)", 2, 295.17, { alt_name: "Kremer" }),
+      },
+      target_speed: "43.8",
+      team: { name: "ZWB Bdev" },
+      intensity: 1,
+      efficiency: 0,
+    });
+    expect(plan.name).toBe("ZWB Bdev");
+    expect(plan.estimatedSpeedKmh).toBeNull();
+    expect(plan.riders.map((r) => [r.order, r.name, r.zwiftId, r.pullWatts, r.pullSeconds])).toEqual([
+      [1, "Koen", "111", 317, 30],
+      [2, "Jeroen", "222", 349, 30],
+      [3, "Kremer", "333", 295, 30],
+      [4, "Stijn", "444", 327, 45],
+    ]);
+  });
+
+  it("houdt de volledige naam als twee renners dezelfde voornaam hebben", () => {
+    const row = (name: string, order: number) => ({ name, order, pull_power: 300, pull_duration: 30 });
+    const plan = parsePlan({ riders: { "1": row("Jan Smit (ZWB)", 0), "2": row("Jan de Boer", 1) } });
+    expect(plan.riders.map((r) => r.name)).toEqual(["Jan Smit", "Jan de Boer"]);
+  });
+
+  it("maakt van een ZwiftGopher-link het JSON-adres, met of zonder json=true", () => {
+    const save = "YWJj/ZGVm+Z2hp=";
+    const encoded = encodeURIComponent(save);
+    const wanted = `https://www.zwiftgopher.com/TTT/?save=${encoded}&json=true`;
+    expect(planUrl(`https://www.zwiftgopher.com/TTT/?save=${encoded}&json=true`, ORIGINS)).toBe(wanted);
+    expect(planUrl(`http://zwiftgopher.com/TTT/?save=${encoded}`, ORIGINS)).toBe(wanted);
+    expect(() => planUrl("https://www.zwiftgopher.com/TTT/", ORIGINS)).toThrow();
+    expect(() => planUrl(`https://www.zwiftgopher.com/api/x?save=${encoded}`, ORIGINS)).toThrow();
+    expect(() => planUrl(`https://zwiftgopher.com.elders.example/TTT/?save=${encoded}`, ORIGINS)).toThrow();
+  });
+
   it("meldt een ingetrokken link", async () => {
     const gone = (async () => new Response("{}", { status: 404 })) as typeof fetch;
     await expect(fetchPlan(TOKEN, ORIGINS, gone)).rejects.toThrow(/ingetrokken/);

@@ -24,7 +24,7 @@ import {
   type Message,
 } from "discord.js";
 import { clockPhrases } from "./phrases.ts";
-import { fetchPlan } from "./plan.ts";
+import { fetchPlan, parsePlan } from "./plan.ts";
 import { SauceClient } from "./sauce.ts";
 import { Session } from "./session.ts";
 import { SpeechQueue } from "./speech.ts";
@@ -151,9 +151,12 @@ const command = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("plan")
-      .setDescription("Laad een plan uit de TTT Planner")
+      .setDescription("Laad een plan uit ZwiftGopher of de TTT Planner")
       .addStringOption((option) =>
-        option.setName("link").setDescription("De botlink uit de planner").setRequired(true),
+        option.setName("link").setDescription("Export JSON of Export Link uit ZwiftGopher, of de botlink"),
+      )
+      .addAttachmentOption((option) =>
+        option.setName("bestand").setDescription("Het JSON-bestand uit ZwiftGopher, als de link te lang is"),
       ),
   )
   .addSubcommand((sub) =>
@@ -246,7 +249,12 @@ async function handle(interaction: Interaction) {
     // Alleen voor wie het commando gaf: de link is de sleutel tot het plan.
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
-      const plan = await fetchPlan(interaction.options.getString("link", true), origins);
+      const link = interaction.options.getString("link");
+      const file = interaction.options.getAttachment("bestand");
+      if (!link && !file) throw new Error("Geef een link of een bestand mee.");
+      const plan = link
+        ? await fetchPlan(link, origins)
+        : parsePlan(await fetch(file!.url, { signal: AbortSignal.timeout(10_000) }).then((r) => r.json()));
       stop(state);
       state.message = null;
       const loaded = new Session(
@@ -358,4 +366,14 @@ if (process.env.SAUCE_URL) {
   console.warn("Geen SAUCE_URL: de bot loopt alleen op de klok.");
 }
 
-await client.login(token);
+try {
+  await client.login(token);
+} catch (error) {
+  const invalid = error instanceof Error && "code" in error && error.code === "TokenInvalid";
+  console.error(
+    invalid
+      ? "Discord weigert het token. Gebruik het token van de pagina Bot (Reset Token), niet de Application ID of Public Key."
+      : error,
+  );
+  process.exit(1);
+}
