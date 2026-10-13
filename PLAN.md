@@ -307,6 +307,21 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   teal; Mijn garage goud; ledenvoordeel sage) en op Club (`TILE_STYLE`).
 >   **Niet meer waar:** "een tegel heeft de kleur van de plek waar hij heen
 >   leidt" en "op Club is kleur afwisseling" hierboven.
+> - *Kleur is klikbaar (besluit eigenaar, 2026-10-13; nog niet op main).* Een
+>   gekleurd vlak is iets waar je op tikt; een vlak zonder kleur is het
+>   doorzichtige paneel, waar de tenuebanen doorheen schijnen, en dat is inhoud.
+>   De doorzichtige panelen blijven dus bewust zo. Aangepast: de gekleurde
+>   dashboardblokken (FRR, SRC, badges, clubactiviteit, polls, garage,
+>   ledenvoordeel) zijn weer panelen; van de kerncijfers bij ZWBeter zijn alleen
+>   de klikbare (fitness, vorm) nog een teal tegel; de eventkop is een paneel
+>   met het gekleurde dagvak; bij de ZWBeter-pijlers zijn de pijlers waar je
+>   heen kunt teal en is de pijler waar je bent een paneel met een gouden lijn;
+>   een racetegel is in zijn geheel klikbaar. **Niet meer waar:** "elk
+>   dashboardblok is een gekleurd blok in de kleur van zijn plek" en de
+>   blokkleuren in het kleurbeleid hierboven. Open: rijen in lijsten zijn vaak
+>   klikbaar zonder kleur, en knoppen en filters volgen hun eigen stijl.
+>   **Niet met echte data gezien** (Chrome was niet bereikbaar); alleen
+>   nagegaan dat de regels geladen worden en de voorbeeldpagina klopt.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
