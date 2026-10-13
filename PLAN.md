@@ -24,7 +24,10 @@ gaat stabiliteit voor nieuwe features.
    segmenten zonder lijn 0. Over 11,6 dagen gebruikten achtergrondjobs 2.150 s
    databasetijd tegen leden 533 s. Twee actiepunten: de zwaarste query, op
    `strava_activities` (32% van de databasetijd, 966 s, gemiddeld 524 ms), en
-   `nutrition_foods` dat op 1000 rijen wordt afgekapt. Egress in de nieuwe cyclus
+   `nutrition_foods`. Dat laatste bleek anders dan gemeld: de tabel wordt nergens
+   ongefilterd opgehaald en de grens van 1000 rijen werd niet geraakt; wel kapte
+   het zoeken zelf af op 200 treffers (verholpen, zie de ronde "NEVO-zoeken" van
+   2026-10-13). Egress in de nieuwe cyclus
    (vanaf 2026-10-11): na ruim twee dagen 0,704 GB tegen een limiet van 5 GB; de
    oorzaak wordt nog onderzocht.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
@@ -7091,6 +7094,53 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — NEVO-zoeken: alle treffers wegen mee, niet de eerste 200 op alfabet
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De databasecheck van 2026-10-13 meldde dat
+`voeding/_actions.ts:58` de tabel `nutrition_foods` (2.328 rijen) zonder filter
+of paginering ophaalt en dus op 1000 rijen wordt afgekapt.
+
+**Wat er werkelijk speelde.** Die melding klopt niet. Regel 58 is het begin van
+een query die op de volgende regels per zoekwoord een `ilike` krijgt en een
+limiet van 200; `searchFoods` is de zoekactie van het receptformulier en zoekt
+al op de server. De andere twee plekken (`saveOwnRecipe` controleert hooguit 30
+id's; `_data.ts` haalt voedingsmiddelen alleen op als onderdeel van een recept)
+halen de tabel evenmin in zijn geheel op. Er is geen keuzelijst of berekening
+die alle 2.328 rijen nodig heeft.
+
+Wel bestond een kleinere afkapping: de query haalde de eerste 200 treffers op
+alfabet op en `rankFoods` koos daaruit de beste twintig. Bij een zoekterm met
+meer dan 200 treffers viel de rest weg voordat er gerangschikt werd. Nagerekend
+op de namen in `0214_nutrition_seed_v2.sql`: "rauw" heeft 278 treffers, "bereid"
+267, "ei" 368. Bij "rauw" hoorden "Ui rauw", "Yam rauw" en "Taro rauw" in de top
+twintig (kortste namen), maar die kwamen nooit in beeld. Gewone zoektermen
+(melk 115, kaas 103, brood 98, kip 51) bleven onder de 200 en waren volledig;
+twee woorden samen ("ui rauw") ook.
+
+**Wat veranderde.** `collectPages` in `src/lib/nutrition/food-search.ts` haalt
+alle treffers op in pagina's van 500 met `range`, tot een pagina niet vol is
+(plafond 3.000 rijen). Beide query's in `searchFoods` gebruiken hem en sorteren
+nu ook op `id`, zodat de pagina's stabiel zijn. Bijna elke zoekterm blijft één
+verzoek; alleen fragmenten van twee letters als "er" (939 treffers) kosten er
+twee. Het lid krijgt nog steeds twintig resultaten.
+
+**Bewust niet gebouwd.** Geen rangschikking in SQL via een functie: dat vraagt
+een migratie die hier niet te testen is, voor een tabel van 2.328 korte rijen.
+Geen trigram-index om dezelfde reden; `ilike '%…%'` gebruikt de bestaande index
+op `lower(name_nl)` niet, maar een volledige scan van deze tabel is klein. Geen
+tekst of teller in het formulier.
+
+**Niet lokaal te verifiëren.** De query's zelf zijn niet tegen een database
+gedraaid en het formulier is niet in de browser bekeken. De aantallen komen uit
+de seed-migratie, niet uit productie. Aangenomen: de rijlimiet van de API is
+minstens 500 (Supabase-standaard 1000); is hij lager ingesteld, dan stopt
+`collectPages` na de eerste pagina.
+
+**Getest.** `tests/unit/nutrition-food-search.test.ts` (12 tests, waarvan 5
+nieuw), `tsc` en ESLint.
 
 ### Opgeleverd — Captain-selectie: namen van zusterteams op de subteampagina
 

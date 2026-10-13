@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { compoundSplits, foodSearchTokens, rankFoods } from "@/lib/nutrition/food-search";
+import { collectPages, compoundSplits, foodSearchTokens, rankFoods } from "@/lib/nutrition/food-search";
 
 describe("foodSearchTokens", () => {
   it("knipt op spaties en leestekens en laat losse letters weg", () => {
@@ -46,5 +46,52 @@ describe("rankFoods", () => {
 
   it("kapt af op de limiet", () => {
     expect(rankFoods(rows, ["melk"], 2)).toHaveLength(2);
+  });
+});
+
+describe("collectPages", () => {
+  const source = Array.from({ length: 278 }, (_, index) => index);
+  const pageOf = (rows: number[]) => async (from: number, to: number) => rows.slice(from, to + 1);
+
+  it("haalt door tot een pagina niet vol is", async () => {
+    const calls: Array<[number, number]> = [];
+    const rows = await collectPages(async (from, to) => {
+      calls.push([from, to]);
+      return source.slice(from, to + 1);
+    }, 100);
+    expect(rows).toEqual(source);
+    expect(calls).toEqual([
+      [0, 99],
+      [100, 199],
+      [200, 299],
+    ]);
+  });
+
+  it("doet één verzoek als alles op de eerste pagina past", async () => {
+    let calls = 0;
+    const rows = await collectPages(async (from, to) => {
+      calls += 1;
+      return source.slice(from, to + 1);
+    }, 500);
+    expect(rows).toHaveLength(278);
+    expect(calls).toBe(1);
+  });
+
+  it("vraagt een lege pagina op als het aantal precies een veelvoud is", async () => {
+    expect(await collectPages(pageOf(source.slice(0, 200)), 100)).toHaveLength(200);
+  });
+
+  it("stopt bij het plafond", async () => {
+    expect(await collectPages(async () => Array(100).fill(0), 100, 300)).toHaveLength(300);
+  });
+
+  it("houdt de beste treffer over die buiten de eerste tweehonderd op alfabet valt", async () => {
+    const names = [
+      ...Array.from({ length: 250 }, (_, index) => ({ name_nl: `Aardappel soort ${String(index).padStart(3, "0")} rauw` })),
+      { name_nl: "Ui rauw" },
+    ];
+    const all = await collectPages(async (from, to) => names.slice(from, to + 1), 100);
+    expect(rankFoods(all, ["rauw"])[0].name_nl).toBe("Ui rauw");
+    expect(rankFoods(names.slice(0, 200), ["rauw"]).map((row) => row.name_nl)).not.toContain("Ui rauw");
   });
 });

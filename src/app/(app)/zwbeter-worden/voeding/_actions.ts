@@ -13,13 +13,11 @@ import { INGREDIENT_ROLES, type IngredientRole } from "@/lib/nutrition/scale";
 import { DIET_TAGS, FUEL_PROFILES } from "@/lib/nutrition/labels";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 import { RECIPE_PREFS } from "@/lib/nutrition/menu";
-import { compoundSplits, foodSearchTokens, rankFoods } from "@/lib/nutrition/food-search";
+import { collectPages, compoundSplits, foodSearchTokens, rankFoods } from "@/lib/nutrition/food-search";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const MAX_INGREDIENTS = 30;
-// Zoveel treffers ophalen voordat rankFoods er twintig uit kiest.
-const SEARCH_POOL = 200;
 
 export type FoodOption = {
   id: string;
@@ -54,28 +52,37 @@ export async function searchFoods(query: string): Promise<FoodOption[]> {
   const pattern = (part: string) => `%${part.replace(/[\\%_]/g, (match) => `\\${match}`)}%`;
   const columns = "id, name_nl, quantity_unit, carbs_g, protein_g";
 
-  // Elk woord moet in de naam staan, in welke volgorde ook.
-  let search = supabase.from("nutrition_foods").select(columns);
-  for (const token of tokens) search = search.ilike("name_nl", pattern(token));
-  const { data } = await search.order("name_nl", { ascending: true }).limit(SEARCH_POOL);
-  let rows = (data ?? []) as FoodOption[];
+  // Elk woord moet in de naam staan, in welke volgorde ook. Alle treffers
+  // ophalen, per pagina: rankFoods kiest de beste twintig, en een afgekapte
+  // voorraad op alfabet laat bij "rauw" alles na de P weg.
+  let rows = await collectPages<FoodOption>(async (from, to) => {
+    let search = supabase.from("nutrition_foods").select(columns);
+    for (const token of tokens) search = search.ilike("name_nl", pattern(token));
+    const { data } = await search
+      .order("name_nl", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+    return (data ?? []) as FoodOption[];
+  });
 
   // Niets bij één woord: een samenstelling als "chocolademelk" staat in NEVO als
   // "Melk chocolade-". Probeer elke knip in twee stukken, in één query.
   if (rows.length === 0 && tokens.length === 1) {
     const splits = compoundSplits(tokens[0]);
     if (splits.length > 0) {
-      const { data: split } = await supabase
-        .from("nutrition_foods")
-        .select(columns)
-        .or(
-          splits
-            .map(([head, tail]) => `and(name_nl.ilike.%${head}%,name_nl.ilike.%${tail}%)`)
-            .join(","),
-        )
-        .order("name_nl", { ascending: true })
-        .limit(SEARCH_POOL);
-      rows = (split ?? []) as FoodOption[];
+      const filter = splits
+        .map(([head, tail]) => `and(name_nl.ilike.%${head}%,name_nl.ilike.%${tail}%)`)
+        .join(",");
+      rows = await collectPages<FoodOption>(async (from, to) => {
+        const { data: split } = await supabase
+          .from("nutrition_foods")
+          .select(columns)
+          .or(filter)
+          .order("name_nl", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to);
+        return (split ?? []) as FoodOption[];
+      });
     }
   }
   return rankFoods(rows, tokens);
