@@ -56,7 +56,7 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
           </button>
 
           {open ? (
-            <div className="absolute left-0 top-full z-20 mt-1 max-h-96 w-80 overflow-y-auto rounded-lg border bg-card shadow-lg">
+            <div className="absolute left-0 top-full z-20 mt-1 max-h-96 w-80 overflow-y-auto rounded-lg border bg-popover text-popover-foreground shadow-lg">
               <ul className="divide-y">
                 {riders.map((rider) => (
                   <li key={rider.id}>
