@@ -30,6 +30,25 @@ export function compoundSplits(token: string): Array<[string, string]> {
 }
 
 /**
+ * Haalt alle rijen op, pagina voor pagina. Supabase geeft per verzoek een
+ * begrensd aantal rijen terug en meldt niet dat er meer zijn; een pagina die
+ * niet vol is, is de laatste.
+ */
+export async function collectPages<T>(
+  fetchPage: (from: number, to: number) => Promise<T[]>,
+  pageSize = 500,
+  maxRows = 3000,
+): Promise<T[]> {
+  const rows: T[] = [];
+  while (rows.length < maxRows) {
+    const page = await fetchPage(rows.length, rows.length + pageSize - 1);
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+
+/**
  * Zet de treffers op volgorde: een naam die met het eerste woord begint eerst,
  * daarna de kortste naam. Zonder dit staat "Melk halfvolle" bij de zoekterm
  * "melk" achter tientallen koekjes en chocolade met melk in de naam.

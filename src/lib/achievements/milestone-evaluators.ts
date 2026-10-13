@@ -1463,6 +1463,48 @@ const EVALUATORS: Evaluator[] = [
  * paginatie missen riders met >1000 ritten hun recentste activiteiten
  * in de milestone-evaluatie.
  */
+// Alleen de raw-velden die de evaluators lezen (zie het type Activity). De hele
+// raw-kolom ophalen kostte per binnengekomen rit de volledige historie van het
+// lid aan egress. Een evaluator die een nieuw raw-veld nodig heeft, moet het
+// hier en in evalRowToActivity toevoegen.
+const EVAL_COLUMNS =
+  "id, distance_m, total_elevation_gain_m, moving_time_seconds, elapsed_time_seconds, kudos_count, start_date, trainer, commute, sport_type, raw_start_date_local:raw->>start_date_local, raw_achievement_count:raw->achievement_count, raw_pr_count:raw->pr_count, raw_athlete_count:raw->athlete_count, raw_name:raw->>name, raw_sport_type:raw->>sport_type, raw_type:raw->>type";
+
+type EvalRow = Omit<Activity, "raw"> & {
+  raw_start_date_local: string | null;
+  raw_achievement_count: number | null;
+  raw_pr_count: number | null;
+  raw_athlete_count: number | null;
+  raw_name: string | null;
+  raw_sport_type: string | null;
+  raw_type: string | null;
+};
+
+function evalRowToActivity(row: EvalRow): Activity {
+  const {
+    raw_start_date_local,
+    raw_achievement_count,
+    raw_pr_count,
+    raw_athlete_count,
+    raw_name,
+    raw_sport_type,
+    raw_type,
+    ...columns
+  } = row;
+  return {
+    ...columns,
+    raw: {
+      start_date_local: raw_start_date_local ?? undefined,
+      achievement_count: raw_achievement_count ?? undefined,
+      pr_count: raw_pr_count ?? undefined,
+      athlete_count: raw_athlete_count ?? undefined,
+      name: raw_name ?? undefined,
+      sport_type: raw_sport_type ?? undefined,
+      type: raw_type ?? undefined,
+    },
+  };
+}
+
 async function fetchAllActivitiesForEval(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -1473,14 +1515,12 @@ async function fetchAllActivitiesForEval(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("strava_activities")
-      .select(
-        "id, distance_m, total_elevation_gain_m, moving_time_seconds, elapsed_time_seconds, kudos_count, start_date, trainer, commute, sport_type, raw",
-      )
+      .select(EVAL_COLUMNS)
       .eq("profile_id", profileId)
       .order("start_date", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
-    all.push(...(data as Activity[]));
+    all.push(...(data as EvalRow[]).map(evalRowToActivity));
     if (data.length < PAGE) break;
   }
   return all;

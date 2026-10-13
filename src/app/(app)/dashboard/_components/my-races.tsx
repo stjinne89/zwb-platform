@@ -284,7 +284,10 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
               })}
               {race.teamName ? ` · ${race.teamName}` : ""}
             </span>
-            <Link href={race.href} className="tg-tile-title mt-0.5 line-clamp-2 hover:underline">
+            <Link
+              href={race.href}
+              className="tg-tile-title mt-0.5 line-clamp-2 !static after:absolute after:inset-0 after:content-['']"
+            >
               {race.title}
             </Link>
             <span className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -294,7 +297,7 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
               {race.liveHref && (
                 <Link
                   href={race.liveHref}
-                  className="inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
+                  className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
                 >
                   <Radio className="size-3.5" />
                   Live stand

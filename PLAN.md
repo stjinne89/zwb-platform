@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-02)
+## Actieve volgorde (bijgewerkt 2026-10-13)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -9,15 +9,45 @@ gaat stabiliteit voor nieuwe features.
 
 1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
-   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` en `?segmentBackfill=0`
-   uit de URL van de job "ZWB Strava webhooks" (doet niets meer). De Supabase CLI
+   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` (niet vast te stellen
+   of het al is gedraaid). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
+   webhooks": op 2026-10-13 stond die op `/api/strava/webhook/process` zonder
+   parameter. De Supabase CLI
    werkt weer: `npm run db:health` draaide op 2026-10-02 zonder ingreep (CLI 2.119.0,
    database 202 MB, disk ~25%). Waarom hij op 2026-10-01 werd geblokkeerd door
    Windows-toepassingsbeheer is niet vastgesteld. De cijfers in dat rapport tellen
    nog vanaf de statistiekenreset van mei, dus de verwijderde segmentquery's staan
-   er nog in; pas de check van volgende week vergelijkt met een momentopname.
+   er nog in. De check van 2026-10-13 vergelijkt wel met een momentopname (die van
+   2026-10-01; van de run op 2026-10-02 staat geen rapport of momentopname in
+   `.tmp/db-health`).
    `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
    Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
+   **Check 2026-10-13:** database 215 MB (Supabase telt 229,75 MB), disk 26%,
+   segmenten zonder lijn 0. Over 11,6 dagen gebruikten achtergrondjobs 2.150 s
+   databasetijd tegen leden 533 s. Twee actiepunten: de zwaarste query, op
+   `strava_activities` (32% van de databasetijd, 966 s, gemiddeld 524 ms), en
+   `nutrition_foods`. Dat laatste bleek anders dan gemeld: de tabel wordt nergens
+   ongefilterd opgehaald en de grens van 1000 rijen werd niet geraakt; wel kapte
+   het zoeken zelf af op 200 treffers (verholpen, zie de ronde "NEVO-zoeken" van
+   2026-10-13). Egress in de nieuwe cyclus
+   (vanaf 2026-10-11): na ruim twee dagen 0,704 GB tegen een limiet van 5 GB. De
+   oorzaak is gevonden en dezelfde als de zwaarste query: het nawerk na een
+   Strava-webhook haalt twee keer de hele rithistorie met `raw` op (mijlpalen en
+   cols). De fix staat op `main` als `f80b1c3` en is op 2026-10-13 gepusht (zie de
+   ronde "Supabase-egress" hieronder); het effect op productie is nog niet
+   gemeten, dat moet uit de usagepagina en de volgende wekelijkse check blijken.
+   `live_positions` ging van 0 naar 9.327 rijen en dat klopt: de tabel is op
+   2026-10-01 met de hand geleegd en de bewaartermijn is 30 dagen, dus tot
+   ongeveer 2026-10-31 wordt er niets gewist. Wel negeert `/api/live/cleanup` een
+   fout bij het wissen en antwoordt altijd `ok: true`; pas na die datum is te zien
+   of het wissen echt werkt.
+   De regel "wordt zonder filter opgehaald" in `scripts/db-health.mjs` gaf bij
+   `nutrition_foods` vals alarm: de query stond in een variabele en kreeg zijn
+   filter pas op de regels eronder. Verholpen op 2026-10-13: de controle
+   (`unboundedSelects`) volgt nu ook de ketens die verderop op die variabele
+   beginnen. Nagelopen op de hele codebase: van de 73 meldingen verdween alleen
+   deze ene. Bewust niet gedaan: de overige 72 plekken nalopen; die tellen pas
+   mee als hun tabel boven de 800 rijen komt.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
@@ -137,6 +167,66 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > tussenverschillen bij het laatste segment naast de WTRL-eindtijden.
 
 ---
+> **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; effect op productie niet gemeten.**
+> Commit: `f80b1c3` (op de onderzoeksbranch `bff6209`). Geen migratie. Gepusht naar
+> `main` op 2026-10-13, samen met de zoekfix `8e53553`.
+>
+> **Waarom.** De egress-cyclus begon op 2026-10-11 en stond op 2026-10-13 rond
+> 10:00 op 0,704 GB; doorgerekend ±9 GB per maand tegen 5 GB op het Free-plan.
+> Onderzoek op de momentopnamen van `npm run db:health` (1 en 13 oktober, 11,6
+> dagen) plus één leesquery op productie:
+>
+> - Het nawerk na een binnengekomen rit (`runPostSyncForProfile`) haalde twee
+>   keer de hele rithistorie van het lid op mét `raw`: de col-detector
+>   (`src/lib/cols/detector.ts`) en de milestone-evaluator
+>   (`src/lib/achievements/milestone-evaluators.ts`). Gemeten: elk 1.843
+>   pagina's van 500 rijen in de periode (159 per dag); de detectorquery was ook
+>   de zwaarste van de databasecheck (966 s, 32% van de databasetijd).
+> - Gemeten op productie: `raw` is 77,2 MB JSON over 28.574 ritten van 19 leden
+>   (gemiddeld 2,8 KB, per lid 0,2 tot 14,5 MB); de polylines daarin 20,8 MB.
+> - Berekend: ±47 runs per dag, samen ±12 GB per maand aan onverpakte JSON. Of
+>   Supabase egress voor of na compressie telt is niet vastgesteld, dus dat is
+>   een bovengrens; de orde van grootte past bij de gemeten 0,29 GB per dag.
+> - De uurlijkse Strava-reconcile is het niet: die slaat het nawerk over tenzij
+>   `?full=1`. `src/lib/cols/segment-times.ts` haalt ook de hele `raw` op, maar
+>   kwam in de periode niet voor (de stap staat uit op het webhook-pad).
+>
+> **Wat er veranderde.** Beide query's vragen alleen nog de velden die de code
+> leest en bouwen daar het oude `raw`-object van na, zodat de detectie en de
+> evaluators zelf niet zijn aangeraakt. Detector: `total_elevation_gain` en de
+> twee polylines. Evaluator: `start_date_local`, `achievement_count`,
+> `pr_count`, `athlete_count`, `name`, `sport_type`, `type`. Verwacht voor de
+> detector ±73% minder (alleen de polylines), voor de evaluator vrijwel alles.
+> Een evaluator die een nieuw `raw`-veld nodig heeft, moet het aan
+> `EVAL_COLUMNS` en `evalRowToActivity` toevoegen; anders is het stil leeg.
+>
+> **Bewust niet gebouwd.**
+> - De detector alleen nieuwe ritten laten scannen (de parameter `activityIds`
+>   bestaat al en wordt genegeerd). Dat vraagt dat `times_climbed` optelt in
+>   plaats van opnieuw telt, en dus een regel voor verwijderde en gewijzigde
+>   ritten. Eerst meten wat deze ronde oplevert.
+> - Detector en evaluator één gedeelde fetch geven, en het nawerk per lid
+>   ontdubbelen. Zelfde reden.
+> - De kleinere bronnen uit het onderzoek, alle geschat en samen onder 2 GB per
+>   maand: vaste kosten van ±24.700 PostgREST-verzoeken per dag (waarvan 7.500
+>   keer de `profiles.is_approved`-check; bij 8 MAU is niet verklaard wie die
+>   paginaverzoeken doet), de ZWBlokken-standen (`src/lib/zwblokken/query.ts`),
+>   de clubstatistiek op het dashboard en `STRAVA_RIDE_COLUMNS` met `raw`.
+>
+> **Niet vastgesteld.** Waarom er ±47 runs per dag zijn bij ±18 rijdende leden
+> (vermoeden: meerdere webhook-events per rit, waaronder de update door onze
+> eigen samenvatting in de Strava-beschrijving). De verdeling van de egress
+> over database, Storage, Auth en Realtime: die staat alleen op de usagepagina
+> van Supabase.
+>
+> **Getest.** `tsc --noEmit` en `eslint` op de twee bestanden: schoon.
+> `npm run test`: 2091 van 2092 geslaagd; `admin-areas.test.ts` liep in de volle
+> run tegen de timeout van 5 s en slaagt los gedraaid, `omnium-live.test.ts`
+> laadt niet in een worktree zonder `.env.local`. Geen van beide raakt deze
+> code. **Niet getest:** de nieuwe selects tegen een echte database (er is geen
+> unit-test voor deze fetches) en `npm run build`. Controle na de deploy: één
+> rit laten binnenkomen en kijken of cols en badges nog worden toegekend, en bij
+> de volgende `npm run db:health` of de detectorquery uit de top is.
 
 > **Design "tegels" als proefversie achter een schakelaar, 2026-10-12 — gebouwd, lokaal getest; met echte data deels gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -354,6 +444,21 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   teal; Mijn garage goud; ledenvoordeel sage) en op Club (`TILE_STYLE`).
 >   **Niet meer waar:** "een tegel heeft de kleur van de plek waar hij heen
 >   leidt" en "op Club is kleur afwisseling" hierboven.
+> - *Kleur is klikbaar (besluit eigenaar, 2026-10-13; nog niet op main).* Een
+>   gekleurd vlak is iets waar je op tikt; een vlak zonder kleur is het
+>   doorzichtige paneel, waar de tenuebanen doorheen schijnen, en dat is inhoud.
+>   De doorzichtige panelen blijven dus bewust zo. Aangepast: de gekleurde
+>   dashboardblokken (FRR, SRC, badges, clubactiviteit, polls, garage,
+>   ledenvoordeel) zijn weer panelen; van de kerncijfers bij ZWBeter zijn alleen
+>   de klikbare (fitness, vorm) nog een teal tegel; de eventkop is een paneel
+>   met het gekleurde dagvak; bij de ZWBeter-pijlers zijn de pijlers waar je
+>   heen kunt teal en is de pijler waar je bent een paneel met een gouden lijn;
+>   een racetegel is in zijn geheel klikbaar. **Niet meer waar:** "elk
+>   dashboardblok is een gekleurd blok in de kleur van zijn plek" en de
+>   blokkleuren in het kleurbeleid hierboven. Open: rijen in lijsten zijn vaak
+>   klikbaar zonder kleur, en knoppen en filters volgen hun eigen stijl.
+>   **Niet met echte data gezien** (Chrome was niet bereikbaar); alleen
+>   nagegaan dat de regels geladen worden en de voorbeeldpagina klopt.
 > - *Valkuil bij lokaal kijken.* De dev-server bleef na een CSS-wijziging het
 >   oude stylesheet uitleveren, ook na een herstart; pas na het wissen van
 >   `.next` kwam het nieuwe.
@@ -7114,6 +7219,123 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — `/hulp`: blokken in een logische volgorde, in zes groepen
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De pagina was gegroeid in de volgorde waarin features kwamen:
+elk nieuw blok ging onderaan of ergens tussenin. Daardoor stond de ZWBgame als
+eerste gids, Mijn garage tussen live tracking en de FIT-export, het logboek
+tussen schema en herstel, en de Strava-samenvatting tussen herstel en vermogen.
+
+**Wat veranderde.** Alleen de volgorde, geen tekst. De pagina heeft nu zes
+groepen met een kop en een rij sprongknoppen onder de zoekbalk:
+
+1. *Beginnen*: de vier startstappen, welkomstrondleiding, app installeren,
+   Wat vind je waar.
+2. *Koppelen en ritten binnenhalen*: Strava opnieuw koppelen, ritten via
+   intervals.icu, importeren, externe profielen.
+3. *De club*: de gidskaarten (profiel, privacy, events, teams, badges, cols,
+   garage, community, training, ZWBgame als laatste omdat hij het langst is),
+   verjaardagsrondje, live volgen, OwnTracks, ZWBlokken, fietsen en onderhoud.
+4. *Trainen met ZWBeter Worden*: eerst intervals.icu en herstel, dan doel en
+   schema, de workout op fietscomputer of Zwift, Zwift-events, rondjes buiten,
+   vermogen, pacing, Strava-samenvatting, logboek, core en kracht, voeding.
+5. *Meldingen en problemen*.
+6. *Voor beheerders*, onderaan, omdat de meeste leden het niet nodig hebben.
+
+Binnen *Trainingsdoel en je schema* volgen de zeventien kaarten nu de weg van
+een lid: doel instellen (doeltype, jaarplan, uren, beschikbaarheid), FTP
+(intervals, FTP-test), het schema lezen (kleuren, namen, rustdagen), het
+aanpassen (clubevents, eigen rit, dag aanpassen, voorstellen, verwijderen),
+warming-up, en na de rit (feedback, readiness).
+
+Alle bestaande ankers zijn gelijk gebleven. De zoekindex wees al naar
+`/hulp#problemen`, maar dat anker bestond niet; het staat nu op het blok
+Problemen oplossen.
+
+**Bewust niet gebouwd.** Geen herschrijving of inkorting van teksten, geen
+splitsing in subpagina's en geen inklapbare blokken: de vraag was de volgorde.
+De volgorde van de zoekindex en van de bullets binnen een gidskaart is niet
+aangeraakt.
+
+**Niet lokaal te verifiëren.** De pagina is niet in de browser bekeken: deze
+worktree heeft geen `.env.local`, dus inloggen kan niet. Gecontroleerd is dat
+de gesorteerde regels van voor en na gelijk zijn op de nieuwe koppen na, plus
+`tsc` en ESLint.
+
+### Opgeleverd — NEVO-zoeken: alle treffers wegen mee, niet de eerste 200 op alfabet
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De databasecheck van 2026-10-13 meldde dat
+`voeding/_actions.ts:58` de tabel `nutrition_foods` (2.328 rijen) zonder filter
+of paginering ophaalt en dus op 1000 rijen wordt afgekapt.
+
+**Wat er werkelijk speelde.** Die melding klopt niet. Regel 58 is het begin van
+een query die op de volgende regels per zoekwoord een `ilike` krijgt en een
+limiet van 200; `searchFoods` is de zoekactie van het receptformulier en zoekt
+al op de server. De andere twee plekken (`saveOwnRecipe` controleert hooguit 30
+id's; `_data.ts` haalt voedingsmiddelen alleen op als onderdeel van een recept)
+halen de tabel evenmin in zijn geheel op. Er is geen keuzelijst of berekening
+die alle 2.328 rijen nodig heeft.
+
+Wel bestond een kleinere afkapping: de query haalde de eerste 200 treffers op
+alfabet op en `rankFoods` koos daaruit de beste twintig. Bij een zoekterm met
+meer dan 200 treffers viel de rest weg voordat er gerangschikt werd. Nagerekend
+op de namen in `0214_nutrition_seed_v2.sql`: "rauw" heeft 278 treffers, "bereid"
+267, "ei" 368. Bij "rauw" hoorden "Ui rauw", "Yam rauw" en "Taro rauw" in de top
+twintig (kortste namen), maar die kwamen nooit in beeld. Gewone zoektermen
+(melk 115, kaas 103, brood 98, kip 51) bleven onder de 200 en waren volledig;
+twee woorden samen ("ui rauw") ook.
+
+**Wat veranderde.** `collectPages` in `src/lib/nutrition/food-search.ts` haalt
+alle treffers op in pagina's van 500 met `range`, tot een pagina niet vol is
+(plafond 3.000 rijen). Beide query's in `searchFoods` gebruiken hem en sorteren
+nu ook op `id`, zodat de pagina's stabiel zijn. Bijna elke zoekterm blijft één
+verzoek; alleen fragmenten van twee letters als "er" (939 treffers) kosten er
+twee. Het lid krijgt nog steeds twintig resultaten.
+
+**Bewust niet gebouwd.** Geen rangschikking in SQL via een functie: dat vraagt
+een migratie die hier niet te testen is, voor een tabel van 2.328 korte rijen.
+Geen trigram-index om dezelfde reden; `ilike '%…%'` gebruikt de bestaande index
+op `lower(name_nl)` niet, maar een volledige scan van deze tabel is klein. Geen
+tekst of teller in het formulier.
+
+**Niet lokaal te verifiëren.** De query's zelf zijn niet tegen een database
+gedraaid en het formulier is niet in de browser bekeken. De aantallen komen uit
+de seed-migratie, niet uit productie. Aangenomen: de rijlimiet van de API is
+minstens 500 (Supabase-standaard 1000); is hij lager ingesteld, dan stopt
+`collectPages` na de eerste pagina.
+
+**Getest.** `tests/unit/nutrition-food-search.test.ts` (12 tests, waarvan 5
+nieuw), `tsc` en ESLint.
+
+### Opgeleverd — Captain-selectie: namen van zusterteams op de subteampagina
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Op de pagina van een subteam (Bdev) stond in de Captain-selectie
+een rij chips "Team Onbekend". Stijn meldde het met een schermafbeelding.
+
+**Oorzaak.** De opstelling wordt per hoofdteam opgehaald
+(`team_event_lineups.parent_team_id`), dus ook de renners van zusterteams komen
+mee. De namen kwamen echter uit `teamById` en `profileById`, en die bevatten op
+een subteampagina alleen het eigen team en zijn leden. Een renner van een
+zusterteam kreeg daardoor de terugvalwaarden "Team" en "Onbekend"; alleen wie
+zich toevallig ook beschikbaar had gemeld, had wel een naam.
+
+**Wat veranderde.** `teams/[id]/page.tsx` zoekt de teamnaam van een chip nu in
+het hoofdteam plus alle subteams, en de rennernaam valt terug op de al geladen
+lijst van alle profielen. Geen extra query.
+
+**Bewust niet gebouwd.** De chips van zusterteams zijn niet verborgen: de
+keuzelijst op een subteampagina biedt die teams ook aan, dus de captain moet
+zien wie daar al staat.
+
+**Getest.** `tsc` en ESLint. Niet in de browser bekeken; er is lokaal geen
+database met deze opstelling.
 
 ### Gemeten — ZwiftGopher: geen vrije routekeuze, kopbeurtvelden kloppen
 

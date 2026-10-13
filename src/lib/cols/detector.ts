@@ -195,28 +195,52 @@ type ClimbedRow = {
   updated_at: string;
 };
 
+// Alleen wat de detector uit raw leest. De hele raw-kolom ophalen kostte per
+// binnengekomen rit de volledige historie van het lid aan egress (gemeten
+// 2026-10-13: 77 MB raw tegenover 21 MB aan polylines over alle leden).
+const DETECTOR_COLUMNS =
+  "id, start_date, total_elevation_gain_m, raw_elevation_gain:raw->total_elevation_gain, polyline:raw->map->>polyline, summary_polyline:raw->map->>summary_polyline";
+
+type DetectorRow = {
+  id: number;
+  start_date: string;
+  total_elevation_gain_m: number | null;
+  raw_elevation_gain: number | null;
+  polyline: string | null;
+  summary_polyline: string | null;
+};
+
 /**
- * Haal ALLE strava_activities (id, start_date, raw) van een profiel op,
- * gepagineerd via .range(). Supabase capt selects standaard op 1000
- * rijen — zonder paginatie missen we recente ritten bij riders met
- * >1000 activities.
+ * Haal ALLE strava_activities van een profiel op, gepagineerd via .range().
+ * Supabase capt selects standaard op 1000 rijen — zonder paginatie missen we
+ * recente ritten bij riders met >1000 activities.
  */
 async function fetchAllActivities(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   profileId: string,
 ): Promise<StoredActivity[]> {
-  const PAGE = 500; // raw-JSON is groot, dus kleinere pagina's
+  const PAGE = 500;
   const all: StoredActivity[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("strava_activities")
-      .select("id, start_date, total_elevation_gain_m, raw")
+      .select(DETECTOR_COLUMNS)
       .eq("profile_id", profileId)
       .order("start_date", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
-    all.push(...(data as StoredActivity[]));
+    for (const row of data as DetectorRow[]) {
+      all.push({
+        id: row.id,
+        start_date: row.start_date,
+        total_elevation_gain_m: row.total_elevation_gain_m,
+        raw: {
+          total_elevation_gain: row.raw_elevation_gain,
+          map: { polyline: row.polyline, summary_polyline: row.summary_polyline },
+        },
+      });
+    }
     if (data.length < PAGE) break;
   }
   return all;

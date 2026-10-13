@@ -147,6 +147,32 @@ function previousSnapshot() {
 // het huidige aantal rijen.
 function unboundedSelects() {
   const found = new Map();
+  const BOUNDED = /\.(eq|in|limit|single|maybeSingle|range|gte|lte|gt|lt|match|is|neq|or|contains|overlaps|ilike|like|filter|not|textSearch)\(/;
+  // Einde van de expressie die op `start` begint: de eerste komma, puntkomma of
+  // sluithaak buiten haakjes.
+  const chainEnd = (src, start) => {
+    let i = start;
+    let depth = 0;
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if ("([{".includes(c)) depth++;
+      else if (")]}".includes(c)) { if (depth === 0) break; depth--; }
+      else if ((c === "," || c === ";") && depth === 0) break;
+    }
+    return i;
+  };
+  // `let q = supabase.from(..).select(..)` krijgt zijn filter vaak pas verderop
+  // (`q = q.ilike(..)`, `await q.range(..)`). Kijk daarom ook naar de ketens die
+  // in het vervolg op die variabele beginnen.
+  const boundedLater = (src, name, from) => {
+    const rest = src.slice(from, from + 2500);
+    const use = new RegExp(`\\b${name}\\b(?=\\s*\\.)`, "g");
+    let u;
+    while ((u = use.exec(rest))) {
+      if (BOUNDED.test(rest.slice(u.index, chainEnd(rest, u.index + name.length)))) return true;
+    }
+    return false;
+  };
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name);
@@ -160,18 +186,13 @@ function unboundedSelects() {
     let m;
     while ((m = re.exec(src))) {
       if (/storage\s*$/.test(src.slice(Math.max(0, m.index - 12), m.index))) continue;
-      let i = m.index + m[0].length;
-      let depth = 0;
-      for (; i < src.length; i++) {
-        const c = src[i];
-        if ("([{".includes(c)) depth++;
-        else if (")]}".includes(c)) { if (depth === 0) break; depth--; }
-        else if ((c === "," || c === ";") && depth === 0) break;
-      }
+      const i = chainEnd(src, m.index + m[0].length);
       const chain = src.slice(m.index, i);
       if (!/\.select\(/.test(chain) || /\.(insert|update|upsert|delete)\(/.test(chain)) continue;
       if (/head:\s*true/.test(chain)) continue;
-      if (/\.(eq|in|limit|single|maybeSingle|range|gte|lte|gt|lt|match|is|neq|or|contains|overlaps|ilike|like|filter|not|textSearch)\(/.test(chain)) continue;
+      if (BOUNDED.test(chain)) continue;
+      const assigned = /(?:let|const|var)\s+(\w+)\s*=\s*[\w.]+$/.exec(src.slice(Math.max(0, m.index - 80), m.index));
+      if (assigned && boundedLater(src, assigned[1], i)) continue;
       const line = src.slice(0, m.index).split("\n").length;
       const list = found.get(m[1]) ?? [];
       list.push(`${relative(ROOT, file).replaceAll("\\", "/")}:${line}`);
