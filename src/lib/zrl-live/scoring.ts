@@ -148,7 +148,8 @@ export function scoreRace(input: ScoreInput): ScoreResult {
 
   // Dezelfde passage kan in meerdere pollrondes binnenkomen.
   const seen = new Set<string>();
-  const unique = passages.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+  const deduped = passages.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+  const unique = format === "ttt" && input.route.length > 0 ? dropWarmup(deduped, input.route[0].segmentId) : deduped;
 
   // Routeplekken per segment: Monceau op plek 1 en 3, bijvoorbeeld.
   const slotsBySegment = new Map<string, number[]>();
@@ -243,6 +244,38 @@ export function scoreRace(input: ScoreInput): ScoreResult {
   return { format, starters: n, final, passes, riders, teams: rankTeams(format, riders), splits };
 }
 
+/**
+ * In een TTT start de laatste rij een kwartier na de groepsstart, en wie nog niet
+ * aan de beurt is, rijdt soms warm over een segment van de route (gezien
+ * 2026-10-13: een KOM-passage 112 s na de groepsstart, tien minuten voor de eigen
+ * rij). Die passage is geen race. De race van een renner begint bij het eerste
+ * segment van de route: de passage die hij samen met ploeggenoten rijdt, en
+ * anders zijn laatste. Alles daarvoor vervalt. `passages` staat op tijd.
+ */
+function dropWarmup(passages: Passage[], firstSegmentId: string): Passage[] {
+  const first = passages
+    .filter((p) => p.segmentId === firstSegmentId)
+    .map((p) => ({ p, entry: p.ts - p.elapsed * 1000 }))
+    .sort((a, b) => a.entry - b.entry);
+  const raceFrom = new Map<number, Passage>();
+  const together = new Set<number>();
+  first.forEach((item, i) => {
+    const { p, entry } = item;
+    const near = (other?: (typeof first)[number]) =>
+      other !== undefined && other.p.athleteId !== p.athleteId && Math.abs(other.entry - entry) <= PACK_MS;
+    const inPack = near(first[i - 1]) || near(first[i + 1]);
+    if (together.has(p.athleteId) && !inPack) return;
+    if (inPack && together.has(p.athleteId)) return; // De eerste keer samen telt.
+    raceFrom.set(p.athleteId, p);
+    if (inPack) together.add(p.athleteId);
+  });
+  return passages.filter((p) => {
+    const start = raceFrom.get(p.athleteId);
+    if (!start) return true;
+    return p.segmentId === firstSegmentId ? p.ts >= start.ts : p.ts > start.ts - start.elapsed * 1000;
+  });
+}
+
 const DEFAULT_ROW_GAP_MS = 60_000;
 /** Renners die zo kort na elkaar het eerste segment oprijden, rijden samen. */
 const PACK_MS = 3_000;
@@ -312,7 +345,12 @@ export function tttRows(
     packs.push({
       entry: current[0].entry,
       teams: new Set(current.flatMap((e) => riderById.get(e.athleteId)?.team ?? [])),
-      pace: median(current.flatMap((e) => (second.has(e.athleteId) ? [(second.get(e.athleteId) as number) - e.ts] : []))),
+      pace: median(
+        current.flatMap((e) => {
+          const pace = (second.get(e.athleteId) ?? 0) - e.ts;
+          return pace > 0 ? [pace] : [];
+        }),
+      ),
     });
   };
   for (const e of entries) {

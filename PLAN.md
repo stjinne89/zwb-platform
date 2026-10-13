@@ -310,6 +310,17 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > tweede segment geen tussentijden. Unit-tests (`zrl-live-scoring.test.ts`, zes
 > nieuw), `tsc`, ESLint. De mod alleen buiten Sauce nagebootst met voorbeelddata.
 >
+> **Bijgewerkt dezelfde avond, tijdens de eerste race (Zwiftladies B).** De
+> groep van ons team kreeg geen tussentijden, de groepen A en C wel. Oorzaak:
+> een renner uit een late startrij reed 112 s na de groepsstart warm over de
+> KOM; die passage gold als haar race, het tempo van haar ploeg werd negatief en
+> de toets keurde de hele indeling af. Nu vervalt in een TTT elke passage van
+> vóór het eerste segment van de eigen race (`dropWarmup`), en telt alleen een
+> tempo groter dan nul. Op de data van 17:33 UTC geeft groep B daarna elf
+> startrijen op een rij, ZWB tweede bij beide segmenten. Het subgroepveld in
+> Zwifts segmentpassages is leeg en helpt hier niet. Groep D van dat event gaf
+> ook daarna geen tussentijden; niet uitgezocht.
+>
 > **Niet meer waar.** "Geen tussenstand onderweg" in een TTT. De regel van
 > 2026-09-29 dat een TTT-stand alleen uit de Zwift-uitslag komt, geldt nog voor
 > de eindtijden.
