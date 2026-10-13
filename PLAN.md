@@ -121,9 +121,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0232`
 
 ---
 
-> **Naleving stap 1: eetdagboek zonder AI, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
-> Commit: de commit die dit blok toevoegt. Migratie `0231_nutrition_log.sql`,
-> **nog niet toegepast**.
+> **Naleving stap 1: eetdagboek zonder AI, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken.**
+> Commit `0b97904`. Migratie `0231_nutrition_log.sql`,
+> toegepast door de eigenaar op 2026-10-14.
 >
 > **Waarom.** Stap 1 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
 > leden kunnen vastleggen wat ze eten en zien of ze de onderkant van hun
@@ -169,7 +169,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0232`
 > `0213_nutrition_expansion.sql` (toegepaste migraties, niet aangepast), en
 > "Voeding in drie tabs" hieronder: het zijn er nu vier.
 >
-> **Vóór de push.**
+> **Vóór de push (beide afgehandeld op 2026-10-14: migratie gedraaid, teksten akkoord van de eigenaar).**
 > 1. `0231_nutrition_log.sql` toepassen. Zonder die migratie is de tab er wel,
 >    maar geeft aanzetten een foutmelding; de rest van Voeding werkt gewoon.
 > 2. De eigenaar leest de toestemmingstekst (`LogConsentForm` in
