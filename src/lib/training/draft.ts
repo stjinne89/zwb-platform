@@ -46,9 +46,10 @@ import {
   type FtpTestType,
 } from "@/lib/training/ftp-test";
 import { committedEventsForAi } from "@/lib/training/events";
+import { blockEndDate, daysBetween, NEXT_BLOCK_LEAD_DAYS } from "@/lib/training/season";
 import { seasonPlanForAi } from "@/lib/training/season-data";
 import { rootIdOf } from "@/lib/training/plan-tree";
-import { archiveOtherBasePlans } from "@/lib/training/active-plan";
+import { archiveOtherBasePlans, extendRootPlanEnd } from "@/lib/training/active-plan";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
@@ -271,6 +272,12 @@ async function buildTrainingInput(
    * als vast blok mee en wordt pas bij het aanmaken van het plan een echte rij.
    */
   plannedFtpTest?: { date: string; type: FtpTestType } | null,
+  /**
+   * Het einde van de planperiode, als de aanroeper dat al weet: een herziening
+   * loopt tot het einde van het bestaande schema, een volgend blok tot voorbij
+   * dat einde. Zonder dit is het een nieuw blok vanaf vandaag.
+   */
+  horizonOverride?: string,
 ): Promise<TrainingAiInput> {
   const [{ data: profile }, { data: goal }, recent] = await Promise.all([
     admin
@@ -292,11 +299,12 @@ async function buildTrainingInput(
   const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
   const intervalsLoad = await buildIntervalsLoad(admin, athleteId);
 
-  const horizon = goal.target_date
-    ? new Date(goal.target_date)
-    : new Date(Date.now() + 90 * 86400_000);
+  // Een schema is een blok van hooguit twaalf weken, ook als de doeldatum verder
+  // weg ligt. Tot oktober 2026 liep de planperiode altijd tot de doeldatum: een
+  // doel over negen maanden gaf negen maanden uitgewerkte trainingen, waarvan
+  // de laatste zeven nergens meer op sloegen tegen de tijd dat het lid er was.
   const today = amsterdamDayKey();
-  const horizonKey = horizon.toISOString().slice(0, 10);
+  const horizonKey = horizonOverride ?? blockEndDate(today, goal.target_date);
 
   // Naleving van het lopende schema: hiermee kan de AI het volgende blok
   // afstemmen op wat het lid werkelijk rijdt in plaats van op wat er stond.
@@ -355,6 +363,11 @@ async function buildTrainingInput(
     availability,
     seasonPlan,
     fixedWorkouts,
+    planWindow: {
+      from: today,
+      to: horizonKey,
+      goalBeyond: Boolean(goal.target_date) && String(goal.target_date).slice(0, 10) > horizonKey,
+    },
   };
 }
 
@@ -601,6 +614,15 @@ async function createPlanFromAiGeneration(
     ),
   ].filter((caution, index, all) => all.indexOf(caution) === index);
 
+  // Een nieuw schema eindigt op het einde van zijn blok, wat het model ook
+  // teruggeeft: de prompt vraagt het, dit dwingt het af.
+  const blockEnd = isAdaptation
+    ? null
+    : planWindowEndDate(planDraft.endDate, generation.prompt_summary);
+  const draftWorkouts = blockEnd
+    ? planDraft.workouts.filter((workout) => String(workout.date).slice(0, 10) <= blockEnd)
+    : planDraft.workouts;
+
   const { data: plan, error: planError } = await admin
     .from("training_plans")
     .insert({
@@ -621,7 +643,7 @@ async function createPlanFromAiGeneration(
       start_date: planDraft.startDate,
       end_date: isPlanUpdate
         ? planUpdateEndDate(planDraft.endDate, generation.prompt_summary)
-        : planDraft.endDate,
+        : blockEnd ?? planDraft.endDate,
       status: "draft",
       source: "ai",
     })
@@ -665,7 +687,7 @@ async function createPlanFromAiGeneration(
   const inserted = await insertPlanWorkouts(
     admin,
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
-    planDraft.workouts,
+    draftWorkouts,
     { fitToAvailability: !memberSetTime, shortRecoveryAsRest: !memberSetTime },
   );
 
@@ -708,6 +730,7 @@ async function createPlanFromAiGeneration(
         })
         .eq("id", plan.id);
       autoPublished = true;
+      await extendRootPlanEnd(admin, plan.id).catch(() => null);
       // Een nieuw basisplan dat het lid zelf maakte: dit is nu het schema.
       if (!isAdaptation) {
         await archiveOtherBasePlans(admin, plan.id, generation.profile_id).catch(() => 0);
@@ -1021,6 +1044,24 @@ export function planUpdateEndDate(aiEndDate: string, promptSummary: string | nul
 }
 
 /**
+ * Einddatum van een nieuw schema: nooit voorbij het blok waarvoor het is
+ * gevraagd (planWindow.to in de AI-invoer). Geeft null als die invoer er niet
+ * is, zodat een generatie van vóór de blokken zijn eigen einddatum houdt.
+ */
+export function planWindowEndDate(aiEndDate: string, promptSummary: string | null): string | null {
+  let requested: unknown;
+  try {
+    requested = (JSON.parse(promptSummary ?? "") as { planWindow?: { to?: unknown } }).planWindow
+      ?.to;
+  } catch {
+    return null;
+  }
+  if (typeof requested !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(requested)) return null;
+  const ai = String(aiEndDate).slice(0, 10);
+  return ai && ai < requested ? ai : requested;
+}
+
+/**
  * De doelrij na "schema bijwerken". Niet meegegeven velden (undefined) houden hun
  * huidige waarde, zodat een aanroeper alleen hoeft mee te geven wat er verandert.
  * De doeldatum mag expliciet leeg (null): met `??` bleef een gewiste datum
@@ -1149,6 +1190,11 @@ type PlanUpdateArgs = {
   reason: string;
   goalUpdates?: GoalUpdates;
   authorized?: boolean;
+  /**
+   * Het volgende blok: de herziening loopt door tot twaalf weken vanaf vandaag
+   * in plaats van tot het einde van het lopende schema.
+   */
+  nextBlock?: boolean;
 };
 
 type PreparedPlanUpdate = {
@@ -1210,6 +1256,7 @@ async function preparePlanUpdate({
   reason,
   goalUpdates,
   authorized = false,
+  nextBlock = false,
 }: PlanUpdateArgs): Promise<
   { ok: false; error: string } | { ok: true; prepared: PreparedPlanUpdate }
 > {
@@ -1241,9 +1288,15 @@ async function preparePlanUpdate({
   if (!goal) return { ok: false, error: "Doel niet gevonden." };
 
   const fromDate = amsterdamDayKey();
-  const toDate = String(plan.end_date).slice(0, 10);
-  if (toDate < fromDate) {
+  const planEnd = String(plan.end_date).slice(0, 10);
+  if (planEnd < fromDate) {
     return { ok: false, error: "Dit schema is al afgelopen; maak een nieuw schema." };
+  }
+  if (nextBlock && daysBetween(fromDate, planEnd) > NEXT_BLOCK_LEAD_DAYS) {
+    return {
+      ok: false,
+      error: "Het volgende blok kan vanaf twee weken voor het einde van je schema.",
+    };
   }
 
   if (goalUpdates?.goal_type !== undefined && !GOAL_TYPE_VALUES.includes(goalUpdates.goal_type)) {
@@ -1252,6 +1305,14 @@ async function preparePlanUpdate({
 
   const updates = applyGoalUpdates(goal, goalUpdates);
   const changedInGoal = changedGoalFields(goal, updates);
+
+  // Een volgend blok loopt twaalf weken vanaf vandaag, of tot de doeldatum als
+  // die eerder komt. Een doeldatum die al binnen het lopende blok lag telt niet
+  // meer: daarna gaat het schema gewoon een blok verder.
+  const goalDate = updates.target_date ? String(updates.target_date).slice(0, 10) : null;
+  const toDate = nextBlock
+    ? blockEndDate(fromDate, goalDate && goalDate > planEnd ? goalDate : null)
+    : planEnd;
 
   // Doel bijwerken vóór de generatie, zodat buildTrainingInput en elke volgende
   // generatie met de nieuwe uitgangspunten werken.
@@ -1312,11 +1373,12 @@ async function preparePlanUpdate({
     ...changedInGoal,
   };
 
-  const input = await buildTrainingInput(admin, plan.profile_id, plan.goal_id);
+  const input = await buildTrainingInput(admin, plan.profile_id, plan.goal_id, null, toDate);
   input.planUpdate = {
     reason,
     fromDate,
     toDate,
+    ...(nextBlock ? { nextBlock: true } : {}),
     previousTitle: newest?.title ?? plan.title,
     previousSummary: newest?.summary ?? plan.summary,
     changed,
@@ -1424,7 +1486,7 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
     ok: true,
     generationId,
     status: initialStatus,
-    message: "Bijgewerkt schema wordt gemaakt.",
+    message: args.nextBlock ? "Je volgende blok wordt gemaakt." : "Bijgewerkt schema wordt gemaakt.",
   };
 }
 

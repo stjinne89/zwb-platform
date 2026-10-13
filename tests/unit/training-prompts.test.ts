@@ -28,6 +28,23 @@ describe("training prompts", () => {
     expect(prompt).toContain("Zonder A-mikpunt in de planperiode");
   });
 
+  it("plant een nieuw schema als blok van hooguit twaalf weken", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("blok van hooguit twaalf weken");
+    expect(prompt).toContain("zet endDate op planWindow.to");
+    // Een doel voorbij het blok is geen piek in dit blok.
+    expect(prompt).toContain("planWindow.goalBeyond");
+    expect(prompt).toContain("Plan dan geen taper naar die datum");
+    // Een mikpunt na het blok is de gewone gang van zaken, geen waarschuwing meer.
+    expect(prompt).not.toContain("het schema moet vóór die datum verlengd worden");
+  });
+
+  it("laat een volgend blok voortbouwen in plaats van opnieuw beginnen", () => {
+    const prompt = planUpdatePrompt();
+    expect(prompt).toContain("planUpdate.nextBlock");
+    expect(prompt).toContain("begin niet opnieuw onderaan");
+  });
+
   it("laat de planner niet door een rustperiode heen bouwen", () => {
     const prompt = defaultTrainingPrompt();
     expect(prompt).toContain("kind 'rust'");

@@ -4,14 +4,44 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { TegelsAgenda, type AgendaRow } from "@/components/tegels/agenda";
 import { TegelsLinkGrid } from "@/components/tegels/link-grid";
 import { TegelsVandaag } from "@/components/tegels/vandaag";
+import { seasonWarnings, type SeasonWarningInput } from "@/lib/training/season";
 import { TegelsShell } from "../(app)/_components/tegels-shell";
+import { SeasonRoad } from "../(app)/zwbeter-worden/jaarplan/_components/season-road";
+import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season-stand";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan"] as const;
+
+// Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
+// nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
+const SEASON: SeasonWarningInput = {
+  today: "2026-10-13",
+  from: "2026-09-12",
+  to: "2027-09-12",
+  targets: [
+    { id: "t1", title: "Ronde van Vlaanderen Cyclo", targetDate: "2027-03-14", priority: "b", eventId: null, goalId: null, note: null },
+    { id: "t2", title: "La Marmotte", targetDate: "2027-07-04", priority: "a", eventId: null, goalId: "g1", note: "Met Jeroen en Sanne" },
+    { id: "t3", title: "Clubkampioenschap tijdrit", targetDate: "2026-11-28", priority: "c", eventId: "e3", goalId: null, note: null },
+  ],
+  periods: [
+    { id: "p1", title: "Herfstvakantie", startDate: "2026-10-17", endDate: "2026-10-25", kind: "rust", note: null },
+    { id: "p2", title: "Drukke weken op het werk", startDate: "2026-12-07", endDate: "2026-12-18", kind: "rustig", note: null },
+    { id: "p3", title: "Trainingskamp Mallorca", startDate: "2027-04-17", endDate: "2027-04-24", kind: "kamp", note: null },
+  ],
+  plans: [
+    { rootId: "r1", title: "Basis winter", startDate: "2026-09-21", endDate: "2026-10-26", status: "published", goalId: "g1" },
+  ],
+  events: [
+    { id: "e1", title: "ZRL ronde 3", type: "zrl", date: "2026-10-15", rsvp: "yes" },
+    { id: "e2", title: "Clubrit Veluwezoom", type: "outdoor", date: "2026-11-15", rsvp: "maybe" },
+    { id: "e3", title: "Clubkampioenschap tijdrit", type: "outdoor", date: "2026-11-28", rsvp: "yes" },
+  ],
+  plannedWorkoutDays: ["2026-10-19", "2026-10-21", "2026-10-24"],
+};
 
 const PAST: AgendaRow[] = [
   { key: "p1", href: "#", color: { bg: "#3b82f6", ink: "#ffffff" }, day: "di", dayNumber: "6", title: "ZRL ronde 3", sub: "geweest · Zwift" },
@@ -52,6 +82,21 @@ export default async function OntwerpVoorbeeldPage({
               links={["Leden", "Teams", "Achievements", "Stats", "ZWB Segments", "ZWBlokken", "ZWBgame", "ZWB Omnium", "Sunday Race Club", "Polls"].map(
                 (label) => ({ href: `#${label}`, label }),
               )}
+            />
+          </div>
+        ) : scherm === "jaarplan" ? (
+          <div className="max-w-2xl space-y-4">
+            <h1 className="tg-display">Jaarplan</h1>
+            <SeasonStand today={SEASON.today} targets={SEASON.targets} plans={SEASON.plans} />
+            <SeasonRoad
+              today={SEASON.today}
+              from={SEASON.from}
+              targets={SEASON.targets}
+              periods={SEASON.periods}
+              plans={SEASON.plans}
+              events={SEASON.events}
+              warnings={seasonWarnings(SEASON)}
+              editable
             />
           </div>
         ) : (

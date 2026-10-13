@@ -1328,6 +1328,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 > soort plande het schema er met het gewone weekplafond doorheen.
 >
 > **Wat.**
+> - *(Sinds 2026-10-13: het potlood staat op de weg in `season-road.tsx`, de
+>   prioriteit zit in hetzelfde formulier, en een kamp is teal met klimstrepen.)*
 > - Potlood per regel in `season-list.tsx`. Mikpunt: titel, datum, notitie (de
 >   prioriteit bleef de keuzelijst ernaast). Periode: titel, van, tot en met,
 >   soort, notitie; `updateSeasonPeriod` bestond al maar had geen scherm.
@@ -7174,6 +7176,96 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — schema's als blokken van twaalf weken, en het jaarplan als weg
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De eigenaar stelde dat een schema voor een amateur niet langer dan
+drie maanden vooruit gepland hoort te worden, omdat het leven ertussen komt, en
+vond het jaarplan op de telefoon niet werken: de seizoensbalk scrolde zijwaarts
+en "Wat opvalt" stond vol. Nagegaan: een schema liep altijd tot de doeldatum
+(`buildTrainingInput()` in `draft.ts`), dus een doel over negen maanden gaf
+negen maanden uitgewerkte trainingen. De helft van de meldingen ging er
+bovendien van uit dat elk A-doel nu al een schema tot de piek heeft. De
+onderbouwing en de bronnen staan op `/hulp#blokken`; kort: coachpraktijk
+(blokken van 8 tot 12 weken), geen hard bewijs voor precies twaalf.
+
+**Wat veranderde: blokken.**
+- `blockEndDate()` in `season.ts`: een nieuw schema loopt tot de doeldatum als
+  die binnen twaalf weken (`PLAN_BLOCK_DAYS` = 84) valt, anders twaalf weken.
+- De AI-invoer kreeg `planWindow` (`from`, `to`, `goalBeyond`).
+  `defaultTrainingPrompt()` kreeg twee regels: plannen binnen `planWindow`, en
+  bij `goalBeyond` geen taper naar een doel dat na het blok ligt. De regel over
+  `seasonPlan.nextTargetAfterPlan` vroeg om een waarschuwing dat het schema
+  verlengd moest worden; een mikpunt na het blok is nu de gewone gang van zaken.
+- Afgedwongen, niet alleen gevraagd: `planWindowEndDate()` knipt de einddatum
+  van een nieuw basisplan af op het blok, en trainingen daarna worden niet
+  opgeslagen.
+- Volgend blok: `startNextBlock()` (`jaarplan/_actions.ts`) start een herziening
+  met `nextBlock`, die doorloopt tot twaalf weken vanaf vandaag in plaats van
+  tot het einde van het schema. Mag vanaf twee weken voor het einde
+  (`NEXT_BLOCK_LEAD_DAYS`), en alleen het lid zelf vanuit zijn jaarplan.
+  `planUpdatePrompt()` kreeg een regel: voortbouwen, niet opnieuw onderaan
+  beginnen.
+- `extendRootPlanEnd()` (`active-plan.ts`): wordt zo'n herziening gepubliceerd,
+  dan schuift de einddatum van het basisplan mee. "Het lopende schema" wordt
+  overal aan die datum afgelezen; zonder dit gold een schema met een tweede blok
+  na het eerste als afgelopen.
+
+**Wat veranderde: meldingen.** `seasonWarnings()` houdt vijf gevallen over, elk
+met een `anchor` zodat de melding op de weg staat bij het punt waar het speelt.
+Vervallen: "schema stopt vóór A-doel" (met blokken altijd waar), "toegezegd
+event is nog geen mikpunt" (ging af op elke clubrit; is nu een vlaggetje op de
+eventregel, dat begint als C-doel) en de tip "geen rustperiode in je jaar" (had
+geen handeling). "A-doel zonder schema" geldt alleen nog binnen twaalf weken.
+
+**Wat veranderde: het scherm.** `season-road.tsx` vervangt `season-band.tsx`,
+`season-list.tsx` en `season-warnings.tsx`; `seasonRoad()` vervangt
+`seasonListRows()`. Eén weg van boven naar beneden, niet op schaal. Het wegdek
+draagt de boodschap: asfalt tot waar het schema is uitgewerkt, een hek op het
+einde (met daar de knop voor het volgende blok), stippellijnen voor wat nog
+alleen route is, grind bij rust, een smalle strook bij rustig, klimstrepen bij
+een kamp, een geblokte streep bij een A-doel. Maanden zijn bermpaaltjes, lege
+maanden één regel. Twaalf weken voor een A-doel staat "Opbouw naar …" zolang
+dat blok er nog niet is. Bovenaan twee getallen in weken (`season-stand.tsx`).
+Mikpunt en Periode toevoegen zijn twee knoppen naast elkaar; bewerken,
+prioriteit en verwijderen zitten in één formulier achter het potlood. De
+tekening staat in `globals.css` onder "Jaarplan: de weg" en geldt in beide
+designs, met eigen regels voor "tegels". De trainerweergave gebruikt dezelfde
+weg, alleen-lezen. `/ontwerp-voorbeeld?scherm=jaarplan` toont hem met
+voorbeelddata.
+
+**Bewust niet gebouwd.**
+- *Bestaande lange schema's worden niet ingekort.* Een schema dat al tot een
+  doel ver weg loopt houdt zijn einddatum, en een gewone herziening herplant
+  nog steeds tot dat einde. Inkorten zou trainingen weghalen die leden al zien.
+- *Geen automatisch volgend blok.* Keuze van de eigenaar: het lid zet het zelf
+  klaar. Loopt een schema af zonder dat dat gebeurt, dan is er geen schema en
+  maakt het lid (of de trainer) een nieuw.
+- *Geen knop voor het volgende blok bij de trainer of op de schemapagina.*
+  Alleen in het jaarplan van het lid.
+- *De weg is niet op schaal* en heeft geen horizontale variant op desktop.
+
+**Niet meer waar.** In "jaarplanning boven het trainingsschema" (2026-08-31):
+de seizoensbalk met vier banen, de maandlijst, het blok signaleringen bovenaan
+en "zeven gevallen". In de ronde van 2026-10-04: het potlood "per regel in
+`season-list.tsx`", de prioriteit als keuzelijst ernaast, en "groen op de
+balk". In "event en mikpunt als één regel" (2026-09-14): `seasonListRows()`,
+de prullenbak en de aparte balk. Die drie blokken zijn hieronder bijgewerkt.
+
+**Getest.** `season.test.ts` (herschreven: blokken, volgend blok, de weg, de
+stand, de vijf meldingen), `plan-update-goal.test.ts` (`planWindowEndDate`),
+`training-prompts.test.ts`, `tsc` en ESLint. Volledige Vitest-run groen op
+`omnium-live.test.ts` na (vraagt een echte service-role key) en een time-out
+in `admin-areas.test.ts` die los wel slaagt. De weg is in de browser bekeken op
+telefoonbreedte, licht en donker, via het voorbeeldscherm in design "tegels".
+
+**Niet geverifieerd.** Het ingelogde scherm met echte data, en het klassieke
+design (het voorbeeldscherm toont alleen "tegels"). Het aanmaken van een
+volgend blok is niet uitgevoerd: of het model binnen `planWindow` blijft en
+een volgend blok goed laat aansluiten, blijkt pas in productie. De formulieren
+op de weg zijn niet aangeklikt.
+
 ### Opgeleverd — NEVO-zoeken: alle treffers wegen mee, niet de eerste 200 op alfabet
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10196,6 +10288,9 @@ als mikpunt én als clubevent waarvoor hij zich had aangemeld. `SeasonList` zett
 mikpunten en events los in één gesorteerde lijst; precies de events waar een lid
 naartoe werkt, stonden dus dubbel.
 
+*(Sinds 2026-10-13 doet `seasonRoad()` dit; de prullenbak is "Mikpunt weghalen"
+in het bewerkformulier en de balk bestaat niet meer.)*
+
 **Wat er is gekomen.** Pure `seasonListRows()` in `src/lib/training/season.ts`
 bouwt de regels. Een mikpunt op een event dat in de lijst staat, gaat op in de
 eventregel: eventlink, type, "je doet mee"/"misschien", en de prioriteitkeuze,
@@ -11160,6 +11255,11 @@ hun jaar wordt niet gestuurd door een piek maar door vakanties en drukke weken.
 Een schema dat daar niets van weet plant een opbouwblok dwars door de vakantie,
 het lid haalt het niet, en de nalevingslogica concludeert vervolgens dat het
 schema te zwaar was — precies de verkeerde conclusie.
+
+*(Sinds 2026-10-13 is het scherm een verticale weg en zijn er vijf signaleringen
+in plaats van zeven, elk op de plek waar ze spelen; zie "schema's als blokken van
+twaalf weken, en het jaarplan als weg". De alinea's hieronder beschrijven de
+eerste versie.)*
 
 **Wat er is gekomen.** `/zwbeter-worden/jaarplan`: een seizoensbalk van twaalf
 maanden (een maand terug, elf vooruit) met vier banen — schema's, rustperiodes,

@@ -1045,8 +1045,9 @@ export default function HelpPage() {
                 <strong className="text-foreground">Basisconditie, FTP of herstel/opbouw:</strong>{" "}
                 doorlopende doelen. Er komt geen taper: je bouwt door tot het
                 eind, want die laatste weken zijn juist de weken waar je conditie
-                van omhoog gaat. De targetdatum is dan het einde van de
-                planperiode, geen wedstrijddag. Zet je in je jaarplan wél een
+                van omhoog gaat. De targetdatum is dan geen wedstrijddag maar
+                het punt waar je naartoe werkt, in blokken van hooguit twaalf
+                weken. Zet je in je jaarplan wél een
                 A-doel in die periode, dan wint dat: daar wordt naartoe
                 afgebouwd.
               </li>
@@ -1058,14 +1059,133 @@ export default function HelpPage() {
             </ul>
           </article>
           <article
+            id="blokken"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Waarom een schema hooguit twaalf weken loopt</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een schema is een blok van hooguit twaalf weken, ook als je doel
+              verder weg ligt. Ligt je doeldatum binnen die twaalf weken, dan
+              eindigt het blok daar. Verder vooruit staat je jaar in het
+              jaarplan: als route met mikpunten, niet als uitgewerkte
+              trainingen.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De reden is praktisch. Wat je over vier maanden kunt en wilt
+              rijden hangt af van hoe de komende weken gaan: werk, gezin, een
+              verkoudheid, een vakantie. Een schema dat nu al tot juli is
+              ingevuld, klopt tegen die tijd niet meer en moet toch opnieuw.
+              Een blok is kort genoeg om te blijven kloppen en lang genoeg om
+              er sterker van te worden.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Loopt je blok bijna af, dan staat in je jaarplan vanaf twee weken
+              voor het einde de knop{" "}
+              <strong className="text-foreground">Volgend blok klaarzetten</strong>.
+              Het nieuwe blok bouwt voort op wat je hebt gereden en loopt weer
+              twaalf weken vooruit. Het gaat niet vanzelf: jij kiest of en
+              wanneer je verder wilt. Ligt er een A-doel verder weg, dan zie je
+              in je jaarplan twaalf weken ervoor waar de opbouw ernaartoe
+              begint.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Een schema dat al langer liep toen dit is ingevoerd, houdt zijn
+              oude einddatum.
+            </p>
+            <h4 className="mt-3 text-sm font-medium">Waar dit op steunt</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Vooral op de coachpraktijk. Hard bewijs voor precies twaalf weken
+              is er niet: onderzoek naar trainingsopbouw duurt zelf zelden
+              langer dan twaalf weken, en een vergelijking van bloklengtes over
+              een heel jaar bij recreanten hebben we niet gevonden.
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                Joe Friel, schrijver van The Cyclist&apos;s Training Bible, biedt
+                zijn schema&apos;s aan als blokken van twaalf weken: eerst{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://www.trainingpeaks.com/training-plans/cycling/road-cycling/tp-143288/bike-road-racing-base-period-under-50-8-13hpw-power-meter-12-weeks"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  basis
+                </a>
+                , daarna{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://www.trainingpeaks.com/training-plans/cycling/road-cycling/tp-277329/bike-road-racing-build-peak-periods-under-50-12hpw-power-meter-12-weeks"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  opbouw en piek
+                </a>
+                .
+              </li>
+              <li>
+                Een{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://www.sponet.de/sponet/Record/4080476?lng=en"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  overzichtsstudie bij getrainde wielrenners
+                </a>{" "}
+                vond over acht tot twaalf weken geen bewijs dat één manier van
+                periodiseren beter werkt, en weinig onderzoek over een heel
+                seizoen.
+              </li>
+              <li>
+                Een{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://www.dovepress.com/block-periodization-of-endurance-training-a-systematic-review-and-meta-peer-reviewed-article-OAJSM"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  meta-analyse van blokperiodisering
+                </a>{" "}
+                zag gunstige effecten, maar uit kleine studies van vier tot
+                twaalf weken.
+              </li>
+              <li>
+                In een{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8701049"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  studie van acht weken bij amateurtriatleten
+                </a>{" "}
+                vielen bij vrij trainen meer deelnemers af dan bij een schema
+                met structuur.
+              </li>
+            </ul>
+          </article>
+          <article
             id="jaarplan"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >
             <h3 className="text-sm font-semibold">Jaarplan: mikpunten en periodes</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Je schema werkt naar één datum toe. Het jaarplan is de laag
-              daarboven: het jaar eromheen. Wat je erin zet stuurt het schema.
+              Je schema is een blok van hooguit twaalf weken. Het jaarplan is
+              de laag daarboven: het jaar eromheen, als een weg van boven naar
+              beneden. Wat je erin zet stuurt het schema.
             </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">De weg:</strong> asfalt met
+                strepen is het stuk waarvoor je schema is uitgewerkt, tot aan
+                het geel-donkere hek. Twee stippellijnen daarna: nog geen
+                trainingen, alleen de route. Grind is een rustperiode, een
+                smalle strook een rustige periode, klimstrepen een
+                trainingskamp. Een geblokte streep is een A-doel, een dwarsstreep
+                een B-doel. De afstand tussen twee punten zegt niets over het
+                aantal dagen; lege maanden staan als één regel.
+              </li>
+            </ul>
             <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
               <li>
                 <strong className="text-foreground">A-doel:</strong> je piekdag.
@@ -1105,10 +1225,17 @@ export default function HelpPage() {
               </li>
             </ul>
             <p className="mt-2 text-sm text-muted-foreground">
-              Met het potlood in de lijst pas je een mikpunt of periode aan:
-              titel, datum, soort en notitie. Verschuif je een mikpunt waar al
-              een doel aan hangt, dan schuift de datum van dat doel mee en wordt
-              je schema herzien.
+              Met het potlood pas je een mikpunt of periode aan: titel, datum,
+              prioriteit of soort, en notitie. Verwijderen staat in hetzelfde
+              formulier. Verschuif je een mikpunt waar al een doel aan hangt,
+              dan schuift de datum van dat doel mee en wordt je schema herzien.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Wringt er iets, dan staat dat in het rood bij het punt waar het
+              speelt, met de knop die het oplost: trainingen in een
+              rustperiode, twee A-doelen binnen drie weken, een A-doel binnen
+              twaalf weken zonder schema, een event midden in je rust, of een
+              trainingskamp vlak voor een A-doel.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Clubevents waar je ja of misschien op hebt gezegd staan
@@ -1117,13 +1244,14 @@ export default function HelpPage() {
               jaarplan bekijken maar niet wijzigen.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Wil je zo&apos;n clubevent als mikpunt, kies het dan bij Mikpunt
-              toevoegen onder Event; titel en datum komen van het event. In de
-              lijst eronder staat zo&apos;n event dan als één regel met je
-              prioriteit erbij. Daar wijzig je de prioriteit, en de prullenbak
-              haalt alleen het mikpunt weg: het event en je aanmelding blijven.
-              De datum volgt het event; met het potlood wijzig je alleen de notitie.
-              Dat geldt alleen voor jouw jaarplan, niet voor dat van andere leden.
+              Wil je zo&apos;n clubevent als mikpunt, tik dan op het vlaggetje
+              op die regel, of kies het bij Mikpunt onder Event; titel en datum
+              komen van het event. Met het vlaggetje begint het als C-doel. Het
+              event staat dan als één regel met je prioriteit erbij. Met het
+              potlood wijzig je de prioriteit en de notitie; de datum volgt het
+              event. Mikpunt weghalen haalt alleen het mikpunt weg: het event
+              en je aanmelding blijven. Dat geldt alleen voor jouw jaarplan,
+              niet voor dat van andere leden.
             </p>
           </article>
 

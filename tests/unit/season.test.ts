@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   A_TARGET_MIN_GAP_DAYS,
+  blockEndDate,
   CAMP_BEFORE_A_TARGET_DAYS,
-  dayOffsetPct,
   daysBetween,
-  monthsInWindow,
-  PLAN_TAIL_SLACK_DAYS,
+  NEXT_BLOCK_LEAD_DAYS,
+  nextBlockDue,
+  PLAN_BLOCK_DAYS,
   seasonForAi,
-  seasonListRows,
+  seasonRoad,
+  seasonStand,
   seasonWarnings,
   shiftDays,
-  spanPct,
   type SeasonEvent,
   type SeasonPeriod,
   type SeasonPlanBar,
@@ -93,36 +94,37 @@ describe("datumrekenwerk", () => {
     // En in oktober weer terug.
     expect(daysBetween("2026-10-23", "2026-10-27")).toBe(4);
   });
+});
 
-  it("zet de eerste en de laatste dag van het venster op 0% en tegen 100%", () => {
-    const from = "2026-01-01";
-    const to = "2026-12-31";
-    expect(dayOffsetPct(from, from, to)).toBe(0);
-    expect(dayOffsetPct(to, from, to)).toBeGreaterThan(99);
-    expect(dayOffsetPct(to, from, to)).toBeLessThan(100);
+describe("blokken van twaalf weken", () => {
+  it("eindigt een blok na twaalf weken als het doel verder weg ligt of ontbreekt", () => {
+    expect(blockEndDate("2026-10-13", "2027-07-04")).toBe(shiftDays("2026-10-13", PLAN_BLOCK_DAYS));
+    expect(blockEndDate("2026-10-13", null)).toBe("2027-01-05");
   });
 
-  it("knipt een dag buiten het venster af in plaats van hem te laten ontsporen", () => {
-    expect(dayOffsetPct("2025-06-01", "2026-01-01", "2026-12-31")).toBe(0);
-    expect(dayOffsetPct("2027-06-01", "2026-01-01", "2026-12-31")).toBe(100);
+  it("eindigt een blok op de doeldatum als die binnen twaalf weken valt", () => {
+    expect(blockEndDate("2026-10-13", "2026-11-22")).toBe("2026-11-22");
+    expect(blockEndDate("2026-10-13", "2026-11-22T00:00:00Z")).toBe("2026-11-22");
   });
 
-  it("knipt een periode af die half buiten het venster valt", () => {
-    // Vakantie van 20 dec t/m 10 jan, venster begint 1 jan: tien dagen zichtbaar.
-    const breedte = spanPct("2025-12-20", "2026-01-10", "2026-01-01", "2026-12-31");
-    expect(breedte).toBeCloseTo((10 / 365) * 100, 5);
+  it("rekent een doeldatum die al voorbij is niet als einde", () => {
+    expect(blockEndDate("2026-10-13", "2026-09-01")).toBe("2027-01-05");
   });
 
-  it("geeft 0% voor een periode die het venster helemaal niet raakt", () => {
-    expect(spanPct("2025-01-01", "2025-02-01", "2026-01-01", "2026-12-31")).toBe(0);
+  it("biedt het volgende blok alleen aan in de laatste twee weken van een lopend schema", () => {
+    const today = "2026-10-13";
+    const einde = (dagen: number) => plan({ endDate: shiftDays(today, dagen) });
+    expect(nextBlockDue(today, einde(NEXT_BLOCK_LEAD_DAYS))).toBe(true);
+    expect(nextBlockDue(today, einde(0))).toBe(true);
+    expect(nextBlockDue(today, einde(NEXT_BLOCK_LEAD_DAYS + 1))).toBe(false);
+    expect(nextBlockDue(today, einde(-1))).toBe(false);
+    expect(nextBlockDue(today, null)).toBe(false);
   });
 
-  it("verdeelt de maanden over de volle breedte van het venster", () => {
-    const maanden = monthsInWindow("2026-01-01", "2026-12-31");
-    expect(maanden).toHaveLength(12);
-    expect(maanden[0].leftPct).toBe(0);
-    const totaal = maanden.reduce((som, maand) => som + maand.widthPct, 0);
-    expect(totaal).toBeCloseTo(100, 5);
+  it("biedt geen volgend blok aan zolang er een concept klaarligt", () => {
+    expect(nextBlockDue("2026-10-13", plan({ endDate: "2026-10-20", status: "draft" }))).toBe(
+      false,
+    );
   });
 });
 
@@ -226,59 +228,48 @@ describe("seasonWarnings", () => {
   });
 
   it("meldt een A-doel zonder doel én een A-doel waarvan het doel geen schema heeft", () => {
-    const zonderDoel = warn({ targets: [target({ id: "a1", goalId: null })] }).find(
+    const zonderDoel = warn({
+      targets: [target({ id: "a1", goalId: null, targetDate: "2026-05-01" })],
+    }).find(
       (w) => w.code === "a_doel_zonder_schema",
     );
     expect(zonderDoel?.action?.kind).toBe("maak_doel");
 
     const zonderSchema = warn({
-      targets: [target({ id: "a1", goalId: "g9" })],
+      targets: [target({ id: "a1", goalId: "g9", targetDate: "2026-05-01" })],
       plans: [plan({ goalId: "g1" })],
     }).find((w) => w.code === "a_doel_zonder_schema");
     expect(zonderSchema?.action?.kind).toBe("open_schema");
+    expect(zonderSchema?.anchor).toEqual({ kind: "target", id: "a1" });
+  });
+
+  it("zwijgt over een A-doel dat verder dan een blok weg ligt", () => {
+    const grens = shiftDays("2026-03-01", PLAN_BLOCK_DAYS);
+    expect(codes(warn({ targets: [target({ goalId: null, targetDate: grens })] }))).toContain(
+      "a_doel_zonder_schema",
+    );
+    expect(
+      codes(warn({ targets: [target({ goalId: null, targetDate: shiftDays(grens, 1) })] })),
+    ).not.toContain("a_doel_zonder_schema");
   });
 
   it("zwijgt over een A-doel dat wél een schema heeft", () => {
     const warnings = warn({
-      targets: [target({ id: "a1", goalId: "g1" })],
+      targets: [target({ id: "a1", goalId: "g1", targetDate: "2026-05-01" })],
       plans: [plan({ goalId: "g1" })],
     });
     expect(codes(warnings)).not.toContain("a_doel_zonder_schema");
   });
 
-  it("meldt een schema dat ruim vóór het A-doel stopt", () => {
-    const targetDate = shiftDays("2026-06-01", PLAN_TAIL_SLACK_DAYS + 1);
+  it("meldt niet langer dat een schema vóór een A-doel stopt of dat een event geen mikpunt is", () => {
+    // Met blokken van twaalf weken stopt elk schema vóór een doel dat verder weg
+    // ligt, en niet elke clubrit is een mikpunt.
     const warnings = warn({
-      targets: [target({ id: "a1", goalId: "g1", targetDate })],
-      plans: [plan({ goalId: "g1", endDate: "2026-06-01" })],
-    });
-    expect(codes(warnings)).toContain("schema_eindigt_voor_a_doel");
-  });
-
-  it("accepteert een schema dat precies binnen de speling eindigt", () => {
-    const targetDate = shiftDays("2026-06-01", PLAN_TAIL_SLACK_DAYS);
-    const warnings = warn({
-      targets: [target({ id: "a1", goalId: "g1", targetDate })],
-      plans: [plan({ goalId: "g1", endDate: "2026-06-01" })],
-    });
-    expect(codes(warnings)).not.toContain("schema_eindigt_voor_a_doel");
-  });
-
-  it("meldt een toegezegd event dat nog geen mikpunt is, en zwijgt zodra dat wel zo is", () => {
-    const zonder = warn({ events: [event({ id: "e1" })] });
-    const gevonden = zonder.find((w) => w.code === "toegezegd_event_niet_op_tijdlijn");
-    expect(gevonden?.action).toMatchObject({ kind: "voeg_mikpunt_toe", eventId: "e1" });
-
-    const met = warn({
+      targets: [target({ id: "a1", goalId: "g1", targetDate: "2026-09-01" })],
+      plans: [plan({ goalId: "g1", endDate: "2026-05-24" })],
       events: [event({ id: "e1" })],
-      targets: [target({ id: "t1", eventId: "e1", priority: "c" })],
     });
-    expect(codes(met)).not.toContain("toegezegd_event_niet_op_tijdlijn");
-  });
-
-  it("meldt een 'misschien' niet als ontbrekend mikpunt", () => {
-    const warnings = warn({ events: [event({ rsvp: "maybe" })] });
-    expect(codes(warnings)).not.toContain("toegezegd_event_niet_op_tijdlijn");
+    expect(warnings).toEqual([]);
   });
 
   it("meldt een event dat midden in een rustperiode valt", () => {
@@ -330,15 +321,10 @@ describe("seasonWarnings", () => {
     });
     expect(codes(warnings)).not.toContain("schema_door_rustperiode");
     expect(codes(warnings)).not.toContain("rustperiode_botst_met_event");
-    expect(codes(warnings)).toContain("geen_rustperiode_in_seizoen");
   });
 
-  it("tipt over een jaar zonder enkele rustperiode, maar niet over een kort venster", () => {
-    expect(codes(warn())).toContain("geen_rustperiode_in_seizoen");
-    expect(codes(warn({ from: "2026-03-01", to: "2026-06-01" }))).not.toContain(
-      "geen_rustperiode_in_seizoen",
-    );
-    expect(codes(warn({ periods: [period()] }))).not.toContain("geen_rustperiode_in_seizoen");
+  it("zegt niets over een jaar zonder rustperiode", () => {
+    expect(warn()).toEqual([]);
   });
 
   it("laat alles wat al geweest is met rust", () => {
@@ -350,66 +336,173 @@ describe("seasonWarnings", () => {
       plannedWorkoutDays: ["2026-07-03"],
     });
     expect(codes(warnings)).not.toContain("schema_door_rustperiode");
-    expect(codes(warnings)).not.toContain("a_doel_zonder_schema");
-    expect(codes(warnings)).not.toContain("toegezegd_event_niet_op_tijdlijn");
-  });
-
-  it("zet 'let op' boven een tip", () => {
-    const warnings = warn({ targets: [target({ goalId: null })] });
-    expect(warnings[0].severity).toBe("let_op");
-    expect(warnings.at(-1)?.severity).toBe("tip");
+    expect(warnings).toEqual([]);
   });
 });
 
-describe("seasonListRows", () => {
-  function rows(input: Partial<Parameters<typeof seasonListRows>[0]>) {
-    return seasonListRows({ targets: [], periods: [], events: [], plans: [], ...input });
-  }
-
-  it("maakt van een event met een mikpunt één regel met die prioriteit", () => {
-    const result = rows({
-      targets: [target({ id: "t1", eventId: "e1", priority: "a", targetDate: "2026-07-05" })],
-      events: [event({ id: "e1", date: "2026-07-05", title: "Marmotte" })],
+describe("seasonRoad", () => {
+  function road(input: Partial<Parameters<typeof seasonRoad>[0]> = {}) {
+    return seasonRoad({
+      today: "2026-10-13",
+      from: "2026-09-12",
+      targets: [],
+      periods: [],
+      events: [],
+      plans: [],
+      ...input,
     });
+  }
+  const soorten = (stops: ReturnType<typeof seasonRoad>) => stops.map((stop) => stop.kind);
+
+  it("maakt van een event met een mikpunt één halte met die prioriteit", () => {
+    const result = road({
+      targets: [target({ id: "t1", eventId: "e1", priority: "a", targetDate: "2026-11-05" })],
+      events: [event({ id: "e1", date: "2026-11-05", title: "Marmotte" })],
+    }).filter((stop) => stop.kind === "mikpunt" || stop.kind === "event");
     expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ kind: "event", event: { id: "e1" }, target: { id: "t1", priority: "a" } });
+    expect(result[0]).toMatchObject({
+      kind: "mikpunt",
+      event: { id: "e1" },
+      target: { id: "t1", priority: "a" },
+    });
   });
 
   it("koppelt op event-id, ook als de datums een dag verschillen", () => {
     // Start om 01:00 Amsterdamse tijd: UTC-dag is de dag ervoor.
-    const result = rows({
-      targets: [target({ id: "t1", eventId: "e1", targetDate: "2026-07-05" })],
-      events: [event({ id: "e1", date: "2026-07-04" })],
-    });
+    const result = road({
+      targets: [target({ id: "t1", eventId: "e1", priority: "c", targetDate: "2026-11-05" })],
+      events: [event({ id: "e1", date: "2026-11-04" })],
+    }).filter((stop) => stop.kind === "mikpunt" || stop.kind === "event");
     expect(result).toHaveLength(1);
-    expect(result[0].date).toBe("2026-07-05");
+    expect(result[0].date).toBe("2026-11-05");
   });
 
-  it("houdt een mikpunt zonder event in de lijst als los mikpunt", () => {
-    const result = rows({
-      targets: [
-        target({ id: "los", eventId: null }),
-        target({ id: "weg", eventId: "verwijderd-of-afgemeld" }),
-      ],
-      events: [event({ id: "e2" })],
+  it("houdt een mikpunt waarvan het event weg is als los mikpunt", () => {
+    const result = road({
+      targets: [target({ id: "weg", eventId: "afgemeld", priority: "c", targetDate: "2026-11-05" })],
+      events: [event({ id: "e2", date: "2026-11-08" })],
     });
-    expect(result.filter((row) => row.kind === "target").map((row) => row.kind === "target" && row.target.id)).toEqual(["los", "weg"]);
-    expect(result.find((row) => row.kind === "event")).toMatchObject({ target: null });
+    expect(result.find((stop) => stop.kind === "mikpunt")).toMatchObject({ event: null });
+    expect(result.find((stop) => stop.kind === "event")).toMatchObject({ event: { id: "e2" } });
   });
 
-  it("zet alles op datum", () => {
-    const result = rows({
-      targets: [target({ id: "t", targetDate: "2026-06-01" })],
-      periods: [period({ startDate: "2026-07-01" })],
-      events: [event({ date: "2026-05-01" })],
-      plans: [plan({ startDate: "2026-03-01", endDate: "2026-08-01" })],
+  it("zet vandaag, de maanden en de haltes op volgorde", () => {
+    const result = road({
+      targets: [target({ id: "t", priority: "b", targetDate: "2026-11-20" })],
+      periods: [period({ startDate: "2026-10-24", endDate: "2026-11-01" })],
+      events: [event({ date: "2026-10-18" })],
     });
-    expect(result.map((row) => row.date)).toEqual([
-      "2026-03-01",
-      "2026-05-01",
-      "2026-06-01",
-      "2026-07-01",
-      "2026-08-01",
+    expect(soorten(result)).toEqual(["maand", "vandaag", "event", "periode", "maand", "mikpunt"]);
+    expect(result[0]).toMatchObject({ kind: "maand", label: "oktober" });
+    expect(result.find((stop) => stop.kind === "periode")).toMatchObject({ days: 9 });
+  });
+
+  it("trekt lege maanden samen tot één regel en zet het jaar bij een volgend jaar", () => {
+    const result = road({
+      targets: [target({ priority: "b", targetDate: "2027-03-14" })],
+    });
+    expect(
+      result.map((stop) => ("label" in stop ? `${stop.kind}:${stop.label}` : stop.kind)),
+    ).toEqual([
+      "maand:oktober",
+      "vandaag",
+      "leeg:november t/m februari",
+      "maand:maart 2027",
+      "mikpunt",
     ]);
+  });
+
+  it("noemt één of twee lege maanden bij naam", () => {
+    const een = road({ targets: [target({ priority: "b", targetDate: "2026-12-05" })] });
+    expect(een.find((stop) => stop.kind === "leeg")).toMatchObject({ label: "november" });
+    const twee = road({ targets: [target({ priority: "b", targetDate: "2027-01-05" })] });
+    expect(twee.find((stop) => stop.kind === "leeg")).toMatchObject({
+      label: "november en december",
+    });
+  });
+
+  it("legt asfalt waar het schema is uitgewerkt en een route daarna", () => {
+    const result = road({
+      plans: [plan({ startDate: "2026-09-21", endDate: "2027-01-03" })],
+      events: [event({ id: "in", date: "2026-11-15" }), event({ id: "na", date: "2027-02-10" })],
+    });
+    const dek = (id: string) =>
+      result.find((stop) => stop.kind === "event" && stop.event.id === id)?.surface;
+    expect(dek("in")).toBe("schema");
+    expect(dek("na")).toBe("open");
+    expect(result.find((stop) => stop.kind === "schema_start")).toMatchObject({
+      surface: "voorbij",
+    });
+    expect(result.find((stop) => stop.kind === "schema_eind")).toMatchObject({
+      date: "2027-01-03",
+      nextBlockDue: false,
+    });
+  });
+
+  it("zet het volgende blok open in de laatste twee weken", () => {
+    const result = road({ plans: [plan({ startDate: "2026-08-01", endDate: "2026-10-20" })] });
+    expect(result.find((stop) => stop.kind === "schema_eind")).toMatchObject({
+      nextBlockDue: true,
+    });
+  });
+
+  it("toont geen einde voor een schema dat al is afgelopen", () => {
+    const result = road({ plans: [plan({ startDate: "2026-09-15", endDate: "2026-10-01" })] });
+    expect(soorten(result)).not.toContain("schema_eind");
+  });
+
+  it("zet twaalf weken vóór een A-doel het begin van de opbouw neer", () => {
+    const result = road({
+      targets: [target({ id: "a", targetDate: "2027-07-04" })],
+      plans: [plan({ startDate: "2026-09-21", endDate: "2027-01-03" })],
+    });
+    expect(result.find((stop) => stop.kind === "opbouw")).toMatchObject({
+      date: shiftDays("2027-07-04", -PLAN_BLOCK_DAYS),
+      target: { id: "a" },
+    });
+  });
+
+  it("laat de opbouw weg als het schema daar al ligt of het doel te dichtbij is", () => {
+    const gedekt = road({
+      targets: [target({ targetDate: "2027-01-20" })],
+      plans: [plan({ startDate: "2026-09-21", endDate: "2027-01-03" })],
+    });
+    expect(soorten(gedekt)).not.toContain("opbouw");
+    const dichtbij = road({ targets: [target({ targetDate: "2026-12-01" })] });
+    expect(soorten(dichtbij)).not.toContain("opbouw");
+  });
+
+  it("rekent een vakantie die nu loopt niet als voorbij", () => {
+    const result = road({
+      periods: [period({ startDate: "2026-10-10", endDate: "2026-10-17" })],
+    });
+    expect(result.find((stop) => stop.kind === "periode")?.surface).not.toBe("voorbij");
+  });
+});
+
+describe("seasonStand", () => {
+  it("geeft het lopende blok en de eerstvolgende piek in weken", () => {
+    const stand = seasonStand({
+      today: "2026-10-13",
+      targets: [
+        target({ id: "b", priority: "b", targetDate: "2027-03-14" }),
+        target({ id: "a", priority: "a", targetDate: "2027-07-04" }),
+      ],
+      plans: [plan({ startDate: "2026-09-21", endDate: "2027-01-03" })],
+    });
+    expect(stand.plan?.endDate).toBe("2027-01-03");
+    expect(stand.weeksPlanned).toBe(12);
+    expect(stand.peak?.id).toBe("a");
+    expect(stand.weeksToPeak).toBe(38);
+  });
+
+  it("is leeg zonder lopend schema en zonder A-doel", () => {
+    const stand = seasonStand({
+      today: "2026-10-13",
+      targets: [target({ priority: "b", targetDate: "2027-03-14" })],
+      plans: [plan({ startDate: "2026-06-01", endDate: "2026-09-01" })],
+    });
+    expect(stand.plan).toBeNull();
+    expect(stand.peak).toBeNull();
   });
 });

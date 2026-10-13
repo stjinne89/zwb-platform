@@ -31,16 +31,21 @@ export const SEASON_PERIOD_LABELS: Record<SeasonPeriodKind, string> = {
 
 /** Twee pieken dichter op elkaar dan dit zijn er in de praktijk één. */
 export const A_TARGET_MIN_GAP_DAYS = 21;
-/** Zoveel dagen mag een schema vóór een A-doel eindigen zonder dat het opvalt. */
-export const PLAN_TAIL_SLACK_DAYS = 7;
+/**
+ * Een schema is een blok van hooguit twaalf weken. Verder vooruit is het jaar
+ * een route met mikpunten, geen uitgewerkt schema: wat een amateur over vier
+ * maanden kan en wil rijden, is nu niet te plannen. Zie /hulp#blokken.
+ */
+export const PLAN_BLOCK_WEEKS = 12;
+export const PLAN_BLOCK_DAYS = PLAN_BLOCK_WEEKS * 7;
+/** Zo kort voor het einde van een blok mag het lid het volgende klaarzetten. */
+export const NEXT_BLOCK_LEAD_DAYS = 14;
 /** Een rustperiode langer dan dit vraagt om heropbouw in plaats van doorgaan. */
 export const REBUILD_AFTER_REST_DAYS = 10;
 /** Zoveel dagen kost het om van een trainingskamp te herstellen vóór een piek. */
 export const CAMP_BEFORE_A_TARGET_DAYS = 10;
 /** Hoeveel losse events we hooguit als aparte waarschuwing tonen. */
 const MAX_EVENT_WARNINGS = 3;
-/** Vanaf dit aantal dagen venster verwachten we op z'n minst één rustperiode. */
-const SEASON_WINDOW_DAYS = 300;
 
 export type SeasonTarget = {
   id: string;
@@ -103,32 +108,6 @@ export function shiftDays(dayKey: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function clampPct(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(100, Math.max(0, value));
-}
-
-/** Positie van een dag op een tijdlijn van `from` tot en met `to`, in procenten. */
-export function dayOffsetPct(dayKey: string, from: string, to: string): number {
-  const total = daysBetween(from, to) + 1;
-  if (total <= 0) return 0;
-  return clampPct((daysBetween(from, dayKey) / total) * 100);
-}
-
-/**
- * Breedte van een periode op diezelfde tijdlijn. Een periode die er half buiten
- * valt wordt afgeknipt, niet weggelaten: een vakantie die vorige maand begon
- * loopt nog steeds door het venster heen.
- */
-export function spanPct(start: string, end: string, from: string, to: string): number {
-  const total = daysBetween(from, to) + 1;
-  if (total <= 0) return 0;
-  const firstDay = Math.max(0, daysBetween(from, start));
-  const lastDay = Math.min(total - 1, daysBetween(from, end));
-  if (lastDay < firstDay) return 0;
-  return clampPct(((lastDay - firstDay + 1) / total) * 100);
-}
-
 export function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
   return aStart <= bEnd && bStart <= aEnd;
 }
@@ -137,44 +116,29 @@ export function withinPeriod(dayKey: string, period: SeasonPeriod): boolean {
   return dayKey >= period.startDate && dayKey <= period.endDate;
 }
 
-export type SeasonMonth = {
-  /** 'YYYY-MM' */
-  key: string;
-  label: string;
-  leftPct: number;
-  widthPct: number;
-};
+/**
+ * De laatste dag van een blok dat op `from` begint. Ligt de doeldatum binnen
+ * twaalf weken, dan eindigt het blok daar; ligt hij verder weg, in het verleden
+ * of is hij er niet, dan na twaalf weken.
+ */
+export function blockEndDate(from: string, targetDate: string | null | undefined): string {
+  const cap = shiftDays(from, PLAN_BLOCK_DAYS);
+  const target = targetDate ? String(targetDate).slice(0, 10) : null;
+  return target && target >= from && target < cap ? target : cap;
+}
 
-/** De maandkoppen boven de tijdlijn, met hun plek en breedte. */
-export function monthsInWindow(from: string, to: string): SeasonMonth[] {
-  const months: SeasonMonth[] = [];
-  if (daysBetween(from, to) < 0) return months;
-
-  let year = Number(from.slice(0, 4));
-  let month = Number(from.slice(5, 7));
-  for (let guard = 0; guard < 400; guard += 1) {
-    const first = `${year}-${String(month).padStart(2, "0")}-01`;
-    if (first > to) break;
-    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    const last = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-    if (last >= from) {
-      months.push({
-        key: first.slice(0, 7),
-        label: new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("nl-NL", {
-          month: "short",
-          timeZone: "UTC",
-        }),
-        leftPct: dayOffsetPct(first < from ? from : first, from, to),
-        widthPct: spanPct(first, last, from, to),
-      });
-    }
-    month += 1;
-    if (month > 12) {
-      month = 1;
-      year += 1;
-    }
-  }
-  return months;
+/**
+ * Mag het volgende blok klaargezet worden? Alleen voor een schema dat loopt en
+ * binnen twee weken afloopt. Een concept telt niet: dan ligt er al iets klaar
+ * dat eerst beoordeeld moet worden.
+ */
+export function nextBlockDue(
+  today: string,
+  plan: Pick<SeasonPlanBar, "endDate" | "status"> | null | undefined,
+): boolean {
+  if (!plan || (plan.status !== "published" && plan.status !== "approved")) return false;
+  const rest = daysBetween(today, plan.endDate);
+  return rest >= 0 && rest <= NEXT_BLOCK_LEAD_DAYS;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,13 +147,22 @@ export function monthsInWindow(from: string, to: string): SeasonMonth[] {
 
 export type SeasonForAi = {
   targets: Array<{ title: string; date: string; priority: SeasonPriority }>;
-  periods: Array<{ title: string; from: string; to: string; kind: SeasonPeriodKind }>;
+  periods: Array<{
+    title: string;
+    from: string;
+    to: string;
+    kind: SeasonPeriodKind;
+  }>;
   /**
    * Het eerstvolgende A- of B-mikpunt ná het einde van deze planperiode. Zonder
    * dit plant de AI netjes tot de horizon en weet hij niet dat er drie weken
    * later een piek ligt waar hij nu al naartoe zou moeten werken.
    */
-  nextTargetAfterPlan: { title: string; date: string; priority: "a" | "b" } | null;
+  nextTargetAfterPlan: {
+    title: string;
+    date: string;
+    priority: "a" | "b";
+  } | null;
 };
 
 /**
@@ -227,7 +200,11 @@ export function seasonForAi(input: {
     .sort((a, b) => a.targetDate.localeCompare(b.targetDate))[0];
 
   const nextTargetAfterPlan = after
-    ? { title: after.title, date: after.targetDate, priority: after.priority as "a" | "b" }
+    ? {
+        title: after.title,
+        date: after.targetDate,
+        priority: after.priority as "a" | "b",
+      }
     : null;
 
   if (targets.length === 0 && periods.length === 0 && !nextTargetAfterPlan) return null;
@@ -243,18 +220,20 @@ export type SeasonAction =
   | { kind: "verlaag_prioriteit"; label: string; targetId: string }
   | { kind: "maak_doel"; label: string; targetId: string }
   | { kind: "open_schema"; label: string }
-  | { kind: "voeg_mikpunt_toe"; label: string; eventId: string; title: string; date: string }
   | { kind: "open_event"; label: string; eventId: string };
 
 export type SeasonWarningCode =
   | "schema_door_rustperiode"
   | "twee_a_doelen_dicht_bij_elkaar"
   | "a_doel_zonder_schema"
-  | "schema_eindigt_voor_a_doel"
-  | "toegezegd_event_niet_op_tijdlijn"
   | "rustperiode_botst_met_event"
-  | "kamp_vlak_voor_a_doel"
-  | "geen_rustperiode_in_seizoen";
+  | "kamp_vlak_voor_a_doel";
+
+/** Waar op de weg een signalering thuishoort: bij de regel waar hij over gaat. */
+export type SeasonWarningAnchor = {
+  kind: "period" | "target" | "event";
+  id: string;
+};
 
 export type SeasonWarning = {
   code: SeasonWarningCode;
@@ -264,6 +243,7 @@ export type SeasonWarning = {
   title: string;
   detail: string;
   action: SeasonAction | null;
+  anchor: SeasonWarningAnchor;
 };
 
 export type SeasonWarningInput = {
@@ -293,6 +273,13 @@ function dagMaand(dayKey: string): string {
  * altijd hetzelfde horen uit te vallen. De planner krijgt dezelfde gegevens mee
  * en hoort er zelf al rekening mee te houden; blijft dat uit, dan ziet het lid
  * het hier alsnog.
+ *
+ * Alleen wat nu speelt. Tot oktober 2026 stond hier ook: een schema dat vóór
+ * een A-doel stopt, een toegezegd event dat nog geen mikpunt is, en een jaar
+ * zonder rustperiode. Met blokken van twaalf weken stopt elk schema vóór een
+ * doel dat verder weg ligt, dus die eerste was altijd waar; de tweede ging af
+ * op elke clubrit en is nu een knop op de regel zelf; de derde had geen
+ * handeling die hem oploste.
  */
 export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
   const warnings: SeasonWarning[] = [];
@@ -315,6 +302,7 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
       title: `Je schema traint door "${period.title}" heen`,
       detail: `Er staan ${dagen.length} training${dagen.length === 1 ? "" : "en"} gepland tussen ${dagMaand(period.startDate)} en ${dagMaand(period.endDate)}.`,
       action: { kind: "herzie_schema", label: "Laat je schema herzien" },
+      anchor: { kind: "period", id: period.id },
     });
   }
 
@@ -340,14 +328,17 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
         label: `Zet "${huidige.title}" op B`,
         targetId: huidige.id,
       },
+      anchor: { kind: "target", id: huidige.id },
     });
   }
 
-  // 3. Een A-doel waar nog geen schema aan hangt.
+  // 3. Een A-doel binnen één blok waar nog geen schema aan hangt. Verder weg is
+  // dat geen probleem: daar komt het schema vanzelf, blok voor blok.
   const doelenMetPlan = new Set(
     plans.map((plan) => plan.goalId).filter((goalId): goalId is string => Boolean(goalId)),
   );
   for (const target of aDoelen) {
+    if (daysBetween(today, target.targetDate) > PLAN_BLOCK_DAYS) continue;
     const heeftPlan = target.goalId != null && doelenMetPlan.has(target.goalId);
     if (heeftPlan) continue;
     warnings.push({
@@ -361,60 +352,17 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
           : `Het doel bestaat, maar er is nog geen schema voor gemaakt.`,
       action:
         target.goalId == null
-          ? { kind: "maak_doel", label: "Maak hier een doel van", targetId: target.id }
+          ? {
+              kind: "maak_doel",
+              label: "Maak hier een doel van",
+              targetId: target.id,
+            }
           : { kind: "open_schema", label: "Naar je schema" },
+      anchor: { kind: "target", id: target.id },
     });
   }
 
-  // 4. Het schema stopt ruim vóór de eerstvolgende piek.
-  const eersteADoel = aDoelen[0];
-  if (eersteADoel && plans.length > 0) {
-    const laatsteEinde = plans
-      .map((plan) => plan.endDate)
-      .sort((a, b) => a.localeCompare(b))
-      .at(-1) as string;
-    const gat = daysBetween(laatsteEinde, eersteADoel.targetDate);
-    if (gat > PLAN_TAIL_SLACK_DAYS) {
-      warnings.push({
-        code: "schema_eindigt_voor_a_doel",
-        severity: "let_op",
-        id: `schema_eindigt_voor_a_doel:${eersteADoel.id}`,
-        title: `Je schema stopt ${gat} dagen vóór "${eersteADoel.title}"`,
-        detail: `Het loopt tot ${dagMaand(laatsteEinde)}; het mikpunt is ${dagMaand(eersteADoel.targetDate)}.`,
-        action: { kind: "open_schema", label: "Werk je schema bij" },
-      });
-    }
-  }
-
-  // 5. Toegezegde events die nog niet op de tijdlijn staan.
-  const eventIdsOpTijdlijn = new Set(
-    targets.map((target) => target.eventId).filter((id): id is string => Boolean(id)),
-  );
-  const ontbrekend = events
-    .filter(
-      (event) =>
-        event.rsvp === "yes" && event.date >= today && !eventIdsOpTijdlijn.has(event.id),
-    )
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  for (const event of ontbrekend.slice(0, MAX_EVENT_WARNINGS)) {
-    warnings.push({
-      code: "toegezegd_event_niet_op_tijdlijn",
-      severity: "let_op",
-      id: `toegezegd_event_niet_op_tijdlijn:${event.id}`,
-      title: `"${event.title}" staat nog niet in je jaarplan`,
-      detail: `Je hebt ja gezegd voor ${dagMaand(event.date)}, maar het is nog geen mikpunt.`,
-      action: {
-        kind: "voeg_mikpunt_toe",
-        label: "Zet op de tijdlijn",
-        eventId: event.id,
-        title: event.title,
-        date: event.date,
-      },
-    });
-  }
-
-  // 6. Een event midden in een rustperiode.
+  // 4. Een event midden in een rustperiode.
   const botsingen: Array<{ event: SeasonEvent; period: SeasonPeriod }> = [];
   for (const period of rustPeriodes) {
     for (const event of events) {
@@ -431,11 +379,16 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
       id: `rustperiode_botst_met_event:${period.id}:${event.id}`,
       title: `"${event.title}" valt in "${period.title}"`,
       detail: `Je staat op ${event.rsvp === "yes" ? "ja" : "misschien"} voor een event midden in een periode waarin je niet traint.`,
-      action: { kind: "open_event", label: "Bekijk het event", eventId: event.id },
+      action: {
+        kind: "open_event",
+        label: "Bekijk het event",
+        eventId: event.id,
+      },
+      anchor: { kind: "event", id: event.id },
     });
   }
 
-  // 7. Een trainingskamp dat te kort vóór een piek eindigt.
+  // 5. Een trainingskamp dat te kort vóór een piek eindigt.
   for (const period of periods) {
     if (period.kind !== "kamp" || period.endDate < today) continue;
     const doel = aDoelen.find((target) => {
@@ -449,80 +402,246 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
       severity: "let_op",
       id: `kamp_vlak_voor_a_doel:${period.id}`,
       title: `"${period.title}" eindigt ${gat} ${gat === 1 ? "dag" : "dagen"} vóór "${doel.title}"`,
-      detail: "Van een trainingskamp ben je niet in een week hersteld: je staat dan vermoeid aan de start.",
-      action: null,
-    });
-  }
-
-  // 8. Een heel seizoen zonder één rustperiode.
-  const heeftRust = periods.some((period) => period.kind === "rust");
-  if (!heeftRust && daysBetween(input.from, input.to) >= SEASON_WINDOW_DAYS) {
-    warnings.push({
-      code: "geen_rustperiode_in_seizoen",
-      severity: "tip",
-      id: "geen_rustperiode_in_seizoen",
-      title: "Er staat geen enkele rustperiode in je jaar",
       detail:
-        "Een vakantie of winterstop hoort erbij; zonder die weken plant het schema gewoon door.",
+        "Van een trainingskamp ben je niet in een week hersteld: je staat dan vermoeid aan de start.",
       action: null,
+      anchor: { kind: "period", id: period.id },
     });
   }
 
-  return warnings.sort((a, b) => {
-    if (a.severity !== b.severity) return a.severity === "let_op" ? -1 : 1;
-    return a.id.localeCompare(b.id);
-  });
+  return warnings.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 // ---------------------------------------------------------------------------
-// De lijst onder de balk
+// De weg: het jaarplan van boven naar beneden
 // ---------------------------------------------------------------------------
 
-export type SeasonListRow =
-  | { kind: "target"; date: string; target: SeasonTarget }
-  | { kind: "event"; date: string; event: SeasonEvent; target: SeasonTarget | null }
-  | { kind: "period"; date: string; period: SeasonPeriod }
-  | { kind: "plan"; date: string; plan: SeasonPlanBar; rand: "start" | "eind" };
+/**
+ * Het wegdek op een punt: wat al geweest is, wat als schema is uitgewerkt, en
+ * wat verder weg ligt en nog alleen een route is.
+ */
+export type SeasonRoadSurface = "voorbij" | "schema" | "open";
+
+export type SeasonRoadStop = {
+  key: string;
+  date: string;
+  surface: SeasonRoadSurface;
+} & (
+  | { kind: "maand"; label: string }
+  /** Een of meer maanden waar niets in staat, samengetrokken tot één regel. */
+  | { kind: "leeg"; label: string }
+  | { kind: "vandaag" }
+  | { kind: "mikpunt"; target: SeasonTarget; event: SeasonEvent | null }
+  | { kind: "event"; event: SeasonEvent }
+  | { kind: "periode"; period: SeasonPeriod; days: number }
+  | { kind: "schema_start"; plan: SeasonPlanBar }
+  /** Tot hier is het schema uitgewerkt. */
+  | { kind: "schema_eind"; plan: SeasonPlanBar; nextBlockDue: boolean }
+  /** Twaalf weken vóór een A-doel: hier begint het blok dat ernaartoe werkt. */
+  | { kind: "opbouw"; target: SeasonTarget }
+);
+
+const ROAD_ORDER: Record<SeasonRoadStop["kind"], number> = {
+  maand: 0,
+  leeg: 0,
+  vandaag: 1,
+  schema_start: 2,
+  periode: 3,
+  event: 4,
+  mikpunt: 5,
+  opbouw: 6,
+  schema_eind: 7,
+};
+
+function maandNaam(maandKey: string, jaarErbij: boolean): string {
+  return new Date(`${maandKey}-01T12:00:00Z`).toLocaleDateString("nl-NL", {
+    month: "long",
+    ...(jaarErbij ? { year: "numeric" } : {}),
+    timeZone: "UTC",
+  });
+}
+
+function volgendeMaand(maandKey: string): string {
+  const jaar = Number(maandKey.slice(0, 4));
+  const maand = Number(maandKey.slice(5, 7));
+  return maand === 12 ? `${jaar + 1}-01` : `${jaar}-${String(maand + 1).padStart(2, "0")}`;
+}
 
 /**
- * De regels van de jaarplanning, op datum.
+ * De haltes van de weg, op datum, met de maanden ertussen.
  *
- * Een mikpunt op een event en dat event zelf stonden tot september 2026 als twee
- * regels onder elkaar: de lijst werd dubbel zo lang voor precies de dingen waar
- * het lid naartoe werkt. Nu is het één eventregel die de prioriteit van het
- * mikpunt draagt. Koppelen gaat op event-id, nooit op datum: de eventdatum is
- * een UTC-dag, de mikpuntdatum een Amsterdamse, en een start tussen middernacht
- * en twee uur valt dan op twee verschillende dagen. De datum van de regel is die
- * van het mikpunt, want daar rekent de rest van de jaarplanning mee.
+ * Niet op schaal: de afstand tussen twee haltes volgt de inhoud, niet het aantal
+ * dagen. Een jaar op schaal past niet op een telefoon, en dat was precies wat de
+ * horizontale balk tot oktober 2026 onleesbaar maakte.
  *
- * Een mikpunt waarvan het event niet (meer) in de lijst staat — verwijderd,
- * afgemeld of buiten het venster — blijft een gewoon mikpunt.
+ * Een mikpunt op een event en dat event zelf zijn één halte die de prioriteit
+ * van het mikpunt draagt. Koppelen gaat op event-id, nooit op datum: de
+ * eventdatum is een UTC-dag, de mikpuntdatum een Amsterdamse, en een start
+ * tussen middernacht en twee uur valt dan op twee verschillende dagen. De datum
+ * van de halte is die van het mikpunt, want daar rekent de rest van de
+ * jaarplanning mee. Een mikpunt waarvan het event niet (meer) in de lijst staat
+ * blijft een gewoon mikpunt.
  */
-export function seasonListRows(input: {
+export function seasonRoad(input: {
+  today: string;
+  from: string;
   targets: SeasonTarget[];
   periods: SeasonPeriod[];
   events: SeasonEvent[];
   plans: SeasonPlanBar[];
-}): SeasonListRow[] {
-  const eventIds = new Set(input.events.map((event) => event.id));
-  const targetByEvent = new Map<string, SeasonTarget>();
-  for (const target of input.targets) {
-    if (target.eventId && eventIds.has(target.eventId)) targetByEvent.set(target.eventId, target);
+}): SeasonRoadStop[] {
+  const { today, from, targets, periods, events, plans } = input;
+
+  function surfaceAt(day: string): SeasonRoadSurface {
+    if (day < today) return "voorbij";
+    return plans.some((plan) => day >= plan.startDate && day <= plan.endDate) ? "schema" : "open";
   }
 
-  const rows: SeasonListRow[] = [
-    ...input.targets
-      .filter((target) => !(target.eventId && targetByEvent.get(target.eventId) === target))
-      .map((target) => ({ kind: "target" as const, date: target.targetDate, target })),
-    ...input.periods.map((period) => ({ kind: "period" as const, date: period.startDate, period })),
-    ...input.events.map((event) => {
-      const target = targetByEvent.get(event.id) ?? null;
-      return { kind: "event" as const, date: target?.targetDate ?? event.date, event, target };
-    }),
-    ...input.plans.flatMap((plan) => [
-      { kind: "plan" as const, date: plan.startDate, plan, rand: "start" as const },
-      { kind: "plan" as const, date: plan.endDate, plan, rand: "eind" as const },
-    ]),
+  const haltes: SeasonRoadStop[] = [
+    { kind: "vandaag", key: "vandaag", date: today, surface: surfaceAt(today) },
   ];
-  return rows.sort((a, b) => a.date.localeCompare(b.date));
+
+  const eventById = new Map(events.map((event) => [event.id, event]));
+  const eventsMetMikpunt = new Set<string>();
+  for (const target of targets) {
+    const event = target.eventId ? (eventById.get(target.eventId) ?? null) : null;
+    if (event) eventsMetMikpunt.add(event.id);
+    haltes.push({
+      kind: "mikpunt",
+      key: `mikpunt:${target.id}`,
+      date: target.targetDate,
+      surface: surfaceAt(target.targetDate),
+      target,
+      event,
+    });
+  }
+  for (const event of events) {
+    if (eventsMetMikpunt.has(event.id)) continue;
+    haltes.push({
+      kind: "event",
+      key: `event:${event.id}`,
+      date: event.date,
+      surface: surfaceAt(event.date),
+      event,
+    });
+  }
+  for (const period of periods) {
+    haltes.push({
+      kind: "periode",
+      key: `periode:${period.id}`,
+      date: period.startDate < from ? from : period.startDate,
+      // Een vakantie die nu loopt is niet voorbij, ook al begon hij vorige week.
+      surface: period.endDate < today ? "voorbij" : surfaceAt(period.endDate),
+      period,
+      days: daysBetween(period.startDate, period.endDate) + 1,
+    });
+  }
+
+  const laatste = [...plans].sort((a, b) => a.endDate.localeCompare(b.endDate)).at(-1);
+  for (const plan of plans) {
+    if (plan.startDate >= from) {
+      haltes.push({
+        kind: "schema_start",
+        key: `schema_start:${plan.rootId}`,
+        date: plan.startDate,
+        surface: surfaceAt(plan.startDate),
+        plan,
+      });
+    }
+    if (plan === laatste && plan.endDate >= today) {
+      haltes.push({
+        kind: "schema_eind",
+        key: `schema_eind:${plan.rootId}`,
+        date: plan.endDate,
+        surface: "schema",
+        plan,
+        nextBlockDue: nextBlockDue(today, plan),
+      });
+    }
+  }
+
+  for (const target of targets) {
+    if (target.priority !== "a") continue;
+    const start = shiftDays(target.targetDate, -PLAN_BLOCK_DAYS);
+    // Alleen zolang dat blok er nog niet is; anders staat het schema er al.
+    if (start <= today || start < from || surfaceAt(start) === "schema") continue;
+    haltes.push({
+      kind: "opbouw",
+      key: `opbouw:${target.id}`,
+      date: start,
+      surface: "open",
+      target,
+    });
+  }
+
+  haltes.sort((a, b) => a.date.localeCompare(b.date) || ROAD_ORDER[a.kind] - ROAD_ORDER[b.kind]);
+
+  const jaarVanNu = today.slice(0, 4);
+  const weg: SeasonRoadStop[] = [];
+  let vorigeMaand: string | null = null;
+  for (const halte of haltes) {
+    const maand = halte.date.slice(0, 7);
+    if (maand !== vorigeMaand) {
+      // De maanden waar niets in staat, tussen deze halte en de vorige.
+      if (vorigeMaand) {
+        const leeg: string[] = [];
+        for (let m = volgendeMaand(vorigeMaand); m < maand; m = volgendeMaand(m)) leeg.push(m);
+        if (leeg.length > 0) {
+          const eerste = maandNaam(leeg[0], false);
+          const slot = maandNaam(leeg.at(-1) as string, false);
+          weg.push({
+            kind: "leeg",
+            key: `leeg:${leeg[0]}`,
+            date: `${leeg[0]}-01`,
+            surface: surfaceAt(`${leeg[0]}-01`),
+            label:
+              leeg.length === 1
+                ? eerste
+                : leeg.length === 2
+                  ? `${eerste} en ${slot}`
+                  : `${eerste} t/m ${slot}`,
+          });
+        }
+      }
+      weg.push({
+        kind: "maand",
+        key: `maand:${maand}`,
+        date: halte.date,
+        surface: surfaceAt(halte.date),
+        label: maandNaam(maand, maand.slice(0, 4) !== jaarVanNu),
+      });
+      vorigeMaand = maand;
+    }
+    weg.push(halte);
+  }
+  return weg;
+}
+
+/** Waar het lid nu staat: het lopende blok en de eerstvolgende piek. */
+export function seasonStand(input: {
+  today: string;
+  targets: SeasonTarget[];
+  plans: SeasonPlanBar[];
+}): {
+  plan: SeasonPlanBar | null;
+  /** Weken die het schema nog vooruit is uitgewerkt, naar boven afgerond. */
+  weeksPlanned: number;
+  peak: SeasonTarget | null;
+  weeksToPeak: number;
+} {
+  const { today, targets, plans } = input;
+  const plan =
+    plans
+      .filter((bar) => bar.startDate <= today && bar.endDate >= today)
+      .sort((a, b) => b.endDate.localeCompare(a.endDate))[0] ?? null;
+  const peak =
+    targets
+      .filter((target) => target.priority === "a" && target.targetDate >= today)
+      .sort((a, b) => a.targetDate.localeCompare(b.targetDate))[0] ?? null;
+  return {
+    plan,
+    weeksPlanned: plan ? Math.ceil(daysBetween(today, plan.endDate) / 7) : 0,
+    peak,
+    weeksToPeak: peak ? Math.round(daysBetween(today, peak.targetDate) / 7) : 0,
+  };
 }

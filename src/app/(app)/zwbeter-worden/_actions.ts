@@ -20,7 +20,11 @@ import {
 } from "@/lib/training/publish";
 import { requestReplan } from "@/lib/training/replan";
 import { syncEventWorkout } from "@/lib/training/events";
-import { activeBasePlan, archiveOtherBasePlans } from "@/lib/training/active-plan";
+import {
+  activeBasePlan,
+  archiveOtherBasePlans,
+  extendRootPlanEnd,
+} from "@/lib/training/active-plan";
 import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
 import {
   clampMinutes,
@@ -854,6 +858,8 @@ export async function publishTrainingPlan(formData: FormData) {
         .eq("id", planId);
       if (!plan.parent_plan_id) {
         await archiveOtherBasePlans(admin, planId, plan.profile_id);
+      } else {
+        await extendRootPlanEnd(admin, planId);
       }
       await sendNotificationToMembers(
         "on_training_plan",

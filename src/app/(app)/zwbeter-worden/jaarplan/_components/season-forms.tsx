@@ -1,7 +1,7 @@
 "use client";
 
-// Een mikpunt of een periode toevoegen. Twee formulieren die openklappen, zodat
-// de pagina begint met het overzicht en niet met invulvelden.
+// Een mikpunt of een periode toevoegen. Twee knoppen naast elkaar; het formulier
+// klapt eronder open, zodat de pagina begint met de weg en niet met invulvelden.
 
 import { useState } from "react";
 import { CalendarRange, Flag } from "lucide-react";
@@ -24,16 +24,49 @@ export function SeasonForms({
   /** Clubevents waar het lid ja of misschien op zei en die nog geen mikpunt zijn. */
   events: SeasonEvent[];
 }) {
+  const [open, setOpen] = useState<"mikpunt" | "periode" | null>(null);
+  const kies = (soort: "mikpunt" | "periode") =>
+    setOpen((huidig) => (huidig === soort ? null : soort));
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <TargetForm todayKey={todayKey} events={events} />
-      <PeriodForm todayKey={todayKey} />
-    </div>
+    <section className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant={open === "mikpunt" ? "default" : "outline"}
+          aria-expanded={open === "mikpunt"}
+          onClick={() => kies("mikpunt")}
+          className="min-h-11"
+        >
+          <Flag className="size-4" />
+          Mikpunt
+        </Button>
+        <Button
+          variant={open === "periode" ? "default" : "outline"}
+          aria-expanded={open === "periode"}
+          onClick={() => kies("periode")}
+          className="min-h-11"
+        >
+          <CalendarRange className="size-4" />
+          Periode
+        </Button>
+      </div>
+      {open === "mikpunt" ? (
+        <TargetForm todayKey={todayKey} events={events} onDone={() => setOpen(null)} />
+      ) : null}
+      {open === "periode" ? <PeriodForm todayKey={todayKey} onDone={() => setOpen(null)} /> : null}
+    </section>
   );
 }
 
-function TargetForm({ todayKey, events }: { todayKey: string; events: SeasonEvent[] }) {
-  const [open, setOpen] = useState(false);
+function TargetForm({
+  todayKey,
+  events,
+  onDone,
+}: {
+  todayKey: string;
+  events: SeasonEvent[];
+  onDone: () => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   // Met een event gekozen komen titel en datum van het event.
@@ -50,89 +83,72 @@ function TargetForm({ todayKey, events }: { todayKey: string; events: SeasonEven
       setFout(result.error ?? "Opslaan faalde.");
       return;
     }
-    form.reset();
-    setEventId("");
-    setOpen(false);
+    onDone();
   }
 
   return (
-    <section className="rounded-lg border bg-card p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <Flag className="size-5 text-primary" />
-          Mikpunt
-        </h2>
-        <Button size="sm" variant="outline" onClick={() => setOpen((value) => !value)}>
-          {open ? "Sluiten" : "Toevoegen"}
+    <form onSubmit={submit} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2">
+      {events.length > 0 ? (
+        <label className="sm:col-span-2 text-sm">
+          Event
+          <select
+            name="event_id"
+            value={eventId}
+            onChange={(event) => setEventId(event.target.value)}
+            className={`mt-1 ${FIELD}`}
+          >
+            <option value="">Geen</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.title} · {event.date}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {eventId ? null : (
+        <>
+          <label className="sm:col-span-2 text-sm">
+            Titel
+            <input name="title" required className={`mt-1 ${FIELD}`} />
+          </label>
+          <label className="text-sm">
+            Datum
+            <input
+              type="date"
+              name="target_date"
+              required
+              defaultValue={todayKey}
+              className={`mt-1 ${FIELD}`}
+            />
+          </label>
+        </>
+      )}
+      <label className="text-sm">
+        Prioriteit
+        <select name="priority" defaultValue="b" className={`mt-1 ${FIELD}`}>
+          {Object.entries(SEASON_PRIORITY_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="sm:col-span-2 text-sm">
+        Notitie
+        <input name="note" className={`mt-1 ${FIELD}`} />
+      </label>
+      {fout ? <p className="sm:col-span-2 text-sm text-destructive">{fout}</p> : null}
+      <div className="sm:col-span-2">
+        <Button type="submit" disabled={busy} className="min-h-11 sm:min-h-0">
+          {busy ? "Opslaan…" : "Opslaan"}
         </Button>
       </div>
-
-      {open ? (
-        <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">
-          {events.length > 0 ? (
-            <label className="sm:col-span-2 text-sm">
-              Event
-              <select
-                name="event_id"
-                value={eventId}
-                onChange={(event) => setEventId(event.target.value)}
-                className={`mt-1 ${FIELD}`}
-              >
-                <option value="">Geen</option>
-                {events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.title} · {event.date}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {eventId ? null : (
-            <>
-              <label className="sm:col-span-2 text-sm">
-                Titel
-                <input name="title" required className={`mt-1 ${FIELD}`} />
-              </label>
-              <label className="text-sm">
-                Datum
-                <input
-                  type="date"
-                  name="target_date"
-                  required
-                  defaultValue={todayKey}
-                  className={`mt-1 ${FIELD}`}
-                />
-              </label>
-            </>
-          )}
-          <label className="text-sm">
-            Prioriteit
-            <select name="priority" defaultValue="b" className={`mt-1 ${FIELD}`}>
-              {Object.entries(SEASON_PRIORITY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="sm:col-span-2 text-sm">
-            Notitie
-            <input name="note" className={`mt-1 ${FIELD}`} />
-          </label>
-          {fout ? <p className="sm:col-span-2 text-sm text-destructive">{fout}</p> : null}
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Opslaan…" : "Opslaan"}
-            </Button>
-          </div>
-        </form>
-      ) : null}
-    </section>
+    </form>
   );
 }
 
-function PeriodForm({ todayKey }: { todayKey: string }) {
-  const [open, setOpen] = useState(false);
+function PeriodForm({ todayKey, onDone }: { todayKey: string; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
 
@@ -147,70 +163,55 @@ function PeriodForm({ todayKey }: { todayKey: string }) {
       setFout(result.error ?? "Opslaan faalde.");
       return;
     }
-    form.reset();
-    setOpen(false);
+    onDone();
   }
 
   return (
-    <section className="rounded-lg border bg-card p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <CalendarRange className="size-5 text-primary" />
-          Periode
-        </h2>
-        <Button size="sm" variant="outline" onClick={() => setOpen((value) => !value)}>
-          {open ? "Sluiten" : "Toevoegen"}
+    <form onSubmit={submit} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2">
+      <label className="sm:col-span-2 text-sm">
+        Titel
+        <input name="title" required className={`mt-1 ${FIELD}`} />
+      </label>
+      <label className="text-sm">
+        Van
+        <input
+          type="date"
+          name="start_date"
+          required
+          defaultValue={todayKey}
+          className={`mt-1 ${FIELD}`}
+        />
+      </label>
+      <label className="text-sm">
+        Tot en met
+        <input
+          type="date"
+          name="end_date"
+          required
+          defaultValue={todayKey}
+          className={`mt-1 ${FIELD}`}
+        />
+      </label>
+      <label className="text-sm">
+        Soort
+        <select name="kind" defaultValue="rust" className={`mt-1 ${FIELD}`}>
+          {Object.entries(SEASON_PERIOD_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="sm:col-span-2 text-sm">
+        Notitie
+        <input name="note" className={`mt-1 ${FIELD}`} />
+      </label>
+      {fout ? <p className="sm:col-span-2 text-sm text-destructive">{fout}</p> : null}
+      <div className="sm:col-span-2">
+        <Button type="submit" disabled={busy} className="min-h-11 sm:min-h-0">
+          {busy ? "Opslaan…" : "Opslaan"}
         </Button>
       </div>
-
-      {open ? (
-        <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="sm:col-span-2 text-sm">
-            Titel
-            <input name="title" required className={`mt-1 ${FIELD}`} />
-          </label>
-          <label className="text-sm">
-            Van
-            <input
-              type="date"
-              name="start_date"
-              required
-              defaultValue={todayKey}
-              className={`mt-1 ${FIELD}`}
-            />
-          </label>
-          <label className="text-sm">
-            Tot en met
-            <input
-              type="date"
-              name="end_date"
-              required
-              defaultValue={todayKey}
-              className={`mt-1 ${FIELD}`}
-            />
-          </label>
-          <label className="text-sm">
-            Soort
-            <select name="kind" defaultValue="rust" className={`mt-1 ${FIELD}`}>
-              {Object.entries(SEASON_PERIOD_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="sm:col-span-2 text-sm">
-            Notitie
-            <input name="note" className={`mt-1 ${FIELD}`} />
-          </label>
-          {fout ? <p className="sm:col-span-2 text-sm text-destructive">{fout}</p> : null}
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Opslaan…" : "Opslaan"}
-            </Button>
-          </div>
-        </form>
-      ) : null}
-    </section>
+    </form>
   );
 }

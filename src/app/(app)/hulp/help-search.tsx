@@ -150,7 +150,14 @@ const HELP_INDEX: HelpResult[] = [
     text: "A-, B- en C-doelen, vakanties, drukke periodes en trainingskampen, en wat ze met je schema doen.",
     href: "/hulp#jaarplan",
     terms:
-      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn clubevent kalender misschien event koppelen prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage volume",
+      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn weg asfalt hek paaltje stippellijn grind finish clubevent kalender misschien event koppelen vlaggetje prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage volume melding waarschuwing",
+  },
+  {
+    title: "Waarom een schema hooguit twaalf weken loopt",
+    text: "Blokken van twaalf weken, het volgende blok klaarzetten, en de bronnen.",
+    href: "/hulp#blokken",
+    terms:
+      "blok blokken twaalf weken 12 weken drie maanden 3 maanden schema lengte duur kort stopt eindigt einde afgelopen volgend blok klaarzetten verlengen doorgaan doel ver weg opbouw periodisering bron bronnen onderzoek friel waarom",
   },
   {
     title: "Doeltype en de laatste weken",
