@@ -295,10 +295,17 @@ describe("seasonWarnings", () => {
     });
     const dichtbij = warn({
       periods: [kamp],
-      targets: [target({ title: "Marmotte", targetDate: "2026-06-01" })],
+      targets: [target({ title: "Marmotte", targetDate: "2026-05-29" })],
     });
     const gevonden = dichtbij.find((w) => w.code === "kamp_vlak_voor_a_doel");
-    expect(gevonden?.title).toBe('"Mallorca" eindigt 8 dagen vóór "Marmotte"');
+    expect(gevonden?.title).toBe('"Mallorca" eindigt 5 dagen vóór "Marmotte"');
+
+    // Acht dagen ertussen is een gewone opzet: het kamp, en dan de taper.
+    const ruim = warn({
+      periods: [kamp],
+      targets: [target({ title: "Marmotte", targetDate: "2026-06-01" })],
+    });
+    expect(codes(ruim)).not.toContain("kamp_vlak_voor_a_doel");
 
     const precies = warn({
       periods: [kamp],

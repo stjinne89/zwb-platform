@@ -42,8 +42,14 @@ export const PLAN_BLOCK_DAYS = PLAN_BLOCK_WEEKS * 7;
 export const NEXT_BLOCK_LEAD_DAYS = 14;
 /** Een rustperiode langer dan dit vraagt om heropbouw in plaats van doorgaan. */
 export const REBUILD_AFTER_REST_DAYS = 10;
-/** Zoveel dagen kost het om van een trainingskamp te herstellen vóór een piek. */
-export const CAMP_BEFORE_A_TARGET_DAYS = 10;
+/**
+ * Zoveel dagen moeten er minstens tussen het einde van een trainingskamp en een
+ * piek liggen. Een kamp dat een tot twee weken vóór de piek eindigt is juist de
+ * gangbare opzet: de dagen erna zijn de taper. Stond tot oktober 2026 op tien,
+ * waardoor een kamp acht dagen vóór een A-doel een waarschuwing kreeg. Zie
+ * /hulp#jaarplan voor de bronnen.
+ */
+export const CAMP_BEFORE_A_TARGET_DAYS = 7;
 /** Hoeveel losse events we hooguit als aparte waarschuwing tonen. */
 const MAX_EVENT_WARNINGS = 3;
 
@@ -403,7 +409,7 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
       id: `kamp_vlak_voor_a_doel:${period.id}`,
       title: `"${period.title}" eindigt ${gat} ${gat === 1 ? "dag" : "dagen"} vóór "${doel.title}"`,
       detail:
-        "Van een trainingskamp ben je niet in een week hersteld: je staat dan vermoeid aan de start.",
+        "Minder dan een week is te kort om de vermoeidheid van een kamp kwijt te raken. Een tot twee weken ertussen is ruim genoeg.",
       action: null,
       anchor: { kind: "period", id: period.id },
     });

@@ -1220,8 +1220,28 @@ export default function HelpPage() {
                 niet: het schema plant lange ritten en volwaardige kwaliteit,
                 afgestemd op wat jij aankunt, en bouwt er in de weken
                 ervoor naartoe. Hoeveel rust je ervoor en erna krijgt, volgt
-                uit je eigen herstelwaarden. Leg een kamp niet in de laatste tien dagen
-                voor een A-doel.
+                uit je eigen herstelwaarden. Een kamp dat een tot twee weken
+                voor een A-doel eindigt past goed: de dagen erna zijn je taper.
+                Laat het niet in de laatste week voor een A-doel eindigen. In{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://pubmed.ncbi.nlm.nih.gov/25134000/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  onderzoek bij triatleten
+                </a>{" "}
+                viel de piek na een zware periode meestal in de eerste twee
+                weken van de taper, en een{" "}
+                <a
+                  className="underline hover:text-primary"
+                  href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10171681/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  meta-analyse
+                </a>{" "}
+                vond winst bij een taper van zeven dagen tot drie weken.
               </li>
             </ul>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -1235,7 +1255,7 @@ export default function HelpPage() {
               speelt, met de knop die het oplost: trainingen in een
               rustperiode, twee A-doelen binnen drie weken, een A-doel binnen
               twaalf weken zonder schema, een event midden in je rust, of een
-              trainingskamp vlak voor een A-doel.
+              trainingskamp dat in de laatste week voor een A-doel eindigt.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Clubevents waar je ja of misschien op hebt gezegd staan

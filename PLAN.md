@@ -1365,6 +1365,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 >   Dat was een aanname van de bouwer, niet gevraagd, en is geschrapt.
 >   Om dezelfde reden vervallen: "laatste drie dagen licht" en "vijf tot zeven
 >   dagen herstel" als vaste vuistregels.
+> - *(Sinds 2026-10-13 is de grens hieronder zeven dagen, niet tien.)*
 > - Nieuwe signalering `kamp_vlak_voor_a_doel`: een kamp dat minder dan tien dagen
 >   (`CAMP_BEFORE_A_TARGET_DAYS`) vóór een A-doel eindigt.
 > - `/hulp#jaarplan` en de zoekindex bijgewerkt.
@@ -7175,6 +7176,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Bijgesteld — trainingskamp vóór een A-doel: grens van tien naar zeven dagen
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De eigenaar kreeg een waarschuwing bij een kamp dat acht dagen vóór
+een event eindigt en vond dat juist vrijwel ideaal. Nagezocht: dat klopt met de
+literatuur. Een taper van zeven dagen tot drie weken geeft winst (Wang e.a.
+2023, meta-analyse; Bosquet e.a. 2007 komt op twee weken uit), en na een zware
+periode valt de piek meestal in de eerste twee weken van de taper, zonder
+vertraging door zwaar trainen vlak ervoor (Aubry e.a. 2014, 33 triatleten).
+Een kamp dat een tot twee weken vóór de piek eindigt is dus de gewone opzet. De
+grens van tien dagen (2026-10-04) was een vuistregel van de bouwer, geen bron.
+
+**Wat.** `CAMP_BEFORE_A_TARGET_DAYS` van 10 naar 7: de melding komt alleen nog
+als het kamp minder dan zeven dagen vóór een A-doel eindigt. De promptregel
+zegt nu dat een kamp een tot twee weken vóór een A-mikpunt volledig benut wordt
+en dat de dagen erna de taper zijn; pas onder de zeven dagen gaat de taper
+voor. `/hulp#jaarplan` bijgewerkt, met de twee bronnen.
+
+**Kanttekening.** Een onderzoek dat rechtstreeks meet hoeveel dagen er tussen
+een trainingskamp en een wedstrijd horen te liggen is niet gevonden; zeven is
+afgeleid van de taperliteratuur. Aubry e.a. vonden ook dat wie door de zware
+periode echt overbelast raakte minder won en vaker ziek werd; dat hangt af van
+de renner en regelt de planner op herstelwaarden, niet deze datumgrens.
+
+**Niet meer waar.** In de ronde van 2026-10-04: "minder dan tien dagen" bij
+`kamp_vlak_voor_a_doel`.
+
+**Getest.** `season.test.ts` (vijf dagen meldt, acht dagen niet, precies zeven
+niet), `tsc`, ESLint.
 
 ### Opgeleverd — schema's als blokken van twaalf weken, en het jaarplan als weg
 
