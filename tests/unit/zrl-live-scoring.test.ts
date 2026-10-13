@@ -182,7 +182,7 @@ describe("tussentijden in een ploegentijdrit", () => {
   // Rommelige tags, zoals in het echt: twee spellingen en een renner zonder.
   const charlie: Plan = { row: 4, sprint: 195, kom: 640, tags: ["charlie", "charlie", "charlie cc", null] };
   let athlete = 100;
-  const build = (teams: Plan[]) => {
+  const build = (teams: Plan[], extra: (ids: number[]) => Passage[] = () => []) => {
     const tttRiders: Rider[] = [];
     const tttPassages: Passage[] = [];
     for (const t of teams) {
@@ -195,6 +195,7 @@ describe("tussentijden in een ploegentijdrit", () => {
         tttPassages.push(p(id, "K", started + (t.kom + i) * 1000, 150));
       });
     }
+    tttPassages.push(...extra(tttRiders.map((r) => r.athleteId)));
     return scoreRace({ format: "ttt", route: tttRoute, riders: tttRiders, passages: tttPassages, startAt: START });
   };
   const gaps = (result: ReturnType<typeof build>) =>
@@ -224,6 +225,17 @@ describe("tussentijden in een ploegentijdrit", () => {
     const raar: Plan = { row: 3, sprint: 239, kom: 239 + 400, tags: five("raar") };
     const snel: Plan = { row: 4, sprint: 200, kom: 600, tags: five("snel") };
     expect(build([alfa, raar, snel]).splits.every((s) => s.teams.length === 0)).toBe(true);
+  });
+
+  it("telt warmrijden vóór de eigen startrij niet mee", () => {
+    // Echt gezien (Women's Mint B, 2026-10-13): een renner uit een late rij reed
+    // 112 s na de groepsstart over de KOM, en de hele groep kreeg geen tussentijden.
+    const laat: Plan = { row: 9, sprint: 205, kom: 610, tags: five("laat") };
+    const teams = [alfa, bravo, laat];
+    const before = build(teams);
+    const result = build(teams, (ids) => [p(ids.at(-1) as number, "K", START + 112_000, 150)]);
+    expect(gaps(result)).toEqual(gaps(before));
+    expect(result.splits[1].teams.map((t) => t.team)).toEqual(["bravo", "alfa", "laat"]);
   });
 
   it("geeft geen tussentijd zonder vier renners, en noemt een rij zonder tags naar de rij", () => {
