@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { MuscleMap } from "@/components/mobility/muscle-map";
+import { equipmentLabel, seriesEquipment } from "@/lib/training/equipment";
 import type { MobilitySeries, MobilitySeriesItem } from "@/lib/training/mobility";
 import { normalizeLoad, seriesLoad } from "@/lib/training/muscles";
 import { formatWellnessDate } from "../../_components/format";
@@ -25,6 +26,8 @@ export function SeriesCard({
   lastDone: string | null;
   suggested?: boolean;
 }) {
+  const equipment = equipmentLabel(seriesEquipment(items));
+
   return (
     <Link
       href={`/zwbeter-worden/core/${series.slug}`}
@@ -48,6 +51,7 @@ export function SeriesCard({
           {series.duration_minutes} min · {TIMING_LABELS[series.timing]}
           {lastDone ? ` · laatst ${formatWellnessDate(lastDone)}` : ""}
         </p>
+        {equipment && <p className="mt-0.5 text-xs text-muted-foreground">{equipment}</p>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <MuscleMap load={normalizeLoad(seriesLoad(items))} className="w-14" />

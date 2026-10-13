@@ -28,6 +28,19 @@ export type Accent = {
   dashed?: boolean;
 };
 
+type Anchor = "hand" | "shoulder" | "foot";
+
+/** Materiaal dat aan het lichaam vastzit en dus meebeweegt. */
+export type Gear =
+  /** Halterschijf van opzij: de stang wijst naar de kijker. */
+  | { kind: "schijf"; at: Anchor }
+  /** Dumbbell of kettlebell. */
+  | { kind: "gewicht"; at: Anchor }
+  /** Voetplaat van een leg press, haaks op het been. */
+  | { kind: "plaat"; at: "foot" }
+  /** Kabel of weerstandsband naar een vast punt. */
+  | { kind: "lijn"; from: Anchor; to: Point };
+
 export type Pose = {
   /** Heupgewricht. */
   hip: Point;
@@ -60,6 +73,7 @@ export type Pose = {
   accentOpacity?: number;
   /** Bank, muur, trede: grijze hulplijnen als pad. */
   props?: string[];
+  gear?: Gear[];
   /** Grondlijn tonen. Standaard aan. */
   ground?: boolean;
   /** Verkleining rond het midden van de grondlijn, voor een figuur die op een
@@ -324,6 +338,7 @@ export function blendPose(a: Pose, b: Pose, t: number): Pose {
     accent: near.accent,
     accentOpacity: Math.abs(1 - 2 * t),
     props: near.props,
+    gear: near.gear,
     ground: near.ground,
     zoom: near.zoom,
   };
@@ -505,6 +520,63 @@ function Arm({
   );
 }
 
+function GearShape({ item, body }: { item: Gear; body: Skeleton }) {
+  const anchor = (at: Anchor): Point => {
+    if (at === "hand") {
+      return add(body.arm.end, scale(unit(sub(body.arm.end, body.arm.mid), [0, 1]), 3.5));
+    }
+    if (at === "foot") return body.leg.end;
+    // De stang ligt op de bovenrug, net achter de schouder.
+    return add(add(body.spine[6], scale(body.front, -9)), scale(body.up, -4));
+  };
+
+  if (item.kind === "lijn") {
+    const from = anchor(item.from);
+    return (
+      <line
+        x1={fmt(from[0])}
+        y1={fmt(from[1])}
+        x2={item.to[0]}
+        y2={item.to[1]}
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        opacity={0.6}
+      />
+    );
+  }
+
+  if (item.kind === "plaat") {
+    const along = unit(sub(body.leg.end, body.leg.root), [1, 0]);
+    const center = add(body.leg.end, scale(along, 9));
+    const across: Point = [along[1] * 24, -along[0] * 24];
+    const a = add(center, across);
+    const b = sub(center, across);
+    return (
+      <line
+        x1={fmt(a[0])}
+        y1={fmt(a[1])}
+        x2={fmt(b[0])}
+        y2={fmt(b[1])}
+        stroke="var(--border)"
+        strokeWidth={6}
+        strokeLinecap="round"
+      />
+    );
+  }
+
+  const [x, y] = anchor(item.at);
+  if (item.kind === "schijf") {
+    return (
+      <g>
+        <circle cx={fmt(x)} cy={fmt(y)} r={13} fill="var(--card)" stroke="currentColor" strokeWidth={4} />
+        <circle cx={fmt(x)} cy={fmt(y)} r={3} fill="currentColor" />
+      </g>
+    );
+  }
+  return <circle cx={fmt(x)} cy={fmt(y)} r={8} fill="currentColor" {...HALO} />;
+}
+
 /**
  * Eén houding. De viewBox is 320×220 en de kaart is op telefoon ongeveer even
  * breed, dus één SVG-eenheid komt ruwweg op één CSS-pixel uit — de regel uit de
@@ -617,6 +689,10 @@ export function Figure({
           <Arm limb={body.arm} facing={body.facing} zones={zones} />
         </g>
       </g>
+
+      {pose.gear?.map((item, index) => (
+        <GearShape key={index} item={item} body={body} />
+      ))}
 
       {pose.accent && (
         <g opacity={pose.accentOpacity ?? 1}>

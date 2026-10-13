@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Markdown } from "@/components/markdown";
+import { equipmentLabel, seriesEquipment } from "@/lib/training/equipment";
 import { seriesMinutes } from "@/lib/training/mobility";
 import { formatWellnessDate } from "../../_components/format";
 import { completeSeries, undoSession } from "../_actions";
@@ -34,6 +35,7 @@ export default async function SeriesPage({
   );
   const lastDone = sessions.find((session) => session.series_id === series.id);
   const minutes = series.duration_minutes || seriesMinutes(series.items);
+  const equipment = equipmentLabel(seriesEquipment(series.items));
 
   return (
     <div className="space-y-6">
@@ -47,6 +49,7 @@ export default async function SeriesPage({
           {minutes} min · {series.items.length} oefeningen
           {lastDone ? ` · laatst ${formatWellnessDate(lastDone.completed_on)}` : ""}
         </p>
+        {equipment && <p className="mt-0.5 text-xs text-muted-foreground">{equipment}</p>}
         <MuscleSummary
           load={seriesLoad(series.items)}
           size="lg"

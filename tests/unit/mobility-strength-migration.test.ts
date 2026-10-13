@@ -25,6 +25,7 @@ beforeAll(async () => {
     "0110_mobility_library_seed.sql",
     "0159_mobility_strength.sql",
     "0160_mobility_strength_seed.sql",
+    "0230_mobility_strength_seed_v2.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -45,9 +46,14 @@ describe("krachtreeksen (0159 + 0160)", () => {
   it("voegt drie krachtseries met elk vijf oefeningen toe en laat de rest staan", async () => {
     expect(await itemCounts()).toEqual({
       fundament: 5,
+      "gym-onderhoud": 4,
+      "gym-opbouw-1": 4,
+      "gym-opbouw-2": 4,
+      "gym-opbouw-3": 4,
       "kracht-basis": 5,
       "kracht-eenbenig": 5,
       "kracht-klimmen": 5,
+      "kracht-thuis-gewicht": 4,
       "na-de-rit": 5,
       "voor-de-rit": 5,
       zithouding: 8,
@@ -55,7 +61,26 @@ describe("krachtreeksen (0159 + 0160)", () => {
     const { rows } = await db.query<{ count: number }>(
       "select count(*)::int as count from mobility_exercises where category = 'kracht'",
     );
-    expect(rows[0].count).toBe(7);
+    expect(rows[0].count).toBe(15);
+  });
+
+  it("draait 0230 opnieuw zonder dubbele items en laat 0160 staan", async () => {
+    await db.exec(await migration("0230_mobility_strength_seed_v2.sql"));
+    const counts = await itemCounts();
+    expect(counts["gym-opbouw-3"]).toBe(4);
+    expect(counts["kracht-basis"]).toBe(5);
+  });
+
+  it("volgt in de gymblokken de herhalingen uit de bron", async () => {
+    const { rows } = await db.query<{ slug: string; reps: number; sets: number }>(
+      "select s.slug, min(i.reps)::int as reps, min(i.sets)::int as sets from mobility_series s join mobility_series_items i on i.series_id = s.id where s.slug like 'gym-%' group by s.slug order by s.slug",
+    );
+    expect(rows).toEqual([
+      { slug: "gym-onderhoud", reps: 5, sets: 2 },
+      { slug: "gym-opbouw-1", reps: 10, sets: 3 },
+      { slug: "gym-opbouw-2", reps: 8, sets: 3 },
+      { slug: "gym-opbouw-3", reps: 6, sets: 3 },
+    ]);
   });
 
   it("is opnieuw te draaien zonder dubbele items", async () => {

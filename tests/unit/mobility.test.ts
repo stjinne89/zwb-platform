@@ -297,6 +297,24 @@ describe("recommendStrength", () => {
   it("geeft null zonder krachtseries", () => {
     expect(recommendStrength(STANDARD_SERIES, [], today, restDay)).toBeNull();
   });
+
+  it("stelt een serie met materiaal nooit voor, maar telt hem wel mee voor de rust", () => {
+    const gym = {
+      ...series({ id: "g1", slug: "gym-opbouw-1", goal: "kracht", level: 3 }),
+      items: [item({ exercise: exercise({ slug: "barbell-half-squat" }) })],
+    };
+    const home = {
+      ...series({ id: "k1", slug: "kracht-basis", goal: "kracht", level: 1 }),
+      items: [item({ exercise: exercise({ slug: "squat" }) })],
+    };
+
+    expect(recommendStrength([gym], [], today, restDay)).toBeNull();
+    // De gymserie is nooit gedaan en zou dus "het langst geleden" zijn.
+    expect(recommendStrength([gym, home], [session("2026-08-01", "k1")], today, restDay)?.slug).toBe(
+      "kracht-basis",
+    );
+    expect(recommendStrength([gym, home], [session("2026-08-09", "g1")], today, restDay)).toBeNull();
+  });
 });
 
 describe("itemLabel", () => {

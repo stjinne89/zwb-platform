@@ -193,9 +193,10 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Krachtreeksen",
-    text: "Beenkracht en eenbenige stabiliteit op een rustdag, zonder belasting.",
+    text: "Kracht met eigen gewicht, thuis met gewicht en zwaar in de sportschool.",
     href: "/hulp#kracht",
-    terms: "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn",
+    terms:
+      "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn gym sportschool halter halterstang leg press kabel dumbbell kettlebell weerstandsband band zwaar herhalingen opbouw onderhoud",
   },
   {
     title: "Voeding",

@@ -11,6 +11,7 @@
 
 import { ACTIVATION_POSES } from "./activatie";
 import { CORE_POSES } from "./core";
+import { GYM_POSES } from "./gym";
 import { MOBILITY_POSES } from "./mobiliteit";
 import { STRENGTH_POSES } from "./kracht";
 import type { Pose } from "./figure-kit";
@@ -23,6 +24,7 @@ export const MOBILITY_FIGURES: Record<string, Pose[]> = {
   ...MOBILITY_POSES,
   ...ACTIVATION_POSES,
   ...STRENGTH_POSES,
+  ...GYM_POSES,
 };
 
 /** Figuren waarvan de poses varianten van een hold zijn (makkelijk en volledig)

@@ -7510,6 +7510,94 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — kracht-tabblad fase B: gymseries en thuis met gewicht
+
+**2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie `0230`
+(conceptinhoud, nog niet gedraaid).
+
+**Aanleiding.** De eigenaar wil de bibliotheek uitbreiden nu de oefeningen
+duidelijker in beeld zijn (fase A), op voorwaarde dat nieuwe oefeningen en
+series met literatuur onderbouwd zijn. Op de vraag welk materiaal mag, koos hij
+"ook zwaar werk met halters".
+
+**Wijziging.**
+
+- [`docs/kracht-literatuur.md`](docs/kracht-literatuur.md): negen bronnen, per
+  bron wat er onderzocht is en wat niet te controleren was, en per oefening en
+  serie de bron. Conclusie: het bewijs voor fietsprestatie zit bij zwaar werk
+  met vier beenoefeningen; een overzichtsstudie uit 2026 noemt de zekerheid
+  zelf laag.
+- `0230_mobility_strength_seed_v2.sql` (idempotent): acht oefeningen en vijf
+  series. Gym: halve squat met halter, eenbenige leg press, staande heupbuiging
+  met kabel en kuitheffen met gewicht, in *Gym: opbouw 1, 2, 3* (3 × 10, 8, 6)
+  en *Gym: onderhoud* (2 × 5). Thuis: goblet squat, Bulgaarse split squat,
+  heupbuiging met band en eenbenig kuitheffen, in *Kracht thuis: met gewicht*.
+- Figuren in `figures/gym.ts`. De tekenkit kent nu materiaal dat aan het lichaam
+  vastzit en meebeweegt (`Gear`: halterschijf, dumbbell, voetplaat, kabel of
+  band).
+- `src/lib/training/equipment.ts`: welk materiaal een oefening vraagt. Te zien
+  als regel in de bibliotheek, op de seriekaart en op de seriepagina.
+- `recommendStrength()` stelt een serie die materiaal vraagt nooit voor. Zo'n
+  sessie telt wel mee voor de drie dagen rust en het maximum van twee per week.
+- `/hulp#kracht` herschreven: wat de gymseries zijn, wat het onderzoek liet zien
+  en hoe klein dat onderzoek is, dat de studies begeleiding hadden, en dat van de
+  thuisserie geen effect op de fiets bekend is.
+
+**Onderweg besloten.**
+
+- *Acht oefeningen, niet de vijftien tot twintig uit het plan.* De afspraak was:
+  een oefening zonder gecontroleerde bron komt er niet in. Voor bovenlichaam,
+  explosieve training en een serie voor botgezondheid is geen bron gevonden die
+  te controleren was.
+- *Materiaal in code, geen kolom `equipment`.* Het plan noemde een migratie met
+  een kolom. Dezelfde reden als bij de spiergroepen: zo werkt de code voor en na
+  de seed, zonder terugval voor een kolom die er nog niet is.
+- *Eén serie per blok, niet per sessie.* De bron wisselt binnen een week tussen
+  een lichtere en een zwaardere sessie (10/6, 8/5, 6/4). Een serie heeft één
+  aantal herhalingen per oefening; de zwaardere tweede sessie staat in de
+  ondertitel.
+- *Eigen keuzes zonder bron,* ook zo benoemd in het document: 120 seconden rust
+  tussen sets, de invulling van de onderhoudssessie (de bron noemt alleen "één
+  keer per week"), het derde blok tot week 12, en een halter in plaats van een
+  Smith-machine.
+- *De regel "alleen op een rustdag, drie dagen ertussen, hooguit twee per week"
+  blijft.* Past bij twee sessies per week uit de studies. Voor de afstand tot
+  een rit op dezelfde dag is geen onderzoek bij renners gevonden.
+
+**Bewust niet gebouwd.**
+
+- Gewichten in kilo's of het bijhouden van progressie per oefening. Een sessie
+  blijft één vinkje; de tekst zegt hoe zwaar het moet voelen.
+- Een blokkenplanner die bijhoudt in welke week van de opbouw je zit. Het lid
+  kiest zelf de serie.
+- Kracht in TSS, CTL, het fietsschema of intervals.icu.
+- Drie bronnen die niet te vinden waren zijn weggelaten en staan als zodanig in
+  het document, waaronder een vaak aangehaalde studie uit 2023 over stoppen
+  tegenover onderhoud.
+
+**Niet meer waar.** Bij "krachtreeksen in het core-spoor (wens 19)": "geen zwaar
+krachtwerk met halters", de zin dat `/hulp#kracht` geen extra watt belooft, en
+dat `recommendStrength` elke krachtserie kan voorstellen. Alle drie daar
+bijgewerkt.
+
+**Getest.** `tsc`, eslint zonder fouten. `mobility-strength-migration.test.ts`
+draait `0230` in PGlite bovenop `0109`, `0110`, `0159` en `0160`: vijf series
+met elk vier oefeningen, opnieuw te draaien zonder dubbelen, `0160` blijft
+staan, en de herhalingen per blok kloppen met de bron. Die test ving een echte
+fout: zonder cast had de kolom met alleen `null` geen type. Verder: figuur- en
+spiergroepdekking voor de acht nieuwe slugs, materiaal per serie, en dat een
+gymserie nooit wordt voorgesteld maar wel meetelt voor de rust.
+
+**Niet geverifieerd.**
+
+- `0230` tegen de productiedatabase. **Pas draaien nadat de eigenaar
+  `docs/kracht-literatuur.md`, de oefeningen en de teksten heeft goedgekeurd.**
+  De code werkt zonder: dan bestaan de series gewoon niet.
+- De inhoud is niet door een trainer, fysiotherapeut of bewegingswetenschapper
+  nagekeken. Van acht van de negen bronnen is alleen de samenvatting gelezen.
+- De echte pagina's en de beweging in een browser: zelfde beperkingen als bij
+  fase A. De acht nieuwe figuren zijn op de losse testpagina bekeken.
+
 ### Opgeleverd — kracht-tabblad fase A: silhouetfiguren en spierkaart
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -11021,18 +11109,23 @@ belastingberekening, om dezelfde redenen als in `0109`.
 - Figuren in `src/components/mobility/figures/kracht.ts`.
 - `recommendStrength()` in `mobility.ts`: alleen op een dag zonder training of
   rit, minstens drie dagen na de vorige krachtsessie en hooguit twee per zeven
-  dagen, anders de serie die het langst geleden is. `recommendSeries` neemt
+  dagen, anders de serie die het langst geleden is *(sinds 2026-10-14 alleen
+  series zonder materiaal; zie fase B)*. `recommendSeries` neemt
   krachtseries niet meer mee in de rustdagrotatie. `CoreTodayCard` toont kracht
   als tweede regel ("Of kracht: …"); op `/zwbeter-worden/core` is die serie ook
   gemarkeerd. De bibliotheek kent de categorie Kracht en de seriebouwer het doel
   Kracht. Een krachtsessie telt mee in de weekteller van het spoor.
 - `/hulp#kracht` plus zoekentry, met de expliciete zin dat hier geen extra watt
-  van te verwachten is.
+  van te verwachten is. *(Sinds 2026-10-14 geldt die zin alleen nog voor de
+  series met eigen gewicht; zie fase B.)*
 
 **Bewust niet gebouwd.** Krachttraining als sessie in het fietsschema of naar
 intervals.icu (`WeightTraining`): dat raakt belasting, naleving en de AI-prompt,
-en de eigenaar koos het niet. Geen zwaar krachtwerk met halters: dat vraagt
-begeleiding, en daar zou een app-schema ten onrechte een belofte over doen. De
+en de eigenaar koos het niet. ~~Geen zwaar krachtwerk met halters: dat vraagt
+begeleiding, en daar zou een app-schema ten onrechte een belofte over doen.~~
+*(Teruggedraaid op 2026-10-14: de eigenaar koos alsnog voor gymseries met
+halters, zie "kracht-tabblad fase B". Het punt over begeleiding staat nu op
+`/hulp#kracht`.)* De
 promptregel die off-bike werk uit het fietsschema houdt, blijft staan.
 
 **Uitrol.** `0159` en `0160` zijn op 2026-09-15 door de eigenaar in productie gedraaid (inhoud daarmee goedgekeurd); de verificatiequery is hier niet gezien. De code werkt zonder de migraties: zonder `0160` bestaan er gewoon

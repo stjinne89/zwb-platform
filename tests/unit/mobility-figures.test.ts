@@ -30,8 +30,10 @@ describe("figuurregister", () => {
     // Vangnet: raakt een seed uit de pas met deze regex, dan valt dit om in
     // plaats van dat de dekkingscontrole stilletjes over niets loopt.
     expect(core).toHaveLength(18);
+    const weighted = seededIllustrationSlugs("0230_mobility_strength_seed_v2.sql");
     expect(strength).toHaveLength(7);
-    const slugs = [...core, ...strength];
+    expect(weighted).toHaveLength(8);
+    const slugs = [...core, ...strength, ...weighted];
 
     const missing = slugs.filter((slug) => !MOBILITY_FIGURES[slug]);
     expect(missing).toEqual([]);

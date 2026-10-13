@@ -3056,18 +3056,48 @@ Fitness-status: Verbeterend`}
         >
           <h3 className="text-sm font-semibold">Krachtreeksen</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Naast core en mobiliteit staan er series met je eigen gewicht voor
-            beenkracht, klimmen en eenbenige stabiliteit. Ze zijn bedoeld voor een
+            Naast core en mobiliteit staan er krachtseries: met je eigen gewicht,
+            thuis met een dumbbell en band, en zwaar in de sportschool. De series
+            met je eigen gewicht zijn bedoeld voor een
             rustdag: je krijgt ze alleen voorgesteld op een dag zonder training of
             rit, minstens drie dagen na je vorige krachtsessie en hooguit twee keer
             per week. Zo zit de spierpijn niet in je volgende sleutelsessie. Ook
             deze series tellen niet mee in je trainingsbelasting.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Verwacht er geen extra watt van. Dat zwaar krachtwerk renners sneller
-            maakt, gaat over halters en weinig herhalingen, met begeleiding. Deze
-            series maken je benen en romp belastbaarder en je trapbeweging per
-            been stabieler.
+            Van de series met je eigen gewicht mag je geen extra watt
+            verwachten. Ze maken je benen en romp belastbaarder en je
+            trapbeweging per been stabieler.
+          </p>
+          <h4 className="mt-4 text-sm font-semibold">Gym: zwaar werk</h4>
+          <p className="mt-2 text-sm text-muted-foreground">
+            De gymseries volgen het programma uit onderzoek bij goed getrainde
+            renners: halve squat, eenbenige leg press, staande heupbuiging en
+            kuitheffen, drie sets, twee keer per week. Opbouw 1, 2 en 3 duren
+            samen twaalf weken en gaan van tien naar zes herhalingen; de tweede
+            sessie van de week doe je zwaarder met minder herhalingen, zoals in
+            de ondertitel staat. In het seizoen houdt één onderhoudssessie per
+            week vast wat je hebt opgebouwd. In die studies verbeterden
+            fietseconomie en het vermogen in een test van 40 minuten, zonder
+            dat de renners zwaarder werden. Het bewijs komt uit kleine groepen;
+            een overzichtsstudie noemt de zekerheid zelf laag.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Kies een gewicht waarmee de laatste herhaling nog net netjes lukt;
+            de app noemt geen kilo&apos;s. In de studies stond er de eerste
+            weken een begeleider bij. Heb je nooit met een halterstang
+            getraind, laat de techniek dan eerst door een trainer in je
+            sportschool bekijken. ZWB stelt deze series nooit uit zichzelf
+            voor: je kiest ze zelf, en ze tellen wel mee voor de rust tussen
+            twee krachtsessies.
+          </p>
+          <h4 className="mt-4 text-sm font-semibold">Thuis met gewicht</h4>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Dezelfde vier bewegingen met een dumbbell of kettlebell en een
+            weerstandsband. Doe elke set tot je er nog ongeveer twee
+            herhalingen over hebt. Met lichtere gewichten groeit de spier
+            vergelijkbaar, maar je maximale kracht minder; of dit je sneller
+            maakt op de fiets is niet onderzocht.
           </p>
         </div>
 

@@ -8,6 +8,8 @@
 // todayKeyAmsterdam() in de ZWBeter Worden-pagina's. Zo hoeft geen enkele
 // functie hier een tijdzone te kennen.
 
+import { seriesEquipment } from "./equipment";
+
 export type MobilityCategory = "core" | "mobiliteit" | "activatie" | "kracht";
 export type MobilityRegion = "lumbaal" | "heup" | "thoracaal" | "schouder" | "enkel" | "been";
 export type MobilityGoal = "stabiliteit" | "mobiliteit" | "houding" | "kracht";
@@ -242,8 +244,12 @@ export const STRENGTH_MAX_PER_WEEK = 2;
  *
  * Bewust een tweede voorstel naast recommendSeries en geen vervanging: core en
  * mobiliteit blijven de basis, kracht is een aanvulling.
+ *
+ * Een serie die materiaal vraagt (halter, apparaat, dumbbell, band) wordt nooit
+ * voorgesteld: de app weet niet wat je in huis hebt, en zwaar werk in de
+ * sportschool kies je zelf. Zo'n sessie telt wel mee voor de rust ertussen.
  */
-export function recommendStrength<T extends MobilitySeries>(
+export function recommendStrength<T extends MobilitySeries & { items?: MobilitySeriesItem[] }>(
   series: T[],
   sessions: MobilitySession[],
   today: string,
@@ -265,7 +271,12 @@ export function recommendStrength<T extends MobilitySeries>(
   const thisWeek = new Set(strengthDays.filter((day) => day >= weekStart)).size;
   if (thisWeek >= STRENGTH_MAX_PER_WEEK) return null;
 
-  return strength
+  const withoutEquipment = strength.filter(
+    (row) => seriesEquipment(row.items ?? []).length === 0,
+  );
+  if (withoutEquipment.length === 0) return null;
+
+  return withoutEquipment
     .map((row) => ({ row, last: lastDoneOn(sessions, row.id) ?? "" }))
     .sort((a, b) => a.last.localeCompare(b.last) || a.row.level - b.row.level || a.row.slug.localeCompare(b.row.slug))[0]
     .row;

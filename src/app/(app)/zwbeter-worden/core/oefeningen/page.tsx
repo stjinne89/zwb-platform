@@ -1,5 +1,6 @@
 
 import { Markdown } from "@/components/markdown";
+import { equipmentLabel, exerciseEquipment } from "@/lib/training/equipment";
 import type { MobilityCategory } from "@/lib/training/mobility";
 import { ExerciseVisual } from "../_components/exercise-visual";
 import { ExerciseMuscleSummary } from "../_components/muscle-summary";
@@ -45,6 +46,7 @@ export default async function ExerciseLibraryPage() {
                   <h4 className="mt-2 font-semibold">{exercise.title}</h4>
                   <p className="text-xs text-muted-foreground">
                     {[
+                      equipmentLabel(exerciseEquipment(exercise.slug)),
                       exercise.default_hold_seconds
                         ? `${exercise.default_hold_seconds} sec`
                         : null,

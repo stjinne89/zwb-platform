@@ -103,6 +103,16 @@ export const EXERCISE_MUSCLES: Record<string, ExerciseMuscles> = {
   "calf-raise": m(["kuiten"]),
   "single-leg-rdl": m(["hamstrings", "bilspieren"], ["onderrug"]),
   "wall-sit": m(["quadriceps"], ["bilspieren"]),
+
+  // Kracht met gewicht (0230)
+  "barbell-half-squat": m(["quadriceps", "bilspieren"], ["hamstrings", "adductoren", "onderrug"]),
+  "single-leg-press": m(["quadriceps", "bilspieren"], ["hamstrings", "adductoren"]),
+  "standing-hip-flexion": m(["heupbuigers"], ["quadriceps", "buik"]),
+  "loaded-calf-raise": m(["kuiten"]),
+  "goblet-squat": m(["quadriceps", "bilspieren"], ["hamstrings", "adductoren", "buik"]),
+  "bulgarian-split-squat": m(["quadriceps", "bilspieren"], ["hamstrings", "adductoren"]),
+  "banded-hip-flexion": m(["heupbuigers"], ["quadriceps", "buik"]),
+  "single-leg-calf-raise": m(["kuiten"]),
 };
 
 export function exerciseMuscles(slug: string | null | undefined): ExerciseMuscles | null {

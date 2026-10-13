@@ -2,6 +2,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ANTERIOR, POSTERIOR } from "@/components/mobility/muscle-map-data";
+import {
+  EXERCISE_EQUIPMENT,
+  equipmentLabel,
+  seriesEquipment,
+} from "@/lib/training/equipment";
 import type { MobilitySeriesItem, MobilitySession } from "@/lib/training/mobility";
 import {
   EXERCISE_MUSCLES,
@@ -70,9 +75,11 @@ describe("spiergroepen per oefening", () => {
     // Vangnet: raakt een seed uit de pas met deze regex, dan valt dit om in
     // plaats van dat de dekkingscontrole stilletjes over niets loopt.
     expect(core).toHaveLength(18);
+    const weighted = seededExerciseSlugs("0230_mobility_strength_seed_v2.sql");
     expect(strength).toHaveLength(7);
+    expect(weighted).toHaveLength(8);
 
-    const missing = [...core, ...strength].filter((slug) => !EXERCISE_MUSCLES[slug]);
+    const missing = [...core, ...strength, ...weighted].filter((slug) => !EXERCISE_MUSCLES[slug]);
     expect(missing).toEqual([]);
   });
 
@@ -88,6 +95,24 @@ describe("spiergroepen per oefening", () => {
     expect(exerciseMuscles("bestaat-niet")).toBeNull();
     expect(exerciseMuscles(null)).toBeNull();
     expect(exerciseLoad(null)).toEqual({});
+  });
+});
+
+describe("materiaal", () => {
+  it("kent alleen oefeningen die bestaan", () => {
+    for (const slug of Object.keys(EXERCISE_EQUIPMENT)) {
+      expect(EXERCISE_MUSCLES[slug], slug).toBeDefined();
+    }
+  });
+
+  it("somt op wat een serie vraagt, zonder dubbelen", () => {
+    const items = [item("goblet-squat", 3), item("bulgarian-split-squat", 3), item("squat", 2)];
+    expect(seriesEquipment(items)).toEqual(["dumbbell"]);
+    expect(equipmentLabel(seriesEquipment(items))).toBe("Dumbbell");
+    expect(equipmentLabel(seriesEquipment([item("squat", 2)]))).toBeNull();
+    expect(
+      seriesEquipment([item("banded-hip-flexion", 1), item("barbell-half-squat", 1)]),
+    ).toEqual(["halter", "band"]);
   });
 });
 
