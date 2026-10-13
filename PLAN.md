@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-02)
+## Actieve volgorde (bijgewerkt 2026-10-13)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -9,8 +9,10 @@ gaat stabiliteit voor nieuwe features.
 
 1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
-   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` en `?segmentBackfill=0`
-   uit de URL van de job "ZWB Strava webhooks" (doet niets meer). De Supabase CLI
+   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` (niet vast te stellen
+   of het al is gedraaid). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
+   webhooks": op 2026-10-13 stond die op `/api/strava/webhook/process` zonder
+   parameter. De Supabase CLI
    werkt weer: `npm run db:health` draaide op 2026-10-02 zonder ingreep (CLI 2.119.0,
    database 202 MB, disk ~25%). Waarom hij op 2026-10-01 werd geblokkeerd door
    Windows-toepassingsbeheer is niet vastgesteld. De cijfers in dat rapport tellen
@@ -18,6 +20,13 @@ gaat stabiliteit voor nieuwe features.
    er nog in; pas de check van volgende week vergelijkt met een momentopname.
    `0211_drop_segment_efforts_priority_index.sql` hoeft niet meer: de tabel is weg.
    Niet gemeten: of de app merkbaar sneller is; dat moet uit de wekelijkse check komen.
+   **Check 2026-10-13:** database 215 MB (Supabase telt 229,75 MB), disk 26%,
+   segmenten zonder lijn 0. Over 11,6 dagen gebruikten achtergrondjobs 2.150 s
+   databasetijd tegen leden 533 s. Twee actiepunten: de zwaarste query, op
+   `strava_activities` (32% van de databasetijd, 966 s, gemiddeld 524 ms), en
+   `nutrition_foods` dat op 1000 rijen wordt afgekapt. Egress in de nieuwe cyclus
+   (vanaf 2026-10-11): na ruim twee dagen 0,704 GB tegen een limiet van 5 GB; de
+   oorzaak wordt nog onderzocht.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
