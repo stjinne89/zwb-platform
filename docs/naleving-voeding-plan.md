@@ -1,8 +1,8 @@
 # Naleving van het voedingsplan: besloten plan
 
 Besloten door de eigenaar op 2026-10-14, met akkoord van het bestuur om het
-volledig te bouwen. **Nog niet gebouwd.** Dit document is de bouwvolgorde; elke
-stap wordt een eigen ronde in `PLAN.md`.
+volledig te bouwen. **Stap 1 is gebouwd, de rest niet.** Dit document is de
+bouwvolgorde; elke stap wordt een eigen ronde in `PLAN.md`.
 
 **Wat het wordt.** Leden kunnen vastleggen wat ze eten, onder meer met een foto,
 en zien of ze hun koolhydraat- en eiwitdoelen halen. De foto herkent wat er op
@@ -161,8 +161,11 @@ en energiebeschikbaarheid (besluit 2).
   blijven.
 - **Rekenwerk.** De bestaande functies voor porties en doelen; nieuw is het
   optellen per dag en per moment en "wat is er nog te gaan".
-- **Navigatie.** Een vierde tab "Naleving" in `VOEDING_SECTIONS`, alleen voor
-  wie het heeft aangezet; het aanzetten zelf staat op het profiel of op de tab.
+- **Navigatie.** Een vierde tab "Naleving" in `VOEDING_SECTIONS`, voor iedereen
+  zichtbaar; wie het niet heeft aangezet, ziet daar alleen de toestemming.
+- **Toestemmingstekst per stap.** De tekst van stap 1 noemt alleen het
+  eetdagboek. De foto naar OpenAI (stap 3) en de trainerinzage (stap 5) vragen
+  elk een nieuwe `LOG_CONSENT_VERSION`, waarvoor deelnemers opnieuw tekenen.
 
 ## 10. Bouwvolgorde
 
@@ -175,6 +178,7 @@ een tekst op `/hulp`.
    het maandplafond en de modelkeuze.
 1. **Eetdagboek zonder AI.** Opt-in met toestemming, recept afvinken, NEVO
    zoeken, herhalen, dagbalk, pauzeren en wissen. De privacyteksten.
+   *Gebouwd op 2026-10-14 (migratie `0231_nutrition_log.sql`), zie `PLAN.md`.*
 2. **Rond de rit en barcode.**
 3. **Foto en tekst**, met de bevestigstap en de daglimiet.
 4. **Dagmenu dat meerekent en het weekoverzicht.**

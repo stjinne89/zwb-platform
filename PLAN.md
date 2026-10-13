@@ -117,12 +117,75 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0232`.
 
 ---
 
+> **Naleving stap 1: eetdagboek zonder AI, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
+> Commit: de commit die dit blok toevoegt. Migratie `0231_nutrition_log.sql`,
+> **nog niet toegepast**.
+>
+> **Waarom.** Stap 1 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
+> leden kunnen vastleggen wat ze eten en zien of ze de onderkant van hun
+> koolhydraat- en eiwitdoel halen. Zonder AI, dus met exacte NEVO-waarden.
+>
+> **Wat.**
+> - **Tab Naleving** onder Voeding (`voeding/naleving/page.tsx`), als tweede tab.
+>   Wie het niet heeft aangezet, ziet alleen de toestemming.
+> - **Aanzetten met eigen toestemming** (`nutrition_log_settings`,
+>   `LOG_CONSENT_VERSION` = `2026-10-14`). Pauzeren laat het dagboek staan;
+>   "Alles wissen" verwijdert de instellingsrij en via cascade elke maaltijd.
+> - **Drie invoerroutes:** de knop "Gegeten" bij een recept in het dagmenu en op
+>   de receptpagina (de portie die het lid op dat moment ziet), producten zoeken
+>   in NEVO met grammen (`MealForm`, hergebruikt `searchFoods`), en een eerdere
+>   maaltijd opnieuw kiezen (laatste 30 dagen, elke samenstelling één keer).
+> - **Dagbalk:** koolhydraten en eiwit tegen de onderkant van de band van het
+>   dagtype, met de maaltijden per moment eronder. Invullen en terugkijken kan
+>   tot zeven dagen terug.
+> - **Rekenwerk** in `src/lib/nutrition/log.ts`. Een maaltijd is een lijst
+>   NEVO-producten met grammen; er worden geen macro's opgeslagen.
+> - **`/privacy`:** nieuwe alinea "Eetdagboek (alleen met opt-in)"; de zin "wat
+>   je eet, leggen we niet vast" is weg. Geen nieuwe privacyversie; de
+>   uitzondering staat in het commentaar van `src/lib/privacy.ts`.
+> - **`/hulp#voeding`:** blok "Naleving".
+>
+> **Ontwerpregels die in de code zitten.** Alleen een ondergrens: boven de
+> onderkant staat er "Gehaald", een bovengrens of "te veel" bestaat niet
+> (`floorStatus`, getest). Geen kcal en geen vet: `mealMacros` geeft alleen
+> koolhydraten en eiwit terug (getest). RLS: alleen het lid zelf; zonder
+> instellingsrij kan er geen maaltijd bestaan (foreign key).
+>
+> **Bewust niet gebouwd.**
+> - Doelen per moment in de balk. `mealTarget` geeft een middenwaarde voor het
+>   schalen van recepten, geen ondergrens; per moment staat er alleen wat er
+>   gegeten is.
+> - Een maaltijd bewerken. Verwijderen en opnieuw invoeren; het scheelt een
+>   formulier.
+> - De trainer-schakelaar en de bronnen foto, barcode en tekst: stap 2 tot 5.
+>   De `source`-check staat alleen `recept` en `handmatig` toe.
+> - Het eetdagboek in een gegevensexport: er is geen export voor voeding.
+>
+> **Niet meer waar:** "geen eetdagboek" in de kop van `0168_nutrition.sql` en
+> `0213_nutrition_expansion.sql` (toegepaste migraties, niet aangepast), en
+> "Voeding in drie tabs" hieronder: het zijn er nu vier.
+>
+> **Vóór de push.**
+> 1. `0231_nutrition_log.sql` toepassen. Zonder die migratie is de tab er wel,
+>    maar geeft aanzetten een foutmelding; de rest van Voeding werkt gewoon.
+> 2. De eigenaar leest de toestemmingstekst (`LogConsentForm` in
+>    `log-controls.tsx`) en de alinea op `/privacy`.
+>
+> **Getest.** TypeScript en eslint schoon. `nutrition-log` (nieuw, 16 tests):
+> het rekenwerk, en `0231` tegen PGlite: geen maaltijd zonder toestemming,
+> privé voor anderen, pauze blokkeert toevoegen, intrekken wist alles, opnieuw
+> te draaien. Volledige suite: 2.161 geslaagd, 2 mislukt, dezelfde als in de
+> vorige ronde (`omnium-live` mist `.env.local`; `admin-areas` 0206 loopt in
+> een time-out). De build compileert en stopt bij `/omnium/register` om
+> dezelfde `.env.local`. **Niet gedaan:** de schermen bekijken; in de worktree
+> kan niet worden ingelogd en de tabellen bestaan nog niet op productie.
+
 > **Voeding in drie tabs, 2026-10-14 — gebouwd, lokaal getest; niet in de browser bekeken.**
-> Commit: de commit die dit blok toevoegt. Geen migratie.
+> Commit `8c5d172`. Geen migratie.
 >
 > **Waarom.** Sinds het tegeldesign is "ZWBeter voeden" een eigen pijler, maar
 > die had één pagina met alles onder elkaar: kerncijfers, tip, dagmenu en de

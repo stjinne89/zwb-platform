@@ -9,6 +9,7 @@ import { shiftDayKey } from "@/lib/training/mobility";
 import { getWellnessSummary } from "@/lib/training/wellness";
 import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipes";
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
+import type { LoggedMeal } from "@/lib/nutrition/log";
 import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 
@@ -128,6 +129,53 @@ export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { o
   return ((data ?? []) as unknown as (Recipe & { owner: { display_name: string | null } | null })[]).map((row) => ({
     ...normalizeRecipe(row),
     owner_name: row.owner?.display_name ?? null,
+  }));
+}
+
+export type LogSettings = { paused: boolean };
+
+/** Null als het lid het eetdagboek niet heeft aangezet, of zolang 0231 er niet is. */
+export async function loadLogSettings(viewer: Viewer): Promise<LogSettings | null> {
+  const { data } = await viewer.supabase
+    .from("nutrition_log_settings")
+    .select("paused")
+    .eq("profile_id", viewer.user.id)
+    .maybeSingle();
+  return data ? { paused: Boolean(data.paused) } : null;
+}
+
+type LoggedMealRow = {
+  id: string;
+  eaten_on: string;
+  meal_moment: LoggedMeal["moment"];
+  source: LoggedMeal["source"];
+  recipe_id: string | null;
+  title: string;
+  items: { sort_order: number; grams: number; food: LoggedMeal["items"][number]["food"] }[] | null;
+};
+
+/** De maaltijden van dit lid in een reeks dagen, van nieuw naar oud. */
+export async function loadLoggedMeals(viewer: Viewer, from: string, to: string): Promise<LoggedMeal[]> {
+  const { data } = await viewer.supabase
+    .from("nutrition_log_meals")
+    .select(
+      "id, eaten_on, meal_moment, source, recipe_id, title, items:nutrition_log_items(sort_order, grams, food:nutrition_foods(id, name_nl, quantity_unit, carbs_g, protein_g))",
+    )
+    .eq("profile_id", viewer.user.id)
+    .gte("eaten_on", from)
+    .lte("eaten_on", to)
+    .order("eaten_on", { ascending: false })
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as unknown as LoggedMealRow[]).map((row) => ({
+    id: row.id,
+    eatenOn: row.eaten_on,
+    moment: row.meal_moment,
+    source: row.source,
+    recipeId: row.recipe_id,
+    title: row.title,
+    items: [...(row.items ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((item) => ({ food: item.food, grams: Number(item.grams) })),
   }));
 }
 

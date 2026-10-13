@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
+import { logRecipe } from "../../_log-actions";
+import { LogActionButton } from "../../_components/log-controls";
 import {
   energyFactorFor,
+  loadLogSettings,
   loadNutritionDayInput,
   loadNutritionProfile,
   loadRecipeBySlug,
@@ -42,10 +45,11 @@ export default async function RecipePage({
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [recipe, profile, prefs] = await Promise.all([
+  const [recipe, profile, prefs, logSettings] = await Promise.all([
     loadRecipeBySlug(viewer, slug),
     loadNutritionProfile(viewer, today),
     loadRecipePrefs(viewer),
+    loadLogSettings(viewer),
   ]);
   if (!recipe) notFound();
 
@@ -152,7 +156,19 @@ export default async function RecipePage({
         </div>
       </section>
 
-      <RecipePrefButtons recipeId={recipe.id} pref={prefs.get(recipe.id) ?? null} action={setRecipePref} />
+      <div className="flex flex-wrap items-center gap-2">
+        {logSettings && !logSettings.paused && (
+          <LogActionButton
+            action={logRecipe}
+            fields={{ slug: recipe.slug, day: today, portie: personal ? "" : "basis" }}
+            variant="default"
+          >
+            <Check className="size-4" />
+            Gegeten
+          </LogActionButton>
+        )}
+        <RecipePrefButtons recipeId={recipe.id} pref={prefs.get(recipe.id) ?? null} action={setRecipePref} />
+      </div>
 
       {own && (
         <div className="flex flex-wrap items-center gap-3">

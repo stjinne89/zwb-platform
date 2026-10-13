@@ -3226,6 +3226,45 @@ Fitness-status: Verbeterend`}
               </li>
             </ul>
           </article>
+
+          <article className="rounded-md border bg-background p-4 lg:col-span-2">
+            <h3 className="text-sm font-semibold">Naleving</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Op de tab Naleving leg je vast wat je eet. Dat staat uit tot
+                  je het zelf aanzet. Alleen jij ziet het.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Invoeren kan op drie manieren: &quot;Gegeten&quot; bij een
+                  recept in je dagmenu of het receptenboek, zelf producten
+                  zoeken in NEVO met de hoeveelheid erbij, of een eerdere
+                  maaltijd opnieuw kiezen. Je kunt tot een week terug invullen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  De balken tellen je koolhydraten en eiwit op tegen de
+                  onderkant van je doel voor die dag. Is die gehaald, dan staat
+                  er &quot;Gehaald&quot;; een bovengrens is er niet. Calorieën
+                  en vet tellen we niet.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Met Pauzeren blijft je eetdagboek staan maar komt er niets
+                  bij. &quot;Alles wissen&quot; verwijdert het hele eetdagboek
+                  en zet Naleving uit.
+                </span>
+              </li>
+            </ul>
+          </article>
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">

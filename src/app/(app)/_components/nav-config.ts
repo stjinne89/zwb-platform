@@ -70,6 +70,7 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
  * blijft het één "Voeding"-item. */
 export const VOEDING_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/voeding", label: "Dagmenu" },
+  { type: "link", href: "/zwbeter-worden/voeding/naleving", label: "Naleving" },
   { type: "link", href: "/zwbeter-worden/voeding/recepten", label: "Receptenboek" },
   { type: "link", href: "/zwbeter-worden/voeding/kennis", label: "Kennisbank" },
 ];

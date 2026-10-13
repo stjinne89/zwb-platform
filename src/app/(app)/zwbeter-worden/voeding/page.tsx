@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Beef, Bike, CalendarDays, RefreshCw, Wheat } from "lucide-react";
+import { Beef, Bike, CalendarDays, Check, RefreshCw, Wheat } from "lucide-react";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
 import {
@@ -18,12 +18,16 @@ import { MetricCard } from "../_components/ui";
 import {
   energyFactorFor,
   loadNutritionDayInput,
+  loadLogSettings,
+  loadLoggedMeals,
   loadNutritionProfile,
   loadRecipePrefs,
   loadRecipes,
   requireViewer,
   todayKeyAmsterdam,
 } from "./_data";
+import { logRecipe } from "./_log-actions";
+import { LogActionButton } from "./_components/log-controls";
 import { NutritionTip } from "./_components/nutrition-tip";
 import { RecipeCard } from "./_components/recipe-card";
 
@@ -57,11 +61,19 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [profile, recipes, prefs] = await Promise.all([
+  const [profile, recipes, prefs, logSettings] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
+    loadLogSettings(viewer),
   ]);
+  // Alleen wie Naleving aan heeft staan, kan een recept als gegeten afvinken.
+  const logging = logSettings != null && !logSettings.paused;
+  const eaten = new Set(
+    logging
+      ? (await loadLoggedMeals(viewer, today, today)).map((meal) => `${meal.moment}:${meal.recipeId}`)
+      : [],
+  );
   const input = await loadNutritionDayInput(viewer, today, profile.weightKg);
 
   const day = nutritionDay(input);
@@ -117,6 +129,22 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
         portion={slot.portion.perPortion}
         favorite={prefs.get(slot.recipe.id) === "favoriet"}
       />
+      {logging &&
+        (eaten.has(`${slot.moment}:${slot.recipe.id}`) ? (
+          <p className="flex min-h-[36px] items-center gap-1 text-xs text-muted-foreground">
+            <Check className="size-3.5" />
+            Gegeten
+          </p>
+        ) : (
+          <LogActionButton
+            action={logRecipe}
+            fields={{ slug: slot.recipe.slug, moment: slot.moment, day: today }}
+            size="sm"
+          >
+            <Check className="size-4" />
+            Gegeten
+          </LogActionButton>
+        ))}
     </li>
   );
   const group = (moments: MealMoment[]) => menu.filter((slot) => moments.includes(slot.moment));

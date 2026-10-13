@@ -124,9 +124,18 @@ export default function PrivacyPage() {
             jou zichtbaar. Markeer je een recept als favoriet of als &quot;niet
             voor mij&quot;, dan bewaren we dat; alleen jij ziet het. Stel je een
             eigen recept voor aan de club, dan ziet een beoordelaar het. Na
-            goedkeuring ziet elk lid het, met jouw naam erbij. Wat je eet,
-            leggen we niet vast, en een dieetfilter in het receptenboek wordt
-            niet bewaard.
+            goedkeuring ziet elk lid het, met jouw naam erbij. Een dieetfilter
+            in het receptenboek wordt niet bewaard.
+          </li>
+          <li>
+            <strong>Eetdagboek (alleen met opt-in):</strong> wat je eet, leggen
+            we alleen vast als je Naleving zelf aanzet en daarvoor tekent. We
+            bewaren dan per maaltijd de datum, het moment, de producten en de
+            hoeveelheden, en rekenen daaruit je koolhydraten en eiwit. Een
+            caloriedoel of je gewichtsverloop hoort daar niet bij. Alleen jij
+            ziet je eetdagboek; een trainer of andere leden zien het niet. Je
+            kunt pauzeren, losse maaltijden verwijderen en alles wissen; zet je
+            Naleving uit, dan verwijderen we het hele eetdagboek.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}

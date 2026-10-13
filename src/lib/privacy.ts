@@ -14,6 +14,12 @@
  * **Een versie erbij zetten laat élk lid opnieuw tekenen.** Doe dat dus alleen
  * bij een inhoudelijke wijziging van `/privacy`, niet bij een herformulering of
  * een typefout. De datum is die van de wijziging zelf.
+ *
+ * **Eén bewuste uitzondering: het eetdagboek (2026-10-14).** Dat is een nieuwe
+ * categorie gegevens, maar kreeg op besluit van de eigenaar geen versie hier.
+ * Alleen wie Naleving aanzet levert die gegevens aan, en tekent daar apart voor
+ * (`LOG_CONSENT_VERSION` in `src/lib/nutrition/log.ts`, tabel
+ * `nutrition_log_settings`). `/privacy` beschrijft het wel.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
