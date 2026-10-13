@@ -117,6 +117,66 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0229`
 
 ---
 
+> **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; effect op productie niet gemeten.**
+> Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+>
+> **Waarom.** De egress-cyclus begon op 2026-10-11 en stond op 2026-10-13 rond
+> 10:00 op 0,704 GB; doorgerekend ±9 GB per maand tegen 5 GB op het Free-plan.
+> Onderzoek op de momentopnamen van `npm run db:health` (1 en 13 oktober, 11,6
+> dagen) plus één leesquery op productie:
+>
+> - Het nawerk na een binnengekomen rit (`runPostSyncForProfile`) haalde twee
+>   keer de hele rithistorie van het lid op mét `raw`: de col-detector
+>   (`src/lib/cols/detector.ts`) en de milestone-evaluator
+>   (`src/lib/achievements/milestone-evaluators.ts`). Gemeten: elk 1.843
+>   pagina's van 500 rijen in de periode (159 per dag); de detectorquery was ook
+>   de zwaarste van de databasecheck (966 s, 32% van de databasetijd).
+> - Gemeten op productie: `raw` is 77,2 MB JSON over 28.574 ritten van 19 leden
+>   (gemiddeld 2,8 KB, per lid 0,2 tot 14,5 MB); de polylines daarin 20,8 MB.
+> - Berekend: ±47 runs per dag, samen ±12 GB per maand aan onverpakte JSON. Of
+>   Supabase egress voor of na compressie telt is niet vastgesteld, dus dat is
+>   een bovengrens; de orde van grootte past bij de gemeten 0,29 GB per dag.
+> - De uurlijkse Strava-reconcile is het niet: die slaat het nawerk over tenzij
+>   `?full=1`. `src/lib/cols/segment-times.ts` haalt ook de hele `raw` op, maar
+>   kwam in de periode niet voor (de stap staat uit op het webhook-pad).
+>
+> **Wat er veranderde.** Beide query's vragen alleen nog de velden die de code
+> leest en bouwen daar het oude `raw`-object van na, zodat de detectie en de
+> evaluators zelf niet zijn aangeraakt. Detector: `total_elevation_gain` en de
+> twee polylines. Evaluator: `start_date_local`, `achievement_count`,
+> `pr_count`, `athlete_count`, `name`, `sport_type`, `type`. Verwacht voor de
+> detector ±73% minder (alleen de polylines), voor de evaluator vrijwel alles.
+> Een evaluator die een nieuw `raw`-veld nodig heeft, moet het aan
+> `EVAL_COLUMNS` en `evalRowToActivity` toevoegen; anders is het stil leeg.
+>
+> **Bewust niet gebouwd.**
+> - De detector alleen nieuwe ritten laten scannen (de parameter `activityIds`
+>   bestaat al en wordt genegeerd). Dat vraagt dat `times_climbed` optelt in
+>   plaats van opnieuw telt, en dus een regel voor verwijderde en gewijzigde
+>   ritten. Eerst meten wat deze ronde oplevert.
+> - Detector en evaluator één gedeelde fetch geven, en het nawerk per lid
+>   ontdubbelen. Zelfde reden.
+> - De kleinere bronnen uit het onderzoek, alle geschat en samen onder 2 GB per
+>   maand: vaste kosten van ±24.700 PostgREST-verzoeken per dag (waarvan 7.500
+>   keer de `profiles.is_approved`-check; bij 8 MAU is niet verklaard wie die
+>   paginaverzoeken doet), de ZWBlokken-standen (`src/lib/zwblokken/query.ts`),
+>   de clubstatistiek op het dashboard en `STRAVA_RIDE_COLUMNS` met `raw`.
+>
+> **Niet vastgesteld.** Waarom er ±47 runs per dag zijn bij ±18 rijdende leden
+> (vermoeden: meerdere webhook-events per rit, waaronder de update door onze
+> eigen samenvatting in de Strava-beschrijving). De verdeling van de egress
+> over database, Storage, Auth en Realtime: die staat alleen op de usagepagina
+> van Supabase.
+>
+> **Getest.** `tsc --noEmit` en `eslint` op de twee bestanden: schoon.
+> `npm run test`: 2091 van 2092 geslaagd; `admin-areas.test.ts` liep in de volle
+> run tegen de timeout van 5 s en slaagt los gedraaid, `omnium-live.test.ts`
+> laadt niet in een worktree zonder `.env.local`. Geen van beide raakt deze
+> code. **Niet getest:** de nieuwe selects tegen een echte database (er is geen
+> unit-test voor deze fetches) en `npm run build`. Controle na de deploy: één
+> rit laten binnenkomen en kijken of cols en badges nog worden toegekend, en bij
+> de volgende `npm run db:health` of de detectorquery uit de top is.
+
 > **Design "tegels" als proefversie achter een schakelaar, 2026-10-12 — gebouwd, lokaal getest; met echte data deels gezien.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
