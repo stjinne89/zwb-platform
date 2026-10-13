@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { EmptyState, PageHeader } from "@/components/app-ui";
+import { EmptyState } from "@/components/app-ui";
 import { suggestProfileLinks } from "@/lib/teams/wtrl-membership";
 import { WtrlImportForm, type ZwbTeamOption } from "./_components/import-form";
 import { LinkSuggestions } from "./_components/link-suggestions";
@@ -13,7 +13,7 @@ export default async function WtrlTeamsPage() {
   const supabase = await createClient();
   const access = await getRequestAccess();
   if (!access.user) redirect("/login");
-  if (!access.has(adminAreaPermission("wtrl"))) redirect("/dashboard");
+  if (!access.has(adminAreaPermission("zrl"))) redirect("/dashboard");
 
   const [
     { data: teams },
@@ -64,8 +64,6 @@ export default async function WtrlTeamsPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="WTRL-teams" />
-
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <WtrlImportForm
           teams={teamOptions}

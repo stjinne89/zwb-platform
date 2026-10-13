@@ -71,14 +71,11 @@ export default async function ZrlKalenderPage() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">ZRL-racekalender</h1>
-        <p className="text-sm text-muted-foreground">
-          Zet een hele ronde in één keer in de kalender. Zodra de races er staan,
-          kunnen leden hun beschikbaarheid opgeven en kan de captain een opstelling
-          maken. Opnieuw toevoegen voegt niets dubbel toe.
-        </p>
-      </header>
+      <p className="text-sm text-muted-foreground">
+        Zet een hele ronde in één keer in de kalender. Zodra de races er staan,
+        kunnen leden hun beschikbaarheid opgeven en kan de captain een opstelling
+        maken. Opnieuw toevoegen voegt niets dubbel toe.
+      </p>
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

@@ -26,7 +26,7 @@ export async function importWtrlTeams(input: WtrlImportInput) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.has(adminAreaPermission("wtrl"))) {
+  if (!access.has(adminAreaPermission("zrl"))) {
     return { ok: false as const, error: "Geen recht om teams bij te werken." };
   }
 
@@ -95,7 +95,7 @@ export async function importWtrlTeams(input: WtrlImportInput) {
     totals.roster += outcome.roster;
   }
 
-  revalidatePath("/beheer/wtrl-teams");
+  revalidatePath("/beheer/zrl/teams");
   revalidatePath("/teams", "layout");
   return { ok: true as const, teams: teams.length, riders: riders.length, ...totals };
 }
@@ -110,7 +110,7 @@ export async function linkWtrlRider(zwiftId: string, profileId: string) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!access.has(adminAreaPermission("wtrl"))) {
+  if (!access.has(adminAreaPermission("zrl"))) {
     return { ok: false as const, error: "Geen recht om teams bij te werken." };
   }
   if (!/^\d+$/.test(zwiftId)) return { ok: false as const, error: "Ongeldig Zwift-ID." };
@@ -163,7 +163,7 @@ export async function linkWtrlRider(zwiftId: string, profileId: string) {
     if (!outcome.ok) return { ok: false as const, error: `${team.name}: ${outcome.error}` };
   }
 
-  revalidatePath("/beheer/wtrl-teams");
+  revalidatePath("/beheer/zrl/teams");
   revalidatePath("/teams", "layout");
   return { ok: true as const };
 }

@@ -68,6 +68,9 @@ const nextConfig: NextConfig = {
       // /onderhoud heet nu /mijn-garage. Ook hier staan er al pushberichten met
       // de oude URL in omloop.
       { source: "/onderhoud", destination: "/mijn-garage", permanent: true },
+      // ZRL-kalender en WTRL-teams zijn samen ZRL-beheer (2026-10-13).
+      { source: "/beheer/zrl-kalender", destination: "/beheer/zrl", permanent: true },
+      { source: "/beheer/wtrl-teams", destination: "/beheer/zrl/teams", permanent: true },
     ];
   },
 };

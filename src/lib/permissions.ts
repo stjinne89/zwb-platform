@@ -22,7 +22,7 @@ export const COMMUNITY_PERMISSIONS = [
   {
     id: "competitions.manage",
     label: "Competities beheren",
-    description: "Kan de ZRL-kalender, WTRL-teams en FRR-tours beheren.",
+    description: "Kan ZRL-beheer (kalender en WTRL-teams) en FRR-tours beheren.",
     category: "Teams",
   },
   {

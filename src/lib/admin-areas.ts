@@ -17,10 +17,9 @@ export const ADMIN_AREAS = {
     permission: "achievements.finalize",
   },
   citaten: { href: "/beheer/citaten", label: "Tips en citaten", permission: "community.manage" },
-  zrl: { href: "/beheer/zrl-kalender", label: "ZRL-kalender", permission: "competitions.manage" },
+  zrl: { href: "/beheer/zrl", label: "ZRL-beheer", permission: "competitions.manage" },
   frr: { href: "/beheer/frr-kalender", label: "FRR-kalender", permission: "competitions.manage" },
   src: { href: "/beheer/src", label: "SRC-kalender", permission: "src.manage" },
-  wtrl: { href: "/beheer/wtrl-teams", label: "WTRL-teams", permission: "competitions.manage" },
   programmas: {
     href: "/beheer/programmas",
     label: "Programma's",

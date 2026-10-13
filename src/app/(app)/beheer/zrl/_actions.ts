@@ -166,7 +166,7 @@ export async function importZrlRound(input: ImportInput) {
 
   revalidatePath("/kalender");
   revalidatePath("/teams");
-  revalidatePath("/beheer/zrl-kalender");
+  revalidatePath("/beheer/zrl");
 
   if (fresh.length === 0 && parentsCreated === 0 && linked === 0) {
     return {
@@ -252,7 +252,7 @@ export async function saveRacepasses(input: {
     if (error) return { ok: false as const, error: error.message };
   }
 
-  revalidatePath("/beheer/zrl-kalender");
+  revalidatePath("/beheer/zrl");
   revalidatePath("/events/[id]", "page");
   return { ok: true as const, saved: upserts.length };
 }

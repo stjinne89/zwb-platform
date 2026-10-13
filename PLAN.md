@@ -7395,6 +7395,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZRL-beheer: racekalender en WTRL-teams onder één menu-item
+
+**2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In het beheermenu stonden "ZRL-kalender" en "WTRL-teams" los van
+elkaar, terwijl ze over dezelfde competitie gaan en hetzelfde recht vragen
+(`competitions.manage`).
+
+**Wijziging.** Eén beheergebied `zrl` ("ZRL-beheer") op `/beheer/zrl`, met een
+tabbalk: Kalender (`/beheer/zrl`, was `/beheer/zrl-kalender`) en WTRL-teams
+(`/beheer/zrl/teams`, was `/beheer/wtrl-teams`). De inhoud van de twee schermen
+is ongewijzigd; alleen de koppen zijn naar de gedeelde layout verhuisd. Het
+gebied `wtrl` is uit `lib/admin-areas.ts` weg. De oude adressen krijgen een
+permanente redirect in `next.config.ts`. `/hulp` en het runbook noemen de nieuwe
+plek. Waar eerdere rondes in dit document `/beheer/zrl-kalender` of
+`/beheer/wtrl-teams` noemen, zijn dat nu deze twee tabs.
+
+**Bewust niet gebouwd.**
+
+- FRR en ZRL als tegel op `/club`. Die pagina toont de groep "Club" uit het
+  ledenmenu. De Sunday Race Club staat daar omdat `/src` een ledenpagina is; de
+  FRR-kalender en ZRL-beheer zijn beheerschermen en staan in het beheermenu.
+  Een ledenpagina voor FRR of ZRL bestaat niet: die competities leven in de
+  kalender en bij de teams.
+- De FRR-kalender en de SRC-kalender zijn niet mee samengevoegd; daar is niet om
+  gevraagd, en SRC heeft een eigen recht (`src.manage`).
+
+**Niet lokaal te verifiëren.** Niet in de browser bekeken: deze worktree heeft
+geen `.env.local`, dus inloggen kan niet. Typecheck en unit-tests wel.
+
 ### Opgeleverd — schema of blok: een nieuw schema begint twaalf weken voor een A-doel
 
 **2026-10-13.** Commit: de commit die dit blok toevoegt. Geen migratie.
