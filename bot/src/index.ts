@@ -28,7 +28,9 @@ import { fetchPlan, parsePlan } from "./plan.ts";
 import { SauceClient } from "./sauce.ts";
 import { Session } from "./session.ts";
 import { SpeechQueue } from "./speech.ts";
+import { execFile } from "node:child_process";
 import { appendFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import { join } from "node:path";
 import { CACHE_DIR, piperEngine, Tts, windowsEngine } from "./tts.ts";
 
@@ -74,6 +76,16 @@ type GuildState = {
   dirty: boolean;
   renderedAt: number;
 };
+
+/** De tekst op het klembord van de pc waar de bot draait (Windows). */
+async function clipboard() {
+  if (process.platform !== "win32") throw new Error("Geef een link of een bestand mee.");
+  const { stdout } = await promisify(execFile)("powershell", ["-NoProfile", "-Command", "Get-Clipboard -Raw"], {
+    windowsHide: true,
+    maxBuffer: 1024 * 1024,
+  });
+  return stdout;
+}
 
 const guilds = new Map<string, GuildState>();
 
@@ -151,12 +163,12 @@ const command = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("plan")
-      .setDescription("Laad een plan uit ZwiftGopher of de TTT Planner")
+      .setDescription("Laad een plan. Zonder opties: de link op het klembord van de bot-pc")
       .addStringOption((option) =>
-        option.setName("link").setDescription("Export JSON of Export Link uit ZwiftGopher, of de botlink"),
+        option.setName("link").setDescription("De botlink uit de TTT Planner"),
       )
       .addAttachmentOption((option) =>
-        option.setName("bestand").setDescription("Het JSON-bestand uit ZwiftGopher, als de link te lang is"),
+        option.setName("bestand").setDescription("Het JSON-bestand uit ZwiftGopher"),
       ),
   )
   .addSubcommand((sub) =>
@@ -251,10 +263,11 @@ async function handle(interaction: Interaction) {
     try {
       const link = interaction.options.getString("link");
       const file = interaction.options.getAttachment("bestand");
-      if (!link && !file) throw new Error("Geef een link of een bestand mee.");
-      const plan = link
-        ? await fetchPlan(link, origins)
-        : parsePlan(await fetch(file!.url, { signal: AbortSignal.timeout(10_000) }).then((r) => r.json()));
+      // Zonder link of bestand: wat er op het klembord van deze pc staat. Een
+      // link van ZwiftGopher is te lang om in Discord te plakken.
+      const plan = file
+        ? parsePlan(await fetch(file.url, { signal: AbortSignal.timeout(10_000) }).then((r) => r.json()))
+        : await fetchPlan(link ?? (await clipboard()), origins);
       stop(state);
       state.message = null;
       const loaded = new Session(

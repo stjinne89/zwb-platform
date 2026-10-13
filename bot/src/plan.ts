@@ -101,7 +101,7 @@ export function parsePlan(json: unknown): Plan {
 
 const GOPHER_HOSTS = ["zwiftgopher.com", "www.zwiftgopher.com"];
 const NO_LINK =
-  "Plak de link van Export JSON of Export Link uit ZwiftGopher, of de botlink uit de TTT Planner.";
+  "Geen plan gevonden. Klik in ZwiftGopher op Export Link (of kopieer het adres van Export JSON) en geef dan /ttt plan.";
 
 /**
  * Van link of los token naar het adres om op te halen. Alleen het platform en
@@ -110,6 +110,10 @@ const NO_LINK =
 export function planUrl(input: string, origins: string[]): string {
   const text = input.trim();
   if (TOKEN.test(text)) return `${origins[0]}${PLAN_PATH}${text}`;
+  // Alleen het lange stuk achter `save=` uit een ZwiftGopher-link.
+  if (/^[A-Za-z0-9+/=%]{100,}$/.test(text)) {
+    return `https://www.zwiftgopher.com/TTT/?save=${encodeURIComponent(decodeURIComponent(text))}&json=true`;
+  }
 
   let url: URL;
   try {
@@ -131,6 +135,16 @@ export async function fetchPlan(
   origins: string[],
   fetchImpl: typeof fetch = fetch,
 ): Promise<Plan> {
+  // De JSON zelf in plaats van een link.
+  if (input.trim().startsWith("{")) {
+    let json: unknown = null;
+    try {
+      json = JSON.parse(input);
+    } catch {
+      // Geen geldige JSON: parsePlan meldt dat het geen plan is.
+    }
+    return parsePlan(json);
+  }
   const response = await fetchImpl(planUrl(input, origins), {
     signal: AbortSignal.timeout(10_000),
   });
