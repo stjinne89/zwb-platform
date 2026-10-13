@@ -150,10 +150,17 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 > - Een telbadge voor voorstellen op de tab: de layout zou dan op elke
 >   voedingspagina de voorstellen laden.
 >
-> **Naleving (eetdagboek, foto's scannen): niet gebouwd, besluit open.** De
-> eigenaar vroeg wat er maximaal kan. De afweging staat in
-> [naleving-voeding-plan.md](docs/naleving-voeding-plan.md). Tot er een besluit
-> is, gelden "geen eetdagboek" en "geen AI-macro's" uit de voedingsrondes.
+> **Naleving (eetdagboek, foto's scannen): besloten op 2026-10-14, nog niet
+> gebouwd.** Besluit van de eigenaar, met akkoord van het bestuur om het
+> volledig te bouwen: een eetdagboek voor elk lid dat het aanzet, alleen
+> koolhydraten en eiwit (geen kcal, geen vet), foto's worden na het herkennen
+> weggegooid, alleen deelnemers tekenen een eigen toestemming (geen nieuwe
+> privacyversie, een bewuste afwijking van de regel in `src/lib/privacy.ts`),
+> de trainer kijkt alleen mee met een eigen schakelaar en de AI-coach niet,
+> AI-kosten eerst meten, geen controle door een diëtist. Het plan en de
+> bouwvolgorde staan in [naleving-voeding-plan.md](docs/naleving-voeding-plan.md).
+> Daarmee is "geen eetdagboek" uit de voedingsrondes ingetrokken; geen
+> kcal-doel, geen afvalfunctie en geen opgeslagen dieetvoorkeur blijven staan.
 >
 > **Getest.** TypeScript en eslint schoon; `nav-active` heeft een nieuwe test
 > voor de voedingstabs. Volledige suite: 2.132 geslaagd, 2 mislukt, beide los
@@ -2394,6 +2401,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0230`
 >   en zwaarte; een kJ-drempel blijft een eigen verzinsel.
 > - Een dagtotaal micronutriënten: zonder eetdagboek niet te berekenen.
 > - Een opgeslagen dieetvoorkeur, kcal-doel, eetdagboek: ongewijzigd (REDs, AVG).
+>   *Het eetdagboek is op 2026-10-14 alsnog besloten, zie
+>   [naleving-voeding-plan.md](docs/naleving-voeding-plan.md); dieetvoorkeur en
+>   kcal-doel blijven uitgesloten.*
 > - Een beheerscherm om clubrecepten te bewerken: goedkeuren en afwijzen is er
 >   nu; de tekst van een clubrecept wijzigen gaat nog via de seed.
 > - Boodschappenlijst en weekmenu: blijven in het plannenboek.
@@ -9792,7 +9802,9 @@ drempel die in de code staat.
   Dit volgt dezelfde lijn als core/mobiliteit en de pacing-prompt.
 - **Geen vetpercentage, geen kcal-doel, geen afvalfunctie, geen eetdagboek.** Het
   IOC REDs-consensusstuk waarschuwt juist voor die focus in de wielersport. Een
-  vetpercentage is bovendien gezondheidsinformatie (AVG art. 9).
+  vetpercentage is bovendien gezondheidsinformatie (AVG art. 9). *"Geen
+  eetdagboek" is op 2026-10-14 ingetrokken, zie
+  [naleving-voeding-plan.md](docs/naleving-voeding-plan.md); de rest blijft.*
 - **Geen opgeslagen dieetvoorkeur.** "Glutenvrij" of "lactosevrij" kan een
   aandoening verraden; het filter leeft alleen in de URL.
 - **Geen voedingsregels per cyclusfase.** Het effect op prestatie is gemiddeld

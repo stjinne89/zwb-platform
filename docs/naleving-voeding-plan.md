@@ -1,252 +1,194 @@
-# Naleving van het voedingsplan: wat maximaal kan
+# Naleving van het voedingsplan: besloten plan
 
-Opgesteld 2026-10-14 op verzoek van de eigenaar. Dit is een afweegdocument, geen
-besluit en geen bouwopdracht. Er is nog niets van gebouwd.
+Besloten door de eigenaar op 2026-10-14, met akkoord van het bestuur om het
+volledig te bouwen. **Nog niet gebouwd.** Dit document is de bouwvolgorde; elke
+stap wordt een eigen ronde in `PLAN.md`.
 
-**Vraag.** Leden kunnen hun eten vastleggen, onder meer met een foto, en zien of
-ze hun voedingsplan halen, in elk geval op macronutriënten. Uitgangspunt: het
-maximale dat technisch kan, ook waar dat tegen eerdere besluiten ingaat.
-
-**Kort antwoord.** Het kan, en het meeste kan met wat er al ligt. De foto is
-daarbij de zwakste schakel: goed genoeg om een maaltijd snel in te voeren, niet
-goed genoeg om zonder controle van het lid op te rekenen. De sterkste versie
-gebruikt de foto daarom alleen om te herkennen wat er op het bord ligt, laat
-het lid de hoeveelheden bevestigen en rekent de macro's zelf uit met NEVO. De
-grootste winst zit niet in het tellen achteraf, maar in het dagmenu dat zich
-aanpast aan wat je al gegeten hebt.
+**Wat het wordt.** Leden kunnen vastleggen wat ze eten, onder meer met een foto,
+en zien of ze hun koolhydraat- en eiwitdoelen halen. De foto herkent wat er op
+het bord ligt, het lid bevestigt de hoeveelheden, en ZWB rekent de macro's zelf
+uit met NEVO. De grootste winst zit in het dagmenu dat meerekent met wat je al
+gegeten hebt.
 
 ---
 
-## 1. Wat dit terugdraait
+## 1. Besluiten
 
-`PLAN.md` sluit drie dingen uit die dit plan nodig heeft. Wie voor dit plan
-kiest, draait ze bewust terug:
+| # | Punt | Besluit | Gevolg |
+| --- | --- | --- | --- |
+| 1 | Eetdagboek | Voor iedereen, opt-in | Geen proefgroep |
+| 2 | Macro's | Alleen koolhydraten en eiwit | Geen kcal, geen vet, geen energiebeschikbaarheid |
+| 3 | Foto's | Direct weggooien | Geen opslag; alleen de lijst met grammen blijft |
+| 4 | Privacy | Alleen deelnemers tekenen | Eigen toestemming bij aanzetten, geen nieuwe privacyversie |
+| 5 | Inzage | Alleen het lid; de trainer met een eigen schakelaar | De AI-coach krijgt de naleving niet |
+| 6 | AI-kosten | Eerst meten | Daglimiet van 6 foto's per lid; maandplafond na de meting |
+| 7 | Diëtist | Geen controle | De ontwerpregels van §6 zijn de enige waarborg |
+| 8 | Timing | Bestuur akkoord | Niet wachten op de featurepauze |
 
-| Eerder besluit | Grond | Wat dit plan ermee doet |
-| --- | --- | --- |
-| Geen eetdagboek, geen kcal-doel, geen afvalfunctie | IOC REDs-consensus: focus op tellen en gewicht is in de wielersport een risico | Het eetdagboek komt er. Kcal en afvallen hoeven niet mee, zie §6 |
-| Geen AI-recepten of AI-tips | AI kan macro's en richtlijnen verzinnen | AI herkent alleen voedingsmiddelen en schat grammen; de macro's blijven uit NEVO komen |
-| Geen opgeslagen dieetvoorkeur | Kan een aandoening verraden | Een eetdagboek verraadt hetzelfde, en meer. Dat is niet te vermijden, alleen af te schermen |
+## 2. Wat dit terugdraait, en wat blijft
 
-Ook `src/lib/nutrition/targets.ts` zegt het in de code: "Er is bewust geen
-kcal-doel".
+- **Ingetrokken:** "geen eetdagboek" uit de voedingsrondes in `PLAN.md`. De
+  grond daarvoor (IOC REDs-consensus: tellen kan ontsporen) is niet weerlegd;
+  het risico wordt verkleind met de regels van §6.
+- **Aangepast:** "geen AI-recepten of AI-tips". AI herkent voedingsmiddelen en
+  schat grammen; recepten, tips en voedingswaarden blijven zonder AI.
+- **Blijft staan:** geen kcal-doel, geen afvalfunctie, geen vetpercentage, geen
+  opgeslagen dieetvoorkeur. `src/lib/nutrition/targets.ts` ("er is bewust geen
+  kcal-doel") blijft kloppen.
 
-## 2. Wat er al ligt
+## 3. Wat er al ligt
 
 - **Doelen per dag en per moment.** Dagtype uit schema en ritten, koolhydraten
   en eiwit in g/kg, koolhydraten per uur onderweg (`src/lib/nutrition/`).
-- **NEVO.** 2.328 voedingsmiddelen met voedingswaarden en een zoekfunctie
-  (`food-search.ts`), al gebruikt voor eigen recepten.
+- **NEVO.** 2.328 voedingsmiddelen met een zoekfunctie (`food-search.ts`).
 - **120 recepten** met berekende macro's en porties op maat.
-- **AI-koppeling.** OpenAI via `OPENAI_API_KEY` (`src/lib/training/ai.ts`),
-  met privacyversie `2026-09-17` voor vrije tekst naar OpenAI.
-- **Foto-upload.** Supabase Storage wordt al gebruikt voor eventfoto's,
-  avatars en fietsen.
-- **Arbeid op de fiets.** Ritten uit Strava en intervals.icu, met vermogen.
-- **Trainerinzage en coachchat**, met een bestaand model voor wie wat mag zien.
+- **AI-koppeling.** OpenAI via `OPENAI_API_KEY` (`src/lib/training/ai.ts`).
+- **Aparte toestemming per lid.** ZWBgame doet dit al
+  (`supabase/migrations/0170_zwbgame.sql`, `data_consent_version`).
+- **Trainerinzage**, met een bestaand model voor wie wat mag zien.
+- **De tabbalk onder Voeding** (`VOEDING_SECTIONS` in `nav-config.ts`).
 
-Nieuw nodig: een tabel voor wat er gegeten is, het invoerscherm, de
-fotoherkenning, de barcodebron en de overzichten.
-
-## 3. Invoer: zes routes, van exact naar geschat
-
-Naleving staat of valt met hoe weinig moeite invoeren kost. De maximale versie
-biedt alle routes en laat het lid de snelste kiezen.
+## 4. Invoer: zes routes
 
 1. **Recept afvinken.** Eén tik op een recept uit het dagmenu of het
    receptenboek, met de portie die er al staat. Exact, want met NEVO berekend.
-2. **Foto.** Zie §4.
-3. **Barcode.** Verpakte producten en sportvoeding (gels, repen, drank) via
-   Open Food Facts. NEVO kent geen merken, en juist sportvoeding staat er
-   nauwelijks in. De camera-API voor barcodes (`BarcodeDetector`) werkt niet in
-   elke browser, in het bijzonder niet betrouwbaar op iOS; daar is een
-   JavaScript-bibliotheek als terugval nodig. Niet getest.
+2. **Foto.** Zie §5.
+3. **Barcode.** Verpakte producten en sportvoeding via Open Food Facts; NEVO
+   kent geen merken. De camera-API voor barcodes werkt niet in elke browser, in
+   het bijzonder niet betrouwbaar op iOS; daar is een JavaScript-bibliotheek als
+   terugval nodig.
 4. **Tekst of spraak.** "Bord pasta met kip en een glas melk." Dezelfde
    herkenningsstap als bij de foto, zonder beeld.
-5. **Zoeken in NEVO.** Handmatig, met grammen. Bestaat al voor recepten.
+5. **Zoeken in NEVO.** Handmatig, met grammen.
 6. **Herhalen.** Eerdere maaltijden en favorieten met één tik opnieuw.
 
 Onderweg op de fiets is een eigen geval: een rit van drie uur met vier gels en
 twee bidons moet in een paar tikken, niet per item.
 
-## 4. De foto
+## 5. De foto
 
 ### Wat de literatuur zegt
 
-Gelezen zijn samenvattingen en fragmenten, niet de volledige artikelen; de
-exacte foutmarges staan er dus niet bij.
+Gelezen zijn samenvattingen en fragmenten, niet de volledige artikelen; exacte
+foutmarges staan er dus niet bij.
 
-- Algemene AI-modellen schatten **koolhydraten en energie het best**, eiwit en
-  vet duidelijk slechter. Vet wordt stelselmatig verkeerd geschat omdat het
-  onzichtbaar is (olie, saus, boter).
-- **Grote porties worden onderschat.** Dat is voor wielrenners op een zware dag
-  precies de verkeerde kant.
-- **Samengestelde maaltijden** gaan veel slechter dan losse producten. In een
-  studie met koolhydraten tellen bij diabetes zat het model bij groente en fruit
-  in ruim 9 van de 10 gevallen binnen 10 g, bij samengestelde maaltijden in
-  minder dan de helft.
-- Een onderzoek dat drie modellen vergeleek, concludeert dat ze nog niet
-  geschikt zijn voor nauwkeurige voedingsbeoordeling bij sporters.
-- Wat helpt: een **referentie voor de grootte**, een **ingrediëntenlijst** of
-  bereidingswijze erbij, en de taak **in twee stappen** doen: eerst benoemen wat
-  er ligt, dan rekenen. Sterkere modellen doen het aantoonbaar beter dan
-  lichtere.
+- Algemene AI-modellen schatten **koolhydraten het best**, eiwit slechter. Dat
+  past bij besluit 2, maar eiwit blijft de zwakkere van de twee.
+- **Grote porties worden onderschat**: voor wielrenners op een zware dag de
+  verkeerde kant.
+- **Samengestelde maaltijden** gaan veel slechter dan losse producten.
+- Wat helpt: een referentie voor de grootte, een ingrediëntenlijst erbij, en de
+  taak in twee stappen doen. Sterkere modellen schatten aantoonbaar beter.
 
-### Wat dat voor het ontwerp betekent
+### Ontwerp
 
 - **Twee stappen.** Het model benoemt de onderdelen en schat per onderdeel de
-  grammen. De koppeling aan een NEVO-product en de macro's doet ZWB zelf. Zo
-  verzint het model geen voedingswaarden, alleen hoeveelheden.
-- **Het lid bevestigt.** Na de foto staat er een lijst ("witte rijst 250 g,
-  kipfilet 120 g, broccoli 80 g") met een schuif per regel. Pas na bevestigen
-  telt het mee. Dit is geen formaliteit: zonder deze stap is het getal niet te
-  vertrouwen.
-- **Vragen wat niet te zien is.** Olie, boter, saus en suiker in de drank
-  vraagt de app expliciet.
-- **Bandbreedte in plaats van één getal.** "70–95 g koolhydraten" is eerlijker
-  dan "83 g", en past bij de doelen, die ook banden zijn.
-- **Context meegeven.** Het dagmenu van die dag en de recepten van het lid
-  maken herkenning makkelijker: wie het recept van vandaag fotografeert, hoeft
-  alleen de portie te bevestigen.
-- **Leren van correcties.** Wat een lid steeds bijstelt (altijd meer rijst dan
-  geschat) kan als persoonlijke correctie terugkomen.
+  grammen. De koppeling aan NEVO en de macro's doet ZWB zelf.
+- **Het lid bevestigt.** Een lijst met een schuif per regel; pas na bevestigen
+  telt het mee.
+- **Vragen wat niet te zien is**, voor zover het koolhydraten of eiwit raakt:
+  suiker in de drank, saus.
+- **Bandbreedte in plaats van één getal**, net als de doelen.
+- **Context meegeven.** Het dagmenu en de eigen recepten van het lid.
+- **De foto wordt niet bewaard.** Verkleind op het toestel, zonder
+  locatiegegevens verstuurd, na het antwoord weggegooid.
+- **Daglimiet 6 foto's per lid.** Daarboven blijven de andere routes werken.
 
-### Wat niet oplosbaar is
+Niet oplosbaar: wat er in een smoothie of stamppot zit, en de diepte van een
+bord of kom.
 
-Verborgen vet, wat er in een smoothie of stamppot zit, en de diepte van een bord
-of kom. Dat blijft schatten, ook met een beter model.
+## 6. Ontwerpregels (vast)
 
-## 5. Wat het lid ermee ziet
+Er is geen proefgroep en geen controle door een diëtist. Deze regels zijn
+daarom geen opties:
 
-Oplopend van eenvoudig naar maximaal.
+- Alleen een **ondergrens**: "genoeg gegeten?", nooit "te veel".
+- **Geen kcal, geen vet, geen koppeling met gewicht.**
+- **Geen reeksen, geen ranglijsten, niets zichtbaar voor de club.**
+- **Opt-in**, met een pauzeknop en volledig wissen.
+- De verwijzing naar sportarts en sportdiëtist op `/hulp` blijft staan.
+
+## 7. Wat het lid ziet
 
 1. **Dagbalk.** Koolhydraten en eiwit van vandaag tegen de band van het
    dagtype, per moment uitgesplitst.
-2. **Rond de rit.** Gehaalde gram per uur onderweg tegen het doel voor die
-   ritduur, en of de herstelmaaltijd er was. Dit is voor wielrenners de meest
-   concrete naleving, en de plek waar de meeste winst ligt.
+2. **Rond de rit.** Gram per uur onderweg tegen het doel voor die ritduur, en
+   of de herstelmaaltijd er was.
 3. **Dagmenu dat meerekent.** "Je hebt nog 180 g koolhydraten en 40 g eiwit te
-   gaan: dit avondeten past." De menukeuze en portie schuiven mee met wat al
-   gegeten is. Dit maakt van achteraf tellen iets waar je vooraf iets aan hebt.
-4. **Weekoverzicht.** Op hoeveel dagen de band is gehaald, uitgesplitst naar
-   dagtype. Het patroon "op zware dagen structureel te weinig" is de inzicht die
-   een los dagcijfer niet geeft.
-5. **Koppeling met training.** Naast het logboek: hoe ging de training na een
-   goed of slecht gevoede dag. Alleen als beschrijving; een oorzakelijk verband
-   is uit deze data niet te bewijzen.
-6. **Herinneringen.** Een pushbericht voor een lange rit ("morgen 4 uur: vandaag
-   8–12 g/kg") of na een training zonder herstelmaaltijd.
-7. **Coachchat en trainer.** De AI-coach krijgt de naleving als context; de
-   trainer kan meekijken. Alleen met aparte toestemming van het lid.
-8. **Energiebeschikbaarheid.** Met vermogensdata is de arbeid op de fiets
-   bekend, met het eetdagboek de inname. Daarmee is te signaleren dat iemand
-   dagen achter elkaar ver te weinig eet voor wat hij traint. Dit is het
-   gevoeligste onderdeel: het vraagt een energieschatting (kcal), die nu bewust
-   nergens in beeld komt, en de schatting van vet is de zwakste van de foto.
-   Alleen verdedigbaar als beschermend signaal ("je eet te weinig, ga naar een
-   sportarts"), nooit als doel om onder te blijven.
+   gaan: dit avondeten past."
+4. **Weekoverzicht.** Op hoeveel dagen de band is gehaald, per dagtype.
+5. **Herinneringen.** Een pushbericht voor een lange rit of na een training
+   zonder herstelmaaltijd.
+6. **Trainerinzage.** Alleen als het lid de schakelaar aanzet.
 
-Wat technisch ook kan maar ik afraad: ranglijsten, reeksen ("14 dagen op rij
-gehaald"), zichtbaarheid voor de club, en een koppeling met gewicht of
-afvallen. Dat zijn precies de mechanismen die tellen dwangmatig maken.
+Vervallen door de besluiten: naleving als context voor de AI-coach (besluit 5)
+en energiebeschikbaarheid (besluit 2).
 
-## 6. Risico's
+## 8. Privacy
 
-**Gezondheid (REDs).** Het eerdere besluit is niet achterhaald: tellen kan bij
-een deel van de sporters ontsporen. Het is te verkleinen, niet weg te nemen:
+- **Eigen toestemming.** Bij het aanzetten tekent het lid voor het eetdagboek,
+  de foto naar OpenAI en, apart, de trainerinzage. Opgeslagen met datum en
+  tekstversie, naar het voorbeeld van ZWBgame. Intrekken wist het eetdagboek.
+- **`/privacy` krijgt een alinea** over het eetdagboek, zonder nieuwe versie.
+- **Bewuste afwijking.** `src/lib/privacy.ts` vraagt bij een nieuwe categorie
+  gegevens een nieuwe versie waarbij elk lid opnieuw tekent. Dat gebeurt hier
+  niet, op besluit van de eigenaar. Grond: alleen deelnemers leveren deze
+  gegevens aan, en zij tekenen er apart voor. Bij de bouw komt deze uitzondering
+  ook in het commentaar van `privacy.ts`.
+- **Voorleggen.** De alinea voor `/privacy` en de toestemmingstekst gaan vóór
+  de push naar de eigenaar.
+- **Zichtbaarheid.** Alleen het lid, via RLS. De trainer leest mee als de
+  schakelaar aan staat en het lid aan hem is toegewezen.
+- Eten kan gezondheid en geloof verraden. Of dat het juridisch tot bijzondere
+  persoonsgegevens maakt, is niet uitgezocht.
 
-- alleen een ondergrens tonen ("genoeg gegeten?"), nooit "te veel";
-- geen kcal in beeld, geen vet als doel, geen koppeling met gewicht;
-- opt-in, met een pauzeknop en volledig wissen;
-- geen reeksen, geen vergelijking met anderen;
-- de bestaande verwijzing naar sportarts en sportdiëtist blijft staan.
+## 9. Techniek
 
-De voedingsinhoud is nog steeds niet door een (sport)diëtist nagekeken. Voor
-een functie die leden vertelt of ze genoeg eten, weegt dat zwaarder dan voor een
-receptenboek.
-
-**Privacy.**
-
-- Een eetdagboek is een nieuwe categorie gegevens. `src/lib/privacy.ts` vraagt
-  daarvoor een nieuwe privacyversie, dus elk lid tekent opnieuw. Anders dan bij
-  de receptvoorkeuren is dit geen hergebruik van al opgegeven data.
-- Eten kan gezondheid en geloof verraden (glutenvrij, halal, een dieet). Of dat
-  het juridisch tot bijzondere persoonsgegevens maakt, is niet uitgezocht;
-  behandel het als gevoelig.
-- Foto's gaan naar OpenAI. Er kunnen mensen, een huis of een scherm op staan, en
-  een foto kan een locatie bevatten. Die locatie moet er voor het versturen af.
-- De veiligste keuze is de foto niet bewaren: herkennen, weggooien, alleen de
-  lijst met grammen houden. Het lid ziet dan later geen foto terug.
-- Zichtbaarheid: standaard alleen het lid zelf, met RLS zoals bij de eigen
-  recepten. Trainerinzage en coachchat elk met een eigen schakelaar.
-
-**Betrouwbaarheid.** Een getal dat er exact uitziet en het niet is, is slechter
-dan geen getal. Vandaar de bandbreedte en de bevestigstap.
-
-## 7. Kosten en limieten
-
-Niets hiervan is gemeten; dat hoort in de proef van §9.
-
-- **AI-kosten.** Eén aanroep met beeld per foto. Bij een paar foto's per lid
-  per dag telt dat op; een daglimiet per lid en een maandplafond zijn nodig. De
-  literatuur wijst erop dat een lichter model merkbaar slechter schat, dus
-  bezuinigen op het model kost nauwkeurigheid.
-- **Opslag.** Zonder bewaarde foto's alleen kleine rijen. De database staat op
-  215 MB van de 512 MB (2026-10-13); een eetdagboek van honderd leden is daar
-  klein bij. Met bewaarde foto's wordt Storage de beperking.
-- **Wachttijd.** Een aanroep met beeld duurt seconden. Het scherm moet daar
-  tegen kunnen, en de aanroep moet binnen de tijdslimiet van een Netlify-functie
+- **Geen Storage-bucket.** De foto bestaat alleen tijdens de serveractie.
+- **Tabellen.**
+  - instellingen per lid: aan of uit, toestemming (datum, versie),
+    trainer-schakelaar;
+  - maaltijden: lid, datum, moment, bron (recept, foto, barcode, tekst,
+    handmatig);
+  - regels: NEVO-id of barcodeproduct, grammen, of het lid de schatting heeft
+    aangepast;
+  - barcodeproducten als cache van Open Food Facts.
+- **Migraties.** De eerstvolgende na `0230_training_preferences.sql`. Alleen
+  tegen PGlite te testen.
+- **Herkenning.** Een serveractie die een vaste structuur terugkrijgt
+  (onderdeel, grammen, onzekerheid); koppeling aan NEVO via de bestaande
+  zoekfunctie. De aanroep moet binnen de tijdslimiet van een Netlify-functie
   blijven.
-- **Egress.** Foto's verkleinen op het toestel voor het versturen.
-
-## 8. Techniek in grote lijnen
-
-- **Tabellen.** Een maaltijd (lid, datum, moment, bron: recept, foto, barcode,
-  tekst, handmatig) en regels per voedingsmiddel (NEVO-id of barcodeproduct,
-  grammen, en of het lid de schatting heeft aangepast). RLS: alleen de eigenaar.
-  De eerstvolgende vrije migratie is na `0230_training_preferences.sql`.
-- **Barcodeproducten.** Een kleine eigen tabel als cache van Open Food Facts,
-  zodat een product maar één keer wordt opgehaald.
-- **Herkenning.** Een serveractie die de verkleinde foto naar het model stuurt
-  en een vaste structuur terugkrijgt (onderdeel, grammen, onzekerheid). De
-  koppeling aan NEVO gaat via de bestaande zoekfunctie.
 - **Rekenwerk.** De bestaande functies voor porties en doelen; nieuw is het
   optellen per dag en per moment en "wat is er nog te gaan".
-- **Niet lokaal te testen.** Migraties alleen tegen PGlite; de camera, de
-  barcode-scan en de herkenning alleen op een echte telefoon.
+- **Navigatie.** Een vierde tab "Naleving" in `VOEDING_SECTIONS`, alleen voor
+  wie het heeft aangezet; het aanzetten zelf staat op het profiel of op de tab.
 
-## 9. Volgorde, als het doorgaat
+## 10. Bouwvolgorde
 
-Elke stap is los bruikbaar en na elke stap kan het stoppen.
+Elke stap is een eigen ronde met eigen commit, `PLAN.md`-blok en, waar nodig,
+een tekst op `/hulp`.
 
-0. **Proef, zonder dat leden iets zien.** Twintig tot dertig eigen maaltijden
-   wegen, fotograferen en door de herkenning halen. Meten: fout op koolhydraten
-   en eiwit met en zonder bevestigstap, kosten per foto, wachttijd. Hier valt
-   het besluit of de foto de moeite waard is.
-1. **Eetdagboek zonder AI.** Recept afvinken, NEVO zoeken, herhalen, en de
-   dagbalk. Dit levert naleving op met exacte getallen en raakt alleen het
-   besluit over het eetdagboek.
-2. **Rond de rit en barcode.** Sportvoeding scannen, gram per uur onderweg.
-3. **Foto en tekst**, met de bevestigstap, als de proef dat rechtvaardigt.
+0. **Meting, zonder leden.** Twintig tot dertig eigen maaltijden wegen,
+   fotograferen en door de herkenning halen. Meten: fout op koolhydraten en
+   eiwit met en zonder bevestigstap, kosten per foto, wachttijd. Hieruit volgt
+   het maandplafond en de modelkeuze.
+1. **Eetdagboek zonder AI.** Opt-in met toestemming, recept afvinken, NEVO
+   zoeken, herhalen, dagbalk, pauzeren en wissen. De privacyteksten.
+2. **Rond de rit en barcode.**
+3. **Foto en tekst**, met de bevestigstap en de daglimiet.
 4. **Dagmenu dat meerekent en het weekoverzicht.**
-5. **Herinneringen, coachchat, trainerinzage.**
-6. **Energiebeschikbaarheid**, alleen na overleg met een sportarts of
-   sportdiëtist.
+5. **Herinneringen en trainerinzage.**
 
-Stap 1 en 4 samen geven het grootste deel van de waarde zonder foto.
+Stap 0 en stap 1 hangen niet van elkaar af en kunnen tegelijk.
 
-## 10. Wat de eigenaar moet beslissen
+## 11. Open punten
 
-1. Gaat het besluit "geen eetdagboek" van tafel? Zo ja: voor iedereen, of als
-   proef met een kleine groep?
-2. Kcal en vet: nergens in beeld (alleen koolhydraten en eiwit), of ook die?
-3. Foto's bewaren of direct weggooien?
-4. Een nieuwe privacyversie waarbij elk lid opnieuw tekent: nu, of samen met
-   een andere wijziging?
-5. Mag de trainer meekijken, en de AI-coach?
-6. Een plafond voor de AI-kosten per maand.
-7. Eerst een (sport)diëtist laten meekijken, of achteraf?
-8. Past dit binnen de featurepauze die het bestuur overweegt?
+- De meting van stap 0 is niet gedaan: nauwkeurigheid, kosten en wachttijd zijn
+  onbekend.
+- Barcode scannen op iOS is niet getest.
+- De juridische status van eetgegevens is niet uitgezocht.
+- De voedingsinhoud is niet door een (sport)diëtist nagekeken (besluit 7).
 
 ## Bronnen
 
