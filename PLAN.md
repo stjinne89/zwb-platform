@@ -62,14 +62,13 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
-     de tabel tonen de pagina's de protocollen, maar starten lukt niet.
-   - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
-     toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
-     elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
-     `2026-10-14-core`, die pas met `0238` in de check-constraint staat. Daarna
-     een hitteprotocol starten en een rit met de CORE rijden (eigenaar, deze
-     week); zie de ronde "Hittetraining met de CORE-sensor".
+   - **Protocollen en CORE-sensor:** `0237_member_protocols.sql` en
+     `0238_member_protocol_core_sessions.sql` zijn toegepast (eigenaar,
+     2026-10-14). Niet nagekeken met de controlequery's onderaan beide
+     bestanden. Nog te doen: een hitteprotocol starten en een rit met de CORE
+     op de BOLT 2 rijden (eigenaar, deze week); daarna kijken of er een rij met
+     waarden in `member_protocol_core_sessions` staat. Zie de ronde
+     "Hittetraining met de CORE-sensor".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
      spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
@@ -131,9 +130,9 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` alleen tegen PGlite getest; nog niet met een echte CORE-rit geprobeerd.**
+> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` toegepast (eigenaar, 2026-10-14); nog niet met een echte CORE-rit geprobeerd.**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0238_member_protocol_core_sessions.sql` (**nog toepassen, ná `0237`**).
+> `0238_member_protocol_core_sessions.sql` (toegepast door de eigenaar, 2026-10-14).
 >
 > **Waarom.** Vraag van de eigenaar: "Kan er voor de hittetraining ook gewerkt
 > worden met de core sensor en de integreren? Eventueel door middel van
@@ -238,7 +237,9 @@ van de CORE-sensor, beide 2026-10-14).
 >
 > **Niet geverifieerd.**
 >
-> - `0238` op de echte database (geen Docker of Supabase-config hier).
+> - Of `0238` op de echte database precies doet wat PGlite liet zien: de
+>   eigenaar heeft hem toegepast (2026-10-14), maar de controlequery's zijn niet
+>   gedraaid.
 > - **De veldnamen met een echte CORE-rit.** `core_temperature` komt uit
 >   forumberichten en de helppagina van CORE, die vanuit de bouwomgeving niet te
 >   openen waren. Ook de naam van de THb-stream (`thb`, `thb_2`?) is niet
@@ -8046,7 +8047,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Protocollen bij trainen en voeden, en een kennisbank trainen
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie
-`0237_member_protocols.sql` (**nog toepassen**).
+`0237_member_protocols.sql` (toegepast door de eigenaar, 2026-10-14).
 
 **Aanleiding.** De eigenaar wilde in ZWBeter een deel over protocollen
 (hittetraining, supplementen, training op lage cadans) en vroeg daarnaast uit
@@ -8146,7 +8147,8 @@ na; die laatste is los groen.
 
 **Niet geverifieerd.**
 
-- `0237` op de echte database (geen Docker of Supabase-config hier).
+- `0237` op de echte database: toegepast door de eigenaar (2026-10-14); de
+  controlequery is niet gedraaid.
 - De pagina's in de browser: de dev-server draaide, maar vraagt een login.
 - Wat de AI met de nieuwe regels en `protocols` werkelijk plant.
 - De inhoud is niet nagekeken door een sportarts, sportdiëtist of trainer. Van
