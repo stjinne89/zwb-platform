@@ -121,6 +121,28 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0236`
 
 ---
 
+> **Dashboard: nieuwste badges twee dagen zichtbaar, 2026-10-14 — gebouwd, lokaal getest (tsc, ESLint); niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Wens van de eigenaar: dezelfde regel als het FRR-klassement op het
+> dashboard, dat tot en met twee dagen na de einddatum van de tour blijft staan
+> (`isActiveTour`). Aanleiding was de vraag waarom het blok van Tour Ignite er op
+> 14 oktober nog stond: `ends_on` is 2026-10-12 in productie, dus het blok staat
+> er terecht tot en met 14 oktober. Die regel blijft zo (eigenaar).
+>
+> **Wat.** "Nieuwste badges" toont alleen awards waarvan `awarded_at` op of na
+> 00:00 Nederlandse tijd van twee dagen geleden ligt. Een badge van 12 oktober
+> staat er dus tot en met 14 oktober. Eerder was dat 7 × 24 uur terug vanaf nu.
+> Dezelfde rekensom als `isActiveTour` (dagsleutel, 12:00 UTC, min twee dagen),
+> zodat zomer- en wintertijd geen dag verschuiven; nagerekend voor 14 oktober en
+> voor 27 oktober (na de wintertijd).
+>
+> **Bewust niet.** De andere dashboardblokken (clubactiviteit, events,
+> teamuitslagen) houden hun venster van zeven dagen. Het maximum van 8 badges
+> blijft.
+
+---
+
 > **Barcode scannen op de iPhone, 2026-10-14 — gebouwd, lokaal getest; niet op een iPhone getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
