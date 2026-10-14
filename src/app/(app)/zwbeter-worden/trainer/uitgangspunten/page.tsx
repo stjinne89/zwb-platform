@@ -28,7 +28,7 @@ export default async function TrainerPlanBasisPage({ searchParams }: SearchParam
   // de uitgangspunten van het schema.
   const role = await preferenceRoleFor(viewer.admin, viewer.user.id, athleteId);
 
-  // Protocollen volgen dezelfde kring als de voorkeuren (RLS in 0233): de
+  // Protocollen volgen dezelfde kring als de voorkeuren (RLS in 0237): de
   // eigen trainer leest mee, beheer niet. viewer.supabase dwingt dat af.
   const today = todayKeyAmsterdam();
   const runs = role != null ? await loadActiveRuns(viewer.supabase, athleteId) : [];

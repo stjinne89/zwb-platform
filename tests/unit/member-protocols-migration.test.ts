@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0233 tegen een geïsoleerde PostgreSQL, bovenop 0037 en 0167 (de koppelingen
+// 0237 tegen een geïsoleerde PostgreSQL, bovenop 0037 en 0167 (de koppelingen
 // en de toegangsfunctie van de coachchat). Zegt niets over de productiedatabase,
 // wel over wie wat mag: het lid schrijft, de eigen trainer leest mee, het
 // bestuur en een andere trainer zien niets.
@@ -36,7 +36,7 @@ beforeAll(async () => {
   for (const file of [
     "0037_training_coach_cockpit.sql",
     "0167_training_chat.sql",
-    "0233_member_protocols.sql",
+    "0237_member_protocols.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -77,7 +77,7 @@ async function als<T>(userId: string, sql: string): Promise<T[]> {
 
 const tel = (table: string) => `select count(*)::int as count from public.${table}`;
 
-describe("protocollen (0233)", () => {
+describe("protocollen (0237)", () => {
   it("laat het lid en de eigen trainer de protocollen en het afvinken zien", async () => {
     for (const user of [LID, TRAINER]) {
       expect((await als<{ count: number }>(user, tel("member_protocols")))[0].count).toBe(1);

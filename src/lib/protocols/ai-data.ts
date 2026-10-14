@@ -18,7 +18,7 @@ export async function loadProtocolsForAi(
     .select("id, protocol_slug, start_date, race_date, status")
     .eq("profile_id", profileId)
     .eq("status", "actief");
-  // Zolang 0233 niet is toegepast bestaat de tabel niet; dan zonder protocollen.
+  // Zolang 0237 niet is toegepast bestaat de tabel niet; dan zonder protocollen.
   if (error) return [];
   const runs: ProtocolRun[] = (data ?? []).map((row) => ({
     id: row.id as string,

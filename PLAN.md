@@ -62,7 +62,7 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Protocollen:** `0233_member_protocols.sql` toepassen (2026-10-14). Zonder
+   - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
@@ -120,7 +120,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`
-(`0233_member_protocols` is van de protocollen, 2026-10-14, nog niet toegepast).
+(`0237_member_protocols` is van de protocollen, 2026-10-14, nog niet toegepast).
 
 ---
 
@@ -7516,7 +7516,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Protocollen bij trainen en voeden, en een kennisbank trainen
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie
-`0233_member_protocols.sql` (**nog toepassen**).
+`0237_member_protocols.sql` (**nog toepassen**).
 
 **Aanleiding.** De eigenaar wilde in ZWBeter een deel over protocollen
 (hittetraining, supplementen, training op lage cadans) en vroeg daarnaast uit
@@ -7603,7 +7603,7 @@ een eigen ronde.
 (definities, doses en plafonds, dagplanning, eenmalige en wekelijkse taken,
 leeftijdsgrens, agendalabels, invoer voor de AI), `training-library.test.ts`
 (bronnen, beperkingen, elke protocollink wijst naar een bestaand artikel) en
-`member-protocols-migration.test.ts` (`0233` tegen PGlite bovenop `0037` en
+`member-protocols-migration.test.ts` (`0237` tegen PGlite bovenop `0037` en
 `0167`: lid en eigen trainer lezen, vreemde trainer en bestuur niet, alleen het
 lid schrijft, geen afvinken in een gestopt protocol, één lopend exemplaar,
 cascade bij opzeggen). `nav-active` en `zwbeter-pillars` uitgebreid. Volledige
@@ -7612,7 +7612,7 @@ na; die laatste is los groen.
 
 **Niet geverifieerd.**
 
-- `0233` op de echte database (geen Docker of Supabase-config hier).
+- `0237` op de echte database (geen Docker of Supabase-config hier).
 - De pagina's in de browser: de dev-server draaide, maar vraagt een login.
 - Wat de AI met de nieuwe regels en `protocols` werkelijk plant.
 - De inhoud is niet nagekeken door een sportarts, sportdiëtist of trainer. Van

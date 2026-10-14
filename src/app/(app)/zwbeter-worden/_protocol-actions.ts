@@ -1,7 +1,7 @@
 "use server";
 
 // Acties voor de protocollen: starten, afvinken en stoppen. Het lid schrijft
-// zelf (RLS in 0233); er gaat niets naar intervals.icu, TSS of naleving.
+// zelf (RLS in 0237); er gaat niets naar intervals.icu, TSS of naleving.
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";

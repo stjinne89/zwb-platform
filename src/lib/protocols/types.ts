@@ -1,7 +1,7 @@
 // Een protocol is iets wat je uitvoert: je start het, je krijgt per dag taken en
 // je vinkt die af. Daarin verschilt het van een kennisartikel. De inhoud staat in
 // code (training.ts, nutrition.ts) zodat elke dosis via een commit gaat; de
-// database weet alleen wie welk protocol volgt (0233_member_protocols.sql).
+// database weet alleen wie welk protocol volgt (0237_member_protocols.sql).
 
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 

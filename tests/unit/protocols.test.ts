@@ -102,7 +102,7 @@ describe("protocoldefinities", () => {
   });
 
   it("houdt de toestemmingsversie gelijk aan de migratie", () => {
-    const sql = readFileSync("supabase/migrations/0233_member_protocols.sql", "utf8");
+    const sql = readFileSync("supabase/migrations/0237_member_protocols.sql", "utf8");
     expect(sql).toContain(`consent_version in ('${PROTOCOL_CONSENT_VERSION}')`);
   });
 });
