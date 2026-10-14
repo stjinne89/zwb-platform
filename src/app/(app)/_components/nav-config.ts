@@ -75,6 +75,16 @@ export const VOEDING_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/voeding/kennis", label: "Kennisbank" },
 ];
 
+/** De tabs binnen Core & mobiliteit (de pijler kracht). Niet in het hoofdmenu:
+ * daar blijft het één item. Een losse serie valt onder Series, een artikel
+ * onder Kennisbank. */
+export const KRACHT_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/core", label: "Vandaag" },
+  { type: "link", href: "/zwbeter-worden/core/series", label: "Series" },
+  { type: "link", href: "/zwbeter-worden/core/oefeningen", label: "Oefeningen" },
+  { type: "link", href: "/zwbeter-worden/core/kennis", label: "Kennisbank" },
+];
+
 export const NAV_GROUPS: NavNode[] = [
   { type: "link", href: "/kalender", label: "Kalender" },
   { type: "link", href: "/samen-fietsen", label: "Samen fietsen" },

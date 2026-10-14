@@ -3115,6 +3115,19 @@ Fitness-status: Verbeterend`}
           >
             Open Core &amp; mobiliteit
           </Link>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Het tabblad heeft vier delen: Vandaag (wat nu past en wat je deze
+            week deed), Series, Oefeningen en de Kennisbank. In de kennisbank
+            staat per onderwerp wat het onderzoek laat zien, wat het niet laat
+            zien en welke bronnen erachter zitten; bij een serie staat een link
+            naar de artikelen die hem onderbouwen.
+          </p>
+          <Link
+            href="/zwbeter-worden/core/kennis"
+            className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open de kennisbank
+          </Link>
         </div>
       </section>
 

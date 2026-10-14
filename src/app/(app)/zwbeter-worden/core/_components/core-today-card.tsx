@@ -43,7 +43,7 @@ export async function CoreTodayCard({
   return (
     <div className="rounded-lg border bg-card">
       <Link
-        href={`/zwbeter-worden/core/${suggestion.slug}`}
+        href={`/zwbeter-worden/core/series/${suggestion.slug}`}
         className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg p-5 hover:bg-accent/40"
       >
         <div className="min-w-0">
@@ -61,7 +61,7 @@ export async function CoreTodayCard({
       </Link>
       {strength ? (
         <Link
-          href={`/zwbeter-worden/core/${strength.slug}`}
+          href={`/zwbeter-worden/core/series/${strength.slug}`}
           className="flex min-h-[44px] items-center justify-between gap-3 border-t px-5 py-3 text-sm hover:bg-accent/40"
         >
           <span className="min-w-0 truncate">

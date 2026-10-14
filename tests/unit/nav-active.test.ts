@@ -3,6 +3,7 @@ import {
   AVATAR_NAV,
   NAV_GROUPS,
   TRAINER_SECTIONS,
+  KRACHT_SECTIONS,
   VOEDING_SECTIONS,
   activeHrefIn,
   isActiveGroup,
@@ -44,6 +45,20 @@ describe("activeHrefIn", () => {
       "/zwbeter-worden/voeding/kennis",
     ]);
     expect(activeLinks("/zwbeter-worden/voeding/recepten", menuHrefs)).toEqual(["/zwbeter-worden/voeding"]);
+  });
+
+  it("houdt bij een serie of artikel de eigen krachttab actief", () => {
+    const kracht = KRACHT_SECTIONS.map((item) => item.href);
+    expect(activeLinks("/zwbeter-worden/core/series/fundament", kracht)).toEqual([
+      "/zwbeter-worden/core/series",
+    ]);
+    expect(activeLinks("/zwbeter-worden/core/kennis/het-gymprogramma", kracht)).toEqual([
+      "/zwbeter-worden/core/kennis",
+    ]);
+    expect(activeLinks("/zwbeter-worden/core/oefeningen", kracht)).toEqual([
+      "/zwbeter-worden/core/oefeningen",
+    ]);
+    expect(activeLinks("/zwbeter-worden/core/series", menuHrefs)).toEqual(["/zwbeter-worden/core"]);
   });
 
   it("markeert op profiel/segments niet ook het profiel", () => {

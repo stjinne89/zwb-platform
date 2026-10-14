@@ -210,7 +210,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Korte series naast de fiets, zelf afvinken, los van je trainingsbelasting.",
     href: "/hulp#core-mobiliteit",
     terms:
-      "core mobiliteit stabiliteit rug rugpijn onderrug plank stretchen rekken heup hamstring houding zithouding oefeningen serie afvinken",
+      "core mobiliteit stabiliteit rug rugpijn onderrug plank stretchen rekken heup hamstring houding zithouding oefeningen serie afvinken kennisbank bronnen onderbouwing onderzoek literatuur vandaag series",
   },
   {
     title: "Figuur en spierkaart",

@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { CalendarCheck, Flame, Library, Timer } from "lucide-react";
+import { CalendarCheck, Flame } from "lucide-react";
 import {
   MOBILITY_SESSIONS_PER_WEEK,
   MOBILITY_WINDOW_DAYS,
@@ -9,33 +8,31 @@ import {
   sessionsLast28Days,
   weeklyStreak,
 } from "@/lib/training/mobility";
-import { MetricCard } from "../_components/ui";
 import { weekLoad } from "@/lib/training/muscles";
+import { MetricCard } from "../_components/ui";
 import { formatWellnessDate } from "../_components/format";
-import { saveOwnSeries } from "./_actions";
 import {
   loadDayContext,
-  loadExercises,
   loadSeries,
   loadSessions,
   requireViewer,
   todayKeyAmsterdam,
 } from "./_data";
-import { SeriesBuilder } from "./_components/series-builder";
 import { MuscleSummary } from "./_components/muscle-summary";
 import { SeriesCard } from "./_components/series-card";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function CorePage() {
+// De eerste tab: wat vandaag past en wat er deze week al gedaan is. De volledige
+// lijst staat onder Series, de bibliotheek onder Oefeningen.
+export default async function CoreTodayPage() {
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [series, sessions, exercises, dayContext] = await Promise.all([
+  const [series, sessions, dayContext] = await Promise.all([
     loadSeries(viewer),
     loadSessions(viewer, today),
-    loadExercises(viewer),
     loadDayContext(viewer, today),
   ]);
 
@@ -43,92 +40,51 @@ export default async function CorePage() {
   const streak = weeklyStreak(sessions, today);
   const suggestion = recommendSeries(series, sessions, today, dayContext);
   const strength = recommendStrength(series, sessions, today, dayContext);
-  const suggested = (id: string) => id === suggestion?.id || id === strength?.id;
+  const todays = [suggestion, strength].filter((row) => row != null);
   const week = weekLoad(sessions, series, today);
   const trainedThisWeek = Object.keys(week).length > 0;
 
-  const standard = series.filter((row) => row.is_standard);
-  const own = series.filter((row) => !row.is_standard);
-
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MetricCard
-          icon={CalendarCheck}
-          label={`Sessies in ${MOBILITY_WINDOW_DAYS} dagen`}
-          value={String(recent.length)}
-          hint={`Doel: ${MOBILITY_SESSIONS_PER_WEEK}-3 per week`}
-        />
-        <MetricCard
-          icon={Flame}
-          label="Weken op doel"
-          value={String(streak)}
-          hint="Achtereen, terugtellend vanaf vandaag"
-        />
-        <MetricCard
-          icon={Timer}
-          label="Vandaag"
-          value={suggestion?.title ?? "-"}
-          hint={suggestion?.subtitle ?? undefined}
-        />
-      </div>
-
-      {trainedThisWeek && (
-        <section className="space-y-3 rounded-lg border bg-card p-4">
-          <h2 className="font-semibold">Deze week getraind</h2>
-          <MuscleSummary load={week} size="lg" limit={5} />
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <h2 className="font-semibold">Series</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {standard.map((row) => (
-            <SeriesCard
-              key={row.id}
-              series={row}
-              items={row.items}
-              lastDone={lastDoneOn(sessions, row.id)}
-              suggested={suggested(row.id)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {own.length > 0 && (
+      {todays.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-semibold">Eigen series</h2>
+          <h2 className="font-semibold">Vandaag</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {own.map((row) => (
+            {todays.map((row) => (
               <SeriesCard
                 key={row.id}
                 series={row}
-              items={row.items}
+                items={row.items}
                 lastDone={lastDoneOn(sessions, row.id)}
-                suggested={suggested(row.id)}
               />
             ))}
           </div>
         </section>
       )}
 
-      <SeriesBuilder exercises={exercises} saveAction={saveOwnSeries} />
-
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        <Link
-          href="/zwbeter-worden/core/oefeningen"
-          className="inline-flex min-h-[44px] items-center gap-2 text-primary hover:underline"
-        >
-          <Library className="size-4" />
-          Alle oefeningen
-        </Link>
-        <Link
-          href="/hulp#core-mobiliteit"
-          className="inline-flex min-h-[44px] items-center text-muted-foreground hover:underline"
-        >
-          Waarom dit werkt
-        </Link>
-      </div>
+      <section className="space-y-3">
+        <h2 className="font-semibold">Deze week</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <MetricCard
+            icon={CalendarCheck}
+            label={`Sessies in ${MOBILITY_WINDOW_DAYS} dagen`}
+            value={String(recent.length)}
+            hint={`Doel: ${MOBILITY_SESSIONS_PER_WEEK}-3 per week`}
+          />
+          <MetricCard
+            icon={Flame}
+            label="Weken op doel"
+            value={String(streak)}
+            hint="Achtereen, terugtellend vanaf vandaag"
+          />
+        </div>
+        {trainedThisWeek && (
+          <div className="space-y-3 rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-semibold">Deze week getraind</h3>
+            <MuscleSummary load={week} size="lg" limit={5} />
+          </div>
+        )}
+      </section>
 
       {recent.length > 0 && (
         <p className="text-xs text-muted-foreground">

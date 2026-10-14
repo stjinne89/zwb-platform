@@ -7510,6 +7510,80 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — kracht-tabblad in vier tabs, met een kennisbank
+
+**2026-10-14.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Vraag van de eigenaar na fase A en B: het tabblad herindelen in
+vandaag/deze week, series, oefeningen en een kennisbank, "zodat alle
+onderbouwing ook te vinden is". De onderbouwing stond alleen in
+`docs/kracht-literatuur.md` en samengevat op `/hulp`.
+
+**Wijziging.**
+
+- Eigen tabbalk in `core/layout.tsx`, zelfde opzet als Voeding
+  (`KRACHT_SECTIONS` in `nav-config.ts`): **Vandaag**, **Series**,
+  **Oefeningen**, **Kennisbank**. In het hoofdmenu blijft het één item.
+- *Vandaag* (`/zwbeter-worden/core`): de serie die vandaag past, met het
+  krachtvoorstel ernaast als dat er is; daaronder de twee tellers en "Deze week
+  getraind".
+- *Series* (`/core/series`): de standaardseries in drie groepen (core en
+  mobiliteit, kracht, gym), eigen series en de seriebouwer.
+- *Een serie* staat nu op `/core/series/<slug>`. De oude `/core/<slug>` stuurt
+  blijvend door, zodat bladwijzers en oude links werken.
+- *Kennisbank* (`/core/kennis`, `/core/kennis/<slug>`): tien artikelen in
+  `src/lib/training/strength-library.ts`, in code zoals de kennisbibliotheek
+  voeding. Elk artikel heeft wat het onderzoek laat zien, **wat het niet laat
+  zien of wat een eigen keuze van ZWB is**, de bronnen met DOI-link, en de
+  series die het onderbouwt. Op een seriepagina staat een blok "Onderbouwing"
+  met links terug.
+- `/hulp`: korte uitleg van de vier tabs en een link naar de kennisbank.
+
+**Bronnen erbij gezocht.** De core- en mobiliteitsclaims uit `0110` en `/hulp`
+hadden geen bron in de repo. Op 2026-10-14 via Europe PMC opgezocht (alleen de
+samenvattingen gelezen): Clarsen 2010 (58% van de profrenners had lage rugpijn),
+Van Hoof 2012 (rondere onderrug en oplopende pijn over twee uur), Streisfeld
+2017, Rodríguez-Perea 2023 (core-training), Sadler 2017 (hamstrings en rugpijn)
+en Behm 2016 (rekken voor inspanning).
+
+**Niet gedekt door wat gevonden is.** `/hulp#core-mobiliteit` zegt dat
+core-training "duidelijke winst" geeft op romp-uithoudingsvermogen en
+"nauwelijks op kracht en snelheid". De gevonden overzichtsstudie meet balans,
+werpen en springen, en vond daar juist verbetering; romp-uithoudingsvermogen en
+fietsprestatie zitten er niet in. De kennisbank zegt daarom alleen wat die
+studie laat zien. De hulptekst is **niet aangepast**: waar de oorspronkelijke
+claim vandaan kwam is niet meer na te gaan, en de eigenaar moet kiezen of hij
+blijft staan.
+
+**Bewust niet gebouwd.**
+
+- De kennisbank in de database of met een beheerscherm: zelfde reden als bij
+  voeding, elke bewering gaat via een commit.
+- De krachtteksten van `/hulp` weghalen nu ze ook in de kennisbank staan. Hulp
+  blijft de plek voor uitleg; de kennisbank voor de bronnen.
+- De naam van het menu-item ("Core & mobiliteit") wijzigen.
+- Een markering "Vandaag" op de kaarten in de eerste tab: daar staat de kop al
+  boven.
+
+**Niet meer waar.** In fase A en B hierboven en in "krachtreeksen (wens 19)":
+een serie staat niet meer op `/zwbeter-worden/core/<slug>`, en de serielijst en
+seriebouwer staan niet meer op `/zwbeter-worden/core` maar onder Series. De
+links "Alle oefeningen" en "Waarom dit werkt" onderaan zijn vervallen; dat zijn
+nu tabs.
+
+**Getest.** `tsc`, eslint zonder fouten, de app compileert. Nieuw
+`strength-library.test.ts`: elk artikel heeft bron, punten en beperkingen, elke
+bron een DOI-link, artikelen verwijzen alleen naar series uit een seed, en elke
+standaardserie heeft minstens één artikel. `nav-active.test.ts`: op een serie
+of artikel is de eigen tab actief. Volledige run: op twee suites na groen
+(`omnium-live` mist `.env.local`; één test in `admin-areas` liep tegen zijn
+time-out).
+
+**Niet geverifieerd.** Geen van de nieuwe pagina's is in een browser gezien:
+ze vragen een login en deze worktree heeft geen Supabase-gegevens. Dat geldt
+ook voor de doorverwijzing van de oude serie-URL en voor de tabbalk in het
+klassieke design.
+
 ### Opgeleverd — kracht-tabblad fase B: gymseries en thuis met gewicht
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie `0232`

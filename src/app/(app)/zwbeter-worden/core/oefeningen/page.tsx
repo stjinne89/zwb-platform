@@ -5,7 +5,6 @@ import type { MobilityCategory } from "@/lib/training/mobility";
 import { ExerciseVisual } from "../_components/exercise-visual";
 import { ExerciseMuscleSummary } from "../_components/muscle-summary";
 import { loadExercises, requireViewer } from "../_data";
-import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,10 +24,7 @@ export default async function ExerciseLibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <BackLink href="/zwbeter-worden/core" label="Core & mobiliteit" />
-        <h2 className="mt-1 text-xl font-semibold">Oefeningen</h2>
-      </div>
+      <h2 className="text-xl font-semibold">Oefeningen</h2>
 
       {CATEGORY_ORDER.map((category) => {
         const rows = exercises.filter((exercise) => exercise.category === category);

@@ -30,7 +30,7 @@ export function SeriesCard({
 
   return (
     <Link
-      href={`/zwbeter-worden/core/${series.slug}`}
+      href={`/zwbeter-worden/core/series/${series.slug}`}
       className={`flex min-h-[44px] items-center justify-between gap-3 rounded-lg border bg-card p-4 hover:border-primary ${
         suggested ? "border-primary" : ""
       }`}

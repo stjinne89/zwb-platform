@@ -65,7 +65,7 @@ export async function CoreStatus({ tegels }: { tegels?: boolean } = {}) {
   // Design "tegels": één tegel met de sessie van vandaag en de reeks.
   if (tegels) {
     return (
-      <Link href={`/zwbeter-worden/core/${suggestion.slug}`} className="tg-tile tg-zwbeter">
+      <Link href={`/zwbeter-worden/core/series/${suggestion.slug}`} className="tg-tile tg-zwbeter">
         <span className="tg-tile-small">
           ZWBeter kracht · {doneToday ? "vandaag gedaan" : "vandaag"}
         </span>
@@ -94,7 +94,7 @@ export async function CoreStatus({ tegels }: { tegels?: boolean } = {}) {
       />
       <div className="space-y-3">
         <Link
-          href={`/zwbeter-worden/core/${suggestion.slug}`}
+          href={`/zwbeter-worden/core/series/${suggestion.slug}`}
           className="block rounded-lg border bg-card p-4 transition hover:border-primary"
         >
           <div className="flex items-start justify-between gap-3">
