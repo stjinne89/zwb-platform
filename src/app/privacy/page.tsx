@@ -133,7 +133,9 @@ export default function PrivacyPage() {
             bewaren dan per maaltijd de datum, het moment, de producten en de
             hoeveelheden, en rekenen daaruit je koolhydraten en eiwit. Een
             caloriedoel of je gewichtsverloop hoort daar niet bij. Alleen jij
-            ziet je eetdagboek; een trainer of andere leden zien het niet. Je
+            ziet je eetdagboek, tenzij je je eigen trainer laat meekijken (een
+            aparte toestemming die je weer kunt intrekken); andere leden zien het
+            nooit. Je
             kunt pauzeren, losse maaltijden verwijderen en alles wissen; zet je
             Naleving uit, dan verwijderen we het hele eetdagboek. Zoek je een
             verpakt product op met de barcode, dan vragen we het op bij Open Food

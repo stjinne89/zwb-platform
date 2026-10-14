@@ -137,18 +137,37 @@ export type LogSettings = {
   paused: boolean;
   /** Foto en tekst herkennen staat aan (0233). */
   recognition: boolean;
+  /** De eigen trainer mag meekijken (0234). */
+  trainerVisible: boolean;
+  /** Herinneringen staan aan (0234). */
+  reminders: boolean;
 };
 
 /** Null als het lid het eetdagboek niet heeft aangezet, of zolang 0231 er niet is. */
-export async function loadLogSettings(viewer: Viewer): Promise<LogSettings | null> {
+export async function loadLogSettings(viewer: Viewer, profileId = viewer.user.id): Promise<LogSettings | null> {
   // Alle kolommen: zo werkt dit voor en na de migraties die er kolommen bij zetten.
   const { data } = await viewer.supabase
     .from("nutrition_log_settings")
     .select("*")
-    .eq("profile_id", viewer.user.id)
+    .eq("profile_id", profileId)
     .maybeSingle();
   if (!data) return null;
-  return { paused: Boolean(data.paused), recognition: data.ai_consent_at != null };
+  return {
+    paused: Boolean(data.paused),
+    recognition: data.ai_consent_at != null,
+    trainerVisible: Boolean(data.trainer_visible),
+    reminders: Boolean(data.reminders),
+  };
+}
+
+/** Heeft dit lid een actieve trainer? Alleen dan heeft meekijken zin. */
+export async function hasActiveTrainer(viewer: Viewer): Promise<boolean> {
+  const { count } = await viewer.supabase
+    .from("training_coach_assignments")
+    .select("trainer_id", { count: "exact", head: true })
+    .eq("athlete_id", viewer.user.id)
+    .eq("status", "active");
+  return (count ?? 0) > 0;
 }
 
 type LoggedMealRow = {
@@ -180,12 +199,17 @@ function logMealColumns(withProducts: boolean) {
 }
 
 /** De maaltijden van dit lid in een reeks dagen, van nieuw naar oud. */
-export async function loadLoggedMeals(viewer: Viewer, from: string, to: string): Promise<LoggedMeal[]> {
+export async function loadLoggedMeals(
+  viewer: Viewer,
+  from: string,
+  to: string,
+  profileId = viewer.user.id,
+): Promise<LoggedMeal[]> {
   const query = (withProducts: boolean) =>
     viewer.supabase
       .from("nutrition_log_meals")
       .select(logMealColumns(withProducts))
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .gte("eaten_on", from)
       .lte("eaten_on", to)
       .order("eaten_on", { ascending: false })
@@ -247,6 +271,7 @@ export async function loadNutritionDayInputs(
   viewer: Viewer,
   days: string[],
   weightKg: number | null,
+  profileId = viewer.user.id,
 ): Promise<Map<string, NutritionDayInput>> {
   const sorted = [...days].sort();
   const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
@@ -256,7 +281,7 @@ export async function loadNutritionDayInputs(
     viewer.supabase
       .from("training_workouts")
       .select("scheduled_at, duration_minutes, intensity, status, plan_id")
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .is("superseded_at", null)
       .gte("scheduled_at", from)
       .lt("scheduled_at", to),
@@ -264,16 +289,16 @@ export async function loadNutritionDayInputs(
     viewer.supabase
       .from("training_plans")
       .select("id")
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .eq("status", "draft")
       .eq("adaptation_kind", "daily"),
     viewer.supabase
       .from("strava_activities")
       .select("start_date, moving_time_seconds")
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .gte("start_date", from)
       .lt("start_date", to),
-    getWellnessSummary(viewer.supabase, viewer.user.id, 45).catch(() => null),
+    getWellnessSummary(viewer.supabase, profileId, 45).catch(() => null),
   ]);
 
   const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));

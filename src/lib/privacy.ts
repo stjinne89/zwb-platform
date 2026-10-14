@@ -20,7 +20,8 @@
  * Alleen wie Naleving aanzet levert die gegevens aan, en tekent daar apart voor
  * (`LOG_CONSENT_VERSION` in `src/lib/nutrition/log.ts`, tabel
  * `nutrition_log_settings`). Foto en tekst herkennen (naar OpenAI) heeft daarbovenop
- * een eigen toestemming (`ai_consent_at`). `/privacy` beschrijft beide wel.
+ * een eigen toestemming (`ai_consent_at`), net als de trainer laten meekijken
+ * (`trainer_consent_at`). `/privacy` beschrijft het wel.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

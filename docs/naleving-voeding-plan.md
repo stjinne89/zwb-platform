@@ -1,7 +1,8 @@
 # Naleving van het voedingsplan: besloten plan
 
 Besloten door de eigenaar op 2026-10-14, met akkoord van het bestuur om het
-volledig te bouwen. **Stap 1 is gebouwd, de rest niet.** Dit document is de
+volledig te bouwen. **Stap 1 tot en met 5 zijn gebouwd; de meting (stap 0)
+nog niet.** Dit document is de
 bouwvolgorde; elke stap wordt een eigen ronde in `PLAN.md`.
 
 **Wat het wordt.** Leden kunnen vastleggen wat ze eten, onder meer met een foto,
@@ -191,6 +192,8 @@ een tekst op `/hulp`.
 4. **Dagmenu dat meerekent en het weekoverzicht.**
    *Gebouwd op 2026-10-14, zonder migratie, zie `PLAN.md`.*
 5. **Herinneringen en trainerinzage.**
+   *Gebouwd op 2026-10-14 (migratie `0234_nutrition_log_trainer_reminders.sql`),
+   zie `PLAN.md`.*
 
 Stap 0 en stap 1 hangen niet van elkaar af en kunnen tegelijk.
 

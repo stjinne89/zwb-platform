@@ -3361,6 +3361,18 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Heb je een trainer, dan kun je die laten meekijken (een
+                  aparte toestemming). Je trainer ziet dan per dag wat je at en
+                  of je je minimum haalde, maar kan niets wijzigen. Met
+                  Herinneringen krijg je &apos;s avonds een pushbericht als er
+                  morgen een zware, lange of wedstrijddag staat, of als je
+                  vandaag een uur of langer reed en bij &quot;Na de rit&quot;
+                  nog niets staat.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   Met Pauzeren blijft je eetdagboek staan maar komt er niets
                   bij. &quot;Alles wissen&quot; verwijdert het hele eetdagboek
                   en zet Naleving uit.

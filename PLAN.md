@@ -117,9 +117,61 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`.
 
 ---
+
+> **Naleving stap 5: trainer kijkt mee en herinneringen, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken, geen pushbericht verstuurd.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0234_nutrition_log_trainer_reminders.sql`, **nog niet toegepast**.
+>
+> **Waarom.** Stap 5 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md),
+> met besluit 5 (alleen het lid; de trainer met een eigen schakelaar, de
+> AI-coach niet).
+>
+> **Wat.**
+> - **Trainer kijkt mee.** Op Naleving, alleen voor wie een actieve trainer
+>   heeft: "Trainer laten meekijken" met een eigen toestemming
+>   (`trainer_visible`, `trainer_consent_at`; een check houdt aanzetten zonder
+>   toestemmingsdatum tegen). Leesrecht via `nutrition_log_trainer_can_read`:
+>   alleen een trainer met een **actieve koppeling** aan dit lid, en alleen als
+>   het lid het aan heeft. Bewust niet `current_user_can_train_profile`, die ook
+>   wie koppelingen beheert laat meelezen. De trainer kan niets schrijven.
+> - **Tab Voeding bij de trainer** (`trainer/voeding/page.tsx`, in
+>   `TRAINER_SECTIONS`): de week (`WeekStrip`, nu een gedeeld onderdeel) en per
+>   dag de totalen tegen het minimum en de maaltijden per moment. Zonder
+>   meekijken: "Deze renner deelt het eetdagboek niet."
+> - **Herinneringen** (`src/lib/nutrition/reminders.ts`), aan te zetten op
+>   Naleving (`reminders`). Ze draaien mee in de bestaande cron van
+>   `/api/events/reminders` (elke 15 minuten), tussen 19:00 en 21:00
+>   Nederlandse tijd, hooguit één van elk soort per dag
+>   (`nutrition_reminder_sends`): de avond voor een zware, lange of
+>   wedstrijddag, en na een rit van een uur of langer zonder iets bij "Na de
+>   rit". Nieuwe pushsoort `on_nutrition_reminder` (kolom op
+>   `notification_preferences`, standaard aan; het eigenlijke aan of uit staat
+>   in Naleving, en de soort staat niet apart op het profiel).
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   aangevuld. `loadLogSettings`, `loadLoggedMeals` en `loadNutritionDayInputs`
+>   nemen een optioneel profiel-id voor de trainer.
+>
+> **Bewust niet gebouwd.**
+> - **De AI-coach krijgt het eetdagboek niet** (besluit 5).
+> - Een aparte schakelaar voor deze pushsoort op het profiel: dan staat
+>   hetzelfde op twee plekken.
+> - Herinneringen op een ander tijdstip of direct na de rit: de cron weet niet
+>   wanneer een rit klaar is, en één vast moment is voorspelbaar.
+> - Iets voor wie koppelingen beheert maar geen trainer is.
+>
+> **Niet geverifieerd.** Of de trainer de ritten en het herstel van de renner
+> mag lezen voor het dagtype: zo niet, dan rekent de trainerspagina alleen met
+> het schema. Geen pushbericht verstuurd.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `nutrition-reminders`
+> (tijdvenster in zomer- en wintertijd, welke herinnering wanneer, geen tekst
+> die om minder eten vraagt) en in `nutrition-log` tegen PGlite: de trainer
+> leest pas na aanzetten, alleen bij een actieve koppeling, kan niet schrijven
+> of pauzeren, en ziet niets meer na uitzetten; de verstuurlog is niet leesbaar
+> voor leden en dubbel versturen kan niet.
 
 > **Naleving stap 4: dagmenu dat meerekent en weekoverzicht, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.

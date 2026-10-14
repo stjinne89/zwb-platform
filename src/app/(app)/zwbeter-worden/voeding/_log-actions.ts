@@ -68,6 +68,31 @@ export async function setLogPaused(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** De eigen trainer laten meekijken, met een eigen toestemming; of dat weer intrekken. */
+export async function setTrainerVisible(formData: FormData): Promise<ActionResult> {
+  const on = text(formData.get("on")) === "1";
+  if (on && formData.get("consent") !== "on") return { ok: false, error: "Vink de toestemming aan." };
+  const viewer = await requireViewer();
+  const { error } = await viewer.supabase
+    .from("nutrition_log_settings")
+    .update(on ? { trainer_visible: true, trainer_consent_at: new Date().toISOString() } : { trainer_visible: false })
+    .eq("profile_id", viewer.user.id);
+  if (error) return { ok: false, error: error.message };
+  refresh();
+  return { ok: true };
+}
+
+export async function setReminders(formData: FormData): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const { error } = await viewer.supabase
+    .from("nutrition_log_settings")
+    .update({ reminders: text(formData.get("on")) === "1" })
+    .eq("profile_id", viewer.user.id);
+  if (error) return { ok: false, error: error.message };
+  refresh();
+  return { ok: true };
+}
+
 /** Toestemming intrekken: de rij weg, en daarmee het hele eetdagboek (cascade in 0231). */
 export async function deleteLog(): Promise<ActionResult> {
   const viewer = await requireViewer();

@@ -176,7 +176,7 @@ describe("barcodeproducten", () => {
   });
 });
 
-// 0231 tot en met 0233 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
+// 0231 tot en met 0234 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
 // product is genoeg. Zegt niets over de productiedatabase; daar gaat de migratie met de hand.
 describe("eetdagboek, migratie 0231", () => {
   let db: PGlite;
@@ -184,6 +184,9 @@ describe("eetdagboek, migratie 0231", () => {
 
   const MEMBER = "00000000-0000-0000-0000-000000000001";
   const OTHER = "00000000-0000-0000-0000-000000000002";
+  // De actieve trainer van MEMBER, en een trainer van iemand anders.
+  const TRAINER = "00000000-0000-0000-0000-000000000003";
+  const STRANGER = "00000000-0000-0000-0000-000000000004";
   const FOOD = "00000000-0000-0000-0000-0000000000f1";
 
   beforeAll(async () => {
@@ -196,7 +199,10 @@ describe("eetdagboek, migratie 0231", () => {
         "create table profiles(id uuid primary key, is_approved boolean);",
         "create function current_user_has_permission(text) returns boolean language sql stable as $$ select false $$;",
         "create function touch_training_updated_at() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end $$;",
-        `insert into profiles values ('${MEMBER}', true), ('${OTHER}', true);`,
+        `insert into profiles values ('${MEMBER}', true), ('${OTHER}', true), ('${TRAINER}', true), ('${STRANGER}', true);`,
+        "create table training_coach_assignments(athlete_id uuid, trainer_id uuid, status text);",
+        `insert into training_coach_assignments values ('${MEMBER}', '${TRAINER}', 'active'), ('${OTHER}', '${STRANGER}', 'active'), ('${MEMBER}', '${STRANGER}', 'ended');`,
+        "create table notification_preferences(profile_id uuid primary key);",
       ].join("\n"),
     );
     await db.exec(await migration("0168_nutrition.sql"));
@@ -204,6 +210,7 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0231_nutrition_log.sql"));
     await db.exec(await migration("0232_nutrition_log_products.sql"));
     await db.exec(await migration("0233_nutrition_log_recognition.sql"));
+    await db.exec(await migration("0234_nutrition_log_trainer_reminders.sql"));
     await db.exec(
       `insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('8710400000017', 'Gel', 62.5, 0);`,
     );
@@ -356,6 +363,50 @@ describe("eetdagboek, migratie 0231", () => {
     expect(await count("select count(*) from nutrition_log_settings where ai_consent_at is not null")).toBe(1);
   });
 
+  it("laat alleen de actieve trainer meelezen, en pas als het lid dat aanzet", async () => {
+    const visible = (user: string, table: string) => as(user, () => count(`select count(*) from ${table}`));
+    expect(await visible(TRAINER, "nutrition_log_meals")).toBe(0);
+
+    // Aanzetten kan niet zonder toestemmingsdatum.
+    await expect(
+      as(MEMBER, () => db.query("update nutrition_log_settings set trainer_visible = true")),
+    ).rejects.toThrow(/trainer_consent_check/);
+    await as(MEMBER, () =>
+      db.query("update nutrition_log_settings set trainer_visible = true, trainer_consent_at = now()"),
+    );
+
+    expect(await visible(TRAINER, "nutrition_log_settings")).toBe(1);
+    expect(await visible(TRAINER, "nutrition_log_meals")).toBeGreaterThan(0);
+    expect(await visible(TRAINER, "nutrition_log_items")).toBeGreaterThan(0);
+    // Een beëindigde koppeling of een ander lid telt niet.
+    expect(await visible(STRANGER, "nutrition_log_meals")).toBe(0);
+    expect(await visible(OTHER, "nutrition_log_meals")).toBe(0);
+
+    // Meelezen, niet schrijven.
+    await expect(
+      as(TRAINER, () =>
+        db.query(
+          `insert into nutrition_log_meals(profile_id, eaten_on, meal_moment, source, title) values('${MEMBER}', '2026-10-14', 'diner', 'handmatig', 'X')`,
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await as(TRAINER, () => db.query("delete from nutrition_log_meals"));
+    await as(TRAINER, () => db.query("update nutrition_log_settings set paused = true"));
+    expect(await count("select count(*) from nutrition_log_settings where paused")).toBe(0);
+    expect(await count("select count(*) from nutrition_log_meals")).toBeGreaterThan(0);
+
+    await as(MEMBER, () => db.query("update nutrition_log_settings set trainer_visible = false"));
+    expect(await visible(TRAINER, "nutrition_log_meals")).toBe(0);
+  });
+
+  it("houdt verstuurde herinneringen voor de server", async () => {
+    await db.query(`insert into nutrition_reminder_sends(profile_id, sent_on, kind) values('${MEMBER}', '2026-10-14', 'herstel')`);
+    expect(await as(MEMBER, () => count("select count(*) from nutrition_reminder_sends"))).toBe(0);
+    await expect(
+      db.query(`insert into nutrition_reminder_sends(profile_id, sent_on, kind) values('${MEMBER}', '2026-10-14', 'herstel')`),
+    ).rejects.toThrow(/duplicate key/);
+  });
+
   it("wist alles als de toestemming wordt ingetrokken", async () => {
     await as(MEMBER, () => db.query("delete from nutrition_log_settings"));
     expect(await count("select count(*) from nutrition_log_settings")).toBe(0);
@@ -369,6 +420,7 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0231_nutrition_log.sql"));
     await db.exec(await migration("0232_nutrition_log_products.sql"));
     await db.exec(await migration("0233_nutrition_log_recognition.sql"));
-    expect(await count("select count(*) from pg_policies where tablename like 'nutrition_log_%'")).toBe(6);
+    await db.exec(await migration("0234_nutrition_log_trainer_reminders.sql"));
+    expect(await count("select count(*) from pg_policies where tablename like 'nutrition_log_%'")).toBe(9);
   });
 });
