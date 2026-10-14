@@ -3310,7 +3310,7 @@ Fitness-status: Verbeterend`}
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
                   Een barcode typ je over, of je maakt er een foto van met
-                  Scan (niet in elke browser; op een iPhone typ je het nummer).
+                  Scan. Houd de barcode recht en scherp in beeld.
                   Vermeldt de verpakking een portie, dan telt de plusknop er
                   telkens één bij, handig voor gels en repen onderweg. De
                   productgegevens komen van Open Food Facts (ODbL).
