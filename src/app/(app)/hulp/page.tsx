@@ -17,6 +17,7 @@ import {
   Lightbulb,
   MapPinned,
   Medal,
+  CalendarPlus,
   Monitor,
   Mountain,
   Navigation,
@@ -1021,6 +1022,82 @@ export default function HelpPage() {
         >
           <UserCircle className="size-4 text-primary" />
           Naar je profiel
+        </Link>
+      </section>
+
+      <section
+        id="agenda"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <CalendarPlus className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWB in je eigen agenda</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Met een persoonlijke link zie je in je gewone agenda de events waar
+              je ja op zei, de teamraces waarvoor je bent opgesteld en je eigen
+              trainingen. Een training staat als hele dag, zonder tijd. Het werkt
+              één kant op: wat je in je agenda verandert, komt niet terug in ZWB.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Apple Agenda en Outlook-app</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Tik op Profiel bij Agenda-abonnement op{" "}
+              <strong className="text-foreground">Apple Agenda / Outlook-app</strong>{" "}
+              en bevestig het abonnement. Lukt dat niet, kopieer dan de link en
+              kies in de app Nieuw agenda-abonnement (Apple) of Agenda toevoegen,
+              Abonneren vanaf internet (Outlook).
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Google Agenda</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Kies <strong className="text-foreground">Google Agenda</strong> en
+              bevestig met Toevoegen. Of kopieer de link en kies op
+              calendar.google.com bij Andere agenda&apos;s het plusje en Via URL.
+              Op de telefoon verschijnt hij daarna vanzelf in de Google
+              Agenda-app.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Andere apps</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Thunderbird, Proton Calendar, Samsung Agenda en de meeste andere
+              agenda&apos;s kunnen zich abonneren op een internetagenda (ICS).
+              Plak daar de gekopieerde link.
+            </p>
+          </article>
+        </div>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Je agenda-app bepaalt hoe vaak hij ververst. Apple en Outlook doen
+              dat ongeveer elk uur tot elke paar uur, Google soms pas na een dag.
+              Een verzet event kan daar dus even op de oude tijd staan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Wie de link heeft, ziet je aanmeldingen en trainingen. Deel hem
+              niet. Gedeeld per ongeluk? Kies Nieuwe link: de oude werkt dan niet
+              meer, en je voegt de nieuwe opnieuw toe aan je agenda.
+            </span>
+          </li>
+        </ul>
+
+        <Link
+          href="/profiel#agenda"
+          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+        >
+          <UserCircle className="size-4 text-primary" />
+          Naar je agendalink
         </Link>
       </section>
 

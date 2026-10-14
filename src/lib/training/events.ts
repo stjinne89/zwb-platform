@@ -267,7 +267,7 @@ const EVENT_BLOCK_NOTE = "Clubevent uit de ZWB-kalender.";
  * ZRL-import maakt teamraces zonder route aan; staat de route op de raceweek,
  * dan kan de duur daar toch uit volgen.
  */
-async function withParentRoutes<T extends ClubEventRow>(admin: Admin, events: T[]): Promise<T[]> {
+export async function withParentRoutes<T extends ClubEventRow>(admin: Admin, events: T[]): Promise<T[]> {
   const needsParent = (event: T) =>
     Boolean(event.parent_event_id) &&
     positive(event.distance_km) == null &&

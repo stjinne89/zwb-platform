@@ -27,6 +27,7 @@ const PROFILE_TABLES: string[] = [
   "profile_completed_segments",
   "notification_preferences",
   "push_subscriptions",
+  "calendar_feed_tokens",
   "team_members",
   "posts",
   "post_comments",

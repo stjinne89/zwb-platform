@@ -44,6 +44,8 @@ const PUBLIC_PATHS = [
   "/api/instagram/sync",
   // Geen cron: de Discord-bot haalt hier een plan op met het deeltoken in het pad.
   "/api/ttt/plan",
+  // Geen cron: agenda-apps halen het abonnement op met het token in het pad.
+  "/api/agenda",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

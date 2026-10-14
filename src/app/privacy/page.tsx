@@ -274,6 +274,16 @@ export default function PrivacyPage() {
             koppeling.
           </li>
           <li>
+            <strong>Agenda-abonnement:</strong> maak je op je profiel een
+            agendalink aan, dan leest je agenda-app (zoals Google Agenda, Outlook
+            of Apple Agenda) via die link de events waar je ja op zei, de
+            teamraces waarvoor je bent opgesteld en je geplande trainingen. Die
+            aanbieder bewaart ze dan volgens zijn eigen voorwaarden. Iedereen met
+            de link kan hetzelfde lezen, dus deel hem niet. We bewaren de link en
+            wanneer hij voor het laatst is opgehaald. Je kunt hem op je profiel
+            vervangen of intrekken; bij het opheffen van je account verdwijnt hij.
+          </li>
+          <li>
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,
             ritverslagen, reacties, polls en geüploade foto&apos;s.
           </li>

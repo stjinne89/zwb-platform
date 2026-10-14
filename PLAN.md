@@ -117,9 +117,73 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0236`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0237`.
 
 ---
+
+> **Agenda-abonnement: ZWB in Google Agenda, Outlook en Apple Agenda, 2026-10-14 — gebouwd, lokaal getest, niet gepusht; migratie niet toegepast; niet in de browser bekeken en niet in een echte agenda-app geprobeerd.**
+> Commit: de commit die dit blok toevoegt. Migratie `0236_calendar_feed_tokens.sql`.
+>
+> **Waarom.** Vraag van de eigenaar: de kalender moet ook in de dagelijkse
+> agenda-apps van leden staan. Er waren twee routes: een ICS-abonnement (ZWB naar
+> de agenda, één kant op, werkt met elke app) of echte tweerichtingssync per
+> aanbieder (Google Calendar API, Microsoft Graph, CalDAV voor Apple). De eigenaar
+> koos het abonnement.
+>
+> **Wat.**
+> - Per lid één persoonlijke link, `/api/agenda/<token>.ics`, aan te maken,
+>   te vervangen en in te trekken op `/profiel#agenda`. Knoppen voor webcal
+>   (Apple Agenda en de Outlook-app), Google Agenda (`?cid=`) en Outlook.com
+>   (`addfromweb`), plus de link om te kopiëren voor de rest.
+> - Inhoud (keuze eigenaar): events met een 'ja' in `event_rsvps`, en daarbij de
+>   teamraces waarvoor het lid in `team_event_lineups` staat. Dat tweede is een
+>   invulling van de bouwer: een ZRL-rijder meldt zich niet via de RSVP aan maar
+>   wordt opgesteld. Plus de eigen trainingen (niet vervangen, niet overgeslagen,
+>   geen rustdag), als hele dag: de begintijd van een training is een
+>   plaatshouder (09:00). Een training die bij een event in de feed hoort, krijgt
+>   geen eigen regel, net als op de kalender. Venster: 60 dagen terug, 400 vooruit.
+> - De duur van een event komt uit `eventWorkoutDefaults` (eindtijd, dan
+>   route, dan typegemiddelde); `withParentRoutes` in `lib/training/events.ts` is
+>   daarvoor geëxporteerd.
+> - Het token staat onversleuteld in `calendar_feed_tokens` (RLS: alleen het
+>   eigen lid), net als `ttt_plans.share_token`: het lid moet de link opnieuw
+>   kunnen kopiëren. De route leest met de admin-client en staat in
+>   `PUBLIC_PATHS`. `last_fetched_at` wordt hooguit één keer per uur bijgewerkt
+>   en staat op het profiel, zodat een lid ziet of de app de link ophaalt.
+> - Bij een databasefout antwoordt de route met 502 in plaats van een lege
+>   agenda; anders zou een app alle items wissen.
+> - Uitleg op `/hulp#agenda` (en in de hulpzoeker), een alinea in de
+>   privacyverklaring (sectie 2), en de tabel in de data-export.
+>
+> **Bewust niet gebouwd.**
+> - Tweerichtingssync: drie aparte integraties met OAuth, en Google eist een
+>   app-verificatie voor agendatoegang. Er is geen vraag naar iets dat vanuit een
+>   agenda-app terug moet naar ZWB.
+> - Verjaardagen, 'misschien', 'beschikbaar' en de hele clubkalender: niet
+>   gekozen door de eigenaar.
+> - Een verversingsritme afdwingen: dat kan niet. `REFRESH-INTERVAL` staat op een
+>   uur, maar Google haalt een abonnement soms pas na 8 tot 24 uur opnieuw op.
+>
+> **Privacy.** De privacyverklaring kreeg een alinea zonder nieuwe versie: het
+> gaat om gegevens die het lid al opgaf, en de link is opt-in. De tekst moet de
+> eigenaar nog goedkeuren vóór de push.
+>
+> **Niet geverifieerd.** Migratie `0236` is niet gedraaid (geen lokale
+> database). Het profielblok en de route zijn niet in de browser bekeken, en de
+> feed is niet in een echte Google-, Outlook- of Apple-agenda toegevoegd; de
+> deeplinks voor Google (`cid`) en Outlook.com (`addfromweb`) zijn dus niet
+> uitgeprobeerd.
+>
+> **Volgorde bij uitrollen.** Eerst `0236` toepassen, dan deployen; zonder de
+> tabel geeft de route een 502 en blijft het profielblok leeg.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `calendar-feed` (13 tests:
+> ICS-opmaak met vouwen en escapen, hele-dag over de jaargrens, Amsterdamse
+> datum van een training, training bij een event overslaan, token en links).
+> `middleware-public-paths` slaagt. In de volledige suite faalden
+> `admin-areas` en `intervals-ride-sync` op een time-out (los gedraaid slagen
+> ze) en `omnium-live` mist `.env.local` in de worktree; geen van drieën raakt
+> deze ronde.
 
 > **Naleving stap 5: trainer kijkt mee en herinneringen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, geen pushbericht verstuurd.**
 > Commit: de commit die dit blok toevoegt. Migratie
