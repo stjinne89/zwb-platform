@@ -54,14 +54,19 @@ function labelFor(workout: CalendarWorkout) {
   return parts.length ? `${workout.title} - ${parts.join(" - ")}` : workout.title;
 }
 
+/** Een protocoldag (hitte, wedstrijdsupplement): geen workout, alleen een label. */
+export type CalendarMarker = { date: string; label: string };
+
 export function WorkoutCalendar({
   workouts,
   todayKey,
   onSelect,
   selectedId,
+  markers = [],
 }: {
   workouts: CalendarWorkout[];
   todayKey: string;
+  markers?: CalendarMarker[];
   /** Meegeven maakt de blokjes aanklikbaar; zonder dit is de maand alleen kijken. */
   onSelect?: (workoutId: string) => void;
   selectedId?: string | null;
@@ -75,6 +80,12 @@ export function WorkoutCalendar({
     const list = byDate.get(workout.dateKey);
     if (list) list.push(workout);
     else byDate.set(workout.dateKey, [workout]);
+  }
+  const markersByDate = new Map<string, string[]>();
+  for (const marker of markers) {
+    const list = markersByDate.get(marker.date);
+    if (list) list.push(marker.label);
+    else markersByDate.set(marker.date, [marker.label]);
   }
 
   return (
@@ -121,6 +132,14 @@ export function WorkoutCalendar({
               )}
             >
               <span className="text-xs tabular-nums">{dayNumber}</span>
+              {markersByDate.has(cell.dateKey) ? (
+                <span
+                  title={markersByDate.get(cell.dateKey)!.join(", ")}
+                  className="ml-1 inline-block size-1.5 rounded-full bg-primary align-middle sm:ml-0 sm:block sm:size-auto sm:truncate sm:rounded-none sm:bg-transparent sm:text-[10px] sm:leading-tight sm:text-primary"
+                >
+                  <span className="sr-only sm:not-sr-only">{markersByDate.get(cell.dateKey)!.join(", ")}</span>
+                </span>
+              ) : null}
               {/* Een maandcel is op een telefoon ~40px breed: daar past geen
                   titel in, ook niet afgekapt. Dan tonen we een gekleurde balk
                   per workout en pas vanaf sm de titel zelf. */}

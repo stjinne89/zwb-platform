@@ -24,7 +24,7 @@ import { formatDayMonth } from "./format";
 import type { WorkoutOutcome } from "./completed-workouts";
 import { WorkoutBlocks } from "./workout-blocks";
 import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
-import { WorkoutCalendar, type CalendarWorkout } from "./workout-calendar";
+import { WorkoutCalendar, type CalendarMarker, type CalendarWorkout } from "./workout-calendar";
 import { WorkoutReportForm } from "./workout-report-form";
 import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
@@ -350,8 +350,11 @@ export function MemberWorkoutCalendar({
   ftpWatts,
   startPoints = [],
   suggestions = true,
+  markers = [],
 }: {
   items: MemberCalendarItem[];
+  /** Protocoldagen, zoals een hitteblok of een wedstrijdsupplement. */
+  markers?: CalendarMarker[];
   todayKey: string;
   /** Voor de vermogensbanden in de blokkenbalk. */
   ftpWatts?: number | null;
@@ -382,6 +385,7 @@ export function MemberWorkoutCalendar({
         todayKey={todayKey}
         onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
         selectedId={selectedId}
+        markers={markers}
       />
       <div className="border-t p-4">
         {selected ? (

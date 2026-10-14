@@ -53,7 +53,7 @@ export type NutritionArticle = {
 };
 
 // Bronnen die in meer dan één artikel terugkomen.
-const UCI_POSITION: NutritionSource = {
+export const UCI_POSITION: NutritionSource = {
   citation:
     "Burke LM, Dolan E, Gonzalez JT, Mujika I, Jeukendrup AE, et al. UCI Sports Nutrition Project: Position Statement on Nutrition for Cycling. Int J Sport Nutr Exerc Metab.",
   year: 2026,
@@ -77,7 +77,7 @@ const ACSM_2016: NutritionSource = {
   kind: "consensus",
 };
 
-const BURKE_2011: NutritionSource = {
+export const BURKE_2011: NutritionSource = {
   citation:
     "Burke LM, Hawley JA, Wong SHS, Jeukendrup AE. Carbohydrates for training and competition. J Sports Sci 29(S1):S17–S27.",
   year: 2011,
@@ -569,6 +569,26 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         year: 2026,
         url: "https://www.dopingautoriteit.nl/programmas/nzvt",
         kind: "richtlijn",
+      },
+    ],
+  },
+  {
+    slug: "ketonen",
+    category: "supplementen",
+    title: "Ketonen",
+    summary:
+      "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. ZWB raadt ze af.",
+    points: [
+      "Een meta-analyse van dertien proeven vond geen effect op prestatie, ook niet op tijdritten en niet voor ketonesters.",
+      "Ze zijn duur, en daarom staat er geen protocol voor in ZWB.",
+    ],
+    sources: [
+      {
+        citation:
+          "Valenzuela PL, Morales JS, Castillo-García A, Lucia A. Acute ketone supplementation and exercise performance: a systematic review and meta-analysis of randomized controlled trials. Int J Sports Physiol Perform 15(3):298–308.",
+        year: 2020,
+        url: "https://doi.org/10.1123/ijspp.2019-0918",
+        kind: "review",
       },
     ],
   },

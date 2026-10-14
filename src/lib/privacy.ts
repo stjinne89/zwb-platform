@@ -20,6 +20,11 @@
  * Alleen wie Naleving aanzet levert die gegevens aan, en tekent daar apart voor
  * (`LOG_CONSENT_VERSION` in `src/lib/nutrition/log.ts`, tabel
  * `nutrition_log_settings`). `/privacy` beschrijft het wel.
+ *
+ * **Tweede uitzondering, op dezelfde gronden: de protocollen (2026-10-14).**
+ * Wie een protocol start, tekent per start (`PROTOCOL_CONSENT_VERSION` in
+ * `src/lib/protocols/consent.ts`, kolom `member_protocols.consent_version`).
+ * Niemand anders levert die gegevens aan. `/privacy#protocollen` beschrijft het.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

@@ -22,6 +22,7 @@ import {
 } from "@/lib/training/segment-suggestions";
 import { AdjustTodayForm } from "./_components/adjust-today-form";
 import { CoreTodayCard } from "./core/_components/core-today-card";
+import { ProtocolTodayCard } from "./_components/protocols/protocol-today-card";
 import { NutritionTodayCard } from "./voeding/_components/nutrition-today-card";
 import { plannedSessions, ridesOnDay } from "@/lib/nutrition/recipes";
 import { ConnectIntervalsForm } from "./_components/connect-form";
@@ -399,6 +400,8 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
           ),
         }}
       />
+
+      <ProtocolTodayCard viewer={viewer} today={todayKey} />
 
       <NutritionTodayCard
         viewer={viewer}

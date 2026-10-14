@@ -44,6 +44,8 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/voeding", label: "Voeding" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
   { type: "link", href: "/zwbeter-worden/uitgangspunten", label: "Uitgangspunten" },
+  { type: "link", href: "/zwbeter-worden/protocollen", label: "Protocollen" },
+  { type: "link", href: "/zwbeter-worden/kennis", label: "Kennisbank" },
   { type: "link", href: "/zwbeter-worden/coach", label: "Coach" },
   {
     type: "link",
@@ -72,6 +74,7 @@ export const VOEDING_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/voeding", label: "Dagmenu" },
   { type: "link", href: "/zwbeter-worden/voeding/naleving", label: "Naleving" },
   { type: "link", href: "/zwbeter-worden/voeding/recepten", label: "Receptenboek" },
+  { type: "link", href: "/zwbeter-worden/voeding/protocollen", label: "Protocollen" },
   { type: "link", href: "/zwbeter-worden/voeding/kennis", label: "Kennisbank" },
 ];
 

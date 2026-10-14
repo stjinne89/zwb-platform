@@ -3,6 +3,7 @@ import { CheckCircle2, ExternalLink } from "lucide-react";
 import { EVIDENCE_LABELS, NUTRITION_CATEGORY_LABELS, articleBySlug } from "@/lib/nutrition/library";
 import { requireViewer } from "../../_data";
 import { BackLink } from "@/components/app-ui";
+import { ProtocolLinks } from "../../../_components/protocols/knowledge-article";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </li>
         ))}
       </ul>
+
+      <ProtocolLinks articleHref={`/zwbeter-worden/voeding/kennis/${article.slug}`} />
 
       <section className="max-w-3xl space-y-3">
         <h3 className="font-semibold">Bronnen</h3>

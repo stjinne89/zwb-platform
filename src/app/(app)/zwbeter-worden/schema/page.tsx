@@ -70,6 +70,9 @@ import {
   todayKeyAmsterdam,
   upcomingIntervalsEvents,
 } from "../_data";
+import { calendarMarkers } from "@/lib/protocols";
+import { shiftDays } from "@/lib/training/season";
+import { loadActiveRuns } from "../_protocol-data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -101,6 +104,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
   const snapshotPromise = loadIntervalsSnapshot(viewer, conn, { eventDays: 14 });
   const plansPromise = loadPlanFamilies(viewer);
+  const protocolRunsPromise = loadActiveRuns(viewer.supabase, viewer.user.id);
   // Promise.resolve: een query van Supabase start bij elke `then`, en deze wordt
   // op twee plekken afgewacht.
   const reportsPromise = Promise.resolve(
@@ -172,6 +176,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     eventChoicesPromise,
   ]);
   const todayKey = todayKeyAmsterdam();
+  const protocolMarkers = calendarMarkers(
+    await protocolRunsPromise,
+    shiftDays(todayKey, -60),
+    shiftDays(todayKey, 180),
+  );
   const reports = (reportRows ?? []) as WorkoutReportRow[];
   const reportsByWorkout = byWorkout(reports);
 
@@ -374,6 +383,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             ftpWatts={profile?.ftp_watts}
             startPoints={outdoor.startPoints}
             suggestions={!tegels}
+            markers={protocolMarkers}
           />
         ) : upcomingEvents.length === 0 && upcomingWorkouts.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Geen geplande workouts.</p>

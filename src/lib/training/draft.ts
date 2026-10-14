@@ -58,6 +58,7 @@ import { loadSeasonTargets, seasonPlanForAi } from "@/lib/training/season-data";
 import { rootIdOf } from "@/lib/training/plan-tree";
 import { archiveOtherBasePlans, extendRootPlanEnd } from "@/lib/training/active-plan";
 import { preferencesForAi } from "@/lib/training/preferences";
+import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
@@ -396,6 +397,7 @@ async function buildTrainingInput(
     seasonPlan,
     fixedWorkouts,
     preferences: await preferencesForAi(admin, athleteId),
+    protocols: await loadProtocolsForAi(admin, athleteId, today, horizonKey),
     planWindow: {
       from: today,
       to: horizonKey,
@@ -1012,6 +1014,7 @@ export async function startTodayAdjustmentDraft(
       availability,
       fixedWorkouts,
       preferences: await preferencesForAi(admin, user.id),
+      protocols: await loadProtocolsForAi(admin, user.id, today, planTo),
       today: { availableMinutes, feeling, note },
       todayRides,
       yesterday,

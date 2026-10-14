@@ -45,6 +45,19 @@ describe("activeHrefIn", () => {
       "/zwbeter-worden/voeding/kennis",
     ]);
     expect(activeLinks("/zwbeter-worden/voeding/recepten", menuHrefs)).toEqual(["/zwbeter-worden/voeding"]);
+    expect(activeLinks("/zwbeter-worden/voeding/protocollen/cafeine", voeding)).toEqual([
+      "/zwbeter-worden/voeding/protocollen",
+    ]);
+  });
+
+  it("houdt protocollen en kennisbank van trainen en voeden uit elkaar", () => {
+    expect(activeLinks("/zwbeter-worden/protocollen/hitte-kort", menuHrefs)).toEqual([
+      "/zwbeter-worden/protocollen",
+    ]);
+    expect(activeLinks("/zwbeter-worden/kennis/taper", menuHrefs)).toEqual(["/zwbeter-worden/kennis"]);
+    expect(activeLinks("/zwbeter-worden/voeding/protocollen/cafeine", menuHrefs)).toEqual([
+      "/zwbeter-worden/voeding",
+    ]);
   });
 
   it("houdt bij een serie of artikel de eigen krachttab actief", () => {

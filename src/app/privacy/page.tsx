@@ -137,6 +137,20 @@ export default function PrivacyPage() {
             kunt pauzeren, losse maaltijden verwijderen en alles wissen; zet je
             Naleving uit, dan verwijderen we het hele eetdagboek.
           </li>
+          <li id="protocollen" className="scroll-mt-20">
+            <strong>Protocollen (alleen met opt-in):</strong> start je een
+            protocol, zoals hittetraining of een supplement voor een wedstrijd,
+            dan teken je daar apart voor. We bewaren welk protocol je volgt, de
+            start- of wedstrijddatum en welke taken je per dag afvinkt. Bij een
+            supplement zegt dat iets over wat je inneemt. Jij en je eigen
+            trainer zien het; het bestuur en andere leden niet. Doses rekent de
+            app bij het tonen uit het gewicht in je profiel; die worden niet
+            apart opgeslagen. Loopt er een trainingsprotocol (hitte of lage
+            cadans), dan gaan de naam en de datums mee naar OpenAI bij elke
+            schemageneratie; voedingsprotocollen gaan niet mee.
+            Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
+            je account opheft.
+          </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
             herstel-/wellnessgegevens uit intervals.icu zoals rusthartslag, HRV,

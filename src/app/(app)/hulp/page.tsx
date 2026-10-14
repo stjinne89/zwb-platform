@@ -28,6 +28,7 @@ import {
   Upload,
   UserCircle,
   Users,
+  ListChecks,
   Utensils,
   Wrench,
   Zap,
@@ -1703,8 +1704,10 @@ export default function HelpPage() {
             <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
               <li>
                 <strong className="text-foreground">Outdoor event of gran fondo:</strong>{" "}
-                één piekdag. De laatste een tot twee weken gaat het volume omlaag
-                terwijl de scherpte blijft, zodat je fris aan de start staat.
+                één piekdag. In de laatste een tot drie weken (meestal twee) zakt het
+                volume geleidelijk 40 tot 60 procent; intensiteit en het aantal
+                trainingen blijven gelijk, zodat je fris én scherp aan de start
+                staat.
               </li>
               <li>
                 <strong className="text-foreground">Basisconditie, FTP of herstel/opbouw:</strong>{" "}
@@ -3128,6 +3131,90 @@ Fitness-status: Verbeterend`}
           >
             Open de kennisbank
           </Link>
+        </div>
+      </section>
+
+      <section
+        id="protocollen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <ListChecks className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Protocollen</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een protocol is iets wat je uitvoert: je start het, krijgt per dag
+              taken en vinkt die af. De kennisbank legt uit waarom iets werkt; een
+              protocol zegt wat je wanneer doet.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Trainen en voeden</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Bij trainen staan hittetraining (kort voor een warme wedstrijd, of vijf
+            weken voor meer hemoglobine), lage cadans bij VO2max en sprints, en
+            ademspiertraining. Bij voeding staan protocollen voor de wedstrijddag
+            (cafeïne, natriumbicarbonaat, nitraat, ijsslush, koolhydraten laden)
+            en voor de opbouw (bèta-alanine, creatine, darmtraining). Elk protocol
+            noemt hoe sterk het bewijs is, wat het niet laat zien en de bronnen.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Een protocol naar een wedstrijd hangt aan de wedstrijddag: kies een
+            mikpunt uit je jaarplan of een datum, en de app rekent terug wanneer je
+            begint. Doses staan per kilo lichaamsgewicht; staat je gewicht in je
+            profiel, dan rekent de app ze voor je om.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">In je schema</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            De taken van vandaag staan op Vandaag. Hitte en de wedstrijddag staan
+            als label in de maandweergave van je schema. Een protocol telt niet mee
+            in je trainingsbelasting en gaat niet naar intervals.icu. Bij hitte en
+            lage cadans houdt de AI-coach er rekening mee in het volgende schema of
+            de volgende aanpassing: warme duurritten op hittedagen, en de cadans in
+            de notitie van je VO2max- en sprintblokken.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Grenzen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            ZWB geeft geen medisch advies. Heb je hart- of vaatproblemen, hoge
+            bloeddruk, nierproblemen of een andere aandoening, of gebruik je
+            medicijnen, overleg dan eerst met je huisarts of een sportarts. Stop
+            een hittesessie bij duizeligheid, misselijkheid of hoofdpijn.
+            Supplementprotocollen zijn er vanaf 18 jaar.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies een
+            batch met het NZVT-keurmerk van de Dopingautoriteit; ZWB noemt geen
+            merken. Je eigen trainer ziet welke protocollen je volgt en wat je
+            afvinkt.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+            <Link
+              href="/zwbeter-worden/protocollen"
+              className="inline-flex text-sm font-medium text-primary hover:underline"
+            >
+              Open protocollen trainen
+            </Link>
+            <Link
+              href="/zwbeter-worden/voeding/protocollen"
+              className="inline-flex text-sm font-medium text-primary hover:underline"
+            >
+              Open protocollen voeding
+            </Link>
+            <Link
+              href="/zwbeter-worden/kennis"
+              className="inline-flex text-sm font-medium text-primary hover:underline"
+            >
+              Open de kennisbank trainen
+            </Link>
+          </div>
         </div>
       </section>
 

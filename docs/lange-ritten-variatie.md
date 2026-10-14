@@ -73,6 +73,16 @@ openen; wat hier staat komt uit de samenvatting van een zoekmachine.
    tweede omslagpunt gaf 4,4% meer vermogen in een klimtijdrit van 20 minuten,
    maar de controlegroep zonder intervallen won 4,0%. Zes renners per groep.
    [Nimmerichter e.a. 2012](https://pubmed.ncbi.nlm.nih.gov/21479957/)
+   *Aangevuld 2026-10-14.* Acht weken VO2max-intervallen en sprints op 50-70
+   toeren gaven bij 24 jonge, goed getrainde vrouwen meer VO2max (+8,7% tegen
+   +4,6%) en maximaal aeroob vermogen dan dezelfde blokken op eigen cadans.
+   [Hebisz & Hebisz 2024](https://doi.org/10.1371/journal.pone.0311833)
+   Tien weken torque-intervallen (5 x 4 minuten op 70% van het
+   VO2max-vermogen bij 50 toeren) deden niets; squats op 70% 1RM wel.
+   [de Pablos e.a. 2025](https://www.jsc-journal.com/index.php/JSC/issue/view/56)
+   Dat bevestigt het "als het werkt dan op hoog vermogen". Het
+   protocol "Lage cadans bij VO2max en sprints" bouwt daarop, zie
+   [protocollen-onderzoek.md](protocollen-onderzoek.md).
 9. **Hoge cadans verschuift je voorkeur, niet je prestatie.** Zes weken
    intervallen 20% boven de eigen cadans bracht die van 92 naar 101 toeren en
    gaf een kleine winst in rendement. De groep op 20% eronder verbeterde meer
@@ -95,9 +105,12 @@ openen; wat hier staat komt uit de samenvatting van een zoekmachine.
 - **Hooguit één zo'n rit per week.** Het bewijs dat hard werk aan het eind beter
   werkt dan los is dun (punt 5); het kost wel meer herstel.
 - **Cadansblokken zijn variatie, geen bewezen trainingsvorm.** Ze zijn op
-  verzoek van de eigenaar opgenomen. Lage cadans staat op drempel en tempo,
-  omdat punt 8 op matige intensiteit niets vond. Hoge cadans staat op
-  intensieve duur: het doel is souplesse, niet vermogen.
+  verzoek van de eigenaar opgenomen. Lage cadans staat in deze ritten op
+  drempel en tempo, terwijl punt 8 juist op matige intensiteit niets vond: het
+  is afwisseling in een lange rit, geen trainingsprikkel waar winst van te
+  verwachten is. Wie lage cadans voor winst wil inzetten, doet dat op VO2max
+  en sprints (protocol, 2026-10-14). Hoge cadans staat op intensieve duur: het
+  doel is souplesse, niet vermogen.
 - **"Alles kan" en "golvend" hebben geen eigen studie.** Punt 10 zegt alleen
   dat zo'n rit zwaarder is dan zijn gemiddelde vermogen doet vermoeden.
 

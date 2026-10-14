@@ -20,6 +20,7 @@ import {
   STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
 import { preferencesForAi } from "@/lib/training/preferences";
+import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
@@ -585,6 +586,7 @@ export async function POST(request: Request) {
           availability,
           fixedWorkouts,
           preferences: await preferencesForAi(admin, plan.profile_id),
+          protocols: await loadProtocolsForAi(admin, plan.profile_id, today, planEnd),
           todayRides,
           yesterday,
           currentPlan: {

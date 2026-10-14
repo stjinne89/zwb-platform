@@ -62,6 +62,8 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Protocollen:** `0233_member_protocols.sql` toepassen (2026-10-14). Zonder
+     de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
      spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
@@ -117,7 +119,8 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0233`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`
+(`0233_member_protocols` is van de protocollen, 2026-10-14, nog niet toegepast).
 
 ---
 
@@ -7510,6 +7513,112 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Protocollen bij trainen en voeden, en een kennisbank trainen
+
+**2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie
+`0233_member_protocols.sql` (**nog toepassen**).
+
+**Aanleiding.** De eigenaar wilde in ZWBeter een deel over protocollen
+(hittetraining, supplementen, training op lage cadans) en vroeg daarnaast uit
+te zoeken wat voor wielrenners aantoonbaar werkt. Zijn indeling: **elke pijler
+krijgt een kennisbank** met de kennis waarop de app rust, en **protocollen
+staan daar los van**, omdat je ze uitvoert. Trainingsprotocollen bij trainen,
+voedingsprotocollen bij voeden. Onderzoek en bronnen:
+[protocollen-onderzoek.md](docs/protocollen-onderzoek.md).
+
+**Wat.**
+
+- **Protocollen in code** (`src/lib/protocols/`), om dezelfde reden als de
+  kennisbanken: elke dosis gaat via een commit. Een protocol heeft fases met
+  dagnummers, taken (dagelijks, *n* per week of één keer), doses per kg met een
+  plafond, waarschuwingen, wanneer niet, wat het bewijs niet laat zien, en
+  bronnen. Een protocol hangt aan een startdatum of aan een wedstrijddag; dan
+  rekent de app terug.
+- **Trainen** (`/zwbeter-worden/protocollen`): hitte-acclimatisatie voor een
+  warme wedstrijd, hittetraining voor hemoglobine (5 weken + onderhoud), lage
+  cadans bij VO2max en sprints (8 weken), ademspiertraining (6 weken).
+- **Voeden** (`/zwbeter-worden/voeding/protocollen`, tab tussen Receptenboek en
+  Kennisbank): cafeïne, natriumbicarbonaat, nitraat, ijsslush en koolhydraten
+  laden (wedstrijddag); bèta-alanine, creatine en darmtraining (opbouw).
+- **Kennisbank trainen** (`/zwbeter-worden/kennis`, `training-library.ts`):
+  zeven artikelen over de onderwerpen van deze ronde: lage cadans, 30/15,
+  gepolariseerd of piramidaal, taper, hittetraining, ademspiertraining, koud
+  water na de training. Voeding kreeg een artikel "Ketonen" (afgeraden). Een
+  artikel linkt naar de protocollen die erop leunen, en omgekeerd.
+- **Starten** met eigen toestemming per start (`PROTOCOL_CONSENT_VERSION`,
+  kolom `consent_version`), net als het eetdagboek; geen nieuwe privacyversie,
+  vastgelegd in `src/lib/privacy.ts`. Eén lopend exemplaar per protocol.
+  Supplementen pas vanaf 18 jaar (`profiles.birth_date`, AIS-framework).
+- **Afvinken** op de detailpagina en op **Vandaag** (`ProtocolTodayCard`), voor
+  vandaag en gisteren.
+- **Schema:** hitte en de wedstrijdprotocollen staan als label in de
+  maandweergave (`calendarMarkers`, prop `markers` op `WorkoutCalendar`). Geen
+  workout, geen TSS, niets naar intervals.icu.
+- **Trainer:** de eigen trainer ziet de lopende protocollen en het afvinken,
+  alleen lezen, onder Uitgangspunten. RLS gebruikt
+  `current_user_in_training_chat`: wel de eigen trainer, niet het bestuur.
+- **AI-generator:** lopende trainingsprotocollen gaan mee als `protocols`
+  (naam, venster, fases met datums, aanwijzing) in een nieuw schema, een
+  bijwerking en de dagelijkse aanpassing. Nieuwe promptregels: lage cadans
+  alleen bij VO2max-, sprint- en anaerobe blokken en alleen met het protocol;
+  een hittesessie is een warme duurrit en geen extra belasting. **De taperregel
+  is aangescherpt** van "laatste 1-2 weken volume omlaag" naar één tot hooguit
+  drie weken, volume geleidelijk 40-60% omlaag, intensiteit en aantal
+  trainingen gelijk (Bosquet 2007, Wang 2023); `/hulp` zegt hetzelfde.
+- `/hulp#protocollen` met de uitleg en de grenzen; `/privacy#protocollen`.
+
+**Besluiten van de eigenaar.** Doses omrekenen met het gewicht (dat draait
+"geen supplementadvies per lid" uit de voedingsmodule terug; geen merken
+blijft). De eigen trainer kijkt mee. Lage cadans via de AI-generator in plaats
+van losse workouts. Eerst de protocollen; de volledige kennisbank trainen in
+een eigen ronde.
+
+**Bewust niet gebouwd.**
+
+- Sleep low, HRV-gestuurd trainen, glycerol en een hoogtestage als protocol:
+  bewijs te wisselend of niet uit te voeren, zie het onderzoeksdocument.
+- Ketonen als protocol: een meta-analyse vond geen effect.
+- 30/15 en gepolariseerd trainen als protocol: dat zijn workoutvormen en
+  verdelingen die de AI en de trainer al plannen.
+- Een cadansveld op een blok: blijft zoals besloten bij `0228`.
+- Workouts met lage cadans in de bibliotheek: de AI zet de cadans in de
+  bloknotitie zolang het protocol loopt.
+- De rest van de kennisbank trainen (lange ritten, warming-up, FTP-test,
+  periodisering): volgende ronde.
+- Protocollen op de tegel van het dashboard (design "tegels"): alleen op
+  ZWBeter Vandaag.
+- Een nachtelijke job die verlopen runs op "afgerond" zet: een run voorbij zijn
+  laatste dag telt in de app als voorbij, en bij een nieuwe start wordt hij
+  afgesloten.
+- Een eigen protocolscherm voor de trainer, of de trainer laten afvinken.
+
+**Niet meer waar.**
+
+- "Geen supplementadvies per lid" (voedingsmodule) en "darmtrainingsschema
+  geparkeerd": aangepast op hun plek hieronder.
+- `docs/lange-ritten-variatie.md` punt 8 en "Wat we eruit afleiden" zijn
+  aangevuld met Hebisz 2024 en de Pablos 2025.
+
+**Getest.** `tsc` en ESLint zonder fouten. Nieuw: `protocols.test.ts`
+(definities, doses en plafonds, dagplanning, eenmalige en wekelijkse taken,
+leeftijdsgrens, agendalabels, invoer voor de AI), `training-library.test.ts`
+(bronnen, beperkingen, elke protocollink wijst naar een bestaand artikel) en
+`member-protocols-migration.test.ts` (`0233` tegen PGlite bovenop `0037` en
+`0167`: lid en eigen trainer lezen, vreemde trainer en bestuur niet, alleen het
+lid schrijft, geen afvinken in een gestopt protocol, één lopend exemplaar,
+cascade bij opzeggen). `nav-active` en `zwbeter-pillars` uitgebreid. Volledige
+run groen op `omnium-live` (mist `.env.local`) en een time-out in `admin-areas`
+na; die laatste is los groen.
+
+**Niet geverifieerd.**
+
+- `0233` op de echte database (geen Docker of Supabase-config hier).
+- De pagina's in de browser: de dev-server draaide, maar vraagt een login.
+- Wat de AI met de nieuwe regels en `protocols` werkelijk plant.
+- De inhoud is niet nagekeken door een sportarts, sportdiëtist of trainer. Van
+  de meeste bronnen is alleen de samenvatting gelezen.
+- **Privacytekst eerst voorleggen** aan de eigenaar vóór het pushen.
+
 ### Opgeleverd — kracht-tabblad in vier tabs, met een kennisbank
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10141,9 +10250,12 @@ drempel die in de code staat.
   voorlopig uit de seed. *Sinds 2026-10-02 kan een lid een eigen recept
   voorstellen en keurt een beoordelaar het goed; bewerken van een clubrecept gaat
   nog steeds via de seed.*
-- **Geen supplementadvies per lid en geen merken.**
+- **Geen supplementadvies per lid en geen merken.** *Het eerste deel is op
+  2026-10-14 ingetrokken door de eigenaar: de protocollen rekenen een dosis om
+  met het gewicht van het lid (zie de ronde "Protocollen"). Geen merken blijft.*
 - **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
-  darmtrainingsschema.
+  darmtrainingsschema. *Het darmtrainingsschema is op 2026-10-14
+  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur".*
 
 **Nieuwe privacytekst, geen eigen privacyversie.** Lengte en eigen recepten
 zijn alleen voor het lid zelf zichtbaar. Er gaat niets naar andere leden of

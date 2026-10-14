@@ -1,3 +1,4 @@
+import type { ProtocolForAi } from "@/lib/protocols";
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
 import type { ComplianceContext } from "@/lib/training/compliance";
 import type { PreferenceForAi } from "@/lib/training/preferences";
@@ -182,6 +183,11 @@ export type TrainingAiInput = {
    * planUpdate.reason: ze gaan in elke generatie mee.
    */
   preferences?: PreferenceForAi[];
+  /**
+   * Lopende trainingsprotocollen (hitte, lage cadans) met hun fases en een
+   * aanwijzing hoe het schema ze verwerkt. Zie protocolsForAi in src/lib/protocols.
+   */
+  protocols?: ProtocolForAi[];
   /** Renner-signaal voor vandaag (dag-aanpassing): tijd + gevoel. */
   today?: {
     availableMinutes: number | null;

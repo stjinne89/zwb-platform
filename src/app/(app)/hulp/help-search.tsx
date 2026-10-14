@@ -199,6 +199,13 @@ const HELP_INDEX: HelpResult[] = [
       "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn gym sportschool halter halterstang leg press kabel dumbbell kettlebell weerstandsband band zwaar herhalingen opbouw onderhoud",
   },
   {
+    title: "Protocollen",
+    text: "Hitte, lage cadans, ademspiertraining en supplementen: starten, afvinken en de grenzen.",
+    href: "/hulp#protocollen",
+    terms:
+      "protocol protocollen hitte hittetraining warmte acclimatisatie heet bad hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining dosis gewicht nzvt kennisbank taper",
+  },
+  {
     title: "Voeding",
     text: "Kennisbank met bronnen, een dagmenu met recepten op maat, een dagelijkse tip en een eetdagboek.",
     href: "/hulp#voeding",

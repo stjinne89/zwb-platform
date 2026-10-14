@@ -11,6 +11,8 @@ describe("pillarForPath", () => {
   it("volgt subroutes", () => {
     expect(pillarForPath("/zwbeter-worden/core/fundament")).toBe("kracht");
     expect(pillarForPath("/zwbeter-worden/trainer/beoordelen")).toBe("coachen");
+    expect(pillarForPath("/zwbeter-worden/protocollen/hitte-kort")).toBe("trainen");
+    expect(pillarForPath("/zwbeter-worden/voeding/protocollen/cafeine")).toBe("voeden");
   });
 
   it("valt terug op trainen", () => {

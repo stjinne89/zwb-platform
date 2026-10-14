@@ -3,6 +3,9 @@ import { preferenceRoleFor } from "@/lib/training/preferences";
 import { PlanBasisView } from "../../_components/plan-basis-view";
 import type { SearchParamsProp } from "../../_components/types";
 import { trainerContext } from "../_data";
+import { todayKeyAmsterdam } from "../../_data";
+import { loadActiveRuns, loadChecks, loadProtocolProfile } from "../../_protocol-data";
+import { ProtocolRunsOverview } from "../../_components/protocols/protocol-views";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,13 +28,25 @@ export default async function TrainerPlanBasisPage({ searchParams }: SearchParam
   // de uitgangspunten van het schema.
   const role = await preferenceRoleFor(viewer.admin, viewer.user.id, athleteId);
 
+  // Protocollen volgen dezelfde kring als de voorkeuren (RLS in 0233): de
+  // eigen trainer leest mee, beheer niet. viewer.supabase dwingt dat af.
+  const today = todayKeyAmsterdam();
+  const runs = role != null ? await loadActiveRuns(viewer.supabase, athleteId) : [];
+  const [checks, profile] = await Promise.all([
+    loadChecks(viewer.supabase, runs.map((run) => run.id)),
+    loadProtocolProfile(viewer.supabase, athleteId, today),
+  ]);
+
   return (
-    <PlanBasisView
-      admin={viewer.admin}
-      profileId={athleteId}
-      currentUserId={viewer.user.id}
-      showPreferences={role != null}
-      showLinks={false}
-    />
+    <div className="space-y-8">
+      <PlanBasisView
+        admin={viewer.admin}
+        profileId={athleteId}
+        currentUserId={viewer.user.id}
+        showPreferences={role != null}
+        showLinks={false}
+      />
+      <ProtocolRunsOverview runs={runs} checks={checks} weightKg={profile.weightKg} today={today} />
+    </div>
   );
 }
