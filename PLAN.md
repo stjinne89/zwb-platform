@@ -131,7 +131,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14); `0238` alleen tegen PGlite getest; nog niet met een echte CORE-rit geprobeerd.**
+> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` alleen tegen PGlite getest; nog niet met een echte CORE-rit geprobeerd.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0238_member_protocol_core_sessions.sql` (**nog toepassen, ná `0237`**).
 >
