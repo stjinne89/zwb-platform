@@ -105,7 +105,7 @@ export async function startRecognition(input: { image?: string; text?: string })
     return { ok: false, error: message ?? "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
   }
 
-  // Via de service role: leden kunnen deze tabel alleen lezen (0233).
+  // Via de service role: leden kunnen deze tabel alleen lezen (0234).
   const { error } = await viewer.admin
     .from("nutrition_log_ai_usage")
     .insert({ profile_id: viewer.user.id, kind, response_id: id });

@@ -1,5 +1,5 @@
 // Voeding-tab van de trainer: het eetdagboek van de renner, alleen als die het
-// zelf heeft gedeeld (Naleving, 0234). Alleen lezen.
+// zelf heeft gedeeld (Naleving, 0235). Alleen lezen.
 
 import { EmptyState } from "@/components/app-ui";
 import { shiftDayKey } from "@/lib/training/mobility";

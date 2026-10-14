@@ -182,17 +182,17 @@ een tekst op `/hulp`.
    zoeken, herhalen, dagbalk, pauzeren en wissen. De privacyteksten.
    *Gebouwd op 2026-10-14 (migratie `0231_nutrition_log.sql`), zie `PLAN.md`.*
 2. **Rond de rit en barcode.**
-   *Gebouwd op 2026-10-14 (migratie `0232_nutrition_log_products.sql`), zie
+   *Gebouwd op 2026-10-14 (migratie `0233_nutrition_log_products.sql`), zie
    `PLAN.md`. De barcode-terugval voor iOS (een JavaScript-bibliotheek) is
    niet gebouwd: daar typ je het nummer over.*
 3. **Foto en tekst**, met de bevestigstap en de daglimiet.
-   *Gebouwd op 2026-10-14 (migratie `0233_nutrition_log_recognition.sql`), zie
+   *Gebouwd op 2026-10-14 (migratie `0234_nutrition_log_recognition.sql`), zie
    `PLAN.md`. Eigen schakelaar met eigen toestemming in plaats van een nieuwe
    `LOG_CONSENT_VERSION`; de daglimiet geldt per 24 uur, voor foto en tekst samen.*
 4. **Dagmenu dat meerekent en het weekoverzicht.**
    *Gebouwd op 2026-10-14, zonder migratie, zie `PLAN.md`.*
 5. **Herinneringen en trainerinzage.**
-   *Gebouwd op 2026-10-14 (migratie `0234_nutrition_log_trainer_reminders.sql`),
+   *Gebouwd op 2026-10-14 (migratie `0235_nutrition_log_trainer_reminders.sql`),
    zie `PLAN.md`.*
 
 Stap 0 en stap 1 hangen niet van elkaar af en kunnen tegelijk.

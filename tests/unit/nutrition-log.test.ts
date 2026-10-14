@@ -176,7 +176,7 @@ describe("barcodeproducten", () => {
   });
 });
 
-// 0231 tot en met 0234 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
+// 0231 en 0233 tot en met 0235 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
 // product is genoeg. Zegt niets over de productiedatabase; daar gaat de migratie met de hand.
 describe("eetdagboek, migratie 0231", () => {
   let db: PGlite;
@@ -208,9 +208,9 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0168_nutrition.sql"));
     await db.exec(await migration("0213_nutrition_expansion.sql"));
     await db.exec(await migration("0231_nutrition_log.sql"));
-    await db.exec(await migration("0232_nutrition_log_products.sql"));
-    await db.exec(await migration("0233_nutrition_log_recognition.sql"));
-    await db.exec(await migration("0234_nutrition_log_trainer_reminders.sql"));
+    await db.exec(await migration("0233_nutrition_log_products.sql"));
+    await db.exec(await migration("0234_nutrition_log_recognition.sql"));
+    await db.exec(await migration("0235_nutrition_log_trainer_reminders.sql"));
     await db.exec(
       `insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('8710400000017', 'Gel', 62.5, 0);`,
     );
@@ -418,9 +418,9 @@ describe("eetdagboek, migratie 0231", () => {
 
   it("is opnieuw te draaien", async () => {
     await db.exec(await migration("0231_nutrition_log.sql"));
-    await db.exec(await migration("0232_nutrition_log_products.sql"));
-    await db.exec(await migration("0233_nutrition_log_recognition.sql"));
-    await db.exec(await migration("0234_nutrition_log_trainer_reminders.sql"));
+    await db.exec(await migration("0233_nutrition_log_products.sql"));
+    await db.exec(await migration("0234_nutrition_log_recognition.sql"));
+    await db.exec(await migration("0235_nutrition_log_trainer_reminders.sql"));
     expect(await count("select count(*) from pg_policies where tablename like 'nutrition_log_%'")).toBe(9);
   });
 });

@@ -117,13 +117,23 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0236`.
 
 ---
 
-> **Naleving stap 5: trainer kijkt mee en herinneringen, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken, geen pushbericht verstuurd.**
+> **Naleving stap 5: trainer kijkt mee en herinneringen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, geen pushbericht verstuurd.**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0234_nutrition_log_trainer_reminders.sql`, **nog niet toegepast**.
+> `0235_nutrition_log_trainer_reminders.sql`, toegepast door de eigenaar op 2026-10-14.
+>
+> **Hernummerd vóór de push (2026-10-14).** Main kreeg intussen
+> `0232_mobility_strength_seed_v2.sql` (kracht). De voedingsmigraties van stap 2,
+> 3 en 5 heetten lokaal `0232`, `0233` en `0234` en zijn zo ook door de eigenaar
+> toegepast; in de repo heten ze nu `0233_nutrition_log_products.sql`,
+> `0234_nutrition_log_recognition.sql` en `0235_nutrition_log_trainer_reminders.sql`.
+> De inhoud is gelijk, de database merkt niets van een andere bestandsnaam.
+>
+> **Toestemmingsteksten** (foto en tekst, trainer) en de aanvullingen op
+> `/privacy` zijn door de eigenaar goedgekeurd (2026-10-14).
 >
 > **Waarom.** Stap 5 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md),
 > met besluit 5 (alleen het lid; de trainer met een eigen schakelaar, de
@@ -173,7 +183,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`
 > of pauzeren, en ziet niets meer na uitzetten; de verstuurlog is niet leesbaar
 > voor leden en dubbel versturen kan niet.
 
-> **Naleving stap 4: dagmenu dat meerekent en weekoverzicht, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
+> **Naleving stap 4: dagmenu dat meerekent en weekoverzicht, 2026-10-14 — gebouwd, lokaal getest, gepusht; niet in de browser bekeken.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Stap 4 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
@@ -212,9 +222,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`
 > plafond op twee keer; `weekSummary`: gehaald per dag, lege dag telt niet,
 > zonder gewicht geen oordeel).
 
-> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken, het model niet aangeroepen.**
+> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0233_nutrition_log_recognition.sql`, **nog niet toegepast**.
+> `0234_nutrition_log_recognition.sql`, toegepast door de eigenaar op 2026-10-14.
 >
 > **Waarom.** Stap 3 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
 > een maaltijd invoeren met een foto of een zin, in plaats van product voor
@@ -263,9 +273,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`
 > `foto` en `tekst`. **Niet getest:** een echte aanroep van het model, de
 > nauwkeurigheid (daarvoor is de meting), de foto op een telefoon.
 
-> **Naleving stap 2: rond de rit en barcode, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
+> **Naleving stap 2: rond de rit en barcode, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken.**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0232_nutrition_log_products.sql`, **nog niet toegepast**.
+> `0233_nutrition_log_products.sql`, toegepast door de eigenaar op 2026-10-14.
 >
 > **Waarom.** Stap 2 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md).
 > NEVO kent geen merken en nauwelijks sportvoeding, en juist onderweg eet je
@@ -288,7 +298,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`
 >   (`rideFueling`).
 > - Een regel in het eetdagboek is nu een NEVO-product óf een barcodeproduct
 >   (check `nutrition_log_items_one_source_check`). Een maaltijd met alleen
->   NEVO-producten stuurt de nieuwe kolom niet mee en werkt dus ook zonder 0232.
+>   NEVO-producten stuurt de nieuwe kolom niet mee en werkt dus ook zonder 0233.
 > - `/privacy` (barcode naar Open Food Facts) en `/hulp#voeding` aangevuld,
 >   met de ODbL-bronvermelding.
 >
@@ -303,7 +313,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0235`
 >
 > **Getest.** TypeScript en eslint schoon. `nutrition-log` heeft nu 25 tests,
 > waarvan nieuw: `rideFueling`, het uitlezen van een Open Food Facts-antwoord
-> (ook zonder waarden en in ml), en `0232` tegen PGlite (een regel heeft precies
+> (ook zonder waarden en in ml), en `0233` tegen PGlite (een regel heeft precies
 > één bron, leden kunnen producten lezen maar niet toevoegen). **Niet getest:**
 > een echt verzoek naar Open Food Facts en het scannen op een telefoon.
 

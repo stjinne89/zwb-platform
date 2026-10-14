@@ -6,7 +6,7 @@
 // maximaal 1 notificatie via de `event_reminder_sends`-log.
 //
 // Daarnaast de herinneringen van de Sunday Race Club (inschrijven en weigh-in,
-// migr. 0203) en die van Naleving (voeding, migr. 0234); een fout daar houdt de
+// migr. 0203) en die van Naleving (voeding, migr. 0235); een fout daar houdt de
 // gewone herinneringen niet tegen.
 //
 // Window-keuze (overlap zodat een 15-min-tick nooit mist):

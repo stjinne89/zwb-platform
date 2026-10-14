@@ -139,7 +139,7 @@ async function insertMeal(viewer: Viewer, meal: MealInput): Promise<ActionResult
 
   const { error: itemsError } = await viewer.supabase.from("nutrition_log_items").insert(
     // De kolom product_barcode gaat alleen mee als er een barcodeproduct in zit:
-    // een maaltijd met alleen NEVO-producten werkt zo ook zonder 0232.
+    // een maaltijd met alleen NEVO-producten werkt zo ook zonder 0233.
     meal.items.map((item, index) => ({
       meal_id: created.id,
       sort_order: index,

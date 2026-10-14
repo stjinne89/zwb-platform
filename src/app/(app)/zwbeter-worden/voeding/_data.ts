@@ -135,11 +135,11 @@ export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { o
 
 export type LogSettings = {
   paused: boolean;
-  /** Foto en tekst herkennen staat aan (0233). */
+  /** Foto en tekst herkennen staat aan (0234). */
   recognition: boolean;
-  /** De eigen trainer mag meekijken (0234). */
+  /** De eigen trainer mag meekijken (0235). */
   trainerVisible: boolean;
-  /** Herinneringen staan aan (0234). */
+  /** Herinneringen staan aan (0235). */
   reminders: boolean;
 };
 
@@ -214,7 +214,7 @@ export async function loadLoggedMeals(
       .lte("eaten_on", to)
       .order("eaten_on", { ascending: false })
       .order("created_at", { ascending: false });
-  // Zolang 0232 er niet is, bestaan de barcodeproducten nog niet.
+  // Zolang 0233 er niet is, bestaan de barcodeproducten nog niet.
   let { data, error } = await query(true);
   if (error) ({ data, error } = await query(false));
   return ((data ?? []) as unknown as LoggedMealRow[]).map(toLoggedMeal);
