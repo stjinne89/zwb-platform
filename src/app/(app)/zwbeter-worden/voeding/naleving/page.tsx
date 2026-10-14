@@ -11,6 +11,7 @@ import {
   parseLogDay,
   repeatableMeals,
   rideFueling,
+  weekSummary,
   type FloorStatus,
   type LogMacros,
 } from "@/lib/nutrition/log";
@@ -29,7 +30,7 @@ import {
 import {
   loadLogSettings,
   loadLoggedMeals,
-  loadNutritionDayInput,
+  loadNutritionDayInputs,
   loadNutritionProfile,
   requireViewer,
   todayKeyAmsterdam,
@@ -68,6 +69,17 @@ function dayLabel(day: string, today: string) {
 function macroLine(macros: LogMacros) {
   const prefix = macros.incomplete ? "≥ " : "";
   return `${prefix}${Math.round(macros.carbsG)} g koolhydraten · ${prefix}${Math.round(macros.proteinG)} g eiwit`;
+}
+
+/** Gevuld als de onderkant gehaald is, anders een rand. Links koolhydraten, rechts eiwit. */
+function dotClass(reached: boolean | null) {
+  return `size-2 rounded-full border border-primary ${reached ? "bg-primary" : ""}`;
+}
+
+function weekMark(entry: { logged: boolean; carbsReached: boolean | null; proteinReached: boolean | null }) {
+  if (!entry.logged) return "Niet ingevuld";
+  const part = (label: string, reached: boolean | null) => `${label} ${reached ? "gehaald" : "niet gehaald"}`;
+  return `${part("Koolhydraten", entry.carbsReached)}, ${part("eiwit", entry.proteinReached)}`;
 }
 
 function defaultMoment(day: string, today: string): MealMoment {
@@ -155,7 +167,21 @@ export default async function LogPage({
     loadNutritionProfile(viewer, day),
     loadLoggedMeals(viewer, shiftDayKey(today, -REPEAT_DAYS), today),
   ]);
-  const fuelDay = nutritionDay(await loadNutritionDayInput(viewer, day, profile.weightKg));
+  const weekDays = Array.from({ length: 7 }, (_, i) => shiftDayKey(today, i - 6));
+  const inputs = await loadNutritionDayInputs(viewer, [...new Set([...weekDays, day])], profile.weightKg);
+  const fuelDay = nutritionDay(inputs.get(day)!);
+  const week = weekSummary(
+    weekDays.map((entry) => {
+      const fuel = nutritionDay(inputs.get(entry)!);
+      return {
+        day: entry,
+        dayType: fuel.dayType,
+        carbs: fuel.carbs,
+        protein: fuel.protein,
+        meals: history.filter((meal) => meal.eatenOn === entry),
+      };
+    }),
+  );
 
   const meals = history.filter((meal) => meal.eatenOn === day);
   const totals = dayTotals(meals);
@@ -231,6 +257,48 @@ export default async function LogPage({
           <span className="text-muted-foreground">voor doelen in grammen.</span>
         </p>
       )}
+
+      <section className="space-y-3">
+        <h3 className="font-semibold">Deze week</h3>
+        <ol className="grid grid-cols-7 gap-1 text-center text-xs">
+          {week.days.map((entry) => (
+            <li key={entry.day}>
+              <Link
+                href={dayHref(entry.day)}
+                aria-current={entry.day === day ? "date" : undefined}
+                className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md border p-1 hover:border-primary ${
+                  entry.day === day ? "border-primary" : ""
+                }`}
+              >
+                <span className="font-medium">
+                  {new Date(`${entry.day}T12:00:00Z`).toLocaleDateString("nl-NL", { weekday: "short", timeZone: "UTC" })}
+                </span>
+                <span className="max-w-full truncate capitalize text-muted-foreground">{entry.dayType}</span>
+                <span role="img" aria-label={weekMark(entry)} className="flex h-3 items-center gap-1">
+                  {entry.logged ? (
+                    <>
+                      <span className={dotClass(entry.carbsReached)} />
+                      <span className={dotClass(entry.proteinReached)} />
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">–</span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+        {week.tally.length > 0 && (
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            {week.tally.map((entry) => (
+              <li key={entry.dayType}>
+                {FUEL_DAY_LABELS[entry.dayType]}: koolhydraten gehaald op {entry.carbsReached} van {entry.logged}{" "}
+                {entry.logged === 1 ? "ingevulde dag" : "ingevulde dagen"}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {groups.length > 0 && (
         <section className="space-y-4">

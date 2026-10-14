@@ -235,8 +235,22 @@ export async function loadNutritionDayInput(
   today: string,
   weightKg: number | null,
 ): Promise<NutritionDayInput> {
-  const from = `${shiftDayKey(today, -1)}T00:00:00Z`;
-  const to = `${shiftDayKey(today, 3)}T00:00:00Z`;
+  const inputs = await loadNutritionDayInputs(viewer, [today], weightKg);
+  return inputs.get(today)!;
+}
+
+/**
+ * Dezelfde invoer voor meerdere dagen in één keer, voor het weekoverzicht van
+ * Naleving. Het herstel (wellness) is dat van nu; het dagtype hangt er niet van af.
+ */
+export async function loadNutritionDayInputs(
+  viewer: Viewer,
+  days: string[],
+  weightKg: number | null,
+): Promise<Map<string, NutritionDayInput>> {
+  const sorted = [...days].sort();
+  const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
+  const to = `${shiftDayKey(sorted[sorted.length - 1], 3)}T00:00:00Z`;
 
   const [workouts, proposals, rides, wellness] = await Promise.all([
     viewer.supabase
@@ -270,14 +284,17 @@ export async function loadNutritionDayInput(
     status: string | null;
   }[];
 
-  return {
-    today,
-    weightKg,
-    ...plannedSessions(rows, today),
-    ridesToday: ridesOnDay(
-      (rides.data ?? []) as { start_date: string; moving_time_seconds: number | null }[],
-      today,
-    ),
-    wellnessState: wellness?.state ?? null,
-  };
+  const rideRows = (rides.data ?? []) as { start_date: string; moving_time_seconds: number | null }[];
+  return new Map(
+    days.map((day) => [
+      day,
+      {
+        today: day,
+        weightKg,
+        ...plannedSessions(rows, day),
+        ridesToday: ridesOnDay(rideRows, day),
+        wellnessState: wellness?.state ?? null,
+      },
+    ]),
+  );
 }

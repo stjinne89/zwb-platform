@@ -121,6 +121,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`
 
 ---
 
+> **Naleving stap 4: dagmenu dat meerekent en weekoverzicht, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Stap 4 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
+> van tellen achteraf naar iets waar je vooraf iets aan hebt, en het patroon
+> over een week in plaats van een los dagcijfer.
+>
+> **Wat.**
+> - **Dagmenu rekent mee** (`topUpMenu` in `src/lib/nutrition/menu.ts`). Met
+>   Naleving aan en iets ingevuld: haalt wat er gegeten is plus de rest van het
+>   menu de onderkant van de dag niet, dan groeien de hoofdmaaltijden en het
+>   tussendoortje die nog komen, naar rato, met het label "Grotere portie".
+>   Alleen de koolhydraatbron groeit voor koolhydraten en de eiwitbron voor
+>   eiwit; geen onderdeel wordt kleiner, en niets gaat voorbij twee keer de
+>   gewone portie. Boven de dagregel staat "Nog … tot je minimum" of "Je minimum
+>   voor vandaag is gehaald". Een moment met een ingevulde maaltijd staat als
+>   gegeten, ongeacht welk recept.
+> - **"Gegeten" in het dagmenu legt precies de getoonde portie vast**, ook als
+>   die vergroot is: de pagina stuurt de regels mee en `logRecipe` accepteert
+>   alleen ingrediënten van dat recept.
+> - **Weekoverzicht op Naleving** (`weekSummary` in `log.ts`): de laatste zeven
+>   dagen met dagtype en twee stippen (koolhydraten, eiwit; gevuld = onderkant
+>   gehaald), en per dagtype "koolhydraten gehaald op x van y ingevulde dagen".
+>   Een dag zonder invoer telt niet mee. De dagen zijn klikbaar.
+> - `loadNutritionDayInputs` haalt de dagtypes van meerdere dagen in één keer
+>   op; `loadNutritionDayInput` gebruikt hem nu voor één dag.
+>
+> **Bewust niet gebouwd.**
+> - **Porties kleiner maken** als er al veel gegeten is: dat is om minder eten
+>   vragen, en past niet bij de ondergrens.
+> - Reeksen, percentages of een weekscore.
+> - Een ander recept kiezen omdat er nog veel moet: alleen de portie groeit.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `nutrition-log-week`
+> (`topUpMenu`: niets als het minimum toch gehaald wordt, groeien naar rato,
+> geen onderdeel kleiner, nooit kleiner bij veel eten, niets zonder gewicht,
+> plafond op twee keer; `weekSummary`: gehaald per dag, lege dag telt niet,
+> zonder gewicht geen oordeel).
+
 > **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken, het model niet aangeroepen.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0233_nutrition_log_recognition.sql`, **nog niet toegepast**.

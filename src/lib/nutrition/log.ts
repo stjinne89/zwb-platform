@@ -8,6 +8,7 @@
 //   onderkant van de band is het doel gehaald, hoe ver erboven ook.
 
 import { shiftDayKey } from "@/lib/training/mobility";
+import { FUEL_DAY_TYPES, type FuelDayType } from "./day-type";
 import type { NutritionFood } from "./scale";
 import { MEAL_MOMENTS, rideCarbsPerHour, type MealMoment, type Range } from "./targets";
 
@@ -133,6 +134,49 @@ export function rideFueling(meals: LoggedMeal[], rideMinutes: number | null): Ri
     reached: perHour >= band.min,
     recoveryLogged: meals.some((meal) => meal.moment === "na_rit"),
   };
+}
+
+export type WeekDay = {
+  day: string;
+  dayType: FuelDayType;
+  /** Is er die dag iets ingevuld? Een lege dag telt niet als gemist. */
+  logged: boolean;
+  carbsReached: boolean | null;
+  proteinReached: boolean | null;
+};
+
+export type WeekTally = { dayType: FuelDayType; logged: number; carbsReached: number };
+
+/**
+ * De week in één oogopslag: per dag of de onderkant gehaald is, en per dagtype
+ * hoe vaak. Alleen ingevulde dagen tellen mee, en er is geen reeks: een dag
+ * overslaan is geen fout.
+ */
+export function weekSummary(
+  days: { day: string; dayType: FuelDayType; carbs: Range | null; protein: Range | null; meals: LoggedMeal[] }[],
+): { days: WeekDay[]; tally: WeekTally[] } {
+  const rows = days.map((entry): WeekDay => {
+    const logged = entry.meals.length > 0;
+    const totals = dayTotals(entry.meals);
+    const reached = (eaten: number, target: Range | null) =>
+      logged && target ? floorStatus(eaten, target).reached : null;
+    return {
+      day: entry.day,
+      dayType: entry.dayType,
+      logged,
+      carbsReached: reached(totals.carbsG, entry.carbs),
+      proteinReached: reached(totals.proteinG, entry.protein),
+    };
+  });
+  const tally = new Map<FuelDayType, WeekTally>();
+  for (const row of rows) {
+    if (!row.logged) continue;
+    const entry = tally.get(row.dayType) ?? { dayType: row.dayType, logged: 0, carbsReached: 0 };
+    entry.logged += 1;
+    if (row.carbsReached) entry.carbsReached += 1;
+    tally.set(row.dayType, entry);
+  }
+  return { days: rows, tally: FUEL_DAY_TYPES.flatMap((type) => (tally.has(type) ? [tally.get(type)!] : [])) };
 }
 
 /** De oudste dag die nog te bekijken en in te vullen is. */

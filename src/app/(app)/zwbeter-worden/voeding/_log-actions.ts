@@ -150,6 +150,23 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
   ]);
   if (!recipe) return { ok: false, error: "Dit recept bestaat niet meer." };
 
+  // Het dagmenu stuurt de portie mee die het toont, ook als die is vergroot
+  // (topUpMenu). Alleen ingrediënten van dit recept tellen.
+  const shown = parseItems(text(formData.get("items")));
+  if (shown) {
+    const allowed = new Set(recipe.ingredients.map((item) => item.food.id));
+    if (shown.length > 0 && shown.every((item) => item.food_id && allowed.has(item.food_id))) {
+      return insertMeal(viewer, {
+        day,
+        moment: momentFrom(text(formData.get("moment"))) ?? recipe.meal_moment,
+        source: "recept",
+        recipeId: recipe.id,
+        title: recipe.title,
+        items: shown,
+      });
+    }
+  }
+
   const personal = text(formData.get("portie")) !== "basis" && profile.weightKg != null;
   const fuelDay = personal ? nutritionDay(await loadNutritionDayInput(viewer, day, profile.weightKg)) : null;
   const portion = portionForRider(

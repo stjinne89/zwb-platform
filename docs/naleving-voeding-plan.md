@@ -189,6 +189,7 @@ een tekst op `/hulp`.
    `PLAN.md`. Eigen schakelaar met eigen toestemming in plaats van een nieuwe
    `LOG_CONSENT_VERSION`; de daglimiet geldt per 24 uur, voor foto en tekst samen.*
 4. **Dagmenu dat meerekent en het weekoverzicht.**
+   *Gebouwd op 2026-10-14, zonder migratie, zie `PLAN.md`.*
 5. **Herinneringen en trainerinzage.**
 
 Stap 0 en stap 1 hangen niet van elkaar af en kunnen tegelijk.

@@ -14,7 +14,7 @@ import { dayIndex } from "@/lib/training/zwbeterworden";
 import { isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import type { DietTag, FuelProfile } from "./labels";
 import { matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
-import type { ScaledRecipe } from "./scale";
+import { SCALE_MAX, macrosFor, roundGrams, type IngredientRole, type ScaledRecipe } from "./scale";
 import { MEAL_MOMENTS, mealTarget, type MealMoment } from "./targets";
 import { EVENING_START_HOUR, type NutritionDay, type NutritionDayInput } from "./tips";
 import { portionTraits, type PortionTraits } from "./traits";
@@ -172,6 +172,8 @@ export type MenuSlot = RankedRecipe & {
   choices: number;
   /** De plek in de rij die nu getoond wordt. */
   index: number;
+  /** De portie is groter gemaakt omdat er vandaag nog iets bij moet (topUpMenu). */
+  toppedUp?: boolean;
 };
 
 export type MenuSwaps = Partial<Record<MealMoment, number>>;
@@ -213,6 +215,83 @@ export function dayMenu(
     slots.push({ ...chosen, moment, choices: ranked.length, index });
   }
   return slots;
+}
+
+/** Momenten waarvan de portie mee kan groeien als er vandaag nog iets bij moet. */
+const TOP_UP_MOMENTS = new Set<MealMoment>(["ontbijt", "lunch", "diner", "tussendoor"]);
+
+export type TopUpInput = {
+  /** Wat er vandaag al is vastgelegd (Naleving). */
+  eaten: { carbsG: number; proteinG: number };
+  /** Momenten waar al iets bij staat; die tellen als gegeten. */
+  eatenMoments: Set<MealMoment>;
+  /** De ondergrens van de dag; null zonder gewicht. */
+  floor: { carbsG: number | null; proteinG: number | null };
+  energyFactor: number;
+};
+
+/**
+ * Het menu dat meerekent met wat er al gegeten is. Haalt wat er gegeten is plus
+ * de rest van het menu de onderkant van de dag niet, dan groeien de porties van
+ * de hoofdmaaltijden en het tussendoortje die nog komen, naar rato. Nooit
+ * kleiner dan normaal: een menu dat om minder eten vraagt, past niet bij de
+ * ondergrens (docs/naleving-voeding-plan.md, §6). Groter dan twee keer de
+ * gewone portie wordt het niet (scale.ts).
+ */
+export function topUpMenu(slots: MenuSlot[], input: TopUpInput): MenuSlot[] {
+  const open = slots.filter((slot) => TOP_UP_MOMENTS.has(slot.moment) && !input.eatenMoments.has(slot.moment));
+  if (open.length === 0) return slots;
+  const planned = (key: "carbsG" | "proteinG") =>
+    slots
+      .filter((slot) => !input.eatenMoments.has(slot.moment))
+      .reduce((total, slot) => total + slot.portion.perPortion[key], 0);
+  const short = (key: "carbsG" | "proteinG") => {
+    const floor = input.floor[key];
+    return floor == null ? 0 : Math.max(0, floor - input.eaten[key] - planned(key));
+  };
+  const carbShort = short("carbsG");
+  const proteinShort = short("proteinG");
+  if (carbShort === 0 && proteinShort === 0) return slots;
+
+  const share = (key: "carbsG" | "proteinG", slot: MenuSlot) => {
+    const total = open.reduce((sum, item) => sum + item.portion.perPortion[key], 0);
+    return total > 0 ? slot.portion.perPortion[key] / total : 1 / open.length;
+  };
+  return slots.map((slot) => {
+    if (!open.includes(slot)) return slot;
+    const { ingredients, factors } = slot.portion;
+    // Alleen erbij: de koolhydraatbron groeit voor koolhydraten, de eiwitbron
+    // voor eiwit, de rest blijft. Zo wordt geen onderdeel kleiner.
+    const contribution = (role: "kh_bron" | "eiwit_bron", key: "carbs_g" | "protein_g") =>
+      ingredients
+        .filter((item) => item.role === role)
+        .reduce((total, item) => total + (Number(item.food[key] ?? 0) * item.grams) / 100, 0);
+    const grow = (role: "kh_bron" | "eiwit_bron", key: "carbs_g" | "protein_g", extra: number) => {
+      const base = contribution(role, key);
+      if (extra <= 0 || base <= 0) return 1;
+      // Niet voorbij twee keer de gewone portie (SCALE_MAX in scale.ts).
+      return Math.min(1 + extra / base, SCALE_MAX / Math.max(factors[role], 1e-6));
+    };
+    const multiplier: Record<IngredientRole, number> = {
+      kh_bron: grow("kh_bron", "carbs_g", carbShort * share("carbsG", slot)),
+      eiwit_bron: grow("eiwit_bron", "protein_g", proteinShort * share("proteinG", slot)),
+      vast: 1,
+    };
+    if (multiplier.kh_bron <= 1 && multiplier.eiwit_bron <= 1) return slot;
+    const grown = ingredients.map((item) =>
+      multiplier[item.role] > 1 ? { ...item, grams: roundGrams(item.grams * multiplier[item.role]) } : item,
+    );
+    const portion: ScaledRecipe = {
+      factors: {
+        kh_bron: Math.round(factors.kh_bron * multiplier.kh_bron * 100) / 100,
+        eiwit_bron: Math.round(factors.eiwit_bron * multiplier.eiwit_bron * 100) / 100,
+        vast: factors.vast,
+      },
+      ingredients: grown,
+      perPortion: macrosFor(grown),
+    };
+    return { ...slot, portion, toppedUp: true };
+  });
 }
 
 /** "lunch:2,diner:1" uit de URL. Onbekende momenten en rare getallen vallen weg. */

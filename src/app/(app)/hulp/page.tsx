@@ -3350,6 +3350,17 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Heb je vandaag al iets ingevuld, dan rekent je dagmenu mee:
+                  haal je met de rest van het menu je minimum niet, dan worden
+                  de maaltijden die nog komen groter (&quot;Grotere portie&quot;).
+                  Kleiner worden ze nooit. Onder &quot;Deze week&quot; zie je per
+                  dag of je de onderkant voor koolhydraten (links) en eiwit
+                  (rechts) haalde; een dag zonder invoer telt niet mee.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   Met Pauzeren blijft je eetdagboek staan maar komt er niets
                   bij. &quot;Alles wissen&quot; verwijdert het hele eetdagboek
                   en zet Naleving uit.
