@@ -31,18 +31,52 @@ export type CoreStream = { type: string; data: Array<number | null> };
 export type CoreSummary = { maxC: number; minutesAbove: number };
 
 /**
+ * Een THb-stream geldt pas als kerntemperatuur als de mediaan hierboven ligt.
+ * Echte hemoglobine (rond 12 tot 15 g/dl) valt er ver onder, en de
+ * huidtemperatuur die CORE op een tweede kanaal kan sturen meestal ook.
+ */
+const THB_MIN_MEDIAN_C = 36;
+
+/**
  * De kerntemperatuur uit de streams van een rit. intervals.icu noemt hem
  * `core_temperature`; een dataveld uit Connect IQ kan met een voorvoegsel
  * binnenkomen (zoals `0_95_heat_strain_index` bij de HSI).
+ *
+ * Oudere Wahoo's (ELEMNT, BOLT en ROAM van vóór de BOLT 3) koppelen de sensor
+ * als spierzuurstofsensor; de kerntemperatuur staat dan in graden in het
+ * THb-veld. Zonder `core_temperature` nemen we de THb-stream met de hoogste
+ * mediaan, als die in het bereik van een kerntemperatuur ligt.
  */
 export function coreTemperatureStream(streams: CoreStream[]): Array<number | null> | null {
   const exact = streams.find((stream) => stream.type === "core_temperature");
   if (exact) return exact.data;
-  return streams.find((stream) => /(^|_)core_temperature$/i.test(stream.type))?.data ?? null;
+  const named = streams.find((stream) => /(^|_)core_temperature$/i.test(stream.type));
+  if (named) return named.data;
+
+  let best: { data: Array<number | null>; median: number } | null = null;
+  for (const stream of streams) {
+    if (!/^thb/i.test(stream.type)) continue;
+    const median = plausibleMedian(stream.data);
+    if (median !== null && median >= THB_MIN_MEDIAN_C && (!best || median > best.median)) {
+      best = { data: stream.data, median };
+    }
+  }
+  return best?.data ?? null;
 }
 
 function plausible(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= PLAUSIBLE_MIN_C && value <= PLAUSIBLE_MAX_C;
+}
+
+/**
+ * Mediaan van alle gemeten waarden, of null als minder dan de helft daarvan
+ * een mogelijke kerntemperatuur is (dan is het een echte hemoglobinemeting).
+ */
+function plausibleMedian(data: Array<number | null>): number | null {
+  const measured = data.filter((value): value is number => typeof value === "number" && value > 0);
+  const values = measured.filter(plausible).sort((a, b) => a - b);
+  if (values.length === 0 || values.length * 2 < measured.length) return null;
+  return values[Math.floor(values.length / 2)];
 }
 
 /**

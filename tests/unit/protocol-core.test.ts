@@ -46,6 +46,29 @@ describe("kerntemperatuur uitrekenen", () => {
     expect(coreTemperatureStream([{ type: "skin_temperature", data: [34] }, { type: "temp", data: [20] }])).toBeNull();
   });
 
+  it("leest bij een oudere Wahoo de kerntemperatuur uit het THb-veld", () => {
+    const core = [37.6, 38.2, 38.7, 38.9];
+    const skin = [34.1, 34.6, 35.0, 35.2];
+    expect(coreTemperatureStream([{ type: "time", data: [0, 1, 2, 3] }, { type: "thb", data: core }])).toEqual(core);
+    // Kern en huid op twee kanalen: de hoogste mediaan is de kern.
+    expect(
+      coreTemperatureStream([
+        { type: "thb", data: skin },
+        { type: "thb_2", data: core },
+      ]),
+    ).toEqual(core);
+    // Een echte spierzuurstofsensor, of alleen de huid: geen kerntemperatuur.
+    expect(coreTemperatureStream([{ type: "thb", data: [12.4, 12.8, 13.1, null] }])).toBeNull();
+    expect(coreTemperatureStream([{ type: "thb", data: skin }])).toBeNull();
+    // De echte stream gaat voor.
+    expect(
+      coreTemperatureStream([
+        { type: "thb", data: core },
+        { type: "core_temperature", data: [38] },
+      ]),
+    ).toEqual([38]);
+  });
+
   it("telt de minuten op of boven de drempel", () => {
     const streams = ride(3600, 1800);
     const summary = summarizeCoreTemperature(streams[2].data, streams[0].data);
@@ -277,6 +300,13 @@ describe("fillCoreSessions", () => {
       "2026-10-14",
       "2026-10-13",
     ]);
+  });
+
+  it("meet ook een rit van een oudere Wahoo", async () => {
+    const streams = ride(3600, 40 * 60);
+    mocks.streams.mockResolvedValue([streams[0], { type: "thb", data: streams[2].data }]);
+    const fake = db();
+    expect(await fill(fake)).toEqual({ measured: 1, empty: 0, checked: 1 });
   });
 
   it("probeert het de volgende keer opnieuw als ophalen mislukt", async () => {

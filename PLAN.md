@@ -155,6 +155,11 @@ van de CORE-sensor, beide 2026-10-14).
 >   al bekeken zijn. `fetchIntervalsActivityStreams` vraagt met een lege
 >   `types` nu alle streams op, omdat een Connect IQ-veld met een voorvoegsel kan
 >   binnenkomen.
+> - **Oudere Wahoo's** (nagekomen dezelfde dag; de eigenaar rijdt een BOLT 2):
+>   die koppelen de CORE als spierzuurstofsensor en zetten de temperatuur in het
+>   veld THb. Zonder `core_temperature` neemt de app de THb-stream met de hoogste
+>   mediaan, als die op of boven 36 °C ligt; echte hemoglobine (12 tot 15 g/dl)
+>   en de huidtemperatuur vallen daaronder.
 > - **Rekenen** (`src/lib/protocols/core-temperature.ts`): hoogste
 >   kerntemperatuur en minuten op of boven **38,5 °C**; een gat tussen metingen
 >   telt hooguit 30 seconden mee, waarden buiten 34 tot 43 °C tellen niet.
@@ -236,7 +241,8 @@ van de CORE-sensor, beide 2026-10-14).
 > - `0238` op de echte database (geen Docker of Supabase-config hier).
 > - **De veldnamen met een echte CORE-rit.** `core_temperature` komt uit
 >   forumberichten en de helppagina van CORE, die vanuit de bouwomgeving niet te
->   openen waren. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
+>   openen waren. Ook de naam van de THb-stream (`thb`, `thb_2`?) is niet
+>   vastgesteld; de app herkent alles wat met `thb` begint. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
 >   teruggeeft. De eigenaar rijdt deze week een rit; kijk daarna of er een rij in
 >   `member_protocol_core_sessions` staat met een waarde, of met lege velden (dan
 >   heet de stream anders).

@@ -94,7 +94,19 @@ FIT-bestand als streams `core_temperature`, `skin_temperature` en
 `heat_strain_index`, vult gaten tot 30 seconden op met de laatste waarde en
 toont ze als grafiek. Een dataveld met een eigen naam kan met een voorvoegsel
 binnenkomen (gemeld: `0_95_heat_strain_index`). Een rit die via Strava in
-intervals.icu komt, heeft geen streams. Bronnen: de helppagina van CORE over
+intervals.icu komt, heeft geen streams.
+
+Oudere Wahoo's (ELEMNT, BOLT en ROAM vóór de BOLT 3, dus ook de BOLT 2 van de
+eigenaar) kennen geen temperatuursensor. CORE's handleiding laat ze de sensor
+als spierzuurstofsensor koppelen; de kerntemperatuur staat dan in graden in het
+veld THb. Op het forum zag iemand met een BOLT 2 de kanalen THb en THb(2) in
+intervals.icu. De app valt daarom terug op een THb-stream als er geen
+`core_temperature` is, en alleen als de mediaan van de mogelijke waarden
+(34 tot 43) op of boven 36 ligt en minstens de helft van de metingen in dat
+bereik valt. Echte hemoglobine (12 tot 15 g/dl) valt erbuiten; staan kern en
+huid op twee kanalen, dan geldt die met de hoogste mediaan als kern. Hoe
+intervals.icu die streams precies noemt, is niet vastgesteld; de app herkent elk
+type dat met `thb` begint. Bronnen: de helppagina van CORE over
 intervals.icu en draadjes op het intervals.icu-forum; die konden vanuit de
 bouwomgeving niet worden geopend, alleen de zoekresultaten zijn gelezen.
 
