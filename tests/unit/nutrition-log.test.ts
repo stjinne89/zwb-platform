@@ -176,7 +176,7 @@ describe("barcodeproducten", () => {
   });
 });
 
-// 0231 en 0232 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
+// 0231 tot en met 0233 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
 // product is genoeg. Zegt niets over de productiedatabase; daar gaat de migratie met de hand.
 describe("eetdagboek, migratie 0231", () => {
   let db: PGlite;
@@ -203,6 +203,7 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0213_nutrition_expansion.sql"));
     await db.exec(await migration("0231_nutrition_log.sql"));
     await db.exec(await migration("0232_nutrition_log_products.sql"));
+    await db.exec(await migration("0233_nutrition_log_recognition.sql"));
     await db.exec(
       `insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('8710400000017', 'Gel', 62.5, 0);`,
     );
@@ -281,7 +282,7 @@ describe("eetdagboek, migratie 0231", () => {
   it("houdt onbekende waarden tegen", async () => {
     await expect(
       db.query(
-        `insert into nutrition_log_meals(profile_id, eaten_on, meal_moment, source, title) values('${MEMBER}', '2026-10-14', 'diner', 'foto', 'X')`,
+        `insert into nutrition_log_meals(profile_id, eaten_on, meal_moment, source, title) values('${MEMBER}', '2026-10-14', 'diner', 'gok', 'X')`,
       ),
     ).rejects.toThrow(/source_check/);
     await expect(
@@ -329,16 +330,45 @@ describe("eetdagboek, migratie 0231", () => {
     ).rejects.toThrow(/row-level security/);
   });
 
+  it("houdt het gebruik van herkennen bij zonder dat een lid het kan wijzigen", async () => {
+    await db.query(
+      `insert into nutrition_log_ai_usage(profile_id, kind, response_id) values('${MEMBER}', 'foto', 'resp_1')`,
+    );
+    expect(await as(MEMBER, () => count("select count(*) from nutrition_log_ai_usage"))).toBe(1);
+    expect(await as(OTHER, () => count("select count(*) from nutrition_log_ai_usage"))).toBe(0);
+    await expect(
+      as(MEMBER, () =>
+        db.query(`insert into nutrition_log_ai_usage(profile_id, kind, response_id) values('${MEMBER}', 'foto', 'resp_2')`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    // Weghalen om de daglimiet te omzeilen kan niet: er is geen delete-policy.
+    await as(MEMBER, () => db.query("delete from nutrition_log_ai_usage"));
+    expect(await count("select count(*) from nutrition_log_ai_usage")).toBe(1);
+  });
+
+  it("neemt een herkende maaltijd aan als foto of tekst", async () => {
+    await as(MEMBER, () =>
+      db.query(
+        `insert into nutrition_log_meals(profile_id, eaten_on, meal_moment, source, title) values('${MEMBER}', '2026-10-14', 'lunch', 'foto', 'Bord')`,
+      ),
+    );
+    await as(MEMBER, () => db.query("update nutrition_log_settings set ai_consent_at = now()"));
+    expect(await count("select count(*) from nutrition_log_settings where ai_consent_at is not null")).toBe(1);
+  });
+
   it("wist alles als de toestemming wordt ingetrokken", async () => {
     await as(MEMBER, () => db.query("delete from nutrition_log_settings"));
     expect(await count("select count(*) from nutrition_log_settings")).toBe(0);
     expect(await count("select count(*) from nutrition_log_meals")).toBe(0);
     expect(await count("select count(*) from nutrition_log_items")).toBe(0);
+    // Het gebruik blijft staan, anders reset wissen en opnieuw aanzetten de daglimiet.
+    expect(await count("select count(*) from nutrition_log_ai_usage")).toBe(1);
   });
 
   it("is opnieuw te draaien", async () => {
     await db.exec(await migration("0231_nutrition_log.sql"));
     await db.exec(await migration("0232_nutrition_log_products.sql"));
-    expect(await count("select count(*) from pg_policies where tablename like 'nutrition_log_%'")).toBe(5);
+    await db.exec(await migration("0233_nutrition_log_recognition.sql"));
+    expect(await count("select count(*) from pg_policies where tablename like 'nutrition_log_%'")).toBe(6);
   });
 });

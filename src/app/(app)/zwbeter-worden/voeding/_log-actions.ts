@@ -234,7 +234,10 @@ export async function logManualMeal(formData: FormData): Promise<ActionResult> {
   return insertMeal(viewer, {
     day: parseLogDay(text(formData.get("day")), todayKeyAmsterdam()),
     moment,
-    source: "handmatig",
+    // Herkend uit een foto of omschrijving, en daarna door het lid bevestigd.
+    source: ["foto", "tekst"].includes(text(formData.get("source")))
+      ? (text(formData.get("source")) as LogSource)
+      : "handmatig",
     recipeId: null,
     title: text(formData.get("title")) || fallback,
     items,

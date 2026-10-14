@@ -117,9 +117,60 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0233`.
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`.
 
 ---
+
+> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken, het model niet aangeroepen.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0233_nutrition_log_recognition.sql`, **nog niet toegepast**.
+>
+> **Waarom.** Stap 3 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
+> een maaltijd invoeren met een foto of een zin, in plaats van product voor
+> product.
+>
+> **Wat.**
+> - **Twee stappen** (`src/lib/nutrition/recognize.ts`,
+>   `_recognize-actions.ts`). Het model krijgt de foto of omschrijving en geeft
+>   per onderdeel een naam, een NEVO-achtige zoekterm en grammen met een onder-
+>   en bovengrens; voedingswaarden vraagt het schema niet. ZWB zoekt elke term op
+>   in NEVO (`searchFoods`, met een kortere term als terugval) en zet de beste
+>   treffer met drie alternatieven in het formulier. Het lid past grammen aan,
+>   kiest zo nodig een ander product en bewaart pas dan. Bron `foto` of `tekst`.
+> - **Background-modus met polling**, zoals het pacingplan: de pagina vraagt het
+>   antwoord elke 2 s op, hooguit 90 s. Alleen wie de herkenning startte kan het
+>   antwoord ophalen (het response-id staat bij zijn gebruiksrij).
+> - **Foto:** op het toestel verkleind tot 1024 px en opnieuw als JPEG opgeslagen
+>   (zonder locatie), via het bestandsveld met `capture`. Niet bewaard in de
+>   database of Storage. Het verzoek gebruikt `store: true` (nodig voor
+>   background); OpenAI bewaart het antwoord dus volgens zijn eigen voorwaarden.
+> - **Eigen schakelaar en toestemming** (`ai_consent_at`, `RecognitionConsentForm`),
+>   los van het eetdagboek. Uitzetten onderaan Naleving.
+> - **Daglimiet 6 per 24 uur**, foto en tekst samen (`nutrition_log_ai_usage`,
+>   alleen door de server te schrijven, zonder delete-policy, en gekoppeld aan
+>   het profiel zodat wissen en opnieuw aanzetten de limiet niet reset).
+> - **Model:** `OPENAI_NUTRITION_MODEL`, anders `OPENAI_TRAINING_MODEL`, anders
+>   `gpt-5.5`, met `reasoning.effort` laag. De keuze hoort uit de meting (stap 0)
+>   te komen.
+> - **Data-export** (`/api/account/export`) bevat nu ook de voedingstabellen:
+>   lengte, receptvoorkeuren, de instellingen, maaltijden met hun regels en het
+>   herkenningsgebruik.
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   aangevuld.
+>
+> **Bewust niet gebouwd.**
+> - Een maandplafond op de kosten: dat volgt uit de meting.
+> - De bandbreedte bewaren. Na bevestigen is de hoeveelheid die van het lid; de
+>   band staat alleen in het formulier als hulp.
+> - Synchroon aanroepen. Sneller voor het lid, maar een Netlify-functie kapt
+>   eerder af dan een model met beeld klaar is.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `nutrition-recognize` (het
+> verzoek, het schema zonder voedingswaarden, het uitlezen en begrenzen van het
+> antwoord, de daglimiet, alleen data-URL's), en in `nutrition-log` de
+> gebruikstabel (alleen lezen, niet wissen, blijft na alles wissen) en de bronnen
+> `foto` en `tekst`. **Niet getest:** een echte aanroep van het model, de
+> nauwkeurigheid (daarvoor is de meting), de foto op een telefoon.
 
 > **Naleving stap 2: rond de rit en barcode, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
 > Commit: de commit die dit blok toevoegt. Migratie
@@ -208,6 +259,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0233`
 > - De trainer-schakelaar en de bronnen foto, barcode en tekst: stap 2 tot 5.
 >   De `source`-check staat alleen `recept` en `handmatig` toe.
 > - Het eetdagboek in een gegevensexport: er is geen export voor voeding.
+>   *Niet waar: `/api/account/export` bestond al. Sinds stap 3 staan de
+>   voedingstabellen erin.*
 >
 > **Niet meer waar:** "geen eetdagboek" in de kop van `0168_nutrition.sql` en
 > `0213_nutrition_expansion.sql` (toegepaste migraties, niet aangepast), en

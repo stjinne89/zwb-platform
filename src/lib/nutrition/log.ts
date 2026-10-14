@@ -17,7 +17,7 @@ export const LOG_CONSENT_VERSION = "2026-10-14";
 /** Zo ver terug kan een lid nog een maaltijd invoeren of bekijken. */
 export const LOG_EDIT_DAYS = 7;
 
-export const LOG_SOURCES = ["recept", "handmatig"] as const;
+export const LOG_SOURCES = ["recept", "handmatig", "foto", "tekst"] as const;
 export type LogSource = (typeof LOG_SOURCES)[number];
 
 export type LoggedItem = {

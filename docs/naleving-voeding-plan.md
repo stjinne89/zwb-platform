@@ -163,9 +163,10 @@ en energiebeschikbaarheid (besluit 2).
   optellen per dag en per moment en "wat is er nog te gaan".
 - **Navigatie.** Een vierde tab "Naleving" in `VOEDING_SECTIONS`, voor iedereen
   zichtbaar; wie het niet heeft aangezet, ziet daar alleen de toestemming.
-- **Toestemmingstekst per stap.** De tekst van stap 1 noemt alleen het
-  eetdagboek. De foto naar OpenAI (stap 3) en de trainerinzage (stap 5) vragen
-  elk een nieuwe `LOG_CONSENT_VERSION`, waarvoor deelnemers opnieuw tekenen.
+- **Toestemming per onderdeel.** De tekst van stap 1 noemt alleen het
+  eetdagboek. Foto en tekst (stap 3) en de trainerinzage (stap 5) krijgen elk
+  een eigen schakelaar met een eigen toestemming, zodat niemand opnieuw hoeft
+  te tekenen voor iets wat hij niet gebruikt.
 
 ## 10. Bouwvolgorde
 
@@ -184,6 +185,9 @@ een tekst op `/hulp`.
    `PLAN.md`. De barcode-terugval voor iOS (een JavaScript-bibliotheek) is
    niet gebouwd: daar typ je het nummer over.*
 3. **Foto en tekst**, met de bevestigstap en de daglimiet.
+   *Gebouwd op 2026-10-14 (migratie `0233_nutrition_log_recognition.sql`), zie
+   `PLAN.md`. Eigen schakelaar met eigen toestemming in plaats van een nieuwe
+   `LOG_CONSENT_VERSION`; de daglimiet geldt per 24 uur, voor foto en tekst samen.*
 4. **Dagmenu dat meerekent en het weekoverzicht.**
 5. **Herinneringen en trainerinzage.**
 

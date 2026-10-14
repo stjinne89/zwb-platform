@@ -41,6 +41,8 @@ import {
   LogConsentForm,
 } from "../_components/log-controls";
 import { MealForm } from "../_components/meal-form";
+import { RecognitionConsentForm } from "../_components/recognition-consent";
+import { pollRecognition, setRecognitionConsent, startRecognition } from "../_recognize-actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -271,12 +273,14 @@ export default async function LogPage({
                 <ChevronRight className="size-4" />
               </Link>
             </div>
+            {!settings.recognition && <RecognitionConsentForm action={setRecognitionConsent} />}
             <MealForm
               day={day}
               defaultMoment={defaultMoment(day, today)}
               saveAction={logManualMeal}
               searchAction={searchFoods}
               barcodeAction={lookupBarcode}
+              recognition={settings.recognition ? { start: startRecognition, poll: pollRecognition } : undefined}
             />
           </section>
 
@@ -313,6 +317,11 @@ export default async function LogPage({
           {settings.paused ? <Play className="size-4" /> : <Pause className="size-4" />}
           {settings.paused ? "Hervatten" : "Pauzeren"}
         </LogActionButton>
+        {settings.recognition && (
+          <LogActionButton action={setRecognitionConsent} fields={{ on: "0" }}>
+            Foto en tekst uit
+          </LogActionButton>
+        )}
         <DeleteLogButton action={deleteLog} />
         <Link
           href="/hulp#voeding"

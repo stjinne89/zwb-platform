@@ -137,7 +137,12 @@ export default function PrivacyPage() {
             kunt pauzeren, losse maaltijden verwijderen en alles wissen; zet je
             Naleving uit, dan verwijderen we het hele eetdagboek. Zoek je een
             verpakt product op met de barcode, dan vragen we het op bij Open Food
-            Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt.
+            Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt. Zet
+            je daarnaast &quot;Foto en tekst&quot; aan (een aparte toestemming),
+            dan gaat een foto of omschrijving van je maaltijd naar OpenAI, dat
+            herkent wat erop staat en de hoeveelheden schat. ZWB bewaart de foto
+            niet; we houden alleen bij wanneer je de herkenning gebruikte, voor
+            de daglimiet. Je eetdagboek staat in je data-export.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
@@ -384,7 +389,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            en voor de antwoorden in de coachchat. Meegestuurd worden relevante
+            en voor de antwoorden in de coachchat, en als je dat aanzet voor het
+            herkennen van een maaltijd uit een foto of omschrijving. Meegestuurd worden relevante
             trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
             en, bij de chat, de tekst die je zelf typt; geen directe
             identificatiegegevens waar vermijdbaar.

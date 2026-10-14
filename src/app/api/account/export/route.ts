@@ -31,6 +31,11 @@ const PROFILE_TABLES: string[] = [
   "posts",
   "post_comments",
   "post_likes",
+  "nutrition_profiles",
+  "nutrition_recipe_prefs",
+  "nutrition_log_settings",
+  "nutrition_log_meals",
+  "nutrition_log_ai_usage",
 ];
 
 export async function GET() {
@@ -82,6 +87,20 @@ export async function GET() {
     } catch {
       // tabel bestaat (nog) niet of heeft geen profile_id → overslaan
     }
+  }
+
+  // Wat er in elke maaltijd van het eetdagboek zat; die regels hebben zelf geen
+  // profile_id.
+  const meals = (data.nutrition_log_meals ?? []) as { id: string }[];
+  if (meals.length > 0) {
+    const { data: items, error } = await admin
+      .from("nutrition_log_items")
+      .select("*")
+      .in(
+        "meal_id",
+        meals.map((meal) => meal.id),
+      );
+    if (!error) data.nutrition_log_items = items ?? [];
   }
 
   const body = JSON.stringify(data, null, 2);

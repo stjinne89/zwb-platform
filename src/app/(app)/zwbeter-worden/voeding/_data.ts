@@ -133,16 +133,22 @@ export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { o
   }));
 }
 
-export type LogSettings = { paused: boolean };
+export type LogSettings = {
+  paused: boolean;
+  /** Foto en tekst herkennen staat aan (0233). */
+  recognition: boolean;
+};
 
 /** Null als het lid het eetdagboek niet heeft aangezet, of zolang 0231 er niet is. */
 export async function loadLogSettings(viewer: Viewer): Promise<LogSettings | null> {
+  // Alle kolommen: zo werkt dit voor en na de migraties die er kolommen bij zetten.
   const { data } = await viewer.supabase
     .from("nutrition_log_settings")
-    .select("paused")
+    .select("*")
     .eq("profile_id", viewer.user.id)
     .maybeSingle();
-  return data ? { paused: Boolean(data.paused) } : null;
+  if (!data) return null;
+  return { paused: Boolean(data.paused), recognition: data.ai_consent_at != null };
 }
 
 type LoggedMealRow = {
