@@ -9,8 +9,10 @@ import {
   mealsByMoment,
   parseLogDay,
   repeatableMeals,
+  rideFueling,
   type LoggedMeal,
 } from "@/lib/nutrition/log";
+import { normalizeBarcode, parseOffProduct, productLabel } from "@/lib/nutrition/products";
 
 const rice = { id: "rijst", name_nl: "Rijst witte gekookt", quantity_unit: "g" as const, carbs_g: 28, protein_g: 2.5 };
 const chicken = { id: "kip", name_nl: "Kipfilet bereid", quantity_unit: "g" as const, carbs_g: 0, protein_g: 30 };
@@ -25,8 +27,8 @@ function meal(patch: Partial<LoggedMeal> = {}): LoggedMeal {
     recipeId: null,
     title: "Rijst met kip",
     items: [
-      { food: rice, grams: 250 },
-      { food: chicken, grams: 120 },
+      { kind: "nevo", food: rice, grams: 250 },
+      { kind: "nevo", food: chicken, grams: 120 },
     ],
     ...patch,
   };
@@ -42,7 +44,7 @@ describe("eetdagboek, rekenwerk", () => {
   });
 
   it("markeert het totaal als ondergrens als een NEVO-waarde ontbreekt", () => {
-    const totals = dayTotals([meal(), meal({ id: "m2", items: [{ food: unknown, grams: 100 }] })]);
+    const totals = dayTotals([meal(), meal({ id: "m2", items: [{ kind: "nevo", food: unknown, grams: 100 }] })]);
     expect(totals).toEqual({ carbsG: 70, proteinG: 47.3, incomplete: true });
   });
 
@@ -93,15 +95,89 @@ describe("eetdagboek, dagen en herhalen", () => {
     const repeats = repeatableMeals([
       meal({ id: "nieuw" }),
       meal({ id: "oud", eatenOn: "2026-10-12" }),
-      meal({ id: "anders", items: [{ food: rice, grams: 300 }] }),
+      meal({ id: "anders", items: [{ kind: "nevo", food: rice, grams: 300 }] }),
       meal({ id: "leeg", title: "Leeg", items: [] }),
     ]);
     expect(repeats.map((item) => item.id)).toEqual(["nieuw", "anders"]);
   });
 });
 
-// 0231 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één product is
-// genoeg. Zegt niets over de productiedatabase; daar gaat de migratie met de hand.
+describe("eetdagboek, rond de rit", () => {
+  const gel = { id: "8710000000001", name_nl: "Gel", quantity_unit: "g" as const, carbs_g: 50, protein_g: 0 };
+
+  it("rekent wat onderweg is gegeten om naar gram per uur", () => {
+    const fueling = rideFueling(
+      [meal({ moment: "tijdens_rit", items: [{ kind: "product", food: gel, grams: 360 }] })],
+      180,
+    );
+    expect(fueling).toEqual({ perHourG: 60, floorPerHourG: 60, reached: true, recoveryLogged: false });
+  });
+
+  it("ziet een herstelmaaltijd, en telt gewone maaltijden niet als onderweg", () => {
+    const fueling = rideFueling([meal(), meal({ id: "m2", moment: "na_rit" })], 90);
+    expect(fueling).toEqual({ perHourG: 0, floorPerHourG: 30, reached: false, recoveryLogged: true });
+  });
+
+  it("heeft geen doel per uur onder het uur", () => {
+    expect(rideFueling([meal()], 45)).toBeNull();
+    expect(rideFueling([meal()], null)).toBeNull();
+  });
+});
+
+describe("barcodeproducten", () => {
+  it("herkent een barcode met of zonder spaties", () => {
+    expect(normalizeBarcode("8 710400 -000017")).toBe("8710400000017");
+    expect(normalizeBarcode("1234567")).toBeNull();
+    expect(normalizeBarcode("abc12345678")).toBeNull();
+  });
+
+  it("neemt alleen naam, merk, koolhydraten, eiwit en portie over", () => {
+    const product = parseOffProduct("8710400000017", {
+      status: 1,
+      product: {
+        product_name: "Energy gel",
+        product_name_nl: "Energiegel citroen",
+        brands: "Merk, Ander merk",
+        nutriments: { carbohydrates_100g: 62.5, proteins_100g: "0", fat_100g: 0, "energy-kcal_100g": 250 },
+        serving_quantity: "40",
+        serving_quantity_unit: "g",
+      },
+    });
+    expect(product).toEqual({
+      barcode: "8710400000017",
+      name: "Energiegel citroen",
+      brand: "Merk",
+      quantity_unit: "g",
+      carbs_g: 62.5,
+      protein_g: 0,
+      serving_g: 40,
+    });
+    expect(productLabel(product!)).toBe("Energiegel citroen (Merk)");
+  });
+
+  it("slaat een product zonder koolhydraten of eiwit over in plaats van te schatten", () => {
+    const body = { status: 1, product: { product_name: "Reep", nutriments: { carbohydrates_100g: 60 } } };
+    expect(parseOffProduct("87100000", body)).toBeNull();
+    expect(parseOffProduct("87100000", { status: 0 })).toBeNull();
+    expect(parseOffProduct("87100000", null)).toBeNull();
+  });
+
+  it("neemt een drank in ml over", () => {
+    const product = parseOffProduct("87100000", {
+      product: {
+        product_name: "Sportdrank",
+        nutriments: { carbohydrates_100g: 6, proteins_100g: 0 },
+        serving_quantity: 500,
+        serving_quantity_unit: "ml",
+      },
+    });
+    expect(product?.quantity_unit).toBe("ml");
+    expect(product?.serving_g).toBe(500);
+  });
+});
+
+// 0231 en 0232 tegen een geïsoleerde PostgreSQL, zonder de NEVO-seed: één
+// product is genoeg. Zegt niets over de productiedatabase; daar gaat de migratie met de hand.
 describe("eetdagboek, migratie 0231", () => {
   let db: PGlite;
   const migration = (file: string) => readFile(`supabase/migrations/${file}`, "utf8");
@@ -126,6 +202,10 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0168_nutrition.sql"));
     await db.exec(await migration("0213_nutrition_expansion.sql"));
     await db.exec(await migration("0231_nutrition_log.sql"));
+    await db.exec(await migration("0232_nutrition_log_products.sql"));
+    await db.exec(
+      `insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('8710400000017', 'Gel', 62.5, 0);`,
+    );
     await db.exec(
       `insert into nutrition_foods(id, nevo_code, name_nl, carbs_g, protein_g, nevo_version) values ('${FOOD}', 1, 'Rijst', 28, 2.5, 'test');`,
     );
@@ -220,6 +300,35 @@ describe("eetdagboek, migratie 0231", () => {
     expect(await as(MEMBER, () => count("select count(*) from nutrition_log_meals"))).toBe(2);
   });
 
+  it("neemt een barcodeproduct op, maar nooit een regel met twee of geen bronnen", async () => {
+    const { rows } = await as(MEMBER, () => insertMeal(MEMBER));
+    const meal = rows[0].id;
+    await as(MEMBER, () =>
+      db.query(
+        "insert into nutrition_log_items(meal_id, product_barcode, sort_order, grams) values($1, '8710400000017', 0, 40)",
+        [meal],
+      ),
+    );
+    await expect(
+      db.query("insert into nutrition_log_items(meal_id, sort_order, grams) values($1, 1, 40)", [meal]),
+    ).rejects.toThrow(/one_source_check/);
+    await expect(
+      db.query(
+        `insert into nutrition_log_items(meal_id, food_id, product_barcode, sort_order, grams) values($1, '${FOOD}', '8710400000017', 2, 40)`,
+        [meal],
+      ),
+    ).rejects.toThrow(/one_source_check/);
+  });
+
+  it("laat leden producten lezen maar niet zelf toevoegen", async () => {
+    expect(await as(OTHER, () => count("select count(*) from nutrition_products"))).toBe(1);
+    await expect(
+      as(OTHER, () =>
+        db.query("insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('87100000', 'Nep', 1, 1)"),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+
   it("wist alles als de toestemming wordt ingetrokken", async () => {
     await as(MEMBER, () => db.query("delete from nutrition_log_settings"));
     expect(await count("select count(*) from nutrition_log_settings")).toBe(0);
@@ -229,6 +338,7 @@ describe("eetdagboek, migratie 0231", () => {
 
   it("is opnieuw te draaien", async () => {
     await db.exec(await migration("0231_nutrition_log.sql"));
+    await db.exec(await migration("0232_nutrition_log_products.sql"));
     expect(await count("select count(*) from pg_policies where tablename like 'nutrition_log_%'")).toBe(5);
   });
 });

@@ -10,6 +10,7 @@ import { getWellnessSummary } from "@/lib/training/wellness";
 import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipes";
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import type { LoggedMeal } from "@/lib/nutrition/log";
+import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 
@@ -151,22 +152,46 @@ type LoggedMealRow = {
   source: LoggedMeal["source"];
   recipe_id: string | null;
   title: string;
-  items: { sort_order: number; grams: number; food: LoggedMeal["items"][number]["food"] }[] | null;
+  items:
+    | {
+        sort_order: number;
+        grams: number;
+        food: LoggedMeal["items"][number]["food"] | null;
+        product: (NutritionProduct & { carbs_g: number | null; protein_g: number | null }) | null;
+      }[]
+    | null;
 };
+
+const LOG_ITEM_COLUMNS =
+  "sort_order, grams, food:nutrition_foods(id, name_nl, quantity_unit, carbs_g, protein_g)";
+const LOG_MEAL_COLUMNS = "id, eaten_on, meal_moment, source, recipe_id, title";
+
+function logMealColumns(withProducts: boolean) {
+  const product = withProducts
+    ? ", product:nutrition_products(barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g)"
+    : "";
+  return `${LOG_MEAL_COLUMNS}, items:nutrition_log_items(${LOG_ITEM_COLUMNS}${product})`;
+}
 
 /** De maaltijden van dit lid in een reeks dagen, van nieuw naar oud. */
 export async function loadLoggedMeals(viewer: Viewer, from: string, to: string): Promise<LoggedMeal[]> {
-  const { data } = await viewer.supabase
-    .from("nutrition_log_meals")
-    .select(
-      "id, eaten_on, meal_moment, source, recipe_id, title, items:nutrition_log_items(sort_order, grams, food:nutrition_foods(id, name_nl, quantity_unit, carbs_g, protein_g))",
-    )
-    .eq("profile_id", viewer.user.id)
-    .gte("eaten_on", from)
-    .lte("eaten_on", to)
-    .order("eaten_on", { ascending: false })
-    .order("created_at", { ascending: false });
-  return ((data ?? []) as unknown as LoggedMealRow[]).map((row) => ({
+  const query = (withProducts: boolean) =>
+    viewer.supabase
+      .from("nutrition_log_meals")
+      .select(logMealColumns(withProducts))
+      .eq("profile_id", viewer.user.id)
+      .gte("eaten_on", from)
+      .lte("eaten_on", to)
+      .order("eaten_on", { ascending: false })
+      .order("created_at", { ascending: false });
+  // Zolang 0232 er niet is, bestaan de barcodeproducten nog niet.
+  let { data, error } = await query(true);
+  if (error) ({ data, error } = await query(false));
+  return ((data ?? []) as unknown as LoggedMealRow[]).map(toLoggedMeal);
+}
+
+function toLoggedMeal(row: LoggedMealRow): LoggedMeal {
+  return {
     id: row.id,
     eatenOn: row.eaten_on,
     moment: row.meal_moment,
@@ -175,8 +200,24 @@ export async function loadLoggedMeals(viewer: Viewer, from: string, to: string):
     title: row.title,
     items: [...(row.items ?? [])]
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((item) => ({ food: item.food, grams: Number(item.grams) })),
-  }));
+      .flatMap((item): LoggedMeal["items"] => {
+        if (item.food) return [{ kind: "nevo", food: item.food, grams: Number(item.grams) }];
+        if (!item.product) return [];
+        return [
+          {
+            kind: "product",
+            food: {
+              id: item.product.barcode,
+              name_nl: productLabel(item.product),
+              quantity_unit: item.product.quantity_unit,
+              carbs_g: item.product.carbs_g,
+              protein_g: item.product.protein_g,
+            },
+            grams: Number(item.grams),
+          },
+        ];
+      }),
+  };
 }
 
 /**

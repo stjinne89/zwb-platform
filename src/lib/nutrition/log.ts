@@ -9,7 +9,7 @@
 
 import { shiftDayKey } from "@/lib/training/mobility";
 import type { NutritionFood } from "./scale";
-import { MEAL_MOMENTS, type MealMoment, type Range } from "./targets";
+import { MEAL_MOMENTS, rideCarbsPerHour, type MealMoment, type Range } from "./targets";
 
 /** De toestemmingstekst waarvoor een lid tekent; ook in migratie 0231. */
 export const LOG_CONSENT_VERSION = "2026-10-14";
@@ -21,6 +21,9 @@ export const LOG_SOURCES = ["recept", "handmatig"] as const;
 export type LogSource = (typeof LOG_SOURCES)[number];
 
 export type LoggedItem = {
+  /** Een NEVO-product, of een verpakt product via de barcode (products.ts). */
+  kind: "nevo" | "product";
+  /** `id` is het NEVO-id of de barcode. Waarden per 100 g of ml. */
   food: Pick<NutritionFood, "id" | "name_nl" | "carbs_g" | "protein_g"> & { quantity_unit: "g" | "ml" };
   grams: number;
 };
@@ -101,6 +104,34 @@ export function floorStatus(eatenG: number, target: Range | null): FloorStatus {
     remainingG: remaining,
     progress: Math.min(1, eaten / target.min),
     reached: remaining === 0,
+  };
+}
+
+export type RideFueling = {
+  /** Koolhydraten die bij "tijdens de rit" zijn vastgelegd, per uur rijden. */
+  perHourG: number;
+  /** De onderkant van de band voor deze ritduur. */
+  floorPerHourG: number;
+  reached: boolean;
+  /** Is er iets bij "na de rit" vastgelegd? */
+  recoveryLogged: boolean;
+};
+
+/**
+ * Eten rond de rit van die dag. Null bij een rit korter dan een uur: daarvoor
+ * geven de bronnen geen doel per uur (zie rideCarbsPerHour).
+ */
+export function rideFueling(meals: LoggedMeal[], rideMinutes: number | null): RideFueling | null {
+  const minutes = rideMinutes ?? 0;
+  const band = rideCarbsPerHour(minutes);
+  if (!band) return null;
+  const carbs = dayTotals(meals.filter((meal) => meal.moment === "tijdens_rit")).carbsG;
+  const perHour = Math.round(carbs / (minutes / 60));
+  return {
+    perHourG: perHour,
+    floorPerHourG: band.min,
+    reached: perHour >= band.min,
+    recoveryLogged: meals.some((meal) => meal.moment === "na_rit"),
   };
 }
 

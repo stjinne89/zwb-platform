@@ -3299,10 +3299,31 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Invoeren kan op drie manieren: &quot;Gegeten&quot; bij een
+                  Invoeren kan op vier manieren: &quot;Gegeten&quot; bij een
                   recept in je dagmenu of het receptenboek, zelf producten
-                  zoeken in NEVO met de hoeveelheid erbij, of een eerdere
-                  maaltijd opnieuw kiezen. Je kunt tot een week terug invullen.
+                  zoeken in NEVO met de hoeveelheid erbij, een verpakt product
+                  via de barcode, of een eerdere maaltijd opnieuw kiezen. Je
+                  kunt tot een week terug invullen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Een barcode typ je over, of je maakt er een foto van met
+                  Scan (niet in elke browser; op een iPhone typ je het nummer).
+                  Vermeldt de verpakking een portie, dan telt de plusknop er
+                  telkens één bij, handig voor gels en repen onderweg. De
+                  productgegevens komen van Open Food Facts (ODbL).
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Rijd je die dag een uur of langer, dan zie je ook
+                  &quot;Onderweg&quot;: wat je bij &quot;Tijdens de rit&quot;
+                  invult, gedeeld door de ritduur, tegen de onderkant van het
+                  doel per uur. Eronder staat of je iets na de rit hebt
+                  ingevuld.
                 </span>
               </li>
               <li className="flex gap-2">

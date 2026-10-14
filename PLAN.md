@@ -121,6 +121,50 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0233`
 
 ---
 
+> **Naleving stap 2: rond de rit en barcode, 2026-10-14 — gebouwd, lokaal getest; niet gepusht, niet in de browser bekeken.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0232_nutrition_log_products.sql`, **nog niet toegepast**.
+>
+> **Waarom.** Stap 2 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md).
+> NEVO kent geen merken en nauwelijks sportvoeding, en juist onderweg eet je
+> gels, repen en drank uit een verpakking.
+>
+> **Wat.**
+> - **Barcode** in het invoerformulier (`_components/meal-form.tsx`, nu los van
+>   `log-controls.tsx`): het nummer overtypen, of met Scan een foto van de
+>   barcode laten uitlezen. Opzoeken (`lookupBarcode`) kijkt eerst in de nieuwe
+>   tabel `nutrition_products` en anders bij Open Food Facts; een gevonden
+>   product wordt daar met de service role bewaard. Naar buiten gaat alleen de
+>   barcode.
+> - **Alleen koolhydraten en eiwit** worden overgenomen (`parseOffProduct`).
+>   Een product zonder een van beide waarden wordt geweigerd, niet geschat.
+> - **Portieknop:** vermeldt de verpakking een portie, dan telt "+ 40 g" er
+>   telkens één bij. Zo is een rit met vier gels een paar tikken.
+> - **Kaart "Onderweg"** op Naleving bij een rit van een uur of langer:
+>   koolhydraten bij "Tijdens de rit" gedeeld door de ritduur, tegen de
+>   onderkant van `rideCarbsPerHour`, en of er iets bij "Na de rit" staat
+>   (`rideFueling`).
+> - Een regel in het eetdagboek is nu een NEVO-product óf een barcodeproduct
+>   (check `nutrition_log_items_one_source_check`). Een maaltijd met alleen
+>   NEVO-producten stuurt de nieuwe kolom niet mee en werkt dus ook zonder 0232.
+> - `/privacy` (barcode naar Open Food Facts) en `/hulp#voeding` aangevuld,
+>   met de ODbL-bronvermelding.
+>
+> **Bewust niet gebouwd.**
+> - **Live scannen met de camera.** De `Permissions-Policy` zet `camera=()`;
+>   een foto via het bestandsveld valt daar niet onder, live video wel. De
+>   beveiligingsheader is niet aangepast.
+> - **Scannen op iOS.** Safari heeft geen `BarcodeDetector`; een
+>   JavaScript-bibliotheek als terugval vraagt een nieuwe dependency. Daar is
+>   de knop Scan verborgen en typ je het nummer over. Besluit voor de eigenaar.
+> - Producten zelf invoeren als Open Food Facts ze niet kent.
+>
+> **Getest.** TypeScript en eslint schoon. `nutrition-log` heeft nu 25 tests,
+> waarvan nieuw: `rideFueling`, het uitlezen van een Open Food Facts-antwoord
+> (ook zonder waarden en in ml), en `0232` tegen PGlite (een regel heeft precies
+> één bron, leden kunnen producten lezen maar niet toevoegen). **Niet getest:**
+> een echt verzoek naar Open Food Facts en het scannen op een telefoon.
+
 > **Naleving stap 1: eetdagboek zonder AI, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken.**
 > Commit `0b97904`. Migratie `0231_nutrition_log.sql`,
 > toegepast door de eigenaar op 2026-10-14.

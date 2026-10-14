@@ -180,6 +180,9 @@ een tekst op `/hulp`.
    zoeken, herhalen, dagbalk, pauzeren en wissen. De privacyteksten.
    *Gebouwd op 2026-10-14 (migratie `0231_nutrition_log.sql`), zie `PLAN.md`.*
 2. **Rond de rit en barcode.**
+   *Gebouwd op 2026-10-14 (migratie `0232_nutrition_log_products.sql`), zie
+   `PLAN.md`. De barcode-terugval voor iOS (een JavaScript-bibliotheek) is
+   niet gebouwd: daar typ je het nummer over.*
 3. **Foto en tekst**, met de bevestigstap en de daglimiet.
 4. **Dagmenu dat meerekent en het weekoverzicht.**
 5. **Herinneringen en trainerinzage.**

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Beef, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Wheat } from "lucide-react";
+import { Beef, Bike, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Wheat } from "lucide-react";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import {
@@ -10,6 +10,7 @@ import {
   mealsByMoment,
   parseLogDay,
   repeatableMeals,
+  rideFueling,
   type FloorStatus,
   type LogMacros,
 } from "@/lib/nutrition/log";
@@ -21,6 +22,7 @@ import {
   deleteLoggedMeal,
   enableLog,
   logManualMeal,
+  lookupBarcode,
   repeatMeal,
   setLogPaused,
 } from "../_log-actions";
@@ -37,8 +39,8 @@ import {
   DeleteMealButton,
   LogActionButton,
   LogConsentForm,
-  MealForm,
 } from "../_components/log-controls";
+import { MealForm } from "../_components/meal-form";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -157,6 +159,7 @@ export default async function LogPage({
   const totals = dayTotals(meals);
   const groups = mealsByMoment(meals);
   const repeats = repeatableMeals(history);
+  const ride = rideFueling(meals, fuelDay.rideMinutes);
 
   const dayHref = (value: string) => `/zwbeter-worden/voeding/naleving${value === today ? "" : `?dag=${value}`}`;
   const previous = day > firstLogDay(today) ? shiftDayKey(day, -1) : null;
@@ -186,7 +189,7 @@ export default async function LogPage({
         </div>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className={`grid gap-3 sm:grid-cols-2 ${ride ? "lg:grid-cols-3" : ""}`}>
         <FloorBar
           icon={Wheat}
           label="Koolhydraten"
@@ -199,6 +202,23 @@ export default async function LogPage({
           status={floorStatus(totals.proteinG, fuelDay.protein)}
           incomplete={totals.incomplete}
         />
+        {ride && (
+          <div className="tg-metric rounded-md border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Onderweg</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">{ride.perHourG} g/u</p>
+              </div>
+              <Bike className="size-5 text-primary" />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {ride.reached ? "Gehaald" : "Nog niet"} · minstens {ride.floorPerHourG} g/u
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Na de rit: {ride.recoveryLogged ? "ingevuld" : "nog niet ingevuld"}
+            </p>
+          </div>
+        )}
       </section>
 
       {!profile.weightKg && (
@@ -256,6 +276,7 @@ export default async function LogPage({
               defaultMoment={defaultMoment(day, today)}
               saveAction={logManualMeal}
               searchAction={searchFoods}
+              barcodeAction={lookupBarcode}
             />
           </section>
 

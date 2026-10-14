@@ -135,7 +135,9 @@ export default function PrivacyPage() {
             caloriedoel of je gewichtsverloop hoort daar niet bij. Alleen jij
             ziet je eetdagboek; een trainer of andere leden zien het niet. Je
             kunt pauzeren, losse maaltijden verwijderen en alles wissen; zet je
-            Naleving uit, dan verwijderen we het hele eetdagboek.
+            Naleving uit, dan verwijderen we het hele eetdagboek. Zoek je een
+            verpakt product op met de barcode, dan vragen we het op bij Open Food
+            Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
