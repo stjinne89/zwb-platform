@@ -68,6 +68,13 @@ const HELP_INDEX: HelpResult[] = [
       "zwiftpower zwiftracing zwift racing app strava intervals icu zwift-id athlete id profiel link knop grijs externe profielen",
   },
   {
+    title: "ZWB in je eigen agenda",
+    text: "Je aanmeldingen en trainingen in Google Agenda, Outlook of Apple Agenda.",
+    href: "/hulp#agenda",
+    terms:
+      "agenda kalender abonnement abonneren ics ical webcal google agenda calendar outlook apple icloud iphone mac thunderbird synchroniseren sync link trainingen aanmeldingen",
+  },
+  {
     title: "Badges en achievements",
     text: "Weekbadges, milestone badges en badges herberekenen.",
     href: "/hulp#badges",

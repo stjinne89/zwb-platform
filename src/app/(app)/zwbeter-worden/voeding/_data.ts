@@ -10,6 +10,7 @@ import { getWellnessSummary } from "@/lib/training/wellness";
 import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipes";
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import type { LoggedMeal } from "@/lib/nutrition/log";
+import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 
@@ -132,16 +133,41 @@ export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { o
   }));
 }
 
-export type LogSettings = { paused: boolean };
+export type LogSettings = {
+  paused: boolean;
+  /** Foto en tekst herkennen staat aan (0234). */
+  recognition: boolean;
+  /** De eigen trainer mag meekijken (0235). */
+  trainerVisible: boolean;
+  /** Herinneringen staan aan (0235). */
+  reminders: boolean;
+};
 
 /** Null als het lid het eetdagboek niet heeft aangezet, of zolang 0231 er niet is. */
-export async function loadLogSettings(viewer: Viewer): Promise<LogSettings | null> {
+export async function loadLogSettings(viewer: Viewer, profileId = viewer.user.id): Promise<LogSettings | null> {
+  // Alle kolommen: zo werkt dit voor en na de migraties die er kolommen bij zetten.
   const { data } = await viewer.supabase
     .from("nutrition_log_settings")
-    .select("paused")
-    .eq("profile_id", viewer.user.id)
+    .select("*")
+    .eq("profile_id", profileId)
     .maybeSingle();
-  return data ? { paused: Boolean(data.paused) } : null;
+  if (!data) return null;
+  return {
+    paused: Boolean(data.paused),
+    recognition: data.ai_consent_at != null,
+    trainerVisible: Boolean(data.trainer_visible),
+    reminders: Boolean(data.reminders),
+  };
+}
+
+/** Heeft dit lid een actieve trainer? Alleen dan heeft meekijken zin. */
+export async function hasActiveTrainer(viewer: Viewer): Promise<boolean> {
+  const { count } = await viewer.supabase
+    .from("training_coach_assignments")
+    .select("trainer_id", { count: "exact", head: true })
+    .eq("athlete_id", viewer.user.id)
+    .eq("status", "active");
+  return (count ?? 0) > 0;
 }
 
 type LoggedMealRow = {
@@ -151,22 +177,51 @@ type LoggedMealRow = {
   source: LoggedMeal["source"];
   recipe_id: string | null;
   title: string;
-  items: { sort_order: number; grams: number; food: LoggedMeal["items"][number]["food"] }[] | null;
+  items:
+    | {
+        sort_order: number;
+        grams: number;
+        food: LoggedMeal["items"][number]["food"] | null;
+        product: (NutritionProduct & { carbs_g: number | null; protein_g: number | null }) | null;
+      }[]
+    | null;
 };
 
+const LOG_ITEM_COLUMNS =
+  "sort_order, grams, food:nutrition_foods(id, name_nl, quantity_unit, carbs_g, protein_g)";
+const LOG_MEAL_COLUMNS = "id, eaten_on, meal_moment, source, recipe_id, title";
+
+function logMealColumns(withProducts: boolean) {
+  const product = withProducts
+    ? ", product:nutrition_products(barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g)"
+    : "";
+  return `${LOG_MEAL_COLUMNS}, items:nutrition_log_items(${LOG_ITEM_COLUMNS}${product})`;
+}
+
 /** De maaltijden van dit lid in een reeks dagen, van nieuw naar oud. */
-export async function loadLoggedMeals(viewer: Viewer, from: string, to: string): Promise<LoggedMeal[]> {
-  const { data } = await viewer.supabase
-    .from("nutrition_log_meals")
-    .select(
-      "id, eaten_on, meal_moment, source, recipe_id, title, items:nutrition_log_items(sort_order, grams, food:nutrition_foods(id, name_nl, quantity_unit, carbs_g, protein_g))",
-    )
-    .eq("profile_id", viewer.user.id)
-    .gte("eaten_on", from)
-    .lte("eaten_on", to)
-    .order("eaten_on", { ascending: false })
-    .order("created_at", { ascending: false });
-  return ((data ?? []) as unknown as LoggedMealRow[]).map((row) => ({
+export async function loadLoggedMeals(
+  viewer: Viewer,
+  from: string,
+  to: string,
+  profileId = viewer.user.id,
+): Promise<LoggedMeal[]> {
+  const query = (withProducts: boolean) =>
+    viewer.supabase
+      .from("nutrition_log_meals")
+      .select(logMealColumns(withProducts))
+      .eq("profile_id", profileId)
+      .gte("eaten_on", from)
+      .lte("eaten_on", to)
+      .order("eaten_on", { ascending: false })
+      .order("created_at", { ascending: false });
+  // Zolang 0233 er niet is, bestaan de barcodeproducten nog niet.
+  let { data, error } = await query(true);
+  if (error) ({ data, error } = await query(false));
+  return ((data ?? []) as unknown as LoggedMealRow[]).map(toLoggedMeal);
+}
+
+function toLoggedMeal(row: LoggedMealRow): LoggedMeal {
+  return {
     id: row.id,
     eatenOn: row.eaten_on,
     moment: row.meal_moment,
@@ -175,8 +230,24 @@ export async function loadLoggedMeals(viewer: Viewer, from: string, to: string):
     title: row.title,
     items: [...(row.items ?? [])]
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((item) => ({ food: item.food, grams: Number(item.grams) })),
-  }));
+      .flatMap((item): LoggedMeal["items"] => {
+        if (item.food) return [{ kind: "nevo", food: item.food, grams: Number(item.grams) }];
+        if (!item.product) return [];
+        return [
+          {
+            kind: "product",
+            food: {
+              id: item.product.barcode,
+              name_nl: productLabel(item.product),
+              quantity_unit: item.product.quantity_unit,
+              carbs_g: item.product.carbs_g,
+              protein_g: item.product.protein_g,
+            },
+            grams: Number(item.grams),
+          },
+        ];
+      }),
+  };
 }
 
 /**
@@ -188,14 +259,29 @@ export async function loadNutritionDayInput(
   today: string,
   weightKg: number | null,
 ): Promise<NutritionDayInput> {
-  const from = `${shiftDayKey(today, -1)}T00:00:00Z`;
-  const to = `${shiftDayKey(today, 3)}T00:00:00Z`;
+  const inputs = await loadNutritionDayInputs(viewer, [today], weightKg);
+  return inputs.get(today)!;
+}
+
+/**
+ * Dezelfde invoer voor meerdere dagen in één keer, voor het weekoverzicht van
+ * Naleving. Het herstel (wellness) is dat van nu; het dagtype hangt er niet van af.
+ */
+export async function loadNutritionDayInputs(
+  viewer: Viewer,
+  days: string[],
+  weightKg: number | null,
+  profileId = viewer.user.id,
+): Promise<Map<string, NutritionDayInput>> {
+  const sorted = [...days].sort();
+  const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
+  const to = `${shiftDayKey(sorted[sorted.length - 1], 3)}T00:00:00Z`;
 
   const [workouts, proposals, rides, wellness] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("scheduled_at, duration_minutes, intensity, status, plan_id")
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .is("superseded_at", null)
       .gte("scheduled_at", from)
       .lt("scheduled_at", to),
@@ -203,16 +289,16 @@ export async function loadNutritionDayInput(
     viewer.supabase
       .from("training_plans")
       .select("id")
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .eq("status", "draft")
       .eq("adaptation_kind", "daily"),
     viewer.supabase
       .from("strava_activities")
       .select("start_date, moving_time_seconds")
-      .eq("profile_id", viewer.user.id)
+      .eq("profile_id", profileId)
       .gte("start_date", from)
       .lt("start_date", to),
-    getWellnessSummary(viewer.supabase, viewer.user.id, 45).catch(() => null),
+    getWellnessSummary(viewer.supabase, profileId, 45).catch(() => null),
   ]);
 
   const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));
@@ -223,14 +309,17 @@ export async function loadNutritionDayInput(
     status: string | null;
   }[];
 
-  return {
-    today,
-    weightKg,
-    ...plannedSessions(rows, today),
-    ridesToday: ridesOnDay(
-      (rides.data ?? []) as { start_date: string; moving_time_seconds: number | null }[],
-      today,
-    ),
-    wellnessState: wellness?.state ?? null,
-  };
+  const rideRows = (rides.data ?? []) as { start_date: string; moving_time_seconds: number | null }[];
+  return new Map(
+    days.map((day) => [
+      day,
+      {
+        today: day,
+        weightKg,
+        ...plannedSessions(rows, day),
+        ridesToday: ridesOnDay(rideRows, day),
+        wellnessState: wellness?.state ?? null,
+      },
+    ]),
+  );
 }

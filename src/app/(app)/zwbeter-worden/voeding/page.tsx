@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Beef, Bike, CalendarDays, Check, RefreshCw, Wheat } from "lucide-react";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
+import { dayTotals, floorStatus } from "@/lib/nutrition/log";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
 import {
   DAY_MOMENTS,
   RIDE_MOMENTS,
   dayMenu,
   menuMoments,
+  topUpMenu,
   parseSwaps,
   serializeSwaps,
   type MenuSlot,
@@ -69,16 +71,14 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
   ]);
   // Alleen wie Naleving aan heeft staan, kan een recept als gegeten afvinken.
   const logging = logSettings != null && !logSettings.paused;
-  const eaten = new Set(
-    logging
-      ? (await loadLoggedMeals(viewer, today, today)).map((meal) => `${meal.moment}:${meal.recipeId}`)
-      : [],
-  );
+  const todayMeals = logging ? await loadLoggedMeals(viewer, today, today) : [];
+  const eatenMoments = new Set(todayMeals.map((meal) => meal.moment));
+  const eatenTotals = dayTotals(todayMeals);
   const input = await loadNutritionDayInput(viewer, today, profile.weightKg);
 
   const day = nutritionDay(input);
   const tip = nutritionTipForToday(input);
-  const menu = dayMenu(
+  const baseMenu = dayMenu(
     recipes,
     menuMoments(input, day),
     {
@@ -96,6 +96,19 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
     },
     swaps,
   );
+  // Met Naleving aan rekent het menu mee: wat nog komt, groeit als er vandaag
+  // anders te weinig in zit. Nooit kleiner.
+  const menu =
+    todayMeals.length > 0
+      ? topUpMenu(baseMenu, {
+          eaten: eatenTotals,
+          eatenMoments,
+          floor: { carbsG: day.carbs?.min ?? null, proteinG: day.protein?.min ?? null },
+          energyFactor: energyFactorFor(profile),
+        })
+      : baseMenu;
+  const carbsLeft = floorStatus(eatenTotals.carbsG, day.carbs);
+  const proteinLeft = floorStatus(eatenTotals.proteinG, day.protein);
 
   const href = (next: { swaps?: MenuSwaps; dieet?: DietTag | null }) => {
     const query = new URLSearchParams();
@@ -112,6 +125,7 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {MEAL_MOMENT_LABELS[slot.moment]}
+          {slot.toppedUp && <span className="ml-2 normal-case tracking-normal text-primary">Grotere portie</span>}
         </h3>
         {slot.choices > 1 && (
           <Link
@@ -130,7 +144,7 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
         favorite={prefs.get(slot.recipe.id) === "favoriet"}
       />
       {logging &&
-        (eaten.has(`${slot.moment}:${slot.recipe.id}`) ? (
+        (eatenMoments.has(slot.moment) ? (
           <p className="flex min-h-[36px] items-center gap-1 text-xs text-muted-foreground">
             <Check className="size-3.5" />
             Gegeten
@@ -138,7 +152,17 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
         ) : (
           <LogActionButton
             action={logRecipe}
-            fields={{ slug: slot.recipe.slug, moment: slot.moment, day: today }}
+            fields={{
+              slug: slot.recipe.slug,
+              moment: slot.moment,
+              day: today,
+              // Precies de portie die hier staat, ook als die is vergroot.
+              items: JSON.stringify(
+                slot.portion.ingredients
+                  .filter((item) => item.grams > 0)
+                  .map((item) => ({ food_id: item.food.id, grams: item.grams })),
+              ),
+            }}
             size="sm"
           >
             <Check className="size-4" />
@@ -192,6 +216,13 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
       <NutritionTip tip={tip} recipe={null} />
 
       <section className="space-y-4">
+        {todayMeals.length > 0 && carbsLeft.floorG != null && (
+          <p className="text-sm text-muted-foreground">
+            {carbsLeft.reached && proteinLeft.reached
+              ? "Je minimum voor vandaag is gehaald."
+              : `Nog ${carbsLeft.remainingG} g koolhydraten en ${proteinLeft.remainingG} g eiwit tot je minimum.`}
+          </p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">Je menu voor vandaag</h2>
           <div className="flex flex-wrap gap-2">

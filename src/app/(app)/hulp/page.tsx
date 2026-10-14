@@ -17,6 +17,7 @@ import {
   Lightbulb,
   MapPinned,
   Medal,
+  CalendarPlus,
   Monitor,
   Mountain,
   Navigation,
@@ -1022,6 +1023,82 @@ export default function HelpPage() {
         >
           <UserCircle className="size-4 text-primary" />
           Naar je profiel
+        </Link>
+      </section>
+
+      <section
+        id="agenda"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <CalendarPlus className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWB in je eigen agenda</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Met een persoonlijke link zie je in je gewone agenda de events waar
+              je ja op zei, de teamraces waarvoor je bent opgesteld en je eigen
+              trainingen. Een training staat als hele dag, zonder tijd. Het werkt
+              één kant op: wat je in je agenda verandert, komt niet terug in ZWB.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Apple Agenda en Outlook-app</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Tik op Profiel bij Agenda-abonnement op{" "}
+              <strong className="text-foreground">Apple Agenda / Outlook-app</strong>{" "}
+              en bevestig het abonnement. Lukt dat niet, kopieer dan de link en
+              kies in de app Nieuw agenda-abonnement (Apple) of Agenda toevoegen,
+              Abonneren vanaf internet (Outlook).
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Google Agenda</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Kies <strong className="text-foreground">Google Agenda</strong> en
+              bevestig met Toevoegen. Of kopieer de link en kies op
+              calendar.google.com bij Andere agenda&apos;s het plusje en Via URL.
+              Op de telefoon verschijnt hij daarna vanzelf in de Google
+              Agenda-app.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Andere apps</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Thunderbird, Proton Calendar, Samsung Agenda en de meeste andere
+              agenda&apos;s kunnen zich abonneren op een internetagenda (ICS).
+              Plak daar de gekopieerde link.
+            </p>
+          </article>
+        </div>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Je agenda-app bepaalt hoe vaak hij ververst. Apple en Outlook doen
+              dat ongeveer elk uur tot elke paar uur, Google soms pas na een dag.
+              Een verzet event kan daar dus even op de oude tijd staan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Wie de link heeft, ziet je aanmeldingen en trainingen. Deel hem
+              niet. Gedeeld per ongeluk? Kies Nieuwe link: de oude werkt dan niet
+              meer, en je voegt de nieuwe opnieuw toe aan je agenda.
+            </span>
+          </li>
+        </ul>
+
+        <Link
+          href="/profiel#agenda"
+          className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+        >
+          <UserCircle className="size-4 text-primary" />
+          Naar je agendalink
         </Link>
       </section>
 
@@ -3386,10 +3463,31 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Invoeren kan op drie manieren: &quot;Gegeten&quot; bij een
+                  Invoeren kan op vier manieren: &quot;Gegeten&quot; bij een
                   recept in je dagmenu of het receptenboek, zelf producten
-                  zoeken in NEVO met de hoeveelheid erbij, of een eerdere
-                  maaltijd opnieuw kiezen. Je kunt tot een week terug invullen.
+                  zoeken in NEVO met de hoeveelheid erbij, een verpakt product
+                  via de barcode, of een eerdere maaltijd opnieuw kiezen. Je
+                  kunt tot een week terug invullen.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Een barcode typ je over, of je maakt er een foto van met
+                  Scan. Houd de barcode recht en scherp in beeld.
+                  Vermeldt de verpakking een portie, dan telt de plusknop er
+                  telkens één bij, handig voor gels en repen onderweg. De
+                  productgegevens komen van Open Food Facts (ODbL).
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Rijd je die dag een uur of langer, dan zie je ook
+                  &quot;Onderweg&quot;: wat je bij &quot;Tijdens de rit&quot;
+                  invult, gedeeld door de ritduur, tegen de onderkant van het
+                  doel per uur. Eronder staat of je iets na de rit hebt
+                  ingevuld.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -3399,6 +3497,41 @@ Fitness-status: Verbeterend`}
                   onderkant van je doel voor die dag. Is die gehaald, dan staat
                   er &quot;Gehaald&quot;; een bovengrens is er niet. Calorieën
                   en vet tellen we niet.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Met &quot;Foto en tekst&quot; (een aparte toestemming) maak je
+                  een foto van je bord of beschrijf je wat je at. Een AI-model
+                  benoemt de onderdelen en schat de grammen; de koolhydraten en
+                  het eiwit komen daarna uit NEVO. Controleer elke hoeveelheid
+                  en kies zo nodig een ander product uit de lijst: grote porties,
+                  saus en wat in een stamppot of smoothie zit, worden vaak
+                  verkeerd geschat. Dit kan zes keer per 24 uur.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Heb je vandaag al iets ingevuld, dan rekent je dagmenu mee:
+                  haal je met de rest van het menu je minimum niet, dan worden
+                  de maaltijden die nog komen groter (&quot;Grotere portie&quot;).
+                  Kleiner worden ze nooit. Onder &quot;Deze week&quot; zie je per
+                  dag of je de onderkant voor koolhydraten (links) en eiwit
+                  (rechts) haalde; een dag zonder invoer telt niet mee.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Heb je een trainer, dan kun je die laten meekijken (een
+                  aparte toestemming). Je trainer ziet dan per dag wat je at en
+                  of je je minimum haalde, maar kan niets wijzigen. Met
+                  Herinneringen krijg je &apos;s avonds een pushbericht als er
+                  morgen een zware, lange of wedstrijddag staat, of als je
+                  vandaag een uur of langer reed en bij &quot;Na de rit&quot;
+                  nog niets staat.
                 </span>
               </li>
               <li className="flex gap-2">

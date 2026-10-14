@@ -1,7 +1,8 @@
 # Naleving van het voedingsplan: besloten plan
 
 Besloten door de eigenaar op 2026-10-14, met akkoord van het bestuur om het
-volledig te bouwen. **Stap 1 is gebouwd, de rest niet.** Dit document is de
+volledig te bouwen. **Stap 1 tot en met 5 zijn gebouwd; de meting (stap 0)
+nog niet.** Dit document is de
 bouwvolgorde; elke stap wordt een eigen ronde in `PLAN.md`.
 
 **Wat het wordt.** Leden kunnen vastleggen wat ze eten, onder meer met een foto,
@@ -163,9 +164,10 @@ en energiebeschikbaarheid (besluit 2).
   optellen per dag en per moment en "wat is er nog te gaan".
 - **Navigatie.** Een vierde tab "Naleving" in `VOEDING_SECTIONS`, voor iedereen
   zichtbaar; wie het niet heeft aangezet, ziet daar alleen de toestemming.
-- **Toestemmingstekst per stap.** De tekst van stap 1 noemt alleen het
-  eetdagboek. De foto naar OpenAI (stap 3) en de trainerinzage (stap 5) vragen
-  elk een nieuwe `LOG_CONSENT_VERSION`, waarvoor deelnemers opnieuw tekenen.
+- **Toestemming per onderdeel.** De tekst van stap 1 noemt alleen het
+  eetdagboek. Foto en tekst (stap 3) en de trainerinzage (stap 5) krijgen elk
+  een eigen schakelaar met een eigen toestemming, zodat niemand opnieuw hoeft
+  te tekenen voor iets wat hij niet gebruikt.
 
 ## 10. Bouwvolgorde
 
@@ -180,9 +182,18 @@ een tekst op `/hulp`.
    zoeken, herhalen, dagbalk, pauzeren en wissen. De privacyteksten.
    *Gebouwd op 2026-10-14 (migratie `0231_nutrition_log.sql`), zie `PLAN.md`.*
 2. **Rond de rit en barcode.**
+   *Gebouwd op 2026-10-14 (migratie `0233_nutrition_log_products.sql`), zie
+   `PLAN.md`. Sinds dezelfde dag leest ZXing de barcode waar de browser het
+   zelf niet kan, zoals op de iPhone.*
 3. **Foto en tekst**, met de bevestigstap en de daglimiet.
+   *Gebouwd op 2026-10-14 (migratie `0234_nutrition_log_recognition.sql`), zie
+   `PLAN.md`. Eigen schakelaar met eigen toestemming in plaats van een nieuwe
+   `LOG_CONSENT_VERSION`; de daglimiet geldt per 24 uur, voor foto en tekst samen.*
 4. **Dagmenu dat meerekent en het weekoverzicht.**
+   *Gebouwd op 2026-10-14, zonder migratie, zie `PLAN.md`.*
 5. **Herinneringen en trainerinzage.**
+   *Gebouwd op 2026-10-14 (migratie `0235_nutrition_log_trainer_reminders.sql`),
+   zie `PLAN.md`.*
 
 Stap 0 en stap 1 hangen niet van elkaar af en kunnen tegelijk.
 

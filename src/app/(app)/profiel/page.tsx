@@ -8,6 +8,7 @@ import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
 import { ProfileForm } from "./_components/profile-form";
 import { ProfileHeader } from "./_components/profile-header";
 import { PushToggle } from "./_components/push-toggle";
+import { CalendarFeed, type CalendarFeedStatus } from "./_components/calendar-feed";
 import { MyQuotes, type MyQuote } from "./_components/my-quotes";
 import { StravaSection } from "./_components/strava-section";
 import { loadRideSourceStatus } from "@/lib/intervals/ride-source-status";
@@ -73,6 +74,7 @@ export default async function ProfielPage() {
     { data: bikes },
     { data: myQuotes },
     { data: heightRow },
+    { data: calendarFeed },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -140,6 +142,11 @@ export default async function ProfielPage() {
       .select("height_cm")
       .eq("profile_id", user.id)
       .maybeSingle(),
+    supabase
+      .from("calendar_feed_tokens")
+      .select("token, last_fetched_at")
+      .eq("profile_id", user.id)
+      .maybeSingle<CalendarFeedStatus>(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -289,6 +296,10 @@ export default async function ProfielPage() {
           canApproveMembers={access.has("members.approve")}
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
+      </div>
+
+      <div id="agenda" className="scroll-mt-20">
+        <CalendarFeed initial={calendarFeed ?? null} />
       </div>
 
       <div id="privacy" className="scroll-mt-20">

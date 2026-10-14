@@ -38,7 +38,9 @@ export type NotificationTrigger =
   | "on_maintenance_due"
   | "on_member_pending"
   | "on_strava_link_expiring"
-  | "on_intervals_visit_reminder";
+  | "on_intervals_visit_reminder"
+  // Naleving (voeding); het eigenlijke aan of uit staat in nutrition_log_settings.
+  | "on_nutrition_reminder";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

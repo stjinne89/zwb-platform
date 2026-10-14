@@ -119,10 +119,320 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`
-(`0237_member_protocols` is van de protocollen, 2026-10-14, nog niet toegepast).
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
+(`0237_member_protocols` is van de protocollen, 2026-10-14).
 
 ---
+
+> **Agenda-abonnement: ZWB in Google Agenda, Outlook en Apple Agenda, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken en niet in een echte agenda-app geprobeerd.**
+> Commit: `23639a9`. Migratie `0236_calendar_feed_tokens.sql`, toegepast door de
+> eigenaar op 2026-10-14.
+>
+> **Waarom.** Vraag van de eigenaar: de kalender moet ook in de dagelijkse
+> agenda-apps van leden staan. Er waren twee routes: een ICS-abonnement (ZWB naar
+> de agenda, één kant op, werkt met elke app) of echte tweerichtingssync per
+> aanbieder (Google Calendar API, Microsoft Graph, CalDAV voor Apple). De eigenaar
+> koos het abonnement.
+>
+> **Wat.**
+> - Per lid één persoonlijke link, `/api/agenda/<token>.ics`, aan te maken,
+>   te vervangen en in te trekken op `/profiel#agenda`. Knoppen voor webcal
+>   (Apple Agenda en de Outlook-app), Google Agenda (`?cid=`) en Outlook.com
+>   (`addfromweb`), plus de link om te kopiëren voor de rest.
+> - Inhoud (keuze eigenaar): events met een 'ja' in `event_rsvps`, en daarbij de
+>   teamraces waarvoor het lid in `team_event_lineups` staat. Dat tweede is een
+>   invulling van de bouwer: een ZRL-rijder meldt zich niet via de RSVP aan maar
+>   wordt opgesteld. Plus de eigen trainingen (niet vervangen, niet overgeslagen,
+>   geen rustdag), als hele dag: de begintijd van een training is een
+>   plaatshouder (09:00). Een training die bij een event in de feed hoort, krijgt
+>   geen eigen regel, net als op de kalender. Venster: 60 dagen terug, 400 vooruit.
+> - De duur van een event komt uit `eventWorkoutDefaults` (eindtijd, dan
+>   route, dan typegemiddelde); `withParentRoutes` in `lib/training/events.ts` is
+>   daarvoor geëxporteerd.
+> - Het token staat onversleuteld in `calendar_feed_tokens` (RLS: alleen het
+>   eigen lid), net als `ttt_plans.share_token`: het lid moet de link opnieuw
+>   kunnen kopiëren. De route leest met de admin-client en staat in
+>   `PUBLIC_PATHS`. `last_fetched_at` wordt hooguit één keer per uur bijgewerkt
+>   en staat op het profiel, zodat een lid ziet of de app de link ophaalt.
+> - Bij een databasefout antwoordt de route met 502 in plaats van een lege
+>   agenda; anders zou een app alle items wissen.
+> - Uitleg op `/hulp#agenda` (en in de hulpzoeker), een alinea in de
+>   privacyverklaring (sectie 2), en de tabel in de data-export.
+>
+> **Bewust niet gebouwd.**
+> - Tweerichtingssync: drie aparte integraties met OAuth, en Google eist een
+>   app-verificatie voor agendatoegang. Er is geen vraag naar iets dat vanuit een
+>   agenda-app terug moet naar ZWB.
+> - Verjaardagen, 'misschien', 'beschikbaar' en de hele clubkalender: niet
+>   gekozen door de eigenaar.
+> - Een verversingsritme afdwingen: dat kan niet. `REFRESH-INTERVAL` staat op een
+>   uur, maar Google haalt een abonnement soms pas na 8 tot 24 uur opnieuw op.
+>
+> **Privacy.** De privacyverklaring kreeg een alinea zonder nieuwe versie: het
+> gaat om gegevens die het lid al opgaf, en de link is opt-in. De tekst en het
+> meenemen van teamopstellingen zijn aan de eigenaar voorgelegd; die gaf daarna
+> de opdracht tot pushen zonder bezwaar (2026-10-14).
+>
+> **Niet geverifieerd.** Of `0236` op productie de verwachte tabel en policies
+> gaf, is niet nagekeken. Het profielblok en de route zijn niet in de browser bekeken, en de
+> feed is niet in een echte Google-, Outlook- of Apple-agenda toegevoegd; de
+> deeplinks voor Google (`cid`) en Outlook.com (`addfromweb`) zijn dus niet
+> uitgeprobeerd.
+>
+> **Volgorde bij uitrollen.** Eerst `0236` toepassen, dan deployen; zonder de
+> tabel geeft de route een 502 en blijft het profielblok leeg.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `calendar-feed` (13 tests:
+> ICS-opmaak met vouwen en escapen, hele-dag over de jaargrens, Amsterdamse
+> datum van een training, training bij een event overslaan, token en links).
+> `middleware-public-paths` slaagt. In de volledige suite faalden
+> `admin-areas` en `intervals-ride-sync` op een time-out (los gedraaid slagen
+> ze) en `omnium-live` mist `.env.local` in de worktree; geen van drieën raakt
+> deze ronde.
+
+> **Dashboard: nieuwste badges twee dagen zichtbaar, 2026-10-14 — gebouwd, lokaal getest (tsc, ESLint); niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Wens van de eigenaar: dezelfde regel als het FRR-klassement op het
+> dashboard, dat tot en met twee dagen na de einddatum van de tour blijft staan
+> (`isActiveTour`). Aanleiding was de vraag waarom het blok van Tour Ignite er op
+> 14 oktober nog stond: `ends_on` is 2026-10-12 in productie, dus het blok staat
+> er terecht tot en met 14 oktober. Die regel blijft zo (eigenaar).
+>
+> **Wat.** "Nieuwste badges" toont alleen awards waarvan `awarded_at` op of na
+> 00:00 Nederlandse tijd van twee dagen geleden ligt. Een badge van 12 oktober
+> staat er dus tot en met 14 oktober. Eerder was dat 7 × 24 uur terug vanaf nu.
+> Dezelfde rekensom als `isActiveTour` (dagsleutel, 12:00 UTC, min twee dagen),
+> zodat zomer- en wintertijd geen dag verschuiven; nagerekend voor 14 oktober en
+> voor 27 oktober (na de wintertijd).
+>
+> **Bewust niet.** De andere dashboardblokken (clubactiviteit, events,
+> teamuitslagen) houden hun venster van zeven dagen. Het maximum van 8 badges
+> blijft.
+
+---
+
+> **Barcode scannen op de iPhone, 2026-10-14 — gebouwd, lokaal getest; niet op een iPhone getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Op verzoek van de eigenaar. Safari heeft geen `BarcodeDetector`,
+> dus de knop Scan van Naleving stond op de iPhone verborgen en daar moest je het
+> nummer overtypen.
+>
+> **Wat.**
+> - **Nieuwe dependencies** `@zxing/browser` 0.2.1 en `@zxing/library` 0.23.0
+>   (Apache-2.0). Ze worden pas geladen bij het scannen (dynamische import), dus
+>   de rest van de app wordt er niet groter van.
+> - **`_components/read-barcode.ts`:** eerst de ingebouwde `BarcodeDetector`
+>   (Chrome op Android); ontbreekt die of vindt hij niets, dan ZXing op een
+>   canvas van hooguit 1600 px, alleen EAN-13, EAN-8, UPC-A en UPC-E, met
+>   `TRY_HARDER`. Het werkt op een foto via het bestandsveld, niet op live
+>   video, dus de `Permissions-Policy` (`camera=()`) blijft zoals hij is.
+> - De knop Scan staat nu in elke browser. `/hulp#voeding` aangepast.
+>
+> **Getest.** TypeScript en eslint schoon. Met een script buiten de repo
+> nagegaan dat ZXing met dezelfde instellingen een getekende EAN-13 leest.
+> **Niet getest:** een echte foto op een iPhone; hoe goed het een scheve of
+> wazige foto leest, moet in de praktijk blijken. De worktree heeft nu een eigen
+> `node_modules` (`npm ci`) in plaats van een koppeling naar de hoofdmap.
+
+> **Naleving stap 5: trainer kijkt mee en herinneringen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, geen pushbericht verstuurd.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0235_nutrition_log_trainer_reminders.sql`, toegepast door de eigenaar op 2026-10-14.
+>
+> **Hernummerd vóór de push (2026-10-14).** Main kreeg intussen
+> `0232_mobility_strength_seed_v2.sql` (kracht). De voedingsmigraties van stap 2,
+> 3 en 5 heetten lokaal `0232`, `0233` en `0234` en zijn zo ook door de eigenaar
+> toegepast; in de repo heten ze nu `0233_nutrition_log_products.sql`,
+> `0234_nutrition_log_recognition.sql` en `0235_nutrition_log_trainer_reminders.sql`.
+> De inhoud is gelijk, de database merkt niets van een andere bestandsnaam.
+>
+> **Toestemmingsteksten** (foto en tekst, trainer) en de aanvullingen op
+> `/privacy` zijn door de eigenaar goedgekeurd (2026-10-14).
+>
+> **Waarom.** Stap 5 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md),
+> met besluit 5 (alleen het lid; de trainer met een eigen schakelaar, de
+> AI-coach niet).
+>
+> **Wat.**
+> - **Trainer kijkt mee.** Op Naleving, alleen voor wie een actieve trainer
+>   heeft: "Trainer laten meekijken" met een eigen toestemming
+>   (`trainer_visible`, `trainer_consent_at`; een check houdt aanzetten zonder
+>   toestemmingsdatum tegen). Leesrecht via `nutrition_log_trainer_can_read`:
+>   alleen een trainer met een **actieve koppeling** aan dit lid, en alleen als
+>   het lid het aan heeft. Bewust niet `current_user_can_train_profile`, die ook
+>   wie koppelingen beheert laat meelezen. De trainer kan niets schrijven.
+> - **Tab Voeding bij de trainer** (`trainer/voeding/page.tsx`, in
+>   `TRAINER_SECTIONS`): de week (`WeekStrip`, nu een gedeeld onderdeel) en per
+>   dag de totalen tegen het minimum en de maaltijden per moment. Zonder
+>   meekijken: "Deze renner deelt het eetdagboek niet."
+> - **Herinneringen** (`src/lib/nutrition/reminders.ts`), aan te zetten op
+>   Naleving (`reminders`). Ze draaien mee in de bestaande cron van
+>   `/api/events/reminders` (elke 15 minuten), tussen 19:00 en 21:00
+>   Nederlandse tijd, hooguit één van elk soort per dag
+>   (`nutrition_reminder_sends`): de avond voor een zware, lange of
+>   wedstrijddag, en na een rit van een uur of langer zonder iets bij "Na de
+>   rit". Nieuwe pushsoort `on_nutrition_reminder` (kolom op
+>   `notification_preferences`, standaard aan; het eigenlijke aan of uit staat
+>   in Naleving, en de soort staat niet apart op het profiel).
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   aangevuld. `loadLogSettings`, `loadLoggedMeals` en `loadNutritionDayInputs`
+>   nemen een optioneel profiel-id voor de trainer.
+>
+> **Bewust niet gebouwd.**
+> - **De AI-coach krijgt het eetdagboek niet** (besluit 5).
+> - Een aparte schakelaar voor deze pushsoort op het profiel: dan staat
+>   hetzelfde op twee plekken.
+> - Herinneringen op een ander tijdstip of direct na de rit: de cron weet niet
+>   wanneer een rit klaar is, en één vast moment is voorspelbaar.
+> - Iets voor wie koppelingen beheert maar geen trainer is.
+>
+> **Niet geverifieerd.** Of de trainer de ritten en het herstel van de renner
+> mag lezen voor het dagtype: zo niet, dan rekent de trainerspagina alleen met
+> het schema. Geen pushbericht verstuurd.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `nutrition-reminders`
+> (tijdvenster in zomer- en wintertijd, welke herinnering wanneer, geen tekst
+> die om minder eten vraagt) en in `nutrition-log` tegen PGlite: de trainer
+> leest pas na aanzetten, alleen bij een actieve koppeling, kan niet schrijven
+> of pauzeren, en ziet niets meer na uitzetten; de verstuurlog is niet leesbaar
+> voor leden en dubbel versturen kan niet.
+
+> **Naleving stap 4: dagmenu dat meerekent en weekoverzicht, 2026-10-14 — gebouwd, lokaal getest, gepusht; niet in de browser bekeken.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Stap 4 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
+> van tellen achteraf naar iets waar je vooraf iets aan hebt, en het patroon
+> over een week in plaats van een los dagcijfer.
+>
+> **Wat.**
+> - **Dagmenu rekent mee** (`topUpMenu` in `src/lib/nutrition/menu.ts`). Met
+>   Naleving aan en iets ingevuld: haalt wat er gegeten is plus de rest van het
+>   menu de onderkant van de dag niet, dan groeien de hoofdmaaltijden en het
+>   tussendoortje die nog komen, naar rato, met het label "Grotere portie".
+>   Alleen de koolhydraatbron groeit voor koolhydraten en de eiwitbron voor
+>   eiwit; geen onderdeel wordt kleiner, en niets gaat voorbij twee keer de
+>   gewone portie. Boven de dagregel staat "Nog … tot je minimum" of "Je minimum
+>   voor vandaag is gehaald". Een moment met een ingevulde maaltijd staat als
+>   gegeten, ongeacht welk recept.
+> - **"Gegeten" in het dagmenu legt precies de getoonde portie vast**, ook als
+>   die vergroot is: de pagina stuurt de regels mee en `logRecipe` accepteert
+>   alleen ingrediënten van dat recept.
+> - **Weekoverzicht op Naleving** (`weekSummary` in `log.ts`): de laatste zeven
+>   dagen met dagtype en twee stippen (koolhydraten, eiwit; gevuld = onderkant
+>   gehaald), en per dagtype "koolhydraten gehaald op x van y ingevulde dagen".
+>   Een dag zonder invoer telt niet mee. De dagen zijn klikbaar.
+> - `loadNutritionDayInputs` haalt de dagtypes van meerdere dagen in één keer
+>   op; `loadNutritionDayInput` gebruikt hem nu voor één dag.
+>
+> **Bewust niet gebouwd.**
+> - **Porties kleiner maken** als er al veel gegeten is: dat is om minder eten
+>   vragen, en past niet bij de ondergrens.
+> - Reeksen, percentages of een weekscore.
+> - Een ander recept kiezen omdat er nog veel moet: alleen de portie groeit.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `nutrition-log-week`
+> (`topUpMenu`: niets als het minimum toch gehaald wordt, groeien naar rato,
+> geen onderdeel kleiner, nooit kleiner bij veel eten, niets zonder gewicht,
+> plafond op twee keer; `weekSummary`: gehaald per dag, lege dag telt niet,
+> zonder gewicht geen oordeel).
+
+> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0234_nutrition_log_recognition.sql`, toegepast door de eigenaar op 2026-10-14.
+>
+> **Waarom.** Stap 3 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md):
+> een maaltijd invoeren met een foto of een zin, in plaats van product voor
+> product.
+>
+> **Wat.**
+> - **Twee stappen** (`src/lib/nutrition/recognize.ts`,
+>   `_recognize-actions.ts`). Het model krijgt de foto of omschrijving en geeft
+>   per onderdeel een naam, een NEVO-achtige zoekterm en grammen met een onder-
+>   en bovengrens; voedingswaarden vraagt het schema niet. ZWB zoekt elke term op
+>   in NEVO (`searchFoods`, met een kortere term als terugval) en zet de beste
+>   treffer met drie alternatieven in het formulier. Het lid past grammen aan,
+>   kiest zo nodig een ander product en bewaart pas dan. Bron `foto` of `tekst`.
+> - **Background-modus met polling**, zoals het pacingplan: de pagina vraagt het
+>   antwoord elke 2 s op, hooguit 90 s. Alleen wie de herkenning startte kan het
+>   antwoord ophalen (het response-id staat bij zijn gebruiksrij).
+> - **Foto:** op het toestel verkleind tot 1024 px en opnieuw als JPEG opgeslagen
+>   (zonder locatie), via het bestandsveld met `capture`. Niet bewaard in de
+>   database of Storage. Het verzoek gebruikt `store: true` (nodig voor
+>   background); OpenAI bewaart het antwoord dus volgens zijn eigen voorwaarden.
+> - **Eigen schakelaar en toestemming** (`ai_consent_at`, `RecognitionConsentForm`),
+>   los van het eetdagboek. Uitzetten onderaan Naleving.
+> - **Daglimiet 6 per 24 uur**, foto en tekst samen (`nutrition_log_ai_usage`,
+>   alleen door de server te schrijven, zonder delete-policy, en gekoppeld aan
+>   het profiel zodat wissen en opnieuw aanzetten de limiet niet reset).
+> - **Model:** `OPENAI_NUTRITION_MODEL`, anders `OPENAI_TRAINING_MODEL`, anders
+>   `gpt-5.5`, met `reasoning.effort` laag. De keuze hoort uit de meting (stap 0)
+>   te komen.
+> - **Data-export** (`/api/account/export`) bevat nu ook de voedingstabellen:
+>   lengte, receptvoorkeuren, de instellingen, maaltijden met hun regels en het
+>   herkenningsgebruik.
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   aangevuld.
+>
+> **Bewust niet gebouwd.**
+> - Een maandplafond op de kosten: dat volgt uit de meting.
+> - De bandbreedte bewaren. Na bevestigen is de hoeveelheid die van het lid; de
+>   band staat alleen in het formulier als hulp.
+> - Synchroon aanroepen. Sneller voor het lid, maar een Netlify-functie kapt
+>   eerder af dan een model met beeld klaar is.
+>
+> **Getest.** TypeScript en eslint schoon. Nieuw: `nutrition-recognize` (het
+> verzoek, het schema zonder voedingswaarden, het uitlezen en begrenzen van het
+> antwoord, de daglimiet, alleen data-URL's), en in `nutrition-log` de
+> gebruikstabel (alleen lezen, niet wissen, blijft na alles wissen) en de bronnen
+> `foto` en `tekst`. **Niet getest:** een echte aanroep van het model, de
+> nauwkeurigheid (daarvoor is de meting), de foto op een telefoon.
+
+> **Naleving stap 2: rond de rit en barcode, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0233_nutrition_log_products.sql`, toegepast door de eigenaar op 2026-10-14.
+>
+> **Waarom.** Stap 2 uit [naleving-voeding-plan.md](docs/naleving-voeding-plan.md).
+> NEVO kent geen merken en nauwelijks sportvoeding, en juist onderweg eet je
+> gels, repen en drank uit een verpakking.
+>
+> **Wat.**
+> - **Barcode** in het invoerformulier (`_components/meal-form.tsx`, nu los van
+>   `log-controls.tsx`): het nummer overtypen, of met Scan een foto van de
+>   barcode laten uitlezen. Opzoeken (`lookupBarcode`) kijkt eerst in de nieuwe
+>   tabel `nutrition_products` en anders bij Open Food Facts; een gevonden
+>   product wordt daar met de service role bewaard. Naar buiten gaat alleen de
+>   barcode.
+> - **Alleen koolhydraten en eiwit** worden overgenomen (`parseOffProduct`).
+>   Een product zonder een van beide waarden wordt geweigerd, niet geschat.
+> - **Portieknop:** vermeldt de verpakking een portie, dan telt "+ 40 g" er
+>   telkens één bij. Zo is een rit met vier gels een paar tikken.
+> - **Kaart "Onderweg"** op Naleving bij een rit van een uur of langer:
+>   koolhydraten bij "Tijdens de rit" gedeeld door de ritduur, tegen de
+>   onderkant van `rideCarbsPerHour`, en of er iets bij "Na de rit" staat
+>   (`rideFueling`).
+> - Een regel in het eetdagboek is nu een NEVO-product óf een barcodeproduct
+>   (check `nutrition_log_items_one_source_check`). Een maaltijd met alleen
+>   NEVO-producten stuurt de nieuwe kolom niet mee en werkt dus ook zonder 0233.
+> - `/privacy` (barcode naar Open Food Facts) en `/hulp#voeding` aangevuld,
+>   met de ODbL-bronvermelding.
+>
+> **Bewust niet gebouwd.**
+> - **Live scannen met de camera.** De `Permissions-Policy` zet `camera=()`;
+>   een foto via het bestandsveld valt daar niet onder, live video wel. De
+>   beveiligingsheader is niet aangepast.
+> - **Scannen op iOS.** Safari heeft geen `BarcodeDetector`; een
+>   JavaScript-bibliotheek als terugval vraagt een nieuwe dependency. Daar is
+>   de knop Scan verborgen en typ je het nummer over. Besluit voor de eigenaar.
+>   *Niet meer waar: gebouwd op 2026-10-14, zie "Barcode scannen op de iPhone"
+>   bovenaan.*
+> - Producten zelf invoeren als Open Food Facts ze niet kent.
+>
+> **Getest.** TypeScript en eslint schoon. `nutrition-log` heeft nu 25 tests,
+> waarvan nieuw: `rideFueling`, het uitlezen van een Open Food Facts-antwoord
+> (ook zonder waarden en in ml), en `0233` tegen PGlite (een regel heeft precies
+> één bron, leden kunnen producten lezen maar niet toevoegen). **Niet getest:**
+> een echt verzoek naar Open Food Facts en het scannen op een telefoon.
 
 > **Naleving stap 1: eetdagboek zonder AI, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken.**
 > Commit `0b97904`. Migratie `0231_nutrition_log.sql`,
@@ -167,6 +477,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0234`
 > - De trainer-schakelaar en de bronnen foto, barcode en tekst: stap 2 tot 5.
 >   De `source`-check staat alleen `recept` en `handmatig` toe.
 > - Het eetdagboek in een gegevensexport: er is geen export voor voeding.
+>   *Niet waar: `/api/account/export` bestond al. Sinds stap 3 staan de
+>   voedingstabellen erin.*
 >
 > **Niet meer waar:** "geen eetdagboek" in de kop van `0168_nutrition.sql` en
 > `0213_nutrition_expansion.sql` (toegepaste migraties, niet aangepast), en

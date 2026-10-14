@@ -1,5 +1,19 @@
 import Link from "next/link";
-import { Beef, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Wheat } from "lucide-react";
+import {
+  Beef,
+  Bell,
+  BellOff,
+  Bike,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  RotateCcw,
+  UserCheck,
+  UserX,
+  Wheat,
+} from "lucide-react";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import {
@@ -10,6 +24,8 @@ import {
   mealsByMoment,
   parseLogDay,
   repeatableMeals,
+  rideFueling,
+  weekSummary,
   type FloorStatus,
   type LogMacros,
 } from "@/lib/nutrition/log";
@@ -21,13 +37,17 @@ import {
   deleteLoggedMeal,
   enableLog,
   logManualMeal,
+  lookupBarcode,
   repeatMeal,
   setLogPaused,
+  setReminders,
+  setTrainerVisible,
 } from "../_log-actions";
 import {
+  hasActiveTrainer,
   loadLogSettings,
   loadLoggedMeals,
-  loadNutritionDayInput,
+  loadNutritionDayInputs,
   loadNutritionProfile,
   requireViewer,
   todayKeyAmsterdam,
@@ -37,8 +57,11 @@ import {
   DeleteMealButton,
   LogActionButton,
   LogConsentForm,
-  MealForm,
 } from "../_components/log-controls";
+import { MealForm } from "../_components/meal-form";
+import { ConsentForm } from "../_components/consent-form";
+import { WeekStrip } from "../_components/week-strip";
+import { pollRecognition, setRecognitionConsent, startRecognition } from "../_recognize-actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -147,16 +170,32 @@ export default async function LogPage({
   }
 
   const day = parseLogDay(one(params.dag), today);
-  const [profile, history] = await Promise.all([
+  const [profile, history, hasTrainer] = await Promise.all([
     loadNutritionProfile(viewer, day),
     loadLoggedMeals(viewer, shiftDayKey(today, -REPEAT_DAYS), today),
+    hasActiveTrainer(viewer),
   ]);
-  const fuelDay = nutritionDay(await loadNutritionDayInput(viewer, day, profile.weightKg));
+  const weekDays = Array.from({ length: 7 }, (_, i) => shiftDayKey(today, i - 6));
+  const inputs = await loadNutritionDayInputs(viewer, [...new Set([...weekDays, day])], profile.weightKg);
+  const fuelDay = nutritionDay(inputs.get(day)!);
+  const week = weekSummary(
+    weekDays.map((entry) => {
+      const fuel = nutritionDay(inputs.get(entry)!);
+      return {
+        day: entry,
+        dayType: fuel.dayType,
+        carbs: fuel.carbs,
+        protein: fuel.protein,
+        meals: history.filter((meal) => meal.eatenOn === entry),
+      };
+    }),
+  );
 
   const meals = history.filter((meal) => meal.eatenOn === day);
   const totals = dayTotals(meals);
   const groups = mealsByMoment(meals);
   const repeats = repeatableMeals(history);
+  const ride = rideFueling(meals, fuelDay.rideMinutes);
 
   const dayHref = (value: string) => `/zwbeter-worden/voeding/naleving${value === today ? "" : `?dag=${value}`}`;
   const previous = day > firstLogDay(today) ? shiftDayKey(day, -1) : null;
@@ -186,7 +225,7 @@ export default async function LogPage({
         </div>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className={`grid gap-3 sm:grid-cols-2 ${ride ? "lg:grid-cols-3" : ""}`}>
         <FloorBar
           icon={Wheat}
           label="Koolhydraten"
@@ -199,6 +238,23 @@ export default async function LogPage({
           status={floorStatus(totals.proteinG, fuelDay.protein)}
           incomplete={totals.incomplete}
         />
+        {ride && (
+          <div className="tg-metric rounded-md border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Onderweg</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">{ride.perHourG} g/u</p>
+              </div>
+              <Bike className="size-5 text-primary" />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {ride.reached ? "Gehaald" : "Nog niet"} · minstens {ride.floorPerHourG} g/u
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Na de rit: {ride.recoveryLogged ? "ingevuld" : "nog niet ingevuld"}
+            </p>
+          </div>
+        )}
       </section>
 
       {!profile.weightKg && (
@@ -209,6 +265,8 @@ export default async function LogPage({
           <span className="text-muted-foreground">voor doelen in grammen.</span>
         </p>
       )}
+
+      <WeekStrip days={week.days} tally={week.tally} selected={day} hrefFor={dayHref} />
 
       {groups.length > 0 && (
         <section className="space-y-4">
@@ -251,11 +309,22 @@ export default async function LogPage({
                 <ChevronRight className="size-4" />
               </Link>
             </div>
+            {!settings.recognition && (
+              <ConsentForm
+                action={setRecognitionConsent}
+                text="Mijn foto of omschrijving van een maaltijd gaat naar OpenAI, dat herkent wat erop staat en de hoeveelheden schat. ZWB bewaart de foto niet. Ik controleer elke hoeveelheid voor het bewaren."
+              >
+                <Camera className="size-4" />
+                Foto en tekst aanzetten
+              </ConsentForm>
+            )}
             <MealForm
               day={day}
               defaultMoment={defaultMoment(day, today)}
               saveAction={logManualMeal}
               searchAction={searchFoods}
+              barcodeAction={lookupBarcode}
+              recognition={settings.recognition ? { start: startRecognition, poll: pollRecognition } : undefined}
             />
           </section>
 
@@ -287,11 +356,36 @@ export default async function LogPage({
         </>
       )}
 
+      {hasTrainer && !settings.trainerVisible && (
+        <ConsentForm
+          action={setTrainerVisible}
+          text="Mijn trainer mag mijn eetdagboek inzien: wat ik at en of ik mijn minimum haalde. Ik kan dit altijd weer uitzetten."
+        >
+          <UserCheck className="size-4" />
+          Trainer laten meekijken
+        </ConsentForm>
+      )}
+
       <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+        <LogActionButton action={setReminders} fields={{ on: settings.reminders ? "0" : "1" }}>
+          {settings.reminders ? <BellOff className="size-4" /> : <Bell className="size-4" />}
+          {settings.reminders ? "Herinneringen uit" : "Herinneringen aan"}
+        </LogActionButton>
+        {settings.trainerVisible && (
+          <LogActionButton action={setTrainerVisible} fields={{ on: "0" }}>
+            <UserX className="size-4" />
+            Trainer niet meer laten meekijken
+          </LogActionButton>
+        )}
         <LogActionButton action={setLogPaused} fields={{ paused: settings.paused ? "0" : "1" }}>
           {settings.paused ? <Play className="size-4" /> : <Pause className="size-4" />}
           {settings.paused ? "Hervatten" : "Pauzeren"}
         </LogActionButton>
+        {settings.recognition && (
+          <LogActionButton action={setRecognitionConsent} fields={{ on: "0" }}>
+            Foto en tekst uit
+          </LogActionButton>
+        )}
         <DeleteLogButton action={deleteLog} />
         <Link
           href="/hulp#voeding"

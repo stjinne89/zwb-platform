@@ -19,7 +19,9 @@
  * categorie gegevens, maar kreeg op besluit van de eigenaar geen versie hier.
  * Alleen wie Naleving aanzet levert die gegevens aan, en tekent daar apart voor
  * (`LOG_CONSENT_VERSION` in `src/lib/nutrition/log.ts`, tabel
- * `nutrition_log_settings`). `/privacy` beschrijft het wel.
+ * `nutrition_log_settings`). Foto en tekst herkennen (naar OpenAI) heeft daarbovenop
+ * een eigen toestemming (`ai_consent_at`), net als de trainer laten meekijken
+ * (`trainer_consent_at`). `/privacy` beschrijft het wel.
  *
  * **Tweede uitzondering, op dezelfde gronden: de protocollen (2026-10-14).**
  * Wie een protocol start, tekent per start (`PROTOCOL_CONSENT_VERSION` in

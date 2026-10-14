@@ -133,9 +133,18 @@ export default function PrivacyPage() {
             bewaren dan per maaltijd de datum, het moment, de producten en de
             hoeveelheden, en rekenen daaruit je koolhydraten en eiwit. Een
             caloriedoel of je gewichtsverloop hoort daar niet bij. Alleen jij
-            ziet je eetdagboek; een trainer of andere leden zien het niet. Je
+            ziet je eetdagboek, tenzij je je eigen trainer laat meekijken (een
+            aparte toestemming die je weer kunt intrekken); andere leden zien het
+            nooit. Je
             kunt pauzeren, losse maaltijden verwijderen en alles wissen; zet je
-            Naleving uit, dan verwijderen we het hele eetdagboek.
+            Naleving uit, dan verwijderen we het hele eetdagboek. Zoek je een
+            verpakt product op met de barcode, dan vragen we het op bij Open Food
+            Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt. Zet
+            je daarnaast &quot;Foto en tekst&quot; aan (een aparte toestemming),
+            dan gaat een foto of omschrijving van je maaltijd naar OpenAI, dat
+            herkent wat erop staat en de hoeveelheden schat. ZWB bewaart de foto
+            niet; we houden alleen bij wanneer je de herkenning gebruikte, voor
+            de daglimiet. Je eetdagboek staat in je data-export.
           </li>
           <li id="protocollen" className="scroll-mt-20">
             <strong>Protocollen (alleen met opt-in):</strong> start je een
@@ -279,6 +288,16 @@ export default function PrivacyPage() {
             koppeling.
           </li>
           <li>
+            <strong>Agenda-abonnement:</strong> maak je op je profiel een
+            agendalink aan, dan leest je agenda-app (zoals Google Agenda, Outlook
+            of Apple Agenda) via die link de events waar je ja op zei, de
+            teamraces waarvoor je bent opgesteld en je geplande trainingen. Die
+            aanbieder bewaart ze dan volgens zijn eigen voorwaarden. Iedereen met
+            de link kan hetzelfde lezen, dus deel hem niet. We bewaren de link en
+            wanneer hij voor het laatst is opgehaald. Je kunt hem op je profiel
+            vervangen of intrekken; bij het opheffen van je account verdwijnt hij.
+          </li>
+          <li>
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,
             ritverslagen, reacties, polls en geüploade foto&apos;s.
           </li>
@@ -396,7 +415,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            en voor de antwoorden in de coachchat. Meegestuurd worden relevante
+            en voor de antwoorden in de coachchat, en als je dat aanzet voor het
+            herkennen van een maaltijd uit een foto of omschrijving. Meegestuurd worden relevante
             trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
             en, bij de chat, de tekst die je zelf typt; geen directe
             identificatiegegevens waar vermijdbaar.

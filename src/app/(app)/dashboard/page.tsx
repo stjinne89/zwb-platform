@@ -78,6 +78,7 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
 import { TegelsVandaag, type VandaagEvent } from "@/components/tegels/vandaag";
@@ -402,6 +403,15 @@ export default async function DashboardPage({
   const since7 = new Date();
   since7.setDate(since7.getDate() - 7);
   const since7Iso = since7.toISOString();
+  // Een badge staat er tot en met twee dagen na de dag waarop hij is behaald,
+  // zoals het FRR-klassement na het einde van een tour (besluit eigenaar).
+  const badgesSinceIso =
+    amsterdamWallTimeToIso(
+      new Date(Date.parse(`${amsterdamDateKey()}T12:00:00Z`) - 2 * 86400_000)
+        .toISOString()
+        .slice(0, 10),
+      "00:00",
+    ) ?? since7Iso;
   const since8 = new Date(since7);
   since8.setDate(since8.getDate() - 1);
   const since8Iso = since8.toISOString();
@@ -508,7 +518,7 @@ export default async function DashboardPage({
       .select(
         "id, profile_id, award_scope, period_start, awarded_at, value, metadata, profiles(display_name), achievement_badges(title, icon, color)",
       )
-      .gte("awarded_at", since7Iso)
+      .gte("awarded_at", badgesSinceIso)
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),

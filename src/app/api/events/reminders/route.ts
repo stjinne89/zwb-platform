@@ -6,7 +6,8 @@
 // maximaal 1 notificatie via de `event_reminder_sends`-log.
 //
 // Daarnaast de herinneringen van de Sunday Race Club (inschrijven en weigh-in,
-// migr. 0203); een fout daar houdt de gewone herinneringen niet tegen.
+// migr. 0203) en die van Naleving (voeding, migr. 0235); een fout daar houdt de
+// gewone herinneringen niet tegen.
 //
 // Window-keuze (overlap zodat een 15-min-tick nooit mist):
 //   2u  : start_at in [now + 90min,  now + 150min]
@@ -15,6 +16,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { processSrcReminders } from "@/lib/src/reminders";
+import { processNutritionReminders } from "@/lib/nutrition/reminders";
 
 type ReminderKind = "24h" | "2h";
 
@@ -169,11 +171,16 @@ export async function POST(request: Request) {
       error: err instanceof Error ? err.message : "SRC-herinneringen faalden.",
     }));
 
+    const nutrition = await processNutritionReminders(admin, new Date(now)).catch((err) => ({
+      error: err instanceof Error ? err.message : "Voedingsherinneringen faalden.",
+    }));
+
     return Response.json({
       ok: true,
       "2h": r2h,
       "24h": r24h,
       src,
+      nutrition,
     });
   } catch (err) {
     return Response.json(
