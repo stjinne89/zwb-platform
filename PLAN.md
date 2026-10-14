@@ -121,8 +121,9 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0237`
 
 ---
 
-> **Agenda-abonnement: ZWB in Google Agenda, Outlook en Apple Agenda, 2026-10-14 — gebouwd, lokaal getest, niet gepusht; migratie niet toegepast; niet in de browser bekeken en niet in een echte agenda-app geprobeerd.**
-> Commit: de commit die dit blok toevoegt. Migratie `0236_calendar_feed_tokens.sql`.
+> **Agenda-abonnement: ZWB in Google Agenda, Outlook en Apple Agenda, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken en niet in een echte agenda-app geprobeerd.**
+> Commit: `23639a9`. Migratie `0236_calendar_feed_tokens.sql`, toegepast door de
+> eigenaar op 2026-10-14.
 >
 > **Waarom.** Vraag van de eigenaar: de kalender moet ook in de dagelijkse
 > agenda-apps van leden staan. Er waren twee routes: een ICS-abonnement (ZWB naar
@@ -165,11 +166,12 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0237`
 >   uur, maar Google haalt een abonnement soms pas na 8 tot 24 uur opnieuw op.
 >
 > **Privacy.** De privacyverklaring kreeg een alinea zonder nieuwe versie: het
-> gaat om gegevens die het lid al opgaf, en de link is opt-in. De tekst moet de
-> eigenaar nog goedkeuren vóór de push.
+> gaat om gegevens die het lid al opgaf, en de link is opt-in. De tekst en het
+> meenemen van teamopstellingen zijn aan de eigenaar voorgelegd; die gaf daarna
+> de opdracht tot pushen zonder bezwaar (2026-10-14).
 >
-> **Niet geverifieerd.** Migratie `0236` is niet gedraaid (geen lokale
-> database). Het profielblok en de route zijn niet in de browser bekeken, en de
+> **Niet geverifieerd.** Of `0236` op productie de verwachte tabel en policies
+> gaf, is niet nagekeken. Het profielblok en de route zijn niet in de browser bekeken, en de
 > feed is niet in een echte Google-, Outlook- of Apple-agenda toegevoegd; de
 > deeplinks voor Google (`cid`) en Outlook.com (`addfromweb`) zijn dus niet
 > uitgeprobeerd.
