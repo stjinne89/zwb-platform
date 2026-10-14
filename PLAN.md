@@ -71,6 +71,9 @@ gaat stabiliteit voor nieuwe features.
    - **Ritten via intervals.icu:** live en in gebruik (eigenaar en meerdere
      leden, 2026-10-02; 826 ritten met bron intervals). Niet nagegaan: of de
      fixture van `scripts/intervals-probe.mjs` is vervangen door een echte.
+   - **ZRL-analyse Bdev, 13 oktober:** op de eigen pc `/zrl-analyse Bdev 2026-10-13`
+     draaien (ronde 2026-10-14 hieronder). Liefst snel: hoe lang Zwift de
+     segmentpassages van een race nog teruggeeft, is niet gemeten.
    - **ZRL.** `/live/zrl/[eventId]` tijdens de race van 6 oktober bekijken. Niet
      gemeld: of `ZRL_FREEZE_SECRET` in Netlify staat en de job
      `POST /api/zrl/freeze` (elke 15 min) op cron-job.org draait; kijk na een
@@ -121,6 +124,56 @@ Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
 (`0237_member_protocols` is van de protocollen, 2026-10-14).
+
+---
+
+> **ZRL-analyse als opdracht klaargezet, 2026-10-14 — alleen een skill, geen code; niet uitgevoerd.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar vroeg een analyse van efficiëntie en kwaliteit per
+> renner en voor de ploeg, voor ZWB Bdev in de ZRL-ploegentijdrit van
+> 13 oktober, naast de planning. In de cloudsessie kon dat niet: het netwerk
+> weigert zwift.com en zwiftpower.com, en `.env.local` (Zwift-serviceaccount,
+> Supabase) en het botlogboek `bot/.cache/ttt-2026-10-13.log` staan alleen op de
+> pc van de eigenaar. Op de vraag of het daar wel kan, staat de opdracht nu klaar
+> om daar te draaien.
+>
+> **Wat.** `.claude/skills/zrl-analyse/SKILL.md`, aan te roepen als
+> `/zrl-analyse [team] [datum]` (zonder argumenten: Bdev, 13 oktober). De skill
+> noemt de bronnen met tabel- en functienamen: team, event, opstelling,
+> `ttt_plans`, `zrl_race_snapshots` en `zrl_team_results` uit Supabase; de
+> ruwe uitslagrijen en de segmentpassages met vermogen van Zwift, via
+> `zwift-club.ts`; het botlogboek (plannen, klok, coachmeldingen, klimmen); de
+> ZwiftGopher-plannen van deel 1 en 2. Daarnaast de maten per renner en voor de
+> ploeg, en de opbouw van het rapport.
+>
+> **Keuzes in de skill.** Alleen lezen. Ruwe data en rapport in
+> `.tmp/zrl-analyse/` en niet in git, want het gaat om vermogen, gewicht en
+> hartslag van ploeggenoten. WTRL niet ophalen (hun verbod, zie
+> `wtrl-results.ts`). `intervals_activities` en `strava_activities` alleen na een
+> ja van de eigenaar, omdat RLS die alleen voor het lid en de trainer openzet. De
+> verwisseling van de plannen voor deel 1 en 2 moet expliciet in de vergelijking
+> met de planning meegenomen worden. De analyse zelf komt niet in dit plan; een
+> aanpassing van de bot die eruit volgt, is een eigen ronde.
+>
+> **Bewust niet gebouwd.** Een vast analysescript in `scripts/`. Het kon hier
+> niet tegen Zwift of de database getest worden, en welke velden een
+> uitslagrij van Zwift heeft, is niet vastgesteld (`fetchSubgroupResults` houdt
+> alleen rang en tijd over). De skill laat de velden eerst opschrijven.
+>
+> **Getest.** Het bundelen dat de skill voorschrijft (esbuild met
+> `--packages=external --alias:@=./src`): `zwift-club.ts`, `route-segments.ts`,
+> `scoring.ts` en `supabase/admin.ts` laden buiten Next, zonder netwerk.
+> `zrl-live/snapshot.ts` niet (`next/cache`); de skill zegt dat.
+>
+> **Niet geverifieerd.** Of de skill op de pc van de eigenaar wordt herkend en
+> zonder hulp doorloopt. Of Zwift de segmentpassages van 13 oktober nog geeft,
+> welke velden een uitslagrij heeft, en of `zrl_race_snapshots` een rij voor die
+> race heeft.
+>
+> **Ook gezien.** `npm ci` weigert hier: `package-lock.json` mist
+> `@emnapi/runtime` en `@emnapi/core` 1.11.3. Niet aangepast (los van deze
+> ronde); `npm install` werkt wel.
 
 ---
 
