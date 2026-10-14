@@ -430,7 +430,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **Naleving: foto herkennen weggehaald, 2026-10-15 — gebouwd, lokaal getest; niet gepusht.**
+> **Naleving: foto herkennen weggehaald, 2026-10-15 — gebouwd, lokaal getest, gepusht.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** De eigenaar probeerde het met een kom kwark en granola; de
