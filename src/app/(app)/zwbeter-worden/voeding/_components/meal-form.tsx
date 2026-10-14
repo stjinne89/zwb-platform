@@ -5,13 +5,14 @@
 // hier staat is altijd een lijst producten met grammen; het lid ziet en
 // bevestigt elke hoeveelheid voor het bewaren.
 
-import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Camera, Plus, ScanBarcode, Search, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { productLabel } from "@/lib/nutrition/products";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import type { FoodOption } from "../_actions";
 import type { BarcodeResult } from "../_log-actions";
+import { readBarcode } from "./read-barcode";
 import type { PollResult, StartResult } from "../_recognize-actions";
 import { RECOGNITION_IMAGE_MAX_PX, RECOGNITION_TEXT_MAX } from "@/lib/nutrition/recognize";
 
@@ -56,11 +57,7 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-type Detector = { detect: (source: ImageBitmapSource) => Promise<{ rawValue: string }[]> };
-type DetectorClass = new (options?: { formats?: string[] }) => Detector;
 
-const noSubscribe = () => () => {};
-const hasBarcodeDetector = () => "BarcodeDetector" in window;
 
 const inputClass = "min-h-[44px] w-full rounded-md border bg-background px-3";
 
@@ -91,8 +88,6 @@ export function MealForm({
   const [barcode, setBarcode] = useState("");
   const [barcodeBusy, setBarcodeBusy] = useState(false);
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
-  // Een foto van de barcode uitlezen kan alleen waar de browser dat zelf kan.
-  const canScan = useSyncExternalStore(noSubscribe, hasBarcodeDetector, () => false);
   const [source, setSource] = useState<"handmatig" | "foto" | "tekst">("handmatig");
   const [description, setDescription] = useState("");
   const [recognizing, setRecognizing] = useState(false);
@@ -229,15 +224,12 @@ export function MealForm({
     if (!file) return;
     setBarcodeError(null);
     try {
-      const Detector = (window as unknown as { BarcodeDetector: DetectorClass }).BarcodeDetector;
-      const bitmap = await createImageBitmap(file);
-      const found = await new Detector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] }).detect(bitmap);
-      bitmap.close();
-      if (found.length === 0) {
+      const value = await readBarcode(file);
+      if (!value) {
         setBarcodeError("Geen barcode gevonden op de foto.");
         return;
       }
-      await addBarcode(found[0].rawValue);
+      await addBarcode(value);
     } catch {
       setBarcodeError("Geen barcode gevonden op de foto.");
     }
@@ -458,22 +450,20 @@ export function MealForm({
           <Search className="size-4" />
           {barcodeBusy ? "Bezig…" : "Zoek"}
         </Button>
-        {canScan && (
-          <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary">
-            <ScanBarcode className="size-4" />
-            Scan
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="sr-only"
-              onChange={(event) => {
-                void scan(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-          </label>
-        )}
+        <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary">
+          <ScanBarcode className="size-4" />
+          Scan
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={(event) => {
+              void scan(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </label>
       </div>
       {barcodeError && <p className="text-sm text-destructive">{barcodeError}</p>}
 

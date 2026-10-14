@@ -183,8 +183,8 @@ een tekst op `/hulp`.
    *Gebouwd op 2026-10-14 (migratie `0231_nutrition_log.sql`), zie `PLAN.md`.*
 2. **Rond de rit en barcode.**
    *Gebouwd op 2026-10-14 (migratie `0233_nutrition_log_products.sql`), zie
-   `PLAN.md`. De barcode-terugval voor iOS (een JavaScript-bibliotheek) is
-   niet gebouwd: daar typ je het nummer over.*
+   `PLAN.md`. Sinds dezelfde dag leest ZXing de barcode waar de browser het
+   zelf niet kan, zoals op de iPhone.*
 3. **Foto en tekst**, met de bevestigstap en de daglimiet.
    *Gebouwd op 2026-10-14 (migratie `0234_nutrition_log_recognition.sql`), zie
    `PLAN.md`. Eigen schakelaar met eigen toestemming in plaats van een nieuwe

@@ -187,6 +187,52 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0237`
 > ze) en `omnium-live` mist `.env.local` in de worktree; geen van drieën raakt
 > deze ronde.
 
+> **Dashboard: nieuwste badges twee dagen zichtbaar, 2026-10-14 — gebouwd, lokaal getest (tsc, ESLint); niet in de browser gezien.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Wens van de eigenaar: dezelfde regel als het FRR-klassement op het
+> dashboard, dat tot en met twee dagen na de einddatum van de tour blijft staan
+> (`isActiveTour`). Aanleiding was de vraag waarom het blok van Tour Ignite er op
+> 14 oktober nog stond: `ends_on` is 2026-10-12 in productie, dus het blok staat
+> er terecht tot en met 14 oktober. Die regel blijft zo (eigenaar).
+>
+> **Wat.** "Nieuwste badges" toont alleen awards waarvan `awarded_at` op of na
+> 00:00 Nederlandse tijd van twee dagen geleden ligt. Een badge van 12 oktober
+> staat er dus tot en met 14 oktober. Eerder was dat 7 × 24 uur terug vanaf nu.
+> Dezelfde rekensom als `isActiveTour` (dagsleutel, 12:00 UTC, min twee dagen),
+> zodat zomer- en wintertijd geen dag verschuiven; nagerekend voor 14 oktober en
+> voor 27 oktober (na de wintertijd).
+>
+> **Bewust niet.** De andere dashboardblokken (clubactiviteit, events,
+> teamuitslagen) houden hun venster van zeven dagen. Het maximum van 8 badges
+> blijft.
+
+---
+
+> **Barcode scannen op de iPhone, 2026-10-14 — gebouwd, lokaal getest; niet op een iPhone getest.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** Op verzoek van de eigenaar. Safari heeft geen `BarcodeDetector`,
+> dus de knop Scan van Naleving stond op de iPhone verborgen en daar moest je het
+> nummer overtypen.
+>
+> **Wat.**
+> - **Nieuwe dependencies** `@zxing/browser` 0.2.1 en `@zxing/library` 0.23.0
+>   (Apache-2.0). Ze worden pas geladen bij het scannen (dynamische import), dus
+>   de rest van de app wordt er niet groter van.
+> - **`_components/read-barcode.ts`:** eerst de ingebouwde `BarcodeDetector`
+>   (Chrome op Android); ontbreekt die of vindt hij niets, dan ZXing op een
+>   canvas van hooguit 1600 px, alleen EAN-13, EAN-8, UPC-A en UPC-E, met
+>   `TRY_HARDER`. Het werkt op een foto via het bestandsveld, niet op live
+>   video, dus de `Permissions-Policy` (`camera=()`) blijft zoals hij is.
+> - De knop Scan staat nu in elke browser. `/hulp#voeding` aangepast.
+>
+> **Getest.** TypeScript en eslint schoon. Met een script buiten de repo
+> nagegaan dat ZXing met dezelfde instellingen een getekende EAN-13 leest.
+> **Niet getest:** een echte foto op een iPhone; hoe goed het een scheve of
+> wazige foto leest, moet in de praktijk blijken. De worktree heeft nu een eigen
+> `node_modules` (`npm ci`) in plaats van een koppeling naar de hoofdmap.
+
 > **Naleving stap 5: trainer kijkt mee en herinneringen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, geen pushbericht verstuurd.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0235_nutrition_log_trainer_reminders.sql`, toegepast door de eigenaar op 2026-10-14.
@@ -375,6 +421,8 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0237`
 > - **Scannen op iOS.** Safari heeft geen `BarcodeDetector`; een
 >   JavaScript-bibliotheek als terugval vraagt een nieuwe dependency. Daar is
 >   de knop Scan verborgen en typ je het nummer over. Besluit voor de eigenaar.
+>   *Niet meer waar: gebouwd op 2026-10-14, zie "Barcode scannen op de iPhone"
+>   bovenaan.*
 > - Producten zelf invoeren als Open Food Facts ze niet kent.
 >
 > **Getest.** TypeScript en eslint schoon. `nutrition-log` heeft nu 25 tests,
