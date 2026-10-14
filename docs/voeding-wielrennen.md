@@ -220,7 +220,10 @@ Bronnen:
   verschillen (ISSN 2021).
 - **Contaminatierisico.** In Nederland: NZVT-geteste batches. Ook NZVT geeft geen
   100% garantie.
-- **ZWB noemt geen merken** en geeft geen doseeradvies per lid.
+- **ZWB noemt geen merken.** *"Geen doseeradvies per lid" is op 2026-10-14
+  ingetrokken: de protocollen rekenen een dosis om met het gewicht van het lid.*
+- **Herstel en gezondheid.** Kersensap, collageen, vitamine D, visolie,
+  probiotica en wat niet werkt: zie [supplementen-onderzoek.md](supplementen-onderzoek.md).
 
 Bronnen:
 - Maughan RJ, Burke LM, Dvorak J, et al. (2018). IOC consensus statement: dietary supplements and the high-performance athlete. *Br J Sports Med* 52(7):439–455 — https://research-repository.st-andrews.ac.uk/bitstream/handle/10023/13136/Maughan_2018_BJSM_IOCconsensus_CC.pdf

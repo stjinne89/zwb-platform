@@ -3233,9 +3233,13 @@ Fitness-status: Verbeterend`}
             Bij trainen staan hittetraining (kort voor een warme wedstrijd, of vijf
             weken voor meer hemoglobine), lage cadans bij VO2max en sprints, en
             ademspiertraining. Bij voeding staan protocollen voor de wedstrijddag
-            (cafeïne, natriumbicarbonaat, nitraat, ijsslush, koolhydraten laden)
-            en voor de opbouw (bèta-alanine, creatine, darmtraining). Elk protocol
-            noemt hoe sterk het bewijs is, wat het niet laat zien en de bronnen.
+            (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
+            koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
+            darmtraining), voor herstel (herstellen na een zware wedstrijd,
+            kersensap) en voor je gezondheid (vitamine D in de winter, collageen
+            bij revalidatie). Elk protocol noemt hoe sterk het bewijs is, wat het
+            niet laat zien en de bronnen. Wat geen protocol kreeg, zoals visolie,
+            probiotica of magnesium, staat met de reden in de kennisbank voeding.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Een protocol naar een wedstrijd hangt aan de wedstrijddag: kies een
@@ -3264,7 +3268,8 @@ Fitness-status: Verbeterend`}
             bloeddruk, nierproblemen of een andere aandoening, of gebruik je
             medicijnen, overleg dan eerst met je huisarts of een sportarts. Stop
             een hittesessie bij duizeligheid, misselijkheid of hoofdpijn.
-            Supplementprotocollen zijn er vanaf 18 jaar.
+            Supplementprotocollen zijn er vanaf 18 jaar; herstellen na een
+            wedstrijd en vitamine D in de winter staan voor iedereen open.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies een

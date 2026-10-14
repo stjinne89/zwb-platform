@@ -124,6 +124,98 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
 
 ---
 
+> **Supplementen tweede ronde: herstel, gezondheid en wat niet werkt, 2026-10-14 — gebouwd, lokaal getest; niet in de browser bekeken; inhoud niet door een sportdiëtist nagekeken.**
+> Commit: de commit die dit blok toevoegt. Geen migratie: protocollen staan in
+> code, `0237` kent geen lijst met slugs.
+>
+> **Waarom.** Vraag van de eigenaar: "In de supplementen mis ik een aantal basis,
+> voor de hand liggende supplementen, zoals kersensap na een intensieve training
+> of wedstrijd." Gevraagd: een uitgebreid onderzoek naar alle supplementen, en
+> ze toevoegen. Onderzoek en bronnen:
+> [supplementen-onderzoek.md](docs/supplementen-onderzoek.md).
+>
+> **Belangrijkste bevinding.** Kersensap werkt alleen als je er dagen vóór de
+> inspanning mee begint (McHugh 2022: "precovery"). Alleen ná een training of
+> wedstrijd drinken heeft geen onderbouwing. Het protocol loopt daarom van vier
+> dagen voor tot twee dagen na de wedstrijd.
+>
+> **Wat.**
+> - **Vijf nieuwe voedingsprotocollen** in `src/lib/protocols/nutrition.ts`:
+>   glycerol voor een warme wedstrijd (wedstrijddag), herstellen na een zware
+>   wedstrijd (eiwit 0,3 g/kg, koolhydraten 1-1,2 g/kg, drinken, eiwit voor het
+>   slapen) en kersensap (nieuwe groep **Herstel**), vitamine D in de winter
+>   (10 µg, 26 weken) en collageen bij revalidatie van een pees of band (nieuwe
+>   groep **Gezondheid**).
+> - **Een wedstrijdprotocol mag nu na de wedstrijddag doorlopen** (kersensap tot
+>   dag +2). De test eist nu dat de wedstrijddag erin zit en dat het hooguit drie
+>   dagen erna stopt; `dayLabel` toont "dag erna" en "2 dagen erna". Database,
+>   starten en afvinken hadden geen aanname over het einde.
+> - **Doses in milliliters** (`ProtocolDose.unit` kreeg `"ml"`) voor het water
+>   bij glycerol: 26 ml/kg, plafond 2,5 liter.
+> - **Kennisbank voeding:** het artikel "Supplementen en sportvoeding" is
+>   herschreven tot een overzicht van alles, met het besluit per groep. Nieuw in
+>   de categorie supplementen: kersensap en andere polyfenolen, collageen,
+>   vitamine D, visolie, probiotica, mondspoelen (koolhydraten en menthol) en
+>   "Wat niet werkt" (BCAA, magnesium tegen kramp, CBD, hoge doses vitamine C en
+>   E). Aangevuld: weerstand (vitamine C bij zware belasting, zink), botgezondheid
+>   (calciumrijke maaltijd voor een lange rit), herstel (eiwit plus koolhydraten,
+>   Rustad 2016). De bronnen die artikelen en protocollen delen staan als
+>   export bovenin `library.ts`.
+> - `/hulp#protocollen` noemt de nieuwe protocollen en de leeftijdsregel; de
+>   hulpzoeker kent de nieuwe woorden.
+> - **Privacyverklaring** (`#protocollen`): één bijzin dat een protocol als
+>   collageen bij revalidatie laat zien dat je een blessure hebt. Geen nieuwe
+>   privacyversie en geen nieuwe toestemmingsversie: het zijn dezelfde gegevens
+>   (welk protocol, welke dagen), alleen beter benoemd. **Voorleggen aan de
+>   eigenaar.**
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+> - Kersensap en collageen vanaf 18 jaar (AIS groep B), net als de andere
+>   supplementen. Herstellen na een wedstrijd (gewoon eten) en vitamine D (het
+>   advies van de Gezondheidsraad geldt ook voor jongeren) zonder
+>   leeftijdsgrens.
+> - Glycerol toch als protocol, terwijl de eerste ronde het bewust wegliet: de
+>   vraag was nu "alle supplementen" en de UCI-review rekent het tot groep A.
+> - Dat wie in de winter vooral binnen traint onder "weinig buiten komen" valt,
+>   is een eigen lezing en staat zo in het protocol.
+>
+> **Bewust niet gebouwd.**
+> - Protocollen voor visolie, probiotica (ZWB noemt geen merken, dus geen
+>   stammen), zink, vitamine C, curcumine, mondspoelen en menthol: bewijs te
+>   dun, te wisselend of te situatieafhankelijk. Ze staan met de reden in de
+>   kennisbank.
+> - Een calciumprotocol voor lange ritten: één studie, alleen bloedwaarden.
+> - Een hogere vitamine D-dosis of een protocol op een bloedwaarde, en ijzer als
+>   protocol: dat is medisch advies.
+> - Melatonine, ashwagandha, HMB, carnitine en citrulline: niet onderzocht in
+>   deze ronde.
+>
+> **Niet meer waar.**
+> - "Glycerol als protocol: niet gebouwd" (ronde Protocollen hieronder en
+>   `docs/protocollen-onderzoek.md`): aangepast op hun plek.
+> - `docs/voeding-wielrennen.md` zei nog "geeft geen doseeradvies per lid";
+>   gecorrigeerd.
+> - De test "een wedstrijdprotocol eindigt op de wedstrijddag" is vervangen
+>   (zie hierboven).
+>
+> **Getest.** TypeScript en ESLint schoon. `protocols.test.ts` uitgebreid:
+> leeftijdsgrenzen (ook dat herstel en vitamine D er geen hebben), de vier
+> groepen, milliliters met plafond, kersensap van dag -4 t/m +2 met
+> agendalabels, eiwit en koolhydraten naar gewicht. Volledige suite: 2267 tests
+> groen; alleen `omnium-live` faalt omdat `.env.local` hier ontbreekt. `npm run
+> build` compileert en haalt de TypeScript-stap, maar stopt bij het
+> prerenderen van `/omnium` door ontbrekende Supabase-sleutels in deze omgeving.
+>
+> **Niet geverifieerd.**
+> - De pagina's in de browser.
+> - **Geen enkele bron is volledig gelezen.** Crossref en PubMed waren vanuit
+>   deze omgeving niet bereikbaar; titels, auteurs en DOI's zijn via een
+>   zoekmachine tegen PubMed, uitgevers, repositories en Cochrane gecontroleerd,
+>   de bevindingen komen uit samenvattingen. Wat alleen in een tweede bron
+>   stond, is gemarkeerd in het onderzoeksdocument.
+> - De inhoud is niet door een sportarts of sportdiëtist nagekeken.
+
+
 > **Agenda-abonnement: ZWB in Google Agenda, Outlook en Apple Agenda, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken en niet in een echte agenda-app geprobeerd.**
 > Commit: `23639a9`. Migratie `0236_calendar_feed_tokens.sql`, toegepast door de
 > eigenaar op 2026-10-14.
@@ -7852,6 +7944,8 @@ voedingsprotocollen bij voeden. Onderzoek en bronnen:
 - **Voeden** (`/zwbeter-worden/voeding/protocollen`, tab tussen Receptenboek en
   Kennisbank): cafeïne, natriumbicarbonaat, nitraat, ijsslush en koolhydraten
   laden (wedstrijddag); bèta-alanine, creatine en darmtraining (opbouw).
+  *Op 2026-10-14 uitgebreid met glycerol, herstel, kersensap, vitamine D en
+  collageen; zie de ronde "Supplementen tweede ronde".*
 - **Kennisbank trainen** (`/zwbeter-worden/kennis`, `training-library.ts`):
   zeven artikelen over de onderwerpen van deze ronde: lage cadans, 30/15,
   gepolariseerd of piramidaal, taper, hittetraining, ademspiertraining, koud
@@ -7889,6 +7983,8 @@ een eigen ronde.
 
 - Sleep low, HRV-gestuurd trainen, glycerol en een hoogtestage als protocol:
   bewijs te wisselend of niet uit te voeren, zie het onderzoeksdocument.
+  *Glycerol is op 2026-10-14 alsnog gebouwd (ronde "Supplementen tweede
+  ronde").*
 - Ketonen als protocol: een meta-analyse vond geen effect.
 - 30/15 en gepolariseerd trainen als protocol: dat zijn workoutvormen en
   verdelingen die de AI en de trainer al plannen.

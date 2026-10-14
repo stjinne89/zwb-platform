@@ -55,9 +55,12 @@ describe("protocoldefinities", () => {
     }
   });
 
-  it("laat een wedstrijdprotocol op de wedstrijddag eindigen", () => {
+  it("laat een wedstrijdprotocol de wedstrijddag bevatten en kort erna stoppen", () => {
     for (const protocol of PROTOCOLS.filter((item) => item.anchor === "wedstrijd")) {
-      expect(Math.max(...protocol.phases.map((phase) => phase.toDay)), protocol.slug).toBe(0);
+      expect(Math.min(...protocol.phases.map((phase) => phase.fromDay)), protocol.slug).toBeLessThanOrEqual(0);
+      const end = Math.max(...protocol.phases.map((phase) => phase.toDay));
+      expect(end, protocol.slug).toBeGreaterThanOrEqual(0);
+      expect(end, protocol.slug).toBeLessThanOrEqual(3);
     }
   });
 
@@ -78,8 +81,21 @@ describe("protocoldefinities", () => {
   });
 
   it("geeft elk supplement een leeftijdsgrens en een plafond", () => {
-    for (const slug of ["cafeine", "bicarbonaat", "nitraat", "beta-alanine", "creatine"]) {
+    for (const slug of [
+      "cafeine",
+      "bicarbonaat",
+      "nitraat",
+      "glycerol",
+      "beta-alanine",
+      "creatine",
+      "kersensap",
+      "collageen",
+    ]) {
       expect(protocolBySlug(slug)?.minAge, slug).toBe(18);
+    }
+    // Gewoon eten na de finish en de dosis van de Gezondheidsraad: geen grens.
+    for (const slug of ["herstel-na-wedstrijd", "vitamine-d"]) {
+      expect(protocolBySlug(slug)?.minAge, slug).toBeUndefined();
     }
     for (const protocol of PROTOCOLS) {
       for (const phase of protocol.phases) {
@@ -98,7 +114,12 @@ describe("protocoldefinities", () => {
       "Intensiteit",
       "Naast de fiets",
     ]);
-    expect(protocolsByGroup("voeden").map((entry) => entry.group)).toEqual(["Op de wedstrijddag", "Opbouw"]);
+    expect(protocolsByGroup("voeden").map((entry) => entry.group)).toEqual([
+      "Op de wedstrijddag",
+      "Opbouw",
+      "Herstel",
+      "Gezondheid",
+    ]);
   });
 
   it("houdt de toestemmingsversie gelijk aan de migratie", () => {
@@ -121,6 +142,13 @@ describe("dosis", () => {
     expect(formatDose(bicarb, 120)).toBe("24–30 g");
   });
 
+  it("rekent ook milliliters om, met een plafond", () => {
+    const water = protocolBySlug("glycerol")!.phases[1].tasks[1].dose!;
+    expect(formatDose(water, 70)).toBe("1.800 ml");
+    expect(formatDose(water, 100)).toBe("2.500 ml");
+    expect(formatDose(water, null)).toBe("26 ml per kg");
+  });
+
   it("toont per kg zonder gewicht", () => {
     expect(formatDose(caffeine, null)).toBe("3–6 mg per kg");
     expect(formatDose(protocolBySlug("ijsslush")!.phases[1].tasks[0].dose!, null)).toBe("7,5 g per kg");
@@ -141,6 +169,38 @@ describe("dagplanning", () => {
     const raceDay = tasksForDay(protocol, bicarb, "2027-06-20", 70, [])!;
     expect(raceDay.day).toBe(0);
     expect(raceDay.tasks.map((task) => [task.key, task.amount])).toEqual([["dosis", "14–21 g"]]);
+  });
+
+  it("loopt bij kersensap van vier dagen voor tot twee dagen na de wedstrijd", () => {
+    const protocol = protocolBySlug("kersensap")!;
+    const cherry = run("kersensap", { raceDate: "2027-06-20" });
+    expect(cherry.startDate).toBe("2027-06-16");
+    expect(runEndDate(protocol, cherry)).toBe("2027-06-22");
+    expect(tasksForDay(protocol, cherry, "2027-06-15", 70, [])).toBeNull();
+    expect(tasksForDay(protocol, cherry, "2027-06-22", 70, [])!.day).toBe(2);
+    expect(tasksForDay(protocol, cherry, "2027-06-23", 70, [])).toBeNull();
+    expect(calendarMarkers([cherry], "2027-06-01", "2027-06-30").map((marker) => marker.date)).toEqual([
+      "2027-06-16",
+      "2027-06-17",
+      "2027-06-18",
+      "2027-06-19",
+      "2027-06-20",
+      "2027-06-21",
+      "2027-06-22",
+    ]);
+  });
+
+  it("geeft na de wedstrijd eiwit en koolhydraten naar gewicht", () => {
+    const protocol = protocolBySlug("herstel-na-wedstrijd")!;
+    const recovery = run("herstel-na-wedstrijd", { raceDate: "2027-06-20" });
+    const day = tasksForDay(protocol, recovery, "2027-06-20", 70, [])!;
+    expect(day.tasks.map((task) => [task.key, task.amount])).toEqual([
+      ["eiwit", "20 g"],
+      ["koolhydraten", "70–80 g"],
+      ["drinken", null],
+      ["eiwit-nacht", null],
+    ]);
+    expect(formatDose(day.tasks[0].dose!, 150)).toBe("40 g");
   });
 
   it("laat een eenmalige taak verdwijnen na het afvinken op een andere dag", () => {

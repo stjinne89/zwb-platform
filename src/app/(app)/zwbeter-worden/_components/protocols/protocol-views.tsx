@@ -152,8 +152,12 @@ function BulletList({ items, icon: Icon }: { items: string[]; icon: typeof Check
 
 function dayLabel(protocol: Protocol, fromDay: number, toDay: number): string {
   if (protocol.anchor === "wedstrijd") {
-    const name = (day: number) =>
-      day === 0 ? "wedstrijddag" : day === -1 ? "dag ervoor" : `${-day} dagen ervoor`;
+    const name = (day: number) => {
+      if (day === 0) return "wedstrijddag";
+      if (day === -1) return "dag ervoor";
+      if (day === 1) return "dag erna";
+      return day < 0 ? `${-day} dagen ervoor` : `${day} dagen erna`;
+    };
     return fromDay === toDay ? name(fromDay) : `${name(fromDay)} t/m ${name(toDay)}`;
   }
   const weeks = (toDay - fromDay + 1) / 7;

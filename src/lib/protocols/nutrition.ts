@@ -6,7 +6,25 @@
 // supplementadvies per lid"), op 2026-10-14 door de eigenaar genomen.
 
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
-import { BURKE_2011, UCI_POSITION } from "@/lib/nutrition/library";
+import {
+  BELL_2014,
+  BISCHOF_2024,
+  BURKE_2011,
+  GR_VITAMINE_D,
+  HILL_2021,
+  HOWATSON_2010,
+  KERKSICK_2017,
+  MCHUGH_2022,
+  OWENS_2018,
+  PAULSEN_2014,
+  RUSTAD_2016,
+  SHAW_2017,
+  SNIJDERS_2019,
+  UCI_BONE,
+  UCI_POSITION,
+  UCI_SUPPLEMENTS,
+  VAN_ROSENDAL_2010,
+} from "@/lib/nutrition/library";
 import type { Protocol, ProtocolTask } from "./types";
 
 const MAUGHAN_2018: KnowledgeSource = {
@@ -307,6 +325,65 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
   },
   {
+    slug: "glycerol",
+    pillar: "voeden",
+    group: "Op de wedstrijddag",
+    title: "Glycerol voor een warme wedstrijd",
+    shortLabel: "Glycerol",
+    summary: "Vooraf extra vocht vasthouden met glycerol en veel water, voor een lange wedstrijd in de hitte.",
+    goal: "Met een vochtvoorraad starten, zodat je in de hitte later uitdroogt.",
+    evidence: "matig",
+    anchor: "wedstrijd",
+    calendar: true,
+    minAge: SUPPLEMENT_MIN_AGE,
+    phases: [
+      {
+        key: "proef",
+        title: "Uitproberen",
+        fromDay: -14,
+        toDay: -2,
+        tasks: [trial("Doe het hele schema een keer voor een lange training in de warmte. Let op hoofdpijn, misselijkheid en een opgeblazen gevoel.")],
+      },
+      {
+        key: "wedstrijd",
+        title: "Wedstrijddag",
+        fromDay: 0,
+        toDay: 0,
+        tasks: [
+          {
+            key: "glycerol",
+            label: "Glycerol",
+            detail: "Opgelost in het water hieronder, verdeeld over een uur. Klaar ongeveer 30 minuten voor de start.",
+            dose: { perKg: { min: 1.2, max: 1.2 }, unit: "g", step: 5, max: 120 },
+          },
+          {
+            key: "water",
+            label: "Water",
+            detail: "In hetzelfde uur, in porties.",
+            dose: { perKg: { min: 26, max: 26 }, unit: "ml", step: 50, max: 2500 },
+          },
+        ],
+      },
+    ],
+    cautions: [
+      ...SUPPLEMENT_CAUTIONS,
+      "Je bent aan de start zwaarder door het vocht dat je vasthoudt. Op een klimwedstrijd telt dat.",
+      "Hoofdpijn, misselijkheid en een opgeblazen gevoel komen voor.",
+      "Glycerol staat sinds 2018 niet meer op de dopinglijst.",
+    ],
+    notFor: [
+      "Onder de 18.",
+      "Bij hoge bloeddruk, hart- of nierproblemen zonder overleg met een arts: het is veel vocht in korte tijd.",
+    ],
+    limits: [
+      "Alleen zinvol bij een lange inspanning in de hitte met veel zweetverlies; in koel weer of bij een korte race niet.",
+      "Het voordeel boven alleen veel water drinken is klein, en de studies spreken elkaar deels tegen.",
+      "1,2 gram per kg in 26 ml per kg is een richtlijn afgeleid uit eerdere studies, geen afzonderlijk getest protocol.",
+    ],
+    sources: [VAN_ROSENDAL_2010, UCI_SUPPLEMENTS, MAUGHAN_2018],
+    article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
+  },
+  {
     slug: "koolhydraten-laden",
     pillar: "voeden",
     group: "Op de wedstrijddag",
@@ -479,5 +556,182 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION],
     article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
+  },
+  {
+    slug: "herstel-na-wedstrijd",
+    pillar: "voeden",
+    group: "Herstel",
+    title: "Herstellen na een zware wedstrijd",
+    shortLabel: "Herstel",
+    summary: "Eiwit en koolhydraten in het eerste uur, drinken naar wat je verloor en eiwit voor het slapen.",
+    goal: "Sneller aanvullen en spierherstel, vooral als je de dag erna weer moet rijden.",
+    evidence: "matig",
+    anchor: "wedstrijd",
+    calendar: true,
+    phases: [
+      {
+        key: "wedstrijd",
+        title: "Na de finish",
+        fromDay: 0,
+        toDay: 0,
+        tasks: [
+          {
+            key: "eiwit",
+            label: "Eiwit binnen het uur",
+            detail: "Bijvoorbeeld chocolademelk, kwark of een eiwitshake. Een shake is handig, niet beter dan gewoon eten.",
+            dose: { perKg: { min: 0.3, max: 0.3 }, unit: "g", step: 5, max: 40 },
+          },
+          {
+            key: "koolhydraten",
+            label: "Koolhydraten erbij",
+            detail:
+              "In het eerste uur. Moet je binnen een dag weer koersen, herhaal dit dan elk uur tot de volgende maaltijd; anders volstaan gewone maaltijden.",
+            dose: { perKg: { min: 1, max: 1.2 }, unit: "g", step: 10, max: 120 },
+          },
+          {
+            key: "drinken",
+            label: "Drinken",
+            detail: "Weeg je voor en na. Drink in de vier tot zes uur erna 125 tot 150 procent van wat je verloor, met wat zout erbij.",
+          },
+          {
+            key: "eiwit-nacht",
+            label: "Eiwit voor het slapen",
+            detail: "Ongeveer 40 gram, bijvoorbeeld een grote bak kwark.",
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "Kies bij eiwitpoeder ook een batch met een NZVT-keurmerk.",
+      "Herstel draait vooral om wat je die dag in totaal eet; dit zijn de eerste stappen.",
+    ],
+    notFor: [],
+    limits: [
+      "Dat eiwit erbij de prestatie de dag erna verbetert, komt uit kleine studies; in één studie met acht duursporters hielden ze het langer vol dan met alleen koolhydraten.",
+      "Haast is alleen nodig als de volgende zware inspanning binnen ongeveer een dag komt.",
+      "Eiwit voor het slapen verhoogt de eiwitaanmaak 's nachts; of dat je op termijn sneller maakt, is niet aangetoond.",
+    ],
+    sources: [BURKE_2011, KERKSICK_2017, RUSTAD_2016, SNIJDERS_2019, UCI_POSITION],
+    article: { href: "/zwbeter-worden/voeding/kennis/herstel", title: "Herstel tussen sessies" },
+  },
+  {
+    slug: "kersensap",
+    pillar: "voeden",
+    group: "Herstel",
+    title: "Kersensap rond een zware wedstrijd",
+    shortLabel: "Kersensap",
+    summary: "Vanaf vier dagen voor tot twee dagen na een zware wedstrijd of etappekoers twee keer per dag zuur kersensap.",
+    goal: "Sneller terug op kracht in de dagen na een zware inspanning.",
+    evidence: "matig",
+    anchor: "wedstrijd",
+    calendar: true,
+    minAge: SUPPLEMENT_MIN_AGE,
+    phases: [
+      {
+        key: "rond-de-wedstrijd",
+        title: "Zeven dagen",
+        fromDay: -4,
+        toDay: 2,
+        tasks: [
+          {
+            key: "sap",
+            label: "Kersensap, twee keer",
+            detail:
+              "'s Ochtends en 's avonds 30 ml concentraat van zure kersen, aangelengd met water, of een glas sap. Bij een etappekoers neem je de eerste etappe als wedstrijddag.",
+          },
+        ],
+      },
+    ],
+    cautions: [
+      ...SUPPLEMENT_CAUTIONS,
+      "Begin op tijd: alleen na de wedstrijd drinken is niet onderbouwd.",
+      "Concentraat bevat suiker; tel het mee als koolhydraten.",
+      "Niet het hele jaar elke dag: hoge doses antioxidanten kunnen de aanpassing aan training afremmen. Voor kersensap is dat niet onderzocht.",
+    ],
+    notFor: ["Onder de 18."],
+    limits: [
+      "Het effect zit vooral in sneller herstel van kracht; minder spierpijn en lagere ontstekingswaarden zijn minder consistent gevonden.",
+      "Bij wielrenners met drie dagen zware ritten daalden de ontstekingswaarden, maar de tijdrit werd niet beter.",
+      "Kleine studies, een deel betaald door de kersenindustrie. Kersenpoeder werkte niet.",
+    ],
+    sources: [HILL_2021, MCHUGH_2022, BELL_2014, HOWATSON_2010, PAULSEN_2014],
+    article: { href: "/zwbeter-worden/voeding/kennis/kersensap", title: "Kersensap en andere polyfenolen" },
+  },
+  {
+    slug: "vitamine-d",
+    pillar: "voeden",
+    group: "Gezondheid",
+    title: "Vitamine D in de winter",
+    shortLabel: "Vitamine D",
+    summary: "Het winterhalfjaar elke dag 10 microgram, als je dan vooral binnen traint of weinig buiten komt.",
+    goal: "Een tekort voorkomen in de maanden met weinig zon.",
+    evidence: "matig",
+    anchor: "start",
+    phases: [
+      {
+        key: "winter",
+        title: "Winterhalfjaar",
+        fromDay: 0,
+        toDay: 181,
+        tasks: [
+          {
+            key: "dagdosis",
+            label: "Vitamine D",
+            detail: "10 microgram (400 IE) per dag, bij een maaltijd. Vanaf 70 jaar 20 microgram.",
+          },
+        ],
+      },
+    ],
+    cautions: [
+      SUPPLEMENT_CAUTIONS[0],
+      "Meer slikken helpt niet en zeer hoge doses kunnen schaden. Laat bij klachten eerst je bloedwaarde meten.",
+    ],
+    notFor: ["Als je arts je al vitamine D voorschrijft: volg dan die dosis."],
+    limits: [
+      "Bij een goede vitamine D-waarde maakt extra vitamine D je niet sneller of sterker.",
+      "Het advies van de Gezondheidsraad gaat over wie weinig buiten komt. Dat dit geldt voor wie in de winter vooral binnen traint, is een afleiding van ZWB.",
+    ],
+    sources: [GR_VITAMINE_D, OWENS_2018, UCI_BONE],
+    article: { href: "/zwbeter-worden/voeding/kennis/vitamine-d", title: "Vitamine D" },
+  },
+  {
+    slug: "collageen",
+    pillar: "voeden",
+    group: "Gezondheid",
+    title: "Collageen bij revalidatie van een pees of band",
+    shortLabel: "Collageen",
+    summary: "Gelatine of collageen met vitamine C, een uur voor je revalidatieoefeningen, acht weken lang.",
+    goal: "Meer collageenaanmaak in pezen en banden tijdens het revalideren.",
+    evidence: "beperkt",
+    anchor: "start",
+    minAge: SUPPLEMENT_MIN_AGE,
+    phases: [
+      {
+        key: "revalidatie",
+        title: "Acht weken",
+        fromDay: 0,
+        toDay: 55,
+        tasks: [
+          {
+            key: "voor-oefenen",
+            label: "Collageen met vitamine C",
+            detail:
+              "15 gram gelatine of collageen met ongeveer 50 mg vitamine C (of een glas sinaasappelsap), een uur voor je oefeningen. De dosis hangt niet af van je gewicht.",
+          },
+        ],
+      },
+    ],
+    cautions: [
+      SUPPLEMENT_CAUTIONS[0],
+      "Het hoort bij de oefeningen van je fysiotherapeut en vervangt ze niet.",
+    ],
+    notFor: ["Onder de 18."],
+    limits: [
+      "De onderliggende studie had acht proefpersonen en mat een bloedwaarde, niet de pees zelf.",
+      "Langdurig collageen naast krachttraining gaf in een meta-analyse kleine winst in kracht en een dikkere pees, maar niet bij wielrenners.",
+      "Dat een blessure er sneller door geneest, is niet aangetoond.",
+    ],
+    sources: [SHAW_2017, BISCHOF_2024],
+    article: { href: "/zwbeter-worden/voeding/kennis/collageen", title: "Collageen en gelatine" },
   },
 ];

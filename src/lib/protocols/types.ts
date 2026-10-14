@@ -25,7 +25,7 @@ export type ProtocolAnchor = "start" | "wedstrijd";
 /** Een dosis per kg lichaamsgewicht; de app rekent hem om met het gewicht van het lid. */
 export type ProtocolDose = {
   perKg: { min: number; max: number };
-  unit: "mg" | "g";
+  unit: "mg" | "g" | "ml";
   /** Afronden op deze stap, in `unit`. */
   step: number;
   /** Nooit meer dan dit, in `unit`, ook bij een hoog gewicht. */

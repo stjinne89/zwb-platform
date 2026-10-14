@@ -151,7 +151,8 @@ export default function PrivacyPage() {
             protocol, zoals hittetraining of een supplement voor een wedstrijd,
             dan teken je daar apart voor. We bewaren welk protocol je volgt, de
             start- of wedstrijddatum en welke taken je per dag afvinkt. Bij een
-            supplement zegt dat iets over wat je inneemt. Jij en je eigen
+            supplement zegt dat iets over wat je inneemt, en een protocol als
+            collageen bij revalidatie laat zien dat je een blessure hebt. Jij en je eigen
             trainer zien het; het bestuur en andere leden niet. Doses rekent de
             app bij het tonen uit het gewicht in je profiel; die worden niet
             apart opgeslagen. Loopt er een trainingsprotocol (hitte of lage

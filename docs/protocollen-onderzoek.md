@@ -31,10 +31,16 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 | Bèta-alanine | sterk voor 1-4 min | gebouwd (voeden, opbouw) |
 | Creatine | sterk voor sprint en kracht | gebouwd (voeden, opbouw) |
 | Darmtraining naar 90-120 g/u | matig | gebouwd (voeden, opbouw) |
+| Glycerol in de hitte | matig | gebouwd (voeden, wedstrijd), tweede ronde |
+| Herstellen na een zware wedstrijd | matig | gebouwd (voeden, herstel), tweede ronde |
+| Kersensap | matig, alleen als je vooraf begint | gebouwd (voeden, herstel), tweede ronde |
+| Vitamine D in de winter | richtlijn | gebouwd (voeden, gezondheid), tweede ronde |
+| Collageen bij revalidatie | beperkt | gebouwd (voeden, gezondheid), tweede ronde |
 | Korte intervallen 30/15 | matig | kennisartikel |
 | Gepolariseerd trainen | geen verschil | kennisartikel |
 | Koud water na training | remt kracht | kennisartikel |
 | Ketonen | geen effect | kennisartikel (voeding), afgeraden |
+| Visolie, probiotica, mondspoelen, BCAA, magnesium, CBD | beperkt tot geen | kennisartikel (voeding), tweede ronde |
 | Sleep low / train low | gemengd | niet gebouwd |
 | HRV-gestuurd trainen | zwak | niet gebouwd |
 
@@ -147,6 +153,10 @@ weinig effect op de lange termijn.
 
 ## Voeden
 
+De tweede supplementronde (glycerol, herstel, kersensap, vitamine D, collageen,
+en de supplementen zonder protocol) staat in
+[supplementen-onderzoek.md](supplementen-onderzoek.md).
+
 Doses staan per kg en worden met het gewicht van het lid omgerekend, met een
 plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
 
@@ -183,8 +193,9 @@ geen protocol.
   voor waarschuwt.
 - **HRV-gestuurd trainen.** Eén meta-analyse (2020) met methodekritiek; de
   AI-coach weegt readiness en HRV al mee.
-- **Glycerol.** Wel in het IOC-overzicht, maar niche (hyperhydratie in de
-  hitte) en vaak maagklachten.
+- **Glycerol.** *Ingehaald op 2026-10-14 (tweede ronde): toch gebouwd als
+  protocol, zie [supplementen-onderzoek.md](supplementen-onderzoek.md).* Eerst
+  weggelaten als niche (hyperhydratie in de hitte) met vaak maagklachten.
 - **Hoogtestage.** Niet uit te voeren vanuit de app; hittetraining is het
   alternatief.
 - **Een cadansveld op een blok.** Blijft zoals besloten bij `0228`: de cadans
