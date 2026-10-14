@@ -21,6 +21,7 @@ import {
   RACINAIS_2015,
   ROMER_2002,
   RONNESTAD_HEAT_2022,
+  VERDEL_2021,
   ZURAWLEW_2016,
 } from "@/lib/protocols/training";
 
@@ -171,13 +172,15 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Een heet bad van ongeveer 40 °C direct na een gewone training werkte in een proef net zo: na zes dagen ging een tijdrit in de warmte ongeveer 5 procent sneller.",
       "Elke extra hittesessie geeft meer aanpassing; langere en warmere sessies werken sterker.",
       "Vijf weken vijf keer per week 50 minuten in de hitte verhoogde de hemoglobinemassa bij renners met ongeveer 2 tot 4 procent, vergelijkbaar met een hoogtestage. Drie keer per week daarna hield de hemoglobine hoger dan helemaal stoppen.",
+      "In de studies met een hittepak reden renners tot hun kerntemperatuur rond 38,5 °C lag. Met een CORE-sensor zie je of je daar komt; de app leest hem uit intervals.icu bij een hitteprotocol.",
     ],
     limits: [
       "De meeste proeven zijn klein, en het werk aan hemoglobine komt grotendeels van één onderzoeksgroep.",
       "Thuis zonder ventilator rijden met extra kleding is niet als zodanig onderzocht; de studies gebruikten een hittekamer of een hittepak.",
       "Het bad is getest na hardlopen bij mannen die niet aan de warmte gewend waren.",
+      "Een CORE-sensor schat de kerntemperatuur vanaf de huid; in een validatiestudie bij fietsers week ongeveer de helft van de metingen meer dan 0,3 °C af van een rectale meting.",
     ],
-    sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025, OBERHOLZER_2019, RONNESTAD_HEAT_2022],
+    sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025, OBERHOLZER_2019, RONNESTAD_HEAT_2022, VERDEL_2021],
   },
   {
     slug: "ademspiertraining",

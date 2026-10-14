@@ -3,7 +3,7 @@
 // volgt, wat er is afgevinkt en het gewicht om doses mee om te rekenen.
 
 import { ageFromBirthDate } from "@/lib/nutrition/targets";
-import type { ProtocolCheck, ProtocolRun } from "@/lib/protocols";
+import type { ProtocolCheck, ProtocolCoreSession, ProtocolRun } from "@/lib/protocols";
 import { loadSeasonTargets } from "@/lib/training/season-data";
 import { shiftDays } from "@/lib/training/season";
 import type { Viewer, ViewerIdentity } from "./_data";
@@ -59,6 +59,24 @@ export async function loadChecks(supabase: Supabase, runIds: string[]): Promise<
     protocolId: row.protocol_id as string,
     day: String(row.day).slice(0, 10),
     taskKey: row.task_key as string,
+  }));
+}
+
+/** Ritten met kerntemperatuur van een CORE-sensor (0238); ritten zonder meting niet. */
+export async function loadCoreSessions(supabase: Supabase, runIds: string[]): Promise<ProtocolCoreSession[]> {
+  if (runIds.length === 0) return [];
+  const { data } = await supabase
+    .from("member_protocol_core_sessions")
+    .select("protocol_id, intervals_id, day, max_core_c, minutes_above")
+    .in("protocol_id", runIds)
+    .not("max_core_c", "is", null)
+    .order("day", { ascending: true });
+  return (data ?? []).map((row) => ({
+    protocolId: row.protocol_id as string,
+    intervalsId: row.intervals_id as string,
+    day: String(row.day).slice(0, 10),
+    maxC: Number(row.max_core_c),
+    minutesAbove: Number(row.minutes_above),
   }));
 }
 

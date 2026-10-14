@@ -13,7 +13,7 @@ import {
   tasksForDay,
   type ProtocolRun,
 } from "@/lib/protocols";
-import { PROTOCOL_CONSENT_VERSION } from "@/lib/protocols/consent";
+import { PROTOCOL_CONSENT_VERSION, PROTOCOL_CONSENT_VERSIONS } from "@/lib/protocols/consent";
 
 function run(slug: string, dates: { startDate?: string; raceDate?: string }): ProtocolRun {
   const protocol = protocolBySlug(slug)!;
@@ -122,9 +122,13 @@ describe("protocoldefinities", () => {
     ]);
   });
 
-  it("houdt de toestemmingsversie gelijk aan de migratie", () => {
-    const sql = readFileSync("supabase/migrations/0237_member_protocols.sql", "utf8");
-    expect(sql).toContain(`consent_version in ('${PROTOCOL_CONSENT_VERSION}')`);
+  it("houdt de toestemmingsversies gelijk aan de migratie", () => {
+    // 0238 vervangt de check-constraint uit 0237; de nieuwste tekst staat erin
+    // naast de oude, want lopende runs houden hun versie.
+    const sql = readFileSync("supabase/migrations/0238_member_protocol_core_sessions.sql", "utf8");
+    const list = PROTOCOL_CONSENT_VERSIONS.map((version) => `'${version}'`).join(", ");
+    expect(sql).toContain(`consent_version in (${list})`);
+    expect(PROTOCOL_CONSENT_VERSIONS.at(-1)).toBe(PROTOCOL_CONSENT_VERSION);
   });
 });
 

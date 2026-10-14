@@ -20,6 +20,7 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 |---|---|---|
 | Hitte-acclimatisatie voor een warme wedstrijd | sterk | gebouwd (trainen) |
 | Hittetraining voor hemoglobine | matig | gebouwd (trainen) |
+| Kerntemperatuur met een CORE-sensor bij hitte | sensor zwak gevalideerd | gebouwd (trainen), via intervals.icu |
 | Lage cadans bij VO2max en sprints | matig | gebouwd (trainen), via de AI-coach |
 | Ademspiertraining | matig | gebouwd (trainen) |
 | Taper | sterk | AI-regel aangescherpt, geen protocol |
@@ -61,8 +62,9 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 
 **Afgeleid, niet getest:** thuis binnen rijden zonder ventilator en met een
 extra laag als hittesessie. De studies gebruikten een hittekamer, een bad of
-een hittepak. De prikkel is dezelfde (hogere kerntemperatuur), maar de app
-meet die niet. De opbouw (-14 t/m -4 elke dag, daarna hooguit twee korte
+een hittepak. De prikkel is dezelfde (hogere kerntemperatuur). Zonder sensor
+meet de app die niet; met een CORE-sensor wel, zie "Kerntemperatuur met een
+CORE-sensor" hieronder (2026-10-14). De opbouw (-14 t/m -4 elke dag, daarna hooguit twee korte
 sessies) is een eigen invulling van de consensus.
 
 ### Hittetraining voor hemoglobine (lang)
@@ -79,6 +81,44 @@ sessies) is een eigen invulling van de consensus.
 
 **Beperking:** kleine groepen, vooral (top)renners, grotendeels één groep
 onderzoekers. VO2max in koel weer niet altijd beter.
+
+### Kerntemperatuur met een CORE-sensor (2026-10-14)
+
+Vraag van de eigenaar: kan de hittetraining met de CORE-sensor werken, via
+intervals.icu?
+
+**Hoe de data binnenkomt.** De CORE-sensor stuurt kerntemperatuur,
+huidtemperatuur en de Heat Strain Index naar de fietscomputer (Connect IQ-veld
+op Garmin; bij Wahoo een voorlopige oplossing). intervals.icu leest ze uit het
+FIT-bestand als streams `core_temperature`, `skin_temperature` en
+`heat_strain_index`, vult gaten tot 30 seconden op met de laatste waarde en
+toont ze als grafiek. Een dataveld met een eigen naam kan met een voorvoegsel
+binnenkomen (gemeld: `0_95_heat_strain_index`). Een rit die via Strava in
+intervals.icu komt, heeft geen streams. Bronnen: de helppagina van CORE over
+intervals.icu en draadjes op het intervals.icu-forum; die konden vanuit de
+bouwomgeving niet worden geopend, alleen de zoekresultaten zijn gelezen.
+
+**De drempel van 38,5 °C.** In de hittepakstudies werkten renners naar een
+kerntemperatuur rond 38,5 °C (secundaire verslagen van het werk van Rønnestad;
+een casusreeks met hittepakken kwam uit op een mediaan van 38,7 °C rectaal).
+Niet in de oorspronkelijke artikelen nagelezen. **Eigen keuze:** een
+hittesessie telt bij 30 minuten op of boven 38,5 °C, een korte sessie in de
+laatste dagen voor een wedstrijd bij 10 minuten. Die minuten komen niet uit een
+studie; ze zijn gekozen zodat een sessie van 50 tot 60 minuten met een
+opwarmfase van ongeveer twintig minuten ze haalt.
+
+**Hoe betrouwbaar is de sensor.** Bij fietsers was de herhaalbaarheid goed
+(verschil tussen twee gelijke ritten 0,02 °C), maar ongeveer de helft van de
+metingen week meer dan 0,3 °C af van een rectale meting, in 19 én 31 °C. De
+auteurs concluderen dat de sensor geen geldige maat voor de kerntemperatuur is.
+[Verdel e.a. 2021](https://doi.org/10.3390/s21175932). Daarom: de app toont de
+waarde als richting en vinkt af, maar het lid kan het vinkje weghalen.
+
+**Bewust niet gebruikt: de Heat Strain Index.** CORE deelt de HSI in vier
+zones in en noemt zone 3 de trainingszone (advies: 45 tot 60 minuten erin, twee
+tot drie keer per week). De zonegrenzen en de rekenregel zijn van de fabrikant
+en niet openbaar getoetst, en het advies is minder dan wat de protocollen
+voorschrijven. De studies stuurden op kerntemperatuur.
 
 ### Lage cadans
 

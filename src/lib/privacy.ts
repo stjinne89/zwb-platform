@@ -27,6 +27,9 @@
  * Wie een protocol start, tekent per start (`PROTOCOL_CONSENT_VERSION` in
  * `src/lib/protocols/consent.ts`, kolom `member_protocols.consent_version`).
  * Niemand anders levert die gegevens aan. `/privacy#protocollen` beschrijft het.
+ * Ook de kerntemperatuur van een CORE-sensor bij een hitteprotocol (0238) valt
+ * daaronder: die tekst kreeg een eigen protocolversie (`2026-10-14-core`), en
+ * alleen runs onder die versie worden uitgelezen.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

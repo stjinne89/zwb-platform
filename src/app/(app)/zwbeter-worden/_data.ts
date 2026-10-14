@@ -199,6 +199,10 @@ export async function loadIntervalsSnapshot(
       after(async () => {
         const { fillZoneTimes } = await import("@/lib/training/zone-times-fill");
         await fillZoneTimes(admin, user.id, conn).catch(() => null);
+        // Kerntemperatuur bij een lopend hitteprotocol; zonder zo'n protocol
+        // is dit één query.
+        const { fillCoreSessions } = await import("@/lib/protocols/core-fill");
+        await fillCoreSessions(admin, user.id, conn, todayKeyAmsterdam()).catch(() => null);
       });
     }
 

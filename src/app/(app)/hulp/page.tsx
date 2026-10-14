@@ -3262,6 +3262,28 @@ Fitness-status: Verbeterend`}
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Hitte met een CORE-sensor</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Rijd je een hittesessie met een CORE-sensor, dan leest de app je
+            kerntemperatuur uit intervals.icu. Neem de rit op met je fietscomputer
+            (het CORE-dataveld op een Garmin, of een Wahoo met CORE) en laat die
+            rechtstreeks naar intervals.icu syncen. Een rit die via Strava in
+            intervals.icu komt, heeft geen kerntemperatuur. Rijd je op Zwift,
+            neem de rit dan ook op je fietscomputer op.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Open daarna Vandaag of het protocol. Bij de hittesessie staat dan je
+            hoogste kerntemperatuur en hoeveel minuten je op of boven 38,5 °C
+            was. Bij 30 minuten (10 bij een korte sessie) vinkt de app de sessie
+            af; haal je dat vinkje weg, dan blijft het weg. Een heet bad vink je
+            zelf af. Startte je je hitteprotocol vóór deze functie er was, stop
+            het dan en start het opnieuw; de toestemming noemt de sensor pas
+            sinds die tijd. De sensor schat je kerntemperatuur, dus zie de
+            waarde als richting.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">Grenzen</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             ZWB geeft geen medisch advies. Heb je hart- of vaatproblemen, hoge

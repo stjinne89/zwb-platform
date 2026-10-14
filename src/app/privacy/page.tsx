@@ -158,6 +158,13 @@ export default function PrivacyPage() {
             apart opgeslagen. Loopt er een trainingsprotocol (hitte of lage
             cadans), dan gaan de naam en de datums mee naar OpenAI bij elke
             schemageneratie; voedingsprotocollen gaan niet mee.
+            Volg je een hitteprotocol en heb je intervals.icu gekoppeld, dan
+            kijken we bij je ritten op hittedagen of er een kerntemperatuur van
+            een CORE-sensor in staat. Daarvan bewaren we per rit alleen de
+            hoogste waarde en hoeveel minuten je op of boven 38,5 °C was, niet
+            de meting zelf. Haal je de drempel, dan vinkt de app de hittesessie
+            voor je af. Jij en je eigen trainer zien die waarden; ze gaan niet
+            naar OpenAI.
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>

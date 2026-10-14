@@ -64,6 +64,12 @@ gaat stabiliteit voor nieuwe features.
    apart nagekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
+   - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
+     toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
+     elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
+     `2026-10-14-core`, die pas met `0238` in de check-constraint staat. Daarna
+     een hitteprotocol starten en een rit met de CORE rijden (eigenaar, deze
+     week); zie de ronde "Hittetraining met de CORE-sensor".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
      spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
@@ -119,10 +125,124 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
-(`0237_member_protocols` is van de protocollen, 2026-10-14).
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0239`
+(`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
+van de CORE-sensor, beide 2026-10-14).
 
 ---
+
+> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; niet gepusht; `0238` alleen tegen PGlite getest; nog niet met een echte CORE-rit geprobeerd.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0238_member_protocol_core_sessions.sql` (**nog toepassen, ná `0237`**).
+>
+> **Waarom.** Vraag van de eigenaar: "Kan er voor de hittetraining ook gewerkt
+> worden met de core sensor en de integreren? Eventueel door middel van
+> intervals?" Daarna: "Bouw maar, ik zal deze week een rit fietsen met de core
+> connected via intervals." Tot nu toe stond in het protocol dat de app de
+> kerntemperatuur niet meet, dus een lid wist niet of een hittesessie warm genoeg
+> was. Onderzoek en bronnen: sectie "Kerntemperatuur met een CORE-sensor" in
+> [protocollen-onderzoek.md](docs/protocollen-onderzoek.md).
+>
+> **Wat.**
+>
+> - **Ophalen** (`src/lib/protocols/core-fill.ts`): bij een lopend hitteprotocol
+>   haalt de app de ritten van de laatste 14 dagen rechtstreeks bij
+>   intervals.icu op (niet uit `intervals_activities`, die tot zes uur achterloopt)
+>   en vraagt van fietsritten op hittedagen alle streams op, hooguit drie per
+>   keer. Draait na het antwoord (`after`) op Vandaag, naast de gemeten
+>   zonetijden, en op de detailpagina van het protocol. Overgeslagen: ritten via
+>   Strava (geen streams), hardlopen, ritten korter dan de drempel en ritten die
+>   al bekeken zijn. `fetchIntervalsActivityStreams` vraagt met een lege
+>   `types` nu alle streams op, omdat een Connect IQ-veld met een voorvoegsel kan
+>   binnenkomen.
+> - **Rekenen** (`src/lib/protocols/core-temperature.ts`): hoogste
+>   kerntemperatuur en minuten op of boven **38,5 °C**; een gat tussen metingen
+>   telt hooguit 30 seconden mee, waarden buiten 34 tot 43 °C tellen niet.
+> - **Afvinken:** een taak kreeg `coreMinutes`. Hittesessie 30 minuten (beide
+>   protocollen, ook onderhoud), korte hittesessie 10. Haalt een rit dat, dan
+>   vinkt de app de taak op die dag af, mits hij die dag nog openstaat (het
+>   weekaantal telt mee). Haalt het lid het vinkje weg, dan blijft het weg: de rit
+>   staat als bekeken in `member_protocol_core_sessions` met `auto_checked`.
+> - **Tonen:** bij de hittesessie op Vandaag, op de detailpagina en bij de
+>   trainer (Uitgangspunten) staat "38,8 °C · 42 min boven 38,5 °C"; de
+>   detailpagina heeft een lijst "Kerntemperatuur" met alle ritten van de run.
+> - **Opslag** (`0238`): per rit alleen de samenvatting, niet de meting. Een rit
+>   zonder CORE-data krijgt een lege rij, zodat hij niet opnieuw wordt opgevraagd.
+>   Lezen: het lid en de eigen trainer (`current_user_in_training_chat`);
+>   schrijven alleen de service-role.
+> - **Toestemming:** nieuwe protocolversie `2026-10-14-core`; de tekst bij het
+>   starten van een hitteprotocol noemt de sensor. Alleen runs onder die versie
+>   worden uitgelezen; een run onder de eerste tekst blijft zoals hij was (stop en
+>   start opnieuw om mee te doen). Geen nieuwe privacyversie, zelfde uitzondering
+>   als bij de protocollen (`src/lib/privacy.ts`); `/privacy#protocollen`
+>   beschrijft het.
+> - **Teksten:** de beperkingen van beide hitteprotocollen en het kennisartikel
+>   noemen de drempel als eigen keuze en de matige validatie van de sensor
+>   (Verdel 2021, nieuwe bron). `/hulp#protocollen` kreeg een blok "Hitte met een
+>   CORE-sensor".
+> - **Data-export** (`/api/account/export`): `member_protocols`, het afvinken en
+>   de CORE-metingen staan er nu in. Protocollen ontbraken er sinds `0237`.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Drempel 38,5 °C (waar renners in de hittepakstudies naartoe werkten), 30
+>   minuten voor een gewone en 10 voor een korte sessie. Die minuten zijn een
+>   eigen keuze.
+> - Automatisch afvinken, maar het lid kan het vinkje weghalen.
+> - Een nieuwe toestemmingsversie in plaats van stilzwijgend uitlezen onder de
+>   bestaande tekst: kerntemperatuur is een gezondheidsgegeven.
+>
+> **Bewust niet gebouwd.**
+>
+> - **De Heat Strain Index en CORE's zones.** Zonegrenzen en rekenregel zijn van
+>   de fabrikant en niet openbaar getoetst; de studies stuurden op
+>   kerntemperatuur. De HSI wordt niet opgeslagen.
+> - **Kerntemperatuur naar de AI-coach.** Dat zou een gezondheidsgegeven naar
+>   OpenAI sturen; de privacytekst zegt nu uitdrukkelijk dat het niet gebeurt.
+> - **Een trendgrafiek van de aanpassing** (lagere kerntemperatuur bij hetzelfde
+>   vermogen): de lijst per rit laat de richting zien. Eerst kijken of leden de
+>   sensor gebruiken.
+> - **De huidtemperatuur** en de hele meting bewaren: niet nodig voor het
+>   afvinken.
+> - **Het hete bad meten:** komt niet in intervals.icu terecht, blijft handmatig.
+> - **Een rit opnieuw bekijken** als hij later alsnog CORE-data krijgt (bv. na
+>   "Reprocess File" in intervals.icu): de rij "geen data" blijft staan. Pas
+>   bouwen als het voorkomt.
+>
+> **Niet meer waar.**
+>
+> - In `training.ts` (beperking bij `hitte-kort`) en in
+>   `protocollen-onderzoek.md` stond dat de app de kerntemperatuur niet meet;
+>   aangepast op hun plek.
+> - De consentcheck in `protocols.test.ts` las `0237`; nu `0238`, met beide
+>   versies.
+>
+> **Getest.** `tsc` en ESLint zonder fouten. Nieuw: `protocol-core.test.ts`
+> (stream vinden ook met voorvoegsel, minuten en gaten, onmogelijke waarden,
+> welke ritten worden bekeken, en `fillCoreSessions` tegen een nep-database:
+> afvinken, niet afvinken onder de drempel, rit zonder data, niet opnieuw
+> ophalen en een weggehaald vinkje niet terugzetten, geen dubbel vinkje, niets
+> onder de oude toestemming, hooguit drie per keer, opnieuw na een fout).
+> `member-protocols-migration.test.ts` draait nu ook `0238` tegen PGlite: lid
+> en eigen trainer lezen de metingen, andere trainer en bestuur niet, niemand
+> schrijft met een gewone login, beide toestemmingsversies worden geaccepteerd,
+> halve of onmogelijke metingen geweigerd, cascade met de run. Volledige
+> vitest-run groen op `omnium-live` na (mist `.env.local`). `npm run build`
+> compileert en typecheckt; het prerenderen van `/omnium` stopt hier op de
+> ontbrekende Supabase-variabelen.
+>
+> **Niet geverifieerd.**
+>
+> - `0238` op de echte database (geen Docker of Supabase-config hier).
+> - **De veldnamen met een echte CORE-rit.** `core_temperature` komt uit
+>   forumberichten en de helppagina van CORE, die vanuit de bouwomgeving niet te
+>   openen waren. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
+>   teruggeeft. De eigenaar rijdt deze week een rit; kijk daarna of er een rij in
+>   `member_protocol_core_sessions` staat met een waarde, of met lege velden (dan
+>   heet de stream anders).
+> - De pagina's in de browser.
+> - De drempel en de minuten zijn niet door een sportarts of trainer nagekeken.
+
 
 > **Supplementen tweede ronde: herstel, gezondheid en wat niet werkt, 2026-10-14 — gebouwd, lokaal getest; niet in de browser bekeken; inhoud niet door een sportdiëtist nagekeken.**
 > Commit: de commit die dit blok toevoegt. Geen migratie: protocollen staan in
