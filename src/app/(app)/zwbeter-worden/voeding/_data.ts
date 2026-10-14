@@ -135,7 +135,7 @@ export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { o
 
 export type LogSettings = {
   paused: boolean;
-  /** Foto en tekst herkennen staat aan (0234). */
+  /** Tekst herkennen staat aan (0234). */
   recognition: boolean;
   /** De eigen trainer mag meekijken (0235). */
   trainerVisible: boolean;

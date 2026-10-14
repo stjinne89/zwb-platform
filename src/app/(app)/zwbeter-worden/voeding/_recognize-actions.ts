@@ -1,17 +1,16 @@
 "use server";
 
-// Een maaltijd herkennen uit een foto of omschrijving (Naleving, stap 3).
+// Een maaltijd herkennen uit een omschrijving (Naleving, stap 3). Herkennen uit
+// een foto is op 2026-10-15 weggehaald: de eerste meting zat er ver naast.
 //
 // Het model draait in background-modus en de pagina vraagt het antwoord op,
-// net als het pacingplan: een Netlify-functie is eerder klaar dan het model.
-// De foto gaat alleen in het verzoek mee en wordt nergens bewaard. Wat het
-// model teruggeeft zijn namen en grammen; de koppeling aan NEVO gebeurt hier,
+// net als het pacingplan: een Netlify-functie is eerder klaar dan het model. Wat
+// het model teruggeeft zijn namen en grammen; de koppeling aan NEVO gebeurt hier,
 // en het lid bevestigt alles in het formulier voor er iets wordt bewaard.
 
 import { revalidatePath } from "next/cache";
 import {
   RECOGNITION_TEXT_MAX,
-  isImageDataUrl,
   parseRecognition,
   recognitionRequestBody,
   recognitionsLeft,
@@ -46,7 +45,7 @@ async function openAi(path: string, init: RequestInit, timeoutMs: number) {
   }
 }
 
-/** Foto en tekst herkennen aan of uit, met een eigen toestemming. */
+/** Tekst herkennen aan of uit, met een eigen toestemming. */
 export async function setRecognitionConsent(formData: FormData): Promise<ActionResult> {
   const on = formData.get("on") === "1";
   if (on && formData.get("consent") !== "on") return { ok: false, error: "Vink de toestemming aan." };
@@ -71,17 +70,16 @@ async function usedLastDay(viewer: Viewer): Promise<number> {
 
 export type StartResult = { ok: true; id: string; left: number } | { ok: false; error: string };
 
-/** Start een herkenning. `image` is een verkleinde JPEG als data-URL. */
-export async function startRecognition(input: { image?: string; text?: string }): Promise<StartResult> {
-  const image = input.image && isImageDataUrl(input.image) ? input.image : undefined;
+/** Start een herkenning van een omschrijving. */
+export async function startRecognition(input: { text: string }): Promise<StartResult> {
   const text = input.text?.trim().slice(0, RECOGNITION_TEXT_MAX) || undefined;
-  if (!image && !text) return { ok: false, error: "Maak een foto of beschrijf wat je at." };
-  const kind: RecognitionKind = image ? "foto" : "tekst";
+  if (!text) return { ok: false, error: "Beschrijf wat je at." };
+  const kind: RecognitionKind = "tekst";
 
   const viewer = await requireViewer();
   const settings = await loadLogSettings(viewer);
   if (!settings || settings.paused || !settings.recognition) {
-    return { ok: false, error: "Zet eerst foto en tekst herkennen aan." };
+    return { ok: false, error: "Zet eerst tekst herkennen aan." };
   }
   const left = recognitionsLeft(await usedLastDay(viewer));
   if (left === 0) return { ok: false, error: "Je hebt het maximum voor vandaag bereikt. Voer de maaltijd zelf in." };
@@ -92,7 +90,7 @@ export async function startRecognition(input: { image?: string; text?: string })
       "responses",
       {
         method: "POST",
-        body: JSON.stringify({ ...recognitionRequestBody({ image, text }), background: true, store: true }),
+        body: JSON.stringify({ ...recognitionRequestBody({ text }), background: true, store: true }),
       },
       20_000,
     );

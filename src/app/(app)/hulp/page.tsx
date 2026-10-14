@@ -3532,8 +3532,8 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Met &quot;Foto en tekst&quot; (een aparte toestemming) maak je
-                  een foto van je bord of beschrijf je wat je at. Een AI-model
+                  Met &quot;Tekst herkennen&quot; (een aparte toestemming)
+                  beschrijf je wat je at, liefst met hoeveelheden. Een AI-model
                   benoemt de onderdelen en schat de grammen; de koolhydraten en
                   het eiwit komen daarna uit NEVO. Controleer elke hoeveelheid
                   en kies zo nodig een ander product uit de lijst: grote porties,

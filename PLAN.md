@@ -430,6 +430,45 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **Naleving: foto herkennen weggehaald, 2026-10-15 — gebouwd, lokaal getest; niet gepusht.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar probeerde het met een kom kwark en granola; de
+> schatting zat er ver naast. Dat past bij wat de literatuur zegt over
+> samengestelde maaltijden (zie [naleving-voeding-plan.md](docs/naleving-voeding-plan.md), §5).
+> Herkennen uit een getypte omschrijving werkt volgens de eigenaar goed en
+> blijft: daar noemt het lid zelf de hoeveelheden.
+>
+> **Wat.**
+> - De knop Foto in het invoerformulier is weg, net als het verkleinen op het
+>   toestel en `isImageDataUrl`. `startRecognition` en
+>   `recognitionRequestBody` nemen alleen nog tekst; het model krijgt geen beeld
+>   meer.
+> - De instructies voor het model gaan alleen over een omschrijving: genoemde
+>   hoeveelheden overnemen, anders schatten met een band.
+> - De schakelaar heet nu "Tekst herkennen", met een kortere toestemming
+>   zonder foto. Wie eerder voor foto en tekst tekende, houdt de schakelaar aan:
+>   het gebruik is smaller geworden, niet breder.
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   noemen geen foto meer.
+>
+> **Bewust niet gedaan.**
+> - **Geen migratie.** `foto` blijft in de checks van `nutrition_log_meals.source`
+>   en `nutrition_log_ai_usage.kind`, voor de rijen van de proef. De naam
+>   `ai_consent_at` blijft ook.
+> - **De meting (stap 0) vervalt** voor de foto. Model en kostenplafond voor
+>   tekst kunnen uit het gewone gebruik komen.
+> - De barcodescan gebruikt ook een foto, maar leest alleen het nummer; die
+>   blijft.
+>
+> **Niet meer waar:** in de blokken van stap 3 hieronder, en in
+> `docs/naleving-voeding-plan.md`, staat herkennen uit een foto als gebouwd. Dat
+> klopte tot vandaag.
+>
+> **Getest.** TypeScript en eslint schoon; `nutrition-recognize` en
+> `nutrition-log` slagen, met een nieuwe test dat het verzoek geen beeld bevat
+> en de instructies geen foto noemen.
+
 > **Barcode scannen op de iPhone, 2026-10-14 — gebouwd, lokaal getest; niet op een iPhone getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -555,7 +594,7 @@ van de CORE-sensor, beide 2026-10-14).
 > plafond op twee keer; `weekSummary`: gehaald per dag, lege dag telt niet,
 > zonder gewicht geen oordeel).
 
-> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
+> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; *de foto is op 2026-10-15 weggehaald, zie "Naleving: foto herkennen weggehaald"*; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0234_nutrition_log_recognition.sql`, toegepast door de eigenaar op 2026-10-14.
 >
