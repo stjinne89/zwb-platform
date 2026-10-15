@@ -134,8 +134,8 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **TTT Planner wordt een doorwijspagina naar ZwiftGopher, 2026-10-15 — gebouwd, lokaal getest; niet in de browser gezien, de import niet tegen de echte database en Export Text niet tegen een echte export. Geen migratie.**
-> Commit: de commit die dit blok toevoegt. Niet gepusht.
+> **TTT Planner wordt een doorwijspagina naar ZwiftGopher, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `9650ad1`); niet in de browser gezien, de import niet tegen de echte database en Export Text niet tegen een echte export. Geen migratie.**
+> Commit: `9650ad1`.
 >
 > **Waarom.** Vraag van de eigenaar: het plan uit ZwiftGopher (JSON of tekst)
 > in de app kunnen opslaan, "dat werkt denk ik beter dan de planner in de app",
@@ -177,7 +177,8 @@ van de CORE-sensor, beide 2026-10-14).
 > downloads Planbestand, Text en PNG, en `lib/ttt/wtrl-power.ts`. Tests
 > `ttt-zwiftgopher`, `ttt-zwiftgopher-fallback` en `ttt-wtrl-power` mee weg.
 > `ZWIFTGOPHER_API_KEY` en `ZWIFTGOPHER_API_BASE_URL` worden niet meer gelezen
-> (uit `.env.local.example` en de runbook); ze kunnen uit Netlify. ZwiftGopher
+> (uit `.env.local.example` en de runbook); ze kunnen uit Netlify (nog te doen
+> door de eigenaar). ZwiftGopher
 > maakt zelf een afbeelding en tekst, dus de eigen downloads waren dubbel.
 >
 > **Bewust niet gebouwd.** Een voorbeeld vóór het opslaan: de import toont na
