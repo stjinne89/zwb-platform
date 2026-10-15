@@ -26,6 +26,7 @@ import { WorkoutBlocks } from "./workout-blocks";
 import { MetricStat, WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { WorkoutCalendar, type CalendarMarker, type CalendarWorkout } from "./workout-calendar";
 import { WorkoutReportForm } from "./workout-report-form";
+import { TrainerFeedbackText } from "./trainer-feedback-text";
 import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
@@ -333,9 +334,7 @@ function WorkoutDetail({
           {detail.trainerFeedback ? (
             <div>
               <p className="text-xs text-muted-foreground">Feedback van je trainer</p>
-              <p className="mt-1 rounded-md border-l-2 border-primary bg-primary/5 p-3 text-sm whitespace-pre-line">
-                {detail.trainerFeedback}
-              </p>
+              <TrainerFeedbackText text={detail.trainerFeedback} className="mt-1" />
             </div>
           ) : null}
         </>

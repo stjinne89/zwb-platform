@@ -8744,6 +8744,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Trainersuggesties lezen het bericht van het lid mee
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Een lid schreef bij een duurrit: "Voel me sterk en kon me
+moeilijk aan de rustige duur houden." De suggestie bij Beoordelen gaf
+daarna precies dat terug ("51% in zone 3 of hoger. Houd rustige ritten
+rustig…"), zonder op het bericht in te gaan en zonder uitleg waarom. De
+eigenaar vroeg of de tip het bericht kan meenemen, met meer uitleg of een link
+naar de kennisbank.
+
+**Wat.**
+
+- `trainingSuggestions` (`training-advice.ts`) krijgt het bericht en het gevoel
+  van het lid. Bij een duur- of herstelrit die tempo werd: zegt het lid zelf dat
+  inhouden niet lukte, of voelde het goed/sterk, dan opent de tip met "Je merkte
+  het zelf al" of "op een dag dat het goed voelt is inhouden het lastigst" en
+  legt uit waarom (tempo erbovenop kost herstel voor de harde dag). Elke variant
+  noemt nu een plafond in watt: 75% van de FTP waarmee de zonetijden zijn
+  ingedeeld (zone 3 begint bij 76%). Bij een zware rustige rit vraagt de tip niet
+  meer naar slaap, stress of ziekte als het lid die zelf noemde.
+- Een suggestie kan een kennisbankartikel hebben. Overnemen zet `Lees meer:
+  /zwbeter-worden/kennis/<slug>` onder de tekst; bij het lid (kalender en
+  afgewerkte trainingen, `TrainerFeedbackText`) wordt dat pad een link met de
+  titel van het artikel. Een onbekend pad blijft platte tekst.
+- Nieuw artikel **Rustige ritten rustig** (`rustige-ritten`) in de kennisbank
+  trainen, met Seiler 2010, Esteve-Lanao 2007 en Oliveira 2024. In de beperkingen
+  staat dat "tempo schaadt de harde dag" een vuistregel van coaches is en
+  nauwelijks direct gemeten.
+- Test: `tests/unit/training-advice.test.ts` (o.a. het bericht uit de aanleiding,
+  en "niet sterk" telt niet als sterk).
+
+**Bewust niet.**
+
+- **Geen taalmodel** om het bericht te lezen. De suggesties zijn puur en
+  toetsbaar; een paar woordpatronen dekken de gevallen waarin de tip anders moet.
+  Mist een patroon iets, dan blijft de gewone tip staan; de trainer leest het
+  bericht er toch naast en beslist zelf.
+- **Geen kolom voor de link.** De feedback blijft vrije tekst die de trainer kan
+  aanpassen; een pad in de tekst is genoeg en werkt ook voor de trainer die het
+  zelf typt.
+- Alleen de duurrit-tip heeft een artikel; voor de andere regels (wegzakken,
+  ontkoppeling) is er nog geen passend artikel.
+
+**Niet lokaal geverifieerd.** De weergave van de link bij het lid en het
+Overnemen-knopje zijn niet in de browser bekeken (geen ingelogde sessie lokaal);
+logica en tests wel.
+
 ### Opgeleverd — uitklaplijsten in het donkere thema donker
 
 **2026-10-15.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -8799,6 +8847,8 @@ voedingsprotocollen bij voeden. Onderzoek en bronnen:
   gepolariseerd of piramidaal, taper, hittetraining, ademspiertraining, koud
   water na de training. Voeding kreeg een artikel "Ketonen" (afgeraden). Een
   artikel linkt naar de protocollen die erop leunen, en omgekeerd.
+  *Op 2026-10-15 kwam er een achtste bij, "Rustige ritten rustig"; zie de ronde
+  "Trainersuggesties lezen het bericht van het lid mee".*
 - **Starten** met eigen toestemming per start (`PROTOCOL_CONSENT_VERSION`,
   kolom `consent_version`), net als het eetdagboek; geen nieuwe privacyversie,
   vastgelegd in `src/lib/privacy.ts`. Eén lopend exemplaar per protocol.

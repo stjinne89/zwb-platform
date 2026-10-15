@@ -121,6 +121,8 @@ export default async function TrainerReviewPage() {
           execution: (metrics as { execution?: ExecutionAnalysis }).execution ?? null,
           zoneTimes: metrics.zoneTimes ?? null,
           athleteRpe: report.athlete_rpe,
+          athleteReport: report.athlete_report,
+          athleteFeel: report.athlete_feel,
           verdict: metrics.verdict,
           blocks: normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
           ftp: profiel?.ftp_watts == null ? null : Number(profiel.ftp_watts),

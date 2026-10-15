@@ -13,6 +13,8 @@ export type TrainingSuggestion = {
   finding: string;
   /** Wat de trainer kan teruggeven. */
   tip: string;
+  /** Kennisbankartikel met de uitleg erachter. */
+  article?: string;
 };
 
 /** Laatste herhaling zoveel lager dan de eerste: weggezakt (vuistregel van coaches; ~3% is normaal). */
@@ -45,7 +47,20 @@ export type TrainingAdviceInput = {
   /** Het schema en de FTP: geplande harde blokken (openers) tellen niet als te hard. */
   blocks?: WorkoutBlock[];
   ftp?: number | null;
+  /** Wat het lid zelf schreef en hoe het voelde: een tip sluit daarop aan. */
+  athleteReport?: string | null;
+  athleteFeel?: string | null;
 };
+
+// Wat het lid zelf al opmerkte. Grof op woorden; mist het iets, dan blijft de
+// gewone tip staan, en de trainer leest het bericht er altijd naast.
+const ADMITS_HARD = /te hard|te snel|harder dan|niet rustig|inhouden|in te houden|rustig (te )?houden|aan de rustige|binnen (de )?zone/;
+const FELT_STRONG = /(?<!niet |geen )\bsterk\b|goede benen|benen (waren|zijn) goed/;
+const STRAIN: Array<[string, RegExp]> = [
+  ["slaap", /slaap|sliep|geslapen/],
+  ["stress", /stress|drukte|druk op/],
+  ["ziekte", /ziek|verkouden|griep|koorts/],
+];
 
 /** Een herhaling onder dit deel van het doel is niet gereden, of het bestand stopte eerder. */
 const NOT_RIDDEN_SHARE = 0.5;
@@ -63,6 +78,7 @@ function mainSet(reps: ExecutionAnalysis["reps"]) {
 
 export function trainingSuggestions(input: TrainingAdviceInput): TrainingSuggestion[] {
   const out: TrainingSuggestion[] = [];
+  const note = (input.athleteReport ?? "").toLowerCase();
   const reps = input.execution ? mainSet(input.execution.reps) : [];
 
   if (reps.length >= 3) {
@@ -102,9 +118,24 @@ export function trainingSuggestions(input: TrainingAdviceInput): TrainingSuggest
     const limit = input.intensity === "recovery" ? RECOVERY_Z3_SHARE : ENDURANCE_Z3_SHARE;
     if (total >= 20 * 60 && high / total - plannedHigh >= limit) {
       crept = true;
+      // Zone 3 begint bij 76% van de FTP waarmee is ingedeeld.
+      const ceiling = Math.floor(0.75 * input.zoneTimes.ftpWatts);
+      const admits = ADMITS_HARD.test(note);
+      const good = input.athleteFeel === "goed" || FELT_STRONG.test(note);
+      const opener =
+        admits && good
+          ? "Je merkte het zelf al, en op een dag dat het goed voelt is inhouden het lastigst."
+          : admits
+            ? "Je merkte het zelf al."
+            : good
+              ? "Op een dag dat het goed voelt is inhouden het lastigst."
+              : null;
       out.push({
         finding: `${Math.round((100 * high) / total)}% van deze ${input.intensity === "recovery" ? "herstelrit" : "duurrit"} lag in zone 3 of hoger${plannedHigh >= 0.05 ? `, gepland was ${Math.round(100 * plannedHigh)}%` : ""}.`,
-        tip: "Houd rustige ritten rustig: dan zijn de harde dagen beter. Rij in een groep of op Zwift desnoods achteraan of alleen.",
+        tip: opener
+          ? `${opener} Bewaar dat voor de volgende harde training: de rustige rit doet zijn werk op lage intensiteit, tempo erbovenop kost vooral herstel. Blijf onder ${ceiling} W, op Zwift desnoods met een workout in ERG-modus.`
+          : `Houd rustige ritten rustig: dan zijn de harde dagen beter. Blijf onder ${ceiling} W; rij in een groep of op Zwift desnoods achteraan of alleen.`,
+        article: "/zwbeter-worden/kennis/rustige-ritten",
       });
     }
   }
@@ -120,9 +151,12 @@ export function trainingSuggestions(input: TrainingAdviceInput): TrainingSuggest
   if (input.athleteRpe !== null) {
     // Een zware RPE op een rit die te hard gereden is, verklaart zichzelf.
     if (EASY.has(input.intensity) && input.athleteRpe >= HIGH_RPE && !crept) {
+      const named = STRAIN.filter(([, pattern]) => pattern.test(note)).map(([word]) => word);
       out.push({
         finding: `Een ${input.intensity === "recovery" ? "herstelrit" : "duurrit"} voelde zwaar: RPE ${input.athleteRpe}.`,
-        tip: "Vraag naar slaap, stress en ziekte; bij meer zware rustige ritten op rij is een lichtere week verstandig.",
+        tip: named.length
+          ? `Je noemde zelf ${named.join(" en ")}: dat kan een zware rustige rit verklaren. Bij meer zware rustige ritten op rij is een lichtere week verstandig.`
+          : "Vraag naar slaap, stress en ziekte; bij meer zware rustige ritten op rij is een lichtere week verstandig.",
       });
     } else if (HARD.has(input.intensity) && input.athleteRpe <= LOW_RPE && input.verdict === "volgens_plan" && !out.length) {
       out.push({

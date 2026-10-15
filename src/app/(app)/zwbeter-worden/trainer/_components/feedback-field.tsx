@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
-export type FeedbackSuggestion = { finding: string; tip: string };
+export type FeedbackSuggestion = { finding: string; tip: string; article?: string };
 
 /**
  * Het feedbackveld bij een te beoordelen training, met de suggesties uit de
@@ -15,7 +16,9 @@ export function FeedbackField({ name, suggestions }: { name: string; suggestions
 
   const adopt = (i: number) => {
     const s = suggestions[i];
-    setText((current) => (current.trim() ? `${current.trim()}\n\n${s.finding} ${s.tip}` : `${s.finding} ${s.tip}`));
+    // Het kennisbankpad wordt bij het lid een link (TrainerFeedbackText).
+    const piece = `${s.finding} ${s.tip}${s.article ? `\nLees meer: ${s.article}` : ""}`;
+    setText((current) => (current.trim() ? `${current.trim()}\n\n${piece}` : piece));
     setUsed((prev) => new Set(prev).add(i));
   };
 
@@ -27,6 +30,14 @@ export function FeedbackField({ name, suggestions }: { name: string; suggestions
             <li key={s.finding} className="flex items-start justify-between gap-3 rounded-md border bg-muted/30 p-2 text-sm">
               <span className="min-w-0">
                 <span className="text-muted-foreground">{s.finding}</span> <span className="font-medium">{s.tip}</span>
+                {s.article ? (
+                  <>
+                    {" "}
+                    <Link href={s.article} target="_blank" className="text-primary underline underline-offset-2">
+                      Kennisbank
+                    </Link>
+                  </>
+                ) : null}
               </span>
               <button
                 type="button"

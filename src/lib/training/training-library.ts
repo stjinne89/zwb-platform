@@ -70,6 +70,22 @@ const OLIVEIRA_2024: KnowledgeSource = {
   kind: "review",
 };
 
+const SEILER_2010: KnowledgeSource = {
+  citation:
+    "Seiler S. What is best practice for training intensity and duration distribution in endurance athletes? Int J Sports Physiol Perform 5(3):276-291.",
+  year: 2010,
+  url: doi("10.1123/ijspp.5.3.276"),
+  kind: "review",
+};
+
+const ESTEVE_LANAO_2007: KnowledgeSource = {
+  citation:
+    "Esteve-Lanao J, Foster C, Seiler S, Lucia A. Impact of training intensity distribution on performance in endurance athletes. J Strength Cond Res 21(3):943-949.",
+  year: 2007,
+  url: doi("10.1519/R-19725.1"),
+  kind: "studie",
+};
+
 const BOSQUET_2007: KnowledgeSource = {
   citation:
     "Bosquet L, Montpetit J, Arvisais D, Mujika I. Effects of tapering on performance: a meta-analysis. Med Sci Sports Exerc 39(8):1358-1365.",
@@ -143,6 +159,24 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     ],
     limits: ["De studies zijn kort (vaak minder dan twaalf weken) en verschillen sterk in opzet."],
     sources: [OLIVEIRA_2024],
+  },
+  {
+    slug: "rustige-ritten",
+    category: "intensiteit",
+    title: "Rustige ritten rustig",
+    summary:
+      "Goed getrainde duursporters rijden het grootste deel van hun tijd rustig. Een rustige rit die tempo wordt, levert weinig op en kost herstel voor de volgende harde dag.",
+    points: [
+      "Bij goed getrainde duursporters ligt zo'n 80% van de trainingen onder de eerste drempel; het harde werk zit in een klein deel.",
+      "Lopers die bij dezelfde totale belasting meer rustig en minder op tempo trainden, verbeterden meer op hun wedstrijd.",
+      "Juist als je je sterk voelt is inhouden het lastigst. Bewaar dat gevoel voor de volgende harde training.",
+      "Houd je bij een duurrit onder 75% van je FTP, de bovenkant van zone 2. Op Zwift helpt een workout in ERG-modus; in een groep rijd je achteraan of laat je hem gaan.",
+    ],
+    limits: [
+      "Het onderzoek is klein en vaak bij lopers gedaan.",
+      "Dat tempo op een rustige dag de harde dag schaadt, is een vuistregel van coaches; direct gemeten is het nauwelijks.",
+    ],
+    sources: [SEILER_2010, ESTEVE_LANAO_2007, OLIVEIRA_2024],
   },
   {
     slug: "taper",
