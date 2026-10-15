@@ -134,7 +134,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **TTT Planner: cheatsheet met lessen uit eerdere ploegentijdritten, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> **TTT Planner: cheatsheet met lessen uit eerdere ploegentijdritten, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `1f340db`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Vraag van de eigenaar: "een cheatsheet met lessen uit de TTTs uit
