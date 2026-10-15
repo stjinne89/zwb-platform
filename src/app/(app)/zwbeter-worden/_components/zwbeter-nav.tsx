@@ -14,7 +14,7 @@ export type PillarNav = {
 };
 
 /** Kop en navigatie van ZWBeter in het design "tegels": de titel noemt de
- * pijler, de vier pijlers staan als tegels, en daaronder de onderdelen van de
+ * pijler, de pijlers staan als tegels, en daaronder de onderdelen van de
  * pijler waar je bent. */
 export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions?: ReactNode }) {
   const activeId = pillarForPath(usePathname());
@@ -28,7 +28,7 @@ export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions
         {actions && <div className="pb-1">{actions}</div>}
       </header>
 
-      <nav aria-label="ZWBeter" className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <nav aria-label="ZWBeter" className="grid grid-cols-2 gap-2 md:grid-cols-5 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1">
         {pillars.map((pillar) => (
           <Link
             key={pillar.id}

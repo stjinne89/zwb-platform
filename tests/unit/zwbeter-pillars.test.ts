@@ -13,6 +13,7 @@ describe("pillarForPath", () => {
     expect(pillarForPath("/zwbeter-worden/trainer/beoordelen")).toBe("coachen");
     expect(pillarForPath("/zwbeter-worden/protocollen/hitte-kort")).toBe("trainen");
     expect(pillarForPath("/zwbeter-worden/voeding/protocollen/cafeine")).toBe("voeden");
+    expect(pillarForPath("/zwbeter-worden/racen/d132a9c6-d95a-487e-a596-7f863acd9048")).toBe("racen");
   });
 
   it("valt terug op trainen", () => {

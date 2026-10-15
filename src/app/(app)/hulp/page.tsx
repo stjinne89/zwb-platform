@@ -223,6 +223,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
+  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden ZRL-races: de ploeg naast de andere teams, per renner vermogen en segmenten, en je eigen rit uit intervals.icu." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
@@ -3208,6 +3209,69 @@ Fitness-status: Verbeterend`}
           >
             Open de kennisbank
           </Link>
+        </div>
+      </section>
+
+      <section
+        id="racen"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Trophy className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBeter racen</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Na een ZRL-race zie je onder ZWBeter racen hoe je ploeg reed: de
+              plaats in de groep, per renner het vermogen en de segmenten, en in
+              een ploegentijdrit waar de ploeg tijd won of verloor. Je ziet de
+              races van de teams waar je in zit of in de opstelling stond.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Waar de cijfers vandaan komen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Alles over de ploeg komt van Zwift: de uitslag van je groep en de
+            segmentresultaten. Dat is wat ook in de game en op ZwiftPower staat:
+            gemiddeld vermogen, W/kg, het beste vermogen over 1, 5 en 20 minuten,
+            en per sprint of klim je W/kg en je plek in de groep. Plaats en tijd
+            zijn die van Zwift; de officiële uitslag is die van WTRL. Bekijk je
+            een oudere race voor het eerst, dan haalt de app het vermogen nog bij
+            Zwift op; dat duurt even.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            In een ploegentijdrit vergelijkt de app je ploeg met de ploeg direct
+            voor of achter je in de uitslag. Een stuk loopt tot en met de sprint
+            of klim die erbij staat. De tijd van een ploeg is die van de vierde
+            renner; wie meer dan 30 seconden na de vierde binnenkwam, staat als
+            los. Lukt het niet om de startrijen eenduidig te bepalen, dan staat
+            er geen verloop, alleen de uitslag.
+          </p>
+        </div>
+
+        <div id="racen-eigen-rit" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Jouw rit</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Reed je zelf mee en heb je intervals.icu gekoppeld, dan haalt de app
+            je eigen rit erbij, per seconde. Die zie alleen jij. Een rit die via
+            Strava in intervals.icu kwam, heeft geen bestand per seconde: laat
+            Zwift of je fietscomputer dan rechtstreeks naar intervals.icu syncen.
+            De app legt het bestand tegen de racetijd aan de hand van je
+            vermogen op de segmenten, zodat de stukken kloppen met de race.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Je ziet per stuk vermogen, genormaliseerd vermogen (NP), intensiteit
+            (NP gedeeld door je FTP uit je profiel), hartslag en cadans, en je
+            beste vermogen in de race naast je beste van de laatste 90 dagen.
+            De W′-balans is een model: de app schat je critical power en je
+            reserve daarboven (W′) uit je eigen curve van 3 tot 20 minuten, en
+            rekent mee hoe die reserve leegloopt boven je critical power en
+            herstelt eronder. Bij 0% is je reserve volgens het model op; komt
+            hij eronder, dan schat de curve je iets te laag in. Watt per hartslag
+            vergelijkt het eerste en het laatste vlakke stuk: daalt die, dan
+            liep je hartslag op bij hetzelfde vermogen.
+          </p>
         </div>
       </section>
 

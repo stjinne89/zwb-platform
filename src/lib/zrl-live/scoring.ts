@@ -40,6 +40,9 @@ export type Passage = {
   ts: number;
   /** Tijd over het segment in seconden. */
   elapsed: number;
+  /** Gemiddeld vermogen over het segment; ontbreekt in data van vóór 2026-10-15. */
+  avgPower?: number | null;
+  weightKg?: number | null;
 };
 
 /** Segmenten in routevolgorde; een segment dat twee keer voorkomt, staat er twee keer. */

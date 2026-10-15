@@ -206,6 +206,13 @@ const HELP_INDEX: HelpResult[] = [
       "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn gym sportschool halter halterstang leg press kabel dumbbell kettlebell weerstandsband band zwaar herhalingen opbouw onderhoud",
   },
   {
+    title: "ZWBeter racen",
+    text: "Analyse van een gereden ZRL-race: de ploeg, per renner en je eigen rit.",
+    href: "/hulp#racen",
+    terms:
+      "racen race analyse zrl ploegentijdrit ttt puntenrace uitslag ploegtijd tegenstander verloop tussentijd segment sprint klim kom vermogen w/kg zwiftpower los gelost eigen rit bestand np genormaliseerd intensiteit if w-balans wbal critical power hartslag cadans curve",
+  },
+  {
     title: "Protocollen",
     text: "Hitte, lage cadans, ademspiertraining en supplementen: starten, afvinken en de grenzen.",
     href: "/hulp#protocollen",

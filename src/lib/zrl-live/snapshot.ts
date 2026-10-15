@@ -80,6 +80,11 @@ export type RaceData = {
   passages: Passage[];
   /** Alle segmenten van de route kwamen zonder fout terug. */
   segmentsOk: boolean;
+  /**
+   * Uitslag en passages hebben vermogen (ZWBeter racen). Ontbreekt in data van
+   * vóór 2026-10-15; loadZrlRaceData vult die één keer aan.
+   */
+  withPower?: boolean;
 };
 
 function toMs(value: unknown): number | null {
@@ -266,6 +271,8 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
         segmentId: result.segmentId,
         ts: result.ts,
         elapsed: result.elapsed,
+        avgPower: result.avgPower,
+        weightKg: result.weightKg,
       });
     }
   }
@@ -277,7 +284,78 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
     subgroups: withRiders,
     passages,
     segmentsOk,
+    withPower: true,
   };
+}
+
+/** Het venster waarin passages van deze race vallen: vanaf de eerste start tot RACE_WINDOW_MS na de laatste. */
+function raceWindow(subgroups: RaceSubgroup[]): { from: number; to: number } | null {
+  const occupied = subgroups.filter((subgroup) => subgroup.entrants.length > 0);
+  if (occupied.length === 0) return null;
+  return {
+    from: Math.min(...occupied.map((s) => s.startAt)),
+    to: Math.max(...occupied.map((s) => s.startAt)) + RACE_WINDOW_MS,
+  };
+}
+
+/**
+ * Vult bevroren data van vóór 2026-10-15 aan met vermogen: de uitslag opnieuw
+ * per subgroep, en het vermogen per passage uit de segmentresultaten, gekoppeld
+ * op het passage-ID. Zwift gaf beide nog voor een race van zestien dagen eerder
+ * (gemeten 2026-10-15). Lukt een deel niet, dan blijft `withPower` onwaar en
+ * probeert een volgende bezoeker het opnieuw.
+ */
+async function addPower(data: RaceData): Promise<RaceData> {
+  let ok = true;
+  const subgroups: RaceData["subgroups"] = [];
+  for (const subgroup of data.subgroups) {
+    if (subgroup.entrants.length === 0) {
+      subgroups.push(subgroup);
+      continue;
+    }
+    try {
+      subgroups.push({ ...subgroup, results: await fetchSubgroupResults(subgroup.id) });
+    } catch {
+      ok = false;
+      subgroups.push(subgroup);
+    }
+  }
+  const window = raceWindow(data.subgroups);
+  const segmentIds = new Set(data.passages.map((p) => p.segmentId));
+  const power = new Map<string, { avgPower: number | null; weightKg: number | null }>();
+  for (const segmentId of segmentIds) {
+    if (!window) break;
+    try {
+      for (const result of await fetchSegmentResults(segmentId, window)) {
+        power.set(result.id, { avgPower: result.avgPower, weightKg: result.weightKg });
+      }
+    } catch {
+      ok = false;
+    }
+  }
+  const passages = data.passages.map((p) => ({ ...p, ...(power.get(p.id) ?? {}) }));
+  return { ...data, subgroups, passages, withPower: ok };
+}
+
+/**
+ * Ruwe Zwift-data van een race voor de analyse achteraf (ZWBeter racen). Uit
+ * de database als de race bevroren is, anders vers bij Zwift. Bevroren data
+ * zonder vermogen wordt één keer aangevuld en terug bewaard; `frozen_at` blijft
+ * dan staan, want `fetchedAt` verandert niet.
+ */
+export async function loadZrlRaceData(zwiftEventId: string): Promise<RaceData | null> {
+  const frozen = await loadFrozenRaceData(zwiftEventId);
+  if (!frozen) {
+    try {
+      return await fetchRaceData(zwiftEventId);
+    } catch {
+      return null;
+    }
+  }
+  if (frozen.withPower) return frozen;
+  const enriched = await addPower(frozen);
+  if (enriched.withPower) await saveFrozenRaceData(zwiftEventId, enriched);
+  return enriched;
 }
 
 // Versie in de sleutel: Netlify bewaart deze cache over deploys heen.

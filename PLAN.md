@@ -134,7 +134,94 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **ZRL-analyse als opdracht klaargezet, 2026-10-14 — alleen een skill, geen code; niet uitgevoerd.**
+> **ZWBeter racen: analyse van gereden ZRL-races, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Na het handwerkrapport over Bdev (13 oktober, skill `zrl-analyse`)
+> vroeg de eigenaar: "Kun je kijken of dit soort analyses ook voor andere leden
+> van andere teams kunnen en kun je dit inbouwen in de app, mss in een nieuwe
+> zwbeter racen?" Haalbaarheid, keuzes en wat niet kan:
+> [zrl-analyse.md](docs/zrl-analyse.md).
+>
+> **Haalbaar (gemeten, alleen lezen).** De ploeganalyse voor alle zeven
+> ZRL-teams (28 races sinds 1 september, alle met Zwift-event); de eigen rit
+> voor ongeveer 12 van de 31 platformleden in die teams (eigen bestanden in
+> intervals.icu; ritten via Strava hebben daar geen streams). Zwift geeft
+> segmentvermogen ook achteraf: op 2026-10-15 nog voor 29 september.
+>
+> **Wat.**
+>
+> - **Snapshot met vermogen** (`zwift-club.ts`, `zrl-live/snapshot.ts`):
+>   `fetchSubgroupResults` houdt nu ook gemiddeld vermogen, gewicht, type meter,
+>   beste 15 s/1/5/20 min en het finishmoment over (`resultPowerFields`);
+>   passages houden vermogen en gewicht; nieuwe data krijgt `withPower`.
+>   `loadZrlRaceData` vult een oudere snapshot bij het eerste bezoek één keer
+>   aan (uitslag en segmenten opnieuw, één voor één) en bewaart hem terug met
+>   dezelfde `frozen_at`; lukt een deel niet, dan wordt niets bewaard.
+> - **Ploeganalyse** (`src/lib/zrl-analysis/race.ts`, puur): plaats, ploegtijd
+>   of punten, de tegenstander, in een TTT de voorsprong per tussenpunt en per
+>   stuk (uit de bestaande `splits`), wie los finishte (meer dan 30 s na de
+>   vierde), en per renner vermogen, W/kg, beste 1/5/20 min en per sprint of
+>   klim W/kg en plek in de groep. Korte bevindingen erboven.
+> - **Eigen rit** (`ride.ts`, puur; `load.ts` haalt op): de rit in intervals.icu
+>   die het dichtst bij de eigen start begon, uitgelijnd op Zwifts
+>   segmentvermogen; NP, IF, stukken, beste vermogen tegenover de
+>   90-dagencurve, CP en W′ uit die curve, W′-balans, watt per hartslag en cadans
+>   boven de FTP. Alleen voor het lid zelf, niet bewaard.
+> - **Pagina's:** vijfde pijler **racen** met `/zwbeter-worden/racen` (gereden
+>   races van de eigen teams; bestuur en ploegleiding zien alle teams) en
+>   `/zwbeter-worden/racen/[eventId]`, met twee nieuwe grafieken (voorsprong per
+>   tussenpunt; vermogen, hartslag en W′ in drie banden). Menu-item "Racen".
+> - `/hulp#racen` en `#racen-eigen-rit`, de hulpzoeker en de wegwijzer.
+> - **Privacyverklaring** (`#racen`): wat we uit de Zwift-uitslag bewaren, wie het
+>   ziet, en dat de eigen rit alleen voor het lid is en niet bewaard wordt. Geen
+>   nieuwe privacyversie: het zijn Zwift-uitslagen die we al bewaarden, aangevuld
+>   met wat Zwift er openbaar bij toont, en intervals-data die het lid al deelt.
+>   **Voorleggen aan de eigenaar.**
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Wie de ploeganalyse ziet: teamleden, de opstelling, wie in de race van het
+>   team reed, en wie uitslagen of rosters beheert. De live stand blijft openbaar.
+> - Geen FTP of trainingsdata van ploeggenoten in de ploeganalyse, dus geen %FTP
+>   per ploeggenoot; W/kg en de beste 20 minuten in plaats daarvan.
+> - Hartslag uit de uitslagrij niet bewaren (gezondheidsgegeven, ook van andere
+>   clubs). Vermogen en gewicht van renners van andere clubs worden wel bewaard,
+>   zoals ZwiftPower ze toont; alleen de eigen renners worden getoond.
+> - De tegenstander: de ploeg direct ervoor in de uitslag, of bij een eerste
+>   plaats de tweede.
+>
+> **Bewust niet gebouwd.** Kopbeurten en plantrouw (het botlogboek staat alleen
+> lokaal en meet wie vooraan lag, niet wie trok; eerst de Sauce-meting), plan
+> tegenover uitvoering (ZwiftGopher-plannen worden niet opgeslagen), de eigen
+> rit bij de trainer, en automatische adviezen. Redenen in
+> [zrl-analyse.md](docs/zrl-analyse.md).
+>
+> **Getest.** Nieuw: `zrl-analysis-race.test.ts` (TTT per stuk, tegenstander,
+> los, bevindingen, zonder vermogen, puntenrace, uitslagrij lezen met
+> finishmoment en zonder hartslag), `zrl-analysis-ride.test.ts` (uitlijnen, NP,
+> CP-fit, W′-balans, stukken, curve, drift, cadans, activiteit bij de race met
+> zomer- en wintertijd) en `zrl-race-data-power.test.ts` (aanvullen één keer,
+> venster, niets bewaren bij een fout). `zwbeter-pillars.test.ts` kent racen.
+> **Tegen productie gedraaid, schrijven geblokkeerd:** Bdev TTT 13-10 (dezelfde
+> cijfers als het handwerk: 1e van 8, +18,1 s op OTR, eigen rit op de watt gelijk,
+> uitlijning 15 s op de watt), Bdev W3 en Zwiftladies B W3 (puntenraces), ZRL C
+> TTT (geen tussentijden: de startrijen waren niet eenduidig, dan geen verloop).
+>
+> **Niet geverifieerd.**
+>
+> - De pagina's in de browser (inloggen kan alleen de eigenaar).
+> - Hoe lang een eerste bezoek aan een oudere race op Netlify duurt: lokaal 8 tot
+>   18 s; `maxDuration` 30, net als de live stand.
+> - De `powerType`-waarde bij zPower; de pagina zegt dan "geschat vermogen".
+>
+> **Niet meer waar.** `fetchSubgroupResults` houdt niet langer "alleen rang en
+> tijd over" (ZRL-analyseblok hieronder en de skill zijn aangepast). ZWBeter in
+> het design tegels heeft vijf pijlers, niet vier.
+
+---
+
+> **ZRL-analyse als opdracht klaargezet, 2026-10-14 — alleen een skill, geen code; uitgevoerd op de pc van de eigenaar op 2026-10-14 (rapport lokaal, niet in git).**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** De eigenaar vroeg een analyse van efficiëntie en kwaliteit per
@@ -165,18 +252,21 @@ van de CORE-sensor, beide 2026-10-14).
 >
 > **Bewust niet gebouwd.** Een vast analysescript in `scripts/`. Het kon hier
 > niet tegen Zwift of de database getest worden, en welke velden een
-> uitslagrij van Zwift heeft, is niet vastgesteld (`fetchSubgroupResults` houdt
-> alleen rang en tijd over). De skill laat de velden eerst opschrijven.
+> uitslagrij van Zwift heeft, was niet vastgesteld. *Sinds 2026-10-15 wel: zie
+> de ronde ZWBeter racen; `fetchSubgroupResults` houdt nu ook het vermogen over.*
 >
 > **Getest.** Het bundelen dat de skill voorschrijft (esbuild met
 > `--packages=external --alias:@=./src`): `zwift-club.ts`, `route-segments.ts`,
 > `scoring.ts` en `supabase/admin.ts` laden buiten Next, zonder netwerk.
 > `zrl-live/snapshot.ts` niet (`next/cache`); de skill zegt dat.
 >
-> **Niet geverifieerd.** Of de skill op de pc van de eigenaar wordt herkend en
-> zonder hulp doorloopt. Of Zwift de segmentpassages van 13 oktober nog geeft,
-> welke velden een uitslagrij heeft, en of `zrl_race_snapshots` een rij voor die
-> race heeft.
+> **Uitkomst (2026-10-14).** `/zrl-analyse` werd in die sessie niet als
+> opdracht herkend; de skill is met de hand gevolgd. Zwift gaf de segmentpassages
+> met vermogen een dag later nog, de uitslagrij bleek vermogen, hartslag,
+> gewicht, type meter, beste vermogens en finishmoment te hebben, en
+> `zrl_race_snapshots` had een rij voor die race. Het botlogboek stond in een
+> andere worktree (`ttt-discord-bot-gopherplan-*`). Bevindingen zonder
+> persoonsgegevens: [zrl-analyse.md](docs/zrl-analyse.md).
 >
 > **Ook gezien.** `npm ci` weigert hier: `package-lock.json` mist
 > `@emnapi/runtime` en `@emnapi/core` 1.11.3. Niet aangepast (los van deze
@@ -1294,6 +1384,7 @@ van de CORE-sensor, beide 2026-10-14).
 > - *Verjaardag in de kalender.* Het dagvak toont de profielfoto van het lid
 >   met een donkere waas; zonder foto blijft het goud.
 > - *ZWBeter.* In dit design heet ZWBeter Worden "ZWBeter", met vier pijlers
+>   (*sinds 2026-10-15 vijf: ook **racen***)
 >   in plaats van elf tabs op één rij (`lib/zwbeter-pillars.ts`, getest):
 >   **trainen** (Vandaag, Schema, Jaarplan, Belasting, Vermogen, Doelen,
 >   Logboek, Coach), **voeden** (Voeding; *sinds 2026-10-14 met een eigen

@@ -77,11 +77,13 @@ in `bronnen.md` wat lukte en wat niet.
      ronden. Bepaal de subgroep van het team via de Zwift-ID's uit de opstelling
      (`fetchEntrants`).
    - `race-results/entries?event_subgroup_id=…`: `fetchSubgroupResults` houdt
-     alleen rang en tijd over. Bewaar voor de renners van het team de **hele ruwe
-     rij**. Schrijf eerst op welke velden er zijn (zoals `describePowerFields`
-     doet) voor je ze gebruikt; verwacht, maar niet gecontroleerd: gemiddeld
-     vermogen, hartslag, gewicht en het type vermogensmeter. Het type meter is
-     belangrijk voor de kwaliteit: zPower meet niet.
+     sinds 2026-10-15 ook vermogen, gewicht, type meter, beste vermogens en het
+     finishmoment over (`resultPowerFields`), maar geen hartslag. Bewaar voor de
+     renners van het team de **hele ruwe rij** als je de hartslag nodig hebt
+     (`sensorData.heartRateData.avgHeartRate`). Het type meter is belangrijk
+     voor de kwaliteit: zPower meet niet. De ploeganalyse zelf staat sinds
+     2026-10-15 in de app (ZWBeter racen, `src/lib/zrl-analysis/`); deze skill
+     blijft voor wat de app niet kan: het botlogboek en de ZwiftGopher-plannen.
    - Segmentpassages per segment van de route (`routeSegments` in
      `src/lib/zwift/route-segments.ts`, `fetchSegmentResults` met `from`/`to`
      rond de race en `athleteId` per renner): tijd, **gemiddeld vermogen** en

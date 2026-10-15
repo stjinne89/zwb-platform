@@ -44,7 +44,7 @@ export default async function ZwbeterWordenLayout({
     (profile?.sex as string | null) ?? null,
   ) as NavLeaf[];
 
-  // Design "tegels": ZWBeter Worden heet daar ZWBeter, met vier pijlers
+  // Design "tegels": ZWBeter Worden heet daar ZWBeter, met vijf pijlers
   // (lib/zwbeter-pillars.ts) in plaats van één rij van elf tabs.
   const tegels = (await getDesign()) === "tegels";
   const pillars = ZWBETER_PILLARS.map((pillar) => ({

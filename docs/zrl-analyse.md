@@ -1,0 +1,108 @@
+# ZRL-analyse: van één rapport naar ZWBeter racen
+
+Vraag van de eigenaar (2026-10-14): een analyse van efficiëntie en kwaliteit
+per renner en voor de ploeg, voor ZWB Bdev in de ploegentijdrit van 13 oktober.
+Dat rapport is met de hand gemaakt op de pc van de eigenaar, met de skill
+`zrl-analyse`; het staat lokaal in `.tmp/zrl-analyse/` en niet in git (vermogen
+en gewicht van ploeggenoten). Daarna (2026-10-15): "Kun je kijken of dit soort
+analyses ook voor andere leden van andere teams kunnen en kun je dit inbouwen in
+de app, mss in een nieuwe zwbeter racen?" Dit document legt vast wat haalbaar
+bleek, wat gebouwd is en wat niet.
+
+## Wat het handwerk liet zien
+
+De bronnen van het rapport, en of ze in de app bruikbaar zijn:
+
+| Bron | In het rapport | In de app |
+|---|---|---|
+| Uitslagrij van Zwift (`race-results/entries`) | gemiddeld vermogen, hartslag, gewicht, type meter, beste 15 s/1/5/20 min, finishmoment | ja, sinds deze ronde bewaard in de snapshot (zonder hartslag) |
+| Segmentresultaten van Zwift | vermogen en gewicht per passage | ja, idem |
+| Tussentijden per ploeg (`scoreRace`, `splits`) | winst en verlies per stuk | ja, bestond al voor de live stand |
+| Botlogboek (`bot/.cache/ttt-*.log`) | kopbeurten, overname, wattmeldingen | **nee**: staat alleen op de pc waar de bot draait |
+| ZwiftGopher-plannen | plan per renner, verwisseling deel 1/2 | **nee**: alleen als link in de bot, niet opgeslagen |
+| Bestand per seconde (intervals.icu) | NP, W′-balans, hartslagdrift, cadans | ja, voor het lid zelf, met de eigen sleutel |
+
+Gemeten bij het handwerk, en bevestigd in de app:
+
+- **De finishtijd telt vanaf de eigen startrij.** Einde min duur valt voor alle
+  33 renners van groep B precies op een hele minuut (de rijstart). Daarmee is de
+  eigen start van een renner bekend zonder de rij te raden.
+- **Zwift geeft segmentvermogen ook achteraf.** Een dag later voor 13 oktober,
+  en op 2026-10-15 nog voor de race van 29 september (310 passages van de
+  inschrijvers, allemaal met vermogen). Oudere snapshots zijn dus aan te vullen.
+- **Het bestand uit intervals.icu begint niet op de start** (15 s later). Het
+  vermogen per segment uit Zwift lijnt het bestand op de seconde uit: bij een
+  verschuiving van 15 s klopten alle vier de segmenten op de watt.
+
+## Voor wie het kan (gemeten 2026-10-15, alleen lezen)
+
+- **Ploeganalyse: alle zeven ZRL-teams.** 28 gereden races sinds 1 september,
+  alle met een Zwift-event; 15 hebben een bevroren snapshot, de rest haalt de
+  live stand nog bij Zwift en bevriest dan. De Zwift-data dekt iedere renner,
+  ook wie geen ZWB-account heeft. Proefgedraaid op een ploegentijdrit (Bdev,
+  C) en op puntenraces (Bdev, Zwiftladies B).
+- **Eigen rit: ongeveer 12 van de 31 platformleden in die teams.** 15 hebben
+  intervals.icu gekoppeld; 12 daarvan hebben ritten met een eigen bestand
+  (intervals-ID met `i`), 2 alleen ritten die via Strava binnenkwamen, en
+  daarvan geeft intervals.icu geen streams.
+- **Kopbeurten en plantrouw: voor niemand automatisch.** Zie "Bewust niet
+  gebouwd".
+
+## Wat gebouwd is
+
+- **Snapshot met vermogen.** `fetchSubgroupResults` houdt uit de uitslagrij nu
+  ook vermogen, gewicht, meter, beste vermogens en finishmoment over
+  (`resultPowerFields`); passages houden vermogen en gewicht. Nieuwe data heeft
+  `withPower`. Oudere snapshots vult `loadZrlRaceData` bij het eerste bezoek één
+  keer aan en bewaart ze terug, met dezelfde `frozen_at`.
+- **Ploeganalyse** (`src/lib/zrl-analysis/race.ts`, puur): plaats, ploegtijd
+  of punten, de tegenstander (de ploeg direct ervoor, of bij een eerste plaats
+  de tweede), in een TTT de voorsprong per tussenpunt en per stuk met de snelste
+  ploeg, hoe dicht de vier snelsten binnenkwamen, wie los finishte, en per
+  renner vermogen, W/kg, beste 1/5/20 minuten en per sprint of klim W/kg en plek.
+- **Eigen rit** (`src/lib/zrl-analysis/ride.ts`, puur): uitlijnen, NP, IF,
+  stukken (vlak tussen de klimmen), beste vermogen tegenover de 90-dagencurve,
+  CP en W′ uit die curve (3 tot 20 minuten), W′-balans (Skiba), watt per
+  hartslag op het eerste en laatste vlakke stuk, cadans boven de FTP.
+- **ZWBeter racen**: een vijfde pijler met `/zwbeter-worden/racen` (lijst) en
+  `/zwbeter-worden/racen/[eventId]` (analyse).
+
+## Keuzes
+
+- **Wie de ploeganalyse ziet:** leden van het team, wie in de opstelling stond,
+  wie met de eigen Zwift-ID in de race van het team reed, en wie uitslagen of
+  rosters beheert. De live stand is openbaar, maar vermogen per renner niet.
+- **Alleen Zwift-data in de ploeganalyse.** Geen FTP of trainingsdata van
+  ploeggenoten: die zijn privé (RLS laat ze alleen aan lid en trainer zien). Zo
+  is er geen %FTP per ploeggenoot; W/kg en de beste 20 minuten nemen die plaats in.
+- **Geen hartslag uit de uitslagrij.** Gezondheidsgegeven, ook van renners van
+  andere clubs, en de analyse toont het niet.
+- **De eigen rit wordt niet bewaard**; hij wordt bij elk bezoek opgehaald
+  (lijst, streams, curve: drie verzoeken aan intervals.icu).
+- **Tegenstander in een puntenrace:** de ploeg één plaats hoger. Een stuk loopt
+  tot en met het genoemde segment, dus "het stuk naar de Zwift KOM" omvat de klim.
+
+## Bewust niet gebouwd
+
+- **Kopbeurten, overname en wattmeldingen uit het botlogboek.** De bot draait
+  lokaal en stuurt niets naar het platform ("Geen live data naar het platform",
+  `docs/ttt-discord-bot.md`). Een upload van het logboek zou kunnen, maar het
+  logboek meet wie Sauce vooraan zag, niet wie trok (zie het rapport: 24
+  verleggingen, meldingen van −70 tot −95 W die geen kopbeurt waren). Eerst de
+  meting met `sauce-ttt-probe.mjs` doen, dan beslissen.
+- **Plan tegenover uitvoering.** Het plan komt uit ZwiftGopher en wordt niet
+  opgeslagen; `ttt_plans` van de planner werd in 2 van de 28 races gebruikt.
+- **%FTP en wattage per kopbeurt van ploeggenoten**: zie Keuzes.
+- **De eigen rit bij de trainer.** Kan later met `current_user_in_training_chat`;
+  eerst zien of leden het gebruiken.
+- **Automatische adviezen** (zoals "plan stond 20 W te hoog"). Het rapport
+  haalde dat uit plan plus curve; zonder plan in de app is het niet te zeggen.
+
+## Niet geverifieerd
+
+- De pagina's in de browser: inloggen kan alleen de eigenaar. De laadfuncties
+  zijn wel tegen productie gedraaid, met schrijfacties geblokkeerd.
+- De tijd van een eerste bezoek aan een oudere race op Netlify (lokaal 8 tot
+  18 s, `maxDuration` 30).
+- De waarde van `powerType` bij zPower (niet gezien; alle 33 renners hadden een
+  vermogensmeter).
