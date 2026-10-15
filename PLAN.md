@@ -66,8 +66,8 @@ gaat stabiliteit voor nieuwe features.
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Wie weet wat:** `0239_member_knowledge.sql` toepassen **vóór** het pushen
      van die ronde (2026-10-15). Zonder de kolom `on_knowledge_message` mislukt
-     het opslaan van de meldingsvoorkeuren op `/profiel`. Eerst de privacy- en
-     voorwaardentekst door de eigenaar laten lezen; zie de ronde "Wie weet wat".
+     het opslaan van de meldingsvoorkeuren op `/profiel`. De privacy- en
+     voorwaardentekst is goedgekeurd (eigenaar, 2026-10-15); zie de ronde "Wie weet wat".
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -8817,7 +8817,10 @@ aan één kenner).
 - **Toestemming per functie, geen nieuwe `PRIVACY_VERSIONS`.** Dat is de derde
   uitzondering, na het eetdagboek en de protocollen; zie het commentaar in
   `src/lib/privacy.ts`.
-- **De eigenaar heeft de privacy- en voorwaardentekst nog niet gelezen.**
+- **Privacy- en voorwaardentekst goedgekeurd** (eigenaar, 2026-10-15), inclusief
+  twee bewuste keuzes: het bestuur leest geen gesprekken (dus geen moderatie
+  daarvan), en de WhatsApp-import mag berichten ook als tip onder de naam van het
+  lid zetten, met achteraf zelf verwijderen.
 
 **Bewust niet gebouwd.**
 
