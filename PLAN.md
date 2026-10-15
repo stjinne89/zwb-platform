@@ -64,10 +64,11 @@ gaat stabiliteit voor nieuwe features.
    apart nagekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
-   - **Wie weet wat:** `0239_member_knowledge.sql` toepassen **vóór** het pushen
-     van die ronde (2026-10-15). Zonder de kolom `on_knowledge_message` mislukt
-     het opslaan van de meldingsvoorkeuren op `/profiel`. De privacy- en
-     voorwaardentekst is goedgekeurd (eigenaar, 2026-10-15); zie de ronde "Wie weet wat".
+   - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
+     2026-10-15), daarna gepusht. Niet nagekeken op productie: de tabellen, de
+     RLS en de kolom `on_knowledge_message`. Eén keer doorklikken: meedoen,
+     een vraag stellen vanaf een tweede account, antwoorden, er een tip van
+     maken, en de pushmelding.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -8752,7 +8753,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Wie weet wat: kenners, vragen en tips van leden (fase 1)
 
 **2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
-`0239_member_knowledge.sql` (**nog toepassen**, vóór het pushen). Het onderzoek en
+`0239_member_knowledge.sql` (toegepast door de eigenaar, 2026-10-15). Het onderzoek en
 alle voorstellen staan in [kennis van leden](docs/kennis-van-leden.md).
 
 **Aanleiding.** De eigenaar ziet het kennisnetwerk van de leden als mogelijke
