@@ -69,9 +69,24 @@ Gemeten bij het handwerk, en bevestigd in de app:
 
 ## Keuzes
 
-- **Wie de ploeganalyse ziet:** leden van het team, wie in de opstelling stond,
-  wie met de eigen Zwift-ID in de race van het team reed, en wie uitslagen of
-  rosters beheert. De live stand is openbaar, maar vermogen per renner niet.
+- **Wie wat ziet (eigenaar, 2026-10-15):** een lid alleen de eigen races (in de
+  opstelling, of met de eigen Zwift-ID in de uitslag van het team), met tips
+  voor zichzelf bovenaan. Een captain of co-captain alle races van zijn teams,
+  ook de subteams van een hoofdteam (de captains staan bij "ZRL B", niet bij
+  Bdev), met tips voor de ploeg en per renner. Wie uitslagen of rosters beheert
+  ziet alles. De live stand is openbaar, maar vermogen per renner niet.
+- **Tips** (`advice.ts`): vaste regels met het getal erbij. Voor de renner uit
+  het eigen bestand: harde start (het hardste blok van 10 minuten begon bij de
+  start en lag op of boven de FTP), W′ op (≤10%) boven op een klim met vlak erna,
+  op het maximum (≥95% van de 90-dagencurve over 40 min) of reserve (≤85%),
+  hartslagdrift (≤−10% watt per slag) en lage cadans (≥25% van de tijd boven
+  de FTP onder 70 rpm). Uit de race: waar een geloste renner los kwam (15 s
+  trager dan de ploeg over een klim), wie op een klim het meeste vermogen nodig
+  had van wie die klim met de ploeg reed, in een puntenrace het beste segment,
+  en geschat vermogen. Voor de captain: het grootste verlies en de grootste
+  winst per stuk (vanaf 2 s), wie loste, en in een puntenrace of één renner
+  40% of meer van de punten pakte. Tegen het handwerkrapport gelegd: dezelfde
+  conclusies, behalve die over het plan en de kopbeurten.
 - **Alleen Zwift-data in de ploeganalyse.** Geen FTP of trainingsdata van
   ploeggenoten: die zijn privé (RLS laat ze alleen aan lid en trainer zien). Zo
   is er geen %FTP per ploeggenoot; W/kg en de beste 20 minuten nemen die plaats in.

@@ -8,6 +8,7 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadRaceAnalysis, type RideOutcome } from "@/lib/zrl-analysis/load";
 import type { RaceAnalysis, RiderAnalysis } from "@/lib/zrl-analysis/race";
 import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
+import type { Advice } from "@/lib/zrl-analysis/advice";
 import { decimal, durationLabel, raceClock, raceTime, signedSeconds, wkg } from "@/lib/zrl-analysis/format";
 import { cn } from "@/lib/utils";
 import { GapChart } from "../_components/gap-chart";
@@ -170,6 +171,19 @@ function SegmentsTable({ analysis }: { analysis: RaceAnalysis }) {
   );
 }
 
+function TipList({ tips }: { tips: Advice[] }) {
+  return (
+    <ul className="space-y-2">
+      {tips.map((t) => (
+        <li key={t.finding} className="rounded-lg border bg-card p-3">
+          <p className="text-sm text-muted-foreground">{t.finding}</p>
+          <p className="mt-1 font-medium">{t.tip}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const RIDE_STATUS: Record<Exclude<RideOutcome["status"], "ok">, string | null> = {
   "not-riding": null,
   "no-intervals": "Koppel intervals.icu voor de analyse van je eigen rit.",
@@ -291,7 +305,7 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
     );
   }
 
-  const { event, analysis, ride, ownAthleteId } = outcome;
+  const { event, analysis, ride, ownAthleteId, viewer, ownTips, teamTips, riderTips } = outcome;
   const ttt = analysis.format === "ttt";
   return (
     <div className="space-y-8">
@@ -313,6 +327,26 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {ownAthleteId !== null && (
+        <section className="space-y-3">
+          <SectionHeader title="Tips voor jou" place="zwbeter" />
+          {ownTips.length > 0 ? <TipList tips={ownTips} /> : <EmptyState>Geen opvallende punten in je race.</EmptyState>}
+        </section>
+      )}
+
+      {viewer !== "rider" && (teamTips.length > 0 || riderTips.length > 0) && (
+        <section className="space-y-3">
+          <SectionHeader title="Tips voor de ploeg" place="zwbeter" />
+          {teamTips.length > 0 && <TipList tips={teamTips} />}
+          {riderTips.map((r) => (
+            <div key={r.athleteId} className="space-y-2">
+              <h3 className="text-sm font-semibold">{r.name}</h3>
+              <TipList tips={r.tips} />
+            </div>
+          ))}
+        </section>
+      )}
 
       <TeamSummary analysis={analysis} />
 

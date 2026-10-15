@@ -52,6 +52,8 @@ export type RidePhase = {
   cadence: number | null;
   /** Laagste W′-balans in dit stuk, in % van W′. */
   wbalMin: number | null;
+  /** W′-balans aan het eind van dit stuk, in % van W′. */
+  wbalEnd: number | null;
 };
 
 export type RideBest = { seconds: number; watts: number; at: number; season: number | null; share: number | null };
@@ -242,6 +244,7 @@ export function analyseRide(input: RideInput): RideAnalysis {
     const c = range(cadence);
     const p = normalizedPower(w);
     const low = wbal ? Math.min(...wbal.slice(Math.round(from), Math.round(phase.to))) : null;
+    const end = wbal ? wbal[Math.min(wbal.length - 1, Math.round(phase.to))] : null;
     return {
       ...phase,
       from,
@@ -252,6 +255,7 @@ export function analyseRide(input: RideInput): RideAnalysis {
       maxHeartRate: h.length ? Math.max(...h) : null,
       cadence: c.length ? Math.round(mean(c)) : null,
       wbalMin: low === null || !Number.isFinite(low) ? null : share(low),
+      wbalEnd: end === null || end === undefined ? null : share(end),
     };
   });
 

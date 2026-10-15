@@ -3,10 +3,12 @@ import "server-only";
 // Laden voor ZWBeter racen: welke races een lid mag zien, de analyse van de
 // ploeg uit Zwift, en de eigen rit uit intervals.icu.
 //
-// Wie mag kijken: leden van het team van het event, wie in de opstelling stond,
-// wie met de eigen Zwift-ID in de race van het team reed, en wie uitslagen of
-// rosters beheert. De ploeganalyse toont alleen Zwift-data. De eigen rit leest
-// met de sleutel van het lid zelf en is alleen voor dat lid.
+// Wie wat ziet (eigenaar, 2026-10-15): een lid alleen zijn eigen races (in de
+// opstelling, of met de eigen Zwift-ID in de uitslag van het team); een captain
+// alle races van de teams waar hij captain of co-captain is, ook de subteams
+// van een hoofdteam; wie uitslagen of rosters beheert alles. De ploeganalyse
+// toont alleen Zwift-data. De eigen rit leest met de sleutel van het lid zelf en
+// is alleen voor dat lid.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,14 +21,19 @@ import {
 import { loadZrlLive, loadZrlRaceData, type RaceData } from "@/lib/zrl-live/snapshot";
 import { analyseRace, segmentKind, type RaceAnalysis } from "@/lib/zrl-analysis/race";
 import { analyseRide, type RideAnalysis, type RideAnchor } from "@/lib/zrl-analysis/ride";
+import { ownAdvice, riderRaceAdvice, teamAdvice, type Advice } from "@/lib/zrl-analysis/advice";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { activityStartMs, pickRaceActivity, type ActivityWithStart } from "@/lib/zrl-analysis/activity";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
 const BOARD_PERMISSIONS = ["teams.manage_results", "teams.manage_roster"] as const;
+const CAPTAIN_ROLES = ["captain", "co-captain"];
 /** Zo ver terug toont de lijst races. */
 const LIST_DAYS = 120;
+
+/** Waarom iemand een race mag zien; bepaalt ook welke tips er bovenaan staan. */
+export type ViewerRole = "rider" | "captain" | "board";
 
 export type ZrlRaceListItem = {
   id: string;
@@ -34,42 +41,125 @@ export type ZrlRaceListItem = {
   startAt: string;
   teamName: string | null;
   ttt: boolean;
+  /** Gereden of in de opstelling. */
+  own: boolean;
+  /** Van een team waar dit lid captain is. */
+  captain: boolean;
 };
 
 function isBoard(access: Access) {
   return BOARD_PERMISSIONS.some((permission) => access.has(permission));
 }
 
-/** Gereden ZRL-races van de eigen teams; bestuur en ploegleiding zien alle teams. */
+/** Teams waar dit lid captain of co-captain is, met de subteams van een hoofdteam. */
+async function captainTeamIds(userId: string): Promise<Set<string>> {
+  const admin = createAdminClient();
+  const [{ data: roles }, { data: led }] = await Promise.all([
+    admin.from("team_members").select("team_id").eq("profile_id", userId).in("role", CAPTAIN_ROLES),
+    admin.from("teams").select("id").eq("captain_id", userId),
+  ]);
+  const ids = new Set([...(roles ?? []).map((r) => r.team_id as string), ...(led ?? []).map((t) => t.id as string)]);
+  if (ids.size === 0) return ids;
+  const { data: children } = await admin.from("teams").select("id").in("parent_team_id", [...ids]);
+  for (const child of children ?? []) ids.add(child.id as string);
+  return ids;
+}
+
+type EventRow = {
+  id: string;
+  title: string;
+  start_at: string;
+  zwift_event_type: string | null;
+  team_id: string;
+  parent_event_id: string | null;
+  zwift_event_id: number | null;
+  teams: { name?: string } | null;
+};
+
+const EVENT_COLUMNS = "id, title, start_at, zwift_event_type, team_id, parent_event_id, zwift_event_id, teams(name)";
+
+/**
+ * Teamraces die dit lid zelf reed: de opstelling (op de race of op de
+ * raceweek erboven) of de eigen Zwift-ID in de bevroren uitslag, bij een team
+ * waar het lid in zit of in de opstelling stond.
+ */
+async function ownRaceIds(userId: string, since: string): Promise<Set<string>> {
+  const admin = createAdminClient();
+  const [{ data: lineups }, { data: memberships }, { data: profile }] = await Promise.all([
+    admin.from("team_event_lineups").select("event_id, team_id").eq("profile_id", userId),
+    admin.from("team_members").select("team_id").eq("profile_id", userId),
+    admin.from("profiles").select("zwift_id").eq("id", userId).maybeSingle(),
+  ]);
+  const ids = new Set<string>();
+  const lineupKeys = new Set((lineups ?? []).map((l) => `${l.event_id}:${l.team_id}`));
+  const lineupEvents = [...new Set((lineups ?? []).map((l) => l.event_id as string))];
+  if (lineupEvents.length) {
+    const { data } = await admin
+      .from("events")
+      .select("id, team_id, parent_event_id")
+      .eq("type", "zrl")
+      .gte("start_at", since)
+      .or(`id.in.(${lineupEvents.join(",")}),parent_event_id.in.(${lineupEvents.join(",")})`);
+    for (const e of data ?? []) {
+      if (lineupKeys.has(`${e.id}:${e.team_id}`) || lineupKeys.has(`${e.parent_event_id}:${e.team_id}`)) ids.add(e.id as string);
+    }
+  }
+  const zwiftId = Number(profile?.zwift_id);
+  const teamIds = [...new Set([...(memberships ?? []).map((m) => m.team_id as string), ...(lineups ?? []).map((l) => l.team_id as string)])];
+  if (zwiftId && teamIds.length) {
+    const { data: snaps } = await admin
+      .from("zrl_race_snapshots")
+      .select("zwift_event_id")
+      .contains("data", { subgroups: [{ results: [{ profileId: zwiftId }] }] });
+    const zwiftEvents = (snaps ?? []).map((s) => String(s.zwift_event_id));
+    if (zwiftEvents.length) {
+      const { data } = await admin
+        .from("events")
+        .select("id")
+        .eq("type", "zrl")
+        .gte("start_at", since)
+        .in("zwift_event_id", zwiftEvents)
+        .in("team_id", teamIds);
+      for (const e of data ?? []) ids.add(e.id as string);
+    }
+  }
+  return ids;
+}
+
+/** Gereden ZRL-races die dit lid mag zien: de eigen, en als captain die van zijn teams. */
 export async function listZrlRaces(userId: string, access: Access): Promise<ZrlRaceListItem[]> {
   const admin = createAdminClient();
   const since = new Date(Date.now() - LIST_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const board = isBoard(access);
+  const [own, captainOf] = await Promise.all([ownRaceIds(userId, since), captainTeamIds(userId)]);
+  if (!board && own.size === 0 && captainOf.size === 0) return [];
+
   let query = admin
     .from("events")
-    .select("id, title, start_at, zwift_event_type, team_id, teams(name)")
+    .select(EVENT_COLUMNS)
     .eq("type", "zrl")
     .not("team_id", "is", null)
     .not("zwift_event_id", "is", null)
     .gte("start_at", since)
     .lte("start_at", new Date().toISOString())
     .order("start_at", { ascending: false })
-    .limit(60);
-  if (!isBoard(access)) {
-    const [{ data: memberships }, { data: lineups }] = await Promise.all([
-      admin.from("team_members").select("team_id").eq("profile_id", userId),
-      admin.from("team_event_lineups").select("team_id").eq("profile_id", userId),
-    ]);
-    const teamIds = [...new Set([...(memberships ?? []), ...(lineups ?? [])].map((row) => row.team_id as string))];
-    if (teamIds.length === 0) return [];
-    query = query.in("team_id", teamIds);
+    .limit(80);
+  if (!board) {
+    const filters = [
+      own.size ? `id.in.(${[...own].join(",")})` : null,
+      captainOf.size ? `team_id.in.(${[...captainOf].join(",")})` : null,
+    ].filter(Boolean);
+    query = query.or(filters.join(","));
   }
   const { data } = await query;
-  return (data ?? []).map((row) => ({
-    id: row.id as string,
-    title: row.title as string,
-    startAt: row.start_at as string,
-    teamName: ((row.teams as { name?: string } | null)?.name ?? null) as string | null,
+  return ((data ?? []) as unknown as EventRow[]).map((row) => ({
+    id: row.id,
+    title: row.title,
+    startAt: row.start_at,
+    teamName: row.teams?.name ?? null,
     ttt: row.zwift_event_type === "TEAM_TIME_TRIAL",
+    own: own.has(row.id),
+    captain: captainOf.has(row.team_id),
   }));
 }
 
@@ -86,20 +176,30 @@ export type RaceAnalysisOutcome =
       status: "ok";
       event: { id: string; title: string; startAt: string; teamName: string | null };
       analysis: RaceAnalysis;
+      viewer: ViewerRole;
       /** Lijn in de rennerstabel die het lid zelf is. */
       ownAthleteId: number | null;
       ride: RideOutcome;
+      /** Tips voor het lid zelf, als hij reed. */
+      ownTips: Advice[];
+      /** Voor captain en bestuur: tips voor de ploeg en per renner. */
+      teamTips: Advice[];
+      riderTips: Array<{ athleteId: number; name: string; tips: Advice[] }>;
     }
   | { status: "not-found" }
   | { status: "no-access" }
   | { status: "no-data" };
 
-async function mayView(eventRow: { id: string; team_id: string | null; parent_event_id: string | null }, userId: string, access: Access) {
-  if (isBoard(access)) return true;
-  if (!eventRow.team_id) return false;
+/** Captain, bestuur of iemand uit de opstelling; null als alleen de uitslag nog kan beslissen. */
+async function roleBeforeRace(
+  eventRow: { id: string; team_id: string | null; parent_event_id: string | null },
+  userId: string,
+  access: Access,
+): Promise<ViewerRole | null> {
+  if (!eventRow.team_id) return isBoard(access) ? "board" : null;
   const admin = createAdminClient();
-  const [{ count: members }, { count: lineup }] = await Promise.all([
-    admin.from("team_members").select("profile_id", { count: "exact", head: true }).eq("team_id", eventRow.team_id).eq("profile_id", userId),
+  const [captainOf, { count: lineup }] = await Promise.all([
+    captainTeamIds(userId),
     admin
       .from("team_event_lineups")
       .select("profile_id", { count: "exact", head: true })
@@ -107,7 +207,9 @@ async function mayView(eventRow: { id: string; team_id: string | null; parent_ev
       .eq("team_id", eventRow.team_id)
       .eq("profile_id", userId),
   ]);
-  return Boolean(members) || Boolean(lineup);
+  if (captainOf.has(eventRow.team_id)) return "captain";
+  if (isBoard(access)) return "board";
+  return lineup ? "rider" : null;
 }
 
 export async function loadRaceAnalysis(
@@ -129,25 +231,35 @@ export async function loadRaceAnalysis(
   if (!eventRow || eventRow.type !== "zrl" || !eventRow.zwift_event_id) return { status: "not-found" };
 
   const ownZwiftId = Number(profile?.zwift_id) || null;
-  const allowed = await mayView(eventRow as { id: string; team_id: string | null; parent_event_id: string | null }, user.id, access);
-  // Zonder band met het team kan alleen een renner van de race nog kijken.
-  if (!allowed && ownZwiftId === null) return { status: "no-access" };
+  const before = await roleBeforeRace(eventRow as { id: string; team_id: string | null; parent_event_id: string | null }, user.id, access);
+  // Zonder rol kan alleen de uitslag nog zeggen dat dit lid meereed.
+  if (!before && ownZwiftId === null) return { status: "no-access" };
   if (Date.parse(eventRow.start_at as string) > Date.now()) return { status: "no-data" };
 
   const live = await loadZrlLive(eventId);
   if (live.status !== "ok") return { status: "no-data" };
   const view = live.view;
   const rode = ownZwiftId !== null && view.ownRiders.includes(ownZwiftId);
-  if (!allowed && !rode) return { status: "no-access" };
+  const viewer: ViewerRole | null = before ?? (rode ? "rider" : null);
+  if (!viewer) return { status: "no-access" };
 
   const data = await loadZrlRaceData(view.event.zwiftEventId);
   const subgroup = data?.subgroups.find((s) => s.startAt === view.startAt && s.label === view.subgroupLabel);
-  const analysis = analyseRace(view, subgroup?.results ?? [], data?.passages ?? []);
+  const { data: members } = view.ownRiders.length
+    ? await admin.from("profiles").select("zwift_id, display_name").in("zwift_id", view.ownRiders.map(String))
+    : { data: [] };
+  const names = new Map(
+    (members ?? []).flatMap((m) => (m.display_name ? [[Number(m.zwift_id), String(m.display_name)] as const] : [])),
+  );
+  const analysis = analyseRace(view, subgroup?.results ?? [], data?.passages ?? [], names);
+  const ftp = Number(profile?.ftp_watts) || null;
 
   const ride = rode && data && subgroup
-    ? await loadOwnRide({ data, subgroup, zwiftId: ownZwiftId as number, ftp: Number(profile?.ftp_watts) || null, userId: user.id, supabase })
+    ? await loadOwnRide({ data, subgroup, zwiftId: ownZwiftId as number, ftp, userId: user.id, supabase })
     : ({ status: "not-riding" } as const);
 
+  const ownRider = rode ? analysis.riders.find((r) => r.athleteId === ownZwiftId) ?? null : null;
+  const leads = viewer === "captain" || viewer === "board";
   return {
     status: "ok",
     event: {
@@ -157,8 +269,17 @@ export async function loadRaceAnalysis(
       teamName: ((eventRow.teams as { name?: string } | null)?.name ?? null) as string | null,
     },
     analysis,
+    viewer,
     ownAthleteId: rode ? ownZwiftId : null,
     ride,
+    ownTips: rode ? ownAdvice(analysis, ownRider, ride.status === "ok" ? ride.analysis : null, ftp) : [],
+    teamTips: leads ? teamAdvice(analysis) : [],
+    riderTips: leads
+      ? analysis.riders
+          .filter((r) => r.athleteId !== ownZwiftId)
+          .map((r) => ({ athleteId: r.athleteId, name: r.name, tips: riderRaceAdvice(analysis, r) }))
+          .filter((r) => r.tips.length > 0)
+      : [],
   };
 }
 

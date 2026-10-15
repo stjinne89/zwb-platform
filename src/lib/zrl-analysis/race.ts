@@ -131,7 +131,13 @@ function pickRival(teams: TeamScore[], own: TeamScore | undefined): TeamScore | 
   return ahead ?? ranked.sort((a, b) => a.rank - b.rank)[0];
 }
 
-export function analyseRace(view: RaceViewInput, results: SubgroupResult[], passages: Passage[]): RaceAnalysis {
+export function analyseRace(
+  view: RaceViewInput,
+  results: SubgroupResult[],
+  passages: Passage[],
+  /** Platformnaam per Zwift-ID; zonder naam blijft de Zwift-naam ("2. Jeroen (ZWB)"). */
+  names: Map<number, string> = new Map(),
+): RaceAnalysis {
   const { score } = view;
   const ownIds = new Set(view.ownRiders);
   const label = (team: string) => view.teamLabels[team] ?? team;
@@ -180,7 +186,7 @@ export function analyseRace(view: RaceViewInput, results: SubgroupResult[], pass
       const cp = result?.criticalPower ?? null;
       return {
         athleteId: r.athleteId,
-        name: r.name,
+        name: names.get(r.athleteId) ?? r.name,
         time: r.time,
         rank: result?.rank ?? null,
         avgWatts: result?.avgWatts ?? null,

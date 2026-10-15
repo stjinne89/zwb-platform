@@ -110,9 +110,10 @@ export default function PrivacyPage() {
             minuten, het finishmoment en per sprint of klim het vermogen. Dat is
             wat Zwift ook in de game en op ZwiftPower laat zien, en het geldt voor
             iedereen in de groep, ook renners zonder ZWB-account en van andere
-            clubs. Hartslag nemen we niet over. Leden van het team, wie in de
-            opstelling stond en wie teams beheert, zien voor de renners van het
-            team vermogen, W/kg en de segmenten; het gewicht staat er niet los
+            clubs. Hartslag nemen we niet over. Wie de race reed of in de
+            opstelling stond, de captains van het team en wie teams beheert, zien
+            voor de renners van het team vermogen, W/kg, de segmenten en tips per
+            renner (die laatste alleen captains en beheerders); het gewicht staat er niet los
             bij, maar volgt uit vermogen en W/kg, net als op ZwiftPower. Reed je
             zelf mee en heb je intervals.icu gekoppeld, dan halen we bij het
             openen je rit per seconde en je vermogenscurve van de laatste 90 dagen

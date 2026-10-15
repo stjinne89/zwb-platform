@@ -3221,10 +3221,13 @@ Fitness-status: Verbeterend`}
           <div>
             <h2 className="font-semibold">ZWBeter racen</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Na een ZRL-race zie je onder ZWBeter racen hoe je ploeg reed: de
-              plaats in de groep, per renner het vermogen en de segmenten, en in
-              een ploegentijdrit waar de ploeg tijd won of verloor. Je ziet de
-              races van de teams waar je in zit of in de opstelling stond.
+              Na een ZRL-race zie je onder ZWBeter racen eerst tips voor jezelf,
+              en daaronder hoe je ploeg reed: de plaats in de groep, per renner
+              het vermogen en de segmenten, en in een ploegentijdrit waar de
+              ploeg tijd won of verloor. Je ziet de races die je zelf reed of
+              waarvoor je in de opstelling stond. Ben je captain of co-captain,
+              dan zie je alle races van je teams, ook van de subteams, met tips
+              voor de ploeg en per renner.
             </p>
           </div>
         </header>
@@ -3247,6 +3250,18 @@ Fitness-status: Verbeterend`}
             renner; wie meer dan 30 seconden na de vierde binnenkwam, staat als
             los. Lukt het niet om de startrijen eenduidig te bepalen, dan staat
             er geen verloop, alleen de uitslag.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">De tips</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Elke tip volgt uit een vaste regel en noemt het getal waarop hij
+            steunt: waar je loste, op welke klim je het meeste vermogen nodig
+            had, of je W′ boven op een klim op was, of je start harder was dan
+            je FTP, en hoe dicht je bij je eigen beste van 90 dagen zat. Het plan
+            uit ZwiftGopher en de kopbeurten uit de TTT-bot kent de app niet;
+            daar zeggen de tips dus niets over.
           </p>
         </div>
 

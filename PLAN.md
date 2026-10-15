@@ -168,8 +168,19 @@ van de CORE-sensor, beide 2026-10-14).
 >   segmentvermogen; NP, IF, stukken, beste vermogen tegenover de
 >   90-dagencurve, CP en W′ uit die curve, W′-balans, watt per hartslag en cadans
 >   boven de FTP. Alleen voor het lid zelf, niet bewaard.
-> - **Pagina's:** vijfde pijler **racen** met `/zwbeter-worden/racen` (gereden
->   races van de eigen teams; bestuur en ploegleiding zien alle teams) en
+> - **Tips** (`advice.ts`, puur; nagekomen dezelfde dag op verzoek van de
+>   eigenaar: "waar zijn de korte adviezen die in de artifact stonden?"): bovenaan
+>   tips voor de renner zelf (eigen bestand en race), voor captains ook voor de
+>   ploeg en per renner. Vaste regels met het getal erbij; drempels in
+>   [zrl-analyse.md](docs/zrl-analyse.md). Platformnamen in plaats van de
+>   Zwift-namen waar het lid bekend is.
+> - **Wie wat ziet** (eigenaar, 2026-10-15): een lid alleen de eigen races
+>   (opstelling, of de eigen Zwift-ID in de bevroren uitslag); een captain of
+>   co-captain alle races van zijn teams, ook de subteams van een hoofdteam; wie
+>   uitslagen of rosters beheert alles. *Eerst zag elk teamlid alle races van
+>   het team; dat is vervangen.*
+> - **Pagina's:** vijfde pijler **racen** met `/zwbeter-worden/racen` (jouw races,
+>   als captain, andere teams) en
 >   `/zwbeter-worden/racen/[eventId]`, met twee nieuwe grafieken (voorsprong per
 >   tussenpunt; vermogen, hartslag en W′ in drie banden). Menu-item "Racen".
 > - `/hulp#racen` en `#racen-eigen-rit`, de hulpzoeker en de wegwijzer.
@@ -181,8 +192,8 @@ van de CORE-sensor, beide 2026-10-14).
 >
 > **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
 >
-> - Wie de ploeganalyse ziet: teamleden, de opstelling, wie in de race van het
->   team reed, en wie uitslagen of rosters beheert. De live stand blijft openbaar.
+> - Wie uitslagen of rosters beheert, ziet alle races (de eigenaar noemde alleen
+>   lid en captain). De live stand blijft openbaar.
 > - Geen FTP of trainingsdata van ploeggenoten in de ploeganalyse, dus geen %FTP
 >   per ploeggenoot; W/kg en de beste 20 minuten in plaats daarvan.
 > - Hartslag uit de uitslagrij niet bewaren (gezondheidsgegeven, ook van andere
@@ -202,7 +213,11 @@ van de CORE-sensor, beide 2026-10-14).
 > finishmoment en zonder hartslag), `zrl-analysis-ride.test.ts` (uitlijnen, NP,
 > CP-fit, W′-balans, stukken, curve, drift, cadans, activiteit bij de race met
 > zomer- en wintertijd) en `zrl-race-data-power.test.ts` (aanvullen één keer,
-> venster, niets bewaren bij een fout). `zwbeter-pillars.test.ts` kent racen.
+> venster, niets bewaren bij een fout), `zrl-analysis-advice.test.ts` (elke regel,
+> ook dat een renner die later loste op een eerdere klim meetelt en dat een klim
+> waar je bovenaan hersteld was geen tip geeft). `zwbeter-pillars.test.ts` kent
+> racen. Zichtbaarheid tegen productie gelezen: een lid ziet alleen eigen races,
+> de captain van ZRL B ziet B1, B2 en Bdev, die van ZRL A alleen ZRL A.
 > **Tegen productie gedraaid, schrijven geblokkeerd:** Bdev TTT 13-10 (dezelfde
 > cijfers als het handwerk: 1e van 8, +18,1 s op OTR, eigen rit op de watt gelijk,
 > uitlijning 15 s op de watt), Bdev W3 en Zwiftladies B W3 (puntenraces), ZRL C
