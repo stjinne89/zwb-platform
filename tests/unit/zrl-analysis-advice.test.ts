@@ -59,8 +59,27 @@ function ttt(): RaceAnalysis {
   };
 }
 
-function phase(name: string, climb: boolean, wbalEnd: number | null): RidePhase {
-  return { name, climb, from: 0, to: 100, avgWatts: 250, np: 260, intensity: 0.95, avgHeartRate: 170, maxHeartRate: 180, cadence: 80, wbalMin: wbalEnd, wbalEnd };
+function phase(name: string, climb: boolean, extra: Partial<RidePhase> = {}): RidePhase {
+  return {
+    name,
+    climb,
+    from: 0,
+    to: 266,
+    avgWatts: 280,
+    np: 290,
+    intensity: 1.05,
+    avgHeartRate: 175,
+    maxHeartRate: 182,
+    cadence: 80,
+    wbalMin: 40,
+    wbalEnd: 40,
+    wbalStart: 80,
+    halves: { first: 290, second: 285 },
+    emptyBeforeEnd: null,
+    recoveryAfter: null,
+    seasonBest: climb ? 330 : null,
+    ...extra,
+  };
 }
 
 function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
@@ -76,24 +95,26 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
     avgHeartRate: 174,
     maxHeartRate: 190,
     cadence: 72,
-    phases: [phase("Vlak 1", false, 50), phase("KOM 1", true, 17), phase("Vlak 2", false, 60), phase("KOM 2", true, 4), phase("Vlak 3", false, 30)],
+    phases: [phase("Vlak 1", false), phase("KOM 1", true), phase("Vlak 2", false)],
     best: [
-      { seconds: 600, watts: 279, at: 15, season: 301, share: 93 },
+      { seconds: 600, watts: 250, at: 400, season: 301, share: 83 },
       { seconds: 2400, watts: 256, at: 199, season: 273, share: 94 },
     ],
     cp: { cp: 275, wPrime: 13000 },
-    wbalMin: { share: -4, at: 594 },
+    wbalMin: { share: 0, at: 594 },
     drift: { first: 1.61, last: 1.38, change: -15 },
-    halves: { first: 265, second: 247 },
+    halves: { first: 265, second: 260 },
     cadenceAboveFtp: [
-      { from: 60, seconds: 212 },
-      { from: 70, seconds: 563 },
-      { from: 80, seconds: 294 },
+      { from: 60, seconds: 400 },
+      { from: 80, seconds: 100 },
     ],
     series: [],
     ...overrides,
   };
 }
+
+const withClimb = (climb: Partial<RidePhase>, extra: Partial<RideAnalysis> = {}) =>
+  ride({ phases: [phase("Vlak 1", false), phase("KOM 1", true, climb), phase("Vlak 2", false)], ...extra });
 
 describe("riderRaceAdvice", () => {
   it("noemt waar een geloste renner los kwam, en dat hij op een eerdere klim het meest trapte", () => {
@@ -122,52 +143,83 @@ describe("riderRaceAdvice", () => {
 });
 
 describe("rideAdvice", () => {
-  it("ziet een harde start, een lege W′ boven op een klim, drift en een lage cadans", () => {
-    const tips = rideAdvice(ride({ cadenceAboveFtp: [{ from: 60, seconds: 300 }, { from: 80, seconds: 300 }] }), 274);
-    expect(tips.map((t) => t.finding)).toEqual([
-      "Je hardste 10 minuten waren de eerste 10: 279 W, 102% van je FTP.",
-      "Boven op KOM 2 (4%) was je W′ op.",
-      "Je hartslag liep op: aan het eind 15% minder watt per slag dan aan het begin.",
-      "Boven je FTP trapte je 50% van de tijd onder 70 rpm.",
-    ]);
+  it("geeft geen tip voor een lege W′ op een klim die gelijkmatig gereden is", () => {
+    const empty = withClimb({ wbalEnd: 2, wbalMin: 0, emptyBeforeEnd: 10 });
+    for (const kind of ["race", "tt", "ttt"] as const) expect(rideAdvice(empty, 274, kind)).toEqual([]);
   });
 
-  it("noemt een klim niet als je bovenaan weer hersteld was, ook al was je onderweg leeg", () => {
-    const tips = rideAdvice(ride({ phases: [phase("KOM 1", true, 17), phase("Vlak", false, 60)] }), 274);
-    expect(tips.some((t) => t.finding.includes("W′ op"))).toBe(false);
+  it("geeft geen tips meer over hartslagdrift of cadans", () => {
+    expect(rideAdvice(ride(), 274, "race")).toEqual([]);
   });
 
-  it("zegt of je op je maximum reed of reserve had", () => {
-    const max = rideAdvice(ride({ best: [{ seconds: 2400, watts: 260, at: 0, season: 270, share: 96 }] }), 274);
-    expect(max.map((t) => t.finding)).toContain("Je reed op je maximum: je beste 40 min was 96% van je beste in 90 dagen.");
-    const reserve = rideAdvice(ride({ best: [{ seconds: 2400, watts: 220, at: 0, season: 270, share: 81 }] }), 274);
-    expect(reserve.map((t) => t.tip)).toContain("Er bleef reserve over: je kunt langere of hardere beurten aan.");
+  it("ziet een klim die te hard begon en ver voor de top leeg was, met een tip per soort race", () => {
+    const hard = withClimb({ halves: { first: 318, second: 251 }, emptyBeforeEnd: 146, wbalEnd: 0 });
+    const race = rideAdvice(hard, 274, "race");
+    expect(race[0].finding).toBe("Op KOM 1 ging je er te hard in: eerste helft 318 W, tweede helft 251 W, en 146 s voor de top was je W′ op.");
+    expect(race[0].tip).toBe("Begin de klim rond 285 W en zet pas aan op het laatste stuk; zo ben je boven nog bij de groep.");
+    expect(rideAdvice(hard, 274, "tt")[0].tip).toContain("gelijkmatig, rond 285 W");
+    expect(rideAdvice(hard, 274, "ttt")[0].tip).toContain("tempo van de ploeg, rond 285 W");
   });
 
-  it("geeft geen start-tip zonder FTP of als het hardste blok later kwam", () => {
-    expect(rideAdvice(ride(), null).some((t) => t.finding.startsWith("Je hardste 10"))).toBe(false);
-    const later = ride({ best: [{ seconds: 600, watts: 279, at: 900, season: 301, share: 93 }] });
-    expect(rideAdvice(later, 274).some((t) => t.finding.startsWith("Je hardste 10"))).toBe(false);
+  it("noemt een harde tweede helft of een korte lege fase niet als te hard begonnen", () => {
+    expect(rideAdvice(withClimb({ halves: { first: 300, second: 340 }, emptyBeforeEnd: 60 }), 274, "race")).toEqual([]);
+    expect(rideAdvice(withClimb({ halves: { first: 318, second: 251 }, emptyBeforeEnd: 15 }), 274, "race")).toEqual([]);
+  });
+
+  it("noemt een harde start alleen als je met weinig W′ aan de eerste klim begon", () => {
+    const start = { best: [{ seconds: 600, watts: 279, at: 15, season: 301, share: 93 }] };
+    const costly = rideAdvice(withClimb({ wbalStart: 47 }, start), 274, "ttt");
+    expect(costly[0].finding).toBe("Je begon op 102% van je FTP (279 W over de eerste 10 minuten) en kwam met 47% W′ aan de voet van KOM 1.");
+    expect(costly[0].tip).toContain("tempo van de ploeg");
+    expect(costly[0].rule).toBe("start");
+    expect(rideAdvice(withClimb({ wbalStart: 80 }, start), 274, "ttt")).toEqual([]);
+    expect(rideAdvice(withClimb({ wbalStart: 47 }, start), null, "ttt")).toEqual([]);
+  });
+
+  it("ziet in een ploegentijdrit lang herstel na een klim", () => {
+    const slow = withClimb({ recoveryAfter: 150 });
+    expect(rideAdvice(slow, 274, "ttt")[0]).toEqual({
+      finding: "Na KOM 1 duurde het 2:30 voor je W′ weer boven 25% stond.",
+      tip: "Spreek af dat je na KOM 1 één beurt overslaat en dat hardop meldt; een halve beurt kost de ploeg meer.",
+    });
+    expect(rideAdvice(slow, 274, "race")).toEqual([]);
+    expect(rideAdvice(withClimb({ recoveryAfter: 60 }), 274, "ttt")).toEqual([]);
+  });
+
+  it("ziet in een tijdrit een klim onder je eigen kunnen, maar alleen als je boven nog W′ had", () => {
+    const easy = withClimb({ np: 280, seasonBest: 330, wbalEnd: 40 });
+    expect(rideAdvice(easy, 274, "tt")[0].finding).toBe("Op KOM 1 reed je 280 W, 85% van je beste 4 min (330 W).");
+    expect(rideAdvice(easy, 274, "tt")[0].tip).toContain("richting 314 W");
+    expect(rideAdvice(easy, 274, "race")).toEqual([]);
+    expect(rideAdvice(withClimb({ np: 280, seasonBest: 330, wbalEnd: 10 }), 274, "tt")).toEqual([]);
+    expect(rideAdvice(withClimb({ np: 280, seasonBest: 330, emptyBeforeEnd: 30 }), 274, "tt")).toEqual([]);
+  });
+
+  it("noemt reserve alleen in een tijdrit of ploegentijdrit, met een doel uit de eigen curve", () => {
+    const reserve = ride({ best: [{ seconds: 2400, watts: 220, at: 0, season: 270, share: 81 }] });
+    expect(rideAdvice(reserve, 274, "tt").map((t) => t.tip)).toContain("Er zat meer in: mik op rond 257 W gemiddeld.");
+    expect(rideAdvice(reserve, 274, "ttt")[0].tip).toContain("richting 257 W");
+    expect(rideAdvice(reserve, 274, "race")).toEqual([]);
   });
 });
 
 describe("ownAdvice", () => {
-  it("zet de eigen rit voor de race en houdt het bij vier", () => {
+  it("zet de eigen rit voor de race en kiest de woorden van een ploegentijdrit", () => {
     const a = ttt();
-    const tips = ownAdvice(a, a.riders[3], ride(), 274);
-    expect(tips).toHaveLength(4);
-    expect(tips[0].finding).toContain("hardste 10 minuten");
-    expect(tips[3].finding).toBe("Op KOM 2 had je 324 W nodig om bij te blijven, het meeste van de ploeg.");
+    const hard = withClimb({ halves: { first: 318, second: 251 }, emptyBeforeEnd: 146 });
+    const tips = ownAdvice(a, a.riders[3], hard, 274);
+    expect(tips[0].tip).toContain("tempo van de ploeg");
+    expect(tips[1].finding).toBe("Op KOM 2 had je 324 W nodig om bij te blijven, het meeste van de ploeg.");
   });
 });
 
 describe("teamAdvice", () => {
-  it("noemt het grootste verlies en de grootste winst, en wie loste", () => {
+  it("noemt het grootste verlies en wie loste, en geen winst zonder iets om te doen", () => {
     const tips = teamAdvice(ttt());
     expect(tips[0].finding).toBe("Op het vlakke stuk naar Sprint verloor de ploeg 5,3 s op OTR.");
     expect(tips[0].tip).toContain("rotatie");
-    expect(tips[1].finding).toBe("Op het stuk naar KOM 2 won de ploeg 16,0 s op OTR.");
-    expect(tips[2].finding).toBe("Jeroen kwam op KOM 2 los van de ploeg; daarna mocht niemand meer lossen.");
+    expect(tips[1].finding).toBe("Jeroen kwam op KOM 2 los van de ploeg; daarna mocht niemand meer lossen.");
+    expect(tips).toHaveLength(2);
   });
 
   it("geeft in een puntenrace een tip als één renner de meeste punten pakte", () => {

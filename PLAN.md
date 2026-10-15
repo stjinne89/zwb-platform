@@ -134,6 +134,43 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **ZWBeter racen: tips minder generiek, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar: "Ik zie in de tips vaak terugkomende punten die niet
+> helemaal kloppen. In een wedstrijd is het logisch dat je op klimmen jezelf
+> leegtrapt [...] In een TT of ttt is dat mss anders, maar het is logisch dat je
+> w bal daar leeg raakt. Ik zou tips toch wat minder generiek willen."
+>
+> **Wat.** Een tip alleen bij een gevolg of een afwijking die bij het soort race
+> past (race, tijdrit, ploegentijdrit), met het getal erbij; regels en drempels in
+> [zrl-analyse.md](docs/zrl-analyse.md) onder Tips.
+>
+> - **Nieuw:** een klim te hard begonnen (tweede helft ≥12% lager en ≥20 s voor de
+>   top leeg), met een richtwaarde in watt; in een ploegentijdrit lang herstel na
+>   een klim (> 2 min tot 25% W′); in een tijdrit een klim onder 90% van het eigen
+>   beste over die duur, alleen als er boven nog W′ was. `ride.ts` geeft daarvoor
+>   per stuk de helften, de W′ aan het begin, hoe lang voor het eind de W′ op was,
+>   het herstel erna en het eigen beste over die duur (`curveAt`).
+> - **Strenger:** een harde start alleen als je met ≤60% W′ aan de eerste klim
+>   begon; reserve alleen in een tijdrit of ploegentijdrit. In een tijdrit gaan
+>   een te harde start en wegzakken samen in één tip.
+> - **Vervallen:** W′ op boven op een klim, "op je maximum", hartslagdrift, lage
+>   cadans, tijdverlies op de snelste van de groep met een trainingstip, en voor
+>   de captain "houd die aanpak vast". Drift, cadans en W′ staan nog in de details.
+>
+> **Getest.** `zrl-analysis-advice.test.ts` herschreven: elke regel, en wanneer er
+> géén tip komt (gelijkmatig leeg op een klim, een start zonder gevolg, reserve in
+> een race, harder op een klim waar je al leeg was). `zrl-analysis-personal.test.ts`
+> en `zrl-analysis-ride.test.ts` aangevuld. Op de eigen ritten van de eigenaar
+> (alleen lezen): ZRL-ploegentijdrit drie tips, FRR-race één, FRR-tijdrit één.
+>
+> **Niet meer waar.** De tipregels in de rondes "ZWBeter racen" en "voor elke
+> Zwift-race" hieronder zijn vervangen; `docs/zrl-analyse.md` is op zijn plek
+> aangepast.
+
+---
+
 > **ZWBeter racen voor elke Zwift-race: FRR, andere kalenderraces en een geplakte link, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `1853fad`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

@@ -54,6 +54,16 @@ export type RidePhase = {
   wbalMin: number | null;
   /** W′-balans aan het eind van dit stuk, in % van W′. */
   wbalEnd: number | null;
+  /** W′-balans aan het begin van dit stuk, in % van W′. */
+  wbalStart: number | null;
+  /** Gemiddeld vermogen in de eerste en de tweede helft van dit stuk. */
+  halves: { first: number; second: number } | null;
+  /** Zoveel seconden voor het eind was de W′ voor het eerst op (≤ 5%); null als dat niet gebeurde. */
+  emptyBeforeEnd: number | null;
+  /** Na dit stuk: zoveel seconden tot de W′ weer boven 25% stond; null als hij niet zo laag kwam of niet herstelde. */
+  recoveryAfter: number | null;
+  /** Eigen beste vermogen over deze duur (uit de curve), voor een klim. */
+  seasonBest: number | null;
 };
 
 export type RideBest = { seconds: number; watts: number; at: number; season: number | null; share: number | null };
@@ -89,6 +99,10 @@ export type RideAnalysis = {
 };
 
 export const BEST_DURATIONS = [60, 120, 180, 300, 600, 1200, 1800, 2400];
+/** W′ op of onder dit percentage: op. */
+export const EMPTY_SHARE = 5;
+/** Na een lege W′: hersteld vanaf dit percentage. */
+export const RECOVERED_SHARE = 25;
 const ALIGN_RANGE_S = 120;
 const SERIES_STEP_S = 10;
 
@@ -205,6 +219,22 @@ function bestAverage(watts: Array<number | null>, seconds: number): { watts: num
   return { watts: Math.round(best.watts), at: best.at };
 }
 
+/** Beste vermogen over een duur, lineair tussen de punten van de curve; null buiten de curve. */
+export function curveAt(curve: CurvePoint[], seconds: number): number | null {
+  const points = [...curve].filter((p) => p.watts > 0).sort((a, b) => a.seconds - b.seconds);
+  if (points.length === 0 || seconds < points[0].seconds || seconds > points[points.length - 1].seconds) return null;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.seconds === seconds) return p.watts;
+    const next = points[i + 1];
+    if (next && seconds > p.seconds && seconds < next.seconds) {
+      const f = (seconds - p.seconds) / (next.seconds - p.seconds);
+      return Math.round(p.watts + f * (next.watts - p.watts));
+    }
+  }
+  return null;
+}
+
 /** Stukken van de race: vlak tussen de klimmen, de klimmen zelf. */
 export function ridePhases(anchors: RideAnchor[], finish: number): Array<{ name: string; climb: boolean; from: number; to: number }> {
   const climbs = anchors
@@ -239,6 +269,31 @@ export function analyseRide(input: RideInput): RideAnalysis {
   const share = (j: number) => (cp ? Math.round((100 * j) / cp.wPrime) : 0);
 
   const phases: RidePhase[] = ridePhases(input.anchors, input.finish).map((phase) => {
+    const startIndex = Math.round(Math.max(phase.from, first < 0 ? 0 : first));
+    const endIndex = Math.round(phase.to);
+    const middleIndex = Math.round((startIndex + endIndex) / 2);
+    const part = (a: number, b: number) => watts.slice(a, b).flatMap((v) => (v == null ? [] : [v]));
+    const firstPart = part(startIndex, middleIndex);
+    const secondPart = part(middleIndex, endIndex);
+    let emptyAt: number | null = null;
+    let recovered: number | null = null;
+    if (wbal && cp) {
+      for (let r = startIndex; r < endIndex && r < wbal.length; r++) {
+        if (share(wbal[r]) <= EMPTY_SHARE) {
+          emptyAt = r;
+          break;
+        }
+      }
+      const endShare = share(wbal[Math.min(wbal.length - 1, endIndex)]);
+      if (endShare < RECOVERED_SHARE) {
+        for (let r = endIndex; r < wbal.length; r++) {
+          if (share(wbal[r]) >= RECOVERED_SHARE) {
+            recovered = r - endIndex;
+            break;
+          }
+        }
+      }
+    }
     const from = Math.max(phase.from, first < 0 ? 0 : first);
     const range = (list: Array<number | null>) => list.slice(Math.round(from), Math.round(phase.to)).flatMap((v) => (v == null || v <= 0 ? [] : [v]));
     const w = watts.slice(Math.round(from), Math.round(phase.to)).flatMap((v) => (v == null ? [] : [v]));
@@ -258,6 +313,11 @@ export function analyseRide(input: RideInput): RideAnalysis {
       cadence: c.length ? Math.round(mean(c)) : null,
       wbalMin: low === null || !Number.isFinite(low) ? null : share(low),
       wbalEnd: end === null || end === undefined ? null : share(end),
+      wbalStart: wbal ? share(wbal[Math.min(wbal.length - 1, startIndex)]) : null,
+      halves: firstPart.length >= 30 && secondPart.length >= 30 ? { first: Math.round(mean(firstPart)), second: Math.round(mean(secondPart)) } : null,
+      emptyBeforeEnd: emptyAt === null ? null : endIndex - emptyAt,
+      recoveryAfter: recovered,
+      seasonBest: phase.climb ? curveAt(input.curve, endIndex - startIndex) : null,
     };
   });
 

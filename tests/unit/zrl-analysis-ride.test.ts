@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   alignRide,
   analyseRide,
+  curveAt,
   fitCriticalPower,
   normalizedPower,
   ridePhases,
@@ -167,5 +168,24 @@ describe("activiteit bij de race", () => {
     );
     expect(pick?.id).toBe("i2");
     expect(pickRaceActivity([{ id: "i4", type: "Ride", start_date_local: "2026-10-13T22:30:00" }], start)).toBeNull();
+  });
+});
+
+describe("klimdetails per stuk", () => {
+  const ride = analyseRide({ streams: raceStreams(), startOffset: 15, finish: 1200, anchors: ANCHORS, ftp: 250, curve: CURVE });
+
+  it("geeft per klim de helften, de W′ aan het begin en het eigen beste over die duur", () => {
+    const climb = ride.phases[1];
+    expect(climb.halves).toEqual({ first: 350, second: 350 });
+    expect(climb.wbalStart).toBeGreaterThan(95);
+    expect(climb.seasonBest).toBe(curveAt(CURVE, 200));
+    expect(ride.phases[0].seasonBest).toBeNull();
+  });
+
+  it("leest de curve tussen twee punten lineair, en niets erbuiten", () => {
+    expect(curveAt(CURVE, 180)).toBe(CURVE.find((p) => p.seconds === 180)!.watts);
+    expect(curveAt(CURVE, 200)).toBe(356);
+    expect(curveAt(CURVE, 30)).toBeNull();
+    expect(curveAt([], 200)).toBeNull();
   });
 });

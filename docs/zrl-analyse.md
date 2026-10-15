@@ -86,9 +86,10 @@ koppelen als het lid de link geeft. SRC rijdt op MyWhoosh en valt erbuiten.
   tijdsloten (uit `frr_stage_results`) en de eigen plek in het klassement van
   FRR (`frr_gc_standings`).
 - **Tips voor een individuele race** (`personalAdvice`): in een tijdrit
-  wegzakken (de tweede helft 5% of meer onder de eerste) of sterker eindigen,
-  en de klim met het meeste verlies op de snelste (vanaf 10 s); in een race het
-  relatief beste segment. De tips uit het eigen bestand zonder ploegwoorden.
+  wegzakken (de tweede helft 5% of meer onder de eerste) of sterker eindigen;
+  in een race het relatief beste segment. De tips uit het eigen bestand met de
+  woorden van het soort race. *(Eerst ook de klim met het meeste verlies op de
+  snelste; vervallen, zie Tips hieronder.)*
 - **Een geplakte link** (`/zwbeter-worden/racen/zwift/[id]`): staat de race in
   de kalender, dan naar die race; anders eerst event en uitslag, en de
   segmenten pas als het lid in de uitslag staat. Zo laat een lid het
@@ -113,18 +114,30 @@ niet reed (geen toegang; alleen event en uitslag opgehaald, geen segmenten).
   ook de subteams van een hoofdteam (de captains staan bij "ZRL B", niet bij
   Bdev), met tips voor de ploeg en per renner. Wie uitslagen of rosters beheert
   ziet alles. De live stand is openbaar, maar vermogen per renner niet.
-- **Tips** (`advice.ts`): vaste regels met het getal erbij. Voor de renner uit
-  het eigen bestand: harde start (het hardste blok van 10 minuten begon bij de
-  start en lag op of boven de FTP), W′ op (≤10%) boven op een klim met vlak erna,
-  op het maximum (≥95% van de 90-dagencurve over 40 min) of reserve (≤85%),
-  hartslagdrift (≤−10% watt per slag) en lage cadans (≥25% van de tijd boven
-  de FTP onder 70 rpm). Uit de race: waar een geloste renner los kwam (15 s
+- **Tips** (`advice.ts`): vaste regels met het getal erbij. *Bijgesteld
+  2026-10-15 na de opmerking van de eigenaar dat leegrijden op een klim in een
+  race normaal is: een tip alleen bij een gevolg of een afwijking die bij het
+  soort race past.* Voor de renner uit het eigen bestand, per soort race (race,
+  tijdrit, ploegentijdrit): een klim te hard begonnen (klim ≥ 90 s, tweede helft
+  ≥12% lager dan de eerste, en ≥20 s voor de top W′ ≤5%); een harde start alleen
+  als hij iets kostte (hardste 10 minuten bij de start ≥ FTP en ≤60% W′ aan de
+  voet van de eerste klim); in een ploegentijdrit herstel na een klim langer dan
+  2 minuten tot 25% W′; in een tijdrit een klim onder 90% van het eigen beste
+  over die duur, alleen als er boven nog ≥25% W′ was; reserve (≤85% van de
+  90-dagencurve over 40 min) alleen in een tijdrit of ploegentijdrit, met een
+  doel van 95% van dat beste. Vervallen: W′ op boven op een klim, "op je
+  maximum", hartslagdrift en lage cadans (normaal of persoonlijk; ze staan nog
+  in de details), en voor de captain "houd die aanpak vast" (niets om te
+  doen). In een tijdrit gaan een te harde start en wegzakken samen in één tip;
+  tijdverlies op de snelste van de groep is geen tip meer (dat zegt niets over
+  de eigen verdeling). Uit de race: waar een geloste renner los kwam (15 s
   trager dan de ploeg over een klim), wie op een klim het meeste vermogen nodig
   had van wie die klim met de ploeg reed, in een puntenrace het beste segment,
   en geschat vermogen. Voor de captain: het grootste verlies en de grootste
   winst per stuk (vanaf 2 s), wie loste, en in een puntenrace of één renner
-  40% of meer van de punten pakte. Tegen het handwerkrapport gelegd: dezelfde
-  conclusies, behalve die over het plan en de kopbeurten.
+  40% of meer van de punten pakte. Op de eigen ritten van de eigenaar nagelopen
+  (ZRL-ploegentijdrit, FRR-race, FRR-tijdrit): drie, één en één tip, zonder
+  tegenspraak.
 - **Alleen Zwift-data in de ploeganalyse.** Geen FTP of trainingsdata van
   ploeggenoten: die zijn privé (RLS laat ze alleen aan lid en trainer zien). Zo
   is er geen %FTP per ploeggenoot; W/kg en de beste 20 minuten nemen die plaats in.

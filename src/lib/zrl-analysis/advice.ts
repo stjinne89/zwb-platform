@@ -8,31 +8,38 @@
 
 import type { RaceAnalysis, RiderAnalysis } from "@/lib/zrl-analysis/race";
 import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
-import type { PersonalRace } from "@/lib/zrl-analysis/personal";
-import { durationLabel } from "@/lib/zrl-analysis/format";
+import type { PersonalRace, RaceKind } from "@/lib/zrl-analysis/personal";
+import { durationLabel, raceClock as clock } from "@/lib/zrl-analysis/format";
 
 export type Advice = {
   /** Wat de data laat zien. */
   finding: string;
   /** Wat je volgende keer kunt doen. */
   tip: string;
+  /** Welke regel; om twee tips over hetzelfde samen te voegen. Niet getoond. */
+  rule?: "start" | "fade";
 };
 
 /** Zo veel seconden langer dan de ploeg over een klim: daar loste de renner. */
 export const DROP_ON_CLIMB_S = 15;
-/** W′ op of onder dit percentage na een klim: leeg. */
-export const EMPTY_WBAL = 10;
-/** Beste lange inspanning in de race tegenover de 90-dagencurve. */
-export const AT_LIMIT_SHARE = 95;
+/** Beste lange inspanning in een (ploegen)tijdrit tegenover de 90-dagencurve: zo laag is reserve. */
 export const RESERVE_SHARE = 85;
-/** Watt per hartslag zoveel procent lager aan het eind: duidelijke drift. */
-export const DRIFT_PERCENT = -10;
-/** Deel van de seconden boven de FTP onder 70 rpm. */
-export const LOW_CADENCE_SHARE = 25;
 /** Zoveel procent lager in de tweede helft van een tijdrit: te hard begonnen. */
 export const FADE_PERCENT = 5;
-/** Zoveel seconden verloren op de snelste van de groep over één klim: de moeite van een tip waard. */
-export const CLIMB_LOSS_S = 10;
+/** Een klim van minstens zo lang (s) kan te hard begonnen zijn. */
+export const CLIMB_MIN_S = 90;
+/** De tweede helft van een klim zoveel lager dan de eerste: te hard begonnen. */
+export const FRONT_LOADED_SHARE = 0.12;
+/** ...en zo ver voor de top (s) al leeg. */
+export const EMPTY_BEFORE_TOP_S = 20;
+/** Ploegentijdrit: zo lang (s) na een klim onder 25% W′ kost beurten. */
+export const TTT_RECOVERY_S = 120;
+/** Met zo weinig W′ (%) aan de voet van de eerste klim kostte de start iets. */
+export const START_FOOT_WBAL = 60;
+/** Tijdrit: een klim onder dit deel van je beste over die duur liet vermogen liggen. */
+export const TT_CLIMB_SHARE = 90;
+/** ...mits er boven op die klim nog zoveel W′ (%) over was. */
+export const TT_CLIMB_WBAL_LEFT = 25;
 /** Zo laat mag het hardste blok van 10 minuten beginnen om als "de start" te tellen. */
 const START_WINDOW_S = 120;
 /** Zoveel tips per lijst. */
@@ -134,68 +141,101 @@ export function riderRaceAdvice(analysis: RaceAnalysis, rider: RiderAnalysis): A
 }
 
 /**
- * Tips uit het eigen bestand per seconde; alleen voor de renner zelf. `solo`:
- * een individuele race, zonder ploeg om op te wachten of over te nemen.
+ * Tips uit het eigen bestand per seconde; alleen voor de renner zelf.
+ *
+ * Een lege W′ op een klim is in een race normaal: daar maak je het verschil of
+ * blijf je erbij (eigenaar, 2026-10-15). Een tip komt er pas als de data een
+ * gevolg of een afwijking laat zien die bij dit soort race past: te hard aan
+ * een klim begonnen en ver voor de top stilgevallen, een start die je W′ kostte
+ * voor de eerste klim, lang herstel na een klim in een ploegentijdrit, of in een
+ * tijdrit vermogen dat je liet liggen.
  */
-export function rideAdvice(ride: RideAnalysis, ftp: number | null, solo = false): Advice[] {
+export function rideAdvice(ride: RideAnalysis, ftp: number | null, kind: RaceKind): Advice[] {
   const advice: Advice[] = [];
+  const climbs = ride.phases.filter((p) => p.climb && p.to - p.from >= CLIMB_MIN_S);
+  const firstClimb = ride.phases.find((p) => p.climb);
 
+  // De start, alleen als die je iets kostte: weinig W′ aan de voet van de eerste klim.
   const tenMin = ride.best.find((b) => b.seconds === 600);
-  if (ftp && tenMin && tenMin.at <= ride.missingStart + START_WINDOW_S && tenMin.watts >= ftp) {
+  if (
+    ftp &&
+    tenMin &&
+    tenMin.at <= ride.missingStart + START_WINDOW_S &&
+    tenMin.watts >= ftp &&
+    firstClimb?.wbalStart != null &&
+    firstClimb.wbalStart <= START_FOOT_WBAL
+  ) {
+    const pct = Math.round((100 * tenMin.watts) / ftp);
     advice.push({
-      finding: `Je hardste 10 minuten waren de eerste 10: ${tenMin.watts} W, ${Math.round((100 * tenMin.watts) / ftp)}% van je FTP.`,
-      tip: solo
-        ? "Begin een paar procent rustiger; wat je in de start wint, verlies je later dubbel."
-        : "Rij de start op het tempo van de ploeg en niet erboven; dat spaart je voor de eerste klim.",
+      rule: "start",
+      finding: `Je begon op ${pct}% van je FTP (${tenMin.watts} W over de eerste 10 minuten) en kwam met ${firstClimb.wbalStart}% W′ aan de voet van ${firstClimb.name}.`,
+      tip:
+        kind === "race"
+          ? `Rij de start in het wiel en zo zuinig als kan; aan de voet van ${firstClimb.name} wil je je W′ vol hebben.`
+          : kind === "tt"
+            ? `Begin een paar procent rustiger; dan heb je je W′ voor ${firstClimb.name}.`
+            : `Rij de start op het tempo van de ploeg en niet erboven; dan heb je je W′ voor ${firstClimb.name}.`,
     });
   }
 
-  // Leeg boven op een klim waarna nog vlak volgt: dan komt de eerste beurt te vroeg.
-  const empty = ride.phases.filter(
-    (phase, i) => phase.climb && phase.wbalEnd !== null && phase.wbalEnd <= EMPTY_WBAL && ride.phases[i + 1] && !ride.phases[i + 1].climb,
-  );
-  if (empty.length > 0) {
+  // Een klim te hard begonnen: de tweede helft duidelijk lager, en ver voor de top leeg.
+  const paced = new Set<string>();
+  for (const climb of climbs) {
+    if (!climb.halves || climb.emptyBeforeEnd === null || climb.emptyBeforeEnd < EMPTY_BEFORE_TOP_S) continue;
+    const { first, second } = climb.halves;
+    if (second > first * (1 - FRONT_LOADED_SHARE)) continue;
+    paced.add(climb.name);
+    const even = Math.round((first + second) / 2);
     advice.push({
-      finding: `Boven op ${empty.map((p) => `${p.name} (${p.wbalEnd}%)`).join(" en ")} was je W′ op.`,
-      tip: solo
-        ? "Doseer de klim iets: met een lege W′ verlies je daarna op het vlak meer dan je op de klim won."
-        : "Neem na de klim niet als eerste over; laat je zakken tot je weer kunt.",
+      finding: `Op ${climb.name} ging je er te hard in: eerste helft ${first} W, tweede helft ${second} W, en ${climb.emptyBeforeEnd} s voor de top was je W′ op.`,
+      tip:
+        kind === "race"
+          ? `Begin de klim rond ${even} W en zet pas aan op het laatste stuk; zo ben je boven nog bij de groep.`
+          : kind === "tt"
+            ? `Rij de klim gelijkmatig, rond ${even} W: dat is sneller dan hard beginnen en boven stilvallen.`
+            : `Rij de klim op het tempo van de ploeg, rond ${even} W, en niet erboven in het begin.`,
     });
   }
 
-  const long = ride.best.find((b) => b.seconds === 2400 && b.share !== null) ?? ride.best.find((b) => b.seconds === 1200 && b.share !== null);
-  if (long?.share != null) {
-    if (long.share >= AT_LIMIT_SHARE) {
+  // Ploegentijdrit: lang herstel na een klim betekent beurten die je niet kunt rijden.
+  if (kind === "ttt") {
+    ride.phases.forEach((climb, i) => {
+      const next = ride.phases[i + 1];
+      if (!climb.climb || !next || next.climb || climb.recoveryAfter === null || climb.recoveryAfter < TTT_RECOVERY_S) return;
       advice.push({
-        finding: `Je reed op je maximum: je beste ${durationLabel(long.seconds)} was ${long.share}% van je beste in 90 dagen.`,
-        tip: solo
-          ? "Harder zat er niet in; winst zit in hoe je je krachten verdeelt."
-          : "Een zwaarder plan zit er nu niet in. Laat je kopbeurten op dit niveau plannen, niet hoger.",
+        finding: `Na ${climb.name} duurde het ${clock(climb.recoveryAfter)} voor je W′ weer boven 25% stond.`,
+        tip: `Spreek af dat je na ${climb.name} één beurt overslaat en dat hardop meldt; een halve beurt kost de ploeg meer.`,
       });
-    } else if (long.share <= RESERVE_SHARE) {
+    });
+  }
+
+  // Tijdrit: op een klim win je per watt de meeste tijd; liet je daar vermogen liggen?
+  if (kind === "tt") {
+    for (const climb of climbs) {
+      // Alleen als er boven nog W′ over was: wie al leeg was, kon er niet harder.
+      if (paced.has(climb.name) || !climb.seasonBest || climb.emptyBeforeEnd !== null || (climb.wbalEnd ?? 0) < TT_CLIMB_WBAL_LEFT) continue;
+      const share = Math.round((100 * climb.np) / climb.seasonBest);
+      if (share >= TT_CLIMB_SHARE) continue;
       advice.push({
-        finding: `Je beste ${durationLabel(long.seconds)} was ${long.share}% van je beste in 90 dagen.`,
-        tip: solo
-          ? "Er bleef reserve over: je kunt eerder of harder doorzetten."
-          : "Er bleef reserve over: je kunt langere of hardere beurten aan.",
+        finding: `Op ${climb.name} reed je ${climb.np} W, ${share}% van je beste ${durationLabel(Math.round(climb.to - climb.from))} (${climb.seasonBest} W).`,
+        tip: `In een tijdrit win je op de klim de meeste tijd per watt: zet daar harder aan, richting ${Math.round(climb.seasonBest * 0.95)} W, en herstel op het stuk erna.`,
       });
     }
   }
 
-  if (ride.drift && ride.drift.change <= DRIFT_PERCENT) {
-    advice.push({
-      finding: `Je hartslag liep op: aan het eind ${Math.abs(ride.drift.change)}% minder watt per slag dan aan het begin.`,
-      tip: "Zorg voor koeling en drink tijdens de race.",
-    });
-  }
-
-  const above = ride.cadenceAboveFtp.reduce((s, c) => s + c.seconds, 0);
-  const low = ride.cadenceAboveFtp.filter((c) => c.from < 70).reduce((s, c) => s + c.seconds, 0);
-  if (above >= 120 && (100 * low) / above >= LOW_CADENCE_SHARE) {
-    advice.push({
-      finding: `Boven je FTP trapte je ${Math.round((100 * low) / above)}% van de tijd onder 70 rpm.`,
-      tip: "Probeer op de klim een lichter verzet; train het met blokken op hogere cadans.",
-    });
+  // Reserve telt alleen in een tijdrit of ploegentijdrit; in een race kan wachten tactiek zijn.
+  if (kind !== "race") {
+    const long = ride.best.find((b) => b.seconds === 2400 && b.share !== null) ?? ride.best.find((b) => b.seconds === 1200 && b.share !== null);
+    if (long?.share != null && long.season && long.share <= RESERVE_SHARE) {
+      const target = Math.round(long.season * 0.95);
+      advice.push({
+        finding: `Je beste ${durationLabel(long.seconds)} was ${long.watts} W, ${long.share}% van je beste in 90 dagen (${long.season} W).`,
+        tip:
+          kind === "tt"
+            ? `Er zat meer in: mik op rond ${target} W gemiddeld.`
+            : `Er zat meer in: je kunt langere of hardere beurten aan, richting ${target} W over de race.`,
+      });
+    }
   }
 
   return advice;
@@ -207,11 +247,16 @@ export function rideAdvice(ride: RideAnalysis, ftp: number | null, solo = false)
  */
 export function personalAdvice(race: PersonalRace, ride: RideAnalysis | null, ftp: number | null): Advice[] {
   const advice: Advice[] = [];
+  const fromRide = ride ? rideAdvice(ride, ftp, race.kind) : [];
   if (race.kind === "tt" && ride?.halves) {
     const { first, second } = ride.halves;
     const change = Math.round((100 * (second - first)) / first);
-    if (change <= -FADE_PERCENT) {
+    const start = fromRide.find((a) => a.rule === "start");
+    if (change <= -FADE_PERCENT && start) {
+      start.finding += ` In de tweede helft zakte je ${Math.abs(change)}% weg (${first} → ${second} W).`;
+    } else if (change <= -FADE_PERCENT) {
       advice.push({
+        rule: "fade",
         finding: `Eerste helft ${first} W, tweede helft ${second} W: je zakte ${Math.abs(change)}% weg.`,
         tip: "Begin een paar procent lager; in een tijdrit is een gelijkmatig tempo het snelst.",
       });
@@ -221,13 +266,6 @@ export function personalAdvice(race: PersonalRace, ride: RideAnalysis | null, ft
         tip: "Er zat meer in de eerste helft; begin iets harder.",
       });
     }
-  }
-  const climbLoss = race.segmentLoss.filter((s) => s.kind === "klim").sort((a, b) => b.loss - a.loss)[0];
-  if (race.kind === "tt" && climbLoss && climbLoss.loss >= CLIMB_LOSS_S) {
-    advice.push({
-      finding: `Op ${climbLoss.name} verloor je ${nl1.format(climbLoss.loss)} s op de snelste van je groep.`,
-      tip: `Daar ligt de meeste tijd: train blokken van ${durationLabel(Math.round(climbLoss.elapsed))} op klimtempo.`,
-    });
   }
   if (race.kind === "race") {
     const best = [...race.rider.segments].filter((s) => s.kind !== "segment").sort((a, b) => a.rank / a.of - b.rank / b.of)[0];
@@ -244,12 +282,12 @@ export function personalAdvice(race: PersonalRace, ride: RideAnalysis | null, ft
       tip: "Rij met een vermogensmeter of smart trainer, anders kloppen je wattages niet.",
     });
   }
-  return [...(ride ? rideAdvice(ride, ftp, true) : []), ...advice].slice(0, MAX_TIPS);
+  return [...fromRide, ...advice].slice(0, MAX_TIPS);
 }
 
 /** Tips voor de renner zelf: eerst uit het eigen bestand, dan uit de race. */
 export function ownAdvice(analysis: RaceAnalysis, rider: RiderAnalysis | null, ride: RideAnalysis | null, ftp: number | null): Advice[] {
-  const fromRide = ride ? rideAdvice(ride, ftp) : [];
+  const fromRide = ride ? rideAdvice(ride, ftp, analysis.format === "ttt" ? "ttt" : "race") : [];
   const fromRace = rider ? riderRaceAdvice(analysis, rider) : [];
   return [...fromRide, ...fromRace].slice(0, MAX_TIPS);
 }
@@ -260,7 +298,6 @@ export function teamAdvice(analysis: RaceAnalysis): Advice[] {
   const rival = analysis.rival?.label;
   if (analysis.format === "ttt" && rival && analysis.sections.length > 1) {
     const worst = [...analysis.sections].sort((a, b) => a.versusRival - b.versusRival)[0];
-    const best = [...analysis.sections].sort((a, b) => b.versusRival - a.versusRival)[0];
     const to = (name: string) => name.replace(/^.*→ /, "");
     if (worst.versusRival <= -2000) {
       advice.push(
@@ -274,12 +311,6 @@ export function teamAdvice(analysis: RaceAnalysis): Advice[] {
               tip: "Daar zit winst in de rotatie: snellere overnames en kopbeurten die iedereen volhoudt.",
             },
       );
-    }
-    if (best.versusRival >= 2000) {
-      advice.push({
-        finding: `Op het stuk naar ${to(best.name)} won de ploeg ${sec(best.versusRival)} op ${rival}.`,
-        tip: "Houd die aanpak vast voor de volgende race.",
-      });
     }
   }
   for (const rider of analysis.riders.filter((r) => r.dropped)) {

@@ -175,12 +175,26 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
 }
 
 describe("personalAdvice", () => {
-  it("ziet in een tijdrit wegzakken en tijdverlies op een klim", () => {
+  it("ziet in een tijdrit wegzakken", () => {
     const r = analysePersonalRace(race(), 1, NAMES, "tt")!;
     const tips = personalAdvice(r, ride(), 274);
     expect(tips[0].finding).toBe("Eerste helft 270 W, tweede helft 240 W: je zakte 11% weg.");
-    expect(tips[1].finding).toBe("Op Zwift KOM Reverse verloor je 18,0 s op de snelste van je groep.");
-    expect(tips[1].tip).toContain("blokken van 5 min");
+    // Tijdverlies op de snelste is geen tip meer: dat zegt niets over je eigen verdeling.
+    expect(tips).toHaveLength(1);
+  });
+
+  it("voegt wegzakken bij een te harde start samen tot één tip", () => {
+    const r = analysePersonalRace(race(), 1, NAMES, "tt")!;
+    const start = ride({
+      best: [{ seconds: 600, watts: 300, at: 0, season: 310, share: 97 }],
+      phases: [
+        { name: "Vlak 1", climb: false, from: 0, to: 400, avgWatts: 300, np: 300, intensity: 1.09, avgHeartRate: 170, maxHeartRate: 175, cadence: 90, wbalMin: 30, wbalEnd: 30, wbalStart: 100, halves: null, emptyBeforeEnd: null, recoveryAfter: null, seasonBest: null },
+        { name: "KOM 1", climb: true, from: 400, to: 530, avgWatts: 340, np: 344, intensity: 1.25, avgHeartRate: 180, maxHeartRate: 185, cadence: 80, wbalMin: 0, wbalEnd: 0, wbalStart: 28, halves: null, emptyBeforeEnd: 50, recoveryAfter: null, seasonBest: 395 },
+      ],
+    });
+    const tips = personalAdvice(r, start, 274);
+    expect(tips).toHaveLength(1);
+    expect(tips[0].finding).toBe("Je begon op 109% van je FTP (300 W over de eerste 10 minuten) en kwam met 28% W′ aan de voet van KOM 1. In de tweede helft zakte je 11% weg (270 → 240 W).");
   });
 
   it("noemt in een tijdrit een sterkere tweede helft", () => {
@@ -197,11 +211,10 @@ describe("personalAdvice", () => {
     expect(tips[0].tip).toBe("Daar ben je sterk: zit voor een klim vooraan in de groep.");
   });
 
-  it("gebruikt in een individuele race geen ploegwoorden", () => {
+  it("geeft in een race geen reserve-tip en geen ploegwoorden", () => {
     const r = analysePersonalRace(race(), 1, NAMES, "race")!;
-    const tips = personalAdvice(r, ride({ best: [{ seconds: 600, watts: 290, at: 0, season: 300, share: 97 }, { seconds: 2400, watts: 200, at: 0, season: 270, share: 74 }] }), 274);
+    const tips = personalAdvice(r, ride({ best: [{ seconds: 2400, watts: 200, at: 0, season: 270, share: 74 }] }), 274);
     const text = tips.map((t) => t.tip).join(" ");
-    expect(text).not.toMatch(/ploeg|beurt/);
-    expect(text).toContain("Er bleef reserve over: je kunt eerder of harder doorzetten.");
+    expect(text).not.toMatch(/ploeg|beurt|reserve|meer in/);
   });
 });

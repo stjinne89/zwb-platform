@@ -3275,14 +3275,18 @@ Fitness-status: Verbeterend`}
         <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">De tips</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Elke tip volgt uit een vaste regel en noemt het getal waarop hij
-            steunt: waar je loste, op welke klim je het meeste vermogen nodig
-            had, of je W′ boven op een klim op was, of je start harder was dan
-            je FTP, en hoe dicht je bij je eigen beste van 90 dagen zat. In
-            een tijdrit kijkt de app ook of je in de tweede helft wegzakte en
-            op welke klim je de meeste tijd verloor op de snelste van je groep.
-            Het plan uit de TTT Planner en de kopbeurten uit de TTT-bot
-            gebruiken de tips niet; daar zeggen ze dus niets over.
+            Een tip komt er alleen als de data een gevolg of een afwijking
+            laat zien die bij het soort race past, en hij noemt het getal
+            waarop hij steunt. Leegrijden op een klim is in een race normaal;
+            een tip komt er pas als je de klim te hard begon en ver voor de top
+            stilviel, of als een harde start je W′ kostte voor de eerste klim.
+            In een ploegentijdrit kijkt de app ook hoe lang je na een klim
+            nodig had om te herstellen, waar je loste en op welke klim je het
+            meeste vermogen nodig had. In een tijdrit: of je wegzakte in de
+            tweede helft, of je een klim onder je eigen kunnen reed terwijl je
+            boven nog W′ had, en of er reserve overbleef tegenover je beste van
+            90 dagen. Het plan uit de TTT Planner en de kopbeurten uit de
+            TTT-bot gebruiken de tips niet; daar zeggen ze dus niets over.
           </p>
         </div>
 
