@@ -53,9 +53,10 @@ in `bronnen.md` wat lukte en wat niet.
    - `team_event_lineups` voor dat event en team: de opstelling (`slot`, `role`,
      `note`) met de `profiles` erbij (naam, `zwift_id`). Dat is "de planning" van
      wie er zou rijden.
-   - `ttt_plans` voor dat event (`api_response`, `export_snapshot`): alleen als
-     de planner van het platform is gebruikt. Op 13 oktober kwam het plan uit
-     ZwiftGopher.
+   - `ttt_plans` voor dat event, met de renners in `ttt_plan_riders`. Sinds
+     2026-10-15 importeert de TTT Planner daar een ZwiftGopher-plan
+     (`api_response.source = "zwiftgopher"`; kopbeurt-watts en -duur, FTP en IF
+     per renner). Op 13 oktober kwam het plan nog rechtstreeks uit ZwiftGopher.
    - `zrl_race_snapshots` met `zwift_event_id`: de bevroren ruwe Zwift-data
      (startlijst, uitslag, segmentpassages; vorm `RaceData` in
      `src/lib/zrl-live/snapshot.ts`). Kan ontbreken: of de freeze-job draait is
@@ -83,7 +84,7 @@ in `bronnen.md` wat lukte en wat niet.
      (`sensorData.heartRateData.avgHeartRate`). Het type meter is belangrijk
      voor de kwaliteit: zPower meet niet. De ploeganalyse zelf staat sinds
      2026-10-15 in de app (ZWBeter racen, `src/lib/zrl-analysis/`); deze skill
-     blijft voor wat de app niet kan: het botlogboek en de ZwiftGopher-plannen.
+     blijft voor wat de app niet kan: het botlogboek en plan tegenover uitvoering.
    - Segmentpassages per segment van de route (`routeSegments` in
      `src/lib/zwift/route-segments.ts`, `fetchSegmentResults` met `from`/`to`
      rond de race en `athleteId` per renner): tijd, **gemiddeld vermogen** en
@@ -106,7 +107,8 @@ in `bronnen.md` wat lukte en wat niet.
    - `vrij rijden aan` / `vrij rijden uit`: de klimmen, waar geen rotatie gold.
    - `zegt <zin>`: wat de ploeg echt hoorde.
 
-4. **ZwiftGopher-plannen.** Vraag de eigenaar om de links van Export JSON voor
+4. **ZwiftGopher-plannen.** Staat het plan niet geïmporteerd in `ttt_plans`
+   (stap 1), vraag de eigenaar dan om de links van Export JSON voor
    deel 1 en deel 2 (`…/TTT/?save=<blob>`, met `&json=true` krijg je JSON; vorm
    in `parseGopherPlan`, `bot/src/plan.ts`). Daarin staan per renner de volgorde,
    het kopvermogen en de kopduur, en de doelsnelheid op het vlakke. Zonder de

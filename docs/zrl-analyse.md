@@ -19,7 +19,7 @@ De bronnen van het rapport, en of ze in de app bruikbaar zijn:
 | Segmentresultaten van Zwift | vermogen en gewicht per passage | ja, idem |
 | Tussentijden per ploeg (`scoreRace`, `splits`) | winst en verlies per stuk | ja, bestond al voor de live stand |
 | Botlogboek (`bot/.cache/ttt-*.log`) | kopbeurten, overname, wattmeldingen | **nee**: staat alleen op de pc waar de bot draait |
-| ZwiftGopher-plannen | plan per renner, verwisseling deel 1/2 | **nee**: alleen als link in de bot, niet opgeslagen |
+| ZwiftGopher-plannen | plan per renner, verwisseling deel 1/2 | sinds 2026-10-15 te importeren in de TTT Planner (`ttt_plans`); de analyse gebruikt ze nog niet |
 | Bestand per seconde (intervals.icu) | NP, W′-balans, hartslagdrift, cadans | ja, voor het lid zelf, met de eigen sleutel |
 
 Gemeten bij het handwerk, en bevestigd in de app:
@@ -143,8 +143,12 @@ niet reed (geen toegang; alleen event en uitslag opgehaald, geen segmenten).
   logboek meet wie Sauce vooraan zag, niet wie trok (zie het rapport: 24
   verleggingen, meldingen van −70 tot −95 W die geen kopbeurt waren). Eerst de
   meting met `sauce-ttt-probe.mjs` doen, dan beslissen.
-- **Plan tegenover uitvoering.** Het plan komt uit ZwiftGopher en wordt niet
+- **Plan tegenover uitvoering.** Het plan kwam uit ZwiftGopher en werd niet
   opgeslagen; `ttt_plans` van de planner werd in 2 van de 28 races gebruikt.
+  *Sinds 2026-10-15 importeert de TTT Planner een ZwiftGopher-plan in
+  `ttt_plans` (kopbeurt-watts en -duur, FTP en IF per renner). Daarmee kan de
+  analyse een geïmporteerd plan naast het gereden vermogen leggen; nog niet
+  gebouwd.*
 - **%FTP en wattage per kopbeurt van ploeggenoten**: zie Keuzes.
 - **De eigen rit bij de trainer.** Kan later met `current_user_in_training_chat`;
   eerst zien of leden het gebruiken.

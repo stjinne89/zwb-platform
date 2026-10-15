@@ -2,8 +2,9 @@
 // Puur: geen I/O. Elke tip volgt uit een vaste regel op de data die er is, en
 // noemt het getal waar hij op steunt. Geen tip als de data hem niet draagt.
 //
-// Wat de app niet weet, zegt hij niet: het plan uit ZwiftGopher en de
-// kopbeurten uit het botlogboek staan niet in het platform (docs/zrl-analyse.md).
+// Wat de tips niet gebruiken, zeggen ze niet: het plan (sinds 2026-10-15 te
+// importeren in de TTT Planner, maar hier nog niet gelezen) en de kopbeurten
+// uit het botlogboek, dat niet in het platform staat (docs/zrl-analyse.md).
 
 import type { RaceAnalysis, RiderAnalysis } from "@/lib/zrl-analysis/race";
 import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
