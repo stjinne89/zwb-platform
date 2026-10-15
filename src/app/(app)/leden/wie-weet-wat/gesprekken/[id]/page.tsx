@@ -45,13 +45,24 @@ export default async function GesprekPage({ params }: PageProps) {
   const messages = (messageRows ?? []) as MessageRow[];
   const otherId = thread.asker_id === user.id ? thread.expert_id : thread.asker_id;
 
-  const [members, { data: tip }] = await Promise.all([
+  const [members, { data: tip }, { data: savedRows }] = await Promise.all([
     loadMembers(supabase, [thread.asker_id, thread.expert_id]),
     thread.tip_id
       ? supabase.from("member_tips").select("body").eq("id", thread.tip_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    // Welke berichten al als tip bewaard zijn (0240).
+    messages.length > 0
+      ? supabase
+          .from("member_tips")
+          .select("message_id")
+          .in(
+            "message_id",
+            messages.map((m) => m.id),
+          )
+      : Promise.resolve({ data: [] }),
     supabase.rpc("mark_knowledge_thread_read", { thread: id }),
   ]);
+  const saved = new Set(((savedRows ?? []) as { message_id: string }[]).map((row) => row.message_id));
 
   return (
     <div className="space-y-6">
@@ -79,18 +90,26 @@ export default async function GesprekPage({ params }: PageProps) {
                   <span>{formatMoment(message.created_at)}</span>
                 </div>
                 <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
-                {own && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Link
-                      href={`/leden/wie-weet-wat/tip?bericht=${message.id}&onderwerp=${thread.topic_slug}`}
-                      className={buttonVariants({ variant: "outline", size: "xs" })}
-                    >
-                      <Lightbulb />
-                      Maak hier een tip van
-                    </Link>
-                    <DeleteMessageButton messageId={message.id} threadId={thread.id} />
-                  </div>
-                )}
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {saved.has(message.id) ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Lightbulb className="size-3.5" />
+                      Bewaard als tip
+                    </span>
+                  ) : (
+                    !own &&
+                    message.author_id && (
+                      <Link
+                        href={`/leden/wie-weet-wat/tip?bericht=${message.id}`}
+                        className={buttonVariants({ variant: "outline", size: "xs" })}
+                      >
+                        <Lightbulb />
+                        Bewaar als tip
+                      </Link>
+                    )
+                  )}
+                  {own && <DeleteMessageButton messageId={message.id} threadId={thread.id} />}
+                </div>
               </div>
             </li>
           );

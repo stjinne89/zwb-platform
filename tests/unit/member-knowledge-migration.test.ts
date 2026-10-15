@@ -2,10 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0239 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase,
+// 0239 en 0240 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase,
 // wel over wie wat mag: onderwerpen en tips zien goedgekeurde leden, een gesprek
 // alleen de twee deelnemers (ook het bestuur niet), en een lid kan een tip die de
-// moderatie verborg niet zelf terugzetten.
+// moderatie verborg niet zelf terugzetten. Een antwoord uit een gesprek (0240)
+// bewaart alleen de ander als tip, nooit de schrijver zelf.
 
 let db: PGlite;
 const migration = (file: string) => readFile(`supabase/migrations/${file}`, "utf8");
@@ -19,6 +20,8 @@ const WACHTEND = "66666666-6666-6666-6666-666666666666";
 const EVENT = "77777777-7777-7777-7777-777777777777";
 const GESPREK = "88888888-8888-8888-8888-888888888888";
 const TIP = "99999999-9999-9999-9999-999999999999";
+const VRAAG = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const ANTWOORD = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
 beforeAll(async () => {
   db = new PGlite();
@@ -43,6 +46,7 @@ beforeAll(async () => {
   );
 
   await db.exec(await migration("0239_member_knowledge.sql"));
+  await db.exec(await migration("0240_member_tips_from_thread.sql"));
 
   await db.exec(`
     grant usage on schema auth, public to anon, authenticated, service_role;
@@ -69,8 +73,9 @@ beforeAll(async () => {
       ('${TIP}', '${KENNER}', 'bergen-cols', '${EVENT}', 'mont-ventoux', 'Vanaf Bédoin: rustig tot Chalet Reynard.');
     insert into public.knowledge_threads(id, asker_id, expert_id, topic_slug)
       values ('${GESPREK}', '${VRAGER}', '${KENNER}', 'bergen-cols');
-    insert into public.knowledge_messages(thread_id, author_id, body)
-      values ('${GESPREK}', '${VRAGER}', 'Welke kant is het mooist?');
+    insert into public.knowledge_messages(id, thread_id, author_id, body) values
+      ('${VRAAG}', '${GESPREK}', '${VRAGER}', 'Welke kant is het mooist?'),
+      ('${ANTWOORD}', '${GESPREK}', '${KENNER}', 'Vanaf Bédoin, de klassieke kant.');
   `);
 }, 30000);
 
@@ -157,7 +162,7 @@ describe("gesprekken", () => {
   it("toont een gesprek alleen aan de twee deelnemers, ook niet aan het bestuur", async () => {
     for (const user of [VRAGER, KENNER]) {
       expect(await aantal(user, "knowledge_threads")).toBe(1);
-      expect(await aantal(user, "knowledge_messages")).toBe(1);
+      expect(await aantal(user, "knowledge_messages")).toBe(2);
     }
     for (const user of [DERDE, BESTUUR, MODERATOR]) {
       expect(await aantal(user, "knowledge_threads")).toBe(0);
@@ -241,7 +246,12 @@ describe("gesprekken", () => {
       ],
       `select status, expert_read_at from public.knowledge_threads where id = '${GESPREK}'`,
     );
-    expect(rows[0]).toEqual({ status: "open", expert_read_at: null });
+    const before = (
+      await db.query<{ expert_read_at: string | null }>(
+        `select expert_read_at from public.knowledge_threads where id = '${GESPREK}'`,
+      )
+    ).rows[0];
+    expect(rows[0]).toEqual({ status: "open", expert_read_at: before.expert_read_at });
   });
 
   it("zet bij gelezen alleen de eigen kolom", async () => {
@@ -342,6 +352,74 @@ describe("tips", () => {
         )
       ).rows[0];
       expect(tip).toEqual({ event_id: null, col_slug: null });
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+});
+
+describe("tip uit een gesprek (0240)", () => {
+  const bewaar = (user: string, profile: string, message: string, createdBy = user) =>
+    als(
+      user,
+      `insert into public.member_tips(profile_id, topic_slug, body, source, message_id, created_by)
+         values ('${profile}', 'bergen-cols', 'Vanaf Bédoin.', 'gesprek', '${message}', '${createdBy}') returning id`,
+    );
+
+  it("laat de ontvanger een antwoord van de ander bewaren, op naam van de schrijver", async () => {
+    expect(await bewaar(VRAGER, KENNER, ANTWOORD)).toHaveLength(1);
+    expect(await bewaar(KENNER, VRAGER, VRAAG)).toHaveLength(1);
+  });
+
+  it("weigert je eigen bericht, een vreemde auteur of een gesprek waar je niet in zit", async () => {
+    await expect(bewaar(KENNER, KENNER, ANTWOORD)).rejects.toThrow();
+    await expect(bewaar(VRAGER, KENNER, VRAAG)).rejects.toThrow();
+    await expect(bewaar(DERDE, KENNER, ANTWOORD)).rejects.toThrow();
+    await expect(bewaar(VRAGER, KENNER, ANTWOORD, KENNER)).rejects.toThrow();
+  });
+
+  it("geeft een eigen tip geen bericht mee", async () => {
+    await expect(
+      als(KENNER, `insert into public.member_tips(profile_id, topic_slug, body, source, message_id)
+        values ('${KENNER}', 'bergen-cols', 'Vanaf Bédoin.', 'lid', '${ANTWOORD}')`),
+    ).rejects.toThrow();
+  });
+
+  it("bewaart een bericht maar één keer", async () => {
+    await expect(
+      alsReeks(
+        VRAGER,
+        [
+          `insert into public.member_tips(profile_id, topic_slug, body, source, message_id, created_by)
+             values ('${KENNER}', 'bergen-cols', 'Een.', 'gesprek', '${ANTWOORD}', '${VRAGER}')`,
+          `insert into public.member_tips(profile_id, topic_slug, body, source, message_id, created_by)
+             values ('${KENNER}', 'bergen-cols', 'Twee.', 'gesprek', '${ANTWOORD}', '${VRAGER}')`,
+        ],
+        "select 1",
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("laat de schrijver de tip aanpassen en verwijderen, wie hem bewaarde niet", async () => {
+    const insert = `insert into public.member_tips(id, profile_id, topic_slug, body, source, message_id, created_by)
+      values ('cccccccc-cccc-cccc-cccc-cccccccccccc', '${KENNER}', 'bergen-cols', 'Vanaf Bédoin.', 'gesprek', '${ANTWOORD}', '${VRAGER}')`;
+    const tip = "id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'";
+    expect(
+      await alsReeks(VRAGER, [insert], `update public.member_tips set body = 'Anders.' where ${tip} returning id`),
+    ).toHaveLength(0);
+    expect(
+      await alsReeks(VRAGER, [insert], `delete from public.member_tips where ${tip} returning id`),
+    ).toHaveLength(0);
+    await db.exec("begin");
+    try {
+      await db.exec(insert);
+      await db.exec(`set local role authenticated; set local request.jwt.claim.sub = '${KENNER}';`);
+      expect(
+        (await db.query(`update public.member_tips set body = 'Bédoin, rustig.' where ${tip} returning id`)).rows,
+      ).toHaveLength(1);
+      await expect(
+        db.query(`update public.member_tips set message_id = null where ${tip}`),
+      ).rejects.toThrow(/moderatie/);
     } finally {
       await db.exec("rollback");
     }

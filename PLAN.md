@@ -67,8 +67,13 @@ gaat stabiliteit voor nieuwe features.
    - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
      2026-10-15), daarna gepusht. Niet nagekeken op productie: de tabellen, de
      RLS en de kolom `on_knowledge_message`. Eén keer doorklikken: meedoen,
-     een vraag stellen vanaf een tweede account, antwoorden, er een tip van
-     maken, en de pushmelding.
+     een vraag stellen vanaf een tweede account, antwoorden, het antwoord vanaf
+     het vragende account als tip bewaren, en de pushmeldingen.
+   - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
+     toepassen **vóór** het pushen van die ronde (2026-10-15). Zonder de kolom
+     `message_id` lukt "Bewaar als tip" niet, en toont het gesprek geen
+     bewaarde berichten. Eerst moet de eigenaar de aangepaste privacy- en
+     voorwaardentekst goedkeuren.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -133,10 +138,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0240`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0241`
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
-van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` van Wie weet wat,
-2026-10-15).
+van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
+`0240_member_tips_from_thread` van Wie weet wat, 2026-10-15).
 
 ---
 
@@ -8750,6 +8755,92 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Wie weet wat: een tip uit een gesprek bewaart de ontvanger
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
+`0240_member_tips_from_thread.sql` (**nog toepassen**, vóór het pushen).
+
+**Aanleiding.** In de eerste versie kon je alleen je **eigen** bericht als tip
+plaatsen ("Maak hier een tip van"). De eigenaar wil het omgekeerde. Wie in een
+gesprek een antwoord krijgt en dat waardevol vindt, bewaart het als tip voor de
+club. Je eigen bericht kun je niet als tip bewaren: of iets de moeite waard is,
+beslist de ontvanger.
+
+**Wat.**
+
+- In een gesprek staat **"Bewaar als tip"** alleen bij berichten van de ander. Bij
+  een bericht dat al als tip bewaard is, staat in plaats daarvan "Bewaard als tip".
+  Dat zien beide deelnemers.
+- Het tipformulier (`/tip?bericht=`) neemt de tekst en het onderwerp van het
+  gesprek over en toont van wie de tip is.
+  - De ontvanger kan de tekst inkorten tot 300 tekens.
+  - Wie de tip bewaarde, kan hem daarna niet meer aanpassen of verwijderen. De
+    schrijver kan dat wel.
+- De tip staat op naam van de schrijver, met `source = 'gesprek'` en een
+  `message_id` naar het bericht.
+  - Per bericht kan er één tip zijn.
+  - De schrijver krijgt een pushmelding ("X bewaarde je antwoord als tip") met een
+    link naar Mijn onderwerpen, waar zijn tips staan.
+- **Database (`0240`).**
+  - Een tweede pad in de insert-policy van `member_tips`. Een tip uit een gesprek
+    mag alleen als:
+    - het bericht van de ander komt;
+    - je zelf in dat gesprek zit;
+    - `profile_id` de schrijver van het bericht is;
+    - `created_by` jijzelf bent.
+  - Een eigen tip (`lid`) heeft geen `message_id`.
+  - De wacht op `member_tips` bewaakt nu ook `message_id`.
+- **Teksten.**
+  - `/privacy#wie-weet-wat`: de zin "Een tip plaats je altijd zelf" is vervangen.
+    Het andere lid kan je bericht onder jouw naam bewaren, je krijgt een melding
+    en je kunt de tip zelf aanpassen of verwijderen.
+  - `/voorwaarden` §3: een alinea over dezelfde afspraak.
+  - `/hulp#wie-weet-wat` en `docs/kennis-van-leden.md` §5 en §6 zijn bijgewerkt.
+
+**Besluit van de eigenaar.** Een bericht wordt tip door de ontvanger, niet door de
+schrijver. De schrijver gaf toestemming bij Wie weet wat, krijgt een melding en
+houdt de tip in eigen beheer. Dat is hetzelfde model als de import uit de
+groepsapp.
+
+**Bewust niet gebouwd.**
+
+- **Vooraf toestemming van de schrijver per tip.** De tip staat meteen; de
+  schrijver kan hem achteraf aanpassen of verwijderen, net als bij de import.
+- **De tekst ongewijzigd afdwingen.** De ontvanger mag inkorten tot 300 tekens.
+  De schrijver ziet de tip daarna onder zijn eigen naam en kan hem aanpassen.
+
+**Niet meer waar.**
+
+- In de ronde "Wie weet wat" hieronder:
+  - "Een tip staat dus altijd in de eigen woorden van de auteur";
+  - "Vastleggen of een tip uit een gesprek kwam" (bewust niet gebouwd).
+  Beide zijn ter plekke aangevuld.
+- De goedgekeurde privacytekst van eerder vandaag is op dit punt gewijzigd. **De
+  nieuwe tekst is nog niet goedgekeurd.**
+
+**Getest.**
+
+- `tsc` en ESLint: geen nieuwe fouten.
+- `member-knowledge-migration.test.ts` heeft nu 28 tests, op `0239` plus `0240`.
+  De nieuwe tests controleren:
+  - de ontvanger bewaart een antwoord op naam van de schrijver (in beide
+    richtingen);
+  - geweigerd: je eigen bericht, een vreemde auteur, een gesprek waar je niet in
+    zit, en een `created_by` namens een ander;
+  - een eigen tip kan geen `message_id` hebben;
+  - één tip per bericht;
+  - de schrijver kan de tip aanpassen, wie hem bewaarde niet;
+  - `message_id` is niet te verplaatsen.
+- Volledige run: 2.413 van de 2.415 tests groen. `admin-areas` en
+  `intervals-ride-sync` liepen weer onder belasting op een time-out en zijn los
+  groen; `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+
+- `0240` op de echte database.
+- De knop en het formulier in de browser.
+- Of de pushmelding aankomt.
+
 ### Opgeleverd — Wie weet wat: kenners, vragen en tips van leden (fase 1)
 
 **2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
@@ -8791,7 +8882,9 @@ aan één kenner).
     aan.
 - **Tips** (`member_tips`, hooguit 300 tekens).
   - Een lid plaatst een tip zelf, of maakt hem van een eigen bericht met "Maak
-    hier een tip van". Een tip staat dus altijd in de eigen woorden van de auteur.
+    hier een tip van". *Omgedraaid op 2026-10-15 (`0240`, ronde "Tip uit een
+    gesprek bewaart de ontvanger"): alleen de ander kan een bericht als tip
+    bewaren.*
   - Tips staan in het overzicht, onder "Weet van" op het profiel van een lid en
     onder "Van leden" op de eventpagina.
   - Op de eventpagina gaat het om tips bij het event, bij het moederevent en bij
@@ -8834,7 +8927,8 @@ aan één kenner).
 - **Blokkeren of melden.** Sluiten kan wel. Bij 35 leden loopt een probleem via
   het bestuur.
 - **Tips bij Zwift-routes of per eventtype.**
-- **Vastleggen of een tip uit een gesprek kwam.**
+- **Vastleggen of een tip uit een gesprek kwam.** *Sinds `0240` wel:
+  `source = 'gesprek'` en `message_id`.*
 - **C (wie reed dit al).** Dat laat zien wie waar reed en vraagt een eigen
   privacybesluit.
 - **D (delen bij wat je maakt), F (AI met clubkennis) en G (clinics).** G kan nu

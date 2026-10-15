@@ -26,7 +26,7 @@ export type TipRow = {
   event_id: string | null;
   col_slug: string | null;
   body: string;
-  source: "lid" | "import";
+  source: "lid" | "import" | "gesprek";
   status: "published" | "hidden";
   created_at: string;
 };

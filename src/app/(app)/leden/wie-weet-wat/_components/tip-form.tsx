@@ -5,19 +5,22 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { KNOWLEDGE_TOPICS } from "@/lib/wie-weet-wat/topics";
 import { TIP_MAX, TIP_MIN } from "@/lib/wie-weet-wat/limits";
-import { addMyTip } from "../_actions";
+import { addMyTip, saveMessageAsTip } from "../_actions";
 
 export function TipForm({
   topic: initialTopic,
   body: initialBody,
   eventId,
   colSlug,
+  messageId = null,
   returnTo,
 }: {
   topic: string | null;
   body: string;
   eventId: string | null;
   colSlug: string | null;
+  /** Bericht van de ander uit een gesprek; de tip komt op diens naam. */
+  messageId?: string | null;
   returnTo: string;
 }) {
   const [topic, setTopic] = useState(initialTopic ?? "");
@@ -30,7 +33,9 @@ export function TipForm({
   function save() {
     setError(null);
     startTransition(async () => {
-      const res = await addMyTip({ topic, body, eventId, colSlug });
+      const res = messageId
+        ? await saveMessageAsTip({ messageId, topic, body })
+        : await addMyTip({ topic, body, eventId, colSlug });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -72,7 +77,7 @@ export function TipForm({
         {length}/{TIP_MAX}
       </p>
       <Button disabled={pending || !topic || length < TIP_MIN || length > TIP_MAX} onClick={save}>
-        {pending ? "Plaatsen…" : "Plaatsen"}
+        {pending ? "Opslaan…" : messageId ? "Bewaren" : "Plaatsen"}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

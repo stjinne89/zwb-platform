@@ -83,10 +83,14 @@ inblazen. Op deze schaal blijft dat leeg.
 - **Een gesprek is alleen voor de twee deelnemers, ook niet voor het bestuur.**
   Dat is dezelfde keuze als bij de coachchat (`0167`). Er is daarom ook geen
   moderatie van gesprekken. Een deelnemer kan een gesprek wel sluiten.
-- **Een tip plaatst de auteur altijd zelf.** "Maak hier een tip van" staat alleen
-  bij je eigen bericht. Zo hoeft niemand om toestemming te vragen voor de woorden
-  van een ander. De enige uitzondering is de import uit de groepsapp, met de
-  afspraak uit `/voorwaarden`.
+- **Een tip uit een gesprek bewaart de ontvanger, niet de schrijver.** Zo
+  besloten op 2026-10-15 (migratie `0240`). In de eerste versie kon je alleen je
+  eigen bericht als tip plaatsen. De eigenaar draaide dat om: of een antwoord
+  waardevol is, beslist wie het kreeg. "Bewaar als tip" staat daarom alleen bij
+  berichten van de ander. De tip komt op naam van de schrijver, die een melding
+  krijgt en hem zelf kan aanpassen of verwijderen; wie hem bewaarde, kan dat
+  daarna niet. Dezelfde afspraak geldt voor de import uit de groepsapp
+  (`/voorwaarden`).
 - **De onderwerpen staan vast in code.** Zo vindt iedereen elkaar onder hetzelfde
   woord. Er is bewust geen gezondheidsonderwerp: wie zich daar als kenner meldt,
   vertelt de club iets over de eigen gezondheid.
@@ -101,8 +105,8 @@ Meet na zes weken met alleen geaggregeerde tellingen, zoals bij de gebruiksanaly
 
 - het aantal leden met minstens één onderwerp
 - het aantal gesprekken, en hoeveel daarvan een antwoord kregen
-- het aantal tips, en hoeveel daarvan uit de import kwamen (`source`). Of een tip
-  uit een gesprek kwam, wordt niet vastgelegd.
+- het aantal tips, en hoeveel daarvan zelf geplaatst zijn, uit een gesprek komen of
+  uit de import (`source`: `lid`, `gesprek`, `import`)
 
 Blijft het onder een handvol, dan C en D niet bouwen. Kijk dan eerst of de import
 uit de groepsapp de kennis beter vangt dan zelf schrijven.

@@ -201,12 +201,16 @@ export default function PrivacyPage() {
             plaatst en de gesprekken die je voert, met wanneer je ze las.
             Onderwerpen en tips zien goedgekeurde clubleden, met je naam erbij;
             ze staan niet op je openbare profiel. Een gesprek zien alleen jij en
-            het andere lid, ook het bestuur niet. Een tip plaats je altijd zelf,
-            ook als hij uit een gesprek komt; het bestuur kan wel een bericht
-            dat je in een clubgroep schreef als tip onder je naam zetten (zie de
-            gebruikersvoorwaarden), en een tip verbergen. Krijg je een bericht,
-            dan sturen we een pushmelding als je die aan hebt staan; die zegt
-            van wie het komt en over welk onderwerp, niet wat erin staat. Er gaat
+            het andere lid, ook het bestuur niet. Vindt het andere lid een
+            bericht van jou in jullie gesprek waardevol, dan kan het dat als tip
+            voor de club bewaren, onder jouw naam; je eigen berichten bewaar je
+            niet zelf. Het bestuur kan een bericht dat je in een clubgroep
+            schreef als tip onder je naam zetten (zie de
+            gebruikersvoorwaarden), en een tip verbergen. Krijg je een bericht
+            of wordt je antwoord als tip bewaard, dan sturen we een pushmelding
+            als je die aan hebt staan; die zegt van wie het komt en over welk
+            onderwerp, niet wat erin staat. Een tip op jouw naam kun je altijd
+            zelf aanpassen of verwijderen. Er gaat
             niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen; tips en
             gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
             account opheft. Het staat in je data-export.

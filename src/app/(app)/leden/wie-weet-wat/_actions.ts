@@ -284,6 +284,63 @@ export async function addMyTip(input: {
   return { ok: true };
 }
 
+/**
+ * Een bericht van de ander uit een gesprek bewaren als tip voor de club (0240).
+ * De tip staat op naam van wie het schreef; die krijgt een melding en beheert
+ * hem daarna zelf. Je eigen bericht kan niet: dat oordeel is aan de ontvanger.
+ */
+export async function saveMessageAsTip(input: {
+  messageId: string;
+  topic: string;
+  body: string;
+}): Promise<Result> {
+  const { supabase, user } = await sessionClient();
+  if (!user) return { ok: false, error: "Niet ingelogd." };
+  if (!isKnowledgeTopic(input.topic)) return { ok: false, error: "Kies een onderwerp." };
+  const checked = checkTipBody(input.body);
+  if ("error" in checked) return { ok: false, error: checked.error };
+
+  // RLS geeft het bericht alleen aan de twee deelnemers van het gesprek.
+  const { data: message } = await supabase
+    .from("knowledge_messages")
+    .select("id, author_id, thread_id")
+    .eq("id", input.messageId)
+    .maybeSingle();
+  if (!message || !message.author_id) return { ok: false, error: "Bericht niet gevonden." };
+  if (message.author_id === user.id) {
+    return { ok: false, error: "Je eigen bericht kan alleen de ander als tip bewaren." };
+  }
+
+  const { error } = await supabase.from("member_tips").insert({
+    profile_id: message.author_id,
+    topic_slug: input.topic,
+    body: checked.body,
+    source: "gesprek",
+    message_id: message.id,
+    created_by: user.id,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: error.code === "23505" ? "Dit bericht is al als tip bewaard." : error.message,
+    };
+  }
+
+  await sendNotificationToMembers(
+    "on_knowledge_message",
+    {
+      title: `${await displayName(supabase, user.id)} bewaarde je antwoord als tip`,
+      body: "Je kunt de tip zelf aanpassen of verwijderen.",
+      url: `${BASE}/mijn`,
+      tag: `knowledge-tip-${message.id}`,
+    },
+    { profileIds: [message.author_id as string] },
+  ).catch(() => null);
+
+  refreshKnowledge([`${BASE}/gesprekken/${message.thread_id}`]);
+  return { ok: true };
+}
+
 export async function updateMyTip(id: string, rawBody: string): Promise<Result> {
   const { supabase, user } = await sessionClient();
   if (!user) return { ok: false, error: "Niet ingelogd." };

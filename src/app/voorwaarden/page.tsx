@@ -91,6 +91,12 @@ export default function VoorwaardenPage() {
           kunt ook vragen om helemaal geen citaten of tips van jou op te nemen.
         </p>
         <p>
+          Hetzelfde geldt voor een antwoord dat je in een gesprek bij Wie weet wat
+          geeft: het lid dat je vraag stelde, of aan wie je antwoordde, kan dat
+          als tip voor de club bewaren, onder jouw naam. Je krijgt daar een
+          melding van en kunt de tip zelf aanpassen of verwijderen.
+        </p>
+        <p>
           Tips zijn ervaringen van fietsers, geen professioneel advies. Wat voor
           de een werkt, werkt niet per se voor jou.
         </p>
