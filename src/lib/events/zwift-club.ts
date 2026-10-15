@@ -373,7 +373,7 @@ export type SubgroupResult = {
   rank: number;
   durationMs: number | null;
   // Uit dezelfde uitslagrij, voor de analyse achteraf (ZWBeter racen). Ontbreekt
-  // in data van vóór 2026-10-15; zie loadZrlRaceData in zrl-live/snapshot.ts.
+  // in data van vóór 2026-10-15; zie loadZwiftRaceData in zrl-live/snapshot.ts.
   // Hartslag staat er ook in, maar bewaren we niet: het is een gezondheidsgegeven,
   // ook van renners van andere clubs, en de analyse toont het niet.
   avgWatts?: number | null;

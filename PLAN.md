@@ -134,6 +134,79 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **ZWBeter racen voor elke Zwift-race: FRR, andere kalenderraces en een geplakte link, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: "Kan dit verder doorgetrokken worden tot
+> alles wat een Zwiftrace is dus ook de FRR?" Na het voorstel: "ja beiden" (de
+> zichtbaarheid zoals voorgesteld, en een geplakte link nu al). Haalbaarheid
+> en keuzes: [zrl-analyse.md](docs/zrl-analyse.md), sectie "Verder doorgetrokken".
+>
+> **Wat.**
+>
+> - **Elke Zwift-race** (`src/lib/zrl-analysis/personal.ts`, puur): plek en tijd
+>   in de eigen startgroep, achterstand op de winnaar, per segment het verlies op
+>   de snelste van de groep, en de ZWB'ers in dezelfde race (plek en tijd).
+> - **FRR:** de ZWB'ers in dezelfde etappe over alle tijdsloten en de eigen plek
+>   in het klassement van FRR, uit de bestaande FRR-tabellen.
+> - **Tips voor een individuele race** (`personalAdvice`): wegzakken of sterker
+>   eindigen in een tijdrit, de klim met het meeste verlies, het beste segment in
+>   een race; de tips uit het eigen bestand zonder ploegwoorden (`rideAdvice`
+>   kreeg `solo`). `ride.ts` geeft daarvoor het vermogen per helft.
+> - **Geplakte link:** formulier op `/zwbeter-worden/racen`, pagina
+>   `/zwbeter-worden/racen/zwift/[zwiftEventId]`. Staat de race in de kalender,
+>   dan naar die race. Anders eerst event en uitslag; de segmenten pas als het
+>   lid in de uitslag staat (`requireRider`), zodat niemand het serviceaccount
+>   willekeurige races laat ophalen. Wie niet reed, krijgt "Je staat niet in de
+>   uitslag van deze race."
+> - **Bewaren:** `loadZrlRaceData` heet nu `loadZwiftRaceData` en bewaart elke
+>   gereden race in `zrl_race_snapshots` (de naam van de tabel is gebleven). Buiten
+>   de ZRL met `minimizeRaceData`: van wie niet bij ZWB hoort alleen plek, tijd en
+>   segmenttijden. Nieuwe snapshots krijgen `eventType`.
+> - **De lijst** (`listRaces`): ZRL zoals voorheen, plus FRR-slots met een eigen
+>   finishtijd en elke bewaarde race met het eigen Zwift-ID in de uitslag; een
+>   geplakte race staat erin zodra hij één keer bekeken is. Per regel het soort
+>   (ZRL, FRR, Zwift).
+> - `/hulp#racen`, de hulpzoeker, de wegwijzer en de privacyverklaring
+>   (`#racen`) noemen FRR, andere races en de geplakte link. **Privacytekst
+>   voorleggen aan de eigenaar.**
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Een andere race uit de kalender (geen ZRL, geen FRR) staat pas in de lijst als
+>   hij bewaard is, dus na één bezoek; zonder bewaarde uitslag weet de app niet
+>   wie meereed. Op dit moment is er zo'n race niet (alleen een groepsrit).
+> - Bij FRR telt de eigen plek in het klassement na de laatst verwerkte etappe,
+>   niet die na deze etappe.
+>
+> **Bewust niet gebouwd.** De Ladder (geen Zwift-event in de kalender), SRC
+> (MyWhoosh), en zelf races zoeken buiten de kalender op de naam van een
+> intervals-rit (zou raden zijn). Een tabel met de geplakte races per lid: de
+> bewaarde uitslag zegt al wie meereed.
+>
+> **Getest.** Nieuw: `zrl-analysis-personal.test.ts` (plek, achterstand,
+> segmentverlies, ZWB'ers over de groepen, soort race, `minimizeRaceData` en dat
+> de eigen analyse daarmee gelijk blijft, het ID uit een link, de tips voor een
+> tijdrit en een race zonder ploegwoorden) en twee tests in
+> `zrl-race-data-power.test.ts` (geen segmenten zonder eigen uitslag; bewaren met
+> details alleen van ZWB'ers). **Tegen productie gedraaid, schrijven
+> geblokkeerd:** FRR Ignite etappe 8 voor een lid dat reed (plek in de groep,
+> achterstand, vijf segmenten, vier ZWB'ers in de etappe, plek in het
+> klassement, eigen rit uitgelijnd binnen 9 s) en voor een lid dat niet reed
+> (geen toegang; alleen event en uitslag opgehaald).
+>
+> **Niet geverifieerd.** De pagina's in de browser; een echte geplakte race
+> buiten de kalender (geen Zwift-event-ID van zo'n race bij de hand); hoe lang een
+> eerste bezoek aan een grote openbare race op Netlify duurt (een FRR-slot kostte
+> lokaal 14 s, `maxDuration` 30).
+>
+> **Niet meer waar.** `loadZrlRaceData` bestaat niet meer (nu
+> `loadZwiftRaceData`). De ZRL-ronde hieronder zegt dat oudere snapshots worden
+> aangevuld; dat geldt nog, en nu worden ook niet-bevroren races bewaard zodra ze
+> gereden zijn.
+
+---
+
 > **ZWBeter racen: analyse van gereden ZRL-races, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `ae3e554`); door de eigenaar lokaal bekeken ("ziet er al goed uit"), de tips en de nieuwe zichtbaarheid nog niet in de browser. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

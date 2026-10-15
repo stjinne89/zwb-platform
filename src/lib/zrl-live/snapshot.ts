@@ -82,9 +82,11 @@ export type RaceData = {
   segmentsOk: boolean;
   /**
    * Uitslag en passages hebben vermogen (ZWBeter racen). Ontbreekt in data van
-   * vóór 2026-10-15; loadZrlRaceData vult die één keer aan.
+   * vóór 2026-10-15; loadZwiftRaceData vult die één keer aan.
    */
   withPower?: boolean;
+  /** Zwifts `eventType`: "RACE", "TIME_TRIAL" of "TEAM_TIME_TRIAL". Ontbreekt in data van vóór 2026-10-15. */
+  eventType?: string;
 };
 
 function toMs(value: unknown): number | null {
@@ -285,6 +287,9 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
     passages,
     segmentsOk,
     withPower: true,
+    ...(typeof (zwiftEvent as { eventType?: unknown })?.eventType === "string"
+      ? { eventType: (zwiftEvent as { eventType: string }).eventType }
+      : {}),
   };
 }
 
@@ -338,24 +343,81 @@ async function addPower(data: RaceData): Promise<RaceData> {
 }
 
 /**
- * Ruwe Zwift-data van een race voor de analyse achteraf (ZWBeter racen). Uit
- * de database als de race bevroren is, anders vers bij Zwift. Bevroren data
- * zonder vermogen wordt één keer aangevuld en terug bewaard; `frozen_at` blijft
- * dan staan, want `fetchedAt` verandert niet.
+ * Buiten de ZRL bewaren we van renners die niet bij ZWB horen alleen wat de
+ * plaats en de segmentrangen nodig hebben: plek, tijd en segmenttijden. Geen
+ * naam, vermogen, gewicht of meter: het gaat om duizenden onbekenden in een
+ * openbare race. In de ZRL blijft alles staan; de live stand leest daar de
+ * teamtags uit de namen.
  */
-export async function loadZrlRaceData(zwiftEventId: string): Promise<RaceData | null> {
-  const frozen = await loadFrozenRaceData(zwiftEventId);
-  if (!frozen) {
-    try {
-      return await fetchRaceData(zwiftEventId);
-    } catch {
-      return null;
-    }
+export function minimizeRaceData(data: RaceData, keep: Set<number>): RaceData {
+  return {
+    ...data,
+    subgroups: data.subgroups.map((subgroup) => ({
+      ...subgroup,
+      entrants: subgroup.entrants.map((e) => (keep.has(Number(e.zwiftId)) ? e : { zwiftId: e.zwiftId, name: "" })),
+      results: subgroup.results.map((r) =>
+        keep.has(r.profileId) ? r : { profileId: r.profileId, rank: r.rank, durationMs: r.durationMs },
+      ),
+    })),
+    passages: data.passages.map((p) =>
+      keep.has(p.athleteId) ? p : { id: p.id, athleteId: p.athleteId, segmentId: p.segmentId, ts: p.ts, elapsed: p.elapsed },
+    ),
+  };
+}
+
+/** Staat deze renner in de uitslag van een subgroep? Zonder segmenten op te halen. */
+async function riderInResults(zwiftEventId: string, zwiftId: number): Promise<boolean> {
+  const subgroups = parseSubgroups(await fetchZwiftEvent(zwiftEventId));
+  for (const subgroup of subgroups) {
+    if ((await fetchSubgroupResults(subgroup.id)).some((r) => r.profileId === zwiftId)) return true;
   }
-  if (frozen.withPower) return frozen;
-  const enriched = await addPower(frozen);
-  if (enriched.withPower) await saveFrozenRaceData(zwiftEventId, enriched);
-  return enriched;
+  return false;
+}
+
+export function hasResult(data: RaceData, zwiftId: number): boolean {
+  return data.subgroups.some((s) => s.results.some((r) => r.profileId === zwiftId));
+}
+
+export type RaceDataOptions = {
+  /**
+   * Een race buiten de ZRL: bewaar details alleen van deze renners (de
+   * ZWB'ers), zie minimizeRaceData. Zonder deze optie bewaren we alles.
+   */
+  keepDetailsOf?: Set<number>;
+  /**
+   * Haal een race die nog niet bewaard is alleen op als deze renner in de
+   * uitslag staat. Zo kan een lid met een geplakte link het serviceaccount geen
+   * willekeurige races laten ophalen: eerst het event en de uitslag (een paar
+   * verzoeken), de segmenten pas als hij meereed.
+   */
+  requireRider?: number;
+};
+
+/**
+ * Ruwe Zwift-data van een race voor de analyse achteraf (ZWBeter racen). Uit
+ * de database als de race bewaard is, anders vers bij Zwift; een gereden race
+ * wordt daarna bewaard. Bewaarde data zonder vermogen wordt één keer aangevuld;
+ * `frozen_at` blijft dan staan, want `fetchedAt` verandert niet.
+ */
+export async function loadZwiftRaceData(zwiftEventId: string, options: RaceDataOptions = {}): Promise<RaceData | null> {
+  const store = (data: RaceData) =>
+    saveFrozenRaceData(zwiftEventId, options.keepDetailsOf ? minimizeRaceData(data, options.keepDetailsOf) : data);
+  const frozen = await loadFrozenRaceData(zwiftEventId);
+  if (frozen) {
+    if (options.requireRider !== undefined && !hasResult(frozen, options.requireRider)) return null;
+    if (frozen.withPower) return frozen;
+    const enriched = await addPower(frozen);
+    if (enriched.withPower) await store(enriched);
+    return enriched;
+  }
+  try {
+    if (options.requireRider !== undefined && !(await riderInResults(zwiftEventId, options.requireRider))) return null;
+    const data = await fetchRaceData(zwiftEventId);
+    if (raceSettled(data)) await store(data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 // Versie in de sleutel: Netlify bewaart deze cache over deploys heen.

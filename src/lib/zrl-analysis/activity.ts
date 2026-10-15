@@ -45,3 +45,10 @@ export function pickRaceActivity<T extends ActivityWithStart>(activities: T[], o
     .sort((x, y) => Math.abs(x.start - ownStart) - Math.abs(y.start - ownStart));
   return rides[0]?.a ?? null;
 }
+
+/** Het Zwift-event-ID uit een geplakte link ("zwift.com/events/view/5737449", "?eventId=…") of een los nummer. */
+export function zwiftEventIdFromInput(input: string): string | null {
+  const text = input.trim();
+  const match = text.match(/events\/view\/(\d+)/i) ?? text.match(/[?&]eventId=(\d+)/i) ?? text.match(/^(\d{5,})$/);
+  return match ? match[1] : null;
+}

@@ -67,6 +67,44 @@ Gemeten bij het handwerk, en bevestigd in de app:
 - **ZWBeter racen**: een vijfde pijler met `/zwbeter-worden/racen` (lijst) en
   `/zwbeter-worden/racen/[eventId]` (analyse).
 
+## Verder doorgetrokken: FRR en elke Zwift-race (2026-10-15)
+
+Vraag van de eigenaar: "Kan dit verder doorgetrokken worden tot alles wat een
+Zwiftrace is dus ook de FRR?" en daarna "ja beiden" (ook een link plakken).
+
+Gemeten (alleen lezen): in de kalender staan sinds half augustus 46
+FRR-tijdsloten met een Zwift-event (Tour Ignite) naast de 28 ZRL-races; een
+Ladder-race heeft er geen. Zeven leden reden een FRR-slot, vier hebben
+intervals.icu. In intervals.icu staan ook Zwift-races buiten de kalender
+(bijvoorbeeld een HEXAGONE-race), maar zonder Zwift-event: die zijn alleen te
+koppelen als het lid de link geeft. SRC rijdt op MyWhoosh en valt erbuiten.
+
+- **Eén basis voor elke Zwift-race** (`personal.ts`): plek en tijd in de eigen
+  startgroep, achterstand op de winnaar, per segment het verlies op de
+  snelste van de groep, de ZWB'ers in dezelfde race (plek en tijd).
+- **FRR** (`loadFrrContext`): de ZWB'ers in dezelfde etappe over alle
+  tijdsloten (uit `frr_stage_results`) en de eigen plek in het klassement van
+  FRR (`frr_gc_standings`).
+- **Tips voor een individuele race** (`personalAdvice`): in een tijdrit
+  wegzakken (de tweede helft 5% of meer onder de eerste) of sterker eindigen,
+  en de klim met het meeste verlies op de snelste (vanaf 10 s); in een race het
+  relatief beste segment. De tips uit het eigen bestand zonder ploegwoorden.
+- **Een geplakte link** (`/zwbeter-worden/racen/zwift/[id]`): staat de race in
+  de kalender, dan naar die race; anders eerst event en uitslag, en de
+  segmenten pas als het lid in de uitslag staat. Zo laat een lid het
+  serviceaccount geen willekeurige races ophalen.
+- **Bewaren buiten de ZRL** (`minimizeRaceData`): van wie niet bij ZWB hoort
+  alleen plek, tijd en segmenttijden; geen naam, vermogen, gewicht of meter. De
+  analyse van de eigen race blijft daarmee gelijk (getest).
+- **De lijst**: ZRL zoals voorheen, plus FRR-slots met een eigen finishtijd en
+  elke bewaarde race met het eigen Zwift-ID in de uitslag. Een geplakte race
+  staat er dus in zodra hij één keer bekeken is; een tabel per lid is niet nodig.
+
+Proefgedraaid op productie, schrijven geblokkeerd: etappe 8 van Tour Ignite
+voor een lid dat reed (plek in de groep, achterstand, segmenten, vier ZWB'ers in
+de etappe, plek in het klassement, eigen rit uitgelijnd) en voor een lid dat
+niet reed (geen toegang; alleen event en uitslag opgehaald, geen segmenten).
+
 ## Keuzes
 
 - **Wie wat ziet (eigenaar, 2026-10-15):** een lid alleen de eigen races (in de
@@ -112,6 +150,11 @@ Gemeten bij het handwerk, en bevestigd in de app:
   eerst zien of leden het gebruiken.
 - **Automatische adviezen** (zoals "plan stond 20 W te hoog"). Het rapport
   haalde dat uit plan plus curve; zonder plan in de app is het niet te zeggen.
+- **Ladder en SRC.** De Ladder heeft geen Zwift-event in de kalender, SRC rijdt
+  op MyWhoosh.
+- **Zelf races vinden buiten de kalender.** Een rit in intervals.icu noemt de
+  race, maar niet het Zwift-event; zoeken op naam zou raden zijn. Het lid plakt
+  de link.
 
 ## Niet geverifieerd
 

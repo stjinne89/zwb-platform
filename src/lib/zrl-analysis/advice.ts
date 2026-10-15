@@ -7,6 +7,7 @@
 
 import type { RaceAnalysis, RiderAnalysis } from "@/lib/zrl-analysis/race";
 import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
+import type { PersonalRace } from "@/lib/zrl-analysis/personal";
 import { durationLabel } from "@/lib/zrl-analysis/format";
 
 export type Advice = {
@@ -27,6 +28,10 @@ export const RESERVE_SHARE = 85;
 export const DRIFT_PERCENT = -10;
 /** Deel van de seconden boven de FTP onder 70 rpm. */
 export const LOW_CADENCE_SHARE = 25;
+/** Zoveel procent lager in de tweede helft van een tijdrit: te hard begonnen. */
+export const FADE_PERCENT = 5;
+/** Zoveel seconden verloren op de snelste van de groep over één klim: de moeite van een tip waard. */
+export const CLIMB_LOSS_S = 10;
 /** Zo laat mag het hardste blok van 10 minuten beginnen om als "de start" te tellen. */
 const START_WINDOW_S = 120;
 /** Zoveel tips per lijst. */
@@ -127,15 +132,20 @@ export function riderRaceAdvice(analysis: RaceAnalysis, rider: RiderAnalysis): A
   return advice;
 }
 
-/** Tips uit het eigen bestand per seconde; alleen voor de renner zelf. */
-export function rideAdvice(ride: RideAnalysis, ftp: number | null): Advice[] {
+/**
+ * Tips uit het eigen bestand per seconde; alleen voor de renner zelf. `solo`:
+ * een individuele race, zonder ploeg om op te wachten of over te nemen.
+ */
+export function rideAdvice(ride: RideAnalysis, ftp: number | null, solo = false): Advice[] {
   const advice: Advice[] = [];
 
   const tenMin = ride.best.find((b) => b.seconds === 600);
   if (ftp && tenMin && tenMin.at <= ride.missingStart + START_WINDOW_S && tenMin.watts >= ftp) {
     advice.push({
       finding: `Je hardste 10 minuten waren de eerste 10: ${tenMin.watts} W, ${Math.round((100 * tenMin.watts) / ftp)}% van je FTP.`,
-      tip: "Rij de start op het tempo van de ploeg en niet erboven; dat spaart je voor de eerste klim.",
+      tip: solo
+        ? "Begin een paar procent rustiger; wat je in de start wint, verlies je later dubbel."
+        : "Rij de start op het tempo van de ploeg en niet erboven; dat spaart je voor de eerste klim.",
     });
   }
 
@@ -146,7 +156,9 @@ export function rideAdvice(ride: RideAnalysis, ftp: number | null): Advice[] {
   if (empty.length > 0) {
     advice.push({
       finding: `Boven op ${empty.map((p) => `${p.name} (${p.wbalEnd}%)`).join(" en ")} was je W′ op.`,
-      tip: "Neem na de klim niet als eerste over; laat je zakken tot je weer kunt.",
+      tip: solo
+        ? "Doseer de klim iets: met een lege W′ verlies je daarna op het vlak meer dan je op de klim won."
+        : "Neem na de klim niet als eerste over; laat je zakken tot je weer kunt.",
     });
   }
 
@@ -155,12 +167,16 @@ export function rideAdvice(ride: RideAnalysis, ftp: number | null): Advice[] {
     if (long.share >= AT_LIMIT_SHARE) {
       advice.push({
         finding: `Je reed op je maximum: je beste ${durationLabel(long.seconds)} was ${long.share}% van je beste in 90 dagen.`,
-        tip: "Een zwaarder plan zit er nu niet in. Laat je kopbeurten op dit niveau plannen, niet hoger.",
+        tip: solo
+          ? "Harder zat er niet in; winst zit in hoe je je krachten verdeelt."
+          : "Een zwaarder plan zit er nu niet in. Laat je kopbeurten op dit niveau plannen, niet hoger.",
       });
     } else if (long.share <= RESERVE_SHARE) {
       advice.push({
         finding: `Je beste ${durationLabel(long.seconds)} was ${long.share}% van je beste in 90 dagen.`,
-        tip: "Er bleef reserve over: je kunt langere of hardere beurten aan.",
+        tip: solo
+          ? "Er bleef reserve over: je kunt eerder of harder doorzetten."
+          : "Er bleef reserve over: je kunt langere of hardere beurten aan.",
       });
     }
   }
@@ -182,6 +198,52 @@ export function rideAdvice(ride: RideAnalysis, ftp: number | null): Advice[] {
   }
 
   return advice;
+}
+
+/**
+ * Tips voor een individuele race (FRR-etappe, andere Zwift-race): verdeling in
+ * een tijdrit, waar de meeste tijd verloren ging, het eigen bestand.
+ */
+export function personalAdvice(race: PersonalRace, ride: RideAnalysis | null, ftp: number | null): Advice[] {
+  const advice: Advice[] = [];
+  if (race.kind === "tt" && ride?.halves) {
+    const { first, second } = ride.halves;
+    const change = Math.round((100 * (second - first)) / first);
+    if (change <= -FADE_PERCENT) {
+      advice.push({
+        finding: `Eerste helft ${first} W, tweede helft ${second} W: je zakte ${Math.abs(change)}% weg.`,
+        tip: "Begin een paar procent lager; in een tijdrit is een gelijkmatig tempo het snelst.",
+      });
+    } else if (change >= FADE_PERCENT) {
+      advice.push({
+        finding: `Tweede helft ${second} W tegen ${first} W in de eerste: je eindigde ${change}% sterker.`,
+        tip: "Er zat meer in de eerste helft; begin iets harder.",
+      });
+    }
+  }
+  const climbLoss = race.segmentLoss.filter((s) => s.kind === "klim").sort((a, b) => b.loss - a.loss)[0];
+  if (race.kind === "tt" && climbLoss && climbLoss.loss >= CLIMB_LOSS_S) {
+    advice.push({
+      finding: `Op ${climbLoss.name} verloor je ${nl1.format(climbLoss.loss)} s op de snelste van je groep.`,
+      tip: `Daar ligt de meeste tijd: train blokken van ${durationLabel(Math.round(climbLoss.elapsed))} op klimtempo.`,
+    });
+  }
+  if (race.kind === "race") {
+    const best = [...race.rider.segments].filter((s) => s.kind !== "segment").sort((a, b) => a.rank / a.of - b.rank / b.of)[0];
+    if (best && best.rank <= 10) {
+      advice.push({
+        finding: `Je beste segment was ${best.name}: ${best.rank}e van ${best.of}${best.wkg !== null ? ` op ${wkgText(best.wkg)} W/kg` : ""}.`,
+        tip: `Daar ben je sterk: zit voor ${best.kind === "klim" ? "een klim" : "een sprint"} vooraan in de groep.`,
+      });
+    }
+  }
+  if (race.rider.powerType && race.rider.powerType !== "POWER_METER") {
+    advice.push({
+      finding: "Zwift rekende met geschat vermogen.",
+      tip: "Rij met een vermogensmeter of smart trainer, anders kloppen je wattages niet.",
+    });
+  }
+  return [...(ride ? rideAdvice(ride, ftp, true) : []), ...advice].slice(0, MAX_TIPS);
 }
 
 /** Tips voor de renner zelf: eerst uit het eigen bestand, dan uit de race. */

@@ -11,6 +11,7 @@ const zwift = vi.hoisted(() => ({
   results: vi.fn(),
   segments: vi.fn(),
   event: vi.fn(),
+  entrants: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
@@ -30,10 +31,23 @@ vi.mock("@/lib/events/zwift-club", () => ({
   fetchSubgroupResults: zwift.results,
   fetchSegmentResults: zwift.segments,
   fetchZwiftEvent: zwift.event,
-  fetchEntrants: vi.fn(async () => []),
+  fetchEntrants: zwift.entrants,
 }));
 
-const { loadZrlRaceData } = await import("@/lib/zrl-live/snapshot");
+const { loadZwiftRaceData } = await import("@/lib/zrl-live/snapshot");
+
+/** Een gereden race van vijf uur geleden met één groep: renner 1 (ZWB) en 2 (onbekend). */
+function zwiftEvent() {
+  const start = Date.now() - 5 * 3600_000;
+  return {
+    start,
+    event: {
+      name: "Zwift - Race: Testcup",
+      eventType: "RACE",
+      eventSubgroups: [{ id: 501, subgroupLabel: "C", eventSubgroupStart: new Date(start).toISOString(), routeId: 553661379, laps: 1 }],
+    },
+  };
+}
 
 /** Bevroren data van vóór 2026-10-15: uitslag en passages zonder vermogen. */
 function oldSnapshot(): RaceData {
@@ -65,15 +79,17 @@ beforeEach(() => {
   zwift.results.mockReset();
   zwift.segments.mockReset();
   zwift.event.mockReset();
+  zwift.entrants.mockReset();
+  zwift.entrants.mockResolvedValue([]);
 });
 
-describe("loadZrlRaceData", () => {
+describe("loadZwiftRaceData", () => {
   it("vult bevroren data één keer aan met vermogen en bewaart die met dezelfde ophaaltijd", async () => {
     db.frozen = oldSnapshot();
     zwift.results.mockResolvedValue([{ profileId: 1, rank: 1, durationMs: 2_600_000, avgWatts: 256, weightKg: 74 }]);
     zwift.segments.mockResolvedValue([{ id: "p1", athleteId: 1, avgPower: 324, weightKg: 74 }]);
 
-    const data = await loadZrlRaceData("5737449");
+    const data = await loadZwiftRaceData("5737449");
 
     expect(data?.withPower).toBe(true);
     expect(data?.passages[0]).toMatchObject({ id: "p1", avgPower: 324, weightKg: 74 });
@@ -89,7 +105,7 @@ describe("loadZrlRaceData", () => {
 
   it("vraagt niets aan Zwift als het vermogen er al is", async () => {
     db.frozen = { ...oldSnapshot(), withPower: true };
-    const data = await loadZrlRaceData("5737449");
+    const data = await loadZwiftRaceData("5737449");
     expect(data?.withPower).toBe(true);
     expect(zwift.results).not.toHaveBeenCalled();
     expect(zwift.segments).not.toHaveBeenCalled();
@@ -101,7 +117,7 @@ describe("loadZrlRaceData", () => {
     zwift.results.mockResolvedValue([{ profileId: 1, rank: 1, durationMs: 2_600_000, avgWatts: 256 }]);
     zwift.segments.mockRejectedValue(new Error("Zwift-API gaf status 429"));
 
-    const data = await loadZrlRaceData("5737449");
+    const data = await loadZwiftRaceData("5737449");
 
     expect(data?.withPower).toBe(false);
     expect(data?.subgroups[0].results[0].avgWatts).toBe(256);
@@ -111,6 +127,47 @@ describe("loadZrlRaceData", () => {
 
   it("geeft null als de race niet bevroren is en Zwift faalt", async () => {
     zwift.event.mockRejectedValue(new Error("weg"));
-    expect(await loadZrlRaceData("5737449")).toBeNull();
+    expect(await loadZwiftRaceData("5737449")).toBeNull();
+  });
+});
+
+describe("loadZwiftRaceData voor een geplakte link", () => {
+  it("haalt geen segmenten op als het lid niet in de uitslag staat", async () => {
+    zwift.event.mockResolvedValue(zwiftEvent().event);
+    zwift.results.mockResolvedValue([{ profileId: 2, rank: 1, durationMs: 2_000_000 }]);
+
+    expect(await loadZwiftRaceData("6000001", { requireRider: 1 })).toBeNull();
+    expect(zwift.segments).not.toHaveBeenCalled();
+    expect(db.saved).toHaveLength(0);
+  });
+
+  it("bewaart een gereden race, met details alleen van de ZWB'ers", async () => {
+    const { event, start } = zwiftEvent();
+    zwift.event.mockResolvedValue(event);
+    zwift.entrants.mockResolvedValue([
+      { zwiftId: "1", name: "Eigen", category: "C" },
+      { zwiftId: "2", name: "Onbekende", category: "C" },
+    ]);
+    zwift.results.mockResolvedValue([
+      { profileId: 2, rank: 1, durationMs: 2_000_000, avgWatts: 310, weightKg: 70 },
+      { profileId: 1, rank: 2, durationMs: 2_030_000, avgWatts: 250, weightKg: 80 },
+    ]);
+    zwift.segments.mockImplementation(async (segmentId: string) => [
+      { id: `${segmentId}-1`, athleteId: 1, segmentId, ts: start + 600_000, elapsed: 30, avgPower: 400, weightKg: 80 },
+      { id: `${segmentId}-2`, athleteId: 2, segmentId, ts: start + 590_000, elapsed: 28, avgPower: 450, weightKg: 70 },
+    ]);
+
+    const data = await loadZwiftRaceData("6000001", { requireRider: 1, keepDetailsOf: new Set([1]) });
+
+    expect(data?.eventType).toBe("RACE");
+    // In het geheugen staat alles; bewaard wordt de kleine versie.
+    expect(data?.subgroups[0].results.find((r) => r.profileId === 2)?.avgWatts).toBe(310);
+    expect(db.saved).toHaveLength(1);
+    const saved = db.saved[0].data as RaceData;
+    expect(saved.subgroups[0].entrants.find((e) => e.zwiftId === "2")?.name).toBe("");
+    expect(saved.subgroups[0].results.find((r) => r.profileId === 2)).toEqual({ profileId: 2, rank: 1, durationMs: 2_000_000 });
+    expect(saved.subgroups[0].results.find((r) => r.profileId === 1)?.avgWatts).toBe(250);
+    expect(saved.passages.filter((p) => p.athleteId === 2).every((p) => p.avgPower === undefined)).toBe(true);
+    expect(saved.passages.filter((p) => p.athleteId === 1).every((p) => p.avgPower === 400)).toBe(true);
   });
 });

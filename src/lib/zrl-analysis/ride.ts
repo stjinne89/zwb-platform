@@ -80,6 +80,8 @@ export type RideAnalysis = {
   wbalMin: { share: number; at: number } | null;
   /** Watt per hartslag op het eerste en het laatste vlakke stuk. */
   drift: { first: number; last: number; change: number } | null;
+  /** Gemiddeld vermogen in de eerste en de tweede helft van de race (verdeling in een tijdrit). */
+  halves: { first: number; second: number } | null;
   /** Seconden boven de FTP per cadansvak van 10 rpm. */
   cadenceAboveFtp: Array<{ from: number; seconds: number }>;
   /** Voor de grafiek: elke 10 s het gemiddelde over 30 s. */
@@ -313,9 +315,18 @@ export function analyseRide(input: RideInput): RideAnalysis {
     });
   }
 
+  const middle = Math.round((Math.max(first, 0) + watts.length) / 2);
+  const firstHalf = watts.slice(Math.max(first, 0), middle).flatMap((w) => (w == null ? [] : [w]));
+  const secondHalf = watts.slice(middle).flatMap((w) => (w == null ? [] : [w]));
+  const halves =
+    firstHalf.length >= 60 && secondHalf.length >= 60
+      ? { first: Math.round(mean(firstHalf)), second: Math.round(mean(secondHalf)) }
+      : null;
+
   return {
     offset,
     alignError: error,
+    halves,
     missingStart: Math.max(0, first),
     avgWatts,
     np,

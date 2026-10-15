@@ -84,6 +84,7 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
     cp: { cp: 275, wPrime: 13000 },
     wbalMin: { share: -4, at: 594 },
     drift: { first: 1.61, last: 1.38, change: -15 },
+    halves: { first: 265, second: 247 },
     cadenceAboveFtp: [
       { from: 60, seconds: 212 },
       { from: 70, seconds: 563 },

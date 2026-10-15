@@ -207,10 +207,10 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "ZWBeter racen",
-    text: "Analyse van een gereden ZRL-race: de ploeg, per renner en je eigen rit.",
+    text: "Analyse van een gereden Zwift-race (ZRL, FRR of een geplakte link): tips, de ploeg of je eigen race, en je rit.",
     href: "/hulp#racen",
     terms:
-      "racen race analyse zrl ploegentijdrit ttt puntenrace uitslag ploegtijd tegenstander verloop tussentijd segment sprint klim kom vermogen w/kg zwiftpower los gelost eigen rit bestand np genormaliseerd intensiteit if w-balans wbal critical power hartslag cadans curve",
+      "racen race analyse zrl frr flamme rouge etappe tijdslot klassement tijdrit itt link plakken zwiftpower ploegentijdrit ttt puntenrace uitslag ploegtijd tegenstander verloop tussentijd segment sprint klim kom vermogen w/kg zwiftpower los gelost eigen rit bestand np genormaliseerd intensiteit if w-balans wbal critical power hartslag cadans curve",
   },
   {
     title: "Protocollen",

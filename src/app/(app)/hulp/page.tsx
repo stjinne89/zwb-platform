@@ -223,7 +223,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
-  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden ZRL-races: de ploeg naast de andere teams, per renner vermogen en segmenten, en je eigen rit uit intervals.icu." },
+  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
@@ -3221,13 +3221,16 @@ Fitness-status: Verbeterend`}
           <div>
             <h2 className="font-semibold">ZWBeter racen</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Na een ZRL-race zie je onder ZWBeter racen eerst tips voor jezelf,
-              en daaronder hoe je ploeg reed: de plaats in de groep, per renner
-              het vermogen en de segmenten, en in een ploegentijdrit waar de
-              ploeg tijd won of verloor. Je ziet de races die je zelf reed of
-              waarvoor je in de opstelling stond. Ben je captain of co-captain,
-              dan zie je alle races van je teams, ook van de subteams, met tips
-              voor de ploeg en per renner.
+              Na een Zwift-race zie je onder ZWBeter racen eerst tips voor
+              jezelf, en daaronder de details. Bij een ZRL-race is dat hoe je
+              ploeg reed: de plaats in de groep, per renner het vermogen en de
+              segmenten, en in een ploegentijdrit waar de ploeg tijd won of
+              verloor. Bij een FRR-etappe of een andere Zwift-race is het je
+              eigen race: je plek en tijd in je startgroep, wat je per segment
+              op de snelste verloor, en de andere ZWB&apos;ers in die race. Je ziet
+              de races die je zelf reed of waarvoor je in de opstelling stond.
+              Ben je captain of co-captain, dan zie je ook alle ZRL-races van je
+              teams, ook van de subteams, met tips voor de ploeg en per renner.
             </p>
           </div>
         </header>
@@ -3254,12 +3257,33 @@ Fitness-status: Verbeterend`}
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">FRR en andere Zwift-races</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Een FRR-tijdslot of een andere Zwift-race uit de kalender staat
+            vanzelf in je lijst zodra je hem gereden hebt. Bij FRR zie je ook
+            de ZWB&apos;ers in dezelfde etappe over alle tijdsloten, met hun tijd, en
+            je plek in het klassement van FRR. Van andere ZWB&apos;ers zie je alleen
+            plek en tijd, net als op de site van FRR.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Een race die niet in de kalender staat, open je door de link van
+            het Zwift-event te plakken (zwift.com/events/view/…, of de link uit
+            ZwiftPower). De app haalt de race alleen op als je in de uitslag
+            staat; daarna staat hij in je lijst. Staat de race wel in de
+            kalender, dan ga je naar die race.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">De tips</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Elke tip volgt uit een vaste regel en noemt het getal waarop hij
             steunt: waar je loste, op welke klim je het meeste vermogen nodig
             had, of je W′ boven op een klim op was, of je start harder was dan
-            je FTP, en hoe dicht je bij je eigen beste van 90 dagen zat. Het plan
+            je FTP, en hoe dicht je bij je eigen beste van 90 dagen zat. In
+            een tijdrit kijkt de app ook of je in de tweede helft wegzakte en
+            op welke klim je de meeste tijd verloor op de snelste van je groep.
+            Het plan
             uit ZwiftGopher en de kopbeurten uit de TTT-bot kent de app niet;
             daar zeggen de tips dus niets over.
           </p>

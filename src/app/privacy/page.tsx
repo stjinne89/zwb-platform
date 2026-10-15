@@ -103,7 +103,7 @@ export default function PrivacyPage() {
             ploegleider kan de link intrekken.
           </li>
           <li id="racen" className="scroll-mt-20">
-            <strong>Analyse van ZRL-races (ZWBeter racen):</strong> na een
+            <strong>Analyse van Zwift-races (ZWBeter racen):</strong> na een
             ZRL-race bewaren we uit de uitslag en de segmentresultaten van Zwift
             per renner ook het gemiddelde vermogen, het gewicht, het soort
             vermogensmeter, het beste vermogen over 15 seconden en 1, 5 en 20
@@ -118,7 +118,12 @@ export default function PrivacyPage() {
             zelf mee en heb je intervals.icu gekoppeld, dan halen we bij het
             openen je rit per seconde en je vermogenscurve van de laatste 90 dagen
             op om je eigen rit te analyseren. Die analyse ziet alleen jij, en we
-            bewaren haar niet.
+            bewaren haar niet. Bij een FRR-etappe, een andere Zwift-race uit de
+            kalender of een race waarvan je de link plakt, bewaren we de uitslag
+            en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
+            van ZWB&apos;ers, van anderen alleen plek en tijden. Een geplakte race
+            halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
+            in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
