@@ -98,7 +98,7 @@ describe("buildCheatsheet", () => {
       { name: "Sprint", deltaMs: -5300 },
       { name: "KOM 2", deltaMs: 16000 },
     ]);
-    expect(race.tips).toContain("Daar zit winst in de rotatie: snellere overnames en kopbeurten die iedereen volhoudt.");
+    expect(race.tips).toContain("vlak: snellere wissels, beurten die iedereen volhoudt");
   });
 
   it("laat lessen over één renner bij de race weg", () => {
@@ -113,7 +113,9 @@ describe("buildCheatsheet", () => {
     expect(sheet.riders).toHaveLength(1);
     expect(sheet.riders[0].rides).toEqual([
       {
+        eventId: "ev-1",
         startAt: "2026-10-13T18:00:00Z",
+        teamId: "b2",
         teamName: "B2",
         wkg: 3.2,
         dropped: null,

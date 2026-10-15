@@ -16,6 +16,8 @@ export type Advice = {
   finding: string;
   /** Wat je volgende keer kunt doen. */
   tip: string;
+  /** De tip in een paar woorden, voor het spiekbriefje in de TTT Planner. */
+  short?: string;
   /** Welke regel; om twee tips over hetzelfde samen te voegen. Niet getoond. */
   rule?: "start" | "fade";
 };
@@ -357,10 +359,12 @@ export function teamAdvice(analysis: RaceAnalysis): Advice[] {
           ? {
               finding: `Op het stuk naar ${to(worst.name)} verloor de ploeg ${sec(worst.versusRival)} op ${rival}.`,
               tip: "Spreek voor de klim een vast tempo in W/kg af, op het niveau van de zwakste klimmer.",
+              short: `${to(worst.name)}: vast W/kg-tempo van de zwakste klimmer`,
             }
           : {
               finding: `Op het vlakke stuk naar ${to(worst.name)} verloor de ploeg ${sec(worst.versusRival)} op ${rival}.`,
               tip: "Daar zit winst in de rotatie: snellere overnames en kopbeurten die iedereen volhoudt.",
+              short: "vlak: snellere wissels, beurten die iedereen volhoudt",
             },
       );
     }
@@ -377,6 +381,7 @@ export function teamAdvice(analysis: RaceAnalysis): Advice[] {
       advice.push({
         finding: `Op ${climb.name} lag de vierde renner ${nl1.format(split)} s achter de eerste.`,
         tip: "Rij klimmen op een vast W/kg-doel dat de zwakste klimmer volhoudt, en wacht boven niet: bijblijven kost minder dan terugkomen.",
+        short: `${climb.name}: 4e renner ${nl1.format(split)} s achter, één W/kg-doel`,
       });
       break;
     }
@@ -475,11 +480,13 @@ export function planCompositionAdvice(plan: PlanRider[]): Advice[] {
     advice.push({
       finding: `De kopbeurten in het plan lagen op ${Math.round(100 * share)}% van de gemiddelde FTP.`,
       tip: "Zo rijdt de ploeg in het wiel bijna even hard als vooraan. Iets hardere beurten, op 105 tot 115% van de gemiddelde FTP, maken de ploeg sneller.",
+      short: `kop op ${Math.round(100 * share)}%: iets harder, 105–115%`,
     });
   } else if (share !== null && share > PULL_HIGH_SHARE) {
     advice.push({
       finding: `De kopbeurten in het plan lagen op ${Math.round(100 * share)}% van de gemiddelde FTP.`,
       tip: "In het wiel trap je zo'n 80% van het kopvermogen, dus het gemiddelde komt dan boven de FTP. Houd 105 tot 115% aan.",
+      short: `kop op ${Math.round(100 * share)}%: te zwaar, 105–115%`,
     });
   }
   return advice;

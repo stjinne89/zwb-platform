@@ -17,25 +17,24 @@ import {
 } from "@/lib/zrl-analysis/advice";
 import type { TttRaceRecord } from "@/lib/zrl-analysis/load";
 
-/** Een vuistregel: het getal om te onthouden, en waar het over gaat. */
-export type CheatRule = { value: string; text: string };
+/** Een vuistregel: het getal om te onthouden, en waar het over gaat; `key` is de belangrijkste. */
+export type CheatRule = { value: string; text: string; key?: true };
 
 /**
  * Vuistregels uit het onderzoek (Zwift Insider over de beste WTRL-ploegen, WTRL)
- * en de eigen meting van 13 oktober, die het kopvermogen bijstelde. Vast, zodat
- * ze bij elk plan klaarstaan.
+ * en de eigen meting van 13 oktober, die het kopvermogen bijstelde. Kort, zoals
+ * op een spiekbrief. Vast, zodat ze bij elk plan klaarstaan.
  */
 export const TTT_RULES: CheatRule[] = [
-  { value: "105–115%", text: "Kopvermogen, van de gemiddelde FTP" },
-  { value: "80%", text: "In het wiel van het kopvermogen: harder trekken is ook harder in het wiel" },
-  { value: "≤ 100%", text: "Gemiddeld over de race, van de eigen FTP" },
-  { value: "20–30 s", text: "Kopbeurt, daarna rust in het wiel" },
-  { value: "−15%", text: "FTP onder het gemiddelde: weinig kopbeurten" },
-  { value: "−20%", text: "FTP onder het gemiddelde: alleen in het wiel" },
-  { value: "≥ 3%", text: "Klim: één W/kg-doel voor de ploeg; vlak: wattdoel" },
-  { value: "30 min", text: "Voor de laatste klim korte beurten voor wie kan lossen" },
-  { value: "1 beurt", text: "Wie lost, trekt eerst nog één volle beurt" },
-  { value: "11–15 s", text: "Kost een wissel: vaste volgorde, overslaan hardop melden" },
+  { value: "105–115%", text: "kop, van gem. FTP", key: true },
+  { value: "± 80%", text: "in het wiel, van de kop" },
+  { value: "≤ 100%", text: "gemiddeld, van eigen FTP" },
+  { value: "20–30 s", text: "beurt, dan in het wiel" },
+  { value: "−15 / −20%", text: "FTP: weinig kop / alleen wiel" },
+  { value: "≥ 3%", text: "klim: één W/kg-doel; vlak: watt" },
+  { value: "30 min", text: "vóór de laatste klim: kort trekken" },
+  { value: "1 beurt", text: "wie lost, trekt eerst nog vol" },
+  { value: "11–15 s", text: "kost een wissel: vaste volgorde" },
 ];
 
 /** De doelband voor het kopvermogen, als deel van de gemiddelde FTP; zie PULL_LOW_SHARE in advice.ts. */
@@ -63,12 +62,14 @@ export type CheatsheetRace = {
   spreadMs: number | null;
   /** Winst (+) of verlies (−) op die ploeg per stuk, tot en met het genoemde punt. */
   sections: Array<{ name: string; deltaMs: number }>;
-  /** Wat de ploeg als geheel anders kan; lessen over één renner staan bij die renner. */
+  /** Wat de ploeg als geheel anders kan, in een paar woorden; lessen over één renner staan bij die renner. */
   tips: string[];
 };
 
 export type CheatsheetRide = {
+  eventId: string;
   startAt: string;
+  teamId: string;
   teamName: string | null;
   wkg: number | null;
   /** De klim waar de renner loste; true als dat niet op een klim was. */
@@ -107,8 +108,8 @@ function race(record: TttRaceRecord, skip: Set<string>): CheatsheetRace {
   const names = analysis.riders.map((r) => r.name);
   const tips: string[] = [];
   for (const advice of [...tttPlanAdvice(analysis, record.plan), ...teamAdvice(analysis)]) {
-    if (skip.has(advice.finding) || names.some((n) => advice.finding.startsWith(n)) || tips.includes(advice.tip)) continue;
-    tips.push(advice.tip);
+    if (skip.has(advice.finding) || names.some((n) => advice.finding.startsWith(n)) || tips.includes(advice.short ?? advice.tip)) continue;
+    tips.push(advice.short ?? advice.tip);
   }
   return {
     eventId: record.eventId,
@@ -131,7 +132,9 @@ function ride(record: TttRaceRecord, zwiftId: number): CheatsheetRide | null {
   const rider = record.analysis.riders.find((r) => r.athleteId === zwiftId);
   if (!rider) return null;
   return {
+    eventId: record.eventId,
     startAt: record.startAt,
+    teamId: record.teamId,
     teamName: record.teamName,
     wkg: rider.wkg,
     dropped: rider.dropped ? (dropClimb(record.analysis, rider) ?? true) : null,

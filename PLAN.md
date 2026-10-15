@@ -134,6 +134,37 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **TTT Planner: het spiekbriefje als handgeschreven briefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag "meer een echt briefje" voor zich. Een schets
+> (gelinieerd papier, kantlijn, plakband, handschrift) is goedgekeurd: "dit is
+> wat ik in mijn hoofd had", met een getekende balk voor het kopvermogen.
+>
+> **Wat.** Het blok is een papiertje: crème met lijnen, een gouden kantlijn, een
+> strook teal plakband, licht scheef vanaf `sm`. In het donkere thema blijft het
+> papier licht (iets gedimd); de kleuren zijn bewust vaste inktkleuren in het
+> component, geen thema-tokens. Handschrift: Shantell Sans via `next/font`
+> (eerst Kalam geprobeerd: daar lijkt een 1 op een l, en op een spiekbrief vol
+> getallen is dat fataal). Indeling: links "Onthouden" (de belangrijkste regel
+> omcirkeld) en "Vorige keer" met getekende staafjes; rechts "Dit plan" met een
+> getekende lat (doelband als markeerstift, een pijl op het plan) en "Renners".
+> Renners met precies dezelfde lessen staan op één regel; wie vorige keer bij een
+> ander team reed, krijgt dat team erbij; renners zonder les staan samen onderaan.
+> Op de telefoon eerst het plan en de renners. `Advice.short` geeft de teamtips
+> in een paar woorden; de vuistregels zijn ingekort tot spiekbrieftaal. De
+> cachesleutel is `ttt-races` v2.
+>
+> **Niet meer waar.** De ronde hieronder ("het cheatsheet als spiekbriefje")
+> beschrijft een kaart met labels en een aparte kolom vuistregels; die vorm is
+> vervangen. De ritregels per renner (W/kg per klim) staan niet meer op het
+> briefje: te veel voor een spiekbrief.
+>
+> **Niet geverifieerd.** De planner zelf met login. De detector meldt de vaste
+> inktkleuren als buiten `DESIGN.md`; dat is bedoeld.
+
+---
+
 > **Kopvermogen in TTT-plannen bijgesteld: 105 tot 115% in plaats van 120 tot 130%, 2026-10-15 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
