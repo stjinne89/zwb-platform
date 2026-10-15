@@ -134,6 +134,33 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **"Kleur is klikbaar" in ZWBeter racen en de TTT Planner, 2026-10-15 — gebouwd, typecheck en lint schoon, bekeken op een tijdelijke voorbeeldpagina in het design "tegels"; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag dat deze pagina's het kleurbeleid van het design
+> "tegels" niet volgden: een tegel met een link hoort een gevulde kleur te
+> hebben (besluit 2026-10-13, "Kleur is klikbaar"). De racelijsten en de
+> opgeslagen plannen werden in "tegels" doorzichtige panelen.
+>
+> **Wat.** Nieuwe klasse `.tg-link` in `globals.css`, alleen actief binnen
+> `[data-design="tegels"]`: een gevuld vlak in de kleur van de soort
+> (`--tg-bg`/`--tg-fg` uit `tg-kalender` enz.), lichter bij hover, en waar je al
+> bent (`aria-current="page"`) het paneel met de gouden lijn zoals bij de
+> ZWBeter-pijlers. Gedempte tekst en pictogrammen nemen de tekstkleur van de tegel
+> over. Toegepast met petrol (`tg-kalender`: wedstrijden, teams en hun uitslagen)
+> op de racelijsten van ZWBeter racen, de racekeuze in het trainersdeel en de
+> opgeslagen plannen in de TTT Planner. In het huidige design verandert niets. De
+> paneelregels voor `bg-card`, `bg-background` en `divide-y` zijn specifieker dan
+> één klasse; daarom staat `.tg-link` op `!important`.
+>
+> **Bewust niet gedaan.** De rest van de app nalopen op klikbare rijen zonder
+> kleur (het open punt bij "Kleur is klikbaar"); alleen de pagina's van deze
+> rondes. Het spiekbriefje blijft papier: daar zit geen link in.
+>
+> **Niet geverifieerd.** Met echte data en login in het design "tegels".
+
+---
+
 > **TTT Planner: het spiekbriefje als handgeschreven briefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

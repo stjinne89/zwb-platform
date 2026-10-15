@@ -22,7 +22,7 @@ function RaceList({ races }: { races: ZrlRaceListItem[] }) {
     <ul className="divide-y rounded-lg border bg-card">
       {races.map((race) => (
         <li key={race.id}>
-          <Link href={race.href} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50">
+          <Link href={race.href} className="tg-link tg-kalender flex items-center gap-3 px-4 py-3 hover:bg-muted/50 focus-visible:bg-muted/50">
             <span className="w-28 shrink-0 text-sm text-muted-foreground">{dateLabel.format(new Date(race.startAt))}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{race.title}</span>

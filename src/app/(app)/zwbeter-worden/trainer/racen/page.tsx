@@ -62,7 +62,7 @@ export default async function TrainerRacesPage({ searchParams }: SearchParamsPro
               <Link
                 href={href(race)}
                 aria-current={race.id === selected.id ? "page" : undefined}
-                className={cn("block px-3 py-2 text-sm hover:bg-muted/50", race.id === selected.id && "bg-primary/5 font-medium")}
+                className={cn("tg-link tg-kalender block px-3 py-2 text-sm hover:bg-muted/50", race.id === selected.id && "bg-primary/5 font-medium")}
               >
                 <span className="block truncate">{race.title}</span>
                 <span className="text-xs text-muted-foreground">{dateLabel.format(new Date(race.startAt))}</span>

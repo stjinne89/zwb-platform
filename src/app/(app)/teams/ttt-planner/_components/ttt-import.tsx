@@ -285,7 +285,7 @@ export function TttImport({
               <li key={plan.id}>
                 <Link
                   href={`/teams/ttt-planner/${plan.id}`}
-                  className="block rounded-md border bg-background px-3 py-2 text-sm hover:bg-muted"
+                  className="tg-link tg-kalender block rounded-md border bg-background px-3 py-2 text-sm hover:bg-muted"
                 >
                   <span className="block font-medium">{plan.name}</span>
                   <span className="text-xs text-muted-foreground">

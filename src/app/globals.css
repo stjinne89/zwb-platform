@@ -902,6 +902,37 @@ a.tg-row:focus-visible,
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+/* Een link in een lijst (races, opgeslagen plannen): kleur is klikbaar, dus in
+   het design "tegels" een gevuld vlak in de kleur van de soort (tg-kalender,
+   tg-zwbeter, ...). Waar je al bent: het paneel met de gouden lijn, net als bij
+   de ZWBeter-pijlers. In het huidige design doet de klasse niets. De regels voor
+   panelen hierboven (bg-card, bg-background, divide-y) zijn specifieker dan een
+   klasse; daarom hier !important. */
+[data-design="tegels"] .tg-link {
+  border-color: transparent !important;
+  background: var(--tg-bg) !important;
+  color: var(--tg-fg) !important;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-design="tegels"] .tg-link :is(.text-muted-foreground, svg) {
+  color: inherit;
+  opacity: 0.8;
+}
+[data-design="tegels"] .tg-link:hover {
+  filter: brightness(1.1);
+}
+[data-design="tegels"] .tg-link[aria-current="page"] {
+  background: var(--tg-panel) !important;
+  color: var(--foreground) !important;
+  box-shadow: inset 0 -4px 0 var(--tg-vandaag);
+}
+[data-design="tegels"] .tg-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-design="tegels"] .tg-link { transition: none; }
+}
 [data-design="tegels"] .tg-metric .text-2xl {
   font-family: var(--tg-display);
   font-size: 2.5rem;
