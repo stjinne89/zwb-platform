@@ -99,6 +99,8 @@ export type IntervalsActivity = {
   name?: string;
   start_date_local?: string;
   type?: string;
+  /** Waar intervals.icu de rit vandaan heeft, bv. "STRAVA" of "GARMIN_CONNECT". */
+  source?: string | null;
   distance?: number;
   moving_time?: number;
   elapsed_time?: number;
@@ -267,16 +269,18 @@ export type IntervalsStream = { type: string; data: Array<number | null> };
 /**
  * De tijdreeksen van één activiteit (standaard vermogen en tijd). intervals.icu
  * geeft een lijst streams terug; een activiteit die via Strava binnenkwam heeft
- * er geen, en dan komt er een lege lijst of een fout terug.
+ * er geen, en dan komt er een lege lijst of een fout terug. Een lege `types`
+ * vraagt alle streams op, ook die uit een dataveld met een eigen naam.
  */
 export async function fetchIntervalsActivityStreams(
   apiKey: string,
   activityId: string,
   types: string[] = ["time", "watts"],
 ): Promise<IntervalsStream[]> {
+  const query = types.length > 0 ? `?types=${types.join(",")}` : "";
   const body = await intervalsFetch<unknown>(
     apiKey,
-    `/api/v1/activity/${encodeURIComponent(activityId)}/streams.json?types=${types.join(",")}`,
+    `/api/v1/activity/${encodeURIComponent(activityId)}/streams.json${query}`,
   );
   const list = Array.isArray(body)
     ? body

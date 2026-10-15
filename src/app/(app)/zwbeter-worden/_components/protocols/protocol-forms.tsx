@@ -23,12 +23,15 @@ const inputClass = "min-h-[44px] w-full rounded-md border bg-background px-3";
 export function ProtocolStartForm({
   action,
   slug,
+  core,
   anchor,
   today,
   races,
 }: {
   action: Action;
   slug: string;
+  /** Hitteprotocol: de toestemming noemt de CORE-sensor. */
+  core?: boolean;
   anchor: "start" | "wedstrijd";
   today: string;
   /** Mikpunten uit de jaarplanning, alleen bij een wedstrijdprotocol. */
@@ -78,8 +81,11 @@ export function ProtocolStartForm({
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="consent" value="ja" required className="mt-1 size-4 shrink-0" />
         <span>
-          ZWB houdt bij dat ik dit protocol volg en wat ik afvink. Mijn eigen trainer ziet dat ook. Ik kan
-          het altijd stoppen.{" "}
+          ZWB houdt bij dat ik dit protocol volg en wat ik afvink.
+          {core
+            ? " Rijd ik met een CORE-sensor, dan haalt ZWB mijn kerntemperatuur bij de hittesessies uit intervals.icu."
+            : null}{" "}
+          Mijn eigen trainer ziet dat ook. Ik kan het altijd stoppen.{" "}
           <Link href="/privacy#protocollen" className="text-primary hover:underline">
             Privacyverklaring
           </Link>

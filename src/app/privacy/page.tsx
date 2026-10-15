@@ -140,10 +140,10 @@ export default function PrivacyPage() {
             Naleving uit, dan verwijderen we het hele eetdagboek. Zoek je een
             verpakt product op met de barcode, dan vragen we het op bij Open Food
             Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt. Zet
-            je daarnaast &quot;Foto en tekst&quot; aan (een aparte toestemming),
-            dan gaat een foto of omschrijving van je maaltijd naar OpenAI, dat
-            herkent wat erop staat en de hoeveelheden schat. ZWB bewaart de foto
-            niet; we houden alleen bij wanneer je de herkenning gebruikte, voor
+            je daarnaast &quot;Tekst herkennen&quot; aan (een aparte
+            toestemming), dan gaat je omschrijving van een maaltijd naar OpenAI,
+            dat herkent wat erin zit en de hoeveelheden schat. We houden alleen
+            bij wanneer je de herkenning gebruikte, voor
             de daglimiet. Je eetdagboek staat in je data-export.
           </li>
           <li id="protocollen" className="scroll-mt-20">
@@ -151,12 +151,20 @@ export default function PrivacyPage() {
             protocol, zoals hittetraining of een supplement voor een wedstrijd,
             dan teken je daar apart voor. We bewaren welk protocol je volgt, de
             start- of wedstrijddatum en welke taken je per dag afvinkt. Bij een
-            supplement zegt dat iets over wat je inneemt. Jij en je eigen
+            supplement zegt dat iets over wat je inneemt, en een protocol als
+            collageen bij revalidatie laat zien dat je een blessure hebt. Jij en je eigen
             trainer zien het; het bestuur en andere leden niet. Doses rekent de
             app bij het tonen uit het gewicht in je profiel; die worden niet
             apart opgeslagen. Loopt er een trainingsprotocol (hitte of lage
             cadans), dan gaan de naam en de datums mee naar OpenAI bij elke
             schemageneratie; voedingsprotocollen gaan niet mee.
+            Volg je een hitteprotocol en heb je intervals.icu gekoppeld, dan
+            kijken we bij je ritten op hittedagen of er een kerntemperatuur van
+            een CORE-sensor in staat. Daarvan bewaren we per rit alleen de
+            hoogste waarde en hoeveel minuten je op of boven 38,5 °C was, niet
+            de meting zelf. Haal je de drempel, dan vinkt de app de hittesessie
+            voor je af. Jij en je eigen trainer zien die waarden; ze gaan niet
+            naar OpenAI.
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>
@@ -416,7 +424,7 @@ export default function PrivacyPage() {
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
             en voor de antwoorden in de coachchat, en als je dat aanzet voor het
-            herkennen van een maaltijd uit een foto of omschrijving. Meegestuurd worden relevante
+            herkennen van een maaltijd uit een omschrijving. Meegestuurd worden relevante
             trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
             en, bij de chat, de tekst die je zelf typt; geen directe
             identificatiegegevens waar vermijdbaar.

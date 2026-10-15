@@ -93,7 +93,7 @@ const MORTON_2026_JNUTR: NutritionSource = {
   kind: "review",
 };
 
-const KERKSICK_2017: NutritionSource = {
+export const KERKSICK_2017: NutritionSource = {
   citation:
     "Kerksick CM, Arent S, Schoenfeld BJ, et al. International Society of Sports Nutrition position stand: nutrient timing. J Int Soc Sports Nutr 14:33.",
   year: 2017,
@@ -117,7 +117,7 @@ const REDS_2023: NutritionSource = {
   kind: "consensus",
 };
 
-const UCI_BONE: NutritionSource = {
+export const UCI_BONE: NutritionSource = {
   citation:
     "Saffioti N, Takarabe L, Perfeito L, Ribeiro W, Hilkens L, Van Dyk J, Dolan E. UCI Sports Nutrition Project: Does Cycling Create a “Perfect Storm” for Bone Health? Int J Sport Nutr Exerc Metab 36(3):324–334.",
   year: 2026,
@@ -125,7 +125,7 @@ const UCI_BONE: NutritionSource = {
   kind: "review",
 };
 
-const UCI_ILLNESS: NutritionSource = {
+export const UCI_ILLNESS: NutritionSource = {
   citation:
     "Wilson PB, Pyne DB, Rotunno A. UCI Sports Nutrition Project: The Role of Nutrition in the Prevention and Management of Illnesses and Injuries in Elite Cycling. Int J Sport Nutr Exerc Metab 36(3):352–368.",
   year: 2026,
@@ -139,6 +139,238 @@ const UCI_PLATE: NutritionSource = {
   year: 2026,
   url: "https://doi.org/10.1123/ijsnem.2025-0198",
   kind: "review",
+};
+
+// Supplementen voor herstel en gezondheid (ronde 2026-10-14). De onderbouwing
+// staat in docs/supplementen-onderzoek.md; de protocollen gebruiken dezelfde
+// bronnen, daarom staan ze hier en niet bij een artikel.
+export const UCI_SUPPLEMENTS: NutritionSource = {
+  citation:
+    "Whitfield J, Egan B, Del Coso J, Derave W, Saunders B, Burke LM. UCI Sports Nutrition Project: Considerations and Applications for the Use of Sports Foods and Supplements to Improve Performance in Cycling. Int J Sport Nutr Exerc Metab 36(3):187–214.",
+  year: 2026,
+  url: "https://pubmed.ncbi.nlm.nih.gov/41570809/",
+  kind: "review",
+};
+
+export const IOC_SUPPLEMENTS: NutritionSource = {
+  citation:
+    "Maughan RJ, Burke LM, Dvorak J, et al. IOC consensus statement: dietary supplements and the high-performance athlete. Br J Sports Med 52(7):439–455.",
+  year: 2018,
+  url: "https://research-repository.st-andrews.ac.uk/bitstream/handle/10023/13136/Maughan_2018_BJSM_IOCconsensus_CC.pdf",
+  kind: "consensus",
+};
+
+export const HILL_2021: NutritionSource = {
+  citation:
+    "Hill JA, Keane KM, Quinlan R, Howatson G. Tart Cherry Supplementation and Recovery From Strenuous Exercise: A Systematic Review and Meta-Analysis. Int J Sport Nutr Exerc Metab 31(2):154–167.",
+  year: 2021,
+  url: "https://doi.org/10.1123/ijsnem.2020-0145",
+  kind: "review",
+};
+
+export const MCHUGH_2022: NutritionSource = {
+  citation:
+    "McHugh MP. “Precovery” versus recovery: Understanding the role of cherry juice in exercise recovery. Scand J Med Sci Sports 32(6):940–950.",
+  year: 2022,
+  url: "https://doi.org/10.1111/sms.14141",
+  kind: "review",
+};
+
+export const BELL_2014: NutritionSource = {
+  citation:
+    "Bell PG, et al. Montmorency cherries reduce the oxidative stress and inflammatory responses to repeated days high-intensity stochastic cycling. Nutrients 6(2):829–843.",
+  year: 2014,
+  url: "https://doi.org/10.3390/nu6020829",
+  kind: "studie",
+};
+
+export const HOWATSON_2010: NutritionSource = {
+  citation:
+    "Howatson G, McHugh MP, Hill JA, et al. Influence of tart cherry juice on indices of recovery following marathon running. Scand J Med Sci Sports 20(6):843–852.",
+  year: 2010,
+  url: "https://doi.org/10.1111/j.1600-0838.2009.01005.x",
+  kind: "studie",
+};
+
+const GAO_2020: NutritionSource = {
+  citation:
+    "Gao R, Chilibeck PD. Effect of Tart Cherry Concentrate on Endurance Exercise Performance: A Meta-analysis. J Am Coll Nutr 39(7):657–664.",
+  year: 2020,
+  url: "https://doi.org/10.1080/07315724.2020.1713246",
+  kind: "review",
+};
+
+const BEBA_2022: NutritionSource = {
+  citation:
+    "Beba M, Mohammadi H, Clark CCT, Djafarian K. The effect of curcumin supplementation on delayed-onset muscle soreness, inflammation, muscle strength, and joint flexibility: A systematic review and dose-response meta-analysis of randomized controlled trials. Phytother Res 36(7):2767–2778.",
+  year: 2022,
+  url: "https://doi.org/10.1002/ptr.7477",
+  kind: "review",
+};
+
+export const PAULSEN_2014: NutritionSource = {
+  citation:
+    "Paulsen G, Cumming KT, Holden G, et al. Vitamin C and E supplementation hampers cellular adaptation to endurance training in humans: a double-blind, randomised, controlled trial. J Physiol 592(8):1887–1901.",
+  year: 2014,
+  url: "https://doi.org/10.1113/jphysiol.2013.267419",
+  kind: "studie",
+};
+
+export const SHAW_2017: NutritionSource = {
+  citation:
+    "Shaw G, Lee-Barthel A, Ross ML, Wang B, Baar K. Vitamin C–enriched gelatin supplementation before intermittent activity augments collagen synthesis. Am J Clin Nutr 105(1):136–143.",
+  year: 2017,
+  url: "https://doi.org/10.3945/ajcn.116.138594",
+  kind: "studie",
+};
+
+export const BISCHOF_2024: NutritionSource = {
+  citation:
+    "Bischof K, Moitzi AM, Stafilidis S, König D. Impact of Collagen Peptide Supplementation in Combination with Long-Term Physical Training on Strength, Musculotendinous Remodeling, Functional Recovery, and Body Composition in Healthy Adults: A Systematic Review with Meta-analysis. Sports Med 54(11):2865–2888.",
+  year: 2024,
+  url: "https://doi.org/10.1007/s40279-024-02079-0",
+  kind: "review",
+};
+
+export const OWENS_2018: NutritionSource = {
+  citation:
+    "Owens DJ, Allison R, Close GL. Vitamin D and the Athlete: Current Perspectives and New Challenges. Sports Med 48(Suppl 1):3–16.",
+  year: 2018,
+  url: "https://doi.org/10.1007/s40279-017-0841-9",
+  kind: "review",
+};
+
+export const GR_VITAMINE_D: NutritionSource = {
+  citation: "Gezondheidsraad. Evaluatie van de voedingsnormen voor vitamine D. Den Haag, publicatienr. 2012/15.",
+  year: 2012,
+  url: "https://www.gezondheidsraad.nl/documenten/adviezen/2012/09/26/evaluatie-van-de-voedingsnormen-voor-vitamine-d",
+  kind: "richtlijn",
+};
+
+const PHILPOTT_2019: NutritionSource = {
+  citation:
+    "Philpott JD, Witard OC, Galloway SDR. Applications of omega-3 polyunsaturated fatty acid supplementation for sport performance. Res Sports Med 27(2):219–237.",
+  year: 2019,
+  url: "https://doi.org/10.1080/15438627.2018.1550401",
+  kind: "review",
+};
+
+const JAGER_2019: NutritionSource = {
+  citation:
+    "Jäger R, Mohr AE, Carpenter KC, et al. International Society of Sports Nutrition Position Stand: Probiotics. J Int Soc Sports Nutr 16(1):62.",
+  year: 2019,
+  url: "https://doi.org/10.1186/s12970-019-0329-0",
+  kind: "consensus",
+};
+
+const HEMILA_2013: NutritionSource = {
+  citation:
+    "Hemilä H, Chalker E. Vitamin C for preventing and treating the common cold. Cochrane Database Syst Rev 2013(1):CD000980.",
+  year: 2013,
+  url: "https://doi.org/10.1002/14651858.CD000980.pub4",
+  kind: "review",
+};
+
+const NAULT_2024: NutritionSource = {
+  citation:
+    "Nault D, Machingo TA, Shipper AG, et al. Zinc for prevention and treatment of the common cold. Cochrane Database Syst Rev 2024(5):CD014914.",
+  year: 2024,
+  url: "https://doi.org/10.1002/14651858.CD014914.pub2",
+  kind: "review",
+};
+
+const GARRISON_2020: NutritionSource = {
+  citation:
+    "Garrison SR, Korownyk CS, Kolber MR, et al. Magnesium for skeletal muscle cramps. Cochrane Database Syst Rev 2020(9):CD009402.",
+  year: 2020,
+  url: "https://doi.org/10.1002/14651858.CD009402.pub3",
+  kind: "review",
+};
+
+const WOLFE_2017: NutritionSource = {
+  citation:
+    "Wolfe RR. Branched-chain amino acids and muscle protein synthesis in humans: myth or reality? J Int Soc Sports Nutr 14:30.",
+  year: 2017,
+  url: "https://doi.org/10.1186/s12970-017-0184-9",
+  kind: "review",
+};
+
+const MCCARTNEY_2020: NutritionSource = {
+  citation:
+    "McCartney D, et al. Cannabidiol and Sports Performance: a Narrative Review of Relevant Evidence and Recommendations for Future Research. Sports Med Open 6:27.",
+  year: 2020,
+  url: "https://doi.org/10.1186/s40798-020-00251-0",
+  kind: "review",
+};
+
+const JEFFRIES_2019: NutritionSource = {
+  citation:
+    "Jeffries O, Waldron M. The effects of menthol on exercise performance and thermal sensation: a meta-analysis. J Sci Med Sport 22(6):707–715.",
+  year: 2019,
+  url: "https://doi.org/10.1016/j.jsams.2018.12.002",
+  kind: "review",
+};
+
+const BRIETZKE_2019: NutritionSource = {
+  citation:
+    "Brietzke C, Franco-Alvarenga PE, Coelho-Júnior HJ, et al. Effects of Carbohydrate Mouth Rinse on Cycling Time Trial Performance: A Systematic Review and Meta-Analysis. Sports Med 49(1):57–66.",
+  year: 2019,
+  url: "https://doi.org/10.1007/s40279-018-1029-7",
+  kind: "review",
+};
+
+const HAAKONSSEN_2015: NutritionSource = {
+  citation:
+    "Haakonssen EC, Ross ML, Knight EJ, et al. The Effects of a Calcium-Rich Pre-Exercise Meal on Biomarkers of Calcium Homeostasis in Competitive Female Cyclists: A Randomised Crossover Trial. PLoS One 10(5):e0123302.",
+  year: 2015,
+  url: "https://doi.org/10.1371/journal.pone.0123302",
+  kind: "studie",
+};
+
+export const RUSTAD_2016: NutritionSource = {
+  citation:
+    "Rustad PI, Sailer M, Cumming KT, et al. Intake of Protein Plus Carbohydrate during the First Two Hours after Exhaustive Cycling Improves Performance the following Day. PLoS One 11(4):e0153229.",
+  year: 2016,
+  url: "https://doi.org/10.1371/journal.pone.0153229",
+  kind: "studie",
+};
+
+export const VAN_ROSENDAL_2010: NutritionSource = {
+  citation:
+    "van Rosendal SP, Osborne MA, Fassett RG, Coombes JS. Guidelines for glycerol use in hyperhydration and rehydration associated with exercise. Sports Med 40(2):113–129.",
+  year: 2010,
+  url: "https://doi.org/10.2165/11530760-000000000-00000",
+  kind: "review",
+};
+
+export const SNIJDERS_2019: NutritionSource = {
+  citation:
+    "Snijders T, Trommelen J, Kouw IWK, Holwerda AM, Verdijk LB, van Loon LJC. The Impact of Pre-sleep Protein Ingestion on the Skeletal Muscle Adaptive Response to Exercise in Humans: An Update. Front Nutr 6:17.",
+  year: 2019,
+  url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6415027/",
+  kind: "review",
+};
+
+const AIS_FRAMEWORK: NutritionSource = {
+  citation: "Australian Institute of Sport. AIS Sports Supplement Framework (ABCD-classificatie).",
+  year: 2021,
+  url: "https://www.ausport.gov.au/ais/nutrition/supplements",
+  kind: "richtlijn",
+};
+
+const NZVT: NutritionSource = {
+  citation: "Dopingautoriteit. NZVT: Nederlands Zekerheidssysteem Voedingssupplementen Topsport.",
+  year: 2026,
+  url: "https://www.dopingautoriteit.nl/programmas/nzvt",
+  kind: "richtlijn",
+};
+
+const GUEST_2021_NUTRITION: NutritionSource = {
+  citation:
+    "Guest NS, VanDusseldorp TA, Nelson MT, et al. International society of sports nutrition position stand: caffeine and exercise performance. J Int Soc Sports Nutr 18:1.",
+  year: 2021,
+  url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7777221/",
+  kind: "consensus",
 };
 
 export const NUTRITION_ARTICLES: NutritionArticle[] = [
@@ -357,13 +589,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://pubmed.ncbi.nlm.nih.gov/28698222/",
         kind: "review",
       },
-      {
-        citation:
-          "Snijders T, Trommelen J, Kouw IWK, Holwerda AM, Verdijk LB, van Loon LJC. The Impact of Pre-sleep Protein Ingestion on the Skeletal Muscle Adaptive Response to Exercise in Humans: An Update. Front Nutr 6:17.",
-        year: 2019,
-        url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6415027/",
-        kind: "review",
-      },
+      SNIJDERS_2019,
       {
         citation:
           "Trommelen J, van Lieshout GAA, Pabla P, et al. Pre-sleep Protein Ingestion Increases Mitochondrial Protein Synthesis Rates During Overnight Recovery from Endurance Exercise: A Randomized Controlled Trial. Sports Med 53:1445–1455.",
@@ -385,10 +611,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Neem er eiwit bij, ongeveer 0,3 g/kg; dat helpt spierherstel en maakt snel aanvullen makkelijker.",
       "Volgende zware sessie pas morgen: gewone maaltijden met genoeg koolhydraten volstaan.",
       "Chocolademelk of kwark met fruit zijn praktische opties direct na de rit.",
+      "In een kleine studie met duursporters hielden ze het de dag na een uitputtende rit langer vol als ze in de eerste twee uur eiwit én koolhydraten namen, in plaats van evenveel energie uit alleen koolhydraten.",
+      "Een eiwitshake is handig onderweg, maar niet beter dan gewoon eten met evenveel eiwit.",
       "Meer dan 2% van je gewicht verloren aan zweet? Drink in de vier tot zes uur erna 125–150% van dat verlies.",
       "Zout in je herstelmaaltijd of -drank helpt het vocht vast te houden.",
     ],
-    sources: [UCI_POSITION, ACSM_2016, KERKSICK_2017, UCI_PERIODIZATION],
+    sources: [UCI_POSITION, ACSM_2016, KERKSICK_2017, UCI_PERIODIZATION, RUSTAD_2016],
   },
   {
     slug: "genoeg-eten-reds",
@@ -479,11 +707,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     points: [
       "Genoeg eten is de basis: te weinig energie, en vooral te weinig koolhydraten, verstoort de botstofwisseling.",
       "Calcium: 800–1200 mg per dag. Zuivel, verrijkte plantaardige zuivel, groene groenten en noten leveren het meeste.",
+      "Een calciumrijke maaltijd twee uur voor een lange rit remde in een studie met wielrensters de botafbraakwaarden in het bloed tijdens het fietsen. Of dat op termijn je botten sterker maakt, is niet onderzocht.",
       "Vitamine D komt uit zonlicht, vette vis en verrijkte producten. Laat bij twijfel je bloedwaarde meten; streefwaarde boven 50 en liefst 75 nmol/l.",
       "Eiwit (1,6–2,1 g/kg per dag) is ook voor je botten nodig.",
       "Dit geldt extra voor jonge renners, die nog botmassa opbouwen, en voor oudere renners.",
     ],
-    sources: [UCI_BONE, UCI_POSITION, REDS_2023],
+    sources: [UCI_BONE, UCI_POSITION, REDS_2023, HAAKONSSEN_2015],
   },
   {
     slug: "weerstand",
@@ -495,10 +724,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Te weinig energie of koolhydraten rond zware training verzwakt je afweer.",
       "Eiwit, ijzer, zink, vitamine C, vitamine D en omega-3-vetzuren spelen een rol. Een gevarieerd menu met groente, fruit, vis en volkoren dekt dat.",
       "Voor probiotica is het bewijs bij sporters wisselend.",
+      "Vitamine C halveerde in een Cochrane-review het aantal verkoudheden bij mensen onder zware fysieke belasting, zoals marathonlopers. Bij gewone mensen was er geen effect, en pas beginnen als je al verkouden bent hielp niet.",
+      "Zinkzuigtabletten bij de eerste klachten maken een verkoudheid misschien een paar dagen korter, maar het bewijs is onzeker en misselijkheid of een vieze smaak komt vaak voor.",
       "Antioxidanten als supplement kunnen trainingsaanpassing afremmen; bewaar ze voor periodes waarin snel herstel telt. Uit gewone voeding is dat geen punt.",
       "Slaap en stress tellen mee voor je afweer.",
     ],
-    sources: [UCI_ILLNESS, UCI_POSITION],
+    sources: [UCI_ILLNESS, UCI_POSITION, HEMILA_2013, NAULT_2024, PAULSEN_2014],
   },
   {
     slug: "masters",
@@ -528,49 +759,121 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     category: "supplementen",
     title: "Supplementen en sportvoeding",
     summary:
-      "Eerst de basisvoeding op orde. Een klein aantal supplementen heeft voor wielrennen een sterke onderbouwing, elk voor een specifieke situatie.",
+      "Eerst de basisvoeding op orde. Een klein aantal supplementen heeft voor wielrennen een sterke onderbouwing, elk voor een specifieke situatie. Voor herstel en gezondheid is het bewijs dunner.",
     points: [
-      "Sterk onderbouwd voor wielrennen: cafeïne, creatine, natriumbicarbonaat, bèta-alanine, nitraat (bietensap) en glycerol.",
-      "Cafeïne: ongeveer 3–6 mg per kg, ongeveer een uur vooraf. Test eerst op training; hogere doses geven vaker bijwerkingen.",
-      "Sportdrank, gels en repen zijn gewone sportvoeding: handig, maar niet beter dan gewone koolhydraten.",
+      "Sterk onderbouwd voor prestatie: cafeïne, creatine, natriumbicarbonaat, bèta-alanine, nitraat (bietensap) en glycerol. Voor elk staat een protocol.",
+      "Sportdrank, gels, repen, elektrolyten en eiwitpoeder zijn gewone sportvoeding: handig, maar niet beter dan gewoon eten met dezelfde inhoud.",
+      "IJzer, calcium en vitamine D alleen bij een tekort of een duidelijk risico. Voor vitamine D in de winter staat een protocol.",
+      "Veelbelovend, maar het bewijs is dun of wisselend: kersensap en andere polyfenolen, collageen, visolie, probiotica, curcumine en menthol. Kersensap en collageen hebben een protocol.",
+      "Geen of te weinig bewijs: BCAA's, magnesium tegen kramp, CBD en ketonen.",
       "Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies bij voorkeur NZVT-geteste batches.",
+      "Supplementprotocollen zijn er vanaf 18 jaar. Daaronder zijn eten en sportvoeding genoeg.",
       "ZWB noemt bewust geen merken.",
     ],
-    sources: [
-      {
-        citation:
-          "Maughan RJ, Burke LM, Dvorak J, et al. IOC consensus statement: dietary supplements and the high-performance athlete. Br J Sports Med 52(7):439–455.",
-        year: 2018,
-        url: "https://research-repository.st-andrews.ac.uk/bitstream/handle/10023/13136/Maughan_2018_BJSM_IOCconsensus_CC.pdf",
-        kind: "consensus",
-      },
-      {
-        citation:
-          "Whitfield J, et al. UCI Sports Nutrition Project: Considerations and Applications for the Use of Sports Foods and Supplements to Improve Performance in Cycling. Int J Sport Nutr Exerc Metab.",
-        year: 2026,
-        url: "https://pubmed.ncbi.nlm.nih.gov/41570809/",
-        kind: "review",
-      },
-      {
-        citation:
-          "Guest NS, VanDusseldorp TA, Nelson MT, et al. International society of sports nutrition position stand: caffeine and exercise performance. J Int Soc Sports Nutr 18:1.",
-        year: 2021,
-        url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7777221/",
-        kind: "consensus",
-      },
-      {
-        citation: "Australian Institute of Sport. AIS Sports Supplement Framework (ABCD-classificatie).",
-        year: 2021,
-        url: "https://www.ausport.gov.au/ais/nutrition/supplements",
-        kind: "richtlijn",
-      },
-      {
-        citation: "Dopingautoriteit. NZVT: Nederlands Zekerheidssysteem Voedingssupplementen Topsport.",
-        year: 2026,
-        url: "https://www.dopingautoriteit.nl/programmas/nzvt",
-        kind: "richtlijn",
-      },
+    sources: [IOC_SUPPLEMENTS, UCI_SUPPLEMENTS, GUEST_2021_NUTRITION, AIS_FRAMEWORK, NZVT],
+  },
+  {
+    slug: "kersensap",
+    category: "supplementen",
+    title: "Kersensap en andere polyfenolen",
+    summary:
+      "Zuur kersensap kan je kracht na een zware inspanning sneller terugbrengen, maar alleen als je er een paar dagen vóór begint. Alleen na de wedstrijd drinken is niet onderbouwd.",
+    points: [
+      "Een meta-analyse vond sneller herstel van kracht en vermogen na zware inspanning, en een kleiner effect op spierpijn.",
+      "Een review van vijftien studies: de winst kwam steeds als het sap al een paar dagen vóór de inspanning werd gedronken. Voor alleen achteraf drinken is geen bewijs. Kersenpoeder werkte niet.",
+      "Bij wielrenners die drie dagen achter elkaar zware ritten reden, daalden de ontstekingswaarden; hun tijdrit werd niet beter.",
+      "In de studies: twee keer per dag 30 ml concentraat of een glas sap, vanaf vier à vijf dagen voor tot twee dagen na de inspanning.",
+      "Voor prestatie zelf is het bewijs dun: een meta-analyse zag een klein effect op duurprestatie, in kleine studies en zonder verband met de dosis.",
+      "Gebruik het rond wedstrijden en zware blokken, niet het hele jaar. Hoge doses vitamine C en E remden in een studie de aanpassing aan duurtraining; voor kersensap is dat niet onderzocht.",
+      "Curcumine verminderde in een meta-analyse spierpijn en bloedwaarden van spierschade, maar de studies zijn klein. Daarvoor staat geen protocol.",
     ],
+    sources: [HILL_2021, MCHUGH_2022, BELL_2014, HOWATSON_2010, GAO_2020, PAULSEN_2014, BEBA_2022],
+  },
+  {
+    slug: "collageen",
+    category: "supplementen",
+    title: "Collageen en gelatine",
+    summary:
+      "Gelatine of collageen met vitamine C, een uur voor korte belasting, verhoogt de aanmaak van collageen. Bij een pees- of bandblessure is het een redelijke aanvulling, geen bewezen behandeling.",
+    points: [
+      "In een studie met acht mannen verdubbelde 15 gram gelatine met vitamine C, een uur voor zes minuten touwtjespringen, een bloedwaarde voor collageenaanmaak. 5 gram deed minder.",
+      "Een meta-analyse vond dat collageen naast maandenlange krachttraining kleine winst gaf in kracht en spieropbouw en een dikkere pees. Dat ging over krachttraining, niet over fietsen.",
+      "Dat een blessure er sneller door geneest, is niet aangetoond.",
+      "Fietsen belast pezen weinig. Het ligt vooral voor de hand bij revalidatie, bijvoorbeeld na een val, naast de oefeningen van je fysiotherapeut.",
+    ],
+    sources: [SHAW_2017, BISCHOF_2024, IOC_SUPPLEMENTS],
+  },
+  {
+    slug: "vitamine-d",
+    category: "supplementen",
+    title: "Vitamine D",
+    summary:
+      "Vitamine D maak je vooral aan in de zon. Wie weinig buiten komt, heeft volgens de Gezondheidsraad baat bij een supplement; train je in de winter vooral binnen, dan val je daar waarschijnlijk ook onder.",
+    points: [
+      "Het advies van de Gezondheidsraad: 10 microgram per dag voor wie weinig buiten komt of een donkere huid heeft, 20 microgram vanaf 70 jaar.",
+      "Extra vitamine D helpt je prestatie alleen als je een tekort hebt. Bij een goede waarde levert het niets op.",
+      "Neem geen hoge doses op eigen houtje. Reviewers wijzen erop dat zeer hoge doses ook nadelen kunnen hebben, en dat routinematig meten zonder klachten weinig zin heeft.",
+      "Vette vis en verrijkte producten leveren ook vitamine D.",
+      "Vitamine D en calcium tellen samen voor je botten; zie botgezondheid.",
+    ],
+    sources: [GR_VITAMINE_D, OWENS_2018, UCI_BONE],
+  },
+  {
+    slug: "omega-3",
+    category: "supplementen",
+    title: "Visolie en omega-3",
+    summary:
+      "Omega-3-vetzuren uit vis zijn goed voor je gezondheid. Als supplement voor prestatie is het bewijs mager; eet liever vette vis.",
+    points: [
+      "Er zijn aanwijzingen voor sneller herstel na spierbeschadigende inspanning en een iets lager zuurstofverbruik, maar de meeste claims rusten op mechanismen, niet op prestatiestudies.",
+      "Voor spieropbouw of spierbehoud bij sporters is onvoldoende bewijs.",
+      "Eén keer per week vis, bij voorkeur vette vis, staat al in de Nederlandse richtlijnen (zie gezonde basis).",
+      "Eet je geen vis, dan is een supplement met EPA en DHA een vervanger voor je gezondheid, niet voor je prestatie.",
+      "Er is geen dosis met aangetoonde winst voor wielrenners, dus geen protocol.",
+    ],
+    sources: [PHILPOTT_2019, IOC_SUPPLEMENTS],
+  },
+  {
+    slug: "probiotica",
+    category: "supplementen",
+    title: "Probiotica",
+    summary:
+      "Probiotica kunnen bij sommige sporters luchtweginfecties en darmklachten iets verminderen, maar het effect hangt af van de bacteriestam en is wisselend.",
+    points: [
+      "Het ISSN-standpunt ziet mogelijke voordelen voor afweer en darmklachten, steeds voor een bepaalde stam. Wat voor de ene stam geldt, geldt niet voor een andere.",
+      "ZWB noemt geen merken en dus geen stammen; daarom staat er geen protocol.",
+      "Yoghurt, kwark en kefir horen gewoon bij gevarieerd eten.",
+    ],
+    sources: [JAGER_2019, UCI_ILLNESS],
+  },
+  {
+    slug: "mondspoelen",
+    category: "supplementen",
+    title: "Mondspoelen met koolhydraten of menthol",
+    summary:
+      "Spoelen zonder door te slikken geeft je hersenen een seintje. Bij een korte tijdrit of in de hitte is er een klein effect.",
+    points: [
+      "Koolhydraten: spoel met sportdrank en spuug uit. In een meta-analyse van tijdritten steeg het gemiddelde vermogen iets, maar de finishtijd niet.",
+      "Het heeft alleen zin bij een korte, harde inspanning waarin je niet wilt eten. Bij een rit van meer dan een uur neem je beter gewoon koolhydraten.",
+      "Menthol: een meta-analyse vond in de hitte een klein voordeel, vooral bij inname via de mond, en een koeler gevoel. Het effect op prestatie lag op de grens van significant.",
+      "Probeer het eerst op een training. Geen protocol: het effect is klein en hangt sterk af van de situatie.",
+    ],
+    sources: [BRIETZKE_2019, JEFFRIES_2019],
+  },
+  {
+    slug: "geen-bewijs",
+    category: "supplementen",
+    title: "Wat niet werkt",
+    summary:
+      "Een aantal populaire supplementen heeft geen of te weinig bewijs. Zonde van je geld, en elk supplement is een risico op verontreiniging.",
+    points: [
+      "BCAA's: geen studie laat zien dat losse BCAA's de spieropbouw verhogen. Gewoon eiwit bevat ze al.",
+      "Magnesium tegen kramp: in een Cochrane-review verminderde het de kramp niet, al ging het vooral om nachtelijke kramp bij ouderen. Voor kramp tijdens het sporten is geen bewijs.",
+      "CBD: er zijn geen studies naar CBD en sportprestatie. CBD staat niet op de dopinglijst, THC wel.",
+      "Vitamine C en E in hoge doses: remden in een studie de aanpassing aan duurtraining.",
+      "Ketonen: geen effect op prestatie, zie het artikel over ketonen.",
+    ],
+    sources: [WOLFE_2017, GARRISON_2020, MCCARTNEY_2020, PAULSEN_2014],
   },
   {
     slug: "ketonen",

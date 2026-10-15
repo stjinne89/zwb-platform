@@ -4,7 +4,7 @@ import { PlanBasisView } from "../../_components/plan-basis-view";
 import type { SearchParamsProp } from "../../_components/types";
 import { trainerContext } from "../_data";
 import { todayKeyAmsterdam } from "../../_data";
-import { loadActiveRuns, loadChecks, loadProtocolProfile } from "../../_protocol-data";
+import { loadActiveRuns, loadChecks, loadCoreSessions, loadProtocolProfile } from "../../_protocol-data";
 import { ProtocolRunsOverview } from "../../_components/protocols/protocol-views";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +32,9 @@ export default async function TrainerPlanBasisPage({ searchParams }: SearchParam
   // eigen trainer leest mee, beheer niet. viewer.supabase dwingt dat af.
   const today = todayKeyAmsterdam();
   const runs = role != null ? await loadActiveRuns(viewer.supabase, athleteId) : [];
-  const [checks, profile] = await Promise.all([
+  const [checks, coreSessions, profile] = await Promise.all([
     loadChecks(viewer.supabase, runs.map((run) => run.id)),
+    loadCoreSessions(viewer.supabase, runs.map((run) => run.id)),
     loadProtocolProfile(viewer.supabase, athleteId, today),
   ]);
 
@@ -46,7 +47,13 @@ export default async function TrainerPlanBasisPage({ searchParams }: SearchParam
         showPreferences={role != null}
         showLinks={false}
       />
-      <ProtocolRunsOverview runs={runs} checks={checks} weightKg={profile.weightKg} today={today} />
+      <ProtocolRunsOverview
+        runs={runs}
+        checks={checks}
+        coreSessions={coreSessions}
+        weightKg={profile.weightKg}
+        today={today}
+      />
     </div>
   );
 }

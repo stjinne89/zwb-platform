@@ -3233,9 +3233,13 @@ Fitness-status: Verbeterend`}
             Bij trainen staan hittetraining (kort voor een warme wedstrijd, of vijf
             weken voor meer hemoglobine), lage cadans bij VO2max en sprints, en
             ademspiertraining. Bij voeding staan protocollen voor de wedstrijddag
-            (cafeïne, natriumbicarbonaat, nitraat, ijsslush, koolhydraten laden)
-            en voor de opbouw (bèta-alanine, creatine, darmtraining). Elk protocol
-            noemt hoe sterk het bewijs is, wat het niet laat zien en de bronnen.
+            (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
+            koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
+            darmtraining), voor herstel (herstellen na een zware wedstrijd,
+            kersensap) en voor je gezondheid (vitamine D in de winter, collageen
+            bij revalidatie). Elk protocol noemt hoe sterk het bewijs is, wat het
+            niet laat zien en de bronnen. Wat geen protocol kreeg, zoals visolie,
+            probiotica of magnesium, staat met de reden in de kennisbank voeding.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Een protocol naar een wedstrijd hangt aan de wedstrijddag: kies een
@@ -3258,13 +3262,39 @@ Fitness-status: Verbeterend`}
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Hitte met een CORE-sensor</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Rijd je een hittesessie met een CORE-sensor, dan leest de app je
+            kerntemperatuur uit intervals.icu. Neem de rit op met je fietscomputer
+            en laat die rechtstreeks naar intervals.icu syncen. Op een Garmin zet
+            je het CORE-dataveld uit Connect IQ op een datascherm. Een ACE, ROAM 3
+            of BOLT 3 van Wahoo koppelt de sensor als Body Temp; een oudere
+            Wahoo, zoals de BOLT 2, als spierzuurstofsensor (Muscle Oxygen), en
+            dan staat je temperatuur in het veld THb. Een rit die via Strava in
+            intervals.icu komt, heeft geen kerntemperatuur. Rijd je op Zwift,
+            neem de rit dan ook op je fietscomputer op.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Open daarna Vandaag of het protocol. Bij de hittesessie staat dan je
+            hoogste kerntemperatuur en hoeveel minuten je op of boven 38,5 °C
+            was. Bij 30 minuten (10 bij een korte sessie) vinkt de app de sessie
+            af; haal je dat vinkje weg, dan blijft het weg. Een heet bad vink je
+            zelf af. Startte je je hitteprotocol vóór deze functie er was, stop
+            het dan en start het opnieuw; de toestemming noemt de sensor pas
+            sinds die tijd. De sensor schat je kerntemperatuur, dus zie de
+            waarde als richting.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">Grenzen</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             ZWB geeft geen medisch advies. Heb je hart- of vaatproblemen, hoge
             bloeddruk, nierproblemen of een andere aandoening, of gebruik je
             medicijnen, overleg dan eerst met je huisarts of een sportarts. Stop
             een hittesessie bij duizeligheid, misselijkheid of hoofdpijn.
-            Supplementprotocollen zijn er vanaf 18 jaar.
+            Supplementprotocollen zijn er vanaf 18 jaar; herstellen na een
+            wedstrijd en vitamine D in de winter staan voor iedereen open.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies een
@@ -3502,8 +3532,8 @@ Fitness-status: Verbeterend`}
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Met &quot;Foto en tekst&quot; (een aparte toestemming) maak je
-                  een foto van je bord of beschrijf je wat je at. Een AI-model
+                  Met &quot;Tekst herkennen&quot; (een aparte toestemming)
+                  beschrijf je wat je at, liefst met hoeveelheden. Een AI-model
                   benoemt de onderdelen en schat de grammen; de koolhydraten en
                   het eiwit komen daarna uit NEVO. Controleer elke hoeveelheid
                   en kies zo nodig een ander product uit de lijst: grote porties,

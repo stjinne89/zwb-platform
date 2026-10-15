@@ -25,7 +25,7 @@ export type ProtocolAnchor = "start" | "wedstrijd";
 /** Een dosis per kg lichaamsgewicht; de app rekent hem om met het gewicht van het lid. */
 export type ProtocolDose = {
   perKg: { min: number; max: number };
-  unit: "mg" | "g";
+  unit: "mg" | "g" | "ml";
   /** Afronden op deze stap, in `unit`. */
   step: number;
   /** Nooit meer dan dit, in `unit`, ook bij een hoog gewicht. */
@@ -42,6 +42,11 @@ export type ProtocolTask = {
   perWeek?: number;
   /** Eén keer in de hele fase; de taak blijft staan tot hij is afgevinkt. */
   once?: boolean;
+  /**
+   * Hittesessie die een CORE-sensor kan bevestigen: zoveel minuten op of boven
+   * CORE_THRESHOLD_C en de app vinkt hem af (core-temperature.ts).
+   */
+  coreMinutes?: number;
 };
 
 export type ProtocolPhase = {
@@ -101,3 +106,12 @@ export type ProtocolRun = {
 };
 
 export type ProtocolCheck = { protocolId: string; day: string; taskKey: string };
+
+/** Een rit met kerntemperatuur uit member_protocol_core_sessions (0238). */
+export type ProtocolCoreSession = {
+  protocolId: string;
+  day: string;
+  intervalsId: string;
+  maxC: number;
+  minutesAbove: number;
+};

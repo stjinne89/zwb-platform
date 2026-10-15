@@ -13,9 +13,11 @@ import {
   tasksForDay,
   type Protocol,
   type ProtocolCheck,
+  type ProtocolCoreSession,
   type ProtocolPillar,
   type ProtocolRun,
 } from "@/lib/protocols";
+import { formatCoreSession, protocolUsesCore } from "@/lib/protocols/core-temperature";
 import { shiftDays } from "@/lib/training/season";
 import { cn } from "@/lib/utils";
 import { BackLink } from "@/components/app-ui";
@@ -87,6 +89,13 @@ export function ProtocolList({
   );
 }
 
+/** De beste CORE-meting van een run op één dag: de meeste minuten boven de drempel. */
+function bestCoreSession(sessions: ProtocolCoreSession[], runId: string, day: string) {
+  return sessions
+    .filter((session) => session.protocolId === runId && session.day === day)
+    .sort((a, b) => b.minutesAbove - a.minutesAbove || b.maxC - a.maxC)[0];
+}
+
 /** De taken van één dag, met vinkjes. Leeg als er die dag niets staat. */
 export function ProtocolDayTasks({
   protocol,
@@ -94,6 +103,7 @@ export function ProtocolDayTasks({
   day,
   weightKg,
   checks,
+  coreSessions = [],
   readOnly,
 }: {
   protocol: Protocol;
@@ -101,10 +111,12 @@ export function ProtocolDayTasks({
   day: string;
   weightKg: number | null;
   checks: ProtocolCheck[];
+  coreSessions?: ProtocolCoreSession[];
   readOnly?: boolean;
 }) {
   const result = tasksForDay(protocol, run, day, weightKg, checks);
   if (!result || result.tasks.length === 0) return null;
+  const core = bestCoreSession(coreSessions, run.id, day);
   return (
     <ul className="divide-y">
       {result.tasks.map((task) => (
@@ -129,6 +141,9 @@ export function ProtocolDayTasks({
                 </span>
               ) : null}
             </p>
+            {task.coreMinutes && core ? (
+              <p className="mt-0.5 font-medium text-primary tabular-nums">{formatCoreSession(core)}</p>
+            ) : null}
             <p className="mt-0.5 text-muted-foreground">{task.detail}</p>
           </div>
         </li>
@@ -152,8 +167,12 @@ function BulletList({ items, icon: Icon }: { items: string[]; icon: typeof Check
 
 function dayLabel(protocol: Protocol, fromDay: number, toDay: number): string {
   if (protocol.anchor === "wedstrijd") {
-    const name = (day: number) =>
-      day === 0 ? "wedstrijddag" : day === -1 ? "dag ervoor" : `${-day} dagen ervoor`;
+    const name = (day: number) => {
+      if (day === 0) return "wedstrijddag";
+      if (day === -1) return "dag ervoor";
+      if (day === 1) return "dag erna";
+      return day < 0 ? `${-day} dagen ervoor` : `${day} dagen erna`;
+    };
     return fromDay === toDay ? name(fromDay) : `${name(fromDay)} t/m ${name(toDay)}`;
   }
   const weeks = (toDay - fromDay + 1) / 7;
@@ -161,11 +180,30 @@ function dayLabel(protocol: Protocol, fromDay: number, toDay: number): string {
   return `${toDay - fromDay + 1} dagen`;
 }
 
+/** Alle ritten met kerntemperatuur in deze run, nieuwste eerst. */
+function CoreSessionList({ sessions }: { sessions: ProtocolCoreSession[] }) {
+  if (sessions.length === 0) return null;
+  return (
+    <section className="max-w-3xl space-y-3">
+      <h3 className="font-semibold">Kerntemperatuur</h3>
+      <ul className="divide-y rounded-lg border bg-card px-4 text-sm">
+        {[...sessions].reverse().map((session) => (
+          <li key={session.intervalsId} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
+            <span>{formatDay(session.day)}</span>
+            <span className="tabular-nums text-muted-foreground">{formatCoreSession(session)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function ProtocolDetail({
   protocol,
   basePath,
   run,
   checks,
+  coreSessions = [],
   weightKg,
   blocker,
   today,
@@ -177,6 +215,7 @@ export function ProtocolDetail({
   /** De lopende run, of null. */
   run: ProtocolRun | null;
   checks: ProtocolCheck[];
+  coreSessions?: ProtocolCoreSession[];
   weightKg: number | null;
   /** Reden waarom dit lid het niet kan starten. */
   blocker: string | null;
@@ -218,6 +257,7 @@ export function ProtocolDetail({
               day={today}
               weightKg={weightKg}
               checks={checks}
+              coreSessions={coreSessions}
               readOnly={readOnly}
             />
           ) : (
@@ -232,6 +272,7 @@ export function ProtocolDetail({
                 day={shiftDays(today, -1)}
                 weightKg={weightKg}
                 checks={checks}
+                coreSessions={coreSessions}
                 readOnly={readOnly}
               />
             </details>
@@ -244,11 +285,16 @@ export function ProtocolDetail({
         <ProtocolStartForm
           action={startProtocol}
           slug={protocol.slug}
+          core={protocolUsesCore(protocol)}
           anchor={protocol.anchor}
           today={today}
           races={protocol.anchor === "wedstrijd" ? races : []}
         />
       )}
+
+      {running ? (
+        <CoreSessionList sessions={coreSessions.filter((session) => session.protocolId === running.id)} />
+      ) : null}
 
       <section className="max-w-3xl space-y-3">
         <h3 className="font-semibold">Opzet</h3>
@@ -350,11 +396,13 @@ export function ProtocolDetail({
 export function ProtocolRunsOverview({
   runs,
   checks,
+  coreSessions = [],
   weightKg,
   today,
 }: {
   runs: ProtocolRun[];
   checks: ProtocolCheck[];
+  coreSessions?: ProtocolCoreSession[];
   weightKg: number | null;
   today: string;
 }) {
@@ -384,6 +432,7 @@ export function ProtocolRunsOverview({
                 day={today}
                 weightKg={weightKg}
                 checks={checks}
+                coreSessions={coreSessions}
                 readOnly
               />
             ) : null}

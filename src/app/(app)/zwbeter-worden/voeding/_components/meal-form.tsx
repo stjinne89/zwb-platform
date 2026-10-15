@@ -1,12 +1,12 @@
 "use client";
 
 // Een maaltijd samenstellen voor het eetdagboek: producten uit NEVO, een
-// verpakt product via de barcode, of herkend uit een foto of omschrijving. Wat
+// verpakt product via de barcode, of herkend uit een omschrijving. Wat
 // hier staat is altijd een lijst producten met grammen; het lid ziet en
 // bevestigt elke hoeveelheid voor het bewaren.
 
 import { useActionState, useEffect, useState } from "react";
-import { Camera, Plus, ScanBarcode, Search, Sparkles, X } from "lucide-react";
+import { Plus, ScanBarcode, Search, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { productLabel } from "@/lib/nutrition/products";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
@@ -14,7 +14,7 @@ import type { FoodOption } from "../_actions";
 import type { BarcodeResult } from "../_log-actions";
 import { readBarcode } from "./read-barcode";
 import type { PollResult, StartResult } from "../_recognize-actions";
-import { RECOGNITION_IMAGE_MAX_PX, RECOGNITION_TEXT_MAX } from "@/lib/nutrition/recognize";
+import { RECOGNITION_TEXT_MAX } from "@/lib/nutrition/recognize";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -34,24 +34,12 @@ type Row = {
 };
 
 export type RecognitionActions = {
-  start: (input: { image?: string; text?: string }) => Promise<StartResult>;
+  start: (input: { text: string }) => Promise<StartResult>;
   poll: (id: string) => Promise<PollResult>;
 };
 
 const POLL_MS = 2000;
 const POLL_TRIES = 45;
-
-/** Verkleinen op het toestel; een nieuwe JPEG heeft ook geen locatie meer. */
-async function shrinkPhoto(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, RECOGNITION_IMAGE_MAX_PX / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.8);
-}
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -78,7 +66,7 @@ export function MealForm({
   saveAction: (formData: FormData) => Promise<ActionResult>;
   searchAction: (query: string) => Promise<FoodOption[]>;
   barcodeAction: (barcode: string) => Promise<BarcodeResult>;
-  /** Alleen als het lid foto en tekst herkennen heeft aangezet. */
+  /** Alleen als het lid tekst herkennen heeft aangezet. */
   recognition?: RecognitionActions;
 }) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -88,7 +76,7 @@ export function MealForm({
   const [barcode, setBarcode] = useState("");
   const [barcodeBusy, setBarcodeBusy] = useState(false);
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
-  const [source, setSource] = useState<"handmatig" | "foto" | "tekst">("handmatig");
+  const [source, setSource] = useState<"handmatig" | "tekst">("handmatig");
   const [description, setDescription] = useState("");
   const [recognizing, setRecognizing] = useState(false);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
@@ -105,7 +93,7 @@ export function MealForm({
     return result;
   }, null);
 
-  async function recognize(input: { image?: string; text?: string }) {
+  async function recognize(input: { text: string }) {
     if (!recognition || recognizing) return;
     setRecognizing(true);
     setRecognitionError(null);
@@ -139,7 +127,7 @@ export function MealForm({
         ]);
         setUnmatched(result.rows.filter((row) => row.matches.length === 0).map((row) => row.name));
         setQuestions(result.questions);
-        setSource(result.kind);
+        setSource("tekst");
         setDescription("");
         return;
       }
@@ -149,18 +137,6 @@ export function MealForm({
     } finally {
       setRecognizing(false);
     }
-  }
-
-  async function recognizePhoto(file: File | undefined) {
-    if (!file) return;
-    let image: string;
-    try {
-      image = await shrinkPhoto(file);
-    } catch {
-      setRecognitionError("Deze foto is niet te lezen.");
-      return;
-    }
-    await recognize({ image });
   }
 
   useEffect(() => {
@@ -251,30 +227,11 @@ export function MealForm({
       {recognition && (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <label
-              className={`inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium ${
-                recognizing ? "opacity-50" : "cursor-pointer hover:border-primary"
-              }`}
-            >
-              <Camera className="size-4" />
-              Foto
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="sr-only"
-                disabled={recognizing}
-                onChange={(event) => {
-                  void recognizePhoto(event.target.files?.[0]);
-                  event.target.value = "";
-                }}
-              />
-            </label>
             <input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               maxLength={RECOGNITION_TEXT_MAX}
-              placeholder="Of beschrijf wat je at"
+              placeholder="Beschrijf wat je at"
               aria-label="Omschrijving van de maaltijd"
               className="min-h-[44px] min-w-0 flex-1 basis-48 rounded-md border bg-background px-3"
             />

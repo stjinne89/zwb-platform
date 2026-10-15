@@ -68,6 +68,10 @@ twee bidons moet in een paar tikken, niet per item.
 
 ## 5. De foto
 
+*Niet meer in de app sinds 2026-10-15: bij de eerste proef zat de schatting er
+ver naast. Deze sectie blijft staan als onderbouwing; herkennen uit een
+omschrijving gebruikt dezelfde twee stappen.*
+
 ### Wat de literatuur zegt
 
 Gelezen zijn samenvattingen en fragmenten, niet de volledige artikelen; exacte
@@ -189,6 +193,9 @@ een tekst op `/hulp`.
    *Gebouwd op 2026-10-14 (migratie `0234_nutrition_log_recognition.sql`), zie
    `PLAN.md`. Eigen schakelaar met eigen toestemming in plaats van een nieuwe
    `LOG_CONSENT_VERSION`; de daglimiet geldt per 24 uur, voor foto en tekst samen.*
+   ***Foto weggehaald op 2026-10-15:** bij de eerste proef van de eigenaar zat de
+   schatting er ver naast. Herkennen uit een getypte omschrijving blijft; daar
+   noemt het lid zelf de hoeveelheden.*
 4. **Dagmenu dat meerekent en het weekoverzicht.**
    *Gebouwd op 2026-10-14, zonder migratie, zie `PLAN.md`.*
 5. **Herinneringen en trainerinzage.**

@@ -2,10 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0237 tegen een geïsoleerde PostgreSQL, bovenop 0037 en 0167 (de koppelingen
-// en de toegangsfunctie van de coachchat). Zegt niets over de productiedatabase,
-// wel over wie wat mag: het lid schrijft, de eigen trainer leest mee, het
-// bestuur en een andere trainer zien niets.
+// 0237 en 0238 tegen een geïsoleerde PostgreSQL, bovenop 0037 en 0167 (de
+// koppelingen en de toegangsfunctie van de coachchat). Zegt niets over de
+// productiedatabase, wel over wie wat mag: het lid schrijft, de eigen trainer
+// leest mee, het bestuur en een andere trainer zien niets. De CORE-metingen
+// (0238) schrijft alleen de service-role.
 
 let db: PGlite;
 const migration = (file: string) => readFile(`supabase/migrations/${file}`, "utf8");
@@ -15,6 +16,7 @@ const TRAINER = "22222222-2222-2222-2222-222222222222";
 const VREEMDE_TRAINER = "33333333-3333-3333-3333-333333333333";
 const BESTUURDER = "44444444-4444-4444-4444-444444444444";
 const RUN = "55555555-5555-5555-5555-555555555555";
+const HITTE = "66666666-6666-6666-6666-666666666666";
 
 beforeAll(async () => {
   db = new PGlite();
@@ -37,6 +39,7 @@ beforeAll(async () => {
     "0037_training_coach_cockpit.sql",
     "0167_training_chat.sql",
     "0237_member_protocols.sql",
+    "0238_member_protocol_core_sessions.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -57,6 +60,11 @@ beforeAll(async () => {
       values ('${RUN}', '${LID}', 'bicarbonaat', '2027-06-06', '2027-06-20', '2026-10-14');
     insert into public.member_protocol_checks(protocol_id, day, task_key)
       values ('${RUN}', '2027-06-10', 'proef');
+    insert into public.member_protocols(id, profile_id, protocol_slug, start_date, consent_version)
+      values ('${HITTE}', '${LID}', 'hitte-lang', '2027-06-01', '2026-10-14-core');
+    insert into public.member_protocol_core_sessions(protocol_id, intervals_id, day, max_core_c, minutes_above, auto_checked)
+      values ('${HITTE}', 'i101', '2027-06-02', 38.84, 41, true),
+             ('${HITTE}', 'i102', '2027-06-03', null, null, false);
   `);
 }, 30000);
 
@@ -80,7 +88,8 @@ const tel = (table: string) => `select count(*)::int as count from public.${tabl
 describe("protocollen (0237)", () => {
   it("laat het lid en de eigen trainer de protocollen en het afvinken zien", async () => {
     for (const user of [LID, TRAINER]) {
-      expect((await als<{ count: number }>(user, tel("member_protocols")))[0].count).toBe(1);
+      // Het bicarbonaatprotocol en het hitteprotocol van 0238.
+      expect((await als<{ count: number }>(user, tel("member_protocols")))[0].count).toBe(2);
       expect((await als<{ count: number }>(user, tel("member_protocol_checks")))[0].count).toBe(1);
     }
   });
@@ -168,6 +177,73 @@ describe("protocollen (0237)", () => {
         delete from public.profiles where id = '${LID}';`);
       expect((await db.query<{ count: number }>(tel("member_protocols"))).rows[0].count).toBe(0);
       expect((await db.query<{ count: number }>(tel("member_protocol_checks"))).rows[0].count).toBe(0);
+      expect((await db.query<{ count: number }>(tel("member_protocol_core_sessions"))).rows[0].count).toBe(0);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+});
+
+describe("kerntemperatuur bij hitte (0238)", () => {
+  it("laat het lid en de eigen trainer de metingen zien", async () => {
+    for (const user of [LID, TRAINER]) {
+      expect((await als<{ count: number }>(user, tel("member_protocol_core_sessions")))[0].count).toBe(2);
+    }
+    for (const user of [VREEMDE_TRAINER, BESTUURDER]) {
+      expect((await als<{ count: number }>(user, tel("member_protocol_core_sessions")))[0].count).toBe(0);
+    }
+  });
+
+  it("laat niemand met een gewone login meten of wissen", async () => {
+    for (const user of [LID, TRAINER]) {
+      await expect(
+        als(
+          user,
+          `insert into public.member_protocol_core_sessions(protocol_id, intervals_id, day, max_core_c, minutes_above)
+             values ('${HITTE}', 'i999', '2027-06-04', 39, 50)`,
+        ),
+      ).rejects.toThrow();
+      expect(
+        await als(user, "update public.member_protocol_core_sessions set minutes_above = 60 returning intervals_id"),
+      ).toHaveLength(0);
+      expect(await als(user, "delete from public.member_protocol_core_sessions returning intervals_id")).toHaveLength(0);
+    }
+  });
+
+  it("accepteert de nieuwe toestemmingstekst naast de oude", async () => {
+    expect(
+      await als(
+        LID,
+        `insert into public.member_protocols(profile_id, protocol_slug, start_date, consent_version)
+           values ('${LID}', 'hitte-kort', '2027-06-01', '2026-10-14-core') returning id`,
+      ),
+    ).toHaveLength(1);
+    expect(
+      await als(
+        LID,
+        `insert into public.member_protocols(profile_id, protocol_slug, start_date, consent_version)
+           values ('${LID}', 'creatine', '2027-06-01', '2026-10-14') returning id`,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("weigert een halve meting of een onmogelijke temperatuur", async () => {
+    const insert = (id: string, max: number | null, minutes: number | null) =>
+      db.query(
+        `insert into public.member_protocol_core_sessions(protocol_id, intervals_id, day, max_core_c, minutes_above)
+           values ($1, $2, '2027-06-05', $3, $4)`,
+        [HITTE, id, max, minutes],
+      );
+    await expect(insert("half", 38.6, null)).rejects.toThrow();
+    await expect(insert("heet", 45, 10)).rejects.toThrow();
+    await expect(insert("negatief", 38.6, -1)).rejects.toThrow();
+  });
+
+  it("verdwijnt met de run", async () => {
+    await db.exec("begin");
+    try {
+      await db.exec(`delete from public.member_protocols where id = '${HITTE}'`);
+      expect((await db.query<{ count: number }>(tel("member_protocol_core_sessions"))).rows[0].count).toBe(0);
     } finally {
       await db.exec("rollback");
     }

@@ -37,6 +37,7 @@ const PROFILE_TABLES: string[] = [
   "nutrition_log_settings",
   "nutrition_log_meals",
   "nutrition_log_ai_usage",
+  "member_protocols",
 ];
 
 export async function GET() {
@@ -102,6 +103,16 @@ export async function GET() {
         meals.map((meal) => meal.id),
       );
     if (!error) data.nutrition_log_items = items ?? [];
+  }
+
+  // Afvinken en CORE-metingen per protocol; die rijen hebben geen profile_id.
+  const protocols = (data.member_protocols ?? []) as { id: string }[];
+  if (protocols.length > 0) {
+    const ids = protocols.map((protocol) => protocol.id);
+    for (const table of ["member_protocol_checks", "member_protocol_core_sessions"]) {
+      const { data: rows, error } = await admin.from(table).select("*").in("protocol_id", ids);
+      if (!error) data[table] = rows ?? [];
+    }
   }
 
   const body = JSON.stringify(data, null, 2);

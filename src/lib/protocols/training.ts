@@ -52,6 +52,14 @@ export const RONNESTAD_HEAT_2022: KnowledgeSource = {
   kind: "studie",
 };
 
+export const VERDEL_2021: KnowledgeSource = {
+  citation:
+    "Verdel N, et al. Reliability and validity of the CORE sensor to assess core body temperature during cycling exercise. Sensors 21(17):5932.",
+  year: 2021,
+  url: doi("10.3390/s21175932"),
+  kind: "studie",
+};
+
 export const HEBISZ_2024: KnowledgeSource = {
   citation:
     "Hebisz R, Hebisz P. Greater improvement in aerobic capacity after a polarized training program including cycling interval training at low cadence (50-70 RPM) than freely chosen cadence (above 80 RPM). PLoS One 19(11):e0311833.",
@@ -135,7 +143,8 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
             key: "hittesessie",
             label: "Hittesessie",
             detail:
-              "Rij 60 minuten rustig zonder ventilator en met een extra laag. Of neem binnen tien minuten na je gewone rit een heet bad van ongeveer 40 °C, tot 40 minuten.",
+              "Rij 60 minuten rustig zonder ventilator en met een extra laag. Of neem binnen tien minuten na je gewone rit een heet bad van ongeveer 40 °C, tot 40 minuten. Met een CORE-sensor: minstens 30 minuten boven 38,5 °C.",
+            coreMinutes: 30,
           },
         ],
       },
@@ -148,8 +157,10 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
           {
             key: "korte-hittesessie",
             label: "Korte hittesessie",
-            detail: "30 minuten rustig warm rijden, of een kort heet bad. Niet zwaar: je moet fris aan de start staan.",
+            detail:
+              "30 minuten rustig warm rijden, of een kort heet bad. Niet zwaar: je moet fris aan de start staan. Met een CORE-sensor: 10 minuten boven 38,5 °C is genoeg.",
             perWeek: 2,
+            coreMinutes: 10,
           },
         ],
       },
@@ -172,10 +183,12 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     limits: [
       "Het grootste deel van de aanpassing komt in de eerste week; na twee weken stoppen is er nog veel over, maar hoe lang precies verschilt per studie.",
       "Het hete bad is getest na hardlopen, bij mannen die niet gewend waren aan de warmte. Bij renners en vrouwen is het minder onderzocht.",
-      "Binnen rijden zonder ventilator is niet als zodanig onderzocht. Het werkt via dezelfde prikkel, een hogere kerntemperatuur, maar die meet de app niet.",
+      "Binnen rijden zonder ventilator is niet als zodanig onderzocht. Het werkt via dezelfde prikkel, een hogere kerntemperatuur. Zonder CORE-sensor weet je niet of je warm genoeg was.",
       "De winst geldt voor wedstrijden in de warmte. In koel weer liet de badstudie geen verschil zien.",
+      "De CORE-sensor schat je kerntemperatuur vanaf de huid. In een validatiestudie bij fietsers week ongeveer de helft van de metingen meer dan 0,3 °C af van een rectale meting.",
+      "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
     ],
-    sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025],
+    sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025, VERDEL_2021],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
     aiHint:
       "Hitte-acclimatisatie richting een warme wedstrijd. Plan op elke dag van de fase 'Elke dag warm' een rustige duurrit van minstens 60 minuten, of houd de geplande rit, en zet in description: 'Warm rijden: geen ventilator, extra laag.' Een drempel-, VO2max- of anaerobe sessie rijdt het lid koel; zet daar in description: 'Koel rijden, daarna een heet bad.' De laatste drie dagen voor de wedstrijd hooguit twee korte warme ritten van 30 minuten.",
@@ -203,8 +216,9 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
             key: "hittesessie",
             label: "Hittesessie",
             detail:
-              "50 minuten rustige of intensieve duur zonder ventilator, met extra kleding of een regenpak. Je moet het echt warm hebben.",
+              "50 minuten rustige of intensieve duur zonder ventilator, met extra kleding of een regenpak. Je moet het echt warm hebben: met een CORE-sensor minstens 30 minuten boven 38,5 °C.",
             perWeek: 5,
+            coreMinutes: 30,
           },
         ],
       },
@@ -219,6 +233,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
             label: "Hittesessie",
             detail: "Zelfde sessie, drie keer per week. Zo houd je meer van de winst vast dan als je stopt.",
             perWeek: 3,
+            coreMinutes: 30,
           },
         ],
       },
@@ -232,8 +247,10 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       "De hemoglobinemassa steeg in de studies met ongeveer 2 tot 4 procent. VO2max in koel weer steeg niet in elke studie significant.",
       "Kleine groepen, vooral (top)renners, en het meeste werk komt van één onderzoeksgroep.",
       "De studies gebruikten een hittekamer van 38 tot 40 °C of een hittepak. Thuis zonder ventilator rijden met extra kleding is daar een afleiding van.",
+      "De CORE-sensor schat je kerntemperatuur vanaf de huid. In een validatiestudie bij fietsers week ongeveer de helft van de metingen meer dan 0,3 °C af van een rectale meting.",
+      "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
     ],
-    sources: [OBERHOLZER_2019, RONNESTAD_HEAT_2021, RONNESTAD_HEAT_2022, MCDONALD_2025],
+    sources: [OBERHOLZER_2019, RONNESTAD_HEAT_2021, RONNESTAD_HEAT_2022, MCDONALD_2025, VERDEL_2021],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
     aiHint:
       "Hittetraining voor hemoglobine. Plan in de fase 'Vijf weken' per week vijf ritten van minstens 50 minuten op rustige of intensieve duur, en in 'Onderhoud' drie per week. Zet in description: 'Warm rijden: geen ventilator, extra kleding.' Sleutelsessies mogen doorgaan maar rijdt het lid koel; een hittesessie is geen extra belasting bovenop het weekvolume.",

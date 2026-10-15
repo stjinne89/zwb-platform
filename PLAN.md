@@ -64,6 +64,12 @@ gaat stabiliteit voor nieuwe features.
    apart nagekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
+   - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
+     toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
+     elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
+     `2026-10-14-core`, die pas met `0238` in de check-constraint staat. Daarna
+     een hitteprotocol starten en een rit met de CORE rijden (eigenaar, deze
+     week); zie de ronde "Hittetraining met de CORE-sensor".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
      spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
@@ -122,8 +128,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
-(`0237_member_protocols` is van de protocollen, 2026-10-14).
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0239`
+(`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
+van de CORE-sensor, beide 2026-10-14).
 
 ---
 
@@ -175,7 +182,216 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
 > `@emnapi/runtime` en `@emnapi/core` 1.11.3. Niet aangepast (los van deze
 > ronde); `npm install` werkt wel.
 
----
+> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` alleen tegen PGlite getest; nog niet met een echte CORE-rit geprobeerd.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0238_member_protocol_core_sessions.sql` (**nog toepassen, ná `0237`**).
+>
+> **Waarom.** Vraag van de eigenaar: "Kan er voor de hittetraining ook gewerkt
+> worden met de core sensor en de integreren? Eventueel door middel van
+> intervals?" Daarna: "Bouw maar, ik zal deze week een rit fietsen met de core
+> connected via intervals." Tot nu toe stond in het protocol dat de app de
+> kerntemperatuur niet meet, dus een lid wist niet of een hittesessie warm genoeg
+> was. Onderzoek en bronnen: sectie "Kerntemperatuur met een CORE-sensor" in
+> [protocollen-onderzoek.md](docs/protocollen-onderzoek.md).
+>
+> **Wat.**
+>
+> - **Ophalen** (`src/lib/protocols/core-fill.ts`): bij een lopend hitteprotocol
+>   haalt de app de ritten van de laatste 14 dagen rechtstreeks bij
+>   intervals.icu op (niet uit `intervals_activities`, die tot zes uur achterloopt)
+>   en vraagt van fietsritten op hittedagen alle streams op, hooguit drie per
+>   keer. Draait na het antwoord (`after`) op Vandaag, naast de gemeten
+>   zonetijden, en op de detailpagina van het protocol. Overgeslagen: ritten via
+>   Strava (geen streams), hardlopen, ritten korter dan de drempel en ritten die
+>   al bekeken zijn. `fetchIntervalsActivityStreams` vraagt met een lege
+>   `types` nu alle streams op, omdat een Connect IQ-veld met een voorvoegsel kan
+>   binnenkomen.
+> - **Oudere Wahoo's** (nagekomen dezelfde dag; de eigenaar rijdt een BOLT 2):
+>   die koppelen de CORE als spierzuurstofsensor en zetten de temperatuur in het
+>   veld THb. Zonder `core_temperature` neemt de app de THb-stream met de hoogste
+>   mediaan, als die op of boven 36 °C ligt; echte hemoglobine (12 tot 15 g/dl)
+>   en de huidtemperatuur vallen daaronder.
+> - **Rekenen** (`src/lib/protocols/core-temperature.ts`): hoogste
+>   kerntemperatuur en minuten op of boven **38,5 °C**; een gat tussen metingen
+>   telt hooguit 30 seconden mee, waarden buiten 34 tot 43 °C tellen niet.
+> - **Afvinken:** een taak kreeg `coreMinutes`. Hittesessie 30 minuten (beide
+>   protocollen, ook onderhoud), korte hittesessie 10. Haalt een rit dat, dan
+>   vinkt de app de taak op die dag af, mits hij die dag nog openstaat (het
+>   weekaantal telt mee). Haalt het lid het vinkje weg, dan blijft het weg: de rit
+>   staat als bekeken in `member_protocol_core_sessions` met `auto_checked`.
+> - **Tonen:** bij de hittesessie op Vandaag, op de detailpagina en bij de
+>   trainer (Uitgangspunten) staat "38,8 °C · 42 min boven 38,5 °C"; de
+>   detailpagina heeft een lijst "Kerntemperatuur" met alle ritten van de run.
+> - **Opslag** (`0238`): per rit alleen de samenvatting, niet de meting. Een rit
+>   zonder CORE-data krijgt een lege rij, zodat hij niet opnieuw wordt opgevraagd.
+>   Lezen: het lid en de eigen trainer (`current_user_in_training_chat`);
+>   schrijven alleen de service-role.
+> - **Toestemming:** nieuwe protocolversie `2026-10-14-core`; de tekst bij het
+>   starten van een hitteprotocol noemt de sensor. Alleen runs onder die versie
+>   worden uitgelezen; een run onder de eerste tekst blijft zoals hij was (stop en
+>   start opnieuw om mee te doen). Geen nieuwe privacyversie, zelfde uitzondering
+>   als bij de protocollen (`src/lib/privacy.ts`); `/privacy#protocollen`
+>   beschrijft het.
+> - **Teksten:** de beperkingen van beide hitteprotocollen en het kennisartikel
+>   noemen de drempel als eigen keuze en de matige validatie van de sensor
+>   (Verdel 2021, nieuwe bron). `/hulp#protocollen` kreeg een blok "Hitte met een
+>   CORE-sensor".
+> - **Data-export** (`/api/account/export`): `member_protocols`, het afvinken en
+>   de CORE-metingen staan er nu in. Protocollen ontbraken er sinds `0237`.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Drempel 38,5 °C (waar renners in de hittepakstudies naartoe werkten), 30
+>   minuten voor een gewone en 10 voor een korte sessie. Die minuten zijn een
+>   eigen keuze.
+> - Automatisch afvinken, maar het lid kan het vinkje weghalen.
+> - Een nieuwe toestemmingsversie in plaats van stilzwijgend uitlezen onder de
+>   bestaande tekst: kerntemperatuur is een gezondheidsgegeven.
+>
+> **Bewust niet gebouwd.**
+>
+> - **De Heat Strain Index en CORE's zones.** Zonegrenzen en rekenregel zijn van
+>   de fabrikant en niet openbaar getoetst; de studies stuurden op
+>   kerntemperatuur. De HSI wordt niet opgeslagen.
+> - **Kerntemperatuur naar de AI-coach.** Dat zou een gezondheidsgegeven naar
+>   OpenAI sturen; de privacytekst zegt nu uitdrukkelijk dat het niet gebeurt.
+> - **Een trendgrafiek van de aanpassing** (lagere kerntemperatuur bij hetzelfde
+>   vermogen): de lijst per rit laat de richting zien. Eerst kijken of leden de
+>   sensor gebruiken.
+> - **De huidtemperatuur** en de hele meting bewaren: niet nodig voor het
+>   afvinken.
+> - **Het hete bad meten:** komt niet in intervals.icu terecht, blijft handmatig.
+> - **Een rit opnieuw bekijken** als hij later alsnog CORE-data krijgt (bv. na
+>   "Reprocess File" in intervals.icu): de rij "geen data" blijft staan. Pas
+>   bouwen als het voorkomt.
+>
+> **Niet meer waar.**
+>
+> - In `training.ts` (beperking bij `hitte-kort`) en in
+>   `protocollen-onderzoek.md` stond dat de app de kerntemperatuur niet meet;
+>   aangepast op hun plek.
+> - De consentcheck in `protocols.test.ts` las `0237`; nu `0238`, met beide
+>   versies.
+>
+> **Getest.** `tsc` en ESLint zonder fouten. Nieuw: `protocol-core.test.ts`
+> (stream vinden ook met voorvoegsel, minuten en gaten, onmogelijke waarden,
+> welke ritten worden bekeken, en `fillCoreSessions` tegen een nep-database:
+> afvinken, niet afvinken onder de drempel, rit zonder data, niet opnieuw
+> ophalen en een weggehaald vinkje niet terugzetten, geen dubbel vinkje, niets
+> onder de oude toestemming, hooguit drie per keer, opnieuw na een fout).
+> `member-protocols-migration.test.ts` draait nu ook `0238` tegen PGlite: lid
+> en eigen trainer lezen de metingen, andere trainer en bestuur niet, niemand
+> schrijft met een gewone login, beide toestemmingsversies worden geaccepteerd,
+> halve of onmogelijke metingen geweigerd, cascade met de run. Volledige
+> vitest-run groen op `omnium-live` na (mist `.env.local`). `npm run build`
+> compileert en typecheckt; het prerenderen van `/omnium` stopt hier op de
+> ontbrekende Supabase-variabelen.
+>
+> **Niet geverifieerd.**
+>
+> - `0238` op de echte database (geen Docker of Supabase-config hier).
+> - **De veldnamen met een echte CORE-rit.** `core_temperature` komt uit
+>   forumberichten en de helppagina van CORE, die vanuit de bouwomgeving niet te
+>   openen waren. Ook de naam van de THb-stream (`thb`, `thb_2`?) is niet
+>   vastgesteld; de app herkent alles wat met `thb` begint. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
+>   teruggeeft. De eigenaar rijdt deze week een rit; kijk daarna of er een rij in
+>   `member_protocol_core_sessions` staat met een waarde, of met lege velden (dan
+>   heet de stream anders).
+> - De pagina's in de browser.
+> - De drempel en de minuten zijn niet door een sportarts of trainer nagekeken.
+
+
+> **Supplementen tweede ronde: herstel, gezondheid en wat niet werkt, 2026-10-14 — gebouwd, lokaal getest; niet in de browser bekeken; inhoud niet door een sportdiëtist nagekeken.**
+> Commit: de commit die dit blok toevoegt. Geen migratie: protocollen staan in
+> code, `0237` kent geen lijst met slugs.
+>
+> **Waarom.** Vraag van de eigenaar: "In de supplementen mis ik een aantal basis,
+> voor de hand liggende supplementen, zoals kersensap na een intensieve training
+> of wedstrijd." Gevraagd: een uitgebreid onderzoek naar alle supplementen, en
+> ze toevoegen. Onderzoek en bronnen:
+> [supplementen-onderzoek.md](docs/supplementen-onderzoek.md).
+>
+> **Belangrijkste bevinding.** Kersensap werkt alleen als je er dagen vóór de
+> inspanning mee begint (McHugh 2022: "precovery"). Alleen ná een training of
+> wedstrijd drinken heeft geen onderbouwing. Het protocol loopt daarom van vier
+> dagen voor tot twee dagen na de wedstrijd.
+>
+> **Wat.**
+> - **Vijf nieuwe voedingsprotocollen** in `src/lib/protocols/nutrition.ts`:
+>   glycerol voor een warme wedstrijd (wedstrijddag), herstellen na een zware
+>   wedstrijd (eiwit 0,3 g/kg, koolhydraten 1-1,2 g/kg, drinken, eiwit voor het
+>   slapen) en kersensap (nieuwe groep **Herstel**), vitamine D in de winter
+>   (10 µg, 26 weken) en collageen bij revalidatie van een pees of band (nieuwe
+>   groep **Gezondheid**).
+> - **Een wedstrijdprotocol mag nu na de wedstrijddag doorlopen** (kersensap tot
+>   dag +2). De test eist nu dat de wedstrijddag erin zit en dat het hooguit drie
+>   dagen erna stopt; `dayLabel` toont "dag erna" en "2 dagen erna". Database,
+>   starten en afvinken hadden geen aanname over het einde.
+> - **Doses in milliliters** (`ProtocolDose.unit` kreeg `"ml"`) voor het water
+>   bij glycerol: 26 ml/kg, plafond 2,5 liter.
+> - **Kennisbank voeding:** het artikel "Supplementen en sportvoeding" is
+>   herschreven tot een overzicht van alles, met het besluit per groep. Nieuw in
+>   de categorie supplementen: kersensap en andere polyfenolen, collageen,
+>   vitamine D, visolie, probiotica, mondspoelen (koolhydraten en menthol) en
+>   "Wat niet werkt" (BCAA, magnesium tegen kramp, CBD, hoge doses vitamine C en
+>   E). Aangevuld: weerstand (vitamine C bij zware belasting, zink), botgezondheid
+>   (calciumrijke maaltijd voor een lange rit), herstel (eiwit plus koolhydraten,
+>   Rustad 2016). De bronnen die artikelen en protocollen delen staan als
+>   export bovenin `library.ts`.
+> - `/hulp#protocollen` noemt de nieuwe protocollen en de leeftijdsregel; de
+>   hulpzoeker kent de nieuwe woorden.
+> - **Privacyverklaring** (`#protocollen`): één bijzin dat een protocol als
+>   collageen bij revalidatie laat zien dat je een blessure hebt. Geen nieuwe
+>   privacyversie en geen nieuwe toestemmingsversie: het zijn dezelfde gegevens
+>   (welk protocol, welke dagen), alleen beter benoemd. **Voorleggen aan de
+>   eigenaar.**
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+> - Kersensap en collageen vanaf 18 jaar (AIS groep B), net als de andere
+>   supplementen. Herstellen na een wedstrijd (gewoon eten) en vitamine D (het
+>   advies van de Gezondheidsraad geldt ook voor jongeren) zonder
+>   leeftijdsgrens.
+> - Glycerol toch als protocol, terwijl de eerste ronde het bewust wegliet: de
+>   vraag was nu "alle supplementen" en de UCI-review rekent het tot groep A.
+> - Dat wie in de winter vooral binnen traint onder "weinig buiten komen" valt,
+>   is een eigen lezing en staat zo in het protocol.
+>
+> **Bewust niet gebouwd.**
+> - Protocollen voor visolie, probiotica (ZWB noemt geen merken, dus geen
+>   stammen), zink, vitamine C, curcumine, mondspoelen en menthol: bewijs te
+>   dun, te wisselend of te situatieafhankelijk. Ze staan met de reden in de
+>   kennisbank.
+> - Een calciumprotocol voor lange ritten: één studie, alleen bloedwaarden.
+> - Een hogere vitamine D-dosis of een protocol op een bloedwaarde, en ijzer als
+>   protocol: dat is medisch advies.
+> - Melatonine, ashwagandha, HMB, carnitine en citrulline: niet onderzocht in
+>   deze ronde.
+>
+> **Niet meer waar.**
+> - "Glycerol als protocol: niet gebouwd" (ronde Protocollen hieronder en
+>   `docs/protocollen-onderzoek.md`): aangepast op hun plek.
+> - `docs/voeding-wielrennen.md` zei nog "geeft geen doseeradvies per lid";
+>   gecorrigeerd.
+> - De test "een wedstrijdprotocol eindigt op de wedstrijddag" is vervangen
+>   (zie hierboven).
+>
+> **Getest.** TypeScript en ESLint schoon. `protocols.test.ts` uitgebreid:
+> leeftijdsgrenzen (ook dat herstel en vitamine D er geen hebben), de vier
+> groepen, milliliters met plafond, kersensap van dag -4 t/m +2 met
+> agendalabels, eiwit en koolhydraten naar gewicht. Volledige suite: 2267 tests
+> groen; alleen `omnium-live` faalt omdat `.env.local` hier ontbreekt. `npm run
+> build` compileert en haalt de TypeScript-stap, maar stopt bij het
+> prerenderen van `/omnium` door ontbrekende Supabase-sleutels in deze omgeving.
+>
+> **Niet geverifieerd.**
+> - De pagina's in de browser.
+> - **Geen enkele bron is volledig gelezen.** Crossref en PubMed waren vanuit
+>   deze omgeving niet bereikbaar; titels, auteurs en DOI's zijn via een
+>   zoekmachine tegen PubMed, uitgevers, repositories en Cochrane gecontroleerd,
+>   de bevindingen komen uit samenvattingen. Wat alleen in een tweede bron
+>   stond, is gemarkeerd in het onderzoeksdocument.
+> - De inhoud is niet door een sportarts of sportdiëtist nagekeken.
+
 
 > **Agenda-abonnement: ZWB in Google Agenda, Outlook en Apple Agenda, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken en niet in een echte agenda-app geprobeerd.**
 > Commit: `23639a9`. Migratie `0236_calendar_feed_tokens.sql`, toegepast door de
@@ -264,6 +480,45 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
 > blijft.
 
 ---
+
+> **Naleving: foto herkennen weggehaald, 2026-10-15 — gebouwd, lokaal getest, gepusht.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar probeerde het met een kom kwark en granola; de
+> schatting zat er ver naast. Dat past bij wat de literatuur zegt over
+> samengestelde maaltijden (zie [naleving-voeding-plan.md](docs/naleving-voeding-plan.md), §5).
+> Herkennen uit een getypte omschrijving werkt volgens de eigenaar goed en
+> blijft: daar noemt het lid zelf de hoeveelheden.
+>
+> **Wat.**
+> - De knop Foto in het invoerformulier is weg, net als het verkleinen op het
+>   toestel en `isImageDataUrl`. `startRecognition` en
+>   `recognitionRequestBody` nemen alleen nog tekst; het model krijgt geen beeld
+>   meer.
+> - De instructies voor het model gaan alleen over een omschrijving: genoemde
+>   hoeveelheden overnemen, anders schatten met een band.
+> - De schakelaar heet nu "Tekst herkennen", met een kortere toestemming
+>   zonder foto. Wie eerder voor foto en tekst tekende, houdt de schakelaar aan:
+>   het gebruik is smaller geworden, niet breder.
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   noemen geen foto meer.
+>
+> **Bewust niet gedaan.**
+> - **Geen migratie.** `foto` blijft in de checks van `nutrition_log_meals.source`
+>   en `nutrition_log_ai_usage.kind`, voor de rijen van de proef. De naam
+>   `ai_consent_at` blijft ook.
+> - **De meting (stap 0) vervalt** voor de foto. Model en kostenplafond voor
+>   tekst kunnen uit het gewone gebruik komen.
+> - De barcodescan gebruikt ook een foto, maar leest alleen het nummer; die
+>   blijft.
+>
+> **Niet meer waar:** in de blokken van stap 3 hieronder, en in
+> `docs/naleving-voeding-plan.md`, staat herkennen uit een foto als gebouwd. Dat
+> klopte tot vandaag.
+>
+> **Getest.** TypeScript en eslint schoon; `nutrition-recognize` en
+> `nutrition-log` slagen, met een nieuwe test dat het verzoek geen beeld bevat
+> en de instructies geen foto noemen.
 
 > **Barcode scannen op de iPhone, 2026-10-14 — gebouwd, lokaal getest; niet op een iPhone getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -390,7 +645,7 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0238`
 > plafond op twee keer; `weekSummary`: gehaald per dag, lege dag telt niet,
 > zonder gewicht geen oordeel).
 
-> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
+> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; *de foto is op 2026-10-15 weggehaald, zie "Naleving: foto herkennen weggehaald"*; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0234_nutrition_log_recognition.sql`, toegepast door de eigenaar op 2026-10-14.
 >
@@ -7905,6 +8160,8 @@ voedingsprotocollen bij voeden. Onderzoek en bronnen:
 - **Voeden** (`/zwbeter-worden/voeding/protocollen`, tab tussen Receptenboek en
   Kennisbank): cafeïne, natriumbicarbonaat, nitraat, ijsslush en koolhydraten
   laden (wedstrijddag); bèta-alanine, creatine en darmtraining (opbouw).
+  *Op 2026-10-14 uitgebreid met glycerol, herstel, kersensap, vitamine D en
+  collageen; zie de ronde "Supplementen tweede ronde".*
 - **Kennisbank trainen** (`/zwbeter-worden/kennis`, `training-library.ts`):
   zeven artikelen over de onderwerpen van deze ronde: lage cadans, 30/15,
   gepolariseerd of piramidaal, taper, hittetraining, ademspiertraining, koud
@@ -7942,6 +8199,8 @@ een eigen ronde.
 
 - Sleep low, HRV-gestuurd trainen, glycerol en een hoogtestage als protocol:
   bewijs te wisselend of niet uit te voeren, zie het onderzoeksdocument.
+  *Glycerol is op 2026-10-14 alsnog gebouwd (ronde "Supplementen tweede
+  ronde").*
 - Ketonen als protocol: een meta-analyse vond geen effect.
 - 30/15 en gepolariseerd trainen als protocol: dat zijn workoutvormen en
   verdelingen die de AI en de trainer al plannen.

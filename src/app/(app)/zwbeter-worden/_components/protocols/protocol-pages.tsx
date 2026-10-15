@@ -1,11 +1,14 @@
 // De twee protocolpagina's (lijst en detail), gedeeld door trainen en voeden.
 
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { protocolBySlug, startBlocker, type ProtocolPillar } from "@/lib/protocols";
-import { requireViewer, todayKeyAmsterdam } from "../../_data";
+import { protocolUsesCore } from "@/lib/protocols/core-temperature";
+import { loadConnection, requireViewer, todayKeyAmsterdam } from "../../_data";
 import {
   loadActiveRuns,
   loadChecks,
+  loadCoreSessions,
   loadProtocolProfile,
   loadRaceOptions,
   loadRunsForProtocol,
@@ -44,7 +47,21 @@ export async function ProtocolDetailPage({
     protocol.anchor === "wedstrijd" ? loadRaceOptions(viewer, today) : Promise.resolve([]),
   ]);
   const run = runs.find((item) => item.status === "actief") ?? null;
-  const checks = await loadChecks(viewer.supabase, run ? [run.id] : []);
+  const usesCore = protocolUsesCore(protocol);
+  const [checks, coreSessions, connection] = await Promise.all([
+    loadChecks(viewer.supabase, run ? [run.id] : []),
+    usesCore ? loadCoreSessions(viewer.supabase, run ? [run.id] : []) : Promise.resolve([]),
+    usesCore && run ? loadConnection(viewer) : Promise.resolve(null),
+  ]);
+
+  // Net gereden: de kerntemperatuur na het antwoord ophalen, net als op Vandaag.
+  if (run && connection?.api_key && connection.athlete_id) {
+    const { admin, user } = viewer;
+    after(async () => {
+      const { fillCoreSessions } = await import("@/lib/protocols/core-fill");
+      await fillCoreSessions(admin, user.id, connection, today).catch(() => null);
+    });
+  }
 
   return (
     <ProtocolDetail
@@ -52,6 +69,7 @@ export async function ProtocolDetailPage({
       basePath={basePath}
       run={run}
       checks={checks}
+      coreSessions={coreSessions}
       weightKg={profile.weightKg}
       blocker={startBlocker(protocol, profile.ageYears)}
       today={today}

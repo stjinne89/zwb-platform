@@ -5,14 +5,16 @@ import Link from "next/link";
 import { ChevronRight, ListChecks } from "lucide-react";
 import { protocolBySlug, tasksForDay } from "@/lib/protocols";
 import type { Viewer } from "../../_data";
-import { loadActiveRuns, loadChecks, loadProtocolProfile } from "../../_protocol-data";
+import { loadActiveRuns, loadChecks, loadCoreSessions, loadProtocolProfile } from "../../_protocol-data";
 import { ProtocolDayTasks } from "./protocol-views";
 
 export async function ProtocolTodayCard({ viewer, today }: { viewer: Viewer; today: string }) {
   const runs = await loadActiveRuns(viewer.supabase, viewer.user.id);
   if (runs.length === 0) return null;
-  const [checks, profile] = await Promise.all([
-    loadChecks(viewer.supabase, runs.map((run) => run.id)),
+  const runIds = runs.map((run) => run.id);
+  const [checks, coreSessions, profile] = await Promise.all([
+    loadChecks(viewer.supabase, runIds),
+    loadCoreSessions(viewer.supabase, runIds),
     loadProtocolProfile(viewer.supabase, viewer.user.id, today),
   ]);
 
@@ -49,6 +51,7 @@ export async function ProtocolTodayCard({ viewer, today }: { viewer: Viewer; tod
             day={today}
             weightKg={profile.weightKg}
             checks={checks}
+            coreSessions={coreSessions}
           />
         </div>
       ))}

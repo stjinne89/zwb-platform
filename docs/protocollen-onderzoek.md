@@ -20,6 +20,7 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 |---|---|---|
 | Hitte-acclimatisatie voor een warme wedstrijd | sterk | gebouwd (trainen) |
 | Hittetraining voor hemoglobine | matig | gebouwd (trainen) |
+| Kerntemperatuur met een CORE-sensor bij hitte | sensor zwak gevalideerd | gebouwd (trainen), via intervals.icu |
 | Lage cadans bij VO2max en sprints | matig | gebouwd (trainen), via de AI-coach |
 | Ademspiertraining | matig | gebouwd (trainen) |
 | Taper | sterk | AI-regel aangescherpt, geen protocol |
@@ -31,10 +32,16 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 | Bèta-alanine | sterk voor 1-4 min | gebouwd (voeden, opbouw) |
 | Creatine | sterk voor sprint en kracht | gebouwd (voeden, opbouw) |
 | Darmtraining naar 90-120 g/u | matig | gebouwd (voeden, opbouw) |
+| Glycerol in de hitte | matig | gebouwd (voeden, wedstrijd), tweede ronde |
+| Herstellen na een zware wedstrijd | matig | gebouwd (voeden, herstel), tweede ronde |
+| Kersensap | matig, alleen als je vooraf begint | gebouwd (voeden, herstel), tweede ronde |
+| Vitamine D in de winter | richtlijn | gebouwd (voeden, gezondheid), tweede ronde |
+| Collageen bij revalidatie | beperkt | gebouwd (voeden, gezondheid), tweede ronde |
 | Korte intervallen 30/15 | matig | kennisartikel |
 | Gepolariseerd trainen | geen verschil | kennisartikel |
 | Koud water na training | remt kracht | kennisartikel |
 | Ketonen | geen effect | kennisartikel (voeding), afgeraden |
+| Visolie, probiotica, mondspoelen, BCAA, magnesium, CBD | beperkt tot geen | kennisartikel (voeding), tweede ronde |
 | Sleep low / train low | gemengd | niet gebouwd |
 | HRV-gestuurd trainen | zwak | niet gebouwd |
 
@@ -55,8 +62,9 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 
 **Afgeleid, niet getest:** thuis binnen rijden zonder ventilator en met een
 extra laag als hittesessie. De studies gebruikten een hittekamer, een bad of
-een hittepak. De prikkel is dezelfde (hogere kerntemperatuur), maar de app
-meet die niet. De opbouw (-14 t/m -4 elke dag, daarna hooguit twee korte
+een hittepak. De prikkel is dezelfde (hogere kerntemperatuur). Zonder sensor
+meet de app die niet; met een CORE-sensor wel, zie "Kerntemperatuur met een
+CORE-sensor" hieronder (2026-10-14). De opbouw (-14 t/m -4 elke dag, daarna hooguit twee korte
 sessies) is een eigen invulling van de consensus.
 
 ### Hittetraining voor hemoglobine (lang)
@@ -73,6 +81,56 @@ sessies) is een eigen invulling van de consensus.
 
 **Beperking:** kleine groepen, vooral (top)renners, grotendeels één groep
 onderzoekers. VO2max in koel weer niet altijd beter.
+
+### Kerntemperatuur met een CORE-sensor (2026-10-14)
+
+Vraag van de eigenaar: kan de hittetraining met de CORE-sensor werken, via
+intervals.icu?
+
+**Hoe de data binnenkomt.** De CORE-sensor stuurt kerntemperatuur,
+huidtemperatuur en de Heat Strain Index naar de fietscomputer (Connect IQ-veld
+op Garmin; bij Wahoo een voorlopige oplossing). intervals.icu leest ze uit het
+FIT-bestand als streams `core_temperature`, `skin_temperature` en
+`heat_strain_index`, vult gaten tot 30 seconden op met de laatste waarde en
+toont ze als grafiek. Een dataveld met een eigen naam kan met een voorvoegsel
+binnenkomen (gemeld: `0_95_heat_strain_index`). Een rit die via Strava in
+intervals.icu komt, heeft geen streams.
+
+Oudere Wahoo's (ELEMNT, BOLT en ROAM vóór de BOLT 3, dus ook de BOLT 2 van de
+eigenaar) kennen geen temperatuursensor. CORE's handleiding laat ze de sensor
+als spierzuurstofsensor koppelen; de kerntemperatuur staat dan in graden in het
+veld THb. Op het forum zag iemand met een BOLT 2 de kanalen THb en THb(2) in
+intervals.icu. De app valt daarom terug op een THb-stream als er geen
+`core_temperature` is, en alleen als de mediaan van de mogelijke waarden
+(34 tot 43) op of boven 36 ligt en minstens de helft van de metingen in dat
+bereik valt. Echte hemoglobine (12 tot 15 g/dl) valt erbuiten; staan kern en
+huid op twee kanalen, dan geldt die met de hoogste mediaan als kern. Hoe
+intervals.icu die streams precies noemt, is niet vastgesteld; de app herkent elk
+type dat met `thb` begint. Bronnen: de helppagina van CORE over
+intervals.icu en draadjes op het intervals.icu-forum; die konden vanuit de
+bouwomgeving niet worden geopend, alleen de zoekresultaten zijn gelezen.
+
+**De drempel van 38,5 °C.** In de hittepakstudies werkten renners naar een
+kerntemperatuur rond 38,5 °C (secundaire verslagen van het werk van Rønnestad;
+een casusreeks met hittepakken kwam uit op een mediaan van 38,7 °C rectaal).
+Niet in de oorspronkelijke artikelen nagelezen. **Eigen keuze:** een
+hittesessie telt bij 30 minuten op of boven 38,5 °C, een korte sessie in de
+laatste dagen voor een wedstrijd bij 10 minuten. Die minuten komen niet uit een
+studie; ze zijn gekozen zodat een sessie van 50 tot 60 minuten met een
+opwarmfase van ongeveer twintig minuten ze haalt.
+
+**Hoe betrouwbaar is de sensor.** Bij fietsers was de herhaalbaarheid goed
+(verschil tussen twee gelijke ritten 0,02 °C), maar ongeveer de helft van de
+metingen week meer dan 0,3 °C af van een rectale meting, in 19 én 31 °C. De
+auteurs concluderen dat de sensor geen geldige maat voor de kerntemperatuur is.
+[Verdel e.a. 2021](https://doi.org/10.3390/s21175932). Daarom: de app toont de
+waarde als richting en vinkt af, maar het lid kan het vinkje weghalen.
+
+**Bewust niet gebruikt: de Heat Strain Index.** CORE deelt de HSI in vier
+zones in en noemt zone 3 de trainingszone (advies: 45 tot 60 minuten erin, twee
+tot drie keer per week). De zonegrenzen en de rekenregel zijn van de fabrikant
+en niet openbaar getoetst, en het advies is minder dan wat de protocollen
+voorschrijven. De studies stuurden op kerntemperatuur.
 
 ### Lage cadans
 
@@ -147,6 +205,10 @@ weinig effect op de lange termijn.
 
 ## Voeden
 
+De tweede supplementronde (glycerol, herstel, kersensap, vitamine D, collageen,
+en de supplementen zonder protocol) staat in
+[supplementen-onderzoek.md](supplementen-onderzoek.md).
+
 Doses staan per kg en worden met het gewicht van het lid omgerekend, met een
 plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
 
@@ -183,8 +245,9 @@ geen protocol.
   voor waarschuwt.
 - **HRV-gestuurd trainen.** Eén meta-analyse (2020) met methodekritiek; de
   AI-coach weegt readiness en HRV al mee.
-- **Glycerol.** Wel in het IOC-overzicht, maar niche (hyperhydratie in de
-  hitte) en vaak maagklachten.
+- **Glycerol.** *Ingehaald op 2026-10-14 (tweede ronde): toch gebouwd als
+  protocol, zie [supplementen-onderzoek.md](supplementen-onderzoek.md).* Eerst
+  weggelaten als niche (hyperhydratie in de hitte) met vaak maagklachten.
 - **Hoogtestage.** Niet uit te voeren vanuit de app; hittetraining is het
   alternatief.
 - **Een cadansveld op een blok.** Blijft zoals besloten bij `0228`: de cadans
