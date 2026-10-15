@@ -1,57 +1,89 @@
-// Cheatsheet voor een ploegentijdrit in de TTT Planner: vuistregels uit het
+// Spiekbriefje voor een ploegentijdrit in de TTT Planner: vuistregels uit het
 // onderzoek, een check van het plan, en wat eerdere ploegentijdritten van het
 // team en van de renners lieten zien. Puur: geen I/O. De races komen uit
 // loadTttRaces (zrl-analysis/load.ts); de regels uit zrl-analysis/advice.ts.
+// Alles is kort en gestructureerd, zodat het scherm het als spiekbrief kan tonen.
 // Onderbouwing: docs/racestrategie-onderzoek.md, sectie 3.
 
 import {
   dropClimb,
   heaviestOnClimb,
+  planComposition,
   planCompositionAdvice,
   teamAdvice,
   tttPlanAdvice,
-  type Advice,
+  type PlanComposition,
   type PlanRider,
 } from "@/lib/zrl-analysis/advice";
 import type { TttRaceRecord } from "@/lib/zrl-analysis/load";
-import { raceTime, signedSeconds, wkg } from "@/lib/zrl-analysis/format";
+
+/** Een vuistregel: het getal om te onthouden, en waar het over gaat. */
+export type CheatRule = { value: string; text: string };
 
 /**
  * Vuistregels uit het onderzoek (Zwift Insider over de beste WTRL-ploegen, WTRL,
  * en de eigen meting van 13 oktober). Vast, zodat ze bij elk plan klaarstaan.
  */
-export const TTT_RULES: string[] = [
-  "Kopbeurten van 20 tot 30 s op 120 tot 130% van de gemiddelde FTP van de ploeg, daarna rust in het wiel.",
-  "In het wiel: op plek twee 95 tot 100% van de FTP, vanaf plek drie rond 85%.",
-  "Renners 15% onder de gemiddelde FTP weinig kopbeurten, 20% eronder alleen in het wiel.",
-  "Op klimmen vanaf ongeveer 3% één W/kg-doel voor de hele ploeg, op het vlakke een wattdoel.",
-  "De vierde renner telt: wie op de laatste klim kan lossen, rijdt in het halfuur ervoor korte beurten. Lost iemand toch, dan eerst een laatste volle beurt.",
-  "Een wissel kost tijd: op 13 oktober lag de nieuwe renner 11 tot 15 s na \"Wissel\" pas vooraan. Vaste volgorde, en overslaan hardop melden.",
+export const TTT_RULES: CheatRule[] = [
+  { value: "20–30 s", text: "Kopbeurt, daarna rust in het wiel" },
+  { value: "120–130%", text: "Kopvermogen, van de gemiddelde FTP" },
+  { value: "95–100%", text: "Op plek 2 in het wiel; vanaf plek 3 rond 85%" },
+  { value: "−15%", text: "FTP onder het gemiddelde: weinig kopbeurten" },
+  { value: "−20%", text: "FTP onder het gemiddelde: alleen in het wiel" },
+  { value: "≥ 3%", text: "Klim: één W/kg-doel voor de ploeg; vlak: wattdoel" },
+  { value: "30 min", text: "Voor de laatste klim korte beurten voor wie kan lossen" },
+  { value: "1 beurt", text: "Wie lost, trekt eerst nog één volle beurt" },
+  { value: "11–15 s", text: "Kost een wissel: vaste volgorde, overslaan hardop melden" },
 ];
+
+/** De doelband voor het kopvermogen, als deel van de gemiddelde FTP. */
+export const PULL_TARGET = { low: 1.2, high: 1.3 } as const;
+
+/** Een les als label en korte opdracht. */
+export type CheatFlag = {
+  /** warn: ging eerder mis; limit: zat aan de grens; note: om rekening mee te houden. */
+  tone: "warn" | "limit" | "note";
+  label: string;
+  tip: string;
+};
 
 export type CheatsheetRace = {
   eventId: string;
-  title: string;
   startAt: string;
   teamName: string | null;
-  /** "1e van 8 · 43:18,7 · +18,1 s op OTR". */
-  result: string;
-  /** Feiten zonder tip: waar de ploeg won, hoe dicht ze binnenkwam. */
-  facts: string[];
-  lessons: Advice[];
+  rank: number | null;
+  of: number;
+  /** Eindtijd in ms. */
+  time: number | null;
+  /** Verschil met de dichtstbijzijnde ploeg, in ms (+ is voor). */
+  rival: { label: string; deltaMs: number } | null;
+  /** Hoe dicht de vier snelsten binnenkwamen, in ms. */
+  spreadMs: number | null;
+  /** Winst (+) of verlies (−) op die ploeg per stuk, tot en met het genoemde punt. */
+  sections: Array<{ name: string; deltaMs: number }>;
+  /** Wat de ploeg als geheel anders kan; lessen over één renner staan bij die renner. */
+  tips: string[];
+};
+
+export type CheatsheetRide = {
+  startAt: string;
+  teamName: string | null;
+  wkg: number | null;
+  /** De klim waar de renner loste; true als dat niet op een klim was. */
+  dropped: string | true | null;
+  climbs: Array<{ name: string; wkg: number }>;
 };
 
 export type CheatsheetRider = {
   zwiftId: number;
   name: string;
-  /** Per eerdere ploegentijdrit één regel. */
-  history: string[];
-  lessons: Advice[];
+  rides: CheatsheetRide[];
+  flags: CheatFlag[];
 };
 
 export type Cheatsheet = {
-  rules: string[];
-  plan: Advice[];
+  rules: CheatRule[];
+  plan: PlanComposition | null;
   races: CheatsheetRace[];
   riders: CheatsheetRider[];
 };
@@ -65,84 +97,90 @@ const AT_LIMIT_SHARE = 0.98;
 const dateLabel = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", timeZone: "Europe/Amsterdam" });
 const pct = (share: number) => `${Math.round(100 * share)}%`;
 
-function raceLine(record: TttRaceRecord) {
+function race(record: TttRaceRecord, skip: Set<string>): CheatsheetRace {
   const { analysis } = record;
   const team = analysis.team;
-  if (!team) return "";
   const rival = analysis.teams.find((t) => t.team === analysis.rival?.team);
-  const parts = [`${team.rank}e van ${analysis.teams.length}`, raceTime(team.time)];
-  if (rival?.time != null && team.time !== null) parts.push(`${signedSeconds(rival.time - team.time)} op ${analysis.rival?.label}`);
-  return parts.join(" · ");
+  // Een les die met een rennernaam begint, hoort bij die renner, niet bij de ploeg.
+  const names = analysis.riders.map((r) => r.name);
+  const tips: string[] = [];
+  for (const advice of [...tttPlanAdvice(analysis, record.plan), ...teamAdvice(analysis)]) {
+    if (skip.has(advice.finding) || names.some((n) => advice.finding.startsWith(n)) || tips.includes(advice.tip)) continue;
+    tips.push(advice.tip);
+  }
+  return {
+    eventId: record.eventId,
+    startAt: record.startAt,
+    teamName: record.teamName,
+    rank: team?.rank ?? null,
+    of: analysis.teams.length,
+    time: team?.time ?? null,
+    rival:
+      rival?.time != null && team?.time != null && analysis.rival
+        ? { label: analysis.rival.label, deltaMs: rival.time - team.time }
+        : null,
+    spreadMs: analysis.spread,
+    sections: analysis.sections.map((s) => ({ name: s.name.replace(/^.*→\s*/, ""), deltaMs: s.versusRival })),
+    tips,
+  };
 }
 
-function raceFacts(record: TttRaceRecord) {
-  const { analysis } = record;
-  const facts: string[] = [];
-  const best = [...analysis.sections].sort((a, b) => b.versusRival - a.versusRival)[0];
-  if (best && best.versusRival >= 2000) facts.push(`Meeste winst op het stuk naar ${best.name.replace(/^.*→ /, "")}: ${signedSeconds(best.versusRival)}.`);
-  if (analysis.spread !== null) facts.push(`De vier snelsten binnen ${signedSeconds(analysis.spread).replace("+", "")}.`);
-  return facts;
-}
-
-/** Een regel per eerdere race van deze renner: wanneer, met welk team, en wat opviel. */
-function historyLine(record: TttRaceRecord, zwiftId: number) {
+function ride(record: TttRaceRecord, zwiftId: number): CheatsheetRide | null {
   const rider = record.analysis.riders.find((r) => r.athleteId === zwiftId);
   if (!rider) return null;
-  const parts = [`${dateLabel.format(new Date(record.startAt))}, ${record.teamName ?? "team"}`];
-  if (rider.dropped) {
-    const climb = dropClimb(record.analysis, rider);
-    parts.push(climb ? `gelost op ${climb}` : "niet bij de ploeg gefinisht");
-  }
-  if (rider.wkg !== null) parts.push(`gemiddeld ${wkg(rider.wkg)} W/kg`);
-  const climbs = rider.segments.filter((s) => s.kind === "klim" && s.wkg !== null && !rider.dropped);
-  if (climbs.length) parts.push(climbs.map((s) => `${s.name} ${wkg(s.wkg)} W/kg`).join(", "));
-  return { line: parts.join(" · "), rider };
+  return {
+    startAt: record.startAt,
+    teamName: record.teamName,
+    wkg: rider.wkg,
+    dropped: rider.dropped ? (dropClimb(record.analysis, rider) ?? true) : null,
+    climbs: rider.dropped
+      ? []
+      : rider.segments.flatMap((s) => (s.kind === "klim" && s.wkg !== null ? [{ name: s.name, wkg: s.wkg }] : [])),
+  };
 }
 
-function riderLessons(name: string, zwiftId: number, records: TttRaceRecord[], current: PlanRider | undefined): Advice[] {
-  const lessons: Advice[] = [];
+function riderFlags(zwiftId: number, records: TttRaceRecord[], current: PlanRider | undefined): CheatFlag[] {
+  const flags: CheatFlag[] = [];
   const mine = records.filter((r) => r.analysis.riders.some((x) => x.athleteId === zwiftId));
-  const latestDrop = mine.find((r) => r.analysis.riders.find((x) => x.athleteId === zwiftId)?.dropped);
+  const find = (r: TttRaceRecord) => r.analysis.riders.find((x) => x.athleteId === zwiftId)!;
+
+  const latestDrop = mine.find((r) => find(r).dropped);
   if (latestDrop) {
-    const rider = latestDrop.analysis.riders.find((x) => x.athleteId === zwiftId)!;
-    const climb = dropClimb(latestDrop.analysis, rider);
-    const where = climb ? ` op ${climb}` : "";
-    const heavy =
-      current?.ftp && current.pullWatts && current.pullSeconds && current.pullWatts / current.ftp >= HEAVY_PULL_SHARE && current.pullSeconds >= HEAVY_PULL_S
-        ? ` Dit plan vraagt weer ${current.pullWatts} W gedurende ${current.pullSeconds} s (${pct(current.pullWatts / current.ftp)} van de eigen FTP).`
-        : "";
-    lessons.push({
-      finding: `${name} loste ${dateLabel.format(new Date(latestDrop.startAt))}${where}.${heavy}`,
-      tip: climb
-        ? `Korte beurten voor ${name} in het halfuur voor de laatste klim; die klim moet met de ploeg.`
-        : `Bespreek met ${name} waar het misging en plan lichtere beurten.`,
+    const climb = dropClimb(latestDrop.analysis, find(latestDrop));
+    flags.push({
+      tone: "warn",
+      label: climb ? `Loste op ${climb}` : "Loste",
+      tip: climb ? "Korte beurten in het halfuur voor de laatste klim" : "Lichtere beurten plannen",
     });
+    if (current?.ftp && current.pullWatts && current.pullSeconds) {
+      const share = current.pullWatts / current.ftp;
+      if (share >= HEAVY_PULL_SHARE && current.pullSeconds >= HEAVY_PULL_S) {
+        flags.push({
+          tone: "warn",
+          label: `Plan: ${current.pullWatts} W · ${current.pullSeconds} s · ${pct(share)}`,
+          tip: "Korter of lichter maken",
+        });
+      }
+    }
   }
-  const heaviest = mine
-    .map((r) => {
-      const rider = r.analysis.riders.find((x) => x.athleteId === zwiftId)!;
-      return { r, h: heaviestOnClimb(r.analysis, rider) };
-    })
-    .find((x) => x.h);
-  if (heaviest?.h) {
-    lessons.push({
-      finding: `${name} had ${dateLabel.format(new Date(heaviest.r.startAt))} op ${heaviest.h.climb} het meeste vermogen van de ploeg nodig: ${heaviest.h.watts} W.`,
-      tip: `Geen lange beurt voor ${name} vlak voor een klim; laat een lichtere renner daar het tempo maken.`,
-    });
+
+  const heaviest = mine.map((r) => heaviestOnClimb(r.analysis, find(r))).find(Boolean);
+  if (heaviest) {
+    flags.push({ tone: "note", label: `Zwaarst op ${heaviest.climb}: ${heaviest.watts} W`, tip: "Geen lange beurt vlak voor een klim" });
   }
+
   for (const r of mine) {
-    const rider = r.analysis.riders.find((x) => x.athleteId === zwiftId)!;
+    const rider = find(r);
     const ftp = r.plan.find((p) => p.zwiftId === zwiftId)?.ftp ?? current?.ftp ?? null;
-    if (!ftp || !rider.avgWatts || rider.dropped) continue;
-    const share = rider.avgWatts / ftp;
-    if (share < AT_LIMIT_SHARE) continue;
-    lessons.push({
-      finding: `${name} reed ${dateLabel.format(new Date(r.startAt))} gemiddeld ${pct(share)} van de eigen FTP en bleef bij de ploeg.`,
-      tip: `Dat was de grens: plan ${name} niet zwaarder dan toen.`,
+    if (!ftp || !rider.avgWatts || rider.dropped || rider.avgWatts / ftp < AT_LIMIT_SHARE) continue;
+    flags.push({
+      tone: "limit",
+      label: `Grens: ${pct(rider.avgWatts / ftp)} FTP`,
+      tip: `Niet zwaarder plannen dan ${dateLabel.format(new Date(r.startAt))}`,
     });
     break;
   }
-  return lessons;
+  return flags;
 }
 
 export function buildCheatsheet({
@@ -158,27 +196,17 @@ export function buildCheatsheet({
   riders: Array<PlanRider & { zwiftId: number | null }>;
 }): Cheatsheet {
   const teamSet = new Set(teamIds);
-  const plan = planCompositionAdvice(riders);
-  const races: CheatsheetRace[] = records
-    .filter((r) => teamSet.has(r.teamId))
-    .map((r) => {
-      // Wat "Dit plan" al zegt, hoeft niet nog eens bij de race.
-      const seen = new Set<string>(plan.map((a) => a.finding));
-      const lessons = [...tttPlanAdvice(r.analysis, r.plan), ...teamAdvice(r.analysis)].filter((a) =>
-        seen.has(a.finding) ? false : (seen.add(a.finding), true),
-      );
-      return { eventId: r.eventId, title: r.title, startAt: r.startAt, teamName: r.teamName, result: raceLine(r), facts: raceFacts(r), lessons };
-    });
+  // Wat de check van dit plan al zegt, hoeft niet nog eens bij een race.
+  const skip = new Set(planCompositionAdvice(riders).map((a) => a.finding));
+  const races = records.filter((r) => teamSet.has(r.teamId)).map((r) => race(r, skip));
 
   const cheatRiders: CheatsheetRider[] = riders.flatMap((p) => {
     if (p.zwiftId === null) return [];
-    const history = records.flatMap((r) => {
-      const h = historyLine(r, p.zwiftId as number);
-      return h ? [h.line] : [];
-    });
-    if (history.length === 0) return [];
-    return [{ zwiftId: p.zwiftId, name: p.name, history, lessons: riderLessons(p.name, p.zwiftId, records, p) }];
+    const zwiftId = p.zwiftId;
+    const rides = records.flatMap((r) => ride(r, zwiftId) ?? []);
+    if (rides.length === 0) return [];
+    return [{ zwiftId, name: p.name, rides, flags: riderFlags(zwiftId, records, p) }];
   });
 
-  return { rules: TTT_RULES, plan, races, riders: cheatRiders };
+  return { rules: TTT_RULES, plan: planComposition(riders), races, riders: cheatRiders };
 }

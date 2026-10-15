@@ -134,6 +134,42 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **TTT Planner: het cheatsheet als spiekbriefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar vond het cheatsheet "veel tekst en moeilijk leesbaar"
+> en wilde het "meer spiekbrief designed".
+>
+> **Wat.** Het blok heet nu **Spiekbriefje**. `lessons.ts` geeft geen zinnen meer
+> maar korte, gestructureerde gegevens; het scherm maakt er een spiekbrief van:
+>
+> - **Vuistregels** als lijst van getal en betekenis (negen regels, de regel over
+>   lossen in twee gesplitst), in een eigen kolom rechts; op de telefoon onderaan.
+> - **Dit plan:** het kopvermogen als meter van 100 tot 150% van de gemiddelde
+>   FTP met de doelband van 120 tot 130%, plus de gemiddelde FTP; zwakke renners
+>   als label ("−23% FTP") met een opdracht van een paar woorden.
+>   `planComposition` in `advice.ts` levert de getallen; `planCompositionAdvice`
+>   maakt er nog steeds de zinnen van voor de race-analyse.
+> - **Renners:** eerst de lessen als gekleurd label met pictogram (waarschuwing,
+>   grens, klim) en een korte opdracht, daaronder de eerdere ritten in kleine
+>   letters.
+> - **Eerdere TTT's:** plek, tijd en het verschil met de dichtstbijzijnde ploeg
+>   bovenaan, per stuk een staafje voor winst of verlies, en alleen de lessen voor
+>   de ploeg als geheel; lessen over één renner staan bij die renner.
+> - Laden toont een skelet in plaats van een zin.
+>
+> **Gecontroleerd.** Met de data van Bdev via een tijdelijke voorbeeldpagina onder
+> `/ontwerp-voorbeeld` (niet gecommit: echte namen en vermogens), in licht en
+> donker, op desktop en telefoonbreedte. De Impeccable-detector vond alleen een
+> lettermaat buiten de schaal (verholpen).
+>
+> **Niet meer waar.** "Zes vaste vuistregels" en de bloknaam Cheatsheet in de
+> ronde hieronder (aangepast).
+>
+> **Niet geverifieerd.** De planner zelf met login.
+
+---
+
 > **TTT Planner: cheatsheet met lessen uit eerdere ploegentijdritten, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `1f340db`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -143,7 +179,7 @@ van de CORE-sensor, beide 2026-10-14).
 >
 > **Wat.**
 >
-> - `src/lib/ttt/lessons.ts` (puur): `buildCheatsheet` met zes vaste vuistregels
+> - `src/lib/ttt/lessons.ts` (puur): `buildCheatsheet` met vaste vuistregels
 >   (uit [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md), sectie 3,
 >   en de wissels van 13 oktober), "Dit plan" (`planCompositionAdvice`: zwakke
 >   renner met kopbeurten, kopvermogen buiten 115 tot 140% van de gemiddelde
@@ -160,7 +196,8 @@ van de CORE-sensor, beide 2026-10-14).
 >   Suspense, zodat de planner niet wacht. `planCompositionAdvice` is uit
 >   `tttPlanAdvice` gehaald, zodat het ook vóór de race werkt.
 > - Planpagina `/teams/ttt-planner/[id]` en de planner (zodra team en event
->   gekozen zijn): blok **Cheatsheet**, alleen voor wie het plan beheert. Bij een
+>   gekozen zijn): blok **Cheatsheet** (inmiddels **Spiekbriefje**, zie de ronde
+>   hierboven), alleen voor wie het plan beheert. Bij een
 >   plan van het hoofdteam tellen de subteams mee. In de planner zonder plan zijn
 >   de renners die van de opstelling, zonder FTP of kopbeurt.
 > - Hulp (`#ttt-beheer`) en privacyverklaring (`#racen`): een captain ziet de

@@ -428,44 +428,53 @@ export function tttPlanAdvice(analysis: RaceAnalysis, plan: PlanRider[]): Advice
   return advice.slice(0, MAX_TIPS);
 }
 
+/** De opbouw van een plan: gemiddelde FTP, wie ver eronder zit en toch kopbeurten heeft, en het kopvermogen. */
+export type PlanComposition = {
+  avgFtp: number;
+  weak: Array<{ name: string; share: number; pullSeconds: number }>;
+  /** De mediane kopbeurt als deel van de gemiddelde FTP; leeg met minder dan drie kopbeurten. */
+  pullShare: number | null;
+};
+
+/** Telt alleen renners met een FTP; met minder dan vier zegt het niets. */
+export function planComposition(plan: PlanRider[]): PlanComposition | null {
+  const riders = plan.filter((p) => p.ftp);
+  if (riders.length < 4) return null;
+  const avgFtp = riders.reduce((s, p) => s + (p.ftp as number), 0) / riders.length;
+  const weak = riders.flatMap((p) => {
+    const share = (p.ftp as number) / avgFtp;
+    return share <= WEAK_FTP_SHARE && p.pullSeconds ? [{ name: p.name, share, pullSeconds: p.pullSeconds }] : [];
+  });
+  const pulls = riders.flatMap((p) => (p.pullWatts && p.pullSeconds ? [p.pullWatts] : [])).sort((a, b) => a - b);
+  return { avgFtp, weak, pullShare: pulls.length >= 3 ? pulls[pulls.length >> 1] / avgFtp : null };
+}
+
 /**
  * Een plan tegen de vuistregels van de beste WTRL-ploegen, ook vóór de race: een
  * renner ver onder de gemiddelde FTP met kopbeurten, en kopvermogen buiten 115 tot
- * 140% van de gemiddelde FTP. Telt alleen renners met een FTP; met minder dan vier
- * zegt het niets.
+ * 140% van de gemiddelde FTP.
  */
 export function planCompositionAdvice(plan: PlanRider[]): Advice[] {
-  const riders = plan.filter((p) => p.ftp);
-  if (riders.length < 4) return [];
-  const avgFtp = riders.reduce((s, p) => s + (p.ftp as number), 0) / riders.length;
-  const advice: Advice[] = [];
-  for (const p of riders) {
-    const share = (p.ftp as number) / avgFtp;
-    if (share > WEAK_FTP_SHARE || !p.pullSeconds) continue;
-    const pct = Math.round(100 * (1 - share));
+  const composition = planComposition(plan);
+  if (!composition) return [];
+  const advice: Advice[] = composition.weak.map((p) => ({
+    finding: `${p.name} heeft een FTP ${Math.round(100 * (1 - p.share))}% onder het teamgemiddelde, maar kreeg kopbeurten van ${p.pullSeconds} s.`,
+    tip:
+      p.share <= DRAFT_ONLY_FTP_SHARE
+        ? `Laat ${p.name} in het wiel: zo ver onder het gemiddelde kost een kopbeurt meer dan die de ploeg oplevert.`
+        : `Geef ${p.name} korte en weinig kopbeurten, en meer rust in het wiel.`,
+  }));
+  const share = composition.pullShare;
+  if (share !== null && share < PULL_LOW_SHARE) {
     advice.push({
-      finding: `${p.name} heeft een FTP ${pct}% onder het teamgemiddelde, maar kreeg kopbeurten van ${p.pullSeconds} s.`,
-      tip:
-        share <= DRAFT_ONLY_FTP_SHARE
-          ? `Laat ${p.name} in het wiel: zo ver onder het gemiddelde kost een kopbeurt meer dan die de ploeg oplevert.`
-          : `Geef ${p.name} korte en weinig kopbeurten, en meer rust in het wiel.`,
+      finding: `De kopbeurten in het plan lagen op ${Math.round(100 * share)}% van de gemiddelde FTP.`,
+      tip: "Snelle ploegen trekken korter en harder, op 120 tot 130% van de gemiddelde FTP, en rusten daarna in het wiel.",
     });
-  }
-  const pulls = riders.flatMap((p) => (p.pullWatts && p.pullSeconds ? [p.pullWatts] : [])).sort((a, b) => a - b);
-  if (pulls.length >= 3) {
-    const share = pulls[pulls.length >> 1] / avgFtp;
-    const pct = Math.round(100 * share);
-    if (share < PULL_LOW_SHARE) {
-      advice.push({
-        finding: `De kopbeurten in het plan lagen op ${pct}% van de gemiddelde FTP.`,
-        tip: "Snelle ploegen trekken korter en harder, op 120 tot 130% van de gemiddelde FTP, en rusten daarna in het wiel.",
-      });
-    } else if (share > PULL_HIGH_SHARE) {
-      advice.push({
-        finding: `De kopbeurten in het plan lagen op ${pct}% van de gemiddelde FTP.`,
-        tip: "Dat houden alleen heel sterke ploegen vol; 120 tot 130% is een veiliger doel.",
-      });
-    }
+  } else if (share !== null && share > PULL_HIGH_SHARE) {
+    advice.push({
+      finding: `De kopbeurten in het plan lagen op ${Math.round(100 * share)}% van de gemiddelde FTP.`,
+      tip: "Dat houden alleen heel sterke ploegen vol; 120 tot 130% is een veiliger doel.",
+    });
   }
   return advice;
 }

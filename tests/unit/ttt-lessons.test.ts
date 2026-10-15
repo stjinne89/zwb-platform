@@ -85,14 +85,25 @@ const record = (extra: Partial<TttRaceRecord> = {}): TttRaceRecord => ({
 });
 
 describe("buildCheatsheet", () => {
-  it("toont alleen races van het team waarvoor gepland wordt", () => {
+  it("toont alleen races van het team waarvoor gepland wordt, met winst en verlies per stuk", () => {
     const records = [record(), record({ eventId: "ev-2", teamId: "b1", teamName: "B1" })];
     const sheet = buildCheatsheet({ records, teamIds: ["bdev"], riders: [] });
     expect(sheet.rules).toBe(TTT_RULES);
     expect(sheet.races.map((r) => r.eventId)).toEqual(["ev-1"]);
-    expect(sheet.races[0].result).toBe("1e van 2 · 43:18,7 · +18,1 s op OTR");
-    expect(sheet.races[0].facts).toEqual(["Meeste winst op het stuk naar KOM 2: +16,0 s.","De vier snelsten binnen 0,7 s."]);
-    expect(sheet.races[0].lessons.map((l) => l.finding)).toContain("Op het vlakke stuk naar Sprint verloor de ploeg 5,3 s op OTR.");
+    const race = sheet.races[0];
+    expect(race).toMatchObject({ rank: 1, of: 2, time: 2_598_700, rival: { label: "OTR", deltaMs: 18_100 }, spreadMs: 700 });
+    expect(race.sections).toEqual([
+      { name: "Sprint", deltaMs: 3000 },
+      { name: "KOM 1", deltaMs: -900 },
+      { name: "Sprint", deltaMs: -5300 },
+      { name: "KOM 2", deltaMs: 16000 },
+    ]);
+    expect(race.tips).toContain("Daar zit winst in de rotatie: snellere overnames en kopbeurten die iedereen volhoudt.");
+  });
+
+  it("laat lessen over één renner bij de race weg", () => {
+    const race = buildCheatsheet({ records: [record()], teamIds: ["bdev"], riders: [] }).races[0];
+    expect(race.tips.some((tip) => tip.includes("Jeroen"))).toBe(false);
   });
 
   it("geeft per renner de eerdere ritten, ook bij een ander team", () => {
@@ -100,7 +111,18 @@ describe("buildCheatsheet", () => {
     const sheet = buildCheatsheet({ records, teamIds: ["bdev"], riders: [{ zwiftId: 4, name: "Stijn", ftp: 274, pullWatts: null, pullSeconds: null }] });
     expect(sheet.races).toEqual([]);
     expect(sheet.riders).toHaveLength(1);
-    expect(sheet.riders[0].history[0]).toMatch(/^13 okt\.?, B2 · gemiddeld 3,20 W\/kg · KOM 1 3,56 W\/kg, KOM 2 4,05 W\/kg$/);
+    expect(sheet.riders[0].rides).toEqual([
+      {
+        startAt: "2026-10-13T18:00:00Z",
+        teamName: "B2",
+        wkg: 3.2,
+        dropped: null,
+        climbs: [
+          { name: "KOM 1", wkg: 285 / 80 },
+          { name: "KOM 2", wkg: 324 / 80 },
+        ],
+      },
+    ]);
   });
 
   it("slaat renners zonder Zwift-ID of zonder eerdere ploegentijdrit over", () => {
@@ -117,27 +139,38 @@ describe("buildCheatsheet", () => {
 
   it("waarschuwt als een renner die loste weer een lange zware kopbeurt krijgt", () => {
     const heavy = buildCheatsheet({ records: [record()], teamIds: ["bdev"], riders: [{ zwiftId: 5, name: "Jeroen", ftp: 314, pullWatts: 349, pullSeconds: 60 }] });
-    const drop = heavy.riders[0].lessons[0];
-    expect(drop.finding).toMatch(/^Jeroen loste 13 okt\.? op KOM 2\. Dit plan vraagt weer 349 W gedurende 60 s \(111% van de eigen FTP\)\.$/);
-    expect(drop.tip).toContain("Korte beurten voor Jeroen");
-    expect(heavy.riders[0].lessons[1].finding).toContain("op KOM 1 het meeste vermogen van de ploeg nodig: 330 W");
+    const jeroen = heavy.riders[0];
+    expect(jeroen.rides[0]).toMatchObject({ dropped: "KOM 2", climbs: [] });
+    expect(jeroen.flags).toEqual([
+      { tone: "warn", label: "Loste op KOM 2", tip: "Korte beurten in het halfuur voor de laatste klim" },
+      { tone: "warn", label: "Plan: 349 W · 60 s · 111%", tip: "Korter of lichter maken" },
+      { tone: "note", label: "Zwaarst op KOM 1: 330 W", tip: "Geen lange beurt vlak voor een klim" },
+    ]);
 
     const light = buildCheatsheet({ records: [record()], teamIds: ["bdev"], riders: [{ zwiftId: 5, name: "Jeroen", ftp: 314, pullWatts: 330, pullSeconds: 30 }] });
-    expect(light.riders[0].lessons[0].finding).not.toContain("Dit plan vraagt");
+    expect(light.riders[0].flags.map((f) => f.label)).not.toContain("Plan: 330 W · 30 s · 105%");
+    expect(light.riders[0].flags).toHaveLength(2);
   });
 
   it("noemt wie op de grens reed en toch bij de ploeg bleef", () => {
     const sheet = buildCheatsheet({ records: [record()], teamIds: ["bdev"], riders: [{ zwiftId: 1, name: "Koen", ftp: 280, pullWatts: null, pullSeconds: null }] });
     // Het plan van toen (FTP 273) telt, niet de FTP van nu.
-    expect(sheet.riders[0].lessons.map((l) => l.finding)).toContainEqual(expect.stringMatching(/^Koen reed 13 okt\.? gemiddeld 99% van de eigen FTP en bleef bij de ploeg\.$/));
+    expect(sheet.riders[0].flags).toContainEqual({ tone: "limit", label: "Grens: 99% FTP", tip: expect.stringMatching(/^Niet zwaarder plannen dan 13 okt\.?$/) });
   });
 
-  it("herhaalt een plantip niet bij de race", () => {
+  it("geeft de opbouw van het plan, en herhaalt die niet bij de race", () => {
     const riders = record().plan.map((p) => ({ ...p, pullWatts: 290 }));
     const sheet = buildCheatsheet({ records: [record({ plan: riders })], teamIds: ["bdev"], riders });
-    const finding = "De kopbeurten in het plan lagen op 106% van de gemiddelde FTP.";
-    expect(sheet.plan.map((a) => a.finding)).toContain(finding);
-    expect(sheet.races[0].lessons.map((a) => a.finding)).not.toContain(finding);
+    expect(sheet.plan?.avgFtp).toBeCloseTo(273.2);
+    expect(sheet.plan?.pullShare).toBeCloseTo(290 / 273.2);
+    expect(sheet.races[0].tips).not.toContain(
+      "Snelle ploegen trekken korter en harder, op 120 tot 130% van de gemiddelde FTP, en rusten daarna in het wiel.",
+    );
+  });
+
+  it("heeft zonder FTP's geen plancheck", () => {
+    const sheet = buildCheatsheet({ records: [], teamIds: ["bdev"], riders: [{ zwiftId: 1, name: "Koen", ftp: null, pullWatts: null, pullSeconds: null }] });
+    expect(sheet.plan).toBeNull();
   });
 });
 
