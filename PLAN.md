@@ -134,7 +134,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **ZWBeter racen voor elke Zwift-race: FRR, andere kalenderraces en een geplakte link, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> **ZWBeter racen voor elke Zwift-race: FRR, andere kalenderraces en een geplakte link, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `1853fad`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Vraag van de eigenaar: "Kan dit verder doorgetrokken worden tot
