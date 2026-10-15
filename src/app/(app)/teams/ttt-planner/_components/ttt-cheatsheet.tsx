@@ -16,8 +16,12 @@ import { buildCheatsheet, PULL_TARGET, type CheatFlag, type Cheatsheet, type Che
 import { DRAFT_ONLY_FTP_SHARE, PULL_HIGH_SHARE, PULL_LOW_SHARE, type PlanComposition, type PlanRider } from "@/lib/zrl-analysis/advice";
 import { raceTime, signedSeconds } from "@/lib/zrl-analysis/format";
 
-// Handschrift met duidelijke cijfers: een 1 die niet op een l lijkt.
-const hand = Shantell_Sans({ subsets: ["latin"], weight: ["400", "700"], display: "swap" });
+// Handschrift met duidelijke cijfers: een 1 die niet op een l lijkt. De assen
+// INFM (informeel) en BNCE (dansende letters) maken het meer geschreven; de
+// koppen het sterkst.
+const hand = Shantell_Sans({ subsets: ["latin"], weight: "variable", axes: ["BNCE", "INFM"], display: "swap" });
+const HAND_TEXT = "[font-variation-settings:'INFM'_70,'BNCE'_25]";
+const HAND_HEADING = "[font-variation-settings:'INFM'_100,'BNCE'_50]";
 
 // De races veranderen alleen als er een nieuwe ploegentijdrit gereden is. Een
 // uur cachen houdt de planner snel; de versie in de sleutel ververst na een deploy
@@ -37,7 +41,7 @@ const RULE = "border-[#d6dfdc] dark:border-[#c7cec6]";
 const HIGHLIGHT = "bg-[rgba(232,190,90,0.45)] box-decoration-clone px-1";
 
 function Title({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={cn("text-lg font-bold leading-tight", className)}>{children}</h3>;
+  return <h3 className={cn("text-lg font-bold leading-tight", HAND_HEADING, className)}>{children}</h3>;
 }
 
 /** Kopvermogen op een getekende lat van 90 tot 130% van de gemiddelde FTP, met de doelband als markeerstift. */
@@ -165,7 +169,7 @@ function Riders({ riders, teamIds }: { riders: CheatsheetRider[]; teamIds: strin
                 <span key={rider.zwiftId}>
                   {index > 0 && " · "}
                   {rider.name}
-                  {otherTeam(rider) && <span className="font-sans text-xs font-normal" style={{ color: PENCIL }}> ({otherTeam(rider)})</span>}
+                  {otherTeam(rider) && <span className={cn("text-sm font-normal", HAND_TEXT)} style={{ color: PENCIL }}> ({otherTeam(rider)})</span>}
                 </span>
               ))}
             </p>
@@ -188,7 +192,7 @@ function Riders({ riders, teamIds }: { riders: CheatsheetRider[]; teamIds: strin
 function SectionBars({ race }: { race: CheatsheetRace }) {
   const max = Math.max(1000, ...race.sections.map((s) => Math.abs(s.deltaMs)));
   return (
-    <ul className="mt-1 space-y-1 font-sans text-xs" style={{ color: PENCIL }}>
+    <ul className="mt-1 space-y-1 text-xs" style={{ color: PENCIL }}>
       {race.sections.map((section, index) => (
         <li key={`${index}-${section.name}`} className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_3.25rem] items-center gap-2">
           <span className="truncate first-letter:uppercase" title={section.name}>
@@ -218,7 +222,7 @@ function Race({ race }: { race: CheatsheetRace }) {
     <div className="mt-4">
       <Title>
         Vorige keer · {dateLabel.format(new Date(race.startAt))}
-        {race.teamName && <span className="font-sans text-xs font-normal" style={{ color: PENCIL }}> {race.teamName}</span>}
+        {race.teamName && <span className={cn("text-sm font-normal", HAND_TEXT)} style={{ color: PENCIL }}> {race.teamName}</span>}
       </Title>
       <p className="tabular-nums">
         {race.rank !== null && (
@@ -301,7 +305,7 @@ async function LoadedSheet({ teamIds, riders }: { teamIds: string[]; riders: Pla
   return (
     <>
       {count > 0 && (
-        <p className="mt-2 font-sans text-xs" style={{ color: PENCIL }}>
+        <p className="mt-2 text-sm" style={{ color: PENCIL }}>
           uit {count} eerdere {count === 1 ? "ploegentijdrit" : "ploegentijdritten"}
         </p>
       )}
@@ -355,11 +359,11 @@ export function TttCheatsheet({ teamIds, riders }: { teamIds: string[]; riders: 
       {/* De schaduw zit op de omhulling: drop-shadow volgt de gescheurde rand. */}
       <div className="relative mx-auto max-w-5xl [filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.16))_drop-shadow(0_5px_10px_rgba(0,0,0,0.08))] sm:-rotate-[0.6deg]">
         <div
-          className={cn(hand.className, "relative bg-[#fbf7ea] pt-8 pr-5 pb-7 pl-10 sm:pr-8 sm:pl-14 dark:bg-[#e6dfcc]")}
+          className={cn(hand.className, HAND_TEXT, "relative bg-[#fbf7ea] pt-8 pr-5 pb-7 pl-10 sm:pr-8 sm:pl-14 dark:bg-[#e6dfcc]")}
           style={PAPER_STYLE}
         >
           <span aria-hidden className="absolute inset-y-0 left-6 border-l-[1.5px] border-[#c9a15a] sm:left-10" />
-          <h2 id="ttt-spiekbriefje" className="text-2xl font-bold leading-tight">
+          <h2 id="ttt-spiekbriefje" className={cn("text-2xl font-bold leading-tight", HAND_HEADING)}>
             <span className="border-b-2" style={{ borderColor: INK }}>
               Spiekbriefje
             </span>

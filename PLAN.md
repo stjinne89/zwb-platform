@@ -162,6 +162,12 @@ van de CORE-sensor, beide 2026-10-14).
 > plakband schuin over de hoek rechtsonder. Geen `clip-path`-veelhoek en geen
 > afbeelding.
 >
+> Daarna ook het handschrift doorgetrokken in koppen en ondertitels: de laatste
+> stukjes Geist (het aantal ritten, teamnamen, de namen bij de staafjes) zijn
+> handschrift, en Shantell Sans staat nu variabel met de assen `INFM`
+> (informeel) en `BNCE` (dansende letters): de tekst op 70 en 25, de koppen op
+> 100 en 50.
+>
 > **Niet meer waar.** De ronde hieronder ("het cheatsheet als spiekbriefje")
 > beschrijft een kaart met labels en een aparte kolom vuistregels; die vorm is
 > vervangen. De ritregels per renner (W/kg per klim) staan niet meer op het
