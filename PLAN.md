@@ -8562,6 +8562,27 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — uitklaplijsten in het donkere thema donker
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In de TTT Planner (tegels-design, donker) stond de lijst van het
+eventveld wit, met lichtgrijze tekst erop: bijna onleesbaar.
+
+**Oorzaak en wijziging.** Een native `<select>` tekent zijn lijst zelf. De opties
+erfden de lichte tekstkleur, maar niet de halftransparante veldachtergrond
+(`--tg-panel`), dus de browser viel terug op wit. Twee regels in `globals.css`:
+
+- `.dark` zet `color-scheme: dark`, zodat native onderdelen (uitklaplijsten,
+  schuifbalken, datumkiezers) in het donkere thema donker zijn. Dat stond
+  nergens in de app.
+- In de base-laag krijgen `option` en `optgroup` `--popover` als achtergrond en
+  `--popover-foreground` als tekst. Dat geldt in beide designs en beide thema's,
+  dus elke `<select>` in de app, niet alleen die in de TTT Planner.
+
+**Niet lokaal te verifiëren.** Niet in de browser bekeken en niet gebouwd: deze
+worktree heeft geen `.env.local` en geen `node_modules`.
+
 ### Opgeleverd — Protocollen bij trainen en voeden, en een kennisbank trainen
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie
